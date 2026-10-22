@@ -19,6 +19,8 @@
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Window.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -27,6 +29,14 @@
 #include <vector>
 
 namespace affresco::format {
+
+/// @brief What the last update of the panels cost: read with Runtime::lastUpdate(), for an inspector.
+struct UpdateStatistics {
+	std::uint64_t updates = 0;     ///< Updates since the runtime started.
+	double milliseconds = 0;       ///< How long the last one took.
+	std::size_t panelsApplied = 0; ///< Panels whose values the last one applied (those it rebuilt among them).
+	std::size_t panelsCreated = 0; ///< Panels it created.
+};
 
 /// @brief Brings a screen document to life: builds it into panels, keeps them in line with it, and runs actions.
 ///
@@ -187,6 +197,19 @@ public:
 
 	/// @brief The window built into, or nullptr before build().
 	[[nodiscard]] Window* window() const noexcept;
+
+	/* Inspection */
+
+	/// @brief What the last update of the panels cost.
+	[[nodiscard]] const UpdateStatistics& lastUpdate() const noexcept;
+
+	/// @brief What the document says about a panel, for an inspector: the node it was built from (the nearest
+	/// ancestor built from one, for a panel a type creates itself) and its bindings as written. Never a value: what
+	/// a binding gives now stays out, so the state never shows.
+	/// @param panel A panel of the window.
+	/// @return `{"node": "#id" or the node's place, "type", "path", "bind"?, "bindings": {key: written}, "handlers":
+	/// [key]}`, or null if no node built it.
+	[[nodiscard]] json inspect(const Panel& panel);
 
 	/* Lookup */
 

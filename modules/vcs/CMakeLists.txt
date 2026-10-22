@@ -1,6 +1,8 @@
 # vcs: version control (commits, proposals, permission rules, review, change sets, the history on disk)
 affrescoui_module(vcs
 	src/Repository.cpp
+	src/RepositoryReview.cpp
+	src/Merge.cpp
 	src/Budget.cpp
 	src/RepositoryHistory.cpp
 	src/RepositoryDocuments.cpp

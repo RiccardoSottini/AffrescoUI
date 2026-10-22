@@ -235,10 +235,10 @@ bool Session::handleChange(const Incoming& in) {
 }
 
 // accept, reject, preview, endPreview, setMode, revoke: decisions, for reviewers only (an agent must not approve
-// its own changes)
+// its own changes); inspect too, which shows how the screen is built
 bool Session::handleReview(const Incoming& in) {
-	static constexpr std::array<std::string_view, 6> decisions = {"accept",     "reject",  "preview",
-	                                                              "endPreview", "setMode", "revoke"};
+	static constexpr std::array<std::string_view, 7> decisions = {"accept",  "reject", "preview", "endPreview",
+	                                                              "setMode", "revoke", "inspect"};
 	if(std::ranges::find(decisions, in.type) == decisions.end()) return false;
 
 	const int at = versions_.head().number;
@@ -249,7 +249,7 @@ bool Session::handleReview(const Incoming& in) {
 		      {"id", in.id}});
 		return true;
 	}
-	if(const std::optional<std::string> error = decide(in))
+	if(const std::optional<std::string> error = in.type == "inspect" ? inspect(in) : decide(in))
 		send({{"type", "rejected"}, {"error", *error}, {"revision", versions_.head().number}, {"id", in.id}});
 	else send({{"type", "done"}, {"revision", versions_.head().number}, {"id", in.id}});
 	return true;
@@ -261,8 +261,9 @@ std::optional<std::string> Session::decide(const Incoming& in) {
 		// The peer says which version it approves: the branch may move while the reviewer looks at it
 		if(!m.contains("head") || !m["head"].is_string())
 			expect::fail("accept.head", "expected the proposal's head commit: the version you reviewed");
+		const std::string duration = m.contains("for") ? expect::string(m["for"], "accept.for") : "";
 		return versions_.accept(proposalOf(in),
-		                        {in.author, m["head"].get<std::string>(), m.value("dontAskAgain", false)});
+		                        {in.author, m["head"].get<std::string>(), m.value("dontAskAgain", false), duration});
 	}
 	if(in.type == "reject") {
 		const int proposal = proposalOf(in);
@@ -283,6 +284,13 @@ std::optional<std::string> Session::decide(const Incoming& in) {
 	const std::string rule = expect::string(m.value("rule", json()), "revoke.rule"); // revoke
 	if(versions_.revokeGrant(rule)) return std::nullopt;
 	return "AffrescoUI screen: no grant '" + rule + "'";
+}
+
+std::optional<std::string> Session::inspect(const Incoming& in) {
+	const json on = in.message.value("on", json());
+	if(!on.is_boolean()) expect::fail("inspect.on", "expected true or false");
+	if(!images_) return "AffrescoUI screen: this host has no inspector";
+	return images_->inspect(on.get<bool>());
 }
 
 int Session::proposalOf(const Incoming& in) {
@@ -332,6 +340,8 @@ bool Session::handleQuery(const Incoming& in) {
 		      {"id", in.id}});
 	} else if(in.type == "render") {
 		sendImage(in);
+	} else if(in.type == "getEvidence") {
+		sendEvidence(in);
 	} else {
 		return false;
 	}
@@ -378,6 +388,41 @@ void Session::sendImage(const Incoming& in) {
 	      {"height", image.height},
 	      {"scale", request.scale},
 	      {"proposal", request.proposal ? json(*request.proposal) : json()},
+	      {"revision", versions_.head().number},
+	      {"id", in.id}});
+}
+
+void Session::sendEvidence(const Incoming& in) {
+	const json& m = in.message;
+	const int proposal = proposalOf(in);
+	const int scale =
+	    m.contains("scale") && !m["scale"].is_null() ? expect::integer(m["scale"], "getEvidence.scale") : 1;
+	if(scale < 1 || scale > ScreenImages::maxScale)
+		expect::fail("getEvidence.scale", "expected 1 to " + std::to_string(ScreenImages::maxScale));
+	if(!images_) expect::fail("getEvidence", "this host draws no pictures");
+	// Two pictures and the scenarios played: at the rate of pictures
+	if(!pictureRate_.take(TokenBucket::Clock::now())) {
+		const std::string what = "too many pictures: at most " + toText(limits_.revisionsPerMinute) + " a minute";
+		overLimit(what);
+		throw DocumentError(what);
+	}
+
+	Evidence evidence;
+	if(const std::optional<std::string> error = images_->evidence(proposal, scale, evidence))
+		throw DocumentError(*error);
+	const auto picture = [](const Image& image) {
+		return json{{"format", "png"}, {"data", toBase64(image.png)}, {"width", image.width}, {"height", image.height}};
+	};
+	send({{"type", "evidence"},
+	      {"proposal", proposal},
+	      {"evidence",
+	       {{"before", picture(evidence.before)},
+	        {"after", picture(evidence.after)},
+	        {"region", evidence.region},
+	        {"behaviour", evidence.behaviour},
+	        {"scenarios", evidence.scenarios},
+	        {"texts", evidence.texts}}},
+	      {"scale", scale},
 	      {"revision", versions_.head().number},
 	      {"id", in.id}});
 }

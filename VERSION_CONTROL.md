@@ -160,6 +160,95 @@ inside those areas apply without asking.
 - They are allow rules, so `deny` and `ask` rules still win, and `plan` mode suspends them.
 - Not every proposal can be remembered. A proposal can't be remembered if it touches parts an `ask` rule covers, or
   if it changes something as broad as the whole layout (`/root`) or a whole section (`/actions`).
+- **Grants can expire.** An accept can say how long its grants last (`"for": "8h"`: minutes `m`, hours `h` or days
+  `d`, at most a year), and a review policy can cap it (`grantsLast`, below). Each grant then carries `expires`
+  (UTC); from that time on it no longer allows, and changes like it are proposed again. Without either, a grant lasts
+  until a reviewer revokes it.
+
+### Review policies
+A screen says what a proposal needs before it merges in `permissions.review`, like a repository's branch protection
+and `CODEOWNERS`:
+
+```json
+"permissions": {
+  "reviewers": ["studio", "human"],
+  "review": {
+    "approvals": 1,
+    "behaviourApprovals": 2,
+    "owners": { "#board": ["human/anna"], "/colors": ["studio"] },
+    "grantsLast": "8h"
+  }
+}
+```
+
+- `approvals`: how many reviewers must approve (1 when it is missing).
+- `behaviourApprovals`: how many when the proposal changes **behaviour**: an action, a shortcut, a watch, `onLoad`, a
+  computed value, or a node's handlers (`onClick`...), `keys`, `every`, `check`, `when`, `repeat`, `drag` or bindings.
+  Each proposal lists those changes as lines (`behaviour`: "adds onClick of #title", "changes the action 'save'").
+- `owners`: parts of the screen and who owns them. A proposal that changes a part needs, besides the count, an approval
+  from one of its owners (an author or a channel name).
+- `grantsLast`: the longest a "don't ask again" grant lasts.
+
+Each approval counts once per reviewer, and never from the author's own channel. Until the policy is met, an accept
+records the approval and the proposal stays open; every peer sees `approvals`, `policy` (what it needs, e.g. "2
+approvals (it changes behaviour), one from an owner of #board (human/anna)") and `reason` (what is missing). The
+approval that completes the policy merges it. The policy is the one `main` has when the approval arrives, judged on
+the change as it would merge then, so neither an older policy nor a rebase lowers the bar.
+
+### Rebasing
+When `main` moves on (a commit, an accepted proposal, an import), every open proposal rebases itself onto the new
+head with a **three-way merge**: of the document it was built on, `main`'s document now, and its own. Objects merge key
+by key, and lists of nodes merge **by id**, so two peers who change, add or remove different nodes never conflict,
+wherever the nodes moved. A list reordered differently on both sides, or a value both sides changed differently, is a
+conflict.
+
+- **Exact rebase.** If replaying the proposal's commits on the new `main` gives what the merge gives, its commits are
+  replayed as they were (new ids, same changes). Approvals stay, and the head a reviewer saw (pinned in the approval,
+  "You accept what you saw") still counts: what merges is what was reviewed, plus `main`'s own changes.
+- **Merged rebase.** If the commits no longer give the merge (e.g. an operation that adds at a position that has moved),
+  the branch becomes one commit with the merge's changes, "Rebase onto ...". That is a change nobody reviewed:
+  **its approvals are dismissed**, and an approval naming an older head is refused. Reviewers look again.
+- **Conflict.** The proposal stays where it was, and lists its conflicts (`conflicts`: `[{"path", "reason", "base",
+  "main", "proposal"}]`, paths from the nearest node, e.g. `#title/text`), which the Studio shows side by side. It
+  can't be accepted until its author pushes again (which rebuilds the branch on the current `main`); it can be
+  rejected.
+
+### Evidence
+A reviewer can ask the host for a proposal's **evidence** (`{"type": "getEvidence", "proposal": 3, "scale": 1}`), and
+gets it back as `evidence`:
+
+```json
+"evidence": {
+  "before": {"format": "png", "data": "...", "width": 1280, "height": 800},
+  "after": {"format": "png", "data": "...", "width": 1280, "height": 800},
+  "region": [x, y, w, h],
+  "behaviour": ["adds onClick of #title"],
+  "scenarios": [{"name": "opens", "passed": true, "message": ""}],
+  "texts": [{"node": "#title", "original": "Tasks", "modified": "Today", "language": "text"}]
+}
+```
+
+- `before` and `after` are the screen drawn on `main` and as accepting would leave it, off screen; `region` is the
+  smallest rectangle (in those pictures' pixels) holding every pixel that differs, `[0, 0, 0, 0]` when none does.
+- `behaviour` is the proposal's lines of behaviour change (as in "Review policies").
+- `scenarios` are the results of the screen's scenarios (`<name>.scenarios.json` beside the screen) played on the
+  proposal's document, headless: those that need no pictures. The host decides whether to play any.
+- `texts` lists each text the proposal changes, added or removes, by node, for a diff view (the Studio shows them side
+  by side).
+
+**The host gathers all of it itself**, when asked, from the proposal as it is now: a revision that carries
+`evidence` or `behaviour` is refused, so an author can never supply or forge it. Gathering draws two pictures, so it
+counts against the same rate as `render`.
+
+### Inspector
+A reviewer can turn on the host's **inspector** (`{"type": "inspect", "on": true}`; the Studio's search button): a
+debug overlay on the screen's window. For the panel under the pointer it shows its node, bounds, bindings as written
+(`{{state.count}}`, never the value) and handlers, and the commit that last changed it (`blame`); then the last frame's
+time and draw calls, the last update's time and panels rebuilt and created, and the latest events: clicks and scrolls
+by node, keys such as Enter or Escape (never a typed character), sends by channel (never the message), commits and
+decisions. It is off by default, a peer that may not review can't turn it on, and the overlay is never in a picture
+drawn for a peer. The host answers `done`, or `rejected` with no window or no inspector. In C++:
+`Screen::setInspector()` and `Screen::inspectorTrace()`.
 
 ## What keeps it safe
 - **Nobody approves their own change.** Agents aren't reviewers, the MCP server has no accept tool, revisions can't
@@ -167,6 +256,8 @@ inside those areas apply without asking.
 - **You accept what you saw.** Every accept names the proposal's head commit: over the live protocol (`head`), in an
   `accept` step (`"head"`) and through `Screen::acceptProposal(id, head)`. If the author pushed since, the approval
   is refused and the proposal stays open for another look.
+- **A rebase never carries an approval further than what was reviewed.** It keeps approvals only when the proposal's
+  changes are exactly the ones reviewed; otherwise it dismisses them. A conflicted proposal can't be accepted.
 - **Deny is final.** Deny rules are checked when a revision arrives *and* again when it is merged, against the
   current `main`.
 - **The history can't be rewritten.** `main` only grows, and commit ids chain every commit to its parents.
@@ -176,6 +267,8 @@ inside those areas apply without asking.
   commits too), at most 100,000 values copied by its `copy` operations in all (a copy of a list into itself doubles
   it), and no object given more than 10,000 members. A screen file may hold a wider object: a revision may change
   it, not widen it.
+- **Evidence comes from the host.** Pictures, behaviour lines and scenario results are gathered by the host from the
+  proposal itself; a revision can't carry any.
 - **Merges never guess:** a proposal that no longer applies to `main` is closed with the reason, and a revert whose
   parts changed later is refused as a conflict.
 

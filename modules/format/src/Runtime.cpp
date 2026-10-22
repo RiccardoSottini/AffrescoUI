@@ -181,6 +181,28 @@ bool Runtime::hasAction(std::string_view name) const {
 
 Window* Runtime::window() const noexcept { return impl_->window; }
 
+const UpdateStatistics& Runtime::lastUpdate() const noexcept { return impl_->reconciler.statistics(); }
+
+json Runtime::inspect(const Panel& panel) {
+	const Panel* built = &panel;
+	const Record* record = impl_->reconciler.recordOf(built);
+	for(; !record && built->parent(); record = impl_->reconciler.recordOf(built)) built = built->parent();
+	if(!record) return nullptr;
+
+	json bindings = json::object();
+	for(const CompiledProperty& property : record->node->properties)
+		if(property.value.dynamic()) bindings[property.key] = property.value.written();
+	json handlers = json::array();
+	for(const auto& [key, handler] : record->handlers.items()) handlers.push_back(key);
+	json answer = {{"node", built->id().empty() ? record->path : "#" + built->id()},
+	               {"type", record->type},
+	               {"path", record->path}};
+	if(record->bind) answer["bind"] = *record->bind;
+	answer["bindings"] = std::move(bindings);
+	answer["handlers"] = std::move(handlers);
+	return answer;
+}
+
 json Runtime::catalog() const { return format::catalog(*impl_); }
 
 json Runtime::schema() const { return format::schema(*impl_); }

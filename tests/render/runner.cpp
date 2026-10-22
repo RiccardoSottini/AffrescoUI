@@ -100,6 +100,8 @@ int main(int argc, char** argv) {
 			examples::registerCodeEditor(screen);
 			forge::registerNatives(screen, std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER));
 			forge::addExampleCatalog(screen, AFFRESCOUI_FORGE_DIRECTORY);
+			// The inspector's overlay (inspector.json), without its times so that each picture is the same
+			screen.onAction("inspector:on", [&screen](affresco::Panel&) { screen.setInspector(true, false); });
 		};
 		std::vector<std::string> files;
 		if(!readArguments(std::vector<std::string_view>(argv + 1, argv + argc), options, files)) return 2;

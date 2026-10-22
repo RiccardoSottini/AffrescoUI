@@ -13,9 +13,9 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 
 | Header | Offers |
 |---|---|
-| `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing) and `reviewLines` (the service steps a change adds, which always need a reviewer); `findings` (the checker's findings as text); `addNativeAction` |
+| `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing), `reviewLines` (the service steps a change adds, which always need a reviewer) and `behaviourLines` (what a change does to behaviour, for review policies and evidence); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
-| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
+| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated`; for the inspector, `inspect` (a panel's node, bindings as written and handlers, never a value) and `lastUpdate` (`UpdateStatistics`) |
 | `Features.hpp` | `Features` (RFC 0004): the publishers the host trusts (`trustPublisher`), its signed catalogues (`addCatalog`), what they offer (`catalog`), and the revisions that install and upgrade a feature (`installRevision`, `upgradeRevision`) |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
@@ -227,6 +227,7 @@ src/
   FeatureCatalog.*         catalogue v0: a signed index and its releases' manifests, with every check
   FeatureSignatures.*      Ed25519 signatures over canonical JSON (RFC 8785), base64url, SHA-512 digests
   Rules.cpp                validation, findNode, permissions, checkChange (control steps, capability sections)
+  BehaviourLines.cpp       behaviourLines: the actions, handlers, steps and bindings a change adds, removes or changes
   RulesNodes.cpp           Rules for revisions' nodes and paths: ids for the nodes they add, hints for paths
   NodeIds.cpp              where nodes are, their ids, duplicates, and readable ids for nodes without one
   Checker.hpp / .cpp       the static checker: its passes, findings and hints ("did you mean ...")

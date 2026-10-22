@@ -3,6 +3,8 @@ add_library(affrescoui
 	src/Screen.cpp
 	src/OffscreenImages.cpp
 	src/FeaturesService.cpp
+	src/ProposalEvidence.cpp
+	src/Inspector.cpp
 	src/Png.cpp)
 add_library(affrescoui::affrescoui ALIAS affrescoui)
 target_include_directories(affrescoui PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/screen/include>)

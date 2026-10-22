@@ -13,6 +13,7 @@
 #include "platform/Platform.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <iterator>
@@ -196,6 +197,7 @@ void Window::updateLayout() {
 		tooltip_->layout(Rect{left, top, left + size.x, top + size.y}, area, Vec2{width, height}, true);
 	}
 	layoutFocusRing();
+	layoutInspection();
 	layingOut_ = false;
 
 	layoutDirty_ = false;
@@ -224,6 +226,22 @@ void Window::layoutFocusRing() {
 	const auto width = static_cast<float>(width_), height = static_cast<float>(height_);
 	ring_->layout(box, Rect{0.0f, 0.0f, width, height}, Vec2{width, height}, true);
 	drawn_.push_back(ring_.get());
+}
+
+void Window::layoutInspection() {
+	if(!inspection_ || !inspection_->isVisible()) return;
+	const auto width = static_cast<float>(width_), height = static_cast<float>(height_);
+	const Rect area{0.0f, 0.0f, width, height};
+	inspection_->width_ = px(width);
+	inspection_->height_ = px(height);
+	inspection_->layout(area, area, Vec2{width, height}, true);
+	drawn_.push_back(inspection_.get());
+}
+
+void Window::setInspection(std::unique_ptr<Panel> layer) {
+	inspection_ = std::move(layer); // the one before forgets itself
+	if(inspection_) inspection_->attachTo(this);
+	requestLayout();
 }
 
 // Pre-order, after the tree: an overlay's own overlays come after it, so they are drawn on top of it
@@ -373,13 +391,22 @@ void Window::render() {
 	runDeferred();
 	if(!redrawDirty_) return;
 
+	drawAndPresent();
+	redrawDirty_ = false;
+}
+
+void Window::drawAndPresent() {
+	const auto start = std::chrono::steady_clock::now(); // real time, whatever clock() says
 	if(renderer_) {
 		draw();
 		native_->present();
 	} else {
 		updateLayout(); // headless: the frame is laid out, never drawn
 	}
-	redrawDirty_ = false;
+	++statistics_.frames;
+	statistics_.frameMilliseconds =
+	    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+	statistics_.drawCalls = renderer_ ? renderer_->drawCalls() : 0;
 }
 
 bool Window::saveScreenshot(const std::filesystem::path& path) {

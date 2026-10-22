@@ -5,6 +5,7 @@
 
 #include "Record.hpp"
 
+#include "affresco/format/Runtime.hpp"
 #include "affresco/render/Panel.hpp"
 
 #include <cstdint>
@@ -60,6 +61,8 @@ public:
 	}
 	/// @brief Every record, by panel.
 	[[nodiscard]] std::unordered_map<const Panel*, Record>& records() noexcept { return records_; }
+	/// @brief What the last update cost (Runtime::lastUpdate()).
+	[[nodiscard]] const UpdateStatistics& statistics() const noexcept { return statistics_; }
 
 private:
 	/// @brief Brings the panels in line with the document and the state, then runs "watch" handlers.
@@ -185,6 +188,7 @@ private:
 	std::uint64_t syncedAppearance_ = 0;               ///< DocumentContext::appearance() then.
 	std::string syncedScreen_;                         ///< DocumentContext::screen() then.
 	ReadSet rootScopeReads_;                           ///< What the root's "with", "let" and "style" read.
+	UpdateStatistics statistics_;                      ///< See statistics().
 };
 
 } // namespace affresco::format

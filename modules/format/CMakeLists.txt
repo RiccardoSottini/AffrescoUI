@@ -15,6 +15,7 @@ affrescoui_module(format
 	src/ExpressionFunctionsFuzzy.cpp
 	src/Value.cpp
 	src/Rules.cpp
+	src/BehaviourLines.cpp
 	src/Sections.cpp
 	src/StateTypes.cpp
 	src/Limits.cpp

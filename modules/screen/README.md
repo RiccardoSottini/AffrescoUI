@@ -24,6 +24,8 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
   before their peers go.
 - **A peer is authored by the name it was connected with,** whatever name it gives itself. Every peer hears about
   commits, proposals and `emit` events; `request` and `reply` go to the other peers.
+- **Evidence is the host's:** `getEvidence` draws main and the proposal, plays the scenarios the host gave
+  `setScenarioCheck` on the proposal's document, and lists its changed texts; a revision can't carry any of it.
 - **Pictures show every image:** `render` waits for the image files still being decoded before it draws.
 - **Image files stay in their folders:** a screen's `image` nodes read files only inside the screen file's folder
   and the folders the host allows with `allowImageDirectory`.
@@ -77,7 +79,9 @@ src/
   Screen.cpp             Screen and Screen::Impl: loading (with "include": resolveIncludes, mergeInclude; menus
                          merge menu by menu, so feature files add to one menu), the data
                          and socket folders, persist, channels, peers
-  OffscreenImages.hpp / .cpp   pictures of the screen or of a proposal, for "render"
+  OffscreenImages.hpp / .cpp   pictures of the screen or of a proposal, for "render" and "getEvidence"
+  ProposalEvidence.hpp / .cpp  a proposal's evidence: the changed region of two pictures, its changed texts
+  Inspector.hpp / .cpp   the inspector: the overlay on the panel under the pointer, its statistics and event trace
   Png.hpp / .cpp         a small PNG encoder and a PPM reader
 CMakeLists.txt           the affrescoui target and its sources
 ```

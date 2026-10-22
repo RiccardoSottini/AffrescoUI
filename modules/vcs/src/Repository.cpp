@@ -405,7 +405,8 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 	for(const PermissionRule& rule : permissions.allow)
 		if(detail::authorMatches(rule.author, author)) allowed.push_back(rule.pattern);
 	for(const Grant& grant : grants_)
-		if(const auto rule = parsePermissionRule(grant.rule); rule && detail::authorMatches(rule->author, author))
+		if(const auto rule = parsePermissionRule(grant.rule);
+		   rule && !expired(grant) && detail::authorMatches(rule->author, author))
 			allowed.push_back(rule->pattern);
 	if(detail::onlyInside(rules_, before, after, allowed)) return {Kind::Allow, {}};
 
@@ -436,8 +437,10 @@ const Repository::Commit& Repository::land(Commit commit, json document, json st
 		throw;
 	}
 	if(!importing_) {
+		const bool rebased = rebaseProposals();
 		saveHistory(); // before anyone hears of it
 		onCommit(info(stored));
+		if(rebased) proposalsChanged();
 	}
 	return stored;
 }
@@ -468,6 +471,9 @@ RevisionResult Repository::submit(const json& revision) {
 	const int number = mainHead().number;
 	try {
 		expect::object(revision, "revision");
+		// Evidence is what the host draws and plays itself: an author naming any of it is trying to forge it
+		for(const char* key : {"evidence", "behaviour"})
+			if(revision.contains(key)) fail(std::string("revision.") + key, "the host gathers it itself");
 		const std::string author = authorOf(revision);
 		if(revision.contains("proposal")) return push(revision, author);
 
@@ -515,23 +521,15 @@ RevisionResult Repository::submit(const json& revision) {
 	}
 }
 
-// Rebased on main's head: the commits are replayed in order (unchanged ones keep their ids), then the new one
-void Repository::extend(Proposal& proposal, const json& revision) {
+std::vector<Repository::Commit> Repository::branchOf(const Proposal& proposal) const {
 	std::vector<Commit> commits;
 	for(std::string id = proposal.head; id != proposal.base; id = objects_.at(id).parents.front())
 		commits.insert(commits.begin(), objects_.at(id));
+	return commits;
+}
 
-	Commit added;
-	added.author = added.committer = proposal.author;
-	added.message = messageOf(revision);
-	added.time = utcNow();
-	added.patch = patchOf(revision);
-	commits.push_back(std::move(added));
-	// accept() replays them all as one patch: refused now, not once a reviewer has looked at it
-	std::size_t operations = 0;
-	for(const Commit& c : commits) operations += c.patch.size();
-	detail::expectFewEnoughOperations(operations);
-
+// The commits are replayed in order on main's head (unchanged ones keep their ids)
+json Repository::replay(Proposal& proposal, std::vector<Commit> commits) {
 	json document = mainDocument(), state = committedState(), patch = json::array();
 	std::string parent = main_.back();
 	int number = mainHead().number;
@@ -560,6 +558,29 @@ void Repository::extend(Proposal& proposal, const json& revision) {
 	proposal.reason = verdict.kind == Verdict::Kind::Ask ? verdict.reason : "proposals are always reviewed";
 	proposal.remember = rememberedRules(proposal.author, touches, verdict.askedByRule);
 	proposal.touches = std::move(touches);
+	proposal.conflicts = json::array();
+	proposal.behaviour = rules_.behaviourLines(before, after);
+	proposal.policy = reviewNeeds(before, after, {}).first;
+	return document;
+}
+
+// Rebased on main's head, with the new commit last; what was approved before no longer is
+void Repository::extend(Proposal& proposal, const json& revision) {
+	std::vector<Commit> commits = branchOf(proposal);
+	Commit added;
+	added.author = added.committer = proposal.author;
+	added.message = messageOf(revision);
+	added.time = utcNow();
+	added.patch = patchOf(revision);
+	commits.push_back(std::move(added));
+	// accept() replays them all as one patch: refused now, not once a reviewer has looked at it
+	std::size_t operations = 0;
+	for(const Commit& c : commits) operations += c.patch.size();
+	detail::expectFewEnoughOperations(operations);
+
+	replay(proposal, std::move(commits));
+	proposal.approvals.clear();
+	proposal.reviewedHeads.clear();
 }
 
 std::vector<std::string> Repository::rememberedRules(const std::string& author, const std::vector<std::string>& touches,
@@ -649,8 +670,13 @@ std::vector<ProposalInfo> Repository::proposals() const {
 	for(const Proposal& p : proposals_) {
 		std::vector<std::string> changes;
 		for(const json& op : p.patch) changes.push_back(summary(op));
-		result.push_back({p.id, "proposal/" + std::to_string(p.id), p.author, p.message, p.base, p.head, p.commits,
-		                  p.patch.size(), p.touches, p.remember, std::move(changes), p.reason, p.time});
+		ProposalInfo& info = result.emplace_back(
+		    ProposalInfo{p.id, "proposal/" + std::to_string(p.id), p.author, p.message, p.base, p.head, p.commits,
+			             p.patch.size(), p.touches, p.remember, std::move(changes), p.reason, p.time});
+		info.conflicts = p.conflicts;
+		info.approvals = p.approvals;
+		info.policy = p.policy;
+		info.behaviour = p.behaviour;
 	}
 	return result;
 }
@@ -668,19 +694,13 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 	if(!proposal) return "AffrescoUI screen: no proposal " + std::to_string(id);
 
 	// Refused approvals leave the proposal open
-	if(detail::channelOf(approval.reviewer) == detail::channelOf(proposal->author))
-		return "AffrescoUI screen: permission denied: '" + approval.reviewer + "' may not accept its own proposal";
-	// Every approval names what was reviewed: without it, a branch pushed to after the review would merge unseen
-	if(approval.head.size() < 7)
-		return "AffrescoUI screen: accepting proposal #" + std::to_string(id) +
-		       " needs its head commit, the version you reviewed (at least 7 characters)";
-	if(!proposal->head.starts_with(approval.head))
-		return "AffrescoUI screen: proposal #" + std::to_string(id) + " changed since you reviewed it (it is now at " +
-		       proposal->head.substr(0, 7) + "): review it again";
-	if(approval.dontAskAgain && proposal->remember.empty())
-		return "AffrescoUI screen: proposal #" + std::to_string(id) +
-		       " can't be remembered (it changes parts that always ask, or too much of the screen): accept it "
-		       "without \"don't ask again\"";
+	if(std::optional<std::string> refused = checkApproval(*proposal, approval)) return refused;
+	if(const std::string missing = approve(*proposal, approval.reviewer); !missing.empty()) {
+		proposal->reason = "approved by " + std::to_string(proposal->approvals.size()) + ", waiting for " + missing;
+		saveHistory();
+		proposalsChanged();
+		return std::nullopt;
+	}
 
 	const Proposal taken = *proposal;
 	std::erase_if(proposals_, [id](const Proposal& p) { return p.id == id; });
@@ -716,7 +736,7 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 		if(approval.dontAskAgain) {
 			for(const std::string& rule : taken.remember)
 				if(std::ranges::find(grants_, rule, &Grant::rule) == grants_.end())
-					grants_.push_back({rule, approval.reviewer, id, utcNow()});
+					grants_.push_back({rule, approval.reviewer, id, utcNow(), grantsExpire(approval)});
 			onReviewChanged();
 		}
 	} catch(const DocumentError& failure) {
@@ -867,8 +887,10 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 		}
 	}
 	importing_ = false;
+	const bool rebased = rebaseProposals();
 	if(!hasImported(changes)) imported_.push_back(detail::sha256(changes.dump()));
 	saveHistory();
+	if(rebased) proposalsChanged();
 	for(std::size_t i = oldMain; i < main_.size(); ++i) onCommit(info(objects_.at(main_[i])));
 	return std::nullopt;
 }

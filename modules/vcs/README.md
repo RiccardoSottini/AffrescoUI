@@ -51,6 +51,15 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   rules, grants or mode say; the reason lists them. The app's own changes and merges aren't reviewed again.
 - **An author never approves its own change,** and an approval names the head the reviewer saw: if the branch moved
   since, the approval is refused.
+- **Proposals follow main** (`rebaseProposals`, `RepositoryReview.cpp`): when main moves, each open proposal rebases
+  through `detail::merge` (`Merge.hpp`), keyed by node id. Approvals survive only an exact rebase (replaying its
+  commits gives the merge); a merged rebase dismisses them; a conflict leaves the branch where it was, listed in
+  `conflicts`, and blocks accepting it.
+- **A review policy is met before a merge** (`DocumentRules::permissions().review`): approvals from distinct reviewers,
+  more for behaviour changes (`DocumentRules::behaviourLines`), and one from an owner of each owned part changed. It
+  is read from main when each approval arrives. Grants may carry `expires`; expired ones no longer allow.
+- **Evidence is never the author's:** a revision carrying `evidence` or `behaviour` is refused; the host gathers both
+  (VERSION_CONTROL.md, "Evidence").
 - **The document rules' `checkChange` runs on every change,** so what the format forbids for everyone (widening a
   capability, for example) is refused even for a reviewer.
 - **On disk** (history version 2), commits carry their deltas, documents are written for snapshots only, and every
@@ -87,6 +96,8 @@ the main thread. File writes happen inside the change that causes them.
 include/affresco/vcs/Repository.hpp   the Repository class
 src/
   Repository.cpp            commits, main, proposals, review, permissions in use, change sets
+  RepositoryReview.cpp      rebasing proposals onto a newer main, approvals and review policies, expiring grants
+  Merge.hpp / .cpp          the three-way JSON merge, lists of nodes merged by id
   RepositoryHistory.cpp     the history on disk: writing and loading objects and refs
   RepositoryDocuments.cpp   rebuilding a commit's document from a snapshot and deltas; blame; the live state's undo
   Deltas.hpp / .cpp         exact deltas between documents, applying them safely, JSON Pointer segments

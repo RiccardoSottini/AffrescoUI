@@ -8,6 +8,7 @@
 
 #include "affresco/render/Geometry.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -71,6 +72,10 @@ public:
 	/// @param size The image's size, in pixels.
 	/// @return Tightly packed 8-bit RGB, top row first.
 	[[nodiscard]] virtual std::vector<std::uint8_t> drawFromScratch(const Frame& frame, platform::PixelSize size) = 0;
+
+	/// @brief How many draw calls the last frame made, for Window::frameStatistics().
+	/// @return The count, or 0 if this renderer doesn't count them.
+	[[nodiscard]] virtual std::size_t drawCalls() const noexcept { return 0; }
 };
 
 } // namespace detail

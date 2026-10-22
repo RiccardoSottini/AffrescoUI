@@ -683,6 +683,15 @@ TOOLS = [
                                                 "description": "An open proposal to show applied (optional)"},
                                    "scale": {"type": "integer", "description": "1 (default) or 2"}}),
      "annotations": {"readOnlyHint": True}},
+    {"name": "get_evidence",
+     "description": "The evidence a reviewer sees for an open proposal, gathered by the host itself (an author can't "
+                    "supply it): pictures of main and of the proposal applied, the region of pixels that differ "
+                    "({x, y, width, height}), lines saying what it changes in behaviour, the screen's scenarios played "
+                    "on it (name, passed, message; those that need a window aren't played), and the texts it changes "
+                    "(node, original, modified). Check it before asking for a review.",
+     "inputSchema": object_schema({"proposal": {"type": "integer", "description": "The open proposal"},
+                                   "scale": {"type": "integer", "description": "1 (default) or 2"}}, ["proposal"]),
+     "annotations": {"readOnlyHint": True}},
     {"name": "run_scenarios",
      "description": "Check your work with the screen's own scenarios (scripted clicks, typing, waits and expectations "
                     "of state and nodes, played headless): on main as it runs now, or with an open proposal applied "
@@ -853,6 +862,22 @@ class Server:
         return [{"type": "image", "data": reply.get("data", ""), "mimeType": "image/png"},
                 {"type": "text", "text": caption}], False
 
+    def get_evidence(self, args):
+        """A proposal's evidence: both pictures as MCP image blocks, then the rest as compact JSON."""
+        reply = self.host.request({"type": "getEvidence", **{k: args[k] for k in ("proposal", "scale") if k in args}})
+        if reply.get("type") != "evidence":
+            return f"error: {reply.get('error') or reply.get('message')}", True
+        evidence = reply.get("evidence") or {}
+        facts = {key: evidence.get(key) for key in ("region", "behaviour", "scenarios", "texts")}
+        blocks = []
+        for side in ("before", "after"):
+            picture = evidence.get(side) or {}
+            blocks.append({"type": "text", "text": f"{side}: {picture.get('width')}x{picture.get('height')} pixels"})
+            blocks.append({"type": "image", "data": picture.get("data", ""), "mimeType": "image/png"})
+        blocks.append({"type": "text", "text": compact({"proposal": reply.get("proposal"),
+                                                        "revision": reply.get("revision"), **facts})})
+        return blocks, False
+
     def checked_document(self, args):
         """The document scenarios play on: main as the host has it now, or with an open proposal applied."""
         reply = self.host.request({"type": "getDocument"})
@@ -966,6 +991,8 @@ class Server:
             return self.render_screen(args)
         if name == "run_scenarios":
             return self.run_scenarios(args)
+        if name == "get_evidence":
+            return self.get_evidence(args)
         if name == "get_history":
             reply = host.request({"type": "getHistory", **({"limit": args["limit"]} if "limit" in args else {})})
             return compact(reply.get("entries")), False
