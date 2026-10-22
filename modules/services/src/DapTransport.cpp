@@ -8,6 +8,7 @@
 
 #ifndef _WIN32
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -50,6 +51,7 @@ public:
 	/// @throws std::runtime_error If nothing listens there.
 	explicit SocketTransport(std::uint16_t port) : socket_(::socket(AF_INET, SOCK_STREAM, 0)) {
 		if(socket_ < 0) throw std::runtime_error("can't make a socket to attach to the debug adapter");
+		fcntl(socket_, F_SETFD, FD_CLOEXEC); // programs the host starts later don't keep the adapter connected
 #ifdef SO_NOSIGPIPE
 		const int on = 1;
 		(void)setsockopt(socket_, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
