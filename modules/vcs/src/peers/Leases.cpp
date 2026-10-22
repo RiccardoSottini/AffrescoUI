@@ -33,23 +33,48 @@ std::optional<std::string> resolve(const DocumentRules& rules, const json& docum
 	return std::string(target);
 }
 
+/// @brief Why a lease request is malformed, before the document is looked at.
+/// @param target "#id" or a JSON Pointer, without "*".
+/// @param duration How long.
+/// @return Why, or std::nullopt if it is well formed.
+std::optional<std::string> malformed(std::string_view target, std::chrono::seconds duration) {
+	if(target.empty() || target.size() > Leases::maxTargetBytes || target.contains('*'))
+		return "a lease names one part: \"#id\" or a JSON Pointer, without \"*\"";
+	if(duration.count() <= 0 || duration > Leases::maxDuration) return "a lease lasts 1 to 3600 seconds";
+	return std::nullopt;
+}
+
+/// @brief The first lease someone else holds on a part overlapping a pointer (one inside the other).
+/// @param leases The leases.
+/// @param pointer The part asked for.
+/// @param holder The person asking.
+/// @return The lease, or nullptr if none.
+const Lease* blocking(const std::vector<Lease>& leases, std::string_view pointer, std::string_view holder) {
+	const auto found = std::ranges::find_if(leases, [&](const Lease& lease) {
+		return lease.holder != holder && (holds(lease.pointer, pointer) || holds(pointer, lease.pointer));
+	});
+	return found == leases.end() ? nullptr : &*found;
+}
+
+/// @brief How many leases a person or a connection holds, together: a connection can't rotate names past the cap.
+/// @param leases The leases.
+/// @param holder The person.
+/// @param peer The connection.
+/// @return How many.
+std::size_t heldBy(const std::vector<Lease>& leases, std::string_view holder, int peer) {
+	return static_cast<std::size_t>(std::ranges::count_if(
+	    leases, [&](const Lease& lease) { return lease.holder == holder || lease.peer == peer; }));
+}
+
 } // namespace
 
 std::variant<Lease, std::string> Leases::acquire(const json& document, std::string_view target, std::string_view holder,
                                                  int peer, std::chrono::seconds duration, Clock::time_point now) {
 	prune(now);
-	if(target.empty() || target.size() > maxTargetBytes || target.contains('*'))
-		return std::string("a lease names one part: \"#id\" or a JSON Pointer, without \"*\"");
-	if(duration.count() <= 0 || duration > maxDuration) return std::string("a lease lasts 1 to 3600 seconds");
+	if(std::optional<std::string> why = malformed(target, duration)) return std::move(*why);
 	const std::optional<std::string> pointer = resolve(rules_, document, target);
 	if(!pointer) return "nothing is at " + std::string(target);
-	std::size_t held = 0;
-	for(const Lease& lease : leases_) {
-		if(lease.holder == holder || lease.peer == peer) ++held; // a connection can't rotate names past the cap
-		if(lease.holder == holder) continue;
-		if(holds(lease.pointer, *pointer) || holds(*pointer, lease.pointer))
-			return lease.holder + " holds " + lease.target;
-	}
+	if(const Lease* other = blocking(leases_, *pointer, holder)) return other->holder + " holds " + other->target;
 	const auto same = std::ranges::find_if(leases_, [&](const Lease& lease) {
 		return lease.holder == holder && lease.target == target;
 	});
@@ -58,7 +83,8 @@ std::variant<Lease, std::string> Leases::acquire(const json& document, std::stri
 		same->peer = peer;
 		return *same;
 	}
-	if(held >= maxPerHolder) return std::string("one person or connection holds at most 16 leases");
+	if(heldBy(leases_, holder, peer) >= maxPerHolder)
+		return std::string("one person or connection holds at most 16 leases");
 	if(leases_.size() >= maxLeases) return std::string("this document has too many leases");
 	leases_.push_back({std::string(target), *pointer, std::string(holder), peer, now + duration});
 	return leases_.back();
