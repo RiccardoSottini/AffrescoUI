@@ -1,5 +1,5 @@
 /// @file
-/// @brief Snapping on a canvas (render's src/Snapping.cpp): moves and resizes pulled to the grid, to other items'
+/// @brief Snapping on a canvas (render's src/spatial/Snapping.cpp): moves and resizes pulled to the grid, to other items'
 /// edges and centres and to guides, within a tolerance, with the smart guides to draw.
 
 #include "spatial/Snapping.hpp"

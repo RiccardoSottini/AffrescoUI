@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes the reader of font tables behind the fast path for plain text (render's text/LookupSpans): a revision
+/// @brief Fuzzes the reader of font tables behind the fast path for plain text (render's font/LookupSpans): a revision
 /// can name any font file, and its GSUB and GPOS tables are read with offsets the file gives.
 ///
 /// The input's first byte says which table it is (an odd byte: GPOS), and the rest is the table. Every lookup the
