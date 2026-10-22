@@ -8,6 +8,7 @@
 
 #include "Expression.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <cmath>
@@ -53,13 +54,16 @@ inline constexpr std::array<std::string_view, 8> bubbling = {"onClick",   "onDou
 /// Visual states, in order: later ones win when several apply.
 inline constexpr std::array<std::string_view, 5> stateBlocks = {"hover", "focused", "dragging", "dragOver", "pressed"};
 
+/// The node keys that describe structure or behaviour, besides the handlers.
+inline constexpr std::array<std::string_view, 16> structureKeys = {
+    "children", "repeat", "when",  "let",  "check",   "use",  "with", "bind",
+    "caret",    "keys",   "every", "drag", "context", "note", "slot", "point"};
+
 /// @brief Tells whether a node key describes structure or behaviour, so it is never evaluated or applied as a property.
 /// @param key The key.
 /// @return true for children, repeat, when, let, handlers, ...
 inline bool structural(const std::string& key) {
-	return key == "children" || key == "repeat" || key == "when" || key == "let" || key == "check" || key == "use" ||
-	       key == "with" || key == "bind" || key == "caret" || key == "keys" || key == "every" || key == "drag" ||
-	       key == "context" || key == "note" || key == "slot" || key == "point" || handlerKey(key);
+	return std::ranges::find(structureKeys, key) != structureKeys.end() || handlerKey(key);
 }
 
 /// @brief Joins three pieces of text, allocating once: places for errors ("root", ".", "color") are built on every
