@@ -52,7 +52,7 @@ std::shared_ptr<const affresco::Bitmap> decodePicture(const affresco::json& pict
 /// @param studio The Studio's screen.
 /// @param argumentsJson The evidence: `{"before", "after", "region"}`.
 /// @return "true".
-std::string showEvidence(affresco::Screen& studio, std::string_view argumentsJson) {
+std::string_view showEvidence(affresco::Screen& studio, std::string_view argumentsJson) {
 	const affresco::json evidence = affresco::json::parse(argumentsJson);
 	const std::array<int, 4> region = examples::studio::regionOf(evidence);
 	for(const auto& [key, name] : {std::pair{"before", "evidenceBefore"}, std::pair{"after", "evidenceAfter"}}) {
@@ -71,7 +71,7 @@ std::string showEvidence(affresco::Screen& studio, std::string_view argumentsJso
 /// @return "true"; the connection then reports on the "host:" actions.
 /// @throws std::runtime_error Without an address, with one longer than 2,048 bytes or a token longer than 4,096, or
 /// when the screen has no "host" channel.
-std::string connectTo(affresco::Screen& studio, std::string_view argumentsJson) {
+std::string_view connectTo(affresco::Screen& studio, std::string_view argumentsJson) {
 	const affresco::json arguments = affresco::json::parse(argumentsJson);
 	std::string address = arguments.value("address", std::string{});
 	std::string token = arguments.value("token", std::string{});
@@ -120,10 +120,12 @@ int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own 
 		affresco::Screen studio =
 		    affresco::Screen::fromFile(assetsDirectory() / "studio" / "studio.screen.json", dataDir);
 		studio.setSocketDirectory(socketDir);
-		studio.onCall("showEvidence",
-		              [&studio](const std::string& argumentsJson) { return showEvidence(studio, argumentsJson); });
-		studio.onCall("connectTo",
-		              [&studio](const std::string& argumentsJson) { return connectTo(studio, argumentsJson); });
+		studio.onCall("showEvidence", [&studio](const std::string& argumentsJson) {
+			return std::string(showEvidence(studio, argumentsJson));
+		});
+		studio.onCall("connectTo", [&studio](const std::string& argumentsJson) {
+			return std::string(connectTo(studio, argumentsJson));
+		});
 		studio.createWindow(app); // connects the file's channels
 #ifdef __EMSCRIPTEN__
 		connectable = &studio;

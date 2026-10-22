@@ -59,10 +59,12 @@ constexpr std::array<Kind, 10> kinds = {{
 }};
 
 /// @brief The semantic token types Forge asks servers for (those styleOfToken() knows, and the common rest).
-const json tokenTypes = {"namespace", "type",     "class",    "enum",      "interface", "struct",   "typeParameter",
-                         "parameter", "variable", "property", "enumMember", "event",    "function", "method",
-                         "macro",     "keyword",  "modifier", "comment",   "string",    "number",   "regexp",
-                         "operator",  "decorator", "concept"};
+/// @return Them; a function, since a json built at static initialization could throw where nothing can catch it.
+json tokenTypes() {
+	return {"namespace", "type",     "class",      "enum",   "interface", "struct",   "typeParameter", "parameter",
+	        "variable",  "property", "enumMember", "event",  "function",  "method",   "macro",         "keyword",
+	        "modifier",  "comment",  "string",     "number", "regexp",    "operator", "decorator",     "concept"};
+}
 
 /// @brief The language servers of one screen, and what each knows of the open documents.
 class Client {
@@ -225,7 +227,7 @@ private:
 		      {"publishDiagnostics", json::object()},
 		      {"semanticTokens",
 		       {{"requests", {{"full", true}}},
-		        {"tokenTypes", tokenTypes},
+		        {"tokenTypes", tokenTypes()},
 		        {"tokenModifiers", json::array()},
 		        {"formats", {"relative"}}}}}}};
 		const json params = {{"processId", nullptr},
