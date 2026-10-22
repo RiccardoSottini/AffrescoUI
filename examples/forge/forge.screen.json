@@ -22,7 +22,8 @@
 	            "features/palette/palette.json", "features/search/search.json", "features/shell/shell.json",
 	            "features/accounts/accounts.json", "features/explorer/explorer.json", "features/terminal/terminal.json",
 	            "features/scm/scm.json", "features/agent/agent.json", "features/lsp/lsp.json",
-	            "features/debug/debug.json", "features/debug/debugViews.json"],
+	            "features/debug/debug.json", "features/debug/debugViews.json",
+	            "features/editing/editing.json"],
 
 	"theme": "{{state.theme}}",
 

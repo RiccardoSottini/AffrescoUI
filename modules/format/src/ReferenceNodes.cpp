@@ -353,11 +353,11 @@ constexpr KeyReference nodeTable[] = {
 	 "draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most "
 	 "10,000 and 8 on a line; inline text is cut at 256 characters.",
 	 "editor"},
-    {"find", R"json({"type": "object", "description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous",
+    {"find", R"json({"type": ["object", "null"], "description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous",
 		"properties": {"text": {"type": "string"}, "regex": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
 		"caseSensitive": {"type": "boolean"}, "inSelection": {"type": "boolean"}, "replace": {"type": "string"},
 		"step": {"enum": ["first", "next", "previous", "replace", "replaceAll"]}, "request": {"type": "number"}}})json",
-	 R"(`{ "text", "regex", "wholeWord", "caseSensitive" }`: highlights the matches of `text` (plain, or a PCRE2 )"
+	 R"(`{ "text", "regex", "wholeWord", "caseSensitive" }` or `null` (none): highlights the matches of `text` (plain, or a PCRE2 )"
 	 "pattern with `regex`, matched line by line within match and depth limits); Cmd+G and Cmd+Shift+G select "
 	 "the next and previous. A pattern that doesn't compile highlights nothing. `inSelection` limits it to the "
 	 "selection as it is when turned on. A find bar asks for a step with `step` (`first` from the selection's start, "

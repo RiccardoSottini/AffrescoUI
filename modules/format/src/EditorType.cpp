@@ -118,7 +118,7 @@ void applyFindStep(TextEditor& editor, const json& find, const std::string& at) 
 /// @param values The node's values.
 /// @param path The node's place, for errors.
 void applyFind(TextEditor& editor, const json& values, const std::string& path) {
-	if(!values.contains("find")) {
+	if(!values.contains("find") || values["find"].is_null()) { // null: none, as a binding may give
 		static_cast<void>(editor.setFind({}, {}));
 		return;
 	}

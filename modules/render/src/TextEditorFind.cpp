@@ -136,7 +136,7 @@ bool TextEditor::findStep(FindStep step, std::string_view replacement, std::uint
 	case FindStep::First: {
 		const Position start = findScope_ ? findScope_->first : selection().first;
 		anchor_ = caret_ = start;
-		if(!findNext()) moveCaret(start, false);
+		if(!findNext()) onCaretMoved(caret_); // the count changed, maybe not the caret
 		break;
 	}
 	case FindStep::Next:

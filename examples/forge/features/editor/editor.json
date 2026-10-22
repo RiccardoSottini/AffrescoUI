@@ -262,6 +262,10 @@
 								"grow": 1,
 								"children": [
 									{
+										"when": "{{state.findBar.open && gi == state.activeGroup && state.docs[d].kind == 'file'}}",
+										"use": "forgeFindBar"
+									},
+									{
 										"when": "{{state.docs[d].kind == 'file'}}",
 										"id": "editor",
 										"type": "code",
@@ -273,6 +277,10 @@
 										"lineNumbers": "{{settings.editor.lineNumbers}}",
 										"goTo": "{{gi == state.activeGroup ? {line: state.goTo.line, column: state.goTo.column ?? 1, request: state.goTo.request} : null}}",
 										"caret": "state.caret",
+										"wrap": "{{settings.editor.wordWrap}}",
+										"brackets": "{{settings.editor.bracketMatching}}",
+										"indentGuides": "{{settings.editor.guides.indentation}}",
+										"find": "{{gi == state.activeGroup ? computed.findQuery : null}}",
 										"decorations": "{{concat((find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? [], map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark))}}",
 										"tokens": "{{(find(state.lsp.files, it.id == state.docs[d].id) ?? {}).tokens ?? []}}",
 										"onHover": "lspHoverAt",

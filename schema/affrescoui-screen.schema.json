@@ -1683,7 +1683,10 @@
 						}
 					},
 					"find": {
-						"type": "object",
+						"type": [
+							"object",
+							"null"
+						],
 						"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous",
 						"properties": {
 							"text": {
