@@ -242,6 +242,7 @@ json ServiceRegistry::catalog() const {
 	return catalog;
 }
 
+/// @brief Loads the services a document declares, replacing those loaded before (see Services::load).
 std::vector<std::string> ServiceRegistry::load(const json& section) {
 	entries_.clear(); // their calls are cancelled, their processes ended
 	std::vector<std::string> refused;
@@ -394,6 +395,7 @@ void ServiceRegistry::setState(Entry& entry, ServiceState state, std::string rea
 	if(statusChanged_) statusChanged_();
 }
 
+/// @brief Every service's state, as the "services" variable shows it (see Services::status).
 json ServiceRegistry::status() const {
 	json status = json::object();
 	for(const auto& [name, entry] : entries_)
@@ -403,8 +405,10 @@ json ServiceRegistry::status() const {
 	return status;
 }
 
+/// @brief Sets what runs, on the main thread, after a service's state changes (see Services::onStatus).
 void ServiceRegistry::onStatus(std::function<void()> callback) { statusChanged_ = std::move(callback); }
 
+/// @brief Sets what handles the requests services send the screen (see Services::onRequest).
 void ServiceRegistry::onRequest(RequestHandler handler) { requests_ = std::move(handler); }
 
 } // namespace affresco::services

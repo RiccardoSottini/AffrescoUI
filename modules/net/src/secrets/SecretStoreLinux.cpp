@@ -60,6 +60,7 @@ public:
 	/// @brief Whether every function was found.
 	[[nodiscard]] bool complete() const noexcept { return store_ && lookup_ && clear_ && free_; }
 
+	/// @brief Reads a secret (see SecretStore::read).
 	[[nodiscard]] std::optional<std::string> read(const std::string& key) override {
 		char* found = lookup_(&schema_, nullptr, nullptr, "service", service_.c_str(), "key", key.c_str(), nullptr);
 		if(!found) return std::nullopt;
@@ -68,16 +69,19 @@ public:
 		return secret;
 	}
 
+	/// @brief Keeps a secret, replacing the one under the same key (see SecretStore::write).
 	bool write(const std::string& key, const std::string& secret) override {
 		const std::string label = service_ + " sign-in";
 		return store_(&schema_, nullptr, label.c_str(), secret.c_str(), nullptr, nullptr, "service", service_.c_str(),
 		              "key", key.c_str(), nullptr) != 0;
 	}
 
+	/// @brief Forgets a secret (see SecretStore::erase).
 	void erase(const std::string& key) override {
 		clear_(&schema_, nullptr, nullptr, "service", service_.c_str(), "key", key.c_str(), nullptr);
 	}
 
+	/// @brief The store's name for people (see SecretStore::name).
 	[[nodiscard]] std::string name() const override { return "Secret Service"; }
 
 private:

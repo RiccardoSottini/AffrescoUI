@@ -27,6 +27,7 @@ public:
 	/// @brief Starts the program.
 	/// @param launch What to start.
 	explicit ProcessTransport(const Launch& launch) : child_(ChildProcess::start(launch)) {}
+	/// @brief Ends the adapter, so no debug adapter outlives its session.
 	~ProcessTransport() override { (void)child_->end(); }
 	ProcessTransport(const ProcessTransport&) = delete;
 	ProcessTransport& operator=(const ProcessTransport&) = delete;
@@ -65,6 +66,7 @@ public:
 			throw std::runtime_error("no debug adapter listens on 127.0.0.1:" + std::to_string(port));
 		}
 	}
+	/// @brief Stops the reader, then closes the connection (the adapter keeps running: it wasn't started here).
 	~SocketTransport() override {
 		(void)end();
 		::close(socket_);

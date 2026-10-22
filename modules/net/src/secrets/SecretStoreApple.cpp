@@ -39,6 +39,7 @@ public:
 	/// @param service The service.
 	explicit KeychainSecretStore(std::string service) : service_(std::move(service)) {}
 
+	/// @brief Reads a secret (see SecretStore::read).
 	[[nodiscard]] std::optional<std::string> read(const std::string& key) override {
 		const auto query = base(key);
 		CFDictionarySetValue(query.get(), kSecReturnData, kCFBooleanTrue);
@@ -50,6 +51,7 @@ public:
 		                   static_cast<std::size_t>(CFDataGetLength(data.get())));
 	}
 
+	/// @brief Keeps a secret, replacing the one under the same key (see SecretStore::write).
 	bool write(const std::string& key, const std::string& secret) override {
 		const Owned<CFDataRef> data(CFDataCreate(nullptr, reinterpret_cast<const UInt8*>(secret.data()),
 		                                         static_cast<CFIndex>(secret.size())));
@@ -63,8 +65,10 @@ public:
 		return SecItemAdd(query.get(), nullptr) == errSecSuccess;
 	}
 
+	/// @brief Forgets a secret (see SecretStore::erase).
 	void erase(const std::string& key) override { SecItemDelete(base(key).get()); }
 
+	/// @brief The store's name for people (see SecretStore::name).
 	[[nodiscard]] std::string name() const override { return "Keychain"; }
 
 private:

@@ -54,6 +54,7 @@ SignIn::~SignIn() {
 	entries_.clear(); // cancels the requests and the listeners before the timer goes
 }
 
+/// @brief Declares the providers a document names; a provider that changed signs out (see Identity::declare).
 void SignIn::declare(const std::vector<std::pair<std::string, identity::Provider>>& providers) {
 	std::map<std::string, std::unique_ptr<Entry>> next;
 	for(const auto& [name, provider] : providers) {
@@ -86,6 +87,7 @@ void SignIn::declare(const std::vector<std::pair<std::string, identity::Provider
 	changed();
 }
 
+/// @brief Starts signing in, or resumes a kept sign-in; returns at once (see Identity::signIn).
 void SignIn::signIn(const std::string& name, std::function<void(std::optional<std::string> error)> done) {
 	const auto found = entries_.find(name);
 	if(found == entries_.end()) {
@@ -111,6 +113,7 @@ void SignIn::signIn(const std::string& name, std::function<void(std::optional<st
 	changed();
 }
 
+/// @brief Forgets the tokens, here and in the SecretStore, and stops a sign-in in progress (see Identity::signOut).
 void SignIn::signOut(const std::string& name) {
 	const auto found = entries_.find(name);
 	if(found == entries_.end()) return;
@@ -126,6 +129,7 @@ void SignIn::signOut(const std::string& name) {
 	finish(entry, "signed out");
 }
 
+/// @brief The access token to send, for the transport only: never shown or logged (see Identity::bearer).
 std::optional<std::string> SignIn::bearer(const std::string& name) const {
 	const auto found = entries_.find(name);
 	if(found == entries_.end() || found->second->accessToken.empty()) return std::nullopt;
@@ -159,6 +163,7 @@ json SignIn::status() const {
 	return status;
 }
 
+/// @brief Sets what runs, on the main thread, after a sign-in's state changes (see Identity::onStatus).
 void SignIn::onStatus(std::function<void()> callback) { onStatus_ = std::move(callback); }
 
 void SignIn::startBrowser(Entry& entry) {

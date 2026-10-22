@@ -30,6 +30,7 @@ public:
 	/// @param service The service.
 	explicit CredentialSecretStore(std::string service) : service_(std::move(service)) {}
 
+	/// @brief Reads a secret (see SecretStore::read).
 	[[nodiscard]] std::optional<std::string> read(const std::string& key) override {
 		PCREDENTIALW credential = nullptr;
 		if(!CredReadW(target(key).c_str(), CRED_TYPE_GENERIC, 0, &credential)) return std::nullopt;
@@ -38,6 +39,7 @@ public:
 		return secret;
 	}
 
+	/// @brief Keeps a secret, replacing the one under the same key (see SecretStore::write).
 	bool write(const std::string& key, const std::string& secret) override {
 		std::wstring name = target(key);
 		std::string blob = secret;
@@ -52,8 +54,10 @@ public:
 		return written;
 	}
 
+	/// @brief Forgets a secret (see SecretStore::erase).
 	void erase(const std::string& key) override { CredDeleteW(target(key).c_str(), CRED_TYPE_GENERIC, 0); }
 
+	/// @brief The store's name for people (see SecretStore::name).
 	[[nodiscard]] std::string name() const override { return "Credential Manager"; }
 
 private:
