@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <optional>
 
 namespace affresco::detail {
 
@@ -210,32 +211,48 @@ void growToLimits(std::span<Sizing> sizing, float free) {
 	}
 }
 
+/// @brief The size of one fraction: the room the other tracks leave, over the shares of the flexible ones.
+/// @param sizing The tracks.
+/// @param inflexible Which fraction tracks keep their minimum.
+/// @param room The grid's size less the gaps.
+/// @return The size, or nothing when no share or no room is left.
+std::optional<float> fractionSize(std::span<const Sizing> sizing, const std::vector<bool>& inflexible, float room) {
+	float leftover = room, shares = 0.0f;
+	for(std::size_t i = 0; i < sizing.size(); ++i) {
+		if(sizing[i].flex > 0.0f && !inflexible[i]) shares += sizing[i].flex;
+		else leftover -= sizing[i].base;
+	}
+	if(shares <= 0.0f || leftover <= 0.0f) return std::nullopt;
+	return leftover / shares;
+}
+
+/// @brief Marks the flexible fraction tracks whose minimum is more than their share: they keep it.
+/// @param sizing The tracks.
+/// @param inflexible Which fraction tracks keep their minimum; updated.
+/// @param fraction The size of one fraction.
+/// @return Whether any was marked, which changes the size of a fraction.
+bool markTooSmall(std::span<const Sizing> sizing, std::vector<bool>& inflexible, float fraction) {
+	bool tooSmall = false;
+	for(std::size_t i = 0; i < sizing.size(); ++i) {
+		if(sizing[i].flex <= 0.0f || inflexible[i] || sizing[i].base <= sizing[i].flex * fraction) continue;
+		inflexible[i] = true;
+		tooSmall = true;
+	}
+	return tooSmall;
+}
+
 /// @brief Shares the room left over among the fraction tracks; a track whose minimum is more than its share keeps its
 /// minimum and leaves the others the rest.
 /// @param sizing The tracks.
 /// @param room The grid's size less the gaps.
 void shareFractions(std::span<Sizing> sizing, float room) {
 	std::vector<bool> inflexible(sizing.size(), false);
-	for(;;) {
-		float leftover = room, shares = 0.0f;
-		for(std::size_t i = 0; i < sizing.size(); ++i) {
-			if(sizing[i].flex > 0.0f && !inflexible[i]) shares += sizing[i].flex;
-			else leftover -= sizing[i].base;
-		}
-		if(shares <= 0.0f || leftover <= 0.0f) return;
-		const float fraction = leftover / shares;
-		bool tooSmall = false;
-		for(std::size_t i = 0; i < sizing.size(); ++i) {
-			if(sizing[i].flex <= 0.0f || inflexible[i] || sizing[i].base <= sizing[i].flex * fraction) continue;
-			inflexible[i] = true;
-			tooSmall = true;
-		}
-		if(tooSmall) continue;
-		for(std::size_t i = 0; i < sizing.size(); ++i)
-			if(sizing[i].flex > 0.0f && !inflexible[i])
-				sizing[i].base = std::max(sizing[i].base, sizing[i].flex * fraction);
-		return;
-	}
+	std::optional<float> fraction;
+	do fraction = fractionSize(sizing, inflexible, room);
+	while(fraction && markTooSmall(sizing, inflexible, *fraction));
+	if(!fraction) return;
+	for(std::size_t i = 0; i < sizing.size(); ++i)
+		if(sizing[i].flex > 0.0f && !inflexible[i]) sizing[i].base = std::max(sizing[i].base, sizing[i].flex * *fraction);
 }
 
 } // namespace
