@@ -346,6 +346,15 @@ void checkManifestIdentity(const json& manifest, const std::string& place) {
 		optionalText(manifest, key, place);
 }
 
+/// @brief The release a range names, without its operator.
+/// @param range The range, e.g. "^1.2.0".
+/// @return Its release, e.g. "1.2.0".
+[[nodiscard]] std::string_view rangeRelease(std::string_view range) noexcept {
+	if(range.starts_with(">=")) range.remove_prefix(2);
+	else if(range.starts_with('^') || range.starts_with('~')) range.remove_prefix(1);
+	return range;
+}
+
 } // namespace
 
 std::optional<Release> parseRelease(std::string_view text) {
@@ -364,26 +373,19 @@ std::optional<Release> parseRelease(std::string_view text) {
 	return release;
 }
 
-bool validRange(std::string_view range) {
-	if(range.starts_with(">=")) range.remove_prefix(2);
-	else if(range.starts_with('^') || range.starts_with('~')) range.remove_prefix(1);
-	return parseRelease(range).has_value();
-}
+bool validRange(std::string_view range) { return parseRelease(rangeRelease(range)).has_value(); }
 
 bool satisfies(std::string_view release, std::string_view range) {
 	const auto have = parseRelease(release);
-	if(!have || !validRange(range)) return false;
-	if(range.starts_with(">=")) return *have >= *parseRelease(range.substr(2));
+	const auto low = parseRelease(rangeRelease(range));
+	if(!have || !low) return false;
+	if(range.starts_with(">=")) return *have >= *low;
 	if(range.starts_with('^')) {
-		const Release low = *parseRelease(range.substr(1));
-		const Release high = low.major > 0 ? Release{low.major + 1, 0, 0} : Release{0, low.minor + 1, 0};
-		return low <= *have && *have < high;
+		const Release high = low->major > 0 ? Release{low->major + 1, 0, 0} : Release{0, low->minor + 1, 0};
+		return *low <= *have && *have < high;
 	}
-	if(range.starts_with('~')) {
-		const Release low = *parseRelease(range.substr(1));
-		return low <= *have && *have < Release{low.major, low.minor + 1, 0};
-	}
-	return *have == *parseRelease(range);
+	if(range.starts_with('~')) return *low <= *have && *have < Release{low->major, low->minor + 1, 0};
+	return *have == *low;
 }
 
 bool validFeatureName(std::string_view name) {

@@ -54,7 +54,7 @@ struct Features::Impl {
 			if(feature == index.features.end()) continue;
 			for(const CatalogRelease& each : feature->second.releases) {
 				if(!release.empty() && each.release != release) continue;
-				if(!best.release || *parseRelease(best.release->release) < *parseRelease(each.release))
+				if(!best.release || checkedRelease(best.release->release) < checkedRelease(each.release))
 					best = {&index, &each};
 			}
 		}
@@ -93,7 +93,8 @@ json Features::catalog(const json& document) const {
 		for(const auto& [name, feature] : index.features) {
 			const CatalogRelease& newest = feature.releases.front();
 			if(const auto row = rows.find(name);
-			   row != rows.end() && *parseRelease(newest.release) <= *parseRelease(row->second["version"].get<std::string>()))
+			   row != rows.end() &&
+			   checkedRelease(newest.release) <= checkedRelease(row->second["version"].get<std::string>()))
 				continue;
 			const auto publisher = index.publishers.find(newest.publisher);
 			const json* record = installed(document, name);
@@ -141,7 +142,7 @@ json Features::upgradeRevision(const json& document, std::string_view name, std:
 	if(!record) fail(std::string(name), "isn't installed");
 	const Found found = impl_->find(name, "");
 	const auto current = parseRelease(record->value("release", ""));
-	if(current && *parseRelease(found.release->release) <= *current)
+	if(current && checkedRelease(found.release->release) <= *current)
 		fail(std::string(name), "is up to date (" + record->value("release", "") + ")");
 	// An upgrade never changes who the feature comes from: that takes a removal and a new install, both reviewed
 	const json publisher = record->value("publisher", json());

@@ -8,6 +8,7 @@
 /// catalogue's folder, digests and keys are compared in constant time, and every signature must be a trusted
 /// publisher's.
 
+#include "FeatureManifest.hpp"
 #include "FeatureSignatures.hpp"
 #include "affresco/core/Json.hpp"
 
@@ -21,6 +22,11 @@
 namespace affresco::format {
 
 inline constexpr std::string_view catalogFormat = "affrescoui-catalog"; ///< An index's "format".
+
+/// @brief The numbers of a release that reading an index checked.
+/// @param text The release, e.g. "1.2.0".
+/// @return Them; 0.0.0 for a text that isn't one, which a checked index never holds.
+[[nodiscard]] inline Release checkedRelease(std::string_view text) { return parseRelease(text).value_or(Release{}); }
 
 /// @brief One release of a feature, as the index lists it.
 struct CatalogRelease {

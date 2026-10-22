@@ -126,7 +126,7 @@ CatalogFeature readFeature(const std::string& name, const json& value, const std
 	for(std::size_t i = 0; i < releases->size(); ++i)
 		feature.releases.push_back(readRelease((*releases)[i], place + ".releases[" + std::to_string(i) + "]"));
 	std::ranges::sort(feature.releases, [](const CatalogRelease& a, const CatalogRelease& b) {
-		return *parseRelease(b.release) < *parseRelease(a.release);
+		return checkedRelease(b.release) < checkedRelease(a.release);
 	});
 	for(std::size_t i = 1; i < feature.releases.size(); ++i)
 		if(feature.releases[i].release == feature.releases[i - 1].release)
