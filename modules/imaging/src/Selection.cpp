@@ -179,9 +179,7 @@ void select(Document& document, const std::string& name, const Coverage& coverag
 		                                           found != coverage.end() ? found->second : nullptr, mode);
 		if(tile != there) document.replaceTile(Document::selectionId, column, row, std::move(tile));
 	}
-	bool any = false;
-	for(const TileKey& key : selection.writtenTiles()) any = any || selection.tile(key) != nullptr;
-	document.commit(any);
+	document.commit(selectsAnything(selection));
 }
 
 void selectAll(Document& document) {
@@ -217,6 +215,12 @@ void invertSelection(Document& document) {
 			if(any) coverage.emplace(std::pair{column, row}, std::move(tile));
 		}
 	select(document, "Inverse", coverage, SelectionMode::replace);
+}
+
+bool selectsAnything(const Image& selection) {
+	for(const TileKey& key : selection.writtenTiles())
+		if(const auto tile = selection.tile(key); tile && !tile->empty()) return true;
+	return false;
 }
 
 std::array<int, 4> selectionBounds(const Document& document) {

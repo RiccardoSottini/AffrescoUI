@@ -98,6 +98,10 @@ void deselect(Document& document);
 /// @param document The document.
 void invertSelection(Document& document);
 
+/// @brief Whether a selection's image selects anything: any tile written and not transparent.
+/// @param selection The selection's image.
+[[nodiscard]] bool selectsAnything(const Image& selection);
+
 /// @brief The selection's bounds in pixels, by its tiles (empty when nothing is selected).
 /// @param document The document.
 /// @return x, y, width and height.
