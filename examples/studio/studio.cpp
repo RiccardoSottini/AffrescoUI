@@ -52,7 +52,7 @@ std::shared_ptr<const affresco::Bitmap> decodePicture(const affresco::json& pict
 /// @param studio The Studio's screen.
 /// @param argumentsJson The evidence: `{"before", "after", "region"}`.
 /// @return "true".
-std::string showEvidence(affresco::Screen& studio, const std::string& argumentsJson) {
+std::string showEvidence(affresco::Screen& studio, std::string_view argumentsJson) {
 	const affresco::json evidence = affresco::json::parse(argumentsJson);
 	const std::array<int, 4> region = examples::studio::regionOf(evidence);
 	for(const auto& [key, name] : {std::pair{"before", "evidenceBefore"}, std::pair{"after", "evidenceAfter"}}) {
@@ -71,7 +71,7 @@ std::string showEvidence(affresco::Screen& studio, const std::string& argumentsJ
 /// @return "true"; the connection then reports on the "host:" actions.
 /// @throws std::runtime_error Without an address, with one longer than 2,048 bytes or a token longer than 4,096, or
 /// when the screen has no "host" channel.
-std::string connectTo(affresco::Screen& studio, const std::string& argumentsJson) {
+std::string connectTo(affresco::Screen& studio, std::string_view argumentsJson) {
 	const affresco::json arguments = affresco::json::parse(argumentsJson);
 	std::string address = arguments.value("address", std::string{});
 	std::string token = arguments.value("token", std::string{});

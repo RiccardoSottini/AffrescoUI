@@ -88,7 +88,7 @@ inline std::string actionOf(const affresco::json& properties, const char* key) {
 inline void applyPopup(affresco::Screen& screen, ScreenCodeEditor& editor, const affresco::json& properties) {
 	if(const std::string action = actionOf(properties, "onPopupKey");
 	   properties.value("popup", false) && !action.empty())
-		editor.setPopupKeys([&screen, &editor, action](std::string_view key) {
+		editor.setPopupKeys([&screen, &editor, action = action](std::string_view key) {
 			screen.runAction(action, editor, affresco::json{{"key", key}}.dump());
 			return true;
 		});

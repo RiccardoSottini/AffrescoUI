@@ -47,9 +47,11 @@ inline std::vector<std::uint8_t> fromBase64(std::string_view text) {
 inline std::array<int, 4> regionOf(const affresco::json& evidence) {
 	const affresco::json region = evidence.value("region", affresco::json::array({0, 0, 0, 0}));
 	for(const affresco::json& value : region)
-		if(value.is_number_float() &&
-		   !(value.get<double>() > double{INT_MIN} - 1 && value.get<double>() < double{INT_MAX} + 1))
-			throw std::out_of_range("the evidence's region is beyond the picture's coordinates");
+		if(value.is_number_float()) {
+			const double number = value.get<double>();
+			const bool fits = number > double{INT_MIN} - 1 && number < double{INT_MAX} + 1; // and NaN doesn't
+			if(!fits) throw std::out_of_range("the evidence's region is beyond the picture's coordinates");
+		}
 	return region.get<std::array<int, 4>>();
 }
 

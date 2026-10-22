@@ -160,6 +160,7 @@ void CodeEditor::refreshPalette() {
 	                                                                               {"text.title", Token::Heading},
 	                                                                               {"punctuation.special", Token::Heading}}};
 	grammar->setPalette([colors = tokenColors_](std::string_view style) -> std::optional<Color> {
+		// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer in some libraries only
 		const auto found = std::ranges::find(tokens, style, &std::pair<std::string_view, Token>::first);
 		if(found == tokens.end()) return std::nullopt;
 		return colors[static_cast<std::size_t>(found->second)];

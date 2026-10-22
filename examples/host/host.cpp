@@ -65,7 +65,7 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 	    file.parent_path() /
 	    (name.substr(0, name.size() - std::string_view(".screen.json").size()) + ".scenarios.json");
 	if(!std::filesystem::exists(scenarios)) return;
-	screen.setScenarioCheck([scenarios](const std::string& document) {
+	screen.setScenarioCheck([scenarios = scenarios](const std::string& document) {
 		namespace automation = affresco::automation;
 		affresco::json results = affresco::json::array();
 		try {
