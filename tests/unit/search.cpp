@@ -27,6 +27,10 @@
 #include <utility>
 #include <vector>
 
+#ifndef _WIN32
+#include <sys/stat.h>
+#endif
+
 namespace services = affresco::services;
 using affresco::json;
 
@@ -485,5 +489,13 @@ TEST_CASE("search: Forge's replace writes nothing through a link planted beside 
 	CHECK(folder.read("a.txt") == "two\n");
 	CHECK(elsewhere.read("target") == "untouched");
 	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "a.txt"));
+}
+
+// A .gitignore that is a FIFO would block the walk on opening it: only a file's rules are read
+TEST_CASE("search: a .gitignore that isn't a file is passed over") {
+	const TempFolder folder;
+	folder.write("a.txt", "needle\n");
+	REQUIRE(::mkfifo((folder.path / ".gitignore").c_str(), 0600) == 0);
+	CHECK(paths(search(folder.path, {.pattern = "needle"})) == std::vector<std::string>{"a.txt"});
 }
 #endif
