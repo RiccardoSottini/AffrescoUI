@@ -111,6 +111,9 @@ affrescoui_module(format
 	src/FeatureSignatures.cpp
 	src/FeatureCatalog.cpp
 	src/Features.cpp
+	src/ContributionPoints.cpp
+	src/AdapterMapping.cpp
+	src/CompositionProof.cpp
 	src/adapters/Layout.cpp
 	src/adapters/A2ui.cpp
 	src/adapters/A2uiComponents.cpp
