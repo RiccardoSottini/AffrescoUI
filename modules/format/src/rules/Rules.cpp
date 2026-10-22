@@ -24,9 +24,9 @@ using expect::fail;
 namespace {
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
-constexpr std::string_view controlSteps[] = {"accept", "reject", "preview", "endPreview", "restore", "revert",
-                                             "undo",   "patch",  "call",    "send",       "connect",
-                                             "respond", "signIn", "signOut"};
+constexpr std::string_view controlSteps[] = {"accept",  "reject",  "preview", "endPreview", "restore",
+                                             "revert",  "undo",    "patch",   "call",       "send",
+                                             "connect", "respond", "signIn",  "signOut"};
 
 /// The most findings a rejected revision lists; it says how many more there are.
 constexpr std::size_t maxListed = 10;
@@ -56,9 +56,13 @@ bool namesAction(std::string_view key) {
 /// The built-in components that run the actions a parameter names, through a computed "run" the document never
 /// shows, each with that parameter: the "run" of a menu's items, a dialog's buttons, a toast's actions. The quick
 /// pick has none ("") as it runs its recent items, kept in the state, as well as its providers' items.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 7> runningBuiltIns{{
-    {"menu", "items"},     {"submenu", "items"}, {"contextMenu", "items"}, {"menuBar", "menus"},
-    {"dialog", "buttons"}, {"toast", "actions"}, {"quickPick", ""}}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 7> runningBuiltIns{{{"menu", "items"},
+                                                                                        {"submenu", "items"},
+                                                                                        {"contextMenu", "items"},
+                                                                                        {"menuBar", "menus"},
+                                                                                        {"dialog", "buttons"},
+                                                                                        {"toast", "actions"},
+                                                                                        {"quickPick", ""}}};
 
 /// @brief The names of the built-in components that run the actions a parameter names.
 /// @return Them.
@@ -265,7 +269,7 @@ std::set<std::string> controlActions(const json& doc, const std::set<std::string
 	std::set<std::string> control;
 	if(!doc.contains("actions") || !doc["actions"].is_object()) return control;
 	const json& actions = doc["actions"];
-	static const json none; // actions use no component
+	static const json none;        // actions use no component
 	for(bool grew = true; grew;) { // until no action joins: a chain of runs takes one round per link
 		grew = false;
 		const ControlScan scan(actions, control, runningBuiltInNames(), none);
@@ -407,8 +411,8 @@ void Rules::checkRevision(const json& patch) const {
 		fail("revision.patch", std::to_string(patch.size()) + " operations, more than the " +
 		                           std::to_string(maxRevisionOperations) + " a revision may have");
 	if(approximateBytes(patch, maxRevisionBytes) > maxRevisionBytes)
-		fail("revision.patch", "more than " + std::to_string(maxRevisionBytes >> 20) +
-		                           " MiB of JSON, more than a revision may have");
+		fail("revision.patch",
+		     "more than " + std::to_string(maxRevisionBytes >> 20) + " MiB of JSON, more than a revision may have");
 }
 
 // The document's own "state" must match its types; the live state is checked by checkChange() and findings()
@@ -448,38 +452,50 @@ ReviewPolicy reviewPolicyOf(const json& review) {
 	return policy;
 }
 
+/// @brief Reads a list of permission rules, such as "permissions.allow" (checked by the permissions section).
+/// @param section "permissions".
+/// @param key The list's key.
+/// @param into Gets the rules.
+void readRules(const json& section, const char* key, std::vector<PermissionRule>& into) {
+	for(const json& text : section.value(key, json::array()))
+		if(const auto rule = parsePermissionRule(text.get<std::string>())) into.push_back(*rule);
+}
+
+/// @brief Reads "permissions" (checked by the permissions section).
+/// @param section Its value, an object.
+/// @param result Gets its rules, reviewers and review policy.
+void readPermissions(const json& section, Permissions& result) {
+	result.configured = true;
+	readRules(section, "allow", result.allow);
+	readRules(section, "ask", result.ask);
+	readRules(section, "deny", result.deny);
+	for(const json& name : section.value("reviewers", json::array()))
+		result.reviewers.push_back(name.get<std::string>());
+	result.review = reviewPolicyOf(section.value("review", json()));
+}
+
+/// @brief Denies every node with "locked": true to everyone, in a node and its children.
+/// @param node The node (its depth is bounded by the parser's).
+/// @param deny Gets a rule for each.
+void denyLocked(const json& node, std::vector<PermissionRule>& deny) {
+	if(!node.is_object()) return;
+	if(node.contains("locked") && node["locked"] == true && node.contains("id") && node["id"].is_string())
+		if(auto rule = parsePermissionRule("*(#" + node["id"].get<std::string>() + ")"))
+			deny.push_back(std::move(*rule));
+	if(node.contains("children") && node["children"].is_array())
+		for(const json& child : node["children"]) denyLocked(child, deny);
+}
+
 } // namespace
 
 // "permissions" as rules, plus every node with "locked": true denied to everyone
 Permissions Rules::permissions(const json& doc) const {
 	Permissions result;
-	if(doc.contains("permissions") && doc["permissions"].is_object()) {
-		const json& section = doc["permissions"];
-		result.configured = true;
-		auto read = [&](const char* key, std::vector<PermissionRule>& into) {
-			for(const json& text : section.value(key, json::array()))
-				if(const auto rule = parsePermissionRule(text.get<std::string>())) into.push_back(*rule);
-		};
-		read("allow", result.allow);
-		read("ask", result.ask);
-		read("deny", result.deny);
-		for(const json& name : section.value("reviewers", json::array()))
-			result.reviewers.push_back(name.get<std::string>());
-		result.review = reviewPolicyOf(section.value("review", json()));
-	}
-
-	std::function<void(const json&)> collect = [&](const json& node) {
-		if(!node.is_object()) return;
-		if(node.contains("locked") && node["locked"] == true && node.contains("id") && node["id"].is_string())
-			if(auto rule = parsePermissionRule("*(#" + node["id"].get<std::string>() + ")"))
-				result.deny.push_back(std::move(*rule));
-		if(node.contains("children") && node["children"].is_array())
-			for(const json& child : node["children"]) collect(child);
-	};
-	if(doc.contains("root")) collect(doc["root"]);
+	if(doc.contains("permissions") && doc["permissions"].is_object()) readPermissions(doc["permissions"], result);
+	if(doc.contains("root")) denyLocked(doc["root"], result.deny);
 	for(const char* section : {"screens", "templates"})
 		if(doc.contains(section) && doc[section].is_object())
-			for(const auto& [name, node] : doc[section].items()) collect(node);
+			for(const auto& [name, node] : doc[section].items()) denyLocked(node, result.deny);
 	return result;
 }
 
