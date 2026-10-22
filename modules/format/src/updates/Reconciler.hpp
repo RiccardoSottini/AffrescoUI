@@ -29,8 +29,9 @@ struct Engine;
 /// document and are left alone. State changes during one event become one update, run after the event
 /// (requestReconcile()). Cost follows the change: each record keeps what its values and its children's list read
 /// (Reads.hpp), so an update after state changes of known places (requestStateUpdate()) visits only the panels whose
-/// subtree reads one of them; anything else (a revision, a resize, a new theme or screen) updates everything. Callers: the engine (documentChanged()), Runtime::build() and instantiate(), and every
-/// subsystem that reads records. Main thread only.
+/// subtree reads one of them; anything else (a revision, a resize, a new theme or screen) updates everything. Callers:
+/// the engine (documentChanged()), Runtime::build() and instantiate(), and every subsystem that reads records. Main
+/// thread only.
 class Reconciler {
 public:
 	/// @brief The reconciler of an engine.

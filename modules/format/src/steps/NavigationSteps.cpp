@@ -62,7 +62,8 @@ std::optional<bool> runNavigationStep(const Running& s) {
 } // namespace
 
 void registerNavigationSteps(StepRegistry& registry) {
-	registry.add({"navigation", {{"focus", {}}, {"scrollTo", {}}, {"navigate", {}}, {"dismiss", {}}}, runNavigationStep});
+	registry.add(
+	    {"navigation", {{"focus", {}}, {"scrollTo", {}}, {"navigate", {}}, {"dismiss", {}}}, runNavigationStep});
 }
 
 } // namespace affresco::format

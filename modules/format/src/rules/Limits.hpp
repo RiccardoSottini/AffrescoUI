@@ -21,6 +21,7 @@ inline constexpr std::size_t maxStateBytes = 32u << 20;      ///< The live state
 /// @param value The value.
 /// @param enough Stops counting once the size is past this (the result is then larger, not exact).
 /// @return The size.
-[[nodiscard]] std::size_t approximateBytes(const json& value, std::size_t enough = std::numeric_limits<std::size_t>::max());
+[[nodiscard]] std::size_t approximateBytes(const json& value,
+                                           std::size_t enough = std::numeric_limits<std::size_t>::max());
 
 } // namespace affresco::format

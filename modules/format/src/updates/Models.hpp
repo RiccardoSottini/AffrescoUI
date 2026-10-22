@@ -85,7 +85,7 @@ private:
 		std::shared_ptr<DataModel> model; ///< The model.
 		Connection connection = 0;        ///< To its onChange.
 	};
-	Engine& engine_;                                  ///< Marks changes and asks for updates.
+	Engine& engine_;                                   ///< Marks changes and asks for updates.
 	std::map<std::string, Entry, std::less<>> models_; ///< By name.
 };
 

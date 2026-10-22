@@ -35,7 +35,7 @@ using Kinds = std::uint8_t;
 /// @return The set with it alone.
 [[nodiscard]] constexpr Kinds bit(Kind kind) noexcept { return static_cast<Kinds>(kind); }
 
-inline constexpr Kinds anyKind = 127;                                                   ///< Every kind: unknown.
+inline constexpr Kinds anyKind = 127; ///< Every kind: unknown.
 inline constexpr Kinds numberKinds = static_cast<Kinds>(bit(Kind::Integer) | bit(Kind::Fraction)); ///< Any number.
 
 /// @brief The kind of a value.

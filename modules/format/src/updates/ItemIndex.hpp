@@ -67,10 +67,10 @@ public:
 
 private:
 	std::multimap<std::string, std::size_t, std::less<>> local_; ///< Local children by their item's place.
-	std::vector<std::size_t> others_;                             ///< The children that read more than their item.
-	std::vector<std::string> lists_; ///< The places of the lists the items come from.
-	std::size_t children_ = 0;       ///< The panel's children when it was built.
-	bool built_ = false;             ///< Whether there is an index.
+	std::vector<std::size_t> others_;                            ///< The children that read more than their item.
+	std::vector<std::string> lists_;                             ///< The places of the lists the items come from.
+	std::size_t children_ = 0;                                   ///< The panel's children when it was built.
+	bool built_ = false;                                         ///< Whether there is an index.
 };
 
 } // namespace affresco::format

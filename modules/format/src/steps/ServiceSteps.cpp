@@ -22,16 +22,15 @@ std::optional<bool> runServiceStep(const Running& s) {
 } // namespace
 
 void registerServiceSteps(StepRegistry& registry) {
-	registry.add({"services",
-	              {{"invoke",
-	                {"with", "into", "append", "keep", "onEvent", "loading", "progress", "timeout", "id", "onDone",
-	                 "onError"}},
-	               {"request",
-	                {"with", "into", "append", "keep", "onEvent", "loading", "progress", "timeout", "id", "onDone",
-	                 "onError"}},
-	               {"subscribe", {"with", "do", "append", "keep", "into", "id", "onError"}},
-	               {"respond", {"error"}, true}},
-	              runServiceStep});
+	registry.add(
+	    {"services",
+		 {{"invoke",
+		   {"with", "into", "append", "keep", "onEvent", "loading", "progress", "timeout", "id", "onDone", "onError"}},
+		  {"request",
+		   {"with", "into", "append", "keep", "onEvent", "loading", "progress", "timeout", "id", "onDone", "onError"}},
+		  {"subscribe", {"with", "do", "append", "keep", "into", "id", "onError"}},
+		  {"respond", {"error"}, true}},
+		 runServiceStep});
 }
 
 } // namespace affresco::format

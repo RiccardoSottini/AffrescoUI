@@ -221,8 +221,8 @@ void Events::valueChanged(Panel& panel, const json& value) {
 			if(setting) checkSettingValue(document, setting->back(), &value, where); // "bind": "settings.x"
 			const json::json_pointer pointer =
 			    setting ? *setting
-			            : format::statePointer(*record->bind, engine_.document.context(*record->locals, json::object()),
-			                                   where);
+				        : format::statePointer(*record->bind, engine_.document.context(*record->locals, json::object()),
+				                               where);
 			statePlace(engine_.versions.state(), pointer, where) = value;
 			engine_.document.markStateChanged(pointer);
 			engine_.reconciler.requestStateUpdate();

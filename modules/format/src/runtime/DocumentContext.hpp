@@ -315,17 +315,17 @@ private:
 	mutable json computedValues_ = json::object();  ///< "computed" values read since the state last changed.
 	mutable std::uint64_t computedVersion_ = ~0ull; ///< The state version computedValues_ belong to.
 	mutable std::map<std::string, ReadSet, std::less<>> computedReads_; ///< What each computed value read.
-	mutable std::vector<std::string> computing_;    ///< Computed values being evaluated (finds circles).
-	NodeLookup computedLookup_;                     ///< computed(), for expressions.
-	NodeLookup nodeLookup_;                         ///< node(), for expressions.
-	NodeLookup modelLookup_;                        ///< Models::at(), for expressions.
-	VariableLookup variableLookup_;                 ///< variable(), for expressions.
+	mutable std::vector<std::string> computing_; ///< Computed values being evaluated (finds circles).
+	NodeLookup computedLookup_;                  ///< computed(), for expressions.
+	NodeLookup nodeLookup_;                      ///< node(), for expressions.
+	NodeLookup modelLookup_;                     ///< Models::at(), for expressions.
+	VariableLookup variableLookup_;              ///< variable(), for expressions.
 	std::map<std::string, std::function<json()>, std::less<>> builders_; ///< See addVariable().
 	mutable std::map<std::string, json, std::less<>> built_;             ///< Variables built since they were stale.
 	mutable std::vector<std::string> building_;                          ///< Variables being built (finds circles).
-	mutable std::uint64_t variablesEpoch_ = 0;    ///< Counts what makes built variables stale.
-	mutable std::uint64_t builtEpoch_ = ~0ull;    ///< The epoch built_ belongs to.
-	mutable std::uint64_t builtStateVersion_ = 0; ///< The state version built_ belongs to.
+	mutable std::uint64_t variablesEpoch_ = 0;                           ///< Counts what makes built variables stale.
+	mutable std::uint64_t builtEpoch_ = ~0ull;                           ///< The epoch built_ belongs to.
+	mutable std::uint64_t builtStateVersion_ = 0;                        ///< The state version built_ belongs to.
 };
 
 } // namespace affresco::format

@@ -164,7 +164,8 @@ void checkKeyword(const std::string& key, const json& value, const std::string& 
 std::optional<Mismatch> numberLimits(const json& value, const json& type, const Where& place) {
 	const double number = value.get<double>();
 	if(type.contains("minimum") && number < type["minimum"].get<double>())
-		return Mismatch{place.text(), std::format("expected at least {}, got {}", type["minimum"].dump(), value.dump())};
+		return Mismatch{place.text(),
+		                std::format("expected at least {}, got {}", type["minimum"].dump(), value.dump())};
 	if(type.contains("maximum") && number > type["maximum"].get<double>())
 		return Mismatch{place.text(), std::format("expected at most {}, got {}", type["maximum"].dump(), value.dump())};
 	return std::nullopt;
@@ -220,7 +221,8 @@ std::optional<Mismatch> objectMismatch(const json& value, const json& type, cons
 			const auto properties = type.find("properties"); // a temporary's items() would outlive it (GCC 13)
 			if(properties != type.end() && properties->is_object())
 				for(const auto& [name, property] : properties->items()) names += (names.empty() ? "" : ", ") + name;
-			return Mismatch{at.text(), "not one of its properties (" + (names.empty() ? std::string("none") : names) + ")"};
+			return Mismatch{at.text(),
+			                "not one of its properties (" + (names.empty() ? std::string("none") : names) + ")"};
 		}
 	}
 	return std::nullopt;

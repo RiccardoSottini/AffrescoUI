@@ -85,8 +85,8 @@ struct Record {
 	/// @brief The connections the events subsystem made to the panel's signals, which ~Runtime takes back (0: none).
 	struct Hooks {
 		Connection hover = 0, focus = 0, button = 0, move = 0, scroll = 0, key = 0; ///< Every panel's.
-		Connection value = 0; ///< A widget's value (a text area's text, or ValueHooks::listen()).
-		Connection caret = 0; ///< A text editor's caret.
+		Connection value = 0;      ///< A widget's value (a text area's text, or ValueHooks::listen()).
+		Connection caret = 0;      ///< A text editor's caret.
 		EventConnections events{}; ///< A widget's own events (WidgetEvents::listen()).
 		Connection link = 0;       ///< A label's links.
 	} hooks;                       ///< See Hooks.

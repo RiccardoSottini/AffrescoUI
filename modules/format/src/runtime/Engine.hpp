@@ -59,9 +59,9 @@ struct Engine : VersionObserver {
 	Engine& operator=(Engine&&) = delete;
 	~Engine() override = default;
 
-	Runtime& owner;           ///< For onEvent, onError, onSend, onConnect and onUpdated.
-	VersionControl& versions; ///< The document and state.
-	Window* window = nullptr; ///< Set by Runtime::build().
+	Runtime& owner;                         ///< For onEvent, onError, onSend, onConnect and onUpdated.
+	VersionControl& versions;               ///< The document and state.
+	Window* window = nullptr;               ///< Set by Runtime::build().
 	identity::Identity* identity = nullptr; ///< The host's sign-in (Runtime::setIdentity()), or none.
 	/// Expires with the engine: what comes back later from outside (a sign-in finishing) checks it first.
 	std::shared_ptr<bool> alive = std::make_shared<bool>(true);
@@ -76,19 +76,19 @@ struct Engine : VersionObserver {
 	Runtime::UnhandledAction unhandled;                                ///< Actions nobody handles.
 	bool placeholderTypes = false;                                     ///< Unknown types become plain panels.
 	bool handlersSuspended = false;                                    ///< See Runtime::setHandlersSuspended().
-	json menuBar = json::array();                                      ///< The native menu bar last shown (showMenuBar()).
+	json menuBar = json::array(); ///< The native menu bar last shown (showMenuBar()).
 
-	DocumentContext document; ///< Colours, fonts, theme, globals, computed values, the screen shown.
-	Builder builder;          ///< Expands children.
-	Scheduler scheduler;      ///< Timers and deferred tasks.
-	Properties properties;    ///< Values on panels.
-	Reconciler reconciler;    ///< Records; updates.
-	Events events;            ///< Input.
-	Steps runner;             ///< Actions.
-	Models models;            ///< The application's data models (their changes reach the others).
-	Connections connections;  ///< The declared connections (RFC 0003), started by "request" and "subscribe".
+	DocumentContext document;  ///< Colours, fonts, theme, globals, computed values, the screen shown.
+	Builder builder;           ///< Expands children.
+	Scheduler scheduler;       ///< Timers and deferred tasks.
+	Properties properties;     ///< Values on panels.
+	Reconciler reconciler;     ///< Records; updates.
+	Events events;             ///< Input.
+	Steps runner;              ///< Actions.
+	Models models;             ///< The application's data models (their changes reach the others).
+	Connections connections;   ///< The declared connections (RFC 0003), started by "request" and "subscribe".
 	ServiceCalls serviceCalls; ///< Service calls and subscriptions (RFC 0002).
-	AsyncCalls calls;         ///< Slow native calls (last: destroyed first, joining their workers).
+	AsyncCalls calls;          ///< Slow native calls (last: destroyed first, joining their workers).
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.

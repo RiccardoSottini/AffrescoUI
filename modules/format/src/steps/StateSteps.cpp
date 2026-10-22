@@ -73,7 +73,8 @@ void checkSettingsWritten(Engine& engine, const json& before, const std::string&
 	try {
 		if(!after.is_object()) expect::fail(where, "state.settings holds the settings' values by key");
 		for(const auto& [key, value] : after.items())
-			if(!before.contains(key) || before[key] != value) checkSettingValue(engine.versions.document(), key, &value, where);
+			if(!before.contains(key) || before[key] != value)
+				checkSettingValue(engine.versions.document(), key, &value, where);
 	} catch(const DocumentError&) {
 		state["settings"] = before;
 		throw;

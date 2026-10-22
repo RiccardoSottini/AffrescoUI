@@ -60,7 +60,7 @@ std::optional<std::vector<std::size_t>> ItemIndex::visits(const StateChanges& ch
 	for(const std::string& written : changes.paths) {
 		if(std::ranges::any_of(lists_, [&written](const std::string& list) { return contains(written, list, true); }))
 			return std::nullopt; // the list itself, or a place around it: every item may have changed
-		for(std::size_t end = written.find('/', 1); ; end = written.find('/', end + 1)) {
+		for(std::size_t end = written.find('/', 1);; end = written.find('/', end + 1)) {
 			const auto [first, last] = local_.equal_range(std::string_view(written).substr(0, end));
 			for(auto it = first; it != last; ++it) chosen.push_back(it->second);
 			if(end == std::string::npos) break;

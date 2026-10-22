@@ -38,8 +38,8 @@ struct Scope {
 	/// This scope's own variables. Mutable for one writer: the reconciler refreshes a repeat's item in place when the
 	/// state it was copied from changes (Reconciler::refreshItems), for panels that share the scope as const.
 	mutable json vars = json::object();
-	std::string fromState;             ///< A variable whose value lies in the state (a repeat's item), or empty.
-	std::string origin;                ///< Where in the state it lies, as a JSON Pointer.
+	std::string fromState; ///< A variable whose value lies in the state (a repeat's item), or empty.
+	std::string origin;    ///< Where in the state it lies, as a JSON Pointer.
 
 	/// @brief Finds a variable here or in an enclosing scope (the innermost wins).
 	/// @param name The variable.
