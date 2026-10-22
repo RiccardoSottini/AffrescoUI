@@ -685,12 +685,14 @@ bool Events::navigate(Panel* from, const KeyEvent& event) {
 
 	const std::vector<Panel*> items = focusables(*list, true);
 	if(items.empty()) return false;
-	const auto n = static_cast<long>(items.size());
-	long here = -1;
+	const auto n = static_cast<std::ptrdiff_t>(items.size());
+	std::ptrdiff_t here = -1;
 	for(Panel* at = from; at && here < 0; at = at->parent())
 		if(const auto it = std::ranges::find(items, at); it != items.end()) here = it - items.begin();
-	long next = event.key == Key::Home ? 0 : event.key == Key::End ? n - 1 : here < 0 ? (step > 0 ? 0 : n - 1)
-	                                                                        : (here + step + n) % n;
+	const std::ptrdiff_t next = event.key == Key::Home ? 0
+	                            : event.key == Key::End ? n - 1
+	                            : here < 0              ? (step > 0 ? 0 : n - 1)
+	                                                    : (here + step + n) % n;
 	window.setFocus(items[static_cast<std::size_t>(next)]);
 	return true;
 }

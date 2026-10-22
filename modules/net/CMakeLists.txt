@@ -25,6 +25,8 @@ target_link_libraries(affrescoui_net PUBLIC affrescoui::core nlohmann_json::nloh
 if(WIN32)
 	target_sources(affrescoui_net PRIVATE src/SecretStoreWindows.cpp)
 	target_link_libraries(affrescoui_net PRIVATE ws2_32 advapi32 bcrypt shell32) # Winsock, Credential Manager, random
+	# curl's headers bring in windows.h, whose min and max macros break std::min and std::max
+	target_compile_definitions(affrescoui_net PRIVATE NOMINMAX)
 elseif(APPLE)
 	target_sources(affrescoui_net PRIVATE src/SecretStoreApple.cpp)
 	target_link_libraries(affrescoui_net PRIVATE "-framework Security" "-framework CoreFoundation")

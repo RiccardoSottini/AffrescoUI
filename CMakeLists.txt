@@ -143,12 +143,15 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		add_executable(affrescoui_${example} examples/${example}.cpp)
 		if(example STREQUAL "host")
 			target_sources(affrescoui_host PRIVATE examples/CodeEditor.cpp) # the Forge template's "code" type
+			# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice
+			# makes the linker warn about a duplicate library)
+			target_link_libraries(affrescoui_host PRIVATE affrescoui::automation)
+		else()
+			target_link_libraries(affrescoui_${example} PRIVATE affrescoui)
 		endif()
-		target_link_libraries(affrescoui_${example} PRIVATE affrescoui)
 		target_compile_options(affrescoui_${example} PRIVATE ${AFFRESCOUI_WARNINGS})
 		target_compile_definitions(affrescoui_${example} PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
 	endforeach()
-	target_link_libraries(affrescoui_host PRIVATE affrescoui::automation) # a proposal's evidence plays its scenarios
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/CodeEditor.cpp)
 	target_include_directories(affrescoui_forge PRIVATE examples examples/forge)
