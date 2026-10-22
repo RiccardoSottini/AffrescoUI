@@ -44,7 +44,8 @@ std::string_view indexAt(std::string_view path, std::size_t& i) {
 	const std::size_t start = i;
 	while(i < path.size() && path[i] >= '0' && path[i] <= '9') ++i;
 	const std::string_view digits = path.substr(start, i - start);
-	if(i >= path.size() || path[i++] != ']') return {};
+	if(i >= path.size() || path[i] != ']') return {};
+	++i;
 	return digits;
 }
 

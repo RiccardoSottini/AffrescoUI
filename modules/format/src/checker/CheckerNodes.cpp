@@ -458,7 +458,7 @@ void Checker::walkKeyBinding(const json& binding, const Scope& scope, const std:
 	Scope inner{&scope, nullptr, json(), {}, {}};
 	if(binding.contains("with") && binding["with"].is_object())
 		for(const auto& [name, value] : binding["with"].items()) {
-			read(value, scope, place + ".with." + name);
+			read(value, scope, std::format("{}.with.{}", place, name));
 			inner.vars[name] = anything;
 		}
 	walkHandler(binding["do"], inner, place + ".do");

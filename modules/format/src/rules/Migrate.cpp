@@ -110,7 +110,7 @@ std::optional<std::string> renameLenIn(std::string_view text) {
 /// @param holder The path without its last segment.
 /// @return true if it does.
 bool holdsLayoutKeys(std::string_view holder) {
-	if(holder.starts_with('#')) return holder.find('/') == std::string_view::npos;
+	if(holder.starts_with('#')) return !holder.contains('/');
 	if(holder.starts_with("/styles/")) return holder.find('/', 8) == std::string_view::npos;
 	return isNodePlace(holder);
 }
@@ -119,11 +119,10 @@ bool holdsLayoutKeys(std::string_view holder) {
 /// @param path The path.
 /// @return true if it is "/state", "/strings" or inside one.
 bool inData(std::string_view path) {
-	for(std::string_view section : dataSections)
-		if(path.size() > section.size() && path[0] == '/' && path.substr(1, section.size()) == section &&
-		   (path.size() == section.size() + 1 || path[section.size() + 1] == '/'))
-			return true;
-	return false;
+	return std::ranges::any_of(dataSections, [path](const std::string_view section) {
+		return path.size() > section.size() && path[0] == '/' && path.substr(1, section.size()) == section &&
+		       (path.size() == section.size() + 1 || path[section.size() + 1] == '/');
+	});
 }
 
 /// @brief One migration: the walk and what it found.
@@ -330,7 +329,7 @@ private:
 	void pathValue(json& path, const std::string& pointer) {
 		if(!path.is_string()) return;
 		if(auto to = renamedPath(path.get<std::string>()))
-			replace(path, pointer, json(*to), "\"from\" is \"justify\" in version 2");
+			replace(path, pointer, json(*to), R"("from" is "justify" in version 2)");
 	}
 
 	/// @brief Migrates one patch operation: a path (and a move's "from") that ends in a node's "from", and its value.
@@ -349,6 +348,7 @@ private:
 
 } // namespace
 
+// NOLINTNEXTLINE(bugprone-exception-escape): lookups and type checks don't throw
 DocumentKind documentKind(const json& document) noexcept {
 	if(!document.is_object()) return DocumentKind::Other;
 	const auto format = document.find("format");
@@ -361,6 +361,7 @@ DocumentKind documentKind(const json& document) noexcept {
 	return DocumentKind::Other;
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): the version is read as the integer it was checked to be
 int documentVersion(const json& document) noexcept {
 	if(!document.is_object()) return 0;
 	const auto version = document.find("version");
@@ -388,6 +389,7 @@ std::vector<Rewrite> migratePatch(json& patch, const std::string& pointer) {
 	return std::move(migration.rewrites());
 }
 
+// NOLINTNEXTLINE(modernize-use-string-view): the public header returns a std::string
 std::string removedKeyHint(std::string_view type, std::string_view key) {
 	if(key == "from" && (type.empty() || type == "row" || type == "column" || type == "stack"))
 		return "'from' was removed in version 2: use 'justify'";
@@ -395,6 +397,7 @@ std::string removedKeyHint(std::string_view type, std::string_view key) {
 	return "";
 }
 
+// NOLINTNEXTLINE(modernize-use-string-view): the public header returns a std::string
 std::string removedFunctionHint(std::string_view name) {
 	return name == "len" ? "'len' was removed in version 2: use 'length'" : "";
 }

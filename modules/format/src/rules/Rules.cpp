@@ -24,9 +24,9 @@ using expect::fail;
 namespace {
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
-constexpr std::string_view controlSteps[] = {"accept",  "reject",  "preview", "endPreview", "restore",
-                                             "revert",  "undo",    "patch",   "call",       "send",
-                                             "connect", "respond", "signIn",  "signOut"};
+constexpr std::array<std::string_view, 14> controlSteps{"accept",  "reject",  "preview", "endPreview", "restore",
+                                                        "revert",  "undo",    "patch",   "call",       "send",
+                                                        "connect", "respond", "signIn",  "signOut"};
 
 /// The most findings a rejected revision lists; it says how many more there are.
 constexpr std::size_t maxListed = 10;
@@ -40,6 +40,7 @@ constexpr std::size_t maxExpansions = 64;
 /// @param storage Holds the composed screen when there is one.
 /// @return The screen.
 const json& screenOf(const json& document, json& storage) {
+	// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass documents they hold
 	if(!needsComposition(document)) return document;
 	storage = compose(document).screen;
 	return storage;
@@ -396,6 +397,7 @@ namespace {
 /// @return Their messages.
 std::vector<std::string> linesOf(const std::vector<Rewrite>& rewrites) {
 	std::vector<std::string> lines;
+	lines.reserve(rewrites.size());
 	for(const Rewrite& rewrite : rewrites) lines.push_back(rewrite.message);
 	return lines;
 }
@@ -539,18 +541,18 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 	fail("revision", message);
 }
 
-std::vector<std::string> Rules::findings(const json& raw, const json& state) const {
+std::vector<std::string> Rules::findings(const json& document, const json& state) const {
 	std::vector<std::string> lines;
 	json composed;
-	if(needsComposition(raw)) { // features that don't fit are left out: say why
-		Composition composition = compose(raw);
+	if(needsComposition(document)) { // features that don't fit are left out: say why
+		Composition composition = compose(document);
 		lines = std::move(composition.problems);
 		composed = std::move(composition.screen);
 	}
-	const json& document = composed.is_null() ? raw : composed;
-	for(const Mismatch& mismatch : stateMismatches(document, state)) // a state kept on disk may predate its types
+	const json& screen = composed.is_null() ? document : composed;
+	for(const Mismatch& mismatch : stateMismatches(screen, state)) // a state kept on disk may predate its types
 		lines.push_back(mismatch.text() + typeNote(mismatch));
-	const auto found = check(document, state, nativeActions_);
+	const auto found = check(screen, state, nativeActions_);
 	if(!found) {
 		lines.emplace_back("not checked: the screen is larger than the checker's limit");
 		return lines;

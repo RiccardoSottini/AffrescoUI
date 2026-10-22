@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <format>
 #include <map>
 #include <string>
 #include <string_view>
@@ -53,7 +54,7 @@ void collectNode(const json& node, const std::string& pointer, Parts& parts) {
 	json bindings = json::array();
 	for(const auto& [key, value] : node.items()) {
 		if(key == "children") continue;
-		if(isBehaviourKey(key)) parts[key + " of " + name] = value;
+		if(isBehaviourKey(key)) parts[std::format("{} of {}", key, name)] = value;
 		else collectBindings(value, bindings);
 	}
 	if(!bindings.empty()) parts["the bindings of " + name] = std::move(bindings);

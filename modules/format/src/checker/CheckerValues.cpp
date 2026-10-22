@@ -220,9 +220,9 @@ Shape Checker::shapeOfExpression(std::string_view text, const Scope& scope, cons
 		report(place, problemOf(error, place));
 		return anything;
 	}
-	// The tree lives in the compile cache, which a later compile may clear (past compileCacheLimit expressions). A "$path"
-	// compiles its index expressions, but it is always a whole tree and its text is copied first. Reading a computed
-	// value compiles that value's expression while this tree is still read, so such a tree is copied
+	// The tree lives in the compile cache, which a later compile may clear (past compileCacheLimit expressions). A
+	// "$path" compiles its index expressions, but it is always a whole tree and its text is copied first. Reading a
+	// computed value compiles that value's expression while this tree is still read, so such a tree is copied
 	if(text.contains("computed")) {
 		const json copy = *tree;
 		return shapeOf(copy, scope, place);
@@ -372,7 +372,7 @@ const Shape* Checker::variable(const std::string& name, const Scope& scope) cons
 	if(name == "state") return &state_;
 	if(among(fixedVariables, name)) return &anything;
 	if(const json* local = scope.find(name)) return local;
-	if(among(screenVariables, name) || scope.find(std::string(openScope))) return &anything;
+	if(among(screenVariables, name) || scope.find(openScope)) return &anything;
 	return nullptr;
 }
 
@@ -460,8 +460,7 @@ void Checker::write(const json& target, const Shape& value, Change change, const
 		std::string key;
 		for(std::size_t i = 1; i < keys->size(); ++i)
 			key += (i > 1 ? "." : "") + ((*keys)[i].name.is_string() ? (*keys)[i].name.get<std::string>() : "[...]");
-		if(!document_["settings"].contains(key))
-			report(place, "there is no setting '" + key + "' in \"settings\"");
+		if(!document_["settings"].contains(key)) report(place, "there is no setting '" + key + "' in \"settings\"");
 		return;
 	}
 	if(keys->front().name != "state") {
