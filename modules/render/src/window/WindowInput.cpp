@@ -11,6 +11,7 @@
 #include "platform/Platform.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -118,6 +119,10 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 }
 
 void Window::routeScroll(const ScrollEvent& event) {
+	// A NaN passes every clamp and an infinity can turn into one in a view's arithmetic: either leaves a scroll NaN
+	const Vec2 offset = event.offset, position = event.position;
+	if(!std::isfinite(offset.x) || !std::isfinite(offset.y) || !std::isfinite(position.x) || !std::isfinite(position.y))
+		return;
 	++routing_;
 	// The panel under the pointer hears it; the nearest scrollable one (it or an ancestor) scrolls
 	if(Panel* target = panelAt(event.position)) {

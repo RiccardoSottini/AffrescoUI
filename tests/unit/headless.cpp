@@ -10,6 +10,7 @@
 #include <doctest/doctest.h>
 
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -181,6 +182,26 @@ TEST_CASE("render: a scroll scrolls the nearest scrollable panel under the point
 	window->render();
 	CHECK(window->panelAt({50.0f, 10.0f}) == &item);
 	CHECK(item.frame().top == -200.0f);
+}
+
+TEST_CASE("render: a scroll that isn't a finite number is dropped") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 200, clock);
+	Panel& list = box(window->root(), 0, 0, 100, 100);
+	list.setScrollable(false, true);
+	box(list, 0, 0, 100, 300);
+	int heard = 0;
+	window->onScroll.connect([&](const affresco::ScrollEvent&) { ++heard; });
+	window->render();
+	const float nan = std::numeric_limits<float>::quiet_NaN(), infinity = std::numeric_limits<float>::infinity();
+	window->routeScroll({{0.0f, nan}, {50.0f, 50.0f}});
+	window->routeScroll({{0.0f, -infinity}, {50.0f, 50.0f}});
+	window->routeScroll({{0.0f, -1.0f}, {nan, 50.0f}});
+	CHECK(heard == 0);
+	CHECK(list.scrollOffset() == Vec2{0.0f, 0.0f});
+	window->routeScroll({{0.0f, -1.0f}, {50.0f, 50.0f}});
+	CHECK(heard == 1);
+	CHECK(list.scrollOffset() == Vec2{0.0f, 24.0f});
 }
 
 TEST_CASE("render: focus moves, and a destroyed panel drops the focus, hover and capture") {

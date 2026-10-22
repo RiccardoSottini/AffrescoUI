@@ -256,7 +256,7 @@ public:
 	/// @param event The event.
 	void routeMouseButton(const MouseButtonEvent& event);
 	/// @brief Delivers a scroll to the panel under the pointer, then onScroll.
-	/// @param event The event.
+	/// @param event The event; one whose offset or position isn't a finite number is dropped.
 	void routeScroll(const ScrollEvent& event);
 	/// @brief Clears the hovered panel when the pointer leaves, then onCursorEnter.
 	/// @param entered true if the pointer entered.
