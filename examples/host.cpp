@@ -185,6 +185,7 @@ int run(const Options& options) {
 	applyPlugins(screen, options.plugins);
 	checkScenariosForEvidence(screen, screenFile(options.file));
 
+#ifndef __EMSCRIPTEN__ // a browser tab has no local sockets to listen on (web/README.md)
 	if(!screenshotOnly) {
 		createSocketDir(options.socketDir);
 		screen.listen(app, options.socketDir / "studio.sock", "studio");
@@ -192,6 +193,7 @@ int run(const Options& options) {
 		std::cerr << "affrescoui_host: listening in " << options.socketDir.string() << " (studio.sock, agent.sock)"
 		          << ", mode " << affresco::toString(screen.versions().mode()) << '\n';
 	}
+#endif
 	return app.run();
 }
 

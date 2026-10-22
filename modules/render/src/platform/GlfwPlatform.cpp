@@ -10,6 +10,9 @@
 #include "affresco/render/Window.hpp"
 
 #include <GLFW/glfw3.h>
+#ifdef __EMSCRIPTEN__
+#include <GLFW/emscripten_glfw3.h>
+#endif
 
 #include <array>
 #include <cstddef>
@@ -69,6 +72,12 @@ public:
 		if(!handle_) throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
 		glfwMakeContextCurrent(handle_);
 		glfwSwapInterval(1); // vsync: never render faster than the display
+#ifdef __EMSCRIPTEN__
+		// The canvas follows its container on the page (web/), at the page's devicePixelRatio (GLFW's port scales the
+		// framebuffer by default); a page without one keeps the window's size
+		if(emscripten::glfw3::MakeCanvasResizable(handle_, "#canvas-container") != EMSCRIPTEN_RESULT_SUCCESS)
+			log(LogLevel::Info, "AffrescoUI: the page has no #canvas-container: the canvas keeps its size");
+#endif
 	}
 
 	/// @brief Destroys the menu bar, the cursors and the window.

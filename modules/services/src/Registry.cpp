@@ -81,10 +81,12 @@ std::optional<std::string> Service::subscribe(const std::string& stream, std::sh
 
 ServiceRegistry::ServiceRegistry() {
 	add(makeFileProvider());
+#ifndef __EMSCRIPTEN__ // a browser runs no programs and watches no folders: declarations of these are refused
 	add(makeProcessProvider());
 	add(makeJsonRpcProvider());
 	add(makeWatchProvider());
 	add(makePtyProvider());
+#endif
 	add(makeSearchProvider());
 }
 

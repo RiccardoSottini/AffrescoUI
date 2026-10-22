@@ -40,14 +40,24 @@ struct Peer {
 	std::unique_ptr<channel::Session> session; ///< Its protocol session.
 };
 
-/// @brief A channel the file declares: a program the screen talks to over a local socket.
+/// @brief A channel the file declares: a program the screen talks to over a local socket, or a remote peer.
 struct DeclaredChannel {
 	std::string name;                               ///< Its name in the file: actions "<name>:<type>".
 	std::filesystem::path path;                     ///< The socket.
 	double reconnectMs = 0.0;                       ///< Wait before connecting again (0: never).
 	std::unique_ptr<channel::SocketChannel> socket; ///< While connected.
 	std::uint64_t retry = 0;                        ///< The reconnect timer, if waiting.
+	std::string url;                 ///< A remote peer's ws:// or wss:// address instead of the socket, or "".
+	std::string token;               ///< The token for url, from the host (never from the document).
+	std::unique_ptr<Channel> remote; ///< While connected to url.
 };
+
+/// @brief Whether a "channels" address is a remote peer's (net::connectPeer()) rather than a local socket's.
+/// @param address The address.
+/// @return Whether it starts with ws:// or wss://.
+bool isPeerAddress(std::string_view address) noexcept {
+	return address.starts_with("ws://") || address.starts_with("wss://");
+}
 
 } // namespace
 
@@ -117,7 +127,7 @@ struct Screen::Impl {
 		runtime.onSend.connect([this](const std::string& name, const json& message) { send(name, message); });
 		runtime.onConnect.connect([this](const std::string& name) {
 			if(const auto it = channels.find(name); it != channels.end()) {
-				if(!it->second.socket) open(it->second);
+				if(!it->second.socket && !it->second.remote) open(it->second);
 			} else {
 				runtime.onError("AffrescoUI screen: connect: no channel '" + name + "' in \"channels\"");
 			}
@@ -169,15 +179,28 @@ struct Screen::Impl {
 		if(!executor) return;
 		if(Window* window = runtime.window(); window && channel.retry)
 			window->cancelTimer(std::exchange(channel.retry, 0));
-		try {
-			channel.socket = channel::SocketChannel::connect(*executor, channel.path);
-		} catch(const std::exception& error) {
-			run(channel.name + ":closed", {{"type", "closed"}, {"message", error.what()}});
-			retry(channel);
-			return;
+		if(!channel.url.empty()) {
+			channel.remote = net::connectPeer(*executor, channel.url, channel.token);
+			if(!channel.remote) {
+				run(channel.name + ":closed", {{"type", "closed"},
+				                               {"message", "Can't connect to " + channel.url +
+				                                               ": it takes a wss:// address (ws:// on the loopback) "
+				                                               "and a token from the host"}});
+				retry(channel);
+				return;
+			}
+		} else {
+			try {
+				channel.socket = channel::SocketChannel::connect(*executor, channel.path);
+			} catch(const std::exception& error) {
+				run(channel.name + ":closed", {{"type", "closed"}, {"message", error.what()}});
+				retry(channel);
+				return;
+			}
 		}
+		Channel& connected = channel.remote ? *channel.remote : static_cast<Channel&>(*channel.socket);
 		const std::string name = channel.name;
-		channel.socket->onMessage.connect([this, name](const std::string& line) {
+		connected.onMessage.connect([this, name](const std::string& line) {
 			json message;
 			try {
 				message = parseUntrusted(line);
@@ -187,12 +210,13 @@ struct Screen::Impl {
 			if(message.is_object() && message.contains("type") && message["type"].is_string())
 				run(name + ":" + message["type"].get<std::string>(), message);
 		});
-		channel.socket->onClosed.connect([this, name, guard = alive] {
+		connected.onClosed.connect([this, name, guard = alive] {
 			// Dropped after the signal that says so has finished
 			executor->post([this, name, guard] {
 				if(!*guard) return;
 				DeclaredChannel& c = channels.at(name);
 				c.socket.reset();
+				c.remote.reset();
 				run(name + ":closed", {{"type", "closed"}, {"message", "The other end closed the connection"}});
 				retry(c);
 			});
@@ -208,7 +232,7 @@ struct Screen::Impl {
 		channel.retry = window->setTimer(channel.reconnectMs, [this, name = channel.name] {
 			DeclaredChannel& c = channels.at(name);
 			c.retry = 0;
-			if(!c.socket) open(c);
+			if(!c.socket && !c.remote) open(c);
 		});
 	}
 
@@ -219,6 +243,10 @@ struct Screen::Impl {
 		const auto it = channels.find(name);
 		if(it == channels.end()) {
 			runtime.onError("AffrescoUI screen: send: no channel '" + name + "' in \"channels\"");
+			return;
+		}
+		if(it->second.remote) { // a remote peer's channel: messages wait for its handshake
+			it->second.remote->send(message.dump());
 			return;
 		}
 		if(!it->second.socket || !it->second.socket->isOpen()) {
@@ -571,6 +599,28 @@ std::filesystem::path Screen::defaultSocketDirectory() {
 
 void Screen::setSocketDirectory(std::filesystem::path directory) { impl_->socketDirectory = std::move(directory); }
 
+bool Screen::connectChannel(const std::string& name, std::string address, std::string token) {
+	Impl& impl = *impl_;
+	const auto it = impl.channels.find(name);
+	if(it == impl.channels.end()) return false;
+	DeclaredChannel& channel = it->second;
+	if(Window* window = impl.runtime.window(); window && channel.retry)
+		window->cancelTimer(std::exchange(channel.retry, 0));
+	channel.socket.reset(); // no handler runs after: the signals go with their channel
+	channel.remote.reset();
+	channel.url.clear();
+	channel.token.clear();
+	if(isPeerAddress(address)) {
+		channel.url = std::move(address);
+		channel.token = std::move(token);
+	} else {
+		const std::filesystem::path socket = address;
+		channel.path = socket.is_absolute() ? socket : impl.socketDirectory / socket;
+	}
+	impl.open(channel);
+	return true;
+}
+
 void Screen::startChannels(Executor& executor) {
 	Impl& impl = *impl_;
 	impl.executor = &executor;
@@ -582,8 +632,10 @@ void Screen::startChannels(Executor& executor) {
 		if(impl.channels.contains(name)) continue;
 		DeclaredChannel& channel = impl.channels[name];
 		channel.name = name;
-		const std::filesystem::path socket = spec["socket"].get<std::string>();
-		channel.path = socket.is_absolute() ? socket : impl.socketDirectory / socket;
+		const std::string address = spec["socket"].get<std::string>();
+		const std::filesystem::path socket = address;
+		if(isPeerAddress(address)) channel.url = address;
+		else channel.path = socket.is_absolute() ? socket : impl.socketDirectory / socket;
 		const json& reconnect = spec.value("reconnect", json(false));
 		channel.reconnectMs = reconnect.is_object()   ? reconnect.value("after", 2000.0)
 		                      : reconnect == true     ? 2000.0

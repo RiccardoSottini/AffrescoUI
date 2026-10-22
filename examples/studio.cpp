@@ -28,6 +28,10 @@
 #include <utility>
 #include <vector>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 namespace {
 
 /// @brief Decodes base64 (RFC 4648), as the host sends pictures.
@@ -104,7 +108,23 @@ std::string showEvidence(affresco::Screen& studio, const std::string& argumentsJ
 	return "true";
 }
 
+#ifdef __EMSCRIPTEN__
+affresco::Screen* connectable = nullptr; ///< The Studio, for the page's connect form (main() keeps it to the end).
+#endif
+
 } // namespace
+
+#ifdef __EMSCRIPTEN__
+/// @brief Connects the Studio to a host's remote-peer server, from the page's connect form (web/studio.html). The
+/// token is the server's to verify; it stays in this run's memory and is sent once, as the connection's credentials.
+/// @param address The server's `wss://` address (`ws://` on the loopback).
+/// @param token The token.
+/// @return 1 if the Studio is running and took the address (the connection reports on the "host:" actions), else 0.
+extern "C" EMSCRIPTEN_KEEPALIVE int affresco_studio_connect(const char* address, const char* token) {
+	if(!connectable || !address || !token) return 0;
+	return connectable->connectChannel("host", address, token) ? 1 : 0;
+}
+#endif
 
 int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own signature
 	try {
@@ -119,7 +139,9 @@ int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own 
 			}
 		}
 
+#ifndef __EMSCRIPTEN__ // a browser tab has no socket folder: the page's connect form gives the host's address
 		checkSocketDir(socketDir);
+#endif
 		affresco::Application app;
 		affresco::Screen studio =
 		    affresco::Screen::fromFile(assetsDirectory() / "screens" / "studio.screen.json", dataDir);
@@ -127,6 +149,9 @@ int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own 
 		studio.onCall("showEvidence",
 		              [&studio](const std::string& argumentsJson) { return showEvidence(studio, argumentsJson); });
 		studio.createWindow(app); // connects the file's channels
+#ifdef __EMSCRIPTEN__
+		connectable = &studio;
+#endif
 		return app.run();
 	} catch(const std::exception& error) {
 		std::cerr << "affrescoui_studio: " << error.what() << '\n';

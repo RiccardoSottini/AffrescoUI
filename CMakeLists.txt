@@ -41,6 +41,8 @@ include(FetchContent)
 
 # GLFW: windows, OpenGL context, input. The versions pinned here are also the ones the installed package asks for.
 set(AFFRESCOUI_GLFW_VERSION 3.4)
+include(cmake/AffrescoUIWeb.cmake) # the browser build: GLFW's Emscripten port and the browser's network instead
+if(NOT EMSCRIPTEN)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -50,6 +52,7 @@ FetchContent_Declare(glfw
 	URL https://github.com/glfw/glfw/releases/download/${AFFRESCOUI_GLFW_VERSION}/glfw-${AFFRESCOUI_GLFW_VERSION}.zip
 	URL_HASH SHA256=b5ec004b2712fd08e8861dc271428f048775200a2df719ccf575143ba749a3e9 SYSTEM)
 FetchContent_MakeAvailable(glfw)
+endif()
 # Warnings as errors are for our code: GLFW's own warnings (e.g. sprintf, deprecated in recent macOS SDKs) must not
 # fail the build
 set_target_properties(glfw PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
@@ -67,7 +70,9 @@ FetchContent_MakeAvailable(json)
 include(cmake/AffrescoUIText.cmake)
 
 # libcurl with the platform's TLS: the network module (RFC 0003, decision D3)
+if(NOT EMSCRIPTEN)
 include(cmake/AffrescoUINetwork.cmake)
+endif()
 
 # Monocypher: the Ed25519 signatures of features and catalogues (RFC 0004, decision D12)
 include(cmake/AffrescoUISignatures.cmake)

@@ -235,6 +235,16 @@ public:
 	/// @param directory The directory.
 	void setSocketDirectory(std::filesystem::path directory);
 
+	/// @brief Connects a declared channel somewhere else for this run, closing its connection first: a socket (as in
+	/// "channels"), or a remote peer's `wss://` address (`ws://` on the loopback) with the token its server's verifier
+	/// accepts. The token stays in memory, sent once as the connection's credentials: never in the document, the state
+	/// or a log. In a browser this is how the Studio page's connect form reaches a host (web/README.md).
+	/// @param name The channel's name in "channels" (after startChannels()).
+	/// @param address The socket or the peer address.
+	/// @param token The token for a peer address ("" for a socket).
+	/// @return false if the screen declares no such channel.
+	bool connectChannel(const std::string& name, std::string address, std::string token = {});
+
 	/// @brief Connects the file's "channels" (createWindow() does it; call it after build()). Each message of type T
 	/// on channel C runs the action "C:T" if the file has one; "C:open" and "C:closed" run on connect and disconnect.
 	/// @param executor Delivers messages on the main thread (the Application).

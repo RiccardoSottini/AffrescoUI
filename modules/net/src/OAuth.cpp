@@ -18,6 +18,8 @@
 #include <bcrypt.h>
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <stdlib.h>
+#elif defined(__EMSCRIPTEN__)
+#include <unistd.h>
 #else
 #include <sys/random.h>
 #endif
@@ -41,6 +43,10 @@ void fillRandom(std::string& into) {
 		throw std::runtime_error("the system's random generator failed");
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 	arc4random_buf(into.data(), into.size());
+#elif defined(__EMSCRIPTEN__) // the browser's crypto.getRandomValues, at most 256 bytes a call
+	for(std::size_t done = 0; done < into.size(); done += 256)
+		if(getentropy(into.data() + done, std::min<std::size_t>(256, into.size() - done)) != 0)
+			throw std::runtime_error("the system's random generator failed");
 #else
 	for(std::size_t done = 0; done < into.size();) {
 		const ssize_t got = getrandom(into.data() + done, into.size() - done, 0);
