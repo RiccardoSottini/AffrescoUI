@@ -4,9 +4,55 @@
 #include "affresco/scene3d/Scene.hpp"
 
 #include <algorithm>
+#include <map>
 #include <set>
+#include <string_view>
 
 namespace affresco::scene3d {
+
+namespace {
+
+/// @brief Each node's parent, by the node's id.
+using Parents = std::map<std::string_view, std::string_view>;
+
+/// @brief Checks every node's id and transform, noting its parent.
+/// @param nodes The nodes. @param parents Receives each node's parent.
+/// @return The first problem, or empty.
+[[nodiscard]] std::string checkNodes(const std::vector<Node>& nodes, Parents& parents) {
+	for(const Node& node : nodes) {
+		if(node.id.empty()) return "a node has no id";
+		if(!parents.emplace(node.id, node.parent).second) return "two nodes have the id " + node.id;
+		if(!isFinite(node.transform.translation) || !isFinite(node.transform.scale))
+			return "the node " + node.id + " has a transform that isn't finite";
+	}
+	return {};
+}
+
+/// @brief Checks that the materials' ids are there and unique. @param materials The materials.
+/// @return The first problem, or empty.
+[[nodiscard]] std::string checkMaterials(const std::vector<Material>& materials) {
+	std::set<std::string_view> materialIds;
+	for(const Material& material : materials)
+		if(material.id.empty() || !materialIds.insert(material.id).second)
+			return "a material id is empty or repeated: " + material.id;
+	return {};
+}
+
+/// @brief Checks that a node's ancestors are there, end, and are not too many.
+/// @param node The node. @param parents Each node's parent. @param depth The most ancestors.
+/// @return The problem, or empty.
+[[nodiscard]] std::string checkAncestry(const Node& node, const Parents& parents, std::size_t depth) {
+	std::size_t up = 0;
+	for(std::string_view at = node.parent; !at.empty(); ++up) {
+		const auto parent = parents.find(at);
+		if(parent == parents.end()) return "the node " + node.id + " has a missing parent";
+		if(up >= depth) return "the node " + node.id + " is too deep or in a cycle";
+		at = parent->second;
+	}
+	return {};
+}
+
+} // namespace
 
 const Node* Scene::node(std::string_view id) const noexcept {
 	const auto found = std::ranges::find(nodes, id, &Node::id);
@@ -26,26 +72,11 @@ const Material* Scene::material(std::string_view id) const noexcept {
 std::string Scene::validate(const SceneLimits& limits) const {
 	if(nodes.size() > limits.nodes) return "too many nodes";
 	if(materials.size() > limits.materials) return "too many materials";
-	std::map<std::string_view, std::string_view> parents;
-	for(const Node& node : nodes) {
-		if(node.id.empty()) return "a node has no id";
-		if(!parents.emplace(node.id, node.parent).second) return "two nodes have the id " + node.id;
-		if(!isFinite(node.transform.translation) || !isFinite(node.transform.scale))
-			return "the node " + node.id + " has a transform that isn't finite";
-	}
-	std::set<std::string_view> materialIds;
-	for(const Material& material : materials)
-		if(material.id.empty() || !materialIds.insert(material.id).second)
-			return "a material id is empty or repeated: " + material.id;
-	for(const Node& node : nodes) {
-		std::size_t depth = 0;
-		for(std::string_view at = node.parent; !at.empty(); ++depth) {
-			const auto parent = parents.find(at);
-			if(parent == parents.end()) return "the node " + node.id + " has a missing parent";
-			if(depth >= limits.depth) return "the node " + node.id + " is too deep or in a cycle";
-			at = parent->second;
-		}
-	}
+	Parents parents;
+	if(std::string problem = checkNodes(nodes, parents); !problem.empty()) return problem;
+	if(std::string problem = checkMaterials(materials); !problem.empty()) return problem;
+	for(const Node& node : nodes)
+		if(std::string problem = checkAncestry(node, parents, limits.depth); !problem.empty()) return problem;
 	return {};
 }
 
