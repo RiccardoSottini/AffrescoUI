@@ -1,0 +1,99 @@
+{
+	"id": "forge-reset-layout",
+	"level": "forge",
+	"screen": "examples/forge/forge.screen.json",
+	"request": "In Forge, add a command \"Reset the Layout\" (category View) that shows the side bar and the panel and leaves Zen Mode, with a button (id status-reset) in the status bar.",
+	"scenarios": [
+		{
+			"name": "reset",
+			"steps": [
+				{
+					"click": "#title-sidebar"
+				},
+				{
+					"click": "#title-panel"
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": false
+					}
+				},
+				{
+					"click": "#status-reset"
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.zen",
+						"is": false
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#title-bar",
+		"#activity-bar",
+		"#panel",
+		"#welcome"
+	],
+	"reference": [
+		{
+			"message": "Reset the Layout",
+			"set": {
+				"/actions/resetLayout": {
+					"title": "Reset the Layout",
+					"category": "View",
+					"icon": "layout",
+					"do": [
+						{
+							"set": "state.layout.sidebar",
+							"to": true
+						},
+						{
+							"set": "state.layout.panel",
+							"to": true
+						},
+						{
+							"set": "state.layout.zen",
+							"to": false
+						}
+					]
+				}
+			},
+			"add": {
+				"#status-bar/children/-": {
+					"type": "label",
+					"id": "status-reset",
+					"icon": "layout",
+					"text": "Reset Layout",
+					"padding": 6,
+					"fitText": true,
+					"cursor": "hand",
+					"textColor": "@color.statusText",
+					"onClick": {
+						"run": "resetLayout"
+					}
+				}
+			}
+		}
+	]
+}

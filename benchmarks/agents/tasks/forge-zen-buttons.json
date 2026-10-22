@@ -1,0 +1,81 @@
+{
+	"id": "forge-zen-buttons",
+	"level": "forge",
+	"screen": "examples/forge/forge.screen.json",
+	"request": "In Forge, add a Zen Mode button with the id title-zen to the title bar, next to Toggle Panel, and one with the id panel-zen to the panel's header, next to its close button; both toggle Zen Mode.",
+	"scenarios": [
+		{
+			"name": "title",
+			"steps": [
+				{
+					"click": "#title-zen"
+				},
+				{
+					"expect": {
+						"state": "layout.zen",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "panel",
+			"steps": [
+				{
+					"click": "#panel-zen"
+				},
+				{
+					"expect": {
+						"state": "layout.zen",
+						"is": true
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#activity-bar",
+		"#status-bar",
+		"#panel-tabs",
+		"#welcome"
+	],
+	"reference": [
+		{
+			"message": "Zen Mode buttons",
+			"add": {
+				"#title-bar/children/6": {
+					"type": "label",
+					"id": "title-zen",
+					"icon": "maximize",
+					"padding": 6,
+					"fitText": true,
+					"cursor": "hand",
+					"textColor": "@color.muted",
+					"tooltip": "Toggle Zen Mode",
+					"hover": {
+						"color": "@color.hover"
+					},
+					"onClick": {
+						"run": "toggleZen"
+					}
+				},
+				"#panel-head/children/2": {
+					"type": "label",
+					"id": "panel-zen",
+					"icon": "maximize",
+					"textColor": "@color.muted",
+					"padding": 8,
+					"fitText": true,
+					"cursor": "hand",
+					"tooltip": "Toggle Zen Mode",
+					"hover": {
+						"color": "@color.hover"
+					},
+					"onClick": {
+						"run": "toggleZen"
+					}
+				}
+			}
+		}
+	]
+}

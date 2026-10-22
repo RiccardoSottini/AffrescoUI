@@ -1,0 +1,64 @@
+{
+	"id": "habit-add",
+	"level": "edit",
+	"screen": "examples/assets/screens/habit-tracker.screen.json",
+	"request": "Add the habit \"Stretch for 10 minutes\", not done today, with no streak yet, colored #0ea5e9.",
+	"scenarios": [
+		{
+			"name": "added",
+			"steps": [
+				{
+					"expect": {
+						"state": "habits.length",
+						"is": 6
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[5].name",
+						"is": "Stretch for 10 minutes"
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[5].done",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-habit-name",
+						"text": "Stretch for 10 minutes",
+						"nth": 5
+					}
+				},
+				{
+					"expect": {
+						"node": "#doneCount",
+						"text": "2 of 6 done"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#logo",
+		"#tabs",
+		"#newHabit",
+		"#statusBar"
+	],
+	"reference": [
+		{
+			"message": "A habit: stretching",
+			"add": {
+				"/state/habits/-": {
+					"name": "Stretch for 10 minutes",
+					"done": false,
+					"streak": 0,
+					"week": 0,
+					"color": "#0ea5e9"
+				}
+			}
+		}
+	]
+}

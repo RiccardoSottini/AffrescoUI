@@ -1,0 +1,63 @@
+{
+	"id": "kanban-total",
+	"level": "feature",
+	"screen": "examples/assets/screens/kanban.screen.json",
+	"request": "Show how many cards the board has in total in the top bar, right of the app's name, as \"12 cards\", in a label with the id totalCards that counts as cards are added.",
+	"scenarios": [
+		{
+			"name": "total",
+			"steps": [
+				{
+					"expect": {
+						"node": "#totalCards",
+						"text": "12 cards"
+					}
+				},
+				{
+					"click": "#newCard"
+				},
+				{
+					"type": "One more"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"node": "#totalCards",
+						"text": "13 cards"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#logo",
+		"#boardTabs",
+		"#toolbar",
+		"#board",
+		"#statusBar"
+	],
+	"reference": [
+		{
+			"message": "Total cards in the top bar",
+			"add": {
+				"#topBar/children/-": {
+					"id": "totalCards",
+					"type": "label",
+					"text": "{{sum(state.columns, len(it.cards))}} cards",
+					"textColor": "@color.topText",
+					"anchors": {
+						"left": 132,
+						"top": 0,
+						"bottom": 0
+					},
+					"width": 80,
+					"align": {
+						"vertical": "center"
+					}
+				}
+			}
+		}
+	]
+}

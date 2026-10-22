@@ -1,0 +1,76 @@
+{
+	"id": "smart-home-eco",
+	"level": "feature",
+	"screen": "examples/assets/screens/smart-home.screen.json",
+	"request": "Add an \"Eco\" button with the id ecoMode to the Climate card that lowers the target temperature of the room shown by 2 degrees.",
+	"scenarios": [
+		{
+			"name": "eco",
+			"steps": [
+				{
+					"expect": {
+						"state": "rooms[0].target",
+						"is": 22
+					}
+				},
+				{
+					"click": "#ecoMode"
+				},
+				{
+					"expect": {
+						"state": "rooms[0].target",
+						"is": 20
+					}
+				},
+				{
+					"expect": {
+						"node": "#target",
+						"text": "20°"
+					}
+				},
+				{
+					"expect": {
+						"state": "rooms[1].target",
+						"is": 21
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#sidebar",
+		"#scenes",
+		"#lightsCard",
+		"#label-up-arrow",
+		"#modes"
+	],
+	"reference": [
+		{
+			"message": "Eco button",
+			"set": {
+				"/actions/eco": {
+					"title": "Eco: 2 degrees lower",
+					"category": "Climate",
+					"do": [
+						{
+							"set": "state.rooms[state.room].target",
+							"to": "{{computed.room.target - 2}}"
+						}
+					]
+				}
+			},
+			"add": {
+				"#climateCard/children/-": {
+					"id": "ecoMode",
+					"style": "round",
+					"text": "Eco",
+					"anchors": {
+						"right": 32,
+						"top": 110
+					},
+					"onClick": "eco"
+				}
+			}
+		}
+	]
+}

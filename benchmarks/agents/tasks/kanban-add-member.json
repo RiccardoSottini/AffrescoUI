@@ -1,0 +1,49 @@
+{
+	"id": "kanban-add-member",
+	"level": "edit",
+	"screen": "examples/assets/screens/kanban.screen.json",
+	"request": "Add Maria Rossi to the board's members, with the initials MR and the color #8e44ad.",
+	"scenarios": [
+		{
+			"name": "member",
+			"steps": [
+				{
+					"expect": {
+						"state": "members[4].name",
+						"is": "Maria Rossi"
+					}
+				},
+				{
+					"expect": {
+						"state": "members[4].who",
+						"is": "MR"
+					}
+				},
+				{
+					"expect": {
+						"state": "members[4].color",
+						"is": "#8e44ad"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#toolbar",
+		"#main",
+		"#statusBar"
+	],
+	"reference": [
+		{
+			"message": "Maria Rossi joins the board",
+			"add": {
+				"/state/members/-": {
+					"who": "MR",
+					"name": "Maria Rossi",
+					"color": "#8e44ad"
+				}
+			}
+		}
+	]
+}
