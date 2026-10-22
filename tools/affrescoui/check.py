@@ -146,9 +146,12 @@ class Checker:
         self.expect(read_png(out) == expected, f"render {scenario['name']}: not the runner's first frame")
 
     def test(self, path):
-        """A template's scenarios pass; a failing one and a malformed file exit with 1."""
-        self.expect(" 0 failed" in self.run("test", path), f"test {path}: a scenario failed")
-        report = json.loads(self.run("test", path, "--json"))
+        """A template's scenarios pass (their captures written to a scratch folder); a failing one and a malformed file
+        exit with 1."""
+        captures = os.path.join(self.scratch, "captures")
+        os.makedirs(captures, exist_ok=True)
+        self.expect(" 0 failed" in self.run("test", path, "--out", captures), f"test {path}: a scenario failed")
+        report = json.loads(self.run("test", path, "--json", "--out", captures))
         self.expect(report["failed"] == 0 and report["passed"] >= 5, f"test --json {path}: {report}")
         wrong = os.path.join(self.scratch, "wrong.scenarios.json")
         with open(wrong, "w", encoding="utf-8") as file:

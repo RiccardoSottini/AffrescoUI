@@ -42,5 +42,8 @@ list(TRANSFORM template_globs APPEND /*.scenarios.json)
 file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${template_globs}
 	${forge_dir}/*.scenarios.json ${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json)
 if(AFFRESCOUI_TEMPLATE_SCENARIOS)
-	add_test(NAME scenarios COMMAND affrescoui_render_runner ${AFFRESCOUI_TEMPLATE_SCENARIOS})
+	# Their captures (pictures they take for the gallery, not compared) go to the build folder
+	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/scenario-captures)
+	add_test(NAME scenarios COMMAND affrescoui_render_runner --out ${PROJECT_BINARY_DIR}/scenario-captures
+	         ${AFFRESCOUI_TEMPLATE_SCENARIOS})
 endif()
