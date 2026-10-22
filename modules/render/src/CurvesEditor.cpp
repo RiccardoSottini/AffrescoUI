@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace affresco {
 
@@ -17,7 +18,18 @@ constexpr float pickDistance = 7.0f;     ///< How near a point a press picks it.
 constexpr float removeDistance = 24.0f;  ///< How far out of the plot a dragged point is removed.
 constexpr float markerRadius = 4.0f;     ///< The radius of a point's marker.
 constexpr std::size_t sampleCount = 256; ///< The samples the drawn curve is made of.
+constexpr float maxColumns = 4096.0f;    ///< The most columns the curve and the histogram are drawn in.
 constexpr std::array<const char32_t*, curveChannelCount> tabLabels{U"RGB", U"R", U"G", U"B"}; ///< The tab labels.
+
+/// @brief The columns a plot is drawn in: one per unit, and wider ones (a screen sets the size) in steps, so a frame
+/// costs the same.
+/// @param width The plot's width.
+/// @param least The fewest columns.
+/// @return {how many, how far apart}.
+[[nodiscard]] std::pair<std::size_t, float> columnsOf(float width, float least) noexcept {
+	if(!(width > maxColumns)) return {static_cast<std::size_t>(std::max(least, std::floor(width))), 1.0f};
+	return {static_cast<std::size_t>(maxColumns), std::isfinite(width) ? width / maxColumns : 1.0f};
+}
 
 /// @brief The slope of a monotone cubic at a point (Fritsch–Butland), from the secants on each side.
 /// @param points The points.
@@ -383,12 +395,12 @@ void CurvesEditor::paintBackground(Painter& painter, const Layout& area) const {
 		painter.fillRect({plot.left, y, plot.right, y + 1.0f}, text_.withAlpha(0.12f));
 	}
 	if(histogram_.empty()) return;
-	const auto columns = static_cast<std::size_t>(std::max(1.0f, std::floor(plot.width())));
+	const auto [columns, step] = columnsOf(plot.width(), 1.0f);
 	for(std::size_t column = 0; column < columns; ++column) {
 		const float bin = histogram_[column * histogram_.size() / columns];
 		if(bin <= 0.0f) continue;
-		const float x = plot.left + static_cast<float>(column);
-		painter.fillRect({x, plot.bottom - bin * plot.height(), x + 1.0f, plot.bottom}, text_.withAlpha(0.15f));
+		const float x = plot.left + static_cast<float>(column) * step;
+		painter.fillRect({x, plot.bottom - bin * plot.height(), x + step, plot.bottom}, text_.withAlpha(0.15f));
 	}
 }
 
@@ -405,13 +417,13 @@ void CurvesEditor::paintCurve(Painter& painter, const Layout& area) const {
 	    Color{}, Color{0.85f, 0.2f, 0.2f, 1.0f}, Color{0.2f, 0.65f, 0.25f, 1.0f}, Color{0.2f, 0.4f, 0.9f, 1.0f}};
 	const Color line = channel_ == CurveChannel::Rgb ? text_ : tints[static_cast<std::size_t>(channel_)];
 	const Rect& plot = area.plot;
-	const auto columns = static_cast<std::size_t>(std::max(2.0f, std::floor(plot.width())));
+	const auto [columns, step] = columnsOf(plot.width(), 2.0f);
 	float previous = plot.bottom - samples_->values.front() * plot.height();
 	for(std::size_t column = 0; column < columns; ++column) {
 		const std::size_t sample = column * (sampleCount - 1) / (columns - 1);
 		const float y = plot.bottom - samples_->values[sample] * plot.height();
-		const float x = plot.left + static_cast<float>(column);
-		painter.fillRect({x - 0.5f, std::min(previous, y) - 1.0f, x + 1.0f, std::max(previous, y) + 1.0f}, line);
+		const float x = plot.left + static_cast<float>(column) * step;
+		painter.fillRect({x - 0.5f, std::min(previous, y) - 1.0f, x + step, std::max(previous, y) + 1.0f}, line);
 		previous = y;
 	}
 	for(std::size_t index = 0; index < curve.size(); ++index) {
