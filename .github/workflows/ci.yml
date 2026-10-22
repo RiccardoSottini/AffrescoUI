@@ -48,6 +48,10 @@ jobs:
       - name: Does the change need a build?
         id: diff
         run: .github/workflows/changes.sh "$BASE_COMMIT"
+      - name: Third-party components # cmake/dependencies.json against the pins, the vendored files and the notices
+        run: |
+          python3 tools/release/sbom.py --check
+          python3 -m unittest discover -s tools/release -p "test_sbom.py"
 
   linux:
     name: Linux

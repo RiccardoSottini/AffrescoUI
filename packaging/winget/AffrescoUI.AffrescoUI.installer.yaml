@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+# The installer manifest: the release's Windows archive, its three programs as portable commands. tools/release/
+# packaging.py fills in the version, the date and the hash (packaging/README.md)
+PackageIdentifier: AffrescoUI.AffrescoUI
+PackageVersion: @VERSION@
+ReleaseDate: @RELEASE_DATE@
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: affrescoui-@VERSION@-windows-x86_64\affrescoui.exe
+    PortableCommandAlias: affrescoui
+  - RelativeFilePath: affrescoui-@VERSION@-windows-x86_64\affrescoui_host.exe
+    PortableCommandAlias: affrescoui_host
+  - RelativeFilePath: affrescoui-@VERSION@-windows-x86_64\affrescoui_studio.exe
+    PortableCommandAlias: affrescoui_studio
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/RiccardoSottini/AffrescoUI/releases/download/v@VERSION@/affrescoui-@VERSION@-windows-x86_64.zip
+    InstallerSha256: @WINDOWS_SHA256@
+ManifestType: installer
+ManifestVersion: 1.6.0

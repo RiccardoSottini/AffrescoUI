@@ -18,6 +18,12 @@
 - frames:     Content-Length frames and lines, as a service process writes them;
 - peer_handshake: a remote peer's upgrade requests, well formed and not, and first "auth" messages.
 - feature_manifest, catalog_index, signature: Forge's feature manifests and its catalogue (examples/forge).
+- url:        an allowlist entry, a line feed, then a URL: remote peers', sign-in's and a document server's;
+- oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
+- token_file: a document server's token file, with comments and blank lines;
+- git_output: `git status --porcelain=v2 -z --branch`, `git for-each-ref` and two texts to diff (the first byte picks);
+- vscode_theme: VS Code colour themes, dark and light, with comments and trailing commas;
+- history:    refs.json (even first byte) or a commit object (odd first byte) of a history on disk.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -25,6 +31,8 @@ Usage: tests/fuzz/corpus.py [--out build/fuzz-corpus]  ->  <out>/<target>/ and <
 """
 
 import argparse
+import base64
+import hashlib
 import json
 import re
 import shutil
@@ -416,6 +424,80 @@ def feature_seeds():
             + sorted(forge.glob("catalog/**/*.json"))]
 
 
+def base64url(data):
+    """Bytes as base64url without padding, as in a JSON Web Token."""
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def url_seeds():
+    """Allowlist entries and URLs, admitted and not."""
+    return ["https://studio.example.com\nhttps://studio.example.com/live?x=1", "\nhttp://127.0.0.1:8080/",
+            "http://localhost\nws://localhost:9/peer", "https://*.example.com\nwss://a.example.com:443/#frag",
+            "https://Example.COM.\nhttps://example.com:0/", "https://a@b\nhttps://user:pw@[::1]:8/%2e%2e/",
+            "\n..", "\n.", "\nhttps://xn--bcher-kva.example/\u00e9 ?q=a b"]
+
+
+def oauth_seeds():
+    """Responses of a sign-in provider (OAuth 2.0, OpenID Connect), with placeholder values only."""
+    claims = {"iss": "https://sign-in.example.com", "aud": "affrescoui-fuzz", "sub": "s1", "nonce": "n0nce",
+              "exp": 1900000000, "email": "person@example.com"}
+    id_token = ".".join([base64url(b'{"alg":"none"}'), base64url(compact(claims).encode()), ""])
+    tokens = {"access_token": "example-access", "token_type": "Bearer", "expires_in": 3600,
+              "refresh_token": "example-refresh", "scope": "openid", "id_token": id_token}
+    device = {"device_code": "example-device", "user_code": "ABCD-EFGH", "interval": 5, "expires_in": 600,
+              "verification_uri": "https://sign-in.example.com/device"}
+    return ["\x00" + compact({k: v for k, v in tokens.items() if k != "id_token"}), "\x01" + compact(tokens),
+            "\x00" + compact({"error": "invalid_grant", "error_description": "expired"}),
+            "\x00" + compact({**tokens, "expires_in": 1e300}), "\x02" + compact(device),
+            "\x02" + compact({**device, "interval": -1, "expires_in": "600"}), "\x03" + id_token,
+            "\x03error=access_denied&state=s&code=c"]
+
+
+def token_file_seeds():
+    """Token files: a SHA-256 in hex and a name per line (examples/server/TokenFile.hpp)."""
+    line = hashlib.sha256(b"placeholder").hexdigest()
+    return [f"# who may connect\n{line} reviewer\n\n{line[::-1]} agent-1\n", f"{line} \n", f"{line.upper()} a b\n",
+            "# only a comment", f"{line}\treviewer\r\n"]
+
+
+def git_output_seeds():
+    """git's output as Forge asks for it (examples/forge/features/scm/GitStatus.hpp), and texts to diff."""
+    status = ["# branch.oid 0123456789abcdef0123456789abcdef01234567", "# branch.head main",
+              "# branch.upstream origin/main", "# branch.ab +2 -1",
+              "1 .M N... 100644 100644 100644 0123456789abcdef0123456789abcdef01234567 "
+              "0123456789abcdef0123456789abcdef01234567 src/main.cpp",
+              "2 R. N... 100644 100644 100644 0123456789abcdef0123456789abcdef01234567 "
+              "0123456789abcdef0123456789abcdef01234567 R100 new name.txt", "old name.txt",
+              "u UU N... 100644 100644 100644 100644 0123456789abcdef0123456789abcdef01234567 "
+              "0123456789abcdef0123456789abcdef01234567 0123456789abcdef0123456789abcdef01234567 both.txt",
+              "? notes.md", "! build/"]
+    return ["\x00" + "\0".join(status) + "\0", "\x00# branch.oid (initial)\0# branch.head (detached)\0",
+            "\x01*\0main\n \0feature/x\n \0fix\n", "\x01*\0a\n*\0b\n",
+            "\x02one\ntwo\nthree\n\0one\n2\nthree\nfour", "\x02\0added\n", "\x02a\r\nb\0a\nb\n"]
+
+
+def vscode_theme_seeds():
+    """VS Code colour themes, which allow comments and trailing commas."""
+    dark = {"name": "Fuzz Dark", "type": "dark", "colors": {"editor.background": "#1e1e1e",
+            "editor.foreground": "#d4d4d4", "focusBorder": "#007fd4", "statusBar.background": "#007acc80",
+            "list.hoverBackground": "#2a2d2e", "errorForeground": "#f48771"},
+            "tokenColors": [{"scope": ["comment"], "settings": {"foreground": "#6a9955"}}]}
+    light = {"name": "Fuzz Light", "type": "light", "colors": {"editor.background": "#fff", "foreground": "red"}}
+    return [json.dumps(dark, indent=2), compact(light), '// a comment\n{"name": "Ünïcode ✓", "colors": {},}',
+            '{"type": "hc", "colors": {"editor.background": "#12345"}}', '{"name": "' + "x" * 300 + '"}']
+
+
+def history_seeds():
+    """A history's files (VERSION_CONTROL.md, "History on disk"): refs.json, and a commit object."""
+    refs = {"version": 2, "main": "0" * 64, "proposals": {}, "nextProposal": 1, "grants": [], "mode": "default",
+            "packs": [], "checksum": "0" * 64}
+    commit = {"parents": [], "author": "agent", "committer": "studio", "time": 0, "message": "Start",
+              "patch": [], "tree": "0" * 64}
+    return ["\x00" + compact(refs), "\x00{}", "\x00" + compact({**refs, "version": 1}),
+            "\x01" + compact(commit), "\x01" + compact({**commit, "delta": [{"op": "add", "path": "/x", "value": 1}]}),
+            "\x01" + compact({**commit, "snapshot": True})]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -471,7 +553,24 @@ def dictionaries():
                              "[^", "]", "|", "$1", "${", "}", "$$", "\\p{L}", "(?i)", "(?s)", "\u00e9"],
             "search_glob": ["\x00", "\n", ",", "*", "**", "**/", "/", "?", "[", "]", "[!", "[^", "-", "\\", "!", "#",
                             ".gitignore", "src/", "build"],
-            "text_model": ["\x00", "\x01", "\x02", "\x03", "\x04", "\x08", "\n", "\u00e9", "\u20ac", "\U0001F600"]}
+            "text_model": ["\x00", "\x01", "\x02", "\x03", "\x04", "\x08", "\n", "\u00e9", "\u20ac", "\U0001F600"],
+            "url": ["https://", "http://", "wss://", "ws://", "\n", "localhost", "127.0.0.1", "[::1]", ":443", ":0",
+                    "*.", "/", "?", "#", "%2e", "%2F", "@", ".."],
+            "oauth": tokens + ['"access_token"', '"token_type"', '"Bearer"', '"expires_in"', '"refresh_token"',
+                               '"id_token"', '"scope"', '"error"', '"device_code"', '"user_code"', '"interval"',
+                               '"verification_uri"', '"iss"', '"aud"', '"nonce"', '"exp"', '"sub"', ".", "=", "&",
+                               "-", "_"],
+            "token_file": ["#", "\n", "\r\n", " ", "\t", "0123456789abcdef"],
+            "git_output": ["\x00", "\n", "# branch.oid ", "# branch.head ", "# branch.upstream ", "# branch.ab ",
+                           "1 ", "2 ", "u ", "? ", "! ", ".M", "M.", "R.", "D.", "A.", "UU", "N...", "100644 ",
+                           "R100 ", "*"],
+            "vscode_theme": tokens + ['"name"', '"type"', '"dark"', '"light"', '"colors"', '"tokenColors"',
+                                      '"editor.background"', '"editor.foreground"', '"focusBorder"', '"#"',
+                                      '"#ffffff"', '"#00000080"', ",}"],
+            "history": tokens + [f'"{word}"' for word in ["version", "main", "proposals", "nextProposal", "grants",
+                                                          "mode", "packs", "checksum", "parents", "author",
+                                                          "committer", "time", "message", "patch", "tree", "delta",
+                                                          "snapshot", "head", "base", "rule", "expires"]]}
 
 
 def dictionary_entry(word):
@@ -537,6 +636,10 @@ def main():
     write(out, "feature_manifest", feature_seeds(), words["json"] + features)
     write(out, "catalog_index", feature_seeds(), words["json"] + features)
     write(out, "signature", feature_seeds() + ["ed25519-secret:", "-_8AEA"], words["json"] + features)
+    for target, seeds in [("url", url_seeds()), ("oauth", oauth_seeds()), ("token_file", token_file_seeds()),
+                          ("git_output", git_output_seeds()), ("vscode_theme", vscode_theme_seeds()),
+                          ("history", history_seeds())]:
+        write(out, target, seeds, words[target])
 
 
 if __name__ == "__main__":

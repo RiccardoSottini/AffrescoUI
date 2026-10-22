@@ -1,0 +1,532 @@
+{
+  "$comment": "Every third-party component AffrescoUI downloads, vendors or builds with: its version, where it comes from, its SHA-256 and its SPDX licence. tools/release/sbom.py --check keeps this in step with the CMake files, the vendored files, tools/release/requirements.txt and THIRD_PARTY_NOTICES.md (RELEASING.md).",
+  "schemaVersion": 1,
+  "dependencies": [
+    {
+      "name": "glad",
+      "version": "0.1.36",
+      "purpose": "generated OpenGL loader",
+      "kind": "vendored",
+      "url": "https://github.com/Dav1dde/glad",
+      "files": [
+        {
+          "path": "external/glad/include/KHR/khrplatform.h",
+          "sha256": "7b1e01aaa7ad8f6fc34b5c7bdf79ebf5189bb09e2c4d2e79fc5d350623d11e83"
+        },
+        {
+          "path": "external/glad/include/glad/glad.h",
+          "sha256": "fb96df7b6113f5e047d7aa24a30c8e28639ae20c0d1cb921248397661fbced9b"
+        },
+        {
+          "path": "external/glad/src/glad.c",
+          "sha256": "04dcf7caf2f9543f8fec77653f9a86583908174c0dbb59b4728d64df06b0e163"
+        },
+        {
+          "path": "external/glad/gles3/include/glad/glad.h",
+          "sha256": "dec68c7ce2d87755f06a1b93ad81fffcde6961eec0530beb43d9e9cd52c92caf"
+        },
+        {
+          "path": "external/glad/gles3/src/glad.c",
+          "sha256": "a45ebef4917b37c8f611273ba28c23f9712b75f836324d506baced99a30ed7e9"
+        }
+      ],
+      "license": "LicenseRef-Public-Domain AND MIT",
+      "licenseNote": "Public domain; `khrplatform.h`: MIT-style Khronos license (in the file)",
+      "usedBy": [
+        "affrescoui::render"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "Roboto",
+      "version": "2.001047",
+      "purpose": "font",
+      "kind": "vendored",
+      "url": "https://github.com/googlefonts/roboto",
+      "files": [
+        {
+          "path": "examples/assets/fonts/Roboto-Regular.ttf",
+          "sha256": "56a45233d29f11b4dfb86d248e921939d115778f87325e7ae8cc108383d6664d"
+        }
+      ],
+      "license": "Apache-2.0",
+      "licenseNote": "Apache License 2.0 (`examples/assets/fonts/LICENSE-Roboto.txt`)",
+      "usedBy": [
+        "the templates",
+        "the release archives"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "JetBrains Mono",
+      "version": "2.305",
+      "purpose": "font",
+      "kind": "vendored",
+      "url": "https://github.com/JetBrains/JetBrainsMono",
+      "files": [
+        {
+          "path": "examples/assets/fonts/JetBrainsMono-Regular.ttf",
+          "sha256": "e6fd0d7e91550b3ed2b735d4312474362c4716edc4fc0577a0f61ed782d5aed1"
+        }
+      ],
+      "license": "OFL-1.1",
+      "licenseNote": "SIL Open Font License 1.1 (`examples/assets/fonts/LICENSE-JetBrainsMono.txt`)",
+      "usedBy": [
+        "the templates",
+        "the release archives"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "Lucide",
+      "version": "1.48.0",
+      "purpose": "icon font, `lucide-static`",
+      "kind": "vendored",
+      "url": "https://lucide.dev",
+      "files": [
+        {
+          "path": "examples/assets/fonts/Lucide.ttf",
+          "sha256": "eaf30a2a0d2ec0cfbf7ab69ed6dc6e39b7e5e2f0255c17856dcb0b73a15584bb"
+        }
+      ],
+      "pinnedIn": "CMakeLists.txt",
+      "license": "ISC AND MIT",
+      "licenseNote": "ISC License; the icons derived from Feather: MIT License (`examples/assets/fonts/LICENSE-Lucide.txt`)",
+      "usedBy": [
+        "the templates",
+        "the rendering check",
+        "the release archives"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "GLFW",
+      "version": "3.4",
+      "purpose": "windows and input",
+      "kind": "downloaded",
+      "url": "https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.zip",
+      "sha256": "b5ec004b2712fd08e8861dc271428f048775200a2df719ccf575143ba749a3e9",
+      "pinnedIn": "CMakeLists.txt",
+      "license": "Zlib",
+      "licenseNote": "zlib/libpng license",
+      "usedBy": [
+        "affrescoui::render"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "stb_image",
+      "version": "2.30",
+      "purpose": "PNG and JPEG decoder",
+      "kind": "downloaded",
+      "url": "https://raw.githubusercontent.com/nothings/stb/013ac3beddff3dbffafd5177e7972067cd2b5083/stb_image.h",
+      "sha256": "594c2fe35d49488b4382dbfaec8f98366defca819d916ac95becf3e75f4200b3",
+      "pinnedIn": "cmake/AffrescoUIImages.cmake",
+      "license": "MIT OR Unlicense",
+      "licenseNote": "Public domain (Unlicense) or MIT, at your choice (end of `stb_image.h`)",
+      "usedBy": [
+        "affrescoui::render"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "nlohmann/json",
+      "version": "3.11.3",
+      "purpose": "JSON",
+      "kind": "downloaded",
+      "url": "https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz",
+      "sha256": "d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d",
+      "pinnedIn": "CMakeLists.txt",
+      "license": "MIT",
+      "licenseNote": "MIT",
+      "usedBy": [
+        "affrescoui::core"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "FreeType",
+      "version": "2.14.3",
+      "purpose": "glyph rasteriser",
+      "kind": "downloaded",
+      "url": "https://download.savannah.gnu.org/releases/freetype/freetype-2.14.3.tar.xz",
+      "sha256": "36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f",
+      "pinnedIn": "cmake/AffrescoUIText.cmake",
+      "license": "FTL",
+      "licenseDeclared": "FTL OR GPL-2.0-or-later",
+      "licenseNote": "The FreeType License (FTL), chosen of FTL or GPLv2 (`docs/FTL.TXT` in its archive)",
+      "usedBy": [
+        "affrescoui::render"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "HarfBuzz",
+      "version": "12.3.2",
+      "purpose": "text shaping",
+      "kind": "downloaded",
+      "url": "https://github.com/harfbuzz/harfbuzz/releases/download/12.3.2/harfbuzz-12.3.2.tar.xz",
+      "sha256": "6f6db164359a2da5a84ef826615b448b33e6306067ad829d85d5b0bf936f1bb8",
+      "pinnedIn": "cmake/AffrescoUIText.cmake",
+      "license": "MIT-Modern-Variant AND MIT",
+      "licenseNote": "\"Old MIT\" (`COPYING` in its archive; `src/ms-use/COPYING`: MIT)",
+      "usedBy": [
+        "affrescoui::render"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "PCRE2",
+      "version": "10.45",
+      "purpose": "regular expressions: the editor's find and the search service",
+      "kind": "downloaded",
+      "url": "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.45/pcre2-10.45.tar.bz2",
+      "sha256": "21547f3516120c75597e5b30a992e27a592a31950b5140e7b8bfde3f192033c4",
+      "pinnedIn": "cmake/AffrescoUIRegex.cmake",
+      "license": "BSD-3-Clause WITH PCRE2-exception",
+      "licenseNote": "BSD 3-Clause, with the PCRE2 exception for binary distribution (`LICENCE.md` in its archive); built statically",
+      "usedBy": [
+        "affrescoui::regex"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "nativefiledialog-extended",
+      "version": "1.4.1",
+      "purpose": "file dialogs",
+      "kind": "downloaded",
+      "url": "https://github.com/btzy/nativefiledialog-extended/archive/refs/tags/v1.4.1.tar.gz",
+      "sha256": "4a01eafa921169f009f3e83bea8e287d9e5d0b94ca9064cf7f0a546652d7c884",
+      "pinnedIn": "cmake/AffrescoUIDialogs.cmake",
+      "license": "Zlib",
+      "licenseNote": "zlib license (`LICENSE` in its archive)",
+      "usedBy": [
+        "affrescoui::render"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "curl",
+      "version": "8.22.0",
+      "purpose": "libcurl, the `net` module's transport",
+      "kind": "downloaded",
+      "url": "https://curl.se/download/curl-8.22.0.tar.xz",
+      "sha256": "f7ef3ae8a22e521f289803fe93543eb64c329b58aa73a9e224dfd915a2a5f4f7",
+      "pinnedIn": "cmake/AffrescoUINetwork.cmake",
+      "license": "curl",
+      "licenseNote": "The curl license, MIT-style (`COPYING` in its archive); built statically on Linux and Windows, the system's libcurl on macOS. Its TLS is the platform's: OpenSSL 3 on Linux (Apache License 2.0, a system package), Schannel on Windows and the system's on macOS (parts of the operating system)",
+      "usedBy": [
+        "affrescoui::net"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "Monocypher",
+      "version": "4.0.2",
+      "purpose": "Ed25519 and SHA-512, the signatures of features and catalogues",
+      "kind": "downloaded",
+      "url": "https://monocypher.org/download/monocypher-4.0.2.tar.gz",
+      "sha256": "38d07179738c0c90677dba3ceb7a7b8496bcfea758ba1a53e803fed30ae0879c",
+      "pinnedIn": "cmake/AffrescoUISignatures.cmake",
+      "license": "BSD-2-Clause OR CC0-1.0",
+      "licenseNote": "BSD 2-Clause or CC0 1.0, at your choice (`LICENCE.md` in its archive), © Loup Vaillant, Michael Savage and Fabio Scotoni; two C files compiled into the format module",
+      "usedBy": [
+        "affrescoui::format"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "libvterm",
+      "version": "0.3.3",
+      "purpose": "terminal emulator, Forge's terminal only",
+      "kind": "downloaded",
+      "url": "https://launchpad.net/libvterm/trunk/v0.3/+download/libvterm-0.3.3.tar.gz",
+      "sha256": "09156f43dd2128bd347cbeebe50d9a571d32c64e0cf18d211197946aff7226e0",
+      "pinnedIn": "cmake/AffrescoUITerminal.cmake",
+      "license": "MIT",
+      "licenseNote": "MIT, Copyright (c) 2008 Paul Evans (`LICENSE` in its archive)",
+      "usedBy": [
+        "examples/forge"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "emscripten-glfw",
+      "version": "3.5.1",
+      "purpose": "`contrib.glfw3`, GLFW's API on a canvas: the browser build only",
+      "kind": "toolchain",
+      "url": "https://github.com/pongasoft/emscripten-glfw",
+      "fetchedBy": "cmake/AffrescoUIWeb.cmake (fetched and built by emcc, not pinned by a hash here)",
+      "license": "Apache-2.0",
+      "licenseNote": "Apache License 2.0 (`LICENSE.txt` in its archive)",
+      "usedBy": [
+        "affrescoui::render"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "Emscripten runtime",
+      "version": "emsdk",
+      "purpose": "the browser build only",
+      "kind": "toolchain",
+      "url": "https://github.com/emscripten-core/emscripten",
+      "fetchedBy": "generated by emcc into each program's `.js` and `.wasm`",
+      "license": "MIT",
+      "licenseNote": "MIT or University of Illinois/NCSA, at your choice (`LICENSE` in emsdk's Emscripten)",
+      "usedBy": [
+        "web build"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "doctest",
+      "version": "2.4.12",
+      "purpose": "the unit tests",
+      "kind": "downloaded",
+      "url": "https://github.com/doctest/doctest/archive/refs/tags/v2.4.12.tar.gz",
+      "sha256": "73381c7aa4dee704bd935609668cf41880ea7f19fa0504a200e13b74999c2d70",
+      "pinnedIn": "tests/unit/CMakeLists.txt",
+      "license": "MIT",
+      "licenseNote": "MIT (`LICENSE.txt` in its archive)",
+      "usedBy": [
+        "tests/unit"
+      ],
+      "scope": "test"
+    },
+    {
+      "name": "Noto Sans Arabic, Devanagari, SC, JP and KR",
+      "version": "subsets",
+      "purpose": "rendering check only",
+      "kind": "vendored",
+      "url": "https://github.com/google/fonts",
+      "files": [
+        {
+          "path": "tests/render/fonts/NotoSansArabic-Subset.ttf",
+          "sha256": "b99e38e9474a4514cec1b5f8a354b66bd3db45156b1d40a8d321b5ef18d8caf1"
+        },
+        {
+          "path": "tests/render/fonts/NotoSansDevanagari-Subset.ttf",
+          "sha256": "a0fb2e12fb24539c9e48f874c0d56448f615aee3b1de75fa389484ab89f454c8"
+        },
+        {
+          "path": "tests/render/fonts/NotoSansJP-Subset.ttf",
+          "sha256": "366f9541b5a5b3fbf2537a3be893d5d15328b19d0e73ce83ccd82e52632f411f"
+        },
+        {
+          "path": "tests/render/fonts/NotoSansKR-Subset.ttf",
+          "sha256": "94dbe0c3aac950d03c2d57b50381963bbe88f1c50e85a7fc3fc1603fb06eeeae"
+        },
+        {
+          "path": "tests/render/fonts/NotoSansSC-Subset.ttf",
+          "sha256": "64925e9f080695f59f7fee375d4b44920fb5b41eb331fb6101ebd092d0e67a90"
+        }
+      ],
+      "license": "OFL-1.1",
+      "licenseNote": "SIL Open Font License 1.1 (`tests/render/fonts/LICENSE-NotoSans*.txt`)",
+      "usedBy": [
+        "tests/render"
+      ],
+      "scope": "test"
+    },
+    {
+      "name": "Twemoji Mozilla",
+      "version": "0.7.0, a subset",
+      "purpose": "rendering check only",
+      "kind": "vendored",
+      "url": "https://github.com/mozilla/twemoji-colr",
+      "files": [
+        {
+          "path": "tests/render/fonts/TwemojiMozilla-Subset.ttf",
+          "sha256": "d68c4b2421cb5facb020cef89e64bdbb13424915def68a52ce38752b5ca9bbda"
+        }
+      ],
+      "license": "CC-BY-4.0 AND Apache-2.0",
+      "licenseNote": "Art: CC BY 4.0, © Twitter, Inc. and other contributors; font build: Apache License 2.0 (`tests/render/fonts/LICENSE-TwemojiMozilla.md`)",
+      "usedBy": [
+        "tests/render"
+      ],
+      "scope": "test"
+    },
+    {
+      "name": "build",
+      "version": "1.4.4",
+      "purpose": "builds the MCP package",
+      "kind": "python",
+      "url": "https://pypi.org/project/build/1.4.4/",
+      "sha256": "8c3f48a6090b39edec1a273d2d57949aaf13723b01e02f9d518396887519f64d",
+      "pinnedIn": "tools/release/requirements.txt",
+      "license": "MIT",
+      "licenseNote": "MIT",
+      "usedBy": [
+        "mcp (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "hatchling",
+      "version": "1.27.0",
+      "purpose": "the MCP package's build backend",
+      "kind": "python",
+      "url": "https://pypi.org/project/hatchling/1.27.0/",
+      "sha256": "d3a2f3567c4f926ea39849cdf924c7e99e6686c9c8e288ae1037c8fa2a5d937b",
+      "pinnedIn": "tools/release/requirements.txt",
+      "license": "MIT",
+      "licenseNote": "MIT",
+      "usedBy": [
+        "mcp (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "packaging",
+      "version": "26.3",
+      "purpose": "used by hatchling",
+      "kind": "python",
+      "url": "https://pypi.org/project/packaging/26.3/",
+      "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+      "pinnedIn": "tools/release/requirements.txt",
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "licenseNote": "Apache License 2.0 or BSD 2-Clause",
+      "usedBy": [
+        "mcp (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "pathspec",
+      "version": "1.1.1",
+      "purpose": "used by hatchling",
+      "kind": "python",
+      "url": "https://pypi.org/project/pathspec/1.1.1/",
+      "sha256": "a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189",
+      "pinnedIn": "tools/release/requirements.txt",
+      "license": "MPL-2.0",
+      "licenseNote": "Mozilla Public License 2.0",
+      "licenseReview": "Weak copyleft on its own files only; it runs while the MCP package is built and is neither changed nor shipped in it",
+      "usedBy": [
+        "mcp (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "pluggy",
+      "version": "1.6.0",
+      "purpose": "used by hatchling",
+      "kind": "python",
+      "url": "https://pypi.org/project/pluggy/1.6.0/",
+      "sha256": "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746",
+      "pinnedIn": "tools/release/requirements.txt",
+      "license": "MIT",
+      "licenseNote": "MIT",
+      "usedBy": [
+        "mcp (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "pyproject_hooks",
+      "version": "1.3.3",
+      "purpose": "used by build",
+      "kind": "python",
+      "url": "https://pypi.org/project/pyproject_hooks/1.3.3/",
+      "sha256": "5fc53fdac9f7bd63fbcdc868fb5f90b4784d78a53a3d3388cd738b807441a20b",
+      "pinnedIn": "tools/release/requirements.txt",
+      "license": "MIT",
+      "licenseNote": "MIT",
+      "usedBy": [
+        "mcp (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "trove_classifiers",
+      "version": "2026.9.21.13",
+      "purpose": "used by hatchling",
+      "kind": "python",
+      "url": "https://pypi.org/project/trove_classifiers/2026.9.21.13/",
+      "sha256": "8b1ff4f9c191b1040b71c37f1e445ab99732911e3cd91de52838453a854d7a17",
+      "pinnedIn": "tools/release/requirements.txt",
+      "license": "Apache-2.0",
+      "licenseNote": "Apache License 2.0",
+      "usedBy": [
+        "mcp (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "importlib_metadata",
+      "version": "8.7.1",
+      "purpose": "used by build, older Pythons only",
+      "kind": "python",
+      "url": "https://pypi.org/project/importlib_metadata/8.7.1/",
+      "sha256": "5a1f80bf1daa489495071efbb095d75a634cf28a8bc299581244063b53176151",
+      "pinnedIn": "tools/release/requirements.txt",
+      "license": "Apache-2.0",
+      "licenseNote": "Apache License 2.0",
+      "usedBy": [
+        "mcp (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "tomli",
+      "version": "2.5.0",
+      "purpose": "used by build and hatchling, older Pythons only",
+      "kind": "python",
+      "url": "https://pypi.org/project/tomli/2.5.0/",
+      "sha256": "32a7b79ac57a2e83670ce329ccf675798bc5a2094783a63676866b70503f2e2b",
+      "pinnedIn": "tools/release/requirements.txt",
+      "license": "MIT",
+      "licenseNote": "MIT",
+      "usedBy": [
+        "mcp (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "zipp",
+      "version": "3.23.1",
+      "purpose": "used by importlib_metadata, older Pythons only",
+      "kind": "python",
+      "url": "https://pypi.org/project/zipp/3.23.1/",
+      "sha256": "0b3596c50a5c700c9cb40ba8d86d9f2cc4807e9bedb06bcdf7fac85633e444dc",
+      "pinnedIn": "tools/release/requirements.txt",
+      "license": "MIT",
+      "licenseNote": "MIT",
+      "usedBy": [
+        "mcp (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "appimagetool",
+      "version": "1.9.1",
+      "purpose": "packs the AppImage",
+      "kind": "downloaded",
+      "url": "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage",
+      "sha256": "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0",
+      "pinnedIn": ".github/workflows/release.yml",
+      "license": "MIT",
+      "licenseNote": "MIT",
+      "usedBy": [
+        "appimage (build)"
+      ],
+      "scope": "build"
+    },
+    {
+      "name": "type2-runtime",
+      "version": "20251108",
+      "purpose": "the AppImage's start-up runtime, embedded in it",
+      "kind": "downloaded",
+      "url": "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64",
+      "sha256": "2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d",
+      "pinnedIn": ".github/workflows/release.yml",
+      "license": "MIT",
+      "licenseNote": "MIT",
+      "usedBy": [
+        "appimage"
+      ],
+      "scope": "runtime"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+# The default locale manifest; tools/release/packaging.py fills in the version (packaging/README.md)
+PackageIdentifier: AffrescoUI.AffrescoUI
+PackageVersion: @VERSION@
+PackageLocale: en-US
+Publisher: AffrescoUI
+PublisherUrl: https://github.com/RiccardoSottini/AffrescoUI
+PublisherSupportUrl: https://github.com/RiccardoSottini/AffrescoUI/issues
+PackageName: AffrescoUI
+PackageUrl: https://github.com/RiccardoSottini/AffrescoUI
+License: Apache-2.0
+LicenseUrl: https://github.com/RiccardoSottini/AffrescoUI/blob/v@VERSION@/LICENSE
+ShortDescription: A GUI library whose UIs are JSON screen documents, with a host, a Studio and a command-line tool.
+Description: |-
+  AffrescoUI draws user interfaces described by JSON screen documents, which people and AI agents change live, under
+  version control. This package installs the host (affrescoui_host), the Studio (affrescoui_studio) and the
+  command-line tool (affrescoui).
+Moniker: affrescoui
+Tags:
+  - gui
+  - opengl
+  - json
+  - ui
+ReleaseNotesUrl: https://github.com/RiccardoSottini/AffrescoUI/releases/tag/v@VERSION@
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

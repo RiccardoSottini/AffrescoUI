@@ -1,0 +1,5 @@
+# The release's source tarball; tools/release/packaging.py fills in the version and the hash (packaging/README.md)
+sources:
+  "@VERSION@":
+    url: "https://github.com/RiccardoSottini/AffrescoUI/releases/download/v@VERSION@/affrescoui-@VERSION@-source.tar.gz"
+    sha256: "@SOURCE_SHA256@"
