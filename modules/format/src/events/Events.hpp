@@ -98,6 +98,17 @@ private:
 	/// @param event The event.
 	/// @return true if a binding ran, a chord started or went on, or a press ended one.
 	bool resolve(Panel* from, const KeyEvent& event);
+	/// @brief Runs the "keys" binding of a press on the focused panel or its nearest ancestor that has one.
+	/// @param from The focused panel, or nullptr.
+	/// @param press The press, with the chord in progress before it.
+	/// @param waits Set when one of their keys starts with the press, so it may start or go on with a chord.
+	/// @return true if a binding ran.
+	bool runPanelKeys(Panel* from, const std::string& press, bool& waits);
+	/// @brief Runs the document's "keys" binding of a press, on the root.
+	/// @param press The press, with the chord in progress before it.
+	/// @param waits Set when one of its keys starts with the press, so it may start or go on with a chord.
+	/// @return true if a binding ran.
+	bool runDocumentKeys(const std::string& press, bool& waits);
 	/// @brief Runs a key's handler if one of its bindings applies: plain steps, a binding `{when, do, with}`
 	/// (skipped if its "when" is false or its command is disabled) or a list of them (the first that applies).
 	/// @param handler The handler, as written.
@@ -165,6 +176,23 @@ private:
 	/// @param event The event.
 	/// @return true if it did something.
 	bool navigate(Panel* from, const KeyEvent& event);
+	/// @brief Moves the focus to the next or the previous tab stop, in the open modal overlay if any, wrapping round.
+	/// @param from The focused panel, or nullptr.
+	/// @param back true for Shift+Tab.
+	/// @return true if there was a tab stop to move to.
+	bool tabFocus(Panel* from, bool back);
+	/// @brief Moves the focus inside the nearest "arrows" node above a panel with an arrow, Home or End, or clicks
+	/// its item with a mnemonic.
+	/// @param from The focused panel.
+	/// @param key The key.
+	/// @param letter The key's letter, for a mnemonic, or '\0'.
+	/// @return true if the focus moved or a mnemonic's item was clicked.
+	bool moveInList(Panel& from, Key key, char letter);
+	/// @brief Clicks the item of an "arrows" node whose mnemonic is a letter.
+	/// @param list The "arrows" node.
+	/// @param letter The letter.
+	/// @return true if an item's "onClick" ran.
+	bool clickMnemonic(Panel& list, char letter);
 	/// @brief Clicks a panel from the keyboard: its (or its nearest ancestor's) "onClick".
 	/// @param panel The panel.
 	/// @return true if one ran.
@@ -198,9 +226,9 @@ private:
 	/// @return true if the click leaves it as it is.
 	[[nodiscard]] bool clickKeepsOpen(const Panel& panel, const Record& record, Vec2 position) const;
 
-	Engine& engine_;  ///< The runtime.
-	Press press_;     ///< The press in progress.
-	Click lastClick_; ///< For double clicks.
+	Engine& engine_;           ///< The runtime.
+	Press press_;              ///< The press in progress.
+	Click lastClick_;          ///< For double clicks.
 	std::string chord_;        ///< The chord in progress (chord()).
 	bool keyResolved_ = false; ///< The focused panel resolved the press the window is about to get.
 	/// @brief An open modal overlay, and who had the focus before it.

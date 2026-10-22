@@ -26,6 +26,83 @@ bool insideShown(const Panel& panel, Vec2 position) {
 	return std::ranges::any_of(panel.children(), [&](const auto& child) { return insideShown(*child, position); });
 }
 
+/// @brief The tab order being collected inside a scope: the stops with a positive "tabIndex", sorted by it, then the
+/// rest in document order.
+struct TabOrder {
+	Reconciler& reconciler;             ///< The records.
+	const Panel* focused;               ///< The focused panel, or nullptr: Tab stops on a list's focused item.
+	bool list;                          ///< An "arrows" scope: document order only.
+	std::vector<Panel*> positive, rest; ///< The stops.
+
+	/// @brief Adds a stop.
+	/// @param panel The stop.
+	/// @param tabIndex The "tabIndex" that places it.
+	void add(Panel* panel, int tabIndex) {
+		if(tabIndex <= 0 || list) {
+			rest.push_back(panel);
+			return;
+		}
+		const auto after = std::ranges::upper_bound(positive, tabIndex, {},
+		                                            [this](Panel* p) { return reconciler.recordOf(p)->tabIndex; });
+		positive.insert(after, panel);
+	}
+};
+
+std::vector<Panel*> focusablesIn(Reconciler& reconciler, const Panel* focused, Panel& scope, bool list);
+
+/// @brief Tells whether a panel is a tab stop: focusable or a text input, with a "tabIndex" of 0 or more.
+/// @param panel The panel.
+/// @param record Its record.
+/// @return true if it is.
+bool tabStop(const Panel& panel, const Record& record) {
+	const bool input = dynamic_cast<const TextArea*>(&panel) || dynamic_cast<const TextEditor*>(&panel);
+	return record.tabIndex >= 0 && (record.focusable || input);
+}
+
+/// @brief Adds the one stop Tab makes in an "arrows" node: its focused item, else its first, placed by the first
+/// item's "tabIndex".
+/// @param order The tab order.
+/// @param list The "arrows" node.
+void addListStop(TabOrder& order, Panel& list) {
+	const std::vector<Panel*> items = focusablesIn(order.reconciler, order.focused, list, true);
+	if(items.empty()) return;
+	const auto it = std::ranges::find(items, order.focused);
+	order.add(it != items.end() ? *it : items.front(), order.reconciler.recordOf(items.front())->tabIndex);
+}
+
+/// @brief Collects the stops in a panel and its descendants: shown, not disabled, skipping nested modal overlays
+/// (for Tab) or nested "arrows" nodes (for a list).
+/// @param scope The scope, which is no stop itself.
+/// @param panel The panel to look in.
+/// @param order The tab order.
+void collect(const Panel& scope, Panel& panel, TabOrder& order) {
+	if(!panel.isShown()) return;
+	const Record* record = order.reconciler.recordOf(&panel);
+	if(record && record->disabled) return;
+	if(record && &panel != &scope) {
+		if(order.list ? !record->arrows.empty() : record->modal) return;
+		if(!record->arrows.empty()) { // Tab stops once in a list
+			addListStop(order, panel);
+			return;
+		}
+		if(tabStop(panel, *record)) order.add(&panel, record->tabIndex);
+	}
+	for(const auto& child : panel.children()) collect(scope, *child, order);
+}
+
+/// @brief The panels the focus can move to inside a scope, in tab order (Events::focusables).
+/// @param reconciler The records.
+/// @param focused The focused panel, or nullptr.
+/// @param scope The scope.
+/// @param list true for an "arrows" scope, false for Tab.
+/// @return Them.
+std::vector<Panel*> focusablesIn(Reconciler& reconciler, const Panel* focused, Panel& scope, bool list) {
+	TabOrder order{reconciler, focused, list, {}, {}};
+	collect(scope, scope, order);
+	order.positive.insert(order.positive.end(), order.rest.begin(), order.rest.end());
+	return std::move(order.positive);
+}
+
 } // namespace
 
 void Events::modal(Panel& overlay, bool open) {
@@ -69,40 +146,7 @@ void Events::focusLater(Panel* panel, Panel* scope, int frames) {
 }
 
 std::vector<Panel*> Events::focusables(Panel& scope, bool list) {
-	std::vector<Panel*> result;
-	std::vector<Panel*> positive; // a "tabIndex" over 0
-	const auto add = [&](Panel* panel, const Record& record) {
-		if(record.tabIndex <= 0 || list) {
-			result.push_back(panel);
-			return;
-		}
-		const auto after = std::ranges::upper_bound(positive, record.tabIndex, {}, [this](Panel* p) {
-			return engine_.reconciler.recordOf(p)->tabIndex;
-		});
-		positive.insert(after, panel);
-	};
-	// The lambda takes itself to recurse: GCC 13 has no explicit object parameter ("this auto")
-	const auto visit = [&](const auto& self, Panel& panel) -> void {
-		if(!panel.isShown()) return;
-		const Record* record = engine_.reconciler.recordOf(&panel);
-		if(record && record->disabled) return;
-		if(record && &panel != &scope) {
-			if(list ? !record->arrows.empty() : record->modal) return;
-			if(!list && !record->arrows.empty()) { // Tab stops once in a list: on its focused item, else its first
-				const std::vector<Panel*> items = focusables(panel, true);
-				Panel* focused = engine_.window ? engine_.window->focusedPanel() : nullptr;
-				const auto it = std::ranges::find(items, focused);
-				if(!items.empty()) add(it != items.end() ? *it : items.front(), *engine_.reconciler.recordOf(*items.begin()));
-				return;
-			}
-		}
-		const bool input = dynamic_cast<const TextArea*>(&panel) || dynamic_cast<const TextEditor*>(&panel);
-		if(record && &panel != &scope && record->tabIndex >= 0 && (record->focusable || input)) add(&panel, *record);
-		for(const auto& child : panel.children()) self(self, *child);
-	};
-	visit(visit, scope);
-	positive.insert(positive.end(), result.begin(), result.end());
-	return positive;
+	return focusablesIn(engine_.reconciler, engine_.window ? engine_.window->focusedPanel() : nullptr, scope, list);
 }
 
 Panel& Events::modalScope() {
