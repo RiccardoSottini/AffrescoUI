@@ -266,7 +266,7 @@ bool sameUser(SocketHandle socket) {
 	socklen_t size = sizeof(peer);
 	return getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &peer, &size) == 0 && size == sizeof(peer) &&
 	       peer.uid == geteuid();
-#elif defined(__EMSCRIPTEN__)
+#elif defined(__EMSCRIPTEN__) // NOLINT(readability-use-concise-preprocessor-directives): #elifdef is C++23
 	(void)socket;
 	return false; // a browser can't say, so local connections are refused
 #else

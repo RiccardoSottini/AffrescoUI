@@ -172,7 +172,7 @@ json historyOf(const VersionControl& versions, const json& message) {
 /// @param message The message.
 /// @return The patch.
 /// @throws DocumentError If it names neither a proposal nor commits there are.
-json diffOf(VersionControl& versions, const json& message) {
+json diffOf(const VersionControl& versions, const json& message) {
 	return message.contains("proposal")
 	           ? versions.proposalDiff(expect::integer(message["proposal"], "diff.proposal"))
 			   : versions.diff(message.value("from", json("HEAD~1")), message.value("to", json("HEAD")));

@@ -11,6 +11,7 @@
 #include "affresco/core/Log.hpp"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <concepts>
 #include <cstddef>
@@ -18,7 +19,7 @@
 #include <string>
 #include <string_view>
 
-#if defined(_WIN32)
+#ifdef _WIN32
 #include <io.h>
 #else
 #include <unistd.h>
@@ -89,12 +90,12 @@ inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCar
 template <ChunkReader Read>
 void readLines(Read read, const Delivery& to, std::atomic<bool>* running, bool dropCarriageReturns = false) {
 	std::string buffer;
-	char chunk[4096];
+	std::array<char, 4096> chunk{};
 	for(bool open = true; open;) {
-		const auto n = read(chunk, sizeof(chunk));
+		const auto n = read(chunk.data(), chunk.size());
 		if(n <= 0) break;
 		const std::size_t searched = buffer.size(); // the bytes before have no line break
-		buffer.append(chunk, static_cast<std::size_t>(n));
+		buffer.append(chunk.data(), static_cast<std::size_t>(n));
 		open = deliverLines(buffer, searched, dropCarriageReturns, to);
 	}
 
@@ -125,7 +126,7 @@ template <ChunkWriter Write> [[nodiscard]] bool writeAll(Write write, std::strin
 /// @param size The most to read.
 /// @return How many bytes were read, 0 at the end, or less on an error.
 inline std::ptrdiff_t readDescriptor(int fd, char* data, std::size_t size) {
-#if defined(_WIN32)
+#ifdef _WIN32
 	return _read(fd, data, static_cast<unsigned int>(size)); // size is at most a chunk
 #else
 	return read(fd, data, size);
@@ -138,7 +139,7 @@ inline std::ptrdiff_t readDescriptor(int fd, char* data, std::size_t size) {
 /// @param size How many to write; a large message may take several calls.
 /// @return How many bytes were written, or less than 1 on an error.
 inline std::ptrdiff_t writeDescriptor(int fd, const char* data, std::size_t size) {
-#if defined(_WIN32)
+#ifdef _WIN32
 	constexpr std::size_t most = 1u << 30; // _write takes an unsigned int; writeAll() writes the rest next
 	return _write(fd, data, static_cast<unsigned int>(size < most ? size : most));
 #else
