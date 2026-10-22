@@ -34,11 +34,10 @@ constexpr std::size_t maxDropPath = 32768; ///< The longest path a drop delivers
 /// @return true if it is not empty, not too long, has no NUL and is valid UTF-8.
 [[nodiscard]] bool deliverable(std::string_view path) noexcept {
 	if(path.empty() || path.size() > maxDropPath) return false;
-	for(std::size_t at = 0; at < path.size();) {
-		const detail::Decoded decoded = detail::decodeUtf8(path.substr(at));
-		if(decoded.codepoint == 0 || (decoded.codepoint == 0xFFFD && path.substr(at, 3) != "\xEF\xBF\xBD"))
-			return false;
-		at += decoded.length;
+	for(std::string_view rest = path; !rest.empty();) {
+		const detail::Decoded decoded = detail::decodeUtf8(rest);
+		if(decoded.codepoint == 0 || (decoded.codepoint == 0xFFFD && !rest.starts_with("\xEF\xBF\xBD"))) return false;
+		rest.remove_prefix(decoded.length);
 	}
 	return true;
 }
