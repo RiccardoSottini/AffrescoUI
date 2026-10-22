@@ -54,7 +54,9 @@ void TextEditor::setDecorations(std::vector<EditorDecoration> decorations) {
 
 void TextEditor::lineLabel(std::size_t line, std::u32string& out) const {
 	out.clear();
-	for(const char c : std::to_string(line + 1)) out.push_back(static_cast<char32_t>(c));
+	const std::size_t number = line < lineLabels_.size() ? lineLabels_[line] : line + 1;
+	if(number == 0) return;
+	for(const char c : std::to_string(number)) out.push_back(static_cast<char32_t>(c));
 }
 
 /* Cursors */

@@ -113,6 +113,13 @@ void TextEditor::setLineNumbers(bool shown) {
 	invalidate();
 }
 
+void TextEditor::setLineLabels(std::vector<std::size_t> numbers) {
+	if(numbers == lineLabels_) return;
+	largestLabel_ = numbers.empty() ? 0 : std::ranges::max(numbers);
+	lineLabels_ = std::move(numbers);
+	invalidate();
+}
+
 void TextEditor::setTextColor(Color color) {
 	textColor_ = color;
 	invalidatePaint();
@@ -172,7 +179,7 @@ float TextEditor::gutterWidth() const noexcept {
 	const Font* f = font();
 	if(!f) return 0.0f;
 	if(!lineNumbers_) return 12.0f;
-	const std::size_t digits = std::max<std::size_t>(std::to_string(lines_.size()).size(), 3);
+	const std::size_t digits = std::max<std::size_t>(std::to_string(std::max(lines_.size(), largestLabel_)).size(), 3);
 	return std::round(16.0f + static_cast<float>(digits) * f->glyph(U'0').advance + 20.0f);
 }
 

@@ -1,0 +1,19 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "diff",
+			"screen": "diff.screen.json",
+			"note": "The diff view: side by side, then inline after a click on the mode, then back side by side",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": "#label-mode" },
+				{ "expect": { "image": "inline" } },
+				{ "click": "#label-mode" },
+				{ "expect": { "image": "split-again" } }
+			]
+		}
+	]
+}

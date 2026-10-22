@@ -7,6 +7,7 @@ affrescoui_module(render
 	src/Bitmap.cpp
 	src/ImageCache.cpp
 	src/ImageView.cpp
+	src/DiffView.cpp
 	src/TextEditor.cpp
 	src/TextEditorCursors.cpp
 	src/TextEditorFind.cpp

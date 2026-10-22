@@ -590,7 +590,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -598,6 +598,7 @@
 									"label",
 									"textarea",
 									"editor",
+									"diff",
 									"stack",
 									"row",
 									"column",
@@ -1350,6 +1351,31 @@
 					"bracketColor": {
 						"$ref": "#/$defs/v1/color"
 					},
+					"original": {
+						"type": "string",
+						"description": "diff: the text compared from"
+					},
+					"modified": {
+						"type": "string",
+						"description": "diff: the text compared to"
+					},
+					"mode": {
+						"enum": [
+							"split",
+							"inline"
+						],
+						"description": "diff: side by side (default) or inline"
+					},
+					"language": {
+						"type": "string",
+						"description": "diff: a language id for the application's editors (e.g. cpp)"
+					},
+					"deletedColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"insertedColor": {
+						"$ref": "#/$defs/v1/color"
+					},
 					"gap": {
 						"anyOf": [
 							{
@@ -2020,6 +2046,7 @@
 									"label",
 									"textarea",
 									"editor",
+									"diff",
 									"stack",
 									"row",
 									"column",

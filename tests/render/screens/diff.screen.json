@@ -1,0 +1,34 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "The diff view, for the rendering check: two versions of a function, side by side (rows aligned with blank rows, changed characters marked) or inline, switched by a button; the mode lives in state.",
+
+	"window": { "title": "Diff", "width": 640, "height": 360 },
+
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+
+	"colors": { "background": "#ffffff", "bar": "#f1f5f9", "text": "#0f172a", "code": "#e2e8f0", "deleted": "#ef444430",
+		"inserted": "#22c55e30" },
+
+	"state": {
+		"mode": "split",
+		"original": "int total(const std::vector<int>& values) {\n    int sum = 0;\n    for(int v : values) sum += v;\n    return sum;\n}\n\nint average(const std::vector<int>& values) {\n    return total(values) / values.size();\n}\n",
+		"modified": "long total(const std::vector<int>& values) {\n    long sum = 0;\n    for(const int v : values)\n        sum += v;\n    return sum;\n}\n\nint average(const std::vector<int>& values) {\n    if(values.empty()) return 0;\n    return total(values) / values.size();\n}\n"
+	},
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{ "id": "bar", "width": "100%", "height": 36, "color": "@bar", "children": [
+				{ "type": "label", "id": "label-mode", "x": 12, "y": 9, "width": 200, "height": 20, "textColor": "@text",
+					"text": "{{state.mode == 'split' ? 'Side by side' : 'Inline'}}",
+					"onClick": { "set": "state.mode", "to": "{{state.mode == 'split' ? 'inline' : 'split'}}" } }
+			] },
+			{ "type": "diff", "id": "diff", "y": 36, "width": "100%", "height": 324, "mode": "{{state.mode}}",
+				"original": "{{state.original}}", "modified": "{{state.modified}}", "textColor": "@code",
+				"deletedColor": "@deleted", "insertedColor": "@inserted" }
+		]
+	}
+}

@@ -26,6 +26,7 @@ match text (render, services) link privately.
 | `Services.hpp` | `services::Services` (`load`, `method`, `invoke`, `subscribe`, `status`, `onStatus`, `onRequest`): what the `services` module offers to the others; `Call` (one call or subscription: `arguments`, `stopToken`, `progress`, `event`, `finish`, `fail`), `MethodSpec`, `Effect`, `RequestHandler` |
 | `Log.hpp` | `LogLevel`, `log`, `setLogSink`: every console message of the library goes through one sink |
 | `TextPattern.hpp` | `TextPattern` (`compile`, `find`, `expand`), `PatternOptions` (regex, whole word, case), `PatternMatch`, `PatternFind`: plain, whole-word or PCRE2 matching under limits (pattern 4 KiB, 1,000,000 steps, depth 10,000, 8 MiB heap per match); const matching is thread-safe |
+| `TextDiff.hpp` | `diffSequences`, `diffLines`, `splitLines`, `DiffEdit`, `DiffLimits`: Myers' linear-space diff (header only), deletions before insertions in each change; past its limits (20,000,000 steps, distance 100,000) a part becomes one deletion and one insertion |
 
 ## Invariants
 
@@ -79,6 +80,7 @@ include/affresco/core/
   Json.hpp            json, DocumentError, parseUntrusted, toText, expect::
   Log.hpp             levels, the sink, log()
   TextPattern.hpp     plain, whole-word and PCRE2 patterns, bounded
+  TextDiff.hpp        line and sequence diffs, bounded
   ScreenImages.hpp    pictures of the screen for peers
   Signal.hpp          Signal and Connection
   VersionControl.hpp  VersionControl, VersionObserver and their value types

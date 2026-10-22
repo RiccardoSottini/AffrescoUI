@@ -139,6 +139,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 		textarea->properties.push_back(std::move(spec));
 	addCore(registry, "textarea", "A single-line text input", [] { return std::make_unique<TextArea>(); }, textarea);
 	registerEditorType(registry);
+	registerDiffType(registry);
 
 	const auto column = [] { return std::make_unique<Stack>(); };
 	addCore(registry, "stack", "Children in a column or a row", column,

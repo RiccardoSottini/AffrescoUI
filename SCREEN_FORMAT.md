@@ -99,7 +99,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -219,6 +219,21 @@ Tabs become 4 spaces. Applications build richer editors on it (syntax colours, c
 | `indentGuides` | `true` draws a line at each indentation level. |
 | `readOnly` | `true`: the user can select, find and fold, but not edit. |
 | `guideColor`, `matchColor`, `bracketColor` | The indentation guides, find's matches and the paired brackets. |
+<!-- end generated -->
+
+### `diff`
+Two texts compared line by line (Myers' algorithm, within a cost limit: past it, a longer but still correct script),
+then character by character on the lines changed, in read-only editors that number each text's lines. `font` and
+`textColor` are the editor's.
+
+<!-- generated: diff -->
+| Key | Meaning |
+|---|---|
+| `original` | The text compared from (lines split at `\n`, a `\r` before it dropped). |
+| `modified` | The text compared to. |
+| `mode` | `split` (default): the original on the left, the modified text on the right, rows aligned with blank rows and scrolled together; `inline`: one editor, the deleted lines above the lines inserted for them. |
+| `language` | A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. |
+| `deletedColor`, `insertedColor` | Behind deleted and inserted lines (the changed characters in the same colour, twice as strong). |
 <!-- end generated -->
 
 ### `row`, `column`, `stack`, `grid`

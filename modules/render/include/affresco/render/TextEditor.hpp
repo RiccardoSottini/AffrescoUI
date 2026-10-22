@@ -183,6 +183,9 @@ public:
 	/// @brief Shows or hides the line numbers.
 	/// @param shown true to show them in a gutter on the left.
 	void setLineNumbers(bool shown);
+	/// @brief Sets the numbers the gutter shows instead of each line's own (a diff shows each text's numbers).
+	/// @param numbers One per line, from line 0 (0: none shown); lines past the end show their own. Empty: all do.
+	void setLineLabels(std::vector<std::size_t> numbers);
 	/// @brief Sets the text colour (what colorLine() gives by default).
 	/// @param color The colour.
 	void setTextColor(Color color);
@@ -595,6 +598,8 @@ private:
 
 	std::shared_ptr<const Font> font_; ///< nullptr: the window's default.
 	bool lineNumbers_ = false;         ///< See setLineNumbers().
+	std::vector<std::size_t> lineLabels_; ///< See setLineLabels().
+	std::size_t largestLabel_ = 0;        ///< The largest of lineLabels_, for the gutter's width.
 	Color textColor_;                  ///< See setTextColor().
 	Color lineNumberColor_;            ///< See setLineNumberColor().
 	Color activeLineNumberColor_;      ///< See setActiveLineNumberColor().

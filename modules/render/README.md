@@ -23,7 +23,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text; an icon before it (`setIcon`, a glyph named in its font: `Font::codepointNamed`); rich text (`setRuns`), links (`onLink`) and selection with copy (`setSelectable`) |
 | `RichText.hpp` | `TextRun` (a part of a text with its own font, colour, link or inline icon) and `TextLayout` (runs broken into lines across styles, hit testing, carets) |
 | `TextArea.hpp` | `TextArea`: a single-line input |
-| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`). Word wrap (`setWrap`), folding (`fold`, `unfold`, `toggleFold`, `setFolds`, `offerFolds`), decorations (`EditorDecoration`: background, squiggle, gutter icon, inline text), extra cursors and column selection (`addCursor`, Cmd/Ctrl+D, Cmd+Alt+Up/Down, Alt+drag), find and replace (`setFind`, `findNext`, `replaceNext`, `replaceAll`, `matchCount`; Cmd/Ctrl+G), bracket matching, indentation guides and an IME composition (`setComposition`) |
+| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`). Word wrap (`setWrap`), folding (`fold`, `unfold`, `toggleFold`, `setFolds`, `offerFolds`), decorations (`EditorDecoration`: background, squiggle, gutter icon, inline text), extra cursors and column selection (`addCursor`, Cmd/Ctrl+D, Cmd+Alt+Up/Down, Alt+drag), find and replace (`setFind`, `findNext`, `replaceNext`, `replaceAll`, `matchCount`; Cmd/Ctrl+G), bracket matching, indentation guides and an IME composition (`setComposition`); `setLineLabels` numbers rows its own way |
+| `DiffView.hpp` | `DiffView`: two texts compared in read-only editors, side by side (rows aligned, scrolled together) or inline (`setMode`), each text's line numbers, changed lines and characters marked (`DiffColors`); an `EditorFactory` gives syntax-coloured editors |
 | `TextModel.hpp` | `TextModel`: UTF-8 text of any size as a piece tree, with a line index (`line`, `offsetOf`, `positionOf`), O(log n) edits, undo as operations (`beginStep`, `endStep`, `undo`) and `onChanged` (`TextChange`); `TextLines`, its lines decoded and kept for reading again |
 | `Controls.hpp` | `Toggle` (a switch or a checkbox) and `Slider` |
 | `Split.hpp` | `Split`: panes along a row or a column with sashes between them; sizes within minimums, the last pane taking the rest; dragged, reset by a double click or Home, moved by the arrow keys (PageUp and PageDown pick a sash); `onSizesChanged` |
@@ -141,6 +142,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 - **Editor bounds:** at most 10,000 cursors, 10,000 decorations (8 starting on a line, inline text 256 code points),
   10,000 folds, 10,000 matches counted or replaced and 10,000 highlighted, 1,000 on a line; bracket matching reads at
   most 100,000 code points and Cmd+D 100,000 lines. Find runs line by line, under `TextPattern`'s limits.
+- **Diff bounds:** lines are diffed within core's `DiffLimits`; characters only on lines up to 2,000 code points, for
+  at most 2,000 changed line pairs, 50,000 steps each.
 
 ## Threads
 
@@ -207,6 +210,7 @@ src/
   TextEditorFind.cpp       find and replace line by line, bracket matching
   TextEditorPaintView.cpp  what is drawn under and over the text: decorations, matches, brackets, guides, the
                            extra carets, the composition
+  DiffView.cpp             a diff's rows, numbers and marks in one or two editors, scrolled together
   TextModel.cpp            positions over the piece tree, UTF-8 checked as it comes in, undo as operations
   Controls.cpp             Toggle and Slider
   Split.cpp, Tabs.cpp      panes with sashes, and a strip of tabs
