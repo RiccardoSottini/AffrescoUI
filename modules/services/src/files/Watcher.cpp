@@ -57,6 +57,28 @@ void close(std::string_view glob, unsigned char* states) noexcept {
 	}
 }
 
+/// @brief Whether a state stays where it is on a byte: in a `**`, or in a `*` on anything but a slash.
+/// @param glob The glob.
+/// @param states Its states.
+/// @param at The state.
+/// @param byte The byte.
+bool stays(std::string_view glob, const unsigned char* states, std::size_t at, char byte) noexcept {
+	return at < glob.size() && (states[at] & reached) != 0 && glob[at] == '*' &&
+	       (tokenWidth(glob, at) == 2 || byte != '/');
+}
+
+/// @brief Whether the state before a position moves to it on a byte: past a `?` (anything but a slash) or the same
+/// byte.
+/// @param glob The glob.
+/// @param states Its states.
+/// @param at The position.
+/// @param byte The byte.
+bool arrives(std::string_view glob, const unsigned char* states, std::size_t at, char byte) noexcept {
+	if(at == 0 || (states[at - 1] & reached) == 0) return false;
+	const char token = glob[at - 1];
+	return token != '*' && (token == '?' ? byte != '/' : token == byte);
+}
+
 /// @brief Reads one byte of the text: each state stays (in a `*` or `**`) or moves past the token the byte matches.
 /// Positions go from last to first, so each reads its predecessor before that is overwritten.
 /// @param glob The glob.
@@ -66,14 +88,8 @@ void close(std::string_view glob, unsigned char* states) noexcept {
 bool step(std::string_view glob, unsigned char* states, char byte) noexcept {
 	bool any = false;
 	for(std::size_t at = glob.size() + 1; at-- > 0;) {
-		unsigned char now = 0;
-		if(at < glob.size() && (states[at] & reached) != 0 && glob[at] == '*' &&
-		   (tokenWidth(glob, at) == 2 || byte != '/'))
-			now |= reached;
-		if(at > 0 && (states[at - 1] & reached) != 0) {
-			const char token = glob[at - 1];
-			if(token != '*' && (token == '?' ? byte != '/' : token == byte)) now |= reached | entered;
-		}
+		unsigned char now = stays(glob, states, at, byte) ? reached : 0;
+		if(arrives(glob, states, at, byte)) now |= reached | entered;
 		states[at] = now;
 		any = any || now != 0;
 	}
