@@ -464,9 +464,26 @@ TEST_CASE("search: Forge's replace writes the listed files, skipping unsaved and
 	CHECK(folder.read("a.txt") == "oNE two oNE\n");
 	CHECK(folder.read("b.txt") == "one\n");
 	CHECK(folder.read("c.txt") == "none here\n");
-	CHECK(!std::filesystem::exists(folder.path / "a.txt.forge-replace"));
+	CHECK(std::distance(std::filesystem::directory_iterator(folder.path), {}) == 4); // nothing left beside them
 	CHECK(!std::filesystem::exists(folder.path.parent_path() / "escape.txt"));
 	CHECK_THROWS(forge::replaceInFolder(folder.path, {{"pattern", "o"}, {"files", "a.txt"}}));
 	CHECK_THROWS(forge::replaceInFolder(folder.path, {{"pattern", "o"}, {"replacement", std::string(70000, 'x')}}));
 	CHECK_THROWS(forge::replaceInFolder({}, {{"pattern", "o"}}));
 }
+
+#ifndef _WIN32
+// Found in the security review of wave 6: replace wrote through "<file>.forge-replace", so a link left there by
+// whoever made the folder (a cloned repository) had the replaced text written over the file it pointed to
+TEST_CASE("search: Forge's replace writes nothing through a link planted beside the file") {
+	TempFolder folder, elsewhere;
+	folder.write("a.txt", "one\n");
+	elsewhere.write("target", "untouched");
+	std::filesystem::create_symlink(elsewhere.path / "target", folder.path / "a.txt.forge-replace");
+	const json replaced =
+	    forge::replaceInFolder(folder.path, {{"pattern", "one"}, {"replacement", "two"}, {"files", {"a.txt"}}});
+	CHECK(replaced["changed"] == json{"a.txt"});
+	CHECK(folder.read("a.txt") == "two\n");
+	CHECK(elsewhere.read("target") == "untouched");
+	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "a.txt"));
+}
+#endif

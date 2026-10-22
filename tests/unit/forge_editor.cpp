@@ -104,9 +104,29 @@ TEST_CASE("forge editor: save writes the file and leaves nothing beside it") {
 	CHECK_FALSE(buffers.save("a.txt"));
 	CHECK(folder.read("a.txt") == "two");
 	CHECK_FALSE(buffers.dirty("a.txt"));
-	CHECK_FALSE(std::filesystem::exists(folder.path / "a.txt.forge-save"));
+	CHECK(std::distance(std::filesystem::directory_iterator(folder.path), {}) == 1); // nothing left beside it
 	CHECK(buffers.save("b.txt").value_or("").starts_with("not open"));
 }
+
+#ifndef _WIN32
+// Found in the security review of wave 6: save wrote through "<file>.forge-save", so a link left there by whoever
+// made the folder (a cloned repository) had the user's text written over the file it pointed to
+TEST_CASE("forge editor: save writes nothing through a link planted beside the file, and keeps its permissions") {
+	TempFolder folder, elsewhere;
+	folder.write("run.sh", "one");
+	elsewhere.write("target", "untouched");
+	std::filesystem::permissions(folder.path / "run.sh", std::filesystem::perms::owner_all);
+	std::filesystem::create_symlink(elsewhere.path / "target", folder.path / "run.sh.forge-save");
+	forge::Buffers buffers;
+	REQUIRE_FALSE(buffers.open(folder.path, "run.sh"));
+	buffers.find("run.sh")->assign("two");
+	CHECK_FALSE(buffers.save("run.sh"));
+	CHECK(folder.read("run.sh") == "two");
+	CHECK(elsewhere.read("target") == "untouched");
+	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "run.sh"));
+	CHECK(std::filesystem::status(folder.path / "run.sh").permissions() == std::filesystem::perms::owner_all);
+}
+#endif
 
 TEST_CASE("forge editor: save all writes every dirty buffer") {
 	TempFolder folder;

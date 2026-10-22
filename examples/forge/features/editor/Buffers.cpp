@@ -76,19 +76,7 @@ std::optional<std::string> Buffers::save(const std::string& id) {
 	if(found == buffers_.end()) return "not open: " + id;
 	Buffer& buffer = found->second;
 	const std::string text = buffer.text->text();
-	fs::path temporary = buffer.path;
-	temporary += ".forge-save";
-	{
-		std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
-		if(!out || !out.write(text.data(), static_cast<std::streamsize>(text.size())) || !out.flush())
-			return "the file can't be written: " + id;
-	}
-	std::error_code error;
-	fs::rename(temporary, buffer.path, error);
-	if(error) {
-		fs::remove(temporary, error);
-		return "the file can't be replaced: " + id;
-	}
+	if(auto error = writeInFolder(buffer.path, text)) return *error + ": " + id;
 	markSaved(buffer);
 	refreshModel();
 	return std::nullopt;
