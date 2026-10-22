@@ -33,6 +33,8 @@ void grantTerminal(affresco::Screen& screen, const std::filesystem::path& folder
 /// Down, and the wheel, scroll back.
 ///   - `forge.terminal.close` `{ "id" }`: ends the session's program and forgets the session;
 ///   - `forge.terminal.clear` `{ "id" }`: clears the scrollback, and asks the program to redraw (Ctrl+L);
+///   - `forge.terminal.run` `{ "id", "text" }`: types the line and a newline into the session, or, if no view has shown
+///     it yet, when one first does (the shell runs it once it starts);
 ///   - `forge.terminal.info` `{ "id" }`: `{ "exists", "running", "title", "status", "code" }`.
 /// @param screen The screen.
 /// @param executor The main thread's executor (outlives the screen), or nullptr to start no program (the status says

@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's palette: one quick pick with four providers (files by default, '>' commands, ':' go to line, 'theme ' colour themes), and the Settings and Keyboard Shortcuts pages, both generated from what the features contribute (the settings and commands sections and the keys).",
+	"note": "Forge's palette: one quick pick with four providers (files by default, '>' commands, ':' go to line, 'theme ' colour themes, 'task ' the tasks Run Task read), and the Settings and Keyboard Shortcuts pages, both generated from what the features contribute (the settings and commands sections and the keys).",
 
 	"state": {
 		"quickPick": { "open": false, "query": "" },
@@ -78,16 +78,18 @@
 					{ "prefix": ":", "items": "{{computed.lineItems}}", "run": "goToPicked",
 					  "placeholder": "Type a line number" },
 					{ "prefix": "theme ", "items": "{{state.themes}}", "key": "name", "run": "setTheme",
-					  "placeholder": "Choose a colour theme" }
+					  "placeholder": "Choose a colour theme" },
+					{ "prefix": "task ", "items": "{{state.tasks.items}}", "run": "taskStart",
+					  "placeholder": "Choose a task to run" }
 				] } }
 		},
 		"forgeSettingsPage": {
-			"node": { "use": "settingsPage", "id": "settings-page", "fill": true, "color": "@color.editor",
-			          "with": { "search": "state.settingsQuery" } }
+			"node": { "use": "settingsPage", "id": "settings-page", "width": "100%", "grow": 1, "color": "@color.editor",
+			          "with": { "search": "{{state.settingsQuery}}" } }
 		},
 		"forgeKeybindingsPage": {
 			"node": {
-				"type": "column", "id": "keybindings-page", "fill": true, "color": "@color.editor", "gap": 8,
+				"type": "column", "id": "keybindings-page", "width": "100%", "grow": 1, "color": "@color.editor", "gap": 8,
 				"children": [
 					{ "type": "textarea", "id": "keybindings-search", "role": "searchbox", "label": "Search Keybindings", "bind": "state.keysQuery", "width": "100%", "height": 30,
 					  "padding": 7, "color": "@color.input", "textColor": "@color.text", "placeholderColor": "@color.muted",

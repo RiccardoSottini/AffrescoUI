@@ -73,6 +73,7 @@ void TextEditor::paint(Painter& painter) const {
 
 	paintAbove(painter, *f, layout);
 	paintGutter(painter, *f, layout);
+	paintMinimap(painter, layout);
 	paintCaretAndScrollBar(painter, layout);
 }
 

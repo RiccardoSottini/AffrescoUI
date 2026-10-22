@@ -499,7 +499,7 @@
 				},
 				{
 					"expect": {
-						"node": "#diff-rows",
+						"node": "#diff-view",
 						"exists": true
 					}
 				},

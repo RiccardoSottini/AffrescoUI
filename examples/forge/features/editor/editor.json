@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's editor: each open file's text is a native buffer (Editor.cpp, never in this state), shown by the editors of every group with \"buffer\": id. A click in the explorer opens a preview tab, which the next preview replaces; a double click, an edit or Keep Editor pins it. A dirty file's tab has a marker; Save, Save All and Revert File write or read it through forge.save, forge.saveAll and forge.revert. Included before the shell, so its openPath, closeTab, scanProblems and forgeEditors replace the shell's and the panels'.",
+	"note": "Forge's editor: each open file's text is a native buffer (Editor.cpp, never in this state), shown by the editors of every group with \"buffer\": id. A click in the explorer opens a preview tab, which the next preview replaces; a double click, an edit or Keep Editor pins it. A dirty file's tab has a marker; Save, Save All and Revert File write or read it through forge.save, forge.saveAll and forge.revert. It owns openPath, closeTab, scanProblems and forgeEditors (the shell and the panels use them).",
 
 	"actions": {
 		"openPath": [{ "run": "openBuffer", "with": { "path": "{{path}}", "label": "{{label}}", "preview": false } }],
@@ -66,7 +66,8 @@
 					}
 				]
 			},
-			{ "set": "state.groups[state.activeGroup].active", "to": "{{id}}" }
+			{ "set": "state.groups[state.activeGroup].active", "to": "{{id}}" },
+			{ "run": "rememberRecent", "with": { "id": "{{id}}", "label": "{{label}}" } }
 		],
 		"replacePreview": [
 			{
@@ -243,8 +244,16 @@
 								"activeTextColor": "@color.text",
 								"activeBackground": "@color.tabActive",
 								"accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
-								"tabs": "{{map(g.tabs, merge(it, {label: it.preview ? it.label + ' (preview)' : it.label, marker: contains(computed.dirtyIds, it.id)}))}}",
-								"onClose": { "run": "closeTab", "with": { "gi": "{{gi}}", "id": "{{event.id}}" } }
+								"tabs": "{{map(g.tabs, merge(it, {label: it.preview ? it.label + ' (preview)' : it.label, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky}))}}",
+								"onClose": { "run": "closeTab", "with": { "gi": "{{gi}}", "id": "{{event.id}}" } },
+								"drag": {},
+								"onDrop": { "run": "moveTabToGroup", "with": { "id": "{{event.data.id}}", "to": "{{gi}}", "at": "{{event.index}}" } },
+								"onMove": { "run": "reorderTab", "with": { "gi": "{{gi}}", "from": "{{event.from}}", "to": "{{event.to}}" } }
+							},
+							{
+								"when": "{{settings.breadcrumbs.enabled && some(state.docs, it.id == g.active && it.kind == 'file')}}",
+								"use": "forgeBreadcrumbs",
+								"with": { "path": "{{g.active}}" }
 							},
 							{
 								"when": "{{empty(g.active) && gi == 0 && settings.workbench.startupEditor == 'welcome'}}",
@@ -262,6 +271,10 @@
 								"grow": 1,
 								"children": [
 									{
+										"when": "{{state.findBar.open && gi == state.activeGroup && state.docs[d].kind == 'file'}}",
+										"use": "forgeFindBar"
+									},
+									{
 										"when": "{{state.docs[d].kind == 'file'}}",
 										"id": "editor",
 										"type": "code",
@@ -272,8 +285,13 @@
 										"language": "{{state.docs[d].language}}",
 										"lineNumbers": "{{settings.editor.lineNumbers}}",
 										"goTo": "{{gi == state.activeGroup ? {line: state.goTo.line, column: state.goTo.column ?? 1, request: state.goTo.request} : null}}",
-										"caret": "state.lsp.caret",
-										"decorations": "{{(find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? []}}",
+										"caret": "state.caret",
+										"wrap": "{{settings.editor.wordWrap}}",
+										"minimap": "{{settings.editor.minimap.enabled}}",
+										"brackets": "{{settings.editor.bracketMatching}}",
+										"indentGuides": "{{settings.editor.guides.indentation}}",
+										"find": "{{gi == state.activeGroup ? computed.findQuery : null}}",
+										"decorations": "{{concat((find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? [], map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark))}}",
 										"tokens": "{{(find(state.lsp.files, it.id == state.docs[d].id) ?? {}).tokens ?? []}}",
 										"onHover": "lspHoverAt",
 										"onType": "lspTyped",
@@ -287,8 +305,6 @@
 										"lineColor": "@color.hover",
 										"selectionColor": "@color.selection",
 										"caretColor": "@color.text",
-										"decorations": "{{map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark)}}",
-										"caret": "state.debug.caret",
 										"onGutterClick": { "run": "debugGutterClick", "with": { "path": "{{state.docs[d].id}}" } },
 										"onWordHover": { "run": "debugHover", "with": { "path": "{{state.docs[d].id}}" } },
 										"keys": { "f5": "debugContinueOrStart", "shift+f5": "debugStop", "mod+shift+f5": "debugRestart",
@@ -305,6 +321,8 @@
 									},
 									{ "when": "{{state.docs[d].kind == 'settings'}}", "use": "forgeSettingsPage" },
 									{ "when": "{{state.docs[d].kind == 'keybindings'}}", "use": "forgeKeybindingsPage" },
+									{ "when": "{{state.docs[d].kind == 'settingsJson'}}", "use": "forgeSettingsJsonPage" },
+									{ "when": "{{state.docs[d].kind == 'keybindingsJson'}}", "use": "forgeKeybindingsJsonPage" },
 									{ "when": "{{state.docs[d].kind == 'search'}}", "use": "forgeSearchPage" },
 									{ "when": "{{state.docs[d].kind == 'diff'}}", "use": "forgeDiffEditor", "with": { "d": "{{d}}" } },
 									{ "when": "{{state.docs[d].kind == 'debugSource'}}", "use": "forgeDebugSource", "with": { "doc": "{{state.docs[d]}}" } }

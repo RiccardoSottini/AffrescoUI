@@ -94,6 +94,8 @@ std::shared_ptr<Buffers> registerEditor(affresco::Screen& screen, std::shared_pt
 		return affresco::json{{"saved", saved}}.dump();
 	});
 	screen.onCall("forge.todos", [buffers](const std::string&) { return buffers->todos().dump(); });
+	screen.onCall("forge.outline",
+	              [buffers](const std::string& arguments) { return buffers->outline(idOf(arguments)).dump(); });
 	return buffers;
 }
 

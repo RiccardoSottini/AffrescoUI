@@ -3,10 +3,10 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 
-	"note": "Bottega: a code editor. A menu bar, an explorer tree, editor tabs with unsaved dots (closing an unsaved one asks first), a generated 5,000-line file, quick open (Cmd+P), every command in a palette (Cmd+Shift+P), the TODO and FIXME lines as problems (updated on save), and a terminal. Edit like in VS Code: selection, undo, Cmd+/ comments, Alt+arrows move lines.",
+	"note": "Quaderno: a code editor. A menu bar, an explorer tree, editor tabs with unsaved dots (closing an unsaved one asks first), a generated 5,000-line file, quick open (Cmd+P), every command in a palette (Cmd+Shift+P), the TODO and FIXME lines as problems (updated on save), and a terminal. Edit like in VS Code: selection, undo, Cmd+/ comments, Alt+arrows move lines.",
 
 	"window": {
-		"title": "Bottega: an AffrescoUI template",
+		"title": "Quaderno: an AffrescoUI template",
 		"width": 1280,
 		"height": 800,
 		"minWidth": 1040,
@@ -345,7 +345,7 @@
 			"do": [{ "run": "typeCommand", "with": { "name": "run" } }] },
 		"clearTerminal": { "title": "Clear the terminal", "category": "Terminal", "icon": "eraser",
 			"do": [{ "set": "state.terminal", "to": [] }] },
-		"about": { "title": "About Bottega", "category": "Help", "icon": "info",
+		"about": { "title": "About Quaderno", "category": "Help", "icon": "info",
 			"do": [{ "set": "state.aboutOpen", "to": true }] }
 	},
 
@@ -398,7 +398,7 @@
 						"id": "windowTitle",
 						"type": "label",
 						"font": "small",
-						"text": "{{computed.file ? computed.file.name + '  —  ' : ''}}{{state.project}}  —  Bottega",
+						"text": "{{computed.file ? computed.file.name + '  —  ' : ''}}{{state.project}}  —  Quaderno",
 						"textColor": "@muted",
 						"anchors": { "left": 360, "right": 360, "top": 0, "bottom": 0 },
 						"align": "center"
@@ -740,7 +740,7 @@
 				"use": "dialog",
 				"with": {
 					"open": "state.aboutOpen",
-					"title": "Bottega",
+					"title": "Quaderno",
 					"message": "A code editor written as one AffrescoUI screen: its menus, tabs, tree, problems and commands are JSON that you, or an agent, can change while it runs.",
 					"width": 460,
 					"height": 170,

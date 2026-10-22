@@ -167,12 +167,19 @@ public:
 	/// @brief Shows text being composed by an input method at the caret, underlined, without editing (empty: none).
 	/// @param text The composed text (at most maxCompositionLength code points are shown).
 	void setComposition(std::u32string text);
+	/// @brief Shows text being composed by an input method, given in UTF-8: see setComposition(std::u32string).
+	/// @param text The composed text, in UTF-8.
+	void setComposition(std::string_view text);
 	/// @brief Shows the matching bracket of one next to the caret.
 	/// @param shown true to show it.
 	void setBracketMatching(bool shown);
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
+	/// @brief Shows a minimap at the right: an overview of the rows, with the visible ones marked, that scrolls the
+	/// editor when pressed or dragged.
+	/// @param shown true to show it.
+	void setMinimap(bool shown);
 
 	/* Decorations and cursors: TextEditorCursors.cpp */
 
@@ -212,6 +219,25 @@ public:
 	std::size_t replaceAll(std::string_view replacement);
 	/// @brief How many matches the text has, counted up to maxMatches.
 	[[nodiscard]] std::size_t matchCount() const;
+	/// @brief Whether a find pattern is set (and compiles).
+	[[nodiscard]] bool finding() const noexcept { return find_.valid(); }
+	/// @brief Limits find and replace to the selection, as it is when turned on (an empty selection: no limit).
+	/// @param inSelection true to limit them, false for the whole text.
+	void setFindInSelection(bool inSelection);
+	/// @brief A step of find and replace a find bar asks for.
+	enum class FindStep {
+		First,     ///< The first match from the selection's start (as the pattern is typed).
+		Next,      ///< The next match.
+		Previous,  ///< The previous match.
+		Replace,   ///< replaceNext().
+		ReplaceAll ///< replaceAll().
+	};
+	/// @brief Runs a step once per request: a step whose request was run already does nothing.
+	/// @param step The step.
+	/// @param replacement The replacement, for Replace and ReplaceAll.
+	/// @param request A number that changes for each new step.
+	/// @return Whether it ran.
+	bool findStep(FindStep step, std::string_view replacement, std::uint64_t request);
 
 	/// @brief Sets the font.
 	/// @param font The font, or nullptr for the window's default.
@@ -343,6 +369,8 @@ protected:
 	void beginEdit(Edit kind);
 	/// @brief Finishes an edit: ends the undo step, reveals the caret, fires the signals.
 	void endEdit();
+	/// @brief Keeps the extra cursors around the undo step just ended, for undo and redo to restore them.
+	void recordCursorStep();
 	/// @brief The text between two positions.
 	/// @param from The start.
 	/// @param to The end (not before @p from).
@@ -384,6 +412,7 @@ protected:
 private:
 	static constexpr float textPadding = 6.0f;      ///< Space above the first line, in pixels.
 	static constexpr float scrollBarWidth = 4.0f;   ///< Thickness of the scroll bar, in pixels.
+	static constexpr float minimapSize = 60.0f;     ///< Width of the minimap, in pixels.
 	static constexpr std::size_t exactWidth = 4096; ///< Up to this many lines, the widest is measured, not estimated.
 
 	/// @brief One row on screen: a line, or the part of a wrapped line between two columns.
@@ -572,6 +601,11 @@ private:
 	/// @param out Gets each match's column and length, in code points.
 	void lineMatches(std::size_t line, std::size_t from, std::size_t cap,
 	                 std::vector<std::pair<std::size_t, std::size_t>>& out) const;
+	/// @brief Whether a match lies in the find scope (setFindInSelection()), or there is none.
+	/// @param line Its line.
+	/// @param column Its column.
+	/// @param length Its length, in code points.
+	[[nodiscard]] bool inScope(std::size_t line, std::size_t column, std::size_t length) const noexcept;
 	/// @brief Keeps visibleMatches_ the matches of the rows drawn.
 	/// @param firstLine The first line drawn.
 	/// @param lastLine One past the last.
@@ -639,6 +673,28 @@ private:
 	/// @param painter The painter.
 	/// @param layout The frame's layout.
 	void paintCaretAndScrollBar(Painter& painter, const Layout& layout) const;
+
+	/* The minimap: TextEditorMinimap.cpp */
+
+	/// @brief The width the minimap takes from the text (0: none).
+	[[nodiscard]] float minimapWidth() const noexcept;
+	/// @brief Where the minimap is drawn.
+	[[nodiscard]] Rect minimapFrame() const noexcept;
+	/// @brief Pixels the minimap is scrolled, when its rows don't fit.
+	[[nodiscard]] float minimapOffset() const noexcept;
+	/// @brief Draws the minimap, if shown.
+	/// @param painter The painter.
+	/// @param layout The frame's layout.
+	void paintMinimap(Painter& painter, const Layout& layout) const;
+	/// @brief Starts or ends scrolling by the minimap.
+	/// @param position The pointer.
+	/// @param pressed true for a press, false for a release.
+	/// @return true if the minimap took the event.
+	bool minimapPress(Vec2 position, bool pressed);
+	/// @brief Scrolls while the minimap is dragged.
+	/// @param position The pointer.
+	/// @return true if the minimap took the event.
+	bool minimapDrag(Vec2 position);
 	/// @brief Draws what goes behind the text: background decorations, find matches, brackets, extra selections.
 	/// @param painter The painter.
 	/// @param font The font.
@@ -719,10 +775,23 @@ private:
 	Vec2 columnFrom_;                                       ///< Where it started.
 	std::optional<Position> hovered_;                       ///< See onHoverPosition.
 
+	/// @brief The extra cursors before and after an undo step.
+	struct CursorStep {
+		std::vector<EditorSelection> before; ///< Restored by undo.
+		std::vector<EditorSelection> after;  ///< Restored by redo.
+	};
+	std::vector<CursorStep> undoCursors_;        ///< One per undo step of the model, newest last.
+	std::vector<CursorStep> redoCursors_;        ///< One per redo step of the model, newest last.
+	std::vector<EditorSelection> cursorsBefore_; ///< The extra cursors when the edit began.
+	bool cursorsMerge_ = false;                  ///< The edit joins the newest undo step.
+	bool cursorsPending_ = false;                ///< An edit began, and recordCursorStep() hasn't kept it.
+
 	TextPattern find_;                 ///< The find pattern; invalid: none.
 	std::string findText_;             ///< Its text.
 	PatternOptions findOptions_;       ///< Its options.
 	std::uint64_t findGeneration_ = 0; ///< Counts setFind() calls, for the cached matches.
+	std::optional<std::pair<Position, Position>> findScope_; ///< See setFindInSelection().
+	std::uint64_t findRequest_ = 0;                          ///< The last request findStep() ran.
 	/// @brief The matches of the rows drawn last: line, column and length.
 	struct VisibleMatch {
 		std::size_t line;   ///< The line.
@@ -737,6 +806,8 @@ private:
 	bool brackets_ = false;      ///< See setBracketMatching().
 	bool guides_ = false;        ///< See setIndentGuides().
 	std::u32string composition_; ///< See setComposition().
+	bool minimap_ = false;         ///< See setMinimap().
+	bool minimapDragging_ = false; ///< A press on the minimap is scrolling.
 
 	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.
 	bool lineNumbers_ = false;            ///< See setLineNumbers().

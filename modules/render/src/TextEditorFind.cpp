@@ -100,7 +100,7 @@ void TextEditor::lineMatches(std::size_t line, std::size_t from, std::size_t cap
 	std::size_t column = std::min(from, lines_[line].size()), counted = byte;
 	while(out.size() < cap && byte <= subject_.size()) {
 		const PatternFind found = find_.find(subject_, byte);
-		if(!found.match) return; // none left, or the limits stopped it
+		if(!found.match) break; // none left, or the limits stopped it
 		const PatternMatch m = *found.match;
 		column += codepoints(subject_, counted, m.offset);
 		const std::size_t length = codepoints(subject_, m.offset, m.offset + m.length);
@@ -111,6 +111,47 @@ void TextEditor::lineMatches(std::size_t line, std::size_t from, std::size_t cap
 		column += codepoints(subject_, m.offset, byte);
 		counted = byte;
 	}
+	if(findScope_) std::erase_if(out, [&](const auto& m) { return !inScope(line, m.first, m.second); });
+}
+
+bool TextEditor::inScope(std::size_t line, std::size_t column, std::size_t length) const noexcept {
+	if(!findScope_) return true;
+	const auto [from, to] = *findScope_;
+	return Position{line, column} >= from && Position{line, column + length} <= to;
+}
+
+void TextEditor::setFindInSelection(bool inSelection) {
+	const auto [from, to] = selection();
+	if(inSelection == findScope_.has_value() || (inSelection && from == to)) return;
+	if(inSelection) findScope_.emplace(from, to);
+	else findScope_.reset();
+	++findGeneration_;
+	invalidatePaint();
+}
+
+bool TextEditor::findStep(FindStep step, std::string_view replacement, std::uint64_t request) {
+	if(request == findRequest_) return false;
+	findRequest_ = request;
+	switch(step) {
+	case FindStep::First: {
+		const Position start = findScope_ ? findScope_->first : selection().first;
+		anchor_ = caret_ = start;
+		if(!findNext()) onCaretMoved(caret_); // the count changed, maybe not the caret
+		break;
+	}
+	case FindStep::Next:
+	case FindStep::Previous:
+		findNext(step == FindStep::Previous);
+		break;
+	case FindStep::Replace:
+		replaceNext(replacement);
+		break;
+	case FindStep::ReplaceAll:
+		replaceAll(replacement);
+		onCaretMoved(caret_); // the count changed, maybe not the caret
+		break;
+	}
+	return true;
 }
 
 void TextEditor::findVisibleMatches(std::size_t firstLine, std::size_t lastLine) const {
@@ -195,7 +236,7 @@ std::size_t TextEditor::replaceAll(std::string_view replacement) {
 			const std::size_t column = codepoints(subject_, 0, m.offset);
 			const std::optional<std::string> text = find_.expand(subject_, m, replacement);
 			if(!text) return 0;
-			if(m.length > 0)
+			if(m.length > 0 && inScope(line, column, codepoints(subject_, m.offset, m.offset + m.length)))
 				replacements.push_back({{line, column},
 				                        {line, column + codepoints(subject_, m.offset, m.offset + m.length)},
 				                        detail::fromUtf8(*text)});

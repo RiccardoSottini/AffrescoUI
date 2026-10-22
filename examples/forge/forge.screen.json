@@ -22,7 +22,8 @@
 	            "features/palette/palette.json", "features/search/search.json", "features/shell/shell.json",
 	            "features/accounts/accounts.json", "features/explorer/explorer.json", "features/terminal/terminal.json",
 	            "features/scm/scm.json", "features/agent/agent.json", "features/lsp/lsp.json",
-	            "features/debug/debug.json", "features/debug/debugViews.json"],
+	            "features/debug/debug.json", "features/debug/debugViews.json",
+	            "features/editing/editing.json", "features/workbench/workbench.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -54,7 +55,7 @@
 		]
 	},
 
-	"persist": ["state.layout", "state.theme", "state.themes", "state.settings", "state.iconTheme"],
+	"persist": ["state.layout", "state.theme", "state.themes", "state.settings", "state.iconTheme", "state.quickPick.recent"],
 
 	"onLoad": [
 		{ "call": "forge.index", "with": { "icons": "{{settings.workbench.fileIcons ? state.iconTheme : null}}" },
@@ -83,7 +84,8 @@
 						{ "use": "forgeEditors" },
 						{ "visible": "{{state.layout.panel && !state.layout.zen}}", "use": "forgePanel" }
 					  ] }
-				  ] }
+				  ] },
+				{ "when": "{{state.layout.secondary && !state.layout.zen}}", "use": "forgeSecondarySideBar" }
 			  ] },
 			{ "when": "{{!state.layout.zen && settings.workbench.statusBar.visible}}", "use": "forgeStatusBar" }
 			] },

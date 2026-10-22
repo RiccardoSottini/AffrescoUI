@@ -7,7 +7,6 @@
 	"state": {
 		"lsp": {
 			"request": 0,
-			"caret": { "line": 1, "column": 1, "selected": 0 },
 			"files": [],
 			"hover": { "open": false, "text": "", "x": 0, "y": 0, "request": 0 },
 			"at": { "x": 0, "y": 0, "top": 0 },
@@ -72,7 +71,7 @@
 			{ "increment": "state.lsp.request", "by": 1 },
 			{ "call": "forge.lsp.request",
 			  "with": { "kind": "{{kind}}", "id": "{{computed.activeDoc.id ?? ''}}", "language": "{{computed.activeDoc.language ?? ''}}",
-			            "line": "{{line ?? state.lsp.caret.line}}", "column": "{{column ?? state.lsp.caret.column}}",
+			            "line": "{{line ?? state.caret.line}}", "column": "{{column ?? state.caret.column}}",
 			            "request": "{{state.lsp.request}}", "newName": "{{newName ?? ''}}", "query": "{{query ?? ''}}" },
 			  "onError": [{ "run": "log", "with": { "text": "{{'Language server: ' + error}}" } }] }
 		],

@@ -16,7 +16,7 @@ examples/
 ├── tempo/              template "music-player": a music player, images/
 ├── streak/             template "habit-tracker": a habit tracker
 ├── sign-in/            template "sign-in": sign in, create an account, signed in
-├── code-editor/        template "code-editor": Bottega, a code editor
+├── code-editor/        template "code-editor": Quaderno, a code editor
 │
 ├── arcadia/            a game launcher built only from the public docs and tools, covers/, its end-to-end test
 ├── forge/              affrescoui_forge, a demo IDE: features/, catalog/, its scenarios

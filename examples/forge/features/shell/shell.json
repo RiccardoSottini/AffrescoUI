@@ -5,12 +5,13 @@
 	"note": "Forge's shell: the title bar with a command centre, the activity bar, the explorer side bar, editor groups with tabs, the panel and the status bar. The layout (what is shown, the sash positions) is in state.layout, kept by persist; zen mode hides everything but the editors. Other features contribute commands, menus, keys, settings, tokens and components (examples/forge/README.md).",
 
 	"state": {
-		"layout": { "sidebar": true, "panel": true, "zen": false, "sizes": [240], "panelSizes": [480], "groupSizes": [] },
+		"layout": { "sidebar": true, "panel": true, "zen": false, "secondary": false, "sizes": [240], "panelSizes": [480], "groupSizes": [] },
 		"folder": { "root": "", "files": [], "tree": [], "truncated": false },
 		"explorer": { "expanded": [], "selected": null },
 		"docs": [],
 		"groups": [{ "tabs": [], "active": null }],
 		"activeGroup": 0,
+		"caret": { "line": 1, "column": 1, "selected": 0 },
 		"menuBar": {},
 		"about": false,
 		"sideView": "explorer",
@@ -46,16 +47,6 @@
 				"onError": [{ "run": "notify", "with": { "severity": "info", "message": "{{'No folder opened: ' + error}}" } }],
 				"then": [{ "set": "state.explorer.expanded", "to": [] },
 				         { "run": "log", "with": { "text": "{{'Opened ' + result.root}}" } }] }] },
-		"openPath": [
-			{ "if": "{{contains(computed.docIds, path)}}",
-			  "then": [{ "run": "showTab", "with": { "id": "{{path}}", "label": "{{label}}" } }],
-			  "else": [{ "call": "forge.read", "with": { "id": "{{path}}" },
-				"onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot open ' + label + ': ' + error}}" } }],
-				"then": [
-					{ "push": "state.docs", "value": "{{ {id: path, label: label, kind: 'file', text: result, dirty: false, language: label == 'CMakeLists.txt' ? 'CMake' : state.languages[lower(reverse(split(label, '.'))[0])] ?? ''} }}" },
-					{ "run": "showTab", "with": { "id": "{{path}}", "label": "{{label}}" } }
-				] }] }
-		],
 		"openExplorerItem": [
 			{ "if": "{{!empty(event.id) && slice(event.id, length(event.id) - 1) != '/'}}",
 			  "then": [{ "run": "openPath", "with": { "path": "{{event.id}}", "label": "{{reverse(split(event.id, '/'))[0]}}" } }] }
@@ -69,14 +60,6 @@
 			{ "if": "{{!contains(computed.docIds, id)}}",
 			  "then": [{ "push": "state.docs", "value": "{{ {id: id, label: label, kind: kind, text: '', dirty: false, language: ''} }}" }] },
 			{ "run": "showTab", "with": { "id": "{{id}}", "label": "{{label}}" } }
-		],
-		"closeTab": [
-			{ "set": "state.groups[gi].tabs", "to": "{{filter(state.groups[gi].tabs, it.id != id)}}" },
-			{ "if": "{{state.groups[gi].active == id}}",
-			  "then": [{ "set": "state.groups[gi].active", "to": "{{length(state.groups[gi].tabs) > 0 ? state.groups[gi].tabs[0].id : null}}" }] },
-			{ "if": "{{length(state.groups[gi].tabs) == 0 && length(state.groups) > 1}}",
-			  "then": [{ "remove": "state.groups", "at": "{{gi}}" }, { "set": "state.activeGroup", "to": 0 },
-			           { "set": "state.layout.groupSizes", "to": [] }] }
 		],
 		"closeEditor": { "title": "Close Editor", "category": "View", "icon": "x",
 			"enablement": "{{!empty(state.groups[state.activeGroup].active)}}",
@@ -244,41 +227,6 @@
 				]
 			}
 		},
-		"forgeEditors": {
-			"node": {
-				"type": "split", "id": "editor-groups", "role": "main", "label": "Editors", "bind": "state.layout.groupSizes", "minSize": 160, "sashSize": 4,
-				"sashColor": "@color.border", "sashActiveColor": "@color.accent",
-				"children": [
-					{ "type": "column", "id": "group", "repeat": { "for": "g", "in": "state.groups", "index": "gi" },
-					  "color": "@color.editor", "onClick": { "set": "state.activeGroup", "to": "{{gi}}" },
-					  "children": [
-						{ "type": "tabs", "id": "group-tabs", "role": "tablist", "label": "Open Editors", "width": "100%", "height": 35, "bind": "state.groups[gi].active",
-						  "color": "@color.tabs", "textColor": "@color.muted", "activeTextColor": "@color.text",
-						  "activeBackground": "@color.tabActive", "accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
-						  "tabs": "{{map(g.tabs, merge(it, {marker: contains(computed.dirtyIds, it.id)}))}}",
-						  "onClose": { "run": "closeTab", "with": { "gi": "{{gi}}", "id": "{{event.id}}" } } },
-						{ "when": "{{empty(g.active) && gi == 0 && settings.workbench.startupEditor == 'welcome'}}", "use": "forgeWelcome" },
-						{ "type": "column", "id": "group-body", "repeat": { "for": "d", "in": "{{filter([indexOf(computed.docIds, g.active)], it >= 0)}}", "key": "{{d}}" },
-						  "width": "100%", "grow": 1,
-						  "children": [
-							{ "when": "{{state.docs[d].kind == 'file'}}", "id": "editor", "type": "code", "font": "code", "label": "{{state.docs[d].label}}",
-							  "width": "100%", "grow": 1, "bind": "state.docs[d].text", "language": "{{state.docs[d].language}}",
-							  "lineNumbers": "{{settings.editor.lineNumbers}}",
-							  "goTo": "{{gi == state.activeGroup ? {line: state.goTo.line, request: state.goTo.request} : null}}",
-							  "color": "@color.editor", "textColor": "@color.editorText", "lineNumberColor": "@color.muted",
-							  "activeLineNumberColor": "@color.text", "lineColor": "@color.hover", "selectionColor": "@color.selection",
-							  "caretColor": "@color.text",
-							  "syntax": { "keyword": "@syntax.keyword", "type": "@syntax.type", "string": "@syntax.string",
-							              "number": "@syntax.number", "comment": "@syntax.comment", "heading": "@syntax.heading" },
-							  "onChange": { "set": "state.docs[d].dirty", "to": true } },
-							{ "when": "{{state.docs[d].kind == 'settings'}}", "use": "forgeSettingsPage" },
-							{ "when": "{{state.docs[d].kind == 'keybindings'}}", "use": "forgeKeybindingsPage" },
-							{ "when": "{{state.docs[d].kind == 'diff'}}", "use": "forgeDiffEditor", "with": { "d": "{{d}}" } }
-						  ] }
-					  ] }
-				]
-			}
-		},
 		"forgeStatusBar": {
 			"node": {
 				"type": "row", "id": "status-bar", "role": "status", "label": "Status Bar", "point": "statusBar.right", "width": "100%", "height": 24, "color": "@color.statusBar", "alignItems": "center",
@@ -293,6 +241,10 @@
 					  "cursor": "hand", "text": "{{text(computed.warnings)}}", "textColor": "@color.statusText", "tooltip": "Problems",
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "showProblems" } },
 					{ "id": "status-gap", "grow": 1 },
+					{ "type": "label", "id": "status-position", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
+					  "role": "button", "label": "Go to Line", "padding": 6, "fitText": true, "cursor": "hand",
+					  "text": "{{'Ln ' + text(state.caret.line) + ', Col ' + text(state.caret.column) + (state.caret.selected > 0 ? ' (' + text(state.caret.selected) + ' selected)' : '')}}",
+					  "textColor": "@color.statusText", "hover": { "color": "@color.hover" }, "onClick": { "run": "goToLinePick" } },
 					{ "type": "label", "id": "status-language", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
 					  "text": "{{computed.activeDoc.language || 'Plain Text'}}", "padding": 6, "fitText": true,
 					  "textColor": "@color.statusText" },

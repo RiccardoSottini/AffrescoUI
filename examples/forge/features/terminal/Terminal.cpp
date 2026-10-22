@@ -17,6 +17,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <stop_token>
 #include <string>
 #include <string_view>
@@ -84,6 +85,7 @@ public:
 	void resize(TerminalSession& session, int rows, int columns);
 	void close(const std::string& id);
 	void clear(const std::string& id);
+	void run(const std::string& id, const std::string& line);
 	[[nodiscard]] json info(const std::string& id);
 	void received(std::uint64_t serial, const json& event);
 	void ended(std::uint64_t serial, std::optional<int> code, const std::string& error);
@@ -97,6 +99,7 @@ private:
 	affresco::Executor* executor_;                                     ///< See the constructor.
 	std::uint64_t serials_ = 0;                                        ///< Open calls made so far.
 	std::map<std::string, std::unique_ptr<TerminalSession>> sessions_; ///< The terminals.
+	std::map<std::string, std::string> queued_; ///< Lines to run in terminals not shown yet, by id.
 };
 
 /// @brief The call that opens a pty: its events and its end go to the main thread, to the session that made it.
@@ -260,6 +263,7 @@ TerminalSession* TerminalSessions::attach(const std::string& id, TerminalView& v
 		auto made = std::make_unique<TerminalSession>();
 		made->model = std::make_unique<TerminalModel>(rows, columns);
 		session = sessions_.emplace(id, std::move(made)).first->second.get();
+		if(auto queued = queued_.extract(id)) session->pendingInput = std::move(queued.mapped());
 	}
 	session->view = &view;
 	resize(*session, rows, columns);
@@ -305,6 +309,16 @@ void TerminalSessions::send(TerminalSession& session, std::string bytes) {
 		write(session, rest.substr(0, cut));
 		rest.remove_prefix(cut);
 	}
+}
+
+/// @brief Runs a line in a terminal: types it with a newline, now or when a view first shows the terminal.
+/// @param id The terminal.
+/// @param line The line, without its newline.
+void TerminalSessions::run(const std::string& id, const std::string& line) {
+	if(TerminalSession* session = find(id)) return send(*session, line + "\n");
+	if(queued_.size() >= mostTerminals && !queued_.contains(id)) return;
+	std::string& queued = queued_[id];
+	if(queued.size() + line.size() + 1 <= mostPendingOutput) queued += line + "\n";
 }
 
 /// @brief Writes one chunk to a session's pty.
@@ -714,6 +728,13 @@ void registerTerminal(affresco::Screen& screen, affresco::Executor* executor) {
 	});
 	screen.onCall("forge.terminal.clear", [sessions](const std::string& arguments) {
 		sessions->clear(idOf(arguments));
+		return json::object().dump();
+	});
+	screen.onCall("forge.terminal.run", [sessions](const std::string& arguments) {
+		const json with = affresco::parseUntrusted(arguments);
+		if(!with.is_object() || !with.contains("text") || !with["text"].is_string())
+			throw std::runtime_error("forge.terminal.run takes { id, text }");
+		sessions->run(idOf(arguments), with["text"].get<std::string>());
 		return json::object().dump();
 	});
 	screen.onCall("forge.terminal.info",

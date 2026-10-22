@@ -47,6 +47,27 @@ std::string message(std::string_view line) {
 	return std::string(line.substr(0, end));
 }
 
+/// @brief A line's place in an outline.
+/// @param row The line, without its line break.
+/// @param markdown Whether the file is Markdown (headings) rather than code (blocks).
+/// @return Its depth and label, or std::nullopt if it isn't in the outline.
+std::optional<std::pair<int, std::string>> outlineEntry(std::string_view row, bool markdown) {
+	if(markdown) {
+		const std::size_t hashes = row.find_first_not_of('#');
+		if(hashes == 0 || hashes == std::string_view::npos || hashes > 6 || row[hashes] != ' ') return std::nullopt;
+		return std::pair{static_cast<int>(hashes) - 1, message(row.substr(hashes))};
+	}
+	const std::size_t first = row.find_first_not_of(" \t");
+	const std::size_t last = row.find_last_not_of(" \t\r");
+	if(first == std::string_view::npos || row[last] != '{') return std::nullopt;
+	// One tab or up to four spaces is the second level; deeper blocks are left out
+	const int depth = first == 0 ? 0 : (row[0] == '\t' ? (first == 1 ? 1 : 2) : (first <= 4 ? 1 : 2));
+	const std::string label = message(row.substr(0, last));
+	if(depth > 1 || label.empty() || label.starts_with('}') || label.starts_with('/') || label.starts_with('#'))
+		return std::nullopt;
+	return std::pair{depth, label};
+}
+
 } // namespace
 
 Buffers::Buffers(BufferLimits limits) : limits_(limits), model_(std::make_shared<affresco::ListModel>()) {}
@@ -183,6 +204,23 @@ void Buffers::refreshModel() const {
 		                {"lines", buffer.text->lineCount()},
 		                {"bytes", buffer.text->size()}});
 	model_->reset(std::move(rows));
+}
+
+affresco::json Buffers::outline(std::string_view id) const {
+	affresco::json found = affresco::json::array();
+	const auto it = buffers_.find(id);
+	if(it == buffers_.end() || it->second.text->size() > limits_.keptBytes) return found;
+	const bool markdown = it->second.label.ends_with(".md");
+	const std::string text = it->second.text->text();
+	std::size_t start = 0, line = 1;
+	while(start <= text.size() && found.size() < limits_.todos) {
+		const std::size_t end = std::min(text.find('\n', start), text.size());
+		if(auto entry = outlineEntry(std::string_view(text.data() + start, end - start), markdown))
+			found.push_back({{"line", line}, {"label", std::move(entry->second)}, {"depth", entry->first}});
+		start = end + 1;
+		++line;
+	}
+	return found;
 }
 
 } // namespace forge

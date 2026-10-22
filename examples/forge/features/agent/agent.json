@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's agent pane and Bottega, the Features view. A request in plain words goes to the connected agents through the host's request/reply relay, on a channel to Forge's own studio.sock (as the Studio does); an agent's change comes back as a proposal, never applied by this pane: it is reviewed here (its changes, its evidence: screenshots and scenario results, a live preview) and accepted at the head the person reviewed, or rejected. Bottega lists the host's feature catalogue (the features service: catalog, install), and switches an installed feature on or off with a revision on /features/<name> (RFC 0004), so each is reviewable and can be undone. What a peer sends is bounded before it is kept.",
+	"note": "Forge's agent pane and the Features view. A request in plain words goes to the connected agents through the host's request/reply relay, on a channel to Forge's own studio.sock (as the Studio does); an agent's change comes back as a proposal, never applied by this pane: it is reviewed here (its changes, its evidence: screenshots and scenario results, a live preview) and accepted at the head the person reviewed, or rejected. The Features view lists the host's feature catalogue (the features service: catalog, install), and switches an installed feature on or off with a revision on /features/<name> (RFC 0004), so each is reviewable and can be undone. What a peer sends is bounded before it is kept.",
 
 	"channels": {
 		"forgeAgent": { "socket": "studio.sock", "reconnect": { "after": 2000 } }

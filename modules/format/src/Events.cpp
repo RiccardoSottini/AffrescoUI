@@ -166,8 +166,10 @@ Connection Events::hookCaret(Panel& panel) {
 			const std::string where = record->path + ".caret";
 			const json::json_pointer pointer =
 			    format::statePointer(*record->caret, engine_.document.context(*record->locals, json::object()), where);
-			statePlace(engine_.versions.state(), pointer, where) = {
+			json written = {
 			    {"line", caret.line + 1}, {"column", caret.column + 1}, {"selected", editor->selectedLength()}};
+			if(editor->finding()) written["matches"] = editor->matchCount();
+			statePlace(engine_.versions.state(), pointer, where) = std::move(written);
 			engine_.document.markStateChanged(pointer);
 			engine_.reconciler.requestStateUpdate();
 		} catch(const DocumentError& error) {

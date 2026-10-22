@@ -94,6 +94,12 @@ public:
 	/// @brief The TODO and FIXME lines of the buffers up to keptBytes, for Problems.
 	/// @return `[{ "severity": "info" | "warning", "message", "file", "label", "line" }]`, at most `todos` of them.
 	[[nodiscard]] affresco::json todos() const;
+	/// @brief A buffer's outline, for the Outline view: a Markdown file's headings; another file's lines that open a
+	/// block (end with `{`) at the first two levels of indentation, such as namespaces, classes and functions.
+	/// @param id The buffer.
+	/// @return `[{ "line" (from 1), "label", "depth" (from 0) }]`, at most `todos` of them; empty if it isn't open or
+	/// is larger than keptBytes.
+	[[nodiscard]] affresco::json outline(std::string_view id) const;
 
 private:
 	/// @brief One open file.

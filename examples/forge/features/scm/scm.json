@@ -137,7 +137,7 @@
 			  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot compare ' + state.scm.compare.path + ': ' + error}}" } }],
 			  "then": [
 				{ "set": "state.scm.gutters", "to": "{{concat(filter(state.scm.gutters, it.path != state.scm.compare.path), [{path: state.scm.compare.path, marks: result.gutter}])}}" },
-				{ "forEach": "{{[ {id: 'diff:' + state.scm.compare.path, label: reverse(split(state.scm.compare.path, '/'))[0] + ' (Working Tree)', diff: merge(result, {path: state.scm.compare.path, items: map(result.rows, {id: text(index), label: (it.kind == 'added' ? '+ ' : it.kind == 'removed' ? '- ' : '  ') + it.text, icon: it.kind == 'added' ? 'plus' : it.kind == 'removed' ? 'minus' : '', iconColor: it.kind == 'added' ? '#2ea043' : '#f85149'})})} ]}}",
+				{ "forEach": "{{[ {id: 'diff:' + state.scm.compare.path, label: reverse(split(state.scm.compare.path, '/'))[0] + ' (Working Tree)', diff: merge(result, {path: state.scm.compare.path, original: state.scm.compare.original, modified: state.scm.compare.modified, items: map(result.rows, {id: text(index), label: (it.kind == 'added' ? '+ ' : it.kind == 'removed' ? '- ' : '  ') + it.text, icon: it.kind == 'added' ? 'plus' : it.kind == 'removed' ? 'minus' : '', iconColor: it.kind == 'added' ? '#2ea043' : '#f85149'})})} ]}}",
 				  "as": "page", "do": [
 					{ "set": "state.docs", "to": "{{filter(state.docs, it.id != page.id)}}" },
 					{ "push": "state.docs", "value": "{{ {id: page.id, label: page.label, kind: 'diff', text: '', dirty: false, language: '', diff: page.diff} }}" },
@@ -245,7 +245,7 @@
 			"params": { "d": 0 },
 			"node": {
 				"type": "column", "id": "diff-editor", "width": "100%", "grow": 1, "color": "@color.editor",
-				"note": "An inline diff of rows from forge.scm.diff; the diff node (split and inline) replaces it when it lands.",
+				"note": "The working tree against HEAD: a diff node, side by side or inline (diffEditor.renderSideBySide); forge.scm.diff counts the rows.",
 				"children": [
 					{ "type": "row", "id": "diff-head", "width": "100%", "height": 28, "alignItems": "center", "gap": 8,
 					  "children": [
@@ -256,11 +256,18 @@
 						{ "type": "label", "id": "diff-removed", "text": "{{'-' + state.docs[d].diff.removed}}", "textColor": "#f85149",
 						  "fitText": true },
 						{ "type": "label", "id": "diff-truncated", "when": "{{state.docs[d].diff.truncated}}",
-						  "text": "(too large: the first rows only)", "textColor": "@color.muted", "fitText": true }
+						  "text": "(too large: the first rows only)", "textColor": "@color.muted", "fitText": true },
+						{ "id": "diff-head-gap", "grow": 1 },
+						{ "type": "label", "id": "diff-mode", "role": "button", "label": "Toggle Inline View",
+						  "text": "{{settings.diffEditor.renderSideBySide ? 'Inline' : 'Side by Side'}}", "icon": "columns",
+						  "padding": 6, "fitText": true, "cursor": "hand", "textColor": "@color.muted",
+						  "hover": { "color": "@color.hover" }, "onClick": { "run": "toggleDiffInline" } }
 					  ] },
-					{ "type": "list", "id": "diff-rows", "width": "100%", "grow": 1, "font": "code", "selection": "none",
-					  "items": "{{state.docs[d].diff.items}}", "rowHeight": 20, "color": "@color.editor",
-					  "textColor": "@color.editorText", "accentColor": "@color.accent" }
+					{ "type": "diff", "id": "diff-view", "font": "code", "width": "100%", "grow": 1,
+					  "original": "{{state.docs[d].diff.original ?? ''}}", "modified": "{{state.docs[d].diff.modified ?? ''}}",
+					  "mode": "{{settings.diffEditor.renderSideBySide ? 'split' : 'inline'}}",
+					  "language": "{{state.docs[d].diff.path}}", "color": "@color.editor", "textColor": "@color.editorText",
+					  "deletedColor": "#f8514933", "insertedColor": "#2ea04333" }
 				]
 			}
 		}

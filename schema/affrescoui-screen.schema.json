@@ -1683,7 +1683,10 @@
 						}
 					},
 					"find": {
-						"type": "object",
+						"type": [
+							"object",
+							"null"
+						],
 						"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous",
 						"properties": {
 							"text": {
@@ -1697,6 +1700,24 @@
 							},
 							"caseSensitive": {
 								"type": "boolean"
+							},
+							"inSelection": {
+								"type": "boolean"
+							},
+							"replace": {
+								"type": "string"
+							},
+							"step": {
+								"enum": [
+									"first",
+									"next",
+									"previous",
+									"replace",
+									"replaceAll"
+								]
+							},
+							"request": {
+								"type": "number"
 							}
 						}
 					},
@@ -1705,6 +1726,12 @@
 					},
 					"indentGuides": {
 						"$ref": "#/$defs/v2/flag"
+					},
+					"minimap": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"composition": {
+						"description": "Text, or a {{binding}}"
 					},
 					"readOnly": {
 						"$ref": "#/$defs/v2/flag"
@@ -2583,9 +2610,6 @@
 					},
 					"headerColor": {
 						"$ref": "#/$defs/v2/color"
-					},
-					"minimap": {
-						"$ref": "#/$defs/v2/flag"
 					},
 					"zoom": {
 						"anyOf": [
