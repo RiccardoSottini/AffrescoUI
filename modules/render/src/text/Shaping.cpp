@@ -2,7 +2,7 @@
 /// @brief Font::Data's shaping: text split into runs of one face and one script, each shaped by HarfBuzz, cached
 /// by word and by line.
 
-#include "text/FontData.hpp"
+#include "font/FontData.hpp"
 
 #include <algorithm>
 #include <cstring>

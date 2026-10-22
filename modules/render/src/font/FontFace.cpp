@@ -1,7 +1,7 @@
 /// @file
 /// @brief detail::FontFiles and FontFace: reading font files once, and opening them with FreeType and HarfBuzz.
 
-#include "text/FontFace.hpp"
+#include "font/FontFace.hpp"
 
 #include FT_OUTLINE_H
 

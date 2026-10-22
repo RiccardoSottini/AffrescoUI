@@ -5,8 +5,8 @@
 #include "affresco/render/Font.hpp"
 #include "affresco/core/Log.hpp"
 
-#include "text/FontData.hpp"
-#include "text/FontInspector.hpp"
+#include "font/FontData.hpp"
+#include "font/FontInspector.hpp"
 
 #include <algorithm>
 #include <atomic>

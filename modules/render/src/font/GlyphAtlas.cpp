@@ -1,7 +1,7 @@
 /// @file
 /// @brief detail::GlyphAtlas: shelf packing into coverage and colour pages.
 
-#include "text/GlyphAtlas.hpp"
+#include "font/GlyphAtlas.hpp"
 
 #include <algorithm>
 #include <bit>

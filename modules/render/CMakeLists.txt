@@ -33,12 +33,12 @@ affrescoui_module(render
 	src/ListView.cpp
 	src/TreeView.cpp
 	src/TableView.cpp
-	src/Font.cpp
-	src/FontCache.cpp
-	src/text/FontFace.cpp
-	src/text/FontOutlines.cpp
-	src/text/GlyphAtlas.cpp
-	src/text/LookupSpans.cpp
+	src/font/Font.cpp
+	src/font/FontCache.cpp
+	src/font/FontFace.cpp
+	src/font/FontOutlines.cpp
+	src/font/GlyphAtlas.cpp
+	src/font/LookupSpans.cpp
 	src/text/PlainText.cpp
 	src/text/Shaping.cpp
 	src/Label.cpp

@@ -6,8 +6,8 @@
 
 #include "affresco/render/Font.hpp"
 
-#include "text/FontFace.hpp"
-#include "text/GlyphAtlas.hpp"
+#include "font/FontFace.hpp"
+#include "font/GlyphAtlas.hpp"
 #include "text/PlainText.hpp"
 #include "text/ShapedTextCache.hpp"
 

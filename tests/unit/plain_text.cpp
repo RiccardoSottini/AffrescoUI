@@ -11,8 +11,8 @@
 #include <affresco/render/Font.hpp>
 
 #include "detail/Utf8.hpp"
-#include "text/FontInspector.hpp"
-#include "text/LookupSpans.hpp"
+#include "font/FontInspector.hpp"
+#include "font/LookupSpans.hpp"
 #include "Templates.hpp"
 
 #include <doctest/doctest.h>

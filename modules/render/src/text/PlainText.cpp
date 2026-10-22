@@ -3,8 +3,8 @@
 /// advances and kerning.
 
 #include "text/PlainText.hpp"
-#include "text/FontFace.hpp"
-#include "text/LookupSpans.hpp"
+#include "font/FontFace.hpp"
+#include "font/LookupSpans.hpp"
 
 #include <hb-aat.h>
 #include <hb-ot.h>

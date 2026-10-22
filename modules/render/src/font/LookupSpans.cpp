@@ -1,7 +1,7 @@
 /// @file
 /// @brief detail::LookupSpans: the spans of GSUB and GPOS lookups, read from the table with every offset checked.
 
-#include "text/LookupSpans.hpp"
+#include "font/LookupSpans.hpp"
 
 #include <algorithm>
 

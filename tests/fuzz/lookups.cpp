@@ -7,7 +7,7 @@
 
 #include "Fuzz.hpp"
 
-#include "text/LookupSpans.hpp"
+#include "font/LookupSpans.hpp"
 
 #include <cstddef>
 #include <cstdint>
