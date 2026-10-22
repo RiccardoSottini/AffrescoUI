@@ -37,7 +37,10 @@ affresco::identity::Provider provider(bool issuer) {
 void readTokens(std::string_view body, bool issuer) {
 	namespace oauth = affresco::net::oauth;
 	const auto now = std::chrono::system_clock::time_point(std::chrono::seconds(1'800'000'000));
-	const auto result = oauth::readTokens(body, provider(issuer), issuer ? "n0nce" : "", now);
+	const auto read = [&](std::string_view answer) {
+		return oauth::readTokens(answer, provider(issuer), issuer ? "n0nce" : "", now);
+	};
+	const auto result = read(body);
 	if(const auto* tokens = std::get_if<oauth::Tokens>(&result)) {
 		if(tokens->access.empty()) affresco::fuzz::broken("tokens have an access token");
 		if(tokens->access.size() > oauth::maxTokenBytes || tokens->refresh.size() > oauth::maxTokenBytes ||
@@ -52,8 +55,15 @@ void readTokens(std::string_view body, bool issuer) {
 		if(at != std::string_view::npos) {
 			const std::string_view rest = body.substr(at + 16);
 			const std::string_view token = rest.substr(0, rest.find('"'));
-			if(token.size() >= 12 && error.contains(token))
-				affresco::fuzz::broken("an error never quotes the access token");
+			if(token.size() >= 12 && error.contains(token)) {
+				// The token may be words of the error's own text: then the error still has them for another token
+				std::string other(body);
+				for(std::size_t i = 0; i < token.size(); ++i) other[at + 16 + i] = token[i] == 'q' ? 'z' : 'q';
+				const auto again = read(other);
+				const auto* otherError = std::get_if<std::string>(&again);
+				if(otherError && !otherError->contains(token))
+					affresco::fuzz::broken("an error never quotes the access token");
+			}
 		}
 	}
 }
