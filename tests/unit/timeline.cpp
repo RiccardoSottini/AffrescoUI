@@ -367,6 +367,21 @@ TEST_CASE("format: a timeline's zoom is pixelsPerSecond, and its scale is the tr
 	CHECK(timeline->camera().scale == doctest::Approx(250.0));
 }
 
+TEST_CASE("format: a timeline's selection is selectedKeys, and selected stays every node's flag") {
+	const ManualClock clock;
+	const auto headless = createHeadlessWindow(600, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(timelineScreen);
+	screen.build(*headless);
+	std::string error;
+	REQUIRE(screen.applyRevision(R"({"set": {"#timeline/selectedKeys": ["pos:1", "c1"]}})", &error));
+	headless->render();
+	auto* timeline = dynamic_cast<TimelineView*>(screen.find("timeline"));
+	REQUIRE(timeline);
+	CHECK(timeline->selection() == std::vector<std::string>{"pos:1", "c1"});
+	CHECK(screen.applyRevision(R"({"set": {"#timeline/selected": true}})", &error));
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#timeline/selected": ["c1"]}})", &error));
+}
+
 TEST_CASE("format: a timeline node scrubs and edits through its handlers, and refuses broken data") {
 	const ManualClock clock;
 	const auto headless = createHeadlessWindow(600, 300, clock);

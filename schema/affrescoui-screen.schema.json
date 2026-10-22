@@ -2596,6 +2596,9 @@
 							}
 						]
 					},
+					"selectedIds": {
+						"description": "graph: the selected node's id, or a list of ids"
+					},
 					"tracks": {
 						"anyOf": [
 							{
@@ -2714,6 +2717,9 @@
 								"$ref": "#/$defs/v1/dynamic"
 							}
 						]
+					},
+					"selectedKeys": {
+						"description": "timeline: the selected items' keys"
 					},
 					"headerWidth": {
 						"anyOf": [

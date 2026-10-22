@@ -305,6 +305,21 @@ TEST_CASE("render: the model is bounded and off-screen nodes are culled") {
 	CHECK(fixture.view->camera().zoom == GraphCamera::maximumZoom);
 }
 
+TEST_CASE("format: a graph's selection is selectedIds, and selected stays every node's flag") {
+	const ManualClock clock;
+	const auto headless = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(graphScreen);
+	screen.build(*headless);
+	std::string error;
+	REQUIRE(screen.applyRevision(R"({"set": {"#graph/selectedIds": ["mix"]}})", &error));
+	headless->render();
+	auto* graph = dynamic_cast<GraphView*>(screen.find("graph"));
+	REQUIRE(graph);
+	CHECK(graph->selection() == std::vector<std::string>{"mix"});
+	CHECK(screen.applyRevision(R"({"set": {"#graph/selected": true}})", &error));
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#graph/selected": ["tex"]}})", &error));
+}
+
 TEST_CASE("format: a graph node keeps its links in state through its handlers, and refuses broken data") {
 	const ManualClock clock;
 	const auto headless = createHeadlessWindow(600, 400, clock);

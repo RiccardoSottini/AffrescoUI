@@ -210,7 +210,7 @@ std::vector<TimelineMarker> markersOf(const json& value, const std::string& path
 	return markers;
 }
 
-/// @brief Reads "selected": a key, or a list of keys (a clip's id, or a track's id, ":" and a keyframe's index).
+/// @brief Reads "selectedKeys": a key, or a list of keys (a clip's id, or a track's id, ":" and a keyframe's index).
 /// @param value The value.
 /// @return The keys (at most as many items as a timeline keeps).
 std::vector<std::string> keysOf(const json& value) {
@@ -286,7 +286,8 @@ void applyTimeline(Panel& panel, const json& values, const PropertyReader& reade
 			                             TimelineView::maximumDuration);
 		view->setGivenCamera(camera);
 	}
-	if(values.contains("selected")) view->setGivenSelection(keysOf(values["selected"]));
+	// "selectedKeys", not "selected": every node's "selected" says whether it is selected itself
+	if(values.contains("selectedKeys")) view->setGivenSelection(keysOf(values["selectedKeys"]));
 }
 
 /// @brief A time for an event: rounded to a millionth of a second, so a drag doesn't give 1.0000000002.
@@ -387,7 +388,7 @@ void registerTimelineType(TypeRegistry& registry) {
 	    {"tracks", ValueKind::Any},         {"markers", ValueKind::Any},       {"duration", ValueKind::Number},
 	    {"fps", ValueKind::Number},         {"playRange", ValueKind::Any},     {"time", ValueKind::Number},
 	    {"timeFormat", ValueKind::Text},    {"snap", ValueKind::Boolean},      {"pixelsPerSecond", ValueKind::Number},
-	    {"offset", ValueKind::Number},      {"selected", ValueKind::Any},      {"headerWidth", ValueKind::Number},
+	    {"offset", ValueKind::Number},      {"selectedKeys", ValueKind::Any},  {"headerWidth", ValueKind::Number},
 	    {"trackHeight", ValueKind::Number}, {"headerColor", ValueKind::Color}, {"clipColor", ValueKind::Color},
 	    {"textColor", ValueKind::Color},    {"accentColor", ValueKind::Color}, {"font", ValueKind::Font}};
 	set->apply = applyTimeline;

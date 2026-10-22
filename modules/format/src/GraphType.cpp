@@ -156,7 +156,7 @@ Vec2 panOf(const json& value, const std::string& at) {
 	        numberWithin(value[1], at + "[1]", -maxCoordinate, maxCoordinate)};
 }
 
-/// @brief Reads "selected": an id, or a list of ids.
+/// @brief Reads "selectedIds": an id, or a list of ids.
 /// @param value The value.
 /// @return The ids (at most as many as the nodes a graph keeps).
 std::vector<std::string> idsOf(const json& value) {
@@ -203,7 +203,8 @@ void applyGraph(Panel& panel, const json& values, const PropertyReader& reader, 
 		if(values.contains("pan")) camera.pan = panOf(values["pan"], path + ".pan");
 		view->setGivenCamera(camera);
 	}
-	if(values.contains("selected")) view->setGivenSelection(idsOf(values["selected"]));
+	// "selectedIds", not "selected": every node's "selected" says whether it is selected itself
+	if(values.contains("selectedIds")) view->setGivenSelection(idsOf(values["selectedIds"]));
 }
 
 /// @brief A link as an event's fields.
@@ -295,7 +296,7 @@ void registerGraphType(TypeRegistry& registry) {
 	    {"kindColors", ValueKind::Any},  {"nodeColor", ValueKind::Color},   {"headerColor", ValueKind::Color},
 	    {"textColor", ValueKind::Color}, {"accentColor", ValueKind::Color}, {"font", ValueKind::Font},
 	    {"minimap", ValueKind::Boolean}, {"zoom", ValueKind::Number},       {"pan", ValueKind::Any},
-	    {"selected", ValueKind::Any}};
+	    {"selectedIds", ValueKind::Any}};
 	set->apply = applyGraph;
 	set->everyUpdate = true; // colours follow the theme; an unchanged model, camera or selection is skipped
 	set->keepsClicks = true;

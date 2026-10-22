@@ -512,7 +512,7 @@ graph of thousands drags as fast as one of ten. The colours are `nodeColor`, `he
 | `nodeColor`, `headerColor` | The nodes' box and header; their text and the selection's colours are `textColor` and `accentColor`. |
 | `minimap` | Whether the minimap shows, at the bottom right (the default): a press or a drag there moves the view. |
 | `zoom`, `pan` | The camera: the zoom (0.1 to 4, the default 1) and where the graph's origin is in the view, `[x, y]`. They are applied when they change, so the user's own zoom (+ and -) and pan (the wheel, or a drag with the right or middle button) stay until then. |
-| `selected` | The selected nodes' ids (applied when it changes); a click, Shift and a click, or a marquee changes the selection and runs `onSelect`. |
+| `selectedIds` | The selected nodes' ids (applied when it changes); a click, Shift and a click, or a marquee changes the selection and runs `onSelect`. |
 <!-- end generated -->
 
 ```json
@@ -548,7 +548,7 @@ time, as it is drawn.
 | `markers` | Times, or `{ time, label }`, marked on the ruler and across the lanes (at most 1,000). |
 | `snap` | Whether drags snap (the default): to frames, and within a few pixels to keyframes, clip edges, markers, the play range and the playhead. Alt held at the press leaves it off for that drag. |
 | `pixelsPerSecond`, `offset` | The camera: window units per second (1 to 10,000, the default 100) and the time at the lanes' left edge, `offset`. They are applied when they change, so the user's own zoom (+ and -) and scroll (the wheel sideways, or a drag with the right or middle button) stay until then. |
-| `selected` | The selected items' keys (applied when it changes): a clip's id, or a track's id, `:` and a keyframe's index (`"pos:2"`). A click, Shift and a click, a marquee, or Page Up and Page Down on the keyboard's track changes it and runs `onSelect`; dragging the selection (or Alt and the arrows) runs `onKeyframeMove` and `onClipChange` for each item. |
+| `selectedKeys` | The selected items' keys (applied when it changes): a clip's id, or a track's id, `:` and a keyframe's index (`"pos:2"`). A click, Shift and a click, a marquee, or Page Up and Page Down on the keyboard's track changes it and runs `onSelect`; dragging the selection (or Alt and the arrows) runs `onKeyframeMove` and `onClipChange` for each item. |
 | `headerWidth`, `trackHeight` | The headers' column (default 160) and a row's height (`trackHeight`, 12 to 400, default 28). |
 | `headerColor`, `clipColor`, `textColor`, `accentColor`, `font` | The ruler and headers, the clips (a clip's own `color` first), the text and the selection. |
 <!-- end generated -->

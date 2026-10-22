@@ -710,7 +710,7 @@ constexpr KeyReference nodeTable[] = {
     {"pan", R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
 		{"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "", "graph"},
-    {"selected", R"json({"description": "graph: the selected node's id, or a list of ids; timeline: the selected items' keys"})json",
+    {"selectedIds", R"json({"description": "graph: the selected node's id, or a list of ids"})json",
 	 "The selected nodes' ids (applied when it changes); a click, Shift and a click, or a marquee changes the "
 	 "selection and runs `onSelect`.",
 	 "graph"},
@@ -760,7 +760,7 @@ constexpr KeyReference nodeTable[] = {
 	 "or a drag with the right or middle button) stay until then.",
 	 "timeline"},
     {"offset", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v1/dynamic"}]})json", "", "timeline"},
-    {"selected", "",
+    {"selectedKeys", R"json({"description": "timeline: the selected items' keys"})json",
 	 "The selected items' keys (applied when it changes): a clip's id, or a track's id, `:` and a keyframe's index "
 	 "(`\"pos:2\"`). A click, Shift and a click, a marquee, or Page Up and Page Down on the keyboard's track changes "
 	 "it and runs `onSelect`; dragging the selection (or Alt and the arrows) runs `onKeyframeMove` and "
