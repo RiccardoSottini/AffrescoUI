@@ -232,6 +232,17 @@ TEST_CASE("features: a chain of features can't grow the exports without bound") 
 	CHECK_FALSE(text.contains("features.double14.provides"));
 }
 
+TEST_CASE("features: a section features merge into is checked only when a feature merges") {
+	json document = app();
+	document["keys"] = json::array({1});
+	CHECK(problems(document).empty()); // the document's check reports it, once
+	document["features"]["wordCount"] = affresco::format::recordFor(package("word-count"), "revision", "", "", 10);
+	document["features"]["wordCount"]["enabled"] = false;
+	CHECK(problems(document).empty());
+	document["features"]["wordCount"]["enabled"] = true;
+	CHECK(problems(document).contains("keys: expected an object, so no feature merges"));
+}
+
 TEST_CASE("features: a malformed feature is a problem, never a crash") {
 	// Composition runs before the document's check: each part it reads must be checked by composition itself.
 	json document = app();

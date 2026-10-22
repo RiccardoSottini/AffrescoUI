@@ -201,7 +201,10 @@ public:
 		keepValidFeatures();
 		exports_ = validSection("exports", checkExportsSection);
 		imports_ = validSection("imports", checkImportsSection);
-		if(!targetsAreObjects()) features_.clear();
+		// Only a feature that merges needs them: otherwise the document's check alone reports a malformed section.
+		const bool merges =
+		    std::ranges::any_of(features_, [](const auto& entry) { return entry.second->value("enabled", false); });
+		if(merges && !targetsAreObjects()) features_.clear();
 		for(const std::string& id : nodeIds(screen_)) ids_.insert(id);
 		if(const auto keys = screen_.find("keys"); keys != screen_.end() && keys->is_object())
 			for(const auto& [key, handler] : keys->items()) keyOwners_.emplace(key, "the app");
