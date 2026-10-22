@@ -17,6 +17,37 @@ namespace affresco::format {
 
 namespace {
 
+/// @brief Tells whether a character can be in a name of a path: a letter or '_', or a digit after the first.
+/// @param c The character.
+/// @param first Whether it is the name's first.
+/// @return true if it can.
+bool isNameChar(char c, bool first) {
+	const bool letter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+	return c == '_' || letter || (!first && c >= '0' && c <= '9');
+}
+
+/// @brief Reads a name in a path, moving past it.
+/// @param path The path.
+/// @param i Where the name starts; then where it ends.
+/// @return The name, or "" if none starts there.
+std::string_view nameAt(std::string_view path, std::size_t& i) {
+	const std::size_t start = i;
+	while(i < path.size() && isNameChar(path[i], i == start)) ++i;
+	return path.substr(start, i - start);
+}
+
+/// @brief Reads an index in a path, "[2]" after its '[', moving past its ']'.
+/// @param path The path.
+/// @param i Where the digits start; then after the ']'.
+/// @return The digits, or "" if there are none or no ']' follows.
+std::string_view indexAt(std::string_view path, std::size_t& i) {
+	const std::size_t start = i;
+	while(i < path.size() && path[i] >= '0' && path[i] <= '9') ++i;
+	const std::string_view digits = path.substr(start, i - start);
+	if(i >= path.size() || path[i++] != ']') return {};
+	return digits;
+}
+
 /// @brief Where a repeat's list lies in the state, when its "in" is a plain path there: "state.columns[2].cards", or
 /// a path from an item that lies in the state ("column.cards").
 /// @param path "in" as a path, "{{...}}".
@@ -25,16 +56,8 @@ namespace {
 std::optional<std::string> placeOf(std::string_view path, const Scope& locals) {
 	path.remove_prefix(2);
 	path.remove_suffix(2);
-	const auto isName = [](char c, bool first) {
-		return c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (!first && c >= '0' && c <= '9');
-	};
-	const auto nameAt = [&](std::size_t& i) {
-		const std::size_t start = i;
-		while(i < path.size() && isName(path[i], i == start)) ++i;
-		return path.substr(start, i - start);
-	};
 	std::size_t i = 0;
-	const std::string_view root = nameAt(i);
+	const std::string_view root = nameAt(path, i);
 	std::string pointer;
 	if(root != "state") {
 		const std::string* origin = root.empty() ? nullptr : locals.originOf(root);
@@ -44,14 +67,8 @@ std::optional<std::string> placeOf(std::string_view path, const Scope& locals) {
 	while(i < path.size()) {
 		const char c = path[i++];
 		std::string_view key;
-		if(c == '.') {
-			key = nameAt(i);
-		} else if(c == '[') {
-			const std::size_t start = i;
-			while(i < path.size() && path[i] >= '0' && path[i] <= '9') ++i;
-			key = path.substr(start, i - start);
-			if(i >= path.size() || path[i++] != ']') return std::nullopt;
-		}
+		if(c == '.') key = nameAt(path, i);
+		else if(c == '[') key = indexAt(path, i);
 		if(key.empty()) return std::nullopt;
 		appendKey(pointer, key);
 	}
@@ -274,8 +291,8 @@ json Builder::listOf(const CompiledRepeat& repeat, const Scope& locals, const st
 	if(const std::optional<std::string_view> name = path ? modelName(*path) : std::nullopt) {
 		const DataModel* model = engine_.models.find(*name);
 		if(!model)
-			fail(at + ".repeat.in", "no data model '" + std::string(*name) + "' (the application registers them; it has " +
-			                            engine_.models.names() + ")");
+			fail(at + ".repeat.in", "no data model '" + std::string(*name) +
+			                            "' (the application registers them; it has " + engine_.models.names() + ")");
 		place = Models::placeOf(*name);
 		if(outer) outer->addPath(*place + "/" + std::string(shapeKey));
 		json rows = json::array();
