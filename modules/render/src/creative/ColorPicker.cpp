@@ -127,6 +127,152 @@ struct Typed {
 	       std::abs(left.b - right.b) < halfStep && std::abs(left.a - right.a) < halfStep;
 }
 
+/// @brief A colour as the picker holds it: its hue, saturation and value, and its alpha.
+struct Shade {
+	color::Hsv hsv;     ///< The hue, saturation and value.
+	double alpha = 1.0; ///< The alpha.
+};
+
+/// @brief An arrow key as a direction.
+struct Arrow {
+	int dx = 0; ///< 1 right, -1 left.
+	int dy = 0; ///< 1 up, -1 down.
+};
+
+/// @brief The direction of an arrow key.
+/// @param key The key.
+/// @return Its direction; none for another key.
+[[nodiscard]] constexpr Arrow arrowOf(Key key) noexcept {
+	switch(key) {
+	case Key::Right:
+		return {1, 0};
+	case Key::Left:
+		return {-1, 0};
+	case Key::Up:
+		return {0, 1};
+	case Key::Down:
+		return {0, -1};
+	default:
+		return {};
+	}
+}
+
+/// @brief Whether a key uses the swatch it is on.
+/// @param key The key.
+/// @return true for Enter and Space.
+[[nodiscard]] constexpr bool usesSwatch(Key key) noexcept {
+	return key == Key::Enter || key == Key::KeypadEnter || key == Key::Space;
+}
+
+/// @brief The swatch an arrow key moves to in a grid of swatches.
+/// @param at The swatch it is on.
+/// @param arrow The direction.
+/// @param perRow Swatches per row.
+/// @param count The swatches.
+/// @return The swatch, or nothing past the grid's ends.
+[[nodiscard]] std::optional<std::size_t> movedSwatch(std::size_t at, Arrow arrow, std::size_t perRow,
+                                                     std::size_t count) noexcept {
+	const long moved = static_cast<long>(at) + arrow.dx - arrow.dy * static_cast<long>(perRow);
+	if(moved < 0 || moved >= static_cast<long>(count)) return std::nullopt;
+	return static_cast<std::size_t>(moved);
+}
+
+/// @brief Moves a colour by an arrow key on a part: the square's axes, the wheel's angle and radius, or a strip.
+/// @param part The part the keyboard is on: Plane, Strip or Alpha.
+/// @param square Whether the picker shows a square (else a wheel).
+/// @param arrow The direction.
+/// @param shift Whether Shift is held (ten times the step).
+/// @param shade The colour.
+/// @return The colour moved; change() keeps it in range.
+[[nodiscard]] Shade nudged(ColorPicker::Part part, bool square, Arrow arrow, bool shift, Shade shade) noexcept {
+	using Part = ColorPicker::Part;
+	const double step = shift ? 0.1 : 0.01, degrees = shift ? 10.0 : 1.0;
+	const int dx = arrow.dx, dy = arrow.dy;
+	color::Hsv& hsv = shade.hsv;
+	if(part == Part::Plane && square) {
+		hsv.saturation += dx * step;
+		hsv.value += dy * step;
+	} else if(part == Part::Plane) {
+		hsv.hue = std::fmod(hsv.hue + dx * degrees + 360.0, 360.0);
+		hsv.saturation += dy * step;
+	} else if(part == Part::Strip && square) {
+		hsv.hue += (dx + dy) * degrees;
+	} else if(part == Part::Strip) {
+		hsv.value += (dx + dy) * step;
+	} else {
+		shade.alpha += (dx + dy) * step;
+	}
+	return shade;
+}
+
+/// @brief Where a point falls across a strip.
+/// @param rect The strip.
+/// @param position The point.
+/// @return 0 at its left edge to 1 at its right, clamped; 0 for an empty strip.
+[[nodiscard]] float across(const Rect& rect, Vec2 position) noexcept {
+	return rect.width() > 0.0f ? std::clamp((position.x - rect.left) / rect.width(), 0.0f, 1.0f) : 0.0f;
+}
+
+/// @brief The colour a point on the square or the wheel picks.
+/// @param plane The square, or the wheel's bounding square.
+/// @param square Whether it is a square.
+/// @param position The point.
+/// @param hsv The colour.
+/// @return The colour picked: saturation and value on the square, hue and saturation on the wheel.
+[[nodiscard]] color::Hsv pickedOnPlane(const Rect& plane, bool square, Vec2 position, color::Hsv hsv) noexcept {
+	if(square) {
+		hsv.saturation = across(plane, position);
+		hsv.value = plane.height() > 0.0f ? 1.0f - std::clamp((position.y - plane.top) / plane.height(), 0.0f, 1.0f)
+		                                  : hsv.value;
+		return hsv;
+	}
+	const float radius = plane.width() / 2.0f;
+	const float dx = position.x - (plane.left + radius), dy = position.y - (plane.top + radius);
+	if(dx != 0.0f || dy != 0.0f) hsv.hue = std::fmod(std::atan2(-dy, dx) * 180.0 / 3.14159265358979 + 360.0, 360.0);
+	hsv.saturation = radius > 0.0f ? std::min(1.0f, std::hypot(dx, dy) / radius) : 0.0f;
+	return hsv;
+}
+
+/// @brief The colour a point on a part picks.
+/// @param part Plane, Strip or Alpha (another part picks nothing).
+/// @param square Whether the picker shows a square (else a wheel).
+/// @param rect The part's box.
+/// @param position The point.
+/// @param shade The colour.
+/// @return The colour picked.
+[[nodiscard]] Shade picked(ColorPicker::Part part, bool square, const Rect& rect, Vec2 position, Shade shade) noexcept {
+	using Part = ColorPicker::Part;
+	if(part == Part::Plane) shade.hsv = pickedOnPlane(rect, square, position, shade.hsv);
+	else if(part == Part::Strip && square) shade.hsv.hue = across(rect, position) * 360.0;
+	else if(part == Part::Strip) shade.hsv.value = across(rect, position);
+	else if(part == Part::Alpha) shade.alpha = across(rect, position);
+	return shade;
+}
+
+/// @brief The box of the part a pointer drags.
+/// @param part Plane, Strip or Alpha.
+/// @param plane The square or the wheel's box.
+/// @param strip The strip's box.
+/// @param alpha The alpha strip's box.
+/// @return The part's box (the alpha strip's for another part).
+[[nodiscard]] const Rect& dragBox(ColorPicker::Part part, const Rect& plane, const Rect& strip,
+                                  const Rect& alpha) noexcept {
+	return part == ColorPicker::Part::Plane ? plane : part == ColorPicker::Part::Strip ? strip : alpha;
+}
+
+/// @brief The last of some boxes that holds a point.
+/// @param count The boxes.
+/// @param point The point.
+/// @param boxOf A box by its index.
+/// @return Its index, or nothing.
+template <typename BoxOf>
+[[nodiscard]] std::optional<std::size_t> lastHolding(std::size_t count, Vec2 point, const BoxOf& boxOf) {
+	std::optional<std::size_t> found;
+	for(std::size_t index = 0; index < count; ++index)
+		if(boxOf(index).contains(point)) found = index;
+	return found;
+}
+
 } // namespace
 
 ColorPicker::ColorPicker()
@@ -317,65 +463,28 @@ bool ColorPicker::stepPart(bool forward) {
 
 void ColorPicker::pick(Part part, Vec2 position) {
 	const Layout area = layout();
-	const auto along = [position](const Rect& rect) {
-		return rect.width() > 0.0f ? std::clamp((position.x - rect.left) / rect.width(), 0.0f, 1.0f) : 0.0f;
-	};
-	color::Hsv hsv = hsv_;
-	double alpha = alpha_;
-	if(part == Part::Plane && mode_ == Mode::Square) {
-		const Rect& plane = area.plane;
-		hsv.saturation = along(plane);
-		hsv.value = plane.height() > 0.0f ? 1.0f - std::clamp((position.y - plane.top) / plane.height(), 0.0f, 1.0f)
-		                                  : hsv.value;
-	} else if(part == Part::Plane) {
-		const float radius = area.plane.width() / 2.0f;
-		const float dx = position.x - (area.plane.left + radius), dy = position.y - (area.plane.top + radius);
-		if(dx != 0.0f || dy != 0.0f) hsv.hue = std::fmod(std::atan2(-dy, dx) * 180.0 / 3.14159265358979 + 360.0, 360.0);
-		hsv.saturation = radius > 0.0f ? std::min(1.0f, std::hypot(dx, dy) / radius) : 0.0f;
-	} else if(part == Part::Strip && mode_ == Mode::Square) {
-		hsv.hue = along(area.strip) * 360.0;
-	} else if(part == Part::Strip) {
-		hsv.value = along(area.strip);
-	} else if(part == Part::Alpha) {
-		alpha = along(area.alpha);
-	}
-	change(hsv, alpha);
+	const Rect& rect = dragBox(part, area.plane, area.strip, area.alpha);
+	const Shade shade = picked(part, mode_ == Mode::Square, rect, position, {hsv_, alpha_});
+	change(shade.hsv, shade.alpha);
 }
 
 bool ColorPicker::arrowKey(const KeyEvent& event) {
-	const int dx = event.key == Key::Right ? 1 : event.key == Key::Left ? -1 : 0;
-	const int dy = event.key == Key::Up ? 1 : event.key == Key::Down ? -1 : 0;
-	if(active_ == Part::Swatches) {
-		if(event.key == Key::Enter || event.key == Key::KeypadEnter || event.key == Key::Space) {
-			changeRgb(detail::toRgb(swatchAt(swatch_)), swatchAt(swatch_).a);
-			rememberValue();
-			return true;
-		}
-		const auto perRow = static_cast<long>(layout().perRow);
-		const long moved = static_cast<long>(swatch_) + dx - dy * perRow;
-		if((dx == 0 && dy == 0) || moved < 0 || moved >= static_cast<long>(swatchCount())) return dx != 0 || dy != 0;
-		swatch_ = static_cast<std::size_t>(moved);
-		invalidatePaint();
+	const Arrow arrow = arrowOf(event.key);
+	if(active_ == Part::Swatches && usesSwatch(event.key)) {
+		changeRgb(detail::toRgb(swatchAt(swatch_)), swatchAt(swatch_).a);
+		rememberValue();
 		return true;
 	}
-	if(dx == 0 && dy == 0) return false;
-	const double step = event.mods.shift() ? 0.1 : 0.01, degrees = event.mods.shift() ? 10.0 : 1.0;
-	color::Hsv hsv = hsv_;
-	double alpha = alpha_;
-	if(active_ == Part::Plane && mode_ == Mode::Square) {
-		hsv.saturation += dx * step;
-		hsv.value += dy * step;
-	} else if(active_ == Part::Plane) {
-		hsv.hue = std::fmod(hsv.hue + dx * degrees + 360.0, 360.0);
-		hsv.saturation += dy * step;
-	} else if(active_ == Part::Strip && mode_ == Mode::Square) {
-		hsv.hue += (dx + dy) * degrees;
-	} else if(active_ == Part::Strip) {
-		hsv.value += (dx + dy) * step;
-	} else {
-		alpha += (dx + dy) * step;
+	if(arrow.dx == 0 && arrow.dy == 0) return false;
+	if(active_ == Part::Swatches) {
+		if(const auto moved = movedSwatch(swatch_, arrow, layout().perRow, swatchCount())) {
+			swatch_ = *moved;
+			invalidatePaint();
+		}
+		return true; // an arrow past the grid's ends stays on the swatch
 	}
-	change(hsv, alpha);
+	const Shade shade = nudged(active_, mode_ == Mode::Square, arrow, event.mods.shift(), {hsv_, alpha_});
+	change(shade.hsv, shade.alpha);
 	return true;
 }
 
@@ -454,20 +563,19 @@ void ColorPicker::mouseButtonEvent(const MouseButtonEvent& event) {
 	commitField();
 	const Layout area = layout();
 	const Vec2 at = event.position;
-	for(std::size_t index = 0; showsFields_ && index < fieldCount; ++index) {
-		if(area.fields[index].contains(at)) active_ = static_cast<Part>(static_cast<std::size_t>(Part::Hex) + index);
-	}
-	for(std::size_t index = 0; index < swatchCount(); ++index) {
-		if(!swatchRect(area, index).contains(at)) continue;
+	const auto fieldBox = [&area](std::size_t index) { return area.fields[index]; };
+	if(const auto field = showsFields_ ? lastHolding(fieldCount, at, fieldBox) : std::nullopt)
+		active_ = static_cast<Part>(static_cast<std::size_t>(Part::Hex) + *field);
+	const auto swatchBox = [this, &area](std::size_t index) { return swatchRect(area, index); };
+	if(const auto swatch = lastHolding(swatchCount(), at, swatchBox)) {
 		active_ = Part::Swatches;
-		swatch_ = index;
-		changeRgb(detail::toRgb(swatchAt(index)), swatchAt(index).a);
+		swatch_ = *swatch;
+		changeRgb(detail::toRgb(swatchAt(*swatch)), swatchAt(*swatch).a);
 		rememberValue();
 	}
 	eyedropping_ = area.preview.contains(at);
 	for(const Part part : {Part::Plane, Part::Strip, Part::Alpha}) {
-		const Rect& rect = part == Part::Plane ? area.plane : part == Part::Strip ? area.strip : area.alpha;
-		if(!hasPart(part) || !rect.contains(at)) continue;
+		if(!hasPart(part) || !dragBox(part, area.plane, area.strip, area.alpha).contains(at)) continue;
 		active_ = dragPart_ = part;
 		dragging_ = true;
 		pick(part, at);
