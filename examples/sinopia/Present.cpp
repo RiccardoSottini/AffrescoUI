@@ -71,7 +71,7 @@ void watchWorkspace(const std::shared_ptr<Session>& session, affresco::Window& w
 	}
 	auto audience = std::make_unique<affresco::Screen>(affresco::Screen::fromFile(
 	    session->folder / "audience.screen.json", session->folder, affresco::Screen::History::InMemory));
-	std::weak_ptr<Session> weak = session;
+	const std::weak_ptr<Session> weak = session;
 	audience->onCall("sinopia.forward", [weak](const std::string& arguments) {
 		const json with = affresco::parseUntrusted(arguments);
 		const std::string action = with.is_object() ? with.value("action", std::string()) : std::string();

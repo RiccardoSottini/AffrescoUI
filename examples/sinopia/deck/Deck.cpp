@@ -327,6 +327,7 @@ std::vector<SlideObject> Reader::objects(const json& value, const std::string& w
 	objectCount_ = 0;
 	std::vector<SlideObject> read;
 	const json& items = list(value, "objects", where, limits_.objects);
+	read.reserve(items.size()); // within limits_.objects, which list() checked
 	for(std::size_t i = 0; i < items.size(); ++i)
 		read.push_back(slideObject(items[i], where + ".objects[" + std::to_string(i) + "]", false));
 	return read;
