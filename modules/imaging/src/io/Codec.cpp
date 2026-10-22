@@ -220,6 +220,8 @@ void embedInJpeg(std::vector<std::uint8_t>& jpeg, std::span<const std::uint8_t> 
 	if(jpeg.size() > 6 && jpeg[2] == 0xff && jpeg[3] == 0xe0)
 		at += 2 + (static_cast<std::size_t>(jpeg[4]) << 8 | jpeg[5]);
 	const std::size_t count = (profile.size() + jpegSegmentData - 1) / jpegSegmentData;
+	// Each segment numbers itself and the count in a byte
+	if(count > 255) throw DocumentError("imaging: the colour profile is too big for a JPEG");
 	std::vector<std::uint8_t> segments;
 	for(std::size_t part = 0; part < count; ++part) {
 		const std::span<const std::uint8_t> data =
