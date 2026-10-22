@@ -72,6 +72,45 @@ void checkCounts(const cgltf_data& data, const GltfLimits& limits) {
 	checkCount(bytes, limits.bufferBytes, "bytes in buffers");
 }
 
+/// @brief Whether `count` items of `size` bytes, after `offset`, end within `end`, without wrapping around.
+/// @param offset The first byte. @param count The items. @param size The bytes of each. @param end The bytes there are.
+/// @return true if so.
+[[nodiscard]] bool fits(std::size_t offset, std::size_t count, std::size_t size, std::size_t end) noexcept {
+	return offset <= end && (size == 0 || count <= (end - offset) / size);
+}
+
+/// @brief Whether an accessor's elements lie within its buffer view. @param accessor It. @return true if so.
+[[nodiscard]] bool viewFits(const cgltf_accessor& accessor) noexcept {
+	const cgltf_buffer_view* view = accessor.buffer_view;
+	if(view == nullptr || accessor.count == 0) return true;
+	if(!fits(accessor.offset, accessor.count - 1, accessor.stride, view->size)) return false;
+	return cgltf_calc_size(accessor.type, accessor.component_type) <=
+	       view->size - accessor.offset - accessor.stride * (accessor.count - 1);
+}
+
+/// @brief Whether a sparse accessor's indices and values lie within their buffer views. @param accessor It.
+/// @return true if so, or if it isn't sparse.
+[[nodiscard]] bool sparseFits(const cgltf_accessor& accessor) noexcept {
+	const cgltf_accessor_sparse& sparse = accessor.sparse;
+	if(!accessor.is_sparse || sparse.indices_buffer_view == nullptr || sparse.values_buffer_view == nullptr)
+		return true;
+	return fits(sparse.indices_byte_offset, sparse.count, cgltf_component_size(sparse.indices_component_type),
+	            sparse.indices_buffer_view->size) &&
+	       fits(sparse.values_byte_offset, sparse.count, cgltf_calc_size(accessor.type, accessor.component_type),
+	            sparse.values_buffer_view->size);
+}
+
+/// @brief Checks that every accessor's data lies within its buffer views.
+///
+/// cgltf_validate does the same sums unchecked, so a huge stride or count wraps them around to a small size that
+/// passes, and the reads then run far past the buffer. A buffer view's own sum can't wrap: cgltf parses its offset and
+/// size as at most 2^63 - 1 each.
+/// @param data The parsed file. @throws GltfError If one doesn't fit.
+void checkRanges(const cgltf_data& data) {
+	for(std::size_t i = 0; i < data.accessors_count; ++i)
+		if(!viewFits(data.accessors[i]) || !sparseFits(data.accessors[i])) throw GltfError("glTF: data too short");
+}
+
 /// @brief A relative file in a directory, refusing one whose real path (after links) leaves it.
 /// @param directory The directory, not empty. @param uri The percent-decoded URI.
 /// @return The path. @throws GltfError If refused.
@@ -286,6 +325,7 @@ GltfImport loadGltf(std::span<const std::uint8_t> bytes, const std::filesystem::
 	checkCounts(*data, limits);
 	for(std::size_t i = 0; i < data->buffers_count; ++i)
 		loadBuffer(options, *data, data->buffers[i], directory, limits);
+	checkRanges(*data);
 	if(const cgltf_result valid = cgltf_validate(data.get()); valid != cgltf_result_success)
 		throw GltfError(std::string("glTF: ") + resultText(valid));
 	GltfImport out;

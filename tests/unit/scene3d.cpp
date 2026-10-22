@@ -239,6 +239,24 @@ TEST_CASE("scene3d: malformed and hostile glTF files are refused") {
 	CHECK_THROWS_AS((void)loadGltfFile(sample("MetalRoughSpheresNoTextures/MetalRoughSpheresNoTextures.glb"), small),
 	                GltfError);
 
+	// Ranges whose sizes wrap around past 2^64 are refused, not read: a stride, and a sparse count
+	const auto withAccessor = [](std::string_view view, std::string_view accessor) {
+		return bytesOf(R"({"asset":{"version":"2.0"},"buffers":[{"uri":"data:application/octet-stream;base64,)"
+		               R"(AAAAAAAAAAAAAAAA","byteLength":12}],"bufferViews":[{"buffer":0,"byteLength":12)" +
+		               std::string(view) + R"(}],"accessors":[{"componentType":5126,"type":"VEC3",)" +
+		               std::string(accessor) +
+		               R"(}],"meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}],"nodes":[{"mesh":0}]})");
+	};
+	CHECK_NOTHROW((void)loadGltf(withAccessor("", R"("bufferView":0,"count":1)"), none));
+	CHECK_THROWS_AS(
+	    (void)loadGltf(withAccessor(R"(,"byteStride":4611686018427387904)", R"("bufferView":0,"count":5)"), none),
+	    GltfError);
+	CHECK_THROWS_AS((void)loadGltf(withAccessor("", R"("count":1,"sparse":{"count":4611686018427387904,)"
+	                                                R"("indices":{"bufferView":0,"componentType":5125},)"
+	                                                R"("values":{"bufferView":0}})"),
+	                               none),
+	                GltfError);
+
 	// An index past the vertices is caught by validation, not read
 	const auto box = loadGltfFile(sample("BoxAnimated/BoxAnimated.glb"));
 	CHECK(box.warnings.empty());
