@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <functional>
+#include <iterator>
 #include <set>
 #include <stdexcept>
 #include <string_view>
@@ -105,17 +106,21 @@ void addObject(Editing& editing) {
 /// @param editing The edit.
 void duplicateObjects(Editing& editing) {
 	std::vector<SlideObject> copies;
+	editing.selection.clear();
 	for(const SlideObject& object : editing.objects()) {
 		if(!std::ranges::contains(editing.ids, object.id)) continue;
 		SlideObject copy = object;
 		copy.x += 20.0f;
 		copy.y += 20.0f;
 		copy.locked = false;
-		copy.id = freeId(editing.objects(), object.kind);
+		std::vector<SlideObject> taken = editing.objects();
+		taken.insert(taken.end(), copies.begin(), copies.end());
+		copy.id = freeId(taken, object.kind);
 		for(SlideObject& child : copy.children) child.id = copy.id + "-" + child.id;
 		editing.selection.push_back(copy.id);
-		editing.objects().push_back(std::move(copy));
+		copies.push_back(std::move(copy));
 	}
+	std::ranges::move(copies, std::back_inserter(editing.objects()));
 }
 
 /// @brief Applies a canvas's onTransform: each item's place, size and rotation.
@@ -133,7 +138,6 @@ void transformObjects(Editing& editing) {
 		found->h = std::max(1.0f, item.value("height", found->h));
 		found->rotate = item.value("rotate", found->rotate);
 	}
-	editing.selection = editing.ids;
 }
 
 /// @brief The keys `set` may change on an object (not its id, kind or children).
@@ -154,7 +158,6 @@ void setObjects(Editing& editing) {
 			if(std::ranges::contains(objectKeys, std::string_view(key))) object[key] = value.is_null() ? json() : value;
 	}
 	editing.deck = readDeck(deck);
-	editing.selection = editing.ids;
 }
 
 /// @brief Adds a slide after the current one, from a layout, and shows it.
@@ -303,6 +306,7 @@ json editDeck(const json& edit, const DeckLimits& limits) {
 	};
 	const bool onSlides = run(slideEdits());
 	if(!onSlides && count == 0) throw std::runtime_error("Sinopia: the deck has no slides");
+	if(!onSlides) editing.selection = editing.ids; // kept unless the edit chooses another
 	if(!onSlides && !run(objectEdits())) throw std::runtime_error("Sinopia: no edit " + op);
 	const Deck result = readDeck(writeDeck(editing.deck), limits); // every limit, and the text's fit
 	return {{"deck", writeDeck(result)}, {"slide", editing.slide}, {"selection", editing.selection}};

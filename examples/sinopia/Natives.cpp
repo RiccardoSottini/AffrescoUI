@@ -132,8 +132,9 @@ void checkImage(const Session& session, const std::string& file) {
 	const std::string title = render.value("title", std::string("Untitled"));
 	std::filesystem::create_directories(session.exportFolder);
 	const std::filesystem::path file = session.exportFolder / (fileName(title) + ".pdf");
+	const std::size_t pages = document.pageCount(); // finishing the document empties it
 	document.save(file, title);
-	return {{"file", file.filename().string()}, {"pages", document.pageCount()}};
+	return {{"file", file.filename().string()}, {"pages", pages}};
 }
 
 /// @brief Exports each shown slide as a PNG, 1920 pixels wide.

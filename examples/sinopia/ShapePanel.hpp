@@ -39,7 +39,7 @@ struct ShapeShadow {
 /// box; its own give the kind and what shapes it. Its meshes are built for its size and kept until either changes.
 class ShapePanel : public affresco::PathView {
 public:
-	/// @brief Applies the type's own properties: "shape", "sides", "inner", "cornerRadius", "gradient", "shadow".
+	/// @brief Applies the type's own properties: "shape", "sides", "inner", "cornerRadius", "gradient", "outlineShadow".
 	/// @param screen Resolves colours.
 	/// @param properties The JSON object of them.
 	/// @throws std::exception For a colour that isn't one.

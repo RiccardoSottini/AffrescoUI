@@ -1,0 +1,124 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Sinopia's inspector: with objects selected, their fill, stroke, text, effects, arrangement and build; with none, the slide's transition, background, skip and builds, and the deck's size. Every change is one sinopia.edit, so it is undone and checked like any other.",
+
+	"components": {
+		"inspectorTitle": {
+			"params": { "text": "", "name": "" },
+			"node": { "type": "label", "id": "{{'inspector-' + name}}", "height": 22, "text": "{{text}}", "textColor": "@muted" }
+		},
+		"swatches": {
+			"params": { "name": "", "key": "fill", "chosen": "", "extra": null },
+			"node": {
+				"type": "row", "id": "{{'swatches-' + name}}", "height": 22, "gap": 4, "color": "transparent",
+				"children": [
+					{
+						"repeat": { "for": "c", "in": "{{['#7c3aed', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#1f2937', '#ffffff', '']}}", "index": "ci" },
+						"id": "{{'swatch-' + name + '-' + ci}}", "width": 22, "height": 22, "radius": 11,
+						"color": "{{c == '' ? '@panel' : c}}", "borderWidth": "{{c == chosen ? 2 : 1}}", "borderColor": "{{c == chosen ? '@accent' : '@line'}}",
+						"tooltip": "{{c == '' ? 'None' : c}}",
+						"onClick": { "run": "edit", "with": { "op": "set", "extra": "{{ {props: merge(parseJson('{' + json(key) + ':' + json(c) + '}'), extra ?? {})} }}" } },
+						"children": [{ "type": "label", "id": "{{'swatch-' + name + '-' + ci + '-none'}}", "fill": 0, "when": "{{c == ''}}", "icon": "ban", "align": "center", "textColor": "@muted" }]
+					}
+				]
+			}
+		},
+		"stepper": {
+			"params": { "name": "", "label": "", "value": 0, "by": 1, "low": 0, "run": "setProp", "key": "" },
+			"node": {
+				"type": "row", "id": "{{'stepper-' + name}}", "height": 24, "gap": 4, "alignItems": "center", "color": "transparent",
+				"children": [
+					{ "type": "label", "id": "{{'stepper-' + name + '-label'}}", "width": 84, "height": 24, "text": "{{label}}", "textColor": "@ink" },
+					{ "type": "label", "id": "{{'stepper-' + name + '-minus'}}", "style": "tool", "icon": "minus", "onClick": { "run": "{{run}}", "with": { "key": "{{key}}", "value": "{{max(low, value - by)}}" } } },
+					{ "type": "label", "id": "{{'stepper-' + name + '-value'}}", "width": 44, "height": 24, "text": "{{text(round(value))}}", "align": "center", "textColor": "@ink" },
+					{ "type": "label", "id": "{{'stepper-' + name + '-plus'}}", "style": "tool", "icon": "plus", "onClick": { "run": "{{run}}", "with": { "key": "{{key}}", "value": "{{value + by}}" } } }
+				]
+			}
+		},
+		"choices": {
+			"params": { "name": "", "options": [], "chosen": "", "run": "", "key": "", "lines": 1 },
+			"node": {
+				"type": "row", "id": "{{'choices-' + name}}", "height": "{{lines * 28}}", "gap": 2, "wrap": true, "color": "transparent",
+				"children": [
+					{
+						"repeat": { "for": "option", "in": "{{options}}" },
+						"type": "label", "id": "{{'choice-' + name + '-' + option}}", "style": "{{option == chosen ? 'toolOn' : 'tool'}}", "text": "{{option}}",
+						"onClick": { "run": "{{run}}", "with": { "key": "{{key}}", "value": "{{option}}" } }
+					}
+				]
+			}
+		},
+		"inspector": {
+			"params": {},
+			"node": {
+				"id": "inspector", "width": 240, "color": "@panel",
+				"children": [
+					{ "type": "column", "id": "inspector-object", "fill": 10, "gap": 6, "scroll": "vertical", "alignItems": "stretch", "when": "{{computed.object != null}}", "color": "transparent",
+					  "let": { "o": "{{computed.object}}" },
+					  "children": [
+						{ "use": "inspectorTitle", "with": { "text": "{{'Fill · ' + o.kind}}", "name": "fill" } },
+						{ "use": "swatches", "with": { "name": "fill", "key": "fill", "chosen": "{{o.fill}}" } },
+						{ "type": "label", "id": "inspector-gradient", "style": "{{o.gradient != null ? 'toolOn' : 'tool'}}", "icon": "blend", "text": "Gradient",
+						  "onClick": { "run": "edit", "with": { "op": "set", "extra": "{{ {props: {gradient: o.gradient != null ? null : {from: o.fill == '' ? '#7c3aed' : o.fill, to: '#ffffff', angle: 90}}} }}" } } },
+						{ "use": "inspectorTitle", "with": { "text": "Stroke", "name": "stroke" } },
+						{ "use": "swatches", "with": { "name": "stroke", "key": "stroke", "chosen": "{{o.stroke}}", "extra": "{{ {strokeWidth: max(o.strokeWidth, 2)} }}" } },
+						{ "use": "stepper", "with": { "name": "strokeWidth", "label": "Width", "value": "{{o.strokeWidth}}", "by": 1, "low": 0, "key": "strokeWidth" } },
+						{ "use": "stepper", "with": { "name": "radius", "label": "Corners", "value": "{{o.radius}}", "by": 4, "low": 0, "key": "radius" } },
+						{ "use": "stepper", "with": { "name": "rotate", "label": "Rotate", "value": "{{o.rotate}}", "by": 15, "low": -360, "key": "rotate" } },
+						{ "type": "label", "id": "inspector-shadow", "style": "{{o.shadow != null ? 'toolOn' : 'tool'}}", "icon": "box", "text": "Shadow",
+						  "onClick": { "run": "edit", "with": { "op": "set", "extra": "{{ {props: {shadow: o.shadow != null ? null : {x: 0, y: 4, blur: 8, color: '#00000040'}}} }}" } } },
+						{ "use": "inspectorTitle", "with": { "text": "Text", "name": "text" } },
+						{ "use": "stepper", "with": { "name": "textSize", "label": "Size", "value": "{{o.textSize}}", "by": 2, "low": 6, "key": "textSize" } },
+						{ "type": "row", "id": "inspector-text-style", "height": 26, "gap": 2, "color": "transparent", "children": [
+							{ "type": "label", "id": "inspector-bold", "style": "{{o.bold ? 'toolOn' : 'tool'}}", "icon": "bold",
+							  "onClick": { "run": "edit", "with": { "op": "set", "extra": "{{ {props: {bold: !o.bold}} }}" } } },
+							{ "type": "label", "id": "inspector-italic", "style": "{{o.italic ? 'toolOn' : 'tool'}}", "icon": "italic",
+							  "onClick": { "run": "edit", "with": { "op": "set", "extra": "{{ {props: {italic: !o.italic}} }}" } } },
+							{ "repeat": { "for": "a", "in": "{{['left', 'center', 'right']}}" },
+							  "type": "label", "id": "{{'inspector-align-' + a}}", "style": "{{o.align == a ? 'toolOn' : 'tool'}}", "icon": "{{'text-align-' + (a == 'center' ? 'center' : a == 'left' ? 'start' : 'end')}}",
+							  "onClick": { "run": "edit", "with": { "op": "set", "extra": "{{ {props: {align: a}} }}" } } }
+						] },
+						{ "type": "textarea", "id": "inspector-text", "height": 28, "when": "{{o.kind != 'image' && o.kind != 'group'}}", "value": "{{o.text}}",
+						  "placeholder": "Text", "onSubmit": { "run": "edit", "with": { "op": "set", "extra": "{{ {props: {text: event.value, runs: []}} }}" } } },
+						{ "use": "inspectorTitle", "with": { "text": "Arrange", "name": "arrange" } },
+						{ "use": "choices", "with": { "lines": 2, "name": "align", "options": ["left", "center", "right", "top", "middle", "bottom"], "run": "arrange", "key": "edge" } },
+						{ "use": "choices", "with": { "lines": 2, "name": "order", "options": ["front", "forward", "backward", "back"], "run": "arrange", "key": "how" } },
+						{ "type": "row", "id": "inspector-arrange", "height": 26, "gap": 2, "wrap": true, "color": "transparent", "children": [
+							{ "type": "label", "id": "inspector-distribute", "style": "tool", "icon": "align-horizontal-space-between", "tooltip": "Distribute across",
+							  "onClick": { "run": "edit", "with": { "op": "distribute", "extra": { "across": true } } } },
+							{ "type": "label", "id": "inspector-distribute-down", "style": "tool", "icon": "align-vertical-space-between", "tooltip": "Distribute down",
+							  "onClick": { "run": "edit", "with": { "op": "distribute", "extra": { "across": false } } } },
+							{ "type": "label", "id": "inspector-group", "style": "tool", "icon": "group", "tooltip": "Group", "onClick": { "run": "edit", "with": { "op": "group", "extra": null } } },
+							{ "type": "label", "id": "inspector-ungroup", "style": "tool", "icon": "ungroup", "tooltip": "Ungroup", "onClick": { "run": "edit", "with": { "op": "ungroup", "extra": null } } },
+							{ "type": "label", "id": "inspector-lock", "style": "{{o.locked ? 'toolOn' : 'tool'}}", "icon": "{{o.locked ? 'lock' : 'lock-open'}}", "tooltip": "Lock",
+							  "onClick": { "run": "edit", "with": { "op": "lock", "extra": "{{ {locked: !o.locked} }}" } } }
+						] },
+						{ "use": "inspectorTitle", "with": { "text": "{{'Build · step ' + text(o.build.order)}}", "name": "build" } },
+						{ "use": "choices", "with": { "name": "build", "options": ["none", "appear", "fade", "fly"], "chosen": "{{o.build.kind}}", "run": "setBuild", "key": "kind" } }
+					] },
+					{ "type": "column", "id": "inspector-slide", "fill": 10, "gap": 6, "scroll": "vertical", "alignItems": "stretch", "when": "{{computed.object == null && computed.slide != null}}", "color": "transparent",
+					  "let": { "s": "{{computed.slide}}" },
+					  "children": [
+						{ "use": "inspectorTitle", "with": { "text": "{{'Slide ' + text(state.current + 1) + ' · transition'}}", "name": "transition" } },
+						{ "use": "choices", "with": { "lines": 2, "name": "transition", "options": ["none", "fade", "push", "wipe", "zoom"], "chosen": "{{s.transition.kind}}", "run": "setTransition", "key": "kind" } },
+						{ "use": "stepper", "with": { "name": "transitionMs", "label": "Duration", "value": "{{s.transition.ms}}", "by": 100, "low": 100, "key": "ms", "run": "setTransition" } },
+						{ "type": "label", "id": "inspector-skip", "style": "{{s.skip ? 'toolOn' : 'tool'}}", "icon": "eye-off", "text": "Skip slide",
+						  "onClick": { "run": "edit", "with": { "op": "setSlide", "extra": "{{ {props: {skip: !s.skip}} }}" } } },
+						{ "type": "label", "id": "inspector-section", "style": "tool", "icon": "list-start", "text": "Start a section",
+						  "onClick": { "run": "edit", "with": { "op": "addSection", "extra": null } } },
+						{ "use": "inspectorTitle", "with": { "text": "Builds", "name": "builds" } },
+						{ "type": "column", "id": "inspector-builds", "height": "{{max(20, len(filter(s.objects, it.build.kind != 'none')) * 22)}}", "gap": 2, "color": "transparent", "children": [
+							{ "repeat": { "for": "b", "in": "{{filter(s.objects, it.build.kind != 'none')}}", "key": "{{b.id}}" },
+							  "type": "label", "id": "{{'inspector-build-' + b.id}}", "height": 20,
+							  "text": "{{text(b.build.order) + '  ' + b.build.kind + '  ' + b.id}}", "textColor": "@ink" }
+						] },
+						{ "use": "inspectorTitle", "with": { "text": "Deck size", "name": "size" } },
+						{ "use": "choices", "with": { "name": "size", "options": ["16:9", "4:3", "a4", "letter"], "chosen": "{{state.deck.size}}", "run": "setSize", "key": "size" } }
+					] }
+				]
+			}
+		}
+	}
+}

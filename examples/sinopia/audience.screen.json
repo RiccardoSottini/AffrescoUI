@@ -1,0 +1,30 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Sinopia's audience window: the presented frame (host image present, drawn by sinopia.mirror) on black, filling the window. Its keys go back to the workspace through sinopia.forward, which runs only nextStep, previousStep, toggleBlack and stopPresenting.",
+
+	"window": { "title": "Sinopia audience", "width": 1280, "height": 720 },
+
+	"fonts": { "default": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 13 } },
+
+	"actions": {
+		"forward": [{ "call": "sinopia.forward", "with": { "action": "{{action}}" } }]
+	},
+
+	"keys": {
+		"right": { "do": "forward", "with": { "action": "nextStep" } },
+		"down": { "do": "forward", "with": { "action": "nextStep" } },
+		"space": { "do": "forward", "with": { "action": "nextStep" } },
+		"left": { "do": "forward", "with": { "action": "previousStep" } },
+		"up": { "do": "forward", "with": { "action": "previousStep" } },
+		"b": { "do": "forward", "with": { "action": "toggleBlack" } },
+		"escape": { "do": "forward", "with": { "action": "stopPresenting" } }
+	},
+
+	"root": {
+		"id": "root", "color": "#000000",
+		"onClick": { "run": "forward", "with": { "action": "nextStep" } },
+		"children": [{ "type": "image", "id": "audience-frame", "fill": 0, "source": "present", "fit": "contain" }]
+	}
+}

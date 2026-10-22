@@ -62,7 +62,7 @@ void ShapePanel::apply(const affresco::Screen& screen, const std::string& proper
 		gradient_ = ShapeGradient{colorAt(screen, *found, "from", ""), colorAt(screen, *found, "to", ""),
 		                          numberAt(*found, "angle", 90.0f)};
 	shadow_.reset();
-	if(const auto found = value.find("shadow"); found != value.end() && found->is_object())
+	if(const auto found = value.find("outlineShadow"); found != value.end() && found->is_object())
 		shadow_ = ShapeShadow{{numberAt(*found, "x", 0.0f), numberAt(*found, "y", 4.0f)},
 		                      std::clamp(numberAt(*found, "blur", 8.0f), 0.0f, 100.0f),
 		                      colorAt(screen, *found, "color", "#00000040")};
@@ -162,7 +162,7 @@ void ShapePanel::paint(affresco::Painter& painter) const {
 void registerShape(affresco::Screen& screen) {
 	screen.registerType(
 	    "sinopiaShape", [] { return std::make_unique<ShapePanel>(); },
-	    {"shape", "sides", "inner", "cornerRadius", "gradient", "shadow"},
+	    {"shape", "sides", "inner", "cornerRadius", "gradient", "outlineShadow"},
 	    [&screen](affresco::Panel& panel, const std::string& properties) {
 		    dynamic_cast<ShapePanel&>(panel).apply(screen, properties); // the factory made it
 	    });
