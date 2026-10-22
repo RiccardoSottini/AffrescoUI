@@ -356,12 +356,12 @@ void TimelineView::mouseButtonEvent(const MouseButtonEvent& event) {
 			if(holds(model_, *item)) {
 				keyRow_ = rowOf_[item->track];
 				pressedItem_ = *item;
-			}
-			if(holds(model_, *item) && isSelected(*item)) {
-				findSnapTargets(true);
-				const std::optional<double> trimmed = grabbedEdge(model_, *item, edge);
-				drag_ = !trimmed ? Drag::Items : edge == TimelineEvent::Edge::Start ? Drag::Start : Drag::End;
-				trimTime_ = trimmed.value_or(trimTime_);
+				if(isSelected(*item)) {
+					findSnapTargets(true);
+					const std::optional<double> trimmed = grabbedEdge(model_, *item, edge);
+					drag_ = !trimmed ? Drag::Items : edge == TimelineEvent::Edge::Start ? Drag::Start : Drag::End;
+					trimTime_ = trimmed.value_or(trimTime_);
+				}
 			}
 		} else if(point.y >= rulerHeight) {
 			drag_ = Drag::Marquee;
