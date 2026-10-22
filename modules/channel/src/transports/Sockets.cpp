@@ -4,7 +4,7 @@
 
 #include "affresco/channel/Sockets.hpp"
 
-#include "Lines.hpp"
+#include "transports/Lines.hpp"
 
 #include <array>
 #include <chrono>

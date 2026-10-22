@@ -4,7 +4,7 @@
 /// shell.
 
 #include "Helpers.hpp"
-#include "Lines.hpp" // modules/channel/src: the line framing every channel shares
+#include "transports/Lines.hpp" // modules/channel/src: the line framing every channel shares
 
 #include <affresco/channel/Channels.hpp>
 #include <affresco/channel/Session.hpp>

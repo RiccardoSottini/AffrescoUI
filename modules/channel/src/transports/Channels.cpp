@@ -12,7 +12,7 @@
 #define NOMINMAX
 #include <windows.h>
 
-#include "Lines.hpp"
+#include "transports/Lines.hpp"
 
 #include <algorithm>
 #include <array>
@@ -246,7 +246,7 @@ void ProcessChannel::Process::end() noexcept {
 
 #else
 
-#include "Lines.hpp"
+#include "transports/Lines.hpp"
 
 #include <array>
 #include <cerrno>
