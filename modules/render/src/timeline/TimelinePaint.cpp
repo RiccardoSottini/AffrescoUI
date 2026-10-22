@@ -60,9 +60,7 @@ struct Scene {
 	/// @brief Whether an item is selected.
 	/// @param item The item.
 	/// @return true if it is.
-	[[nodiscard]] bool selected(const TimelineItem& item) const {
-		return std::binary_search(chosen.begin(), chosen.end(), item);
-	}
+	[[nodiscard]] bool selected(const TimelineItem& item) const { return std::ranges::binary_search(chosen, item); }
 };
 
 /// @brief A row in view.

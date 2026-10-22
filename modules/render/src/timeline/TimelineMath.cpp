@@ -160,15 +160,14 @@ std::optional<double> keyframeValueAt(std::span<const TimelineKeyframe> keyframe
 	if(keyframes.empty()) return std::nullopt;
 	const auto earlier = [](const TimelineKeyframe& a, const TimelineKeyframe& b) { return a.time < b.time; };
 	std::vector<TimelineKeyframe> sorted;
-	if(!std::is_sorted(keyframes.begin(), keyframes.end(), earlier)) {
+	if(!std::ranges::is_sorted(keyframes, earlier)) {
 		sorted.assign(keyframes.begin(), keyframes.end());
-		std::stable_sort(sorted.begin(), sorted.end(), earlier);
+		std::ranges::stable_sort(sorted, earlier);
 		keyframes = sorted;
 	}
 	if(std::isnan(time) || time <= keyframes.front().time) return keyframes.front().value;
 	if(time >= keyframes.back().time) return keyframes.back().value;
-	const auto next = std::upper_bound(keyframes.begin(), keyframes.end(), time,
-	                                   [](double at, const TimelineKeyframe& keyframe) { return at < keyframe.time; });
+	const auto next = std::ranges::upper_bound(keyframes, time, {}, &TimelineKeyframe::time);
 	const TimelineKeyframe& a = *(next - 1);
 	const TimelineKeyframe& b = *next;
 	const double span = b.time - a.time;

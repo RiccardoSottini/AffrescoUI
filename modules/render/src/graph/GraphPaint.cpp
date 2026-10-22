@@ -249,8 +249,7 @@ void GraphView::buildLinks() const {
 		if(!overlaps(linkBounds(start, end, camera_.zoom), seen)) continue; // culled
 
 		const Color color = kindColor(linkKind(model_, *ends));
-		auto mesh =
-		    std::find_if(linkMeshes_.begin(), linkMeshes_.end(), [&](const LinkMesh& m) { return m.color == color; });
+		auto mesh = std::ranges::find_if(linkMeshes_, [&](const LinkMesh& m) { return m.color == color; });
 		if(mesh == linkMeshes_.end()) mesh = linkMeshes_.insert(linkMeshes_.end(), LinkMesh{color, {}});
 		if(mesh->quads.size() / 4 >= meshQuadLimit) continue;
 		appendStroke(linkPath(start, end, camera_.zoom).flatten({}, 0.25f), style, mesh->quads);

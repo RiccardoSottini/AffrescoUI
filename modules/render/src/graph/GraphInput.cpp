@@ -59,7 +59,7 @@ LinkStart linkStart(const GraphModel& model, const std::vector<std::size_t>& byI
 std::vector<std::string> pressedIds(std::vector<std::string> selection, const std::string& id, bool shift,
                                     bool selected) {
 	if(!shift) return selected ? selection : std::vector<std::string>{id};
-	const auto found = std::find(selection.begin(), selection.end(), id);
+	const auto found = std::ranges::find(selection, id);
 	if(found == selection.end()) selection.push_back(id);
 	else selection.erase(found);
 	return selection;
@@ -74,7 +74,7 @@ std::vector<std::string> pressedIds(std::vector<std::string> selection, const st
 std::vector<std::string> marqueeIds(const GraphModel& model, std::vector<std::string> ids, Vec2 a, Vec2 b) {
 	const Rect area{std::min(a.x, b.x), std::min(a.y, b.y), std::max(a.x, b.x), std::max(a.y, b.y)};
 	for(const GraphNode& node : model.nodes)
-		if(overlaps(boxOf(node, node.position), area) && std::find(ids.begin(), ids.end(), node.id) == ids.end())
+		if(overlaps(boxOf(node, node.position), area) && std::ranges::find(ids, node.id) == ids.end())
 			ids.push_back(node.id);
 	return ids;
 }

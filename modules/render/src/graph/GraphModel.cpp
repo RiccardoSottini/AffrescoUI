@@ -94,9 +94,10 @@ std::vector<std::vector<std::size_t>> neighbours(const GraphModel& model, bool r
 
 std::vector<std::size_t> graph::sortedById(const GraphModel& model) {
 	std::vector<std::size_t> order(model.nodes.size());
+	// NOLINTNEXTLINE(modernize-use-ranges): std::ranges::iota is missing from some supported standard libraries
 	std::iota(order.begin(), order.end(), std::size_t{0});
-	std::stable_sort(order.begin(), order.end(),
-	                 [&](std::size_t a, std::size_t b) { return model.nodes[a].id < model.nodes[b].id; });
+	std::ranges::stable_sort(order,
+	                         [&](std::size_t a, std::size_t b) { return model.nodes[a].id < model.nodes[b].id; });
 	return order;
 }
 

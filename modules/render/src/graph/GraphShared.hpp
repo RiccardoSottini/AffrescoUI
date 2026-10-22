@@ -148,9 +148,8 @@ struct KeyPort {
 /// @return Its index, or model.nodes.size() if there is none.
 [[nodiscard]] inline std::size_t findSorted(const GraphModel& model, const std::vector<std::size_t>& order,
                                             std::string_view id) noexcept {
-	const auto at = std::lower_bound(order.begin(), order.end(), id, [&](std::size_t index, std::string_view value) {
-		return model.nodes[index].id < value;
-	});
+	const auto at = std::ranges::lower_bound(
+	    order, id, {}, [&](std::size_t index) { return std::string_view{model.nodes[index].id}; });
 	return at != order.end() && model.nodes[*at].id == id ? *at : model.nodes.size();
 }
 

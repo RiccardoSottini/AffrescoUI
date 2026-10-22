@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -204,8 +205,8 @@ void Window::setHovered(Panel* panel) {
 
 	for(Panel* p : before) // left: innermost first
 		if(std::ranges::find(after, p) == after.end()) p->hoverEvent(false);
-	for(auto it = after.rbegin(); it != after.rend(); ++it) // entered: outermost first
-		if(std::ranges::find(before, *it) == before.end()) (*it)->hoverEvent(true);
+	for(Panel* p : std::views::reverse(after)) // entered: outermost first
+		if(std::ranges::find(before, p) == before.end()) p->hoverEvent(true);
 
 	updateCursor();
 	restartTooltip();

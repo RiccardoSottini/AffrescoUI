@@ -131,8 +131,8 @@ Moves gatherMoves(TimelineModel& model, std::span<const TimelineItem> selected, 
 /// @param model The timeline.
 /// @param hops The clips.
 void hopClips(TimelineModel& model, std::vector<Hop> hops) {
-	std::sort(hops.begin(), hops.end(),
-	          [](const Hop& a, const Hop& b) { return a.track != b.track ? a.track < b.track : a.index > b.index; });
+	std::ranges::sort(
+	    hops, [](const Hop& a, const Hop& b) { return a.track != b.track ? a.track < b.track : a.index > b.index; });
 	std::vector<std::pair<std::size_t, TimelineClip>> moved;
 	for(const Hop& hop : hops) {
 		auto& clips = model.tracks[hop.track].clips;
@@ -170,10 +170,10 @@ std::vector<TimelineItem> pressedSelection(std::span<const TimelineItem> selecte
                                            bool shift) {
 	std::vector<TimelineItem> items(selected.begin(), selected.end());
 	if(!shift) {
-		if(!std::binary_search(selected.begin(), selected.end(), item)) items = {item};
+		if(!std::ranges::binary_search(selected, item)) items = {item};
 		return items;
 	}
-	const auto found = std::find(items.begin(), items.end(), item);
+	const auto found = std::ranges::find(items, item);
 	if(found == items.end()) items.push_back(item);
 	else items.erase(found);
 	return items;
@@ -234,8 +234,8 @@ std::optional<double> grabbedEdge(const TimelineModel& model, const TimelineItem
 } // namespace
 
 void TimelineView::select(std::vector<TimelineItem> items) {
-	std::sort(items.begin(), items.end());
-	items.erase(std::unique(items.begin(), items.end()), items.end());
+	std::ranges::sort(items);
+	items.erase(std::ranges::unique(items).begin(), items.end());
 	std::vector<std::string> keys;
 	keys.reserve(items.size());
 	for(const TimelineItem& item : items) keys.push_back(itemKey(item));

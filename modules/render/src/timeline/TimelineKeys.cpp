@@ -81,12 +81,11 @@ std::optional<TimelineItem> cycledItem(const KeyState& state, bool forward) {
 	for(std::size_t k = 0; k < row.keyframes.size(); ++k) items.push_back({state.track, k, false});
 	for(std::size_t c = 0; c < row.clips.size(); ++c) items.push_back({state.track, c, true});
 	if(items.empty()) return std::nullopt;
-	std::stable_sort(items.begin(), items.end(), [&](const TimelineItem& a, const TimelineItem& b) {
+	std::ranges::stable_sort(items, [&](const TimelineItem& a, const TimelineItem& b) {
 		return timeOf(state.model, a) < timeOf(state.model, b);
 	});
-	const auto current = std::find_if(items.begin(), items.end(), [&](const TimelineItem& item) {
-		return std::binary_search(state.chosen.begin(), state.chosen.end(), item);
-	});
+	const auto current = std::ranges::find_if(
+	    items, [&](const TimelineItem& item) { return std::ranges::binary_search(state.chosen, item); });
 	if(current == items.end()) return forward ? items.front() : items.back();
 	const auto index = static_cast<std::size_t>(current - items.begin());
 	return items[forward ? (index + 1) % items.size() : (index + items.size() - 1) % items.size()];
