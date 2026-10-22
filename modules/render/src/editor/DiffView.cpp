@@ -16,9 +16,9 @@ namespace affresco {
 
 namespace {
 
-constexpr float dividerWidth = 1.0f;        ///< The line between both sides.
+constexpr float dividerWidth = 1.0f;          ///< The line between both sides.
 constexpr std::size_t characterCost = 50'000; ///< Steps one line pair's character diff may spend.
-constexpr std::size_t characterGap = 2;        ///< Kept characters between two changes that are marked with them.
+constexpr std::size_t characterGap = 2;       ///< Kept characters between two changes that are marked with them.
 
 /// @brief A line's code points, as numbers for diffSequences().
 /// @param line The line, UTF-8.
@@ -41,8 +41,8 @@ void background(std::vector<EditorDecoration>& decorations, std::size_t row, std
 			return;
 		}
 	}
-	decorations.push_back({.line = row, .endLine = row + count - 1, .kind = EditorDecoration::Kind::Background,
-	                       .color = color});
+	decorations.push_back(
+	    {.line = row, .endLine = row + count - 1, .kind = EditorDecoration::Kind::Background, .color = color});
 }
 
 } // namespace

@@ -19,8 +19,9 @@ namespace {
 constexpr int daysShown = Calendar::weeksShown * 7; ///< The days drawn: six weeks.
 
 /// @brief The English months, the names until setNames() gives others.
-constexpr std::array<const char*, 12> englishMonths = {"January", "February", "March",     "April",   "May",      "June",
-                                                       "July",    "August",   "September", "October", "November", "December"};
+constexpr std::array<const char*, 12> englishMonths = {"January",   "February", "March",    "April",
+                                                       "May",       "June",     "July",     "August",
+                                                       "September", "October",  "November", "December"};
 
 /// @brief The English days of the week, Sunday first.
 constexpr std::array<const char*, 7> englishDays = {"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
@@ -67,7 +68,9 @@ void Calendar::setRange(std::optional<CivilDate> earliest, std::optional<CivilDa
 	setLook(latest_, latest && isValid(*latest) ? latest : std::nullopt);
 }
 
-void Calendar::setToday(std::optional<CivilDate> today) { setLook(today_, today && isValid(*today) ? today : std::nullopt); }
+void Calendar::setToday(std::optional<CivilDate> today) {
+	setLook(today_, today && isValid(*today) ? today : std::nullopt);
+}
 
 void Calendar::setMarked(std::vector<CivilDate> marked) {
 	std::ranges::sort(marked);
@@ -136,7 +139,8 @@ Calendar::Layout Calendar::layout() const noexcept {
 	const float header = line + 12.0f;
 	const float button = std::min(header, f.width() / 7.0f);
 	out.title = {f.left + button, f.top, f.right - button, f.top + header};
-	const Rect left{f.left, f.top, f.left + button, f.top + header}, right{f.right - button, f.top, f.right, f.top + header};
+	const Rect left{f.left, f.top, f.left + button, f.top + header},
+	    right{f.right - button, f.top, f.right, f.top + header};
 	out.previous = rightToLeft() ? right : left;
 	out.next = rightToLeft() ? left : right;
 	out.dayNames = {f.left, out.title.bottom, f.right, out.title.bottom + line + 6.0f};
@@ -156,15 +160,32 @@ bool Calendar::moveKey(const KeyEvent& event) {
 	const int forward = rightToLeft() ? -1 : 1;
 	const bool shift = event.mods.shift();
 	switch(event.key) {
-	case Key::Left: setFocusedDay(addDays(focused_, -forward)); return true;
-	case Key::Right: setFocusedDay(addDays(focused_, forward)); return true;
-	case Key::Up: setFocusedDay(addDays(focused_, -7)); return true;
-	case Key::Down: setFocusedDay(addDays(focused_, 7)); return true;
-	case Key::PageUp: setFocusedDay(addMonths(focused_, shift ? -12 : -1)); return true;
-	case Key::PageDown: setFocusedDay(addMonths(focused_, shift ? 12 : 1)); return true;
-	case Key::Home: setFocusedDay(startOfWeek(focused_, firstDayOfWeek_)); return true;
-	case Key::End: setFocusedDay(addDays(startOfWeek(focused_, firstDayOfWeek_), 6)); return true;
-	default: return false;
+	case Key::Left:
+		setFocusedDay(addDays(focused_, -forward));
+		return true;
+	case Key::Right:
+		setFocusedDay(addDays(focused_, forward));
+		return true;
+	case Key::Up:
+		setFocusedDay(addDays(focused_, -7));
+		return true;
+	case Key::Down:
+		setFocusedDay(addDays(focused_, 7));
+		return true;
+	case Key::PageUp:
+		setFocusedDay(addMonths(focused_, shift ? -12 : -1));
+		return true;
+	case Key::PageDown:
+		setFocusedDay(addMonths(focused_, shift ? 12 : 1));
+		return true;
+	case Key::Home:
+		setFocusedDay(startOfWeek(focused_, firstDayOfWeek_));
+		return true;
+	case Key::End:
+		setFocusedDay(addDays(startOfWeek(focused_, firstDayOfWeek_), 6));
+		return true;
+	default:
+		return false;
 	}
 }
 
@@ -200,7 +221,8 @@ void Calendar::paint(Painter& painter) const {
 void Calendar::paintHeader(Painter& painter, const Layout& area) const {
 	const Font* text = font();
 	if(!text) return;
-	const std::u32string title = months_[static_cast<std::size_t>(focused_.month - 1)] + U" " + numberText(focused_.year);
+	const std::u32string title =
+	    months_[static_cast<std::size_t>(focused_.month - 1)] + U" " + numberText(focused_.year);
 	centred(painter, *text, title, area.title, text_);
 	const bool canGoBack = !earliest_ || addMonths(shownMonth(), -1) >= CivilDate{earliest_->year, earliest_->month, 1};
 	const bool canGoOn = !latest_ || addMonths(shownMonth(), 1) <= *latest_;
@@ -218,8 +240,8 @@ void Calendar::paintDay(Painter& painter, const Layout& area, int index) const {
 	const CivilDate day = addDays(firstShown(), index);
 	const Rect cell = dayRect(area, index);
 	const float side = std::max(0.0f, std::min(cell.width(), cell.height()) - 4.0f);
-	const Rect disc{std::round(cell.left + (cell.width() - side) / 2.0f), std::round(cell.top + (cell.height() - side) / 2.0f),
-	                0.0f, 0.0f};
+	const Rect disc{std::round(cell.left + (cell.width() - side) / 2.0f),
+	                std::round(cell.top + (cell.height() - side) / 2.0f), 0.0f, 0.0f};
 	const Rect spot{disc.left, disc.top, disc.left + side, disc.top + side};
 	const CornerRadii round = CornerRadii::all(side / 2.0f);
 	const bool picked = value_ == day, enabled = isEnabled(day), inMonth = day.month == focused_.month;

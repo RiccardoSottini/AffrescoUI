@@ -36,13 +36,18 @@ bool TextArea::accepts(char32_t codepoint) const noexcept {
 	const bool digit = codepoint >= U'0' && codepoint <= U'9';
 	// Letters: ASCII ones, and any character past Latin-1's symbols that isn't a digit or punctuation we know
 	const bool asciiLetter = (codepoint >= U'a' && codepoint <= U'z') || (codepoint >= U'A' && codepoint <= U'Z');
-	const bool letter = asciiLetter || (codepoint >= 0xC0 && codepoint != 0xD7 && codepoint != 0xF7 &&
-	                                    !(codepoint >= 0x2000 && codepoint <= 0x2BFF) && !(codepoint >= 0x3000 && codepoint <= 0x303F));
+	const bool letter =
+	    asciiLetter || (codepoint >= 0xC0 && codepoint != 0xD7 && codepoint != 0xF7 &&
+		                !(codepoint >= 0x2000 && codepoint <= 0x2BFF) && !(codepoint >= 0x3000 && codepoint <= 0x303F));
 	switch(accept_) {
-	case Accept::Any: return true;
-	case Accept::Digits: return digit;
-	case Accept::Letters: return letter;
-	case Accept::Alphanumeric: return digit || letter;
+	case Accept::Any:
+		return true;
+	case Accept::Digits:
+		return digit;
+	case Accept::Letters:
+		return letter;
+	case Accept::Alphanumeric:
+		return digit || letter;
 	}
 	return true;
 }
@@ -59,9 +64,7 @@ bool TextArea::insert(std::u32string_view added) {
 	return changed;
 }
 
-std::u32string TextArea::shownText() const {
-	return secret_ ? std::u32string(text_.size(), U'\u2022') : text_;
-}
+std::u32string TextArea::shownText() const { return secret_ ? std::u32string(text_.size(), U'\u2022') : text_; }
 
 void TextArea::keyEvent(const KeyEvent& event) {
 	if(event.key == Key::Backspace && event.action != Action::Release && !text_.empty()) {
@@ -115,8 +118,7 @@ void TextArea::paint(Painter& painter) const {
 	}
 
 	if(hasFocus()) {
-		const float caretX =
-		    std::round(std::min(content.left + f->measure(shownText()) + 1.0f, content.right - 2.0f));
+		const float caretX = std::round(std::min(content.left + f->measure(shownText()) + 1.0f, content.right - 2.0f));
 		painter.fillRect({caretX, baseline - f->ascent(), caretX + 2.0f, baseline - f->ascent() + f->lineHeight()},
 		                 textColor());
 	}
