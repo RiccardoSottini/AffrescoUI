@@ -47,7 +47,7 @@ std::optional<std::string> refusal(const JudgedChange& change, const std::vector
 		return "permission denied: '" + change.author + "' may not change " +
 		       (rule->pattern.empty() ? std::string("this screen") : rule->pattern) + " (rule \"" + rule->text + "\")";
 	if(const auto denied =
-	       detail::dataDenial(change.rules, policy, change.before, change.after, change.author, change.roles))
+	       detail::dataDenial(change.rules, policy, change.before, change.after, {change.author, change.roles}))
 		return "permission denied: " + *denied;
 	return std::nullopt;
 }
@@ -94,7 +94,7 @@ void Repository::checkReadable(const json& patch, const std::string& author) con
 	const detail::Policy policy = detail::policyOf(mainDocument());
 	if(!detail::readLimited(policy, author, roles_)) return;
 	const json view = detail::view(mainDocument(), committedState());
-	if(const auto unreadable = detail::unreadablePath(rules_, policy, view, patch, author, roles_))
+	if(const auto unreadable = detail::unreadablePath(rules_, policy, view, patch, {author, roles_}))
 		throw DocumentError("AffrescoUI screen: revision: permission denied: " + *unreadable);
 }
 

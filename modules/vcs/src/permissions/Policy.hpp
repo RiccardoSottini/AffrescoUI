@@ -42,6 +42,12 @@ struct Policy {
 	std::vector<DataRule> data;        ///< In the order written.
 };
 
+/// @brief Who a data rule is judged for: an author, and the roles that may cover it.
+struct Actor {
+	std::string_view author; ///< The author.
+	const Roles& roles;      ///< Who plays which role.
+};
+
 /// @brief How many nodes a change adds, removes and changes, counted by id.
 struct NodeCounts {
 	std::size_t added = 0;   ///< Ids only after.
@@ -81,12 +87,10 @@ struct PolicyVerdict {
 /// @param policy The policy.
 /// @param before The view before.
 /// @param after The view after.
-/// @param author The author.
-/// @param roles Who plays which role.
+/// @param actor Who makes it.
 /// @return Why it is denied, or std::nullopt.
 [[nodiscard]] std::optional<std::string> dataDenial(const DocumentRules& rules, const Policy& policy,
-                                                    const json& before, const json& after, std::string_view author,
-                                                    const Roles& roles);
+                                                    const json& before, const json& after, const Actor& actor);
 
 /// @brief Tells whether an author's reads are limited: a data rule covering it has "read" or "never" paths.
 /// @param policy The policy.
@@ -109,11 +113,9 @@ struct PolicyVerdict {
 /// @param policy The policy.
 /// @param view The view the patch applies to.
 /// @param patch The operations.
-/// @param author The author.
-/// @param roles Who plays which role.
+/// @param actor Who sends it.
 /// @return Why it is denied, or std::nullopt.
 [[nodiscard]] std::optional<std::string> unreadablePath(const DocumentRules& rules, const Policy& policy,
-                                                        const json& view, const json& patch, std::string_view author,
-                                                        const Roles& roles);
+                                                        const json& view, const json& patch, const Actor& actor);
 
 } // namespace affresco::vcs::detail

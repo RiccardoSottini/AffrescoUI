@@ -115,7 +115,7 @@ TEST_CASE("policy: budgets and data rules decide allow, ask or deny") {
 	json after = before;
 	after["state"]["secret"] = "t";
 	const auto denied = affresco::vcs::detail::dataDenial(rules, affresco::vcs::detail::policyOf(budgetScreen()),
-	                                                      before, after, "agent", repository.roles());
+	                                                      before, after, {"agent", repository.roles()});
 	REQUIRE(denied);
 	CHECK(denied->find("may never touch /state/secret") != std::string::npos);
 	// judge() changes nothing

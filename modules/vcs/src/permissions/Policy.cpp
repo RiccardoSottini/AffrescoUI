@@ -117,28 +117,41 @@ struct Filter {
 	const std::vector<Segments>& drop; ///< Never these.
 };
 
-/// @brief Filters a value at a path.
-/// @param value The value.
-/// @param path Its path, extended while descending.
+/// @brief How a filter covers a path.
+struct Cover {
+	bool whole = false;     ///< Kept whole: a kept path holds it, or nothing limits what is kept.
+	bool partial = false;   ///< Kept in part: it holds a kept path.
+	bool dropBelow = false; ///< It holds a dropped path.
+};
+
+/// @brief How a filter covers a path.
+/// @param path The path.
 /// @param filter What to keep and drop.
-/// @return What is readable of it, or std::nullopt if none is.
-std::optional<json> filtered(const json& value, Segments& path, const Filter& filter) {
-	bool dropBelow = false, whole = filter.keep == nullptr, partial = false;
+/// @return How, or std::nullopt if a dropped path holds it.
+std::optional<Cover> coverOf(const Segments& path, const Filter& filter) {
+	Cover cover{.whole = filter.keep == nullptr};
 	for(const Segments& drop : filter.drop) {
 		const Fit f = fit(drop, path);
 		if(f == Fit::Inside) return std::nullopt;
-		dropBelow = dropBelow || f == Fit::Ancestor;
+		cover.dropBelow = cover.dropBelow || f == Fit::Ancestor;
 	}
 	if(filter.keep)
 		for(const Segments& keep : *filter.keep) {
 			const Fit f = fit(keep, path);
-			whole = whole || f == Fit::Inside;
-			partial = partial || f == Fit::Ancestor;
+			cover.whole = cover.whole || f == Fit::Inside;
+			cover.partial = cover.partial || f == Fit::Ancestor;
 		}
-	if(!whole && !partial) return std::nullopt;
-	if(whole && !dropBelow) return value;
-	if(!value.is_structured()) return whole ? std::optional<json>(value) : std::nullopt;
+	return cover;
+}
 
+std::optional<json> filtered(const json& value, Segments& path, const Filter& filter);
+
+/// @brief Filters what an array or an object holds.
+/// @param value The array or the object.
+/// @param path Its path, extended while descending.
+/// @param filter What to keep and drop.
+/// @return What is readable of it: array elements read as null, so positions stay; unreadable keys are left out.
+json filteredItems(const json& value, Segments& path, const Filter& filter) {
 	json result = value.is_array() ? json::array() : json::object();
 	if(value.is_array()) {
 		for(std::size_t i = 0; i < value.size(); ++i) {
@@ -154,6 +167,67 @@ std::optional<json> filtered(const json& value, Segments& path, const Filter& fi
 		path.pop_back();
 	}
 	return result;
+}
+
+/// @brief Filters a value at a path.
+/// @param value The value.
+/// @param path Its path, extended while descending.
+/// @param filter What to keep and drop.
+/// @return What is readable of it, or std::nullopt if none is.
+std::optional<json> filtered(const json& value, Segments& path, const Filter& filter) {
+	const std::optional<Cover> cover = coverOf(path, filter);
+	if(!cover || (!cover->whole && !cover->partial)) return std::nullopt;
+	if(cover->whole && !cover->dropBelow) return value;
+	if(!value.is_structured()) return cover->whole ? std::optional<json>(value) : std::nullopt;
+	return filteredItems(value, path, filter);
+}
+
+/// @brief Tells whether an author's "read" paths limit a top-level section.
+/// @param applied The author's data rules.
+/// @param section The section, escaped.
+/// @return true if only its "read" paths of it are readable.
+bool readLimitedIn(const Applied& applied, const std::string& section) {
+	return applied.hasRead && std::ranges::find(applied.scope, section) != applied.scope.end();
+}
+
+/// @brief What an author may read, ready to check paths against.
+struct ReadLimits {
+	const Applied& applied;     ///< The author's data rules.
+	std::vector<Segments> keep; ///< Its "read" paths, split.
+	std::vector<Segments> drop; ///< Its "never" paths, split, in the order of applied.never.
+};
+
+/// @brief The path an operation names, as it is in a view: a node's ("#id/rest") is where the node is now.
+/// @param rules Finds "#id" nodes.
+/// @param view The view.
+/// @param operation The operation.
+/// @param key "path" or "from".
+/// @return The JSON Pointer, or std::nullopt if it names none or names a node that isn't there (applying it fails,
+/// saying nothing about readable parts).
+std::optional<std::string> namedPath(const DocumentRules& rules, const json& view, const json& operation,
+                                     const char* key) {
+	if(!operation.is_object() || !operation.contains(key) || !operation[key].is_string()) return std::nullopt;
+	std::string path = operation[key].get<std::string>();
+	if(!path.starts_with('#')) return path;
+	const std::size_t slash = path.find('/');
+	const auto node = rules.findNode(view, path.substr(1, slash == std::string::npos ? slash : slash - 1));
+	if(!node) return std::nullopt;
+	return *node + (slash == std::string::npos ? "" : path.substr(slash));
+}
+
+/// @brief What of a path an author may not read.
+/// @param limits What it may read.
+/// @param path The path.
+/// @return The path itself, the "never" pattern that covers it, or "the whole screen"; std::nullopt if it may.
+std::optional<std::string> unreadable(const ReadLimits& limits, const std::string& path) {
+	const Segments segments = segmentsOf(path);
+	if(segments.empty()) return "the whole screen";
+	for(std::size_t i = 0; i < limits.drop.size(); ++i)
+		if(fit(limits.drop[i], segments) != Fit::None) return limits.applied.never[i];
+	if(readLimitedIn(limits.applied, segments[0]) &&
+	   std::ranges::none_of(limits.keep, [&](const Segments& k) { return fit(k, segments) == Fit::Inside; }))
+		return path;
+	return std::nullopt;
 }
 
 /// @brief Collects the nodes under one: by id, or by place for a node with no id (or the id of one seen before), so
@@ -225,22 +299,32 @@ std::vector<std::string> stringsOf(const json& value) {
 	return strings;
 }
 
+/// @brief A budget's limit.
+/// @param item The budget, an object.
+/// @param key "added", "removed" or "changed".
+/// @return The limit, or -1 for none.
+long long limitOf(const json& item, const char* key) {
+	return item.contains(key) && item[key].is_number_integer() ? item[key].get<long long>() : -1;
+}
+
+/// @brief Tells whether a budget or a data rule names its author, so it can apply to someone.
+/// @param item The budget or the rule.
+/// @return true if it is an object with an "author" string.
+bool namesAuthor(const json& item) { return item.is_object() && item.contains("author") && item["author"].is_string(); }
+
 } // namespace
 
 Policy policyOf(const json& document) {
 	Policy policy;
 	const json* permissions = locate(document, "/permissions");
 	if(!permissions || !permissions->is_object()) return policy;
-	const auto limit = [](const json& item, const char* key) {
-		return item.contains(key) && item[key].is_number_integer() ? item[key].get<long long>() : -1;
-	};
 	for(const json& item : permissions->value("budgets", json::array())) {
-		if(!item.is_object() || !item.contains("author") || !item["author"].is_string()) continue;
-		policy.budgets.push_back({item["author"].get<std::string>(), limit(item, "added"), limit(item, "removed"),
-		                          limit(item, "changed"), item.value("over", json("deny")) != "ask"});
+		if(!namesAuthor(item)) continue;
+		policy.budgets.push_back({item["author"].get<std::string>(), limitOf(item, "added"), limitOf(item, "removed"),
+		                          limitOf(item, "changed"), item.value("over", json("deny")) != "ask"});
 	}
 	for(const json& item : permissions->value("data", json::array())) {
-		if(!item.is_object() || !item.contains("author") || !item["author"].is_string()) continue;
+		if(!namesAuthor(item)) continue;
 		policy.data.push_back({item["author"].get<std::string>(), stringsOf(item.value("read", json())),
 		                       stringsOf(item.value("write", json())), stringsOf(item.value("never", json()))});
 	}
@@ -278,9 +362,10 @@ std::optional<PolicyVerdict> overBudget(const Policy& policy, const json& before
 }
 
 std::optional<std::string> dataDenial(const DocumentRules& rules, const Policy& policy, const json& before,
-                                      const json& after, std::string_view author, const Roles& roles) {
+                                      const json& after, const Actor& actor) {
 	if(policy.data.empty()) return std::nullopt;
-	const Applied applied = appliedTo(policy, author, roles);
+	const std::string_view author = actor.author;
+	const Applied applied = appliedTo(policy, author, actor.roles);
 	for(const std::string& pattern : applied.never)
 		if(changes(rules, before, after, pattern))
 			return "data rule: '" + std::string(author) + "' may never touch " + pattern;
@@ -306,7 +391,7 @@ json readableView(const Policy& policy, const json& view, std::string_view autho
 	json result = json::object();
 	for(const auto& [key, value] : view.items()) {
 		Segments path{escape(key)};
-		const bool limited = applied.hasRead && std::ranges::find(applied.scope, path[0]) != applied.scope.end();
+		const bool limited = readLimitedIn(applied, path[0]);
 		if(std::optional<json> kept = filtered(value, path, {limited ? &keep : nullptr, drop}))
 			result[key] = std::move(*kept);
 	}
@@ -314,32 +399,17 @@ json readableView(const Policy& policy, const json& view, std::string_view autho
 }
 
 std::optional<std::string> unreadablePath(const DocumentRules& rules, const Policy& policy, const json& view,
-                                          const json& patch, std::string_view author, const Roles& roles) {
-	if(!patch.is_array() || !readLimited(policy, author, roles)) return std::nullopt;
-	const Applied applied = appliedTo(policy, author, roles);
-	const std::vector<Segments> keep = segmentsOf(applied.read), drop = segmentsOf(applied.never);
-	const std::string who = "data rule: '" + std::string(author) + "' may not read ";
-	for(const json& operation : patch) {
+                                          const json& patch, const Actor& actor) {
+	if(!patch.is_array() || !readLimited(policy, actor.author, actor.roles)) return std::nullopt;
+	const Applied applied = appliedTo(policy, actor.author, actor.roles);
+	const ReadLimits limits{applied, segmentsOf(applied.read), segmentsOf(applied.never)};
+	for(const json& operation : patch)
 		for(const char* key : {"path", "from"}) {
-			if(!operation.is_object() || !operation.contains(key) || !operation[key].is_string()) continue;
-			std::string path = operation[key].get<std::string>();
-			if(path.starts_with('#')) { // a node: where it is now
-				const std::size_t slash = path.find('/');
-				const auto node = rules.findNode(view, path.substr(1, slash == std::string::npos ? slash : slash - 1));
-				if(!node) continue; // applying it fails, saying nothing about readable parts
-				path = *node + (slash == std::string::npos ? "" : path.substr(slash));
-			}
-			const Segments segments = segmentsOf(path);
-			if(segments.empty()) return who + "the whole screen";
-			for(std::size_t i = 0; i < drop.size(); ++i)
-				if(fit(drop[i], segments) != Fit::None) return who + applied.never[i];
-			const bool limited =
-			    applied.hasRead && std::ranges::find(applied.scope, segments[0]) != applied.scope.end();
-			if(limited &&
-			   std::ranges::none_of(keep, [&](const Segments& k) { return fit(k, segments) == Fit::Inside; }))
-				return who + path;
+			const std::optional<std::string> path = namedPath(rules, view, operation, key);
+			if(!path) continue;
+			if(const auto why = unreadable(limits, *path))
+				return "data rule: '" + std::string(actor.author) + "' may not read " + *why;
 		}
-	}
 	return std::nullopt;
 }
 
