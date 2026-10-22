@@ -4,12 +4,15 @@
 /// reduced motion making transitions and animations instant.
 
 #include "Headless.hpp"
+#include "platform/AccessKitText.hpp"
 
 #include <affresco/affresco.hpp>
 
 #include <doctest/doctest.h>
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 using affresco::json;
 using affresco::detail::createHeadlessWindow;
@@ -38,9 +41,9 @@ constexpr const char* formScreen = R"json({
 
 /// @brief A screen built in a headless window.
 struct Built {
-	ManualClock clock;                          ///< The window's time.
-	std::unique_ptr<affresco::Window> window;   ///< The window.
-	affresco::Screen screen;                    ///< The screen.
+	ManualClock clock;                        ///< The window's time.
+	std::unique_ptr<affresco::Window> window; ///< The window.
+	affresco::Screen screen;                  ///< The screen.
 
 	/// @brief Builds a screen.
 	/// @param text The screen.
@@ -131,4 +134,21 @@ TEST_CASE("accessibility: window.reducedMotion makes animations instant") {
 	CHECK(text() == "reduced");
 	built.screen.runAction("go", built.window->root());
 	CHECK(json::parse(built.screen.stateJson())["x"] == 100);
+}
+
+TEST_CASE("accessibility: AccessKit gets valid UTF-8 without a NUL, and a run's lengths add up to its value") {
+	using affresco::platform::accessKitText;
+	using affresco::platform::characterLengths;
+	const std::string replacement = "\xEF\xBF\xBD"; // U+FFFD
+	CHECK(accessKitText(std::string("a\0b", 3)) == "a" + replacement + "b");
+	CHECK(accessKitText("caf\xC3\xA9") == "caf\xC3\xA9");
+	CHECK(accessKitText(std::string("\xFF\x80") + "x\xE2\x82") == replacement + replacement + "x" + replacement);
+
+	// A stray continuation byte, then one, two, four bytes, and a cut-off sequence
+	const std::string value = accessKitText(std::string("\x80") + "a\xC3\xA9\xF0\x9F\x98\x80\xE2");
+	const std::vector<std::uint8_t> lengths = characterLengths(value);
+	CHECK(lengths == std::vector<std::uint8_t>{3, 1, 2, 4, 3});
+	std::size_t total = 0;
+	for(const std::uint8_t length : lengths) total += length;
+	CHECK(total == value.size());
 }

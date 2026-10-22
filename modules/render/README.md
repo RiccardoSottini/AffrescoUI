@@ -232,10 +232,10 @@ captures `this` in one must cancel its timers in its destructor.
 ```
 include/affresco/render/   the public headers above
 src/
-  Application.cpp          the platform, the windows, the event loop, posted tasks
-  Window.cpp               input routing, focus, the focus ring, hover, capture, tooltips, timers, deferred tasks,
-                           frames
-  Accessibility.cpp        roles, accessible names, the tree, values, states, actions, finding by role or id
+  window/Application.cpp   the platform, the windows, the event loop, posted tasks
+  window/Window.cpp        focus, the focus ring, the clipboard, timers, deferred tasks, frames
+  window/WindowInput.cpp   input routing (each event checked first), hover, capture, tooltips, the cursor
+  window/Accessibility.cpp roles, accessible names, the tree, values, states, actions, finding by role or id
   Headless.hpp / .cpp      a headless window and a manual clock, for tests (internal)
   Renderer.hpp             detail::Renderer, what a window draws with
   platform/                Platform.hpp (the internal interface), GlfwPlatform.cpp (every GLFW call), Desktop.hpp
@@ -243,44 +243,71 @@ src/
                            FileDialogs.cpp (the OS's file dialogs, through nativefiledialog-extended),
                            Accessibility.hpp (the adapter a window owns) with AccessKitTree (the tree as AccessKit
                            updates, only the changed elements) and AccessibilityMac.mm, AccessibilityWindows.cpp,
-                           AccessibilityLinux.cpp, AccessibilityNone.cpp (AFFRESCOUI_ACCESSIBILITY=OFF)
-  Panel.cpp                the tree, layout, scrolling, overlays, painting the panel's own shape
-  Stack.cpp                rows, columns and grids: measured, laid out by layout/, turned into anchors
+                           AccessibilityLinux.cpp, AccessibilityNone.cpp (AFFRESCOUI_ACCESSIBILITY=OFF),
+                           AccessKitText.hpp (text made safe for AccessKit: valid UTF-8, no NUL),
+                           EmbeddedPlatformGl.cpp (the OpenGL state an embedding saves and restores)
+  panel/Panel.cpp          the tree, scrolling, overlays, painting the panel's own shape
+  panel/PanelLayout.cpp    measuring, anchors, a layout pass's frames and clips; PanelEdges.hpp the edge arithmetic
+  panel/Stack.cpp          rows, columns and grids: measured, laid out by layout/, turned into anchors
   layout/                  Flex (lines, grow and shrink within bounds, justification, alignment) and Grid
                            (placement in cells, track sizing): pure functions
-  Label.cpp, TextArea.cpp  text (and its icon, runs, links and selection) and a single-line input
+  widgets/Label.cpp, TextArea.cpp
+                           text (and its icon, runs, links and selection) and a single-line input
   RichText.cpp             TextLayout: runs into lines, hit testing, carets
   Bitmap.cpp               decoding PNG and JPEG (stb_image compiled here), within limits; SVG goes to vector/
   ImageCache.cpp           the worker, the deliveries, the allowed folders, the bound
-  ImageView.cpp            showing an image, fitted
-  PathView.cpp             showing a vector path, fitted
-  CanvasView.cpp           the canvas: content, culling, children placed, painting (items, levels of detail, the
+  widgets/ImageView.cpp    showing an image, fitted
+  widgets/PathView.cpp     showing a vector path, fitted
+  canvas/CanvasView.cpp    the canvas: content, culling, children placed, painting (items, levels of detail, the
                            selection, guides); CanvasViewInput.cpp its pointer, wheel and keys;
                            SpatialIndex.cpp (a uniform grid, stored flat, rebuilt only when the items change),
-                           Snapping.cpp (the nearest edge or centre within a reach), Rulers.cpp (steps and ticks)
+                           Snapping.cpp (the nearest edge or centre within a reach), canvas/Rulers.cpp (steps and ticks),
+                           canvas/CanvasViewInternals.hpp (what both sources share)
+  graph/                   GraphView.cpp (layout, culling, hit tests, events), GraphModel.cpp (the link rules,
+                           cycles, the camera), GraphInput.cpp (pointer, wheel, keys), GraphPaint.cpp (the drawing),
+                           GraphShared.hpp (what they share)
+  timeline/                TimelineView.cpp (rows, hit tests, snapping's targets, accessibility), TimelineMath.cpp
+                           (time mapping, ruler steps, formats, easing), TimelineInput.cpp (pointer, wheel, editing),
+                           TimelineKeys.cpp, TimelinePaint.cpp (the drawing), TimelineShared.hpp (what they share)
   vector/                  VectorPath.cpp (parsing, flattening), PathFill.cpp (scanline trapezoids by the fill
                            rule, and the fringe), PathStroke.cpp (segments, joins, caps, dashes), VectorMath.hpp,
                            MeshRasterizer (meshes into premultiplied pixels, on the CPU), Svg (the icon subset:
                            SvgXml reads the tags, SvgStyle the presentation attributes, Svg.cpp draws them)
-  TextEditor.cpp           the multi-line editor: input, selection, scrolling, undo through its model
-  TextEditorPaint.cpp      its drawing: visible lines in runs of one colour, selection, gutter, caret
-  TextEditorView.cpp       wrapping and its row index, folds, scrolling, and how edits move folds and decorations
-  TextEditorCursors.cpp    extra cursors, column selection, Cmd+D, decorations, the view's keys
-  TextEditorFind.cpp       find and replace line by line, bracket matching
-  TextEditorPaintView.cpp  what is drawn under and over the text: decorations, matches, brackets, guides, the
+  editor/TextEditor.cpp    the multi-line editor: editing, selection, scrolling, undo through its model
+  editor/TextEditorInput.cpp
+                           its keys, typed characters and pointer; TextEditorShared.hpp (the word rules and the
+                           modifiers), TextEditorRows.hpp (rows per line, found in O(log n)), TextEditorMinimap.cpp
+  editor/TextEditorPaint.cpp
+                           its drawing: visible lines in runs of one colour, selection, gutter, caret
+  editor/TextEditorView.cpp
+                           wrapping and its row index, folds, scrolling, and how edits move folds and decorations
+  editor/TextEditorCursors.cpp
+                           extra cursors, column selection, Cmd+D, decorations, the view's keys
+  editor/TextEditorFind.cpp
+                           find and replace line by line, bracket matching
+  editor/TextEditorPaintView.cpp
+                           what is drawn under and over the text: decorations, matches, brackets, guides, the
                            extra carets, the composition
-  DiffView.cpp             a diff's rows, numbers and marks in one or two editors, scrolled together
-  TextModel.cpp            positions over the piece tree, UTF-8 checked as it comes in, undo as operations
-  Controls.cpp             Toggle and Slider
+  editor/DiffView.cpp      a diff's rows, numbers and marks in one or two editors, scrolled together
+  editor/TextModel.cpp     positions over the piece tree, UTF-8 checked as it comes in, undo as operations
+  widgets/Controls.cpp     Toggle and Slider
+  widgets/Calendar.cpp, CivilDate.cpp
+                           the month view, and its calendar arithmetic and ISO 8601 dates and times
+  widgets/Carousel.cpp, CodeInput.cpp
+                           pages turned by arrows, dots, keys and trackpad; a code typed one character per cell
   ColorSpaces.cpp          the colour-space maths
-  ColorPicker*.cpp         the picker: input, fields and swatches; its drawing (ColorPickerPaint.cpp)
-  GradientEditor.cpp       the gradient maths and editor; CurvesEditor.cpp the curve maths and editor
+  creative/ColorPicker*.cpp
+                           the picker: input, fields and swatches; its drawing (ColorPickerPaint.cpp)
+  creative/GradientEditor.cpp
+                           the gradient maths and editor; CurvesEditor.cpp the curve maths and editor
   CreativePixels.hpp       their CPU bitmaps (each a cached slot, at most 256 px a side) and drawing helpers
-  Split.cpp, Tabs.cpp      panes with sashes, and a strip of tabs
-  RowWindow.cpp            the rows in view: fixed heights, or measured ones in a Fenwick tree
-  ListView.cpp, TreeView.cpp  virtualised rows: selection, keys, type-to-find, drops, anchoring; a tree's open
+  widgets/Split.cpp, Tabs.cpp
+                           panes with sashes, and a strip of tabs
+  lists/RowWindow.cpp      the rows in view: fixed heights, or measured ones in a Fenwick tree
+  lists/ListView.cpp, TreeView.cpp
+                           virtualised rows: selection, keys, type-to-find, drops, anchoring; a tree's open
                            nodes and its pinned folders
-  TableView.cpp            a table's header, sorting and column widths
+  lists/TableView.cpp      a table's header, sorting and column widths
   Font.cpp                 the font: loading, Latin-1 at load, glyphs, measuring and wrapping, the atlas
   FontCache.cpp            the bounded font cache, and the system's fallback fonts
   text/                    FontFace (one file at one size, in FreeType and HarfBuzz), GlyphAtlas (coverage and

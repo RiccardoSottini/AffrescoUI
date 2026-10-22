@@ -4,7 +4,7 @@
 
 #include "GeometryCache.hpp"
 #include "Headless.hpp"
-#include "Rulers.hpp"
+#include "canvas/Rulers.hpp"
 #include "SpatialIndex.hpp"
 
 #include <affresco/render/CanvasView.hpp>

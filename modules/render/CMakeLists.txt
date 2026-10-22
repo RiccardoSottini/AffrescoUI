@@ -3,36 +3,11 @@
 # (cmake/AffrescoUIImages.cmake).
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIImages.cmake)
 affrescoui_module(render
-	src/Accessibility.cpp
-	src/Application.cpp
 	src/Bitmap.cpp
 	src/ImageCache.cpp
-	src/ImageView.cpp
-	src/DiffView.cpp
-	src/TextEditor.cpp
-	src/TextEditorCursors.cpp
-	src/TextEditorFind.cpp
-	src/TextEditorMinimap.cpp
-	src/TextEditorPaint.cpp
-	src/TextEditorPaintView.cpp
-	src/TextEditorView.cpp
-	src/TextModel.cpp
 	src/text/PieceTree.cpp
 	src/Color.cpp
 	src/ColorSpaces.cpp
-	src/ColorPicker.cpp
-	src/ColorPickerPaint.cpp
-	src/CurvesEditor.cpp
-	src/GradientEditor.cpp
-	src/CivilDate.cpp
-	src/Calendar.cpp
-	src/Controls.cpp
-	src/Split.cpp
-	src/Tabs.cpp
-	src/RowWindow.cpp
-	src/ListView.cpp
-	src/TreeView.cpp
-	src/TableView.cpp
 	src/Font.cpp
 	src/FontCache.cpp
 	src/text/FontFace.cpp
@@ -41,23 +16,13 @@ affrescoui_module(render
 	src/text/LookupSpans.cpp
 	src/text/PlainText.cpp
 	src/text/Shaping.cpp
-	src/Label.cpp
 	src/RichText.cpp
-	src/Panel.cpp
-	src/Stack.cpp
 	src/layout/Flex.cpp
 	src/layout/Grid.cpp
-	src/TextArea.cpp
-	src/Window.cpp
 	src/WindowImage.cpp
 	src/Headless.cpp
 	src/GeometryCache.cpp
 	src/PaintRecorder.cpp
-	src/PathView.cpp
-	src/GraphView.cpp
-	src/TimelineView.cpp
-	src/CodeInput.cpp
-	src/Carousel.cpp
 	src/vector/VectorPath.cpp
 	src/vector/PathFill.cpp
 	src/vector/PathStroke.cpp
@@ -65,14 +30,8 @@ affrescoui_module(render
 	src/vector/SvgStyle.cpp
 	src/vector/SvgXml.cpp
 	src/vector/MeshRasterizer.cpp
-	src/CanvasView.cpp
-	src/CanvasViewInput.cpp
 	src/SpatialIndex.cpp
 	src/Snapping.cpp
-	src/Rulers.cpp
-	src/platform/GlfwPlatform.cpp
-	src/platform/EmbeddedPlatform.cpp
-	src/platform/EmbeddedPlatformGl.cpp
 	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp
 	src/gl/ImageTextures.cpp
@@ -126,3 +85,36 @@ endif()
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIDialogs.cmake)
 target_sources(affrescoui_render PRIVATE src/platform/FileDialogs.cpp)
 affrescoui_file_dialogs(affrescoui_render)
+
+# widgets: the views, the windows and the platform, one line per sub-folder of src/
+# The window, the application loop and the accessibility tree they publish
+target_sources(affrescoui_render PRIVATE src/window/Accessibility.cpp src/window/Application.cpp src/window/Window.cpp
+	src/window/WindowInput.cpp)
+# The panel tree: layout, hit tests, transforms; and the stack
+target_sources(affrescoui_render PRIVATE src/panel/Panel.cpp src/panel/PanelLayout.cpp src/panel/Stack.cpp)
+# The small widgets: labels, fields, controls, dates, tabs, splits, images and paths
+target_sources(affrescoui_render PRIVATE src/widgets/Calendar.cpp src/widgets/Carousel.cpp src/widgets/CivilDate.cpp
+	src/widgets/CodeInput.cpp src/widgets/Controls.cpp src/widgets/ImageView.cpp src/widgets/Label.cpp
+	src/widgets/PathView.cpp src/widgets/Split.cpp src/widgets/Tabs.cpp src/widgets/TextArea.cpp)
+# The virtualised rows: lists, trees and tables
+target_sources(affrescoui_render PRIVATE src/lists/ListView.cpp src/lists/RowWindow.cpp src/lists/TableView.cpp
+	src/lists/TreeView.cpp)
+# The code editor, its text model and the diff view
+target_sources(affrescoui_render PRIVATE src/editor/DiffView.cpp src/editor/TextEditor.cpp
+	src/editor/TextEditorCursors.cpp src/editor/TextEditorFind.cpp src/editor/TextEditorInput.cpp
+	src/editor/TextEditorMinimap.cpp src/editor/TextEditorPaint.cpp src/editor/TextEditorPaintView.cpp
+	src/editor/TextEditorView.cpp src/editor/TextModel.cpp)
+# The colour picker, the curves and the gradient editors
+target_sources(affrescoui_render PRIVATE src/creative/ColorPicker.cpp src/creative/ColorPickerPaint.cpp
+	src/creative/CurvesEditor.cpp src/creative/GradientEditor.cpp)
+# The infinite canvas and its rulers
+target_sources(affrescoui_render PRIVATE src/canvas/CanvasView.cpp src/canvas/CanvasViewInput.cpp src/canvas/Rulers.cpp)
+# The node graph
+target_sources(affrescoui_render PRIVATE src/graph/GraphView.cpp src/graph/GraphModel.cpp src/graph/GraphInput.cpp
+	src/graph/GraphPaint.cpp)
+# The timeline
+target_sources(affrescoui_render PRIVATE src/timeline/TimelineView.cpp src/timeline/TimelineInput.cpp
+	src/timeline/TimelineKeys.cpp src/timeline/TimelineMath.cpp src/timeline/TimelinePaint.cpp)
+# The desktop (GLFW) and embedded platforms; the per-OS parts are above
+target_sources(affrescoui_render PRIVATE src/platform/GlfwPlatform.cpp src/platform/EmbeddedPlatform.cpp
+	src/platform/EmbeddedPlatformGl.cpp)
