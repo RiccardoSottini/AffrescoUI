@@ -140,6 +140,7 @@ endfunction()
 foreach(module core render format vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
+add_subdirectory(modules/imaging) # imaging: tiles, layers, colour, for image editors (uses render)
 if(AFFRESCOUI_BUILD_CAPI)
 	add_subdirectory(modules/capi) # the C API, on top of the others
 endif()
@@ -209,6 +210,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 	enable_testing() # here, so ctest finds the tests the subdirectories add
 	add_subdirectory(tests/render) # the rendering check
 	add_subdirectory(tests/unit)   # the unit tests and the window tests
+	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::imaging) # tests/unit/imaging_*.cpp
 	if(AFFRESCOUI_BUILD_CAPI)
 		add_subdirectory(tests/capi) # the C API's test, compiled as C
 	endif()

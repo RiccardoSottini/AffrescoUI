@@ -130,6 +130,36 @@
       "scope": "runtime"
     },
     {
+      "name": "stb_image_write",
+      "version": "1.16",
+      "purpose": "PNG and JPEG encoder, and the deflate of image editor project tiles",
+      "kind": "downloaded",
+      "url": "https://raw.githubusercontent.com/nothings/stb/013ac3beddff3dbffafd5177e7972067cd2b5083/stb_image_write.h",
+      "sha256": "cbd5f0ad7a9cf4468affb36354a1d2338034f2c12473cf1a8e32053cb6914a05",
+      "pinnedIn": "modules/imaging/CMakeLists.txt",
+      "license": "MIT OR Unlicense",
+      "licenseNote": "Public domain (Unlicense) or MIT, at your choice (end of `stb_image_write.h`)",
+      "usedBy": [
+        "affrescoui::imaging"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "lcms2",
+      "version": "2.16",
+      "purpose": "Colour management: ICC profiles, display conversion and soft proofing",
+      "kind": "downloaded",
+      "url": "https://github.com/mm2/Little-CMS/releases/download/lcms2.16/lcms2-2.16.tar.gz",
+      "sha256": "d873d34ad8b9b4cea010631f1a6228d2087475e4dc5e763eb81acc23d9d45a51",
+      "pinnedIn": "cmake/AffrescoUIColor.cmake",
+      "license": "MIT",
+      "licenseNote": "Copyright (c) 1998-2023 Marti Maria Saguer; only src/ is built, never the GPL plugins/",
+      "usedBy": [
+        "affrescoui::imaging"
+      ],
+      "scope": "runtime"
+    },
+    {
       "name": "nlohmann/json",
       "version": "3.11.3",
       "purpose": "JSON",
