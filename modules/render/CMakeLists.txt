@@ -13,6 +13,8 @@ affrescoui_module(render
 	src/text/PieceTree.cpp
 	src/Color.cpp
 	src/ColorSpaces.cpp
+	src/ColorPicker.cpp
+	src/ColorPickerPaint.cpp
 	src/Controls.cpp
 	src/Split.cpp
 	src/Tabs.cpp
