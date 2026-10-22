@@ -36,10 +36,12 @@ def load():
 
 
 def bench_results(bench, names):
-    """Runs affrescoui_bench on some workloads (names are prefixes): their results by name."""
+    """Runs affrescoui_bench on some workloads (names are prefixes): their results by name. A workload that fails
+    (its error on stderr) has no result, so the budgets it feeds come from the others, or are "not measured"."""
     process = subprocess.run([bench, "--only", ",".join(names)], stdout=subprocess.PIPE, text=True)
     if process.returncode != 0:
-        sys.exit(f"run.py: affrescoui_bench failed on {','.join(names)} (exit status {process.returncode})")
+        print(f"run.py: affrescoui_bench failed on some of {','.join(names)} (exit status {process.returncode}); "
+              "the budgets use the others", file=sys.stderr)
     return {result["name"]: result for result in map(json.loads, filter(str.strip, process.stdout.splitlines()))}
 
 
