@@ -29,8 +29,8 @@
 	},
 
 	"services": {
-		"lsp-cpp": { "provider": "jsonrpc", "process": "clangd", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
-			"with": { "framing": "contentLength",
+		"lsp_cpp": { "provider": "jsonrpc", "process": "clangd", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
+			"framing": "contentLength",
 				"notifications": ["initialized", "exit", "textDocument/didOpen", "textDocument/didChange", "textDocument/didClose",
 				                  "workspace/didChangeWorkspaceFolders"],
 				"methods": {
@@ -40,9 +40,9 @@
 					"textDocument/references": { "effect": "read" }, "textDocument/rename": { "effect": "read" },
 					"textDocument/formatting": { "effect": "read" }, "textDocument/documentSymbol": { "effect": "read" },
 					"workspace/symbol": { "effect": "read" }, "textDocument/semanticTokens/full": { "effect": "read" },
-					"textDocument/publishDiagnostics": { "effect": "event" } } } },
-		"lsp-python": { "provider": "jsonrpc", "process": "pyright-langserver", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
-			"with": { "framing": "contentLength",
+					"textDocument/publishDiagnostics": { "effect": "event" } } },
+		"lsp_python": { "provider": "jsonrpc", "process": "pyright-langserver", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
+			"framing": "contentLength",
 				"notifications": ["initialized", "exit", "textDocument/didOpen", "textDocument/didChange", "textDocument/didClose",
 				                  "workspace/didChangeWorkspaceFolders"],
 				"methods": {
@@ -52,9 +52,9 @@
 					"textDocument/references": { "effect": "read" }, "textDocument/rename": { "effect": "read" },
 					"textDocument/formatting": { "effect": "read" }, "textDocument/documentSymbol": { "effect": "read" },
 					"workspace/symbol": { "effect": "read" }, "textDocument/semanticTokens/full": { "effect": "read" },
-					"textDocument/publishDiagnostics": { "effect": "event" } } } },
-		"lsp-typescript": { "provider": "jsonrpc", "process": "typescript-language-server", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
-			"with": { "framing": "contentLength",
+					"textDocument/publishDiagnostics": { "effect": "event" } } },
+		"lsp_typescript": { "provider": "jsonrpc", "process": "typescript-language-server", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
+			"framing": "contentLength",
 				"notifications": ["initialized", "exit", "textDocument/didOpen", "textDocument/didChange", "textDocument/didClose",
 				                  "workspace/didChangeWorkspaceFolders"],
 				"methods": {
@@ -64,7 +64,7 @@
 					"textDocument/references": { "effect": "read" }, "textDocument/rename": { "effect": "read" },
 					"textDocument/formatting": { "effect": "read" }, "textDocument/documentSymbol": { "effect": "read" },
 					"workspace/symbol": { "effect": "read" }, "textDocument/semanticTokens/full": { "effect": "read" },
-					"textDocument/publishDiagnostics": { "effect": "event" } } } }
+					"textDocument/publishDiagnostics": { "effect": "event" } } }
 	},
 
 	"actions": {
@@ -269,22 +269,22 @@
 			"node": {
 				"type": "column", "id": "lsp", "width": 0, "height": 0,
 				"children": [
-					{ "type": "column", "id": "lsp-hover", "width": 420, "padding": 8, "color": "@color.widget",
+					{ "type": "column", "id": "lsp-hover", "width": 420, "color": "@color.widget",
 					  "borderWidth": 1, "borderColor": "@color.border",
 					  "x": "{{state.lsp.hover.x}}", "y": "{{state.lsp.hover.y}}",
 					  "overlay": { "placement": "window", "open": "state.lsp.hover.open", "dismiss": "outside" },
 					  "children": [
-						{ "type": "label", "id": "lsp-hover-text", "width": "100%", "wrap": true, "fitText": true,
+						{ "type": "label", "id": "lsp-hover-text", "width": "100%", "padding": 8, "wrap": true, "fitText": true,
 						  "textColor": "@color.text", "text": "{{state.lsp.hover.text}}" }
 					  ] },
-					{ "type": "column", "id": "lsp-signature", "width": 420, "padding": 6, "color": "@color.widget",
+					{ "type": "column", "id": "lsp-signature", "width": 420, "color": "@color.widget",
 					  "borderWidth": 1, "borderColor": "@color.border",
 					  "x": "{{state.lsp.at.x}}", "y": "{{max(state.lsp.at.top - 48, 0)}}",
 					  "overlay": { "placement": "window", "open": "state.lsp.signature.open", "dismiss": "outside" },
 					  "children": [
-						{ "type": "label", "id": "lsp-signature-label", "font": "code", "fitText": true, "textColor": "@color.text",
+						{ "type": "label", "id": "lsp-signature-label", "padding": 6, "font": "code", "fitText": true, "textColor": "@color.text",
 						  "text": "{{state.lsp.signature.label}}" },
-						{ "type": "label", "id": "lsp-signature-doc", "width": "100%", "wrap": true, "fitText": true,
+						{ "type": "label", "id": "lsp-signature-doc", "width": "100%", "padding": 6, "wrap": true, "fitText": true,
 						  "when": "{{!empty(state.lsp.signature.documentation)}}",
 						  "textColor": "@color.muted", "text": "{{state.lsp.signature.documentation}}" }
 					  ] },
@@ -293,7 +293,7 @@
 					  "x": "{{state.lsp.at.x}}", "y": "{{state.lsp.at.y}}",
 					  "overlay": { "placement": "window", "open": "state.lsp.completion.open", "dismiss": "outside" },
 					  "children": [
-						{ "type": "row", "id": "lsp-completion-item", "width": "100%", "height": 22, "padding": 4, "gap": 8,
+						{ "type": "row", "id": "lsp-completion-item", "width": "100%", "height": 22, "gap": 8,
 						  "repeat": { "for": "c", "in": "{{slice(computed.lspCompletions, max(state.lsp.completion.index - 9, 0), max(state.lsp.completion.index - 9, 0) + 10)}}", "index": "ci" },
 						  "color": "{{c.index == state.lsp.completion.index ? '@color.selection' : '@color.widget'}}",
 						  "cursor": "hand", "onClick": { "run": "lspComplete", "with": { "index": "{{c.index}}" } },

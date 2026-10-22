@@ -85,9 +85,9 @@ TEST_SUITE("lsp") {
 	}
 
 	TEST_CASE("each language's server") {
-		CHECK(lsp::serverFor("c++")["service"] == "lsp-cpp");
+		CHECK(lsp::serverFor("c++")["service"] == "lsp_cpp");
 		CHECK(lsp::serverFor("python")["languageId"] == "python");
-		CHECK(lsp::serverFor("typescript")["service"] == "lsp-typescript");
+		CHECK(lsp::serverFor("typescript")["service"] == "lsp_typescript");
 		CHECK(lsp::serverFor("markdown").is_null());
 	}
 

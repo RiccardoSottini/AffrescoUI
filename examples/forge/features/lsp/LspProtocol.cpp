@@ -529,11 +529,11 @@ std::optional<std::string> idOfUri(const fs::path& root, std::string_view uri) {
 json serverFor(std::string_view language) {
 	std::string name(language);
 	std::ranges::transform(name, name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-	if(name == "c") return {{"languageId", "c"}, {"service", "lsp-cpp"}};
-	if(name == "c++" || name == "cpp") return {{"languageId", "cpp"}, {"service", "lsp-cpp"}};
-	if(name == "python" || name == "py") return {{"languageId", "python"}, {"service", "lsp-python"}};
-	if(name == "javascript" || name == "js") return {{"languageId", "javascript"}, {"service", "lsp-typescript"}};
-	if(name == "typescript" || name == "ts") return {{"languageId", "typescript"}, {"service", "lsp-typescript"}};
+	if(name == "c") return {{"languageId", "c"}, {"service", "lsp_cpp"}};
+	if(name == "c++" || name == "cpp") return {{"languageId", "cpp"}, {"service", "lsp_cpp"}};
+	if(name == "python" || name == "py") return {{"languageId", "python"}, {"service", "lsp_python"}};
+	if(name == "javascript" || name == "js") return {{"languageId", "javascript"}, {"service", "lsp_typescript"}};
+	if(name == "typescript" || name == "ts") return {{"languageId", "typescript"}, {"service", "lsp_typescript"}};
 	return nullptr;
 }
 

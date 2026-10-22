@@ -106,8 +106,8 @@ A theme is a set of variants of the same tokens (`themes.json`), switched by `"t
 
 ## Language servers
 
-`features/lsp/` talks to one language server per language over a `jsonrpc` service: `lsp-cpp` (clangd),
-`lsp-python` (pyright) and `lsp-typescript` (typescript-language-server). `main.cpp` grants each one it finds on
+`features/lsp/` talks to one language server per language over a `jsonrpc` service: `lsp_cpp` (clangd),
+`lsp_python` (pyright) and `lsp_typescript` (typescript-language-server). `main.cpp` grants each one it finds on
 PATH; a server that isn't installed isn't granted, and the editor works without it. A server starts with the first
 file of its language, and gets incremental changes in the encoding it chose. It gives diagnostics (squiggles, and rows
 in Problems), hover, completion (fuzzy, Ctrl+Space) and signature help, Go to Definition (F12), Find References

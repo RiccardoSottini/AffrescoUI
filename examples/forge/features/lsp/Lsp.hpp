@@ -2,7 +2,7 @@
 
 /// @file
 /// @brief Forge's language servers, native side (features/lsp/lsp.json): one server per language, spoken to through
-/// the `jsonrpc` service the screen declares for it (`lsp-cpp`, `lsp-python`, `lsp-typescript`). The client keeps the
+/// the `jsonrpc` service the screen declares for it (`lsp_cpp`, `lsp_python`, `lsp_typescript`). The client keeps the
 /// protocol's bookkeeping the screen can't: initialize, the open documents and their versions, incremental changes,
 /// positions in the encoding the server chose; what a server answers is bounded by LspProtocol.hpp and reaches the
 /// screen as actions.
