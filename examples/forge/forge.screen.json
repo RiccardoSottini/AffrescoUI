@@ -19,7 +19,8 @@
 	},
 
 	"include": ["features/themes/themes.json", "features/panels/panels.json", "features/palette/palette.json",
-	            "features/shell/shell.json", "features/explorer/explorer.json"],
+	            "features/shell/shell.json", "features/explorer/explorer.json",
+	            "features/terminal/terminal.json"],
 
 	"theme": "{{state.theme}}",
 

@@ -24,6 +24,7 @@
 			"name": "explorer-new-file-then-delete-it",
 			"note": "New File with a folder selected makes the file in it and selects it; Delete asks first, then removes it",
 			"steps": [
+				{ "wait": 0, "note": "lets the first frame's tasks run, so the tree is laid out" },
 				{ "click": "#explorer" },
 				{ "key": "home" },
 				{ "expect": { "state": "explorer.selected", "is": "src/" } },
@@ -48,6 +49,7 @@
 			"name": "explorer-cancel-a-delete",
 			"note": "Escape on the confirm dialog deletes nothing",
 			"steps": [
+				{ "wait": 0, "note": "lets the first frame's tasks run, so the tree is laid out" },
 				{ "click": "#explorer" },
 				{ "key": "home" },
 				{ "key": "down" },
@@ -64,10 +66,12 @@
 			"name": "explorer-rename-a-file",
 			"note": "Rename starts from the name it has; the renamed file stays selected",
 			"steps": [
+				{ "wait": 0, "note": "lets the first frame's tasks run, so the tree is laid out" },
 				{ "click": "#explorer" },
 				{ "key": "home" },
 				{ "key": "down" },
 				{ "action": "explorerNewFile", "note": "a file's row: the new file goes in its folder" },
+				{ "expect": { "state": "explorerEdit.naming", "is": true } },
 				{ "wait": 0 },
 				{ "type": "draft" },
 				{ "action": "explorerSubmitName" },
@@ -125,6 +129,7 @@
 			"name": "explorer-copy-and-paste",
 			"note": "Copy, then Paste on a folder copies the entry into it (a name taken there would get ' copy')",
 			"steps": [
+				{ "wait": 0, "note": "lets the first frame's tasks run, so the tree is laid out" },
 				{ "click": "#explorer" },
 				{ "key": "home" },
 				{ "key": "down" },

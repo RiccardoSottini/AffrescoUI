@@ -16,6 +16,7 @@ following components, which keep their own licenses:
 | HarfBuzz 12.3.2 (text shaping) | downloaded by CMake | "Old MIT" (`COPYING` in its archive; `src/ms-use/COPYING`: MIT) |
 | nativefiledialog-extended 1.4.1 (file dialogs) | downloaded by CMake, SHA-256 checked | zlib license (`LICENSE` in its archive) |
 | curl 8.22.0 (libcurl, the `net` module's transport) | downloaded by CMake, SHA-256 checked, and built statically on Linux and Windows; the system's libcurl on macOS | The curl license, MIT-style (`COPYING` in its archive). Its TLS is the platform's: OpenSSL 3 on Linux (Apache License 2.0, a system package), Schannel on Windows and the system's on macOS (parts of the operating system) |
+| libvterm 0.3.3 (terminal emulator, Forge's terminal only) | downloaded by CMake, SHA-256 checked (`cmake/AffrescoUITerminal.cmake`) | MIT, Copyright (c) 2008 Paul Evans (`LICENSE` in its archive) |
 | Noto Sans Arabic, Devanagari, SC, JP and KR, subsets (rendering check only) | `tests/render/fonts/` (vendored) | SIL Open Font License 1.1 (`tests/render/fonts/LICENSE-NotoSans*.txt`) |
 | Twemoji Mozilla, a subset (rendering check only) | `tests/render/fonts/` (vendored) | Art: CC BY 4.0, © Twitter, Inc. and other contributors; font build: Apache License 2.0 (`tests/render/fonts/LICENSE-TwemojiMozilla.md`) |
 

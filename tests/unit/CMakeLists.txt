@@ -11,7 +11,7 @@ file(GLOB affrescoui_unit_test_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DI
 set(affrescoui_forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
 add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp
 	${affrescoui_forge_dir}/features/palette/FileIndex.cpp ${affrescoui_forge_dir}/features/themes/ThemeImport.cpp
-	${affrescoui_forge_dir}/features/themes/IconTheme.cpp)
+	${affrescoui_forge_dir}/features/themes/IconTheme.cpp ${affrescoui_forge_dir}/features/terminal/TerminalModel.cpp)
 # Expression.hpp, Utf8.hpp, Sha256.hpp, Lines.hpp, Png.hpp and automation's Internal.hpp and PngReader.hpp stay private
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
@@ -22,7 +22,7 @@ target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
-target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::automation) # all modules; screen.cpp loads screens, no window
+target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::automation affrescoui_vterm) # all modules; screen.cpp loads screens, no window
 set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}) # build/, where the docs and tools/quality run it
 target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})

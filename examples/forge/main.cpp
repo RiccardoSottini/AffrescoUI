@@ -12,6 +12,7 @@
 #include "Forge.hpp"
 #include "SocketDir.hpp"
 #include "features/explorer/Explorer.hpp"
+#include "features/terminal/Terminal.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -87,6 +88,8 @@ int run(const Options& options) {
 	if(!options.folder.empty()) workspace->root = std::filesystem::absolute(options.folder);
 	forge::registerNatives(screen, workspace);
 	forge::registerExplorer(screen, workspace, &app);
+	forge::grantTerminal(screen, workspace->root);
+	forge::registerTerminal(screen, &app);
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {

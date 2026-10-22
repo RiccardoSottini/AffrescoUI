@@ -67,6 +67,11 @@ include(cmake/AffrescoUIText.cmake)
 # libcurl with the platform's TLS: the network module (RFC 0003, decision D3)
 include(cmake/AffrescoUINetwork.cmake)
 
+# libvterm: the terminal emulator of Forge's terminal panel, which the examples and the tests build
+if(AFFRESCOUI_BUILD_EXAMPLES OR AFFRESCOUI_BUILD_TESTS)
+	include(cmake/AffrescoUITerminal.cmake)
+endif()
+
 # The Lucide icon font the templates and the rendering check use (decision D11), vendored and pinned by its hash: lucide.ttf
 # of lucide-static 1.48.0 (examples/assets/fonts/README.md)
 file(SHA256 ${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/fonts/Lucide.ttf AFFRESCOUI_LUCIDE_SHA256)
@@ -132,10 +137,11 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
 	set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
 		examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
-		examples/forge/features/explorer/Explorer.cpp)
+		examples/forge/features/explorer/Explorer.cpp examples/forge/features/terminal/Terminal.cpp
+		examples/forge/features/terminal/TerminalModel.cpp)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/CodeEditor.cpp)
 	target_include_directories(affrescoui_forge PRIVATE examples examples/forge)
-	target_link_libraries(affrescoui_forge PRIVATE affrescoui)
+	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
 endif()

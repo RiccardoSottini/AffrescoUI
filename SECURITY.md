@@ -241,6 +241,12 @@ a shell runs only if the host allows a shell as the program. The terminal's outp
 it is bounded: 8 terminals per service, 64 KiB a write and 1 MiB waiting, 16 KiB an event and 4 MiB a second. Escape
 sequences in that text are the terminal widget's to interpret; the provider acts on none of them.
 
+Forge's terminal widget (`examples/forge/features/terminal`, on libvterm) keeps every escape sequence inside itself:
+a program can't set the window title unless the node's `allowTitle` is true (and then only the session's, at most
+256 bytes), clipboard writes (OSC 52) and the bell are dropped, and its replies to queries go back to the program
+only. Its scrollback is bounded (10,000 lines at most). Forge grants the user's login shell, started in the open
+folder; the screen document only names the service.
+
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
 `AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it

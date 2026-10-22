@@ -11,6 +11,7 @@
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "features/explorer/Explorer.hpp"
+#include "features/terminal/Terminal.hpp"
 
 #include <affresco/Screen.hpp>
 #include <affresco/automation/Scenarios.hpp>
@@ -101,6 +102,8 @@ int main(int argc, char** argv) {
 			auto workspace = std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER);
 			forge::registerNatives(screen, workspace);
 			forge::registerExplorer(screen, workspace, nullptr); // scenarios run no executor: it lists at each call
+			forge::grantTerminal(screen, AFFRESCOUI_FORGE_FOLDER);
+			forge::registerTerminal(screen, nullptr); // no executor: no shell starts
 		};
 		std::vector<std::string> files;
 		if(!readArguments(std::vector<std::string_view>(argv + 1, argv + argc), options, files)) return 2;
