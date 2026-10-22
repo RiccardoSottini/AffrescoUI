@@ -75,7 +75,7 @@ void checkTotal(std::size_t total, std::size_t limit, const char* what) {
                                const std::string& where, std::vector<std::uint32_t>& indices) {
 	if(primitive.indices == nullptr) {
 		indices.resize(count);
-		std::iota(indices.begin(), indices.end(), std::uint32_t{0});
+		std::ranges::iota(indices, std::uint32_t{0});
 		return true;
 	}
 	if(!readable(context, primitive.indices, where + " indices")) return false;

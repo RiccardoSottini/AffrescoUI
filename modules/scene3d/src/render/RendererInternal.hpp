@@ -86,7 +86,7 @@ private:
 	void drawShaded(const DrawItem& item, const GlProgram& program);
 	/// @brief Sets the lights' uniforms. @param view The frame. @param program The program, in use.
 	/// @return The number of lights.
-	int setLights(const FrameView& view, const GlProgram& program) const;
+	static int setLights(const FrameView& view, const GlProgram& program);
 	/// @brief The program for a material: its graph's if it has a valid one, else the default.
 	/// @param graph The material's graph, or null. @return The program.
 	[[nodiscard]] const GlProgram& programFor(const json* graph);

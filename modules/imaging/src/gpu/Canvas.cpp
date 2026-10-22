@@ -115,7 +115,7 @@ void forwardPointers(const CanvasModel& model, const CanvasView& view, std::span
 /// @param list The layers.
 /// @return true if one is clipped and visible.
 [[nodiscard]] bool clips(const Document& document, const std::vector<std::uint64_t>& list) {
-	return std::any_of(list.begin(), list.end(), [&](std::uint64_t id) {
+	return std::ranges::any_of(list, [&](std::uint64_t id) {
 		const Layer* layer = document.layer(id);
 		return layer != nullptr && layer->clipped && layer->visible;
 	});
@@ -172,7 +172,7 @@ void setLayerUniforms(unsigned program, const Layer& layer, int stage, bool clip
 /// @return Whether to draw the tile: false when an image present has no such tile.
 template <typename Bind>
 [[nodiscard]] bool bindLayerTile(const Layer& layer, const Image* pixels, const Image* mask, const TileKey& key,
-                                 Bind&& bind) {
+                                 const Bind& bind) {
 	if(pixels != nullptr && !bind(*pixels, layer.pixels, key, canvas::sourceUnit)) return false;
 	return mask == nullptr || bind(*mask, layer.mask, key, canvas::maskUnit);
 }
@@ -338,7 +338,7 @@ struct CanvasSurface::Region {
 	/// @param cells The image whose tiles are drawn.
 	/// @param program The layer program, in use.
 	/// @param bind Binds a tile's textures, and says whether to draw it.
-	template <typename Bind> void drawTiles(const Image& cells, unsigned program, Bind&& bind) const {
+	template <typename Bind> void drawTiles(const Image& cells, unsigned program, const Bind& bind) const {
 		const GLint origin = at(program, "origin");
 		const int lastColumn = std::min((x + width - 1) / tileSize, cells.columns(level) - 1);
 		const int lastRow = std::min((y + height - 1) / tileSize, cells.rows(level) - 1);
@@ -526,6 +526,7 @@ bool CanvasSurface::bindTile(const Image& image, std::uint64_t id, const TileKey
 	return tile != nullptr;
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): it draws, and its public declaration stays as it is
 void CanvasSurface::present(const SurfaceFrame& frame, const Region& region, const CanvasModel& model) {
 	const json& params = frame.params();
 	const CanvasView& view = model.view;

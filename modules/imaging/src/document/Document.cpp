@@ -127,18 +127,20 @@ void Document::begin(std::string name) {
 
 Tile& Document::editTile(std::uint64_t target, int column, int row) {
 	if(!editing_) throw std::logic_error("imaging: a tile edited outside a step");
+	auto& step = *editing_;
 	Image* edited = image(target);
 	if(edited == nullptr) throw std::out_of_range("imaging: no image " + std::to_string(target));
-	editing_->recorder.touch(target, *edited, column, row);
+	step.recorder.touch(target, *edited, column, row);
 	++revision_;
 	return edited->writableTile(column, row);
 }
 
 void Document::replaceTile(std::uint64_t target, int column, int row, std::shared_ptr<const Tile> tile) {
 	if(!editing_) throw std::logic_error("imaging: a tile replaced outside a step");
+	auto& step = *editing_;
 	Image* edited = image(target);
 	if(edited == nullptr) throw std::out_of_range("imaging: no image " + std::to_string(target));
-	editing_->recorder.touch(target, *edited, column, row);
+	step.recorder.touch(target, *edited, column, row);
 	++revision_;
 	edited->setTile(column, row, std::move(tile));
 }
@@ -202,7 +204,7 @@ std::uint64_t Document::insert(Structure& structure, Layer layer) const {
 	if(const auto active = structure.layers.find(structure.active); active != structure.layers.end()) {
 		parent = active->second.parent;
 		const auto& list = listOf(structure, parent);
-		index = static_cast<std::size_t>(std::find(list.begin(), list.end(), active->second.id) - list.begin()) + 1;
+		index = static_cast<std::size_t>(std::ranges::find(list, active->second.id) - list.begin()) + 1;
 	}
 	// Too deep (a group holds groups to limits_.groupDepth levels): above the group instead
 	const int height = layer.kind == LayerKind::group ? 1 : 0;
@@ -210,7 +212,7 @@ std::uint64_t Document::insert(Structure& structure, Layer layer) const {
 		const std::uint64_t group = parent;
 		parent = structure.layers.at(group).parent;
 		const auto& list = listOf(structure, parent);
-		index = static_cast<std::size_t>(std::find(list.begin(), list.end(), group) - list.begin()) + 1;
+		index = static_cast<std::size_t>(std::ranges::find(list, group) - list.begin()) + 1;
 	}
 	layer.parent = parent;
 	const std::uint64_t id = layer.id;
@@ -275,7 +277,7 @@ void Document::deleteLayer(std::uint64_t id) {
 			structure.layers.erase(at);
 		};
 		auto& list = listOf(structure, layer.parent);
-		const auto place = std::find(list.begin(), list.end(), id);
+		const auto place = std::ranges::find(list, id);
 		const std::uint64_t parent = layer.parent;
 		const std::uint64_t below =
 		    place != list.begin() ? *(place - 1) : (place + 1 != list.end() ? *(place + 1) : parent);
@@ -318,7 +320,7 @@ void Document::moveLayer(std::uint64_t id, std::uint64_t parent, std::size_t ind
 		if(parent != 0 && depthOf(structure, parent) + 1 + heightOf(structure, id) > limits_.groupDepth)
 			throw DocumentError("Groups nest at most " + std::to_string(limits_.groupDepth) + " deep");
 		auto& from = listOf(structure, layer.parent);
-		const auto place = std::find(from.begin(), from.end(), id);
+		const auto place = std::ranges::find(from, id);
 		if(layer.parent == parent && std::cmp_less(place - from.begin(), index)) --index;
 		from.erase(place);
 		auto& to = listOf(structure, parent);

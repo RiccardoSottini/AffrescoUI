@@ -117,9 +117,8 @@ void Gradient::normalize() {
 		stop.color = {clamped(stop.color.red), clamped(stop.color.green), clamped(stop.color.blue),
 		              clamped(stop.color.alpha)};
 	}
-	std::stable_sort(stops.begin(), stops.end(), [](const GradientStop& left, const GradientStop& right) {
-		return left.position < right.position;
-	});
+	std::ranges::stable_sort(
+	    stops, [](const GradientStop& left, const GradientStop& right) { return left.position < right.position; });
 	if(stops.empty()) stops.push_back({0.0f, {0.0f, 0.0f, 0.0f, 1.0f}});
 }
 
@@ -132,7 +131,7 @@ const std::array<std::string_view, adjustmentKindCount>& adjustmentKindNames() n
 
 std::optional<AdjustmentKind> adjustmentKindOf(std::string_view name) noexcept {
 	const auto& names = adjustmentKindNames();
-	const auto* const found = std::find(names.begin(), names.end(), name);
+	const auto* const found = std::ranges::find(names, name);
 	if(found == names.end()) return std::nullopt;
 	return static_cast<AdjustmentKind>(found - names.begin());
 }
@@ -148,8 +147,7 @@ void Adjustment::normalize() {
 		input = clamped(input);
 		output = clamped(output);
 	}
-	std::stable_sort(curve.begin(), curve.end(),
-	                 [](const auto& left, const auto& right) { return left.first < right.first; });
+	std::ranges::stable_sort(curve, [](const auto& left, const auto& right) { return left.first < right.first; });
 	if(curve.size() < 2) curve = {{0.0f, 0.0f}, {1.0f, 1.0f}};
 	hue = std::isfinite(hue) ? std::clamp(hue, -180.0f, 180.0f) : 0.0f;
 	const auto unit = [](float& value) { value = std::isfinite(value) ? std::clamp(value, -1.0f, 1.0f) : 0.0f; };

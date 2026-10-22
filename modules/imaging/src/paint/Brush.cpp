@@ -56,7 +56,8 @@ struct Spacing {
 /// @param spacing Where the dabs are. @param lay Lays a dab at a point and pressure.
 /// @return The distance walked past the last dab, carried to the next segment.
 template <class Lay>
-float walkVisible(const StrokePoint& from, const StrokePoint& to, const Area& area, const Spacing& spacing, Lay&& lay) {
+float walkVisible(const StrokePoint& from, const StrokePoint& to, const Area& area, const Spacing& spacing,
+                  const Lay& lay) {
 	const double dx = static_cast<double>(to.x) - from.x, dy = static_cast<double>(to.y) - from.y;
 	const double length = std::hypot(dx, dy);
 	// The share of the segment inside the image grown by the reach, edge by edge (Liang-Barsky)
@@ -75,7 +76,7 @@ float walkVisible(const StrokePoint& from, const StrokePoint& to, const Area& ar
 	const double last = std::min(end, std::floor((far * length - spacing.start) / spacing.step));
 	// Counted from the first, since dab numbers past 2^53 no longer step by one
 	const double count = std::min(last - first, (far - near) * length / spacing.step + 1.0);
-	for(double dab = 0.0; dab <= count; ++dab) {
+	for(double dab = 0.0; dab <= count; ++dab) { // NOLINT(bugprone-float-loop-counter): whole, and exact, as above
 		const double share = (spacing.start + (first + dab) * spacing.step) / length;
 		lay(static_cast<float>(from.x + dx * share), static_cast<float>(from.y + dy * share),
 		    static_cast<float>(from.pressure + (static_cast<double>(to.pressure) - from.pressure) * share));
@@ -147,6 +148,7 @@ void Stroke::add(const StrokePoint& point) {
 		last_ = next;
 		return;
 	}
+	// NOLINTNEXTLINE(bugprone-float-loop-counter): the dabs land where they always have, step by float step
 	for(; position <= length; position += step) {
 		const float share = position / length;
 		stamp(last_.x + (next.x - last_.x) * share, last_.y + (next.y - last_.y) * share,

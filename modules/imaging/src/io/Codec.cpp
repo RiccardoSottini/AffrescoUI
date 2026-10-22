@@ -64,7 +64,7 @@ void write32(std::vector<std::uint8_t>& out, std::uint32_t value) {
 		if(type == "iCCP") {
 			const std::span<const std::uint8_t> data = file.subspan(at + 8, length);
 			const std::span<const std::uint8_t> head = data.first(std::min<std::size_t>(data.size(), 80));
-			const auto name = static_cast<std::size_t>(std::find(head.begin(), head.end(), 0) - head.begin());
+			const auto name = static_cast<std::size_t>(std::ranges::find(head, 0) - head.begin());
 			if(name + 2 > data.size() || data[name] != 0 || data[name + 1] != 0)
 				throw DocumentError("imaging: a malformed iCCP chunk");
 			auto bytes = stb::inflate(data.subspan(name + 2), limits.profileBytes);

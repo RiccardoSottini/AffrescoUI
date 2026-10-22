@@ -82,6 +82,7 @@ std::optional<TrackPath> trackPathNamed(std::string_view name) noexcept {
 	return std::nullopt;
 }
 
+// NOLINTNEXTLINE(modernize-use-string-view): its public declaration stays as it is
 std::string Track::validate() const {
 	const std::size_t stride = interpolation == Interpolation::Cubic ? 3 : 1;
 	if(values.size() != times.size() * stride * width()) return "the values don't match the times";

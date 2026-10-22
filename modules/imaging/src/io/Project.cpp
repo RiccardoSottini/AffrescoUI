@@ -321,6 +321,7 @@ std::vector<std::uint8_t> saveProject(const Document& document, const std::optio
 	return file;
 }
 
+// NOLINTNEXTLINE(performance-unnecessary-value-param): its public declaration stays as it is
 LoadedProject loadProject(std::shared_ptr<const std::vector<std::uint8_t>> file, const Limits& limits) {
 	if(!file) malformed("is missing");
 	try {

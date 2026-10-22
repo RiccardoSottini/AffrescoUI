@@ -138,7 +138,7 @@ void orderInView(FrameView& view) {
 	for(std::size_t i = 0; i < view.items.size(); ++i)
 		if(frustum.intersects(view.items[i].bounds)) view.inView.push_back(i);
 		else ++view.culled;
-	std::stable_sort(view.inView.begin(), view.inView.end(), [&](std::size_t a, std::size_t b) {
+	std::ranges::stable_sort(view.inView, [&](std::size_t a, std::size_t b) {
 		const DrawItem& first = view.items[a];
 		const DrawItem& second = view.items[b];
 		if(first.blended != second.blended) return !first.blended;
@@ -348,7 +348,7 @@ void SceneRenderer::setShared(const FrameView& view, const GlProgram& program, c
 	glUniform1i(program.uniform("lightCount"), setLights(view, program));
 }
 
-int SceneRenderer::setLights(const FrameView& view, const GlProgram& program) const {
+int SceneRenderer::setLights(const FrameView& view, const GlProgram& program) {
 	const std::vector<SceneLight> lights = lightsOf(view);
 	std::array<float, maxLights * 4> positions{}, directions{}, cones{};
 	std::array<float, maxLights * 3> colors{};

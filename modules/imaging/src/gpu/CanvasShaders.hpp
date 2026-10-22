@@ -8,7 +8,7 @@
 namespace affresco::imaging::canvas {
 
 /// @brief The texture units the layer program reads.
-enum Unit : int {
+enum Unit : int {     // NOLINT(cppcoreguidelines-use-enum-class): GLSL reads them as ints
 	sourceUnit = 0,   ///< The layer's tile, or a group's pass.
 	maskUnit = 1,     ///< The mask's tile.
 	backdropUnit = 2, ///< The copy of the pass below.
@@ -17,7 +17,7 @@ enum Unit : int {
 };
 
 /// @brief What a layer program's fragment reads as its colour.
-enum SourceKind : int {
+enum SourceKind : int { // NOLINT(cppcoreguidelines-use-enum-class): GLSL reads them as ints
 	tileSource = 0,     ///< A tile, at the cell's pixel.
 	colorSource = 1,    ///< One colour.
 	passSource = 2,     ///< A pass, at the region's pixel (a group).
@@ -25,17 +25,17 @@ enum SourceKind : int {
 };
 
 /// @brief Where a layer program's coverage comes from.
-enum MaskKind : int {
-	noMask = 0,    ///< Covered everywhere.
-	tileMask = 1,  ///< A mask8 tile's red.
-	valueMask = 2, ///< One value (a transparent mask tile is 0).
+enum MaskKind : int { // NOLINT(cppcoreguidelines-use-enum-class): GLSL reads them as ints
+	noMask = 0,       ///< Covered everywhere.
+	tileMask = 1,     ///< A mask8 tile's red.
+	valueMask = 2,    ///< One value (a transparent mask tile is 0).
 };
 
 /// @brief The layer program's adjustKind past the AdjustmentShader values: a threshold at the uniform level.
 inline constexpr int thresholdAdjust = 3;
 
 /// @brief What a layer program writes.
-enum Stage : int {
+enum Stage : int {     // NOLINT(cppcoreguidelines-use-enum-class): GLSL reads them as ints
 	blendStage = 0,    ///< The layer blended onto the backdrop.
 	baseStage = 1,     ///< Its own coverage, the next clipped layers' base.
 	coverageStage = 2, ///< The mask's coverage alone (the selection).

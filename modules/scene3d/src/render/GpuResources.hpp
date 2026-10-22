@@ -7,6 +7,7 @@
 #include "affresco/scene3d/Mesh.hpp"
 #include "affresco/scene3d/Scene.hpp"
 
+#include <array>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -19,7 +20,7 @@ namespace affresco::scene3d::detail {
 struct GpuMesh {
 	unsigned vertexArray = 0;               ///< Positions (0), normals (1), texture coordinates (2) and triangles.
 	unsigned edgeArray = 0;                 ///< The same positions with the edges as indices, or 0 until asked.
-	unsigned buffers[5] = {};               ///< Positions, normals, texture coordinates, triangles, edges.
+	std::array<unsigned, 5> buffers{};      ///< Positions, normals, texture coordinates, triangles, edges.
 	int indexCount = 0;                     ///< Indices of the triangles.
 	int edgeCount = 0;                      ///< Indices of the edges.
 	std::size_t bytes = 0;                  ///< On the GPU.

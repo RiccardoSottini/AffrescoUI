@@ -262,6 +262,7 @@ std::string emit(const std::map<std::string, GraphNode, std::less<>>& nodes, con
 const std::vector<std::string>& materialOperations() {
 	static const std::vector<std::string> names = [] {
 		std::vector<std::string> list;
+		list.reserve(std::size(operations));
 		for(const auto& operation : operations) list.emplace_back(operation.name);
 		return list;
 	}();

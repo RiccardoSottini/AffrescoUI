@@ -15,6 +15,7 @@ namespace {
 
 /// @brief A finite number member, or a fallback. @param params The object. @param key The member.
 /// @param fallback If it is missing or not a finite number. @return The value.
+// NOLINTNEXTLINE(bugprone-exception-escape): json throws only on a wrong type, which is checked first
 [[nodiscard]] float numberOr(const json& params, const char* key, float fallback) noexcept {
 	const auto found = params.find(key);
 	if(found == params.end() || !found->is_number()) return fallback;
@@ -24,6 +25,7 @@ namespace {
 
 /// @brief A boolean member, or a fallback. @param params The object. @param key The member.
 /// @param fallback If it is missing or not a boolean. @return The value.
+// NOLINTNEXTLINE(bugprone-exception-escape): json throws only on a wrong type, which is checked first
 [[nodiscard]] bool flagOr(const json& params, const char* key, bool fallback) noexcept {
 	const auto found = params.find(key);
 	return found != params.end() && found->is_boolean() ? found->get<bool>() : fallback;
@@ -56,6 +58,7 @@ namespace {
 }
 
 /// @brief Reads a box being dragged. @param value The `box` member. @return Its corners, or nothing.
+// NOLINTNEXTLINE(bugprone-exception-escape): json throws only on a wrong type, which is checked first
 [[nodiscard]] std::optional<std::array<float, 4>> boxFromJson(const json& value) noexcept {
 	if(!value.is_array() || value.size() != 4) return std::nullopt;
 	std::array<float, 4> box{};
@@ -79,6 +82,7 @@ namespace {
 
 /// @brief A colour from three finite numbers, clamped to 0 to 1.
 /// @param value The array of three numbers. @param fallback When one isn't finite. @return The colour.
+// NOLINTNEXTLINE(bugprone-exception-escape): json throws only on a wrong type, which is checked first
 [[nodiscard]] Vec3 arrayColor(const json& value, Vec3 fallback) noexcept {
 	const Vec3 color{value[0].get<float>(), value[1].get<float>(), value[2].get<float>()};
 	if(!isFinite(color)) return fallback;
@@ -112,6 +116,7 @@ std::optional<Shading> shadingNamed(std::string_view name) noexcept {
 	return std::nullopt;
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): json throws only on a wrong type, which is checked first
 Vec3 colorFromJson(const json& value, Vec3 fallback) noexcept {
 	if(value.is_array() && value.size() == 3 && value[0].is_number() && value[1].is_number() && value[2].is_number())
 		return arrayColor(value, fallback);
@@ -119,6 +124,7 @@ Vec3 colorFromJson(const json& value, Vec3 fallback) noexcept {
 	return hexColor(value.get_ref<const std::string&>(), fallback);
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): json throws only on a wrong type, which is checked first
 ViewportSettings viewportSettingsFromJson(const json& params) noexcept {
 	ViewportSettings settings;
 	if(!params.is_object()) return settings;

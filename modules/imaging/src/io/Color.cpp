@@ -106,7 +106,7 @@ ColorProfile::ColorProfile(void* handle) {
 	state->handle = {handle, [](void* profile) { cmsCloseProfile(profile); }};
 	if(handle == nullptr) throw DocumentError("imaging: the colour profile could not be built");
 	if(!usable(handle)) throw DocumentError("imaging: an unsupported colour profile (only RGB, grey and CMYK)");
-	state->model = *modelOf(handle);
+	state->model = modelOf(handle).value(); // usable() has checked it
 	std::array<char, 256> text{};
 	if(cmsGetProfileInfoASCII(handle, cmsInfoDescription, "en", "US", text.data(), text.size()) > 0)
 		state->name = text.data();
@@ -196,9 +196,11 @@ std::vector<float> ColorTransform::table(int side) const {
 	const auto edge = static_cast<std::size_t>(side);
 	std::vector<Pixel> cube(edge * edge * edge);
 	const float step = 1.0f / static_cast<float>(side - 1);
-	for(std::size_t index = 0; index < cube.size(); ++index)
-		cube[index] = {static_cast<float>(index % edge) * step, static_cast<float>(index / edge % edge) * step,
-		               static_cast<float>(index / (edge * edge)) * step, 1.0f};
+	for(std::size_t index = 0; index < cube.size(); ++index) {
+		const std::size_t red = index % edge, green = index / edge % edge, blue = index / (edge * edge);
+		cube[index] = {static_cast<float>(red) * step, static_cast<float>(green) * step,
+		               static_cast<float>(blue) * step, 1.0f};
+	}
 	apply(cube);
 	std::vector<float> values;
 	values.reserve(cube.size() * 3);

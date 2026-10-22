@@ -54,7 +54,7 @@ Compositor::Compositor(const Document& document) : document_(document) {
 }
 
 void Compositor::composite(const TileKey& key, std::span<Pixel> out) {
-	std::fill(out.begin(), out.end(), Pixel{});
+	std::ranges::fill(out, Pixel{});
 	compositeList(document_.structure().root, key, out, 0);
 }
 
@@ -66,7 +66,7 @@ void Compositor::compositeList(const std::vector<std::uint64_t>& list, const Til
 	for(const std::uint64_t id : list) {
 		const Layer* layer = document_.layer(id);
 		if(layer == nullptr) continue;
-		if(!layer->clipped && !layer->visible) std::fill(base.begin(), base.end(), 0.0f);
+		if(!layer->clipped && !layer->visible) std::ranges::fill(base, 0.0f);
 		if(layer->visible) compositeLayer(*layer, key, backdrop, depth);
 	}
 }

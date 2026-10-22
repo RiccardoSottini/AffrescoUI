@@ -60,7 +60,7 @@ namespace {
 /// @param context The vector.
 /// @param data The bytes.
 /// @param size How many.
-void append(void* context, void* data, int size) {
+void append(void* context, void* data, int size) { // NOLINT(misc-const-correctness): stb's callback type
 	auto& out = *static_cast<std::vector<std::uint8_t>*>(context);
 	const auto* bytes = static_cast<const std::uint8_t*>(data);
 	out.insert(out.end(), bytes, bytes + size);
@@ -127,7 +127,7 @@ std::vector<std::uint8_t> deflate(std::span<const std::uint8_t> bytes) {
 	const auto length = lengthOf(bytes);
 	if(!length) return {};
 	int made = 0;
-	// stb_image_write takes a mutable pointer but only reads it
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): stb_image_write takes a mutable pointer but only reads it
 	unsigned char* stream = stbi_zlib_compress(const_cast<unsigned char*>(bytes.data()), *length, &made, 8);
 	if(stream == nullptr) return {};
 	std::vector<std::uint8_t> out(stream, stream + made);

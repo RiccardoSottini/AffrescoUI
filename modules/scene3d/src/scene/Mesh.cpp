@@ -28,6 +28,7 @@ void MeshData::computeNormals() {
 	for(Vec3& normal : normals) normal = length(normal) > 0.0f ? normalize(normal) : Vec3{0.0f, 1.0f, 0.0f};
 }
 
+// NOLINTNEXTLINE(modernize-use-string-view): its public declaration stays as it is
 std::string MeshData::validate() const {
 	if(!normals.empty() && normals.size() != positions.size()) return "the normals don't match the positions";
 	if(!texCoords.empty() && texCoords.size() != positions.size())

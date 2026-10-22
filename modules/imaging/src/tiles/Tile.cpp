@@ -103,7 +103,7 @@ std::optional<Pixel> Tile::uniform() const noexcept {
 }
 
 bool Tile::empty() const noexcept {
-	return std::all_of(bytes_.begin(), bytes_.end(), [](std::uint8_t byte) { return byte == 0; });
+	return std::ranges::all_of(bytes_, [](std::uint8_t byte) { return byte == 0; });
 }
 
 std::shared_ptr<Tile> convertTile(const Tile& tile, PixelFormat format) {

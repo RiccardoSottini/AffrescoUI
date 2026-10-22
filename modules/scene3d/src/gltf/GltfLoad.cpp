@@ -120,7 +120,7 @@ void checkRanges(const cgltf_data& data) {
 	std::error_code error;
 	const auto root = std::filesystem::weakly_canonical(directory, error);
 	const auto file = std::filesystem::weakly_canonical(directory / std::filesystem::path(std::string(uri)), error);
-	const auto [end, _] = std::mismatch(root.begin(), root.end(), file.begin(), file.end());
+	const auto [end, _] = std::ranges::mismatch(root, file);
 	if(error || end != root.end())
 		throw GltfError("glTF: refused the file \"" + std::string(uri) + "\": it leads outside its directory");
 	return file;
@@ -167,6 +167,7 @@ void loadBuffer(const cgltf_options& options, const cgltf_data& data, cgltf_buff
 		// The GLB's own chunk, if this is the first buffer; otherwise a meshopt fallback that stays unloaded
 		if(&buffer == data.buffers && data.bin != nullptr) {
 			if(data.bin_size < buffer.size) throw GltfError("glTF: the binary chunk is shorter than its buffer");
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): cgltf's field is mutable; this one is only read
 			buffer.data = const_cast<void*>(data.bin);
 			buffer.data_free_method = cgltf_data_free_method_none;
 		}
@@ -180,6 +181,7 @@ void loadBuffer(const cgltf_options& options, const cgltf_data& data, cgltf_buff
 	const auto bytes = detail::readLimited(safeFile(directory, decodedUri(buffer.uri)), limits.fileBytes);
 	if(bytes.size() < buffer.size)
 		throw GltfError("glTF: the file \"" + std::string(buffer.uri) + "\" is shorter than its buffer");
+	// NOLINTNEXTLINE(cppcoreguidelines-no-malloc): cgltf frees it with free()
 	void* copy = std::malloc(std::max<std::size_t>(buffer.size, 1));
 	if(copy == nullptr) throw GltfError("glTF: out of memory");
 	std::memcpy(copy, bytes.data(), buffer.size);
@@ -212,7 +214,7 @@ void warnExtensions(detail::GltfContext& context) {
 		const auto [bytes, size] = dataUri(options, image.uri, 0, context.limits.fileBytes);
 		std::vector<std::uint8_t> copy(static_cast<const std::uint8_t*>(bytes),
 		                               static_cast<const std::uint8_t*>(bytes) + size);
-		std::free(bytes);
+		std::free(bytes); // NOLINT(cppcoreguidelines-no-malloc): cgltf allocated it with malloc()
 		return copy;
 	}
 	return detail::readLimited(safeFile(context.directory, decodedUri(image.uri)), context.limits.fileBytes);
@@ -302,6 +304,7 @@ std::string textureId(GltfContext& context, const cgltf_texture* texture, bool s
 
 } // namespace detail
 
+// NOLINTNEXTLINE(bugprone-exception-escape): substr never starts past the end, so it can't throw
 bool isSafeRelativeUri(std::string_view uri) noexcept {
 	if(uri.empty() || uri.front() == '/' || uri.find_first_of(std::string_view(":\\\0", 3)) != std::string_view::npos)
 		return false;

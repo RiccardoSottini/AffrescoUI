@@ -178,7 +178,8 @@ Vec3 Mat4::transformDirection(Vec3 direction) const noexcept {
 Mat4 Mat4::transposed() const noexcept {
 	Mat4 m;
 	for(int row = 0; row < 4; ++row)
-		for(int column = 0; column < 4; ++column) m.at(row, column) = at(column, row);
+		for(int column = 0; column < 4; ++column)
+			m.at(row, column) = at(column, row); // NOLINT(readability-suspicious-call-argument): transposing
 	return m;
 }
 

@@ -35,6 +35,15 @@ constexpr std::array<std::string_view, 5> names{"gaussian-blur", "sharpen", "uns
 	return unsharp;
 }
 
+/// @brief The filter a run applies: sharpen as its unsharp settings, normalised to the limits.
+/// @param filter The filter asked for.
+/// @param limits The document's limits.
+[[nodiscard]] Filter runFilter(const Filter& filter, const Limits& limits) noexcept {
+	Filter run = sharpenedAs(filter);
+	run.normalize(limits);
+	return run;
+}
+
 } // namespace
 
 std::span<const std::string_view> filterKindNames() noexcept { return names; }
@@ -71,9 +80,7 @@ int haloOf(const Filter& filter) noexcept {
 }
 
 FilterRun::FilterRun(Document& document, std::uint64_t target, const Filter& filter, std::string name)
-    : document_(&document), target_(target), filter_(sharpenedAs(filter)) {
-	filter_.normalize(document.limits());
-	halo_ = haloOf(filter_);
+    : document_(&document), target_(target), filter_(runFilter(filter, document.limits())), halo_(haloOf(filter_)) {
 	if(const auto refused = document.paintable(target); refused) throw DocumentError(*refused);
 	if(document.image(target) == nullptr) throw DocumentError("imaging: no image to filter");
 	document.begin(std::move(name));

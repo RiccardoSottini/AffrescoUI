@@ -43,7 +43,7 @@ struct Band {
 		if(from.y > to.y) std::swap(from, to);
 		edges.push_back({from.y, to.y, from.x, (to.x - from.x) / (to.y - from.y)});
 	}
-	std::sort(edges.begin(), edges.end(), [](const Edge& left, const Edge& right) { return left.top < right.top; });
+	std::ranges::sort(edges, [](const Edge& left, const Edge& right) { return left.top < right.top; });
 	return edges;
 }
 
@@ -86,7 +86,7 @@ struct Scanner {
 			crossings.clear();
 			for(const Edge* edge : active)
 				if(edge->top <= scan) crossings.push_back(edge->x + (scan - edge->top) * edge->slope);
-			std::sort(crossings.begin(), crossings.end());
+			std::ranges::sort(crossings);
 			for(std::size_t index = 0; index + 1 < crossings.size(); index += 2)
 				addSpan(crossings[index], crossings[index + 1], partial, whole);
 		}
@@ -150,7 +150,8 @@ Coverage polygonCoverage(int width, int height, std::span<const Point> points, c
 	Coverage coverage;
 	const std::vector<Edge> edges = edgesOf(points);
 	if(edges.empty() || width <= 0 || height <= 0) return coverage;
-	float top = edges.front().top, bottom = top;
+	const float top = edges.front().top;
+	float bottom = top;
 	for(const Edge& edge : edges) bottom = std::max(bottom, edge.bottom);
 	const int firstRow = std::clamp(static_cast<int>(std::floor(top)), 0, height);
 	const int lastRow = std::clamp(static_cast<int>(std::ceil(bottom)), 0, height);

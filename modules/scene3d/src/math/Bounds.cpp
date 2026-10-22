@@ -55,13 +55,12 @@ Frustum Frustum::fromMatrix(const Mat4& viewProjection) noexcept {
 
 bool Frustum::intersects(const Aabb& box) const noexcept {
 	if(box.empty()) return false;
-	for(const Plane& plane : planes) {
+	return std::ranges::none_of(planes, [&box](const Plane& plane) {
 		// The corner furthest along the normal
 		const Vec3 positive{plane.normal.x >= 0 ? box.max.x : box.min.x, plane.normal.y >= 0 ? box.max.y : box.min.y,
 		                    plane.normal.z >= 0 ? box.max.z : box.min.z};
-		if(plane.signedDistance(positive) < 0.0f) return false;
-	}
-	return true;
+		return plane.signedDistance(positive) < 0.0f;
+	});
 }
 
 std::optional<float> intersect(const Ray& ray, const Aabb& box) noexcept {

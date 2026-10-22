@@ -79,7 +79,7 @@ namespace {
 /// @param saturation The saturation.
 [[nodiscard]] Pixel setSaturation(Pixel color, float saturation) noexcept {
 	std::array<float*, 3> order{&color.red, &color.green, &color.blue};
-	std::sort(order.begin(), order.end(), [](const float* left, const float* right) { return *left < *right; });
+	std::ranges::sort(order, [](const float* left, const float* right) { return *left < *right; });
 	float& low = *order[0];
 	float& middle = *order[1];
 	float& high = *order[2];
@@ -104,7 +104,7 @@ std::string_view blendModeName(BlendMode mode) noexcept { return blendModeNames(
 
 std::optional<BlendMode> blendModeOf(std::string_view name) noexcept {
 	const auto& names = blendModeNames();
-	const auto* const found = std::find(names.begin(), names.end(), name);
+	const auto* const found = std::ranges::find(names, name);
 	if(found == names.end()) return std::nullopt;
 	return static_cast<BlendMode>(found - names.begin());
 }

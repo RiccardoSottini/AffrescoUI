@@ -7,6 +7,7 @@
 
 #include <cstring>
 #include <map>
+#include <string_view>
 
 namespace affresco::scene3d {
 
@@ -20,7 +21,7 @@ constexpr int elementArrayBuffer = 34963;  ///< ELEMENT_ARRAY_BUFFER.
 
 /// @brief Bytes as base64. @param bytes Them. @return The text.
 [[nodiscard]] std::string base64(const std::vector<std::uint8_t>& bytes) {
-	static constexpr char digits[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	static constexpr std::string_view digits = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	std::string text;
 	text.reserve((bytes.size() + 2) / 3 * 4);
 	for(std::size_t i = 0; i < bytes.size(); i += 3) {

@@ -275,9 +275,10 @@ void invertSelection(Document& document) {
 }
 
 bool selectsAnything(const Image& selection) {
-	for(const TileKey& key : selection.writtenTiles())
-		if(const auto tile = selection.tile(key); tile && !tile->empty()) return true;
-	return false;
+	return std::ranges::any_of(selection.writtenTiles(), [&](const TileKey& key) {
+		const auto tile = selection.tile(key);
+		return tile && !tile->empty();
+	});
 }
 
 std::array<int, 4> selectionBounds(const Document& document) {

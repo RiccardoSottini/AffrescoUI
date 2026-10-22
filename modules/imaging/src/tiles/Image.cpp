@@ -163,6 +163,7 @@ std::vector<TileKey> Image::writtenTiles() const {
 	return keys;
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): only the set's allocation can throw, which ends the program
 std::size_t Image::memoryBytes() const noexcept {
 	std::size_t bytes = cachedBytes_;
 	// A tile shared by several places (a filled mask, a duplicate) counts once
