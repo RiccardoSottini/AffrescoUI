@@ -170,18 +170,14 @@ AdjustmentShader adjustmentShader(const Adjustment& adjustment) noexcept {
 
 std::array<std::uint8_t, std::size_t{256} * 4> adjustmentTable(const Adjustment& adjustment) {
 	std::array<std::uint8_t, std::size_t{256} * 4> table{};
+	// The shader turns the hue itself, so its table is grey; a per-channel adjustment is adjustPixel on grey
+	const bool turnsHue = adjustmentShader(adjustment) == AdjustmentShader::hueSaturation;
 	for(std::size_t index = 0; index < 256; ++index) {
 		const float value = static_cast<float>(index) / 255.0f;
 		const Pixel grey{value, value, value, 1.0f};
-		const Pixel out =
-		    adjustmentShader(adjustment) == AdjustmentShader::hueSaturation ? grey : adjustPixel(adjustment, grey);
+		const Pixel out = turnsHue ? grey : adjustPixel(adjustment, grey);
 		const std::array<float, 4> channels{
-		    adjustmentShader(adjustment) == AdjustmentShader::perChannel ? adjustChannel(adjustment, 0, value)
-			                                                             : out.red,
-		    adjustmentShader(adjustment) == AdjustmentShader::perChannel ? adjustChannel(adjustment, 1, value)
-			                                                             : out.green,
-		    adjustmentShader(adjustment) == AdjustmentShader::perChannel ? adjustChannel(adjustment, 2, value)
-			                                                             : out.blue,
+		    out.red, out.green, out.blue,
 		    adjustment.kind == AdjustmentKind::gradientMap ? adjustment.gradient.at(value).alpha : 1.0f};
 		for(std::size_t channel = 0; channel < 4; ++channel)
 			table[index * 4 + channel] = byteFromUnit(channels[channel]);
