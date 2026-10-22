@@ -177,12 +177,14 @@ bool OriginAllowlist::admits(const Url& url) const {
 	});
 }
 
-std::optional<std::string> OriginAllowlist::check(std::string_view text) const {
-	const auto url = parseUrl(text);
-	if(!url) return "'" + std::string(text.substr(0, 200)) + "' isn't a URL this app can open (https, wss, or http and ws on the loopback)";
-	if(!url->secure() && !isLoopback(url->host))
-		return "'" + url->host + "' needs TLS: http:// and ws:// are for the loopback only";
-	if(!admits(*url)) return "'" + url->authority() + "' isn't a host this app may connect to";
+std::optional<std::string> OriginAllowlist::check(std::string_view url) const {
+	const auto parsed = parseUrl(url);
+	if(!parsed)
+		return "'" + std::string(url.substr(0, 200)) +
+		       "' isn't a URL this app can open (https, wss, or http and ws on the loopback)";
+	if(!parsed->secure() && !isLoopback(parsed->host))
+		return "'" + parsed->host + "' needs TLS: http:// and ws:// are for the loopback only";
+	if(!admits(*parsed)) return "'" + parsed->authority() + "' isn't a host this app may connect to";
 	return std::nullopt;
 }
 

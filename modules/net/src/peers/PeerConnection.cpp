@@ -70,7 +70,10 @@ std::optional<std::string> PeerConnection::open(Clock::time_point deadline) {
 	if(upgrade.hasOrigin && !peer::originAllowed(upgrade.origin, shared_->options.allowedOrigins))
 		return refuse(403, "this origin isn't allowed");
 	std::optional<std::string> author;
-	if(!upgrade.token.empty() && !(author = verify(upgrade.token))) return refuse(401, "the token was refused");
+	if(!upgrade.token.empty()) {
+		author = verify(upgrade.token);
+		if(!author) return refuse(401, "the token was refused");
+	}
 	if(!connection_->send(peer::acceptResponse(upgrade.key), openingWriteTimeout)) return std::nullopt;
 	input_.erase(0, *end);
 	feedFrames();
@@ -95,9 +98,10 @@ bool PeerConnection::authEvent(const FrameEvent& event, std::optional<std::strin
 		const auto token = peer::authToken(event.data);
 		if(!token) {
 			closeWith(1008, R"(the first message must be {"type": "auth", "token": "..."})");
-		} else if(!(author = verify(*token))) {
-			closeWith(1008, "the token was refused");
+			return true;
 		}
+		author = verify(*token);
+		if(!author) closeWith(1008, "the token was refused");
 		return true;
 	}
 	case FrameEvent::Kind::Ping:
@@ -117,7 +121,8 @@ std::optional<std::string> PeerConnection::verify(const std::string& token) {
 	try {
 		auto author = shared_->verifier->verify(token);
 		if(author && !author->empty()) return author;
-	} catch(...) { // a verifier that throws refuses the peer
+	} catch(...) {
+		return std::nullopt; // a verifier that throws refuses the peer
 	}
 	return std::nullopt;
 }

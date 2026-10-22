@@ -75,6 +75,7 @@ bool isTokenCharacter(char c) noexcept {
 
 /// @brief Whether a header is one the transport sets, which a caller may not.
 /// @param name The name.
+// NOLINTNEXTLINE(bugprone-exception-escape): substr(0, n) never throws
 bool isTransportHeader(std::string_view name) noexcept {
 	static constexpr std::array<std::string_view, 8> names{"host", "content-length", "transfer-encoding", "connection",
 	                                                       "upgrade", "expect", "te", "trailer"};

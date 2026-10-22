@@ -91,8 +91,8 @@ void SignIn::declare(const std::vector<std::pair<std::string, identity::Provider
 void SignIn::signIn(const std::string& name, std::function<void(std::optional<std::string> error)> done) {
 	const auto found = entries_.find(name);
 	if(found == entries_.end()) {
-		executor_.post([done = std::move(done), name] {
-			if(done) done("there is no sign-in named '" + name + "'");
+		executor_.post([done = std::move(done), missing = name] {
+			if(done) done("there is no sign-in named '" + missing + "'");
 		});
 		return;
 	}

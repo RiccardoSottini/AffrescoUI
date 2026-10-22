@@ -3,6 +3,7 @@
 
 #include "http/Streams.hpp"
 
+#include <algorithm>
 #include <utility>
 
 namespace affresco::net {
@@ -11,21 +12,21 @@ EventStreamParser::EventStreamParser(std::size_t maxEventBytes, EventSink sink)
     : maxEventBytes_(maxEventBytes), sink_(std::move(sink)) {}
 
 bool EventStreamParser::feed(std::string_view chunk) {
-	for(const char c : chunk) {
+	return std::ranges::all_of(chunk, [this](char c) {
 		if(c == '\n' && afterCarriageReturn_) {
 			afterCarriageReturn_ = false;
-			continue;
+			return true;
 		}
 		afterCarriageReturn_ = c == '\r';
 		if(c == '\n' || c == '\r') {
 			if(!line(pending_)) return false;
 			pending_.clear();
-			continue;
+			return true;
 		}
 		if(pending_.size() >= maxEventBytes_) return false;
 		pending_ += c;
-	}
-	return true;
+		return true;
+	});
 }
 
 bool EventStreamParser::line(std::string_view text) {
@@ -57,17 +58,17 @@ LineStreamParser::LineStreamParser(std::size_t maxLineBytes, EventSink sink)
     : maxLineBytes_(maxLineBytes), sink_(std::move(sink)) {}
 
 bool LineStreamParser::feed(std::string_view chunk) {
-	for(const char c : chunk) {
+	return std::ranges::all_of(chunk, [this](char c) {
 		if(c != '\n') {
 			if(pending_.size() >= maxLineBytes_) return false;
 			pending_ += c;
-			continue;
+			return true;
 		}
 		if(pending_.ends_with('\r')) pending_.pop_back();
 		if(!pending_.empty() && sink_) sink_({"line", std::exchange(pending_, {}), {}});
 		pending_.clear();
-	}
-	return true;
+		return true;
+	});
 }
 
 void LineStreamParser::finish() {

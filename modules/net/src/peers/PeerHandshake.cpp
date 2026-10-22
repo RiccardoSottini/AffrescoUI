@@ -9,6 +9,7 @@
 #include "affresco/core/Json.hpp"
 
 #include <algorithm>
+#include <array>
 
 namespace affresco::net::peer {
 
@@ -39,10 +40,10 @@ std::string_view trim(std::string_view text) noexcept {
 /// @param name Its name.
 /// @param value Its value, trimmed.
 void keep(Fields& fields, std::string_view name, std::string_view value) {
-	const std::pair<std::string_view, std::optional<std::string>*> slots[] = {
+	const std::array<std::pair<std::string_view, std::optional<std::string>*>, 6> slots{{
 	    {"upgrade", &fields.upgrade},   {"connection", &fields.connection},
 	    {"sec-websocket-version", &fields.version}, {"sec-websocket-key", &fields.key},
-	    {"origin", &fields.origin},     {"authorization", &fields.authorization}};
+	    {"origin", &fields.origin},     {"authorization", &fields.authorization}}};
 	for(const auto& [field, slot] : slots) {
 		if(!equalsIgnoringCase(name, field)) continue;
 		if(slot->has_value()) fields.repeated = true;

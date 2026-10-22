@@ -46,7 +46,7 @@ void startStream(Job& job) {
 /// @param count Its length.
 /// @param user The Job.
 /// @return count, or 0 to abort the transfer.
-// NOLINTNEXTLINE(readability-non-const-parameter): curl's CURLOPT_HEADERFUNCTION type
+// NOLINTNEXTLINE(readability-non-const-parameter, misc-const-correctness): curl's CURLOPT_HEADERFUNCTION type
 std::size_t onHeader(char* buffer, std::size_t size, std::size_t count, void* user) {
 	Job& job = *static_cast<Job*>(user);
 	const std::size_t length = size * count;
@@ -80,7 +80,7 @@ std::size_t onHeader(char* buffer, std::size_t size, std::size_t count, void* us
 /// @param count How many.
 /// @param user The Job.
 /// @return count, or 0 to abort the transfer.
-// NOLINTNEXTLINE(readability-non-const-parameter): curl's CURLOPT_WRITEFUNCTION type
+// NOLINTNEXTLINE(readability-non-const-parameter, misc-const-correctness): curl's CURLOPT_WRITEFUNCTION type
 std::size_t onBody(char* buffer, std::size_t size, std::size_t count, void* user) {
 	Job& job = *static_cast<Job*>(user);
 	const std::size_t length = size * count;
@@ -231,7 +231,8 @@ std::optional<std::string> Worker::begin(Job& job) {
 	curl::applyCommonOptions(easy, options_);
 	curl_easy_setopt(easy, CURLOPT_URL, job.request.url.c_str());
 	bool listed = true;
-	for(const auto& [name, value] : job.request.headers) listed = listed && curl::appendHeader(job.headers, name + ": " + value);
+	for(const auto& [name, value] : job.request.headers)
+		listed = listed && curl::appendHeader(job.headers, std::string(name).append(": ").append(value));
 	if(job.request.stream == network::Stream::Events && !findHeader(job.request.headers, "accept"))
 		listed = listed && curl::appendHeader(job.headers, "Accept: text/event-stream");
 	listed = listed && curl::appendHeader(job.headers, "Expect:"); // no 100-continue round trip

@@ -52,7 +52,7 @@ void postClosed(Executor& executor, const std::shared_ptr<SocketDelivery>& deliv
 /// @brief libcurl's progress callback while connecting: aborts once the owner closes.
 /// @param user The stop token.
 /// @return Non-zero to abort.
-// NOLINTNEXTLINE(readability-non-const-parameter): curl's CURLOPT_XFERINFOFUNCTION type
+// NOLINTNEXTLINE(readability-non-const-parameter,misc-const-correctness): curl's CURLOPT_XFERINFOFUNCTION type
 int onConnectProgress(void* user, curl_off_t /*downloadTotal*/, curl_off_t /*downloaded*/, curl_off_t /*uploadTotal*/,
                       curl_off_t /*uploaded*/) {
 	return static_cast<const std::stop_token*>(user)->stop_requested() ? 1 : 0;
@@ -219,7 +219,8 @@ std::optional<network::Failure> ClientSocket::connect(const std::stop_token& sto
 	curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT_MS, static_cast<long>(openTimeout.count()));
 	curl_easy_setopt(easy, CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(easy, CURLOPT_XFERINFOFUNCTION, onConnectProgress);
-	curl_easy_setopt(easy, CURLOPT_XFERINFODATA, const_cast<void*>(static_cast<const void*>(&stop)));
+	std::stop_token token = stop; // a copy curl can point at, without casting const away; it outlives the perform
+	curl_easy_setopt(easy, CURLOPT_XFERINFODATA, &token);
 	const CURLcode code = curl_easy_perform(easy);
 	if(code == CURLE_OPERATION_TIMEDOUT) return network::Failure{"timeout", "The connection took too long.", 0, {}};
 	if(code != CURLE_OK) return network::Failure{"network", curl_easy_strerror(code), 0, {}};
@@ -262,7 +263,7 @@ std::string ClientSocket::upgradeRequest(const std::string& key) const {
 	std::string request = "GET " + url_.target + " HTTP/1.1\r\nHost: " + url_.authority() +
 	                      "\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: " + key +
 	                      "\r\nSec-WebSocket-Version: 13\r\n";
-	for(const auto& [name, value] : headers_) request += name + ": " + value + "\r\n";
+	for(const auto& [name, value] : headers_) request.append(name).append(": ").append(value).append("\r\n");
 	return request + "\r\n";
 }
 

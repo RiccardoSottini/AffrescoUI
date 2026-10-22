@@ -27,8 +27,7 @@ void applyCommonOptions(CURL* handle, const ClientOptions& options) noexcept {
 bool appendHeader(List& list, const std::string& line) {
 	curl_slist* appended = curl_slist_append(list.get(), line.c_str());
 	if(!appended) return false;
-	static_cast<void>(list.release()); // curl_slist_append returns the same list, now longer
-	list.reset(appended);
+	if(!list) list.reset(appended); // otherwise curl_slist_append returned the same list, now longer
 	return true;
 }
 

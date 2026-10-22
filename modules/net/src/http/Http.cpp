@@ -73,6 +73,7 @@ std::optional<std::string> findHeader(const network::Headers& headers, std::stri
 	return std::nullopt;
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): substr(0, n) never throws
 bool hasToken(std::string_view value, std::string_view token) noexcept {
 	while(!value.empty()) {
 		const auto comma = value.find(',');

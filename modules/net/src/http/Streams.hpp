@@ -35,9 +35,9 @@ public:
 
 private:
 	/// @brief Handles one line (without its ending).
-	/// @param line The line.
+	/// @param text The line.
 	/// @return false if the event grew past the limit.
-	bool line(std::string_view line);
+	bool line(std::string_view text);
 	/// @brief Takes one field of the event being read: "data", "event" or "id" (others are ignored).
 	/// @param name The field's name.
 	/// @param value Its value.
