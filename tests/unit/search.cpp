@@ -1,11 +1,11 @@
 /// @file
-/// @brief The search engine and provider (affresco/services/Search.hpp, modules/services/src/Search*): globs and
+/// @brief The search engine and provider (affresco/services/Search.hpp, modules/services/src/search/): globs and
 /// .gitignore rules, a folder searched on several threads within its caps, cancelled, matches replaced, and a screen
 /// that finds through the `search` service then writes a replaced file through `fs`; and Forge's Search view natives
 /// (examples/forge/features/search), which search and replace in the open folder.
 
 #include "Headless.hpp"
-#include "SearchGlob.hpp"
+#include "search/SearchGlob.hpp"
 #include "features/search/Search.hpp"
 
 #include <affresco/affresco.hpp>
@@ -505,6 +505,31 @@ TEST_CASE("search: Forge's replace writes nothing through a link planted beside 
 	CHECK(folder.read("a.txt") == "two\n");
 	CHECK(elsewhere.read("target") == "untouched");
 	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "a.txt"));
+}
+
+// The fs service wrote through "<file>.affrescoui-writing", so a link left there by whoever made the folder (a cloned
+// repository) had the written text land on the file it pointed to, outside the root
+TEST_CASE("search: fs writes nothing through a link planted beside the file, and keeps its permissions") {
+	const TempFolder folder, elsewhere;
+	folder.write("work/a.txt", "a needle\n");
+	elsewhere.write("target", "untouched");
+	std::filesystem::create_symlink(elsewhere.path / "target", folder.path / "work" / "a.txt.affrescoui-writing");
+	std::filesystem::permissions(folder.path / "work" / "a.txt",
+	                             std::filesystem::perms::owner_read | std::filesystem::perms::owner_write);
+	PumpedExecutor executor;
+	const affresco::detail::ManualClock clock;
+	const auto window = affresco::detail::createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(searchScreen);
+	screen.services().addRoot("work", folder.path / "work");
+	screen.setExecutor(&executor);
+	screen.build(*window);
+	screen.runAction("replace", window->root());
+	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/written") == true; }));
+	CHECK(folder.read("work/a.txt") == "a pin\n");
+	CHECK(elsewhere.read("target") == "untouched");
+	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "work" / "a.txt"));
+	CHECK(std::filesystem::status(folder.path / "work" / "a.txt").permissions() ==
+	      (std::filesystem::perms::owner_read | std::filesystem::perms::owner_write));
 }
 
 // A .gitignore that is a FIFO would block the walk on opening it: only a file's rules are read

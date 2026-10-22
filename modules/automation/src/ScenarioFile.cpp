@@ -74,18 +74,21 @@ void checkFileName(const json& value, const std::string& place) {
 		fail(place, "expected a name of letters, digits, '-', '_' and '.'");
 }
 
-/// @brief Checks the node part of an expectation: `node`, `nth`, then `exists`, `text`, or `property` with `is`.
+/// @brief Checks which node an expectation is about.
+/// @param node "#id", or {"role": ..., "name": ...}.
+/// @param place Its place.
+/// @throws DocumentError If it is neither.
+void checkNodeName(const json& node, const std::string& place) {
+	if(node.is_object()) checkByRole(node, place);
+	else if(!node.is_string() || node.get<std::string>().size() < 2 || node.get<std::string>().front() != '#')
+		fail(place, R"(expected "#id", or {"role": ..., "name": ...})");
+}
+
+/// @brief Checks what an expectation of a node expects: `exists`, `text`, or `property` with `is`.
 /// @param expect The expectation.
 /// @param place Its place.
-/// @throws DocumentError If it is malformed.
-void checkNodeExpectation(const json& expect, const std::string& place) {
-	onlyKeys(expect, {"node", "nth", "exists", "text", "property", "is", "note"}, place);
-	if(expect["node"].is_object())
-		checkByRole(expect["node"], place + ".node");
-	else if(!expect["node"].is_string() || expect["node"].get<std::string>().size() < 2 ||
-	        expect["node"].get<std::string>().front() != '#')
-		fail(place + ".node", R"(expected "#id", or {"role": ..., "name": ...})");
-	checkNth(expect, place);
+/// @throws DocumentError If it expects none of them, two, or a malformed one.
+void checkNodeClaim(const json& expect, const std::string& place) {
 	const int what = static_cast<int>(expect.contains("exists")) + static_cast<int>(expect.contains("text")) +
 	                 static_cast<int>(expect.contains("property"));
 	if(what != 1) fail(place, R"(expected one of "exists", "text", or "property" with "is")");
@@ -98,6 +101,17 @@ void checkNodeExpectation(const json& expect, const std::string& place) {
 	if(!expect["property"].is_string() || !detail::isReadableProperty(expect["property"].get<std::string>()))
 		fail(place + ".property", "expected one of " + detail::readableProperties());
 	if(!expect.contains("is")) fail(place, R"("property" needs "is": the value expected)");
+}
+
+/// @brief Checks the node part of an expectation: `node`, `nth`, then `exists`, `text`, or `property` with `is`.
+/// @param expect The expectation.
+/// @param place Its place.
+/// @throws DocumentError If it is malformed.
+void checkNodeExpectation(const json& expect, const std::string& place) {
+	onlyKeys(expect, {"node", "nth", "exists", "text", "property", "is", "note"}, place);
+	checkNodeName(expect["node"], place + ".node");
+	checkNth(expect, place);
+	checkNodeClaim(expect, place);
 }
 
 /// @brief Checks an expectation: of a state value, of a node, or of a picture.
@@ -189,6 +203,33 @@ void checkAction(const json& step, const std::string& place) {
 	if(step.contains("event") && !step["event"].is_object()) fail(place + ".event", "expected an object");
 }
 
+/// @brief Checks the text a `type` step types.
+/// @param value The text.
+/// @param at Its place.
+/// @throws DocumentError If it isn't text, or is too long.
+void checkTyped(const json& value, const std::string& at) {
+	if(!value.is_string() || value.get<std::string>().size() > detail::maxTypedBytes)
+		fail(at, "expected text, at most " + std::to_string(detail::maxTypedBytes) + " bytes");
+}
+
+/// @brief Checks the key a `key` step presses.
+/// @param value The key's name, with modifiers.
+/// @param at Its place.
+/// @throws DocumentError If it isn't a key.
+void checkKeyName(const json& value, const std::string& at) {
+	if(!value.is_string() || !detail::parseKey(value.get<std::string>()))
+		fail(at, "expected a key: " + detail::keyNames());
+}
+
+/// @brief Checks how long a `wait` step waits.
+/// @param value The milliseconds.
+/// @param at Its place.
+/// @throws DocumentError If it isn't a number of milliseconds within the limit.
+void checkWait(const json& value, const std::string& at) {
+	if(!value.is_number() || value.get<double>() < 0.0 || value.get<double>() > detail::maxWaitMs)
+		fail(at, "expected milliseconds, from 0 to " + std::to_string(static_cast<int>(detail::maxWaitMs)));
+}
+
 /// @brief Checks the steps whose one value says it all: type, key, revision, resize, wait, capture, expect.
 /// @param step The step.
 /// @param kind Its kind.
@@ -199,18 +240,15 @@ void checkValueStep(const json& step, std::string_view kind, const std::string& 
 	const json& value = step[std::string(kind)];
 	const std::string at = place + "." + std::string(kind);
 	if(kind == "type") {
-		if(!value.is_string() || value.get<std::string>().size() > detail::maxTypedBytes)
-			fail(at, "expected text, at most " + std::to_string(detail::maxTypedBytes) + " bytes");
+		checkTyped(value, at);
 	} else if(kind == "key") {
-		if(!value.is_string() || !detail::parseKey(value.get<std::string>()))
-			fail(at, "expected a key: " + detail::keyNames());
+		checkKeyName(value, at);
 	} else if(kind == "revision") {
 		if(!value.is_object()) fail(at, R"(expected a revision: {"message": ..., "set": {...}})");
 	} else if(kind == "resize") {
 		checkSize(value, at);
 	} else if(kind == "wait") {
-		if(!value.is_number() || value.get<double>() < 0.0 || value.get<double>() > detail::maxWaitMs)
-			fail(at, "expected milliseconds, from 0 to " + std::to_string(static_cast<int>(detail::maxWaitMs)));
+		checkWait(value, at);
 	} else if(kind == "capture") {
 		checkFileName(value, at);
 	} else {
@@ -262,6 +300,32 @@ bool checkStep(const json& step, const std::string& place) {
 	return kind == "capture" || (kind == "expect" && step["expect"].contains("image"));
 }
 
+/// @brief Reads a scenario's scale.
+/// @param value The scale.
+/// @param place Its place.
+/// @return The scale, from 1 to the limit.
+/// @throws DocumentError If it isn't such a whole number.
+int readScale(const json& value, const std::string& place) {
+	const int scale = expect::integer(value, place);
+	if(scale < 1 || scale > detail::maxScale) fail(place, "expected 1 to " + std::to_string(detail::maxScale));
+	return scale;
+}
+
+/// @brief Checks a scenario's steps and adds them to it.
+/// @param item The scenario's JSON.
+/// @param place Its place.
+/// @param scenario The scenario, which gets the steps, and whether they need pictures.
+/// @throws DocumentError If there are too many steps, or one is malformed.
+void readSteps(const json& item, const std::string& place, Scenario& scenario) {
+	const json& steps = item.contains("steps") ? item["steps"] : json();
+	if(!steps.is_array() || steps.size() > detail::maxSteps)
+		fail(place + ".steps", "expected a list of at most " + std::to_string(detail::maxSteps) + " steps");
+	for(std::size_t s = 0; s < steps.size(); ++s) {
+		if(checkStep(steps[s], place + ".steps[" + std::to_string(s) + "]")) scenario.needsPictures = true;
+		scenario.steps.push_back(steps[s]);
+	}
+}
+
 /// @brief Reads one scenario.
 /// @param item The scenario's JSON.
 /// @param place Its place.
@@ -281,18 +345,8 @@ Scenario readScenario(const json& item, const std::string& place, const std::fil
 	    item.contains("screen") ? std::optional(expect::string(item["screen"], place + ".screen")) : defaultScreen;
 	if(!screen) fail(place, R"(no "screen": give one here or for the whole file)");
 	scenario.screen = screens / *screen;
-	if(item.contains("scale")) {
-		scenario.scale = expect::integer(item["scale"], place + ".scale");
-		if(scenario.scale < 1 || scenario.scale > detail::maxScale)
-			fail(place + ".scale", "expected 1 to " + std::to_string(detail::maxScale));
-	}
-	const json& steps = item.contains("steps") ? item["steps"] : json();
-	if(!steps.is_array() || steps.size() > detail::maxSteps)
-		fail(place + ".steps", "expected a list of at most " + std::to_string(detail::maxSteps) + " steps");
-	for(std::size_t s = 0; s < steps.size(); ++s) {
-		if(checkStep(steps[s], place + ".steps[" + std::to_string(s) + "]")) scenario.needsPictures = true;
-		scenario.steps.push_back(steps[s]);
-	}
+	if(item.contains("scale")) scenario.scale = readScale(item["scale"], place + ".scale");
+	readSteps(item, place, scenario);
 	return scenario;
 }
 

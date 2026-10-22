@@ -91,3 +91,39 @@ that waits for one connection. `signIn`'s `done` and `onStatus` run on the main 
 - **Another transport** (a test double, a mock for previews): implement `network::Network`. The format only sees the
   interface: `format::Runtime::setNetwork` takes any, and `Screen::network()` gives a screen's `connections` a
   `Client`.
+
+## Files
+
+```
+include/affresco/net/   the public API (above)
+src/
+  Client.cpp           Client: each request checked on the calling thread, then handed to the worker or a connection
+  Url.cpp              URL parsing, the origin allowlist, percent-encoding
+  Tcp.hpp, .cpp        plain TCP for the peer server and the tests: every wait bounded, ended by close()
+  Random.hpp, .cpp     random bytes from the system's cryptographic generator
+  http/                requests over libcurl
+    Curl.hpp, .cpp       handle owners, starting libcurl once, the options every connection shares (TLS, proxy)
+    Http.hpp, .cpp       status lines, header lines and Retry-After, parsed with bounds
+    Streams.hpp, .cpp    server-sent events and line streams, fed in chunks
+    Worker.hpp, .cpp     the worker thread: the curl multi loop, retries, redirects within the origin
+    WorkerWeb.cpp        the browser build: fetch in place of the curl loop
+    Delivery.hpp         handing what the transfer threads find to the main thread
+  websocket/           WebSocket connections (RFC 6455)
+    WebSocketFrames.hpp, .cpp  the protocol without a transport: keys, frames, a bounded reader
+    WebSocketClient.hpp, .cpp  the client: libcurl connects, a thread reads and writes the frames
+    WebSocketWeb.cpp     the browser build: the browser's WebSocket, with the same limits
+  peers/               remote peers (RFC 0003)
+    PeerHandshake.hpp, .cpp    the server side of the opening: upgrade, Origin, the "auth" message
+    PeerConnection.hpp, .cpp   one peer's connection on the server side, as a core Channel
+    RemotePeers.cpp      PeerServer (its caps) and connectPeer
+  oauth/               sign-in (OAuth 2 and OpenID Connect)
+    OAuth.hpp, .cpp      the protocol without a transport: PKCE, the authorization URL, the token answers
+    OAuthSignIn.hpp, .cpp      SignIn: providers, states, tokens, the browser flow and refresh
+    OAuthDevice.cpp      the device flow (RFC 8628)
+    LoopbackRedirect.hpp, .cpp the one-time redirect listener on 127.0.0.1
+    OAuthTimer.hpp, .cpp tasks on the main thread after a delay (polls, refreshes)
+    OAuthBrowser.cpp, OAuthBrowserWeb.cpp  opening the browser, without a shell
+  secrets/             systemSecretStore: SecretStoreApple.cpp (Keychain), SecretStoreLinux.cpp (Secret Service,
+                       loaded at run time), SecretStoreWindows.cpp (Credential Manager)
+  Web/curl/curl.h      the browser build's stand-in for libcurl's header: types only, nothing transfers
+```

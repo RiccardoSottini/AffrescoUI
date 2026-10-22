@@ -38,9 +38,9 @@ bool isHostName(std::string_view host) noexcept {
 /// @brief Whether text is an IPv6 address's characters (hex digits, ':' and '.').
 /// @param host The text between the brackets.
 bool isIpv6(std::string_view host) noexcept {
-	return host.find(':') != std::string_view::npos && std::ranges::all_of(host, [](char c) {
-		return std::isxdigit(static_cast<unsigned char>(c)) != 0 || c == ':' || c == '.';
-	});
+	return host.contains(':') && std::ranges::all_of(host, [](char c) {
+		       return std::isxdigit(static_cast<unsigned char>(c)) != 0 || c == ':' || c == '.';
+	       });
 }
 
 /// @brief Parses a port.
@@ -102,20 +102,34 @@ std::string percentEncode(std::string_view value) {
 	return encoded;
 }
 
+/// @brief Whether a URL has a byte no URL may: a control, a space or a backslash (which some readers take for a slash).
+/// @param text The URL.
+bool hasForbiddenByte(std::string_view text) {
+	return std::ranges::any_of(text,
+	                           [](char c) { return static_cast<unsigned char>(c) <= 0x20 || c == 0x7f || c == '\\'; });
+}
+
+/// @brief The request target of a URL: its path and query, without the fragment, "/" if empty.
+/// @param target What follows the authority.
+std::string requestTarget(std::string_view target) {
+	if(const auto fragment = target.find('#'); fragment != std::string_view::npos) target = target.substr(0, fragment);
+	if(target.empty()) return "/";
+	return target.starts_with('?') ? "/" + std::string(target) : std::string(target);
+}
+
 } // namespace
 
 std::string Url::origin() const { return scheme + "://" + authority(); }
 
 std::string Url::authority() const {
-	std::string result = host.find(':') != std::string::npos ? "[" + host + "]" : host;
+	std::string result = host.contains(':') ? "[" + host + "]" : host;
 	if(port != defaultPort(scheme)) result += ":" + std::to_string(port);
 	return result;
 }
 
 std::optional<Url> parseUrl(std::string_view text) {
 	if(text.size() > 8192) return std::nullopt;
-	if(std::ranges::any_of(text, [](char c) { return static_cast<unsigned char>(c) <= 0x20 || c == 0x7f || c == '\\'; }))
-		return std::nullopt;
+	if(hasForbiddenByte(text)) return std::nullopt;
 	const auto separator = text.find("://");
 	if(separator == std::string_view::npos) return std::nullopt;
 	Url url;
@@ -124,11 +138,8 @@ std::optional<Url> parseUrl(std::string_view text) {
 	const auto rest = text.substr(separator + 3);
 	const auto end = rest.find_first_of("/?#");
 	const auto authority = rest.substr(0, end);
-	if(authority.empty() || authority.find('@') != std::string_view::npos || !parseAuthority(authority, url))
-		return std::nullopt;
-	std::string_view target = end == std::string_view::npos ? std::string_view{} : rest.substr(end);
-	if(const auto fragment = target.find('#'); fragment != std::string_view::npos) target = target.substr(0, fragment);
-	url.target = target.empty() ? "/" : (target.starts_with('?') ? "/" + std::string(target) : std::string(target));
+	if(authority.empty() || authority.contains('@') || !parseAuthority(authority, url)) return std::nullopt;
+	url.target = requestTarget(end == std::string_view::npos ? std::string_view{} : rest.substr(end));
 	return url;
 }
 
@@ -152,7 +163,7 @@ std::optional<std::string> OriginAllowlist::allow(std::string_view origin) {
 	const auto url = parseUrl(text);
 	if(!url || url->target != "/" || (text.find('/', text.find("://") + 3) != std::string::npos))
 		return "'" + std::string(origin) + "' isn't an origin (a scheme, a host and a port, nothing more)";
-	if(text.find('*') != std::string::npos) return "'" + std::string(origin) + "': a wildcard may only be the first label";
+	if(text.contains('*')) return "'" + std::string(origin) + "': a wildcard may only be the first label";
 	entries_.push_back({url->secure(), subdomains, url->host, url->port});
 	return std::nullopt;
 }
@@ -166,12 +177,14 @@ bool OriginAllowlist::admits(const Url& url) const {
 	});
 }
 
-std::optional<std::string> OriginAllowlist::check(std::string_view text) const {
-	const auto url = parseUrl(text);
-	if(!url) return "'" + std::string(text.substr(0, 200)) + "' isn't a URL this app can open (https, wss, or http and ws on the loopback)";
-	if(!url->secure() && !isLoopback(url->host))
-		return "'" + url->host + "' needs TLS: http:// and ws:// are for the loopback only";
-	if(!admits(*url)) return "'" + url->authority() + "' isn't a host this app may connect to";
+std::optional<std::string> OriginAllowlist::check(std::string_view url) const {
+	const auto parsed = parseUrl(url);
+	if(!parsed)
+		return "'" + std::string(url.substr(0, 200)) +
+		       "' isn't a URL this app can open (https, wss, or http and ws on the loopback)";
+	if(!parsed->secure() && !isLoopback(parsed->host))
+		return "'" + parsed->host + "' needs TLS: http:// and ws:// are for the loopback only";
+	if(!admits(*parsed)) return "'" + parsed->authority() + "' isn't a host this app may connect to";
 	return std::nullopt;
 }
 

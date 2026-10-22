@@ -3,9 +3,9 @@
 /// screen drives the deterministic fake adapter (tests/dap/fake_adapter.py) through framing, correlation, events, a
 /// reverse request (`runInTerminal`), a timeout and a crash said once.
 
-#include "DapProtocol.hpp"
-#include "DapTransport.hpp"
-#include "Framing.hpp"
+#include "dap/DapProtocol.hpp"
+#include "dap/DapTransport.hpp"
+#include "rpc/Framing.hpp"
 #include "Headless.hpp"
 
 #include <affresco/affresco.hpp>

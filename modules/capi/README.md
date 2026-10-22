@@ -38,6 +38,35 @@ headless (time and input driven by the host, pictures as RGBA), or embedded in t
 - **Embedding saves the host's GL state.** `afr_screen_frame` and `_render_texture` save and restore the state they
   touch (the list is in `affresco.h`) and set their own defaults while drawing.
 
+## Threads and ownership
+
+- A screen belongs to the thread that created it; every call but `afr_screen_post()` is made on that thread. Callbacks
+  (`_on_action`, `_on_event`, `_on_call`, a posted task) run on it too, inside `_run`, `_step` or a frame.
+- `afr_screen_create_*` gives the host a screen it owns until `afr_screen_destroy()` (embedded: with its context
+  current).
+- Strings the host passes are read during the call and copied if kept; `user_data` pointers are kept and handed back
+  as given, never read or freed.
+- What the library returns (`_get_state`, `_render_rgba`) is the host's, freed with `afr_free()`. A picture is at
+  most 16384 pixels a side, in every mode.
+
+## Extension points
+
+- **Native actions and calls:** `afr_screen_on_action()` and `afr_screen_on_call()`; a call answers later with
+  `afr_call_return()` or `afr_call_fail()`.
+- **Another language:** a binding loads the shared library and declares the `afr_` functions, as `bindings/python`
+  does with ctypes; `afr_options` carries its size, so a binding built against an older header keeps working.
+
+## Files
+
+```
+include/affresco/affresco.h   the C API: every function, its arguments, limits and errors
+src/
+  Handle.hpp     what an afr_screen holds, the last error, the argument checks, the guard for exceptions
+  Common.cpp     errors, checks, memory, the headless task queue, and the functions that take no screen
+  Screen.cpp     creating and showing screens, their document and state, the host's callbacks, peers
+  Input.cpp      the window's loop, the headless step, the host's input, frames, textures and RGBA pixels
+```
+
 ## Tests
 
 `tests/capi` calls every function from C11 with strict warnings: headless, in a hidden window, embedded in a context of
