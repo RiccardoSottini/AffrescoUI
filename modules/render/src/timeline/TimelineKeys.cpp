@@ -92,12 +92,10 @@ std::optional<TimelineItem> cycledItem(const KeyState& state, bool forward) {
 	return items[forward ? (index + 1) % items.size() : (index + items.size() - 1) % items.size()];
 }
 
-/// @brief The nearest stop after (or before) the playhead, by more than half a frame: the markers, and the keyboard's
-/// track's keyframes and clip edges.
+/// @brief The stops comma and period move between: the markers, and the keyboard's track's keyframes and clip edges.
 /// @param state The view.
-/// @param forward Whether after.
-/// @return It, or std::nullopt.
-std::optional<double> nearestStop(const KeyState& state, bool forward) {
+/// @return Their times, unsorted.
+std::vector<double> stopsOf(const KeyState& state) {
 	const TimelineTrack* row = state.track != none ? &state.model.tracks[state.track] : nullptr;
 	std::vector<double> stops;
 	stops.reserve(state.model.markers.size() + (row ? row->keyframes.size() + 2 * row->clips.size() : 0));
@@ -109,9 +107,17 @@ std::optional<double> nearestStop(const KeyState& state, bool forward) {
 			stops.push_back(clip.start + clip.duration);
 		}
 	}
+	return stops;
+}
+
+/// @brief The nearest stop after (or before) the playhead, by more than half a frame.
+/// @param state The view.
+/// @param forward Whether after.
+/// @return It, or std::nullopt.
+std::optional<double> nearestStop(const KeyState& state, bool forward) {
 	const double half = 1.0 / state.model.fps * 0.5;
 	std::optional<double> best;
-	for(const double stop : stops) {
+	for(const double stop : stopsOf(state)) {
 		if(forward ? stop > state.time + half && (!best || stop < *best)
 		           : stop < state.time - half && (!best || stop > *best))
 			best = stop;
