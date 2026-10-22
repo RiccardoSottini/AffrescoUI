@@ -251,6 +251,9 @@ void registerSliderType(TypeRegistry& registry);
 /// @brief Registers "editor" (EditorType.cpp).
 /// @param registry The registry.
 void registerEditorType(TypeRegistry& registry);
+/// @brief Registers "diff" (DiffType.cpp).
+/// @param registry The registry.
+void registerDiffType(TypeRegistry& registry);
 /// @brief Registers "image" (ImageType.cpp).
 /// @param registry The registry.
 void registerImageType(TypeRegistry& registry);

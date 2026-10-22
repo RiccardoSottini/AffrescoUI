@@ -7,8 +7,13 @@ affrescoui_module(render
 	src/Bitmap.cpp
 	src/ImageCache.cpp
 	src/ImageView.cpp
+	src/DiffView.cpp
 	src/TextEditor.cpp
+	src/TextEditorCursors.cpp
+	src/TextEditorFind.cpp
 	src/TextEditorPaint.cpp
+	src/TextEditorPaintView.cpp
+	src/TextEditorView.cpp
 	src/TextModel.cpp
 	src/text/PieceTree.cpp
 	src/Color.cpp
@@ -61,7 +66,7 @@ affrescoui_module(render
 	${PROJECT_SOURCE_DIR}/external/glad/src/glad.c)
 target_include_directories(affrescoui_render SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include
 	${stb_image_SOURCE_DIR})
-target_link_libraries(affrescoui_render PUBLIC affrescoui::core PRIVATE glfw freetype affrescoui_harfbuzz)
+target_link_libraries(affrescoui_render PUBLIC affrescoui::core PRIVATE glfw freetype affrescoui_harfbuzz affrescoui_regex)
 target_compile_definitions(affrescoui_render PRIVATE GLFW_INCLUDE_NONE)
 # What GLFW doesn't do (the colour scheme, native menu bars), per OS: Cocoa on macOS, Win32 on Windows, none elsewhere
 if(APPLE)

@@ -14,6 +14,7 @@ following components, which keep their own licenses:
 | nlohmann/json 3.11.3 | downloaded by CMake | MIT |
 | FreeType 2.14.3 (glyph rasteriser) | downloaded by CMake | The FreeType License (FTL), chosen of FTL or GPLv2 (`docs/FTL.TXT` in its archive) |
 | HarfBuzz 12.3.2 (text shaping) | downloaded by CMake | "Old MIT" (`COPYING` in its archive; `src/ms-use/COPYING`: MIT) |
+| PCRE2 10.45 (regular expressions: the editor's find and the search service) | downloaded by CMake, SHA-256 checked, and built statically (`cmake/AffrescoUIRegex.cmake`) | BSD 3-Clause, with the PCRE2 exception for binary distribution (`LICENCE.md` in its archive) |
 | nativefiledialog-extended 1.4.1 (file dialogs) | downloaded by CMake, SHA-256 checked | zlib license (`LICENSE` in its archive) |
 | curl 8.22.0 (libcurl, the `net` module's transport) | downloaded by CMake, SHA-256 checked, and built statically on Linux and Windows; the system's libcurl on macOS | The curl license, MIT-style (`COPYING` in its archive). Its TLS is the platform's: OpenSSL 3 on Linux (Apache License 2.0, a system package), Schannel on Windows and the system's on macOS (parts of the operating system) |
 | Monocypher 4.0.2 (Ed25519 and SHA-512, the signatures of features and catalogues) | downloaded by CMake, SHA-256 checked; two C files compiled into the format module | BSD 2-Clause or CC0 1.0, at your choice (`LICENCE.md` in its archive), © Loup Vaillant, Michael Savage and Fabio Scotoni |

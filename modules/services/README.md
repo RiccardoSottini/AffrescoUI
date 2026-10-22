@@ -15,6 +15,7 @@ folders).
 | `Provider.hpp` | `Provider` and `Service` (the extension point), `ServiceContext`, `Grant`, `ProcessGrant`, `ServiceState` |
 | `DirectoryModel.hpp` | `DirectoryModel`: every file and folder under a folder as a `DataModel` (rows `{path, name, kind, depth, size}`, folders first, by name), listed on a worker thread and kept current by the watcher, with each change as a range of rows. `Screen::setModel` lets a screen read it (`repeat: {"in": "models.<name>"}`) |
 | `Schema.hpp` | Checks a declaration's configuration against a provider's schema (a small subset of JSON Schema) |
+| `Search.hpp` | The search engine behind the `search` provider, for natives that search a folder themselves: `searchFiles` (streamed, cancellable, capped) and `replaceAll` |
 
 The method, call and request types are `core`'s (`affresco/core/Services.hpp`), so the format depends on the
 interface, not on this module.
@@ -28,6 +29,7 @@ interface, not on this module.
 | `fs` | A folder the host granted: `read` and `list`, and `write` unless the declaration is read-only, with UTF-8 text files and paths inside it. A write goes through a file beside it, so a reader never sees half of it |
 | `watch` | A folder the host granted, watched: the `changes` stream sends `{changes: [{path, kind}], rescan}` batches, debounced (`debounce`, 20 to 2,000 ms, 100 by default), without the paths an `ignore` glob matches (`*` and `?` within a name, `**` across names; a glob without `/` matches any name). `rescan` means too much changed to list: read the folder again |
 | `pty` | A command the host allowed, on a terminal of its own (no shell unless the host allows one as the program): `open {cols, rows}` starts it and streams a first event `{session}`, then its output as `{data}` text (UTF-8, a split character waits for the rest, other bytes become U+FFFD), and ends with `{code}`; `write {session, data}` types, `resize {session, cols, rows}` resizes (the program hears `SIGWINCH`), `signal {session, name}` sends `interrupt` (to the foreground group), `terminate`, `hangup` or `kill`. On Windows it needs a pseudo console (Windows 10 1809 or later); there `interrupt` types Ctrl+C and the other signals end the program and what it started. The Windows side isn't built in this repository's local checks |
+| `search` | A folder the host granted, searched: `find` matches its text files against a plain, whole-word or case-sensitive pattern or a regular expression (PCRE2, with match limits) on several threads, filtered by `include` and `exclude` globs and the `.gitignore` files, one event `{file, matches}` per file, cancellable and capped at `maxResults`; `replace` returns a file's text with every match replaced (`$1` in an expression), for an `fs` write: it writes nothing |
 
 ## Invariants
 
@@ -51,6 +53,9 @@ interface, not on this module.
   typed but not yet taken (past it a write is refused as busy); output arrives in events of at most 16 KiB, at most
   4 MiB a second (past it the program waits, as on a slow terminal). Ending the service hangs up every terminal and
   kills what ignores it.
+  A search skips files over 8 MiB, binary files (a NUL byte in the first 8 KiB), symbolic links, `.git` and folders
+  over 64 deep; it reports at most 20,000 matches and looks at most at 100,000 files, a pattern is at most 4 KiB, a
+  glob list 64 globs, and a `.gitignore` is read up to 64 KiB and 10,000 rules.
 - **Concurrency is bounded:** per JSON-RPC service 256 calls waiting and 256 subscriptions, and 16 MiB waiting to be
   written; 16 runs at once per `process` or `fs` service; per screen 1,024 calls running, 256 subscriptions, 256
   requests waiting for `respond`; a stream keeps at most 10,000 events.
@@ -58,7 +63,7 @@ interface, not on this module.
 
 ## Threads
 
-Each running program has a thread reading its output (and a `pty` session one writing what is typed); `fs` and `process` calls run on worker threads; each watcher
+Each running program has a thread reading its output (and a `pty` session one writing what is typed); `fs`, `process` and `search` calls run on worker threads (a `find` matches on up to 8 more); each watcher
 has a thread of its own (and FSEvents a dispatch queue), and each `DirectoryModel` a worker that lists and resolves
 changes, applied to the rows on the main thread. None calls the
 format: results, events, requests and status changes are posted to the `Executor` set by `setExecutor`, so they run

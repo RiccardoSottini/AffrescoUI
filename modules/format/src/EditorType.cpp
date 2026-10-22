@@ -1,22 +1,142 @@
 /// @file
-/// @brief The "editor" node type: a TextEditor, its font, line numbers and colours, and its text. An application's
-/// TextEditor subclass has these properties too. Its "caret" is the runtime's (Events.cpp), as it writes the state.
+/// @brief The "editor" node type: a TextEditor, its font, line numbers and colours, its text, and its view: wrapping,
+/// folds, decorations, the find highlight, brackets, indentation guides and read-only. An application's TextEditor
+/// subclass has these properties too. Its "caret" is the runtime's (Events.cpp), as it writes the state.
 
+#include "ExpressionFunctions.hpp"
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"
 
 #include "affresco/render/TextEditor.hpp"
 
 #include <array>
+#include <cstddef>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace affresco::format {
 
 namespace {
 
+constexpr std::size_t maxListed = 100'000; ///< The most decorations or folds read from a node (untrusted input).
+
+/// @brief Decodes UTF-8 (an invalid byte stands for itself).
+/// @param text The text.
+std::u32string codepoints(std::string_view text) {
+	std::u32string out;
+	for(std::size_t i = 0; i < text.size();) {
+		const auto lead = static_cast<unsigned char>(text[i]);
+		const std::size_t size = std::min(detail::utf8CharacterSize(lead), text.size() - i);
+		char32_t c = size == 1 ? lead : lead & (0xFFu >> (size + 1));
+		for(std::size_t k = 1; k < size; ++k) c = (c << 6) | (static_cast<unsigned char>(text[i + k]) & 0x3Fu);
+		out += c;
+		i += size;
+	}
+	return out;
+}
+
+/// @brief Reads a line number (from 0), clamped to what a size holds.
+/// @param value The number.
+/// @param path Its place, for errors.
+std::size_t lineNumber(const json& value, const std::string& path) {
+	const float n = number(value, path);
+	if(!(n >= 0.0f)) fail(path, "expected a line number, from 0");
+	return n >= 1e15f ? SIZE_MAX : static_cast<std::size_t>(n);
+}
+
+/// @brief Reads one decoration: {line, endLine, column, endColumn, kind, color, icon, text}.
+/// @param value The decoration.
+/// @param reader Reads its colour.
+/// @param path Its place, for errors.
+EditorDecoration readDecoration(const json& value, const PropertyReader& reader, const std::string& path) {
+	object(value, path);
+	EditorDecoration d;
+	d.line = value.contains("line") ? lineNumber(value["line"], path + ".line") : 0;
+	d.endLine = value.contains("endLine") ? lineNumber(value["endLine"], path + ".endLine") : d.line;
+	if(value.contains("column")) d.column = lineNumber(value["column"], path + ".column");
+	if(value.contains("endColumn")) d.endColumn = lineNumber(value["endColumn"], path + ".endColumn");
+	const std::string kind = value.contains("kind") ? string(value["kind"], path + ".kind") : "background";
+	using Kind = EditorDecoration::Kind;
+	static constexpr std::array<std::pair<const char*, Kind>, 4> kinds = {
+	    {{"background", Kind::Background}, {"squiggle", Kind::Squiggle}, {"gutter", Kind::Gutter}, {"inline", Kind::Inline}}};
+	const auto found = std::ranges::find_if(kinds, [&kind](const auto& k) { return kind == k.first; });
+	if(found == kinds.end()) fail(path + ".kind", "expected background, squiggle, gutter or inline");
+	d.kind = found->second;
+	d.color = value.contains("color") ? reader.color(value["color"], path + ".color") : colors::accent.withAlpha(0.25f);
+	if(value.contains("icon")) {
+		const std::u32string icon = codepoints(string(value["icon"], path + ".icon"));
+		d.icon = icon.empty() ? 0 : icon.front();
+	}
+	if(value.contains("text")) d.text = codepoints(text(value["text"]));
+	return d;
+}
+
+/// @brief Reads a list of up to maxListed items.
+/// @param values The node's values.
+/// @param key The list's key.
+/// @param path The node's place, for errors.
+/// @param read Reads one item, given it and its place.
+template <typename Item, typename Read>
+std::vector<Item> readList(const json& values, const char* key, const std::string& path, Read read) {
+	std::vector<Item> items;
+	if(!values.contains(key)) return items;
+	const json& given = values[key];
+	const std::string at = path + "." + key;
+	if(!given.is_array()) fail(at, "expected a list");
+	items.reserve(std::min(given.size(), maxListed));
+	for(std::size_t i = 0; i < given.size() && i < maxListed; ++i)
+		items.push_back(read(given[i], concatenate(at, "[", std::to_string(i) + "]")));
+	return items;
+}
+
+/// @brief Sets an editor's find highlight: {text, regex, wholeWord, caseSensitive}, or none.
+/// @param editor The editor.
+/// @param values The node's values.
+/// @param path The node's place, for errors.
+void applyFind(TextEditor& editor, const json& values, const std::string& path) {
+	if(!values.contains("find")) {
+		static_cast<void>(editor.setFind({}, {}));
+		return;
+	}
+	const json& find = values["find"];
+	const std::string at = path + ".find";
+	object(find, at);
+	const auto flag = [&](const char* key) { return find.contains(key) && boolean(find[key], at + "." + key); };
+	const PatternOptions options{.regex = flag("regex"), .wholeWord = flag("wholeWord"),
+	                             .caseSensitive = flag("caseSensitive")};
+	// A pattern that doesn't compile highlights nothing: the user may be typing it
+	static_cast<void>(editor.setFind(find.contains("text") ? text(find["text"]) : std::string(), options));
+}
+
+/// @brief Sets an editor's view: wrap, folds, decorations, find, brackets, indentGuides and readOnly.
+/// @param editor The editor.
+/// @param values The node's values.
+/// @param reader Reads colours.
+/// @param path The node's place, for errors.
+void applyView(TextEditor& editor, const json& values, const PropertyReader& reader, const std::string& path) {
+	const auto flag = [&](const char* key) { return values.contains(key) && boolean(values[key], path + "." + key); };
+	editor.setWrap(flag("wrap"));
+	editor.setBracketMatching(flag("brackets"));
+	editor.setIndentGuides(flag("indentGuides"));
+	editor.setReadOnly(flag("readOnly"));
+	// Folds the user made stay until the document gives others
+	if(values.contains("folds"))
+		editor.offerFolds(readList<FoldRange>(values, "folds", path, [](const json& value, const std::string& at) {
+			object(value, at);
+			const std::size_t line = value.contains("line") ? lineNumber(value["line"], at + ".line") : 0;
+			return FoldRange{line, value.contains("endLine") ? lineNumber(value["endLine"], at + ".endLine") : line};
+		}));
+	editor.setDecorations(readList<EditorDecoration>(values, "decorations", path,
+	                                                 [&reader](const json& value, const std::string& at) {
+		                                                 return readDecoration(value, reader, at);
+	                                                 }));
+	applyFind(editor, values, path);
+}
+
 /// @brief Sets a text editor's look: the defaults, then what the node gives.
 /// @param panel The panel, a TextEditor.
-/// @param values Its font, textColor, lineNumbers and colours, if given.
+/// @param values Its font, textColor, lineNumbers, colours and view keys, if given.
 /// @param reader Reads colours and fonts.
 /// @param path The node's place, for errors.
 void applyEditor(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
@@ -27,9 +147,12 @@ void applyEditor(Panel& panel, const json& values, const PropertyReader& reader,
 	editor->resetColors();
 
 	using Setter = void (TextEditor::*)(Color);
-	static constexpr std::array<std::pair<const char*, Setter>, 6> colorSetters = {
+	static constexpr std::array<std::pair<const char*, Setter>, 9> colorSetters = {
 	    {{"activeLineNumberColor", &TextEditor::setActiveLineNumberColor},
+		 {"bracketColor", &TextEditor::setBracketColor},
 		 {"caretColor", &TextEditor::setCaretColor},
+		 {"guideColor", &TextEditor::setGuideColor},
+		 {"matchColor", &TextEditor::setMatchColor},
 		 {"lineColor", &TextEditor::setLineColor},
 		 {"lineNumberColor", &TextEditor::setLineNumberColor},
 		 {"selectionColor", &TextEditor::setSelectionColor},
@@ -41,6 +164,7 @@ void applyEditor(Panel& panel, const json& values, const PropertyReader& reader,
 		for(const auto& [name, setter] : colorSetters)
 			if(key == name) (editor->*setter)(reader.color(value, at));
 	}
+	applyView(*editor, values, reader, path);
 }
 
 /// @brief Shows an editor's text: its bound value always, else "text" when it changed (so typing isn't overwritten
@@ -88,13 +212,18 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"textColor", ValueKind::Color},       {"lineNumbers", ValueKind::Boolean},
 	                   {"lineNumberColor", ValueKind::Color}, {"activeLineNumberColor", ValueKind::Color},
 	                   {"lineColor", ValueKind::Color},       {"selectionColor", ValueKind::Color},
-	                   {"caretColor", ValueKind::Color},      {"autofocus", ValueKind::Boolean}};
+	                   {"caretColor", ValueKind::Color},      {"autofocus", ValueKind::Boolean},
+	                   {"wrap", ValueKind::Boolean},          {"folds", ValueKind::Any},
+	                   {"decorations", ValueKind::Any},       {"find", ValueKind::Any},
+	                   {"brackets", ValueKind::Boolean},      {"indentGuides", ValueKind::Boolean},
+	                   {"readOnly", ValueKind::Boolean},      {"guideColor", ValueKind::Color},
+	                   {"matchColor", ValueKind::Color},      {"bracketColor", ValueKind::Color}};
 	set->apply = applyEditor;
 	set->everyUpdate = true; // colours follow the theme
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TextEditor*>(&panel) != nullptr; };
 	set->value = {"text", showText, listenToEditor, stopListeningToEditor};
 
-	registry.add({"editor", "A multi-line text editor: selection, undo, clipboard, optional line numbers",
+	registry.add({"editor", "A multi-line text editor: selection, undo, clipboard, line numbers, wrap, folds, decorations, find, cursors",
 	              [] { return std::make_unique<TextEditor>(); }, set, false});
 }
 

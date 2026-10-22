@@ -107,12 +107,13 @@ struct Group {
 	GroupFactory create; ///< Creates them (the setup, such as windows, happens here).
 };
 
-/// @brief The groups that need a window: load, update, revision, layout and frame (screens.cpp).
+/// @brief The groups that need a window: load, update, revision, layout and frame (screens.cpp), and editor
+/// (editor.cpp).
 /// @return The groups.
 [[nodiscard]] std::vector<Group> screenGroups();
 
-/// @brief The groups that need no window: expressions, commits, text (engine.cpp), history (history.cpp) and
-/// views (views.cpp, headless windows).
+/// @brief The groups that need no window: expressions, commits, text (engine.cpp), history (history.cpp),
+/// views (views.cpp, headless windows), buffers (buffers.cpp) and search (search.cpp).
 /// @return The groups.
 [[nodiscard]] std::vector<Group> engineGroups();
 
@@ -130,6 +131,22 @@ struct Group {
 /// and one file's change seen by it.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> watchWorkloads(Context&);
+
+/// @brief The "buffers" group's workloads (buffers.cpp): Forge's file buffers with 10,000 and 1,000,000 lines opened,
+/// edited and undone with the dirty check, and saved.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> bufferWorkloads(Context&);
+
+/// @brief The "search" group's workloads (search.cpp): the services' search engine over 2,000 generated files, a word
+/// with one thread and with eight, an expression, and a capped search.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> searchWorkloads(Context&);
+
+/// @brief The "editor" group's workloads (editor.cpp): typing in 1,000 and 100,000 lines and scrolling 10,000 and
+/// 1,000,000 on hidden windows, each operation drawn, with 99th-percentile budgets checked when AFFRESCOUI_PERF_BUDGETS is set.
+/// @param context Where the fonts are, and the windowing system.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> editorWorkloads(Context& context);
 
 /* Scaling (scaling_screens.cpp, scaling_engine.cpp): "scaling/<area>/<n>", the same work at sizes that double */
 

@@ -50,6 +50,7 @@ affrescoui_module(format
 	src/TypeRegistry.cpp
 	src/Types.cpp
 	src/EditorType.cpp
+	src/DiffType.cpp
 	src/ToggleType.cpp
 	src/SliderType.cpp
 	src/ImageType.cpp

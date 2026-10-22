@@ -24,14 +24,20 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 | `themes` | Themes as design tokens (Forge Dark, Forge Light), the VS Code colour theme importer (`ThemeImport.*`), and the file icon theme (`IconTheme.*`) |
 | `accounts` | Signing in to the document server (`examples/server`) with a device code, settings synced through the person's `~settings` document, and who is on a shared document, and where, in the status bar (`Accounts.*` keeps the sign-in in the system's secret store); `accounts.scenarios.json` |
 | `panels` | Problems, output, notifications (toasts and a list), and progress |
+| `editor` | File buffers kept natively, never in the state (`Buffers.*`, `Editor.*`), shared by every group; preview tabs (a click in the explorer, replaced by the next), dirty markers, Save (`mod+s`), Save All (`mod+alt+s`), Revert File and Keep Editor; Problems read from the buffers. Files of a million lines open in about 0.1 s |
+| `search` | Find in Files (`mod+shift+f`): an editor page that searches the open folder with the services' search engine (`Search.*`) as you submit, plain, whole word, case-sensitive or a regular expression, with include and exclude globs and the `.gitignore` files followed; the matches stream into a tree by file, a match opens at its line, and Replace All writes every file after a confirm, skipping those with unsaved edits and reloading the open ones |
 | `explorer` | The side bar's tree, kept current by the file watcher (`Explorer.*`, a `DirectoryModel`), with new file and folder, rename, delete (after a confirm dialog), copy and paste, move by drag and drop, and reveal of the active file, from its context menu, the File menu and the palette |
 | `terminal` | The panel's Terminal tab: up to 8 shells as tabs (`Terminal.*`, a VT terminal on libvterm in `TerminalModel.*`, on the `pty` provider), with bounded scrollback, the pty resized with the node, and no title or clipboard writes unless allowed; New Terminal is `mod+shift+t` |
 
-There are only four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.
+The shell has four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.
 - `forge.index`: the open folder as a tree and a flat file list, with file icons.
 - `forge.openFolder`: asks the OS for a folder (`Window::chooseFiles`).
 - `forge.read`: reads a file inside the open folder.
 - `forge.importTheme`: asks for a VS Code theme and returns it as tokens.
+
+The editor feature adds `forge.open`, `forge.save`, `forge.saveAll`, `forge.revert`, `forge.close` and `forge.todos`
+(`features/editor/Editor.hpp`) for the buffers, and the `code` type's `"buffer": id`. A save writes a file beside the
+old one, then renames it over it.
 
 A native's arguments never name a path outside the open folder.
 

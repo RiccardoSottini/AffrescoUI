@@ -10,6 +10,8 @@
 #include "Assets.hpp"
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
+#include "features/editor/Editor.hpp"
+#include "features/search/Search.hpp"
 #include "SocketDir.hpp"
 #include "features/accounts/Accounts.hpp"
 #include "features/explorer/Explorer.hpp"
@@ -93,6 +95,8 @@ int run(const Options& options) {
 	forge::registerExplorer(screen, workspace, &app);
 	forge::grantTerminal(screen, workspace->root);
 	forge::registerTerminal(screen, &app);
+	forge::registerEditor(screen, workspace);
+	forge::registerSearch(screen, workspace);
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {

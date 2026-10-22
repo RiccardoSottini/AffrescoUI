@@ -102,7 +102,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -214,6 +214,29 @@ Tabs become 4 spaces. Applications build richer editors on it (syntax colours, c
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
 | `lineColor`, `selectionColor`, `caretColor` | The caret's line background, the selection, the caret. |
 | `autofocus`, `onChange` | Focus when built; `event.value` is the new text. |
+| `wrap` | `true` wraps lines at the width (at spaces, else anywhere); the gutter numbers each line once. |
+| `folds` | Folded ranges, `[{ "line", "endLine" }]` from 0: the lines after `line` up to `endLine` are hidden behind it. The user folds and unfolds with the gutter or Cmd+Alt+[ and ]; the document's folds replace theirs only when they change, and leaving the key out keeps them. At most 10,000. |
+| `decorations` | `[{ "line", "endLine", "column", "endColumn", "kind", "color", "icon", "text" }]`, lines and columns from 0: `background` tints the lines, `squiggle` underlines the columns (or the whole lines) with a wave, `gutter` draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most 10,000 and 8 on a line; inline text is cut at 256 characters. |
+| `find` | `{ "text", "regex", "wholeWord", "caseSensitive" }`: highlights the matches of `text` (plain, or a PCRE2 pattern with `regex`, matched line by line within match and depth limits); Cmd+G and Cmd+Shift+G select the next and previous. A pattern that doesn't compile highlights nothing. |
+| `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
+| `indentGuides` | `true` draws a line at each indentation level. |
+| `readOnly` | `true`: the user can select, find and fold, but not edit. |
+| `guideColor`, `matchColor`, `bracketColor` | The indentation guides, find's matches and the paired brackets. |
+<!-- end generated -->
+
+### `diff`
+Two texts compared line by line (Myers' algorithm, within a cost limit: past it, a longer but still correct script),
+then character by character on the lines changed, in read-only editors that number each text's lines. `font` and
+`textColor` are the editor's.
+
+<!-- generated: diff -->
+| Key | Meaning |
+|---|---|
+| `original` | The text compared from (lines split at `\n`, a `\r` before it dropped). |
+| `modified` | The text compared to. |
+| `mode` | `split` (default): the original on the left, the modified text on the right, rows aligned with blank rows and scrolled together; `inline`: one editor, the deleted lines above the lines inserted for them. |
+| `language` | A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. |
+| `deletedColor`, `insertedColor` | Behind deleted and inserted lines (the changed characters in the same colour, twice as strong). |
 <!-- end generated -->
 
 ### `row`, `column`, `stack`, `grid`

@@ -11,9 +11,12 @@ affrescoui_module(services
 	src/Registry.cpp
 	src/Schema.cpp
 	src/DirectoryModel.cpp
+	src/SearchEngine.cpp
+	src/SearchGlob.cpp
+	src/SearchProvider.cpp
 	src/WatchProvider.cpp
 	src/Watcher.cpp)
-target_link_libraries(affrescoui_services PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
+target_link_libraries(affrescoui_services PUBLIC affrescoui::core nlohmann_json::nlohmann_json affrescoui_regex)
 # The watcher's backend: FSEvents, inotify or ReadDirectoryChangesW.
 if(APPLE)
 	target_sources(affrescoui_services PRIVATE src/WatcherMac.cpp)

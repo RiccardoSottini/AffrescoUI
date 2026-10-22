@@ -1,0 +1,197 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "Forge's Search view (features/search), checked headless with tests/render/forge/folder open; nothing is replaced (each Replace All dialog is cancelled), so the folder stays as it is: affrescoui_render_runner search.scenarios.json",
+	"screen": "forge.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-search-opens-a-page",
+			"note": "Find in Files (mod+shift+F) opens the Search page as an editor tab, once however often it runs",
+			"steps": [
+				{ "key": "mod+shift+f" },
+				{ "expect": { "state": "docs.length", "is": 1 } },
+				{ "expect": { "state": "docs[0].kind", "is": "search" } },
+				{ "expect": { "state": "groups[0].active", "is": "forge:search" } },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "action": "findInFiles" },
+				{ "expect": { "state": "docs.length", "is": 1 } },
+				{ "expect": { "node": "#search-results", "exists": false } }
+			]
+		},
+		{
+			"name": "forge-search-finds-text",
+			"note": "The query typed and submitted finds its match in src/main.cpp, a tree item per file with a child per match",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-query" },
+				{ "type": "hello" },
+				{ "key": "enter" },
+				{ "expect": { "state": "search.result.done", "is": true } },
+				{ "expect": { "state": "search.result.files", "is": 1 } },
+				{ "expect": { "state": "search.result.matches", "is": 1 } },
+				{ "expect": { "state": "search.result.tree[0].id", "is": "file:src/main.cpp" } },
+				{ "expect": { "state": "search.result.tree[0].children[0].id", "is": "hit:0" } },
+				{ "expect": { "state": "search.result.hits[0].line", "is": 4 } },
+				{ "expect": { "state": "search.busy", "is": false } },
+				{ "expect": { "node": "#search-results", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-search-skips-dependencies",
+			"note": "node_modules is never searched, like the file index never lists it",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-query" },
+				{ "type": "Forge" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.files", "is": 1 } },
+				{ "expect": { "state": "search.result.tree[0].id", "is": "file:README.md" } }
+			]
+		},
+		{
+			"name": "forge-search-case-and-words",
+			"note": "Matches ignore case unless Aa is checked; with Word checked, MAI no longer matches inside main",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-query" },
+				{ "type": "MAIN" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.matches", "is": 1 } },
+				{ "click": "#search-case-box" },
+				{ "expect": { "state": "search.caseSensitive", "is": true } },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.matches", "is": 0 } },
+				{ "click": "#search-case-box" },
+				{ "click": "#search-query" },
+				{ "key": "backspace" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.matches", "is": 1 } },
+				{ "expect": { "node": "#search-results", "exists": true } },
+				{ "click": "#search-word-box" },
+				{ "expect": { "state": "search.wholeWord", "is": true } },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.matches", "is": 0 } }
+			]
+		},
+		{
+			"name": "forge-search-regular-expressions",
+			"note": "With .* checked the query is a regular expression; a bad one says why instead of results",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-regex-box" },
+				{ "click": "#search-query" },
+				{ "type": "return \\d+;" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.matches", "is": 1 } },
+				{ "expect": { "state": "search.result.hits[0].file", "is": "src/main.cpp" } },
+				{ "type": "(" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result", "is": null } },
+				{ "expect": { "node": "#search-results", "exists": false } }
+			]
+		},
+		{
+			"name": "forge-search-include-and-exclude",
+			"note": "Files to include keeps the matching paths, files to exclude drops files and folders",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-query" },
+				{ "type": "a" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.files", "is": 2 } },
+				{ "expect": { "node": "#search-results", "exists": true } },
+				{ "click": "#search-include" },
+				{ "type": "*.md" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.files", "is": 1 } },
+				{ "expect": { "state": "search.result.tree[0].id", "is": "file:README.md" } },
+				{ "expect": { "node": "#search-results", "exists": true } },
+				{ "click": "#search-exclude" },
+				{ "type": "README.md" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.files", "is": 0 } }
+			]
+		},
+		{
+			"name": "forge-search-empty-query",
+			"note": "An empty query clears the results instead of searching",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-query" },
+				{ "type": "hello" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.files", "is": 1 } },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result", "is": null } },
+				{ "expect": { "node": "#search-results", "exists": false } }
+			]
+		},
+		{
+			"name": "forge-search-opens-a-match",
+			"note": "Opening a match opens its file at its line; opening a file item opens the file",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-query" },
+				{ "type": "return" },
+				{ "action": "runSearch" },
+				{ "action": "openSearchHit", "event": { "id": "hit:0" } },
+				{ "expect": { "state": "docs.length", "is": 2 } },
+				{ "expect": { "state": "docs[1].id", "is": "src/main.cpp" } },
+				{ "expect": { "state": "groups[0].active", "is": "src/main.cpp" } },
+				{ "expect": { "state": "goTo.line", "is": 5 } },
+				{ "expect": { "state": "goTo.request", "is": 1 } },
+				{ "action": "openSearchHit", "event": { "id": "hit:9" } },
+				{ "expect": { "state": "goTo.request", "is": 1 } }
+			]
+		},
+		{
+			"name": "forge-search-collapse-a-file",
+			"note": "Every search starts with its files expanded",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-query" },
+				{ "type": "a" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.collapsed.length", "is": 0 } },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.collapsed.length", "is": 0 } }
+			]
+		},
+		{
+			"name": "forge-search-replace-asks-first",
+			"note": "Replace All asks before writing anything; Cancel leaves the files and the results as they are",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "action": "askReplace" },
+				{ "expect": { "state": "search.confirm", "is": false } },
+				{ "click": "#search-query" },
+				{ "type": "hello" },
+				{ "action": "runSearch" },
+				{ "expect": { "node": "#search-results", "exists": true } },
+				{ "click": "#search-replace" },
+				{ "type": "world" },
+				{ "click": "#search-replace-all" },
+				{ "expect": { "state": "search.confirm", "is": true } },
+				{ "key": "escape" },
+				{ "expect": { "state": "search.confirm", "is": false } },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.matches", "is": 1 } }
+			]
+		}
+	]
+}

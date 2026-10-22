@@ -90,6 +90,9 @@ else()
 		-Wnon-virtual-dtor -Woverloaded-virtual)
 endif()
 
+# PCRE2 and affresco::TextPattern: the regular expressions of the editor's find and the search service
+include(cmake/AffrescoUIRegex.cmake)
+
 # The library is a set of modules, each its own target. They depend on each other only as shown here; anything
 # crossing a module boundary goes through the interfaces in core (ARCHITECTURE.md). Each module lists its sources in
 # modules/<name>/CMakeLists.txt, so a new file touches only its own module's list.
@@ -140,7 +143,8 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
 	set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
 		examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
-		examples/forge/features/accounts/Accounts.cpp
+		examples/forge/features/accounts/Accounts.cpp examples/forge/features/editor/Buffers.cpp
+		examples/forge/features/editor/Editor.cpp examples/forge/features/search/Search.cpp
 		examples/forge/features/explorer/Explorer.cpp examples/forge/features/terminal/Terminal.cpp
 		examples/forge/features/terminal/TerminalModel.cpp)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/CodeEditor.cpp)
@@ -186,9 +190,10 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	# using valgrind's header when it is installed
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
-		tests/perf/scaling_engine.cpp tests/perf/watch.cpp examples/CodeEditor.cpp)
+		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/CodeEditor.cpp tests/perf/buffers.cpp
+		examples/forge/features/editor/Buffers.cpp examples/forge/features/palette/FileIndex.cpp tests/perf/search.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
-	target_include_directories(affrescoui_bench PRIVATE examples modules/format/src modules/render/src)
+	target_include_directories(affrescoui_bench PRIVATE examples examples/forge modules/format/src modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui)
 	target_compile_definitions(affrescoui_bench PRIVATE
