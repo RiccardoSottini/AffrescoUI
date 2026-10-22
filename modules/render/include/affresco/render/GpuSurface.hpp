@@ -145,8 +145,8 @@ public:
 /// @brief Makes a surface; called once per panel, the first time it is drawn.
 using SurfaceFactory = std::function<std::unique_ptr<GpuSurface>()>;
 
-/// @brief The first line of a surface's shaders: the GLSL version this window's context takes.
-/// @return "#version 410 core\n" on desktop OpenGL.
+/// @brief The first lines of a surface's shaders: the GLSL version this window's context takes.
+/// @return "#version 410 core\n" on desktop OpenGL; on OpenGL ES (WebGL 2), "#version 300 es\n" and the precision.
 [[nodiscard]] std::string_view surfaceShaderPrelude() noexcept;
 
 /// @brief A panel that shows a GpuSurface, drawn at its size times the window's content scale.

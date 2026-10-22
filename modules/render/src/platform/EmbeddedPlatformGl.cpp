@@ -9,14 +9,15 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <string>
 
 namespace affresco::gl {
 
 namespace {
 
-/// @brief A triangle that covers the viewport, its corners from gl_VertexID, and the texture's coordinates.
-constexpr const char* compositeVertex = R"(#version 410 core
-out vec2 coordinates;
+/// @brief A triangle that covers the viewport, its corners from gl_VertexID, and the texture's coordinates. After
+/// shaderPrelude(), like every shader, so that it compiles on OpenGL ES too.
+constexpr const char* compositeVertex = R"(out vec2 coordinates;
 void main() {
 	vec2 corner = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
 	coordinates = corner;
@@ -25,8 +26,7 @@ void main() {
 )";
 
 /// @brief Samples the texture as it is: its colours are already multiplied by alpha.
-constexpr const char* compositeFragment = R"(#version 410 core
-in vec2 coordinates;
+constexpr const char* compositeFragment = R"(in vec2 coordinates;
 uniform sampler2D picture;
 out vec4 color;
 void main() { color = texture(picture, coordinates); }
@@ -83,13 +83,17 @@ SavedState::SavedState() noexcept {
 	depth_ = glIsEnabled(GL_DEPTH_TEST);
 	stencil_ = glIsEnabled(GL_STENCIL_TEST);
 	cull_ = glIsEnabled(GL_CULL_FACE);
+#if !defined(AFFRESCOUI_GLES3) // OpenGL ES has no switch for sRGB writes
 	srgb_ = glIsEnabled(GL_FRAMEBUFFER_SRGB);
+#endif
 
 	// What the renderer assumes: OpenGL's defaults, whatever the host left
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_CULL_FACE);
+#if !defined(AFFRESCOUI_GLES3)
 	glDisable(GL_FRAMEBUFFER_SRGB);
+#endif
 	glDisable(GL_SCISSOR_TEST);
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	glBlendEquation(GL_FUNC_ADD);
@@ -128,12 +132,17 @@ SavedState::~SavedState() {
 	setEnabled(GL_DEPTH_TEST, depth_);
 	setEnabled(GL_STENCIL_TEST, stencil_);
 	setEnabled(GL_CULL_FACE, cull_);
+#if !defined(AFFRESCOUI_GLES3)
 	setEnabled(GL_FRAMEBUFFER_SRGB, srgb_);
+#else
+	static_cast<void>(srgb_); // kept on both backends, so the class is one layout wherever it is included
+#endif
 }
 
 EmbeddedTarget::EmbeddedTarget()
     : texture_(Texture::create()), framebuffer_(Framebuffer::create()),
-      program_(linkProgram(compositeVertex, compositeFragment)), vertexArray_(VertexArray::create()) {
+      program_(linkProgram(std::string(shaderPrelude(ShaderStage::vertex)) + compositeVertex,
+                           std::string(shaderPrelude(ShaderStage::fragment)) + compositeFragment)), vertexArray_(VertexArray::create()) {
 	glUseProgram(program_.id());
 	glUniform1i(glGetUniformLocation(program_.id(), "picture"), 0);
 }
