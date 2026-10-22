@@ -25,6 +25,8 @@ namespace affresco::services {
 [[nodiscard]] std::unique_ptr<Provider> makeProcessProvider();
 /// @brief The `jsonrpc` provider: a granted program spoken to in JSON-RPC 2.0 over its stdin and stdout.
 [[nodiscard]] std::unique_ptr<Provider> makeJsonRpcProvider();
+/// @brief The `watch` provider: a granted folder; what changes under it is streamed, debounced.
+[[nodiscard]] std::unique_ptr<Provider> makeWatchProvider();
 
 /// @brief Worker threads, at most a few at once, all stopped and joined when it ends. Main thread only.
 class Tasks {

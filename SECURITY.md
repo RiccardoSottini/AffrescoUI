@@ -229,6 +229,13 @@ then every request is refused. A document never holds a credential: the headers 
 a `mock` reaches a server; any other operation answers from its mock, or fails with `preview`, so a preview has no
 side effects.
 
+### Watched folders and terminals
+
+The `watch` provider and `DirectoryModel` see only a folder the host granted, like `fs`: paths are reported relative
+to it, and symbolic links are listed but never followed or watched, so nothing outside it is reported. What they
+send is bounded: at most 1,000 paths a batch (more becomes one `rescan`), one batch per debounce interval (20 ms at
+least), 100,000 watched folders, 200,000 rows, 4 subscriptions per service. Ignore globs only narrow what is reported.
+
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
 `AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it
