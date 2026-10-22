@@ -145,11 +145,21 @@ private:
 			if(!take(',')) return fail(std::format("'{}' is followed by ','", kind));
 			choice(out, depth + 1, kind == "plural", value, kind == "plural" ? nullptr : pound, missing);
 		} else if(kind == "number" || kind == "date" || kind == "time") {
-			const std::string_view style = take(',') ? word() : std::string_view();
-			if(!take('}')) return fail(std::format("'{}' is followed by a style and '}}'", kind));
-			if(!styled(out, value, kind, style)) return fail(std::format("'{}' isn't a style of {}", style, kind));
-			if(!value) out += missing;
+			formatted(out, kind, value, missing);
 		} else fail(std::format("'{}' isn't number, date, time, plural or select", kind));
+	}
+
+	/// @brief Writes a number, date or time argument: from after its kind to its '}'.
+	/// @param out Gets it.
+	/// @param kind "number", "date" or "time".
+	/// @param value The parameter's value.
+	/// @param missing What a missing parameter writes.
+	void formatted(std::string& out, std::string_view kind, const std::optional<Value>& value,
+	               const std::string& missing) {
+		const std::string_view style = take(',') ? word() : std::string_view();
+		if(!take('}')) return fail(std::format("'{}' is followed by a style and '}}'", kind));
+		if(!styled(out, value, kind, style)) return fail(std::format("'{}' isn't a style of {}", style, kind));
+		if(!value) out += missing;
 	}
 
 	/// @brief Writes a value as a plain argument: numbers in the locale's way, the rest as text.
@@ -166,10 +176,7 @@ private:
 	/// @param style "", "integer", "percent"; "short", "medium", "long", "full".
 	/// @return Whether the style is one of the kind's.
 	bool styled(std::string& out, const std::optional<Value>& value, std::string_view kind, std::string_view style) {
-		const bool dateStyle =
-		    style.empty() || style == "short" || style == "medium" || style == "long" || style == "full";
-		if(kind != "number" && !dateStyle) return false;
-		if(kind == "number" && !style.empty() && style != "integer" && style != "percent") return false;
+		if(!knownStyle(kind, style)) return false;
 		if(!value) return true;
 		if(!value->isNumber()) {
 			out += value->toText();
@@ -184,6 +191,62 @@ private:
 		return true;
 	}
 
+	/// @brief Tells whether a style is one of a kind's.
+	/// @param kind "number", "date" or "time".
+	/// @param style The style ("" is every kind's).
+	/// @return Whether.
+	[[nodiscard]] static bool knownStyle(std::string_view kind, std::string_view style) noexcept {
+		if(style.empty()) return true;
+		if(kind == "number") return style == "integer" || style == "percent";
+		return style == "short" || style == "medium" || style == "long" || style == "full";
+	}
+
+	/// @brief Reads a plural's "offset:N", if it has one.
+	/// @param offset Gets N (it stays 0 without one).
+	/// @return Whether it is well formed (or absent).
+	bool readOffset(double& offset) {
+		skipSpaces();
+		if(!text_.substr(at_).starts_with("offset:")) return true;
+		at_ += 7;
+		const std::string_view digits = word();
+		// At most 9 digits: a longer one is out of a double's range, or no offset a count needs
+		if(digits.empty() || digits.size() > 9 ||
+		   !std::ranges::all_of(digits, [](char c) { return std::isdigit(static_cast<unsigned char>(c)) != 0; })) {
+			fail("offset: is followed by a whole number of at most 9 digits");
+			return false;
+		}
+		offset = std::stod(std::string(digits));
+		return true;
+	}
+
+	/// @brief Reads a plural's or select's branches, each into its own text, up to its '}'.
+	/// @param branches Gets each selector and its text.
+	/// @param depth How many plurals and selects hold its branches.
+	/// @param plural A plural, not a select.
+	/// @param pound What '#' writes in the branches.
+	/// @return Whether they are well formed.
+	bool readBranches(std::vector<std::pair<std::string, std::string>>& branches, std::size_t depth, bool plural,
+	                  const std::string* pound) {
+		while(!take('}')) {
+			const std::string_view selector = word();
+			if(selector.empty() || !validSelector(selector, plural)) {
+				fail(at_ < text_.size()
+				         ? std::format("'{}' isn't a {} selector", selector, plural ? "plural" : "select")
+						 : "a '{' is never closed");
+				return false;
+			}
+			if(!take('{')) {
+				fail(std::format("the selector '{}' is followed by '{{'", selector));
+				return false;
+			}
+			std::string branch;
+			message(branch, depth, pound);
+			if(!take('}')) return false;
+			branches.emplace_back(selector, std::move(branch));
+		}
+		return error_.empty();
+	}
+
 	/// @brief Writes a plural's or select's branches, keeping the chosen one: from after its ',' to its '}'.
 	/// @param out Gets the chosen branch.
 	/// @param depth How many plurals and selects hold its branches.
@@ -194,35 +257,12 @@ private:
 	void choice(std::string& out, std::size_t depth, bool plural, const std::optional<Value>& value,
 	            const std::string* pound, const std::string& missing) {
 		double offset = 0;
-		if(plural) {
-			skipSpaces();
-			if(text_.substr(at_).starts_with("offset:")) {
-				at_ += 7;
-				const std::string_view digits = word();
-				// At most 9 digits: a longer one is out of a double's range, or no offset a count needs
-				if(digits.empty() || digits.size() > 9 ||
-				   !std::ranges::all_of(digits, [](char c) { return std::isdigit(static_cast<unsigned char>(c)) != 0; }))
-					return fail("offset: is followed by a whole number of at most 9 digits");
-				offset = std::stod(std::string(digits));
-			}
-		}
+		if(plural && !readOffset(offset)) return;
 		const bool numeric = plural && value && value->isNumber();
 		const double number = numeric ? value->number() - offset : 0;
 		const std::string own = numeric ? detail::formatNumber(locale_, number) : missing;
 		std::vector<std::pair<std::string, std::string>> branches; // selector, text
-		while(!take('}')) {
-			const std::string_view selector = word();
-			if(selector.empty() || !validSelector(selector, plural))
-				return fail(at_ < text_.size()
-				                ? std::format("'{}' isn't a {} selector", selector, plural ? "plural" : "select")
-								: "a '{' is never closed");
-			if(!take('{')) return fail(std::format("the selector '{}' is followed by '{{'", selector));
-			std::string branch;
-			message(branch, depth, plural ? &own : pound);
-			if(!take('}')) return;
-			branches.emplace_back(selector, std::move(branch));
-		}
-		if(!error_.empty()) return;
+		if(!readBranches(branches, depth, plural, plural ? &own : pound)) return;
 		const auto other = std::ranges::find(branches, "other", &std::pair<std::string, std::string>::first);
 		if(other == branches.end())
 			return fail(std::format("a {} needs an 'other' branch", plural ? "plural" : "select"));
