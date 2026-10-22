@@ -2,9 +2,9 @@
 # x86_64), Linux (x86_64) and Windows (x86_64), plus the MCP server's Python package; then checks each
 # archive on a clean machine of its system, with no source tree there.
 #
-# - A pushed tag v* (only the maintainer pushes tags) also makes a draft GitHub Release with the archives, SHA256SUMS
-#   and build-provenance attestations, and publishes the MCP package to PyPI through trusted publishing, from the
-#   protected "release" environment (RELEASING.md has the setup and the steps).
+# - A pushed tag v* (only the maintainer pushes tags) also makes a draft GitHub Release with the archives, SHA256SUMS,
+#   the SBOM and build-provenance attestations; the MCP package's wheel and sdist are release assets too. Nothing is
+#   published anywhere else (no PyPI): a release lives only on GitHub (RELEASING.md has the steps).
 # - workflow_dispatch, and a pull request that changes the release files, are dry runs: everything is built, packed
 #   and checked, and the files are kept as this run's artifacts; nothing is released or published.
 name: Release
@@ -211,7 +211,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag --title "AffrescoUI $VERSION" \
-            --notes "Downloads for macOS (universal), Linux (x86_64) and Windows (x86_64). Check them with \`sha256sum -c SHA256SUMS\` and \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`. The MCP server: \`pipx install affrescoui-mcp\`." \
+            --notes "Downloads for macOS (universal), Linux (x86_64) and Windows (x86_64). Check them with \`sha256sum -c SHA256SUMS\` and \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`. The MCP server installs from the release's wheel (\`pipx install ./affrescoui_mcp-$VERSION-py3-none-any.whl\`) or from GitHub (\`pipx install \"git+https://github.com/$GITHUB_REPOSITORY#subdirectory=mcp\"\`)." \
             dist/*
 
   # The recipes of packaging/, filled in for this run's files and tried out: the AppImage is built and started, the
@@ -277,20 +277,3 @@ jobs:
           name: packages
       - name: Validate the manifests
         run: winget validate --manifest packages/winget
-
-  pypi:
-    name: Publish the MCP server to PyPI
-    if: github.ref_type == 'tag'
-    needs: release
-    runs-on: ubuntu-24.04
-    environment:
-      name: release # protected: the maintainer approves the run (RELEASING.md)
-      url: https://pypi.org/project/affrescoui-mcp/
-    permissions:
-      id-token: write # trusted publishing
-    steps:
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-        with:
-          name: python-package
-          path: dist
-      - uses: pypa/gh-action-pypi-publish@ec4db0b4ddc65acdf4bff5fa45ac92d78b56bdf0 # v1.9.0
