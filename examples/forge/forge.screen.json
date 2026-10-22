@@ -21,7 +21,7 @@
 	"include": ["features/editor/editor.json", "features/themes/themes.json", "features/panels/panels.json",
 	            "features/palette/palette.json", "features/search/search.json", "features/shell/shell.json",
 	            "features/accounts/accounts.json", "features/explorer/explorer.json", "features/terminal/terminal.json",
-	            "features/scm/scm.json", "features/agent/agent.json"],
+	            "features/scm/scm.json", "features/agent/agent.json", "features/lsp/lsp.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -87,6 +87,7 @@
 			{ "when": "{{!state.layout.zen && settings.workbench.statusBar.visible}}", "use": "forgeStatusBar" }
 			] },
 			{ "use": "forgePalette" },
+			{ "use": "forgeLsp" },
 			{ "use": "toast", "with": { "open": "state.toast.open", "message": "{{state.toast.message}}",
 				"progress": "{{state.toast.progress}}" } },
 			{ "use": "dialog", "with": { "open": "state.about", "title": "Forge",

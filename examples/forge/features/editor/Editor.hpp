@@ -5,6 +5,7 @@
 /// the functions features/editor/editor.json calls to open, save, revert and close them.
 
 #include "Forge.hpp"
+#include "features/editor/Buffers.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -21,6 +22,7 @@ namespace forge {
 ///   - an edit that makes a buffer dirty or clean runs the action `bufferChanged` with `{ "id", "dirty" }`.
 /// @param screen The screen, before it is built; it must not move afterwards.
 /// @param workspace The open folder the files are opened from.
-void registerEditor(affresco::Screen& screen, std::shared_ptr<Workspace> workspace);
+/// @return The buffers, for the features that read them (registerLsp()).
+std::shared_ptr<Buffers> registerEditor(affresco::Screen& screen, std::shared_ptr<Workspace> workspace);
 
 } // namespace forge

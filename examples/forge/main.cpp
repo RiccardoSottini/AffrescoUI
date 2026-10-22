@@ -11,6 +11,7 @@
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "features/editor/Editor.hpp"
+#include "features/lsp/Lsp.hpp"
 #include "features/search/Search.hpp"
 #include "SocketDir.hpp"
 #include "features/accounts/Accounts.hpp"
@@ -95,7 +96,8 @@ int run(const Options& options) {
 	forge::registerExplorer(screen, workspace, &app);
 	forge::grantTerminal(screen, workspace->root);
 	forge::registerTerminal(screen, &app);
-	forge::registerEditor(screen, workspace);
+	forge::grantLanguageServers(screen);
+	forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace), &app);
 	forge::registerSearch(screen, workspace);
 	screen.setSocketDirectory(options.socketDir); // the agent pane's channel reaches Forge's own studio.sock
 	workspace->window = &screen.createWindow(app);

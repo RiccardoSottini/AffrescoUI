@@ -203,6 +203,12 @@ Home/End, Page Up/Down, Alt+arrows (words), Cmd+arrows (line and document ends),
 indentation; Tab/Shift+Tab indent; Cmd+A/C/X/V/Z, Cmd+Shift+Z. The caret's line is highlighted; the wheel scrolls.
 Tabs become 4 spaces. Applications build richer editors on it (syntax colours, commands): see
 `examples/CodeEditor.cpp`, the Forge template's `code` type.
+Forge's `code` type adds keys for features at the caret, such as a language server's (`features/lsp/`):
+`onHover` (event `{ over, line, column, x, y, top }` when the code point under the resting mouse changes), `onType`
+(event `{ text, line, column, word, x, y, top }` after each typed character or deletion), `popup` and `onPopupKey`
+(while `popup` is true, Up, Down, Page Up/Down, Enter, Tab and Escape go to the action as `{ key }`), `insert`
+(`{ text, before, request }`: replaces the `before` characters before the caret, once per request), and `tokens`
+(`[{ line, column, length, style }]`, from 0, coloured by `@syntax.<style>` over the grammar's colours).
 
 <!-- generated: editor -->
 | Key | Meaning |

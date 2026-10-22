@@ -61,7 +61,7 @@ void tellDocument(affresco::Screen& screen, const std::weak_ptr<Buffers>& buffer
 
 } // namespace
 
-void registerEditor(affresco::Screen& screen, std::shared_ptr<Workspace> workspace) {
+std::shared_ptr<Buffers> registerEditor(affresco::Screen& screen, std::shared_ptr<Workspace> workspace) {
 	const auto buffers = std::make_shared<Buffers>();
 	examples::registerCodeEditor(screen, [weak = std::weak_ptr<Buffers>(buffers)](std::string_view id) {
 		const std::shared_ptr<Buffers> alive = weak.lock();
@@ -94,6 +94,7 @@ void registerEditor(affresco::Screen& screen, std::shared_ptr<Workspace> workspa
 		return affresco::json{{"saved", saved}}.dump();
 	});
 	screen.onCall("forge.todos", [buffers](const std::string&) { return buffers->todos().dump(); });
+	return buffers;
 }
 
 } // namespace forge
