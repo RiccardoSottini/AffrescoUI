@@ -78,6 +78,7 @@ std::optional<TimelineItem> cycledItem(const KeyState& state, bool forward) {
 	const TimelineTrack& row = state.model.tracks[state.track];
 	if(row.locked) return std::nullopt;
 	std::vector<TimelineItem> items;
+	items.reserve(row.keyframes.size() + row.clips.size());
 	for(std::size_t k = 0; k < row.keyframes.size(); ++k) items.push_back({state.track, k, false});
 	for(std::size_t c = 0; c < row.clips.size(); ++c) items.push_back({state.track, c, true});
 	if(items.empty()) return std::nullopt;
@@ -97,12 +98,13 @@ std::optional<TimelineItem> cycledItem(const KeyState& state, bool forward) {
 /// @param forward Whether after.
 /// @return It, or std::nullopt.
 std::optional<double> nearestStop(const KeyState& state, bool forward) {
+	const TimelineTrack* row = state.track != none ? &state.model.tracks[state.track] : nullptr;
 	std::vector<double> stops;
+	stops.reserve(state.model.markers.size() + (row ? row->keyframes.size() + 2 * row->clips.size() : 0));
 	for(const TimelineMarker& marker : state.model.markers) stops.push_back(marker.time);
-	if(state.track != none) {
-		for(const TimelineKeyframe& keyframe : state.model.tracks[state.track].keyframes)
-			stops.push_back(keyframe.time);
-		for(const TimelineClip& clip : state.model.tracks[state.track].clips) {
+	if(row) {
+		for(const TimelineKeyframe& keyframe : row->keyframes) stops.push_back(keyframe.time);
+		for(const TimelineClip& clip : row->clips) {
 			stops.push_back(clip.start);
 			stops.push_back(clip.start + clip.duration);
 		}
