@@ -75,25 +75,24 @@ void write32(std::vector<std::uint8_t>& out, std::uint32_t value) {
 	return std::nullopt;
 }
 
-/// @brief The profile in a JPEG's APP2 segments, put back together.
-/// @param file The JPEG.
-/// @param limits profileBytes.
-[[nodiscard]] std::optional<std::vector<std::uint8_t>> jpegProfile(std::span<const std::uint8_t> file,
-                                                                   const Limits& limits) {
-	std::map<int, std::span<const std::uint8_t>> parts;
-	int count = 0;
-	std::size_t total = 0, at = 2;
-	for(std::size_t segment = 0; segment < jpegSegments && at + 4 <= file.size() && file[at] == 0xff; ++segment) {
-		const std::uint8_t marker = file[at + 1];
-		if(marker == 0xda || marker == 0xd9) break; // the scan, or the end
-		const std::size_t length = static_cast<std::size_t>(file[at + 2]) << 8 | file[at + 3];
-		if(length < 2 || length > file.size() - at - 2)
-			throw DocumentError("imaging: a JPEG segment runs past the end");
-		const std::span<const std::uint8_t> data = file.subspan(at + 4, length - 2);
-		at += length + 2;
-		if(marker != 0xe2 || data.size() < iccMarker.size() + 2 ||
-		   std::memcmp(data.data(), iccMarker.data(), iccMarker.size()) != 0)
-			continue;
+/// @brief Whether a JPEG segment is a part of an ICC profile: an APP2 with the marker and the part's two numbers.
+/// @param marker The segment's marker.
+/// @param data Its data.
+[[nodiscard]] bool iccSegment(std::uint8_t marker, std::span<const std::uint8_t> data) noexcept {
+	return marker == 0xe2 && data.size() >= iccMarker.size() + 2 &&
+	       std::memcmp(data.data(), iccMarker.data(), iccMarker.size()) == 0;
+}
+
+/// @brief The parts of a JPEG's profile, gathered in any order and put back together in theirs.
+struct ProfileParts {
+	std::map<int, std::span<const std::uint8_t>> parts; ///< The parts' data, by sequence number.
+	int count = 0;                                      ///< The parts declared (0 before the first).
+	std::size_t total = 0;                              ///< Their bytes so far.
+
+	/// @brief Adds a part, checking it against the others and the limit.
+	/// @param data An ICC segment's data.
+	/// @param limits profileBytes.
+	void add(std::span<const std::uint8_t> data, const Limits& limits) {
 		const int sequence = data[iccMarker.size()], declared = data[iccMarker.size() + 1];
 		if(sequence == 0 || sequence > declared || (count != 0 && declared != count) || parts.contains(sequence))
 			throw DocumentError("imaging: the embedded colour profile's parts are inconsistent");
@@ -102,13 +101,38 @@ void write32(std::vector<std::uint8_t>& out, std::uint32_t value) {
 		total += parts[sequence].size();
 		if(total > limits.profileBytes) throw DocumentError("imaging: the embedded colour profile is too big");
 	}
-	if(parts.empty()) return std::nullopt;
-	if(static_cast<int>(parts.size()) != count)
-		throw DocumentError("imaging: the embedded colour profile is incomplete");
-	std::vector<std::uint8_t> bytes;
-	bytes.reserve(total);
-	for(const auto& [sequence, part] : parts) bytes.insert(bytes.end(), part.begin(), part.end());
-	return bytes;
+
+	/// @brief The profile, once every part is in.
+	/// @return It, or nothing without parts.
+	[[nodiscard]] std::optional<std::vector<std::uint8_t>> joined() const {
+		if(parts.empty()) return std::nullopt;
+		if(static_cast<int>(parts.size()) != count)
+			throw DocumentError("imaging: the embedded colour profile is incomplete");
+		std::vector<std::uint8_t> bytes;
+		bytes.reserve(total);
+		for(const auto& [sequence, part] : parts) bytes.insert(bytes.end(), part.begin(), part.end());
+		return bytes;
+	}
+};
+
+/// @brief The profile in a JPEG's APP2 segments, put back together.
+/// @param file The JPEG.
+/// @param limits profileBytes.
+[[nodiscard]] std::optional<std::vector<std::uint8_t>> jpegProfile(std::span<const std::uint8_t> file,
+                                                                   const Limits& limits) {
+	ProfileParts parts;
+	std::size_t at = 2;
+	for(std::size_t segment = 0; segment < jpegSegments && at + 4 <= file.size() && file[at] == 0xff; ++segment) {
+		const std::uint8_t marker = file[at + 1];
+		if(marker == 0xda || marker == 0xd9) break; // the scan, or the end
+		const std::size_t length = static_cast<std::size_t>(file[at + 2]) << 8 | file[at + 3];
+		if(length < 2 || length > file.size() - at - 2)
+			throw DocumentError("imaging: a JPEG segment runs past the end");
+		const std::span<const std::uint8_t> data = file.subspan(at + 4, length - 2);
+		at += length + 2;
+		if(iccSegment(marker, data)) parts.add(data, limits);
+	}
+	return parts.joined();
 }
 
 /// @brief Checks a header against the limits.
