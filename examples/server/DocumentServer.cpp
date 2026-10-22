@@ -61,11 +61,12 @@ json view(const vcs::Repository& repository) {
 
 } // namespace
 
-DocumentServer::DocumentServer(Executor& executor, std::filesystem::path folder, std::shared_ptr<TokenFile> tokens,
-                               std::string_view address, net::PeerServerOptions options)
-    : DocumentServer(executor, std::move(folder), tokens,
-                     [tokens] { return tokens ? tokens->people() : std::vector<std::string>(); }, address,
-                     std::move(options)) {}
+DocumentServer::DocumentServer(Executor& executor, std::filesystem::path folder,
+                               const std::shared_ptr<TokenFile>& tokens, std::string_view address,
+                               net::PeerServerOptions options)
+    : DocumentServer(
+          executor, std::move(folder), tokens,
+          [tokens] { return tokens ? tokens->people() : std::vector<std::string>(); }, address, std::move(options)) {}
 
 DocumentServer::DocumentServer(Executor& executor, std::filesystem::path folder,
                                std::shared_ptr<net::TokenVerifier> verifier,
@@ -162,7 +163,7 @@ void DocumentServer::handleServerMessage(Peer& peer, const json& message, const 
 		peer.socket->send(state(document, "leases").dump());
 	} else if(type == "presence") {
 		if(!document.presence.set(peer.id, text(message, "where"), text(message, "doing")))
-			peer.socket->send(error("\"where\" is at most 256 bytes, \"doing\" at most 64").dump());
+			peer.socket->send(error(R"("where" is at most 256 bytes, "doing" at most 64)").dump());
 		else broadcast(document, "presence");
 	} else lease(peer, message, type);
 }

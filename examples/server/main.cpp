@@ -142,7 +142,8 @@ int serve(const Options& options) {
 	};
 	const DocumentServer server(loop, options.folder, std::make_shared<ChainVerifier>(std::move(verifiers)), people,
 	                      options.listen, options.server);
-	std::cout << "serving " << server.documents().size() << " documents on port " << server.port() << std::endl;
+	std::cout << "serving " << server.documents().size() << " documents on port " << server.port() << '\n'
+	          << std::flush; // flushed: whoever started the server may wait for this line
 #ifndef _WIN32
 	sigset_t signals;
 	sigemptyset(&signals);
@@ -172,18 +173,18 @@ int main(int argc, char** argv) {
 	sigaddset(&signals, SIGTERM);
 	pthread_sigmask(SIG_BLOCK, &signals, nullptr);
 #endif
-	const auto options = parse(std::vector<std::string>(argv + 1, argv + argc));
-	if(!options) return 2;
 	try {
+		const auto options = parse(std::vector<std::string>(argv + 1, argv + argc));
+		if(!options) return 2;
 		if(!options->addToken.empty()) {
 			std::filesystem::create_directories(options->folder);
 			const std::string token = affresco::server::TokenFile::add(options->folder / "tokens", options->addToken);
-			std::cout << token << std::endl; // shown once: only its hash is kept
+			std::cout << token << '\n'; // shown once: only its hash is kept
 			return 0;
 		}
 		return serve(*options);
 	} catch(const std::exception& error) {
-		std::cerr << "affrescoui_server: " << error.what() << std::endl;
+		std::cerr << "affrescoui_server: " << error.what() << '\n';
 		return 1;
 	}
 }
