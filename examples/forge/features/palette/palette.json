@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's palette: one quick pick with four providers (files by default, '>' commands, ':' go to line, 'theme ' colour themes), and the Settings and Keyboard Shortcuts pages, both generated from what the features contribute (the settings and commands sections and the keys).",
+	"note": "Forge's palette: one quick pick with four providers (files by default, '>' commands, ':' go to line, 'theme ' colour themes, 'task ' the tasks Run Task read), and the Settings and Keyboard Shortcuts pages, both generated from what the features contribute (the settings and commands sections and the keys).",
 
 	"state": {
 		"quickPick": { "open": false, "query": "" },
@@ -78,7 +78,9 @@
 					{ "prefix": ":", "items": "{{computed.lineItems}}", "run": "goToPicked",
 					  "placeholder": "Type a line number" },
 					{ "prefix": "theme ", "items": "{{state.themes}}", "key": "name", "run": "setTheme",
-					  "placeholder": "Choose a colour theme" }
+					  "placeholder": "Choose a colour theme" },
+					{ "prefix": "task ", "items": "{{state.tasks.items}}", "run": "taskStart",
+					  "placeholder": "Choose a task to run" }
 				] } }
 		},
 		"forgeSettingsPage": {
