@@ -24,6 +24,12 @@
 			"of": "watch/100000",
 			"atMost": 0.5,
 			"why": "one changed file in a watched 100,000-file folder updates one row, never a new listing (0.14 on macOS)"
+		},
+		{
+			"name": "canvas/pan-100k",
+			"of": "canvas/pan-1k",
+			"atMost": 3,
+			"why": "a canvas draws what is in view (a spatial index), so 100,000 items pan about as fast as 1,000 (1.35 on macOS, 0.12 ms a frame against 8.3 ms at 120 Hz)"
 		}
 	]
 }

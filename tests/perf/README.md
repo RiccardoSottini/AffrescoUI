@@ -84,6 +84,8 @@ as the OpenGL driver's, aren't counted.
 | `views/list-scroll-100k` | A list of 100,000 rows scrolled to a new place, then a frame: only the rows in view are drawn |
 | `views/table-sort-100k` | A table of 100,000 rows sorted by a column of numbers, descending or ascending (each run does both) |
 | `views/table-scroll-100k` | That table scrolled to a new place, then a frame |
+| `canvas/pan-100k` | A canvas of 100,000 items panned to a new place, then a frame recorded (all but OpenGL): only the items in view are drawn. A frame at 120 Hz has 8.3 ms |
+| `canvas/pan-1k` | The same with 1,000 items: a lock keeps the 100,000-item pan within 3 times it |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 

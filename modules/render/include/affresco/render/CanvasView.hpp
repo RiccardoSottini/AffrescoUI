@@ -101,6 +101,9 @@ struct CanvasLevel {
 /// resize and rotate. Keys while it (or one of its children) has the focus: + and - zoom at the pointer, 0 resets
 /// the zoom, Shift+1 fits the content, Shift+2 the selection, arrows nudge (Shift: 10), Escape clears the selection.
 ///
+/// Accessibility: children keep their roles and names; the selection is announced in the canvas's accessible
+/// description ("3 selected").
+///
 /// Lifetime: the canvas listens to its window's input; it stops in its destructor, so it must not outlive the
 /// window it was shown in (panels are owned by their window's tree, so this holds unless one is taken out).
 class CanvasView : public Panel {
@@ -130,6 +133,10 @@ public:
 	/// @param childId The child; levels of a child the canvas doesn't have are kept for when it does.
 	/// @param levels Its levels; empty removes them.
 	void setLevels(const std::string& childId, std::vector<CanvasLevel> levels);
+	/// @brief The levels of detail, by child id.
+	[[nodiscard]] const std::vector<std::pair<std::string, std::vector<CanvasLevel>>>& levels() const noexcept {
+		return levels_;
+	}
 
 	/* View state: what a person changes (each change emits onViewChanged) */
 

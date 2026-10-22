@@ -272,5 +272,8 @@ void registerRichTextProperties(TypeRegistry& registry);
 /// @brief Registers "path" (PathType.cpp).
 /// @param registry The registry.
 void registerPathType(TypeRegistry& registry);
+/// @brief Registers "canvas" (CanvasType.cpp).
+/// @param registry The registry.
+void registerCanvasType(TypeRegistry& registry);
 
 } // namespace affresco::format

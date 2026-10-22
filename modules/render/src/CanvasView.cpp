@@ -67,6 +67,8 @@ void CanvasView::setSelection(std::vector<std::string> ids) {
 	if(ids.size() > maximumSelection) ids.resize(maximumSelection);
 	if(ids == selection_) return;
 	selection_ = std::move(ids);
+	// Announced as a state of the canvas: assistive tools read the description after its name
+	setAccessibleDescription(selection_.empty() ? std::string() : std::to_string(selection_.size()) + " selected");
 	invalidate();
 }
 

@@ -693,7 +693,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, canvas, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -715,6 +715,7 @@
 									"tree",
 									"table",
 									"path",
+									"canvas",
 									"outlet"
 								]
 							},
@@ -1931,6 +1932,114 @@
 							}
 						]
 					},
+					"view": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"camera": {
+										"type": "object",
+										"properties": {
+											"x": {
+												"type": "number"
+											},
+											"y": {
+												"type": "number"
+											},
+											"zoom": {
+												"type": "number",
+												"minimum": 0.01,
+												"maximum": 256
+											}
+										}
+									},
+									"selection": {
+										"type": "array",
+										"maxItems": 10000,
+										"items": {
+											"type": [
+												"string",
+												"number"
+											]
+										}
+									},
+									"guides": {
+										"type": "object",
+										"properties": {
+											"vertical": {
+												"type": "array",
+												"maxItems": 256,
+												"items": {
+													"type": "number"
+												}
+											},
+											"horizontal": {
+												"type": "array",
+												"maxItems": 256,
+												"items": {
+													"type": "number"
+												}
+											}
+										}
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "canvas: the camera { x, y, zoom }, the selected ids and the guides { vertical, horizontal }"
+					},
+					"lod": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 256,
+								"items": {
+									"type": "object",
+									"required": [
+										"for",
+										"use"
+									],
+									"properties": {
+										"for": {
+											"type": "string"
+										},
+										"use": {
+											"type": "string"
+										},
+										"below": {
+											"type": "number",
+											"minimum": 0,
+											"maximum": 256
+										}
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "canvas: levels of detail: below a zoom, the child use stands in for the child for"
+					},
+					"grid": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 1000000
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"snap": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"rulers": {
+						"$ref": "#/$defs/v1/flag"
+					},
 					"onClick": {
 						"$ref": "#/$defs/v1/handler"
 					},
@@ -2000,6 +2109,9 @@
 					"onColumnResize": {
 						"$ref": "#/$defs/v1/handler"
 					},
+					"onTransform": {
+						"$ref": "#/$defs/v1/handler"
+					},
 					"slot": {
 						"const": true,
 						"description": "In a component: where the use's children go"
@@ -2040,6 +2152,7 @@
 									"tree",
 									"table",
 									"path",
+									"canvas",
 									"outlet"
 								]
 							}

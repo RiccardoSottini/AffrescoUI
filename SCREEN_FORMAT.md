@@ -102,7 +102,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `canvas`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -384,6 +384,40 @@ An `image` can also show an SVG file (`.svg`, at most 1 MiB): paths and basic sh
 rasterised at twice the size it declares. Gradients, text, masks, filters and rotations aren't drawn.
 `examples/assets/components/charts.json` has line, bar and area charts built on `path`, to `include`.
 
+### `canvas`
+An infinite canvas, as in whiteboards and design tools: its children and its `items` are placed in world units and
+seen through a camera. Drag the background (or hold Space, or use the middle button) and scroll to pan; pinch, or Ctrl
+or Cmd with the wheel, zooms at the pointer, as do `+` and `-` (`0` resets the zoom, Shift+1 fits everything, Shift+2
+the selection). Click, Shift-click and a marquee select; the handles move, resize (eight of them) and rotate; arrow
+keys nudge (Shift: 10). Moves and resizes snap to the grid, to other items' edges and centres and to guides, with
+smart guides drawn while dragging. Rulers along the top and left follow the zoom; dragging out of one makes a guide,
+dragging a guide back onto it removes it. The canvas doesn't move anything itself: it runs `onTransform` with where
+the items should go, and the document applies it. `items` are drawn by the canvas, only those in view, so thousands
+cost what is on screen; an application with more (up to a million) gives them through a model. The selection is
+announced as a state of the canvas ("3 selected").
+
+<!-- generated: canvas -->
+| Key | Meaning |
+|---|---|
+| `view` | The view (`bind` keeps it in a state path, both ways): `{ "camera": { "x", "y", "zoom" }, "selection": [ids], "guides": { "vertical": [x], "horizontal": [y] } }`, each part only if given. The camera's x and y are the world point at the top-left; the zoom (screen units per world unit) stays within 0.01 and 256. Panning, zooming, selecting and dragging guides out of the rulers run `onChange`; `animate` on `state.<bind>.camera.zoom` (or x, y) moves the camera smoothly. |
+| `items` | Items the canvas draws itself, in world units, in drawing order (at most 10,000; an application gives more through a model): `{ "id", "x", "y", "width", "height", "rotate", "color", "borderColor", "borderWidth", "radius", "text", "textSize", "textColor" }`. Only those in view are drawn; text too small to read draws as a bar. Children are placed in world units too, by their `x`, `y`, `width` and `height`. |
+| `lod` | Levels of detail: `[{ "for": "card", "below": 0.25, "use": "cardSmall" }]`: below that zoom the child `use` (a lighter sibling, by id) is drawn in place of the child `for`. |
+| `grid` | World units between grid lines (default 0: none); drawn when the lines are far enough apart, and snapped to. |
+| `snap` | Moves and resizes snap to the grid, other items' edges and centres, and guides (default true). |
+| `rulers` | Rulers along the top and left, in world units; dragging out of one makes a guide (default true). |
+| `font` | The items' text font (default `default`), in a few sizes. |
+| `accentColor` | The selection, the marquee, the handles and the guides. |
+<!-- end generated -->
+
+```json
+{ "type": "canvas", "id": "board", "bind": "state.board", "grid": 20,
+  "items": "{{state.cards}}", "onTransform": { "run": "moveCards", "with": { "moved": "{{event.items}}" } },
+  "lod": [{ "for": "chart", "below": 0.25, "use": "chartSmall" }] }
+```
+
+`{ "animate": "state.board.camera.zoom", "to": 2, "ms": 300 }` moves the camera smoothly. Until panels can be
+transformed, a child's text keeps its size while its box, images and paths scale with the zoom.
+
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
 
@@ -538,6 +572,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onOpen` | Enter or a double click on a tree, list or table row: `event.id`. |
 | `onSort` | A table header clicked: `event.column`, `descending`. |
 | `onColumnResize` | A table column's edge dragged and let go: `event.column`, `width`. |
+| `onTransform` | Canvas items moved, resized, rotated or nudged: `event.items`, each `{ "id", "x", "y", "width", "height", "rotate" }`, where they should go; the document applies them. |
 <!-- end generated -->
 
 **Bubbling:** click, double click, context menu, press, release, drag, scroll and key events go to the node or, if it
