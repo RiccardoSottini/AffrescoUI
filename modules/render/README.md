@@ -78,6 +78,10 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   pixels a full frame would. The rendering check proves it: every capture is also drawn from scratch
   (`detail::drawFromScratch`) and must be the same. **A widget whose drawing depends on anything else must call
   `invalidatePaint()` (or `invalidate()`) when it changes.** One renderer per window: it clears the panels' paint bits.
+- **Writing direction is inherited** (6.9). `Panel::setWritingDirection` (`dir` in screens) sets a subtree right to
+  left, left to right, or as the window's locale (`Window::setLocaleRightToLeft`); right to left mirrors rows, grid
+  columns, anchors, positions and text alignment, and a label marked mirror swaps its icon's left and right
+  (`tests/unit/rtl.cpp`).
 - **Layout per axis:** anchored edges first, then the position, then the size within its minimum and maximum (the
   minimum wins), then the aspect ratio; percentages refer to the
   parent; a panel is clipped to its parent, and a panel clipped to nothing is not shown. Overlays are laid out, drawn
@@ -100,7 +104,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 - **Text is shaped, then drawn.** `Font::shape` splits text into runs of one face and one script, each character
   from the first file of the font and its fallbacks that has it (fallbacks at the font's em size), and shapes each run
   with HarfBuzz; FreeType rasterises the glyphs, unhinted. A right-to-left run is laid out right to left, and a line's
-  runs left to right (no bidirectional reordering yet). Shaped text is cached per font by line and by word, so a
+  runs are put in visual order by their bidirectional levels (UAX #9, simplified: the paragraph's direction is its
+  first strong character's, and numbers stay left to right). Shaped text is cached per font by line and by word, so a
   frame that draws what the last one drew shapes nothing, and measuring a new line of known words allocates nothing.
 - **Plain words skip shaping, with HarfBuzz's results.** A word of the first face's plain Latin-1 characters
   (`text/PlainText`) is laid out from a table of advances with kerning, one read per character, without HarfBuzz or

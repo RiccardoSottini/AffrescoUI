@@ -141,7 +141,7 @@ struct Font::Data {
 	/// script of its own (spaces, punctuation) goes the way of the strong runs on both sides when they agree, else the
 	/// line's way (N1, N2).
 	void resolveDirections() noexcept;
-	/// @brief Splits the runs of a text that has right-to-left runs where numbers start and end.
+	/// @brief Splits the runs of a text that has right-to-left runs where numbers and spaces start and end.
 	/// @param text The text the runs cover.
 	void splitNumbers(std::u32string_view text);
 	/// @brief Shapes one run with HarfBuzz and appends its glyphs, advances and carets.

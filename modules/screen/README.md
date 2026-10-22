@@ -60,7 +60,8 @@ Main thread only. Channels deliver messages through the `Executor` given to `lis
 
 ## Extension points
 
-Everything `format::Runtime` offers, as text-based callbacks: `registerType`, `onAction`, `onCall`,
+`setLocale(tag)` gives screens whose `strings` name no `locale` the computer's (`format::systemLocale()`); the host
+calls it at start. Everything `format::Runtime` offers, as text-based callbacks: `registerType`, `onAction`, `onCall`,
 `onUnhandledAction`, `onEvent`; `setModel` for a `DataModel` the screen shows with `"in": "models.<name>"`; and
 `onAsyncCall` for a slow function run on a worker thread (with `setExecutor` for a window the Screen didn't create;
 destroying the Screen waits for the functions running). Plus the peers: `connect(channel, author)` for a channel you made, and

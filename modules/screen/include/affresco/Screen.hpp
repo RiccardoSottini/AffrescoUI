@@ -125,6 +125,9 @@ public:
 	/// @brief Makes unknown types plain panels instead of an error.
 	/// @param enabled true to allow them.
 	void setPlaceholderTypes(bool enabled);
+	/// @brief Sets the computer's locale (format::systemLocale()), for screens whose "strings" name no "locale".
+	/// @param tag "fr-CA"; "" for the screen's default.
+	void setLocale(std::string tag);
 
 	/* Building */
 

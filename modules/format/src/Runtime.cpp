@@ -146,6 +146,12 @@ void Runtime::setNetwork(network::Network* network) {
 	impl_->reconciler.requestReconcile();
 }
 
+void Runtime::setLocale(std::string tag) {
+	impl_->document.setHostLocale(std::move(tag));
+	impl_->document.globalsChanged(); // the "locale" variable
+	impl_->reconciler.requestReconcile();
+}
+
 void Runtime::setIdentity(identity::Identity* identity) {
 	if(impl_->identity) impl_->identity->onStatus(nullptr);
 	impl_->identity = identity;

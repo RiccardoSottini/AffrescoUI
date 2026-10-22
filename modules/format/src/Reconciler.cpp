@@ -341,6 +341,7 @@ void Reconciler::update(bool full) {
 	context.keepScreen(document);
 	context.globalsChanged(); // window size, history, proposals, screen: refreshed once per update
 	context.updateTheme();
+	context.updateLocale();
 
 	// Revisions can change the fonts: the default one is the window's
 	if(const auto font = context.findFont("default"); font && window->defaultFont() != font.get())

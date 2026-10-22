@@ -427,7 +427,7 @@ void mergeInclude(json& document, const json& part) {
 			document[key] = value;
 		} else if(value.is_object() && document[key].is_object()) {
 			json& section = document[key];
-			if(key == "menus")
+			if(key == "menus" || key == "strings") // a locale's keys merge, like a menu's items
 				for(const auto& [menu, items] : value.items())
 					if(items.is_object() && section.contains(menu) && section[menu].is_object())
 						mergeObject(section[menu], items);
@@ -548,6 +548,8 @@ void Screen::registerType(std::string name, Factory factory, std::vector<std::st
 }
 
 void Screen::setPlaceholderTypes(bool enabled) { impl_->runtime.setPlaceholderTypes(enabled); }
+
+void Screen::setLocale(std::string tag) { impl_->runtime.setLocale(std::move(tag)); }
 
 Window& Screen::createWindow(Application& app) {
 	impl_->warnOfFindings();

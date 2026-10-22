@@ -14,6 +14,14 @@ affrescoui_module(format
 	src/ExpressionFunctionsTime.cpp
 	src/ExpressionFunctionsFuzzy.cpp
 	src/ExpressionFunctionsColor.cpp
+	src/ExpressionFunctionsLocale.cpp
+	src/LocaleData.cpp
+	src/LocalePlurals.cpp
+	src/LocaleNumbers.cpp
+	src/LocaleDates.cpp
+	src/LocaleSystem.cpp
+	src/Strings.cpp
+	src/StringsMessage.cpp
 	src/Value.cpp
 	src/Rules.cpp
 	src/BehaviourLines.cpp
@@ -96,4 +104,7 @@ affrescoui_module(format
 	src/Features.cpp
 	${AFFRESCOUI_MONOCYPHER_SOURCES})
 target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)
+if(APPLE)
+	target_link_libraries(affrescoui_format PRIVATE "-framework CoreFoundation") # systemLocale()
+endif()
 target_include_directories(affrescoui_format SYSTEM PRIVATE ${AFFRESCOUI_MONOCYPHER_DIR} ${AFFRESCOUI_MONOCYPHER_DIR}/optional)

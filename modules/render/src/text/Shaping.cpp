@@ -236,15 +236,21 @@ void Font::Data::splitNumbers(std::u32string_view text) {
 	std::vector<Run> split;
 	split.reserve(runs.size());
 	for(const Run& run : runs) {
+		// Spaces too: a run of another script (" Anna") must not carry the space beside it to its own side
+		const auto isSpace = [&text](std::size_t index) { return text[index] == U' '; };
 		for(std::size_t start = run.start; start < run.end;) {
 			const bool number = isDigit(unicode, text[start]); // a number starts with a digit
+			const bool space = !number && isSpace(start);
 			std::size_t end = start + 1;
-			while(end < run.end && (number ? continuesNumber(unicode, text, end) : !isDigit(unicode, text[end]))) ++end;
+			while(end < run.end && (number  ? continuesNumber(unicode, text, end)
+			                        : space ? isSpace(end)
+			                                : !isDigit(unicode, text[end]) && !isSpace(end)))
+				++end;
 			Run piece = run;
 			piece.start = start;
 			piece.end = end;
 			piece.number = number;
-			if(number) piece.script = HB_SCRIPT_COMMON;
+			if(number || space) piece.script = HB_SCRIPT_COMMON;
 			split.push_back(piece);
 			start = end;
 		}
@@ -373,7 +379,9 @@ void Font::Data::spreadClusters(const Run& run, float runStart, float runEnd, Sh
 			shaped.carets[i] = run.rightToLeft ? cluster.left + cluster.width - share : cluster.left + share;
 		}
 	}
-	shaped.carets[run.end] = run.rightToLeft ? runStart : runEnd;
+	// The caret past a run is the next run's first, unless it is the text's end: runs are drawn in visual order, so
+	// the next run may already have set it
+	if(run.end + 1 == shaped.carets.size()) shaped.carets[run.end] = run.rightToLeft ? runStart : runEnd;
 }
 
 } // namespace affresco

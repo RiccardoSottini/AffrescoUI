@@ -148,6 +148,10 @@ public:
 	/// @param identity The sign-in (outlives the runtime, or is replaced first), or nullptr: no connection with "auth"
 	/// is signed in.
 	void setIdentity(identity::Identity* identity);
+	/// @brief Sets the locale the host found on the computer (systemLocale()): the `locale` variable, the language
+	/// `t()` translates to and the formats of numbers and dates, where the "strings" section names no "locale".
+	/// @param tag "fr-CA" or "fr_CA.UTF-8"; "" for the section's "default", else "en".
+	void setLocale(std::string tag);
 
 	/// @brief Registers a data model the document shows with `"repeat": {"in": "models.<name>"}`: its rows are read
 	/// one at a time, and a change of a row updates only what reads that row. Agents see its count, shape and a sample.

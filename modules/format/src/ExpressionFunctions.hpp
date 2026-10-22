@@ -18,6 +18,10 @@
 #include <string>
 #include <string_view>
 
+namespace affresco::format {
+class Strings;
+} // namespace affresco::format
+
 namespace affresco::format::detail {
 
 class Machine;
@@ -70,6 +74,9 @@ public:
 	/// @param message What is wrong.
 	/// @throws DocumentError Always.
 	[[noreturn]] void fail(const std::string& message) const;
+	/// @brief The translations and locale of the document evaluated.
+	/// @return They, or nullptr (a tool's evaluation: English, no keys).
+	[[nodiscard]] const Strings* strings() const noexcept;
 
 private:
 	Machine& machine_;              ///< Runs the arguments.
@@ -141,6 +148,8 @@ struct Function {
 [[nodiscard]] std::span<const Function> fuzzyFunctions();
 /// @copydoc logicFunctions
 [[nodiscard]] std::span<const Function> colorFunctions();
+/// @copydoc logicFunctions
+[[nodiscard]] std::span<const Function> localeFunctions();
 
 /* Helpers the tables share */
 

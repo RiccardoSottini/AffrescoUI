@@ -158,6 +158,8 @@ Value Call::evaluateFor(std::size_t index, const Value& item, std::size_t positi
 
 void Call::fail(const std::string& message) const { Machine::fail(at_, message); }
 
+const Strings* Call::strings() const noexcept { return machine_.context().strings; }
+
 /* The machine */
 
 json Machine::evaluateDocument(const json& value, const Place& place) {
@@ -321,9 +323,11 @@ std::optional<Value> Machine::variable(Root root, std::string_view name, const P
 	}
 	if(std::optional<Value> named = namedVariable(name)) return named;
 	if(root == Root::Nodes && context_.nodes) return std::nullopt;
-	fail(place, "unknown variable '" + std::string(name) +
-	                "' (state, event, window, revision, proposals, history, preview, mode, computed, theme, screen, "
-	                "nodes, context, commands, keybindings, services, or a name given by repeat, forEach, let, with or a component's params)");
+	fail(place,
+	     "unknown variable '" + std::string(name) +
+	         "' (state, event, window, revision, proposals, history, preview, mode, computed, theme, locale, screen, "
+	         "nodes, context, commands, keybindings, services, or a name given by repeat, forEach, let, with or a "
+	         "component's params)");
 }
 
 std::optional<Value> Machine::namedVariable(std::string_view name) const {

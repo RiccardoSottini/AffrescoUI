@@ -64,6 +64,7 @@ Every part of the format follows these, and so should every extension:
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `tokens` | `name → value`: a number (spacing, a radius, a type size), a colour (`"#rrggbb"`, `"transparent"`), an alias (`"@other"`, of a token or of `colors`), or per theme `{ "light": ..., "dark": ... }` of those. Used as `"@name"` wherever a number or a colour fits (`"padding": "@space.m"`, a font's `"size"`). Switched by `theme` like `colors`; a name in both is an error. Aliases go at most 16 deep. |
 | `theme` | Which variant of the colors and tokens is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
+| `strings` | `locale → { key → message }`, with `"default"` (the locale a key falls back to) and `"locale"` (the locale shown, usually bound: `"{{state.locale}}"`; else the host's, from the system). `t("key", {params})` looks a key up in the locale, then its parents (`fr-CA`, then `fr`), then the default; a key found nowhere shows as itself. See Strings and locales. |
 | `styles` | `name → properties`, applied with `"style": "name"` or `["a", "b"]`. A style may itself have a `style`. |
 | `components` | `name → { "params": {defaults}, "node": node }`: reusable nodes with parameters (see Components). |
 | `screens` | `name → node`: the screens an `outlet` shows; `{"navigate": "name"}` switches. The first is shown first. |
@@ -117,6 +118,7 @@ parent, later siblings on top of earlier ones.
 | `basis` | In a `row`/`column`: its size along it before growing or shrinking (CSS flex-basis), a length; `"auto"` (the default) for its own `width` or `height`. |
 | `alignSelf` | In a `row`/`column`/`grid`: where it sits across (`start`, `center`, `end`, `stretch`), over the container's `alignItems`. |
 | `cell` | In a `grid`: `{ "column": 2, "row": 1, "columnSpan": 2, "rowSpan": 1 }`, counted from 1 (each key optional). Without `column` and `row`, it takes the next free cell, row after row. |
+| `dir` | Which way its children and text run, inherited: `"ltr"`, `"rtl"`, `"auto"` (the locale's: Arabic and Hebrew are right to left) or `"inherit"` (the default; the root is left to right). Right to left mirrors row order, grid columns, left and right anchors, `x`, padding and scrolling, swaps a label's `align` start and end, and draws an icon marked `mirror` mirrored. |
 <!-- end generated -->
 
 ### Every type: look
@@ -191,6 +193,7 @@ only for the elements that changed.
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
+| `mirror` | Right to left (`dir`), draw the icon mirrored: `left` and `right` swap in its name (`"chevron-left"` draws `"chevron-right"`), when the font has that one. For arrows and chevrons that point the reading way. |
 | `runs` | Rich text instead of `text`: a list of parts, each text or `{ "text", "bold", "italic", "size", "font", "color", "link", "icon" }`. `font` names a font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). A part with `link` is underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 parts and 65,536 characters. Not on text areas. |
 | `selectable` | The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons are left out of the copy. |
 | `selectionColor` | The selection's colour (default `#b4d5fe`). |
@@ -267,6 +270,12 @@ overflow.
 | `direction` | On a `stack`: `"row"` or `"column"`. |
 | `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
 <!-- end generated -->
+
+**Direction.** A node's `dir` (`"ltr"`, `"rtl"`, `"auto"` for the locale's, or `"inherit"`, the default) says which
+way its children and text run. Right to left, a `row` places its first child at the right, a `grid` its first column
+at the right, and `left` and `right` anchors, `x`, padding and scrolling are mirrored; a label's `align` `start` and
+`end` swap, and an icon marked `mirror` is drawn mirrored. Text is shaped by its own direction either way (Arabic and
+Hebrew runs right to left, numbers left to right). `"dir": "auto"` on the root makes a whole screen follow `locale`.
 
 `grid` places its children in columns and rows, like a CSS grid: each in its `cell`, or in the next free cell, row
 after row. A child is as wide as its cell and keeps its own height at the top of it, unless `justifyItems`,
@@ -592,6 +601,39 @@ caused it. A revision may have 100,000 operations and 16 MiB; a document may hav
   other keys are read only if its type says `"additionalProperties": true` or a type.
 - **While the screen runs,** steps and widgets aren't stopped by the types: they are a contract for revisions and a
   description for agents and tools.
+
+### Strings and locales
+
+A screen's text can come in several languages. The `strings` section holds, per locale, keys and their messages;
+`t("key", {params})` gives the message of the shown locale with its parameters filled:
+
+```json
+"strings": {
+  "default": "en",
+  "locale": "{{state.locale}}",
+  "en": { "files": "{n, plural, =0 {No files} one {# file} other {# files}}", "hello": "Hello, {name}" },
+  "it": { "files": "{n, plural, =0 {Nessun file} one {# file} other {# file}}", "hello": "Ciao, {name}" }
+},
+"text": "{{t('files', {n: state.count})}}"
+```
+
+- **The locale** is `strings.locale` (usually bound to the state, so a setting can change it), else the host's, from
+  the system (`Screen::setLocale`), else `default`, else `"en"`. Expressions read it as `locale` (`"fr-CA"`).
+- **Fallback:** a key is looked up in the locale (`fr-CA`), then its parents (`fr`), then `default`, then `en`; a key
+  found nowhere shows as itself, so a missing translation is visible but never blank. `strings` may come from an
+  `include`d file, whose locales and keys merge into the screen's.
+- **Messages** are a subset of ICU MessageFormat: `{name}` (a number in the locale's way), `{n, number}` (also
+  `integer` or `percent`), `{t, date}` and `{t, time}` (milliseconds; `short`, `medium`, `long` or `full`),
+  `{n, plural, =0 {...} one {...} other {...}}` with the locale's categories (`zero`, `one`, `two`, `few`, `many`,
+  `other`), `offset:1` and `#` for the number, and `{kind, select, a {...} other {...}}`. `other` is required;
+  `'{'` writes a brace and `''` a quote. Plurals and selects nest at most 8 deep; a message has at most 4,096 bytes.
+- **Formatting functions** use the locale's CLDR data: `formatNumber(n, fewest, most)`, `formatPercent(ratio)`,
+  `formatCurrency(amount, "EUR")`, `formatDate(ms, style)`, `formatTime(ms, style)` (a style or a CLDR pattern
+  such as `"EEEE d MMMM"`, in local time or `"utc"`), `formatRelative(-1, "day")` ("yesterday"), `formatList(list)`
+  ("a, b and c"), and `compareText(a, b)` and `sortText(list)`, which order text for people (letters, then accents,
+  then case). The data covers en, it, fr, de, es, pt, ja, zh, ar and he; another language formats as English.
+- **Direction:** Arabic and Hebrew are right to left; nodes with `"dir": "auto"` follow it.
+- **The checker** reports a `t()` key no locale has and parameters a message doesn't read or that aren't given.
 
 ## Events
 

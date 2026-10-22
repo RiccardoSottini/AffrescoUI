@@ -45,9 +45,9 @@ struct FontStyle {
 /// **Shaping.** Text is shaped with HarfBuzz: kerning, ligatures, combining marks, and the joining and reordering of
 /// complex scripts (Arabic, Devanagari and the others HarfBuzz knows). Each character is drawn from the first of the
 /// font and its fallbacks that has it (its coverage), and a run of one script and one font file is shaped at a time.
-/// A run of a right-to-left script is laid out right to left, and the runs of a line follow each other left to right:
-/// there is no bidirectional reordering yet. Shaped text is cached by its text: a line from its words (split at
-/// spaces, so a new line of known words is quick), and lines as a whole.
+/// A run of a right-to-left script is laid out right to left, and the runs of a line are put in visual order by their
+/// bidirectional levels (UAX #9, simplified: numbers stay left to right). Shaped text is cached by its text: a line
+/// from its words (split at spaces, so a new line of known words is quick), and lines as a whole.
 ///
 /// **Atlas.** Glyphs are rasterised with FreeType the first time they are drawn, into a page with room (a new page when
 /// they are all full). Latin-1 (U+0020..U+00FF) is rasterised when the font loads, into the first page. Colour glyphs
