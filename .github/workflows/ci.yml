@@ -1,11 +1,12 @@
 # Every check of a pull request and of master, in a few jobs that each build once and run all that build can
 # (.github/workflows/README.md has the jobs, what each checks, and how to run each check locally):
 # - Changes: whether the change needs a build at all (prose alone doesn't; the build jobs are then skipped);
-# - Linux: GCC; the unit, window, CLI, MCP and scenario tests, the rendering check, the package check, the API
-#   reference, and the quality gate (clang-tidy on the changed lines, function size);
+# - Linux: GCC; the unit, window, CLI, MCP and scenario tests, every application opening, the rendering check, the
+#   package check, the API reference, and the quality gate (clang-tidy on the changed lines, function size);
 # - Linux (address + undefined sanitizers): GCC with ASan and UBSan: the tests and the rendering check;
 # - Fuzz, on pull requests: every fuzz target for 60 s, one after the other, from the nightly corpus;
-# - macOS (build only); Windows: MSVC, the unit tests, the scenarios and the CLI's tests, headless;
+# - macOS (build only): the unit tests, the scenarios and every application opening;
+# - Windows: MSVC, the unit tests, the scenarios and the CLI's tests, headless;
 # - Benchmarks (callgrind), on pull requests: base and head on the same runner;
 # - Quality report, on master: the whole repository and the coverage of the unit tests.
 #
@@ -96,6 +97,8 @@ jobs:
           tests/render/screens/*.scenarios.json
       - name: Every application's first frame # tests/smoke/first_frames.py: each screen in tools/media/gallery.json loads, checks and draws
         run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests/smoke/first_frames.py
+      - name: Every application opens # tests/smoke/open_apps.py: each program and screen as its README starts it, 5 s
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests/smoke/open_apps.py
       - name: The policy tests # affrescoui policy test: each *.policy.json's example revisions get the expected decision
         run: build/affrescoui policy test $(git ls-files '*.policy.json')
       - name: Every file is format version 2 # affrescoui migrate --check: SCREEN_FORMAT.md, "Migrating from version 1"
@@ -243,6 +246,8 @@ jobs:
           cmake --build build
       - name: Unit tests and the templates' scenarios # headless
         run: ctest --test-dir build -R "unit|scenarios" --output-on-failure
+      - name: Every application opens # tests/smoke/open_apps.py, in the runner's own window session
+        run: python3 tests/smoke/open_apps.py
 
   windows:
     name: Windows
