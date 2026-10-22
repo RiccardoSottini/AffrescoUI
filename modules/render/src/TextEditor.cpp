@@ -81,9 +81,14 @@ void TextEditor::setText(std::string_view utf8) {
 	}
 	if(model_->equals(utf8)) return;
 	editing_ = true;
+	cursorsMerge_ = false;
+	cursorsPending_ = true;
+	cursorsBefore_ = cursors_;
 	model_->beginStep(false, caret_, anchor_);
 	model_->assign(utf8);
 	model_->endStep();
+	cursors_.clear();
+	recordCursorStep();
 	editing_ = false;
 	lastEdit_ = Edit::Other;
 	caret_ = clamped(caret_);
@@ -310,17 +315,36 @@ std::pair<std::size_t, std::size_t> TextEditor::selectedLines() const noexcept {
 
 void TextEditor::beginEdit(Edit kind) {
 	editing_ = true;
-	model_->beginStep(kind != Edit::Other && kind == lastEdit_, caret_, anchor_);
+	const bool merge = kind != Edit::Other && kind == lastEdit_;
+	cursorsMerge_ = merge && model_->undoSteps() > 0;
+	cursorsPending_ = true;
+	if(editedCursors_) cursorsBefore_.assign(editedCursors_->begin() + 1, editedCursors_->end());
+	else cursorsBefore_ = cursors_;
+	model_->beginStep(merge, caret_, anchor_);
 	lastEdit_ = kind;
 }
 
 void TextEditor::endEdit() {
 	model_->endStep();
+	recordCursorStep();
 	editing_ = false;
 	preferredX_ = -1.0f;
 	revealCaret();
 	if(!onTextChanged.empty()) onTextChanged(model_->text());
 	onCaretMoved(caret_);
+}
+
+void TextEditor::recordCursorStep() {
+	if(!cursorsPending_) return; // undo and redo end no step of their own
+	cursorsPending_ = false;
+	redoCursors_.clear();
+	if(cursorsMerge_ && !undoCursors_.empty()) undoCursors_.back().after = cursors_;
+	else undoCursors_.push_back({std::move(cursorsBefore_), cursors_});
+	cursorsBefore_.clear();
+	// Aligned with the model's steps from the newest: the oldest go when the model drops them
+	const std::size_t kept = model_->undoSteps();
+	if(undoCursors_.size() > kept)
+		undoCursors_.erase(undoCursors_.begin(), undoCursors_.end() - static_cast<std::ptrdiff_t>(kept));
 }
 
 void TextEditor::recolor() {
@@ -347,10 +371,23 @@ void TextEditor::moveCaret(Position to, bool extend, bool keepX) {
 void TextEditor::undo(bool redo) {
 	if(!editable()) return;
 	editing_ = true;
+	const std::size_t steps = model_->undoSteps();
 	const bool undone = model_->undo(redo, caret_, anchor_);
 	editing_ = false;
 	if(!undone) return;
-	cursors_.clear(); // undo restores one caret
+	// The extra cursors come back with the caret, while they are kept for every step
+	std::vector<CursorStep>& from = redo ? redoCursors_ : undoCursors_;
+	std::vector<CursorStep>& to = redo ? undoCursors_ : redoCursors_;
+	if(redo ? !from.empty() : from.size() == steps) {
+		cursors_ = redo ? from.back().after : from.back().before;
+		to.push_back(std::move(from.back()));
+		from.pop_back();
+		mergeCursors();
+	} else {
+		cursors_.clear();
+		undoCursors_.clear();
+		redoCursors_.clear();
+	}
 	lastEdit_ = Edit::Other;
 	endEdit();
 }

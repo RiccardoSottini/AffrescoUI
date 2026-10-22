@@ -369,6 +369,8 @@ protected:
 	void beginEdit(Edit kind);
 	/// @brief Finishes an edit: ends the undo step, reveals the caret, fires the signals.
 	void endEdit();
+	/// @brief Keeps the extra cursors around the undo step just ended, for undo and redo to restore them.
+	void recordCursorStep();
 	/// @brief The text between two positions.
 	/// @param from The start.
 	/// @param to The end (not before @p from).
@@ -772,6 +774,17 @@ private:
 	bool columnDragging_ = false;                           ///< Alt+Shift+drag is selecting a column.
 	Vec2 columnFrom_;                                       ///< Where it started.
 	std::optional<Position> hovered_;                       ///< See onHoverPosition.
+
+	/// @brief The extra cursors before and after an undo step.
+	struct CursorStep {
+		std::vector<EditorSelection> before; ///< Restored by undo.
+		std::vector<EditorSelection> after;  ///< Restored by redo.
+	};
+	std::vector<CursorStep> undoCursors_;        ///< One per undo step of the model, newest last.
+	std::vector<CursorStep> redoCursors_;        ///< One per redo step of the model, newest last.
+	std::vector<EditorSelection> cursorsBefore_; ///< The extra cursors when the edit began.
+	bool cursorsMerge_ = false;                  ///< The edit joins the newest undo step.
+	bool cursorsPending_ = false;                ///< An edit began, and recordCursorStep() hasn't kept it.
 
 	TextPattern find_;                 ///< The find pattern; invalid: none.
 	std::string findText_;             ///< Its text.
