@@ -298,6 +298,12 @@ class Malformed(unittest.TestCase):
                          [(None, -32600), (2, -32600), (3, None), (4, None)])
         self.assertEqual(server.client, "agent")
 
+    def test_tool_names_that_name_no_tool(self):
+        server, _ = self.server()
+        for name in ({"x": 1}, ["get_catalog"], None, 7, "no_such_tool"):
+            with self.assertRaises(mcp.UnknownTool):
+                server.call_tool(name, {})
+
     def test_lines_python_cant_read(self):
         server, sent = self.server()
         server.serve("[" * 200000 + "]" * 200000)  # deeper than Python's recursion limit

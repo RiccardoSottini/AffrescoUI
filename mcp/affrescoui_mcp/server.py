@@ -13,7 +13,7 @@ import time
 from .document import apply_patch, changes_since, compact, find_nodes, locate, outline, pruned
 from .guide import format_guide
 from .host import NO_UNIX_SOCKETS, Host, default_socket_dir, log
-from .replies import client_name, describe, malformed, scenarios_report, screen_info
+from .replies import client_name, describe, host_failure, malformed, scenarios_report, screen_info
 from .repository import ROOT, find_cli, guide_path, repository_path
 from .tools import INSTRUCTIONS, PROMPTS, SERVE_PROMPT, TOOLS
 
@@ -21,7 +21,17 @@ PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
 
 
 class UnknownTool(Exception):
-    pass
+    """A tools/call names no tool: the client gets an "unknown tool" error rather than a tool's answer."""
+
+
+def cli_failure(result, command):
+    """The answer when the affrescoui tool failed: what it printed, else that it failed.
+
+    @param result   its subprocess.CompletedProcess
+    @param command  its command, e.g. "test"
+    @return (text, True)
+    """
+    return f"error: {(result.stderr or result.stdout).strip() or f'affrescoui {command} failed'}", True
 
 
 def coordination_tool(host, client, name, args):
@@ -44,7 +54,11 @@ def coordination_tool(host, client, name, args):
 
 
 class Server:
+    """The MCP server: one client on stdio, one host on agent.sock. Tool calls run on their own threads, so what
+    they share (the requests, the output) is locked."""
+
     def __init__(self, socket_dir, launch):
+        """A server whose host listens in `socket_dir`; `launch` (a command, or None) starts one if none runs."""
         self.client = "agent"
         self.out = threading.Lock()
         self.ready = False  # the client said notifications/initialized: channel events may be sent
@@ -55,13 +69,14 @@ class Server:
         self.seen = None  # the document (with the live state) the agent last read, for get_screen's changes
 
     def send(self, message):
+        """Sends one JSON-RPC message to the client, one line, whole even when several threads answer at once."""
         with self.out:
             sys.stdout.write(json.dumps(message) + "\n")
             sys.stdout.flush()
 
-    # A person's request, relayed by the host: pushed to the agent if it listens to channel events, and kept for
-    # wait_for_request until it is answered
     def on_request(self, message):
+        """A person's request, relayed by the host: pushed to the agent if it listens to channel events, and kept for
+        wait_for_request until it is answered."""
         request = {"request_id": str(message.get("id") or f"r{len(self.requests) + 1}"),
                    "from": str(message.get("from") or "unknown"), "text": str(message.get("text", ""))}
         if message.get("kind") == "repair":  # a change set whose template changed: answer with answer_repair
@@ -76,6 +91,7 @@ class Server:
                                   "meta": {"request_id": request["request_id"], "sender": request["from"]}}})
 
     def wait_for_request(self, timeout):
+        """The first request not given out yet, waiting up to `timeout` seconds (1 to 600) for one; None if none came."""
         deadline = time.monotonic() + max(1, min(int(timeout), 600))
         with self.arrived:
             while True:
@@ -92,7 +108,7 @@ class Server:
         """A picture of main, or of an open proposal applied, as an MCP image block and a caption."""
         reply = self.host.request({"type": "render", **{k: args[k] for k in ("proposal", "scale") if k in args}})
         if reply.get("type") != "image":
-            return f"error: {reply.get('error') or reply.get('message')}", True
+            return host_failure(reply)
         shown = "main" if reply.get("proposal") is None else f"proposal {reply['proposal']} applied to main"
         caption = (f"{shown} at revision {reply.get('revision')}: {reply.get('width')}x{reply.get('height')} pixels, "
                    f"scale {reply.get('scale')}")
@@ -103,7 +119,7 @@ class Server:
         """A proposal's evidence: both pictures as MCP image blocks, then the rest as compact JSON."""
         reply = self.host.request({"type": "getEvidence", **{k: args[k] for k in ("proposal", "scale") if k in args}})
         if reply.get("type") != "evidence":
-            return f"error: {reply.get('error') or reply.get('message')}", True
+            return host_failure(reply)
         evidence = reply.get("evidence") or {}
         facts = {key: evidence.get(key) for key in ("region", "behaviour", "scenarios", "texts")}
         blocks = []
@@ -151,14 +167,14 @@ class Server:
             command += ["--only", str(args["only"])] if args.get("only") else []
             result = subprocess.run(command, capture_output=True, text=True, timeout=300)
         if result.returncode not in (0, 1) or not result.stdout.strip():
-            return f"error: {(result.stderr or result.stdout).strip() or 'affrescoui test failed'}", True
+            return cli_failure(result, "test")
         return scenarios_report(json.loads(result.stdout.strip().splitlines()[-1]), shown), False
 
     def get_blame(self, args):
         """The commit on main that last changed a node or a value."""
         reply = self.host.request({"type": "blame", "target": args.get("target", "")})
         if reply.get("type") != "blame":
-            return f"error: {reply.get('error') or reply.get('message')}", True
+            return host_failure(reply)
         commit = reply.get("commit") or {}
         return compact({k: commit.get(k) for k in ("number", "short", "author", "committer", "message", "time")
                         if k in commit}), False
@@ -203,7 +219,7 @@ class Server:
                 command += ["--document", document]
             result = subprocess.run(command, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
-            return f"error: {(result.stderr or result.stdout).strip() or 'affrescoui contributions failed'}", True
+            return cli_failure(result, "contributions")
         return result.stdout.strip(), False
 
     def compose(self, args, install):
@@ -226,7 +242,7 @@ class Server:
                 command += ["--adapter", adapter]
             result = subprocess.run(command, capture_output=True, text=True, timeout=300)
             if result.returncode not in (0, 1) or not result.stdout.strip():
-                return f"error: {(result.stderr or result.stdout).strip() or 'affrescoui check failed'}", True
+                return cli_failure(result, "check")
             reasons = result.stdout.strip()
             if not install or result.returncode != 0:
                 return reasons, result.returncode != 0
@@ -236,79 +252,119 @@ class Server:
         text, error = describe(self.host.request({"type": "revision", **submitted}))
         return f"{reasons}\n{text}", error
 
+    def next_request(self, args):
+        """The wait_for_request tool: the next request no call has given out yet, waiting for one up to a timeout."""
+        self.host.ensure()  # so requests can arrive at all
+        request = self.wait_for_request(args.get("timeout_seconds", 120))
+        return json.dumps(request if request else {"request": None, "note": "nothing yet: call again"}), False
+
+    def forget(self, request_id):
+        """Drops an answered request, so wait_for_request doesn't give it out again."""
+        with self.arrived:
+            self.requests.pop(request_id, None)
+            self.delivered.discard(request_id)
+
+    def reply(self, args):
+        """The reply tool: the agent's answer to a request, shown in the Studio."""
+        request_id = str(args.get("request_id", ""))
+        self.host.send({"type": "reply", "request": request_id, "text": args.get("text", "")})
+        self.forget(request_id)
+        return "sent to the Studio", False
+
+    def answer_repair(self, args):
+        """The answer_repair tool: the repaired change set, proposed for review in answer to a repair request."""
+        request_id = str(args.get("request_id", ""))
+        reply = self.host.request({"type": "repair", "request": request_id,
+                                   "revision": {"message": args.get("message", ""), "patch": args.get("patch", [])}})
+        self.forget(request_id)
+        if reply.get("type") != "proposed":
+            return f"refused, nothing changed: {reply.get('message') or reply.get('error')}", True
+        return describe(reply), False
+
+    def get_catalog(self, args):
+        """The get_catalog tool: what the screen's format and the app offer."""
+        return compact(self.host.request({"type": "getCatalog"}).get("catalog")), False
+
+    def search_nodes(self, args):
+        """The find_nodes tool: the nodes of the running document that match, one outline line each."""
+        reply = self.host.request({"type": "getDocument"})
+        return find_nodes(reply.get("document") or {}, args.get("type"), args.get("text"), args.get("property"),
+                          args.get("value"), args.get("limit", 20)), False
+
+    def get_format_guide(self, args):
+        """The get_format_guide tool: the guide's contents, or one topic of it."""
+        with open(guide_path(), encoding="utf-8") as guide:
+            part = format_guide(guide.read(), args.get("topic"))
+        if part is None:
+            return f"error: no topic '{args.get('topic')}': call get_format_guide without one to list them", True
+        return part, False
+
+    def submit_revision(self, args):
+        """The submit_revision tool: a change, authored by this connection, applied or proposed as the rules say."""
+        revision = {"type": "revision", "author": self.client, "message": args.get("message", "")}
+        for key in ("patch", "set", "add", "remove", "move", "parent", "proposal"):
+            if key in args:
+                revision[key] = args[key]
+        return describe(self.host.request(revision))
+
+    def get_history(self, args):
+        """The get_history tool: main's commits."""
+        reply = self.host.request({"type": "getHistory", **({"limit": args["limit"]} if "limit" in args else {})})
+        return compact(reply.get("entries")), False
+
+    def get_diff(self, args):
+        """The get_diff tool: a JSON Patch between two revisions, or what an open proposal would change."""
+        reply = self.host.request({"type": "diff", **{k: args[k] for k in ("from", "to", "proposal") if k in args}})
+        if reply.get("type") != "diff":
+            return f"error: {reply.get('error')}", True
+        return compact(reply.get("patch")), False
+
+    def change_main(self, kind, args):
+        """The restore_revision and revert_revision tools: main brought back to a revision, or one revision undone."""
+        return describe(self.host.request({"type": kind, "author": self.client, "revision": args.get("revision")}))
+
+    def get_events(self, args):
+        """The get_events tool: what happened since the last call."""
+        return compact(self.host.take_events()), False
+
+    def export_changes(self, args):
+        """The export_changes tool: the revisions after a point, as a change set."""
+        reply = self.host.request({"type": "exportChanges", "from": args.get("from", 0),
+                                   "name": args.get("name", "changes")})
+        return json.dumps(reply.get("changes"), indent=2), False
+
+    # The tools this server answers itself, by name: each takes the call's arguments and returns (content, is_error)
+    ANSWERS = {
+        "get_blame": get_blame,
+        "wait_for_request": next_request,
+        "reply": reply,
+        "answer_repair": answer_repair,
+        "get_screen": get_screen,
+        "get_catalog": get_catalog,
+        "find_nodes": search_nodes,
+        "get_contributions": get_contributions,
+        "check_composition": lambda self, args: self.compose(args, False),
+        "install_feature": lambda self, args: self.compose(args, True),
+        "get_format_guide": get_format_guide,
+        "submit_revision": submit_revision,
+        "render_screen": render_screen,
+        "run_scenarios": run_scenarios,
+        "get_evidence": get_evidence,
+        "get_history": get_history,
+        "get_diff": get_diff,
+        "restore_revision": lambda self, args: self.change_main("restore", args),
+        "revert_revision": lambda self, args: self.change_main("revert", args),
+        "get_events": get_events,
+        "export_changes": export_changes,
+    }
+
     def call_tool(self, name, args):
-        host = self.host
-        if name == "get_blame":
-            return self.get_blame(args)
-        if name == "wait_for_request":
-            host.ensure()  # so requests can arrive at all
-            request = self.wait_for_request(args.get("timeout_seconds", 120))
-            return json.dumps(request if request else {"request": None, "note": "nothing yet: call again"}), False
-        if name == "reply":
-            request_id = str(args.get("request_id", ""))
-            host.send({"type": "reply", "request": request_id, "text": args.get("text", "")})
-            with self.arrived:
-                self.requests.pop(request_id, None)
-                self.delivered.discard(request_id)
-            return "sent to the Studio", False
-        if name == "answer_repair":
-            request_id = str(args.get("request_id", ""))
-            reply = host.request({"type": "repair", "request": request_id,
-                                  "revision": {"message": args.get("message", ""), "patch": args.get("patch", [])}})
-            with self.arrived:
-                self.requests.pop(request_id, None)
-                self.delivered.discard(request_id)
-            if reply.get("type") != "proposed":
-                return f"refused, nothing changed: {reply.get('message') or reply.get('error')}", True
-            return describe(reply), False
-        if name == "get_screen":
-            return self.get_screen(args)
-        if name == "get_catalog":
-            return compact(host.request({"type": "getCatalog"}).get("catalog")), False
-        if name == "find_nodes":
-            reply = host.request({"type": "getDocument"})
-            return find_nodes(reply.get("document") or {}, args.get("type"), args.get("text"), args.get("property"),
-                              args.get("value"), args.get("limit", 20)), False
-        if name == "get_contributions":
-            return self.get_contributions(args)
-        if name in ("check_composition", "install_feature"):
-            return self.compose(args, name == "install_feature")
-        if name == "get_format_guide":
-            with open(guide_path(), encoding="utf-8") as guide:
-                part = format_guide(guide.read(), args.get("topic"))
-            if part is None:
-                return f"error: no topic '{args.get('topic')}': call get_format_guide without one to list them", True
-            return part, False
-        if name == "submit_revision":
-            revision = {"type": "revision", "author": self.client, "message": args.get("message", "")}
-            for key in ("patch", "set", "add", "remove", "move", "parent", "proposal"):
-                if key in args:
-                    revision[key] = args[key]
-            return describe(host.request(revision))
-        if name == "render_screen":
-            return self.render_screen(args)
-        if name == "run_scenarios":
-            return self.run_scenarios(args)
-        if name == "get_evidence":
-            return self.get_evidence(args)
-        if name == "get_history":
-            reply = host.request({"type": "getHistory", **({"limit": args["limit"]} if "limit" in args else {})})
-            return compact(reply.get("entries")), False
-        if name == "get_diff":
-            reply = host.request({"type": "diff", **{k: args[k] for k in ("from", "to", "proposal") if k in args}})
-            if reply.get("type") != "diff":
-                return f"error: {reply.get('error')}", True
-            return compact(reply.get("patch")), False
-        if name in ("restore_revision", "revert_revision"):
-            kind = "restore" if name == "restore_revision" else "revert"
-            return describe(host.request({"type": kind, "author": self.client, "revision": args.get("revision")}))
-        if name == "get_events":
-            return compact(host.take_events()), False
-        if name == "export_changes":
-            reply = host.request({"type": "exportChanges", "from": args.get("from", 0),
-                                  "name": args.get("name", "changes")})
-            return json.dumps(reply.get("changes"), indent=2), False
-        coordinated = coordination_tool(host, self.client, name, args)
+        """Answers a tools/call: (content, is_error), the content text or MCP content blocks. Raises UnknownTool for a
+        name no tool has."""
+        answer = self.ANSWERS.get(name) if isinstance(name, str) else None  # a name may be any JSON value
+        if answer is not None:
+            return answer(self, args)
+        coordinated = coordination_tool(self.host, self.client, name, args)
         if coordinated is not None:
             return coordinated
         raise UnknownTool(name)
@@ -324,65 +380,76 @@ class Server:
         self.handle(message)
 
     def handle(self, request):
+        """Answers one JSON-RPC message from the client: a refusal when it is malformed, nothing for a notification,
+        else a result or an error with its id."""
         refusal = malformed(request)
         if refusal:
             self.send(refusal)
             return
         method, params = request.get("method"), request.get("params") or {}
         if "id" not in request:  # a notification
-            if method == "notifications/initialized":
-                self.ready = True
-                try:
-                    self.host.ensure()  # connect early, so requests sent before the first tool call arrive too
-                except RuntimeError as failure:
-                    log(str(failure))
-            return
-        rid = request["id"]
+            self.notified(method)
+        elif method == "tools/call":
+            # On its own thread: wait_for_request can block for minutes while pings and other calls go on
+            threading.Thread(target=self.answer_call, args=(request["id"], params), daemon=True).start()
+        else:
+            self.answer(request["id"], method, params)
 
-        def result(value):
-            self.send({"jsonrpc": "2.0", "id": rid, "result": value})
+    def notified(self, method):
+        """A notification from the client: once it is initialized, channel events may be sent."""
+        if method == "notifications/initialized":
+            self.ready = True
+            try:
+                self.host.ensure()  # connect early, so requests sent before the first tool call arrive too
+            except RuntimeError as failure:
+                log(str(failure))
 
-        def error(code, message):
-            self.send({"jsonrpc": "2.0", "id": rid, "error": {"code": code, "message": message}})
+    def result(self, rid, value):
+        """Sends the result of the client's request `rid`."""
+        self.send({"jsonrpc": "2.0", "id": rid, "result": value})
 
+    def error(self, rid, code, message):
+        """Sends a JSON-RPC error for the client's request `rid`."""
+        self.send({"jsonrpc": "2.0", "id": rid, "error": {"code": code, "message": message}})
+
+    def answer(self, rid, method, params):
+        """Answers a request other than tools/call: the handshake, ping, and the tool and prompt lists."""
         if method == "initialize":
             self.client = client_name(params)
             requested = params.get("protocolVersion")
-            result({"protocolVersion": requested if requested in PROTOCOLS else PROTOCOLS[0],
-                    "capabilities": {"tools": {"listChanged": False}, "prompts": {"listChanged": False},
-                                     "experimental": {"claude/channel": {}}},
-                    "serverInfo": {"name": "affrescoui", "version": "0.1.0"},
-                    "instructions": INSTRUCTIONS})
+            self.result(rid, {"protocolVersion": requested if requested in PROTOCOLS else PROTOCOLS[0],
+                              "capabilities": {"tools": {"listChanged": False}, "prompts": {"listChanged": False},
+                                               "experimental": {"claude/channel": {}}},
+                              "serverInfo": {"name": "affrescoui", "version": "0.1.0"},
+                              "instructions": INSTRUCTIONS})
         elif method == "ping":
-            result({})
+            self.result(rid, {})
         elif method == "tools/list":
-            result({"tools": TOOLS})
+            self.result(rid, {"tools": TOOLS})
         elif method == "prompts/list":
-            result({"prompts": PROMPTS})
+            self.result(rid, {"prompts": PROMPTS})
+        elif method == "prompts/get" and params.get("name") == "serve_studio":
+            self.result(rid, {"description": PROMPTS[0]["description"],
+                              "messages": [{"role": "user", "content": {"type": "text", "text": SERVE_PROMPT}}]})
         elif method == "prompts/get":
-            if params.get("name") != "serve_studio":
-                error(-32602, f"unknown prompt {params.get('name')!r}")
-            else:
-                result({"description": PROMPTS[0]["description"],
-                        "messages": [{"role": "user", "content": {"type": "text", "text": SERVE_PROMPT}}]})
-        elif method == "tools/call":
-            # On its own thread: wait_for_request can block for minutes while pings and other calls go on
-            def call():
-                try:
-                    content, is_error = self.call_tool(params.get("name"), params.get("arguments") or {})
-                    if isinstance(content, str):  # most tools answer in text; render_screen with an image
-                        content = [{"type": "text", "text": content}]
-                    result({"content": content, "isError": is_error})
-                except UnknownTool:
-                    error(-32602, f"unknown tool {params.get('name')!r}")
-                except Exception as failure:  # no host, it went away, did not answer, ...
-                    result({"content": [{"type": "text", "text": f"error: {failure}"}], "isError": True})
-            threading.Thread(target=call, daemon=True).start()
+            self.error(rid, -32602, f"unknown prompt {params.get('name')!r}")
         else:
-            error(-32601, f"method not found: {method}")
+            self.error(rid, -32601, f"method not found: {method}")
 
+    def answer_call(self, rid, params):
+        """Answers a tools/call, on its own thread. A tool that fails answers with the failure as an error result."""
+        try:
+            content, is_error = self.call_tool(params.get("name"), params.get("arguments") or {})
+            if isinstance(content, str):  # most tools answer in text; render_screen with an image
+                content = [{"type": "text", "text": content}]
+            self.result(rid, {"content": content, "isError": is_error})
+        except UnknownTool:
+            self.error(rid, -32602, f"unknown tool {params.get('name')!r}")
+        except Exception as failure:  # no host, it went away, did not answer, ...
+            self.result(rid, {"content": [{"type": "text", "text": f"error: {failure}"}], "isError": True})
 
 def main():
+    """Runs the server: `[--socket DIR] [--launch "command"]`, then JSON-RPC lines on stdin until it closes."""
     args = sys.argv[1:]
     socket_dir = default_socket_dir()
     launch = None

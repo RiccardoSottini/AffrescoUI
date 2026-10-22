@@ -22,6 +22,15 @@ DENIALS = (
 )
 
 
+def host_failure(reply):
+    """The answer when the host refused a read: its error, else its message.
+
+    @param reply  the host's reply
+    @return (text, True)
+    """
+    return f"error: {reply.get('error') or reply.get('message')}", True
+
+
 def explain_denial(error):
     """The error of a refused revision, followed by what the rule it names means, if it is a permission denial."""
     text = str(error)
