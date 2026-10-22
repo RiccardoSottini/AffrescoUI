@@ -8,6 +8,7 @@
 #include "monocypher.h"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cmath>
 #include <random>
@@ -74,11 +75,12 @@ void writeNumber(double number, std::string& out) {
 		out += '-';
 		number = -number;
 	}
-	char buffer[40];
-	const auto [end, error] = std::to_chars(buffer, buffer + sizeof buffer, number, std::chars_format::scientific);
+	std::array<char, 40> buffer{};
+	const auto [end, error] =
+	    std::to_chars(buffer.data(), buffer.data() + buffer.size(), number, std::chars_format::scientific);
 	if(error != std::errc()) throw DocumentError("a number can't be written");
 	// "d.ddde+XX": the digits, then the exponent
-	const std::string_view text(buffer, end);
+	const std::string_view text(buffer.data(), end);
 	const std::size_t e = text.find('e');
 	std::string digits(1, text[0]);
 	if(e > 1) digits += text.substr(2, e - 2);

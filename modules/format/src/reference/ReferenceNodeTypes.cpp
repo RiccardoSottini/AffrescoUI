@@ -5,12 +5,14 @@
 
 #include "Reference.hpp"
 
+#include <array>
+
 namespace affresco::format {
 
 namespace {
 
 /// The keys, in the order of the tables.
-constexpr KeyReference typeTable[] = {
+constexpr auto typeTable = std::to_array<KeyReference>({
     {"bind", R"json({"type": "string",
 		"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"})json",
 	 "A state path holding the text (lines joined by `\"\\n\"`), kept in sync both ways. Without it, `text` sets the "
@@ -481,7 +483,7 @@ constexpr KeyReference typeTable[] = {
     {"textColor", "", "", "timeline"},
     {"accentColor", "", "", "timeline"},
     {"font", "", "", "timeline"},
-};
+});
 
 } // namespace
 

@@ -8,6 +8,7 @@
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Transform.hpp"
 
+#include <array>
 #include <cmath>
 
 namespace affresco::format {
@@ -40,10 +41,17 @@ Vec2 origin(const json& value, const std::string& path) {
 		return {percent.x * 0.01f, percent.y * 0.01f};
 	}
 	const std::string name = string(value, path);
-	static constexpr std::pair<std::string_view, Vec2> named[] = {
-	    {"center", {0.5f, 0.5f}},  {"top", {0.5f, 0.0f}},    {"bottom", {0.5f, 1.0f}},     {"left", {0.0f, 0.5f}},
-	    {"right", {1.0f, 0.5f}},   {"topLeft", {0.0f, 0.0f}}, {"topRight", {1.0f, 0.0f}}, {"bottomLeft", {0.0f, 1.0f}},
-	    {"bottomRight", {1.0f, 1.0f}}};
+	static constexpr std::array<std::pair<std::string_view, Vec2>, 9> named{{
+	    {"center", {0.5f, 0.5f}},
+	    {"top", {0.5f, 0.0f}},
+	    {"bottom", {0.5f, 1.0f}},
+	    {"left", {0.0f, 0.5f}},
+	    {"right", {1.0f, 0.5f}},
+	    {"topLeft", {0.0f, 0.0f}},
+	    {"topRight", {1.0f, 0.0f}},
+	    {"bottomLeft", {0.0f, 1.0f}},
+	    {"bottomRight", {1.0f, 1.0f}},
+	}};
 	for(const auto& [key, fraction] : named)
 		if(name == key) return fraction;
 	fail(path, R"(expected "center", an edge ("top", "bottomRight"...) or [x%, y%])");

@@ -6,12 +6,14 @@
 
 #include "Reference.hpp"
 
+#include <array>
+
 namespace affresco::format {
 
 namespace {
 
 /// The top-level sections, in the order of the table.
-constexpr KeyReference sectionTable[] = {
+constexpr auto sectionTable = std::to_array<KeyReference>({
     {"version", R"json({"const": 2})json", "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
     {"root", R"json({"$ref": "#/$defs/v2/node",
 		"description": "The window's root panel: it always fills the window"})json",
@@ -233,10 +235,10 @@ constexpr KeyReference sectionTable[] = {
 	 "action exports a point receives are the host actions such features may run. Revisions can't change it.",
 	 "capabilities"},
     {"$schema", R"json({"type": "string"})json", "", ""},
-};
+});
 
 /// The keys of a step: the steps, then the keys they read.
-constexpr KeyReference stepTable[] = {
+constexpr auto stepTable = std::to_array<KeyReference>({
     {"set", "", R"(`{ "set": "state.current", "to": "{{index}}" }`)", "steps"},
     {"push", "", R"(`{ "push": "state.columns[c].cards", "value": "{{state.draft}}" }`)", "steps"},
     {"remove", "", R"(`{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key of an object)", "steps"},
@@ -341,10 +343,10 @@ constexpr KeyReference stepTable[] = {
     {"onError", "steps", "", ""},
     {"onEvent", "steps", "", ""},
     {"onDone", "steps", "", ""},
-};
+});
 
 /// The shared values: "$defs/v2" entries the other schemas refer to.
-constexpr KeyReference definitionTable[] = {
+constexpr auto definitionTable = std::to_array<KeyReference>({
     {"permissionRule", R"json({"type": "string", "pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
 		"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""})json",
 	 "", ""},
@@ -426,7 +428,7 @@ constexpr KeyReference definitionTable[] = {
     {"steps", R"json({"anyOf": [{"$ref": "#/$defs/v2/step"}, {"type": "array",
 		"items": {"$ref": "#/$defs/v2/step"}}]})json",
 	 "", ""},
-};
+});
 
 } // namespace
 

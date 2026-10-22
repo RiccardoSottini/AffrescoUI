@@ -6,12 +6,14 @@
 
 #include "Reference.hpp"
 
+#include <array>
+
 namespace affresco::format {
 
 namespace {
 
 /// The keys, in the order of the tables.
-constexpr KeyReference eventTable[] = {
+constexpr auto eventTable = std::to_array<KeyReference>({
     {"onClick", "handler", "Left click, two clicks on the same node, right click.", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
@@ -127,7 +129,7 @@ constexpr KeyReference eventTable[] = {
 		"description": "calendar: seven short day names, Sunday first"})json",
 	 "", ""},
     {"pickedTextColor", "color", "", ""},
-};
+});
 
 } // namespace
 

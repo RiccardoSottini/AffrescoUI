@@ -7,14 +7,14 @@
 
 #include "Reference.hpp"
 
-#include <iterator>
+#include <array>
 
 namespace affresco::format {
 
 namespace {
 
 /// The keys every node has and the label's, in the order of the tables.
-constexpr KeyReference commonTable[] = {
+constexpr auto commonTable = std::to_array<KeyReference>({
     {"type", "", "{types}, or a type the application registers.", "node"},
     {"id", R"json({"type": "string", "description": "Addresses the node: #id in edits, nodes.id, anchors, focus"})json",
 	 "A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no "
@@ -316,12 +316,12 @@ constexpr KeyReference commonTable[] = {
 	 "are left out of the copy.",
 	 "label"},
     {"selectionColor", "color", "The selection's colour (default `#b4d5fe`).", "label"},
-};
+});
 
 /// @brief The three parts of the table, joined once in order.
 /// @return The keys.
 std::vector<KeyReference> joinedKeys() {
-	std::vector<KeyReference> keys(std::begin(commonTable), std::end(commonTable));
+	std::vector<KeyReference> keys(commonTable.begin(), commonTable.end());
 	keys.append_range(nodeTypeKeys());
 	keys.append_range(nodeEventKeys());
 	return keys;
