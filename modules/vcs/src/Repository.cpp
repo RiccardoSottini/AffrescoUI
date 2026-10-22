@@ -726,7 +726,7 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 	// Refused approvals leave the proposal open
 	if(std::optional<std::string> refused = checkApproval(*proposal, approval)) return refused;
 	if(const std::string missing = approve(*proposal, approval.reviewer); !missing.empty()) {
-		proposal->reason = "approved by " + std::to_string(proposal->approvals.size()) + ", waiting for " + missing;
+		proposal->reason = "approved by " + std::to_string(detail::countedApprovals(proposal->approvals)) + ", waiting for " + missing;
 		saveHistory();
 		proposalsChanged();
 		return std::nullopt;

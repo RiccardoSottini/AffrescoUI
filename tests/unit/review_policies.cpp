@@ -82,6 +82,7 @@ TEST_CASE("review policy: a change in behaviour waits for two approvals from dif
 	REQUIRE(repository.proposals().size() == 1);
 	CHECK(repository.proposals()[0].approvals == std::vector<std::string>{"studio/bob"});
 	CHECK(repository.proposals()[0].reason.find("waiting for 1 more approval") != std::string::npos);
+	CHECK(repository.proposals()[0].reason.starts_with("approved by 1,")); // what counted, not the three names
 	CHECK_FALSE(repository.document()["root"]["children"][1].contains("onClick"));
 
 	// The same reviewer again doesn't count twice
