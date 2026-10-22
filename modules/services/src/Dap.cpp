@@ -1,6 +1,6 @@
 /// @file
-/// @brief The `dap` provider: a debug adapter the host granted (or one already running on a loopback port), spoken to
-/// in the Debug Adapter Protocol over Content-Length frames. Each request waits for the response that names its
+/// @brief The `dap` provider: a debug adapter the host granted (a program, or a loopback port one listens on), spoken
+/// to in the Debug Adapter Protocol over Content-Length frames. Each request waits for the response that names its
 /// `seq`, within a timeout, and a stopped call sends `cancel`; events reach the streams subscribed to them, and the
 /// adapter's own requests (`runInTerminal`, `startDebugging`) go to the screen.
 
@@ -378,7 +378,7 @@ class DapProvider final : public Provider {
 public:
 	std::string_view name() const override { return "dap"; }
 	std::string_view about() const override {
-		return "a debug adapter the host allows (or one on a loopback port), spoken to in the Debug Adapter Protocol";
+		return "a debug adapter the host allows (a program, or a loopback port), spoken to in the Debug Adapter Protocol";
 	}
 	json configurationSchema() const override {
 		return {{"type", "object"},

@@ -302,6 +302,7 @@ folder; the screen document only names the service.
 ### Debug adapters
 
 A debug adapter is an untrusted program. The `dap` provider starts only one the host allowed (`allowProcess`), and
+attaches only to a loopback port the host allowed (`allowAttach`), since whatever listens there can run code. It
 reads what it sends as bounded Content-Length frames: headers of 8 KiB and a message of 4 MiB at most (a larger one
 closes the session), checked JSON, and the lists and texts inside cut to the limits below before the screen sees them.
 Requests wait for their own response with a timeout and can be cancelled; at most 256 wait, and 16 MiB waits to be
