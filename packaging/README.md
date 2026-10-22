@@ -2,7 +2,8 @@
 
 A recipe for each package manager, one folder each. They are templates: `tools/release/packaging.py` fills in one
 release's version and hashes and writes the filled copies to `dist/packages/`. Nothing here is published or submitted
-by a workflow; `RELEASING.md` (Packages) has how the maintainer does it.
+anywhere, by a workflow or by hand: the filled copies are the release asset `packages-<version>.zip` on the GitHub
+Release, for you to use locally (`RELEASING.md`, Packages).
 
 | Folder | What it makes | Built from |
 |---|---|---|

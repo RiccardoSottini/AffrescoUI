@@ -38,12 +38,12 @@ Measured with emsdk 6.0.10 (Release, `gzip -9`):
 | `affrescoui_studio.wasm` | 6.3 MB | 2.12 MB |
 | `affrescoui_host.data`, `affrescoui_studio.data` (the assets, each) | 2.06 MB | 0.88 MB |
 
-## Publishing
+## Getting the build
 
-Nothing here deploys. The site is plain files: copy `build-web/site/` to any static host that serves `.wasm` as
-`application/wasm` (GitHub Pages, an object store behind a CDN, nginx). The read-only workflow
-`.github/workflows/web.yml` builds the same folder and uploads it as the `web-site` artifact, which a maintainer can
-download and publish by hand.
+Nothing here deploys. The site is plain files: the maintainer's GitHub Release carries them as
+`affrescoui-web-<version>.zip` (checksummed and attested). Unzip it and serve the folder with a static server you run
+yourself that serves `.wasm` as `application/wasm`. The read-only workflow `.github/workflows/web.yml` builds the same
+folder on pull requests and keeps it as the run's `web-site` artifact; nothing uploads it anywhere.
 
 Each page carries its Content Security Policy in a `<meta>` tag: scripts from the site only (and
 `'wasm-unsafe-eval'`, which WebAssembly needs), styles from the site, no forms posted anywhere, no `<base>`, no

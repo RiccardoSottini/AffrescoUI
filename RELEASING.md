@@ -1,8 +1,10 @@
 # Releasing AffrescoUI
 
 For the maintainer. A release is a tag `v<version>` that the maintainer pushes. `.github/workflows/release.yml` then
-builds the downloads, and drafts the GitHub Release. A release is only that tag plus the maintainer publishing the draft, all on GitHub:
-nothing is published to PyPI or anywhere else. Agents and contributors never push tags, create releases or publish.
+builds every download and drafts the GitHub Release. A release is only that tag plus the maintainer reviewing and
+publishing the draft, all on GitHub: **every artefact is an asset of that release, and nothing is published, deployed
+or submitted anywhere else** (no PyPI, VS Code Marketplace, Open VSX, GitHub Pages, CDN, Homebrew, winget, vcpkg or
+Conan). Agents and contributors never push tags, create releases or publish.
 
 ## What a release contains
 
@@ -12,6 +14,12 @@ nothing is published to PyPI or anywhere else. Agents and contributors never pus
 | `affrescoui-<version>-linux-x86_64.tar.gz` | The same for Linux x86_64 (built on Ubuntu 24.04: glibc 2.39 or later) |
 | `affrescoui-<version>-windows-x86_64.zip` | The same for Windows, once Windows builds (roadmap 1.1); until then the release has no Windows file |
 | `affrescoui_mcp-<version>-py3-none-any.whl`, `affrescoui_mcp-<version>.tar.gz` | The MCP server (install: `pipx install ./affrescoui_mcp-<version>-py3-none-any.whl`) |
+| `AffrescoUI-<version>-x86_64.AppImage` | The Linux archive in one file |
+| `affrescoui-vscode-<version>.vsix` | The VS Code extension (install: *Extensions: Install from VSIX...*) |
+| `affrescoui-web-<version>.zip` | The browser build (WebAssembly host and Studio), plain files for any static server |
+| `affrescoui-site-<version>.zip` | The documentation site, plain files |
+| `packages-<version>.zip` | The recipes for Homebrew, winget, vcpkg, Conan and the AppImage, filled in for this release, for people to use themselves (`packaging/README.md`) |
+| `affrescoui-<version>-source.tar.gz`, `affrescoui-<version>.spdx.json` | The source (`git archive` of the tag) and the SBOM |
 | `SHA256SUMS` | The checksums of all of them; each file also has a build-provenance attestation |
 
 Each archive holds the three programs, `assets/` (the templates and their fonts, which the programs find next to
@@ -34,8 +42,9 @@ themselves), `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES.md` and a short `README.t
    ```
 4. Watch *Actions → Release*. It checks the tag against the version, builds and packs each system, checks each
    download on a clean machine (the tool checks every template; on Linux the host draws a frame from its own assets;
-   on macOS each program has both architectures), builds the Python package, then drafts the release with the files,
-   `SHA256SUMS` and the attestations.
+   on macOS each program has both architectures), builds the Python package, the VS Code extension, the web build,
+   the docs site, the AppImage and the recipes, then drafts the release with all the files, `SHA256SUMS` and the
+   attestations.
 5. Read the draft release on GitHub, add the notes from `CHANGELOG.md`, and publish it.
 
 If something fails, delete the tag (`git push origin :refs/tags/v0.2.0`, and the draft release if there is one), fix
@@ -45,7 +54,7 @@ it on `master`, and tag again.
 
 - *Actions → Release → Run workflow* (once the workflow is on `master`), or any pull request that changes
   `release.yml`, `tools/release/` or `mcp/pyproject.toml`: the same builds, packs and checks run, and the files are kept
-  as the run's artifacts. The release job runs only for a tag.
+  as the run's artifacts. The release job runs only for a tag, and nothing else uploads anywhere.
 - On your machine:
   ```sh
   cmake -S . -B build -G Ninja && cmake --build build
@@ -68,23 +77,14 @@ downloads; `xattr -dr com.apple.quarantine affrescoui-0.2.0-macos-universal` let
 
 `packaging/` has a recipe for each package manager: Homebrew (a formula that builds from source), winget (the Windows
 zip, as a portable install), AppImage (the Linux archive in one file), vcpkg (a port) and Conan 2 (a recipe with a
-`test_package`). They are templates: `tools/release/packaging.py` fills in the version and the hashes of one release.
-The release job adds `affrescoui-<version>-source.tar.gz` (`git archive` of the tag), which Homebrew, vcpkg and Conan
-build from; each installs the same CMake targets that `find_package(AffrescoUI)` exports, and `packaging.py --check`
-keeps the Conan test in step with them.
-
-After the release is published (the URLs in the recipes are its downloads):
-
-```sh
-gh release download v0.2.0 --repo RiccardoSottini/AffrescoUI --pattern SHA256SUMS --pattern '*-source.tar.gz' --dir dist
-python3 tools/release/packaging.py --version 0.2.0 --sums dist/SHA256SUMS    # writes dist/packages/<recipe>/
-```
-
-Then the maintainer submits each one by hand, reviewed first: the formula to a tap or homebrew-core, the winget
-manifests to `microsoft/winget-pkgs`, the port to a vcpkg registry, the recipe to ConanCenter or a Conan remote, and
-the AppImage as a release file. No workflow submits or publishes a package. A dry run (*Run workflow*) fills the
-recipes for its own files, builds and starts the AppImage, runs `winget validate` and keeps them as the `packages`
-artifact; `packaging/README.md` has how to try each recipe on your machine.
+`test_package`). They are templates: `tools/release/packaging.py` fills in the version and the hashes of one release,
+and the release job zips the filled copies as `packages-<version>.zip` next to the built AppImage. They are for people
+to use themselves, from the release asset (`packaging/README.md` has how to try each one); the maintainer submits
+them nowhere: no tap, `homebrew-core`, `microsoft/winget-pkgs`, vcpkg registry, ConanCenter or Conan remote. The
+release job also adds `affrescoui-<version>-source.tar.gz`, which Homebrew, vcpkg and Conan build from; each installs
+the same CMake targets that `find_package(AffrescoUI)` exports, and `packaging.py --check` keeps the Conan test in
+step with them. Every run (also a dry run) fills the recipes, builds and starts the AppImage and runs
+`winget validate`.
 
 ## Permissions the workflow uses
 
