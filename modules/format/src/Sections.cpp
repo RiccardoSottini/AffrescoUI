@@ -6,6 +6,7 @@
 #include "FeatureManifest.hpp"
 #include "Settings.hpp"
 #include "StateTypes.hpp"
+#include "Strings.hpp"
 
 #include <algorithm>
 #include <array>
@@ -113,6 +114,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"keys", checkObject});
 	registry.add({"menus", checkMenus});       // Contributions.hpp
 	registry.add({"settings", checkSettings}); // Settings.hpp
+	registry.add({"strings", checkStrings});   // translations per locale (Strings.hpp)
 	registry.add({"onLoad"});
 	registry.add(channelsSection());
 	registry.add(servicesSection());

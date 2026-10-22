@@ -82,6 +82,13 @@ constexpr KeyReference nodeTable[] = {
 	 "In a `grid`: `{ \"column\": 2, \"row\": 1, \"columnSpan\": 2, \"rowSpan\": 1 }`, counted from 1 (each key "
 	 "optional). Without `column` and `row`, it takes the next free cell, row after row.",
 	 "node"},
+    {"dir", R"json({"description": "Which way its children and text run: ltr, rtl, auto (the locale's) or inherit",
+		"anyOf": [{"enum": ["ltr", "rtl", "auto", "inherit"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "Which way its children and text run, inherited: `\"ltr\"`, `\"rtl\"`, `\"auto\"` (the locale's: Arabic and "
+	 "Hebrew are right to left) or `\"inherit\"` (the default; the root is left to right). Right to left mirrors row "
+	 "order, grid columns, left and right anchors, `x`, padding and scrolling, swaps a label's `align` start and end, "
+	 "and draws an icon marked `mirror` mirrored.",
+	 "node"},
     {"color", "color", "Background. Default: light grey for panels, transparent for labels, stacks and controls.",
 	 "look"},
     {"radius",
@@ -185,6 +192,16 @@ constexpr KeyReference nodeTable[] = {
 	 "access"},
     {"description", R"json({"description": "Text, or a {{binding}}"})json",
 	 "A longer accessible description, read after the name.", "access"},
+    {"isOpen", "flag",
+	 "Whether the node is expanded (a tree item, a disclosure, a menu button: `expanded` to assistive tools); leave it "
+	 "out for one that doesn't expand. Screen readers say it, and offer to expand or collapse it (a click).",
+	 "access"},
+    {"selected", "flag", "Whether the node is selected (a tab, a list item); leave it out for one that can't be.",
+	 "access"},
+    {"live", R"json({"anyOf": [{"enum": ["off", "polite", "assertive"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "A live region: changes to its text are read without moving the focus, `polite` when the person is idle (a "
+	 "toast), `assertive` at once (an error). Default: `off`.",
+	 "access"},
     {"tabIndex", R"json({"anyOf": [{"type": "integer", "minimum": -1}, {"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out.",
 	 "access"},
@@ -274,6 +291,10 @@ constexpr KeyReference nodeTable[] = {
 	 "at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The "
 	 "examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text "
 	 "areas.",
+	 "label"},
+    {"mirror", "flag",
+	 "Right to left (`dir`), draw the icon mirrored: `left` and `right` swap in its name (`\"chevron-left\"` draws "
+	 "`\"chevron-right\"`), when the font has that one. For arrows and chevrons that point the reading way.",
 	 "label"},
     {"runs", R"json({"type": "array", "maxItems": 256, "items": {"oneOf": [{"type": ["string", "number", "boolean"]},
 		{"type": "object", "additionalProperties": false, "properties": {"text": {}, "icon": {"type": "string"},

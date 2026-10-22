@@ -57,3 +57,24 @@ set_target_properties(affrescoui_window_tests PROPERTIES CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}) # build/, where the docs and tools/quality run it
 target_compile_options(affrescoui_window_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 add_test(NAME window COMMAND affrescoui_window_tests WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+# window/accessibility_*.cpp read a window's tree through the platform's API: on macOS, NSAccessibility (Objective-C++),
+# on Windows, UI Automation, and on Linux, AT-SPI when libatspi is installed
+if(TARGET affrescoui_accesskit)
+	target_compile_definitions(affrescoui_window_tests PRIVATE AFFRESCOUI_ACCESSIBILITY)
+	if(APPLE)
+		set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/window/accessibility_mac.cpp PROPERTIES LANGUAGE OBJCXX
+			COMPILE_OPTIONS -fobjc-arc)
+		target_link_libraries(affrescoui_window_tests PRIVATE "-framework AppKit")
+	elseif(WIN32)
+		target_link_libraries(affrescoui_window_tests PRIVATE ole32 oleaut32 uiautomationcore)
+	else()
+		find_package(PkgConfig QUIET)
+		if(PKG_CONFIG_FOUND)
+			pkg_check_modules(AFFRESCOUI_ATSPI QUIET IMPORTED_TARGET atspi-2)
+		endif()
+		if(AFFRESCOUI_ATSPI_FOUND)
+			target_compile_definitions(affrescoui_window_tests PRIVATE AFFRESCOUI_ATSPI_TEST)
+			target_link_libraries(affrescoui_window_tests PRIVATE PkgConfig::AFFRESCOUI_ATSPI)
+		endif()
+	endif()
+endif()

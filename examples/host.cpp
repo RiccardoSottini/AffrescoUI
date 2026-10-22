@@ -22,6 +22,7 @@
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
+#include <affresco/format/Locale.hpp>
 
 #include <cstdlib>
 #include <format>
@@ -215,6 +216,7 @@ int run(const Options& options) {
 	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
 	if(options.mode) screen.setModeForThisRun(*options.mode);
 	if(options.usage && !screenshotOnly) enableUsage(screen);
+	if(!screenshotOnly) screen.setLocale(affresco::format::systemLocale()); // screenshots stay in the default locale
 	screen.createWindow(app);
 	applyPlugins(screen, options.plugins);
 	checkScenariosForEvidence(screen, screenFile(options.file));

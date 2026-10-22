@@ -1,7 +1,7 @@
 /// @file
-/// @brief File dialogs (open, save, choose a folder), shown by the OS through nativefiledialog-extended: Cocoa on macOS,
-/// the shell's dialogs on Windows, the desktop portal over D-Bus elsewhere. Built without them (Linux without D-Bus),
-/// there are none.
+/// @brief File dialogs (open, save, choose a folder), shown by the OS through nativefiledialog-extended: Cocoa on
+/// macOS, the shell's dialogs on Windows, the desktop portal over D-Bus elsewhere. Built without them (Linux without
+/// D-Bus), there are none.
 
 #include "platform/Desktop.hpp"
 
@@ -111,19 +111,20 @@ std::vector<std::string> show(GLFWwindow* window, const FileDialog& dialog) {
 	case FileDialogKind::Open:
 		if(dialog.multiple) {
 			const nfdpathset_t* set = nullptr;
-			nfdopendialogu8args_t args{filters.list(), filters.count(), orNull(dialog.folder), parent,
-			                           orNull(dialog.title), nullptr, nullptr};
+			nfdopendialogu8args_t args{
+			    filters.list(), filters.count(), orNull(dialog.folder), parent, orNull(dialog.title), nullptr, nullptr};
 			result = NFD_OpenDialogMultipleU8_With(&set, &args);
 			if(result == NFD_OKAY) return takePaths(set);
 		} else {
-			nfdopendialogu8args_t args{filters.list(), filters.count(), orNull(dialog.folder), parent,
-			                           orNull(dialog.title), nullptr, nullptr};
+			nfdopendialogu8args_t args{
+			    filters.list(), filters.count(), orNull(dialog.folder), parent, orNull(dialog.title), nullptr, nullptr};
 			result = NFD_OpenDialogU8_With(&path, &args);
 		}
 		break;
 	case FileDialogKind::Save: {
-		nfdsavedialogu8args_t args{filters.list(), filters.count(), orNull(dialog.folder), orNull(dialog.name), parent,
-		                           orNull(dialog.title), nullptr, nullptr};
+		nfdsavedialogu8args_t args{
+		    filters.list(), filters.count(), orNull(dialog.folder), orNull(dialog.name), parent, orNull(dialog.title),
+		    nullptr,        nullptr};
 		result = NFD_SaveDialogU8_With(&path, &args);
 		break;
 	}
@@ -151,7 +152,8 @@ bool fileDialogs() noexcept { return true; }
 std::vector<std::string> chooseFiles(GLFWwindow* window, const FileDialog& dialog) {
 	if(NFD_Init() != NFD_OKAY) {
 		const char* error = NFD_GetError();
-		log(LogLevel::Warning, std::string("AffrescoUI: file dialogs aren't available: ") + (error ? error : "unknown error"));
+		log(LogLevel::Warning,
+		    std::string("AffrescoUI: file dialogs aren't available: ") + (error ? error : "unknown error"));
 		return {};
 	}
 	std::vector<std::string> paths = show(window, dialog);

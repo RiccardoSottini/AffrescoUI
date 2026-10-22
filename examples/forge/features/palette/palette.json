@@ -89,10 +89,10 @@
 			"node": {
 				"type": "column", "id": "keybindings-page", "fill": true, "color": "@color.editor", "gap": 8,
 				"children": [
-					{ "type": "textarea", "id": "keybindings-search", "bind": "state.keysQuery", "width": "100%", "height": 30,
+					{ "type": "textarea", "id": "keybindings-search", "role": "searchbox", "label": "Search Keybindings", "bind": "state.keysQuery", "width": "100%", "height": 30,
 					  "padding": 7, "color": "@color.input", "textColor": "@color.text", "placeholderColor": "@color.muted",
 					  "placeholder": "Search keybindings" },
-					{ "type": "table", "id": "keybindings-table", "width": "100%", "grow": 1, "items": "{{computed.keyRows}}",
+					{ "type": "table", "id": "keybindings-table", "label": "Keyboard Shortcuts", "width": "100%", "grow": 1, "items": "{{computed.keyRows}}",
 					  "rowHeight": 24, "color": "@color.editor", "textColor": "@color.text",
 					  "selectedBackground": "@color.selection", "accentColor": "@color.accent",
 					  "columns": [{ "id": "command", "title": "Command", "width": 280 }, { "id": "key", "title": "Keybinding", "width": 160 },

@@ -145,11 +145,11 @@ private:
 	/// @return Its Window (set by connect()).
 	static Window& owner(GLFWwindow* window) { return *static_cast<Window*>(glfwGetWindowUserPointer(window)); }
 
-	GLFWwindow* handle_;                   ///< The window and its context; destroyed with this object.
-	Window* window_ = nullptr;             ///< The Window it was connected to.
+	GLFWwindow* handle_;                        ///< The window and its context; destroyed with this object.
+	Window* window_ = nullptr;                  ///< The Window it was connected to.
 	std::unique_ptr<desktop::MenuBar> menuBar_; ///< Its native menu bar, created on first use.
-	bool noMenuBar_ = false;                ///< Native menus aren't supported here.
-	std::array<GLFWcursor*, 5> cursors_{}; ///< Standard cursors, created on first use (indexed by Cursor).
+	bool noMenuBar_ = false;                    ///< Native menus aren't supported here.
+	std::array<GLFWcursor*, 5> cursors_{};      ///< Standard cursors, created on first use (indexed by Cursor).
 };
 
 // GLFW's callbacks are converted to typed events and routed immediately
@@ -207,7 +207,8 @@ bool GlfwWindow::setMenuBar(const std::vector<MenuItem>& menus) {
 	if(noMenuBar_ || !window_) return false;
 	if(!menuBar_) {
 		Window* window = window_;
-		menuBar_ = desktop::createMenuBar(handle_, [window](std::function<void()> run) { chosen(*window, std::move(run)); });
+		menuBar_ =
+		    desktop::createMenuBar(handle_, [window](std::function<void()> run) { chosen(*window, std::move(run)); });
 		if(!menuBar_) {
 			noMenuBar_ = true;
 			return false;

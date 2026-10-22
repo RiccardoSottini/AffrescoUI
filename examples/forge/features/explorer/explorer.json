@@ -111,7 +111,7 @@
 			"node": {
 				"type": "column", "id": "explorer-view", "width": "100%", "grow": 1,
 				"children": [
-					{ "type": "tree", "id": "explorer", "width": "100%", "grow": 1, "drag": {},
+					{ "type": "tree", "id": "explorer", "role": "tree", "label": "Files Explorer", "width": "100%", "grow": 1, "drag": {},
 					  "items": "{{state.explorerTree.tree}}", "expanded": "{{state.explorer.expanded}}", "bind": "state.explorer.selected",
 					  "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text", "selectedTextColor": "@color.text",
 					  "selectedBackground": "@color.selection", "accentColor": "@color.accent",
@@ -133,7 +133,7 @@
 					            "message": "",
 					            "buttons": [{ "title": "OK", "run": "explorerSubmitName" }, { "title": "Cancel" }] },
 					  "children": [
-						{ "type": "textarea", "id": "explorer-name", "bind": "state.explorerEdit.name", "autofocus": true,
+						{ "type": "textarea", "id": "explorer-name", "label": "Name", "bind": "state.explorerEdit.name", "autofocus": true,
 						  "anchors": { "left": 20, "right": 20, "top": 48 }, "height": 28, "padding": 7, "color": "@color.input",
 						  "textColor": "@color.text", "placeholderColor": "@color.muted", "placeholder": "Name",
 						  "onSubmit": { "run": "explorerSubmitName" } }

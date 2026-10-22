@@ -74,7 +74,7 @@ json catalog(const Engine& engine) {
 	        {"operators", operatorNames()},
 	        {"variables",
 	         {"state", "event", "window", "revision", "proposals", "history", "preview", "mode", "computed", "theme",
-	          "screen", "nodes", "context", "commands", "keybindings", "services", "connections", "auth"}},
+	          "locale", "screen", "nodes", "context", "commands", "keybindings", "services", "connections", "auth"}},
 	        {"sections", sections},
 	        {"customTypes", customTypes},
 	        {"nativeActions", names(engine.nativeActions)},

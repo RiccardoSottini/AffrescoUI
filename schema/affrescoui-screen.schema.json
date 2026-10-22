@@ -334,6 +334,27 @@
 							]
 						}
 					},
+					"strings": {
+						"type": "object",
+						"maxProperties": 66,
+						"description": "Translations per locale for t(): {\"default\": \"en\", \"locale\": \"{{state.locale}}\", \"en\": {key: message}}",
+						"properties": {
+							"default": {
+								"type": "string"
+							},
+							"locale": {
+								"type": "string"
+							}
+						},
+						"additionalProperties": {
+							"type": "object",
+							"maxProperties": 10000,
+							"additionalProperties": {
+								"type": "string",
+								"maxLength": 4096
+							}
+						}
+					},
 					"onLoad": {
 						"$ref": "#/$defs/v1/handler"
 					},
@@ -983,6 +1004,22 @@
 							}
 						}
 					},
+					"dir": {
+						"description": "Which way its children and text run: ltr, rtl, auto (the locale's) or inherit",
+						"anyOf": [
+							{
+								"enum": [
+									"ltr",
+									"rtl",
+									"auto",
+									"inherit"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
 					"color": {
 						"$ref": "#/$defs/v1/color"
 					},
@@ -1235,6 +1272,26 @@
 					"description": {
 						"description": "Text, or a {{binding}}"
 					},
+					"isOpen": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"selected": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"live": {
+						"anyOf": [
+							{
+								"enum": [
+									"off",
+									"polite",
+									"assertive"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
 					"tabIndex": {
 						"anyOf": [
 							{
@@ -1457,6 +1514,9 @@
 					"icon": {
 						"type": "string",
 						"description": "label: an icon before the text, by its glyph name in the label's font or its fallbacks (e.g. Lucide's \"search\")"
+					},
+					"mirror": {
+						"$ref": "#/$defs/v1/flag"
 					},
 					"runs": {
 						"type": "array",
@@ -2532,9 +2592,6 @@
 							}
 						]
 					},
-					"selected": {
-						"description": "graph: the selected node's id, or a list of ids; timeline: the selected items' keys"
-					},
 					"tracks": {
 						"anyOf": [
 							{
@@ -3006,7 +3063,17 @@
 						"$fuzzySort",
 						"$curve",
 						"$gradientColor",
-						"$keyframeValue"
+						"$keyframeValue",
+						"$t",
+						"$formatNumber",
+						"$formatPercent",
+						"$formatCurrency",
+						"$formatDate",
+						"$formatTime",
+						"$formatRelative",
+						"$formatList",
+						"$compareText",
+						"$sortText"
 					]
 				}
 			},

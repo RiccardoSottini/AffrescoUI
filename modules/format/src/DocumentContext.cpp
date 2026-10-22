@@ -142,6 +142,7 @@ void DocumentContext::readDerived() {
 	fonts_ = std::move(newFonts);
 	fontSources_ = std::move(newSources);
 	variants_.clear();
+	strings_.read(doc);
 	changeAppearance();
 }
 
@@ -172,6 +173,7 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 		           {"preview", previewing ? json(*previewing) : json()},
 		           {"mode", toString(versions.mode())},
 		           {"theme", theme_},
+		           {"locale", strings_.locale()},
 		           {"screen", screen_}};
 	}
 
@@ -180,8 +182,9 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 
 Context DocumentContext::context(const Scope& locals, const json& event) const {
 	const Globals& g = globals();
-	return Context{engine_.versions.state(), g.window, g.revision, event, locals, g.other, &nodeLookup_,
-	               &computedLookup_, budget_, reads_, &modelLookup_, &variableLookup_};
+	return Context{
+	    engine_.versions.state(), g.window, g.revision, event,         locals,           g.other,  &nodeLookup_,
+	    &computedLookup_,         budget_,  reads_,     &modelLookup_, &variableLookup_, &strings_};
 }
 
 void DocumentContext::addVariable(std::string name, std::function<json()> build) {
@@ -394,6 +397,19 @@ void DocumentContext::updateTheme() {
 	if(document.contains("theme")) globalsChanged();
 	if(theme == theme_) return;
 	theme_ = std::move(theme);
+	changeAppearance();
+}
+
+void DocumentContext::updateLocale() {
+	const json& chosen = strings_.localeValue();
+	std::string tag = chosen.is_null() ? "" : text(evaluate(chosen, *noVariables(), json::object(), "strings.locale"));
+	if(tag.empty()) tag = hostLocale_;
+	const std::string before = strings_.locale();
+	strings_.select(tag);
+	if(engine_.window) engine_.window->setLocaleRightToLeft(strings_.rightToLeft());
+	if(strings_.locale() == before) return;
+	globalsChanged();
+	markStateChanged(); // what t() and the format functions wrote is written again
 	changeAppearance();
 }
 

@@ -10,6 +10,7 @@
 #include "Renderer.hpp"
 #include "RetainedGeometry.hpp"
 #include "detail/Ppm.hpp"
+#include "platform/Accessibility.hpp"
 #include "platform/Platform.hpp"
 
 #include <algorithm>
@@ -63,10 +64,12 @@ Window::Window(std::unique_ptr<platform::NativeWindow> native, std::unique_ptr<d
 	if(native_) {
 		scale_ = native_->contentScale();
 		native_->connect(*this);
+		accessibility_ = platform::createAccessibilityAdapter(*this);
 	}
 }
 
 Window::~Window() {
+	accessibility_.reset(); // before the panels it reads go
 	// GL objects owned by the renderer are deleted in this window's context
 	if(native_) native_->makeCurrent();
 	renderer_.reset();
@@ -148,6 +151,7 @@ void Window::setFocus(Panel* panel) {
 	if(focusRing_) requestLayout();
 	if(previous) previous->focusEvent(false);
 	if(focused_) focused_->focusEvent(true);
+	if(accessibility_) accessibility_->focusChanged();
 }
 
 void Window::setFocusRing(std::optional<FocusRing> ring) {
@@ -399,10 +403,12 @@ void Window::runTimers() {
 void Window::render() {
 	runTimers();
 	runDeferred();
+	if(accessibility_) accessibility_->poll();
 	if(!redrawDirty_) return;
 
 	drawAndPresent();
 	redrawDirty_ = false;
+	if(accessibility_) accessibility_->frameDrawn();
 }
 
 void Window::drawAndPresent() {
