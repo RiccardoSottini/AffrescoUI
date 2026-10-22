@@ -198,3 +198,21 @@ TEST_CASE("canvas: dragging from the top ruler makes a horizontal guide, and bac
 	test.drag({300.0f, 200.0f}, {300.0f, 5.0f});
 	CHECK(test.canvas.guides().horizontal.empty());
 }
+
+TEST_CASE("canvas: a grid far from the origin ends, and a guide taken away mid-drag is let go") {
+	CanvasWindow test(gridItems(4));
+	test.canvas.setGrid(10.72089672088623f);
+	test.canvas.setCamera({1.5889568680091192e22f, -1.5889568680091192e22f, 1.0f});
+	test.draw(); // a start so far left that the spacing no longer moves it would never end
+
+	test.canvas.setCamera({});
+	test.window->routeMouseMove({300.0f, 10.0f});
+	test.button(Action::Press, {300.0f, 10.0f});
+	test.window->routeMouseMove({300.0f, 100.0f});
+	REQUIRE(test.canvas.guides().horizontal.size() == 1);
+	test.canvas.setGuides({}); // a peer clears the guides while one is dragged
+	test.window->routeMouseMove({300.0f, 150.0f});
+	test.window->routeMouseMove({300.0f, 5.0f});
+	test.button(Action::Release, {300.0f, 5.0f});
+	CHECK(test.canvas.guides().horizontal.empty());
+}
