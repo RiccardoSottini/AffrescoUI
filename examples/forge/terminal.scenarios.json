@@ -1,0 +1,67 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "Forge's terminal tabs, checked headless: affrescoui_render_runner terminal.scenarios.json. The runner registers the terminal type without an executor, so no shell starts; these check the tabs, the panel and the nodes.",
+	"screen": "forge.screen.json",
+	"scenarios": [
+		{
+			"name": "terminal-hidden-until-one-opens",
+			"note": "No terminal at start: the panel has no Terminal tab and no terminal node",
+			"steps": [
+				{ "expect": { "state": "terminals.list.length", "is": 0 } },
+				{ "expect": { "state": "terminals.active", "is": "" } },
+				{ "expect": { "node": "#terminal", "exists": false } }
+			]
+		},
+		{
+			"name": "terminal-new-shows-the-panel",
+			"note": "New Terminal opens the panel on its Terminal tab, with one terminal tab and its node",
+			"steps": [
+				{ "action": "terminalNew" },
+				{ "expect": { "state": "terminals.list.length", "is": 1 } },
+				{ "expect": { "state": "terminals.list[0].label", "is": "Terminal 1" } },
+				{ "expect": { "state": "terminals.active", "is": "t1" } },
+				{ "expect": { "state": "layout.panel", "is": true } },
+				{ "expect": { "state": "panelTab", "is": "terminal" } },
+				{ "expect": { "node": "#terminal", "exists": true } }
+			]
+		},
+		{
+			"name": "terminal-two-then-kill-the-active",
+			"note": "A second terminal becomes the active one; killing it goes back to the first",
+			"steps": [
+				{ "action": "terminalNew" },
+				{ "action": "terminalNew" },
+				{ "expect": { "state": "terminals.list.length", "is": 2 } },
+				{ "expect": { "state": "terminals.active", "is": "t2" } },
+				{ "action": "terminalKill" },
+				{ "expect": { "state": "terminals.list.length", "is": 1 } },
+				{ "expect": { "state": "terminals.active", "is": "t1" } },
+				{ "expect": { "node": "#terminal", "exists": true } }
+			]
+		},
+		{
+			"name": "terminal-focus-opens-one-once",
+			"note": "Focus Terminal opens a terminal when there is none, and only shows the panel when there is one",
+			"steps": [
+				{ "action": "showTerminal" },
+				{ "action": "showTerminal" },
+				{ "expect": { "state": "terminals.list.length", "is": 1 } },
+				{ "expect": { "state": "panelTab", "is": "terminal" } }
+			]
+		},
+		{
+			"name": "terminal-kill-the-last",
+			"note": "Killing the last terminal hides the Terminal tab: the panel goes back to Output",
+			"steps": [
+				{ "action": "terminalNew" },
+				{ "action": "terminalKill" },
+				{ "expect": { "state": "terminals.list.length", "is": 0 } },
+				{ "expect": { "state": "terminals.active", "is": "" } },
+				{ "expect": { "state": "panelTab", "is": "output" } },
+				{ "expect": { "node": "#terminal", "exists": false } }
+			]
+		}
+	]
+}

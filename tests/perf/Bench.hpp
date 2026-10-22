@@ -126,6 +126,11 @@ struct Group {
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> viewWorkloads(Context&);
 
+/// @brief The "watch" group's workloads (watch.cpp): a folder of 100,000 files listed and watched as a DirectoryModel,
+/// and one file's change seen by it.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> watchWorkloads(Context&);
+
 /* Scaling (scaling_screens.cpp, scaling_engine.cpp): "scaling/<area>/<n>", the same work at sizes that double */
 
 /// @brief The sizes an area is measured at: 5 that double from the smallest, 7 at night.

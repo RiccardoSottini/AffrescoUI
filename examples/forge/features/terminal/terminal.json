@@ -1,0 +1,82 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Forge's terminal: up to 8 shells in the panel's Terminal tab, each a tab of its own (the terminal type in Terminal.cpp, on the pty provider). The Terminal tab shows only while a terminal is open. The node keeps Tab for the shell.",
+
+	"state": {
+		"terminals": { "list": [], "active": "", "next": 1 }
+	},
+
+	"services": {
+		"terminal": { "provider": "pty", "process": "shell", "root": "terminal" }
+	},
+
+	"actions": {
+		"terminalNew": { "title": "New Terminal", "category": "Terminal", "icon": "terminal",
+			"enablement": "{{len(state.terminals.list) < 8}}",
+			"do": [
+				{ "push": "state.terminals.list", "value": "{{ {id: 't' + state.terminals.next, label: 'Terminal ' + state.terminals.next, closable: true} }}" },
+				{ "set": "state.terminals.active", "to": "{{'t' + state.terminals.next}}" },
+				{ "increment": "state.terminals.next", "by": 1 },
+				{ "set": "state.layout.panel", "to": true },
+				{ "set": "state.panelTab", "to": "terminal" }
+			] },
+		"terminalClose": [
+			{ "call": "forge.terminal.close", "with": { "id": "{{id}}" } },
+			{ "set": "state.terminals.list", "to": "{{filter(state.terminals.list, it.id != id)}}" },
+			{ "if": "{{state.terminals.active == id}}",
+			  "then": [{ "set": "state.terminals.active", "to": "{{len(state.terminals.list) > 0 ? state.terminals.list[0].id : ''}}" }] },
+			{ "if": "{{len(state.terminals.list) == 0 && state.panelTab == 'terminal'}}",
+			  "then": [{ "set": "state.panelTab", "to": "output" }] }
+		],
+		"terminalKill": { "title": "Kill the Active Terminal", "category": "Terminal", "icon": "trash-2",
+			"enablement": "{{!empty(state.terminals.active)}}",
+			"do": [{ "run": "terminalClose", "with": { "id": "{{state.terminals.active}}" } }] },
+		"showTerminal": { "title": "Focus Terminal", "category": "View", "icon": "terminal",
+			"do": [
+				{ "if": "{{len(state.terminals.list) == 0}}",
+				  "then": [{ "run": "terminalNew" }],
+				  "else": [{ "set": "state.layout.panel", "to": true }, { "set": "state.panelTab", "to": "terminal" }] }
+			] },
+		"terminalClear": { "title": "Clear Terminal", "category": "Terminal", "icon": "eraser",
+			"enablement": "{{!empty(state.terminals.active)}}",
+			"do": [{ "call": "forge.terminal.clear", "with": { "id": "{{state.terminals.active}}" } }] },
+		"terminalKeepTab": []
+	},
+
+	"menus": {
+		"view": {
+			"terminal": { "run": "showTerminal", "group": "3_panels", "order": 4 }
+		}
+	},
+
+	"keys": {
+		"mod+shift+t": "terminalNew"
+	},
+
+	"components": {
+		"forgeTerminal": {
+			"node": {
+				"type": "column", "id": "terminal-panel", "width": "100%", "grow": 1, "color": "@color.panel",
+				"children": [
+					{ "type": "row", "id": "terminal-head", "width": "100%", "height": 28, "alignItems": "center",
+					  "children": [
+						{ "type": "tabs", "id": "terminal-tabs", "grow": 1, "height": 28, "bind": "state.terminals.active",
+						  "color": "@color.panel", "textColor": "@color.muted", "activeTextColor": "@color.text",
+						  "activeBackground": "@color.panel", "accentColor": "@color.accent",
+						  "tabs": "{{state.terminals.list}}",
+						  "onClose": { "run": "terminalClose", "with": { "id": "{{event.id}}" } } },
+						{ "type": "label", "id": "terminal-new", "icon": "plus", "textColor": "@color.muted", "padding": 8,
+						  "fitText": true, "cursor": "hand", "tooltip": "New Terminal", "hover": { "color": "@color.hover" },
+						  "onClick": { "run": "terminalNew" } }
+					  ] },
+					{ "repeat": { "for": "t", "in": "{{filter(map(state.terminals.list, it.id), it == state.terminals.active)}}", "key": "{{t}}" },
+					  "type": "terminal", "id": "terminal", "session": "{{t}}", "font": "code", "width": "100%", "grow": 1,
+					  "color": "@color.editor", "textColor": "@color.text", "cursorColor": "@color.accent", "scrollback": 1000,
+					  "focusable": true, "keys": { "tab": "terminalKeepTab", "shift+tab": "terminalKeepTab" } }
+				]
+			}
+		}
+	}
+}

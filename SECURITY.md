@@ -280,6 +280,24 @@ operator writes get in, by the name that file gives them; a token that worked is
 minutes (a revoked token keeps working that long at most), a refused one isn't, and each question is bounded in time
 and size. The server never keeps, logs or forwards a token anywhere but to that endpoint.
 
+### Watched folders and terminals
+
+The `watch` provider and `DirectoryModel` see only a folder the host granted, like `fs`: paths are reported relative
+to it, and symbolic links are listed but never followed or watched, so nothing outside it is reported. What they
+send is bounded: at most 1,000 paths a batch (more becomes one `rescan`), one batch per debounce interval (20 ms at
+least), 100,000 watched folders, 200,000 rows, 4 subscriptions per service. Ignore globs only narrow what is reported.
+
+The `pty` provider starts only a program the host allowed (`allowProcess`, as for `process`), from an argument vector:
+a shell runs only if the host allows a shell as the program. The terminal's output reaches the screen as text, and
+it is bounded: 8 terminals per service, 64 KiB a write and 1 MiB waiting, 16 KiB an event and 4 MiB a second. Escape
+sequences in that text are the terminal widget's to interpret; the provider acts on none of them.
+
+Forge's terminal widget (`examples/forge/features/terminal`, on libvterm) keeps every escape sequence inside itself:
+a program can't set the window title unless the node's `allowTitle` is true (and then only the session's, at most
+256 bytes), clipboard writes (OSC 52) and the bell are dropped, and its replies to queries go back to the program
+only. Its scrollback is bounded (10,000 lines at most). Forge grants the user's login shell, started in the open
+folder; the screen document only names the service.
+
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
 `AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it

@@ -247,7 +247,8 @@ std::vector<Group> engineGroups() {
 	        {"commits", commitWorkloads},
 	        {"text", textWorkloads},
 	        {"history", historyWorkloads},
-	        {"views", viewWorkloads}};
+	        {"views", viewWorkloads},
+	        {"watch", watchWorkloads}};
 }
 
 } // namespace affresco::bench

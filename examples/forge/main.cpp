@@ -12,6 +12,8 @@
 #include "Forge.hpp"
 #include "SocketDir.hpp"
 #include "features/accounts/Accounts.hpp"
+#include "features/explorer/Explorer.hpp"
+#include "features/terminal/Terminal.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -88,6 +90,9 @@ int run(const Options& options) {
 	forge::registerNatives(screen, workspace);
 	forge::registerAccounts(screen, !screenshotOnly);
 	forge::addExampleCatalog(screen, assetsDirectory().parent_path() / "forge");
+	forge::registerExplorer(screen, workspace, &app);
+	forge::grantTerminal(screen, workspace->root);
+	forge::registerTerminal(screen, &app);
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {

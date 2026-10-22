@@ -18,6 +18,12 @@
 			"of": "frame/400",
 			"atMost": 0.8,
 			"why": "a frame where nothing but the caret changed reuses the cached draw list"
+		},
+		{
+			"name": "watch/100000/change",
+			"of": "watch/100000",
+			"atMost": 0.5,
+			"why": "one changed file in a watched 100,000-file folder updates one row, never a new listing (0.14 on macOS)"
 		}
 	]
 }

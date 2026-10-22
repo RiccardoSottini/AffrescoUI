@@ -69,6 +69,10 @@ include(cmake/AffrescoUINetwork.cmake)
 
 # Monocypher: the Ed25519 signatures of features and catalogues (RFC 0004, decision D12)
 include(cmake/AffrescoUISignatures.cmake)
+# libvterm: the terminal emulator of Forge's terminal panel, which the examples and the tests build
+if(AFFRESCOUI_BUILD_EXAMPLES OR AFFRESCOUI_BUILD_TESTS)
+	include(cmake/AffrescoUITerminal.cmake)
+endif()
 
 # The Lucide icon font the templates and the rendering check use (decision D11), vendored and pinned by its hash: lucide.ttf
 # of lucide-static 1.48.0 (examples/assets/fonts/README.md)
@@ -136,10 +140,12 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
 	set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
 		examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
-		examples/forge/features/accounts/Accounts.cpp)
+		examples/forge/features/accounts/Accounts.cpp
+		examples/forge/features/explorer/Explorer.cpp examples/forge/features/terminal/Terminal.cpp
+		examples/forge/features/terminal/TerminalModel.cpp)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/CodeEditor.cpp)
 	target_include_directories(affrescoui_forge PRIVATE examples examples/forge)
-	target_link_libraries(affrescoui_forge PRIVATE affrescoui)
+	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
 	# The document server, headless: documents and their history on disk, shared with people (examples/server/README.md)
@@ -180,7 +186,7 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	# using valgrind's header when it is installed
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
-		tests/perf/scaling_engine.cpp examples/CodeEditor.cpp)
+		tests/perf/scaling_engine.cpp tests/perf/watch.cpp examples/CodeEditor.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples modules/format/src modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)

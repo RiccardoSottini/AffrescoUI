@@ -92,7 +92,7 @@
 						{ "type": "tabs", "id": "panel-tabs", "width": 420, "height": 32, "bind": "state.panelTab",
 						  "color": "@color.panel", "textColor": "@color.muted", "activeTextColor": "@color.text",
 						  "activeBackground": "@color.panel", "accentColor": "@color.accent",
-						  "tabs": "{{[{id: 'problems', label: 'Problems' + (len(state.problems) > 0 ? ' ' + len(state.problems) : ''), closable: false}, {id: 'output', label: 'Output', closable: false}, {id: 'notifications', label: 'Notifications', closable: false}]}}" },
+						  "tabs": "{{concat([{id: 'problems', label: 'Problems' + (len(state.problems) > 0 ? ' ' + len(state.problems) : ''), closable: false}, {id: 'output', label: 'Output', closable: false}, {id: 'notifications', label: 'Notifications', closable: false}], len(state.terminals.list) > 0 ? [{id: 'terminal', label: 'Terminal', closable: false}] : [])}}" },
 						{ "id": "panel-gap", "grow": 1 },
 						{ "type": "label", "id": "panel-close", "icon": "x", "textColor": "@color.muted", "padding": 8,
 						  "fitText": true, "cursor": "hand", "tooltip": "Close Panel", "hover": { "color": "@color.hover" },
@@ -109,7 +109,8 @@
 					  "textColor": "@color.text", "selectedBackground": "@color.selection" },
 					{ "when": "{{state.panelTab == 'notifications'}}", "type": "list", "id": "notifications", "width": "100%",
 					  "grow": 1, "items": "{{computed.notificationRows}}", "rowHeight": 22, "color": "@color.panel",
-					  "textColor": "@color.text", "selectedBackground": "@color.selection" }
+					  "textColor": "@color.text", "selectedBackground": "@color.selection" },
+					{ "when": "{{state.panelTab == 'terminal'}}", "use": "forgeTerminal" }
 				]
 			}
 		}

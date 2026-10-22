@@ -6,11 +6,12 @@
 set(forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
 add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/examples/CodeEditor.cpp ${forge_dir}/Forge.cpp
 	${forge_dir}/features/palette/FileIndex.cpp ${forge_dir}/features/themes/ThemeImport.cpp
-	${forge_dir}/features/themes/IconTheme.cpp)
+	${forge_dir}/features/themes/IconTheme.cpp ${forge_dir}/features/explorer/Explorer.cpp
+	${forge_dir}/features/terminal/Terminal.cpp ${forge_dir}/features/terminal/TerminalModel.cpp)
 target_include_directories(affrescoui_render_runner PRIVATE ${PROJECT_SOURCE_DIR}/examples ${forge_dir})
 target_compile_definitions(affrescoui_render_runner PRIVATE
 	AFFRESCOUI_FORGE_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/forge/folder" AFFRESCOUI_FORGE_DIRECTORY="${forge_dir}")
-target_link_libraries(affrescoui_render_runner PRIVATE affrescoui::automation)
+target_link_libraries(affrescoui_render_runner PRIVATE affrescoui::automation affrescoui_vterm)
 target_compile_options(affrescoui_render_runner PRIVATE ${AFFRESCOUI_WARNINGS})
 set_target_properties(affrescoui_render_runner PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
