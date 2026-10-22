@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 
 namespace affresco::imaging {
 
@@ -83,9 +84,11 @@ FilterRun::~FilterRun() { cancel(); }
 bool FilterRun::runRegion(int x, int y, int width, int height, std::size_t most) {
 	if(document_ == nullptr) return true;
 	const Image& image = *document_->image(target_);
+	// The ends in 64 bits, so a region reaching past INT_MAX still covers the tiles it touches
+	const auto end = [](int start, int extent) { return (std::int64_t{start} + extent + tileSize - 1) / tileSize; };
 	const int left = std::max(0, x / tileSize), top = std::max(0, y / tileSize);
-	const int right = std::min(image.columns(), (x + width + tileSize - 1) / tileSize);
-	const int bottom = std::min(image.rows(), (y + height + tileSize - 1) / tileSize);
+	const auto right = static_cast<int>(std::min<std::int64_t>(image.columns(), end(x, width)));
+	const auto bottom = static_cast<int>(std::min<std::int64_t>(image.rows(), end(y, height)));
 	std::size_t ran = 0;
 	for(int row = top; row < bottom; ++row)
 		for(int column = left; column < right; ++column) {

@@ -8,6 +8,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <climits>
 #include <cmath>
 
 using namespace affresco::imaging;
@@ -180,7 +181,10 @@ TEST_CASE("imaging filters: sharpen, noise, motion, preview runs, and feather") 
 		motion.kind = FilterKind::motionBlur;
 		FilterRun run(document, pixels, motion, "Motion Blur");
 		CHECK_FALSE(run.runRegion(0, 0, 256, 256, 0));
+		CHECK_FALSE(run.runRegion(-100, -100, INT_MAX, INT_MAX, 0)); // reaching past INT_MAX: still the whole image
+		CHECK(run.runRegion(INT_MAX, INT_MAX, INT_MAX, INT_MAX, 0)); // past the image: nothing to filter
 		CHECK(run.runRegion(0, 0, 10, 10));
+		CHECK(run.runRegion(-100, -100, INT_MAX, INT_MAX, 0));
 	} // a run never finished puts the tiles back
 	CHECK(document.history().steps().back().name == "Add Noise");
 	CHECK(byteFromUnit(filterKindOf("motion-blur") == FilterKind::motionBlur ? 1.0f : 0.0f) == 255);
