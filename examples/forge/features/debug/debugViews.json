@@ -2,7 +2,29 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 1,
-	"note": "The debugger's views (debug.json has the logic): the Run and Debug side bar (configurations, variables, watches, the call stack and the breakpoints), the Debug Console panel, the floating toolbar and the dialogs, and the read-only page for a source outside the open folder.",
+	"note": "The debugger's views (debug.json has the logic; the source page's actions are here): the Run and Debug side bar (configurations, variables, watches, the call stack and the breakpoints), the Debug Console panel, the floating toolbar and the dialogs, and the read-only page for a source outside the open folder.",
+
+	"actions": {
+		"debugOpenOutside": [
+			{ "if": "{{state.debug.outside.frame != null}}",
+			  "then": [{ "run": "debugRequest", "with": { "command": "source", "answer": "debugOnSource", "refused": "debugOnSourceRefused",
+				"context": "{{ {frame: state.debug.outside.frame} }}",
+				"arguments": "{{ {source: merge(empty(state.debug.outside.frame.path) ? {} : {path: state.debug.outside.frame.path}, {sourceReference: state.debug.outside.frame.reference}), sourceReference: state.debug.outside.frame.reference} }}" } }] }
+		],
+		"debugOnSource": [
+			{ "run": "debugShowSource", "with": { "id": "{{'debug-source:' + (empty(context.frame.path) ? 'ref:' + context.frame.reference : context.frame.path)}}",
+			  "label": "{{(empty(context.frame.path) ? context.frame.name : reverse(split(context.frame.path, '/'))[0]) + ' (read-only)'}}", "content": "{{slice(text(body.content ?? ''), 0, 4194304)}}" } }
+		],
+		"debugOnSourceRefused": [
+			{ "run": "notify", "with": { "severity": "info", "message": "{{'The debugger has no source for this frame: ' + message}}" } }
+		],
+		"debugShowSource": [
+			{ "set": "state.docs", "to": "{{filter(state.docs, it.id != id)}}" },
+			{ "push": "state.docs", "value": "{{ {id: id, label: label, kind: 'debugSource', text: content, dirty: false, language: ''} }}" },
+			{ "run": "showTab", "with": { "id": "{{id}}", "label": "{{label}}" } }
+		],
+		"debugApplySource": [{ "run": "debugShowSource", "with": { "id": "{{'debug-source:' + event.path}}", "label": "{{event.label}}", "content": "{{event.content}}" } }]
+	},
 
 	"components": {
 		"forgeDebugView": {
