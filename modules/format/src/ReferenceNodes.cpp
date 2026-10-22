@@ -884,6 +884,20 @@ constexpr KeyReference nodeTable[] = {
     {"placeholder", R"json({"description": "Text, or a {{binding}}"})json", "", ""},
     {"placeholderColor", "color", "", ""},
     {"checked", "flag", "", ""},
+    {"today", R"json({"description": "calendar: the day outlined, \"YYYY-MM-DD\""})json", "", ""},
+    {"marked", R"json({"anyOf": [{"type": "array", "items": {"type": "string"}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "calendar: the days with a dot, \"YYYY-MM-DD\" each"})json",
+	 "", ""},
+    {"firstDayOfWeek", R"json({"anyOf": [{"type": "integer", "minimum": 0, "maximum": 6}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "calendar: 0 for Sunday to 6 for Saturday (default 1, Monday)"})json",
+	 "", ""},
+    {"monthNames", R"json({"anyOf": [{"type": "array", "items": {"type": "string"}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "calendar: twelve month names, January first"})json",
+	 "", ""},
+    {"dayNames", R"json({"anyOf": [{"type": "array", "items": {"type": "string"}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "calendar: seven short day names, Sunday first"})json",
+	 "", ""},
+    {"pickedTextColor", "color", "", ""},
 };
 
 } // namespace
