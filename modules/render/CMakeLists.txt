@@ -5,8 +5,8 @@ include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIImages.cmake)
 affrescoui_module(render
 	src/Accessibility.cpp
 	src/Application.cpp
-	src/Bitmap.cpp
-	src/ImageCache.cpp
+	src/image/Bitmap.cpp
+	src/image/ImageCache.cpp
 	src/ImageView.cpp
 	src/DiffView.cpp
 	src/TextEditor.cpp
@@ -18,8 +18,8 @@ affrescoui_module(render
 	src/TextEditorView.cpp
 	src/TextModel.cpp
 	src/text/PieceTree.cpp
-	src/Color.cpp
-	src/ColorSpaces.cpp
+	src/image/Color.cpp
+	src/image/ColorSpaces.cpp
 	src/ColorPicker.cpp
 	src/ColorPickerPaint.cpp
 	src/CurvesEditor.cpp
@@ -120,7 +120,7 @@ endif()
 # stb_image's JPEG decoder lets signed integers overflow on crafted input (found by the image fuzz target): wrapping
 # is what it expects, so the one file that compiles it wraps, and the sanitizers don't stop there
 if(NOT MSVC)
-	set_source_files_properties(src/Bitmap.cpp PROPERTIES COMPILE_OPTIONS "-fwrapv;-fno-sanitize=signed-integer-overflow")
+	set_source_files_properties(src/image/Bitmap.cpp PROPERTIES COMPILE_OPTIONS "-fwrapv;-fno-sanitize=signed-integer-overflow")
 endif()
 # File dialogs (open, save, choose a folder): nativefiledialog-extended, compiled in (cmake/AffrescoUIDialogs.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIDialogs.cmake)
