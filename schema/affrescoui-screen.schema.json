@@ -693,7 +693,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, colorPicker, gradient, curves, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -715,6 +715,9 @@
 									"tree",
 									"table",
 									"path",
+									"colorPicker",
+									"gradient",
+									"curves",
 									"outlet"
 								]
 							},
@@ -1560,7 +1563,7 @@
 						"description": "image and path: contain (default), cover or fill, like CSS object-fit"
 					},
 					"value": {
-						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids",
+						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids; colorPicker: a colour; gradient: { kind, angle, stops }; curves: { points }",
 						"anyOf": [
 							{
 								"type": "number"
@@ -1571,6 +1574,9 @@
 							{
 								"type": "array",
 								"maxItems": 100000
+							},
+							{
+								"type": "object"
 							},
 							{
 								"$ref": "#/$defs/v1/dynamic"
@@ -1931,6 +1937,77 @@
 							}
 						]
 					},
+					"mode": {
+						"anyOf": [
+							{
+								"enum": [
+									"square",
+									"wheel"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "colorPicker: square (default) or wheel"
+					},
+					"alpha": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"fields": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"swatches": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 32,
+								"items": {
+									"type": "string"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "colorPicker: colours or @tokens to pick from"
+					},
+					"interpolation": {
+						"anyOf": [
+							{
+								"enum": [
+									"monotone",
+									"linear",
+									"bezier"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "curves: monotone (default), linear or bezier"
+					},
+					"channels": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"histogram": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 1024,
+								"items": {
+									"type": "number"
+								}
+							},
+							{
+								"type": "null"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "curves: counts drawn behind the curve"
+					},
 					"onClick": {
 						"$ref": "#/$defs/v1/handler"
 					},
@@ -2040,6 +2117,9 @@
 									"tree",
 									"table",
 									"path",
+									"colorPicker",
+									"gradient",
+									"curves",
 									"outlet"
 								]
 							}
@@ -2227,7 +2307,9 @@
 						"$now",
 						"$time",
 						"$fuzzy",
-						"$fuzzySort"
+						"$fuzzySort",
+						"$curve",
+						"$gradientColor"
 					]
 				}
 			},

@@ -13,6 +13,7 @@ affrescoui_module(format
 	src/ExpressionFunctionsItems.cpp
 	src/ExpressionFunctionsTime.cpp
 	src/ExpressionFunctionsFuzzy.cpp
+	src/ExpressionFunctionsColor.cpp
 	src/Value.cpp
 	src/Rules.cpp
 	src/BehaviourLines.cpp
@@ -59,6 +60,10 @@ affrescoui_module(format
 	src/IconProperty.cpp
 	src/RunsProperty.cpp
 	src/PathType.cpp
+	src/CreativeValues.cpp
+	src/ColorPickerType.cpp
+	src/GradientType.cpp
+	src/CurvesType.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Contributions.cpp
