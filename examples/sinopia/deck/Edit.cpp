@@ -37,7 +37,7 @@ struct Editing {
 	/// @return It.
 	[[nodiscard]] float number(const char* key, float fallback) const {
 		const json& value = edit.contains(key) ? edit[key] : json();
-		return value.is_number() ? value.get<float>() : fallback;
+		return value.is_number() ? floatOf(value) : fallback;
 	}
 	/// @brief A text the edit gives.
 	/// @param key Its key.
@@ -75,6 +75,13 @@ struct Editing {
 	std::size_t n = deck.slides.size() + 1;
 	while(std::ranges::contains(deck.slides, "s" + std::to_string(n), &Slide::id)) ++n;
 	return "s" + std::to_string(n);
+}
+
+/// @brief Checks the deck has a slide for an edit of the current one: a deck a document sends may have none.
+/// @param editing The edit.
+/// @throws std::runtime_error If it has none.
+void needSlide(const Editing& editing) {
+	if(editing.deck.slides.empty()) throw std::runtime_error("Sinopia: the deck has no slides");
 }
 
 /// @brief Adds an object of a kind, in the middle of the slide unless the edit places it.
@@ -132,11 +139,11 @@ void transformObjects(Editing& editing) {
 		if(!item.is_object()) continue;
 		const auto found = std::ranges::find(editing.objects(), item.value("id", std::string()), &SlideObject::id);
 		if(found == editing.objects().end() || found->locked) continue;
-		found->x = item.value("x", found->x);
-		found->y = item.value("y", found->y);
-		found->w = std::max(1.0f, item.value("width", found->w));
-		found->h = std::max(1.0f, item.value("height", found->h));
-		found->rotate = item.value("rotate", found->rotate);
+		found->x = floatAt(item, "x", found->x);
+		found->y = floatAt(item, "y", found->y);
+		found->w = std::max(1.0f, floatAt(item, "width", found->w));
+		found->h = std::max(1.0f, floatAt(item, "height", found->h));
+		found->rotate = floatAt(item, "rotate", found->rotate);
 	}
 }
 
@@ -173,10 +180,12 @@ void addSlide(Editing& editing) {
 /// @brief Moves a slide from one place to another (both clamped to the deck).
 /// @param editing The edit.
 void moveSlide(Editing& editing) {
+	needSlide(editing);
 	std::vector<Slide>& slides = editing.deck.slides;
-	const auto place = [&](const char* key, std::size_t fallback) {
-		return std::min(static_cast<std::size_t>(std::max(0.0f, editing.number(key, static_cast<float>(fallback)))),
-		                slides.size() - 1);
+	const float last = static_cast<float>(slides.size() - 1);
+	const auto place = [&](const char* key, std::size_t fallback) { // clamped before it is a whole number
+		return static_cast<std::size_t>(
+		    std::min(std::max(0.0f, editing.number(key, static_cast<float>(fallback))), last));
 	};
 	const std::size_t from = place("from", editing.slide);
 	const std::size_t to = place("to", from);
@@ -269,6 +278,7 @@ void addSection(Editing& editing) {
 	     }},
 	    {"duplicateSlide",
 		 [](Editing& e) {
+		     needSlide(e);
 		     Slide copy = e.deck.slides[e.slide];
 		     copy.id = freeSlideId(e.deck);
 		     e.deck.slides.insert(e.deck.slides.begin() + static_cast<std::ptrdiff_t>(e.slide) + 1, std::move(copy));

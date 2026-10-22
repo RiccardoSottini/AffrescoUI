@@ -8,6 +8,7 @@
 
 #include <affresco/export/PdfDocument.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <functional>
@@ -93,6 +94,19 @@ void checkImage(const Session& session, const std::string& file) {
 	return ids;
 }
 
+/// @brief A render's slide width, clamped to the widths slideSize() gives: the scales slides are drawn at divide by
+/// it, and a document may send any.
+/// @param render The deck as renderDeck() gives it.
+/// @return It.
+[[nodiscard]] float slideWidth(const json& render) {
+	return std::clamp(floatAt(render, "width", 800.0f), 1.0f, 800.0f);
+}
+
+/// @brief A render's page side, clamped as readDeck() clamps a deck's page.
+/// @param side The side, in points.
+/// @return It.
+[[nodiscard]] float pageSide(const json& side) { return std::clamp(floatOf(side), 72.0f, 14400.0f); }
+
 /// @brief Draws each slide whose look changed into its thumbnail, `thumb-<id>`, for the sorter and the slide list.
 /// Without a window of its own (--check), it draws with the stage's: the scenario's, which draws only with --out.
 /// @param session The session.
@@ -101,7 +115,7 @@ void checkImage(const Session& session, const std::string& file) {
 [[nodiscard]] json drawThumbnails(Session& session, const json& render) {
 	std::size_t drawn = 0;
 	if(!render.contains("slides") || !render["slides"].is_array()) return {{"drawn", 0}};
-	const float width = render.value("width", 800.0f);
+	const float width = slideWidth(render);
 	for(const json& slide : render["slides"]) {
 		const std::string id = slide.is_object() ? slide.value("id", std::string()) : std::string();
 		const std::size_t look = std::hash<std::string>{}(slide.dump() + std::to_string(width));
@@ -127,7 +141,7 @@ void checkImage(const Session& session, const std::string& file) {
 	if(ids.empty() || ids.size() > session.limits.exportPages)
 		throw std::runtime_error("Sinopia: nothing to export, or more pages than the limit");
 	const json& page = render.contains("page") && render["page"].is_array() ? render["page"] : json::array({960, 540});
-	const affresco::Vec2 size{page.at(0).get<float>(), page.at(1).get<float>()};
+	const affresco::Vec2 size{pageSide(page.at(0)), pageSide(page.at(1))};
 	affresco::PdfDocument document;
 	for(const std::string& id : ids)
 		if(const affresco::Panel* panel = stagePanel(session, id)) document.addPage(*panel, size);
@@ -147,7 +161,7 @@ void checkImage(const Session& session, const std::string& file) {
 [[nodiscard]] json exportPng(const Session& session, const json& render) {
 	const std::vector<std::string> ids = shownSlides(render);
 	if(session.window == nullptr || ids.size() > session.limits.exportPages) return {{"files", 0}};
-	const float scale = 1920.0f / render.value("width", 800.0f);
+	const float scale = 1920.0f / slideWidth(render);
 	const std::string name = fileName(render.value("title", std::string("Untitled")));
 	std::filesystem::create_directories(session.exportFolder);
 	std::size_t written = 0;

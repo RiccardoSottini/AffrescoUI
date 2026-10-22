@@ -9,6 +9,7 @@
 #include <cctype>
 #include <cmath>
 #include <filesystem>
+#include <limits>
 #include <set>
 #include <span>
 #include <stdexcept>
@@ -535,6 +536,16 @@ Slide slideFromLayout(const Deck& deck, const std::string& layout, std::string i
 		slide.objects.push_back(std::move(object));
 	}
 	return slide;
+}
+
+float floatOf(const json& number) {
+	constexpr double largest = std::numeric_limits<float>::max();
+	return static_cast<float>(std::clamp(number.get<double>(), -largest, largest));
+}
+
+float floatAt(const json& object, const char* key, float fallback) {
+	const auto found = object.find(key);
+	return found == object.end() ? fallback : floatOf(*found);
 }
 
 } // namespace sinopia

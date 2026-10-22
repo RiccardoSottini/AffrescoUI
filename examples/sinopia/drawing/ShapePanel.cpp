@@ -5,6 +5,7 @@
 #include "ShapePanel.hpp"
 
 #include "ShapeGeometry.hpp"
+#include "deck/Deck.hpp"
 
 #include <affresco/Screen.hpp>
 #include <affresco/core/Json.hpp>
@@ -34,7 +35,7 @@ constexpr int gradientBands = 32; ///< How many bands of colour draw a gradient.
 /// @return It.
 [[nodiscard]] float numberAt(const json& value, const char* key, float fallback) {
 	const auto found = value.find(key);
-	return found != value.end() && found->is_number() ? found->get<float>() : fallback;
+	return found != value.end() && found->is_number() ? floatOf(*found) : fallback;
 }
 
 /// @brief A colour at a key, resolved, or transparent.
@@ -54,7 +55,7 @@ constexpr int gradientBands = 32; ///< How many bands of colour draw a gradient.
 void ShapePanel::apply(const affresco::Screen& screen, const std::string& properties) {
 	const json value = json::parse(properties);
 	kind_ = value.value("shape", std::string("rect"));
-	sides_ = std::clamp(static_cast<int>(numberAt(value, "sides", 5.0f)), 3, 64);
+	sides_ = static_cast<int>(std::clamp(numberAt(value, "sides", 5.0f), 3.0f, 64.0f)); // clamped while a float
 	inner_ = std::clamp(numberAt(value, "inner", 0.5f), 0.05f, 0.95f);
 	cornerRadius_ = std::max(0.0f, numberAt(value, "cornerRadius", 0.0f));
 	gradient_.reset();

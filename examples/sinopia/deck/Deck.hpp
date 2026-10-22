@@ -198,4 +198,19 @@ void fitText(SlideObject& object) noexcept;
 /// @return The slide.
 [[nodiscard]] Slide slideFromLayout(const Deck& deck, const std::string& layout, std::string id);
 
+/// @brief A number a document sends, as a float clamped to the floats' range: converting a double past it is
+/// undefined, and a document may send one (the deck's own numbers are read and clamped by readDeck()).
+/// @param number The number.
+/// @return It.
+/// @throws affresco::json::type_error If it isn't a number, as json::get() does.
+[[nodiscard]] float floatOf(const affresco::json& number);
+
+/// @brief A key's number, as floatOf() gives it, or a fallback without the key: json::value() for a float.
+/// @param object The object.
+/// @param key The key.
+/// @param fallback The number without the key.
+/// @return It.
+/// @throws affresco::json::type_error If the key's value isn't a number.
+[[nodiscard]] float floatAt(const affresco::json& object, const char* key, float fallback);
+
 } // namespace sinopia

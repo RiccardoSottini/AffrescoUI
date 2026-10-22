@@ -100,14 +100,16 @@ void watchWorkspace(const std::shared_ptr<Session>& session, affresco::Window& w
 	const std::string slide = with.value("slide", std::string());
 	affresco::Panel* panel = stagePanel(session, slide);
 	if(session.window == nullptr || panel == nullptr) return {{"shown", false}};
-	const auto image = session.window->renderToImage(*panel, frameWidth / std::max(with.value("width", 800.0f), 1.0f));
+	const auto image =
+	    session.window->renderToImage(*panel, frameWidth / std::max(floatAt(with, "width", 800.0f), 1.0f));
 	if(!image) return {{"shown", false}};
-	const std::string key = slide + "#" + std::to_string(with.value("step", 0));
+	const int step = static_cast<int>(std::clamp(floatAt(with, "step", 0.0f), -1e9f, 1e9f)); // a whole number fits
+	const std::string key = slide + "#" + std::to_string(step);
 	if(key != session.presenting) {
 		session.leaving = session.lastFrame;
 		session.presenting = key;
 	}
-	const float time = with.value("t", 1.0f);
+	const float time = floatAt(with, "t", 1.0f);
 	Frame frame = frameOf(*image);
 	if(with.value("black", false)) std::ranges::fill(frame.pixels, std::uint8_t{0});
 	else if(session.leaving && time < 1.0f)
