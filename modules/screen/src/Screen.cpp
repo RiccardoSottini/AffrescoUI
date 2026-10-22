@@ -136,7 +136,9 @@ struct Screen::Impl {
 			}
 		});
 		runtime.onUpdated.connect([this] { save(); });
-		repairs.onMessage.connect([this](const json& message) { broadcast(message); });
+		repairs.onMessage.connect([this](const json& message) {
+			for(const auto& peer : peers) sendRepairs(*peer, message);
+		});
 		rules.setServices(&services);
 		runtime.setServices(&services);
 		services.add(detail::makeFeaturesProvider(features, repository, alive));
@@ -336,6 +338,20 @@ struct Screen::Impl {
 			if(peer.get() != except) peer->session->send(message);
 	}
 
+	/// @brief Sends a peer a message about change set repairs. One whose data rules let it read only some paths gets it
+	/// without the revisions, proof and failures, which can show the values hidden from it.
+	/// @param peer The peer.
+	/// @param message A repair request, or the repairs' status.
+	void sendRepairs(const Peer& peer, json message) {
+		if(repository.readable(peer.session->author())) {
+			if(message.contains("repair"))
+				for(const char* key : {"revisions", "proof", "failed"}) message["repair"].erase(key);
+			if(message.contains("changeSets"))
+				for(json& row : message["changeSets"]) row.erase("reason");
+		}
+		peer.session->send(message);
+	}
+
 	/// @brief Adds a peer and relays its "request"/"reply" messages to the others.
 	/// @param channel Its channel.
 	/// @param owned Its channel, if the screen owns it (may be null).
@@ -356,7 +372,7 @@ struct Screen::Impl {
 		// A request in plain words from one peer (e.g. the user's client) is for the others (e.g. an AI agent)
 		peer->session->onRelay.connect([this, sender = peer.get()](const json& message) {
 			if(message.value("type", std::string()) == "repair")
-				return repairs.handle(message, [sender](const json& answer) { sender->session->send(answer); });
+				return repairs.handle(message, [this, sender](const json& answer) { sendRepairs(*sender, answer); });
 			if(peers.size() < 2) {
 				sender->session->send({{"type", "error"},
 				                       {"message", "nobody else is connected to receive this " +
@@ -366,7 +382,7 @@ struct Screen::Impl {
 			}
 			broadcast(message, sender);
 		});
-		if(const std::optional<json> open = repairs.openRequest()) peer->session->send(*open);
+		if(const std::optional<json> open = repairs.openRequest()) sendRepairs(*peer, *open);
 		peers.push_back(std::move(peer));
 		return *peers.back();
 	}

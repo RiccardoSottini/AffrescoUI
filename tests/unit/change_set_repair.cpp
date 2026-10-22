@@ -206,6 +206,33 @@ TEST_CASE("change set repair: the Blocked column applies on the template it was 
 	CHECK(screen.hasImported(blockedColumn().dump()));
 }
 
+TEST_CASE("change set repair: a peer that may read only some paths gets the request without the revisions") {
+	affresco::test::MemoryChannel studio, reader;
+	affresco::Screen screen = affresco::Screen::fromString(kanban([](json& document) {
+		                                                       renameDone(document);
+		                                                       document["permissions"]["data"] = {
+		                                                           {{"author", "reader"}, {"read", {"/state/theme"}}}};
+	                                                       }).dump(),
+	                                                       screens());
+	screen.setProofCheck(playProof);
+	screen.connect(studio, "studio");
+	screen.connect(reader, "reader");
+	CHECK(screen.installChanges(blockedColumn().dump()) == "repairing");
+	const auto requestIn = [](const affresco::test::MemoryChannel& channel) {
+		const auto found =
+		    std::ranges::find_if(channel.sent, [](const json& m) { return m.value("kind", "") == "repair"; });
+		REQUIRE(found != channel.sent.end());
+		return (*found)["repair"];
+	};
+	CHECK(requestIn(studio).contains("revisions"));
+	const json hidden = requestIn(reader); // its revisions and proof can show values the reader can't see
+	CHECK(hidden["request"] == "Add a Blocked column before the last one");
+	for(const char* key : {"revisions", "proof", "failed"}) CHECK_FALSE(hidden.contains(key));
+	for(const json& message : reader.sent)
+		if(message.value("type", "") == "repairs")
+			for(const json& row : message["changeSets"]) CHECK_FALSE(row.contains("reason"));
+}
+
 TEST_CASE("change set repair: the template changes, the fake agent repairs it, the reviewer accepts") {
 	ThreadedExecutor executor;
 	// The channels first: a connected channel must outlive the screen, which says goodbye on it when it closes
