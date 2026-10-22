@@ -174,6 +174,16 @@ std::optional<std::string> keyStartingWith(const json& object, const std::string
 	return std::nullopt;
 }
 
+/// @brief A check's error as a problem: its place and message, without the prefix every load error has.
+/// @param error The error.
+/// @return "place: message", as Composer::problem() makes them.
+std::string problemOf(const DocumentError& error) {
+	constexpr std::string_view prefix = "AffrescoUI screen: ";
+	std::string_view text = error.what();
+	if(text.starts_with(prefix)) text.remove_prefix(prefix.size());
+	return std::string(text);
+}
+
 /// @brief Merges a document's features into its screen, one at a time, checking each first.
 class Composer {
 public:
@@ -229,7 +239,7 @@ private:
 				checkFeatureRecord(name, record, "features." + name);
 				features_.emplace(name, &record);
 			} catch(const DocumentError& error) {
-				problems_.emplace_back(error.what());
+				problems_.push_back(problemOf(error));
 			}
 	}
 
@@ -244,7 +254,7 @@ private:
 			check(*found, section);
 			return *found;
 		} catch(const DocumentError& error) {
-			problems_.emplace_back(error.what());
+			problems_.push_back(problemOf(error));
 			return json::object();
 		}
 	}

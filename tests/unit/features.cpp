@@ -270,6 +270,8 @@ TEST_CASE("features: a malformed feature is a problem, never a crash") {
 	affresco::format::Composition composition;
 	REQUIRE_NOTHROW(composition = affresco::format::compose(document));
 	CHECK_FALSE(composition.problems.empty());
+	for(const std::string& problem : composition.problems) // "place: message", prefixed once when it is reported
+		CHECK_FALSE(problem.starts_with("AffrescoUI screen: "));
 	CHECK_FALSE(composition.screen.contains("features"));
 
 	const affresco::format::Rules rules; // a revision that brings one is refused, with the checker's reason
