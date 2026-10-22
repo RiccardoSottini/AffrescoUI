@@ -256,7 +256,8 @@ void stopListeningToView(Panel& panel, Connection connection) {
 EventConnections listenToCanvasEvents(Panel& panel, EventSink sink) {
 	auto* canvas = dynamic_cast<CanvasView*>(&panel);
 	if(!canvas) return {};
-	const Connection transform = canvas->onTransform.connect([sink](const std::vector<CanvasTransform>& moved) {
+	const Connection transform = canvas->onTransform.connect([sink = std::move(sink)](
+	                                                             const std::vector<CanvasTransform>& moved) {
 		json items = json::array();
 		for(const CanvasTransform& item : moved)
 			items.push_back({{"id", item.id},

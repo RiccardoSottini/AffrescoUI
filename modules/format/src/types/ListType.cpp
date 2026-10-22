@@ -191,7 +191,7 @@ EventConnections listenToListEvents(Panel& panel, EventSink sink) {
 		sort = table->onSortChanged.connect([sink](const TableSort& order) {
 			sink("onSort", json{{"type", "sort"}, {"column", order.column}, {"descending", order.descending}});
 		});
-		resize = table->onColumnResized.connect([sink](const ColumnResize& change) {
+		resize = table->onColumnResized.connect([sink = std::move(sink)](const ColumnResize& change) {
 			sink("onColumnResize", json{{"type", "columnResize"}, {"column", change.column}, {"width", change.width}});
 		});
 	}

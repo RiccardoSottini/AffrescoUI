@@ -99,7 +99,7 @@ EventConnections listenToTabEvents(Panel& panel, EventSink sink) {
 	if(!tabs) return {};
 	const Connection close = tabs->onCloseRequested.connect(
 	    [sink](const std::string& id) { sink("onClose", json{{"type", "close"}, {"id", id}}); });
-	const Connection move = tabs->onMoved.connect([sink](const TabMove& moved) {
+	const Connection move = tabs->onMoved.connect([sink = std::move(sink)](const TabMove& moved) {
 		sink("onMove", json{{"type", "move"},
 		                    {"id", moved.id},
 		                    {"from", static_cast<std::int64_t>(moved.from)},

@@ -308,7 +308,8 @@ EventConnections listenToEditorEvents(Panel& panel, EventSink sink) {
 		                           {"control", mods.control()},
 		                           {"super", mods.super()}});
 	});
-	const Connection hover = editor->onWordHovered.connect([sink](TextEditor::Position at, const std::string& word) {
+	const Connection hover = editor->onWordHovered.connect([sink = std::move(sink)](TextEditor::Position at,
+	                                                                                const std::string& word) {
 		const bool onWord = at.line != SIZE_MAX;
 		sink("onWordHover", json{{"type", "wordHover"},
 		                         {"line", onWord ? json(at.line) : json()},
