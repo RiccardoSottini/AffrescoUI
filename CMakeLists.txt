@@ -137,7 +137,7 @@ function(affrescoui_module name)
 	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 endfunction()
 
-foreach(module core render format vcs channel net services screen automation)
+foreach(module core render export format vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
 if(AFFRESCOUI_BUILD_CAPI)
