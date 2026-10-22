@@ -43,6 +43,19 @@
 		"reviewers": ["studio", "user"]
 	},
 
+	"exports": {
+		"doc.layers": { "type": "array", "kind": "list", "value": "{{state.doc.layers}}", "description": "The layers, top first: id, name, depth (0 at the top level), kind and a thumbnail image.",
+			"item": { "id": "string", "name": "string", "depth": "integer", "kind": "string", "thumbnail": "image" } },
+		"doc.active": { "type": "string", "kind": "state", "value": "{{state.doc.active}}", "description": "The active layer's id." },
+		"layers.move": { "type": "string", "kind": "action", "value": "{{'moveLayer'}}", "description": "Moves a layer: args.id takes the place of args.onto.", "arguments": { "args": "object" } },
+		"layers.select": { "type": "string", "kind": "action", "value": "{{'selectLayer'}}", "description": "Makes args.id the active layer.", "arguments": { "args": "object" } },
+		"layers.duplicate": { "type": "string", "kind": "action", "value": "{{'duplicateLayer'}}", "description": "Duplicates layer args.id.", "arguments": { "args": "object" } }
+	},
+	"points": {
+		"panels.dock": { "slot": "dock", "receives": ["doc.layers", "doc.active", "layers.move", "layers.select", "layers.duplicate"],
+			"description": "The foot of the panels column, under the Layers and History tabs." }
+	},
+
 	"state": {
 		"theme": "dark",
 		"doc": {

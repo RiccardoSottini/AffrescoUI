@@ -223,6 +223,15 @@ constexpr KeyReference sectionTable[] = {
 	 "`{\"ui\": \"workbench@^1.0.0\"}`: `\"use\": \"ui.panel\"` builds the feature's `workbench.panel`, if its "
 	 "release is in the range.",
 	 "capabilities"},
+    {"points", R"json({"type": "object", "description": "Contribution points another app's features may fill",
+		"additionalProperties": {"type": "object", "required": ["slot"],
+		"properties": {"slot": {"enum": ["dock", "panel", "menu", "toolbar"]},
+		"receives": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+		"description": {"type": "string"}, "note": {"type": "string"}}}})json",
+	 "`{\"panels.dock\": {\"slot\": \"dock\", \"receives\": [\"doc.layers\", \"layers.move\"]}}`: where a feature "
+	 "from another app may put its views (the node whose `point` has the name) and the exports it receives; the "
+	 "action exports a point receives are the host actions such features may run. Revisions can't change it.",
+	 "capabilities"},
     {"$schema", R"json({"type": "string"})json", "", ""},
 };
 

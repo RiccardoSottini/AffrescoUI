@@ -10,7 +10,7 @@ add_custom_command(OUTPUT ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
 	DEPENDS ${AFFRESCOUI_CLI_SCHEMA} ${CMAKE_CURRENT_SOURCE_DIR}/Embed.cmake
 	COMMENT "Embedding the screen schema in affrescoui")
 
-add_executable(affrescoui_cli main.cpp Cli.cpp CheckCommand.cpp FormatCommands.cpp WindowCommands.cpp
+add_executable(affrescoui_cli main.cpp Cli.cpp CheckCommand.cpp ComposeCommand.cpp FormatCommands.cpp WindowCommands.cpp
 	HistoryCommands.cpp TestCommand.cpp PolicyCommand.cpp SchemaCommand.cpp SignCommand.cpp ImportCommand.cpp MigrateCommand.cpp JsonText.cpp Schema.cpp ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
 	${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp) # the library's PNG encoder, which it keeps private
 set_target_properties(affrescoui_cli PROPERTIES OUTPUT_NAME affrescoui CXX_EXTENSIONS OFF
@@ -19,7 +19,7 @@ target_link_libraries(affrescoui_cli PRIVATE affrescoui::automation) # and throu
 # SocketDir.hpp (the socket folder's checks) is shared with affrescoui_host; Png.hpp and FeatureSignatures.hpp are the
 # library's
 target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared ${PROJECT_SOURCE_DIR}/modules/screen/src
-	${PROJECT_SOURCE_DIR}/modules/format/src)
+	${PROJECT_SOURCE_DIR}/modules/format/src ${PROJECT_SOURCE_DIR}/modules/vcs/src)
 target_include_directories(affrescoui_cli SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 target_compile_options(affrescoui_cli PRIVATE ${AFFRESCOUI_WARNINGS})
 target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_VERSION="${PROJECT_VERSION}")

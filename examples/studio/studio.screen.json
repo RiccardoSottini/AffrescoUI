@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"include": ["studio-strings.json", "studio-features.json", "studio-repairs.json"],
+	"include": ["studio-strings.json", "studio-features.json", "studio-repairs.json", "studio-install.json"],
 	"note": "The AffrescoUI Studio: the person's client for a running host. Layout, behaviour and the connection are all in this file, its texts in studio-strings.json (English, Italian, Arabic). Ask and direct changes on the left; on the right, tabs for the review queue, the history of main, the approval rules, the permissions (edits become changes to review), an inspector of the connected app and the agents. Below 900 pixels the two sides become panes. Cmd+Shift+P lists every command.",
 	"window": {
 		"title": "AffrescoUI Studio",
@@ -4164,6 +4164,10 @@
 				"id": "repairsDialog",
 				"use": "repairsDialog",
 				"dir": "auto"
+			},
+			{
+				"id": "installDialog",
+				"use": "installDialog"
 			},
 			{
 				"id": "rejectDialog",

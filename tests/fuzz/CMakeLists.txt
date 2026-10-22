@@ -77,6 +77,9 @@ affrescoui_fuzzer(catalog_index affrescoui::format)
 target_include_directories(affrescoui_fuzz_catalog_index PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
 affrescoui_fuzzer(signature affrescoui::format)
 target_include_directories(affrescoui_fuzz_signature PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
+# Composition across apps: a feature's needs, its adapter and the host's points (CompositionProof.hpp)
+affrescoui_fuzzer(composition affrescoui::format)
+target_include_directories(affrescoui_fuzz_composition PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
 # The 1.0 security audit (SECURITY.md, README.md "Inventory of untrusted inputs"): URLs, sign-in responses, the token
 # file, what git prints, imported VS Code themes and history files on disk
 affrescoui_fuzzer(url affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON

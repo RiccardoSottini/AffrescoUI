@@ -5,6 +5,7 @@
 
 #include "Checker.hpp"
 #include "Composition.hpp"
+#include "ContributionPoints.hpp"
 #include "SectionRegistry.hpp"
 #include "ServiceRules.hpp"
 #include "Limits.hpp"
@@ -258,8 +259,9 @@ std::set<std::string> runningComponents(const json& doc, const std::set<std::str
 /// @brief The document's actions that may run control steps: those with one, and those that run one of them, a
 /// native action or a computed one.
 /// @param doc The document.
+/// @param granted The host's actions its points pass on: they don't count (grantedActions()).
 /// @return Their names.
-std::set<std::string> controlActions(const json& doc) {
+std::set<std::string> controlActions(const json& doc, const std::set<std::string, std::less<>>& granted) {
 	std::set<std::string> control;
 	if(!doc.contains("actions") || !doc["actions"].is_object()) return control;
 	const json& actions = doc["actions"];
@@ -268,7 +270,7 @@ std::set<std::string> controlActions(const json& doc) {
 		grew = false;
 		const ControlScan scan(actions, control, runningBuiltInNames(), none);
 		for(const auto& [name, steps] : actions.items()) {
-			if(control.contains(name)) continue;
+			if(control.contains(name) || granted.contains(name)) continue;
 			std::vector<std::string> found;
 			scan.walk(steps, name, Part::Steps, found);
 			if(found.empty()) continue;
@@ -282,12 +284,13 @@ std::set<std::string> controlActions(const json& doc) {
 /// @brief Collects what in a document can control changes or reach the outside world, to compare before and after a
 /// revision: every control step, and every reference to an action that may run one, each with its trigger.
 /// @param doc The document.
+/// @param granted The host's actions its points pass on (grantedActions()).
 /// @return The findings as text, sorted.
-std::vector<std::string> controlsIn(const json& doc) {
+std::vector<std::string> controlsIn(const json& doc, const std::set<std::string, std::less<>>& granted) {
 	std::vector<std::string> found;
 	if(!doc.is_object()) return found;
 	static const json none; // both branches are references: the scan keeps one
-	const std::set<std::string> control = controlActions(doc);
+	const std::set<std::string> control = controlActions(doc, granted);
 	const std::set<std::string> runners = runningComponents(doc, control);
 	const ControlScan scan(doc.contains("actions") ? doc["actions"] : none, control, runners,
 	                       doc.contains("components") ? doc["components"] : none);
@@ -493,7 +496,10 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 	checkTypedState(before, after);
 	checkStateSize(before, after);
 
-	if(controlsIn(before) != controlsIn(after))
+	const auto granted = grantedActions(rawBefore); // the host's: a revision can't change what its points pass on
+	if(granted != grantedActions(rawAfter))
+		fail("revision", "permission denied: revisions can't change the actions a contribution point passes on");
+	if(controlsIn(before, granted) != controlsIn(after, granted))
 		fail("revision",
 		     "permission denied: revisions can't add, change or move accept, reject, preview, endPreview, "
 		     "restore, revert, undo, patch, call, send, connect or respond steps, nor run an action that has them, "

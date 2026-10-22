@@ -1,7 +1,10 @@
 /// @file
-/// @brief The `features` provider: `catalog`, `install` and `upgrade`, each install or upgrade one revision.
+/// @brief The `features` provider: `catalog`, `install`, `upgrade` and `compose` (a feature from another app, with its
+/// adapter and proof), each install or upgrade one revision.
 
 #include "FeaturesService.hpp"
+#include "CompositionProof.hpp"
+#include "CompositionProofRevision.hpp"
 
 namespace affresco::detail {
 
@@ -44,12 +47,20 @@ public:
 		}
 		json revision;
 		try {
-			const std::string name = with.value("name", std::string());
-			revision = method.name == "install"
-			               ? features_.installRevision(document, name, with.value("version", std::string()), author)
-			               : features_.upgradeRevision(document, name, author);
+			if(method.name == "compose") {
+				revision = composeRevision(with, document);
+			} else {
+				const std::string name = with.value("name", std::string());
+				revision = method.name == "install"
+				               ? features_.installRevision(document, name, with.value("version", std::string()), author)
+				               : features_.upgradeRevision(document, name, author);
+			}
 		} catch(const DocumentError& error) {
 			call->fail("refused", error.what());
+			return std::nullopt;
+		}
+		if(revision.is_null()) {
+			call->fail("unproven", unproven_);
 			return std::nullopt;
 		}
 		// Submitted after the step that called it, never in the middle of one
@@ -63,10 +74,38 @@ public:
 	}
 
 private:
+	/// @brief Proves a feature from another app on the document (every check but the scenarios, which the proposal's
+	/// evidence plays when it is reviewed) and makes its install revision.
+	/// @param with `{ manifest, adapter, source, host }`.
+	/// @param document The document.
+	/// @return The revision, or null with unproven_ set to the proof's reasons.
+	/// @throws DocumentError If the manifest is too big.
+	json composeRevision(const json& with, const json& document) {
+		const json& manifest = with["manifest"];
+		if(manifest.dump().size() > format::maxProofBytes) throw DocumentError("the manifest is too big");
+		format::ProofInputs inputs{document,
+		                           manifest,
+		                           with.value("adapter", json()),
+		                           with.value("source", std::string()),
+		                           with.value("host", std::string("host")),
+		                           repository_.head().id,
+		                           "",
+		                           ""};
+		const format::ProvenComposition proven =
+		    format::proveComposition(inputs, [](const json&, const json&) { return std::vector<format::ScenarioOutcome>(); });
+		if(proven.proof.value("passed", false) != true) {
+			unproven_.clear();
+			for(const std::string& line : format::proofReasons(proven.proof)) unproven_ += line + "\n";
+			return nullptr;
+		}
+		return vcs::compositionRevision(proven.proof.value("feature", ""), proven.record, author, document);
+	}
+
 	const format::Features& features_; ///< See the constructor.
 	vcs::Repository& repository_;      ///< See the constructor.
 	std::weak_ptr<bool> alive_;        ///< See the constructor.
 	Executor& executor_;               ///< See the constructor.
+	std::string unproven_;             ///< The reasons of the last proof that failed.
 };
 
 /// @brief The `features` provider.
@@ -103,7 +142,18 @@ public:
 		          {"required", {"name"}},
 		          {"properties", {{"name", name}}},
 		          {"additionalProperties", false}},
-		         "upgrades an installed feature to its newest release by revision: {status, revision, proposal}"}};
+		         "upgrades an installed feature to its newest release by revision: {status, revision, proposal}"},
+		        {"compose", Effect::Write, false, false,
+		         {{"type", "object"},
+		          {"required", {"manifest", "source"}},
+		          {"properties",
+		           {{"manifest", {{"type", "object"}}},
+		            {"adapter", {{"type", {"object", "null"}}}},
+		            {"source", {{"type", "string"}, {"maxLength", 128}}},
+		            {"host", {{"type", "string"}, {"maxLength", 64}}}}},
+		          {"additionalProperties", false}},
+		         "installs a feature from another app with an adapter, once proven, by revision: {status, revision, "
+		         "proposal}; refused \"unproven\" with the proof's reasons"}};
 	}
 	std::unique_ptr<services::Service> create(const json&, services::ServiceContext context) override {
 		return std::make_unique<FeaturesService>(features_, repository_, alive_, context.executor);

@@ -3,6 +3,8 @@
 /// sections (rfcs/0004-features.md).
 
 #include "FeatureManifest.hpp"
+#include "CompositionProof.hpp"
+#include "ContributionPoints.hpp"
 #include "Limits.hpp"
 #include "affresco/format/Migrate.hpp"
 
@@ -20,11 +22,12 @@ using expect::fail;
 /// The keys a manifest may have.
 constexpr auto manifestKeys =
     std::to_array<std::string_view>({"format", "version", "name", "release", "title", "description", "license",
-                                     "publisher", "homepage", "note", "requires", "provides", "scenarios", "signature"});
+                                     "publisher", "homepage", "note", "requires", "provides", "scenarios", "signature", "needs"});
 
 /// The keys a record of the "features" section may have: the manifest's parts the runtime merges, and its origin.
 constexpr auto recordKeys = std::to_array<std::string_view>(
-    {"release", "title", "source", "digest", "publisher", "enabled", "order", "requires", "provides"});
+    {"release", "title", "source", "digest", "publisher", "enabled", "order", "requires", "provides", "needs", "bindings",
+     "proof"});
 
 /// The keys of "requires".
 constexpr auto requiresKeys =
@@ -38,7 +41,8 @@ constexpr auto providesKeys = std::to_array<std::string_view>(
 constexpr auto dataParts = std::to_array<std::string_view>({"state", "settings", "styles", "exports"});
 
 /// The keys of an export.
-constexpr auto exportKeys = std::to_array<std::string_view>({"type", "value", "description", "note"});
+constexpr auto exportKeys =
+    std::to_array<std::string_view>({"type", "value", "description", "note", "kind", "item", "arguments"});
 
 /// Longest name a feature, a local declaration or an export may have.
 constexpr std::size_t maxNameLength = 64;
@@ -392,6 +396,7 @@ void checkManifest(const json& manifest, const std::string& place) {
 		optionalText(manifest, key, place);
 	if(const auto needs = manifest.find("requires"); needs != manifest.end())
 		checkRequires(*needs, place + ".requires");
+	if(const auto needs = manifest.find("needs"); needs != manifest.end()) checkNeeds(*needs, place + ".needs");
 	if(!manifest.contains("provides")) fail(place, "missing \"provides\"");
 	checkProvides(manifest["provides"], manifest["name"].get<std::string>(), place + ".provides");
 	if(const auto scenarios = manifest.find("scenarios"); scenarios != manifest.end() && !scenarios->is_structured())
@@ -419,6 +424,7 @@ void checkFeatureRecord(const std::string& name, const json& record, const std::
 		checkRequires(*needs, place + ".requires");
 	if(!record.contains("provides")) fail(place, "missing \"provides\"");
 	checkProvides(record["provides"], name, place + ".provides");
+	checkAdaptedParts(record, place); // CompositionProof.hpp
 }
 
 void checkFeaturesSection(const json& section, const std::string& name) {
@@ -440,6 +446,7 @@ void checkExportsSection(const json& section, const std::string& name) {
 			fail(at + ".value", "expected one expression, \"{{...}}\"");
 		optionalText(entry, "description", at);
 		optionalText(entry, "note", at);
+		checkExportContract(entry, at); // ContributionPoints.hpp
 	}
 }
 
@@ -471,6 +478,7 @@ json recordFor(const json& manifest, const std::string& source, const std::strin
 	record["order"] = order;
 	record["requires"] = manifest.value("requires", json::object());
 	record["provides"] = manifest["provides"];
+	if(manifest.contains("needs")) record["needs"] = manifest["needs"];
 	return record;
 }
 

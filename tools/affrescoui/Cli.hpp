@@ -4,6 +4,7 @@
 /// @brief What the commands of the `affrescoui` tool share: exit codes, arguments, files, and the commands.
 
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <optional>
 #include <span>
@@ -112,6 +113,18 @@ Exit runScreen(std::span<const std::string_view> args);
 /// @param args The arguments.
 /// @return How it ended.
 Exit checkScreen(std::span<const std::string_view> args);
+
+/// @brief `check --compose`: proves that a feature from another app fits a screen, through an adapter or directly
+/// (ComposeCommand.cpp), and prints the proof's reasons.
+/// @param args The arguments.
+/// @param prepare Registers the host's natives on each screen its scenarios play on.
+/// @return How it ended: Success if proven.
+Exit checkComposition(std::span<const std::string_view> args, const std::function<void(Screen&)>& prepare);
+
+/// @brief `contributions`: a screen's contribution points, typed exports and installable parts, compactly.
+/// @param args The arguments.
+/// @return How it ended.
+Exit listContributions(std::span<const std::string_view> args);
 
 /// @brief `test`: plays a screen's scenarios and reports pass and fail compactly.
 /// @param args The arguments.

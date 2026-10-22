@@ -3,6 +3,7 @@
 /// checks (requirements, namespaces, conflicts) before each merge.
 
 #include "Composition.hpp"
+#include "AdapterMapping.hpp"
 #include "FeatureManifest.hpp"
 
 #include "affresco/format/NodeIds.hpp"
@@ -164,6 +165,7 @@ public:
 		screen_.erase("features");
 		screen_.erase("exports");
 		screen_.erase("imports");
+		screen_.erase("points");
 		// Points may sit in components too: an app's status bar is often one (Forge's is).
 		for(const auto& [pointer, tree] : nodeTrees(screen_)) pointsIn(*tree, pointer, points_, problems_);
 		if(const auto exports = document.find("exports"); exports != document.end() && exports->is_object())
@@ -180,10 +182,12 @@ public:
 			const json& record = document_["features"][name];
 			const std::string place = "features." + name;
 			const std::size_t before = problems_.size();
+			AdaptedFeature adapted = adaptFeature(name, record, exports_); // its needs bound (AdapterMapping.hpp)
+			problems_.insert(problems_.end(), adapted.problems.begin(), adapted.problems.end());
 			checkRequirements(name, record, place);
-			checkNamespace(name, record["provides"], place + ".provides");
-			checkConflicts(name, record["provides"], place + ".provides");
-			if(problems_.size() == before) merge(name, record);
+			checkNamespace(name, adapted.provides, place + ".provides");
+			checkConflicts(name, adapted.provides, place + ".provides");
+			if(problems_.size() == before) merge(name, record, std::move(adapted));
 		}
 		resolve();
 		for(const auto& [point, pointer] : points_) dropPoints(screen_[json::json_pointer(pointer)]);
@@ -327,8 +331,10 @@ private:
 	/// @brief Merges one feature that passed its checks.
 	/// @param name The feature.
 	/// @param record Its record.
-	void merge(const std::string& name, const json& record) {
-		json provides = record["provides"];
+	/// @param adapted What it provides with its bindings applied, and what its needs stand for.
+	void merge(const std::string& name, const json& record, AdaptedFeature adapted) {
+		json provides = std::move(adapted.provides);
+		replaceExports(provides, adapted.replacements);
 		replaceExports(provides, exportsByLength());
 		if(provides.contains("state")) screen_["state"][name] = provides["state"];
 		if(provides.contains("computed") && !provides["computed"].empty()) mergeComputed(name, provides["computed"]);

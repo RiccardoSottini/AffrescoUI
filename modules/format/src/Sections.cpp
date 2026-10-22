@@ -2,6 +2,7 @@
 /// @brief format::SectionRegistry, and the built-in sections that aren't capabilities.
 
 #include "SectionRegistry.hpp"
+#include "ContributionPoints.hpp"
 #include "Contributions.hpp"
 #include "FeatureManifest.hpp"
 #include "Settings.hpp"
@@ -125,6 +126,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"features", checkFeaturesSection}); // installed features, merged by Composition (FeatureManifest.hpp)
 	registry.add({"exports", checkExportsSection});   // what features read as app.<name>
 	registry.add({"imports", checkImportsSection});   // aliases for features' components
+	registry.add({.name = "points", .validate = checkPointsSection, .capability = true}); // ContributionPoints.hpp
 	registry.add({"root", nullptr, "missing \"root\""});
 }
 

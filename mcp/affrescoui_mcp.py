@@ -582,6 +582,11 @@ def find_cli():
                        "AFFRESCOUI_CLI")
 
 
+def repository_path(path):
+    """A path as given, or relative to the repository when it doesn't exist as given."""
+    return path if os.path.isabs(path) or os.path.exists(path) else os.path.join(ROOT, path)
+
+
 def scenarios_report(report, shown):
     """affrescoui test --json's report of one file, as a few lines: the totals, then one line per failure."""
     lines = [f"{report.get('file')} on {shown}: {report.get('passed')} passed, {report.get('failed')} failed"]
@@ -650,6 +655,43 @@ TOOLS = [
      "description": "What this screen's format offers: node types and their properties, events, steps, expression "
                     "functions, variables, sections, and the app's registered custom types and native functions.",
      "inputSchema": object_schema()},
+    {"name": "get_contributions",
+     "description": "What an app offers to features from other apps, and what it can install: its contribution "
+                    "points (slot, the exports each receives), its typed exports (state, lists, actions, models, "
+                    "surfaces, images) and the installable parts it ships (each one's needs and provides), one line "
+                    "each. file is an app's screen file: another app's (e.g. "
+                    "\"examples/sinopia/sinopia.screen.json\"), to pick a part to install from it, or the running "
+                    "app's with running=true, to read the running document's.",
+     "inputSchema": object_schema({"file": {"type": "string", "description": "An app's *.screen.json"},
+                                   "running": {"type": "boolean",
+                                               "description": "The running document, with file's folder"}},
+                                  ["file"]),
+     "annotations": {"readOnlyHint": True}},
+    {"name": "check_composition",
+     "description": "Prove that a feature from another app fits the running screen: binds its needs to the "
+                    "screen's exports (by name, or through your adapter), checks kinds, slots, ids and imports, "
+                    "refuses widened permissions and capabilities, checks the composed document, then plays the "
+                    "feature's and the app's scenarios on it. Returns the proof's verdict and reasons: each unmet need "
+                    "and why, each failed check and scenario. An adapter is {\"format\": \"affrescoui-adapter\", "
+                    "\"version\": 1, \"feature\", \"host\", \"bind\": {need: {\"export\": name} | {\"value\": "
+                    "\"{{expression over app.<export>}}\"} | {\"action\": name, \"with\": {...}} | {\"point\": name}}} "
+                    "(SCREEN_FORMAT.md, \"Adapters\").",
+     "inputSchema": object_schema({
+         "screen": {"type": "string", "description": "The running app's screen file, for its folder and scenarios"},
+         "feature": {"type": "string", "description": "The feature's folder or feature.json, in its own app"},
+         "adapter": {"type": "object", "description": "The adapter (optional: needs bind by name without one)"},
+     }, ["screen", "feature"]),
+     "annotations": {"readOnlyHint": True}},
+    {"name": "install_feature",
+     "description": "Install a feature from another app once check_composition proves it: the same proof, then one "
+                    "revision that adds the feature's record (its bindings and proof) to the screen's features. It "
+                    "is reviewed like any of your revisions (applied, proposed or rejected), shows in history and "
+                    "blame, and undoes like one. A failed proof installs nothing and returns its reasons.",
+     "inputSchema": object_schema({
+         "screen": {"type": "string", "description": "The running app's screen file, for its folder and scenarios"},
+         "feature": {"type": "string", "description": "The feature's folder or feature.json, in its own app"},
+         "adapter": {"type": "object", "description": "The adapter (optional)"},
+     }, ["screen", "feature"])},
     {"name": "get_format_guide",
      "description": "The AffrescoUI Screen Format specification, a part at a time: without topic, its introduction "
                     "and the list of topics (nodes, layout, values and expressions, events, actions, revisions, ...); "
@@ -1029,6 +1071,53 @@ class Server:
         self.seen = document
         return compact({**info, "document": document}), False
 
+    def get_contributions(self, args):
+        """An app's contribution points, exports and installable parts, as affrescoui contributions prints them."""
+        screen = repository_path(str(args.get("file", "")))
+        if not screen.endswith(".screen.json"):
+            return "error: file: expected a *.screen.json file", True
+        with tempfile.TemporaryDirectory(prefix="affrescoui-contributions-") as scratch:
+            command = [find_cli(), "contributions", screen]
+            if args.get("running"):
+                document = os.path.join(scratch, "running.json")
+                with open(document, "w", encoding="utf-8") as file:
+                    json.dump(self.host.request({"type": "getDocument"}).get("document") or {}, file)
+                command += ["--document", document]
+            result = subprocess.run(command, capture_output=True, text=True, timeout=60)
+        if result.returncode != 0:
+            return f"error: {(result.stderr or result.stdout).strip() or 'affrescoui contributions failed'}", True
+        return result.stdout.strip(), False
+
+    def compose(self, args, install):
+        """Proves a feature from another app on the running document (affrescoui check --compose), and with install
+        submits the install revision the proof made. Returns the proof's reasons, never the document."""
+        screen, feature = repository_path(str(args.get("screen", ""))), repository_path(str(args.get("feature", "")))
+        if not screen.endswith(".screen.json"):
+            return "error: screen: expected the running app's *.screen.json file", True
+        reply = self.host.request({"type": "getDocument"})
+        with tempfile.TemporaryDirectory(prefix="affrescoui-compose-") as scratch:
+            document, revision = os.path.join(scratch, "document.json"), os.path.join(scratch, "install.json")
+            with open(document, "w", encoding="utf-8") as file:
+                json.dump(reply.get("document") or {}, file)
+            command = [find_cli(), "check", "--compose", screen, feature, "--document", document,
+                       "--base", str((reply.get("head") or {}).get("id", "")), "--revision", revision]
+            if isinstance(args.get("adapter"), dict):
+                adapter = os.path.join(scratch, "adapter.json")
+                with open(adapter, "w", encoding="utf-8") as file:
+                    json.dump(args["adapter"], file)
+                command += ["--adapter", adapter]
+            result = subprocess.run(command, capture_output=True, text=True, timeout=300)
+            if result.returncode not in (0, 1) or not result.stdout.strip():
+                return f"error: {(result.stderr or result.stdout).strip() or 'affrescoui check failed'}", True
+            reasons = result.stdout.strip()
+            if not install or result.returncode != 0:
+                return reasons, result.returncode != 0
+            with open(revision, encoding="utf-8") as file:
+                submitted = json.load(file)
+        submitted.pop("author", None)  # the host names the author: this connection
+        text, error = describe(self.host.request({"type": "revision", **submitted}))
+        return f"{reasons}\n{text}", error
+
     def call_tool(self, name, args):
         host = self.host
         if name == "get_blame":
@@ -1062,6 +1151,10 @@ class Server:
             reply = host.request({"type": "getDocument"})
             return find_nodes(reply.get("document") or {}, args.get("type"), args.get("text"), args.get("property"),
                               args.get("value"), args.get("limit", 20)), False
+        if name == "get_contributions":
+            return self.get_contributions(args)
+        if name in ("check_composition", "install_feature"):
+            return self.compose(args, name == "install_feature")
         if name == "get_format_guide":
             with open(guide_path(), encoding="utf-8") as guide:
                 part = format_guide(guide.read(), args.get("topic"))

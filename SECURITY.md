@@ -351,6 +351,17 @@ control step, so a feature never widens what the app can do. `affrescoui sign --
 can read and never over an existing file; keep keys out of repositories (Forge's example catalogue was signed by a
 key that was then deleted).
 
+### Installing across apps
+A feature from another app, its adapter and the proof sent with it are untrusted input. Each is size-limited before it
+is read (a manifest and a proof 256 KiB, an adapter 64 KiB, 64 bindings of 2,048 characters, 8 levels deep) and fuzzed
+(`composition`). A feature gets only what the host exports through the point it is placed in, and what the adapter
+binds: its expressions may read `app.<export>` and the need's arguments, its actions run only the action exports that
+point receives, and a feature that reads the host's state, computed values, actions or components otherwise is
+refused. An adapter is expressions only and can't give a capability or a permission; a composition that widens
+`permissions` or any capability is refused. The install is a revision under the document's permissions, proven
+again on the document it lands on; signatures and trust apply unchanged. The MCP tools return a proof's reasons,
+never the document.
+
 ### The `affrescoui` tool and the MCP server
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
 - `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that
@@ -428,6 +439,19 @@ catalogues" above).
 | Limits | Index and manifest sizes, checked before parsing; the JSON nesting limit; fixed-length keys and digests |
 | Mitigations | No publisher is trusted until host code calls `Features::trustPublisher`; index and manifest signed over canonical JSON, the manifest by the publisher the index names, and an upgrade can't change it; releases pinned by SHA-512 and size; URLs inside the catalogue's folder; what installs is a revision under the document's permissions, with no capability and no control step. Fuzzed: `feature_manifest`, `catalog_index`, `signature` |
 | Known gaps | None of its own: a feature is a revision, so the revision gaps apply (G-06 to G-12) |
+
+### Installing across apps
+
+Features from another app, the adapters that bind their needs, and their proofs ("Installing across apps" above).
+
+| | |
+|---|---|
+| Assets | The host document and what its exports reach |
+| Who attacks | Whoever writes a feature's manifest or an adapter: another app's author, an agent, a peer |
+| Entry points | A manifest's `needs` and `provides`, an adapter, a proof record, `features.compose`, the MCP tools `check_composition` and `install_feature` |
+| Limits | Manifest and proof 256 KiB, adapter 64 KiB, 64 needs, 64 bindings of 2,048 characters, 8 levels, 16 reasons per check, 256 scenarios per proof |
+| Mitigations | Expressions read only the host's exports; actions only those its point receives; no capability, permission or control step can be added; the composed document is checked and the scenarios played before the install; the install is a reviewed revision. Fuzzed: `composition` |
+| Known gaps | A proof's scenarios are those the feature and the host ship: behaviour they don't cover isn't proven |
 
 ### Dependencies
 

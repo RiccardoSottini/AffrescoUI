@@ -37,6 +37,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `feature_manifest` | A feature's manifest (RFC 0004), to `checkManifest` (`format/src/FeatureManifest.hpp`), and if it passes, its record composed into the Kanban template | Refused with `json::parse_error` or `DocumentError`; a manifest that passes composes into a screen or problems |
 | `catalog_index` | A catalogue's index, signed at start-up by a trusted key made then, to `readCatalog` (`format/src/FeatureCatalog.hpp`) | An index or a `DocumentError`; releases newest first and once each, keys well formed, URLs inside the folder |
 | `signature` | Any text, to the signature parsers (`format/src/FeatureSignatures.hpp`): base64url, public keys, digests, key files, canonical JSON, verifying | Fixed-length parsing gives that length or nothing and writes back as the same text; canonical JSON is its own canonical form; verifying gives the named key or a `DocumentError` |
+| `composition` | `{ manifest, adapter, points, exports }`: a feature from another app proven on the Kanban template with those contribution points (`format/src/CompositionProof.hpp`), and the template's contributions listed | Every proof checks as a proof record within its size, gives its verdict, and a passed one comes with the composed document; listing refuses with `DocumentError` or prints |
 | `url` | An allowlist entry, a line feed, then a URL, to `parseUrl` and the origin allowlist (`net/Url.hpp`): every URL a connection, a sign-in provider or a remote peer names | A URL that parses has a known scheme, a lower-case host, a port and a target starting with `/`, and its origin parses again to the same; encoded segments and query parts hold unreserved characters only |
 | `oauth` | A sign-in provider's answer (`net/src/OAuth.hpp`): a token, a device authorization or an error answer, a redirect's query, base64url; the first byte picks the reader and whether an id token is checked | Tokens read have an access token and expire after now; an error never quotes the access token; device codes poll at a sane interval; base64url read back writes the same bytes |
 | `history` | A history on disk (`Repository::openHistory`, `VERSION_CONTROL.md` "History on disk") with `refs.json` or an object file replaced by the input | It opens, or throws `DocumentError` naming the file |
@@ -67,6 +68,7 @@ of these and what limits them.
 | What git prints for Forge | Whoever made the repository (file names, branches, contents) | `git_output` |
 | A history folder on disk | Anyone who can write to it, a crash, a full disk | `history`, `delta` |
 | Feature manifests, catalogue indexes, signatures and key files | A catalogue's publisher, or whoever serves it | `feature_manifest`, `catalog_index`, `signature` |
+| Features from another app, their adapters and proofs | Another app's author, an agent or a peer | `composition` |
 | The document server's token file | Whoever can write its folder | `token_file` |
 | A VS Code theme imported into Forge | Whoever published the theme | `vscode_theme` |
 | A document in another format (an A2UI message stream, an Adaptive Card) | Whoever wrote it: an agent, a service, a file | `adapters` |
@@ -93,7 +95,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `url`, `oauth`, `history`, `token_file`, `git_output` or `vscode_theme` in place of
+Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output` or `vscode_theme` in place of
 `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.
