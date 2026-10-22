@@ -317,6 +317,19 @@ struct ExecArguments {
 	}
 };
 
+/// @brief Closes every descriptor from one on, in a child after fork: closefrom where the C library has it, else one
+/// by one.
+/// @param first The first to close.
+/// @param count How many a process may have open (sysconf(_SC_OPEN_MAX), read before fork), or -1 if unknown.
+void closeFrom(int first, long count) noexcept {
+#if defined(__GLIBC__) && (__GLIBC__ > 2 || __GLIBC_MINOR__ >= 34)
+	(void)count;
+	closefrom(first);
+#else
+	for(long fd = first; fd < (count > 0 ? count : 1024); ++fd) close(static_cast<int>(fd));
+#endif
+}
+
 } // namespace
 
 /// @brief The program, the leader of a session of its own, the terminal's parent end, and a pipe that wakes a read.
@@ -348,9 +361,11 @@ std::unique_ptr<PseudoTerminal> PseudoTerminal::start(const Launch& launch, Term
 	platform->wakeWrite = wake[1];
 	for(const int fd : wake) fcntl(fd, F_SETFD, FD_CLOEXEC);
 	winsize window = windowSize(size);
+	const long descriptors = sysconf(_SC_OPEN_MAX);
 	platform->pid = forkpty(&platform->terminal, nullptr, nullptr, &window);
 	if(platform->pid == 0) { // the child: only what is safe after fork
 		std::signal(SIGPIPE, SIG_DFL);
+		closeFrom(STDERR_FILENO + 1, descriptors); // none of the host's descriptors (its peers' sockets) reach it
 		if(!exec.directory.empty() && chdir(exec.directory.c_str()) != 0) _exit(127);
 		execve(exec.program.c_str(), exec.argv.data(), exec.environment.data());
 		_exit(127);
