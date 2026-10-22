@@ -256,7 +256,7 @@
 			"name": "agents-show-who-leases-what",
 			"note": "The Agents tab appears once peers connect: their roles, leases, proposals and conflicts; a reviewer ends a lease or gives a role",
 			"steps": [
-				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "studio/ann", "canReview": true, "mode": "default" } },
 				{ "expect": { "node": "#agentsPage", "exists": false } },
 				{ "action": "host:review", "event": { "proposals": [{ "id": 5, "branch": "proposal/5", "author": "agent/bob", "message": "Rename Doing", "base": "a1b2c3d", "head": "d1d2d3d", "short": "d1d2d3d", "commits": 1, "operations": 1, "touches": ["/state/columns/1"], "remember": [], "changes": ["set /state/columns/1/name \"Next\""], "conflicts": ["/state/columns/1/name"], "reason": "asks", "time": 1760000200 }], "previewing": null, "mode": "default", "grants": [], "revision": 4, "coordination": { "peers": [{ "author": "studio", "role": "", "leases": [] }, { "author": "agent/ada", "role": "design", "leases": ["/state/columns/0"] }, { "author": "agent/bob", "role": "", "leases": [] }], "leases": [{ "target": "/state/columns/0", "holder": "agent/ada", "seconds": 240 }], "roles": { "agent/ada": "design" } } } },
 				{ "key": "mod+4" },
