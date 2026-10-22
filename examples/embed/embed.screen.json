@@ -1,0 +1,30 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "Embedded", "width": 320, "height": 160 },
+	"fonts": { "default": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": { "speed": 1, "paused": false },
+	"root": {
+		"color": "transparent",
+		"children": [
+			{ "id": "card", "anchors": { "left": 16, "top": 16 }, "width": 288, "height": 128, "color": "#0f172acc",
+			  "radius": 12, "children": [
+				{ "type": "label", "text": "AffrescoUI in the host's OpenGL", "anchors": { "left": 16, "top": 12 },
+				  "width": 256, "height": 24, "textColor": "#e2e8f0" },
+				{ "type": "label", "text": "Speed {{state.speed}}x {{state.paused ? '(paused)' : ''}}",
+				  "anchors": { "left": 16, "top": 40 }, "width": 256, "height": 24, "textColor": "#94a3b8" },
+				{ "type": "label", "id": "slower", "text": "Slower", "anchors": { "left": 16, "top": 80 }, "width": 76,
+				  "height": 32, "align": "center", "radius": 8, "color": "#334155", "textColor": "#ffffff",
+				  "cursor": "hand", "onClick": "slower" },
+				{ "type": "label", "id": "faster", "text": "Faster", "anchors": { "left": 106, "top": 80 }, "width": 76,
+				  "height": 32, "align": "center", "radius": 8, "color": "#334155", "textColor": "#ffffff",
+				  "cursor": "hand", "onClick": "faster" },
+				{ "type": "label", "id": "pause", "text": "{{state.paused ? 'Resume' : 'Pause'}}",
+				  "anchors": { "left": 196, "top": 80 }, "width": 76, "height": 32, "align": "center", "radius": 8,
+				  "color": "#6366f1", "textColor": "#ffffff", "cursor": "hand",
+				  "onClick": { "set": "state.paused", "to": "{{!state.paused}}" } }
+			] }
+		]
+	}
+}

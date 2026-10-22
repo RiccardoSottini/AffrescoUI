@@ -1,12 +1,13 @@
 # CI
 
-Three workflows. Every job that builds builds once and runs everything that build can: one build per kind of
+Four workflows. Every job that builds builds once and runs everything that build can: one build per kind of
 compiler and flags, kept warm by a compile cache (ccache) shared across runs.
 
 | Workflow | When | Jobs |
 |---|---|---|
 | [`ci.yml`](ci.yml) | Every pull request (opened, pushed to, labelled), every push to `master` | `Changes`, `Linux`, `Linux (address + undefined sanitizers)`, `macOS (build only)`, `Windows`, `Benchmarks (callgrind)` (pull requests), `Quality report` (`master`) |
 | [`nightly.yml`](nightly.yml) | Every night at 02:23 UTC, and on demand | `Fuzz (nightly)`, `Scaling (nightly)` |
+| [`bindings.yml`](bindings.yml) | Pull requests that change the code, pushes to `master` | `C API and Python`: the C11 test of every `afr_` function (Xvfb), the Python binding's tests against `libaffresco`, a frame of each mode of `examples/embed` |
 | [`release.yml`](release.yml) | A `v*` tag ([RELEASING.md](../../RELEASING.md)) | The release builds |
 
 CodeQL's analyses (`Analyze (actions)`, `Analyze (c-cpp)`, `Analyze (python)`) come from the repository's CodeQL

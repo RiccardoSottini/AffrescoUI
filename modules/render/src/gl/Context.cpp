@@ -106,11 +106,11 @@ std::vector<std::uint8_t> Canvas::pixels() const {
 }
 
 // The same size and format: a copy of every pixel as it is
-void Canvas::copyToWindow() const {
+void Canvas::copyToWindow(unsigned target) const {
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer_);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target);
 	glBlitFramebuffer(0, 0, width_, height_, 0, 0, width_, height_, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, target);
 }
 
 } // namespace affresco::gl

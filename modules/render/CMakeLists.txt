@@ -63,6 +63,8 @@ affrescoui_module(render
 	src/Snapping.cpp
 	src/Rulers.cpp
 	src/platform/GlfwPlatform.cpp
+	src/platform/EmbeddedPlatform.cpp
+	src/platform/EmbeddedPlatformGl.cpp
 	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp
 	src/gl/ImageTextures.cpp

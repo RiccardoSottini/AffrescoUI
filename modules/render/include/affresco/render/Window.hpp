@@ -34,6 +34,7 @@ namespace detail {
 class Renderer;
 struct Frame;
 struct WindowFactory;
+struct EmbeddedWindowFactory;
 } // namespace detail
 
 /// @brief An entry of a window's menu bar (Window::setMenuBar()): a menu, a command, or a separator.
@@ -337,6 +338,7 @@ private:
 	friend class Panel;
 	friend class platform::NativeWindow;
 	friend struct detail::WindowFactory;
+	friend struct detail::EmbeddedWindowFactory;
 
 	/// @brief Sets a window up around its parts.
 	/// @param native The OS window, or nullptr for a headless one; owned from now on, and connected to this window.

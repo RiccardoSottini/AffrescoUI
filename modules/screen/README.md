@@ -104,5 +104,8 @@ return app.run();
 `createWindow`. The document can then use `{"type": "chart", "series": [...]}`, with every property of the panel's
 built-in type too.
 
+**Embed it in the host's OpenGL.** `screen.embed(embedding)` instead of `createWindow`: the screen is built in an
+`affresco::Embedding` (see the `render` README), whose frames the host draws (`src/EmbeddedScreen.cpp`).
+
 **Wire a module in differently.** Copy what `Screen::Impl` does with the parts you need: for example, a
 `vcs::Repository` and a `channel::Session` without a window give a headless document server.

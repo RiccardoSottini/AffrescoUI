@@ -291,3 +291,8 @@ window->render();                                                       // runs 
 **Run work later.** `window.defer(task)` runs after the current event has been fully delivered (a handler may then
 rebuild even its own panel). `window.setTimer(ms, task)` runs it later and returns an id for `cancelTimer`. From
 another thread, `application.post(task)`.
+
+**Draw inside the host's OpenGL.** `affresco::Embedding` (`Embedding.hpp`) is a Window with no window or event loop of
+its own, in a context the host owns and keeps current: `frame()` draws it over the host's framebuffer, `renderTexture()`
+into a texture of the library's; each saves and restores the OpenGL state it changes. Its platform is
+`src/platform/EmbeddedPlatform.*` (cursors left to the host, a clipboard of its own, the clock it is given).
