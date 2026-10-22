@@ -206,3 +206,31 @@ TEST_CASE("forge scm: a real repository's status") {
 	CHECK(status["files"][1]["path"] == "new file.txt");
 	CHECK(status["files"][1]["kind"] == "untracked");
 }
+
+#ifndef _WIN32
+TEST_CASE("forge scm: Forge's git runs no hook the repository plants") {
+	const std::filesystem::path git = forge::findGit();
+	if(git.empty()) return; // no git here: nothing to run
+	const std::filesystem::path folder =
+	    std::filesystem::temp_directory_path() / ("aui-forge-hooks-" + std::to_string(std::random_device{}()));
+	std::filesystem::create_directories(folder);
+	runGit(git, folder, {"init", "-q"});
+	const std::filesystem::path hook = folder / ".git" / "hooks" / "pre-commit";
+	std::ofstream(hook) << "#!/bin/sh\ntouch ran\n"; // a hook runs at the top of the work tree
+	std::filesystem::permissions(hook, std::filesystem::perms::owner_all);
+	std::ofstream(folder / "kept.txt") << "one\n";
+	runGit(git, folder, {"add", "--", "kept.txt"});
+
+	runGit(git, folder, {"commit", "-q", "--allow-empty", "-F", "-"}, "plain git runs it\n");
+	const bool ranWithout = std::filesystem::exists(folder / "ran");
+	std::filesystem::remove(folder / "ran");
+	std::vector<std::string> arguments = forge::gitOptions();
+	arguments.insert(arguments.end(), {"commit", "-q", "--allow-empty", "-F", "-"});
+	runGit(git, folder, arguments, "Forge's doesn't\n");
+	const bool ranWith = std::filesystem::exists(folder / "ran");
+	std::error_code error;
+	std::filesystem::remove_all(folder, error);
+	CHECK(ranWithout);
+	CHECK_FALSE(ranWith);
+}
+#endif

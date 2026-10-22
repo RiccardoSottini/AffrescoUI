@@ -109,14 +109,15 @@ std::filesystem::path findGit() {
 	return {};
 }
 
+std::vector<std::string> gitOptions() {
+	// A folder Forge opens may come from anywhere: its .git/config and .git/hooks can name programs for git to run
+	return {"-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgSign=false", "-c",
+	        "core.quotePath=false", "--no-optional-locks", "--literal-pathspecs"};
+}
+
 void registerScm(affresco::Screen& screen, std::shared_ptr<Workspace> workspace) {
-	// the same options first on every run: no file system monitor (a program the repository's config could name),
-	// paths as they are, no locks taken just to read, and paths never read as pathspec magic
 	if(const std::filesystem::path git = findGit(); !git.empty())
-		screen.services().allowProcess("git", git,
-		                               {"-c", "core.fsmonitor=false", "-c", "core.quotePath=false",
-		                                "--no-optional-locks", "--literal-pathspecs"},
-		                               std::nullopt, gitRule(workspace));
+		screen.services().allowProcess("git", git, gitOptions(), std::nullopt, gitRule(workspace));
 	screen.onCall("forge.scm.parseStatus", [](const std::string& arguments) {
 		return statusForView(textArgument(affresco::parseUntrusted(arguments), "output")).dump();
 	});
