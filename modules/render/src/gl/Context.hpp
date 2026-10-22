@@ -1,7 +1,8 @@
 #pragma once
 
 /// @file
-/// @brief Operations on the current OpenGL context, so that no code outside src/gl calls OpenGL directly.
+/// @brief Operations on the current OpenGL context, so that no code outside src/gl calls OpenGL directly. Everything in
+/// src/gl calls only what OpenGL 4.1 core and OpenGL ES 3.0 share, so one renderer runs on both backends.
 
 #include <cstdint>
 #include <vector>
@@ -10,7 +11,7 @@ namespace affresco::gl {
 
 using ProcAddressLoader = void* (*)(const char* name); ///< Looks an OpenGL function up by name.
 
-/// @brief Loads the OpenGL 4.1 core functions for the current context.
+/// @brief Loads the functions of the current context: OpenGL 4.1 core, or OpenGL ES 3.0 (AFFRESCOUI_GL_BACKEND=gles3).
 /// @param loader Looks the functions up.
 /// @return false if the driver doesn't provide them.
 [[nodiscard]] bool loadFunctions(ProcAddressLoader loader);

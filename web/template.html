@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- A template's page (web/README.md): tools/web/build.sh writes one per template, @SCREEN@ and @TITLE@ filled in. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https:; img-src 'self' data: blob:; style-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>@TITLE@ · AffrescoUI</title>
+<link rel="stylesheet" href="site.css">
+<script src="site.js" defer></script>
+</head>
+<body data-program="affrescoui_host" data-screen="@SCREEN@">
+<header>
+<h1>@TITLE@</h1>
+<a href="index.html">All templates</a>
+<a href="studio.html">Studio</a>
+</header>
+<div id="canvas-container"><canvas id="canvas" tabindex="0" aria-label="@TITLE@"></canvas></div>
+<footer id="status">Loading…</footer>
+</body>
+</html>

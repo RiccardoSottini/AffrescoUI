@@ -19,6 +19,9 @@ affrescoui_module(net
 	src/WebSocketClient.cpp
 	src/WebSocketFrames.cpp
 	src/Worker.cpp)
+if(EMSCRIPTEN) # the browser's fetch and WebSocket in place of libcurl (cmake/AffrescoUIWeb.cmake)
+	affrescoui_web_net(affrescoui_net)
+endif()
 # nlohmann_json is public: SignIn.hpp includes core's Identity.hpp, whose json is nlohmann's
 target_link_libraries(affrescoui_net PUBLIC affrescoui::core nlohmann_json::nlohmann_json PRIVATE CURL::libcurl)
 # The system's secret store (SignIn's refresh tokens) and its random bytes

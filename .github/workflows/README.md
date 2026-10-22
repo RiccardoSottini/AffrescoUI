@@ -6,6 +6,8 @@ compiler and flags, kept warm by a compile cache (ccache) shared across runs.
 | Workflow | When | Jobs |
 |---|---|---|
 | [`ci.yml`](ci.yml) | Every pull request (opened, pushed to, labelled), every push to `master` | `Changes`, `Linux`, `Linux (address + undefined sanitizers)`, `macOS (build only)`, `Windows`, `Benchmarks (callgrind)` (pull requests), `Quality report` (`master`) |
+| [`gles.yml`](gles.yml) | Every pull request, every push to `master` | `Linux (OpenGL ES 3.0, Mesa EGL)`: the gles3 backend's build, unit and window tests, and the rendering check against its own golden images (recorded from the base commit's gles3 build); the summary lists the frames that differ from gl41 |
+| [`web.yml`](web.yml) | Every pull request, every push to `master` | `Web (Emscripten, WebGL2)`: the browser build with emsdk at a pinned release ([`web/README.md`](../../web/README.md)), the Kanban's scenarios under Node on its WebAssembly, and the site uploaded as the `web-site` artifact (nothing is deployed) |
 | [`nightly.yml`](nightly.yml) | Every night at 02:23 UTC, and on demand | `Fuzz (nightly)`, `Scaling (nightly)` |
 | [`bindings.yml`](bindings.yml) | Pull requests that change the code, pushes to `master` | `C API and Python`: the C11 test of every `afr_` function (Xvfb), the Python binding's tests against `libaffresco`, a frame of each mode of `examples/embed` |
 | [`release.yml`](release.yml) | A `v*` tag ([RELEASING.md](../../RELEASING.md)) | The release builds |

@@ -1,6 +1,6 @@
 /// @file
-/// @brief The GLFW platform: windows with an OpenGL 4.1 core context, their input, cursors, clipboard, dropped files
-/// and display scale, and the event loop's waiting. What GLFW doesn't do (the colour scheme, native menu bars, file
+/// @brief The GLFW platform: windows with an OpenGL 4.1 core or OpenGL ES 3.0 context (AFFRESCOUI_GL_BACKEND), their
+/// input, cursors, clipboard, dropped files and display scale, and the event loop's waiting. What GLFW doesn't do (the colour scheme, native menu bars, file
 /// dialogs) comes from platform/Desktop.hpp; besides those files, the only one of the render module that calls GLFW.
 
 #include "platform/Desktop.hpp"
@@ -10,6 +10,9 @@
 #include "affresco/render/Window.hpp"
 
 #include <GLFW/glfw3.h>
+#ifdef __EMSCRIPTEN__
+#include <GLFW/emscripten_glfw3.h>
+#endif
 
 #include <array>
 #include <cstddef>
@@ -23,6 +26,39 @@ namespace affresco::platform {
 
 namespace {
 
+#if defined(AFFRESCOUI_GLES3)
+constexpr const char* contextName = "OpenGL ES 3.0 context"; ///< What windows ask for, for errors.
+#else
+constexpr const char* contextName = "OpenGL 4.1 core context"; ///< What windows ask for, for errors.
+#endif
+
+/// @brief Asks GLFW for the context of this build's backend in the windows created next.
+void hintContext() {
+#if defined(AFFRESCOUI_GLES3)
+	// OpenGL ES 3.0 through EGL: ANGLE (macOS, Windows), Mesa (Linux)
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+	glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+#else
+	// OpenGL 4.1 core: the highest version available on macOS
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+#endif
+}
+
+/// @brief Tells GLFW, before it starts, which of the system's graphics APIs ANGLE draws with: Metal on macOS,
+/// Direct3D 11 on Windows. Other EGLs (Mesa's) ignore it, and the gl41 backend doesn't use EGL.
+void hintAngle() {
+#if defined(AFFRESCOUI_GLES3) && defined(__APPLE__)
+	glfwInitHint(GLFW_ANGLE_PLATFORM_TYPE, GLFW_ANGLE_PLATFORM_TYPE_METAL);
+#elif defined(AFFRESCOUI_GLES3) && defined(_WIN32)
+	glfwInitHint(GLFW_ANGLE_PLATFORM_TYPE, GLFW_ANGLE_PLATFORM_TYPE_D3D11);
+#endif
+}
+
 /// @brief A GLFW window and its OpenGL context.
 class GlfwWindow final : public NativeWindow {
 public:
@@ -33,9 +69,15 @@ public:
 	/// @throws std::runtime_error If the window or its context can't be created.
 	GlfwWindow(const std::string& title, int width, int height)
 	    : handle_(glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr)) {
-		if(!handle_) throw std::runtime_error("AffrescoUI: could not create a window with an OpenGL 4.1 core context");
+		if(!handle_) throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
 		glfwMakeContextCurrent(handle_);
 		glfwSwapInterval(1); // vsync: never render faster than the display
+#ifdef __EMSCRIPTEN__
+		// The canvas follows its container on the page (web/), at the page's devicePixelRatio (GLFW's port scales the
+		// framebuffer by default); a page without one keeps the window's size
+		if(emscripten::glfw3::MakeCanvasResizable(handle_, "#canvas-container") != EMSCRIPTEN_RESULT_SUCCESS)
+			log(LogLevel::Info, "AffrescoUI: the page has no #canvas-container: the canvas keeps its size");
+#endif
 	}
 
 	/// @brief Destroys the menu bar, the cursors and the window.
@@ -198,6 +240,7 @@ public:
 		glfwSetErrorCallback([](int code, const char* description) {
 			log(LogLevel::Error, "AffrescoUI: GLFW error " + std::to_string(code) + ": " + description);
 		});
+		hintAngle();
 		if(!glfwInit()) throw std::runtime_error("AffrescoUI: could not initialise GLFW");
 		desktop::watchColorScheme();
 	}
@@ -210,11 +253,7 @@ public:
 	GlfwPlatform& operator=(GlfwPlatform&&) = delete;
 
 	[[nodiscard]] std::unique_ptr<NativeWindow> createWindow(const std::string& title, int width, int height) override {
-		// OpenGL 4.1 core: the highest version available on macOS. Other hints (e.g. GLFW_VISIBLE, set by tests) stay.
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+		hintContext(); // other hints (e.g. GLFW_VISIBLE, set by tests) stay
 		if(hiddenWindows_) glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 		return std::make_unique<GlfwWindow>(title, width, height);
 	}

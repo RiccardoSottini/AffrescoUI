@@ -1,0 +1,96 @@
+/* The site's pages (web/README.md): the template picker, a page per template and the Studio's. */
+:root {
+	--background: #f6f4ef;
+	--text: #22201c;
+	--muted: #6b665c;
+	--accent: #a8462d;
+	--panel: #ffffff;
+	--line: #ddd8cc;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background: #1b1a18;
+		--text: #ece8df;
+		--muted: #a59f92;
+		--accent: #e07a5a;
+		--panel: #26241f;
+		--line: #3a3730;
+		color-scheme: dark;
+	}
+}
+* {
+	box-sizing: border-box;
+}
+html,
+body {
+	height: 100%;
+	margin: 0;
+}
+body {
+	display: flex;
+	flex-direction: column;
+	background: var(--background);
+	color: var(--text);
+	font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+header,
+footer,
+main.picker {
+	padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px));
+}
+header {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	align-items: baseline;
+	border-bottom: 1px solid var(--line);
+}
+header h1 {
+	margin: 0;
+	font-size: 1.1rem;
+}
+a {
+	color: var(--accent);
+}
+#canvas-container {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+}
+#canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	outline: none;
+}
+#status {
+	color: var(--muted);
+	font-size: 0.85rem;
+	border-top: 1px solid var(--line);
+}
+main.picker ul {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+	gap: 12px;
+	padding: 0;
+	list-style: none;
+}
+main.picker li a {
+	display: block;
+	padding: 16px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--panel);
+	text-decoration: none;
+}
+form#connect {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+form#connect input {
+	min-width: 0;
+	padding: 4px 8px;
+	font: inherit;
+}

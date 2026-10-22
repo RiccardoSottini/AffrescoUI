@@ -891,6 +891,10 @@ A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_
 Each message of type `T` runs the action `name:T` with the message as `event`; `name:open`, `name:closed` and
 `name:error` (a `send` while disconnected) run when that happens. `reconnect` (or `true`: 2 s) tries again after a
 disconnect. The AffrescoUI Studio is built this way: its file is the whole client.
+A `"socket"` that starts with `ws://` or `wss://` is a remote peer instead (a `PeerServer`, `modules/net/README.md`):
+`wss://` anywhere, `ws://` on the loopback only. The token is never in the file: the program that shows the screen
+gives it (`Screen::connectChannel()`, e.g. from the Studio's connect form in a browser tab, `web/README.md`), and
+without one, the server refuses the connection and `name:closed` runs. In a browser this is the only kind of channel.
 
 `"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json` (on Windows,
 `%APPDATA%\affrescoui\<file name>.state.json`), loaded at start and written when they change. A screen opened from

@@ -1,5 +1,6 @@
-# render: the rendering engine. Vendored in external/: glad (OpenGL 4.1 core loader). Text: FreeType and HarfBuzz
-# (cmake/AffrescoUIText.cmake). Images: stb_image (cmake/AffrescoUIImages.cmake).
+# render: the rendering engine. Vendored in external/: glad (the OpenGL 4.1 core and OpenGL ES 3.0 loaders, one per
+# backend: cmake/AffrescoUIAngle.cmake). Text: FreeType and HarfBuzz (cmake/AffrescoUIText.cmake). Images: stb_image
+# (cmake/AffrescoUIImages.cmake).
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIImages.cmake)
 affrescoui_module(render
 	src/Accessibility.cpp
@@ -76,10 +77,9 @@ affrescoui_module(render
 	src/gl/SurfaceGuard.cpp
 	src/gl/SurfacePrelude.cpp
 	src/gl/Surfaces.cpp
-	src/gl/SurfaceView.cpp
-	${PROJECT_SOURCE_DIR}/external/glad/src/glad.c)
-target_include_directories(affrescoui_render SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include
-	${stb_image_SOURCE_DIR})
+	src/gl/SurfaceView.cpp)
+target_include_directories(affrescoui_render SYSTEM PRIVATE ${stb_image_SOURCE_DIR})
+affrescoui_gl_backend(affrescoui_render) # the glad loader of AFFRESCOUI_GL_BACKEND (cmake/AffrescoUIAngle.cmake)
 # nlohmann_json is public: GpuSurface.hpp hands a surface its document parameters as JSON
 target_link_libraries(affrescoui_render PUBLIC affrescoui::core nlohmann_json::nlohmann_json PRIVATE glfw freetype
 	affrescoui_harfbuzz affrescoui_regex)

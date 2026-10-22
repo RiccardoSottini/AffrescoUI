@@ -297,6 +297,9 @@ bool sameUser(SocketHandle socket) {
 	socklen_t size = sizeof(peer);
 	return getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &peer, &size) == 0 && size == sizeof(peer) &&
 	       peer.uid == geteuid();
+#elif defined(__EMSCRIPTEN__)
+	(void)socket;
+	return false; // a browser can't say, so local connections are refused
 #else
 	uid_t user = 0;
 	gid_t group = 0;
