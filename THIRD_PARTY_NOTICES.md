@@ -34,6 +34,8 @@ following components, which keep their own licenses:
 | importlib_metadata 8.7.1 (used by build, older Pythons only) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | Apache License 2.0; SPDX: `Apache-2.0` |
 | tomli 2.5.0 (used by build and hatchling, older Pythons only) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
 | zipp 3.23.1 (used by importlib_metadata, older Pythons only) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
+| appimagetool 1.9.1 (packs the AppImage) | downloaded by a workflow, SHA-256 checked (`.github/workflows/release.yml`) | build: appimage (build) | MIT; SPDX: `MIT` |
+| type2-runtime 20251108 (the AppImage's start-up runtime, embedded in it) | downloaded by a workflow, SHA-256 checked (`.github/workflows/release.yml`) | runtime: appimage | MIT; SPDX: `MIT` |
 
 Portions of this software are copyright © 2026 The FreeType Project (https://freetype.org). All rights reserved.
 

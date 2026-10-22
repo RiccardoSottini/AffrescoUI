@@ -275,6 +275,8 @@ def where(entry):
         return ", ".join(f"`{p}`" for p in paths) + " (vendored, SHA-256 checked by sbom.py)"
     if entry["kind"] == "python":
         return f"pinned by hash in `{entry['pinnedIn']}`; used to build, not shipped"
+    if entry["pinnedIn"].startswith(".github/"):
+        return f"downloaded by a workflow, SHA-256 checked (`{entry['pinnedIn']}`)"
     return f"downloaded by CMake, SHA-256 checked (`{entry['pinnedIn']}`)"
 
 
