@@ -158,7 +158,7 @@ std::filesystem::path stateLocation(const std::filesystem::path& dataDirectory, 
 /// @param converted The conversion.
 /// @param baseDirectory Where its files are.
 /// @return The screen.
-Screen fromConverted(format::adapters::Converted converted, std::filesystem::path baseDirectory) {
+Screen fromConverted(const format::adapters::Converted& converted, std::filesystem::path baseDirectory) {
 	for(const std::string& warning : converted.warnings) affresco::log(LogLevel::Warning, "AffrescoUI screen: " + warning);
 	Screen screen = Screen::fromString(converted.screen.dump(), std::move(baseDirectory));
 	for(const json& revision : converted.revisions) {
@@ -208,12 +208,12 @@ Screen Screen::fromString(std::string_view content, std::filesystem::path baseDi
 		document = parseUntrusted(content); // a ScreenError if it nests too deeply
 	} catch(const json::parse_error& error) {
 		if(auto foreign = format::adapters::convertForeign(content)) // A2UI as JSON Lines
-			return fromConverted(std::move(*foreign), std::move(baseDirectory));
+			return fromConverted(*foreign, std::move(baseDirectory));
 		throw ScreenError(std::string("AffrescoUI screen: invalid JSON: ") + error.what());
 	}
 	if(format::adapters::detect(document) != format::adapters::SourceFormat::Screen)
 		if(auto foreign = format::adapters::convertForeign(content))
-			return fromConverted(std::move(*foreign), std::move(baseDirectory));
+			return fromConverted(*foreign, std::move(baseDirectory));
 	bool migrated = !format::migrate(document).empty();
 	resolveIncludes(document, baseDirectory, migrated);
 	if(migrated) // one notice for the screen and its parts: they work as they are, in memory

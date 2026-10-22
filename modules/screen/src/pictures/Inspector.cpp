@@ -27,9 +27,9 @@ constexpr std::size_t shownTrace = 6;  ///< The trace lines the overlay shows.
 /// @param value The number.
 /// @return It, with two decimals.
 std::string decimals(double value) {
-	char text[32];
-	std::snprintf(text, sizeof(text), "%.2f", value);
-	return text;
+	std::array<char, 32> text{};
+	std::snprintf(text.data(), text.size(), "%.2f", value);
+	return text.data();
 }
 
 /// @brief A rectangle as the overlay shows it.
@@ -60,7 +60,7 @@ std::string keyName(Key key) {
 	                                              {Key::PageDown, "PageDown"},
 	                                              {Key::Home, "Home"},
 	                                              {Key::End, "End"}}};
-	const auto found = std::ranges::find(names, key, &Named::first);
+	const auto* const found = std::ranges::find(names, key, &Named::first);
 	return std::string(found == names.end() ? "a key" : found->second);
 }
 
@@ -69,13 +69,18 @@ std::string keyName(Key key) {
 /// @return Them, one per line.
 std::string joined(const std::vector<std::string>& lines) {
 	std::string text;
-	for(const std::string& line : lines) text += (text.empty() ? "" : "\n") + line;
+	for(const std::string& line : lines) {
+		if(!text.empty()) text += '\n';
+		text += line;
+	}
 	return text;
 }
 
 } // namespace
 
-Inspector::~Inspector() { static_cast<void>(setOn(false)); }
+Inspector::~Inspector() {
+	if(on()) stop();
+}
 
 std::optional<std::string> Inspector::setOn(bool on) {
 	if(on == this->on()) return std::nullopt;
@@ -85,6 +90,11 @@ std::optional<std::string> Inspector::setOn(bool on) {
 		start(*window);
 		return std::nullopt;
 	}
+	stop();
+	return std::nullopt;
+}
+
+void Inspector::stop() {
 	static_cast<void>(window_->onMouseMove.disconnect(windowSlots_[0]));
 	static_cast<void>(window_->onMouseButton.disconnect(windowSlots_[1]));
 	static_cast<void>(window_->onScroll.disconnect(windowSlots_[2]));
@@ -101,7 +111,6 @@ std::optional<std::string> Inspector::setOn(bool on) {
 	windowSlots_.clear();
 	runtimeSlots_.clear();
 	versionSlots_.clear();
-	return std::nullopt;
 }
 
 void Inspector::start(Window& window) {

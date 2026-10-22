@@ -172,7 +172,7 @@ struct Screen::Impl {
 	/// without the revisions, proof and failures, which can show the values hidden from it.
 	/// @param peer The peer.
 	/// @param message A repair request, or the repairs' status.
-	void sendRepairs(const Peer& peer, json message);
+	void sendRepairs(const Peer& peer, json message) const;
 
 	/// @brief Adds a peer and relays its "request"/"reply" messages to the others.
 	/// @param channel Its channel.

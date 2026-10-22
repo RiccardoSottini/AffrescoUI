@@ -83,17 +83,17 @@ private:
 	json composeRevision(const json& with, const json& document) {
 		const json& manifest = with["manifest"];
 		if(manifest.dump().size() > format::maxProofBytes) throw DocumentError("the manifest is too big");
-		format::ProofInputs inputs{document,
-		                           manifest,
-		                           with.value("adapter", json()),
-		                           with.value("source", std::string()),
-		                           with.value("host", std::string("host")),
-		                           repository_.head().id,
-		                           "",
-		                           ""};
+		const format::ProofInputs inputs{document,
+		                                 manifest,
+		                                 with.value("adapter", json()),
+		                                 with.value("source", std::string()),
+		                                 with.value("host", std::string("host")),
+		                                 repository_.head().id,
+		                                 "",
+		                                 ""};
 		const format::ProvenComposition proven =
 		    format::proveComposition(inputs, [](const json&, const json&) { return std::vector<format::ScenarioOutcome>(); });
-		if(proven.proof.value("passed", false) != true) {
+		if(!proven.proof.value("passed", false)) {
 			unproven_.clear();
 			for(const std::string& line : format::proofReasons(proven.proof)) unproven_ += line + "\n";
 			return nullptr;
@@ -125,7 +125,7 @@ public:
 	json configurationSchema() const override {
 		return {{"type", "object"}, {"additionalProperties", false}, {"properties", json::object()}};
 	}
-	std::vector<MethodSpec> methods(const json&) const override {
+	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
 		const json name = {{"type", "string"}, {"maxLength", 64}};
 		// Installing changes the document, so a revision may not add a step that does it: only the screen's file
 		return {{"catalog", Effect::Read, true, false,
@@ -155,7 +155,8 @@ public:
 		         "installs a feature from another app with an adapter, once proven, by revision: {status, revision, "
 		         "proposal}; refused \"unproven\" with the proof's reasons"}};
 	}
-	std::unique_ptr<services::Service> create(const json&, services::ServiceContext context) override {
+	std::unique_ptr<services::Service> create(const json& /*configuration*/,
+	                                          services::ServiceContext context) override {
 		return std::make_unique<FeaturesService>(features_, repository_, alive_, context.executor);
 	}
 

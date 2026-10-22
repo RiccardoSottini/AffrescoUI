@@ -125,7 +125,7 @@ void Screen::Impl::broadcast(const json& message, const Peer* except) {
 		if(peer.get() != except) peer->session->send(message);
 }
 
-void Screen::Impl::sendRepairs(const Peer& peer, json message) {
+void Screen::Impl::sendRepairs(const Peer& peer, json message) const {
 	if(repository.readable(peer.session->author())) {
 		if(message.contains("repair"))
 			for(const char* key : {"revisions", "proof", "failed"}) message["repair"].erase(key);

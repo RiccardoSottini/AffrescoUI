@@ -56,7 +56,7 @@ bool Screen::Impl::tryConnect(DeclaredChannel& channel) {
 
 void Screen::Impl::watch(DeclaredChannel& channel) {
 	Channel& connected = channel.remote ? *channel.remote : static_cast<Channel&>(*channel.socket);
-	const std::string name = channel.name;
+	std::string name = channel.name; // NOLINT(misc-const-correctness): so its copies in the handlers move
 	connected.onMessage.connect([this, name](const std::string& line) {
 		json message;
 		try {

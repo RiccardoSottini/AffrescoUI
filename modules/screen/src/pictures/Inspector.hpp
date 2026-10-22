@@ -65,6 +65,8 @@ private:
 	/// @brief Builds the overlay in a window and starts listening to it.
 	/// @param window The screen's window.
 	void start(Window& window);
+	/// @brief Takes the overlay out of the window and stops listening (the destructor's part of setOn(false)).
+	void stop();
 	/// @brief Listens to the window, the runtime and the document, for the trace.
 	void connect();
 	/// @brief Adds a line to the trace, forgetting the oldest beyond traceLength.
