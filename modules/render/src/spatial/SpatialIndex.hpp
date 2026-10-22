@@ -61,6 +61,14 @@ private:
 	/// @param area The rectangle.
 	/// @return The range, or std::nullopt if the rectangle misses the grid.
 	[[nodiscard]] std::optional<CellRange> cellRange(const Rect& area) const noexcept;
+	/// @brief The cells an item covers.
+	/// @param item The item's number.
+	/// @return The range, or std::nullopt if it can't be indexed or misses the grid.
+	[[nodiscard]] std::optional<CellRange> itemCells(std::uint32_t item) const noexcept;
+	/// @brief Counts the items of each cell into cellStarts_ (one place on) and keeps large items aside, in large_.
+	void countCells();
+	/// @brief Fills each cell's items in cellItems_, once cellStarts_ holds where each cell starts.
+	void fillCells();
 
 	std::vector<Rect> bounds_{};                 ///< The items' rectangles, as built.
 	std::vector<std::uint32_t> cellStarts_{};    ///< Where each cell's items start in cellItems_; one more than cells.

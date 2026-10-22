@@ -36,6 +36,17 @@ std::uint32_t cellOf(float position, float cellSize, std::uint32_t cells) noexce
 	return std::min(static_cast<std::uint32_t>(std::min(cell, 4.0e9f)), cells - 1);
 }
 
+/// @brief Calls @p visit with the number of each cell of a block, row after row.
+/// @param range The block (a SpatialIndex::CellRange).
+/// @param columns The grid's columns.
+/// @param visit What to call.
+template <typename Range, typename Visit>
+void forEachCell(const Range& range, std::uint32_t columns, const Visit& visit) {
+	for(std::uint32_t row = range.firstRow; row <= range.lastRow; ++row)
+		for(std::uint32_t column = range.firstColumn; column <= range.lastColumn; ++column)
+			visit(std::size_t{row} * columns + column);
+}
+
 } // namespace
 
 void SpatialIndex::build(std::span<const Rect> bounds) {
@@ -49,33 +60,39 @@ void SpatialIndex::build(std::span<const Rect> bounds) {
 	if(cells == 0) return;
 
 	// Count each cell's items, then lay the cells out one after another, then fill them
-	const auto spans = [this](std::uint32_t item) {
-		return indexable(bounds_[item]) ? cellRange(bounds_[item]) : std::nullopt;
-	};
-	const auto count = static_cast<std::uint32_t>(bounds_.size());
-	for(std::uint32_t item = 0; item < count; ++item) {
-		const auto range = spans(item);
-		if(!range) continue;
-		if(range->count() > largeSpan) {
-			large_.push_back(item);
-			continue;
-		}
-		for(std::uint32_t row = range->firstRow; row <= range->lastRow; ++row)
-			for(std::uint32_t column = range->firstColumn; column <= range->lastColumn; ++column)
-				++cellStarts_[std::size_t{row} * columns_ + column + 1];
-	}
+	countCells();
 	for(std::size_t cell = 1; cell <= cells; ++cell) cellStarts_[cell] += cellStarts_[cell - 1];
-	cellItems_.resize(cellStarts_[cells]);
-	cursors_.assign(cellStarts_.begin(), cellStarts_.end() - 1);
-	for(std::uint32_t item = 0; item < count; ++item) {
-		const auto range = spans(item);
-		if(!range || range->count() > largeSpan) continue;
-		for(std::uint32_t row = range->firstRow; row <= range->lastRow; ++row)
-			for(std::uint32_t column = range->firstColumn; column <= range->lastColumn; ++column)
-				cellItems_[cursors_[std::size_t{row} * columns_ + column]++] = item;
-	}
+	fillCells();
 	marks_.assign(bounds_.size(), 0);
 	mark_ = 0;
+}
+
+std::optional<SpatialIndex::CellRange> SpatialIndex::itemCells(std::uint32_t item) const noexcept {
+	return indexable(bounds_[item]) ? cellRange(bounds_[item]) : std::nullopt;
+}
+
+void SpatialIndex::countCells() {
+	const auto count = static_cast<std::uint32_t>(bounds_.size());
+	for(std::uint32_t item = 0; item < count; ++item) {
+		const auto range = itemCells(item);
+		if(!range) continue;
+		if(range->count() > largeSpan) large_.push_back(item);
+		else forEachCell(*range, columns_, [starts = cellStarts_.data()](std::size_t cell) { ++starts[cell + 1]; });
+	}
+}
+
+void SpatialIndex::fillCells() {
+	cellItems_.resize(cellStarts_.back());
+	cursors_.assign(cellStarts_.begin(), cellStarts_.end() - 1);
+	// Held in locals, so the stores need not reload the vectors (the compiler can't tell they don't alias them)
+	std::uint32_t* const items = cellItems_.data();
+	std::uint32_t* const cursors = cursors_.data();
+	const auto count = static_cast<std::uint32_t>(bounds_.size());
+	for(std::uint32_t item = 0; item < count; ++item) {
+		const auto range = itemCells(item);
+		if(!range || range->count() > largeSpan) continue;
+		forEachCell(*range, columns_, [&](std::size_t cell) { items[cursors[cell]++] = item; });
+	}
 }
 
 void SpatialIndex::chooseGrid() {
