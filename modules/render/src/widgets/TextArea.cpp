@@ -99,16 +99,17 @@ bool TextArea::insert(std::u32string_view added) {
 std::u32string TextArea::shownText() const { return secret_ ? std::u32string(text_.size(), U'\u2022') : text_; }
 
 void TextArea::keyEvent(const KeyEvent& event) {
-	if(event.key == Key::Backspace && event.action != Action::Release && !text_.empty()) {
+	if(secret_ && event.key == Key::C) return; // a secret is never copied
+	Label::keyEvent(event);                    // first: a binding that runs for the key keeps it from the text
+	if(event.action == Action::Release || (window() && window()->keyTaken())) return;
+
+	if(event.key == Key::Backspace && !text_.empty()) {
 		text_.pop_back();
 		invalidate();
 		onTextChanged(text());
 	}
 
 	if(isPaste(event) && window() && insert(pastedLine(window()->clipboardText()))) onTextChanged(text());
-
-	if(secret_ && event.key == Key::C) return; // a secret is never copied
-	Label::keyEvent(event);
 }
 
 void TextArea::charEvent(const CharEvent& event) {
