@@ -2,7 +2,7 @@
 
 /// @file
 /// @brief DocumentServer: screen documents and their history kept on disk, shared over WebSocket with the people a
-/// TokenFile names, with their permissions, their presence and their leases (examples/server/README.md).
+/// TokenFile names, with their permissions, their presence and their leases (apps/server/README.md).
 
 #include "TokenFile.hpp"
 

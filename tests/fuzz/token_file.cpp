@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes the document server's token file (examples/server/TokenFile.hpp): the file of `<sha256 hex> <name>`
+/// @brief Fuzzes the document server's token file (apps/server/TokenFile.hpp): the file of `<sha256 hex> <name>`
 /// lines the server reads at start, which whoever can write that folder controls, and the tokens peers present.
 ///
 /// The input is written to a file and read. A file that reads lists valid names only, at most maxEntries of them, and
