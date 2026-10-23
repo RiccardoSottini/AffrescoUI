@@ -5,6 +5,8 @@
 		"info": { "open": false, "kind": "light", "index": 0 },
 		"tempHistory": [20.1, 19.8, 19.6, 19.4, 19.3, 19.2, 19.4, 20.2, 21.0, 21.4, 21.6, 21.5, 21.7, 21.8, 21.6, 21.5, 21.6, 21.9, 22.1, 22.0, 21.8, 21.6, 21.4, 21.5],
 		"coverTilt": 50,
+		"speakerVolume": 40,
+		"infoMenu": false,
 		"deviceFacts": {
 			"door": { "related": "welcome", "battery": 82, "changed": "08:12", "log": ["08:12", "07:40", "22:05"] },
 			"vacuum": { "related": "morning", "battery": 64, "changed": "10:30", "log": ["10:30", "09:55", "18:20"] },
@@ -37,6 +39,8 @@
 		"pickTilt": [{ "animate": "state.coverTilt", "to": "{{level}}", "ms": 300 }],
 		"tiltUp": [{ "set": "state.coverTilt", "to": "{{clamp(state.coverTilt + 10, 0, 100)}}" }],
 		"tiltDown": [{ "set": "state.coverTilt", "to": "{{clamp(state.coverTilt - 10, 0, 100)}}" }],
+		"infoRelatedMenu": [{ "if": "{{state.info.kind == 'device' && computed.infoFacts.related != null}}", "then": [{ "run": "openRelated" }],
+			"else": [{ "run": "showToast", "with": { "message": "{{t('info.noRelated')}}" } }] }],
 		"openRelated": [
 			{ "set": "state.info.open", "to": false },
 			{ "set": "state.page", "to": "automations" },
@@ -123,14 +127,6 @@
 				"shadow": { "y": 8, "blur": 24, "color": "#00000040" },
 				"role": "dialog", "label": "{{computed.infoName}}",
 				"children": [
-					{ "use": "iconBtn", "with": { "icon": "x", "tip": "info.close" }, "id": "infoClose", "font": "icons", "color": "transparent", "anchors": { "left": 10, "top": 10 },
-						"onClick": { "set": "state.info.open", "to": false } },
-					{ "id": "infoRoom", "style": "caption", "text": "{{state.info.kind == 'device' || state.info.kind == 'alarm' ? t('info.home') : computed.room.name}}", "anchors": { "left": 64, "top": 12 } },
-					{ "id": "infoName", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.infoName}}", "anchors": { "left": 64, "right": 108, "top": 30 }, "height": 22 },
-					{ "use": "iconBtn", "with": { "icon": "chart-line", "tip": "page.history" }, "id": "infoToHistory", "font": "icons", "color": "transparent", "anchors": { "right": 58, "top": 10 },
-						"onClick": [{ "set": "state.info.open", "to": false }, { "set": "state.page", "to": "history" }] },
-					{ "use": "iconBtn", "with": { "icon": "settings", "tip": "page.settings" }, "id": "infoToSettings", "font": "icons", "color": "transparent", "anchors": { "right": 10, "top": 10 },
-						"onClick": [{ "set": "state.info.open", "to": false }, { "set": "state.page", "to": "settings" }] },
 					{ "id": "infoState", "when": "{{state.info.kind != 'climate'}}", "type": "label", "font": "title", "textColor": "@text", "text": "{{computed.infoState}}", "anchors": { "left": 0, "right": 0, "top": 76 }, "height": 36,
 						"align": "center", "live": "polite" },
 
@@ -197,12 +193,26 @@
 
 					{ "use": "infoBody", "with": { "kind": "device" }, "id": "infoDeviceBody", "children": [
 						{ "id": "infoDeviceIcon", "type": "label", "font": "title", "icon": "{{computed.infoDevice.on ? computed.infoDevice.icon : computed.infoDevice.iconOff}}", "text": "",
-							"anchors": { "left": 164, "top": 128 }, "width": 72, "height": 72, "radius": 36, "align": "center",
+							"anchors": { "left": 164, "top": "{{computed.infoDevice.id == 'speaker' ? 120 : 128}}" }, "width": 72, "height": 72, "radius": 36, "align": "center",
 							"textColor": "{{computed.infoDevice.on ? '@accent' : '@muted'}}", "color": "{{computed.infoDevice.on ? '@accentSoft' : '@raised'}}" },
-						{ "id": "infoDeviceAction", "style": "choiceOn", "anchors": { "left": 120, "top": 216 }, "width": 160, "height": 36, "radius": 18,
+						{ "id": "infoTransport", "when": "{{computed.infoDevice.id == 'speaker'}}", "type": "row", "anchors": { "left": 0, "right": 0, "top": 198 }, "height": 44, "gap": 16,
+							"justify": "center", "role": "toolbar", "arrows": "horizontal", "label": "{{computed.infoName}}", "children": [
+								{ "use": "iconBtn", "with": { "icon": "skip-back", "tip": "info.previous" }, "color": "transparent", "onClick": { "run": "showToast", "with": { "message": "{{t('info.queueEmpty')}}" } } },
+								{ "use": "iconBtn", "with": { "icon": "{{computed.infoDevice.on ? 'pause' : 'play'}}", "tip": "{{computed.infoDevice.on ? 'info.pause' : 'info.play'}}" }, "id": "infoPlay",
+									"color": "@accentSoft", "textColor": "@accent", "onClick": { "run": "deviceCall", "with": { "i": "{{state.info.index}}" } } },
+								{ "use": "iconBtn", "with": { "icon": "skip-forward", "tip": "info.next" }, "color": "transparent", "onClick": { "run": "showToast", "with": { "message": "{{t('info.queueEmpty')}}" } } }
+							] },
+						{ "id": "infoVolume", "when": "{{computed.infoDevice.id == 'speaker'}}", "anchors": { "left": 24, "right": 24, "top": 248 }, "height": 40, "color": "transparent", "children": [
+							{ "type": "label", "icon": "volume-2", "text": "", "textColor": "@muted", "anchors": { "left": 0, "top": 8 }, "width": 24, "height": 24, "align": "center" },
+							{ "use": "levelBar", "with": { "level": "{{state.speakerVolume / 100}}", "fill": "@accent", "back": "@accentSoft" }, "anchors": { "left": 40, "right": 0, "top": 0 } },
+							{ "id": "infoVolumeSlider", "type": "slider", "anchors": { "left": 40, "right": 0, "top": 0 }, "height": 40, "min": 0, "max": 100, "step": 5, "cursor": "hand",
+								"bind": "state.speakerVolume", "label": "{{t('info.volume')}}", "tooltip": "{{t('info.volume')}}",
+								"trackColor": "transparent", "activeColor": "transparent", "knobColor": "transparent" }
+						] },
+						{ "id": "infoDeviceAction", "when": "{{computed.infoDevice.id != 'speaker'}}", "style": "choiceOn", "anchors": { "left": 120, "top": 216 }, "width": 160, "height": 36, "radius": 18,
 							"text": "{{t('device.' + computed.infoDevice.id + (computed.infoDevice.on ? '.doOff' : '.doOn'))}}",
 							"onClick": { "run": "deviceCall", "with": { "i": "{{state.info.index}}" } } },
-						{ "id": "infoFacts", "type": "stack", "anchors": { "left": 24, "right": 24, "top": 276 }, "height": 120, "gap": 0, "role": "list", "children": [
+						{ "id": "infoFacts", "type": "stack", "anchors": { "left": 24, "right": 24, "top": "{{computed.infoDevice.id == 'speaker' ? 292 : 276}}" }, "height": 120, "gap": 0, "role": "list", "children": [
 							{ "id": "infoBattery", "type": "label", "icon": "battery-medium", "text": "  {{t('info.battery', { n: computed.infoFacts.battery })}}", "textColor": "@text", "role": "listitem",
 								"anchors": { "left": 0, "right": 0 }, "height": 40, "align": { "horizontal": "start", "vertical": "center" } },
 							{ "id": "infoChanged", "type": "label", "icon": "history", "text": "  {{t('info.changed', { time: computed.infoFacts.changed })}}", "textColor": "@text", "role": "listitem",
@@ -211,8 +221,8 @@
 								"anchors": { "left": 0, "right": 0 }, "height": 40, "align": { "horizontal": "start", "vertical": "center" }, "cursor": "hand", "focusable": true,
 								"role": "link", "label": "{{t('info.related', { name: t('rule.' + computed.infoFacts.related) })}}", "onClick": "openRelated" }
 						] },
-						{ "id": "infoLogTitle", "type": "label", "textColor": "@text", "icon": "activity", "text": " {{t('info.activity')}}", "anchors": { "left": 24, "top": 412 }, "fitText": true },
-						{ "id": "infoLog", "type": "stack", "anchors": { "left": 24, "right": 24, "top": 444 }, "height": 132, "gap": 4, "role": "list", "children": [
+						{ "id": "infoLogTitle", "type": "label", "textColor": "@text", "icon": "activity", "text": " {{t('info.activity')}}", "anchors": { "left": 24, "top": "{{computed.infoDevice.id == 'speaker' ? 416 : 412}}" }, "fitText": true },
+						{ "id": "infoLog", "type": "stack", "anchors": { "left": 24, "right": 24, "top": "{{computed.infoDevice.id == 'speaker' ? 446 : 444}}" }, "height": 132, "gap": 4, "role": "list", "children": [
 							{ "id": "infoLogRow", "repeat": { "for": "time", "in": "computed.infoFacts.log", "index": "n" }, "anchors": { "left": 0, "right": 0 }, "height": 40, "radius": 8,
 								"color": "@field", "role": "listitem", "label": "{{time}}", "children": [
 									{ "id": "infoLogTime", "style": "caption", "text": "{{time}}", "anchors": { "left": 12, "top": 12 } },
@@ -220,7 +230,22 @@
 										"text": "{{t('device.' + computed.infoDevice.id + ((n % 2 == 0) == computed.infoDevice.on ? '.on' : '.off'))}}" }
 								] }
 						] }
-					] }
+					] },
+					{ "use": "iconBtn", "with": { "icon": "x", "tip": "info.close" }, "id": "infoClose", "font": "icons", "color": "transparent", "anchors": { "left": 10, "top": 10 },
+						"onClick": { "set": "state.info.open", "to": false } },
+					{ "id": "infoRoom", "style": "caption", "text": "{{state.info.kind == 'device' || state.info.kind == 'alarm' ? t('info.home') : computed.room.name}}", "anchors": { "left": 64, "top": 12 } },
+					{ "id": "infoName", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.infoName}}", "anchors": { "left": 64, "right": 156, "top": 30 }, "height": 22 },
+					{ "use": "iconBtn", "with": { "icon": "chart-line", "tip": "page.history" }, "id": "infoToHistory", "font": "icons", "color": "transparent", "anchors": { "right": 106, "top": 10 },
+						"onClick": [{ "set": "state.info.open", "to": false }, { "set": "state.page", "to": "history" }] },
+					{ "use": "iconBtn", "with": { "icon": "settings", "tip": "page.settings" }, "id": "infoToSettings", "font": "icons", "color": "transparent", "anchors": { "right": 58, "top": 10 },
+						"onClick": [{ "set": "state.info.open", "to": false }, { "set": "state.page", "to": "settings" }] },
+					{ "id": "infoMore", "style": "round", "icon": "ellipsis-vertical", "text": "", "label": "{{t('auto.more')}}", "tooltip": "{{t('auto.more')}}",
+						"font": "icons", "color": "transparent", "anchors": { "right": 10, "top": 10 },
+						"isOpen": "{{state.infoMenu}}", "onClick": { "toggle": "state.infoMenu" },
+						"children": [{ "use": "popMenu", "with": { "open": "state.infoMenu", "width": 200, "items": [
+							{ "title": "{{t('info.menuRelated')}}", "icon": "workflow", "run": "infoRelatedMenu", "with": null, "separator": false },
+							{ "title": "{{t('info.menuAttributes')}}", "icon": "list", "run": "showToast", "with": { "message": "{{t('info.attributesNote')}}" } }
+						] } }] }
 				]
 			}
 		}

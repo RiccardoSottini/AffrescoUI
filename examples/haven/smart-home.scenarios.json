@@ -304,7 +304,8 @@
 				{ "click": "#autoAdd-if" },
 				{ "expect": { "state": "automations[1].steps.length", "is": 6 } },
 				{ "expect": { "state": "automations[1].steps[5].part", "is": "if" } },
-				{ "click": "#autoStepRemove", "nth": 0 },
+				{ "click": "#autoStepMore", "nth": 0 },
+				{ "click": { "role": "menuitem", "name": "Delete" } },
 				{ "expect": { "state": "automations[1].steps.length", "is": 5 } },
 				{ "expect": { "state": "automations[1].steps[0].part", "is": "if" } },
 				{ "click": "#autoRun" },
@@ -531,6 +532,29 @@
 				{ "expect": { "state": "page", "is": "home" } },
 				{ "expect": { "state": "room", "is": 2 } },
 				{ "expect": { "node": "#areaName", "text": "Bedroom" } }
+			]
+		},
+		{
+			"name": "info-header-speaker-devices",
+			"screen": "smart-home.screen.json",
+			"steps": [
+				{ "click": "#light", "nth": 1 },
+				{ "click": "#infoClose" },
+				{ "expect": { "state": "info.open", "is": false } },
+				{ "click": "#deviceName", "nth": 2 },
+				{ "expect": { "node": "#infoVolume", "property": "shown", "is": true } },
+				{ "click": "#infoPlay" },
+				{ "expect": { "state": "devices[2].busy", "is": true } },
+				{ "click": "#infoMore" },
+				{ "click": { "role": "menuitem", "name": "Related" } },
+				{ "expect": { "state": "page", "is": "automations" } },
+				{ "key": "mod+comma" },
+				{ "click": "#settingsRow", "nth": 0 },
+				{ "click": { "role": "tab", "name": "Entities" } },
+				{ "expect": { "node": "#roomEntityTable", "property": "shown", "is": true } },
+				{ "click": "#devSearch" },
+				{ "type": "kit" },
+				{ "expect": { "state": "devQuery", "is": "kit" } }
 			]
 		}
 	]

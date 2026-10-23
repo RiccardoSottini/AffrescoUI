@@ -26,6 +26,7 @@
 	},
 
 	"theme": "{{computed.themeNow}}",
+	"tokens": { "kit.cardRadius": 16 },
 	"colors": {
 		"background": { "dark": "#111111", "light": "#fafafa" },
 		"sidebar": { "dark": "#1c1c1c", "light": "#ffffff" },
@@ -221,6 +222,7 @@
 	},
 
 	"computed": {
+		"onProfile": "{{state.page == 'settings' && state.settingsView == 'profile'}}",
 		"themeNow": "{{state.theme == 'auto' ? window.colorScheme : state.theme}}",
 		"room": "{{state.rooms[state.room]}}",
 		"lightsOn": "{{count(computed.room.lights, it.on)}}",
@@ -411,19 +413,21 @@
 								"gap": 4,
 								"children": [
 									{ "id": "settingsItem", "use": "sideItem", "role": "tab",
-										"with": { "icon": "settings", "title": "{{t('page.settings')}}", "selected": "{{state.page == 'settings'}}", "keyLabel": "Cmd+," },
+										"with": { "icon": "settings", "title": "{{t('page.settings')}}", "selected": "{{state.page == 'settings' && state.settingsView != 'profile'}}", "keyLabel": "Cmd+," },
 										"onClick": "goSettings" },
 									{ "id": "bellButton", "use": "sideItem", "role": "button", "isOpen": "{{state.notificationsOpen}}",
 										"with": { "icon": "bell", "title": "{{t('notify.title')}}", "badge": "{{length(state.notifications)}}" },
 										"label": "{{t('notify.count', { n: length(state.notifications) })}}", "onClick": "toggleNotifications" },
 									{ "id": "footRule", "anchors": { "left": -8, "right": -8 }, "height": 1, "color": "@divider" },
-									{ "id": "userItem", "anchors": { "left": 0, "right": 0 }, "height": 48, "radius": 4, "color": "@sidebar", "hover": { "color": "@cardHover" },
+									{ "id": "userItem", "anchors": { "left": 0, "right": 0 }, "height": 48, "radius": 4,
+										"color": "{{computed.onProfile ? '@selected' : '@sidebar'}}", "hover": { "color": "{{computed.onProfile ? '@selected' : '@cardHover'}}" },
+										"selected": "{{computed.onProfile}}",
 										"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('user.profile')}}", "tooltip": "{{t('user.profile')}}",
 										"onClick": [{ "set": "state.settingsView", "to": "profile" }, { "set": "state.page", "to": "settings" }],
 										"children": [
 											{ "id": "userAvatar", "type": "label", "font": "small", "text": "A", "textColor": "@knob", "color": "@primary", "anchors": { "left": 4, "top": 8 },
 												"width": 32, "height": 32, "radius": 16, "align": "center" },
-											{ "id": "userName", "when": "{{!state.sidebarCollapsed}}", "type": "label", "text": "Alex", "textColor": "@text",
+											{ "id": "userName", "when": "{{!state.sidebarCollapsed}}", "type": "label", "text": "Alex", "textColor": "{{computed.onProfile ? '@accent' : '@text'}}",
 												"anchors": { "left": 52, "top": 0, "bottom": 0 }, "fitText": true, "align": { "horizontal": "start", "vertical": "center" } }
 										] }
 								]
@@ -792,6 +796,10 @@
 							}
 						]
 					},
+					{ "id": "editAddCard", "when": "{{state.page == 'home' && state.editing}}", "style": "button", "icon": "plus", "text": " {{t('edit.addCard')}}", "color": "@accent",
+						"hover": { "color": "@accent" }, "textColor": "@knob", "anchors": { "right": 32, "bottom": 64 }, "width": 168, "height": 52, "radius": 16,
+						"shadow": { "y": 4, "blur": 12, "color": "#00000040" }, "role": "button", "label": "{{t('edit.addCard')}}",
+						"onClick": { "run": "showToast", "with": { "message": "{{t('edit.addCardSoon')}}" } } },
 					{ "id": "areasPageView", "dir": "auto", "when": "{{state.page == 'areas'}}", "use": "areasPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
 					{ "id": "logbookPageView", "dir": "auto", "when": "{{state.page == 'logbook'}}", "use": "logbookPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
 					{ "id": "historyPageView", "dir": "auto", "when": "{{state.page == 'history'}}", "use": "historyPage", "anchors": { "left": "{{computed.sideWidth}}", "right": 0, "top": 0, "bottom": 32 } },
@@ -843,10 +851,12 @@
 					{
 						"id": "quickPick",
 						"dir": "auto",
+						"y": "{{max(48, window.height * 0.12)}}",
 						"use": "quickPick",
 						"with": {
 							"highlight": "@accentSoft",
-							"rowHeight": 40,
+							"rowHeight": 48,
+							"rows": 8,
 							"providers": [
 								{ "prefix": ">", "items": "{{computed.palette}}", "placeholder": "{{t('quick.commands')}}" },
 								{ "items": "{{computed.entities}}", "placeholder": "{{t('quick.entities')}}" }

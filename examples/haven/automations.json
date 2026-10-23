@@ -23,6 +23,7 @@
 		"autoConfirm": false,
 		"autoTarget": -1,
 		"autoRowMenu": {},
+		"stepMenu": {},
 		"automations": [
 			{ "id": "welcome", "icon": "door-open", "on": true, "ran": "min7", "steps": [
 				{ "part": "when", "icon": "door-open", "key": "frontOpens" }, { "part": "if", "icon": "sunset", "key": "afterDark" },
@@ -124,6 +125,10 @@
 			{ "set": "state.automations", "to": "{{concat(state.automations, [merge(computed.openAuto, { id: computed.openAuto.id + '-' + length(state.automations), title: computed.openAuto.title ?? computed.openAuto.id, ran: 'never' })])}}" },
 			{ "set": "state.autoOpen", "to": "{{length(state.automations) - 1}}" }
 		],
+		"stepAction": [
+			{ "note": "with: s, a step of the open automation, and what: duplicate or delete" },
+			{ "set": "state.automations[state.autoOpen].steps", "to": "{{what == 'delete' ? filter(state.automations[state.autoOpen].steps, index != s) : concat(slice(state.automations[state.autoOpen].steps, 0, s + 1), slice(state.automations[state.autoOpen].steps, s))}}" }
+		],
 		"confirmDelete": [{ "set": "state.autoTarget", "to": "{{state.autoOpen}}" }, { "set": "state.autoConfirm", "to": true }],
 		"rowAction": [
 			{ "note": "with: i, an automation in the list, and what: its row menu's choice (run, duplicate, enable or delete)" },
@@ -204,7 +209,7 @@
 			"node": {
 				"style": "card",
 				"anchors": { "left": 0, "right": 12 },
-				"height": "{{max(1, length(filter(computed.openAuto.steps, it.part == part))) * 48 + 116}}",
+				"height": "{{max(1, length(filter(computed.openAuto.steps, it.part == part))) * 54 + 116}}",
 				"role": "group",
 				"label": "{{title}}",
 				"children": [
@@ -215,22 +220,27 @@
 					{
 						"type": "column",
 						"anchors": { "left": 12, "right": 12, "top": 68 },
-						"height": "{{length(filter(computed.openAuto.steps, it.part == part)) * 48}}",
+						"height": "{{length(filter(computed.openAuto.steps, it.part == part)) * 54}}",
 						"gap": 6,
 						"role": "list",
 						"label": "{{title}}",
 						"children": [
 							{ "id": "autoStep", "repeat": { "for": "step", "in": "computed.openAuto.steps", "index": "s" }, "when": "{{step.part == part}}",
-								"anchors": { "left": 0, "right": 0 }, "height": 42, "radius": 8, "color": "@field", "role": "listitem",
+								"anchors": { "left": 0, "right": 0 }, "height": 48, "radius": 12, "color": "@card", "borderWidth": 1, "borderColor": "@border", "role": "listitem",
 								"children": [
-									{ "type": "label", "icon": "{{step.icon}}", "text": "", "textColor": "@accent", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "width": 24,
+									{ "type": "label", "icon": "{{step.icon}}", "text": "", "textColor": "@accent", "anchors": { "left": 16, "top": 0, "bottom": 0 }, "width": 24,
 											"align": "center" },
-									{ "type": "label", "text": "{{t('rule.' + step.key)}}", "textColor": "@text", "anchors": { "left": 44, "right": 48, "top": 0, "bottom": 0 },
+									{ "type": "label", "text": "{{t('rule.' + step.key)}}", "textColor": "@text", "anchors": { "left": 48, "right": 96, "top": 0, "bottom": 0 },
 										"align": { "horizontal": "start", "vertical": "center" } },
-									{ "id": "autoStepRemove", "style": "button", "icon": "trash-2", "text": "", "color": "transparent", "textColor": "@muted",
-										"anchors": { "right": 6, "top": 5, "bottom": 5 }, "width": 32,
-										"label": "{{t('auto.remove', { item: t('rule.' + step.key) })}}",
-										"onClick": { "set": "state.automations[state.autoOpen].steps", "to": "{{filter(state.automations[state.autoOpen].steps, index != s)}}" } }
+									{ "type": "label", "icon": "chevron-down", "text": "", "textColor": "@muted", "anchors": { "right": 56, "top": 12 }, "width": 24, "height": 24, "align": "center" },
+									{ "id": "autoStepMore", "style": "button", "icon": "ellipsis-vertical", "text": "", "color": "transparent", "hover": { "color": "@raised" }, "textColor": "@muted",
+										"anchors": { "right": 8, "top": 4 }, "width": 40, "height": 40, "radius": 20, "label": "{{t('auto.more')}}: {{t('rule.' + step.key)}}", "tooltip": "{{t('auto.more')}}",
+										"isOpen": "{{state.stepMenu['s' + s] == true}}", "onClick": { "toggle": "{{'state.stepMenu.s' + s}}" },
+										"children": [{ "use": "popMenu", "with": { "open": "{{'state.stepMenu.s' + s}}", "width": 200, "items": [
+											{ "title": "{{t('auto.duplicate')}}", "icon": "copy", "run": "stepAction", "with": { "s": "{{s}}", "what": "duplicate" } },
+											{ "separator": true },
+											{ "title": "{{t('auto.delete')}}", "icon": "trash-2", "run": "stepAction", "with": { "s": "{{s}}", "what": "delete" } }
+										] } }] }
 								] }
 						]
 					},
@@ -273,8 +283,6 @@
 							{ "id": "autoSearch", "type": "textarea", "bind": "state.autoQuery", "placeholder": "{{t('auto.search')}}", "placeholderColor": "@muted", "textColor": "@text",
 								"color": "transparent", "anchors": { "left": 38, "right": 12, "top": 0, "bottom": 0 }, "label": "{{t('auto.search')}}" }
 						] },
-					{ "id": "autoListSummary", "when": "{{state.autoTab == 'list' && state.autoOpen < 0}}", "style": "caption",
-						"text": "{{t('auto.count', { n: length(state.automations), on: computed.autoOnCount })}}", "anchors": { "right": 32, "top": 75 } },
 					{ "id": "autoNew", "when": "{{state.autoTab == 'list' && state.autoOpen < 0}}", "style": "button", "icon": "plus", "text": " {{t('auto.new')}}",
 						"color": "@accent", "hover": { "color": "@accent" }, "textColor": "@knob", "anchors": { "right": 32, "bottom": 32 }, "width": 208, "height": 52, "radius": 16,
 						"shadow": { "y": 4, "blur": 12, "color": "#00000040" },

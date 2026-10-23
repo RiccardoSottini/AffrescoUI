@@ -5,6 +5,8 @@
 		"settingsView": "main",
 		"langMenu": false,
 		"genMenu": false,
+		"devTab": "devices",
+		"devQuery": "",
 		"settingsGroups": [
 			{ "id": "home", "rows": [
 				{ "id": "devices", "icon": "cpu", "color": "#039be5" },
@@ -32,9 +34,9 @@
 
 	"computed": {
 		"subPages": "{{['devices', 'profile', 'general', 'about']}}",
-		"deviceRows": "{{map(state.devices, { id: it.id, cells: [it.name, t('kind.' + it.id), t('device.' + it.id + '.' + (it.on ? 'on' : 'off'))] })}}",
+		"deviceRows": "{{filter(map(state.devices, { id: it.id, cells: [it.name, t('kind.' + it.id), t('device.' + it.id + '.' + (it.on ? 'on' : 'off'))] }), contains(lower(it.cells[0]), lower(state.devQuery)))}}",
 		"deviceColumns": "{{[{ id: 'name', title: t('table.device'), width: floor((window.width - computed.sideWidth - 66) * 0.4) }, { id: 'kind', title: t('table.kind'), width: floor((window.width - computed.sideWidth - 66) * 0.3) }, { id: 'state', title: t('table.state'), width: floor((window.width - computed.sideWidth - 66) * 0.3) }]}}",
-		"roomEntityRows": "{{map(state.rooms, { id: 'r' + index, cells: [it.name, t('summary.lights', { on: length(filter(it.lights, it.on)), total: length(it.lights) }), it.temp + '°  →  ' + it.target + '°'] })}}",
+		"roomEntityRows": "{{filter(map(state.rooms, { id: 'r' + index, cells: [it.name, t('summary.lights', { on: length(filter(it.lights, it.on)), total: length(it.lights) }), it.temp + '°  →  ' + it.target + '°'] }), contains(lower(it.cells[0]), lower(state.devQuery)))}}",
 		"roomEntityColumns": "{{[{ id: 'room', title: t('table.room'), width: floor((window.width - computed.sideWidth - 66) * 0.4) }, { id: 'lights', title: t('lights.title'), width: floor((window.width - computed.sideWidth - 66) * 0.3) }, { id: 'climate', title: t('climate.title'), width: floor((window.width - computed.sideWidth - 66) * 0.3) }]}}"
 	},
 
@@ -143,22 +145,49 @@
 							}
 						]
 					},
+					{ "id": "devTabs", "when": "{{state.settingsView == 'devices'}}", "type": "row", "anchors": { "left": 0, "right": 0, "top": 56 }, "height": 48, "color": "@card",
+						"justify": "center", "role": "tablist", "arrows": "horizontal", "label": "{{t('set.devices')}}", "children": [
+							{ "id": "devTab", "repeat": { "for": "tab", "in": "['integrations', 'devices', 'entities', 'helpers']" }, "type": "label", "text": "{{t('dev.' + tab)}}",
+								"textColor": "{{state.devTab == tab ? '@accent' : '@muted'}}", "anchors": { "top": 0, "bottom": 0 }, "width": 140, "align": "center",
+								"hover": { "color": "@cardHover" }, "cursor": "hand", "focusable": true, "role": "tab", "selected": "{{state.devTab == tab}}",
+								"onClick": { "set": "state.devTab", "to": "{{tab}}" },
+								"children": [{ "when": "{{state.devTab == tab}}", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 2, "color": "@accent" }] }
+						] },
+					{ "id": "devTabsRule", "when": "{{state.settingsView == 'devices'}}", "anchors": { "left": 0, "right": 0, "top": 104 }, "height": 1, "color": "@divider" },
+					{ "id": "devSearchBox", "when": "{{state.settingsView == 'devices'}}", "anchors": { "left": 24, "right": 24, "top": 124 }, "height": 48, "radius": 24, "color": "@card",
+						"borderWidth": 1, "borderColor": "@border", "children": [
+							{ "type": "label", "icon": "search", "text": "", "textColor": "@muted", "anchors": { "left": 14, "top": 0, "bottom": 0 }, "width": 24, "align": "center" },
+							{ "id": "devSearch", "type": "textarea", "bind": "state.devQuery", "placeholder": "{{t('dev.search')}}", "placeholderColor": "@muted", "textColor": "@text",
+								"color": "transparent", "anchors": { "left": 48, "right": 120, "top": 0, "bottom": 0 }, "label": "{{t('dev.search')}}" },
+							{ "type": "label", "icon": "filter", "text": " {{t('dev.filters')}}", "textColor": "@muted", "anchors": { "right": 16, "top": 0, "bottom": 0 }, "fitText": true,
+								"align": { "horizontal": "end", "vertical": "center" } }
+						] },
+					{ "id": "devEmpty", "when": "{{state.settingsView == 'devices' && (state.devTab == 'integrations' || state.devTab == 'helpers')}}", "style": "card",
+						"anchors": { "left": 24, "right": 24, "top": 192 }, "height": 160, "children": [
+							{ "type": "label", "font": "iconsLarge", "icon": "{{state.devTab == 'helpers' ? 'wand-2' : 'puzzle'}}", "text": "", "textColor": "@muted",
+								"anchors": { "left": 0, "right": 0, "top": 32 }, "height": 48, "align": "center" },
+							{ "type": "label", "text": "{{t('dev.empty.' + state.devTab)}}", "textColor": "@muted", "anchors": { "left": 24, "right": 24, "top": 96 }, "height": 24, "align": "center" }
+						] },
+					{ "id": "devAdd", "when": "{{state.settingsView == 'devices'}}", "style": "button", "icon": "plus", "text": " {{t('dev.add.' + state.devTab)}}", "color": "@accent",
+						"hover": { "color": "@accent" }, "textColor": "@knob", "anchors": { "right": 32, "bottom": 32 }, "width": 200, "height": 52, "radius": 16,
+						"shadow": { "y": 4, "blur": 12, "color": "#00000040" }, "role": "button", "label": "{{t('dev.add.' + state.devTab)}}",
+						"onClick": { "run": "showToast", "with": { "message": "{{t('areas.addSoon')}}" } } },
 					{
 						"id": "settingsDevices",
-						"when": "{{state.settingsView == 'devices'}}",
+						"when": "{{state.settingsView == 'devices' && (state.devTab == 'devices' || state.devTab == 'entities')}}",
 						"type": "column",
-						"anchors": { "left": 24, "right": 24, "top": 80, "bottom": 0 },
+						"anchors": { "left": 24, "right": 24, "top": 192, "bottom": 0 },
 						"gap": 24,
 						"scroll": "vertical",
 						"children": [
-							{ "id": "deviceTableCard", "style": "card", "anchors": { "left": 0, "right": 0 }, "height": "{{length(state.devices) * 40 + 92}}",
+							{ "id": "deviceTableCard", "when": "{{state.devTab == 'devices'}}", "style": "card", "anchors": { "left": 0, "right": 0 }, "height": "{{length(computed.deviceRows) * 40 + 92}}",
 								"children": [
 									{ "type": "label", "icon": "cpu", "text": "  {{t('devices.title')}}", "font": "heading", "textColor": "@text", "anchors": { "left": 20, "top": 16 }, "fitText": true },
 									{ "id": "deviceTable", "type": "table", "anchors": { "left": 8, "right": 8, "top": 52, "bottom": 8 }, "rowHeight": 40, "color": "@card",
 										"items": "{{computed.deviceRows}}", "columns": "{{computed.deviceColumns}}", "label": "{{t('devices.title')}}", "textColor": "@text",
 										"selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@border" }
 								] },
-							{ "id": "roomTableCard", "style": "card", "anchors": { "left": 0, "right": 0 }, "height": "{{length(state.rooms) * 40 + 92}}",
+							{ "id": "roomTableCard", "when": "{{state.devTab == 'entities'}}", "style": "card", "anchors": { "left": 0, "right": 0 }, "height": "{{length(computed.roomEntityRows) * 40 + 92}}",
 								"children": [
 									{ "type": "label", "icon": "layout-grid", "text": "  {{t('set.entities')}}", "font": "heading", "textColor": "@text", "anchors": { "left": 20, "top": 16 }, "fitText": true },
 									{ "id": "roomEntityTable", "type": "table", "anchors": { "left": 8, "right": 8, "top": 52, "bottom": 8 }, "rowHeight": 40, "color": "@card",
@@ -194,11 +223,12 @@
 							{ "type": "column", "anchors": { "left": 0, "right": 0, "top": 8, "bottom": 8 }, "gap": 0, "children": [
 								{ "use": "settingsSection", "id": "profileLanguage", "with": { "title": "{{t('set.language')}}", "sub": "{{t('set.language.sub')}}" }, "role": "group", "children": [
 									{ "id": "pickLanguage", "type": "label", "text": "{{t('set.value.' + settings.ui.language)}}", "textColor": "@text", "width": 240, "height": 36, "padding": 12,
-										"color": "@field", "borderWidth": 1, "borderColor": "@border", "radius": 4, "align": { "horizontal": "start", "vertical": "center" },
-										"hover": { "borderColor": "@text" }, "cursor": "hand", "focusable": true, "role": "combobox", "label": "{{t('set.language')}}",
+										"color": "@raised", "radius": { "topLeft": 4, "topRight": 4 }, "align": { "horizontal": "start", "vertical": "center" },
+										"hover": { "color": "@raisedHover" }, "cursor": "hand", "focusable": true, "role": "combobox", "label": "{{t('set.language')}}",
 										"isOpen": "{{state.langMenu}}", "onClick": { "toggle": "state.langMenu" },
 										"children": [
 											{ "type": "label", "icon": "chevron-down", "text": "", "textColor": "@muted", "anchors": { "right": 8, "top": 6 }, "width": 24, "height": 24, "align": "center" },
+											{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@muted" },
 											{ "id": "langMenu", "use": "menu", "with": { "open": "state.langMenu", "placement": "below", "width": 240,
 												"items": [
 													{ "title": "English", "checked": "{{settings.ui.language == 'en'}}", "run": "pickLanguage", "with": { "lang": "en" } },

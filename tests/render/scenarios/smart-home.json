@@ -50,7 +50,9 @@
 				{ "expect": { "image": "cover-info" } },
 				{ "key": "escape" },
 				{ "click": "#deviceName", "nth": 2 },
-				{ "expect": { "image": "device-info" } }
+				{ "expect": { "image": "device-info" } },
+				{ "click": "#infoMore" },
+				{ "expect": { "image": "device-info-menu" } }
 			]
 		},
 		{
