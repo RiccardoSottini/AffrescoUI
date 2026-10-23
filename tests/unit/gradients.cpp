@@ -139,7 +139,9 @@ TEST_CASE("render: two stops at one place change colour sharply, with no band be
 }
 
 TEST_CASE("render: a gradient to transparent fades its colour, not black, and skips what is all transparent") {
-	const Gradient fade{.stops = {{0.0, affresco::colors::red}, {1.0, affresco::colors::transparent}}};
+	// Top to bottom, as a document's gradient goes when it gives no angle
+	const Gradient fade{.angle = 180.0,
+	                    .stops = {{0.0, affresco::colors::red}, {1.0, affresco::colors::transparent}}};
 	const PaintRecord record = recorded({0.0f, 0.0f, 50.0f, 50.0f}, {}, fade);
 	CHECK(allAt(record, [](const Vertex& vertex) { return vertex.y == 50.0f; }, affresco::colors::red.withAlpha(0.0f)));
 
