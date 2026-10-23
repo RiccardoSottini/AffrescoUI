@@ -1501,7 +1501,7 @@
 					"expect": {
 						"node": "#sky-place",
 						"property": "text",
-						"is": "Earth, 45°N   FOV 63.8°"
+						"is": "Earth, 45°N   FOV 63.8°   2030-01-01 00:00 UTC"
 					}
 				}
 			]
@@ -1559,6 +1559,52 @@
 						"node": "#chart",
 						"property": "visible",
 						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "an-eclipse-seen-from-the-ground",
+			"note": "Going to a solar eclipse turns the sky from the ground to the Sun and keeps it there; a drag lets it go.",
+			"steps": [
+				{
+					"action": "goToEclipse",
+					"event": {
+						"value": "moon-3"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyTrack",
+						"is": "sun"
+					}
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"node": "#sky-body-sun",
+						"property": "visible",
+						"is": true
+					}
+				},
+				{
+					"action": "skyPress"
+				},
+				{
+					"expect": {
+						"state": "skyTrack",
+						"is": ""
+					}
+				},
+				{
+					"action": "skyCentre"
+				},
+				{
+					"expect": {
+						"state": "skyTrack",
+						"is": ""
 					}
 				}
 			]

@@ -32,10 +32,10 @@ system of six bodies on circular orbits in one plane.
 
 | # | Feature | Status | How |
 |---|---|---|---|
-| S1 | A sky chart with stars, orbits and bodies | done | from the ground (the default): the stars, the planets and the Sun seen from the Earth at 45°N, in a perspective view turned by dragging and zoomed with the wheel, every position a computed value from right ascension, declination and the sidereal time; from above: a `canvas` with the orbits |
-| S2 | Horizon, ground and cardinal points | done | a ground panel below the horizon, N, E, S and W on it, an azimuthal grid; the sky brightens and the stars fade while the Sun is up |
+| S1 | A sky chart with stars, orbits and bodies | done | from the ground (the default): 1,200 stars in three tints, the planets and the Sun seen from the Earth at 45°N, in a perspective view turned by dragging and zoomed with the wheel, every position a computed value from right ascension, declination and the sidereal time; from above: a `canvas` with the orbits |
+| S2 | Horizon, ground and cardinal points | done | a landscape of low hills (a `path` from the horizon's profile), N, E, S and W on it, an azimuthal grid; the sky brightens and the stars fade while the Sun is up, and darkens again while the Moon covers it; the place, field of view and date bottom right |
 | S3 | Constellation lines and names | done | fourteen invented constellations of the brighter stars, their lines in a `path`, their names at their centres |
-| S4 | Toggle bar at the bottom (lines, ground, atmosphere, grid) | done | the built-in `toolbar`, bottom left: lines, names, grid, ground, cardinal points, atmosphere, planet labels; the place and field of view bottom right |
+| S4 | Toggle bar at the bottom (lines, ground, atmosphere, grid) | done | the built-in `toolbar`, bottom left: centre on the selected body (and keep it there), lines, names, grid, ground, cardinal points, atmosphere, planet labels; the place and field of view bottom right |
 | S5 | Object info on selection, top left | done | the selected body's name, and its azimuth and altitude, right ascension and declination from the ground, or its distance from the Sun and orbit from above |
 | S6 | Time controls: faster, slower, now, real time | part | play, next or previous event (by direction), day 0, the time keys; no real time |
 | S7 | Annotations on the chart (notes, marks) | done | the canvas's items |
@@ -66,3 +66,4 @@ system of six bodies on circular orbits in one plane.
 | 9 | The built-in menu bar, toolbar and status bar in place of hand-made ones; muting a kind of event; fixes from the round 8 critique: a body moved under a planet orbits close to it and goes back to its old orbit, spheres sized without the labels' clamp, nothing marked without a selection | 21 / 3 / 5 | 27,556 |
 | 10 | Eclipse finder (eclipses computed from the orbits and eclipse seasons, the timeline's eclipses with them); the selected body's info on the sky chart | 23 / 3 / 3 | 28,846 |
 | 11 | The sky from the ground: horizon, ground, cardinal points, grid, daylight, invented constellations, the toggle bar | 27 / 2 / 0 | 29,306 + 5,334 for `sky.json` |
+| 12 | Fixes from the round 11 critique: an eclipse turns the sky to the Sun or the Moon and the sky darkens under a solar eclipse, a landscape instead of a flat ground, more stars in three tints, the date under the sky, centring on a body, days with their decimal | 27 / 2 / 0 | 29,368 + 6,800 for `sky.json` |
