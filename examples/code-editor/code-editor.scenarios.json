@@ -356,6 +356,25 @@
 			]
 		},
 		{
+			"name": "replace-in-files",
+			"note": "Find in Files' Replace lists the matches, then replaces them in the files 'Where' names, which become unsaved",
+			"steps": [
+				{ "key": "mod+shift+f" },
+				{ "wait": 50 },
+				{ "revision": { "type": "revision", "message": "Replace in the header", "set": { "/state/findBar/where": "Station.hpp" } } },
+				{ "click": "#findText" },
+				{ "type": "connect" },
+				{ "click": "#replaceText" },
+				{ "type": "attach" },
+				{ "click": "#replaceFilesButton" },
+				{ "wait": 50 },
+				{ "expect": { "state": "results.matches", "is": 1 } },
+				{ "expect": { "state": "files[1].dirty", "is": true } },
+				{ "expect": { "state": "files[2].dirty", "is": false } },
+				{ "expect": { "node": "#label-replace", "text": "Replace:" } }
+			]
+		},
+		{
 			"name": "line-operations",
 			"note": "Duplicate, delete and move the caret's line up, each with its key",
 			"steps": [

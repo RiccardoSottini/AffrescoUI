@@ -23,7 +23,7 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Navigation | Next and previous tab | done | |
 | Editing | Multiple selections | done | |
 | Editing | Find panel (Cmd+F), replace | done | regex, case, whole word and in-selection toggles |
-| Editing | Find in Files | partial | a results buffer, F4 to step through, where filter; no regex, no match boxes |
+| Editing | Find in Files | partial | Find, Where and Replace rows; a results buffer with its matches marked, F4 to step through; no regex, replace is plain text |
 | Editing | Layouts and split editing | missing | |
 | Editing | Distraction Free mode | missing | |
 | Editing | Projects (folder tree, open files) | done | one sample project |
@@ -41,4 +41,4 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Settings | Theme selector with live preview | missing | |
 | Extra | Problems list (from the sample build) | done | not in the reference; kept for the scenarios |
 
-Counts: 23 done, 3 partial, 7 missing.
+Counts: 24 done, 3 partial, 7 missing.
