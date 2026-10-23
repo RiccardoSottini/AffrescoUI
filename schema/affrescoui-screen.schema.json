@@ -780,6 +780,66 @@
 							}
 						}
 					},
+					"images": {
+						"type": "object",
+						"maxProperties": 16,
+						"description": "Raster images the image step edits, with their tools and lowered limits",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"width",
+								"height"
+							],
+							"properties": {
+								"width": {
+									"type": "integer",
+									"minimum": 1
+								},
+								"height": {
+									"type": "integer",
+									"minimum": 1
+								},
+								"format": {
+									"enum": [
+										"rgba8",
+										"rgba16f"
+									]
+								},
+								"background": {
+									"type": "string"
+								},
+								"into": {
+									"type": "string",
+									"pattern": "^state\\."
+								},
+								"tool": {
+									"type": "string"
+								},
+								"tools": {
+									"type": "object",
+									"maxProperties": 64,
+									"additionalProperties": {
+										"type": "object",
+										"required": [
+											"gesture"
+										],
+										"properties": {
+											"gesture": {
+												"type": "string"
+											}
+										}
+									}
+								},
+								"limits": {
+									"type": "object",
+									"additionalProperties": {
+										"type": "integer",
+										"minimum": 1
+									}
+								}
+							}
+						}
+					},
 					"features": {
 						"type": "object",
 						"description": "Installed features, one record each (rfcs/0004-features.md)",
@@ -872,6 +932,7 @@
 									"slider",
 									"image",
 									"surface",
+									"raster",
 									"split",
 									"tabs",
 									"list",
@@ -2068,6 +2129,26 @@
 					},
 					"continuous": {
 						"$ref": "#/$defs/v2/flag"
+					},
+					"image": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "raster: the name of an image the images section declares"
+					},
+					"checker": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"overlayColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"shadeColor": {
+						"$ref": "#/$defs/v2/color"
 					},
 					"value": {
 						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids; colorPicker: a colour; gradient: { kind, angle, stops }; curves: { points }",
@@ -3380,6 +3461,7 @@
 									"slider",
 									"image",
 									"surface",
+									"raster",
 									"split",
 									"tabs",
 									"list",

@@ -13,7 +13,7 @@
 
 	"computed": {
 		"commandItems": "{{map(filter(commands, it.enabled), {title: (it.category ? it.category + ': ' : '') + it.title, detail: it.keyLabel ?? '', run: it.name})}}",
-		"lineItems": "{{number(slice(state.quickPick.query ?? '', 1)) > 0 ? [{title: 'Go to line ' + trim(slice(state.quickPick.query, 1)), line: number(slice(state.quickPick.query, 1))}] : []}}",
+		"lineItems": "{{(number(slice(state.quickPick.query ?? '', 1)) ?? 0) > 0 ? [{title: 'Go to line ' + trim(slice(state.quickPick.query, 1)), line: number(slice(state.quickPick.query, 1))}] : []}}",
 		"keyRows": "{{map(filter(keybindings, empty(state.keysQuery) || contains(lower((it.title ?? it.command ?? '') + ' ' + it.keyLabel), lower(state.keysQuery))), {id: index, cells: [it.title ?? it.command ?? '', it.keyLabel, it.when ?? '', it.scope]})}}"
 	},
 

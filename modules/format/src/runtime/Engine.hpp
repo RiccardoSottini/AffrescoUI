@@ -58,7 +58,7 @@ struct Engine : VersionObserver {
 	Engine& operator=(const Engine&) = delete;
 	Engine(Engine&&) = delete;
 	Engine& operator=(Engine&&) = delete;
-	/// @brief Stops listening to the version control, which outlives the engine.
+	/// @brief Stops listening to the version control, which outlives the engine, and detaches its image documents.
 	~Engine() override;
 
 	Runtime& owner;                         ///< For onEvent, onError, onSend, onConnect and onUpdated.

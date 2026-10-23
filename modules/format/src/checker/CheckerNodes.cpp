@@ -28,7 +28,7 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 	 "reject",   "preview", "restore", "revert",    "undo",      "endPreview", "focus",   "scrollTo",
 	 "navigate", "dismiss", "after",   "debounce",  "animate",   "copy",       "log",     "stop",
 	 "note",     "invoke",  "request", "subscribe", "respond",   "ask",        "signIn",  "signOut",
-	 "camera",   "transform"});
+	 "camera",   "transform", "image"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -99,6 +99,7 @@ std::optional<Reference> referenceOf(std::string_view key) {
 	if(key == "color" || key.ends_with("Color")) return Reference{"color", "colors", "@"};
 	if(key == "font") return Reference{"font", "fonts", ""};
 	if(key == "style") return Reference{"style", "styles", ""};
+	if(key == "image") return Reference{"image", "images", ""}; // a raster node's
 	return std::nullopt;
 }
 
@@ -503,6 +504,7 @@ void Checker::walkStepValues(std::string_view kind, const json& step, const Scop
 	if(kind == "navigate")
 		for(const std::string& name : candidateNames(step["navigate"]))
 			if(name != "back") refer("screen", "screens", name, "", place + ".navigate");
+	if(kind == "image") walkImageStep(step, place);
 }
 
 void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::string& place) {

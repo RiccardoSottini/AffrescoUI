@@ -14,7 +14,8 @@ namespace {
 
 /// The top-level sections, in the order of the table.
 constexpr auto sectionTable = std::to_array<KeyReference>({
-    {"version", R"json({"const": 2})json", "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
+    {"version", R"json({"const": 2})json",
+	 "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
     {"root", R"json({"$ref": "#/$defs/v2/node",
 		"description": "The window's root panel: it always fills the window"})json",
 	 "Required. The window's root node. It always fills the window, so layout properties aren't allowed on it.",
@@ -254,6 +255,20 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "`{\"ui\": \"workbench@^1.0.0\"}`: `\"use\": \"ui.panel\"` builds the feature's `workbench.panel`, if its "
 	 "release is in the range.",
 	 "capabilities"},
+    {"images", R"json({"type": "object", "maxProperties": 16,
+		"description": "Raster images the image step edits, with their tools and lowered limits",
+		"additionalProperties": {"type": "object", "required": ["width", "height"],
+		"properties": {"width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1},
+		"format": {"enum": ["rgba8", "rgba16f"]}, "background": {"type": "string"},
+		"into": {"type": "string", "pattern": "^state\\."}, "tool": {"type": "string"},
+		"tools": {"type": "object", "maxProperties": 64, "additionalProperties": {"type": "object",
+		"required": ["gesture"], "properties": {"gesture": {"type": "string"}}}},
+		"limits": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}}}}})json",
+	 "`{\"canvas\": {\"width\": 800, \"height\": 600, \"into\": \"state.canvas\", \"tools\": {\"brush\": "
+	 "{\"gesture\": \"paint\", \"size\": 12}}}}`: the images the `image` step edits; `tools` names the "
+	 "library's gestures with their settings, and `limits` only lowers the library's (see Images). Revisions can't "
+	 "change it.",
+	 "capabilities"},
     {"points", R"json({"type": "object", "description": "Contribution points another app's features may fill",
 		"additionalProperties": {"type": "object", "required": ["slot"],
 		"properties": {"slot": {"enum": ["dock", "panel", "menu", "toolbar"]},
@@ -363,6 +378,9 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"loading", "", "", ""},
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
+    {"image", "",
+	 R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation and publishes the image (see Images))", "steps"},
+    {"of", "", "", ""},
     {"camera", "",
 	 R"(`{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, )"
 	 R"(`zoom`: see `scene`))",

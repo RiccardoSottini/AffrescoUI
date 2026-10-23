@@ -48,6 +48,7 @@ target_include_directories(affrescoui_format PRIVATE src/locale)
 target_sources(affrescoui_format PRIVATE
 	src/checker/Checker.cpp
 	src/checker/CheckerNodes.cpp
+	src/checker/CheckerImages.cpp
 	src/checker/CheckerTypes.cpp
 	src/checker/CheckerValues.cpp
 	src/checker/StateTypes.cpp)
@@ -144,6 +145,14 @@ target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/cr
 	src/creative/TimelineType.cpp src/creative/PathType.cpp src/creative/SceneType.cpp)
 # scene: the 3D scene node and its camera step
 target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
+# imaging: the images a screen edits ("images" section, "image" step, "raster" node): the store, the tools, the
+# operations, the publisher and the view
+target_sources(affrescoui_format PRIVATE src/imaging/ImageDocuments.cpp src/imaging/ImageOptions.cpp
+	src/imaging/ImagesSection.cpp src/imaging/ImageGestures.cpp src/imaging/ImageOperations.cpp
+	src/imaging/ImageFiles.cpp src/imaging/ImageLayers.cpp src/imaging/ImageEdits.cpp src/imaging/ImageView.cpp
+	src/imaging/ImageSteps.cpp src/imaging/ImagePublishing.cpp src/imaging/RasterView.cpp
+	src/imaging/RasterOverlays.cpp src/imaging/RasterType.cpp)
+target_link_libraries(affrescoui_format PRIVATE affrescoui::imaging)
 # properties: the properties node types share: look, layout, accessibility, transform, text fields, icons, runs
 target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/CommonProperties.cpp
 	src/properties/PropertyValues.cpp src/properties/LayoutProperties.cpp src/properties/AccessibilityProperties.cpp
@@ -152,7 +161,8 @@ target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/prope
 # reference: the reference of nodes, sections and tables (the schema, SCREEN_FORMAT.md) and the catalog
 target_sources(affrescoui_format PRIVATE src/reference/Reference.cpp src/reference/ReferenceNodes.cpp
 	src/reference/ReferenceNodeTypes.cpp src/reference/ReferenceSceneKeys.cpp src/reference/ReferenceNodeEvents.cpp
-	src/reference/ReferenceSections.cpp src/reference/ReferenceTables.cpp src/reference/Catalog.cpp)
+	src/reference/ReferenceSections.cpp src/reference/ReferenceTables.cpp src/reference/ReferenceImages.cpp
+	src/reference/Catalog.cpp)
 # sections: the section registry, the sections, the capability sections and the design tokens
 target_sources(affrescoui_format PRIVATE src/sections/Sections.cpp src/sections/CapabilitySections.cpp
 	src/sections/DesignTokens.cpp)
@@ -170,4 +180,4 @@ target_sources(affrescoui_format PRIVATE src/adapters/Layout.cpp src/adapters/A2
 	src/adapters/AdaptiveCards.cpp src/adapters/AdaptiveCardActions.cpp src/adapters/Adapters.cpp
 	src/adapters/AdapterMapping.cpp)
 target_include_directories(affrescoui_format PRIVATE src/types src/controls src/components src/creative src/properties
-	src/reference src/sections src/connections src/features src/composition src/adapters)
+	src/reference src/sections src/connections src/features src/composition src/adapters src/imaging)

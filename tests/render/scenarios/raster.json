@@ -1,0 +1,38 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "raster",
+			"screen": "raster.screen.json",
+			"note": "A raster node: the image fitted over its checkerboard, a marker stroke with the brush's outline under the pointer, a marquee's ants, a lasso and a crop while they are dragged, then the crop applied and the image fitted again. The view is centred at window (240, 168), at 1.98 window units per image pixel",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "note": "A marker stroke across the transparent half, from image (120, 30) to (180, 90)", "click": "#marker" },
+				{ "drag": [280, 109], "to": [399, 227] },
+				{ "expect": { "state": "sketch.history[1].label", "is": "Brush" } },
+				{ "expect": { "image": "painted", "note": "the brush's outline stays under the pointer" } },
+				{ "note": "A marquee over the stroke: its ants", "click": "#box" },
+				{ "drag": [300, 90], "to": [420, 240] },
+				{ "expect": { "state": "sketch.selection", "is": true } },
+				{ "expect": { "image": "selected" } },
+				{ "note": "A lasso while it is drawn: its outline follows the pointer", "click": "#lasso" },
+				{ "press": [100, 100] },
+				{ "move": [220, 120] },
+				{ "move": [160, 250] },
+				{ "move": [90, 200] },
+				{ "expect": { "image": "lassoing" } },
+				{ "release": [90, 200] },
+				{ "note": "A crop while it is dragged: the rest shaded, its thirds", "click": "#crop" },
+				{ "press": [80, 80] },
+				{ "move": [230, 160] },
+				{ "move": [380, 240] },
+				{ "expect": { "image": "cropping" } },
+				{ "release": [380, 240] },
+				{ "expect": { "state": "sketch.width", "is": 152 } },
+				{ "expect": { "image": "cropped", "note": "what was kept, fitted again" } }
+			]
+		}
+	]
+}

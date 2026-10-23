@@ -48,6 +48,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `adapters` | Any text, to `convertForeign` (`format/include/affresco/format/Adapters.hpp`): an A2UI message stream or an Adaptive Card, as the screen loader converts it | Refused with `json::parse_error` or `DocumentError`, or not another format's; a conversion is a screen the format accepts, within the limits |
 | `gltf` | A file's bytes, `.gltf` or `.glb`, to the glTF loader (`modules/scene3d/src/gltf/`), without a folder, so only embedded and `data:` buffers are read | Refused with an error, or a model within the limits it was given |
 | `scene` | `{ gltf, scene, animations, time }`: a scene node's scene and clips (`format/src/creative/SceneType.cpp`), the glTF placed as an asset, read at the time | Within its node and material limits; every placed node is in the scene and selects its owner; read back from its JSON it is the same scene |
+| `images` | `{ images, steps }`: the images a screen edits (`format/src/imaging`), each entry within small limits, and up to 48 `image` steps with any `with` | An entry is refused with a reason or makes an image; a step that can't be done leaves its reason, as the step does; every snapshot the screen's state receives can be written out, and the image stays within its side limit |
 
 ## Inventory of untrusted inputs
 
@@ -66,6 +67,7 @@ of these and what limits them.
 | Image files a revision names (PNG, JPEG, SVG) | Peers, within the allowed folders | `image`, `path` |
 | glTF models a scene node names | Peers, within the allowed folders | `gltf`, `scene` |
 | A scene node's scene and animations (state) | Agents and peers, by revisions | `scene` |
+| The images a screen edits (its `images` section) and the `image` steps that change them | Agents and peers, by revisions | `images` |
 | Font files a revision names | Peers, within the allowed folders | `lookups` for the tables the app reads itself; the rest is FreeType and HarfBuzz, fuzzed upstream by OSS-Fuzz, and `text` and `richtext` shape through them |
 | Text typed, pasted or sent to an editor | Users and peers | `text_model`, `text`, `richtext`, `syntax` (the grammars that colour it) |
 | Find and search patterns, replacements, globs, `.gitignore` files | Peers, and whoever made the searched folder | `find_pattern`, `search_glob` |
@@ -101,7 +103,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output`, `vscode_theme`, `gltf` or `scene` in place of
+Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output`, `vscode_theme`, `gltf`, `scene` or `images` in place of
 `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.

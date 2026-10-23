@@ -231,6 +231,17 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`true` draws it every frame (an animation), with the time since the screen started. Default: `false`, drawn "
 	 "only when `params`, its size or its input change.",
 	 "surface"},
+    {"image", R"json({"anyOf": [{"type": "string"}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "raster: the name of an image the images section declares"})json",
+	 "The name of an image the `images` section declares, made the first time a node or an `image` step names it. "
+	 "A name the section doesn't declare is an error at the node.",
+	 "raster"},
+    {"checker", "flag", "A checkerboard where the image is transparent. Default: `true`.", "raster"},
+    {"overlayColor", "color",
+	 "The outlines of what the tools are doing (the marquee, the lasso, the crop and its thirds, the brush). Default: "
+	 "white, over a dark line.",
+	 "raster"},
+    {"shadeColor", "color", "Over what the crop being dragged leaves out. Default: black at half opacity.", "raster"},
     {"direction", "",
 	 R"(`"row"` (the default: panes side by side, vertical sashes) or `"column"` (one above the other).)", "split"},
     {"value",

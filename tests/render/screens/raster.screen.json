@@ -1,0 +1,65 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "A sketch pad, for the rendering check: an image half transparent (the checkerboard shows through), fitted to a raster node, with tools that paint, select by marquee and lasso, and crop.",
+
+	"window": { "title": "Sketch pad", "width": 480, "height": 300 },
+
+	"fonts": {
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 }
+	},
+
+	"colors": { "bar": "#e2e8f0", "button": "#ffffff", "text": "#0f172a", "desk": "#334155" },
+
+	"styles": {
+		"tool": { "color": "@button", "textColor": "@text", "radius": 4, "align": "center" }
+	},
+
+	"images": {
+		"sketch": {
+			"width": 200, "height": 120, "background": "transparent", "into": "state.sketch",
+			"tools": {
+				"marker": { "gesture": "paint", "size": 8, "hardness": 100, "foreground": "#2563eb" },
+				"box": { "gesture": "select-rectangle" },
+				"lasso": { "gesture": "lasso" },
+				"crop": { "gesture": "crop" }
+			}
+		}
+	},
+
+	"state": { "sketch": null },
+
+	"actions": {
+		"use": [{ "image": "setTool", "with": { "tool": "{{tool}}" } }]
+	},
+
+	"onLoad": [
+		{ "image": "select", "with": { "kind": "rectangle", "from": { "x": 10, "y": 10 }, "to": { "x": 100, "y": 110 } } },
+		{ "image": "fillSelection", "with": { "color": "#f59e0b" } },
+		{ "image": "select", "with": { "kind": "none" } },
+		{ "image": "clearHistory" }
+	],
+
+	"root": {
+		"id": "root",
+		"color": "@desk",
+		"children": [
+			{
+				"id": "layout", "type": "column", "fill": true,
+				"children": [
+					{
+						"id": "bar", "type": "row", "width": "100%", "height": 36, "color": "@bar", "gap": 6,
+						"children": [
+							{ "id": "marker", "type": "label", "style": "tool", "width": 70, "height": 26, "text": "Marker", "onClick": { "run": "use", "with": { "tool": "marker" } } },
+							{ "id": "box", "type": "label", "style": "tool", "width": 70, "height": 26, "text": "Box", "onClick": { "run": "use", "with": { "tool": "box" } } },
+							{ "id": "lasso", "type": "label", "style": "tool", "width": 70, "height": 26, "text": "Lasso", "onClick": { "run": "use", "with": { "tool": "lasso" } } },
+							{ "id": "crop", "type": "label", "style": "tool", "width": 70, "height": 26, "text": "Crop", "onClick": { "run": "use", "with": { "tool": "crop" } } }
+						]
+					},
+					{ "id": "pad", "type": "raster", "image": "sketch", "width": "100%", "height": 264, "color": "@desk" }
+				]
+			}
+		]
+	}
+}

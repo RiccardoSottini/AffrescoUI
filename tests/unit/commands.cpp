@@ -137,6 +137,27 @@ TEST_CASE("format: a chord waits for its next press, and a press that doesn't co
 	CHECK(state(screen)["n"] == 11);
 }
 
+TEST_CASE("format: the bracket and semicolon keys have names, run their shortcuts and show their labels") {
+	CHECK(affresco::format::keyName(affresco::Key::LeftBracket) == "leftbracket");
+	CHECK(affresco::format::keyName(affresco::Key::RightBracket) == "rightbracket");
+	CHECK(affresco::format::keyName(affresco::Key::Semicolon) == "semicolon");
+	CHECK(affresco::format::keyLabel("leftbracket").ends_with("["));
+	CHECK(affresco::format::keyLabel("ctrl+rightbracket").ends_with("]"));
+	CHECK(affresco::format::keyLabel("semicolon") == ";");
+
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(
+	    document(R"({ "ctrl+leftbracket": "add", "ctrl+RightBracket": "addTen", "ctrl+semicolon": "add" })"));
+	screen.build(*window);
+	pressControl(*window, affresco::Key::LeftBracket);
+	CHECK(state(screen)["n"] == 1);
+	pressControl(*window, affresco::Key::RightBracket);
+	CHECK(state(screen)["n"] == 11);
+	pressControl(*window, affresco::Key::Semicolon);
+	CHECK(state(screen)["n"] == 12);
+}
+
 TEST_CASE("format: a key skips a disabled command, and a run step ignores its enablement") {
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);

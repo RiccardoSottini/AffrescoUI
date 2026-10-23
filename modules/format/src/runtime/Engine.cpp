@@ -3,6 +3,7 @@
 
 #include "Engine.hpp"
 #include "Contributions.hpp"
+#include "ImagePublishing.hpp"
 #include "Settings.hpp"
 
 #include "affresco/core/Log.hpp"
@@ -21,6 +22,7 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
       document(*this, std::move(baseDirectory)), builder(*this), scheduler(*this), properties(*this), reconciler(*this),
       events(*this), runner(*this), models(*this), connections(*this), serviceCalls(*this), asks(*this), calls(*this) {
 	registerBuiltInTypes(types);
+	attachImageDocuments(*this);
 	addContributionVariables(*this);
 	addSettingsVariables(*this);
 	document.addVariable("services", [this] { // {name: {state, error, restarts}} (RFC 0002)
@@ -42,7 +44,10 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 	peersChanged = versions.onReviewChanged.connect([this] { proposalsChanged(); });
 }
 
-Engine::~Engine() { versions.onReviewChanged.disconnect(peersChanged); }
+Engine::~Engine() {
+	versions.onReviewChanged.disconnect(peersChanged);
+	detachImageDocuments(*this);
+}
 
 void Engine::documentChanged() {
 	builder.forgetVersion(); // what was compiled belongs to the version before
