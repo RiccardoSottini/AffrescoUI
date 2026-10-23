@@ -286,6 +286,7 @@ void Reconciler::forgetSubtree(const Panel& panel) {
 		}
 		engine_.events.forget(panel);
 		engine_.serviceCalls.forgetSender(panel);
+		if(!record->snapshotImage.empty()) engine_.document.images().setNamed(record->snapshotImage, nullptr);
 		records_.erase(&panel);
 	}
 	for(const auto& child : panel.children()) forgetSubtree(*child);

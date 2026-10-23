@@ -1,5 +1,6 @@
 /// @file
-/// @brief Window::renderToImage(): one panel's subtree drawn from scratch into an image (thumbnails, previews).
+/// @brief Window::renderToImage() and snapshots (Panel::setSnapshot()): one panel's subtree drawn from scratch into
+/// an image (thumbnails, previews).
 
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Window.hpp"
@@ -14,6 +15,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace affresco {
@@ -57,12 +59,18 @@ std::shared_ptr<const Bitmap> Window::renderToImage(Panel& panel, float scale) {
 	runDeferred();
 	native_->makeCurrent(); // the image is created in it
 	updateLayout();
-	const Rect area = panel.bounds();
-	if(!panel.isShown() || area.width() <= 0.0f || area.height() <= 0.0f) return nullptr;
+	refreshSnapshots(); // the images it may show, as the next frame draws them
+	if(!panel.isShown()) return nullptr;
+	return drawImage(panel, scale, {static_cast<float>(width_), static_cast<float>(height_)});
+}
 
-	// The frame reaches past the window if the panel does, so that nothing of it is clipped by the window's edges
-	const int frameWidth = std::max(width_, static_cast<int>(std::ceil(area.right)));
-	const int frameHeight = std::max(height_, static_cast<int>(std::ceil(area.bottom)));
+std::shared_ptr<const Bitmap> Window::drawImage(Panel& panel, float scale, Vec2 least) {
+	const Rect area = panel.bounds();
+	if(area.width() <= 0.0f || area.height() <= 0.0f) return nullptr;
+
+	// The frame reaches past its least size if the panel does, so that nothing of it is clipped by the frame's edges
+	const int frameWidth = static_cast<int>(std::ceil(std::max(least.x, area.right)));
+	const int frameHeight = static_cast<int>(std::ceil(std::max(least.y, area.bottom)));
 	const auto pixels = [scale](float units) { return static_cast<int>(std::lround(units * scale)); };
 	const PixelArea crop{std::max(0, pixels(area.left)), std::max(0, pixels(area.top)),
 	                     std::max(1, pixels(area.width())), std::max(1, pixels(area.height()))};
@@ -77,6 +85,65 @@ std::shared_ptr<const Bitmap> Window::renderToImage(Panel& panel, float scale) {
 	const detail::Frame frame{panel, {}, nullptr, frameWidth, frameHeight, layoutPass_, paintGeneration_, {}, false};
 	const std::vector<std::uint8_t> rgb = renderer_->drawFromScratch(frame, size);
 	return Bitmap::fromPixels(crop.width, crop.height, cropToRgba(rgb, size.width, crop), limits);
+}
+
+/* Snapshots */
+
+void Window::layoutSnapshot(Panel& panel, bool shown) {
+	const auto width = static_cast<float>(width_), height = static_cast<float>(height_);
+	// Unclipped, so that the whole source is drawn: a clip far past any image Bitmap::Limits allows
+	constexpr float far = 1.0e6f;
+	panel.layout(Rect{0.0f, 0.0f, width, height}, Rect{-far, -far, far, far}, Vec2{width, height}, shown);
+}
+
+bool Window::snapshotChanged(const Panel& panel) const noexcept {
+	const Panel::Snapshot& snapshot = *panel.snapshot_;
+	return !snapshot.drawn || panel.paintStale_ || panel.paintBelow_ || panel.layoutPass_ > snapshot.pass ||
+	       paintGeneration_ != snapshot.generation;
+}
+
+// Shown only while it is drawn: hidden, nothing can hit, focus, read or draw it on the window
+std::shared_ptr<const Bitmap> Window::drawSnapshot(Panel& panel) {
+	layingOut_ = true; // the frame's own layouts, which ask for no other
+	layoutSnapshot(panel, true);
+	std::shared_ptr<const Bitmap> image;
+	try {
+		image = drawImage(panel, panel.snapshot_->scale, {});
+	} catch(const std::invalid_argument&) { // past Bitmap::Limits: no image, as for a source with no area
+	}
+	layoutSnapshot(panel, false);
+	layingOut_ = false;
+	return image;
+}
+
+void Window::clearPaintMarks(Panel& panel) noexcept {
+	panel.paintStale_ = panel.paintBelow_ = false;
+	for(const auto& child : panel.children_) clearPaintMarks(*child);
+}
+
+// Every image is drawn before any is given: a handler may change the tree, and with it the list of snapshots. What
+// the images change is laid out for this frame, and doesn't make a snapshot drawn before stale, so a snapshot showing
+// another's image (or its own) is drawn again only when something else in it changes. One the handlers made is drawn
+// in the next frame
+void Window::refreshSnapshots() {
+	if(snapshots_.empty() || !renderer_) return;
+	std::vector<std::pair<Panel::SnapshotHandler, std::shared_ptr<const Bitmap>>> images;
+	for(Panel* panel : snapshots_) {
+		if(!snapshotChanged(*panel)) continue;
+		images.emplace_back(panel->snapshot_->onImage, drawSnapshot(*panel));
+		panel->snapshot_->drawn = true;
+	}
+	if(images.empty()) return;
+	for(auto& [handler, image] : images)
+		if(handler) handler(std::move(image));
+	updateLayout();
+	for(Panel* panel : snapshots_) {
+		Panel::Snapshot& snapshot = *panel->snapshot_;
+		if(!snapshot.drawn) continue;
+		clearPaintMarks(*panel);
+		snapshot.pass = layoutPass_;
+		snapshot.generation = paintGeneration_;
+	}
 }
 
 } // namespace affresco

@@ -1364,7 +1364,8 @@ second window, the presenter the first.
 bounds times `scale`: what a thumbnail, a sorter or a second window shows. The image is opaque (black where nothing
 draws), the panel's own transform is drawn but its ancestors' are not, and a hidden panel, an empty one or a headless
 window gives none. `screen.setImage(name, image)` then shows it in an `image` node, in this window or another: a
-second window that mirrors a panel shows such an image and is given a new one when the panel changes.
+second window that mirrors a panel shows such an image and is given a new one when the panel changes. A document
+does the same without the host: a node's `snapshot` draws it into a named image whenever it changes.
 
 **From C and Python.** `affresco/affresco.h` (`modules/capi`) is the same in C, for hosts in other languages: create a
 screen from a file or a string (`afr_options.native_actions` lists the actions the host will answer, so the document's

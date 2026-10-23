@@ -208,6 +208,7 @@ void Window::updateLayout() {
 		forwardAnchor_ = false;
 		root_.layout(area, area, Vec2{width, height}, true);
 		overlays_.clear();
+		snapshots_.clear();
 		layoutOverlays(root_);
 	}
 	layoutAll_ = false;
@@ -271,6 +272,15 @@ void Window::setInspection(std::unique_ptr<Panel> layer) {
 void Window::layoutOverlays(Panel& panel) {
 	if(!panel.overlaysBelow_) return; // known from the panel's last layout, which a skipped subtree keeps
 	for(auto& child : panel.children_) {
+		if(child->snapshot_) { // drawn into an image, the overlays inside it left out
+			if(child->geometry_ && child->geometry_->recorded) { // where it drew before it was one is damage
+				detail::addTo(damage_, detail::screenReachOf(*child->geometry_));
+				child->geometry_->recorded = false;
+			}
+			layoutSnapshot(*child, false);
+			snapshots_.push_back(child.get());
+			continue;
+		}
 		if(child->overlay_) {
 			layoutOverlay(*child, panel);
 			overlays_.push_back(child.get());
@@ -333,6 +343,7 @@ detail::Frame Window::frame() noexcept {
 void Window::draw() {
 	native_->makeCurrent();
 	updateLayout();
+	refreshSnapshots();
 	// On HiDPI screens the framebuffer has more pixels than the window has units
 	renderer_->draw(frame(), native_->framebufferSize());
 	clearDamage();
@@ -448,6 +459,7 @@ bool Window::saveScreenshot(const std::filesystem::path& path, int scale) {
 	runDeferred();
 	native_->makeCurrent(); // the image is created in it
 	updateLayout();
+	refreshSnapshots();
 
 	const platform::PixelSize size{width_ * scale, height_ * scale};
 	const std::vector<std::uint8_t> pixels = renderer_->drawOffscreen(frame(), size);

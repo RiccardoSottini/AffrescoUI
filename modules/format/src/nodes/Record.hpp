@@ -88,6 +88,8 @@ struct Record {
 	int tabIndex = 0;                       ///< "tabIndex": positive ones first, -1 leaves the tab order.
 	std::string arrows;                     ///< "arrows": "vertical", "horizontal" or "both" move the focus inside.
 	char mnemonic = 0;                      ///< "mnemonic": its letter, lowercase (0: none).
+	std::string snapshotImage;              ///< "snapshot": the image its panel is drawn into (empty: none).
+	float snapshotScale = 1.0f;             ///< That image's pixels per layout pixel.
 
 	/// @brief The connections the events subsystem made to the panel's signals, which ~Runtime takes back (0: none).
 	struct Hooks {

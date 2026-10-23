@@ -210,7 +210,7 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 	    alongAxis({left, right}, origin.left + x_.resolve(parentSize.x), size_.x, arrangedWidth_.has_value());
 	// Right to left: placed as left to right, then mirrored in the parent; content wider than it reaches left, where
 	// scrolling from 0 goes. Edges anchored to another panel are already where it was placed
-	if(parent_ && parent_->rightToLeft_ && !overlay_ &&
+	if(parent_ && parent_->rightToLeft_ && !isOverlay() &&
 	   (targetEdges_ & (edgeBit(Edge::Left) | edgeBit(Edge::Right))) == 0) {
 		const float width = rect.width();
 		rect.left = 2.0f * origin.left + parentSize.x - rect.right;
@@ -242,10 +242,10 @@ void Panel::layoutChildren() {
 		                  frame_.bottom - scroll_.y};
 		bool below = false, anchors = targetEdges_ != 0, overlays = false;
 		for(auto& child : children_) {
-			if(!child->overlay_) child->layout(origin, bounds_, size_, shown_); // overlays: after the whole tree
+			if(!child->isOverlay()) child->layout(origin, bounds_, size_, shown_); // overlays: after the whole tree
 			below = below || child->layoutDirty_ || child->layoutBelow_;
 			anchors = anchors || child->anchorsBelow_;
-			overlays = overlays || child->overlay_ || child->overlaysBelow_;
+			overlays = overlays || child->isOverlay() || child->overlaysBelow_;
 		}
 		layoutBelow_ = below;
 		anchorsBelow_ = anchors;

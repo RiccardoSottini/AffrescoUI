@@ -376,6 +376,7 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 	applySets(panel, record, look);
 	transitionLook(panel, record, look, shown);
 	finish(panel, look);
+	showSnapshot(panel, record, look, isRoot);
 	if(panel.accessibleRole().empty() && record.focusable && record.handlers.contains("onClick"))
 		panel.setAccessibleRole("button"); // what it is to a person, and to scenarios looking for it by role
 }

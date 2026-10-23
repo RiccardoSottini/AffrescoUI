@@ -417,6 +417,31 @@ private:
 	void layoutInspection();
 	/// @brief Lays out, draws and presents a frame, and records what it cost (frameStatistics()).
 	void drawAndPresent();
+	/// @brief Lays out a snapshot's source (Panel::setSnapshot()) from the window's top left, unclipped.
+	/// @param panel The source.
+	/// @param shown Whether it counts as shown: only while it is drawn into its image.
+	void layoutSnapshot(Panel& panel, bool shown);
+	/// @brief Draws each snapshot whose subtree changed into a new image, and gives the images to their handlers.
+	/// @pre The window has a renderer, laid out, and its context is current.
+	void refreshSnapshots();
+	/// @brief Draws one snapshot's source into an image: laid out shown, drawn, then laid out hidden again.
+	/// @param panel The source, laid out hidden.
+	/// @return The image, or nullptr if it has no area or would be past Bitmap::Limits.
+	[[nodiscard]] std::shared_ptr<const Bitmap> drawSnapshot(Panel& panel);
+	/// @brief Whether something in a snapshot's subtree changed since it was last drawn.
+	/// @param panel The source.
+	/// @return true if it is drawn again.
+	[[nodiscard]] bool snapshotChanged(const Panel& panel) const noexcept;
+	/// @brief Forgets that a subtree's drawing changed (a snapshot's, which no frame records).
+	/// @param panel Its top.
+	static void clearPaintMarks(Panel& panel) noexcept;
+	/// @brief Draws a laid-out panel's subtree from scratch into an image of its bounds (renderToImage()).
+	/// @param panel The panel, shown.
+	/// @param scale Pixels per window unit, more than 0.
+	/// @param least The least size of the frame drawn, in window units (the window's, so it is laid out as there).
+	/// @return The image, or nullptr if the panel has no area.
+	/// @throws std::invalid_argument If the image would be past Bitmap::Limits.
+	[[nodiscard]] std::shared_ptr<const Bitmap> drawImage(Panel& panel, float scale, Vec2 least);
 	/// @brief Lays out one overlay next to its anchor.
 	/// @param overlay The overlay.
 	/// @param parent Its parent: the anchor when it names none.
@@ -487,6 +512,7 @@ private:
 
 	std::vector<Panel*> overlays_;   ///< Overlays shown in the last layout, in drawing order.
 	std::vector<Panel*> drawn_;      ///< What is drawn above the tree: the overlays, then the focus ring if shown.
+	std::vector<Panel*> snapshots_;  ///< Snapshot sources found in the last layout (Panel::setSnapshot()).
 	std::optional<FocusRing> focusRing_; ///< See focusRing().
 	std::unique_ptr<Panel> ring_;        ///< The focus ring's panel, created on first use.
 	std::unique_ptr<Panel> inspection_;  ///< See inspection().

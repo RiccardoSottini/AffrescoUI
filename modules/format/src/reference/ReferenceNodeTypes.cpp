@@ -170,9 +170,9 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "decoded shows nothing (and is logged).",
 	 "image"},
     {"source", R"json({"type": "string",
-		"description": "image: an image the host names (Screen::setImage), instead of a file"})json",
-	 "Instead of `file`: an image the host names (`Screen::setImage(\"chart\", …)`), e.g. a picture it made; the node "
-	 "shows each new one the host sets.",
+		"description": "image: a named image (a node's snapshot, or Screen::setImage), instead of a file"})json",
+	 "Instead of `file`: a named image, which a node draws (its `snapshot`: a thumbnail of it) or the host sets "
+	 "(`Screen::setImage(\"chart\", …)`, e.g. a picture it made); the node shows each new one.",
 	 "image"},
     {"fit", R"json({"anyOf": [{"enum": ["contain", "cover", "fill"]}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "image and path: contain (default), cover or fill, like CSS object-fit"})json",

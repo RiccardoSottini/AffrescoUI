@@ -268,6 +268,21 @@ void Panel::clearOverlay() {
 	setProperty(overlayAnchor_, std::string());
 }
 
+/* Snapshots */
+
+void Panel::setSnapshot(float scale, SnapshotHandler onImage) {
+	const bool moved = !snapshot_; // out of the flow: the parent arranges its children again
+	snapshot_ = std::make_unique<Snapshot>(Snapshot{scale > 0.0f && scale <= 4.0f ? scale : 1.0f, std::move(onImage)});
+	if(moved) invalidate();
+	else invalidatePaint(); // drawn again, at the new scale or to the new handler
+}
+
+void Panel::clearSnapshot() {
+	if(!snapshot_) return;
+	snapshot_.reset();
+	invalidate();
+}
+
 void Panel::setTooltip(std::string text) { tooltip_ = std::move(text); }
 
 void Panel::setAccessibleRole(std::string role) { role_ = std::move(role); }
@@ -307,7 +322,7 @@ Panel* Panel::hitTest(Vec2 point) noexcept {
 	if(!bounds_.contains(point)) return nullptr;
 
 	for(const auto& child : std::views::reverse(children_)) {
-		if(child->overlay_) continue; // hit-tested by the window, above everything
+		if(child->isOverlay()) continue; // hit-tested by the window, above everything
 		if(Panel* hit = child->hitTest(point)) return hit;
 	}
 
@@ -331,7 +346,7 @@ Affine2 Panel::localTransform() const noexcept {
 
 Affine2 Panel::worldTransform() const noexcept {
 	Affine2 world = localTransform();
-	for(const Panel* panel = this; !panel->overlay_ && panel->parent_;) {
+	for(const Panel* panel = this; !panel->isOverlay() && panel->parent_;) {
 		panel = panel->parent_;
 		if(!panel->transform_.isIdentity()) world = panel->localTransform() * world;
 	}

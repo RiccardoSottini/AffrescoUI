@@ -192,6 +192,7 @@ void Window::forget(const Panel& panel) noexcept {
 	if(grabbed_ == &panel) grabbed_ = nullptr;
 	std::erase(overlays_, &panel);
 	std::erase(drawn_, &panel);
+	std::erase(snapshots_, &panel);
 }
 
 // Like CSS :hover, a panel counts as hovered while the pointer is over it or over any of its descendants
