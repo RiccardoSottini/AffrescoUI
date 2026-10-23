@@ -35,9 +35,7 @@ void focusOrScroll(const Running& s) {
 		scrollLater(engine, id, 2);
 		return;
 	}
-	engine.scheduler.once(0.0, [&engine, id] {
-		if(Panel* panel = engine.window->root().findById(id)) engine.events.focus(*panel);
-	});
+	engine.events.focusStep(std::move(id));
 }
 
 /// @brief "navigate": shows a screen of "screens" in the outlets, or "back".

@@ -248,6 +248,45 @@ TEST_CASE("format: a modal overlay keeps the focus a step gives inside it") {
 	CHECK(focusedId(*window) == "two"); // the step's, not the modal's first
 }
 
+TEST_CASE("format: a focus step gives way to a focus a key or a dialog takes after it in the same frame") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2, "state": { "open": false },
+		"actions": {
+			"toC": [{ "focus": "#c" }],
+			"open": [{ "set": "state.open", "to": true }]
+		},
+		"keys": { "o": "open" },
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "a", "height": 20, "focusable": true },
+			{ "id": "b", "height": 20, "focusable": true },
+			{ "id": "c", "height": 20, "focusable": true },
+			{ "id": "box", "width": 200, "height": 80, "type": "column",
+			  "overlay": { "placement": "center", "open": "state.open", "dismiss": "outside", "modal": true },
+			  "children": [{ "id": "inside", "height": 20, "focusable": true }] }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	press(*window, affresco::Key::Tab);
+	REQUIRE(focusedId(*window) == "a");
+	screen.runAction("toC", window->root(), "{}");
+	press(*window, affresco::Key::Tab); // before the step's turn: the key's focus stays
+	settle(*window, clock, screen);
+	CHECK(focusedId(*window) == "b");
+
+	screen.runAction("toC", window->root(), "{}");
+	settle(*window, clock, screen);
+	REQUIRE(focusedId(*window) == "c"); // alone, the step focuses
+
+	screen.runAction("toC", window->root(), "{}");
+	press(*window, affresco::Key::O); // a dialog a key opens after the step keeps its focus
+	settle(*window, clock, screen);
+	CHECK(focusedId(*window) == "inside");
+}
+
 TEST_CASE("format: focusing a container focuses its first focusable node, unless the focus is already inside it") {
 	ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
