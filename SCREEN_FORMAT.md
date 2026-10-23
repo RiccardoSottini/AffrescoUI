@@ -165,7 +165,7 @@ parent, later siblings on top of earlier ones.
 | `label` | The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an input's or a slider's text is its value, not its name). |
 | `description` | A longer accessible description, read after the name. |
 | `isOpen` | Whether the node is expanded (a tree item, a disclosure, a menu button: `expanded` to assistive tools); leave it out for one that doesn't expand. Screen readers say it, and offer to expand or collapse it (a click). |
-| `selected` | Whether the node is selected (a tab, a list item); leave it out for one that can't be. |
+| `selected` | Whether the node is selected (a tab, a list item, a menu's check); leave it out, or bind it to `null`, for one that can't be. |
 | `live` | A live region: changes to its text are read without moving the focus, `polite` when the person is idle (a toast), `assertive` at once (an error). Default: `off`. |
 | `tabIndex` | The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out. |
 | `arrows` | The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is. |
@@ -667,9 +667,12 @@ variables of the node and its children. A child `{ "slot": true }` in the compon
 format, take their colours and sizes as parameters whose defaults are the kit's tokens (see The kit's tokens), and
 keep their open state where `open` says (a state path):
 - `menu` (below its parent), `submenu` (to its right) and `contextMenu` (where `x`, `y` say): `items` of
-  `{ "title", "keyLabel", "mnemonic", "enabled", "separator", "submenu", "run", "with" }`. The arrows, Home, End and
-  the items' first letters move and choose; Enter or a click runs the item's action and closes the menus; a click
-  outside or Escape closes them. A submenu's state is `open + 'Sub'`, one key per item (`.m0`, `.m1`, ...).
+  `{ "title", "keyLabel", "mnemonic", "enabled", "checked", "icon", "separator", "submenu", "run", "with" }`. The
+  arrows, Home, End and the items' first letters move and choose; Enter or a click runs the item's action and closes
+  the menus; a click outside or Escape closes them. A `checked` item shows a check (and is selected for screen
+  readers), and with `"icons": true` the items show their `icon`. A submenu's state is `open + 'Sub'`, one key per
+  item (`.m0`, `.m1`, ...). Open a context menu from `onContextMenu`, which a right click and, on the focused node,
+  Shift+F10 or the Menu key send.
 - `menuBar`: `menus` of `{ "name", "title", "items" }`, or of `{ "menu", "title" }` naming a menu of `source` (the
   `menus` variable); by default `window.menuBar`, so one list feeds the native bar and the drawn one. Alt with a
   menu's first letter opens it, and `open` is an object with one flag per menu name.
@@ -698,6 +701,10 @@ keep their open state where `open` says (a state path):
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
   "buttons": [{ "title": "Save", "run": "save" }, { "title": "Cancel" }] } }
 { "use": "popover", "with": { "open": "state.share", "title": "Share", "text": "Anyone with the link can view." } }
+{ "label": "Document", "focusable": true,
+  "onContextMenu": { "set": "state.ctx", "to": { "open": true, "x": "{{event.x}}", "y": "{{event.y}}" } },
+  "children": [{ "use": "contextMenu", "with": { "open": "state.ctx.open", "x": "{{state.ctx.x}}",
+    "y": "{{state.ctx.y}}", "items": [{ "title": "Word wrap", "checked": "{{state.wrap}}", "run": "toggleWrap" }] } }] }
 { "use": "toolbar", "with": { "items": [{ "title": "Undo", "icon": "undo", "keyLabel": "Ctrl+Z", "run": "undo" },
   { "separator": true }, { "title": "Grid", "icon": "layout-grid", "checked": "{{state.grid}}", "run": "toggleGrid" }] } }
 ```
@@ -882,7 +889,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 <!-- generated: events -->
 | Handler | When |
 |---|---|
-| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click. |
+| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node). |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
 | `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |

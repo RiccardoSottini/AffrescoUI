@@ -18,15 +18,16 @@ constexpr std::string_view menuColours =
 constexpr std::string_view menuItems = R"({
 	"type": "column", "width": "{{width}}", "height": "{{sum(items, it.separator == true ? 9 : 26)}}",
 	"color": "{{color}}", "radius": "@kit.radius", "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border",
-	"arrows": "vertical",
+	"arrows": "vertical", "role": "menu",
 	"children": [{
 		"repeat": { "for": "item", "in": "{{items}}", "index": "i" },
 		"anchors": { "left": 0, "right": 0 }, "height": "{{item.separator == true ? 9 : 26}}", "color": "{{color}}",
+		"role": "{{item.separator == true ? 'separator' : 'menuitem'}}", "label": "{{item.title ?? item.name ?? ''}}",
 		"focusable": "{{item.separator != true}}",
 		"disabled": "{{item.separator == true || item.enabled == false}}",
 		"mnemonic": "{{item.mnemonic ?? item.title ?? ''}}",
 		"hover": { "color": "{{item.separator == true || item.enabled == false ? color : highlight}}" },
-		"focused": { "color": "{{highlight}}" },
+		"focused": { "color": "{{highlight}}" }, "selected": "{{item.checked == null ? null : item.checked == true}}",
 		"onClick": [{ "if": "{{item.submenu != null}}",
 		              "then": [{ "toggle": "{{(sub ?? open + 'Sub') + '.m' + i}}" }],
 		              "else": [{ "dismiss": true },
@@ -34,8 +35,13 @@ constexpr std::string_view menuItems = R"({
 		"children": [
 			{ "when": "{{item.separator == true}}", "anchors": { "left": 8, "right": 8, "top": 4 }, "height": 1,
 			  "color": "@kit.border" },
+			{ "when": "{{item.separator != true && (item.checked == true || icons && item.icon != null)}}", "type": "label",
+			  "text": "", "icon": "{{item.checked == true ? 'check' : item.icon}}",
+			  "textColor": "{{item.enabled == false ? dimColor : textColor}}", "anchors": { "left": 10, "top": 5 },
+			  "fitText": true },
 			{ "when": "{{item.separator != true}}", "type": "label", "text": "{{item.title ?? item.name ?? ''}}",
-			  "textColor": "{{item.enabled == false ? dimColor : textColor}}", "anchors": { "left": 12, "top": 5 },
+			  "textColor": "{{item.enabled == false ? dimColor : textColor}}",
+			  "anchors": { "left": "{{icons || some(items, it.checked != null) ? 34 : 12}}", "top": 5 },
 			  "fitText": true },
 			{ "when": "{{item.separator != true}}", "type": "label",
 			  "text": "{{item.submenu != null ? '»' : item.keyLabel ?? ''}}", "textColor": "{{dimColor}}",
@@ -60,13 +66,13 @@ json menu(std::string_view placement, std::string_view extraParams, bool nested)
 		     {"with",
 		      {{"items", "{{item.submenu}}"}, {"open", "{{(sub ?? open + 'Sub') + '.m' + i}}"},
 		       {"width", "{{width}}"}, {"color", "{{color}}"}, {"textColor", "{{textColor}}"},
-		       {"dimColor", "{{dimColor}}"}, {"highlight", "{{highlight}}"}}}});
+		       {"dimColor", "{{dimColor}}"}, {"highlight", "{{highlight}}"}, {"icons", "{{icons}}"}}}});
 	if(placement == "window") { // a context menu, where the pointer is
 		node["x"] = "{{x}}";
 		node["y"] = "{{y}}";
 	}
 	json params = json::parse(std::string(R"({"items": [], "open": "state.menuOpen", "sub": null,
-		"anchor": "", "width": 240, )") +
+		"anchor": "", "width": 240, "icons": false, )") +
 	                          std::string(menuColours) + std::string(extraParams) + "}");
 	params["placement"] = placement;
 	return {{"params", std::move(params)}, {"node", std::move(node)}};

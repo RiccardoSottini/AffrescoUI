@@ -162,6 +162,31 @@ std::string popoverScreen(bool atBottom, bool rightToLeft) {
 	})json";
 }
 
+/// @brief A focusable area that opens a context menu where the pointer is: a checked item, one with an icon, a
+/// disabled one, a separator and a submenu.
+/// @param icons Whether the menu shows its items' icons.
+/// @return The document.
+std::string contextMenuScreen(bool icons) {
+	return R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "ctx": { "open": false, "x": 0, "y": 0 }, "wrap": true, "n": 0 },
+		"actions": { "add": [{ "increment": "state.n", "by": 1 }] },
+		"root": { "id": "root", "children": [{ "type": "column", "fill": true, "children": [{ "height": 40 },
+			{ "id": "doc", "x": 50, "width": 300, "height": 200, "focusable": true, "label": "Document",
+			  "onContextMenu": { "set": "state.ctx", "to": { "open": true, "x": "{{event.x}}", "y": "{{event.y}}" } },
+			  "children": [{ "use": "contextMenu", "with": { "open": "state.ctx.open", "x": "{{state.ctx.x}}",
+				"y": "{{state.ctx.y}}", "icons": )json" +
+	       std::string(icons ? "true" : "false") + R"json(, "items": [
+					{ "title": "Word wrap", "checked": "{{state.wrap}}", "run": "add" },
+					{ "title": "Copy", "icon": "copy", "keyLabel": "Ctrl+C", "run": "add" },
+					{ "title": "Paste", "enabled": false, "run": "add" },
+					{ "separator": true },
+					{ "title": "Zoom", "submenu": [{ "title": "In", "run": "add" }, { "title": "Out", "run": "add" }] }
+				] } }] }
+		] }] }
+	})json";
+}
+
 } // namespace
 
 TEST_CASE("format: a flipping overlay goes above its anchor when only that side has room, mirrored") {
@@ -346,5 +371,81 @@ TEST_CASE("format: a popover closes on Escape and on a click outside it") {
 				window->routeMouseButton({affresco::MouseButton::Left, action, {}, affresco::Vec2{390.0f, 190.0f}});
 		settle(*window, clock);
 		CHECK(state(screen)["pop"] == false);
+	}
+}
+
+TEST_CASE("format: a context menu opens where the pointer is on a right click") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(contextMenuScreen(false));
+	screen.build(*window);
+	settle(*window, clock);
+	CHECK(state(screen)["ctx"]["open"] == false);
+	for(const affresco::Action action : {affresco::Action::Press, affresco::Action::Release})
+		window->routeMouseButton({affresco::MouseButton::Right, action, {}, affresco::Vec2{120.0f, 90.0f}});
+	settle(*window, clock);
+	CHECK(state(screen)["ctx"]["open"] == true);
+	const affresco::Panel* wrap = findAccessible(window->root(), "menuitem", "Word wrap");
+	REQUIRE(wrap);
+	CHECK(wrap->parent()->frame().left == doctest::Approx(120.0f));
+	CHECK(wrap->parent()->frame().top == doctest::Approx(90.0f));
+	CHECK(countRole(window->root(), "separator") == 1);
+}
+
+TEST_CASE("format: Shift+F10 and the Menu key open a context menu at the focused node") {
+	for(const bool menuKey : {false, true}) {
+		CAPTURE(menuKey);
+		ManualClock clock;
+		const auto window = createHeadlessWindow(600, 400, clock);
+		affresco::Screen screen = affresco::Screen::fromString(contextMenuScreen(false));
+		screen.build(*window);
+		settle(*window, clock);
+		const affresco::Panel* doc = findId(window->root(), "doc");
+		REQUIRE(doc);
+		clickOn(*window, *doc);
+		REQUIRE(focusedLabel(*window) == "Document");
+		const affresco::Key key = menuKey ? affresco::Key::Menu : affresco::Key::F10;
+		const affresco::Mods mods{menuKey ? 0 : 1};
+		window->routeKey({key, 0, affresco::Action::Press, mods});
+		window->routeKey({key, 0, affresco::Action::Release, mods});
+		settle(*window, clock);
+		CHECK(state(screen)["ctx"]["open"] == true);
+		CHECK(state(screen)["ctx"]["x"] == doctest::Approx(doc->frame().left));
+		CHECK(state(screen)["ctx"]["y"] == doctest::Approx(doc->frame().bottom));
+		CHECK(findAccessible(window->root(), "menuitem", "Word wrap"));
+	}
+}
+
+TEST_CASE("format: a context menu's checked item is selected, its icons opt in, and Enter runs an item") {
+	for(const bool icons : {false, true}) {
+		CAPTURE(icons);
+		ManualClock clock;
+		const auto window = createHeadlessWindow(600, 400, clock);
+		affresco::Screen screen = affresco::Screen::fromString(contextMenuScreen(icons));
+		screen.build(*window);
+		settle(*window, clock);
+		for(const affresco::Action action : {affresco::Action::Press, affresco::Action::Release})
+			window->routeMouseButton({affresco::MouseButton::Right, action, {}, affresco::Vec2{120.0f, 90.0f}});
+		settle(*window, clock);
+		const affresco::Panel* wrap = findAccessible(window->root(), "menuitem", "Word wrap");
+		const affresco::Panel* copy = findAccessible(window->root(), "menuitem", "Copy");
+		const affresco::Panel* paste = findAccessible(window->root(), "menuitem", "Paste");
+		REQUIRE(wrap);
+		REQUIRE(copy);
+		REQUIRE(paste);
+		CHECK(wrap->accessibleState().selected == true);
+		CHECK_FALSE(copy->accessibleState().selected.has_value());
+		CHECK(paste->accessibleState().disabled);
+		CHECK(wrap->children().size() == 3); // the check, the title and the key label
+		CHECK(copy->children().size() == (icons ? 3u : 2u));
+		// the titles line up after the check, with or without icons
+		const affresco::Rect& title = copy->children()[icons ? 1 : 0]->frame();
+		CHECK(title.left == doctest::Approx(copy->frame().left + 34.0f));
+		window->render();
+		press(*window, affresco::Key::Down);
+		press(*window, affresco::Key::Enter);
+		settle(*window, clock);
+		CHECK(state(screen)["n"] == 1);
+		CHECK(state(screen)["ctx"]["open"] == false);
 	}
 }
