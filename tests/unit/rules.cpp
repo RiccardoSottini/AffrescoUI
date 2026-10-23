@@ -2,6 +2,7 @@
 /// @brief Unit tests for format::Rules::checkChange: what a revision may never add, change or move.
 
 #include "Checker.hpp"
+#include "Helpers.hpp"
 
 #include <affresco/format/Rules.hpp>
 
@@ -201,7 +202,7 @@ TEST_CASE("format: a revision may not add a use of the document's own component 
 // Each control step was written out whole, the ones inside it again at each level: 250 nested around 4 MiB made
 // 2 GiB of text, and took seconds, at each revision
 TEST_CASE("format: control steps inside each other are compared whole, at the cost of their size" *
-          doctest::timeout(5)) {
+          doctest::timeout(affresco::test::timeLimit(5))) {
 	const auto nested = [](const json& inner) {
 		json before = screenWithActions();
 		json step = {{"accept", inner}, {"note", std::string(4u << 20, 'a')}};
@@ -221,7 +222,7 @@ TEST_CASE("format: control steps inside each other are compared whole, at the co
 // Each round scanned every action (and component) again, to add the next link of a chain: 3000 actions that run each
 // other took 11 s at each revision
 TEST_CASE("format: actions and components that run each other in a long chain are found at the cost of the chain" *
-          doctest::timeout(5)) {
+          doctest::timeout(affresco::test::timeLimit(5))) {
 	json before = screenWithActions();
 	const int links = 3000;
 	for(int i = 0; i < links; ++i)
@@ -250,7 +251,8 @@ TEST_CASE("format: actions and components that run each other in a long chain ar
 
 // Each action and component the scan reached was found by name in a list: 30,000 of each took 15 seconds to
 // check, and each revision is checked
-TEST_CASE("format: many actions and components are scanned at the cost of their number" * doctest::timeout(5)) {
+TEST_CASE("format: many actions and components are scanned at the cost of their number" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
 	json before = screenWithActions();
 	json::object_t& actions = before["actions"].get_ref<json::object_t&>();
 	json::object_t& components = (before["components"] = json::object()).get_ref<json::object_t&>();
@@ -275,7 +277,7 @@ TEST_CASE("format: many actions and components are scanned at the cost of their 
 // Each use of the screen's own component was scanned on a copy of it, without bound: 2000 uses of a large one took
 // 11 s at each revision, and a large parameter put in 1000 times took a GiB
 TEST_CASE("format: components are expanded up to a document's size, past which a use may control" *
-          doctest::timeout(5)) {
+          doctest::timeout(affresco::test::timeLimit(5))) {
 	json before = screenWithActions();
 	json labels = json::array();
 	for(int i = 0; i < 20000; ++i) labels.push_back({{"type", "label"}, {"text", "hello"}});

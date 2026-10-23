@@ -4,6 +4,7 @@
 
 #include "Expression.hpp"
 #include "ExpressionFunctions.hpp"
+#include "Helpers.hpp"
 #include "Value.hpp"
 
 #include <doctest/doctest.h>
@@ -606,7 +607,8 @@ TEST_CASE("format: values are small, cheap to copy, and read JSON in place") {
 
 // An object written in an expression found each of its keys among those before it, when it was read and again each
 // time it was made, and so did merge(): one of a hundred thousand keys took seconds, at each frame that showed it
-TEST_CASE("format: an object of many keys is made at the cost of its size" * doctest::timeout(5)) {
+TEST_CASE("format: an object of many keys is made at the cost of its size" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
 	std::string keys;
 	for(int i = 0; i < 100000; ++i) keys += (i ? ", k" : "k") + std::to_string(i) + ": " + std::to_string(i);
 	CHECK(evaluate("{{ ({" + keys + "}).k99999 }}") == 99999);                     // made once, when compiled

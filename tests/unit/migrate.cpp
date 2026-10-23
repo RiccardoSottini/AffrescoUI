@@ -4,6 +4,7 @@
 /// version 1, and a revision with a removed key is refused with a hint.
 
 #include "Headless.hpp"
+#include "Helpers.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/format/Migrate.hpp>
@@ -75,7 +76,7 @@ TEST_CASE("migrate: renames keep ids, key order and data; quoted text and text o
 }
 
 TEST_CASE("migrate: a revision's many compact edits keep their order, in time that grows with them" *
-          doctest::timeout(5)) {
+          doctest::timeout(affresco::test::timeLimit(5))) {
 	std::string text = "{"; // parsed, as building it with operator[] would itself take quadratic time
 	for(int i = 0; i < 200000; ++i) {
 		text += "\"/k" + std::to_string(i) + "\": " + std::to_string(i) + ",";

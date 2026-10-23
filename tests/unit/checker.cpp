@@ -4,6 +4,7 @@
 
 #include "Checker.hpp"
 #include "Expression.hpp"
+#include "Helpers.hpp"
 #include "Templates.hpp"
 
 #include <affresco/format/Rules.hpp>
@@ -420,7 +421,8 @@ const std::string panel = R"("root": {"type": "panel", "id": "main"})";
 
 // Sections and a node's properties were found by name in a list, once for each name: a hundred thousand actions,
 // components or properties took seconds to check, and each revision is checked
-TEST_CASE("checker: many sections and properties are checked at the cost of their number" * doctest::timeout(5)) {
+TEST_CASE("checker: many sections and properties are checked at the cost of their number" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
 	checkWide({
 	    {"actions",
 		 R"("state": {"p": 0}, "actions": null, )" + panel,
@@ -436,7 +438,8 @@ TEST_CASE("checker: many sections and properties are checked at the cost of thei
 
 // The shape of an object, of what a list's items hold or of what the state's types let it hold was built a key at a
 // time, each found among those before it: a hundred thousand keys took from seconds to a minute to check
-TEST_CASE("checker: the shapes of wide values are built at the cost of their size" * doctest::timeout(5)) {
+TEST_CASE("checker: the shapes of wide values are built at the cost of their size" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
 	checkWide({
 	    {"items of many keys",
 		 R"("state": {"rows": [null, null]}, )" + panel,
@@ -456,7 +459,8 @@ TEST_CASE("checker: the shapes of wide values are built at the cost of their siz
 
 // A path deeper than the runtime writes overflowed the stack (the checker followed it a level at a time), and so did a
 // step that puts what a place holds inside itself, once for each such step
-TEST_CASE("checker: a place too deep for the state is not followed" * doctest::timeout(5)) {
+TEST_CASE("checker: a place too deep for the state is not followed" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
 	const auto writing = [](int levels) {
 		std::string path = "state";
 		for(int i = 0; i < levels; ++i) path += ".a";
@@ -475,7 +479,8 @@ TEST_CASE("checker: a place too deep for the state is not followed" * doctest::t
 
 // Each step that writes the state into the state doubled what the checker copied: forty of them took more memory than
 // a computer has
-TEST_CASE("checker: a document that copies too much is too large to check" * doctest::timeout(5)) {
+TEST_CASE("checker: a document that copies too much is too large to check" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
 	const std::string copies = repeated(R"({"set": "state.x$", "to": "{{state}}"})", 40, '[', ']');
 	const json document =
 	    screen(R"("state": {"s": 1}, "actions": {"go": )" + copies + R"(}, "root": {"type": "panel"})");
