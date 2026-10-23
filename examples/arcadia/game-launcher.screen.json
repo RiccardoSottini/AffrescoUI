@@ -20,41 +20,40 @@
 	"permissions": { "allow": ["studio"], "ask": ["agent"], "reviewers": ["studio"] },
 
 	"fonts": {
-		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "arabic"] },
-		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons", "arabic"] },
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },
 		"caps": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 12,
 			"bold": true,
-			"fallback": ["icons", "arabic"]
+			"fallback": ["icons"]
 		},
 		"strong": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 14,
 			"bold": true,
-			"fallback": ["icons", "arabic"]
+			"fallback": ["icons"]
 		},
 		"heading": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 17,
 			"bold": true,
-			"fallback": ["icons", "arabic"]
+			"fallback": ["icons"]
 		},
 		"nav": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 21,
 			"bold": true,
-			"fallback": ["icons", "arabic"]
+			"fallback": ["icons"]
 		},
 		"button": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 18,
 			"bold": true,
-			"fallback": ["icons", "arabic"]
+			"fallback": ["icons"]
 		},
-		"logo": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 48, "bold": true, "fallback": ["arabic"] },
-		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 14 },
-		"arabic": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 14 }
+		"logo": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 48, "bold": true },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 14 }
 	},
 
 	"tokens": {
@@ -123,10 +122,10 @@
 		},
 		"appearance.language": {
 			"type": "string",
-			"enum": ["en", "it", "ar"],
+			"enum": ["en", "es", "fr"],
 			"default": "en",
 			"title": "Language",
-			"description": "English, Italian or Arabic (right to left)."
+			"description": "English, Spanish or French."
 		},
 		"library.sortBy": {
 			"type": "string",
@@ -217,7 +216,7 @@
 			"do": [
 				{
 					"set": "settings.appearance.language",
-					"to": "{{settings.appearance.language == 'en' ? 'it' : settings.appearance.language == 'it' ? 'ar' : 'en'}}"
+					"to": "{{settings.appearance.language == 'en' ? 'es' : settings.appearance.language == 'es' ? 'fr' : 'en'}}"
 				}
 			]
 		}

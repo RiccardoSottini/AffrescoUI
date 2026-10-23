@@ -387,7 +387,7 @@
 						"role": "toolbar",
 						"label": "{{t('language.toggle')}}",
 						"children": [
-							{ "id": "languageChoice", "repeat": { "for": "language", "in": "['en', 'it', 'ar']" }, "style": "chip", "text": "{{t('language.' + language)}}", "role": "radio",
+							{ "id": "languageChoice", "repeat": { "for": "language", "in": "['en', 'es', 'fr']" }, "style": "chip", "text": "{{t('language.' + language)}}", "role": "radio",
 								"checked": "{{settings.ui.language == language}}", "color": "{{settings.ui.language == language ? '@accentSoft' : '@button'}}",
 								"onClick": { "set": "settings.ui.language", "to": "{{language}}" } }
 						]

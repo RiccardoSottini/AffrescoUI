@@ -15,8 +15,9 @@ screen without meeting the app's own names.
 
 ## What the person sees
 
-- **The launcher**, 56 pixels, with a badge for the replies that came while the panel was closed. It shows once an
-  agent is connected, a conversation is kept, or the app sets `state.assistant.show`. `Ctrl+Shift+A` (`Cmd+Shift+A` on
+- **The launcher**, 56 pixels at the bottom right, with a badge for the replies that came while the panel was closed.
+  It is always there by default. An app that sets `state.assistant.show` to `false` hides it until an agent connects
+  or a conversation is kept. `Ctrl+Shift+A` (`Cmd+Shift+A` on
   macOS) opens and closes the panel from anywhere.
 - **The panel**, 380 by up to 560 pixels, which grows in from the launcher. Its header says how many agents are
   connected, or that none is; with none, a note says how to connect one. An empty conversation shows three suggestions
@@ -37,7 +38,8 @@ All in `state.assistant`:
 | Field | What it is |
 |---|---|
 | `open` | Whether the panel is open |
-| `show` | Set it to show the launcher before an agent connects |
+| `lift` | Pixels to raise the launcher and the panel by, over a panel of the app's own at the bottom right (`0` by default), e.g. `{ "watch": { "state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }] } }` |
+| `show` | Whether the launcher shows when no agent is connected and no conversation is kept (`true` by default) |
 | `draft` | The composer's text |
 | `messages` | The conversation: `{ mine, from, text, time, error }`, and `{ kind: "card", id, title, summary, lines, time }` for a proposal, `lines` being its first three `changes` (at most 200, the oldest dropped) |
 | `decided` | `proposal id → "accepted" or "rejected"`, as the person decided on the card |
@@ -65,8 +67,8 @@ the pale tint behind the note shown when no agent is online, under `text`: map i
 to a bright warning colour. A screen's own `tokens` win over an included file's, so an app restyles the add-on by
 redefining them, e.g. `"assistant.accent": "@accent"`.
 
-The strings are the `assistant.*` keys in English, Italian and Arabic; the panel follows the screen's direction
-(right to left in Arabic). A screen adds a language, or rewords one, with the same keys in its own `strings`.
+The strings are the `assistant.*` keys in English, Spanish and French; the panel follows the screen's direction
+(`"dir": "auto"`). A screen adds a language, or rewords one, with the same keys in its own `strings`.
 
 ## Tests
 

@@ -4,14 +4,13 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor modelled on PowerPoint, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "../shared/addons/assistant/assistant.json"],
 
 	"window": { "title": "Sinopia", "width": 1280, "height": 800, "minWidth": 960, "minHeight": 600 },
 
 	"fonts": {
-		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons", "arabic"] },
-		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 12 },
-		"arabic": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 12 }
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 12 }
 	},
 
 	"colors": {
@@ -37,6 +36,12 @@
 		"notes": "#ffffff",
 		"barLine": "#d6d6d6",
 		"handles": "#616161"
+	},
+
+	"tokens": {
+		"assistant.accent": "@brand", "assistant.accentHover": "@brandHover", "assistant.onAccent": "@onBrand",
+		"assistant.surface": "@rbFieldBg", "assistant.raised": "@rb", "assistant.border": "@rbLine", "assistant.text": "@rbInk",
+		"assistant.dim": "@rbMuted", "assistant.dot": "@rbDisabled", "assistant.warningBackground": "@work"
 	},
 
 	"styles": {

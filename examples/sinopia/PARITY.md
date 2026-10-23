@@ -115,7 +115,7 @@ capabilities). Evidence names the frame of `tests/render/scenarios/sinopia.json`
 | Files | Save in its own format | done | partial | |
 | Files | Open its own format | partial | missing | |
 | Always | Light and dark | done | missing | |
-| Always | Locales, right-to-left for Arabic | missing | missing | |
+| Always | Locales (English, Spanish, French) | missing | missing | |
 | Always | Keyboard access to every command | partial | partial | |
 | Always | Accessibility (names, roles, focus order) | partial | partial | |
 | Always | Assistant chat add-on | missing | missing | |

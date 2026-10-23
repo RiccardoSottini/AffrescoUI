@@ -3,7 +3,7 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 	"include": ["studio-strings.json", "studio-features.json", "studio-repairs.json", "studio-install.json"],
-	"note": "The AffrescoUI Studio: the person's client for a running host. Layout, behaviour and the connection are all in this file, its texts in studio-strings.json (English, Italian, Arabic). Ask and direct changes on the left; on the right, tabs for the review queue, the history of main, the approval rules, the permissions (edits become changes to review), an inspector of the connected app and the agents. Below 900 pixels the two sides become panes. Cmd+Shift+P lists every command.",
+	"note": "The AffrescoUI Studio: the person's client for a running host. Layout, behaviour and the connection are all in this file, its texts in studio-strings.json (English, Spanish, French). Ask and direct changes on the left; on the right, tabs for the review queue, the history of main, the approval rules, the permissions (edits become changes to review), an inspector of the connected app and the agents. Below 900 pixels the two sides become panes. Cmd+Shift+P lists every command.",
 	"window": {
 		"title": "AffrescoUI Studio",
 		"width": 1100,
@@ -376,7 +376,7 @@
 			"type": ["object", "null"]
 		},
 		"locale": {
-			"enum": ["en", "it", "ar"]
+			"enum": ["en", "es", "fr"]
 		},
 		"statusKey": {
 			"type": "string"
@@ -4374,20 +4374,20 @@
 								}
 							},
 							{
-								"id": "lang-it",
+								"id": "lang-es",
 								"type": "label",
-								"text": "{{t('lang.it')}}",
-								"label": "{{t('lang.it')}}",
+								"text": "{{t('lang.es')}}",
+								"label": "{{t('lang.es')}}",
 								"role": "option",
 								"focusable": true,
-								"selected": "{{state.locale == 'it'}}",
+								"selected": "{{state.locale == 'es'}}",
 								"width": 104,
 								"height": 32,
 								"align": "center",
 								"radius": "@radius.chip",
 								"cursor": "hand",
-								"textColor": "{{state.locale == 'it' ? '#ffffff' : '@color.text'}}",
-								"color": "{{state.locale == 'it' ? '@color.accent' : '@color.neutral'}}",
+								"textColor": "{{state.locale == 'es' ? '#ffffff' : '@color.text'}}",
+								"color": "{{state.locale == 'es' ? '@color.accent' : '@color.neutral'}}",
 								"hover": {
 									"color": "@color.hover"
 								},
@@ -4397,24 +4397,24 @@
 								},
 								"onClick": {
 									"set": "state.locale",
-									"to": "it"
+									"to": "es"
 								}
 							},
 							{
-								"id": "lang-ar",
+								"id": "lang-fr",
 								"type": "label",
-								"text": "{{t('lang.ar')}}",
-								"label": "{{t('lang.ar')}}",
+								"text": "{{t('lang.fr')}}",
+								"label": "{{t('lang.fr')}}",
 								"role": "option",
 								"focusable": true,
-								"selected": "{{state.locale == 'ar'}}",
+								"selected": "{{state.locale == 'fr'}}",
 								"width": 104,
 								"height": 32,
 								"align": "center",
 								"radius": "@radius.chip",
 								"cursor": "hand",
-								"textColor": "{{state.locale == 'ar' ? '#ffffff' : '@color.text'}}",
-								"color": "{{state.locale == 'ar' ? '@color.accent' : '@color.neutral'}}",
+								"textColor": "{{state.locale == 'fr' ? '#ffffff' : '@color.text'}}",
+								"color": "{{state.locale == 'fr' ? '@color.accent' : '@color.neutral'}}",
 								"hover": {
 									"color": "@color.hover"
 								},
@@ -4424,7 +4424,7 @@
 								},
 								"onClick": {
 									"set": "state.locale",
-									"to": "ar"
+									"to": "fr"
 								}
 							}
 						]

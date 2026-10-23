@@ -16,7 +16,6 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | The user at the foot of the sidebar | done | an initial in a circle; it opens the profile |
 | Coloured top bar with the views, search and a menu | done | the menu holds search and Edit dashboard |
 | Light and dark themes | done | light by default, as the reference |
-| Right to left (Arabic) | done | the sidebar moves to the right and every card mirrors; the floor plan and the automation graph keep their drawing |
 | Notifications button with a badge | done | |
 | Search dialog over entities | done | E or the magnifier opens it, a rounded dialog over every light, climate, cover, device and the alarm, dimming the page: a filled field with a magnifier and a clear button; Enter opens the picked one's dialog |
 | Entity icons in the search | done | each result's icon in a circle, its name and its area beneath; Haven's own component replaces the kit's quick pick, with the same search and keys |

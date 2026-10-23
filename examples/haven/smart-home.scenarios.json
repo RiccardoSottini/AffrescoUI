@@ -411,13 +411,13 @@
 			]
 		},
 		{
-			"name": "arabic-reads-right-to-left",
-			"note": "Cmd+L twice switches to Arabic: the page title and the sidebar read in Arabic; once more is English again",
+			"name": "languages-cycle",
+			"note": "Cmd+L switches to Spanish, then French, then back to English: the sidebar reads in each",
 			"steps": [
 				{ "key": "mod+l" },
-				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "Casa" } },
+				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "Inicio" } },
 				{ "key": "mod+l" },
-				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "المنزل" } },
+				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "Accueil" } },
 				{ "key": "mod+l" },
 				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "Home" } }
 			]

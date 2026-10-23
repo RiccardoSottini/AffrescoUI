@@ -2,7 +2,7 @@
 
 # AffrescoUI
 
-### Native apps that AI agents can rewrite while they run.<br/>Never without your permission.
+### One format for every application, rendered natively.<br/>Built with AI by anyone. Changed by its users while it runs.
 
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-00599C?logo=cplusplus&logoColor=white)](#use-it-in-your-app)
 [![OpenGL 4.1 core](https://img.shields.io/badge/OpenGL-4.1%20core-5586A4?logo=opengl&logoColor=white)](#architecture)
@@ -10,44 +10,101 @@
 [![Frame time](https://img.shields.io/badge/full%20frame-0.47%20ms-10B981)](#native-performance)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-**[Architecture](#architecture)** · **[Quick start](#quick-start)** · **[Templates](#templates)** ·
-**[How it works](#how-it-works)** ·
+**[Vision](#the-vision)** · **[Applications](#applications)** · **[Architecture](#architecture)** ·
+**[Quick start](#quick-start)** · **[How it works](#how-it-works)** ·
 **[Screen format](SCREEN_FORMAT.md)** · **[Version control](VERSION_CONTROL.md)** · **[MCP server](mcp/README.md)**
 
 <br/>
 
-<img src=".github/media/kanban.png" width="860" alt="The Flow Kanban board with tabs, a split and a details panel, rendered natively by AffrescoUI from a live JSON document">
+<img src=".github/media/kanban.png" width="860" alt="The Flow Kanban board, with a sidebar of teams and projects and four columns of issues, rendered natively by AffrescoUI from a live JSON document, with the assistant's button in the bottom right corner">
 
-<sub>A native C++ / OpenGL Kanban board whose whole UI is a live JSON document. People and AI agents change it while it
-runs, and every change can be reviewed and undone.</sub>
+<sub>Flow, a Kanban board drawn by a native C++ / OpenGL engine. Its whole interface is one live JSON document, and the
+round button in the corner opens a chat: ask for a change in plain words, an AI agent proposes it, and you review it
+before it lands.</sub>
 
 </div>
 
 ---
 
-Today, when an AI changes an app, it edits source code, then someone rebuilds and redeploys it. **AffrescoUI works
-differently.** The whole UI (layout, state and behaviour) is a **live JSON document** that a native engine renders and
-keeps running. People, scripts and AI agents send it **revisions**. The engine checks each one against the screen's
-permissions, can show you a **live preview**, and applies it **in place in milliseconds**, while the app keeps
-running. Your typing, focus and drags survive.
+Today an application is code: written for one toolkit, built, shipped, and frozen until the next release. When an AI
+changes it, it edits that code, and someone rebuilds and redeploys it. **AffrescoUI works differently.** An application
+is a **live document in one unified format**: its layout, state and behaviour, in readable JSON. A small native engine
+renders whatever the document describes, from a sign-in form to an IDE, an image editor or a 3D modeller, and keeps it
+running. People, scripts and AI agents change it by sending **revisions**. The engine checks each one against the
+app's permissions, can show it as a **live preview**, and applies it **in place in milliseconds**. The app never
+stops, and your typing, focus and drags survive.
 
-## A new kind of application
+## The vision
 
-Apps have always been frozen at build time: their features are whatever the developers shipped, and changing them
-means another release. AffrescoUI apps are **agentic applications**: their behaviour and features stay **malleable
-while they run**. An app starts from a template with a set of features, and from there it is directed, not rebuilt.
+Software has always been frozen at build time: its features are whatever its developers shipped. AffrescoUI
+applications are **dynamic**: they stay malleable while they run, and the people who use them direct how they grow.
 
-- **For end users.** You don't need to be a programmer or a product engineer to change how your app works. Ask for
-  it (*"create the dark theme of this app"*, *"add a Blocked column"*, *"dim the lights at sunset"*, *"warn me when a
-  habit streak breaks"*), and an agent
-  turns the request into a revision. You see it live, accept or undo it, and nothing changes without your approval.
-- **For developers.** Build a proof of concept agentically and iteratively: describe a screen, let the agent write and
-  refine it, and watch every change land in the running app **without ever closing it**. No rebuild, no restart, and
-  your state, focus and typing survive. When the PoC is right, it's already a native app: embed the same document
-  in C++ with a few lines.
+- **One format, rendered simply.** Every application, however complex, is described the same way: nodes, state,
+  expressions, events, services and permissions, in one document format ([SCREEN_FORMAT.md](SCREEN_FORMAT.md)). The
+  engine is agnostic. It renders what it is told to, so the same small engine draws a Kanban board, a planetarium and
+  a 3D modeller, and a feature written for one application can be installed in another.
+- **Complex applications, built by everyone with AI.** An application is a document, not a code base, so building one
+  is a conversation: describe what you want, and an agent writes and refines it. The format is rich enough for
+  workbenches, editors and creative tools, and compact enough that each change costs an agent few tokens. You don't
+  need to be a programmer to build one.
+- **The end user updates the end application.** The people who use an application can change it, not only the people
+  who built it. Ask the app itself through its chat (*"add a Blocked column"*, *"dim the lights at sunset"*, *"warn me
+  when a habit streak breaks"*) and an agent turns the request into a revision. You see it live, then accept or undo
+  it. Nothing changes without your approval, and every change is versioned.
+- **Prototype while it runs.** There is no edit, rebuild and restart loop. Every change lands in the running
+  application in milliseconds, without stopping or reloading it, and its state stays where it was. When the prototype
+  is right, it is already the native app: embed the same document in C++ in a few lines.
 
 Behaviour that would usually need code (wiring a button to a list, validating a form, filtering on a search,
-drag and drop, timers, shortcuts, navigation) is part of the document, so an agent can change it as safely as a colour.
+drag and drop, timers, shortcuts, navigation, calls to services) is part of the document, so an agent can change it as
+safely as a colour.
+
+## Applications
+
+Twelve applications, from everyday apps to professional tools, each one written in the same format and changed live
+by people and agents. They live in [`examples/`](examples/README.md) and are not part of the library: they show what
+anyone can build with it. Every one carries the **assistant** in its bottom right corner, a chat with the connected
+agents where you ask for a change in plain words and review the proposal it becomes
+([the add-on](examples/shared/addons/assistant/README.md), one line to `include` in any screen).
+
+### Professional tools
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src=".github/media/forge.png" alt="Forge, an IDE workbench with an explorer, editor tabs, source control and a terminal"><br/><b>Forge</b> · an IDE workbench<br/><sub>A full code workbench: an explorer, editor tabs with syntax colouring, search across files, source control with diffs, an integrated terminal, language servers, a debugger, a command palette, and dark, light and high-contrast themes. Its whole interface is one screen document. <code>./build/affrescoui_forge [folder]</code></sub></td>
+<td width="50%" valign="top"><img src=".github/media/tempera.png" alt="Tempera, an image editor with layers, tools and a canvas"><br/><b>Tempera</b> · an image editor<br/><sub>Layers and groups, masks and selections, brushes, filters with a live preview, adjustment layers and colour management, on sparse copy-on-write tiles. Agents can only propose changes here: the person reviews every one. <code>./build/affrescoui_tempera</code></sub></td>
+</tr>
+<tr>
+<td valign="top"><img src=".github/media/sinopia.png" alt="Sinopia, a presentation editor with a ribbon, slide thumbnails and a slide canvas"><br/><b>Sinopia</b> · slides and vector documents<br/><sub>Slide decks and vector pages with a ribbon, slide thumbnails, a canvas editor, a slide sorter, presenting with an audience window, and PDF export. Its slide sorter is a reusable part that other applications install. <code>./build/affrescoui_sinopia</code></sub></td>
+<td valign="top"><img src=".github/media/modello.png" alt="Modello, a 3D modeller with a viewport, an outliner, properties and a timeline"><br/><b>Modello</b> · a 3D modeller<br/><sub>A lit 3D viewport with gizmos and a navigation widget, an outliner, a properties editor, a timeline, search over every command, and glTF import and export. Every scene edit is a revision, so it can be reviewed and undone. No C++ of its own. <code>examples/modello/modello.screen.json</code></sub></td>
+</tr>
+<tr>
+<td valign="top"><img src=".github/media/code-editor.png" alt="Quaderno, a code editor with a side bar, tabs and a minimap"><br/><b>Quaderno</b> · a code editor<br/><sub>A side bar with open files and folders, tabs, a minimap, Goto Anything over files, symbols and lines, Find in Files with a results buffer, a command palette and a console. <code>examples/code-editor/code-editor.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/orrery.png" alt="Orrery, a planetarium with a 3D solar system, a sky chart, an orbit graph and an events timeline"><br/><b>Orrery</b> · a planetarium<br/><sub>A 3D solar system, the sky seen from the ground, a graph of what orbits what, a timeline of eclipses and conjunctions, and a bodies strip that is Sinopia's slide sorter, installed from that app. Built by an outsider from the public docs alone. <code>examples/orrery/orrery.screen.json</code></sub></td>
+</tr>
+</table>
+
+### Everyday apps
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src=".github/media/smart-home.png" alt="Haven, a smart-home dashboard with rooms, device tiles and a floor plan"><br/><b>Haven</b> · a smart-home dashboard<br/><sub>Rooms in a tree by floor, a floor plan, scenes, lights with their colours, climate, blinds and media, automations as a node graph with schedules on a timeline, an energy page with charts, security and notifications. <code>examples/haven/smart-home.screen.json</code></sub></td>
+<td width="50%" valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player with playlists, a song table and a queue"><br/><b>Tempo</b> · a music player<br/><sub>Playlists, a 3,000-song library in a virtualised table, albums and artists in grids, search, a queue to reorder, now playing with a visualiser and lyrics, an equaliser, crossfade and a mini player. <code>examples/tempo/music-player.screen.json</code></sub></td>
+</tr>
+<tr>
+<td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker with daily habits, scores and charts"><br/><b>Streak</b> · a habit tracker<br/><sub>Habits to check day by day, with schedules and goals, scores, charts, a year heatmap, a calendar, notes and reminders, all kept on disk. <code>examples/streak/habit-tracker.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/arcadia.png" alt="Arcadia, a game launcher with a library, a store and game pages"><br/><b>Arcadia</b> · a game launcher<br/><sub>A library and a store with carousels, game pages, downloads, a wishlist and a cart, with key chords and a quick switcher. Built only from the public docs and tools. <code>examples/arcadia/game-launcher.screen.json</code></sub></td>
+</tr>
+<tr>
+<td valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board with a sidebar and four columns of issues"><br/><b>Flow</b> · a Kanban board<br/><sub>Boards as tabs, swimlanes, a table and a timeline of every card, a card drawer, a burndown and an activity feed, drag and drop with a keyboard alternative, undo and a command palette. What the host opens by default. <code>examples/flow/kanban.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/sign-in.png" alt="Sign in, a form with validated fields and a password strength meter"><br/><b>Sign in</b> · accounts<br/><sub>Sign in, create an account, two-step codes, a password reset, sign-in with an external provider, an account page and a session that expires, all validated in the document. <code>examples/sign-in/sign-in.screen.json</code></sub></td>
+</tr>
+</table>
+
+Run any of them with `./build/affrescoui_host <file>` (Forge, Tempera and Sinopia have their own programs, for the
+few natives a document can't hold: files, a terminal, pixels). Flow, Haven, Tempo, Streak, Arcadia and Sign in ship in
+English, Spanish and French. Ideas for an agent to try: *"add a Blocked column"*, *"a Movie night scene that dims every light"*, *"show the album
+name under the track title"*, *"a dark theme for the habit tracker"*.
 
 ## Architecture
 
@@ -101,7 +158,7 @@ modules/core/      the interfaces between layers: Executor, Channel, VersionCont
 modules/screen/    affresco::Screen, the composition root, and the umbrella header affresco/affresco.hpp
 mcp/               the Python MCP server
 schema/            JSON Schema of the screen format
-examples/          affrescoui_host, affrescoui_studio, five templates, fonts
+examples/          the applications, affrescoui_host, affrescoui_studio, the assistant add-on, fonts
 external/          vendored glad (OpenGL loader) and stb_truetype
 ```
 
@@ -150,7 +207,7 @@ are**, and a peer's identity is set by the socket it connects to.
 <td valign="top">
 
 ### 🧩 Changes become plugins
-Export any run of revisions as a **change set**: a small, portable file that anyone with the same template
+Export any run of revisions as a **change set**: a small, portable file that anyone with the same application
 can review and install.
 
 </td>
@@ -215,13 +272,13 @@ flowchart LR
     linkStyle 7,8,9 stroke:#6366F1,stroke-width:2px
 ```
 
-1. **Anyone can propose a change.** The app (`affrescoui_host`) only renders a screen, here the *Flow* Kanban board, and
-   listens for peers on local sockets. You use the **AffrescoUI Studio**. An AI agent connects through the MCP server,
-   which works both ways: your requests are pushed into its session, and its replies come back to the Studio. Any
-   script can connect too. Every change is a **revision**: compact edits like `{"set": {"#title/text": "Q4"}}`, stored
-   as JSON Patch.
+1. **Anyone can propose a change.** The app (`affrescoui_host`) only renders a screen, here the *Flow* Kanban board,
+   and listens for peers on local sockets. You use the **assistant** inside the app, or the **AffrescoUI Studio**
+   beside it. An AI agent connects through the MCP server, which works both ways: your requests are pushed into its
+   session, and its replies come back to you. Any script can connect too. Every change is a **revision**: compact
+   edits like `{"set": {"#title/text": "Q4"}}`, stored as JSON Patch.
 2. **The permission rules decide**, written like Claude Code's: `deny` refuses, `ask` sends the change to you, `allow`
-   applies it. Rules judge what a change *does*, not how its patch is written. The templates let the Studio change
+   applies it. Rules judge what a change *does*, not how its patch is written. The applications let the Studio change
    anything, always ask before the agent changes behaviour, and protect the status bar.
 3. **You review proposals.** A proposal is a branch, like a pull request: the agent can keep refining it while you
    preview it live in the app. Then **Accept**, **Always allow** (don't ask again for that part of the screen) or
@@ -240,7 +297,7 @@ flowchart LR
 ```sh
 cmake -S . -B build && cmake --build build
 
-./build/affrescoui_host                  # the Kanban board template, listening in /tmp/affrescoui-<uid>
+./build/affrescoui_host                  # Flow, the Kanban board, listening in /tmp/affrescoui-<uid>
 ./build/affrescoui_studio                # the client: apply patches, review, ask the AI
 ```
 
@@ -251,14 +308,15 @@ claude mcp add affrescoui -- python3 /path/to/AffrescoUI/mcp/affrescoui_mcp.py
 claude --dangerously-load-development-channels server:affrescoui   # requests are pushed into the session
 ```
 
-Type *"add a Blocked column between In progress and Review"* in the Studio. The request reaches Claude, Claude
-changes the running board, and the change shows up in the Studio for review. Click **Accept** and the app updates
+Type *"add a Blocked column between In progress and Review"* in the board's assistant (the round button in the
+bottom right corner) or in the Studio. The request reaches Claude, Claude changes the running board, and the change
+comes back as a proposal to review. Click **Accept** and the app updates
 in place, or **Always allow** to stop being asked about that part of the screen. Switch to **Accept edits** to let
 changes apply as they arrive.
 
 ```sh
 ./build/affrescoui_host --mode acceptEdits                              # agent changes apply unless a rule asks
-./build/affrescoui_host examples/haven/smart-home.screen.json            # any template or screen file, no C++
+./build/affrescoui_host examples/haven/smart-home.screen.json            # any application or screen file, no C++
 ./build/affrescoui_host --plugin my-changes.json                         # start with a change set applied
 ```
 
@@ -266,33 +324,8 @@ Requires CMake ≥ 3.25 and a C++23 compiler. GLFW and nlohmann/json are downloa
 on macOS. Linux should work but is untested; Windows is not supported yet (the socket and process channels are POSIX).
 
 `python3 tests/render/check.py` (or `ctest --test-dir build`) plays scripted clicks, typing, drags and revisions on
-every template and compares each frame with a golden image, pixel for pixel
+every application and compares each frame with a golden image, pixel for pixel
 ([tests/render/README.md](tests/render/README.md)).
-
-## Templates
-
-Seven starting points, each a single `.screen.json` file with its layout, state and behaviour, and each ready to be
-reshaped live by an agent. Open any of them with `./build/affrescoui_host examples/<app>/<name>.screen.json`.
-
-<table>
-<tr>
-<td width="50%" valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board with tabs, a split and a chart"><br/><b>Flow</b> · <code>kanban</code><br/><sub>Boards in tabs, a board or a sortable card table beside a details panel with a chart and notes, a card context menu, an edit dialog, toasts, a go-to-card quick pick and a command palette, light and dark tokens.</sub></td>
-<td width="50%" valign="top"><img src=".github/media/smart-home.png" alt="Haven, a smart-home panel with a room tree"><br/><b>Haven</b> · <code>smart-home</code><br/><sub>Rooms in a tree by floor, device tiles with a simulated async call, an Energy page of charts and a room table, a Settings page built from a schema.</sub></td>
-</tr>
-<tr>
-<td valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player with album art and a queue"><br/><b>Tempo</b> · <code>music-player</code><br/><sub>Album art, playlists or a sortable 3,000-song library beside a queue with a waveform, Cmd+P song finder and a command palette, a level meter.</sub></td>
-<td valign="top"><img src=".github/media/code-editor.png" alt="Bottega, a code editor with a file tree and tabs"><br/><b>Bottega</b> · <code>code-editor</code><br/><sub>A file tree, tabs with unsaved markers that ask before closing, a 5,000-line file, a problems table (TODO, FIXME), quick open and a command palette.</sub></td>
-</tr>
-<tr>
-<td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker with charts"><br/><b>Streak</b> · <code>habit-tracker</code><br/><sub>Today, History and Notes tabs, completion and streak charts, a New habit dialog, a sortable 137-day table, linked notes, light and dark tokens.</sub></td>
-<td valign="top"><img src=".github/media/sign-in.png" alt="Sign in, a form with validated fields"><br/><b>Sign in</b> · <code>sign-in</code><br/><sub>Validated fields with icons and error states, remember me, a password strength meter, a forgot-password dialog, light and dark tokens.</sub></td>
-</tr>
-<tr>
-<td valign="top"><img src=".github/media/forge.png" alt="Forge, a demo IDE workbench"><br/><b>Forge</b> · <code>examples/forge</code><br/><sub>A demo IDE whose whole interface is one screen document: the workbench shell, command palette, themes and panels. Run <code>./build/affrescoui_forge</code>.</sub></td>
-<td valign="top"><br/><sub>Ideas for an agent to try: <i>"add a Blocked column"</i>, <i>"a Movie night scene that dims every light"</i>,
-<i>"show the album name under the track title"</i>, <i>"a dark theme for the habit tracker"</i>.</sub></td>
-</tr>
-</table>
 
 ## Native performance
 
@@ -357,39 +390,45 @@ target_link_libraries(my_app PRIVATE affrescoui::affrescoui)
   overlays, tooltips, timers, typed input events, mouse capture, hover, cursors, TrueType text with wrap and
   fit-to-text, a text input with caret and paste, a multi-line text editor (selection, undo, clipboard), switches and
   sliders, HiDPI.
-- **Examples:** `affrescoui_host` (any screen, the Kanban template by default), seven templates, the Forge workbench,
-  `affrescoui_studio` (a client that is itself an AffrescoUI screen, connection included), and the MCP server.
+- **Examples:** twelve applications (see [Applications](#applications)), each with the assistant add-on;
+  `affrescoui_host` (any screen, Flow by default); `affrescoui_studio` (a client that is itself an AffrescoUI screen,
+  connection included); and the MCP server.
 
 </details>
 
-## The vision
+## Where it's going
 
-The engine is the foundation for a bigger idea at the **application layer**: start from a rich template app, then
-**customise it by talking to it**. *"Add a filter to this list"*, *"make the sidebar collapsible"*, *"show the total
-in red when it's negative"*. Each request becomes a reviewed revision of the screen. The result is stored as a
-**change set**, a small, portable file that works like a **plugin**: others with the same template can share,
-review and install it.
+The engine is the foundation; the applications on top are where the vision plays out. An application starts from a
+document, then **grows by being talked to**: *"add a filter to this list"*, *"make the sidebar collapsible"*, *"show
+the total in red when it's negative"*. Each request becomes a reviewed revision. A run of revisions is stored as a
+**change set**, a small, portable file that works like a **plugin**: others with the same application can share,
+review and install it. Whole features travel too: a part written for one application declares what it needs, and
+another application installs it (Orrery's bodies strip is Sinopia's slide sorter).
 
 ```mermaid
 flowchart LR
-    template["📦 Template app<br/>board · player · editor"]
+    app["📦 An application<br/>one live document"]
     ask["💬 You ask<br/>'add a filter to this list'"]
     propose["🤖 An agent proposes<br/>a revision"]
     approve["✅ You preview,<br/>accept or reject"]
-    plugin[("🧩 Change set<br/>= plugin")]
-    catalogue[("🌍 Shared plugins<br/>others can install")]
-    template --> ask --> propose --> approve --> plugin --> catalogue
-    catalogue -. "install" .-> template
+    plugin[("🧩 Change set<br/>or feature")]
+    catalogue[("🌍 Shared<br/>others can install")]
+    app --> ask --> propose --> approve --> plugin --> catalogue
+    catalogue -. "install" .-> app
 
     classDef step fill:#EEF2FF,stroke:#6366F1,color:#312E81
     classDef win fill:#10B981,stroke:#047857,color:#fff
-    class template,ask,propose,approve step
+    class app,ask,propose,approve step
     class plugin,catalogue win
 ```
 
-This repository is the **engine** that makes that possible: rendering, the live document, version control (permissions, review, history),
-change sets and the agent interfaces, plus a template and a client to show them off. The application layer
-(template catalogues, a plugin marketplace) builds on top.
+The direction is applications as complex as the professional tools people use every day, defined in the one format,
+rendered natively and fast, and shaped by the people who use them: a user asks, an agent builds, and the person
+approves, while the application keeps running.
+
+This repository is the **engine** that makes that possible: rendering, the live document, version control
+(permissions, review, history), change sets, features and the agent interfaces, plus the applications and a client to
+show them off.
 
 ## The story
 

@@ -239,8 +239,8 @@
 											{ "id": "langMenu", "use": "menu", "with": { "open": "state.langMenu", "placement": "below", "width": 240,
 												"items": [
 													{ "title": "English", "checked": "{{settings.ui.language == 'en'}}", "run": "pickLanguage", "with": { "lang": "en" } },
-													{ "title": "Italiano", "checked": "{{settings.ui.language == 'it'}}", "run": "pickLanguage", "with": { "lang": "it" } },
-													{ "title": "العربية", "checked": "{{settings.ui.language == 'ar'}}", "run": "pickLanguage", "with": { "lang": "ar" } }
+													{ "title": "Español", "checked": "{{settings.ui.language == 'es'}}", "run": "pickLanguage", "with": { "lang": "es" } },
+													{ "title": "Français", "checked": "{{settings.ui.language == 'fr'}}", "run": "pickLanguage", "with": { "lang": "fr" } }
 												] } }
 										] }
 								] },

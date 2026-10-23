@@ -1,8 +1,8 @@
 # Fonts for the rendering check
 
 Subsets of open fonts, holding only the characters the check's `scripts` screen shows in their script (and, for
-`NotoSansArabic-Assistant.ttf`, those of the assistant add-on's Arabic strings), so shaping, fallback by coverage and
-colour emoji are tested with a few kilobytes of fonts. `subset.py` makes them again from the originals with HarfBuzz's
+`NotoSansArabic-Assistant.ttf`, those of the assistant test screen's Arabic strings), so shaping, fallback by coverage
+and colour emoji are tested with a few kilobytes of fonts. `subset.py` makes them again from the originals with HarfBuzz's
 `hb-subset`, which keeps the layout tables shaping needs (joining forms, conjuncts, ligatures, mark positions). Variable
 fonts are pinned to their regular instance (weight 400, width 100).
 

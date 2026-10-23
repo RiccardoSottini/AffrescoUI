@@ -2,27 +2,23 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser on a GPU surface and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Italian and Arabic. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language. Playback is simulated: no sound plays.",
+	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser on a GPU surface and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language. Playback is simulated: no sound plays.",
 
-	"include": ["strings.json", "pages.json"],
+	"include": ["strings.json", "pages.json", "../shared/addons/assistant/assistant.json"],
 
 	"window": { "title": "Tempo: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
 	"persist": ["state.theme", "state.settings", "state.eq", "state.eqOn", "state.volume"],
 
 	"fonts": {
-		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons", "arabic"] },
-		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall", "arabicSmall"] },
-		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["icons", "arabic"] },
-		"large": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 32, "fallback": ["arabicLarge"] },
-		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 44, "fallback": ["arabicTitle"] },
-		"brand": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 24, "fallback": ["arabicLarge"] },
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
+		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["icons"] },
+		"large": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 32 },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 44 },
+		"brand": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 24 },
 		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 18 },
-		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 13 },
-		"arabic": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 15 },
-		"arabicSmall": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 12 },
-		"arabicLarge": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 28 },
-		"arabicTitle": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 40 }
+		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 13 }
 	},
 
 	"theme": "{{state.theme}}",
@@ -48,6 +44,12 @@
 		"field": { "dark": "#100d17", "light": "#f7f5fa" }
 	},
 
+	"tokens": {
+		"assistant.accent": "@accent", "assistant.accentHover": "@accentHover", "assistant.onAccent": "@onAccent",
+		"assistant.surface": "@menu", "assistant.raised": "@button", "assistant.border": "@border", "assistant.text": "@text",
+		"assistant.dim": "@muted", "assistant.dot": "@faint", "assistant.warningBackground": "@accentSoft"
+	},
+
 	"permissions": {
 		"allow": ["studio"],
 		"ask": ["agent(/actions)"],
@@ -67,10 +69,10 @@
 		},
 		"ui.language": {
 			"type": "string",
-			"enum": ["en", "it", "ar"],
+			"enum": ["en", "es", "fr"],
 			"default": "en",
 			"title": "Language",
-			"description": "English, Italian or Arabic (right to left)."
+			"description": "English, Spanish or French."
 		}
 	},
 
@@ -376,7 +378,7 @@
 		"toggleTheme": { "title": "Switch light and dark", "category": "View", "icon": "moon",
 			"do": [{ "set": "state.theme", "to": "{{state.theme == 'dark' ? 'light' : 'dark'}}" }] },
 		"switchLanguage": { "title": "Change the language", "category": "View", "icon": "languages",
-			"do": [{ "set": "settings.ui.language", "to": "{{settings.ui.language == 'en' ? 'it' : settings.ui.language == 'it' ? 'ar' : 'en'}}" }] },
+			"do": [{ "set": "settings.ui.language", "to": "{{settings.ui.language == 'en' ? 'es' : settings.ui.language == 'es' ? 'fr' : 'en'}}" }] },
 		"flatEqualiser": { "title": "Reset the equaliser", "category": "Sound", "icon": "sliders-horizontal", "do": [{ "run": "setPreset", "with": { "preset": "flat" } }] },
 		"playLibrary": { "title": "Play the library", "category": "Playback", "icon": "disc-3", "do": [{ "run": "play", "with": { "list": -1, "track": 0 } }] }
 	},

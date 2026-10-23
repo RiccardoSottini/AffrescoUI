@@ -2519,7 +2519,7 @@
 				{
 					"expect": {
 						"state": "locale",
-						"is": "it"
+						"is": "es"
 					}
 				},
 				{
@@ -2534,8 +2534,8 @@
 			]
 		},
 		{
-			"name": "italian-everywhere",
-			"note": "Italian: the header, the panes and the log follow the locale, even lines logged before",
+			"name": "spanish-everywhere",
+			"note": "Spanish: the header, the panes and the log follow the locale, even lines logged before",
 			"steps": [
 				{
 					"action": "host:hello",
@@ -2553,44 +2553,44 @@
 					"key": "mod+comma"
 				},
 				{
-					"click": "#lang-it"
+					"click": "#lang-es"
 				},
 				{
 					"expect": {
 						"state": "locale",
-						"is": "it"
+						"is": "es"
 					}
 				},
 				{
 					"expect": {
 						"node": "#status",
-						"text": "Connesso come 'studio/lead'"
+						"text": "Conectado como 'studio/lead'"
 					}
 				},
 				{
 					"expect": {
 						"node": "#label-ask-the-ai",
-						"text": "Chiedi all'IA"
+						"text": "Preguntar a la IA"
 					}
 				},
 				{
 					"expect": {
 						"node": "#label-entry-text",
-						"text": "Connesso all'host, alla revisione 7 (f00d123)"
+						"text": "Conectado al host, en la revisión 7 (f00d123)"
 					}
 				},
 				{
 					"expect": {
 						"node": "#settingsButton",
 						"property": "name",
-						"is": "Impostazioni (Cmd+,)"
+						"is": "Ajustes (Cmd+,)"
 					}
 				}
 			]
 		},
 		{
-			"name": "arabic-runs-right-to-left",
-			"note": "Arabic: translated, and the header mirrored",
+			"name": "french-everywhere",
+			"note": "French: the header, the panes and the log follow the locale",
 			"steps": [
 				{
 					"action": "host:hello",
@@ -2608,7 +2608,7 @@
 					"key": "mod+comma"
 				},
 				{
-					"click": "#lang-ar"
+					"click": "#lang-fr"
 				},
 				{
 					"key": "escape"
@@ -2616,32 +2616,32 @@
 				{
 					"expect": {
 						"state": "locale",
-						"is": "ar"
+						"is": "fr"
 					}
 				},
 				{
 					"expect": {
 						"node": "#status",
-						"text": "متصل باسم 'studio/lead'"
+						"text": "Connecté en tant que 'studio/lead'"
 					}
 				},
 				{
 					"expect": {
 						"node": "#settingsButton",
-						"property": "x",
-						"is": 20
+						"property": "name",
+						"is": "Réglages (Cmd+,)"
 					}
 				},
 				{
 					"expect": {
 						"node": "#label-ask-the-ai",
-						"text": "اسأل الذكاء الاصطناعي"
+						"text": "Demander à l’IA"
 					}
 				},
 				{
 					"expect": {
 						"node": "#label-entry-text",
-						"text": "متصل بالمضيف، عند المراجعة 7 (f00d123)"
+						"text": "Connecté à l’hôte, à la révision 7 (f00d123)"
 					}
 				}
 			]

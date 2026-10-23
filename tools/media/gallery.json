@@ -13,10 +13,6 @@
 			"note": "Sinopia, playing scenarios headless with its natives and the sample deck",
 			"command": ["{build}/affrescoui_sinopia", "--check", "{file}", "--out", "{out}"]
 		},
-		"modello": {
-			"note": "Modello's natives play its scenarios only in the unit tests (tests/unit/scene3d_modello.cpp) so far: no program captures them yet",
-			"command": null
-		},
 		"bottega": {
 			"note": "Bottega's own runner, when it is on this base",
 			"command": ["{build}/affrescoui_bottega", "--check", "{file}", "--out", "{out}"]
@@ -33,8 +29,9 @@
 		{ "app": "Studio", "screen": "studio/studio.screen.json", "scenarios": "studio/studio.scenarios.json", "scene": "a-proposal-to-review", "output": "studio", "runner": "render", "size": [1000, 691] },
 		{ "app": "Arcadia", "screen": "arcadia/game-launcher.screen.json", "scenarios": "arcadia/game-launcher.scenarios.json", "scene": "game-page", "output": "arcadia", "runner": "render" },
 		{ "app": "Tempera", "screen": "tempera/tempera.screen.json", "scenarios": "tempera/tempera.scenarios.json", "scene": "tempera-a-filter-previewing", "output": "tempera", "runner": "tempera" },
-		{ "app": "Sinopia", "screen": "sinopia/sinopia.screen.json", "scenarios": "sinopia/sinopia.scenarios.json", "scene": "sinopia-the-sorter", "output": "sinopia", "runner": "sinopia", "settle": 400 },
-		{ "app": "Modello", "screen": "modello/modello.screen.json", "scenarios": "modello/modello.scenarios.json", "scene": "modello-scene", "output": "modello", "runner": "modello" },
+		{ "app": "Sinopia", "screen": "sinopia/sinopia.screen.json", "scenarios": "sinopia/sinopia.scenarios.json", "scene": "sinopia-load-the-sample", "output": "sinopia", "runner": "sinopia", "settle": 400 },
+		{ "app": "Modello", "screen": "modello/modello.screen.json", "scenarios": "modello/modello.scenarios.json", "scene": "modello-assistant-open", "output": "modello", "runner": "render" },
+		{ "app": "Orrery", "screen": "orrery/orrery.screen.json", "scenarios": "orrery/orrery.scenarios.json", "scene": "an-eclipse-seen-from-the-ground", "output": "orrery", "runner": "render" },
 		{ "app": "Bottega", "screen": "bottega/bottega.screen.json", "scenarios": "bottega/bottega.scenarios.json", "scene": "bottega-sorter", "output": "bottega", "runner": "bottega" }
 	]
 }

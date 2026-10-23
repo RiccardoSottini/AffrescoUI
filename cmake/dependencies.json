@@ -78,26 +78,6 @@
       "scope": "runtime"
     },
     {
-      "name": "Noto Sans Arabic",
-      "version": "subset",
-      "purpose": "font: Arabic text in the Flow, Haven and Tempo templates",
-      "kind": "vendored",
-      "url": "https://github.com/google/fonts",
-      "files": [
-        {
-          "path": "examples/shared/fonts/NotoSansArabic-Subset.ttf",
-          "sha256": "9259978a61f1c84d5b2f0b140de06038f5c39c9291240e7b9ebacaae91fd48f1"
-        }
-      ],
-      "license": "OFL-1.1",
-      "licenseNote": "SIL Open Font License 1.1 (`examples/shared/fonts/LICENSE-NotoSansArabic.txt`)",
-      "usedBy": [
-        "the templates",
-        "the release archives"
-      ],
-      "scope": "runtime"
-    },
-    {
       "name": "Lucide",
       "version": "1.48.0",
       "purpose": "icon font, `lucide-static`",
@@ -353,6 +333,10 @@
         {
           "path": "tests/render/fonts/NotoSansArabic-Subset.ttf",
           "sha256": "b99e38e9474a4514cec1b5f8a354b66bd3db45156b1d40a8d321b5ef18d8caf1"
+        },
+        {
+          "path": "tests/render/fonts/NotoSansArabic-Assistant.ttf",
+          "sha256": "ce756db40c2a8fa2bd9488d34f0b4452fff2b72e6d1064ab60533d149121f521"
         },
         {
           "path": "tests/render/fonts/NotoSansDevanagari-Subset.ttf",

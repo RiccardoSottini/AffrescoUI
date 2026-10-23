@@ -14,7 +14,7 @@
 		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 17 }
 	},
 
-	"include": ["parts/commands.json", "parts/workspace.json", "parts/panels.json"],
+	"include": ["parts/commands.json", "parts/workspace.json", "parts/panels.json", "../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -36,7 +36,10 @@
 		"kit.background": "@panel", "kit.surface": "@panel", "kit.bar": "@panel", "kit.barHover": "@hover", "kit.field": "@input",
 		"kit.text": "@text", "kit.dim": "@muted", "kit.body": "@muted", "kit.selection": "@accent", "kit.border": "@border",
 		"kit.primary": "@accent", "kit.secondary": "@selected", "kit.onSecondary": "@text", "kit.focus": "@text",
-		"kit.radius": 3, "kit.cardRadius": 4
+		"kit.radius": 3, "kit.cardRadius": 4,
+		"assistant.accent": "@accent", "assistant.accentHover": "@menuHover", "assistant.onAccent": "#ffffff",
+		"assistant.surface": "@panel", "assistant.raised": "@header", "assistant.border": "@border", "assistant.text": "@text",
+		"assistant.dim": "@muted", "assistant.warningBackground": "@selected"
 	},
 
 	"permissions": {

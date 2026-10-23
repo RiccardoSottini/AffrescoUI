@@ -1127,7 +1127,7 @@
 			]
 		},
 		{
-			"name": "speak-italian",
+			"name": "speak-spanish",
 			"note": "The language menu switches the whole app",
 			"steps": [
 				{
@@ -1145,7 +1145,7 @@
 				{
 					"click": {
 						"role": "menuitem",
-						"name": "Italiano"
+						"name": "Español"
 					}
 				},
 				{
@@ -1154,7 +1154,7 @@
 				{
 					"expect": {
 						"state": "locale",
-						"is": "it"
+						"is": "es"
 					}
 				},
 				{
@@ -1167,15 +1167,15 @@
 					"expect": {
 						"node": "#cell",
 						"property": "name",
-						"is": "gio 15 ott: fatto",
+						"is": "jue 15 oct: hecho",
 						"nth": 0
 					}
 				}
 			]
 		},
 		{
-			"name": "speak-arabic-right-to-left",
-			"note": "Arabic lays the panes out right to left",
+			"name": "speak-french",
+			"note": "The language menu switches to French",
 			"steps": [
 				{
 					"key": "mod+comma"
@@ -1201,7 +1201,7 @@
 				{
 					"expect": {
 						"state": "locale",
-						"is": "ar"
+						"is": "fr"
 					}
 				},
 				{
@@ -1212,9 +1212,10 @@
 				},
 				{
 					"expect": {
-						"node": "#listPane",
-						"property": "x",
-						"is": 692
+						"node": "#cell",
+						"property": "name",
+						"is": "jeu. 15 oct. : fait",
+						"nth": 0
 					}
 				}
 			]

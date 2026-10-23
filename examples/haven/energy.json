@@ -14,8 +14,8 @@
 	"computed": {
 		"flowHeight": "{{computed.compact ? 172 : 220}}",
 		"flowY": "{{computed.flowHeight - 56}}",
-		"roomRows": "{{map(state.rooms, { id: it.name, cells: settings.ui.language == 'ar' ? [it.temp + '°', t('kwh', { n: fixed(it.kwh, 1) }), it.name] : [it.name, t('kwh', { n: fixed(it.kwh, 1) }), it.temp + '°'] })}}",
-		"roomColumns": "{{settings.ui.language == 'ar' ? [{ id: 'temp', title: t('table.now'), width: 92 }, { id: 'kwh', title: t('table.energy'), width: 80 }, { id: 'room', title: t('table.room'), width: 110 }] : [{ id: 'room', title: t('table.room'), width: 110 }, { id: 'kwh', title: t('table.energy'), width: 80 }, { id: 'temp', title: t('table.now'), width: 92 }]}}",
+		"roomRows": "{{map(state.rooms, { id: it.name, cells: [it.name, t('kwh', { n: fixed(it.kwh, 1) }), it.temp + '°'] })}}",
+		"roomColumns": "{{[{ id: 'room', title: t('table.room'), width: 110 }, { id: 'kwh', title: t('table.energy'), width: 80 }, { id: 'temp', title: t('table.now'), width: 92 }]}}",
 		"gridHourly": "{{map(state.hourly, max(it - state.solar[index], 0))}}",
 		"gridIn": "{{sum(computed.gridHourly)}}",
 		"solarMade": "{{sum(state.solar)}}",

@@ -15,7 +15,7 @@ C++ only connects it.
 | `EvidencePicture.hpp` | A proposal's evidence pictures: decoded, and the changed region outlined, clipped to the picture whatever region the peer sends (`tests/unit/studio_evidence.cpp`) |
 | `studio.screen.json` | The screen document |
 | `studio-features.json`, `studio-repairs.json` | Parts of the document it includes |
-| `studio-strings.json` | Its texts in English, Italian and Arabic (`strings`, `t()`) |
+| `studio-strings.json` | Its texts in English, Spanish and French (`strings`, `t()`) |
 | `studio.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `studio.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 
@@ -34,8 +34,7 @@ C++ only connects it.
   properties (`table`) and its blame.
 - **Features and repairs**: included documents (`include`), components with parameters, the built-in `dialog`,
   `quickPick` (the palette) and `toast` components.
-- **Settings**: light and dark themes (`tokens`, kept with `persist`), English, Italian and Arabic (`strings`, `t()`,
-  right to left with `dir`).
+- **Settings**: light and dark themes (`tokens`, kept with `persist`), English, Spanish and French (`strings`, `t()`).
 - **Commands and keys**: a palette of commands with keybindings (`keys`), full keyboard use (Tab order, arrows, Enter,
   Escape), accessible roles and names, `live` regions for the status.
 - **Layouts** from 480 × 640 to 1920 × 1080: below 900 wide the two sides become panes (`split`, `tabs`).

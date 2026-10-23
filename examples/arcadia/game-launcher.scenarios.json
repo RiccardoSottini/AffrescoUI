@@ -54,14 +54,14 @@
 			]
 		},
 		{
-			"name": "dark-light-rtl",
+			"name": "dark-light-french",
 			"steps": [
 				{ "action": "toggleTheme" },
 				{ "capture": "light" },
 				{ "action": "toggleTheme" },
 				{ "action": "nextLanguage" },
 				{ "action": "nextLanguage" },
-				{ "capture": "arabic" }
+				{ "capture": "french" }
 			]
 		},
 		{

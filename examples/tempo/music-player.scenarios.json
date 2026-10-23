@@ -311,16 +311,16 @@
 			]
 		},
 		{
-			"name": "italian-and-arabic",
-			"note": "The language button cycles English, Italian and Arabic; Arabic lays the pages out right to left",
+			"name": "spanish-and-french",
+			"note": "The language button cycles English, Spanish and French",
 			"steps": [
 				{ "click": "#languageButton" },
-				{ "expect": { "node": "#languageButton", "text": "IT" } },
-				{ "expect": { "node": "#label-menu", "nth": 0, "text": "Libreria" } },
+				{ "expect": { "node": "#languageButton", "text": "ES" } },
+				{ "expect": { "node": "#label-menu", "nth": 0, "text": "Biblioteca" } },
 				{ "click": "#languageButton" },
-				{ "expect": { "node": "#languageButton", "text": "AR" } },
-				{ "expect": { "node": "#label-menu", "nth": 0, "text": "المكتبة" } },
-				{ "capture": "arabic" },
+				{ "expect": { "node": "#languageButton", "text": "FR" } },
+				{ "expect": { "node": "#label-menu", "nth": 0, "text": "Bibliothèque" } },
+				{ "capture": "french" },
 				{ "key": "mod+shift+l" },
 				{ "expect": { "node": "#languageButton", "text": "EN" } }
 			]

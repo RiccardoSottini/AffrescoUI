@@ -318,6 +318,10 @@
 
 	"onLoad": "prepare",
 
+	"watch": {
+		"state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }]
+	},
+
 	"actions": {
 		"prepare": [
 			{ "note": "Generates the large file once (5,000 lines, a TODO every 1,000), then finds the problems" },

@@ -93,6 +93,8 @@
 				{ "expect": { "state": "scene.nodes[1].visible", "is": true } }
 			]
 		},
+		{ "name": "modello-assistant-open", "note": "The assistant's panel open over the viewport, with no agent connected: the note on how to connect one and three suggestions",
+		  "steps": [{ "key": "mod+shift+a" }, { "wait": 300 }, { "expect": { "state": "assistant.open", "is": true } }] },
 		{
 			"name": "modello-assistant",
 			"note": "Ctrl+Shift+A opens the assistant's panel and Escape closes it",

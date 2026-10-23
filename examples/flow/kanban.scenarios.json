@@ -699,19 +699,19 @@
 			]
 		},
 		{
-			"name": "arabic-right-to-left",
-			"note": "Cmd+L twice switches to Arabic: the board runs right to left with Arabic text, a regression for the missing Arabic font",
+			"name": "french",
+			"note": "Cmd+L twice switches to French: the filter and the board read in French",
 			"steps": [
 				{ "key": "mod+l" },
 				{ "key": "mod+l" },
 				{ "wait": 50 },
 				{ "key": "f" },
 				{ "wait": 50 },
-				{ "expect": { "node": "#filterProp", "nth": 0, "text": "\u00a0\u00a0الحالة" } },
+				{ "expect": { "node": "#filterProp", "nth": 0, "text": "\u00a0\u00a0Statut" } },
 				{ "key": "escape" },
 				{ "click": "#cardTitle" },
 				{ "expect": { "state": "selected.i", "is": 0 } },
-				{ "capture": "arabic" }
+				{ "capture": "french" }
 			]
 		},
 		{

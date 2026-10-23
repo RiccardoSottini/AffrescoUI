@@ -11,19 +11,16 @@
 	"persist": ["state.theme", "state.sizes", "state.view", "state.swimlanes", "state.settings"],
 
 	"fonts": {
-		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "symbols", "arabic"] },
-		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall", "arabicSmall"] },
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "symbols"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
 		"tiny": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 9 },
-		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "symbols", "arabic"] },
-		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 20, "fallback": ["iconsLarge", "arabicLarge"] },
-		"display": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 24, "fallback": ["arabicLarge"] },
+		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "symbols"] },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 20, "fallback": ["iconsLarge"] },
+		"display": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 24 },
 		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 15 },
 		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 13 },
 		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 20 },
-		"symbols": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 13 },
-		"arabic": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 14 },
-		"arabicSmall": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 12 },
-		"arabicLarge": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 20 }
+		"symbols": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 13 }
 	},
 
 	"theme": "{{state.theme}}",

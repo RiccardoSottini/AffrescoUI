@@ -2,7 +2,7 @@
 	"note": "Flow's board logic, included by kanban.screen.json: undo, the activity feed, work-in-progress limits, moves by keyboard and between swimlanes, the card drawer's edits, the timeline's tracks, presence from the host's channel, and the settings.",
 
 	"settings": {
-		"appearance.language": { "type": "string", "enum": ["en", "it", "ar"], "default": "en", "title": "Language", "description": "English, Italian or Arabic (right to left)." },
+		"appearance.language": { "type": "string", "enum": ["en", "es", "fr"], "default": "en", "title": "Language", "description": "English, Spanish or French." },
 		"board.wipWarnings": { "type": "boolean", "default": true, "title": "Warn over a column's limit", "description": "Show a notice when a move puts a column over its work-in-progress limit." },
 		"board.weekStart": { "type": "number", "minimum": 0, "maximum": 6, "default": 1, "title": "First day of the week", "description": "0 for Sunday, 1 for Monday, up to 6 for Saturday, in the date picker." }
 	},
@@ -188,7 +188,7 @@
 		"openSettings": { "title": "Settings…", "category": "View", "icon": "settings", "do": [{ "set": "state.settingsOpen", "to": true }] },
 		"closeSettings": [{ "set": "state.settingsOpen", "to": false }],
 		"changeLanguage": { "title": "Change the language", "category": "View", "icon": "languages",
-			"do": [{ "set": "settings.appearance.language", "to": "{{settings.appearance.language == 'en' ? 'it' : settings.appearance.language == 'it' ? 'ar' : 'en'}}" }] },
+			"do": [{ "set": "settings.appearance.language", "to": "{{settings.appearance.language == 'en' ? 'es' : settings.appearance.language == 'es' ? 'fr' : 'en'}}" }] },
 		"focusSearch": { "title": "Search issues", "category": "Go", "icon": "search", "do": [{ "set": "state.searchOpen", "to": true }, { "focus": "#search" }] }
 	},
 

@@ -65,7 +65,7 @@
 				{ "expect": { "image": "energy-room" } },
 				{ "key": "mod+l" },
 				{ "key": "mod+l" },
-				{ "expect": { "image": "energy-arabic" } },
+				{ "expect": { "image": "energy-french" } },
 				{ "key": "mod+l" },
 				{ "key": "mod+4" },
 				{ "expect": { "image": "automations" } },
@@ -92,7 +92,7 @@
 				{ "key": "mod+l" },
 				{ "key": "mod+l" },
 				{ "click": "#settingsRow", "nth": 4 },
-				{ "expect": { "image": "settings-profile-arabic-dark" } },
+				{ "expect": { "image": "settings-profile-french-dark" } },
 				{ "key": "mod+l" },
 				{ "key": "mod+4" },
 				{ "click": "#autoRowOpen", "nth": 1 },
@@ -144,7 +144,7 @@
 				{ "click": "#editDone" },
 				{ "key": "mod+l" },
 				{ "key": "mod+l" },
-				{ "expect": { "image": "home-arabic" } }
+				{ "expect": { "image": "home-french" } }
 			]
 		},
 		{
@@ -164,7 +164,7 @@
 				{ "key": "mod+l" },
 				{ "key": "mod+t" },
 				{ "wait": 600 },
-				{ "expect": { "image": "areas-arabic-dark" } }
+				{ "expect": { "image": "areas-french-dark" } }
 			]
 		}
 	]

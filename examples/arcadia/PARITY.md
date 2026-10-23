@@ -56,7 +56,7 @@ was at the start of this work; **Now** is the current state.
 | Profile | Profile page: avatar, level, showcase, recent activity | missing | missing |
 | TV mode | Big-screen mode entry and its home | missing | missing |
 | Keyboard | Every action reachable by keyboard, focus visible, shortcuts | partial | partial |
-| Locales | English, Italian and Arabic (right to left) | done | done |
+| Locales | English, Spanish and French | done | done |
 | Assistant | The shared assistant chat (bottom-right bubble) | missing | missing |
 
 Counts at the start: done 2, partial 21, missing 26 (49 features). Tokens at the start (merged, compact): 24,559.

@@ -11,7 +11,7 @@ Playlists, a library of 3,000 songs in a table, albums and artists in grids, sea
 |---|---|
 | `images/` | The pictures the screen shows |
 | `pages.json` | The pages (albums, artists, a collection, search, now playing, sound), included by the screen |
-| `strings.json` | The string tables: English, Italian and Arabic |
+| `strings.json` | The string tables: English, Spanish and French |
 | `Visualiser.hpp`, `Visualiser.cpp` | The `visualiser` type: bars drawn on a GPU surface, registered by the host |
 | `music-player.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 | `music-player.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
@@ -27,7 +27,7 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 - **A simulated player:** an `every` timer moves the song along, crossfades into the next one and steps the lyrics.
 - **Commands:** titled actions in the command palette (Cmd+Shift+P) and Quick Open of songs (Cmd+P); shortcuts for playback (Space, arrows), pages (Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5, Cmd+6), the queue (Cmd+U), the mini player (Cmd+M), the theme (Cmd+T), the language (Cmd+Shift+L).
 - **Settings** that persist (`settings` with a schema): language and crossfade; the theme, the equaliser and the volume persist too.
-- **Themes and locales:** light and dark tokens; English, Italian and Arabic string tables, Arabic right to left.
+- **Themes and locales:** light and dark tokens; English, Spanish and French string tables.
 - **Accessibility:** roles and names, live regions, the menu as a tab list with arrow keys, sliders and lists with the keyboard.
 - **Layouts** from 1040 × 640 to full screen, and a mini player.
 

@@ -23,7 +23,15 @@
 	            "features/accounts/accounts.json", "features/explorer/explorer.json", "features/terminal/terminal.json",
 	            "features/scm/scm.json", "features/agent/agent.json", "features/lsp/lsp.json",
 	            "features/debug/debug.json", "features/debug/debugViews.json",
-	            "features/editing/editing.json", "features/workbench/workbench.json"],
+	            "features/editing/editing.json", "features/workbench/workbench.json",
+	            "../shared/addons/assistant/assistant.json"],
+
+	"tokens": {
+		"assistant.accent": "@color.accent", "assistant.accentHover": "@color.selection", "assistant.onAccent": "#ffffff",
+		"assistant.surface": "@color.widget", "assistant.raised": "@color.input", "assistant.border": "@color.border",
+		"assistant.text": "@color.text", "assistant.dim": "@color.muted", "assistant.dot": "@color.muted",
+		"assistant.success": "@color.info", "assistant.danger": "@color.error", "assistant.warningBackground": "@color.hover"
+	},
 
 	"theme": "{{state.theme}}",
 

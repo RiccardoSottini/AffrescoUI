@@ -6,7 +6,7 @@
 		{
 			"name": "arcadia",
 			"screen": "game-launcher.screen.json",
-			"note": "Arcadia's library: the home, a game's page with its info card, a game that isn't installed, the store home, a store page, the cart and the wishlist, then light and Arabic",
+			"note": "Arcadia's library: the home, a game's page with its info card, a game that isn't installed, the store home, a store page, the cart and the wishlist, then light and French",
 			"steps": [
 				{ "expect": { "image": "library-home" } },
 				{ "click": "#row-favourites-starfall" },
@@ -34,7 +34,7 @@
 				{ "action": "toggleTheme" },
 				{ "action": "nextLanguage" },
 				{ "action": "nextLanguage" },
-				{ "expect": { "image": "arabic" } }
+				{ "expect": { "image": "french" } }
 			]
 		}
 	]

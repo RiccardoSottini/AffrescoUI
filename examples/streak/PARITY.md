@@ -67,7 +67,7 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 | Theme: light, dark, pure black | done | |
 | First day of the week, reverse order of days, skip days | done | |
 | Notifications on or off | done | |
-| Language (English, Italiano, العربية, right to left) | done | |
+| Language (English, Español, Français) | done | |
 | Export all as CSV | done | |
 | Sync (optional, a placeholder sign-in) | done | |
 | Widgets, backups to a file | missing | desktop documents have no widgets or file writes |

@@ -355,7 +355,7 @@
 				{ "expect": { "state": "locale", "is": "en" } },
 				{ "expect": { "node": "#languages", "property": "role", "is": "radiogroup" } },
 				{ "expect": { "node": "#lang", "nth": 1, "property": "role", "is": "radio" } },
-				{ "expect": { "node": "#lang", "nth": 1, "property": "name", "is": "Italiano" } },
+				{ "expect": { "node": "#lang", "nth": 1, "property": "name", "is": "Español" } },
 				{ "key": "tab" },
 				{ "expect": { "node": "#slowToggle", "property": "focused", "is": true } },
 				{ "expect": { "node": "#slowToggle", "property": "role", "is": "switch" } },
@@ -461,30 +461,30 @@
 			]
 		},
 		{
-			"name": "italian",
-			"note": "The IT chip switches every text to Italian, errors included",
+			"name": "spanish",
+			"note": "The ES chip switches every text to Spanish, errors included",
 			"steps": [
 				{ "click": "#lang", "nth": 1 },
-				{ "expect": { "state": "locale", "is": "it" } },
-				{ "expect": { "node": "#label-welcome-back", "text": "Bentornato" } },
+				{ "expect": { "state": "locale", "is": "es" } },
+				{ "expect": { "node": "#label-welcome-back", "text": "Te damos la bienvenida de nuevo" } },
 				{ "click": "#signIn" },
-				{ "expect": { "node": "#label-error", "nth": 0, "text": "Inserisci un indirizzo email" } },
-				{ "expect": { "node": "#textarea-placeholder", "nth": 0, "property": "name", "is": "Email" } }
+				{ "expect": { "node": "#label-error", "nth": 0, "text": "Introduce una dirección de correo" } },
+				{ "expect": { "node": "#textarea-placeholder", "nth": 0, "property": "name", "is": "Correo electrónico" } }
 			]
 		},
 		{
-			"name": "sign-in-arabic-right-to-left",
-			"note": "Cmd+L twice switches to Arabic: the texts are Arabic and the layout runs right to left",
+			"name": "sign-in-french",
+			"note": "Cmd+L twice switches to French: the texts are French and the layout stays left to right",
 			"steps": [
 				{ "expect": { "node": "#forgot", "property": "x", "is": 575 } },
 				{ "key": "mod+l" },
-				{ "expect": { "state": "locale", "is": "it" } },
+				{ "expect": { "state": "locale", "is": "es" } },
 				{ "key": "mod+l" },
-				{ "expect": { "state": "locale", "is": "ar" } },
-				{ "expect": { "node": "#label-welcome-back", "text": "مرحبًا بعودتك" } },
+				{ "expect": { "state": "locale", "is": "fr" } },
+				{ "expect": { "node": "#label-welcome-back", "text": "Bon retour" } },
 				{ "click": "#signIn" },
-				{ "expect": { "node": "#label-error", "nth": 0, "text": "أدخل عنوان بريد إلكتروني" } },
-				{ "expect": { "node": "#forgot", "property": "x", "is": 306 } },
+				{ "expect": { "node": "#label-error", "nth": 0, "text": "Saisissez une adresse e-mail" } },
+				{ "expect": { "node": "#forgot", "property": "x", "is": 558 } },
 				{ "key": "mod+l" },
 				{ "expect": { "state": "locale", "is": "en" } },
 				{ "expect": { "node": "#label-welcome-back", "text": "Welcome back" } }

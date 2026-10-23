@@ -14,16 +14,16 @@ python3 examples/arcadia/e2e_test.py build
 
 - **Library**: collections in a `tree` (all, installed, favourites, genres), sorting by name, last played or play
   time (a chip row, a setting and the chord `mod+k mod+s`), a cover grid driven by the arrow keys (left/right move,
-  up/down jump a row, mirrored in Arabic), a `table` view and a search field whose down arrow moves into the grid.
+  up/down jump a row), a `table` view and a search field whose down arrow moves into the grid.
 - **Game page**: a screenshot `carousel` with a caption, achievements with a progress bar, and dated news.
 - **Friends**: made-up names with presence (online, in game, away, offline), an offline toggle and a short
   message box with a character count.
 - **Downloads**: a queue that advances on an `every` timer at the speed set in settings, with pause, resume,
   reorder and cancel per item, pause all / resume all (`mod+shift+d`) and installed games when one finishes.
-- **Settings**: theme (dark, light), language (English, Italiano, العربية), cover size, sort, speed, uninstalled
+- **Settings**: theme (dark, light), language (English, Español, Français), cover size, sort, speed, uninstalled
   games and confirmations, each a declared setting, with keyboard-usable sliders and a reset.
-- **Languages**: every visible text goes through `strings` and `t()`, with ICU plurals; Arabic lays the screen out
-  right to left (`dir` on the body).
+- **Languages**: every visible text goes through `strings` and `t()`, with ICU plurals, in English, Spanish and
+  French (`dir` is `auto` on the body).
 - **Keyboard and commands**: every control has a role and a name; the commands back the buttons, menus, the
   context menu and the palette (`mod+shift+p`, `mod+p` for games); keys `mod+1..5`, `mod+f`, `mod+enter`,
   `mod+d`, `alt+left`, `escape` and the chords `mod+k mod+t` (theme) and `mod+k mod+l` (language).

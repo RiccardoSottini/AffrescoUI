@@ -22,7 +22,8 @@ examples/
 ├── forge/              affrescoui_forge, a demo IDE: features/, catalog/, its scenarios
 ├── tempera/            affrescoui_tempera, an image editor on modules/imaging, parts/
 ├── sinopia/            affrescoui_sinopia, slides and vector documents, decks/, parts/
-├── modello/            affrescoui_modello, a 3D modeller and scene editor on modules/scene3d
+├── modello/            a 3D modeller and scene editor on modules/scene3d, run by the host
+├── orrery/             a planetarium, run by the host
 ├── server/             affrescoui_server, the document server, and deploy/ (Caddy, nginx)
 ├── embed/              affrescoui_embed, a screen inside a host's own OpenGL scene (C API)
 └── surfaces/           affrescoui_surfaces, native OpenGL drawing in "surface" nodes
@@ -47,7 +48,9 @@ without the C++ sources.
 
 Every application, its first frame and one scene, drawn offscreen by `python3 tools/media/capture.py` from the list in
 [`tools/media/gallery.json`](../tools/media/gallery.json) (CI opens and draws each one: `tests/smoke/first_frames.py`).
-Run each from the repository's root after building.
+Run each from the repository's root after building. Every application includes the assistant add-on
+([`shared/addons/assistant`](shared/addons/assistant/README.md)): the round button in its bottom right corner opens a
+chat with the connected agents.
 
 | Application | Pictures | Run | What it shows |
 |---|---|---|---|
@@ -62,7 +65,8 @@ Run each from the repository's root after building.
 | [Forge](forge/README.md), a demo IDE | <img src="../.github/media/forge.png" width="200" alt="forge"> <img src="../.github/media/forge-scene.png" width="200" alt="forge, a scene"> | `./build/affrescoui_forge [folder]` | natives for files, search, source control and a terminal, language servers, a debugger, a workbench of panels |
 | [Tempera](tempera/README.md), an image editor | <img src="../.github/media/tempera.png" width="200" alt="tempera"> <img src="../.github/media/tempera-scene.png" width="200" alt="tempera, a scene"> | `./build/affrescoui_tempera` | a `surface` canvas the host composites, layers, masks and filters with a live preview, agents limited to proposals |
 | [Sinopia](sinopia/README.md), slides and vector documents | <img src="../.github/media/sinopia.png" width="200" alt="sinopia"> <img src="../.github/media/sinopia-scene.png" width="200" alt="sinopia, a scene"> | `./build/affrescoui_sinopia` | a `canvas` editor, thumbnails drawn by the host, a reusable slide sorter part, an audience window, PDF export |
-| [Modello](modello/README.md), a 3D modeller | (no picture yet: its runner draws only in the unit tests) | `./build/affrescoui_modello` | a PBR viewport (`scene3d`), gizmos, glTF import and export, every scene edit a revision |
+| [Modello](modello/README.md), a 3D modeller | <img src="../.github/media/modello.png" width="200" alt="modello"> <img src="../.github/media/modello-scene.png" width="200" alt="modello, the assistant open"> | `./build/affrescoui_host examples/modello/modello.screen.json` | a PBR viewport (`scene3d`), gizmos, glTF import and export, every scene edit a revision |
+| [Orrery](orrery/README.md), a planetarium | <img src="../.github/media/orrery.png" width="200" alt="orrery"> <img src="../.github/media/orrery-scene.png" width="200" alt="orrery, a scene"> | `./build/affrescoui_host examples/orrery/orrery.screen.json` | a `scene` node bound to computed values, a sky chart on a `canvas`, a `graph`, a `timeline`, Sinopia's slide sorter installed through an adapter; built only from the public docs |
 
 The technical demos:
 
