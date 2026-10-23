@@ -1,0 +1,48 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screen": "calamaio.screen.json",
+	"scenarios": [
+		{
+			"name": "frame",
+			"note": "The start screen, then the scratch buffer, two windows and the minibuffer.",
+			"steps": [
+				{ "capture": "splash" },
+				{ "key": "ctrl+x" },
+				{ "key": "b" },
+				{ "wait": 50 },
+				{ "expect": { "state": "mb.open", "is": true } },
+				{ "type": "*scratch*" },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "win.w1.buf", "is": "b1" } },
+				{ "key": "ctrl+x" },
+				{ "key": "2" },
+				{ "wait": 50 },
+				{ "expect": { "state": "layout.groups.length", "is": 2 } },
+				{ "key": "ctrl+x" },
+				{ "key": "o" },
+				{ "wait": 50 },
+				{ "expect": { "state": "sel", "is": "w2" } },
+				{ "type": "(+ 1 2)" },
+				{ "capture": "split" },
+				{ "key": "ctrl+x" },
+				{ "key": "3" },
+				{ "wait": 50 },
+				{ "capture": "three" },
+				{ "key": "ctrl+x" },
+				{ "key": "1" },
+				{ "wait": 50 },
+				{ "expect": { "state": "layout.groups.length", "is": 1 } },
+				{ "key": "alt+x" },
+				{ "wait": 50 },
+				{ "type": "forward" },
+				{ "capture": "mx" },
+				{ "key": "ctrl+g" },
+				{ "wait": 50 },
+				{ "expect": { "state": "mb.open", "is": false } },
+				{ "capture": "quit" }
+			]
+		}
+	]
+}

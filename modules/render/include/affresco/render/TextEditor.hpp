@@ -801,6 +801,7 @@ private:
 	Position anchor_;                   ///< The selection's other end (== caret_: none).
 	float preferredX_ = -1.0f;          ///< The x vertical moves aim for (< 0: the caret's).
 	Vec2 scroll_;                       ///< Pixels scrolled right and down.
+	bool revealPending_ = false;        ///< The caret was revealed before the editor had a height: arrange() does it.
 	bool dragging_ = false;             ///< A button press is selecting text.
 	Position hoveredWord_{SIZE_MAX, 0}; ///< Where the word under the pointer starts, for onWordHovered.
 	double lastClickTime_ = -1.0;       ///< When the last press happened, for double clicks.

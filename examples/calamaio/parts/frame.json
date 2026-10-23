@@ -1,0 +1,363 @@
+{
+	"note": "Calamaio's frame: a window (fringes, the buffer, a scroll bar and its mode line), the splash screen, the tool bar and the echo area with the minibuffer.",
+	"components": {
+		"window": {
+			"params": { "w": "w1" },
+			"node": {
+				"type": "column",
+				"grow": 1,
+				"basis": 0,
+				"alignSelf": "stretch",
+				"let": {
+					"win": "{{state.win[w]}}",
+					"b": "{{state.bufs[state.win[w].buf]}}",
+					"on": "{{state.sel == w}}",
+					"v": "{{state.win[w].view}}"
+				},
+				"keys": { "f10": "menu-bar-open" },
+				"children": [
+					{
+						"type": "row",
+						"grow": 1,
+						"alignSelf": "stretch",
+						"color": "@bg",
+						"children": [
+							{ "width": 8, "alignSelf": "stretch", "color": "@fringe" },
+							{
+								"grow": 1,
+								"basis": 0,
+								"alignSelf": "stretch",
+								"color": "@bg",
+								"children": [
+									{ "when": "{{b.kind == 'splash'}}", "use": "splash", "with": { "w": "{{w}}" } },
+									{
+										"when": "{{b.kind != 'splash'}}",
+										"type": "editor",
+										"id": "{{'ed' + w}}",
+										"anchors": { "left": -7, "top": -6, "right": 0, "bottom": 0 },
+										"bind": "{{'state.bufs.' + win.buf + '.text'}}",
+										"caret": "{{'state.win.' + w + '.caret'}}",
+										"viewport": "{{'state.win.' + w + '.view'}}",
+										"font": "code",
+										"textColor": "@fg",
+										"color": "@bg",
+										"lineColor": "@line",
+										"selectionColor": "@region",
+										"caretColor": "@cursor",
+										"caretStyle": "block",
+										"readOnly": "{{b.readOnly == true}}",
+										"grammar": "{{state.modes[b.mode].grammar ?? ''}}",
+										"matchColor": "@lazy",
+										"bracketColor": "@paren",
+										"onFocus": { "set": "state.sel", "to": "{{w}}" },
+										"onChange": { "set": "{{'state.bufs.' + win.buf + '.dirty'}}", "to": true }
+									}
+								]
+							},
+							{ "width": 8, "alignSelf": "stretch", "color": "@fringe" },
+							{
+								"width": 14,
+								"alignSelf": "stretch",
+								"color": "@track",
+								"let": {
+									"lines": "{{max(1, v.lines ?? 1)}}",
+									"shown": "{{min(1, max(0.05, ((v.last ?? 1) - (v.first ?? 1) + 1) / lines))}}"
+								},
+								"children": [
+									{
+										"x": 3,
+										"width": 8,
+										"radius": 4,
+										"color": "@thumb",
+										"y": "{{fixed(100 * min(1 - shown, ((v.first ?? 1) - 1) / lines), 2)}}%",
+										"height": "{{fixed(100 * shown, 2)}}%"
+									}
+								]
+							}
+						]
+					},
+					{
+						"height": 20,
+						"alignSelf": "stretch",
+						"color": "{{on ? @ml : @mli}}",
+						"let": {
+							"first": "{{v.first ?? 1}}",
+							"last": "{{v.last ?? 1}}",
+							"lines": "{{v.lines ?? 1}}",
+							"pos": "{{first <= 1 && last >= lines ? 'All' : first <= 1 ? 'Top' : last >= lines ? 'Bot' : floor(100 * (first - 1) / lines) + '%'}}",
+							"flags": "{{b.readOnly ? (b.dirty ? '%*' : '%%') : b.dirty ? '**' : '--'}}",
+							"line": "{{b.kind == 'splash' ? 1 : win.caret.line ?? 1}}"
+						},
+						"children": [
+							{
+								"anchors": { "left": 0, "right": 0, "top": 0 },
+								"height": 1,
+								"color": "{{on ? @mlLight : @mliBorder}}"
+							},
+							{
+								"anchors": { "left": 0, "right": 0, "bottom": 0 },
+								"height": 1,
+								"color": "{{on ? @mlDark : @mliBorder}}"
+							},
+							{
+								"type": "label",
+								"font": "code",
+								"anchors": { "left": 0, "top": 1 },
+								"fitText": true,
+								"textColor": "{{on ? @mlFg : @mliFg}}",
+								"runs": [
+									"{{' ' + (b.file ? 'U' : '-') + ':' + flags + '-  '}}",
+									{ "text": "{{b.name}}", "bold": true },
+									"{{pad('', max(0, 12 - length(b.name)), ' ') + '   ' + pos + '   L' + line + '     (' + state.modes[b.mode].title + ')'}}"
+								]
+							}
+						]
+					}
+				],
+				"note": "A window. Plain keys stay with the editor unless a node around it binds them: the function keys are here."
+			}
+		},
+		"splash": {
+			"params": { "w": "w1" },
+			"node": {
+				"type": "column",
+				"anchors": { "left": 14, "top": 14, "right": 8, "bottom": 0 },
+				"gap": 0,
+				"children": [
+					{
+						"type": "row",
+						"height": 84,
+						"gap": 14,
+						"alignItems": "center",
+						"alignSelf": "stretch",
+						"children": [
+							{
+								"type": "label",
+								"font": "logo",
+								"icon": "feather",
+								"textColor": "#7b4fb3",
+								"fitText": true
+							},
+							{
+								"type": "label",
+								"fitText": true,
+								"runs": [{ "text": "Calamaio", "size": 46, "bold": true, "color": "#5d3a8f" }]
+							}
+						]
+					},
+					{ "height": 12 },
+					{
+						"type": "label",
+						"font": "code",
+						"textColor": "@fg",
+						"fitText": true,
+						"text": "Welcome to Calamaio, a text editor whose keys, menus and looks live in one document."
+					},
+					{ "height": 18 },
+					{
+						"repeat": { "for": "l", "in": "{{computed.splashLinks}}" },
+						"type": "label",
+						"font": "code",
+						"textColor": "@fg",
+						"fitText": true,
+						"height": 19,
+						"runs": [
+							{ "text": "{{l.title}}", "link": "{{l.run}}", "color": "@link" },
+							"{{pad('', 22 - length(l.title), ' ') + l.about}}"
+						],
+						"onLink": { "run": "{{event.link}}" }
+					},
+					{ "height": 18 },
+					{
+						"type": "label",
+						"font": "code",
+						"textColor": "@fg",
+						"fitText": true,
+						"runs": [
+							"To start...     ",
+							{ "text": "Open a File", "link": "find-file", "color": "@link" },
+							"     ",
+							{ "text": "Open Home Directory", "link": "dired-home", "color": "@link" },
+							"     ",
+							{ "text": "Customize Startup", "link": "customize-startup", "color": "@link" }
+						],
+						"onLink": { "run": "{{event.link}}" }
+					},
+					{
+						"type": "label",
+						"font": "code",
+						"textColor": "@fg",
+						"fitText": true,
+						"text": "To cancel a command you have begun, type Control-g."
+					},
+					{ "height": 18 },
+					{
+						"type": "label",
+						"font": "code",
+						"textColor": "@fg",
+						"fitText": true,
+						"text": "This is Calamaio 1.0, an example screen of AffrescoUI."
+					},
+					{
+						"type": "label",
+						"font": "code",
+						"textColor": "@fg",
+						"fitText": true,
+						"text": "It is free software under the Apache License 2.0: type C-h C-c to read it."
+					},
+					{ "height": 18 },
+					{
+						"type": "label",
+						"font": "code",
+						"textColor": "@fg",
+						"fitText": true,
+						"runs": [
+							{
+								"text": "{{state.splashAtStart ? '[ ]' : '[X]'}}",
+								"link": "toggle-splash",
+								"color": "@link"
+							},
+							" Don't show this screen at start."
+						],
+						"onLink": { "run": "{{event.link}}" }
+					},
+					{ "height": 18 },
+					{
+						"type": "label",
+						"font": "code",
+						"textColor": "@fg",
+						"fitText": true,
+						"runs": [{ "text": "[Close this screen]", "link": "splash-close", "color": "@link" }],
+						"onLink": { "run": "{{event.link}}" }
+					}
+				]
+			}
+		},
+		"frameMenuBar": {
+			"note": "The menu bar: titles as wide as their text, no Alt mnemonics (M-f is a motion here); F10 opens the first menu.",
+			"node": {
+				"type": "row",
+				"height": 25,
+				"color": "@bar",
+				"role": "menubar",
+				"arrows": "horizontal",
+				"children": [
+					{ "width": 2 },
+					{
+						"repeat": { "for": "m", "in": "{{computed.menuBar}}" },
+						"type": "label",
+						"text": "{{m.title}}",
+						"textColor": "@barFg",
+						"padding": 7,
+						"fitText": true,
+						"height": 25,
+						"color": "@bar",
+						"focusable": true,
+						"role": "menuitem",
+						"label": "{{m.title}}",
+						"isOpen": "{{state.menuBar[m.name] == true}}",
+						"hover": { "color": "@barHover" },
+						"focused": { "color": "@barHover" },
+						"onClick": { "toggle": "{{'state.menuBar.' + m.name}}" },
+						"children": [
+							{
+								"use": "menu",
+								"with": { "items": "{{m.items}}", "open": "{{'state.menuBar.' + m.name}}", "width": 260 }
+							}
+						]
+					}
+				]
+			}
+		},
+		"toolBar": {
+			"node": {
+				"type": "row",
+				"height": 38,
+				"color": "@bar",
+				"role": "toolbar",
+				"label": "Tool bar",
+				"gap": 2,
+				"alignItems": "center",
+				"children": [
+					{ "width": 4, "height": 1 },
+					{
+						"repeat": { "for": "t", "in": "{{computed.toolItems}}" },
+						"width": "{{t.icon ? 34 : 9}}",
+						"height": 32,
+						"radius": 3,
+						"color": "@bar",
+						"role": "{{t.icon ? 'button' : 'separator'}}",
+						"label": "{{t.tip ?? ''}}",
+						"tooltip": "{{t.tip ?? ''}}",
+						"focusable": "{{t.icon != null}}",
+						"disabled": "{{t.icon == null}}",
+						"hover": { "color": "{{t.icon ? @barHover : @bar}}" },
+						"onClick": [{ "if": "{{t.run != null}}", "then": [{ "run": "{{t.run}}" }] }],
+						"children": [
+							{
+								"when": "{{t.icon != null}}",
+								"type": "label",
+								"font": "icons",
+								"icon": "{{t.icon}}",
+								"align": "center",
+								"fill": 0,
+								"textColor": "@icon"
+							},
+							{
+								"when": "{{t.icon == null}}",
+								"x": 4,
+								"width": 1,
+								"anchors": { "top": 6, "bottom": 6 },
+								"color": "@barLine"
+							}
+						]
+					}
+				]
+			}
+		},
+		"echoArea": {
+			"node": {
+				"height": 22,
+				"color": "@bg",
+				"children": [
+					{
+						"when": "{{!state.mb.open}}",
+						"type": "label",
+						"font": "code",
+						"textColor": "@fg",
+						"anchors": { "left": 2, "top": 2 },
+						"fitText": true,
+						"text": "{{context.chord != null ? keyLabel(context.chord, 'emacs') + '-' : state.echo}}"
+					},
+					{
+						"when": "{{state.mb.open}}",
+						"type": "row",
+						"anchors": { "left": 2, "right": 0, "top": 2 },
+						"height": 19,
+						"children": [
+							{
+								"type": "label",
+								"font": "code",
+								"textColor": "@prompt",
+								"fitText": true,
+								"text": "{{state.mb.prompt}}"
+							},
+							{
+								"id": "mb",
+								"type": "textarea",
+								"grow": 1,
+								"height": 19,
+								"font": "code",
+								"textColor": "@fg",
+								"color": "@bg",
+								"bind": "state.mb.text",
+								"autofocus": true,
+								"onSubmit": "minibuffer-exit"
+							}
+						]
+					}
+				]
+			}
+		}
+	}
+}
