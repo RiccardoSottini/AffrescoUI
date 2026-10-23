@@ -5,7 +5,7 @@
 		"locale": "{{settings.appearance.language}}",
 		"en": {
 			"issue.back": "Back",
-			"issue.close": "Close issue", "issue.previous": "Previous issue", "issue.next": "Next issue", "issue.project": "Project", "issue.cycle": "Cycle", "issue.noCycle": "No cycle",
+			"issue.close": "Close issue", "display.ordering": "Ordering", "display.properties": "Display properties", "order.manual": "Manual", "order.priority": "Priority", "order.due": "Due date", "prop.id": "ID", "prop.priority": "Priority", "prop.label": "Labels", "prop.due": "Due date", "prop.estimate": "Estimate", "prop.assignee": "Assignee", "issue.previous": "Previous issue", "issue.next": "Next issue", "issue.project": "Project", "issue.cycle": "Cycle", "issue.noCycle": "No cycle",
 			"issue.properties": "Properties",
 			"issue.status": "Status",
 			"issue.priority": "Priority",
@@ -127,7 +127,7 @@
 		},
 		"it": {
 			"issue.back": "Indietro",
-			"issue.close": "Chiudi issue", "issue.previous": "Issue precedente", "issue.next": "Issue successiva", "issue.project": "Progetto", "issue.cycle": "Ciclo", "issue.noCycle": "Nessun ciclo",
+			"issue.close": "Chiudi issue", "display.ordering": "Ordinamento", "display.properties": "Proprietà visibili", "order.manual": "Manuale", "order.priority": "Priorità", "order.due": "Scadenza", "prop.id": "ID", "prop.priority": "Priorità", "prop.label": "Etichette", "prop.due": "Scadenza", "prop.estimate": "Stima", "prop.assignee": "Assegnatario", "issue.previous": "Issue precedente", "issue.next": "Issue successiva", "issue.project": "Progetto", "issue.cycle": "Ciclo", "issue.noCycle": "Nessun ciclo",
 			"issue.properties": "Proprietà",
 			"issue.status": "Stato",
 			"issue.priority": "Priorità",
@@ -249,7 +249,7 @@
 		},
 		"ar": {
 			"issue.back": "رجوع",
-			"issue.close": "إغلاق المهمة", "issue.previous": "المهمة السابقة", "issue.next": "المهمة التالية", "issue.project": "المشروع", "issue.cycle": "الدورة", "issue.noCycle": "بلا دورة",
+			"issue.close": "إغلاق المهمة", "display.ordering": "الترتيب", "display.properties": "الخصائص المعروضة", "order.manual": "يدوي", "order.priority": "الأولوية", "order.due": "تاريخ الاستحقاق", "prop.id": "المعرّف", "prop.priority": "الأولوية", "prop.label": "الوسوم", "prop.due": "تاريخ الاستحقاق", "prop.estimate": "التقدير", "prop.assignee": "المكلّف", "issue.previous": "المهمة السابقة", "issue.next": "المهمة التالية", "issue.project": "المشروع", "issue.cycle": "الدورة", "issue.noCycle": "بلا دورة",
 			"issue.properties": "الخصائص",
 			"issue.status": "الحالة",
 			"issue.priority": "الأولوية",

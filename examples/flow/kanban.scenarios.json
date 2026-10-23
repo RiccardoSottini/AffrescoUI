@@ -6,6 +6,24 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "display-ordering-and-properties",
+			"note": "Ordering by priority puts the urgent issue first in its column; turning a display property off hides it on every card",
+			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#ordering", "nth": 1 },
+				{ "expect": { "state": "order", "is": "priority" } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Crash when a board has no columns" } },
+				{ "click": "#displayProp", "nth": 3 },
+				{ "expect": { "state": "hidden[0]", "is": "due" } },
+				{ "expect": { "node": "#cardDue", "exists": false } },
+				{ "click": "#displayProp", "nth": 3 },
+				{ "expect": { "state": "hidden.length", "is": 0 } },
+				{ "click": "#ordering", "nth": 0 },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Onboarding checklist for new teams" } }
+			]
+		},
+		{
 			"name": "issue-page-next-and-previous",
 			"note": "The issue page's arrows step through the shown issues, its counter following; the page stays open",
 			"steps": [

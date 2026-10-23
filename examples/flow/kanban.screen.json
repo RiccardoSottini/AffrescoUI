@@ -130,7 +130,7 @@
 		"priorities": ["ellipsis", "badge-alert", "signal-high", "signal-medium", "signal-low"],
 		"statusIcons": ["circle-dashed", "circle-dot", "circle-ellipsis", "check-circle-2"],
 		"filter": "all",
-		"scope": "all",
+		"scope": "all", "order": "manual", "hidden": [],
 		"fStatus": -1,
 		"fPrio": -1,
 		"filterProp": "",
@@ -256,6 +256,8 @@
 	},
 
 	"styles": {
+		"displayPill": { "type": "label", "font": "small", "height": 24, "fitText": true, "padding": 8, "radius": "@radius.chip", "borderWidth": 1, "cursor": "hand",
+			"focusable": true, "color": "transparent", "hover": { "color": "@color.chipHover" }, "focused": { "color": "@color.chipHover" } },
 		"caption": { "type": "label", "font": "small", "textColor": "@color.muted", "fitText": true },
 		"badge": { "type": "label", "font": "small", "align": "center" },
 		"cardChip": { "type": "label", "font": "small", "fitText": true, "padding": 6, "height": 22, "radius": "@radius.chip", "borderWidth": 1,
@@ -758,7 +760,7 @@
 								"overlay": { "placement": "below-end", "open": "state.displayOpen", "dismiss": "outside" },
 								"y": 4,
 								"width": 280,
-								"height": 132,
+								"height": 288,
 								"radius": "@radius.card",
 								"shadow": { "y": 6, "blur": 16, "color": "#0000002e" },
 								"borderWidth": 1,
@@ -783,7 +785,21 @@
 									},
 									{ "id": "viewLanes", "style": "menuRow", "anchors": { "left": 6, "right": 6, "top": 94 }, "icon": "{{state.swimlanes ? 'square-check' : 'square'}}",
 										"text": "  {{t('view.lanes')}}", "role": "switch", "selected": "{{state.swimlanes}}", "label": "{{t('view.lanes')}}", "disabled": "{{state.view != 'board'}}",
-										"textColor": "{{state.view == 'board' ? '@color.text' : '@color.muted'}}", "onClick": "toggleSwimlanes" }
+										"textColor": "{{state.view == 'board' ? '@color.text' : '@color.muted'}}", "onClick": "toggleSwimlanes" },
+									{ "id": "displayOrdering", "style": "caption", "text": "{{t('display.ordering')}}", "anchors": { "left": 12, "top": 134 } },
+									{ "id": "orderings", "type": "row", "gap": 4, "anchors": { "left": 12, "right": 12, "top": 154 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
+										{ "id": "ordering", "repeat": { "for": "o", "in": "['manual', 'priority', 'due']" }, "style": "displayPill", "role": "radio", "text": "{{t('order.' + o)}}",
+											"selected": "{{state.order == o}}", "borderColor": "{{state.order == o ? '@color.accent' : '@color.border'}}",
+											"textColor": "{{state.order == o ? '@color.text' : '@color.muted'}}", "onClick": { "set": "state.order", "to": "{{o}}" } }
+									] },
+									{ "id": "displayProperties", "style": "caption", "text": "{{t('display.properties')}}", "anchors": { "left": 12, "top": 192 } },
+									{ "id": "displayProps", "type": "row", "wrap": true, "gap": 4, "anchors": { "left": 12, "right": 12, "top": 212 }, "height": 76, "children": [
+										{ "id": "displayProp", "repeat": { "for": "prop", "in": "['id', 'priority', 'label', 'due', 'estimate', 'assignee']" }, "style": "displayPill", "role": "switch",
+											"let": { "on": "{{!contains(state.hidden, prop)}}" }, "text": "{{t('prop.' + prop)}}", "selected": "{{on}}",
+											"color": "{{on ? '@color.chipHover' : 'transparent'}}", "borderColor": "{{on ? '@color.chipHover' : '@color.border'}}",
+											"textColor": "{{on ? '@color.text' : '@color.muted'}}",
+											"onClick": { "set": "state.hidden", "to": "{{on ? concat(state.hidden, [prop]) : filter(state.hidden, it != prop)}}" } }
+									] }
 								]
 							}
 						]
@@ -862,7 +878,7 @@
 														"children": [
 															{
 																"id": "card",
-																"repeat": { "for": "card", "in": "column.cards", "index": "i" },
+																"repeat": { "for": "row", "in": "sort(filter(computed.allCards, it.c == c), state.order == 'priority' ? ((it.priority ?? 0) == 0 ? 9 : it.priority) : state.order == 'due' ? (it.due ?? '9999-12-31') : it.at)", "index": "k" }, "let": { "i": "{{row.at}}", "card": "{{column.cards[row.at]}}" },
 																"when": "{{contains(computed.visibleRefs, card.ref)}}",
 																"anchors": { "left": 0, "right": 0 },
 																"height": 96,
@@ -884,21 +900,21 @@
 																"onDoubleClick": [{ "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } }, { "run": "openIssue" }],
 																"onContextMenu": { "run": "openCardMenu", "with": { "c": "{{c}}", "i": "{{i}}" } },
 																"children": [
-																	{ "id": "cardRef", "type": "label", "font": "small", "text": "{{card.ref ?? ''}}", "textColor": "@color.muted", "fitText": true, "anchors": { "left": 12, "top": 10 } },
-																	{ "id": "cardOwner", "style": "badge", "font": "tiny", "text": "{{card.who}}", "width": 18, "height": 18, "radius": 999, "anchors": { "right": 10, "top": 8 },
+																	{ "id": "cardRef", "when": "{{!contains(state.hidden, 'id')}}", "type": "label", "font": "small", "text": "{{card.ref ?? ''}}", "textColor": "@color.muted", "fitText": true, "anchors": { "left": 12, "top": 10 } },
+																	{ "id": "cardOwner", "when": "{{!contains(state.hidden, 'assignee')}}", "style": "badge", "font": "tiny", "text": "{{card.who}}", "width": 18, "height": 18, "radius": 999, "anchors": { "right": 10, "top": 8 },
 																		"color": "{{find(state.members, it.who == card.who).color ?? '@color.muted'}}", "textColor": "#ffffff",
 																		"tooltip": "{{find(state.members, it.who == card.who).name ?? card.who}}" },
 																	{ "id": "cardTitle", "type": "label", "text": "{{card.title}}", "textColor": "{{c == computed.lastColumn ? '@color.muted' : '@color.text'}}",
 																		"anchors": { "left": 12, "right": 12, "top": 30 }, "height": 34, "wrap": true, "align": { "horizontal": "start", "vertical": "start" } },
 																	{ "id": "cardChips", "type": "row", "gap": 4, "alignItems": "center", "anchors": { "left": 10, "right": 10, "bottom": 9 }, "height": 22, "children": [
-																		{ "id": "cardPriority", "style": "cardChip", "borderWidth": 0, "when": "{{(card.priority ?? 0) > 0}}", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
+																		{ "id": "cardPriority", "style": "cardChip", "borderWidth": 0, "when": "{{!contains(state.hidden, 'priority') && ((card.priority ?? 0) > 0)}}", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
 																			"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "tooltip": "{{t('priority.' + (card.priority ?? 0))}}" },
-																		{ "id": "cardTag", "style": "cardChip", "runs": [{ "icon": "circle", "color": "@{{card.tag}}" }, " {{t('tag.' + card.tag)}}"], "tooltip": "{{t('tag.' + card.tag)}}" },
-																		{ "id": "cardDue", "style": "cardChip", "when": "{{card.due != null}}", "icon": "calendar", "text": "{{formatDate(dateMs(card.due), 'MMM d', 'utc')}}",
+																		{ "id": "cardTag", "when": "{{!contains(state.hidden, 'label')}}", "style": "cardChip", "runs": [{ "icon": "circle", "color": "@{{card.tag}}" }, " {{t('tag.' + card.tag)}}"], "tooltip": "{{t('tag.' + card.tag)}}" },
+																		{ "id": "cardDue", "style": "cardChip", "when": "{{!contains(state.hidden, 'due') && (card.due != null)}}", "icon": "calendar", "text": "{{formatDate(dateMs(card.due), 'MMM d', 'utc')}}",
 																			"tooltip": "{{formatDate(dateMs(card.due), 'medium', 'utc')}}",
 																			"textColor": "{{daysBetween(state.today, card.due) < 0 && c != computed.lastColumn ? '@bug' : '@color.muted'}}" },
 																		{ "id": "cardNotes", "style": "cardChip", "borderWidth": 0, "when": "{{card.notes != null}}", "icon": "message-square", "text": "", "width": 22, "fitText": false, "align": "center" },
-																		{ "id": "cardPoints", "style": "cardChip", "borderWidth": 0, "icon": "triangle", "text": "{{card.points}}", "tooltip": "{{t('card.points', { n: card.points })}}" }
+																		{ "id": "cardPoints", "when": "{{!contains(state.hidden, 'estimate')}}", "style": "cardChip", "borderWidth": 0, "icon": "triangle", "text": "{{card.points}}", "tooltip": "{{t('card.points', { n: card.points })}}" }
 																	] }
 																]
 															}
