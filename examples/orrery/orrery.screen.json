@@ -769,7 +769,27 @@
 		"fly": 0,
 		"showOrbits": true,
 		"showLabels": true,
-		"viewMenu": false
+		"viewMenu": false,
+		"zoom": 1.1,
+		"showBrowser": false,
+		"browserTab": "bodies",
+		"expandedBodies": ["sun", "earth"],
+		"bookmarks": [
+			{
+				"id": "overview",
+				"label": "Whole system",
+				"camera": {
+					"tx": 0,
+					"tz": 0,
+					"yaw": 0.4,
+					"pitch": 0.75,
+					"distance": 15
+				},
+				"follow": "",
+				"selected": "earth"
+			}
+		],
+		"bookmark": "overview"
 	},
 	"computed": {
 		"ids": "{{map(state.bodies, it.id)}}",
@@ -787,7 +807,7 @@
 		"selectedBody": "{{find(state.bodies, it.id == state.selected)}}",
 		"selectedPosition": "{{find(computed.positions, it.id == state.selected)}}",
 		"followed": "{{find(computed.positions, it.id == state.follow)}}",
-		"view": "{{ {w: max(window.width - 461, 200), h: max(window.height - 312, 160), f: 1.1 * min(max(window.width - 461, 200), max(window.height - 312, 160)), distance: state.camera.distance, cy: cos(state.camera.yaw), sy: sin(state.camera.yaw), cp: cos(state.camera.pitch), sp: sin(state.camera.pitch)} }}",
+		"view": "{{ {w: max(window.width - 461, 200), h: max(window.height - 312, 160), f: state.zoom * min(max(window.width - 461, 200), max(window.height - 312, 160)), distance: state.camera.distance, cy: cos(state.camera.yaw), sy: sin(state.camera.yaw), cp: cos(state.camera.pitch), sp: sin(state.camera.pitch)} }}",
 		"stars": "{{map(range(400), {u: abs(sin(index * 12.9898) * 43758.5453) % 1 * 2 - 1, t: abs(sin(index * 78.233) * 12543.917) % 1 * 2 * pi()})}}",
 		"starVectors": "{{map(computed.stars, {x: sqrt(1 - it.u * it.u) * cos(it.t), y: it.u, z: sqrt(1 - it.u * it.u) * sin(it.t)})}}",
 		"starCamera": "{{map(computed.starVectors, {x: it.x * computed.view.cy - it.z * computed.view.sy, yy: (it.x * computed.view.sy + it.z * computed.view.cy) * computed.view.sp - it.y * computed.view.cp, dd: -((it.x * computed.view.sy + it.z * computed.view.cy) * computed.view.cp + it.y * computed.view.sp)})}}",
@@ -804,7 +824,17 @@
 		"apparentText": "{{computed.apparent >= 1 ? fixed(computed.apparent, 2) + '°' : computed.apparent * 60 >= 1 ? fixed(computed.apparent * 60, 1) + '′' : fixed(computed.apparent * 3600, 1) + '″'}}",
 		"clock": "{{formatDate(dateMs('2030-01-01') + state.time * 86400000, 'yyyy-MM-dd HH:mm', 'utc') + ' UTC'}}",
 		"rate": "{{state.playing ? (state.speed < 0 ? 'Reversed, ' : '') + formatNumber(abs(state.speed) * 1728000, 0, 0) + 'x faster: ' + fixed(abs(state.speed) * 20, abs(state.speed) < 0.05 ? 2 : 0) + ' days a second' : 'Paused'}}",
-		"viewMenu": "{{menus.view}}"
+		"viewMenu": "{{menus.view}}",
+		"fov": "{{ {deg: degrees(2 * atan(min(computed.view.w, computed.view.h) / (2 * computed.view.f))), times: state.zoom / 1.1} }}",
+		"fovText": "{{'FOV: ' + floor(computed.fov.deg) + '° ' + pad(floor((computed.fov.deg - floor(computed.fov.deg)) * 60), 2, '0') + '′ (' + fixed(computed.fov.times, 2) + 'x)'}}",
+		"bodyCells": "{{map(range(length(state.bodies) * length(state.bodies)), state.bodies[index % length(state.bodies)].parent == state.bodies[floor(index / length(state.bodies))].id ? index % length(state.bodies) : -1)}}",
+		"bodyKids": "{{map(state.bodies, filter(slice(computed.bodyCells, index * length(state.bodies), (index + 1) * length(state.bodies)), it >= 0))}}",
+		"bodyRows": "{{map(state.bodies, {id: it.id, label: it.name, icon: it.parent == '' ? 'sun' : (it.parent == 'sun' ? 'circle' : 'moon'), iconColor: it.hex})}}",
+		"bodyLevel1": "{{map(computed.bodyRows, length(computed.bodyKids[index]) > 0 ? merge(it, {children: map(computed.bodyKids[index], computed.bodyRows[it])}) : it)}}",
+		"bodyLevel2": "{{map(computed.bodyLevel1, length(computed.bodyKids[index]) > 0 ? merge(it, {children: map(computed.bodyKids[index], computed.bodyLevel1[it])}) : it)}}",
+		"bodyLevel3": "{{map(computed.bodyLevel2, length(computed.bodyKids[index]) > 0 ? merge(it, {children: map(computed.bodyKids[index], computed.bodyLevel2[it])}) : it)}}",
+		"bodyTree": "{{map(filter(range(length(state.bodies)), state.bodies[it].parent == ''), computed.bodyLevel3[it])}}",
+		"bookmarkRows": "{{map(state.bookmarks, {id: it.id, label: it.label, icon: 'bookmark'})}}"
 	},
 	"styles": {
 		"button": {
@@ -1265,7 +1295,89 @@
 					"toggle": "state.showLabels"
 				}
 			]
-		}
+		},
+		"zoomIn": {
+			"title": "Narrow the field of view",
+			"icon": "zoom-in",
+			"do": [
+				{
+					"set": "state.zoom",
+					"to": "{{min(state.zoom * 1.25, 20)}}"
+				}
+			]
+		},
+		"zoomOut": {
+			"title": "Widen the field of view",
+			"icon": "zoom-out",
+			"do": [
+				{
+					"set": "state.zoom",
+					"to": "{{max(state.zoom / 1.25, 0.5)}}"
+				}
+			]
+		},
+		"toggleBrowser": {
+			"title": "Show the browser",
+			"icon": "list-tree",
+			"do": [
+				{
+					"toggle": "state.showBrowser"
+				}
+			]
+		},
+		"addBookmark": {
+			"title": "Bookmark this view",
+			"icon": "bookmark-plus",
+			"do": [
+				{
+					"set": "state.bookmarks",
+					"to": "{{concat(state.bookmarks, [{id: 'place-' + length(state.bookmarks), label: (computed.selectedBody ? computed.selectedBody.name : 'Space') + ', day ' + floor(state.time), camera: state.camera, follow: state.follow, selected: state.selected}])}}"
+				},
+				{
+					"set": "state.bookmark",
+					"to": "{{'place-' + (length(state.bookmarks) - 1)}}"
+				},
+				{
+					"set": "state.browserTab",
+					"to": "places"
+				},
+				{
+					"set": "state.showBrowser",
+					"to": true
+				}
+			]
+		},
+		"goToBookmark": [
+			{
+				"if": "{{find(state.bookmarks, it.id == event.value)}}",
+				"then": [
+					{
+						"set": "state.bookmark",
+						"to": "{{event.value}}"
+					},
+					{
+						"set": "state.follow",
+						"to": ""
+					},
+					{
+						"set": "state.fly",
+						"to": 0
+					},
+					{
+						"set": "state.selected",
+						"to": "{{find(state.bookmarks, it.id == event.value).selected}}"
+					},
+					{
+						"set": "state.camera",
+						"to": "{{find(state.bookmarks, it.id == event.value).camera}}"
+					},
+					{
+						"set": "state.follow",
+						"to": "{{find(state.bookmarks, it.id == event.value).follow}}"
+					}
+				]
+			}
+		]
 	},
 	"keys": {
 		"mod+p": "togglePlay",
@@ -1280,7 +1392,11 @@
 		"c": "centre",
 		"f": "follow",
 		"o": "toggleOrbits",
-		"p": "toggleLabels"
+		"p": "toggleLabels",
+		"b": "toggleBrowser",
+		"mod+d": "addBookmark",
+		"period": "zoomIn",
+		"comma": "zoomOut"
 	},
 	"root": {
 		"id": "root",
@@ -1680,6 +1796,130 @@
 										"height": 44
 									},
 									{
+										"type": "column",
+										"id": "browser",
+										"anchors": {
+											"left": 12,
+											"top": 130
+										},
+										"width": 220,
+										"height": 250,
+										"visible": "{{state.showBrowser}}",
+										"color": "@panel",
+										"radius": 6,
+										"borderWidth": 1,
+										"borderColor": "@border",
+										"children": [
+											{
+												"type": "tabs",
+												"id": "browser-tabs",
+												"width": 220,
+												"height": 30,
+												"tabs": [
+													{
+														"id": "bodies",
+														"label": "Bodies",
+														"closable": false
+													},
+													{
+														"id": "places",
+														"label": "Places",
+														"closable": false
+													}
+												],
+												"bind": "state.browserTab",
+												"color": "@panel",
+												"textColor": "@muted",
+												"activeTextColor": "@text",
+												"activeBackground": "@raised",
+												"accentColor": "@accent"
+											},
+											{
+												"type": "tree",
+												"id": "browser-bodies",
+												"width": 220,
+												"height": 220,
+												"visible": "{{state.browserTab == 'bodies'}}",
+												"items": "{{computed.bodyTree}}",
+												"expanded": "{{state.expandedBodies}}",
+												"value": "{{state.selected}}",
+												"rowHeight": 24,
+												"onChange": [
+													{
+														"set": "state.selected",
+														"to": "{{event.value}}"
+													}
+												],
+												"onOpen": [
+													{
+														"set": "state.selected",
+														"to": "{{event.value}}"
+													},
+													{
+														"run": "goTo"
+													}
+												],
+												"onExpand": [
+													{
+														"set": "state.expandedBodies",
+														"to": "{{event.expanded ? concat(filter(state.expandedBodies, it != event.id), [event.id]) : filter(state.expandedBodies, it != event.id)}}"
+													}
+												],
+												"color": "@panel",
+												"textColor": "@text",
+												"selectedTextColor": "@text",
+												"selectedBackground": "@raised",
+												"accentColor": "@accent"
+											},
+											{
+												"type": "column",
+												"id": "browser-places",
+												"width": 220,
+												"height": 220,
+												"visible": "{{state.browserTab == 'places'}}",
+												"color": "@panel",
+												"children": [
+													{
+														"type": "list",
+														"id": "browser-bookmarks",
+														"width": 220,
+														"height": 186,
+														"items": "{{computed.bookmarkRows}}",
+														"value": "{{state.bookmark}}",
+														"rowHeight": 24,
+														"onChange": [
+															{
+																"run": "goToBookmark"
+															}
+														],
+														"onOpen": [
+															{
+																"run": "goToBookmark"
+															}
+														],
+														"color": "@panel",
+														"textColor": "@text",
+														"selectedTextColor": "@text",
+														"selectedBackground": "@raised",
+														"accentColor": "@accent"
+													},
+													{
+														"type": "label",
+														"id": "add-bookmark",
+														"style": "button",
+														"width": 208,
+														"height": 28,
+														"icon": "bookmark-plus",
+														"text": "Bookmark this view",
+														"font": "small",
+														"role": "button",
+														"onClick": "addBookmark"
+													}
+												]
+											}
+										]
+									},
+									{
 										"type": "label",
 										"id": "view-hint",
 										"anchors": {
@@ -1690,7 +1930,20 @@
 										"height": 20,
 										"font": "small",
 										"textColor": "@muted",
-										"text": "Drag to turn, scroll to zoom; G go to, C centre, F follow; O orbits, P labels; L K J time, Space pause"
+										"text": "Drag to turn, scroll to zoom; G go to, C centre, F follow; B browser; comma and period field of view; O orbits, P labels; L K J time"
+									},
+									{
+										"type": "label",
+										"id": "view-fov",
+										"anchors": {
+											"right": 12,
+											"bottom": 8
+										},
+										"fitText": true,
+										"height": 20,
+										"font": "small",
+										"textColor": "@muted",
+										"text": "{{computed.fovText}}"
 									}
 								]
 							},
@@ -2345,6 +2598,26 @@
 				"run": "toggleLabels",
 				"group": "2_show",
 				"order": 2
+			},
+			"browser": {
+				"run": "toggleBrowser",
+				"group": "2_show",
+				"order": 3
+			},
+			"narrow": {
+				"run": "zoomIn",
+				"group": "3_fov",
+				"order": 1
+			},
+			"widen": {
+				"run": "zoomOut",
+				"group": "3_fov",
+				"order": 2
+			},
+			"bookmark": {
+				"run": "addBookmark",
+				"group": "4_places",
+				"order": 1
 			}
 		}
 	}

@@ -442,6 +442,143 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "show-the-browser",
+			"steps": [
+				{
+					"expect": {
+						"state": "showBrowser",
+						"is": false
+					}
+				},
+				{
+					"key": "b"
+				},
+				{
+					"expect": {
+						"state": "showBrowser",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#browser-bodies",
+						"property": "visible",
+						"is": true
+					}
+				},
+				{
+					"key": "b"
+				},
+				{
+					"expect": {
+						"state": "showBrowser",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "narrow-and-widen-the-field",
+			"steps": [
+				{
+					"expect": {
+						"node": "#view-fov",
+						"text": "FOV: 48° 53′ (1.00x)"
+					}
+				},
+				{
+					"key": "period"
+				},
+				{
+					"expect": {
+						"state": "zoom",
+						"is": 1.375
+					}
+				},
+				{
+					"expect": {
+						"node": "#view-fov",
+						"text": "FOV: 39° 57′ (1.25x)"
+					}
+				},
+				{
+					"key": "comma"
+				},
+				{
+					"expect": {
+						"state": "zoom",
+						"is": 1.1
+					}
+				}
+			]
+		},
+		{
+			"name": "bookmark-and-return",
+			"steps": [
+				{
+					"scroll": "#view-pane",
+					"dy": -3
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"expect": {
+						"state": "bookmarks.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "place-1"
+					}
+				},
+				{
+					"expect": {
+						"state": "browserTab",
+						"is": "places"
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmarks[1].camera.distance",
+						"is": 12.3
+					}
+				},
+				{
+					"action": "goToBookmark",
+					"event": {
+						"value": "overview"
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "overview"
+					}
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 15
+					}
+				},
+				{
+					"action": "goToBookmark",
+					"event": {
+						"value": "place-1"
+					}
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 12.3
+					}
+				}
+			]
 		}
 	]
 }
