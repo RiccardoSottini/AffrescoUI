@@ -2,7 +2,7 @@
 
 Components the format ships, written in the format itself as JSON text: `menu`, `menuBar`, `contextMenu`, `dialog`,
 `toast`, `hoverCard`, `settingsPage` and `quickPick` (`BuiltInComponents.cpp`), the desktop kit's `toolbar` and
-`statusBar` (`KitBars.cpp`), and the form components `comboBox`
+`statusBar` (`KitBars.cpp`) and `popover` (`KitOverlays.cpp`), and the form components `comboBox`
 and `passwordMeter` (`BuiltInFormComponents.cpp`). A document's `"use"` finds one with `builtInComponent()` when its
 own `components` doesn't define that name, so a document can always replace a built-in one.
 

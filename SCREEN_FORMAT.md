@@ -151,7 +151,7 @@ parent, later siblings on top of earlier ones.
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
-| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. `"flip": true` places it on the other side when only that side has room, its children mirrored on that axis. |
+| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. `"flip": true` places it on the other side when only that side has room, its children mirrored on that axis. Right to left, the placements mirror: `below` starts at the anchor's right edge, `right` is on its left. |
 | `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
 | `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
 <!-- end generated -->
@@ -683,6 +683,9 @@ keep their open state where `open` says (a state path):
   `children` go between the message and the buttons.
 - `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`.
 - `hoverCard`: shows a card with `title` and `text` while the pointer is over its `children`.
+- `popover`: a card with `title`, `text` and its `children`, `width` by `height`, below its parent (or `anchor`;
+  `placement` `below-end` lines it up with the end) with an arrow `arrowAt` from its start pointing at it; it flips
+  above when only that side has room, and a click outside or Escape closes it.
 - `settingsPage`: the document's settings with a search field (see Menus and settings).
 - `quickPick`: a search field over `providers` of `{ "prefix", "items", "key", "placeholder", "run" }` (the one whose
   `prefix` starts the query, else the one without), matched with `fuzzySort` on each item's `key` (`title`) and the
@@ -694,8 +697,9 @@ keep their open state where `open` says (a state path):
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
   "buttons": [{ "title": "Save", "run": "save" }, { "title": "Cancel" }] } }
+{ "use": "popover", "with": { "open": "state.share", "title": "Share", "text": "Anyone with the link can view." } }
 { "use": "toolbar", "with": { "items": [{ "title": "Undo", "icon": "undo", "keyLabel": "Ctrl+Z", "run": "undo" },
-  { "separator": true }, { "title": "Grid", "icon": "grid-3x3", "checked": "{{state.grid}}", "run": "toggleGrid" }] } }
+  { "separator": true }, { "title": "Grid", "icon": "layout-grid", "checked": "{{state.grid}}", "run": "toggleGrid" }] } }
 ```
 
 ### The kit's tokens

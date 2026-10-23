@@ -92,6 +92,28 @@ Placement opposite(Placement placement) noexcept {
 	}
 }
 
+/// @brief The placement at the other end of the anchor, for right to left.
+/// @param placement A placement.
+/// @return Below-end for below, left for right, ...; itself for Center and Window.
+Placement mirrored(Placement placement) noexcept {
+	switch(placement) {
+	case Placement::Below:
+		return Placement::BelowEnd;
+	case Placement::BelowEnd:
+		return Placement::Below;
+	case Placement::Above:
+		return Placement::AboveEnd;
+	case Placement::AboveEnd:
+		return Placement::Above;
+	case Placement::Right:
+		return Placement::Left;
+	case Placement::Left:
+		return Placement::Right;
+	default:
+		return placement;
+	}
+}
+
 /// @brief Whether an overlay that flips goes on the other side: its own has no room for it, the other more.
 /// @param placement Its placement.
 /// @param a The anchor's frame.
@@ -361,13 +383,19 @@ void Window::layoutOverlay(Panel& overlay, const Panel& parent) {
 	const Rect& a = anchor->frame_;
 	const Vec2 size{overlay.measuredWidth(width), overlay.measuredHeight(height)};
 
+	// Right to left, it starts at the anchor's right edge, and "right" is where the text goes (as the overlay will lay
+	// out: its own direction, else its parent's)
+	const bool rightToLeft = overlay.writingDirection_ == WritingDirection::RightToLeft ||
+	                         (overlay.writingDirection_ == WritingDirection::Locale && localeRightToLeft()) ||
+	                         (overlay.writingDirection_ == WritingDirection::Inherit && parent.rightToLeft_);
+	const Placement placement = rightToLeft ? mirrored(overlay.placement_) : overlay.placement_;
+
 	// A flipping overlay goes on the other side when only that one has room; its children mirror as it lays out
-	const bool flipped = overlay.flip_ && flips(overlay.placement_, a, size, Vec2{width, height});
+	const bool flipped = overlay.flip_ && flips(placement, a, size, Vec2{width, height});
 	if(flipped != overlay.flipped_)
 		for(auto& child : overlay.children_) child->markLayoutDirty();
 	overlay.flipped_ = flipped;
-	Vec2 at = placedAt(overlay.flipped_ ? opposite(overlay.placement_) : overlay.placement_, a, size,
-	                   Vec2{width, height});
+	Vec2 at = placedAt(overlay.flipped_ ? opposite(placement) : placement, a, size, Vec2{width, height});
 
 	// Kept inside the window; Window placement measures everything from the window itself
 	Rect origin = area;

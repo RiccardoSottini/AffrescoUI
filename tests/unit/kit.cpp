@@ -1,6 +1,7 @@
 /// @file
 /// @brief The desktop kit (src/components/Kit*.cpp): a toolbar's buttons, toggles and separators, the "more" menu
-/// its items that don't fit move into, a status bar whose items with a "run" are buttons, and overlays that flip.
+/// its items that don't fit move into, a status bar whose items with a "run" are buttons, overlays that flip, and a
+/// popover's arrow facing its anchor.
 
 #include "Checker.hpp"
 #include "Headless.hpp"
@@ -140,6 +141,27 @@ std::string flipScreen(bool atBottom) {
 	})json";
 }
 
+/// @brief A button near the start of the top or the bottom of a 400 by 200 window with an open popover, in either
+/// writing direction.
+/// @param atBottom Whether the button is at the bottom.
+/// @param rightToLeft Whether the screen is right to left.
+/// @return The document.
+std::string popoverScreen(bool atBottom, bool rightToLeft) {
+	return R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "pop": true },
+		"root": { "id": "root", "children": [{ "type": "column", "fill": true, "dir": ")json" +
+	       std::string(rightToLeft ? "rtl" : "ltr") + R"json(", "children": [)json" +
+	       std::string(atBottom ? R"json({ "grow": 1 },)json" : "") + R"json(
+			{ "type": "row", "width": 400, "height": 30, "children": [{ "width": 60 },
+				{ "id": "anchor", "width": 80, "height": 30, "focusable": true, "label": "Share", "children": [
+					{ "use": "popover", "with": { "open": "state.pop", "title": "Share", "text": "Anyone with the link." } }
+				] }
+			] }
+		] }] }
+	})json";
+}
+
 } // namespace
 
 TEST_CASE("format: a flipping overlay goes above its anchor when only that side has room, mirrored") {
@@ -268,4 +290,61 @@ TEST_CASE("format: a status bar's items with a run are buttons, the others text"
 	CHECK(encoding->frame().right > 500); // at the end
 	clickOn(*window, *encoding);
 	CHECK(state(screen)["last"] == "encoding");
+}
+
+TEST_CASE("format: a popover's arrow faces its anchor, above or below it and at its start in either direction") {
+	for(const bool atBottom : {false, true})
+		for(const bool rightToLeft : {false, true}) {
+			CAPTURE(atBottom);
+			CAPTURE(rightToLeft);
+			ManualClock clock;
+			const auto window = createHeadlessWindow(400, 200, clock);
+			affresco::Screen screen = affresco::Screen::fromString(popoverScreen(atBottom, rightToLeft));
+			screen.build(*window);
+			settle(*window, clock);
+			const affresco::Panel* anchor = findId(window->root(), "anchor");
+			const affresco::Panel* pop = findAccessible(window->root(), "dialog", "Share");
+			REQUIRE(anchor);
+			REQUIRE(pop);
+			REQUIRE(pop->children().size() == 3);
+			const affresco::Rect& arrow = pop->children()[0]->frame();
+			const affresco::Rect& body = pop->children()[1]->frame();
+			CHECK(pop->isFlipped() == atBottom);
+			if(atBottom) {
+				CHECK(pop->frame().bottom == doctest::Approx(anchor->frame().top));
+				CHECK(arrow.bottom == doctest::Approx(pop->frame().bottom - 2.0f));
+				CHECK(body.top == doctest::Approx(pop->frame().top));
+			} else {
+				CHECK(pop->frame().top == doctest::Approx(anchor->frame().bottom));
+				CHECK(arrow.top == doctest::Approx(pop->frame().top + 2.0f));
+				CHECK(body.bottom == doctest::Approx(pop->frame().bottom));
+			}
+			CHECK(anchor->frame().left == doctest::Approx(rightToLeft ? 260.0f : 60.0f));
+			if(rightToLeft) {
+				CHECK(pop->frame().right == doctest::Approx(anchor->frame().right));
+				CHECK(arrow.right == doctest::Approx(pop->frame().right - 16.0f));
+			} else {
+				CHECK(pop->frame().left == doctest::Approx(anchor->frame().left));
+				CHECK(arrow.left == doctest::Approx(pop->frame().left + 16.0f));
+			}
+		}
+}
+
+TEST_CASE("format: a popover closes on Escape and on a click outside it") {
+	for(const bool escape : {true, false}) {
+		CAPTURE(escape);
+		ManualClock clock;
+		const auto window = createHeadlessWindow(400, 200, clock);
+		affresco::Screen screen = affresco::Screen::fromString(popoverScreen(false, false));
+		screen.build(*window);
+		settle(*window, clock);
+		REQUIRE(findAccessible(window->root(), "dialog", "Share"));
+		if(escape)
+			press(*window, affresco::Key::Escape);
+		else
+			for(const affresco::Action action : {affresco::Action::Press, affresco::Action::Release})
+				window->routeMouseButton({affresco::MouseButton::Left, action, {}, affresco::Vec2{390.0f, 190.0f}});
+		settle(*window, clock);
+		CHECK(state(screen)["pop"] == false);
+	}
 }

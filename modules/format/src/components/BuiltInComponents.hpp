@@ -23,4 +23,8 @@ namespace affresco::format {
 /// @return Its text.
 [[nodiscard]] std::string_view builtInKitBars() noexcept;
 
+/// @brief The desktop kit's overlays (KitOverlays.cpp): popover, as one JSON object by name.
+/// @return Its text.
+[[nodiscard]] std::string_view builtInKitOverlays() noexcept;
+
 } // namespace affresco::format
