@@ -13,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace affresco {
 
@@ -36,6 +37,30 @@ struct PatternMatch {
 struct PatternFind {
 	std::optional<PatternMatch> match; ///< The first match, if any.
 	bool exceeded = false;             ///< The match limit stopped it: the subject may still match.
+};
+
+/// @brief Room for the groups of a match, and the limits of the finds that use it: kept by the caller and reused, so
+/// a find that reports groups allocates only when a pattern has more groups than any before it. One per thread.
+class PatternGroups {
+public:
+	/// @brief Room for no groups yet, with TextPattern's step limit.
+	PatternGroups();
+	/// @brief Frees the room.
+	~PatternGroups();
+	PatternGroups(const PatternGroups&) = delete;
+	PatternGroups& operator=(const PatternGroups&) = delete;
+
+	/// @brief Lowers the backtracking steps of each find, e.g. to keep a line's colouring short.
+	/// @param steps The steps, at most TextPattern::maxSteps (more is that).
+	void setStepLimit(std::uint32_t steps) noexcept;
+	/// @brief The groups of the last match: [0] the whole match, then each group, none for a group that took no part.
+	[[nodiscard]] const std::vector<std::optional<PatternMatch>>& groups() const noexcept { return groups_; }
+
+private:
+	friend class TextPattern;
+	struct Data;                                      ///< PCRE2's match data and match context.
+	std::unique_ptr<Data> data_;                      ///< Them.
+	std::vector<std::optional<PatternMatch>> groups_; ///< See groups().
 };
 
 /// @brief A compiled pattern. Matching is const and safe from several threads at once.
@@ -79,6 +104,13 @@ public:
 	/// @param start The byte to start at.
 	/// @return The match, or none (with `exceeded` if a limit stopped it).
 	[[nodiscard]] PatternFind find(std::string_view subject, std::size_t start = 0) const;
+
+	/// @brief Finds the first match at or after a byte and reports its groups, under the groups' step limit.
+	/// @param subject UTF-8 text.
+	/// @param start The byte to start at (`\G` matches there).
+	/// @param groups Gets the groups of the match (cleared when there is none); its room is reused.
+	/// @return The match, or none (with `exceeded` if a limit stopped it).
+	[[nodiscard]] PatternFind find(std::string_view subject, std::size_t start, PatternGroups& groups) const;
 
 	/// @brief The replacement for one match: in a regular expression, `$0`–`$9` and `${name}` give its groups and
 	/// `$$` a dollar; in plain text, the replacement as it is.

@@ -5,7 +5,9 @@
 
 #include <pcre2.h>
 
+#include <algorithm>
 #include <array>
+#include <limits>
 
 namespace affresco {
 
@@ -20,6 +22,20 @@ struct TextPattern::Code {
 	~Code() {
 		pcre2_match_context_free(context);
 		pcre2_code_free(code);
+	}
+};
+
+/// @brief PCRE2's match data, grown as patterns need, and a match context with the caller's step limit.
+struct PatternGroups::Data {
+	pcre2_match_data* match = nullptr;      ///< Room for the groups.
+	pcre2_match_context* context = nullptr; ///< The limits of each find.
+	Data() = default;
+	Data(const Data&) = delete;
+	Data& operator=(const Data&) = delete;
+	/// @brief Frees both.
+	~Data() {
+		pcre2_match_context_free(context);
+		pcre2_match_data_free(match);
 	}
 };
 
@@ -105,6 +121,49 @@ PatternFind TextPattern::find(std::string_view subject, std::size_t start) const
 	const PCRE2_SIZE* vector = pcre2_get_ovector_pointer(match.data);
 	if(vector[1] < vector[0]) return result; // \K in a lookahead can end a match before its start
 	result.match = PatternMatch{vector[0], vector[1] - vector[0]};
+	return result;
+}
+
+PatternGroups::PatternGroups() : data_(std::make_unique<Data>()) {
+	data_->context = pcre2_match_context_create(nullptr);
+	if(data_->context == nullptr) return;
+	pcre2_set_depth_limit(data_->context, TextPattern::maxDepth);
+	pcre2_set_heap_limit(data_->context, TextPattern::maxHeapKibibytes);
+	setStepLimit(TextPattern::maxSteps);
+}
+
+PatternGroups::~PatternGroups() = default;
+
+void PatternGroups::setStepLimit(std::uint32_t steps) noexcept {
+	if(data_->context != nullptr) pcre2_set_match_limit(data_->context, std::min(steps, TextPattern::maxSteps));
+}
+
+PatternFind TextPattern::find(std::string_view subject, std::size_t start, PatternGroups& groups) const {
+	PatternFind result;
+	groups.groups_.clear();
+	PatternGroups::Data& data = *groups.data_;
+	if(code_ == nullptr || start > subject.size() || data.context == nullptr) return result;
+	std::uint32_t captures = 0;
+	pcre2_pattern_info(code_->code, PCRE2_INFO_CAPTURECOUNT, &captures);
+	if(data.match == nullptr || pcre2_get_ovector_count(data.match) < captures + 1) {
+		pcre2_match_data_free(data.match);
+		data.match = pcre2_match_data_create(captures + 1, nullptr);
+		if(data.match == nullptr) return result;
+	}
+	const int found = pcre2_match(code_->code, reinterpret_cast<PCRE2_SPTR>(subject.data()), subject.size(), start, 0,
+	                              data.match, data.context);
+	if(found == PCRE2_ERROR_MATCHLIMIT || found == PCRE2_ERROR_DEPTHLIMIT || found == PCRE2_ERROR_HEAPLIMIT)
+		result.exceeded = true;
+	if(found < 0) return result;
+	const PCRE2_SIZE* vector = pcre2_get_ovector_pointer(data.match);
+	if(vector[1] < vector[0]) return result; // \K in a lookahead can end a match before its start
+	result.match = PatternMatch{vector[0], vector[1] - vector[0]};
+	for(std::uint32_t group = 0; group <= captures; ++group) {
+		const PCRE2_SIZE from = vector[2 * group], to = vector[2 * group + 1];
+		groups.groups_.push_back(from == std::numeric_limits<PCRE2_SIZE>::max() || to < from
+		                             ? std::nullopt
+									 : std::optional(PatternMatch{from, to - from}));
+	}
 	return result;
 }
 

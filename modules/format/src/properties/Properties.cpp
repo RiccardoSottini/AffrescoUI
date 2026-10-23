@@ -95,6 +95,8 @@ std::filesystem::path Properties::imageFile(const json& value, const std::string
 	return engine_.document.imageFile(value, at);
 }
 
+const LanguageCatalog* Properties::languages() const { return engine_.document.languages(); }
+
 /* Applying a node */
 
 // Cost follows the change: a node whose compiled form, values and colours are those applied last is left as it is
@@ -401,13 +403,15 @@ void Properties::finish(Panel& panel, const Look& look) {
 }
 
 bool Properties::registeredProperty(const Record& record, std::string_view key, const json& value, Look& look) {
+	// Every set that has it gets it: a type that declares a key a built-in widget also has keeps getting it
+	bool kept = false;
 	for(std::size_t i = record.sets.size(); i-- > 0;) {
 		const auto& set = record.sets[i];
 		if(!set || !set->apply || !set->find(key)) continue;
 		look.values[i][std::string(key)] = value;
-		return true;
+		kept = true;
 	}
-	return false;
+	return kept;
 }
 
 void Properties::applySets(Panel& panel, Record& record, const Look& look) const {

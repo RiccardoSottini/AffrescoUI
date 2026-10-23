@@ -116,6 +116,13 @@ void DocumentContext::readDerived() {
 	auto newNumbers = readTokens(doc, newColors);
 	decltype(fonts_) newFonts;
 	decltype(fontSources_) newSources;
+	// Read again only when they changed: compiling them is the costly part
+	const auto languages = doc.find("languages");
+	static const json noLanguages;
+	const json& languagesSource = languages == doc.end() ? noLanguages : *languages;
+	std::shared_ptr<const LanguageCatalog> newLanguages = languages_;
+	if(languagesSource != languagesSource_)
+		newLanguages = languagesSource.is_null() ? nullptr : LanguageCatalog::read(languagesSource);
 
 	if(doc.contains("fonts")) {
 		for(const auto& [name, value] : object(doc["fonts"], "fonts").items()) {
@@ -141,6 +148,8 @@ void DocumentContext::readDerived() {
 	numberTokens_ = std::move(newNumbers);
 	fonts_ = std::move(newFonts);
 	fontSources_ = std::move(newSources);
+	languages_ = std::move(newLanguages);
+	languagesSource_ = languagesSource;
 	variants_.clear();
 	strings_.read(doc);
 	changeAppearance();

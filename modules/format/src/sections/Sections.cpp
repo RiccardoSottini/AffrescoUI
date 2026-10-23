@@ -5,6 +5,7 @@
 #include "ContributionPoints.hpp"
 #include "Contributions.hpp"
 #include "FeatureManifest.hpp"
+#include "Language.hpp"
 #include "Settings.hpp"
 #include "StateTypes.hpp"
 #include "Strings.hpp"
@@ -43,6 +44,18 @@ void checkVersion(const json& value, const std::string& name) {
 /// @param value The value.
 /// @param name Its name.
 void checkObject(const json& value, const std::string& name) { expect::object(value, name); }
+
+/// @brief Checks "languages" by compiling them (LanguageCatalog::read()); the last valid one is remembered, as
+/// each revision checks the whole document and languages seldom change.
+/// @param value The section.
+/// @param name Its name.
+void checkLanguages(const json& value, const std::string& name) {
+	static_cast<void>(name);
+	thread_local json lastValid;
+	if(value == lastValid) return;
+	static_cast<void>(LanguageCatalog::read(value));
+	lastValid = value;
+}
 
 /// @brief "components": named components, each with a "node" and optional "params".
 /// @param value The value.
@@ -107,7 +120,8 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"components", checkComponents});
 	registry.add({"templates", checkObject});
 	registry.add({"screens", checkObject});
-	registry.add({"overlays", checkObject}); // laid over the window, above the root (Reconciler::childrenOf())
+	registry.add({"overlays", checkObject});     // laid over the window, above the root (Reconciler::childrenOf())
+	registry.add({"languages", checkLanguages}); // code languages for editors (Language.hpp)
 	registry.add({"state"});
 	registry.add({"stateTypes", checkStateTypes}); // a type per state key (StateTypes.hpp)
 	registry.add({"computed", checkObject});

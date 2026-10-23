@@ -40,12 +40,13 @@ inline bool handlerKey(const std::string& key) {
 }
 
 /// Event handlers a node may have.
-inline constexpr std::array<std::string_view, 35> handlerNames = {
+inline constexpr std::array<std::string_view, 38> handlerNames = {
     "onClick",  "onDoubleClick", "onContextMenu",  "onPress",        "onRelease",    "onDrag",        "onDrop",
     "onHover",  "onLeave",       "onFocus",        "onBlur",         "onScroll",     "onKey",         "onChange",
     "onSubmit", "onLink",        "onShow",         "onHide",         "onClose",      "onMove",        "onExpand",
     "onOpen",   "onSort",        "onColumnResize", "onTransform",    "onConnect",    "onDisconnect",  "onLinkDrop",
-    "onSelect", "onDelete",      "onScrub",        "onKeyframeMove", "onClipChange", "onGutterClick", "onWordHover"};
+    "onSelect", "onDelete",      "onScrub",        "onKeyframeMove", "onClipChange", "onGutterClick", "onWordHover",
+    "onType",   "onTextHover",   "onPopupKey"};
 
 /// Handlers that bubble: when a node has none, its nearest ancestor with one handles the event.
 inline constexpr std::array<std::string_view, 8> bubbling = {"onClick",   "onDoubleClick", "onContextMenu", "onPress",

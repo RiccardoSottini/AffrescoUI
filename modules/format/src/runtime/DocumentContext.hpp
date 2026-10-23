@@ -5,6 +5,7 @@
 /// globals, the cached "computed" values and the screen an outlet shows.
 
 #include "DesignTokens.hpp"
+#include "Language.hpp"
 #include "NodeKeys.hpp"
 #include "Reads.hpp"
 #include "Strings.hpp"
@@ -241,6 +242,8 @@ public:
 	/// @brief Where the screen's images come from: files of the allowed folders (the screen's own folder, and those the
 	/// host allows), and images the host names.
 	[[nodiscard]] ImageCache& images() noexcept { return images_; }
+	/// @brief The languages of "languages", or nullptr for none.
+	[[nodiscard]] const LanguageCatalog* languages() const noexcept { return languages_.get(); }
 	/// @brief Reads an image's "file": relative to the screen's folder, inside an allowed folder.
 	/// @param value The path.
 	/// @param path Its place, for errors.
@@ -302,6 +305,8 @@ private:
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> variants_; ///< See fontVariant(), by key.
 	FontCache fontCache_;                    ///< By file, size and fallbacks: kept across revisions, within its bound.
 	ImageCache images_;                      ///< See images().
+	std::shared_ptr<const LanguageCatalog> languages_; ///< See languages().
+	json languagesSource_;                             ///< The "languages" they were read from.
 	std::string theme_;                      ///< "theme", evaluated at each update.
 	Strings strings_;                        ///< "strings", and the locale chosen at each update.
 	std::string hostLocale_;                 ///< See setHostLocale().

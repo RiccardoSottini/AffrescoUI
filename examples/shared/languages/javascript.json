@@ -1,0 +1,81 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "JavaScript: include it to colour and edit JavaScript in an editor ({ \"language\": \"javascript\" }).",
+	"languages": {
+		"javascript": {
+			"title": "JavaScript",
+			"aliases": ["js", "jsx", "node", "mjs"],
+			"files": ["*.js", "*.mjs", "*.cjs", "*.jsx"],
+			"comments": {
+				"line": "//",
+				"block": ["/*", "*/"]
+			},
+			"brackets": [["{", "}"], ["[", "]"], ["(", ")"]],
+			"pairs": [["{", "}"], ["[", "]"], ["(", ")"], ["\"", "\""], ["'", "'"], ["`", "`"]],
+			"indent": {
+				"increase": "^.*(?:\\{[^}\\\"'`]*|\\([^)\\\"'`]*|\\[[^\\]\\\"'`]*)$",
+				"decrease": "^\\s*[}\\])]"
+			},
+			"wordPattern": "[\\w$]+",
+			"patterns": [
+				{
+					"begin": "/\\*",
+					"end": "\\*/",
+					"scope": "comment.block"
+				},
+				{
+					"match": "//.*",
+					"scope": "comment.line"
+				},
+				{
+					"include": "#template"
+				},
+				{
+					"match": "\"(?:[^\"\\\\]|\\\\.)*\"?",
+					"scope": "string.quoted.double"
+				},
+				{
+					"match": "'(?:[^'\\\\]|\\\\.)*'?",
+					"scope": "string.quoted.single"
+				},
+				{
+					"match": "\\b(?:0[xXbBoO][\\da-fA-F_]+n?|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][+-]?\\d+)?n?)",
+					"scope": "number"
+				},
+				{
+					"match": "\\b(?:async|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|export|extends|false|finally|for|from|function|get|if|import|in|instanceof|let|new|null|of|return|set|static|super|switch|this|throw|true|try|typeof|undefined|var|void|while|with|yield)\\b",
+					"scope": "keyword"
+				},
+				{
+					"match": "\\b(?:Array|BigInt|Boolean|Date|Error|Map|Math|Number|Object|Promise|RegExp|Set|String|Symbol|console)\\b|\\b[A-Z][\\w$]*",
+					"scope": "type"
+				}
+			],
+			"repository": {
+				"template": {
+					"begin": "`",
+					"end": "`",
+					"scope": "string.template",
+					"patterns": [
+						{
+							"match": "\\\\.",
+							"scope": "string.escape"
+						},
+						{
+							"begin": "\\$\\{",
+							"end": "\\}",
+							"scope": "meta.interpolation",
+							"patterns": [
+								{
+									"include": "$self"
+								}
+							]
+						}
+					]
+				}
+			}
+		}
+	}
+}

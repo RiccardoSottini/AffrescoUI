@@ -91,9 +91,46 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`split` (default): the original on the left, the modified text on the right, rows aligned with blank rows and "
 	 "scrolled together; `inline`: one editor, the deleted lines above the lines inserted for them.",
 	 "diff"},
-    {"language", R"json({"type": "string", "description": "diff: a language id for the application's editors (e.g. cpp)"})json",
-	 "A language id given to the application's editor factory (syntax colours); left out, or without one, plain text.",
+    {"language", R"json({"type": "string", "description": "diff: a language id for the application's editors (e.g. cpp); editor: a language of the languages section, by name, alias or file name"})json",
+	 "A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. "
+	 "On an `editor`: a language of the `languages` section, by name, alias or file name (`main.py`). It colours the "
+	 "text unless `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, or "
+	 "wrapping the selection), Backspace between an empty pair deletes both, Enter between `brackets` or after an "
+	 "`indent.increase` line indents a level, and a line that comes to match `indent.decrease` goes back one. Unknown, "
+	 "plain text.",
 	 "diff"},
+    {"commands", R"json({"type": "object", "maxProperties": 256, "additionalProperties": {"enum": ["toggleComment",
+		"moveLinesUp", "moveLinesDown", "deleteLines", "copyLine", "cutLine", "indentLines", "outdentLines",
+		"insertLineAfter", "insertLineBefore"]}, "description": "editor: keys bound to code commands"})json",
+	 "Keys bound to code commands, each one undo step: `{ \"mod+/\": \"toggleComment\", \"alt+up\": "
+	 "\"moveLinesUp\" }` (`mod` is cmd on macOS, ctrl elsewhere). `toggleComment` (the language's line comment), "
+	 "`moveLinesUp`, `moveLinesDown`, `deleteLines`, `copyLine` and `cutLine` (the caret's line, when nothing is "
+	 "selected), `indentLines`, `outdentLines`, `insertLineAfter`, `insertLineBefore`. A bound key isn't typed.",
+	 "editor"},
+    {"popup", "flag",
+	 "`true` while the document shows a popup over the editor (completions): up, down, page up, page down, enter, "
+	 "tab and escape without modifiers go to `onPopupKey` instead of the text.",
+	 "editor"},
+    {"goTo", R"json({"anyOf": [{"type": "object", "properties": {"line": {"type": "number", "minimum": 0},
+		"column": {"type": "number", "minimum": 0}, "request": {"type": "number"}}}, {"type": "null"},
+		{"$ref": "#/$defs/v2/dynamic"}], "description": "editor: moves the caret once per request"})json",
+	 "`{ \"line\", \"column\", \"request\" }` (from 0): moves the caret there, once per `request` number (a new "
+	 "number moves it again).",
+	 "editor"},
+    {"insert", R"json({"anyOf": [{"type": "object", "properties": {"text": {"type": "string"},
+		"before": {"type": "number", "minimum": 0}, "request": {"type": "number"}}}, {"type": "null"},
+		{"$ref": "#/$defs/v2/dynamic"}], "description": "editor: replaces the selection once per request"})json",
+	 "`{ \"text\", \"before\", \"request\" }`: replaces the selection and the `before` characters just before it "
+	 "with `text` (a completion), once per `request` number; one undo step.",
+	 "editor"},
+    {"tokens", R"json({"anyOf": [{"type": "array", "maxItems": 100000, "items": {"type": "object", "required": ["style"],
+		"properties": {"line": {"type": "number", "minimum": 0}, "column": {"type": "number", "minimum": 0},
+		"length": {"type": "number", "minimum": 0}, "style": {"type": "string"}}}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "editor: runs coloured over the language's colours (e.g. a language server's)"})json",
+	 "`[{ \"line\", \"column\", \"length\", \"style\" }]` (from 0): runs coloured by `@syntax.<style>` over the "
+	 "colours of `language` or `grammar`, e.g. a language server's semantic tokens. They move with edits until the "
+	 "next list.",
+	 "editor"},
     {"deletedColor", "color",
 	 "Behind deleted and inserted lines (the changed characters in the same colour, twice as strong).", "diff"},
     {"insertedColor", "color", "", "diff"},

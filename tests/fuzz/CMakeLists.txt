@@ -116,6 +116,13 @@ endif()
 # Other formats (SCREEN_FORMAT.md): the A2UI and Adaptive Cards adapters
 affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(syntax affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+# Code languages declared in JSON (the "languages" section) and the tokenizer, on examples/shared/languages
+affrescoui_fuzzer(language_grammar affrescoui::format)
+target_include_directories(affrescoui_fuzz_language_grammar PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Language.hpp
+affrescoui_fuzzer(language_tokenizer affrescoui::format)
+target_include_directories(affrescoui_fuzz_language_tokenizer PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # LanguageTokenizer.hpp
 # Modello imports glTF files (examples/modello)
 affrescoui_fuzzer(gltf affrescoui::scene3d nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 # The image editor's inputs (examples/tempera): ICC profiles and project files
