@@ -64,7 +64,19 @@
 				{ "key": "cmd+z" },
 				{ "key": "cmd+z" },
 				{ "key": "cmd+s" },
-				{ "expect": { "image": "undone-saved" } }
+				{ "expect": { "image": "undone-saved" } },
+				{ "key": "cmd+shift+f" },
+				{ "wait": 50 },
+				{ "type": "sensor" },
+				{ "key": "enter" },
+				{ "wait": 100 },
+				{ "expect": { "image": "find-in-files" } },
+				{ "key": "escape" },
+				{ "key": "cmd+p" },
+				{ "wait": 50 },
+				{ "type": "stcpp@" },
+				{ "wait": 50 },
+				{ "expect": { "image": "goto-symbol" } }
 			]
 		}
 	]

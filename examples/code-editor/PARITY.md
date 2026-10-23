@@ -16,13 +16,13 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Look | Indent guides, bracket matching | done | |
 | Look | Rulers | done | one at column 80 |
 | Navigation | Goto Anything (Cmd+P) by file name | done | |
-| Navigation | Goto Anything with `@` symbol, `:` line, `#` search | partial | the prefix starts the query; no file name before it |
+| Navigation | Goto Anything with `@` symbol, `:` line, `#` search | done | also after a file name: `file@symbol`, `file:line` |
 | Navigation | Command Palette (Cmd+Shift+P) | done | |
-| Navigation | Goto Symbol in Project | missing | |
+| Navigation | Goto Symbol in Project | done | symbols from a heuristic: classes, functions, Markdown headings |
 | Navigation | Next and previous tab | done | |
 | Editing | Multiple selections | done | |
 | Editing | Find panel (Cmd+F), replace | done | regex, case, whole word and in-selection toggles |
-| Editing | Find in Files | missing | |
+| Editing | Find in Files | partial | a results buffer, F4 to step through, where filter; no regex, no match boxes |
 | Editing | Layouts and split editing | missing | |
 | Editing | Distraction Free mode | missing | |
 | Editing | Projects (folder tree, open files) | done | one sample project |
@@ -40,4 +40,4 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Settings | Theme selector with live preview | missing | |
 | Extra | Problems list (from the sample build) | done | not in the reference; kept for the scenarios |
 
-Counts: 20 done, 4 partial, 9 missing.
+Counts: 22 done, 4 partial, 7 missing.

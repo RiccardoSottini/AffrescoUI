@@ -1,6 +1,6 @@
 # Quaderno, a code editor
 
-A text editor modelled on Sublime Text: a side bar with open files and folders, tabs, a minimap, Goto Anything, a command palette, a console and a status bar. The `code-editor` template: a screen document that the stock host runs. What it covers is in [`PARITY.md`](PARITY.md).
+A text editor modelled on Sublime Text: a side bar with open files and folders, tabs, a minimap, Goto Anything (files, symbols, lines, also scoped to a file), Goto Symbol in Project, Find in Files with a results buffer, a command palette, a console and a status bar. The `code-editor` template: a screen document that the stock host runs. What it covers is in [`PARITY.md`](PARITY.md).
 
 ```sh
 ./build/affrescoui_host examples/code-editor/code-editor.screen.json

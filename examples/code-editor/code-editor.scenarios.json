@@ -93,6 +93,7 @@
 				{ "click": [500, 682], "note": "the FIXME in Station.cpp" },
 				{ "expect": { "state": "problemPick", "is": "2:6" } },
 				{ "expect": { "state": "active", "is": 2 } },
+				{ "expect": { "state": "caret.line", "is": 6, "note": "at the problem's line" } },
 				{ "expect": { "state": "tabs", "is": [0, 1, 3, 2] } }
 			]
 		},
@@ -269,6 +270,88 @@
 				{ "key": "enter" },
 				{ "wait": 50 },
 				{ "expect": { "state": "caret.line", "is": 11 } }
+			]
+		},
+		{
+			"name": "goto-a-symbol-in-another-file",
+			"note": "A file name before '@' in Goto Anything lists that file's symbols; choosing one opens the file there",
+			"steps": [
+				{ "key": "mod+p" },
+				{ "wait": 50 },
+				{ "type": "stcpp@conn" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "active", "is": 2 } },
+				{ "expect": { "state": "caret.line", "is": 5 } }
+			]
+		},
+		{
+			"name": "goto-a-line-in-another-file",
+			"note": "A file name before ':' and a number open that file at that line",
+			"steps": [
+				{ "key": "mod+p" },
+				{ "wait": 50 },
+				{ "type": "readme:4" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "active", "is": 6 } },
+				{ "expect": { "state": "caret.line", "is": 4 } }
+			]
+		},
+		{
+			"name": "goto-symbol-in-project",
+			"note": "Cmd+Shift+R lists the symbols of every file; choosing one opens its file at its line",
+			"steps": [
+				{ "key": "mod+shift+r" },
+				{ "wait": 50 },
+				{ "expect": { "state": "symbolPick.open", "is": true } },
+				{ "type": "connect" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "active", "is": 2 } },
+				{ "expect": { "state": "caret.line", "is": 5 } }
+			]
+		},
+		{
+			"name": "find-in-files",
+			"note": "Cmd+Shift+F searches the project into a Find Results buffer; F4 goes to each match in turn, a double click to the one under the caret",
+			"steps": [
+				{ "key": "mod+shift+f" },
+				{ "wait": 50 },
+				{ "expect": { "state": "findBar.where", "is": "<open folders>" } },
+				{ "type": "sensor" },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "files[7].name", "is": "Find Results" } },
+				{ "expect": { "state": "active", "is": 7 } },
+				{ "expect": { "state": "results.files", "is": 5 } },
+				{ "key": "f4" },
+				{ "wait": 50 },
+				{ "expect": { "state": "active", "is": 0 } },
+				{ "expect": { "state": "caret.line", "is": 11 } },
+				{ "key": "f4" },
+				{ "wait": 50 },
+				{ "expect": { "state": "caret.line", "is": 12 } },
+				{ "key": "shift+f4" },
+				{ "wait": 50 },
+				{ "expect": { "state": "caret.line", "is": 11 } }
+			]
+		},
+		{
+			"name": "find-in-some-folders",
+			"note": "'Where' narrows Find in Files to the paths holding one of its comma-separated parts",
+			"steps": [
+				{ "key": "mod+shift+f" },
+				{ "wait": 50 },
+				{ "revision": { "type": "revision", "message": "Search two places", "set": { "/state/findBar/where": "screens, README" } } },
+				{ "click": "#findText" },
+				{ "type": "station" },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "results.searched", "is": 2 } }
 			]
 		},
 		{
