@@ -3,6 +3,7 @@
 
 	"state": {
 		"settingsView": "main",
+		"langMenu": false,
 		"settingsGroups": [
 			{ "id": "home", "rows": [
 				{ "id": "devices", "icon": "cpu", "color": "#039be5" },
@@ -21,6 +22,10 @@
 	"stateTypes": {
 		"settingsView": { "enum": ["main", "devices", "profile", "general", "about"] },
 		"settingsGroups": { "type": "array", "items": { "type": "object" } }
+	},
+
+	"actions": {
+		"pickLanguage": [{ "note": "with: lang, a language code" }, { "set": "settings.ui.language", "to": "{{lang}}" }]
 	},
 
 	"computed": {
@@ -57,6 +62,20 @@
 						"height": 20, "align": { "horizontal": "start", "vertical": "center" } },
 					{ "type": "label", "font": "icons", "icon": "chevron-right", "mirror": true, "text": "", "textColor": "@muted", "anchors": { "right": 16, "top": 24 }, "width": 24, "height": 24,
 						"align": "center" }
+				]
+			}
+		},
+
+		"settingsRadio": {
+			"note": "A radio button and its label, filled with the accent when it is the chosen one.",
+			"params": { "text": "", "chosen": false },
+			"node": {
+				"type": "row", "height": 36, "width": 104, "gap": 10, "alignItems": "center", "color": "transparent", "cursor": "hand", "focusable": true,
+				"role": "radio", "label": "{{text}}", "checked": "{{chosen}}",
+				"children": [
+					{ "width": 20, "height": 20, "radius": 10, "color": "transparent", "borderWidth": 2, "borderColor": "{{chosen ? '@accent' : '@muted'}}", "children": [
+						{ "when": "{{chosen}}", "anchors": { "left": 5, "top": 5 }, "width": 10, "height": 10, "radius": 5, "color": "@accent" }] },
+					{ "type": "label", "text": "{{text}}", "textColor": "@text", "fitText": true }
 				]
 			}
 		},
@@ -170,21 +189,48 @@
 						]
 					},
 					{
-						"id": "settingsProfile",
+						"id": "settingsUser",
 						"when": "{{state.settingsView == 'profile'}}",
 						"style": "card",
 						"anchors": { "left": 24, "right": 24, "top": 80 },
+						"height": 88,
+						"role": "group",
+						"label": "Alex",
+						"children": [
+							{ "type": "label", "font": "heading", "text": "A", "textColor": "#ffffff", "color": "@accent", "anchors": { "left": 20, "top": 20 }, "width": 48, "height": 48, "radius": 24, "align": "center" },
+							{ "type": "label", "font": "heading", "text": "Alex", "textColor": "@text", "anchors": { "left": 84, "top": 22 }, "height": 24, "fitText": true },
+							{ "type": "label", "font": "small", "text": "{{t('profile.owner')}}", "textColor": "@muted", "anchors": { "left": 84, "top": 48 }, "height": 18, "fitText": true },
+							{ "id": "profileLogout", "style": "button", "color": "transparent", "textColor": "@alert", "text": "{{t('profile.logout')}}", "anchors": { "right": 16, "top": 26 },
+								"width": 104, "height": 36, "radius": 18, "onClick": { "run": "showToast", "with": { "message": "{{t('profile.logoutSoon')}}" } } }
+						]
+					},
+					{
+						"id": "settingsProfile",
+						"when": "{{state.settingsView == 'profile'}}",
+						"style": "card",
+						"anchors": { "left": 24, "right": 24, "top": 184 },
 						"height": 168,
 						"children": [
 							{ "type": "column", "anchors": { "left": 0, "right": 0, "top": 8, "bottom": 8 }, "gap": 0, "children": [
-								{ "use": "settingsSection", "id": "profileLanguage", "with": { "title": "{{t('set.language')}}", "sub": "{{t('set.language.sub')}}" }, "children": [
-									{ "use": "settingsChoice", "id": "pickEnglish", "with": { "text": "English", "chosen": "{{settings.ui.language == 'en'}}" }, "onClick": { "set": "settings.ui.language", "to": "en" } },
-									{ "use": "settingsChoice", "id": "pickItalian", "with": { "text": "Italiano", "chosen": "{{settings.ui.language == 'it'}}" }, "onClick": { "set": "settings.ui.language", "to": "it" } },
-									{ "use": "settingsChoice", "id": "pickArabic", "with": { "text": "العربية", "chosen": "{{settings.ui.language == 'ar'}}" }, "onClick": { "set": "settings.ui.language", "to": "ar" } }
+								{ "use": "settingsSection", "id": "profileLanguage", "with": { "title": "{{t('set.language')}}", "sub": "{{t('set.language.sub')}}" }, "role": "group", "children": [
+									{ "id": "pickLanguage", "type": "label", "text": "{{t('set.value.' + settings.ui.language)}}", "textColor": "@text", "width": 240, "height": 36, "padding": 12,
+										"color": "@field", "borderWidth": 1, "borderColor": "@border", "radius": 4, "align": { "horizontal": "start", "vertical": "center" },
+										"hover": { "borderColor": "@text" }, "cursor": "hand", "focusable": true, "role": "combobox", "label": "{{t('set.language')}}",
+										"isOpen": "{{state.langMenu}}", "onClick": { "toggle": "state.langMenu" },
+										"children": [
+											{ "type": "label", "icon": "chevron-down", "text": "", "textColor": "@muted", "anchors": { "right": 8, "top": 6 }, "width": 24, "height": 24, "align": "center" },
+											{ "id": "langMenu", "use": "menu", "with": { "open": "state.langMenu", "placement": "below", "width": 240,
+												"items": [
+													{ "title": "English", "checked": "{{settings.ui.language == 'en'}}", "run": "pickLanguage", "with": { "lang": "en" } },
+													{ "title": "Italiano", "checked": "{{settings.ui.language == 'it'}}", "run": "pickLanguage", "with": { "lang": "it" } },
+													{ "title": "العربية", "checked": "{{settings.ui.language == 'ar'}}", "run": "pickLanguage", "with": { "lang": "ar" } }
+												] } }
+										] }
 								] },
 								{ "use": "settingsSection", "id": "profileTheme", "with": { "title": "{{t('set.theme')}}", "sub": "{{t('set.theme.sub')}}" }, "children": [
-									{ "use": "settingsChoice", "id": "pickLight", "with": { "text": "{{t('set.light')}}", "chosen": "{{state.theme == 'light'}}" }, "onClick": { "set": "state.theme", "to": "light" } },
-									{ "use": "settingsChoice", "id": "pickDark", "with": { "text": "{{t('set.dark')}}", "chosen": "{{state.theme == 'dark'}}" }, "onClick": { "set": "state.theme", "to": "dark" } }
+									{ "use": "settingsRadio", "id": "pickAuto", "with": { "text": "{{t('set.auto')}}", "chosen": "{{state.theme == 'auto'}}" }, "onClick": { "set": "state.theme", "to": "auto" } },
+									{ "use": "settingsRadio", "id": "pickLight", "with": { "text": "{{t('set.light')}}", "chosen": "{{state.theme == 'light'}}" }, "onClick": { "set": "state.theme", "to": "light" } },
+									{ "use": "settingsRadio", "id": "pickDark", "with": { "text": "{{t('set.dark')}}", "chosen": "{{state.theme == 'dark'}}" }, "onClick": { "set": "state.theme", "to": "dark" } }
 								] }
 							] }
 						]
@@ -210,10 +256,11 @@
 									{ "when": "{{s.type == 'boolean'}}", "use": "pill", "with": { "at": "{{'settings.' + s.key}}", "on": "{{s.value}}", "name": "{{s.title}}" },
 										"id": "generalSwitch", "anchors": { "right": 20, "top": 24 } },
 									{ "when": "{{s.type == 'number' || s.type == 'integer'}}", "id": "generalField", "type": "textarea", "text": "{{text(s.value)}}",
-										"anchors": { "right": 20, "top": 14 }, "width": 140, "height": 44, "padding": 12, "radius": 4, "color": "transparent",
-										"borderWidth": 1, "borderColor": "@border", "focused": { "borderColor": "@accent", "borderWidth": 2 }, "textColor": "@text", "label": "{{s.title}}",
+										"anchors": { "right": 20, "top": 14 }, "width": 140, "height": 44, "padding": 12, "radius": { "topLeft": 4, "topRight": 4 }, "color": "@raised",
+										"hover": { "color": "@raisedHover" }, "textColor": "@text", "label": "{{s.title}}",
 										"onChange": { "if": "{{number(event.value) != null && number(event.value) >= s.minimum && number(event.value) <= s.maximum}}",
 											"then": [{ "set": "{{'settings.' + s.key}}", "to": "{{number(event.value)}}" }] } },
+									{ "when": "{{s.type == 'number' || s.type == 'integer'}}", "anchors": { "right": 20, "top": 57 }, "width": 140, "height": 1, "color": "@muted" },
 									{ "when": "{{s.type == 'string' && s.enum != null}}", "type": "row", "anchors": { "right": 20, "top": 18 }, "width": 400, "height": 36, "gap": 8,
 										"justify": "end", "role": "radiogroup", "label": "{{s.title}}", "children": [{
 											"repeat": { "for": "v", "in": "{{s.enum}}" }, "use": "settingsChoice", "with": { "text": "{{t('set.value.' + v)}}", "chosen": "{{s.value == v}}" },

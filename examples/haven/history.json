@@ -46,7 +46,7 @@
 						"children": [
 							{ "type": "label", "text": "{{t('page.logbook')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 }, "fitText": true,
 								"align": { "horizontal": "start", "vertical": "center" } },
-							{ "id": "logRange", "type": "label", "icon": "calendar", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
+							{ "id": "logRange", "type": "label", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
 								"radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('energy.pick')}}",
 								"tooltip": "{{t('energy.pick')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('log.twoDays')}}" } } }
 						]
@@ -130,15 +130,28 @@
 						"children": [
 							{ "type": "label", "text": "{{t('page.history')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 }, "fitText": true,
 								"align": { "horizontal": "start", "vertical": "center" } },
-							{ "id": "histRange", "type": "label", "icon": "calendar", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
+							{ "id": "histRange", "type": "label", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
 								"radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('energy.pick')}}",
 								"tooltip": "{{t('energy.pick')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('energy.onlyToday')}}" } } }
 						]
 					},
 					{
+						"id": "histFilters", "type": "row", "anchors": { "left": 24, "right": 24, "top": 72 }, "height": 48, "gap": 16,
+						"children": [
+							{ "id": "histPeriod", "type": "label", "icon": "calendar", "text": "  {{t('hist.today')}}", "textColor": "@text", "width": 280, "height": 48, "padding": 12,
+								"color": "@field", "borderWidth": 1, "borderColor": "@border", "radius": 4, "align": { "horizontal": "start", "vertical": "center" },
+								"hover": { "borderColor": "@text" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('hist.today')}}",
+								"onClick": { "run": "showToast", "with": { "message": "{{t('energy.onlyToday')}}" } } },
+							{ "id": "histTarget", "type": "label", "icon": "plus", "text": "  {{t('hist.choose')}}", "textColor": "@accent", "width": 320, "height": 48, "padding": 12,
+								"color": "transparent", "borderWidth": 1, "borderColor": "@border", "radius": 24, "align": { "horizontal": "start", "vertical": "center" },
+								"hover": { "color": "@accentSoft" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('hist.choose')}}",
+								"onClick": { "set": "state.quickPick.open", "to": true } }
+						]
+					},
+					{
 						"id": "histTimeline",
 						"style": "card",
-						"anchors": { "left": 24, "right": 24, "top": 72 },
+						"anchors": { "left": 24, "right": 24, "top": 136 },
 						"height": "{{76 + length(state.timeline) * 40 + 28}}",
 						"role": "group",
 						"label": "{{t('hist.timeline')}}",
@@ -194,7 +207,7 @@
 					{
 						"id": "histTemp",
 						"style": "card",
-						"anchors": { "left": 24, "right": 24, "top": "{{72 + 104 + length(state.timeline) * 40 + 16}}", "bottom": 24 },
+						"anchors": { "left": 24, "right": 24, "top": "{{136 + 104 + length(state.timeline) * 40 + 16}}", "bottom": 24 },
 						"role": "group",
 						"label": "{{t('hist.temp', { name: state.rooms[0].name })}}",
 						"children": [

@@ -14,8 +14,8 @@
 	"computed": {
 		"flowHeight": "{{computed.compact ? 172 : 220}}",
 		"flowY": "{{computed.flowHeight - 56}}",
-		"roomRows": "{{map(state.rooms, { id: it.name, cells: [it.name, t('kwh', { n: fixed(it.kwh, 1) }), it.temp + '°'] })}}",
-		"roomColumns": "{{[{ id: 'room', title: t('table.room'), width: 110 }, { id: 'kwh', title: t('table.energy'), width: 80 }, { id: 'temp', title: t('table.now'), width: 92 }]}}",
+		"roomRows": "{{map(state.rooms, { id: it.name, cells: settings.ui.language == 'ar' ? [it.temp + '°', t('kwh', { n: fixed(it.kwh, 1) }), it.name] : [it.name, t('kwh', { n: fixed(it.kwh, 1) }), it.temp + '°'] })}}",
+		"roomColumns": "{{settings.ui.language == 'ar' ? [{ id: 'temp', title: t('table.now'), width: 92 }, { id: 'kwh', title: t('table.energy'), width: 80 }, { id: 'room', title: t('table.room'), width: 110 }] : [{ id: 'room', title: t('table.room'), width: 110 }, { id: 'kwh', title: t('table.energy'), width: 80 }, { id: 'temp', title: t('table.now'), width: 92 }]}}",
 		"gridHourly": "{{map(state.hourly, max(it - state.solar[index], 0))}}",
 		"gridIn": "{{sum(computed.gridHourly)}}",
 		"solarMade": "{{sum(state.solar)}}",
@@ -84,14 +84,14 @@
 						"children": [
 							{ "id": "energyTitle", "type": "label", "text": "{{t('page.energy')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 },
 								"fitText": true, "align": { "horizontal": "start", "vertical": "center" } },
-							{ "id": "energyNext", "type": "label", "icon": "chevron-right", "mirror": true, "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
+							{ "id": "energyNext", "type": "label", "font": "iconsMedium", "icon": "chevron-right", "mirror": true, "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
 								"radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('energy.next')}}",
 								"tooltip": "{{t('energy.next')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('energy.onlyToday')}}" } } },
 							{ "id": "energyDay", "type": "label", "text": "{{t('energy.today')}}", "textColor": "@onHeader", "anchors": { "right": 60, "top": 8 }, "width": 72, "height": 40, "align": "center" },
-							{ "id": "energyPrev", "type": "label", "icon": "chevron-left", "mirror": true, "text": "", "textColor": "@onHeader", "anchors": { "right": 136, "top": 8 }, "width": 40, "height": 40,
+							{ "id": "energyPrev", "type": "label", "font": "iconsMedium", "icon": "chevron-left", "mirror": true, "text": "", "textColor": "@onHeader", "anchors": { "right": 136, "top": 8 }, "width": 40, "height": 40,
 								"radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('energy.prev')}}",
 								"tooltip": "{{t('energy.prev')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('energy.onlyToday')}}" } } },
-							{ "id": "energyPick", "type": "label", "icon": "calendar", "text": "", "textColor": "@onHeader", "anchors": { "right": 184, "top": 8 }, "width": 40, "height": 40,
+							{ "id": "energyPick", "type": "label", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@onHeader", "anchors": { "right": 184, "top": 8 }, "width": 40, "height": 40,
 								"radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('energy.pick')}}",
 								"tooltip": "{{t('energy.pick')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('energy.onlyToday')}}" } } }
 						]

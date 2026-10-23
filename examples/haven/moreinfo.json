@@ -62,7 +62,10 @@
 				"focusable": true, "role": "slider", "label": "{{label}}",
 				"keys": { "up": { "run": "{{up}}" }, "down": { "run": "{{down}}" } },
 				"children": [
-					{ "id": "barFill", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": "{{240 * share}}", "radius": 28, "color": "{{fill}}" },
+					{ "id": "barFill", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": "{{240 * share}}", "color": "{{fill}}",
+						"radius": "{{ { topLeft: share > 0.88 ? 28 : 0, topRight: share > 0.88 ? 28 : 0, bottomLeft: 28, bottomRight: 28 } }}" },
+					{ "id": "barHandle", "when": "{{share > 0.06}}", "anchors": { "left": 40, "bottom": "{{240 * share - (share > 0.92 ? 22 : 12)}}" }, "width": 40, "height": 4, "radius": 2,
+						"color": "#ffffffcc" },
 					{ "id": "barBand", "repeat": { "for": "k", "in": "{{range(10)}}" }, "anchors": { "left": 0, "right": 0, "top": "{{k * 24}}" }, "height": 24,
 						"color": "transparent", "cursor": "hand", "onClick": { "run": "{{pick}}", "with": { "level": "{{(10 - k) * 10}}" } } }
 				]

@@ -17,6 +17,7 @@
 
 	"computed": {
 		"cardTitle": "{{ { lights: state.cards.lights.title || t('lights.title'), scenes: state.cards.scenes.title || t('scenes.label'), security: state.cards.security.title || t('alarm.section'), climate: state.cards.climate.title || t('climate.title'), cover: state.cards.cover.title || t('blinds.title'), devices: state.cards.devices.title || t('devices.title') } }}",
+		"cardIcon": "{{ { lights: 'lightbulb', scenes: 'clapperboard', security: 'shield', climate: 'thermometer', cover: 'blinds', devices: 'cpu' } }}",
 		"cardCode": "{{'{\\n' + join(map(entries(state.cardEdit.draft), '  ' + json(it.key) + ': ' + json(it.value)), ',\\n') + '\\n}'}}"
 	},
 
@@ -57,7 +58,7 @@
 				"label": "{{t('edit.card', { name: name })}}", "tooltip": "{{t('edit.card', { name: name })}}",
 				"onClick": { "run": "editCard", "with": { "card": "{{card}}" } },
 				"children": [{ "type": "label", "icon": "pencil", "font": "iconsSmall", "text": "", "textColor": "#ffffff", "color": "@accent",
-					"anchors": { "right": 8, "top": 8 }, "width": 28, "height": 28, "radius": 14, "align": "center" }]
+					"anchors": { "right": 8, "top": 4 }, "width": 28, "height": 28, "radius": 14, "align": "center" }]
 			}
 		},
 
@@ -82,13 +83,13 @@
 			"node": {
 				"dir": "auto",
 				"overlay": { "placement": "center", "open": "state.cardEdit.open", "dismiss": "outside", "modal": true },
-				"width": 560, "height": 420, "radius": 12, "color": "@card", "shadow": { "y": 8, "blur": 24, "color": "#00000040" },
+				"width": 880, "height": 440, "radius": 28, "color": "@card", "shadow": { "y": 8, "blur": 24, "color": "#00000040" },
 				"role": "dialog", "label": "{{t('edit.cardTitle', { kind: t('edit.kind.' + state.cardEdit.id) })}}",
 				"children": [
 					{ "id": "cardEditorTitle", "type": "label", "font": "heading", "textColor": "@text",
 						"text": "{{t('edit.cardTitle', { kind: t('edit.kind.' + state.cardEdit.id) })}}", "anchors": { "left": 24, "right": 24, "top": 20 }, "height": 24 },
 
-					{ "id": "cardForm", "when": "{{!state.cardEdit.code}}", "anchors": { "left": 24, "right": 24, "top": 64, "bottom": 72 }, "color": "transparent",
+					{ "id": "cardForm", "when": "{{!state.cardEdit.code}}", "anchors": { "left": 24, "right": 360, "top": 64, "bottom": 72 }, "color": "transparent",
 						"children": [
 							{ "style": "caption", "text": "{{t('edit.title')}}", "anchors": { "left": 0, "top": 0 } },
 							{ "id": "cardTitleField", "type": "textarea", "bind": "state.cardEdit.draft.title", "placeholder": "{{computed.cardTitle[state.cardEdit.id]}}",
@@ -107,11 +108,32 @@
 
 					{ "id": "cardCode", "when": "{{state.cardEdit.code}}", "type": "editor", "bind": "state.cardEdit.text", "lineNumbers": true, "font": "symbols",
 						"textColor": "@text", "lineNumberColor": "@muted", "activeLineNumberColor": "@text", "lineColor": "@raised", "caretColor": "@accent",
-						"color": "@field", "radius": 4, "dir": "ltr", "anchors": { "left": 24, "right": 24, "top": 64, "bottom": 96 }, "label": "{{t('edit.code')}}" },
+						"color": "@field", "radius": 4, "dir": "ltr", "anchors": { "left": 24, "right": 360, "top": 64, "bottom": 96 }, "label": "{{t('edit.code')}}" },
 					{ "id": "cardCodeError", "when": "{{state.cardEdit.code && !empty(state.cardEdit.error)}}", "type": "label", "font": "small", "text": "{{state.cardEdit.error}}",
 						"textColor": "@alert", "anchors": { "left": 24, "bottom": 74 }, "fitText": true, "live": "assertive" },
 
-					{ "anchors": { "left": 0, "right": 0, "bottom": 64 }, "height": 1, "color": "@divider" },
+					{ "id": "cardPreview", "anchors": { "right": 0, "top": 0, "bottom": 65 }, "width": 336, "color": "@background", "role": "group", "label": "{{t('edit.preview')}}",
+							"radius": { "topRight": 28 },
+							"children": [
+								{ "style": "caption", "text": "{{t('edit.preview')}}", "anchors": { "left": 24, "top": 24 } },
+								{ "style": "card", "anchors": { "left": 24, "right": 24, "top": 56 }, "height": "{{state.cardEdit.draft.modes || state.cardEdit.draft.actions ? 176 : 120}}",
+									"children": [
+										{ "type": "label", "icon": "{{computed.cardIcon[state.cardEdit.id]}}", "text": "", "textColor": "@accent", "color": "@accentSoft",
+											"anchors": { "left": 16, "top": 16 }, "width": 36, "height": 36, "radius": 18, "align": "center" },
+										{ "type": "label", "text": "{{state.cardEdit.draft.title || computed.cardTitle[state.cardEdit.id]}}", "textColor": "@text",
+											"anchors": { "left": 64, "right": 16, "top": 16 }, "height": 20 },
+										{ "type": "label", "font": "small", "text": "{{t('edit.kind.' + state.cardEdit.id)}}", "textColor": "@muted", "anchors": { "left": 64, "right": 16, "top": 36 }, "height": 16 },
+										{ "when": "{{state.cardEdit.id == 'climate'}}", "type": "label", "font": "heading", "text": "{{state.rooms[state.room].target}}°", "textColor": "@text",
+											"anchors": { "left": 16, "top": 68 }, "height": 32, "fitText": true },
+										{ "when": "{{state.cardEdit.draft.modes == true}}", "type": "row", "anchors": { "left": 16, "bottom": 16 }, "width": 136, "height": 40, "gap": 8, "children": [{
+											"repeat": { "for": "m", "in": "{{['flame', 'snowflake', 'wind']}}" }, "type": "label", "icon": "{{m}}", "text": "", "textColor": "@muted",
+											"color": "@raised", "width": 40, "height": 40, "radius": 20, "align": "center" }] },
+										{ "when": "{{state.cardEdit.draft.actions == true}}", "type": "row", "anchors": { "left": 16, "right": 16, "bottom": 16 }, "height": 32, "gap": 8, "children": [{
+											"repeat": { "for": "d", "in": "{{state.devices}}" }, "type": "label", "font": "small", "text": "{{d.name}}", "textColor": "@text",
+											"color": "@raised", "grow": 1, "basis": 0, "height": 32, "radius": 8, "align": "center" }] }
+									] }
+							] },
+						{ "anchors": { "left": 0, "right": 0, "bottom": 64 }, "height": 1, "color": "@divider" },
 					{ "id": "cardCodeSwitch", "style": "button", "color": "transparent", "textColor": "@accent", "padding": 12, "fitText": true,
 						"text": "{{t(state.cardEdit.code ? 'edit.showForm' : 'edit.showCode')}}", "anchors": { "left": 16, "bottom": 14 }, "height": 36,
 						"onClick": { "if": "{{state.cardEdit.code}}", "then": [{ "run": "showCardForm" }], "else": [{ "run": "showCardCode" }] } },

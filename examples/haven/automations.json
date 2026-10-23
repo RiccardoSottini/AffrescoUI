@@ -275,7 +275,7 @@
 							"height": "{{min(max(1, computed.autoShown) * 64 + 56, computed.compact ? 420 : 520)}}",
 							"children": [
 								{ "style": "caption", "text": "{{t('auto.colName')}}", "anchors": { "left": 88, "top": 14 } },
-								{ "style": "caption", "text": "{{t('auto.colRan')}}", "anchors": { "right": 128, "top": 14 }, "width": 180 },
+								{ "style": "caption", "text": "{{t('auto.colRan')}}", "anchors": { "right": 128, "top": 14 }, "width": 180, "height": 16, "fitText": false, "align": { "horizontal": "start", "vertical": "center" } },
 								{ "style": "caption", "text": "{{t('auto.enabled')}}", "anchors": { "right": 20, "top": 14 }, "width": 64, "align": "center" },
 								{ "anchors": { "left": 0, "right": 0, "top": 44 }, "height": 1, "color": "@border" },
 								{ "style": "caption", "when": "{{computed.autoShown == 0}}", "text": "{{t('auto.noMatch')}}", "anchors": { "left": 88, "top": 70 } },
@@ -352,9 +352,20 @@
 										{ "anchors": { "left": 0, "right": 0 }, "height": 12, "color": "transparent" }
 								]
 							},
-							{ "id": "autoConfirm", "use": "dialog", "with": { "open": "state.autoConfirm", "width": 400, "height": 136,
-								"title": "{{t('auto.deleteTitle')}}", "message": "{{t('auto.deleteBody', { name: t('rule.' + (computed.openAuto.title ?? computed.openAuto.id)) })}}",
-								"buttons": [{ "title": "{{t('auto.delete')}}", "run": "deleteAutomation" }, { "title": "{{t('auto.cancel')}}" }] } },
+							{ "use": "scrim", "with": { "open": "state.autoConfirm" } },
+							{ "id": "autoConfirm", "dir": "auto", "overlay": { "placement": "center", "open": "state.autoConfirm", "dismiss": "outside", "modal": true },
+								"width": 400, "height": 168, "radius": 28, "color": "@card", "shadow": { "y": 8, "blur": 24, "color": "#00000040" },
+								"role": "dialog", "label": "{{t('auto.deleteTitle')}}",
+								"children": [
+									{ "type": "label", "font": "heading", "textColor": "@text", "text": "{{t('auto.deleteTitle')}}", "anchors": { "left": 24, "right": 24, "top": 24 }, "height": 24 },
+									{ "type": "label", "wrap": true, "textColor": "@muted",
+										"text": "{{t('auto.deleteBody', { name: t('rule.' + (computed.openAuto.title ?? computed.openAuto.id)) })}}",
+										"anchors": { "left": 24, "right": 24, "top": 60, "bottom": 60 } },
+									{ "style": "button", "color": "transparent", "textColor": "@accent", "text": "{{t('auto.cancel')}}", "anchors": { "right": 112, "bottom": 16 },
+										"width": 88, "height": 36, "radius": 18, "onClick": { "set": "state.autoConfirm", "to": false } },
+									{ "style": "button", "color": "transparent", "textColor": "@alert", "text": "{{t('auto.delete')}}", "anchors": { "right": 16, "bottom": 16 },
+										"width": 88, "height": 36, "radius": 18, "onClick": [{ "set": "state.autoConfirm", "to": false }, { "run": "deleteAutomation" }] }
+								] },
 							{
 								"id": "autoTrace",
 								"when": "{{!computed.compact}}",

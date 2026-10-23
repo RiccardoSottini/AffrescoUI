@@ -21,10 +21,7 @@
 						"role": "banner",
 						"children": [
 							{ "id": "areasTitle", "type": "label", "text": "{{t('page.areas')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 },
-								"fitText": true, "align": { "horizontal": "start", "vertical": "center" } },
-							{ "id": "areasAdd", "type": "label", "icon": "plus", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
-								"radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('areas.add')}}",
-								"tooltip": "{{t('areas.add')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('areas.addSoon')}}" } } }
+								"fitText": true, "align": { "horizontal": "start", "vertical": "center" } }
 						]
 					},
 					{
@@ -81,7 +78,10 @@
 								]
 							}
 						]
-					}
+					},
+					{ "id": "areasAdd", "style": "button", "icon": "plus", "text": " {{t('areas.add')}}", "color": "@accent", "hover": { "color": "@accent" }, "textColor": "@knob",
+						"anchors": { "right": 32, "bottom": 32 }, "width": 180, "height": 52, "radius": 16, "shadow": { "y": 4, "blur": 12, "color": "#00000040" },
+						"role": "button", "label": "{{t('areas.add')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('areas.addSoon')}}" } } }
 				]
 			}
 		}
