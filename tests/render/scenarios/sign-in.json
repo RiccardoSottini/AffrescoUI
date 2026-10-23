@@ -210,6 +210,139 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "sign-in-two-step",
+			"screen": "sign-in.screen.json",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#twoStep"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "setup-qr"
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "setup-codes"
+					}
+				},
+				{
+					"click": "#savedCodes"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"image": "two-step-on"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#trust"
+				},
+				{
+					"click": "#textMe"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"image": "sms-code"
+					}
+				},
+				{
+					"click": "#useBackup"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "DEMO-10"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "backup-wrong"
+					}
+				}
+			]
 		}
 	]
 }

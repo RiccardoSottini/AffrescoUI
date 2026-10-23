@@ -36,6 +36,10 @@
 		"logo": {
 			"file": "../shared/fonts/Lucide.ttf",
 			"size": 22
+		},
+		"mono": {
+			"file": "../shared/fonts/JetBrainsMono-Regular.ttf",
+			"size": 15
 		}
 	},
 	"tokens": {
@@ -152,6 +156,14 @@
 		"color.toastText": {
 			"light": "#ffffff",
 			"dark": "#0f172a"
+		},
+		"color.qrBack": {
+			"light": "#ffffff",
+			"dark": "#ffffff"
+		},
+		"color.qrInk": {
+			"light": "#111111",
+			"dark": "#111111"
 		}
 	},
 	"colors": {
@@ -214,7 +226,7 @@
 			"code": "One-time code",
 			"demoCode": "Demo account: the code is {code}",
 			"verify": "Verify",
-			"codeError": "{kind, select, short {Enter all 6 digits} wrong {That code is not right. Check it and try again.} other {}}",
+			"codeError": "{kind, select, short {Enter all 6 digits} wrong {That code is not right. Check it and try again.} wrongBackup {That backup code is not right, or it was already used} shortBackup {Enter a backup code} other {}}",
 			"resend": "Send a new code",
 			"resendIn": "Send a new code in {n}s",
 			"codeResent": "We sent a new code to {email}",
@@ -297,7 +309,43 @@
 			"verifyEmailTitle": "Verify your email",
 			"verifyEmailCaption": "We sent a 6-digit code to {email}. Enter it to finish creating your account.",
 			"backToCreate": "Back to create account",
-			"yourPassword": "Your password"
+			"yourPassword": "Your password",
+			"setupTitle": "Set up two-step verification",
+			"setupScanMessage": "Scan this code with an authenticator app",
+			"setupCodesMessage": "Save these backup codes somewhere safe",
+			"orEnterKey": "Or enter this key",
+			"copyKey": "Copy key",
+			"keyCopied": "Key copied",
+			"next": "Next",
+			"done": "Done",
+			"back": "Back",
+			"savedCodes": "I have saved these codes",
+			"copyCodes": "Copy all codes",
+			"codesCopied": "Backup codes copied",
+			"setupError": "{kind, select, short {Enter all 6 digits} wrong {That code is not right. Check it and try again.} notSaved {Tick the box once the codes are saved} other {}}",
+			"demoSetupCode": "Demo: the app would show {code}",
+			"newCodesSaved": "New backup codes are ready. The old ones no longer work",
+			"smsTitle": "Check your phone",
+			"smsCaption": "Enter the 6-digit code we texted to {phone}",
+			"smsSent": "We texted a code to {phone}",
+			"backupTitle": "Use a backup code",
+			"backupCaption": "Enter one of the codes you saved when you set up two-step verification",
+			"backupCode": "Backup code",
+			"demoBackup": "Demo account: try {code}",
+			"trustDevice": "Don't ask again on this device for 30 days",
+			"textMe": "Text me a code",
+			"useBackup": "Use a backup code",
+			"useApp": "Use the app",
+			"backupUsed": "{n, plural, one {Backup code used. # code left} other {Backup code used. # codes left}}",
+			"backupLeft": "{n, plural, =0 {No backup codes left} one {# backup code left} other {# backup codes left}}",
+			"newCodes": "New codes",
+			"trustedDevices": "Trusted devices",
+			"device_phone": "Phone",
+			"device_this": "This device",
+			"trustedDays": "{n, plural, one {# day left} other {# days left}}",
+			"removeDevice": "Remove",
+			"noTrusted": "No trusted devices: every sign-in asks for a code",
+			"deviceRemoved": "Device removed. It will be asked for a code again"
 		},
 		"it": {
 			"windowTitle": "Accedi",
@@ -350,7 +398,7 @@
 			"code": "Codice monouso",
 			"demoCode": "Account di prova: il codice è {code}",
 			"verify": "Verifica",
-			"codeError": "{kind, select, short {Inserisci tutte le 6 cifre} wrong {Il codice non è giusto. Controllalo e riprova.} other {}}",
+			"codeError": "{kind, select, short {Inserisci tutte le 6 cifre} wrong {Il codice non è giusto. Controllalo e riprova.} wrongBackup {Il codice di riserva non è giusto, o è già stato usato} shortBackup {Inserisci un codice di riserva} other {}}",
 			"resend": "Invia un nuovo codice",
 			"resendIn": "Nuovo codice tra {n} s",
 			"codeResent": "Abbiamo inviato un nuovo codice a {email}",
@@ -433,7 +481,43 @@
 			"verifyEmailTitle": "Verifica la tua email",
 			"verifyEmailCaption": "Abbiamo inviato un codice di 6 cifre a {email}. Inseriscilo per completare l'account.",
 			"backToCreate": "Torna alla creazione dell'account",
-			"yourPassword": "La tua password"
+			"yourPassword": "La tua password",
+			"setupTitle": "Configura la verifica in due passaggi",
+			"setupScanMessage": "Inquadra il codice con un'app di autenticazione",
+			"setupCodesMessage": "Conserva questi codici di riserva al sicuro",
+			"orEnterKey": "Oppure inserisci questa chiave",
+			"copyKey": "Copia la chiave",
+			"keyCopied": "Chiave copiata",
+			"next": "Avanti",
+			"done": "Fatto",
+			"back": "Indietro",
+			"savedCodes": "Ho salvato questi codici",
+			"copyCodes": "Copia tutti i codici",
+			"codesCopied": "Codici di riserva copiati",
+			"setupError": "{kind, select, short {Inserisci tutte le 6 cifre} wrong {Il codice non è giusto. Controllalo e riprova.} notSaved {Spunta la casella dopo aver salvato i codici} other {}}",
+			"demoSetupCode": "Prova: l'app mostrerebbe {code}",
+			"newCodesSaved": "Nuovi codici di riserva pronti. I vecchi non valgono più",
+			"smsTitle": "Controlla il telefono",
+			"smsCaption": "Inserisci il codice di 6 cifre inviato per SMS al {phone}",
+			"smsSent": "Abbiamo inviato un codice al {phone}",
+			"backupTitle": "Usa un codice di riserva",
+			"backupCaption": "Inserisci uno dei codici salvati quando hai attivato la verifica in due passaggi",
+			"backupCode": "Codice di riserva",
+			"demoBackup": "Account di prova: prova {code}",
+			"trustDevice": "Non chiedere più su questo dispositivo per 30 giorni",
+			"textMe": "Mandami un SMS",
+			"useBackup": "Usa un codice di riserva",
+			"useApp": "Usa l'app",
+			"backupUsed": "{n, plural, one {Codice di riserva usato. Ne resta #} other {Codice di riserva usato. Ne restano #}}",
+			"backupLeft": "{n, plural, =0 {Nessun codice di riserva rimasto} one {# codice di riserva rimasto} other {# codici di riserva rimasti}}",
+			"newCodes": "Nuovi codici",
+			"trustedDevices": "Dispositivi attendibili",
+			"device_phone": "Telefono",
+			"device_this": "Questo dispositivo",
+			"trustedDays": "{n, plural, one {ancora # giorno} other {ancora # giorni}}",
+			"removeDevice": "Rimuovi",
+			"noTrusted": "Nessun dispositivo attendibile: ogni accesso chiede un codice",
+			"deviceRemoved": "Dispositivo rimosso. Gli verrà chiesto di nuovo un codice"
 		},
 		"ar": {
 			"windowTitle": "تسجيل الدخول",
@@ -486,7 +570,7 @@
 			"code": "رمز لمرة واحدة",
 			"demoCode": "حساب تجريبي: الرمز هو {code}",
 			"verify": "تحقّق",
-			"codeError": "{kind, select, short {أدخل الأرقام الستة كلها} wrong {الرمز غير صحيح. تحقّق منه وحاول مرة أخرى.} other {}}",
+			"codeError": "{kind, select, short {أدخل الأرقام الستة كلها} wrong {الرمز غير صحيح. تحقّق منه وحاول مرة أخرى.} wrongBackup {الرمز الاحتياطي غير صحيح أو سبق استخدامه} shortBackup {أدخل رمزًا احتياطيًا} other {}}",
 			"resend": "إرسال رمز جديد",
 			"resendIn": "إرسال رمز جديد بعد {n} ث",
 			"codeResent": "أرسلنا رمزًا جديدًا إلى {email}",
@@ -569,7 +653,43 @@
 			"verifyEmailTitle": "تحقّق من بريدك الإلكتروني",
 			"verifyEmailCaption": "أرسلنا رمزًا من 6 أرقام إلى {email}. أدخله لإكمال إنشاء حسابك.",
 			"backToCreate": "العودة إلى إنشاء الحساب",
-			"yourPassword": "كلمة المرور"
+			"yourPassword": "كلمة المرور",
+			"setupTitle": "إعداد التحقق بخطوتين",
+			"setupScanMessage": "امسح هذا الرمز بتطبيق مصادقة",
+			"setupCodesMessage": "احفظ رموز الاحتياط هذه في مكان آمن",
+			"orEnterKey": "أو أدخل هذا المفتاح",
+			"copyKey": "نسخ المفتاح",
+			"keyCopied": "تم نسخ المفتاح",
+			"next": "التالي",
+			"done": "تم",
+			"back": "رجوع",
+			"savedCodes": "حفظتُ هذه الرموز",
+			"copyCodes": "نسخ كل الرموز",
+			"codesCopied": "تم نسخ رموز الاحتياط",
+			"setupError": "{kind, select, short {أدخل الأرقام الستة كلها} wrong {الرمز غير صحيح. تحقّق منه وحاول مرة أخرى.} notSaved {ضع علامة في المربع بعد حفظ الرموز} other {}}",
+			"demoSetupCode": "تجريبي: سيعرض التطبيق {code}",
+			"newCodesSaved": "رموز احتياط جديدة جاهزة. لم تعد الرموز القديمة صالحة",
+			"smsTitle": "تحقّق من هاتفك",
+			"smsCaption": "أدخل الرمز المكوّن من 6 أرقام المرسل في رسالة إلى {phone}",
+			"smsSent": "أرسلنا رمزًا في رسالة إلى {phone}",
+			"backupTitle": "استخدام رمز احتياطي",
+			"backupCaption": "أدخل أحد الرموز التي حفظتها عند إعداد التحقق بخطوتين",
+			"backupCode": "رمز احتياطي",
+			"demoBackup": "حساب تجريبي: جرّب {code}",
+			"trustDevice": "لا تسأل مجددًا على هذا الجهاز لمدة 30 يومًا",
+			"textMe": "أرسل لي رمزًا",
+			"useBackup": "استخدام رمز احتياطي",
+			"useApp": "استخدام التطبيق",
+			"backupUsed": "{n, plural, zero {تم استخدام رمز احتياطي. لم يتبقَّ أي رمز} one {تم استخدام رمز احتياطي. تبقّى رمز واحد} two {تم استخدام رمز احتياطي. تبقّى رمزان} few {تم استخدام رمز احتياطي. تبقّت # رموز} other {تم استخدام رمز احتياطي. تبقّى # رمزًا}}",
+			"backupLeft": "{n, plural, zero {لم يتبقَّ أي رمز احتياطي} one {تبقّى رمز احتياطي واحد} two {تبقّى رمزان احتياطيان} few {تبقّت # رموز احتياطية} other {تبقّى # رمزًا احتياطيًا}}",
+			"newCodes": "رموز جديدة",
+			"trustedDevices": "الأجهزة الموثوقة",
+			"device_phone": "الهاتف",
+			"device_this": "هذا الجهاز",
+			"trustedDays": "{n, plural, one {يتبقّى يوم واحد} two {يتبقّى يومان} few {تتبقّى # أيام} other {يتبقّى # يومًا}}",
+			"removeDevice": "إزالة",
+			"noTrusted": "لا أجهزة موثوقة: يُطلب رمز عند كل تسجيل دخول",
+			"deviceRemoved": "تمت إزالة الجهاز. سيُطلب منه رمز مجددًا"
 		}
 	},
 	"connections": {
@@ -686,7 +806,34 @@
 		"invite": {
 			"open": false,
 			"code": ""
-		}
+		},
+		"setup": {
+			"open": false,
+			"step": "scan",
+			"code": "",
+			"error": "",
+			"saved": false
+		},
+		"backupCodes": [
+			"DEMO-1001",
+			"DEMO-1002",
+			"DEMO-1003",
+			"DEMO-1004",
+			"DEMO-1005",
+			"DEMO-1006",
+			"DEMO-1007",
+			"DEMO-1008"
+		],
+		"backupCode": "",
+		"trust": false,
+		"phone": "555-0142",
+		"trusted": [
+			{
+				"email": "sam@example.com",
+				"device": "phone",
+				"days": 12
+			}
+		]
 	},
 	"stateTypes": {
 		"email": {
@@ -735,7 +882,7 @@
 			"enum": ["email", "password"]
 		},
 		"codeMode": {
-			"enum": ["twoStep", "email", "verify"]
+			"enum": ["twoStep", "email", "verify", "sms", "backup"]
 		},
 		"username": {
 			"type": "string"
@@ -777,7 +924,11 @@
 		"passkeys": "{{filter(state.accounts, it.passkey)}}",
 		"providerTitle": "{{state.providerName == 'exampleId' ? 'Example ID' : t('provider_' + state.providerName)}}",
 		"usernameStatus": "{{length(trim(state.username)) == 0 ? '' : length(trim(state.username)) < 3 || length(trim(state.username)) > 20 || !every(split(lower(trim(state.username)), ''), contains('abcdefghijklmnopqrstuvwxyz0123456789_.', it)) ? 'invalid' : state.usernameChecked != lower(trim(state.username)) ? 'checking' : contains(['ada', 'sam', 'admin'], state.usernameChecked) ? 'taken' : 'available'}}",
-		"inviteValid": "{{upper(trim(state.invite.code)) == 'EXAMPLE-INVITE'}}"
+		"inviteValid": "{{upper(trim(state.invite.code)) == 'EXAMPLE-INVITE'}}",
+		"otpUri": "{{'otpauth://totp/Example%20ID:' + state.user.email + '?secret=EXAMPLEEXAMPLE23&issuer=Example%20ID'}}",
+		"otpQr": "{{qrCode(computed.otpUri, 'M')}}",
+		"trustedHere": "{{some(state.trusted, lower(it.email) == lower(state.pending.email) && it.device == 'this')}}",
+		"myTrusted": "{{filter(state.trusted, lower(it.email) == lower(state.user.email))}}"
 	},
 	"styles": {
 		"caption": {
@@ -1597,6 +1748,17 @@
 				"to": "twoStep"
 			},
 			{
+				"if": "{{computed.account.twoStep && computed.trustedHere}}",
+				"then": [
+					{
+						"run": "enter"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
 				"if": "{{computed.account.twoStep}}",
 				"then": [
 					{
@@ -1664,6 +1826,14 @@
 		],
 		"startTwoStep": [
 			{
+				"set": "state.trust",
+				"to": false
+			},
+			{
+				"set": "state.backupCode",
+				"to": ""
+			},
+			{
 				"set": "state.code",
 				"to": ""
 			},
@@ -1703,6 +1873,33 @@
 			}
 		],
 		"verify": [
+			{
+				"if": "{{state.codeMode == 'backup'}}",
+				"then": [
+					{
+						"if": "{{trim(state.backupCode) == ''}}",
+						"then": [
+							{
+								"set": "state.codeError",
+								"to": "shortBackup"
+							},
+							{
+								"stop": true
+							}
+						]
+					},
+					{
+						"run": "serverCall",
+						"with": {
+							"op": "checkBackup",
+							"what": "verify"
+						}
+					},
+					{
+						"stop": true
+					}
+				]
+			},
 			{
 				"if": "{{length(state.code) < 6}}",
 				"then": [
@@ -1755,7 +1952,7 @@
 				]
 			},
 			{
-				"if": "{{state.codeMode == 'email' && state.pending.twoStep}}",
+				"if": "{{state.codeMode == 'email' && state.pending.twoStep && !computed.trustedHere}}",
 				"then": [
 					{
 						"set": "state.codeMode",
@@ -1770,7 +1967,7 @@
 				]
 			},
 			{
-				"run": "enter"
+				"run": "{{state.codeMode == 'email' ? 'enter' : 'passTwoStep'}}"
 			}
 		],
 		"resend": [
@@ -2492,20 +2689,30 @@
 		],
 		"setTwoStep": [
 			{
-				"note": "with: on"
+				"note": "with: on. Turning it on first sets up the app and the backup codes"
 			},
 			{
-				"set": "state.user.twoStep",
-				"to": "{{on}}"
+				"if": "{{on && !state.user.twoStep}}",
+				"then": [
+					{
+						"set": "state.setup",
+						"to": {
+							"open": true,
+							"step": "scan",
+							"code": "",
+							"error": "",
+							"saved": false
+						}
+					},
+					{
+						"stop": true
+					}
+				]
 			},
 			{
-				"set": "state.accounts",
-				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { twoStep: on }) : it)}}"
-			},
-			{
-				"run": "notify",
+				"run": "applyTwoStep",
 				"with": {
-					"message": "{{t('twoStepTurned', { on: on })}}"
+					"on": "{{on}}"
 				}
 			}
 		],
@@ -2832,6 +3039,333 @@
 			},
 			{
 				"run": "goBack"
+			}
+		],
+		"applyTwoStep": [
+			{
+				"note": "with: on. Saves the switch on the account"
+			},
+			{
+				"set": "state.user.twoStep",
+				"to": "{{on}}"
+			},
+			{
+				"set": "state.accounts",
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { twoStep: on }) : it)}}"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('twoStepTurned', { on: on })}}"
+				}
+			}
+		],
+		"setupCodeChanged": [
+			{
+				"set": "state.setup.error",
+				"to": ""
+			},
+			{
+				"if": "{{length(state.setup.code) == 6}}",
+				"then": [
+					{
+						"run": "setupNext"
+					}
+				]
+			}
+		],
+		"setupNext": [
+			{
+				"if": "{{state.setup.step == 'scan'}}",
+				"then": [
+					{
+						"if": "{{length(state.setup.code) < 6}}",
+						"then": [
+							{
+								"set": "state.setup.open",
+								"to": true
+							},
+							{
+								"set": "state.setup.error",
+								"to": "short"
+							},
+							{
+								"stop": true
+							}
+						]
+					},
+					{
+						"if": "{{state.setup.code != state.demoCode}}",
+						"then": [
+							{
+								"set": "state.setup.open",
+								"to": true
+							},
+							{
+								"set": "state.setup.error",
+								"to": "wrong"
+							},
+							{
+								"set": "state.setup.code",
+								"to": ""
+							},
+							{
+								"focus": "#setupCode"
+							},
+							{
+								"stop": true
+							}
+						]
+					},
+					{
+						"set": "state.setup.step",
+						"to": "codes"
+					},
+					{
+						"set": "state.setup.saved",
+						"to": false
+					},
+					{
+						"run": "freshCodes"
+					},
+					{
+						"after": 0,
+						"do": [
+							{
+								"focus": "#savedCodes"
+							}
+						]
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{!state.setup.saved}}",
+				"then": [
+					{
+						"set": "state.setup.open",
+						"to": true
+					},
+					{
+						"set": "state.setup.error",
+						"to": "notSaved"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.setup.open",
+				"to": false
+			},
+			{
+				"if": "{{state.user.twoStep}}",
+				"then": [
+					{
+						"run": "notify",
+						"with": {
+							"message": "{{t('newCodesSaved')}}"
+						}
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "applyTwoStep",
+				"with": {
+					"on": true
+				}
+			}
+		],
+		"freshCodes": [
+			{
+				"note": "One demo list for everyone: a real service makes random ones and keeps only their hashes"
+			},
+			{
+				"set": "state.backupCodes",
+				"to": "{{map(range(8), 'DEMO-' + (1001 + it))}}"
+			}
+		],
+		"setupCancel": [
+			{
+				"set": "state.setup.error",
+				"to": ""
+			},
+			{
+				"if": "{{state.setup.step == 'codes' && !state.user.twoStep}}",
+				"then": [
+					{
+						"set": "state.setup.step",
+						"to": "scan"
+					},
+					{
+						"set": "state.setup.code",
+						"to": ""
+					},
+					{
+						"set": "state.setup.open",
+						"to": true
+					},
+					{
+						"after": 0,
+						"do": [
+							{
+								"focus": "#setupCode"
+							}
+						]
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.setup.open",
+				"to": false
+			}
+		],
+		"newCodes": [
+			{
+				"set": "state.setup",
+				"to": {
+					"open": true,
+					"step": "codes",
+					"code": "",
+					"error": "",
+					"saved": false
+				}
+			},
+			{
+				"run": "freshCodes"
+			}
+		],
+		"toggleSaved": [
+			{
+				"set": "state.setup.saved",
+				"to": "{{!state.setup.saved}}"
+			},
+			{
+				"set": "state.setup.error",
+				"to": ""
+			}
+		],
+		"useMode": [
+			{
+				"note": "with: mode (twoStep, sms or backup)"
+			},
+			{
+				"set": "state.codeMode",
+				"to": "{{mode}}"
+			},
+			{
+				"set": "state.code",
+				"to": ""
+			},
+			{
+				"set": "state.codeError",
+				"to": ""
+			},
+			{
+				"set": "state.backupCode",
+				"to": ""
+			},
+			{
+				"if": "{{mode == 'sms'}}",
+				"then": [
+					{
+						"set": "state.resendLeft",
+						"to": 30
+					},
+					{
+						"run": "notify",
+						"with": {
+							"message": "{{t('smsSent', { phone: state.phone })}}"
+						}
+					}
+				]
+			},
+			{
+				"after": 0,
+				"do": [
+					{
+						"focus": "{{mode == 'backup' ? '#backupField' : '#twoStepCode'}}"
+					}
+				]
+			}
+		],
+		"checkBackup": [
+			{
+				"if": "{{!contains(state.backupCodes, upper(trim(state.backupCode)))}}",
+				"then": [
+					{
+						"set": "state.codeError",
+						"to": "wrongBackup"
+					},
+					{
+						"focus": "#backupField"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.backupCodes",
+				"to": "{{filter(state.backupCodes, it != upper(trim(state.backupCode)))}}"
+			},
+			{
+				"set": "state.backupCode",
+				"to": ""
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('backupUsed', { n: length(state.backupCodes) })}}"
+				}
+			},
+			{
+				"run": "passTwoStep"
+			}
+		],
+		"passTwoStep": [
+			{
+				"note": "The second step passed: remembers this device when asked, then opens the session"
+			},
+			{
+				"if": "{{state.trust && !computed.trustedHere}}",
+				"then": [
+					{
+						"set": "state.trusted",
+						"to": "{{concat(state.trusted, [{ email: state.pending.email, device: 'this', days: 30 }])}}"
+					}
+				]
+			},
+			{
+				"set": "state.trust",
+				"to": false
+			},
+			{
+				"run": "enter"
+			}
+		],
+		"removeTrusted": [
+			{
+				"note": "with: device"
+			},
+			{
+				"set": "state.trusted",
+				"to": "{{filter(state.trusted, !(lower(it.email) == lower(state.user.email) && it.device == device))}}"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('deviceRemoved')}}"
+				}
 			}
 		]
 	},
@@ -3592,7 +4126,7 @@
 								{
 									"id": "label-two-step",
 									"style": "title",
-									"text": "{{t(state.codeMode == 'verify' ? 'verifyEmailTitle' : state.codeMode == 'email' ? 'emailCodeTitle' : 'twoStepTitle')}}",
+									"text": "{{t(state.codeMode == 'verify' ? 'verifyEmailTitle' : state.codeMode == 'email' ? 'emailCodeTitle' : state.codeMode == 'sms' ? 'smsTitle' : state.codeMode == 'backup' ? 'backupTitle' : 'twoStepTitle')}}",
 									"role": "heading"
 								},
 								{
@@ -3600,12 +4134,12 @@
 									"style": "caption",
 									"wrap": true,
 									"height": 40,
-									"text": "{{t(state.codeMode == 'verify' ? 'verifyEmailCaption' : state.codeMode == 'email' ? 'emailCodeCaption' : 'twoStepCaption', { email: state.pending.email })}}"
+									"text": "{{t(state.codeMode == 'verify' ? 'verifyEmailCaption' : state.codeMode == 'email' ? 'emailCodeCaption' : state.codeMode == 'sms' ? 'smsCaption' : state.codeMode == 'backup' ? 'backupCaption' : 'twoStepCaption', { email: state.pending.email, phone: state.phone })}}"
 								},
 								{
 									"id": "label-code",
 									"style": "fieldLabel",
-									"text": "{{t('code')}}"
+									"text": "{{t(state.codeMode == 'backup' ? 'backupCode' : 'code')}}"
 								},
 								{
 									"id": "twoStepCode",
@@ -3616,6 +4150,29 @@
 									"description": "{{state.codeError == '' ? '' : t('codeError', { kind: state.codeError })}}",
 									"cellBorderColor": "{{state.codeError == '' ? '@color.border' : '@color.error'}}",
 									"onChange": "codeChanged",
+									"onSubmit": "verify",
+									"when": "{{state.codeMode != 'backup'}}"
+								},
+								{
+									"id": "backupField",
+									"when": "{{state.codeMode == 'backup'}}",
+									"style": "field",
+									"dir": "ltr",
+									"height": 38,
+									"anchors": {
+										"left": 0,
+										"right": 10
+									},
+									"borderColor": "{{state.codeError == '' ? '@color.border' : '@color.error'}}",
+									"placeholder": "DEMO-1001",
+									"label": "{{t('backupCode')}}",
+									"description": "{{state.codeError == '' ? '' : t('codeError', { kind: state.codeError })}}",
+									"maxLength": 9,
+									"bind": "state.backupCode",
+									"onChange": {
+										"set": "state.codeError",
+										"to": ""
+									},
 									"onSubmit": "verify"
 								},
 								{
@@ -3628,7 +4185,43 @@
 									"id": "demoCode",
 									"style": "hint",
 									"icon": "info",
-									"text": "{{t('demoCode', { code: state.demoCode })}}"
+									"text": "{{state.codeMode == 'backup' ? t('demoBackup', { code: state.backupCodes[0] ?? '—' }) : t('demoCode', { code: state.demoCode })}}"
+								},
+								{
+									"id": "row-trust",
+									"when": "{{state.codeMode != 'verify' && state.codeMode != 'email'}}",
+									"style": "checkRow",
+									"children": [
+										{
+											"id": "trust",
+											"style": "{{state.trust ? 'checkOn' : 'checkOff'}}",
+											"label": "{{t('trustDevice')}}",
+											"checked": "{{state.trust}}",
+											"onClick": {
+												"set": "state.trust",
+												"to": "{{!state.trust}}"
+											},
+											"keys": {
+												"space": {
+													"set": "state.trust",
+													"to": "{{!state.trust}}"
+												}
+											}
+										},
+										{
+											"id": "label-trust",
+											"type": "label",
+											"font": "small",
+											"text": "{{t('trustDevice')}}",
+											"fitText": true,
+											"textColor": "@color.muted",
+											"cursor": "hand",
+											"onClick": {
+												"set": "state.trust",
+												"to": "{{!state.trust}}"
+											}
+										}
+									]
 								},
 								{
 									"id": "verify",
@@ -3644,7 +4237,59 @@
 									"text": "{{state.busy == 'resend' ? computed.busyText : state.resendLeft > 0 ? t('resendIn', { n: state.resendLeft }) : t('resend')}}",
 									"textColor": "{{state.resendLeft > 0 ? '@color.muted' : '@color.accent'}}",
 									"disabled": "{{state.resendLeft > 0 || state.busy != ''}}",
-									"onClick": "resend"
+									"onClick": "resend",
+									"when": "{{state.codeMode != 'backup'}}"
+								},
+								{
+									"id": "row-other-ways",
+									"when": "{{state.codeMode != 'verify' && state.codeMode != 'email'}}",
+									"type": "row",
+									"height": 20,
+									"gap": 16,
+									"justify": "center",
+									"alignItems": "center",
+									"anchors": {
+										"left": 0,
+										"right": 10
+									},
+									"children": [
+										{
+											"id": "useApp",
+											"when": "{{state.codeMode != 'twoStep'}}",
+											"style": "smallLink",
+											"text": "{{t('useApp')}}",
+											"onClick": {
+												"run": "useMode",
+												"with": {
+													"mode": "twoStep"
+												}
+											}
+										},
+										{
+											"id": "textMe",
+											"when": "{{state.codeMode != 'sms'}}",
+											"style": "smallLink",
+											"text": "{{t('textMe')}}",
+											"onClick": {
+												"run": "useMode",
+												"with": {
+													"mode": "sms"
+												}
+											}
+										},
+										{
+											"id": "useBackup",
+											"when": "{{state.codeMode != 'backup'}}",
+											"style": "smallLink",
+											"text": "{{t('useBackup')}}",
+											"onClick": {
+												"run": "useMode",
+												"with": {
+													"mode": "backup"
+												}
+											}
+										}
+									]
 								},
 								{
 									"id": "twoStepBack",
@@ -4060,6 +4705,86 @@
 									]
 								},
 								{
+									"id": "row-backup",
+									"when": "{{state.user.twoStep}}",
+									"type": "row",
+									"height": 18,
+									"gap": 12,
+									"alignItems": "center",
+									"anchors": {
+										"left": 0,
+										"right": 10
+									},
+									"children": [
+										{
+											"id": "backupLeft",
+											"style": "hint",
+											"icon": "key-round",
+											"grow": 1,
+											"anchors": {},
+											"text": "{{t('backupLeft', { n: length(state.backupCodes) })}}"
+										},
+										{
+											"id": "newCodes",
+											"style": "smallLink",
+											"text": "{{t('newCodes')}}",
+											"onClick": "newCodes"
+										}
+									]
+								},
+								{
+									"id": "label-trusted",
+									"when": "{{state.user.twoStep}}",
+									"style": "fieldLabel",
+									"text": "{{t('trustedDevices')}}"
+								},
+								{
+									"id": "row-trusted",
+									"when": "{{state.user.twoStep}}",
+									"repeat": {
+										"for": "dv",
+										"in": "computed.myTrusted",
+										"index": "i",
+										"key": "{{dv.device}}"
+									},
+									"type": "row",
+									"height": 18,
+									"gap": 12,
+									"alignItems": "center",
+									"anchors": {
+										"left": 0,
+										"right": 10
+									},
+									"children": [
+										{
+											"id": "trusted-name",
+											"style": "hint",
+											"grow": 1,
+											"anchors": {},
+											"icon": "{{dv.device == 'phone' ? 'smartphone' : 'laptop'}}",
+											"text": "{{t('device_' + dv.device) + '  ·  ' + t('trustedDays', { n: dv.days })}}"
+										},
+										{
+											"id": "trusted-remove",
+											"style": "smallLink",
+											"text": "{{t('removeDevice')}}",
+											"label": "{{t('removeDevice') + ' ' + t('device_' + dv.device)}}",
+											"onClick": {
+												"run": "removeTrusted",
+												"with": {
+													"device": "{{dv.device}}"
+												}
+											}
+										}
+									]
+								},
+								{
+									"id": "noTrusted",
+									"when": "{{state.user.twoStep && length(computed.myTrusted) == 0}}",
+									"style": "hint",
+									"text": "{{t('noTrusted')}}"
+								},
+								{
 									"id": "label-sign-out",
 									"style": "secondary",
 									"icon": "log-out",
@@ -4332,6 +5057,246 @@
 							"with": {
 								"email": "{{pk.email}}"
 							}
+						}
+					}
+				]
+			},
+			{
+				"id": "setupDialog",
+				"dir": "auto",
+				"use": "dialog",
+				"with": {
+					"open": "state.setup.open",
+					"title": "{{t('setupTitle')}}",
+					"message": "{{t(state.setup.step == 'scan' ? 'setupScanMessage' : 'setupCodesMessage')}}",
+					"width": "{{min(440, window.width - 32)}}",
+					"height": "{{(state.setup.step == 'scan' ? 380 : 312) + (state.setup.error == '' ? 0 : 24)}}",
+					"color": "@color.surface",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.accent",
+					"backdrop": "@color.backdrop",
+					"buttons": [
+						{
+							"title": "{{t(state.setup.step == 'scan' ? 'next' : 'done')}}",
+							"run": "setupNext"
+						},
+						{
+							"title": "{{t(state.setup.step == 'codes' && !state.user.twoStep ? 'back' : 'cancel')}}",
+							"run": "setupCancel"
+						}
+					]
+				},
+				"children": [
+					{
+						"id": "qrBox",
+						"when": "{{state.setup.step == 'scan'}}",
+						"type": "panel",
+						"width": 140,
+						"height": 140,
+						"radius": 8,
+						"color": "@color.qrBack",
+						"anchors": {
+							"left": 20,
+							"top": 76
+						},
+						"role": "img",
+						"label": "{{t('setupScanMessage')}}",
+						"children": [
+							{
+								"id": "qr",
+								"type": "path",
+								"d": "{{computed.otpQr.d}}",
+								"viewBox": "{{computed.otpQr.viewBox}}",
+								"fillColor": "@color.qrInk",
+								"anchors": {
+									"left": 4,
+									"right": 4,
+									"top": 4,
+									"bottom": 4
+								}
+							}
+						]
+					},
+					{
+						"id": "label-key",
+						"when": "{{state.setup.step == 'scan'}}",
+						"style": "fieldLabel",
+						"text": "{{t('orEnterKey')}}",
+						"anchors": {
+							"left": 176,
+							"right": 20,
+							"top": 90
+						}
+					},
+					{
+						"id": "setupKey",
+						"when": "{{state.setup.step == 'scan'}}",
+						"type": "label",
+						"font": "mono",
+						"dir": "ltr",
+						"height": 22,
+						"text": "EXAM PLEE XAMP LE23",
+						"textColor": "@color.text",
+						"selectable": true,
+						"anchors": {
+							"left": 176,
+							"right": 20,
+							"top": 114
+						}
+					},
+					{
+						"id": "copyKey",
+						"when": "{{state.setup.step == 'scan'}}",
+						"style": "smallLink",
+						"icon": "copy",
+						"text": "{{t('copyKey')}}",
+						"anchors": {
+							"left": 176,
+							"top": 144
+						},
+						"onClick": [
+							{
+								"copy": "EXAMPLEEXAMPLE23"
+							},
+							{
+								"run": "notify",
+								"with": {
+									"message": "{{t('keyCopied')}}"
+								}
+							}
+						]
+					},
+					{
+						"id": "demoSetup",
+						"when": "{{state.setup.step == 'scan'}}",
+						"style": "hint",
+						"icon": "info",
+						"wrap": true,
+						"height": 36,
+						"text": "{{t('demoSetupCode', { code: state.demoCode })}}",
+						"anchors": {
+							"left": 176,
+							"right": 20,
+							"top": 176
+						}
+					},
+					{
+						"id": "label-setup-code",
+						"when": "{{state.setup.step == 'scan'}}",
+						"style": "fieldLabel",
+						"text": "{{t('code')}}",
+						"anchors": {
+							"left": 20,
+							"right": 20,
+							"top": 232
+						}
+					},
+					{
+						"id": "setupCode",
+						"when": "{{state.setup.step == 'scan'}}",
+						"style": "code",
+						"tabIndex": 1,
+						"dir": "ltr",
+						"bind": "state.setup.code",
+						"label": "{{t('code')}}",
+						"description": "{{state.setup.error == '' ? '' : t('setupError', { kind: state.setup.error })}}",
+						"cellBorderColor": "{{state.setup.error == '' ? '@color.border' : '@color.error'}}",
+						"anchors": {
+							"left": 20,
+							"right": 20,
+							"top": 254
+						},
+						"onChange": "setupCodeChanged",
+						"onSubmit": "setupNext"
+					},
+					{
+						"id": "backup-code",
+						"when": "{{state.setup.step == 'codes'}}",
+						"repeat": {
+							"for": "bc",
+							"in": "state.backupCodes",
+							"index": "i",
+							"key": "{{bc}}"
+						},
+						"type": "label",
+						"font": "mono",
+						"dir": "ltr",
+						"height": 24,
+						"width": 150,
+						"align": "center",
+						"radius": 6,
+						"color": "@color.input",
+						"textColor": "@color.text",
+						"text": "{{bc}}",
+						"anchors": {
+							"left": "{{i % 2 == 0 ? 40 : 210}}",
+							"top": "{{76 + 30 * floor(i / 2)}}"
+						}
+					},
+					{
+						"id": "row-saved",
+						"when": "{{state.setup.step == 'codes'}}",
+						"style": "checkRow",
+						"anchors": {
+							"left": 20,
+							"right": 20,
+							"top": 204
+						},
+						"children": [
+							{
+								"id": "savedCodes",
+								"style": "{{state.setup.saved ? 'checkOn' : 'checkOff'}}",
+								"label": "{{t('savedCodes')}}",
+								"checked": "{{state.setup.saved}}",
+								"onClick": "toggleSaved",
+								"keys": {
+									"space": "toggleSaved"
+								}
+							},
+							{
+								"id": "label-saved",
+								"type": "label",
+								"font": "small",
+								"text": "{{t('savedCodes')}}",
+								"fitText": true,
+								"textColor": "@color.muted",
+								"cursor": "hand",
+								"onClick": "toggleSaved"
+							}
+						]
+					},
+					{
+						"id": "copyCodes",
+						"when": "{{state.setup.step == 'codes'}}",
+						"style": "smallLink",
+						"icon": "copy",
+						"text": "{{t('copyCodes')}}",
+						"anchors": {
+							"left": 20,
+							"top": 234
+						},
+						"onClick": [
+							{
+								"copy": "{{join(state.backupCodes, '\\n')}}"
+							},
+							{
+								"run": "notify",
+								"with": {
+									"message": "{{t('codesCopied')}}"
+								}
+							}
+						]
+					},
+					{
+						"id": "setupError",
+						"when": "{{state.setup.error != ''}}",
+						"style": "inlineError",
+						"text": "{{t('setupError', { kind: state.setup.error })}}",
+						"anchors": {
+							"left": 22,
+							"right": 20,
+							"top": "{{state.setup.step == 'scan' ? 314 : 262}}"
 						}
 					}
 				]

@@ -3476,6 +3476,48 @@
 					"click": "#twoStep"
 				},
 				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.open",
+						"is": true
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "codes"
+					}
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"expect": {
+						"state": "setup.error",
+						"is": "notSaved"
+					}
+				},
+				{
+					"click": "#savedCodes"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"expect": {
 						"state": "user.twoStep",
 						"is": true
@@ -3498,6 +3540,33 @@
 				},
 				{
 					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.open",
+						"is": true
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#savedCodes"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 50
 				},
 				{
 					"expect": {
@@ -4785,6 +4854,696 @@
 					"expect": {
 						"state": "confirm",
 						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "setup-wrong-code-then-right",
+			"note": "Turning two-step on: a short or wrong app code is refused in the dialog, the right one moves on to the backup codes, which must be ticked as saved. Back returns to the app code with the dialog still open (it used to close it)",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#twoStep"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "scan"
+					}
+				},
+				{
+					"type": "123"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.error",
+						"is": "short"
+					}
+				},
+				{
+					"expect": {
+						"node": "#setupError",
+						"text": "Enter all 6 digits"
+					}
+				},
+				{
+					"click": "#setupCode"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "111111"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.error",
+						"is": "wrong"
+					}
+				},
+				{
+					"expect": {
+						"state": "setup.code",
+						"is": ""
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "codes"
+					}
+				},
+				{
+					"expect": {
+						"state": "backupCodes",
+						"is": [
+							"DEMO-1001",
+							"DEMO-1002",
+							"DEMO-1003",
+							"DEMO-1004",
+							"DEMO-1005",
+							"DEMO-1006",
+							"DEMO-1007",
+							"DEMO-1008"
+						]
+					}
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#setupError",
+						"text": "Tick the box once the codes are saved"
+					}
+				},
+				{
+					"expect": {
+						"state": "user.twoStep",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "setup.open",
+						"is": true
+					}
+				},
+				{
+					"key": "alt+b"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "scan"
+					}
+				},
+				{
+					"expect": {
+						"state": "setup.open",
+						"is": true
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "codes"
+					}
+				}
+			]
+		},
+		{
+			"name": "text-me-a-code",
+			"note": "Sam asks for a text instead: the title and caption change, a toast confirms the made-up number, and the same demo code signs in",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#textMe"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "sms"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"text": "Check your phone"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-two-step-caption",
+						"text": "Enter the 6-digit code we texted to 555-0142"
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "We texted a code to 555-0142"
+					}
+				},
+				{
+					"expect": {
+						"node": "#textMe",
+						"exists": false
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "backup-code-is-used-once",
+			"note": "A wrong backup code is refused; a right one signs in, is struck off the list and cannot be used again",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#useBackup"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "backup"
+					}
+				},
+				{
+					"expect": {
+						"node": "#backupField",
+						"property": "name",
+						"is": "Backup code"
+					}
+				},
+				{
+					"type": "DEMO-9999"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#codeError",
+						"text": "That backup code is not right, or it was already used"
+					}
+				},
+				{
+					"expect": {
+						"state": "backupCodes",
+						"is": [
+							"DEMO-1001",
+							"DEMO-1002",
+							"DEMO-1003",
+							"DEMO-1004",
+							"DEMO-1005",
+							"DEMO-1006",
+							"DEMO-1007",
+							"DEMO-1008"
+						]
+					}
+				},
+				{
+					"click": "#backupField"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "demo-1003"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Backup code used. 7 codes left"
+					}
+				},
+				{
+					"expect": {
+						"node": "#backupLeft",
+						"text": "7 backup codes left"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#useBackup"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "DEMO-1003"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "codeError",
+						"is": "wrongBackup"
+					}
+				}
+			]
+		},
+		{
+			"name": "trust-this-device-skips-the-code",
+			"note": "Ticking Trust this device remembers it for 30 days: the next sign-in skips the code, until the device is removed on the account page",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#trust"
+				},
+				{
+					"expect": {
+						"state": "trust",
+						"is": true
+					}
+				},
+				{
+					"click": "#twoStepCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#trusted-name",
+						"nth": 1,
+						"text": "This device  ·  30 days left"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				},
+				{
+					"click": "#trusted-remove",
+					"nth": 1
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Device removed. It will be asked for a code again"
+					}
+				},
+				{
+					"expect": {
+						"state": "trusted",
+						"is": [
+							{
+								"email": "sam@example.com",
+								"device": "phone",
+								"days": 12
+							}
+						]
+					}
+				},
+				{
+					"click": "#trusted-remove"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#noTrusted",
+						"text": "No trusted devices: every sign-in asks for a code"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "new-backup-codes",
+			"note": "With two-step on, New codes opens the codes step straight away, refills the list and says the old codes stop working",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#useBackup"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "DEMO-1001"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"node": "#backupLeft",
+						"text": "7 backup codes left"
+					}
+				},
+				{
+					"click": "#newCodes"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "codes"
+					}
+				},
+				{
+					"expect": {
+						"node": "#backupLeft",
+						"text": "8 backup codes left"
+					}
+				},
+				{
+					"click": "#savedCodes"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "New backup codes are ready. The old ones no longer work"
 					}
 				}
 			]

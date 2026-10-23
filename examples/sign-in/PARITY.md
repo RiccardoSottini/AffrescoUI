@@ -21,10 +21,10 @@ Legend: **yes** shown and tested by a scenario; **part** shown, with a gap noted
 | 2 | Create account | Email verification | yes |
 | 2 | Create account | Username availability with a spinner | yes |
 | 2 | Create account | Invitations | yes |
-| 3 | Two-step | QR from a fake secret | no |
-| 3 | Two-step | Backup codes | no |
-| 3 | Two-step | SMS fallback | no |
-| 3 | Two-step | Trusted devices | no |
+| 3 | Two-step | QR from a fake secret | yes |
+| 3 | Two-step | Backup codes | yes |
+| 3 | Two-step | SMS fallback | yes |
+| 3 | Two-step | Trusted devices | yes |
 | 4 | Recovery | Forgot password | yes |
 | 4 | Recovery | Reset with token expiry | part |
 | 4 | Recovery | Locked account | no |
@@ -43,14 +43,14 @@ Legend: **yes** shown and tested by a scenario; **part** shown, with a gap noted
 | 6 | Throughout | Success screens | part |
 | 6 | Throughout | Responsive card | part |
 
-Start: 8 yes, 5 part, 21 no (34 features). Now: 19 yes, 3 part, 12 no.
+Start: 8 yes, 5 part, 21 no (34 features). Now: 23 yes, 3 part, 8 no.
 
 ## Metrics
 
 | | Start | Now |
 |---|---|---|
-| Document tokens (`sign-in.screen.json`, about 4.7 bytes a token) | 17,818 | 25,413 |
+| Document tokens (`sign-in.screen.json`, about 4.7 bytes a token) | 17,818 | 30,980 |
 | C++ lines in the example | 0 | 0 |
 | Host registrations | 0 | 0 |
-| Rendering-check frames | 8 | 14 |
-| App scenarios | 44 | 59 |
+| Rendering-check frames | 8 | 17 |
+| App scenarios | 44 | 64 |
