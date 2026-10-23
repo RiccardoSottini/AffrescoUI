@@ -91,6 +91,10 @@ private:
 	/// @param panel The panel, a TextEditor.
 	/// @return The connection, or 0 if it isn't one.
 	Connection hookCaret(Panel& panel);
+	/// @brief Connects a text editor's view, which it writes to the state path of its "viewport".
+	/// @param panel The panel, a TextEditor.
+	/// @return The connection, or 0 if it isn't one.
+	Connection hookView(Panel& panel);
 	/// @brief Connects a label's links to its "onLink".
 	/// @param panel The panel, a Label.
 	/// @return The connection, or 0 if it isn't one.

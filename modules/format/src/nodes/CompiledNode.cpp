@@ -88,6 +88,7 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"pressed", Slot::StateBlock},
     {"bind", Slot::Bind},
     {"caret", Slot::Caret},
+    {"viewport", Slot::View},
     {"keys", Slot::Keys},
     {"drag", Slot::Drag},
     {"context", Slot::Context},
@@ -103,18 +104,18 @@ constexpr auto scopingKeys = std::to_array<std::string_view>(
 /// @param slot The slot.
 /// @return true for the handlers and the other structural keys.
 bool structuralSlot(Slot slot) noexcept {
-	return slot == Slot::Handler || slot == Slot::Bind || slot == Slot::Caret || slot == Slot::Keys ||
-	       slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context;
+	return slot == Slot::Handler || slot == Slot::Bind || slot == Slot::Caret || slot == Slot::View ||
+	       slot == Slot::Keys || slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context;
 }
 
 /// @brief Tells whether applying a property reads more than its value: the state, or the node's variables.
 /// @param slot Its slot.
 /// @param value Its value as written.
-/// @return true for an overlay's "open" written as a state path, a computed "bind" or "caret", and an "every" whose
-/// period is computed.
+/// @return true for an overlay's "open" written as a state path, a computed "bind", "caret" or "viewport", and an
+/// "every" whose period is computed.
 bool readsMore(Slot slot, const json& value) {
 	if(slot == Slot::Overlay) return value.is_object() && value.contains("open") && value["open"].is_string();
-	if(slot == Slot::Bind || slot == Slot::Caret) return isDynamic(value);
+	if(slot == Slot::Bind || slot == Slot::Caret || slot == Slot::View) return isDynamic(value);
 	if(slot == Slot::Every) return value.is_object() && value.contains("ms") && isDynamic(value["ms"]);
 	return false;
 }

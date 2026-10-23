@@ -304,9 +304,24 @@ public:
 	/// @brief The text, one element per line (at least one), decoded when read.
 	[[nodiscard]] const TextLines& lines() const noexcept { return lines_; }
 
+	/// @brief What the editor shows: the lines of its first and last visible rows, counted from 1, how many rows
+	/// fit, and how many lines there are.
+	struct View {
+		std::size_t first = 0; ///< The line of the first visible row, from 1.
+		std::size_t last = 0;  ///< The line of the last visible row, from 1.
+		std::size_t rows = 0;  ///< How many whole rows fit.
+		std::size_t lines = 0; ///< How many lines the text has.
+		/// @brief Whether two views are the same.
+		bool operator==(const View&) const = default;
+	};
+	/// @brief What the editor shows now.
+	/// @return See View.
+	[[nodiscard]] View view() const;
+
 	Signal<const std::string&> onTextChanged; ///< The user edited the text (not setText()); UTF-8.
 	Signal<Position> onCaretMoved;            ///< The caret or the selection changed, by the user or by an edit.
 	Signal<Vec2> onScrolled;                  ///< The scroll offset changed (by the wheel, the caret or setScroll()).
+	Signal<View> onViewChanged;               ///< What view() returns changed: a scroll, an edit or a new size.
 	/// A left press on the gutter (line numbers, gutter decorations) that didn't unfold a line: the line, the keys
 	/// held. Only fired, and the press only kept from moving the caret, while something listens.
 	Signal<std::size_t, Mods> onGutterClicked;
@@ -389,7 +404,6 @@ public:
 	[[nodiscard]] EditorHighlighter* highlighter() const noexcept { return highlighter_.get(); }
 
 protected:
-
 	/// @brief Gives the gutter's label of a line (by default its number, from 1).
 	/// @param line The line.
 	/// @param out Gets the label (empty: none).
@@ -487,6 +501,8 @@ private:
 	[[nodiscard]] std::size_t visibleLines() const noexcept;
 	/// @brief Keeps the scroll offset inside the content.
 	void clampScroll();
+	/// @brief Fires onViewChanged if view() changed since it last did.
+	void noteView();
 	/// @brief Scrolls so the caret is visible.
 	void revealCaret();
 	/// @brief The position one code point, or one word, to the left or right.
@@ -779,26 +795,26 @@ private:
 
 	/// @brief The text; shared, as a file buffer may be shown by several editors at once (setModel()).
 	std::shared_ptr<TextModel> model_ = std::make_shared<TextModel>();
-	TextLines lines_{*model_};       ///< See lines().
-	Connection modelConnection_ = 0; ///< To model_->onChanged.
-	Position caret_;                 ///< Where typing happens.
-	Position anchor_;                ///< The selection's other end (== caret_: none).
-	float preferredX_ = -1.0f;       ///< The x vertical moves aim for (< 0: the caret's).
-	Vec2 scroll_;                    ///< Pixels scrolled right and down.
-	bool dragging_ = false;          ///< A button press is selecting text.
+	TextLines lines_{*model_};          ///< See lines().
+	Connection modelConnection_ = 0;    ///< To model_->onChanged.
+	Position caret_;                    ///< Where typing happens.
+	Position anchor_;                   ///< The selection's other end (== caret_: none).
+	float preferredX_ = -1.0f;          ///< The x vertical moves aim for (< 0: the caret's).
+	Vec2 scroll_;                       ///< Pixels scrolled right and down.
+	bool dragging_ = false;             ///< A button press is selecting text.
 	Position hoveredWord_{SIZE_MAX, 0}; ///< Where the word under the pointer starts, for onWordHovered.
-	double lastClickTime_ = -1.0;    ///< When the last press happened, for double clicks.
-	Position lastClickAt_;           ///< Where it happened.
-	int clicks_ = 0;                 ///< Presses in a row at one place (1, 2 or 3).
-	bool editing_ = false;           ///< This editor is changing the model: its caret is set by the edit, not moved.
-	bool readOnly_ = false;          ///< See setReadOnly().
+	double lastClickTime_ = -1.0;       ///< When the last press happened, for double clicks.
+	Position lastClickAt_;              ///< Where it happened.
+	int clicks_ = 0;                    ///< Presses in a row at one place (1, 2 or 3).
+	bool editing_ = false;              ///< This editor is changing the model: its caret is set by the edit, not moved.
+	bool readOnly_ = false;             ///< See setReadOnly().
 
 	Edit lastEdit_ = Edit::Other;        ///< The edit that made the newest undo step (Other: start a new step).
 	mutable std::vector<int> states_{0}; ///< The colouring state each line starts with, for the lines coloured so far.
 	std::unique_ptr<EditorHighlighter> highlighter_; ///< See setHighlighter().
-	mutable float widest_ = -1.0f;       ///< See widestLine(); < 0: to work out.
-	mutable const Font* widestFont_ = nullptr; ///< The font widest_ was measured with.
-	mutable std::vector<Color> colors_;        ///< One line's colours, reused from frame to frame.
+	mutable float widest_ = -1.0f;                   ///< See widestLine(); < 0: to work out.
+	mutable const Font* widestFont_ = nullptr;       ///< The font widest_ was measured with.
+	mutable std::vector<Color> colors_;              ///< One line's colours, reused from frame to frame.
 	mutable std::vector<std::tuple<std::size_t, float, float>> runs_; ///< One row's colour runs: end, x and width.
 	mutable std::vector<std::size_t> breaks_;                         ///< One line's row starts, reused.
 	mutable std::u32string label_;                                    ///< One line's gutter label, reused.
@@ -830,10 +846,10 @@ private:
 	bool cursorsMerge_ = false;                  ///< The edit joins the newest undo step.
 	bool cursorsPending_ = false;                ///< An edit began, and recordCursorStep() hasn't kept it.
 
-	TextPattern find_;                 ///< The find pattern; invalid: none.
-	std::string findText_;             ///< Its text.
-	PatternOptions findOptions_;       ///< Its options.
-	std::uint64_t findGeneration_ = 0; ///< Counts setFind() calls, for the cached matches.
+	TextPattern find_;                                       ///< The find pattern; invalid: none.
+	std::string findText_;                                   ///< Its text.
+	PatternOptions findOptions_;                             ///< Its options.
+	std::uint64_t findGeneration_ = 0;                       ///< Counts setFind() calls, for the cached matches.
 	std::optional<std::pair<Position, Position>> findScope_; ///< See setFindInSelection().
 	std::uint64_t findRequest_ = 0;                          ///< The last request findStep() ran.
 	/// @brief The matches of the rows drawn last: line, column and length.
@@ -847,12 +863,13 @@ private:
 	mutable std::string subject_;                                    ///< One line in UTF-8, reused.
 	/// @brief What visibleMatches_ was found for: the model's version, the lines and findGeneration_.
 	mutable std::array<std::uint64_t, 4> matchesKey_{};
-	bool brackets_ = false;      ///< See setBracketMatching().
-	bool guides_ = false;        ///< See setIndentGuides().
-	std::u32string composition_; ///< See setComposition().
-	bool minimap_ = false;         ///< See setMinimap().
+	bool brackets_ = false;                    ///< See setBracketMatching().
+	bool guides_ = false;                      ///< See setIndentGuides().
+	std::u32string composition_;               ///< See setComposition().
+	bool minimap_ = false;                     ///< See setMinimap().
 	CaretStyle caretStyle_ = CaretStyle::Line; ///< See setCaretStyle().
-	bool minimapDragging_ = false; ///< A press on the minimap is scrolling.
+	View lastView_;                            ///< What onViewChanged last told.
+	bool minimapDragging_ = false;             ///< A press on the minimap is scrolling.
 
 	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.
 	bool lineNumbers_ = false;            ///< See setLineNumbers().

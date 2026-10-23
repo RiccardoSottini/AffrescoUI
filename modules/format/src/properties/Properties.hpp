@@ -103,7 +103,8 @@ private:
 		const std::string& at; ///< Its place, for errors.
 	};
 
-	/// @brief Reads the behaviour keys of the record's node into it: handlers, "bind", "caret", "keys", "drag".
+	/// @brief Reads the behaviour keys of the record's node into it: handlers, "bind", "caret", "viewport", "keys",
+	/// "drag".
 	/// @param panel The panel.
 	/// @param record Its record.
 	/// @return What is applied after the look.
@@ -116,7 +117,7 @@ private:
 	/// @param at Its place, for errors.
 	static void readHandler(const Panel& panel, Record& record, const std::string& key, const json& value,
 	                        const std::string& at);
-	/// @brief Reads one of the other behaviour keys: bind, caret, keys, drag, every, autofocus, locked.
+	/// @brief Reads one of the other behaviour keys: bind, caret, view, keys, drag, every, autofocus, locked.
 	/// @param panel The panel.
 	/// @param record Its record.
 	/// @param key The key.

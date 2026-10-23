@@ -79,6 +79,7 @@ void TextEditor::setScroll(Vec2 offset) {
 	if(scroll_.x == before.x && scroll_.y == before.y) return;
 	invalidatePaint();
 	onScrolled(scroll_);
+	noteView();
 }
 
 void TextEditor::setComposition(std::u32string text) {
@@ -444,6 +445,7 @@ void TextEditor::revealCaret() {
 	else if(x > scroll_.x + width) scroll_.x = x - width + 40.0f;
 	invalidate();
 	if(scroll_.x != before.x || scroll_.y != before.y) onScrolled(scroll_);
+	noteView();
 }
 
 float TextEditor::widestLine(const Font& font) const {
