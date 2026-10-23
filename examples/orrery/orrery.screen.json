@@ -158,7 +158,8 @@
 				"hex": "#ffc94d",
 				"color": [1.0, 0.5841, 0.0742, 1],
 				"gx": 10,
-				"gy": 75
+				"gy": 75,
+				"km": 696000
 			},
 			{
 				"id": "mercury",
@@ -171,7 +172,8 @@
 				"hex": "#b3aca3",
 				"color": [0.4508, 0.4125, 0.3663, 1],
 				"gx": 170,
-				"gy": 0
+				"gy": 0,
+				"km": 2440
 			},
 			{
 				"id": "venus",
@@ -184,7 +186,8 @@
 				"hex": "#e8c27a",
 				"color": [0.807, 0.5395, 0.1946, 1],
 				"gx": 170,
-				"gy": 52
+				"gy": 52,
+				"km": 6052
 			},
 			{
 				"id": "earth",
@@ -197,7 +200,8 @@
 				"hex": "#3f86e0",
 				"color": [0.0497, 0.2384, 0.7454, 1],
 				"gx": 170,
-				"gy": 104
+				"gy": 104,
+				"km": 6371
 			},
 			{
 				"id": "moon",
@@ -210,7 +214,8 @@
 				"hex": "#d4d4d4",
 				"color": [0.6584, 0.6584, 0.6584, 1],
 				"gx": 330,
-				"gy": 104
+				"gy": 104,
+				"km": 1737
 			},
 			{
 				"id": "mars",
@@ -223,7 +228,8 @@
 				"hex": "#d2643c",
 				"color": [0.6445, 0.1274, 0.0452, 1],
 				"gx": 170,
-				"gy": 156
+				"gy": 156,
+				"km": 3390
 			}
 		],
 		"events": [
@@ -769,7 +775,11 @@
 		"view": "{{ {w: max(window.width - 461, 200), h: max(window.height - 312, 160), f: 1.1 * min(max(window.width - 461, 200), max(window.height - 312, 160)), distance: state.camera.distance, cy: cos(state.camera.yaw), sy: sin(state.camera.yaw), cp: cos(state.camera.pitch), sp: sin(state.camera.pitch)} }}",
 		"turned": "{{map(computed.positions, merge(it, {x1: it.x * computed.view.cy - it.z * computed.view.sy, z1: it.x * computed.view.sy + it.z * computed.view.cy}))}}",
 		"projected": "{{sort(map(computed.turned, merge(it, {depth: computed.view.distance - it.z1 * computed.view.cp, px: computed.view.w / 2 + it.x1 * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), py: computed.view.h / 2 + it.z1 * computed.view.sp * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), r: max(3, it.size * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp))})), it.depth, 'desc')}}",
-		"orbitPaths": "{{map(filter(computed.positions, it.parent != ''), {id: it.id, cx: it.cx, cz: it.cz, radius: it.radius})}}"
+		"orbitPaths": "{{map(filter(computed.positions, it.parent != ''), {id: it.id, cx: it.cx, cz: it.cz, radius: it.radius})}}",
+		"sight": "{{find(computed.projected, it.id == state.selected)}}",
+		"info": "{{computed.sight ? {name: computed.selectedBody.name, distance: sqrt(computed.sight.x1 * computed.sight.x1 + computed.sight.z1 * computed.view.sp * computed.sight.z1 * computed.view.sp + computed.sight.depth * computed.sight.depth) / 4.3, apparent: degrees(2 * atan(computed.sight.size / sqrt(computed.sight.x1 * computed.sight.x1 + computed.sight.z1 * computed.view.sp * computed.sight.z1 * computed.view.sp + computed.sight.depth * computed.sight.depth))), lit: computed.sight.parent == '' ? 1 : (1 + (computed.sight.x1 * computed.sight.x1 + computed.sight.z1 * computed.sight.z1 * computed.view.sp * computed.view.sp - computed.sight.z1 * computed.view.cp * computed.sight.depth) / (sqrt(computed.sight.x1 * computed.sight.x1 + computed.sight.z1 * computed.sight.z1) * sqrt(computed.sight.x1 * computed.sight.x1 + computed.sight.z1 * computed.view.sp * computed.sight.z1 * computed.view.sp + computed.sight.depth * computed.sight.depth))) / 2} : null}}",
+		"clock": "{{formatDate(dateMs('2030-01-01') + state.time * 86400000, 'yyyy-MM-dd HH:mm', 'utc') + ' UTC'}}",
+		"rate": "{{state.playing ? (state.speed < 0 ? 'Reversed: ' : '') + fixed(abs(state.speed) * 20, abs(state.speed) < 0.05 ? 2 : 0) + ' days a second' : 'Paused'}}"
 	},
 	"styles": {
 		"button": {
@@ -873,7 +883,7 @@
 				"then": [
 					{
 						"set": "state.time",
-						"to": "{{(state.time + state.speed) % state.duration}}"
+						"to": "{{((state.time + state.speed) % state.duration + state.duration) % state.duration}}"
 					}
 				]
 			}
@@ -988,12 +998,53 @@
 				"set": "state.camera",
 				"to": "{{merge(state.camera, {distance: clamp(state.camera.distance * (1 + event.dy * 0.06), 4, 40)})}}"
 			}
+		],
+		"faster": [
+			{
+				"set": "state.speed",
+				"to": "{{state.speed < 0 ? max(state.speed * 10, -10) : min(state.speed * 10, 10)}}"
+			},
+			{
+				"set": "state.playing",
+				"to": true
+			}
+		],
+		"slower": [
+			{
+				"set": "state.speed",
+				"to": "{{state.speed < 0 ? min(state.speed / 10, -0.001) : max(state.speed / 10, 0.001)}}"
+			},
+			{
+				"set": "state.playing",
+				"to": true
+			}
+		],
+		"reverse": [
+			{
+				"set": "state.speed",
+				"to": "{{-state.speed}}"
+			},
+			{
+				"set": "state.playing",
+				"to": true
+			}
+		],
+		"now": [
+			{
+				"set": "state.time",
+				"to": 0
+			}
 		]
 	},
 	"keys": {
 		"mod+p": "togglePlay",
 		"mod+n": "nextEvent",
-		"mod+0": "rewind"
+		"mod+0": "rewind",
+		"l": "faster",
+		"k": "slower",
+		"j": "reverse",
+		"space": "togglePlay",
+		"shift+1": "now"
 	},
 	"root": {
 		"id": "root",
@@ -1246,6 +1297,105 @@
 										]
 									},
 									{
+										"type": "column",
+										"id": "view-info",
+										"anchors": {
+											"left": 12,
+											"top": 10
+										},
+										"width": 260,
+										"gap": 2,
+										"visible": "{{computed.info != null}}",
+										"children": [
+											{
+												"type": "label",
+												"id": "info-name",
+												"height": 22,
+												"fitText": true,
+												"font": "title",
+												"textColor": "@text",
+												"text": "{{computed.info.name}}"
+											},
+											{
+												"type": "label",
+												"id": "info-distance",
+												"height": 18,
+												"fitText": true,
+												"font": "small",
+												"textColor": "@muted",
+												"text": "{{'Distance: ' + fixed(computed.info.distance, 2) + ' AU'}}"
+											},
+											{
+												"type": "label",
+												"id": "info-radius",
+												"height": 18,
+												"fitText": true,
+												"font": "small",
+												"textColor": "@muted",
+												"text": "{{'Radius: ' + computed.selectedBody.km + ' km'}}"
+											},
+											{
+												"type": "label",
+												"id": "info-apparent",
+												"height": 18,
+												"fitText": true,
+												"font": "small",
+												"textColor": "@muted",
+												"text": "{{'Apparent diameter: ' + fixed(computed.info.apparent, 2) + '°'}}"
+											},
+											{
+												"type": "label",
+												"id": "info-phase",
+												"height": 18,
+												"fitText": true,
+												"font": "small",
+												"textColor": "@muted",
+												"visible": "{{computed.selectedBody.parent != ''}}",
+												"text": "{{'Phase: ' + round(computed.info.lit * 100) + '% lit'}}"
+											}
+										],
+										"height": 110
+									},
+									{
+										"type": "column",
+										"id": "view-time",
+										"anchors": {
+											"right": 12,
+											"top": 10
+										},
+										"width": 220,
+										"gap": 2,
+										"children": [
+											{
+												"type": "label",
+												"id": "time-date",
+												"height": 20,
+												"width": 220,
+												"align": {
+													"horizontal": "end",
+													"vertical": "center"
+												},
+												"font": "small",
+												"textColor": "@text",
+												"text": "{{computed.clock}}"
+											},
+											{
+												"type": "label",
+												"id": "time-rate",
+												"height": 18,
+												"width": 220,
+												"align": {
+													"horizontal": "end",
+													"vertical": "center"
+												},
+												"font": "small",
+												"textColor": "{{state.playing ? '@accent' : '@muted'}}",
+												"text": "{{computed.rate}}"
+											}
+										],
+										"height": 44
+									},
+									{
 										"type": "label",
 										"id": "view-hint",
 										"anchors": {
@@ -1256,7 +1406,7 @@
 										"height": 20,
 										"font": "small",
 										"textColor": "@muted",
-										"text": "Drag to turn, scroll to zoom"
+										"text": "Drag to turn, scroll to zoom, L K J to change time, Space to pause"
 									}
 								]
 							},

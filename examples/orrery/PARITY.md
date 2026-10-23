@@ -16,16 +16,16 @@ system of six bodies on circular orbits in one plane.
 | C4 | Select a body by clicking it, the selection ringed | done | `onPress` on each disc |
 | C5 | A glow round the Sun | done | `shadow` on the Sun's disc |
 | C6 | Labels by the bodies | done | a repeated label |
-| C7 | Selected body's info, top left: name, distance, radius, apparent size | missing | |
-| C8 | Time, top right: date, rate ("1000x faster"), paused | missing | |
-| C9 | Time rate up and down (L, K), reverse (J), pause (Space), now (!) | missing | |
+| C7 | Selected body's info, top left: name, distance, radius, apparent size | done | computed `sight` and `info`, from the camera-space position |
+| C8 | Time, top right: date, rate ("1000x faster"), paused | done | `formatDate` from an invented epoch, computed `rate` |
+| C9 | Time rate up and down (L, K), reverse (J), pause (Space), now (!) | done | screen `keys`; `!` is `shift+1` |
 | C10 | Go to the selected body (G), centre it (C), follow it | missing | |
 | C11 | Orbits, labels and markers toggled from the keyboard and a menu | missing | |
 | C12 | Solar system browser: the bodies as a tree | missing | |
 | C13 | Eclipse finder | missing | |
 | C14 | Bookmarks (saved camera places) | missing | |
 | C15 | Field of view and limiting magnitude shown, and changed | missing | |
-| C16 | Phase and lit side of each body | missing | |
+| C16 | Phase and lit side of each body | part | the selected body's phase in the info; no lit side drawn |
 | C17 | Render options dialog | missing | |
 
 ## The sky chart (modelled on Stellarium)
@@ -56,3 +56,4 @@ system of six bodies on circular orbits in one plane.
 |---|---|---|---|
 | 0 | Before: the 3D view and the thumbnails came from a C++ host (`main.cpp`), counted as part | 4 / 10 / 15 | 15,178 + 2,654 for `main.cpp` |
 | 1 | JSON only: the 3D view and the thumbnails are in the screen, the host is the standard one | 11 / 3 / 15 | 16,006 |
+| 2 | Celestia's overlays: selected body's info and phase, the date and rate, the time keys | 14 / 4 / 11 | 17,519 |

@@ -207,6 +207,95 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "overlays-show-the-selection-and-the-time",
+			"steps": [
+				{
+					"expect": {
+						"node": "#info-name",
+						"text": "Earth"
+					}
+				},
+				{
+					"expect": {
+						"node": "#info-distance",
+						"text": "Distance: 3.34 AU"
+					}
+				},
+				{
+					"expect": {
+						"node": "#info-radius",
+						"text": "Radius: 6371 km"
+					}
+				},
+				{
+					"expect": {
+						"node": "#time-date",
+						"text": "2030-01-01 00:00 UTC"
+					}
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"text": "Paused"
+					}
+				},
+				{
+					"key": "l"
+				},
+				{
+					"expect": {
+						"state": "speed",
+						"is": 10
+					}
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"text": "200 days a second"
+					}
+				},
+				{
+					"key": "k"
+				},
+				{
+					"key": "k"
+				},
+				{
+					"expect": {
+						"state": "speed",
+						"is": 0.1
+					}
+				},
+				{
+					"key": "j"
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"text": "Reversed: 2 days a second"
+					}
+				},
+				{
+					"key": "space"
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"text": "Paused"
+					}
+				},
+				{
+					"key": "shift+1"
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				}
+			]
 		}
 	]
 }
