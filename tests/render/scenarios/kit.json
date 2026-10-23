@@ -118,6 +118,33 @@
 				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
 				{ "expect": { "image": "rtl" } }
 			]
+		},
+		{
+			"name": "kit-ribbon",
+			"screen": "kit-ribbon.screen.json",
+			"note": "The desktop kit's ribbon: a tab of groups of large and small buttons in light, another tab, the ribbon narrowed until its last groups fold into buttons, an item run from a folded group's menu, the ribbon collapsed to its tabs, then dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": [34, 46] },
+				{ "expect": { "state": "last", "is": "paste" } },
+				{ "click": [90, 15] },
+				{ "expect": { "image": "insert" } },
+				{ "click": [32, 15] },
+				{ "revision": { "message": "Narrow", "set": { "/state/width": 380 } } },
+				{ "expect": { "image": "narrow" } },
+				{ "click": [342, 60] },
+				{ "expect": { "image": "folded-menu" } },
+				{ "click": [345, 128] },
+				{ "expect": { "state": "last", "is": "find" } },
+				{ "revision": { "message": "Wide", "set": { "/state/width": 720 } } },
+				{ "click": [698, 15] },
+				{ "expect": { "image": "collapsed" } },
+				{ "click": [698, 15] },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark" } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
 		}
 	]
 }

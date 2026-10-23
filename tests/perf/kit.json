@@ -84,5 +84,15 @@
 				{ "key": "blend", "label": "Blend", "type": "select", "options": ["normal", "multiply"] }
 			] }]
 		}
+	},
+	"ribbon": {
+		"use": "ribbon",
+		"with": {
+			"tabs": [{ "id": "home", "title": "Home", "groups": [{ "id": "clipboard", "title": "Clipboard", "items": [
+				{ "title": "Paste", "icon": "clipboard", "size": "large", "run": "paste" },
+				{ "title": "Cut", "icon": "scissors", "run": "cut" },
+				{ "title": "Copy", "icon": "copy", "run": "copy" }
+			] }] }]
+		}
 	}
 }

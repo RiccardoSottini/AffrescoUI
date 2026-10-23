@@ -824,6 +824,20 @@ Controls of a desktop app's window, built in the same way as the built-in compon
     { "key": "blend", "label": "Blend", "type": "select", "options": ["normal", "multiply"] } ] }] } }
 ```
 
+- `ribbon`: tabs of groups of buttons across a window's top. `tabs` is `[{ "id", "title", "groups" }]`, a group
+  `{ "id", "title", "icon", "items" }` and an item a toolbar's (`title`, `icon`, `tooltip`, `keyLabel`, `checked`,
+  `enabled`, `run`, `with`) plus `size`: `"large"` (an icon over its title) or small (an icon beside it, three to a
+  column). Groups that don't fit its `width` fold, from the last, into a button each that opens a menu of their items.
+  A tab's double click or the end button collapses it to its tabs, and a tab opens it again. `largeFont` names a
+  bigger icon font for the large buttons. `state[name]` keeps `tab`, `collapsed` and the open menus (`menus`).
+
+```json
+{ "use": "ribbon", "with": { "largeFont": "largeIcons", "tabs": [{ "id": "home", "title": "Home", "groups": [
+  { "id": "clipboard", "title": "Clipboard", "items": [
+    { "title": "Paste", "icon": "clipboard", "size": "large", "run": "paste" },
+    { "title": "Cut", "icon": "scissors", "run": "cut" }, { "title": "Copy", "icon": "copy", "run": "copy" } ] }] }] } }
+```
+
 ### The kit's tokens
 The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
 built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a

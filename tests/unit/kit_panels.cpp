@@ -257,3 +257,124 @@ TEST_CASE("format: an inspector's choice opens a list of its options, and its gr
 	settle(*inspector.window, inspector.clock);
 	CHECK(findAccessible(inspector.window->root(), "", "Width"));
 }
+
+namespace {
+
+/// @brief A ribbon of a given width in a 720 by 300 window, its commands kept in state.last: a tab with a large
+/// button and small ones in a group, a group of switches and two large ones, and another tab.
+/// @param width The ribbon's width.
+/// @return The document.
+std::string ribbonScreen(int width) {
+	return R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "last": "", "bold": true },
+		"actions": { "command": { "set": "state.last", "to": "{{what}}" } },
+		"root": { "id": "root", "children": [{ "use": "ribbon", "with": { "width": )json" +
+	       std::to_string(width) + R"json(, "tabs": [
+			{ "id": "home", "title": "Home", "groups": [
+				{ "id": "clipboard", "title": "Clipboard", "items": [
+					{ "title": "Paste", "size": "large", "run": "command", "with": { "what": "paste" } },
+					{ "title": "Cut", "run": "command", "with": { "what": "cut" } },
+					{ "title": "Copy", "run": "command", "with": { "what": "copy" } }
+				] },
+				{ "id": "font", "title": "Font", "items": [
+					{ "title": "Bold", "checked": "{{state.bold}}" },
+					{ "title": "Underline", "enabled": false, "run": "command", "with": { "what": "underline" } }
+				] },
+				{ "id": "editing", "title": "Editing", "items": [
+					{ "title": "Find", "size": "large", "run": "command", "with": { "what": "find" } },
+					{ "title": "Replace", "size": "large", "run": "command", "with": { "what": "replace" } }
+				] }
+			] },
+			{ "id": "insert", "title": "Insert", "groups": [
+				{ "id": "media", "title": "Media", "items": [{ "title": "Picture", "size": "large" }] }
+			] }
+		] } }] }
+	})json";
+}
+
+/// @brief A ribbon built in a headless 720 by 300 window and laid out.
+struct Ribboned {
+	ManualClock clock;                                                                ///< The window's clock.
+	std::unique_ptr<affresco::Window> window = createHeadlessWindow(720, 300, clock); ///< The window.
+	affresco::Screen screen;                                                          ///< The screen.
+
+	/// @brief Builds it.
+	/// @param width The ribbon's width.
+	explicit Ribboned(int width = 720) : screen(affresco::Screen::fromString(ribbonScreen(width))) {
+		screen.build(*window);
+		settle(*window, clock);
+	}
+
+	/// @brief Whether a shown node has a role and a name.
+	/// @param role The role.
+	/// @param label The name.
+	/// @return true if one does.
+	bool shows(std::string_view role, std::string_view label) const {
+		return findAccessible(window->root(), role, label) != nullptr;
+	}
+
+	/// @brief Clicks a shown node by role and name, required.
+	/// @param role The role.
+	/// @param label The name.
+	void click(std::string_view role, std::string_view label) {
+		const affresco::Panel* found = findAccessible(window->root(), role, label);
+		REQUIRE(found);
+		clickOn(*window, *found);
+		settle(*window, clock);
+	}
+};
+
+} // namespace
+
+TEST_CASE("format: a ribbon shows its tab's groups of buttons, which run their actions, and the checker accepts it") {
+	Ribboned ribbon;
+	CHECK(ribbon.shows("tablist", "Ribbon"));
+	CHECK(ribbon.shows("toolbar", "Home"));
+	CHECK(ribbon.shows("group", "Clipboard"));
+	CHECK(ribbon.shows("group", "Editing"));
+	const affresco::Panel* bold = findAccessible(ribbon.window->root(), "button", "Bold");
+	REQUIRE(bold);
+	CHECK(bold->accessibleState().selected.value_or(false));
+	ribbon.click("button", "Paste");
+	CHECK(state(ribbon.screen)["last"] == "paste");
+	ribbon.click("button", "Copy");
+	CHECK(state(ribbon.screen)["last"] == "copy");
+	ribbon.click("button", "Underline"); // disabled
+	CHECK(state(ribbon.screen)["last"] == "copy");
+
+	const json document = json::parse(ribbonScreen(720));
+	const auto findings = affresco::format::check(document, document["state"]);
+	REQUIRE(findings);
+	for(const auto& finding : *findings) CAPTURE(finding.text());
+	CHECK(findings->empty());
+}
+
+TEST_CASE("format: a ribbon's tabs switch its groups, and it collapses to its tabs") {
+	Ribboned ribbon;
+	ribbon.click("tab", "Insert");
+	CHECK(ribbon.shows("group", "Media"));
+	CHECK_FALSE(ribbon.shows("group", "Clipboard"));
+	CHECK(state(ribbon.screen)["ribbon"]["tab"] == "insert");
+
+	ribbon.click("button", "Collapse the ribbon");
+	CHECK_FALSE(ribbon.shows("toolbar", "Insert"));
+	ribbon.click("tab", "Home"); // a tab shows the groups again
+	CHECK(ribbon.shows("group", "Clipboard"));
+	CHECK(state(ribbon.screen)["ribbon"]["collapsed"] == false);
+}
+
+TEST_CASE("format: a narrow ribbon folds its last groups into buttons whose menus run their items") {
+	Ribboned ribbon(300);
+	CHECK(ribbon.shows("group", "Clipboard"));
+	CHECK_FALSE(ribbon.shows("group", "Editing"));
+	CHECK(ribbon.shows("button", "Editing"));
+	CHECK_FALSE(ribbon.shows("button", "Find"));
+	ribbon.click("button", "Editing");
+	ribbon.click("menuitem", "Replace");
+	CHECK(state(ribbon.screen)["last"] == "replace");
+
+	Ribboned wide(720);
+	CHECK_FALSE(wide.shows("button", "Editing"));
+	CHECK(wide.shows("button", "Find"));
+}

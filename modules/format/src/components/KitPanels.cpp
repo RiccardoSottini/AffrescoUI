@@ -16,7 +16,9 @@ namespace {
 /// options, axes, enabled, tooltip}, its type "number" (the default), "slider", "color", "select", "toggle",
 /// "checkbox", "text" or "vector" (a list of numbers, one field per axis); it edits values[key] at bind + "." + key
 /// and runs onChange with {key, value}. Its own state at state[name] is {closed (group ids), scrub, open}. A typed
-/// number is clamped to min and max, and a text that isn't one leaves the value as it was.
+/// number is clamped to min and max, and a text that isn't one leaves the value as it was. A ribbon's group is
+/// {id, title, icon, items}, its items a toolbar's plus size ("large" or small); its widths are estimated from the
+/// titles, and its own state at state[name] is {tab, collapsed, menus (open by group id)}.
 constexpr std::string_view kitPanels = R"({
 "inspector": {
 	"params": { "name": "inspector", "bind": null, "values": null, "groups": [], "onChange": "", "width": 280,
@@ -198,6 +200,157 @@ constexpr std::string_view kitPanels = R"({
 				  }] }
 			]
 		}]
+	}
+},
+"ribbon": {
+	"params": { "name": "ribbon", "tabs": [], "width": "{{window.width}}", "tabHeight": 30, "bodyHeight": 92,
+	            "titleHeight": 20, "foldWidth": 64, "menuWidth": 220, "largeFont": null, "label": "Ribbon",
+	            "collapseLabel": "Collapse the ribbon", "expandLabel": "Expand the ribbon", "color": "@kit.bar",
+	            "bodyColor": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.dim",
+	            "highlight": "@kit.barHover", "checkedColor": "@kit.selection", "accentColor": "@kit.primary",
+	            "borderColor": "@kit.border" },
+	"node": {
+		"let": {
+			"base": "{{'state.' + name}}",
+			"ui": "{{state[name] ?? {}}}",
+			"shut": "{{(state[name] ?? {}).collapsed == true}}",
+			"tab": "{{find(tabs, it.id == (state[name] ?? {}).tab) ?? tabs[0] ?? {}}}",
+			"gs": "{{(find(tabs, it.id == (state[name] ?? {}).tab) ?? tabs[0] ?? {}).groups ?? []}}"
+		},
+		"type": "column", "width": "{{width}}", "height": "{{tabHeight + (shut ? 0 : bodyHeight)}}", "color": "{{color}}",
+		"role": "group", "label": "{{label}}",
+		"children": [
+			{ "type": "row", "width": "100%", "height": "{{tabHeight}}", "color": "{{color}}",
+			  "children": [
+				{ "color": "transparent", "width": 6, "height": 1 },
+				{ "type": "row", "role": "tablist", "label": "{{label}}", "arrows": "horizontal", "color": "transparent",
+				  "anchors": { "top": 0, "bottom": 0 }, "width": "{{sum(tabs, length(it.title ?? it.id) * 7 + 24)}}",
+				  "children": [{
+					"repeat": { "for": "t", "in": "{{tabs}}" },
+					"width": "{{length(t.title ?? t.id) * 7 + 24}}", "anchors": { "top": 0, "bottom": 0 },
+					"role": "tab", "label": "{{t.title ?? t.id}}", "selected": "{{t.id == tab.id}}", "focusable": true,
+					"cursor": "hand", "color": "{{color}}", "hover": { "color": "{{highlight}}" },
+					"focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
+					"onClick": [{ "set": "{{base + '.tab'}}", "to": "{{t.id}}" }, { "set": "{{base + '.collapsed'}}", "to": false }],
+					"onDoubleClick": { "set": "{{base + '.collapsed'}}", "to": "{{!shut}}" },
+					"children": [
+						{ "type": "label", "text": "{{t.title ?? t.id}}", "align": "center",
+						  "textColor": "{{t.id == tab.id ? textColor : dimColor}}",
+						  "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } },
+						{ "when": "{{t.id == tab.id && !shut}}", "color": "{{accentColor}}", "height": 2,
+						  "anchors": { "left": 8, "right": 8, "bottom": 0 } }
+					] }] },
+				{ "grow": 1, "height": 1, "color": "transparent" },
+				{ "width": 28, "height": 24, "y": "{{(tabHeight - 24) / 2}}", "radius": "@kit.radius", "role": "button",
+				  "label": "{{shut ? expandLabel : collapseLabel}}", "tooltip": "{{shut ? expandLabel : collapseLabel}}",
+				  "isOpen": "{{!shut}}", "focusable": true, "cursor": "hand", "color": "{{color}}",
+				  "hover": { "color": "{{highlight}}" },
+				  "focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
+				  "onClick": { "set": "{{base + '.collapsed'}}", "to": "{{!shut}}" },
+				  "children": [{ "type": "label", "icon": "{{shut ? 'chevron-down' : 'chevron-up'}}", "align": "center",
+				                 "textColor": "{{dimColor}}", "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } }] },
+				{ "color": "transparent", "width": 6, "height": 1 }
+			  ] },
+			{ "when": "{{!shut}}",
+			  "let": {
+				"gw": "{{map(gs, max(length(it.title ?? '') * 7 + 16, sum(filter(it.items ?? [], it.size == 'large'), max(48, length(it.title ?? '') * 7 + 12)) + ceil(count(it.items ?? [], it.size != 'large') / 3) * (max(concat([0], map(filter(it.items ?? [], it.size != 'large'), length(it.title ?? '')))) * 7 + 34)) + 14)}}"
+			  },
+			  "width": "100%", "height": "{{bodyHeight}}", "color": "{{bodyColor}}", "role": "toolbar",
+			  "label": "{{tab.title ?? tab.id ?? label}}",
+			  "children": [
+				{ "color": "{{borderColor}}", "height": 1, "anchors": { "left": 0, "right": 0, "top": 0 } },
+				{ "color": "{{borderColor}}", "height": 1, "anchors": { "left": 0, "right": 0, "bottom": 0 } },
+				{ "let": { "fit": "{{sum(gw) <= width - 8 ? length(gs) : count(gw, sum(slice(gw, 0, index + 1)) + (length(gs) - index - 1) * foldWidth <= width - 8)}}" },
+				  "type": "row", "arrows": "horizontal", "color": "transparent",
+				  "anchors": { "left": 4, "right": 4, "top": 1, "bottom": 1 },
+				  "children": [
+					{ "repeat": { "for": "g", "in": "{{slice(gs, 0, fit)}}", "index": "gi" },
+					  "let": {
+						"large": "{{filter(g.items ?? [], it.size == 'large')}}",
+						"small": "{{filter(g.items ?? [], it.size != 'large')}}"
+					  },
+					  "width": "{{gw[gi]}}", "anchors": { "top": 0, "bottom": 0 }, "color": "transparent", "role": "group",
+					  "label": "{{g.title ?? ''}}",
+					  "children": [
+						{ "type": "row", "gap": 2, "color": "transparent",
+						  "anchors": { "left": 6, "right": 8, "top": 4, "bottom": "{{titleHeight}}" },
+						  "children": [
+							{ "repeat": { "for": "item", "in": "{{large}}" },
+							  "width": "{{max(48, length(item.title ?? '') * 7 + 12)}}", "anchors": { "top": 0, "bottom": 0 },
+							  "radius": "@kit.radius", "role": "button", "label": "{{item.title ?? item.tooltip ?? ''}}",
+							  "selected": "{{item.checked == true}}", "focusable": true, "disabled": "{{item.enabled == false}}",
+							  "tooltip": "{{item.tooltip ?? (item.title ?? '') + (item.keyLabel != null ? ' (' + item.keyLabel + ')' : '')}}",
+							  "cursor": "hand", "color": "{{item.checked == true ? checkedColor : bodyColor}}",
+							  "hover": { "color": "{{item.enabled == false ? bodyColor : item.checked == true ? checkedColor : highlight}}" },
+							  "focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
+							  "pressed": { "color": "{{checkedColor}}" },
+							  "onClick": [{ "if": "{{item.run != null}}", "then": [{ "run": "{{item.run}}", "with": "{{item.with}}" }] }],
+							  "children": [
+								{ "when": "{{largeFont == null}}", "type": "label", "icon": "{{item.icon ?? ''}}", "align": "center",
+								  "height": 28,
+								  "textColor": "{{item.enabled == false ? dimColor : textColor}}",
+								  "anchors": { "left": 0, "right": 0, "top": 4 } },
+								{ "when": "{{largeFont != null}}", "type": "label", "icon": "{{item.icon ?? ''}}", "align": "center", "height": 28,
+								  "font": "{{largeFont}}",
+								  "textColor": "{{item.enabled == false ? dimColor : textColor}}",
+								  "anchors": { "left": 0, "right": 0, "top": 4 } },
+								{ "type": "label", "text": "{{item.title ?? ''}}", "align": "center", "wrap": true,
+								  "textColor": "{{item.enabled == false ? dimColor : textColor}}",
+								  "anchors": { "left": 2, "right": 2, "top": 32, "bottom": 2 } }
+							  ] },
+							{ "repeat": { "for": "c", "in": "{{range(ceil(length(small) / 3))}}" },
+							  "type": "column", "gap": 1, "color": "transparent", "anchors": { "top": 0, "bottom": 0 },
+							  "width": "{{max(concat([0], map(small, length(it.title ?? '')))) * 7 + 34}}",
+							  "children": [{
+								"repeat": { "for": "item", "in": "{{slice(small, c * 3, c * 3 + 3)}}" },
+								"width": "100%", "height": 22, "radius": "@kit.radius", "role": "button",
+								"label": "{{item.title ?? item.tooltip ?? ''}}", "selected": "{{item.checked == true}}",
+								"focusable": true, "disabled": "{{item.enabled == false}}",
+								"tooltip": "{{item.tooltip ?? (item.title ?? '') + (item.keyLabel != null ? ' (' + item.keyLabel + ')' : '')}}",
+								"cursor": "hand", "color": "{{item.checked == true ? checkedColor : bodyColor}}",
+								"hover": { "color": "{{item.enabled == false ? bodyColor : item.checked == true ? checkedColor : highlight}}" },
+								"focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
+								"pressed": { "color": "{{checkedColor}}" },
+								"onClick": [{ "if": "{{item.run != null}}", "then": [{ "run": "{{item.run}}", "with": "{{item.with}}" }] }],
+								"children": [
+									{ "type": "label", "icon": "{{item.icon ?? ''}}", "align": "center", "width": 22,
+									  "textColor": "{{item.enabled == false ? dimColor : textColor}}",
+									  "anchors": { "left": 2, "top": 0, "bottom": 0 } },
+									{ "type": "label", "text": "{{item.title ?? ''}}",
+									  "align": { "horizontal": "start", "vertical": "center" },
+									  "textColor": "{{item.enabled == false ? dimColor : textColor}}",
+									  "anchors": { "left": 26, "right": 4, "top": 0, "bottom": 0 } }
+								] }] }
+						  ] },
+						{ "type": "label", "text": "{{g.title ?? ''}}", "align": "center", "textColor": "{{dimColor}}",
+						  "height": "{{titleHeight}}", "anchors": { "left": 0, "right": 1, "bottom": 2 } },
+						{ "color": "{{borderColor}}", "width": 1, "anchors": { "right": 0, "top": 8, "bottom": 8 } }
+					  ] },
+					{ "repeat": { "for": "g", "in": "{{slice(gs, fit)}}" },
+					  "let": { "menuAt": "{{base + '.menus.' + (g.id ?? g.title ?? '')}}" },
+					  "width": "{{foldWidth}}", "anchors": { "top": 4, "bottom": 4 }, "radius": "@kit.radius",
+					  "role": "button", "label": "{{g.title ?? ''}}", "tooltip": "{{g.title ?? ''}}", "focusable": true,
+					  "isOpen": "{{(ui.menus ?? {})[g.id ?? g.title ?? ''] == true}}", "cursor": "hand",
+					  "color": "{{bodyColor}}", "hover": { "color": "{{highlight}}" },
+					  "focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
+					  "onClick": { "toggle": "{{menuAt}}" },
+					  "children": [
+						{ "when": "{{largeFont == null}}", "type": "label", "icon": "{{g.icon ?? 'layout-grid'}}", "align": "center",
+						  "height": 28,
+						  "textColor": "{{textColor}}", "anchors": { "left": 0, "right": 0, "top": 4 } },
+						{ "when": "{{largeFont != null}}", "type": "label", "icon": "{{g.icon ?? 'layout-grid'}}", "align": "center", "height": 28,
+						  "font": "{{largeFont}}",
+						  "textColor": "{{textColor}}", "anchors": { "left": 0, "right": 0, "top": 4 } },
+						{ "type": "label", "text": "{{g.title ?? ''}}", "align": "center", "wrap": true,
+						  "textColor": "{{textColor}}", "anchors": { "left": 2, "right": 2, "top": 32, "bottom": 16 } },
+						{ "type": "label", "icon": "chevron-down", "align": "center", "textColor": "{{dimColor}}",
+						  "height": 16, "anchors": { "left": 0, "right": 0, "bottom": 0 } },
+						{ "use": "menu", "with": { "items": "{{g.items ?? []}}", "open": "{{menuAt}}", "width": "{{menuWidth}}",
+						  "icons": true } }
+					  ] }
+				  ] }
+			  ] }
+		]
 	}
 }
 })";
