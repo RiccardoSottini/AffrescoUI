@@ -295,12 +295,9 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
     {"ask", "",
-	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: a request in plain words from the person to the "
-	 "agents connected to the screen (`peers`), sent after the event; `into` gets its id. Each reply runs the action "
-	 "`ask:reply` with `{request, from, text, done, error, proposals, time}` (`proposals`: the ids its replier proposed "
-	 "since), and `requests` lists them all. With no agent connected, the reply is the error `no agent is connected`. A "
-	 "reply is never the person's decision: while `ask:reply` runs, `accept`, `reject`, `restore`, `revert` and `undo` "
-	 "are refused. A control step",
+	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: a request in plain words to the connected agents "
+	 "(`peers`); `into` gets its id, and each reply runs `ask:reply`, never as the person's decision (see Asking the "
+	 "agents). A control step",
 	 "steps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},

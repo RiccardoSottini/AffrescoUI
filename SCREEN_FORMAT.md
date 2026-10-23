@@ -966,7 +966,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
-| `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: a request in plain words from the person to the agents connected to the screen (`peers`), sent after the event; `into` gets its id. Each reply runs the action `ask:reply` with `{request, from, text, done, error, proposals, time}` (`proposals`: the ids its replier proposed since), and `requests` lists them all. With no agent connected, the reply is the error `no agent is connected`. A reply is never the person's decision: while `ask:reply` runs, `accept`, `reject`, `restore`, `revert` and `undo` are refused. A control step |
+| `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: a request in plain words to the connected agents (`peers`); `into` gets its id, and each reply runs `ask:reply`, never as the person's decision (see Asking the agents). A control step |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
