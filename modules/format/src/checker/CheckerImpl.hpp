@@ -17,7 +17,6 @@
 #include <set>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace affresco::format::checker {
@@ -438,7 +437,7 @@ private:
 	const json* types_ = nullptr; ///< Its "stateTypes", if it has them.
 	/// The entries of each large section by name, made on its first lookup: an ordered object finds a key by looking
 	/// at each one, and the document stays as it is while it is checked.
-	mutable std::map<std::string, std::unordered_map<std::string_view, const json*>, std::less<>> entries_;
+	mutable std::map<std::string, Members, std::less<>> entries_;
 	const std::set<std::string, std::less<>>& nativeActions_; ///< Registered actions.
 	Shape state_;                                             ///< What the state may hold, learnt pass by pass.
 	Learning learnt_ = Learning::nothing;                     ///< What this pass learnt about the state.

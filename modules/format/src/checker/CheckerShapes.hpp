@@ -14,7 +14,6 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -66,6 +65,26 @@ private:
 	/// The shapes pay() has still to count, kept between calls: it is called for each write, so allocating its own
 	/// would cost an allocation each.
 	std::vector<const Shape*> pending_;
+};
+
+/// @brief An object's members found by key. An ordered object finds a key by looking at each one, which, for each of
+/// thousands of entries, took seconds: a large object's keys are sorted once (one allocation, where a hash map costs
+/// one per member), and a small one is still looked through.
+class Members {
+public:
+	/// @brief An object with no members.
+	Members() = default;
+	/// @brief Sorts a large object's keys.
+	/// @param object The object (anything else has no members); it must outlive this and stay as it is.
+	explicit Members(const json& object);
+	/// @brief Finds a member.
+	/// @param key Its key.
+	/// @return It, or nullptr.
+	[[nodiscard]] const json* find(std::string_view key) const;
+
+private:
+	const json* object_ = nullptr;                                 ///< The object, or nullptr if there is none.
+	std::vector<std::pair<std::string_view, const json*>> sorted_; ///< Its members by key, once it has indexedEntries.
 };
 
 /// @brief Tells whether a list of names has one.
@@ -190,22 +209,37 @@ struct Prepared {
 	/// @brief Visits each property once, from the layer that wins.
 	/// @param visit Called with the key, the value and the layer.
 	template <class Visit> void forEach(const Visit& visit) const {
-		// The keys seen, which stay where they are in their objects: a few are looked at one after another (an index
-		// would cost an allocation each), many through an index, made once there are indexedEntries
-		std::vector<std::string_view> few;
-		std::unordered_set<std::string_view> many;
-		const auto first = [&](std::string_view key) {
-			if(many.empty() && few.size() < indexedEntries) {
-				if(std::ranges::find(few, key) != few.end()) return false;
-				few.push_back(key);
-				return true;
-			}
-			if(many.empty()) many.insert(few.begin(), few.end());
-			return many.insert(key).second;
+		// Every property, those of the layer that wins first, then the first of each key: a few are compared one
+		// after another, many sorted by key (a hash set would cost an allocation per key). Keys stay where they are
+		struct Property {
+			const std::string* key;
+			const json* value;
+			const Layer* layer;
 		};
+		std::size_t count = 0;
+		for(const Layer& layer : layers) count += layer.properties->size();
+		std::vector<Property> all;
+		all.reserve(count);
 		for(const Layer& layer : std::views::reverse(layers))
 			for(const auto& [key, value] : layer.properties->items())
-				if(layer.holds(key) && first(key)) visit(key, value, layer);
+				if(layer.holds(key)) all.push_back({&key, &value, &layer});
+		const auto keyOf = [&](std::size_t i) { return std::string_view(*all[i].key); };
+		if(all.size() < indexedEntries) {
+			for(std::size_t i = 0; i < all.size(); ++i)
+				if(std::ranges::none_of(all | std::views::take(i),
+				                        [&](const Property& p) { return *p.key == keyOf(i); }))
+					visit(*all[i].key, *all[i].value, *all[i].layer);
+			return;
+		}
+		std::vector<std::size_t> order(all.size());
+		for(std::size_t i = 0; i < order.size(); ++i) order[i] = i;
+		std::ranges::sort(
+		    order, [&](std::size_t a, std::size_t b) { return std::pair(keyOf(a), a) < std::pair(keyOf(b), b); });
+		std::vector<bool> first(all.size());
+		for(std::size_t i = 0; i < order.size(); ++i)
+			first[order[i]] = i == 0 || keyOf(order[i]) != keyOf(order[i - 1]);
+		for(std::size_t i = 0; i < all.size(); ++i)
+			if(first[i]) visit(*all[i].key, *all[i].value, *all[i].layer);
 	}
 };
 

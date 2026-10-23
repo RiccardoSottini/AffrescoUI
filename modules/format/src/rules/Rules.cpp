@@ -19,7 +19,6 @@
 #include <map>
 #include <set>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 
 namespace affresco::format {
@@ -121,39 +120,6 @@ bool substitute(json& value, const json& parameters, std::size_t& room) {
 	return true;
 }
 
-/// An object's members by key. An ordered object finds a key by looking at each one, which, for each of thousands of
-/// actions, took seconds; a small one is still looked through, as an index would cost an allocation per member.
-struct Members {
-	const json* object = nullptr;                          ///< The object, or nullptr if there is none.
-	std::unordered_map<std::string_view, const json*> big; ///< Its members, once it has checker::indexedEntries.
-};
-
-/// @brief Indexes an object's members by key.
-/// @param object The object (anything else has none).
-/// @return Its members, which point into it.
-Members membersOf(const json& object) {
-	Members members;
-	if(!object.is_object()) return members;
-	members.object = &object;
-	if(object.size() >= checker::indexedEntries)
-		for(const auto& [key, value] : object.items()) members.big.emplace(key, &value);
-	return members;
-}
-
-/// @brief A member of an indexed object.
-/// @param members The object's members (membersOf()).
-/// @param key The key.
-/// @return The member, or nullptr.
-const json* memberOf(const Members& members, std::string_view key) {
-	if(!members.object) return nullptr;
-	if(members.object->size() < checker::indexedEntries) {
-		const auto it = members.object->find(key);
-		return it != members.object->end() ? &*it : nullptr;
-	}
-	const auto it = members.big.find(key);
-	return it != members.big.end() ? it->second : nullptr;
-}
-
 /// @brief Where a scan is in the document: what its strings mean.
 enum class Part {
 	Values,   ///< "state": values, never run.
@@ -175,18 +141,17 @@ public:
 	/// @param components The document's own "components" (an object, or null).
 	ControlScan(const json& actions, const std::set<std::string>& control, const std::set<std::string>& runners,
 	            const json& components)
-	    : actions_(actions), control_(control), runners_(runners), actionsAt_(membersOf(actions)),
-	      componentsAt_(membersOf(components)) {}
+	    : actions_(actions), control_(control), runners_(runners), actionsAt_(actions), componentsAt_(components) {}
 
 	/// @brief An action of the document.
 	/// @param name Its name.
 	/// @return Its steps, or nullptr.
-	[[nodiscard]] const json* action(std::string_view name) const { return memberOf(actionsAt_, name); }
+	[[nodiscard]] const json* action(std::string_view name) const { return actionsAt_.find(name); }
 
 	/// @brief A component of the document.
 	/// @param name Its name.
 	/// @return It, or nullptr.
-	[[nodiscard]] const json* component(std::string_view name) const { return memberOf(componentsAt_, name); }
+	[[nodiscard]] const json* component(std::string_view name) const { return componentsAt_.find(name); }
 
 	/// @brief Whether running a target may run a control step: a computed one, an action the document doesn't have
 	/// (a native action, which is the application's code), or one in the control set.
@@ -323,8 +288,8 @@ private:
 	const json& actions_;                         ///< The document's actions.
 	const std::set<std::string>& control_;        ///< Those that may run control steps.
 	const std::set<std::string>& runners_;        ///< The components that run the actions their parameters name.
-	const Members actionsAt_;                     ///< The document's actions by name.
-	const Members componentsAt_;                  ///< The document's own components by name.
+	const checker::Members actionsAt_;            ///< The document's actions by name.
+	const checker::Members componentsAt_;         ///< The document's own components by name.
 	mutable std::size_t depth_ = 0;               ///< How many uses of the document's components are being expanded.
 	mutable std::size_t expansions_ = 0;          ///< How many more the use being scanned may be expanded through.
 	mutable std::size_t room_ = maxExpandedBytes; ///< How many more bytes the scan may expand components to.

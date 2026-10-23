@@ -25,20 +25,24 @@ namespace checker {
 
 namespace {
 
-/// @brief Merges the keys of many into an object, finding each by name: an ordered object would look for each key
-/// among all those before it.
+/// @brief Merges the keys of many into an object, finding each by name among its keys sorted once: an ordered object
+/// would look for each key among all those before it, and a hash map would cost an allocation per key.
 /// @param into An object's shape.
 /// @param other Another's.
 void mergeWide(Shape& into, const Shape& other) {
+	using Field = std::pair<std::string_view, Shape*>;
 	Shape::object_t& fields = into.get_ref<Shape::object_t&>();
-	fields.reserve(fields.size() + other.size()); // the names the index views stay where they are
-	std::unordered_map<std::string_view, Shape*> shapes;
-	for(auto& [key, shape] : fields) shapes.emplace(key, &shape);
-	for(const auto& [key, shape] : other.items()) {
-		const auto it = shapes.find(key);
-		if(it == shapes.end()) fields.emplace_back(key, shape); // other's keys are all different
-		else mergeInto(*it->second, shape);
+	std::vector<Field> sorted;
+	sorted.reserve(fields.size());
+	for(auto& [key, shape] : fields) sorted.emplace_back(key, &shape);
+	std::ranges::sort(sorted, {}, &Field::first);
+	std::vector<const Shape::object_t::value_type*> added; // added after: adding moves the fields the views name
+	for(const auto& field : other.get_ref<const Shape::object_t&>()) {
+		const auto it = std::ranges::lower_bound(sorted, field.first, {}, &Field::first);
+		if(it != sorted.end() && it->first == field.first) mergeInto(*it->second, field.second);
+		else added.push_back(&field);
 	}
+	for(const auto* field : added) fields.emplace_back(field->first, field->second); // other's keys are all different
 }
 
 } // namespace
@@ -60,6 +64,25 @@ void mergeInto(Shape& into, const Shape& other) {
 			else mergeInto(*it, shape);
 		}
 	}
+}
+
+Members::Members(const json& object) {
+	if(!object.is_object()) return;
+	object_ = &object;
+	if(object.size() < indexedEntries) return;
+	sorted_.reserve(object.size());
+	for(const auto& [key, value] : object.items()) sorted_.emplace_back(key, &value);
+	std::ranges::sort(sorted_, {}, &std::pair<std::string_view, const json*>::first); // an object's keys are different
+}
+
+const json* Members::find(std::string_view key) const {
+	if(!object_) return nullptr;
+	if(sorted_.empty()) {
+		const auto it = object_->find(key);
+		return it != object_->end() ? &*it : nullptr;
+	}
+	const auto it = std::ranges::lower_bound(sorted_, key, {}, &std::pair<std::string_view, const json*>::first);
+	return it != sorted_.end() && it->first == key ? it->second : nullptr;
 }
 
 bool Work::pay(const Shape& shape) {
@@ -348,15 +371,8 @@ const json* Checker::section(const char* name) const {
 const json* Checker::definition(const char* sectionName, const std::string& name) const {
 	const json* entries = section(sectionName);
 	if(!entries) return nullptr;
-	if(entries->size() < indexedEntries) {
-		const auto it = entries->find(name);
-		return it != entries->end() ? &*it : nullptr;
-	}
-	const auto [index, added] = entries_.try_emplace(sectionName);
-	if(added)
-		for(const auto& [key, entry] : entries->items()) index->second.emplace(key, &entry);
-	const auto it = index->second.find(name);
-	return it != index->second.end() ? it->second : nullptr;
+	if(entries->size() < indexedEntries) return Members(*entries).find(name); // one not worth keeping
+	return entries_.try_emplace(sectionName, *entries).first->second.find(name);
 }
 
 std::vector<std::string> Checker::definedNames(const char* sectionName) const {
