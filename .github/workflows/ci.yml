@@ -164,8 +164,8 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             "-DCMAKE_C_FLAGS=$SANITIZE" "-DCMAKE_CXX_FLAGS=$SANITIZE" "-DCMAKE_EXE_LINKER_FLAGS=$SANITIZE $KEEP_GL"
           cmake --build build
-      - name: Unit tests # headless windows included
-        run: ctest --test-dir build -R "unit|scenarios" --output-on-failure
+      - name: Unit tests and the scenarios # the scenarios' captures draw, under Xvfb
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R "unit|scenarios" --output-on-failure
       - name: Window tests
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
       - name: Rendering check
@@ -244,7 +244,9 @@ jobs:
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build
-      - name: Unit tests and the templates' scenarios # headless
+      - name: Unit tests and the templates' scenarios # headless: the runner has no OpenGL 4.1 to draw the captures with
+        env:
+          AFFRESCOUI_NO_OPENGL: "1" # tests/render/runner.cpp leaves out, by name, the scenarios that draw
         run: ctest --test-dir build -R "unit|scenarios" --output-on-failure
       - name: Every application opens # tests/smoke/open_apps.py, in the runner's own window session
         run: python3 tests/smoke/open_apps.py
@@ -266,6 +268,8 @@ jobs:
           cmake -S . -B build -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build --config Release
       - name: Unit tests, the templates' scenarios and the CLI's tests # headless: the runners have no OpenGL 4.1
+        env:
+          AFFRESCOUI_NO_OPENGL: "1" # tests/render/runner.cpp leaves out, by name, the scenarios that draw
         run: ctest --test-dir build -C Release -R "unit|scenarios|cli" --output-on-failure
 
   # tests/perf/ci.sh: instructions per operation under callgrind for the workloads that don't draw, the frames' CPU
