@@ -1,0 +1,259 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Modello's 3D viewport: its header (editor type, mode, menus, orientation, pivot, snapping, visibility, gizmos, overlays, X-ray and shading), the scene, the toolbar on the left, the navigation gizmo and its buttons on the right, the view's name, the N sidebar, and hButton, the header button every editor uses.",
+	"computed": {
+		"nav": "{{ { cy: cos(state.view.camera.yaw), sy: sin(state.view.camera.yaw), cp: cos(state.view.camera.pitch), sp: sin(state.view.camera.pitch) } }}",
+		"navAxes": "{{sort([{ name: 'x', label: 'X', x: computed.nav.cy, y: computed.nav.sp * computed.nav.sy, d: computed.nav.cp * computed.nav.sy, color: '#ff3352', view: 'right' }, { name: '-x', label: '', x: -computed.nav.cy, y: -computed.nav.sp * computed.nav.sy, d: -computed.nav.cp * computed.nav.sy, color: '#ff335240', view: 'left' }, { name: 'y', label: 'Y', x: computed.nav.sy, y: -computed.nav.sp * computed.nav.cy, d: -computed.nav.cp * computed.nav.cy, color: '#8bdc00', view: 'back' }, { name: '-y', label: '', x: -computed.nav.sy, y: computed.nav.sp * computed.nav.cy, d: computed.nav.cp * computed.nav.cy, color: '#8bdc0040', view: 'front' }, { name: 'z', label: 'Z', x: 0, y: -computed.nav.cp, d: computed.nav.sp, color: '#2890ff', view: 'top' }, { name: '-z', label: '', x: 0, y: computed.nav.cp, d: -computed.nav.sp, color: '#2890ff40', view: 'bottom' }], 'd')}}",
+		"viewName": "{{state.inCamera ? 'Camera Perspective' : (abs(abs(state.view.camera.pitch) - pi() / 2) < 0.001 ? (state.view.camera.pitch > 0 ? 'Top' : 'Bottom') : abs(state.view.camera.pitch) > 0.001 ? 'User' : abs(state.view.camera.yaw) < 0.001 ? 'Front' : abs(state.view.camera.yaw - pi() / 2) < 0.001 ? 'Right' : abs(state.view.camera.yaw + pi() / 2) < 0.001 ? 'Left' : abs(abs(state.view.camera.yaw) - pi()) < 0.001 ? 'Back' : 'User') + (state.view.camera.orthographic ? ' Orthographic' : ' Perspective')}}",
+		"tools": "{{[[{ id: 'select', icon: 'mouse-pointer-2', title: 'Select Box', key: 'W' }], [{ id: 'cursor', icon: 'crosshair', title: 'Cursor', key: '' }], [{ id: 'move', icon: 'move', title: 'Move', key: 'G' }, { id: 'rotate', icon: 'rotate-cw', title: 'Rotate', key: 'R' }, { id: 'scale', icon: 'scale-3-d', title: 'Scale', key: 'S' }, { id: 'transform', icon: 'move-3-d', title: 'Transform', key: '' }], [{ id: 'annotate', icon: 'pencil', title: 'Annotate', key: '' }, { id: 'measure', icon: 'ruler', title: 'Measure', key: '' }], [{ id: 'add', icon: 'box', title: 'Add Cube', key: '' }]]}}",
+		"modeItems": "{{[{ title: 'Object Mode', icon: 'box', checked: state.mode == 'object', run: 'setMode', with: { args: { mode: 'object' } } }, { title: 'Edit Mode', icon: 'pen-tool', checked: state.mode == 'edit', run: 'setMode', with: { args: { mode: 'edit' } } }]}}",
+		"orientationItems": "{{map(['Global', 'Local', 'Normal', 'Gimbal', 'View', 'Cursor'], { title: it, checked: state.orientation == lower(it), run: 'setOption', with: { args: { key: 'orientation', value: lower(it) } } })}}",
+		"pivotItems": "{{map([['bounds', 'Bounding Box Center'], ['cursor', '3D Cursor'], ['individual', 'Individual Origins'], ['median', 'Median Point'], ['active', 'Active Element']], { title: it[1], checked: state.pivot == it[0], run: 'setOption', with: { args: { key: 'pivot', value: it[0] } } })}}",
+		"shadingModes": "{{[{ id: 'wireframe', icon: 'globe', title: 'Wireframe' }, { id: 'solid', icon: 'circle', title: 'Solid' }, { id: 'material', icon: 'circle-dot', title: 'Material Preview' }, { id: 'rendered', icon: 'sun', title: 'Rendered' }]}}"
+	},
+	"components": {
+		"hButton": {
+			"params": { "icon": "", "text": "", "width": 24, "on": false, "chevron": false, "tooltip": "", "run": null,
+			            "with": null, "open": "", "items": [], "menuWidth": 200, "back": "@menuWidget", "radius": 4,
+			            "textColor": "@text" },
+			"node": {
+				"width": "{{width}}", "height": 20, "radius": "{{radius}}", "color": "{{on ? '@sel' : back}}",
+				"hover": { "color": "{{on ? '@sel' : '@widgetHover'}}" }, "role": "button", "focusable": true,
+				"tooltip": "{{tooltip}}", "label": "{{text || tooltip}}", "selected": "{{on ? true : null}}",
+				"onClick": [{ "if": "{{open != ''}}", "then": [{ "toggle": "{{open}}" }],
+				              "else": [{ "if": "{{run != null}}", "then": [{ "run": "{{run}}", "with": "{{with}}" }] }] }],
+				"children": [
+					{ "when": "{{icon != ''}}", "type": "label", "font": "icons", "icon": "{{icon}}", "text": "",
+					  "textColor": "{{textColor}}", "align": "center",
+					  "anchors": { "left": "{{text == '' && !chevron ? 0 : 3}}", "top": 0, "bottom": 0 },
+					  "width": "{{text == '' && !chevron ? width : 18}}" },
+					{ "when": "{{text != ''}}", "type": "label", "text": "{{text}}", "textColor": "{{textColor}}",
+					  "align": { "horizontal": "start", "vertical": "center" },
+					  "anchors": { "left": "{{icon != '' ? 23 : 7}}", "right": "{{chevron ? 14 : 4}}", "top": 0, "bottom": 0 } },
+					{ "when": "{{chevron}}", "type": "label", "font": "iconsSmall", "icon": "chevron-down", "text": "",
+					  "textColor": "@dim", "align": "center", "anchors": { "right": 2, "top": 0, "bottom": 0 }, "width": 12 },
+					{ "when": "{{open != ''}}", "use": "menu", "with": { "open": "{{open}}", "items": "{{items}}",
+					  "width": "{{menuWidth}}", "icons": "{{some(items, it.icon != null)}}" } }
+				]
+			}
+		},
+		"gap": {
+			"params": { "width": 4 },
+			"node": { "width": "{{width}}", "height": 1, "color": "transparent" }
+		},
+		"viewportArea": {
+			"node": {
+				"id": "viewport-area", "color": "@view", "radius": 5,
+				"children": [
+					{
+						"type": "scene", "id": "viewport", "anchors": { "left": 0, "right": 0, "top": 26, "bottom": 0 },
+						"bind": "state.view", "scene": "{{state.scene}}", "up": "z", "glyphs": true, "cursor3d": "{{state.cursor}}",
+						"shading": "{{state.shading == 'rendered' ? 'material' : state.shading}}",
+						"grid": "{{state.overlays}}", "axes": "{{state.overlays}}", "background": "@view",
+						"gridColor": "@grid", "outlineColor": "@selected", "gizmo": "{{computed.gizmo}}",
+						"label": "3D Viewport", "role": "img",
+						"onSelect": "pick", "onTransform": "transformed"
+					},
+					{ "use": "viewportHeader" },
+					{ "when": "{{state.toolbar != false}}", "use": "viewportToolbar" },
+					{ "when": "{{state.overlays}}", "type": "label", "id": "view-name", "text": "{{computed.viewName}}",
+					  "textColor": "@text", "anchors": { "left": 52, "top": 34 }, "fitText": true },
+					{ "when": "{{state.overlays}}", "type": "label", "id": "view-collection",
+					  "text": "({{state.frame}}) Collection{{computed.activeNode ? ' | ' + computed.activeNode.name : ''}}",
+					  "textColor": "@text", "anchors": { "left": 52, "top": 50 }, "fitText": true },
+					{ "use": "navigator" },
+					{ "when": "{{state.sidebar}}", "use": "viewportSidebar" },
+					{ "when": "{{!state.sidebar}}", "use": "hButton", "id": "sidebar-open",
+					  "anchors": { "right": 0, "top": 30 },
+					  "with": { "icon": "chevron-left", "width": 14, "back": "transparent", "tooltip": "Sidebar (N)",
+					            "run": "toggleSidebar", "textColor": "@dim" } },
+					{ "when": "{{state.modal != null}}", "type": "label", "id": "modal-hint", "live": "polite",
+					  "text": "{{state.modalText}}", "textColor": "@text", "anchors": { "left": 52, "bottom": 12 },
+					  "fitText": true },
+					{ "when": "{{state.modal == null && state.lastOp != null}}", "use": "redoPanel" }
+				]
+			}
+		},
+		"redoPanel": {
+			"node": {
+				"id": "redo-panel", "anchors": { "left": 48, "bottom": 8 }, "width": 230,
+				"height": "{{state.redoOpen && state.lastOp.values != null ? 94 : 24}}", "color": "@panel", "radius": 4,
+				"role": "region", "label": "Adjust Last Operation",
+				"children": [
+					{ "id": "redo-header", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 24, "color": "transparent",
+					  "role": "button", "focusable": true, "cursor": "hand", "label": "{{state.lastOp.title}}",
+					  "onClick": { "toggle": "state.redoOpen" },
+					  "children": [
+						{ "type": "label", "font": "iconsSmall", "icon": "{{state.redoOpen ? 'chevron-down' : 'chevron-right'}}", "text": "",
+						  "textColor": "@dim", "align": "center", "anchors": { "left": 4, "top": 0, "bottom": 0 }, "width": 14 },
+						{ "type": "label", "text": "{{state.lastOp.title}}", "textColor": "@text",
+						  "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 22, "right": 4, "top": 0, "bottom": 0 } }
+					  ] },
+					{ "when": "{{state.redoOpen && state.lastOp.values != null}}", "anchors": { "left": 4, "right": 0, "top": 26 }, "height": 62,
+					  "color": "transparent", "children": [
+						{ "use": "vectorField", "with": { "title": "{{state.lastOp.label ?? (state.lastOp.kind == 'scale' ? 'Scale' : 'Move')}}",
+						  "values": "{{state.lastOp.values}}", "key": "redo", "unit": "{{state.lastOp.kind == 'scale' ? '' : ' m'}}",
+						  "step": "{{state.lastOp.kind == 'scale' ? 0.005 : 0.01}}", "digits": 3, "fixed": "{{state.lastOp.kind == 'scale'}}" } }
+					  ] }
+				]
+			}
+		},
+		"viewportHeader": {
+			"node": {
+				"type": "row", "id": "viewport-header", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 26,
+				"color": "@header", "radius": { "topLeft": 5, "topRight": 5 }, "alignItems": "center", "gap": 2,
+				"children": [
+					{ "use": "gap" },
+					{ "use": "hButton", "id": "editor-type", "with": { "icon": "axis-3-d", "chevron": true, "width": 38,
+					  "tooltip": "Editor Type", "open": "state.open.editor0", "items": "{{computed.editorItems}}" } },
+					{ "use": "gap", "with": { "width": 6 } },
+					{ "use": "hButton", "id": "mode", "with": { "icon": "{{state.mode == 'edit' ? 'pen-tool' : 'box'}}",
+					  "text": "{{state.mode == 'edit' ? 'Edit Mode' : 'Object Mode'}}", "chevron": true, "width": 116,
+					  "tooltip": "Interaction Mode", "open": "state.open.mode", "items": "{{computed.modeItems}}" } },
+					{ "use": "gap", "with": { "width": 6 } },
+					{ "repeat": { "for": "m", "in": "{{[['view', 'View'], ['select', 'Select'], ['add', 'Add'], ['object', 'Object']]}}" },
+					  "use": "hButton", "id": "menu-{{m[0]}}",
+					  "with": { "text": "{{m[1]}}", "width": "{{length(m[1]) * 7 + 14}}", "back": "transparent",
+					            "open": "{{'state.open.' + m[0]}}", "items": "{{menus[m[0]]}}", "menuWidth": 230 } },
+					{ "grow": 1, "height": 1, "color": "transparent" },
+					{ "use": "hButton", "id": "orientation", "with": { "icon": "axis-3-d",
+					  "text": "{{upper(slice(state.orientation, 0, 1)) + slice(state.orientation, 1)}}", "chevron": true,
+					  "width": 86, "tooltip": "Transform Orientation", "open": "state.open.orientation",
+					  "items": "{{computed.orientationItems}}", "menuWidth": 160 } },
+					{ "use": "hButton", "id": "pivot", "with": { "icon": "{{state.pivot == 'cursor' ? 'crosshair' : state.pivot == 'individual' ? 'dot' : state.pivot == 'active' ? 'circle-dot' : state.pivot == 'bounds' ? 'square-dashed-bottom' : 'git-commit-horizontal'}}",
+					  "chevron": true, "width": 38, "tooltip": "Transform Pivot Point", "open": "state.open.pivot",
+					  "items": "{{computed.pivotItems}}", "menuWidth": 190 } },
+					{ "use": "gap" },
+					{ "use": "hButton", "id": "snap", "with": { "icon": "magnet", "on": "{{state.snap}}", "width": 24,
+					  "tooltip": "Snap (Shift Tab)", "run": "toggleOption", "with": { "args": { "key": "snap" } },
+					  "radius": { "topLeft": 4, "bottomLeft": 4 } } },
+					{ "use": "hButton", "id": "snap-target", "with": { "icon": "grid-3-x-3", "chevron": true, "width": 34,
+					  "tooltip": "Snap To: Increment", "radius": { "topRight": 4, "bottomRight": 4 } } },
+					{ "use": "gap" },
+					{ "use": "hButton", "id": "proportional", "with": { "icon": "circle-dot-dashed",
+					  "on": "{{state.proportional}}", "width": 24, "tooltip": "Proportional Editing (O)",
+					  "run": "toggleOption", "with": { "args": { "key": "proportional" } } } },
+					{ "grow": 1, "height": 1, "color": "transparent" },
+					{ "use": "hButton", "id": "visibility", "with": { "icon": "eye", "chevron": true, "width": 38,
+					  "tooltip": "Selectability & Visibility" } },
+					{ "use": "gap" },
+					{ "use": "hButton", "id": "gizmos", "with": { "icon": "move-3-d", "on": "{{state.gizmos}}", "width": 24,
+					  "tooltip": "Show Gizmo", "run": "toggleOption", "with": { "args": { "key": "gizmos" } },
+					  "radius": { "topLeft": 4, "bottomLeft": 4 } } },
+					{ "use": "hButton", "id": "gizmos-menu", "with": { "icon": "", "chevron": true, "width": 16,
+					  "tooltip": "Gizmos", "radius": { "topRight": 4, "bottomRight": 4 } } },
+					{ "use": "gap" },
+					{ "use": "hButton", "id": "overlays", "with": { "icon": "blend", "on": "{{state.overlays}}", "width": 24,
+					  "tooltip": "Show Overlays (Shift Alt Z)", "run": "toggleOption", "with": { "args": { "key": "overlays" } },
+					  "radius": { "topLeft": 4, "bottomLeft": 4 } } },
+					{ "use": "hButton", "id": "overlays-menu", "with": { "icon": "", "chevron": true, "width": 16,
+					  "tooltip": "Overlays", "radius": { "topRight": 4, "bottomRight": 4 } } },
+					{ "use": "gap" },
+					{ "use": "hButton", "id": "xray", "with": { "icon": "square-dashed-bottom", "on": "{{state.xray}}", "width": 24,
+					  "tooltip": "Toggle X-Ray (Alt Z)", "run": "toggleOption", "with": { "args": { "key": "xray" } } } },
+					{ "use": "gap" },
+					{ "repeat": { "for": "s", "in": "{{computed.shadingModes}}", "index": "i" }, "use": "hButton",
+					  "id": "shading-{{s.id}}",
+					  "with": { "icon": "{{s.icon}}", "on": "{{state.shading == s.id}}", "width": 24,
+					            "tooltip": "Viewport Shading: {{s.title}}", "run": "setOption",
+					            "with": { "args": { "key": "shading", "value": "{{s.id}}" } },
+					            "radius": "{{i == 0 ? { topLeft: 4, bottomLeft: 4 } : 0}}" } },
+					{ "use": "hButton", "id": "shading-menu", "with": { "icon": "", "chevron": true, "width": 16,
+					  "tooltip": "Shading", "radius": { "topRight": 4, "bottomRight": 4 } } },
+					{ "use": "gap" }
+				]
+			}
+		},
+		"viewportToolbar": {
+			"node": {
+				"type": "column", "id": "toolbar", "anchors": { "left": 6, "top": 34 }, "width": 32,
+				"height": "{{sum(computed.tools, length(it) * 30 + 8)}}", "gap": 6, "color": "transparent",
+				"role": "toolbar", "label": "Tools", "arrows": "vertical",
+				"children": [{
+					"repeat": { "for": "group", "in": "{{computed.tools}}", "index": "g" },
+					"type": "column", "width": 32, "height": "{{length(group) * 30 + 2}}", "color": "@toolGroup",
+					"radius": 5, "gap": 0,
+					"children": [{
+						"repeat": { "for": "t", "in": "{{group}}" },
+						"use": "hButton", "id": "tool-{{t.id}}", "x": 1,
+						"with": { "icon": "{{t.icon}}", "on": "{{state.tool == t.id}}", "width": 30,
+						          "tooltip": "{{t.title}}{{t.key != '' ? ' (' + t.key + ')' : ''}}", "back": "transparent",
+						          "run": "setTool", "with": { "args": { "tool": "{{t.id}}" } } },
+						"height": 30
+					}]
+				}]
+			}
+		},
+		"navigator": {
+			"node": {
+				"id": "navigator", "anchors": { "right": "{{state.sidebar ? 246 : 14}}", "top": 36 }, "width": 84,
+				"height": 212, "color": "transparent",
+				"children": [
+					{ "id": "nav-ball", "width": 84, "height": 84, "radius": 42, "color": "transparent",
+					  "hover": { "color": "@navBall" }, "role": "slider", "label": "Navigation gizmo: drag to orbit",
+					  "onPress": { "set": "state.dragLast", "to": [0, 0] },
+					  "onDrag": [{ "camera": "#viewport", "orbit": ["{{(state.dragLast[0] - event.dx) * 0.5}}", "{{(state.dragLast[1] - event.dy) * 0.5}}"] },
+					             { "set": "state.dragLast", "to": "{{[event.dx, event.dy]}}" }],
+					  "children": [
+						{ "repeat": { "for": "a", "in": "{{filter(computed.navAxes, it.label != '')}}", "key": "{{a.name}}" },
+						  "x": 42, "y": 41, "width": "{{hypot(a.x, a.y) * 30}}", "height": 2, "color": "{{a.color}}",
+						  "rotate": "{{degrees(atan2(a.y, a.x))}}", "transformOrigin": [0, 50] },
+						{ "repeat": { "for": "a", "in": "{{computed.navAxes}}", "key": "{{a.name}}" },
+						  "x": "{{42 + a.x * 30 - 9}}", "y": "{{42 + a.y * 30 - 9}}", "width": 18, "height": 18, "radius": 9,
+						  "color": "{{a.color}}", "borderWidth": "{{a.label == '' ? 1 : 0}}",
+						  "borderColor": "{{slice(a.color, 0, 7)}}", "role": "button",
+						  "label": "View {{upper(slice(a.view, 0, 1)) + slice(a.view, 1)}}",
+						  "hover": { "color": "{{slice(a.color, 0, 7)}}" },
+						  "onClick": { "run": "viewAxis", "with": { "args": { "view": "{{a.view}}" } } },
+						  "children": [{ "type": "label", "text": "{{a.label}}", "textColor": "#151515", "font": "small",
+						                 "align": "center", "fill": true }] }
+					  ] },
+					{ "type": "column", "id": "nav-buttons", "anchors": { "top": 92 }, "x": 28, "width": 28, "height": 124, "gap": 4,
+					  "color": "transparent",
+					  "children": [
+						{ "repeat": { "for": "b", "in": "{{[{ id: 'zoom', icon: 'zoom-in', title: 'Zoom in/out in the view' }, { id: 'pan', icon: 'hand', title: 'Move the view' }, { id: 'camera', icon: 'video', title: 'Toggle the camera view (Numpad 0)' }, { id: 'ortho', icon: 'grid-3-x-3', title: 'Switch the current view from perspective/orthographic projection (Numpad 5)' }]}}" },
+						  "id": "nav-{{b.id}}", "width": 28, "height": 28, "radius": 14, "color": "@navButton",
+						  "hover": { "color": "@navHover" }, "role": "button", "label": "{{b.title}}", "tooltip": "{{b.title}}",
+						  "focusable": true,
+						  "onPress": { "set": "state.dragLast", "to": [0, 0] },
+						  "onDrag": [{ "run": "navDrag", "with": { "args": { "id": "{{b.id}}", "dx": "{{event.dx - state.dragLast[0]}}", "dy": "{{event.dy - state.dragLast[1]}}" } } },
+						             { "set": "state.dragLast", "to": "{{[event.dx, event.dy]}}" }],
+						  "onClick": { "run": "navClick", "with": { "args": { "id": "{{b.id}}" } } },
+						  "children": [{ "type": "label", "font": "icons", "icon": "{{b.icon}}", "text": "", "textColor": "@text",
+						                 "align": "center", "fill": true }] }
+					  ] }
+				]
+			}
+		},
+		"viewportSidebar": {
+			"node": {
+				"id": "sidebar", "anchors": { "right": 0, "top": 26, "bottom": 0 }, "width": 240, "color": "@header",
+				"radius": { "bottomRight": 5 }, "role": "region", "label": "Sidebar",
+				"children": [
+					{ "type": "column", "anchors": { "left": 6, "right": 28, "top": 6, "bottom": 0 }, "gap": 4, "color": "transparent",
+					  "children": [
+						{ "when": "{{state.sidebarTab == 'Item'}}", "use": "transformPanel", "with": { "narrow": true } },
+						{ "when": "{{state.sidebarTab == 'Tool'}}", "use": "panelHeader", "with": { "title": "Active Tool", "key": "activeTool" } },
+						{ "when": "{{state.sidebarTab == 'View'}}", "use": "panelHeader", "with": { "title": "View", "key": "viewPanel" } },
+						{ "when": "{{state.sidebarTab == 'View'}}", "use": "panelHeader", "with": { "title": "3D Cursor", "key": "cursorPanel" } }
+					  ] },
+					{ "type": "column", "id": "sidebar-tabs", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": 22,
+					  "color": "@bar", "gap": 2, "role": "tablist", "arrows": "vertical",
+					  "children": [{
+						"repeat": { "for": "tab", "in": "{{['Item', 'Tool', 'View']}}" },
+						"width": 22, "height": "{{length(tab) * 7 + 16}}", "role": "tab", "focusable": true, "label": "{{tab}}",
+						"selected": "{{state.sidebarTab == tab}}",
+						"color": "{{state.sidebarTab == tab ? '@header' : 'transparent'}}", "hover": { "color": "@widget" },
+						"radius": { "topRight": 4, "bottomRight": 4 },
+						"onClick": { "set": "state.sidebarTab", "to": "{{tab}}" },
+						"children": [{ "type": "label", "text": "{{tab}}", "textColor": "{{state.sidebarTab == tab ? '@text' : '@dim'}}",
+						               "align": "center", "width": "{{length(tab) * 7 + 16}}", "height": 22, "rotate": 90,
+						               "x": "{{-(length(tab) * 7 + 16) / 2 + 11}}", "y": "{{(length(tab) * 7 + 16) / 2 - 11}}" }]
+					  }] }
+				]
+			}
+		}
+	}
+}

@@ -141,6 +141,9 @@ struct Function {
 /// @brief The table of the number functions: `clamp`, `round`, `max`, ... (ExpressionFunctionsNumbers.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> numberFunctions();
+/// @brief The table of the maths functions: `sin`, `atan2`, `sqrt`, `pow`, ... (ExpressionFunctionsMaths.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> mathsFunctions();
 /// @brief The table of the text functions: `upper`, `split`, `plural`, ... (ExpressionFunctionsText.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> textFunctions();

@@ -198,14 +198,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
-	# Modello, a 3D application: its workspace is examples/modello/modello.screen.json (examples/modello/README.md)
-	set(AFFRESCOUI_MODELLO_SOURCES examples/modello/Modello.cpp examples/modello/ModelloView.cpp
-		examples/modello/ModelloEdit.cpp examples/modello/ModelloFiles.cpp)
-	add_executable(affrescoui_modello examples/modello/main.cpp ${AFFRESCOUI_MODELLO_SOURCES})
-	target_include_directories(affrescoui_modello PRIVATE examples/shared examples/modello)
-	target_link_libraries(affrescoui_modello PRIVATE affrescoui affrescoui::scene3d)
-	target_compile_options(affrescoui_modello PRIVATE ${AFFRESCOUI_WARNINGS})
-	target_compile_definitions(affrescoui_modello PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# Sinopia, slides and vector documents: its workspace is examples/sinopia/sinopia.screen.json (examples/sinopia/README.md)
 	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp
 		# deck/: the deck model, read, checked, edited and arranged without a window

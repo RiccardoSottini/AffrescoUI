@@ -130,6 +130,21 @@ public:
 	/// @brief Turns the camera as a drag right and down does, and signals it. @param yaw Degrees.
 	/// @param pitch Degrees.
 	void orbit(float yaw, float pitch);
+	/// @brief Starts moving, turning or scaling the selection with the pointer, without a button held (a modal
+	/// transform, as a key starts one): moves preview it, a press of the select button keeps it, any other cancels.
+	/// @param mode What it does. @param axis Its constraint: View for free, or an axis or a plane.
+	/// @return Whether it started: not while another gesture runs or with nothing selected.
+	bool startTransform(GizmoMode mode, GizmoAxis axis = GizmoAxis::View);
+	/// @brief Changes a modal transform's constraint, from where it started. @param axis The new one.
+	void setTransformAxis(GizmoAxis axis);
+	/// @brief Gives a modal transform a typed amount instead of the pointer's: units along its axis (X when it is
+	/// free), degrees about it (the view's when free), or a factor along it (all three when free).
+	/// @param value The amount, or nothing to follow the pointer again.
+	void setTransformValue(std::optional<float> value);
+	/// @brief Ends a gizmo drag or modal transform. @param confirm Whether to keep it, or give it up.
+	void endTransform(bool confirm);
+	/// @brief Whether a gizmo drag or modal transform runs. @return It.
+	[[nodiscard]] bool transforming() const noexcept;
 
 	/// @brief The scene shown, at its time, with its assets placed. @return It.
 	[[nodiscard]] const Scene& scene() const noexcept;
@@ -160,6 +175,8 @@ private:
 	void click(Vec2 at, MouseButton button, bool shift);
 	/// @brief A box dragged with the select binding. @param shift Whether Shift was held.
 	void selectBox(bool shift);
+	/// @brief Starts a gizmo drag of the selection's roots, with the gizmo and its axis set.
+	void beginDrag();
 	/// @brief The gizmo dragged to a point. @param at Where.
 	void dragTo(Vec2 at);
 	/// @brief Ends or gives up a gizmo drag. @param phase Which.

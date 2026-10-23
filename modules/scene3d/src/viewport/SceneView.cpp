@@ -161,7 +161,12 @@ struct SceneView::Internals {
 	SceneTransform transform;                                                   ///< The drag's last step.
 	std::optional<json> preview;                                                ///< The scene with it applied.
 	std::optional<std::array<float, 4>> box;                                    ///< The box being dragged.
+	bool modal = false;                                                         ///< Whether the drag needs no button.
+	std::optional<float> typed;                                                 ///< A modal transform's typed amount.
 };
+
+/// @brief Whether a display puts the scene in a Z-up frame. @param display It. @return Whether it does.
+bool zUp(const json& display) { return display.is_object() && display.value("up", "") == "z"; }
 
 SceneView::SceneView() : internals_(std::make_unique<Internals>()) {
 	for(const Primitive primitive : {Primitive::Cube, Primitive::Sphere, Primitive::Cylinder, Primitive::Cone,
@@ -183,6 +188,7 @@ void SceneView::setScene(const json& scene, const json& animations, float time) 
 
 void SceneView::place(const json& scene, const json& animations, float time) {
 	PlacedScene placed = placeAssets(scene, internals_->files);
+	if(zUp(internals_->display)) placed.scene = withUpFrame(std::move(placed.scene));
 	Scene shown = sceneAtTime(placed.scene, animations, time);
 	internals_->sceneJson = scene;
 	internals_->animations = animations;
@@ -194,8 +200,11 @@ void SceneView::place(const json& scene, const json& animations, float time) {
 }
 
 void SceneView::setDisplay(const json& display) {
-	internals_->display = display.is_object() ? display : json::object();
-	refresh();
+	Internals& in = *internals_;
+	const bool turned = zUp(in.display) != zUp(display);
+	in.display = display.is_object() ? display : json::object();
+	if(turned) place(in.sceneJson, in.animations, in.time); // the nodes go under the frame, or out of it
+	else refresh();
 }
 
 void SceneView::setControls(const SceneControls& controls) { internals_->controls = controls; }
@@ -335,6 +344,8 @@ void SceneView::scrollEvent(const ScrollEvent& event) {
 
 void SceneView::press(MouseButton button, Mods mods, Vec2 at) {
 	Internals& in = *internals_;
+	if(in.gesture == Gesture::Gizmo && in.modal)
+		return endDrag(button == in.controls.select.button ? TransformPhase::End : TransformPhase::Cancel);
 	if(in.gesture == Gesture::Gizmo && button != in.button) return endDrag(TransformPhase::Cancel);
 	if(in.gesture != Gesture::None) return;
 	in.preview.reset();
@@ -351,6 +362,12 @@ void SceneView::press(MouseButton button, Mods mods, Vec2 at) {
 	in.gizmo = gizmoFor(in.scene, settings, height);
 	in.axis = in.gizmo ? hitHandle(*in.gizmo, in.camera.rayThrough(at.x, at.y, width, height)) : GizmoAxis::None;
 	if(in.axis == GizmoAxis::None) return;
+	beginDrag();
+	refresh();
+}
+
+void SceneView::beginDrag() {
+	Internals& in = *internals_;
 	in.gesture = Gesture::Gizmo;
 	in.dragged.clear();
 	const auto worlds = in.scene.worldMatrices();
@@ -360,12 +377,49 @@ void SceneView::press(MouseButton button, Mods mods, Vec2 at) {
 	}
 	in.transform = {TransformPhase::Preview, in.gizmo->mode, in.axis, {}, {}};
 	for(const DragStart& node : in.dragged) in.transform.nodes.push_back({node.id, node.transform});
-	refresh();
 }
+
+bool SceneView::startTransform(GizmoMode mode, GizmoAxis axis) {
+	Internals& in = *internals_;
+	if(in.gesture != Gesture::None || axis == GizmoAxis::None) return false;
+	ViewportSettings settings = viewportSettingsFromJson(params());
+	settings.selection = in.selection;
+	settings.gizmo.visible = true; // a hidden gizmo still has a centre and a size to work from
+	settings.gizmo.mode = mode;
+	in.gizmo = gizmoFor(in.scene, settings, std::max(frame().height(), 1.0f));
+	if(!in.gizmo) return false;
+	in.preview.reset();
+	in.axis = axis;
+	in.button = in.controls.select.button;
+	in.start = in.last; // from where the pointer is
+	in.modal = true;
+	in.typed.reset();
+	beginDrag();
+	dragTo(in.last);
+	return true;
+}
+
+void SceneView::setTransformAxis(GizmoAxis axis) {
+	Internals& in = *internals_;
+	if(in.gesture != Gesture::Gizmo || !in.modal || axis == GizmoAxis::None) return;
+	in.axis = in.transform.axis = axis;
+	dragTo(in.last);
+}
+
+void SceneView::setTransformValue(std::optional<float> value) {
+	Internals& in = *internals_;
+	if(in.gesture != Gesture::Gizmo || !in.modal) return;
+	in.typed = value;
+	dragTo(in.last);
+}
+
+void SceneView::endTransform(bool confirm) { endDrag(confirm ? TransformPhase::End : TransformPhase::Cancel); }
+
+bool SceneView::transforming() const noexcept { return internals_->gesture == Gesture::Gizmo; }
 
 void SceneView::release(MouseButton button, Vec2 at) {
 	Internals& in = *internals_;
-	if(in.gesture == Gesture::None || button != in.button) return;
+	if(in.gesture == Gesture::None || button != in.button || in.modal) return;
 	const Gesture gesture = in.gesture;
 	in.gesture = Gesture::None;
 	if(gesture == Gesture::Pending) click(at, button, in.shift);
@@ -385,6 +439,7 @@ void SceneView::click(Vec2 at, MouseButton button, bool shift) {
 	if(hit) pick.point = hit->point;
 	else if(const auto floor = intersect(ray, Plane{{0.0f, 1.0f, 0.0f}, 0.0f}); floor && *floor > 0.0f)
 		pick.point = ray.at(*floor);
+	if(pick.point) pick.point = upTurn(zUp(in.display)).conjugate().rotate(*pick.point); // in the scene's frame
 	const auto& seen = in.probe->pick;
 	if(seen && std::abs(seen->x - at.x) < 1.0f && std::abs(seen->y - at.y) < 1.0f)
 		pick.node = seen->node; // the id pass is exact where the ray tests bounds and triangles alike
@@ -429,8 +484,13 @@ void SceneView::dragTo(Vec2 at) {
 	const json snapJson = in.display.contains("gizmo") ? in.display["gizmo"].value("snap", json::object()) : json();
 	const GizmoSnap snap{numberIn(snapJson, "translate", 0.0f), radians(numberIn(snapJson, "rotate", 0.0f)),
 	                     numberIn(snapJson, "scale", 0.0f)};
-	const auto delta = scene3d::dragGizmo(*in.gizmo, in.axis, in.camera.rayThrough(in.start.x, in.start.y, width, height),
-	                                      in.camera.rayThrough(at.x, at.y, width, height), snap);
+	auto delta = scene3d::dragGizmo(*in.gizmo, in.axis, in.camera.rayThrough(in.start.x, in.start.y, width, height),
+	                                in.camera.rayThrough(at.x, at.y, width, height), snap);
+	if(in.typed) {
+		const bool along = in.axis == GizmoAxis::View && in.gizmo->mode == GizmoMode::Translate;
+		delta = numericDelta(*in.gizmo, along ? GizmoAxis::X : in.axis, *in.typed,
+		                     normalize(in.camera.target - in.camera.eye()));
+	}
 	in.transform.nodes.clear();
 	for(const DragStart& node : in.dragged)
 		in.transform.nodes.push_back(
@@ -445,6 +505,8 @@ void SceneView::endDrag(TransformPhase phase) {
 	Internals& in = *internals_;
 	if(in.gesture != Gesture::Gizmo) return;
 	in.gesture = Gesture::None;
+	in.modal = false;
+	in.typed.reset();
 	in.transform.phase = phase;
 	if(phase == TransformPhase::Cancel) {
 		in.transform.nodes.clear();

@@ -45,6 +45,16 @@ namespace {
 	return -1;
 }
 
+/// @brief Three finite numbers. @param value The JSON. @return The vector, or nothing.
+// NOLINTNEXTLINE(bugprone-exception-escape): json throws only on a wrong type, which is checked first
+[[nodiscard]] std::optional<Vec3> pointFromJson(const json& value) noexcept {
+	if(!value.is_array() || value.size() != 3) return std::nullopt;
+	for(const json& part : value)
+		if(!part.is_number()) return std::nullopt;
+	const Vec3 point{value[0].get<float>(), value[1].get<float>(), value[2].get<float>()};
+	return isFinite(point) ? std::optional<Vec3>(point) : std::nullopt;
+}
+
 /// @brief Reads the gizmo's settings. @param value The `gizmo` member. @return The settings.
 [[nodiscard]] GizmoSettings gizmoFromJson(const json& value) {
 	GizmoSettings gizmo;
@@ -54,6 +64,7 @@ namespace {
 	gizmo.local = textOf(value, "space") == "local";
 	gizmo.active = gizmoAxisNamed(textOf(value, "axis")).value_or(GizmoAxis::None);
 	gizmo.pixels = std::clamp(numberOr(value, "pixels", gizmo.pixels), 10.0f, 400.0f);
+	if(const auto pivot = value.find("pivot"); pivot != value.end()) gizmo.pivot = pointFromJson(*pivot);
 	return gizmo;
 }
 
@@ -146,6 +157,7 @@ ViewportSettings viewportSettingsFromJson(const json& params) noexcept {
 	}
 	settings.grid = flagOr(params, "grid", true);
 	settings.axes = flagOr(params, "axes", true);
+	settings.glyphs = flagOr(params, "glyphs", false);
 	const auto member = [&params](const char* key) { return params.contains(key) ? params[key] : json(); };
 	settings.background = colorFromJson(member("background"), settings.background);
 	settings.gridColor = colorFromJson(member("gridColor"), settings.gridColor);
@@ -153,7 +165,22 @@ ViewportSettings viewportSettingsFromJson(const json& params) noexcept {
 	settings.exposure = std::clamp(numberOr(params, "exposure", 1.0f), 0.0f, 64.0f);
 	settings.time = std::max(numberOr(params, "time", 0.0f), 0.0f);
 	if(const auto box = params.find("box"); box != params.end()) settings.box = boxFromJson(*box);
+	settings.zUp = textOf(params, "up") == "z";
+	if(const auto cursor = params.find("cursor3d"); cursor != params.end()) settings.cursor = pointFromJson(*cursor);
 	return settings;
+}
+
+Quat upTurn(bool zUp) noexcept {
+	return zUp ? Quat::fromAxisAngle({1.0f, 0.0f, 0.0f}, -radians(90.0f)) : Quat{};
+}
+
+json withUpFrame(json scene) {
+	if(!scene.is_object() || !scene.contains("nodes") || !scene["nodes"].is_array()) return scene;
+	json& nodes = scene["nodes"];
+	for(json& node : nodes)
+		if(node.is_object() && (!node.contains("parent") || node["parent"] == "")) node["parent"] = upFrameId;
+	nodes.push_back({{"id", upFrameId}, {"rotation", toJson(upTurn(true))}});
+	return scene;
 }
 
 Scene sceneAtTime(const json& scene, const json& animations, float time, const SceneLimits& limits) {
@@ -180,7 +207,9 @@ std::optional<Gizmo> gizmoFor(const Scene& scene, const ViewportSettings& settin
 		if(count == 0) return std::nullopt;
 		Gizmo gizmo;
 		gizmo.mode = settings.gizmo.mode;
-		gizmo.origin = sum / static_cast<float>(count);
+		const Quat up = upTurn(settings.zUp);
+		gizmo.origin = settings.gizmo.pivot ? up.rotate(*settings.gizmo.pivot) : sum / static_cast<float>(count);
+		gizmo.orientation = up;
 		if(settings.gizmo.local)
 			if(const auto parts = Transform::decompose(*active)) gizmo.orientation = normalize(parts->rotation);
 		gizmo.size = worldSizeForPixels(settings.camera, gizmo.origin, viewportHeight, settings.gizmo.pixels);

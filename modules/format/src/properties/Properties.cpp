@@ -421,9 +421,11 @@ void Properties::applySets(Panel& panel, Record& record, const Look& look) const
 		const json& values = look.values[i].is_null() ? emptyObject() : look.values[i];
 		if(set->everyUpdate) {
 			set->apply(panel, values, *this, record.path);
-		} else if(values != record.ownProperties) { // an application's type: only when its values change
+		} else if(values != record.ownProperties || record.ownLooks != engine_.document.looks()) {
+			// An application's type: only when its values change, or what they look like does (the theme)
 			set->apply(panel, values, *this, record.path);
 			record.ownProperties = values;
+			record.ownLooks = engine_.document.looks();
 		}
 	}
 }

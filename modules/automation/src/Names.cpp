@@ -13,7 +13,7 @@ namespace affresco::automation::detail {
 namespace {
 
 /// @brief The keys with a name of their own (letters, digits and f1-f12 are counted out).
-constexpr std::array<std::pair<std::string_view, Key>, 25> namedKeys = {{
+constexpr std::array<std::pair<std::string_view, Key>, 40> namedKeys = {{
     {"enter", Key::Enter},         {"escape", Key::Escape},       {"tab", Key::Tab},
     {"backspace", Key::Backspace}, {"delete", Key::Delete},       {"insert", Key::Insert},
     {"space", Key::Space},         {"left", Key::Left},           {"right", Key::Right},
@@ -22,7 +22,12 @@ constexpr std::array<std::pair<std::string_view, Key>, 25> namedKeys = {{
     {"slash", Key::Slash},         {"backslash", Key::Backslash}, {"minus", Key::Minus},
     {"equal", Key::Equal},         {"comma", Key::Comma},         {"period", Key::Period},
     {"semicolon", Key::Semicolon}, {"apostrophe", Key::Apostrophe}, {"leftbracket", Key::LeftBracket},
-    {"rightbracket", Key::RightBracket},
+    {"rightbracket", Key::RightBracket}, {"grave", Key::GraveAccent}, {"numpad0", Key::Keypad0},
+    {"numpad1", Key::Keypad1},     {"numpad2", Key::Keypad2},     {"numpad3", Key::Keypad3},
+    {"numpad4", Key::Keypad4},     {"numpad5", Key::Keypad5},     {"numpad6", Key::Keypad6},
+    {"numpad7", Key::Keypad7},     {"numpad8", Key::Keypad8},     {"numpad9", Key::Keypad9},
+    {"numpadperiod", Key::KeypadDecimal}, {"numpadplus", Key::KeypadAdd}, {"numpadminus", Key::KeypadSubtract},
+    {"numpadmultiply", Key::KeypadMultiply},
 }};
 
 #ifdef __APPLE__

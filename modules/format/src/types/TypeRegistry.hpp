@@ -150,7 +150,7 @@ struct PropertySet {
 	/// describe them for the catalog.
 	ApplyFunction apply;
 	/// Whether apply() runs on every update (the built-in widgets, whose colours follow the theme), or only when the
-	/// values changed (an application's types).
+	/// values or the document's appearance (its theme, colours, fonts) changed (an application's types).
 	bool everyUpdate = false;
 	/// For a panel of another type that has these properties too: the built-in widgets give them to subclasses, e.g.
 	/// an application's TextEditor has those of "editor". Null: only panels of its own type.

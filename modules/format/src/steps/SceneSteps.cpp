@@ -1,10 +1,12 @@
 /// @file
-/// @brief The step that moves a scene node's camera: camera, with view, frame, projection, orbit and zoom.
+/// @brief The steps that work a scene node: camera (with view, frame, projection, orbit and zoom), and transform (with
+/// mode, axis and end), the modal move, turn or scale a key starts.
 
 #include "Engine.hpp"
 
 #include "affresco/scene3d/SceneView.hpp"
 
+#include <cmath>
 #include <vector>
 
 namespace affresco::format {
@@ -88,10 +90,82 @@ std::optional<bool> runSceneStep(const Running& s) {
 	return true;
 }
 
+/// @brief What a transform step does, read and checked when it runs.
+struct TransformMove {
+	std::optional<scene3d::GizmoMode> mode; ///< Starts one doing this.
+	std::optional<scene3d::GizmoAxis> axis; ///< Its constraint, or the running one's new one.
+	std::optional<bool> confirm;            ///< Ends the running one: keeps it, or gives it up.
+	std::optional<std::optional<float>> value; ///< A typed amount for the running one, or null to follow the pointer.
+};
+
+/// @brief Reads a transform step's members. @param s The step. @return What it does.
+/// @throws DocumentError If a member is malformed.
+TransformMove readTransformMove(const Running& s) {
+	TransformMove move;
+	if(s.step.contains("mode")) {
+		move.mode = scene3d::gizmoModeNamed(text(s.value("mode")));
+		if(!move.mode) fail(s.where + ".mode", R"(expected "translate", "rotate" or "scale")");
+	}
+	if(s.step.contains("axis")) {
+		move.axis = scene3d::gizmoAxisNamed(text(s.value("axis")));
+		if(!move.axis || *move.axis == scene3d::GizmoAxis::None)
+			fail(s.where + ".axis", R"(expected "x", "y", "z", "xy", "yz", "zx" or "view")");
+	}
+	if(s.step.contains("end")) {
+		const std::string end = text(s.value("end"));
+		if(end != "confirm" && end != "cancel") fail(s.where + ".end", R"(expected "confirm" or "cancel")");
+		move.confirm = end == "confirm";
+	}
+	if(s.step.contains("value")) {
+		const json typed = s.value("value");
+		if(typed.is_null()) move.value = std::optional<float>();
+		else if(!typed.is_number() || !std::isfinite(typed.get<double>()) || std::abs(typed.get<double>()) > 1e6)
+			fail(s.where + ".value", "expected a number from -1000000 to 1000000, or null");
+		else move.value = std::optional<float>(typed.get<float>());
+	}
+	if(move.confirm && move.mode) fail(s.where, "a transform step either starts one (mode) or ends one (end)");
+	return move;
+}
+
+/// @brief Works a scene view's modal transform as a step says. @param scene The view. @param move What to do.
+void moveTransform(scene3d::SceneView& scene, const TransformMove& move) {
+	if(move.confirm) scene.endTransform(*move.confirm);
+	else if(move.mode) {
+		if(scene.transforming()) scene.endTransform(false); // a new key starts afresh, as G after R does
+		(void)scene.startTransform(*move.mode, move.axis.value_or(scene3d::GizmoAxis::View));
+	} else if(move.axis) scene.setTransformAxis(*move.axis);
+	if(move.value && !move.confirm) scene.setTransformValue(*move.value);
+}
+
+/// @brief Runs a transform step, deferred as a camera step is. @param s The step.
+/// @return std::nullopt if it isn't one, else true.
+std::optional<bool> runTransformStep(const Running& s) {
+	if(!s.step.contains("transform")) return std::nullopt;
+	std::string id = text(s.value(s.step["transform"], s.where + ".transform"));
+	if(id.starts_with('#')) id.erase(0, 1);
+	const TransformMove move = readTransformMove(s);
+	Engine& engine = s.steps.engine();
+	if(!engine.window) return true;
+	engine.scheduler.once(0.0, [&engine, id, move] {
+		if(auto* scene = dynamic_cast<scene3d::SceneView*>(engine.window->root().findById(id)))
+			moveTransform(*scene, move);
+	});
+	return true;
+}
+
+/// @brief Runs a camera or a transform step. @param s The step. @return std::nullopt if it is neither, else true.
+std::optional<bool> runSceneGroupStep(const Running& s) {
+	if(const std::optional<bool> ran = runSceneStep(s)) return ran;
+	return runTransformStep(s);
+}
+
 } // namespace
 
 void registerSceneSteps(StepRegistry& registry) {
-	registry.add({"scene", {{"camera", {"view", "frame", "projection", "orbit", "zoom"}}}, runSceneStep});
+	registry.add({"scene",
+	              {{"camera", {"view", "frame", "projection", "orbit", "zoom"}},
+	               {"transform", {"mode", "axis", "value", "end"}}},
+	              runSceneGroupStep});
 }
 
 } // namespace affresco::format

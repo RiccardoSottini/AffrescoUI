@@ -854,7 +854,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, code, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -888,8 +888,7 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							},
 							{
@@ -2938,6 +2937,38 @@
 					"axes": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"up": {
+						"anyOf": [
+							{
+								"enum": [
+									"y",
+									"z"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"cursor3d": {
+						"anyOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "number"
+								},
+								"minItems": 3,
+								"maxItems": 3
+							},
+							{
+								"type": "null"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: a 3D cursor"
+					},
 					"background": {
 						"$ref": "#/$defs/v2/color"
 					},
@@ -2984,6 +3015,21 @@
 										"type": "number",
 										"minimum": 10,
 										"maximum": 400
+									},
+									"pivot": {
+										"anyOf": [
+											{
+												"type": "array",
+												"items": {
+													"type": "number"
+												},
+												"minItems": 3,
+												"maxItems": 3
+											},
+											{
+												"type": "null"
+											}
+										]
 									},
 									"snap": {
 										"type": "object",
@@ -3310,15 +3356,7 @@
 					},
 					"pickedTextColor": {
 						"$ref": "#/$defs/v2/color"
-					},
-					"syntax": {},
-					"goTo": {},
-					"buffer": {},
-					"onType": {},
-					"popup": {},
-					"onPopupKey": {},
-					"insert": {},
-					"tokens": {}
+					}
 				},
 				"if": {
 					"required": [
@@ -3358,8 +3396,7 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							}
 						}
@@ -3424,6 +3461,7 @@
 					"stop": {},
 					"note": {},
 					"camera": {},
+					"transform": {},
 					"to": {},
 					"value": {},
 					"at": {},
@@ -3514,7 +3552,52 @@
 						]
 					},
 					"orbit": {},
-					"zoom": {}
+					"zoom": {},
+					"mode": {
+						"anyOf": [
+							{
+								"enum": [
+									"translate",
+									"rotate",
+									"scale"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"axis": {
+						"anyOf": [
+							{
+								"enum": [
+									"x",
+									"y",
+									"z",
+									"xy",
+									"yz",
+									"zx",
+									"view"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"end": {
+						"anyOf": [
+							{
+								"enum": [
+									"confirm",
+									"cancel"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					}
 				}
 			},
 			"expression": {
@@ -3548,6 +3631,22 @@
 						"$min",
 						"$max",
 						"$clamp",
+						"$sin",
+						"$cos",
+						"$tan",
+						"$asin",
+						"$acos",
+						"$atan",
+						"$atan2",
+						"$radians",
+						"$degrees",
+						"$pi",
+						"$sqrt",
+						"$pow",
+						"$exp",
+						"$log",
+						"$hypot",
+						"$sign",
 						"$upper",
 						"$lower",
 						"$trim",

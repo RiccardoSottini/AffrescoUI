@@ -15,7 +15,7 @@ namespace affresco::format {
 namespace {
 
 /// The names of the keys that aren't letters, digits or function keys.
-constexpr std::array<std::pair<Key, std::string_view>, 20> namedKeys = {{{Key::Enter, "enter"},
+constexpr std::array<std::pair<Key, std::string_view>, 40> namedKeys = {{{Key::Enter, "enter"},
                                                                          {Key::KeypadEnter, "enter"},
                                                                          {Key::Escape, "escape"},
                                                                          {Key::Tab, "tab"},
@@ -34,7 +34,27 @@ constexpr std::array<std::pair<Key, std::string_view>, 20> namedKeys = {{{Key::E
                                                                          {Key::Equal, "equal"},
                                                                          {Key::Comma, "comma"},
                                                                          {Key::Period, "period"},
-                                                                         {Key::Slash, "slash"}}};
+                                                                         {Key::Slash, "slash"},
+                                                                         {Key::Backslash, "backslash"},
+                                                                         {Key::Semicolon, "semicolon"},
+                                                                         {Key::Apostrophe, "apostrophe"},
+                                                                         {Key::LeftBracket, "leftbracket"},
+                                                                         {Key::RightBracket, "rightbracket"},
+                                                                         {Key::GraveAccent, "grave"},
+                                                                         {Key::Keypad0, "numpad0"},
+                                                                         {Key::Keypad1, "numpad1"},
+                                                                         {Key::Keypad2, "numpad2"},
+                                                                         {Key::Keypad3, "numpad3"},
+                                                                         {Key::Keypad4, "numpad4"},
+                                                                         {Key::Keypad5, "numpad5"},
+                                                                         {Key::Keypad6, "numpad6"},
+                                                                         {Key::Keypad7, "numpad7"},
+                                                                         {Key::Keypad8, "numpad8"},
+                                                                         {Key::Keypad9, "numpad9"},
+                                                                         {Key::KeypadDecimal, "numpadperiod"},
+                                                                         {Key::KeypadAdd, "numpadplus"},
+                                                                         {Key::KeypadSubtract, "numpadminus"},
+                                                                         {Key::KeypadMultiply, "numpadmultiply"}}};
 
 /// The modifier keys, in the order a shortcut writes them.
 enum Modifier { Command, Control, Alt, Shift }; // NOLINT(cppcoreguidelines-use-enum-class): it indexes held[]
@@ -84,8 +104,11 @@ std::optional<Modifier> modifierNamed(std::string_view name) {
 }
 
 /// The labels of the keys whose names are words, for keyLabel().
-constexpr std::array<std::pair<std::string_view, std::string_view>, 5> keyLabels = {
-    {{"minus", "-"}, {"equal", "="}, {"comma", ","}, {"period", "."}, {"slash", "/"}}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 15> keyLabels = {
+    {{"minus", "-"},          {"equal", "="},          {"comma", ","},          {"period", "."},
+     {"slash", "/"},          {"backslash", "\\"},     {"semicolon", ";"},      {"apostrophe", "'"},
+     {"leftbracket", "["},    {"rightbracket", "]"},   {"grave", "`"},          {"numpadperiod", "Numpad ."},
+     {"numpadplus", "Numpad +"}, {"numpadminus", "Numpad -"}, {"numpadmultiply", "Numpad *"}}};
 
 /// @brief The label of one normalised press: "⌘⇧K" on macOS, "Ctrl+Shift+K" elsewhere.
 /// @param press The press, "cmd+shift+k".
@@ -96,6 +119,7 @@ std::string pressLabel(std::string_view press) {
 	std::string key(last == std::string_view::npos ? press : press.substr(last + 1));
 	for(const auto& [name, label] : keyLabels)
 		if(key == name) key = label;
+	if(key.size() == 7 && key.starts_with("numpad")) key = "Numpad " + key.substr(6); // "numpad7" is "Numpad 7"
 	if(!key.empty()) key[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(key[0])));
 	const auto has = [&](std::string_view name) { return mods.contains(name); };
 #ifdef __APPLE__

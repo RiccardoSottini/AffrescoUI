@@ -163,6 +163,13 @@ void DocumentContext::readDerived() {
 	variants_.clear();
 	strings_.read(doc);
 	changeAppearance();
+	json sections = json::object();
+	for(const char* key : {"colors", "tokens", "fonts"})
+		if(doc.contains(key)) sections[key] = doc[key];
+	if(sections != lookSections_) {
+		lookSections_ = std::move(sections);
+		++looks_;
+	}
 }
 
 /* Values */
@@ -420,6 +427,7 @@ void DocumentContext::updateTheme() {
 	if(theme == theme_) return;
 	theme_ = std::move(theme);
 	changeAppearance();
+	++looks_;
 }
 
 void DocumentContext::updateLocale() {

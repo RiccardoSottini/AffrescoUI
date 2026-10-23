@@ -376,6 +376,17 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "", ""},
     {"orbit", "", "", ""},
     {"zoom", "", "", ""},
+    {"transform", "",
+	 R"(`{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the )"
+	 R"(pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows )"
+	 R"(the pointer again), `end` (confirm, cancel) ends it)",
+	 "steps"},
+    {"mode", R"json({"anyOf": [{"enum": ["translate", "rotate", "scale"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "",
+	 ""},
+    {"axis",
+	 R"json({"anyOf": [{"enum": ["x", "y", "z", "xy", "yz", "zx", "view"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "",
+	 ""},
+    {"end", R"json({"anyOf": [{"enum": ["confirm", "cancel"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "", ""},
     {"append", "", "", ""},
     {"keep", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "string"}]})json", "", ""},
     {"id", "", "", ""},

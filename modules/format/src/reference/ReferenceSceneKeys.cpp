@@ -51,7 +51,23 @@ constexpr auto sceneTable = std::to_array<KeyReference>({
 	 "`\"wireframe\"`.",
 	 "scene"},
     {"grid", "", "A ground grid (default true).", "scene"},
-    {"axes", "flag", "The X (red) and Z (blue) axes on the floor (default true).", "scene"},
+    {"axes", "flag",
+	 "The X (red) and Z (blue) axes on the floor (default true); with `\"up\": \"z\"`, X and Y (green).", "scene"},
+    {"glyphs", "flag",
+	 "Lights and cameras drawn as a modeller draws them (default false: a small cross): a camera's frustum with its up "
+	 "triangle, a light's circle with a line down to the floor (a sun's rays, a spot's cone); the selected ones in "
+	 "`outlineColor`.",
+	 "scene"},
+    {"up", R"json({"anyOf": [{"enum": ["y", "z"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "Which way is up in the scene's frame: `\"y\"` (the default, as glTF) or `\"z\"` (as CAD and modelling tools): "
+	 "then the nodes' transforms, the world gizmo's axes, the picked `point`, the `cursor3d` and the pivot are Z up, "
+	 "and the floor is the XY plane.",
+	 "scene"},
+    {"cursor3d", R"json({"anyOf": [{"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+		{"type": "null"}, {"$ref": "#/$defs/v2/dynamic"}], "description": "scene: a 3D cursor"})json",
+	 "A 3D cursor drawn at `[x, y, z]` (none without it): a ring of red and white dashes facing the eye; e.g. set "
+	 "from a pick's `point`, and used as the gizmo's `pivot` or where new nodes go.",
+	 "scene"},
     {"background", "color", "Behind the scene (default the theme's).", "scene"},
     {"gridColor", "color", "The grid's lines.", "scene"},
     {"outlineColor", "color", "The selection's outline (default orange).", "scene"},
@@ -60,13 +76,16 @@ constexpr auto sceneTable = std::to_array<KeyReference>({
 	 "The light's multiplier, before tone mapping (default 1).", "scene"},
     {"gizmo", R"json({"anyOf": [{"type": "object", "properties": {"visible": {"type": "boolean"},
 		"mode": {"enum": ["translate", "rotate", "scale"]}, "space": {"enum": ["world", "local"]},
-		"pixels": {"type": "number", "minimum": 10, "maximum": 400}, "snap": {"type": "object", "properties": {
+		"pixels": {"type": "number", "minimum": 10, "maximum": 400},
+		"pivot": {"anyOf": [{"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, {"type": "null"}]},
+		"snap": {"type": "object", "properties": {
 		"translate": {"type": "number", "minimum": 0}, "rotate": {"type": "number", "minimum": 0},
 		"scale": {"type": "number", "minimum": 0}}}}}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "scene: the transform gizmo on the selection"})json",
 	 "A gizmo on the selection (none without it): `{ \"visible\", \"mode\": \"translate\" | \"rotate\" | \"scale\", "
-	 "\"space\": \"world\" | \"local\", \"pixels\" (its size), \"snap\": { \"translate\", \"rotate\" (degrees), "
-	 "\"scale\" } }`. Dragging a handle runs `onTransform`.",
+	 "\"space\": \"world\" | \"local\", \"pixels\" (its size), \"pivot\": [x, y, z] (where it turns and scales "
+	 "about, if not the selection's centre), \"snap\": { \"translate\", \"rotate\" (degrees), \"scale\" } }`. "
+	 "Dragging a handle runs `onTransform`.",
 	 "scene"},
     {"controls", R"json({"anyOf": [{"type": "object", "properties": {"orbit": {"type": "string"},
 		"pan": {"type": "string"}, "select": {"type": "string"}, "zoom": {"type": "boolean"},

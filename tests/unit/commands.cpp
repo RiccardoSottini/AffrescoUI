@@ -101,6 +101,18 @@ TEST_CASE("format: a binding runs when its \"when\" is true, and a list runs its
 	CHECK(state(screen)["n"] == 1);
 }
 
+TEST_CASE("format: the keypad's keys, the grave accent and the brackets have names of their own, and labels") {
+	using affresco::Key;
+	CHECK(affresco::format::keyName(Key::Keypad7) == "numpad7");
+	CHECK(affresco::format::keyName(Key::KeypadDecimal) == "numpadperiod");
+	CHECK(affresco::format::keyName(Key::GraveAccent) == "grave");
+	CHECK(affresco::format::keyName(Key::Num7) == "7"); // the row above the letters stays apart from the keypad
+	CHECK(affresco::format::shortcut({Key::Keypad1, 0, affresco::Action::Press, {0x0002}}) == "ctrl+numpad1");
+	CHECK(affresco::format::keyLabel("numpad3") == "Numpad 3");
+	CHECK(affresco::format::keyLabel("numpadperiod") == "Numpad .");
+	CHECK(affresco::format::keyLabel("leftbracket") == "[");
+}
+
 TEST_CASE("format: a chord waits for its next press, and a press that doesn't continue it is dropped") {
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
