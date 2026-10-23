@@ -1,0 +1,25 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "scene",
+			"screen": "scene.screen.json",
+			"note": "The scene node: primitives, PBR materials and three lights on a grid with axes; a click outlines the ball, the top view in orthographic, then wireframe",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": [400, 200] },
+				{ "expect": { "state": "picked", "is": "ball" } },
+				{ "expect": { "image": "picked" } },
+				{ "key": "7" },
+				{ "key": "5" },
+				{ "wait": 50 },
+				{ "expect": { "state": "view.camera.orthographic", "is": true } },
+				{ "expect": { "image": "top" } },
+				{ "key": "z" },
+				{ "expect": { "image": "wireframe" } }
+			]
+		}
+	]
+}

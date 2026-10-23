@@ -114,7 +114,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `codeInput`, `carousel`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `codeInput`, `carousel`, `scene`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -151,7 +151,7 @@ parent, later siblings on top of earlier ones.
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
-| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. |
+| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. `"flip": true` places it on the other side when only that side has room, its children mirrored on that axis. |
 | `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
 | `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
 <!-- end generated -->
@@ -165,7 +165,7 @@ parent, later siblings on top of earlier ones.
 | `label` | The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an input's or a slider's text is its value, not its name). |
 | `description` | A longer accessible description, read after the name. |
 | `isOpen` | Whether the node is expanded (a tree item, a disclosure, a menu button: `expanded` to assistive tools); leave it out for one that doesn't expand. Screen readers say it, and offer to expand or collapse it (a click). |
-| `selected` | Whether the node is selected (a tab, a list item); leave it out for one that can't be. |
+| `selected` | Whether the node is selected (a tab, a list item, a menu's check); leave it out, or bind it to `null`, for one that can't be. |
 | `live` | A live region: changes to its text are read without moving the focus, `polite` when the person is idle (a toast), `assertive` at once (an error). Default: `off`. |
 | `tabIndex` | The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out. |
 | `arrows` | The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is. |
@@ -294,8 +294,6 @@ overflow.
 | `alignItems` | Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, within their maximum). Left out, they keep their own anchors across. |
 | `direction` | On a `stack`: `"row"` or `"column"`. |
 | `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
-| `padding` | Pixels kept free inside its edges: the children start and end that far in, and those aligned across keep it too; a scrolling stack scrolls that far past its last child. |
-| `fit` | `true`: as long as its children along it (a column as tall as them, a row as wide), with the gaps and the padding, within its `minHeight`/`maxHeight` (or width), like a CSS box of `auto` height; it follows them as they change. A wrapping stack fits them on one line. Default `false`: its own size. |
 <!-- end generated -->
 
 **Direction.** A node's `dir` (`"ltr"`, `"rtl"`, `"auto"` for the locale's, or `"inherit"`, the default) says which
@@ -648,6 +646,50 @@ announced as a state of the canvas ("3 selected").
 `{ "animate": "state.board.camera.zoom", "to": 2, "ms": 300 }` moves the camera smoothly. Until panels can be
 transformed, a child's text keeps its size while its box, images and paths scale with the zoom.
 
+### `scene`
+A 3D scene: primitive meshes (`cube`, `sphere`, `cylinder`, `cone`, `torus`, `plane`) and glTF models, placed by
+transforms, lit by point, sun and spot lights and drawn with PBR materials, over a ground grid and axes. The middle
+button orbits, Shift with it pans and the wheel zooms at the pointer (`controls`); a click picks, a drag over nothing
+draws a box, and the selection is outlined. A `gizmo` moves, rotates and scales the selection by its handles; the
+scene doesn't move the nodes itself, the document applies `onTransform`. glTF models (with their buffers and
+textures) are checked and bounded (64 MiB a file, 4,096 nodes and meshes, two million vertices); a model that fails
+to load is left out and named in the log.
+
+<!-- generated: scene -->
+| Key | Meaning |
+|---|---|
+| `bind` | A state path keeping the view (camera and selection), both ways. |
+| `view` | The view, if there is no `bind`: `{ "camera": { "target": [x, y, z], "yaw", "pitch", "distance", "fieldOfView", "orthographic" }, "selection": [ids] }`, each part only if given. Angles are in radians; the pitch stays within ±90°, the distance within 0.01 and 100,000, the field of view within 0.05 and 3. Orbiting, panning, zooming and selecting write it back and run `onChange`. |
+| `scene` | The scene, usually `{{state.scene}}`: `{ "nodes": [...], "materials": [...] }`. A node: `{ "id", "name", "parent", "translation": [x, y, z], "rotation": [x, y, z, w] (or `"rotationDegrees": [x, y, z]`), "scale", "mesh", "material", "light", "camera", "visible", "asset" }`; `mesh` is `"cube"`, `"sphere"`, `"cylinder"`, `"cone"`, `"torus"`, `"plane"` or a mesh of an asset; `light` is `{ "type": "directional" | "point" | "spot", "color", "intensity", "range", "innerCone", "outerCone" }`. A material (PBR): `{ "id", "name", "baseColor": [r, g, b, a], "metallic", "roughness", "emissive", "alphaMode", "alphaCutoff", "doubleSided" }`. Read when it changes, checked and bounded. |
+| `assets` | glTF models (`.gltf` or `.glb`) by name: `{ "robot": "models/robot.glb" }`, at most 64, each read with the `reader.imageFile` permission and checked. A node with `"asset": "robot"` holds the model's nodes (ids `"<its id>/<id>"`); a click on them selects that node. |
+| `animations` | Animation clips: `[{ "name", "tracks": [{ "node", "path": "translation" | "rotation" | "scale", "interpolation": "linear" | "step" | "cubic", "times", "values" }] }]`, played at `time`. |
+| `time` | The animations' time, in seconds (default 0). |
+| `shading` | `"material"` (the default: lit, with the lights and materials), `"solid"` (one grey, a studio light) or `"wireframe"`. |
+| `grid` | A ground grid (default true). |
+| `axes` | The X (red) and Z (blue) axes on the floor (default true). |
+| `background` | Behind the scene (default the theme's). |
+| `gridColor` | The grid's lines. |
+| `outlineColor` | The selection's outline (default orange). |
+| `exposure` | The light's multiplier, before tone mapping (default 1). |
+| `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local", "pixels" (its size), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
+| `controls` | The pointer's gestures: `{ "orbit": "middle", "pan": "shift+middle", "select": "left", "zoom": true, "selects": true, "minimumDistance", "maximumDistance" }` (these are the defaults); a binding is `"left"`, `"middle"` or `"right"` after any of `"shift+"`, `"control+"` and `"alt+"`, or `"none"`. A click picks, a drag on nothing draws a box; `selects` false leaves the selection to the handlers. |
+| `onSelect` | A click (`event.type` `"pick"`: `id`, or null on nothing, `button`, `shift`, `x`, `y`, the world `point`) or a box (`"boxSelect"`: `ids`, `shift`, `box`), with the `selection` after it. |
+| `onTransform` | A gizmo drag: `event.phase` (`"preview"`, `"end"` or `"cancel"`), `mode`, `axis`, and `nodes`: `[{ "id", "translation", "rotation", "rotationDegrees", "scale" }]`, and `text` (e.g. `"Move 1, 0, 0"`). |
+<!-- end generated -->
+
+```json
+{ "type": "scene", "id": "viewport", "bind": "state.view", "scene": "{{state.scene}}",
+  "assets": { "robot": "models/robot.glb" }, "shading": "{{state.shading}}",
+  "gizmo": { "mode": "translate", "snap": { "translate": 0.5 } },
+  "onSelect": { "set": "state.view.selection", "to": "{{event.selection}}" },
+  "onTransform": { "run": "moveNodes", "with": { "nodes": "{{event.nodes}}" } } }
+```
+
+`{ "camera": "#viewport", "view": "top", "frame": "selection" }` snaps the camera to a view (front, side, top) and
+frames the selection; `"projection": "toggle"` switches between perspective and orthographic, `"orbit": [15, 0]`
+turns it as a drag would and `"zoom": 1` comes one wheel step closer. Scenarios and `affrescoui render` capture a
+scene like any other node.
+
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
 
@@ -665,19 +707,37 @@ variables of the node and its children. A child `{ "slot": true }` in the compon
 `children`. Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
-**Built-in components** need no definition (a screen's own component of the same name wins). They are written in the
-format, take their colours as parameters, and keep their open state where `open` says (a state path):
+### Built-in components
+These need no definition (a screen's own component of the same name wins). They are written in the
+format, take their colours and sizes as parameters whose defaults are the kit's tokens (see The kit's tokens), and
+keep their open state where `open` says (a state path):
 - `menu` (below its parent), `submenu` (to its right) and `contextMenu` (where `x`, `y` say): `items` of
-  `{ "title", "keyLabel", "mnemonic", "enabled", "separator", "submenu", "run", "with" }`. The arrows, Home, End and
-  the items' first letters move and choose; Enter or a click runs the item's action and closes the menus; a click
-  outside or Escape closes them. A submenu's state is `open + 'Sub'`, one key per item (`.m0`, `.m1`, ...).
-- `menuBar`: `menus` of `{ "name", "title", "items" }`; Alt with a menu's first letter opens it, and `open` is an
-  object with one flag per menu name.
+  `{ "title", "keyLabel", "mnemonic", "enabled", "checked", "icon", "separator", "submenu", "run", "with" }`. The
+  arrows, Home, End and the items' first letters move and choose; Enter or a click runs the item's action and closes
+  the menus; a click outside or Escape closes them. A `checked` item shows a check (and is selected for screen
+  readers), and with `"icons": true` the items show their `icon`. A submenu's state is `open + 'Sub'`, one key per
+  item (`.m0`, `.m1`, ...). Open a context menu from `onContextMenu`, which a right click and, on the focused node,
+  Shift+F10 or the Menu key send.
+- `menuBar`: `menus` of `{ "name", "title", "items" }`, or of `{ "menu", "title" }` naming a menu of `source` (the
+  `menus` variable); by default `window.menuBar`, so one list feeds the native bar and the drawn one. Alt with a
+  menu's first letter opens it, and `open` is an object with one flag per menu name.
+- `toolbar`: a row of `items` (`{ "title", "icon", "keyLabel", "tooltip", "checked", "enabled", "run", "with" }`, or
+  `{ "separator": true }`) as wide as `width`; the arrows move between them, a `checked` one is a pressed toggle, the
+  tooltip names the shortcut, and those that don't fit go into a "more" menu (open at `open + '.more'`).
+- `statusBar`: a row of `items` (`{ "text", "icon", "tooltip", "color", "run", "with", "side" }`), `"side": "end"`
+  putting one at the end; an item with a `run` is a button.
 - `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with" }`) over a backdrop; the focus is
   trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels. Its
   `children` go between the message and the buttons.
-- `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`.
+- `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`; its × is a
+  button named `closeLabel`.
+- `toasts`: a stack of notifications in the bottom corner from the list at `state[name]` (`name` is `toasts`), each
+  `{ "message", "progress", "color", "actions" }`: the last `limit` show, the newest at the bottom, and screen
+  readers announce them. A toast's × or action removes it from the list (an action then runs its `run`).
 - `hoverCard`: shows a card with `title` and `text` while the pointer is over its `children`.
+- `popover`: a card with `title`, `text` and its `children`, `width` by `height`, below its parent (or `anchor`;
+  `placement` `below-end` lines it up with the end) with an arrow `arrowAt` from its start pointing at it; it flips
+  above when only that side has room, and a click outside or Escape closes it.
 - `settingsPage`: the document's settings with a search field (see Menus and settings).
 - `quickPick`: a search field over `providers` of `{ "prefix", "items", "key", "placeholder", "run" }` (the one whose
   `prefix` starts the query, else the one without), matched with `fuzzySort` on each item's `key` (`title`) and the
@@ -689,7 +749,51 @@ format, take their colours as parameters, and keep their open state where `open`
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
   "buttons": [{ "title": "Save", "run": "save" }, { "title": "Cancel" }] } }
+{ "use": "popover", "with": { "open": "state.share", "title": "Share", "text": "Anyone with the link can view." } }
+{ "use": "toasts", "with": { "name": "notes" } }
+{ "push": "state.notes", "value": { "message": "Export finished", "actions": [{ "title": "Open", "run": "open" }] } }
+{ "label": "Document", "focusable": true,
+  "onContextMenu": { "set": "state.ctx", "to": { "open": true, "x": "{{event.x}}", "y": "{{event.y}}" } },
+  "children": [{ "use": "contextMenu", "with": { "open": "state.ctx.open", "x": "{{state.ctx.x}}",
+    "y": "{{state.ctx.y}}", "items": [{ "title": "Word wrap", "checked": "{{state.wrap}}", "run": "toggleWrap" }] } }] }
+{ "use": "toolbar", "with": { "items": [{ "title": "Undo", "icon": "undo", "keyLabel": "Ctrl+Z", "run": "undo" },
+  { "separator": true }, { "title": "Grid", "icon": "layout-grid", "checked": "{{state.grid}}", "run": "toggleGrid" }] } }
 ```
+
+### The kit's tokens
+The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
+built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a
+`kit.` token itself (`"tokens": { "kit.radius": 4 }` is enough): then each has a light variant too, chosen by `theme`
+like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
+
+<!-- generated: kitTokens -->
+| Token | Dark | Light | For |
+|---|---|---|---|
+| `kit.background` | `#1e1e1e` | `#ffffff` | Pages and the settings page. |
+| `kit.surface` | `#252526` | `#ffffff` | Menus, dialogs, toasts, cards and popovers. |
+| `kit.bar` | `#3c3c3c` | `#f3f4f6` | Menu bars, toolbars and status bars. |
+| `kit.barHover` | `#505050` | `#e5e7eb` | A bar's item under the pointer, focused or open. |
+| `kit.field` | `#3c3c3c` | `#ffffff` | Text fields. |
+| `kit.text` | `#cccccc` | `#1f2328` | Text. |
+| `kit.dim` | `#8b8b8b` | `#6e7781` | Secondary text: shortcuts, hints, disabled items. |
+| `kit.body` | `#a0a0a0` | `#57606a` | A dialog's message and a card's text. |
+| `kit.selection` | `#04395e` | `#ddf4ff` | The highlighted item of a menu or a list. |
+| `kit.border` | `#454545` | `#d0d7de` | Borders and separators. |
+| `kit.primary` | `#0e639c` | `#0969da` | The main button and progress. |
+| `kit.onPrimary` | `#ffffff` | `#ffffff` | Text on `kit.primary`. |
+| `kit.secondary` | `#3a3d41` | `#eaeef2` | Other buttons, tracks, a pressed or checked item. |
+| `kit.onSecondary` | `#ffffff` | `#1f2328` | Text on `kit.secondary`. |
+| `kit.accent` | `#2aaaff` | `#0969da` | Matched letters, links and the focused item's mark. |
+| `kit.focus` | `#ffffff` | `#0969da` | The ring of the focused button. |
+| `kit.backdrop` | `#00000088` | `#00000040` | Behind a modal dialog. |
+| `kit.info` | `#3794ff` | `#0969da` | Information. |
+| `kit.warning` | `#cca700` | `#9a6700` | Warnings. |
+| `kit.error` | `#f14c4c` | `#cf222e` | Errors. |
+| `kit.success` | `#89d185` | `#1a7f37` | Success. |
+| `kit.radius` | 4 | 4 | The corners of menus, buttons and fields. |
+| `kit.cardRadius` | 6 | 6 | The corners of dialogs, toasts, cards and popovers. |
+| `kit.borderWidth` | 1 | 1 | Borders. |
+<!-- end generated -->
 
 ## Values, expressions and state
 
@@ -722,7 +826,7 @@ Wherever a value is expected it can be computed:
   `formatDate(milliseconds, style?, zone?)`, `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`,
   `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`,
   `addMonths(date, months)`, `daysBetween(from, to)`, `weekday(date)`, `daysInMonth(date)`, `dateOf(milliseconds)`,
-  `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`, `qrCode(text, level?)`;
+  `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
@@ -735,8 +839,9 @@ are the matched `[start, end]` character spans, `parts` the text cut into `{ tex
 the best first (an empty query keeps the order), at most `limit` of them.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the
-display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `nativeMenuBar`: whether `window.menuBar`
-is shown natively, `capsLock`: whether caps lock was on at the latest key); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
+display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `menuBar`: the screen's `window.menuBar` list
+(or `[]`), `nativeMenuBar`: whether it is shown natively,
+`capsLock`: whether caps lock was on at the latest key); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
 `touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; and the names given by `repeat`, `let`,
@@ -836,14 +941,14 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 <!-- generated: events -->
 | Handler | When |
 |---|---|
-| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click. |
+| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node). |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
 | `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
 | `onFocus`, `onBlur` | Keyboard focus. |
 | `onScroll` | `event.dx`, `event.dy`. |
-| `onKey` | A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`, `capsLock`. |
+| `onKey` | A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`. |
 | `onChange` | A bound or value control changed: `event.value`; a timeline's track muted or locked: `event.type` `"track"`, `id`, `muted`, `locked`. |
 | `onSubmit` | Enter in a text area: `event.text`. |
 | `onLink` | A press on a part of `runs` with a link: `event.link`. |
@@ -976,6 +1081,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
+| `camera` | `{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view` (front, back, left, right, top, bottom), `frame` ("selection", "all" or ids), `projection` (perspective, orthographic, toggle), `orbit` [degrees right, down], `zoom` (wheel steps, positive to come closer) |
 <!-- end generated -->
 
 ### Control steps and paths
@@ -1146,7 +1252,7 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 | `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
 | `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
 | `{ "type": "text" }` | Types into the focused node, a character at a time |
-| `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket`, `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+ capslock+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere; `capslock` presses it with caps lock on, and `window.capsLock` stays so until a key without it) |
+| `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket`, `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere) |
 | `{ "wait": 500 }` | Moves the clock on, running timers, animations and tooltips as they come due. What a handler leaves for the next frame (`focus`) runs at the next wait: `{ "wait": 0 }` |
 | `{ "revision": { ... } }` | Applies a revision as the application would |
 | `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |
