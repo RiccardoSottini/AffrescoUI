@@ -81,5 +81,8 @@ void registerBuiltInSections(SectionRegistry& registry);
 /// @brief "permissions": who may change what, and who reviews; a capability (CapabilitySections.cpp).
 /// @return The section.
 [[nodiscard]] SectionType permissionsSection();
+/// @brief "images": the images the screen edits, their tools and lowered limits; a capability (ImagesSection.cpp).
+/// @return The section.
+[[nodiscard]] SectionType imagesSection();
 
 } // namespace affresco::format

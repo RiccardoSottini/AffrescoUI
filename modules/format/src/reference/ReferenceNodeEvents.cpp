@@ -14,7 +14,7 @@ namespace {
 
 /// The keys, in the order of the tables.
 constexpr auto eventTable = std::to_array<KeyReference>({
-    {"onClick", "handler", "Left click, two clicks on the same node, right click.", "events"},
+    {"onClick", "handler", "Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node).", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
     {"onPress", "handler", "Left button down, up.", "events"},
@@ -83,6 +83,19 @@ constexpr auto eventTable = std::to_array<KeyReference>({
     {"onWordHover", "handler",
 	 "The pointer moved onto a word of an editor, or off one: `event.word`, `line`, `column` (where it starts, "
 	 "from 0); off a word, `word` is empty and `line` null.",
+	 "events"},
+    {"onType", "handler",
+	 "Typing in an editor that has a `language` or not: `event.text` (what was typed; `\"\"` for a deletion), "
+	 "`word` (the word that now ends at the caret, by the language's `wordPattern`), `line`, `column` (the caret, "
+	 "from 0), and `x`, `y`, `top` (the caret's box, for a popup).",
+	 "events"},
+    {"onTextHover", "handler",
+	 "The pointer moved over an editor's text: `event.over` (`false` when it left the text), `line`, `column` (from "
+	 "0), and `x`, `y`, `top` (the place's box). For hover cards, e.g. a language server's.",
+	 "events"},
+    {"onPopupKey", "handler",
+	 "A popup key while an editor's `popup` is `true`: `event.key` is `up`, `down`, `pageUp`, `pageDown`, `enter`, "
+	 "`tab` or `escape`.",
 	 "events"},
     {"secret", "flag",
 	 "A text area or a code input showing a dot per character, for a password; the screen reader gets no value, and "

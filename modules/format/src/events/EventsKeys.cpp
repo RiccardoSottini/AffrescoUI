@@ -88,7 +88,7 @@ bool isTextInput(const Panel* panel) {
 }
 
 /// @brief Tells whether a focused text input types a key, which the document's "keys" then leave to it: a plain key,
-/// outside a chord, that isn't Escape.
+/// outside a chord, that isn't Escape or a function key.
 /// @param from The focused panel, or nullptr.
 /// @param event The key.
 /// @param name The key's shortcut name.
@@ -96,7 +96,7 @@ bool isTextInput(const Panel* panel) {
 /// @return true if it types it.
 bool typesKey(const Panel* from, const KeyEvent& event, std::string_view name, bool chording) {
 	return isTextInput(from) && !chording && !event.mods.super() && !event.mods.control() && !event.mods.alt() &&
-	       name != "escape";
+	       name != "escape" && (event.key < Key::F1 || event.key > Key::F25);
 }
 
 /// @brief Tells whether a key of a "keys" object starts with a press, so the press may begin or go on with a chord.
@@ -160,6 +160,15 @@ bool tabMovesFocus(const Panel* from, Mods mods) {
 /// @return true if it does.
 bool clicksWith(Key key) { return key == Key::Enter || key == Key::KeypadEnter || key == Key::Space; }
 
+/// @brief Tells whether a key opens the focused node's context menu: Shift+F10 or the Menu key, alone.
+/// @param event The key.
+/// @return true if it does.
+bool opensContextMenu(const KeyEvent& event) {
+	const Mods mods = event.mods;
+	if(commandHeld(mods) || mods.alt()) return false;
+	return (event.key == Key::F10 && mods.shift()) || (event.key == Key::Menu && !mods.shift());
+}
+
 /// @brief Finds the node a mnemonic letter clicks: shown and not disabled, in a scope but not in a modal overlay
 /// nested in it, lists included.
 /// @param reconciler The records.
@@ -188,6 +197,7 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 		if(chording) { // Escape ends a chord, and does nothing else
 			chord_.clear();
 			engine_.document.contextChanged();
+			if(engine_.window) engine_.window->takeKey();
 			return true;
 		}
 		dismissOverlays(nullptr);
@@ -201,7 +211,10 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 	if(!ran && waits) chord_ = press; // the press starts a chord, or goes on with one
 	else chord_.clear();              // it ran, or ends a chord, which drops it
 	if(chording || !chord_.empty()) engine_.document.contextChanged();
-	return ran || waits || chording;
+	// A press that ran, starts or ends a chord is the bindings': the focused panel doesn't edit or type with it too
+	const bool taken = ran || waits || chording;
+	if(taken && engine_.window) engine_.window->takeKey();
+	return taken;
 }
 
 bool Events::runPanelKeys(Panel* from, const std::string& press, bool& waits) {
@@ -297,6 +310,12 @@ bool Events::navigate(Panel* from, const KeyEvent& event) {
 		if(!keyResolved_ && dynamic_cast<const ColorPicker*>(from)) return false;
 		// Tab and Shift+Tab, in the open modal overlay if any
 		if(tabMovesFocus(from, mods)) return tabFocus(from, mods.shift());
+	}
+	// Shift+F10 or the Menu key: a right click at the focused node's bottom start corner
+	if(from && opensContextMenu(event) && handlerOwner(from, "onContextMenu")) {
+		const Rect area = from->bounds();
+		const Vec2 at{from->rightToLeft() ? area.right : area.left, area.bottom};
+		return bubble(*from, "onContextMenu", {{"type", "contextMenu"}, {"keyboard", true}}, &at);
 	}
 	if(isTextInput(from)) return false; // a text input keeps the other keys for typing
 	const char letter = letterOf(event.key);

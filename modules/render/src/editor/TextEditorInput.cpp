@@ -55,7 +55,11 @@ double now() { return std::chrono::duration<double>(std::chrono::steady_clock::n
 
 void TextEditor::keyEvent(const KeyEvent& event) {
 	Panel::keyEvent(event);
-	if(event.action == Action::Release) return;
+	if(event.action == Action::Release || (window() && window()->keyTaken())) return; // a binding may have taken it
+	builtInKey(event);
+}
+
+void TextEditor::builtInKey(const KeyEvent& event) {
 	if(viewKey(event) || cursorsKey(event) || caretKey(event) || editingKey(event)) return;
 	if(commandHeld(event.mods)) commandKey(event);
 }
@@ -237,6 +241,10 @@ void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 void TextEditor::mouseMoveEvent(const MouseMoveEvent& event) {
 	Panel::mouseMoveEvent(event);
 	if(columnDragging_) return selectColumn(columnFrom_, event.position);
+	if(const bool over = minimap_ && minimapFrame().contains(event.position); over != minimapHovered_) {
+		minimapHovered_ = over;
+		if(minimapViewportOnHover_) invalidatePaint();
+	}
 	if(minimapDrag(event.position)) return;
 	if(!dragging_ && !onWordHovered.empty()) {
 		const Position at = positionAt(event.position);
@@ -266,7 +274,11 @@ void TextEditor::scrollEvent(const ScrollEvent& event) {
 }
 
 void TextEditor::hoverEvent(bool hovered) {
-	if(!hovered) hoverAt(std::nullopt);
+	if(!hovered) {
+		hoverAt(std::nullopt);
+		if(minimapHovered_ && minimapViewportOnHover_) invalidatePaint();
+		minimapHovered_ = false;
+	}
 	Panel::hoverEvent(hovered);
 }
 

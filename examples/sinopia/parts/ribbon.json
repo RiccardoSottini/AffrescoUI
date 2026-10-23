@@ -1,0 +1,99 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The ribbon's parts: large buttons (an icon over a one- or two-line title), small ones (an icon, a title, a menu arrow), icon-only ones, drop-down fields, galleries, and groups with their title along the bottom and a line after them. Each tab is a component of groups; the screen shows the chosen one. A button is a label, so the use gives it its onClick, tooltip and menu.",
+
+	"styles": {
+		"rbButton": {
+			"type": "label", "radius": 3, "color": "transparent", "textColor": "@rbInk", "cursor": "hand", "focusable": true,
+			"hover": { "color": "@rbHover" }, "pressed": { "color": "@rbPressed" }
+		},
+		"rbButtonOn": { "style": "rbButton", "color": "@rbChecked", "hover": { "color": "@rbCheckedHover" } },
+		"rbButtonOff": { "style": "rbButton", "textColor": "@rbDisabled", "hover": { "color": "transparent" }, "cursor": "arrow" },
+		"rbField": {
+			"type": "label", "height": 22, "padding": 4, "radius": 2, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
+			"textColor": "@rbInk", "cursor": "hand", "hover": { "borderColor": "@rbFieldHover" }
+		},
+		"rbGroupTitle": { "type": "label", "height": 16, "align": "center", "textColor": "@rbMuted" }
+	},
+
+	"components": {
+		"rbBig": {
+			"params": { "icon": "", "title": "", "menu": false, "on": false, "enabled": true, "width": 48 },
+			"node": {
+				"type": "label", "width": "{{width}}", "height": 70, "padding": 2, "wrap": true,
+				"style": "{{!enabled ? 'rbButtonOff' : on ? 'rbButtonOn' : 'rbButton'}}", "align": { "horizontal": "center", "vertical": "start" },
+				"runs": "{{concat([{ icon: icon, size: 30 }, { text: '\n', size: 6 }, { text: title, size: 12 }], menu ? [{ text: ' ', size: 12 }, { icon: 'chevron-down', size: 10 }] : [])}}"
+			}
+		},
+		"rbSmall": {
+			"params": { "icon": "", "title": "", "menu": false, "on": false, "enabled": true, "tint": null },
+			"node": {
+				"type": "column", "fitContent": "width", "height": 24, "color": "transparent",
+				"children": [
+					{
+						"type": "label", "height": "{{tint == null ? 24 : 21}}", "fitText": true, "padding": 4,
+						"style": "{{!enabled ? 'rbButtonOff' : on ? 'rbButtonOn' : 'rbButton'}}",
+						"runs": "{{concat([{ icon: icon, size: 16 }], title == '' ? [] : [{ text: ' ' + title, size: 12 }], menu ? [{ text: ' ', size: 12 }, { icon: 'chevron-down', size: 10 }] : [])}}"
+					},
+					{ "width": 16, "height": 3, "x": 4, "color": "{{tint ?? 'transparent'}}", "when": "{{tint != null}}" }
+				]
+			}
+		},
+		"rbField": {
+			"params": { "text": "", "width": 100 },
+			"node": {
+				"type": "row", "width": "{{width}}", "height": 22, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine", "radius": 2,
+				"cursor": "hand", "hover": { "borderColor": "@rbFieldHover" }, "alignItems": "center",
+				"children": [
+					{ "type": "label", "grow": 1, "height": 20, "padding": 4, "textColor": "@rbInk", "runs": [{ "text": "{{text}}", "size": 12 }] },
+					{ "type": "label", "width": 16, "height": 20, "align": "center", "textColor": "@rbInk", "runs": [{ "icon": "chevron-down", "size": 11 }] }
+				]
+			}
+		},
+		"rbGroup": {
+			"params": { "title": "", "launcher": false },
+			"node": {
+				"type": "row", "fitContent": "width", "height": 92, "color": "transparent",
+				"children": [
+					{
+						"type": "column", "fitContent": "width", "height": 92, "color": "transparent", "alignItems": "center",
+						"children": [
+							{ "type": "row", "fitContent": "width", "height": 72, "gap": 2, "color": "transparent", "alignItems": "start", "children": [{ "slot": true }] },
+							{ "type": "row", "fitContent": "width", "height": 18, "color": "transparent", "alignItems": "center", "gap": 4, "children": [
+								{ "type": "label", "style": "rbGroupTitle", "fitText": true, "runs": [{ "text": "{{title}}", "size": 11 }] },
+								{ "type": "label", "when": "{{launcher}}", "width": 12, "height": 14, "textColor": "@rbMuted", "align": "center",
+								  "runs": [{ "icon": "arrow-down-right-from-square", "size": 9 }] }
+							] }
+						]
+					},
+					{ "width": 1, "height": 76, "y": 4, "color": "@rbLine" }
+				]
+			}
+		},
+		"rbStack": {
+			"params": {},
+			"node": { "type": "column", "fitContent": "width", "height": 72, "gap": 0, "color": "transparent", "justify": "space-evenly", "children": [{ "slot": true }] }
+		},
+		"rbRow": {
+			"params": {},
+			"node": { "type": "row", "fitContent": "width", "height": 24, "gap": 1, "color": "transparent", "alignItems": "center", "children": [{ "slot": true }] }
+		},
+		"rbGallery": {
+			"params": { "items": [], "width": 200, "cell": 64 },
+			"note": "A ribbon gallery: one row of cells (each a node of the use's slot, with item and index), and the arrows that open the whole list.",
+			"node": {
+				"type": "row", "width": "{{width}}", "height": 70, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
+				"children": [
+					{ "type": "row", "grow": 1, "height": 68, "gap": 2, "color": "transparent", "alignItems": "center", "children": [{ "slot": true }] },
+					{ "type": "column", "width": 16, "height": 68, "color": "transparent", "children": [
+						{ "type": "label", "width": 16, "height": 22, "style": "rbButton", "align": "center", "runs": [{ "icon": "chevron-up", "size": 10 }] },
+						{ "type": "label", "width": 16, "height": 22, "style": "rbButton", "align": "center", "runs": [{ "icon": "chevron-down", "size": 10 }] },
+						{ "type": "label", "width": 16, "height": 22, "style": "rbButton", "align": "center", "runs": [{ "icon": "chevrons-down", "size": 10 }] }
+					] }
+				]
+			}
+		}
+	}
+}

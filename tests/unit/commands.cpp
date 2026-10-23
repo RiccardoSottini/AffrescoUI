@@ -101,6 +101,18 @@ TEST_CASE("format: a binding runs when its \"when\" is true, and a list runs its
 	CHECK(state(screen)["n"] == 1);
 }
 
+TEST_CASE("format: the keypad's keys, the grave accent and the brackets have names of their own, and labels") {
+	using affresco::Key;
+	CHECK(affresco::format::keyName(Key::Keypad7) == "numpad7");
+	CHECK(affresco::format::keyName(Key::KeypadDecimal) == "numpadperiod");
+	CHECK(affresco::format::keyName(Key::GraveAccent) == "grave");
+	CHECK(affresco::format::keyName(Key::Num7) == "7"); // the row above the letters stays apart from the keypad
+	CHECK(affresco::format::shortcut({Key::Keypad1, 0, affresco::Action::Press, {0x0002}}) == "ctrl+numpad1");
+	CHECK(affresco::format::keyLabel("numpad3") == "Numpad 3");
+	CHECK(affresco::format::keyLabel("numpadperiod") == "Numpad .");
+	CHECK(affresco::format::keyLabel("leftbracket") == "[");
+}
+
 TEST_CASE("format: a chord waits for its next press, and a press that doesn't continue it is dropped") {
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
@@ -123,6 +135,48 @@ TEST_CASE("format: a chord waits for its next press, and a press that doesn't co
 	press(*window, affresco::Key::Escape); // ends the chord
 	pressControl(*window, affresco::Key::A);
 	CHECK(state(screen)["n"] == 11);
+}
+
+TEST_CASE("format: the bracket and semicolon keys have names, run their shortcuts and show their labels") {
+	CHECK(affresco::format::keyName(affresco::Key::LeftBracket) == "leftbracket");
+	CHECK(affresco::format::keyName(affresco::Key::RightBracket) == "rightbracket");
+	CHECK(affresco::format::keyName(affresco::Key::Semicolon) == "semicolon");
+	CHECK(affresco::format::keyLabel("leftbracket").ends_with("["));
+	CHECK(affresco::format::keyLabel("ctrl+rightbracket").ends_with("]"));
+	CHECK(affresco::format::keyLabel("semicolon") == ";");
+
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(
+	    document(R"({ "ctrl+leftbracket": "add", "ctrl+RightBracket": "addTen", "ctrl+semicolon": "add" })"));
+	screen.build(*window);
+	pressControl(*window, affresco::Key::LeftBracket);
+	CHECK(state(screen)["n"] == 1);
+	pressControl(*window, affresco::Key::RightBracket);
+	CHECK(state(screen)["n"] == 11);
+	pressControl(*window, affresco::Key::Semicolon);
+	CHECK(state(screen)["n"] == 12);
+}
+
+TEST_CASE("format: the punctuation keys have names: backquote, brackets, semicolon, apostrophe and backslash") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(
+	    document(R"({ "ctrl+backquote": "add", "ctrl+leftbracket ctrl+rightbracket": "addTen" })"));
+	screen.build(*window);
+
+	pressControl(*window, affresco::Key::GraveAccent);
+	CHECK(state(screen)["n"] == 1);
+	pressControl(*window, affresco::Key::LeftBracket);
+	pressControl(*window, affresco::Key::RightBracket);
+	CHECK(state(screen)["n"] == 11);
+	CHECK(affresco::format::keyLabel("ctrl+backquote").ends_with("`"));
+	CHECK(affresco::format::keyLabel("ctrl+semicolon").ends_with(";"));
+	CHECK(affresco::format::keyLabel("ctrl+apostrophe").ends_with("'"));
+	CHECK(affresco::format::keyLabel("ctrl+backslash").ends_with("\\"));
+	const std::string brackets = affresco::format::keyLabel("ctrl+leftbracket ctrl+rightbracket");
+	CHECK(brackets.contains("[ "));
+	CHECK(brackets.ends_with("]"));
 }
 
 TEST_CASE("format: a key skips a disabled command, and a run step ignores its enablement") {

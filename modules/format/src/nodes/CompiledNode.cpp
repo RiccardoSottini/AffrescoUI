@@ -36,6 +36,7 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"tabIndex", Slot::TabIndex},
     {"arrows", Slot::Arrows},
     {"mnemonic", Slot::Mnemonic},
+    {"snapshot", Slot::Snapshot},
     {"role", Slot::Role},
     {"label", Slot::Label},
     {"description", Slot::Description},
@@ -46,7 +47,9 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"borderWidth", Slot::BorderWidth},
     {"borderColor", Slot::BorderColor},
     {"shadow", Slot::Shadow},
+    {"gradient", Slot::Gradient},
     {"cache", Slot::Cache},
+    {"overflow", Slot::Overflow},
     {"x", Slot::Layout},
     {"y", Slot::Layout},
     {"width", Slot::Layout},
@@ -62,6 +65,7 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"shrink", Slot::Layout},
     {"basis", Slot::Layout},
     {"alignSelf", Slot::Layout},
+    {"justifySelf", Slot::Layout},
     {"cell", Slot::Layout},
     {"dir", Slot::Layout},
     {"textColor", Slot::TextColor},
@@ -184,6 +188,40 @@ json withoutChildren(const json& node) {
 	return result;
 }
 
+/// @brief Gives a tree's "expanded" or a table's "sort" written as a state path ("state.files.open") its state: the
+/// value is read from there, and a first step of "onExpand" or "onSort" keeps it, before the node's own steps.
+/// @param keys The node's keys, changed in place; left alone unless the path is plain (names of letters, digits and _
+/// between dots).
+void keepOwnState(json& keys) {
+	const auto type = keys.find("type");
+	if(type == keys.end() || !type->is_string() || (*type != "tree" && *type != "table")) return;
+	const bool tree = *type == "tree";
+	const auto value = keys.find(tree ? "expanded" : "sort");
+	if(value == keys.end() || !value->is_string()) return;
+	const std::string path = value->get<std::string>();
+	const auto plain = [](char c) { return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '.'; };
+	if(!path.starts_with("state.") || path.size() > 256 || path.ends_with('.') || path.contains("..") ||
+	   !std::ranges::all_of(path, plain))
+		return;
+
+	json steps = json::array();
+	if(tree) {
+		*value = "{{" + path + " ?? []}}";
+		steps.push_back({{"set", path},
+		                 {"to", "{{event.expanded ? concat(" + path + " ?? [], [event.id]) : filter(" + path +
+		                            " ?? [], it != event.id)}}"}});
+	} else {
+		*value = "{{" + path + "}}";
+		steps.push_back(
+		    {{"set", path}, {"to", {{"column", "{{event.column}}"}, {"descending", "{{event.descending}}"}}}});
+	}
+	const char* handler = tree ? "onExpand" : "onSort";
+	if(const auto given = keys.find(handler); given != keys.end() && given->is_array())
+		steps.insert(steps.end(), given->begin(), given->end());
+	else if(given != keys.end()) steps.push_back(given->is_string() ? json{{"run", *given}} : *given);
+	keys[handler] = std::move(steps);
+}
+
 CompiledRef compileNode(const NodeRef& node) {
 	const auto children = node->find("children");
 	return compileNode(withoutChildren(*node), children == node->end() ? nullptr : &*children, node);
@@ -198,6 +236,7 @@ CompiledRef compileNode(json keys, const json* children, NodeRef keep) {
 		}
 		keys.erase(styled);
 	}
+	keepOwnState(keys);
 	node->own = std::move(keys);
 	node->children = children;
 	node->keep = std::move(keep);

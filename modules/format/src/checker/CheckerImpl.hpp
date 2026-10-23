@@ -229,6 +229,16 @@ private:
 	/// @param scope The variables.
 	/// @param place Where it is.
 	void walkNestedSteps(const json& step, const Scope& scope, const std::string& place);
+
+	/* Images (CheckerImages.cpp) */
+
+	/// @brief Records what the "images" section publishes: each image's snapshot at its "into" path.
+	void walkImages();
+	/// @brief Checks an "image" step: the images section it needs, the image it names ("of", or the only one), its
+	/// operation, and the keys of its "with" that the operation reads.
+	/// @param step The step's object.
+	/// @param place Where it is.
+	void walkImageStep(const json& step, const std::string& place);
 	/// @brief Records what a state step (set, push, toggle, increment, animate, remove, call into) writes.
 	/// @param kind The step.
 	/// @param step The step's object.

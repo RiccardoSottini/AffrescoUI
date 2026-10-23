@@ -74,6 +74,10 @@ void folds(Call& call) {
 /// @brief One `syntax` service: its worker threads.
 class SyntaxService final : public Service {
 public:
+	/// @brief Starts with no calls.
+	/// @param now Whether each call's work runs before invoke() returns (ServiceContext::now).
+	explicit SyntaxService(bool now) : tasks_(mostAtOnce, now) {}
+
 	std::optional<std::string> invoke(const MethodSpec& method, std::shared_ptr<Call> call) override {
 		if(method.name == "languages") {
 			call->finish({{"languages", SyntaxDocument::languages()}});
@@ -87,7 +91,7 @@ public:
 	}
 
 private:
-	Tasks tasks_{mostAtOnce}; ///< The calls running.
+	Tasks tasks_; ///< The calls running.
 };
 
 /// @brief The `syntax` provider.
@@ -119,8 +123,8 @@ public:
 		         "[[line, start, end, style]], complete}"},
 		        {"folds", Effect::Read, true, false, parse, "a text's folding ranges: {folds: [[first, last]]}"}};
 	}
-	std::unique_ptr<Service> create(const json& /*configuration*/, ServiceContext /*context*/) override {
-		return std::make_unique<SyntaxService>();
+	std::unique_ptr<Service> create(const json& /*configuration*/, ServiceContext context) override {
+		return std::make_unique<SyntaxService>(context.now);
 	}
 };
 

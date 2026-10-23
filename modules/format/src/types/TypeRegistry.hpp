@@ -23,6 +23,13 @@
 
 namespace affresco::format {
 
+namespace editing {
+class ImageDocuments;
+/// @brief A new, empty store of images (ImageDocuments.cpp), so this header needn't include the imaging module.
+/// @return The store.
+[[nodiscard]] std::shared_ptr<ImageDocuments> makeImageDocuments();
+} // namespace editing
+
 /// @brief The kind of value a property takes, for the catalog and the checker.
 enum class ValueKind {
 	Any,       ///< Anything; the type's apply function checks it.
@@ -41,6 +48,8 @@ struct PropertySpec {
 	bool states = true;              ///< Whether a state block ("hover", "pressed", ...) may set it.
 	bool transition = false;         ///< Whether "transition" may animate it.
 };
+
+class LanguageCatalog;
 
 /// @brief What a type's apply function reads its values with: colours in the current theme, fonts by name.
 class PropertyReader {
@@ -80,6 +89,10 @@ public:
 	/// @return The file.
 	/// @throws DocumentError If it isn't text or is outside those folders.
 	[[nodiscard]] virtual std::filesystem::path imageFile(const json& value, const std::string& at) const = 0;
+
+	/// @brief The languages the document declares ("languages"), for code editors.
+	/// @return Them, or nullptr for none.
+	[[nodiscard]] virtual const LanguageCatalog* languages() const { return nullptr; }
 
 protected:
 	PropertyReader() = default;
@@ -144,7 +157,7 @@ struct PropertySet {
 	/// describe them for the catalog.
 	ApplyFunction apply;
 	/// Whether apply() runs on every update (the built-in widgets, whose colours follow the theme), or only when the
-	/// values changed (an application's types).
+	/// values or the document's appearance (its theme, colours, fonts) changed (an application's types).
 	bool everyUpdate = false;
 	/// For a panel of another type that has these properties too: the built-in widgets give them to subclasses, e.g.
 	/// an application's TextEditor has those of "editor". Null: only panels of its own type.
@@ -242,12 +255,18 @@ public:
 	}
 	/// @brief The GPU surfaces the host registered, which "surface" nodes name (shared with that type's apply).
 	[[nodiscard]] const std::shared_ptr<SurfaceRegistry>& surfaces() const noexcept { return surfaces_; }
+	/// @brief The images the "images" section declares, made when an "image" step first names one (shared with the
+	/// views that show them, which may outlive a rebuilt screen).
+	[[nodiscard]] const std::shared_ptr<editing::ImageDocuments>& imageDocuments() const noexcept {
+		return imageDocuments_;
+	}
 
 private:
 	std::map<std::string, NodeType, std::less<>> types_;        ///< See types().
 	std::vector<std::string> order_;                            ///< Their names, in the order first added.
 	std::vector<std::shared_ptr<const PropertySet>> inherited_; ///< Sets with appliesTo, in the order added.
 	std::shared_ptr<SurfaceRegistry> surfaces_ = std::make_shared<SurfaceRegistry>(); ///< See surfaces().
+	std::shared_ptr<editing::ImageDocuments> imageDocuments_ = editing::makeImageDocuments(); ///< See imageDocuments().
 };
 
 /// @brief Registers the built-in node types (Types.cpp, and the widgets' own files).
@@ -272,6 +291,9 @@ void registerImageType(TypeRegistry& registry);
 /// @brief Registers "surface" (SurfaceType.cpp).
 /// @param registry The registry.
 void registerSurfaceType(TypeRegistry& registry);
+/// @brief Registers "raster" (imaging/RasterType.cpp).
+/// @param registry The registry.
+void registerRasterType(TypeRegistry& registry);
 /// @brief Registers "split" (SplitType.cpp).
 /// @param registry The registry.
 void registerSplitType(TypeRegistry& registry);
@@ -324,5 +346,8 @@ void registerCodeInputType(TypeRegistry& registry);
 /// @brief Registers "carousel" (CarouselType.cpp).
 /// @param registry The registry.
 void registerCarouselType(TypeRegistry& registry);
+/// @brief Registers "scene" (SceneType.cpp).
+/// @param registry The registry.
+void registerSceneType(TypeRegistry& registry);
 
 } // namespace affresco::format

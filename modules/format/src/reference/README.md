@@ -12,6 +12,7 @@ tables (`referenceTables()`) and the catalog agents read (`catalog()`).
 | `ReferenceNodeEvents.cpp` | The events, and the keys of forms and carousels |
 | `ReferenceSections.cpp` | The sections, the steps and the shared definitions |
 | `ReferenceTables.cpp` | SCREEN_FORMAT.md's tables, written between their markers |
+| `ReferenceImages.cpp` | The tables about images: the `image` step's operations, and the names their values take |
 | `Catalog.*` | The catalog: types, steps, sections, functions and models |
 
 `tests/unit/reference.cpp` checks that every key the registries have is in the reference and the reference has no

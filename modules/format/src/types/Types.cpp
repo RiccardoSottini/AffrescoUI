@@ -48,13 +48,16 @@ std::shared_ptr<const PropertySet> commonProperties() {
 	                  {"borderWidth", ValueKind::Number},
 	                  {"borderColor", ValueKind::Color, true, true},
 	                  {"shadow"},
+	                  {"gradient"},
 	                  {"cache", ValueKind::Boolean},
+	                  {"overflow", ValueKind::Text},
 	                  {"visible", ValueKind::Boolean},
 	                  {"cursor", ValueKind::Text},
 	                  {"tooltip", ValueKind::Text},
 	                  {"disabled", ValueKind::Boolean},
 	                  {"scroll"},
 	                  {"overlay"},
+	                  {"snapshot"},
 	                  {"focusable", ValueKind::Boolean},
 	                  {"tabIndex", ValueKind::Number},
 	                  {"arrows", ValueKind::Text},
@@ -178,6 +181,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerSliderType(registry);
 	registerImageType(registry);
 	registerSurfaceType(registry);
+	registerRasterType(registry);
 	registerSplitType(registry);
 	registerTabsType(registry);
 	registerListTypes(registry);
@@ -194,6 +198,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerCalendarType(registry);
 	registerCodeInputType(registry);
 	registerCarouselType(registry);
+	registerSceneType(registry);
 	registerTextFieldProperties(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",

@@ -3,6 +3,7 @@
 
 #include "Engine.hpp"
 #include "Contributions.hpp"
+#include "ImagePublishing.hpp"
 #include "Settings.hpp"
 
 #include "affresco/core/Log.hpp"
@@ -19,11 +20,12 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		      "AffrescoUI screen: no handler for action '" + action + "' (from '" + sender.id() + "')");
       }),
       document(*this, std::move(baseDirectory)), builder(*this), scheduler(*this), properties(*this), reconciler(*this),
-      events(*this), runner(*this), models(*this), connections(*this), serviceCalls(*this), calls(*this) {
+      events(*this), runner(*this), models(*this), connections(*this), serviceCalls(*this), asks(*this), calls(*this) {
 	registerBuiltInTypes(types);
+	attachImageDocuments(*this);
 	addContributionVariables(*this);
 	addSettingsVariables(*this);
-	document.addVariable("services", [this] { // {name: {state, error, restarts}} (RFC 0002)
+	document.addVariable("services", [this] { // {name: {state, error, restarts, folder}} (RFC 0002)
 		return serviceCalls.services() ? serviceCalls.services()->status() : json::object();
 	});
 	document.addVariable("connections", [this] { return connections.status(); }); // {name: {online, pending, ...}}
@@ -34,6 +36,17 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		document.globalsChanged(); // the "connections" variable
 		reconciler.requestReconcile();
 	});
+	document.addVariable("requests", [this] { return asks.list(); }); // the person's requests ("ask") and replies
+	document.addVariable("peers", [this] { // [{author, role}]: who is connected
+		const json coordination = versions.coordination();
+		return coordination.contains("peers") ? coordination["peers"] : json::array();
+	});
+	peersChanged = versions.onReviewChanged.connect([this] { proposalsChanged(); });
+}
+
+Engine::~Engine() {
+	versions.onReviewChanged.disconnect(peersChanged);
+	detachImageDocuments(*this);
 }
 
 void Engine::documentChanged() {

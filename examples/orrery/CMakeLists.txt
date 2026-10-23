@@ -1,7 +1,0 @@
-# Orrery, a small planetarium: orrery.screen.json around the scene3d module's 3D view (examples/orrery/README.md)
-add_executable(affrescoui_orrery main.cpp)
-target_link_libraries(affrescoui_orrery PRIVATE affrescoui affrescoui::scene3d)
-target_include_directories(affrescoui_orrery PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared)
-target_compile_options(affrescoui_orrery PRIVATE ${AFFRESCOUI_WARNINGS})
-target_compile_definitions(affrescoui_orrery PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${PROJECT_SOURCE_DIR}/examples")
-set_target_properties(affrescoui_orrery PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

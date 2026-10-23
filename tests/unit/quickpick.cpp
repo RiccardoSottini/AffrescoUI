@@ -43,6 +43,17 @@ void press(affresco::Window& window, affresco::Key key) {
 /// @return It.
 json state(const affresco::Screen& screen) { return json::parse(screen.stateJson()); }
 
+/// @brief The first label in a subtree with a text.
+/// @param panel The subtree's root.
+/// @param text The text.
+/// @return It, or nullptr.
+const affresco::Label* labelWith(const affresco::Panel& panel, const std::string& text) {
+	if(const auto* label = dynamic_cast<const affresco::Label*>(&panel); label && label->text() == text) return label;
+	for(const auto& child : panel.children())
+		if(const auto* found = labelWith(*child, text)) return found;
+	return nullptr;
+}
+
 /// @brief A screen with a quick pick over files (the default provider) and commands (after ">").
 constexpr const char* pickScreen = R"json({
 	"format": "affrescoui-screen", "version": 2,
@@ -58,7 +69,8 @@ constexpr const char* pickScreen = R"json({
 	"root": { "id": "root", "children": [
 		{ "id": "pick", "use": "quickPick", "with": { "providers": [
 			{ "items": "{{state.files}}", "run": "open" },
-			{ "prefix": ">", "items": [{ "title": "Save", "run": "save" }], "placeholder": "Run a command" }
+			{ "prefix": ">", "items": [{ "title": "Save", "run": "save" }], "placeholder": "Run a command" },
+			{ "prefix": ":", "filter": false, "items": [{ "title": "Go to line 12", "run": "save" }] }
 		] } }
 	] }
 })json";
@@ -128,4 +140,60 @@ TEST_CASE("format: the quick pick filters, moves with the arrows, runs with Ente
 	now = state(screen);
 	CHECK(now["ran"] == "save");
 	CHECK(now["quickPick"]["recent"].size() == 1); // only the default provider's choices are remembered
+}
+
+TEST_CASE("format: a quick pick provider with filter false shows its items as given") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	affresco::Screen screen = affresco::Screen::fromString(pickScreen);
+	screen.build(*window);
+	affresco::Panel* root = screen.find("root");
+	REQUIRE(root);
+
+	screen.runAction("query", *root, R"({"q": ":99"})"); // "99" isn't in the title: fuzzy matching would drop the row
+	window->render();
+	press(*window, affresco::Key::Enter);
+	window->render();
+	const json now = state(screen);
+	CHECK(now["ran"] == "save");
+	CHECK(now["quickPick"]["open"] == false);
+}
+
+TEST_CASE("format: a stacked quick pick shows each row's detail under its title") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	std::string text = pickScreen;
+	text.replace(text.find(R"("with": { "providers")"), 21,
+	             R"("with": { "stacked": true, "rowHeight": 44, "providers")");
+	affresco::Screen screen = affresco::Screen::fromString(text);
+	screen.build(*window);
+	window->render();
+	const affresco::Panel* root = screen.find("root");
+	REQUIRE(root);
+	const affresco::Label* title = labelWith(*root, "main.cpp");
+	const affresco::Label* detail = labelWith(*root, "src");
+	REQUIRE(title);
+	REQUIRE(detail);
+	CHECK(detail->bounds().top >= title->bounds().bottom); // below, not beside
+	CHECK(detail->bounds().left == doctest::Approx(title->bounds().left));
+}
+
+TEST_CASE("format: a quick pick item's badge shows before its title") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	std::string text = pickScreen;
+	text.replace(text.find(R"({ "title": "main.cpp", "detail": "src" })"), 40,
+	             R"({ "title": "main.cpp", "detail": "src", "badge": "f", "badgeColor": "#336699" })");
+	affresco::Screen screen = affresco::Screen::fromString(text);
+	screen.build(*window);
+	window->render();
+	const affresco::Panel* root = screen.find("root");
+	REQUIRE(root);
+	const affresco::Label* badge = labelWith(*root, "f");
+	const affresco::Label* title = labelWith(*root, "main.cpp");
+	REQUIRE(badge);
+	REQUIRE(title);
+	CHECK(badge->bounds().right <= title->bounds().left); // before it, on its line
+	CHECK(badge->bounds().top == doctest::Approx(title->bounds().top));
+	CHECK(badge->color() == affresco::Color::hex(0x336699));
 }

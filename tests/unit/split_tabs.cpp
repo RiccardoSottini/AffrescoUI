@@ -321,7 +321,40 @@ TEST_CASE("split and tabs nodes: sizes and the active tab bound to state, close 
 	CHECK(error.find("direction") != std::string::npos);
 	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/tabs": [{ "label": "no id" }]}})", &error));
 	CHECK(error.find("id") != std::string::npos);
+	CHECK_FALSE(tabs->accentOnTop());
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/accentEdge": "left"}})", &error));
+	CHECK(error.find("accentEdge") != std::string::npos);
+	REQUIRE(screen.applyRevision(R"({"set": {"#strip/accentEdge": "top"}})", &error));
+	window->render();
+	CHECK(tabs->accentOnTop());
 	REQUIRE(screen.applyRevision(R"({"set": {"#panes/direction": "column"}})", &error));
 	window->render();
 	CHECK(split->direction() == Split::Direction::Column);
+}
+
+TEST_CASE("tabs node: a marker's colour, and a tab keeping its marker still closes from its close button") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(300, 200, clock);
+	auto screen = affresco::Screen::fromString(R"({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "open": [{ "id": "a", "marker": true }, { "id": "b" }] },
+		"root": { "id": "root", "children": [
+			{ "type": "tabs", "id": "strip", "width": 300, "height": 32, "tabs": "{{state.open}}", "value": "a",
+			  "markerColor": "#d6dce6", "keepMarker": true,
+			  "onClose": [{ "set": "state.open", "to": "{{filter(state.open, it.id != event.id)}}" }] }
+		] }
+	})");
+	screen.build(*window);
+	window->render();
+	window->routeMouseMove(TabsFixture::close(0));
+	window->routeMouseButton({MouseButton::Left, Action::Press, {}, TabsFixture::close(0)});
+	window->routeMouseButton({MouseButton::Left, Action::Release, {}, TabsFixture::close(0)});
+	window->render();
+	CHECK(json::parse(screen.stateJson())["open"] == json::parse(R"([{ "id": "b" }])"));
+
+	std::string error;
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/markerColor": "not a colour"}})", &error));
+	CHECK(error.find("markerColor") != std::string::npos);
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/keepMarker": 1}})", &error));
+	CHECK(error.find("keepMarker") != std::string::npos);
 }

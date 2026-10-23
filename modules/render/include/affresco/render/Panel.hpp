@@ -15,6 +15,7 @@
 #include <array>
 #include <cstdint>
 #include <concepts>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
@@ -284,6 +285,11 @@ public:
 	void setAlignSelf(std::optional<CrossAlign> align);
 	/// @brief Where it sits across its row or column, if it chose.
 	[[nodiscard]] std::optional<CrossAlign> alignSelf() const noexcept { return alignSelf_; }
+	/// @brief Sets where this panel sits along its row in a Grid cell, over the grid's choice (CSS justify-self).
+	/// @param align The place, or std::nullopt (the default) for the grid's justifyItems.
+	void setJustifySelf(std::optional<CrossAlign> align);
+	/// @brief Where it sits along its row in a Grid cell, if it chose.
+	[[nodiscard]] std::optional<CrossAlign> justifySelf() const noexcept { return justifySelf_; }
 	/// @brief Sets the cell it takes in a Grid.
 	/// @param cell Its column, row and spans; the default lets the grid place it in the next free cell.
 	void setGridCell(GridCell cell);
@@ -324,11 +330,32 @@ public:
 	/// @brief Makes this panel an overlay: drawn above everything, unclipped, placed next to an anchor panel.
 	/// @param anchorId The anchor's id; empty for the parent.
 	/// @param placement Where it goes.
-	void setOverlay(std::string anchorId, Placement placement);
+	/// @param flip true: placed on the opposite side (above for below, left for right) when the window has no room for
+	/// it on its own side and more on the other; its direct children are then mirrored on that axis, so an arrow
+	/// placed at the edge facing the anchor still faces it.
+	void setOverlay(std::string anchorId, Placement placement, bool flip = false);
 	/// @brief Makes it an ordinary panel again.
 	void clearOverlay();
-	/// @brief Whether it is an overlay.
-	[[nodiscard]] bool isOverlay() const noexcept { return overlay_; }
+	/// @brief Whether it is out of its parent's flow: an overlay, or a snapshot's source.
+	[[nodiscard]] bool isOverlay() const noexcept { return overlay_ || snapshot_; }
+	/// @brief Whether it is an overlay placed on the opposite side by its last layout (see setOverlay()).
+	[[nodiscard]] bool isFlipped() const noexcept { return flipped_; }
+
+	/* Snapshots: a subtree drawn into an image instead of on the window */
+
+	/// @brief Gives each new image of a snapshot's subtree.
+	using SnapshotHandler = std::function<void(std::shared_ptr<const Bitmap>)>;
+	/// @brief Makes this panel a snapshot's source: out of its parent's flow, like an overlay, and laid out from the
+	/// window's top left, unclipped, but never drawn on the window, hit, focused or shown to screen readers. Its
+	/// subtree is drawn into an image, as Window::renderToImage() draws, before each frame in which something in it
+	/// changed. Overlays inside it, and snapshots inside it, are left out.
+	/// @param scale Pixels per window unit: more than 0, up to 4 (1 otherwise).
+	/// @param onImage Given each new image, during the frame; a headless window gives none.
+	void setSnapshot(float scale, SnapshotHandler onImage);
+	/// @brief Makes it an ordinary panel again.
+	void clearSnapshot();
+	/// @brief Whether it is a snapshot's source.
+	[[nodiscard]] bool isSnapshot() const noexcept { return snapshot_ != nullptr; }
 
 	/// @brief Draws this panel's own content, as a frame would, into a painter of another kind (a PDF page, an image):
 	/// paint(), for drawers outside the window's renderer. The caller clips to bounds() and draws the children after.
@@ -401,11 +428,30 @@ public:
 	void setShadow(const Shadow& shadow);
 	/// @brief The shadow.
 	[[nodiscard]] const Shadow& shadow() const noexcept { return shadow_; }
+	/// @brief Fills the background with a gradient, over color() (like CSS background-image over background-color),
+	/// within the rounded corners.
+	/// @param gradient The gradient (normalised, see normalizeGradient()), shared with whoever else draws it; nullptr
+	/// (the default) draws none.
+	void setGradient(std::shared_ptr<const Gradient> gradient);
+	/// @brief The background's gradient.
+	/// @return It, or nullptr if there is none.
+	[[nodiscard]] const Gradient* gradient() const noexcept { return gradient_.get(); }
 	/// @brief Keeps the subtree's drawing in a texture, drawn as one quad until something in it changes.
 	/// @param cached true to cache it (worth it for a large subtree that rarely changes).
 	void setCached(bool cached) { setLook(cached_, cached); }
 	/// @brief The flag set by setCached().
 	[[nodiscard]] bool isCached() const noexcept { return cached_; }
+	/// @brief Lets the children draw and be hit outside the panel, as CSS `overflow: visible`: they are clipped to
+	/// what clips the panel instead (a slide's line or its overflowing text). A cached or scrolling panel still clips.
+	/// @param visible true to let them overflow.
+	void setOverflowVisible(bool visible) { setProperty(overflowVisible_, visible); }
+	/// @brief The flag set by setOverflowVisible().
+	[[nodiscard]] bool isOverflowVisible() const noexcept { return overflowVisible_; }
+	/// @brief The area the children are clipped to, absolute: bounds(), or with setOverflowVisible() what clips the
+	/// panel itself.
+	[[nodiscard]] const Rect& childClip() const noexcept { return overflows() ? childClip_ : bounds_; }
+	/// @brief Whether the children overflow now: setOverflowVisible(), unless the panel is cached or scrolls.
+	[[nodiscard]] bool overflows() const noexcept { return overflowVisible_ && !cached_ && !isScrollable(); }
 	/// @brief Transforms how the panel and its subtree are painted, as CSS transform: layout keeps the untransformed
 	/// frame, while drawing, hit-testing and pointer positions go through it. It composes with the ancestors'
 	/// transforms (an overlay has only its own).
@@ -416,8 +462,19 @@ public:
 	[[nodiscard]] const Affine2& transform() const noexcept { return transform_; }
 	/// @brief Where the transform applies, as a share of the frame's size.
 	[[nodiscard]] Vec2 transformOrigin() const noexcept { return transformOrigin_; }
-	/// @brief The transform about its origin: from this panel's layout space into its parent's.
-	/// @return The identity when it has none.
+	/// @brief Places the panel, as laid out, in its parent's space: set by a container that draws its children
+	/// through a view (a zoomed canvas), apart from the panel's own transform, which applies first.
+	/// @param transform From the panel's transformed space into its parent's; the identity by default.
+	void setParentTransform(const Affine2& transform);
+	/// @brief The transform set by setParentTransform().
+	[[nodiscard]] const Affine2& parentTransform() const noexcept { return parentTransform_; }
+	/// @brief Whether the panel is drawn through its own or its parent's transform.
+	/// @return false when both are the identity.
+	[[nodiscard]] bool isTransformed() const noexcept {
+		return !transform_.isIdentity() || !parentTransform_.isIdentity();
+	}
+	/// @brief The transform about its origin, then the parent's transform: from this panel's layout space into its parent's.
+	/// @return The identity when it has neither.
 	[[nodiscard]] Affine2 localTransform() const noexcept;
 	/// @brief From this panel's layout space (where frame() and bounds() are) into the window.
 	/// @return Its own and its ancestors' local transforms; an overlay's own only.
@@ -530,8 +587,22 @@ protected:
 	/// them (with setAnchor() and arrangeSize()). Property changes made here don't trigger another layout.
 	virtual void arrange() {}
 
+	/// @brief Whether the panel takes its size on some axis from its children (a stack's fitContent), so a change in
+	/// a child changes its size too.
+	/// @return false by default.
+	[[nodiscard]] virtual bool fitsChildren() const noexcept { return false; }
+
+	/// @brief The size the panel takes once its children are measured, on the axes it fits to them.
+	/// @param size Its own size, from its width and height.
+	/// @param reference What the children's percentages refer to on the axes it doesn't fit.
+	/// @return @p size by default.
+	[[nodiscard]] virtual Vec2 fittedSize(Vec2 size, Vec2 reference) {
+		static_cast<void>(reference);
+		return size;
+	}
+
 	/// @brief Draws this panel; the children are drawn after it, on top. The default draws the shadow, fills bounds()
-	/// with color() (rounding the corners, if any), then draws the border.
+	/// with color() and then gradient() (rounding the corners, if any), then draws the border.
 	/// @param painter Clips to bounds().
 	virtual void paint(Painter& painter) const;
 
@@ -721,6 +792,7 @@ private:
 	float shrink_ = 0.0f;                                ///< See shrink().
 	std::optional<Length> basis_;                        ///< See basis().
 	std::optional<CrossAlign> alignSelf_;                ///< See alignSelf().
+	std::optional<CrossAlign> justifySelf_;              ///< See justifySelf().
 	GridCell gridCell_;                                  ///< See gridCell().
 	WritingDirection writingDirection_ = WritingDirection::Inherit; ///< See writingDirection().
 	bool rightToLeft_ = false;                                      ///< See rightToLeft().
@@ -734,10 +806,13 @@ private:
 	float borderWidth_ = 0.0f;                            ///< See borderWidth().
 	Color borderColor_ = colors::black;                   ///< See borderColor().
 	Shadow shadow_;                                       ///< See shadow().
+	std::shared_ptr<const Gradient> gradient_;            ///< See gradient().
 	bool visible_ = true;                                 ///< See setVisible().
 	bool cached_ = false;                                 ///< See setCached().
+	bool overflowVisible_ = false;                        ///< See setOverflowVisible().
 	Affine2 transform_;                                   ///< See transform().
 	Vec2 transformOrigin_{0.5f, 0.5f};                    ///< See transformOrigin().
+	Affine2 parentTransform_;                             ///< See parentTransform().
 	Cursor cursor_ = Cursor::Arrow;                       ///< See setCursor().
 	std::string tooltip_;                                 ///< See tooltip().
 	std::string role_;                                    ///< See accessibleRole().
@@ -749,9 +824,21 @@ private:
 	Vec2 scroll_;                            ///< See scrollOffset().
 	Vec2 contentMin_, contentMax_;           ///< The children's extent, unscrolled, relative to the frame.
 
-	bool overlay_ = false;                   ///< See isOverlay().
+	bool overlay_ = false;                   ///< See setOverlay().
 	std::string overlayAnchor_;              ///< See setOverlay().
 	Placement placement_ = Placement::Below; ///< See setOverlay().
+	bool flip_ = false;                      ///< See setOverlay().
+	bool flipped_ = false;                   ///< See isFlipped().
+
+	/// @brief What setSnapshot() set, and what the window last drew of it.
+	struct Snapshot {
+		float scale = 1.0f;           ///< Pixels per window unit.
+		SnapshotHandler onImage;      ///< Given each new image.
+		std::uint64_t pass = 0;       ///< The window's layout pass when it was last drawn.
+		std::uint64_t generation = 0; ///< The window's paint generation then.
+		bool drawn = false;           ///< Drawn since setSnapshot().
+	};
+	std::unique_ptr<Snapshot> snapshot_; ///< See setSnapshot(); null for an ordinary panel.
 
 	std::uint64_t layoutPass_ = 0;         ///< The window's layout pass this panel was last laid out in.
 	std::uint64_t skippedPass_ = 0;        ///< The window's layout pass that last skipped this panel and its subtree.
@@ -760,9 +847,10 @@ private:
 	bool layoutDirty_ = true;              ///< Its own properties changed since it was last laid out.
 	bool layoutBelow_ = false;             ///< A descendant's layoutDirty_ is set.
 	bool anchorsBelow_ = false;            ///< It or a descendant is anchored to another panel: never skipped.
-	bool overlaysBelow_ = false;           ///< A descendant is an overlay, for Window::layoutOverlays().
+	bool overlaysBelow_ = false;           ///< A descendant is an overlay or a snapshot, for Window::layoutOverlays().
 	Rect frame_;                           ///< See frame().
 	Rect bounds_;                          ///< See bounds().
+	Rect childClip_;                       ///< See childClip().
 	Vec2 size_;                            ///< See resolvedSize().
 	bool shown_ = false;                   ///< See isShown().
 

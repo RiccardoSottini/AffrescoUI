@@ -14,7 +14,8 @@ namespace {
 
 /// The top-level sections, in the order of the table.
 constexpr auto sectionTable = std::to_array<KeyReference>({
-    {"version", R"json({"const": 2})json", "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
+    {"version", R"json({"const": 2})json",
+	 "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
     {"root", R"json({"$ref": "#/$defs/v2/node",
 		"description": "The window's root panel: it always fills the window"})json",
 	 "Required. The window's root node. It always fills the window, so layout properties aren't allowed on it.",
@@ -43,12 +44,41 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"additionalProperties": false, "properties": {"file": {"type": "string"},
 		"size": {"anyOf": [{"type": "number", "exclusiveMinimum": 0}, {"$ref": "#/$defs/v2/tokenName"}]}, "fallback": {"type": "array",
 		"description": "Other fonts in \"fonts\", asked in order for characters this one lacks; drawn at this font's size",
-		"maxItems": 8, "items": {"type": "string"}}}}})json",
-	 "`name → { \"file\", \"size\", \"fallback\" }`, paths relative to the screen file (TrueType or OpenType, a "
-	 "collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script "
+		"maxItems": 8, "items": {"type": "string"}}, "bold": {"type": "boolean",
+		"description": "Thickened outlines, for a file that has only a regular weight"}, "italic": {"type": "boolean",
+		"description": "Slanted outlines, for a file that has only an upright style"}}}})json",
+	 "`name → { \"file\", \"size\", \"fallback\", \"bold\", \"italic\" }`, paths relative to the screen file (TrueType "
+	 "or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script "
 	 "(kerning, ligatures, Arabic, Indic; right-to-left runs), colour emoji from COLR fonts. `\"fallback\": "
 	 "[\"symbols\"]` names other fonts asked in order for a character this one lacks; a character none has shows as "
-	 "`?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has).",
+	 "`?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has). `\"bold\": true` and `\"italic\": true` "
+	 "thicken or slant the outlines, for headings from a file with one weight: `\"heading\": { \"file\": "
+	 "\"Roboto-Regular.ttf\", \"size\": 20, \"bold\": true }`; a label's `runs` keep its font's style unless they "
+	 "set their own.",
+	 "sections"},
+    {"languages", R"json({"type": "object", "maxProperties": 64,
+		"description": "Code languages an editor's \"language\" names: patterns whose scopes the @syntax.* tokens colour, and editing rules",
+		"additionalProperties": {"type": "object", "additionalProperties": false, "properties": {
+		"title": {"type": "string"}, "aliases": {"type": "array", "maxItems": 64, "items": {"type": "string"}},
+		"files": {"type": "array", "maxItems": 64, "items": {"type": "string"}},
+		"comments": {"type": "object", "additionalProperties": false, "properties": {"line": {"type": "string"},
+		"block": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string"}}}},
+		"brackets": {"$ref": "#/$defs/v2/characterPairs"}, "pairs": {"$ref": "#/$defs/v2/characterPairs"},
+		"indent": {"type": "object", "additionalProperties": false, "properties": {"increase": {"type": "string"},
+		"decrease": {"type": "string"}}}, "wordPattern": {"type": "string"},
+		"patterns": {"type": "array", "items": {"type": "object"}},
+		"repository": {"type": "object", "additionalProperties": {"type": "object"}}}}})json",
+	 "`name → language`: the code languages an editor's `language` names (by name, alias or file name). Each has "
+	 "`title`, `aliases`, `files` (`[\"*.py\", \"CMakeLists.txt\"]`), `comments` (`{ \"line\": \"//\", \"block\": "
+	 "[\"/*\", \"*/\"] }`), `brackets` and `pairs` (`[[\"(\", \")\"], ...]`: Enter between brackets indents, typing "
+	 "an opener of a pair adds its closer), `indent` (`{ \"increase\": regex, \"decrease\": regex }`), "
+	 "`wordPattern` (regex), and TextMate-style `patterns` with a `repository`: `{ \"match\": regex, \"scope\": "
+	 "\"keyword\" }`, `{ \"begin\": regex, \"end\": regex, \"scope\", \"contentScope\", \"patterns\" }` (an `end` may "
+	 "use the begin's groups, `\\1`), `captures` / `beginCaptures` / `endCaptures` (`{ \"1\": { \"scope\": "
+	 "\"type\" } }`) and `{ \"include\": \"#name\" }` or `\"$self\"`. A scope is coloured by `@syntax.<scope>`, or "
+	 "its parent's (`keyword.control` by `@syntax.keyword`). Regular expressions are PCRE2, each find limited in "
+	 "steps and each line in time; a language has at most 2,048 rules. Ready-made languages are data files to "
+	 "`include` (`examples/shared/languages/`).",
 	 "sections"},
     {"colors", R"json({"type": "object",
 		"description": "Named colors (\"@name\"), or per theme: {\"light\": ..., \"dark\": ...}",
@@ -94,6 +124,11 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "sections"},
     {"templates", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/node"}})json",
 	 "`name → node`, built by code on demand (`Screen::instantiate`).", "sections"},
+    {"overlays", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/node"}})json",
+	 "`name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each "
+	 "is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and "
+	 "isn't built while its `when` doesn't hold.",
+	 "sections"},
     {"state", R"json({"type": "object"})json", "The app's data, any JSON object.", "sections"},
     {"stateTypes", R"json({"type": "object",
 		"description": "A type per state key, written as JSON Schema: type, enum, const, properties, required, additionalProperties, items, minimum, maximum, minLength, maxLength, minItems, maxItems",
@@ -180,7 +215,7 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "capabilities"},
     {"include", R"json({"anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]})json",
 	 "`[\"parts/sidebar.json\", ...]`: files merged in at load, section by section (this file's entries win; `menus` "
-	 "menu by menu, so several files add to one menu).",
+	 "menu by menu, so several files add to one menu; `persist` lists join).",
 	 "sections"},
     {"permissions", R"json({"type": "object", "additionalProperties": false,
 		"description": "Who may change the running screen (VERSION_CONTROL.md). Revisions can't change it.",
@@ -224,6 +259,20 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"additionalProperties": {"type": "string"}})json",
 	 "`{\"ui\": \"workbench@^1.0.0\"}`: `\"use\": \"ui.panel\"` builds the feature's `workbench.panel`, if its "
 	 "release is in the range.",
+	 "capabilities"},
+    {"images", R"json({"type": "object", "maxProperties": 16,
+		"description": "Raster images the image step edits, with their tools and lowered limits",
+		"additionalProperties": {"type": "object", "required": ["width", "height"],
+		"properties": {"width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1},
+		"format": {"enum": ["rgba8", "rgba16f"]}, "background": {"type": "string"},
+		"into": {"type": "string", "pattern": "^state\\."}, "tool": {"type": "string"},
+		"tools": {"type": "object", "maxProperties": 64, "additionalProperties": {"type": "object",
+		"required": ["gesture"], "properties": {"gesture": {"type": "string"}}}},
+		"limits": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}}}}})json",
+	 "`{\"canvas\": {\"width\": 800, \"height\": 600, \"into\": \"state.canvas\", \"tools\": {\"brush\": "
+	 "{\"gesture\": \"paint\", \"size\": 12}}}}`: the images the `image` step edits; `tools` names the "
+	 "library's gestures with their settings, and `limits` only lowers the library's (see Images). Revisions can't "
+	 "change it.",
 	 "capabilities"},
     {"points", R"json({"type": "object", "description": "Contribution points another app's features may fill",
 		"additionalProperties": {"type": "object", "required": ["slot"],
@@ -287,13 +336,36 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "`error` in `onError` is `{code, message}`. A control step",
 	 "steps"},
     {"signOut", "", R"(`{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step)", "steps"},
+    {"chooseFolder", "",
+	 "`{ \"chooseFolder\": \"workspace\", \"title\": \"Open Folder\", \"onDone\": [...], \"onError\": [...] }`: "
+	 "after the event, asks the person for the folder a root names, in the OS's folder dialog (if the host lets them "
+	 "choose it). The services that use the root start again on it; `result` in `onDone` is `{name}`, the folder's "
+	 "own name (never where it is), `error` in `onError` is `{code, message}`; nothing runs if they cancel. A control "
+	 "step",
+	 "steps"},
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
+    {"ask", "",
+	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: asks the agents in plain words; replies "
+	 "run `ask:reply`, never as the person's decision (Asking the agents). A control step",
+	 "steps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
-    {"focus", "", R"(`{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update))", "steps"},
+    {"focus", "",
+	 R"(`{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` )"
+	 R"((after the update, waiting up to two frames for a node that is still being laid out))",
+	 "steps"},
     {"scrollTo", "", "", "steps"},
+    {"edit", "",
+	 "`{ \"edit\": \"sortLines\", \"in\": \"#code\" }`: a code editor's command (Editor steps)",
+	 "steps"},
+    {"in", "", "", ""},
+    {"line", "", "", ""},
+    {"column", "", "", ""},
+    {"toLine", "", "", ""},
+    {"toColumn", "", "", ""},
+    {"prefix", "", "", ""},
     {"dismiss", R"json({"const": true})json",
 	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},
     {"after", "", R"(`{ "after": 2000, "do": [...] }`: later)", "steps"},
@@ -327,12 +399,40 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"loading", "", "", ""},
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
+    {"image", "",
+	 R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation and publishes the image (see Images))", "steps"},
+    {"of", "", "", ""},
+    {"camera", "",
+	 R"(`{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, )"
+	 R"(`zoom`: see `scene`))",
+	 "steps"},
+    {"view", R"json({"anyOf": [{"enum": ["front", "back", "left", "right", "top", "bottom"]},
+		{"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "", ""},
+    {"frame", "", "", ""},
+    {"projection", R"json({"anyOf": [{"enum": ["perspective", "orthographic", "toggle"]},
+		{"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "", ""},
+    {"orbit", "", "", ""},
+    {"zoom", "", "", ""},
+    {"transform", "",
+	 R"(`{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the )"
+	 R"(pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows )"
+	 R"(the pointer again), `end` (confirm, cancel) ends it)",
+	 "steps"},
+    {"mode", R"json({"anyOf": [{"enum": ["translate", "rotate", "scale"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "",
+	 ""},
+    {"axis",
+	 R"json({"anyOf": [{"enum": ["x", "y", "z", "xy", "yz", "zx", "view"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "",
+	 ""},
+    {"end", R"json({"anyOf": [{"enum": ["confirm", "cancel"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "", ""},
     {"append", "", "", ""},
     {"keep", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "string"}]})json", "", ""},
     {"id", "", "", ""},
     {"error", "", "", ""},
     {"data", "", "", ""},
     {"message", "", "", ""},
+    {"title", "", "", ""},
     {"ms", "", "", ""},
     {"easing", R"json({"enum": ["linear", "in", "out", "inOut"]})json", "", ""},
     {"head", "", "", ""},
@@ -349,6 +449,9 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 constexpr auto definitionTable = std::to_array<KeyReference>({
     {"permissionRule", R"json({"type": "string", "pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
 		"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""})json",
+	 "", ""},
+    {"characterPairs", R"json({"type": "array", "maxItems": 32, "items": {"type": "array", "minItems": 2, "maxItems": 2,
+		"items": {"type": "string", "minLength": 1, "maxLength": 1}}})json",
 	 "", ""},
     {"hexColor", R"json({"type": "string", "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"})json", "",
 	 ""},

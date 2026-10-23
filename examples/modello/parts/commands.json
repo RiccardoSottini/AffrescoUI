@@ -1,0 +1,409 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Modello's actions, keys and menus, modelled on Blender's keymap: G, R and S move, turn and scale the selection after the pointer (X, Y and Z lock an axis, Shift a plane, digits type the amount, Enter or a click confirms, Escape or a right click cancels); Shift+A adds, X and Delete delete, Shift+D duplicates, H hides; the numpad turns the view; Ctrl+Z undoes. Every change of the scene goes through an action that keeps an undo snapshot first.",
+	"computed": {
+		"centre": "{{ { x: nodes.viewport.x + nodes.viewport.width / 2 - 100, y: nodes.viewport.y + nodes.viewport.height / 2 - 60 } }}",
+		"lastCentre": "{{state.lastOp == null || length(state.lastOp.base) == 0 ? [0, 0, 0] : map([sum(map(state.lastOp.base, it.translation[0])), sum(map(state.lastOp.base, it.translation[1])), sum(map(state.lastOp.base, it.translation[2]))], it / length(state.lastOp.base))}}",
+		"searchItems": "{{map(filter(commands, it.enabled && it.name != 'search'), { title: it.title, detail: it.keyLabel ?? it.category, icon: it.icon, run: it.name })}}",
+		"cameraNode": "{{find(state.scene.nodes, it.kind == 'camera')}}",
+		"modalName": "{{state.modal ? (state.modal.mode == 'translate' ? 'Move' : state.modal.mode == 'rotate' ? 'Rotate' : 'Resize') : ''}}"
+	},
+	"actions": {
+		"pick": [
+			{ "if": "{{event.type != 'pick' || state.modal != null}}", "then": [{ "stop": true }] },
+			{ "if": "{{event.button == 'right' && event.shift}}", "then": [{ "set": "state.cursor", "to": "{{event.point}}" }, { "stop": true }] },
+			{ "if": "{{event.button == 'right'}}", "then": [{ "run": "openPopup", "with": { "args": { "menu": "objectContext", "x": "{{nodes.viewport.x + event.x}}", "y": "{{nodes.viewport.y + event.y}}" } } }, { "stop": true }] },
+			{ "if": "{{event.id != null}}", "then": [{ "set": "state.active", "to": "{{event.id}}" }] }
+		],
+		"transformed": [
+			{ "if": "{{event.phase == 'preview'}}", "then": [{ "set": "state.modalText", "to": "{{event.text}}" }, { "stop": true }] },
+			{ "set": "state.modal", "to": null },
+			{ "set": "state.modalText", "to": "" },
+			{ "if": "{{event.phase != 'end'}}", "then": [{ "stop": true }] },
+			{ "run": "snapshot" },
+			{ "set": "state.lastBase", "to": [] },
+			{ "forEach": "{{event.nodes}}", "as": "m", "do": [
+				{ "push": "state.lastBase", "value": "{{find(state.undo[length(state.undo) - 1].nodes, it.id == m.id)}}" },
+				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), m.id)]",
+				  "to": "{{merge(state.scene.nodes[indexOf(map(state.scene.nodes, it.id), m.id)], { translation: map(m.translation, round(it * 10000) / 10000), rotationDegrees: map(m.rotationDegrees, round(it * 1000) / 1000), scale: map(m.scale, round(it * 10000) / 10000) })}}" }
+			] },
+			{ "set": "state.last", "to": "{{event.text}}" },
+			{ "set": "state.lastOp", "to": "{{ { title: event.mode == 'translate' ? 'Move' : event.mode == 'rotate' ? 'Rotate' : 'Resize', kind: event.mode, base: state.lastBase, values: event.mode == 'translate' ? map(event.nodes[0].translation, round((it - state.lastBase[0].translation[index]) * 10000) / 10000) : event.mode == 'scale' ? map(event.nodes[0].scale, state.lastBase[0].scale[index] == 0 ? 1 : round(it / state.lastBase[0].scale[index] * 10000) / 10000) : null } }}" }
+		],
+		"search": { "title": "Search…", "category": "Edit", "icon": "search", "do": [{ "dismiss": true }, { "set": "state.quickPick", "to": { "open": true, "query": "" } }] },
+		"adjustLastPanel": { "title": "Adjust Last Operation", "category": "Edit", "do": [{ "set": "state.redoOpen", "to": true }] },
+		"adjustLast": [
+			{ "if": "{{state.lastOp == null || state.lastOp.values == null}}", "then": [{ "stop": true }] },
+			{ "set": "state.lastOp.values[args.axis]", "to": "{{round(args.value * 10000) / 10000}}" },
+			{ "forEach": "{{state.lastOp.base}}", "as": "b", "do": [
+				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), b.id)]",
+				  "to": "{{merge(b, state.lastOp.kind == 'scale' ? { translation: map(b.translation, computed.lastCentre[index] + (it - computed.lastCentre[index]) * state.lastOp.values[index]), scale: map(b.scale, round(it * state.lastOp.values[index] * 10000) / 10000) } : { translation: map(b.translation, round((it + state.lastOp.values[index]) * 10000) / 10000) })}}" }
+			] }
+		],
+		"snapshot": [
+			{ "set": "state.lastOp", "to": null },
+			{ "push": "state.undo", "value": "{{state.scene}}" },
+			{ "if": "{{length(state.undo) > 32}}", "then": [{ "remove": "state.undo", "at": 0 }] },
+			{ "set": "state.redo", "to": [] }
+		],
+		"undo": {
+			"title": "Undo", "category": "Edit", "icon": "undo-2", "enablement": "{{length(state.undo) > 0}}",
+			"do": [
+				{ "set": "state.lastOp", "to": null },
+				{ "push": "state.redo", "value": "{{state.scene}}" },
+				{ "set": "state.scene", "to": "{{state.undo[length(state.undo) - 1]}}" },
+				{ "remove": "state.undo", "at": "{{length(state.undo) - 1}}" },
+				{ "set": "state.view.selection", "to": "{{filter(state.view.selection, some(state.scene.nodes, it.id == state.view.selection[index]))}}" }
+			]
+		},
+		"redo": {
+			"title": "Redo", "category": "Edit", "icon": "redo-2", "enablement": "{{length(state.redo) > 0}}",
+			"do": [
+				{ "push": "state.undo", "value": "{{state.scene}}" },
+				{ "set": "state.scene", "to": "{{state.redo[length(state.redo) - 1]}}" },
+				{ "remove": "state.redo", "at": "{{length(state.redo) - 1}}" }
+			]
+		},
+		"startTransform": [
+			{ "if": "{{length(state.view.selection) == 0}}", "then": [{ "stop": true }] },
+			{ "set": "state.modal", "to": { "mode": "{{args.mode}}", "axis": "view", "typed": "" } },
+			{ "set": "state.modalText", "to": "{{computed.modalName}}" },
+			{ "transform": "#viewport", "mode": "{{args.mode}}" }
+		],
+		"grab": { "title": "Move", "category": "Object", "icon": "move", "do": [{ "run": "startTransform", "with": { "args": { "mode": "translate" } } }] },
+		"rotate": { "title": "Rotate", "category": "Object", "icon": "rotate-cw", "do": [{ "run": "startTransform", "with": { "args": { "mode": "rotate" } } }] },
+		"resize": { "title": "Scale", "category": "Object", "icon": "scale-3-d", "do": [{ "run": "startTransform", "with": { "args": { "mode": "scale" } } }] },
+		"lockAxis": [
+			{ "set": "state.modal.axis", "to": "{{state.modal.axis == args.axis ? 'view' : args.axis}}" },
+			{ "transform": "#viewport", "axis": "{{state.modal.axis}}" }
+		],
+		"typeDigit": [
+			{ "set": "state.modal.typed", "to": "{{args.key == 'back' ? slice(state.modal.typed, 0, max(0, length(state.modal.typed) - 1)) : args.key == '-' ? (slice(state.modal.typed, 0, 1) == '-' ? slice(state.modal.typed, 1) : '-' + state.modal.typed) : state.modal.typed + args.key}}" },
+			{ "transform": "#viewport", "value": "{{number(state.modal.typed)}}" }
+		],
+		"confirmTransform": [{ "transform": "#viewport", "end": "confirm" }],
+		"cancelTransform": [{ "transform": "#viewport", "end": "cancel" }, { "set": "state.modal", "to": null }],
+		"openPopup": [
+			{ "set": "state.ctx", "to": { "open": true, "menu": "{{args.menu}}", "x": "{{args.x ?? computed.centre.x}}", "y": "{{args.y ?? computed.centre.y}}" } }
+		],
+		"addMenu": { "title": "Add", "category": "Object", "icon": "plus", "do": [{ "run": "openPopup", "with": { "args": { "menu": "add" } } }] },
+		"deleteMenu": { "title": "Delete…", "category": "Object", "do": [{ "if": "{{length(state.view.selection) > 0}}", "then": [{ "run": "openPopup", "with": { "args": { "menu": "delete" } } }] }] },
+		"uniqueName": [
+			{ "set": "state.tmp", "to": { "n": 0, "name": "{{args.name}}" } },
+			{ "while": "{{some(state.scene.nodes, it.name == state.tmp.name)}}", "do": [
+				{ "increment": "state.tmp.n", "by": 1 },
+				{ "set": "state.tmp.name", "to": "{{args.name + '.' + pad(state.tmp.n, 3, '0')}}" }
+			] }
+		],
+		"addObject": [
+			{ "dismiss": true },
+			{ "if": "{{state.mode != 'object'}}", "then": [{ "set": "state.mode", "to": "object" }] },
+			{ "run": "snapshot" },
+			{ "increment": "state.added", "by": 1 },
+			{ "run": "uniqueName", "with": { "args": { "name": "{{args.name}}" } } },
+			{ "push": "state.scene.nodes", "value": {
+				"id": "{{lower(args.kind)}}-{{state.added}}", "name": "{{state.tmp.name}}", "kind": "{{args.kind}}",
+				"mesh": "{{args.mesh ?? null}}", "material": "{{args.kind == 'mesh' ? 'material' : null}}",
+				"light": "{{args.light ?? null}}", "camera": "{{args.kind == 'camera' ? { fieldOfView: 0.69 } : null}}",
+				"translation": "{{state.cursor}}", "rotationDegrees": [0, 0, 0], "scale": [1, 1, 1] } },
+			{ "set": "state.view.selection", "to": "{{[lower(args.kind) + '-' + state.added]}}" },
+			{ "set": "state.active", "to": "{{lower(args.kind) + '-' + state.added}}" },
+			{ "set": "state.last", "to": "Add {{args.name}}" },
+			{ "set": "state.lastOp", "to": "{{ { title: 'Add ' + args.name, kind: 'translate', label: 'Location', base: [merge(state.scene.nodes[length(state.scene.nodes) - 1], { translation: [0, 0, 0] })], values: state.cursor } }}" }
+		],
+		"deleteSelected": {
+			"title": "Delete", "category": "Object", "icon": "trash-2", "enablement": "{{length(state.view.selection) > 0}}",
+			"do": [
+				{ "dismiss": true },
+				{ "run": "snapshot" },
+				{ "set": "state.scene.nodes", "to": "{{filter(state.scene.nodes, !contains(state.view.selection, it.id))}}" },
+				{ "set": "state.view.selection", "to": [] },
+				{ "set": "state.active", "to": null },
+				{ "set": "state.last", "to": "Delete" }
+			]
+		},
+		"duplicate": {
+			"title": "Duplicate Objects", "category": "Object", "icon": "copy", "enablement": "{{length(state.view.selection) > 0}}",
+			"do": [
+				{ "run": "snapshot" },
+				{ "set": "state.dupes", "to": [] },
+				{ "forEach": "{{computed.selectedNodes}}", "as": "m", "do": [
+					{ "increment": "state.added", "by": 1 },
+					{ "run": "uniqueName", "with": { "args": { "name": "{{split(m.name, '.')[0]}}" } } },
+					{ "push": "state.scene.nodes", "value": "{{merge(m, { id: split(m.id, '-')[0] + '-' + state.added, name: state.tmp.name })}}" },
+					{ "push": "state.dupes", "value": "{{split(m.id, '-')[0] + '-' + state.added}}" }
+				] },
+				{ "set": "state.view.selection", "to": "{{state.dupes}}" },
+				{ "set": "state.active", "to": "{{state.dupes[length(state.dupes) - 1]}}" },
+				{ "after": 0, "do": [{ "run": "startTransform", "with": { "args": { "mode": "translate" } } }] }
+			]
+		},
+		"hideSelected": {
+			"title": "Hide Selected", "category": "Object", "icon": "eye-off",
+			"do": [
+				{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, contains(state.view.selection, it.id) ? merge(it, { visible: false }) : it)}}" },
+				{ "set": "state.view.selection", "to": [] }
+			]
+		},
+		"hideUnselected": {
+			"title": "Hide Unselected", "category": "Object",
+			"do": [{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, contains(state.view.selection, it.id) ? it : merge(it, { visible: false }))}}" }]
+		},
+		"revealHidden": {
+			"title": "Show Hidden Objects", "category": "Object", "icon": "eye",
+			"do": [
+				{ "set": "state.view.selection", "to": "{{map(filter(state.scene.nodes, it.visible == false), it.id)}}" },
+				{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, merge(it, { visible: true }))}}" }
+			]
+		},
+		"selectAll": { "title": "Select All", "category": "Select", "do": [{ "set": "state.view.selection", "to": "{{map(filter(state.scene.nodes, it.visible != false), it.id)}}" }] },
+		"selectNone": { "title": "Select None", "category": "Select", "do": [{ "set": "state.view.selection", "to": [] }] },
+		"selectInvert": { "title": "Invert Selection", "category": "Select", "do": [{ "set": "state.view.selection", "to": "{{map(filter(state.scene.nodes, it.visible != false && !contains(state.view.selection, it.id)), it.id)}}" }] },
+		"selectNode": [
+			{ "if": "{{!args.shift}}", "then": [{ "set": "state.view.selection", "to": "{{[args.id]}}" }, { "set": "state.active", "to": "{{args.id}}" }, { "stop": true }] },
+			{ "if": "{{contains(state.view.selection, args.id) && state.active == args.id}}",
+			  "then": [{ "set": "state.view.selection", "to": "{{filter(state.view.selection, it != args.id)}}" }],
+			  "else": [{ "set": "state.view.selection", "to": "{{concat(filter(state.view.selection, it != args.id), [args.id])}}" }, { "set": "state.active", "to": "{{args.id}}" }] }
+		],
+		"toggleFlag": [
+			{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), args.id)][args.key]",
+			  "to": "{{state.scene.nodes[indexOf(map(state.scene.nodes, it.id), args.id)][args.key] == false}}" },
+			{ "if": "{{args.key != 'render' && state.scene.nodes[indexOf(map(state.scene.nodes, it.id), args.id)][args.key] == false}}",
+			  "then": [{ "set": "state.view.selection", "to": "{{filter(state.view.selection, it != args.id)}}" }] }
+		],
+		"setField": [
+			{ "if": "{{args.key == 'redo'}}", "then": [{ "run": "adjustLast", "with": { "args": { "axis": "{{args.axis}}", "value": "{{args.value}}" } } }, { "stop": true }] },
+			{ "if": "{{computed.activeIndex < 0}}", "then": [{ "stop": true }] },
+			{ "set": "state.scene.nodes[computed.activeIndex][args.key][args.axis]", "to": "{{round(args.value * 10000) / 10000}}" }
+		],
+		"rename": [
+			{ "if": "{{trim(args.name) == '' || computed.activeIndex < 0}}", "then": [{ "stop": true }] },
+			{ "run": "snapshot" },
+			{ "set": "state.scene.nodes[computed.activeIndex].name", "to": "{{trim(args.name)}}" }
+		],
+		"setMode": { "title": "Set Mode", "category": "Object", "do": [{ "dismiss": true }, { "set": "state.mode", "to": "{{args.mode}}" }] },
+		"toggleEditMode": { "title": "Toggle Edit Mode", "category": "Object", "do": [{ "set": "state.mode", "to": "{{state.mode == 'edit' ? 'object' : 'edit'}}" }] },
+		"setOption": [{ "dismiss": true }, { "set": "state[args.key]", "to": "{{args.value}}" }],
+		"toggleOption": [{ "toggle": "state[args.key]" }],
+		"setTool": [{ "set": "state.tool", "to": "{{args.tool}}" }],
+		"toggleSidebar": { "title": "Sidebar", "category": "View", "do": [{ "toggle": "state.sidebar" }] },
+		"toggleToolbar": { "title": "Toolbar", "category": "View", "do": [{ "set": "state.toolbar", "to": "{{state.toolbar == false}}" }] },
+		"toggleTheme": { "title": "Toggle Light and Dark Theme", "category": "Window", "icon": "sun-moon", "do": [{ "set": "state.theme", "to": "{{state.theme == 'dark' ? 'light' : 'dark'}}" }] },
+		"viewAxis": [{ "set": "state.inCamera", "to": false }, { "camera": "#viewport", "view": "{{args.view}}" }],
+		"viewFront": { "title": "Front", "category": "View", "do": [{ "run": "viewAxis", "with": { "args": { "view": "front" } } }] },
+		"viewBack": { "title": "Back", "category": "View", "do": [{ "run": "viewAxis", "with": { "args": { "view": "back" } } }] },
+		"viewRight": { "title": "Right", "category": "View", "do": [{ "run": "viewAxis", "with": { "args": { "view": "right" } } }] },
+		"viewLeft": { "title": "Left", "category": "View", "do": [{ "run": "viewAxis", "with": { "args": { "view": "left" } } }] },
+		"viewTop": { "title": "Top", "category": "View", "do": [{ "run": "viewAxis", "with": { "args": { "view": "top" } } }] },
+		"viewBottom": { "title": "Bottom", "category": "View", "do": [{ "run": "viewAxis", "with": { "args": { "view": "bottom" } } }] },
+		"viewCamera": {
+			"title": "Camera", "category": "View", "icon": "video", "enablement": "{{computed.cameraNode != null}}",
+			"do": [
+				{ "if": "{{state.inCamera}}", "then": [{ "set": "state.inCamera", "to": false }, { "stop": true }] },
+				{ "set": "state.view.camera", "to": "{{ { target: [computed.cameraNode.translation[0] - sin(radians(computed.cameraNode.rotationDegrees[0])) * sin(radians(computed.cameraNode.rotationDegrees[2])) * 10, computed.cameraNode.translation[1] + sin(radians(computed.cameraNode.rotationDegrees[0])) * cos(radians(computed.cameraNode.rotationDegrees[2])) * 10, computed.cameraNode.translation[2] - cos(radians(computed.cameraNode.rotationDegrees[0])) * 10], yaw: radians(computed.cameraNode.rotationDegrees[2]), pitch: pi() / 2 - radians(computed.cameraNode.rotationDegrees[0]), distance: 10, fieldOfView: computed.cameraNode.camera.fieldOfView ?? 0.69, orthographic: false } }}" },
+				{ "set": "state.inCamera", "to": true }
+			]
+		},
+		"toggleProjection": { "title": "Perspective/Orthographic", "category": "View", "do": [{ "camera": "#viewport", "projection": "toggle" }] },
+		"frameSelected": { "title": "Frame Selected", "category": "View", "do": [{ "set": "state.inCamera", "to": false }, { "camera": "#viewport", "frame": "selection" }] },
+		"frameAll": { "title": "Frame All", "category": "View", "do": [{ "set": "state.inCamera", "to": false }, { "camera": "#viewport", "frame": "all" }] },
+		"orbitView": [{ "set": "state.inCamera", "to": false }, { "camera": "#viewport", "orbit": "{{args.orbit}}" }],
+		"zoomView": [{ "camera": "#viewport", "zoom": "{{args.steps}}" }],
+		"navDrag": [
+			{ "if": "{{args.id == 'zoom'}}", "then": [{ "camera": "#viewport", "zoom": "{{-args.dy * 0.05}}" }] },
+			{ "if": "{{args.id == 'pan'}}", "then": [{ "set": "state.view.camera.target", "to": "{{[state.view.camera.target[0] - (cos(state.view.camera.yaw) * args.dx) * state.view.camera.distance * 0.002, state.view.camera.target[1] + (sin(state.view.camera.yaw) * args.dx) * state.view.camera.distance * 0.002, state.view.camera.target[2] + args.dy * state.view.camera.distance * 0.002]}}" }] }
+		],
+		"navClick": [
+			{ "if": "{{args.id == 'camera'}}", "then": [{ "run": "viewCamera" }] },
+			{ "if": "{{args.id == 'ortho'}}", "then": [{ "run": "toggleProjection" }] }
+		],
+		"insertKeyframe": {
+			"title": "Insert Keyframe", "category": "Animation", "icon": "diamond", "enablement": "{{length(state.view.selection) > 0}}",
+			"do": [
+				{ "if": "{{!contains(state.keys, state.frame)}}", "then": [{ "set": "state.keys", "to": "{{sort(concat(state.keys, [state.frame]))}}" }] },
+				{ "set": "state.last", "to": "Insert Keyframe" }
+			]
+		},
+		"play": { "title": "Play Animation", "category": "Playback", "icon": "play", "do": [{ "set": "state.playing", "to": "{{state.playing != 'forward' ? 'forward' : false}}" }] },
+		"playReverse": { "title": "Play Animation in Reverse", "category": "Playback", "do": [{ "set": "state.playing", "to": "{{state.playing != 'reverse' ? 'reverse' : false}}" }] },
+		"tick": [{ "set": "state.frame", "to": "{{state.playing == 'reverse' ? (state.frame <= state.start ? state.end : state.frame - 1) : (state.frame >= state.end ? state.start : state.frame + 1)}}" }],
+		"jumpStart": { "title": "Jump to Start", "category": "Playback", "do": [{ "set": "state.frame", "to": "{{state.start}}" }] },
+		"jumpEnd": { "title": "Jump to End", "category": "Playback", "do": [{ "set": "state.frame", "to": "{{state.end}}" }] },
+		"prevKey": { "title": "Jump to Previous Keyframe", "category": "Playback", "do": [{ "set": "state.frame", "to": "{{max(concat([state.start], filter(state.keys, it < state.frame)))}}" }] },
+		"nextKey": { "title": "Jump to Next Keyframe", "category": "Playback", "do": [{ "set": "state.frame", "to": "{{min(concat([state.end], filter(state.keys, it > state.frame)))}}" }] },
+		"about": { "title": "About Modello", "category": "Help", "icon": "info", "do": [{ "dismiss": true }, { "set": "state.about", "to": true }] },
+		"newScene": {
+			"title": "New", "category": "File", "icon": "file-plus",
+			"do": [
+				{ "dismiss": true },
+				{ "run": "snapshot" },
+				{ "set": "state.scene.nodes", "to": "{{state.startScene.nodes}}" }
+			]
+		}
+	},
+	"keys": {
+		"g": { "do": "grab" },
+		"r": { "do": "rotate" },
+		"s": { "do": "resize" },
+		"x": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "x" } } }, { "do": "deleteMenu" }],
+		"y": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "y" } } }],
+		"z": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "z" } } }, { "do": "openPopup", "with": { "args": { "menu": "shading" } } }],
+		"shift+x": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "yz" } } },
+		"shift+y": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "zx" } } },
+		"shift+z": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "xy" } } },
+		"0": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "0" } } }],
+		"1": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "1" } } }],
+		"2": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "2" } } }],
+		"3": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "3" } } }],
+		"4": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "4" } } }],
+		"5": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "5" } } }],
+		"6": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "6" } } }],
+		"7": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "7" } } }],
+		"8": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "8" } } }],
+		"9": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "9" } } }],
+		"period": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "." } } }],
+		"minus": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "-" } } }],
+		"backspace": [{ "when": "{{state.modal != null}}", "do": "typeDigit", "with": { "args": { "key": "back" } } }],
+		"enter": [{ "when": "{{state.modal != null}}", "do": "confirmTransform" }],
+		"escape": [{ "when": "{{state.modal != null}}", "do": "cancelTransform" }],
+		"shift+a": { "do": "addMenu" },
+		"delete": { "do": "deleteSelected" },
+		"shift+d": { "do": "duplicate" },
+		"h": { "do": "hideSelected" },
+		"shift+h": { "do": "hideUnselected" },
+		"alt+h": { "do": "revealHidden" },
+		"a": { "do": "selectAll" },
+		"alt+a": { "do": "selectNone" },
+		"mod+i": { "do": "selectInvert" },
+		"numpad1": { "do": "viewFront" },
+		"mod+numpad1": { "do": "viewBack" },
+		"numpad3": { "do": "viewRight" },
+		"mod+numpad3": { "do": "viewLeft" },
+		"numpad7": { "do": "viewTop" },
+		"mod+numpad7": { "do": "viewBottom" },
+		"numpad5": { "do": "toggleProjection" },
+		"numpad0": { "do": "viewCamera" },
+		"numpadperiod": { "do": "frameSelected" },
+		"home": { "do": "frameAll" },
+		"numpad4": { "do": "orbitView", "with": { "args": { "orbit": [-15, 0] } } },
+		"numpad6": { "do": "orbitView", "with": { "args": { "orbit": [15, 0] } } },
+		"numpad8": { "do": "orbitView", "with": { "args": { "orbit": [0, -15] } } },
+		"numpad2": { "do": "orbitView", "with": { "args": { "orbit": [0, 15] } } },
+		"numpadplus": { "do": "zoomView", "with": { "args": { "steps": 1 } } },
+		"numpadminus": { "do": "zoomView", "with": { "args": { "steps": -1 } } },
+		"mod+z": { "do": "undo" },
+		"mod+shift+z": { "do": "redo" },
+		"n": { "do": "toggleSidebar" },
+		"f3": { "do": "search" },
+		"f9": { "when": "{{state.lastOp != null}}", "do": "adjustLastPanel" },
+		"t": { "do": "toggleToolbar" },
+		"tab": { "when": "{{!context.textInputFocus}}", "do": "toggleEditMode" },
+		"i": { "do": "insertKeyframe" },
+		"space": { "when": "{{!context.textInputFocus}}", "do": "play" },
+		"shift+left": { "do": "jumpStart" },
+		"shift+right": { "do": "jumpEnd" },
+		"mod+n": { "do": "newScene" }
+	},
+	"menus": {
+		"file": {
+			"new": { "run": "newScene", "group": "1_new" }
+		},
+		"edit": {
+			"undo": { "run": "undo", "group": "1_history", "order": 1 },
+			"redo": { "run": "redo", "group": "1_history", "order": 2 },
+			"adjust": { "run": "adjustLastPanel", "group": "2_last" },
+			"search": { "run": "search", "group": "3_search" }
+		},
+		"render": {
+			"camera": { "run": "viewCamera", "title": "View Camera", "group": "1_view" }
+		},
+		"window": {
+			"theme": { "run": "toggleTheme", "group": "1_theme" },
+			"sidebar": { "run": "toggleSidebar", "group": "2_regions", "order": 1 },
+			"toolbar": { "run": "toggleToolbar", "group": "2_regions", "order": 2 },
+			"assistant": { "run": "assistant.toggle", "title": "Assistant", "group": "3_assistant" }
+		},
+		"help": {
+			"about": { "run": "about", "group": "1_help" }
+		},
+		"view": {
+			"toolbar": { "run": "toggleToolbar", "group": "1_regions", "order": 1 },
+			"sidebar": { "run": "toggleSidebar", "group": "1_regions", "order": 2 },
+			"camera": { "run": "viewCamera", "group": "2_frame", "order": 1 },
+			"projection": { "run": "toggleProjection", "group": "2_frame", "order": 2 },
+			"frameSelected": { "run": "frameSelected", "group": "3_frame", "order": 1 },
+			"frameAll": { "run": "frameAll", "group": "3_frame", "order": 2 },
+			"viewpoint": { "submenu": "viewpoint", "title": "Viewpoint", "group": "4_view" }
+		},
+		"viewpoint": {
+			"top": { "run": "viewTop", "group": "1", "order": 1 },
+			"bottom": { "run": "viewBottom", "group": "1", "order": 2 },
+			"front": { "run": "viewFront", "group": "2", "order": 1 },
+			"back": { "run": "viewBack", "group": "2", "order": 2 },
+			"right": { "run": "viewRight", "group": "3", "order": 1 },
+			"left": { "run": "viewLeft", "group": "3", "order": 2 }
+		},
+		"select": {
+			"all": { "run": "selectAll", "title": "All", "group": "1_all", "order": 1 },
+			"none": { "run": "selectNone", "title": "None", "group": "1_all", "order": 2 },
+			"invert": { "run": "selectInvert", "title": "Invert", "group": "1_all", "order": 3 }
+		},
+		"add": {
+			"mesh": { "submenu": "addMesh", "title": "Mesh", "icon": "triangle", "group": "1_add", "order": 1 },
+			"light": { "submenu": "addLight", "title": "Light", "icon": "lightbulb", "group": "2_add", "order": 1 },
+			"camera": { "run": "addObject", "with": { "args": { "kind": "camera", "name": "Camera" } }, "title": "Camera", "icon": "video", "group": "2_add", "order": 2 },
+			"empty": { "run": "addObject", "with": { "args": { "kind": "empty", "name": "Empty" } }, "title": "Empty", "icon": "axis-3-d", "group": "2_add", "order": 3 }
+		},
+		"addMesh": {
+			"plane": { "run": "addObject", "with": { "args": { "kind": "mesh", "mesh": "plane", "name": "Plane" } }, "title": "Plane", "icon": "square", "order": 1 },
+			"cube": { "run": "addObject", "with": { "args": { "kind": "mesh", "mesh": "cube", "name": "Cube" } }, "title": "Cube", "icon": "box", "order": 2 },
+			"sphere": { "run": "addObject", "with": { "args": { "kind": "mesh", "mesh": "sphere", "name": "Sphere" } }, "title": "UV Sphere", "icon": "globe", "order": 3 },
+			"cylinder": { "run": "addObject", "with": { "args": { "kind": "mesh", "mesh": "cylinder", "name": "Cylinder" } }, "title": "Cylinder", "icon": "cylinder", "order": 4 },
+			"cone": { "run": "addObject", "with": { "args": { "kind": "mesh", "mesh": "cone", "name": "Cone" } }, "title": "Cone", "icon": "cone", "order": 5 },
+			"torus": { "run": "addObject", "with": { "args": { "kind": "mesh", "mesh": "torus", "name": "Torus" } }, "title": "Torus", "icon": "torus", "order": 6 }
+		},
+		"addLight": {
+			"point": { "run": "addObject", "with": { "args": { "kind": "light", "name": "Point", "light": { "type": "point", "intensity": 60 } } }, "title": "Point", "icon": "lightbulb", "order": 1 },
+			"sun": { "run": "addObject", "with": { "args": { "kind": "light", "name": "Sun", "light": { "type": "directional", "intensity": 3 } } }, "title": "Sun", "icon": "sun", "order": 2 },
+			"spot": { "run": "addObject", "with": { "args": { "kind": "light", "name": "Spot", "light": { "type": "spot", "intensity": 60 } } }, "title": "Spot", "icon": "cone", "order": 3 }
+		},
+		"object": {
+			"transform": { "submenu": "objectTransform", "title": "Transform", "group": "1_transform" },
+			"duplicate": { "run": "duplicate", "group": "2_edit", "order": 1 },
+			"delete": { "run": "deleteSelected", "group": "2_edit", "order": 2 },
+			"keyframe": { "run": "insertKeyframe", "group": "3_anim" },
+			"show": { "submenu": "objectShowHide", "title": "Show/Hide", "group": "4_show" }
+		},
+		"objectTransform": {
+			"move": { "run": "grab", "order": 1 },
+			"rotate": { "run": "rotate", "order": 2 },
+			"scale": { "run": "resize", "order": 3 }
+		},
+		"objectShowHide": {
+			"reveal": { "run": "revealHidden", "order": 1 },
+			"hide": { "run": "hideSelected", "order": 2 },
+			"hideOthers": { "run": "hideUnselected", "order": 3 }
+		},
+		"objectContext": {
+			"move": { "run": "grab", "group": "1_transform", "order": 1 },
+			"rotate": { "run": "rotate", "group": "1_transform", "order": 2 },
+			"scale": { "run": "resize", "group": "1_transform", "order": 3 },
+			"cursor": { "run": "frameSelected", "group": "2_view" },
+			"duplicate": { "run": "duplicate", "group": "3_edit", "order": 1 },
+			"hide": { "run": "hideSelected", "group": "3_edit", "order": 2 },
+			"keyframe": { "run": "insertKeyframe", "group": "4_anim" },
+			"delete": { "run": "deleteSelected", "group": "5_delete" }
+		},
+		"delete": {
+			"delete": { "run": "deleteSelected", "title": "Delete", "group": "1" }
+		},
+		"shading": {
+			"wireframe": { "run": "setOption", "with": { "args": { "key": "shading", "value": "wireframe" } }, "title": "Wireframe", "icon": "globe", "order": 1 },
+			"solid": { "run": "setOption", "with": { "args": { "key": "shading", "value": "solid" } }, "title": "Solid", "icon": "circle", "order": 2 },
+			"material": { "run": "setOption", "with": { "args": { "key": "shading", "value": "material" } }, "title": "Material Preview", "icon": "circle-dot", "order": 3 },
+			"rendered": { "run": "setOption", "with": { "args": { "key": "shading", "value": "rendered" } }, "title": "Rendered", "icon": "sun", "order": 4 }
+		}
+	}
+}

@@ -35,6 +35,25 @@ Value concat(const Call& call) {
 	return Value::fromText(std::move(result));
 }
 
+/// @brief `flat(list)`: the items of a list of lists in one list, one level deep, so a map that gives a list per item
+/// (the matches of each file) becomes one list to repeat over. Items that aren't lists are kept as they are.
+/// @param call [list].
+/// @return The list.
+Value flat(const Call& call) {
+	const Value& value = call[0];
+	if(!value.isList()) call.fail("expected a list");
+	std::vector<Value> items;
+	for(std::size_t i = 0; i < value.size(); ++i) {
+		const Value& part = value.item(i);
+		if(!part.isList()) {
+			items.push_back(part);
+			continue;
+		}
+		for(std::size_t j = 0; j < part.size(); ++j) items.push_back(part.item(j));
+	}
+	return Value::fromList(std::move(items));
+}
+
 /// @brief `join(list, separator)`: the items as text, e.g. "#board, /state/cards". Separators go between texts
 /// written so far and the next item, so empty items at the start add none.
 /// @param call [list, separator].
@@ -188,6 +207,11 @@ constexpr auto table = std::to_array<Function>({
 	 .arguments = "a, b, ...",
 	 .about = "Lists joined into one, or else texts joined",
 	 .apply = concat},
+    {.name = "flat",
+	 .arguments = "list",
+	 .about = "A list of lists as one list, one level deep",
+	 .takes = Takes::One,
+	 .apply = flat},
     {.name = "join",
 	 .arguments = "list, separator",
 	 .about = "The items as text, with the separator between them",

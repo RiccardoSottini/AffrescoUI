@@ -5,6 +5,7 @@
 /// globals, the cached "computed" values and the screen an outlet shows.
 
 #include "DesignTokens.hpp"
+#include "Language.hpp"
 #include "NodeKeys.hpp"
 #include "Reads.hpp"
 #include "Strings.hpp"
@@ -235,12 +236,19 @@ public:
 	[[nodiscard]] std::uint64_t appearance() const noexcept { return appearance_; }
 	/// @brief Records that the same values may now look different (a node type was registered or replaced).
 	void changeAppearance() noexcept { ++appearance_; }
+	/// @brief Counts the changes of the theme and of the document's colours, tokens and fonts, which an application's
+	/// type reads its colours from: it is applied again when the count changes (unlike appearance(), not at every
+	/// revision).
+	/// @return The count; never 0.
+	[[nodiscard]] std::uint64_t looks() const noexcept { return looks_; }
 
 	/* Images */
 
 	/// @brief Where the screen's images come from: files of the allowed folders (the screen's own folder, and those the
 	/// host allows), and images the host names.
 	[[nodiscard]] ImageCache& images() noexcept { return images_; }
+	/// @brief The languages of "languages", or nullptr for none.
+	[[nodiscard]] const LanguageCatalog* languages() const noexcept { return languages_.get(); }
 	/// @brief Reads an image's "file": relative to the screen's folder, inside an allowed folder.
 	/// @param value The path.
 	/// @param path Its place, for errors.
@@ -302,6 +310,8 @@ private:
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> variants_; ///< See fontVariant(), by key.
 	FontCache fontCache_;                    ///< By file, size and fallbacks: kept across revisions, within its bound.
 	ImageCache images_;                      ///< See images().
+	std::shared_ptr<const LanguageCatalog> languages_; ///< See languages().
+	json languagesSource_;                             ///< The "languages" they were read from.
 	std::string theme_;                      ///< "theme", evaluated at each update.
 	Strings strings_;                        ///< "strings", and the locale chosen at each update.
 	std::string hostLocale_;                 ///< See setHostLocale().
@@ -309,6 +319,8 @@ private:
 	std::vector<std::string> screenHistory_; ///< For {"navigate": "back"}.
 
 	std::uint64_t appearance_ = 1;                  ///< See appearance().
+	std::uint64_t looks_ = 1;                       ///< See looks().
+	json lookSections_;                             ///< "colors", "tokens" and "fonts" when looks_ last changed.
 	WorkBudget* budget_ = nullptr;                  ///< The running event's or update's budget (BudgetScope), if any.
 	StateChanges changes_;                          ///< See takeChanges().
 	mutable ReadSet* reads_ = nullptr;              ///< Where the running ReadScope collects, if any.

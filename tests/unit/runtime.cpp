@@ -165,8 +165,8 @@ TEST_CASE("format: Escape closes the open overlays when nothing has the focus") 
 	CHECK(json::parse(screen.stateJson())["open"] == false);
 }
 
-// Modello's and Orrery's screens name a surface their own program registers: in another host (affrescoui_host, the
-// tools) the screen still opens, the surface empty
+// Modello's screens name a surface its own program registers: in another host (affrescoui_host, the tools) the
+// screen still opens, the surface empty
 TEST_CASE("format: a surface no program registered here shows empty, and the screen opens") {
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);

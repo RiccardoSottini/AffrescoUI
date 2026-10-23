@@ -64,7 +64,7 @@ server (`affresco::net::PeerServer`, `modules/net/README.md`), such as the docum
 affrescoui_server --folder screens --listen 127.0.0.1:7420 --origin https://your-site.example
 ```
 
-- Off the loopback, the server needs `--allow-remote` and TLS in front of it (`examples/server/deploy/`, Caddy or nginx),
+- Off the loopback, the server needs `--allow-remote` and TLS in front of it (`apps/server/deploy/`, Caddy or nginx),
   so the page connects with `wss://`. `ws://` is accepted on the loopback only, by the page's policy and by the
   library.
 - `--origin` names the site's origin: the server refuses an upgrade from any other page.

@@ -186,3 +186,36 @@ TEST_CASE("rich text: malformed runs and runs over the limits are refused") {
 	checkRefused(json::array({std::string(70'000, 'x')}), "characters in all");
 	checkRefused(json::array({json::object({{"text", "a"}, {"link", std::string(3000, 'l')}})}), "at most 2048 bytes");
 }
+
+TEST_CASE("rich text: a bold or italic font entry styles its text, and its runs keep that style unless they say") {
+	json document = richScreen();
+	const json regular = document["fonts"]["default"];
+	document["fonts"]["heading"] = {{"file", regular["file"]}, {"size", 16}, {"bold", true}};
+	document["fonts"]["aside"] = {{"file", regular["file"]}, {"size", 16}, {"italic", true}};
+	json& rich = document["root"]["children"][0];
+	rich["font"] = "heading";
+	rich["runs"] = {"Bold ", {{"text", "regular"}, {"bold", false}}, {{"text", " slanted"}, {"italic", true}}};
+	document["root"]["children"][1]["font"] = "aside";
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(320, 140, clock);
+	affresco::Screen screen = affresco::Screen::fromString(document.dump(), {});
+	screen.build(*window);
+	window->render();
+
+	const auto& label = panel<affresco::Label>(screen, "rich");
+	REQUIRE(label.font());
+	CHECK(label.font()->style() == affresco::FontStyle{true, false});
+	REQUIRE(label.runs().size() == 3);
+	CHECK(!label.runs()[0].font); // the label's own, bold
+	REQUIRE(label.runs()[1].font);
+	CHECK(label.runs()[1].font->style() == affresco::FontStyle{});
+	REQUIRE(label.runs()[2].font);
+	CHECK(label.runs()[2].font->style() == affresco::FontStyle{true, true});
+	const auto& aside = panel<affresco::Label>(screen, "copy");
+	REQUIRE(aside.font());
+	CHECK(aside.font()->style() == affresco::FontStyle{false, true});
+
+	document["fonts"]["heading"]["bold"] = "yes";
+	CHECK_THROWS_WITH_AS(affresco::Screen::fromString(document.dump(), {}).build(*window),
+	                     doctest::Contains("fonts.heading.bold"), affresco::DocumentError);
+}

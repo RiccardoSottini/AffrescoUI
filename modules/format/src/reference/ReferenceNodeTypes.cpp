@@ -30,7 +30,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"lineColor", "color", "The caret's line background, the selection, the caret.", "editor"},
     {"selectionColor", "color", "", "editor"},
     {"caretColor", "color", "", "editor"},
-    {"autofocus", R"json({"type": "boolean"})json", "Focus when built; `event.value` is the new text.", "editor"},
+    {"autofocus", R"json({"type": "boolean"})json",
+	 "Focus when built, and when a modal overlay holding it opens; `event.value` is the new text.", "editor"},
     {"onChange", "handler", "", "editor"},
     {"wrap", "", "`true` wraps lines at the width (at spaces, else anywhere); the gutter numbers each line once.",
 	 "editor"},
@@ -53,10 +54,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most "
 	 "10,000 and 8 on a line; inline text is cut at 256 characters.",
 	 "editor"},
-    {"find", R"json({"type": ["object", "null"], "description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous",
-		"properties": {"text": {"type": "string"}, "regex": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
+    {"find", R"json({"anyOf": [{"type": ["object", "null"], "properties": {"text": {"type": "string"}, "regex": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
 		"caseSensitive": {"type": "boolean"}, "inSelection": {"type": "boolean"}, "replace": {"type": "string"},
-		"step": {"enum": ["first", "next", "previous", "replace", "replaceAll"]}, "request": {"type": "number"}}})json",
+		"step": {"enum": ["first", "next", "previous", "replace", "replaceAll"]}, "request": {"type": "number"}}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous"})json",
 	 R"(`{ "text", "regex", "wholeWord", "caseSensitive" }` or `null` (none): highlights the matches of `text` (plain, or a PCRE2 )"
 	 "pattern with `regex`, matched line by line within match and depth limits); Cmd+G and Cmd+Shift+G select "
 	 "the next and previous. A pattern that doesn't compile highlights nothing. `inSelection` limits it to the "
@@ -65,11 +66,25 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "1, run once per new number. While a pattern is set, `caret` also gets `matches`, the count.",
 	 "editor"},
     {"brackets", "flag", "`true` highlights the bracket that pairs with the one at the caret.", "editor"},
+    {"bracketStyle", R"json({"anyOf": [{"enum": ["fill", "underline"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`.",
+	 "editor"},
     {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
+    {"rulers", R"json({"anyOf": [{"type": "array", "items": {"type": "number", "minimum": 0}}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`).", "editor"},
     {"minimap", "flag",
 	 "`true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or "
 	 "dragging it scrolls.",
 	 "editor"},
+    {"minimapStyle", R"json({"anyOf": [{"enum": ["bars", "text"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each "
+	 "character a pixel in its syntax colour.",
+	 "editor"},
+    {"minimapViewport", R"json({"anyOf": [{"enum": ["always", "hover"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it.",
+	 "editor"},
+    {"matchStyle", R"json({"anyOf": [{"enum": ["fill", "outline"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`.", "editor"},
     {"composition", R"json({"description": "Text, or a {{binding}}"})json",
 	 "Text an input method is composing, shown underlined at the caret without editing (empty: none).", "editor"},
     {"readOnly", "flag", "`true`: the user can select, find and fold, but not edit.", "editor"},
@@ -91,9 +106,46 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`split` (default): the original on the left, the modified text on the right, rows aligned with blank rows and "
 	 "scrolled together; `inline`: one editor, the deleted lines above the lines inserted for them.",
 	 "diff"},
-    {"language", R"json({"type": "string", "description": "diff: a language id for the application's editors (e.g. cpp)"})json",
-	 "A language id given to the application's editor factory (syntax colours); left out, or without one, plain text.",
+    {"language", R"json({"type": "string", "description": "diff: a language id for the application's editors (e.g. cpp); editor: a language of the languages section, by name, alias or file name"})json",
+	 "A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. "
+	 "On an `editor`: a language of the `languages` section, by name, alias or file name (`main.py`). It colours the "
+	 "text unless `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, or "
+	 "wrapping the selection), Backspace between an empty pair deletes both, Enter between `brackets` or after an "
+	 "`indent.increase` line indents a level, and a line that comes to match `indent.decrease` goes back one. Unknown, "
+	 "plain text.",
 	 "diff"},
+    {"commands", R"json({"type": "object", "maxProperties": 256, "additionalProperties": {"enum": ["toggleComment",
+		"moveLinesUp", "moveLinesDown", "deleteLines", "copyLine", "cutLine", "indentLines", "outdentLines",
+		"insertLineAfter", "insertLineBefore"]}, "description": "editor: keys bound to code commands"})json",
+	 "Keys bound to code commands, each one undo step: `{ \"mod+/\": \"toggleComment\", \"alt+up\": "
+	 "\"moveLinesUp\" }` (`mod` is cmd on macOS, ctrl elsewhere). `toggleComment` (the language's line comment), "
+	 "`moveLinesUp`, `moveLinesDown`, `deleteLines`, `copyLine` and `cutLine` (the caret's line, when nothing is "
+	 "selected), `indentLines`, `outdentLines`, `insertLineAfter`, `insertLineBefore`. A bound key isn't typed.",
+	 "editor"},
+    {"popup", "flag",
+	 "`true` while the document shows a popup over the editor (completions): up, down, page up, page down, enter, "
+	 "tab and escape without modifiers go to `onPopupKey` instead of the text.",
+	 "editor"},
+    {"goTo", R"json({"anyOf": [{"type": "object", "properties": {"line": {"type": "number", "minimum": 0},
+		"column": {"type": "number", "minimum": 0}, "request": {"type": "number"}}}, {"type": "null"},
+		{"$ref": "#/$defs/v2/dynamic"}], "description": "editor: moves the caret once per request"})json",
+	 "`{ \"line\", \"column\", \"request\" }` (from 0): moves the caret there, once per `request` number (a new "
+	 "number moves it again).",
+	 "editor"},
+    {"insert", R"json({"anyOf": [{"type": "object", "properties": {"text": {"type": "string"},
+		"before": {"type": "number", "minimum": 0}, "request": {"type": "number"}}}, {"type": "null"},
+		{"$ref": "#/$defs/v2/dynamic"}], "description": "editor: replaces the selection once per request"})json",
+	 "`{ \"text\", \"before\", \"request\" }`: replaces the selection and the `before` characters just before it "
+	 "with `text` (a completion), once per `request` number; one undo step.",
+	 "editor"},
+    {"tokens", R"json({"anyOf": [{"type": "array", "maxItems": 100000, "items": {"type": "object", "required": ["style"],
+		"properties": {"line": {"type": "number", "minimum": 0}, "column": {"type": "number", "minimum": 0},
+		"length": {"type": "number", "minimum": 0}, "style": {"type": "string"}}}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "editor: runs coloured over the language's colours (e.g. a language server's)"})json",
+	 "`[{ \"line\", \"column\", \"length\", \"style\" }]` (from 0): runs coloured by `@syntax.<style>` over the "
+	 "colours of `language` or `grammar`, e.g. a language server's semantic tokens. They move with edits until the "
+	 "next list.",
+	 "editor"},
     {"deletedColor", "color",
 	 "Behind deleted and inserted lines (the changed characters in the same colour, twice as strong).", "diff"},
     {"insertedColor", "color", "", "diff"},
@@ -121,6 +173,14 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 		"$ref": "#/$defs/v2/crossAlign"})json",
 	 "Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, "
 	 "within their maximum). Left out, they keep their own anchors across.",
+	 "stack"},
+    {"fitContent",
+	 R"json({"description": "row, column, stack: take the width, the height or both (true) from the children",
+		"anyOf": [{"type": "boolean"}, {"enum": ["width", "height"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "`true`, `\"width\"` or `\"height\"`: that size comes from the children instead of `width` and `height` (within "
+	 "the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, even "
+	 "when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with its "
+	 "text. A child that grows or is stretched by its anchors adds only its own size.",
 	 "stack"},
     {"direction", R"json({"anyOf": [{"enum": ["row", "column"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(On a `stack`: `"row"` or `"column"`.)", "stack"},
@@ -170,9 +230,9 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "decoded shows nothing (and is logged).",
 	 "image"},
     {"source", R"json({"type": "string",
-		"description": "image: an image the host names (Screen::setImage), instead of a file"})json",
-	 "Instead of `file`: an image the host names (`Screen::setImage(\"chart\", …)`), e.g. a picture it made; the node "
-	 "shows each new one the host sets.",
+		"description": "image: a named image (a node's snapshot, or Screen::setImage), instead of a file"})json",
+	 "Instead of `file`: a named image, which a node draws (its `snapshot`: a thumbnail of it) or the host sets "
+	 "(`Screen::setImage(\"chart\", …)`, e.g. a picture it made); the node shows each new one.",
 	 "image"},
     {"fit", R"json({"anyOf": [{"enum": ["contain", "cover", "fill"]}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "image and path: contain (default), cover or fill, like CSS object-fit"})json",
@@ -193,6 +253,17 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`true` draws it every frame (an animation), with the time since the screen started. Default: `false`, drawn "
 	 "only when `params`, its size or its input change.",
 	 "surface"},
+    {"image", R"json({"anyOf": [{"type": "string"}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "raster: the name of an image the images section declares"})json",
+	 "The name of an image the `images` section declares, made the first time a node or an `image` step names it. "
+	 "A name the section doesn't declare is an error at the node.",
+	 "raster"},
+    {"checker", "flag", "A checkerboard where the image is transparent. Default: `true`.", "raster"},
+    {"overlayColor", "color",
+	 "The outlines of what the tools are doing (the marquee, the lasso, the crop and its thirds, the brush). Default: "
+	 "white, over a dark line.",
+	 "raster"},
+    {"shadeColor", "color", "Over what the crop being dragged leaves out. Default: black at half opacity.", "raster"},
     {"direction", "",
 	 R"(`"row"` (the default: panes side by side, vertical sashes) or `"column"` (one above the other).)", "split"},
     {"value",
@@ -229,6 +300,13 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"activeTextColor", "color", "", "tabs"},
     {"activeBackground", "color", "", "tabs"},
     {"accentColor", "color", "", "tabs"},
+    {"accentEdge", R"json({"anyOf": [{"enum": ["top", "bottom"]}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "tabs: the edge of the active tab its line is on: bottom (default) or top"})json",
+	 "The edge of the active tab its accent line is on: `bottom` (default) or `top`.", "tabs"},
+    {"markerColor", "color", "The markers' colour (default `accentColor`).", "tabs"},
+    {"keepMarker", R"json({"type": "boolean"})json",
+	 "A marked tab keeps its marker while active, and shows its close button only while hovered (default false).",
+	 "tabs"},
     {"items", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"anyOf": [{"type": "string"},
 		{"type": "number"}, {"type": "object", "required": ["id"], "properties": {"id": {"type": ["string", "number"]},
 		"label": {"type": ["string", "number"]}, "expandable": {"type": "boolean"}, "children": {"type": "array"},
@@ -246,21 +324,26 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "fast as through ten. At most 1,000,000 items, nested at most 256 deep.",
 	 "list"},
     {"expanded", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"type": ["string", "number"]}},
-		{"$ref": "#/$defs/v2/dynamic"}], "description": "tree: the ids of the open nodes"})json",
+		{"type": "string", "pattern": "^state\\.[A-Za-z0-9_.]+$"}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "tree: the ids of the open nodes, or a state path keeping them"})json",
 	 "On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there "
-	 "to keep them over a rebuild.",
+	 "to keep them over a rebuild. A state path (`\"expanded\": \"state.files.open\"`) does that itself: the ids are "
+	 "read from there, and kept there before `onExpand` runs.",
 	 "list"},
     {"stickyRows", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 16}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "tree: how many open folders stay pinned at the top while their rows scroll (default 0)"})json",
 	 "On a `tree`: how many open folders stay pinned at the top while their children scroll by, nearest the root "
 	 "first (default 0, at most 16). A click on a pinned folder moves the cursor to it.",
 	 "list"},
+    {"guides", R"json({"type": "boolean"})json",
+	 "On a `tree`: a line per level left of the nested rows (default true).", "list"},
     {"sort", R"json({"anyOf": [{"type": "null"}, {"type": "object", "required": ["column"],
 		"properties": {"column": {"type": ["string", "number"]}, "descending": {"type": "boolean"}}},
-		{"$ref": "#/$defs/v2/dynamic"}], "description": "table: the order: { column, descending }, or null"})json",
+		{"type": "string", "pattern": "^state\\.[A-Za-z0-9_.]+$"}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "table: the order: { column, descending }, or null; or a state path keeping it"})json",
 	 "On a `table`: the rows' order, `{ \"column\": id, \"descending\": false }` (or null for the items' order). A "
 	 "click on a header sorts by its column, ascending then descending, and runs `onSort`: numbers by value before "
-	 "text, equal cells in the items' order.",
+	 "text, equal cells in the items' order. A state path (`\"sort\": \"state.files.sort\"`) keeps the order there.",
 	 "list"},
     {"selection", R"json({"anyOf": [{"enum": ["none", "single", "multiple"]}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "list, tree: none, single (default) or multiple"})json",
@@ -297,6 +380,16 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"fillRule", R"json({"anyOf": [{"enum": ["nonzero", "evenodd"]}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "path: which points are inside, nonzero (default) or evenodd"})json",
 	 R"(Which points are inside: `"nonzero"` (the default) or `"evenodd"` (a shape inside another is a hole).)",
+	 "path"},
+    {"fillGradient", R"json({"anyOf": [{"type": "object", "required": ["stops"], "additionalProperties": false,
+		"properties": {"kind": {"enum": ["linear", "radial"]}, "angle": {"type": "number"},
+		"stops": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "object",
+		"required": ["at", "color"], "properties": {"at": {"type": "number", "minimum": 0, "maximum": 1},
+		"color": {"type": "string"}}}}}}, {"type": "null"}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "path: the inside as a gradient, { kind, angle, stops }"})json",
+	 "The inside as a gradient across the node's box, in place of `fillColor`: the `gradient` node's value, `{ "
+	 "\"kind\": \"linear\" or \"radial\", \"angle\": 90, \"stops\": [{ \"at\": 0, \"color\": \"@accent\" }] }` "
+	 "(1 to 32 stops; a radial one is centred, reaching the corners).",
 	 "path"},
     {"stroke", "color", "The outline's colour; without it there is no outline.", "path"},
     {"strokeWidth", R"json({"anyOf": [{"type": "number", "minimum": 0}, {"$ref": "#/$defs/v2/dynamic"}]})json",
@@ -371,13 +464,18 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`use` (a lighter sibling, by id) is drawn in place of the child `for`.",
 	 "canvas"},
     {"grid",
-	 R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 1000000}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 1000000}, {"type": "boolean"},
+		{"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "World units between grid lines (default 0: none); drawn when the lines are far enough apart, and snapped to.",
 	 "canvas"},
     {"snap", "flag", "Moves and resizes snap to the grid, other items' edges and centres, and guides (default true).",
 	 "canvas"},
     {"rulers", "flag",
 	 "Rulers along the top and left, in world units; dragging out of one makes a guide (default true).", "canvas"},
+    {"scaleChildren", "flag",
+	 "Children are drawn at the camera's zoom, text and all, like a page in a drawing app, and can be rotated by "
+	 "their handle (default false: their rectangles scale while their text keeps its size).",
+	 "canvas"},
     {"font", "", "The items' text font (default `default`), in a few sizes.", "canvas"},
     {"accentColor", "", "The selection, the marquee, the handles and the guides.", "canvas"},
     {"nodes", R"json({"anyOf": [{"type": "array", "maxItems": 10000, "items": {"type": "object", "required": ["id"]}},

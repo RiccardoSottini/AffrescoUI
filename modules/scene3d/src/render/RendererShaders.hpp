@@ -212,7 +212,8 @@ void main() {
 }
 )";
 
-/// @brief The floor grid (y = 0) by casting a ray per pixel: minor and major lines, the x and z axes, fading away.
+/// @brief The floor grid (y = 0) by casting a ray per pixel: minor and major lines, the x and z axes (z in
+/// depthAxisColor: blue, or green in a Z-up scene, where it is y), fading away.
 constexpr const char* gridFragment = R"(
 precision highp float;
 in vec2 ndc;
@@ -223,6 +224,7 @@ uniform float cell;
 uniform float fade;
 uniform int showGrid;
 uniform int showAxes;
+uniform vec3 depthAxisColor;
 layout(location = 0) out vec4 color;
 float lineAt(vec2 coordinate, float size) {
 	vec2 g = coordinate / size;
@@ -254,7 +256,7 @@ void main() {
 		float xAxis = 1.0 - min(abs(p.z) / max(width.y, 1e-6), 1.0);
 		float zAxis = 1.0 - min(abs(p.x) / max(width.x, 1e-6), 1.0);
 		if(xAxis > 0.0) c = vec4(mix(c.rgb, vec3(0.86, 0.3, 0.32), xAxis), max(c.a, xAxis));
-		if(zAxis > 0.0) c = vec4(mix(c.rgb, vec3(0.3, 0.5, 0.92), zAxis), max(c.a, zAxis));
+		if(zAxis > 0.0) c = vec4(mix(c.rgb, depthAxisColor, zAxis), max(c.a, zAxis));
 	}
 	c.a *= distanceFade;
 	if(c.a < 0.004) discard;

@@ -8,16 +8,16 @@
 			"screen": "code-editor.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
-				{ "move": [24, 142] },
+				{ "move": [340, 789] },
 				{ "wait": 1200 },
 				{ "expect": { "image": "tooltip" } },
 				{ "click": [22, 14] },
 				{ "wait": 50 },
 				{ "expect": { "image": "menu-open" } },
 				{ "key": "escape" },
-				{ "click": [130, 183] },
+				{ "click": [130, 270] },
 				{ "expect": { "image": "file-opened" } },
-				{ "click": [537, 48] },
+				{ "click": [472, 42] },
 				{ "click": "#editor" },
 				{ "key": "cmd+down" },
 				{ "expect": { "image": "large-file" } },
@@ -31,18 +31,22 @@
 				{ "wait": 50 },
 				{ "expect": { "image": "command-palette" } },
 				{ "key": "escape" },
-				{ "click": [333, 48] },
+				{ "click": [267, 42] },
 				{ "click": "#editor" },
 				{ "type": "x" },
 				{ "key": "cmd+w" },
 				{ "wait": 50 },
 				{ "expect": { "image": "close-dialog" } },
-				{ "click": [792, 447] },
-				{ "click": [425, 551] },
+				{ "click": [735, 434] },
+				{ "key": "ctrl+backquote" },
+				{ "wait": 0 },
 				{ "click": "#command" },
 				{ "type": "help" },
 				{ "key": "enter" },
-				{ "expect": { "image": "terminal-help" } }
+				{ "expect": { "image": "terminal-help" } },
+				{ "key": "cmd+shift+a" },
+				{ "wait": 400 },
+				{ "expect": { "image": "assistant" } }
 			]
 		},
 		{
@@ -63,7 +67,20 @@
 				{ "key": "cmd+z" },
 				{ "key": "cmd+z" },
 				{ "key": "cmd+s" },
-				{ "expect": { "image": "undone-saved" } }
+				{ "expect": { "image": "undone-saved" } },
+				{ "key": "cmd+shift+f" },
+				{ "wait": 50 },
+				{ "type": "sensor" },
+				{ "key": "enter" },
+				{ "wait": 100 },
+				{ "expect": { "image": "find-in-files" } },
+				{ "key": "escape" },
+				{ "wait": 50 },
+				{ "key": "cmd+p" },
+				{ "wait": 50 },
+				{ "type": "stcpp@" },
+				{ "wait": 50 },
+				{ "expect": { "image": "goto-symbol" } }
 			]
 		}
 	]

@@ -132,17 +132,19 @@ int main(int argc, char** argv) {
 	try {
 		automation::Options options;
 		options.policy = automation::Goldens::RecordMissing;
-		// As affrescoui_host and affrescoui_forge; Forge's scenarios see forge/folder open, its example
-		// catalogue, and no file dialog
+		// As affrescoui_host and affrescoui_forge; Forge's scenarios see forge/folder open as the workspace, its
+		// example catalogue, and no file dialog
 		options.prepare = [](affresco::Screen& screen) {
 			examples::registerCodeEditor(screen);
+			screen.services().allowChosenRoot("workspace");
+			screen.services().addRoot("workspace", AFFRESCOUI_FORGE_FOLDER);
 			const auto workspace = std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER);
 			forge::registerNatives(screen, workspace);
-			forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace), nullptr); // no server starts
+			forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace),
+			                   nullptr); // no server starts
 			forge::registerSearch(screen, workspace);
-			forge::registerExplorer(screen, workspace, nullptr); // scenarios run no executor: it lists at each call
 			forge::grantTerminal(screen, AFFRESCOUI_FORGE_FOLDER);
-			forge::registerTerminal(screen, nullptr); // no executor: no shell starts
+			forge::registerTerminal(screen, nullptr);       // no executor: no shell starts
 			forge::registerDebug(screen, workspace, false); // no adapter: the scenarios mirror one's answers
 			forge::addExampleCatalog(screen, AFFRESCOUI_FORGE_DIRECTORY);
 			// The example surfaces at a fixed time, and one that fails (surfaces.json)

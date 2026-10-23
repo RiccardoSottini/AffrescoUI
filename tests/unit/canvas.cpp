@@ -7,6 +7,7 @@
 #include "canvas/Rulers.hpp"
 #include "spatial/SpatialIndex.hpp"
 
+#include <affresco/affresco.hpp>
 #include <affresco/render/CanvasView.hpp>
 #include <affresco/render/Window.hpp>
 
@@ -226,4 +227,47 @@ TEST_CASE("canvas: a ruler too far out for whole ticks has none") {
 	CHECK(ticks.empty());
 	affresco::rulerTicks(-1e30, 1.0f, 200.0f, ticks);
 	CHECK(ticks.empty());
+}
+
+TEST_CASE("format: a canvas with scaleChildren draws its children at the camera's zoom") {
+	const ManualClock clock;
+	const auto headless = createHeadlessWindow(800, 600, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({"format": "affrescoui-screen", "version": 2,
+		"state": {"view": {"camera": {"x": 0, "y": 0, "zoom": 2}}}, "root": {"type": "column", "children": [{
+		"type": "canvas", "id": "page", "grow": 1, "bind": "state.view", "rulers": false, "scaleChildren": true,
+		"children": [{"type": "label", "id": "title", "text": "Title", "x": 100, "y": 50, "width": 200, "height": 40}]}]}})json");
+	screen.build(*headless);
+	headless->render();
+	auto* page = dynamic_cast<CanvasView*>(screen.find("page"));
+	auto* title = screen.find("title");
+	REQUIRE(page);
+	REQUIRE(title);
+	CHECK(page->scaleChildren());
+	CHECK(page->camera().zoom == 2.0f);
+	CHECK(title->parentTransform().a == 2.0f);
+	const Rect frame = page->frame(), laidOut = title->frame();
+	CHECK(laidOut.right - laidOut.left == doctest::Approx(200.0f)); // laid out at its world size
+	const Vec2 corner = title->localTransform().apply({laidOut.left, laidOut.top});
+	CHECK(corner.x == doctest::Approx(frame.left + 200.0f)); // and drawn at twice it
+	CHECK(corner.y == doctest::Approx(frame.top + 100.0f));
+
+	std::string error;
+	REQUIRE(screen.applyRevision(R"({"set": {"#page/scaleChildren": false}})", &error));
+	headless->render();
+	CHECK_FALSE(page->scaleChildren());
+	CHECK(title->localTransform().isIdentity());
+}
+
+TEST_CASE("format: an unbound canvas takes its camera from its \"view\" key") {
+	const ManualClock clock;
+	const auto headless = createHeadlessWindow(800, 600, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({"format": "affrescoui-screen", "version": 2,
+		"root": {"type": "column", "children": [{"type": "canvas", "id": "page", "grow": 1, "rulers": false,
+		"view": {"camera": {"x": 10, "y": 20, "zoom": 2}}}]}})json");
+	screen.build(*headless);
+	headless->render();
+	auto* page = dynamic_cast<CanvasView*>(screen.find("page"));
+	REQUIRE(page);
+	CHECK(page->camera().zoom == 2.0f);
+	CHECK(page->camera().x == 10.0f);
 }

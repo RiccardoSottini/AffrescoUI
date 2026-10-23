@@ -96,7 +96,8 @@ void applyItems(ListView& list, const json& values, bool tree, const std::string
 	list.setModel(std::make_shared<SourcedItems>(readItems(given, tree, path + ".items"), given));
 }
 
-/// @brief Sets what only trees and tables have: a tree's open folders and sticky rows, a table's columns and order.
+/// @brief Sets what only trees and tables have: a tree's open folders, sticky rows and guides, a table's columns and
+/// order.
 /// @param list The list.
 /// @param values The node's properties.
 /// @param path The node's place, for errors.
@@ -106,6 +107,7 @@ void applyTreeOrTable(ListView& list, const json& values, const std::string& pat
 		                                              : std::vector<std::string>());
 		const double sticky = values.contains("stickyRows") ? number(values["stickyRows"], path + ".stickyRows") : 0.0;
 		tree->setStickyRows(static_cast<std::size_t>(std::clamp(sticky, 0.0, maxStickyRows)));
+		tree->setGuides(!values.contains("guides") || boolean(values["guides"], path + ".guides"));
 	} else if(auto* table = dynamic_cast<TableView*>(&list)) {
 		table->setColumns(values.contains("columns") ? readColumns(values["columns"], path + ".columns")
 		                                             : std::vector<TableColumn>());
@@ -265,7 +267,7 @@ bool isPlainList(const Panel& panel) {
 }
 
 /// @brief The properties, hooks and events of lists, trees and tables.
-/// @param kind Which: a tree adds "expanded" and "stickyRows", a table "columns" and "sort".
+/// @param kind Which: a tree adds "expanded", "stickyRows" and "guides", a table "columns" and "sort".
 /// @return The set.
 std::shared_ptr<PropertySet> listProperties(ListKind kind) {
 	auto set = std::make_shared<PropertySet>();
@@ -280,8 +282,9 @@ std::shared_ptr<PropertySet> listProperties(ListKind kind) {
 	                   {"selectedBackground", ValueKind::Color},
 	                   {"accentColor", ValueKind::Color}};
 	if(kind == ListKind::Tree)
-		set->properties.insert(set->properties.begin() + 3,
-		                       {{"expanded", ValueKind::Any}, {"stickyRows", ValueKind::Number}});
+		set->properties.insert(
+		    set->properties.begin() + 3,
+		    {{"expanded", ValueKind::Any}, {"stickyRows", ValueKind::Number}, {"guides", ValueKind::Boolean}});
 	else if(kind == ListKind::Table)
 		set->properties.insert(set->properties.begin() + 3, {{"columns", ValueKind::Any}, {"sort", ValueKind::Any}});
 	set->apply = applyList;

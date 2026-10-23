@@ -78,14 +78,16 @@ void TextEditor::paintUnder(Painter& painter, const Font& /*font*/, const Layout
 	for(const VisibleMatch& m : visibleMatches_)
 		forRowsOf(layout, m.line, m.line, [&](std::size_t row, RowSpan span) {
 			const auto [from, to] = spanColumns(m.column, m.length, span.start, span.end);
-			if(from < to) paintColumns(painter, layout, span, row, {from, to}, matchColor_);
+			if(from < to) paintColumns(painter, layout, span, row, {from, to}, matchColor_, matchOutline_ ? -1.0f : 0.0f);
 		});
 
 	if(const auto brackets = matchingBrackets())
 		for(const Position p : {brackets->first, brackets->second})
 			forRowsOf(layout, p.line, p.line, [&](std::size_t row, RowSpan span) {
 				const auto [from, to] = spanColumns(p.column, 1, span.start, span.end);
-				if(from < to) paintColumns(painter, layout, span, row, {from, to}, bracketColor_);
+				if(from < to)
+					paintColumns(painter, layout, span, row, {from, to}, bracketColor_,
+					             bracketUnderline_ ? 2.0f : 0.0f);
 			});
 }
 

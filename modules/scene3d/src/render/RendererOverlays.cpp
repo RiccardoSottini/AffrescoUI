@@ -1,6 +1,6 @@
 /// @file
 /// @brief What the renderer draws over the scene (Renderer.hpp): the floor grid and axes, the selection's outline, the
-/// gizmo, light and camera markers, and the box being dragged.
+/// gizmo, light and camera markers, the 3D cursor, and the box being dragged.
 
 #include "RendererInternal.hpp"
 
@@ -94,7 +94,69 @@ void addGizmo(Lines& lines, const Gizmo& gizmo, const GizmoSettings& settings, V
 	}
 }
 
-/// @brief Adds a marker for each light and camera. @param lines The list. @param view The frame.
+/// @brief A light or camera glyph's colour: dark, or the outline's colour when selected, lighter when active.
+/// @param view The frame. @param id The node's id. @return The colour.
+Vec4 glyphColor(const FrameView& view, const std::string& id) noexcept {
+	const auto& selection = view.settings.selection;
+	const Vec3 o = view.settings.outline;
+	if(!selection.empty() && selection.back() == id) return {0.6f * o.x + 0.4f, 0.6f * o.y + 0.4f, 0.6f * o.z + 0.4f, 1.0f};
+	if(std::ranges::find(selection, id) != selection.end()) return {o.x, o.y, o.z, 1.0f};
+	return {0.0f, 0.0f, 0.0f, 0.9f};
+}
+
+/// @brief Adds a camera's glyph: its frustum to a 16:9 frame one unit ahead, and a triangle over the frame for up.
+/// @param lines The list. @param world The camera's world matrix. @param lens Its lens. @param color The colour.
+void addCameraGlyph(Lines& lines, const Mat4& world, const Lens& lens, Vec4 color) {
+	const float h = lens.orthographic ? 0.5f : std::tan(lens.fieldOfView * 0.5f), w = h * 16.0f / 9.0f;
+	const auto at = [&world](float x, float y, float z) { return world.transformPoint({x, y, z}); };
+	const Vec3 apex = at(0.0f, 0.0f, 0.0f);
+	const std::array<Vec3, 4> frame{at(-w, -h, -1.0f), at(w, -h, -1.0f), at(w, h, -1.0f), at(-w, h, -1.0f)};
+	for(std::size_t k = 0; k < 4; ++k) {
+		lines.add(apex, frame[k], color);
+		lines.add(frame[k], frame[(k + 1) % 4], color);
+	}
+	const Vec3 left = at(-w * 0.6f, h * 1.1f, -1.0f), right = at(w * 0.6f, h * 1.1f, -1.0f);
+	const Vec3 tip = at(0.0f, h * 1.1f + w * 0.5f, -1.0f);
+	lines.add(left, right, color);
+	lines.add(right, tip, color);
+	lines.add(tip, left, color);
+}
+
+/// @brief Adds a light's glyph: a circle facing the eye, a sun's rays and direction, a spot's cone, and a dashed line
+/// down to the floor. @param lines The list. @param view The frame. @param light The light. @param position Where it
+/// is. @param direction Where it shines. @param s A world size for a few pixels there. @param color The colour.
+void addLightGlyph(Lines& lines, const FrameView& view, const Light& light, Vec3 position, Vec3 direction, float s,
+                   Vec4 color) {
+	const Vec3 toEye = normalize(view.eye - position);
+	const Vec3 side = normalize(cross(toEye, std::abs(toEye.y) < 0.99f ? Vec3{0, 1, 0} : Vec3{1, 0, 0}));
+	const Vec3 up = cross(side, toEye);
+	lines.circle(position, side * (s * 0.6f), up * (s * 0.6f), color);
+	lines.circle(position, side * (s * 0.2f), up * (s * 0.2f), color);
+	if(light.type == LightType::Directional) {
+		for(int i = 0; i < 8; ++i) {
+			const float angle = std::numbers::pi_v<float> * static_cast<float>(i) / 4.0f;
+			const Vec3 ray = side * std::cos(angle) + up * std::sin(angle);
+			lines.add(position + ray * (s * 0.9f), position + ray * (s * 1.4f), color);
+		}
+		lines.add(position, position + direction * (s * 8.0f), color);
+	} else if(light.type == LightType::Spot) {
+		const float length = s * 6.0f, radius = length * std::tan(std::clamp(light.outerCone, 0.0f, 1.5f));
+		const Vec3 u = normalize(cross(direction, std::abs(direction.y) < 0.99f ? Vec3{0, 1, 0} : Vec3{1, 0, 0}));
+		const Vec3 v = cross(u, direction);
+		const Vec3 base = position + direction * length;
+		lines.circle(base, u * radius, v * radius, color);
+		for(const Vec3 rim : {u, -u, v, -v}) lines.add(position, base + rim * radius, color);
+	}
+	const float dash = s * 0.4f;
+	const int dashes = std::min(static_cast<int>(std::abs(position.y) / dash), 400);
+	for(int i = 0; i + 1 < dashes; i += 2) {
+		const auto y = [&](int k) { return position.y - std::copysign(dash * static_cast<float>(k), position.y); };
+		lines.add({position.x, y(i), position.z}, {position.x, y(i + 1), position.z}, color);
+	}
+}
+
+/// @brief Adds a marker for each light and camera: a cross, or a glyph (ViewportSettings::glyphs).
+/// @param lines The list. @param view The frame.
 void addMarkers(Lines& lines, const FrameView& view) {
 	const float height = static_cast<float>(view.height) / view.scale;
 	for(const Node& node : view.scene.nodes) {
@@ -103,6 +165,12 @@ void addMarkers(Lines& lines, const FrameView& view) {
 		if(world == view.worlds.end() || !world->second.second) continue;
 		const auto [position, direction] = placement(world->second.first);
 		const float s = worldSizeForPixels(view.settings.camera, position, height, 14.0f);
+		if(view.settings.glyphs) {
+			const Vec4 color = glyphColor(view, node.id);
+			if(node.camera) addCameraGlyph(lines, world->second.first, *node.camera, color);
+			if(node.light) addLightGlyph(lines, view, *node.light, position, direction, s, color);
+			continue;
+		}
 		for(int i = 0; i < 3; ++i) {
 			Vec3 offset;
 			offset[i] = s * 0.5f;
@@ -112,6 +180,25 @@ void addMarkers(Lines& lines, const FrameView& view) {
 		    node.light.transform([](const Light& light) { return light.type != LightType::Point; }).value_or(false);
 		if(node.camera || aimed) lines.add(position, position + direction * (s * 4.0f), markerColor);
 	}
+}
+
+/// @brief Adds the 3D cursor, a ring of red and white dashes facing the eye with a cross around it.
+/// @param lines The list. @param view The frame.
+void addCursor(Lines& lines, const FrameView& view) {
+	if(!view.settings.cursor) return;
+	constexpr int dashes = 16;
+	constexpr Vec4 red{0.9f, 0.2f, 0.2f, 1.0f}, white{1.0f, 1.0f, 1.0f, 1.0f}, dark{0.1f, 0.1f, 0.1f, 0.9f};
+	const Vec3 at = upTurn(view.settings.zUp).rotate(*view.settings.cursor);
+	const float s = worldSizeForPixels(view.settings.camera, at, static_cast<float>(view.height) / view.scale, 10.0f);
+	const Vec3 toEye = normalize(view.eye - at);
+	const Vec3 side = normalize(cross(toEye, std::abs(toEye.y) < 0.99f ? Vec3{0, 1, 0} : Vec3{1, 0, 0}));
+	const Vec3 up = cross(side, toEye);
+	const auto ring = [&](int k) {
+		const float angle = 2.0f * std::numbers::pi_v<float> * static_cast<float>(k) / dashes;
+		return at + side * (s * std::cos(angle)) + up * (s * std::sin(angle));
+	};
+	for(int i = 0; i < dashes; ++i) lines.add(ring(i), ring(i + 1), i % 2 == 0 ? red : white);
+	for(const Vec3 direction : {side, -side, up, -up}) lines.add(at + direction * (s * 1.3f), at + direction * (s * 2.2f), dark);
 }
 
 /// @brief A matrix from window units (y down) over the viewport to clip space. @param view The frame.
@@ -146,6 +233,8 @@ void SceneRenderer::drawGrid(const FrameView& view) {
 	glUniform1f(grid_.uniform("fade"), std::max(distance * 8.0f, 10.0f));
 	glUniform1i(grid_.uniform("showGrid"), view.settings.grid ? 1 : 0);
 	glUniform1i(grid_.uniform("showAxes"), view.settings.axes ? 1 : 0);
+	const Vec3 depthAxis = view.settings.zUp ? Vec3{0.55f, 0.8f, 0.2f} : Vec3{0.3f, 0.5f, 0.92f}; // y, or z
+	glUniform3f(grid_.uniform("depthAxisColor"), depthAxis.x, depthAxis.y, depthAxis.z);
 	glBindVertexArray(emptyArray_);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glDepthMask(GL_TRUE);
@@ -197,6 +286,7 @@ void SceneRenderer::drawLines(const FrameView& view) {
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	Lines world;
 	addMarkers(world, view);
+	addCursor(world, view);
 	if(const auto gizmo = gizmoFor(view.scene, view.settings, static_cast<float>(view.height) / view.scale))
 		addGizmo(world, *gizmo, view.settings.gizmo, normalize(view.eye - gizmo->origin));
 	drawLineList(world.vertices(), view.viewProjection);

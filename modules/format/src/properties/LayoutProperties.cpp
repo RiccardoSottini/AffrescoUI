@@ -214,6 +214,10 @@ void applyStack(Panel& panel, const json& values, const PropertyReader& reader, 
 	stack->setRowGap(values.contains("rowGap") ? std::optional(pixels(values["rowGap"], at("rowGap"))) : std::nullopt);
 	stack->setColumnGap(values.contains("columnGap") ? std::optional(pixels(values["columnGap"], at("columnGap")))
 	                                                 : std::nullopt);
+	const json fit = values.value("fitContent", json(false));
+	if(fit.is_boolean()) stack->setFitContent(fit.get<bool>(), fit.get<bool>());
+	else if(fit == "width" || fit == "height") stack->setFitContent(fit == "width", fit == "height");
+	else fail(at("fitContent"), R"(expected true, false, "width" or "height")");
 }
 
 /// @brief Applies the keys of a grid that its set holds, each to its default when the node doesn't give it.
@@ -239,10 +243,15 @@ void applyGrid(Panel& panel, const json& values, const PropertyReader& reader, c
 } // namespace
 
 std::vector<PropertySpec> layoutItemProperties() {
-	return {{"maxWidth"},    {"maxHeight"},
-	        {"aspectRatio"}, {"shrink", ValueKind::Number},
-	        {"basis"},       {"alignSelf", ValueKind::Text},
-	        {"cell"},        {"dir", ValueKind::Text}};
+	return {{"maxWidth"},
+	        {"maxHeight"},
+	        {"aspectRatio"},
+	        {"shrink", ValueKind::Number},
+	        {"basis"},
+	        {"alignSelf", ValueKind::Text},
+	        {"justifySelf", ValueKind::Text},
+	        {"cell"},
+	        {"dir", ValueKind::Text}};
 }
 
 bool layoutItemProperty(Panel& panel, std::string_view key, const json& value, const std::string& at) {
@@ -252,6 +261,7 @@ bool layoutItemProperty(Panel& panel, std::string_view key, const json& value, c
 	else if(key == "shrink") panel.setShrink(nonNegative(value, at));
 	else if(key == "basis") panel.setBasis(optionalLength(value, "auto", at));
 	else if(key == "alignSelf") panel.setAlignSelf(crossAlign(value, at));
+	else if(key == "justifySelf") panel.setJustifySelf(crossAlign(value, at));
 	else if(key == "cell") panel.setGridCell(cell(value, at));
 	else if(key == "dir") panel.setWritingDirection(writingDirection(value, at));
 	else return false;
@@ -264,6 +274,7 @@ void resetLayoutItem(Panel& panel) {
 	panel.setShrink(0.0f);
 	panel.setBasis(std::nullopt);
 	panel.setAlignSelf(std::nullopt);
+	panel.setJustifySelf(std::nullopt);
 	panel.setGridCell({});
 	panel.setWritingDirection(WritingDirection::Inherit);
 }
@@ -272,7 +283,8 @@ std::shared_ptr<const PropertySet> stackProperties(std::initializer_list<Propert
 	auto set = std::make_shared<PropertySet>();
 	set->properties = applied;
 	for(PropertySpec spec : {PropertySpec{"justify", ValueKind::Text}, PropertySpec{"alignItems", ValueKind::Text},
-	                         PropertySpec{"rowGap", ValueKind::Number}, PropertySpec{"columnGap", ValueKind::Number}})
+	                         PropertySpec{"rowGap", ValueKind::Number}, PropertySpec{"columnGap", ValueKind::Number},
+	                         PropertySpec{"fitContent", ValueKind::Any}})
 		set->properties.push_back(std::move(spec));
 	set->apply = applyStack;
 	set->everyUpdate = true; // each key set once per update, so nothing changes when the node doesn't

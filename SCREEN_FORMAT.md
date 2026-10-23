@@ -61,7 +61,8 @@ Every part of the format follows these, and so should every extension:
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS, Windows; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the node the keyboard focused: a colour, `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (none). |
-| `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script (kerning, ligatures, Arabic, Indic; right-to-left runs), colour emoji from COLR fonts. `"fallback": ["symbols"]` names other fonts asked in order for a character this one lacks; a character none has shows as `?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has). |
+| `fonts` | `name → { "file", "size", "fallback", "bold", "italic" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script (kerning, ligatures, Arabic, Indic; right-to-left runs), colour emoji from COLR fonts. `"fallback": ["symbols"]` names other fonts asked in order for a character this one lacks; a character none has shows as `?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has). `"bold": true` and `"italic": true` thicken or slant the outlines, for headings from a file with one weight: `"heading": { "file": "Roboto-Regular.ttf", "size": 20, "bold": true }`; a label's `runs` keep its font's style unless they set their own. |
+| `languages` | `name → language`: the code languages an editor's `language` names (by name, alias or file name). Each has `title`, `aliases`, `files` (`["*.py", "CMakeLists.txt"]`), `comments` (`{ "line": "//", "block": ["/*", "*/"] }`), `brackets` and `pairs` (`[["(", ")"], ...]`: Enter between brackets indents, typing an opener of a pair adds its closer), `indent` (`{ "increase": regex, "decrease": regex }`), `wordPattern` (regex), and TextMate-style `patterns` with a `repository`: `{ "match": regex, "scope": "keyword" }`, `{ "begin": regex, "end": regex, "scope", "contentScope", "patterns" }` (an `end` may use the begin's groups, `\1`), `captures` / `beginCaptures` / `endCaptures` (`{ "1": { "scope": "type" } }`) and `{ "include": "#name" }` or `"$self"`. A scope is coloured by `@syntax.<scope>`, or its parent's (`keyword.control` by `@syntax.keyword`). Regular expressions are PCRE2, each find limited in steps and each line in time; a language has at most 2,048 rules. Ready-made languages are data files to `include` (`examples/shared/languages/`). |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `tokens` | `name → value`: a number (spacing, a radius, a type size), a colour (`"#rrggbb"`, `"transparent"`), an alias (`"@other"`, of a token or of `colors`), or per theme `{ "light": ..., "dark": ... }` of those. Used as `"@name"` wherever a number or a colour fits (`"padding": "@space.m"`, a font's `"size"`). Switched by `theme` like `colors`; a name in both is an error. Aliases go at most 16 deep. |
 | `theme` | Which variant of the colors and tokens is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
@@ -70,6 +71,7 @@ Every part of the format follows these, and so should every extension:
 | `components` | `name → { "params": {defaults}, "node": node }`: reusable nodes with parameters (see Components). |
 | `screens` | `name → node`: the screens an `outlet` shows; `{"navigate": "name"}` switches. The first is shown first. |
 | `templates` | `name → node`, built by code on demand (`Screen::instantiate`). |
+| `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and isn't built while its `when` doesn't hold. |
 | `state` | The app's data, any JSON object. |
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
@@ -79,7 +81,7 @@ Every part of the format follows these, and so should every extension:
 | `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
 | `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
-| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu). |
+| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu; `persist` lists join). |
 <!-- end generated -->
 
 ### Capabilities and features
@@ -97,6 +99,7 @@ The sections the host grants and revisions can't widen, and the installed featur
 | `features` | `{"wordCount": {"release": "1.0.0", "enabled": true, "order": 10, "requires": {...}, "provides": {...}}}`: installed features, each kept whole in its record (with `title`, `source`, `digest` and `publisher`). The runtime merges the enabled ones in `order`, under their names (`state.wordCount`, `wordCount.toggle`); views join the nodes whose `point` they name. Install, enable, disable and remove are revisions on `/features/<name>`. A feature can't bring a capability or a control step. |
 | `exports` | `{"editor.text": {"type": "string", "value": "{{state.text}}"}}`: values features read as `app.editor.text`. |
 | `imports` | `{"ui": "workbench@^1.0.0"}`: `"use": "ui.panel"` builds the feature's `workbench.panel`, if its release is in the range. |
+| `images` | `{"canvas": {"width": 800, "height": 600, "into": "state.canvas", "tools": {"brush": {"gesture": "paint", "size": 12}}}}`: the images the `image` step edits; `tools` names the library's gestures with their settings, and `limits` only lowers the library's (see Images). Revisions can't change it. |
 | `points` | `{"panels.dock": {"slot": "dock", "receives": ["doc.layers", "layers.move"]}}`: where a feature from another app may put its views (the node whose `point` has the name) and the exports it receives; the action exports a point receives are the host actions such features may run. Revisions can't change it. |
 <!-- end generated -->
 
@@ -114,7 +117,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `codeInput`, `carousel`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `raster`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `codeInput`, `carousel`, `scene`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -122,12 +125,13 @@ parent, later siblings on top of earlier ones.
 | `width`, `height`, `minWidth`, `minHeight` | Size. The minimum wins over a smaller size. |
 | `maxWidth`, `maxHeight` | The largest size (a length, or `"none"`, the default). The minimum wins over the maximum, as in CSS. |
 | `aspectRatio` | Width divided by height, `1.5` or `"16/9"`: the height follows the width, unless only the height is set (a non-zero `height`, opposite anchors, or a container's stretch), then the width follows the height. With both set, it is ignored, as in CSS. |
-| `anchors` | `{ "top", "bottom", "left", "right" }`: keep that edge this far from the parent's same edge. Anchoring opposite edges stretches the node. A value `"#id.edge + 8"` puts the edge at another node's edge (`"top": "#header.bottom + 12"`, `"bottom": "#footer.top - 8"`). |
+| `anchors` | `{ "top", "bottom", "left", "right" }`: keep that edge this far from the parent's same edge. Anchoring opposite edges stretches the node. A value `"#id.edge + 8"` puts the edge at another node's edge (`"top": "#header.bottom + 12"`, `"bottom": "#footer.top - 8"`). The same as text: edge names, each at 0 or at a length after a colon, `"left right:12 top:8"` is `{ "left": 0, "right": 12, "top": 8 }`. |
 | `fill` | Anchor all four edges this far in (`0` or `true` to cover the parent). |
 | `grow` | In a `row`/`column`: the share of the spare room it takes, like CSS flex-grow. |
 | `shrink` | In a `row`/`column`: how much of an overflow it gives up, in proportion to `shrink` times its size, down to its minimum (CSS flex-shrink). Default `0`: it keeps its size and the children overflow, as they always have (CSS's default is 1). |
 | `basis` | In a `row`/`column`: its size along it before growing or shrinking (CSS flex-basis), a length; `"auto"` (the default) for its own `width` or `height`. |
 | `alignSelf` | In a `row`/`column`/`grid`: where it sits across (`start`, `center`, `end`, `stretch`), over the container's `alignItems`. |
+| `justifySelf` | In a `grid`: where it sits along its cell's row (`start`, `center`, `end`, `stretch`), over the grid's `justifyItems`. |
 | `cell` | In a `grid`: `{ "column": 2, "row": 1, "columnSpan": 2, "rowSpan": 1 }`, counted from 1 (each key optional). Without `column` and `row`, it takes the next free cell, row after row. |
 | `dir` | Which way its children and text run, inherited: `"ltr"`, `"rtl"`, `"auto"` (the locale's: Arabic and Hebrew are right to left) or `"inherit"` (the default; the root is left to right). Right to left mirrors row order, grid columns, left and right anchors, `x`, padding and scrolling, swaps a label's `align` start and end, and draws an icon marked `mirror` mirrored. |
 <!-- end generated -->
@@ -140,8 +144,11 @@ parent, later siblings on top of earlier ones.
 | `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. Children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
 | `borderWidth`, `borderColor` | A border drawn inside the node's edges (it doesn't change the layout), over the background and under the children, following `radius`. Default: no border; `borderColor` defaults to black. |
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
+| `gradient` | The background as a gradient, painted over `color` within the corners, like CSS `linear-gradient()` and `radial-gradient()`: `["#1e3a5f", "#0b1220"]` (colours spread evenly from top to bottom), or `{ "kind": "linear", "angle": 90, "stops": ["@accent", { "at": 0.6, "color": "#00000000" }] }`. `angle` is in degrees (0 up, 90 right, 180 down, the default); the line reaches the corners, as in CSS. A `radial` gradient spreads from the centre to the farthest corner. A stop is a colour, spread evenly, or `{ "at": 0..1, "color" }`; two stops at one place change colour sharply. At most 32 stops. It can be set in `hover` and the other states. |
 | `visible` | `false` hides the node and its children. |
 | `cache` | `true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same (a pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). Default: `false`. |
+| `overflow` | `"visible"` lets the children draw and be hit outside the node, clipped to what clips the node instead, as CSS `overflow: visible`: a line whose arrowhead passes its box, text longer than its frame. A cached or scrolling node still clips. Default: `"clip"`. |
+| `snapshot` | `"thumb"` or `{ "image": "thumb", "scale": 0.25 }`: the node and its children are drawn into the image of that name instead of on the screen, again each time something in them changes, and an `image` node with `"source": "thumb"` shows it (a thumbnail, a preview, a slide sorter). Out of the layout: laid out at its own `width` and `height` from the window's top left, and never hit, focused or read. `scale` is the image's pixels per layout pixel (above 0, at most 4; default `1`). Overlays inside it are left out. Not on the root or with `overlay`; an empty name draws the node in place. |
 | `rotate` | Draws the node and its children turned, in degrees clockwise, about `transformOrigin`: `"rotate": 8`. Like every transform key it only changes how the node is drawn and hit: its place in the layout, and its siblings', stay. Bind it to a number in the state and an `animate` step turns it. Default: `0`. |
 | `scale` | Draws the node scaled about `transformOrigin`: one factor (`0.9`) or `[x, y]`. Default: `1`. |
 | `skew` | Draws the node skewed, `[x, y]` in degrees, as CSS `skew()`: `[-12, 0]` slants it. Default: `[0, 0]`. |
@@ -151,7 +158,7 @@ parent, later siblings on top of earlier ones.
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
-| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. |
+| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus unless one inside already has it) and gives it back when it closes. `"flip": true` places it on the other side when only that side has room, its children mirrored on that axis. |
 | `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
 | `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
 <!-- end generated -->
@@ -165,7 +172,7 @@ parent, later siblings on top of earlier ones.
 | `label` | The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an input's or a slider's text is its value, not its name). |
 | `description` | A longer accessible description, read after the name. |
 | `isOpen` | Whether the node is expanded (a tree item, a disclosure, a menu button: `expanded` to assistive tools); leave it out for one that doesn't expand. Screen readers say it, and offer to expand or collapse it (a click). |
-| `selected` | Whether the node is selected (a tab, a list item); leave it out for one that can't be. |
+| `selected` | Whether the node is selected (a tab, a list item, a menu's check); leave it out, or bind it to `null`, for one that can't be. |
 | `live` | A live region: changes to its text are read without moving the focus, `polite` when the person is idle (a toast), `assertive` at once (an error). Default: `off`. |
 | `tabIndex` | The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out. |
 | `arrows` | The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is. |
@@ -206,7 +213,7 @@ only for the elements that changed.
 | `textColor` | Default black. |
 | `font` | Font name. Default: `default`. |
 | `padding` | Pixels between the edges and the text. |
-| `align` | One value for both axes, or `{ "horizontal", "vertical" }`. |
+| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
@@ -249,18 +256,28 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 | `lineNumbers` | `true` shows line numbers in a gutter. |
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
 | `lineColor`, `selectionColor`, `caretColor` | The caret's line background, the selection, the caret. |
-| `autofocus`, `onChange` | Focus when built; `event.value` is the new text. |
+| `autofocus`, `onChange` | Focus when built, and when a modal overlay holding it opens; `event.value` is the new text. |
 | `wrap` | `true` wraps lines at the width (at spaces, else anywhere); the gutter numbers each line once. |
 | `folds` | Folded ranges, `[{ "line", "endLine" }]` from 0: the lines after `line` up to `endLine` are hidden behind it. The user folds and unfolds with the gutter or Cmd+Alt+[ and ]; the document's folds replace theirs only when they change, and leaving the key out keeps them. At most 10,000. |
 | `decorations` | `[{ "line", "endLine", "column", "endColumn", "kind", "color", "icon", "text" }]`, lines and columns from 0: `background` tints the lines, `squiggle` underlines the columns (or the whole lines) with a wave, `gutter` draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most 10,000 and 8 on a line; inline text is cut at 256 characters. |
 | `find` | `{ "text", "regex", "wholeWord", "caseSensitive" }` or `null` (none): highlights the matches of `text` (plain, or a PCRE2 pattern with `regex`, matched line by line within match and depth limits); Cmd+G and Cmd+Shift+G select the next and previous. A pattern that doesn't compile highlights nothing. `inSelection` limits it to the selection as it is when turned on. A find bar asks for a step with `step` (`first` from the selection's start, `next`, `previous`, `replace` or `replaceAll`, with `replace` as the replacement) and a `request` number from 1, run once per new number. While a pattern is set, `caret` also gets `matches`, the count. |
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
+| `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
+| `minimapStyle` | How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each character a pixel in its syntax colour. |
+| `minimapViewport` | When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it. |
+| `matchStyle` | How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
 | `readOnly` | `true`: the user can select, find and fold, but not edit. |
 | `guideColor`, `matchColor`, `bracketColor` | The indentation guides, find's matches and the paired brackets. |
 | `grammar` | The language parsed for syntax colours, folds and bracket pairs: `c`, `cpp`, `json`, `python`, `javascript`, `typescript`, `markdown` or an alias (`c++`, `js`, `ts`, `py`, `md`), or a file name whose extension says it. Each capture is coloured by the theme's `@syntax.<capture>` token (e.g. `@syntax.keyword`; `keyword.return` falls back to `@syntax.keyword`). Left out, plain text. |
+| `commands` | Keys bound to code commands, each one undo step: `{ "mod+/": "toggleComment", "alt+up": "moveLinesUp" }` (`mod` is cmd on macOS, ctrl elsewhere). `toggleComment` (the language's line comment), `moveLinesUp`, `moveLinesDown`, `deleteLines`, `copyLine` and `cutLine` (the caret's line, when nothing is selected), `indentLines`, `outdentLines`, `insertLineAfter`, `insertLineBefore`. A bound key isn't typed. |
+| `popup` | `true` while the document shows a popup over the editor (completions): up, down, page up, page down, enter, tab and escape without modifiers go to `onPopupKey` instead of the text. |
+| `goTo` | `{ "line", "column", "request" }` (from 0): moves the caret there, once per `request` number (a new number moves it again). |
+| `insert` | `{ "text", "before", "request" }`: replaces the selection and the `before` characters just before it with `text` (a completion), once per `request` number; one undo step. |
+| `tokens` | `[{ "line", "column", "length", "style" }]` (from 0): runs coloured by `@syntax.<style>` over the colours of `language` or `grammar`, e.g. a language server's semantic tokens. They move with edits until the next list. |
 <!-- end generated -->
 
 ### `diff`
@@ -274,7 +291,7 @@ then character by character on the lines changed, in read-only editors that numb
 | `original` | The text compared from (lines split at `\n`, a `\r` before it dropped). |
 | `modified` | The text compared to. |
 | `mode` | `split` (default): the original on the left, the modified text on the right, rows aligned with blank rows and scrolled together; `inline`: one editor, the deleted lines above the lines inserted for them. |
-| `language` | A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. |
+| `language` | A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. On an `editor`: a language of the `languages` section, by name, alias or file name (`main.py`). It colours the text unless `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, or wrapping the selection), Backspace between an empty pair deletes both, Enter between `brackets` or after an `indent.increase` line indents a level, and a line that comes to match `indent.decrease` goes back one. Unknown, plain text. |
 | `deletedColor`, `insertedColor` | Behind deleted and inserted lines (the changed characters in the same colour, twice as strong). |
 <!-- end generated -->
 
@@ -292,6 +309,7 @@ overflow.
 | `rowGap`, `columnGap` | Pixels between rows and between columns, over `gap`: in a column `rowGap` is between children, in a wrapping row between lines. |
 | `justify` | How the children are spread along it: `start` (default), `center`, `end` (a column from the bottom, like a chat: overflow is clipped at the top), `space-between`, `space-around` or `space-evenly`, as in CSS. |
 | `alignItems` | Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, within their maximum). Left out, they keep their own anchors across. |
+| `fitContent` | `true`, `"width"` or `"height"`: that size comes from the children instead of `width` and `height` (within the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, even when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with its text. A child that grows or is stretched by its anchors adds only its own size. |
 | `direction` | On a `stack`: `"row"` or `"column"`. |
 | `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
 <!-- end generated -->
@@ -304,7 +322,7 @@ Hebrew runs right to left, numbers left to right). `"dir": "auto"` on the root m
 
 `grid` places its children in columns and rows, like a CSS grid: each in its `cell`, or in the next free cell, row
 after row. A child is as wide as its cell and keeps its own height at the top of it, unless `justifyItems`,
-`alignItems` or its `alignSelf` say otherwise.
+`alignItems`, or its own `justifySelf` and `alignSelf` say otherwise.
 
 <!-- generated: grid -->
 | Key | Meaning |
@@ -384,7 +402,7 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 | Key | Meaning |
 |---|---|
 | `file` | A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). |
-| `source` | Instead of `file`: an image the host names (`Screen::setImage("chart", …)`), e.g. a picture it made; the node shows each new one the host sets. |
+| `source` | Instead of `file`: a named image, which a node draws (its `snapshot`: a thumbnail of it) or the host sets (`Screen::setImage("chart", …)`, e.g. a picture it made); the node shows each new one. |
 | `fit` | `"contain"` (the default: all of it, as large as fits, centred), `"cover"` (the whole node, the image's edges cut off) or `"fill"` (stretched), like CSS `object-fit`. |
 <!-- end generated -->
 
@@ -416,6 +434,42 @@ window draws as before.
 
 A document can't supply shader source: it only names what the host registered (see `SECURITY.md` for the limits on
 a surface's passes and memory).
+
+### `raster`
+An image the screen edits (see Images), shown at its view: its layers flattened over a checkerboard where it is
+transparent, on the node's `color`. Over it, the node draws what the tools are doing: the selection's marching ants,
+the quick mask's tint, the crop being dragged (its rule-of-thirds lines, the rest shaded), the marquee or lasso being
+drawn, and the brush's outline under the pointer (painting, erasing, cloning). The first raster node to show an image
+fits it to the node.
+
+The pointer on the node plays the image's current tool exactly as the `pointer` operation does: presses, moves,
+releases and the wheel, with their modifier keys. While the node has the focus, the space bar held pans whatever the
+tool; the wheel zooms about the pointer. Every node showing an image draws again when it changes, whoever changed it
+(a node, a step, an agent's scenario), and the image's snapshot is published to its `into` path after each press,
+release, pan and zoom (a drag's moves only draw). To assistive technology the node is an image named after its image,
+unless the node has its own `label`.
+
+<!-- generated: raster -->
+| Key | Meaning |
+|---|---|
+| `image` | The name of an image the `images` section declares, made the first time a node or an `image` step names it. A name the section doesn't declare is an error at the node. |
+| `checker` | A checkerboard where the image is transparent. Default: `true`. |
+| `overlayColor` | The outlines of what the tools are doing (the marquee, the lasso, the crop and its thirds, the brush). Default: white, over a dark line. |
+| `shadeColor` | Over what the crop being dragged leaves out. Default: black at half opacity. |
+<!-- end generated -->
+
+A profile-picture cropper: the person drags the crop, and a button keeps the square it shows.
+
+```json
+"images": { "avatar": { "width": 512, "height": 512, "into": "state.avatar",
+                        "tools": { "crop": { "gesture": "crop" }, "hand": { "gesture": "pan" } } } },
+"root": { "type": "column", "children": [
+  { "type": "raster", "image": "avatar", "grow": 1, "color": "#1f2937", "shadeColor": "#000000aa" },
+  { "type": "row", "children": [
+    { "text": "Move", "onClick": [{ "image": "setTool", "with": { "tool": "hand" } }] },
+    { "text": "Crop", "onClick": [{ "image": "setTool", "with": { "tool": "crop" } }] },
+    { "text": "Undo", "disabled": "{{!state.avatar.canUndo}}", "onClick": [{ "image": "undo" }] } ] } ] }
+```
 
 ### `split`
 Its children are panes laid side by side (or one above the other), with a sash between each two: drag a sash to
@@ -453,6 +507,9 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
 | `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most 10,000; the strip scrolls sideways when they don't fit. |
 | `value` | The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`. |
 | `textColor`, `activeTextColor`, `activeBackground`, `accentColor` | The labels' colour (default muted), the active tab's, its background and its line. |
+| `accentEdge` | The edge of the active tab its accent line is on: `bottom` (default) or `top`. |
+| `markerColor` | The markers' colour (default `accentColor`). |
+| `keepMarker` | A marked tab keeps its marker while active, and shows its close button only while hovered (default false). |
 <!-- end generated -->
 
 ```json
@@ -478,9 +535,10 @@ top stays in place.
 | Key | Meaning |
 |---|---|
 | `items` | The rows, in order (or a binding such as `"{{state.files}}"`): a string (its id and label), or `{ "id", "label", "icon", "iconColor" }` (an icon before the label, by name, as a label's `icon`, in a hex colour or the text's); in a `tree`, also `"children"` (a list of items) and `"expandable"` (a closed node whose children aren't loaded yet: `onExpand` can load them); in a `table`, `"cells"`: the texts of the row's columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep. |
-| `expanded` | On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there to keep them over a rebuild. |
+| `expanded` | On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there to keep them over a rebuild. A state path (`"expanded": "state.files.open"`) does that itself: the ids are read from there, and kept there before `onExpand` runs. |
 | `stickyRows` | On a `tree`: how many open folders stay pinned at the top while their children scroll by, nearest the root first (default 0, at most 16). A click on a pinned folder moves the cursor to it. |
-| `sort` | On a `table`: the rows' order, `{ "column": id, "descending": false }` (or null for the items' order). A click on a header sorts by its column, ascending then descending, and runs `onSort`: numbers by value before text, equal cells in the items' order. |
+| `guides` | On a `tree`: a line per level left of the nested rows (default true). |
+| `sort` | On a `table`: the rows' order, `{ "column": id, "descending": false }` (or null for the items' order). A click on a header sorts by its column, ascending then descending, and runs `onSort`: numbers by value before text, equal cells in the items' order. A state path (`"sort": "state.files.sort"`) keeps the order there. |
 | `selection` | `"single"` (the default), `"multiple"` (Shift adds a range, Cmd or Ctrl one row) or `"none"`. |
 | `value` | The selected id, or with `"multiple"` the list of them (`bind` keeps it in a state path); a change runs `onChange`. |
 | `rowHeight` | Each row's height in pixels (default 24). |
@@ -596,6 +654,7 @@ data or its size changes.
 | `fit` | How the view box fills the node: `"contain"` (the default), `"cover"` or `"fill"`, as for images. |
 | `fillColor` | The inside's colour; without it the path isn't filled. |
 | `fillRule` | Which points are inside: `"nonzero"` (the default) or `"evenodd"` (a shape inside another is a hole). |
+| `fillGradient` | The inside as a gradient across the node's box, in place of `fillColor`: the `gradient` node's value, `{ "kind": "linear" or "radial", "angle": 90, "stops": [{ "at": 0, "color": "@accent" }] }` (1 to 32 stops; a radial one is centred, reaching the corners). |
 | `stroke` | The outline's colour; without it there is no outline. |
 | `strokeWidth` | The outline's width (default 1), in the view box's units (pixels when stretched by `"fill"`). |
 | `strokeJoin` | Corners: `"miter"` (the default, bevelled past 4 widths), `"round"` or `"bevel"`. |
@@ -622,7 +681,8 @@ smart guides drawn while dragging. Rulers along the top and left follow the zoom
 dragging a guide back onto it removes it. The canvas doesn't move anything itself: it runs `onTransform` with where
 the items should go, and the document applies it. `items` are drawn by the canvas, only those in view, so thousands
 cost what is on screen; an application with more (up to a million) gives them through a model. The selection is
-announced as a state of the canvas ("3 selected").
+announced as a state of the canvas ("3 selected"). With `scaleChildren` the children are drawn at the camera's zoom,
+text included, like a slide or a page in a drawing app, and a single selected child can be rotated by its handle.
 
 <!-- generated: canvas -->
 | Key | Meaning |
@@ -633,6 +693,7 @@ announced as a state of the canvas ("3 selected").
 | `grid` | World units between grid lines (default 0: none); drawn when the lines are far enough apart, and snapped to. |
 | `snap` | Moves and resizes snap to the grid, other items' edges and centres, and guides (default true). |
 | `rulers` | Rulers along the top and left, in world units; dragging out of one makes a guide (default true). |
+| `scaleChildren` | Children are drawn at the camera's zoom, text and all, like a page in a drawing app, and can be rotated by their handle (default false: their rectangles scale while their text keeps its size). |
 | `font` | The items' text font (default `default`), in a few sizes. |
 | `accentColor` | The selection, the marquee, the handles and the guides. |
 <!-- end generated -->
@@ -645,6 +706,53 @@ announced as a state of the canvas ("3 selected").
 
 `{ "animate": "state.board.camera.zoom", "to": 2, "ms": 300 }` moves the camera smoothly. Until panels can be
 transformed, a child's text keeps its size while its box, images and paths scale with the zoom.
+
+### `scene`
+A 3D scene: primitive meshes (`cube`, `sphere`, `cylinder`, `cone`, `torus`, `plane`) and glTF models, placed by
+transforms, lit by point, sun and spot lights and drawn with PBR materials, over a ground grid and axes. The middle
+button orbits, Shift with it pans and the wheel zooms at the pointer (`controls`); a click picks, a drag over nothing
+draws a box, and the selection is outlined. A `gizmo` moves, rotates and scales the selection by its handles; the
+scene doesn't move the nodes itself, the document applies `onTransform`. glTF models (with their buffers and
+textures) are checked and bounded (64 MiB a file, 4,096 nodes and meshes, two million vertices); a model that fails
+to load is left out and named in the log.
+
+<!-- generated: scene -->
+| Key | Meaning |
+|---|---|
+| `bind` | A state path keeping the view (camera and selection), both ways. |
+| `view` | The view, if there is no `bind`: `{ "camera": { "target": [x, y, z], "yaw", "pitch", "distance", "fieldOfView", "orthographic" }, "selection": [ids] }`, each part only if given. Angles are in radians; the pitch stays within ±90°, the distance within 0.01 and 100,000, the field of view within 0.05 and 3. Orbiting, panning, zooming and selecting write it back and run `onChange`. |
+| `scene` | The scene, usually `{{state.scene}}`: `{ "nodes": [...], "materials": [...] }`. A node: `{ "id", "name", "parent", "translation": [x, y, z], "rotation": [x, y, z, w] (or `"rotationDegrees": [x, y, z]`), "scale", "mesh", "material", "light", "camera", "visible", "asset" }`; `mesh` is `"cube"`, `"sphere"`, `"cylinder"`, `"cone"`, `"torus"`, `"plane"` or a mesh of an asset; `light` is `{ "type": "directional" | "point" | "spot", "color", "intensity", "range", "innerCone", "outerCone" }`. A material (PBR): `{ "id", "name", "baseColor": [r, g, b, a], "metallic", "roughness", "emissive", "alphaMode", "alphaCutoff", "doubleSided" }`. Read when it changes, checked and bounded. |
+| `assets` | glTF models (`.gltf` or `.glb`) by name: `{ "robot": "models/robot.glb" }`, at most 64, each read with the `reader.imageFile` permission and checked. A node with `"asset": "robot"` holds the model's nodes (ids `"<its id>/<id>"`); a click on them selects that node. |
+| `animations` | Animation clips: `[{ "name", "tracks": [{ "node", "path": "translation" | "rotation" | "scale", "interpolation": "linear" | "step" | "cubic", "times", "values" }] }]`, played at `time`. |
+| `time` | The animations' time, in seconds (default 0). |
+| `shading` | `"material"` (the default: lit, with the lights and materials), `"solid"` (one grey, a studio light) or `"wireframe"`. |
+| `grid` | A ground grid (default true). |
+| `axes` | The X (red) and Z (blue) axes on the floor (default true); with `"up": "z"`, X and Y (green). |
+| `glyphs` | Lights and cameras drawn as a modeller draws them (default false: a small cross): a camera's frustum with its up triangle, a light's circle with a line down to the floor (a sun's rays, a spot's cone); the selected ones in `outlineColor`. |
+| `up` | Which way is up in the scene's frame: `"y"` (the default, as glTF) or `"z"` (as CAD and modelling tools): then the nodes' transforms, the world gizmo's axes, the picked `point`, the `cursor3d` and the pivot are Z up, and the floor is the XY plane. |
+| `cursor3d` | A 3D cursor drawn at `[x, y, z]` (none without it): a ring of red and white dashes facing the eye; e.g. set from a pick's `point`, and used as the gizmo's `pivot` or where new nodes go. |
+| `background` | Behind the scene (default the theme's). |
+| `gridColor` | The grid's lines. |
+| `outlineColor` | The selection's outline (default orange). |
+| `exposure` | The light's multiplier, before tone mapping (default 1). |
+| `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local", "pixels" (its size), "pivot": [x, y, z] (where it turns and scales about, if not the selection's centre), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
+| `controls` | The pointer's gestures: `{ "orbit": "middle", "pan": "shift+middle", "select": "left", "zoom": true, "selects": true, "minimumDistance", "maximumDistance" }` (these are the defaults); a binding is `"left"`, `"middle"` or `"right"` after any of `"shift+"`, `"control+"` and `"alt+"`, or `"none"`. A click picks, a drag on nothing draws a box; `selects` false leaves the selection to the handlers. |
+| `onSelect` | A click (`event.type` `"pick"`: `id`, or null on nothing, `button`, `shift`, `x`, `y`, the world `point`) or a box (`"boxSelect"`: `ids`, `shift`, `box`), with the `selection` after it. |
+| `onTransform` | A gizmo drag: `event.phase` (`"preview"`, `"end"` or `"cancel"`), `mode`, `axis`, and `nodes`: `[{ "id", "translation", "rotation", "rotationDegrees", "scale" }]`, and `text` (e.g. `"Move 1, 0, 0"`). |
+<!-- end generated -->
+
+```json
+{ "type": "scene", "id": "viewport", "bind": "state.view", "scene": "{{state.scene}}",
+  "assets": { "robot": "models/robot.glb" }, "shading": "{{state.shading}}",
+  "gizmo": { "mode": "translate", "snap": { "translate": 0.5 } },
+  "onSelect": { "set": "state.view.selection", "to": "{{event.selection}}" },
+  "onTransform": { "run": "moveNodes", "with": { "nodes": "{{event.nodes}}" } } }
+```
+
+`{ "camera": "#viewport", "view": "top", "frame": "selection" }` snaps the camera to a view (front, side, top) and
+frames the selection; `"projection": "toggle"` switches between perspective and orthographic, `"orbit": [15, 0]`
+turns it as a drag would and `"zoom": 1` comes one wheel step closer. Scenarios and `affrescoui render` capture a
+scene like any other node.
 
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
@@ -660,34 +768,194 @@ Shows the current screen from `screens`, filling the outlet unless the screen pl
 ```
 The use's other properties override the component's node; `with` values are evaluated where it is used and become
 variables of the node and its children. A child `{ "slot": true }` in the component is replaced by the use's
-`children`. Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
+`children`; with several slots, each gets them, and they see the variables where they are placed (a slot inside a
+`repeat` shows them once per item). Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
-**Built-in components** need no definition (a screen's own component of the same name wins). They are written in the
-format, take their colours as parameters, and keep their open state where `open` says (a state path):
+### Built-in components
+These need no definition (a screen's own component of the same name wins). They are written in the
+format, take their colours and sizes as parameters whose defaults are the kit's tokens (see The kit's tokens), and
+keep their open state where `open` says (a state path):
 - `menu` (below its parent), `submenu` (to its right) and `contextMenu` (where `x`, `y` say): `items` of
-  `{ "title", "keyLabel", "mnemonic", "enabled", "separator", "submenu", "run", "with" }`. The arrows, Home, End and
-  the items' first letters move and choose; Enter or a click runs the item's action and closes the menus; a click
-  outside or Escape closes them. A submenu's state is `open + 'Sub'`, one key per item (`.m0`, `.m1`, ...).
-- `menuBar`: `menus` of `{ "name", "title", "items" }`; Alt with a menu's first letter opens it, and `open` is an
+  `{ "title", "keyLabel", "mnemonic", "enabled", "checked", "icon", "separator", "submenu", "run", "with" }`. The
+  arrows, Home, End and the items' first letters move and choose; Enter or a click runs the item's action and closes
+  the menus; a click outside or Escape closes them. A `checked` item shows a check (and is selected for screen
+  readers), and with `"icons": true` the items show their `icon`. A submenu's state is `open + 'Sub'`, one key per
+  item (`.m0`, `.m1`, ...). Open a context menu from `onContextMenu`, which a right click and, on the focused node,
+  Shift+F10 or the Menu key send.
+- `menuBar`: `menus` of `{ "name", "title", "items" }`, or of `{ "menu", "title" }` naming a menu of `source` (the
+  `menus` variable); by default `window.menuBar`, so one list feeds the native bar and the drawn one. A menu's `width`
+  sizes its heading (by default, from the title's length). Alt with a menu's first letter opens it, and `open` is an
   object with one flag per menu name.
-- `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with" }`) over a backdrop; the focus is
-  trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels. Its
-  `children` go between the message and the buttons.
-- `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`.
+- `toolbar`: a row of `items` (`{ "title", "icon", "keyLabel", "tooltip", "checked", "enabled", "run", "with" }`, or
+  `{ "separator": true }`) as wide as `width`; the arrows move between them, a `checked` one is a pressed toggle, the
+  tooltip names the shortcut, and those that don't fit go into a "more" menu (open at `open + '.more'`).
+- `statusBar`: a row of `items` (`{ "text", "icon", "tooltip", "color", "run", "with", "side" }`), `"side": "end"`
+  putting one at the end; an item with a `run` is a button.
+- `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with", "keepOpen", "default" }`) over a
+  backdrop; the focus is trapped in it, the `"default": true` button is drawn as primary (else the first) and
+  takes the focus, Enter choosing the focused button, Alt with a letter a button, Escape cancels.
+  A `"keepOpen": true` button doesn't close it (its action does, setting `open` false). Its `children` go between the
+  message and the buttons.
+- `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`; its × is a
+  button named `closeLabel`.
+- `toasts`: a stack of notifications in the bottom corner from the list at `state[name]` (`name` is `toasts`), each
+  `{ "message", "progress", "color", "actions" }`: the last `limit` show, the newest at the bottom, and screen
+  readers announce them. A toast's × or action removes it from the list (an action then runs its `run`).
 - `hoverCard`: shows a card with `title` and `text` while the pointer is over its `children`.
+- `popover`: a card with `title`, `text` and its `children`, `width` by `height`, below its parent (or `anchor`;
+  `placement` `below-end` lines it up with the end) with an arrow `arrowAt` from its start pointing at it; it flips
+  above when only that side has room, and a click outside or Escape closes it.
 - `settingsPage`: the document's settings with a search field (see Menus and settings).
-- `quickPick`: a search field over `providers` of `{ "prefix", "items", "key", "placeholder", "run" }` (the one whose
-  `prefix` starts the query, else the one without), matched with `fuzzySort` on each item's `key` (`title`) and the
-  matching letters highlighted. Its state is `state[name]` (`name` is `quickPick`): `open`, `query`, `index`, `top`
-  and `recent` (the default provider's last `recentLimit` choices, shown first). Only the visible `rows` are built;
-  the arrows move, Enter or a click runs the item's `run` (with its `with`), or else the provider's `run` with the
-  item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
+- `quickPick`: a search field over `providers` of `{ "prefix", "items", "key", "placeholder", "run", "filter" }` (the
+  one whose `prefix` starts the query, else the one without), matched with `fuzzySort` on each item's `key` (`title`)
+  and the matching letters highlighted; a provider with `"filter": false` shows its items as given (already matched
+  by the document, such as a search inside the file the query names). Its state is `state[name]` (`name` is
+  `quickPick`): `open`, `query`, `index`, `top` and `recent` (the default provider's last `recentLimit` choices, shown
+  first). Only the visible `rows` are built; the arrows move, Enter or a click runs the item's `run` (with its
+  `with`), or else the provider's `run` with the item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
+  With `"stacked": true`, each row's `detail` goes on a second line under its title (in `detailFont`, if given):
+  give it a `rowHeight` of about 44. An item's `badge` (a letter or two, e.g. the kind of a symbol) shows in a small box
+  before its title, coloured `badgeColor`.
 
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
   "buttons": [{ "title": "Save", "run": "save" }, { "title": "Cancel" }] } }
+{ "use": "popover", "with": { "open": "state.share", "title": "Share", "text": "Anyone with the link can view." } }
+{ "use": "toasts", "with": { "name": "notes" } }
+{ "push": "state.notes", "value": { "message": "Export finished", "actions": [{ "title": "Open", "run": "open" }] } }
+{ "label": "Document", "focusable": true,
+  "onContextMenu": { "set": "state.ctx", "to": { "open": true, "x": "{{event.x}}", "y": "{{event.y}}" } },
+  "children": [{ "use": "contextMenu", "with": { "open": "state.ctx.open", "x": "{{state.ctx.x}}",
+    "y": "{{state.ctx.y}}", "items": [{ "title": "Word wrap", "checked": "{{state.wrap}}", "run": "toggleWrap" }] } }] }
+{ "use": "toolbar", "with": { "items": [{ "title": "Undo", "icon": "undo", "keyLabel": "Ctrl+Z", "run": "undo" },
+  { "separator": true }, { "title": "Grid", "icon": "layout-grid", "checked": "{{state.grid}}", "run": "toggleGrid" }] } }
 ```
+
+### Built-in controls
+Controls of a desktop app's window, built in the same way as the built-in components (see Built-in components):
+- `segmentedControl`: a row of `items`, each `{ "id", "title", "icon", "tooltip", "enabled", "width", "run",
+  "with" }`; the chosen `id` is `state[name]`, a click or Space picks one (then runs its `run`), and the arrows move.
+  Screen readers hear a group of radio buttons.
+- `searchField`: a text box over `state[name]` with a search icon and a × that clears it (as Escape does); Enter runs
+  `run` with the text as `query`. Its border lights while it has focus, and it stays left to right.
+- `breadcrumbs`: a path of `items`, each `{ "title", "icon", "run", "with" }`, with chevrons between them; each but the
+  last is a link that runs its `run`.
+- `tabStrip`: the tabs at `state[name]` as `{ "tabs", "active" }`, each tab `{ "id", "label", "marker", "closable" }`
+  (`marker` draws a dot, for unsaved changes). A click activates one, its × closes it (running `onClose` with its
+  `id`, or else removing it and activating its neighbour), and a drag or Ctrl+Shift+Page Up/Down moves it. The tabs
+  that don't fit in `width` are listed under an "All tabs" button (`more` in its state).
+
+```json
+{ "use": "tabStrip", "with": { "name": "files", "onClose": "closeFile" } }
+{ "push": "state.files.tabs", "value": { "id": "notes", "label": "notes.txt", "closable": true } }
+{ "use": "breadcrumbs", "with": { "items": [{ "title": "Projects", "icon": "folder", "run": "openProjects" },
+  { "title": "main.cpp" }] } }
+{ "use": "segmentedControl", "with": { "name": "view", "label": "View",
+  "items": [{ "id": "list", "title": "List" }, { "id": "grid", "title": "Grid", "icon": "layout-grid" }] } }
+{ "use": "searchField", "with": { "name": "find", "run": "search" } }
+```
+
+### Built-in panels
+The larger parts of a desktop app's window, built in the same way (see Built-in components):
+- `dock`: a window's panels in tabbed areas: `left`, `right` and `bottom` around the `center`. `panels` names them
+  (`{ "explorer": { "title": "Explorer", "icon": "folder" } }`) and `state[name]` places them: each area
+  `{ "tabs", "active", "collapsed" }`, plus `sizes`, `maximized` (an area or null) and what is being done (`resizing`,
+  `menu`). The use's children are shown in every area, with `area` and `panel` (its active panel, `""` in a centre
+  without tabs), so each says which panel it is with `when`. A tab dragged to another area's tabs or body moves there,
+  as from an area's "Move to" menu (the keyboard's way); a side area collapses to a strip of its panels' icons, the
+  bottom one to its tabs, and one maximises over the others. An area without panels goes. An area resizes by dragging
+  its inner edge, or from it with the arrows (`dir`: the dock's writing direction, for which way they go; `sizes`,
+  `minSize`, `maxSize`). The areas mirror right to left.
+
+```json
+{ "fill": true, "use": "dock", "with": { "dir": "{{state.dir}}", "panels": {
+    "explorer": { "title": "Explorer", "icon": "folder" }, "terminal": { "title": "Terminal", "icon": "terminal" } } },
+  "children": [
+    { "when": "{{panel == ''}}", "fill": true, "type": "editor", "bind": "state.text" },
+    { "when": "{{panel == 'explorer'}}", "fill": true, "type": "tree", "items": "{{state.files}}" },
+    { "when": "{{panel == 'terminal'}}", "fill": true, "type": "label", "text": "{{state.output}}" }
+  ] }
+{ "set": "state.dock", "to": { "left": { "tabs": ["explorer"] }, "bottom": { "tabs": ["terminal"] },
+  "center": { "tabs": [] } } }
+```
+
+- `inspector`: a property sheet editing an object in the state, in collapsible `groups`
+  (`[{ "id", "title", "rows" }]`). A row is `{ "key", "label", "type", "unit", "min", "max", "step", "decimals",
+  "options", "axes", "enabled", "tooltip" }` and edits `values[key]` at `bind + "." + key`: a `number` (the default)
+  changes by dragging its label, typing or the arrows, rounded to `decimals` (from `step` when not given) and kept
+  within `min` and `max`, a text that isn't one changing nothing; a `slider`, a `color` (a swatch opening a picker), a
+  `select` (`options`: ids or `{ "id", "label" }`), a `toggle`, a `checkbox`, a `text`, or a `vector`, a list of
+  numbers with a field for each of `axes` (default `["x", "y", "z"]`). Every change runs the action `onChange` names
+  with `{ key, value }`. `state[name]` keeps the closed groups (`closed`) and the open picker or list (`open`).
+
+```json
+{ "use": "inspector", "with": { "bind": "state.shape", "values": "{{state.shape}}", "onChange": "shapeChanged",
+  "groups": [{ "id": "transform", "title": "Transform", "rows": [
+    { "key": "width", "label": "Width", "unit": "px", "min": 0 },
+    { "key": "position", "label": "Position", "type": "vector", "step": 0.5 },
+    { "key": "fill", "label": "Fill", "type": "color" },
+    { "key": "blend", "label": "Blend", "type": "select", "options": ["normal", "multiply"] } ] }] } }
+```
+
+- `ribbon`: tabs of groups of buttons across a window's top. `tabs` is `[{ "id", "title", "groups" }]`, a group
+  `{ "id", "title", "icon", "items" }` and an item a toolbar's (`title`, `icon`, `tooltip`, `keyLabel`, `checked`,
+  `enabled`, `run`, `with`) plus `size`: `"large"` (an icon over its title) or small (an icon beside it, three to a
+  column). Groups that don't fit its `width` fold, from the last, into a button each that opens a menu of their items.
+  A tab's double click or the end button collapses it to its tabs, and a tab opens it again. `largeFont` names a
+  bigger icon font for the large buttons. `state[name]` keeps `tab`, `collapsed` and the open menus (`menus`).
+
+```json
+{ "use": "ribbon", "with": { "largeFont": "largeIcons", "tabs": [{ "id": "home", "title": "Home", "groups": [
+  { "id": "clipboard", "title": "Clipboard", "items": [
+    { "title": "Paste", "icon": "clipboard", "size": "large", "run": "paste" },
+    { "title": "Cut", "icon": "scissors", "run": "cut" }, { "title": "Copy", "icon": "copy", "run": "copy" } ] }] }] } }
+```
+
+### Chat components
+The parts of a conversation with an assistant (see Asking the agents) are built-in components too. They run the actions they are given with
+  `with`: `chatBubble` (`text`, `from`, `mine`, `time`, `error`), `typingIndicator` (`label`; its active dot is
+  `phase % 3`), `proposalCard` (`title`, `summary`, up to three `lines` such as a proposal's `changes`, in the font
+  `lineFont`, a `status`, and `preview`, `accept`, `reject` buttons until the status is `accepted`, `rejected` or
+  `closed`), `chatComposer` (an editor bound to `bind`, showing `value`: Enter runs `send`
+  unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; it lays out left to right, as the editor
+  starts its lines at the left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
+  badge).
+
+### The kit's tokens
+The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
+built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a
+`kit.` token itself (`"tokens": { "kit.radius": 4 }` is enough): then each has a light variant too, chosen by `theme`
+like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
+
+<!-- generated: kitTokens -->
+| Token | Dark | Light | For |
+|---|---|---|---|
+| `kit.background` | `#1e1e1e` | `#ffffff` | Pages and the settings page. |
+| `kit.surface` | `#252526` | `#ffffff` | Menus, dialogs, toasts, cards and popovers. |
+| `kit.bar` | `#3c3c3c` | `#f3f4f6` | Menu bars, toolbars and status bars. |
+| `kit.barHover` | `#505050` | `#e5e7eb` | A bar's item under the pointer, focused or open. |
+| `kit.field` | `#3c3c3c` | `#ffffff` | Text fields. |
+| `kit.text` | `#cccccc` | `#1f2328` | Text. |
+| `kit.dim` | `#8b8b8b` | `#6e7781` | Secondary text: shortcuts, hints, disabled items. |
+| `kit.body` | `#a0a0a0` | `#57606a` | A dialog's message and a card's text. |
+| `kit.selection` | `#04395e` | `#ddf4ff` | The highlighted item of a menu or a list. |
+| `kit.border` | `#454545` | `#d0d7de` | Borders and separators. |
+| `kit.primary` | `#0e639c` | `#0969da` | The main button and progress. |
+| `kit.onPrimary` | `#ffffff` | `#ffffff` | Text on `kit.primary`. |
+| `kit.secondary` | `#3a3d41` | `#eaeef2` | Other buttons, tracks, a pressed or checked item. |
+| `kit.onSecondary` | `#ffffff` | `#1f2328` | Text on `kit.secondary`. |
+| `kit.accent` | `#2aaaff` | `#0969da` | Matched letters, links and the focused item's mark. |
+| `kit.focus` | `#ffffff` | `#0969da` | The ring of the focused button. |
+| `kit.backdrop` | `#00000088` | `#00000040` | Behind a modal dialog. |
+| `kit.info` | `#3794ff` | `#0969da` | Information. |
+| `kit.warning` | `#cca700` | `#9a6700` | Warnings. |
+| `kit.error` | `#f14c4c` | `#cf222e` | Errors. |
+| `kit.success` | `#89d185` | `#1a7f37` | Success. |
+| `kit.radius` | 4 | 4 | The corners of menus, buttons and fields. |
+| `kit.cardRadius` | 6 | 6 | The corners of dialogs, toasts, cards and popovers. |
+| `kit.borderWidth` | 1 | 1 | Borders. |
+<!-- end generated -->
 
 ## Values, expressions and state
 
@@ -708,10 +976,13 @@ Wherever a value is expected it can be computed:
   `a ?? b` (b when a is null), `c ? a : b`; `&&` and `||` give an operand, as in JavaScript: `user && user.name` is the
   name (or `user` when it is false or null), `title || 'Untitled'` is the title unless it is empty;
 - functions: `empty(value)`, `type(value)`, `round(number)`, `floor(number)`, `ceil(number)`, `abs(number)`,
-  `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `upper(text)`,
-  `lower(text)`, `trim(text)`, `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
+  `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `sin(radians)`,
+  `cos(radians)`, `tan(radians)`, `asin(number)`, `acos(number)`, `atan(number)`, `atan2(y, x)`, `radians(degrees)`,
+  `degrees(radians)`, `pi()`, `sqrt(number)`, `pow(base, exponent)`, `exp(number)`, `log(number, base?)`,
+  `hypot(a, b, ...)` (numbers or a list), `sign(number)`, `upper(text)`, `lower(text)`, `trim(text)`,
+  `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
   `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
-  `length(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
+  `length(value)`, `concat(a, b, ...)`, `flat(list)`, `join(list, separator)`, `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
   `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
   `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
@@ -720,12 +991,18 @@ Wherever a value is expected it can be computed:
   `formatDate(milliseconds, style?, zone?)`, `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`,
   `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`,
   `addMonths(date, months)`, `daysBetween(from, to)`, `weekday(date)`, `daysInMonth(date)`, `dateOf(milliseconds)`,
-  `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`;
+  `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`, `pathTree(list, key?)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
+- per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
+  `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
+  `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
+  `scan(list, expression, initial?)`.
 
-Each function is also an operator: `length(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
+`reduce` and `scan` fold a list: the expression also sees the value so far as `acc` (first `initial`, else null),
+and its result is the next one; `reduce` gives the last, `scan` every one (`scan(days, it ? acc + 1 : 0, 0)` gives the
+running streak). Each function is also an operator: `length(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
 are UTF-8: `length`, `indexOf` and `slice` count bytes, `split(text, '')` and `reverse` keep characters whole.
 `fuzzy` matches the query's characters in order, in any case, and gives null or `{ score, ranges, parts }`: `ranges`
 are the matched `[start, end]` character spans, `parts` the text cut into `{ text, match }` for highlighting.
@@ -733,11 +1010,12 @@ are the matched `[start, end]` character spans, `parts` the text cut into `{ tex
 the best first (an empty query keeps the order), at most `limit` of them.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the
-display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `nativeMenuBar`: whether `window.menuBar`
-is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
+display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `menuBar`: the screen's `window.menuBar` list
+(or `[]`), `nativeMenuBar`: whether it is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
-`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; and the names given by `repeat`, `let`,
+`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (`author`, `role`);
+`requests` (the `ask` requests, see "Asking the agents"); and the names given by `repeat`, `let`,
 `with`, `forEach`, a component's params, `it`/`index` inside list functions.
 
 **`computed`** values are evaluated when first read after the state changed, then cached; they may use each other
@@ -834,7 +1112,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 <!-- generated: events -->
 | Handler | When |
 |---|---|
-| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click. |
+| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node). |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
 | `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |
@@ -863,13 +1141,20 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onClipChange` | A timeline's clip moved or trimmed: `event.id`, `track` (where it is now), `fromTrack`, `index` (in `fromTrack`), `start`, `duration`, `from` (the start before) and `edge` (`"move"`, `"start"` or `"end"`). |
 | `onGutterClick` | A press in an editor's gutter: `event.line` (from 0), `shift`, `alt`, `control`, `super`. While a node has one, the press doesn't move the caret. |
 | `onWordHover` | The pointer moved onto a word of an editor, or off one: `event.word`, `line`, `column` (where it starts, from 0); off a word, `word` is empty and `line` null. |
+| `onType` | Typing in an editor that has a `language` or not: `event.text` (what was typed; `""` for a deletion), `word` (the word that now ends at the caret, by the language's `wordPattern`), `line`, `column` (the caret, from 0), and `x`, `y`, `top` (the caret's box, for a popup). |
+| `onTextHover` | The pointer moved over an editor's text: `event.over` (`false` when it left the text), `line`, `column` (from 0), and `x`, `y`, `top` (the place's box). For hover cards, e.g. a language server's. |
+| `onPopupKey` | A popup key while an editor's `popup` is `true`: `event.key` is `up`, `down`, `pageUp`, `pageDown`, `enter`, `tab` or `escape`. |
 <!-- end generated -->
 
 **Bubbling:** click, double click, context menu, press, release, drag, scroll and key events go to the node or, if it
 has no handler, its nearest ancestor with one. A row with `onClick` needs no invisible overlay above its labels.
 
 **Shortcuts:** `"keys"` on the document (anywhere) or on a node (while it or a child is focused): `"mod+k"`,
-`"cmd+shift+p"`, `"escape"`, `"up"`, `"f5"`. `mod` is Cmd on macOS, Ctrl elsewhere. While a text area is focused, keys
+`"cmd+shift+p"`, `"escape"`, `"up"`, `"f5"`. `mod` is Cmd on macOS, Ctrl elsewhere. Besides letters, digits and
+`f1` to `f25`, the keys are `enter`, `escape`, `tab`, `backspace`, `delete`, `space`, the arrows, `home`, `end`,
+`pageup`, `pagedown`, `minus`, `equal`, `comma`, `period`, `slash`, `backslash`, `semicolon`, `apostrophe`,
+`leftbracket`, `rightbracket`, `grave`, and the keypad's `numpad0` to `numpad9`, `numpadperiod`, `numpadplus`,
+`numpadminus` and `numpadmultiply` (its Enter is `enter`). While a text area is focused, keys
 without Cmd, Ctrl or Alt go to the text (Escape still works).
 
 ### Commands and keybindings
@@ -884,7 +1169,8 @@ is a handler, a binding `{ "when": "{{...}}", "do": "save", "with": { "tab": 2 }
 variables), or a list of bindings, where the first that applies runs.
 
 **Resolution:** one walk per press.
-1. A focused text area keeps plain keys, except Escape and the keys of the focused node and its ancestors.
+1. A focused text area keeps plain keys, except Escape, the function keys (F1 to F25) and the keys of the focused
+   node and its ancestors.
 2. During a chord, a press that doesn't continue it ends it and is dropped; Escape ends it.
 3. The scopes go from the focused node to the root, then to the document's `keys`.
 4. A binding is skipped when its `when` is false or its command is disabled.
@@ -961,12 +1247,15 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `respond` | `{ "respond": "{{state.answer}}" }` or `{ "respond": null, "error": "no" }`: answers the service request that ran the action `service:method` (its `request`); a control step |
 | `signIn` | `{ "signIn": "api", "onDone": [...], "onError": [...] }`: signs in to the provider a connection's `auth` declares (OAuth 2: the browser with PKCE, or a device code), then its requests carry the token. The token never reaches the document or the state: the `auth` variable shows `{state, account, expires}`, and `error` in `onError` is `{code, message}`. A control step |
 | `signOut` | `{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step |
+| `chooseFolder` | `{ "chooseFolder": "workspace", "title": "Open Folder", "onDone": [...], "onError": [...] }`: after the event, asks the person for the folder a root names, in the OS's folder dialog (if the host lets them choose it). The services that use the root start again on it; `result` in `onDone` is `{name}`, the folder's own name (never where it is), `error` in `onError` is `{code, message}`; nothing runs if they cancel. A control step |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
+| `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: asks the agents in plain words; replies run `ask:reply`, never as the person's decision (Asking the agents). A control step |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
-| `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
+| `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out) |
+| `edit` | `{ "edit": "sortLines", "in": "#code" }`: a code editor's command (Editor steps) |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
@@ -974,6 +1263,9 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
+| `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation and publishes the image (see Images) |
+| `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
+| `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
 <!-- end generated -->
 
 ### Control steps and paths
@@ -989,6 +1281,123 @@ more than 10,000 positions past a list's end (the positions between are filled w
 finish, the UI is updated once. Panels are reused where
 the structure didn't change, so focus, typing, scrolling and drags in progress are kept. Errors in actions are
 reported (on stderr and to the peers) and never crash the app.
+
+## Images
+
+A screen can edit raster images: paint and erase, select, crop, work in layers, apply filters, undo and redo. The
+`images` section declares them; `image` steps run operations on them; a `raster` node shows one and plays the pointer
+through its current tool. The section is a capability: revisions can't change it, and its `limits` can only lower the
+library's.
+
+| Key of an image | Meaning |
+|---|---|
+| `width`, `height` | Required. Its size in pixels, from 1 to the `side` limit (and at most `pixels` in all). |
+| `format` | `"rgba8"` (the default) or `"rgba16f"`. |
+| `background` | Its first layer: `"#rrggbb"` (the default: white) or `"transparent"`. |
+| `into` | A literal state path, e.g. `"state.drawing"`: where its snapshot is published after each change. |
+| `tools` | `name → { "gesture": "paint", ...options }`, at most 64: the tools a screen offers, each a gesture of the library with its options (those of `setOptions`). Without it, every gesture is a tool of its own name. |
+| `tool` | The tool chosen first. Default: the first painting tool. |
+| `limits` | `name → whole number`: lowers a library limit for this image (see the names below). |
+
+An image is made the first time a step or a node names it. The `image` step runs one operation on it, then publishes
+its snapshot to `into` and tells the raster nodes that show it:
+
+```json
+{ "image": "pointer", "of": "board", "with": { "phase": "press", "x": 10, "y": 20 }, "onError": [...] }
+```
+
+`of` names the image, and may be left out when the screen declares only one. A failed operation runs `onError` with
+`error` (its message); without `onError` the step fails at its place.
+
+### Image operations
+
+The operations, and the keys of `with` each reads:
+
+<!-- generated: imageOperations -->
+| Operation | Reads from `with` | What it does |
+|---|---|---|
+| `newImage` | `width`, `height`, `format`, `background` | Replaces the image with a new one of one layer. |
+| `open` | `projectExtension` | Opens a project, PNG or JPEG file the person chooses. |
+| `save` | `format`, `extension` | Saves the image where the person chooses, and keeps it for revert. |
+| `revert` | — | Opens again what was last saved or opened. |
+| `undo` | — | Takes back the last step. |
+| `redo` | — | Does again the step last taken back. |
+| `history` | `position` | Goes to a place in the history (0 is before the first step). |
+| `clearHistory` | — | Forgets every step of the history. |
+| `addLayer` | `kind`, `name` | Adds a pixel layer, a group or an adjustment layer. |
+| `deleteLayer` | `id` | Deletes a layer (a group with its layers). |
+| `duplicateLayer` | `id` | Duplicates a layer. |
+| `selectLayer` | `id` | Makes a layer the active one. |
+| `addMask` | `id` | Adds a mask to a layer. |
+| `deleteMask` | `id` | Deletes a layer's mask. |
+| `moveLayer` | `id`, `onto`, `by` | Moves a layer onto another's place, or a step up or down. |
+| `setLayer` | `id`, `name`, `visible`, `opacity`, `blend`, `lockPixels`, `lockPosition`, `lockAll`, `clipped`, `maskEnabled`, `adjustment` | Changes a layer's settings. |
+| `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
+| `feather` | `radius` | Softens the selection's edge. |
+| `fillSelection` | `color`, `mask` | Fills the selection of the active layer with a colour. |
+| `crop` | `x`, `y`, `width`, `height` | Keeps a rectangle of the image, and forgets the history. |
+| `previewFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Previews a filter on the active layer until it is applied or cancelled. |
+| `applyFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Applies the filter previewed, or the one given, as one step. |
+| `cancelFilter` | — | Drops the filter's preview. |
+| `snapshot` | — | Changes nothing; publishes the image's snapshot. |
+| `fit` | — | Zooms and centres the view on the whole image. |
+| `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
+| `setTool` | `tool` | Chooses one of the document's tools, with its options. |
+| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource` | Sets the tools' options and the colours. |
+| `setProfile` | `working`, `display`, `proof` | Sets the working, display or proof colour profile. |
+| `pointer` | `phase`, `x`, `y`, `button`, `pressure`, `scroll`, `modifiers`, `points` | Plays pointer events (document pixels) through the current tool. |
+<!-- end generated -->
+
+Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `invert`, `rectangle`
+and `ellipse` from `from` to `to`, `polygon` through `points`, `wand` at `x`, `y`, `colorRange` of `color` within
+`fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` onto the place of `onto`,
+or `by` places up (positive) or down. Filters and `fillSelection` change the active layer's pixels, or its mask with
+`"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
+`srgb`, `displayP3`, `wideRgb` or `gray`. `pointer` takes one event (`phase`: `press`, `move`, `release` or `scroll`;
+`x`, `y`; `button`: `left` or `right`; `pressure` from 0 to 1; `scroll`; `modifiers`: a list of `shift`, `control`,
+`alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. `open`, `save`
+and `revert` go through the file dialogs the person sees: a document never names a file.
+
+### Image values and the snapshot
+
+The names the operations and tool options take, and the library's limits:
+
+<!-- generated: imageNames -->
+| Value | Names |
+|---|---|
+| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom` |
+| A layer's `blend` | `normal`, `multiply`, `screen`, `overlay`, `soft-light`, `darken`, `lighten`, `difference`, `hue`, `saturation`, `color`, `luminosity` |
+| `addLayer`'s `kind`, besides `pixel` and `group` | `levels`, `curves`, `hue-saturation`, `color-balance`, `brightness-contrast`, `invert`, `threshold`, `gradient-map` |
+| A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur` |
+| The `shape` tool option (gradients) | `linear`, `radial`, `angle`, `reflected`, `diamond` |
+| `limits`, with the library's values | `side` 32768, `pixels` 1073741824, `layers` 256, `groupDepth` 2, `cacheBytes` 536870912, `gpuBytes` 268435456, `undoBytes` 536870912, `undoSteps` 200, `filterRadius` 250, `brushSize` 5000, `imageFileBytes` 268435456, `imageFileSide` 30000, `projectFileBytes` 4294967296, `manifestBytes` 16777216, `profileBytes` 4194304, `floodPixels` 67108864, `polygonPoints` 100000 |
+<!-- end generated -->
+
+The snapshot has `width`, `height`, `format`, `profile`, `display`, `proof`, `revision`, `active` (the active layer's
+id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opacity`, `blend`, `lockPixels`,
+`lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as
+`"board/layer/3"` that an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`,
+`canRedo`, `memory`, `selection`, `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view`
+(`zoom`, `x`, `y`), `message` and `previewing`; `"<image>/navigator"` is a thumbnail of the whole image.
+
+### An image example
+
+A whiteboard with a marker, an eraser and undo:
+
+```json
+"images": { "board": { "width": 1600, "height": 900, "into": "state.board",
+                       "tools": { "marker": { "gesture": "paint", "size": 6, "hardness": 100, "foreground": "#1d4ed8" },
+                                  "eraser": { "gesture": "erase", "size": 40 } } } },
+"root": { "type": "column", "children": [
+  { "type": "row", "children": [
+    { "text": "Marker", "onClick": [{ "image": "setTool", "with": { "tool": "marker" } }] },
+    { "text": "Eraser", "onClick": [{ "image": "setTool", "with": { "tool": "eraser" } }] },
+    { "text": "Undo", "disabled": "{{!state.board.canUndo}}", "onClick": [{ "image": "undo" }] },
+    { "text": "Clear", "onClick": [{ "image": "select", "with": { "kind": "all" } },
+                                   { "image": "fillSelection", "with": { "color": "#ffffff" } },
+                                   { "image": "select", "with": { "kind": "none" } }] } ] },
+  { "type": "raster", "image": "board", "grow": 1 } ] }
+```
 
 ## Channels and persistence
 
@@ -1068,7 +1477,8 @@ line:
 | peer → | `revision` (compact edits or `patch`, `proposal`?), `revert` / `restore` (`revision`), `undo` |
 | peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
-| peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`), relayed with `from` |
+| peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
+| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`) from the screen's own `ask` step; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
 Requests may carry an `"id"`; answers repeat it.
 
@@ -1085,6 +1495,34 @@ refusal in a row is logged:
 
 On a socket, the host also asks the operating system which user the program on the other end runs as, and refuses a
 program of another user.
+
+### Asking the agents
+A screen can ask the agents connected to it in plain words, e.g. from a chat (the assistant add-on in
+`examples/shared/addons/assistant/`):
+
+```json
+"actions": {
+	"send": [{ "ask": "{{state.draft}}", "into": "state.asked" }, { "set": "state.draft", "to": "" }],
+	"ask:reply": [{ "push": "state.notes", "value": "{{event.text}}" }]
+}
+```
+
+- `ask` sends the request to every peer after the event, from the author `user` (`request` in the table above), and
+  writes its id (`ask-<milliseconds>-<n>`) `into` a state path. It is a control step. With no peer connected it
+  fails at once: `ask:reply` runs with the error `no agent is connected`.
+- Each reply runs `ask:reply` with `event` `{request, from, text, done, error, proposals, time}`. `done: false` is a
+  progress note (an agent at work); one with no text only marks the request `working`, with no reply. `proposals`
+  lists the ids of the proposals the replier (any author of the same channel: `agent/...`) opened or changed since the
+  request, each once per head, so the screen can show them for review with `preview`, `accept` and `reject`.
+- `requests` lists the requests, oldest first (at most 64, the oldest finished one goes first):
+  `{id, text, time, state, replies, proposals}`, with `time` in milliseconds since 1970, `state` `sent`, `working`,
+  `answered` or `failed`, and `replies` (at most 256 each) `{from, text, time, done, error}`. `peers` lists who is
+  connected (`author`, `role`).
+- **A reply is a reply, never a decision.** While `ask:reply` runs, `accept`, `reject`, `restore`, `revert` and
+  `undo` are refused: only the person's own events review. An agent's changes keep their permissions: a proposal
+  waits for review as any other.
+- Limits: a request is at most 16 KiB; a reply's `text` and `error` are cut to 64 KiB, `from` to 256 bytes; a reply
+  to an id the screen didn't send is for the other peers, and fields of the wrong type are ignored.
 
 ### Pictures
 `render` (MCP: `render_screen`) lets a peer see its work before a person reviews it. Any peer may ask: it is a read.
@@ -1144,7 +1582,7 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 | `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
 | `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
 | `{ "type": "text" }` | Types into the focused node, a character at a time |
-| `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket`, `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere) |
+| `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket backquote`, `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere) |
 | `{ "wait": 500 }` | Moves the clock on, running timers, animations and tooltips as they come due. What a handler leaves for the next frame (`focus`) runs at the next wait: `{ "wait": 0 }` |
 | `{ "revision": { ... } }` | Applies a revision as the application would |
 | `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |
@@ -1364,7 +1802,8 @@ second window, the presenter the first.
 bounds times `scale`: what a thumbnail, a sorter or a second window shows. The image is opaque (black where nothing
 draws), the panel's own transform is drawn but its ancestors' are not, and a hidden panel, an empty one or a headless
 window gives none. `screen.setImage(name, image)` then shows it in an `image` node, in this window or another: a
-second window that mirrors a panel shows such an image and is given a new one when the panel changes.
+second window that mirrors a panel shows such an image and is given a new one when the panel changes. A document
+does the same without the host: a node's `snapshot` draws it into a named image whenever it changes.
 
 **From C and Python.** `affresco/affresco.h` (`modules/capi`) is the same in C, for hosts in other languages: create a
 screen from a file or a string (`afr_options.native_actions` lists the actions the host will answer, so the document's

@@ -128,6 +128,9 @@ void registerReviewSteps(StepRegistry& registry);
 /// @brief focus, scrollTo, navigate (NavigationSteps.cpp).
 /// @param registry The registry.
 void registerNavigationSteps(StepRegistry& registry);
+/// @brief edit: a code editor's command (EditorSteps.cpp).
+/// @param registry The registry.
+void registerEditorSteps(StepRegistry& registry);
 /// @brief after, debounce, animate (TimeSteps.cpp).
 /// @param registry The registry.
 void registerTimeSteps(StepRegistry& registry);
@@ -140,5 +143,19 @@ void registerServiceSteps(StepRegistry& registry);
 /// @brief Registers the sign-in steps: signIn, signOut (AuthSteps.cpp).
 /// @param registry The registry.
 void registerAuthSteps(StepRegistry& registry);
+/// @brief Registers the request step: ask (AskSteps.cpp, in assistant/).
+/// @param registry The registry.
+void registerAssistantSteps(StepRegistry& registry);
+
+/// @brief Registers the folder step: chooseFolder (FolderSteps.cpp).
+/// @param registry The registry.
+void registerFolderSteps(StepRegistry& registry);
+
+/// @brief Registers the scene steps: camera (SceneSteps.cpp).
+/// @param registry The registry.
+void registerSceneSteps(StepRegistry& registry);
+/// @brief Registers the image step: image (imaging/ImageSteps.cpp).
+/// @param registry The registry.
+void registerImageSteps(StepRegistry& registry);
 
 } // namespace affresco::format

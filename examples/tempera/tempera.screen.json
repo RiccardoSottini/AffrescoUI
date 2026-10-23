@@ -2,20 +2,16 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempera, an image editor. The pixels live in the host (Session.cpp, the canvas model of modules/imaging); the state holds only state.doc, a snapshot the natives (tempera.*) return after each change, and what the workspace itself keeps (the theme, the guides, the dialogs). This file names the window, the fonts, the colours and the parts: parts/commands.json (actions, keys, menus, watches), parts/workspace.json (tool bar, options bar, canvas, status bar) and parts/panels.json (the panels and dialogs).",
+	"note": "Tempera, an image editor. The pixels live in the host (Session.cpp, the canvas model of modules/imaging); the state holds only state.doc, a snapshot the natives (tempera.*) return after each change, and what the workspace itself keeps (the theme, the guides, the dialogs). This file names the window, the fonts, the colours and the parts: parts/commands.json (actions, keys, menus, watches), parts/workspace.json (menu bar, options bar, tools bar, document tab, canvas, status bar) and parts/panels.json (the panels and dialogs).",
 
-	"window": {
-		"title": "Tempera", "width": 1280, "height": 800, "minWidth": 900, "minHeight": 560,
-		"menuBar": [{ "menu": "file", "title": "File" }, { "menu": "edit", "title": "Edit" }, { "menu": "image", "title": "Image" },
-		            { "menu": "layer", "title": "Layer" }, { "menu": "select", "title": "Select" }, { "menu": "filter", "title": "Filter" },
-		            { "menu": "view", "title": "View" }, { "menu": "window", "title": "Window" }]
-	},
+	"window": { "title": "Tempera", "width": 1280, "height": 800, "minWidth": 900, "minHeight": 600 },
 
 	"fonts": {
-		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons"] },
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons", "symbols"] },
 		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 10, "fallback": ["icons"] },
+		"symbols": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 11 },
 		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 13 },
-		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 18 }
+		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 17 }
 	},
 
 	"include": ["parts/commands.json", "parts/workspace.json", "parts/panels.json"],
@@ -23,18 +19,24 @@
 	"theme": "{{state.theme}}",
 
 	"tokens": {
-		"background": { "light": "#e9eaee", "dark": "#1f2126" },
-		"panel": { "light": "#f6f6f8", "dark": "#2a2d33" },
-		"canvasBack": { "light": "#c9cbd1", "dark": "#16171a" },
-		"border": { "light": "#c9ccd3", "dark": "#3a3e46" },
-		"text": { "light": "#1d2026", "dark": "#e6e8ec" },
-		"muted": { "light": "#5d6470", "dark": "#9aa0aa" },
-		"accent": { "light": "#3b82f6", "dark": "#3b82f6" },
-		"selected": { "light": "#cfe0fb", "dark": "#35507a" },
-		"hover": { "light": "#e2e4ea", "dark": "#353941" },
-		"input": { "light": "#ffffff", "dark": "#1b1d21" },
-		"ruler": { "light": "#eceef2", "dark": "#24262b" },
-		"guide": { "light": "#22d3ee", "dark": "#22d3ee" }
+		"background": { "light": "#b4b4b4", "dark": "#1c1c1c" },
+		"panel": { "light": "#efefef", "dark": "#323232" },
+		"header": { "light": "#d6d6d6", "dark": "#272727" },
+		"canvasBack": { "light": "#c2c2c2", "dark": "#252525" },
+		"border": { "light": "#c2c2c2", "dark": "#474747" },
+		"text": { "light": "#1f1f1f", "dark": "#d6d6d6" },
+		"muted": { "light": "#6b6b6b", "dark": "#909090" },
+		"accent": { "light": "#2f7fe8", "dark": "#2f7fe8" },
+		"selected": { "light": "#d0d0d0", "dark": "#4b4b4b" },
+		"hover": { "light": "#e2e2e2", "dark": "#3d3d3d" },
+		"input": { "light": "#fbfbfb", "dark": "#262626" },
+		"ruler": { "light": "#e4e4e4", "dark": "#2c2c2c" },
+		"guide": { "light": "#22d3ee", "dark": "#22d3ee" },
+		"menuHover": { "light": "#b8d3f7", "dark": "#2c5d9e" },
+		"kit.background": "@panel", "kit.surface": "@panel", "kit.bar": "@panel", "kit.barHover": "@hover", "kit.field": "@input",
+		"kit.text": "@text", "kit.dim": "@muted", "kit.body": "@muted", "kit.selection": "@accent", "kit.border": "@border",
+		"kit.primary": "@accent", "kit.secondary": "@selected", "kit.onSecondary": "@text", "kit.focus": "@text",
+		"kit.radius": 3, "kit.cardRadius": 4
 	},
 
 	"permissions": {
@@ -53,7 +55,7 @@
 	},
 	"points": {
 		"panels.dock": { "slot": "dock", "receives": ["doc.layers", "doc.active", "layers.move", "layers.select", "layers.duplicate"],
-			"description": "The foot of the panels column, under the Layers and History tabs." }
+			"description": "The foot of the panels column, under the Layers group." }
 	},
 
 	"state": {
@@ -68,31 +70,40 @@
 			"view": { "zoom": 1, "x": 0, "y": 0 }, "message": "", "previewing": false
 		},
 		"tools": [
-			{ "id": "move", "icon": "move", "title": "Move (V)" },
-			{ "id": "marquee", "icon": "box-select", "title": "Rectangular Marquee (M)" },
-			{ "id": "ellipse", "icon": "circle-dashed", "title": "Elliptical Marquee (Shift+M)" },
-			{ "id": "lasso", "icon": "lasso", "title": "Lasso (L)" },
-			{ "id": "polygon", "icon": "pentagon", "title": "Polygonal Lasso (Shift+L)" },
-			{ "id": "wand", "icon": "wand", "title": "Magic Wand (W)" },
-			{ "id": "crop", "icon": "crop", "title": "Crop (C)" },
-			{ "id": "brush", "icon": "brush", "title": "Brush (B)" },
-			{ "id": "eraser", "icon": "eraser", "title": "Eraser (E)" },
-			{ "id": "clone", "icon": "stamp", "title": "Clone Stamp (S)" },
-			{ "id": "gradient", "icon": "blend", "title": "Gradient (G)" },
-			{ "id": "fill", "icon": "paint-bucket", "title": "Paint Bucket (Shift+G)" },
-			{ "id": "eyedropper", "icon": "pipette", "title": "Eyedropper (I)" },
-			{ "id": "hand", "icon": "hand", "title": "Hand (H)" },
-			{ "id": "zoom", "icon": "zoom-in", "title": "Zoom (Z)" }
+			[{ "id": "move", "icon": "move", "title": "Move Tool", "key": "V" }],
+			[],
+			[{ "id": "marquee", "icon": "box-select", "title": "Rectangular Marquee Tool", "key": "M" }, { "id": "ellipse", "icon": "circle-dashed", "title": "Elliptical Marquee Tool", "key": "Shift+M" }],
+			[{ "id": "lasso", "icon": "lasso", "title": "Lasso Tool", "key": "L" }, { "id": "polygon", "icon": "pentagon", "title": "Polygonal Lasso Tool", "key": "Shift+L" }],
+			[{ "id": "wand", "icon": "wand", "title": "Magic Wand Tool", "key": "W" }],
+			[{ "id": "crop", "icon": "crop", "title": "Crop Tool", "key": "C" }],
+			[],
+			[{ "id": "eyedropper", "icon": "pipette", "title": "Eyedropper Tool", "key": "I" }],
+			[{ "icon": "bandage", "title": "Healing Brush Tool" }],
+			[{ "id": "brush", "icon": "brush", "title": "Brush Tool", "key": "B" }, { "icon": "pencil", "title": "Pencil Tool" }],
+			[{ "id": "clone", "icon": "stamp", "title": "Clone Stamp Tool", "key": "S" }],
+			[{ "icon": "history", "title": "History Brush Tool" }],
+			[{ "id": "eraser", "icon": "eraser", "title": "Eraser Tool", "key": "E" }],
+			[{ "id": "gradient", "icon": "blend", "title": "Gradient Tool", "key": "G" }, { "id": "fill", "icon": "paint-bucket", "title": "Paint Bucket Tool", "key": "Shift+G" }],
+			[{ "icon": "droplet", "title": "Blur Tool" }],
+			[{ "icon": "sun-dim", "title": "Dodge Tool" }],
+			[],
+			[{ "icon": "pen-tool", "title": "Pen Tool" }],
+			[{ "icon": "type", "title": "Horizontal Type Tool" }],
+			[{ "icon": "mouse-pointer-2", "title": "Path Selection Tool" }],
+			[{ "icon": "square", "title": "Rectangle Tool" }],
+			[],
+			[{ "id": "hand", "icon": "hand", "title": "Hand Tool", "key": "H" }],
+			[{ "id": "zoom", "icon": "zoom-in", "title": "Zoom Tool", "key": "Z" }]
 		],
 		"brushes": ["Hard Round 5", "Hard Round 20", "Soft Round 30", "Soft Round 100", "Airbrush 60", "Pencil 1", "Chalk 40"],
 		"gradients": ["Black, White", "Spectrum", "Copper", "Black, Transparent"],
-		"blends": ["normal", "multiply", "screen", "overlay", "soft-light", "darken", "lighten", "difference", "hue",
-		           "saturation", "color", "luminosity"],
+		"blends": ["normal", "-", "darken", "multiply", "-", "lighten", "screen", "-", "overlay", "soft-light", "-", "difference", "-",
+		           "hue", "saturation", "color", "luminosity"],
 		"adjustments": [
-			{ "id": "levels", "title": "Levels" }, { "id": "curves", "title": "Curves" },
-			{ "id": "hue-saturation", "title": "Hue/Saturation" }, { "id": "color-balance", "title": "Colour Balance" },
-			{ "id": "brightness-contrast", "title": "Brightness/Contrast" }, { "id": "invert", "title": "Invert" },
-			{ "id": "threshold", "title": "Threshold" }, { "id": "gradient-map", "title": "Gradient Map" }
+			{ "id": "brightness-contrast", "title": "Brightness/Contrast", "icon": "sun" }, { "id": "levels", "title": "Levels", "icon": "bar-chart-3" },
+			{ "id": "curves", "title": "Curves", "icon": "spline" }, { "id": "hue-saturation", "title": "Hue/Saturation", "icon": "palette" },
+			{ "id": "color-balance", "title": "Colour Balance", "icon": "scale" }, { "id": "invert", "title": "Invert", "icon": "circle-slash" },
+			{ "id": "threshold", "title": "Threshold", "icon": "contrast" }, { "id": "gradient-map", "title": "Gradient Map", "icon": "blend" }
 		],
 		"profiles": [
 			{ "id": "srgb", "title": "sRGB" }, { "id": "displayP3", "title": "Display P3" },
@@ -102,7 +113,10 @@
 		             "#a855f7", "#ec4899", "#78716c", "#9ca3af", "#374151", "#7c2d12", "#14532d"],
 		"guides": { "vertical": [], "horizontal": [] },
 		"view": { "rulers": true, "guides": true },
-		"panels": { "top": "navigator", "bottom": "layers" },
+		"panels": { "colour": "colour", "properties": "properties", "layers": "layers" },
+		"popout": { "history": false, "navigator": false },
+		"flyout": {},
+		"docName": "Untitled-1",
 		"filters": [
 			{ "id": "gaussian-blur", "title": "Gaussian Blur" }, { "id": "motion-blur", "title": "Motion Blur" },
 			{ "id": "sharpen", "title": "Sharpen" }, { "id": "unsharp-mask", "title": "Unsharp Mask" }, { "id": "add-noise", "title": "Add Noise" }
@@ -116,6 +130,22 @@
 		"blendMenu": false,
 		"brushMenu": false,
 		"gradientMenu": false,
+		"workspaceMenu": false,
+		"paintModeMenu": false,
+		"fillSourceMenu": false,
+		"statusMenu": false,
+		"layerKindMenu": false,
+		"screenMenu": false,
+		"slide": 0,
+		"pop": {},
+		"statusInfo": "size",
+		"colourTarget": "foreground",
+		"screenMode": "standard",
+		"layerFilter": { "on": false, "kinds": [] },
+		"props": { "transform": true, "align": true, "actions": true },
+		"quickPick": { "open": false, "query": "", "index": 0, "top": 0, "recent": [] },
+		"cropMenu": false,
+		"zoomMenu": false,
 		"about": false
 	},
 
@@ -126,16 +156,16 @@
 	"root": {
 		"id": "root", "color": "@background",
 		"children": [
-			{ "type": "column", "id": "workspace", "fill": true, "children": [
-				{ "when": "{{!window.nativeMenuBar}}", "use": "temperaMenuBar" },
+			{ "type": "column", "id": "workspace", "fill": true, "gap": 1, "children": [
+				{ "use": "temperaMenuBar" },
 				{ "use": "temperaOptionsBar" },
-				{ "type": "row", "id": "main", "width": "100%", "grow": 1, "children": [
+				{ "type": "row", "id": "main", "width": "100%", "grow": 1, "gap": 1, "children": [
 					{ "use": "temperaToolBar" },
 					{ "use": "temperaCanvasArea" },
-					{ "use": "temperaPanels" }
-				] },
-				{ "use": "temperaStatusBar" }
+					{ "use": "temperaPanels", "when": "{{state.screenMode == 'standard'}}" }
+				] }
 			] },
+			{ "use": "quickPick", "with": { "width": 520, "providers": "{{[{placeholder: 'Search the commands', items: computed.searchItems}]}}" } },
 			{ "use": "temperaFilterDialog" },
 			{ "use": "temperaNewDialog" },
 			{ "use": "dialog", "id": "about-dialog", "with": { "open": "state.about", "title": "Tempera",

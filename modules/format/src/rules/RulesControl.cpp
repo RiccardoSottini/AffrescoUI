@@ -18,9 +18,9 @@ namespace affresco::format {
 namespace {
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
-constexpr std::array<std::string_view, 14> controlSteps{"accept",  "reject",  "preview", "endPreview", "restore",
+constexpr std::array<std::string_view, 16> controlSteps{"accept",  "reject",  "preview", "endPreview", "restore",
                                                         "revert",  "undo",    "patch",   "call",       "send",
-                                                        "connect", "respond", "signIn",  "signOut"};
+                                                        "connect", "respond", "signIn",  "signOut",    "ask", "chooseFolder"};
 
 /// The most uses of the document's own components one use is expanded through to be scanned; past them, it may run a
 /// control step.
@@ -40,15 +40,27 @@ bool namesAction(std::string_view key) {
 }
 
 /// The built-in components that run the actions a parameter names, through a computed "run" the document never
-/// shows, each with that parameter: the "run" of a menu's items, a dialog's buttons, a toast's actions. The quick
-/// pick has none ("") as it runs its recent items, kept in the state, as well as its providers' items.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 7> runningBuiltIns{{{"menu", "items"},
-                                                                                        {"submenu", "items"},
-                                                                                        {"contextMenu", "items"},
-                                                                                        {"menuBar", "menus"},
-                                                                                        {"dialog", "buttons"},
-                                                                                        {"toast", "actions"},
-                                                                                        {"quickPick", ""}}};
+/// shows, each with that parameter: the "run" of a menu's items, a dialog's buttons, a toast's actions, a toolbar's,
+/// a status bar's, a segmented control's and a breadcrumbs' items, a search field's "run", a tab strip's "onClose",
+/// an inspector's "onChange" and a ribbon's tabs (their items). The quick pick has none ("") as it runs its recent
+/// items, kept in the state, as well as its providers' items, and so do the toasts, whose actions are kept in the
+/// state.
+constexpr std::array<std::pair<std::string_view, std::string_view>, 16> runningBuiltIns{{{"menu", "items"},
+                                                                                         {"submenu", "items"},
+                                                                                         {"contextMenu", "items"},
+                                                                                         {"menuBar", "menus"},
+                                                                                         {"dialog", "buttons"},
+                                                                                         {"toast", "actions"},
+                                                                                         {"toolbar", "items"},
+                                                                                         {"statusBar", "items"},
+                                                                                         {"segmentedControl", "items"},
+                                                                                         {"breadcrumbs", "items"},
+                                                                                         {"searchField", "run"},
+                                                                                         {"tabStrip", "onClose"},
+                                                                                         {"inspector", "onChange"},
+                                                                                         {"ribbon", "tabs"},
+                                                                                         {"quickPick", ""},
+                                                                                         {"toasts", ""}}};
 
 /// @brief The names of the built-in components that run the actions a parameter names.
 /// @return Them.

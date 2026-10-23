@@ -47,12 +47,15 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "non-zero `height`, opposite anchors, or a container's stretch), then the width follows the height. With both "
 	 "set, it is ignored, as in CSS.",
 	 "node"},
-    {"anchors", R"json({"type": "object", "additionalProperties": false,
+    {"anchors", R"json({"oneOf": [{"type": "object", "additionalProperties": false,
 		"properties": {"top": {"$ref": "#/$defs/v2/edge"}, "bottom": {"$ref": "#/$defs/v2/edge"},
-		"left": {"$ref": "#/$defs/v2/edge"}, "right": {"$ref": "#/$defs/v2/edge"}}})json",
+		"left": {"$ref": "#/$defs/v2/edge"}, "right": {"$ref": "#/$defs/v2/edge"}}},
+		{"type": "string", "pattern":
+		"^ *(top|bottom|left|right)(:-?[0-9.]+(px|%)?)?( +(top|bottom|left|right)(:-?[0-9.]+(px|%)?)?)* *$"}]})json",
 	 "`{ \"top\", \"bottom\", \"left\", \"right\" }`: keep that edge this far from the parent's same edge. Anchoring "
 	 "opposite edges stretches the node. A value `\"#id.edge + 8\"` puts the edge at another node's edge (`\"top\": "
-	 "\"#header.bottom + 12\"`, `\"bottom\": \"#footer.top - 8\"`).",
+	 "\"#header.bottom + 12\"`, `\"bottom\": \"#footer.top - 8\"`). The same as text: edge names, each at 0 or "
+	 "at a length after a colon, `\"left right:12 top:8\"` is `{ \"left\": 0, \"right\": 12, \"top\": 8 }`.",
 	 "node"},
     {"fill", R"json({"oneOf": [{"const": true}, {"$ref": "#/$defs/v2/length"}],
 		"description": "Anchor all four edges, this far in"})json",
@@ -77,6 +80,12 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 		"$ref": "#/$defs/v2/crossAlign"})json",
 	 "In a `row`/`column`/`grid`: where it sits across (`start`, `center`, `end`, `stretch`), over the container's "
 	 "`alignItems`.",
+	 "node"},
+    {"justifySelf",
+	 R"json({"description": "In a grid: where it sits along its cell's row, over the grid's justifyItems",
+		"$ref": "#/$defs/v2/crossAlign"})json",
+	 "In a `grid`: where it sits along its cell's row (`start`, `center`, `end`, `stretch`), over the grid's "
+	 "`justifyItems`.",
 	 "node"},
     {"cell",
 	 R"json({"description": "In a grid: its first column and row (from 1) and how many it spans; left out, the next free cell",
@@ -125,12 +134,47 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by "
 	 "the parent, like the node itself.",
 	 "look"},
+    {"gradient",
+	 R"json({"anyOf": [{"type": "array", "minItems": 1, "maxItems": 32, "items": {"$ref": "#/$defs/v2/color"}},
+		{"type": "object", "additionalProperties": false, "required": ["stops"],
+		"description": "Like CSS linear-gradient() and radial-gradient(), over the node's color",
+		"properties": {"kind": {"enum": ["linear", "radial"]},
+		"angle": {"description": "Degrees: 0 up, 90 right, 180 down (the default)", "type": "number"},
+		"stops": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"anyOf": [{"$ref": "#/$defs/v2/color"},
+		{"type": "object", "additionalProperties": false, "required": ["color"],
+		"properties": {"at": {"type": "number", "minimum": 0, "maximum": 1},
+		"color": {"$ref": "#/$defs/v2/color"}}}]}}}}]})json",
+	 "The background as a gradient, painted over `color` within the corners, like CSS `linear-gradient()` and "
+	 "`radial-gradient()`: `[\"#1e3a5f\", \"#0b1220\"]` (colours spread evenly from top to bottom), or "
+	 "`{ \"kind\": \"linear\", \"angle\": 90, \"stops\": [\"@accent\", { \"at\": 0.6, \"color\": \"#00000000\" }] }`. "
+	 "`angle` is in degrees (0 up, 90 right, 180 down, the default); the line reaches the corners, as in CSS. A "
+	 "`radial` gradient spreads from the centre to the farthest corner. A stop is a colour, spread evenly, or "
+	 "`{ \"at\": 0..1, \"color\" }`; two stops at one place change colour sharply. At most 32 stops. It can be set "
+	 "in `hover` and the other states.",
+	 "look"},
     {"visible", "flag", "`false` hides the node and its children.", "look"},
     {"cache", "flag",
 	 "`true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them "
 	 "changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same (a "
 	 "pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). "
 	 "Default: `false`.",
+	 "look"},
+    {"overflow", R"json({"anyOf": [{"enum": ["clip", "visible"]}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "visible lets the children draw and be hit outside the node"})json",
+	 "`\"visible\"` lets the children draw and be hit outside the node, clipped to what clips the node instead, as "
+	 "CSS `overflow: visible`: a line whose arrowhead passes its box, text longer than its frame. A cached or "
+	 "scrolling node still clips. Default: `\"clip\"`.",
+	 "look"},
+    {"snapshot", R"json({"anyOf": [{"type": "string"}, {"type": "object", "required": ["image"],
+		"additionalProperties": false, "properties": {"image": {"type": "string"},
+		"scale": {"type": "number", "exclusiveMinimum": 0, "maximum": 4}}}],
+		"description": "Draws the node into a named image, out of the layout, instead of on the screen"})json",
+	 "`\"thumb\"` or `{ \"image\": \"thumb\", \"scale\": 0.25 }`: the node and its children are drawn into the image "
+	 "of that name instead of on the screen, again each time something in them changes, and an `image` node with "
+	 "`\"source\": \"thumb\"` shows it (a thumbnail, a preview, a slide sorter). Out of the layout: laid out at its "
+	 "own `width` and `height` from the window's top left, and never hit, focused or read. `scale` is the image's "
+	 "pixels per layout pixel (above 0, at most 4; default `1`). Overlays inside it are left out. Not on the root or "
+	 "with `overlay`; an empty name draws the node in place.",
 	 "look"},
     {"rotate", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "Draws the node turned, in degrees clockwise, about transformOrigin; layout doesn't change"})json",
@@ -171,7 +215,7 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"overlay", R"json({"type": "object", "additionalProperties": false,
 		"description": "Drawn above everything, next to its anchor",
 		"properties": {"anchor": {"type": "string"}, "placement": {"enum": ["below", "below-end",
-		"above", "above-end", "right", "left", "center", "window"]},
+		"above", "above-end", "right", "left", "center", "window"]}, "flip": {"$ref": "#/$defs/v2/flag"},
 		"open": {"description": "A state path (\"state.menuOpen\") or a value"},
 		"dismiss": {"const": "outside"}, "modal": {"$ref": "#/$defs/v2/flag"}}})json",
 	 "`{ \"anchor\": \"#id\", \"placement\": \"below\", \"open\": \"state.menuOpen\", \"dismiss\": \"outside\" }`: "
@@ -179,8 +223,8 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "`above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in "
 	 "the window). `open` is a state path (or a value); with `\"dismiss\": \"outside\"`, a click outside it or Escape "
 	 "sets it to false. `\"modal\": true` traps the focus inside while it is open (Tab cycles in it, the first "
-	 "focusable "
-	 "node inside gets the focus) and gives it back when it closes.",
+	 "focusable node inside gets the focus unless one inside already has it) and gives it back when it closes. "
+	 "`\"flip\": true` places it on the other side when only that side has room, its children mirrored on that axis.",
 	 "look"},
     {"focusable", "flag",
 	 "`true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable).",
@@ -201,7 +245,9 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "Whether the node is expanded (a tree item, a disclosure, a menu button: `expanded` to assistive tools); leave it "
 	 "out for one that doesn't expand. Screen readers say it, and offer to expand or collapse it (a click).",
 	 "access"},
-    {"selected", "flag", "Whether the node is selected (a tab, a list item); leave it out for one that can't be.",
+    {"selected", "flag",
+	 "Whether the node is selected (a tab, a list item, a menu's check); leave it out, or bind it to `null`, for one "
+	 "that can't be.",
 	 "access"},
     {"live", R"json({"anyOf": [{"enum": ["off", "polite", "assertive"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "A live region: changes to its text are read without moving the focus, `polite` when the person is idle (a "
@@ -278,11 +324,14 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"font", R"json({"type": "string"})json", "Font name. Default: `default`.", "label"},
     {"padding", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Pixels between the edges and the text.", "label"},
-    {"align", R"json({"oneOf": [{"$ref": "#/$defs/v2/align"}, {"type": "object", "additionalProperties": false,
+    {"align", R"json({"oneOf": [{"$ref": "#/$defs/v2/align"},
+		{"type": "string", "pattern": "^(start|center|end) (start|center|end)$"},
+		{"type": "object", "additionalProperties": false,
 		"properties": {"horizontal": {"$ref": "#/$defs/v2/align"},
 		"vertical": {"$ref": "#/$defs/v2/align"}}}],
 		"description": "label: text alignment; stack: v1 name of \"from\""})json",
-	 R"(One value for both axes, or `{ "horizontal", "vertical" }`.)", "label"},
+	 R"(One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`.)",
+	 "label"},
     {"wrap", "flag", "Break lines that don't fit the width.", "label"},
     {"fitText", R"json({"oneOf": [{"type": "boolean"}, {"type": "object", "required": ["maxWidth"],
 		"additionalProperties": false, "properties": {"maxWidth": {"type": "number",
@@ -303,8 +352,8 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "label"},
     {"runs", R"json({"type": "array", "maxItems": 256, "items": {"oneOf": [{"type": ["string", "number", "boolean"]},
 		{"type": "object", "additionalProperties": false, "properties": {"text": {}, "icon": {"type": "string"},
-		"font": {"type": "string"}, "size": {"type": "number"}, "bold": {"type": "boolean"},
-		"italic": {"type": "boolean"}, "color": {"$ref": "#/$defs/v2/color"}, "link": {"type": "string",
+		"font": {"type": "string"}, "size": {"$ref": "#/$defs/v2/pixels"}, "bold": {"$ref": "#/$defs/v2/flag"},
+		"italic": {"$ref": "#/$defs/v2/flag"}, "color": {"$ref": "#/$defs/v2/color"}, "link": {"type": "string",
 		"maxLength": 2048}}}]},
 		"description": "label: rich text, parts with their own font, size, bold, italic, colour, link or icon"})json",
 	 "Rich text instead of `text`: a list of parts, each text or `{ \"text\", \"bold\", \"italic\", \"size\", "
@@ -324,7 +373,7 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 /// @return The keys.
 std::vector<KeyReference> joinedKeys() {
 	std::vector<KeyReference> keys(commonTable.begin(), commonTable.end());
-	for(const std::span<const KeyReference> part : {nodeTypeKeys(), nodeEventKeys()})
+	for(const std::span<const KeyReference> part : {nodeTypeKeys(), sceneKeys(), nodeEventKeys()})
 		keys.insert(keys.end(), part.begin(), part.end());
 	return keys;
 }

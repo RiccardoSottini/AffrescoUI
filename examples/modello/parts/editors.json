@@ -1,0 +1,312 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Modello's other editors and its bars: the top bar (menus, workspaces, scene), the outliner, the properties editor (its tabs and the object's panels), the timeline and the status bar, with the field and panel pieces they share.",
+	"computed": {
+		"activeIndex": "{{indexOf(map(state.scene.nodes, it.id), state.active)}}",
+		"kindIcons": "{{ { mesh: 'triangle', camera: 'video', light: 'lightbulb', empty: 'axis-3-d' } }}",
+		"editorItems": "{{map([['3D Viewport', 'axis-3-d'], ['Image Editor', 'image'], ['Shader Editor', 'git-fork'], ['Timeline', 'clock-3'], ['Outliner', 'list-tree'], ['Properties', 'sliders-horizontal'], ['Text Editor', 'file-text']], { title: it[0], icon: it[1] })}}",
+		"workspaces": "{{['Layout', 'Modeling', 'Sculpting', 'UV Editing', 'Texture Paint', 'Shading', 'Animation', 'Rendering', 'Compositing', 'Geometry Nodes', 'Scripting']}}",
+		"objectRows": "{{sort(state.scene.nodes, 'name')}}",
+		"propTabs": "{{[[{ id: 'tool', icon: 'wrench', title: 'Tool' }], [{ id: 'render', icon: 'camera', title: 'Render' }, { id: 'output', icon: 'printer', title: 'Output' }, { id: 'viewLayer', icon: 'images', title: 'View Layer' }, { id: 'scene', icon: 'shapes', title: 'Scene' }, { id: 'world', icon: 'globe', title: 'World' }], [{ id: 'collection', icon: 'package', title: 'Collection' }], [{ id: 'object', icon: 'square', title: 'Object', color: '@object' }, { id: 'modifiers', icon: 'wrench', title: 'Modifiers', color: '#6d9bd6' }, { id: 'particles', icon: 'sparkles', title: 'Particles' }, { id: 'physics', icon: 'orbit', title: 'Physics', color: '#5fa8d3' }, { id: 'constraints', icon: 'link', title: 'Object Constraints', color: '#6d9bd6' }, { id: 'data', icon: 'triangle', title: 'Data', color: '@data' }, { id: 'material', icon: 'circle', title: 'Material', color: '#d86a6a' }, { id: 'texture', icon: 'grid-2-x-2', title: 'Texture' }]]}}",
+		"objectPanels": "{{[['delta', 'Delta Transform'], ['relations', 'Relations'], ['collections', 'Collections'], ['instancing', 'Instancing'], ['motionPaths', 'Motion Paths'], ['visibility', 'Visibility'], ['display', 'Viewport Display'], ['lineArt', 'Line Art'], ['custom', 'Custom Properties']]}}",
+		"keyframes": "{{map(state.keys, { time: (it - 1) / 24 })}}",
+		"stats": "{{state.overlays ? 'Objects ' + length(state.view.selection) + '/' + length(state.scene.nodes) + ' | ' : ''}}"
+	},
+	"components": {
+		"searchField": {
+			"params": { "bind": "", "label": "" },
+			"node": {
+				"grow": 1, "height": 20, "color": "@field", "radius": 10,
+				"children": [
+					{ "type": "label", "font": "iconsSmall", "icon": "search", "text": "", "textColor": "@dim", "x": 6, "width": 14,
+					  "anchors": { "top": 0, "bottom": 0 } },
+					{ "type": "textarea", "anchors": { "left": 22, "right": 6, "top": 1, "bottom": 1 }, "bind": "{{bind}}",
+					  "placeholder": "Search", "placeholderColor": "@faint", "textColor": "@text", "color": "transparent",
+					  "label": "{{label}}" }
+				]
+			}
+		},
+		"panelHeader": {
+			"params": { "title": "", "key": "" },
+			"node": {
+				"height": 24, "width": "100%", "radius": "{{state.panels[key] ? { topLeft: 4, topRight: 4 } : 4}}",
+				"color": "@panel", "hover": { "color": "@widget" }, "role": "button", "focusable": true, "label": "{{title}}",
+				"isOpen": "{{state.panels[key] == true}}", "onClick": { "toggle": "state.panels[key]" },
+				"children": [
+					{ "type": "label", "font": "iconsSmall", "icon": "{{state.panels[key] ? 'chevron-down' : 'chevron-right'}}",
+					  "text": "", "textColor": "@dim", "x": 6, "width": 12, "anchors": { "top": 0, "bottom": 0 }, "align": "center" },
+					{ "type": "label", "text": "{{title}}", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 22, "top": 0, "bottom": 0, "right": 8 } }
+				]
+			}
+		},
+		"numberField": {
+			"params": { "label": "", "value": 0, "text": "", "key": "", "axis": 0, "step": 0.01, "first": false, "last": false },
+			"node": {
+				"height": 20, "width": "100%", "color": "transparent",
+				"children": [
+					{ "type": "label", "text": "{{label}}", "textColor": "@dim", "align": { "horizontal": "end", "vertical": "center" },
+					  "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "38%" },
+					{ "id": "field-{{key}}-{{axis}}", "anchors": { "left": "41%", "right": 22, "top": 0, "bottom": 0 },
+					  "color": "@widget", "hover": { "color": "@widgetHover" }, "cursor": "resize-horizontal",
+					  "radius": "{{first && last ? 4 : first ? { topLeft: 4, topRight: 4 } : last ? { bottomLeft: 4, bottomRight: 4 } : 0}}",
+					  "role": "slider", "focusable": true, "label": "{{label}}", "tooltip": "Drag to change; arrows step it",
+					  "onPress": { "set": "state.dragStart", "to": "{{value}}" },
+					  "onDrag": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "value": "{{state.dragStart + event.dx * step}}" } } },
+					  "keys": { "right": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "value": "{{value + step * 10}}" } } },
+					            "left": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "value": "{{value - step * 10}}" } } } },
+					  "children": [{ "type": "label", "text": "{{text}}", "textColor": "@text", "align": "center", "fill": true }] },
+					{ "type": "label", "font": "iconsSmall", "icon": "lock-open", "text": "", "textColor": "@faint", "align": "center",
+					  "anchors": { "right": 2, "top": 0, "bottom": 0 }, "width": 16 }
+				]
+			}
+		},
+		"vectorField": {
+			"params": { "title": "", "values": [0, 0, 0], "key": "", "unit": "", "step": 0.01, "digits": 4, "fixed": false },
+			"node": {
+				"type": "column", "width": "100%", "height": 62, "gap": 1, "color": "transparent",
+				"children": [{
+					"repeat": { "for": "v", "in": "{{values}}", "index": "a" }, "use": "numberField",
+					"with": { "label": "{{a == 0 ? title + ' X' : a == 1 ? 'Y' : 'Z'}}", "value": "{{v}}", "key": "{{key}}",
+					          "axis": "{{a}}", "step": "{{step}}", "first": "{{a == 0}}", "last": "{{a == 2}}",
+					          "text": "{{(fixed ? fixed(v, digits) : formatNumber(v, 0, digits)) + unit}}" }
+				}]
+			}
+		},
+		"transformPanel": {
+			"params": { "narrow": false },
+			"node": {
+				"type": "column", "width": "100%", "height": "{{state.panels.transform ? 266 : 24}}", "gap": 0, "color": "transparent",
+				"children": [
+					{ "use": "panelHeader", "with": { "title": "Transform", "key": "transform" } },
+					{ "when": "{{state.panels.transform && computed.activeNode != null}}", "width": "100%", "height": 242,
+					  "color": "@panel", "radius": { "bottomLeft": 4, "bottomRight": 4 }, "children": [{
+					  "type": "column", "fill": 6, "gap": 6, "color": "transparent",
+					  "children": [
+						{ "use": "vectorField", "with": { "title": "Location", "values": "{{computed.activeNode.translation}}", "key": "translation", "unit": " m", "step": 0.01 } },
+						{ "use": "vectorField", "with": { "title": "Rotation", "values": "{{computed.activeNode.rotationDegrees}}", "key": "rotationDegrees", "unit": "°", "step": 0.5, "digits": 1 } },
+						{ "height": 20, "width": "100%", "color": "transparent", "children": [
+							{ "type": "label", "text": "Mode", "textColor": "@dim", "align": { "horizontal": "end", "vertical": "center" },
+							  "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "38%" },
+							{ "anchors": { "left": "41%", "right": 22, "top": 0, "bottom": 0 }, "color": "@menuWidget", "radius": 4,
+							  "role": "button", "label": "Rotation mode: XYZ Euler", "children": [
+								{ "type": "label", "text": "XYZ Euler", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 7, "top": 0, "bottom": 0, "right": 14 } },
+								{ "type": "label", "font": "iconsSmall", "icon": "chevron-down", "text": "", "textColor": "@dim", "anchors": { "right": 2, "top": 0, "bottom": 0 }, "width": 12 }
+							] }
+						] },
+						{ "use": "vectorField", "with": { "title": "Scale", "values": "{{computed.activeNode.scale}}", "key": "scale", "unit": "", "step": 0.005, "digits": 3, "fixed": true } }
+					  ] } ] }
+				]
+			}
+		},
+		"areaHeader": {
+			"params": { "icon": "", "editor": "" },
+			"node": {
+				"type": "row", "width": "100%", "height": 26, "color": "@header", "radius": { "topLeft": 5, "topRight": 5 },
+				"alignItems": "center", "gap": 2,
+				"children": [
+					{ "use": "gap" },
+					{ "use": "hButton", "id": "editor-type-{{editor}}", "with": { "icon": "{{icon}}", "chevron": true, "width": 38,
+					  "tooltip": "Editor Type", "open": "{{'state.open.editor' + editor}}", "items": "{{computed.editorItems}}" } }
+				]
+			}
+		},
+		"topBar": {
+			"node": {
+				"type": "row", "id": "top-bar", "width": "100%", "height": 28, "color": "@bar", "alignItems": "center", "gap": 0,
+				"children": [
+					{ "use": "gap", "with": { "width": 6 } },
+					{ "type": "label", "id": "app-icon", "font": "icons", "icon": "hexagon", "text": "", "textColor": "@text",
+					  "width": 26, "height": 26, "align": "center", "role": "img", "label": "Modello" },
+					{ "use": "menuBar", "id": "menu-bar", "width": 300,
+					  "with": { "open": "state.menuBar", "height": 28, "color": "@bar", "textColor": "@text", "dimColor": "@dim",
+					            "highlight": "@sel",
+					            "menus": "{{[{ name: 'file', title: 'File', items: menus.file }, { name: 'edit', title: 'Edit', items: menus.edit }, { name: 'render', title: 'Render', items: menus.render }, { name: 'window', title: 'Window', items: menus.window }, { name: 'help', title: 'Help', items: menus.help }]}}" } },
+					{ "type": "row", "id": "workspaces", "height": 28, "alignItems": "end", "gap": 1, "color": "transparent",
+					  "role": "tablist", "label": "Workspaces", "arrows": "horizontal", "grow": 1,
+					  "children": [{
+						"repeat": { "for": "w", "in": "{{computed.workspaces}}" },
+						"id": "workspace-{{lower(w)}}", "height": 24, "width": "{{length(w) * 6 + 14}}",
+						"radius": { "topLeft": 4, "topRight": 4 }, "role": "tab", "focusable": true, "label": "{{w}}",
+						"selected": "{{state.workspace == w}}", "color": "{{state.workspace == w ? '@header' : 'transparent'}}",
+						"hover": { "color": "{{state.workspace == w ? '@header' : '@widget'}}" },
+						"onClick": { "run": "setOption", "with": { "args": { "key": "workspace", "value": "{{w}}" } } },
+						"children": [{ "type": "label", "text": "{{w}}", "textColor": "{{state.workspace == w ? '@text' : '@dim'}}",
+						               "align": "center", "fill": true }]
+					  }] },
+					{ "use": "hButton", "id": "scene-picker", "with": { "icon": "shapes", "chevron": true, "width": 38, "tooltip": "Browse Scene" } },
+					{ "id": "scene-name", "width": 100, "height": 20, "color": "@field", "radius": 4, "children": [
+						{ "type": "label", "text": "Scene", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 7, "top": 0, "bottom": 0, "right": 4 } }
+					] },
+					{ "use": "gap", "with": { "width": 8 } },
+					{ "use": "hButton", "id": "layer-picker", "with": { "icon": "images", "chevron": true, "width": 38, "tooltip": "Browse View Layer" } },
+					{ "id": "layer-name", "width": 100, "height": 20, "color": "@field", "radius": 4, "children": [
+						{ "type": "label", "text": "ViewLayer", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 7, "top": 0, "bottom": 0, "right": 4 } }
+					] },
+					{ "use": "gap", "with": { "width": 6 } }
+				]
+			}
+		},
+		"outlinerRow": {
+			"params": { "depth": 0, "name": "", "icon": "", "iconColor": "@text", "data": "", "node": null, "stripe": false },
+			"node": {
+				"id": "outliner-{{node ? node.id : lower(name)}}", "width": "100%", "height": 20,
+				"color": "{{node && node.id == state.active && contains(state.view.selection, node.id) ? '@sel' : node && contains(state.view.selection, node.id) ? '@selRow' : stripe ? '@rowAlt' : 'transparent'}}",
+				"hover": { "color": "{{node && contains(state.view.selection, node.id) ? '@sel' : '@widget'}}" },
+				"role": "treeitem", "focusable": true, "label": "{{name}}", "selected": "{{node ? contains(state.view.selection, node.id) : null}}",
+				"onClick": { "if": "{{node != null}}", "then": [{ "run": "selectNode", "with": { "args": { "id": "{{node.id}}", "shift": "{{event.shift}}" } } }] },
+				"children": [
+					{ "type": "label", "font": "iconsSmall", "icon": "chevron-down", "text": "", "textColor": "@dim",
+					  "x": "{{depth * 18 + 2}}", "width": 14, "anchors": { "top": 0, "bottom": 0 }, "visible": "{{node == null || node.kind == 'mesh'}}" },
+					{ "type": "label", "font": "icons", "icon": "{{icon}}", "text": "", "textColor": "{{iconColor}}",
+					  "x": "{{depth * 18 + 18}}", "width": 18, "anchors": { "top": 0, "bottom": 0 }, "align": "center" },
+					{ "type": "label", "text": "{{name}}", "textColor": "{{node && node.visible == false ? '@dim' : '@text'}}",
+					  "x": "{{depth * 18 + 40}}", "anchors": { "top": 0, "bottom": 0 }, "fitText": true },
+					{ "when": "{{data != ''}}", "type": "label", "font": "iconsSmall", "icon": "{{data}}", "text": "", "textColor": "@data",
+					  "x": "{{depth * 18 + 46 + length(name) * 7}}", "width": 16, "anchors": { "top": 0, "bottom": 0 }, "align": "center" },
+					{ "when": "{{node != null || depth == 1}}", "type": "row", "anchors": { "right": 4, "top": 0, "bottom": 0 },
+					  "width": 66, "gap": 4, "alignItems": "center", "color": "transparent", "children": [
+						{ "repeat": { "for": "t", "in": "{{[{ key: 'selectable', on: 'mouse-pointer-2', off: 'mouse-pointer-2', title: 'Disable Selection' }, { key: 'visible', on: 'eye', off: 'eye-off', title: 'Hide in Viewport' }, { key: 'render', on: 'camera', off: 'camera-off', title: 'Disable in Renders' }]}}" },
+						  "id": "outliner-{{node ? node.id : 'collection'}}-{{t.key}}", "width": 18, "height": 18, "radius": 3,
+						  "color": "transparent", "hover": { "color": "@widgetHover" }, "role": "checkbox", "focusable": true,
+						  "label": "{{t.title}}", "tooltip": "{{t.title}}", "selected": "{{node == null || node[t.key] != false}}",
+						  "onClick": { "if": "{{node != null}}", "then": [{ "run": "toggleFlag", "with": { "args": { "id": "{{node.id}}", "key": "{{t.key}}" } } }] },
+						  "children": [{ "type": "label", "font": "iconsSmall", "icon": "{{node && node[t.key] == false ? t.off : t.on}}", "text": "",
+						                 "textColor": "{{node && node[t.key] == false ? '@faint' : '@text'}}", "align": "center", "fill": true }] }
+					  ] }
+				]
+			}
+		},
+		"outlinerArea": {
+			"node": {
+				"id": "outliner", "color": "@region", "radius": 5,
+				"children": [
+					{ "type": "row", "id": "outliner-header", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 26,
+					  "color": "@header", "radius": { "topLeft": 5, "topRight": 5 }, "alignItems": "center", "gap": 2, "children": [
+						{ "use": "gap" },
+						{ "use": "hButton", "id": "editor-type-outliner", "with": { "icon": "list-tree", "chevron": true, "width": 38,
+						  "tooltip": "Editor Type", "open": "state.open.editorOutliner", "items": "{{computed.editorItems}}" } },
+						{ "use": "hButton", "id": "outliner-display", "with": { "icon": "layers-2", "chevron": true, "width": 38, "tooltip": "Display Mode: View Layer" } },
+						{ "use": "searchField", "id": "outliner-search", "with": { "bind": "state.outlinerFilter", "label": "Filter the outliner" } },
+						{ "use": "hButton", "id": "outliner-filter", "with": { "icon": "filter", "chevron": true, "width": 38, "tooltip": "Filter" } },
+						{ "use": "hButton", "id": "outliner-new", "with": { "icon": "folder-plus", "width": 24, "tooltip": "New Collection" } },
+						{ "use": "gap" }
+					  ] },
+					{ "type": "column", "id": "outliner-rows", "anchors": { "left": 0, "right": 0, "top": 28, "bottom": 0 }, "gap": 0,
+					  "color": "transparent", "role": "tree", "label": "Outliner", "arrows": "vertical", "scroll": "vertical",
+					  "children": [
+						{ "use": "outlinerRow", "with": { "depth": 0, "name": "Scene Collection", "icon": "package", "iconColor": "@text" } },
+						{ "use": "outlinerRow", "with": { "depth": 1, "name": "Collection", "icon": "package-open", "iconColor": "@text", "stripe": true } },
+						{ "repeat": { "for": "n", "in": "{{filter(computed.objectRows, state.outlinerFilter == null || state.outlinerFilter == '' || contains(lower(it.name), lower(state.outlinerFilter)))}}", "index": "i", "key": "{{n.id}}" },
+						  "use": "outlinerRow", "with": { "depth": 2, "name": "{{n.name}}", "icon": "{{computed.kindIcons[n.kind]}}",
+						                                  "iconColor": "@object", "data": "{{computed.kindIcons[n.kind]}}", "node": "{{n}}",
+						                                  "stripe": "{{i % 2 == 1}}" } }
+					  ] }
+				]
+			}
+		},
+		"propertiesArea": {
+			"node": {
+				"id": "properties", "color": "@panelBack", "radius": 5,
+				"children": [
+					{ "type": "row", "id": "properties-header", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 26,
+					  "color": "@header", "radius": { "topLeft": 5, "topRight": 5 }, "alignItems": "center", "gap": 2, "children": [
+						{ "use": "gap" },
+						{ "use": "hButton", "id": "editor-type-properties", "with": { "icon": "sliders-horizontal", "chevron": true, "width": 38,
+						  "tooltip": "Editor Type", "open": "state.open.editorProperties", "items": "{{computed.editorItems}}" } },
+						{ "use": "searchField", "id": "properties-search", "with": { "bind": "state.propertiesFilter", "label": "Search the properties" } },
+						{ "use": "hButton", "id": "properties-pin", "with": { "icon": "pin", "width": 24, "back": "transparent", "tooltip": "Toggle Pin ID" } },
+						{ "use": "gap" }
+					  ] },
+					{ "type": "column", "id": "properties-tabs", "anchors": { "left": 0, "top": 26, "bottom": 0 }, "width": 30,
+					  "color": "@bar", "gap": 6, "alignItems": "center", "role": "tablist", "label": "Properties", "arrows": "vertical",
+					  "radius": { "bottomLeft": 5 },
+					  "children": [{ "height": 0, "width": 1, "color": "transparent" }, {
+						"repeat": { "for": "group", "in": "{{computed.propTabs}}" }, "type": "column", "width": 24,
+						"height": "{{length(group) * 24}}", "gap": 0, "color": "@panelBack", "radius": 4,
+						"children": [{
+							"repeat": { "for": "t", "in": "{{group}}" }, "id": "prop-tab-{{t.id}}", "width": 24, "height": 24,
+							"radius": 4, "role": "tab", "focusable": true, "label": "{{t.title}}", "tooltip": "{{t.title}}",
+							"selected": "{{state.propTab == t.id}}", "color": "{{state.propTab == t.id ? '@panel' : 'transparent'}}",
+							"hover": { "color": "@widget" },
+							"onClick": { "run": "setOption", "with": { "args": { "key": "propTab", "value": "{{t.id}}" } } },
+							"children": [{ "type": "label", "font": "icons", "icon": "{{t.icon}}", "text": "",
+							               "textColor": "{{t.color ?? '@text'}}", "align": "center", "fill": true }]
+						}]
+					  }] },
+					{ "type": "column", "id": "properties-panels", "anchors": { "left": 34, "right": 4, "top": 30, "bottom": 0 },
+					  "gap": 2, "color": "transparent", "scroll": "vertical", "children": [
+						{ "type": "row", "id": "properties-context", "width": "100%", "height": 22, "alignItems": "center", "gap": 4,
+						  "color": "transparent", "children": [
+							{ "type": "label", "font": "iconsSmall", "icon": "square", "text": "", "textColor": "@object", "width": 16, "height": 20, "align": "center" },
+							{ "type": "label", "text": "{{computed.activeNode ? computed.activeNode.name : ''}}", "textColor": "@text", "fitText": true, "height": 20 }
+						  ] },
+						{ "when": "{{state.propTab == 'object' && computed.activeNode != null}}", "id": "object-name", "width": "100%",
+						  "height": 24, "color": "@field", "radius": 4, "children": [
+							{ "type": "label", "font": "iconsSmall", "icon": "square", "text": "", "textColor": "@object", "x": 6, "width": 14, "anchors": { "top": 0, "bottom": 0 } },
+							{ "type": "textarea", "id": "object-name-field", "anchors": { "left": 24, "right": 4, "top": 2, "bottom": 2 },
+							  "text": "{{computed.activeNode.name}}", "textColor": "@text", "color": "transparent", "label": "Object name",
+							  "onSubmit": { "run": "rename", "with": { "args": { "name": "{{event.text}}" } } } }
+						  ] },
+						{ "when": "{{state.propTab == 'object' && computed.activeNode != null}}", "use": "transformPanel" },
+						{ "when": "{{state.propTab == 'object' && computed.activeNode != null}}", "repeat": { "for": "p", "in": "{{computed.objectPanels}}" },
+						  "use": "panelHeader", "with": { "title": "{{p[1]}}", "key": "{{p[0]}}" } },
+						{ "when": "{{state.propTab != 'object'}}", "type": "label", "text": "{{find(concat(computed.propTabs[0], computed.propTabs[1], computed.propTabs[2], computed.propTabs[3]), it.id == state.propTab).title}}", "textColor": "@dim", "height": 24, "fitText": true }
+					  ] }
+				]
+			}
+		},
+		"timelineArea": {
+			"node": {
+				"id": "timeline-area", "color": "@region", "radius": 5,
+				"children": [
+					{ "type": "row", "id": "timeline-header", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 26,
+					  "color": "@header", "radius": { "topLeft": 5, "topRight": 5 }, "alignItems": "center", "gap": 2, "children": [
+						{ "use": "gap" },
+						{ "use": "hButton", "id": "editor-type-timeline", "with": { "icon": "clock-3", "chevron": true, "width": 38,
+						  "tooltip": "Editor Type", "open": "state.open.editorTimeline", "items": "{{computed.editorItems}}" } },
+						{ "use": "gap", "with": { "width": 6 } },
+						{ "repeat": { "for": "m", "in": "{{['Playback', 'Keying', 'View', 'Marker']}}" }, "use": "hButton",
+						  "id": "timeline-menu-{{lower(m)}}", "with": { "text": "{{m}}", "width": "{{length(m) * 7 + (m == 'Playback' || m == 'Keying' ? 26 : 14)}}",
+						  "chevron": "{{m == 'Playback' || m == 'Keying'}}", "back": "transparent" } },
+						{ "grow": 1, "height": 1, "color": "transparent" },
+						{ "use": "hButton", "id": "auto-key", "with": { "icon": "circle", "width": 24, "tooltip": "Auto Keying", "on": "{{state.autoKey == true}}", "run": "toggleOption", "with": { "args": { "key": "autoKey" } } } },
+						{ "use": "gap", "with": { "width": 6 } },
+						{ "repeat": { "for": "b", "in": "{{[['skip-back', 'Jump to Endpoint', 'jumpStart'], ['chevrons-left', 'Jump to Keyframe', 'prevKey'], ['play', 'Play Animation in Reverse', 'playReverse'], ['play', 'Play Animation', 'play'], ['chevrons-right', 'Jump to Keyframe', 'nextKey'], ['skip-forward', 'Jump to Endpoint', 'jumpEnd']]}}", "index": "i" },
+						  "use": "hButton", "id": "timeline-{{b[2]}}",
+						  "with": { "icon": "{{state.playing && b[2] == 'play' ? 'pause' : b[0]}}", "width": 24, "tooltip": "{{b[1]}}", "run": "{{b[2]}}",
+						            "radius": "{{i == 0 ? { topLeft: 4, bottomLeft: 4 } : i == 5 ? { topRight: 4, bottomRight: 4 } : 0}}" } },
+						{ "use": "gap", "with": { "width": 6 } },
+						{ "id": "frame-current", "width": 56, "height": 20, "radius": 4, "color": "@widget", "role": "slider", "label": "Current Frame",
+						  "children": [{ "type": "label", "text": "{{state.frame}}", "textColor": "@text", "align": "center", "fill": true }] },
+						{ "grow": 1, "height": 1, "color": "transparent" },
+						{ "use": "hButton", "id": "preview-range", "with": { "icon": "clock-3", "width": 24, "back": "transparent", "tooltip": "Use Preview Range" } },
+						{ "id": "frame-start", "width": 82, "height": 20, "radius": { "topLeft": 4, "bottomLeft": 4 }, "color": "@widget", "role": "slider", "label": "Start",
+						  "children": [{ "type": "label", "text": "Start", "textColor": "@dim", "x": 7, "anchors": { "top": 0, "bottom": 0 }, "fitText": true },
+						               { "type": "label", "text": "{{state.start}}", "textColor": "@text", "anchors": { "right": 7, "top": 0, "bottom": 0 }, "fitText": true }] },
+						{ "id": "frame-end", "width": 82, "height": 20, "radius": { "topRight": 4, "bottomRight": 4 }, "color": "@widget", "role": "slider", "label": "End",
+						  "children": [{ "type": "label", "text": "End", "textColor": "@dim", "x": 7, "anchors": { "top": 0, "bottom": 0 }, "fitText": true },
+						               { "type": "label", "text": "{{state.end}}", "textColor": "@text", "anchors": { "right": 7, "top": 0, "bottom": 0 }, "fitText": true }] },
+						{ "use": "gap" }
+					  ] },
+					{ "type": "timeline", "id": "timeline", "anchors": { "left": 0, "right": 0, "top": 26, "bottom": 0 },
+					  "tracks": "{{[{ id: 'summary', label: ' ', keyframes: computed.keyframes }]}}",
+					  "time": "{{(state.frame - 1) / 24}}", "duration": "{{(state.end + 20) / 24}}", "fps": 24,
+					  "playRange": "{{[(state.start - 1) / 24, (state.end - 1) / 24]}}", "headerWidth": 0, "trackHeight": 20,
+					  "pixelsPerSecond": 110, "offset": -0.4, "color": "@region", "headerColor": "@header", "textColor": "@dim",
+					  "accentColor": "@sel", "clipColor": "@active", "label": "Timeline",
+					  "onScrub": { "set": "state.frame", "to": "{{round(event.time * 24) + 1}}" } }
+				]
+			}
+		},
+		"modelloStatusBar": {
+			"node": {
+				"id": "status", "width": "100%", "height": 22, "color": "@bar", "children": [{
+				"use": "statusBar", "id": "status-bar", "fill": true,
+				"with": { "height": 22, "color": "@bar", "textColor": "@dim",
+				          "items": "{{state.modal != null ? [{ text: 'Confirm', icon: 'mouse-left' }, { text: 'Cancel', icon: 'mouse-right' }, { text: 'X Y Z  Axis lock, Shift for a plane' }, { text: 'Type a value' }] : [{ text: 'Select', icon: 'mouse-left' }, { text: 'Rotate View', icon: 'mouse' }, { text: 'Object', icon: 'mouse-right' }, { text: computed.stats + 'Modello 1.0', side: 'end' }]}}" }
+			}] }
+		}
+	}
+}

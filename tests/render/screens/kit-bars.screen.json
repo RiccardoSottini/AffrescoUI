@@ -1,0 +1,61 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The desktop kit's bars, for the rendering check: a toolbar of icon buttons, separators, toggles (one checked), a disabled button and text buttons; the same toolbar too narrow for its items, whose rest goes into a \"more\" menu; and a status bar with texts at the start and the end. The scenario opens the \"more\" menu, then switches to the dark theme and to right to left.",
+
+	"window": { "title": "Kit bars", "width": 560, "height": 260 },
+
+	"state": { "theme": "light", "dir": "ltr", "bold": true, "toolbar": {}, "narrow": {}, "saved": 0 },
+	"theme": "{{state.theme}}",
+	"tokens": { "kit.radius": 4 },
+
+	"fonts": {
+		"default": {
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
+			"size": 13,
+			"fallback": ["icons"]
+		},
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 }
+	},
+
+	"actions": {
+		"save": [{ "increment": "state.saved", "by": 1 }],
+		"bold": [{ "toggle": "state.bold" }]
+	},
+
+	"root": {
+		"id": "root", "color": "@kit.background",
+		"let": {
+			"tools": [
+				{ "title": "New", "icon": "file-plus", "keyLabel": "Ctrl+N" },
+				{ "title": "Open", "icon": "folder-open", "keyLabel": "Ctrl+O" },
+				{ "title": "Save", "icon": "save", "keyLabel": "Ctrl+S", "run": "save" },
+				{ "separator": true },
+				{ "title": "Undo", "icon": "undo-2", "enabled": false },
+				{ "title": "Redo", "icon": "redo-2" },
+				{ "separator": true },
+				{ "title": "Bold", "icon": "bold", "checked": "{{state.bold}}", "run": "bold" },
+				{ "title": "Italic", "icon": "italic", "checked": false },
+				{ "title": "Underline", "icon": "underline", "checked": false },
+				{ "separator": true },
+				{ "title": "Run" },
+				{ "title": "Debug" }
+			]
+		},
+		"children": [{ "type": "column", "id": "page", "fill": true, "gap": 12, "dir": "{{state.dir}}", "children": [
+			{ "use": "toolbar", "id": "tools", "with": { "items": "{{tools}}", "open": "state.toolbar" } },
+			{ "use": "toolbar", "id": "narrow", "with": { "items": "{{tools}}", "open": "state.narrow", "width": 240 } },
+			{ "type": "label", "id": "body", "grow": 1, "width": "100%", "padding": 12, "textColor": "@kit.text",
+			  "text": "{{'Saved ' + state.saved + ' times'}}" },
+			{ "use": "statusBar", "id": "status", "width": "100%",
+			  "with": { "items": [
+				{ "icon": "git-branch", "text": "main", "tooltip": "Branch", "run": "save" },
+				{ "icon": "refresh-cw", "text": "Synced" },
+				{ "text": "Ln 12, Col 4", "side": "end" },
+				{ "text": "UTF-8", "side": "end", "run": "save" },
+				{ "icon": "bell", "side": "end", "tooltip": "Notifications", "run": "save" }
+			  ] } }
+		] }]
+	}
+}

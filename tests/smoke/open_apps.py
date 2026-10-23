@@ -42,10 +42,8 @@ WINDOW, SERVICE, COMMAND = "window", "service", "command"
 PROGRAMS = [
     ("host", "affrescoui_host", [], WINDOW),
     ("forge", "affrescoui_forge", [], WINDOW),
-    ("modello", "affrescoui_modello", [], WINDOW),
     ("tempera", "affrescoui_tempera", [], WINDOW),
     ("sinopia", "affrescoui_sinopia", [], WINDOW),
-    ("orrery", "affrescoui_orrery", [], WINDOW),
     ("bottega", "affrescoui_bottega", [], COMMAND),  # plays Bottega's scenarios headless
     ("surfaces", "affrescoui_surfaces", [], WINDOW),
     ("embed", "affrescoui_embed", [], WINDOW),
@@ -141,7 +139,7 @@ def run(program, build, way, seconds, keep):
         if name in FIRST:
             subprocess.run([executable] + placed(FIRST[name]), cwd=cwd, env=environment_for(home), capture_output=True,
                            timeout=GRACE_SECONDS, check=False)
-        if way != "default socket" and executable.endswith(("host", "forge", "modello", "tempera", "sinopia", "orrery")):
+        if way != "default socket" and executable.endswith(("host", "forge", "modello", "tempera", "sinopia")):
             absolute += ["--socket", socket]
         if way != "default socket" and executable.endswith("server"):
             absolute += ["--listen", f"127.0.0.1:{free_port()}"]  # runs side by side; the default way keeps 7420

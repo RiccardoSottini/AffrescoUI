@@ -76,27 +76,28 @@ std::optional<std::string> placeOf(std::string_view path, const Scope& locals) {
 	return pointer;
 }
 
-/// @brief Puts a use's children where a component has {"slot": true}, searching its node depth first (not inside
-/// other uses).
+/// @brief Puts a use's children wherever a component has {"slot": true}, searching its node depth first (not inside
+/// other uses). Every slot gets them, so a component can show them in several places (a dock's areas, each showing
+/// what is active in it), as the checker walks every slot.
 /// @param node The component's node, or a node inside it.
 /// @param children The use's children.
-/// @return true once they are placed.
+/// @return true if at least one slot took them.
 bool fillSlot(json& node, const json& children) {
 	if(!node.is_object() || !node.contains("children") || !node["children"].is_array()) return false;
 	json& list = node["children"];
-	for(std::size_t i = 0; i < list.size(); ++i) {
-		if(list[i].is_object() && list[i].value("slot", json(false)) == true) {
-			json replaced = json::array();
-			for(std::size_t j = 0; j < list.size(); ++j) {
-				if(j == i) replaced.insert(replaced.end(), children.begin(), children.end());
-				else replaced.push_back(list[j]);
-			}
-			list = std::move(replaced);
-			return true;
+	bool placed = false;
+	json replaced = json::array();
+	for(json& child : list) {
+		if(child.is_object() && child.value("slot", json(false)) == true) {
+			replaced.insert(replaced.end(), children.begin(), children.end());
+			placed = true;
+			continue;
 		}
-		if(!list[i].contains("use") && fillSlot(list[i], children)) return true;
+		if(!child.contains("use") && fillSlot(child, children)) placed = true;
+		replaced.push_back(std::move(child));
 	}
-	return false;
+	list = std::move(replaced);
+	return placed;
 }
 
 /// @brief Tells whether a node sets its own position or size (otherwise a screen fills its outlet).
@@ -174,6 +175,33 @@ CompiledRef Builder::compiled(const json& node, const std::string& path, bool fi
 	return result;
 }
 
+CompiledRef Builder::compiledOverlay(const json& node, const std::string& path) const {
+	Cache& cached = cache();
+	if(const auto it = cached.overlays.find(&node); it != cached.overlays.end()) return it->second;
+	const auto placed = [](json& merged) {
+		json& overlay = merged["overlay"];
+		if(overlay.is_null()) overlay = json::object();
+		if(overlay.is_object() && !overlay.contains("placement")) overlay["placement"] = "window";
+	};
+	CompiledRef result;
+	if(object(node, path).contains("use")) { // an overlay that is a component: its node, as resolve() makes it
+		json raw = node;
+		for(int depth = 0; raw.contains("use"); ++depth) {
+			if(depth >= maxComponentDepth) fail(path, "components nested too deeply (a component uses itself?)");
+			raw = instantiateComponent(raw, path);
+		}
+		json merged = withStyles(raw, path);
+		placed(merged);
+		result = compileNode(std::make_shared<const json>(std::move(merged))); // it holds the use's children
+	} else {
+		json merged = withStyles(withoutChildren(node), path);
+		placed(merged);
+		result = compileNode(std::move(merged), childrenOf(node));
+	}
+	cached.overlays.emplace(&node, result);
+	return result;
+}
+
 std::vector<json> Builder::values(const CompiledNode& node, const Scope& locals, const std::string& path) const {
 	std::vector<json> result(node.evaluatedCount);
 	if(result.empty()) return result;
@@ -197,14 +225,24 @@ json Builder::instantiateComponent(const json& use, const std::string& path) con
 	for(const auto& [key, value] : use.items())
 		if(key != "use" && key != "with" && key != "children") result[key] = value;
 
-	// Parameters: the component's defaults, then what the use passes (evaluated in the caller's scope)
-	json with =
-	    component.contains("params") ? object(component["params"], "components." + name + ".params") : json::object();
-	if(use.contains("with")) with.update(object(use["with"], path + ".with"));
+	// Parameters, evaluated in this order in one layer, each seeing the ones before it: what the use passes (in the
+	// caller's scope), then the component's defaults it didn't pass (they may read the passed ones), then the
+	// component node's own "with" (what it passes when it is itself a use of another component, or its own variables):
+	// it reads this component's parameters, and a name it shares with one of them replaces it.
+	json with = use.contains("with") ? object(use["with"], path + ".with") : json::object();
+	if(component.contains("params"))
+		for(const auto& [key, value] : object(component["params"], "components." + name + ".params").items())
+			if(!with.contains(key)) with[key] = value;
+	if(result.contains("with"))
+		for(const auto& [key, value] : object(result["with"], "components." + name + ".node.with").items()) {
+			with.erase(key);
+			with[key] = value;
+		}
 	result["with"] = std::move(with);
 
-	// The use's children go where the component has {"slot": true}
-	if(use.contains("children") && !fillSlot(result, use["children"])) result["children"] = use["children"];
+	// The use's children go where the component has {"slot": true} (nothing does if it has none)
+	const json children = use.contains("children") ? use["children"] : json::array();
+	if(!fillSlot(result, children) && use.contains("children")) result["children"] = children;
 	return result;
 }
 

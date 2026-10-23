@@ -1,5 +1,5 @@
 /// @file
-/// @brief Unit tests of the document server (examples/server) and of what it is made of: the hashed token file,
+/// @brief Unit tests of the document server (apps/server) and of what it is made of: the hashed token file,
 /// leases (vcs::Leases, vcs::LeasedRules) and presence (vcs::Presence); and an end-to-end test over real WebSockets
 /// with two people and a reviewer, a lease, a proposal, and the history kept across a restart.
 

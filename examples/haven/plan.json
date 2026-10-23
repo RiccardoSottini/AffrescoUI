@@ -21,7 +21,7 @@
 	},
 
 	"computed": {
-		"planItems": "{{map(state.planRooms, merge(it, { color: state.theme == 'dark' ? '#1a2340' : '#ffffff', borderColor: indexOf(['r0', 'r1', 'r2', 'r3'], it.id) == state.room ? (state.theme == 'dark' ? '#22d3ee' : '#0891b2') : (state.theme == 'dark' ? '#3a4363' : '#94a3b8'), borderWidth: indexOf(['r0', 'r1', 'r2', 'r3'], it.id) == state.room ? 3 : 2, radius: 4, text: state.rooms[indexOf(['r0', 'r1', 'r2', 'r3'], it.id)].name, textSize: 16, textColor: state.theme == 'dark' ? '#e5e9f5' : '#0f172a' }))}}",
+		"planItems": "{{map(state.planRooms, merge(it, { color: computed.themeNow == 'dark' ? '#1a2340' : '#ffffff', borderColor: indexOf(['r0', 'r1', 'r2', 'r3'], it.id) == state.room ? (computed.themeNow == 'dark' ? '#22d3ee' : '#0891b2') : (computed.themeNow == 'dark' ? '#3a4363' : '#94a3b8'), borderWidth: indexOf(['r0', 'r1', 'r2', 'r3'], it.id) == state.room ? 3 : 2, radius: 4, text: state.rooms[indexOf(['r0', 'r1', 'r2', 'r3'], it.id)].name, textSize: 16, textColor: computed.themeNow == 'dark' ? '#e5e9f5' : '#0f172a' }))}}",
 		"track": "{{state.tracks[state.media.track]}}",
 		"speaker": "{{find(state.devices, it.id == 'speaker')}}"
 	},

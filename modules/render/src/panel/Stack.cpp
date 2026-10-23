@@ -128,6 +128,31 @@ void Stack::setDirection(Direction direction) { setProperty(direction_, directio
 
 void Stack::setWrap(bool wrap) { setProperty(wrap_, wrap); }
 
+void Stack::setFitContent(bool width, bool height) {
+	setProperty(fitWidth_, width);
+	setProperty(fitHeight_, height);
+}
+
+Vec2 Stack::fittedSize(Vec2 size, Vec2 reference) {
+	const bool row = direction_ == Direction::Row;
+	const std::vector<Panel*> children = placed(*this);
+	float length = 0.0f, thickness = 0.0f;
+	for(Panel* child : children) {
+		const Vec2 measured = child->measuredSize(size);
+		const std::optional<Length> basis = child->basis();
+		length += basis ? basis->resolve(along(size, row)) : along(measured, row);
+		thickness = std::max(thickness, across(measured, row));
+	}
+	if(children.size() > 1)
+		length += static_cast<float>(children.size() - 1) * (row ? columnGap_.value_or(gap_) : rowGap_.value_or(gap_));
+	const Vec2 content = row ? Vec2{length, thickness} : Vec2{thickness, length};
+	if(fitWidth_)
+		size.x = std::max(std::min(content.x, maximumOf(maxWidth(), reference.x)), minWidth().resolve(reference.x));
+	if(fitHeight_)
+		size.y = std::max(std::min(content.y, maximumOf(maxHeight(), reference.y)), minHeight().resolve(reference.y));
+	return size;
+}
+
 void Stack::arrange() {
 	const bool row = direction_ == Direction::Row;
 	const auto [start, end, crossStart, crossEnd] = flowEdges(row);
@@ -269,7 +294,10 @@ void Grid::arrange() {
 	// Columns first: the children's heights may depend on the width their cells give them
 	std::vector<Vec2> own(children.size());
 	std::vector<detail::TrackContent> contents;
-	const bool measureWidths = hasContentTracks(columns_, columnCount) || justifyItems_ != CrossAlign::Stretch;
+	const auto horizontal = [this](const Panel& child) { return child.justifySelf().value_or(justifyItems_); };
+	const bool measureWidths =
+	    hasContentTracks(columns_, columnCount) ||
+	    std::ranges::any_of(children, [&](const Panel* child) { return horizontal(*child) != CrossAlign::Stretch; });
 	for(std::size_t i = 0; i < children.size(); ++i) {
 		arrangeSize(*children[i], std::nullopt, std::nullopt);
 		if(!measureWidths) continue;
@@ -282,7 +310,7 @@ void Grid::arrange() {
 
 	contents.clear();
 	for(std::size_t i = 0; i < children.size(); ++i) {
-		if(justifyItems_ == CrossAlign::Stretch)
+		if(horizontal(*children[i]) == CrossAlign::Stretch)
 			arrangeSize(*children[i], spanned(columnStarts, columnSizes, areas[i].column, areas[i].columnSpan),
 			            std::nullopt);
 		own[i].y = children[i]->measuredHeight(size.y);
@@ -298,12 +326,12 @@ void Grid::arrange() {
 		const float cellWidth = spanned(columnStarts, columnSizes, area.column, area.columnSpan);
 		const float cellHeight = spanned(rowStarts, rowSizes, area.row, area.rowSpan);
 		const CrossAlign vertical = child.alignSelf().value_or(alignItems_);
-		const bool stretchX = justifyItems_ == CrossAlign::Stretch, stretchY = vertical == CrossAlign::Stretch;
+		const bool stretchX = horizontal(child) == CrossAlign::Stretch, stretchY = vertical == CrossAlign::Stretch;
 		arrangeSize(child, stretchX ? std::optional(cellWidth) : std::nullopt,
 		            stretchY ? std::optional(cellHeight) : std::nullopt);
 		child.clearAnchor(Edge::Right);
 		child.clearAnchor(Edge::Bottom);
-		child.setAnchor(Edge::Left, px(placedIn(justifyItems_, columnStarts[area.column], cellWidth, own[i].x)));
+		child.setAnchor(Edge::Left, px(placedIn(horizontal(child), columnStarts[area.column], cellWidth, own[i].x)));
 		child.setAnchor(Edge::Top, px(placedIn(vertical, rowStarts[area.row], cellHeight, own[i].y)));
 	}
 }

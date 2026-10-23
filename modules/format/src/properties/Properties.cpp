@@ -95,6 +95,8 @@ std::filesystem::path Properties::imageFile(const json& value, const std::string
 	return engine_.document.imageFile(value, at);
 }
 
+const LanguageCatalog* Properties::languages() const { return engine_.document.languages(); }
+
 /* Applying a node */
 
 // Cost follows the change: a node whose compiled form, values and colours are those applied last is left as it is
@@ -231,9 +233,13 @@ void Properties::showValue(Panel& panel, Record& record) const {
 void Properties::showWidgetValue(Panel& panel, Record& record, const json* bound) {
 	if(std::ranges::none_of(record.sets, [](const auto& set) { return set && set->value.show; })) return;
 	json shown = json::object(); // what the value hooks read
-	for(const std::string_view key : valueKeys)
+	const auto read = [&](std::string_view key) {
 		if(const CompiledProperty* property = record.node->find(key))
 			shown[std::string(key)] = CompiledNode::valueOf(*property, record.values);
+	};
+	for(const std::string_view key : valueKeys) read(key);
+	for(const auto& set : record.sets) // a type's own value key, e.g. a canvas's "view"
+		if(set && set->value.show && set->value.property) read(set->value.property);
 	for(const auto& set : record.sets)
 		if(set && set->value.show) set->value.show(panel, bound, shown, record.lastText);
 }
@@ -297,7 +303,9 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setCornerRadii({});
 	panel.setBorder(0.0f, colors::black);
 	panel.setShadow({});
+	panel.setGradient(nullptr);
 	panel.setCached(false);
+	panel.setOverflowVisible(false);
 	panel.setCursor(record.defaultCursor);
 	panel.setGrow(0.0f);
 	resetLayoutItem(panel);
@@ -376,6 +384,7 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 	applySets(panel, record, look);
 	transitionLook(panel, record, look, shown);
 	finish(panel, look);
+	showSnapshot(panel, record, look, isRoot);
 	if(panel.accessibleRole().empty() && record.focusable && record.handlers.contains("onClick"))
 		panel.setAccessibleRole("button"); // what it is to a person, and to scenarios looking for it by role
 }
@@ -401,13 +410,15 @@ void Properties::finish(Panel& panel, const Look& look) {
 }
 
 bool Properties::registeredProperty(const Record& record, std::string_view key, const json& value, Look& look) {
+	// Every set that has it gets it: a type that declares a key a built-in widget also has keeps getting it
+	bool kept = false;
 	for(std::size_t i = record.sets.size(); i-- > 0;) {
 		const auto& set = record.sets[i];
 		if(!set || !set->apply || !set->find(key)) continue;
 		look.values[i][std::string(key)] = value;
-		return true;
+		kept = true;
 	}
-	return false;
+	return kept;
 }
 
 void Properties::applySets(Panel& panel, Record& record, const Look& look) const {
@@ -417,9 +428,11 @@ void Properties::applySets(Panel& panel, Record& record, const Look& look) const
 		const json& values = look.values[i].is_null() ? emptyObject() : look.values[i];
 		if(set->everyUpdate) {
 			set->apply(panel, values, *this, record.path);
-		} else if(values != record.ownProperties) { // an application's type: only when its values change
+		} else if(values != record.ownProperties || record.ownLooks != engine_.document.looks()) {
+			// An application's type: only when its values change, or what they look like does (the theme)
 			set->apply(panel, values, *this, record.path);
 			record.ownProperties = values;
+			record.ownLooks = engine_.document.looks();
 		}
 	}
 }

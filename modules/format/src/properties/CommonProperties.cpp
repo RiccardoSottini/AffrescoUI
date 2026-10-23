@@ -1,6 +1,6 @@
 /// @file
-/// @brief The properties every panel has (format::Properties::commonProperty(), shapeProperty(), overlay()), and
-/// those of the core widget types: labels, text areas, rows, columns and grids (widgetProperty()).
+/// @brief The properties every panel has (format::Properties::commonProperty(), shapeProperty(), overlay(),
+/// snapshot()), and those of the core widget types: labels, text areas, rows, columns and grids (widgetProperty()).
 
 #include "Engine.hpp"
 #include "LayoutProperties.hpp"
@@ -12,6 +12,8 @@
 #include <array>
 #include <cctype>
 #include <format>
+#include <memory>
+#include <utility>
 
 namespace affresco::format {
 
@@ -69,6 +71,9 @@ bool Properties::recordProperty(Panel& panel, Record& record, const KeyValue& pr
 	case Slot::Overlay:
 		overlay(panel, record, value, at, look);
 		break;
+	case Slot::Snapshot:
+		snapshot(value, at, look);
+		break;
 	case Slot::Focusable:
 		record.focusable = boolean(value, at);
 		break;
@@ -122,8 +127,14 @@ bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const
 	case Slot::Shadow:
 		panel.setShadow(engine_.document.shadow(value, at));
 		break;
+	case Slot::Gradient:
+		panel.setGradient(gradient(value, at));
+		break;
 	case Slot::Cache:
 		panel.setCached(boolean(value, at));
+		break;
+	case Slot::Overflow:
+		panel.setOverflowVisible(overflowVisible(value, at));
 		break;
 	default:
 		return false;
@@ -132,16 +143,17 @@ bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const
 }
 
 void Properties::overlay(Panel& panel, Record& record, const json& value, const std::string& at, Look& look) const {
-	static constexpr std::array<std::string_view, 5> keys = {"anchor", "placement", "open", "dismiss", "modal"};
+	static constexpr std::array<std::string_view, 6> keys = {"anchor", "placement", "flip", "open", "dismiss", "modal"};
 	const json& overlay = object(value, at);
 	for(const auto& [k, v] : overlay.items())
 		if(std::ranges::find(keys, k) == keys.end())
-			fail(concatenate(at, ".", k), "unknown property (expected anchor, placement, open, dismiss or modal)");
+			fail(concatenate(at, ".", k), "unknown property (expected anchor, placement, flip, open, dismiss or modal)");
 	std::string anchor = overlay.contains("anchor") ? string(overlay["anchor"], at + ".anchor") : "";
 	if(anchor.starts_with('#')) anchor.erase(0, 1);
 	record.overlayAnchor = anchor;
 	panel.setOverlay(anchor, overlay.contains("placement") ? placement(overlay["placement"], at + ".placement")
-	                                                       : Placement::Below);
+	                                                       : Placement::Below,
+	                 overlay.contains("flip") && boolean(overlay["flip"], at + ".flip"));
 	if(overlay.contains("open")) overlayOpen(record, overlay["open"], at + ".open", look);
 	if(overlay.contains("dismiss")) {
 		if(string(overlay["dismiss"], at + ".dismiss") != "outside") fail(at + ".dismiss", "expected \"outside\"");
@@ -160,6 +172,47 @@ void Properties::overlayOpen(Record& record, const json& open, const std::string
 	record.overlayOpen = open.get<std::string>(); // a state path, so a click outside can close it
 	look.overlayOpen =
 	    truthy(format::lookup(*record.overlayOpen, engine_.document.context(*record.locals, json::object()), at));
+}
+
+void Properties::snapshot(const json& value, const std::string& at, Look& look) {
+	if(value.is_string()) {
+		look.snapshot = value.get<std::string>(); // empty: drawn in place, so a binding can turn it off
+		return;
+	}
+	static constexpr std::array<std::string_view, 2> keys = {"image", "scale"};
+	const json& snapshot = object(value, at);
+	for(const auto& [k, v] : snapshot.items())
+		if(std::ranges::find(keys, k) == keys.end())
+			fail(concatenate(at, ".", k), "unknown property (expected image or scale)");
+	if(!snapshot.contains("image")) fail(at, R"(needs "image", the name image nodes show it by)");
+	look.snapshot = string(snapshot["image"], at + ".image");
+	if(!snapshot.contains("scale")) return;
+	look.snapshotScale = number(snapshot["scale"], at + ".scale");
+	if(look.snapshotScale <= 0.0f || look.snapshotScale > 4.0f)
+		fail(at + ".scale", "expected a number above 0, at most 4");
+}
+
+// The window draws a snapshot into its image before each frame in which it changed; image nodes show it by name
+void Properties::showSnapshot(Panel& panel, Record& record, const Look& look, bool isRoot) const {
+	if(look.snapshot.empty()) {
+		if(record.snapshotImage.empty()) return;
+		panel.clearSnapshot();
+		images().setNamed(std::exchange(record.snapshotImage, {}), nullptr);
+		return;
+	}
+	const std::string at = record.path + ".snapshot";
+	if(isRoot) fail(at, "not allowed on the root, which always fills the window");
+	if(panel.isOverlay() && !panel.isSnapshot()) fail(at, R"(not allowed with "overlay": give it to a node inside)");
+	if(look.snapshot == record.snapshotImage && look.snapshotScale == record.snapshotScale) return;
+	if(look.snapshot != record.snapshotImage && !record.snapshotImage.empty())
+		images().setNamed(record.snapshotImage, nullptr);
+	record.snapshotImage = look.snapshot;
+	record.snapshotScale = look.snapshotScale;
+	// The window keeps the panel, and so the handler, after the runtime is gone
+	panel.setSnapshot(look.snapshotScale, [&engine = engine_, alive = std::weak_ptr<bool>(engine_.alive),
+	                                       name = look.snapshot](const std::shared_ptr<const Bitmap>& image) {
+		if(!alive.expired()) engine.document.images().setNamed(name, image);
+	});
 }
 
 // A modal overlay traps the focus while it is open, and gives it back when it closes
@@ -182,11 +235,9 @@ bool Properties::textProperty(Look& look, Slot slot, const json& value, const st
 	else if(slot == Slot::Padding) label.setPadding(number(value, at));
 	else if(slot == Slot::Wrap) label.setWrap(boolean(value, at));
 	else if(slot == Slot::Font) label.setFont(font(value, at));
-	else if(slot == Slot::Align && value.is_string()) label.setAlignment(align(value, at), align(value, at));
 	else if(slot == Slot::Align) {
-		object(value, at);
-		label.setAlignment(align(value.value("horizontal", json("start")), at + ".horizontal"),
-		                   align(value.value("vertical", json("start")), at + ".vertical"));
+		const auto [horizontal, vertical] = alignments(value, at);
+		label.setAlignment(horizontal, vertical);
 	} else if(slot == Slot::FitText && value.is_boolean()) label.setFitToText(value.get<bool>());
 	else if(slot == Slot::FitText)
 		label.setFitToText(true, number(object(value, at).value("maxWidth", json()), at + ".maxWidth"));

@@ -319,6 +319,26 @@ TEST_CASE("search: the wrong pattern, glob or folder is refused") {
 	CHECK(empty.files.empty());
 }
 
+TEST_CASE("search: listFiles lists what a search would search, sorted, filtered and capped") {
+	const TempFolder folder;
+	folder.write("b.txt", "");
+	folder.write("a/z.cpp", "");
+	folder.write("a/y.log", "");
+	folder.write(".gitignore", "*.log\n");
+	folder.write(".git/HEAD", "");
+	std::vector<std::string> paths;
+	bool truncated = true;
+	REQUIRE_FALSE(services::listFiles(folder.path, {.pattern = {}, .options = {}, .include = {}, .exclude = {}}, {}, paths, truncated));
+	CHECK(paths == std::vector<std::string>{".gitignore", "a/z.cpp", "b.txt"});
+	CHECK_FALSE(truncated);
+	REQUIRE_FALSE(services::listFiles(folder.path, {.pattern = {}, .options = {}, .include = "*.cpp,*.log", .exclude = {}, .gitignore = false}, {}, paths, truncated));
+	CHECK(paths == std::vector<std::string>{"a/y.log", "a/z.cpp"});
+	REQUIRE_FALSE(services::listFiles(folder.path, {.pattern = {}, .options = {}, .include = {}, .exclude = {}, .maxFiles = 1}, {}, paths, truncated));
+	CHECK(paths.size() == 1);
+	CHECK(truncated);
+	CHECK(services::listFiles(folder.path, {.pattern = {}, .options = {}, .include = {}, .exclude = {}, .folder = ".."}, {}, paths, truncated).value_or("").starts_with("folder"));
+}
+
 TEST_CASE("search: the caps hold, on one thread or many") {
 	const TempFolder folder;
 	for(int file = 0; file < 40; ++file) folder.write("f" + std::to_string(file) + ".txt", "x x x\n");

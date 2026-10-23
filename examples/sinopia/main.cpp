@@ -11,7 +11,6 @@
 
 #include "Sinopia.hpp"
 #include "SocketDir.hpp"
-#include "drawing/ShapePanel.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
@@ -59,7 +58,6 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 /// @param screen The screen.
 /// @param session What the natives share.
 void prepare(affresco::Screen& screen, const std::shared_ptr<sinopia::Session>& session) {
-	sinopia::registerShape(screen);
 	sinopia::registerNatives(screen, session);
 	sinopia::registerPresenting(screen, session);
 	screen.allowImageDirectory(session->folder / "decks");

@@ -181,6 +181,14 @@
 									"items": {
 										"type": "string"
 									}
+								},
+								"bold": {
+									"type": "boolean",
+									"description": "Thickened outlines, for a file that has only a regular weight"
+								},
+								"italic": {
+									"type": "boolean",
+									"description": "Slanted outlines, for a file that has only an upright style"
 								}
 							}
 						}
@@ -266,6 +274,90 @@
 						"description": "Screens an \"outlet\" shows; {\"navigate\": name} switches",
 						"additionalProperties": {
 							"$ref": "#/$defs/v2/node"
+						}
+					},
+					"overlays": {
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v2/node"
+						}
+					},
+					"languages": {
+						"type": "object",
+						"maxProperties": 64,
+						"description": "Code languages an editor's \"language\" names: patterns whose scopes the @syntax.* tokens colour, and editing rules",
+						"additionalProperties": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"title": {
+									"type": "string"
+								},
+								"aliases": {
+									"type": "array",
+									"maxItems": 64,
+									"items": {
+										"type": "string"
+									}
+								},
+								"files": {
+									"type": "array",
+									"maxItems": 64,
+									"items": {
+										"type": "string"
+									}
+								},
+								"comments": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"line": {
+											"type": "string"
+										},
+										"block": {
+											"type": "array",
+											"minItems": 2,
+											"maxItems": 2,
+											"items": {
+												"type": "string"
+											}
+										}
+									}
+								},
+								"brackets": {
+									"$ref": "#/$defs/v2/characterPairs"
+								},
+								"pairs": {
+									"$ref": "#/$defs/v2/characterPairs"
+								},
+								"indent": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"increase": {
+											"type": "string"
+										},
+										"decrease": {
+											"type": "string"
+										}
+									}
+								},
+								"wordPattern": {
+									"type": "string"
+								},
+								"patterns": {
+									"type": "array",
+									"items": {
+										"type": "object"
+									}
+								},
+								"repository": {
+									"type": "object",
+									"additionalProperties": {
+										"type": "object"
+									}
+								}
+							}
 						}
 					},
 					"state": {
@@ -774,6 +866,66 @@
 							}
 						}
 					},
+					"images": {
+						"type": "object",
+						"maxProperties": 16,
+						"description": "Raster images the image step edits, with their tools and lowered limits",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"width",
+								"height"
+							],
+							"properties": {
+								"width": {
+									"type": "integer",
+									"minimum": 1
+								},
+								"height": {
+									"type": "integer",
+									"minimum": 1
+								},
+								"format": {
+									"enum": [
+										"rgba8",
+										"rgba16f"
+									]
+								},
+								"background": {
+									"type": "string"
+								},
+								"into": {
+									"type": "string",
+									"pattern": "^state\\."
+								},
+								"tool": {
+									"type": "string"
+								},
+								"tools": {
+									"type": "object",
+									"maxProperties": 64,
+									"additionalProperties": {
+										"type": "object",
+										"required": [
+											"gesture"
+										],
+										"properties": {
+											"gesture": {
+												"type": "string"
+											}
+										}
+									}
+								},
+								"limits": {
+									"type": "object",
+									"additionalProperties": {
+										"type": "integer",
+										"minimum": 1
+									}
+								}
+							}
+						}
+					},
 					"features": {
 						"type": "object",
 						"description": "Installed features, one record each (rfcs/0004-features.md)",
@@ -848,7 +1000,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, outlet, code, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, raster, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, code, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -866,6 +1018,7 @@
 									"slider",
 									"image",
 									"surface",
+									"raster",
 									"split",
 									"tabs",
 									"list",
@@ -881,6 +1034,7 @@
 									"calendar",
 									"codeInput",
 									"carousel",
+									"scene",
 									"outlet",
 									"code"
 								]
@@ -970,22 +1124,30 @@
 						]
 					},
 					"anchors": {
-						"type": "object",
-						"additionalProperties": false,
-						"properties": {
-							"top": {
-								"$ref": "#/$defs/v2/edge"
+						"oneOf": [
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"top": {
+										"$ref": "#/$defs/v2/edge"
+									},
+									"bottom": {
+										"$ref": "#/$defs/v2/edge"
+									},
+									"left": {
+										"$ref": "#/$defs/v2/edge"
+									},
+									"right": {
+										"$ref": "#/$defs/v2/edge"
+									}
+								}
 							},
-							"bottom": {
-								"$ref": "#/$defs/v2/edge"
-							},
-							"left": {
-								"$ref": "#/$defs/v2/edge"
-							},
-							"right": {
-								"$ref": "#/$defs/v2/edge"
+							{
+								"type": "string",
+								"pattern": "^ *(top|bottom|left|right)(:-?[0-9.]+(px|%)?)?( +(top|bottom|left|right)(:-?[0-9.]+(px|%)?)?)* *$"
 							}
-						}
+						]
 					},
 					"fill": {
 						"oneOf": [
@@ -1033,6 +1195,10 @@
 					},
 					"alignSelf": {
 						"description": "In a row, column or grid: where it sits across, over the container's alignItems",
+						"$ref": "#/$defs/v2/crossAlign"
+					},
+					"justifySelf": {
+						"description": "In a grid: where it sits along its cell's row, over the grid's justifyItems",
 						"$ref": "#/$defs/v2/crossAlign"
 					},
 					"cell": {
@@ -1150,11 +1316,111 @@
 							}
 						}
 					},
+					"gradient": {
+						"anyOf": [
+							{
+								"type": "array",
+								"minItems": 1,
+								"maxItems": 32,
+								"items": {
+									"$ref": "#/$defs/v2/color"
+								}
+							},
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"required": [
+									"stops"
+								],
+								"description": "Like CSS linear-gradient() and radial-gradient(), over the node's color",
+								"properties": {
+									"kind": {
+										"enum": [
+											"linear",
+											"radial"
+										]
+									},
+									"angle": {
+										"description": "Degrees: 0 up, 90 right, 180 down (the default)",
+										"type": "number"
+									},
+									"stops": {
+										"type": "array",
+										"minItems": 1,
+										"maxItems": 32,
+										"items": {
+											"anyOf": [
+												{
+													"$ref": "#/$defs/v2/color"
+												},
+												{
+													"type": "object",
+													"additionalProperties": false,
+													"required": [
+														"color"
+													],
+													"properties": {
+														"at": {
+															"type": "number",
+															"minimum": 0,
+															"maximum": 1
+														},
+														"color": {
+															"$ref": "#/$defs/v2/color"
+														}
+													}
+												}
+											]
+										}
+									}
+								}
+							}
+						]
+					},
 					"visible": {
 						"$ref": "#/$defs/v2/flag"
 					},
 					"cache": {
 						"$ref": "#/$defs/v2/flag"
+					},
+					"overflow": {
+						"anyOf": [
+							{
+								"enum": [
+									"clip",
+									"visible"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "visible lets the children draw and be hit outside the node"
+					},
+					"snapshot": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "object",
+								"required": [
+									"image"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"image": {
+										"type": "string"
+									},
+									"scale": {
+										"type": "number",
+										"exclusiveMinimum": 0,
+										"maximum": 4
+									}
+								}
+							}
+						],
+						"description": "Draws the node into a named image, out of the layout, instead of on the screen"
 					},
 					"rotate": {
 						"anyOf": [
@@ -1306,6 +1572,9 @@
 									"center",
 									"window"
 								]
+							},
+							"flip": {
+								"$ref": "#/$defs/v2/flag"
 							},
 							"open": {
 								"description": "A state path (\"state.menuOpen\") or a value"
@@ -1532,6 +1801,10 @@
 								"$ref": "#/$defs/v2/align"
 							},
 							{
+								"type": "string",
+								"pattern": "^(start|center|end) (start|center|end)$"
+							},
+							{
 								"type": "object",
 								"additionalProperties": false,
 								"properties": {
@@ -1600,13 +1873,13 @@
 											"type": "string"
 										},
 										"size": {
-											"type": "number"
+											"$ref": "#/$defs/v2/pixels"
 										},
 										"bold": {
-											"type": "boolean"
+											"$ref": "#/$defs/v2/flag"
 										},
 										"italic": {
-											"type": "boolean"
+											"$ref": "#/$defs/v2/flag"
 										},
 										"color": {
 											"$ref": "#/$defs/v2/color"
@@ -1719,52 +1992,125 @@
 						}
 					},
 					"find": {
-						"type": [
-							"object",
-							"null"
-						],
-						"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous",
-						"properties": {
-							"text": {
-								"type": "string"
+						"anyOf": [
+							{
+								"type": [
+									"object",
+									"null"
+								],
+								"properties": {
+									"text": {
+										"type": "string"
+									},
+									"regex": {
+										"type": "boolean"
+									},
+									"wholeWord": {
+										"type": "boolean"
+									},
+									"caseSensitive": {
+										"type": "boolean"
+									},
+									"inSelection": {
+										"type": "boolean"
+									},
+									"replace": {
+										"type": "string"
+									},
+									"step": {
+										"enum": [
+											"first",
+											"next",
+											"previous",
+											"replace",
+											"replaceAll"
+										]
+									},
+									"request": {
+										"type": "number"
+									}
+								}
 							},
-							"regex": {
-								"type": "boolean"
-							},
-							"wholeWord": {
-								"type": "boolean"
-							},
-							"caseSensitive": {
-								"type": "boolean"
-							},
-							"inSelection": {
-								"type": "boolean"
-							},
-							"replace": {
-								"type": "string"
-							},
-							"step": {
-								"enum": [
-									"first",
-									"next",
-									"previous",
-									"replace",
-									"replaceAll"
-								]
-							},
-							"request": {
-								"type": "number"
+							{
+								"$ref": "#/$defs/v2/dynamic"
 							}
-						}
+						],
+						"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous"
 					},
 					"brackets": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"bracketStyle": {
+						"anyOf": [
+							{
+								"enum": [
+									"fill",
+									"underline"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"indentGuides": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"rulers": {
+						"anyOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "number",
+									"minimum": 0
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"minimap": {
 						"$ref": "#/$defs/v2/flag"
+					},
+					"minimapStyle": {
+						"anyOf": [
+							{
+								"enum": [
+									"bars",
+									"text"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"minimapViewport": {
+						"anyOf": [
+							{
+								"enum": [
+									"always",
+									"hover"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"matchStyle": {
+						"anyOf": [
+							{
+								"enum": [
+									"fill",
+									"outline"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
 					},
 					"composition": {
 						"description": "Text, or a {{binding}}"
@@ -1811,7 +2157,117 @@
 					},
 					"language": {
 						"type": "string",
-						"description": "diff: a language id for the application's editors (e.g. cpp)"
+						"description": "diff: a language id for the application's editors (e.g. cpp); editor: a language of the languages section, by name, alias or file name"
+					},
+					"commands": {
+						"type": "object",
+						"maxProperties": 256,
+						"additionalProperties": {
+							"enum": [
+								"toggleComment",
+								"moveLinesUp",
+								"moveLinesDown",
+								"deleteLines",
+								"copyLine",
+								"cutLine",
+								"indentLines",
+								"outdentLines",
+								"insertLineAfter",
+								"insertLineBefore"
+							]
+						},
+						"description": "editor: keys bound to code commands"
+					},
+					"popup": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"goTo": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"line": {
+										"type": "number",
+										"minimum": 0
+									},
+									"column": {
+										"type": "number",
+										"minimum": 0
+									},
+									"request": {
+										"type": "number"
+									}
+								}
+							},
+							{
+								"type": "null"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "editor: moves the caret once per request"
+					},
+					"insert": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"text": {
+										"type": "string"
+									},
+									"before": {
+										"type": "number",
+										"minimum": 0
+									},
+									"request": {
+										"type": "number"
+									}
+								}
+							},
+							{
+								"type": "null"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "editor: replaces the selection once per request"
+					},
+					"tokens": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 100000,
+								"items": {
+									"type": "object",
+									"required": [
+										"style"
+									],
+									"properties": {
+										"line": {
+											"type": "number",
+											"minimum": 0
+										},
+										"column": {
+											"type": "number",
+											"minimum": 0
+										},
+										"length": {
+											"type": "number",
+											"minimum": 0
+										},
+										"style": {
+											"type": "string"
+										}
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "editor: runs coloured over the language's colours (e.g. a language server's)"
 					},
 					"deletedColor": {
 						"$ref": "#/$defs/v2/color"
@@ -1874,6 +2330,23 @@
 					"alignItems": {
 						"description": "row, column, stack: where children sit across (left out: their own anchors); grid: down their cells (default start)",
 						"$ref": "#/$defs/v2/crossAlign"
+					},
+					"fitContent": {
+						"description": "row, column, stack: take the width, the height or both (true) from the children",
+						"anyOf": [
+							{
+								"type": "boolean"
+							},
+							{
+								"enum": [
+									"width",
+									"height"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
 					},
 					"direction": {
 						"anyOf": [
@@ -2002,7 +2475,7 @@
 					},
 					"source": {
 						"type": "string",
-						"description": "image: an image the host names (Screen::setImage), instead of a file"
+						"description": "image: a named image (a node's snapshot, or Screen::setImage), instead of a file"
 					},
 					"fit": {
 						"anyOf": [
@@ -2043,6 +2516,26 @@
 					},
 					"continuous": {
 						"$ref": "#/$defs/v2/flag"
+					},
+					"image": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "raster: the name of an image the images section declares"
+					},
+					"checker": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"overlayColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"shadeColor": {
+						"$ref": "#/$defs/v2/color"
 					},
 					"value": {
 						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids; colorPicker: a colour; gradient: { kind, angle, stops }; curves: { points }",
@@ -2160,6 +2653,26 @@
 					"accentColor": {
 						"$ref": "#/$defs/v2/color"
 					},
+					"accentEdge": {
+						"anyOf": [
+							{
+								"enum": [
+									"top",
+									"bottom"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "tabs: the edge of the active tab its line is on: bottom (default) or top"
+					},
+					"markerColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"keepMarker": {
+						"type": "boolean"
+					},
 					"items": {
 						"anyOf": [
 							{
@@ -2243,10 +2756,14 @@
 								}
 							},
 							{
+								"type": "string",
+								"pattern": "^state\\.[A-Za-z0-9_.]+$"
+							},
+							{
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
-						"description": "tree: the ids of the open nodes"
+						"description": "tree: the ids of the open nodes, or a state path keeping them"
 					},
 					"stickyRows": {
 						"anyOf": [
@@ -2260,6 +2777,9 @@
 							}
 						],
 						"description": "tree: how many open folders stay pinned at the top while their rows scroll (default 0)"
+					},
+					"guides": {
+						"type": "boolean"
 					},
 					"sort": {
 						"anyOf": [
@@ -2284,10 +2804,14 @@
 								}
 							},
 							{
+								"type": "string",
+								"pattern": "^state\\.[A-Za-z0-9_.]+$"
+							},
+							{
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
-						"description": "table: the order: { column, descending }, or null"
+						"description": "table: the order: { column, descending }, or null; or a state path keeping it"
 					},
 					"selection": {
 						"anyOf": [
@@ -2361,6 +2885,57 @@
 							}
 						],
 						"description": "path: which points are inside, nonzero (default) or evenodd"
+					},
+					"fillGradient": {
+						"anyOf": [
+							{
+								"type": "object",
+								"required": [
+									"stops"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"enum": [
+											"linear",
+											"radial"
+										]
+									},
+									"angle": {
+										"type": "number"
+									},
+									"stops": {
+										"type": "array",
+										"minItems": 1,
+										"maxItems": 32,
+										"items": {
+											"type": "object",
+											"required": [
+												"at",
+												"color"
+											],
+											"properties": {
+												"at": {
+													"type": "number",
+													"minimum": 0,
+													"maximum": 1
+												},
+												"color": {
+													"type": "string"
+												}
+											}
+										}
+									}
+								}
+							},
+							{
+								"type": "null"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "path: the inside as a gradient, { kind, angle, stops }"
 					},
 					"stroke": {
 						"$ref": "#/$defs/v2/color"
@@ -2574,6 +3149,9 @@
 								"maximum": 1000000
 							},
 							{
+								"type": "boolean"
+							},
+							{
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
@@ -2581,7 +3159,7 @@
 					"snap": {
 						"$ref": "#/$defs/v2/flag"
 					},
-					"rulers": {
+					"scaleChildren": {
 						"$ref": "#/$defs/v2/flag"
 					},
 					"nodes": {
@@ -2827,6 +3405,244 @@
 					"clipColor": {
 						"$ref": "#/$defs/v2/color"
 					},
+					"scene": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"nodes": {
+										"type": "array",
+										"maxItems": 100000,
+										"items": {
+											"type": "object"
+										}
+									},
+									"materials": {
+										"type": "array",
+										"maxItems": 10000,
+										"items": {
+											"type": "object"
+										}
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: { nodes, materials }"
+					},
+					"assets": {
+						"anyOf": [
+							{
+								"type": "object",
+								"maxProperties": 64,
+								"additionalProperties": {
+									"type": "string"
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: glTF models by name: { name: path }"
+					},
+					"animations": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 1000,
+								"items": {
+									"type": "object"
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: animation clips"
+					},
+					"shading": {
+						"anyOf": [
+							{
+								"enum": [
+									"material",
+									"solid",
+									"wireframe"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"axes": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"glyphs": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"up": {
+						"anyOf": [
+							{
+								"enum": [
+									"y",
+									"z"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"cursor3d": {
+						"anyOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "number"
+								},
+								"minItems": 3,
+								"maxItems": 3
+							},
+							{
+								"type": "null"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: a 3D cursor"
+					},
+					"background": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"gridColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"outlineColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"exposure": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"gizmo": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"visible": {
+										"type": "boolean"
+									},
+									"mode": {
+										"enum": [
+											"translate",
+											"rotate",
+											"scale"
+										]
+									},
+									"space": {
+										"enum": [
+											"world",
+											"local"
+										]
+									},
+									"pixels": {
+										"type": "number",
+										"minimum": 10,
+										"maximum": 400
+									},
+									"pivot": {
+										"anyOf": [
+											{
+												"type": "array",
+												"items": {
+													"type": "number"
+												},
+												"minItems": 3,
+												"maxItems": 3
+											},
+											{
+												"type": "null"
+											}
+										]
+									},
+									"snap": {
+										"type": "object",
+										"properties": {
+											"translate": {
+												"type": "number",
+												"minimum": 0
+											},
+											"rotate": {
+												"type": "number",
+												"minimum": 0
+											},
+											"scale": {
+												"type": "number",
+												"minimum": 0
+											}
+										}
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: the transform gizmo on the selection"
+					},
+					"controls": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"orbit": {
+										"type": "string"
+									},
+									"pan": {
+										"type": "string"
+									},
+									"select": {
+										"type": "string"
+									},
+									"zoom": {
+										"type": "boolean"
+									},
+									"selects": {
+										"type": "boolean"
+									},
+									"minimumDistance": {
+										"type": "number",
+										"minimum": 0
+									},
+									"maximumDistance": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: the pointer's gestures"
+					},
+					"onSelect": {
+						"$ref": "#/$defs/v2/handler"
+					},
+					"onTransform": {
+						"$ref": "#/$defs/v2/handler"
+					},
 					"onClick": {
 						"$ref": "#/$defs/v2/handler"
 					},
@@ -2896,9 +3712,6 @@
 					"onColumnResize": {
 						"$ref": "#/$defs/v2/handler"
 					},
-					"onTransform": {
-						"$ref": "#/$defs/v2/handler"
-					},
 					"onConnect": {
 						"$ref": "#/$defs/v2/handler"
 					},
@@ -2906,9 +3719,6 @@
 						"$ref": "#/$defs/v2/handler"
 					},
 					"onLinkDrop": {
-						"$ref": "#/$defs/v2/handler"
-					},
-					"onSelect": {
 						"$ref": "#/$defs/v2/handler"
 					},
 					"onDelete": {
@@ -2927,6 +3737,15 @@
 						"$ref": "#/$defs/v2/handler"
 					},
 					"onWordHover": {
+						"$ref": "#/$defs/v2/handler"
+					},
+					"onType": {
+						"$ref": "#/$defs/v2/handler"
+					},
+					"onTextHover": {
+						"$ref": "#/$defs/v2/handler"
+					},
+					"onPopupKey": {
 						"$ref": "#/$defs/v2/handler"
 					},
 					"secret": {
@@ -3093,13 +3912,7 @@
 						"$ref": "#/$defs/v2/color"
 					},
 					"syntax": {},
-					"goTo": {},
-					"buffer": {},
-					"onType": {},
-					"popup": {},
-					"onPopupKey": {},
-					"insert": {},
-					"tokens": {}
+					"buffer": {}
 				},
 				"if": {
 					"required": [
@@ -3123,6 +3936,7 @@
 									"slider",
 									"image",
 									"surface",
+									"raster",
 									"split",
 									"tabs",
 									"list",
@@ -3138,6 +3952,7 @@
 									"calendar",
 									"codeInput",
 									"carousel",
+									"scene",
 									"outlet",
 									"code"
 								]
@@ -3155,7 +3970,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -3178,6 +3993,8 @@
 					"respond": {},
 					"signIn": {},
 					"signOut": {},
+					"ask": {},
+					"chooseFolder": {},
 					"accept": {},
 					"reject": {},
 					"preview": {},
@@ -3195,6 +4012,7 @@
 					"dismiss": {
 						"const": true
 					},
+					"edit": {},
 					"after": {},
 					"debounce": {},
 					"animate": {},
@@ -3202,6 +4020,9 @@
 					"log": {},
 					"stop": {},
 					"note": {},
+					"camera": {},
+					"transform": {},
+					"image": {},
 					"to": {},
 					"value": {},
 					"at": {},
@@ -3248,8 +4069,15 @@
 						"$ref": "#/$defs/v2/steps"
 					},
 					"error": {},
+					"title": {},
 					"head": {},
 					"reason": {},
+					"in": {},
+					"line": {},
+					"column": {},
+					"toLine": {},
+					"toColumn": {},
+					"prefix": {},
 					"ms": {},
 					"easing": {
 						"enum": [
@@ -3258,7 +4086,87 @@
 							"out",
 							"inOut"
 						]
-					}
+					},
+					"view": {
+						"anyOf": [
+							{
+								"enum": [
+									"front",
+									"back",
+									"left",
+									"right",
+									"top",
+									"bottom"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"frame": {},
+					"projection": {
+						"anyOf": [
+							{
+								"enum": [
+									"perspective",
+									"orthographic",
+									"toggle"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"orbit": {},
+					"zoom": {},
+					"mode": {
+						"anyOf": [
+							{
+								"enum": [
+									"translate",
+									"rotate",
+									"scale"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"axis": {
+						"anyOf": [
+							{
+								"enum": [
+									"x",
+									"y",
+									"z",
+									"xy",
+									"yz",
+									"zx",
+									"view"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"end": {
+						"anyOf": [
+							{
+								"enum": [
+									"confirm",
+									"cancel"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"of": {}
 				}
 			},
 			"expression": {
@@ -3292,6 +4200,26 @@
 						"$min",
 						"$max",
 						"$clamp",
+						"$pow",
+						"$sqrt",
+						"$sin",
+						"$cos",
+						"$sin",
+						"$cos",
+						"$tan",
+						"$asin",
+						"$acos",
+						"$atan",
+						"$atan2",
+						"$radians",
+						"$degrees",
+						"$pi",
+						"$sqrt",
+						"$pow",
+						"$exp",
+						"$log",
+						"$hypot",
+						"$sign",
 						"$upper",
 						"$lower",
 						"$trim",
@@ -3305,6 +4233,7 @@
 						"$json",
 						"$length",
 						"$concat",
+						"$flat",
 						"$join",
 						"$slice",
 						"$contains",
@@ -3323,6 +4252,8 @@
 						"$some",
 						"$every",
 						"$sort",
+						"$reduce",
+						"$scan",
 						"$now",
 						"$time",
 						"$fuzzy",
@@ -3350,7 +4281,8 @@
 						"$dateMs",
 						"$isDate",
 						"$passwordStrength",
-						"$isEmail"
+						"$isEmail",
+						"$pathTree"
 					]
 				}
 			},
@@ -3358,6 +4290,20 @@
 				"type": "string",
 				"pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
 				"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""
+			},
+			"characterPairs": {
+				"type": "array",
+				"maxItems": 32,
+				"items": {
+					"type": "array",
+					"minItems": 2,
+					"maxItems": 2,
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1
+					}
+				}
 			},
 			"hexColor": {
 				"type": "string",

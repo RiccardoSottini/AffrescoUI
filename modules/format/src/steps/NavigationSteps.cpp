@@ -7,7 +7,23 @@ namespace affresco::format {
 
 namespace {
 
-/// @brief "focus" or "scrollTo": a panel by id, after the update and its layout, so it exists and has its place.
+/// @brief Scrolls a panel by id into view once it has its place: deferred tasks run before the frame's layout, so a
+/// panel the update just made, or one in an overlay just opened, waits for the layouts that place it.
+/// @param engine The engine.
+/// @param id The panel's id.
+/// @param frames The frames it may still wait.
+void scrollLater(Engine& engine, const std::string& id, int frames) {
+	engine.scheduler.once(0.0, [&engine, id, frames] {
+		if(!engine.window) return;
+		Panel* panel = engine.window->root().findById(id);
+		if(!panel) return;
+		if(!panel->isShown() && panel->isVisible() && frames > 0) scrollLater(engine, id, frames - 1);
+		else panel->scrollIntoView();
+	});
+}
+
+/// @brief "focus" or "scrollTo": a panel by id, after the update and its layout, so it exists and has its place. A
+/// panel that takes no focus passes it to its first focusable node.
 /// @param s The step.
 void focusOrScroll(const Running& s) {
 	const bool focus = s.step.contains("focus");
@@ -15,12 +31,11 @@ void focusOrScroll(const Running& s) {
 	if(id.starts_with('#')) id.erase(0, 1);
 	Engine& engine = s.steps.engine();
 	if(!engine.window) return;
-	engine.scheduler.once(0.0, [&engine, id, focus] {
-		if(Panel* panel = engine.window->root().findById(id)) {
-			if(focus) engine.window->setFocus(panel);
-			else panel->scrollIntoView();
-		}
-	});
+	if(!focus) {
+		scrollLater(engine, id, 2);
+		return;
+	}
+	engine.events.focusStep(std::move(id));
 }
 
 /// @brief "navigate": shows a screen of "screens" in the outlets, or "back".

@@ -1,0 +1,150 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "kit-bars",
+			"screen": "kit-bars.screen.json",
+			"note": "The desktop kit's toolbar and status bar: the first frame in light, a narrow toolbar's \"more\" menu with the items that didn't fit, keyboard focus on a toolbar button, then dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": [181, 66] },
+				{ "expect": { "image": "more-open" } },
+				{ "key": "escape" },
+				{ "key": "tab" },
+				{ "expect": { "image": "focused" } },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark" } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
+		},
+		{
+			"name": "kit-overlays",
+			"screen": "kit-overlays.screen.json",
+			"note": "The desktop kit's overlays: a popover and a stack of toasts in light, the context menu opened with Shift+F10, a dialog, then the popover and the toasts in dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "key": "escape" },
+				{ "click": "#doc" },
+				{ "key": "shift+f10" },
+				{ "expect": { "image": "context-menu" } },
+				{ "key": "escape" },
+				{ "revision": { "message": "Ask to save", "set": { "/state/dlg": true, "/state/notes": [] } } },
+				{ "expect": { "image": "dialog" } },
+				{ "key": "escape" },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark", "/state/pop": true,
+					"/state/notes": [{ "message": "Saved", "actions": [{ "title": "Undo" }] }, { "message": "Uploading", "progress": 0.7 }] } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
+		},
+		{
+			"name": "kit-controls",
+			"screen": "kit-controls.screen.json",
+			"note": "The desktop kit's controls: a tab strip that lists the tabs that don't fit, breadcrumbs, a segmented control and a search field in light, the list of all tabs, a search typed in, a choice picked from the keyboard, then dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": [546, 16] },
+				{ "expect": { "image": "all-tabs" } },
+				{ "click": [400, 104] },
+				{ "click": [120, 134] },
+				{ "type": "kit" },
+				{ "key": "shift+tab" },
+				{ "key": "right" },
+				{ "key": "space" },
+				{ "expect": { "image": "picked" } },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark" } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
+		},
+		{
+			"name": "kit-dock",
+			"screen": "kit-dock.screen.json",
+			"note": "The desktop kit's dock: tabbed areas at the left, the right and the bottom around the editor in light, a tab dragged to another area, the move menu, a collapsed side, a maximised area, the left side resized from its edge and from the keyboard, then dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "drag": [87, 15], "to": [640, 15], "moves": 6 },
+				{ "expect": { "state": "dock.right.tabs", "is": ["properties", "outline"] } },
+				{ "click": [421, 315] },
+				{ "expect": { "image": "move-menu" } },
+				{ "click": [340, 369] },
+				{ "expect": { "state": "dock.left.tabs", "is": ["explorer", "terminal"] } },
+				{ "click": [182, 15] },
+				{ "expect": { "image": "collapsed" } },
+				{ "click": [20, 26] },
+				{ "click": [447, 315] },
+				{ "expect": { "image": "maximized" } },
+				{ "click": [697, 15] },
+				{ "drag": [198, 200], "to": [258, 200], "moves": 4 },
+				{ "expect": { "state": "dock.sizes.left", "is": 260 } },
+				{ "expect": { "image": "resized" } },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark" } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
+		},
+		{
+			"name": "kit-inspector",
+			"screen": "kit-inspector.screen.json",
+			"note": "The desktop kit's inspector: groups of numbers with units, a vector, a slider, a colour, a choice, switches and a text in light, a number scrubbed by dragging its name, one typed past its maximum, a vector's axis stepped with the arrows, a choice picked from its list, a group collapsed, then dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "drag": [30, 40], "to": [70, 40], "moves": 4 },
+				{ "expect": { "state": "shape.width", "is": 140 } },
+				{ "click": [200, 96] },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "type": "200" },
+				{ "key": "enter" },
+				{ "expect": { "state": "shape.rotation", "is": 180 } },
+				{ "click": [150, 124] },
+				{ "key": "up" },
+				{ "expect": { "state": "shape.position", "is": [10.5, 20.5, 0] } },
+				{ "click": [230, 240] },
+				{ "expect": { "image": "select-open" } },
+				{ "click": [200, 320] },
+				{ "expect": { "state": "shape.blend", "is": "screen" } },
+				{ "click": [20, 157] },
+				{ "expect": { "image": "collapsed" } },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark" } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
+		},
+		{
+			"name": "kit-ribbon",
+			"screen": "kit-ribbon.screen.json",
+			"note": "The desktop kit's ribbon: a tab of groups of large and small buttons in light, another tab, the ribbon narrowed until its last groups fold into buttons, an item run from a folded group's menu, the ribbon collapsed to its tabs, then dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": [34, 46] },
+				{ "expect": { "state": "last", "is": "paste" } },
+				{ "click": [90, 15] },
+				{ "expect": { "image": "insert" } },
+				{ "click": [32, 15] },
+				{ "revision": { "message": "Narrow", "set": { "/state/width": 380 } } },
+				{ "expect": { "image": "narrow" } },
+				{ "click": [342, 60] },
+				{ "expect": { "image": "folded-menu" } },
+				{ "click": [345, 128] },
+				{ "expect": { "state": "last", "is": "find" } },
+				{ "revision": { "message": "Wide", "set": { "/state/width": 720 } } },
+				{ "click": [698, 15] },
+				{ "expect": { "image": "collapsed" } },
+				{ "click": [698, 15] },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark" } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
+		}
+	]
+}

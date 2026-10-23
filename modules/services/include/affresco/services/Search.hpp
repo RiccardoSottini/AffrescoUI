@@ -47,7 +47,7 @@ struct SearchMatch {
 
 /// @brief The matches of one file.
 struct SearchFile {
-	std::string path;                 ///< Relative to the root, with '/'.
+	std::string path;                   ///< Relative to the root, with '/'.
 	std::vector<SearchMatch> matches{}; ///< In order.
 };
 
@@ -73,6 +73,18 @@ struct SearchSummary {
                                                      std::stop_token stop,
                                                      const std::function<void(SearchFile&&)>& onFile,
                                                      SearchSummary& summary);
+
+/// @brief Lists the files of a folder as searchFiles() would search them (the query's pattern is ignored): its globs,
+/// `.gitignore`, folder and maxFiles apply, links and `.git` are left out.
+/// @param root The root the folder is in; nothing outside it is listed.
+/// @param query Where to look and what to leave out.
+/// @param stop Stops it early (the files found so far stay listed).
+/// @param paths Gets the files, relative to the root with '/', sorted.
+/// @param truncated Gets whether maxFiles stopped it.
+/// @return An error (a glob, the folder), or std::nullopt.
+[[nodiscard]] std::optional<std::string> listFiles(const std::filesystem::path& root, const SearchQuery& query,
+                                                   const std::stop_token& stop, std::vector<std::string>& paths,
+                                                   bool& truncated);
 
 /// @brief A text with its matches replaced.
 struct Replaced {

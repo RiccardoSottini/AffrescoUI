@@ -23,12 +23,15 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsColor.cpp
 	src/functions/ExpressionFunctionsDates.cpp
 	src/functions/ExpressionFunctionsForm.cpp
+	src/functions/ExpressionFunctionsPaths.cpp
 	src/functions/ExpressionFunctionsFuzzy.cpp
 	src/functions/ExpressionFunctionsItems.cpp
+	src/functions/ExpressionFunctionsFold.cpp
 	src/functions/ExpressionFunctionsKeyframes.cpp
 	src/functions/ExpressionFunctionsLists.cpp
 	src/functions/ExpressionFunctionsLocale.cpp
 	src/functions/ExpressionFunctionsLogic.cpp
+	src/functions/ExpressionFunctionsMaths.cpp
 	src/functions/ExpressionFunctionsNumbers.cpp
 	src/functions/ExpressionFunctionsText.cpp
 	src/functions/ExpressionFunctionsTime.cpp)
@@ -47,6 +50,7 @@ target_include_directories(affrescoui_format PRIVATE src/locale)
 target_sources(affrescoui_format PRIVATE
 	src/checker/Checker.cpp
 	src/checker/CheckerNodes.cpp
+	src/checker/CheckerImages.cpp
 	src/checker/CheckerTypes.cpp
 	src/checker/CheckerValues.cpp
 	src/checker/StateTypes.cpp)
@@ -101,40 +105,68 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/FlowSteps.cpp
 	src/steps/OutsideSteps.cpp
 	src/steps/ReviewSteps.cpp
+	src/steps/EditorSteps.cpp
 	src/steps/NavigationSteps.cpp
 	src/steps/TimeSteps.cpp
 	src/steps/OtherSteps.cpp
-	src/steps/ServiceSteps.cpp)
+	src/steps/ServiceSteps.cpp
+	src/steps/SceneSteps.cpp
+	src/steps/FolderSteps.cpp)
 target_include_directories(affrescoui_format PRIVATE src/steps)
 # src/calls/: asynchronous and service calls
 target_sources(affrescoui_format PRIVATE
 	src/calls/AsyncCalls.cpp
 	src/calls/ServiceCalls.cpp)
 target_include_directories(affrescoui_format PRIVATE src/calls)
+# src/assistant/: the requests the screen's own person sends its agents ("ask"), and their replies
+target_sources(affrescoui_format PRIVATE src/assistant/Asks.cpp src/assistant/AskSteps.cpp)
+target_include_directories(affrescoui_format PRIVATE src/assistant)
 # widgets: the node types and their properties, the reference, sections, connections, features, composition
 # and adapters, a folder each (src/<folder>/README.md)
 # types: the type registry and the node types: panels, surfaces, split, tabs, lists, diff, editor, image
 target_sources(affrescoui_format PRIVATE src/types/TypeRegistry.cpp src/types/Types.cpp src/types/ImageType.cpp
 	src/types/SurfaceType.cpp src/types/SplitType.cpp src/types/TabsType.cpp src/types/ListType.cpp src/types/DiffType.cpp
 	src/types/EditorType.cpp src/types/SyntaxHighlighter.cpp)
+# languages: code languages declared in a document's "languages" section, their tokenizer and editing rules
+target_sources(affrescoui_format PRIVATE src/languages/Language.cpp src/languages/LanguageRules.cpp
+	src/languages/LanguageTokenizer.cpp src/languages/LanguageHighlighter.cpp src/languages/LanguageEditor.cpp
+	src/languages/LanguageEditorCommands.cpp src/languages/LanguageKeys.cpp)
+target_include_directories(affrescoui_format PRIVATE src/languages)
 # controls: the form controls: toggle, slider, calendar, code input, carousel
 target_sources(affrescoui_format PRIVATE src/controls/ToggleType.cpp src/controls/SliderType.cpp
 	src/controls/CalendarType.cpp src/controls/CodeInputType.cpp src/controls/CarouselType.cpp)
 # components: the built-in components, made of other nodes
-target_sources(affrescoui_format PRIVATE src/components/BuiltInComponents.cpp src/components/BuiltInFormComponents.cpp)
+target_sources(affrescoui_format PRIVATE src/components/BuiltInComponents.cpp src/components/BuiltInFormComponents.cpp
+	src/components/KitTokens.cpp src/components/KitBars.cpp
+	src/components/KitOverlays.cpp
+	src/components/KitControls.cpp
+	src/components/KitDock.cpp
+	src/components/KitPanels.cpp
+	src/components/BuiltInChatComponents.cpp)
 # creative: the creative types (colour picker, gradient, curves, canvas, graph, timeline, path) and their values
 target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/creative/GradientType.cpp
 	src/creative/CurvesType.cpp src/creative/CreativeValues.cpp src/creative/CanvasType.cpp src/creative/GraphType.cpp
-	src/creative/TimelineType.cpp src/creative/PathType.cpp)
+	src/creative/TimelineType.cpp src/creative/PathType.cpp src/creative/SceneType.cpp)
+# scene: the 3D scene node and its camera step
+target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
+# imaging: the images a screen edits ("images" section, "image" step, "raster" node): the store, the tools, the
+# operations, the publisher and the view
+target_sources(affrescoui_format PRIVATE src/imaging/ImageDocuments.cpp src/imaging/ImageOptions.cpp
+	src/imaging/ImagesSection.cpp src/imaging/ImageGestures.cpp src/imaging/ImageOperations.cpp
+	src/imaging/ImageFiles.cpp src/imaging/ImageLayers.cpp src/imaging/ImageEdits.cpp src/imaging/ImageView.cpp
+	src/imaging/ImageSteps.cpp src/imaging/ImagePublishing.cpp src/imaging/RasterView.cpp
+	src/imaging/RasterOverlays.cpp src/imaging/RasterType.cpp)
+target_link_libraries(affrescoui_format PRIVATE affrescoui::imaging)
 # properties: the properties node types share: look, layout, accessibility, transform, text fields, icons, runs
 target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/CommonProperties.cpp
 	src/properties/PropertyValues.cpp src/properties/LayoutProperties.cpp src/properties/AccessibilityProperties.cpp
 	src/properties/TransformProperties.cpp src/properties/TextFieldProperties.cpp src/properties/IconProperty.cpp
-	src/properties/RunsProperty.cpp)
+	src/properties/RunsProperty.cpp src/properties/GradientProperty.cpp)
 # reference: the reference of nodes, sections and tables (the schema, SCREEN_FORMAT.md) and the catalog
 target_sources(affrescoui_format PRIVATE src/reference/Reference.cpp src/reference/ReferenceNodes.cpp
-	src/reference/ReferenceNodeTypes.cpp src/reference/ReferenceNodeEvents.cpp
-	src/reference/ReferenceSections.cpp src/reference/ReferenceTables.cpp src/reference/Catalog.cpp)
+	src/reference/ReferenceNodeTypes.cpp src/reference/ReferenceSceneKeys.cpp src/reference/ReferenceNodeEvents.cpp
+	src/reference/ReferenceSections.cpp src/reference/ReferenceTables.cpp src/reference/ReferenceImages.cpp
+	src/reference/Catalog.cpp)
 # sections: the section registry, the sections, the capability sections and the design tokens
 target_sources(affrescoui_format PRIVATE src/sections/Sections.cpp src/sections/CapabilitySections.cpp
 	src/sections/DesignTokens.cpp)
@@ -152,4 +184,4 @@ target_sources(affrescoui_format PRIVATE src/adapters/Layout.cpp src/adapters/A2
 	src/adapters/AdaptiveCards.cpp src/adapters/AdaptiveCardActions.cpp src/adapters/Adapters.cpp
 	src/adapters/AdapterMapping.cpp)
 target_include_directories(affrescoui_format PRIVATE src/types src/controls src/components src/creative src/properties
-	src/reference src/sections src/connections src/features src/composition src/adapters)
+	src/reference src/sections src/connections src/features src/composition src/adapters src/imaging)

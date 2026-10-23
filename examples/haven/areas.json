@@ -1,0 +1,89 @@
+{
+	"note": "Haven's areas page, included by smart-home.screen.json: the rooms as picture cards grouped by floor, each with its climate and lights; a card opens the room on the home page.",
+
+	"computed": {
+		"areaFloors": "{{[{ id: 'ground', rooms: [0, 1] }, { id: 'upper', rooms: [2, 3] }]}}",
+		"areaHeight": "{{computed.compact ? 176 : 212}}"
+	},
+
+	"components": {
+		"areasPage": {
+			"params": {},
+			"node": {
+				"dir": "auto",
+				"color": "transparent",
+				"children": [
+					{
+						"id": "areasBar",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 56,
+						"color": "@header",
+						"role": "banner",
+						"children": [
+							{ "id": "areasTitle", "type": "label", "text": "{{t('page.areas')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 },
+								"fitText": true, "align": { "horizontal": "start", "vertical": "center" } }
+						]
+					},
+					{
+						"id": "areaList",
+						"type": "column",
+						"anchors": { "left": 24, "right": 24, "top": 56, "bottom": 0 },
+						"gap": 0,
+						"scroll": "vertical",
+						"children": [
+							{
+								"id": "areaFloor",
+								"repeat": { "for": "f", "in": "computed.areaFloors", "key": "{{f.id}}" },
+								"anchors": { "left": 0, "right": 0 },
+								"height": "{{computed.areaHeight + 56}}",
+								"color": "transparent",
+								"role": "group",
+								"label": "{{t('floor.' + f.id)}}",
+								"children": [
+									{ "type": "label", "icon": "layers-2", "text": "  {{t('floor.' + f.id)}}", "font": "heading", "textColor": "@text", "anchors": { "left": 0, "top": 16 },
+										"fitText": true },
+									{
+										"type": "row",
+										"anchors": { "left": 0, "right": 0, "top": 48 },
+										"height": "{{computed.areaHeight}}",
+										"gap": 16,
+										"role": "list",
+										"children": [
+											{
+												"id": "areaTile",
+												"repeat": { "for": "r", "in": "f.rooms" },
+												"let": { "room": "{{state.rooms[r]}}", "lit": "{{length(filter(state.rooms[r].lights, it.on))}}" },
+												"style": "card",
+												"anchors": { "top": 0, "bottom": 0 },
+												"grow": 1,
+												"basis": 0,
+												"hover": { "color": "@cardHover" },
+												"cursor": "hand",
+												"focusable": true,
+												"role": "button",
+												"label": "{{room.name}}",
+												"onClick": [{ "run": "pickRoom", "with": { "id": "{{'r' + r}}" } }, { "set": "state.page", "to": "home" }],
+												"children": [
+													{ "type": "image", "file": "{{room.image}}", "fit": "cover", "radius": 12, "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 56 } },
+													{ "type": "label", "text": "{{room.name}}", "font": "heading", "textColor": "@text", "anchors": { "left": 16, "top": "{{computed.areaHeight - 50}}" }, "fitText": true },
+													{ "type": "label", "font": "small", "textColor": "@muted", "icon": "thermometer",
+														"text": " {{room.temp}}°  ·  {{room.humidity}}%  ·  {{t('summary.lights', { on: lit, total: length(room.lights) })}}",
+														"anchors": { "left": 16, "top": "{{computed.areaHeight - 24}}" }, "fitText": true },
+													{ "type": "label", "icon": "lightbulb", "text": "", "when": "{{lit > 0}}", "textColor": "@warm", "color": "@card", "anchors": { "right": 12, "top": 12 },
+														"width": 32, "height": 32, "radius": 16, "align": "center" }
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{ "id": "areasAdd", "style": "button", "icon": "plus", "text": " {{t('areas.add')}}", "color": "@accent", "hover": { "color": "@accent" }, "textColor": "@knob",
+						"anchors": { "right": 32, "bottom": 32 }, "width": 180, "height": 52, "radius": 16, "shadow": { "y": 4, "blur": 12, "color": "#00000040" },
+						"role": "button", "label": "{{t('areas.add')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('areas.addSoon')}}" } } }
+				]
+			}
+		}
+	}
+}

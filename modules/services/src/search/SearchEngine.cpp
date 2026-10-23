@@ -343,6 +343,22 @@ std::optional<std::string> searchFiles(const fs::path& root, const SearchQuery& 
 	return std::nullopt;
 }
 
+std::optional<std::string> listFiles(const fs::path& root, const SearchQuery& query, const std::stop_token& stop,
+                                     std::vector<std::string>& paths, bool& truncated) {
+	paths.clear();
+	SearchQuery listing = query;
+	listing.pattern.clear();
+	Prepared prepared;
+	if(auto error = prepare(root, listing, prepared)) return error;
+	std::vector<Candidate> files;
+	Walk walk{.filters = prepared.filters, .query = listing, .files = files};
+	truncated = !collect({prepared.start, prepared.relative, 0}, walk, stop);
+	paths.reserve(files.size());
+	for(Candidate& file : files) paths.push_back(std::move(file.relative));
+	std::ranges::sort(paths);
+	return std::nullopt;
+}
+
 std::optional<std::string> replaceAll(std::string_view text, const TextPattern& pattern, std::string_view replacement,
                                       Replaced& replaced, std::size_t maxCount) {
 	replaced = {};

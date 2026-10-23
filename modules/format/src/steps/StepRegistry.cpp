@@ -45,10 +45,15 @@ void registerBuiltInSteps(StepRegistry& registry) {
 	registerOutsideSteps(registry);
 	registerServiceSteps(registry);
 	registerAuthSteps(registry);
+	registerAssistantSteps(registry);
+	registerFolderSteps(registry);
 	registerReviewSteps(registry);
 	registerNavigationSteps(registry);
+	registerEditorSteps(registry);
 	registerTimeSteps(registry);
 	registerOtherSteps(registry);
+	registerSceneSteps(registry);
+	registerImageSteps(registry);
 }
 
 } // namespace affresco::format

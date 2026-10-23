@@ -62,9 +62,9 @@ TEST_CASE("format: the built-in node types register in catalog order, each with 
 	registerBuiltInTypes(registry);
 	CHECK(typeNames(registry) == std::vector<std::string>{"panel", "label", "textarea", "editor", "diff", "stack",
 	                                                      "row", "column", "grid", "toggle", "checkbox", "slider",
-	                                                      "image", "surface", "split", "tabs", "list", "tree", "table", "path",
+	                                                      "image", "surface", "raster", "split", "tabs", "list", "tree", "table", "path",
 	                                                      "colorPicker", "gradient", "curves", "canvas", "graph", "timeline", "calendar",
-	                                                      "codeInput", "carousel", "outlet"});
+	                                                      "codeInput", "carousel", "scene", "outlet"});
 	for(const NodeType* type : registry.inOrder()) {
 		CAPTURE(type->name);
 		CHECK(type->create());
@@ -119,16 +119,17 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	registerBuiltInSteps(registry);
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
-	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "auth", "review", "navigation",
-	                                         "time", "other"});
+	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "auth", "assistant", "folder",
+	                                         "review", "navigation", "editor", "time", "other", "scene", "image"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())
 		for(const StepType& step : group.steps)
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
-	CHECK(control == std::vector<std::string>{"accept", "call", "connect", "endPreview", "patch", "preview", "reject",
-	                                          "respond", "restore", "revert", "send", "signIn", "signOut", "undo"});
+	CHECK(control == std::vector<std::string>{"accept", "ask", "call", "chooseFolder", "connect", "endPreview", "patch", "preview",
+	                                          "reject", "respond", "restore", "revert", "send", "signIn", "signOut",
+	                                          "undo"});
 
 	REQUIRE(registry.find("set"));
 	CHECK(registry.find("set")->keys == std::vector<std::string>{"to"});
@@ -180,7 +181,8 @@ TEST_CASE("format: the capability sections are the ones a revision can't change"
 	for(const SectionType& section : sections.sections())
 		if(section.capability) capabilities.push_back(section.name);
 	CHECK(capabilities ==
-	      std::vector<std::string>{"channels", "services", "connections", "persist", "permissions", "points"});
+	      std::vector<std::string>{"channels", "services", "connections", "persist", "permissions", "images",
+	                               "points"});
 
 	const Rules rules;
 	const json before = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}}}};
@@ -208,7 +210,7 @@ TEST_CASE("format: the catalog is built from the registries, and lists an applic
 	CHECK(catalog["common"] == catalog["types"]["panel"]["properties"]);
 	CHECK(std::ranges::find(catalog["steps"], json("set")) != catalog["steps"].end());
 	CHECK(std::ranges::find(catalog["steps"], json("accept")) == catalog["steps"].end());
-	CHECK(catalog["controlSteps"].size() == 14);
+	CHECK(catalog["controlSteps"].size() == 15);
 	CHECK(catalog["sections"].front() == "window");
 	CHECK(catalog["sections"].back() == "root");
 	CHECK(std::ranges::find(catalog["sections"], json("include")) != catalog["sections"].end());
@@ -242,6 +244,30 @@ TEST_CASE("format: an application's type gets the built-in widget's properties a
 	REQUIRE(screen.applyRevision(R"({"set": {"/state/language": "rust"}})"));
 	window->render();
 	CHECK(applied.back() == R"({"language":"rust"})");
+}
+
+// Its values may name colours ("@view"), which a theme switch changes though the values don't: it is applied again
+TEST_CASE("format: an application's type is applied again when the theme changes") {
+	const affresco::detail::ManualClock clock;
+	const auto window = affresco::detail::createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2, "theme": "{{state.theme}}",
+		"state": { "theme": "dark", "other": 1 },
+		"root": { "type": "panel", "children": [{ "type": "notes", "id": "notes", "language": "c++" }] }
+	})json");
+	std::vector<std::string> applied;
+	screen.registerType(
+	    "notes", [] { return std::make_unique<NotesEditor>(); }, {"language"},
+	    [&](affresco::Panel&, const std::string& properties) { applied.push_back(properties); });
+	screen.build(*window);
+	window->render();
+	REQUIRE(applied.size() == 1);
+	REQUIRE(screen.applyRevision(R"({"set": {"/state/other": 2}})"));
+	window->render();
+	CHECK(applied.size() == 1); // another revision: the same values, the same look
+	REQUIRE(screen.applyRevision(R"({"set": {"/state/theme": "light"}})"));
+	window->render();
+	CHECK(applied.size() == 2);
 }
 
 // Every node's events are a fixed list; an application's type may list events of its own ("onType"), which then

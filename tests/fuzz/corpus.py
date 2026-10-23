@@ -25,6 +25,9 @@
 - git_output: `git status --porcelain=v2 -z --branch`, `git for-each-ref` and two texts to diff (the first byte picks);
 - vscode_theme: VS Code colour themes, dark and light, with comments and trailing commas;
 - history:    refs.json (even first byte) or a commit object (odd first byte) of a history on disk.
+- gltf:       a small .gltf (a triangle, its material, a clip) with its buffer as data:, a .glb of it, broken copies;
+- scene:      a scene node's scene, animations and time, with primitives, lights, clips and that model placed in it.
+- images:     the "images" sections of the docs and the rendering check's screens, with the "image" steps they run.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -242,6 +245,11 @@ def layout_seeds():
                           "children": [{"cell": {"column": 1000, "row": 1000, "columnSpan": 5}, "height": 10}]}))
     seeds.append(compact({"type": "row", "wrap": True, "justify": "space-evenly", "alignItems": "stretch",
                           "width": "1e38", "children": [{"width": 3e38, "shrink": 1, "aspectRatio": "16/9"}] * 4}))
+    seeds.append(compact({"type": "column", "children": [
+        {"height": 40, "gradient": ["#1e3a5f", "#0b1220"]},
+        {"height": 40, "radius": 12, "gradient": {"kind": "radial", "stops": ["#ffffff", {"at": 0.4, "color": "#00000000"}]}},
+        {"height": 3e38, "radius": [0, 9e9, 1, 0], "gradient": {"angle": -1e300, "stops": ["#ff0000"] * 32}},
+        {"width": 1, "height": 1, "hover": {"gradient": {"angle": 45, "stops": [{"at": 1, "color": "#000"}, "#fff"]}}}]}))
     return seeds
 
 
@@ -279,6 +287,10 @@ def action_seeds():
         [{"set": "state.text", "to": "ab"}, {"while": "{{true}}", "do": [{"set": "state.text",
                                                                            "to": "{{state.text + state.text}}"}]}],
         [{"set": "state.total", "to": "{{sum(range(10000), sum(range(10000), it))}}"}],
+        [{"set": "state.text", "to": "{{reduce(range(10000), acc + acc, 'ab')}}"}],
+        [{"set": "state.total", "to": "{{pow(pow(10, 300), 300) + sqrt(pow(-1, 0.5))}}"}],
+        [{"set": "state.total", "to": "{{sum(range(10000), sin(it) * cos(pow(10, 300)))}}"}],
+        [{"set": "state.runs", "to": "{{scan(range(10000), scan(range(10000), acc + it, 0), [])}}"}],
     ]]
     return list(dict.fromkeys(seeds))
 
@@ -472,7 +484,7 @@ def oauth_seeds():
 
 
 def token_file_seeds():
-    """Token files: a SHA-256 in hex and a name per line (examples/server/TokenFile.hpp)."""
+    """Token files: a SHA-256 in hex and a name per line (apps/server/TokenFile.hpp)."""
     line = hashlib.sha256(b"placeholder").hexdigest()
     return [f"# who may connect\n{line} reviewer\n\n{line[::-1]} agent-1\n", f"{line} \n", f"{line.upper()} a b\n",
             "# only a comment", f"{line}\treviewer\r\n"]
@@ -555,6 +567,113 @@ def syntax_seeds():
     return [chr(language) + text + edit for language, text in enumerate(texts)] + [chr(index) for index in range(8)]
 
 
+def gltf_model():
+    """A small .gltf: one triangle with its material, in a node a clip moves, its buffer a data: URI."""
+    data = struct.pack("<9f", 0, 0, 0, 1, 0, 0, 0, 1, 0) + struct.pack("<3H2x", 0, 1, 2)
+    data += struct.pack("<2f", 0, 1) + struct.pack("<6f", 0, 0, 0, 0, 2, 0)
+    uri = "data:application/octet-stream;base64," + base64.b64encode(data).decode()
+    return {"asset": {"version": "2.0"}, "scene": 0, "scenes": [{"nodes": [0]}],
+            "nodes": [{"name": "tri", "mesh": 0, "translation": [0, 0, 1], "children": [1]}, {"name": "child"}],
+            "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1, "material": 0}]}],
+            "materials": [{"name": "red", "pbrMetallicRoughness": {"baseColorFactor": [1, 0, 0, 1],
+                                                                   "metallicFactor": 0, "roughnessFactor": 0.5}}],
+            "buffers": [{"byteLength": len(data), "uri": uri}],
+            "bufferViews": [{"buffer": 0, "byteOffset": 0, "byteLength": 36},
+                            {"buffer": 0, "byteOffset": 36, "byteLength": 6},
+                            {"buffer": 0, "byteOffset": 44, "byteLength": 8},
+                            {"buffer": 0, "byteOffset": 52, "byteLength": 24}],
+            "accessors": [{"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3",
+                           "min": [0, 0, 0], "max": [1, 1, 0]},
+                          {"bufferView": 1, "componentType": 5123, "count": 3, "type": "SCALAR"},
+                          {"bufferView": 2, "componentType": 5126, "count": 2, "type": "SCALAR", "min": [0], "max": [1]},
+                          {"bufferView": 3, "componentType": 5126, "count": 2, "type": "VEC3"}],
+            "animations": [{"name": "rise", "samplers": [{"input": 2, "output": 3, "interpolation": "LINEAR"}],
+                            "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}]}]}
+
+
+def gltf_seeds():
+    """glTF files (modules/scene3d/src/gltf/): the small model, broken copies of it, and a .glb holding it."""
+    model = gltf_model()
+    text = compact(model)
+    chunk = text.encode() + b" " * (-len(text) % 4)
+    glb = struct.pack("<3I", 0x46546C67, 2, 12 + 8 + len(chunk)) + struct.pack("<2I", len(chunk), 0x4E4F534A) + chunk
+    broken = [{**model, "accessors": [{**model["accessors"][0], "count": 1000000}, *model["accessors"][1:]]},
+              {**model, "nodes": [{"children": [0]}]}, {**model, "buffers": [{"byteLength": 4, "uri": "missing.bin"}]},
+              {**model, "bufferViews": [{"buffer": 0, "byteOffset": 70, "byteLength": 36}]}]
+    return [text, glb, *[compact(each) for each in broken], compact({"asset": {"version": "2.0"}})]
+
+
+def image_operations():
+    """The "image" step's operations and the "with" keys they read, from SCREEN_FORMAT.md's generated table."""
+    text = (ROOT / "SCREEN_FORMAT.md").read_text(encoding="utf-8")
+    table = text.split("<!-- generated: imageOperations -->", 1)[1].split("<!-- end generated -->", 1)[0]
+    operations = {}
+    for name, keys in re.findall(r"^\| `(\w+)` \| ([^|]*) \|", table, re.M):
+        operations[name] = re.findall(r"`(\w+)`", keys)
+    return operations
+
+
+def images_seeds():
+    """The images target's input (tests/fuzz/images.cpp): each document's images with the "image" steps it runs."""
+    operations = image_operations()
+    documents = [json.loads(path.read_text(encoding="utf-8"))
+                 for path in sorted((ROOT / "tests" / "render" / "screens").glob("*.json"))]
+    for text in re.findall(r"```json\n(.*?)```", (ROOT / "SCREEN_FORMAT.md").read_text(encoding="utf-8"), re.S):
+        try:
+            documents.append(json.loads("{" + text + "}"))  # the examples of Images are a document's keys
+        except json.JSONDecodeError:
+            pass
+    seeds = []
+    for document in documents:
+        if not isinstance(document, dict) or not isinstance(document.get("images"), dict):
+            continue
+        steps = [value for value in walk(document) if isinstance(value, dict)
+                 and isinstance(value.get("image"), str) and value["image"] in operations]
+        seeds.append(compact({"images": document["images"], "steps": steps}))
+    board = {"board": {"width": 64, "height": 48, "into": "state.board",
+                       "tools": {"pen": {"gesture": "paint", "size": 4}, "box": {"gesture": "select-rectangle"}}}}
+    pointer = [{"image": "setTool", "with": {"tool": "pen"}}] + [
+        {"image": "pointer", "with": {"phase": phase, "x": x, "y": 20}}
+        for phase, x in [("press", 4), ("move", 30), ("release", 60)]]
+    seeds.append(compact({"images": board, "steps": pointer + [{"image": "undo"}, {"image": "redo"}]}))
+    seeds.append(compact({"images": board, "steps": [{"image": name, "with": {}} for name in operations]}))
+    return seeds
+
+
+def scene_seeds():
+    """Scene nodes' input (tests/fuzz/scene.cpp): scenes of primitives, lights and materials, clips, a placed model."""
+    nodes = [{"id": "cube", "mesh": "cube", "material": "paint", "translation": [0, 1, 0], "rotationDegrees": [0, 45, 0]},
+             {"id": "ball", "parent": "cube", "mesh": "sphere", "scale": [0.5, 0.5, 0.5], "rotation": [0, 0, 0, 1]},
+             {"id": "sun", "light": {"type": "directional", "intensity": 3}},
+             {"id": "lamp", "light": {"type": "spot", "color": [1, 0.9, 0.8], "range": 10, "innerCone": 0.2,
+                                      "outerCone": 0.6}, "translation": [2, 4, 2]},
+             {"id": "floor", "mesh": "plane", "scale": [10, 1, 10], "visible": False}]
+    materials = [{"id": "paint", "baseColor": [0.8, 0.2, 0.1, 1], "metallic": 0.1, "roughness": 0.4,
+                  "alphaMode": "BLEND", "doubleSided": True}]
+    clip = [{"name": "spin", "tracks": [{"node": "cube", "path": "rotation", "interpolation": "linear",
+                                         "times": [0, 1], "values": [[0, 0, 0, 1], [0, 0.7071, 0, 0.7071]]},
+                                        {"node": "ball", "path": "translation", "interpolation": "step",
+                                         "times": [0, 0.5], "values": [[0, 0, 0], [0, 2, 0]]}]}]
+    model = [{"id": "robot", "asset": "m", "translation": [3, 0, 0]}, {"id": "arm", "parent": "robot", "mesh": "cone"}]
+    return [compact({"scene": {"nodes": nodes, "materials": materials}, "animations": clip, "time": 0.25}),
+            compact({"gltf": gltf_model(), "scene": {"nodes": model}, "time": 0.5}),
+            compact({"gltf": gltf_model(), "scene": {"nodes": [*model, {"id": "robot/tri", "mesh": "torus"}]}}),
+            compact({"scene": {"nodes": [{"id": "a", "parent": "b"}, {"id": "b", "parent": "a"}]}}),
+            compact({"scene": {"nodes": [{"id": "a", "mesh": "cylinder", "scale": [1e38, 0, -1]}]}, "time": 1e300}),
+            compact({"scene": {"nodes": nodes}, "animations": [{"tracks": [{"node": "cube", "path": "scale",
+                     "interpolation": "cubic", "times": [1, 0], "values": [[1, 1, 1]]}]}], "time": -3})]
+
+
+def ask_reply_seeds():
+    """Replies to the screen's own request (tests/fuzz/ask_reply.cpp): one reply or a list, the request's id filled in
+    when a reply names none."""
+    replies = [{"text": "Done"}, {"text": "On it", "done": False}, {"error": "no agent is connected"},
+               {"from": "agent", "text": "Proposed a **blue** title", "done": True}, {"request": "ask-0-0"},
+               {"request": 7, "text": 42, "done": "yes", "error": []}, {"text": "\u00e9" * 8 + "\U0001F600"}]
+    lists = [[{"text": "On it", "done": False}, {"text": "Done"}], [{"error": "failed"}, {"text": "Again"}], [], [1]]
+    return [json.dumps(reply) for reply in replies + lists] + ["null", '"text"', "{"]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -598,6 +717,8 @@ def dictionaries():
             "path": list("MmLlHhVvCcSsQqTtAaZz") + [" ", ",", "-", ".", "e-", "1e6", "0 0 1 1"],
             "image": ["<svg", "viewBox=", "<path d=", "fill=", "stroke=", "transform=", "<g>", "</g>", "IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
             "scenarios": scenarios, "png": pngs,
+            "ask_reply": tokens + [f'"{word}"' for word in ["request", "text", "from", "done", "error", "type",
+                                                            "reply", "ask-0-0"]],
             "http_response": ["HTTP/1.1 ", "HTTP/2 ", "\r\n", "\r\n\r\n", ": ", "Content-Length", "Retry-After",
                               "Location", "Upgrade", "websocket", "Connection", "Sec-WebSocket-Accept"],
             "sse": ["data:", "data: ", "event:", "id:", "retry:", ":", "\n", "\r\n", "\r", "\n\n"],
@@ -705,6 +826,18 @@ def main():
           "literalString", "explicitList", "AdaptiveCard", "TextBlock", "Input.Text", "Action.Submit", "${"])
     write(out, "dap", dap_seeds(), words["json"] + ["response", "event", "request", "request_seq", "success",
           "command", "body", "source", "path", "/work/", "../", "stackFrames", "variables", "runInTerminal"])
+    write(out, "gltf", gltf_seeds(), words["json"] + ["asset", "scenes", "nodes", "meshes", "primitives", "attributes",
+          "POSITION", "NORMAL", "TEXCOORD_0", "accessors", "bufferViews", "buffers", "byteOffset", "byteLength",
+          "componentType", "count", "VEC3", "SCALAR", "animations", "channels", "samplers", "data:", ";base64,", "glTF"])
+    write(out, "scene", scene_seeds(), words["json"] + ["gltf", "scene", "animations", "time", "nodes", "materials",
+          "mesh", "parent", "translation", "rotation", "rotationDegrees", "scale", "light", "asset", "tracks", "times",
+          "values", "cube", "sphere", "cylinder", "cone", "torus", "plane", "directional", "point", "spot", "m"])
+
+
+    write(out, "ask_reply", ask_reply_seeds(), words["ask_reply"])
+    operations = image_operations()
+    write(out, "images", images_seeds(), words["json"] + ["images", "steps", "image", "of", "with", "limits"]
+          + list(operations) + sorted({key for keys in operations.values() for key in keys}))
     write(out, "syntax", syntax_seeds(), ["(", ")", "{", "}", "[", "]", "\"", "'", "`", "/*", "*/", "//", "#", "\n"])
 
 

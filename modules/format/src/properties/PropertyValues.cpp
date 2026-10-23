@@ -5,10 +5,13 @@
 #include "LayoutProperties.hpp"
 #include "NodeKeys.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdlib>
 #include <format>
 #include <stdexcept>
+#include <vector>
 
 namespace affresco::format {
 
@@ -43,6 +46,20 @@ Length length(const json& value, const std::string& path) {
 }
 
 namespace {
+
+/// @brief Splits a text at its spaces.
+/// @param text The text, e.g. "left right".
+/// @return Its words, without empty ones.
+std::vector<std::string> words(const std::string& text) {
+	std::vector<std::string> result;
+	std::size_t start = 0;
+	while(start < text.size()) {
+		const std::size_t end = std::min(text.find(' ', start), text.size());
+		if(end > start) result.push_back(text.substr(start, end - start));
+		start = end + 1;
+	}
+	return result;
+}
 
 /// @brief Reads an edge name: "top", "bottom", "left" or "right".
 /// @param name The name.
@@ -101,6 +118,17 @@ Align align(const json& value, const std::string& path) {
 	fail(path, R"(expected "start", "center" or "end")");
 }
 
+std::pair<Align, Align> alignments(const json& value, const std::string& path) {
+	if(value.is_string()) {
+		const std::vector<std::string> both = words(value.get<std::string>());
+		if(both.size() == 2) return {align(json(both[0]), path), align(json(both[1]), path)};
+		return {align(value, path), align(value, path)};
+	}
+	object(value, path);
+	return {align(value.value("horizontal", json("start")), path + ".horizontal"),
+	        align(value.value("vertical", json("start")), path + ".vertical")};
+}
+
 Cursor cursor(const json& value, const std::string& path) {
 	const std::string name = string(value, path);
 	if(name == "arrow") return Cursor::Arrow;
@@ -109,6 +137,13 @@ Cursor cursor(const json& value, const std::string& path) {
 	if(name == "resize-horizontal") return Cursor::ResizeHorizontal;
 	if(name == "resize-vertical") return Cursor::ResizeVertical;
 	fail(path, R"(expected "arrow", "ibeam", "hand", "resize-horizontal" or "resize-vertical")");
+}
+
+bool overflowVisible(const json& value, const std::string& path) {
+	const std::string name = string(value, path);
+	if(name == "visible") return true;
+	if(name == "clip") return false;
+	fail(path, R"(expected "clip" or "visible")");
 }
 
 Placement placement(const json& value, const std::string& path) {
@@ -162,6 +197,21 @@ bool layoutProperty(Panel& panel, std::string_view key, const json& value, const
 	else if(key == "fill") {
 		const Length offset = value.is_boolean() && value.get<bool>() ? px(0.0f) : length(value, at);
 		for(const Edge e : {Edge::Top, Edge::Bottom, Edge::Left, Edge::Right}) panel.setAnchor(e, offset);
+	} else if(key == "anchors" && value.is_string()) {
+		const std::vector<std::string> edges = words(value.get<std::string>());
+		if(edges.empty()) fail(at, R"(expected edges, e.g. "left right:12", or an object)");
+		for(const std::string& word : edges) {
+			const std::size_t colon = word.find(':');
+			if(colon == std::string::npos) {
+				panel.setAnchor(edge(word, at), px(0.0f));
+				continue;
+			}
+			const std::string offset = word.substr(colon + 1);
+			char* end = nullptr;
+			const double pixels = std::strtod(offset.c_str(), &end);
+			const json written = !offset.empty() && *end == '\0' && std::isfinite(pixels) ? json(pixels) : json(offset);
+			panel.setAnchor(edge(word.substr(0, colon), at), length(written, concatenate(at, ".", word)));
+		}
 	} else if(key == "anchors") {
 		for(const auto& [name, offset] : object(value, at).items())
 			anchor(panel, name, offset, concatenate(at, ".", name));

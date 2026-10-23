@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Counts the tokens of what agents read and write: per template and for Forge (its features merged in), the minified
 document (the first get_screen read), its outline (get_screen with outline=true) and the canonical edits in
-tests/perf/edits (submit_revision's arguments); and SCREEN_FORMAT.md (get_format_guide). One JSON object per line, like affrescoui_bench.
+tests/perf/edits (submit_revision's arguments); each desktop kit component's general use in tests/perf/kit.json, as an
+agent writes it; and SCREEN_FORMAT.md (get_format_guide). One JSON object per line, like affrescoui_bench.
 
     pip install --require-hashes -r tests/perf/requirements.txt
     python3 tests/perf/tokens.py              # JSON lines
@@ -87,27 +88,40 @@ def reread(mcp, document, edit):
     return changes
 
 
+SCREENS_OWN = ("$schema", "format", "version", "root", "window")
+
+
+def merge_include(document, part):
+    """Merges one included file into a screen as the host does (Screen.cpp's mergeInclude): each section of the
+    file comes first and the screen's entries win; "strings" merge locale by locale and "menus" menu by menu, so an
+    include adds keys and items without replacing the screen's own; "persist" lists join; the screen's root, window,
+    format and version are kept (taken from the include when missing), and an include's "$schema" is dropped."""
+    for key, value in part.items():
+        if key in SCREENS_OWN:
+            if key not in document and key != "$schema":
+                document[key] = value
+        elif key not in document:
+            document[key] = value
+        elif isinstance(value, dict) and isinstance(document[key], dict):
+            section = dict(document[key])
+            if key in ("menus", "strings"):  # one level deeper: a locale's keys, a menu's items
+                for name, entries in value.items():
+                    if isinstance(entries, dict) and isinstance(section.get(name), dict):
+                        section[name] = {**entries, **section[name]}
+            document[key] = {**value, **section}
+        elif key == "persist" and isinstance(value, list) and isinstance(document[key], list):
+            document[key] = value + [entry for entry in document[key] if entry not in value]
+
+
 def with_includes(document, folder, depth=0):
-    """A screen with its "include" files merged in, as the host merges them: each section of an included file comes
-    first and the including file's entries win; its root and window are kept. Enough for counting Forge."""
+    """A screen with its "include" files merged in, recursively (at most 8 deep), as the host merges them."""
     if depth > 8:
         raise ValueError("includes nest too deeply")
     merged = {key: value for key, value in document.items() if key != "include"}
     for include in document.get("include", []):
         with open(os.path.join(folder, include), encoding="utf-8") as file:
             part = with_includes(json.load(file), os.path.dirname(os.path.join(folder, include)), depth + 1)
-        for section, entries in part.items():
-            if section in ("root", "window", "format", "version", "$schema"):
-                continue
-            if isinstance(entries, dict) and isinstance(merged.get(section, {}), dict):
-                own = merged.get(section, {})
-                if section == "menus":  # menu by menu, so several features add to one
-                    merged[section] = {menu: {**items, **own.get(menu, {})} for menu, items in entries.items()}
-                    merged[section].update({menu: items for menu, items in own.items() if menu not in entries})
-                else:
-                    merged[section] = {**entries, **own}
-            elif section not in merged:
-                merged[section] = entries
+        merge_include(merged, part)
     return merged
 
 
@@ -123,10 +137,11 @@ def template_files(root):
 
 
 def screens(root):
-    """The documents agents read, as (name, document): every template, then Forge with its features merged in."""
+    """The documents agents read, as the host loads them (its includes merged in), as (name, document): every
+    template, then Forge with its features."""
     for path in template_files(root):
         with open(path, encoding="utf-8") as screen:
-            yield os.path.basename(path)[:-len(SUFFIX)], json.load(screen)
+            yield os.path.basename(path)[:-len(SUFFIX)], with_includes(json.load(screen), os.path.dirname(path))
     forge = os.path.join(root, "examples", "forge", "forge" + SUFFIX)
     if os.path.exists(forge):  # a root from before Forge has none
         with open(forge, encoding="utf-8") as screen:
@@ -166,6 +181,10 @@ def counts(root, edits, encoding):
                     continue
                 yield f"tokens/{name}/reread", tokens(mcp.compact({"changes": changes}))
                 break
+    # The kit's uses are this checkout's, like the edits
+    with open(os.path.join(HERE, "kit.json"), encoding="utf-8") as file:
+        for component, use in json.load(file).items():
+            yield f"tokens/kit/{component}", tokens(mcp.compact(use))
 
 
 def table(results):
@@ -173,7 +192,7 @@ def table(results):
     templates = {}
     for name, value in results:
         parts = name.split("/")
-        if len(parts) >= 3 and parts[0] == "tokens" and parts[1] != "format-guide":
+        if len(parts) >= 3 and parts[0] == "tokens" and parts[1] not in ("format-guide", "kit"):
             templates.setdefault(parts[1], {"edits": []})
             if parts[2] == "edit":
                 templates[parts[1]]["edits"].append(value)

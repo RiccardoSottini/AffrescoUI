@@ -1,12 +1,13 @@
 /// @file
-/// @brief Unit tests for what a panel asks its Painter to draw: rounded corners, borders and shadows, and the
-/// fallbacks of a Painter that only fills rectangles.
+/// @brief Unit tests for what a panel asks its Painter to draw: rounded corners, gradients, borders and shadows, and
+/// the fallbacks of a Painter that only fills rectangles.
 
 #include <affresco/render/Painter.hpp>
 #include <affresco/render/Panel.hpp>
 
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -43,6 +44,7 @@ public:
 
 	std::vector<std::string> calls; ///< What was drawn, in order.
 	std::vector<Rect> rects;        ///< The rectangles filled, in order.
+	std::vector<Color> colors;      ///< The colours of the rounded rectangles filled, in order.
 };
 
 /// @brief A Painter that draws shapes too, and records which function each one used.
@@ -57,6 +59,17 @@ public:
 		static_cast<void>(radii);
 		static_cast<void>(color);
 		calls.emplace_back("fillRoundedRect");
+	}
+
+	/// @brief Records a gradient.
+	/// @param rect Ignored.
+	/// @param radii Ignored.
+	/// @param gradient Ignored.
+	void fillGradient(const Rect& rect, const CornerRadii& radii, const affresco::Gradient& gradient) override {
+		static_cast<void>(rect);
+		static_cast<void>(radii);
+		static_cast<void>(gradient);
+		calls.emplace_back("fillGradient");
 	}
 
 	/// @brief Records an outline.
@@ -141,4 +154,41 @@ TEST_CASE("render: square corners keep the plain fill, and a transparent shadow 
 	CHECK(painter.calls == std::vector<std::string>{"fillRect", "strokeRoundedRect"});
 	CHECK(CornerRadii{}.isSquare());
 	CHECK_FALSE(CornerRadii{.bottomLeft = 0.5f}.isSquare());
+}
+
+TEST_CASE("render: a Painter without gradients fills the shape with the gradient's middle colour") {
+	class MiddlePainter final : public RectanglePainter {
+	public:
+		/// @brief Records the rectangle and its colour.
+		/// @param rect The rectangle.
+		/// @param radii Ignored.
+		/// @param color The colour.
+		void fillRoundedRect(const Rect& rect, const CornerRadii& radii, Color color) override {
+			static_cast<void>(radii);
+			rects.push_back(rect);
+			colors.push_back(color);
+		}
+	} painter;
+	const affresco::Gradient gradient{.stops = {{0.0, affresco::colors::black}, {1.0, affresco::colors::white}}};
+	painter.fillGradient({0.0f, 0.0f, 40.0f, 20.0f}, CornerRadii::all(4.0f), gradient);
+	CHECK(painter.rects == std::vector<Rect>{{0.0f, 0.0f, 40.0f, 20.0f}});
+	CHECK(painter.colors == std::vector<Color>{Color::mix(affresco::colors::black, affresco::colors::white, 0.5f)});
+}
+
+TEST_CASE("render: a panel paints its gradient over its colour and under its border, and drops it when it is cleared") {
+	ShapePainter painter;
+	PaintablePanel panel;
+	panel.setBorder(1.0f, affresco::colors::blue);
+	panel.setGradient(std::make_shared<const affresco::Gradient>(
+	    affresco::Gradient{.stops = {{0.0, affresco::colors::red}, {1.0, affresco::colors::blue}}}));
+	REQUIRE(panel.gradient());
+	CHECK(panel.gradient()->stops.size() == 2);
+
+	panel.paintWith(painter);
+	CHECK(painter.calls == std::vector<std::string>{"fillRect", "fillGradient", "strokeRoundedRect"});
+
+	painter.calls.clear();
+	panel.setGradient(nullptr);
+	panel.paintWith(painter);
+	CHECK(painter.calls == std::vector<std::string>{"fillRect", "strokeRoundedRect"});
 }

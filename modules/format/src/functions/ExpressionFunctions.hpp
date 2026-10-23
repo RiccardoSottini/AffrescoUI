@@ -70,6 +70,16 @@ public:
 	/// @return Its value.
 	/// @throws DocumentError If it is invalid.
 	[[nodiscard]] Value evaluateFor(std::size_t index, const Value& item, std::size_t position) const;
+	/// @brief Evaluates an argument once per item of a fold, which sees the item as `it`, its position as `index` and
+	/// the value so far as `acc`.
+	/// @param index The argument's position.
+	/// @param item The item.
+	/// @param position The item's position.
+	/// @param accumulator The value so far; outlives the call.
+	/// @return Its value, the next value so far.
+	/// @throws DocumentError If it is invalid.
+	[[nodiscard]] Value evaluateFold(std::size_t index, const Value& item, std::size_t position,
+	                                 const Value& accumulator) const;
 	/// @brief Reports a problem at the function's place.
 	/// @param message What is wrong.
 	/// @throws DocumentError Always.
@@ -141,6 +151,9 @@ struct Function {
 /// @brief The table of the number functions: `clamp`, `round`, `max`, ... (ExpressionFunctionsNumbers.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> numberFunctions();
+/// @brief The table of the maths functions: `sin`, `atan2`, `sqrt`, `pow`, ... (ExpressionFunctionsMaths.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> mathsFunctions();
 /// @brief The table of the text functions: `upper`, `split`, `plural`, ... (ExpressionFunctionsText.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> textFunctions();
@@ -150,6 +163,9 @@ struct Function {
 /// @brief The table of the item functions: `filter`, `map`, `sort`, ... (ExpressionFunctionsItems.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> itemFunctions();
+/// @brief The table of the fold functions, `reduce` and `scan` (ExpressionFunctionsFold.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> foldFunctions();
 /// @brief The table of the clock functions, `now` and `time` (ExpressionFunctionsTime.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> timeFunctions();
@@ -171,6 +187,10 @@ struct Function {
 /// @brief The table of the form functions, `passwordStrength` and `isEmail` (ExpressionFunctionsForm.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> formFunctions();
+
+/// @brief The table of the path function, `pathTree` (ExpressionFunctionsPaths.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> pathFunctions();
 
 /* Helpers the tables share */
 

@@ -12,6 +12,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <filesystem>
@@ -69,6 +70,20 @@ void checkAll(const std::vector<Case>& cases) {
 	}
 }
 
+/// @brief Merges one entry of an included file's section into the screen's, as a screen is loaded: the screen's own
+/// entry wins, and "menus" and "strings" merge one level deeper, menu by menu and locale by locale.
+/// @param entry The screen's entry (null if it has none), which receives the merge.
+/// @param section The section's name.
+/// @param part The included file's entry.
+void mergeEntry(json& entry, const std::string& section, const json& part) {
+	if(entry.is_null()) {
+		entry = part;
+	} else if((section == "menus" || section == "strings") && entry.is_object() && part.is_object()) {
+		for(const auto& [key, value] : part.items())
+			if(!entry.contains(key)) entry[key] = value;
+	}
+}
+
 /// @brief Reads a template from its folder in examples.
 /// @param name E.g. "kanban".
 /// @return The document.
@@ -79,7 +94,8 @@ json screenTemplate(const std::string& name) {
 	std::stringstream content;
 	content << file.rdbuf();
 	json document = json::parse(content.str());
-	// The "include" files are merged when a screen is loaded: each section's entries, the screen's own winning.
+	// The "include" files are merged when a screen is loaded: each section's entries, the screen's own winning;
+	// "persist" lists join.
 	if(const auto includes = document.find("include"); includes != document.end()) {
 		for(const json& include : *includes) {
 			const std::ifstream part(directory / include.get<std::string>());
@@ -89,8 +105,11 @@ json screenTemplate(const std::string& name) {
 			const json sections = json::parse(partContent.str()); // a loop over a temporary's items dangles
 			for(const auto& [section, entries] : sections.items())
 				if(entries.is_object())
-					for(const auto& [key, entry] : entries.items())
-						if(!document[section].contains(key)) document[section][key] = entry;
+					for(const auto& [key, entry] : entries.items()) mergeEntry(document[section][key], section, entry);
+				else if(section == "persist" && entries.is_array())
+					for(const json& entry : entries)
+						if(std::ranges::find(document[section], entry) == document[section].end())
+							document[section].push_back(entry);
 		}
 		document.erase("include");
 	}
@@ -118,8 +137,8 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 	    {"{{state.toast.message}}", "{{state.toast.mesage}}"},
 	    {R"("dragging":{"color":"@color.accentSoft"})", R"("dragging":{"color":"@color.accentSofty"})"},
 	    {R"("onSubmit":"addCard")", R"("onSubmit":"addCrad")"},
-	    {R"("id":"move-button-card","use":"moveButton","with":{"by":-1})",
-	     R"("id":"move-button-card","use":"moveButton","with":{"bye":-1})"},
+	    {R"("use":"navItem","with":{"icon":"box","text":"Flow"})",
+	     R"("use":"navItem","with":{"icno":"box","text":"Flow"})"},
 	    {"to < 0 ||", "too < 0 ||"},
 	    {"computed.lastColumn}}", "computed.lastColum}}"},
 	    {"{{member.name}}", "{{member.nmae}}"},
@@ -129,7 +148,6 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 		REQUIRE(at != std::string::npos);
 		text.replace(at, from.size(), to);
 	}
-	const std::string card = "root.children[2].children[0].children[2].children[0].children[0].children[4].children[0]";
 	const std::string drawer = "components.cardDrawer.node.children";
 	CHECK(lines(json::parse(text)) ==
 	      std::vector<std::string>{
@@ -137,11 +155,12 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 	          drawer + "[0].children[1].style: unknown style 'captoin' (did you mean 'caption'?)",
 	          drawer + "[12].children[0].label: 'member.nmae' doesn't exist (did you mean 'member.name'?)",
 	          drawer + "[6].children[2].when: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
+	          "components.sidebar.node.children[3].children[2].with.icno: unknown parameter 'icno' of component 'navItem' "
+	          "(did you mean 'icon'?)",
 	          "components.swimlanes.node.children[0].children[3].children[0].children[1].children[0].dragging.color: "
 	          "unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
 	          "root.children[1].children[2].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)",
-	          card + ".children[6].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
-	          "root.children[7].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)"});
+	          "root.children[8].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)"});
 }
 
 TEST_CASE("checker: state paths") {
@@ -188,6 +207,33 @@ TEST_CASE("checker: state paths") {
 	});
 }
 
+TEST_CASE("checker: the images a screen edits, the image step and the raster node") {
+	const std::string images = R"("images": {"avatar": {"width": 256, "height": 256, "into": "state.avatar"},
+	        "banner": {"width": 600, "height": 200}}, )";
+	checkAll({
+	    {"an image's snapshot may be read at its into path",
+	     R"("images": {"avatar": {"width": 256, "height": 256, "into": "state.avatar"}},
+	        "root": {"text": "{{state.avatar.width}} {{state.avatr}}"})",
+	     {"root.text: 'state.avatr' doesn't exist (did you mean 'state.avatar'?)"}},
+	    {"a step's operation, the keys of its with, and the image it names",
+	     (images + R"("actions": {"crop": [{"image": "crop", "of": "avatar", "with": {"x": 0, "y": 0, "widht": 9}},
+	        {"image": "zom", "of": "avatar"}, {"image": "fit", "of": "avtar"}, {"image": "fit"},
+	        {"image": "{{state.operation}}", "of": "banner"}]}, "state": {"operation": "fit"}, "root": {})")
+	         .c_str(),
+	     {"actions.crop[0].with.widht: 'crop' doesn't read 'widht' (did you mean 'width'?)",
+	      "actions.crop[1].image: unknown image operation 'zom' (did you mean 'zoom'?)",
+	      "actions.crop[2].of: unknown image 'avtar' (did you mean 'avatar'?)",
+	      "actions.crop[3]: \"of\" names the image when a screen declares more than one"}},
+	    {"a step needs an images section; with one image, of is optional",
+	     R"("actions": {"fit": [{"image": "fit"}]}, "root": {})",
+	     {"actions.fit[0]: an \"image\" step needs an \"images\" section"}},
+	    {"a raster node names a declared image",
+	     (images + R"("root": {"children": [{"type": "raster", "image": "avatar"}, {"type": "raster", "image": "baner"}]})")
+	         .c_str(),
+	     {"root.children[1].image: unknown image 'baner' (did you mean 'banner'?)"}},
+	});
+}
+
 TEST_CASE("checker: paths nested past the expression limit are findings, not a crash") {
 	std::string deep;
 	for(int i = 0; i < 20000; ++i) deep += "state.items[";
@@ -224,6 +270,10 @@ TEST_CASE("checker: variables in scope") {
 		 R"("state": {"cards": [{"done": true}]},
 	        "root": {"text": "{{count(state.cards, it.done)}} {{length(filter(state.cards, it.don))}}"})",
 		 {"root.text: 'it.don' doesn't exist (did you mean 'it.done'?)"}},
+	    {"folds see acc too, and only folds",
+		 R"("state": {"days": [1, 0]},
+	        "root": {"text": "{{reduce(state.days, acc + it, 0)}} {{scan(state.days, map([it], acc), 0)}} {{acc}}"})",
+		 {"root.text: unknown variable 'acc'"}},
 	    {"forEach, run with, and an action that reads its caller's variables",
 		 R"("state": {"cards": [{"title": "a"}]}, "actions": {"rename": [{"set": "state.last", "to": "{{card.title}} {{to}}"}]},
 	        "root": {"onClick": [{"forEach": "state.cards", "as": "card", "do": [{"run": "rename", "with": {"to": "x"}}]},
@@ -271,8 +321,8 @@ TEST_CASE("checker: references to what a section defines") {
 		 R"("root": {"onClick": [{"sett": "state.x", "to": 1}, {"note": "fine"}]})",
 		 {"root.onClick[0]: unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, "
 		  "call, emit, send, connect, patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, "
-		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn "
-		  "or signOut)"}},
+		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, "
+		  "signIn, signOut or chooseFolder)"}},
 	    {"expressions that don't parse, and writes outside the state",
 		 R"("root": {"text": "{{1 +}}", "onClick": {"set": "card.title", "to": 1}})",
 		 {"root.onClick.set: can only change values under 'state', not 'card.title'",

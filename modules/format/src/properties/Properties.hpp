@@ -63,6 +63,7 @@ public:
 	                                                      const std::string& at) const override;
 	[[nodiscard]] ImageCache& images() const override;
 	[[nodiscard]] std::filesystem::path imageFile(const json& value, const std::string& at) const override;
+	[[nodiscard]] const LanguageCatalog* languages() const override;
 
 private:
 	/// @brief What an update reads from the behaviour keys and applies after the look.
@@ -82,6 +83,8 @@ private:
 		std::optional<Color> border = {};                 ///< "borderColor".
 		std::optional<std::pair<bool, bool>> scroll = {}; ///< "scroll": horizontal, vertical.
 		std::optional<bool> overlayOpen = {};             ///< An overlay's "open", evaluated.
+		std::string snapshot = {};                        ///< "snapshot": the image's name (empty: none).
+		float snapshotScale = 1.0f;                       ///< Its pixels per layout pixel.
 		std::array<json, std::tuple_size_v<PropertySets>> values = {}; ///< For each of the record's property sets.
 	};
 	/// @brief The properties shown now: the node at rest, with the active state blocks on top.
@@ -140,6 +143,12 @@ private:
 	/// @param panel The panel.
 	/// @param look The look.
 	static void finish(Panel& panel, const Look& look);
+	/// @brief Reads "gradient": a list of colours spread evenly from top to bottom, or {"kind": "linear" or "radial",
+	/// "angle": degrees (0 up, 90 right; 180 by default), "stops": colours, or {"at": 0..1, "color"}}.
+	/// @param value The value.
+	/// @param at Its place, for errors.
+	/// @return The gradient, normalised (see normalizeGradient()).
+	[[nodiscard]] std::shared_ptr<const Gradient> gradient(const json& value, const std::string& at) const;
 	/// @brief Checks "transition": property -> milliseconds, for the properties that can transition.
 	/// @param value The value.
 	/// @param at Its place, for errors.
@@ -258,6 +267,20 @@ private:
 	/// @param record Its record, with "modal" read.
 	/// @param look Whether it is open.
 	void showModal(Panel& panel, Record& record, const Look& look) const;
+	/// @brief Reads "snapshot": an image name, or `{ "image": name, "scale": 0.25 }`.
+	/// @param value The value.
+	/// @param at Its place, for errors.
+	/// @param look Gets the name and the scale.
+	/// @throws DocumentError If it is malformed.
+	static void snapshot(const json& value, const std::string& at, Look& look);
+	/// @brief Draws the panel into the image its "snapshot" names, out of the layout, or back into it when the key
+	/// is gone (its image then goes too).
+	/// @param panel The panel.
+	/// @param record Its record, which keeps the image drawn into.
+	/// @param look The name and scale read, if any.
+	/// @param isRoot Whether it is the window's root.
+	/// @throws DocumentError On the root, or with "overlay".
+	void showSnapshot(Panel& panel, Record& record, const Look& look, bool isRoot) const;
 	/// @brief Applies a property of labels, text areas, rows, columns or grids.
 	/// @param look The panel as each type, and the values set at the end.
 	/// @param slot The property.
@@ -286,7 +309,7 @@ private:
 	/// @param at Its place, for errors.
 	/// @return false if it isn't one of these.
 	static bool gridProperty(Grid& grid, Slot slot, const json& value, const std::string& at);
-	/// @brief Keeps a property for one of the record's property sets, if one has it (the built-in widgets' first).
+	/// @brief Keeps a property for each of the record's property sets that has it (a type's own, a built-in widget's).
 	/// @param record The record.
 	/// @param key The property.
 	/// @param value Its value.

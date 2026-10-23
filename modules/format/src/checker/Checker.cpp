@@ -5,6 +5,7 @@
 
 #include "BuiltInComponents.hpp"
 #include "CheckerImpl.hpp"
+#include "KitTokens.hpp"
 
 #include "affresco/format/NodeIds.hpp"
 
@@ -294,6 +295,7 @@ void Checker::pass() {
 	computing_.clear();
 	hints_ = 0;
 
+	walkImages();
 	walkNodes();
 	walkHandlers();
 	walkUnreached();
@@ -305,7 +307,7 @@ void Checker::walkNodes() {
 		for(const auto& [name, value] : computed->items()) (void)computedShape(name);
 	if(const auto theme = document_.find("theme"); theme != document_.end()) read(*theme, none, "theme");
 	if(const auto root = document_.find("root"); root != document_.end()) walkNode(*root, "root", none, nullptr, false);
-	for(const char* name : {"screens", "templates"})
+	for(const char* name : {"screens", "templates", "overlays"})
 		if(const json* nodes = section(name))
 			for(const auto& [key, node] : nodes->items())
 				walkNode(node, std::string(name) + "." + key, none, nullptr, false);
@@ -383,7 +385,8 @@ std::vector<std::string> Checker::definedNames(const char* sectionName) const {
 void Checker::refer(std::string_view kind, const char* sectionName, const std::string& name, std::string_view prefix,
                     const std::string& place) {
 	if(definition(sectionName, name)) return;
-	if(std::string_view(sectionName) == "colors" && definition("tokens", name)) return; // a colour token
+	if(std::string_view(sectionName) == "colors" && (definition("tokens", name) || isKitToken(name)))
+		return; // a colour token, the document's or the kit's
 	report(place, "unknown " + std::string(kind) + " '" + std::string(prefix) + name + "'", hint([&] {
 		       std::vector<std::string> names = definedNames(sectionName);
 		       if(std::string_view(sectionName) == "colors") // the colour tokens are named too

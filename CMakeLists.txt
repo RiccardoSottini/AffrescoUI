@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
+if(POLICY CMP0156) # libraries de-duplicated where the linker resolves in any order (Apple ld warns on repeats)
+	cmake_policy(SET CMP0156 NEW)
+endif()
 project(AffrescoUI VERSION 0.1.0 LANGUAGES C CXX)
 if(APPLE)
 	enable_language(OBJC OBJCXX) # the render module's native menus and colour scheme (Cocoa); OBJC first, for GLFW's .m files
@@ -195,54 +198,43 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
-	# Modello, a 3D application: its workspace is examples/modello/modello.screen.json (examples/modello/README.md)
-	set(AFFRESCOUI_MODELLO_SOURCES examples/modello/Modello.cpp examples/modello/ModelloView.cpp
-		examples/modello/ModelloEdit.cpp examples/modello/ModelloFiles.cpp)
-	add_executable(affrescoui_modello examples/modello/main.cpp ${AFFRESCOUI_MODELLO_SOURCES})
-	target_include_directories(affrescoui_modello PRIVATE examples/shared examples/modello)
-	target_link_libraries(affrescoui_modello PRIVATE affrescoui affrescoui::scene3d)
-	target_compile_options(affrescoui_modello PRIVATE ${AFFRESCOUI_WARNINGS})
-	target_compile_definitions(affrescoui_modello PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# Sinopia, slides and vector documents: its workspace is examples/sinopia/sinopia.screen.json (examples/sinopia/README.md)
 	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp
 		# deck/: the deck model, read, checked, edited and arranged without a window
 		examples/sinopia/deck/Deck.cpp examples/sinopia/deck/Write.cpp examples/sinopia/deck/Edit.cpp
 		examples/sinopia/deck/Arrange.cpp
-		# drawing/: slides, shapes and transitions turned into pixels and paths, and the shape panel
-		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/ShapeGeometry.cpp
-		examples/sinopia/drawing/ShapePanel.cpp examples/sinopia/drawing/Transition.cpp)
+		# drawing/: slides and transitions turned into pixels
+		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/Transition.cpp)
 	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared modules/screen/src)
 	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export)
 	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_sinopia PRIVATE AFFRESCOUI_SINOPIA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia")
-	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (examples/surfaces)
-	add_executable(affrescoui_surfaces examples/surfaces/main.cpp examples/surfaces/Surfaces.cpp)
+	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (tests/render/surfaces)
+	add_executable(affrescoui_surfaces tests/render/surfaces/main.cpp tests/render/surfaces/Surfaces.cpp)
 	target_include_directories(affrescoui_surfaces SYSTEM PRIVATE external/glad/include)
 	target_link_libraries(affrescoui_surfaces PRIVATE affrescoui)
 	target_compile_options(affrescoui_surfaces PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_surfaces PRIVATE
-		AFFRESCOUI_SURFACES_SCREEN="${CMAKE_CURRENT_SOURCE_DIR}/examples/surfaces/surfaces.screen.json")
+		AFFRESCOUI_SURFACES_SCREEN="${CMAKE_CURRENT_SOURCE_DIR}/tests/render/surfaces/surfaces.screen.json")
 	# Tempera, an image editor on the imaging module (examples/tempera/README.md)
 	add_subdirectory(examples/tempera)
 	# Bottega, Sinopia's slide sorter installed into Tempera with an adapter and a proof (examples/bottega/)
 	add_subdirectory(examples/bottega)
-	# Orrery, a small planetarium with a 3D view, a sky chart, an orbit graph and an events timeline (examples/orrery/)
-	add_subdirectory(examples/orrery)
-	# The document server, headless: documents and their history on disk, shared with people (examples/server/README.md)
-	set(AFFRESCOUI_SERVER_SOURCES examples/server/DocumentServer.cpp examples/server/TokenFile.cpp
-	    examples/server/UserInfoVerifier.cpp)
-	add_executable(affrescoui_server examples/server/main.cpp ${AFFRESCOUI_SERVER_SOURCES})
+	# The document server, headless: documents and their history on disk, shared with people (apps/server/README.md)
+	set(AFFRESCOUI_SERVER_SOURCES apps/server/DocumentServer.cpp apps/server/TokenFile.cpp
+	    apps/server/UserInfoVerifier.cpp)
+	add_executable(affrescoui_server apps/server/main.cpp ${AFFRESCOUI_SERVER_SOURCES})
 	target_link_libraries(affrescoui_server PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel affrescoui::net)
 	target_compile_options(affrescoui_server PRIVATE ${AFFRESCOUI_WARNINGS})
-	# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (examples/embed/README.md). Its
+	# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (modules/capi/example/README.md). Its
 	# scene is OpenGL 4.1 core, with that backend's glad: not built with gles3, whose render module has the other loader
 	if(AFFRESCOUI_BUILD_CAPI AND AFFRESCOUI_GL_BACKEND STREQUAL "gl41")
-		add_executable(affrescoui_embed examples/embed/main.cpp)
+		add_executable(affrescoui_embed modules/capi/example/main.cpp)
 		target_link_libraries(affrescoui_embed PRIVATE affrescoui::capi) # GLFW and glad come with it
 		target_include_directories(affrescoui_embed SYSTEM PRIVATE external/glad/include
 			$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 		target_compile_options(affrescoui_embed PRIVATE ${AFFRESCOUI_WARNINGS})
-		target_compile_definitions(affrescoui_embed PRIVATE AFFRESCOUI_EMBED_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/embed")
+		target_compile_definitions(affrescoui_embed PRIVATE AFFRESCOUI_EMBED_DIR="${CMAKE_CURRENT_SOURCE_DIR}/modules/capi/example")
 	endif()
 endif()
 
@@ -257,13 +249,18 @@ if(AFFRESCOUI_BUILD_TESTS)
 	find_package(Python3 COMPONENTS Interpreter)
 	if(Python3_FOUND)
 		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
+		# tests/perf/tokens.py reads a screen's includes as the host merges them
+		add_test(NAME perf_tokens COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/tests/perf/test_tokens.py)
 		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
 		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/e2e_test.py ${CMAKE_BINARY_DIR})
 		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/bottega)
 		add_test(NAME bottega_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/bottega/e2e_test.py ${CMAKE_BINARY_DIR})
-		# Orrery end to end: host, MCP server, a revision, an approval, a picture (examples/orrery)
+		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
+		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
+		# Orrery end to end, JSON only on affrescoui_host: MCP server, a revision, an approval, a picture (examples/orrery)
 		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/e2e_test.py ${CMAKE_BINARY_DIR})
 	endif()

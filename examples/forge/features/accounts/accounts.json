@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's accounts: signing in to a document server (examples/server) with a device code, the settings kept in the person's own document ~settings and synced both ways, and the collaborators on a shared document with where each one is. The provider's URLs and client id are placeholders to edit (no client secret: a public client with PKCE or a device code); the host allows their origins (Accounts.cpp). The token stays in the system's secret store, never in the state.",
+	"note": "Forge's accounts: signing in to a document server (apps/server) with a device code, the settings kept in the person's own document ~settings and synced both ways, and the collaborators on a shared document with where each one is. The provider's URLs and client id are placeholders to edit (no client secret: a public client with PKCE or a device code); the host allows their origins (Accounts.cpp). The token stays in the system's secret store, never in the state.",
 
 	"connections": {
 		"accountsServer": {
@@ -168,21 +168,25 @@
 	"components": {
 		"forgeAccountsStatus": {
 			"node": {
-				"type": "row",
+				"type": "column",
 				"id": "status-accounts-slot",
-				"alignItems": "center",
+				"width": 48,
+				"height": 48,
 				"children": [
 					{
 						"type": "label",
 						"id": "status-accounts",
-						"icon": "user",
-						"padding": 6,
-						"fitText": true,
+						"role": "button",
+						"icon": "circle-user",
+						"font": "iconsLarge",
+						"width": 48,
+						"height": 48,
+						"align": "center",
 						"cursor": "hand",
-						"text": "{{auth.accountsServer.state == 'signedIn' ? (auth.accountsServer.account ?? 'Signed in') + (length(state.accounts.peers) > 1 ? ' · ' + text(length(state.accounts.peers)) + ' here' : '') : auth.accountsServer.state == 'signingIn' && auth.accountsServer.code != null ? 'Code ' + auth.accountsServer.code + ' at ' + auth.accountsServer.verificationUrl : 'Sign in'}}",
-						"textColor": "@color.statusText",
-						"tooltip": "Accounts",
-						"hover": { "color": "@color.hover" },
+						"label": "{{auth.accountsServer.state == 'signedIn' ? (auth.accountsServer.account ?? 'Signed in') + (length(state.accounts.peers) > 1 ? ' · ' + text(length(state.accounts.peers)) + ' here' : '') : auth.accountsServer.state == 'signingIn' && auth.accountsServer.code != null ? 'Code ' + auth.accountsServer.code + ' at ' + auth.accountsServer.verificationUrl : 'Sign in'}}",
+						"textColor": "{{auth.accountsServer.state == 'signedIn' ? '@color.text' : '@color.muted'}}",
+						"tooltip": "{{auth.accountsServer.state == 'signedIn' ? (auth.accountsServer.account ?? 'Signed in') + (length(state.accounts.peers) > 1 ? ' · ' + text(length(state.accounts.peers)) + ' here' : '') : auth.accountsServer.state == 'signingIn' && auth.accountsServer.code != null ? 'Code ' + auth.accountsServer.code + ' at ' + auth.accountsServer.verificationUrl : 'Sign in'}}",
+						"hover": { "textColor": "@color.text" },
 						"onClick": { "run": "accountsMenu" }
 					},
 					{
@@ -193,7 +197,7 @@
 						"borderColor": "@color.border",
 						"overlay": {
 							"anchor": "#status-accounts",
-							"placement": "above-end",
+							"placement": "right",
 							"open": "state.accounts.menuOpen",
 							"dismiss": "outside"
 						},

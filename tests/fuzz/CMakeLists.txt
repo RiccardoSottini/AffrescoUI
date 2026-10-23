@@ -49,6 +49,8 @@ target_compile_definitions(affrescoui_fuzz_cli PRIVATE
 affrescoui_fuzzer(actions affrescoui::format affrescoui::vcs)
 target_include_directories(affrescoui_fuzz_actions PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
+# The replies peers send to the screen's own requests ("ask" steps)
+affrescoui_fuzzer(ask_reply affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(lookups affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_lookups PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # LookupSpans.hpp
 affrescoui_fuzzer(image affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
@@ -58,6 +60,10 @@ affrescoui_fuzzer(find_pattern affrescoui::regex affrescoui::core nlohmann_json:
 affrescoui_fuzzer(search_glob affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_search_glob PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # SearchGlob.hpp
 affrescoui_fuzzer(scenarios affrescoui::automation)
+affrescoui_fuzzer(path_tree affrescoui::format) # a folder's names, nested for a file explorer
+target_include_directories(affrescoui_fuzz_path_tree PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
+affrescoui_fuzzer(git_policy affrescoui::services) # the git grant's commands, as a screen asks for them
 affrescoui_fuzzer(png affrescoui::automation)
 target_include_directories(affrescoui_fuzz_png PRIVATE ${PROJECT_SOURCE_DIR}/modules/automation/src) # PngReader.hpp
 affrescoui_fuzzer(http_response affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
@@ -90,15 +96,16 @@ affrescoui_fuzzer(url affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp r
 affrescoui_fuzzer(oauth affrescoui::net nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_oauth PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # OAuth.hpp
 affrescoui_fuzzer(history affrescoui::format affrescoui::vcs)
-# The example apps' readers: their own sources, linked only into the fuzzer (the apps' targets compile them otherwise)
+# The apps' readers (apps/server, examples/forge): their own sources, linked only into the fuzzer (the apps' targets
+# compile them otherwise)
 affrescoui_fuzzer(token_file affrescoui::net nlohmann_json::nlohmann_json)
-target_include_directories(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/examples/server) # TokenFile.hpp
+target_include_directories(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/apps/server) # TokenFile.hpp
 affrescoui_fuzzer(git_output affrescoui::core nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_git_output PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge)
 affrescoui_fuzzer(vscode_theme affrescoui::core nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_vscode_theme PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge)
 if(AFFRESCOUI_BUILD_FUZZERS)
-	target_sources(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/examples/server/TokenFile.cpp)
+	target_sources(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/apps/server/TokenFile.cpp)
 	target_sources(affrescoui_fuzz_git_output PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge/features/scm/GitStatus.cpp
 		${PROJECT_SOURCE_DIR}/examples/forge/features/scm/LineDiff.cpp)
 	target_sources(affrescoui_fuzz_vscode_theme PRIVATE
@@ -113,8 +120,20 @@ endif()
 # Other formats (SCREEN_FORMAT.md): the A2UI and Adaptive Cards adapters
 affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(syntax affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+# Code languages declared in JSON (the "languages" section) and the tokenizer, on examples/shared/languages
+affrescoui_fuzzer(language_grammar affrescoui::format)
+target_include_directories(affrescoui_fuzz_language_grammar PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Language.hpp
+affrescoui_fuzzer(language_tokenizer affrescoui::format)
+target_include_directories(affrescoui_fuzz_language_tokenizer PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # LanguageTokenizer.hpp
 # Modello imports glTF files (examples/modello)
 affrescoui_fuzzer(gltf affrescoui::scene3d nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+# The scene node's scene, animations and placed models (modules/format, creative/SceneType.cpp)
+affrescoui_fuzzer(scene affrescoui::scene3d nlohmann_json::nlohmann_json)
 # The image editor's inputs (examples/tempera): ICC profiles and project files
 affrescoui_fuzzer(icc affrescoui::imaging)
 affrescoui_fuzzer(tempera_project affrescoui::imaging)
+# The images a screen edits: the "images" section's entries and the "image" step (format/src/imaging)
+affrescoui_fuzzer(images affrescoui::format)
+target_include_directories(affrescoui_fuzz_images PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)

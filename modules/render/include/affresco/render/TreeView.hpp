@@ -46,6 +46,11 @@ public:
 	void setStickyRows(std::size_t count);
 	/// @brief How many folders stay pinned at the top at most.
 	[[nodiscard]] std::size_t stickyRows() const noexcept { return stickyRows_; }
+	/// @brief Sets whether a line per level is drawn left of the nested rows.
+	/// @param shown Whether to draw them (the default).
+	void setGuides(bool shown);
+	/// @brief Whether the indent guides are drawn.
+	[[nodiscard]] bool guides() const noexcept { return guides_; }
 	/// @brief The items pinned at the top now, outermost first.
 	[[nodiscard]] const std::vector<std::size_t>& stuck() const noexcept { return stuck_; }
 
@@ -93,6 +98,7 @@ private:
 	std::vector<std::string> lastGiven_;     ///< The ids setExpanded() was last given, to skip repeats.
 	const ItemModel* expandedFor_ = nullptr; ///< The model those ids were matched against.
 	std::size_t stickyRows_ = 0;             ///< See setStickyRows().
+	bool guides_ = true;                     ///< See setGuides().
 	std::vector<std::size_t> stuck_;         ///< See stuck().
 	std::vector<std::u32string> stuckText_;  ///< Their labels, decoded; the storage is reused.
 };

@@ -33,7 +33,7 @@
 			"title": "Find in Files",
 			"category": "Search",
 			"icon": "search",
-			"do": [{ "run": "openPage", "with": { "id": "forge:search", "label": "Search", "kind": "search" } }]
+			"do": [{ "set": "state.sideView", "to": "search" }, { "set": "state.layout.sidebar", "to": true }, { "focus": "#search-query" }]
 		},
 		"runSearch": [
 			{ "cancel": "forge.search" },
@@ -134,7 +134,8 @@
 				],
 				"then": [
 					{ "set": "state.search.reload", "to": "{{filter(result.changed, contains(computed.docIds, it))}}" },
-					{ "forEach": "state.search.reload", "as": "file", "do": [{ "call": "forge.revert", "with": { "id": "{{file}}" } }] },
+					{ "forEach": "state.search.reload", "as": "file", "do": [{ "invoke": "files.read", "with": { "path": "{{file}}" },
+						"onDone": [{ "run": "reloaded", "with": { "id": "{{file}}", "text": "{{result.text}}" } }] }] },
 					{
 						"run": "notify",
 						"with": {
@@ -159,126 +160,42 @@
 	"components": {
 		"forgeSearchPage": {
 			"node": {
-				"type": "column",
-				"id": "search-page",
-				"width": "100%",
-				"grow": 1,
-				"color": "@color.editor",
-				"gap": 6,
+				"type": "column", "id": "search-page", "width": "100%", "grow": 1, "gap": 4,
 				"children": [
+					{ "use": "forgeViewTitle", "with": { "text": "SEARCH" } },
 					{
-						"type": "row",
-						"id": "search-query-row",
-						"width": "100%",
-						"height": 30,
-						"gap": 6,
-						"alignItems": "center",
+						"use": "forgeInset", "id": "search-query-row", "height": 26,
 						"children": [
-							{
-								"type": "textarea",
-								"id": "search-query",
-								"bind": "state.search.query",
-								"grow": 1,
-								"height": 30,
-								"padding": 7,
-								"color": "@color.input",
-								"textColor": "@color.text",
-								"placeholderColor": "@color.muted",
-								"placeholder": "Search",
-								"onSubmit": { "run": "runSearch" }
-							},
-							{ "use": "forgeSearchOption", "with": { "option": "case", "bind": "state.search.caseSensitive", "text": "Aa" } },
-							{ "use": "forgeSearchOption", "with": { "option": "word", "bind": "state.search.wholeWord", "text": "Word" } },
-							{ "use": "forgeSearchOption", "with": { "option": "regex", "bind": "state.search.regex", "text": ".*" } }
+							{ "type": "row", "id": "search-query-box", "grow": 1, "height": 26, "color": "@color.input", "alignItems": "center", "children": [
+								{ "use": "forgeSearchField", "with": { "field": "query", "hint": "Search" }, "onSubmit": { "run": "runSearch" } },
+								{ "use": "forgeSearchOption", "with": { "option": "case", "bind": "caseSensitive", "icon": "case-sensitive", "tip": "Match Case" } },
+								{ "use": "forgeSearchOption", "with": { "option": "word", "bind": "wholeWord", "icon": "whole-word", "tip": "Match Whole Word" } },
+								{ "use": "forgeSearchOption", "with": { "option": "regex", "bind": "regex", "icon": "regex", "tip": "Use Regular Expression" } }
+							] }
 						]
 					},
 					{
-						"type": "row",
-						"id": "search-replace-row",
-						"width": "100%",
-						"height": 30,
-						"gap": 6,
+						"use": "forgeInset", "id": "search-replace-row", "height": 26, "alignItems": "center",
 						"children": [
-							{
-								"type": "textarea",
-								"id": "search-replace",
-								"bind": "state.search.replace",
-								"grow": 1,
-								"height": 30,
-								"padding": 7,
-								"color": "@color.input",
-								"textColor": "@color.text",
-								"placeholderColor": "@color.muted",
-								"placeholder": "Replace"
-							},
-							{
-								"id": "search-replace-all",
-								"width": 96,
-								"height": 30,
-								"radius": 4,
-								"color": "@color.accent",
-								"focusable": true,
-								"onClick": { "run": "askReplace" },
-								"children": [
-									{
-										"type": "label",
-										"text": "Replace All",
-										"textColor": "#ffffff",
-										"anchors": { "left": 12, "top": 7 },
-										"fitText": true
-									}
-								]
-							}
+							{ "use": "forgeSearchField", "with": { "field": "replace", "hint": "Replace" } },
+							{ "type": "label", "id": "search-replace-all", "role": "button", "label": "Replace All", "icon": "replace-all", "font": "icons",
+							  "width": 26, "height": 26, "align": "center", "cursor": "hand", "tooltip": "Replace All", "textColor": "@color.text",
+							  "hover": { "color": "@color.hover" }, "onClick": { "run": "askReplace" } }
+						]
+					},
+					{ "use": "forgeSearchFilter", "with": { "title": "files to include", "filter": "include", "example": "e.g. src/**, *.cpp" } },
+					{ "use": "forgeSearchFilter", "with": { "title": "files to exclude", "filter": "exclude", "example": "e.g. build, *.md" } },
+					{
+						"use": "forgeInset", "height": 22,
+						"children": [
+							{ "type": "label", "id": "search-summary", "text": "{{state.search.busy ? 'Searching... ' + computed.searchSummary : computed.searchSummary}}",
+							  "textColor": "@color.muted", "grow": 1, "height": 22 }
 						]
 					},
 					{
-						"type": "textarea",
-						"id": "search-include",
-						"bind": "state.search.include",
-						"width": "100%",
-						"height": 30,
-						"padding": 7,
-						"color": "@color.input",
-						"textColor": "@color.text",
-						"placeholderColor": "@color.muted",
-						"placeholder": "Files to include (e.g. src/**, *.cpp)",
-						"onSubmit": { "run": "runSearch" }
-					},
-					{
-						"type": "textarea",
-						"id": "search-exclude",
-						"bind": "state.search.exclude",
-						"width": "100%",
-						"height": 30,
-						"padding": 7,
-						"color": "@color.input",
-						"textColor": "@color.text",
-						"placeholderColor": "@color.muted",
-						"placeholder": "Files to exclude (e.g. build, *.md)",
-						"onSubmit": { "run": "runSearch" }
-					},
-					{
-						"type": "label",
-						"id": "search-summary",
-						"text": "{{state.search.busy ? 'Searching... ' + computed.searchSummary : computed.searchSummary}}",
-						"textColor": "@color.muted",
-						"width": "100%",
-						"height": 20
-					},
-					{
-						"type": "tree",
-						"id": "search-results",
-						"when": "{{state.search.result != null}}",
-						"width": "100%",
-						"grow": 1,
-						"items": "{{state.search.result.tree}}",
-						"expanded": "{{computed.searchExpanded}}",
-						"rowHeight": 22,
-						"color": "@color.editor",
-						"textColor": "@color.text",
-						"selectedTextColor": "@color.text",
-						"selectedBackground": "@color.selection",
-						"accentColor": "@color.accent",
+						"type": "tree", "id": "search-results", "when": "{{state.search.result != null}}", "width": "100%", "grow": 1,
+						"items": "{{state.search.result.tree}}", "expanded": "{{computed.searchExpanded}}", "rowHeight": 22, "color": "@color.sideBar",
+						"textColor": "@color.text", "selectedTextColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent",
 						"onExpand": [
 							{
 								"set": "state.search.collapsed",
@@ -299,19 +216,36 @@
 				]
 			}
 		},
-		"forgeSearchOption": {
-			"params": { "option": "", "bind": "", "text": "" },
+		"forgeInset": {
+			"node": { "type": "row", "width": "100%", "children": [{ "width": 12 }, { "slot": true }, { "width": 12 }] }
+		},
+		"forgeSearchFilter": {
+			"params": { "title": "", "filter": "", "example": "" },
 			"node": {
-				"type": "row",
-				"id": "search-{{option}}",
-				"height": 30,
-				"width": 72,
-				"gap": 4,
-				"alignItems": "center",
+				"use": "forgeInset", "height": 44,
 				"children": [
-					{ "type": "checkbox", "id": "search-{{option}}-box", "bind": "{{bind}}", "width": 16, "height": 16 },
-					{ "type": "label", "text": "{{text}}", "textColor": "@color.text", "fitText": true }
+					{ "type": "column", "grow": 1, "height": 44, "children": [
+						{ "type": "label", "text": "{{title}}", "textColor": "@color.muted", "width": "100%", "height": 18 },
+						{ "use": "forgeSearchField", "with": { "field": "{{filter}}", "hint": "{{example}}" }, "width": "100%", "grow": 0, "onSubmit": { "run": "runSearch" } }
+					] }
 				]
+			}
+		},
+		"forgeSearchField": {
+			"params": { "field": "", "hint": "" },
+			"node": {
+				"type": "textarea", "id": "search-{{field}}", "bind": "state.search.{{field}}", "grow": 1, "height": 26, "padding": 5,
+				"color": "@color.input", "textColor": "@color.text", "placeholderColor": "@color.muted", "placeholder": "{{hint}}"
+			}
+		},
+		"forgeSearchOption": {
+			"params": { "option": "", "bind": "", "icon": "", "tip": "" },
+			"node": {
+				"type": "label", "id": "search-{{option}}", "role": "checkbox", "label": "{{tip}}", "checked": "{{state.search[bind]}}", "icon": "{{icon}}",
+				"font": "icons", "width": 22, "height": 22, "align": "center", "cursor": "hand", "tooltip": "{{tip}}", "radius": 3,
+				"textColor": "@color.text", "borderWidth": 1, "borderColor": "{{state.search[bind] ? '@color.accent' : '@color.input'}}",
+				"color": "{{state.search[bind] ? '@color.selection' : '@color.input'}}", "hover": { "color": "@color.hover" },
+				"onClick": { "toggle": "state.search.{{bind}}" }
 			}
 		}
 	}

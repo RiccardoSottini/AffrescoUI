@@ -86,4 +86,4 @@ another. A skipped page is dimmed and marked. Ids are `<prefix>-<id>`, so two so
 | [`main.cpp`](main.cpp) | The command line: the workspace, or `--check` to play the scenarios |
 | [`Natives.cpp`](Natives.cpp), [`Present.cpp`](Present.cpp) | The natives: decks, thumbnails and exports; the audience window and its frames |
 | [`deck/`](deck) | The deck model, no window needed: reading and writing a deck within its limits, the edits, and aligning, distributing and grouping |
-| [`drawing/`](drawing) | Drawing: the `sinopiaShape` type and its outlines, a deck as panels, and the slide transitions |
+| [`drawing/`](drawing) | Drawing: a deck as panels, and the slide transitions |

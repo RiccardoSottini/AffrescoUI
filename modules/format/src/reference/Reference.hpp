@@ -36,6 +36,10 @@ struct KeyReference {
 /// @return The keys, in the order of the tables.
 [[nodiscard]] std::span<const KeyReference> nodeTypeKeys();
 
+/// @brief The keys the scene node adds: nodeKeys()'s part after nodeTypeKeys() (ReferenceSceneKeys.cpp).
+/// @return The keys, in the order of the table.
+[[nodiscard]] std::span<const KeyReference> sceneKeys();
+
 /// @brief The events, the form's and the carousel's keys, and the keys no table lists: nodeKeys()'s last part
 /// (ReferenceNodeEvents.cpp).
 /// @return The keys, in the order of the tables.
@@ -73,6 +77,16 @@ struct KeyReference {
 /// @param engine The engine.
 /// @return The schema; "$defs/v2" holds the format's version 2.
 [[nodiscard]] json schema(const Engine& engine);
+
+/// @brief The "image" step's operations, each with the keys of "with" it reads (table "imageOperations",
+/// ReferenceImages.cpp).
+/// @return The table's text.
+[[nodiscard]] std::string imageOperationTable();
+
+/// @brief The names the images' values take: gestures, blend modes, adjustments, filters, gradient shapes, and the
+/// limits with the library's values (table "imageNames", ReferenceImages.cpp).
+/// @return The table's text.
+[[nodiscard]] std::string imageNameTable();
 
 /// @brief Writes the generated tables into SCREEN_FORMAT.md: the text between each "<!-- generated: name -->" and the
 /// next "<!-- end generated -->" becomes table "name" (KeyReference::table).

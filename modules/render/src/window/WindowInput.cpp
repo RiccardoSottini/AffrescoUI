@@ -60,6 +60,7 @@ template <typename Event> Event inSpaceOf(const Panel& panel, Event event) noexc
 void Window::routeKey(const KeyEvent& event) {
 	++routing_;
 	keyInput_ = true;
+	keyTaken_ = false; // a new press or a release: what a binding took before is over
 	if(focused_ && focused_->isShown()) focused_->keyEvent(event);
 	onKey(event);
 
@@ -70,12 +71,15 @@ void Window::routeChar(const CharEvent& event) {
 	// A surrogate or a codepoint past U+10FFFF is no character: no keyboard types one, and UTF-8 can't hold it
 	const char32_t codepoint = event.codepoint;
 	if((codepoint >= 0xD800U && codepoint <= 0xDFFFU) || codepoint > 0x10FFFFU) return;
+	if(std::exchange(keyTaken_, false)) return; // the character of a key a binding took
 	++routing_;
 	if(focused_ && focused_->isShown()) focused_->charEvent(event);
 	onChar(event);
 
 	if(--routing_ == 0) runDeferred();
 }
+
+void Window::takeKey() noexcept { keyTaken_ = true; }
 
 void Window::routeMouseMove(Vec2 position) {
 	++routing_;
@@ -192,6 +196,7 @@ void Window::forget(const Panel& panel) noexcept {
 	if(grabbed_ == &panel) grabbed_ = nullptr;
 	std::erase(overlays_, &panel);
 	std::erase(drawn_, &panel);
+	std::erase(snapshots_, &panel);
 }
 
 // Like CSS :hover, a panel counts as hovered while the pointer is over it or over any of its descendants

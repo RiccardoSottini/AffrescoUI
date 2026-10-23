@@ -122,13 +122,18 @@ bool popupTakes(const std::function<bool(std::string_view)>& popupKeys, const af
 
 CodeEditor::CodeEditor() { resetTokenColors(); }
 
-void CodeEditor::setLanguage(std::string_view name) {
+void CodeEditor::setLanguage(std::string_view name, bool colour) {
 	std::string lower(name);
 	std::ranges::transform(lower, lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 	// A grammar colours (and folds) where one exists; the language still picks the comment marker
 	const std::string grammar = affresco::format::SyntaxHighlighter::canonical(lower);
 	const Language language = languageOf(grammar, lower);
 	const auto* current = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
+	if(!colour) {
+		language_ = language;
+		if(current && current->owner() == nullptr) setHighlighter(nullptr); // ours; another's stays
+		return;
+	}
 	if(language == language_ && (current ? current->language() : std::string()) == grammar) return;
 	language_ = language;
 	if(grammar.empty()) setHighlighter(nullptr);
@@ -149,21 +154,25 @@ void CodeEditor::refreshPalette() {
 	auto* grammar = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
 	if(!grammar) return;
 	// The grammar's styles (a style without a token takes its parent's, e.g. "type.builtin" is "type")
-	static constexpr std::array<std::pair<std::string_view, Token>, 10> tokens = {{{"keyword", Token::Keyword},
-	                                                                               {"constant.builtin", Token::Keyword},
-	                                                                               {"type", Token::Type},
-	                                                                               {"constructor", Token::Type},
-	                                                                               {"string", Token::String},
-	                                                                               {"text.literal", Token::String},
-	                                                                               {"number", Token::Number},
-	                                                                               {"comment", Token::Comment},
-	                                                                               {"text.title", Token::Heading},
-	                                                                               {"punctuation.special", Token::Heading}}};
+	static constexpr std::array<std::pair<std::string_view, Token>, 11> tokens = {
+	    {{"keyword", Token::Keyword},
+		 {"constant.builtin", Token::Keyword},
+		 {"type", Token::Type},
+		 {"constructor", Token::Type},
+		 {"string", Token::String},
+		 {"text.literal", Token::String},
+		 {"number", Token::Number},
+		 {"comment", Token::Comment},
+		 {"text.title", Token::Heading},
+		 {"punctuation.special", Token::Heading},
+		 {"function", Token::Function}}};
 	grammar->setPalette([colors = tokenColors_](std::string_view style) -> std::optional<Color> {
 		// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer in some libraries only
 		const auto found = std::ranges::find(tokens, style, &std::pair<std::string_view, Token>::first);
 		if(found == tokens.end()) return std::nullopt;
-		return colors[static_cast<std::size_t>(found->second)];
+		const Color color = colors[static_cast<std::size_t>(found->second)];
+		if(found->second == Token::Function && color == Color{}) return std::nullopt; // unset: the text colour
+		return color;
 	});
 }
 
@@ -174,7 +183,8 @@ void CodeEditor::resetTokenColors() {
 	                Color::hex(0xe6b071),
 	                Color::hex(0xb5cea8),
 	                Color::hex(0x6f8f6b),
-	                Color::hex(0x7aa7ff)};
+	                Color::hex(0x7aa7ff),
+	                Color{}};
 	refreshPalette();
 	recolor();
 }
@@ -307,12 +317,13 @@ void CodeEditor::keyEvent(const affresco::KeyEvent& event) {
 		Panel::keyEvent(event);
 		return;
 	}
+	// NOLINTNEXTLINE(bugprone-parent-virtual-call): the signals first, as a key a binding takes is its command alone
+	Panel::keyEvent(event);
+	if(window() && window()->keyTaken()) return;
 	const std::uint64_t before = model().version();
 	const bool handled =
 	    runShortcut(event) || (event.key == Key::Backspace && !command && !m.alt() && deleteEmptyPair());
-	// NOLINTNEXTLINE(bugprone-parent-virtual-call): skips TextEditor's handling, and keeps the signals firing
-	if(handled) Panel::keyEvent(event);
-	else TextEditor::keyEvent(event);
+	if(!handled) builtInKey(event);
 	if((event.key == Key::Backspace || event.key == Key::Delete) && model().version() != before) onTyped(std::string());
 }
 

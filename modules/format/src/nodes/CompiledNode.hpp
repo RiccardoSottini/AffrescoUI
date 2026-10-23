@@ -37,6 +37,7 @@ enum class Slot : std::uint8_t {
 	TabIndex,   ///< "tabIndex".
 	Arrows,     ///< "arrows".
 	Mnemonic,   ///< "mnemonic".
+	Snapshot,   ///< "snapshot".
 	/* Every panel's accessibility */
 	Role,        ///< "role".
 	Label,       ///< "label".
@@ -49,7 +50,9 @@ enum class Slot : std::uint8_t {
 	BorderWidth, ///< "borderWidth".
 	BorderColor, ///< "borderColor".
 	Shadow,      ///< "shadow".
+	Gradient,    ///< "gradient".
 	Cache,       ///< "cache".
+	Overflow,    ///< "overflow".
 	/* Every panel's layout (layoutProperty()) */
 	Layout, ///< x, y, width, height, minWidth, minHeight, grow, fill, anchors.
 	/* Labels, text areas, rows, columns and grids */

@@ -41,6 +41,7 @@ affrescoui_module(render
 	src/vector/SvgStyle.cpp
 	src/vector/SvgXml.cpp
 	src/vector/MeshRasterizer.cpp
+	src/vector/GradientFill.cpp
 	# layout/: the flex and grid layouts of panels
 	src/layout/Flex.cpp
 	src/layout/Grid.cpp
@@ -111,7 +112,7 @@ target_sources(affrescoui_render PRIVATE src/lists/ListView.cpp src/lists/RowWin
 	src/lists/TreeView.cpp)
 # The code editor, its text model and the diff view
 target_sources(affrescoui_render PRIVATE src/editor/DiffView.cpp src/editor/TextEditor.cpp
-	src/editor/TextEditorCursors.cpp src/editor/TextEditorFind.cpp src/editor/TextEditorInput.cpp
+	src/editor/TextEditorCommands.cpp src/editor/TextEditorCursors.cpp src/editor/TextEditorFind.cpp src/editor/TextEditorInput.cpp
 	src/editor/TextEditorMinimap.cpp src/editor/TextEditorPaint.cpp src/editor/TextEditorPaintView.cpp
 	src/editor/TextEditorView.cpp src/editor/TextModel.cpp)
 # The colour picker, the curves and the gradient editors

@@ -52,6 +52,12 @@ void PathView::setFillRule(FillRule rule) {
 	changed();
 }
 
+void PathView::setFillGradient(std::optional<Gradient> gradient) {
+	if(gradient == fillGradient_) return;
+	fillGradient_ = std::move(gradient);
+	changed();
+}
+
 void PathView::setStrokeColor(Color color) {
 	if(color == strokeColor_) return;
 	strokeColor_ = color;
@@ -84,9 +90,14 @@ void PathView::build(Vec2 size) const {
 	builtFor_ = size;
 	fillMesh_.clear();
 	strokeMesh_.clear();
+	gradientBands_.clear();
 	const PathTransform transform = transformFor(size);
 	const std::vector<VectorPath::Contour> contours = path_.flatten(transform);
-	if(fillColor_.a > 0.0f) appendFill(contours, fillRule_, fillMesh_);
+	if(fillGradient_) {
+		appendFill(contours, fillRule_, fillMesh_);
+		appendGradientFill(fillMesh_, *fillGradient_, {0.0f, 0.0f, size.x, size.y}, gradientBands_);
+		fillMesh_.clear();
+	} else if(fillColor_.a > 0.0f) appendFill(contours, fillRule_, fillMesh_);
 	if(strokeColor_.a <= 0.0f) return;
 	StrokeStyle style = strokeStyle_;
 	if(viewBox_ && fit_ != ImageFit::fill) {
@@ -100,6 +111,7 @@ void PathView::paint(Painter& painter) const {
 	Panel::paint(painter);
 	const Rect& box = frame();
 	build({box.width(), box.height()});
+	for(const GradientBand& band : gradientBands_) painter.fillMesh(band.quads, {box.left, box.top}, band.color);
 	if(!fillMesh_.empty()) painter.fillMesh(fillMesh_, {box.left, box.top}, fillColor_);
 	if(!strokeMesh_.empty()) painter.fillMesh(strokeMesh_, {box.left, box.top}, strokeColor_);
 }

@@ -71,6 +71,16 @@ Color hexColor(const json& hex, const std::string& at) {
 	return *parsed;
 }
 
+/// @brief The document's "window.menuBar", for expressions ("window.menuBar"): the drawn menu bar's default.
+/// @param document The document.
+/// @return Its list of {menu, title}, or [] if it has none.
+json menuBarOf(const json& document) {
+	const auto window = document.find("window");
+	if(window == document.end() || !window->is_object()) return json::array();
+	const auto menuBar = window->find("menuBar");
+	return menuBar != window->end() && menuBar->is_array() ? *menuBar : json::array();
+}
+
 } // namespace
 
 DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirectory)
@@ -116,6 +126,13 @@ void DocumentContext::readDerived() {
 	auto newNumbers = readTokens(doc, newColors);
 	decltype(fonts_) newFonts;
 	decltype(fontSources_) newSources;
+	// Read again only when they changed: compiling them is the costly part
+	const auto languages = doc.find("languages");
+	static const json noLanguages;
+	const json& languagesSource = languages == doc.end() ? noLanguages : *languages;
+	std::shared_ptr<const LanguageCatalog> newLanguages = languages_;
+	if(languagesSource != languagesSource_)
+		newLanguages = languagesSource.is_null() ? nullptr : LanguageCatalog::read(languagesSource);
 
 	if(doc.contains("fonts")) {
 		for(const auto& [name, value] : object(doc["fonts"], "fonts").items()) {
@@ -127,8 +144,10 @@ void DocumentContext::readDerived() {
 			const float size = fontSize(value["size"], path + ".size", newNumbers);
 			const std::vector<std::filesystem::path> fallbacks =
 			    fallbackFiles(doc["fonts"], value, path, baseDirectory_);
+			const FontStyle style{value.contains("bold") && boolean(value["bold"], path + ".bold"),
+			                      value.contains("italic") && boolean(value["italic"], path + ".italic")};
 			try {
-				std::shared_ptr<const Font> font = fontCache_.load(file, size, fallbacks);
+				std::shared_ptr<const Font> font = fontCache_.load(file, size, fallbacks, style);
 				newSources[font->id()] = {file, fallbacks};
 				newFonts.emplace(name, std::move(font));
 			} catch(const std::runtime_error& error) {
@@ -141,9 +160,18 @@ void DocumentContext::readDerived() {
 	numberTokens_ = std::move(newNumbers);
 	fonts_ = std::move(newFonts);
 	fontSources_ = std::move(newSources);
+	languages_ = std::move(newLanguages);
+	languagesSource_ = languagesSource;
 	variants_.clear();
 	strings_.read(doc);
 	changeAppearance();
+	json sections = json::object();
+	for(const char* key : {"colors", "tokens", "fonts"})
+		if(doc.contains(key)) sections[key] = doc[key];
+	if(sections != lookSections_) {
+		lookSections_ = std::move(sections);
+		++looks_;
+	}
 }
 
 /* Values */
@@ -158,7 +186,8 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 		                         {"scale", window->contentScale()},
 		                         {"colorScheme", window->colorScheme() == ColorScheme::Dark ? "dark" : "light"},
 		                         {"nativeMenuBar", window->nativeMenuBar()},
-		                         {"reducedMotion", window->reducedMotion()}}
+		                         {"reducedMotion", window->reducedMotion()},
+		                         {"menuBar", menuBarOf(versions.document())}}
 		                  : json::object();
 		g.revision = toJson(versions.head());
 
@@ -379,7 +408,7 @@ std::shared_ptr<const Font> DocumentContext::fontVariant(const Font* base, float
 	const auto source = fontSources_.find(base->id());
 	if(source == fontSources_.end()) return nullptr;
 	if(pixelHeight == base->pixelHeight() && style == base->style())
-		return fontCache_.load(source->second.file, pixelHeight, source->second.fallbacks);
+		return fontCache_.load(source->second.file, pixelHeight, source->second.fallbacks, style);
 	const std::string key = std::format("{}/{}/{}{}", base->id(), pixelHeight, style.bold, style.italic);
 	if(const auto found = variants_.find(key); found != variants_.end()) return found->second;
 	if(variants_.size() >= variantLimit)
@@ -400,6 +429,7 @@ void DocumentContext::updateTheme() {
 	if(theme == theme_) return;
 	theme_ = std::move(theme);
 	changeAppearance();
+	++looks_;
 }
 
 void DocumentContext::updateLocale() {

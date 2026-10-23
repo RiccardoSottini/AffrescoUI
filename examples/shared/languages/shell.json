@@ -1,0 +1,64 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Shell scripts (sh, bash, zsh): include it to colour and edit them in an editor ({ \"language\": \"shell\" }).",
+	"languages": {
+		"shell": {
+			"title": "Shell",
+			"aliases": ["sh", "bash", "zsh", "shellscript"],
+			"files": ["*.sh", "*.bash", "*.zsh", ".bashrc", ".bash_profile", ".zshrc", ".profile"],
+			"comments": {
+				"line": "#"
+			},
+			"brackets": [["{", "}"], ["[", "]"], ["(", ")"]],
+			"pairs": [["{", "}"], ["[", "]"], ["(", ")"], ["\"", "\""], ["'", "'"], ["`", "`"]],
+			"indent": {
+				"increase": "(?:\\b(?:then|do|else|in)|[{(])\\s*(?:#.*)?$",
+				"decrease": "^\\s*(?:[})]|(?:fi|done|esac|else)\\s*$|elif\\s)"
+			},
+			"wordPattern": "[\\w-]+",
+			"patterns": [
+				{
+					"match": "(?:^|(?<=\\s))#.*",
+					"scope": "comment.line"
+				},
+				{
+					"match": "'[^']*'?",
+					"scope": "string.quoted.single"
+				},
+				{
+					"begin": "\"",
+					"end": "\"",
+					"scope": "string.quoted.double",
+					"patterns": [
+						{
+							"match": "\\\\.",
+							"scope": "string.escape"
+						},
+						{
+							"include": "#variable"
+						}
+					]
+				},
+				{
+					"include": "#variable"
+				},
+				{
+					"match": "(?<![\\w-])\\d+(?![\\w-])",
+					"scope": "number"
+				},
+				{
+					"match": "(?<![\\w-])(?:case|do|done|elif|else|esac|fi|for|function|if|in|select|then|time|until|while|break|continue|declare|export|local|readonly|return|set|shift|source|trap|unset|exit)(?![\\w-])",
+					"scope": "keyword"
+				}
+			],
+			"repository": {
+				"variable": {
+					"match": "\\$\\{[^}]*\\}?|\\$[\\w@*#?$!-]+",
+					"scope": "type.variable"
+				}
+			}
+		}
+	}
+}
