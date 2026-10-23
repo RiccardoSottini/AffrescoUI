@@ -1,0 +1,59 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The scene node, for the rendering check: primitives with PBR materials under a sun, a point and a spot light, on a grid with axes; the view kept in state. The scenario clicks the ball (outlined), snaps to the top view in orthographic, then shows the scene in wireframe.",
+
+	"window": { "title": "Scene", "width": 640, "height": 400 },
+
+	"keys": { "7": "top", "5": "projection", "z": "wire" },
+
+	"actions": {
+		"top": [{ "camera": "viewport", "view": "top" }],
+		"projection": [{ "camera": "viewport", "projection": "toggle" }],
+		"wire": [{ "set": "state.shading", "to": "{{state.shading == 'wireframe' ? 'material' : 'wireframe'}}" }]
+	},
+
+	"state": {
+		"shading": "material",
+		"picked": "none",
+		"view": { "camera": { "target": [0, 0.5, 0], "yaw": 0.6, "pitch": 0.45, "distance": 9 } },
+		"scene": {
+			"materials": [
+				{ "id": "clay", "baseColor": [0.8, 0.45, 0.3, 1], "roughness": 0.7 },
+				{ "id": "steel", "baseColor": [0.75, 0.78, 0.82, 1], "metallic": 1, "roughness": 0.3 },
+				{ "id": "teal", "baseColor": [0.1, 0.6, 0.6, 1], "roughness": 0.5 },
+				{ "id": "glow", "baseColor": [0.95, 0.85, 0.3, 1], "emissive": [0.6, 0.5, 0.1] }
+			],
+			"nodes": [
+				{ "id": "sun", "light": { "type": "directional", "intensity": 3 }, "rotationDegrees": [-50, 30, 0] },
+				{ "id": "lamp", "light": { "type": "point", "color": [1, 0.8, 0.6], "intensity": 20, "range": 12 },
+				  "translation": [-2, 3, 2] },
+				{ "id": "spot", "light": { "type": "spot", "intensity": 30, "outerCone": 0.6 }, "translation": [2, 4, 0],
+				  "rotationDegrees": [-90, 0, 0] },
+				{ "id": "floor", "mesh": "plane", "scale": [3, 1, 3], "material": "clay" },
+				{ "id": "cube", "mesh": "cube", "translation": [-1.5, 0.5, 0], "material": "teal" },
+				{ "id": "ball", "mesh": "sphere", "translation": [1.5, 0.5, 0], "material": "steel" },
+				{ "id": "post", "mesh": "cylinder", "translation": [0, 0.5, -1.8], "scale": [0.4, 1, 0.4], "material": "teal" },
+				{ "id": "cap", "mesh": "cone", "translation": [0, 1.5, -1.8], "scale": [0.6, 1, 0.6], "material": "glow" },
+				{ "id": "ring", "mesh": "torus", "translation": [0, 0.3, 1.8], "rotationDegrees": [0, 0, 0], "material": "glow" }
+			]
+		}
+	},
+
+	"fonts": { "default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 13 } },
+
+	"colors": { "background": "#1f2329", "ink": "#e5e7eb" },
+
+	"root": {
+		"id": "page",
+		"color": "@background",
+		"children": [
+			{ "type": "scene", "id": "viewport", "width": "100%", "height": 372, "bind": "state.view",
+			  "scene": "{{state.scene}}", "shading": "{{state.shading}}", "background": "#30353d",
+			  "onSelect": [{ "set": "state.picked", "to": "{{event.type == 'pick' ? (event.id == null ? 'none' : event.id) : join(event.ids, ', ')}}" }] },
+			{ "type": "label", "id": "status", "x": 12, "y": 378, "width": 600, "height": 18, "textColor": "@ink",
+			  "text": "Selected: {{state.picked}} · {{state.shading}}" }
+		]
+	}
+}

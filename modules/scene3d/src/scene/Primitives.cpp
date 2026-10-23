@@ -1,5 +1,5 @@
 /// @file
-/// @brief The generated primitives: cube, sphere, cylinder, torus and plane (Mesh.hpp).
+/// @brief The generated primitives: cube, sphere, cylinder, cone, torus and plane (Mesh.hpp).
 
 #include "affresco/scene3d/Mesh.hpp"
 
@@ -82,6 +82,8 @@ const char* primitiveName(Primitive primitive) noexcept {
 		return "sphere";
 	case Primitive::Cylinder:
 		return "cylinder";
+	case Primitive::Cone:
+		return "cone";
 	case Primitive::Torus:
 		return "torus";
 	case Primitive::Plane:
@@ -91,8 +93,8 @@ const char* primitiveName(Primitive primitive) noexcept {
 }
 
 std::optional<Primitive> primitiveNamed(std::string_view name) noexcept {
-	for(const Primitive primitive :
-	    {Primitive::Cube, Primitive::Sphere, Primitive::Cylinder, Primitive::Torus, Primitive::Plane})
+	for(const Primitive primitive : {Primitive::Cube, Primitive::Sphere, Primitive::Cylinder, Primitive::Cone,
+	                                 Primitive::Torus, Primitive::Plane})
 		if(name == primitiveName(primitive)) return primitive;
 	return std::nullopt;
 }
@@ -140,6 +142,29 @@ MeshData makeCylinder(int segments) {
 	return finish(std::move(mesh));
 }
 
+MeshData makeCone(int segments) {
+	MeshData mesh;
+	segments = std::max(segments, 3);
+	// The side slopes 1 out for 2 down, so its normal leans up by 1 for every 2 outwards
+	const float across = 2.0f / std::sqrt(5.0f), up = 1.0f / std::sqrt(5.0f);
+	const auto normalAt = [&](float angle) {
+		return Vec3{std::sin(angle) * across, up, std::cos(angle) * across};
+	};
+	for(int i = 0; i < segments; ++i) {
+		const float s0 = static_cast<float>(i) / static_cast<float>(segments);
+		const float s1 = static_cast<float>(i + 1) / static_cast<float>(segments);
+		const float a0 = 2.0f * pi * s0, a1 = 2.0f * pi * s1;
+		const auto first = static_cast<std::uint32_t>(mesh.positions.size());
+		// The tip once per side, facing the side's middle, so the shading stays smooth around it
+		addVertex(mesh, {0.0f, 1.0f, 0.0f}, normalAt(0.5f * (a0 + a1)), {0.5f * (s0 + s1), 0.0f});
+		addVertex(mesh, {std::sin(a0), -1.0f, std::cos(a0)}, normalAt(a0), {s0, 1.0f});
+		addVertex(mesh, {std::sin(a1), -1.0f, std::cos(a1)}, normalAt(a1), {s1, 1.0f});
+		mesh.indices.insert(mesh.indices.end(), {first, first + 1, first + 2});
+	}
+	addCap(mesh, segments, -1.0f, false);
+	return finish(std::move(mesh));
+}
+
 MeshData makeTorus(float majorRadius, float minorRadius, int segments, int sides) {
 	MeshData mesh;
 	addGrid(mesh, std::max(segments, 3), std::max(sides, 3), [&](float s, float t) {
@@ -168,6 +193,8 @@ MeshData makePrimitive(Primitive primitive) {
 		return makeSphere();
 	case Primitive::Cylinder:
 		return makeCylinder();
+	case Primitive::Cone:
+		return makeCone();
 	case Primitive::Torus:
 		return makeTorus();
 	case Primitive::Plane:

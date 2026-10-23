@@ -58,11 +58,12 @@ struct TextureData {
 };
 
 /// @brief The kinds of generated primitive.
-enum class Primitive { Cube, Sphere, Cylinder, Torus, Plane };
+enum class Primitive { Cube, Sphere, Cylinder, Cone, Torus, Plane };
 
 /// @brief A primitive's name, as documents spell it. @param primitive It. @return "cube", "sphere"...
 [[nodiscard]] const char* primitiveName(Primitive primitive) noexcept;
-/// @brief A primitive by name. @param name "cube", "sphere", "cylinder", "torus" or "plane". @return It, or nothing.
+/// @brief A primitive by name. @param name "cube", "sphere", "cylinder", "cone", "torus" or "plane". @return It, or
+/// nothing.
 [[nodiscard]] std::optional<Primitive> primitiveNamed(std::string_view name) noexcept;
 
 /// @brief A cube of side 2 centred at the origin, flat-shaded (24 vertices).
@@ -76,6 +77,10 @@ enum class Primitive { Cube, Sphere, Cylinder, Torus, Plane };
 /// @param segments Around, at least 3.
 /// @return The mesh.
 [[nodiscard]] MeshData makeCylinder(int segments = 32);
+/// @brief A cone of base radius 1 and height 2 along y, its base capped at y = -1 and its tip at y = 1.
+/// @param segments Around, at least 3.
+/// @return The mesh.
+[[nodiscard]] MeshData makeCone(int segments = 32);
 /// @brief A torus around y.
 /// @param majorRadius To the tube's centre. @param minorRadius Of the tube.
 /// @param segments Around y, at least 3. @param sides Around the tube, at least 3.

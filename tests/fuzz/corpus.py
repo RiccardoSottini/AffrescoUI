@@ -25,7 +25,9 @@
 - git_output: `git status --porcelain=v2 -z --branch`, `git for-each-ref` and two texts to diff (the first byte picks);
 - vscode_theme: VS Code colour themes, dark and light, with comments and trailing commas;
 - history:    refs.json (even first byte) or a commit object (odd first byte) of a history on disk;
-- key_press:  key chords, as the "keys" of a screen and the "press" step write them.
+- key_press:  key chords, as the "keys" of a screen and the "press" step write them;
+- gltf:       a small .gltf (a triangle, its material, a clip) with its buffer as data:, a .glb of it, broken copies;
+- scene:      a scene node's scene, animations and time, with primitives, lights, clips and that model placed in it.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -570,6 +572,66 @@ def key_press_seeds():
                              "  ctrl +x   s ", "cmd+option+period", "shift+space"]
 
 
+def gltf_model():
+    """A small .gltf: one triangle with its material, in a node a clip moves, its buffer a data: URI."""
+    data = struct.pack("<9f", 0, 0, 0, 1, 0, 0, 0, 1, 0) + struct.pack("<3H2x", 0, 1, 2)
+    data += struct.pack("<2f", 0, 1) + struct.pack("<6f", 0, 0, 0, 0, 2, 0)
+    uri = "data:application/octet-stream;base64," + base64.b64encode(data).decode()
+    return {"asset": {"version": "2.0"}, "scene": 0, "scenes": [{"nodes": [0]}],
+            "nodes": [{"name": "tri", "mesh": 0, "translation": [0, 0, 1], "children": [1]}, {"name": "child"}],
+            "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1, "material": 0}]}],
+            "materials": [{"name": "red", "pbrMetallicRoughness": {"baseColorFactor": [1, 0, 0, 1],
+                                                                   "metallicFactor": 0, "roughnessFactor": 0.5}}],
+            "buffers": [{"byteLength": len(data), "uri": uri}],
+            "bufferViews": [{"buffer": 0, "byteOffset": 0, "byteLength": 36},
+                            {"buffer": 0, "byteOffset": 36, "byteLength": 6},
+                            {"buffer": 0, "byteOffset": 44, "byteLength": 8},
+                            {"buffer": 0, "byteOffset": 52, "byteLength": 24}],
+            "accessors": [{"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3",
+                           "min": [0, 0, 0], "max": [1, 1, 0]},
+                          {"bufferView": 1, "componentType": 5123, "count": 3, "type": "SCALAR"},
+                          {"bufferView": 2, "componentType": 5126, "count": 2, "type": "SCALAR", "min": [0], "max": [1]},
+                          {"bufferView": 3, "componentType": 5126, "count": 2, "type": "VEC3"}],
+            "animations": [{"name": "rise", "samplers": [{"input": 2, "output": 3, "interpolation": "LINEAR"}],
+                            "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}]}]}
+
+
+def gltf_seeds():
+    """glTF files (modules/scene3d/src/gltf/): the small model, broken copies of it, and a .glb holding it."""
+    model = gltf_model()
+    text = compact(model)
+    chunk = text.encode() + b" " * (-len(text) % 4)
+    glb = struct.pack("<3I", 0x46546C67, 2, 12 + 8 + len(chunk)) + struct.pack("<2I", len(chunk), 0x4E4F534A) + chunk
+    broken = [{**model, "accessors": [{**model["accessors"][0], "count": 1000000}, *model["accessors"][1:]]},
+              {**model, "nodes": [{"children": [0]}]}, {**model, "buffers": [{"byteLength": 4, "uri": "missing.bin"}]},
+              {**model, "bufferViews": [{"buffer": 0, "byteOffset": 70, "byteLength": 36}]}]
+    return [text, glb, *[compact(each) for each in broken], compact({"asset": {"version": "2.0"}})]
+
+
+def scene_seeds():
+    """Scene nodes' input (tests/fuzz/scene.cpp): scenes of primitives, lights and materials, clips, a placed model."""
+    nodes = [{"id": "cube", "mesh": "cube", "material": "paint", "translation": [0, 1, 0], "rotationDegrees": [0, 45, 0]},
+             {"id": "ball", "parent": "cube", "mesh": "sphere", "scale": [0.5, 0.5, 0.5], "rotation": [0, 0, 0, 1]},
+             {"id": "sun", "light": {"type": "directional", "intensity": 3}},
+             {"id": "lamp", "light": {"type": "spot", "color": [1, 0.9, 0.8], "range": 10, "innerCone": 0.2,
+                                      "outerCone": 0.6}, "translation": [2, 4, 2]},
+             {"id": "floor", "mesh": "plane", "scale": [10, 1, 10], "visible": False}]
+    materials = [{"id": "paint", "baseColor": [0.8, 0.2, 0.1, 1], "metallic": 0.1, "roughness": 0.4,
+                  "alphaMode": "BLEND", "doubleSided": True}]
+    clip = [{"name": "spin", "tracks": [{"node": "cube", "path": "rotation", "interpolation": "linear",
+                                         "times": [0, 1], "values": [[0, 0, 0, 1], [0, 0.7071, 0, 0.7071]]},
+                                        {"node": "ball", "path": "translation", "interpolation": "step",
+                                         "times": [0, 0.5], "values": [[0, 0, 0], [0, 2, 0]]}]}]
+    model = [{"id": "robot", "asset": "m", "translation": [3, 0, 0]}, {"id": "arm", "parent": "robot", "mesh": "cone"}]
+    return [compact({"scene": {"nodes": nodes, "materials": materials}, "animations": clip, "time": 0.25}),
+            compact({"gltf": gltf_model(), "scene": {"nodes": model}, "time": 0.5}),
+            compact({"gltf": gltf_model(), "scene": {"nodes": [*model, {"id": "robot/tri", "mesh": "torus"}]}}),
+            compact({"scene": {"nodes": [{"id": "a", "parent": "b"}, {"id": "b", "parent": "a"}]}}),
+            compact({"scene": {"nodes": [{"id": "a", "mesh": "cylinder", "scale": [1e38, 0, -1]}]}, "time": 1e300}),
+            compact({"scene": {"nodes": nodes}, "animations": [{"tracks": [{"node": "cube", "path": "scale",
+                     "interpolation": "cubic", "times": [1, 0], "values": [[1, 1, 1]]}]}], "time": -3})]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -724,6 +786,12 @@ def main():
           "literalString", "explicitList", "AdaptiveCard", "TextBlock", "Input.Text", "Action.Submit", "${"])
     write(out, "dap", dap_seeds(), words["json"] + ["response", "event", "request", "request_seq", "success",
           "command", "body", "source", "path", "/work/", "../", "stackFrames", "variables", "runInTerminal"])
+    write(out, "gltf", gltf_seeds(), words["json"] + ["asset", "scenes", "nodes", "meshes", "primitives", "attributes",
+          "POSITION", "NORMAL", "TEXCOORD_0", "accessors", "bufferViews", "buffers", "byteOffset", "byteLength",
+          "componentType", "count", "VEC3", "SCALAR", "animations", "channels", "samplers", "data:", ";base64,", "glTF"])
+    write(out, "scene", scene_seeds(), words["json"] + ["gltf", "scene", "animations", "time", "nodes", "materials",
+          "mesh", "parent", "translation", "rotation", "rotationDegrees", "scale", "light", "asset", "tracks", "times",
+          "values", "cube", "sphere", "cylinder", "cone", "torus", "plane", "directional", "point", "spot", "m"])
     write(out, "syntax", syntax_seeds(), ["(", ")", "{", "}", "[", "]", "\"", "'", "`", "/*", "*/", "//", "#", "\n"])
 
 

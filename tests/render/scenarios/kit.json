@@ -1,0 +1,45 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "kit-bars",
+			"screen": "kit-bars.screen.json",
+			"note": "The desktop kit's toolbar and status bar: the first frame in light, a narrow toolbar's \"more\" menu with the items that didn't fit, keyboard focus on a toolbar button, then dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": [181, 66] },
+				{ "expect": { "image": "more-open" } },
+				{ "key": "escape" },
+				{ "key": "tab" },
+				{ "expect": { "image": "focused" } },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark" } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
+		},
+		{
+			"name": "kit-overlays",
+			"screen": "kit-overlays.screen.json",
+			"note": "The desktop kit's overlays: a popover and a stack of toasts in light, the context menu opened with Shift+F10, a dialog, then the popover and the toasts in dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "key": "escape" },
+				{ "click": "#doc" },
+				{ "key": "shift+f10" },
+				{ "expect": { "image": "context-menu" } },
+				{ "key": "escape" },
+				{ "revision": { "message": "Ask to save", "set": { "/state/dlg": true, "/state/notes": [] } } },
+				{ "expect": { "image": "dialog" } },
+				{ "key": "escape" },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark", "/state/pop": true,
+					"/state/notes": [{ "message": "Saved", "actions": [{ "title": "Undo" }] }, { "message": "Uploading", "progress": 0.7 }] } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
+		}
+	]
+}
