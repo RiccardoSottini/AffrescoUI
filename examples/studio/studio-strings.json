@@ -162,7 +162,7 @@
 			"log.reply": "{from}: {text}",
 			"log.switching": "Connecting to {name} ({address})",
 			"log.you": "You: {text}",
-			"mode.help": "{mode, select, acceptEdits {Accept edits: AI changes apply right away, unless a rule always asks.} plan {Plan: the AI can only propose, even where it is allowed.} other {Ask first: AI changes no rule allows wait here for you.}}",
+			"mode.help": "{mode, select, acceptEdits {Accept edits: AI changes apply right away, unless a rule always asks.} plan {Plan: the AI can only propose, even where it is allowed.} other {Ask first: an AI change waits for your review unless a rule allows it.}}",
 			"mode.label": "{mode, select, acceptEdits {Accept edits} plan {Plan} other {Ask first}}",
 			"palette.placeholder": "Run a command",
 			"pane.compose": "Compose",
@@ -203,7 +203,7 @@
 			"review.evidence": "{has, select, yes {Evidence, gathered by the host} other {Evidence: pictures, behaviour and scenarios, gathered by the host}}",
 			"review.gather": "{has, select, yes {Again} other {Gather}}",
 			"review.gatherTip": "Draw main and the proposal, and play the screen''s scenarios on it (Cmd+Shift+E)",
-			"review.header": "#{id}  ·  {author} wants to merge {commits, plural, one {# commit} other {# commits}} into main from {branch}",
+			"review.header": "#{id}  ·  {author} wants to merge {commits, plural, one {# commit} other {# commits}} into",
 			"review.main": "main: {value}",
 			"review.nothing": "Nothing to review",
 			"review.nothingHelp": "{can, select, yes {Changes that need your approval wait here.} other {This connection can not review changes.}}",
@@ -233,7 +233,7 @@
 			"status.connecting": "Connecting to the host...",
 			"status.evidence": "Evidence: {error}",
 			"status.failed": "Could not connect to {name}: {error}",
-			"status.offline": "Not connected to a host · trying again every 2 s",
+			"status.offline": "Offline · retrying every 2 s",
 			"status.reconnecting": "Connection lost: reconnecting every 2 s",
 			"status.server": "Document server: {n, plural, one {# document} other {# documents}}, as ''{author}''",
 			"status.switching": "Connecting to {name}...",
@@ -275,7 +275,7 @@
 			"pr.load": "{loading, select, yes {Loading the changes…} other {Load the changes}}",
 			"pr.loadTip": "Ask the host for the proposal against main",
 			"pr.stat": "+{added}  −{removed}",
-			"history.row": "{author} · {short}{approved, select, yes { · approved by {committer}} other {}}",
+			"history.row": "{author} committed on {date} · {short}{approved, select, yes { · approved by {committer}} other {}}",
 			"diff.unified": "Unified",
 			"diff.split": "Split",
 			"diff.whitespace": "Hide whitespace changes",
@@ -315,7 +315,8 @@
 			"review.row": "#{id} opened on {date} by {author}{conflicts, select, yes {  ·  conflicts} other {}}",
 			"toolbar.filter": "Filter",
 			"toolbar.defaultBranch": "Default branch",
-			"toolbar.noBranches": "No proposal matches"
+			"toolbar.noBranches": "No proposal matches",
+			"review.headerFrom": "from"
 		},
 		"it": {
 			"a11y.connections": "Connessioni note",
@@ -516,7 +517,7 @@
 			"review.evidence": "{has, select, yes {Prove, raccolte dall''host} other {Prove: immagini, comportamento e scenari, raccolti dall''host}}",
 			"review.gather": "{has, select, yes {Di nuovo} other {Raccogli}}",
 			"review.gatherTip": "Disegna main e la proposta, ed esegui su di essa gli scenari della schermata (Cmd+Shift+E)",
-			"review.header": "#{id}  ·  {author} vuole unire {commits, plural, one {# commit} other {# commit}} in main da {branch}",
+			"review.header": "#{id}  ·  {author} vuole unire {commits, plural, one {# commit} other {# commit}} in",
 			"review.main": "main: {value}",
 			"review.nothing": "Niente da revisionare",
 			"review.nothingHelp": "{can, select, yes {Le modifiche da approvare attendono qui.} other {Questa connessione non può revisionare modifiche.}}",
@@ -546,7 +547,7 @@
 			"status.connecting": "Connessione all''host...",
 			"status.evidence": "Prove: {error}",
 			"status.failed": "Impossibile connettersi a {name}: {error}",
-			"status.offline": "Non connesso a un host · nuovo tentativo ogni 2 s",
+			"status.offline": "Offline · nuovo tentativo ogni 2 s",
 			"status.reconnecting": "Connessione persa: nuovo tentativo ogni 2 s",
 			"status.server": "Server di documenti: {n, plural, one {# documento} other {# documenti}}, come ''{author}''",
 			"status.switching": "Connessione a {name}...",
@@ -588,7 +589,7 @@
 			"pr.load": "{loading, select, yes {Caricamento delle modifiche…} other {Carica le modifiche}}",
 			"pr.loadTip": "Chiedi all''host la proposta rispetto a main",
 			"pr.stat": "+{added}  −{removed}",
-			"history.row": "{author} · {short}{approved, select, yes { · approvato da {committer}} other {}}",
+			"history.row": "{author} ha salvato il {date} · {short}{approved, select, yes { · approvato da {committer}} other {}}",
 			"diff.unified": "Unificata",
 			"diff.split": "Affiancata",
 			"diff.whitespace": "Nascondi le modifiche agli spazi",
@@ -628,7 +629,8 @@
 			"review.row": "#{id} aperta il {date} da {author}{conflicts, select, yes {  ·  conflitti} other {}}",
 			"toolbar.filter": "Filtra",
 			"toolbar.defaultBranch": "Ramo predefinito",
-			"toolbar.noBranches": "Nessuna proposta corrisponde"
+			"toolbar.noBranches": "Nessuna proposta corrisponde",
+			"review.headerFrom": "da"
 		},
 		"ar": {
 			"a11y.connections": "الاتصالات المعروفة",
@@ -829,7 +831,7 @@
 			"review.evidence": "{has, select, yes {الأدلة، جمعها المضيف} other {الأدلة: صور وسلوك وسيناريوهات يجمعها المضيف}}",
 			"review.gather": "{has, select, yes {مجددًا} other {اجمع}}",
 			"review.gatherTip": "ارسم main والاقتراح، وشغّل عليه سيناريوهات الشاشة (Cmd+Shift+E)",
-			"review.header": "#{id}  ·  يريد {author} دمج {commits, plural, zero {لا إيداعات} one {إيداع واحد} two {إيداعين} few {# إيداعات} many {# إيداعًا} other {# إيداع}} في main من {branch}",
+			"review.header": "#{id}  ·  يريد {author} دمج {commits, plural, zero {لا إيداعات} one {إيداع واحد} two {إيداعين} few {# إيداعات} many {# إيداعًا} other {# إيداع}} في",
 			"review.main": "main: {value}",
 			"review.nothing": "لا شيء للمراجعة",
 			"review.nothingHelp": "{can, select, yes {تنتظر هنا التغييرات التي تحتاج موافقتك.} other {هذا الاتصال لا يستطيع مراجعة التغييرات.}}",
@@ -859,7 +861,7 @@
 			"status.connecting": "جارٍ الاتصال بالمضيف...",
 			"status.evidence": "الأدلة: {error}",
 			"status.failed": "تعذّر الاتصال بـ {name}: {error}",
-			"status.offline": "غير متصل بمضيف · إعادة المحاولة كل 2 ث",
+			"status.offline": "غير متصل · إعادة المحاولة كل ثانيتين",
 			"status.reconnecting": "انقطع الاتصال: إعادة المحاولة كل 2 ث",
 			"status.server": "خادم المستندات: {n, plural, zero {لا مستندات} one {مستند واحد} two {مستندان} few {# مستندات} many {# مستندًا} other {# مستند}}، باسم ''{author}''",
 			"status.switching": "جارٍ الاتصال بـ {name}...",
@@ -901,7 +903,7 @@
 			"pr.load": "{loading, select, yes {جارٍ تحميل التغييرات…} other {تحميل التغييرات}}",
 			"pr.loadTip": "اطلب من المضيف المقترح مقارنةً بـ main",
 			"pr.stat": "+{added}  −{removed}",
-			"history.row": "{author} · {short}{approved, select, yes { · وافق عليه {committer}} other {}}",
+			"history.row": "أودع {author} في {date} · {short}{approved, select, yes { · وافق عليه {committer}} other {}}",
 			"diff.unified": "موحّد",
 			"diff.split": "جنبًا إلى جنب",
 			"diff.whitespace": "إخفاء تغييرات المسافات",
@@ -941,7 +943,8 @@
 			"review.row": "#{id} فُتح في {date} بواسطة {author}{conflicts, select, yes {  ·  تعارضات} other {}}",
 			"toolbar.filter": "تصفية",
 			"toolbar.defaultBranch": "الفرع الافتراضي",
-			"toolbar.noBranches": "لا يطابق أي مقترح"
+			"toolbar.noBranches": "لا يطابق أي مقترح",
+			"review.headerFrom": "من"
 		}
 	}
 }

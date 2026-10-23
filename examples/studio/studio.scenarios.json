@@ -10,7 +10,7 @@
 				{
 					"expect": {
 						"node": "#status",
-						"text": "Not connected to a host · trying again every 2 s"
+						"text": "Offline · retrying every 2 s"
 					}
 				},
 				{
@@ -1529,7 +1529,7 @@
 				{
 					"expect": {
 						"node": "#label-mode-help-mode",
-						"text": "Ask first: AI changes no rule allows wait here for you."
+						"text": "Ask first: an AI change waits for your review unless a rule allows it."
 					}
 				},
 				{

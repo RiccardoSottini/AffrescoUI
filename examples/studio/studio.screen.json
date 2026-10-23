@@ -624,7 +624,9 @@
 		"prSide": "{{state.prTab == 'conversation' && window.width >= 1080}}",
 		"prReviewers": "{{computed.current == null ? [] : concat(map(computed.current.approvals ?? [], {who: it, state: 'approved'}), map(filter(state.reviews, it.proposal == computed.current.id && it.head == computed.current.head), {who: it.author, state: it.kind}))}}",
 		"branchRows": "{{filter(state.proposals, empty(trim(state.branchFilter)) || contains(lower(it.branch ?? 'proposal/' + it.id) + ' ' + lower(it.message), lower(trim(state.branchFilter))))}}",
-		"branchMain": "{{empty(trim(state.branchFilter)) || contains('main', lower(trim(state.branchFilter)))}}"
+		"branchMain": "{{empty(trim(state.branchFilter)) || contains('main', lower(trim(state.branchFilter)))}}",
+		"mergeBoxHeight": "{{computed.canAccept && !empty(computed.current.remember) ? 98 : 64}}",
+		"mergeHeld": "{{computed.mergeState == 'conflict' || computed.mergeState == 'changes' || computed.mergeState == 'failing' || computed.mergeState == 'merging'}}"
 	},
 	"watch": {
 		"state.historyPick": "requestHistoryDiff",
@@ -1910,7 +1912,7 @@
 			"title": "Accept the proposal",
 			"category": "review",
 			"icon": "check",
-			"enablement": "{{computed.canAccept}}",
+			"enablement": "{{computed.canAccept && !computed.mergeHeld}}",
 			"description": "Never one's own proposal",
 			"do": [
 				{
@@ -2981,7 +2983,7 @@
 										"height": "{{min(8 + 48 * length(state.proposals), 200)}}",
 										"color": "transparent",
 										"rowHeight": 48,
-										"items": "{{map(state.proposals, {id: text(it.id), label: (it.id == state.previewing ? '◉  ' : '') + it.message, icon: 'git-pull-request-arrow', detail: t('review.row', {id: it.id, author: it.author, date: formatDate(it.time * 1000, 'medium', 'utc'), conflicts: empty(it.conflicts ?? []) ? 'no' : 'yes'})})}}",
+										"items": "{{map(state.proposals, {id: text(it.id), label: it.message, icon: 'git-pull-request-arrow', detail: t('review.row', {id: it.id, author: it.author, date: formatDate(it.time * 1000, 'medium', 'utc'), conflicts: empty(it.conflicts ?? []) ? 'no' : 'yes'})})}}",
 										"value": "{{computed.current != null ? text(computed.current.id) : ''}}",
 										"textColor": "@color.text",
 										"selectedTextColor": "@color.text",
@@ -3254,7 +3256,7 @@
 										},
 										"color": "transparent",
 										"rowHeight": 48,
-										"items": "{{map(reverse(state.history), {id: text(it.number), label: it.message, icon: length(it.parents ?? []) > 1 ? 'git-merge' : 'git-commit-horizontal', detail: t('history.row', {author: it.author, short: it.short, approved: it.committer != it.author ? 'yes' : 'no', committer: it.committer})})}}",
+										"items": "{{map(reverse(state.history), {id: text(it.number), label: it.message, icon: length(it.parents ?? []) > 1 ? 'git-merge' : 'git-commit-horizontal', detail: t('history.row', {author: it.author, date: formatDate((it.time ?? 0) * 1000, 'medium', 'utc'), short: it.short, approved: it.committer != it.author ? 'yes' : 'no', committer: it.committer})})}}",
 										"value": "{{computed.entry != null ? text(computed.entry.number) : ''}}",
 										"textColor": "@color.text",
 										"selectedTextColor": "@color.text",
@@ -3429,11 +3431,24 @@
 													{
 														"id": "label-p-id-p",
 														"style": "caption",
-														"text": "{{t('review.header', {id: computed.current.id, author: computed.current.author, commits: computed.current.commits, branch: computed.current.branch})}}",
 														"anchors": {
 															"left": 96,
 															"top": 51
-														}
+														},
+														"runs": [
+															"{{t('review.header', {id: computed.current.id, author: computed.current.author, commits: computed.current.commits}) + ' '}}",
+															{
+																"text": "main",
+																"font": "symbols",
+																"color": "@color.accent"
+															},
+															"{{' ' + t('review.headerFrom') + ' '}}",
+															{
+																"text": "{{computed.current.branch}}",
+																"font": "symbols",
+																"color": "@color.accent"
+															}
+														]
 													},
 													{
 														"id": "label-previewing",
@@ -3520,7 +3535,7 @@
 															"left": 16,
 															"right": "{{computed.prSide ? 200 : 16}}",
 															"top": 122,
-															"bottom": 124
+															"bottom": "{{state.prTab == 'conversation' ? 60 + computed.mergeBoxHeight : 52}}"
 														},
 														"scroll": "vertical",
 														"children": [
@@ -3635,7 +3650,7 @@
 																"color": "transparent",
 																"anchors": {
 																	"left": 0,
-																	"right": 0
+																	"right": 10
 																},
 																"height": 30,
 																"children": [
@@ -3675,7 +3690,7 @@
 																"radius": 4,
 																"anchors": {
 																	"left": 0,
-																	"right": 0
+																	"right": 10
 																},
 																"height": 168,
 																"children": [
@@ -3722,7 +3737,8 @@
 																		"text": "{{t('review.after', {changed: computed.evidence.region[2] == 0 ? 'no' : 'yes', w: computed.evidence.region[2], h: computed.evidence.region[3], x: computed.evidence.region[0], y: computed.evidence.region[1]})}}",
 																		"anchors": {
 																			"left": "50%",
-																			"top": 4
+																			"top": 4,
+																			"right": 8
 																		}
 																	}
 																]
@@ -3741,23 +3757,31 @@
 																"color": "@color.accentSoft",
 																"radius": 4,
 																"padding": 6,
-																"height": 26
+																"height": 26,
+																"anchors": {
+																	"left": 0,
+																	"right": 10
+																}
 															},
 															{
 																"id": "label-evidence-scenario",
 																"type": "label",
-																"style": "codeRow",
+																"style": "listRow",
 																"when": "{{state.prTab == 'checks' && (computed.evidence != null)}}",
 																"repeat": {
 																	"for": "r",
 																	"in": "computed.evidence.scenarios"
 																},
 																"text": "{{t('review.scenario', {passed: r.passed ? 'yes' : 'no', name: r.name}) + (empty(r.message) ? '' : '  ·  ' + r.message)}}",
-																"textColor": "@color.text",
-																"color": "{{r.passed ? '@color.card' : '@color.bad'}}",
-																"radius": 4,
+																"textColor": "{{r.passed ? '@color.good' : '@color.bad'}}",
+																"color": "transparent",
 																"padding": 6,
-																"height": 26
+																"height": 26,
+																"anchors": {
+																	"left": 0,
+																	"right": 10
+																},
+																"icon": "{{r.passed ? 'check' : 'circle-x'}}"
 															},
 															{
 																"id": "diff",
@@ -3770,7 +3794,7 @@
 																"radius": 4,
 																"anchors": {
 																	"left": 0,
-																	"right": 0
+																	"right": 10
 																},
 																"height": 200,
 																"children": [
@@ -3886,11 +3910,11 @@
 																	{
 																		"id": "reviewComment",
 																		"style": "smallButton",
-																		"icon": "message-square",
+																		"icon": "{{state.reviewKind == 'comment' ? 'circle-dot' : 'circle'}}",
 																		"text": "{{t('review.kind', {kind: 'comment'})}}",
 																		"label": "{{t('review.kind', {kind: 'comment'})}}",
 																		"selected": "{{state.reviewKind == 'comment'}}",
-																		"color": "{{state.reviewKind == 'comment' ? '@color.accentSoft' : '@color.neutral'}}",
+																		"color": "transparent",
 																		"anchors": {
 																			"left": 12,
 																			"bottom": 10
@@ -3899,16 +3923,23 @@
 																		"onClick": {
 																			"set": "state.reviewKind",
 																			"to": "comment"
-																		}
+																		},
+																		"hover": {
+																			"color": "@color.neutral"
+																		},
+																		"align": "start",
+																		"padding": 6,
+																		"role": "radio",
+																		"textColor": "{{state.reviewKind == 'comment' ? '@color.text' : '@color.muted'}}"
 																	},
 																	{
 																		"id": "reviewApprove",
 																		"style": "smallButton",
-																		"icon": "check",
+																		"icon": "{{state.reviewKind == 'approve' ? 'circle-dot' : 'circle'}}",
 																		"text": "{{t('review.kind', {kind: 'approve'})}}",
 																		"label": "{{t('review.kind', {kind: 'approve'})}}",
 																		"selected": "{{state.reviewKind == 'approve'}}",
-																		"color": "{{state.reviewKind == 'approve' ? '@color.accentSoft' : '@color.neutral'}}",
+																		"color": "transparent",
 																		"anchors": {
 																			"left": 122,
 																			"bottom": 10
@@ -3917,16 +3948,23 @@
 																		"onClick": {
 																			"set": "state.reviewKind",
 																			"to": "approve"
-																		}
+																		},
+																		"hover": {
+																			"color": "@color.neutral"
+																		},
+																		"align": "start",
+																		"padding": 6,
+																		"role": "radio",
+																		"textColor": "{{state.reviewKind == 'approve' ? '@color.text' : '@color.muted'}}"
 																	},
 																	{
 																		"id": "reviewChanges",
 																		"style": "smallButton",
-																		"icon": "file-pen-line",
+																		"icon": "{{state.reviewKind == 'changes' ? 'circle-dot' : 'circle'}}",
 																		"text": "{{t('review.kind', {kind: 'changes'})}}",
 																		"label": "{{t('review.kind', {kind: 'changes'})}}",
 																		"selected": "{{state.reviewKind == 'changes'}}",
-																		"color": "{{state.reviewKind == 'changes' ? '@color.accentSoft' : '@color.neutral'}}",
+																		"color": "transparent",
 																		"anchors": {
 																			"left": 232,
 																			"bottom": 10
@@ -3935,7 +3973,14 @@
 																		"onClick": {
 																			"set": "state.reviewKind",
 																			"to": "changes"
-																		}
+																		},
+																		"hover": {
+																			"color": "@color.neutral"
+																		},
+																		"align": "start",
+																		"padding": 6,
+																		"role": "radio",
+																		"textColor": "{{state.reviewKind == 'changes' ? '@color.text' : '@color.muted'}}"
 																	},
 																	{
 																		"id": "reviewSubmit",
@@ -4057,7 +4102,7 @@
 															"left": 16,
 															"right": "{{computed.prSide ? 200 : 16}}",
 															"top": 122,
-															"bottom": 124
+															"bottom": "{{60 + computed.mergeBoxHeight}}"
 														},
 														"scroll": "vertical",
 														"children": [
@@ -4138,20 +4183,20 @@
 														"color": "@color.card",
 														"radius": "@radius.chip",
 														"borderWidth": 1,
-														"borderColor": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'conflict' || computed.mergeState == 'changes' || computed.mergeState == 'failing' ? '@color.bad' : '@color.border')}}",
+														"borderColor": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'changes' || computed.mergeState == 'failing' ? '@color.bad' : '@color.border')}}",
 														"anchors": {
 															"left": 16,
 															"right": "{{computed.prSide ? 200 : 16}}",
 															"bottom": 52
 														},
-														"height": "{{computed.canAccept && !empty(computed.current.remember) ? 98 : 64}}",
+														"height": "{{computed.mergeBoxHeight}}",
 														"children": [
 															{
 																"id": "mergeIcon",
 																"type": "label",
 																"icon": "{{computed.mergeState == 'ready' ? 'git-merge' : (computed.mergeState == 'merging' ? 'git-pull-request' : (computed.mergeState == 'conflict' ? 'alert-triangle' : (computed.mergeState == 'changes' ? 'file-pen-line' : (computed.mergeState == 'review' ? 'circle-dot' : 'circle-x'))))}}",
 																"textColor": "#ffffff",
-																"color": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'merging' ? '@color.accent' : (computed.mergeState == 'conflict' || computed.mergeState == 'changes' || computed.mergeState == 'failing' ? '@color.bad' : '@color.warn'))}}",
+																"color": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'merging' ? '@color.accent' : (computed.mergeState == 'conflict' ? '@color.muted' : (computed.mergeState == 'changes' || computed.mergeState == 'failing' ? '@color.bad' : '@color.warn')))}}",
 																"radius": 16,
 																"anchors": {
 																	"left": 12,
@@ -4208,7 +4253,7 @@
 																"role": "status",
 																"live": "polite",
 																"text": "{{t('review.refusal', {why: computed.refusal})}}",
-																"textColor": "@color.warn",
+																"textColor": "{{computed.mergeState == 'conflict' ? '@color.muted' : '@color.warn'}}",
 																"wrap": true,
 																"anchors": {
 																	"left": 56,
@@ -4239,7 +4284,10 @@
 																},
 																"when": "{{computed.canAccept}}",
 																"label": "{{t('review.merge')}}",
-																"tooltip": "{{t('review.acceptTip')}}"
+																"tooltip": "{{t('review.acceptTip')}}",
+																"disabled": "{{computed.mergeHeld}}",
+																"textColor": "{{computed.mergeState == 'ready' ? '@color.goodText' : (computed.mergeHeld ? '@color.muted' : '@color.text')}}",
+																"cursor": "{{computed.mergeHeld ? 'arrow' : 'hand'}}"
 															},
 															{
 																"id": "label-always-allow",
@@ -4260,7 +4308,8 @@
 																"tooltip": "{{t('review.alwaysTip', {rules: join(computed.current.remember, ', ')})}}",
 																"label": "{{t('review.always')}}"
 															}
-														]
+														],
+														"when": "{{state.prTab == 'conversation'}}"
 													},
 													{
 														"id": "label-previewed-end-preview",
@@ -6153,7 +6202,8 @@
 					"textColor": "@color.text",
 					"accent": "@color.accent"
 				},
-				"dir": "auto"
+				"dir": "auto",
+				"height": 44
 			}
 		]
 	},
@@ -6333,7 +6383,7 @@
 										"width": 8,
 										"height": 8,
 										"radius": 2,
-										"color": "{{file.d.added + file.d.removed == 0 ? '@color.neutral' : b < round(5 * file.d.added / (file.d.added + file.d.removed)) ? '@color.good' : '@color.bad'}}"
+										"color": "{{b < ((file.d.added + file.d.removed) < 5 ? file.d.added : round(5 * file.d.added / (file.d.added + file.d.removed))) ? '@color.good' : (b < ((file.d.added + file.d.removed) < 5 ? (file.d.added + file.d.removed) : 5) ? '@color.bad' : '@color.neutral')}}"
 									}
 								]
 							},
@@ -6602,7 +6652,7 @@
 						"label": "{{t('diff.whitespace')}}",
 						"activeColor": "@color.accent",
 						"trackColor": "@color.border",
-						"knobColor": "@color.card"
+						"knobColor": "#ffffff"
 					},
 					{
 						"id": "label-diffWs",

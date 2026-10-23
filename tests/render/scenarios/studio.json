@@ -7,32 +7,386 @@
 			"name": "studio",
 			"screen": "studio.screen.json",
 			"steps": [
-				{ "expect": { "image": "first-frame" } },
-				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "ada", "canReview": true, "mode": "default" } },
-				{ "action": "host:document", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "document": {}, "state": {}, "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "ada", "proposal": 2, "time": 1759990000 }], "you": "ada", "canReview": true } },
-				{ "action": "host:history", "event": { "revision": 4, "entries": [{ "id": "0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0", "short": "0f0f0f0", "number": 0, "parents": [], "author": "host", "committer": "host", "message": "The Kanban template", "time": 1759990000, "proposal": null }, { "id": "1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1", "short": "1a1a1a1", "number": 1, "parents": ["0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0"], "author": "ada", "committer": "ada", "message": "Rename the board to Q4", "time": 1759990001, "proposal": null }, { "id": "2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2", "short": "2b2b2b2", "number": 2, "parents": ["1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1"], "author": "claude", "committer": "ada", "message": "Shorter card titles", "time": 1759990002, "proposal": null }, { "id": "3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3", "short": "3c3c3c3", "number": 3, "parents": ["2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2"], "author": "claude", "committer": "ada", "message": "Add due dates", "time": 1759990003, "proposal": null }, { "id": "a1b2c3da1b2c3da1b2c3da1b2c3da1b2c3d", "short": "a1b2c3d", "number": 4, "parents": ["3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3"], "author": "ada", "committer": "ada", "message": "Direct change from the Studio", "time": 1759990004, "proposal": null }] } },
-				{ "action": "host:reply", "event": { "from": "claude", "text": "I added a Blocked column; it waits for your review." } },
-				{ "action": "host:proposed", "event": { "proposal": 3 } },
-				{ "expect": { "image": "review" } },
-				{ "action": "host:review", "event": { "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": 3, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "ada", "proposal": 2, "time": 1759990000 }] } },
-				{ "expect": { "image": "previewing" } },
-				{ "click": "#label-reject" },
-				{ "wait": 50 },
-				{ "expect": { "image": "reject-dialog" } },
-				{ "key": "escape" },
-				{ "key": "mod+2" },
-				{ "expect": { "image": "history" } },
-				{ "click": "#label-revert" },
-				{ "wait": 50 },
-				{ "expect": { "image": "revert-dialog" } },
-				{ "key": "escape" },
-				{ "key": "mod+3" },
-				{ "key": "mod+j" },
-				{ "expect": { "image": "rules-light" } },
-				{ "key": "mod+1" },
-				{ "action": "host:review", "event": { "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }, { "id": 5, "branch": "proposal/4", "author": "claude", "message": "Bigger card titles", "base": "a1b2c3d", "head": "d0d1d2d", "short": "d0d1d2d", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": ["edit text"], "changes": ["set /styles/cardTitle/font \"heading\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "ada", "proposal": 2, "time": 1759990000 }] } },
-				{ "wait": 50 },
-				{ "expect": { "image": "new-proposal-light" } }
+				{
+					"expect": {
+						"image": "first-frame"
+					}
+				},
+				{
+					"action": "host:hello",
+					"event": {
+						"revision": 4,
+						"head": {
+							"short": "a1b2c3d"
+						},
+						"you": "ada",
+						"canReview": true,
+						"mode": "default"
+					}
+				},
+				{
+					"action": "host:document",
+					"event": {
+						"revision": 4,
+						"head": {
+							"short": "a1b2c3d"
+						},
+						"document": {},
+						"state": {},
+						"proposals": [
+							{
+								"id": 3,
+								"branch": "proposal/3",
+								"author": "claude",
+								"message": "Add a Blocked column",
+								"base": "a1b2c3d",
+								"head": "e4f5a6b",
+								"short": "e4f5a6b",
+								"commits": 1,
+								"operations": 3,
+								"touches": ["/root/children/1"],
+								"remember": ["add columns"],
+								"changes": [
+									"add #column-blocked",
+									"set #column-blocked/title \"Blocked\"",
+									"set #boardName/text \"Q4\""
+								],
+								"reason": "asks",
+								"time": 1760000000
+							},
+							{
+								"id": 4,
+								"branch": "proposal/4",
+								"author": "claude",
+								"message": "Switch to a dark theme",
+								"base": "a1b2c3d",
+								"head": "c7d8e9f",
+								"short": "c7d8e9f",
+								"commits": 2,
+								"operations": 1,
+								"touches": ["/theme"],
+								"remember": [],
+								"changes": ["set /theme \"dark\""],
+								"reason": "asks",
+								"time": 1760000100
+							}
+						],
+						"previewing": null,
+						"mode": "default",
+						"grants": [
+							{
+								"rule": "edit text",
+								"grantedBy": "ada",
+								"proposal": 2,
+								"time": 1759990000
+							}
+						],
+						"you": "ada",
+						"canReview": true
+					}
+				},
+				{
+					"action": "host:history",
+					"event": {
+						"revision": 4,
+						"entries": [
+							{
+								"id": "0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0",
+								"short": "0f0f0f0",
+								"number": 0,
+								"parents": [],
+								"author": "host",
+								"committer": "host",
+								"message": "The Kanban template",
+								"time": 1759990000,
+								"proposal": null
+							},
+							{
+								"id": "1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1",
+								"short": "1a1a1a1",
+								"number": 1,
+								"parents": ["0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0"],
+								"author": "ada",
+								"committer": "ada",
+								"message": "Rename the board to Q4",
+								"time": 1759990001,
+								"proposal": null
+							},
+							{
+								"id": "2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2",
+								"short": "2b2b2b2",
+								"number": 2,
+								"parents": ["1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1"],
+								"author": "claude",
+								"committer": "ada",
+								"message": "Shorter card titles",
+								"time": 1759990002,
+								"proposal": null
+							},
+							{
+								"id": "3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3",
+								"short": "3c3c3c3",
+								"number": 3,
+								"parents": ["2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2"],
+								"author": "claude",
+								"committer": "ada",
+								"message": "Add due dates",
+								"time": 1759990003,
+								"proposal": null
+							},
+							{
+								"id": "a1b2c3da1b2c3da1b2c3da1b2c3da1b2c3d",
+								"short": "a1b2c3d",
+								"number": 4,
+								"parents": ["3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3"],
+								"author": "ada",
+								"committer": "ada",
+								"message": "Direct change from the Studio",
+								"time": 1759990004,
+								"proposal": null
+							}
+						]
+					}
+				},
+				{
+					"action": "host:reply",
+					"event": {
+						"from": "claude",
+						"text": "I added a Blocked column; it waits for your review."
+					}
+				},
+				{
+					"action": "host:proposed",
+					"event": {
+						"proposal": 3
+					}
+				},
+				{
+					"expect": {
+						"image": "review"
+					}
+				},
+				{
+					"action": "host:review",
+					"event": {
+						"proposals": [
+							{
+								"id": 3,
+								"branch": "proposal/3",
+								"author": "claude",
+								"message": "Add a Blocked column",
+								"base": "a1b2c3d",
+								"head": "e4f5a6b",
+								"short": "e4f5a6b",
+								"commits": 1,
+								"operations": 3,
+								"touches": ["/root/children/1"],
+								"remember": ["add columns"],
+								"changes": [
+									"add #column-blocked",
+									"set #column-blocked/title \"Blocked\"",
+									"set #boardName/text \"Q4\""
+								],
+								"reason": "asks",
+								"time": 1760000000
+							},
+							{
+								"id": 4,
+								"branch": "proposal/4",
+								"author": "claude",
+								"message": "Switch to a dark theme",
+								"base": "a1b2c3d",
+								"head": "c7d8e9f",
+								"short": "c7d8e9f",
+								"commits": 2,
+								"operations": 1,
+								"touches": ["/theme"],
+								"remember": [],
+								"changes": ["set /theme \"dark\""],
+								"reason": "asks",
+								"time": 1760000100
+							}
+						],
+						"previewing": 3,
+						"mode": "default",
+						"grants": [
+							{
+								"rule": "edit text",
+								"grantedBy": "ada",
+								"proposal": 2,
+								"time": 1759990000
+							}
+						]
+					}
+				},
+				{
+					"expect": {
+						"image": "previewing"
+					}
+				},
+				{
+					"click": "#label-reject"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "reject-dialog"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"key": "mod+2"
+				},
+				{
+					"action": "host:diff",
+					"event": {
+						"type": "diff",
+						"id": "hBase4",
+						"revision": 4,
+						"patch": [
+							{
+								"op": "add",
+								"path": "/boardName",
+								"value": "Tasks"
+							}
+						]
+					}
+				},
+				{
+					"action": "host:diff",
+					"event": {
+						"type": "diff",
+						"id": "hCommit4",
+						"revision": 4,
+						"patch": [
+							{
+								"op": "add",
+								"path": "/boardName",
+								"value": "Q4 board"
+							}
+						]
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-historyFiles",
+						"text": "1 changed section"
+					}
+				},
+				{
+					"expect": {
+						"image": "history"
+					}
+				},
+				{
+					"click": "#label-revert"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "revert-dialog"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"key": "mod+3"
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"expect": {
+						"image": "rules-light"
+					}
+				},
+				{
+					"key": "mod+1"
+				},
+				{
+					"action": "host:review",
+					"event": {
+						"proposals": [
+							{
+								"id": 3,
+								"branch": "proposal/3",
+								"author": "claude",
+								"message": "Add a Blocked column",
+								"base": "a1b2c3d",
+								"head": "e4f5a6b",
+								"short": "e4f5a6b",
+								"commits": 1,
+								"operations": 3,
+								"touches": ["/root/children/1"],
+								"remember": ["add columns"],
+								"changes": [
+									"add #column-blocked",
+									"set #column-blocked/title \"Blocked\"",
+									"set #boardName/text \"Q4\""
+								],
+								"reason": "asks",
+								"time": 1760000000
+							},
+							{
+								"id": 4,
+								"branch": "proposal/4",
+								"author": "claude",
+								"message": "Switch to a dark theme",
+								"base": "a1b2c3d",
+								"head": "c7d8e9f",
+								"short": "c7d8e9f",
+								"commits": 2,
+								"operations": 1,
+								"touches": ["/theme"],
+								"remember": [],
+								"changes": ["set /theme \"dark\""],
+								"reason": "asks",
+								"time": 1760000100
+							},
+							{
+								"id": 5,
+								"branch": "proposal/4",
+								"author": "claude",
+								"message": "Bigger card titles",
+								"base": "a1b2c3d",
+								"head": "d0d1d2d",
+								"short": "d0d1d2d",
+								"commits": 2,
+								"operations": 1,
+								"touches": ["/theme"],
+								"remember": ["edit text"],
+								"changes": ["set /styles/cardTitle/font \"heading\""],
+								"reason": "asks",
+								"time": 1760000100
+							}
+						],
+						"previewing": null,
+						"mode": "default",
+						"grants": [
+							{
+								"rule": "edit text",
+								"grantedBy": "ada",
+								"proposal": 2,
+								"time": 1759990000
+							}
+						]
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "new-proposal-light"
+					}
+				}
 			]
 		}
 	]

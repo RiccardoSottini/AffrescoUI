@@ -17,7 +17,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Changes | Summary and description, "Commit to main" | Message of a direct change, apply | partial | partial |
 | Changes | Nothing-changed state with suggestions | | partial | partial |
 | Changes | Undo the last commit | Undo | partial | partial |
-| History | Commits with avatar, summary, author and relative time | Main's revisions, two lines: message, then author, short id, approver; no avatar or time | partial | partial |
+| History | Commits with avatar, summary, author and relative time | Main's revisions, two lines: message, then author, date, short id, approver; no avatar | partial | partial |
 | History | The chosen commit: header, files and their diffs | A revision's changed sections against its parent | missing | partial |
 | History | Revert a commit; restore | Revert, restore | partial | partial |
 | Diff | Unified view: old and new line numbers, added and removed lines coloured | A proposal's sections, as formatted JSON | missing | partial |
@@ -33,16 +33,16 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | App | Repository settings | Mode, grants, permissions | partial | partial |
 | App | Keyboard shortcuts (tabs, commit, lists) | | partial | partial |
 | App | No-repository and offline states | Not connected, retrying every 2 s | partial | partial |
-| Pull request | Header: title, number, state, "wants to merge N commits into main" | A proposal, with a green "Open" pill (conflicts show in the merge box) | missing | partial |
+| Pull request | Header: title, number, state, "wants to merge N commits into main" | A proposal, with a green "Open" pill; main and the branch in code type (conflicts show in the merge box) | missing | partial |
 | Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence; under the Studio's own tabs | missing | partial |
 | Pull request | Conversation: description and timeline of commits and reviews | Opened, changes, pushed, approvals, reviews, policy | missing | partial |
 | Pull request | Sidebar: reviewers, state of each | Who approved or asked for changes, what the policy needs; only in wide windows | missing | partial |
-| Pull request | Files changed: file tree, per-file +/− counts, "Viewed" | Per-file counts and blocks, collapse, Viewed; no tree | missing | partial |
+| Pull request | Files changed: file tree, per-file +/− counts, "Viewed" | Per-file counts and five blocks sized as GitHub does, collapse, Viewed; no tree | missing | partial |
 | Pull request | Comments on a line, with suggestions | | missing | missing |
-| Pull request | Review box: Comment, Approve, Request changes | The three kinds and a text; comments and change requests go to the agents as requests, Approve merges | partial | partial |
-| Pull request | Checks: what ran, with its results | Evidence: scenarios, pictures before and after | partial | partial |
-| Pull request | Merge box states: conflicts, blocked, ready, merged | Ready, review required, changes requested, checks failed, blocked (the refusal), conflicts, merging; a merged notice | partial | partial |
-| Pull request | Merge button with options | "Merge proposal", green when ready; "Always allow" under it; no squash or rebase | partial | partial |
+| Pull request | Review box: Comment, Approve, Request changes | A text and the three kinds as radio choices, then Submit review; comments and change requests go to the agents as requests | partial | partial |
+| Pull request | Checks: what ran, with its results | Evidence: each scenario with a pass or fail mark, pictures before and after | partial | partial |
+| Pull request | Merge box states: conflicts, blocked, ready, merged | On Conversation only: ready, review required, changes requested, checks failed, blocked (the refusal), conflicts (grey), merging; a merged notice; no Resolve conflicts button | partial | partial |
+| Pull request | Merge button with options | "Merge proposal", green when ready, disabled while conflicts, change requests or failed checks hold it; "Always allow" under it; no squash or rebase | partial | partial |
 | Pull request | Close the pull request | "Close proposal", grey, below the merge box, asks first | partial | partial |
 | Pull request | Check out the pull request | Preview | partial | partial |
 
