@@ -17,8 +17,8 @@
 				{"expect": {"node": "#label-prLoad", "text": "Loading the changes…"}},
 				{"action": "host:diff", "event": {"type": "diff", "id": "pr", "revision": 5, "patch": [{"op": "replace", "path": "/root/children/1/text", "value": "Clicks: 0"}, {"op": "add", "path": "/root/children/1/onClick", "value": {"set": "state.clicks", "to": "{{state.clicks + 1}}"}}, {"op": "replace", "path": "/theme", "value": "dark"}]}},
 				{"expect": {"node": "#label-prLoad", "exists": false}},
-				{"expect": {"node": "#label-prPath", "text": "/root/children/1"}},
-				{"expect": {"node": "#label-prStat", "text": "+6  −2"}},
+				{"expect": {"node": "#label-diffPath", "text": "/root/children/1"}},
+				{"expect": {"node": "#label-diffStat", "text": "+6  −2"}},
 				{"expect": {"image": "files"}}
 			]
 		}

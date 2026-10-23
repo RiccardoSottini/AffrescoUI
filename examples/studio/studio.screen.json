@@ -337,7 +337,8 @@
 		"repoOpen": false,
 		"branchOpen": false,
 		"prTab": "conversation",
-		"prDiff": null
+		"prDiff": null,
+		"historyDiff": null
 	},
 	"stateTypes": {
 		"theme": {
@@ -613,7 +614,19 @@
 		"prStale": "{{computed.current == null || state.prDiff == null || state.prDiff.for != computed.current.id + ':' + computed.current.head}}",
 		"prAfter": "{{computed.prStale || state.prDiff.patch == null ? null : applyPatch(state.hostDocument, state.prDiff.patch)}}",
 		"prFiles": "{{computed.prAfter == null ? [] : map(computed.current.touches, {path: it, d: diffLines(atPointer(state.hostDocument, it) == null ? '' : formatJson(atPointer(state.hostDocument, it), 2), atPointer(computed.prAfter, it) == null ? '' : formatJson(atPointer(computed.prAfter, it), 2), {context: 3})})}}",
-		"prTimeline": "{{computed.current == null ? [] : concat([{icon: 'git-commit-horizontal', text: t('pr.pushed', {author: computed.current.author, n: computed.current.commits, short: computed.current.short})}], map(computed.current.approvals ?? [], {icon: 'check', text: t('pr.approved', {who: it})}), empty(computed.current.policy ?? '') ? [] : [{icon: 'shield', text: t('pr.needs', {policy: computed.current.policy})}], computed.current.id == state.previewing ? [{icon: 'eye', text: t('pr.previewed')}] : [])}}"
+		"prTimeline": "{{computed.current == null ? [] : concat([{icon: 'git-commit-horizontal', text: t('pr.pushed', {author: computed.current.author, n: computed.current.commits, short: computed.current.short})}], map(computed.current.approvals ?? [], {icon: 'check', text: t('pr.approved', {who: it})}), empty(computed.current.policy ?? '') ? [] : [{icon: 'shield', text: t('pr.needs', {policy: computed.current.policy})}], computed.current.id == state.previewing ? [{icon: 'eye', text: t('pr.previewed')}] : [])}}",
+		"hStale": "{{computed.entry == null || state.historyDiff == null || state.historyDiff.for != computed.entry.number + ':' + state.revision}}",
+		"hBefore": "{{computed.hStale || state.historyDiff.base == null ? null : applyPatch(state.hostDocument, state.historyDiff.base)}}",
+		"hAfter": "{{computed.hBefore == null || state.historyDiff.commit == null ? null : applyPatch(computed.hBefore, state.historyDiff.commit)}}",
+		"hAreas": "{{computed.hAfter == null ? [] : map(map(state.historyDiff.commit, split(it.path, '/')), it[1] == 'root' && length(it) > 3 ? '/' + join(slice(it, 1, 4), '/') : '/' + it[1])}}",
+		"hFiles": "{{map(filter(computed.hAreas, indexOf(computed.hAreas, it) == index), {path: it, d: diffLines(atPointer(computed.hBefore, it) == null ? '' : formatJson(atPointer(computed.hBefore, it), 2), atPointer(computed.hAfter, it) == null ? '' : formatJson(atPointer(computed.hAfter, it), 2), {context: 3})})}}"
+	},
+	"watch": {
+		"state.historyPick": "requestHistoryDiff",
+		"state.tab": "requestHistoryDiff",
+		"state.history": "requestHistoryDiff",
+		"state.revision": "requestHistoryDiff",
+		"state.hostDocument": "requestHistoryDiff"
 	},
 	"styles": {
 		"card": {
@@ -2217,6 +2230,60 @@
 						"to": "{{event.patch}}"
 					}
 				]
+			},
+			{
+				"if": "{{state.historyDiff != null && computed.entry != null && event.id == 'hBase' + computed.entry.number}}",
+				"then": [
+					{
+						"set": "state.historyDiff.base",
+						"to": "{{event.patch}}"
+					}
+				]
+			},
+			{
+				"if": "{{state.historyDiff != null && computed.entry != null && event.id == 'hCommit' + computed.entry.number}}",
+				"then": [
+					{
+						"set": "state.historyDiff.commit",
+						"to": "{{event.patch}}"
+					}
+				]
+			}
+		],
+		"requestHistoryDiff": [
+			{
+				"note": "Two diffs make a commit's changes: HEAD to its parent gives the document before it, its parent to it the commit"
+			},
+			{
+				"if": "{{state.tab == 'history' && state.hostDocument != null && computed.entry != null && computed.entry.number > 0 && computed.hStale}}",
+				"then": [
+					{
+						"set": "state.historyDiff",
+						"to": {
+							"for": "{{computed.entry.number + ':' + state.revision}}",
+							"base": null,
+							"commit": null
+						}
+					},
+					{
+						"send": "host",
+						"data": {
+							"type": "diff",
+							"from": "HEAD",
+							"to": "{{computed.entry.number - 1}}",
+							"id": "{{'hBase' + computed.entry.number}}"
+						}
+					},
+					{
+						"send": "host",
+						"data": {
+							"type": "diff",
+							"from": "{{computed.entry.number - 1}}",
+							"to": "{{computed.entry.number}}",
+							"id": "{{'hCommit' + computed.entry.number}}"
+						}
+					}
+				]
 			}
 		]
 	},
@@ -2894,7 +2961,7 @@
 								"children": [
 									{
 										"id": "history",
-										"type": "table",
+										"type": "list",
 										"anchors": {
 											"left": 6,
 											"right": 6,
@@ -2902,41 +2969,9 @@
 											"bottom": 8
 										},
 										"color": "transparent",
-										"rowHeight": 30,
-										"items": "{{map(reverse(state.history), {id: text(it.number), cells: [t('history.glyph', {kind: length(it.parents ?? []) > 1 ? 'merge' : 'commit'}), it.number, it.short, it.author, it.message, it.committer != it.author ? it.committer : '']})}}",
+										"rowHeight": 48,
+										"items": "{{map(reverse(state.history), {id: text(it.number), label: it.message, icon: length(it.parents ?? []) > 1 ? 'git-merge' : 'git-commit-horizontal', detail: t('history.row', {author: it.author, short: it.short, approved: it.committer != it.author ? 'yes' : 'no', committer: it.committer})})}}",
 										"value": "{{computed.entry != null ? text(computed.entry.number) : ''}}",
-										"columns": [
-											{
-												"id": "graph",
-												"title": "{{t('history.graph')}}",
-												"width": 44
-											},
-											{
-												"id": "number",
-												"title": "#",
-												"width": 36
-											},
-											{
-												"id": "short",
-												"title": "{{t('history.commit')}}",
-												"width": 72
-											},
-											{
-												"id": "author",
-												"title": "{{t('history.author')}}",
-												"width": 80
-											},
-											{
-												"id": "message",
-												"title": "{{t('history.message')}}",
-												"width": 160
-											},
-											{
-												"id": "approved",
-												"title": "{{t('history.approved')}}",
-												"width": 96
-											}
-										],
 										"textColor": "@color.text",
 										"selectedTextColor": "@color.text",
 										"selectedBackground": "@color.accentSoft",
@@ -3284,106 +3319,15 @@
 															},
 															{
 																"id": "prFile",
+																"use": "diffFile",
 																"when": "{{state.prTab == 'files'}}",
 																"repeat": {
 																	"for": "f",
 																	"in": "computed.prFiles"
 																},
-																"type": "stack",
-																"gap": 0,
-																"color": "@color.card",
-																"radius": 6,
-																"borderWidth": 1,
-																"borderColor": "@color.border",
-																"anchors": {
-																	"left": 0,
-																	"right": 0
-																},
-																"height": "{{36 + sum(map(f.d.hunks, 20 + length(it.lines) * 18))}}",
-																"children": [
-																	{
-																		"id": "prFileHead",
-																		"color": "@color.cardRaised",
-																		"radius": 6,
-																		"anchors": {
-																			"left": 0,
-																			"right": 0
-																		},
-																		"height": 36,
-																		"children": [
-																			{
-																				"id": "label-prPath",
-																				"type": "label",
-																				"font": "symbols",
-																				"textColor": "@color.text",
-																				"text": "{{f.path}}",
-																				"anchors": {
-																					"left": 10,
-																					"right": 120,
-																					"top": 9
-																				},
-																				"height": 18,
-																				"fitText": false
-																			},
-																			{
-																				"id": "label-prStat",
-																				"type": "label",
-																				"font": "symbols",
-																				"textColor": "{{f.d.added + f.d.removed == 0 ? '@color.muted' : '@color.text'}}",
-																				"text": "{{t('pr.stat', {added: f.d.added, removed: f.d.removed})}}",
-																				"anchors": {
-																					"right": 10,
-																					"top": 9
-																				},
-																				"width": 104,
-																				"height": 18,
-																				"align": "end"
-																			}
-																		]
-																	},
-																	{
-																		"id": "prHunk",
-																		"repeat": {
-																			"for": "h",
-																			"in": "f.d.hunks"
-																		},
-																		"type": "stack",
-																		"gap": 0,
-																		"anchors": {
-																			"left": 0,
-																			"right": 0
-																		},
-																		"height": "{{20 + length(h.lines) * 18}}",
-																		"children": [
-																			{
-																				"id": "label-prHunk",
-																				"type": "label",
-																				"style": "codeRow",
-																				"textColor": "@color.muted",
-																				"color": "@color.diffHunk",
-																				"text": "{{h.header}}",
-																				"fitText": false,
-																				"height": 20,
-																				"padding": 6
-																			},
-																			{
-																				"id": "label-prLine",
-																				"type": "label",
-																				"style": "codeRow",
-																				"repeat": {
-																					"for": "l",
-																					"in": "h.lines"
-																				},
-																				"textColor": "@color.text",
-																				"fitText": false,
-																				"color": "{{l.kind == 'insert' ? '@color.diffAdd' : l.kind == 'delete' ? '@color.diffDel' : 'transparent'}}",
-																				"text": "{{pad(text(l.old ?? ''), 4, ' ') + ' ' + pad(text(l.new ?? ''), 4, ' ') + '  ' + (l.kind == 'insert' ? '+' : l.kind == 'delete' ? '-' : ' ') + ' ' + l.text}}",
-																				"height": 18,
-																				"padding": 0
-																			}
-																		]
-																	}
-																]
+																"with": {
+																	"file": "{{f}}"
+																}
 															},
 															{
 																"id": "evidenceBar",
@@ -3916,6 +3860,41 @@
 															}
 														},
 														"label": "{{t('history.restoreTip')}}"
+													}
+												]
+											},
+											{
+												"id": "historyFiles",
+												"when": "{{computed.entry != null}}",
+												"type": "stack",
+												"gap": 6,
+												"scroll": "vertical",
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 164,
+													"bottom": 12
+												},
+												"children": [
+													{
+														"id": "label-historyFiles",
+														"style": "caption",
+														"text": "{{computed.entry.number == 0 ? t('history.first') : computed.hAfter != null ? t('history.files', {n: length(computed.hFiles)}) : computed.hStale || state.historyDiff.base == null || state.historyDiff.commit == null ? t('history.loading') : t('history.unshown')}}",
+														"anchors": {
+															"left": 0
+														},
+														"height": 18
+													},
+													{
+														"id": "historyFile",
+														"use": "diffFile",
+														"repeat": {
+															"for": "f",
+															"in": "computed.hFiles"
+														},
+														"with": {
+															"file": "{{f}}"
+														}
 													}
 												]
 											}
@@ -5585,6 +5564,109 @@
 						},
 						"width": 1,
 						"color": "@color.toolbarBorder"
+					}
+				]
+			}
+		},
+		"diffFile": {
+			"params": {
+				"file": null
+			},
+			"node": {
+				"id": "diffFile",
+				"type": "stack",
+				"gap": 0,
+				"color": "@color.card",
+				"radius": 6,
+				"borderWidth": 1,
+				"borderColor": "@color.border",
+				"anchors": {
+					"left": 0,
+					"right": 0
+				},
+				"height": "{{36 + sum(map(file.d.hunks, 20 + length(it.lines) * 18))}}",
+				"children": [
+					{
+						"id": "diffFileHead",
+						"color": "@color.cardRaised",
+						"radius": 6,
+						"anchors": {
+							"left": 0,
+							"right": 0
+						},
+						"height": 36,
+						"children": [
+							{
+								"id": "label-diffPath",
+								"type": "label",
+								"font": "symbols",
+								"textColor": "@color.text",
+								"text": "{{file.path}}",
+								"anchors": {
+									"left": 10,
+									"right": 120,
+									"top": 9
+								},
+								"height": 18,
+								"fitText": false
+							},
+							{
+								"id": "label-diffStat",
+								"type": "label",
+								"font": "symbols",
+								"textColor": "{{file.d.added + file.d.removed == 0 ? '@color.muted' : '@color.text'}}",
+								"text": "{{t('pr.stat', {added: file.d.added, removed: file.d.removed})}}",
+								"anchors": {
+									"right": 10,
+									"top": 9
+								},
+								"width": 104,
+								"height": 18,
+								"align": "end"
+							}
+						]
+					},
+					{
+						"id": "diffHunk",
+						"repeat": {
+							"for": "h",
+							"in": "file.d.hunks"
+						},
+						"type": "stack",
+						"gap": 0,
+						"anchors": {
+							"left": 0,
+							"right": 0
+						},
+						"height": "{{20 + length(h.lines) * 18}}",
+						"children": [
+							{
+								"id": "label-diffHunk",
+								"type": "label",
+								"style": "codeRow",
+								"textColor": "@color.muted",
+								"color": "@color.diffHunk",
+								"text": "{{h.header}}",
+								"fitText": false,
+								"height": 20,
+								"padding": 6
+							},
+							{
+								"id": "label-diffLine",
+								"type": "label",
+								"style": "codeRow",
+								"repeat": {
+									"for": "l",
+									"in": "h.lines"
+								},
+								"textColor": "@color.text",
+								"fitText": false,
+								"color": "{{l.kind == 'insert' ? '@color.diffAdd' : l.kind == 'delete' ? '@color.diffDel' : 'transparent'}}",
+								"text": "{{pad(text(l.old ?? ''), 4, ' ') + ' ' + pad(text(l.new ?? ''), 4, ' ') + '  ' + (l.kind == 'insert' ? '+' : l.kind == 'delete' ? '-' : ' ') + ' ' + l.text}}",
+								"height": 18,
+								"padding": 0
+							}
+						]
 					}
 				]
 			}

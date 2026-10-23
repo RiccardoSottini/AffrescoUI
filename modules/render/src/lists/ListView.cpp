@@ -441,10 +441,18 @@ void ListView::paintOverlay(Painter& painter, const Font& font) const {
 }
 
 void ListView::paintRow(Painter& painter, const Font& font, std::size_t row, const Rect& area, Color color) const {
-	const float baseline = std::round(area.top + (area.height() - font.lineHeight()) / 2.0f + font.ascent());
+	const ListItem& item = model_->item(itemAt(row));
+	// A detail goes on a second line: the two are centred together
+	const float lines = item.detail.empty() ? 1.0f : 2.0f;
+	const float baseline = std::round(area.top + (area.height() - lines * font.lineHeight()) / 2.0f + font.ascent());
 	const Vec2 origin{area.left + padding(), baseline};
-	const float shift = paintIcon(painter, font, model_->item(itemAt(row)), origin, color);
+	const float shift = paintIcon(painter, font, item, origin, color);
 	painter.drawText(font, shownText(row, 0), {origin.x + shift, baseline}, color);
+	if(item.detail.empty()) return;
+	std::u32string detailText;
+	detail::decodeInto(detailText, item.detail);
+	painter.drawText(font, detailText, {origin.x + shift, baseline + std::round(font.lineHeight())},
+	                 color.withAlpha(color.a * 0.6f));
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static): declared in the public header

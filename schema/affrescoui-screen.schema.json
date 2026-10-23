@@ -2206,6 +2206,13 @@
 														"null"
 													]
 												},
+												"detail": {
+													"type": [
+														"string",
+														"number",
+														"null"
+													]
+												},
 												"cells": {
 													"type": "array",
 													"minItems": 1,
@@ -2228,7 +2235,7 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
-						"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, children (tree), expandable (tree), cells (table) }"
+						"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, detail (list), children (tree), expandable (tree), cells (table) }"
 					},
 					"expanded": {
 						"anyOf": [

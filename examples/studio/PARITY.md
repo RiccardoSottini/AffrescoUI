@@ -12,13 +12,13 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Toolbar | Current repository drop-down: list, filter, add | The connections (hosts, document servers) | partial | partial |
 | Toolbar | Current branch drop-down: filter, default, recent and other branches | main and the open proposals | missing | partial |
 | Toolbar | Fetch / pull / push button with counts and "last fetched" | Refresh from the host, reconnect when offline | missing | partial |
-| Sidebar | Changes and History tabs with counts | | partial | done |
+| Sidebar | Changes and History tabs with counts | Tabs as text buttons; no icons | partial | partial |
 | Changes | Changed files with check boxes and status icons; select all | Direct-change and permission drafts | missing | missing |
 | Changes | Summary and description, "Commit to main" | Message of a direct change, apply | partial | partial |
 | Changes | Nothing-changed state with suggestions | | partial | partial |
 | Changes | Undo the last commit | Undo | partial | partial |
-| History | Commits with avatar, summary, author and relative time | Main's revisions | partial | partial |
-| History | The chosen commit: header, files and their diffs | A revision's changes | missing | missing |
+| History | Commits with avatar, summary, author and relative time | Main's revisions, two lines: message, then author, short id, approver; no avatar or time | partial | partial |
+| History | The chosen commit: header, files and their diffs | A revision's changed sections against its parent | missing | partial |
 | History | Revert a commit; restore | Revert, restore | partial | partial |
 | Diff | Unified view: old and new line numbers, added and removed lines coloured | A proposal's sections, as formatted JSON | missing | partial |
 | Diff | Split view | | partial | partial |
@@ -34,7 +34,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | App | Keyboard shortcuts (tabs, commit, lists) | | partial | partial |
 | App | No-repository and offline states | Not connected | partial | partial |
 | Pull request | Header: title, number, state, "wants to merge N commits into main" | A proposal: open or conflicting | missing | partial |
-| Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence | missing | done |
+| Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence; nested in a second card | missing | partial |
 | Pull request | Conversation: description and timeline of commits and reviews | Opened, changes, pushed, approvals, policy | missing | partial |
 | Pull request | Sidebar: reviewers, state of each | Who approved, what the policy needs | missing | missing |
 | Pull request | Files changed: file tree, per-file +/− counts, "Viewed" | Changed sections with counts; no tree or Viewed yet | missing | partial |
@@ -47,7 +47,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Pull request | Check out the pull request | Preview | partial | partial |
 
 **Counts at the start:** 0 done, 19 partial, 17 missing.
-**Counts now:** 2 done, 25 partial, 9 missing.
+**Counts now:** 0 done, 28 partial, 8 missing.
 
 ## The Studio's own parts
 

@@ -1,0 +1,24 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../../../examples/studio",
+	"scenarios": [
+		{
+			"name": "studio-history",
+			"screen": "studio.screen.json",
+			"note": "A commit on History: its header and the sections it changed, each against its parent, unified",
+			"steps": [
+				{"action": "host:hello", "event": {"revision": 2, "head": {"short": "c3d4e5f"}, "you": "ada", "canReview": true, "mode": "default"}},
+				{"action": "host:document", "event": {"revision": 2, "head": {"short": "c3d4e5f"}, "document": {"theme": "dark", "root": {"type": "stack", "gap": 8, "children": [{"id": "title", "type": "label", "text": "Tasks", "height": 32}, {"id": "count", "type": "label", "text": "Clicks: 0", "font": "small", "width": 40, "height": 24}]}}, "state": {}, "proposals": [], "previewing": null, "mode": "default", "grants": [], "you": "ada", "canReview": true}},
+				{"action": "host:history", "event": {"revision": 2, "entries": [{"id": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1", "short": "a1a1a1a", "number": 0, "parents": [], "author": "host", "committer": "host", "message": "The tasks screen", "time": 1759990000, "proposal": null}, {"id": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2", "short": "b2b2b2b", "number": 1, "parents": ["a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"], "author": "ada", "committer": "ada", "message": "Name the list", "time": 1759990100, "proposal": null}, {"id": "c3d4e5fc3d4e5fc3d4e5fc3d4e5fc3d4e5fc3d4", "short": "c3d4e5f", "number": 2, "parents": ["b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"], "author": "claude", "committer": "ada", "message": "Count the clicks", "time": 1759990200, "proposal": 4}]}},
+				{"key": "mod+2"},
+				{"expect": {"node": "#label-historyFiles", "text": "Loading the changes…"}},
+				{"action": "host:diff", "event": {"type": "diff", "id": "hBase2", "revision": 2, "patch": [{"op": "replace", "path": "/root/children/1/text", "value": "0"}, {"op": "replace", "path": "/theme", "value": "light"}]}},
+				{"action": "host:diff", "event": {"type": "diff", "id": "hCommit2", "revision": 2, "patch": [{"op": "replace", "path": "/root/children/1/text", "value": "Clicks: 0"}, {"op": "replace", "path": "/theme", "value": "dark"}]}},
+				{"expect": {"node": "#label-historyFiles", "text": "2 changed sections"}},
+				{"expect": {"node": "#label-diffPath", "text": "/root/children/1"}},
+				{"expect": {"image": "commit"}}
+			]
+		}
+	]
+}

@@ -234,8 +234,9 @@ which outlive it or are replaced first.
 - **Events out:** `onEvent` (`emit` steps), `onSend` (`send` steps to a channel), `onConnect`, `onUpdated`.
 - **Showing a document for a moment:** `setHandlersSuspended(true)` keeps the panels in line without running
   `onShow`, `onHide` or `watch`, taking focus or animating colours (pictures of proposals use it).
-- **Item icons:** a list, tree or table item may carry `icon` (a glyph name) and `iconColor`; an application's
-  model gives them through `ListItem`, so file icon themes stay in the application (`examples/forge`).
+- **Item icons:** a list, tree or table item may carry `icon` (a glyph name) and `iconColor`, and a list item a dimmed
+  second line, `detail`; an application's model gives them through `ListItem`, so file icon themes stay in the
+  application (`examples/forge`).
 - **Expression functions:** a new function is a new row of the table in its group's file
   (`src/functions/ExpressionFunctions<Group>.cpp`): its name, arguments, one line of documentation, arity and
   implementation.

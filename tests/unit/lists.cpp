@@ -353,6 +353,8 @@ TEST_CASE("items: a tree is read in pre-order, within limits, and bad items are 
 	CHECK(tree[3] == ListItem{"1", {"1"}, 2, 4, false});
 	CHECK(tree[5] == ListItem{"empty", {"empty"}, 0, 6, true});
 	CHECK(readItems(items, false, "items").size() == 3); // a list ignores children
+	const auto detailed = readItems(json::parse(R"([{ "id": "c1", "detail": "ada · 3f2a" }])"), false, "items");
+	CHECK(detailed.front().detail == "ada · 3f2a");
 
 	CHECK_THROWS(static_cast<void>(readItems(json("x"), false, "items")));
 	CHECK_THROWS(static_cast<void>(readItems(json::parse(R"([{ "label": "no id" }])"), false, "items")));

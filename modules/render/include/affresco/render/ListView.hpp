@@ -28,6 +28,7 @@ struct ListItem {
 	bool expandable = false; ///< Has children, or may get them: a tree shows a chevron.
 	std::string icon = {};   ///< A glyph drawn before the label, by name (Font::codepointNamed()), or empty.
 	std::optional<Color> iconColor = {}; ///< The icon's colour; the text's if not set.
+	std::string detail = {};             ///< A second line, UTF-8, drawn dimmed under the label (a list's), or empty.
 
 	/// @brief Equal when every field is.
 	bool operator==(const ListItem&) const = default;

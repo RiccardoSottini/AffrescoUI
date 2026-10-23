@@ -58,7 +58,7 @@ void readIcon(const json& value, const auto& place, ListItem& item) {
 }
 
 /// @brief Reads one item, without its children.
-/// @param value A string, or {id, label, cells, expandable, icon, iconColor}.
+/// @param value A string, or {id, label, cells, expandable, icon, iconColor, detail}.
 /// @param level The list it is in.
 /// @param index Its place there.
 /// @return The item, its depth and end not set.
@@ -81,6 +81,8 @@ ListItem readItem(const json& value, const Level& level, std::size_t index) {
 	if(const auto expandable = value.find("expandable"); expandable != value.end())
 		item.expandable = boolean(*expandable, place() + ".expandable");
 	readIcon(value, place, item);
+	if(const auto detail = value.find("detail"); detail != value.end() && !detail->is_null())
+		item.detail = text(*detail);
 	return item;
 }
 
