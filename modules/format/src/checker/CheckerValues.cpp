@@ -464,6 +464,13 @@ PathKey Checker::parseIndex(std::string_view inner, const std::string& place) {
 	return key;
 }
 
+void Checker::writeSetting(const std::vector<PathKey>& keys, const std::string& place) {
+	std::string key;
+	for(std::size_t i = 1; i < keys.size(); ++i)
+		key += (i > 1 ? "." : "") + (keys[i].name.is_string() ? keys[i].name.get<std::string>() : "[...]");
+	if(!document_["settings"].contains(key)) report(place, "there is no setting '" + key + "' in \"settings\"");
+}
+
 void Checker::write(const json& target, const Shape& value, Change change, const Scope& scope,
                     const std::string& place) {
 	if(isDynamic(target)) read(target, scope, place); // a computed place: where it writes isn't known
@@ -473,10 +480,7 @@ void Checker::write(const json& target, const Shape& value, Change change, const
 	for(const PathKey& key : *keys)
 		if(!key.expression.is_null()) read(key.expression, scope, place);
 	if(keys->front().name == "settings" && document_.contains("settings")) { // a setting: runStateStep() writes it
-		std::string key;
-		for(std::size_t i = 1; i < keys->size(); ++i)
-			key += (i > 1 ? "." : "") + ((*keys)[i].name.is_string() ? (*keys)[i].name.get<std::string>() : "[...]");
-		if(!document_["settings"].contains(key)) report(place, "there is no setting '" + key + "' in \"settings\"");
+		writeSetting(*keys, place);
 		return;
 	}
 	if(keys->front().name != "state") {

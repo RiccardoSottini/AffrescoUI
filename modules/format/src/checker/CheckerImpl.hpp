@@ -379,6 +379,10 @@ private:
 	/// @param scope The variables (for index expressions).
 	/// @param place Where it is.
 	void write(const json& target, const Shape& value, Change change, const Scope& scope, const std::string& place);
+	/// @brief Checks that the setting a step writes is declared in "settings".
+	/// @param keys The path written, "settings" first.
+	/// @param place Where it is.
+	void writeSetting(const std::vector<PathKey>& keys, const std::string& place);
 
 	/* Typed state (CheckerTypes.cpp) */
 	/// @brief Reads "stateTypes": what the state may hold gains each declared key and property.
