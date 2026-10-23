@@ -94,4 +94,4 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | --- | --- | --- |
 | Chat assistant panel | done | the shared assistant add-on in Haven's colours, opened from a chat button in the top bar; requests come back as proposals to accept or reject |
 | Overflow menus | done | raised and rounded, with a shadow, an icon and a title per item, on the app bars, the dialogs, each automation and each step |
-| Shared kit components | done | the kit quick pick, themed through `kit.*` colours |
+| Shared kit components | done | the kit menu and dropdowns, themed through `kit.*` colours; the search is Haven's own |
