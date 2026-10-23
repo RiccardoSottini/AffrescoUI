@@ -11,16 +11,16 @@ system of six bodies on circular orbits in one plane.
 | # | Feature | Status | How |
 |---|---|---|---|
 | C1 | A 3D view of the bodies and their orbits, drawn in perspective | done | computed `projected`, discs and `path`s, farthest first |
-| C2 | A star field behind | done | a `path` of fixed points |
+| C2 | A star field behind, turning with the camera | done | computed `starScreen`: 400 points on a sphere, through the camera's turn |
 | C3 | Turn the camera by dragging, zoom with the wheel | done | `onDrag`, `onScroll` on the view |
 | C4 | Select a body by clicking it, the selection ringed | done | `onPress` on each disc |
 | C5 | A glow round the Sun | done | `shadow` on the Sun's disc |
 | C6 | Labels by the bodies | done | a repeated label |
-| C7 | Selected body's info, top left: name, distance, radius, apparent size | done | computed `sight` and `info`, from the camera-space position |
-| C8 | Time, top right: date, rate ("1000x faster"), paused | done | `formatDate` from an invented epoch, computed `rate` |
-| C9 | Time rate up and down (L, K), reverse (J), pause (Space), now (!) | done | screen `keys`; `!` is `shift+1` |
-| C10 | Go to the selected body (G), centre it (C), follow it | missing | |
-| C11 | Orbits, labels and markers toggled from the keyboard and a menu | missing | |
+| C7 | Selected body's info, top left: name, distance, radius, apparent size, phase | done | computed `info`: distance and apparent size from the radius in km, phase from the angle Sun–body–camera |
+| C8 | Time, top right: date, rate ("1000x faster"), reversed, paused | done | `formatDate` from an invented epoch, computed `rate`; time stops at the window's ends |
+| C9 | Time rate up and down (L, K), reverse (J), pause (Space), now (!) | done | screen `keys`; `!` is `shift+1` and resets the rate |
+| C10 | Go to the selected body (G), centre it (C), follow it (F) | done | titled actions animating `fly` and the distance; computed `target` |
+| C11 | Orbits, labels and markers toggled from the keyboard and a menu | part | O and P and the View menu (menu bar and toolbar); no markers |
 | C12 | Solar system browser: the bodies as a tree | missing | |
 | C13 | Eclipse finder | missing | |
 | C14 | Bookmarks (saved camera places) | missing | |
@@ -37,7 +37,7 @@ system of six bodies on circular orbits in one plane.
 | S3 | Constellation lines and names | missing | |
 | S4 | Toggle bar at the bottom (lines, ground, atmosphere, grid) | missing | |
 | S5 | Object info on selection, top left | missing | |
-| S6 | Time controls: faster, slower, now, real time | part | play, next event, day 0 |
+| S6 | Time controls: faster, slower, now, real time | part | play, next or previous event (by direction), day 0, the time keys; no real time |
 | S7 | Annotations on the chart (notes, marks) | done | the canvas's items |
 
 ## Orrery's own
@@ -57,3 +57,4 @@ system of six bodies on circular orbits in one plane.
 | 0 | Before: the 3D view and the thumbnails came from a C++ host (`main.cpp`), counted as part | 4 / 10 / 15 | 15,178 + 2,654 for `main.cpp` |
 | 1 | JSON only: the 3D view and the thumbnails are in the screen, the host is the standard one | 11 / 3 / 15 | 16,006 |
 | 2 | Celestia's overlays: selected body's info and phase, the date and rate, the time keys | 14 / 4 / 11 | 17,519 |
+| 3 | Go to, centre, follow; stars turn with the camera; culling behind it; clamped time; orbit and label toggles, View menu | 15 / 5 / 9 | 20,262 |

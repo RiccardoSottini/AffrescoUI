@@ -242,6 +242,9 @@
 					}
 				},
 				{
+					"key": "space"
+				},
+				{
 					"key": "l"
 				},
 				{
@@ -253,7 +256,7 @@
 				{
 					"expect": {
 						"node": "#time-rate",
-						"text": "200 days a second"
+						"text": "17,280,000x faster: 200 days a second"
 					}
 				},
 				{
@@ -274,7 +277,7 @@
 				{
 					"expect": {
 						"node": "#time-rate",
-						"text": "Reversed: 2 days a second"
+						"text": "Reversed, 172,800x faster: 2 days a second"
 					}
 				},
 				{
@@ -293,6 +296,149 @@
 					"expect": {
 						"state": "time",
 						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "speed",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "go-to-and-follow-the-selection",
+			"steps": [
+				{
+					"key": "g"
+				},
+				{
+					"wait": 1000
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				},
+				{
+					"expect": {
+						"state": "fly",
+						"is": 0
+					}
+				},
+				{
+					"key": "f"
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": ""
+					}
+				},
+				{
+					"key": "f"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				}
+			]
+		},
+		{
+			"name": "centre-the-selection",
+			"steps": [
+				{
+					"key": "c"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "fly",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "camera.tx",
+						"is": 4.3
+					}
+				}
+			]
+		},
+		{
+			"name": "toggle-orbits-and-labels",
+			"steps": [
+				{
+					"key": "o"
+				},
+				{
+					"expect": {
+						"state": "showOrbits",
+						"is": false
+					}
+				},
+				{
+					"key": "p"
+				},
+				{
+					"expect": {
+						"state": "showLabels",
+						"is": false
+					}
+				},
+				{
+					"key": "o"
+				},
+				{
+					"expect": {
+						"state": "showOrbits",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "time-stops-at-the-start",
+			"steps": [
+				{
+					"key": "j"
+				},
+				{
+					"key": "space"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#next-label",
+						"text": "No more events in this window"
 					}
 				}
 			]
