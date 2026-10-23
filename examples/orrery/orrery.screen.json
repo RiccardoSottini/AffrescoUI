@@ -799,7 +799,17 @@
 		"flying": "",
 		"flights": 0,
 		"landed": 0,
-		"nextPlace": 1
+		"nextPlace": 1,
+		"sceneView": {
+			"camera": {
+				"target": [0, 0, 0],
+				"yaw": 0.4,
+				"pitch": 0.75,
+				"distance": 15,
+				"fieldOfView": 0.8533
+			},
+			"selection": ["earth"]
+		}
 	},
 	"computed": {
 		"ids": "{{map(state.bodies, it.id)}}",
@@ -828,18 +838,15 @@
 		"view": "{{ {w: computed.pane.w, h: computed.pane.h, f: state.zoom * min(computed.pane.w, computed.pane.h), distance: state.camera.distance, cy: cos(state.camera.yaw), sy: sin(state.camera.yaw), cp: cos(state.camera.pitch), sp: sin(state.camera.pitch)} }}",
 		"stars": "{{map(range(400), {u: abs(sin(index * 12.9898) * 43758.5453) % 1 * 2 - 1, t: abs(sin(index * 78.233) * 12543.917) % 1 * 2 * pi()})}}",
 		"starVectors": "{{map(computed.stars, {x: sqrt(1 - it.u * it.u) * cos(it.t), y: it.u, z: sqrt(1 - it.u * it.u) * sin(it.t)})}}",
-		"starCamera": "{{map(computed.starVectors, {x: it.x * computed.view.cy - it.z * computed.view.sy, yy: (it.x * computed.view.sy + it.z * computed.view.cy) * computed.view.sp - it.y * computed.view.cp, dd: -((it.x * computed.view.sy + it.z * computed.view.cy) * computed.view.cp + it.y * computed.view.sp)})}}",
-		"starScreen": "{{filter(map(filter(computed.starCamera, it.dd > 0.1), {px: computed.view.w / 2 + it.x * computed.view.f / it.dd, py: computed.view.h / 2 + it.yy * computed.view.f / it.dd}), it.px > 0 && it.px < computed.view.w && it.py > 0 && it.py < computed.view.h)}}",
 		"target": "{{state.follow != '' && computed.followed ? {x: computed.followed.x, z: computed.followed.z} : {x: state.camera.tx + (computed.flyPosition ? computed.flyPosition.x - state.camera.tx : 0) * state.fly, z: state.camera.tz + (computed.flyPosition ? computed.flyPosition.z - state.camera.tz : 0) * state.fly}}}",
 		"turned": "{{map(computed.placed, merge(it, {x1: (it.x - computed.target.x) * computed.view.cy - (it.z - computed.target.z) * computed.view.sy, z1: (it.x - computed.target.x) * computed.view.sy + (it.z - computed.target.z) * computed.view.cy}))}}",
 		"projected": "{{sort(map(computed.turned, merge(it, {depth: computed.view.distance - it.z1 * computed.view.cp, px: computed.view.w / 2 + it.x1 * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), py: computed.view.h / 2 + it.z1 * computed.view.sp * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), r: min(max(3, it.size * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp)), computed.view.h * 0.4)})), it.depth, 'desc')}}",
-		"orbitPaths": "{{map(filter(computed.placed, it.parent != ''), {id: it.id, ox: it.cx - computed.target.x, oz: it.cz - computed.target.z, radius: it.radius})}}",
 		"shaded": "{{map(computed.projected, merge(it, {k: it.parent == '' ? 1 : (1 + ((computed.sun.x1 - it.x1) * -it.x1 + (computed.sun.z1 - it.z1) * (computed.view.distance * computed.view.cp - it.z1)) / max(hypot((computed.sun.x1 - it.x1), (computed.sun.z1 - it.z1)) * sqrt(it.x1 * it.x1 + computed.view.distance * computed.view.distance - 2 * computed.view.distance * it.z1 * computed.view.cp + it.z1 * it.z1), 0.000001)) / 2, ux: (computed.sun.x1 - it.x1) / max(hypot((computed.sun.x1 - it.x1), (computed.sun.z1 - it.z1) * computed.view.sp), 0.000001), uy: (computed.sun.z1 - it.z1) * computed.view.sp / max(hypot((computed.sun.x1 - it.x1), (computed.sun.z1 - it.z1) * computed.view.sp), 0.000001)}))}}",
 		"sight": "{{find(computed.projected, it.id == state.selected)}}",
 		"sun": "{{find(computed.turned, it.parent == '')}}",
 		"range": "{{computed.sight ? sqrt(computed.sight.x1 * computed.sight.x1 + computed.view.distance * computed.view.distance - 2 * computed.view.distance * computed.sight.z1 * computed.view.cp + computed.sight.z1 * computed.sight.z1) : 0}}",
-		"info": "{{computed.sight ? {name: computed.selectedBody.name, distance: computed.range / 4.3, lit: computed.sight.parent == '' ? 1 : (1 + ((computed.sun.x1 - computed.sight.x1) * -computed.sight.x1 + (computed.sun.z1 - computed.sight.z1) * (computed.view.distance * computed.view.cp - computed.sight.z1)) / (hypot(computed.sun.x1 - computed.sight.x1, computed.sun.z1 - computed.sight.z1) * computed.range)) / 2} : null}}",
-		"apparent": "{{computed.info ? degrees(2 * atan(computed.selectedBody.km / (computed.info.distance * 149600000))) : 0}}",
+		"info": "{{computed.sight ? {name: computed.selectedBody.name, distance: computed.range / 4.3, lit: computed.sight.parent == '' ? 1 : (1 + ((computed.sun.x1 - computed.sight.x1) * -computed.sight.x1 + (computed.sun.z1 - computed.sight.z1) * (computed.view.distance * computed.view.cp - computed.sight.z1)) / max(hypot(computed.sun.x1 - computed.sight.x1, computed.sun.z1 - computed.sight.z1) * computed.range, 0.000001)) / 2} : null}}",
+		"apparent": "{{computed.sight && computed.range > 0 ? degrees(2 * atan(computed.sight.size / computed.range)) : 0}}",
 		"apparentText": "{{computed.apparent >= 1 ? fixed(computed.apparent, 2) + '°' : computed.apparent * 60 >= 1 ? fixed(computed.apparent * 60, 1) + '′' : fixed(computed.apparent * 3600, 1) + '″'}}",
 		"clock": "{{formatDate(dateMs('2030-01-01') + state.time * 86400000, 'yyyy-MM-dd HH:mm', 'utc') + ' UTC'}}",
 		"rate": "{{state.playing ? (state.speed < 0 ? 'Reversed, ' : '') + formatNumber(abs(state.speed) * 1728000, 0, 0) + 'x faster: ' + fixed(abs(state.speed) * 20, abs(state.speed) < 0.05 ? 2 : 0) + ' days a second' : 'Paused'}}",
@@ -854,8 +861,57 @@
 		"bodyLevel3": "{{map(computed.bodyLevel2, length(computed.bodyKids[index]) > 0 ? merge(it, {children: map(computed.bodyKids[index], computed.bodyLevel2[it])}) : it)}}",
 		"bodyTree": "{{map(filter(range(length(state.bodies)), state.bodies[it].parent == ''), computed.bodyLevel3[it])}}",
 		"bookmarkRows": "{{map(state.bookmarks, {id: it.id, label: it.label, icon: 'bookmark'})}}",
-		"renderOptions": "{{[{id: 'orbits', title: 'Orbits', on: state.showOrbits, run: 'toggleOrbits'}, {id: 'labels', title: 'Labels', on: state.showLabels, run: 'toggleLabels'}, {id: 'stars', title: 'Stars', on: state.showStars, run: 'toggleStars'}, {id: 'shading', title: 'Lit side', on: state.showShading, run: 'toggleShading'}, {id: 'glow', title: 'Sun glow', on: state.showGlow, run: 'toggleGlow'}]}}"
+		"renderOptions": "{{[{id: 'orbits', title: 'Orbits', on: state.showOrbits, run: 'toggleOrbits'}, {id: 'labels', title: 'Labels', on: state.showLabels, run: 'toggleLabels'}, {id: 'stars', title: 'Stars', on: state.showStars, run: 'toggleStars'}, {id: 'shading', title: 'Lit side', on: state.showShading, run: 'toggleShading'}, {id: 'glow', title: 'Sun glow', on: state.showGlow, run: 'toggleGlow'}]}}",
+		"sceneView": "{{ {camera: {target: [computed.target.x, 0, computed.target.z], yaw: state.camera.yaw, pitch: state.camera.pitch, distance: computed.view.distance, fieldOfView: 2 * atan(computed.view.h / (2 * computed.view.f))}, selection: state.selected != '' ? [state.selected] : []} }}",
+		"orbitRings": "{{map(filter(computed.placed, it.parent != ''), {id: it.id, cx: it.cx, cz: it.cz, radius: it.radius})}}",
+		"orbitSegments": "{{state.showOrbits ? map(range(length(computed.orbitRings) * 64), {id: 'orbit-' + computed.orbitRings[floor(index / 64)].id + '-' + index % 64, translation: [computed.orbitRings[floor(index / 64)].cx + computed.orbitRings[floor(index / 64)].radius * cos((index % 64 + 0.5) * pi() / 32), 0, computed.orbitRings[floor(index / 64)].cz + computed.orbitRings[floor(index / 64)].radius * sin((index % 64 + 0.5) * pi() / 32)], rotationDegrees: [0, 90 - (index % 64 + 0.5) * 5.625, 0], scale: [computed.orbitRings[floor(index / 64)].radius * pi() / 62, computed.view.distance * 0.6 / computed.view.f, computed.view.distance * 0.6 / computed.view.f], mesh: 'cube', material: computed.orbitRings[floor(index / 64)].id == state.selected ? 'orbit-on' : 'orbit'}) : []}}",
+		"starNodes": "{{state.showStars ? map(computed.starVectors, {id: 'star-' + index, translation: [computed.target.x + it.x * 300, it.y * 300, computed.target.z + it.z * 300], scale: [310 * 0.8 / computed.view.f, 310 * 0.8 / computed.view.f, 310 * 0.8 / computed.view.f], mesh: 'cube', material: 'star'}) : []}}",
+		"bodyNodes": "{{map(computed.projected, {id: '' + it.id, name: it.name, translation: [it.x, 0, it.z], scale: [it.r * it.depth / computed.view.f, it.r * it.depth / computed.view.f, it.r * it.depth / computed.view.f], mesh: 'sphere', material: 'm-' + it.id, visible: it.depth > 0.3})}}",
+		"bodyMaterials": "{{map(state.bodies, it.parent == '' ? {id: 'm-' + it.id, baseColor: [0, 0, 0, 1], emissive: state.showGlow ? [1.5, 0.85, 0.22] : [1.1, 0.65, 0.18], roughness: 1} : (state.showShading ? {id: 'm-' + it.id, baseColor: it.color, roughness: 0.9} : {id: 'm-' + it.id, baseColor: [0, 0, 0, 1], emissive: [it.color[0] * 0.8, it.color[1] * 0.8, it.color[2] * 0.8], roughness: 1}))}}",
+		"sceneGraph": "{{ {nodes: concat(computed.bodyNodes, [{id: 'sunlight', translation: computed.sun ? [computed.sun.x, 0, computed.sun.z] : [0, 0, 0], light: {type: 'point', color: [1, 0.95, 0.85], intensity: 60}}], state.showGlow && computed.sun ? [{id: 'halo', translation: [computed.sun.x, 0, computed.sun.z], scale: [1.7, 1.7, 1.7], mesh: 'sphere', material: 'halo'}] : [], computed.orbitSegments, computed.starNodes), materials: concat(computed.bodyMaterials, [{id: 'orbit', baseColor: [0, 0, 0, 1], emissive: [0.1, 0.12, 0.18], roughness: 1}, {id: 'orbit-on', baseColor: [0, 0, 0, 1], emissive: [0.9, 0.55, 0.08], roughness: 1}, {id: 'star', baseColor: [0, 0, 0, 1], emissive: [0.75, 0.8, 0.9], roughness: 1}, {id: 'halo', baseColor: [1, 0.6, 0.1, 0.12], emissive: [0.5, 0.3, 0.05], alphaMode: 'blend', roughness: 1}])} }}"
 	},
+	"watch": {
+		"state.camera": [
+			{
+				"run": "syncScene"
+			}
+		],
+		"state.zoom": [
+			{
+				"run": "syncScene"
+			}
+		],
+		"state.follow": [
+			{
+				"run": "syncScene"
+			}
+		],
+		"state.fly": [
+			{
+				"run": "syncScene"
+			}
+		],
+		"state.time": [
+			{
+				"run": "syncScene"
+			}
+		],
+		"state.selected": [
+			{
+				"run": "syncScene"
+			}
+		],
+		"state.bodies": [
+			{
+				"run": "syncScene"
+			}
+		]
+	},
+	"onLoad": [
+		{
+			"run": "syncScene"
+		}
+	],
 	"styles": {
 		"button": {
 			"type": "label",
@@ -1081,6 +1137,11 @@
 			{
 				"set": "state.camera",
 				"to": "{{merge(state.camera, {distance: clamp(state.camera.distance * (1 + event.dy * 0.06), 0.5, 40)})}}"
+			},
+			{
+				"animate": "state.camera.distance",
+				"to": "{{state.camera.distance}}",
+				"ms": 1
 			}
 		],
 		"faster": [
@@ -1276,7 +1337,7 @@
 			"icon": "locate-fixed",
 			"do": [
 				{
-					"if": "{{state.follow != ''}}",
+					"if": "{{state.follow != '' && state.follow == state.selected}}",
 					"then": [
 						{
 							"set": "state.camera.tx",
@@ -1492,6 +1553,15 @@
 				"if": "{{find(state.bookmarks, it.id == event.value)}}",
 				"then": [
 					{
+						"increment": "state.flights",
+						"by": 1
+					},
+					{
+						"animate": "state.fly",
+						"to": 0,
+						"ms": 1
+					},
+					{
 						"set": "state.camera.tx",
 						"to": "{{computed.target.x}}"
 					},
@@ -1538,6 +1608,11 @@
 					{
 						"set": "state.follow",
 						"to": "{{find(state.bookmarks, it.id == event.value).follow}}"
+					},
+					{
+						"animate": "state.camera.distance",
+						"to": "{{state.camera.distance}}",
+						"ms": 1
 					}
 				]
 			}
@@ -1560,7 +1635,13 @@
 					]
 				}
 			]
-		}
+		},
+		"syncScene": [
+			{
+				"set": "state.sceneView",
+				"to": "{{computed.sceneView}}"
+			}
+		]
 	},
 	"keys": {
 		"mod+p": "togglePlay",
@@ -1735,130 +1816,50 @@
 								"onScroll": "viewScroll",
 								"children": [
 									{
-										"type": "path",
-										"id": "view-stars",
+										"type": "scene",
+										"id": "view-scene",
 										"fill": true,
-										"d": "{{'M ' + join(map(computed.starScreen, fixed(it.px, 1) + ' ' + fixed(it.py, 1) + ' l 0 0.1'), ' M ')}}",
-										"stroke": "#c8cfe0",
-										"strokeWidth": 1.4,
-										"strokeCap": "round",
-										"visible": "{{state.showStars}}"
-									},
-									{
-										"type": "panel",
-										"id": "view-orbits",
-										"color": "#00000000",
-										"fill": true,
-										"children": [
+										"bind": "state.sceneView",
+										"scene": "{{computed.sceneGraph}}",
+										"grid": false,
+										"axes": false,
+										"background": "#0a0c12",
+										"outlineColor": "@accent",
+										"controls": {
+											"orbit": "none",
+											"pan": "none",
+											"zoom": false,
+											"select": "left",
+											"selects": false
+										},
+										"onSelect": [
 											{
-												"repeat": {
-													"for": "o",
-													"in": "{{computed.orbitPaths}}",
-													"key": "id"
-												},
-												"type": "path",
-												"id": "{{'orbit-' + o.id}}",
-												"fill": true,
-												"d": "{{join(map(range(65), (index > 0 && (computed.view.distance - ((o.ox + o.radius * cos(index * pi() / 32)) * computed.view.sy + (o.oz + o.radius * sin(index * pi() / 32)) * computed.view.cy) * computed.view.cp) > 0.2 && (computed.view.distance - ((o.ox + o.radius * cos((index - 1) * pi() / 32)) * computed.view.sy + (o.oz + o.radius * sin((index - 1) * pi() / 32)) * computed.view.cy) * computed.view.cp) > 0.2 ? 'L ' : 'M ') + fixed(computed.view.w / 2 + ((o.ox + o.radius * cos(index * pi() / 32)) * computed.view.cy - (o.oz + o.radius * sin(index * pi() / 32)) * computed.view.sy) * computed.view.f / max((computed.view.distance - ((o.ox + o.radius * cos(index * pi() / 32)) * computed.view.sy + (o.oz + o.radius * sin(index * pi() / 32)) * computed.view.cy) * computed.view.cp), 0.2), 1) + ' ' + fixed(computed.view.h / 2 + ((o.ox + o.radius * cos(index * pi() / 32)) * computed.view.sy + (o.oz + o.radius * sin(index * pi() / 32)) * computed.view.cy) * computed.view.sp * computed.view.f / max((computed.view.distance - ((o.ox + o.radius * cos(index * pi() / 32)) * computed.view.sy + (o.oz + o.radius * sin(index * pi() / 32)) * computed.view.cy) * computed.view.cp), 0.2), 1)), ' ')}}",
-												"stroke": "{{o.id == state.selected ? '#fbbf2499' : '#5b6b8a66'}}",
-												"strokeWidth": 1
-											}
-										],
-										"visible": "{{state.showOrbits}}"
-									},
-									{
-										"type": "panel",
-										"id": "view-bodies",
-										"color": "#00000000",
-										"fill": true,
-										"children": [
-											{
-												"repeat": {
-													"for": "b",
-													"in": "{{computed.shaded}}",
-													"key": "id"
-												},
-												"type": "panel",
-												"id": "{{'view-' + b.id}}",
-												"color": "#00000000",
-												"radius": 999,
-												"shadow": {
-													"blur": "{{2 * b.r}}",
-													"color": "{{b.parent == '' && state.showGlow ? '#ffc94d99' : '#00000000'}}"
-												},
-												"x": "{{b.px - b.r - 4}}",
-												"y": "{{b.py - b.r - 4}}",
-												"width": "{{2 * b.r + 8}}",
-												"height": "{{2 * b.r + 8}}",
-												"role": "button",
-												"label": "{{b.name}}",
-												"cursor": "hand",
-												"onPress": [
+												"if": "{{event.button == 'left' && indexOf(computed.ids, event.id == 'halo' ? 'sun' : event.id ?? '') >= 0}}",
+												"then": [
 													{
 														"set": "state.selected",
-														"to": "{{b.id}}"
+														"to": "{{event.id == 'halo' ? 'sun' : event.id}}"
 													}
-												],
-												"children": [
-													{
-														"type": "panel",
-														"id": "{{'view-disc-' + b.id}}",
-														"radius": 999,
-														"color": "{{b.hex}}",
-														"anchors": {
-															"left": 4,
-															"right": 4,
-															"top": 4,
-															"bottom": 4
-														}
-													},
-													{
-														"type": "path",
-														"id": "{{'view-shade-' + b.id}}",
-														"visible": "{{state.showShading && b.k < 0.99}}",
-														"fill": true,
-														"fillColor": "#000000c0",
-														"d": "{{'M ' + ((b.r + 4) - b.r * b.uy) + ' ' + ((b.r + 4) + b.r * b.ux) + ' A ' + b.r + ' ' + b.r + ' 0 0 1 ' + ((b.r + 4) + b.r * b.uy) + ' ' + ((b.r + 4) - b.r * b.ux) + ' A ' + b.r + ' ' + max(b.r * abs(2 * b.k - 1), 0.01) + ' ' + degrees(atan2(b.ux, -b.uy)) + ' 0 ' + (b.k < 0.5 ? 1 : 0) + ' ' + ((b.r + 4) - b.r * b.uy) + ' ' + ((b.r + 4) + b.r * b.ux) + ' Z'}}"
-													},
-													{
-														"type": "panel",
-														"id": "{{'view-ring-' + b.id}}",
-														"visible": "{{b.id == state.selected}}",
-														"radius": 999,
-														"color": "transparent",
-														"borderWidth": 1.5,
-														"borderColor": "@accent",
-														"fill": true
-													}
-												],
-												"visible": "{{b.depth > 0.3}}"
+												]
 											}
 										]
 									},
 									{
-										"type": "panel",
-										"id": "view-labels",
-										"color": "#00000000",
-										"fill": true,
-										"children": [
-											{
-												"repeat": {
-													"for": "b",
-													"in": "{{computed.projected}}",
-													"key": "id"
-												},
-												"type": "label",
-												"id": "{{'view-label-' + b.id}}",
-												"x": "{{b.px + b.r + 6}}",
-												"y": "{{b.py - 9}}",
-												"height": 18,
-												"fitText": true,
-												"font": "small",
-												"text": "{{b.name}}",
-												"textColor": "{{b.id == state.selected ? '@accent' : '#9aa4b8'}}",
-												"visible": "{{state.showLabels && b.depth > 0.3}}"
-											}
-										]
+										"repeat": {
+											"for": "b",
+											"in": "{{computed.projected}}",
+											"key": "id"
+										},
+										"type": "label",
+										"id": "{{'view-label-' + b.id}}",
+										"x": "{{b.px + b.r + 6}}",
+										"y": "{{b.py - 9}}",
+										"height": 18,
+										"fitText": true,
+										"font": "small",
+										"text": "{{b.name}}",
+										"textColor": "{{b.id == state.selected ? '@accent' : '#9aa4b8'}}",
+										"visible": "{{state.showLabels && b.depth > 0.3}}"
 									},
 									{
 										"repeat": {
@@ -2912,7 +2913,22 @@
 			"renderOptions": {
 				"run": "openRender",
 				"group": "2_show",
+				"order": 7
+			},
+			"stars": {
+				"run": "toggleStars",
+				"group": "2_show",
 				"order": 4
+			},
+			"shading": {
+				"run": "toggleShading",
+				"group": "2_show",
+				"order": 5
+			},
+			"glow": {
+				"run": "toggleGlow",
+				"group": "2_show",
+				"order": 6
 			}
 		}
 	}

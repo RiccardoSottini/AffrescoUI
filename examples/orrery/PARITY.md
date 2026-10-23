@@ -10,22 +10,22 @@ system of six bodies on circular orbits in one plane.
 
 | # | Feature | Status | How |
 |---|---|---|---|
-| C1 | A 3D view of the bodies and their orbits, drawn in perspective | done | computed `projected`, discs and `path`s, farthest first |
-| C2 | A star field behind, turning with the camera | done | computed `starScreen`: 400 points on a sphere, through the camera's turn |
+| C1 | A 3D view of the bodies and their orbits, drawn in perspective | done | a `scene` node bound to computed `sceneView`: a sphere per body, orbits as rings of thin boxes |
+| C2 | A star field behind, turning with the camera | done | 400 small boxes on a far sphere in the scene (computed `starNodes`), seen through the same camera |
 | C3 | Turn the camera by dragging, zoom with the wheel | done | `onDrag`, `onScroll` on the view |
-| C4 | Select a body by clicking it, the selection ringed | done | `onPress` on each disc |
-| C5 | A glow round the Sun | done | `shadow` on the Sun's disc |
+| C4 | Select a body by clicking it, the selection ringed | done | the scene's `onSelect` picks a body; the selection outlined |
+| C5 | A glow round the Sun | done | an emissive Sun with a point light, and a translucent halo sphere round it |
 | C6 | Labels by the bodies | done | a repeated label |
-| C7 | Selected body's info, top left: name, distance, radius, apparent size, phase | done | computed `info`: distance and apparent size from the radius in km, phase from the angle Sun–body–camera |
+| C7 | Selected body's info, top left: name, distance, radius, apparent size, phase | done | computed `info`: distance, apparent size from the body's radius in the scene and its distance from the camera, phase from the angle Sun–body–camera |
 | C8 | Time, top right: date, rate ("1000x faster"), reversed, paused | done | `formatDate` from an invented epoch, computed `rate`; time stops at the window's ends |
-| C9 | Time rate up and down (L, K), reverse (J), pause (Space), now (!) | done | screen `keys`; `!` is `shift+1` and resets the rate |
-| C10 | Go to the selected body (G), centre it (C), follow it (F) | done | titled actions animating `fly` and the distance; computed `target` |
-| C11 | Orbits, labels and markers toggled from the keyboard and a menu | part | O and P and the View menu (menu bar and toolbar); no markers |
+| C9 | Time rate up and down (L, K), reverse (J), pause (Space), start (!) | done | screen `keys`; `!` is `shift+1` and resets the rate |
+| C10 | Go to the selected body (G), centre it (C), follow it (F) | done | titled actions animating `fly` and the distance; computed `target`; follow moves to a new selection; the wheel or a place stops a flight |
+| C11 | Orbits, labels and markers toggled from the keyboard and a menu | part | O and P and the View menu (menu bar and toolbar), which also toggles stars, lit side and glow; no markers |
 | C12 | Solar system browser: the bodies as a tree | done | a `tree` from computed `bodyTree` (B, View menu); open a body to go to it |
 | C13 | Eclipse finder | missing | |
 | C14 | Bookmarks (saved camera places) | done | the browser's Places tab, a `list` of saved places (camera, time, field of view); mod+D or the View menu adds one, the bin deletes one |
 | C15 | Field of view and limiting magnitude shown, and changed | part | the field of view, bottom right, narrowed and widened with period and comma; no limiting magnitude |
-| C16 | Phase and lit side of each body | done | computed `shaded`: each body's lit fraction and the screen direction to the Sun; a dark `path` (a half disc and a half ellipse) over the disc's night side |
+| C16 | Phase and lit side of each body | done | the scene's point light at the Sun shades every sphere; the lit fraction in the info |
 | C17 | Render options dialog | done | the built-in `dialog` with a toggle per layer (orbits, labels, stars, lit side, Sun glow); mod+comma or the View menu |
 
 ## The sky chart (modelled on Stellarium)
@@ -61,3 +61,4 @@ system of six bodies on circular orbits in one plane.
 | 4 | Solar system browser (a tree of the bodies), bookmarks, field of view | 17 / 6 / 6 | 22,685 |
 | 5 | Fixes from the round 4 critique: flights land once, moons placed round their planet, reparenting refused into a loop or past three levels, places keep the time and field of view and can be deleted, the view fits a small window | 17 / 6 / 6 | 24,401 |
 | 6 | The lit side of every body, the render options dialog (stars, lit side and glow can be hidden) | 19 / 5 / 5 | 25,816 |
+| 7 | The 3D view on the scene node (spheres, a point light, picking); fixes from the round 6 critique: the wheel and places stop a flight, follow moves to a new selection, apparent size from the scene | 19 / 5 / 5 | 25,999 |

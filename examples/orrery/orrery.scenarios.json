@@ -27,8 +27,21 @@
 				},
 				{
 					"expect": {
-						"node": "#view-earth",
+						"node": "#view-scene",
+						"property": "visible",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#view-label-earth",
 						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "sceneView.selection[0]",
+						"is": "earth"
 					}
 				}
 			]
@@ -813,16 +826,8 @@
 			"steps": [
 				{
 					"expect": {
-						"node": "#view-shade-earth",
-						"property": "visible",
+						"state": "showShading",
 						"is": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#view-shade-sun",
-						"property": "visible",
-						"is": false
 					}
 				},
 				{
@@ -840,13 +845,6 @@
 				{
 					"expect": {
 						"state": "showShading",
-						"is": false
-					}
-				},
-				{
-					"expect": {
-						"node": "#view-shade-earth",
-						"property": "visible",
 						"is": false
 					}
 				}
@@ -874,19 +872,166 @@
 					}
 				},
 				{
-					"expect": {
-						"node": "#view-stars",
-						"property": "visible",
-						"is": false
-					}
-				},
-				{
 					"key": "escape"
 				},
 				{
 					"expect": {
 						"state": "renderOpen",
 						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "the-camera-follows-the-state",
+			"steps": [
+				{
+					"click": [582, 247]
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "mars"
+					}
+				},
+				{
+					"expect": {
+						"state": "sceneView.selection[0]",
+						"is": "mars"
+					}
+				},
+				{
+					"expect": {
+						"state": "sceneView.camera.distance",
+						"is": 15
+					}
+				},
+				{
+					"scroll": "#view-pane",
+					"dy": -3
+				},
+				{
+					"expect": {
+						"state": "sceneView.camera.distance",
+						"is": 12.3
+					}
+				}
+			]
+		},
+		{
+			"name": "follow-switches-to-the-new-selection",
+			"steps": [
+				{
+					"key": "g"
+				},
+				{
+					"wait": 1000
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				},
+				{
+					"click": [261, 278]
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "moon"
+					}
+				},
+				{
+					"key": "f"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "moon"
+					}
+				}
+			]
+		},
+		{
+			"name": "the-wheel-wins-over-a-flight",
+			"steps": [
+				{
+					"key": "g"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"scroll": "#view-scene",
+					"dy": -3
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 10.928453160379494
+					}
+				},
+				{
+					"wait": 1000
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 10.928453160379494
+					}
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				}
+			]
+		},
+		{
+			"name": "a-place-stops-a-flight",
+			"steps": [
+				{
+					"key": "g"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"action": "goToBookmark",
+					"event": {
+						"value": "overview"
+					}
+				},
+				{
+					"wait": 1000
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 15
+					}
+				},
+				{
+					"expect": {
+						"state": "camera.tx",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "fly",
+						"is": 0
 					}
 				}
 			]
