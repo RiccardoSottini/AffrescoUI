@@ -340,6 +340,12 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"loading", "", "", ""},
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
+    {"image", "",
+	 R"(`{ "image": "pointer", "of": "canvas", "with": {"phase": "press", "x": 10, "y": 20} }`: runs an operation )"
+	 R"(on an image the `images` section declares (`of`, optional with one image) and publishes its snapshot to )"
+	 R"(its `into` path; a failed operation runs `onError` with `error`)",
+	 "steps"},
+    {"of", "", "", ""},
     {"camera", "",
 	 R"(`{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view` (front, )"
 	 R"(back, left, right, top, bottom), `frame` ("selection", "all" or ids), `projection` (perspective, )"

@@ -133,7 +133,9 @@ target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/cr
 target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
 # imaging: the images a screen edits ("images" section, "image" step): the store, the tools, the operations
 target_sources(affrescoui_format PRIVATE src/imaging/ImageDocuments.cpp src/imaging/ImageOptions.cpp
-	src/imaging/ImagesSection.cpp src/imaging/ImageGestures.cpp)
+	src/imaging/ImagesSection.cpp src/imaging/ImageGestures.cpp src/imaging/ImageOperations.cpp
+	src/imaging/ImageFiles.cpp src/imaging/ImageLayers.cpp src/imaging/ImageEdits.cpp src/imaging/ImageView.cpp
+	src/imaging/ImageSteps.cpp)
 target_link_libraries(affrescoui_format PRIVATE affrescoui::imaging)
 # properties: the properties node types share: look, layout, accessibility, transform, text fields, icons, runs
 target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/CommonProperties.cpp
