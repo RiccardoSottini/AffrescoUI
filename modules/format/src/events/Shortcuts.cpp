@@ -2,6 +2,7 @@
 /// @brief Key names and shortcuts.
 
 #include "Shortcuts.hpp"
+#include "KeyNotation.hpp"
 
 #include <algorithm>
 #include <array>
@@ -81,30 +82,6 @@ std::optional<Modifier> modifierNamed(std::string_view name) {
 	for(const auto& [named, modifier] : modifierNames)
 		if(name == named) return modifier;
 	return std::nullopt;
-}
-
-/// The labels of the keys whose names are words, for keyLabel().
-constexpr std::array<std::pair<std::string_view, std::string_view>, 5> keyLabels = {
-    {{"minus", "-"}, {"equal", "="}, {"comma", ","}, {"period", "."}, {"slash", "/"}}};
-
-/// @brief The label of one normalised press: "⌘⇧K" on macOS, "Ctrl+Shift+K" elsewhere.
-/// @param press The press, "cmd+shift+k".
-/// @return Its label.
-std::string pressLabel(std::string_view press) {
-	const std::size_t last = press.rfind('+');
-	const std::string_view mods = last == std::string_view::npos ? "" : press.substr(0, last + 1);
-	std::string key(last == std::string_view::npos ? press : press.substr(last + 1));
-	for(const auto& [name, label] : keyLabels)
-		if(key == name) key = label;
-	if(!key.empty()) key[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(key[0])));
-	const auto has = [&](std::string_view name) { return mods.contains(name); };
-#ifdef __APPLE__
-	return std::string(has("ctrl+") ? "⌃" : "") + (has("alt+") ? "⌥" : "") + (has("shift+") ? "⇧" : "") +
-	       (has("cmd+") ? "⌘" : "") + key;
-#else
-	return std::string(has("ctrl+") ? "Ctrl+" : "") + (has("alt+") ? "Alt+" : "") + (has("shift+") ? "Shift+" : "") +
-	       (has("cmd+") ? "Super+" : "") + key;
-#endif
 }
 
 } // namespace
@@ -204,14 +181,6 @@ std::string normalizeChord(std::string_view text) {
 	return chord;
 }
 
-std::string keyLabel(std::string_view chord) {
-	std::string label;
-	for(std::size_t at = 0; at <= chord.size();) {
-		const std::size_t end = std::min(chord.find(' ', at), chord.size());
-		label += (label.empty() ? "" : " ") + pressLabel(chord.substr(at, end - at));
-		at = end + 1;
-	}
-	return label;
-}
+std::string keyLabel(std::string_view chord) { return keyLabel(chord, "platform"); }
 
 } // namespace affresco::format

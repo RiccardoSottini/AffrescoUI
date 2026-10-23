@@ -146,6 +146,15 @@
 										}
 									}
 								]
+							},
+							"keyLabels": {
+								"enum": [
+									"platform",
+									"mac",
+									"pc",
+									"emacs"
+								],
+								"description": "How keys are labelled in menus, commands and keybindings"
 							}
 						}
 					},
@@ -3612,7 +3621,8 @@
 						"$dateMs",
 						"$isDate",
 						"$passwordStrength",
-						"$isEmail"
+						"$isEmail",
+						"$keyLabel"
 					]
 				}
 			},

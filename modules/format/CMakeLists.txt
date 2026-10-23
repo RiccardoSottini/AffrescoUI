@@ -25,6 +25,7 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsForm.cpp
 	src/functions/ExpressionFunctionsFuzzy.cpp
 	src/functions/ExpressionFunctionsItems.cpp
+	src/functions/ExpressionFunctionsKeys.cpp
 	src/functions/ExpressionFunctionsKeyframes.cpp
 	src/functions/ExpressionFunctionsLists.cpp
 	src/functions/ExpressionFunctionsLocale.cpp
@@ -91,7 +92,8 @@ target_sources(affrescoui_format PRIVATE
 	src/events/EventsPointer.cpp
 	src/events/EventsKeys.cpp
 	src/events/EventsFocus.cpp
-	src/events/Shortcuts.cpp)
+	src/events/Shortcuts.cpp
+	src/events/KeyNotation.cpp)
 target_include_directories(affrescoui_format PRIVATE src/events)
 # src/steps/: the registry and the step groups
 target_sources(affrescoui_format PRIVATE

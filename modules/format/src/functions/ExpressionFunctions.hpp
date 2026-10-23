@@ -172,6 +172,10 @@ struct Function {
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> formFunctions();
 
+/// @brief The table of the key function, `keyLabel` (ExpressionFunctionsKeys.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> keyFunctions();
+
 /* Helpers the tables share */
 
 /// 2^63: doubles from -2^63 up to, not including, this convert to a 64-bit integer. Casting any other is undefined.

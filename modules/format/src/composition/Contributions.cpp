@@ -4,6 +4,7 @@
 #include "Contributions.hpp"
 #include "Engine.hpp"
 #include "Shortcuts.hpp"
+#include "KeyNotation.hpp"
 #include "NodeKeys.hpp"
 
 #include "affresco/render/TextEditor.hpp"
@@ -74,14 +75,16 @@ json contextOf(Engine& engine) {
 /// @param keys The scope's "keys".
 /// @param scope "screen" or "#id".
 /// @param actions The document's "actions".
-void addBindings(json& list, const json& keys, const std::string& scope, const json& actions) {
+/// @param notation How the keys are labelled: "window.keyLabels".
+void addBindings(json& list, const json& keys, const std::string& scope, const json& actions,
+                 std::string_view notation) {
 	if(!keys.is_object()) return;
 	for(const auto& [written, handler] : keys.items()) {
 		const std::string key = normalizeChord(written);
 		const json bindings = isBindingList(handler) ? handler : json::array({handler});
 		for(const json& binding : bindings) {
 			const json& run = isBinding(binding) ? binding["do"] : binding;
-			json entry = {{"key", key},       {"keyLabel", keyLabel(key)},
+			json entry = {{"key", key},       {"keyLabel", keyLabel(key, notation)},
 			              {"command", nullptr}, {"title", nullptr},
 			              {"when", isBinding(binding) ? binding.value("when", json()) : json()},
 			              {"scope", scope}};
@@ -102,11 +105,15 @@ void addBindings(json& list, const json& keys, const std::string& scope, const j
 json keybindingsOf(Engine& engine) {
 	const json& document = engine.versions.document();
 	const json actions = document.value("actions", json::object());
+	const json window = document.value("window", json::object());
+	const std::string notation =
+	    window.is_object() && window.contains("keyLabels") && window["keyLabels"].is_string() ? window["keyLabels"]
+	                                                                                           : "platform";
 	json list = json::array();
-	addBindings(list, document.value("keys", json()), "screen", actions);
+	addBindings(list, document.value("keys", json()), "screen", actions, notation);
 	json nodes = json::array();
 	for(const auto& [panel, record] : engine.reconciler.records())
-		if(!panel->id().empty()) addBindings(nodes, record.keys, "#" + panel->id(), actions);
+		if(!panel->id().empty()) addBindings(nodes, record.keys, "#" + panel->id(), actions, notation);
 	// NOLINTNEXTLINE(modernize-use-ranges): json's iterators don't model the ranges concepts
 	std::sort(nodes.begin(), nodes.end(), [](const json& a, const json& b) {
 		return std::tie(a["scope"].get_ref<const std::string&>(), a["key"].get_ref<const std::string&>()) <
