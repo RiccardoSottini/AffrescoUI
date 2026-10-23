@@ -3437,7 +3437,7 @@
 															"top": 51
 														},
 														"runs": [
-															"{{t('review.header', {id: computed.current.id, author: computed.current.author, commits: computed.current.commits}) + ' '}}",
+															"{{t('review.header', {author: computed.current.author, commits: computed.current.commits}) + ' '}}",
 															{
 																"text": "main",
 																"font": "symbols",
@@ -3469,17 +3469,36 @@
 														"align": "center"
 													},
 													{
-														"id": "label-p-message",
-														"type": "label",
-														"font": "title",
-														"textColor": "@color.text",
+														"id": "prTitle",
+														"type": "row",
+														"gap": 8,
+														"alignItems": "center",
 														"anchors": {
 															"left": 16,
 															"right": 104,
-															"top": 12
+															"top": 8
 														},
 														"height": 28,
-														"text": "{{computed.current.message}}"
+														"children": [
+															{
+																"id": "label-p-message",
+																"type": "label",
+																"font": "title",
+																"textColor": "@color.text",
+																"text": "{{computed.current.message}}",
+																"fitText": true,
+																"height": 28
+															},
+															{
+																"id": "label-p-number",
+																"type": "label",
+																"font": "title",
+																"textColor": "@color.muted",
+																"text": "#{{computed.current.id}}",
+																"fitText": true,
+																"height": 28
+															}
+														]
 													},
 													{
 														"id": "label-prState",
@@ -3888,7 +3907,7 @@
 																	"for": "d",
 																	"in": "computed.diffs"
 																},
-																"color": "@color.card",
+																"color": "transparent",
 																"radius": 4,
 																"anchors": {
 																	"left": 0,
@@ -3903,8 +3922,8 @@
 																		"text": "{{d.node}}  ·  {{d.language}}",
 																		"textColor": "@color.muted",
 																		"anchors": {
-																			"left": 8,
-																			"right": 8,
+																			"left": 0,
+																			"right": 0,
 																			"top": 6
 																		},
 																		"height": 18
@@ -3920,8 +3939,8 @@
 																		"padding": 6,
 																		"wrap": true,
 																		"anchors": {
-																			"left": 8,
-																			"right": "50%",
+																			"left": 0,
+																			"right": "51%",
 																			"top": 28
 																		},
 																		"align": {
@@ -3942,7 +3961,7 @@
 																		"wrap": true,
 																		"anchors": {
 																			"left": "50%",
-																			"right": 8,
+																			"right": 0,
 																			"top": 28
 																		},
 																		"align": {
@@ -3960,8 +3979,8 @@
 																		"language": "{{d.language}}",
 																		"label": "{{t('a11y.evidenceDiff')}}",
 																		"anchors": {
-																			"left": 8,
-																			"right": 8,
+																			"left": 0,
+																			"right": 0,
 																			"top": 86,
 																			"bottom": 6
 																		},
@@ -5824,7 +5843,7 @@
 						"rowHeight": 44,
 						"height": 44,
 						"color": "transparent",
-						"items": "{{computed.branchMain ? [{id: 'main', label: t('toolbar.main'), icon: 'git-branch'}] : []}}",
+						"items": "{{computed.branchMain ? [{id: 'main', label: t('toolbar.main'), icon: computed.branch == 'main' ? 'check' : 'git-branch'}] : []}}",
 						"value": "{{computed.branch == 'main' ? 'main' : text(computed.current.id)}}",
 						"textColor": "@color.text",
 						"selectedTextColor": "@color.text",
@@ -5882,7 +5901,7 @@
 						"rowHeight": 44,
 						"height": "{{min(44 * max(length(computed.branchRows), 1), 264)}}",
 						"color": "transparent",
-						"items": "{{map(computed.branchRows, {id: text(it.id), label: t('toolbar.proposal', {branch: it.branch ?? 'proposal/' + it.id, message: it.message}), icon: 'git-pull-request'})}}",
+						"items": "{{map(computed.branchRows, {id: text(it.id), label: t('toolbar.proposal', {branch: it.branch ?? 'proposal/' + it.id, message: it.message}), icon: (it.branch ?? 'proposal/' + it.id) == computed.branch ? 'check' : 'git-pull-request'})}}",
 						"value": "{{computed.branch == 'main' ? 'main' : text(computed.current.id)}}",
 						"textColor": "@color.text",
 						"selectedTextColor": "@color.text",

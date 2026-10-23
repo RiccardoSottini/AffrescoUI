@@ -205,8 +205,14 @@
 				},
 				{
 					"expect": {
+						"node": "#label-p-number",
+						"text": "#3"
+					}
+				},
+				{
+					"expect": {
 						"node": "#label-p-id-p",
-						"text": "#3  ·  claude wants to merge 1 commit into main from proposal/3"
+						"text": "claude wants to merge 1 commit into main from proposal/3"
 					}
 				},
 				{
