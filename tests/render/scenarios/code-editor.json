@@ -43,7 +43,10 @@
 				{ "click": "#command" },
 				{ "type": "help" },
 				{ "key": "enter" },
-				{ "expect": { "image": "terminal-help" } }
+				{ "expect": { "image": "terminal-help" } },
+				{ "key": "cmd+shift+a" },
+				{ "wait": 400 },
+				{ "expect": { "image": "assistant" } }
 			]
 		},
 		{
@@ -72,6 +75,7 @@
 				{ "wait": 100 },
 				{ "expect": { "image": "find-in-files" } },
 				{ "key": "escape" },
+				{ "wait": 50 },
 				{ "key": "cmd+p" },
 				{ "wait": 50 },
 				{ "type": "stcpp@" },

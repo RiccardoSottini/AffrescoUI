@@ -14,6 +14,8 @@
 		"focusRing": false
 	},
 
+	"include": ["../shared/addons/assistant/assistant.json"],
+
 	"fonts": {
 		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "code"] },
 		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons", "code"] },
@@ -51,6 +53,18 @@
 	},
 
 	"tokens": {
+		"assistant.accent": "@accent",
+		"assistant.accentHover": "#f7b96f",
+		"assistant.onAccent": "@chrome",
+		"assistant.surface": "@sidebar",
+		"assistant.raised": "@tab",
+		"assistant.border": "@border",
+		"assistant.text": "@text",
+		"assistant.dim": "@muted",
+		"assistant.dot": "@faint",
+		"assistant.success": "@string",
+		"assistant.danger": "@error",
+		"assistant.warning": "#433b29",
 		"syntax.comment": "#a6acb9",
 		"syntax.keyword": "#c393c6",
 		"syntax.string": "#9bc795",
@@ -279,7 +293,8 @@
 		"terminal": {
 			"build": { "run": "build", "group": "1_run" },
 			"run": { "run": "runApp", "group": "1_run", "order": 2 },
-			"clear": { "run": "clearTerminal", "group": "2_clear" }
+			"clear": { "run": "clearTerminal", "group": "2_clear" },
+			"assistant": { "run": "showAssistant", "group": "3_assistant" }
 		},
 		"help": {
 			"palette": { "run": "commandPalette", "group": "1_palette" },
@@ -510,6 +525,8 @@
 		],
 		"goToSymbolInProject": { "title": "Go to Symbol in Project…", "category": "Goto", "icon": "at-sign",
 			"do": [{ "run": "indexFile", "with": { "file": "{{state.active}}" } }, { "set": "state.symbolPick.query", "to": "" }, { "set": "state.symbolPick.open", "to": true }] },
+		"showAssistant": { "title": "Assistant…", "category": "Tools", "icon": "message-circle",
+			"do": [{ "set": "state.assistant.show", "to": true }, { "run": "assistant.open" }] },
 		"findInFiles": { "title": "Find in Files…", "category": "Find", "icon": "files",
 			"do": [{ "set": "state.findBar.open", "to": true }, { "set": "state.findBar.inFiles", "to": true }, { "set": "state.findBar.replacing", "to": true },
 				{ "set": "state.findBar.where", "to": "{{state.findBar.where || '<open folders>'}}" }, { "focus": "#findText" }] },

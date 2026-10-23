@@ -356,6 +356,25 @@
 			]
 		},
 		{
+			"name": "the-assistant-opens",
+			"note": "Tools > Assistant (or Cmd+Shift+A) opens the chat add-on's panel; Escape closes it",
+			"steps": [
+				{ "key": "mod+shift+p" },
+				{ "wait": 50 },
+				{ "type": "assistant" },
+				{ "key": "enter" },
+				{ "wait": 400 },
+				{ "expect": { "state": "assistant.open", "is": true } },
+				{ "expect": { "node": "#assistantPanel", "property": "shown", "is": true } },
+				{ "key": "escape" },
+				{ "wait": 400 },
+				{ "expect": { "state": "assistant.open", "is": false } },
+				{ "key": "mod+shift+a" },
+				{ "wait": 50 },
+				{ "expect": { "state": "assistant.open", "is": true } }
+			]
+		},
+		{
 			"name": "replace-in-files",
 			"note": "Find in Files' Replace lists the matches, then replaces them in the files 'Where' names, which become unsaved",
 			"steps": [
