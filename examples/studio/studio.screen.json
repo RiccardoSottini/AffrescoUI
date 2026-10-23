@@ -613,7 +613,7 @@
 		"prStale": "{{computed.current == null || state.prDiff == null || state.prDiff.for != computed.current.id + ':' + computed.current.head}}",
 		"prAfter": "{{computed.prStale || state.prDiff.patch == null ? null : applyPatch(state.hostDocument, state.prDiff.patch)}}",
 		"prFiles": "{{computed.prAfter == null ? [] : map(computed.current.touches, {path: it, d: diffLines(atPointer(state.hostDocument, it) == null ? '' : formatJson(atPointer(state.hostDocument, it), 2), atPointer(computed.prAfter, it) == null ? '' : formatJson(atPointer(computed.prAfter, it), 2), {context: contains(state.diffExpanded, it) ? -1 : 3, ignoreWhitespace: state.diffWs, split: state.diffSplit})})}}",
-		"prTimeline": "{{computed.current == null ? [] : concat([{icon: 'git-commit-horizontal', text: t('pr.pushed', {author: computed.current.author, n: computed.current.commits, short: computed.current.short})}], map(computed.current.approvals ?? [], {icon: 'check', text: t('pr.approved', {who: it})}), map(filter(state.reviews, it.proposal == computed.current.id), {icon: it.kind == 'changes' ? 'file-pen-line' : 'message-square', text: t('pr.reviewed', {who: it.author, kind: it.kind, text: it.text})}), empty(computed.current.policy ?? '') ? [] : [{icon: 'shield', text: t('pr.needs', {policy: computed.current.policy})}], computed.current.id == state.previewing ? [{icon: 'eye', text: t('pr.previewed')}] : [])}}",
+		"prTimeline": "{{computed.current == null ? [] : concat([{icon: 'git-commit-horizontal', text: t('pr.pushed', {author: computed.current.author, n: computed.current.commits, short: computed.current.short})}], map(computed.current.approvals ?? [], {icon: 'check', text: t('pr.approved', {who: it})}), map(filter(state.reviews, it.proposal == computed.current.id), {icon: it.kind == 'changes' ? 'file-pen-line' : 'message-square', text: t('pr.reviewed', {who: it.author, kind: it.kind, text: it.text})}), computed.current.id == state.previewing ? [{icon: 'eye', text: t('pr.previewed')}] : [])}}",
 		"hStale": "{{computed.entry == null || state.historyDiff == null || state.historyDiff.for != computed.entry.number + ':' + state.revision}}",
 		"hBefore": "{{computed.hStale || state.historyDiff.base == null ? null : applyPatch(state.hostDocument, state.historyDiff.base)}}",
 		"hAfter": "{{computed.hBefore == null || state.historyDiff.commit == null ? null : applyPatch(computed.hBefore, state.historyDiff.commit)}}",
@@ -3902,7 +3902,7 @@
 															},
 															{
 																"id": "diff",
-																"note": "A text the proposal changes, split: the data is 8.4c's diff view ({type: 'diff', original, modified, mode, language}), drawn with two labels until that node type exists",
+																"note": "A text the proposal changes: its value before and after, side by side like the pictures above (Files changed has the line diff)",
 																"repeat": {
 																	"for": "d",
 																	"in": "computed.diffs"
@@ -3913,7 +3913,7 @@
 																	"left": 0,
 																	"right": 12
 																},
-																"height": 200,
+																"height": 86,
 																"children": [
 																	{
 																		"id": "label-diff-node",
@@ -3969,25 +3969,6 @@
 																			"vertical": "start"
 																		},
 																		"height": 52
-																	},
-																	{
-																		"id": "textDiff",
-																		"type": "diff",
-																		"original": "{{d.original}}",
-																		"modified": "{{d.modified}}",
-																		"mode": "inline",
-																		"language": "{{d.language}}",
-																		"label": "{{t('a11y.evidenceDiff')}}",
-																		"anchors": {
-																			"left": 0,
-																			"right": 0,
-																			"top": 86,
-																			"bottom": 6
-																		},
-																		"color": "@color.cardRaised",
-																		"textColor": "@color.text",
-																		"deletedColor": "@color.diffDel",
-																		"insertedColor": "@color.diffAdd"
 																	}
 																],
 																"when": "{{state.prTab == 'checks'}}"
@@ -4037,8 +4018,8 @@
 																		"id": "mergeDetail",
 																		"style": "caption",
 																		"fitText": false,
-																		"when": "{{computed.refusal == '' && empty(computed.current.remember)}}",
-																		"text": "{{computed.mergeState == 'changes' ? t('review.changesBy', {who: join(computed.prChanges, ', ')}) : (computed.mergeState == 'failing' ? t('review.failing', {n: computed.prFailing, total: length(computed.evidence.scenarios)}) : t('review.mergeNeeds', {policy: computed.current.policy ?? '', n: length(computed.current.approvals ?? [])}))}}",
+																		"when": "{{computed.refusal == ''}}",
+																		"text": "{{computed.mergeState == 'changes' ? t('review.changesBy', {who: join(computed.prChanges, ', ')}) : (computed.mergeState == 'failing' ? t('review.failing', {n: computed.prFailing, total: length(computed.evidence.scenarios)}) : (computed.mergeState == 'review' ? t('review.needsReview', {policy: computed.current.policy}) : (computed.mergeState == 'ready' ? t('review.noConflicts') : t('review.mergeNeeds', {policy: computed.current.policy ?? '', n: length(computed.current.approvals ?? [])}))))}}",
 																		"anchors": {
 																			"left": 56,
 																			"right": 232,
@@ -4054,7 +4035,7 @@
 																		"anchors": {
 																			"left": 56,
 																			"right": 232,
-																			"top": 36
+																			"top": 56
 																		},
 																		"fitText": false,
 																		"height": 32,

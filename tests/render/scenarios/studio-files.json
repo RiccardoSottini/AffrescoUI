@@ -14,7 +14,7 @@
 				{"expect": {"node": "#prEvent", "text": "grace approved these changes", "nth": 1}},
 				{"expect": {"image": "conversation"}},
 				{"expect": {"node": "#mergeTitle", "text": "Ready to merge"}},
-				{"expect": {"node": "#mergeDetail", "text": "1 approval · needs 1 approval"}},
+				{"expect": {"node": "#mergeDetail", "text": "This proposal has no conflicts with main"}},
 				{"expect": {"node": "#prReviewer", "text": "grace · approved"}},
 				{"action": "prTab", "event": {"value": "files"}},
 				{"wait": 0},

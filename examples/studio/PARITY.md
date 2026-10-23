@@ -35,13 +35,13 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | App | No-repository and offline states | Not connected, retrying every 2 s | partial | partial |
 | Pull request | Header: title, number, state, "wants to merge N commits into main" | A proposal, its number after the title in grey, a green "Open" pill; main and the branch in code type (conflicts show in the merge box) | missing | partial |
 | Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence; under the Studio's own tabs | missing | partial |
-| Pull request | Conversation: description and timeline of commits and reviews | Opened, changes, pushed, approvals, reviews, policy, conflicts, then the merge box and a multi-line comment box at the end; no timeline line or event circles | missing | partial |
+| Pull request | Conversation: description and timeline of commits and reviews | Opened, changes, pushed, approvals, reviews, conflicts, then the merge box and a multi-line comment box at the end; no timeline line or event circles | missing | partial |
 | Pull request | Sidebar: reviewers, state of each | Who approved or asked for changes, what the policy needs; only in wide windows | missing | partial |
 | Pull request | Files changed: file tree, per-file +/− counts, "Viewed" | Per-file counts and five blocks sized as GitHub does, collapse, Viewed; no tree | missing | partial |
 | Pull request | Comments on a line, with suggestions | | missing | missing |
 | Pull request | Review box: Comment, Approve, Request changes | "Review changes" on Files changed opens it: a text, the three kinds stacked with a line each, Submit review, a close X; comments and change requests go to the agents as requests | partial | partial |
-| Pull request | Checks: what ran, with its results | Evidence: each scenario with a pass or fail mark, pictures before and after | partial | partial |
-| Pull request | Merge box states: conflicts, blocked, ready, merged | At the end of the Conversation timeline, above the comment box: ready, review required, changes requested, checks failed, blocked (the refusal), conflicts (grey, with Merge proposal disabled), merging; a merged notice; no Resolve conflicts button | partial | partial |
+| Pull request | Checks: what ran, with its results | Evidence: each scenario with a pass or fail mark, pictures and changed values before and after | partial | partial |
+| Pull request | Merge box states: conflicts, blocked, ready, merged | At the end of the Conversation timeline, above the comment box, its line giving the status: ready (no conflicts with main), review required, changes requested, checks failed, blocked (the refusal), conflicts (grey, with Merge proposal disabled), merging; a merged notice; no Resolve conflicts button | partial | partial |
 | Pull request | Merge button with options | "Merge proposal", green when ready, disabled while conflicts, change requests or failed checks hold it; "Always allow" under it; no squash or rebase | partial | partial |
 | Pull request | Close the pull request | "Close proposal", grey, beside Comment in the comment box, asks first; Comment stays grey until there is text | partial | partial |
 | Pull request | Check out the pull request | Preview, with a Previewing pill; the panel keeps its colours | partial | partial |
