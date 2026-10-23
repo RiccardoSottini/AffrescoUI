@@ -2,7 +2,12 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"include": ["studio-strings.json", "studio-features.json", "studio-repairs.json", "studio-install.json"],
+	"include": [
+		"studio-strings.json",
+		"studio-features.json",
+		"studio-repairs.json",
+		"studio-install.json"
+	],
 	"note": "The AffrescoUI Studio: the person's client for a running host. Layout, behaviour and the connection are all in this file, its texts in studio-strings.json (English, Italian, Arabic). Ask and direct changes on the left; on the right, tabs for the review queue, the history of main, the approval rules, the permissions (edits become changes to review), an inspector of the connected app and the agents. Below 900 pixels the two sides become panes. Cmd+Shift+P lists every command.",
 	"window": {
 		"title": "AffrescoUI Studio",
@@ -15,22 +20,32 @@
 		"default": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 14,
-			"fallback": ["icons", "symbols"]
+			"fallback": [
+				"icons",
+				"symbols"
+			]
 		},
 		"small": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 12,
-			"fallback": ["iconsSmall", "symbols"]
+			"fallback": [
+				"iconsSmall",
+				"symbols"
+			]
 		},
 		"heading": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 16,
-			"fallback": ["icons"]
+			"fallback": [
+				"icons"
+			]
 		},
 		"title": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 20,
-			"fallback": ["iconsLarge"]
+			"fallback": [
+				"iconsLarge"
+			]
 		},
 		"icons": {
 			"file": "../shared/fonts/Lucide.ttf",
@@ -184,6 +199,18 @@
 		"color.toolbarMuted": {
 			"light": "#9ba4b8",
 			"dark": "#7c89a8"
+		},
+		"color.diffAdd": {
+			"light": "#dcfce7",
+			"dark": "#12301f"
+		},
+		"color.diffDel": {
+			"light": "#fee2e2",
+			"dark": "#3a1620"
+		},
+		"color.diffHunk": {
+			"light": "#e8eefc",
+			"dark": "#1a2547"
 		}
 	},
 	"channels": {
@@ -194,11 +221,19 @@
 			}
 		}
 	},
-	"persist": ["state.theme", "state.sizes", "state.locale", "state.connections", "state.connNext"],
+	"persist": [
+		"state.theme",
+		"state.sizes",
+		"state.locale",
+		"state.connections",
+		"state.connNext"
+	],
 	"state": {
 		"theme": "dark",
 		"tab": "review",
-		"sizes": [380],
+		"sizes": [
+			380
+		],
 		"selected": null,
 		"historyPick": null,
 		"rejecting": {
@@ -300,23 +335,41 @@
 		"permProposals": [],
 		"permNext": 1,
 		"repoOpen": false,
-		"branchOpen": false
+		"branchOpen": false,
+		"prTab": "conversation",
+		"prDiff": null
 	},
 	"stateTypes": {
 		"theme": {
-			"enum": ["light", "dark"]
+			"enum": [
+				"light",
+				"dark"
+			]
 		},
 		"tab": {
-			"enum": ["review", "history", "rules", "permissions", "inspector", "agents"]
+			"enum": [
+				"review",
+				"history",
+				"rules",
+				"permissions",
+				"inspector",
+				"agents"
+			]
 		},
 		"sizes": {
 			"type": "array"
 		},
 		"selected": {
-			"type": ["number", "null"]
+			"type": [
+				"number",
+				"null"
+			]
 		},
 		"historyPick": {
-			"type": ["number", "null"]
+			"type": [
+				"number",
+				"null"
+			]
 		},
 		"connected": {
 			"type": "boolean"
@@ -331,7 +384,11 @@
 			"type": "string"
 		},
 		"mode": {
-			"enum": ["default", "acceptEdits", "plan"]
+			"enum": [
+				"default",
+				"acceptEdits",
+				"plan"
+			]
 		},
 		"grants": {
 			"type": "array"
@@ -340,7 +397,10 @@
 			"type": "array"
 		},
 		"previewing": {
-			"type": ["number", "null"]
+			"type": [
+				"number",
+				"null"
+			]
 		},
 		"history": {
 			"type": "array"
@@ -395,10 +455,17 @@
 			"type": "string"
 		},
 		"usage": {
-			"type": ["object", "null"]
+			"type": [
+				"object",
+				"null"
+			]
 		},
 		"locale": {
-			"enum": ["en", "it", "ar"]
+			"enum": [
+				"en",
+				"it",
+				"ar"
+			]
 		},
 		"statusKey": {
 			"type": "string"
@@ -410,7 +477,14 @@
 			"type": "string"
 		},
 		"connState": {
-			"enum": ["connecting", "connected", "reconnecting", "switching", "failed", "offline"]
+			"enum": [
+				"connecting",
+				"connected",
+				"reconnecting",
+				"switching",
+				"failed",
+				"offline"
+			]
 		},
 		"connections": {
 			"type": "array",
@@ -460,10 +534,16 @@
 			"type": "object"
 		},
 		"pane": {
-			"enum": ["compose", "review"]
+			"enum": [
+				"compose",
+				"review"
+			]
 		},
 		"hostDocument": {
-			"type": ["object", "null"]
+			"type": [
+				"object",
+				"null"
+			]
 		},
 		"inspectStack": {
 			"type": "array"
@@ -472,10 +552,18 @@
 			"type": "string"
 		},
 		"blame": {
-			"type": ["object", "null"]
+			"type": [
+				"object",
+				"null"
+			]
 		},
 		"permSection": {
-			"enum": ["rules", "budgets", "data", "roles"]
+			"enum": [
+				"rules",
+				"budgets",
+				"data",
+				"roles"
+			]
 		},
 		"permDraft": {
 			"type": "string"
@@ -485,6 +573,14 @@
 		},
 		"permNext": {
 			"type": "number"
+		},
+		"prTab": {
+			"enum": [
+				"conversation",
+				"commits",
+				"checks",
+				"files"
+			]
 		}
 	},
 	"computed": {
@@ -496,13 +592,13 @@
 		"mine": "{{computed.current != null && !empty(state.you) && computed.current.author == state.you}}",
 		"refusal": "{{computed.current == null ? 'none' : (!state.connected ? 'offline' : (!state.canReview ? 'reviewer' : (computed.mine ? 'own' : (!empty(computed.current.conflicts) ? 'conflict' : ''))))}}",
 		"canAccept": "{{computed.refusal == ''}}",
-		"commandItems": "{{map(filter(commands, it.enabled && it.name != 'showCommands'), {title: t('cmd.' + it.name), detail: t('cat.' + it.category) + (empty(it.keyLabel ?? '') ? '' : '  \u00b7  ' + it.keyLabel), run: it.name})}}",
+		"commandItems": "{{map(filter(commands, it.enabled && it.name != 'showCommands'), {title: t('cmd.' + it.name), detail: t('cat.' + it.category) + (empty(it.keyLabel ?? '') ? '' : '  ·  ' + it.keyLabel), run: it.name})}}",
 		"modeItems": "{{map(state.modes, merge(it, {label: t('mode.label', {mode: it.mode})}))}}",
 		"inspectRoot": "{{state.hostDocument == null ? null : state.hostDocument.root}}",
 		"inspectNode": "{{length(state.inspectStack) > 0 ? state.inspectStack[length(state.inspectStack) - 1] : computed.inspectRoot}}",
 		"inspectChildren": "{{computed.inspectNode == null ? [] : (computed.inspectNode.children ?? [])}}",
 		"inspectShown": "{{state.inspectSel != '' && number(state.inspectSel) < length(computed.inspectChildren) ? computed.inspectChildren[number(state.inspectSel)] : computed.inspectNode}}",
-		"inspectTrail": "{{join(concat(['root'], map(state.inspectStack, it.id ?? it.type ?? '?')), '  \u203a  ')}}",
+		"inspectTrail": "{{join(concat(['root'], map(state.inspectStack, it.id ?? it.type ?? '?')), '  ›  ')}}",
 		"inspectProps": "{{computed.inspectShown == null ? [] : map(filter(entries(computed.inspectShown), it.key != 'children'), {id: it.key, cells: [it.key, json(it.value)]})}}",
 		"perm": "{{state.hostDocument == null ? {} : (state.hostDocument.permissions ?? {})}}",
 		"permValue": "{{state.permSection == 'budgets' ? (computed.perm.budgets ?? []) : (state.permSection == 'data' ? (computed.perm.data ?? []) : (state.permSection == 'roles' ? {reviewers: computed.perm.reviewers ?? [], review: computed.perm.review ?? {}, roles: state.coordination.roles ?? {}} : {allow: computed.perm.allow ?? [], ask: computed.perm.ask ?? [], deny: computed.perm.deny ?? []}))}}",
@@ -512,7 +608,12 @@
 		"activeConn": "{{find(state.connections, it.id == state.active) ?? state.connections[0]}}",
 		"activeName": "{{empty(computed.activeConn.name) ? t('conn.local') : computed.activeConn.name}}",
 		"addressOptions": "{{concat(map(state.connections, it.address), ['ws://localhost:7300', 'wss://docs.example.org/studio'])}}",
-		"branch": "{{state.tab == 'review' && computed.current != null ? (computed.current.branch ?? 'proposal/' + computed.current.id) : 'main'}}"
+		"branch": "{{state.tab == 'review' && computed.current != null ? (computed.current.branch ?? 'proposal/' + computed.current.id) : 'main'}}",
+		"prTabs": "{{computed.current == null ? [] : [{id: 'conversation', label: t('pr.conversation'), closable: false}, {id: 'commits', label: t('pr.commits', {n: computed.current.commits}), closable: false}, {id: 'checks', label: t('pr.checks', {n: computed.evidence == null ? 0 : length(computed.evidence.scenarios)}), closable: false}, {id: 'files', label: t('pr.files', {n: length(computed.current.touches)}), closable: false}]}}",
+		"prStale": "{{computed.current == null || state.prDiff == null || state.prDiff.for != computed.current.id + ':' + computed.current.head}}",
+		"prAfter": "{{computed.prStale || state.prDiff.patch == null ? null : applyPatch(state.hostDocument, state.prDiff.patch)}}",
+		"prFiles": "{{computed.prAfter == null ? [] : map(computed.current.touches, {path: it, d: diffLines(atPointer(state.hostDocument, it) == null ? '' : formatJson(atPointer(state.hostDocument, it), 2), atPointer(computed.prAfter, it) == null ? '' : formatJson(atPointer(computed.prAfter, it), 2), {context: 3})})}}",
+		"prTimeline": "{{computed.current == null ? [] : concat([{icon: 'git-commit-horizontal', text: t('pr.pushed', {author: computed.current.author, n: computed.current.commits, short: computed.current.short})}], map(computed.current.approvals ?? [], {icon: 'check', text: t('pr.approved', {who: it})}), empty(computed.current.policy ?? '') ? [] : [{icon: 'shield', text: t('pr.needs', {policy: computed.current.policy})}], computed.current.id == state.previewing ? [{icon: 'eye', text: t('pr.previewed')}] : [])}}"
 	},
 	"styles": {
 		"card": {
@@ -665,6 +766,21 @@
 				"blur": 18,
 				"color": "#0000004d"
 			}
+		},
+		"listRow": {
+			"note": "A full-width line of a list, its text at the start",
+			"anchors": {
+				"left": 0,
+				"right": 0
+			},
+			"align": {
+				"horizontal": "start",
+				"vertical": "center"
+			}
+		},
+		"codeRow": {
+			"style": "listRow",
+			"font": "symbols"
 		}
 	},
 	"actions": {
@@ -1139,6 +1255,14 @@
 							"type": "getEvidence",
 							"proposal": "{{computed.current.id}}"
 						}
+					}
+				]
+			},
+			{
+				"if": "{{state.prTab == 'files' && computed.prStale}}",
+				"then": [
+					{
+						"run": "requestDiff"
 					}
 				]
 			}
@@ -2044,7 +2168,57 @@
 					"run": "refreshHistory"
 				}
 			]
-		}
+		},
+		"prTab": [
+			{
+				"note": "A page of the proposal; Files changed asks the host for its patch"
+			},
+			{
+				"set": "state.prTab",
+				"to": "{{event.value}}"
+			},
+			{
+				"if": "{{event.value == 'files' && computed.prStale}}",
+				"then": [
+					{
+						"run": "requestDiff"
+					}
+				]
+			}
+		],
+		"requestDiff": [
+			{
+				"if": "{{computed.current != null}}",
+				"then": [
+					{
+						"set": "state.prDiff",
+						"to": {
+							"for": "{{computed.current.id + ':' + computed.current.head}}",
+							"patch": null
+						}
+					},
+					{
+						"send": "host",
+						"data": {
+							"type": "diff",
+							"proposal": "{{computed.current.id}}",
+							"id": "pr"
+						}
+					}
+				]
+			}
+		],
+		"host:diff": [
+			{
+				"if": "{{event.id == 'pr' && state.prDiff != null}}",
+				"then": [
+					{
+						"set": "state.prDiff.patch",
+						"to": "{{event.patch}}"
+					}
+				]
+			}
+		]
 	},
 	"keys": {
 		"mod+enter": "sendRequest",
@@ -2413,7 +2587,9 @@
 					"top": "{{(window.width < 900) ? 104 : 60}}",
 					"bottom": 0
 				},
-				"defaultSizes": [380],
+				"defaultSizes": [
+					380
+				],
 				"minSize": "{{(window.width < 900) ? [0, 0] : [340, 420]}}",
 				"sashSize": "{{(window.width < 900) ? 0 : 1}}",
 				"sashColor": "@color.border",
@@ -2481,7 +2657,7 @@
 										"height": "{{min(8 + 44 * length(state.proposals), 184)}}",
 										"color": "transparent",
 										"rowHeight": 44,
-										"items": "{{map(state.proposals, {id: text(it.id), label: (it.id == state.previewing ? '\u25c9  ' : '') + t('review.list', {id: it.id, message: it.message, author: it.author})})}}",
+										"items": "{{map(state.proposals, {id: text(it.id), label: (it.id == state.previewing ? '◉  ' : '') + t('review.list', {id: it.id, message: it.message, author: it.author})})}}",
 										"value": "{{computed.current != null ? text(computed.current.id) : ''}}",
 										"textColor": "@color.text",
 										"selectedTextColor": "@color.text",
@@ -2917,10 +3093,10 @@
 													{
 														"id": "label-p-id-p",
 														"style": "caption",
-														"text": "{{t('review.header', {id: computed.current.id, author: computed.current.author, commits: computed.current.commits, operations: computed.current.operations, short: computed.current.short})}}",
+														"text": "{{t('review.header', {id: computed.current.id, author: computed.current.author, commits: computed.current.commits, branch: computed.current.branch})}}",
 														"anchors": {
-															"left": 16,
-															"top": 14
+															"left": 96,
+															"top": 45
 														}
 													},
 													{
@@ -2948,10 +3124,56 @@
 														"textColor": "@color.text",
 														"anchors": {
 															"left": 16,
-															"right": 16,
-															"top": 36
+															"right": 104,
+															"top": 12
 														},
-														"height": 22
+														"height": 24
+													},
+													{
+														"id": "label-prState",
+														"type": "label",
+														"font": "small",
+														"icon": "git-pull-request-arrow",
+														"text": "{{t('pr.state', {conflicts: empty(computed.current.conflicts) ? 'no' : 'yes'})}}",
+														"textColor": "#ffffff",
+														"color": "{{empty(computed.current.conflicts) ? '@color.good' : '@color.bad'}}",
+														"radius": 10,
+														"anchors": {
+															"left": 16,
+															"top": 42
+														},
+														"width": 72,
+														"height": 22,
+														"align": "center"
+													},
+													{
+														"id": "prTabs",
+														"type": "tabs",
+														"anchors": {
+															"left": 8,
+															"right": 8,
+															"top": 72
+														},
+														"height": 32,
+														"tabs": "{{computed.prTabs}}",
+														"value": "{{state.prTab}}",
+														"color": "transparent",
+														"textColor": "@color.muted",
+														"activeTextColor": "@color.text",
+														"activeBackground": "@color.card",
+														"accentColor": "@color.accent",
+														"onChange": "prTab",
+														"label": "{{t('a11y.prTabs')}}"
+													},
+													{
+														"id": "prTabsLine",
+														"color": "@color.border",
+														"anchors": {
+															"left": 0,
+															"right": 0,
+															"top": 104
+														},
+														"height": 1
 													},
 													{
 														"id": "label-changes",
@@ -2959,44 +3181,209 @@
 														"text": "{{t('review.changes', {conflicts: empty(computed.current.conflicts) ? 'no' : 'yes'})}}",
 														"anchors": {
 															"left": 16,
-															"top": 70
-														}
+															"top": 116
+														},
+														"when": "{{!empty(computed.current.conflicts) && state.prTab == 'conversation'}}"
 													},
 													{
 														"id": "changes",
 														"when": "{{empty(computed.current.conflicts)}}",
 														"type": "stack",
-														"gap": 4,
+														"gap": 6,
 														"anchors": {
 															"left": 16,
 															"right": 16,
-															"top": 90,
+															"top": 114,
 															"bottom": "{{empty(computed.current.remember) ? 60 : 84}}"
 														},
 														"scroll": "vertical",
 														"children": [
 															{
+																"id": "label-prOpened",
+																"type": "label",
+																"style": "listRow",
+																"when": "{{state.prTab == 'conversation'}}",
+																"textColor": "@color.muted",
+																"font": "small",
+																"color": "@color.diffHunk",
+																"radius": 4,
+																"padding": 8,
+																"height": 30,
+																"icon": "git-pull-request-arrow",
+																"text": "{{t('pr.opened', {author: computed.current.author, date: formatDate(computed.current.time * 1000, 'medium', 'utc')})}}"
+															},
+															{
 																"id": "change",
+																"type": "label",
+																"style": "codeRow",
 																"repeat": {
 																	"for": "c",
 																	"in": "computed.current.changes"
 																},
-																"type": "label",
-																"font": "symbols",
 																"text": "{{c}}",
 																"textColor": "@color.text",
 																"color": "@color.card",
 																"radius": 4,
 																"padding": 6,
+																"height": 26,
+																"when": "{{state.prTab == 'conversation'}}"
+															},
+															{
+																"id": "prEvent",
+																"type": "label",
+																"style": "listRow",
+																"when": "{{state.prTab == 'conversation'}}",
+																"textColor": "@color.muted",
+																"repeat": {
+																	"for": "e",
+																	"in": "computed.prTimeline"
+																},
+																"font": "small",
+																"icon": "{{e.icon}}",
+																"text": "{{e.text}}",
+																"padding": 8,
+																"height": 26
+															},
+															{
+																"id": "label-prCommit",
+																"type": "label",
+																"style": "listRow",
+																"when": "{{state.prTab == 'commits'}}",
+																"textColor": "@color.text",
+																"color": "@color.card",
+																"radius": 4,
+																"padding": 8,
+																"height": 40,
+																"icon": "git-commit-horizontal",
+																"text": "{{t('pr.commit', {message: computed.current.message, author: computed.current.author, short: computed.current.short})}}"
+															},
+															{
+																"id": "label-prRange",
+																"type": "label",
+																"style": "codeRow",
+																"when": "{{state.prTab == 'commits'}}",
+																"textColor": "@color.muted",
+																"padding": 8,
+																"height": 24,
+																"text": "{{t('pr.range', {n: computed.current.commits, base: computed.current.base, head: computed.current.short})}}"
+															},
+															{
+																"id": "label-prLoad",
+																"when": "{{state.prTab == 'files' && (computed.prStale || state.prDiff.patch == null)}}",
+																"anchors": {
+																	"left": 0
+																},
+																"align": "center",
+																"style": "smallButton",
+																"text": "{{t('pr.load', {loading: computed.prStale ? 'no' : 'yes'})}}",
+																"icon": "refresh-cw",
+																"onClick": "requestDiff",
+																"label": "{{t('pr.loadTip')}}",
+																"height": 28,
+																"width": 180
+															},
+															{
+																"id": "prFile",
+																"when": "{{state.prTab == 'files'}}",
+																"repeat": {
+																	"for": "f",
+																	"in": "computed.prFiles"
+																},
+																"type": "stack",
+																"gap": 0,
+																"color": "@color.card",
+																"radius": 6,
+																"borderWidth": 1,
+																"borderColor": "@color.border",
 																"anchors": {
 																	"left": 0,
 																	"right": 0
 																},
-																"height": 26,
-																"align": {
-																	"horizontal": "start",
-																	"vertical": "center"
-																}
+																"height": "{{36 + sum(map(f.d.hunks, 20 + length(it.lines) * 18))}}",
+																"children": [
+																	{
+																		"id": "prFileHead",
+																		"color": "@color.cardRaised",
+																		"radius": 6,
+																		"anchors": {
+																			"left": 0,
+																			"right": 0
+																		},
+																		"height": 36,
+																		"children": [
+																			{
+																				"id": "label-prPath",
+																				"type": "label",
+																				"font": "symbols",
+																				"textColor": "@color.text",
+																				"text": "{{f.path}}",
+																				"anchors": {
+																					"left": 10,
+																					"right": 120,
+																					"top": 9
+																				},
+																				"height": 18,
+																				"fitText": false
+																			},
+																			{
+																				"id": "label-prStat",
+																				"type": "label",
+																				"font": "symbols",
+																				"textColor": "{{f.d.added + f.d.removed == 0 ? '@color.muted' : '@color.text'}}",
+																				"text": "{{t('pr.stat', {added: f.d.added, removed: f.d.removed})}}",
+																				"anchors": {
+																					"right": 10,
+																					"top": 9
+																				},
+																				"width": 104,
+																				"height": 18,
+																				"align": "end"
+																			}
+																		]
+																	},
+																	{
+																		"id": "prHunk",
+																		"repeat": {
+																			"for": "h",
+																			"in": "f.d.hunks"
+																		},
+																		"type": "stack",
+																		"gap": 0,
+																		"anchors": {
+																			"left": 0,
+																			"right": 0
+																		},
+																		"height": "{{20 + length(h.lines) * 18}}",
+																		"children": [
+																			{
+																				"id": "label-prHunk",
+																				"type": "label",
+																				"style": "codeRow",
+																				"textColor": "@color.muted",
+																				"color": "@color.diffHunk",
+																				"text": "{{h.header}}",
+																				"fitText": false,
+																				"height": 20,
+																				"padding": 6
+																			},
+																			{
+																				"id": "label-prLine",
+																				"type": "label",
+																				"style": "codeRow",
+																				"repeat": {
+																					"for": "l",
+																					"in": "h.lines"
+																				},
+																				"textColor": "@color.text",
+																				"fitText": false,
+																				"color": "{{l.kind == 'insert' ? '@color.diffAdd' : l.kind == 'delete' ? '@color.diffDel' : 'transparent'}}",
+																				"text": "{{pad(text(l.old ?? ''), 4, ' ') + ' ' + pad(text(l.new ?? ''), 4, ' ') + '  ' + (l.kind == 'insert' ? '+' : l.kind == 'delete' ? '-' : ' ') + ' ' + l.text}}",
+																				"height": 18,
+																				"padding": 0
+																			}
+																		]
+																	}
+																]
 															},
 															{
 																"id": "evidenceBar",
@@ -3034,11 +3421,12 @@
 																		"onClick": "gatherEvidence",
 																		"label": "{{t('cmd.collectEvidence')}}"
 																	}
-																]
+																],
+																"when": "{{state.prTab == 'checks'}}"
 															},
 															{
 																"id": "evidencePictures",
-																"when": "{{computed.evidence != null}}",
+																"when": "{{state.prTab == 'checks' && (computed.evidence != null)}}",
 																"color": "@color.card",
 																"radius": 4,
 																"anchors": {
@@ -3095,51 +3483,35 @@
 															},
 															{
 																"id": "label-evidence-behaviour",
-																"when": "{{computed.evidence != null}}",
+																"type": "label",
+																"style": "codeRow",
+																"when": "{{state.prTab == 'checks' && (computed.evidence != null)}}",
 																"repeat": {
 																	"for": "b",
 																	"in": "computed.evidence.behaviour"
 																},
-																"type": "label",
-																"font": "symbols",
 																"text": "{{t('review.behaviour', {line: b})}}",
 																"textColor": "@color.text",
 																"color": "@color.accentSoft",
 																"radius": 4,
 																"padding": 6,
-																"anchors": {
-																	"left": 0,
-																	"right": 0
-																},
-																"height": 26,
-																"align": {
-																	"horizontal": "start",
-																	"vertical": "center"
-																}
+																"height": 26
 															},
 															{
 																"id": "label-evidence-scenario",
-																"when": "{{computed.evidence != null}}",
+																"type": "label",
+																"style": "codeRow",
+																"when": "{{state.prTab == 'checks' && (computed.evidence != null)}}",
 																"repeat": {
 																	"for": "r",
 																	"in": "computed.evidence.scenarios"
 																},
-																"type": "label",
-																"font": "symbols",
-																"text": "{{t('review.scenario', {passed: r.passed ? 'yes' : 'no', name: r.name}) + (empty(r.message) ? '' : '  \u00b7  ' + r.message)}}",
+																"text": "{{t('review.scenario', {passed: r.passed ? 'yes' : 'no', name: r.name}) + (empty(r.message) ? '' : '  ·  ' + r.message)}}",
 																"textColor": "@color.text",
 																"color": "{{r.passed ? '@color.card' : '@color.bad'}}",
 																"radius": 4,
 																"padding": 6,
-																"anchors": {
-																	"left": 0,
-																	"right": 0
-																},
-																"height": 26,
-																"align": {
-																	"horizontal": "start",
-																	"vertical": "center"
-																}
+																"height": 26
 															},
 															{
 																"id": "diff",
@@ -3160,7 +3532,7 @@
 																		"id": "label-diff-node",
 																		"type": "label",
 																		"font": "symbols",
-																		"text": "{{d.node}}  \u00b7  {{d.language}}",
+																		"text": "{{d.node}}  ·  {{d.language}}",
 																		"textColor": "@color.muted",
 																		"anchors": {
 																			"left": 8,
@@ -3230,20 +3602,21 @@
 																		"deletedColor": "@color.bad",
 																		"insertedColor": "@color.good"
 																	}
-																]
+																],
+																"when": "{{state.prTab == 'checks'}}"
 															}
 														]
 													},
 													{
 														"id": "mergeView",
 														"note": "A conflicted proposal: per conflict, main's value and the proposal's, side by side",
-														"when": "{{!empty(computed.current.conflicts)}}",
+														"when": "{{!empty(computed.current.conflicts) && state.prTab == 'conversation'}}",
 														"type": "stack",
 														"gap": 6,
 														"anchors": {
 															"left": 16,
 															"right": 16,
-															"top": 90,
+															"top": 138,
 															"bottom": 60
 														},
 														"scroll": "vertical",
@@ -3266,7 +3639,7 @@
 																		"id": "label-conflict-path",
 																		"type": "label",
 																		"font": "symbols",
-																		"text": "{{k.path}}  \u00b7  {{k.reason}}",
+																		"text": "{{k.path}}  ·  {{k.reason}}",
 																		"textColor": "@color.text",
 																		"anchors": {
 																			"left": 8,
@@ -4003,7 +4376,7 @@
 											{
 												"id": "inspChildren",
 												"style": "caption",
-												"text": "{{t('insp.children', {n: length(computed.inspectChildren)})}}{{empty(computed.inspectChildren) ? '' : '  \u00b7  ' + t('insp.select')}}",
+												"text": "{{t('insp.children', {n: length(computed.inspectChildren)})}}{{empty(computed.inspectChildren) ? '' : '  ·  ' + t('insp.select')}}",
 												"anchors": {
 													"left": 20,
 													"right": 20,
@@ -4026,7 +4399,7 @@
 												"height": 136,
 												"rowHeight": 26,
 												"color": "transparent",
-												"items": "{{map(computed.inspectChildren, {id: text(index), label: (it.id ?? t('insp.noId')) + '  \u00b7  ' + (it.type ?? 'panel') + (empty(it.children ?? []) ? '' : '  \u203a')})}}",
+												"items": "{{map(computed.inspectChildren, {id: text(index), label: (it.id ?? t('insp.noId')) + '  ·  ' + (it.type ?? 'panel') + (empty(it.children ?? []) ? '' : '  ›')})}}",
 												"value": "{{state.inspectSel}}",
 												"textColor": "@color.text",
 												"selectedTextColor": "@color.text",
@@ -4460,6 +4833,7 @@
 				"height": "{{min(44 * length(state.connections), 264) + 92}}",
 				"children": [
 					{
+						"id": "label-t-toolbar-repos",
 						"style": "caption",
 						"text": "{{t('toolbar.repos')}}",
 						"anchors": {
@@ -4478,7 +4852,7 @@
 						"rowHeight": 44,
 						"height": "{{min(44 * length(state.connections), 264)}}",
 						"color": "transparent",
-						"items": "{{map(state.connections, {id: it.id, label: (empty(it.name) ? t('conn.local') : it.name) + '  \u00b7  ' + it.address, icon: 'database'})}}",
+						"items": "{{map(state.connections, {id: it.id, label: (empty(it.name) ? t('conn.local') : it.name) + '  ·  ' + it.address, icon: 'database'})}}",
 						"value": "{{state.active}}",
 						"textColor": "@color.text",
 						"selectedTextColor": "@color.text",
@@ -4548,6 +4922,7 @@
 				"height": "{{min(44 * (length(state.proposals) + 1), 308) + 44}}",
 				"children": [
 					{
+						"id": "label-t-toolbar-branches",
 						"style": "caption",
 						"text": "{{t('toolbar.branches')}}",
 						"anchors": {
@@ -4938,7 +5313,7 @@
 									{
 										"id": "connRowName",
 										"type": "label",
-										"text": "{{(empty(c.name) ? t('conn.local') : c.name) + '  \u00b7  ' + c.address}}",
+										"text": "{{(empty(c.name) ? t('conn.local') : c.name) + '  ·  ' + c.address}}",
 										"textColor": "@color.text",
 										"font": "small",
 										"anchors": {
@@ -5153,9 +5528,11 @@
 				"chevron": true
 			},
 			"node": {
+				"id": "panel-toolbar-section",
 				"style": "toolbarSection",
 				"children": [
 					{
+						"id": "label-toolbar-section",
 						"type": "label",
 						"font": "icons",
 						"icon": "{{icon}}",
@@ -5169,6 +5546,7 @@
 						"width": 22
 					},
 					{
+						"id": "label-caption",
 						"type": "label",
 						"style": "toolbarCaption",
 						"text": "{{caption}}",
@@ -5184,6 +5562,7 @@
 						"slot": true
 					},
 					{
+						"id": "label-toolbar-section-2",
 						"type": "label",
 						"when": "{{chevron}}",
 						"font": "iconsSmall",
@@ -5198,6 +5577,7 @@
 						"width": 16
 					},
 					{
+						"id": "panel-toolbar-section-2",
 						"anchors": {
 							"right": 0,
 							"top": 0,

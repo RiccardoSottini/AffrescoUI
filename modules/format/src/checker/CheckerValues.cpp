@@ -138,7 +138,22 @@ std::optional<Shape> fixedResult(std::string_view name) {
 	if(among(listOperators, name)) return Shape::array({single});
 	if(name == "$values") return Shape::array({anything});
 	if(name == "$entries") return Shape::array({{{"key", single}, {"value", anything}}});
-	if(name == "$parseJson") return anything;
+	if(name == "$parseJson" || name == "$atPointer" || name == "$applyPatch") return anything;
+	if(name == "$diffLines") {
+		// ExpressionFunctionsDiff.cpp: the hunks, each with its lines and, when split, its rows of two sides
+		const Shape side = {{"n", single}, {"text", single}, {"kind", single}};
+		const Shape line = {{"kind", single}, {"old", single}, {"new", single}, {"text", single}};
+		const Shape hunk = {{"header", single},
+		                    {"oldStart", single},
+		                    {"oldLines", single},
+		                    {"newStart", single},
+		                    {"newLines", single},
+		                    {"hiddenBefore", single},
+		                    {"lines", Shape::array({line})},
+		                    {"rows", Shape::array({{{"left", side}, {"right", side}}})}};
+		return Shape{{"hunks", Shape::array({hunk})}, {"added", single},    {"removed", single}, {"same", single},
+		             {"hiddenAfter", single},         {"truncated", single}};
+	}
 	return std::nullopt;
 }
 

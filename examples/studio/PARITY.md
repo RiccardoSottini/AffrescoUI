@@ -20,9 +20,9 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | History | Commits with avatar, summary, author and relative time | Main's revisions | partial | partial |
 | History | The chosen commit: header, files and their diffs | A revision's changes | missing | missing |
 | History | Revert a commit; restore | Revert, restore | partial | partial |
-| Diff | Unified view: old and new line numbers, added and removed lines coloured | | missing | missing |
+| Diff | Unified view: old and new line numbers, added and removed lines coloured | A proposal's sections, as formatted JSON | missing | partial |
 | Diff | Split view | | partial | partial |
-| Diff | Hunk headers and expanding the context | | missing | missing |
+| Diff | Hunk headers and expanding the context | Headers; no expanding yet | missing | partial |
 | Diff | Hide whitespace changes; diff options | | missing | missing |
 | Diff | Large-diff and binary placeholders | | missing | missing |
 | Branches | Compare a branch with main | A proposal against main | missing | missing |
@@ -33,11 +33,11 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | App | Repository settings | Mode, grants, permissions | partial | partial |
 | App | Keyboard shortcuts (tabs, commit, lists) | | partial | partial |
 | App | No-repository and offline states | Not connected | partial | partial |
-| Pull request | Header: title, number, state, "wants to merge N commits into main" | A proposal | missing | missing |
-| Pull request | Conversation, Commits, Checks, Files changed tabs with counts | | missing | missing |
-| Pull request | Conversation: description and timeline of commits and reviews | | missing | missing |
+| Pull request | Header: title, number, state, "wants to merge N commits into main" | A proposal: open or conflicting | missing | partial |
+| Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence | missing | done |
+| Pull request | Conversation: description and timeline of commits and reviews | Opened, changes, pushed, approvals, policy | missing | partial |
 | Pull request | Sidebar: reviewers, state of each | Who approved, what the policy needs | missing | missing |
-| Pull request | Files changed: file tree, per-file +/− counts, "Viewed" | Changed nodes and sections | missing | missing |
+| Pull request | Files changed: file tree, per-file +/− counts, "Viewed" | Changed sections with counts; no tree or Viewed yet | missing | partial |
 | Pull request | Comments on a line, with suggestions | | missing | missing |
 | Pull request | Review box: Comment, Approve, Request changes | Accept, reject | partial | partial |
 | Pull request | Checks: what ran, with its results | Evidence: scenarios, pictures before and after | partial | partial |
@@ -47,7 +47,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Pull request | Check out the pull request | Preview | partial | partial |
 
 **Counts at the start:** 0 done, 19 partial, 17 missing.
-**Counts now:** 1 done, 20 partial, 15 missing.
+**Counts now:** 2 done, 25 partial, 9 missing.
 
 ## The Studio's own parts
 
