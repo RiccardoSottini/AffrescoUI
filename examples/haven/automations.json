@@ -19,6 +19,8 @@
 		"autoTab": "list",
 		"autoOpen": -1,
 		"autoQuery": "",
+		"autoMenu": false,
+		"autoConfirm": false,
 		"automations": [
 			{ "id": "welcome", "icon": "door-open", "on": true, "ran": "min7", "steps": [
 				{ "part": "when", "icon": "door-open", "key": "frontOpens" }, { "part": "if", "icon": "sunset", "key": "afterDark" },
@@ -114,6 +116,18 @@
 		"addStep": [
 			{ "note": "with: part (when, if or do): the part's preset, at the end of the open automation" },
 			{ "set": "state.automations[state.autoOpen].steps", "to": "{{concat(state.automations[state.autoOpen].steps, [state.autoPresets[part]])}}" }
+		],
+		"duplicateAutomation": [
+			{ "note": "A copy of the open automation, at the end of the list, opened" },
+			{ "set": "state.automations", "to": "{{concat(state.automations, [merge(computed.openAuto, { id: computed.openAuto.id + '-' + length(state.automations), title: computed.openAuto.title ?? computed.openAuto.id, ran: 'never' })])}}" },
+			{ "set": "state.autoOpen", "to": "{{length(state.automations) - 1}}" }
+		],
+		"confirmDelete": { "set": "state.autoConfirm", "to": true },
+		"deleteAutomation": [
+			{ "note": "Deletes the open automation, once confirmed, and goes back to the list" },
+			{ "run": "notify", "with": { "message": "{{t('auto.deletedNote', { name: t('rule.' + (computed.openAuto.title ?? computed.openAuto.id)) })}}", "icon": "trash-2" } },
+			{ "set": "state.automations", "to": "{{filter(state.automations, index != state.autoOpen)}}" },
+			{ "set": "state.autoOpen", "to": -1 }
 		],
 		"runAutomation": [
 			{ "note": "Runs the open automation now: it reports in the notifications and its trace starts again" },
@@ -326,11 +340,23 @@
 								"label": "{{t('auto.back')}}", "tooltip": "{{t('auto.back')}}", "onClick": { "run": "openAutomation", "with": { "i": -1 } } },
 							{ "id": "autoName", "type": "label", "font": "heading", "icon": "{{computed.openAuto.icon}}",
 								"text": "  {{t('rule.' + (computed.openAuto.title ?? computed.openAuto.id))}}", "textColor": "@text", "font": "title", "anchors": { "left": 72, "top": 30 }, "fitText": true },
-							{ "id": "autoRun", "style": "button", "font": "small", "icon": "play", "text": " {{t('auto.run')}}", "anchors": { "right": 32, "top": 28 }, "width": 104, "height": 36,
+							{ "id": "autoRun", "style": "button", "font": "small", "icon": "play", "text": " {{t('auto.run')}}", "anchors": { "right": 76, "top": 28 }, "width": 104, "height": 36,
 								"onClick": "runAutomation" },
-							{ "id": "autoEnabled", "type": "toggle", "anchors": { "right": 156, "top": 35 }, "width": 40, "height": 22, "label": "{{t('auto.enabled')}}",
+							{ "id": "autoMore", "style": "button", "icon": "ellipsis-vertical", "text": "", "color": "transparent", "textColor": "@text",
+								"anchors": { "right": 24, "top": 26 }, "width": 40, "height": 40, "radius": 20, "label": "{{t('auto.more')}}", "tooltip": "{{t('auto.more')}}",
+								"isOpen": "{{state.autoMenu}}", "onClick": { "toggle": "state.autoMenu" },
+								"children": [
+									{ "id": "autoMenu", "use": "menu", "with": { "open": "state.autoMenu", "placement": "below-end", "width": 200, "icons": true,
+										"items": [
+											{ "title": "{{t('auto.run')}}", "icon": "play", "run": "runAutomation" },
+											{ "title": "{{t('auto.duplicate')}}", "icon": "copy", "run": "duplicateAutomation" },
+											{ "separator": true },
+											{ "title": "{{t('auto.delete')}}", "icon": "trash-2", "run": "confirmDelete" }
+										] } }
+								] },
+							{ "id": "autoEnabled", "type": "toggle", "anchors": { "right": 200, "top": 35 }, "width": 40, "height": 22, "label": "{{t('auto.enabled')}}",
 								"bind": "state.automations[state.autoOpen].on", "activeColor": "@accent", "trackColor": "@off", "knobColor": "@knob" },
-							{ "style": "caption", "text": "{{t('auto.enabled')}}", "anchors": { "right": 206, "top": 28 }, "height": 36, "align": { "horizontal": "end", "vertical": "center" } },
+							{ "style": "caption", "text": "{{t('auto.enabled')}}", "anchors": { "right": 250, "top": 28 }, "height": 36, "align": { "horizontal": "end", "vertical": "center" } },
 							{
 								"id": "autoParts",
 								"type": "column",
@@ -344,6 +370,9 @@
 										{ "anchors": { "left": 0, "right": 0 }, "height": 12, "color": "transparent" }
 								]
 							},
+							{ "id": "autoConfirm", "use": "dialog", "with": { "open": "state.autoConfirm", "width": 400, "height": 136,
+								"title": "{{t('auto.deleteTitle')}}", "message": "{{t('auto.deleteBody', { name: t('rule.' + (computed.openAuto.title ?? computed.openAuto.id)) })}}",
+								"buttons": [{ "title": "{{t('auto.delete')}}", "run": "deleteAutomation" }, { "title": "{{t('auto.cancel')}}" }] } },
 							{
 								"id": "autoTrace",
 								"when": "{{!computed.compact}}",

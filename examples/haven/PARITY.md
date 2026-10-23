@@ -4,7 +4,7 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 23 done, 4 partial, 12 missing (39).
+**Counts:** 24 done, 4 partial, 11 missing (39).
 
 ## Shell
 
@@ -58,7 +58,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Automations list with on and off | done | searchable table with name, last ran and enabled columns; disabled rules dimmed; a floating New automation button |
-| Editor: triggers, conditions, actions as cards | done | an editor bar with back, name, enabled and Run; When, And if, Then do cards with outlined add buttons; a graph view |
+| Editor: triggers, conditions, actions as cards | done | an editor bar with back, name, enabled and Run; When, And if, Then do cards with outlined add buttons; a graph view; an overflow menu with Run, Duplicate and Delete, which asks first |
 | Automation trace / last run | done | a step-by-step timeline of the last run; Run starts it now |
 
 ## Areas, logbook and history
@@ -83,4 +83,4 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Chat assistant panel | missing | waits for 14-browser M1 |
-| Shared kit components | missing | waits for 14-kit M1 |
+| Shared kit components | done | the kit menu, dialog and quick pick, themed through `kit.*` colours |

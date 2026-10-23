@@ -74,7 +74,17 @@
 				{ "expect": { "image": "settings-dark" } },
 				{ "key": "mod+4" },
 				{ "click": "#autoRowOpen", "nth": 1 },
-				{ "expect": { "image": "automation-editor-dark" } }
+				{ "expect": { "image": "automation-editor-dark" } },
+				{ "click": "#autoMore" },
+				{ "expect": { "image": "automation-menu-dark" } },
+				{ "click": { "role": "menuitem", "name": "Delete" } },
+				{ "expect": { "image": "automation-delete-dark" } },
+				{ "key": "escape" },
+				{ "key": "mod+t" },
+				{ "wait": 600 },
+				{ "click": "#autoMore" },
+				{ "click": { "role": "menuitem", "name": "Delete" } },
+				{ "expect": { "image": "automation-delete-light" } }
 			]
 		}
 	]

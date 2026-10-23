@@ -51,27 +51,24 @@
 		"field": { "dark": "#262626", "light": "#f5f5f5" },
 		"knob": { "dark": "#ffffff", "light": "#ffffff" },
 		"plan": { "dark": "#161616", "light": "#ffffff" },
-		"wall": { "dark": "#4a4a4a", "light": "#9e9e9e" },
-		"floor": { "dark": "#1c1c1c", "light": "#ffffff" },
-		"lightOn": { "dark": "#ffc107", "light": "#ffc107" },
-		"lightOff": { "dark": "#9e9e9e", "light": "#9e9e9e" },
-		"heat": { "dark": "#ff6f22", "light": "#ff6f22" },
-		"cool": { "dark": "#2196f3", "light": "#2196f3" },
-		"autoMode": { "dark": "#4caf50", "light": "#4caf50" },
 		"cover": { "dark": "#926bc7", "light": "#926bc7" },
-		"locked": { "dark": "#4caf50", "light": "#4caf50" },
 		"grid": { "dark": "#488fc2", "light": "#488fc2" },
 		"gridOut": { "dark": "#8353d1", "light": "#8353d1" },
 		"solar": { "dark": "#ff9800", "light": "#ff9800" },
-		"unlocked": { "dark": "#f44336", "light": "#f44336" },
 		"media": { "dark": "#03a9f4", "light": "#03a9f4" },
-		"sensor": { "dark": "#44739e", "light": "#44739e" },
-		"grid": { "dark": "#488fc2", "light": "#488fc2" },
-		"gridReturn": { "dark": "#8353d1", "light": "#8353d1" },
-		"solar": { "dark": "#ff9800", "light": "#ff9800" },
-		"batteryIn": { "dark": "#4db6ac", "light": "#4db6ac" },
-		"batteryOut": { "dark": "#f06292", "light": "#f06292" },
-		"gas": { "dark": "#8e021b", "light": "#8e021b" }
+		"kit.surface": { "dark": "#1c1c1c", "light": "#ffffff" },
+		"kit.text": { "dark": "#e1e1e1", "light": "#212121" },
+		"kit.dim": { "dark": "#9b9b9b", "light": "#727272" },
+		"kit.selection": { "dark": "#2a2a2a", "light": "#f0f0f0" },
+		"kit.border": { "dark": "#2f2f2f", "light": "#e0e0e0" },
+		"kit.primary": { "dark": "#03a9f4", "light": "#0288d1" },
+		"kit.onPrimary": { "dark": "#ffffff", "light": "#ffffff" },
+		"kit.secondary": { "dark": "#2a2a2a", "light": "#f0f0f0" },
+		"kit.onSecondary": { "dark": "#e1e1e1", "light": "#212121" },
+		"kit.accent": { "dark": "#03a9f4", "light": "#0288d1" },
+		"kit.field": { "dark": "#262626", "light": "#f5f5f5" },
+		"kit.focus": { "dark": "#03a9f4", "light": "#0288d1" },
+		"kit.backdrop": { "dark": "#00000052", "light": "#00000052" }
 	},
 
 	"permissions": {
@@ -886,12 +883,7 @@
 				"dir": "auto",
 				"use": "quickPick",
 				"with": {
-					"color": "@card",
-					"textColor": "@text",
-					"dimColor": "@muted",
-					"accent": "@accent",
 					"highlight": "@accentSoft",
-					"field": "@field",
 					"providers": [
 						{ "prefix": ">", "items": "{{computed.palette}}", "placeholder": "{{t('quick.commands')}}" }
 					]

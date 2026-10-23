@@ -278,6 +278,33 @@
 			]
 		},
 		{
+			"name": "automation-menu-duplicate-and-delete",
+			"note": "The editor's more menu duplicates the open automation, then deletes the copy once the dialog confirms it",
+			"steps": [
+				{ "key": "mod+4" },
+				{ "click": "#autoRowOpen", "nth": 0 },
+				{ "click": "#autoMore" },
+				{ "expect": { "state": "autoMenu", "is": true } },
+				{ "click": { "role": "menuitem", "name": "Duplicate" } },
+				{ "expect": { "state": "autoMenu", "is": false } },
+				{ "expect": { "state": "automations.length", "is": 5 } },
+				{ "expect": { "state": "autoOpen", "is": 4 } },
+				{ "expect": { "state": "automations[4].steps.length", "is": 4 } },
+				{ "click": "#autoMore" },
+				{ "click": { "role": "menuitem", "name": "Delete" } },
+				{ "expect": { "state": "autoConfirm", "is": true } },
+				{ "click": { "role": "button", "name": "Cancel" } },
+				{ "expect": { "state": "autoConfirm", "is": false } },
+				{ "expect": { "state": "automations.length", "is": 5 } },
+				{ "click": "#autoMore" },
+				{ "click": { "role": "menuitem", "name": "Delete" } },
+				{ "click": { "role": "button", "name": "Delete" } },
+				{ "expect": { "state": "automations.length", "is": 4 } },
+				{ "expect": { "state": "autoOpen", "is": -1 } },
+				{ "expect": { "node": "#autoList", "exists": true } }
+			]
+		},
+		{
 			"name": "energy-by-device",
 			"note": "The By device switch charts the week's energy per device, labelled by device",
 			"steps": [
