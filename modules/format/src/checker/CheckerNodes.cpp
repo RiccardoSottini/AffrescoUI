@@ -23,11 +23,11 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(
-    {"set",      "push",    "remove",  "toggle",    "increment", "if",         "forEach", "while",
-	 "run",      "call",    "cancel",  "emit",      "send",      "connect",    "patch",   "accept",
-	 "reject",   "preview", "restore", "revert",    "undo",      "endPreview", "focus",   "scrollTo",
-	 "navigate", "dismiss", "after",   "debounce",  "animate",   "copy",       "log",     "stop",
-	 "note",     "invoke",  "request", "subscribe", "respond",   "signIn",     "signOut", "camera"});
+    {"set",      "push",    "remove",  "toggle",     "increment", "if",       "forEach",  "while",   "run",
+	 "call",     "cancel",  "emit",    "send",       "connect",   "patch",    "accept",   "reject",  "preview",
+	 "restore",  "revert",  "undo",    "endPreview", "focus",     "scrollTo", "navigate", "dismiss", "after",
+	 "debounce", "animate", "copy",    "log",        "stop",      "note",     "invoke",   "request", "subscribe",
+	 "respond",  "signIn",  "signOut", "camera",     "image"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -98,6 +98,7 @@ std::optional<Reference> referenceOf(std::string_view key) {
 	if(key == "color" || key.ends_with("Color")) return Reference{"color", "colors", "@"};
 	if(key == "font") return Reference{"font", "fonts", ""};
 	if(key == "style") return Reference{"style", "styles", ""};
+	if(key == "image") return Reference{"image", "images", ""}; // a raster node's
 	return std::nullopt;
 }
 
@@ -501,6 +502,7 @@ void Checker::walkStepValues(std::string_view kind, const json& step, const Scop
 	if(kind == "navigate")
 		for(const std::string& name : candidateNames(step["navigate"]))
 			if(name != "back") refer("screen", "screens", name, "", place + ".navigate");
+	if(kind == "image") walkImageStep(step, place);
 }
 
 void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::string& place) {

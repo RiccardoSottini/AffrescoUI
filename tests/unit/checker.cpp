@@ -188,6 +188,33 @@ TEST_CASE("checker: state paths") {
 	});
 }
 
+TEST_CASE("checker: the images a screen edits, the image step and the raster node") {
+	const std::string images = R"("images": {"avatar": {"width": 256, "height": 256, "into": "state.avatar"},
+	        "banner": {"width": 600, "height": 200}}, )";
+	checkAll({
+	    {"an image's snapshot may be read at its into path",
+	     R"("images": {"avatar": {"width": 256, "height": 256, "into": "state.avatar"}},
+	        "root": {"text": "{{state.avatar.width}} {{state.avatr}}"})",
+	     {"root.text: 'state.avatr' doesn't exist (did you mean 'state.avatar'?)"}},
+	    {"a step's operation, the keys of its with, and the image it names",
+	     (images + R"("actions": {"crop": [{"image": "crop", "of": "avatar", "with": {"x": 0, "y": 0, "widht": 9}},
+	        {"image": "zom", "of": "avatar"}, {"image": "fit", "of": "avtar"}, {"image": "fit"},
+	        {"image": "{{state.operation}}", "of": "banner"}]}, "state": {"operation": "fit"}, "root": {})")
+	         .c_str(),
+	     {"actions.crop[0].with.widht: 'crop' doesn't read 'widht' (did you mean 'width'?)",
+	      "actions.crop[1].image: unknown image operation 'zom' (did you mean 'zoom'?)",
+	      "actions.crop[2].of: unknown image 'avtar' (did you mean 'avatar'?)",
+	      "actions.crop[3]: \"of\" names the image when a screen declares more than one"}},
+	    {"a step needs an images section; with one image, of is optional",
+	     R"("actions": {"fit": [{"image": "fit"}]}, "root": {})",
+	     {"actions.fit[0]: an \"image\" step needs an \"images\" section"}},
+	    {"a raster node names a declared image",
+	     (images + R"("root": {"children": [{"type": "raster", "image": "avatar"}, {"type": "raster", "image": "baner"}]})")
+	         .c_str(),
+	     {"root.children[1].image: unknown image 'baner' (did you mean 'banner'?)"}},
+	});
+}
+
 TEST_CASE("checker: paths nested past the expression limit are findings, not a crash") {
 	std::string deep;
 	for(int i = 0; i < 20000; ++i) deep += "state.items[";

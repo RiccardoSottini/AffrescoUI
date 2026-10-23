@@ -47,6 +47,7 @@ target_include_directories(affrescoui_format PRIVATE src/locale)
 target_sources(affrescoui_format PRIVATE
 	src/checker/Checker.cpp
 	src/checker/CheckerNodes.cpp
+	src/checker/CheckerImages.cpp
 	src/checker/CheckerTypes.cpp
 	src/checker/CheckerValues.cpp
 	src/checker/StateTypes.cpp)
