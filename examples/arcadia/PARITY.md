@@ -33,16 +33,16 @@ was at the start of this work; **Now** is the current state.
 | Game page | Friends who play, achievements panel, screenshots, notes, DLC, controller info | partial | partial |
 | Game page | Properties dialog: general/launch options, compatibility, updates, installed files, verify, DLC | missing | missing |
 | Game page | Uninstall with a confirmation | done | missing |
-| Store | Store sub-navigation (Your Store, New & Noteworthy, Categories, Points Shop, News, Labs) and search | missing | missing |
-| Store | Featured carousel: capsule, screenshots that change on hover, price, tags | partial | missing |
-| Store | Special offers with discount badges and old/new prices | missing | missing |
-| Store | Browse by category tiles | missing | missing |
-| Store | Game store page: media gallery with a thumbnail strip, header capsule, description | missing | missing |
-| Store | Store page: reviews summary (Very Positive), release date, developer, publisher, tags | missing | missing |
-| Store | Store page: purchase boxes with Add to Cart, Add to Wishlist, Follow | missing | missing |
-| Store | Store page: system requirements with platform tabs (minimum / recommended) | missing | missing |
-| Store | Cart: items, total, remove, purchase for myself | missing | missing |
-| Store | Wishlist with sort (rank, name, price, discount) | missing | missing |
+| Store | Store sub-navigation (Your Store, New & Noteworthy, Categories, Points Shop, News, Labs) and search | missing | done |
+| Store | Featured carousel: capsule, screenshots that change on hover, price, tags | partial | done |
+| Store | Special offers with discount badges and old/new prices | missing | done |
+| Store | Browse by category tiles | missing | done |
+| Store | Game store page: media gallery with a thumbnail strip, header capsule, description | missing | done |
+| Store | Store page: reviews summary (Very Positive), release date, developer, publisher, tags | missing | done |
+| Store | Store page: purchase boxes with Add to Cart, Add to Wishlist, Follow | missing | done |
+| Store | Store page: system requirements with platform tabs (minimum / recommended) | missing | done |
+| Store | Cart: items, total, remove, purchase for myself | missing | done |
+| Store | Wishlist with sort (rank, name, price, discount) | missing | done |
 | Downloads | Current download with banner, speed, progress and pause | partial | missing |
 | Downloads | Network and disk usage graph | missing | missing |
 | Downloads | Up next queue with reorder, unscheduled, completed lists | partial | missing |
@@ -61,3 +61,4 @@ was at the start of this work; **Now** is the current state.
 
 Counts at the start: done 2, partial 21, missing 26 (49 features). Tokens at the start (merged, compact): 24,559.
 Counts after round 1 (library and game page): done 16, partial 7, missing 26. Tokens (merged, compact): 19,469.
+Counts after round 2 (store): done 26, partial 7, missing 16. Tokens (merged, compact): 36,493 (the store adds about 17,000).

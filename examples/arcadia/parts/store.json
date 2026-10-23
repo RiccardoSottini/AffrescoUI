@@ -1,0 +1,3319 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Arcadia's store: the blue store bar and search, a featured carousel whose picture follows the screenshot under the pointer, special offers, categories, tabbed lists with a preview, a page per game (gallery, reviews, buying, requirements), the cart and the wishlist.",
+	"fonts": {
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 26, "fallback": ["icons", "arabic"] },
+		"price": {
+			"file": "../shared/fonts/Roboto-Regular.ttf",
+			"size": 24,
+			"bold": true,
+			"fallback": ["icons", "arabic"]
+		}
+	},
+	"tokens": {
+		"store.glow": { "dark": "#2a475e", "light": "#d3e2ee" },
+		"store.card": { "dark": "#0000003d", "light": "#ffffffd0" },
+		"store.cardHover": { "dark": "#ffffff14", "light": "#ffffff" },
+		"store.text": { "dark": "#c6d4df", "light": "#1f2a36" },
+		"store.label": { "dark": "#556772", "light": "#6b7c88" },
+		"store.chip": { "dark": "#67c1f533", "light": "#2475b01f" },
+		"store.chipText": { "dark": "#67c1f5", "light": "#1f6aa0" },
+		"store.priceBox": { "dark": "#00000066", "light": "#dfe7ee" },
+		"store.oldPrice": { "dark": "#738895", "light": "#7a8b97" },
+		"store.final": { "dark": "#beee11", "light": "#3f6b0a" },
+		"store.price": { "dark": "#ffffff", "light": "#0e1620" },
+		"store.preview": { "dark": "#95bbd4", "light": "#c3d9e8" },
+		"store.previewEnd": { "dark": "#7ea4bf", "light": "#a9c6da" },
+		"store.ink": { "dark": "#10161b", "light": "#10161b" },
+		"store.inkSoft": { "dark": "#2f4f64", "light": "#2f4f64" },
+		"store.cta": { "dark": "#75b022", "light": "#6aa31d" },
+		"store.ctaEnd": { "dark": "#588a1b", "light": "#4f8518" },
+		"store.onCta": { "dark": "#d2efa9", "light": "#f2ffe0" },
+		"store.navA": { "dark": "#3e6796", "light": "#3e6796" },
+		"store.navB": { "dark": "#3a78b1", "light": "#3a78b1" },
+		"store.navC": { "dark": "#0f216e", "light": "#16307f" },
+		"store.field": { "dark": "#316282", "light": "#2c5a7a" },
+		"store.down": { "dark": "#a34c25", "light": "#b4532a" }
+	},
+	"state": {
+		"cart": ["volt"],
+		"wishlist": ["glasswing", "aurora", "hollowsong", "tinyfleet"],
+		"followed": [],
+		"storeQuery": "",
+		"storeFeature": 0,
+		"storeShot": null,
+		"storeList": "new",
+		"storeHover": null,
+		"storeCatsOpen": false,
+		"shotIndex": 0,
+		"reqTab": "windows",
+		"wishSort": "rank",
+		"wishSortOpen": false,
+		"wishQuery": "",
+		"cartAdded": null,
+		"cartDialog": false,
+		"receipt": [],
+		"reviews": [
+			{
+				"author": "MossyGolem",
+				"avatar": "frog",
+				"products": 142,
+				"reviews": 12,
+				"up": true,
+				"hours": 42.5,
+				"posted": "3 October",
+				"text": "Plays beautifully and respects my time. Forty hours in, I am still finding corners I missed, and the soundtrack is on loop at work."
+			},
+			{
+				"author": "quietfern",
+				"avatar": "owl",
+				"products": 37,
+				"reviews": 3,
+				"up": true,
+				"hours": 11.2,
+				"posted": "28 September",
+				"text": "Short sessions, big smile. Runs well on my old laptop, and the controller support is spot on."
+			},
+			{
+				"author": "Pixel_Baron",
+				"avatar": "knight",
+				"products": 611,
+				"reviews": 88,
+				"up": false,
+				"hours": 3.4,
+				"posted": "21 September",
+				"text": "Lovely to look at, but the middle chapters drag. I will come back after a few patches."
+			}
+		]
+	},
+	"computed": {
+		"storeView": "{{state.storeQuery != '' ? 'results' : computed.here.page}}",
+		"price": "{{map(state.games, round(it.price * (100 - it.discount)) / 100)}}",
+		"featured": "{{filter(state.games, contains(['aurora', 'glasswing', 'clockwork', 'rivermill', 'volt'], it.id))}}",
+		"feature": "{{computed.featured[state.storeFeature]}}",
+		"offers": "{{slice(sort(filter(state.games, it.discount > 0), it.discount, 'desc'), 0, 6)}}",
+		"storeRows": "{{state.storeList == 'top' ? slice(sort(state.games, it.reviewCount, 'desc'), 0, 8) : state.storeList == 'specials' ? slice(sort(filter(state.games, it.discount > 0), it.discount, 'desc'), 0, 8) : slice(reverse(state.games), 0, 8)}}",
+		"storePreview": "{{find(computed.storeRows, it.id == state.storeHover) ?? computed.storeRows[0]}}",
+		"results": "{{filter(state.games, contains(lower(it.title), lower(state.storeQuery)) || lower(it.genre) == lower(state.storeQuery) || some(it.tags, lower(it) == lower(state.storeQuery)))}}",
+		"cartGames": "{{filter(state.games, contains(state.cart, it.id))}}",
+		"cartTotal": "{{round(sum(computed.cartGames, it.price * (100 - it.discount))) / 100}}",
+		"wishGames": "{{filter(state.games, contains(state.wishlist, it.id) && (state.wishQuery == '' || contains(lower(it.title), lower(state.wishQuery)) || some(it.tags, contains(lower(it), lower(state.wishQuery)))))}}",
+		"wishSorted": "{{state.wishSort == 'name' ? sort(computed.wishGames, it.title) : state.wishSort == 'price' ? sort(computed.wishGames, it.price * (100 - it.discount)) : state.wishSort == 'discount' ? sort(computed.wishGames, it.discount, 'desc') : sort(computed.wishGames, indexOf(state.wishlist, it.id))}}",
+		"storeWidth": "{{min(940, window.width - 32)}}",
+		"storeHeight": "{{86 + (computed.storeView == 'results' ? 110 + 74 * max(1, length(computed.results)) : computed.storeView == 'app' ? 1840 : computed.storeView == 'cart' ? 140 + max(250, length(computed.cartGames) * 106 + 60, length(state.receipt) * 40 + 160) : computed.storeView == 'wishlist' ? 160 + max(1, length(computed.wishSorted)) * 128 : 1960)}}"
+	},
+	"actions": {
+		"storeHome": {
+			"title": "Store home",
+			"category": "Store",
+			"icon": "store",
+			"do": [
+				{ "set": "state.cartDialog", "to": false },
+				{ "set": "state.storeQuery", "to": "" },
+				{ "run": "go", "with": { "tab": "store", "page": "home", "id": null } }
+			]
+		},
+		"openStore": {
+			"title": "Open the game's store page",
+			"category": "Store",
+			"do": [
+				{ "set": "state.cartDialog", "to": false },
+				{ "set": "state.storeQuery", "to": "" },
+				{ "set": "state.shotIndex", "to": 0 },
+				{ "run": "go", "with": { "tab": "store", "page": "app", "id": "{{id}}" } }
+			]
+		},
+		"showCart": {
+			"title": "Cart",
+			"category": "Store",
+			"icon": "shopping-cart",
+			"do": [
+				{ "set": "state.cartDialog", "to": false },
+				{ "set": "state.storeQuery", "to": "" },
+				{ "set": "state.receipt", "to": [] },
+				{ "run": "go", "with": { "tab": "store", "page": "cart", "id": null } }
+			]
+		},
+		"showWishlist": {
+			"title": "Wishlist",
+			"category": "Store",
+			"icon": "heart",
+			"do": [
+				{ "set": "state.cartDialog", "to": false },
+				{ "set": "state.storeQuery", "to": "" },
+				{ "run": "go", "with": { "tab": "store", "page": "wishlist", "id": null } }
+			]
+		},
+		"storeSearch": {
+			"title": "Search the store",
+			"category": "Store",
+			"do": [{ "set": "state.storeQuery", "to": "{{query}}" }, { "set": "state.storeCatsOpen", "to": false }]
+		},
+		"addToCart": {
+			"title": "Add to cart",
+			"category": "Store",
+			"icon": "shopping-cart",
+			"description": "Adds the game to the cart and confirms it in a dialog.",
+			"do": [
+				{ "if": "{{!contains(state.cart, id)}}", "then": [{ "push": "state.cart", "value": "{{id}}" }] },
+				{ "set": "state.cartAdded", "to": "{{id}}" },
+				{ "set": "state.cartDialog", "to": true }
+			]
+		},
+		"removeFromCart": {
+			"title": "Remove from cart",
+			"category": "Store",
+			"do": [{ "set": "state.cart", "to": "{{filter(state.cart, it != id)}}" }]
+		},
+		"toWishlist": {
+			"title": "Move to the wishlist",
+			"category": "Store",
+			"do": [
+				{ "set": "state.cart", "to": "{{filter(state.cart, it != id)}}" },
+				{ "if": "{{!contains(state.wishlist, id)}}", "then": [{ "push": "state.wishlist", "value": "{{id}}" }] }
+			]
+		},
+		"toggleWishlist": {
+			"title": "Add to or remove from the wishlist",
+			"category": "Store",
+			"icon": "heart",
+			"do": [
+				{
+					"set": "state.wishlist",
+					"to": "{{contains(state.wishlist, id) ? filter(state.wishlist, it != id) : concat(state.wishlist, [id])}}"
+				}
+			]
+		},
+		"toggleFollow": {
+			"title": "Follow or unfollow",
+			"category": "Store",
+			"do": [
+				{
+					"set": "state.followed",
+					"to": "{{contains(state.followed, id) ? filter(state.followed, it != id) : concat(state.followed, [id])}}"
+				}
+			]
+		},
+		"wishMove": {
+			"title": "Move a wishlist game up or down",
+			"category": "Store",
+			"description": "Swaps the games at ranks i and j.",
+			"do": [
+				{
+					"set": "state.wishlist",
+					"to": "{{map(state.wishlist, index == i ? state.wishlist[j] : index == j ? state.wishlist[i] : it)}}"
+				}
+			]
+		},
+		"setWishSort": {
+			"title": "Sort the wishlist",
+			"category": "Store",
+			"do": [{ "set": "state.wishSort", "to": "{{by}}" }]
+		},
+		"purchase": {
+			"title": "Purchase for myself",
+			"category": "Store",
+			"icon": "credit-card",
+			"enablement": "{{length(state.cart) > 0 && computed.cartTotal <= state.user.wallet}}",
+			"description": "Pays from the wallet: the games join the library, not installed, and leave the wishlist.",
+			"do": [
+				{
+					"forEach": "state.games",
+					"as": "g",
+					"index": "i",
+					"do": [
+						{
+							"if": "{{contains(state.cart, g.id)}}",
+							"then": [{ "set": "state.games[i].owned", "to": true }]
+						}
+					]
+				},
+				{
+					"set": "state.user.wallet",
+					"to": "{{round((state.user.wallet - computed.cartTotal) * 100) / 100}}"
+				},
+				{ "set": "state.wishlist", "to": "{{filter(state.wishlist, !contains(state.cart, it))}}" },
+				{ "set": "state.receipt", "to": "{{state.cart}}" },
+				{ "set": "state.cart", "to": [] }
+			]
+		}
+	},
+	"components": {
+		"priceTag": {
+			"note": "A game's price: the discount and the old price struck through, or 'In library' when owned.",
+			"params": { "g": {}, "big": false },
+			"node": {
+				"type": "row",
+				"height": "{{big ? 40 : 32}}",
+				"width": "{{g.owned ? 86 : g.discount > 0 ? (big ? 156 : 132) : (big ? 90 : 76)}}",
+				"children": [
+					{
+						"when": "{{g.owned}}",
+						"type": "label",
+						"font": "small",
+						"text": "{{upper(t('store.inLibrary'))}}",
+						"grow": 1,
+						"height": "{{big ? 40 : 32}}",
+						"align": "center",
+						"radius": 2,
+						"color": "@store.chip",
+						"textColor": "@store.chipText"
+					},
+					{
+						"when": "{{!g.owned && g.discount > 0}}",
+						"type": "label",
+						"font": "{{big ? 'price' : 'button'}}",
+						"text": "-{{g.discount}}%",
+						"width": "{{big ? 66 : 56}}",
+						"height": "{{big ? 40 : 32}}",
+						"align": "center",
+						"color": "@color.badge",
+						"textColor": "@color.onBadge",
+						"radius": { "topLeft": 2, "bottomLeft": 2 }
+					},
+					{
+						"when": "{{!g.owned}}",
+						"grow": 1,
+						"height": "{{big ? 40 : 32}}",
+						"color": "@store.priceBox",
+						"radius": "{{g.discount > 0 ? {topRight: 2, bottomRight: 2} : 2}}",
+						"children": [
+							{
+								"when": "{{g.discount > 0}}",
+								"type": "label",
+								"font": "small",
+								"text": "{{formatCurrency(g.price, 'EUR')}}",
+								"textColor": "@store.oldPrice",
+								"fitText": true,
+								"anchors": { "right": 6, "top": "{{big ? 3 : 1}}" },
+								"children": [
+									{
+										"type": "panel",
+										"height": 1,
+										"anchors": { "left": 0, "right": 0, "top": 8 },
+										"color": "@store.oldPrice"
+									}
+								]
+							},
+							{
+								"type": "label",
+								"font": "{{big ? 'strong' : 'default'}}",
+								"fitText": true,
+								"text": "{{formatCurrency(round(g.price * (100 - g.discount)) / 100, 'EUR')}}",
+								"textColor": "{{g.discount > 0 ? '@store.final' : '@store.price'}}",
+								"anchors": "{{g.discount > 0 ? {right: 6, bottom: big ? 4 : 1} : {right: 8, top: big ? 11 : 7}}}"
+							}
+						]
+					}
+				]
+			}
+		},
+		"ctaButton": {
+			"note": "The green call to action of the store (Add to Cart, Purchase).",
+			"params": { "title": "", "enabled": true },
+			"node": {
+				"type": "label",
+				"text": "{{title}}",
+				"fitText": true,
+				"padding": 16,
+				"radius": 2,
+				"font": "default",
+				"focusable": true,
+				"role": "button",
+				"cursor": "hand",
+				"textColor": "{{enabled ? '@store.onCta' : '@color.dim'}}",
+				"color": "{{enabled ? 'transparent' : '@color.raised'}}",
+				"gradient": "{{ {kind: 'linear', angle: 90, stops: enabled ? ['@store.cta', '@store.ctaEnd'] : ['@color.raised', '@color.raised']} }}",
+				"hover": { "textColor": "#ffffff", "shadow": { "blur": 10, "color": "#a4d00755" } }
+			}
+		},
+		"blueButton": {
+			"note": "The store's quiet blue button (wishlist, follow, community hub).",
+			"params": { "title": "", "icon": "", "on": false },
+			"node": {
+				"type": "label",
+				"text": "{{title}}",
+				"icon": "{{icon}}",
+				"fitText": true,
+				"padding": 12,
+				"radius": 2,
+				"focusable": true,
+				"role": "button",
+				"cursor": "hand",
+				"selected": "{{on}}",
+				"color": "@store.chip",
+				"textColor": "@store.chipText",
+				"hover": {
+					"textColor": "#ffffff",
+					"gradient": { "kind": "linear", "angle": 135, "stops": ["#66c0f4", "#417a9b"] }
+				}
+			}
+		},
+		"storeHeader": {
+			"note": "A store section's heading, in capitals, with an optional button at the end.",
+			"params": { "title": "" },
+			"node": {
+				"type": "row",
+				"height": 46,
+				"anchors": { "left": 0, "right": 0 },
+				"alignItems": "end",
+				"children": [
+					{
+						"type": "label",
+						"font": "caps",
+						"text": "{{upper(title)}}",
+						"textColor": "@color.bright",
+						"fitText": true,
+						"padding": 8
+					},
+					{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
+					{ "slot": true }
+				]
+			}
+		},
+		"storeTop": {
+			"note": "Wishlist and cart links, then the blue store bar: Your Store, New & Noteworthy, Categories, Points Shop, News, Labs, and the search field.",
+			"params": {},
+			"node": {
+				"type": "column",
+				"height": 86,
+				"anchors": { "left": 0, "right": 0 },
+				"children": [
+					{
+						"type": "row",
+						"height": 40,
+						"anchors": { "left": 0, "right": 0 },
+						"alignItems": "center",
+						"gap": 3,
+						"children": [
+							{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
+							{
+								"id": "store-wishlist",
+								"type": "label",
+								"font": "small",
+								"fitText": true,
+								"padding": 14,
+								"text": "{{upper(t('store.wishlist'))}} ({{length(state.wishlist)}})",
+								"color": "@store.chip",
+								"textColor": "@store.text",
+								"radius": 2,
+								"focusable": true,
+								"role": "button",
+								"cursor": "hand",
+								"hover": { "textColor": "#ffffff", "color": "#67c1f566" },
+								"onClick": "showWishlist"
+							},
+							{
+								"when": "{{length(state.cart) > 0}}",
+								"id": "store-cart",
+								"type": "label",
+								"font": "small",
+								"fitText": true,
+								"padding": 14,
+								"text": "{{upper(t('store.cart'))}} ({{length(state.cart)}})",
+								"radius": 2,
+								"color": "transparent",
+								"gradient": { "kind": "linear", "angle": 90, "stops": ["@store.cta", "@store.ctaEnd"] },
+								"textColor": "@store.onCta",
+								"focusable": true,
+								"role": "button",
+								"cursor": "hand",
+								"hover": { "textColor": "#ffffff" },
+								"onClick": "showCart"
+							}
+						]
+					},
+					{
+						"id": "store-bar",
+						"type": "row",
+						"height": 36,
+						"anchors": { "left": 0, "right": 0 },
+						"alignItems": "center",
+						"radius": 3,
+						"color": "transparent",
+						"arrows": "horizontal",
+						"shadow": { "y": 0, "blur": 3, "color": "#00000060" },
+						"gradient": {
+							"kind": "linear",
+							"angle": 90,
+							"stops": [
+								{ "at": 0.1, "color": "@store.navA" },
+								{ "at": 0.25, "color": "@store.navB" },
+								{ "at": 1, "color": "@store.navC" }
+							]
+						},
+						"children": [
+							{
+								"repeat": {
+									"for": "item",
+									"in": "{{['yours', 'noteworthy', 'categories', 'points', 'news', 'labs']}}"
+								},
+								"id": "{{'store-bar-' + item}}",
+								"type": "label",
+								"fitText": true,
+								"padding": 13,
+								"height": 36,
+								"text": "{{t('store.bar.' + item)}}",
+								"textColor": "#e5e5e5",
+								"focusable": true,
+								"role": "button",
+								"cursor": "hand",
+								"hover": { "color": "#ffffff1f", "textColor": "#ffffff" },
+								"isOpen": "{{item == 'categories' && state.storeCatsOpen}}",
+								"onClick": [
+									{
+										"if": "{{item == 'categories'}}",
+										"then": [{ "toggle": "state.storeCatsOpen" }],
+										"else": [{ "run": "storeHome" }]
+									}
+								],
+								"children": [
+									{
+										"when": "{{item == 'categories'}}",
+										"use": "menu",
+										"with": {
+											"open": "state.storeCatsOpen",
+											"width": 200,
+											"items": "{{map(['Action', 'Adventure', 'Horror', 'Platformer', 'Puzzle', 'Racing', 'RPG', 'Shooter', 'Simulation', 'Strategy'], { title: t('genre.' + it), run: 'storeSearch', with: { query: it } })}}"
+										}
+									}
+								]
+							},
+							{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
+							{
+								"id": "store-search",
+								"type": "textarea",
+								"width": 200,
+								"height": 26,
+								"padding": 30,
+								"bind": "state.storeQuery",
+								"placeholder": "{{t('store.search')}}",
+								"placeholderColor": "#a0bfd6",
+								"textColor": "#ffffff",
+								"color": "@store.field",
+								"radius": 3,
+								"label": "{{t('store.search')}}",
+								"borderWidth": 1,
+								"borderColor": "#00000055",
+								"focused": { "borderColor": "#66c0f4" },
+								"children": [
+									{
+										"type": "label",
+										"icon": "search",
+										"text": "",
+										"width": 24,
+										"height": 22,
+										"align": "center",
+										"radius": 2,
+										"textColor": "#ffffff",
+										"anchors": { "right": 2, "top": 2 },
+										"color": "transparent",
+										"gradient": { "kind": "linear", "angle": 135, "stops": ["#67c1f5", "#417a9b"] }
+									}
+								]
+							},
+							{ "type": "panel", "color": "transparent", "width": 6, "height": 1 }
+						]
+					},
+					{ "type": "panel", "color": "transparent", "height": 10, "width": 1 }
+				]
+			}
+		},
+		"featured": {
+			"note": "The featured carousel: a big capsule whose picture follows the screenshot under the pointer, the arrows and the dots.",
+			"params": {},
+			"node": {
+				"id": "featured",
+				"height": 383,
+				"anchors": { "left": -46, "right": -46 },
+				"children": [
+					{
+						"type": "row",
+						"height": 353,
+						"anchors": { "left": 46, "right": 46 },
+						"shadow": { "y": 0, "blur": 10, "color": "#00000080" },
+						"children": [
+							{
+								"id": "featured-capsule",
+								"grow": 1,
+								"height": 353,
+								"focusable": true,
+								"role": "button",
+								"cursor": "hand",
+								"label": "{{computed.feature.title}}",
+								"onClick": { "run": "openStore", "with": { "id": "{{computed.feature.id}}" } },
+								"children": [
+									{
+										"type": "image",
+										"fill": true,
+										"fit": "cover",
+										"file": "{{'art/' + computed.feature.id + '/' + (state.storeShot == null ? 'hero' : state.storeShot < 4 ? 'shot' + state.storeShot : 'hero') + '.svg'}}"
+									}
+								],
+								"color": "transparent"
+							},
+							{
+								"id": "featured-side",
+								"width": 324,
+								"height": 353,
+								"color": "transparent",
+								"gradient": { "kind": "linear", "stops": ["#0e1a26", "#16283a"] },
+								"children": [
+									{
+										"type": "column",
+										"anchors": { "left": 10, "right": 10, "top": 8, "bottom": 10 },
+										"gap": 6,
+										"children": [
+											{
+												"type": "label",
+												"font": "title",
+												"text": "{{computed.feature.title}}",
+												"textColor": "#ffffff",
+												"height": 38,
+												"anchors": { "left": 0, "right": 0 }
+											},
+											{
+												"type": "row",
+												"wrap": true,
+												"gap": 4,
+												"height": 176,
+												"anchors": { "left": 0, "right": 0 },
+												"children": [
+													{
+														"repeat": { "for": "n", "in": "{{[1, 2, 3, 4]}}" },
+														"width": 150,
+														"height": 86,
+														"cursor": "hand",
+														"color": "#000000",
+														"onHover": { "set": "state.storeShot", "to": "{{n}}" },
+														"onLeave": { "set": "state.storeShot", "to": null },
+														"children": [
+															{
+																"type": "image",
+																"fill": true,
+																"fit": "cover",
+																"file": "{{'art/' + computed.feature.id + '/' + (n < 4 ? 'shot' + n : 'hero') + '.svg'}}"
+															},
+															{
+																"fill": true,
+																"color": "{{state.storeShot == n ? 'transparent' : '#00000040'}}"
+															}
+														]
+													}
+												]
+											},
+											{
+												"type": "label",
+												"font": "heading",
+												"text": "{{t('store.nowAvailable')}}",
+												"textColor": "#ffffff",
+												"height": 26,
+												"anchors": { "left": 0, "right": 0 }
+											},
+											{
+												"type": "row",
+												"height": 24,
+												"anchors": { "left": 0, "right": 0 },
+												"gap": 4,
+												"alignItems": "center",
+												"children": [
+													{
+														"type": "label",
+														"text": "{{t('store.topSeller')}}",
+														"fitText": true,
+														"font": "small",
+														"padding": 7,
+														"radius": 2,
+														"color": "#ffffff26",
+														"textColor": "#ffffff"
+													},
+													{
+														"repeat": {
+															"for": "tag",
+															"in": "{{slice(computed.feature.tags, 0, 3)}}"
+														},
+														"type": "label",
+														"font": "small",
+														"text": "{{tag}}",
+														"fitText": true,
+														"padding": 7,
+														"radius": 2,
+														"color": "#ffffff14",
+														"textColor": "#c6d4df"
+													}
+												]
+											},
+											{ "type": "panel", "color": "transparent", "height": 1, "grow": 1 },
+											{
+												"type": "row",
+												"height": 32,
+												"anchors": { "left": 0, "right": 0 },
+												"alignItems": "center",
+												"children": [
+													{
+														"type": "label",
+														"text": "",
+														"fitText": true,
+														"icon": "monitor",
+														"textColor": "#c6d4df"
+													},
+													{
+														"type": "panel",
+														"color": "transparent",
+														"grow": 1,
+														"height": 1
+													},
+													{ "use": "priceTag", "with": { "g": "{{computed.feature}}" } }
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "featured-prev",
+						"type": "label",
+						"icon": "chevron-left",
+						"mirror": true,
+						"text": "",
+						"font": "nav",
+						"width": 34,
+						"height": 66,
+						"align": "center",
+						"anchors": { "left": 52, "top": 143 },
+						"radius": 3,
+						"color": "#00000033",
+						"textColor": "#ffffff",
+						"focusable": true,
+						"role": "button",
+						"cursor": "hand",
+						"label": "{{t('store.previous')}}",
+						"hover": { "color": "#ffffff26" },
+						"onClick": { "set": "state.storeFeature", "to": "{{(state.storeFeature + 4) % 5}}" }
+					},
+					{
+						"id": "featured-next",
+						"type": "label",
+						"icon": "chevron-right",
+						"mirror": true,
+						"text": "",
+						"font": "nav",
+						"width": 34,
+						"height": 66,
+						"align": "center",
+						"anchors": { "right": 376, "top": 143 },
+						"radius": 3,
+						"color": "#00000033",
+						"textColor": "#ffffff",
+						"focusable": true,
+						"role": "button",
+						"cursor": "hand",
+						"label": "{{t('store.next')}}",
+						"hover": { "color": "#ffffff26" },
+						"onClick": { "set": "state.storeFeature", "to": "{{(state.storeFeature + 1) % 5}}" }
+					},
+					{
+						"type": "row",
+						"height": 12,
+						"anchors": { "left": 0, "right": 0, "bottom": 6 },
+						"gap": 3,
+						"justify": "center",
+						"children": [
+							{
+								"repeat": { "for": "d", "in": "{{range(5)}}" },
+								"width": 15,
+								"height": 9,
+								"radius": 2,
+								"cursor": "hand",
+								"color": "{{d == state.storeFeature ? '#ffffff70' : '#ffffff26'}}",
+								"role": "button",
+								"label": "{{t('store.slide', { n: d + 1 })}}",
+								"onClick": { "set": "state.storeFeature", "to": "{{d}}" }
+							}
+						]
+					}
+				],
+				"color": "transparent"
+			}
+		},
+		"offerCard": {
+			"note": "A special offer: the game's banner, when the offer ends and its price.",
+			"params": { "g": {} },
+			"node": {
+				"width": "{{(computed.storeWidth - 22) / 3}}",
+				"height": 196,
+				"color": "@store.card",
+				"radius": 2,
+				"focusable": true,
+				"role": "button",
+				"cursor": "hand",
+				"label": "{{g.title}}",
+				"shadow": { "y": 2, "blur": 6, "color": "#00000050" },
+				"hover": { "color": "@store.cardHover", "shadow": { "y": 4, "blur": 14, "color": "#66c0f450" } },
+				"onClick": { "run": "openStore", "with": { "id": "{{g.id}}" } },
+				"children": [
+					{
+						"type": "image",
+						"file": "{{'art/' + g.id + '/hero.svg'}}",
+						"fit": "cover",
+						"height": 143,
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"radius": { "topLeft": 2, "topRight": 2 }
+					},
+					{
+						"type": "label",
+						"text": "{{t(g.discount >= 50 ? 'store.weeklong' : 'store.midweek')}}",
+						"fitText": true,
+						"font": "caps",
+						"textColor": "@store.text",
+						"anchors": { "left": 10, "bottom": 28 }
+					},
+					{
+						"type": "label",
+						"text": "{{t('store.endsOn', { date: '2 Nov' })}}",
+						"fitText": true,
+						"font": "small",
+						"textColor": "@color.muted",
+						"anchors": { "left": 10, "bottom": 10 }
+					},
+					{ "use": "priceTag", "with": { "g": "{{g}}" }, "anchors": { "right": 8, "bottom": 10 } }
+				]
+			}
+		},
+		"categoryTile": {
+			"note": "A category to browse: a cover under a coloured wash and the category's name.",
+			"params": { "genre": "", "game": "", "tint": "" },
+			"node": {
+				"width": "{{(computed.storeWidth - 36) / 4}}",
+				"height": 170,
+				"radius": 4,
+				"color": "#000000",
+				"focusable": true,
+				"role": "button",
+				"cursor": "hand",
+				"label": "{{t('genre.' + genre)}}",
+				"hover": { "scale": 1.03, "shadow": { "blur": 16, "color": "#66c0f450" } },
+				"onClick": { "run": "storeSearch", "with": { "query": "{{genre}}" } },
+				"children": [
+					{
+						"type": "image",
+						"file": "{{'art/' + game + '/hero.svg'}}",
+						"fill": true,
+						"fit": "cover",
+						"radius": 4
+					},
+					{
+						"fill": true,
+						"radius": 4,
+						"color": "transparent",
+						"gradient": {
+							"kind": "linear",
+							"stops": [{ "at": 0.2, "color": "#00000000" }, { "at": 1, "color": "{{tint}}" }]
+						}
+					},
+					{
+						"type": "label",
+						"font": "heading",
+						"text": "{{upper(t('genre.' + genre))}}",
+						"textColor": "#ffffff",
+						"height": 30,
+						"align": "center",
+						"anchors": { "left": 0, "right": 0, "bottom": 14 }
+					}
+				]
+			}
+		},
+		"storeRow": {
+			"note": "A game in a store list: its banner, title, tags and price; it lights up when it is the one previewed.",
+			"params": { "g": {}, "lit": false },
+			"node": {
+				"type": "row",
+				"height": 69,
+				"anchors": { "left": 0, "right": 0 },
+				"alignItems": "center",
+				"gap": 12,
+				"radius": 2,
+				"color": "{{lit ? '@store.preview' : '@store.card'}}",
+				"focusable": true,
+				"role": "button",
+				"cursor": "hand",
+				"label": "{{g.title}}",
+				"onClick": { "run": "openStore", "with": { "id": "{{g.id}}" } },
+				"children": [
+					{
+						"type": "image",
+						"file": "{{'art/' + g.id + '/hero.svg'}}",
+						"fit": "cover",
+						"width": 184,
+						"height": 69,
+						"radius": { "topLeft": 2, "bottomLeft": 2 }
+					},
+					{
+						"type": "column",
+						"grow": 1,
+						"height": 46,
+						"children": [
+							{
+								"type": "label",
+								"text": "{{g.title}}",
+								"height": 22,
+								"anchors": { "left": 0, "right": 0 },
+								"textColor": "{{lit ? '@store.ink' : '@store.text'}}"
+							},
+							{
+								"type": "label",
+								"font": "small",
+								"height": 18,
+								"anchors": { "left": 0, "right": 0 },
+								"icon": "monitor",
+								"text": "  {{join(slice(g.tags, 0, 3), ', ')}}",
+								"textColor": "{{lit ? '@store.inkSoft' : '@color.muted'}}"
+							}
+						]
+					},
+					{ "use": "priceTag", "with": { "g": "{{g}}" } },
+					{ "type": "panel", "color": "transparent", "width": 4, "height": 1 }
+				]
+			}
+		},
+		"storeHome": {
+			"note": "The store's front page: featured, special offers, categories and the tabbed lists with a preview.",
+			"params": {},
+			"node": {
+				"id": "store-home",
+				"type": "column",
+				"height": 1960,
+				"anchors": { "left": 0, "right": 0 },
+				"children": [
+					{ "use": "storeHeader", "with": { "title": "{{t('store.featured')}}" } },
+					{ "use": "featured" },
+					{
+						"use": "storeHeader",
+						"with": { "title": "{{t('store.offers')}}" },
+						"children": [
+							{
+								"use": "blueButton",
+								"with": { "title": "{{t('store.browseMore')}}" },
+								"onClick": { "run": "storeSearch", "with": { "query": "{{''}}" } }
+							}
+						]
+					},
+					{
+						"id": "offers",
+						"type": "row",
+						"wrap": true,
+						"gap": 11,
+						"height": 410,
+						"anchors": { "left": 0, "right": 0 },
+						"children": [
+							{
+								"repeat": { "for": "g", "in": "{{computed.offers}}", "key": "{{g.id}}" },
+								"use": "offerCard",
+								"id": "{{'offer-' + g.id}}",
+								"with": { "g": "{{g}}" }
+							}
+						]
+					},
+					{ "type": "panel", "color": "transparent", "height": 14, "width": 1 },
+					{ "use": "storeHeader", "with": { "title": "{{t('store.categories')}}" } },
+					{
+						"id": "categories",
+						"type": "row",
+						"gap": 12,
+						"height": 170,
+						"anchors": { "left": 0, "right": 0 },
+						"children": [
+							{
+								"use": "categoryTile",
+								"with": { "genre": "Racing", "game": "aurora", "tint": "#d8357ae0" }
+							},
+							{
+								"use": "categoryTile",
+								"with": { "genre": "Strategy", "game": "clockwork", "tint": "#2f6fd8e0" }
+							},
+							{
+								"use": "categoryTile",
+								"with": { "genre": "Simulation", "game": "saltmarsh", "tint": "#2aa37ae0" }
+							},
+							{
+								"use": "categoryTile",
+								"with": { "genre": "Shooter", "game": "glasswing", "tint": "#d8762fe0" }
+							}
+						]
+					},
+					{ "type": "panel", "color": "transparent", "height": 30, "width": 1 },
+					{
+						"id": "store-tabs",
+						"type": "row",
+						"height": 34,
+						"anchors": { "left": 0, "right": 0 },
+						"arrows": "horizontal",
+						"role": "tablist",
+						"children": [
+							{
+								"repeat": { "for": "tab", "in": "{{['new', 'top', 'specials']}}" },
+								"id": "{{'store-tab-' + tab}}",
+								"type": "label",
+								"fitText": true,
+								"padding": 14,
+								"height": 34,
+								"text": "{{t('store.list.' + tab)}}",
+								"radius": { "topLeft": 3, "topRight": 3 },
+								"role": "tab",
+								"focusable": true,
+								"cursor": "hand",
+								"selected": "{{state.storeList == tab}}",
+								"color": "{{state.storeList == tab ? '@store.card' : 'transparent'}}",
+								"textColor": "{{state.storeList == tab ? '@color.bright' : '@store.chipText'}}",
+								"hover": { "textColor": "@color.bright" },
+								"onClick": [
+									{ "set": "state.storeList", "to": "{{tab}}" },
+									{ "set": "state.storeHover", "to": null }
+								]
+							}
+						]
+					},
+					{
+						"type": "row",
+						"height": 600,
+						"anchors": { "left": 0, "right": 0 },
+						"gap": 0,
+						"alignItems": "start",
+						"children": [
+							{
+								"id": "store-list",
+								"type": "column",
+								"grow": 1,
+								"height": 600,
+								"gap": 5,
+								"children": [
+									{
+										"repeat": { "for": "g", "in": "{{computed.storeRows}}", "key": "{{g.id}}" },
+										"use": "storeRow",
+										"id": "{{'store-row-' + g.id}}",
+										"with": { "g": "{{g}}", "lit": "{{computed.storePreview.id == g.id}}" },
+										"onHover": { "set": "state.storeHover", "to": "{{g.id}}" }
+									}
+								]
+							},
+							{
+								"id": "store-preview",
+								"width": 308,
+								"height": 592,
+								"color": "transparent",
+								"gradient": { "kind": "linear", "stops": ["@store.preview", "@store.previewEnd"] },
+								"children": [
+									{
+										"type": "column",
+										"anchors": { "left": 14, "right": 14, "top": 12, "bottom": 12 },
+										"gap": 6,
+										"children": [
+											{
+												"type": "label",
+												"font": "heading",
+												"text": "{{computed.storePreview.title}}",
+												"textColor": "@store.ink",
+												"height": 26,
+												"anchors": { "left": 0, "right": 0 }
+											},
+											{
+												"type": "row",
+												"height": 20,
+												"anchors": { "left": 0, "right": 0 },
+												"gap": 6,
+												"children": [
+													{
+														"type": "label",
+														"text": "{{t('store.overall')}}",
+														"fitText": true,
+														"font": "small",
+														"textColor": "@store.inkSoft"
+													},
+													{
+														"type": "label",
+														"text": "{{t('review.' + computed.storePreview.review)}}",
+														"fitText": true,
+														"font": "small",
+														"textColor": "#1a4e78"
+													},
+													{
+														"type": "label",
+														"text": "({{formatNumber(computed.storePreview.reviewCount)}})",
+														"fitText": true,
+														"font": "small",
+														"textColor": "@store.inkSoft"
+													}
+												]
+											},
+											{
+												"type": "row",
+												"height": 24,
+												"anchors": { "left": 0, "right": 0 },
+												"gap": 4,
+												"children": [
+													{
+														"repeat": {
+															"for": "tag",
+															"in": "{{slice(computed.storePreview.tags, 0, 4)}}"
+														},
+														"type": "label",
+														"font": "small",
+														"text": "{{tag}}",
+														"fitText": true,
+														"padding": 6,
+														"radius": 2,
+														"color": "#ffffff55",
+														"textColor": "@store.inkSoft"
+													}
+												]
+											},
+											{
+												"repeat": { "for": "n", "in": "{{[1, 2, 3]}}" },
+												"type": "image",
+												"height": 158,
+												"anchors": { "left": 0, "right": 0 },
+												"fit": "cover",
+												"file": "{{'art/' + computed.storePreview.id + '/shot' + n + '.svg'}}"
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		"storeResults": {
+			"params": {},
+			"node": {
+				"id": "store-results",
+				"type": "column",
+				"height": "{{110 + 74 * max(1, length(computed.results))}}",
+				"anchors": { "left": 0, "right": 0 },
+				"gap": 5,
+				"children": [
+					{
+						"type": "row",
+						"height": 50,
+						"anchors": { "left": 0, "right": 0 },
+						"alignItems": "center",
+						"gap": 10,
+						"children": [
+							{
+								"type": "label",
+								"text": "{{t('store.results', { n: length(computed.results), query: state.storeQuery })}}",
+								"fitText": true,
+								"textColor": "@store.text"
+							},
+							{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
+							{
+								"use": "blueButton",
+								"with": { "title": "{{t('store.clear')}}", "icon": "x" },
+								"onClick": { "set": "state.storeQuery", "to": "" }
+							}
+						]
+					},
+					{
+						"when": "{{length(computed.results) == 0}}",
+						"type": "label",
+						"text": "{{t('store.noResults')}}",
+						"textColor": "@color.muted",
+						"height": 40,
+						"anchors": { "left": 0, "right": 0 }
+					},
+					{
+						"repeat": { "for": "g", "in": "{{computed.results}}", "key": "{{g.id}}" },
+						"use": "storeRow",
+						"id": "{{'result-' + g.id}}",
+						"with": { "g": "{{g}}" }
+					}
+				]
+			}
+		},
+		"requirements": {
+			"params": { "g": {}, "level": "" },
+			"node": {
+				"type": "column",
+				"grow": 1,
+				"height": 150,
+				"gap": 4,
+				"children": [
+					{
+						"type": "label",
+						"font": "caps",
+						"text": "{{upper(t('req.' + level))}}",
+						"textColor": "@store.text",
+						"height": 22,
+						"anchors": { "left": 0, "right": 0 }
+					},
+					{
+						"repeat": { "for": "r", "in": "{{['os', 'cpu', 'memory', 'gpu', 'storage']}}" },
+						"type": "label",
+						"font": "small",
+						"height": 20,
+						"anchors": { "left": 0, "right": 0 },
+						"runs": [
+							{ "text": "{{t('req.' + r) + ': '}}", "bold": true, "color": "@store.text" },
+							{
+								"text": "{{r == 'storage' ? t('req.storageValue', { n: ceil(g.sizeGb * (level == 'recommended' ? 1.5 : 1)) }) : t('req.' + state.reqTab + '.' + r + '.' + level)}}",
+								"color": "@color.muted"
+							}
+						]
+					}
+				]
+			}
+		},
+		"storeApp": {
+			"note": "A game's store page: the gallery and its strip, the header capsule with reviews and tags, buying, the description, requirements and reviews.",
+			"params": { "g": {} },
+			"node": {
+				"id": "store-app",
+				"type": "column",
+				"height": 1840,
+				"anchors": { "left": 0, "right": 0 },
+				"children": [
+					{
+						"type": "row",
+						"height": 22,
+						"anchors": { "left": 0, "right": 0 },
+						"gap": 6,
+						"alignItems": "center",
+						"children": [
+							{
+								"type": "label",
+								"text": "{{t('store.allGames')}}",
+								"fitText": true,
+								"font": "small",
+								"textColor": "@color.muted",
+								"cursor": "hand",
+								"role": "link",
+								"focusable": true,
+								"hover": { "textColor": "@color.bright" },
+								"onClick": "storeHome"
+							},
+							{
+								"type": "label",
+								"text": "",
+								"fitText": true,
+								"icon": "chevron-right",
+								"mirror": true,
+								"font": "small",
+								"textColor": "@color.dim"
+							},
+							{
+								"type": "label",
+								"text": "{{t('genre.' + g.genre)}}",
+								"fitText": true,
+								"font": "small",
+								"textColor": "@color.muted",
+								"cursor": "hand",
+								"role": "link",
+								"focusable": true,
+								"hover": { "textColor": "@color.bright" },
+								"onClick": { "run": "storeSearch", "with": { "query": "{{g.genre}}" } }
+							},
+							{
+								"type": "label",
+								"text": "",
+								"fitText": true,
+								"icon": "chevron-right",
+								"mirror": true,
+								"font": "small",
+								"textColor": "@color.dim"
+							},
+							{
+								"type": "label",
+								"text": "{{g.title}}",
+								"fitText": true,
+								"font": "small",
+								"textColor": "@color.muted"
+							}
+						]
+					},
+					{
+						"type": "row",
+						"height": 48,
+						"anchors": { "left": 0, "right": 0 },
+						"alignItems": "center",
+						"children": [
+							{
+								"id": "store-title",
+								"type": "label",
+								"font": "title",
+								"text": "{{g.title}}",
+								"textColor": "@color.bright",
+								"grow": 1,
+								"height": 40
+							},
+							{ "use": "blueButton", "with": { "title": "{{t('game.section.hub')}}" } }
+						]
+					},
+					{
+						"id": "store-top",
+						"type": "row",
+						"height": 452,
+						"anchors": { "left": 0, "right": 0 },
+						"gap": 16,
+						"color": "@store.card",
+						"children": [
+							{
+								"id": "gallery",
+								"type": "column",
+								"grow": 1,
+								"height": 452,
+								"gap": 8,
+								"children": [
+									{
+										"type": "image",
+										"height": "{{min(338, round((computed.storeWidth - 340) * 0.5625))}}",
+										"anchors": { "left": 0, "right": 0 },
+										"fit": "cover",
+										"color": "#000000",
+										"file": "{{'art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][state.shotIndex] + '.svg'}}"
+									},
+									{
+										"id": "gallery-strip",
+										"type": "row",
+										"height": 72,
+										"anchors": { "left": 0, "right": 0 },
+										"gap": 4,
+										"arrows": "horizontal",
+										"children": [
+											{
+												"repeat": { "for": "s", "in": "{{range(4)}}" },
+												"id": "{{'shot-' + s}}",
+												"width": 116,
+												"height": 65,
+												"focusable": true,
+												"role": "button",
+												"cursor": "hand",
+												"label": "{{t('store.screenshot', { n: s + 1 })}}",
+												"selected": "{{state.shotIndex == s}}",
+												"onClick": { "set": "state.shotIndex", "to": "{{s}}" },
+												"children": [
+													{
+														"type": "image",
+														"fill": true,
+														"fit": "cover",
+														"file": "{{'art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][s] + '.svg'}}"
+													},
+													{
+														"fill": true,
+														"color": "{{state.shotIndex == s ? 'transparent' : '#00000055'}}",
+														"borderWidth": "{{state.shotIndex == s ? 2 : 0}}",
+														"borderColor": "#ffffff"
+													}
+												],
+												"color": "transparent"
+											}
+										]
+									}
+								]
+							},
+							{
+								"id": "store-side",
+								"type": "column",
+								"width": 324,
+								"height": 452,
+								"gap": 4,
+								"children": [
+									{
+										"type": "image",
+										"height": 151,
+										"anchors": { "left": 0, "right": 0 },
+										"fit": "cover",
+										"file": "{{'art/' + g.id + '/hero.svg'}}"
+									},
+									{ "type": "panel", "color": "transparent", "height": 4, "width": 1 },
+									{
+										"type": "label",
+										"font": "small",
+										"text": "{{g.blurb}}",
+										"wrap": true,
+										"height": 54,
+										"anchors": { "left": 0, "right": 0 },
+										"textColor": "@store.text"
+									},
+									{
+										"type": "row",
+										"height": 20,
+										"anchors": { "left": 0, "right": 0 },
+										"children": [
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{upper(t('store.recentReviews'))}}",
+												"width": 110,
+												"textColor": "@store.label",
+												"height": 20,
+												"align": { "horizontal": "start", "vertical": "center" }
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{t('review.' + g.review)}}",
+												"grow": 1,
+												"textColor": "@store.chipText",
+												"height": 20,
+												"align": { "horizontal": "start", "vertical": "center" }
+											}
+										]
+									},
+									{
+										"type": "row",
+										"height": 20,
+										"anchors": { "left": 0, "right": 0 },
+										"children": [
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{upper(t('store.allReviews'))}}",
+												"width": 110,
+												"textColor": "@store.label",
+												"height": 20,
+												"align": { "horizontal": "start", "vertical": "center" }
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{t('review.' + g.review) + ' (' + formatNumber(g.reviewCount) + ')'}}",
+												"grow": 1,
+												"textColor": "@store.chipText",
+												"height": 20,
+												"align": { "horizontal": "start", "vertical": "center" }
+											}
+										]
+									},
+									{
+										"type": "row",
+										"height": 20,
+										"anchors": { "left": 0, "right": 0 },
+										"children": [
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{upper(t('game.release'))}}",
+												"width": 110,
+												"textColor": "@store.label",
+												"height": 20,
+												"align": { "horizontal": "start", "vertical": "center" }
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{g.release}}",
+												"grow": 1,
+												"textColor": "@store.text",
+												"height": 20,
+												"align": { "horizontal": "start", "vertical": "center" }
+											}
+										]
+									},
+									{ "type": "panel", "color": "transparent", "height": 4, "width": 1 },
+									{
+										"type": "row",
+										"height": 20,
+										"anchors": { "left": 0, "right": 0 },
+										"children": [
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{upper(t('game.developer'))}}",
+												"width": 110,
+												"textColor": "@store.label",
+												"height": 20,
+												"align": { "horizontal": "start", "vertical": "center" }
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{g.developer}}",
+												"grow": 1,
+												"textColor": "@store.chipText",
+												"height": 20,
+												"align": { "horizontal": "start", "vertical": "center" }
+											}
+										]
+									},
+									{
+										"type": "row",
+										"height": 20,
+										"anchors": { "left": 0, "right": 0 },
+										"children": [
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{upper(t('game.publisher'))}}",
+												"width": 110,
+												"textColor": "@store.label",
+												"height": 20,
+												"align": { "horizontal": "start", "vertical": "center" }
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{g.publisher}}",
+												"grow": 1,
+												"textColor": "@store.chipText",
+												"height": 20,
+												"align": { "horizontal": "start", "vertical": "center" }
+											}
+										]
+									},
+									{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
+									{
+										"type": "label",
+										"font": "small",
+										"text": "{{t('store.userTags')}}",
+										"height": 18,
+										"anchors": { "left": 0, "right": 0 },
+										"textColor": "@store.label"
+									},
+									{
+										"type": "row",
+										"wrap": true,
+										"gap": 3,
+										"height": 50,
+										"anchors": { "left": 0, "right": 0 },
+										"children": [
+											{
+												"repeat": { "for": "tag", "in": "{{g.tags}}" },
+												"type": "label",
+												"font": "small",
+												"text": "{{tag}}",
+												"fitText": true,
+												"padding": 7,
+												"radius": 2,
+												"color": "@store.chip",
+												"textColor": "@store.chipText",
+												"cursor": "hand",
+												"hover": { "textColor": "#ffffff" },
+												"onClick": { "run": "storeSearch", "with": { "query": "{{tag}}" } }
+											},
+											{
+												"type": "label",
+												"text": "+",
+												"fitText": true,
+												"font": "small",
+												"padding": 7,
+												"radius": 2,
+												"color": "@store.chip",
+												"textColor": "@store.chipText"
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{ "type": "panel", "color": "transparent", "height": 16, "width": 1 },
+					{
+						"id": "store-queue",
+						"type": "row",
+						"height": 44,
+						"anchors": { "left": 0, "right": 0 },
+						"gap": 6,
+						"alignItems": "center",
+						"color": "@store.card",
+						"children": [
+							{ "type": "panel", "color": "transparent", "width": 4, "height": 1 },
+							{
+								"id": "store-wish",
+								"use": "blueButton",
+								"with": {
+									"title": "{{contains(state.wishlist, g.id) ? t('store.onWishlist') : t('store.addWishlist')}}",
+									"icon": "{{contains(state.wishlist, g.id) ? 'check' : ''}}",
+									"on": "{{contains(state.wishlist, g.id)}}"
+								},
+								"onClick": { "run": "toggleWishlist", "with": { "id": "{{g.id}}" } }
+							},
+							{
+								"id": "store-follow",
+								"use": "blueButton",
+								"with": {
+									"title": "{{contains(state.followed, g.id) ? t('store.following') : t('store.follow')}}",
+									"icon": "{{contains(state.followed, g.id) ? 'check' : ''}}",
+									"on": "{{contains(state.followed, g.id)}}"
+								},
+								"onClick": { "run": "toggleFollow", "with": { "id": "{{g.id}}" } }
+							},
+							{ "use": "blueButton", "with": { "title": "{{t('store.ignore')}}" } },
+							{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
+							{ "use": "blueButton", "with": { "title": "{{t('store.queue')}}", "icon": "list" } },
+							{ "type": "panel", "color": "transparent", "width": 4, "height": 1 }
+						]
+					},
+					{ "type": "panel", "color": "transparent", "height": 20, "width": 1 },
+					{
+						"type": "row",
+						"height": 560,
+						"anchors": { "left": 0, "right": 0 },
+						"gap": 16,
+						"alignItems": "start",
+						"children": [
+							{
+								"type": "column",
+								"grow": 1,
+								"height": 560,
+								"children": [
+									{
+										"id": "purchase",
+										"height": 104,
+										"anchors": { "left": 0, "right": 0 },
+										"radius": 4,
+										"color": "transparent",
+										"gradient": {
+											"kind": "linear",
+											"angle": 120,
+											"stops": ["#546b7380", "#3c5a7066"]
+										},
+										"children": [
+											{
+												"when": "{{!g.owned}}",
+												"type": "label",
+												"font": "heading",
+												"text": "{{t('store.buy', { title: g.title })}}",
+												"textColor": "#ffffff",
+												"fitText": true,
+												"anchors": { "left": 16, "top": 14 }
+											},
+											{
+												"when": "{{g.owned}}",
+												"type": "label",
+												"font": "heading",
+												"text": "{{t('store.owned', { title: g.title })}}",
+												"textColor": "#ffffff",
+												"fitText": true,
+												"anchors": { "left": 16, "top": 14 }
+											},
+											{
+												"when": "{{!g.owned && g.discount > 0}}",
+												"type": "label",
+												"font": "small",
+												"text": "{{upper(t('store.promo', { date: '2 Nov' }))}}",
+												"textColor": "#acdbf5",
+												"fitText": true,
+												"anchors": { "left": 16, "top": 42 }
+											},
+											{
+												"type": "label",
+												"text": "",
+												"fitText": true,
+												"icon": "monitor",
+												"textColor": "#c6d4df",
+												"anchors": { "left": 16, "bottom": 14 }
+											},
+											{
+												"type": "row",
+												"height": 44,
+												"anchors": { "right": 14, "bottom": 12 },
+												"width": "{{g.owned ? 150 : g.discount > 0 ? 300 : 240}}",
+												"color": "#000000",
+												"radius": 3,
+												"alignItems": "center",
+												"gap": 6,
+												"children": [
+													{
+														"type": "panel",
+														"color": "transparent",
+														"grow": 1,
+														"height": 1
+													},
+													{
+														"when": "{{!g.owned}}",
+														"use": "priceTag",
+														"with": { "g": "{{g}}", "big": false }
+													},
+													{
+														"when": "{{!g.owned}}",
+														"id": "add-to-cart",
+														"use": "ctaButton",
+														"with": {
+															"title": "{{contains(state.cart, g.id) ? t('store.inCart') : t('store.addToCart')}}"
+														},
+														"onClick": [
+															{
+																"if": "{{contains(state.cart, g.id)}}",
+																"then": [{ "run": "showCart" }],
+																"else": [
+																	{ "run": "addToCart", "with": { "id": "{{g.id}}" } }
+																]
+															}
+														]
+													},
+													{
+														"when": "{{g.owned}}",
+														"use": "ctaButton",
+														"with": { "title": "{{t('store.playNow')}}" },
+														"onClick": { "run": "openGame", "with": { "id": "{{g.id}}" } }
+													},
+													{
+														"type": "panel",
+														"color": "transparent",
+														"width": 2,
+														"height": 1
+													}
+												]
+											}
+										]
+									},
+									{ "type": "panel", "color": "transparent", "height": 6, "width": 1 },
+									{
+										"type": "column",
+										"height": 34,
+										"anchors": { "left": 0, "right": 0 },
+										"children": [
+											{ "type": "panel", "color": "transparent", "height": 10, "width": 1 },
+											{
+												"type": "label",
+												"font": "caps",
+												"text": "{{upper(t('store.about'))}}",
+												"textColor": "@color.bright",
+												"height": 20,
+												"anchors": { "left": 0, "right": 0 }
+											},
+											{
+												"type": "panel",
+												"height": 1,
+												"anchors": { "left": 0, "right": 0 },
+												"color": "transparent",
+												"gradient": {
+													"kind": "linear",
+													"angle": 90,
+													"stops": ["#3b6e8c", "#3b6e8c00"]
+												}
+											}
+										]
+									},
+									{
+										"type": "label",
+										"text": "{{g.blurb + ' ' + t('store.aboutText', { title: g.title, genre: lower(t('genre.' + g.genre)) })}}",
+										"wrap": true,
+										"height": 120,
+										"anchors": { "left": 0, "right": 0 },
+										"textColor": "@store.text",
+										"padding": 0
+									},
+									{
+										"type": "column",
+										"height": 34,
+										"anchors": { "left": 0, "right": 0 },
+										"children": [
+											{ "type": "panel", "color": "transparent", "height": 10, "width": 1 },
+											{
+												"type": "label",
+												"font": "caps",
+												"text": "{{upper(t('store.requirements'))}}",
+												"textColor": "@color.bright",
+												"height": 20,
+												"anchors": { "left": 0, "right": 0 }
+											},
+											{
+												"type": "panel",
+												"height": 1,
+												"anchors": { "left": 0, "right": 0 },
+												"color": "transparent",
+												"gradient": {
+													"kind": "linear",
+													"angle": 90,
+													"stops": ["#3b6e8c", "#3b6e8c00"]
+												}
+											}
+										]
+									},
+									{
+										"id": "req-tabs",
+										"type": "row",
+										"height": 40,
+										"anchors": { "left": 0, "right": 0 },
+										"gap": 2,
+										"alignItems": "center",
+										"arrows": "horizontal",
+										"role": "tablist",
+										"children": [
+											{
+												"repeat": { "for": "p", "in": "{{['windows', 'macos', 'linux']}}" },
+												"id": "{{'req-' + p}}",
+												"type": "label",
+												"font": "small",
+												"text": "{{upper(t('req.platform.' + p))}}",
+												"fitText": true,
+												"padding": 12,
+												"radius": 2,
+												"role": "tab",
+												"focusable": true,
+												"cursor": "hand",
+												"selected": "{{state.reqTab == p}}",
+												"color": "{{state.reqTab == p ? '@store.chip' : 'transparent'}}",
+												"textColor": "{{state.reqTab == p ? '@color.bright' : '@store.chipText'}}",
+												"onClick": { "set": "state.reqTab", "to": "{{p}}" }
+											}
+										]
+									},
+									{
+										"type": "row",
+										"height": 150,
+										"anchors": { "left": 0, "right": 0 },
+										"gap": 20,
+										"children": [
+											{ "use": "requirements", "with": { "g": "{{g}}", "level": "minimum" } },
+											{ "use": "requirements", "with": { "g": "{{g}}", "level": "recommended" } }
+										]
+									}
+								]
+							},
+							{
+								"type": "column",
+								"width": 308,
+								"height": 560,
+								"gap": 12,
+								"children": [
+									{
+										"id": "features",
+										"type": "column",
+										"height": 196,
+										"anchors": { "left": 0, "right": 0 },
+										"color": "@store.card",
+										"gap": 2,
+										"children": [
+											{ "type": "panel", "color": "transparent", "height": 6, "width": 1 },
+											{
+												"repeat": {
+													"for": "f",
+													"in": "{{filter([{ id: 'single', icon: 'user', on: true }, { id: 'coop', icon: 'users', on: contains(g.tags, 'Co-op') }, { id: 'achievements', icon: 'trophy', on: true }, { id: 'controller', icon: 'gamepad-2', on: g.controller != 'none' }, { id: 'cloud', icon: 'cloud', on: true }, { id: 'family', icon: 'house', on: true }], it.on)}}"
+												},
+												"type": "row",
+												"height": 30,
+												"anchors": { "left": 8, "right": 8 },
+												"gap": 8,
+												"alignItems": "center",
+												"color": "#ffffff0a",
+												"children": [
+													{
+														"type": "label",
+														"icon": "{{f.icon}}",
+														"text": "",
+														"width": 30,
+														"height": 30,
+														"align": "center",
+														"textColor": "@store.chipText",
+														"color": "#00000033"
+													},
+													{
+														"type": "label",
+														"font": "small",
+														"text": "{{f.id == 'controller' ? t('controller.' + g.controller) : t('store.feature.' + f.id)}}",
+														"grow": 1,
+														"textColor": "@store.chipText",
+														"height": 30,
+														"align": { "horizontal": "start", "vertical": "center" }
+													}
+												]
+											}
+										]
+									},
+									{
+										"id": "languages",
+										"type": "column",
+										"height": 150,
+										"anchors": { "left": 0, "right": 0 },
+										"color": "@store.card",
+										"children": [
+											{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
+											{
+												"type": "row",
+												"height": 22,
+												"anchors": { "left": 10, "right": 10 },
+												"children": [
+													{
+														"type": "label",
+														"font": "caps",
+														"text": "{{t('store.languages')}}",
+														"grow": 1,
+														"textColor": "@store.text",
+														"height": 22,
+														"align": { "horizontal": "start", "vertical": "center" }
+													},
+													{
+														"repeat": {
+															"for": "c",
+															"in": "{{['interface', 'audio', 'subtitles']}}"
+														},
+														"type": "label",
+														"font": "small",
+														"text": "{{t('store.lang.' + c)}}",
+														"width": 62,
+														"align": "center",
+														"textColor": "@color.muted",
+														"height": 22
+													}
+												]
+											},
+											{
+												"repeat": {
+													"for": "l",
+													"in": "{{[['en', true, true, true], ['it', true, false, true], ['ar', true, false, true]]}}"
+												},
+												"type": "row",
+												"height": 26,
+												"anchors": { "left": 10, "right": 10 },
+												"children": [
+													{
+														"type": "label",
+														"font": "small",
+														"text": "{{t('lang.' + l[0])}}",
+														"grow": 1,
+														"textColor": "@store.text",
+														"height": 26,
+														"align": { "horizontal": "start", "vertical": "center" }
+													},
+													{
+														"repeat": { "for": "k", "in": "{{[1, 2, 3]}}" },
+														"type": "label",
+														"icon": "{{l[k] ? 'check' : ''}}",
+														"text": "",
+														"width": 62,
+														"align": "center",
+														"textColor": "@color.ingame",
+														"height": 26
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"type": "column",
+						"height": 34,
+						"anchors": { "left": 0, "right": 0 },
+						"children": [
+							{ "type": "panel", "color": "transparent", "height": 10, "width": 1 },
+							{
+								"type": "label",
+								"font": "caps",
+								"text": "{{upper(t('store.reviews'))}}",
+								"textColor": "@color.bright",
+								"height": 20,
+								"anchors": { "left": 0, "right": 0 }
+							},
+							{
+								"type": "panel",
+								"height": 1,
+								"anchors": { "left": 0, "right": 0 },
+								"color": "transparent",
+								"gradient": { "kind": "linear", "angle": 90, "stops": ["#3b6e8c", "#3b6e8c00"] }
+							}
+						]
+					},
+					{ "type": "panel", "color": "transparent", "height": 10, "width": 1 },
+					{
+						"id": "review-summary",
+						"type": "row",
+						"height": 56,
+						"anchors": { "left": 0, "right": 0 },
+						"gap": 10,
+						"alignItems": "center",
+						"color": "@store.card",
+						"children": [
+							{ "type": "panel", "color": "transparent", "width": 4, "height": 1 },
+							{
+								"type": "label",
+								"text": "{{t('store.overallReviews')}}",
+								"fitText": true,
+								"font": "caps",
+								"textColor": "@store.text"
+							},
+							{
+								"type": "label",
+								"text": "{{t('review.' + g.review)}}",
+								"fitText": true,
+								"font": "strong",
+								"textColor": "@store.chipText"
+							},
+							{
+								"type": "label",
+								"text": "{{t('store.reviewCount', { n: formatNumber(g.reviewCount) })}}",
+								"fitText": true,
+								"font": "small",
+								"textColor": "@color.muted"
+							},
+							{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
+							{
+								"width": 160,
+								"height": 8,
+								"radius": 4,
+								"color": "@store.down",
+								"children": [
+									{
+										"height": 8,
+										"radius": 4,
+										"color": "@store.chipText",
+										"width": "{{text(g.reviewPercent) + '%'}}",
+										"anchors": { "left": 0, "top": 0 }
+									}
+								]
+							},
+							{
+								"type": "label",
+								"text": "{{g.reviewPercent}}%",
+								"fitText": true,
+								"font": "small",
+								"textColor": "@color.muted"
+							},
+							{ "type": "panel", "color": "transparent", "width": 8, "height": 1 }
+						]
+					},
+					{ "type": "panel", "color": "transparent", "height": 10, "width": 1 },
+					{
+						"id": "reviews",
+						"type": "column",
+						"height": 500,
+						"anchors": { "left": 0, "right": 0 },
+						"gap": 10,
+						"children": [
+							{
+								"repeat": { "for": "r", "in": "{{state.reviews}}" },
+								"type": "row",
+								"height": 150,
+								"anchors": { "left": 0, "right": 0 },
+								"gap": 0,
+								"color": "@store.card",
+								"children": [
+									{
+										"type": "column",
+										"width": 200,
+										"height": 150,
+										"gap": 4,
+										"children": [
+											{ "type": "panel", "color": "transparent", "height": 10, "width": 1 },
+											{
+												"type": "row",
+												"height": 36,
+												"anchors": { "left": 10, "right": 6 },
+												"gap": 8,
+												"alignItems": "center",
+												"children": [
+													{
+														"type": "image",
+														"file": "{{'art/avatars/' + r.avatar + '.svg'}}",
+														"width": 34,
+														"height": 34,
+														"radius": 2,
+														"borderWidth": 1,
+														"borderColor": "#4c6b8a"
+													},
+													{
+														"type": "label",
+														"font": "strong",
+														"text": "{{r.author}}",
+														"grow": 1,
+														"textColor": "#c1dbf4",
+														"height": 36,
+														"align": { "horizontal": "start", "vertical": "center" }
+													}
+												]
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{t('store.products', { n: r.products })}}",
+												"height": 18,
+												"anchors": { "left": 10, "right": 6 },
+												"textColor": "@color.muted"
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{t('store.reviewsBy', { n: r.reviews })}}",
+												"height": 18,
+												"anchors": { "left": 10, "right": 6 },
+												"textColor": "@color.muted"
+											}
+										]
+									},
+									{
+										"type": "column",
+										"grow": 1,
+										"height": 150,
+										"gap": 6,
+										"children": [
+											{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
+											{
+												"type": "row",
+												"height": 40,
+												"anchors": { "left": 0, "right": 10 },
+												"gap": 10,
+												"alignItems": "center",
+												"color": "#00000033",
+												"children": [
+													{
+														"type": "label",
+														"icon": "{{r.up ? 'thumbs-up' : 'thumbs-down'}}",
+														"text": "",
+														"font": "heading",
+														"width": 40,
+														"height": 40,
+														"align": "center",
+														"textColor": "{{r.up ? '@store.chipText' : '@store.down'}}",
+														"color": "#0000004d"
+													},
+													{
+														"type": "column",
+														"grow": 1,
+														"height": 36,
+														"children": [
+															{
+																"type": "label",
+																"font": "heading",
+																"text": "{{t(r.up ? 'store.recommended' : 'store.notRecommended')}}",
+																"height": 20,
+																"anchors": { "left": 0, "right": 0 },
+																"textColor": "#d6d7d8"
+															},
+															{
+																"type": "label",
+																"font": "small",
+																"text": "{{t('store.onRecord', { n: formatNumber(r.hours, 1, 1) })}}",
+																"height": 16,
+																"anchors": { "left": 0, "right": 0 },
+																"textColor": "@color.muted"
+															}
+														]
+													}
+												]
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{upper(t('store.posted', { date: r.posted }))}}",
+												"height": 16,
+												"anchors": { "left": 0, "right": 0 },
+												"textColor": "@color.dim"
+											},
+											{
+												"type": "label",
+												"text": "{{r.text}}",
+												"wrap": true,
+												"height": 44,
+												"anchors": { "left": 0, "right": 14 },
+												"textColor": "@store.text"
+											},
+											{
+												"type": "row",
+												"height": 22,
+												"anchors": { "left": 0, "right": 0 },
+												"gap": 4,
+												"alignItems": "center",
+												"children": [
+													{
+														"type": "label",
+														"text": "{{t('store.helpful')}}",
+														"fitText": true,
+														"font": "small",
+														"textColor": "@color.dim"
+													},
+													{
+														"repeat": { "for": "b", "in": "{{['yes', 'no', 'funny']}}" },
+														"type": "label",
+														"font": "small",
+														"text": "{{t('store.vote.' + b)}}",
+														"fitText": true,
+														"padding": 8,
+														"radius": 2,
+														"color": "@store.chip",
+														"textColor": "@store.chipText",
+														"focusable": true,
+														"role": "button",
+														"cursor": "hand",
+														"hover": { "textColor": "#ffffff" }
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		"storeCart": {
+			"note": "The cart: the games and their prices, the estimated total from the wallet, and a receipt after buying.",
+			"params": {},
+			"node": {
+				"id": "store-cart-page",
+				"type": "column",
+				"height": "{{140 + max(250, length(computed.cartGames) * 106 + 60, length(state.receipt) * 40 + 160)}}",
+				"anchors": { "left": 0, "right": 0 },
+				"children": [
+					{
+						"type": "label",
+						"font": "title",
+						"text": "{{upper(t('store.yourCart'))}}",
+						"textColor": "@color.bright",
+						"height": 60,
+						"anchors": { "left": 0, "right": 0 }
+					},
+					{
+						"type": "row",
+						"height": "{{max(250, length(computed.cartGames) * 106 + 60, length(state.receipt) * 40 + 160)}}",
+						"anchors": { "left": 0, "right": 0 },
+						"gap": 16,
+						"alignItems": "start",
+						"children": [
+							{
+								"type": "column",
+								"grow": 1,
+								"height": "{{max(250, length(computed.cartGames) * 106 + 60, length(state.receipt) * 40 + 160)}}",
+								"gap": 6,
+								"children": [
+									{
+										"when": "{{length(state.receipt) > 0}}",
+										"id": "receipt",
+										"type": "column",
+										"height": "{{length(state.receipt) * 40 + 130}}",
+										"anchors": { "left": 0, "right": 0 },
+										"color": "@store.card",
+										"gap": 6,
+										"children": [
+											{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
+											{
+												"type": "label",
+												"font": "heading",
+												"icon": "circle-check",
+												"text": " {{t('store.thanks')}}",
+												"height": 30,
+												"anchors": { "left": 16, "right": 16 },
+												"textColor": "@color.ingame"
+											},
+											{
+												"repeat": { "for": "id", "in": "{{state.receipt}}" },
+												"type": "row",
+												"height": 34,
+												"anchors": { "left": 16, "right": 16 },
+												"gap": 10,
+												"alignItems": "center",
+												"children": [
+													{
+														"type": "image",
+														"file": "{{'art/' + id + '/hero.svg'}}",
+														"fit": "cover",
+														"width": 90,
+														"height": 34
+													},
+													{
+														"type": "label",
+														"text": "{{find(state.games, it.id == id).title}}",
+														"grow": 1,
+														"textColor": "@store.text",
+														"height": 34,
+														"align": { "horizontal": "start", "vertical": "center" }
+													},
+													{
+														"use": "blueButton",
+														"with": {
+															"title": "{{t('status.button.none')}}",
+															"icon": "download"
+														},
+														"onClick": { "run": "install", "with": { "id": "{{id}}" } }
+													}
+												]
+											},
+											{
+												"type": "row",
+												"height": 40,
+												"anchors": { "left": 16, "right": 16 },
+												"alignItems": "center",
+												"children": [
+													{
+														"use": "blueButton",
+														"with": { "title": "{{t('store.toLibrary')}}" },
+														"onClick": "showLibrary"
+													}
+												]
+											}
+										]
+									},
+									{
+										"when": "{{length(computed.cartGames) == 0 && length(state.receipt) == 0}}",
+										"type": "column",
+										"height": 120,
+										"anchors": { "left": 0, "right": 0 },
+										"color": "@store.card",
+										"children": [
+											{ "type": "panel", "color": "transparent", "height": 24, "width": 1 },
+											{
+												"type": "label",
+												"font": "heading",
+												"text": "{{t('store.cartEmpty')}}",
+												"align": "center",
+												"height": 30,
+												"anchors": { "left": 0, "right": 0 },
+												"textColor": "@store.text"
+											},
+											{
+												"type": "row",
+												"height": 40,
+												"anchors": { "left": 0, "right": 0 },
+												"justify": "center",
+												"alignItems": "center",
+												"children": [
+													{
+														"use": "blueButton",
+														"with": { "title": "{{t('store.continue')}}" },
+														"onClick": "storeHome"
+													}
+												]
+											}
+										]
+									},
+									{
+										"repeat": { "for": "g", "in": "{{computed.cartGames}}", "key": "{{g.id}}" },
+										"id": "{{'cart-' + g.id}}",
+										"type": "row",
+										"height": 100,
+										"anchors": { "left": 0, "right": 0 },
+										"gap": 14,
+										"alignItems": "center",
+										"color": "@store.card",
+										"radius": 2,
+										"children": [
+											{ "type": "panel", "color": "transparent", "width": 2, "height": 1 },
+											{
+												"type": "image",
+												"file": "{{'art/' + g.id + '/hero.svg'}}",
+												"fit": "cover",
+												"width": 184,
+												"height": 69,
+												"cursor": "hand",
+												"onClick": { "run": "openStore", "with": { "id": "{{g.id}}" } }
+											},
+											{
+												"type": "column",
+												"grow": 1,
+												"height": 69,
+												"gap": 4,
+												"children": [
+													{
+														"type": "label",
+														"font": "strong",
+														"text": "{{g.title}}",
+														"height": 22,
+														"anchors": { "left": 0, "right": 0 },
+														"textColor": "@color.bright"
+													},
+													{
+														"type": "label",
+														"text": "",
+														"fitText": true,
+														"icon": "monitor",
+														"font": "small",
+														"textColor": "@color.muted"
+													},
+													{
+														"type": "row",
+														"height": 20,
+														"anchors": { "left": 0, "right": 0 },
+														"gap": 14,
+														"children": [
+															{
+																"type": "label",
+																"text": "{{t('store.remove')}}",
+																"fitText": true,
+																"font": "small",
+																"textColor": "@color.muted",
+																"cursor": "hand",
+																"role": "button",
+																"focusable": true,
+																"hover": { "textColor": "@color.bright" },
+																"onClick": {
+																	"run": "removeFromCart",
+																	"with": { "id": "{{g.id}}" }
+																}
+															},
+															{
+																"type": "label",
+																"text": "{{t('store.moveToWishlist')}}",
+																"fitText": true,
+																"font": "small",
+																"textColor": "@color.muted",
+																"cursor": "hand",
+																"role": "button",
+																"focusable": true,
+																"hover": { "textColor": "@color.bright" },
+																"onClick": {
+																	"run": "toWishlist",
+																	"with": { "id": "{{g.id}}" }
+																}
+															}
+														]
+													}
+												]
+											},
+											{ "use": "priceTag", "with": { "g": "{{g}}" } },
+											{ "type": "panel", "color": "transparent", "width": 8, "height": 1 }
+										]
+									}
+								]
+							},
+							{
+								"id": "cart-summary",
+								"type": "column",
+								"width": 308,
+								"height": 236,
+								"color": "@store.card",
+								"radius": 2,
+								"gap": 8,
+								"children": [
+									{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
+									{
+										"type": "row",
+										"height": 30,
+										"anchors": { "left": 16, "right": 16 },
+										"alignItems": "center",
+										"children": [
+											{
+												"type": "label",
+												"font": "heading",
+												"text": "{{t('store.total')}}",
+												"grow": 1,
+												"textColor": "@color.bright",
+												"height": 30,
+												"align": { "horizontal": "start", "vertical": "center" }
+											},
+											{
+												"type": "label",
+												"font": "heading",
+												"text": "{{formatCurrency(computed.cartTotal, 'EUR')}}",
+												"fitText": true,
+												"textColor": "@color.bright"
+											}
+										]
+									},
+									{
+										"type": "label",
+										"font": "small",
+										"text": "{{t('store.tax')}}",
+										"wrap": true,
+										"height": 32,
+										"anchors": { "left": 16, "right": 16 },
+										"textColor": "@color.muted"
+									},
+									{
+										"type": "label",
+										"font": "small",
+										"text": "{{t('store.walletLeft', { amount: formatCurrency(state.user.wallet, 'EUR') })}}",
+										"height": 18,
+										"anchors": { "left": 16, "right": 16 },
+										"textColor": "{{computed.cartTotal > state.user.wallet ? '@store.down' : '@color.muted'}}"
+									},
+									{
+										"type": "row",
+										"height": 44,
+										"anchors": { "left": 16, "right": 16 },
+										"alignItems": "center",
+										"children": [
+											{
+												"id": "purchase-button",
+												"use": "ctaButton",
+												"grow": 1,
+												"align": "center",
+												"with": {
+													"title": "{{t('store.purchase')}}",
+													"enabled": "{{length(state.cart) > 0 && computed.cartTotal <= state.user.wallet}}"
+												},
+												"onClick": "purchase"
+											}
+										]
+									},
+									{
+										"type": "row",
+										"height": 34,
+										"anchors": { "left": 16, "right": 16 },
+										"alignItems": "center",
+										"children": [
+											{
+												"use": "blueButton",
+												"with": { "title": "{{t('store.continue')}}" },
+												"grow": 1,
+												"align": "center",
+												"onClick": "storeHome"
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		"storeWishlist": {
+			"note": "The wishlist: ranked games with their price and Add to Cart, sorted by rank, name, price or discount, and moved up or down.",
+			"params": {},
+			"node": {
+				"id": "store-wishlist-page",
+				"type": "column",
+				"height": "{{160 + max(1, length(computed.wishSorted)) * 128}}",
+				"anchors": { "left": 0, "right": 0 },
+				"children": [
+					{
+						"type": "row",
+						"height": 60,
+						"anchors": { "left": 0, "right": 0 },
+						"alignItems": "center",
+						"gap": 12,
+						"children": [
+							{
+								"type": "image",
+								"file": "{{'art/avatars/' + state.user.avatar + '.svg'}}",
+								"width": 40,
+								"height": 40,
+								"radius": 2
+							},
+							{
+								"type": "label",
+								"font": "title",
+								"text": "{{upper(t('store.whoseWishlist', { name: state.user.name }))}}",
+								"textColor": "@color.bright",
+								"grow": 1,
+								"height": 40
+							}
+						]
+					},
+					{
+						"type": "row",
+						"height": 52,
+						"anchors": { "left": 0, "right": 0 },
+						"alignItems": "center",
+						"gap": 10,
+						"children": [
+							{
+								"id": "wish-search",
+								"type": "textarea",
+								"width": 300,
+								"height": 32,
+								"padding": 10,
+								"bind": "state.wishQuery",
+								"placeholder": "{{t('store.wishSearch')}}",
+								"placeholderColor": "@color.dim",
+								"textColor": "@store.text",
+								"color": "@store.card",
+								"radius": 3,
+								"label": "{{t('store.wishSearch')}}",
+								"focused": { "borderWidth": 1, "borderColor": "@color.accent" }
+							},
+							{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
+							{
+								"type": "label",
+								"text": "{{t('store.sortBy')}}",
+								"fitText": true,
+								"font": "small",
+								"textColor": "@color.muted"
+							},
+							{
+								"id": "wish-sort",
+								"type": "label",
+								"font": "small",
+								"fitText": true,
+								"padding": 12,
+								"radius": 2,
+								"color": "@store.chip",
+								"text": "{{t('store.wishSort.' + state.wishSort)}} ▾",
+								"textColor": "@store.chipText",
+								"focusable": true,
+								"role": "button",
+								"cursor": "hand",
+								"isOpen": "{{state.wishSortOpen}}",
+								"onClick": { "toggle": "state.wishSortOpen" },
+								"children": [
+									{
+										"use": "menu",
+										"with": {
+											"open": "state.wishSortOpen",
+											"width": 180,
+											"items": "{{map(['rank', 'name', 'price', 'discount'], { title: t('store.wishSort.' + it), checked: state.wishSort == it, run: 'setWishSort', with: { by: it } })}}"
+										}
+									}
+								]
+							}
+						]
+					},
+					{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
+					{
+						"when": "{{length(computed.wishSorted) == 0}}",
+						"type": "label",
+						"text": "{{t('store.wishEmpty')}}",
+						"height": 60,
+						"anchors": { "left": 0, "right": 0 },
+						"align": "center",
+						"textColor": "@color.muted"
+					},
+					{
+						"id": "wish-list",
+						"type": "column",
+						"height": "{{length(computed.wishSorted) * 128}}",
+						"anchors": { "left": 0, "right": 0 },
+						"gap": 8,
+						"children": [
+							{
+								"repeat": {
+									"for": "g",
+									"in": "{{computed.wishSorted}}",
+									"key": "{{g.id}}",
+									"index": "i"
+								},
+								"id": "{{'wish-' + g.id}}",
+								"type": "row",
+								"height": 120,
+								"anchors": { "left": 0, "right": 0 },
+								"gap": 14,
+								"alignItems": "center",
+								"color": "@store.card",
+								"radius": 2,
+								"children": [
+									{
+										"type": "column",
+										"width": 34,
+										"height": 100,
+										"children": [
+											{
+												"type": "label",
+												"font": "strong",
+												"text": "{{state.wishSort == 'rank' ? text(indexOf(state.wishlist, g.id) + 1) : ''}}",
+												"height": 32,
+												"anchors": { "left": 0, "right": 0 },
+												"align": "center",
+												"textColor": "@color.muted"
+											},
+											{
+												"when": "{{state.wishSort == 'rank' && state.wishQuery == ''}}",
+												"type": "label",
+												"icon": "chevron-up",
+												"text": "",
+												"height": 30,
+												"anchors": { "left": 0, "right": 0 },
+												"align": "center",
+												"textColor": "{{i > 0 ? '@store.chipText' : '@color.dim'}}",
+												"role": "button",
+												"focusable": true,
+												"cursor": "hand",
+												"label": "{{t('store.moveUp')}}",
+												"hover": { "textColor": "#ffffff" },
+												"onClick": {
+													"if": "{{i > 0}}",
+													"then": [
+														{
+															"run": "wishMove",
+															"with": { "i": "{{i}}", "j": "{{i - 1}}" }
+														}
+													]
+												}
+											},
+											{
+												"when": "{{state.wishSort == 'rank' && state.wishQuery == ''}}",
+												"type": "label",
+												"icon": "chevron-down",
+												"text": "",
+												"height": 30,
+												"anchors": { "left": 0, "right": 0 },
+												"align": "center",
+												"textColor": "{{i < length(state.wishlist) - 1 ? '@store.chipText' : '@color.dim'}}",
+												"role": "button",
+												"focusable": true,
+												"cursor": "hand",
+												"label": "{{t('store.moveDown')}}",
+												"hover": { "textColor": "#ffffff" },
+												"onClick": {
+													"if": "{{i < length(state.wishlist) - 1}}",
+													"then": [
+														{
+															"run": "wishMove",
+															"with": { "i": "{{i}}", "j": "{{i + 1}}" }
+														}
+													]
+												}
+											}
+										]
+									},
+									{
+										"type": "image",
+										"file": "{{'art/' + g.id + '/hero.svg'}}",
+										"fit": "cover",
+										"width": 230,
+										"height": 100,
+										"cursor": "hand",
+										"onClick": { "run": "openStore", "with": { "id": "{{g.id}}" } }
+									},
+									{
+										"type": "column",
+										"grow": 1,
+										"height": 100,
+										"gap": 4,
+										"children": [
+											{
+												"type": "label",
+												"font": "heading",
+												"text": "{{g.title}}",
+												"height": 26,
+												"anchors": { "left": 0, "right": 0 },
+												"textColor": "@color.bright",
+												"cursor": "hand",
+												"onClick": { "run": "openStore", "with": { "id": "{{g.id}}" } }
+											},
+											{
+												"type": "row",
+												"height": 18,
+												"anchors": { "left": 0, "right": 0 },
+												"gap": 6,
+												"children": [
+													{
+														"type": "label",
+														"text": "{{upper(t('store.overall'))}}",
+														"fitText": true,
+														"font": "small",
+														"textColor": "@store.label"
+													},
+													{
+														"type": "label",
+														"text": "{{t('review.' + g.review)}}",
+														"fitText": true,
+														"font": "small",
+														"textColor": "@store.chipText"
+													},
+													{
+														"type": "panel",
+														"color": "transparent",
+														"width": 10,
+														"height": 1
+													},
+													{
+														"type": "label",
+														"text": "{{upper(t('game.release'))}}",
+														"fitText": true,
+														"font": "small",
+														"textColor": "@store.label"
+													},
+													{
+														"type": "label",
+														"text": "{{g.release}}",
+														"fitText": true,
+														"font": "small",
+														"textColor": "@store.text"
+													}
+												]
+											},
+											{
+												"type": "row",
+												"height": 24,
+												"anchors": { "left": 0, "right": 0 },
+												"gap": 4,
+												"children": [
+													{
+														"repeat": { "for": "tag", "in": "{{slice(g.tags, 0, 4)}}" },
+														"type": "label",
+														"font": "small",
+														"text": "{{tag}}",
+														"fitText": true,
+														"padding": 7,
+														"radius": 2,
+														"color": "@store.chip",
+														"textColor": "@store.chipText"
+													}
+												]
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{t('store.added', { date: '12 Aug' })}}",
+												"height": 18,
+												"anchors": { "left": 0, "right": 0 },
+												"textColor": "@color.dim"
+											}
+										]
+									},
+									{
+										"type": "column",
+										"width": 170,
+										"height": 100,
+										"gap": 6,
+										"children": [
+											{ "type": "panel", "color": "transparent", "height": 6, "width": 1 },
+											{
+												"type": "row",
+												"height": 36,
+												"anchors": { "left": 0, "right": 0 },
+												"children": [
+													{
+														"type": "panel",
+														"color": "transparent",
+														"grow": 1,
+														"height": 1
+													},
+													{ "use": "priceTag", "with": { "g": "{{g}}" } }
+												]
+											},
+											{
+												"type": "row",
+												"height": 36,
+												"anchors": { "left": 0, "right": 0 },
+												"children": [
+													{
+														"type": "panel",
+														"color": "transparent",
+														"grow": 1,
+														"height": 1
+													},
+													{
+														"use": "ctaButton",
+														"with": {
+															"title": "{{contains(state.cart, g.id) ? t('store.inCart') : t('store.addToCart')}}"
+														},
+														"onClick": [
+															{
+																"if": "{{contains(state.cart, g.id)}}",
+																"then": [{ "run": "showCart" }],
+																"else": [
+																	{ "run": "addToCart", "with": { "id": "{{g.id}}" } }
+																]
+															}
+														]
+													}
+												]
+											},
+											{
+												"type": "row",
+												"height": 18,
+												"anchors": { "left": 0, "right": 0 },
+												"children": [
+													{
+														"type": "panel",
+														"color": "transparent",
+														"grow": 1,
+														"height": 1
+													},
+													{
+														"type": "label",
+														"text": "{{t('store.remove')}}",
+														"fitText": true,
+														"font": "small",
+														"textColor": "@color.dim",
+														"cursor": "hand",
+														"role": "button",
+														"focusable": true,
+														"hover": { "textColor": "@color.bright" },
+														"onClick": {
+															"run": "toggleWishlist",
+															"with": { "id": "{{g.id}}" }
+														}
+													}
+												]
+											}
+										]
+									},
+									{ "type": "panel", "color": "transparent", "width": 4, "height": 1 }
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		"storePage": {
+			"note": "The store: the top links and blue bar, then the front page, search results, a game's page, the cart or the wishlist.",
+			"params": {},
+			"node": {
+				"id": "store",
+				"fill": true,
+				"color": "@color.page",
+				"gradient": {
+					"kind": "linear",
+					"stops": [{ "at": 0, "color": "@store.glow" }, { "at": 0.35, "color": "@color.page" }]
+				},
+				"children": [
+					{
+						"id": "store-scroll",
+						"type": "column",
+						"fill": true,
+						"scroll": "vertical",
+						"children": [
+							{
+								"id": "store-content",
+								"type": "column",
+								"height": "{{computed.storeHeight}}",
+								"anchors": {
+									"left": "{{(window.width - computed.storeWidth) / 2}}",
+									"right": "{{(window.width - computed.storeWidth) / 2}}"
+								},
+								"children": [
+									{ "use": "storeTop" },
+									{ "when": "{{computed.storeView == 'home'}}", "use": "storeHome" },
+									{ "when": "{{computed.storeView == 'results'}}", "use": "storeResults" },
+									{
+										"when": "{{computed.storeView == 'app' && computed.game != null}}",
+										"use": "storeApp",
+										"with": { "g": "{{computed.game}}" }
+									},
+									{ "when": "{{computed.storeView == 'cart'}}", "use": "storeCart" },
+									{ "when": "{{computed.storeView == 'wishlist'}}", "use": "storeWishlist" }
+								]
+							}
+						]
+					},
+					{
+						"use": "dialog",
+						"with": {
+							"open": "state.cartDialog",
+							"title": "{{t('store.addedTitle')}}",
+							"message": "{{t('store.addedText', { title: find(state.games, it.id == state.cartAdded).title ?? '' })}}",
+							"buttons": [
+								{ "title": "{{t('store.viewCart')}}", "run": "showCart" },
+								{ "title": "{{t('store.keepShopping')}}" }
+							]
+						}
+					}
+				]
+			}
+		}
+	},
+	"strings": {
+		"en": {
+			"store.keepShopping": "Continue",
+			"store.wishlist": "Wishlist",
+			"store.cart": "Cart",
+			"store.bar.yours": "Your Store",
+			"store.bar.noteworthy": "New & Noteworthy",
+			"store.bar.categories": "Categories",
+			"store.bar.points": "Points Shop",
+			"store.bar.news": "News",
+			"store.bar.labs": "Labs",
+			"store.search": "search",
+			"store.featured": "Featured & Recommended",
+			"store.nowAvailable": "Now Available",
+			"store.topSeller": "Top Seller",
+			"store.previous": "Previous",
+			"store.next": "Next",
+			"store.slide": "Slide {n}",
+			"store.offers": "Special Offers",
+			"store.browseMore": "Browse more",
+			"store.weeklong": "Weeklong Deal",
+			"store.midweek": "Midweek Deal",
+			"store.endsOn": "Offer ends {date}",
+			"store.categories": "Browse by category",
+			"store.list.new": "New & Trending",
+			"store.list.top": "Top Sellers",
+			"store.list.specials": "Specials",
+			"store.overall": "Overall user reviews:",
+			"store.inLibrary": "In library",
+			"store.results": "{n, plural, =0 {No results} one {1 result} other {{n} results}} match “{query}”",
+			"store.clear": "Clear",
+			"store.noResults": "Nothing matches. Try a genre such as Racing or a tag such as Co-op.",
+			"store.allGames": "All Games",
+			"store.screenshot": "Screenshot {n}",
+			"store.recentReviews": "Recent reviews:",
+			"store.allReviews": "All reviews:",
+			"store.userTags": "Popular user-defined tags for this product:",
+			"store.addWishlist": "Add to your wishlist",
+			"store.onWishlist": "On Wishlist",
+			"store.follow": "Follow",
+			"store.following": "Following",
+			"store.ignore": "Ignore",
+			"store.queue": "View your queue",
+			"store.buy": "Buy {title}",
+			"store.owned": "{title} is already in your library",
+			"store.promo": "Special promotion! Offer ends {date}",
+			"store.addToCart": "Add to Cart",
+			"store.inCart": "In Cart",
+			"store.playNow": "Play now",
+			"store.about": "About this game",
+			"store.aboutText": "{title} is a hand-made {genre} game by a small team. Play it with a keyboard, a mouse or a controller, pick up where you left off on any computer with cloud saves, and unlock achievements as you go.",
+			"store.requirements": "System requirements",
+			"store.languages": "Languages",
+			"store.lang.interface": "Interface",
+			"store.lang.audio": "Full audio",
+			"store.lang.subtitles": "Subtitles",
+			"store.feature.single": "Single-player",
+			"store.feature.coop": "Online co-op",
+			"store.feature.achievements": "Achievements",
+			"store.feature.cloud": "Cloud saves",
+			"store.feature.family": "Family sharing",
+			"store.reviews": "Customer reviews",
+			"store.overallReviews": "Overall reviews:",
+			"store.reviewCount": "({n} reviews)",
+			"store.products": "{n} products in account",
+			"store.reviewsBy": "{n, plural, one {1 review} other {{n} reviews}}",
+			"store.recommended": "Recommended",
+			"store.notRecommended": "Not Recommended",
+			"store.onRecord": "{n} hrs on record",
+			"store.posted": "Posted: {date}",
+			"store.helpful": "Was this review helpful?",
+			"store.vote.yes": "Yes",
+			"store.vote.no": "No",
+			"store.vote.funny": "Funny",
+			"store.yourCart": "Your shopping cart",
+			"store.thanks": "Thank you! Your games are in your library.",
+			"store.toLibrary": "Go to the library",
+			"store.cartEmpty": "Your cart is empty.",
+			"store.continue": "Continue shopping",
+			"store.remove": "Remove",
+			"store.moveToWishlist": "Move to wishlist",
+			"store.total": "Estimated total",
+			"store.tax": "Sales tax, where it applies, is worked out at checkout.",
+			"store.walletLeft": "Paid from your wallet: {amount}",
+			"store.purchase": "Purchase for myself",
+			"store.whoseWishlist": "{name}’s wishlist",
+			"store.wishSearch": "Search by name or tag",
+			"store.sortBy": "Sort by:",
+			"store.wishSort.rank": "Your rank",
+			"store.wishSort.name": "Name",
+			"store.wishSort.price": "Price",
+			"store.wishSort.discount": "Discount",
+			"store.wishEmpty": "Nothing on your wishlist matches.",
+			"store.moveUp": "Move up",
+			"store.moveDown": "Move down",
+			"store.added": "Added on {date}",
+			"store.addedTitle": "Added to your cart!",
+			"store.addedText": "{title} is in your cart.",
+			"store.viewCart": "View my cart",
+			"review.overwhelminglyPositive": "Overwhelmingly Positive",
+			"review.veryPositive": "Very Positive",
+			"review.positive": "Positive",
+			"review.mostlyPositive": "Mostly Positive",
+			"review.mixed": "Mixed",
+			"genre.Action": "Action",
+			"genre.Adventure": "Adventure",
+			"genre.Horror": "Horror",
+			"genre.Platformer": "Platformer",
+			"genre.Puzzle": "Puzzle",
+			"genre.Racing": "Racing",
+			"genre.RPG": "RPG",
+			"genre.Shooter": "Shooter",
+			"genre.Simulation": "Simulation",
+			"genre.Strategy": "Strategy",
+			"lang.en": "English",
+			"lang.it": "Italian",
+			"lang.ar": "Arabic",
+			"req.minimum": "Minimum:",
+			"req.recommended": "Recommended:",
+			"req.os": "OS",
+			"req.cpu": "Processor",
+			"req.memory": "Memory",
+			"req.gpu": "Graphics",
+			"req.storage": "Storage",
+			"req.storageValue": "{n} GB available space",
+			"req.platform.windows": "Windows",
+			"req.platform.macos": "macOS",
+			"req.platform.linux": "Linux",
+			"req.windows.os.minimum": "64-bit, version 10",
+			"req.windows.os.recommended": "64-bit, version 11",
+			"req.macos.os.minimum": "version 12",
+			"req.macos.os.recommended": "version 14",
+			"req.linux.os.minimum": "64-bit, any recent distribution",
+			"req.linux.os.recommended": "64-bit, kernel 6 or later",
+			"req.windows.cpu.minimum": "quad-core, 2.5 GHz",
+			"req.windows.cpu.recommended": "six-core, 3.4 GHz",
+			"req.windows.memory.minimum": "8 GB RAM",
+			"req.windows.memory.recommended": "16 GB RAM",
+			"req.windows.gpu.minimum": "2 GB video memory",
+			"req.windows.gpu.recommended": "6 GB video memory",
+			"req.macos.cpu.minimum": "Apple silicon or quad-core Intel",
+			"req.macos.cpu.recommended": "Apple silicon",
+			"req.macos.memory.minimum": "8 GB RAM",
+			"req.macos.memory.recommended": "16 GB RAM",
+			"req.macos.gpu.minimum": "integrated graphics",
+			"req.macos.gpu.recommended": "integrated graphics, 16 GB unified memory",
+			"req.linux.cpu.minimum": "quad-core, 2.5 GHz",
+			"req.linux.cpu.recommended": "six-core, 3.4 GHz",
+			"req.linux.memory.minimum": "8 GB RAM",
+			"req.linux.memory.recommended": "16 GB RAM",
+			"req.linux.gpu.minimum": "2 GB video memory",
+			"req.linux.gpu.recommended": "6 GB video memory"
+		},
+		"it": {
+			"store.keepShopping": "Continua",
+			"store.wishlist": "Lista dei desideri",
+			"store.cart": "Carrello",
+			"store.bar.yours": "Il tuo negozio",
+			"store.bar.noteworthy": "Novità",
+			"store.bar.categories": "Categorie",
+			"store.bar.points": "Negozio punti",
+			"store.bar.news": "Notizie",
+			"store.bar.labs": "Laboratorio",
+			"store.search": "cerca",
+			"store.featured": "In evidenza e consigliati",
+			"store.nowAvailable": "Ora disponibile",
+			"store.topSeller": "Più venduto",
+			"store.previous": "Precedente",
+			"store.next": "Successivo",
+			"store.slide": "Diapositiva {n}",
+			"store.offers": "Offerte speciali",
+			"store.browseMore": "Altre offerte",
+			"store.weeklong": "Offerta della settimana",
+			"store.midweek": "Offerta di metà settimana",
+			"store.endsOn": "L'offerta termina il {date}",
+			"store.categories": "Sfoglia per categoria",
+			"store.list.new": "Nuovi e di tendenza",
+			"store.list.top": "I più venduti",
+			"store.list.specials": "Offerte",
+			"store.overall": "Recensioni complessive:",
+			"store.inLibrary": "In libreria",
+			"store.results": "{n, plural, =0 {Nessun risultato} one {1 risultato} other {{n} risultati}} per “{query}”",
+			"store.clear": "Cancella",
+			"store.noResults": "Nessun risultato. Prova un genere come Corse o un'etichetta come Co-op.",
+			"store.allGames": "Tutti i giochi",
+			"store.screenshot": "Immagine {n}",
+			"store.recentReviews": "Recensioni recenti:",
+			"store.allReviews": "Tutte le recensioni:",
+			"store.userTags": "Etichette più usate dagli utenti:",
+			"store.addWishlist": "Aggiungi alla lista dei desideri",
+			"store.onWishlist": "Nella lista dei desideri",
+			"store.follow": "Segui",
+			"store.following": "Segui già",
+			"store.ignore": "Ignora",
+			"store.queue": "La tua coda",
+			"store.buy": "Acquista {title}",
+			"store.owned": "{title} è già nella tua libreria",
+			"store.promo": "Promozione speciale! Termina il {date}",
+			"store.addToCart": "Aggiungi al carrello",
+			"store.inCart": "Nel carrello",
+			"store.playNow": "Gioca ora",
+			"store.about": "Informazioni sul gioco",
+			"store.aboutText": "{title} è un gioco ({genre}) fatto a mano da un piccolo gruppo. Si gioca con tastiera, mouse o controller, i salvataggi nel cloud ti seguono su ogni computer e gli obiettivi arrivano strada facendo.",
+			"store.requirements": "Requisiti di sistema",
+			"store.languages": "Lingue",
+			"store.lang.interface": "Interfaccia",
+			"store.lang.audio": "Audio",
+			"store.lang.subtitles": "Sottotitoli",
+			"store.feature.single": "Giocatore singolo",
+			"store.feature.coop": "Cooperativa online",
+			"store.feature.achievements": "Obiettivi",
+			"store.feature.cloud": "Salvataggi nel cloud",
+			"store.feature.family": "Condivisione familiare",
+			"store.reviews": "Recensioni dei clienti",
+			"store.overallReviews": "Recensioni complessive:",
+			"store.reviewCount": "({n} recensioni)",
+			"store.products": "{n} prodotti nell'account",
+			"store.reviewsBy": "{n, plural, one {1 recensione} other {{n} recensioni}}",
+			"store.recommended": "Consigliato",
+			"store.notRecommended": "Non consigliato",
+			"store.onRecord": "{n} ore registrate",
+			"store.posted": "Pubblicata: {date}",
+			"store.helpful": "Questa recensione ti è stata utile?",
+			"store.vote.yes": "Sì",
+			"store.vote.no": "No",
+			"store.vote.funny": "Divertente",
+			"store.yourCart": "Il tuo carrello",
+			"store.thanks": "Grazie! I giochi sono nella tua libreria.",
+			"store.toLibrary": "Vai alla libreria",
+			"store.cartEmpty": "Il carrello è vuoto.",
+			"store.continue": "Continua gli acquisti",
+			"store.remove": "Rimuovi",
+			"store.moveToWishlist": "Sposta nella lista dei desideri",
+			"store.total": "Totale stimato",
+			"store.tax": "Le imposte, dove previste, sono calcolate al pagamento.",
+			"store.walletLeft": "Pagato dal portafoglio: {amount}",
+			"store.purchase": "Acquista per me",
+			"store.whoseWishlist": "Lista dei desideri di {name}",
+			"store.wishSearch": "Cerca per nome o etichetta",
+			"store.sortBy": "Ordina per:",
+			"store.wishSort.rank": "La tua classifica",
+			"store.wishSort.name": "Nome",
+			"store.wishSort.price": "Prezzo",
+			"store.wishSort.discount": "Sconto",
+			"store.wishEmpty": "Nessun gioco della lista corrisponde.",
+			"store.moveUp": "Sposta su",
+			"store.moveDown": "Sposta giù",
+			"store.added": "Aggiunto il {date}",
+			"store.addedTitle": "Aggiunto al carrello!",
+			"store.addedText": "{title} è nel carrello.",
+			"store.viewCart": "Vai al carrello",
+			"review.overwhelminglyPositive": "Estremamente positive",
+			"review.veryPositive": "Molto positive",
+			"review.positive": "Positive",
+			"review.mostlyPositive": "Perlopiù positive",
+			"review.mixed": "Nella media",
+			"genre.Action": "Azione",
+			"genre.Adventure": "Avventura",
+			"genre.Horror": "Horror",
+			"genre.Platformer": "Piattaforme",
+			"genre.Puzzle": "Rompicapo",
+			"genre.Racing": "Corse",
+			"genre.RPG": "GDR",
+			"genre.Shooter": "Sparatutto",
+			"genre.Simulation": "Simulazione",
+			"genre.Strategy": "Strategia",
+			"lang.en": "Inglese",
+			"lang.it": "Italiano",
+			"lang.ar": "Arabo",
+			"req.minimum": "Minimi:",
+			"req.recommended": "Consigliati:",
+			"req.os": "Sistema operativo",
+			"req.cpu": "Processore",
+			"req.memory": "Memoria",
+			"req.gpu": "Scheda video",
+			"req.storage": "Memoria di massa",
+			"req.storageValue": "{n} GB di spazio disponibile",
+			"req.platform.windows": "Windows",
+			"req.platform.macos": "macOS",
+			"req.platform.linux": "Linux",
+			"req.windows.os.minimum": "64 bit, versione 10",
+			"req.windows.os.recommended": "64 bit, versione 11",
+			"req.macos.os.minimum": "versione 12",
+			"req.macos.os.recommended": "versione 14",
+			"req.linux.os.minimum": "64 bit, una distribuzione recente",
+			"req.linux.os.recommended": "64 bit, kernel 6 o successivo",
+			"req.windows.cpu.minimum": "quad-core, 2,5 GHz",
+			"req.windows.cpu.recommended": "six-core, 3,4 GHz",
+			"req.windows.memory.minimum": "8 GB di RAM",
+			"req.windows.memory.recommended": "16 GB di RAM",
+			"req.windows.gpu.minimum": "2 GB di memoria video",
+			"req.windows.gpu.recommended": "6 GB di memoria video",
+			"req.macos.cpu.minimum": "Apple silicon o Intel quad-core",
+			"req.macos.cpu.recommended": "Apple silicon",
+			"req.macos.memory.minimum": "8 GB di RAM",
+			"req.macos.memory.recommended": "16 GB di RAM",
+			"req.macos.gpu.minimum": "grafica integrata",
+			"req.macos.gpu.recommended": "grafica integrata, 16 GB di memoria unificata",
+			"req.linux.cpu.minimum": "quad-core, 2,5 GHz",
+			"req.linux.cpu.recommended": "six-core, 3,4 GHz",
+			"req.linux.memory.minimum": "8 GB di RAM",
+			"req.linux.memory.recommended": "16 GB di RAM",
+			"req.linux.gpu.minimum": "2 GB di memoria video",
+			"req.linux.gpu.recommended": "6 GB di memoria video"
+		},
+		"ar": {
+			"store.keepShopping": "متابعة",
+			"store.wishlist": "قائمة الرغبات",
+			"store.cart": "السلة",
+			"store.bar.yours": "متجرك",
+			"store.bar.noteworthy": "جديد ولافت",
+			"store.bar.categories": "الفئات",
+			"store.bar.points": "متجر النقاط",
+			"store.bar.news": "الأخبار",
+			"store.bar.labs": "المختبر",
+			"store.search": "بحث",
+			"store.featured": "مميز وموصى به",
+			"store.nowAvailable": "متاح الآن",
+			"store.topSeller": "الأكثر مبيعًا",
+			"store.previous": "السابق",
+			"store.next": "التالي",
+			"store.slide": "الشريحة {n}",
+			"store.offers": "عروض خاصة",
+			"store.browseMore": "تصفح المزيد",
+			"store.weeklong": "عرض الأسبوع",
+			"store.midweek": "عرض منتصف الأسبوع",
+			"store.endsOn": "ينتهي العرض في {date}",
+			"store.categories": "تصفح حسب الفئة",
+			"store.list.new": "جديد ورائج",
+			"store.list.top": "الأكثر مبيعًا",
+			"store.list.specials": "العروض",
+			"store.overall": "مراجعات المستخدمين:",
+			"store.inLibrary": "في المكتبة",
+			"store.results": "{n, plural, =0 {لا نتائج} one {نتيجة واحدة} other {{n} نتائج}} لـ “{query}”",
+			"store.clear": "مسح",
+			"store.noResults": "لا شيء يطابق. جرّب نوعًا مثل السباقات.",
+			"store.allGames": "كل الألعاب",
+			"store.screenshot": "لقطة {n}",
+			"store.recentReviews": "المراجعات الأخيرة:",
+			"store.allReviews": "كل المراجعات:",
+			"store.userTags": "الوسوم الأكثر استخدامًا:",
+			"store.addWishlist": "أضف إلى قائمة الرغبات",
+			"store.onWishlist": "في قائمة الرغبات",
+			"store.follow": "متابعة",
+			"store.following": "تتابعه",
+			"store.ignore": "تجاهل",
+			"store.queue": "قائمة الانتظار",
+			"store.buy": "اشترِ {title}",
+			"store.owned": "{title} في مكتبتك بالفعل",
+			"store.promo": "عرض خاص! ينتهي في {date}",
+			"store.addToCart": "أضف إلى السلة",
+			"store.inCart": "في السلة",
+			"store.playNow": "العب الآن",
+			"store.about": "عن اللعبة",
+			"store.aboutText": "{title} لعبة من نوع {genre} صنعها فريق صغير. العبها بلوحة المفاتيح أو بذراع التحكم، والحفظ السحابي يتبعك على كل حاسوب.",
+			"store.requirements": "متطلبات النظام",
+			"store.languages": "اللغات",
+			"store.lang.interface": "الواجهة",
+			"store.lang.audio": "الصوت",
+			"store.lang.subtitles": "الترجمة",
+			"store.feature.single": "لاعب فردي",
+			"store.feature.coop": "تعاوني عبر الإنترنت",
+			"store.feature.achievements": "إنجازات",
+			"store.feature.cloud": "حفظ سحابي",
+			"store.feature.family": "مشاركة عائلية",
+			"store.reviews": "مراجعات العملاء",
+			"store.overallReviews": "المراجعات العامة:",
+			"store.reviewCount": "({n} مراجعة)",
+			"store.products": "{n} منتجًا في الحساب",
+			"store.reviewsBy": "{n} مراجعة",
+			"store.recommended": "موصى بها",
+			"store.notRecommended": "غير موصى بها",
+			"store.onRecord": "{n} ساعة مسجلة",
+			"store.posted": "نُشرت: {date}",
+			"store.helpful": "هل كانت هذه المراجعة مفيدة؟",
+			"store.vote.yes": "نعم",
+			"store.vote.no": "لا",
+			"store.vote.funny": "مضحكة",
+			"store.yourCart": "سلة التسوق",
+			"store.thanks": "شكرًا! ألعابك في مكتبتك.",
+			"store.toLibrary": "اذهب إلى المكتبة",
+			"store.cartEmpty": "سلتك فارغة.",
+			"store.continue": "متابعة التسوق",
+			"store.remove": "إزالة",
+			"store.moveToWishlist": "انقل إلى قائمة الرغبات",
+			"store.total": "المجموع التقديري",
+			"store.tax": "تُحسب الضرائب، حيث تنطبق، عند الدفع.",
+			"store.walletLeft": "يُدفع من محفظتك: {amount}",
+			"store.purchase": "اشترِ لنفسي",
+			"store.whoseWishlist": "قائمة رغبات {name}",
+			"store.wishSearch": "ابحث بالاسم أو الوسم",
+			"store.sortBy": "الترتيب:",
+			"store.wishSort.rank": "ترتيبك",
+			"store.wishSort.name": "الاسم",
+			"store.wishSort.price": "السعر",
+			"store.wishSort.discount": "الخصم",
+			"store.wishEmpty": "لا شيء في قائمة الرغبات يطابق.",
+			"store.moveUp": "حرّك لأعلى",
+			"store.moveDown": "حرّك لأسفل",
+			"store.added": "أُضيفت في {date}",
+			"store.addedTitle": "أُضيفت إلى سلتك!",
+			"store.addedText": "{title} في سلتك.",
+			"store.viewCart": "اعرض سلتي",
+			"review.overwhelminglyPositive": "إيجابية للغاية",
+			"review.veryPositive": "إيجابية جدًا",
+			"review.positive": "إيجابية",
+			"review.mostlyPositive": "إيجابية في الغالب",
+			"review.mixed": "متباينة",
+			"genre.Action": "أكشن",
+			"genre.Adventure": "مغامرة",
+			"genre.Horror": "رعب",
+			"genre.Platformer": "منصات",
+			"genre.Puzzle": "ألغاز",
+			"genre.Racing": "سباقات",
+			"genre.RPG": "لعب أدوار",
+			"genre.Shooter": "تصويب",
+			"genre.Simulation": "محاكاة",
+			"genre.Strategy": "استراتيجية",
+			"lang.en": "الإنجليزية",
+			"lang.it": "الإيطالية",
+			"lang.ar": "العربية",
+			"req.minimum": "الحد الأدنى:",
+			"req.recommended": "الموصى به:",
+			"req.os": "النظام",
+			"req.cpu": "المعالج",
+			"req.memory": "الذاكرة",
+			"req.gpu": "الرسوميات",
+			"req.storage": "التخزين",
+			"req.storageValue": "{n} غيغابايت مساحة متاحة"
+		}
+	}
+}

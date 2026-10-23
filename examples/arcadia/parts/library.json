@@ -133,6 +133,12 @@
 				}
 			]
 		},
+		"setSort": {
+			"title": "Sort the library",
+			"category": "Library",
+			"description": "Sorts All Games by name, hours played or last played.",
+			"do": [{ "set": "settings.library.sortBy", "to": "{{by}}" }]
+		},
 		"primary": {
 			"title": "Play, install or update",
 			"category": "Game",
@@ -1152,7 +1158,8 @@
 								},
 								"id": "{{'section-link-' + s}}",
 								"style": "sectionLink",
-								"text": "{{t('game.section.' + s)}}"
+								"text": "{{t('game.section.' + s)}}",
+								"onClick": [{ "if": "{{s == 'store'}}", "then": [{ "run": "openStore", "with": { "id": "{{g.id}}" } }] }]
 							}
 						]
 					},

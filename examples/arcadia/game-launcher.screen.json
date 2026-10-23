@@ -13,7 +13,7 @@
 		"focusRing": { "color": "#1a9fff", "width": 2, "offset": 1 }
 	},
 
-	"include": ["parts/data.json", "parts/chrome.json", "parts/library.json"],
+	"include": ["parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json"],
 
 	"theme": "{{settings.appearance.theme}}",
 
@@ -242,7 +242,8 @@
 						"anchors": { "left": 0, "right": 0 },
 						"children": [
 							{ "when": "{{computed.here.tab == 'library'}}", "use": "libraryPage", "id": "library" },
-							{ "when": "{{computed.here.tab != 'library'}}", "use": "comingSoon", "id": "elsewhere" }
+							{ "when": "{{computed.here.tab == 'store'}}", "use": "storePage" },
+							{ "when": "{{computed.here.tab != 'library' && computed.here.tab != 'store'}}", "use": "comingSoon", "id": "elsewhere" }
 						]
 					},
 					{ "use": "bottomBar", "id": "bottom-bar" }

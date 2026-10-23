@@ -63,6 +63,27 @@
 				{ "action": "nextLanguage" },
 				{ "capture": "arabic" }
 			]
+		},
+		{
+			"name": "store",
+			"steps": [
+				{ "action": "storeHome" },
+				{ "expect": { "node": "#store-home", "property": "shown", "is": true } },
+				{ "move": "#offer-saltmarsh" },
+				{ "capture": "store-home" },
+				{ "click": "#offer-saltmarsh" },
+				{ "capture": "store-page" },
+				{ "scroll": "#store-title", "dy": -6 },
+				{ "expect": { "node": "#add-to-cart", "property": "shown", "is": true } },
+				{ "capture": "purchase" },
+				{ "click": "#add-to-cart" },
+				{ "capture": "added-to-cart" },
+				{ "key": "escape" },
+				{ "action": "showCart" },
+				{ "capture": "cart" },
+				{ "action": "showWishlist" },
+				{ "capture": "wishlist" }
+			]
 		}
 	]
 }
