@@ -302,6 +302,7 @@ void Label::paintSelection(Painter& painter, Vec2 origin) const {
 void Label::keyEvent(const KeyEvent& event) {
 	Panel::keyEvent(event);
 	if(!selectable_ || event.action == Action::Release || !(event.mods.super() || event.mods.control())) return;
+	if(window() && window()->keyTaken()) return; // a binding ran for it
 	if(event.key == Key::C && anchor_ != caret_ && window()) window()->setClipboardText(selectedText());
 	if(event.key == Key::A) select(0, textLayout().text().size());
 }

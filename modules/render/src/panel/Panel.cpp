@@ -205,6 +205,8 @@ void Panel::setBasis(std::optional<Length> basis) { setProperty(basis_, basis); 
 
 void Panel::setAlignSelf(std::optional<CrossAlign> align) { setProperty(alignSelf_, align); }
 
+void Panel::setJustifySelf(std::optional<CrossAlign> align) { setProperty(justifySelf_, align); }
+
 void Panel::setGridCell(GridCell cell) { setProperty(gridCell_, cell); }
 
 // Every panel below may move, so the whole window is laid out again

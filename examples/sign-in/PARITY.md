@@ -41,17 +41,18 @@ Legend: **yes** shown and tested by a scenario; **part** shown, with a gap noted
 | 6 | Throughout | Inline accessible errors | yes |
 | 6 | Throughout | Loading and disabled states | yes |
 | 6 | Throughout | Notices that fit their message and leave with their step | yes |
+| 7 | Add-on | Assistant chat, themed with the app's tokens, suggestions about this app | yes |
 | 6 | Throughout | Success screens | part |
 | 6 | Throughout | Responsive card | part |
 
-Start: 8 yes, 5 part, 21 no (34 features). Now: 33 yes, 2 part, 0 no (35 features).
+Start: 8 yes, 5 part, 21 no (34 features). Now: 34 yes, 2 part, 0 no (36 features).
 
 ## Metrics
 
 | | Start | Now |
 |---|---|---|
-| Document tokens (`sign-in.screen.json`, about 4.7 bytes a token) | 17,818 | 46,765 |
+| Document tokens (`sign-in.screen.json`, about 4.7 bytes a token) | 17,818 | 47,028 |
 | C++ lines in the example | 0 | 0 |
 | Host registrations | 0 | 0 |
-| Rendering-check frames | 8 | 31 |
+| Rendering-check frames | 8 | 34 |
 | App scenarios | 44 | 77 |

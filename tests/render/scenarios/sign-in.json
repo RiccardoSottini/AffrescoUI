@@ -723,6 +723,118 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "sign-in-assistant",
+			"screen": "sign-in.screen.json",
+			"steps": [
+				{
+					"revision": {
+						"set": {
+							"/state/assistant/simulate": {
+								"online": true,
+								"pending": [],
+								"working": false,
+								"proposals": []
+							}
+						}
+					}
+				},
+				{
+					"action": "assistant.open"
+				},
+				{
+					"wait": 250
+				},
+				{
+					"expect": {
+						"image": "open"
+					}
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": false
+					}
+				},
+				{
+					"revision": {
+						"set": {
+							"/state/assistant/simulate": {
+								"online": true,
+								"pending": [
+									"p1"
+								],
+								"working": false,
+								"proposals": []
+							},
+							"/state/assistant/messages": [
+								{
+									"mine": true,
+									"from": "You",
+									"text": "Make the sign-in button larger",
+									"time": 1773500966000,
+									"error": false
+								},
+								{
+									"mine": false,
+									"from": "claude",
+									"text": "Done: it waits for your review.",
+									"time": 1773500970000,
+									"error": false
+								},
+								{
+									"kind": "card",
+									"id": "p1",
+									"title": "A larger sign-in button",
+									"summary": "Changes 1 element",
+									"lines": [
+										"set /styles/primaryButton/height to 52"
+									],
+									"time": 1773500970000
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "assistant.open"
+				},
+				{
+					"wait": 250
+				},
+				{
+					"expect": {
+						"image": "asked"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"action": "assistant.open"
+				},
+				{
+					"wait": 250
+				},
+				{
+					"expect": {
+						"image": "dark"
+					}
+				}
+			]
 		}
 	]
 }

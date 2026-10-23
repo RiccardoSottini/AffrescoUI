@@ -3,12 +3,18 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 	"note": "Sign in: sign in, create an account, two-step codes, a password reset, an account page with a session that expires, and a fake OAuth provider (Example ID). A fake server in actions answers, slowly when the Slow network setting is on. Light and dark, English, Italian and Arabic, no code.",
+	"include": ["../shared/addons/assistant/assistant.json"],
 	"window": {
 		"title": "Sign in",
 		"width": 960,
 		"height": 720,
 		"minWidth": 480,
-		"minHeight": 640
+		"minHeight": 640,
+		"focusRing": {
+			"color": "@color.accent",
+			"width": 2,
+			"offset": 2
+		}
 	},
 	"fonts": {
 		"default": {
@@ -222,6 +228,27 @@
 		"color.toastAction": {
 			"light": "#a5b4fc",
 			"dark": "#4f46e5"
+		},
+		"assistant.accent": "@color.accent",
+		"assistant.accentHover": "@color.accentHover",
+		"assistant.onAccent": "@color.accentText",
+		"assistant.surface": "@color.surface",
+		"assistant.raised": {
+			"light": "#f8fafc",
+			"dark": "#1b2338"
+		},
+		"assistant.border": "@color.border",
+		"assistant.text": "@color.text",
+		"assistant.dim": "@color.muted",
+		"assistant.dot": "@color.muted",
+		"assistant.success": {
+			"light": "#16a34a",
+			"dark": "#4ade80"
+		},
+		"assistant.danger": "@color.error",
+		"assistant.warning": {
+			"light": "#fef3c7",
+			"dark": "#3b2e0a"
 		}
 	},
 	"colors": {
@@ -493,7 +520,10 @@
 			"deleted": "Your account was deleted",
 			"passkeyNew": "Added {added}  ·  not used yet",
 			"verified": "Verified",
-			"linkSentHint": "Link sent: open it to verify the address"
+			"linkSentHint": "Link sent: open it to verify the address",
+			"assistant.chip1": "What can you change here?",
+			"assistant.chip2": "Make the sign-in button larger",
+			"assistant.chip3": "Add a phone number field"
 		},
 		"it": {
 			"windowTitle": "Accedi",
@@ -755,7 +785,10 @@
 			"deleted": "Il tuo account è stato eliminato",
 			"passkeyNew": "Aggiunta {added}  ·  non ancora usata",
 			"verified": "Verificata",
-			"linkSentHint": "Link inviato: aprilo per verificare l'indirizzo"
+			"linkSentHint": "Link inviato: aprilo per verificare l'indirizzo",
+			"assistant.chip1": "Cosa puoi cambiare qui?",
+			"assistant.chip2": "Ingrandisci il pulsante Accedi",
+			"assistant.chip3": "Aggiungi un campo per il telefono"
 		},
 		"ar": {
 			"windowTitle": "تسجيل الدخول",
@@ -1017,7 +1050,10 @@
 			"deleted": "تم حذف حسابك",
 			"passkeyNew": "أُضيف {added}  ·  لم يُستخدم بعد",
 			"verified": "موثّق",
-			"linkSentHint": "أُرسل الرابط: افتحه لتوثيق العنوان"
+			"linkSentHint": "أُرسل الرابط: افتحه لتوثيق العنوان",
+			"assistant.chip1": "ما الذي يمكنك تغييره هنا؟",
+			"assistant.chip2": "كبّر زر تسجيل الدخول",
+			"assistant.chip3": "أضف حقلاً لرقم الهاتف"
 		}
 	},
 	"connections": {

@@ -295,7 +295,10 @@ void Grid::arrange() {
 	// Columns first: the children's heights may depend on the width their cells give them
 	std::vector<Vec2> own(children.size());
 	std::vector<detail::TrackContent> contents;
-	const bool measureWidths = hasContentTracks(columns_, columnCount) || justifyItems_ != CrossAlign::Stretch;
+	const auto horizontal = [this](const Panel& child) { return child.justifySelf().value_or(justifyItems_); };
+	const bool measureWidths =
+	    hasContentTracks(columns_, columnCount) ||
+	    std::ranges::any_of(children, [&](const Panel* child) { return horizontal(*child) != CrossAlign::Stretch; });
 	for(std::size_t i = 0; i < children.size(); ++i) {
 		arrangeSize(*children[i], std::nullopt, std::nullopt);
 		if(!measureWidths) continue;
@@ -308,7 +311,7 @@ void Grid::arrange() {
 
 	contents.clear();
 	for(std::size_t i = 0; i < children.size(); ++i) {
-		if(justifyItems_ == CrossAlign::Stretch)
+		if(horizontal(*children[i]) == CrossAlign::Stretch)
 			arrangeSize(*children[i], spanned(columnStarts, columnSizes, areas[i].column, areas[i].columnSpan),
 			            std::nullopt);
 		own[i].y = children[i]->measuredHeight(size.y);
@@ -324,12 +327,12 @@ void Grid::arrange() {
 		const float cellWidth = spanned(columnStarts, columnSizes, area.column, area.columnSpan);
 		const float cellHeight = spanned(rowStarts, rowSizes, area.row, area.rowSpan);
 		const CrossAlign vertical = child.alignSelf().value_or(alignItems_);
-		const bool stretchX = justifyItems_ == CrossAlign::Stretch, stretchY = vertical == CrossAlign::Stretch;
+		const bool stretchX = horizontal(child) == CrossAlign::Stretch, stretchY = vertical == CrossAlign::Stretch;
 		arrangeSize(child, stretchX ? std::optional(cellWidth) : std::nullopt,
 		            stretchY ? std::optional(cellHeight) : std::nullopt);
 		child.clearAnchor(Edge::Right);
 		child.clearAnchor(Edge::Bottom);
-		child.setAnchor(Edge::Left, px(placedIn(justifyItems_, columnStarts[area.column], cellWidth, own[i].x)));
+		child.setAnchor(Edge::Left, px(placedIn(horizontal(child), columnStarts[area.column], cellWidth, own[i].x)));
 		child.setAnchor(Edge::Top, px(placedIn(vertical, rowStarts[area.row], cellHeight, own[i].y)));
 	}
 }

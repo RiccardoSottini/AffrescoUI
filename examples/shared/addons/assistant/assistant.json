@@ -1,0 +1,298 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The assistant add-on: a chat with the agents connected to the app, to include. A launcher at the bottom right opens a panel where the person asks in plain words (the ask step), the agents answer (ask:reply), and the proposals they open come back as cards to preview, accept or reject. Everything here is named assistant..., so it merges into any screen; an app restyles it by overriding the assistant.* tokens. See README.md.",
+	"tokens": {
+		"assistant.accent": { "light": "#0969da", "dark": "#4493f8" },
+		"assistant.accentHover": { "light": "#0550ae", "dark": "#2f81f7" },
+		"assistant.onAccent": { "light": "#ffffff", "dark": "#ffffff" },
+		"assistant.surface": { "light": "#ffffff", "dark": "#161b22" },
+		"assistant.raised": { "light": "#f6f8fa", "dark": "#21262d" },
+		"assistant.border": { "light": "#d0d7de", "dark": "#30363d" },
+		"assistant.text": { "light": "#1f2328", "dark": "#e6edf3" },
+		"assistant.dim": { "light": "#57606a", "dark": "#8d96a0" },
+		"assistant.dot": { "light": "#8c959f", "dark": "#6e7681" },
+		"assistant.success": { "light": "#1f883d", "dark": "#3fb950" },
+		"assistant.danger": { "light": "#cf222e", "dark": "#f85149" },
+		"assistant.warning": { "light": "#fff8c5", "dark": "#3b2e0a" }
+	},
+	"strings": {
+		"default": "en",
+		"en": {
+			"assistant.title": "Assistant",
+			"assistant.open": "Open the assistant",
+			"assistant.close": "Close the assistant",
+			"assistant.shortcut": "Assistant (Ctrl+Shift+A)",
+			"assistant.online": "{n, plural, one {Connected} other {# agents connected}}",
+			"assistant.offline": "Offline",
+			"assistant.offlineNote": "No agent is connected. Connect one (the MCP server or the Studio) to ask it.",
+			"assistant.empty": "Ask for a change in plain words. The agent proposes it, and you review it here.",
+			"assistant.chip1": "What can you change here?",
+			"assistant.chip2": "Make the text larger",
+			"assistant.chip3": "Add a dark theme",
+			"assistant.message": "Message to the assistant",
+			"assistant.placeholder": "Ask for a change…",
+			"assistant.send": "Send",
+			"assistant.typing": "The assistant is working",
+			"assistant.messages": "Conversation",
+			"assistant.you": "You",
+			"assistant.touches": "Changes {n, plural, one {# element} other {# elements}}",
+			"assistant.preview": "Preview",
+			"assistant.accept": "Accept",
+			"assistant.reject": "Reject",
+			"assistant.accepted": "Accepted",
+			"assistant.rejected": "Rejected",
+			"assistant.closed": "Closed",
+			"assistant.clear": "Clear the conversation"
+		},
+		"it": {
+			"assistant.title": "Assistente",
+			"assistant.open": "Apri l'assistente",
+			"assistant.close": "Chiudi l'assistente",
+			"assistant.shortcut": "Assistente (Ctrl+Maiusc+A)",
+			"assistant.online": "{n, plural, one {Connesso} other {# agenti connessi}}",
+			"assistant.offline": "Non in linea",
+			"assistant.offlineNote": "Nessun agente è connesso. Connettine uno (il server MCP o lo Studio) per chiedergli.",
+			"assistant.empty": "Chiedi una modifica a parole. L'agente la propone e tu la rivedi qui.",
+			"assistant.chip1": "Cosa puoi cambiare qui?",
+			"assistant.chip2": "Ingrandisci il testo",
+			"assistant.chip3": "Aggiungi un tema scuro",
+			"assistant.message": "Messaggio all'assistente",
+			"assistant.placeholder": "Chiedi una modifica…",
+			"assistant.send": "Invia",
+			"assistant.typing": "L'assistente sta lavorando",
+			"assistant.messages": "Conversazione",
+			"assistant.you": "Tu",
+			"assistant.touches": "Cambia {n, plural, one {# elemento} other {# elementi}}",
+			"assistant.preview": "Anteprima",
+			"assistant.accept": "Accetta",
+			"assistant.reject": "Rifiuta",
+			"assistant.accepted": "Accettata",
+			"assistant.rejected": "Rifiutata",
+			"assistant.closed": "Chiusa",
+			"assistant.clear": "Cancella la conversazione"
+		},
+		"ar": {
+			"assistant.title": "المساعد",
+			"assistant.open": "افتح المساعد",
+			"assistant.close": "أغلق المساعد",
+			"assistant.shortcut": "المساعد (Ctrl+Shift+A)",
+			"assistant.online": "{n, plural, one {متصل} other {# وكلاء متصلون}}",
+			"assistant.offline": "غير متصل",
+			"assistant.offlineNote": "لا يوجد وكيل متصل. صِل وكيلًا (خادم MCP أو الاستوديو) لتسأله.",
+			"assistant.empty": "اطلب تغييرًا بكلمات بسيطة. يقترحه الوكيل وتراجعه هنا.",
+			"assistant.chip1": "ماذا يمكنك أن تغير هنا؟",
+			"assistant.chip2": "كبّر النص",
+			"assistant.chip3": "أضف سمة داكنة",
+			"assistant.message": "رسالة إلى المساعد",
+			"assistant.placeholder": "اطلب تغييرًا…",
+			"assistant.send": "أرسل",
+			"assistant.typing": "المساعد يعمل",
+			"assistant.messages": "المحادثة",
+			"assistant.you": "أنت",
+			"assistant.touches": "{n, plural, one {يغير عنصرًا واحدًا} other {يغير # عناصر}}",
+			"assistant.preview": "معاينة",
+			"assistant.accept": "اقبل",
+			"assistant.reject": "ارفض",
+			"assistant.accepted": "مقبول",
+			"assistant.rejected": "مرفوض",
+			"assistant.closed": "مغلق",
+			"assistant.clear": "امسح المحادثة"
+		}
+	},
+	"state": {
+		"assistant": { "show": false, "open": false, "anim": 1, "draft": "", "messages": [], "unread": 0, "pending": "",
+		               "decided": {}, "phase": 0, "simulate": null }
+	},
+	"persist": ["state.assistant.messages", "state.assistant.decided"],
+	"keys": { "mod+shift+a": "assistant.toggle" },
+	"components": {
+		"assistantChip": {
+			"params": { "text": "" },
+			"node": {
+				"type": "label", "text": "{{text}}", "textColor": "@assistant.text", "fitText": { "maxWidth": 320 },
+				"padding": 7, "radius": 15, "color": "@assistant.raised", "borderWidth": 1,
+				"borderColor": "@assistant.border", "hover": { "borderColor": "@assistant.accent" },
+				"focused": { "borderColor": "@assistant.accent" }, "role": "button", "focusable": true,
+				"cursor": "hand", "justifySelf": "start",
+				"onClick": [{ "run": "assistant.ask", "with": { "text": "{{text}}" } }]
+			}
+		}
+	},
+	"actions": {
+		"assistant.toggle": [{ "if": "{{state.assistant.open}}", "then": [{ "run": "assistant.close" }],
+		                       "else": [{ "run": "assistant.open" }] }],
+		"assistant.open": [
+			{ "set": "state.assistant.open", "to": true },
+			{ "set": "state.assistant.unread", "to": 0 },
+			{ "set": "state.assistant.anim", "to": 0 },
+			{ "animate": "state.assistant.anim", "to": 1, "ms": 180, "easing": "out" },
+			{ "focus": "#assistantComposer" },
+			{ "scrollTo": "#assistantEnd" }
+		],
+		"assistant.close": [{ "set": "state.assistant.open", "to": false }, { "focus": "#assistantLauncher" }],
+		"assistant.send": [
+			{ "run": "assistant.ask", "with": { "text": "{{trim(state.assistant.draft)}}" } },
+			{ "set": "state.assistant.draft", "to": "" }
+		],
+		"assistant.ask": [
+			{ "if": "{{length(text) == 0}}", "then": [{ "stop": true }] },
+			{ "push": "state.assistant.messages",
+			  "value": "{{ {mine: true, from: t('assistant.you'), text: text, time: now(), error: false} }}" },
+			{ "run": "assistant.trim" },
+			{ "ask": "{{text}}", "into": "state.assistant.pending" },
+			{ "scrollTo": "#assistantEnd" }
+		],
+		"ask:reply": [
+			{ "if": "{{length(event.text ?? '') == 0 && length(event.error ?? '') == 0 && length(event.proposals ?? []) == 0}}",
+			  "then": [{ "stop": true }] },
+			{ "push": "state.assistant.messages",
+			  "value": "{{ {mine: false, from: event.from, text: length(event.error ?? '') > 0 ? event.error : event.text ?? '', time: event.time, error: length(event.error ?? '') > 0} }}" },
+			{ "forEach": "{{filter(state.assistant.simulate.proposals ?? proposals, contains(event.proposals ?? [], it.id))}}",
+			  "as": "proposal", "do": [
+				{ "push": "state.assistant.messages", "value": "{{ {kind: 'card', id: proposal.id, time: event.time, title: proposal.message, summary: t('assistant.touches', {n: length(proposal.touches ?? [])}), lines: slice(proposal.changes ?? [], 0, 3)} }}" }
+			] },
+			{ "run": "assistant.trim" },
+			{ "if": "{{!state.assistant.open}}", "then": [{ "increment": "state.assistant.unread" }] },
+			{ "scrollTo": "#assistantEnd" }
+		],
+		"assistant.trim": [{ "if": "{{length(state.assistant.messages) > 200}}", "then": [
+			{ "set": "state.assistant.messages", "to": "{{slice(state.assistant.messages, length(state.assistant.messages) - 200)}}" }
+		] }],
+		"assistant.preview": [{ "if": "{{preview != null && preview.id == id}}", "then": [{ "endPreview": true }],
+		                        "else": [{ "preview": "{{id}}" }] }],
+		"assistant.accept": [
+			{ "accept": "{{id}}", "head": "{{find(proposals, it.id == id).head}}" },
+			{ "set": "state.assistant.decided[id]", "to": "accepted" }
+		],
+		"assistant.reject": [
+			{ "reject": "{{id}}" },
+			{ "set": "state.assistant.decided[id]", "to": "rejected" }
+		],
+		"assistant.clear": [
+			{ "set": "state.assistant.messages", "to": [] },
+			{ "set": "state.assistant.decided", "to": {} }
+		]
+	},
+	"overlays": {
+		"assistantLauncher": {
+			"when": "{{(state.assistant.simulate.online ?? (length(peers) > 0)) || length(state.assistant.messages) > 0 || state.assistant.show}}",
+			"id": "assistantLauncher", "use": "chatLauncher", "anchors": { "right": 24, "bottom": 24 },
+			"with": {
+				"isOpen": "{{state.assistant.open}}", "run": "assistant.toggle", "unread": "{{state.assistant.unread}}",
+				"label": "{{t(state.assistant.open ? 'assistant.close' : 'assistant.open')}}",
+				"tooltip": "{{t('assistant.shortcut')}}",
+				"color": "@assistant.accent", "hoverColor": "@assistant.accentHover",
+				"iconColor": "@assistant.onAccent", "badgeColor": "@assistant.danger",
+				"badgeTextColor": "@assistant.onAccent"
+			}
+		},
+		"assistantPanel": {
+			"id": "assistantPanel", "type": "column", "dir": "auto", "width": 380,
+			"height": "{{min(560, window.height - 120)}}", "anchors": { "right": 24, "bottom": 96 },
+			"overlay": { "placement": "window", "open": "state.assistant.open", "modal": true },
+			"color": "@assistant.surface", "radius": 12, "borderWidth": 1, "borderColor": "@assistant.border",
+			"shadow": { "x": 0, "y": 8, "blur": 24, "color": "#00000040" },
+			"translate": "{{[0, (1 - state.assistant.anim) * 16]}}", "scale": "{{0.96 + 0.04 * state.assistant.anim}}",
+			"transformOrigin": "bottomRight", "role": "dialog", "label": "{{t('assistant.title')}}",
+			"keys": { "escape": "assistant.close" },
+			"let": {
+				"assistantOnline": "{{state.assistant.simulate.online ?? (length(peers) > 0)}}",
+				"assistantPending": "{{state.assistant.simulate.pending ?? map(proposals, it.id)}}",
+				"assistantWorking": "{{state.assistant.simulate.working ?? some(requests, it.state == 'sent' || it.state == 'working')}}"
+			},
+			"children": [
+				{ "id": "assistantHeader", "height": 56, "alignSelf": "stretch", "color": "transparent", "children": [
+					{ "type": "label", "runs": [{ "text": "{{t('assistant.title')}}", "bold": true, "size": 16 }],
+					  "textColor": "@assistant.text", "role": "heading", "anchors": { "left": 16, "top": 9 },
+					  "fitText": true },
+					{ "anchors": { "left": 16, "top": 35 }, "width": 8, "height": 8, "radius": 4,
+					  "color": "{{assistantOnline ? '@assistant.success' : '@assistant.dot'}}" },
+					{ "id": "assistantStatus", "type": "label", "role": "status", "live": "polite",
+					  "text": "{{assistantOnline ? t('assistant.online', {n: max(1, length(peers))}) : t('assistant.offline')}}",
+					  "textColor": "@assistant.dim", "anchors": { "left": 30, "top": 30 }, "fitText": true },
+					{ "id": "assistantClose", "anchors": { "right": 12, "top": 12 }, "width": 32, "height": 32,
+					  "radius": 6, "color": "transparent", "role": "button", "focusable": true, "cursor": "hand",
+					  "label": "{{t('assistant.close')}}", "tooltip": "{{t('assistant.close')}}",
+					  "hover": { "color": "@assistant.raised" },
+					  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+					  "onClick": [{ "run": "assistant.close" }],
+					  "children": [
+						{ "anchors": { "left": 7, "top": 15 }, "width": 18, "height": 2, "radius": 1, "rotate": 45,
+						  "color": "@assistant.dim" },
+						{ "anchors": { "left": 7, "top": 15 }, "width": 18, "height": 2, "radius": 1, "rotate": -45,
+						  "color": "@assistant.dim" }
+					  ] },
+					{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@assistant.border" }
+				] },
+				{ "when": "{{!assistantOnline}}", "id": "assistantOffline", "alignSelf": "stretch", "height": 52,
+				  "color": "@assistant.warning", "role": "alert", "children": [
+					{ "type": "label", "text": "{{t('assistant.offlineNote')}}", "textColor": "@assistant.text",
+					  "wrap": true, "anchors": { "left": 16, "right": 16, "top": 8, "bottom": 8 } }
+				] },
+				{ "grow": 1, "alignSelf": "stretch", "color": "transparent", "children": [
+					{ "id": "assistantMessages", "type": "grid", "columns": ["1fr", 8], "columnGap": 0, "rowGap": 8,
+					  "scroll": "vertical", "anchors": { "left": 12, "right": 12, "top": 12, "bottom": 0 },
+					  "role": "list", "label": "{{t('assistant.messages')}}",
+					  "let": { "assistantCount": "{{length(state.assistant.messages)}}" },
+					  "children": [
+						{ "when": "{{assistantCount == 0}}", "id": "assistantEmpty", "type": "label",
+						  "cell": { "column": 1, "row": 1 }, "text": "{{t('assistant.empty')}}",
+						  "textColor": "@assistant.dim", "wrap": true, "height": 44 },
+						{ "when": "{{assistantCount == 0}}", "id": "assistantChip1", "use": "assistantChip",
+						  "cell": { "column": 1, "row": 2 }, "with": { "text": "{{t('assistant.chip1')}}" } },
+						{ "when": "{{assistantCount == 0}}", "id": "assistantChip2", "use": "assistantChip",
+						  "cell": { "column": 1, "row": 3 }, "with": { "text": "{{t('assistant.chip2')}}" } },
+						{ "when": "{{assistantCount == 0}}", "id": "assistantChip3", "use": "assistantChip",
+						  "cell": { "column": 1, "row": 4 }, "with": { "text": "{{t('assistant.chip3')}}" } },
+						{ "repeat": { "for": "message", "in": "state.assistant.messages", "index": "m" },
+						  "when": "{{(message.kind ?? 'message') != 'card'}}", "id": "assistantMessage{{m}}",
+						  "use": "chatBubble",
+						  "cell": { "column": 1, "row": "{{m + 1}}" }, "with": {
+							"text": "{{message.text}}", "mine": "{{message.mine}}", "from": "{{message.from}}",
+							"time": "{{formatTime(message.time, 'short')}}", "error": "{{message.error}}",
+							"color": "@assistant.raised", "textColor": "@assistant.text",
+							"mineColor": "@assistant.accent", "mineTextColor": "@assistant.onAccent",
+							"errorColor": "@assistant.danger" } },
+						{ "repeat": { "for": "message", "in": "state.assistant.messages", "index": "m" },
+						  "when": "{{message.kind == 'card'}}", "id": "assistantCard{{message.id}}",
+						  "use": "proposalCard",
+						  "cell": { "column": 1, "row": "{{m + 1}}" }, "with": {
+							"title": "{{message.title}}", "summary": "{{message.summary}}", "lines": "{{message.lines ?? []}}",
+							"status": "{{preview != null && preview.id == message.id ? 'previewing' : contains(assistantPending, message.id) ? 'pending' : state.assistant.decided[message.id] ?? 'closed'}}",
+							"preview": "assistant.preview", "accept": "assistant.accept", "reject": "assistant.reject",
+							"with": { "id": "{{message.id}}" }, "width": 300,
+							"labels": {
+								"preview": "{{t('assistant.preview')}}", "accept": "{{t('assistant.accept')}}",
+								"reject": "{{t('assistant.reject')}}", "accepted": "{{t('assistant.accepted')}}",
+								"rejected": "{{t('assistant.rejected')}}", "closed": "{{t('assistant.closed')}}"
+							},
+							"color": "@assistant.surface", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
+							"borderColor": "@assistant.border", "accent": "@assistant.success",
+							"accentTextColor": "@assistant.onAccent", "buttonColor": "@assistant.raised" } },
+						{ "when": "{{assistantWorking}}", "id": "assistantTyping",
+						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + 1}}" },
+						  "use": "typingIndicator",
+						  "every": { "ms": 400, "do": [{ "increment": "state.assistant.phase" }] }, "with": {
+							"label": "{{t('assistant.typing')}}", "phase": "{{state.assistant.phase}}",
+							"color": "@assistant.raised", "dotColor": "@assistant.dot",
+							"activeColor": "@assistant.dim" } },
+						{ "id": "assistantEnd", "height": 1, "color": "transparent",
+						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + 2}}" } }
+					  ] }
+				] },
+				{ "alignSelf": "stretch", "height": 92, "color": "transparent", "children": [
+					{ "id": "assistantComposer", "use": "chatComposer",
+					  "anchors": { "left": 8, "right": 8, "top": 8, "bottom": 8 }, "with": {
+						"bind": "state.assistant.draft", "value": "{{state.assistant.draft}}", "send": "assistant.send",
+						"autofocus": true, "close": "assistant.close", "label": "{{t('assistant.message')}}",
+						"placeholder": "{{t('assistant.placeholder')}}", "sendLabel": "{{t('assistant.send')}}",
+						"color": "@assistant.surface", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
+						"borderColor": "@assistant.border", "accent": "@assistant.accent",
+						"accentTextColor": "@assistant.onAccent" } }
+				] }
+			]
+		}
+	}
+}

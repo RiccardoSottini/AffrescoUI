@@ -70,6 +70,7 @@ Every part of the format follows these, and so should every extension:
 | `components` | `name → { "params": {defaults}, "node": node }`: reusable nodes with parameters (see Components). |
 | `screens` | `name → node`: the screens an `outlet` shows; `{"navigate": "name"}` switches. The first is shown first. |
 | `templates` | `name → node`, built by code on demand (`Screen::instantiate`). |
+| `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and isn't built while its `when` doesn't hold. |
 | `state` | The app's data, any JSON object. |
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
@@ -79,7 +80,7 @@ Every part of the format follows these, and so should every extension:
 | `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
 | `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
-| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu). |
+| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu; `persist` lists join). |
 <!-- end generated -->
 
 ### Capabilities and features
@@ -128,6 +129,7 @@ parent, later siblings on top of earlier ones.
 | `shrink` | In a `row`/`column`: how much of an overflow it gives up, in proportion to `shrink` times its size, down to its minimum (CSS flex-shrink). Default `0`: it keeps its size and the children overflow, as they always have (CSS's default is 1). |
 | `basis` | In a `row`/`column`: its size along it before growing or shrinking (CSS flex-basis), a length; `"auto"` (the default) for its own `width` or `height`. |
 | `alignSelf` | In a `row`/`column`/`grid`: where it sits across (`start`, `center`, `end`, `stretch`), over the container's `alignItems`. |
+| `justifySelf` | In a `grid`: where it sits along its cell's row (`start`, `center`, `end`, `stretch`), over the grid's `justifyItems`. |
 | `cell` | In a `grid`: `{ "column": 2, "row": 1, "columnSpan": 2, "rowSpan": 1 }`, counted from 1 (each key optional). Without `column` and `row`, it takes the next free cell, row after row. |
 | `dir` | Which way its children and text run, inherited: `"ltr"`, `"rtl"`, `"auto"` (the locale's: Arabic and Hebrew are right to left) or `"inherit"` (the default; the root is left to right). Right to left mirrors row order, grid columns, left and right anchors, `x`, padding and scrolling, swaps a label's `align` start and end, and draws an icon marked `mirror` mirrored. |
 <!-- end generated -->
@@ -151,7 +153,7 @@ parent, later siblings on top of earlier ones.
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
-| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. `"flip": true` places it on the other side when only that side has room, its children mirrored on that axis. |
+| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus unless one inside already has it) and gives it back when it closes. `"flip": true` places it on the other side when only that side has room, its children mirrored on that axis. |
 | `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
 | `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
 <!-- end generated -->
@@ -306,7 +308,7 @@ Hebrew runs right to left, numbers left to right). `"dir": "auto"` on the root m
 
 `grid` places its children in columns and rows, like a CSS grid: each in its `cell`, or in the next free cell, row
 after row. A child is as wide as its cell and keeps its own height at the top of it, unless `justifyItems`,
-`alignItems` or its `alignSelf` say otherwise.
+`alignItems`, or its own `justifySelf` and `alignSelf` say otherwise.
 
 <!-- generated: grid -->
 | Key | Meaning |
@@ -762,6 +764,17 @@ keep their open state where `open` says (a state path):
   { "separator": true }, { "title": "Grid", "icon": "layout-grid", "checked": "{{state.grid}}", "run": "toggleGrid" }] } }
 ```
 
+
+### Chat components
+The parts of a conversation with an assistant (see Asking the agents) are built-in components too. They run the actions they are given with
+  `with`: `chatBubble` (`text`, `from`, `mine`, `time`, `error`), `typingIndicator` (`label`; its active dot is
+  `phase % 3`), `proposalCard` (`title`, `summary`, up to three `lines` such as a proposal's `changes`, in the font
+  `lineFont`, a `status`, and `preview`, `accept`, `reject` buttons until the status is `accepted`, `rejected` or
+  `closed`), `chatComposer` (an editor bound to `bind`, showing `value`: Enter runs `send`
+  unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; it lays out left to right, as the editor
+  starts its lines at the left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
+  badge).
+
 ### The kit's tokens
 The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
 built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a
@@ -846,7 +859,8 @@ display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `m
 `capsLock`: whether caps lock was on at the latest key); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
-`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; and the names given by `repeat`, `let`,
+`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (`author`, `role`);
+`requests` (the `ask` requests, see "Asking the agents"); and the names given by `repeat`, `let`,
 `with`, `forEach`, a component's params, `it`/`index` inside list functions.
 
 **`computed`** values are evaluated when first read after the state changed, then cached; they may use each other
@@ -1073,9 +1087,10 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
+| `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: asks the agents in plain words; replies run `ask:reply`, never as the person's decision (Asking the agents). A control step |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
-| `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update); `"#form #input"` is the `input` inside `form`, for a component's node |
+| `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out); `"#form #input"` is the `input` inside `form`, for a component's node |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
@@ -1083,7 +1098,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
-| `camera` | `{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view` (front, back, left, right, top, bottom), `frame` ("selection", "all" or ids), `projection` (perspective, orthographic, toggle), `orbit` [degrees right, down], `zoom` (wheel steps, positive to come closer) |
+| `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
 <!-- end generated -->
 
 ### Control steps and paths
@@ -1178,7 +1193,8 @@ line:
 | peer → | `revision` (compact edits or `patch`, `proposal`?), `revert` / `restore` (`revision`), `undo` |
 | peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
-| peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`), relayed with `from` |
+| peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
+| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`) from the screen's own `ask` step; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
 Requests may carry an `"id"`; answers repeat it.
 
@@ -1195,6 +1211,34 @@ refusal in a row is logged:
 
 On a socket, the host also asks the operating system which user the program on the other end runs as, and refuses a
 program of another user.
+
+### Asking the agents
+A screen can ask the agents connected to it in plain words, e.g. from a chat (the assistant add-on in
+`examples/shared/addons/assistant/`):
+
+```json
+"actions": {
+	"send": [{ "ask": "{{state.draft}}", "into": "state.asked" }, { "set": "state.draft", "to": "" }],
+	"ask:reply": [{ "push": "state.notes", "value": "{{event.text}}" }]
+}
+```
+
+- `ask` sends the request to every peer after the event, from the author `user` (`request` in the table above), and
+  writes its id (`ask-<milliseconds>-<n>`) `into` a state path. It is a control step. With no peer connected it
+  fails at once: `ask:reply` runs with the error `no agent is connected`.
+- Each reply runs `ask:reply` with `event` `{request, from, text, done, error, proposals, time}`. `done: false` is a
+  progress note (an agent at work); one with no text only marks the request `working`, with no reply. `proposals`
+  lists the ids of the proposals the replier (any author of the same channel: `agent/...`) opened or changed since the
+  request, each once per head, so the screen can show them for review with `preview`, `accept` and `reject`.
+- `requests` lists the requests, oldest first (at most 64, the oldest finished one goes first):
+  `{id, text, time, state, replies, proposals}`, with `time` in milliseconds since 1970, `state` `sent`, `working`,
+  `answered` or `failed`, and `replies` (at most 256 each) `{from, text, time, done, error}`. `peers` lists who is
+  connected (`author`, `role`).
+- **A reply is a reply, never a decision.** While `ask:reply` runs, `accept`, `reject`, `restore`, `revert` and
+  `undo` are refused: only the person's own events review. An agent's changes keep their permissions: a proposal
+  waits for review as any other.
+- Limits: a request is at most 16 KiB; a reply's `text` and `error` are cut to 64 KiB, `from` to 256 bytes; a reply
+  to an id the screen didn't send is for the other peers, and fields of the wrong type are ignored.
 
 ### Pictures
 `render` (MCP: `render_screen`) lets a peer see its work before a person reviews it. Any peer may ask: it is a read.

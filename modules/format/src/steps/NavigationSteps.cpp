@@ -26,19 +26,36 @@ Panel* findByPath(Panel& root, std::string_view path) {
 	return panel == &root ? nullptr : panel;
 }
 
+/// @brief Scrolls a panel by id (or a path of ids) into view once it has its place: deferred tasks run before the
+/// frame's layout, so a panel the update just made, or one in an overlay just opened, waits for the layouts that place
+/// it.
+/// @param engine The engine.
+/// @param path The panel's id, or a path of ids.
+/// @param frames The frames it may still wait.
+void scrollLater(Engine& engine, const std::string& path, int frames) {
+	engine.scheduler.once(0.0, [&engine, path, frames] {
+		if(!engine.window) return;
+		Panel* panel = findByPath(engine.window->root(), path);
+		if(!panel) return;
+		if(!panel->isShown() && panel->isVisible() && frames > 0) scrollLater(engine, path, frames - 1);
+		else panel->scrollIntoView();
+	});
+}
+
 /// @brief "focus" or "scrollTo": a panel by id (or a path of ids), after the update and its layout, so it exists and
-/// has its place.
+/// has its place. A panel that takes no focus passes it to its first focusable node.
 /// @param s The step.
 void focusOrScroll(const Running& s) {
 	const bool focus = s.step.contains("focus");
 	std::string path = text(s.value(s.step[focus ? "focus" : "scrollTo"], s.where));
 	Engine& engine = s.steps.engine();
 	if(!engine.window) return;
-	engine.scheduler.once(0.0, [&engine, path, focus] {
-		if(Panel* panel = findByPath(engine.window->root(), path)) {
-			if(focus) engine.window->setFocus(panel);
-			else panel->scrollIntoView();
-		}
+	if(!focus) {
+		scrollLater(engine, path, 2);
+		return;
+	}
+	engine.scheduler.once(0.0, [&engine, path] {
+		if(Panel* panel = findByPath(engine.window->root(), path)) engine.events.focus(*panel);
 	});
 }
 

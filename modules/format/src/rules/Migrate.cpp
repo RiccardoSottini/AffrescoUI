@@ -31,7 +31,7 @@ constexpr std::array<std::pair<std::string_view, DocumentKind>, 5> formats = {
 	 {"affrescoui-catalog", DocumentKind::Catalog}}};
 
 /// The sections only a screen or its include part has: a document without a "format" that has one is a part.
-constexpr std::array<std::string_view, 6> screenSections = {"root",       "screens", "templates",
+constexpr std::array<std::string_view, 7> screenSections = {"root",       "screens", "templates", "overlays",
                                                             "components", "styles",  "actions"};
 
 /// The members of a screen whose values are data, not content: nothing in them is rewritten.

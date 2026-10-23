@@ -2,8 +2,8 @@
 
 /// @file
 /// @brief The flexible and grid layout keys: those every node has (maxWidth, maxHeight, aspectRatio, shrink, basis,
-/// alignSelf, cell), the property sets of rows, columns and grids (justify, alignItems, rowGap, columnGap, rows,
-/// justifyItems), and the readers of their values (grid tracks, cells, justifications, alignments).
+/// alignSelf, justifySelf, cell), the property sets of rows, columns and grids (justify, alignItems, rowGap, columnGap,
+/// rows, justifyItems), and the readers of their values (grid tracks, cells, justifications, alignments).
 
 #include "TypeRegistry.hpp"
 
