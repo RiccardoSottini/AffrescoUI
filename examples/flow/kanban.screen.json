@@ -110,11 +110,11 @@
 					{ "ref": "FLO-13", "priority": 3, "title": "Pricing page comparison table", "tag": "design", "who": "MK", "points": 3 },
 					{ "ref": "FLO-14", "priority": 2, "title": "Broken anchor links in the docs", "tag": "bug", "who": "AL", "points": 1 }
 				] },
-				{ "name": "In progress", "color": "#4f46e5", "cards": [
+				{ "name": "In progress", "color": "#ca8a04", "cards": [
 					{ "ref": "FLO-15", "priority": 3, "title": "Blog with tags and search", "tag": "feature", "who": "JD", "points": 5 }
 				] },
-				{ "name": "In review", "color": "#d97706", "cards": [] },
-				{ "name": "Done", "color": "#059669", "cards": [
+				{ "name": "In review", "color": "#16a34a", "cards": [] },
+				{ "name": "Done", "color": "#4f46e5", "cards": [
 					{ "ref": "FLO-16", "priority": 4, "title": "Move hosting to the new provider", "tag": "chore", "who": "RS", "points": 2 }
 				] }
 			],
@@ -122,14 +122,14 @@
 				{ "name": "Backlog", "color": "#94a3b8", "cards": [
 					{ "ref": "FLO-17", "priority": 2, "title": "Offline mode for boards", "tag": "feature", "who": "RS", "points": 8 }
 				] },
-				{ "name": "In progress", "color": "#4f46e5", "cards": [
+				{ "name": "In progress", "color": "#ca8a04", "cards": [
 					{ "ref": "FLO-18", "priority": 3, "title": "Push notifications for mentions", "tag": "feature", "who": "AL", "points": 3 },
 					{ "ref": "FLO-19", "priority": 4, "title": "Dark launch screen", "tag": "design", "who": "MK", "points": 1 }
 				] },
-				{ "name": "In review", "color": "#d97706", "cards": [
+				{ "name": "In review", "color": "#16a34a", "cards": [
 					{ "ref": "FLO-20", "priority": 1, "title": "Crash on rotate in card view", "tag": "bug", "who": "JD", "points": 2 }
 				] },
-				{ "name": "Done", "color": "#059669", "cards": [] }
+				{ "name": "Done", "color": "#4f46e5", "cards": [] }
 			]
 		},
 		"view": "board",
@@ -159,7 +159,7 @@
 		"peek": false,
 		"sizes": [900],
 		"tableSort": null,
-		"columnWidths": { "title": 300, "column": 120, "tag": 110, "who": 90, "points": 80 },
+		"columnWidths": { "ref": 80, "priority": 100, "title": 300, "column": 120, "tag": 110, "who": 90, "points": 80 },
 		"cardMenu": false,
 		"columnMenu": false,
 		"menuColumn": 0,
@@ -198,7 +198,7 @@
 			},
 			{
 				"name": "In progress",
-				"color": "#4f46e5",
+				"color": "#ca8a04",
 				"limit": 3,
 				"cards": [
 					{ "ref": "FLO-5", "priority": 2, "title": "Keyboard shortcuts for moving cards", "tag": "feature", "who": "RS", "points": 3, "start": "2026-03-10", "due": "2026-03-17", "labels": ["frontend"] },
@@ -208,7 +208,7 @@
 			},
 			{
 				"name": "In review",
-				"color": "#d97706",
+				"color": "#16a34a",
 				"limit": 3,
 				"cards": [
 					{ "ref": "FLO-8", "priority": 2, "title": "Invite teammates by email", "tag": "feature", "who": "JD", "points": 5, "start": "2026-03-09", "due": "2026-03-19", "labels": ["backend"],
@@ -218,7 +218,7 @@
 			},
 			{
 				"name": "Done",
-				"color": "#059669",
+				"color": "#4f46e5",
 				"cards": [
 					{ "ref": "FLO-10", "priority": 3, "title": "Drag-free card moves", "tag": "feature", "who": "RS", "points": 3 },
 					{ "ref": "FLO-11", "priority": 1, "title": "Fix blurry text on HiDPI screens", "tag": "bug", "who": "MK", "points": 2 },
@@ -251,10 +251,10 @@
 		"card": "{{state.selected == null ? null : state.columns[state.selected.c].cards[state.selected.i]}}",
 		"counts": "{{map(state.columns, length(it.cards))}}",
 		"allCards": "{{parseJson('[' + join(filter(map(state.columns, slice(join(split(json(map(it.cards, { at: index, ref: it.ref, priority: it.priority, due: it.due, points: it.points, start: it.start, tag: it.tag, title: it.title, who: it.who })), '{\"at\":'), '{\"c\":' + index + ',\"at\":'), 1, -1)), it != ''), ',') + ']')}}",
-		"rows": "{{map(computed.allCards, { id: it.c + '-' + it.at, cells: [it.title, state.columns[it.c].name, it.tag, it.who, it.points] })}}",
+		"rows": "{{map(computed.allCards, { id: it.c + '-' + it.at, cells: [it.ref, t('priority.' + (it.priority ?? 0)), it.title, state.columns[it.c].name, it.tag, it.who, it.points] })}}",
 		"picks": "{{map(computed.allCards, { title: it.title, detail: it.ref + ' · ' + state.columns[it.c].name, run: 'goToCard', with: { item: { c: it.c, at: it.at } } })}}",
 		"over": "{{map(state.columns, it.limit != null && length(it.cards) > it.limit && length(computed.activeFilters) == 0)}}",
-		"tableColumns": "{{[{ id: 'title', title: t('table.card'), width: state.columnWidths.title }, { id: 'column', title: t('table.column'), width: state.columnWidths.column }, { id: 'tag', title: t('table.label'), width: state.columnWidths.tag }, { id: 'who', title: t('table.owner'), width: state.columnWidths.who }, { id: 'points', title: t('table.points'), width: state.columnWidths.points }]}}",
+		"tableColumns": "{{[{ id: 'ref', title: t('table.id'), width: state.columnWidths.ref }, { id: 'priority', title: t('table.priority'), width: state.columnWidths.priority }, { id: 'title', title: t('table.card'), width: state.columnWidths.title }, { id: 'column', title: t('table.column'), width: state.columnWidths.column }, { id: 'tag', title: t('table.label'), width: state.columnWidths.tag }, { id: 'who', title: t('table.owner'), width: state.columnWidths.who }, { id: 'points', title: t('table.points'), width: state.columnWidths.points }]}}",
 		"paletteFirst": "{{filter(commands, it.enabled && contains(['changeStatus', 'changePriority', 'changeAssignee', 'assignToMe', 'editCard', 'openIssue'], it.name))}}",
 		"palette": "{{map(concat(computed.paletteFirst, filter(commands, it.enabled && it.category == 'Issue' && !contains(map(computed.paletteFirst, it.name), it.name)), filter(commands, it.enabled && it.category != 'Issue')), { title: it.title, detail: it.keyLabel ?? '', run: it.name })}}",
 		"matches": "{{filter(computed.allCards, (state.scope == 'all' || (state.scope == 'backlog' ? it.c == 0 : it.c > 0 && it.c < length(state.columns) - 1)) && (state.filter == 'all' || it.tag == state.filter) && (state.fStatus < 0 || it.c == state.fStatus) && (state.fPrio < 0 || (it.priority ?? 0) == state.fPrio) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
@@ -960,7 +960,8 @@
 																		{ "id": "cardDue", "style": "cardChip", "when": "{{!contains(state.hidden, 'due') && (card.due != null)}}", "icon": "calendar", "text": "{{formatDate(dateMs(card.due), 'MMM d', 'utc')}}",
 																			"tooltip": "{{formatDate(dateMs(card.due), 'medium', 'utc')}}",
 																			"textColor": "{{daysBetween(state.today, card.due) < 0 && c != computed.lastColumn ? '@bug' : '@color.muted'}}" },
-																		{ "id": "cardNotes", "style": "cardChip", "borderWidth": 0, "when": "{{card.notes != null}}", "icon": "message-square", "text": "", "width": 22, "fitText": false, "align": "center" },
+																		{ "id": "cardNotes", "style": "cardChip", "borderWidth": 0, "when": "{{length(card.comments ?? []) > 0}}", "icon": "message-square", "text": "\u00a0{{length(card.comments ?? [])}}",
+																			"tooltip": "{{t('drawer.comments', { n: length(card.comments ?? []) })}}" },
 																		{ "id": "cardPoints", "when": "{{!contains(state.hidden, 'estimate')}}", "style": "cardChip", "borderWidth": 0, "icon": "triangle", "text": "{{card.points}}", "tooltip": "{{t('card.points', { n: card.points })}}" }
 																	] }
 																]
