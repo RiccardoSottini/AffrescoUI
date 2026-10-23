@@ -11,7 +11,6 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
-#include <expected>
 #include <stdexcept>
 #include <utility>
 
@@ -84,16 +83,18 @@ std::optional<std::string> readLife(const std::string& place, const json& declar
 /// @param providers The registered providers, by name.
 /// @param place "services.<name>", for messages.
 /// @param declaration The declaration.
-/// @return The provider, or why there is none.
-std::expected<Provider*, std::string>
-findProvider(const std::map<std::string, std::unique_ptr<Provider>, std::less<>>& providers, const std::string& place,
-             const json& declaration) {
+/// @param found Receives the provider.
+/// @return Why there is none, if there isn't.
+std::optional<std::string> findProvider(const std::map<std::string, std::unique_ptr<Provider>, std::less<>>& providers,
+                                        const std::string& place, const json& declaration, Provider*& found) {
 	const json& name = declaration.contains("provider") ? declaration["provider"] : json();
 	const auto provider = name.is_string() ? providers.find(name.get<std::string>()) : providers.end();
-	if(provider != providers.end()) return provider->second.get();
-	return std::unexpected(place + ".provider: no provider " +
-	                       (name.is_string() ? "'" + name.get<std::string>() + "'" : "named") +
-	                       " (registered: " + listNames(providers) + ")");
+	if(provider != providers.end()) {
+		found = provider->second.get();
+		return std::nullopt;
+	}
+	return place + ".provider: no provider " + (name.is_string() ? "'" + name.get<std::string>() + "'" : "named") +
+	       " (registered: " + listNames(providers) + ")";
 }
 
 /// @brief A declaration's configuration: every key but the registry's own.
@@ -273,9 +274,7 @@ std::unique_ptr<ServiceRegistry::Entry> ServiceRegistry::declare(const std::stri
 	};
 	if(!isWord(name)) return refuse(place + ": a service's name is a word (letters, digits, _)");
 	if(!declaration.is_object()) return refuse(place + ": must be an object");
-	const auto provider = findProvider(providers_, place, declaration);
-	if(!provider) return refuse(provider.error());
-	entry->provider = *provider;
+	if(auto problem = findProvider(providers_, place, declaration, entry->provider)) return refuse(*problem);
 	if(auto problem = readLife(place, declaration, entry->startOnLoad, entry->restartAfter, entry->restartTimes))
 		return refuse(*problem);
 	entry->configuration = configurationOf(declaration);
