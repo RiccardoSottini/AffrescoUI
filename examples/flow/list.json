@@ -60,7 +60,7 @@
 										"role": "listitem",
 										"label": "{{t('card.label', { title: card.title, tag: t('tag.' + card.tag), who: find(state.members, it.who == card.who).name ?? card.who, column: column.name })}}",
 										"onFocus": { "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } },
-										"keys": { "enter": "editCard", "shift+f10": { "run": "openCardMenu", "with": { "c": "{{c}}", "i": "{{i}}" } } },
+										"keys": { "enter": "editCard", "space": "togglePeek", "shift+f10": { "run": "openCardMenu", "with": { "c": "{{c}}", "i": "{{i}}" } } },
 										"drag": { "data": { "from": "{{c}}", "at": "{{i}}" } },
 										"onClick": { "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } },
 										"onDoubleClick": [{ "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } }, { "run": "openIssue" }],

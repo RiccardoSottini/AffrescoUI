@@ -50,15 +50,17 @@
 			]
 		},
 		{
-			"name": "move-a-card-with-buttons",
-			"note": "» moves a card one column right and « moves it back to the end of the column it came from",
+			"name": "move-a-card-with-shortcuts",
+			"note": "Cmd+Right moves the selected card one column right and Cmd+Left moves it back to the end of the column it came from",
 			"steps": [
-				{ "click": "#move-button-card-2", "note": "» on the first Backlog card" },
+				{ "click": "#cardTitle", "note": "the first Backlog card" },
+				{ "key": "mod+right" },
 				{ "expect": { "state": "columns[0].cards.length", "is": 3 } },
 				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
 				{ "expect": { "state": "columns[1].cards[3].title", "is": "Onboarding checklist for new teams" } },
 				{ "expect": { "node": "#columnCount", "nth": 1, "text": "4" } },
-				{ "click": "#move-button-card", "nth": 3, "note": "« on the moved card, the fourth In progress card" },
+				{ "expect": { "state": "selected.c", "is": 1 } },
+				{ "key": "mod+left", "note": "the moved card is still selected" },
 				{ "expect": { "state": "columns[0].cards[3].title", "is": "Onboarding checklist for new teams" } },
 				{ "expect": { "state": "columns[1].cards.length", "is": 3 } }
 			]
@@ -110,6 +112,8 @@
 				{ "click": "#cardTitle" },
 				{ "expect": { "state": "selected.c", "is": 0 } },
 				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
 				{ "expect": { "node": "#detailTitle", "text": "Onboarding checklist for new teams" } },
 				{ "expect": { "node": "#detailOwner", "text": "Ada Lewis" } },
 				{ "expect": { "node": "#noCard", "exists": false } }
@@ -119,7 +123,8 @@
 			"name": "switch-boards-with-tabs",
 			"note": "A board tab brings that board's columns in and keeps the first board's; going back restores it",
 			"steps": [
-				{ "click": "#move-button-card-2", "note": "» on the first Backlog card, so the board has changed" },
+				{ "click": "#cardTitle", "note": "the first Backlog card" },
+				{ "key": "mod+right", "note": "so the board has changed" },
 				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
 				{ "click": "#boardTabs" },
 				{ "click": [583, 32], "note": "the Website tab" },
@@ -141,6 +146,8 @@
 				{ "expect": { "node": "#board", "exists": false } },
 				{ "click": "#listRow", "nth": 2, "note": "Crash when a board has no columns" },
 				{ "expect": { "state": "selected.i", "is": 2 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
 				{ "expect": { "node": "#detailTitle", "text": "Crash when a board has no columns" } },
 				{ "click": "#viewBoard" },
 				{ "expect": { "node": "#board", "exists": true } }
@@ -158,6 +165,8 @@
 				{ "click": [400, 214], "note": "the third row: Crash when a board has no columns" },
 				{ "expect": { "state": "selected.c", "is": 0 } },
 				{ "expect": { "state": "selected.i", "is": 2 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
 				{ "expect": { "node": "#detailTitle", "text": "Crash when a board has no columns" } },
 				{ "click": "#viewBoard" },
 				{ "expect": { "node": "#board", "exists": true } }
@@ -188,6 +197,8 @@
 			"note": "The card's menu holds its commands; Move card right moves it",
 			"steps": [
 				{ "click": "#cardTitle" },
+				{ "key": "space", "note": "Space peeks at the card in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
 				{ "click": "#detailMore" },
 				{ "wait": 50 },
 				{ "expect": { "state": "cardMenu", "is": true } },
@@ -285,6 +296,8 @@
 			"steps": [
 				{ "click": "#cardTitle" },
 				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
 				{ "click": "#checkBox", "nth": 1 },
 				{ "expect": { "state": "columns[0].cards[0].checklist[1].done", "is": true } },
 				{ "click": "#newItem" },
@@ -303,6 +316,8 @@
 			"steps": [
 				{ "click": "#cardTitle" },
 				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
 				{ "click": "#dueButton" },
 				{ "wait": 50 },
 				{ "expect": { "state": "dueOpen", "is": true } },
@@ -323,6 +338,8 @@
 				{ "wait": 50 },
 				{ "click": "#cardTitle" },
 				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
 				{ "click": "#labelChip", "nth": 0 },
 				{ "expect": { "state": "columns[0].cards[0].labels.length", "is": 2 } },
 				{ "click": "#labelChip", "nth": 0 },

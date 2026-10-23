@@ -8,9 +8,10 @@
 			"screen": "kanban.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
-				{ "move": [375, 243] },
-				{ "expect": { "image": "button-hover" } },
-				{ "click": [375, 243] },
+				{ "move": [358, 300], "note": "over the second Backlog card" },
+				{ "expect": { "image": "card-hover" } },
+				{ "click": "#cardTitle", "nth": 1 },
+				{ "key": "mod+right" },
 				{ "expect": { "image": "card-moved" } },
 				{ "click": "#filter", "nth": 1 },
 				{ "expect": { "image": "filter-bug" } },
@@ -46,6 +47,7 @@
 			"screen": "kanban.screen.json",
 			"steps": [
 				{ "click": "#cardTitle", "nth": 2 },
+				{ "key": "space", "note": "peeks at the card in the side panel" },
 				{ "expect": { "image": "card-selected" } },
 				{ "click": "#detailMore" },
 				{ "wait": 50 },

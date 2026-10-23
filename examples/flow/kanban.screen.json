@@ -46,7 +46,6 @@
 		"color.chipHover": { "light": "#ececee", "dark": "#1c1d21" },
 		"color.chipOn": { "light": "#e8eafb", "dark": "#262840" },
 		"color.chipOnText": { "light": "#3b45a8", "dark": "#d4d8fa" },
-		"color.move": { "light": "#f4f4f5", "dark": "#1c1d21" },
 		"color.menu": { "light": "#ffffff", "dark": "#1c1d21" },
 		"color.field": { "light": "#f4f4f5", "dark": "#141516" },
 		"color.backdrop": { "light": "#0000004d", "dark": "#00000099" },
@@ -123,6 +122,7 @@
 		"owner": "",
 		"membersOpen": false,
 		"selected": null,
+		"peek": false,
 		"sizes": [900],
 		"tableSort": null,
 		"columnWidths": { "title": 300, "column": 120, "tag": 110, "who": 90, "points": 80 },
@@ -220,6 +220,8 @@
 	"styles": {
 		"caption": { "type": "label", "font": "small", "textColor": "@color.muted", "fitText": true },
 		"badge": { "type": "label", "font": "small", "align": "center" },
+		"cardChip": { "type": "label", "font": "small", "fitText": true, "padding": 6, "height": 22, "radius": "@radius.chip", "borderWidth": 1,
+			"borderColor": "@color.border", "color": "transparent", "textColor": "@color.muted" },
 		"chip": {
 			"style": "badge",
 			"width": 84,
@@ -243,18 +245,6 @@
 			"textColor": "@color.topText",
 			"cursor": "hand"
 		},
-		"move": {
-			"type": "label",
-			"font": "heading",
-			"width": 26,
-			"height": 22,
-			"radius": 4,
-			"align": "center",
-			"color": "@color.move",
-			"hover": { "color": "@color.accentSoft" },
-			"textColor": "@color.accent",
-			"cursor": "hand"
-		},
 		"detailButton": {
 			"type": "label",
 			"font": "small",
@@ -272,17 +262,6 @@
 	},
 
 	"components": {
-		"moveButton": {
-			"note": "« or » on a card: moves it one column left (by -1) or right (by 1)",
-			"params": { "by": 1 },
-			"node": {
-				"id": "label-by-0",
-				"style": "move",
-				"text": "{{by < 0 ? '«' : '»'}}",
-				"anchors": { "right": "{{by < 0 ? 46 : 14}}", "bottom": 10 },
-				"onClick": { "run": "moveCard", "with": { "from": "{{c}}", "at": "{{i}}", "to": "{{c + by}}" } }
-			}
-		}
 	},
 
 	"menus": {
@@ -403,6 +382,7 @@
 		"showTable": { "title": "Show the table", "category": "View", "icon": "table", "do": [{ "set": "state.view", "to": "table" }] },
 		"toggleTheme": { "title": "Switch light and dark", "category": "View", "icon": "moon",
 			"do": [{ "set": "state.theme", "to": "{{state.theme == 'light' ? 'dark' : 'light'}}" }] },
+		"togglePeek": { "title": "Show or hide the side panel", "category": "View", "icon": "panel-right", "do": [{ "toggle": "state.peek" }] },
 		"clearFilters": { "title": "Clear the filters", "category": "View",
 			"do": [{ "set": "state.filter", "to": "all" }, { "set": "state.owner", "to": "" }, { "set": "state.query", "to": "" }] }
 	},
@@ -685,39 +665,29 @@
 										"children": [
 											{
 												"id": "columnBody",
-												"fill": 6,
+												"fill": 4,
 												"radius": "@radius.card",
 												"color": "@color.column",
 												"children": [
-													{ "id": "panel-body", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 3, "color": "{{column.color}}" },
-													{
-														"id": "columnName",
-														"type": "label",
-														"text": "{{column.name}}",
-														"font": "heading",
-														"textColor": "@color.text",
-														"anchors": { "left": 14, "top": 18 },
-														"fitText": true
-													},
-													{
-														"id": "columnCount",
-														"style": "badge",
-														"text": "{{length(column.cards)}}",
-														"anchors": { "right": 12, "top": 16 },
-														"width": 28,
-														"height": 22,
-														"radius": 999,
-														"color": "{{computed.over[c] ? '@bugSoft' : '@color.surface'}}",
-														"textColor": "{{computed.over[c] ? '@bug' : '@color.muted'}}",
-														"label": "{{computed.over[c] ? t('column.over', { name: column.name, count: length(column.cards), limit: column.limit }) : length(column.cards)}}"
-													},
-													{ "id": "columnLimit", "style": "caption", "when": "{{column.limit != null}}", "text": "{{t('column.limit', { limit: column.limit })}}",
-														"textColor": "{{computed.over[c] ? '@bug' : '@color.muted'}}", "anchors": { "right": 46, "top": 20 } },
+													{ "id": "columnStatus", "type": "label", "icon": "{{state.statusIcons[c] ?? 'circle'}}", "text": "", "textColor": "{{column.color}}", "fitText": false, "width": 18,
+														"anchors": { "left": 10, "top": 0 }, "height": 40, "align": "center" },
+													{ "id": "columnTitle", "type": "row", "gap": 8, "alignItems": "center", "anchors": { "left": 36, "right": 44, "top": 0 }, "height": 40, "children": [
+														{ "id": "columnName", "type": "label", "font": "small", "text": "{{column.name}}", "textColor": "@color.text", "fitText": true, "height": 40,
+															"align": { "horizontal": "start", "vertical": "center" } },
+														{ "id": "columnCount", "type": "label", "font": "small", "text": "{{length(column.cards)}}", "fitText": true, "height": 40,
+															"align": { "horizontal": "start", "vertical": "center" }, "textColor": "{{computed.over[c] ? '@bug' : '@color.muted'}}",
+															"label": "{{computed.over[c] ? t('column.over', { name: column.name, count: length(column.cards), limit: column.limit }) : length(column.cards)}}" },
+														{ "id": "columnLimit", "style": "caption", "when": "{{column.limit != null}}", "text": "{{t('column.limit', { limit: column.limit })}}", "height": 40,
+															"align": { "horizontal": "start", "vertical": "center" }, "textColor": "{{computed.over[c] ? '@bug' : '@color.muted'}}" }
+													] },
+													{ "id": "columnAdd", "type": "label", "icon": "plus", "text": "", "fitText": false, "textColor": "@color.muted", "width": 26, "height": 26, "radius": "@radius.chip",
+														"align": "center", "anchors": { "right": 8, "top": 7 }, "hover": { "color": "@color.chipHover" }, "cursor": "hand", "when": "{{c == 0}}",
+														"tooltip": "{{t('newCard.placeholder')}}", "onClick": { "focus": "#newCard" } },
 													{
 														"id": "cards",
 														"type": "stack",
-														"anchors": { "left": 8, "right": 8, "top": 54, "bottom": 8 },
-														"gap": 8,
+														"anchors": { "left": 6, "right": 6, "top": 40, "bottom": 6 },
+														"gap": 6,
 														"scroll": "vertical",
 														"children": [
 															{
@@ -725,69 +695,41 @@
 																"repeat": { "for": "card", "in": "column.cards", "index": "i" },
 																"when": "{{(state.filter == 'all' || card.tag == state.filter) && (state.owner == '' || card.who == state.owner) && (state.query == '' || fuzzy(state.query, card.title) != null)}}",
 																"anchors": { "left": 0, "right": 0 },
-																"height": 104,
+																"height": 96,
 																"radius": "@radius.card",
-																"color": "@color.surface",
-																"borderWidth": "{{state.selected != null && state.selected.c == c && state.selected.i == i ? 2 : 0}}",
-																"borderColor": "@color.accent",
-																"shadow": { "y": 1, "blur": 3, "color": "#0000001f" },
+																"color": "@color.card",
+																"borderWidth": 1,
+																"borderColor": "{{state.selected != null && state.selected.c == c && state.selected.i == i ? '@color.accent' : '@color.border'}}",
+																"shadow": { "y": 1, "blur": 2, "color": "#0000000f" },
+																"hover": { "borderColor": "{{state.selected != null && state.selected.c == c && state.selected.i == i ? '@color.accent' : '@color.muted'}}" },
 																"cursor": "hand",
 																"focusable": true,
 																"role": "button",
 																"label": "{{t('card.label', { title: card.title, tag: t('tag.' + card.tag), who: find(state.members, it.who == card.who).name ?? card.who, column: column.name })}}",
 																"onFocus": { "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } },
-																"keys": { "enter": "editCard", "shift+f10": { "run": "openCardMenu", "with": { "c": "{{c}}", "i": "{{i}}" } } },
+																"keys": { "enter": "editCard", "space": "togglePeek", "shift+f10": { "run": "openCardMenu", "with": { "c": "{{c}}", "i": "{{i}}" } } },
 																"drag": { "data": { "from": "{{c}}", "at": "{{i}}" } },
-																"dragging": { "color": "@color.accentSoft" },
+																"dragging": { "color": "@color.column", "borderColor": "@color.border", "shadow": { "y": 0, "blur": 0, "color": "#00000000" } },
 																"onClick": { "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } },
 																"onDoubleClick": [{ "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } }, { "run": "openIssue" }],
 																"onContextMenu": { "run": "openCardMenu", "with": { "c": "{{c}}", "i": "{{i}}" } },
 																"children": [
-																	{
-																		"id": "cardTag",
-																		"type": "label",
-																		"text": " {{t('tag.' + card.tag)}}",
-																		"icon": "{{state.tagIcons[card.tag]}}",
-																		"font": "small",
-																		"anchors": { "left": 14, "top": 12 },
-																		"padding": 4,
-																		"radius": 4,
-																		"fitText": true,
-																		"color": "@{{card.tag}}Soft",
-																		"textColor": "@{{card.tag}}"
-																	},
-																	{
-																		"id": "cardPoints",
-																		"style": "caption",
-																		"text": "{{t('card.points', { n: card.points })}}",
-																		"anchors": { "right": 14, "top": 14 }
-																	},
-																	{
-																		"id": "cardTitle",
-																		"type": "label",
-																		"text": "{{card.title}}",
-																		"textColor": "{{column.name == 'Done' ? '@color.muted' : '@color.text'}}",
-																		"anchors": { "left": 14, "right": 14, "top": 38 },
-																		"height": 40,
-																		"wrap": true
-																	},
-																	{
-																		"id": "cardOwner",
-																		"style": "badge",
-																		"text": "{{card.who}}",
-																		"anchors": { "left": 14, "bottom": 10 },
-																		"width": 24,
-																		"height": 22,
-																		"radius": 999,
-																		"color": "@color.accentSoft",
-																		"textColor": "@color.accent"
-																	},
-																	{ "id": "cardNotes", "type": "label", "when": "{{card.notes != null}}", "font": "small", "icon": "message-square", "text": "", "textColor": "@color.muted", "anchors": { "left": 46, "bottom": 13 }, "fitText": true },
-																	{ "id": "cardDue", "type": "label", "when": "{{card.due != null}}", "font": "small", "icon": "calendar", "fitText": true, "anchors": { "left": 68, "bottom": 13 },
-																		"text": "{{window.width < 1200 || (c > 0 && c < computed.lastColumn) ? '' : ' ' + formatDate(dateMs(card.due), 'short', 'utc')}}", "tooltip": "{{formatDate(dateMs(card.due), 'medium', 'utc')}}",
-																		"textColor": "{{daysBetween(state.today, card.due) < 0 && c != computed.lastColumn ? '@bug' : '@color.muted'}}" },
-																	{ "id": "move-button-card", "use": "moveButton", "with": { "by": -1 }, "when": "{{c > 0}}" },
-																	{ "id": "move-button-card-2", "use": "moveButton", "with": { "by": 1 }, "when": "{{c < computed.lastColumn}}" }
+																	{ "id": "cardRef", "type": "label", "font": "small", "text": "{{card.ref ?? ''}}", "textColor": "@color.muted", "fitText": true, "anchors": { "left": 12, "top": 10 } },
+																	{ "id": "cardOwner", "style": "badge", "text": "{{card.who}}", "width": 20, "height": 20, "radius": 999, "anchors": { "right": 10, "top": 8 },
+																		"color": "{{find(state.members, it.who == card.who).color ?? '@color.muted'}}", "textColor": "#ffffff",
+																		"tooltip": "{{find(state.members, it.who == card.who).name ?? card.who}}" },
+																	{ "id": "cardTitle", "type": "label", "text": "{{card.title}}", "textColor": "{{c == computed.lastColumn ? '@color.muted' : '@color.text'}}",
+																		"anchors": { "left": 12, "right": 12, "top": 30 }, "height": 34, "wrap": true, "align": { "horizontal": "start", "vertical": "start" } },
+																	{ "id": "cardChips", "type": "row", "gap": 4, "alignItems": "center", "anchors": { "left": 10, "right": 10, "bottom": 9 }, "height": 22, "children": [
+																		{ "id": "cardPriority", "style": "cardChip", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
+																			"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "tooltip": "{{t('priority.' + (card.priority ?? 0))}}" },
+																		{ "id": "cardTag", "style": "cardChip", "runs": [{ "icon": "circle", "color": "@{{card.tag}}" }, "  {{t('tag.' + card.tag)}}"], "tooltip": "{{t('tag.' + card.tag)}}" },
+																		{ "id": "cardDue", "style": "cardChip", "when": "{{card.due != null}}", "icon": "calendar", "text": "{{formatDate(dateMs(card.due), 'short', 'utc')}}",
+																			"tooltip": "{{formatDate(dateMs(card.due), 'medium', 'utc')}}",
+																			"textColor": "{{daysBetween(state.today, card.due) < 0 && c != computed.lastColumn ? '@bug' : '@color.muted'}}" },
+																		{ "id": "cardNotes", "style": "cardChip", "when": "{{card.notes != null}}", "icon": "message-square", "text": "", "width": 22, "fitText": false, "align": "center" },
+																		{ "id": "cardPoints", "style": "cardChip", "icon": "triangle", "text": "{{card.points}}", "tooltip": "{{t('card.points', { n: card.points })}}" }
+																	] }
 																]
 															}
 														]
@@ -815,6 +757,7 @@
 								"selectedBackground": "@color.accentSoft",
 								"accentColor": "@color.accent",
 								"onChange": "openRow",
+								"keys": { "space": "togglePeek" },
 								"onOpen": [{ "run": "openRow" }, { "run": "editCard" }],
 								"onSort": { "set": "state.tableSort", "to": { "column": "{{event.column}}", "descending": "{{event.descending}}" } },
 								"onColumnResize": { "set": "state.columnWidths[event.column]", "to": "{{event.width}}" }
@@ -823,6 +766,7 @@
 					},
 					{
 						"id": "details",
+						"when": "{{state.peek}}",
 						"color": "transparent",
 						"children": [
 							{
