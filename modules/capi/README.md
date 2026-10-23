@@ -70,4 +70,5 @@ src/
 ## Tests
 
 `tests/capi` calls every function from C11 with strict warnings: headless, in a hidden window, embedded in a context of
-its own, and the argument checks. `ctest -R capi` runs it. `examples/embed` is a host using it in its own OpenGL.
+its own, and the argument checks. `ctest -R capi` runs it. [`example/`](example/README.md) is a host using it in its own
+OpenGL (`affrescoui_embed`).
