@@ -1,5 +1,5 @@
 {
-  "note": "The quality gate fails a change that adds or worsens a function over 'function'. 'aim' is the target in docs/fleet/AIMS.md, reported but not enforced. The maintainer tightens these over time (README.md).",
+  "note": "The quality gate fails a change that adds or worsens a function over 'function'. 'aim' is the project's target, reported but not enforced. The maintainer tightens these over time (README.md).",
   "function": {
     "length": 80,
     "complexity": 15
