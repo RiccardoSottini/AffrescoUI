@@ -1,7 +1,8 @@
 /// @file
 /// @brief Unit tests for images and icons in screens, on a headless window: the "image" node (a file, decoded at once
 /// without an event loop; an image the host names; fit), files only from the screen's folder unless the host allows
-/// more, and the "icon" property of labels, looked up by name in the font and its fallbacks.
+/// more, the "icon" property of labels, looked up by name in the font and its fallbacks, and "snapshot" (a node drawn
+/// into a named image), where it is refused.
 ///
 /// The images are the rendering check's (tests/render/screens/images), the fonts the examples' (Roboto, Lucide).
 
@@ -17,6 +18,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <utility>
 
 using affresco::json;
 using affresco::detail::createHeadlessWindow;
@@ -157,4 +159,42 @@ TEST_CASE("image nodes and icons are in the catalog") {
 	for(const char* property : {"file", "source", "fit"}) CHECK(std::ranges::find(image, property) != image.end());
 	const json& label = catalog["types"]["label"]["properties"];
 	CHECK(std::ranges::find(label, "icon") != label.end());
+}
+
+TEST_CASE("snapshot: a node drawn out of the layout into a named image, refused where it can't be") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	json document = imageScreen();
+	document["state"] = {{"open", false}};
+	document["root"]["id"] = "main";
+	document["root"]["children"].push_back({{"id", "menu"}, {"overlay", {{"open", "state.open"}}}});
+	affresco::Screen screen = affresco::Screen::fromString(document.dump(), screens());
+	screen.build(*window);
+	window->render();
+
+	std::string error;
+	REQUIRE(screen.applyRevision(R"({"set": {"#photo/snapshot": {"image": "thumb", "scale": 2}}})", &error));
+	CHECK(panel<affresco::ImageView>(screen, "photo").isSnapshot());
+	REQUIRE(screen.applyRevision(R"({"set": {"#photo/snapshot": ""}})", &error));
+	CHECK_FALSE(panel<affresco::ImageView>(screen, "photo").isSnapshot()); // an empty name draws it in place again
+
+	const std::array<std::pair<const char*, const char*>, 6> refused = {{
+	    {R"({"set": {"#photo/snapshot": {"image": "thumb", "colour": 1}}})", "unknown property"},
+	    {R"({"set": {"#photo/snapshot": {"scale": 2}}})", "\"image\""},
+	    {R"({"set": {"#photo/snapshot": {"image": "thumb", "scale": 0}}})", "scale"},
+	    {R"({"set": {"#photo/snapshot": {"image": "thumb", "scale": 5}}})", "scale"},
+	    {R"({"set": {"#main/snapshot": "thumb"}})", "root"},
+	    {R"({"set": {"#menu/snapshot": "thumb"}})", "overlay"},
+	}};
+	for(const auto& [revision, why] : refused) {
+		CAPTURE(revision);
+		error.clear();
+		CHECK_FALSE(screen.applyRevision(revision, &error));
+		CHECK(error.find("snapshot") != std::string::npos);
+		CHECK(error.find(why) != std::string::npos);
+	}
+	CHECK_FALSE(panel<affresco::ImageView>(screen, "photo").isSnapshot()); // nothing of a refused revision applies
+
+	const json catalog = json::parse(screen.catalogJson());
+	CHECK(std::ranges::find(catalog["common"], "snapshot") != catalog["common"].end());
 }

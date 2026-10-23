@@ -89,7 +89,7 @@ std::shared_ptr<const Bitmap> Window::drawImage(Panel& panel, float scale, Vec2 
 
 /* Snapshots */
 
-void Window::layoutSnapshot(Panel& panel, bool shown) {
+void Window::layoutSnapshot(Panel& panel, bool shown) const {
 	const auto width = static_cast<float>(width_), height = static_cast<float>(height_);
 	// Unclipped, so that the whole source is drawn: a clip far past any image Bitmap::Limits allows
 	constexpr float far = 1.0e6f;
@@ -109,7 +109,8 @@ std::shared_ptr<const Bitmap> Window::drawSnapshot(Panel& panel) {
 	std::shared_ptr<const Bitmap> image;
 	try {
 		image = drawImage(panel, panel.snapshot_->scale, {});
-	} catch(const std::invalid_argument&) { // past Bitmap::Limits: no image, as for a source with no area
+	} catch(const std::invalid_argument&) {
+		image = nullptr; // past Bitmap::Limits: no image, as for a source with no area
 	}
 	layoutSnapshot(panel, false);
 	layingOut_ = false;

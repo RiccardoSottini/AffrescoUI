@@ -181,7 +181,7 @@ void Properties::snapshot(const json& value, const std::string& at, Look& look) 
 	look.snapshot = string(snapshot["image"], at + ".image");
 	if(!snapshot.contains("scale")) return;
 	look.snapshotScale = number(snapshot["scale"], at + ".scale");
-	if(!(look.snapshotScale > 0.0f && look.snapshotScale <= 4.0f))
+	if(look.snapshotScale <= 0.0f || look.snapshotScale > 4.0f)
 		fail(at + ".scale", "expected a number above 0, at most 4");
 }
 

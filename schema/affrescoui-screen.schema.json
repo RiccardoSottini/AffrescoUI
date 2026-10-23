@@ -1156,6 +1156,31 @@
 					"cache": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"snapshot": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "object",
+								"required": [
+									"image"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"image": {
+										"type": "string"
+									},
+									"scale": {
+										"type": "number",
+										"exclusiveMinimum": 0,
+										"maximum": 4
+									}
+								}
+							}
+						],
+						"description": "Draws the node into a named image, out of the layout, instead of on the screen"
+					},
 					"rotate": {
 						"anyOf": [
 							{
@@ -2002,7 +2027,7 @@
 					},
 					"source": {
 						"type": "string",
-						"description": "image: an image the host names (Screen::setImage), instead of a file"
+						"description": "image: a named image (a node's snapshot, or Screen::setImage), instead of a file"
 					},
 					"fit": {
 						"anyOf": [
@@ -3292,6 +3317,22 @@
 						"$min",
 						"$max",
 						"$clamp",
+						"$sin",
+						"$cos",
+						"$tan",
+						"$asin",
+						"$acos",
+						"$atan",
+						"$atan2",
+						"$radians",
+						"$degrees",
+						"$pi",
+						"$sqrt",
+						"$pow",
+						"$exp",
+						"$log",
+						"$hypot",
+						"$sign",
 						"$upper",
 						"$lower",
 						"$trim",

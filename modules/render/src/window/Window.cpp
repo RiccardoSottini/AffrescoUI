@@ -272,7 +272,8 @@ void Window::setInspection(std::unique_ptr<Panel> layer) {
 void Window::layoutOverlays(Panel& panel) {
 	if(!panel.overlaysBelow_) return; // known from the panel's last layout, which a skipped subtree keeps
 	for(auto& child : panel.children_) {
-		if(child->snapshot_) { // drawn into an image, the overlays inside it left out
+		// Drawn into an image, the overlays inside it left out
+		if(child->snapshot_) {
 			if(child->geometry_ && child->geometry_->recorded) { // where it drew before it was one is damage
 				detail::addTo(damage_, detail::screenReachOf(*child->geometry_));
 				child->geometry_->recorded = false;

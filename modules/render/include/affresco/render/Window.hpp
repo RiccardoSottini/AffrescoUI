@@ -420,7 +420,7 @@ private:
 	/// @brief Lays out a snapshot's source (Panel::setSnapshot()) from the window's top left, unclipped.
 	/// @param panel The source.
 	/// @param shown Whether it counts as shown: only while it is drawn into its image.
-	void layoutSnapshot(Panel& panel, bool shown);
+	void layoutSnapshot(Panel& panel, bool shown) const;
 	/// @brief Draws each snapshot whose subtree changed into a new image, and gives the images to their handlers.
 	/// @pre The window has a renderer, laid out, and its context is current.
 	void refreshSnapshots();

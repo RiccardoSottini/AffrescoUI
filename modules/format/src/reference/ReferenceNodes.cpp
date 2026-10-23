@@ -138,10 +138,10 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 		"description": "Draws the node into a named image, out of the layout, instead of on the screen"})json",
 	 "`\"thumb\"` or `{ \"image\": \"thumb\", \"scale\": 0.25 }`: the node and its children are drawn into the image "
 	 "of that name instead of on the screen, again each time something in them changes, and an `image` node with "
-	 "`\"source\": \"thumb\"` shows it (a thumbnail, a preview, a slide sorter). Out of the layout: laid out at its own "
-	 "`width` and `height` from the window's top left, and never hit, focused or read. `scale` is the image's pixels "
-	 "per layout pixel (above 0, at most 4; default `1`). Overlays inside it are left out. Not on the root or with "
-	 "`overlay`; an empty name draws the node in place.",
+	 "`\"source\": \"thumb\"` shows it (a thumbnail, a preview, a slide sorter). Out of the layout: laid out at its "
+	 "own `width` and `height` from the window's top left, and never hit, focused or read. `scale` is the image's "
+	 "pixels per layout pixel (above 0, at most 4; default `1`). Overlays inside it are left out. Not on the root or "
+	 "with `overlay`; an empty name draws the node in place.",
 	 "look"},
     {"rotate", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "Draws the node turned, in degrees clockwise, about transformOrigin; layout doesn't change"})json",
