@@ -664,13 +664,15 @@ variables of the node and its children. A child `{ "slot": true }` in the compon
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
 **Built-in components** need no definition (a screen's own component of the same name wins). They are written in the
-format, take their colours as parameters, and keep their open state where `open` says (a state path):
+format, take their colours and sizes as parameters whose defaults are the kit's tokens (below), and keep their open
+state where `open` says (a state path):
 - `menu` (below its parent), `submenu` (to its right) and `contextMenu` (where `x`, `y` say): `items` of
   `{ "title", "keyLabel", "mnemonic", "enabled", "separator", "submenu", "run", "with" }`. The arrows, Home, End and
   the items' first letters move and choose; Enter or a click runs the item's action and closes the menus; a click
   outside or Escape closes them. A submenu's state is `open + 'Sub'`, one key per item (`.m0`, `.m1`, ...).
-- `menuBar`: `menus` of `{ "name", "title", "items" }`; Alt with a menu's first letter opens it, and `open` is an
-  object with one flag per menu name.
+- `menuBar`: `menus` of `{ "name", "title", "items" }`, or of `{ "menu", "title" }` naming a menu of `source` (the
+  `menus` variable); by default `window.menuBar`, so one list feeds the native bar and the drawn one. Alt with a
+  menu's first letter opens it, and `open` is an object with one flag per menu name.
 - `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with" }`) over a backdrop; the focus is
   trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels. Its
   `children` go between the message and the buttons.
@@ -688,6 +690,40 @@ format, take their colours as parameters, and keep their open state where `open`
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
   "buttons": [{ "title": "Save", "run": "save" }, { "title": "Cancel" }] } }
 ```
+
+**The kit's tokens:** the built-ins draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
+built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a
+`kit.` token itself (`"tokens": { "kit.radius": 4 }` is enough): then each has a light variant too, chosen by `theme`
+like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).
+
+<!-- generated: kitTokens -->
+| Token | Dark | Light | For |
+|---|---|---|---|
+| `kit.background` | `#1e1e1e` | `#ffffff` | Pages and the settings page. |
+| `kit.surface` | `#252526` | `#ffffff` | Menus, dialogs, toasts, cards and popovers. |
+| `kit.bar` | `#3c3c3c` | `#f3f4f6` | Menu bars, toolbars and status bars. |
+| `kit.barHover` | `#505050` | `#e5e7eb` | A bar's item under the pointer, focused or open. |
+| `kit.field` | `#3c3c3c` | `#ffffff` | Text fields. |
+| `kit.text` | `#cccccc` | `#1f2328` | Text. |
+| `kit.dim` | `#8b8b8b` | `#6e7781` | Secondary text: shortcuts, hints, disabled items. |
+| `kit.body` | `#a0a0a0` | `#57606a` | A dialog's message and a card's text. |
+| `kit.selection` | `#04395e` | `#ddf4ff` | The highlighted item of a menu or a list. |
+| `kit.border` | `#454545` | `#d0d7de` | Borders and separators. |
+| `kit.primary` | `#0e639c` | `#0969da` | The main button and progress. |
+| `kit.onPrimary` | `#ffffff` | `#ffffff` | Text on `kit.primary`. |
+| `kit.secondary` | `#3a3d41` | `#eaeef2` | Other buttons, tracks, a pressed or checked item. |
+| `kit.onSecondary` | `#ffffff` | `#1f2328` | Text on `kit.secondary`. |
+| `kit.accent` | `#2aaaff` | `#0969da` | Matched letters, links and the focused item's mark. |
+| `kit.focus` | `#ffffff` | `#0969da` | The ring of the focused button. |
+| `kit.backdrop` | `#00000088` | `#00000040` | Behind a modal dialog. |
+| `kit.info` | `#3794ff` | `#0969da` | Information. |
+| `kit.warning` | `#cca700` | `#9a6700` | Warnings. |
+| `kit.error` | `#f14c4c` | `#cf222e` | Errors. |
+| `kit.success` | `#89d185` | `#1a7f37` | Success. |
+| `kit.radius` | 4 | 4 | The corners of menus, buttons and fields. |
+| `kit.cardRadius` | 6 | 6 | The corners of dialogs, toasts, cards and popovers. |
+| `kit.borderWidth` | 1 | 1 | Borders. |
+<!-- end generated -->
 
 ## Values, expressions and state
 
@@ -733,8 +769,8 @@ are the matched `[start, end]` character spans, `parts` the text cut into `{ tex
 the best first (an empty query keeps the order), at most `limit` of them.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the
-display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `nativeMenuBar`: whether `window.menuBar`
-is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
+display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `menuBar`: the screen's `window.menuBar` list
+(or `[]`), `nativeMenuBar`: whether it is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
 `touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; and the names given by `repeat`, `let`,
