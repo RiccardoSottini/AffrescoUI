@@ -6,7 +6,7 @@
 
 	"window": { "title": "Flow: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
-	"include": ["../shared/components/charts.json", "strings.json", "board.json", "drawer.json", "views.json", "sidebar.json", "list.json", "issue.json"],
+	"include": ["../shared/components/charts.json", "strings.json", "board.json", "drawer.json", "views.json", "sidebar.json", "list.json", "issue.json", "pages.json"],
 
 	"persist": ["state.theme", "state.sizes", "state.view", "state.swimlanes", "state.settings"],
 
@@ -415,13 +415,13 @@
 		"mod+p": "goToCardCommand",
 		"mod+shift+p": "commandPalette",
 		"mod+k": "commandPalette",
-		"c": { "when": "{{!context.textInputFocus}}", "do": "newCardCommand" },
-		"j": { "when": "{{!context.textInputFocus}}", "do": "selectNext" },
-		"k": { "when": "{{!context.textInputFocus}}", "do": "selectPrev" },
-		"s": { "when": "{{!context.textInputFocus}}", "do": "changeStatus" },
-		"p": { "when": "{{!context.textInputFocus}}", "do": "changePriority" },
-		"a": { "when": "{{!context.textInputFocus}}", "do": "changeAssignee" },
-		"i": { "when": "{{!context.textInputFocus}}", "do": "assignToMe" },
+		"c": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "newCardCommand" },
+		"j": [{ "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "nextNotification" }, { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "selectNext" }],
+		"k": [{ "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "previousNotification" }, { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "selectPrev" }],
+		"s": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "changeStatus" },
+		"p": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "changePriority" },
+		"a": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "changeAssignee" },
+		"i": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "assignToMe" },
 		"slash": { "when": "{{!context.textInputFocus}}", "do": "focusSearch" },
 		"mod+e": "editCard",
 		"mod+j": "toggleTheme",
@@ -960,6 +960,9 @@
 					"providers": [{ "items": "{{computed.propItems}}", "placeholder": "{{t('quick.' + (state.propKind ?? 'status'))}}" }]
 				}
 			},
+			{ "id": "inboxPage", "use": "inboxPage", "when": "{{state.page == 'inbox'}}", "anchors": { "left": 228, "right": 8, "top": 8, "bottom": "#statusBar.top" }, "radius": { "topLeft": 8, "topRight": 8 } },
+			{ "id": "cyclesPage", "use": "cyclesPage", "when": "{{state.page == 'cycles'}}", "anchors": { "left": 228, "right": 8, "top": 8, "bottom": "#statusBar.top" }, "radius": { "topLeft": 8, "topRight": 8 } },
+			{ "id": "projectsPage", "use": "projectsPage", "when": "{{state.page == 'projects'}}", "anchors": { "left": 228, "right": 8, "top": 8, "bottom": "#statusBar.top" }, "radius": { "topLeft": 8, "topRight": 8 } },
 			{ "id": "sidebar", "use": "sidebar" }
 		]
 	}

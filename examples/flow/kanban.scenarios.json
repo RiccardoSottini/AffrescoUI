@@ -498,6 +498,40 @@
 				{ "key": "mod+k" },
 				{ "expect": { "state": "quickPick.query", "is": ">" } }
 			]
+		},
+		{
+			"name": "team-pages",
+			"note": "The inbox picks, marks, snoozes and opens notifications; G chords go to cycles, projects and back to the issues",
+			"steps": [
+				{ "expect": { "node": "#navCount", "text": "3" } },
+				{ "click": "#navInbox" },
+				{ "expect": { "state": "page", "is": "inbox" } },
+				{ "key": "j" },
+				{ "expect": { "state": "inboxAt", "is": 1 } },
+				{ "expect": { "state": "inbox[1].read", "is": true } },
+				{ "key": "u" },
+				{ "expect": { "state": "inbox[1].read", "is": false } },
+				{ "key": "h" },
+				{ "expect": { "state": "inbox[1].snoozed", "is": true } },
+				{ "expect": { "node": "#navCount", "text": "2" } },
+				{ "key": "k" },
+				{ "key": "enter" },
+				{ "expect": { "state": "page", "is": "issues" } },
+				{ "expect": { "state": "issueOpen", "is": true } },
+				{ "expect": { "state": "selected", "is": { "c": 0, "i": 2 } } },
+				{ "key": "escape" },
+				{ "key": "g" },
+				{ "key": "v" },
+				{ "expect": { "state": "page", "is": "cycles" } },
+				{ "expect": { "node": "#cycleRow", "nth": 2, "exists": true } },
+				{ "expect": { "node": "#cycleRow", "nth": 3, "exists": false } },
+				{ "key": "g" },
+				{ "key": "p" },
+				{ "expect": { "node": "#projectRow", "nth": 4, "exists": true } },
+				{ "key": "g" },
+				{ "key": "a" },
+				{ "expect": { "state": "page", "is": "issues" } }
+			]
 		}
 	
 	]

@@ -12,7 +12,7 @@ and all of its data is invented. This page lists what a daily user would reach f
 | Board | columns by status, cards with id, priority and assignee, drag and drop | done | cards show id, assignee, title, then priority, label, due and estimate chips; Space peeks in the side panel |
 | Cmd+K | one palette for commands and going to an issue | done | Cmd+K opens the command palette; Cmd+P goes to a card |
 | Keyboard | C new, J/K move, single-key property changes | partial | C, J/K, S, P, A, I (assign to me) and / work; X multi-select and G-chords missing |
-| Cycles | current cycle, scope and progress | missing | |
-| Projects | a project list, status and progress | missing | |
-| Inbox | notifications, read and unread | missing | |
+| Cycles | current cycle, scope and progress | done | `pages.json`; scope, started and completed from the board, a burn-up, upcoming and past cycles; G then V |
+| Projects | a project list, status and progress | partial | health, lead, target date and progress; G then P. The project page with milestones and updates is missing |
+| Inbox | notifications, read and unread | done | unread count in the sidebar, J/K, U read or unread, H snooze, Enter opens the issue; G then I |
 | Roadmap | projects on a timeline | partial | the Timeline view |

@@ -77,19 +77,23 @@
 						"scroll": "vertical",
 						"role": "navigation",
 						"children": [
-							{ "id": "navMine", "use": "navItem", "with": { "icon": "circle-user", "text": "{{t('nav.mine')}}", "active": "{{state.owner == state.me}}",
-								"count": "{{length(filter(computed.allCards, it.who == state.me))}}" }, "onClick": [{ "set": "state.owner", "to": "{{state.owner == state.me ? '' : state.me}}" }] },
+							{ "id": "navInbox", "use": "navItem", "with": { "icon": "inbox", "text": "{{t('nav.inbox')}}", "active": "{{state.page == 'inbox'}}",
+								"count": "{{computed.unread > 0 ? computed.unread : ''}}" }, "onClick": "goToInbox" },
+							{ "id": "navMine", "use": "navItem", "with": { "icon": "circle-user", "text": "{{t('nav.mine')}}", "active": "{{state.page == 'issues' && state.owner == state.me}}",
+								"count": "{{length(filter(computed.allCards, it.who == state.me))}}" }, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "set": "state.owner", "to": "{{state.owner == state.me ? '' : state.me}}" }] },
 							{ "id": "navHeadingTeams", "use": "navHeading", "with": { "text": "{{t('nav.teams')}}" } },
-							{ "id": "navTeam", "use": "navItem", "with": { "icon": "box", "text": "Flow" }, "onClick": "showBoard" },
-							{ "id": "navIssues", "use": "navItem", "with": { "icon": "copy", "text": "{{t('nav.issues')}}", "active": "{{state.owner != state.me}}" },
-								"padding": 26, "onClick": [{ "set": "state.owner", "to": "" }] },
+							{ "id": "navTeam", "use": "navItem", "with": { "icon": "box", "text": "Flow" }, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "showBoard" }] },
+							{ "id": "navIssues", "use": "navItem", "with": { "icon": "copy", "text": "{{t('nav.issues')}}", "active": "{{state.page == 'issues' && state.owner != state.me}}" },
+								"padding": 26, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "set": "state.owner", "to": "" }] },
+							{ "id": "navCycles", "use": "navItem", "with": { "icon": "refresh-ccw", "text": "{{t('nav.cycles')}}", "active": "{{state.page == 'cycles'}}" }, "padding": 26, "onClick": "goToCycles" },
+							{ "id": "navProjects", "use": "navItem", "with": { "icon": "box", "text": "{{t('nav.projects')}}", "active": "{{state.page == 'projects'}}" }, "padding": 26, "onClick": "goToProjects" },
 							{ "id": "navHeadingBoards", "use": "navHeading", "with": { "text": "{{t('nav.boards')}}" } },
 							{
 								"id": "navBoard",
 								"repeat": { "for": "b", "in": "state.boards", "key": "{{b.id}}" },
 								"use": "navItem",
 								"with": { "icon": "layers-2", "text": "{{b.label}}", "active": "{{b.id == state.boardId}}" },
-								"onClick": [{ "run": "switchBoard", "with": { "event": { "value": "{{b.id}}" } } }]
+								"onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "switchBoard", "with": { "event": { "value": "{{b.id}}" } } }]
 							}
 						]
 					},

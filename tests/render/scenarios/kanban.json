@@ -121,6 +121,27 @@
 			]
 		},
 		{
+			"name": "kanban-pages",
+			"screen": "kanban.screen.json",
+			"steps": [
+				{ "click": "#navInbox" },
+				{ "key": "j" },
+				{ "wait": 50 },
+				{ "expect": { "image": "inbox" } },
+				{ "key": "g" },
+				{ "key": "v" },
+				{ "wait": 50 },
+				{ "expect": { "image": "cycles" } },
+				{ "key": "g" },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "expect": { "image": "projects" } },
+				{ "key": "mod+j" },
+				{ "wait": 50 },
+				{ "expect": { "image": "projects-dark" } }
+			]
+		},
+		{
 			"name": "kanban-retina",
 			"screen": "kanban.screen.json",
 			"scale": 2,
