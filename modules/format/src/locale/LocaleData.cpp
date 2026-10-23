@@ -318,9 +318,9 @@ constexpr std::array<LocaleData, 10> locales{{
 
 } // namespace
 
-constexpr std::array<std::string_view, currencyCount> currencyCodes{"USD", "EUR", "GBP", "JPY", "CNY", "CHF", "CAD",
-                                                                    "AUD", "BRL", "INR", "ILS", "SAR", "EGP", "AED"};
-constexpr std::array<int, currencyCount> currencyDigits{2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+const std::array<std::string_view, currencyCount> currencyCodes{"USD", "EUR", "GBP", "JPY", "CNY", "CHF", "CAD",
+                                                                "AUD", "BRL", "INR", "ILS", "SAR", "EGP", "AED"};
+const std::array<int, currencyCount> currencyDigits{2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
 
 std::span<const LocaleData> localeData() noexcept { return locales; }
 
