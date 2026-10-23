@@ -1,6 +1,6 @@
-# The document server in a container (examples/server/README.md). Build from the repository's root:
-#     docker build -f examples/server/Dockerfile -t affrescoui-server .
-# Run it with a folder of documents mounted at /data, behind a TLS proxy (examples/server/deploy/):
+# The document server in a container (apps/server/README.md). Build from the repository's root:
+#     docker build -f apps/server/Dockerfile -t affrescoui-server .
+# Run it with a folder of documents mounted at /data, behind a TLS proxy (apps/server/deploy/):
 #     docker run -v "$PWD/data:/data" -p 127.0.0.1:7420:7420 affrescoui-server
 # A token, printed once:
 #     docker run --rm -v "$PWD/data:/data" affrescoui-server --folder /data --add-token ada
