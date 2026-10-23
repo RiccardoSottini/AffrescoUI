@@ -36,7 +36,8 @@ Python standard library (3.9+). The socket directory is found the way the host f
    claude mcp add affrescoui -- python3 /path/to/AffrescoUI/mcp/affrescoui_mcp.py
    ```
    From a release, the server is also a Python package (`mcp/pyproject.toml`; [RELEASING.md](../RELEASING.md)):
-   `pipx install affrescoui-mcp`, then `claude mcp add affrescoui -- affrescoui-mcp`.
+   `pipx install ./affrescoui_mcp-<version>-py3-none-any.whl` (from the release's files) or
+   `pipx install "git+https://github.com/RiccardoSottini/AffrescoUI#subdirectory=mcp"`, then `claude mcp add affrescoui -- affrescoui-mcp`.
 3. Start Claude Code so requests are pushed into the session (channels are a research preview; a server you add
    yourself needs the development flag):
    ```sh

@@ -1,7 +1,7 @@
 # The browser build (web/README.md): emsdk at a pinned release builds the site with tools/web/build.sh, the Kanban's
 # scenarios play under Node on the same WebAssembly, and the site is uploaded as an artifact.
 #
-# Nothing is deployed: the token is read-only, and publishing the artifact is the maintainer's, by hand.
+# Nothing is deployed: the token is read-only, and the release carries the site as a zip (RELEASING.md).
 name: Web
 
 on:

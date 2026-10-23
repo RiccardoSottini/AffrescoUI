@@ -660,8 +660,7 @@ version: a green check on such a pull request says nothing until someone has rea
 
 A release is made only from a tag `v*`, which only the maintainer can push (RELEASING.md). It builds in a fresh run,
 with no cache, and makes a draft: the archives, `SHA256SUMS` and build-provenance attestations signed through the
-run's identity. The MCP package goes to PyPI by trusted publishing, from a protected environment the maintainer
-approves.
+run's identity. The MCP package is a release asset only: nothing is published to PyPI or anywhere but GitHub.
 
 ## Known gaps
 

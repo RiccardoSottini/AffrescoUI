@@ -1,9 +1,8 @@
 # AffrescoUI for VS Code
 
 Editor support for AffrescoUI screen documents: schemas, problems from the `affrescoui` tool, a live preview,
-navigation, hovers and snippets. The extension is packaged, not published: build the `.vsix` below (or take the
-`vscode-extension` artifact of the [`vscode.yml`](../../.github/workflows/vscode.yml) workflow) and install it with
-**Extensions: Install from VSIX...**.
+navigation, hovers and snippets. The extension is not on any marketplace: download `affrescoui-vscode-<version>.vsix` from the
+GitHub Release (or build the `.vsix` below) and install it with **Extensions: Install from VSIX...**.
 
 ## What it does
 

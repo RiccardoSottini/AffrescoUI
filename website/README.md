@@ -48,13 +48,11 @@ Edit `requirements.in`, then regenerate the pins with hashes, for example with
 `uv pip compile --generate-hashes requirements.in -o requirements.txt` or pip-tools'
 `pip-compile --generate-hashes`, and build again.
 
-## Publishing
+## Getting the site
 
-Nothing publishes the site automatically. [`.github/workflows/site.yml`](../.github/workflows/site.yml) builds it on
-pull requests and on `master` and uploads it as the artifact `site`, with read-only permissions.
-
-The output is plain static files, so any static host serves it. To publish on GitHub Pages, the maintainer can
-download the `site` artifact of a `master` run (or build it locally) and push its contents to a `gh-pages` branch
-with Pages set to serve that branch, or add a separate deploy workflow with `pages: write` and `id-token: write`
-using GitHub's `actions/upload-pages-artifact` and `actions/deploy-pages`. Set `site_url` in `mkdocs.yml` to the
-published address first, so canonical links and the sitemap are right.
+Nothing deploys the site: not GitHub Pages, not a `gh-pages` branch, not a CDN. The output is plain static files,
+and [`.github/workflows/release.yml`](../.github/workflows/release.yml) attaches them to the maintainer's GitHub
+Release as `affrescoui-site-<version>.zip` (checksummed and attested). Download it from the release, unzip it and
+open `index.html`, or serve the folder with any static server you run yourself. A pull request or push to `master`
+only builds it ([`site.yml`](../.github/workflows/site.yml)) and keeps it as the run's artifact `site`, with read-only
+permissions.
