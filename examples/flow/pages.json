@@ -114,7 +114,7 @@
 			"params": { "text": "", "value": "", "color": "#111827" },
 			"node": { "id": "cycleStat", "width": 130, "height": 44, "color": "transparent", "children": [
 				{ "id": "cycleStatName", "style": "caption", "text": "{{text}}", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 20, "align": { "horizontal": "start", "vertical": "center" } },
-				{ "id": "cycleStatValue", "type": "label", "font": "small", "text": "{{value}}", "textColor": "{{color}}", "anchors": { "left": 0, "right": 0, "top": 20 }, "height": 22,
+				{ "id": "cycleStatValue", "type": "label", "font": "title", "text": "{{value}}", "textColor": "{{color}}", "anchors": { "left": 0, "right": 0, "top": 20 }, "height": 28,
 					"align": { "horizontal": "start", "vertical": "center" } }
 			] }
 		},
@@ -265,7 +265,7 @@
 								"label": "{{t('cycle.name', { n: cycle.number })}}",
 								"children": [
 									{ "id": "cycleRowLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" },
-									{ "id": "cycleRowIcon", "type": "label", "icon": "{{cycle.done >= cycle.scope ? 'check-circle-2' : cycle.done == 0 ? 'circle-dashed' : 'circle-dot'}}", "text": "", "fitText": true,
+									{ "id": "cycleRowIcon", "type": "label", "icon": "{{cycle.done >= cycle.scope || cycle.number < state.cycle.number ? 'check-circle-2' : cycle.done == 0 ? 'circle-dashed' : 'circle-dot'}}", "text": "", "fitText": true,
 										"textColor": "{{cycle.done == 0 ? '@color.muted' : '@color.accent'}}", "anchors": { "left": 8, "top": 0, "bottom": 0 }, "align": "center" },
 									{ "id": "cycleRowName", "type": "label", "font": "small", "text": "{{t('cycle.name', { n: cycle.number })}}", "textColor": "@color.text", "width": 120,
 										"anchors": { "left": 36, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },

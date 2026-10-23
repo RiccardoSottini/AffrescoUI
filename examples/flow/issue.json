@@ -188,7 +188,7 @@
 								{ "id": "statusPicker", "style": "pickMenu", "overlay": { "placement": "below", "open": "state.issueStatusOpen", "dismiss": "outside", "modal": true },
 									"height": "{{8 + 30 * length(state.columns)}}", "role": "menu", "children": [
 									{ "id": "statusPick", "repeat": { "for": "column", "in": "state.columns", "index": "k" }, "style": "pickRow",
-										"icon": "{{state.statusIcons[k] ?? 'circle'}}", "text": "  {{column.name}}", "selected": "{{k == state.selected.c}}",
+										"icon": "{{state.statusIcons[k] ?? 'circle'}}", "text": "  {{column.name}}", "selected": "{{k == state.selected.c}}", "children": [{ "id": "statusCheck", "when": "{{k == state.selected.c}}", "type": "label", "icon": "check", "text": "", "width": 28, "align": "center", "textColor": "@color.text", "anchors": { "right": 0, "top": 0, "bottom": 0 } }],
 										"onClick": { "run": "setStatus", "with": { "to": "{{k}}" } } }
 								] }
 							] },
@@ -199,7 +199,7 @@
 								{ "id": "priorityPicker", "style": "pickMenu", "overlay": { "placement": "below", "open": "state.issuePriorityOpen", "dismiss": "outside", "modal": true },
 									"height": 158, "role": "menu", "children": [
 									{ "id": "priorityPick", "repeat": { "for": "icon", "in": "state.priorities", "index": "p" }, "style": "pickRow",
-										"icon": "{{icon}}", "text": "  {{t('priority.' + p)}}", "selected": "{{p == (computed.card.priority ?? 0)}}",
+										"icon": "{{icon}}", "text": "  {{t('priority.' + p)}}", "selected": "{{p == (computed.card.priority ?? 0)}}", "children": [{ "id": "priorityCheck", "when": "{{p == (computed.card.priority ?? 0)}}", "type": "label", "icon": "check", "text": "", "width": 28, "align": "center", "textColor": "@color.text", "anchors": { "right": 0, "top": 0, "bottom": 0 } }],
 										"onClick": { "run": "setPriority", "with": { "p": "{{p}}" } } }
 								] }
 							] },
@@ -212,6 +212,7 @@
 									{ "id": "whoPick", "repeat": { "for": "member", "in": "state.members" }, "style": "pickRow",
 										"text": "{{member.name}}", "padding": 36, "selected": "{{member.who == computed.card.who}}",
 										"onClick": { "run": "setAssignee", "with": { "who": "{{member.who}}" } }, "children": [
+										{ "id": "whoCheck", "when": "{{member.who == computed.card.who}}", "type": "label", "icon": "check", "text": "", "width": 28, "align": "center", "textColor": "@color.text", "anchors": { "right": 0, "top": 0, "bottom": 0 } },
 										{ "id": "whoPickBadge", "style": "badge", "text": "{{member.who}}", "width": 18, "height": 18, "radius": 999, "anchors": { "left": 10, "top": 6 },
 											"color": "{{member.color}}", "textColor": "#ffffff" }
 									] }
