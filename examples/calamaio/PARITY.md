@@ -13,16 +13,16 @@ The words, the sample texts and the pictures are Calamaio's own.
 | Frame | Splash screen | done | Its links run commands |
 | Buffers | `*scratch*` | done | |
 | Buffers | `*Messages*` | done | Every echo is appended |
-| Buffers | `*Help*` | missing | |
-| Buffers | `*Completions*` | missing | |
+| Buffers | `*Help*` | done | Shown in the other window; split if there is one |
+| Buffers | `*Completions*` | done | In columns, the typed part dimmed, a click chooses |
 | Buffers | `*Buffer List*` | missing | |
 | Windows | `C-x 2`, `C-x 3` | done | Each window keeps its own point |
 | Windows | `C-x 0`, `C-x 1`, `C-x o` | done | |
 | Mode line | Flags, name, position, line, mode | done | `**` modified, `%%` read-only, All/Top/Bot/percent |
 | Mode line | Inactive windows' look | done | |
 | Echo area | Messages, a pending prefix (`C-x-`) | done | |
-| Minibuffer | `M-x` | partial | No completion yet |
-| Minibuffer | History `M-p`, `M-n` | missing | Recorded, not yet recalled |
+| Minibuffer | `M-x`, TAB completion | done | The common prefix, then the list; notes when nothing or only one matches |
+| Minibuffer | History `M-p`, `M-n` | done | One history per kind of question, also on the arrows |
 | Minibuffer | `C-g` | done | |
 | Motion | `C-f C-b C-n C-p M-f M-b C-a C-e M-< M-> C-v M-v` | done | |
 | Motion | `C-l` | missing | |
@@ -31,11 +31,11 @@ The words, the sample texts and the pictures are Calamaio's own.
 | Undo | `C-/`, `C-_`, `C-M-_` | done | Redo is the editor's own |
 | Search | isearch with lazy highlight | missing | |
 | Search | `M-%` | missing | |
-| Arguments | `C-u` | missing | |
+| Arguments | `C-u`, `M-<digit>` | partial | Counts motions and deletions; typed characters aren't repeated yet |
 | Macros | `F3`, `F4` | missing | |
 | Rectangles | `C-x r k`, `C-x r y`, `C-x r t` | missing | |
 | Registers | `C-x r s`, `C-x r i`, `C-x r SPC`, `C-x r j` | missing | |
-| Help | `C-h k`, `C-h f`, `C-h v` | missing | |
+| Help | `C-h k`, `C-h f`, `C-h v`, `C-h b`, `C-h m`, `C-h e` | done | From the document's commands, keys and settings |
 | Files | `C-x b`, `C-x C-f`, `C-x C-s`, `C-x k` | partial | Files are a sample folder in the document |
 | Files | `C-x C-c` with a save prompt | partial | Asks, but the frame stays |
 | Major modes | Fundamental, Text, Emacs Lisp, Python, C, Markdown, Org | partial | Names in the mode line; colours where the host has a grammar |

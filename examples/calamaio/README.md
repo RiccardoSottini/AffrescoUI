@@ -15,6 +15,7 @@ host runs, with no C++ of its own.
 | `calamaio.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 | `calamaio.scenarios.json` | Its scenarios (`affrescoui test`) |
 | `parts/look.json` | The themes: the faces as colours, the syntax colours, the kit's tokens for the menus |
+| `parts/settings.json` | The variables (`fill-column`, `tab-width`...): what `C-h v` describes and Customize sets |
 | `parts/state.json` | The buffers, the windows and their layout, the minibuffer, the mark, the modes |
 | `parts/files.json` | The sample home folder that `C-x C-f` visits |
 | `parts/frame.json` | A window with its fringes and mode line, the splash screen, the menu bar, the tool bar, the echo area |

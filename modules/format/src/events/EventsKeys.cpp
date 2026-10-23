@@ -221,11 +221,15 @@ bool Events::runPanelKeys(Panel* from, const std::string& press, bool& waits) {
 	for(Panel* p = from; p; p = p->parent()) {
 		const Record* record = engine_.reconciler.recordOf(p);
 		if(!record || !record->keys.is_object()) continue;
-		waits = waits || startsChord(record->keys, press + " ", false);
-		if(!record->keys.contains(press)) continue;
-		const json handler = record->keys[press]; // a copy: the handler may revise the document
+		const bool starts = startsChord(record->keys, press + " ", false);
+		waits = waits || starts;
+		// "*" takes any press the node's own keys don't name or begin (a key recorder, a modal keymap)
+		const bool exact = record->keys.contains(press);
+		if(!exact && (starts || !record->keys.contains("*"))) continue;
+		const std::string written = exact ? press : "*";
+		const json handler = record->keys[written]; // a copy: the handler may revise the document
 		const SharedScope locals = record->locals;
-		if(runBinding(handler, *p, *locals, press, record->path + ".keys." + press)) return true;
+		if(runBinding(handler, *p, *locals, press, record->path + ".keys." + written)) return true;
 	}
 	return false;
 }
