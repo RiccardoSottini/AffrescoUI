@@ -4,6 +4,10 @@
 		"default": "en",
 		"locale": "{{settings.ui.language}}",
 		"en": {
+			"toolbar.search": "Search",
+			"toolbar.edit": "Edit the dashboard",
+			"toolbar.editSoon": "Editing the dashboard comes in a later version",
+			"chips.label": "At a glance",
 			"app.tagline": "an AffrescoUI template",
 			"page.home": "Home",
 			"page.energy": "Energy",
@@ -107,6 +111,10 @@
 			"notify.close": "Close the notifications"
 		},
 		"it": {
+			"toolbar.search": "Cerca",
+			"toolbar.edit": "Modifica la dashboard",
+			"toolbar.editSoon": "La modifica della dashboard arriverà in una versione successiva",
+			"chips.label": "In breve",
 			"app.tagline": "un modello AffrescoUI",
 			"page.home": "Casa",
 			"page.energy": "Energia",
@@ -210,6 +218,10 @@
 			"notify.close": "Chiudi le notifiche"
 		},
 		"ar": {
+			"toolbar.search": "بحث",
+			"toolbar.edit": "تعديل لوحة التحكم",
+			"toolbar.editSoon": "سيتوفر تعديل لوحة التحكم في إصدار لاحق",
+			"chips.label": "نظرة سريعة",
 			"app.tagline": "قالب من AffrescoUI",
 			"page.home": "المنزل",
 			"page.energy": "الطاقة",

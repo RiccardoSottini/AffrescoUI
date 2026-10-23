@@ -10,14 +10,14 @@
 				{ "expect": { "image": "first-frame" } },
 				{ "click": "#light", "nth": 2 },
 				{ "expect": { "image": "light-on" } },
-				{ "click": [130, 343], "note": "Kitchen, in the rooms tree" },
+				{ "click": [130, 397], "note": "Kitchen, in the rooms tree" },
 				{ "expect": { "image": "kitchen" } },
 				{ "click": "#scene", "nth": 1 },
 				{ "wait": 1500 },
 				{ "expect": { "image": "scene-settled" } },
 				{ "click": "#toggle-theme-switch" },
 				{ "wait": 600 },
-				{ "expect": { "image": "light-theme" } }
+				{ "expect": { "image": "dark-theme" } }
 			]
 		},
 		{
@@ -29,7 +29,7 @@
 				{ "expect": { "image": "device-working" } },
 				{ "wait": 600 },
 				{ "expect": { "image": "device-answered" } },
-				{ "click": [26, 283], "note": "close the Ground floor in the rooms tree" },
+				{ "click": [26, 337], "note": "close the Ground floor in the rooms tree" },
 				{ "expect": { "image": "floor-closed" } }
 			]
 		},
@@ -43,7 +43,7 @@
 				{ "expect": { "image": "settings" } },
 				{ "key": "mod+t" },
 				{ "wait": 600 },
-				{ "expect": { "image": "settings-light" } }
+				{ "expect": { "image": "settings-dark" } }
 			]
 		}
 	]

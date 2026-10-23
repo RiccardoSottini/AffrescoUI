@@ -14,7 +14,7 @@
 				{ "expect": { "state": "rooms[0].lights[2].on", "is": true } },
 				{ "expect": { "node": "#toggle-rooms-room-lights", "nth": 2, "property": "checked", "is": true } },
 				{ "expect": { "node": "#label-light-on-on", "nth": 2, "text": "On  ·  30%" } },
-				{ "expect": { "node": "#summary", "text": "3 of 4 lights on" } },
+				{ "expect": { "node": "#summary", "text": "  3 of 4 lights on" } },
 				{ "click": "#toggle-rooms-room-lights", "nth": 2, "note": "the toggle itself switches it off again" },
 				{ "expect": { "state": "rooms[0].lights[2].on", "is": false } },
 				{ "expect": { "node": "#label-light-on-on", "nth": 2, "text": "Off" } }
@@ -67,7 +67,7 @@
 				{ "expect": { "state": "scene", "is": "Away" } },
 				{ "expect": { "state": "rooms[3].lights[0].on", "is": false } },
 				{ "expect": { "state": "rooms[2].target", "is": 17 } },
-				{ "expect": { "node": "#summary", "text": "0 of 4 lights on  ·  scene: Away" } },
+				{ "expect": { "node": "#summary", "text": "  0 of 4 lights on  ·  scene: Away" } },
 				{ "click": "#light", "nth": 0, "note": "touching a light clears the scene" },
 				{ "expect": { "state": "scene", "is": "" } }
 			]
@@ -91,11 +91,11 @@
 			"note": "The theme switch and Cmd+T flip between the dark and the light theme",
 			"steps": [
 				{ "click": "#toggle-theme-switch" },
-				{ "expect": { "state": "theme", "is": "light" } },
-				{ "expect": { "node": "#toggle-theme-switch", "property": "checked", "is": true } },
-				{ "key": "mod+t" },
 				{ "expect": { "state": "theme", "is": "dark" } },
-				{ "expect": { "node": "#toggle-theme-switch", "property": "checked", "is": false } }
+				{ "expect": { "node": "#toggle-theme-switch", "property": "checked", "is": false } },
+				{ "key": "mod+t" },
+				{ "expect": { "state": "theme", "is": "light" } },
+				{ "expect": { "node": "#toggle-theme-switch", "property": "checked", "is": true } }
 			]
 		},
 		{
@@ -294,9 +294,9 @@
 				{ "resize": [1040, 640] },
 				{ "key": "mod+t" },
 				{ "expect": { "node": "#energy", "exists": false } },
-				{ "expect": { "node": "#lightsCard", "property": "x", "is": 280 } },
-				{ "expect": { "node": "#lightsCard", "property": "width", "is": 355.5999755859375 } },
-				{ "expect": { "node": "#climateCard", "property": "x", "is": 651.5999755859375, "note": "16 after the lights card" } },
+				{ "expect": { "node": "#lightsCard", "property": "x", "is": 272 } },
+				{ "expect": { "node": "#lightsCard", "property": "width", "is": 371.5999755859375 } },
+				{ "expect": { "node": "#climateCard", "property": "x", "is": 659.5999755859375, "note": "16 after the lights card" } },
 				{ "click": "#deviceAction", "nth": 1 },
 				{ "expect": { "state": "devices[1].busy", "is": true } }
 			]
@@ -340,7 +340,7 @@
 			"name": "blinds-slider-on-the-first-frame",
 			"note": "Regression: the blinds slider anchored to a button laid out after it, so the first frame had no slider",
 			"steps": [
-				{ "expect": { "node": "#blinds", "property": "width", "is": 172.4000244140625 } }
+				{ "expect": { "node": "#blinds", "property": "width", "is": 440.4000244140625 } }
 			]
 		}
 	]
