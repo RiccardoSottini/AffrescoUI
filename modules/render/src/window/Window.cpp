@@ -91,10 +91,15 @@ void Window::setTitle(std::string title) {
 }
 
 void Window::setSize(int width, int height) {
-	width_ = std::max(width, minWidth_);
-	height_ = std::max(height, minHeight_);
-	if(native_) native_->setSize(width_, height_); // the OS then reports the size: resized()
-	else resized(width_, height_);                 // headless: as the OS would
+	const int clampedWidth = std::max(width, minWidth_);
+	const int clampedHeight = std::max(height, minHeight_);
+	if(native_) {
+		native_->setSize(clampedWidth, clampedHeight); // macOS reports the size at once: resized()
+		// X11 and Wayland report it only with their next events, which a scenario's steps don't wait for
+		if(clampedWidth != width_ || clampedHeight != height_) resized(clampedWidth, clampedHeight);
+	} else {
+		resized(clampedWidth, clampedHeight); // headless: as the OS would
+	}
 	requestLayout();
 }
 
