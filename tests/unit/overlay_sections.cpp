@@ -80,12 +80,12 @@ struct Folder {
 TEST_CASE("overlay sections: each is built after the root's children, over the window, and found by its id") {
 	Overlaid overlaid(affresco::Screen::fromString(overlaidScreen));
 	affresco::Panel& root = overlaid.window->root();
-	affresco::Panel* row = overlaid.screen.find("root");
-	REQUIRE(row);
-	CHECK(row->children().size() == 2); // the row's labels: the overlays are not in it
+	CHECK(overlaid.screen.find("root") == &root); // the document's root is the window's
+	REQUIRE(root.children().size() == 4);         // its two labels, then the overlays, above them
 
 	affresco::Panel* badge = overlaid.screen.find("badge");
 	REQUIRE(badge);
+	CHECK(root.children()[2].get() == badge);
 	CHECK(badge->isOverlay());
 	CHECK(badge->parent() == &root);
 	CHECK(badge->frame().right == doctest::Approx(392)); // placed by its anchors in the window
