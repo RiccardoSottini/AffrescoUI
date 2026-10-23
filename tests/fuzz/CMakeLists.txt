@@ -90,7 +90,8 @@ affrescoui_fuzzer(url affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp r
 affrescoui_fuzzer(oauth affrescoui::net nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_oauth PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # OAuth.hpp
 affrescoui_fuzzer(history affrescoui::format affrescoui::vcs)
-# The example apps' readers: their own sources, linked only into the fuzzer (the apps' targets compile them otherwise)
+# The apps' readers (apps/server, examples/forge): their own sources, linked only into the fuzzer (the apps' targets
+# compile them otherwise)
 affrescoui_fuzzer(token_file affrescoui::net nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/apps/server) # TokenFile.hpp
 affrescoui_fuzzer(git_output affrescoui::core nlohmann_json::nlohmann_json)
