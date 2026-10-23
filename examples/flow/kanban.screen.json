@@ -807,9 +807,13 @@
 											{ "id": "viewTimeline", "use": "layoutChoice", "with": { "icon": "chart-gantt", "text": "{{trim(t('view.timeline'))}}", "on": "{{state.view == 'timeline'}}" }, "onClick": "showTimeline" }
 										]
 									},
-									{ "id": "viewLanes", "style": "menuRow", "anchors": { "left": 6, "right": 6, "top": 94 }, "icon": "{{state.swimlanes ? 'square-check' : 'square'}}",
-										"text": "  {{t('view.lanes')}}", "role": "switch", "selected": "{{state.swimlanes}}", "label": "{{t('view.lanes')}}", "disabled": "{{state.view != 'board'}}",
-										"textColor": "{{state.view == 'board' ? '@color.text' : '@color.muted'}}", "onClick": "toggleSwimlanes" },
+									{ "id": "displayGrouping", "style": "caption", "text": "{{t('display.grouping')}}", "anchors": { "left": 12, "top": 100 } },
+									{ "id": "groupings", "type": "row", "gap": 4, "anchors": { "left": 120, "right": 12, "top": 96 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
+										{ "id": "grouping", "repeat": { "for": "g", "in": "['status', 'assignee']" }, "let": { "on": "{{state.swimlanes == (g == 'assignee')}}" }, "style": "displayPill", "role": "radio",
+											"text": "{{t('prop.' + g)}}", "selected": "{{on}}", "disabled": "{{state.view != 'board'}}", "borderColor": "{{on ? '@color.accent' : '@color.border'}}",
+											"textColor": "{{on && state.view == 'board' ? '@color.text' : '@color.muted'}}", "tooltip": "{{g == 'assignee' ? t('view.lanes') : ''}}",
+											"onClick": [{ "if": "{{!on}}", "then": [{ "run": "toggleSwimlanes" }] }] }
+									] },
 									{ "id": "displayOrdering", "style": "caption", "text": "{{t('display.ordering')}}", "anchors": { "left": 12, "top": 134 } },
 									{ "id": "orderings", "type": "row", "gap": 4, "anchors": { "left": 12, "right": 12, "top": 154 }, "height": 24, "role": "radiogroup", "arrows": "horizontal", "children": [
 										{ "id": "ordering", "repeat": { "for": "o", "in": "['manual', 'priority', 'due']" }, "style": "displayPill", "role": "radio", "text": "{{t('order.' + o)}}",

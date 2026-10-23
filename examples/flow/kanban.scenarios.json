@@ -6,6 +6,36 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "projects-tabs-and-new-project",
+			"note": "Projects' tabs show all, active or completed projects, and New project adds one",
+			"steps": [
+				{ "key": "g" },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "click": "#projectTab", "nth": 2 },
+				{ "expect": { "state": "projectScope", "is": "completed" } },
+				{ "expect": { "node": "#projectName", "text": "Sharper text" } },
+				{ "expect": { "node": "#projectRow", "nth": 1, "exists": false } },
+				{ "click": "#newProject" },
+				{ "expect": { "state": "projects[5].name", "is": "Project 6" } },
+				{ "expect": { "state": "projectScope", "is": "all" } }
+			]
+		},
+		{
+			"name": "display-grouping",
+			"note": "Display's Grouping groups the board by status or by assignee (swimlanes)",
+			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#grouping", "nth": 1 },
+				{ "expect": { "state": "swimlanes", "is": true } },
+				{ "click": "#grouping", "nth": 1 },
+				{ "expect": { "state": "swimlanes", "is": true } },
+				{ "click": "#grouping", "nth": 0 },
+				{ "expect": { "state": "swimlanes", "is": false } }
+			]
+		},
+		{
 			"name": "composer-label",
 			"note": "The composer's label chip picks the new issue's label",
 			"steps": [

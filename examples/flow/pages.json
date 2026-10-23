@@ -23,6 +23,7 @@
 			{ "number": 11, "start": "2026-02-23", "end": "2026-03-08", "scope": 26, "done": 24 },
 			{ "number": 10, "start": "2026-02-09", "end": "2026-02-22", "scope": 21, "done": 21 }
 		],
+		"projectScope": "all",
 		"projectOf": { "feature": 0, "bug": 0, "design": 1, "chore": 2 },
 		"projects": [
 			{ "name": "Board keyboard access", "icon": "keyboard", "color": "#4f46e5", "health": "onTrack", "lead": "RS", "target": "2026-04-10", "progress": 0.62, "issues": 13 },
@@ -45,6 +46,12 @@
 	},
 
 	"actions": {
+		"addProject": { "title": "New project", "category": "Go", "icon": "plus",
+			"do": [
+				{ "push": "state.projects", "value": { "name": "{{t('projects.untitled', { n: length(state.projects) + 1 })}}", "icon": "box", "color": "#4f46e5", "health": "onTrack",
+					"lead": "{{state.me}}", "target": "{{state.cycle.end}}", "progress": 0, "issues": 0 } },
+				{ "set": "state.projectScope", "to": "all" }
+			] },
 		"showPage": [
 			{ "note": "with: page, 'issues', 'inbox', 'cycles' or 'projects'" },
 			{ "set": "state.page", "to": "{{page}}" },
@@ -294,6 +301,13 @@
 				"label": "{{t('nav.projects')}}",
 				"children": [
 					{ "id": "projectsHeader", "use": "pageHeader", "with": { "icon": "box", "text": "{{t('nav.projects')}}" } },
+					{ "id": "projectTabs", "type": "row", "gap": 2, "anchors": { "left": 120, "top": 10 }, "width": 360, "height": 28, "role": "tablist", "arrows": "horizontal", "children": [
+						{ "id": "projectTab", "repeat": { "for": "scope", "in": "['all', 'active', 'completed']" }, "style": "{{state.projectScope == scope ? 'toolButtonOn' : 'toolButton'}}",
+							"borderWidth": "{{state.projectScope == scope ? 1 : 0}}", "text": "{{t('projects.' + scope)}}", "role": "tab", "selected": "{{state.projectScope == scope}}",
+							"onClick": { "set": "state.projectScope", "to": "{{scope}}" } }
+					] },
+					{ "id": "newProject", "style": "topButton", "icon": "plus", "text": " {{t('projects.new')}}", "fitText": true, "height": 28, "anchors": { "right": 12, "top": 10 },
+						"label": "{{t('projects.new')}}", "onClick": "addProject" },
 					{ "id": "projectsColumns", "anchors": { "left": 0, "right": 0, "top": 48 }, "height": 32, "color": "transparent", "children": [
 						{ "id": "projectsColumnName", "style": "caption", "text": "{{t('project.name')}}", "anchors": { "left": 52, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
 						{ "id": "projectsColumnHealth", "style": "caption", "text": "{{t('project.health')}}", "anchors": { "right": 440, "top": 0, "bottom": 0 }, "width": 110, "fitText": false, "align": { "horizontal": "start", "vertical": "center" } },
@@ -311,7 +325,7 @@
 						"children": [
 							{
 								"id": "projectRow",
-								"repeat": { "for": "project", "in": "state.projects", "key": "{{project.name}}" },
+								"repeat": { "for": "project", "in": "filter(state.projects, state.projectScope == 'all' || (state.projectScope == 'completed') == (it.health == 'completed'))", "key": "{{project.name}}" },
 								"anchors": { "left": 0, "right": 0 },
 								"height": 44,
 								"color": "transparent",
