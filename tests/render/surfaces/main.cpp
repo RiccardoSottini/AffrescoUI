@@ -1,5 +1,5 @@
 /// @file
-/// @brief affrescoui_surfaces: the GPU surface demo. Shows examples/surfaces/surfaces.screen.json (or a screen file
+/// @brief affrescoui_surfaces: the GPU surface demo. Shows tests/render/surfaces/surfaces.screen.json (or a screen file
 /// given as the argument) with the plasma, cube and blur surfaces registered (Surfaces.hpp).
 //
 //   affrescoui_surfaces [file.screen.json]

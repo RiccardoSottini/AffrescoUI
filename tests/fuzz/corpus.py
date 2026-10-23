@@ -477,7 +477,7 @@ def oauth_seeds():
 
 
 def token_file_seeds():
-    """Token files: a SHA-256 in hex and a name per line (examples/server/TokenFile.hpp)."""
+    """Token files: a SHA-256 in hex and a name per line (apps/server/TokenFile.hpp)."""
     line = hashlib.sha256(b"placeholder").hexdigest()
     return [f"# who may connect\n{line} reviewer\n\n{line[::-1]} agent-1\n", f"{line} \n", f"{line.upper()} a b\n",
             "# only a comment", f"{line}\treviewer\r\n"]
