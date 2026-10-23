@@ -303,6 +303,11 @@ const std::vector<Case> cases = {
     {"{{passwordStrength('').score}}", 0, {}},
     {"{{isEmail('ada@example.com')}}", true, {}},
     {"{{isEmail('ada@example')}}", false, {}},
+    // Diffs and JSON documents: tests/unit/diff_functions.cpp has the hunks, the pointers and the patches
+    {"{{diffLines('a\\nb', 'a\\nc').added}}", 1, {}},
+    {"{{atPointer({ a: [1, 2] }, '/a/1')}}", 2, {}},
+    {"{{applyPatch({ a: 1 }, [{ op: 'replace', path: '/a', value: 2 }]).a}}", 2, {}},
+    {"{{formatJson({ a: 1 })}}", "{\n  \"a\": 1\n}", {}},
     // Timelines and the locale's: tests/unit/timeline.cpp and tests/unit/i18n.cpp have their values
     {"{{keyframeValue([{ time: 0, value: 0 }, { time: 2, value: 10 }], 0.5)}}", 2.5, {}},
     {"{{keyframeValue(1)}}", {}, "test.$keyframeValue: expected 2 arguments"},

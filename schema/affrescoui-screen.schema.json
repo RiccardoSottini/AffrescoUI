@@ -3350,7 +3350,11 @@
 						"$dateMs",
 						"$isDate",
 						"$passwordStrength",
-						"$isEmail"
+						"$isEmail",
+						"$diffLines",
+						"$atPointer",
+						"$applyPatch",
+						"$formatJson"
 					]
 				}
 			},
