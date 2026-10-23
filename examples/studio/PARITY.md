@@ -34,7 +34,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | App | Keyboard shortcuts (tabs, commit, lists) | | partial | partial |
 | App | No-repository and offline states | Not connected, retrying every 2 s | partial | partial |
 | Pull request | Header: title, number, state, "wants to merge N commits into main" | A proposal, its number after the title in grey, a green "Open" pill; main and the branch in code type (conflicts show in the merge box) | missing | partial |
-| Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence; under the Studio's own tabs | missing | partial |
+| Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence, with the failing count; under the Studio's own tabs | missing | partial |
 | Pull request | Conversation: description and timeline of commits and reviews | Opened, changes, pushed, approvals, reviews, conflicts, then the merge box and a multi-line comment box at the end; no timeline line or event circles | missing | partial |
 | Pull request | Sidebar: reviewers, state of each | Who approved or asked for changes, what the policy needs; only in wide windows | missing | partial |
 | Pull request | Files changed: file tree, per-file +/− counts, "Viewed" | Per-file counts and five blocks sized as GitHub does, collapse, Viewed; no tree | missing | partial |

@@ -609,7 +609,7 @@
 		"activeName": "{{empty(computed.activeConn.name) ? t('conn.local') : computed.activeConn.name}}",
 		"addressOptions": "{{concat(map(state.connections, it.address), ['ws://localhost:7300', 'wss://docs.example.org/studio'])}}",
 		"branch": "{{state.tab != 'history' && computed.current != null ? (computed.current.branch ?? 'proposal/' + computed.current.id) : 'main'}}",
-		"prTabs": "{{computed.current == null ? [] : [{id: 'conversation', label: t('pr.conversation'), closable: false}, {id: 'commits', label: t('pr.commits', {n: computed.current.commits}), closable: false}, {id: 'checks', label: t('pr.checks', {n: computed.evidence == null ? 0 : length(computed.evidence.scenarios)}), closable: false}, {id: 'files', label: t('pr.files', {n: length(computed.current.touches)}), closable: false}]}}",
+		"prTabs": "{{computed.current == null ? [] : [{id: 'conversation', label: t('pr.conversation'), closable: false}, {id: 'commits', label: t('pr.commits', {n: computed.current.commits}), closable: false}, {id: 'checks', label: t('pr.checks', {n: computed.evidence == null ? 0 : length(computed.evidence.scenarios), failing: computed.prFailing}), closable: false}, {id: 'files', label: t('pr.files', {n: length(computed.current.touches)}), closable: false}]}}",
 		"prStale": "{{computed.current == null || state.prDiff == null || state.prDiff.for != computed.current.id + ':' + computed.current.head}}",
 		"prAfter": "{{computed.prStale || state.prDiff.patch == null ? null : applyPatch(state.hostDocument, state.prDiff.patch)}}",
 		"prFiles": "{{computed.prAfter == null ? [] : map(computed.current.touches, {path: it, d: diffLines(atPointer(state.hostDocument, it) == null ? '' : formatJson(atPointer(state.hostDocument, it), 2), atPointer(computed.prAfter, it) == null ? '' : formatJson(atPointer(computed.prAfter, it), 2), {context: contains(state.diffExpanded, it) ? -1 : 3, ignoreWhitespace: state.diffWs, split: state.diffSplit})})}}",
@@ -2628,7 +2628,8 @@
 								"id": "repoName",
 								"text": "{{find(state.connections, it.id == state.active) == null ? '' : (empty(find(state.connections, it.id == state.active).name) ? t('conn.local') : find(state.connections, it.id == state.active).name)}}"
 							}
-						]
+						],
+						"color": "{{state.repoOpen ? '@color.toolbarHover' : 'transparent'}}"
 					},
 					{
 						"use": "toolbarSection",
@@ -2666,7 +2667,8 @@
 								"id": "branchName",
 								"text": "{{computed.branch}}"
 							}
-						]
+						],
+						"color": "{{state.branchOpen ? '@color.toolbarHover' : 'transparent'}}"
 					},
 					{
 						"use": "toolbarSection",
