@@ -20,16 +20,22 @@ enum class PictureKind {
 	Capture ///< `capture`: save it, compare nothing.
 };
 
+/// @brief What a picture is drawn from: a window at a scale, through a folder of the run's own. Holds references
+/// only, for the length of one takePicture call.
+struct Camera {
+	Window& window;                       ///< The window; it must be able to draw (not headless).
+	int scale;                            ///< Pixels per window unit.
+	const std::filesystem::path& scratch; ///< A folder of this run's own, for the drawn frame.
+};
+
 /// @brief Draws what a window shows offscreen, as the rendering check always has (Window::saveScreenshot at a fixed
 /// scale), then compares it with its golden image or saves it, as the options say.
-/// @param window The window; it must be able to draw (not headless).
-/// @param scale Pixels per window unit.
+/// @param camera The window, its scale, and the folder for the drawn frame.
 /// @param name The picture's name: `<scenario>-<name in the step>`.
 /// @param kind Expect or Capture.
 /// @param options Where golden images are and where pictures go.
-/// @param scratch A folder of this run's own, for the drawn frame.
 /// @return What became of it; its problem says why when it Differs.
-[[nodiscard]] Picture takePicture(Window& window, int scale, const std::string& name, PictureKind kind,
-                                  const Options& options, const std::filesystem::path& scratch);
+[[nodiscard]] Picture takePicture(const Camera& camera, const std::string& name, PictureKind kind,
+                                  const Options& options);
 
 } // namespace affresco::automation::detail

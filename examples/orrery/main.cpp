@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -28,6 +29,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 namespace {
@@ -87,11 +89,27 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 /// @param hex The colour.
 /// @return Its red, green and blue, 0 to 1; grey if it isn't one.
 std::array<float, 3> colourFromHex(const std::string& hex) {
-	if(hex.size() != 7 || hex[0] != '#') return {0.6f, 0.6f, 0.6f};
+	constexpr std::array<float, 3> grey{0.6f, 0.6f, 0.6f};
+	if(hex.size() != 7 || hex[0] != '#') return grey;
 	std::array<float, 3> colour{};
-	for(std::size_t channel = 0; channel < 3; ++channel)
-		colour[channel] = static_cast<float>(std::stoi(hex.substr(1 + (2 * channel), 2), nullptr, 16)) / 255.0f;
+	for(std::size_t channel = 0; channel < 3; ++channel) {
+		const char* first = hex.data() + 1 + (2 * channel);
+		unsigned value = 0;
+		const auto [end, error] = std::from_chars(first, first + 2, value, 16);
+		if(error != std::errc() || end != first + 2) return grey;
+		colour[channel] = static_cast<float>(value) / 255.0f;
+	}
 	return colour;
+}
+
+/// @brief A body's text field, as the file has it.
+/// @param body The body, as the file has it.
+/// @param key The field.
+/// @return Its text; empty if the body has none there (or isn't an object).
+std::string textOf(const json& body, const char* key) {
+	if(!body.is_object()) return {};
+	const auto field = body.find(key);
+	return field != body.end() && field->is_string() ? field->get<std::string>() : std::string();
 }
 
 /// @brief Draws a body's thumbnail: a lit disc on a starless night, a glowing one for a star (a body without a
@@ -146,9 +164,9 @@ void drawThumbnails(affresco::Screen& screen, const std::filesystem::path& file)
 	constexpr int width = 96;
 	constexpr int height = 72;
 	for(const json& body : bodies) {
-		const std::vector<std::uint8_t> pixels = drawBody(colourFromHex(body.value("hex", std::string())),
-		                                                  body.value("parent", std::string()).empty(), width, height);
-		screen.setImage("body:" + body.value("id", std::string()), width, height, pixels);
+		const std::vector<std::uint8_t> pixels =
+		    drawBody(colourFromHex(textOf(body, "hex")), textOf(body, "parent").empty(), width, height);
+		screen.setImage("body:" + textOf(body, "id"), width, height, pixels);
 	}
 }
 
@@ -158,10 +176,10 @@ void drawThumbnails(affresco::Screen& screen, const std::filesystem::path& file)
 /// @param screen The screen.
 void registerScene(affresco::Screen& screen) {
 	using namespace affresco::scene3d;
-	auto assets = std::make_shared<Assets>();
+	const auto assets = std::make_shared<Assets>();
 	assets->setMesh("sphere", makeSphere(48, 24));
 	assets->setMesh("orbit", makeTorus(1.0f, 0.006f, 128, 6));
-	auto probe = std::make_shared<ViewportProbe>();
+	const auto probe = std::make_shared<ViewportProbe>();
 	screen.registerSurface("scene", [assets, probe] { return makeSceneRenderer(assets, probe); }, {true});
 	screen.onCall("orrery.scene", [](const std::string&) { return std::string("true"); });
 }

@@ -1,7 +1,8 @@
 /// @file
 /// @brief Unit tests for what a revision can't make the runtime do: recurse without end (computed values reading
-/// computed values, a component or a screen inside itself), throw an exception no event handler catches (a step
-/// writing through a value that isn't an object or a list), or fill a list with billions of nulls.
+/// computed values, a component or a screen inside itself), build as many panels as nested components and repeats
+/// multiply to, throw an exception no event handler catches (a step writing through a value that isn't an object or a
+/// list), or fill a list with billions of nulls.
 
 #include "Checker.hpp"
 #include "Headless.hpp"
@@ -97,6 +98,49 @@ TEST_CASE("format: computed values may read each other 32 levels deep, and a lon
 	const auto findings = affresco::format::check(document, document["state"]);
 	REQUIRE(findings);
 	CHECK((findings && findings->empty()));
+}
+
+// Before, components and repeats inside each other built as many panels as they multiplied to: 2^25, or 100 million
+TEST_CASE("format: a screen builds at most maxPanels panels, however its components and repeats multiply") {
+	const affresco::detail::ManualClock clock;
+	const auto window = affresco::detail::createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(stateScreen);
+	screen.build(*window);
+	window->render();
+
+	// A component that uses another twice, 18 levels down: half a million panels
+	json components = {{"c0", {{"node", {{"type", "label"}, {"text", "x"}}}}}};
+	for(int i = 1; i <= 18; ++i) {
+		const std::string inner = "c" + std::to_string(i - 1);
+		components["c" + std::to_string(i)] = {
+		    {"node", {{"type", "panel"}, {"children", {{{"use", inner}}, {{"use", inner}}}}}}};
+	}
+	const affresco::RevisionResult doubled = screen.submitRevision(revision(json::array({
+	    {{"op", "add"}, {"path", "/components"}, {"value", components}},
+	    {{"op", "add"}, {"path", "/root/children/-"}, {"value", {{"id", "doubled"}, {"use", "c18"}}}},
+	})));
+	CHECK(doubled.status == RevisionStatus::Rejected);
+	CHECK(doubled.error.ends_with("more than 250000 panels (components or repeats inside each other multiply)"));
+	CHECK(screen.find("doubled") == nullptr);
+
+	// A repeat inside another: 300,000 labels
+	const affresco::RevisionResult repeated = screen.submitRevision(revision(json::parse(R"([
+		{"op": "add", "path": "/root/children/-", "value": {"id": "rows", "type": "panel", "children": [
+			{"type": "panel", "repeat": {"in": "{{range(1000)}}"}, "children": [
+				{"type": "label", "repeat": {"in": "{{range(300)}}"}, "text": "x"}]}]}}
+	])")));
+	CHECK(repeated.status == RevisionStatus::Rejected);
+	CHECK(repeated.error.find("more than 250000 panels") != std::string::npos);
+
+	// Fewer is built
+	const affresco::RevisionResult fewer = screen.submitRevision(revision(json::parse(R"([
+		{"op": "add", "path": "/root/children/-", "value": {"id": "rows", "type": "panel", "children": [
+			{"type": "panel", "repeat": {"in": "{{range(100)}}"}, "children": [
+				{"type": "label", "repeat": {"in": "{{range(100)}}"}, "text": "x"}]}]}}
+	])")));
+	CHECK(fewer.status == RevisionStatus::Applied);
+	REQUIRE(screen.find("rows") != nullptr);
+	CHECK(screen.find("rows")->children().size() == 100);
 }
 
 // Before, the reconciler built the panels of a component inside itself without end, and overflowed the stack

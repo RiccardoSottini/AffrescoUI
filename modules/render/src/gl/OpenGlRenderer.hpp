@@ -3,7 +3,7 @@
 /// @file
 /// @brief gl::createRenderer: the OpenGL 4.1 core implementation of detail::Renderer.
 
-#include "Renderer.hpp"
+#include "paint/Renderer.hpp"
 
 #include <memory>
 

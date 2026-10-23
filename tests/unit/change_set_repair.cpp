@@ -91,11 +91,13 @@ json readJson(const std::filesystem::path& path) {
 /// @return The document.
 json kanban(const std::function<void(json&)>& change = {}) {
 	json document = readJson(screens() / "kanban.screen.json");
-	for(const json& file : document["include"])
-		for(const auto& [section, entries] : readJson(screens() / file.get<std::string>()).items())
+	for(const json& file : document["include"]) {
+		const json part = readJson(screens() / file.get<std::string>()); // a loop over a temporary's items dangles
+		for(const auto& [section, entries] : part.items())
 			if(entries.is_object())
 				for(const auto& [name, entry] : entries.items())
 					if(!document[section].contains(name)) document[section][name] = entry;
+	}
 	document.erase("include");
 	if(change) change(document);
 	return document;
@@ -174,7 +176,7 @@ struct Repairs {
 
 	/// @brief The open repair request's id.
 	/// @return It.
-	[[nodiscard]] std::string requestId() const { return repairs.openRequest().value().at("id").get<std::string>(); }
+	[[nodiscard]] std::string requestId() const { return repairs.openRequest().value_or(json()).at("id").get<std::string>(); }
 
 	/// @brief Sends the agent's answer to the open request.
 	/// @param patch The revision's patch.
@@ -337,7 +339,7 @@ TEST_CASE("change set repair: a rejected repair is asked for again") {
 	REQUIRE(fixture.answer(blockedBeforeShipped())["type"] == "proposed");
 	CHECK(fixture.repository.reject(fixture.repository.proposals().front().id, "not now"));
 	CHECK(fixture.repairs.changeSets()[0].reason.starts_with("the reviewer rejected its repair"));
-	CHECK(fixture.repairs.openRequest().value()["repair"]["attempt"] == 2);
+	CHECK(fixture.repairs.openRequest().value_or(json())["repair"]["attempt"] == 2);
 }
 
 TEST_CASE("change set repair: a change set's signature covers its request, base and proof") {

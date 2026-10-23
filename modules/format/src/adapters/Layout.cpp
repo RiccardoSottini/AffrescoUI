@@ -4,8 +4,10 @@
 #include "Layout.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
+#include <cstddef>
 
 namespace affresco::format::adapters::detail {
 
@@ -40,15 +42,19 @@ namespace {
 /// @param path The path.
 /// @return Whether it ends with .png, .jpg, .jpeg or .svg.
 [[nodiscard]] bool imageExtension(std::string_view path) noexcept {
-	std::string lower;
-	for(const char c : path.substr(path.size() > 5 ? path.size() - 5 : 0))
-		lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-	return lower.ends_with(".png") || lower.ends_with(".jpg") || lower.ends_with(".jpeg") || lower.ends_with(".svg");
+	constexpr std::array<std::string_view, 4> extensions{".png", ".jpg", ".jpeg", ".svg"};
+	return std::ranges::any_of(extensions, [path](std::string_view extension) {
+		if(path.size() < extension.size()) return false;
+		const std::string_view end(path.end() - static_cast<std::ptrdiff_t>(extension.size()), path.end());
+		return std::ranges::equal(end, extension, [](char c, char wanted) {
+			return std::tolower(static_cast<unsigned char>(c)) == static_cast<unsigned char>(wanted);
+		});
+	});
 }
 
 } // namespace
 
-Output::Output(const Options& options) : options_(options) { newBuild(); }
+Output::Output(Options options) : options_(std::move(options)) { newBuild(); }
 
 void Output::enter(const std::string& at, int depth) {
 	if(depth > maxDepth) fail(at, "nests deeper than " + std::to_string(maxDepth) + " elements");
@@ -104,7 +110,7 @@ Built Output::placeholder(const std::string& what, const std::string& at, float 
 
 float Output::contentWidth() const noexcept { return std::max(64.0f, options_.width - 32); }
 
-json Output::root(Built body) const {
+json Output::root(Built body) {
 	body.node["id"] = "content";
 	return {{"id", "root"},
 	        {"color", "@background"},
@@ -190,7 +196,13 @@ std::string statePath(const std::vector<std::string>& segments) {
 bool allowedUrl(std::string_view url) noexcept {
 	constexpr std::string_view scheme = "https://";
 	if(!url.starts_with(scheme) || url.size() <= scheme.size() || url.size() > 2048) return false;
-	if(url[scheme.size()] == '/') return false;
+	std::string_view rest = url;
+	rest.remove_prefix(scheme.size());
+	// "https://example.com@other.example/" goes to other.example: a user name before '@' only hides the host
+	std::string_view authority = rest;
+	if(const std::size_t end = rest.find_first_of("/?#"); end != std::string_view::npos)
+		authority.remove_suffix(rest.size() - end);
+	if(rest.front() == '/' || authority.contains('@')) return false;
 	return std::ranges::none_of(url, [](char c) {
 		const auto byte = static_cast<unsigned char>(c);
 		return byte <= 0x20 || byte == 0x7f || std::string_view("\\{}<>\"").contains(c);

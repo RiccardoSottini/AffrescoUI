@@ -14,6 +14,7 @@
 // the channel to the connection chosen in the Connections list (a host's socket or the document server).
 
 #include "Assets.hpp"
+#include "EvidencePicture.hpp"
 #include "SocketDir.hpp"
 
 #include <affresco/affresco.hpp>
@@ -35,28 +36,8 @@
 
 namespace {
 
-/// @brief Decodes base64 (RFC 4648), as the host sends pictures.
-/// @param text The text.
-/// @return The bytes.
-/// @throws std::invalid_argument If it isn't base64.
-std::vector<std::uint8_t> fromBase64(std::string_view text) {
-	constexpr std::string_view alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-	std::vector<std::uint8_t> bytes;
-	std::uint32_t bits = 0;
-	int count = 0;
-	for(const char c : text) {
-		if(c == '=') break;
-		const std::size_t value = alphabet.find(c);
-		if(value == std::string_view::npos) throw std::invalid_argument("not base64");
-		bits = (bits << 6) | static_cast<std::uint32_t>(value);
-		count += 6;
-		if(count >= 8) {
-			count -= 8;
-			bytes.push_back(static_cast<std::uint8_t>((bits >> count) & 0xFF));
-		}
-	}
-	return bytes;
-}
+using examples::studio::fromBase64;
+using examples::studio::outlined;
 
 /// @brief Decodes one of the evidence's pictures.
 /// @param picture `{"format": "png", "data": base64}`.
@@ -66,42 +47,14 @@ std::shared_ptr<const affresco::Bitmap> decodePicture(const affresco::json& pict
 	return affresco::Bitmap::decode(png, affresco::Bitmap::Limits{});
 }
 
-/// @brief Draws the changed region's outline on a picture, so a reviewer sees at once what moved.
-/// @param picture The picture, opaque.
-/// @param region `[x, y, width, height]`, in its pixels; nothing is drawn when it's empty.
-/// @return Its pixels with the outline, red, green, blue and alpha.
-std::vector<std::uint8_t> outlined(const affresco::Bitmap& picture, const std::array<int, 4>& region) {
-	std::vector<std::uint8_t> rgba(picture.pixels().begin(), picture.pixels().end());
-	const auto [x, y, w, h] = region;
-	if(w <= 0 || h <= 0) return rgba;
-	constexpr int thickness = 3;
-	const auto mark = [&](int px, int py) {
-		if(px < 0 || py < 0 || px >= picture.width() || py >= picture.height()) return;
-		const auto at = static_cast<std::size_t>(py * picture.width() + px) * 4;
-		const std::array<std::uint8_t, 4> magenta = {236, 64, 122, 255};
-		std::ranges::copy(magenta, rgba.begin() + static_cast<std::ptrdiff_t>(at));
-	};
-	for(int t = 1; t <= thickness; ++t) {
-		for(int px = x - t; px < x + w + t; ++px) {
-			mark(px, y - t);
-			mark(px, y + h - 1 + t);
-		}
-		for(int py = y - t; py < y + h + t; ++py) {
-			mark(x - t, py);
-			mark(x + w - 1 + t, py);
-		}
-	}
-	return rgba;
-}
-
 /// @brief Shows a proposal's evidence pictures as the images "evidenceBefore" and "evidenceAfter", the changed region
 /// outlined on both.
 /// @param studio The Studio's screen.
 /// @param argumentsJson The evidence: `{"before", "after", "region"}`.
 /// @return "true".
-std::string showEvidence(affresco::Screen& studio, const std::string& argumentsJson) {
+std::string_view showEvidence(affresco::Screen& studio, std::string_view argumentsJson) {
 	const affresco::json evidence = affresco::json::parse(argumentsJson);
-	const auto region = evidence.value("region", std::array<int, 4>{});
+	const std::array<int, 4> region = examples::studio::regionOf(evidence);
 	for(const auto& [key, name] : {std::pair{"before", "evidenceBefore"}, std::pair{"after", "evidenceAfter"}}) {
 		const std::shared_ptr<const affresco::Bitmap> picture = decodePicture(evidence.at(key));
 		studio.setImage(name, picture->width(), picture->height(), outlined(*picture, region));
@@ -118,7 +71,7 @@ std::string showEvidence(affresco::Screen& studio, const std::string& argumentsJ
 /// @return "true"; the connection then reports on the "host:" actions.
 /// @throws std::runtime_error Without an address, with one longer than 2,048 bytes or a token longer than 4,096, or
 /// when the screen has no "host" channel.
-std::string connectTo(affresco::Screen& studio, const std::string& argumentsJson) {
+std::string_view connectTo(affresco::Screen& studio, std::string_view argumentsJson) {
 	const affresco::json arguments = affresco::json::parse(argumentsJson);
 	std::string address = arguments.value("address", std::string{});
 	std::string token = arguments.value("token", std::string{});
@@ -167,10 +120,12 @@ int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own 
 		affresco::Screen studio =
 		    affresco::Screen::fromFile(assetsDirectory() / "studio" / "studio.screen.json", dataDir);
 		studio.setSocketDirectory(socketDir);
-		studio.onCall("showEvidence",
-		              [&studio](const std::string& argumentsJson) { return showEvidence(studio, argumentsJson); });
-		studio.onCall("connectTo",
-		              [&studio](const std::string& argumentsJson) { return connectTo(studio, argumentsJson); });
+		studio.onCall("showEvidence", [&studio](const std::string& argumentsJson) {
+			return std::string(showEvidence(studio, argumentsJson));
+		});
+		studio.onCall("connectTo", [&studio](const std::string& argumentsJson) {
+			return std::string(connectTo(studio, argumentsJson));
+		});
 		studio.createWindow(app); // connects the file's channels
 #ifdef __EMSCRIPTEN__
 		connectable = &studio;

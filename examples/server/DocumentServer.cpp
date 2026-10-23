@@ -44,6 +44,12 @@ json error(const std::string& what, const json& id = nullptr) {
 	return {{"type", "error"}, {"message", what}, {"id", id}};
 }
 
+/// @brief Whether a message type is the server's own rather than its document Session's.
+/// @param type The type.
+bool isServerMessage(const std::string& type) {
+	return type == "open" || type == "presence" || type == "getPresence" || type == "lease" || type == "release";
+}
+
 /// @brief The document as revisions address it: its live state as "state".
 /// @param repository The repository.
 /// @return The view.
@@ -55,11 +61,12 @@ json view(const vcs::Repository& repository) {
 
 } // namespace
 
-DocumentServer::DocumentServer(Executor& executor, std::filesystem::path folder, std::shared_ptr<TokenFile> tokens,
-                               std::string_view address, net::PeerServerOptions options)
-    : DocumentServer(executor, std::move(folder), tokens,
-                     [tokens] { return tokens ? tokens->people() : std::vector<std::string>(); }, address,
-                     std::move(options)) {}
+DocumentServer::DocumentServer(Executor& executor, std::filesystem::path folder,
+                               const std::shared_ptr<TokenFile>& tokens, std::string_view address,
+                               net::PeerServerOptions options)
+    : DocumentServer(
+          executor, std::move(folder), tokens,
+          [tokens] { return tokens ? tokens->people() : std::vector<std::string>(); }, address, std::move(options)) {}
 
 DocumentServer::DocumentServer(Executor& executor, std::filesystem::path folder,
                                std::shared_ptr<net::TokenVerifier> verifier,
@@ -130,20 +137,10 @@ void DocumentServer::adopt(std::unique_ptr<Channel> socket, std::string author) 
 }
 
 void DocumentServer::handle(Peer& peer, const std::string& line) {
-	if(line.size() > maxServerMessageBytes) {
-		if(peer.session) peer.inner->onMessage(line); // a revision: the Session holds it to its limits
-		else peer.socket->send(error("open a document first").dump());
-		return;
-	}
+	if(line.size() > maxServerMessageBytes) return forward(peer, line); // a revision: the Session holds it to its limits
 	const json message = json::parse(line, nullptr, false);
 	const std::string type = message.is_object() ? text(message, "type") : std::string();
-	const bool ours = type == "open" || type == "presence" || type == "getPresence" || type == "lease" ||
-	                  type == "release";
-	if(!ours) {
-		if(peer.session) peer.inner->onMessage(line);
-		else peer.socket->send(error("open a document first").dump());
-		return;
-	}
+	if(!isServerMessage(type)) return forward(peer, line);
 	const json id = message.contains("id") ? message["id"] : json(nullptr);
 	if(!peer.rate.take(channel::TokenBucket::Clock::now())) {
 		peer.socket->send(error("too many messages: at most 20 a second", id).dump());
@@ -154,6 +151,11 @@ void DocumentServer::handle(Peer& peer, const std::string& line) {
 	else handleServerMessage(peer, message, type);
 }
 
+void DocumentServer::forward(Peer& peer, const std::string& line) {
+	if(peer.session) peer.inner->onMessage(line);
+	else peer.socket->send(error("open a document first").dump());
+}
+
 void DocumentServer::handleServerMessage(Peer& peer, const json& message, const std::string& type) {
 	Document& document = *peer.document;
 	if(type == "getPresence") {
@@ -161,7 +163,7 @@ void DocumentServer::handleServerMessage(Peer& peer, const json& message, const 
 		peer.socket->send(state(document, "leases").dump());
 	} else if(type == "presence") {
 		if(!document.presence.set(peer.id, text(message, "where"), text(message, "doing")))
-			peer.socket->send(error("\"where\" is at most 256 bytes, \"doing\" at most 64").dump());
+			peer.socket->send(error(R"("where" is at most 256 bytes, "doing" at most 64)").dump());
 		else broadcast(document, "presence");
 	} else lease(peer, message, type);
 }

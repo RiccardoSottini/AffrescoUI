@@ -9,9 +9,9 @@
 // agent.sock). --check plays the scenarios headless, with the natives registered, and prints the report; with --out,
 // their pictures are drawn and captures are saved in DIR (tools/media/capture.py).
 
-#include "SocketDir.hpp"
-#include "ShapePanel.hpp"
 #include "Sinopia.hpp"
+#include "SocketDir.hpp"
+#include "drawing/ShapePanel.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
@@ -47,7 +47,8 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 		else if(value != nullptr && arg == "--socket") options.socketDir = value;
 		else if(value != nullptr && arg == "--data") options.dataDir = value;
 		else {
-			std::cerr << "usage: affrescoui_sinopia [--socket DIR] [--data DIR] | --check FILE.scenarios.json [--out DIR]\n";
+			std::cerr
+			    << "usage: affrescoui_sinopia [--socket DIR] [--data DIR] | --check FILE.scenarios.json [--out DIR]\n";
 			return std::nullopt;
 		}
 	}
@@ -75,7 +76,7 @@ int check(const std::filesystem::path& file, const std::filesystem::path& out) {
 	options.pictures = !out.empty();
 	options.output = out;
 	options.prepare = [](affresco::Screen& screen) {
-		auto session = std::make_shared<sinopia::Session>();
+		const auto session = std::make_shared<sinopia::Session>();
 		session->folder = AFFRESCOUI_SINOPIA_DIR; // the sample decks, wherever the scenarios file is (capture.py's)
 		session->exportFolder = std::filesystem::temp_directory_path() / "affrescoui-sinopia-check";
 		session->saveFolder = session->exportFolder; // never into the source tree
@@ -94,7 +95,7 @@ int run(const Options& options) {
 	const std::filesystem::path folder = AFFRESCOUI_SINOPIA_DIR;
 	affresco::Application app;
 	affresco::Screen screen = affresco::Screen::fromFile(folder / "sinopia.screen.json", options.dataDir);
-	auto session = std::make_shared<sinopia::Session>();
+	const auto session = std::make_shared<sinopia::Session>();
 	session->folder = folder;
 	session->exportFolder = options.dataDir / "sinopia-exports";
 	session->app = &app;
@@ -109,6 +110,11 @@ int run(const Options& options) {
 
 } // namespace
 
+/// @brief Runs Sinopia, or plays its scenarios with --check.
+/// @param argc The number of arguments.
+/// @param argv The arguments.
+/// @return 0 when the window closed or every scenario passed, 1 on an error or a failed scenario, 2 for a wrong command
+/// line.
 int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own signature
 	try {
 		const std::optional<Options> options = parseArguments(argc, argv);

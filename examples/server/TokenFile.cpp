@@ -6,7 +6,7 @@
 #include <affresco/core/Sha256.hpp>
 
 #include <algorithm>
-#include <cstdio>
+#include <format>
 #include <fstream>
 #include <random>
 #include <stdexcept>
@@ -83,11 +83,7 @@ std::string TokenFile::add(const std::filesystem::path& path, std::string_view n
 	if(!validName(name)) throw std::runtime_error("a name is 1 to 64 of A-Z, a-z, 0-9, '_' and '-'");
 	std::random_device random; // the system's source (e.g. /dev/urandom), not a seeded generator
 	std::string token;
-	for(int i = 0; i < 8; ++i) {
-		char part[9];
-		std::snprintf(part, sizeof part, "%08x", static_cast<unsigned>(random()));
-		token += part;
-	}
+	for(int i = 0; i < 8; ++i) token += std::format("{:08x}", random());
 	{
 		std::ofstream file(path, std::ios::app);
 		if(!file) throw std::runtime_error("can't write the token file " + path.string());

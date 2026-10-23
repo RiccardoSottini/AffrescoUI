@@ -3,7 +3,7 @@
 /// gives an object, and what its copies copy. Found in the security review of wave 2: a peer could make the host run
 /// out of memory, or freeze it for minutes, with one small revision.
 
-#include "Budget.hpp"
+#include "revisions/Budget.hpp"
 #include "Helpers.hpp"
 
 #include <affresco/format/Rules.hpp>

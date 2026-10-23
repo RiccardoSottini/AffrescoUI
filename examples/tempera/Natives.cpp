@@ -8,10 +8,13 @@
 #include <affresco/imaging/Composite.hpp>
 #include <affresco/imaging/Project.hpp>
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <limits>
+#include <utility>
 
 namespace tempera {
 
@@ -41,7 +44,7 @@ constexpr int newWidth = 1200, newHeight = 800;
 /// @param bytes The file.
 /// @throws affresco::DocumentError When it is malformed or beyond the limits.
 void openBytes(Session& session, std::vector<std::uint8_t> bytes) {
-	auto file = std::make_shared<const std::vector<std::uint8_t>>(std::move(bytes));
+	const auto file = std::make_shared<const std::vector<std::uint8_t>>(std::move(bytes));
 	std::unique_ptr<imaging::Document> document;
 	std::optional<imaging::ColorProfile> profile;
 	if(imaging::isProject(*file)) {
@@ -132,8 +135,8 @@ void open(Session& session) {
 /// @param session The session.
 /// @param arguments width, height, sample, format ("rgba8" or "rgba16f").
 void makeNew(Session& session, const json& arguments) {
-	const int width = static_cast<int>(numberOf(arguments, "width", newWidth));
-	const int height = static_cast<int>(numberOf(arguments, "height", newHeight));
+	const int width = wholeOf(arguments, "width", newWidth);
+	const int height = wholeOf(arguments, "height", newHeight);
 	if(width < 1 || height < 1) throw affresco::DocumentError("A document is at least 1 × 1");
 	std::unique_ptr<imaging::Document> document;
 	if(flagOf(arguments, "sample", false)) {
@@ -155,10 +158,10 @@ void makeNew(Session& session, const json& arguments) {
 }
 
 /// @brief Moves a layer onto another's place in the Layers panel, or a step up or down.
-/// @param session The session.
+/// @param document The session's document, which changes.
+/// @param session The session, read for the layers' ids.
 /// @param arguments id; then "onto" (the id of the layer whose place it takes) or "by" (+1 up, -1 down).
-void moveLayer(Session& session, const json& arguments) {
-	imaging::Document& document = session.canvas->document();
+void moveLayer(imaging::Document& document, const Session& session, const json& arguments) {
 	const std::uint64_t id = layerOf(session, arguments);
 	const imaging::Layer& layer = *document.layer(id);
 	const auto placeIn = [&](std::uint64_t parent) -> const std::vector<std::uint64_t>& {
@@ -169,26 +172,28 @@ void moveLayer(Session& session, const json& arguments) {
 		if(onto == id) return;
 		const imaging::Layer& target = *document.layer(onto);
 		const auto& siblings = placeIn(target.parent);
-		auto index = static_cast<std::size_t>(std::find(siblings.begin(), siblings.end(), onto) - siblings.begin());
+		auto index = static_cast<std::size_t>(std::ranges::find(siblings, onto) - siblings.begin());
 		// Document::moveLayer places it before the layer at index; taking the place of one above means after it.
-		if(layer.parent == target.parent &&
-		   static_cast<std::size_t>(std::find(siblings.begin(), siblings.end(), id) - siblings.begin()) < index)
+		if(layer.parent == target.parent && std::cmp_less(std::ranges::find(siblings, id) - siblings.begin(), index))
 			++index;
 		document.moveLayer(id, target.parent, index);
 		return;
 	}
 	const auto& siblings = placeIn(layer.parent);
-	const auto index = static_cast<long>(std::find(siblings.begin(), siblings.end(), id) - siblings.begin());
-	const long by = std::lround(numberOf(arguments, "by", 1.0));
+	const auto index = static_cast<long>(std::ranges::find(siblings, id) - siblings.begin());
+	// Any step past the list's length moves it to an end, so a step this far is the same and can't overflow the sum
+	constexpr double farthest = 1e9;
+	const long by = std::lround(std::clamp(numberOf(arguments, "by", 1.0), -farthest, farthest));
 	// Document::moveLayer places it before the layer at index, counted before it leaves, so up skips one more.
 	document.moveLayer(id, layer.parent, static_cast<std::size_t>(std::max(0L, index + by + (by > 0 ? 1 : 0))));
 }
 
 /// @brief Changes a layer's settings; a slider's changes (opacity, an adjustment) coalesce into one step.
-/// @param session The session.
+/// @param document The session's document, which changes.
+/// @param session The session, read for the layer's id.
 /// @param arguments id, and any of name, visible, opacity (0 to 100), blend, lockPixels, lockPosition, lockAll,
 /// clipped, maskEnabled, adjustment.
-void setLayer(Session& session, const json& arguments) {
+void setLayer(imaging::Document& document, const Session& session, const json& arguments) {
 	const std::uint64_t id = layerOf(session, arguments);
 	std::optional<imaging::BlendMode> blend;
 	if(arguments.contains("blend")) {
@@ -201,7 +206,7 @@ void setLayer(Session& session, const json& arguments) {
 	                         : arguments.contains("visible")    ? "Layer Visibility"
 	                         : blend                            ? "Blending Change"
 	                                                            : "Layer Properties";
-	session.canvas->document().changeLayer(
+	document.changeLayer(
 	    id, name,
 	    [&](imaging::Layer& layer) {
 		    if(arguments.contains("name")) layer.name = textOf(arguments, "name", layer.name);
@@ -221,10 +226,9 @@ void setLayer(Session& session, const json& arguments) {
 }
 
 /// @brief Adds a pixel layer, a group or an adjustment layer.
-/// @param session The session.
+/// @param document The document.
 /// @param arguments kind ("pixel", "group" or an adjustment's kind), name.
-void addLayer(Session& session, const json& arguments) {
-	imaging::Document& document = session.canvas->document();
+void addLayer(imaging::Document& document, const json& arguments) {
 	const std::string kind = textOf(arguments, "kind", "pixel");
 	const std::string name = textOf(arguments, "name");
 	if(kind == "pixel") {
@@ -254,7 +258,10 @@ void registerHistory(affresco::Screen& screen, const std::weak_ptr<Session>& ses
 	});
 	addNative(screen, "tempera.history", session, [](Session& self, const json& arguments) {
 		settle(self);
-		self.canvas->document().goTo(static_cast<std::size_t>(std::max(0.0, numberOf(arguments, "position", 0.0))));
+		// Past the last step means the last step; clamped first, as the conversion of a huge number is undefined
+		constexpr double farthest = 1e9;
+		const double position = std::clamp(numberOf(arguments, "position", 0.0), 0.0, farthest);
+		self.canvas->document().goTo(static_cast<std::size_t>(position));
 	});
 }
 
@@ -270,7 +277,7 @@ void registerLayers(affresco::Screen& screen, const std::weak_ptr<Session>& sess
 	};
 	addNative(screen, "tempera.addLayer", session, [](Session& self, const json& arguments) {
 		settle(self);
-		addLayer(self, arguments);
+		addLayer(self.canvas->document(), arguments);
 	});
 	onLayer("tempera.deleteLayer", [](imaging::Document& document, std::uint64_t id) { document.deleteLayer(id); });
 	onLayer("tempera.duplicateLayer",
@@ -280,21 +287,30 @@ void registerLayers(affresco::Screen& screen, const std::weak_ptr<Session>& sess
 	onLayer("tempera.deleteMask", [](imaging::Document& document, std::uint64_t id) { document.deleteMask(id); });
 	addNative(screen, "tempera.moveLayer", session, [](Session& self, const json& arguments) {
 		settle(self);
-		moveLayer(self, arguments);
+		moveLayer(self.canvas->document(), self, arguments);
 	});
 	addNative(screen, "tempera.setLayer", session, [](Session& self, const json& arguments) {
 		settle(self);
-		setLayer(self, arguments);
+		setLayer(self.canvas->document(), self, arguments);
 	});
 }
 
 } // namespace
 
+// NOLINTNEXTLINE(bugprone-exception-escape): get() is only reached for a number, which it always reads
 double numberOf(const json& arguments, std::string_view key, double fallback) noexcept {
 	const auto found = arguments.find(key);
 	if(found == arguments.end() || !found->is_number()) return fallback;
 	const double value = found->get<double>();
-	return std::isfinite(value) ? value : fallback;
+	// A document may send any number: narrowing one past a float's range to a float would be undefined
+	constexpr double most = std::numeric_limits<float>::max();
+	return std::isfinite(value) ? std::clamp(value, -most, most) : fallback;
+}
+
+int wholeOf(const json& arguments, std::string_view key, int fallback) noexcept {
+	// Clamped before the conversion, which is undefined for a number past an int's range
+	constexpr double least = std::numeric_limits<int>::min(), most = std::numeric_limits<int>::max();
+	return static_cast<int>(std::clamp(numberOf(arguments, key, fallback), least, most));
 }
 
 std::string textOf(const json& arguments, std::string_view key, std::string_view fallback) {
@@ -302,6 +318,7 @@ std::string textOf(const json& arguments, std::string_view key, std::string_view
 	return found != arguments.end() && found->is_string() ? found->get<std::string>() : std::string(fallback);
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): get() is only reached for a boolean, which it always reads
 bool flagOf(const json& arguments, std::string_view key, bool fallback) noexcept {
 	const auto found = arguments.find(key);
 	return found != arguments.end() && found->is_boolean() ? found->get<bool>() : fallback;

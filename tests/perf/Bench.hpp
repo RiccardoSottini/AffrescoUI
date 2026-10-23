@@ -97,6 +97,11 @@ private:
 /// @brief A group's only workload, moved into its list (a braced list would copy it).
 /// @param workload The workload.
 /// @return A list of one.
+/// @brief How many times longer a time limit is in this run: 100 under valgrind (the callgrind job, tests/perf/ci.sh),
+/// which runs the code about that much slower, else 1. The limits guard against a hang; they aren't what is measured.
+/// @return The factor.
+[[nodiscard]] int slowdown();
+
 [[nodiscard]] inline std::vector<Workload> single(Workload workload) {
 	std::vector<Workload> workloads;
 	workloads.push_back(std::move(workload));
@@ -235,6 +240,13 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @return The document.
 /// @throws std::exception If it can't be read or isn't a valid screen.
 [[nodiscard]] json screenDocument(const std::filesystem::path& file);
+
+/// @brief A screen document as a history holds it: its "include" files merged in, and its state.
+/// @param document The document, as read from its file.
+/// @param directory The folder its includes are relative to.
+/// @return The document.
+/// @throws std::exception If it isn't a valid screen or an include can't be read.
+[[nodiscard]] json screenDocument(const json& document, const std::filesystem::path& directory);
 
 /// @brief The Kanban template with its four columns filled to a number of cards, by copying its own cards in turn.
 /// @param directory The Kanban template's folder.

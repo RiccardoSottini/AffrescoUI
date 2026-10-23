@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Generates modules/format/src/LocaleData.cpp: the compact CLDR subset expression functions format with.
+"""Generates modules/format/src/locale/LocaleData.cpp: the compact CLDR subset expression functions format with.
 
 Reads the cldr-json npm packages pinned below, straight from their .tgz files (nothing is extracted), after checking
 each one's SHA-256. Writes, for every locale of LOCALES: number symbols and patterns, the cardinal plural rules,
 currency symbols, Gregorian month and day names, date, time and date-time patterns, relative-time patterns and list
-patterns. The struct it fills is LocaleData (modules/format/src/Locale.hpp): change both together.
+patterns. The struct it fills is LocaleData (modules/format/src/locale/Locale.hpp): change both together.
 
-    python3 -I tools/i18n/generate_locale_data.py DIR [--download] [-o modules/format/src/LocaleData.cpp]
+    python3 -I tools/i18n/generate_locale_data.py DIR [--download] [-o modules/format/src/locale/LocaleData.cpp]
 
 DIR holds core.tgz, dates-full.tgz, misc-full.tgz and numbers-full.tgz; --download fetches the missing ones from
 the npm registry first. The packages are data, never code: they are only parsed as JSON. Only the Python standard
@@ -233,7 +233,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("directory", help="where core.tgz, dates-full.tgz, misc-full.tgz and numbers-full.tgz are")
     parser.add_argument("--download", action="store_true", help="fetch the missing packages from the npm registry")
-    parser.add_argument("-o", "--output", default="modules/format/src/LocaleData.cpp")
+    parser.add_argument("-o", "--output", default="modules/format/src/locale/LocaleData.cpp")
     arguments = parser.parse_args()
     if arguments.download:
         download(arguments.directory)

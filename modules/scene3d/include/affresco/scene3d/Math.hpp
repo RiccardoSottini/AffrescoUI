@@ -119,10 +119,12 @@ struct Mat4 {
 	constexpr bool operator==(const Mat4&) const noexcept = default;
 	/// @brief An element. @param row Its row. @param column Its column. @return It.
 	[[nodiscard]] constexpr float at(int row, int column) const noexcept {
+		// NOLINTNEXTLINE(bugprone-misplaced-widening-cast): row and column are 0 to 3, so the int can't overflow
 		return values[static_cast<std::size_t>(column * 4 + row)];
 	}
 	/// @brief An element, writable. @param row Its row. @param column Its column. @return It.
 	[[nodiscard]] constexpr float& at(int row, int column) noexcept {
+		// NOLINTNEXTLINE(bugprone-misplaced-widening-cast): row and column are 0 to 3, so the int can't overflow
 		return values[static_cast<std::size_t>(column * 4 + row)];
 	}
 

@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes the OAuth 2 and OpenID Connect readers (modules/net/src/OAuth.hpp): a token endpoint's answer, a
+/// @brief Fuzzes the OAuth 2 and OpenID Connect readers (modules/net/src/oauth/OAuth.hpp): a token endpoint's answer, a
 /// device authorization endpoint's answer, an error answer, a redirect's query and base64url, all of which come from
 /// the network.
 ///
@@ -7,7 +7,7 @@
 /// Tokens that are read have an access token and expire after now; an error never quotes the access token; device codes
 /// poll at a sane interval; base64url read back writes the same bytes.
 
-#include "../../modules/net/src/OAuth.hpp" // by its path: clang-tidy reads this file without its include folders
+#include "../../modules/net/src/oauth/OAuth.hpp" // by its path: clang-tidy reads this file without its include folders
 #include "Fuzz.hpp"
 
 #include <chrono>

@@ -83,23 +83,32 @@ struct Options {
 	affresco::net::PeerServerOptions server;   ///< --allow-remote, --origin.
 };
 
+/// @brief Sets the option a flag that takes a value names.
+/// @param options The options.
+/// @param flag The flag, as "--folder".
+/// @param value Its value.
+/// @return Whether the flag is one that takes a value.
+bool setValue(Options& options, const std::string& flag, const std::string& value) {
+	if(flag == "--folder") options.folder = value;
+	else if(flag == "--listen") options.listen = value;
+	else if(flag == "--add-token") options.addToken = value;
+	else if(flag == "--userinfo") options.userinfo = value;
+	else if(flag == "--people") options.people = value;
+	else if(flag == "--origin") options.server.allowedOrigins.push_back(value);
+	else return false;
+	return true;
+}
+
 /// @brief Reads the command line.
 /// @param arguments The arguments, without the program's name.
 /// @return The options, or std::nullopt after printing the usage.
 std::optional<Options> parse(const std::vector<std::string>& arguments) {
 	Options options;
 	for(std::size_t i = 0; i < arguments.size(); ++i) {
-		const std::string& argument = arguments[i];
-		const bool hasValue = i + 1 < arguments.size();
-		if(argument == "--folder" && hasValue) options.folder = arguments[++i];
-		else if(argument == "--listen" && hasValue) options.listen = arguments[++i];
-		else if(argument == "--add-token" && hasValue) options.addToken = arguments[++i];
-		else if(argument == "--userinfo" && hasValue) options.userinfo = arguments[++i];
-		else if(argument == "--people" && hasValue) options.people = arguments[++i];
-		else if(argument == "--origin" && hasValue) options.server.allowedOrigins.push_back(arguments[++i]);
-		else if(argument == "--allow-remote") options.server.allowRemote = true;
+		if(i + 1 < arguments.size() && setValue(options, arguments[i], arguments[i + 1])) ++i;
+		else if(arguments[i] == "--allow-remote") options.server.allowRemote = true;
 		else {
-			options.folder.clear();
+			options.folder.clear(); // an unknown flag, or one without its value: print the usage
 			break;
 		}
 	}
@@ -133,7 +142,8 @@ int serve(const Options& options) {
 	};
 	const DocumentServer server(loop, options.folder, std::make_shared<ChainVerifier>(std::move(verifiers)), people,
 	                      options.listen, options.server);
-	std::cout << "serving " << server.documents().size() << " documents on port " << server.port() << std::endl;
+	std::cout << "serving " << server.documents().size() << " documents on port " << server.port() << '\n'
+	          << std::flush; // flushed: whoever started the server may wait for this line
 #ifndef _WIN32
 	sigset_t signals;
 	sigemptyset(&signals);
@@ -163,18 +173,18 @@ int main(int argc, char** argv) {
 	sigaddset(&signals, SIGTERM);
 	pthread_sigmask(SIG_BLOCK, &signals, nullptr);
 #endif
-	const auto options = parse(std::vector<std::string>(argv + 1, argv + argc));
-	if(!options) return 2;
 	try {
+		const auto options = parse(std::vector<std::string>(argv + 1, argv + argc));
+		if(!options) return 2;
 		if(!options->addToken.empty()) {
 			std::filesystem::create_directories(options->folder);
 			const std::string token = affresco::server::TokenFile::add(options->folder / "tokens", options->addToken);
-			std::cout << token << std::endl; // shown once: only its hash is kept
+			std::cout << token << '\n'; // shown once: only its hash is kept
 			return 0;
 		}
 		return serve(*options);
 	} catch(const std::exception& error) {
-		std::cerr << "affrescoui_server: " << error.what() << std::endl;
+		std::cerr << "affrescoui_server: " << error.what() << '\n';
 		return 1;
 	}
 }

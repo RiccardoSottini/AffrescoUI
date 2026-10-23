@@ -14,10 +14,10 @@ namespace affresco::vector {
 
 /// @brief An opening or closing tag.
 struct XmlTag {
-	std::string_view name;                                         ///< Its name.
+	std::string_view name;                                            ///< Its name.
 	std::vector<std::pair<std::string_view, std::string>> attributes; ///< Its attributes, with entities replaced.
-	bool closing = false;                                          ///< A closing tag (</name>).
-	bool selfClosing = false;                                      ///< An empty element (<name/>).
+	bool closing = false;                                             ///< A closing tag (</name>).
+	bool selfClosing = false;                                         ///< An empty element (<name/>).
 
 	/// @brief An attribute's value.
 	/// @param key Its name.

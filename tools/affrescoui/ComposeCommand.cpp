@@ -134,7 +134,8 @@ std::string featureScenarios(const json& manifest, const std::filesystem::path& 
 /// @return The runner.
 format::ScenarioRunner runnerFor(const std::filesystem::path& screen, const std::filesystem::path& hostScenarios,
                                  const std::function<void(Screen&)>& prepare) {
-	return [=](const json& document, const json& manifest) {
+	return [screen = screen, hostScenarios = hostScenarios, prepare = prepare](const json& document,
+	                                                                           const json& manifest) {
 		const QuietLog quiet;
 		std::vector<format::ScenarioOutcome> outcomes;
 		const auto attempt = [&](const std::string& label, const auto& load) {
@@ -213,7 +214,7 @@ Exit checkComposition(std::span<const std::string_view> args, const std::functio
 	const format::ProvenComposition proven =
 	    format::proveComposition(inputs, runnerFor(screen, hostScenariosOf(arguments, screen), prepare));
 
-	const bool passed = proven.proof.value("passed", false) == true;
+	const bool passed = proven.proof.value("passed", false);
 	if(const std::optional<std::string> revision = arguments.value("--revision"); revision && passed)
 		writeFile(*revision,
 		          vcs::compositionRevision(proven.proof.value("feature", ""), proven.record, "features", inputs.host)

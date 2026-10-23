@@ -114,7 +114,7 @@ struct Opened {
 
 } // namespace
 
-std::vector<Workload> temperaWorkloads(Context&) {
+std::vector<Workload> temperaWorkloads(Context& /*context*/) {
 	const auto opened = std::make_shared<Opened>();
 	opened->open();
 	std::vector<Workload> workloads;

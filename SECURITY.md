@@ -151,7 +151,6 @@ screens, actions, and the live state.
   `run`. A use of the document's own component (which wins over a built-in of the same name) is scanned with its
   defaults and literal parameters in place: `{"use": "go", "with": {"act": "approve"}}` is refused when `go` runs
   `"{{act}}"` and `approve` holds a control step, as is one expanded through more than 64 nested uses.
-  application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`.
 - **service steps out of bounds**: `respond` is a control step. An `invoke` or `subscribe` a revision adds must name
   a declared service and a method of it the provider lets revisions use, by a fixed name; and when the method writes
   or runs something it is always reviewed: the change becomes a proposal whatever the allow rules, grants or mode
@@ -167,6 +166,10 @@ screen before and after, not by how the patch is written:
 - otherwise a matching `ask` sends it to review;
 - otherwise it applies only if `allow` rules and grants cover everything it changes;
 - anything else goes to review.
+
+A rule's author can be a role (`role:design`, VERSION_CONTROL.md "Roles"). Only the host or a reviewer gives an
+author or a channel a role, never for its own channel, and it lasts for the run; an author's own role wins over its
+channel's.
 
 A node with `"locked": true` and an `id`, in `root`, `screens` or `templates`, is denied to everyone. Without an
 `id`, or inside a component, `locked` protects nothing. A screen without a `permissions` section applies every
@@ -383,7 +386,10 @@ The MCP server (`mcp/affrescoui_mcp.py`) is started by the agent's client and ta
 the host makes it the author `agent` whatever name the client gives. It only passes on what the agent asks for:
 it has no tool to approve, or to write files, and reads only the format guide and scenarios files: `run_scenarios`
 reads only files named `*.scenarios.json`, and runs the `affrescoui` tool (`test --json`) as a list of arguments,
-with a timeout of 300 s. It runs no other program but `--launch`, a command on its own command line. A message from either side that it can't use gets an error and
+with a timeout of 300 s. `get_contributions` (`contributions`, 60 s) and `check_composition` and `install_feature`
+(`check --compose`, 300 s) run the same tool the same way on a `*.screen.json` file and the feature file the agent
+names, which the tool reads as `check` does. It runs no other program but `--launch`, a command on its own command
+line. A message from either side that it can't use gets an error and
 costs only that message, and its log escapes what isn't printable, as the host's does. What it hands the agent (a person's request, the document, events) was written by peers
 and people: an agent should treat it as data, and a request as instructions from the channel it came from (see
 "Requests relayed between peers").
@@ -604,7 +610,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Passes of one GPU surface (`SurfaceFrame::pass`) | 8; a pass and the surface itself at most 4,096 pixels a side; the surface's framebuffer (counted twice, for colour and depth) and its passes 256 MiB in all. Over a limit, the surface is disabled with one logged error |
 | Pointer events a GPU surface holds between two renders | 256; older ones are dropped |
 | Usage summaries (`affrescoui_host --usage`, VERSION_CONTROL.md "Usage"): privacy | Off by default; on only with the host's setting and the person's one-time consent, asked on the terminal (no terminal, no consent). Node ids, action names, screen names, counts and times only: never text, values, the state or pictures. Ids as the document writes them, never evaluated |
-| Usage summaries: where they are kept and who reads them | On the device only, in `<data folder>/<screen>.usage.json` beside the "persist" state; nothing is sent anywhere. Only a peer that may review reads (`getUsage`, MCP `get_usage`) or clears (`clearUsage`) them, and only while they are on: an agent can't grant itself that |
+| Usage summaries: where they are kept and who reads them | On the device only, in `<data folder>/<screen>.usage.json` beside the "persist" state, readable by its owner only (`0600`); nothing is sent anywhere. Only a peer that may review reads (`getUsage`, MCP `get_usage`) or clears (`clearUsage`) them, and only while they are on: an agent can't grant itself that |
 | Usage summaries: bounds | 1,024 node and action pairs, 64 screens, 1,024 controls listed as never used; names of 1 to 64 printable bytes (others aren't counted); counts stop at 10^9; counts not made for 30 days are dropped; a file over 1 MiB isn't read |
 | A `search` service | 4 calls at once; 2,000 results by default, 20,000 at most; folders 64 deep; a file replaced in 8 MiB, a replaced text 64 MiB |
 | Globs a `search` call or a `.gitignore` gives (`SearchGlob`) | 256 bytes a glob, 64 globs a list; 64 KiB of a `.gitignore` read, 10,000 rules kept |

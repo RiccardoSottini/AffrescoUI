@@ -10,11 +10,13 @@
 #include <doctest/doctest.h>
 
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
 
 using affresco::Action;
+using affresco::CharEvent;
 using affresco::Edge;
 using affresco::MouseButton;
 using affresco::Panel;
@@ -182,6 +184,26 @@ TEST_CASE("render: a scroll scrolls the nearest scrollable panel under the point
 	CHECK(item.frame().top == -200.0f);
 }
 
+TEST_CASE("render: a scroll that isn't a finite number is dropped") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 200, clock);
+	Panel& list = box(window->root(), 0, 0, 100, 100);
+	list.setScrollable(false, true);
+	box(list, 0, 0, 100, 300);
+	int heard = 0;
+	window->onScroll.connect([&](const affresco::ScrollEvent&) { ++heard; });
+	window->render();
+	const float nan = std::numeric_limits<float>::quiet_NaN(), infinity = std::numeric_limits<float>::infinity();
+	window->routeScroll({{0.0f, nan}, {50.0f, 50.0f}});
+	window->routeScroll({{0.0f, -infinity}, {50.0f, 50.0f}});
+	window->routeScroll({{0.0f, -1.0f}, {nan, 50.0f}});
+	CHECK(heard == 0);
+	CHECK(list.scrollOffset() == Vec2{0.0f, 0.0f});
+	window->routeScroll({{0.0f, -1.0f}, {50.0f, 50.0f}});
+	CHECK(heard == 1);
+	CHECK(list.scrollOffset() == Vec2{0.0f, 24.0f});
+}
+
 TEST_CASE("render: focus moves, and a destroyed panel drops the focus, hover and capture") {
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(200, 100, clock);
@@ -270,4 +292,48 @@ TEST_CASE("render: a deferred task runs once the outermost event is delivered") 
 	window->routeMouseButton({MouseButton::Left, Action::Press, {}, {10.0f, 10.0f}});
 	CHECK(order == std::vector<std::string>{"handler", "deferred"});
 	CHECK_FALSE(window->routingInput());
+}
+
+TEST_CASE("render: a drop leaves out the paths a screen can't take, and too many of them") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	std::vector<std::vector<std::string>> drops;
+	window->onDrop.connect([&](const affresco::DropEvent& event) { drops.push_back(event.paths); });
+
+	const std::string nul("/a\0b", 4);
+	window->routeDrop({{"/ok.txt", "/bad\xFF.txt", nul, std::string(32769, 'a'), "", "/caf\xC3\xA9\xEF\xBF\xBD"}, {}});
+	REQUIRE(drops.size() == 1);
+	CHECK(drops[0] == std::vector<std::string>{"/ok.txt", "/caf\xC3\xA9\xEF\xBF\xBD"});
+
+	window->routeDrop({{"/\xC0\xAF", "/\xED\xA0\x80"}, {}}); // an overlong slash, a surrogate: nothing left
+	CHECK(drops.size() == 1);
+
+	window->routeDrop({std::vector<std::string>(5000, "/f"), {}});
+	REQUIRE(drops.size() == 2);
+	CHECK(drops[1].size() == 4096);
+}
+
+TEST_CASE("render: a typed codepoint that is no character is dropped") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	std::vector<char32_t> typed;
+	window->onChar.connect([&](const CharEvent& event) { typed.push_back(event.codepoint); });
+	for(const char32_t codepoint : {U'a', char32_t{0xD800}, char32_t{0xDFFF}, char32_t{0x110000}, U'\U0010FFFF'})
+		window->routeChar({codepoint});
+	CHECK(typed == std::vector<char32_t>{U'a', U'\U0010FFFF'});
+}
+
+TEST_CASE("render: a paste reads at most 64 MiB of the clipboard, and never half a character") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	constexpr std::size_t cap = std::size_t{64} << 20U;
+	window->setClipboardText(std::string(cap, 'a'));
+	CHECK(window->clipboardText().size() == cap);
+
+	std::string text(cap - 1, 'a');
+	text += "\xE2\x82\xAC"; // a euro sign across the cut
+	window->setClipboardText(text);
+	const std::string read = window->clipboardText();
+	CHECK(read.size() == cap - 1);
+	CHECK(read.back() == 'a');
 }

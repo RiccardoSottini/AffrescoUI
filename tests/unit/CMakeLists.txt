@@ -17,15 +17,18 @@ add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOU
 	${affrescoui_forge_dir}/features/editor/Buffers.cpp ${affrescoui_forge_dir}/features/search/Search.cpp
 	${affrescoui_forge_dir}/features/scm/GitStatus.cpp ${affrescoui_forge_dir}/features/scm/GitArguments.cpp
 	${affrescoui_forge_dir}/features/scm/LineDiff.cpp ${affrescoui_forge_dir}/features/scm/Scm.cpp)
-# lsp.cpp tests the lsp feature's protocol functions
-target_sources(affrescoui_unit_tests PRIVATE ${affrescoui_forge_dir}/features/lsp/LspProtocol.cpp)
+# lsp.cpp tests the lsp feature's protocol functions, lsp_edits.cpp its edits applied to the folder
+target_sources(affrescoui_unit_tests PRIVATE ${affrescoui_forge_dir}/features/lsp/LspProtocol.cpp
+	${affrescoui_forge_dir}/features/lsp/LspText.cpp ${affrescoui_forge_dir}/features/lsp/LspCall.cpp
+	${affrescoui_forge_dir}/features/lsp/LspEdits.cpp)
 # Expression.hpp, Utf8.hpp, Sha256.hpp, Lines.hpp, Png.hpp and automation's Internal.hpp and PngReader.hpp stay private
-target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src
+target_include_directories(affrescoui_unit_tests PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src
 	${PROJECT_SOURCE_DIR}/modules/automation/src ${PROJECT_SOURCE_DIR}/modules/net/src
 	${PROJECT_SOURCE_DIR}/modules/services/src ${affrescoui_forge_dir}
-	${PROJECT_SOURCE_DIR}/examples/shared) # Templates.hpp
+	${PROJECT_SOURCE_DIR}/examples/shared # Templates.hpp
+	${PROJECT_SOURCE_DIR}/examples/studio) # EvidencePicture.hpp
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/shared/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
@@ -39,7 +42,8 @@ target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 # The checker's tests read the shipped templates, which must have no findings
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_EXAMPLES_DIRECTORY="${PROJECT_SOURCE_DIR}/examples"
-	AFFRESCOUI_PROTOTYPES_DIR="${PROJECT_SOURCE_DIR}/rfcs/prototypes") # services.cpp starts the JSON-RPC prototype
+	AFFRESCOUI_PROTOTYPES_DIR="${PROJECT_SOURCE_DIR}/rfcs/prototypes" # services.cpp starts the JSON-RPC prototype
+	AFFRESCOUI_FAKE_ADAPTER="${PROJECT_SOURCE_DIR}/tests/dap/fake_adapter.py") # dap.cpp starts the fake debug adapter
 # document_server.cpp tests the document server (examples/server), which needs no window
 target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/server/DocumentServer.cpp
 	${PROJECT_SOURCE_DIR}/examples/server/TokenFile.cpp ${PROJECT_SOURCE_DIR}/examples/server/UserInfoVerifier.cpp)
@@ -53,9 +57,11 @@ target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/mode
 	${PROJECT_SOURCE_DIR}/examples/modello/ModelloView.cpp ${PROJECT_SOURCE_DIR}/examples/modello/ModelloEdit.cpp
 	${PROJECT_SOURCE_DIR}/examples/modello/ModelloFiles.cpp)
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/modello)
-# sinopia_*.cpp test the slides app's deck model, arranging and shapes (examples/sinopia), which need no window
-target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia/Deck.cpp
-	${PROJECT_SOURCE_DIR}/examples/sinopia/Arrange.cpp ${PROJECT_SOURCE_DIR}/examples/sinopia/ShapeGeometry.cpp)
+# sinopia_*.cpp test the slides app's deck model, edits, arranging and shapes (examples/sinopia), which need no window
+target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Deck.cpp
+	${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Write.cpp
+	${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Arrange.cpp ${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Edit.cpp
+	${PROJECT_SOURCE_DIR}/examples/sinopia/drawing/ShapeGeometry.cpp)
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/examples/shared)
 add_test(NAME unit COMMAND affrescoui_unit_tests WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 

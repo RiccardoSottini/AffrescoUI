@@ -232,7 +232,7 @@ TerminalModel::TerminalModel(int rows, int columns, std::size_t scrollbackLines)
       columns_(clampCells(columns)) {
 	vterm_set_utf8(terminal_.get(), 1);
 	vterm_output_set_callback(terminal_.get(), &TerminalCallbacks::output, this);
-	screen_ = vterm_obtain_screen(terminal_.get());
+	screen_ = vterm_obtain_screen(terminal_.get()); // NOLINT(cppcoreguidelines-prefer-member-initializer): once set up
 	vterm_screen_enable_altscreen(screen_, 1);
 	vterm_screen_set_callbacks(screen_, &screenCallbacks, this);
 	vterm_screen_reset(screen_, 1);
@@ -279,7 +279,7 @@ TerminalCell TerminalModel::cell(std::size_t line, int column) const {
 		return index < cells.size() ? cells[index] : TerminalCell{};
 	}
 	const std::size_t row = line - scrollback_.size();
-	if(row >= static_cast<std::size_t>(rows_)) return {};
+	if(std::cmp_greater_equal(row, rows_)) return {};
 	VTermScreenCell source{};
 	if(vterm_screen_get_cell(screen_, VTermPos{static_cast<int>(row), column}, &source) == 0) return {};
 	return cellFrom(screen_, source);

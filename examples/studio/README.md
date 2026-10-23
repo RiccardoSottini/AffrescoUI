@@ -12,6 +12,7 @@ C++ only connects it.
 | File | What it is |
 |---|---|
 | `studio.cpp` | The program: loads the screen and connects it to the host's socket |
+| `EvidencePicture.hpp` | A proposal's evidence pictures: decoded, and the changed region outlined, clipped to the picture whatever region the peer sends (`tests/unit/studio_evidence.cpp`) |
 | `studio.screen.json` | The screen document |
 | `studio-features.json`, `studio-repairs.json` | Parts of the document it includes |
 | `studio-strings.json` | Its texts in English, Italian and Arabic (`strings`, `t()`) |

@@ -86,7 +86,8 @@ int run(const Options& options) {
 		createSocketDir(options.socketDir);
 		screen.listen(app, options.socketDir / "studio.sock", "studio");
 		screen.listen(app, options.socketDir / "agent.sock", "agent");
-		std::cerr << "affrescoui_modello: listening in " << options.socketDir.string() << " (studio.sock, agent.sock)\n";
+		std::cerr << "affrescoui_modello: listening in " << options.socketDir.string()
+		          << " (studio.sock, agent.sock)\n";
 	}
 	return app.run();
 }

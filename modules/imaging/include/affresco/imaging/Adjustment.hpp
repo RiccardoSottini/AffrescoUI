@@ -96,6 +96,7 @@ enum class AdjustmentShader : std::uint8_t { perChannel, byLuminosity, hueSatura
 [[nodiscard]] AdjustmentShader adjustmentShader(const Adjustment& adjustment) noexcept;
 /// @brief The adjustment's table: 256 entries of red, green, blue and alpha bytes (per channel, or by luminosity).
 /// @param adjustment The adjustment.
+// NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result): a constant, far from int's limit
 [[nodiscard]] std::array<std::uint8_t, 256 * 4> adjustmentTable(const Adjustment& adjustment);
 /// @brief Applies an adjustment to a colour (the CPU reference); alpha is kept.
 /// @param adjustment The adjustment.

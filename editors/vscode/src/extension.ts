@@ -9,9 +9,9 @@ import * as vscode from 'vscode';
 import { Definitions, definitionsOf, describeKey } from './catalog';
 import { parseReport, placeProblem } from './check';
 import { member, nodeAt } from './json';
-import { Doc, Place, definitions, includesOf, makeDoc, positionAt, references, symbolAt } from './resolver';
+import { Doc, Place, Sym, definitions, includesOf, makeDoc, positionAt, references, symbolAt } from './resolver';
 import { Preview } from './preview';
-import { runTool } from './tool';
+import { ToolResult, runTool } from './tool';
 
 /** The most files a screen and its includes may be, for navigation. */
 const maxFiles = 64;
@@ -171,7 +171,7 @@ class Checker {
 	}
 
 	/**
-	 * Checks a screen as it is on disk.
+	 * Checks a screen as it is on disk, once at a time: a check asked for while one runs follows it.
 	 * @param document the screen
 	 */
 	private async check(document: vscode.TextDocument): Promise<void> {
@@ -190,43 +190,56 @@ class Checker {
 			const timeout = config.get<number>('check.timeoutMs', 15000);
 			const file = document.uri.fsPath;
 			const result = await runTool(config.get<string>('cliPath', 'affrescoui'), ['check', '--json', file], dirname(file), timeout);
-			if (document.isClosed) return;
-			if (result.failure === 'missing') {
-				this.collection.delete(document.uri);
-				if (!this.warnedMissing) {
-					this.warnedMissing = true;
-					void vscode.window.showWarningMessage(
-						'AffrescoUI: the affrescoui tool wasn\'t found, so screens aren\'t checked. Put it on PATH or set affrescoui.cliPath.',
-					);
-				}
-				return;
-			}
-			const top = new vscode.Range(0, 0, 0, 0);
-			if (result.failure === 'timeout') {
-				this.collection.set(document.uri, [new vscode.Diagnostic(top, `affrescoui check took longer than ${timeout} ms and was stopped.`, vscode.DiagnosticSeverity.Warning)]);
-				return;
-			}
-			const problems = result.code === 0 || result.code === 1 ? parseReport(result.stdout) : undefined;
-			if (!problems) {
-				const why = (result.stderr || result.stdout).trim().split('\n')[0] || `exit ${result.code}`;
-				this.collection.set(document.uri, [new vscode.Diagnostic(top, `affrescoui check couldn't check this file: ${why}`, vscode.DiagnosticSeverity.Warning)]);
-				return;
-			}
-			const doc = makeDoc(key, document.getText());
-			this.collection.set(
-				document.uri,
-				problems.map((problem) => {
-					const placed = placeProblem(doc, problem);
-					const range = new vscode.Range(document.positionAt(placed.start), document.positionAt(placed.end));
-					const diagnostic = new vscode.Diagnostic(range, placed.message, vscode.DiagnosticSeverity.Error);
-					diagnostic.source = `affrescoui ${placed.source}`.trim();
-					return diagnostic;
-				}),
-			);
+			if (!document.isClosed) this.show(document, result, timeout);
 		} finally {
 			this.running.delete(key);
 			if (this.pending.delete(key)) this.schedule(document);
 		}
+	}
+
+	/**
+	 * Shows what a check found: its problems, or a warning at the top when the check couldn't run.
+	 * @param document the screen
+	 * @param result   how `affrescoui check --json` ended
+	 * @param timeout  how long it was allowed, in milliseconds
+	 */
+	private show(document: vscode.TextDocument, result: ToolResult, timeout: number): void {
+		if (result.failure === 'missing') {
+			this.collection.delete(document.uri);
+			this.warnMissing();
+			return;
+		}
+		const top = new vscode.Range(0, 0, 0, 0);
+		if (result.failure === 'timeout') {
+			this.collection.set(document.uri, [new vscode.Diagnostic(top, `affrescoui check took longer than ${timeout} ms and was stopped.`, vscode.DiagnosticSeverity.Warning)]);
+			return;
+		}
+		const problems = result.code === 0 || result.code === 1 ? parseReport(result.stdout) : undefined;
+		if (!problems) {
+			const why = (result.stderr || result.stdout).trim().split('\n')[0] || `exit ${result.code}`;
+			this.collection.set(document.uri, [new vscode.Diagnostic(top, `affrescoui check couldn't check this file: ${why}`, vscode.DiagnosticSeverity.Warning)]);
+			return;
+		}
+		const doc = makeDoc(document.uri.toString(), document.getText());
+		this.collection.set(
+			document.uri,
+			problems.map((problem) => {
+				const placed = placeProblem(doc, problem);
+				const range = new vscode.Range(document.positionAt(placed.start), document.positionAt(placed.end));
+				const diagnostic = new vscode.Diagnostic(range, placed.message, vscode.DiagnosticSeverity.Error);
+				diagnostic.source = `affrescoui ${placed.source}`.trim();
+				return diagnostic;
+			}),
+		);
+	}
+
+	/** Says once per session that the tool wasn't found, rather than on every check. */
+	private warnMissing(): void {
+		if (this.warnedMissing) return;
+		this.warnedMissing = true;
+		void vscode.window.showWarningMessage(
+			'AffrescoUI: the affrescoui tool wasn\'t found, so screens aren\'t checked. Put it on PATH or set affrescoui.cliPath.',
+		);
 	}
 }
 
@@ -244,6 +257,94 @@ function loadCatalog(context: vscode.ExtensionContext): Definitions {
 }
 
 /**
+ * Opens the preview of a screen, or shows the one already open.
+ * @param previews the open previews, by file
+ * @param uri      the screen, else the active editor's
+ */
+function openPreview(previews: Map<string, Preview>, uri?: vscode.Uri): void {
+	const target = uri instanceof vscode.Uri ? uri : vscode.window.activeTextEditor?.document.uri;
+	if (!target || target.scheme !== 'file' || !target.fsPath.endsWith('.screen.json')) {
+		return void vscode.window.showInformationMessage('AffrescoUI: open a .screen.json file to preview it.');
+	}
+	if (!vscode.workspace.isTrusted) {
+		return void vscode.window.showInformationMessage('AffrescoUI: the preview runs affrescoui render, so it needs a trusted workspace.');
+	}
+	const existing = previews.get(target.fsPath);
+	if (existing) return existing.reveal();
+	previews.set(target.fsPath, new Preview(target.fsPath, () => previews.delete(target.fsPath)));
+}
+
+/**
+ * Finds where the symbol at a position is defined: an include's file, or the places that define a name.
+ * @param document the document
+ * @param position where the symbol is
+ * @return the definitions, or undefined when there is no symbol there
+ */
+async function definitionAt(document: vscode.TextDocument, position: vscode.Position): Promise<vscode.Location | vscode.Location[] | undefined> {
+	if (!isAffresco(document)) return undefined;
+	const docs = await loadDocs(document);
+	const sym = symbolAt(docOf(docs, document), document.offsetAt(position));
+	if (!sym) return undefined;
+	if (sym.kind === 'include') return new vscode.Location(vscode.Uri.file(resolve(dirname(document.uri.fsPath), sym.name)), new vscode.Position(0, 0));
+	return definitions(docs, sym).map((place) => locationOf(docs, place));
+}
+
+/**
+ * Finds the places that use the symbol at a position.
+ * @param document           the document
+ * @param position           where the symbol is
+ * @param includeDeclaration whether its definitions count
+ * @return the places, or undefined when there is no symbol there
+ */
+async function referencesAt(document: vscode.TextDocument, position: vscode.Position, includeDeclaration: boolean): Promise<vscode.Location[] | undefined> {
+	if (!isAffresco(document)) return undefined;
+	const docs = await loadDocs(document);
+	const sym = symbolAt(docOf(docs, document), document.offsetAt(position));
+	if (!sym || sym.kind === 'include') return undefined;
+	return references(docs, sym, includeDeclaration).map((place) => locationOf(docs, place));
+}
+
+/**
+ * Describes what is at a position: a key from the catalog, else the definition of the symbol there.
+ * @param document the document
+ * @param position the position
+ * @param catalog  the schema's definitions
+ * @return the hover, or undefined when there is nothing to say
+ */
+async function hoverAt(document: vscode.TextDocument, position: vscode.Position, catalog: Definitions): Promise<vscode.Hover | undefined> {
+	if (!isAffresco(document)) return undefined;
+	const offset = document.offsetAt(position);
+	const docs = await loadDocs(document);
+	const doc = docOf(docs, document);
+	const key = describeKey(doc, offset, catalog);
+	if (key) return new vscode.Hover(new vscode.MarkdownString(key.markdown), new vscode.Range(document.positionAt(key.start), document.positionAt(key.end)));
+	const sym = symbolAt(doc, offset);
+	if (!sym || sym.kind === 'include') return undefined;
+	const excerpt = definitionExcerpt(docs, sym);
+	if (excerpt === undefined) return undefined;
+	const markdown = new vscode.MarkdownString().appendMarkdown(`**${sym.kind}** \`${sym.name}\``).appendCodeblock(excerpt, 'json');
+	return new vscode.Hover(markdown, new vscode.Range(document.positionAt(sym.start), document.positionAt(sym.end)));
+}
+
+/**
+ * Returns the text that defines a symbol, cut to 600 characters: the value of the member it is the key of, or the
+ * value around it.
+ * @param docs the documents
+ * @param sym  the symbol
+ * @return the text, or undefined when it has no definition
+ */
+function definitionExcerpt(docs: Doc[], sym: Sym): string | undefined {
+	const place = definitions(docs, sym)[0];
+	if (!place) return undefined;
+	const defined = docs.find((d) => d.uri === place.uri)!;
+	const at = defined.root && nodeAt(defined.root, place.start);
+	const value = at?.key ? at.key.value : at?.node.parent ?? at?.node;
+	if (!value) return undefined;
+	const excerpt = defined.text.slice(value.start, value.end);
+	return excerpt.length > 600 ? excerpt.slice(0, 600) + '\n…' : excerpt;
+}
+
+/**
  * Starts the extension.
  * @param context the extension's context
  */
@@ -256,6 +357,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		{ language: 'json', scheme: 'file' },
 		{ language: 'jsonc', scheme: 'file' },
 	];
+	const checkAll = () => vscode.workspace.textDocuments.forEach((document) => checker.schedule(document));
 
 	context.subscriptions.push(
 		collection,
@@ -265,71 +367,24 @@ export function activate(context: vscode.ExtensionContext): void {
 			previews.get(document.uri.fsPath)?.schedule();
 		}),
 		vscode.workspace.onDidCloseTextDocument((document) => checker.forget(document)),
-		vscode.workspace.onDidGrantWorkspaceTrust(() => vscode.workspace.textDocuments.forEach((document) => checker.schedule(document))),
+		vscode.workspace.onDidGrantWorkspaceTrust(checkAll),
 		vscode.workspace.onDidChangeConfiguration((event) => {
-			if (event.affectsConfiguration('affrescoui')) vscode.workspace.textDocuments.forEach((document) => checker.schedule(document));
+			if (event.affectsConfiguration('affrescoui')) checkAll();
 		}),
 
 		vscode.commands.registerCommand('affrescoui.check', () => {
 			const document = vscode.window.activeTextEditor?.document;
 			if (document) checker.schedule(document);
 		}),
-		vscode.commands.registerCommand('affrescoui.preview', (uri?: vscode.Uri) => {
-			const target = uri instanceof vscode.Uri ? uri : vscode.window.activeTextEditor?.document.uri;
-			if (!target || target.scheme !== 'file' || !target.fsPath.endsWith('.screen.json')) {
-				return void vscode.window.showInformationMessage('AffrescoUI: open a .screen.json file to preview it.');
-			}
-			if (!vscode.workspace.isTrusted) {
-				return void vscode.window.showInformationMessage('AffrescoUI: the preview runs affrescoui render, so it needs a trusted workspace.');
-			}
-			const existing = previews.get(target.fsPath);
-			if (existing) return existing.reveal();
-			previews.set(target.fsPath, new Preview(target.fsPath, () => previews.delete(target.fsPath)));
-		}),
+		vscode.commands.registerCommand('affrescoui.preview', (uri?: vscode.Uri) => openPreview(previews, uri)),
 
-		vscode.languages.registerDefinitionProvider(selector, {
-			async provideDefinition(document, position) {
-				if (!isAffresco(document)) return undefined;
-				const docs = await loadDocs(document);
-				const sym = symbolAt(docOf(docs, document), document.offsetAt(position));
-				if (!sym) return undefined;
-				if (sym.kind === 'include') return new vscode.Location(vscode.Uri.file(resolve(dirname(document.uri.fsPath), sym.name)), new vscode.Position(0, 0));
-				return definitions(docs, sym).map((place) => locationOf(docs, place));
-			},
-		}),
+		vscode.languages.registerDefinitionProvider(selector, { provideDefinition: definitionAt }),
 		vscode.languages.registerReferenceProvider(selector, {
-			async provideReferences(document, position, refContext) {
-				if (!isAffresco(document)) return undefined;
-				const docs = await loadDocs(document);
-				const sym = symbolAt(docOf(docs, document), document.offsetAt(position));
-				if (!sym || sym.kind === 'include') return undefined;
-				return references(docs, sym, refContext.includeDeclaration).map((place) => locationOf(docs, place));
-			},
+			provideReferences: (document, position, refContext) => referencesAt(document, position, refContext.includeDeclaration),
 		}),
-		vscode.languages.registerHoverProvider(selector, {
-			async provideHover(document, position) {
-				if (!isAffresco(document)) return undefined;
-				const offset = document.offsetAt(position);
-				const docs = await loadDocs(document);
-				const doc = docOf(docs, document);
-				const key = describeKey(doc, offset, catalog);
-				if (key) return new vscode.Hover(new vscode.MarkdownString(key.markdown), new vscode.Range(document.positionAt(key.start), document.positionAt(key.end)));
-				const sym = symbolAt(doc, offset);
-				if (!sym || sym.kind === 'include') return undefined;
-				const place = definitions(docs, sym)[0];
-				if (!place) return undefined;
-				const defined = docs.find((d) => d.uri === place.uri)!;
-				const at = defined.root && nodeAt(defined.root, place.start);
-				const value = at?.key ? at.key.value : at?.node.parent ?? at?.node;
-				if (!value) return undefined;
-				let excerpt = defined.text.slice(value.start, value.end);
-				if (excerpt.length > 600) excerpt = excerpt.slice(0, 600) + '\n…';
-				const markdown = new vscode.MarkdownString().appendMarkdown(`**${sym.kind}** \`${sym.name}\``).appendCodeblock(excerpt, 'json');
-				return new vscode.Hover(markdown, new vscode.Range(document.positionAt(sym.start), document.positionAt(sym.end)));
-			},
-		}),
+		vscode.languages.registerHoverProvider(selector, { provideHover: (document, position) => hoverAt(document, position, catalog) }),
 	);
-	vscode.workspace.textDocuments.forEach((document) => checker.schedule(document));
+	checkAll();
 }
 
 /** Stops the extension: its subscriptions are disposed by VS Code. */

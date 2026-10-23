@@ -39,6 +39,16 @@ namespace {
 	return body.contains(key) && body[key].is_string() ? body[key].get<std::string>() : "";
 }
 
+/// @brief An A2UI Divider: a line across, or a short one down when its "axis" is "vertical".
+/// @param body The component's properties.
+/// @return The line.
+Built divider(const json& body) {
+	const bool vertical = body.value("axis", json()) == "vertical";
+	Built line{{{"height", vertical ? 24 : 1}, {"color", "@divider"}}, vertical ? 24.0f : 1.0f};
+	if(vertical) line.node["width"] = 1;
+	return line;
+}
+
 } // namespace
 
 Built A2uiConverter::build(const std::string& id, float width, const Scope& scope) {
@@ -48,8 +58,9 @@ Built A2uiConverter::build(const std::string& id, float width, const Scope& scop
 	if(found == components_.end()) return out_.placeholder("missing component '" + id + "'", at, width);
 	if(visiting_.contains(id)) return out_.placeholder("component '" + id + "' inside itself", at, width);
 	visiting_.insert(id);
-	const std::string type = found->second.begin().key();
-	const json& body = found->second.begin().value();
+	const auto entry = found->second.begin();
+	const std::string& type = entry.key();
+	const json& body = entry.value();
 	Built built = body.is_object() ? buildType(type, body, id, width, {scope.inTemplate, scope.depth + 1})
 	                               : out_.placeholder(type + " without properties", at, width);
 	visiting_.erase(id);
@@ -72,12 +83,7 @@ Built A2uiConverter::buildType(const std::string& type, const json& body, const 
 	if(type == "TextField") return textField(body, id, width, scope);
 	if(type == "MultipleChoice") return multipleChoice(body, id, scope);
 	if(type == "Slider") return slider(body, id, scope);
-	if(type == "Divider") {
-		const bool vertical = body.value("axis", json()) == "vertical";
-		Built line{{{"height", vertical ? 24 : 1}, {"color", "@divider"}}, vertical ? 24.0f : 1.0f};
-		if(vertical) line.node["width"] = 1;
-		return line;
-	}
+	if(type == "Divider") return divider(body);
 	return out_.placeholder(type, at, width); // Icon, Video, AudioPlayer, Modal, DateTimeInput, or another catalog's
 }
 
@@ -124,6 +130,7 @@ Built A2uiConverter::container(const json& body, const std::string& id, bool acr
 	const float gap = 8;
 	const float each = across && !ids.empty() ? (width - gap * static_cast<float>(ids.size() - 1)) / static_cast<float>(ids.size()) : width;
 	std::vector<Built> built;
+	built.reserve(ids.size());
 	for(const std::string& child : ids) built.push_back(build(child, std::max(each, 16.0f), scope));
 	return across ? row(out_.uniqueId(id), std::move(built), gap) : column(out_.uniqueId(id), std::move(built), gap);
 }

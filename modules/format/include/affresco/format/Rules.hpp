@@ -21,8 +21,9 @@ class SectionRegistry;
 /// "permissions" holds rules like Claude Code's: `{"allow": [...], "ask": [...], "deny": [...], "reviewers": [...]}`,
 /// each rule "author" or "author(pattern)". Without a "permissions" section everyone may change everything.
 /// Revisions may never change the permissions or add or alter control steps (accept, reject, preview, restore,
-/// revert, undo, patch, call, send, connect, respond), so no author can approve itself. Nor may they refer to state paths, variables,
-/// actions, styles, components, parameters, fonts, colours or screens that don't exist (SCREEN_FORMAT.md, "Errors").
+/// revert, undo, patch, call, send, connect, respond), so no author can approve itself. Nor may they refer to state
+/// paths, variables, actions, styles, components, parameters, fonts, colours or screens that don't exist
+/// (SCREEN_FORMAT.md, "Errors").
 ///
 /// Used on the main thread: the checker compiles expressions through the main thread's cache.
 class Rules final : public DocumentRules {

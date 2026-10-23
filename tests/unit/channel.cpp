@@ -4,7 +4,7 @@
 /// shell.
 
 #include "Helpers.hpp"
-#include "Lines.hpp" // modules/channel/src: the line framing every channel shares
+#include "transports/Lines.hpp" // modules/channel/src: the line framing every channel shares
 
 #include <affresco/channel/Channels.hpp>
 #include <affresco/channel/Session.hpp>
@@ -31,6 +31,8 @@
 #include <vector>
 
 #ifndef _WIN32
+#include <csignal>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #endif
@@ -143,6 +145,28 @@ TEST_CASE("channel: a Session sends hello when created") {
 	CHECK(joined["coordination"]["peers"][0].at("author") == "agent");
 }
 
+// Before, the session read the hidden "state" from a const document that hadn't it: undefined behaviour
+TEST_CASE("channel: a peer whose data rules hide the whole state reads an empty one") {
+	const affresco::format::Rules rules;
+	json screen = affresco::test::permissionsScreen();
+	screen["permissions"]["data"] = {{{"author", "agent"}, {"never", {"/state"}}}};
+	affresco::vcs::Repository versions(rules, screen);
+	MemoryChannel channel;
+	const affresco::channel::Session session(channel, versions, "agent");
+
+	REQUIRE_FALSE(channel.sent.empty());
+	const json& hello = channel.sent[0];
+	CHECK(hello.at("type") == "hello");
+	CHECK(hello.at("state") == json::object());
+	CHECK_FALSE(hello.at("document").contains("state"));
+
+	channel.receive(R"({"type": "getDocument", "id": 1})");
+	const json& document = channel.sent.back();
+	CHECK(document.at("type") == "document");
+	CHECK(document.at("state") == json::object());
+	CHECK_FALSE(document.at("document").contains("state"));
+}
+
 TEST_CASE("channel: a message of an unknown type gets an error") {
 	Peer peer;
 	const affresco::channel::Session session(peer.channel, peer.versions, "agent");
@@ -244,7 +268,7 @@ TEST_CASE("channel: the shared line framing drops CRs when asked, and ends the s
 			return static_cast<std::ptrdiff_t>(n);
 		};
 		std::atomic<bool> running = true;
-		affresco::channel::detail::readLines(read, executor, channel, std::make_shared<bool>(true), &running,
+		affresco::channel::detail::readLines(read, {executor, channel, std::make_shared<bool>(true)}, &running,
 		                                     dropCarriageReturns);
 		CHECK_FALSE(running);
 		CHECK(executor.runUntil([&] { return closed; }));
@@ -265,6 +289,34 @@ TEST_CASE("channel: the shared line framing drops CRs when asked, and ends the s
 	CHECK(lines == std::vector<std::string>{"before"});
 	CHECK(read < endless.size());
 }
+
+#ifndef _WIN32
+// Before, a signal the process handles without SA_RESTART made the read fail with EINTR, and the channel closed
+TEST_CASE("channel: a signal that interrupts a read doesn't end the stream") {
+	struct sigaction handler{}, before{};
+	handler.sa_handler = [](int) {}; // no SA_RESTART: the read is interrupted
+	sigemptyset(&handler.sa_mask);
+	REQUIRE(sigaction(SIGUSR1, &handler, &before) == 0);
+	std::array<int, 2> ends{};
+	REQUIRE(pipe(ends.data()) == 0);
+
+	std::ptrdiff_t got = 0;
+	std::thread reader([&] {
+		std::array<char, 8> data{};
+		got = affresco::channel::detail::readDescriptor(ends[0], data.data(), data.size());
+	});
+	std::this_thread::sleep_for(100ms); // the reader is waiting in read()
+	pthread_kill(reader.native_handle(), SIGUSR1);
+	std::this_thread::sleep_for(50ms);
+	CHECK(affresco::channel::detail::writeDescriptor(ends[1], "x", 1) == 1);
+	reader.join();
+	CHECK(got == 1);
+
+	close(ends[0]);
+	close(ends[1]);
+	sigaction(SIGUSR1, &before, nullptr);
+}
+#endif
 
 // Found by fuzzing (tests/fuzz, session): the parser's out_of_range got past Session::read and stopped the app
 TEST_CASE("channel: a message with a number too large for a double gets an error") {

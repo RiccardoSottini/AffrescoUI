@@ -103,6 +103,7 @@ struct Pixel {
 [[nodiscard]] constexpr std::uint8_t byteFromUnit(float value) noexcept {
 	if(!(value > 0.0f)) return 0; // also NaN
 	if(value >= 1.0f) return 255;
+	// NOLINTNEXTLINE(bugprone-incorrect-roundings): the value is positive here, so this rounds half up
 	return static_cast<std::uint8_t>(value * 255.0f + 0.5f);
 }
 

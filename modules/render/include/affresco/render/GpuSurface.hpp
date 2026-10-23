@@ -156,7 +156,9 @@ using SurfaceFactory = std::function<std::unique_ptr<GpuSurface>()>;
 /// reach its signals, and reach the surface as SurfacePointer, in its pixels.
 class SurfaceView : public Panel {
 public:
+	/// @brief Starts transparent, with no surface.
 	SurfaceView();
+	/// @brief Stops its redraw timer; the renderer releases its surface at the next frame.
 	~SurfaceView() override;
 
 	/// @brief Shows a surface; another name makes a new one (the old one is released).

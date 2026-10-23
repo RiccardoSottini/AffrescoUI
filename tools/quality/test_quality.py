@@ -77,6 +77,18 @@ class FunctionGateTest(unittest.TestCase):
         self.assertEqual(len(notes), 0)
         self.assertIn("big is 16 lines (limit 10) and complexity 13 (limit 3): new", failures[0][1])
 
+    def test_a_function_moved_out_of_a_removed_file_is_compared_with_what_it_was(self):
+        base = function_text("big", 12)
+        head = base.replace("int total = 0;", "int total = 0; // a comment")
+        file = changed("b.cpp", [(1, 16)], None)
+        failures, notes = functions.gate([file], lambda path: head, lambda path: base if path == "a.cpp" else None,
+                                         LIMITS, ["a.cpp"])
+        self.assertEqual((len(failures), len(notes)), (0, 1))
+        grown = function_text("big", 13)
+        failures, _ = functions.gate([file], lambda path: grown, lambda path: base if path == "a.cpp" else None,
+                                     LIMITS, ["a.cpp"])
+        self.assertIn("was 16 lines and complexity 13", failures[0][1])
+
 
 class TidyTest(unittest.TestCase):
     """tidy.parse and tidy.counts."""
@@ -158,6 +170,12 @@ class ChangesTest(ScratchRepository):
     def test_a_file_with_only_removed_lines_is_left_out(self):
         self.write("modules/a.cpp", "one\nfour\n")
         self.assertEqual(changes.changed_files(self.root, "HEAD", ["modules"], (".cpp",)), [])
+
+    def test_removed_files_are_listed_by_their_base_paths(self):
+        os.remove(os.path.join(self.root, "modules/a.cpp"))
+        self.write("modules/a/split.cpp", "one\ntwo\n")
+        self.git("add", "-A")
+        self.assertEqual(changes.removed_files(self.root, "HEAD", ["modules"], (".cpp",)), ["modules/a.cpp"])
 
     def test_a_renamed_file_keeps_its_base_path(self):
         self.git("mv", "modules/a.cpp", "modules/c.cpp")

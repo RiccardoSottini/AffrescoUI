@@ -44,10 +44,12 @@ def connect(path, timeout=20.0):
 class Mcp:
     """The MCP server over stdio, as Claude Code runs it."""
 
-    def __init__(self, socket_dir):
+    def __init__(self, socket_dir, cli):
+        """Starts it on `socket_dir`, with `cli` as its affrescoui tool: the build's under test, not one on the PATH."""
         self.proc = subprocess.Popen([sys.executable, os.path.join(ROOT, "mcp", "affrescoui_mcp.py"),
                                       "--socket", socket_dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     stderr=subprocess.DEVNULL, text=True, encoding="utf-8")
+                                     stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
+                                     env=dict(os.environ, AFFRESCOUI_CLI=cli))
         self.next_id = 0
         self.call_raw("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
                                      "clientInfo": {"name": "e2e", "version": "1"}})
@@ -93,7 +95,7 @@ def main():
                             env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         studio, studio_stream = connect(os.path.join(sockets, "studio.sock"))
-        mcp = Mcp(sockets)
+        mcp = Mcp(sockets, os.path.join(build, "affrescoui"))
 
         # 1. The agent reads the screen
         text = mcp.tool("get_screen", {"at": "#details-title"})[0]["text"]

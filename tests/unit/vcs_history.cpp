@@ -9,8 +9,8 @@
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
 
-#include "Deltas.hpp"       // modules/vcs/src
-#include "HistoryStore.hpp" // modules/vcs/src: packObjects
+#include "revisions/Deltas.hpp"     // modules/vcs/src
+#include "history/HistoryStore.hpp" // modules/vcs/src: packObjects
 
 #include <doctest/doctest.h>
 

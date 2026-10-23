@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <iterator>
 
 namespace tempera {
 
@@ -24,8 +25,8 @@ constexpr std::size_t mostPoints = 4096;
 /// @param fallback When it is none of them.
 [[nodiscard]] imaging::SelectionMode modeOf(std::string_view name, imaging::SelectionMode fallback) noexcept {
 	constexpr std::array<std::string_view, 4> names{"replace", "add", "subtract", "intersect"};
-	const auto found = std::find(names.begin(), names.end(), name);
-	return found == names.end() ? fallback : static_cast<imaging::SelectionMode>(found - names.begin());
+	const auto index = std::ranges::find(names, name) - names.begin();
+	return index == std::ssize(names) ? fallback : static_cast<imaging::SelectionMode>(index);
 }
 
 /// @brief A point argument: an object with x and y.
@@ -35,14 +36,44 @@ constexpr std::size_t mostPoints = 4096;
 	const auto found = arguments.find(key);
 	if(found == arguments.end() || !found->is_object())
 		throw affresco::DocumentError("Missing point " + std::string(key));
-	return {static_cast<float>(numberOf(*found, "x", 0.0)), static_cast<float>(numberOf(*found, "y", 0.0))};
+	return {static_cast<float>(withinReach(numberOf(*found, "x", 0.0))),
+	        static_cast<float>(withinReach(numberOf(*found, "y", 0.0)))};
+}
+
+/// @brief The coverage of a polygon argument, its points at most the limits' polygonPoints.
+/// @param session The session.
+/// @param arguments points: [{x, y}].
+/// @throws affresco::DocumentError If there is no list of points, or too long a one.
+[[nodiscard]] imaging::Coverage polygonOf(const Session& session, const json& arguments) {
+	const auto found = arguments.find("points");
+	if(found == arguments.end() || !found->is_array() || found->size() > session.limits.polygonPoints)
+		throw affresco::DocumentError("A polygon needs a list of points");
+	std::vector<imaging::Point> points;
+	points.reserve(found->size());
+	for(const json& point : *found)
+		points.push_back({static_cast<float>(withinReach(numberOf(point, "x", 0.0))),
+		                  static_cast<float>(withinReach(numberOf(point, "y", 0.0)))});
+	const imaging::Document& document = session.canvas->document();
+	return imaging::polygonCoverage(document.width(), document.height(), points, session.limits);
+}
+
+/// @brief The coverage of a colour range argument.
+/// @param session The session; its foreground is the colour when none is given.
+/// @param arguments color, fuzziness (0 to 255), allLayers.
+/// @throws affresco::DocumentError If the colour isn't one.
+[[nodiscard]] imaging::Coverage colourRangeOf(const Session& session, const json& arguments) {
+	const auto colour = colorOf(textOf(arguments, "color", hexOf(session.settings.foreground)));
+	if(!colour) throw affresco::DocumentError("Not a colour");
+	const int fuzziness = std::clamp(wholeOf(arguments, "fuzziness", 40), 0, 255);
+	return imaging::colorRangeCoverage(session.canvas->document(), *colour, fuzziness,
+	                                   flagOf(arguments, "allLayers", false));
 }
 
 /// @brief Selects by a shape, a wand click or a colour range; or all, none, the inverse.
-/// @param session The session.
+/// @param document The session's document, whose selection changes.
+/// @param session The session, read for its settings and limits.
 /// @param arguments kind, mode, and the shape's from and to, points, x and y, color and fuzziness.
-void select(Session& session, const json& arguments) {
-	imaging::Document& document = session.canvas->document();
+void select(imaging::Document& document, const Session& session, const json& arguments) {
 	const std::string kind = textOf(arguments, "kind");
 	const auto mode = modeOf(textOf(arguments, "mode"), session.settings.mode);
 	const int width = document.width(), height = document.height();
@@ -57,31 +88,13 @@ void select(Session& session, const json& arguments) {
 		                           : imaging::ellipseCoverage(width, height, from, to),
 		                       mode);
 	}
-	if(kind == "polygon") {
-		const auto found = arguments.find("points");
-		if(found == arguments.end() || !found->is_array() || found->size() > session.limits.polygonPoints)
-			throw affresco::DocumentError("A polygon needs a list of points");
-		std::vector<imaging::Point> points;
-		for(const json& point : *found)
-			points.push_back(
-			    {static_cast<float>(numberOf(point, "x", 0.0)), static_cast<float>(numberOf(point, "y", 0.0))});
-		return imaging::select(document, "Polygonal Lasso",
-		                       imaging::polygonCoverage(width, height, points, session.limits), mode);
-	}
-	if(kind == "wand") {
-		const int x = static_cast<int>(numberOf(arguments, "x", 0.0)),
-		          y = static_cast<int>(numberOf(arguments, "y", 0.0));
-		return imaging::select(document, "Magic Wand", imaging::wandCoverage(document, x, y, session.settings.sample),
+	if(kind == "polygon") return imaging::select(document, "Polygonal Lasso", polygonOf(session, arguments), mode);
+	if(kind == "wand")
+		return imaging::select(document, "Magic Wand",
+		                       imaging::wandCoverage(document, wholeOf(arguments, "x", 0), wholeOf(arguments, "y", 0),
+		                                             session.settings.sample),
 		                       mode);
-	}
-	if(kind == "colorRange") {
-		const auto colour = colorOf(textOf(arguments, "color", hexOf(session.settings.foreground)));
-		if(!colour) throw affresco::DocumentError("Not a colour");
-		const int fuzziness = std::clamp(static_cast<int>(numberOf(arguments, "fuzziness", 40.0)), 0, 255);
-		return imaging::select(
-		    document, "Color Range",
-		    imaging::colorRangeCoverage(document, *colour, fuzziness, flagOf(arguments, "allLayers", false)), mode);
-	}
+	if(kind == "colorRange") return imaging::select(document, "Color Range", colourRangeOf(session, arguments), mode);
 	throw affresco::DocumentError("Unknown selection " + kind);
 }
 
@@ -102,8 +115,7 @@ void select(Session& session, const json& arguments) {
 		    {std::clamp(static_cast<float>(numberOf(stop, "at", numberOf(stop, "position", 0.0))), 0.0f, 1.0f),
 			 *colour});
 	}
-	std::stable_sort(gradient.stops.begin(), gradient.stops.end(),
-	                 [](const auto& left, const auto& right) { return left.position < right.position; });
+	std::ranges::stable_sort(gradient.stops, {}, &imaging::GradientStop::position);
 	return gradient;
 }
 
@@ -114,8 +126,7 @@ void setBrush(Session& session, const json& arguments) {
 	imaging::BrushTip& tip = session.settings.tip;
 	if(const std::string preset = textOf(arguments, "preset"); !preset.empty()) {
 		const auto presets = imaging::brushPresets();
-		const auto found = std::find_if(presets.begin(), presets.end(),
-		                                [&](const auto& candidate) { return candidate.name == preset; });
+		const auto found = std::ranges::find(presets, preset, &imaging::BrushPreset::name);
 		if(found == presets.end()) throw affresco::DocumentError("Unknown brush " + preset);
 		tip = found->tip;
 	}
@@ -136,22 +147,20 @@ void setBrush(Session& session, const json& arguments) {
 void setSampling(Session& session, const json& arguments) {
 	ToolSettings& settings = session.settings;
 	settings.mode = modeOf(textOf(arguments, "mode"), settings.mode);
-	settings.sample.tolerance =
-	    std::clamp(static_cast<int>(numberOf(arguments, "tolerance", settings.sample.tolerance)), 0, 255);
+	settings.sample.tolerance = std::clamp(wholeOf(arguments, "tolerance", settings.sample.tolerance), 0, 255);
 	settings.sample.contiguous = flagOf(arguments, "contiguous", settings.sample.contiguous);
 	settings.sample.allLayers = flagOf(arguments, "allLayers", settings.sample.allLayers);
 	settings.opacity = std::clamp(
 	    static_cast<float>(numberOf(arguments, "fillOpacity", settings.opacity * 100.0) / 100.0), 0.0f, 1.0f);
 	if(const std::string shape = textOf(arguments, "shape"); !shape.empty()) {
 		const auto names = imaging::gradientShapeNames();
-		const auto found = std::find(names.begin(), names.end(), shape);
+		const auto found = std::ranges::find(names, shape);
 		if(found == names.end()) throw affresco::DocumentError("Unknown gradient shape " + shape);
 		settings.shape = static_cast<imaging::GradientShape>(found - names.begin());
 	}
 	if(const std::string preset = textOf(arguments, "gradientPreset"); !preset.empty()) {
 		const auto presets = imaging::gradientPresets();
-		const auto found = std::find_if(presets.begin(), presets.end(),
-		                                [&](const auto& candidate) { return candidate.name == preset; });
+		const auto found = std::ranges::find(presets, preset, &imaging::GradientPreset::name);
 		if(found == presets.end()) settings.gradient.reset();
 		else settings.gradient = found->gradient;
 	}
@@ -194,8 +203,8 @@ void playPointer(Session& session, const json& arguments) {
 	for(const json& point : *points) {
 		const std::string kind = textOf(point, "kind", "move");
 		imaging::CanvasPointer event;
-		event.x = numberOf(point, "x", 0.0);
-		event.y = numberOf(point, "y", 0.0);
+		event.x = withinReach(numberOf(point, "x", 0.0));
+		event.y = withinReach(numberOf(point, "y", 0.0));
 		event.pointer.kind = kind == "press"     ? affresco::PointerKind::press
 		                     : kind == "release" ? affresco::PointerKind::release
 		                     : kind == "scroll"  ? affresco::PointerKind::scroll
@@ -205,7 +214,7 @@ void playPointer(Session& session, const json& arguments) {
 		event.pointer.button =
 		    textOf(point, "button") == "right" ? affresco::MouseButton::Right : affresco::MouseButton::Left;
 		event.pointer.scroll = {0.0f, static_cast<float>(numberOf(point, "scroll", 0.0))};
-		session.pressure = std::clamp(static_cast<float>(numberOf(point, "pressure", 1.0)), 0.0f, 1.0f);
+		session.pressure = static_cast<float>(std::clamp(numberOf(point, "pressure", 1.0), 0.0, 1.0));
 		applyPointer(session, event);
 	}
 	session.pressure = 1.0f;
@@ -236,7 +245,7 @@ void playPointer(Session& session, const json& arguments) {
 	filter.kind = *parsed;
 	filter.radius = static_cast<float>(numberOf(arguments, "radius", filter.radius));
 	filter.amount = static_cast<float>(numberOf(arguments, "amount", filter.amount * 100.0) / 100.0);
-	filter.threshold = static_cast<int>(numberOf(arguments, "threshold", filter.threshold));
+	filter.threshold = wholeOf(arguments, "threshold", filter.threshold);
 	filter.angle = static_cast<float>(numberOf(arguments, "angle", filter.angle));
 	filter.distance = static_cast<float>(numberOf(arguments, "distance", filter.distance));
 	filter.monochrome = flagOf(arguments, "monochrome", filter.monochrome);
@@ -314,7 +323,7 @@ void registerEditing(affresco::Screen& screen, const std::shared_ptr<Session>& s
 	const std::weak_ptr<Session> weak = session;
 	addNative(screen, "tempera.select", weak, [](Session& self, const json& arguments) {
 		settle(self);
-		select(self, arguments);
+		select(self.canvas->document(), self, arguments);
 	});
 	addNative(screen, "tempera.setTool", weak, [](Session& self, const json& arguments) {
 		const auto tool = toolOf(textOf(arguments, "tool"));
@@ -331,8 +340,8 @@ void registerEditing(affresco::Screen& screen, const std::shared_ptr<Session>& s
 	          [](Session& self, const json& arguments) { playPointer(self, arguments); });
 	addNative(screen, "tempera.crop", weak, [](Session& self, const json& arguments) {
 		settle(self);
-		crop(self, static_cast<int>(numberOf(arguments, "x", 0.0)), static_cast<int>(numberOf(arguments, "y", 0.0)),
-		     static_cast<int>(numberOf(arguments, "width", 0.0)), static_cast<int>(numberOf(arguments, "height", 0.0)));
+		crop(self, wholeOf(arguments, "x", 0), wholeOf(arguments, "y", 0), wholeOf(arguments, "width", 0),
+		     wholeOf(arguments, "height", 0));
 	});
 	addNative(screen, "tempera.setProfile", weak,
 	          [](Session& self, const json& arguments) { setProfile(self, arguments); });
@@ -346,8 +355,8 @@ void registerEditing(affresco::Screen& screen, const std::shared_ptr<Session>& s
 		self.view.zoom = std::clamp(self.view.zoom * numberOf(arguments, "by", 1.0), 1.0 / 64.0, 64.0);
 		if(const double to = numberOf(arguments, "to", 0.0); to > 0.0)
 			self.view.zoom = std::clamp(to, 1.0 / 64.0, 64.0);
-		self.view.x = numberOf(arguments, "x", self.view.x);
-		self.view.y = numberOf(arguments, "y", self.view.y);
+		self.view.x = withinReach(numberOf(arguments, "x", self.view.x));
+		self.view.y = withinReach(numberOf(arguments, "y", self.view.y));
 	});
 	registerFilters(screen, weak);
 }

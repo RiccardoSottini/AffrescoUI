@@ -61,6 +61,17 @@ std::vector<affresco::TextRun> runsOf(std::string_view text) {
 	return runs;
 }
 
+/// @brief Checks that a line's pieces lie in it and are placed.
+/// @param layout The layout.
+/// @param line The line.
+void checkPieces(const affresco::TextLayout& layout, const affresco::TextLayout::Line& line) {
+	for(std::size_t index = line.firstPiece; index < line.endPiece; ++index) {
+		const affresco::TextLayout::Piece& part = layout.pieces()[index];
+		if(part.begin < line.begin || part.end < part.begin || !std::isfinite(part.x) || !std::isfinite(part.width))
+			affresco::fuzz::broken("pieces in their line, placed");
+	}
+}
+
 /// @brief Checks what the lines promise: they cover the text in order, their pieces lie in them and stack up.
 /// @param layout The layout.
 void checkLines(const affresco::TextLayout& layout) {
@@ -73,11 +84,7 @@ void checkLines(const affresco::TextLayout& layout) {
 			affresco::fuzz::broken("pieces line by line");
 		if(std::abs(line.top - top) > 0.01f * (1.0f + top) || !(line.height >= 0.0f))
 			affresco::fuzz::broken("lines stack up");
-		for(std::size_t index = line.firstPiece; index < line.endPiece; ++index) {
-			const affresco::TextLayout::Piece& part = layout.pieces()[index];
-			if(part.begin < line.begin || part.end < part.begin || !std::isfinite(part.x) || !std::isfinite(part.width))
-				affresco::fuzz::broken("pieces in their line, placed");
-		}
+		checkPieces(layout, line);
 		next = line.end;
 		piece = line.endPiece;
 		top += line.height;

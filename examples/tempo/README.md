@@ -30,3 +30,10 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 - **Themes and locales:** light and dark tokens; English, Italian and Arabic string tables, Arabic right to left.
 - **Accessibility:** roles and names, live regions, the menu as a tab list with arrow keys, sliders and lists with the keyboard.
 - **Layouts** from 1040 × 640 to full screen, and a mini player.
+
+## How it holds together
+
+- **Permissions:** Studio peers change it directly; an agent's change waits for a Studio reviewer (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The theme, settings, equaliser and volume persist.
+- **Threading and ownership:** it has no C++ of its own but the visualiser, a GPU surface that the host registers. The stock host owns the window and the screen, and runs the document on its UI thread.
+- **Extension points:** the library, the playlists and the queue are entries of `state`; a page is a part of `pages.json`; a language is a table in `strings.json`.
+- **Assets:** the pictures in `images/` are simple vector drawings made for this project, under the repository's Apache-2.0 licence. The fonts' licences are with them in `../shared/fonts`.

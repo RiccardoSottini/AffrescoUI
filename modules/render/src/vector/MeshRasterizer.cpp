@@ -6,19 +6,54 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <optional>
 
 namespace affresco::vector {
 
 namespace {
 
 /// @brief Twice the signed area of the triangle a, b, p: positive when p is left of a→b (in pixel axes, y down).
-[[nodiscard]] float edgeAt(Vec2 a, Vec2 b, Vec2 p) noexcept { return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x); }
+[[nodiscard]] float edgeAt(Vec2 a, Vec2 b, Vec2 p) noexcept {
+	return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+}
 
 /// @brief Whether a pixel exactly on an edge belongs to the triangle: only on its top and left edges, so a pixel two
 /// triangles share is drawn once.
 /// @param a The edge's start.
 /// @param b The edge's end, the triangle turning counter-clockwise (in pixel axes).
 [[nodiscard]] bool ownsEdge(Vec2 a, Vec2 b) noexcept { return a.y > b.y || (a.y == b.y && a.x < b.x); }
+
+/// @brief Whether a pixel centre is inside a triangle: on the inner side of each edge, or on one the triangle owns.
+/// @param weight Its edge functions, one per edge.
+/// @param owns Per edge, whether the triangle owns it (ownsEdge()).
+[[nodiscard]] bool covers(const std::array<float, 3>& weight, const std::array<bool, 3>& owns) noexcept {
+	bool inside = true;
+	for(std::size_t edge = 0; edge < 3; ++edge)
+		inside = inside && (weight[edge] > 0.0f || (weight[edge] == 0.0f && owns[edge]));
+	return inside;
+}
+
+/// @brief The whole pixels around a triangle, within a canvas.
+struct PixelBox {
+	float left;   ///< Its left edge.
+	float top;    ///< Its top edge.
+	float right;  ///< Its right edge.
+	float bottom; ///< Its bottom edge.
+};
+
+/// @brief The whole pixels around a triangle that are on a canvas.
+/// @param p Its corners.
+/// @param width The canvas's width.
+/// @param height Its height.
+/// @return The box, or nothing if it holds no pixel.
+[[nodiscard]] std::optional<PixelBox> pixelBox(const std::array<Vec2, 3>& p, int width, int height) noexcept {
+	const PixelBox box{std::max(std::floor(std::min({p[0].x, p[1].x, p[2].x})), 0.0f),
+	                   std::max(std::floor(std::min({p[0].y, p[1].y, p[2].y})), 0.0f),
+	                   std::min(std::ceil(std::max({p[0].x, p[1].x, p[2].x})), static_cast<float>(width)),
+	                   std::min(std::ceil(std::max({p[0].y, p[1].y, p[2].y})), static_cast<float>(height))};
+	if(!(box.right > box.left) || !(box.bottom > box.top)) return std::nullopt;
+	return box;
+}
 
 /// @brief Converts a channel in [0, 1] to a byte.
 [[nodiscard]] std::uint8_t toByte(float value) noexcept {
@@ -46,32 +81,26 @@ void Canvas::triangle(const std::array<MeshVertex, 3>& corners, const std::array
 	std::array<float, 3> coverage{corners[0].coverage, corners[1].coverage, corners[2].coverage};
 	float area = edgeAt(p[0], p[1], p[2]);
 	if(!(std::abs(area) > 1.0e-6f)) return; // also drops NaN
-	if(area < 0.0f) { // one winding, so the edge rule holds
+	if(area < 0.0f) {                       // one winding, so the edge rule holds
 		std::swap(p[1], p[2]);
 		std::swap(coverage[1], coverage[2]);
 		area = -area;
 	}
-	const float left = std::max(std::floor(std::min({p[0].x, p[1].x, p[2].x})), 0.0f);
-	const float top = std::max(std::floor(std::min({p[0].y, p[1].y, p[2].y})), 0.0f);
-	const float right = std::min(std::ceil(std::max({p[0].x, p[1].x, p[2].x})), static_cast<float>(width_));
-	const float bottom = std::min(std::ceil(std::max({p[0].y, p[1].y, p[2].y})), static_cast<float>(height_));
-	if(!(right > left) || !(bottom > top)) return;
-	const auto visits = static_cast<std::size_t>((right - left) * (bottom - top));
+	const std::optional<PixelBox> box = pixelBox(p, width_, height_);
+	if(!box) return;
+	const auto visits = static_cast<std::size_t>((box->right - box->left) * (box->bottom - box->top));
 	if(visits > workLeft_) {
 		workLeft_ = 0;
 		return;
 	}
 	workLeft_ -= visits;
 	const std::array<bool, 3> owns{ownsEdge(p[1], p[2]), ownsEdge(p[2], p[0]), ownsEdge(p[0], p[1])};
-	for(auto y = static_cast<int>(top); y < static_cast<int>(bottom); ++y)
-		for(auto x = static_cast<int>(left); x < static_cast<int>(right); ++x) {
+	for(auto y = static_cast<int>(box->top); y < static_cast<int>(box->bottom); ++y)
+		for(auto x = static_cast<int>(box->left); x < static_cast<int>(box->right); ++x) {
 			const Vec2 centre{static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f};
 			const std::array<float, 3> weight{edgeAt(p[1], p[2], centre), edgeAt(p[2], p[0], centre),
 			                                  edgeAt(p[0], p[1], centre)};
-			bool inside = true;
-			for(std::size_t edge = 0; edge < 3; ++edge)
-				inside = inside && (weight[edge] > 0.0f || (weight[edge] == 0.0f && owns[edge]));
-			if(!inside) continue;
+			if(!covers(weight, owns)) continue;
 			const float amount = (weight[0] * coverage[0] + weight[1] * coverage[1] + weight[2] * coverage[2]) / area;
 			blend((static_cast<std::size_t>(y) * static_cast<std::size_t>(width_) + static_cast<std::size_t>(x)) * 4,
 			      color, amount);

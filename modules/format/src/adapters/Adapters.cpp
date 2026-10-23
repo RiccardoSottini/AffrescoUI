@@ -13,16 +13,19 @@ namespace {
 /// @brief Whether a value is one A2UI message: an object whose only key is a message's name.
 /// @param value The value.
 /// @return Whether it is.
+// NOLINTNEXTLINE(bugprone-exception-escape): key() throws only off an object, which the size check rules out
 [[nodiscard]] bool a2uiMessage(const json& value) noexcept {
 	constexpr std::array<std::string_view, 4> kinds{"surfaceUpdate", "dataModelUpdate", "beginRendering",
 	                                                "deleteSurface"};
 	if(!value.is_object() || value.size() != 1) return false;
-	const std::string& key = value.begin().key();
+	const auto entry = value.begin();
+	const std::string& key = entry.key();
 	return std::ranges::find(kinds, key) != kinds.end();
 }
 
 } // namespace
 
+// NOLINTNEXTLINE(bugprone-exception-escape): json's iterators throw only when compared across values, never here
 SourceFormat detect(const json& document) noexcept {
 	if(document.is_object() && document.contains("type") && document["type"] == "AdaptiveCard")
 		return SourceFormat::AdaptiveCards;
@@ -41,7 +44,7 @@ std::optional<Converted> convertForeign(std::string_view text, const Options& op
 		case SourceFormat::Screen: break;
 		}
 		return std::nullopt;
-	} catch(const json::parse_error&) { // perhaps JSON Lines: A2UI, one message per line
+	} catch(const json::parse_error&) { // NOLINT(bugprone-empty-catch): perhaps JSON Lines, which the rest tries
 	}
 	const std::string_view first = text.substr(0, std::min(text.find('\n'), text.size()));
 	try {

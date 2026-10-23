@@ -59,6 +59,16 @@ def changed_files(root, base, paths, suffixes):
     return [file for file in files if file.ranges]
 
 
+def removed_files(root, base, paths, suffixes):
+    """The files under `paths` ending in one of `suffixes` that `base` has and the working tree doesn't, by their
+    paths at the base."""
+    output = subprocess.run(
+        ["git", "-c", "core.quotePath=true", "diff", "--name-only", "--no-renames", "--diff-filter=D", base, "--",
+         *paths], cwd=root, check=True, capture_output=True, encoding="utf-8", errors="replace").stdout
+    removed = (diff_path(line, "") for line in output.splitlines())
+    return [path for path in removed if path and path.endswith(suffixes)]
+
+
 def file_at(root, commit, path):
     """The text of a file at a commit, or None if it isn't there. Bytes that aren't UTF-8 are replaced, as when the
     working tree is read, so one odd byte can't stop the gate."""

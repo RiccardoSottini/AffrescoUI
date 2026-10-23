@@ -79,8 +79,8 @@ src/
 ```
 
 It reaches two internals of other modules on purpose, privately: the render module's headless window and manual
-clock (`src/Headless.hpp`, not public yet) and the screen module's PNG encoder and scratch folder (`src/Png.hpp`,
-`src/ScratchFolder.hpp`).
+clock (`render/src/Headless.hpp`, not public yet) and the screen module's PNG encoder and scratch folder
+(`screen/src/Png.hpp`, `screen/src/ScratchFolder.hpp`).
 
 ## Recipes
 

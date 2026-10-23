@@ -1,12 +1,12 @@
 /// @file
-/// @brief Unit tests for the inspector (modules/screen/src/Inspector.cpp, VERSION_CONTROL.md "Inspector"), headless:
-/// off by default, reviewers only, bindings as written and never a value, the statistics it reads and an event trace
-/// that never holds a typed character.
+/// @brief Unit tests for the inspector (modules/screen/src/pictures/Inspector.cpp, VERSION_CONTROL.md "Inspector"),
+/// headless: off by default, reviewers only, bindings as written and never a value, the statistics it reads and an
+/// event trace that never holds a typed character.
 
 #include "Headless.hpp"
 #include "Helpers.hpp"
-#include "Inspector.hpp"       // modules/screen/src
-#include "OffscreenImages.hpp" // modules/screen/src
+#include "pictures/Inspector.hpp"       // modules/screen/src
+#include "pictures/OffscreenImages.hpp" // modules/screen/src
 
 #include <affresco/channel/Session.hpp>
 #include <affresco/format/Rules.hpp>

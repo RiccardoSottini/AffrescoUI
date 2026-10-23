@@ -441,23 +441,21 @@
 		},
 		{
 			"name": "sign-in-light-theme",
-			"note": "The light theme: a white card on a pale background",
+			"note": "The light theme: a white card on a pale background (the toggle's name, with its key as each platform writes it, is in tests/unit/automation.cpp)",
 			"steps": [
 				{ "expect": { "state": "theme", "is": "light" } },
 				{ "expect": { "node": "#card", "property": "color", "is": "#ffffff" } },
-				{ "expect": { "node": "#panel-root", "property": "color", "is": "#eef2ff" } },
-				{ "expect": { "node": "#themeToggle", "property": "name", "is": "Switch to dark (Cmd+J)" } }
+				{ "expect": { "node": "#panel-root", "property": "color", "is": "#eef2ff" } }
 			]
 		},
 		{
 			"name": "dark-theme",
-			"note": "The dark theme from the moon button: a deep card on a dark background, and back with Cmd+J",
+			"note": "The dark theme from the moon button: a deep card on a dark background, and back with Cmd+J (Ctrl+J off macOS)",
 			"steps": [
 				{ "click": "#themeToggle" },
 				{ "expect": { "state": "theme", "is": "dark" } },
 				{ "expect": { "node": "#card", "property": "color", "is": "#141b2e" } },
 				{ "expect": { "node": "#panel-root", "property": "color", "is": "#0b1020" } },
-				{ "expect": { "node": "#themeToggle", "property": "name", "is": "Switch to light (Cmd+J)" } },
 				{ "key": "mod+j" },
 				{ "expect": { "node": "#card", "property": "color", "is": "#ffffff" } }
 			]
@@ -494,14 +492,11 @@
 		},
 		{
 			"name": "shortcut-keys-are-readable",
-			"note": "Bug: the keys were shown as the symbols for Command and Shift, which the screen's font has not got, so they read as question marks",
+			"note": "Bug: the keys were shown as the symbols for Command and Shift, which the screen's font has not got, so they read as question marks. The keys with the platform's modifier read differently on each one: tests/unit/automation.cpp checks them",
 			"steps": [
 				{ "key": "f1" },
 				{ "wait": 50 },
-				{ "expect": { "node": "#shortcut-key", "nth": 0, "text": "Shift+Cmd+H" } },
-				{ "expect": { "node": "#shortcut-key", "nth": 1, "text": "Shift+Cmd+Q" } },
 				{ "expect": { "node": "#shortcut-key", "nth": 2, "text": "F1" } },
-				{ "expect": { "node": "#shortcut", "nth": 0, "property": "name", "is": "Show or hide the password, Shift+Cmd+H" } },
 				{ "expect": { "node": "#shortcutsButton", "property": "tooltip", "is": "Keyboard shortcuts (F1)" } }
 			]
 		},

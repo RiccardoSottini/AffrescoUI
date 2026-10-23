@@ -148,6 +148,18 @@ static void testGlobals(void) {
 	CHECK(afr_screen_step(NULL, 0) == AFR_ERROR_ARGUMENT);
 	CHECK(afr_call_return(NULL, "1", 1) == AFR_ERROR_ARGUMENT);
 	CHECK(afr_call_fail(NULL, "x") == AFR_ERROR_ARGUMENT);
+
+	/* Before, a picture had no size limit: 16384 window units at a scale of 16 asked for terabytes */
+	options.mode = AFR_MODE_HEADLESS;
+	options.width = 16384;
+	options.height = 16;
+	options.scale = 2.0f;
+	CHECK_OK(afr_screen_create_from_string(document, sizeof document - 1, NULL, &options, &screen));
+	if(screen == NULL) return;
+	int w = 0, h = 0;
+	uint8_t* rgba = NULL;
+	CHECK(afr_screen_render_rgba(screen, &w, &h, &rgba) == AFR_ERROR_ARGUMENT && rgba == NULL);
+	afr_screen_destroy(screen);
 }
 
 /** @brief The state, revisions and document calls. */
@@ -294,7 +306,12 @@ static void testWindow(void) {
 }
 
 /** @brief Looks GL functions up for the embedded screen. */
-static void* loadGl(const char* name) { return (void*)glfwGetProcAddress(name); }
+static void* loadGl(const char* name) {
+	GLFWglproc proc = glfwGetProcAddress(name);
+	void* address; /* ISO C has no cast from a function pointer to an object pointer: copy its bytes */
+	memcpy(&address, &proc, sizeof address);
+	return address;
+}
 
 /** @brief An embedded screen in a hidden GLFW window's context of the test's own. */
 static void testEmbedded(void) {

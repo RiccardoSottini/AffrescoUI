@@ -164,6 +164,22 @@ TEST_CASE("usage: bounded names, entries and counts, also when read from a damag
 	CHECK(read["since"].get<std::int64_t>() >= 0);
 }
 
+#ifndef _WIN32
+// Found in the security review of wave 13: the file was made with the process's default mode (0644 with the usual
+// umask), so other users of the device could read how the app is used, though the history and the state are private
+TEST_CASE("usage: the file is readable by its owner only") {
+	const std::filesystem::path file = freshFile("private");
+	const std::filesystem::path temporary = file.string() + ".tmp";
+	std::ofstream(temporary) << "{}"; // one a run that stopped while writing left behind, with the default mode
+	std::filesystem::permissions(temporary, std::filesystem::perms::all);
+	Usage usage;
+	usage.setFile(file);
+	usage.giveConsent();
+	using std::filesystem::perms;
+	CHECK((std::filesystem::status(file).permissions() & perms::all) == (perms::owner_read | perms::owner_write));
+}
+#endif
+
 TEST_CASE("usage: an agent can never read the usage summaries; a reviewer can, only while they are on") {
 	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository(rules, kanban());

@@ -10,7 +10,9 @@
 - export and import: a change set goes into a screen's history on disk once, and comes back out of it;
 - the exit codes of a file that isn't JSON (1), a wrong command line (2) and a file that can't be read (3);
 - a text too long for the schema's patterns is reported, not matched (std::regex could overflow the stack);
-- render connects to no channel the screen declares, even by an absolute path.
+- policy test sets a file's roles, and refuses one that isn't text;
+- render connects to no channel the screen declares, even by an absolute path;
+- render draws a code editor whose "insert" has no "text".
 
     python3 tools/affrescoui/check.py [--build DIR] [--headless]
 
@@ -23,11 +25,9 @@ import json
 import os
 import shutil
 import socket
-import struct
 import subprocess
 import sys
 import tempfile
-import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -36,44 +36,14 @@ with open(os.path.join(EXAMPLES, "templates.json"), encoding="utf-8") as templat
     TEMPLATE_FOLDERS = {os.path.join(EXAMPLES, folder) for folder in json.load(templates_file)["templates"].values()}
 KANBAN = os.path.join(EXAMPLES, "flow")  # the Kanban template's folder
 RENDER_SCENARIOS = os.path.join(ROOT, "tests", "render", "scenarios")
+sys.path.insert(0, os.path.join(ROOT, "tools", "media"))
+import pngfile  # noqa: E402 (tools/media/: reads the PNGs the tool and the runner write)
 
 
 def template_files(pattern):
     """The templates' files that match the pattern, from each one's folder (examples/templates.json), by name."""
     files = [path for folder in TEMPLATE_FOLDERS for path in glob.glob(os.path.join(folder, pattern))]
     return sorted(files, key=os.path.basename)
-
-
-def read_png(path):
-    """An 8-bit RGB PNG (any row filter), as the tool and the runner write them: (width, height, RGB bytes)."""
-    with open(path, "rb") as file:
-        data = file.read()
-    position, idat = 8, b""
-    while position < len(data):
-        length, kind = struct.unpack(">I4s", data[position:position + 8])
-        body = data[position + 8:position + 8 + length]
-        if kind == b"IHDR":
-            width, height = struct.unpack(">II", body[:8])
-        elif kind == b"IDAT":
-            idat += body
-        position += 12 + length
-    raw, stride, out = zlib.decompress(idat), width * 3, bytearray()
-    previous = bytearray(stride)
-    for y in range(height):
-        kind, row = raw[y * (stride + 1)], bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
-        for i in range(stride if kind else 0):
-            left, up = row[i - 3] if i >= 3 else 0, previous[i]
-            corner = previous[i - 3] if i >= 3 else 0
-            if kind == 4:
-                p = left + up - corner
-                pa, pb, pc = abs(p - left), abs(p - up), abs(p - corner)
-                predicted = left if pa <= pb and pa <= pc else up if pb <= pc else corner
-            else:
-                predicted = {1: left, 2: up, 3: (left + up) // 2}[kind]
-            row[i] = (row[i] + predicted) & 255
-        out += row
-        previous = row
-    return width, height, bytes(out)
 
 
 def render_scenarios():
@@ -140,10 +110,10 @@ class Checker:
             json.dump(first, file)
         if subprocess.run([self.runner, "--out", frames, scenarios_file], capture_output=True).returncode != 0:
             return self.expect(False, f"the runner failed on {scenario['name']}")
-        expected = read_png(os.path.join(frames, f"{scenario['name']}-first.png"))
+        expected = pngfile.read(os.path.join(frames, f"{scenario['name']}-first.png"))[:3]
         out = os.path.join(self.scratch, scenario["name"] + ".png")
         self.run("render", path, "-o", out, "--scale", str(scenario.get("scale", 1)))
-        self.expect(read_png(out) == expected, f"render {scenario['name']}: not the runner's first frame")
+        self.expect(pngfile.read(out)[:3] == expected, f"render {scenario['name']}: not the runner's first frame")
 
     def test(self, path):
         """A template's scenarios pass (their captures written to a scratch folder); a failing one and a malformed file
@@ -199,6 +169,28 @@ class Checker:
             self.expect(True, "")
         listener.close()
 
+    def insert_without_text(self):
+        """A code editor whose "insert" has no "text": render draws it and inserts nothing (it used to read the missing
+        key through a const operator[], which is undefined behaviour and aborted a debug build)."""
+        path = os.path.join(self.scratch, "insert.screen.json")
+        with open(path, "w", encoding="utf-8") as file:
+            json.dump({"format": "affrescoui-screen", "version": 2, "window": {"width": 200, "height": 100},
+                       "root": {"id": "root", "children": [{"type": "code", "id": "code", "width": 200, "height": 100,
+                                                            "insert": {"before": 1}}]}}, file)
+        self.run("render", path, "-o", os.path.join(self.scratch, "insert.png"))
+
+    def policy_roles(self):
+        """A policy test file that gives roles: each one is set, and one that isn't text is refused (the roles were
+        read from a temporary that was gone, which GCC's AddressSanitizer reported)."""
+        case = {"name": "a designer's change waits for review", "expect": "ask",
+                "revision": {"author": "agent/claude-code", "set": {"#panel-root/color": "#000000"}}}
+        for role, expect in [("design", 0), (7, 1)]:
+            path = os.path.join(self.scratch, "roles.policy.json")
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump({"screen": os.path.join(KANBAN, "kanban.screen.json"),
+                           "roles": {"agent/claude-code": role}, "cases": [case]}, file)
+            self.run("policy", "test", path, expect=expect)
+
     def long_pattern_input(self):
         """A colour expression of 30,000 characters: the schema's patterns aren't run on it (libstdc++'s std::regex
         overflowed the stack on it), so check reports it as too long to check instead of crashing."""
@@ -211,8 +203,10 @@ class Checker:
                         for problem in report["problems"]), f"check: a long expression: {report}")
 
 
-def main():
-    args, build, headless = sys.argv[1:], os.path.join(ROOT, "build"), False
+def parse_arguments(args):
+    """Reads the command line: (the build folder, whether to leave out what draws). Exits with the usage on anything
+    else."""
+    build, headless = os.path.join(ROOT, "build"), False
     while args:
         arg = args.pop(0)
         if arg == "--build" and args:
@@ -221,22 +215,33 @@ def main():
             headless = True
         else:
             sys.exit(__doc__)
+    return build, headless
 
+
+def check_templates(checker, headless):
+    """Checks, formats, renders and tests every template, and round-trips a history. Returns the screens."""
+    templates = template_files("*.screen.json")
+    for path in templates:
+        name = os.path.basename(path)[:-len(".screen.json")]
+        checker.check(path)
+        checker.format(name, path)
+    for screens, scenario in [] if headless else render_scenarios():
+        path = os.path.normpath(os.path.join(screens, scenario["screen"]))
+        # The templates' first frames: scenarios that expect a picture before any step, on a shipped template
+        if "image" in scenario["steps"][0].get("expect", {}) and os.path.dirname(path) in TEMPLATE_FOLDERS:
+            checker.render(screens, scenario, path)
+    for path in template_files("*.scenarios.json"):
+        checker.test(path)
+    checker.history(os.path.join(KANBAN, "kanban.screen.json"))
+    return templates
+
+
+def main():
+    """Runs every check and prints the failures; exits with 1 if there is one."""
+    build, headless = parse_arguments(sys.argv[1:])
     with tempfile.TemporaryDirectory(prefix="affrescoui-cli-") as scratch:
         checker = Checker(build, scratch)
-        templates = template_files("*.screen.json")
-        for path in templates:
-            name = os.path.basename(path)[:-len(".screen.json")]
-            checker.check(path)
-            checker.format(name, path)
-        for screens, scenario in [] if headless else render_scenarios():
-            path = os.path.normpath(os.path.join(screens, scenario["screen"]))
-            # The templates' first frames: scenarios that expect a picture before any step, on a shipped template
-            if "image" in scenario["steps"][0].get("expect", {}) and os.path.dirname(path) in TEMPLATE_FOLDERS:
-                checker.render(screens, scenario, path)
-        for path in template_files("*.scenarios.json"):
-            checker.test(path)
-        checker.history(os.path.join(KANBAN, "kanban.screen.json"))
+        templates = check_templates(checker, headless)
 
         checker.run("check", expect=2)                                  # no file
         checker.run("render", templates[0], expect=2)                  # no -o
@@ -249,8 +254,10 @@ def main():
         checker.expect(json.loads(checker.run("check", broken, "--json", expect=1))["problems"][0]["source"] == "json",
                        "check: a file that isn't JSON")
         checker.long_pattern_input()
+        checker.policy_roles()
         if not headless:
             checker.render_reaches_nobody()
+            checker.insert_without_text()
             large = os.path.join(scratch, "large.png")  # 9000 x 2 = 18,000 pixels: refused before it allocates
             checker.run("render", templates[0], "-o", large, "--size", "9000x100", "--scale", "2", expect=3)
             checker.expect(not os.path.exists(large), "render: a frame too large to draw left a file")

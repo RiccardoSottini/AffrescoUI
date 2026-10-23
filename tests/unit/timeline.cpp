@@ -319,6 +319,18 @@ TEST_CASE("render: a clip is trimmed from either edge, moved to another track, a
 	for(const TimelineEvent& event : fixture.events) CHECK(event.kind != TimelineEvent::Kind::ClipChange);
 }
 
+TEST_CASE("render: a press whose selection makes the owner drop the model drags nothing") {
+	TimelineFixture fixture;
+	fixture.view->onEdit.connect([&](const TimelineEvent& event) {
+		if(event.kind == TimelineEvent::Kind::Select) fixture.view->setModel({});
+	});
+	fixture.drag(fixture.at(2.0, 2), fixture.at(3.0, 2));
+	REQUIRE_FALSE(fixture.events.empty());
+	CHECK(fixture.events.front().kind == TimelineEvent::Kind::Select);
+	for(const TimelineEvent& event : fixture.events) CHECK(event.kind != TimelineEvent::Kind::ClipChange);
+	CHECK(fixture.view->model().tracks.empty());
+}
+
 TEST_CASE("render: a marquee selects the items it touches; groups close and the rows are bounded") {
 	TimelineFixture fixture;
 	fixture.drag({fixture.view->timeX(0.3), fixture.view->trackY(0) - 10.0f},

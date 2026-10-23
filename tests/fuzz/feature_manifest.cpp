@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes checkManifest (format/src/FeatureManifest.hpp): a feature's manifest is untrusted input (RFC 0004).
+/// @brief Fuzzes checkManifest (format/src/features/FeatureManifest.hpp): a feature's manifest is untrusted input (RFC 0004).
 ///
 /// Any text is refused with json::parse_error or DocumentError, or is a manifest whose record composes into the Kanban
 /// template, giving a screen or problems, never another error.

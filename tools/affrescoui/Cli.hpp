@@ -161,8 +161,8 @@ Exit exportChanges(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit importChanges(std::span<const std::string_view> args);
 
-/// @brief `import`: with `--from`, writes a screen from another format's document (ImportCommand.cpp); without it,
-/// importChanges().
+/// @brief `import`: with `--from`, writes a screen from another format's document (commands/ImportCommand.cpp);
+/// without it, importChanges().
 /// @param args The arguments.
 /// @return How it ended.
 Exit importFile(std::span<const std::string_view> args);

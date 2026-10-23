@@ -46,13 +46,23 @@ struct Reader {
 	}
 };
 
+/// @brief The length of the UTF-8 sequence a lead byte starts.
+/// @param lead The lead byte.
+/// @return 1 to 4, or 0 if it can't start one.
+std::size_t sequenceLength(unsigned char lead) noexcept {
+	return lead < 0x80                   ? 1
+	       : lead >= 0xC2 && lead < 0xE0 ? 2
+	       : lead >= 0xE0 && lead < 0xF0 ? 3
+	       : lead >= 0xF0 && lead < 0xF5 ? 4
+	                                     : 0;
+}
+
 /// @brief Whether text is valid UTF-8 (no overlong forms, surrogates or code points past U+10FFFF).
 /// @param text The text.
 bool validUtf8(std::string_view text) noexcept {
 	for(std::size_t at = 0; at < text.size();) {
 		const auto lead = static_cast<unsigned char>(text[at]);
-		const std::size_t length = lead < 0x80 ? 1 : lead >= 0xC2 && lead < 0xE0 ? 2 : lead >= 0xE0 && lead < 0xF0 ? 3
-		                                            : lead >= 0xF0 && lead < 0xF5 ? 4 : 0;
+		const std::size_t length = sequenceLength(lead);
 		if(length == 0 || at + length > text.size()) return false;
 		char32_t codepoint = length == 1 ? lead : lead & (0x7Fu >> length);
 		for(std::size_t i = 1; i < length; ++i) {

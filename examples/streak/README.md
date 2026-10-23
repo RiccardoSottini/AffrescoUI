@@ -37,3 +37,10 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
   habits, notes, settings and reminders.
 - **Scenarios**: 37, covering every page, the dialog by mouse and by keyboard only, both themes, the three
   languages, the palette and shortcuts, resizes and a regression for each bug fixed.
+
+## How it holds together
+
+- **Permissions:** Studio peers change it directly; an agent's change waits for a Studio reviewer (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The habits, weeks, notes, categories, theme, language and reminders persist. The `streakServer` connection syncs the habits with a document server at a local address, signed in with a placeholder provider; its policy shows that no one may move where the habits sync.
+- **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
+- **Extension points:** a habit is an entry of `state.habits`; a category of `state.categories`; a language is a table of `strings`; `chip` is its local component.
+- **Assets:** no pictures of its own; the fonts' licences are with them in `../shared/fonts`.

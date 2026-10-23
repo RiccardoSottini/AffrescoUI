@@ -22,7 +22,8 @@ endfunction()
 
 affrescoui_fuzzer(json affrescoui::core nlohmann_json::nlohmann_json)
 affrescoui_fuzzer(expression affrescoui::format)
-target_include_directories(affrescoui_fuzz_expression PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src) # Expression.hpp
+target_include_directories(affrescoui_fuzz_expression PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
 affrescoui_fuzzer(revision affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(migrate affrescoui::format) # version 1 files (SCREEN_FORMAT.md, "Migrating from version 1")
 affrescoui_fuzzer(session affrescoui::format affrescoui::vcs affrescoui::channel)
@@ -46,7 +47,8 @@ endif()
 target_compile_definitions(affrescoui_fuzz_cli PRIVATE
 	AFFRESCOUI_FUZZ_SCHEMA="${PROJECT_SOURCE_DIR}/schema/affrescoui-screen.schema.json")
 affrescoui_fuzzer(actions affrescoui::format affrescoui::vcs)
-target_include_directories(affrescoui_fuzz_actions PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src) # Expression.hpp
+target_include_directories(affrescoui_fuzz_actions PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
 affrescoui_fuzzer(lookups affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_lookups PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # LookupSpans.hpp
 affrescoui_fuzzer(image affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
@@ -72,14 +74,16 @@ affrescoui_fuzzer(dap affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.
 target_include_directories(affrescoui_fuzz_dap PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # DapProtocol.hpp
 # Feature packages and catalogues (RFC 0004): FeatureManifest.hpp, FeatureCatalog.hpp and FeatureSignatures.hpp
 affrescoui_fuzzer(feature_manifest affrescoui::format)
-target_include_directories(affrescoui_fuzz_feature_manifest PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
+target_include_directories(affrescoui_fuzz_feature_manifest PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
 affrescoui_fuzzer(catalog_index affrescoui::format)
-target_include_directories(affrescoui_fuzz_catalog_index PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
+target_include_directories(affrescoui_fuzz_catalog_index PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
 affrescoui_fuzzer(signature affrescoui::format)
-target_include_directories(affrescoui_fuzz_signature PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
+target_include_directories(affrescoui_fuzz_signature PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
 # Composition across apps: a feature's needs, its adapter and the host's points (CompositionProof.hpp)
 affrescoui_fuzzer(composition affrescoui::format)
-target_include_directories(affrescoui_fuzz_composition PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
+target_include_directories(affrescoui_fuzz_composition PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
 # The 1.0 security audit (SECURITY.md, README.md "Inventory of untrusted inputs"): URLs, sign-in responses, the token
 # file, what git prints, imported VS Code themes and history files on disk
 affrescoui_fuzzer(url affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
@@ -101,9 +105,10 @@ if(AFFRESCOUI_BUILD_FUZZERS)
 		${PROJECT_SOURCE_DIR}/examples/forge/features/themes/ThemeImport.cpp)
 endif()
 affrescoui_fuzzer(sinopia_deck affrescoui::render nlohmann_json::nlohmann_json)
-target_include_directories(affrescoui_fuzz_sinopia_deck PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia) # Deck.hpp
+target_include_directories(affrescoui_fuzz_sinopia_deck PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia) # deck/Deck.hpp
 if(AFFRESCOUI_BUILD_FUZZERS)
-	target_sources(affrescoui_fuzz_sinopia_deck PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia/Deck.cpp)
+	target_sources(affrescoui_fuzz_sinopia_deck PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Deck.cpp
+		${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Write.cpp)
 endif()
 # Other formats (SCREEN_FORMAT.md): the A2UI and Adaptive Cards adapters
 affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)

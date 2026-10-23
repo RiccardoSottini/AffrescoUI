@@ -44,10 +44,16 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
 - **The window must outlive the `Screen`.** A screen destroyed first takes back its timers, deferred tasks, native menu bar and
   signal connections, so the window can go on receiving input (its panels stay, inert).
 
-## Threads
+## Threads and ownership
 
 Main thread only. Channels deliver messages through the `Executor` given to `listen` and `startChannels` (the
 `Application`), and the screen cancels its reconnect timers when it is destroyed.
+
+`Screen` owns one `Screen::Impl` (`src/ScreenImpl.hpp`), which owns every part: the services, the rules, the
+repository, the runtime, the pictures, the peers with their sessions and the socket servers. They are declared so
+that each is destroyed before what it uses. Tasks posted for later and slots of the declared channels also hold
+`Impl::alive`, a flag set to false when the screen goes, and do nothing after. The window and the `Application`
+are the host's, and must outlive it.
 
 ## Errors
 
@@ -77,13 +83,22 @@ include/affresco/
   Screen.hpp             the Screen class
   affresco.hpp           the umbrella header
 src/
-  Screen.cpp             Screen and Screen::Impl: loading (with "include": resolveIncludes, mergeInclude; menus
-                         merge menu by menu, so feature files add to one menu), the data
-                         and socket folders, persist, channels, peers
-  OffscreenImages.hpp / .cpp   pictures of the screen or of a proposal, for "render" and "getEvidence"
-  ProposalEvidence.hpp / .cpp  a proposal's evidence: the changed region of two pictures, its changed texts
-  Inspector.hpp / .cpp   the inspector: the overlay on the panel under the pointer, its statistics and event trace
+  Screen.cpp             loading (with "include": resolveIncludes, mergeInclude; menus merge menu by menu, so
+                         feature files add to one menu), the data and socket folders, building, lookups
+  ScreenImpl.hpp / .cpp  Screen::Impl: the parts put together, the "persist" state file, the peers
+  ScreenChannels.cpp     the channels a file declares, and the peers the screen connects or listens for
+  ScreenVersions.cpp     revisions, proposals, history, change sets and modes, forwarded to the repository
+  ScratchFolder.hpp      a new folder only this user can open, removed with what is in it
   Png.hpp / .cpp         a small PNG encoder and a PPM reader
+  pictures/              what peers see of the screen
+    OffscreenImages.hpp / .cpp   pictures of the screen or of a proposal, for "render" and "getEvidence"
+    ProposalEvidence.hpp / .cpp  a proposal's evidence: the changed region of two pictures, its changed texts
+    Inspector.hpp / .cpp   the inspector: the overlay on the panel under the pointer, its statistics and event trace
+  features/
+    FeaturesService.hpp / .cpp   the `features` provider: the catalogues, installing a feature by revision
+  windows/
+    SecondWindow.cpp     a screen in a second window sharing another's OpenGL context
+    EmbeddedScreen.cpp   a screen built into the host's OpenGL context
 CMakeLists.txt           the affrescoui target and its sources
 ```
 
@@ -106,7 +121,7 @@ return app.run();
 built-in type too.
 
 **Embed it in the host's OpenGL.** `screen.embed(embedding)` instead of `createWindow`: the screen is built in an
-`affresco::Embedding` (see the `render` README), whose frames the host draws (`src/EmbeddedScreen.cpp`).
+`affresco::Embedding` (see the `render` README), whose frames the host draws (`src/windows/EmbeddedScreen.cpp`).
 
 **Wire a module in differently.** Copy what `Screen::Impl` does with the parts you need: for example, a
 `vcs::Repository` and a `channel::Session` without a window give a headless document server.

@@ -78,7 +78,7 @@ void QuadRenderer::renderCached(const Panel& panel, const detail::PanelGeometry&
 	std::swap(outer.batches, batches_);
 	vertices_.clear();
 	batches_.clear();
-	std::optional<Rect> region = std::exchange(region_, std::nullopt); // the texture holds the whole subtree
+	const std::optional<Rect> region = std::exchange(region_, std::nullopt); // the texture holds the whole subtree
 	const std::uint32_t textPage = textPage_;
 
 	replayContent(panel, geometry.record);

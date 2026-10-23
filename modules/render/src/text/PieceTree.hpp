@@ -51,6 +51,9 @@ public:
 	/// @param offset The first byte.
 	/// @param length How many bytes; fewer if the text ends first.
 	/// @param visit Called with each part, as a std::string_view.
+	/// @note @p visit is called once per piece, so it is passed on as itself rather than forwarded (a decoder keeps its
+	/// state across the pieces).
+	// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 	template <typename Visit> void read(std::size_t offset, std::size_t length, Visit&& visit) const {
 		if(length > 0) readRange(root_, 0, offset, offset + length, visit);
 	}
@@ -67,21 +70,21 @@ private:
 
 	/// @brief A run of one buffer's bytes.
 	struct Piece {
-		std::uint32_t buffer = none;    ///< The buffer.
-		std::uint32_t start = 0;        ///< Its first byte in the buffer.
-		std::uint32_t length = 0;       ///< Its bytes.
-		std::uint32_t firstBreak = 0;   ///< Its first line feed, as an index in the buffer's breaks.
-		std::uint32_t lineFeeds = 0;    ///< Its line feeds.
+		std::uint32_t buffer = none;  ///< The buffer.
+		std::uint32_t start = 0;      ///< Its first byte in the buffer.
+		std::uint32_t length = 0;     ///< Its bytes.
+		std::uint32_t firstBreak = 0; ///< Its first line feed, as an index in the buffer's breaks.
+		std::uint32_t lineFeeds = 0;  ///< Its line feeds.
 	};
 
 	/// @brief A tree node: a piece, its children and what is under it.
 	struct Node {
-		Piece piece;                  ///< The piece.
-		std::uint32_t left = none;    ///< The pieces before it.
-		std::uint32_t right = none;   ///< The pieces after it.
-		std::uint32_t priority = 0;   ///< Higher than its children's: keeps the tree balanced, on average.
-		std::size_t bytes = 0;        ///< The bytes of its subtree.
-		std::size_t lineFeeds = 0;    ///< The line feeds of its subtree.
+		Piece piece;                ///< The piece.
+		std::uint32_t left = none;  ///< The pieces before it.
+		std::uint32_t right = none; ///< The pieces after it.
+		std::uint32_t priority = 0; ///< Higher than its children's: keeps the tree balanced, on average.
+		std::size_t bytes = 0;      ///< The bytes of its subtree.
+		std::size_t lineFeeds = 0;  ///< The line feeds of its subtree.
 	};
 
 	/// @brief Visits a range under a node.
@@ -106,7 +109,9 @@ private:
 
 	/// @brief Bytes under a node (0 for none).
 	/// @param node The node.
-	[[nodiscard]] std::size_t bytesOf(std::uint32_t node) const noexcept { return node == none ? 0 : nodes_[node].bytes; }
+	[[nodiscard]] std::size_t bytesOf(std::uint32_t node) const noexcept {
+		return node == none ? 0 : nodes_[node].bytes;
+	}
 	/// @brief Line feeds under a node (0 for none).
 	/// @param node The node.
 	[[nodiscard]] std::size_t feedsOf(std::uint32_t node) const noexcept {
@@ -151,13 +156,13 @@ private:
 	/// @return A node for them, or none if the last piece grew.
 	[[nodiscard]] std::uint32_t appendSmall(std::uint32_t tree, std::string_view bytes);
 
-	std::vector<Node> nodes_;              ///< Every node; freed ones are listed in freeNodes_.
-	std::vector<std::uint32_t> freeNodes_; ///< Nodes to reuse.
-	std::vector<Buffer> buffers_;          ///< Every buffer; freed ones are listed in freeBuffers_.
+	std::vector<Node> nodes_;                ///< Every node; freed ones are listed in freeNodes_.
+	std::vector<std::uint32_t> freeNodes_;   ///< Nodes to reuse.
+	std::vector<Buffer> buffers_;            ///< Every buffer; freed ones are listed in freeBuffers_.
 	std::vector<std::uint32_t> freeBuffers_; ///< Buffers to reuse.
-	std::uint32_t root_ = none;            ///< The tree.
-	std::uint32_t shared_ = none;          ///< The buffer small inserts are appended to.
-	std::uint32_t seed_ = 0x9E3779B9u;     ///< The priorities' generator (xorshift), so runs repeat.
+	std::uint32_t root_ = none;              ///< The tree.
+	std::uint32_t shared_ = none;            ///< The buffer small inserts are appended to.
+	std::uint32_t seed_ = 0x9E3779B9u;       ///< The priorities' generator (xorshift), so runs repeat.
 };
 
 } // namespace affresco::detail

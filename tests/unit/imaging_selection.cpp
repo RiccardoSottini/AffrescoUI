@@ -8,6 +8,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <climits>
 #include <cmath>
 
 using namespace affresco::imaging;
@@ -21,7 +22,8 @@ namespace {
 [[nodiscard]] int valueAt(const Coverage& coverage, int x, int y) {
 	const auto found = coverage.find({x / tileSize, y / tileSize});
 	if(found == coverage.end()) return 0;
-	return found->second->bytes()[static_cast<std::size_t>((y % tileSize) * tileSize + x % tileSize)];
+	return found->second
+	    ->bytes()[static_cast<std::size_t>(y % tileSize) * tileSize + static_cast<std::size_t>(x % tileSize)];
 }
 
 /// @brief The selection's value at a pixel, 0 to 255.
@@ -131,7 +133,7 @@ TEST_CASE("imaging selection: the magic wand and colour range") {
 	CHECK(valueAt(range, 5, 5) == 0);
 	Limits limits;
 	limits.floodPixels = 1000;
-	Document small(100, 100, limits);
+	const Document small(100, 100, limits);
 	CHECK_THROWS_AS(static_cast<void>(wandCoverage(small, 5, 5, {})), affresco::DocumentError);
 }
 
@@ -180,7 +182,10 @@ TEST_CASE("imaging filters: sharpen, noise, motion, preview runs, and feather") 
 		motion.kind = FilterKind::motionBlur;
 		FilterRun run(document, pixels, motion, "Motion Blur");
 		CHECK_FALSE(run.runRegion(0, 0, 256, 256, 0));
+		CHECK_FALSE(run.runRegion(-100, -100, INT_MAX, INT_MAX, 0)); // reaching past INT_MAX: still the whole image
+		CHECK(run.runRegion(INT_MAX, INT_MAX, INT_MAX, INT_MAX, 0)); // past the image: nothing to filter
 		CHECK(run.runRegion(0, 0, 10, 10));
+		CHECK(run.runRegion(-100, -100, INT_MAX, INT_MAX, 0));
 	} // a run never finished puts the tiles back
 	CHECK(document.history().steps().back().name == "Add Noise");
 	CHECK(byteFromUnit(filterKindOf("motion-blur") == FilterKind::motionBlur ? 1.0f : 0.0f) == 255);

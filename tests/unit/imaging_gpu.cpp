@@ -14,12 +14,17 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <limits>
 #include <map>
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 using namespace affresco::imaging;
+
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
 
 namespace {
 
@@ -88,8 +93,7 @@ private:
 	}
 }
 
-/// @brief Draws a model's document on a canvas of a size and reads it back.
-/// @param model The model.
+/// @brief Draws a canvas at a size and reads it back.
 /// @param surface The canvas, prepared.
 /// @param width The surface's width.
 /// @param height Its height.
@@ -106,8 +110,8 @@ private:
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, read.data());
 	std::vector<std::uint8_t> flipped(read.size());
-	const auto row = static_cast<std::size_t>(width * 4);
-	for(std::size_t y = 0; y < static_cast<std::size_t>(height); ++y)
+	const auto row = static_cast<std::size_t>(width) * 4;
+	for(std::size_t y = 0; std::cmp_less(y, height); ++y)
 		std::copy_n(read.begin() + static_cast<std::ptrdiff_t>((static_cast<std::size_t>(height) - 1 - y) * row), row,
 		            flipped.begin() + static_cast<std::ptrdiff_t>(y * row));
 	CHECK(glGetError() == GL_NO_ERROR);
@@ -159,7 +163,7 @@ struct Difference {
 
 /// @brief Paints a rectangle of an image with a colour that changes across it.
 /// @param image The image.
-/// @param left Its left, top, right and bottom.
+/// @param box Its left, top, right and bottom.
 /// @param from The colour at the left.
 /// @param to The colour at the right.
 void paint(Image& image, std::array<int, 4> box, const Pixel& from, const Pixel& to) {
@@ -213,7 +217,7 @@ TEST_CASE("imaging residency: within the budget, least recently used evicted fir
 	CHECK(evicted.empty());
 	const std::optional<Resident> forgotten = residency.forget(keyAt(3));
 	REQUIRE(forgotten);
-	CHECK(forgotten->texture == 4);
+	CHECK(forgotten.value().texture == 4);
 	CHECK(residency.bytes() == 200);
 	CHECK_FALSE(residency.forget(keyAt(3)));
 	CHECK_FALSE(residency.admit(keyAt(5), resident(5, 301), evicted)); // over the budget alone
@@ -237,6 +241,7 @@ TEST_CASE("imaging canvas: the view maps both ways and the zoom picks the mip le
 	CHECK(canvasLevel(0.3, 8) == 2);
 	CHECK(canvasLevel(1.0 / 1024.0, 8) == 7);
 	CHECK(canvasLevel(0.5, 1) == 0);
+	CHECK(canvasLevel(std::numeric_limits<double>::denorm_min(), 8) == 7);
 }
 
 TEST_CASE("imaging canvas: the GPU matches the CPU compositor") {
@@ -270,25 +275,6 @@ TEST_CASE("imaging canvas: the GPU matches the CPU compositor") {
 		document->changeLayer(group, "Opacity", [](Layer& layer) { layer.opacity = 0.6f; });
 		CHECK(compare(std::make_shared<CanvasModel>(std::move(document))).largest <= 3);
 	}
-	SUBCASE("every adjustment") {
-		for(std::size_t kind = 0; kind < adjustmentKindCount; ++kind) {
-			auto document = painted();
-			(void)addPainted(*document, "Top", {20, 10, 290, 190});
-			Adjustment adjustment;
-			adjustment.kind = static_cast<AdjustmentKind>(kind);
-			adjustment.gamma = 1.6f, adjustment.curve = {{0.0f, 0.1f}, {0.5f, 0.7f}, {1.0f, 0.9f}};
-			adjustment.hue = 40.0f, adjustment.saturation = 0.3f, adjustment.lightness = 0.1f;
-			adjustment.balance = {0.3f, -0.2f, 0.1f}, adjustment.brightness = 0.1f, adjustment.contrast = 0.2f;
-			adjustment.gradient.stops = {{0.0f, {0.1f, 0.0f, 0.4f, 1.0f}}, {1.0f, {1.0f, 0.9f, 0.3f, 1.0f}}};
-			const std::uint64_t id = document->addAdjustment("Adjustment", adjustment);
-			document->changeLayer(id, "Opacity", [](Layer& layer) { layer.opacity = 0.7f; });
-			INFO("adjustment ", kind);
-			const Difference difference = compare(std::make_shared<CanvasModel>(std::move(document)));
-			// A threshold flips where the half-float pass and the CPU's floats round the luminosity either side
-			if(adjustment.kind == AdjustmentKind::threshold) CHECK(difference.pixels <= 300 * 200 / 1000);
-			else CHECK(difference.largest <= 3);
-		}
-	}
 	SUBCASE("a coarser mip level, and a budget smaller than the tiles") {
 		auto document = painted();
 		(void)addPainted(*document, "Top", {20, 10, 290, 190});
@@ -303,3 +289,44 @@ TEST_CASE("imaging canvas: the GPU matches the CPU compositor") {
 		CHECK(model->statistics.residentBytes <= small.gpuBytes);
 	}
 }
+
+TEST_CASE("imaging canvas: the GPU matches the CPU compositor on every adjustment") {
+	std::optional<affresco::Application> application;
+	if(!openContext(application)) return;
+	for(std::size_t kind = 0; kind < adjustmentKindCount; ++kind) {
+		auto document = painted();
+		(void)addPainted(*document, "Top", {20, 10, 290, 190});
+		Adjustment adjustment;
+		adjustment.kind = static_cast<AdjustmentKind>(kind);
+		adjustment.gamma = 1.6f, adjustment.curve = {{0.0f, 0.1f}, {0.5f, 0.7f}, {1.0f, 0.9f}};
+		adjustment.hue = 40.0f, adjustment.saturation = 0.3f, adjustment.lightness = 0.1f;
+		adjustment.balance = {0.3f, -0.2f, 0.1f}, adjustment.brightness = 0.1f, adjustment.contrast = 0.2f;
+		adjustment.gradient.stops = {{0.0f, {0.1f, 0.0f, 0.4f, 1.0f}}, {1.0f, {1.0f, 0.9f, 0.3f, 1.0f}}};
+		const std::uint64_t id = document->addAdjustment("Adjustment", adjustment);
+		document->changeLayer(id, "Opacity", [](Layer& layer) { layer.opacity = 0.7f; });
+		INFO("adjustment ", kind);
+		const Difference difference = compare(std::make_shared<CanvasModel>(std::move(document)));
+		// A threshold flips where the half-float pass and the CPU's floats round the luminosity either side
+		if(adjustment.kind == AdjustmentKind::threshold) CHECK(difference.pixels <= 300 * 200 / 1000);
+		else CHECK(difference.largest <= 3);
+	}
+}
+
+TEST_CASE("imaging canvas: a view far off the document composites nothing") {
+	std::optional<affresco::Application> application;
+	if(!openContext(application)) return;
+	const auto model = std::make_shared<CanvasModel>(painted());
+	CanvasSurface surface(model);
+	surface.prepare({64, 64, 1.0f, affresco::surfaceShaderPrelude()});
+	for(const double far : {1e300, -1e300, 1e12}) {
+		CAPTURE(far);
+		(void)draw(surface, 64, 64, affresco::json{{"zoom", 1.0}, {"x", far}, {"y", -far}, {"checker", false}});
+		CHECK(model->statistics.regionWidth == 0);
+		CHECK(model->statistics.regionHeight == 0);
+	}
+	(void)draw(surface, 64, 64, affresco::json{{"zoom", 1.0}, {"x", 32.0}, {"y", 32.0}, {"checker", false}});
+	CHECK(model->statistics.regionWidth > 0);
+	surface.release();
+}
+
+// NOLINTEND(bugprone-unchecked-optional-access)

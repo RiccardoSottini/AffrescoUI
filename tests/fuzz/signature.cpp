@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes the parsing behind signatures (format/src/FeatureSignatures.hpp): base64url, keys, digests, key
+/// @brief Fuzzes the parsing behind signatures (format/src/features/FeatureSignatures.hpp): base64url, keys, digests, key
 /// files, canonical JSON and verifying a document.
 ///
 /// Fixed-length parsing gives the length asked for or nothing, and reads back as the text it came from; canonical JSON

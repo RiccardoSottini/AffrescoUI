@@ -9,6 +9,8 @@
 
 #include "gl/GlObjects.hpp"
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -64,11 +66,11 @@ public:
 	[[nodiscard]] std::vector<std::string> chooseFiles(const FileDialog& dialog) override;
 
 private:
-	ProcAddressLoader loader_;  ///< See procAddressLoader().
-	Window* window_ = nullptr;  ///< The window it belongs to, once connected.
-	PixelSize size_{};          ///< The host's pixels.
-	float scale_ = 1.0f;        ///< Pixels per window unit.
-	std::string clipboard_;     ///< Its own clipboard (the host's isn't reachable).
+	ProcAddressLoader loader_; ///< See procAddressLoader().
+	Window* window_ = nullptr; ///< The window it belongs to, once connected.
+	PixelSize size_{};         ///< The host's pixels.
+	float scale_ = 1.0f;       ///< Pixels per window unit.
+	std::string clipboard_;    ///< Its own clipboard (the host's isn't reachable).
 };
 
 /// @brief The windowing system of an embedding: it opens EmbeddedWindows, never waits, and reports the appearance the
@@ -79,8 +81,7 @@ public:
 	/// @param loader The host's function loader, given to each window.
 	explicit EmbeddedPlatform(ProcAddressLoader loader) noexcept : loader_(loader) {}
 
-	[[nodiscard]] std::unique_ptr<NativeWindow> createWindow(const std::string& title, int width,
-	                                                         int height) override;
+	[[nodiscard]] std::unique_ptr<NativeWindow> createWindow(const std::string& title, int width, int height) override;
 	void waitEvents(std::optional<double> timeoutSeconds) override { static_cast<void>(timeoutSeconds); }
 	void wake() override {}
 	[[nodiscard]] ColorScheme colorScheme() const override { return scheme_; }
@@ -121,18 +122,19 @@ public:
 
 private:
 	GLint drawFramebuffer_ = 0, readFramebuffer_ = 0, renderbuffer_ = 0; ///< The framebuffer and renderbuffer bindings.
-	GLint viewport_[4]{}, scissorBox_[4]{};                             ///< The viewport and the scissor box.
+	std::array<GLint, 4> viewport_{}, scissorBox_{};                     ///< The viewport and the scissor box.
 	GLint blendSourceRgb_ = 0, blendDestinationRgb_ = 0;                 ///< The colour's blend factors.
 	GLint blendSourceAlpha_ = 0, blendDestinationAlpha_ = 0;             ///< The alpha's blend factors.
 	GLint blendEquationRgb_ = 0, blendEquationAlpha_ = 0;                ///< The blend equations.
 	GLint program_ = 0, vertexArray_ = 0, arrayBuffer_ = 0;              ///< The program, vertex array and buffer.
-	GLint activeTexture_ = 0, textures_[2]{};                            ///< The active unit; units 0 and 1's 2D textures.
+	GLint activeTexture_ = 0;                                            ///< The active texture unit.
+	std::array<GLint, 2> textures_{};                                    ///< Units 0 and 1's 2D textures.
 	GLint packAlignment_ = 0, unpackAlignment_ = 0, unpackRowLength_ = 0; ///< The pixel store.
-	GLint packBuffer_ = 0, unpackBuffer_ = 0;                            ///< The pixel buffer bindings.
-	GLfloat clearColor_[4]{};                                            ///< The clear colour.
-	GLboolean colorMask_[4]{};                                           ///< The colour mask.
-	GLboolean blend_ = 0, scissor_ = 0, depth_ = 0, stencil_ = 0;        ///< Blending and the tests, enabled or not.
-	GLboolean cull_ = 0, srgb_ = 0;                                      ///< Culling and sRGB writes, enabled or not.
+	GLint packBuffer_ = 0, unpackBuffer_ = 0;                             ///< The pixel buffer bindings.
+	std::array<GLfloat, 4> clearColor_{};                                 ///< The clear colour.
+	std::array<GLboolean, 4> colorMask_{};                                ///< The colour mask.
+	GLboolean blend_ = 0, scissor_ = 0, depth_ = 0, stencil_ = 0;         ///< Blending and the tests, enabled or not.
+	GLboolean cull_ = 0, srgb_ = 0;                                       ///< Culling and sRGB writes, enabled or not.
 };
 
 /// @brief The texture an embedded window's frames are copied into, and what draws it over the host's framebuffer.
@@ -163,12 +165,12 @@ public:
 	[[nodiscard]] std::vector<std::uint8_t> pixels() const;
 
 private:
-	Texture texture_;          ///< RGBA8, what the window draws.
-	Framebuffer framebuffer_;  ///< Its framebuffer.
-	Program program_;          ///< Samples the texture.
-	VertexArray vertexArray_;  ///< Empty: the triangle's corners come from gl_VertexID.
-	int width_ = 0;            ///< In pixels.
-	int height_ = 0;           ///< In pixels.
+	Texture texture_;         ///< RGBA8, what the window draws.
+	Framebuffer framebuffer_; ///< Its framebuffer.
+	Program program_;         ///< Samples the texture.
+	VertexArray vertexArray_; ///< Empty: the triangle's corners come from gl_VertexID.
+	int width_ = 0;           ///< In pixels.
+	int height_ = 0;          ///< In pixels.
 };
 
 } // namespace gl

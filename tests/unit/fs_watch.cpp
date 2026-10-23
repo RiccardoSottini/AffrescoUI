@@ -3,7 +3,7 @@
 /// the `watch` provider's stream, confined to its root.
 
 #include "Providers.hpp"
-#include "Watcher.hpp"
+#include "files/Watcher.hpp"
 
 #include <affresco/services/DirectoryModel.hpp>
 
@@ -148,6 +148,36 @@ TEST_CASE("fs watch: ignore globs match a name anywhere, or a whole path") {
 	CHECK_FALSE(globMatches("src/*.cpp", "lib/src/a.cpp"));
 }
 
+TEST_CASE("fs watch: globs keep their meaning at the edges") {
+	CHECK(globMatches("a/**/b", "a/b"));
+	CHECK(globMatches("a/**/b", "a/x/y/b"));
+	CHECK_FALSE(globMatches("a/**/b", "a/xb"));
+	CHECK(globMatches("a/**", "a/"));
+	CHECK(globMatches("**", "a/b/c"));
+	CHECK(globMatches("a*/b", "a/b"));
+	CHECK_FALSE(globMatches("a*/b", "ax/y/b"));
+	CHECK_FALSE(globMatches("a?b", "a/b"));
+	CHECK(globMatches("*", ""));
+	CHECK_FALSE(globMatches("?", ""));
+	CHECK(globMatches(std::string(300, 'a') + "*", std::string(301, 'a'))); // longer than the states on the stack
+	CHECK_FALSE(globMatches(std::string(300, 'a') + "?", std::string(300, 'a')));
+}
+
+TEST_CASE("fs watch: a pathological ignore glob takes linear time") {
+	// A screen gives the globs (up to 64, of up to 200 bytes): one that backtracked would stall the watcher's thread
+	std::string glob;
+	for(int star = 0; star < 40; ++star) glob += "*a";
+	glob += 'b';
+	const std::string name(150, 'a');
+	std::string deep;
+	for(int level = 0; level < 64; ++level) deep += "a/";
+	const auto started = std::chrono::steady_clock::now();
+	CHECK_FALSE(globMatches(glob, name));
+	CHECK_FALSE(globMatches(glob, "src/" + name));
+	CHECK_FALSE(globMatches("**/a/**/a/**/a/**/b", deep));
+	CHECK(std::chrono::steady_clock::now() - started < std::chrono::seconds(1));
+}
+
 TEST_CASE("fs watch: a directory model lists folders first, by name, and leaves ignored paths out") {
 	const TemporaryFolder folder("affrescoui-fs-watch-list");
 	std::filesystem::create_directories(folder.path / "src" / "deep");
@@ -175,7 +205,8 @@ TEST_CASE("fs watch: a watched model reports what changes as ranges of rows") {
 	writeText(folder.path / "old" / "inner" / "one.txt", "1");
 	writeText(folder.path / "keep.txt", "k");
 	PumpedExecutor executor;
-	const auto model = DirectoryModel::open(executor, folder.path, {.debounce = std::chrono::milliseconds(20)});
+	const auto model =
+	    DirectoryModel::open(executor, folder.path, {.ignore = {}, .debounce = std::chrono::milliseconds(20)});
 	std::vector<ModelChange> changes;
 	(void)model->onChange.connect([&](const ModelChange& change) { changes.push_back(change); });
 	REQUIRE(executor.pumpUntil([&] { return model->ready(); }));

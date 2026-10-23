@@ -159,7 +159,7 @@ What a format change must keep:
   place.
 - **Generated together:** the schema (`schema/affrescoui-screen.schema.json`), the tables of `SCREEN_FORMAT.md`
   (between `<!-- generated: ... -->` markers) and the catalog that `get_catalog` returns all come from the registries
-  and the reference in `modules/format/src/Reference*.cpp`. Run `affrescoui schema -o
+  and the reference in `modules/format/src/reference/Reference*.cpp`. Run `affrescoui schema -o
   schema/affrescoui-screen.schema.json --doc SCREEN_FORMAT.md` after a change; CI fails while they are out of date.
 - **History stays RFC 6902** (JSON Patch). New edit syntax is sugar that normalises to it.
 - **Documents stay declarative:** no scripts inside documents.

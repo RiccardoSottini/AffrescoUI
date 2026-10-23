@@ -102,7 +102,7 @@ def gate(arguments):
         findings, failures = tidy.run(arguments.clang_tidy, arguments.build, ROOT, tidied, sources,
                                       arguments.jobs, lines, config)
     too_big, notes = functions.gate(changed, read_file, lambda path: changes.file_at(ROOT, arguments.base, path),
-                                    limits)
+                                    limits, changes.removed_files(ROOT, arguments.base, sources, CPP))
 
     report = [f"### Quality gate: the changes since {base}", "",
               f"{len(changed)} C++ files changed. clang-tidy {tidy.version(arguments.clang_tidy)}, "

@@ -34,7 +34,7 @@ struct TimeOfDay {
 };
 
 /// @brief The first and last years a CivilDate holds.
-inline constexpr int firstYear = 1, lastYear = 9999;
+inline constexpr int firstYear = 1, lastYear = 9999; ///< firstYear, then lastYear.
 
 /// @brief Tells whether a year has 29 February.
 /// @param year The year.

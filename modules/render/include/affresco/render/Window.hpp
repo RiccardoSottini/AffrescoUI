@@ -213,7 +213,8 @@ public:
 	/// @brief The font of labels that don't have their own, or nullptr.
 	[[nodiscard]] const Font* defaultFont() const noexcept { return defaultFont_.get(); }
 
-	/// @brief The system clipboard's text, as UTF-8 (a headless window keeps a clipboard of its own).
+	/// @brief The system clipboard's text, as UTF-8 (a headless window keeps a clipboard of its own): at most its first
+	/// 64 MiB, cut where a character starts.
 	[[nodiscard]] std::string clipboardText() const;
 	/// @brief Sets the system clipboard's text (a headless window keeps a clipboard of its own).
 	/// @param utf8 UTF-8 text.
@@ -246,7 +247,7 @@ public:
 	/// @param event The event.
 	void routeKey(const KeyEvent& event);
 	/// @brief Delivers a typed character to the focused panel, then onChar.
-	/// @param event The event.
+	/// @param event The event; one that is no Unicode character (a surrogate, or past U+10FFFF) is dropped.
 	void routeChar(const CharEvent& event);
 	/// @brief Updates the hovered panel and delivers the move to the grabbing or hovered panel, then onMouseMove.
 	/// @param position The pointer position.
@@ -255,12 +256,14 @@ public:
 	/// @param event The event.
 	void routeMouseButton(const MouseButtonEvent& event);
 	/// @brief Delivers a scroll to the panel under the pointer, then onScroll.
-	/// @param event The event.
+	/// @param event The event; one whose offset or position isn't a finite number is dropped.
 	void routeScroll(const ScrollEvent& event);
 	/// @brief Clears the hovered panel when the pointer leaves, then onCursorEnter.
 	/// @param entered true if the pointer entered.
 	void routeCursorEnter(bool entered);
-	/// @brief Delivers files dropped from the OS: the pointer moves where they were dropped, then onDrop.
+	/// @brief Delivers files dropped from the OS: the pointer moves where they were dropped, then onDrop. Paths that
+	/// aren't valid UTF-8, hold a NUL or are longer than 32 KiB are left out, and so is every path after the 4096th;
+	/// a drop that loses all its paths isn't delivered.
 	/// @param event The event.
 	void routeDrop(const DropEvent& event);
 	/// @brief Takes a new display scale, colour scheme or motion setting: a new scale draws everything again. Then

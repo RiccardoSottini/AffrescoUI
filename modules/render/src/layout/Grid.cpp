@@ -4,7 +4,9 @@
 #include "layout/Grid.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <limits>
+#include <optional>
 
 namespace affresco::detail {
 
@@ -29,13 +31,16 @@ public:
 	/// @param area The area.
 	void take(const GridArea& area) {
 		if(rows() < area.row + area.rowSpan) taken_.resize((area.row + area.rowSpan) * columns_, 0);
+		// A row's cells are contiguous: filled as runs, a child spanning the whole grid costs 1000 fills, not a
+		// million stores (a document of thousands of them took seconds to lay out)
 		for(std::size_t row = area.row; row < area.row + area.rowSpan; ++row)
-			for(std::size_t column = area.column; column < area.column + area.columnSpan; ++column)
-				taken_[row * columns_ + column] = 1;
+			std::fill_n(taken_.begin() + static_cast<std::ptrdiff_t>(row * columns_ + area.column), area.columnSpan, 1);
 	}
 
 	/// @brief The rows that have a taken cell, or come before one.
 	[[nodiscard]] std::size_t rows() const noexcept { return taken_.size() / columns_; }
+	/// @brief The grid's columns.
+	[[nodiscard]] std::size_t columns() const noexcept { return columns_; }
 
 private:
 	std::size_t columns_;              ///< See Occupancy().
@@ -87,33 +92,50 @@ private:
 	std::vector<std::size_t> next_; ///< Per column, its first taken row from where last looked (max: not yet).
 };
 
-/// @brief Finds the first free position for an area, scanning rows from @p row and columns from @p column.
+/// @brief Where findFree() looks.
+struct FreeSearch {
+	bool fixedColumn = false; ///< Whether the area's column stays as it is.
+	bool fixedRow = false;    ///< Whether the area's row stays as it is.
+	GridArea from;            ///< Where to start scanning, row then column.
+};
+
+/// @brief Finds the first column of a row where an area fits.
+/// @param taken The taken cells below the rows looked at so far.
+/// @param area The area: its spans.
+/// @param row The row, never less than in an earlier call.
+/// @param firstColumn The first column to try.
+/// @param lastColumn The last column to try.
+/// @return The column, or nothing if no column from @p firstColumn to @p lastColumn fits it.
+std::optional<std::size_t> freeColumn(TakenBelow& taken, const GridArea& area, std::size_t row, std::size_t firstColumn,
+                                      std::size_t lastColumn) {
+	// A taken cell rules out every position that covers its column: the next one to try starts after it
+	for(std::size_t column = firstColumn, end = firstColumn; column <= lastColumn;) {
+		if(!taken.isFree(end, row, area.rowSpan)) column = ++end;
+		else if(++end == column + area.columnSpan) return column;
+	}
+	return std::nullopt;
+}
+
+/// @brief Finds the first free position for an area, scanning rows from the search's row and columns from its column.
 /// @param occupancy The taken cells.
 /// @param area The area; its column and row are set.
-/// @param columns The grid's columns.
-/// @param fixedColumn Whether its column stays as it is.
-/// @param fixedRow Whether its row stays as it is.
-/// @param from Where to start scanning, row then column.
-void findFree(const Occupancy& occupancy, GridArea& area, std::size_t columns, bool fixedColumn, bool fixedRow,
-              GridArea from) {
-	TakenBelow taken(occupancy, columns);
+/// @param search Where to look.
+void findFree(const Occupancy& occupancy, GridArea& area, const FreeSearch& search) {
+	TakenBelow taken(occupancy, occupancy.columns());
 	const std::size_t lastRow = maxGridTracks - area.rowSpan; // rows past it place the area there too
-	for(std::size_t row = fixedRow ? area.row : from.row; row < maxGridTracks; ++row) {
+	for(std::size_t row = search.fixedRow ? area.row : search.from.row; row < maxGridTracks; ++row) {
 		const std::size_t at = std::min(row, lastRow);
-		const std::size_t firstColumn = fixedColumn ? area.column : row == from.row ? from.column : 0;
-		const std::size_t lastColumn = fixedColumn ? area.column : columns - area.columnSpan;
-		// A taken cell rules out every position that covers its column: the next one to try starts after it
-		for(std::size_t column = firstColumn, end = firstColumn; column <= lastColumn;) {
-			if(!taken.isFree(end, at, area.rowSpan)) {
-				column = ++end;
-			} else if(++end == column + area.columnSpan) {
-				area.row = at;
-				area.column = column;
-				return;
-			}
+		const std::size_t firstColumn = search.fixedColumn       ? area.column
+		                                : row == search.from.row ? search.from.column
+		                                                         : 0;
+		const std::size_t lastColumn = search.fixedColumn ? area.column : occupancy.columns() - area.columnSpan;
+		if(const std::optional<std::size_t> column = freeColumn(taken, area, at, firstColumn, lastColumn)) {
+			area.row = at;
+			area.column = *column;
+			return;
 		}
-		if(fixedRow) break; // no room in its row: it overlaps where it asked to be
-		if(at == lastRow && (fixedColumn || firstColumn == 0)) break; // every position of the last row was tried
+		if(search.fixedRow) break; // no room in its row: it overlaps where it asked to be
+		if(at == lastRow && (search.fixedColumn || firstColumn == 0)) break; // every position of the last row was tried
 	}
 }
 
@@ -210,32 +232,49 @@ void growToLimits(std::span<Sizing> sizing, float free) {
 	}
 }
 
+/// @brief The size of one fraction: the room the other tracks leave, over the shares of the flexible ones.
+/// @param sizing The tracks.
+/// @param inflexible Which fraction tracks keep their minimum.
+/// @param room The grid's size less the gaps.
+/// @return The size, or nothing when no share or no room is left.
+std::optional<float> fractionSize(std::span<const Sizing> sizing, const std::vector<bool>& inflexible, float room) {
+	float leftover = room, shares = 0.0f;
+	for(std::size_t i = 0; i < sizing.size(); ++i) {
+		if(sizing[i].flex > 0.0f && !inflexible[i]) shares += sizing[i].flex;
+		else leftover -= sizing[i].base;
+	}
+	if(shares <= 0.0f || leftover <= 0.0f) return std::nullopt;
+	return leftover / shares;
+}
+
+/// @brief Marks the flexible fraction tracks whose minimum is more than their share: they keep it.
+/// @param sizing The tracks.
+/// @param inflexible Which fraction tracks keep their minimum; updated.
+/// @param fraction The size of one fraction.
+/// @return Whether any was marked, which changes the size of a fraction.
+bool markTooSmall(std::span<const Sizing> sizing, std::vector<bool>& inflexible, float fraction) {
+	bool tooSmall = false;
+	for(std::size_t i = 0; i < sizing.size(); ++i) {
+		if(sizing[i].flex <= 0.0f || inflexible[i] || sizing[i].base <= sizing[i].flex * fraction) continue;
+		inflexible[i] = true;
+		tooSmall = true;
+	}
+	return tooSmall;
+}
+
 /// @brief Shares the room left over among the fraction tracks; a track whose minimum is more than its share keeps its
 /// minimum and leaves the others the rest.
 /// @param sizing The tracks.
 /// @param room The grid's size less the gaps.
 void shareFractions(std::span<Sizing> sizing, float room) {
 	std::vector<bool> inflexible(sizing.size(), false);
-	for(;;) {
-		float leftover = room, shares = 0.0f;
-		for(std::size_t i = 0; i < sizing.size(); ++i) {
-			if(sizing[i].flex > 0.0f && !inflexible[i]) shares += sizing[i].flex;
-			else leftover -= sizing[i].base;
-		}
-		if(shares <= 0.0f || leftover <= 0.0f) return;
-		const float fraction = leftover / shares;
-		bool tooSmall = false;
-		for(std::size_t i = 0; i < sizing.size(); ++i) {
-			if(sizing[i].flex <= 0.0f || inflexible[i] || sizing[i].base <= sizing[i].flex * fraction) continue;
-			inflexible[i] = true;
-			tooSmall = true;
-		}
-		if(tooSmall) continue;
-		for(std::size_t i = 0; i < sizing.size(); ++i)
-			if(sizing[i].flex > 0.0f && !inflexible[i])
-				sizing[i].base = std::max(sizing[i].base, sizing[i].flex * fraction);
-		return;
-	}
+	std::optional<float> fraction;
+	do fraction = fractionSize(sizing, inflexible, room);
+	while(fraction && markTooSmall(sizing, inflexible, *fraction));
+	if(!fraction) return;
+	for(std::size_t i = 0; i < sizing.size(); ++i)
+		if(sizing[i].flex > 0.0f && !inflexible[i])
+			sizing[i].base = std::max(sizing[i].base, sizing[i].flex * *fraction);
 }
 
 } // namespace
@@ -252,7 +291,7 @@ std::size_t placeGridItems(std::size_t columns, std::span<const GridCell> cells,
 			if((cells[i].column > 0) != wantsColumn || (cells[i].row > 0) != wantsRow) continue;
 			GridArea area = requested(cells[i], columns);
 			if(!wantsColumn || !wantsRow)
-				findFree(occupancy, area, columns, wantsColumn, wantsRow, autoCursor ? cursor : GridArea{});
+				findFree(occupancy, area, {wantsColumn, wantsRow, autoCursor ? cursor : GridArea{}});
 			occupancy.take(area);
 			areas[i] = area;
 			if(autoCursor) cursor = {area.column + area.columnSpan, area.row, 1, 1};

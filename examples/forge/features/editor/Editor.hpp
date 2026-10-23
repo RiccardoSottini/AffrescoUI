@@ -23,6 +23,6 @@ namespace forge {
 /// @param screen The screen, before it is built; it must not move afterwards.
 /// @param workspace The open folder the files are opened from.
 /// @return The buffers, for the features that read them (registerLsp()).
-std::shared_ptr<Buffers> registerEditor(affresco::Screen& screen, std::shared_ptr<Workspace> workspace);
+std::shared_ptr<Buffers> registerEditor(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace);
 
 } // namespace forge

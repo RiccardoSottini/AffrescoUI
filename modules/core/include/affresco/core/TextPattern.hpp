@@ -50,11 +50,18 @@ public:
 	static constexpr std::size_t maxExpandedBytes = std::size_t{64} << 20; ///< The longest replacement expand() gives.
 	static constexpr std::uint32_t maxHeapKibibytes = 8192; ///< Heap per match, at most.
 
+	/// @brief No pattern yet: valid() is false until compile() succeeds.
 	TextPattern();
+	/// @brief Takes over a compiled pattern.
+	/// @param other The pattern; it holds none after.
 	TextPattern(TextPattern&& other) noexcept;
+	/// @brief Takes over a compiled pattern, freeing this one's.
+	/// @param other The pattern; it holds none after.
+	/// @return This.
 	TextPattern& operator=(TextPattern&& other) noexcept;
 	TextPattern(const TextPattern&) = delete;
 	TextPattern& operator=(const TextPattern&) = delete;
+	/// @brief Frees the compiled pattern.
 	~TextPattern();
 
 	/// @brief Compiles a pattern, replacing the previous one.

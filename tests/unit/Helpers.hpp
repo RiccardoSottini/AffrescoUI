@@ -87,4 +87,17 @@ constexpr bool underSanitizer() {
 #endif
 }
 
+/// The time limit of a test that checks its cost grows no faster than its size: the seconds given in an optimised
+/// build, 24 times as many in a debug or sanitized one, which runs up to 40 times slower (where the cost the test
+/// guards against takes many minutes).
+/// @param seconds The limit in an optimised build.
+/// @return The limit in this build.
+constexpr double timeLimit(double seconds) {
+#ifdef NDEBUG
+	return underSanitizer() ? seconds * 24 : seconds;
+#else
+	return seconds * 24;
+#endif
+}
+
 } // namespace affresco::test

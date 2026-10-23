@@ -34,3 +34,10 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 - **Accessibility:** roles, names, live regions, toolbars with arrow keys, the focus kept in modal overlays.
 - **Shared editing:** a document-server channel for presence and other people's revisions in the activity feed.
 - **Layouts** from 1040 × 640 (icon-only buttons with names and tooltips) to full screen.
+
+## How it holds together
+
+- **Permissions:** Studio peers change it directly; an agent's change waits for a Studio reviewer (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The theme, column sizes, view, swimlanes and settings persist; the cards are the document's.
+- **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
+- **Extension points:** boards and columns are entries of `state`; the board logic, the drawer and the other views are included files; a language is a table in `strings.json`.
+- **Assets:** no pictures of its own; the fonts' licences are with them in `../shared/fonts`.

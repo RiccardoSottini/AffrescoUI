@@ -46,12 +46,16 @@ Target: `affrescoui::channel` (uses `core` and nlohmann/json; Winsock on Windows
 - **Closing a `ProcessChannel` ends the child and everything it started** (a process group on POSIX, a job object on
   Windows), and the child inherits no other pipe.
 
-## Threads
+## Threads and ownership
 
 Each transport has a thread of its own that only reads (or accepts) and posts what arrives to the `Executor`; a
 `SocketChannel` also has a writer thread, which writes what `send` queued, so the main thread never waits for a peer.
 Everything else runs on the main thread: `onMessage`, `onClosed`, `onConnection`, `send` and the whole `Session`.
 A channel being destroyed stops its threads; deliveries still queued for it do nothing.
+
+Each transport owns its socket, pipes or child process, and closes them when it is destroyed; a `SocketServer`
+also removes its socket file. A `Session` borrows its `Channel`, its `VersionControl` and its `ScreenImages`: the
+owner (`affresco::Screen`) destroys the session before any of them.
 
 ## Errors
 
@@ -82,17 +86,21 @@ A channel being destroyed stops its threads; deliveries still queued for it do n
 ```
 include/affresco/channel/   Sockets.hpp, Channels.hpp, Session.hpp, Limits.hpp
 src/
-  Sockets.cpp               SocketChannel and SocketServer; the POSIX and Winsock differences in one block
-  Channels.cpp              ProcessChannel and StdioChannel; the process platform layer (POSIX and Windows)
-  Lines.hpp                 line framing shared by the transports
-  Session.cpp               the live protocol: reading, answering, base64 pictures
+  transports/               the byte streams: one message per line, both ways
+    Lines.hpp               line framing shared by the transports
+    Sockets.cpp             SocketChannel and SocketServer, written once over SocketPlatform.hpp
+    SocketPlatform.hpp      what differs between POSIX and Winsock: socket calls, socket files, peer checks
+    SocketPlatform.cpp      those functions, once for Windows and once for POSIX
+    Channels.cpp            ProcessChannel and StdioChannel; the process platform layer (POSIX and Windows)
+  session/
+    Session.cpp             the live protocol: reading, answering, base64 pictures, relaying
 CMakeLists.txt              the affrescoui_channel target and its sources
 ```
 
 ## Recipes
 
 **Add a protocol message.**
-1. Handle it in the right group in `Session.cpp`; read its fields with `expect::` so errors name the place.
+1. Handle it in the right group in `session/Session.cpp`; read its fields with `expect::` so errors name the place.
 2. If it changes anything or reaches outside the document, check who may do it (as `handleReview` does for
    reviewers), and ask the maintainer: it touches the security model.
 3. Document it in the protocol table of `SCREEN_FORMAT.md`, and in the MCP server (`mcp/`) if agents use it.

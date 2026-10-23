@@ -33,6 +33,7 @@ struct AccessibleRange {
 	double maximum = 0.0; ///< The highest value.
 	double step = 0.0;    ///< The step; 0 for none.
 
+	/// @brief Equal when every field is.
 	bool operator==(const AccessibleRange&) const = default;
 };
 
