@@ -367,8 +367,7 @@ TEST_CASE("format: a popover closes on Escape and on a click outside it") {
 		screen.build(*window);
 		settle(*window, clock);
 		REQUIRE(findAccessible(window->root(), "dialog", "Share"));
-		if(escape)
-			press(*window, affresco::Key::Escape);
+		if(escape) press(*window, affresco::Key::Escape);
 		else
 			for(const affresco::Action action : {affresco::Action::Press, affresco::Action::Release})
 				window->routeMouseButton({affresco::MouseButton::Left, action, {}, affresco::Vec2{390.0f, 190.0f}});
