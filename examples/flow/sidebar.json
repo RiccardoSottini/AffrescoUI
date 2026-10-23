@@ -1,0 +1,102 @@
+{
+	"note": "Flow's sidebar, included by kanban.screen.json: the workspace, the personal pages, the team's pages and its boards.",
+
+	"components": {
+		"navItem": {
+			"note": "One row of the sidebar: an icon, a name and a count; the use gives its onClick",
+			"params": { "icon": "circle", "text": "", "active": false, "count": "" },
+			"node": {
+				"type": "label",
+				"font": "small",
+				"height": 28,
+				"anchors": { "left": 0, "right": 0 },
+				"padding": 8,
+				"radius": "@radius.chip",
+				"icon": "{{icon}}",
+				"text": "  {{text}}",
+				"textColor": "@color.text",
+				"color": "{{active ? '@color.sidebarOn' : 'transparent'}}",
+				"hover": { "color": "{{active ? '@color.sidebarOn' : '@color.sidebarHover'}}" },
+				"align": { "horizontal": "start", "vertical": "center" },
+				"cursor": "hand",
+				"focusable": true,
+				"role": "link",
+				"selected": "{{active}}",
+				"children": [
+					{ "id": "navCount", "when": "{{count != ''}}", "type": "label", "font": "small", "text": "{{count}}", "textColor": "@color.muted",
+						"anchors": { "right": 8, "top": 0, "bottom": 0 }, "width": 40, "align": { "horizontal": "end", "vertical": "center" } }
+				]
+			}
+		},
+		"navHeading": {
+			"note": "A small heading over a group of sidebar rows",
+			"params": { "text": "" },
+			"node": { "type": "label", "font": "small", "text": "{{text}}", "textColor": "@color.muted", "height": 28, "padding": 8,
+				"anchors": { "left": 0, "right": 0 }, "align": { "horizontal": "start", "vertical": "end" } }
+		},
+		"sidebar": {
+			"note": "The left column of the window",
+			"params": {},
+			"node": {
+				"id": "sidebarPanel",
+				"dir": "auto",
+				"anchors": { "left": 0, "top": 0, "bottom": 0 },
+				"width": 220,
+				"color": "@color.sidebar",
+				"children": [
+					{
+						"id": "workspace",
+						"type": "row",
+						"anchors": { "left": 12, "top": 10 },
+						"width": 132,
+						"height": 28,
+						"gap": 8,
+						"alignItems": "center",
+						"radius": "@radius.chip",
+						"color": "transparent",
+						"hover": { "color": "@color.sidebarHover" },
+						"children": [
+							{ "id": "workspaceMark", "type": "label", "font": "small", "text": "L", "textColor": "#ffffff", "color": "@color.accent", "radius": 4,
+								"width": 18, "height": 18, "align": "center", "x": 6 },
+							{ "id": "workspaceName", "type": "label", "font": "small", "text": "{{t('workspace.name')}}", "textColor": "@color.text", "fitText": true, "height": 28,
+								"align": { "horizontal": "start", "vertical": "center" } },
+							{ "id": "workspaceMore", "type": "label", "font": "small", "icon": "chevron-down", "textColor": "@color.muted", "fitText": true, "height": 28,
+								"align": "center" }
+						]
+					},
+					{ "id": "sidebarSearch", "style": "topButton", "text": "", "icon": "search", "anchors": { "right": 44, "top": 10 }, "height": 28, "width": 28, "padding": 0, "align": "center",
+						"hover": { "color": "@color.sidebarHover" }, "tooltip": "{{t('goTo.tooltip')}}", "onClick": "goToCardCommand" },
+					{ "id": "sidebarNew", "style": "topButton", "text": "", "icon": "pencil-line", "anchors": { "right": 12, "top": 10 }, "height": 28, "width": 28, "padding": 0, "align": "center",
+						"color": "@color.card", "borderWidth": 1, "borderColor": "@color.border", "hover": { "color": "@color.sidebarHover" },
+						"tooltip": "{{t('nav.newTooltip')}}", "onClick": "newCardCommand" },
+					{
+						"id": "sidebarNav",
+						"type": "column",
+						"anchors": { "left": 12, "right": 12, "top": 50, "bottom": 48 },
+						"gap": 1,
+						"scroll": "vertical",
+						"role": "navigation",
+						"children": [
+							{ "id": "navMine", "use": "navItem", "with": { "icon": "circle-user", "text": "{{t('nav.mine')}}", "active": "{{state.owner == state.me}}",
+								"count": "{{length(filter(computed.allCards, it.who == state.me))}}" }, "onClick": [{ "set": "state.owner", "to": "{{state.owner == state.me ? '' : state.me}}" }] },
+							{ "id": "navHeadingTeams", "use": "navHeading", "with": { "text": "{{t('nav.teams')}}" } },
+							{ "id": "navTeam", "use": "navItem", "with": { "icon": "box", "text": "Flow" }, "onClick": "showBoard" },
+							{ "id": "navIssues", "use": "navItem", "with": { "icon": "copy", "text": "{{t('nav.issues')}}", "active": "{{state.owner != state.me}}" },
+								"padding": 26, "onClick": [{ "set": "state.owner", "to": "" }] },
+							{ "id": "navHeadingBoards", "use": "navHeading", "with": { "text": "{{t('nav.boards')}}" } },
+							{
+								"id": "navBoard",
+								"repeat": { "for": "b", "in": "state.boards", "key": "{{b.id}}" },
+								"use": "navItem",
+								"with": { "icon": "layers-2", "text": "{{b.label}}", "active": "{{b.id == state.boardId}}" },
+								"onClick": [{ "run": "switchBoard", "with": { "event": { "value": "{{b.id}}" } } }]
+							}
+						]
+					},
+					{ "id": "navHelp", "style": "topButton", "text": "", "icon": "circle-help", "anchors": { "left": 12, "bottom": 12 }, "height": 28, "width": 28, "padding": 0, "align": "center",
+						"hover": { "color": "@color.sidebarHover" }, "tooltip": "{{t('nav.commands')}}", "onClick": "commandPalette" }
+				]
+			}
+		}
+	}
+}

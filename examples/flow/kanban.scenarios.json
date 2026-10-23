@@ -122,13 +122,28 @@
 				{ "click": "#move-button-card-2", "note": "» on the first Backlog card, so the board has changed" },
 				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
 				{ "click": "#boardTabs" },
-				{ "click": [277, 32], "note": "the Website tab" },
+				{ "click": [583, 32], "note": "the Website tab" },
 				{ "expect": { "state": "boardId", "is": "website" } },
 				{ "expect": { "state": "board", "is": "Website" } },
 				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Pricing page comparison table" } },
-				{ "click": [200, 32], "note": "the Product launch tab" },
+				{ "click": [503, 32], "note": "the Product launch tab" },
 				{ "expect": { "state": "boardId", "is": "launch" } },
 				{ "expect": { "state": "columns[1].cards.length", "is": 4 } }
+			]
+		},
+		{
+			"name": "list-of-every-card",
+			"note": "The List view groups every card by column, one row each; choosing a row selects its card",
+			"steps": [
+				{ "click": "#viewList" },
+				{ "expect": { "state": "view", "is": "list" } },
+				{ "expect": { "node": "#listView", "exists": true } },
+				{ "expect": { "node": "#board", "exists": false } },
+				{ "click": "#listRow", "nth": 2, "note": "Crash when a board has no columns" },
+				{ "expect": { "state": "selected.i", "is": 2 } },
+				{ "expect": { "node": "#detailTitle", "text": "Crash when a board has no columns" } },
+				{ "click": "#viewBoard" },
+				{ "expect": { "node": "#board", "exists": true } }
 			]
 		},
 		{
@@ -140,7 +155,7 @@
 				{ "expect": { "node": "#cardTable", "exists": true } },
 				{ "expect": { "node": "#board", "exists": false } },
 				{ "expect": { "state": "selected", "is": null } },
-				{ "click": [300, 236], "note": "the third row: Crash when a board has no columns" },
+				{ "click": [400, 214], "note": "the third row: Crash when a board has no columns" },
 				{ "expect": { "state": "selected.c", "is": 0 } },
 				{ "expect": { "state": "selected.i", "is": 2 } },
 				{ "expect": { "node": "#detailTitle", "text": "Crash when a board has no columns" } },

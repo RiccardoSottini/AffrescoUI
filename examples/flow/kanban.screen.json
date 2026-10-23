@@ -6,58 +6,64 @@
 
 	"window": { "title": "Flow: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
-	"include": ["../shared/components/charts.json", "strings.json", "board.json", "drawer.json", "views.json"],
+	"include": ["../shared/components/charts.json", "strings.json", "board.json", "drawer.json", "views.json", "sidebar.json", "list.json"],
 
 	"persist": ["state.theme", "state.sizes", "state.view", "state.swimlanes", "state.settings"],
 
 	"fonts": {
-		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons", "symbols", "arabic"] },
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "symbols", "arabic"] },
 		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall", "arabicSmall"] },
-		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["icons", "symbols", "arabic"] },
-		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 22, "fallback": ["iconsLarge", "arabicLarge"] },
-		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 16 },
+		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "symbols", "arabic"] },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 20, "fallback": ["iconsLarge", "arabicLarge"] },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 15 },
 		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 13 },
-		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 22 },
-		"symbols": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 14 },
-		"arabic": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 15 },
+		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 20 },
+		"symbols": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 13 },
+		"arabic": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 14 },
 		"arabicSmall": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 12 },
-		"arabicLarge": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 22 }
+		"arabicLarge": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 20 }
 	},
 
 	"theme": "{{state.theme}}",
 
 	"tokens": {
-		"radius.card": 8,
+		"radius.card": 6,
 		"radius.chip": 6,
-		"color.background": { "light": "#eef1f6", "dark": "#0b1120" },
-		"color.topBar": { "light": "#111827", "dark": "#020617" },
-		"color.topText": { "light": "#f9fafb", "dark": "#f1f5f9" },
-		"color.topMuted": { "light": "#9ca3af", "dark": "#64748b" },
-		"color.topLine": { "light": "#374151", "dark": "#1e293b" },
-		"color.surface": { "light": "#ffffff", "dark": "#1e293b" },
-		"color.column": { "light": "#e3e8ef", "dark": "#111a2e" },
-		"color.text": { "light": "#111827", "dark": "#e2e8f0" },
-		"color.muted": { "light": "#6b7280", "dark": "#94a3b8" },
-		"color.border": { "light": "#d1d9e4", "dark": "#334155" },
-		"color.input": { "light": "#ffffff", "dark": "#0f172a" },
-		"color.inputFocused": { "light": "#eef2ff", "dark": "#1e1b4b" },
-		"color.accent": { "light": "#4f46e5", "dark": "#818cf8" },
-		"color.accentSoft": { "light": "#e0e7ff", "dark": "#312e81" },
-		"color.chipHover": { "light": "#f3f4f6", "dark": "#334155" },
-		"color.chipOn": { "light": "#111827", "dark": "#e2e8f0" },
-		"color.chipOnText": { "light": "#ffffff", "dark": "#0f172a" },
-		"color.move": { "light": "#f3f4f6", "dark": "#0f172a" },
-		"color.menu": { "light": "#ffffff", "dark": "#1e293b" },
-		"color.field": { "light": "#f3f4f6", "dark": "#0f172a" },
-		"color.backdrop": { "light": "#11182766", "dark": "#00000099" },
-		"bug": { "light": "#dc2626", "dark": "#f87171" },
-		"bugSoft": { "light": "#fee2e2", "dark": "#450a0a" },
-		"feature": { "light": "#2563eb", "dark": "#60a5fa" },
-		"featureSoft": { "light": "#dbeafe", "dark": "#172554" },
-		"design": { "light": "#9333ea", "dark": "#c084fc" },
-		"designSoft": { "light": "#f3e8ff", "dark": "#3b0764" },
-		"chore": { "light": "#0f766e", "dark": "#2dd4bf" },
-		"choreSoft": { "light": "#ccfbf1", "dark": "#042f2e" }
+		"color.background": { "light": "#f4f4f5", "dark": "#08090a" },
+		"color.topBar": { "light": "#ffffff", "dark": "#0f1011" },
+		"color.topText": { "light": "#282a30", "dark": "#f7f8f8" },
+		"color.topMuted": { "light": "#6b6f76", "dark": "#8a8f98" },
+		"color.topLine": { "light": "#ececee", "dark": "#1c1d21" },
+		"color.surface": { "light": "#ffffff", "dark": "#0f1011" },
+		"color.column": { "light": "#f4f4f5", "dark": "#141516" },
+		"color.text": { "light": "#282a30", "dark": "#f7f8f8" },
+		"color.muted": { "light": "#6b6f76", "dark": "#8a8f98" },
+		"color.border": { "light": "#e6e6e8", "dark": "#23252a" },
+		"color.input": { "light": "#ffffff", "dark": "#141516" },
+		"color.inputFocused": { "light": "#f4f5ff", "dark": "#191a23" },
+		"color.accent": { "light": "#5e6ad2", "dark": "#7c86e4" },
+		"color.accentSoft": { "light": "#e8eafb", "dark": "#1f2238" },
+		"color.chipHover": { "light": "#ececee", "dark": "#1c1d21" },
+		"color.chipOn": { "light": "#e8eafb", "dark": "#262840" },
+		"color.chipOnText": { "light": "#3b45a8", "dark": "#d4d8fa" },
+		"color.move": { "light": "#f4f4f5", "dark": "#1c1d21" },
+		"color.menu": { "light": "#ffffff", "dark": "#1c1d21" },
+		"color.field": { "light": "#f4f4f5", "dark": "#141516" },
+		"color.backdrop": { "light": "#0000004d", "dark": "#00000099" },
+		"color.card": { "light": "#ffffff", "dark": "#18191b" },
+		"color.sidebar": { "light": "#f4f4f5", "dark": "#08090a" },
+		"color.sidebarHover": { "light": "#e8e8ea", "dark": "#16171a" },
+		"color.sidebarOn": { "light": "#e2e2e5", "dark": "#1c1d21" },
+		"color.urgent": { "light": "#eb5757", "dark": "#f2787a" },
+		"color.high": { "light": "#6b6f76", "dark": "#8a8f98" },
+		"bug": { "light": "#d93f3f", "dark": "#f2787a" },
+		"bugSoft": { "light": "#fbe9e9", "dark": "#2e1617" },
+		"feature": { "light": "#3d7ae0", "dark": "#78a6f0" },
+		"featureSoft": { "light": "#e7effc", "dark": "#16213a" },
+		"design": { "light": "#8e4fd9", "dark": "#b48cf0" },
+		"designSoft": { "light": "#f1e9fb", "dark": "#24183a" },
+		"chore": { "light": "#26a17a", "dark": "#4cc79e" },
+		"choreSoft": { "light": "#e2f5ef", "dark": "#122a22" }
 	},
 
 	"permissions": {
@@ -80,32 +86,36 @@
 		"stash": {
 			"website": [
 				{ "name": "Backlog", "color": "#94a3b8", "cards": [
-					{ "title": "Pricing page comparison table", "tag": "design", "who": "MK", "points": 3 },
-					{ "title": "Broken anchor links in the docs", "tag": "bug", "who": "AL", "points": 1 }
+					{ "ref": "FLO-13", "priority": 3, "title": "Pricing page comparison table", "tag": "design", "who": "MK", "points": 3 },
+					{ "ref": "FLO-14", "priority": 2, "title": "Broken anchor links in the docs", "tag": "bug", "who": "AL", "points": 1 }
 				] },
 				{ "name": "In progress", "color": "#4f46e5", "cards": [
-					{ "title": "Blog with tags and search", "tag": "feature", "who": "JD", "points": 5 }
+					{ "ref": "FLO-15", "priority": 3, "title": "Blog with tags and search", "tag": "feature", "who": "JD", "points": 5 }
 				] },
 				{ "name": "Review", "color": "#d97706", "cards": [] },
 				{ "name": "Done", "color": "#059669", "cards": [
-					{ "title": "Move hosting to the new provider", "tag": "chore", "who": "RS", "points": 2 }
+					{ "ref": "FLO-16", "priority": 4, "title": "Move hosting to the new provider", "tag": "chore", "who": "RS", "points": 2 }
 				] }
 			],
 			"mobile": [
 				{ "name": "Backlog", "color": "#94a3b8", "cards": [
-					{ "title": "Offline mode for boards", "tag": "feature", "who": "RS", "points": 8 }
+					{ "ref": "FLO-17", "priority": 2, "title": "Offline mode for boards", "tag": "feature", "who": "RS", "points": 8 }
 				] },
 				{ "name": "In progress", "color": "#4f46e5", "cards": [
-					{ "title": "Push notifications for mentions", "tag": "feature", "who": "AL", "points": 3 },
-					{ "title": "Dark launch screen", "tag": "design", "who": "MK", "points": 1 }
+					{ "ref": "FLO-18", "priority": 3, "title": "Push notifications for mentions", "tag": "feature", "who": "AL", "points": 3 },
+					{ "ref": "FLO-19", "priority": 4, "title": "Dark launch screen", "tag": "design", "who": "MK", "points": 1 }
 				] },
 				{ "name": "Review", "color": "#d97706", "cards": [
-					{ "title": "Crash on rotate in card view", "tag": "bug", "who": "JD", "points": 2 }
+					{ "ref": "FLO-20", "priority": 1, "title": "Crash on rotate in card view", "tag": "bug", "who": "JD", "points": 2 }
 				] },
 				{ "name": "Done", "color": "#059669", "cards": [] }
 			]
 		},
 		"view": "board",
+		"me": "RS",
+		"nextRef": 21,
+		"priorities": ["ellipsis", "badge-alert", "signal-high", "signal-medium", "signal-low"],
+		"statusIcons": ["circle-dashed", "circle-dot", "circle-ellipsis", "check-circle-2"],
 		"filter": "all",
 		"filters": ["all", "bug", "feature", "design", "chore"],
 		"tagIcons": { "bug": "bug", "feature": "sparkles", "design": "palette", "chore": "wrench" },
@@ -122,7 +132,7 @@
 		"toast": { "open": false, "message": "" },
 		"quickPick": { "open": false, "query": "" },
 		"members": [
-			{ "who": "RS", "name": "Riccardo Sottini", "color": "#4f46e5" },
+			{ "who": "RS", "name": "Remy Shaw", "color": "#4f46e5" },
 			{ "who": "MK", "name": "Maya Klein", "color": "#9333ea" },
 			{ "who": "AL", "name": "Ada Lewis", "color": "#0f766e" },
 			{ "who": "JD", "name": "Jon Doe", "color": "#d97706" }
@@ -132,17 +142,17 @@
 				"name": "Backlog",
 				"color": "#94a3b8",
 				"cards": [
-					{ "title": "Onboarding checklist for new teams", "tag": "feature", "who": "AL", "points": 5,
+					{ "ref": "FLO-1", "priority": 3, "title": "Onboarding checklist for new teams", "tag": "feature", "who": "AL", "points": 5,
 						"notes": "A short list of *first steps* on an empty board, under five items. Spec:", "linkText": "onboarding", "link": "https://example.com/specs/onboarding",
 						"start": "2026-03-12", "due": "2026-03-20", "labels": ["frontend"], "assignees": ["AL", "MK"],
 						"checklist": [{ "text": "List the first steps", "done": true }, { "text": "Draw the empty board", "done": false }, { "text": "Write the copy", "done": false }],
 						"comments": [{ "who": "MK", "text": "The empty board drawing is on its way." }],
 						"attachments": ["onboarding-flow.png"] },
-					{ "title": "Empty states for every page", "tag": "design", "who": "MK", "points": 3 },
-					{ "title": "Crash when a board has no columns", "tag": "bug", "who": "RS", "points": 2,
+					{ "ref": "FLO-2", "priority": 4, "title": "Empty states for every page", "tag": "design", "who": "MK", "points": 3 },
+					{ "ref": "FLO-3", "priority": 1, "title": "Crash when a board has no columns", "tag": "bug", "who": "RS", "points": 2,
 						"notes": "Opening a board whose columns were all deleted *crashes*. The steps:", "linkText": "issue 214", "link": "https://example.com/issues/214",
 						"due": "2026-03-14", "labels": ["urgent", "backend"] },
-					{ "title": "Upgrade the build toolchain", "tag": "chore", "who": "JD", "points": 1 }
+					{ "ref": "FLO-4", "priority": 0, "title": "Upgrade the build toolchain", "tag": "chore", "who": "JD", "points": 1 }
 				]
 			},
 			{
@@ -150,9 +160,9 @@
 				"color": "#4f46e5",
 				"limit": 3,
 				"cards": [
-					{ "title": "Keyboard shortcuts for moving cards", "tag": "feature", "who": "RS", "points": 3, "start": "2026-03-10", "due": "2026-03-17", "labels": ["frontend"] },
-					{ "title": "New colour palette for labels", "tag": "design", "who": "MK", "points": 2, "start": "2026-03-11", "due": "2026-03-18" },
-					{ "title": "Card counts drift after a filter", "tag": "bug", "who": "AL", "points": 1 }
+					{ "ref": "FLO-5", "priority": 2, "title": "Keyboard shortcuts for moving cards", "tag": "feature", "who": "RS", "points": 3, "start": "2026-03-10", "due": "2026-03-17", "labels": ["frontend"] },
+					{ "ref": "FLO-6", "priority": 3, "title": "New colour palette for labels", "tag": "design", "who": "MK", "points": 2, "start": "2026-03-11", "due": "2026-03-18" },
+					{ "ref": "FLO-7", "priority": 2, "title": "Card counts drift after a filter", "tag": "bug", "who": "AL", "points": 1 }
 				]
 			},
 			{
@@ -160,18 +170,18 @@
 				"color": "#d97706",
 				"limit": 3,
 				"cards": [
-					{ "title": "Invite teammates by email", "tag": "feature", "who": "JD", "points": 5, "start": "2026-03-09", "due": "2026-03-19", "labels": ["backend"],
+					{ "ref": "FLO-8", "priority": 2, "title": "Invite teammates by email", "tag": "feature", "who": "JD", "points": 5, "start": "2026-03-09", "due": "2026-03-19", "labels": ["backend"],
 						"comments": [{ "who": "JD", "text": "Ready for review, the email copy is still a draft." }] },
-					{ "title": "Document the board API", "tag": "chore", "who": "AL", "points": 2, "start": "2026-03-13", "due": "2026-03-23", "labels": ["docs"] }
+					{ "ref": "FLO-9", "priority": 4, "title": "Document the board API", "tag": "chore", "who": "AL", "points": 2, "start": "2026-03-13", "due": "2026-03-23", "labels": ["docs"] }
 				]
 			},
 			{
 				"name": "Done",
 				"color": "#059669",
 				"cards": [
-					{ "title": "Drag-free card moves", "tag": "feature", "who": "RS", "points": 3 },
-					{ "title": "Fix blurry text on HiDPI screens", "tag": "bug", "who": "MK", "points": 2 },
-					{ "title": "Launch page illustrations", "tag": "design", "who": "JD", "points": 3 }
+					{ "ref": "FLO-10", "priority": 3, "title": "Drag-free card moves", "tag": "feature", "who": "RS", "points": 3 },
+					{ "ref": "FLO-11", "priority": 1, "title": "Fix blurry text on HiDPI screens", "tag": "bug", "who": "MK", "points": 2 },
+					{ "ref": "FLO-12", "priority": 4, "title": "Launch page illustrations", "tag": "design", "who": "JD", "points": 3 }
 				]
 			}
 		]
@@ -181,7 +191,8 @@
 		"theme": { "enum": ["light", "dark"] },
 		"board": { "type": "string" },
 		"boardId": { "type": "string" },
-		"view": { "enum": ["board", "table", "timeline"] },
+		"view": { "enum": ["board", "list", "table", "timeline"] },
+		"nextRef": { "type": "number" },
 		"swimlanes": { "type": "boolean" },
 		"query": { "type": "string" },
 		"filter": { "type": "string" },
@@ -191,14 +202,14 @@
 		"membersOpen": { "type": "boolean" },
 		"cardMenu": { "type": "boolean" },
 		"members": { "type": "array", "items": { "type": "object", "properties": { "who": { "type": "string" }, "name": { "type": "string" }, "color": { "type": "string" } } } },
-		"columns": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "color": { "type": "string" }, "limit": { "type": "number" }, "cards": { "type": "array", "items": { "type": "object", "properties": { "title": { "type": "string" }, "tag": { "type": "string" }, "who": { "type": "string" }, "points": { "type": "number" }, "notes": { "type": "string" }, "linkText": { "type": "string" }, "link": { "type": "string" }, "start": { "type": "string" }, "due": { "type": "string" }, "labels": { "type": "array", "items": { "type": "string" } }, "assignees": { "type": "array", "items": { "type": "string" } }, "attachments": { "type": "array", "items": { "type": "string" } } } } } } } }
+		"columns": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "color": { "type": "string" }, "limit": { "type": "number" }, "cards": { "type": "array", "items": { "type": "object", "properties": { "ref": { "type": "string" }, "priority": { "type": "number" }, "title": { "type": "string" }, "tag": { "type": "string" }, "who": { "type": "string" }, "points": { "type": "number" }, "notes": { "type": "string" }, "linkText": { "type": "string" }, "link": { "type": "string" }, "start": { "type": "string" }, "due": { "type": "string" }, "labels": { "type": "array", "items": { "type": "string" } }, "assignees": { "type": "array", "items": { "type": "string" } }, "attachments": { "type": "array", "items": { "type": "string" } } } } } } } }
 	},
 
 	"computed": {
 		"lastColumn": "{{length(state.columns) - 1}}",
 		"card": "{{state.selected == null ? null : state.columns[state.selected.c].cards[state.selected.i]}}",
 		"counts": "{{map(state.columns, length(it.cards))}}",
-		"allCards": "{{parseJson('[' + join(filter(map(state.columns, slice(join(split(json(map(it.cards, { at: index, due: it.due, points: it.points, start: it.start, tag: it.tag, title: it.title, who: it.who })), '{\"at\":'), '{\"c\":' + index + ',\"at\":'), 1, -1)), it != ''), ',') + ']')}}",
+		"allCards": "{{parseJson('[' + join(filter(map(state.columns, slice(join(split(json(map(it.cards, { at: index, ref: it.ref, priority: it.priority, due: it.due, points: it.points, start: it.start, tag: it.tag, title: it.title, who: it.who })), '{\"at\":'), '{\"c\":' + index + ',\"at\":'), 1, -1)), it != ''), ',') + ']')}}",
 		"rows": "{{map(computed.allCards, { id: it.c + '-' + it.at, cells: [it.title, state.columns[it.c].name, it.tag, it.who, it.points] })}}",
 		"picks": "{{map(computed.allCards, { title: it.title, detail: state.columns[it.c].name + ' · ' + it.who, c: it.c, at: it.at })}}",
 		"over": "{{map(state.columns, it.limit != null && length(it.cards) > it.limit)}}",
@@ -290,6 +301,8 @@
 			{
 				"push": "state.columns[0].cards",
 				"value": {
+					"ref": "FLO-{{state.nextRef}}",
+					"priority": 0,
 					"title": "{{trim(state.newCard)}}",
 					"tag": "{{state.filter == 'all' ? 'feature' : state.filter}}",
 					"who": "RS",
@@ -298,6 +311,7 @@
 			},
 			{ "run": "notify", "with": { "message": "{{t('toast.added', { title: trim(state.newCard), column: state.columns[0].name })}}" } },
 			{ "run": "logActivity", "with": { "key": "added", "title": "{{trim(state.newCard)}}", "column": "" } },
+			{ "set": "state.nextRef", "to": "{{state.nextRef + 1}}" },
 			{ "set": "state.newCard", "to": "" }
 		],
 		"moveCard": [
@@ -385,6 +399,7 @@
 			"enablement": "{{computed.card != null && state.selected.c > 0}}",
 			"do": [{ "run": "moveSelected", "with": { "by": -1 } }] },
 		"showBoard": { "title": "Show the board", "category": "View", "icon": "kanban", "do": [{ "set": "state.view", "to": "board" }] },
+		"showList": { "title": "Show the list", "category": "View", "icon": "layout-list", "do": [{ "set": "state.view", "to": "list" }] },
 		"showTable": { "title": "Show the table", "category": "View", "icon": "table", "do": [{ "set": "state.view", "to": "table" }] },
 		"toggleTheme": { "title": "Switch light and dark", "category": "View", "icon": "moon",
 			"do": [{ "set": "state.theme", "to": "{{state.theme == 'light' ? 'dark' : 'light'}}" }] },
@@ -405,33 +420,33 @@
 
 	"root": {
 		"id": "panel-root",
-		"color": "@color.background",
+		"color": "@color.sidebar",
 		"children": [
 			{
 				"id": "topBar",
 				"dir": "auto",
-				"anchors": { "left": 0, "right": 0, "top": 0 },
-				"height": 64,
+				"anchors": { "left": 228, "right": 8, "top": 8 },
+				"height": 48,
+				"radius": { "topLeft": 8, "topRight": 8 },
 				"color": "@color.topBar",
 				"children": [
 					{
 						"id": "logo",
 						"type": "label",
-						"text": " Flow",
-						"icon": "kanban",
-						"font": "title",
+						"text": "  Flow",
+						"icon": "box",
 						"textColor": "@color.topText",
-						"anchors": { "left": 24, "top": 0, "bottom": 0 },
+						"anchors": { "left": 16, "top": 0, "bottom": 0 },
 						"width": 100,
 						"align": { "horizontal": "start", "vertical": "center" }
 					},
-					{ "id": "panel-top-bar", "anchors": { "left": 128, "top": 20, "bottom": 20 }, "width": 1, "color": "@color.topLine" },
+					{ "id": "panel-top-bar", "anchors": { "left": 216, "top": 16, "bottom": 16 }, "width": 1, "color": "@color.topLine" },
 					{
 						"id": "boardTabs",
 						"type": "tabs",
-						"anchors": { "left": 144, "top": 14 },
-						"width": 420,
-						"height": 36,
+						"anchors": { "left": 228, "top": 10 },
+						"width": 300,
+						"height": 28,
 						"tabs": "{{state.boards}}",
 						"value": "{{state.boardId}}",
 						"textColor": "@color.topMuted",
@@ -444,8 +459,8 @@
 					{
 						"id": "search",
 						"type": "textarea",
-						"anchors": { "left": 580, "right": 360, "top": 16 },
-						"height": 32,
+						"anchors": { "left": 544, "right": 308, "top": 10 },
+						"height": 28,
 						"padding": 10,
 						"radius": "@radius.chip",
 						"color": "@color.topLine",
@@ -459,18 +474,16 @@
 						"bind": "state.query",
 						"keys": { "escape": [{ "set": "state.query", "to": "" }] }
 					},
-					{ "id": "goTo", "style": "topButton", "text": "", "icon": "search", "anchors": { "right": 308, "top": 16 }, "focusable": true, "role": "button",
-						"tooltip": "{{t('goTo.tooltip')}}", "label": "{{t('goTo.tooltip')}}", "onClick": "goToCardCommand" },
-					{ "id": "languageButton", "style": "topButton", "text": "{{upper(settings.appearance.language)}}", "anchors": { "right": 264, "top": 16 }, "focusable": true, "role": "button",
+					{ "id": "languageButton", "style": "topButton", "text": "{{upper(settings.appearance.language)}}", "anchors": { "right": 264, "top": 8 }, "focusable": true, "role": "button",
 						"tooltip": "{{t('locale.tooltip')}}", "label": "{{t('locale.tooltip')}}", "onClick": "changeLanguage" },
-					{ "id": "settingsButton", "style": "topButton", "text": "", "icon": "settings", "anchors": { "right": 220, "top": 16 }, "focusable": true, "role": "button",
+					{ "id": "settingsButton", "style": "topButton", "text": "", "icon": "settings", "anchors": { "right": 220, "top": 8 }, "focusable": true, "role": "button",
 						"isOpen": "{{state.settingsOpen}}", "tooltip": "{{t('settings.title')}} (Cmd+,)", "label": "{{t('settings.title')}}", "onClick": "openSettings" },
 					{
 						"id": "themeToggle",
 						"style": "topButton",
 						"text": "",
 						"icon": "{{state.theme == 'light' ? 'moon' : 'sun'}}",
-						"anchors": { "right": 176, "top": 16 },
+						"anchors": { "right": 176, "top": 8 },
 						"focusable": true,
 						"role": "button",
 						"label": "{{t('theme.tooltip')}}",
@@ -481,7 +494,7 @@
 						"id": "members",
 						"type": "row",
 						"gap": 4,
-						"anchors": { "right": 28, "top": 16 },
+						"anchors": { "right": 16, "top": 8 },
 						"width": 140,
 						"height": 32,
 						"cursor": "hand",
@@ -555,15 +568,15 @@
 			{
 				"id": "toolbar",
 				"dir": "auto",
-				"anchors": { "left": 24, "right": 24, "top": "#topBar.bottom + 16" },
-				"height": 40,
-				"color": "transparent",
+				"anchors": { "left": 228, "right": 8, "top": "#topBar.bottom" },
+				"height": 44,
+				"color": "@color.surface",
 				"children": [
 					{
 						"id": "filters",
 						"type": "row",
-						"gap": 8,
-						"anchors": { "left": 0, "top": 4, "right": 560 },
+						"gap": 4,
+						"anchors": { "left": 12, "top": 6, "right": 560 },
 						"height": 32,
 						"role": "radiogroup",
 						"arrows": "horizontal",
@@ -572,7 +585,8 @@
 								"id": "filter",
 								"repeat": { "for": "tag", "in": "state.filters" },
 								"style": "{{tag == state.filter ? 'chipOn' : 'chip'}}",
-								"width": "{{window.width < 1200 ? (tag == 'all' ? 52 : 40) : (tag == 'all' ? 92 : 96)}}",
+								"width": "{{window.width < 1200 ? (tag == 'all' ? 52 : 40) : (tag == 'all' ? 76 : 84)}}",
+								"height": 28,
 								"text": "{{tag == 'all' ? (window.width < 1200 ? '' : t('filter.all')) : (window.width < 1200 ? '' : ' ' + t('tag.' + tag))}}",
 								"icon": "{{tag == 'all' ? (window.width < 1200 ? 'layers-2' : '') : state.tagIcons[tag]}}",
 								"focusable": true,
@@ -589,18 +603,20 @@
 						"type": "row",
 						"gap": 4,
 						"anchors": { "right": 356, "top": 4 },
-						"width": 184,
+						"width": 186,
 						"height": 32,
 						"role": "toolbar",
 						"arrows": "horizontal",
 						"children": [
-							{ "id": "viewBoard", "style": "{{state.view == 'board' ? 'chipOn' : 'chip'}}", "width": 43, "text": "", "icon": "kanban", "onClick": "showBoard",
+							{ "id": "viewBoard", "style": "{{state.view == 'board' ? 'chipOn' : 'chip'}}", "width": 34, "text": "", "icon": "kanban", "onClick": "showBoard",
 								"focusable": true, "role": "radio", "selected": "{{state.view == 'board'}}", "label": "{{trim(t('view.board'))}}", "tooltip": "{{trim(t('view.board'))}}" },
-							{ "id": "viewTable", "style": "{{state.view == 'table' ? 'chipOn' : 'chip'}}", "width": 43, "text": "", "icon": "table", "onClick": "showTable",
+							{ "id": "viewList", "style": "{{state.view == 'list' ? 'chipOn' : 'chip'}}", "width": 34, "text": "", "icon": "layout-list", "onClick": "showList",
+								"focusable": true, "role": "radio", "selected": "{{state.view == 'list'}}", "label": "{{trim(t('view.list'))}}", "tooltip": "{{trim(t('view.list'))}}" },
+							{ "id": "viewTable", "style": "{{state.view == 'table' ? 'chipOn' : 'chip'}}", "width": 34, "text": "", "icon": "table", "onClick": "showTable",
 								"focusable": true, "role": "radio", "selected": "{{state.view == 'table'}}", "label": "{{trim(t('view.table'))}}", "tooltip": "{{trim(t('view.table'))}}" },
-							{ "id": "viewTimeline", "style": "{{state.view == 'timeline' ? 'chipOn' : 'chip'}}", "width": 43, "text": "", "icon": "chart-gantt", "onClick": "showTimeline",
+							{ "id": "viewTimeline", "style": "{{state.view == 'timeline' ? 'chipOn' : 'chip'}}", "width": 34, "text": "", "icon": "chart-gantt", "onClick": "showTimeline",
 								"focusable": true, "role": "radio", "selected": "{{state.view == 'timeline'}}", "label": "{{trim(t('view.timeline'))}}", "tooltip": "{{trim(t('view.timeline'))}}" },
-							{ "id": "viewLanes", "style": "{{state.swimlanes ? 'chipOn' : 'chip'}}", "width": 43, "text": "", "icon": "rows-2", "onClick": "toggleSwimlanes",
+							{ "id": "viewLanes", "style": "{{state.swimlanes ? 'chipOn' : 'chip'}}", "width": 34, "text": "", "icon": "rows-2", "onClick": "toggleSwimlanes",
 								"when": "{{state.view == 'board'}}", "focusable": true, "role": "switch", "selected": "{{state.swimlanes}}", "label": "{{t('view.lanes')}}", "tooltip": "{{t('view.lanes')}}" }
 						]
 					},
@@ -627,7 +643,8 @@
 				"id": "main",
 				"dir": "auto",
 				"type": "split",
-				"anchors": { "left": 16, "right": 16, "top": "#toolbar.bottom + 12", "bottom": "#statusBar.top - 8" },
+				"anchors": { "left": 228, "right": 8, "top": "#toolbar.bottom", "bottom": "#statusBar.top" },
+				"color": "@color.surface",
 				"bind": "state.sizes",
 				"minSize": 280,
 				"sashSize": 6,
@@ -644,6 +661,7 @@
 								"when": "{{state.view == 'board' && state.swimlanes}}",
 								"fill": true
 							},
+							{ "id": "listView", "use": "listView", "when": "{{state.view == 'list'}}", "fill": 6 },
 							{
 								"id": "timelineView",
 								"use": "timelineView",
@@ -856,8 +874,9 @@
 			{
 				"id": "statusBar",
 				"dir": "auto",
-				"anchors": { "left": 0, "right": 0, "bottom": 0 },
+				"anchors": { "left": 228, "right": 8, "bottom": 8 },
 				"height": 32,
+				"radius": { "bottomLeft": 8, "bottomRight": 8 },
 				"color": "@color.surface",
 				"children": [
 					{ "id": "panel-status-bar", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@color.border" },
@@ -960,7 +979,8 @@
 						{ "prefix": ">", "items": "{{computed.palette}}", "placeholder": "{{t('quick.commands')}}" }
 					]
 				}
-			}
+			},
+			{ "id": "sidebar", "use": "sidebar" }
 		]
 	}
 }

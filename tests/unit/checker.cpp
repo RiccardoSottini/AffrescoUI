@@ -129,7 +129,7 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 		REQUIRE(at != std::string::npos);
 		text.replace(at, from.size(), to);
 	}
-	const std::string card = "root.children[2].children[0].children[2].children[0].children[0].children[4].children[0]";
+	const std::string card = "root.children[2].children[0].children[3].children[0].children[0].children[4].children[0]";
 	const std::string drawer = "components.cardDrawer.node.children";
 	CHECK(lines(json::parse(text)) ==
 	      std::vector<std::string>{
