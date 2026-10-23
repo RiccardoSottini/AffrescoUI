@@ -1,6 +1,6 @@
 /// @file
-/// @brief The built-in components (menu, menuBar, contextMenu, dialog, toast, hoverCard, settingsPage, quickPick),
-/// used like a document's own.
+/// @brief The built-in components (menu, menuBar, contextMenu, dialog, toast, hoverCard, settingsPage, quickPick, the
+/// form and the chat components), used like a document's own.
 
 #pragma once
 
@@ -18,5 +18,10 @@ namespace affresco::format {
 /// @brief The form components (BuiltInFormComponents.cpp): comboBox and passwordMeter, as one JSON object by name.
 /// @return Its text.
 [[nodiscard]] std::string_view builtInFormComponents() noexcept;
+
+/// @brief The chat components (BuiltInChatComponents.cpp): chatBubble, typingIndicator, proposalCard, chatComposer and
+/// chatLauncher, as one JSON object by name.
+/// @return Its text.
+[[nodiscard]] std::string_view builtInChatComponents() noexcept;
 
 } // namespace affresco::format

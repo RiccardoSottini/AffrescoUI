@@ -684,6 +684,12 @@ format, take their colours as parameters, and keep their open state where `open`
   and `recent` (the default provider's last `recentLimit` choices, shown first). Only the visible `rows` are built;
   the arrows move, Enter or a click runs the item's `run` (with its `with`), or else the provider's `run` with the
   item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
+- The parts of a conversation with an assistant (see Asking the agents), which run the actions they are given with
+  `with`: `chatBubble` (`text`, `from`, `mine`, `time`, `error`), `typingIndicator` (`label`; its active dot is
+  `phase % 3`), `proposalCard` (`title`, `summary`, `status`, and `preview`, `accept`, `reject` buttons until the
+  status is `accepted` or `rejected`), `chatComposer` (an editor bound to `bind`, showing `value`: Enter runs `send`
+  unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`) and `chatLauncher` (a round button that
+  toggles `open`, or runs `run`, with an `unread` badge).
 
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",

@@ -335,7 +335,9 @@ src/
     DesignTokens.*         the "tokens" section: aliases, per-theme values, colour and number tables
   components/              the built-in components
     BuiltInComponents.*    menus, the menu bar, dialogs, toasts, hover cards, the settings page and the quick
-                           pick, written in the format; BuiltInFormComponents.cpp comboBox and passwordMeter
+                           pick, written in the format; BuiltInFormComponents.cpp comboBox and passwordMeter;
+                           BuiltInChatComponents.cpp the chat bubble, typing indicator, proposal card, composer
+                           and launcher
   properties/              node properties
     Properties.*           a node's values on its panel; CommonProperties.cpp those every panel has and the core
                            types'; PropertyValues.* reads lengths, anchors, radii;
