@@ -25,7 +25,7 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 constexpr auto stepNames = std::to_array<std::string_view>(
     {"set",      "push",    "remove",  "toggle",    "increment", "if",         "forEach", "while",
 	 "run",      "call",    "cancel",  "emit",      "send",      "connect",    "patch",   "accept",
-	 "reject",   "preview", "restore", "revert",    "undo",      "endPreview", "focus",   "scrollTo",
+	 "reject",   "preview", "restore", "revert",    "undo",      "endPreview", "focus",   "scrollTo", "press",
 	 "navigate", "dismiss", "after",   "debounce",  "animate",   "copy",       "log",     "stop",
 	 "note",     "invoke",  "request", "subscribe", "respond",   "ask",        "signIn",  "signOut",
 	 "camera",   "transform", "image", "chooseFolder", "edit", "audio", "insert", "update", "delete", "undoData",
@@ -141,12 +141,12 @@ bool mayReferTo(const std::string& key, const json& value) {
 /// @param kind The step.
 /// @param key A key of it.
 /// @return true for the target of a state step, "to" of set, "value" of push and "into", "loading" and
-/// "progress" of call.
+/// "progress" of call, and "into" of ask, attach and edit (a cut).
 bool writtenKey(std::string_view kind, std::string_view key) {
 	return (among(stateSteps, kind) && key == kind) || (kind == "set" && key == "to") ||
 	       (kind == "push" && key == "value") ||
 	       (kind == "call" && (key == "into" || key == "loading" || key == "progress")) ||
-	       ((kind == "ask" || kind == "attach") && key == "into");
+	       ((kind == "ask" || kind == "attach" || kind == "edit") && key == "into");
 }
 
 /// @brief Tells whether a component's node has a `{"slot": true}` for the use's children, as the runtime looks for
@@ -508,7 +508,8 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 	if(!kind) {
 		report(place, "unknown step",
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
-		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, "
+		       "patch, focus, scrollTo, navigate, press, dismiss, after, debounce, animate, copy, log, "
+		       "stop, note, accept, "
 		       "reject, "
 		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, chooseFolder, audio or attach");
 		return;
@@ -563,6 +564,8 @@ void Checker::walkWrite(std::string_view kind, const json& step, const Scope& sc
 			if(step.contains(name))
 				write(step[name], std::string_view(name) == "into" ? anything : single, Change::set, scope,
 				      place + "." + name);
+	if(kind == "edit" && step.contains("into"))
+		write(step["into"], single, Change::set, scope, place + ".into"); // the text a cut took
 }
 
 void Checker::walkRun(const json& step, const Scope& scope, const std::string& place) {

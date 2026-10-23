@@ -90,7 +90,7 @@ TEST_CASE("format: a type's property sets: its own, then the built-in widgets it
 	REQUIRE(sets[0] == own);
 	REQUIRE(sets[1]);
 	CHECK(sets[1]->find("lineNumbers")); // the editor's
-	CHECK(sets[2]); // then the sets that apply to every node, such as the transform properties
+	CHECK(sets[2]);                      // then the sets that apply to every node, such as the transform properties
 
 	const affresco::Panel panel;
 	const PropertySets none = registry.setsFor(registry.find("panel"), panel);
@@ -120,7 +120,7 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
 	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "auth", "assistant", "attach", "folder",
-	                                         "review", "navigation", "editor", "time", "other", "scene", "image", "audio",
+	                                         "review", "navigation", "editor", "keys", "time", "other", "scene", "image", "audio",
 	                                         "data"});
 
 	std::vector<std::string> control;

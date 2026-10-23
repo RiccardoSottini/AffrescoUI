@@ -172,9 +172,39 @@ std::string normalizeShortcut(std::string_view text) {
 	       (held[Shift] ? "shift+" : "") + key;
 }
 
+std::optional<KeyEvent> keyPress(std::string_view text) {
+	const std::string press = normalizeShortcut(text);
+	const std::size_t last = press.rfind('+');
+	const std::string_view name =
+	    last == std::string::npos ? std::string_view(press) : std::string_view(press).substr(last + 1);
+	if(name.empty()) return std::nullopt;
+	const std::string_view mods = std::string_view(press).substr(0, press.size() - name.size());
+	for(int code = static_cast<int>(Key::Space); code <= static_cast<int>(Key::Menu); ++code) {
+		if(keyName(static_cast<Key>(code)) != name) continue;
+		KeyEvent event;
+		event.key = static_cast<Key>(code);
+		event.mods.bits = (mods.contains("shift+") ? 0x1 : 0) | (mods.contains("ctrl+") ? 0x2 : 0) |
+		                  (mods.contains("alt+") ? 0x4 : 0) | (mods.contains("cmd+") ? 0x8 : 0);
+		return event;
+	}
+	return std::nullopt;
+}
+
+char32_t typedBy(const KeyEvent& event) noexcept {
+	if(event.mods.control() || event.mods.alt() || event.mods.super()) return 0;
+	const int code = static_cast<int>(event.key);
+	if(code < static_cast<int>(Key::Space) || code > static_cast<int>(Key::GraveAccent)) return 0; // not printable
+	const bool shift = event.mods.shift();
+	if(event.key >= Key::A && event.key <= Key::Z) return static_cast<char32_t>(shift ? code : code - 'A' + 'a');
+	constexpr std::string_view plain = "`1234567890-=[]\\;',./", shifted = "~!@#$%^&*()_+{}|:\"<>?";
+	const std::size_t at = plain.find(static_cast<char>(code));
+	if(at == std::string_view::npos) return code == ' ' ? U' ' : 0;
+	return static_cast<char32_t>(shift ? shifted[at] : plain[at]);
+}
+
 std::string normalizeChord(std::string_view text) {
 	std::vector<std::string> presses;
-	bool join = false; // the next word belongs to the last press: one of them is next to a '+'
+	bool join = false; // the next word belongs to the last press: one is next to a '+', or the press has no key yet
 	for(std::size_t at = 0; at < text.size();) {
 		if(text[at] == ' ') {
 			++at;
@@ -182,13 +212,20 @@ std::string normalizeChord(std::string_view text) {
 		}
 		const std::size_t end = std::min(text.find(' ', at), text.size());
 		const std::string_view word = text.substr(at, end - at);
-		if(join || (word.front() == '+' && !presses.empty())) presses.back() += word;
-		else presses.emplace_back(word);
-		join = word.back() == '+';
+		if(join || (word.front() == '+' && !presses.empty())) {
+			if(!presses.back().ends_with('+') && word.front() != '+') presses.back() += '+';
+			presses.back() += word;
+		} else {
+			presses.emplace_back(word);
+		}
+		join = word.back() == '+' || normalizeShortcut(presses.back()).ends_with('+'); // "ctrl s" is "ctrl+s"
 		at = end;
 	}
 	std::string chord;
-	for(const std::string& press : presses) chord += (chord.empty() ? "" : " ") + normalizeShortcut(press);
+	for(const std::string& press : presses) {
+		const std::string normal = normalizeShortcut(press);
+		if(!normal.empty()) chord += (chord.empty() ? "" : " ") + normal; // "x+" names no key: nothing to press
+	}
 	return chord;
 }
 

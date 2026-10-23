@@ -281,6 +281,7 @@ void Events::key(Panel& panel, const KeyEvent& event) {
 	   textArea && (event.key == Key::Enter || event.key == Key::KeypadEnter) &&
 	   event.action == affresco::Action::Press)
 		fire(panel, "onSubmit", {{"type", "submit"}, {"text", textArea->text()}});
+	if(pressing_) return; // press(): the panel's own handling only
 
 	// Keys ("keys") on the focused panel, its ancestors and the document, in one walk (the window's hook skips it)
 	keyResolved_ = true;
@@ -375,6 +376,18 @@ bool Events::clickMnemonic(Panel& list, char letter) {
 	for(Panel* panel : focusables(list, true))
 		if(engine_.reconciler.recordOf(panel)->mnemonic == letter) return keyClick(*panel);
 	return false;
+}
+
+void Events::press(Panel& panel, const KeyEvent& event, char32_t typed) {
+	if(!engine_.window || pressing_) return;
+	pressing_ = true;
+	try {
+		engine_.window->pressKey(panel, event, typed);
+	} catch(...) {
+		pressing_ = false;
+		throw;
+	}
+	pressing_ = false;
 }
 
 } // namespace affresco::format

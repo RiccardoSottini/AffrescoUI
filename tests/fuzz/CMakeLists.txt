@@ -145,3 +145,5 @@ if(AFFRESCOUI_AUDIO)
 endif()
 # The data layer on untrusted documents: models, migrations, seeds, queries and CSV text (modules/data)
 affrescoui_fuzzer(data_models affrescoui::data)
+affrescoui_fuzzer(key_press affrescoui::format)
+target_include_directories(affrescoui_fuzz_key_press PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src/events) # Shortcuts.hpp

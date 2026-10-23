@@ -81,6 +81,21 @@ void Window::routeChar(const CharEvent& event) {
 
 void Window::takeKey() noexcept { keyTaken_ = true; }
 
+void Window::pressKey(Panel& target, const KeyEvent& press, char32_t typed) {
+	if((typed >= 0xD800U && typed <= 0xDFFFU) || typed > 0x10FFFFU) typed = 0;
+	++routing_;
+	const bool taken = std::exchange(keyTaken_, false); // the key a binding took that sent this one
+	KeyEvent event = press;
+	event.action = Action::Press;
+	target.keyEvent(event);
+	if(typed >= 0x20U && !keyTaken_ && target.isShown()) target.charEvent(CharEvent{typed});
+	event.action = Action::Release;
+	target.keyEvent(event);
+	keyTaken_ = taken;
+
+	if(--routing_ == 0) runDeferred();
+}
+
 void Window::routeMouseMove(Vec2 position) {
 	++routing_;
 	cursor_ = position;

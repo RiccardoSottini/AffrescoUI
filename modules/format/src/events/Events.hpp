@@ -70,6 +70,13 @@ public:
 	void focusStep(std::string id);
 	/// @brief Closes every open overlay that closes on a click outside it (the "dismiss" step, Escape).
 	void dismissAll() { dismissOverlays(nullptr); }
+	/// @brief Presses a key on one panel for the "press" step: the panel handles it as its own (an editor moves or
+	/// types), but no shortcut, "keys" binding or "onKey" runs for it and the focus doesn't move. A press made while
+	/// one is being delivered is dropped, so a press can't send itself again.
+	/// @param panel The panel.
+	/// @param event The key and its modifiers.
+	/// @param typed The character it types, or 0 for none.
+	void press(Panel& panel, const KeyEvent& event, char32_t typed);
 
 private:
 	/// @brief A press that may become a click, a double click or a drag.
@@ -254,6 +261,7 @@ private:
 	Click lastClick_;          ///< For double clicks.
 	std::string chord_;        ///< The chord in progress (chord()).
 	bool keyResolved_ = false; ///< The focused panel resolved the press the window is about to get.
+	bool pressing_ = false;    ///< A key of press() is being delivered: no binding runs for it.
 	/// @brief An open modal overlay, and who had the focus before it.
 	struct Modal {
 		Panel* overlay = nullptr;  ///< The overlay.

@@ -341,7 +341,7 @@ TEST_CASE("checker: references to what a section defines") {
 	    {"steps it doesn't know",
 		 R"("root": {"onClick": [{"sett": "state.x", "to": 1}, {"note": "fine"}]})",
 		 {"root.onClick[0]: unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, "
-		  "call, emit, send, connect, patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, "
+		  "call, emit, send, connect, patch, focus, scrollTo, navigate, press, dismiss, after, debounce, animate, copy, log, stop, "
 		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, "
 		  "signIn, signOut, chooseFolder, audio or attach)"}},
 	    {"expressions that don't parse, and writes outside the state",

@@ -360,6 +360,30 @@ public:
 	/// @brief The caret's box: rectAt(caret()).
 	[[nodiscard]] std::optional<Rect> caretRect() const { return rectAt(caret_); }
 
+	/* Editing as a script does it: each call is one undo step and fires the signals, like the user's own edit */
+
+	/// @brief Puts text in place of the selection (or at the caret), the caret after it, as a paste does: brackets
+	/// aren't closed and the indentation isn't changed.
+	/// @param utf8 UTF-8 text, lines separated by "\n".
+	/// @return Whether the text changed (not while read only).
+	bool insertText(std::string_view utf8);
+	/// @brief Removes the text between two positions; the caret goes to where it was.
+	/// @param from One end (clamped to the text).
+	/// @param to The other end (clamped to the text).
+	/// @return The text removed, as UTF-8 (empty while read only).
+	std::string removeText(Position from, Position to);
+	/// @brief The text between two positions, as removeText() would remove it.
+	/// @param from One end (clamped to the text).
+	/// @param to The other end (clamped to the text).
+	/// @return It, as UTF-8.
+	[[nodiscard]] std::string textBetween(Position from, Position to) const;
+	/// @brief The position one code point or one word on from another, crossing line breaks as the arrows do.
+	/// @param from The position (clamped to the text).
+	/// @param forward true for on, false for back.
+	/// @param word true to go a word.
+	/// @return It; from itself at the text's ends.
+	[[nodiscard]] Position nextPosition(Position from, bool forward, bool word) const;
+
 protected:
 	/// @brief What an edit was, so consecutive typing can be undone in one step.
 	enum class Edit {

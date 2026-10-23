@@ -287,6 +287,13 @@ public:
 	/// @brief Whether the key being delivered was taken (see takeKey()).
 	/// @return true from takeKey() until the key's character, its release or the next key.
 	[[nodiscard]] bool keyTaken() const noexcept { return keyTaken_; }
+	/// @brief Presses a key on one panel, as if it were focused: its press, the character it types (when typed is one
+	/// and the panel didn't take the key) and its release. Only the panel hears it: not onKey or onChar of the window,
+	/// and the focus doesn't move. What a binding took of the key being delivered now stays taken after it.
+	/// @param target The panel; it types nothing once the press has hidden it.
+	/// @param press The key and its modifiers; its action is ignored.
+	/// @param typed The character the key types, or 0 for none (one below U+0020 is none).
+	void pressKey(Panel& target, const KeyEvent& press, char32_t typed);
 
 	/* Rendering */
 

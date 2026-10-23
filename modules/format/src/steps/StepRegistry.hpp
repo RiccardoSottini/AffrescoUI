@@ -128,9 +128,16 @@ void registerReviewSteps(StepRegistry& registry);
 /// @brief focus, scrollTo, navigate (NavigationSteps.cpp).
 /// @param registry The registry.
 void registerNavigationSteps(StepRegistry& registry);
-/// @brief edit: a code editor's command (EditorSteps.cpp).
+/// @brief edit: a code editor's command, typing and cutting too (EditorSteps.cpp).
 /// @param registry The registry.
 void registerEditorSteps(StepRegistry& registry);
+/// @brief press (KeySteps.cpp).
+/// @param registry The registry.
+void registerKeySteps(StepRegistry& registry);
+/// @brief The node a step acts on: the one "in" names ("#id"), or else the focused one (KeySteps.cpp).
+/// @param s The step.
+/// @return It, or nullptr without a window or when there is none.
+[[nodiscard]] Panel* stepTarget(const Running& s);
 /// @brief after, debounce, animate (TimeSteps.cpp).
 /// @param registry The registry.
 void registerTimeSteps(StepRegistry& registry);
