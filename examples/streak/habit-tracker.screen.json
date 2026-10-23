@@ -81,7 +81,7 @@
 				"getDocument": { "type": "getDocument" }
 			},
 			"reconnect": true,
-			"note": "The person's habits in their own document on the document server (examples/server), ~streak, synced both ways."
+			"note": "The person's habits in their own document on the document server (apps/server), ~streak, synced both ways."
 		}
 	},
 	"strings": {
