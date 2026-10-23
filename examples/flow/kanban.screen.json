@@ -903,7 +903,7 @@
 														{ "id": "columnCount", "type": "label", "font": "small", "text": "{{count(computed.visible, it.c == c)}}", "fitText": true, "height": 40,
 															"align": { "horizontal": "start", "vertical": "center" }, "textColor": "{{computed.over[c] ? '@bug' : '@color.muted'}}",
 															"label": "{{computed.over[c] ? t('column.over', { name: column.name, count: length(column.cards), limit: column.limit }) : length(column.cards)}}" },
-														{ "id": "columnLimit", "style": "caption", "when": "{{column.limit != null}}", "text": "{{t('column.limit', { limit: column.limit })}}", "height": 40,
+														{ "id": "columnLimit", "style": "caption", "when": "{{column.limit != null && computed.over[c]}}", "text": "{{t('column.limit', { limit: column.limit })}}", "height": 40,
 															"align": { "horizontal": "start", "vertical": "center" }, "textColor": "{{computed.over[c] ? '@bug' : '@color.muted'}}" }
 													] },
 													{ "id": "columnMore", "type": "label", "icon": "ellipsis", "text": "", "fitText": false, "textColor": "@color.muted", "width": 26, "height": 26, "radius": "@radius.chip",
@@ -924,7 +924,7 @@
 																"repeat": { "for": "row", "in": "sort(filter(computed.allCards, it.c == c), state.order == 'priority' ? ((it.priority ?? 0) == 0 ? 9 : it.priority) : state.order == 'due' ? (it.due ?? '9999-12-31') : it.at)", "index": "k" }, "let": { "i": "{{row.at}}", "card": "{{column.cards[row.at]}}" },
 																"when": "{{contains(computed.visibleRefs, card.ref)}}",
 																"anchors": { "left": 0, "right": 0 },
-																"height": 96,
+																"height": "{{length(card.title) > ((window.width - 260) / 4 - 36) / 5.8 ? 96 : 82}}",
 																"radius": "@radius.card",
 																"color": "{{contains(state.marked, card.ref) ? '@color.accentSoft' : '@color.card'}}",
 																"borderWidth": 1,
@@ -947,8 +947,8 @@
 																	{ "id": "cardOwner", "when": "{{!contains(state.hidden, 'assignee')}}", "style": "badge", "font": "tiny", "text": "{{card.who}}", "width": 18, "height": 18, "radius": 999, "anchors": { "right": 10, "top": 8 },
 																		"color": "{{find(state.members, it.who == card.who).color ?? '@color.muted'}}", "textColor": "#ffffff",
 																		"tooltip": "{{find(state.members, it.who == card.who).name ?? card.who}}" },
-																	{ "id": "cardTitle", "type": "label", "text": "{{card.title}}", "textColor": "{{c == computed.lastColumn ? '@color.muted' : '@color.text'}}",
-																		"anchors": { "left": 12, "right": 12, "top": 30 }, "height": 34, "wrap": true, "align": { "horizontal": "start", "vertical": "start" } },
+																	{ "id": "cardTitle", "type": "label", "text": "{{card.title}}", "textColor": "@color.text",
+																		"anchors": { "left": 12, "right": 12, "top": 30 }, "height": "{{length(card.title) > ((window.width - 260) / 4 - 36) / 5.8 ? 34 : 17}}", "wrap": true, "align": { "horizontal": "start", "vertical": "start" } },
 																	{ "id": "cardChips", "type": "row", "gap": 4, "alignItems": "center", "anchors": { "left": 10, "right": 10, "bottom": 9 }, "height": 22, "children": [
 																		{ "id": "cardPriority", "style": "cardChip", "borderWidth": 0, "when": "{{!contains(state.hidden, 'priority')}}", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
 																			"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "tooltip": "{{t('priority.' + (card.priority ?? 0))}}" },

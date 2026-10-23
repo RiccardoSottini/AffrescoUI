@@ -74,7 +74,7 @@
 												"anchors": { "left": 44, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
 											{ "id": "rowStatus", "type": "label", "icon": "{{state.statusIcons[c] ?? 'circle'}}", "text": "", "fitText": true, "textColor": "{{column.color}}",
 												"anchors": { "left": 104, "top": 0, "bottom": 0 }, "align": "center", "tooltip": "{{column.name}}" },
-											{ "id": "rowTitle", "type": "label", "text": "{{card.title}}", "textColor": "{{c == computed.lastColumn ? '@color.muted' : '@color.text'}}",
+											{ "id": "rowTitle", "type": "label", "text": "{{card.title}}", "textColor": "@color.text",
 												"anchors": { "left": 130, "right": 260, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
 											{ "id": "rowTag", "when": "{{!contains(state.hidden, 'label')}}", "type": "label", "font": "small", "runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@{{card.tag}}" }, " {{t('tag.' + card.tag)}}"], "fitText": true,
 												"padding": 6, "height": 22, "radius": 999, "borderWidth": 1, "borderColor": "@color.border", "color": "transparent", "textColor": "@color.text",
