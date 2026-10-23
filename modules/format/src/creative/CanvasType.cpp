@@ -112,7 +112,8 @@ void applyItems(CanvasView& canvas, const json& values, const PropertyReader& re
 		const std::shared_ptr<const Font> base =
 		    values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr;
 		for(const float size : textSizes)
-			if(const auto font = reader.fontVariant(base.get(), size, FontStyle{}, path + ".font"))
+			if(const auto font =
+			       reader.fontVariant(base.get(), size, base ? base->style() : FontStyle{}, path + ".font"))
 				fonts.push_back(font);
 	}
 	canvas.setTextFonts(std::move(fonts));

@@ -122,6 +122,9 @@ bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const
 	case Slot::Shadow:
 		panel.setShadow(engine_.document.shadow(value, at));
 		break;
+	case Slot::Gradient:
+		panel.setGradient(gradient(value, at));
+		break;
 	case Slot::Cache:
 		panel.setCached(boolean(value, at));
 		break;

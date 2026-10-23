@@ -1,10 +1,12 @@
 #pragma once
 
 /// @file
-/// @brief Painter: what a panel draws with, and the shapes it can draw (rounded corners, outlines, shadows).
+/// @brief Painter: what a panel draws with, and the shapes it can draw (rounded corners, gradients, outlines,
+/// shadows).
 
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Geometry.hpp"
+#include "affresco/render/Gradient.hpp"
 
 #include <span>
 #include <string_view>
@@ -102,6 +104,16 @@ public:
 	virtual void fillRoundedRect(const Rect& rect, const CornerRadii& radii, Color color) {
 		static_cast<void>(radii);
 		fillRect(rect, color);
+	}
+
+	/// @brief Fills a rectangle with rounded corners with a gradient, with anti-aliased edges. Like CSS: a linear
+	/// gradient's line runs through the centre at its angle and reaches the corners; a radial one is an ellipse from
+	/// the centre to the farthest corner. Painters that can't draw gradients fill with its middle colour.
+	/// @param rect In window units.
+	/// @param radii Each corner's radius, as in fillRoundedRect().
+	/// @param gradient The gradient (see normalizeGradient()).
+	virtual void fillGradient(const Rect& rect, const CornerRadii& radii, const Gradient& gradient) {
+		fillRoundedRect(rect, radii, sampleGradient(gradient.stops, 0.5));
 	}
 
 	/// @brief Draws the outline of a rectangle with rounded corners, inside its edges (like a CSS border).

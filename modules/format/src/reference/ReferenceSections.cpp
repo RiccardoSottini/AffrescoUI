@@ -43,12 +43,17 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"additionalProperties": false, "properties": {"file": {"type": "string"},
 		"size": {"anyOf": [{"type": "number", "exclusiveMinimum": 0}, {"$ref": "#/$defs/v2/tokenName"}]}, "fallback": {"type": "array",
 		"description": "Other fonts in \"fonts\", asked in order for characters this one lacks; drawn at this font's size",
-		"maxItems": 8, "items": {"type": "string"}}}}})json",
-	 "`name → { \"file\", \"size\", \"fallback\" }`, paths relative to the screen file (TrueType or OpenType, a "
-	 "collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script "
+		"maxItems": 8, "items": {"type": "string"}}, "bold": {"type": "boolean",
+		"description": "Thickened outlines, for a file that has only a regular weight"}, "italic": {"type": "boolean",
+		"description": "Slanted outlines, for a file that has only an upright style"}}}})json",
+	 "`name → { \"file\", \"size\", \"fallback\", \"bold\", \"italic\" }`, paths relative to the screen file (TrueType "
+	 "or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script "
 	 "(kerning, ligatures, Arabic, Indic; right-to-left runs), colour emoji from COLR fonts. `\"fallback\": "
 	 "[\"symbols\"]` names other fonts asked in order for a character this one lacks; a character none has shows as "
-	 "`?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has).",
+	 "`?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has). `\"bold\": true` and `\"italic\": true` "
+	 "thicken or slant the outlines, for headings from a file with one weight: `\"heading\": { \"file\": "
+	 "\"Roboto-Regular.ttf\", \"size\": 20, \"bold\": true }`; a label's `runs` keep its font's style unless they "
+	 "set their own.",
 	 "sections"},
     {"colors", R"json({"type": "object",
 		"description": "Named colors (\"@name\"), or per theme: {\"light\": ..., \"dark\": ...}",

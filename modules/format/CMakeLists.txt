@@ -135,7 +135,7 @@ target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
 target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/CommonProperties.cpp
 	src/properties/PropertyValues.cpp src/properties/LayoutProperties.cpp src/properties/AccessibilityProperties.cpp
 	src/properties/TransformProperties.cpp src/properties/TextFieldProperties.cpp src/properties/IconProperty.cpp
-	src/properties/RunsProperty.cpp)
+	src/properties/RunsProperty.cpp src/properties/GradientProperty.cpp)
 # reference: the reference of nodes, sections and tables (the schema, SCREEN_FORMAT.md) and the catalog
 target_sources(affrescoui_format PRIVATE src/reference/Reference.cpp src/reference/ReferenceNodes.cpp
 	src/reference/ReferenceNodeTypes.cpp src/reference/ReferenceSceneKeys.cpp src/reference/ReferenceNodeEvents.cpp
