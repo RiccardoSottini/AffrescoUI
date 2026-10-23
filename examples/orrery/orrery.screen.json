@@ -809,7 +809,9 @@
 				"fieldOfView": 0.8533
 			},
 			"selection": ["earth"]
-		}
+		},
+		"limitMag": 5,
+		"markers": []
 	},
 	"computed": {
 		"ids": "{{map(state.bodies, it.id)}}",
@@ -836,8 +838,8 @@
 		"flyPosition": "{{state.flying != '' ? find(computed.placed, it.id == state.flying) : null}}",
 		"pane": "{{ {w: max(window.width - 461, 200), h: max(window.height - 312, 160)} }}",
 		"view": "{{ {w: computed.pane.w, h: computed.pane.h, f: state.zoom * min(computed.pane.w, computed.pane.h), distance: state.camera.distance, cy: cos(state.camera.yaw), sy: sin(state.camera.yaw), cp: cos(state.camera.pitch), sp: sin(state.camera.pitch)} }}",
-		"stars": "{{map(range(400), {u: abs(sin(index * 12.9898) * 43758.5453) % 1 * 2 - 1, t: abs(sin(index * 78.233) * 12543.917) % 1 * 2 * pi()})}}",
-		"starVectors": "{{map(computed.stars, {x: sqrt(1 - it.u * it.u) * cos(it.t), y: it.u, z: sqrt(1 - it.u * it.u) * sin(it.t)})}}",
+		"stars": "{{map(range(400), {u: abs(sin(index * 12.9898) * 43758.5453) % 1 * 2 - 1, t: abs(sin(index * 78.233) * 12543.917) % 1 * 2 * pi(), mag: 0.5 + 6 * sqrt(abs(sin(index * 39.425) * 24634.633) % 1)})}}",
+		"starVectors": "{{map(computed.stars, {x: sqrt(1 - it.u * it.u) * cos(it.t), y: it.u, z: sqrt(1 - it.u * it.u) * sin(it.t), mag: it.mag})}}",
 		"target": "{{state.follow != '' && computed.followed ? {x: computed.followed.x, z: computed.followed.z} : {x: state.camera.tx + (computed.flyPosition ? computed.flyPosition.x - state.camera.tx : 0) * state.fly, z: state.camera.tz + (computed.flyPosition ? computed.flyPosition.z - state.camera.tz : 0) * state.fly}}}",
 		"turned": "{{map(computed.placed, merge(it, {x1: (it.x - computed.target.x) * computed.view.cy - (it.z - computed.target.z) * computed.view.sy, z1: (it.x - computed.target.x) * computed.view.sy + (it.z - computed.target.z) * computed.view.cy}))}}",
 		"projected": "{{sort(map(computed.turned, merge(it, {depth: computed.view.distance - it.z1 * computed.view.cp, px: computed.view.w / 2 + it.x1 * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), py: computed.view.h / 2 + it.z1 * computed.view.sp * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), r: min(max(3, it.size * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp)), computed.view.h * 0.4)})), it.depth, 'desc')}}",
@@ -865,10 +867,13 @@
 		"sceneView": "{{ {camera: {target: [computed.target.x, 0, computed.target.z], yaw: state.camera.yaw, pitch: state.camera.pitch, distance: computed.view.distance, fieldOfView: 2 * atan(computed.view.h / (2 * computed.view.f))}, selection: state.selected != '' ? [state.selected] : []} }}",
 		"orbitRings": "{{map(filter(computed.placed, it.parent != ''), {id: it.id, cx: it.cx, cz: it.cz, radius: it.radius})}}",
 		"orbitSegments": "{{state.showOrbits ? map(range(length(computed.orbitRings) * 64), {id: 'orbit-' + computed.orbitRings[floor(index / 64)].id + '-' + index % 64, translation: [computed.orbitRings[floor(index / 64)].cx + computed.orbitRings[floor(index / 64)].radius * cos((index % 64 + 0.5) * pi() / 32), 0, computed.orbitRings[floor(index / 64)].cz + computed.orbitRings[floor(index / 64)].radius * sin((index % 64 + 0.5) * pi() / 32)], rotationDegrees: [0, 90 - (index % 64 + 0.5) * 5.625, 0], scale: [computed.orbitRings[floor(index / 64)].radius * pi() / 62, computed.view.distance * 0.6 / computed.view.f, computed.view.distance * 0.6 / computed.view.f], mesh: 'cube', material: computed.orbitRings[floor(index / 64)].id == state.selected ? 'orbit-on' : 'orbit'}) : []}}",
-		"starNodes": "{{state.showStars ? map(computed.starVectors, {id: 'star-' + index, translation: [computed.target.x + it.x * 300, it.y * 300, computed.target.z + it.z * 300], scale: [310 * 0.8 / computed.view.f, 310 * 0.8 / computed.view.f, 310 * 0.8 / computed.view.f], mesh: 'cube', material: 'star'}) : []}}",
+		"starNodes": "{{state.showStars ? map(filter(computed.starVectors, it.mag <= state.limitMag), {id: 'star-' + index, translation: [computed.target.x + it.x * 300, it.y * 300, computed.target.z + it.z * 300], scale: [310 * (1.3 - it.mag * 0.13) / computed.view.f, 310 * (1.3 - it.mag * 0.13) / computed.view.f, 310 * (1.3 - it.mag * 0.13) / computed.view.f], mesh: 'cube', material: 'star'}) : []}}",
 		"bodyNodes": "{{map(computed.projected, {id: '' + it.id, name: it.name, translation: [it.x, 0, it.z], scale: [it.r * it.depth / computed.view.f, it.r * it.depth / computed.view.f, it.r * it.depth / computed.view.f], mesh: 'sphere', material: 'm-' + it.id, visible: it.depth > 0.3})}}",
 		"bodyMaterials": "{{map(state.bodies, it.parent == '' ? {id: 'm-' + it.id, baseColor: [0, 0, 0, 1], emissive: state.showGlow ? [1.5, 0.85, 0.22] : [1.1, 0.65, 0.18], roughness: 1} : (state.showShading ? {id: 'm-' + it.id, baseColor: it.color, roughness: 0.9} : {id: 'm-' + it.id, baseColor: [0, 0, 0, 1], emissive: [it.color[0] * 0.8, it.color[1] * 0.8, it.color[2] * 0.8], roughness: 1}))}}",
-		"sceneGraph": "{{ {nodes: concat(computed.bodyNodes, [{id: 'sunlight', translation: computed.sun ? [computed.sun.x, 0, computed.sun.z] : [0, 0, 0], light: {type: 'point', color: [1, 0.95, 0.85], intensity: 60}}], state.showGlow && computed.sun ? [{id: 'halo', translation: [computed.sun.x, 0, computed.sun.z], scale: [1.7, 1.7, 1.7], mesh: 'sphere', material: 'halo'}] : [], computed.orbitSegments, computed.starNodes), materials: concat(computed.bodyMaterials, [{id: 'orbit', baseColor: [0, 0, 0, 1], emissive: [0.1, 0.12, 0.18], roughness: 1}, {id: 'orbit-on', baseColor: [0, 0, 0, 1], emissive: [0.9, 0.55, 0.08], roughness: 1}, {id: 'star', baseColor: [0, 0, 0, 1], emissive: [0.75, 0.8, 0.9], roughness: 1}, {id: 'halo', baseColor: [1, 0.6, 0.1, 0.12], emissive: [0.5, 0.3, 0.05], alphaMode: 'blend', roughness: 1}])} }}"
+		"sceneGraph": "{{ {nodes: concat(computed.bodyNodes, [{id: 'sunlight', translation: computed.sun ? [computed.sun.x, 0, computed.sun.z] : [0, 0, 0], light: {type: 'point', color: [1, 0.95, 0.85], intensity: 60}}], state.showGlow && computed.sun ? [{id: 'halo', translation: [computed.sun.x, 0, computed.sun.z], scale: [1.7, 1.7, 1.7], mesh: 'sphere', material: 'halo'}] : [], computed.orbitSegments, computed.starNodes), materials: concat(computed.bodyMaterials, [{id: 'orbit', baseColor: [0, 0, 0, 1], emissive: [0.1, 0.12, 0.18], roughness: 1}, {id: 'orbit-on', baseColor: [0, 0, 0, 1], emissive: [0.9, 0.55, 0.08], roughness: 1}, {id: 'star', baseColor: [0, 0, 0, 1], emissive: [0.75, 0.8, 0.9], roughness: 1}, {id: 'halo', baseColor: [1, 0.6, 0.1, 0.12], emissive: [0.5, 0.3, 0.05], alphaMode: 'blend', roughness: 1}])} }}",
+		"magText": "{{'Limiting magnitude: ' + fixed(state.limitMag, 1) + ' (' + length(filter(computed.stars, it.mag <= state.limitMag)) + ' stars)'}}",
+		"marks": "{{filter(computed.projected, indexOf(state.markers, it.id) >= 0 && it.depth > 0.3)}}",
+		"marked": "{{map(range(length(computed.marks) * 4), {id: computed.marks[floor(index / 4)].id + '-' + index % 4, x: index % 4 < 2 ? computed.marks[floor(index / 4)].px - 1 : (index % 4 == 2 ? computed.marks[floor(index / 4)].px - computed.marks[floor(index / 4)].r - 12 : computed.marks[floor(index / 4)].px + computed.marks[floor(index / 4)].r + 5), y: index % 4 == 0 ? computed.marks[floor(index / 4)].py - computed.marks[floor(index / 4)].r - 12 : (index % 4 == 1 ? computed.marks[floor(index / 4)].py + computed.marks[floor(index / 4)].r + 5 : computed.marks[floor(index / 4)].py - 1), w: index % 4 < 2 ? 2 : 7, h: index % 4 < 2 ? 7 : 2})}}"
 	},
 	"watch": {
 		"state.camera": [
@@ -1513,6 +1518,47 @@
 				}
 			]
 		},
+		"fainter": {
+			"title": "Show fainter stars",
+			"icon": "sparkle",
+			"do": [
+				{
+					"set": "state.limitMag",
+					"to": "{{min(state.limitMag + 0.5, 6.5)}}"
+				}
+			]
+		},
+		"brighter": {
+			"title": "Show only brighter stars",
+			"icon": "star",
+			"do": [
+				{
+					"set": "state.limitMag",
+					"to": "{{max(state.limitMag - 0.5, 1)}}"
+				}
+			]
+		},
+		"toggleMarker": {
+			"title": "Mark the selected body",
+			"icon": "crosshair",
+			"do": [
+				{
+					"if": "{{indexOf(state.markers, state.selected) >= 0}}",
+					"then": [
+						{
+							"set": "state.markers",
+							"to": "{{filter(state.markers, it != state.selected)}}"
+						}
+					],
+					"else": [
+						{
+							"push": "state.markers",
+							"value": "{{state.selected}}"
+						}
+					]
+				}
+			]
+		},
 		"toggleBrowser": {
 			"title": "Show the browser",
 			"icon": "list-tree",
@@ -1661,7 +1707,10 @@
 		"mod+d": "addBookmark",
 		"period": "zoomIn",
 		"comma": "zoomOut",
-		"mod+comma": "openRender"
+		"mod+comma": "openRender",
+		"equal": "fainter",
+		"minus": "brighter",
+		"m": "toggleMarker"
 	},
 	"root": {
 		"id": "root",
@@ -1843,6 +1892,20 @@
 												]
 											}
 										]
+									},
+									{
+										"repeat": {
+											"for": "t",
+											"in": "{{computed.marked}}",
+											"key": "id"
+										},
+										"type": "panel",
+										"id": "{{'view-marker-' + t.id}}",
+										"x": "{{t.x}}",
+										"y": "{{t.y}}",
+										"width": "{{t.w}}",
+										"height": "{{t.h}}",
+										"color": "#5ad17a"
 									},
 									{
 										"repeat": {
@@ -2161,6 +2224,19 @@
 										"font": "small",
 										"textColor": "@muted",
 										"text": "{{computed.fovText}}"
+									},
+									{
+										"type": "label",
+										"id": "view-mag",
+										"anchors": {
+											"right": 12,
+											"bottom": 28
+										},
+										"fitText": true,
+										"height": 20,
+										"font": "small",
+										"textColor": "@muted",
+										"text": "{{computed.magText}}"
 									}
 								]
 							},
@@ -2929,6 +3005,21 @@
 				"run": "toggleGlow",
 				"group": "2_show",
 				"order": 6
+			},
+			"mark": {
+				"run": "toggleMarker",
+				"group": "1_go",
+				"order": 4
+			},
+			"fainter": {
+				"run": "fainter",
+				"group": "3_fov",
+				"order": 3
+			},
+			"brighter": {
+				"run": "brighter",
+				"group": "3_fov",
+				"order": 4
 			}
 		}
 	}

@@ -1035,6 +1035,81 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "m-marks-the-selected-body",
+			"steps": [
+				{
+					"key": "m"
+				},
+				{
+					"expect": {
+						"state": "markers",
+						"is": ["earth"]
+					}
+				},
+				{
+					"expect": {
+						"node": "#view-marker-earth-0",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"key": "m"
+				},
+				{
+					"expect": {
+						"state": "markers",
+						"is": []
+					}
+				}
+			]
+		},
+		{
+			"name": "keys-change-the-limiting-magnitude",
+			"steps": [
+				{
+					"expect": {
+						"state": "limitMag",
+						"is": 5
+					}
+				},
+				{
+					"key": "equal"
+				},
+				{
+					"key": "equal"
+				},
+				{
+					"key": "equal"
+				},
+				{
+					"key": "equal"
+				},
+				{
+					"expect": {
+						"state": "limitMag",
+						"is": 6.5
+					}
+				},
+				{
+					"key": "minus"
+				},
+				{
+					"expect": {
+						"state": "limitMag",
+						"is": 6
+					}
+				},
+				{
+					"expect": {
+						"node": "#view-mag",
+						"property": "text",
+						"is": "Limiting magnitude: 6.0 (344 stars)"
+					}
+				}
+			]
 		}
 	]
 }
