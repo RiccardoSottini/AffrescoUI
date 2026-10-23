@@ -15,7 +15,7 @@ namespace affresco::format {
 namespace {
 
 /// The names of the keys that aren't letters, digits or function keys.
-constexpr std::array<std::pair<Key, std::string_view>, 20> namedKeys = {{{Key::Enter, "enter"},
+constexpr std::array<std::pair<Key, std::string_view>, 23> namedKeys = {{{Key::Enter, "enter"},
                                                                          {Key::KeypadEnter, "enter"},
                                                                          {Key::Escape, "escape"},
                                                                          {Key::Tab, "tab"},
@@ -34,7 +34,10 @@ constexpr std::array<std::pair<Key, std::string_view>, 20> namedKeys = {{{Key::E
                                                                          {Key::Equal, "equal"},
                                                                          {Key::Comma, "comma"},
                                                                          {Key::Period, "period"},
-                                                                         {Key::Slash, "slash"}}};
+                                                                         {Key::Slash, "slash"},
+                                                                         {Key::Semicolon, "semicolon"},
+                                                                         {Key::LeftBracket, "leftbracket"},
+                                                                         {Key::RightBracket, "rightbracket"}}};
 
 /// The modifier keys, in the order a shortcut writes them.
 enum Modifier { Command, Control, Alt, Shift }; // NOLINT(cppcoreguidelines-use-enum-class): it indexes held[]
@@ -84,8 +87,14 @@ std::optional<Modifier> modifierNamed(std::string_view name) {
 }
 
 /// The labels of the keys whose names are words, for keyLabel().
-constexpr std::array<std::pair<std::string_view, std::string_view>, 5> keyLabels = {
-    {{"minus", "-"}, {"equal", "="}, {"comma", ","}, {"period", "."}, {"slash", "/"}}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 8> keyLabels = {{{"minus", "-"},
+                                                                                     {"equal", "="},
+                                                                                     {"comma", ","},
+                                                                                     {"period", "."},
+                                                                                     {"slash", "/"},
+                                                                                     {"semicolon", ";"},
+                                                                                     {"leftbracket", "["},
+                                                                                     {"rightbracket", "]"}}};
 
 /// @brief The label of one normalised press: "⌘⇧K" on macOS, "Ctrl+Shift+K" elsewhere.
 /// @param press The press, "cmd+shift+k".

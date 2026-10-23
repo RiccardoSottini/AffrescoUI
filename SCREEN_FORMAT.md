@@ -977,7 +977,9 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 has no handler, its nearest ancestor with one. A row with `onClick` needs no invisible overlay above its labels.
 
 **Shortcuts:** `"keys"` on the document (anywhere) or on a node (while it or a child is focused): `"mod+k"`,
-`"cmd+shift+p"`, `"escape"`, `"up"`, `"f5"`. `mod` is Cmd on macOS, Ctrl elsewhere. While a text area is focused, keys
+`"cmd+shift+p"`, `"escape"`, `"up"`, `"f5"`. `mod` is Cmd on macOS, Ctrl elsewhere. The keys are `a`–`z`, `0`–`9`,
+`f1`–`f25`, `enter` (`return`), `escape` (`esc`), `tab backspace delete space up down left right home end pageup
+pagedown minus equal comma period slash semicolon leftbracket rightbracket`. While a text area is focused, keys
 without Cmd, Ctrl or Alt go to the text (Escape still works).
 
 ### Commands and keybindings
