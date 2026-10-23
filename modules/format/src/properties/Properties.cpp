@@ -303,6 +303,7 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setCornerRadii({});
 	panel.setBorder(0.0f, colors::black);
 	panel.setShadow({});
+	panel.setGradient(nullptr);
 	panel.setCached(false);
 	panel.setOverflowVisible(false);
 	panel.setCursor(record.defaultCursor);

@@ -141,6 +141,12 @@ private:
 	/// @param panel The panel.
 	/// @param look The look.
 	static void finish(Panel& panel, const Look& look);
+	/// @brief Reads "gradient": a list of colours spread evenly from top to bottom, or {"kind": "linear" or "radial",
+	/// "angle": degrees (0 up, 90 right; 180 by default), "stops": colours, or {"at": 0..1, "color"}}.
+	/// @param value The value.
+	/// @param at Its place, for errors.
+	/// @return The gradient, normalised (see normalizeGradient()).
+	[[nodiscard]] std::shared_ptr<const Gradient> gradient(const json& value, const std::string& at) const;
 	/// @brief Checks "transition": property -> milliseconds, for the properties that can transition.
 	/// @param value The value.
 	/// @param at Its place, for errors.

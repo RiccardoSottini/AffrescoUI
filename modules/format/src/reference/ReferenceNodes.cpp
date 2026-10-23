@@ -134,6 +134,24 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by "
 	 "the parent, like the node itself.",
 	 "look"},
+    {"gradient",
+	 R"json({"anyOf": [{"type": "array", "minItems": 1, "maxItems": 32, "items": {"$ref": "#/$defs/v2/color"}},
+		{"type": "object", "additionalProperties": false, "required": ["stops"],
+		"description": "Like CSS linear-gradient() and radial-gradient(), over the node's color",
+		"properties": {"kind": {"enum": ["linear", "radial"]},
+		"angle": {"description": "Degrees: 0 up, 90 right, 180 down (the default)", "type": "number"},
+		"stops": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"anyOf": [{"$ref": "#/$defs/v2/color"},
+		{"type": "object", "additionalProperties": false, "required": ["color"],
+		"properties": {"at": {"type": "number", "minimum": 0, "maximum": 1},
+		"color": {"$ref": "#/$defs/v2/color"}}}]}}}}]})json",
+	 "The background as a gradient, painted over `color` within the corners, like CSS `linear-gradient()` and "
+	 "`radial-gradient()`: `[\"#1e3a5f\", \"#0b1220\"]` (colours spread evenly from top to bottom), or "
+	 "`{ \"kind\": \"linear\", \"angle\": 90, \"stops\": [\"@accent\", { \"at\": 0.6, \"color\": \"#00000000\" }] }`. "
+	 "`angle` is in degrees (0 up, 90 right, 180 down, the default); the line reaches the corners, as in CSS. A "
+	 "`radial` gradient spreads from the centre to the farthest corner. A stop is a colour, spread evenly, or "
+	 "`{ \"at\": 0..1, \"color\" }`; two stops at one place change colour sharply. At most 32 stops. It can be set "
+	 "in `hover` and the other states.",
+	 "look"},
     {"visible", "flag", "`false` hides the node and its children.", "look"},
     {"cache", "flag",
 	 "`true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them "

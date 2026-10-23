@@ -300,6 +300,13 @@ void Panel::setBorder(float width, Color color) {
 
 void Panel::setShadow(const Shadow& shadow) { setLook(shadow_, shadow); }
 
+void Panel::setGradient(std::shared_ptr<const Gradient> gradient) {
+	const bool same = gradient_ == gradient || (gradient_ && gradient && *gradient_ == *gradient);
+	if(same) return;
+	gradient_ = std::move(gradient);
+	invalidatePaint();
+}
+
 void Panel::setCursor(Cursor cursor) {
 	cursor_ = cursor;
 	if(window_) window_->updateCursor();
@@ -371,6 +378,7 @@ void Panel::paint(Painter& painter) const {
 	if(shadow_.isVisible()) painter.drawShadow(frame_, radii_, shadow_);
 	if(radii_.isSquare()) painter.fillRect(bounds_, color_);
 	else painter.fillRoundedRect(frame_, radii_, color_);
+	if(gradient_) painter.fillGradient(frame_, radii_, *gradient_);
 	if(borderWidth_ > 0.0f) painter.strokeRoundedRect(frame_, radii_, borderWidth_, borderColor_);
 }
 

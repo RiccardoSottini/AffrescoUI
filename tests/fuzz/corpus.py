@@ -245,6 +245,11 @@ def layout_seeds():
                           "children": [{"cell": {"column": 1000, "row": 1000, "columnSpan": 5}, "height": 10}]}))
     seeds.append(compact({"type": "row", "wrap": True, "justify": "space-evenly", "alignItems": "stretch",
                           "width": "1e38", "children": [{"width": 3e38, "shrink": 1, "aspectRatio": "16/9"}] * 4}))
+    seeds.append(compact({"type": "column", "children": [
+        {"height": 40, "gradient": ["#1e3a5f", "#0b1220"]},
+        {"height": 40, "radius": 12, "gradient": {"kind": "radial", "stops": ["#ffffff", {"at": 0.4, "color": "#00000000"}]}},
+        {"height": 3e38, "radius": [0, 9e9, 1, 0], "gradient": {"angle": -1e300, "stops": ["#ff0000"] * 32}},
+        {"width": 1, "height": 1, "hover": {"gradient": {"angle": 45, "stops": [{"at": 1, "color": "#000"}, "#fff"]}}}]}))
     return seeds
 
 

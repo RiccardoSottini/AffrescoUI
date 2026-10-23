@@ -1,0 +1,41 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../../../examples/arcadia",
+	"scenarios": [
+		{
+			"name": "arcadia",
+			"screen": "game-launcher.screen.json",
+			"note": "Arcadia's library: the home, a game's page with its info card, a game that isn't installed, the store home, a store page, the cart and the wishlist, then light and Arabic",
+			"steps": [
+				{ "expect": { "image": "library-home" } },
+				{ "click": "#row-favourites-starfall" },
+				{ "expect": { "image": "game-page" } },
+				{ "click": "#game-info" },
+				{ "expect": { "image": "game-info" } },
+				{ "key": "escape" },
+				{ "click": "#row-favourites-mossheart" },
+				{ "expect": { "image": "not-installed" } },
+				{ "action": "storeHome" },
+				{ "expect": { "image": "store-home" } },
+				{ "scroll": "#store-home", "dy": -5 },
+				{ "click": "#offer-saltmarsh" },
+				{ "scroll": "#store-title", "dy": -6 },
+				{ "expect": { "image": "store-page" } },
+				{ "click": "#add-to-cart" },
+				{ "key": "escape" },
+				{ "action": "showCart" },
+				{ "expect": { "image": "cart" } },
+				{ "action": "showWishlist" },
+				{ "expect": { "image": "wishlist" } },
+				{ "action": "libraryHome" },
+				{ "action": "toggleTheme" },
+				{ "expect": { "image": "light" } },
+				{ "action": "toggleTheme" },
+				{ "action": "nextLanguage" },
+				{ "action": "nextLanguage" },
+				{ "expect": { "image": "arabic" } }
+			]
+		}
+	]
+}

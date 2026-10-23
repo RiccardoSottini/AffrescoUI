@@ -144,8 +144,10 @@ void DocumentContext::readDerived() {
 			const float size = fontSize(value["size"], path + ".size", newNumbers);
 			const std::vector<std::filesystem::path> fallbacks =
 			    fallbackFiles(doc["fonts"], value, path, baseDirectory_);
+			const FontStyle style{value.contains("bold") && boolean(value["bold"], path + ".bold"),
+			                      value.contains("italic") && boolean(value["italic"], path + ".italic")};
 			try {
-				std::shared_ptr<const Font> font = fontCache_.load(file, size, fallbacks);
+				std::shared_ptr<const Font> font = fontCache_.load(file, size, fallbacks, style);
 				newSources[font->id()] = {file, fallbacks};
 				newFonts.emplace(name, std::move(font));
 			} catch(const std::runtime_error& error) {
@@ -406,7 +408,7 @@ std::shared_ptr<const Font> DocumentContext::fontVariant(const Font* base, float
 	const auto source = fontSources_.find(base->id());
 	if(source == fontSources_.end()) return nullptr;
 	if(pixelHeight == base->pixelHeight() && style == base->style())
-		return fontCache_.load(source->second.file, pixelHeight, source->second.fallbacks);
+		return fontCache_.load(source->second.file, pixelHeight, source->second.fallbacks, style);
 	const std::string key = std::format("{}/{}/{}{}", base->id(), pixelHeight, style.bold, style.italic);
 	if(const auto found = variants_.find(key); found != variants_.end()) return found->second;
 	if(variants_.size() >= variantLimit)

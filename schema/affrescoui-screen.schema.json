@@ -181,6 +181,14 @@
 									"items": {
 										"type": "string"
 									}
+								},
+								"bold": {
+									"type": "boolean",
+									"description": "Thickened outlines, for a file that has only a regular weight"
+								},
+								"italic": {
+									"type": "boolean",
+									"description": "Slanted outlines, for a file that has only an upright style"
 								}
 							}
 						}
@@ -1027,8 +1035,7 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							},
 							{
@@ -1307,6 +1314,67 @@
 								"$ref": "#/$defs/v2/color"
 							}
 						}
+					},
+					"gradient": {
+						"anyOf": [
+							{
+								"type": "array",
+								"minItems": 1,
+								"maxItems": 32,
+								"items": {
+									"$ref": "#/$defs/v2/color"
+								}
+							},
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"required": [
+									"stops"
+								],
+								"description": "Like CSS linear-gradient() and radial-gradient(), over the node's color",
+								"properties": {
+									"kind": {
+										"enum": [
+											"linear",
+											"radial"
+										]
+									},
+									"angle": {
+										"description": "Degrees: 0 up, 90 right, 180 down (the default)",
+										"type": "number"
+									},
+									"stops": {
+										"type": "array",
+										"minItems": 1,
+										"maxItems": 32,
+										"items": {
+											"anyOf": [
+												{
+													"$ref": "#/$defs/v2/color"
+												},
+												{
+													"type": "object",
+													"additionalProperties": false,
+													"required": [
+														"color"
+													],
+													"properties": {
+														"at": {
+															"type": "number",
+															"minimum": 0,
+															"maximum": 1
+														},
+														"color": {
+															"$ref": "#/$defs/v2/color"
+														}
+													}
+												}
+											]
+										}
+									}
+								}
+							}
+						]
 					},
 					"visible": {
 						"$ref": "#/$defs/v2/flag"
@@ -3859,8 +3927,7 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							}
 						}
