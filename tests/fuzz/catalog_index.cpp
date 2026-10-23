@@ -21,10 +21,11 @@ namespace {
 /// @param releases The releases.
 void checkReleases(const std::vector<affresco::format::CatalogRelease>& releases) {
 	if(releases.empty()) affresco::fuzz::broken("a feature lists a release");
-	for(std::size_t i = 1; i < releases.size(); ++i)
-		if(!(*affresco::format::parseRelease(releases[i].release) <
-		     *affresco::format::parseRelease(releases[i - 1].release)))
-			affresco::fuzz::broken("releases are newest first, each once");
+	for(std::size_t i = 1; i < releases.size(); ++i) {
+		const auto newer = affresco::format::parseRelease(releases[i - 1].release);
+		const auto older = affresco::format::parseRelease(releases[i].release);
+		if(!newer || !older || !(*older < *newer)) affresco::fuzz::broken("releases are newest first, each once");
+	}
 	for(const affresco::format::CatalogRelease& release : releases)
 		if(!affresco::format::parsePublicKey(release.publisher) || release.url.empty() || release.url.front() == '/' ||
 		   ("/" + release.url + "/").contains("/../"))

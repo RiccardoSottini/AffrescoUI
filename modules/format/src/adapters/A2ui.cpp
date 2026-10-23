@@ -97,7 +97,7 @@ void A2uiConverter::message(const json& message, const std::string& at) {
 	if(!message.is_object() || message.size() != 1)
 		fail(at, "expected one of surfaceUpdate, dataModelUpdate, beginRendering, deleteSurface");
 	const auto entry = message.begin();
-	const std::string kind = entry.key();
+	const std::string& kind = entry.key();
 	const json& body = entry.value();
 	const std::string place = at + "." + kind;
 	if(!body.is_object()) fail(place, "expected an object");

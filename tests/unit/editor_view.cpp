@@ -143,8 +143,7 @@ TEST_CASE("editor view: folds a document offers again don't undo the user's fold
 
 TEST_CASE("editor view: decorations are clamped, capped per line and move with the text") {
 	ViewWindow test("one\ntwo\nthree");
-	std::vector<EditorDecoration> given;
-	for(int i = 0; i < 20; ++i) given.push_back({.line = 1, .endLine = 1, .color = {}, .text = {}});
+	std::vector<EditorDecoration> given(20, {.line = 1, .endLine = 1, .color = {}, .text = {}});
 	given.push_back({.line = 0, .endLine = 99, .kind = EditorDecoration::Kind::Squiggle, .color = {}, .text = {}});
 	given.push_back({.line = 50, .color = {}, .text = {}});
 	given.push_back(
