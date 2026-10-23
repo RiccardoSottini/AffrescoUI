@@ -181,8 +181,7 @@
 						"children": [
 							{ "id": "issueSideTop", "height": 12, "width": 1, "color": "transparent" },
 							{ "id": "issueSideTitle", "style": "section", "text": "{{t('issue.properties')}}", "anchors": { "left": 16, "right": 16 }, "height": 28 },
-							{ "id": "propStatus", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
-								{ "id": "propStatusName", "style": "propName", "text": "{{t('issue.status')}}" },
+							{ "id": "propStatus", "type": "row", "anchors": { "left": 8, "right": 16 }, "height": 32, "alignItems": "center", "children": [
 								{ "id": "propStatusValue", "style": "propValue", "isOpen": "{{state.issueStatusOpen}}", "label": "{{state.columns[state.selected.c].name}}",
 									"runs": [{ "icon": "{{state.statusIcons[state.selected.c] ?? 'circle'}}", "color": "{{state.columns[state.selected.c].color}}" }, "\u00a0\u00a0{{state.columns[state.selected.c].name}}"], "onClick": { "toggle": "state.issueStatusOpen" } },
 								{ "id": "statusPicker", "style": "pickMenu", "overlay": { "placement": "below", "open": "state.issueStatusOpen", "dismiss": "outside", "modal": true },
@@ -192,8 +191,7 @@
 										"onClick": { "run": "setStatus", "with": { "to": "{{k}}" } } }
 								] }
 							] },
-							{ "id": "propPriority", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
-								{ "id": "propPriorityName", "style": "propName", "text": "{{t('issue.priority')}}" },
+							{ "id": "propPriority", "type": "row", "anchors": { "left": 8, "right": 16 }, "height": 32, "alignItems": "center", "children": [
 								{ "id": "propPriorityValue", "style": "propValue", "isOpen": "{{state.issuePriorityOpen}}", "label": "{{t('priority.' + (computed.card.priority ?? 0))}}",
 									"runs": [{ "icon": "{{state.priorities[computed.card.priority ?? 0]}}", "color": "{{computed.card.priority == 1 ? '@bug' : '@color.muted'}}" }, "\u00a0\u00a0{{t('priority.' + (computed.card.priority ?? 0))}}"], "onClick": { "toggle": "state.issuePriorityOpen" } },
 								{ "id": "priorityPicker", "style": "pickMenu", "overlay": { "placement": "below", "open": "state.issuePriorityOpen", "dismiss": "outside", "modal": true },
@@ -203,8 +201,7 @@
 										"onClick": { "run": "setPriority", "with": { "p": "{{p}}" } } }
 								] }
 							] },
-							{ "id": "propWho", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
-								{ "id": "propWhoName", "style": "propName", "text": "{{t('issue.assignee')}}" },
+							{ "id": "propWho", "type": "row", "anchors": { "left": 8, "right": 16 }, "height": 32, "alignItems": "center", "children": [
 								{ "id": "propWhoValue", "style": "propValue", "icon": "circle-user", "isOpen": "{{state.issueWhoOpen}}",
 									"text": "  {{find(state.members, it.who == computed.card.who).name ?? t('issue.noAssignee')}}", "onClick": { "toggle": "state.issueWhoOpen" } },
 								{ "id": "whoPicker", "style": "pickMenu", "overlay": { "placement": "below", "open": "state.issueWhoOpen", "dismiss": "outside", "modal": true },
@@ -218,30 +215,7 @@
 									] }
 								] }
 							] },
-							{ "id": "propLabels", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": "{{length(computed.card.labels ?? []) > 2 ? 60 : 32}}", "alignItems": "start", "children": [
-								{ "id": "propLabelsName", "style": "propName", "text": "{{t('issue.labels')}}" },
-								{ "id": "propLabelChips", "type": "row", "wrap": true, "gap": 4, "grow": 1, "height": 60, "y": 4, "children": [
-									{ "id": "propTag", "style": "cardChip", "height": 24, "textColor": "@color.text", "tooltip": "{{t('tag.' + computed.card.tag)}}",
-										"runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@{{computed.card.tag}}" }, " {{t('tag.' + computed.card.tag)}}"] },
-									{ "id": "propLabel", "repeat": { "for": "name", "in": "computed.card.labels ?? []" }, "style": "cardChip", "height": 24,
-										"runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@color.accent" }, " {{t('label.' + name)}}"], "textColor": "@color.text",
-										"tooltip": "{{t('issue.removeLabel')}}", "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('label.' + name)}}",
-										"onClick": { "run": "toggleListItem", "with": { "field": "labels", "value": "{{name}}" } } },
-									{ "id": "propLabelAdd", "style": "cardChip", "height": 24, "width": 24, "fitText": false, "padding": 0, "align": "center", "icon": "plus", "text": "",
-										"label": "{{t('issue.addLabel')}}", "tooltip": "{{t('issue.addLabel')}}", "cursor": "hand", "focusable": true, "role": "button",
-										"isOpen": "{{state.issueLabelsOpen}}", "onClick": { "toggle": "state.issueLabelsOpen" }, "children": [
-										{ "id": "labelPicker", "style": "pickMenu", "overlay": { "placement": "below", "open": "state.issueLabelsOpen", "dismiss": "outside", "modal": true },
-											"height": "{{8 + 30 * length(state.labels)}}", "role": "menu", "children": [
-											{ "id": "labelPick", "repeat": { "for": "name", "in": "state.labels" }, "style": "pickRow",
-												"icon": "{{contains(computed.card.labels ?? [], name) ? 'square-check' : 'square'}}", "text": "  {{t('label.' + name)}}",
-												"selected": "{{contains(computed.card.labels ?? [], name)}}",
-												"onClick": { "run": "toggleListItem", "with": { "field": "labels", "value": "{{name}}" } } }
-										] }
-									] }
-								] }
-							] },
-							{ "id": "propDue", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
-								{ "id": "propDueName", "style": "propName", "text": "{{t('issue.due')}}" },
+							{ "id": "propDue", "type": "row", "anchors": { "left": 8, "right": 16 }, "height": 32, "alignItems": "center", "children": [
 								{ "id": "propDueValue", "style": "propValue", "icon": "calendar", "isOpen": "{{state.issueDueOpen}}",
 									"textColor": "{{computed.dueDays != null && computed.dueDays < 0 && state.selected.c != computed.lastColumn ? '@bug' : '@color.text'}}",
 									"text": "  {{computed.card.due == null ? t('drawer.noDue') : formatDate(dateMs(computed.card.due), 'MMM d', 'utc')}}",
@@ -264,22 +238,44 @@
 									]
 								}
 							] },
-							{ "id": "propProject", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
-								{ "id": "propProjectName", "style": "propName", "text": "{{t('issue.project')}}" },
+							{ "id": "propEstimate", "type": "row", "anchors": { "left": 8, "right": 16 }, "height": 32, "alignItems": "center", "children": [
+								{ "id": "propEstimateValue", "style": "propValue", "icon": "triangle", "focusable": false, "cursor": "arrow", "hover": { "color": "transparent" },
+									"text": "  {{t('card.points', { n: computed.card.points })}}" }
+							] },
+							{ "id": "issueSideGap", "height": 10, "width": 1, "color": "transparent" },
+							{ "id": "propLabels", "type": "column", "anchors": { "left": 8, "right": 16 }, "height": "{{length(computed.card.labels ?? []) > 2 ? 84 : 56}}", "alignItems": "start", "children": [
+								{ "id": "propLabelsName", "style": "propName", "height": 24, "padding": 8, "width": 200, "text": "{{t('issue.labels')}}" },
+								{ "id": "propLabelChips", "type": "row", "wrap": true, "gap": 4, "x": 8, "width": 268, "height": 60, "children": [
+									{ "id": "propTag", "style": "cardChip", "height": 24, "textColor": "@color.text", "tooltip": "{{t('tag.' + computed.card.tag)}}",
+										"runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@{{computed.card.tag}}" }, " {{t('tag.' + computed.card.tag)}}"] },
+									{ "id": "propLabel", "repeat": { "for": "name", "in": "computed.card.labels ?? []" }, "style": "cardChip", "height": 24,
+										"runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@color.accent" }, " {{t('label.' + name)}}"], "textColor": "@color.text",
+										"tooltip": "{{t('issue.removeLabel')}}", "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('label.' + name)}}",
+										"onClick": { "run": "toggleListItem", "with": { "field": "labels", "value": "{{name}}" } } },
+									{ "id": "propLabelAdd", "style": "cardChip", "height": 24, "width": 24, "fitText": false, "padding": 0, "align": "center", "icon": "plus", "text": "",
+										"label": "{{t('issue.addLabel')}}", "tooltip": "{{t('issue.addLabel')}}", "cursor": "hand", "focusable": true, "role": "button",
+										"isOpen": "{{state.issueLabelsOpen}}", "onClick": { "toggle": "state.issueLabelsOpen" }, "children": [
+										{ "id": "labelPicker", "style": "pickMenu", "overlay": { "placement": "below", "open": "state.issueLabelsOpen", "dismiss": "outside", "modal": true },
+											"height": "{{8 + 30 * length(state.labels)}}", "role": "menu", "children": [
+											{ "id": "labelPick", "repeat": { "for": "name", "in": "state.labels" }, "style": "pickRow",
+												"icon": "{{contains(computed.card.labels ?? [], name) ? 'square-check' : 'square'}}", "text": "  {{t('label.' + name)}}",
+												"selected": "{{contains(computed.card.labels ?? [], name)}}",
+												"onClick": { "run": "toggleListItem", "with": { "field": "labels", "value": "{{name}}" } } }
+										] }
+									] }
+								] }
+							] },
+							{ "id": "propProject", "type": "column", "anchors": { "left": 8, "right": 16 }, "height": 56, "alignItems": "start", "children": [
+								{ "id": "propProjectName", "style": "propName", "height": 24, "padding": 8, "width": 200, "text": "{{t('issue.project')}}" },
 								{ "id": "propProjectValue", "style": "propValue", "focusable": false, "cursor": "arrow", "hover": { "color": "transparent" },
 									"let": { "project": "{{state.projects[state.projectOf[computed.card.tag] ?? 0]}}" },
 									"runs": [{ "icon": "{{project.icon}}", "color": "{{project.color}}" }, "\u00a0\u00a0{{project.name}}"] }
 							] },
-							{ "id": "propCycle", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
-								{ "id": "propCycleName", "style": "propName", "text": "{{t('issue.cycle')}}" },
+							{ "id": "propCycle", "type": "column", "anchors": { "left": 8, "right": 16 }, "height": 56, "alignItems": "start", "children": [
+								{ "id": "propCycleName", "style": "propName", "height": 24, "padding": 8, "width": 200, "text": "{{t('issue.cycle')}}" },
 								{ "id": "propCycleValue", "style": "propValue", "focusable": false, "cursor": "arrow", "hover": { "color": "transparent" }, "icon": "refresh-cw",
 									"textColor": "{{state.selected.c == 0 ? '@color.muted' : '@color.text'}}",
 									"text": "\u00a0\u00a0{{state.selected.c == 0 ? t('issue.noCycle') : t('cycle.name', { n: state.cycle.number })}}" }
-							] },
-							{ "id": "propEstimate", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
-								{ "id": "propEstimateName", "style": "propName", "text": "{{t('issue.estimate')}}" },
-								{ "id": "propEstimateValue", "style": "propValue", "icon": "triangle", "focusable": false, "cursor": "arrow", "hover": { "color": "transparent" },
-									"text": "  {{t('card.points', { n: computed.card.points })}}" }
 							] }
 						]
 					}
