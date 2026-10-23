@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge, a demo IDE. This file only names the window, the fonts and the features; each feature (features/<name>/<name>.json) contributes its state, commands, menus, keys, settings, tokens and components, merged by include. The natives (forge.index, forge.openFolder, forge.read, forge.importTheme) are in Forge.cpp; the features service offers the example catalogue (catalog/), the editor's buffers are in features/editor/Editor.cpp.",
+	"note": "Forge, a demo IDE. This file only names the window, the fonts and the features; each feature (features/<name>/<name>.json) contributes its state, commands, menus, keys, settings, tokens and components, merged by include. The open folder is the host's workspace root (Open Folder chooses it): files reads and writes in it, fileChanges watches it and search searches it; the features service offers the example catalogue (catalog/).",
 
 	"window": {
 		"title": "Forge", "width": 1200, "height": 760, "minWidth": 800, "minHeight": 500,
@@ -37,7 +37,13 @@
 
 	"features": {},
 
-	"services": { "features": { "provider": "features" } },
+	"services": {
+		"features": { "provider": "features" },
+		"files": { "provider": "fs", "root": "workspace" },
+		"fileChanges": { "provider": "watch", "root": "workspace", "debounce": 100,
+			"ignore": [".git/**", "**/node_modules/**", "**/build/**", "**/out/**", "**/dist/**", "**/target/**"] },
+		"search": { "provider": "search", "root": "workspace" }
+	},
 
 	"actions": {
 		"refreshFeatures": [{ "invoke": "features.catalog", "into": "state.featureRows" }],
@@ -58,8 +64,9 @@
 	"persist": ["state.layout", "state.theme", "state.themes", "state.settings", "state.iconTheme", "state.quickPick.recent"],
 
 	"onLoad": [
-		{ "call": "forge.index", "with": { "icons": "{{settings.workbench.fileIcons ? state.iconTheme : null}}" },
-		  "into": "state.folder" }
+		{ "set": "state.folder.root", "to": "{{services.files.folder ?? ''}}" },
+		{ "run": "explorerRefresh" },
+		{ "if": "{{!empty(state.folder.root)}}", "then": [{ "run": "indexFolder" }] }
 	],
 
 	"exports": {
@@ -75,13 +82,13 @@
 			  "children": [
 				{ "when": "{{!state.layout.zen && settings.workbench.activityBar.visible}}", "use": "forgeActivityBar" },
 				{ "type": "split", "id": "main-split", "grow": 1, "height": "100%", "bind": "state.layout.sizes", "minSize": 170,
-				  "sashSize": 4, "sashColor": "@color.border", "sashActiveColor": "@color.accent",
+				  "sashSize": 1, "sashColor": "@color.border", "sashActiveColor": "@color.accent",
 				  "children": [
 					{ "visible": "{{state.layout.sidebar && !state.layout.zen}}", "use": "forgeSideBar" },
 					{ "type": "split", "id": "editor-split", "direction": "column", "bind": "state.layout.panelSizes", "minSize": 100,
-					  "sashSize": 4, "sashColor": "@color.border", "sashActiveColor": "@color.accent",
+					  "sashSize": 1, "sashColor": "@color.border", "sashActiveColor": "@color.accent",
 					  "children": [
-						{ "use": "forgeEditors" },
+						{ "visible": "{{!(state.layout.panelMax && state.layout.panel && !state.layout.zen)}}", "use": "forgeEditors" },
 						{ "visible": "{{state.layout.panel && !state.layout.zen}}", "use": "forgePanel" }
 					  ] }
 				  ] },
@@ -89,6 +96,7 @@
 			  ] },
 			{ "when": "{{!state.layout.zen && settings.workbench.statusBar.visible}}", "use": "forgeStatusBar" }
 			] },
+			{ "use": "forgeNotificationCentre" },
 			{ "use": "forgePalette" },
 			{ "use": "forgeDebugOverlays" },
 			{ "use": "forgeLsp" },

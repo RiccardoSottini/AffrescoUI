@@ -20,7 +20,7 @@ namespace {
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
 constexpr std::array<std::string_view, 15> controlSteps{"accept",  "reject",  "preview", "endPreview", "restore",
                                                         "revert",  "undo",    "patch",   "call",       "send",
-                                                        "connect", "respond", "signIn",  "signOut",    "ask"};
+                                                        "connect", "respond", "signIn",  "signOut",    "ask", "chooseFolder"};
 
 /// The most uses of the document's own components one use is expanded through to be scanned; past them, it may run a
 /// control step.

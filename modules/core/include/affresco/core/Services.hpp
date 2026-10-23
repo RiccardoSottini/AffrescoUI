@@ -126,8 +126,8 @@ public:
 	/// @return An error if it can't start, else std::nullopt.
 	[[nodiscard]] virtual std::optional<std::string> subscribe(std::string_view service, std::string_view stream,
 	                                                           std::shared_ptr<Call> call) = 0;
-	/// @brief Every service's state, as the "services" variable shows it: {name: {state, error, restarts}}, the state
-	/// "stopped", "starting", "ready", "failed" or "refused".
+	/// @brief Every service's state, as the "services" variable shows it: {name: {state, error, restarts, folder}}, the
+	/// state "stopped", "starting", "ready", "failed" or "refused", the folder its root's own name (or null).
 	[[nodiscard]] virtual json status() const = 0;
 	/// @brief Sets what runs, on the main thread, after a service's state changes.
 	/// @param callback The callback, or empty.
@@ -135,6 +135,18 @@ public:
 	/// @brief Sets what handles the requests services send the screen. Without one, they get "method not found".
 	/// @param handler The handler, or empty.
 	virtual void onRequest(RequestHandler handler) = 0;
+	/// @brief Whether the person may choose the folder a root names, in a folder dialog (the `chooseFolder` step).
+	/// @param root The root's name.
+	/// @return true if the host allows it.
+	[[nodiscard]] virtual bool choosable(std::string_view /*root*/) const { return false; }
+	/// @brief Points a root the person may choose at the folder they chose, and starts the services that use it
+	/// afresh (their calls are cancelled).
+	/// @param root The root's name.
+	/// @param folder The folder (UTF-8), as the folder dialog gave it.
+	/// @return Why it can't, or std::nullopt.
+	[[nodiscard]] virtual std::optional<std::string> chooseRoot(std::string_view root, std::string_view /*folder*/) {
+		return "the folder '" + std::string(root) + "' can't be chosen";
+	}
 };
 
 } // namespace affresco::services

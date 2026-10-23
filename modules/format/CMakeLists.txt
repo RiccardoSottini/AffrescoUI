@@ -23,6 +23,7 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsColor.cpp
 	src/functions/ExpressionFunctionsDates.cpp
 	src/functions/ExpressionFunctionsForm.cpp
+	src/functions/ExpressionFunctionsPaths.cpp
 	src/functions/ExpressionFunctionsFuzzy.cpp
 	src/functions/ExpressionFunctionsItems.cpp
 	src/functions/ExpressionFunctionsKeyframes.cpp
@@ -107,7 +108,8 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/TimeSteps.cpp
 	src/steps/OtherSteps.cpp
 	src/steps/ServiceSteps.cpp
-	src/steps/SceneSteps.cpp)
+	src/steps/SceneSteps.cpp
+	src/steps/FolderSteps.cpp)
 target_include_directories(affrescoui_format PRIVATE src/steps)
 # src/calls/: asynchronous and service calls
 target_sources(affrescoui_format PRIVATE

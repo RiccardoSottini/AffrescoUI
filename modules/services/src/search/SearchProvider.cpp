@@ -17,6 +17,7 @@ namespace {
 
 constexpr std::size_t mostAtOnce = 4;                           ///< Calls running at once, per service.
 constexpr std::uintmax_t largestFile = std::uintmax_t{8} << 20; ///< A file replaced in, at most 8 MiB.
+constexpr std::size_t mostFiles = 100000;                       ///< A `files` listing, at most.
 
 /// @brief The pattern options of a call's arguments.
 /// @param with The arguments (checked against the schema).
@@ -46,12 +47,12 @@ json matchJson(const SearchMatch& match) {
 void find(const std::filesystem::path& root, const std::stop_token& stop, Call& call) {
 	const json& with = call.arguments();
 	const SearchQuery query{.pattern = with.value("pattern", std::string()),
-	                  .options = optionsOf(with),
-	                  .include = with.value("include", std::string()),
-	                  .exclude = with.value("exclude", std::string()),
-	                  .folder = with.value("folder", std::string(".")),
-	                  .maxResults = with.value("maxResults", std::size_t{2000}),
-	                  .gitignore = with.value("gitignore", true)};
+	                        .options = optionsOf(with),
+	                        .include = with.value("include", std::string()),
+	                        .exclude = with.value("exclude", std::string()),
+	                        .folder = with.value("folder", std::string(".")),
+	                        .maxResults = with.value("maxResults", std::size_t{2000}),
+	                        .gitignore = with.value("gitignore", true)};
 	std::stop_source source;
 	const EitherStop stopping(call.stopToken(), stop, [&source] { source.request_stop(); });
 	SearchSummary summary;
@@ -67,6 +68,28 @@ void find(const std::filesystem::path& root, const std::stop_token& stop, Call& 
 	             {"searched", summary.searched},
 	             {"skipped", summary.skipped},
 	             {"truncated", summary.truncated}});
+}
+
+/// @brief Runs a `files` call: {files: [paths], truncated}, the files a find would search.
+/// @param root The root.
+/// @param stop The worker's stop token.
+/// @param call The call.
+void files(const std::filesystem::path& root, const std::stop_token& stop, Call& call) {
+	const json& with = call.arguments();
+	const SearchQuery query{.pattern = {},
+	                        .options = {},
+	                        .include = with.value("include", std::string()),
+	                        .exclude = with.value("exclude", std::string()),
+	                        .folder = with.value("folder", std::string(".")),
+	                        .maxFiles = with.value("maxFiles", std::size_t{20000}),
+	                        .gitignore = with.value("gitignore", true)};
+	std::stop_source source;
+	const EitherStop stopping(call.stopToken(), stop, [&source] { source.request_stop(); });
+	std::vector<std::string> paths;
+	bool truncated = false;
+	if(auto error = listFiles(root, query, source.get_token(), paths, truncated)) return call.fail("invalid", *error);
+	if(source.stop_requested()) return call.fail("cancelled", "the listing was stopped");
+	call.finish({{"files", std::move(paths)}, {"truncated", truncated}});
 }
 
 /// @brief Runs a `replace` call: the file's text with every match replaced, {text, replacements}; nothing is written.
@@ -97,7 +120,8 @@ class SearchService final : public Service {
 public:
 	/// @brief Serves a root.
 	/// @param root The root (canonical).
-	explicit SearchService(std::filesystem::path root) : root_(std::move(root)) {}
+	/// @param now Whether each call's work runs before invoke() returns (ServiceContext::now).
+	SearchService(std::filesystem::path root, bool now) : root_(std::move(root)), tasks_(mostAtOnce, now) {}
 
 	std::optional<std::string> invoke(const MethodSpec& method, std::shared_ptr<Call> call) override {
 		const json& with = call->arguments();
@@ -111,6 +135,7 @@ public:
 		const bool started =
 		    tasks_.run([name = method.name, path = std::move(path), call](const std::stop_token& stop) {
 			    if(name == "find") find(path, stop, *call);
+			    else if(name == "files") files(path, stop, *call);
 			    else replace(path, *call);
 		    });
 		return started ? std::nullopt : std::optional<std::string>("the service is busy (4 calls at once)");
@@ -118,7 +143,7 @@ public:
 
 private:
 	std::filesystem::path root_; ///< See the constructor.
-	Tasks tasks_{mostAtOnce};    ///< The calls running (last, so they end first).
+	Tasks tasks_;                ///< The calls running (last, so they end first).
 };
 
 /// @brief The `search` provider.
@@ -143,28 +168,39 @@ public:
 		             {"folder", {{"type", "string"}, {"maxLength", 4096}}},
 		             {"maxResults", {{"type", "integer"}, {"minimum", 1}, {"maximum", SearchQuery::mostResults}}},
 		             {"gitignore", flag}});
+		const json listing = {{"include", globs},
+		                      {"exclude", globs},
+		                      {"folder", {{"type", "string"}, {"maxLength", 4096}}},
+		                      {"maxFiles", {{"type", "integer"}, {"minimum", 1}, {"maximum", mostFiles}}},
+		                      {"gitignore", flag}};
 		replace.update({{"path", {{"type", "string"}, {"maxLength", 4096}}},
 		                {"replacement", {{"type", "string"}, {"maxLength", 65536}}}});
-		return {
-		    {"find",
-			 Effect::Read,
-			 true,
-			 false,
-			 {{"type", "object"}, {"required", {"pattern"}}, {"properties", find}, {"additionalProperties", false}},
-			 "searches the text files under the root, one event {file, matches: [{line, column, length, text, "
-			 "at}]} per file: {files, matches, searched, skipped, truncated}"},
-		    {"replace",
-			 Effect::Read,
-			 true,
-			 false,
-			 {{"type", "object"},
-			  {"required", {"path", "pattern", "replacement"}},
-			  {"properties", replace},
-			  {"additionalProperties", false}},
-			 "a file's text with every match replaced, for an fs write (nothing is written): {text, replacements}"}};
+		return {{"find",
+		         Effect::Read,
+		         true,
+		         false,
+		         {{"type", "object"}, {"required", {"pattern"}}, {"properties", find}, {"additionalProperties", false}},
+		         "searches the text files under the root, one event {file, matches: [{line, column, length, text, "
+		         "at}]} per file: {files, matches, searched, skipped, truncated}"},
+		        {"replace",
+		         Effect::Read,
+		         true,
+		         false,
+		         {{"type", "object"},
+		          {"required", {"path", "pattern", "replacement"}},
+		          {"properties", replace},
+		          {"additionalProperties", false}},
+		         "a file's text with every match replaced, for an fs write (nothing is written): {text, replacements}"},
+		        {"files",
+		         Effect::Read,
+		         true,
+		         false,
+		         {{"type", "object"}, {"properties", listing}, {"additionalProperties", false}},
+		         "the files a find would search, by path, sorted (at most maxFiles, 20000 unless set): {files, "
+		         "truncated}"}};
 	}
 	std::unique_ptr<Service> create(const json& /*configuration*/, ServiceContext context) override {
-		return std::make_unique<SearchService>(context.grant.root);
+		return std::make_unique<SearchService>(context.grant.root, context.now);
 	}
 };
 

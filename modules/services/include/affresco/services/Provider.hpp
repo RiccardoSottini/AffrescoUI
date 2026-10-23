@@ -79,6 +79,9 @@ struct ServiceContext {
 	/// @brief Sends the screen a request (e.g. LSP's `workspace/configuration`); the responder may be called on the
 	/// main thread at any time after, once. Any thread.
 	std::function<void(std::string method, json params, Responder respond)> request;
+	/// @brief Whether each call's work runs on the calling thread before invoke() returns, for scripted runs that must
+	/// see the same results every time (ServiceRegistry::setInline). Services that wait on programs may ignore it.
+	bool now = false;
 };
 
 /// @brief One service a screen declared, created on the main thread and destroyed there.

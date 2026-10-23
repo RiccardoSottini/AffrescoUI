@@ -89,6 +89,7 @@ void play(const Scenario& scenario, const std::string& document, const Options& 
 
 	Screen screen = unconnectedScreen(document, scenario.screen.parent_path(), scratch / "no-host");
 	screen.setPlaceholderTypes(true); // as affrescoui_host does
+	screen.services().setInline(true);  // a service's results arrive before its call returns: the same every run
 	if(options.prepare) options.prepare(screen);
 	screen.build(*window);
 	screen.startChannels(noPeers);

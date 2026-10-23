@@ -144,6 +144,10 @@ void registerAuthSteps(StepRegistry& registry);
 /// @param registry The registry.
 void registerAssistantSteps(StepRegistry& registry);
 
+/// @brief Registers the folder step: chooseFolder (FolderSteps.cpp).
+/// @param registry The registry.
+void registerFolderSteps(StepRegistry& registry);
+
 /// @brief Registers the scene steps: camera (SceneSteps.cpp).
 /// @param registry The registry.
 void registerSceneSteps(StepRegistry& registry);

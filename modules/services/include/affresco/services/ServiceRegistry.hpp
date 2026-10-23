@@ -38,6 +38,11 @@ public:
 	/// @param folder The folder; it must exist.
 	/// @throws std::runtime_error If it doesn't.
 	void addRoot(std::string name, const std::filesystem::path& folder);
+	/// @brief Lets the person choose the folder a root names, in a folder dialog the document opens (`chooseFolder`):
+	/// until they do, a declaration that uses it is refused. The person's choice is the grant; the document never
+	/// names the folder.
+	/// @param name The root's name.
+	void allowChosenRoot(std::string name);
 	/// @brief Names a program declarations may start (`"process": "clangd"`). It runs with the user's rights.
 	/// @param name The name.
 	/// @param program The program, an absolute path.
@@ -55,6 +60,10 @@ public:
 	/// @brief Sets the main thread services report to. Without one, no service starts.
 	/// @param executor The executor, or nullptr; it must outlive the registry.
 	void setExecutor(Executor* executor) noexcept;
+	/// @brief Has the services started from now on do each call's work before invoke() returns (ServiceContext::now),
+	/// so a scripted run sees its results at once and the same every time. Off by default.
+	/// @param now Whether to.
+	void setInline(bool now) noexcept;
 	/// @brief The providers, for the catalog: {name: {about, configuration, methods}} (methods as the default
 	/// configuration gives them).
 	[[nodiscard]] json catalog() const;
@@ -68,6 +77,8 @@ public:
 	[[nodiscard]] json status() const override;
 	void onStatus(std::function<void()> callback) override;
 	void onRequest(RequestHandler handler) override;
+	[[nodiscard]] bool choosable(std::string_view root) const override;
+	[[nodiscard]] std::optional<std::string> chooseRoot(std::string_view root, std::string_view folder) override;
 
 private:
 	struct Entry;
@@ -98,14 +109,16 @@ private:
 	[[nodiscard]] Entry* find(std::string_view name) const;
 
 	std::map<std::string, std::unique_ptr<Provider>, std::less<>> providers_; ///< By name.
-	std::map<std::string, std::filesystem::path, std::less<>> roots_;          ///< Granted folders, canonical.
-	std::map<std::string, ProcessGrant, std::less<>> processes_;               ///< Granted programs.
-	std::set<std::uint16_t> attachPorts_;                                      ///< Granted loopback ports.
-	std::map<std::string, std::unique_ptr<Entry>, std::less<>> entries_;       ///< The loaded services.
-	Executor* executor_ = nullptr;                                             ///< The main thread.
-	std::uint64_t generations_ = 0;                                            ///< Starts so far, to number them.
-	std::function<void()> statusChanged_;                                      ///< See onStatus().
-	RequestHandler requests_;                                                  ///< See onRequest().
+	std::map<std::string, std::filesystem::path, std::less<>> roots_;         ///< Granted folders, canonical.
+	std::map<std::string, ProcessGrant, std::less<>> processes_;              ///< Granted programs.
+	std::set<std::uint16_t> attachPorts_;                                     ///< Granted loopback ports.
+	std::set<std::string, std::less<>> choosableRoots_;                       ///< Roots the person may choose.
+	std::map<std::string, std::unique_ptr<Entry>, std::less<>> entries_;      ///< The loaded services.
+	Executor* executor_ = nullptr;                                            ///< The main thread.
+	bool inline_ = false;                                                     ///< See setInline().
+	std::uint64_t generations_ = 0;                                           ///< Starts so far, to number them.
+	std::function<void()> statusChanged_;                                     ///< See onStatus().
+	RequestHandler requests_;                                                 ///< See onRequest().
 	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards what services post to the main thread.
 };
 

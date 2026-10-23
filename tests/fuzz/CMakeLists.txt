@@ -60,6 +60,10 @@ affrescoui_fuzzer(find_pattern affrescoui::regex affrescoui::core nlohmann_json:
 affrescoui_fuzzer(search_glob affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_search_glob PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # SearchGlob.hpp
 affrescoui_fuzzer(scenarios affrescoui::automation)
+affrescoui_fuzzer(path_tree affrescoui::format) # a folder's names, nested for a file explorer
+target_include_directories(affrescoui_fuzz_path_tree PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
+affrescoui_fuzzer(git_policy affrescoui::services) # the git grant's commands, as a screen asks for them
 affrescoui_fuzzer(png affrescoui::automation)
 target_include_directories(affrescoui_fuzz_png PRIVATE ${PROJECT_SOURCE_DIR}/modules/automation/src) # PngReader.hpp
 affrescoui_fuzzer(http_response affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON

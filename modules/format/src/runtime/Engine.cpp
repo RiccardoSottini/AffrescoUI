@@ -25,7 +25,7 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 	attachImageDocuments(*this);
 	addContributionVariables(*this);
 	addSettingsVariables(*this);
-	document.addVariable("services", [this] { // {name: {state, error, restarts}} (RFC 0002)
+	document.addVariable("services", [this] { // {name: {state, error, restarts, folder}} (RFC 0002)
 		return serviceCalls.services() ? serviceCalls.services()->status() : json::object();
 	});
 	document.addVariable("connections", [this] { return connections.status(); }); // {name: {online, pending, ...}}

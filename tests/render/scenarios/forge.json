@@ -1,0 +1,90 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../../../examples/forge",
+	"scenarios": [
+		{
+			"name": "forge-welcome",
+			"note": "The workbench as it opens: the Explorer on the sample folder, the welcome page",
+			"screen": "forge.screen.json",
+			"steps": [
+				{ "wait": 100 },
+				{ "expect": { "image": "first-frame" } }
+			]
+		},
+		{
+			"name": "forge-editor",
+			"note": "A file open in the editor, then Quick Open and the command palette over it, then the file revealed in the explorer (its folder listed and opened)",
+			"screen": "forge.screen.json",
+			"steps": [
+				{ "wait": 100 },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "wait": 50 },
+				{ "expect": { "image": "file-open" } },
+				{ "key": "mod+p" },
+				{ "wait": 50 },
+				{ "expect": { "image": "quick-open" } },
+				{ "key": "escape" },
+				{ "key": "mod+shift+p" },
+				{ "wait": 50 },
+				{ "expect": { "image": "command-palette" } },
+				{ "key": "escape" },
+				{ "action": "explorerReveal" },
+				{ "wait": 50 },
+				{ "expect": { "state": "explorer.expanded", "is": ["src"] } },
+				{ "expect": { "state": "explorerTree.listed", "is": ["src"] } },
+				{ "expect": { "state": "explorer.selected", "is": "src/main.cpp" } },
+				{ "expect": { "image": "file-revealed" } }
+			]
+		},
+		{
+			"name": "forge-search",
+			"note": "The Search view in the side bar with a query's results",
+			"screen": "forge.screen.json",
+			"steps": [
+				{ "wait": 100 },
+				{ "key": "mod+shift+f" },
+				{ "click": "#search-query" },
+				{ "type": "return" },
+				{ "action": "runSearch" },
+				{ "wait": 50 },
+				{ "expect": { "image": "results" } }
+			]
+		},
+		{
+			"name": "forge-views",
+			"note": "Source Control, Run and Debug and Features in the side bar, the panel's terminal tab",
+			"screen": "forge.screen.json",
+			"steps": [
+				{ "wait": 100 },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "showSourceControl" },
+				{ "wait": 50 },
+				{ "expect": { "image": "source-control" } },
+				{ "action": "showDebug" },
+				{ "wait": 50 },
+				{ "expect": { "image": "run-and-debug" } },
+				{ "action": "showFeatures" },
+				{ "wait": 50 },
+				{ "expect": { "image": "features" } }
+			]
+		},
+		{
+			"name": "forge-settings",
+			"note": "The settings editor and the colour theme picker",
+			"screen": "forge.screen.json",
+			"steps": [
+				{ "wait": 100 },
+				{ "action": "openSettings" },
+				{ "wait": 50 },
+				{ "expect": { "image": "settings" } },
+				{ "key": "mod+shift+p" },
+				{ "type": "color theme" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "image": "theme-picker" } }
+			]
+		}
+	]
+}

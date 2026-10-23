@@ -7,9 +7,9 @@
 	"scenarios": [
 		{
 			"name": "accounts-signed-out",
-			"note": "Signed out, the status bar offers to sign in and shows no one",
+			"note": "Signed out, the activity bar's accounts button offers to sign in and shows no one",
 			"steps": [
-				{ "expect": { "node": "#status-accounts", "text": "Sign in" } },
+				{ "expect": { "node": "#status-accounts", "property": "name", "is": "Sign in" } },
 				{ "expect": { "state": "accounts.peers.length", "is": 0 } },
 				{ "expect": { "state": "accounts.menuOpen", "is": false } }
 			]
@@ -83,7 +83,7 @@
 				{ "action": "accountsSignOut" },
 				{ "expect": { "state": "accounts.peers.length", "is": 0 } },
 				{ "expect": { "state": "accounts.synced", "is": null } },
-				{ "expect": { "node": "#status-accounts", "text": "Sign in" } }
+				{ "expect": { "node": "#status-accounts", "property": "name", "is": "Sign in" } }
 			]
 		}
 	]

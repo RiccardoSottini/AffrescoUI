@@ -31,9 +31,9 @@
 			"node": {
 				"type": "column", "id": "debug-view", "width": "100%", "grow": 1, "color": "@color.sideBar", "gap": 2,
 				"children": [
-					{ "type": "row", "id": "debug-head", "width": "100%", "height": 32, "alignItems": "center",
+					{ "type": "row", "id": "debug-head", "width": "100%", "height": 35, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "debug-title", "text": "RUN AND DEBUG", "textColor": "@color.muted", "grow": 1, "padding": 12 },
+						{ "type": "label", "id": "debug-title", "text": "RUN AND DEBUG", "textColor": "@color.muted", "grow": 1, "height": 35, "padding": 12 },
 						{ "type": "label", "id": "debug-start", "icon": "play", "padding": 6, "fitText": true, "cursor": "hand",
 						  "textColor": "{{state.debug.status == 'inactive' ? '#89d185' : '@color.muted'}}", "tooltip": "Start Debugging (F5)",
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "debugContinueOrStart" } },
@@ -41,9 +41,16 @@
 						  "textColor": "@color.muted", "tooltip": "Reload .vscode/launch.json",
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "debugLoadConfigurations" } }
 					  ] },
-					{ "type": "label", "id": "debug-empty", "when": "{{length(state.debug.configurations) == 0 && empty(state.debug.error)}}",
-					  "wrap": true, "width": "100%", "padding": 12, "textColor": "@color.text",
-					  "text": "{{'No launch configurations. Add one of type lldb or python to ' + (empty(state.folder.root) ? 'the open folder' : 'this folder') + '\\'s .vscode/launch.json.' + (state.debug.skipped > 0 ? ' ' + plural(state.debug.skipped, 'configuration') + ' Forge can\\'t run were left out.' : '')}}" },
+					{ "type": "column", "id": "debug-empty", "when": "{{length(state.debug.configurations) == 0 && empty(state.debug.error) && state.debug.status == 'inactive'}}",
+					  "width": "100%", "height": 124, "gap": 10, "children": [
+						{ "id": "debug-empty-top", "height": 4 },
+						{ "use": "forgeInset", "height": 28, "children": [
+							{ "type": "label", "id": "debug-empty-start", "role": "button", "label": "Run and Debug", "text": "Run and Debug", "grow": 1,
+							  "height": 28, "align": "center", "radius": 2, "cursor": "hand", "focusable": true, "color": "@color.accent",
+							  "textColor": "#ffffff", "onClick": { "run": "debugContinueOrStart" } } ] },
+						{ "type": "label", "id": "debug-empty-text", "wrap": true, "width": "100%", "height": 70, "padding": 12, "textColor": "@color.text",
+						  "text": "{{'To choose what runs, add a configuration of type lldb or python to ' + (empty(state.folder.root) ? 'the open folder' : 'this folder') + '\\'s .vscode/launch.json.' + (state.debug.skipped > 0 ? ' ' + plural(state.debug.skipped, 'configuration') + ' Forge can\\'t run were left out.' : '')}}" }
+					  ] },
 					{ "type": "label", "id": "debug-error", "when": "{{!empty(state.debug.error)}}", "icon": "circle-x", "wrap": true,
 					  "width": "100%", "padding": 8, "textColor": "@color.text", "text": "{{state.debug.error}}" },
 					{ "type": "list", "id": "debug-configurations", "when": "{{length(state.debug.configurations) > 0}}", "width": "100%",
@@ -57,7 +64,7 @@
 
 					{ "type": "row", "id": "debug-variables-head", "width": "100%", "height": 22, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "debug-variables-title", "text": "VARIABLES", "textColor": "@color.muted", "grow": 1, "padding": 8 },
+						{ "type": "label", "id": "debug-variables-title", "icon": "chevron-down", "text": "VARIABLES", "textColor": "@color.text", "grow": 1, "height": 22, "padding": 4 },
 						{ "type": "label", "id": "debug-set-value", "icon": "pencil", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Set Value", "hover": { "textColor": "@color.text" },
 						  "onClick": { "run": "debugEditValue" } }
@@ -69,7 +76,7 @@
 
 					{ "type": "row", "id": "debug-watch-head", "width": "100%", "height": 22, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "debug-watch-title", "text": "WATCH", "textColor": "@color.muted", "grow": 1, "padding": 8 },
+						{ "type": "label", "id": "debug-watch-title", "icon": "chevron-down", "text": "WATCH", "textColor": "@color.text", "grow": 1, "height": 22, "padding": 4 },
 						{ "type": "label", "id": "debug-watch-remove", "icon": "x", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Remove the selected expression", "hover": { "textColor": "@color.text" },
 						  "onClick": { "run": "debugRemoveWatch" } }
@@ -81,8 +88,8 @@
 					  "bind": "state.debug.selectedWatch", "rowHeight": 20, "color": "@color.sideBar", "textColor": "@color.text",
 					  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent" },
 
-					{ "type": "label", "id": "debug-stack-title", "text": "CALL STACK", "width": "100%", "height": 22, "textColor": "@color.muted",
-					  "padding": 8 },
+					{ "type": "label", "id": "debug-stack-title", "icon": "chevron-down", "text": "CALL STACK", "width": "100%", "height": 22, "textColor": "@color.text",
+					  "padding": 4 },
 					{ "type": "list", "id": "debug-stack", "width": "100%", "grow": 1, "items": "{{computed.debugStackRows}}",
 					  "bind": "state.debug.selectedStack", "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text",
 					  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent",
@@ -90,7 +97,7 @@
 
 					{ "type": "row", "id": "debug-breakpoints-head", "width": "100%", "height": 22, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "debug-breakpoints-title", "text": "BREAKPOINTS", "textColor": "@color.muted", "grow": 1, "padding": 8 },
+						{ "type": "label", "id": "debug-breakpoints-title", "icon": "chevron-down", "text": "BREAKPOINTS", "textColor": "@color.text", "grow": 1, "height": 22, "padding": 4 },
 						{ "type": "label", "id": "debug-breakpoint-edit", "icon": "pencil", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Edit Condition, Hit Count or Log Message",
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "debugEditSelectedBreakpoint" } },

@@ -331,6 +331,13 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "`error` in `onError` is `{code, message}`. A control step",
 	 "steps"},
     {"signOut", "", R"(`{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step)", "steps"},
+    {"chooseFolder", "",
+	 "`{ \"chooseFolder\": \"workspace\", \"title\": \"Open Folder\", \"onDone\": [...], \"onError\": [...] }`: "
+	 "after the event, asks the person for the folder a root names, in the OS's folder dialog (if the host lets them "
+	 "choose it). The services that use the root start again on it; `result` in `onDone` is `{name}`, the folder's "
+	 "own name (never where it is), `error` in `onError` is `{code, message}`; nothing runs if they cancel. A control "
+	 "step",
+	 "steps"},
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
@@ -411,6 +418,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"error", "", "", ""},
     {"data", "", "", ""},
     {"message", "", "", ""},
+    {"title", "", "", ""},
     {"ms", "", "", ""},
     {"easing", R"json({"enum": ["linear", "in", "out", "inOut"]})json", "", ""},
     {"head", "", "", ""},

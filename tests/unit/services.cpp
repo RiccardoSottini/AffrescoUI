@@ -173,6 +173,93 @@ TEST_CASE("services: a call that ends, or fails, before its timeout leaves no ti
 	CHECK_FALSE(window->secondsToNextTimer());
 }
 
+TEST_CASE("services: inline, a call's result arrives before the action returns, as in a scripted run") {
+	const TemporaryFolder folder;
+	writeText(folder.path / "work" / "note.txt", "inside");
+	PumpedExecutor executor; // never pumped: what reaches the screen came before the call returned
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(serviceScreen);
+	screen.services().addRoot("work", folder.path / "work");
+	screen.services().setExecutor(&executor); // as automation does: the services start, the screen's calls wait for none
+	screen.services().setInline(true);
+	screen.build(*window);
+
+	screen.runAction("local", window->root());
+	CHECK(stateAt(screen, "/local") == "inside");
+	screen.runAction("escape", window->root());
+	// NOLINTNEXTLINE(readability-container-size-empty): json's empty() is false for every string
+	CHECK(stateAt(screen, "/denied") != "");
+}
+
+/// @brief A screen whose actions make, move, copy, describe and delete entries of a granted folder.
+constexpr const char* entriesScreen = R"json({
+	"format": "affrescoui-screen",
+	"version": 2,
+	"services": { "files": { "provider": "fs", "root": "work" } },
+	"state": { "made": "", "moved": "", "copied": "", "again": "", "stat": null, "removed": 0, "errors": [] },
+	"actions": {
+		"run": [
+			{ "invoke": "files.mkdir", "with": { "path": "src/lib" }, "onDone": [{ "set": "state.made", "to": "{{result.path}}" }] },
+			{ "invoke": "files.write", "with": { "path": "src/lib/a.txt", "text": "abc" } },
+			{ "invoke": "files.rename", "with": { "path": "src/lib", "to": "src/core" },
+			  "onDone": [{ "set": "state.moved", "to": "{{result.path}}" }] },
+			{ "invoke": "files.copy", "with": { "path": "src/core/a.txt", "to": "src/core/a.txt", "free": true },
+			  "onDone": [{ "set": "state.copied", "to": "{{result.path}}" }] },
+			{ "invoke": "files.copy", "with": { "path": "src/core/a.txt", "to": "src/core/a.txt", "free": true },
+			  "onDone": [{ "set": "state.again", "to": "{{result.path}}" }] },
+			{ "invoke": "files.stat", "with": { "path": "src/core/a copy.txt" }, "into": "state.stat" },
+			{ "invoke": "files.delete", "with": { "path": "src" }, "onDone": [{ "set": "state.removed", "to": "{{result.removed}}" }] }
+		],
+		"refused": [
+			{ "invoke": "files.copy", "with": { "path": "note.txt", "to": "note.txt" },
+			  "onError": [{ "set": "state.errors", "to": "{{concat(state.errors, [error.code])}}" }] },
+			{ "invoke": "files.rename", "with": { "path": "box", "to": "box/inner" },
+			  "onError": [{ "set": "state.errors", "to": "{{concat(state.errors, [error.code])}}" }] },
+			{ "invoke": "files.mkdir", "with": { "path": "note.txt" },
+			  "onError": [{ "set": "state.errors", "to": "{{concat(state.errors, [error.code])}}" }] },
+			{ "invoke": "files.delete", "with": { "path": "." },
+			  "onError": [{ "set": "state.errors", "to": "{{concat(state.errors, [error.code])}}" }] },
+			{ "invoke": "files.rename", "with": { "path": "note.txt", "to": "../note.txt" },
+			  "onError": [{ "set": "state.errors", "to": "{{concat(state.errors, [error.code])}}" }] },
+			{ "invoke": "files.delete", "with": { "path": "gone.txt" },
+			  "onError": [{ "set": "state.errors", "to": "{{concat(state.errors, [error.code])}}" }] }
+		]
+	},
+	"root": { "type": "label", "text": "" }
+})json";
+
+TEST_CASE("services: fs makes, moves, copies, describes and deletes entries, inside the root only") {
+	const TemporaryFolder folder;
+	writeText(folder.path / "work" / "note.txt", "kept");
+	writeText(folder.path / "outside.txt", "untouched");
+	std::filesystem::create_directories(folder.path / "work" / "box");
+	PumpedExecutor executor;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(entriesScreen);
+	screen.services().addRoot("work", folder.path / "work");
+	screen.services().setExecutor(&executor);
+	screen.services().setInline(true);
+	screen.build(*window);
+
+	screen.runAction("run", window->root());
+	CHECK(stateAt(screen, "/made") == "src/lib");
+	CHECK(stateAt(screen, "/moved") == "src/core");
+	CHECK(stateAt(screen, "/copied") == "src/core/a copy.txt");
+	CHECK(stateAt(screen, "/again") == "src/core/a copy 2.txt");
+	CHECK(stateAt(screen, "/stat/kind") == "file");
+	CHECK(stateAt(screen, "/stat/size") == 3);
+	CHECK(stateAt(screen, "/removed") == 5); // src, core, and its three files
+	CHECK_FALSE(std::filesystem::exists(folder.path / "work" / "src"));
+
+	screen.runAction("refused", window->root());
+	// A taken copy, a folder into itself, a folder over a file, the root, a path outside it, a missing file
+	CHECK(stateAt(screen, "/errors") == json{"exists", "failed", "exists", "refused", "refused", "notFound"});
+	CHECK(std::filesystem::exists(folder.path / "work" / "note.txt"));
+	CHECK(std::filesystem::exists(folder.path / "outside.txt"));
+}
+
 TEST_CASE("services: Content-Length frames are read in pieces, and bounded") {
 	using affresco::services::FrameReader;
 	using affresco::services::Framing;

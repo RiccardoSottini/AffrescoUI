@@ -5,8 +5,9 @@
 	"note": "Forge's shell: the title bar with a command centre, the activity bar, the explorer side bar, editor groups with tabs, the panel and the status bar. The layout (what is shown, the sash positions) is in state.layout, kept by persist; zen mode hides everything but the editors. Other features contribute commands, menus, keys, settings, tokens and components (examples/forge/README.md).",
 
 	"state": {
-		"layout": { "sidebar": true, "panel": true, "zen": false, "secondary": false, "sizes": [240], "panelSizes": [480], "groupSizes": [] },
-		"folder": { "root": "", "files": [], "tree": [], "truncated": false },
+		"layout": { "sidebar": true, "panel": false, "panelMax": false, "zen": false, "secondary": false, "sizes": [240], "panelSizes": [480], "groupSizes": [] },
+		"folder": { "root": "", "files": [],
+			"skip": "**/node_modules/**,**/build/**,**/out/**,**/dist/**,**/target/**,**/__pycache__/**,**/.*/**,**/.*" },
 		"explorer": { "expanded": [], "selected": null },
 		"docs": [],
 		"groups": [{ "tabs": [], "active": null }],
@@ -15,6 +16,8 @@
 		"menuBar": {},
 		"about": false,
 		"sideView": "explorer",
+		"nav": { "back": [], "forward": [], "moving": false },
+		"notificationCentre": false,
 		"languages": { "c": "C++", "cc": "C++", "cpp": "C++", "h": "C++", "hpp": "C++", "json": "JSON", "md": "Markdown",
 			"cmake": "CMake" }
 	},
@@ -36,22 +39,52 @@
 		],
 		"showExplorer": { "title": "Show Explorer", "category": "View", "icon": "files",
 			"do": [{ "run": "forgeShowView", "with": { "view": "explorer" } }] },
+		"showSearch": { "title": "Show Search", "category": "View", "icon": "search",
+			"do": [{ "run": "forgeShowView", "with": { "view": "search" } }] },
+		"navigateBack": { "title": "Go Back", "category": "Go", "icon": "arrow-left",
+			"enablement": "{{length(state.nav.back) > 0}}",
+			"do": [{ "set": "state.nav.forward", "to": "{{concat(filter(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active), state.nav.forward)}}" },
+			       { "run": "forgeNavigateTo", "with": { "tab": "{{state.nav.back[length(state.nav.back) - 1]}}" } },
+			       { "set": "state.nav.back", "to": "{{slice(state.nav.back, 0, length(state.nav.back) - 1)}}" }] },
+		"navigateForward": { "title": "Go Forward", "category": "Go", "icon": "arrow-right",
+			"enablement": "{{length(state.nav.forward) > 0}}",
+			"do": [{ "set": "state.nav.back", "to": "{{concat(state.nav.back, filter(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active))}}" },
+			       { "run": "forgeNavigateTo", "with": { "tab": "{{state.nav.forward[0]}}" } },
+			       { "set": "state.nav.forward", "to": "{{slice(state.nav.forward, 1)}}" }] },
+		"forgeNavigateTo": [
+			{ "note": "tab: { id, label }, shown without being recorded in the history" },
+			{ "set": "state.nav.moving", "to": true },
+			{ "run": "showTab", "with": { "id": "{{tab.id}}", "label": "{{tab.label}}" } },
+			{ "set": "state.nav.moving", "to": false }
+		],
 		"togglePanel": { "title": "Toggle Panel", "category": "View", "icon": "panel-bottom",
-			"do": [{ "toggle": "state.layout.panel" }] },
+			"do": [{ "toggle": "state.layout.panel" }, { "set": "state.layout.panelMax", "to": false }] },
+		"toggleMaximizedPanel": { "title": "Maximize Panel Size", "category": "View", "icon": "chevron-up",
+			"do": [{ "set": "state.layout.panel", "to": true }, { "toggle": "state.layout.panelMax" }] },
 		"toggleZen": { "title": "Toggle Zen Mode", "category": "View", "icon": "maximize",
 			"description": "Hide everything but the editors; run it again to bring the workbench back.",
 			"do": [{ "toggle": "state.layout.zen" }] },
 		"openFolder": { "title": "Open Folder...", "category": "File", "icon": "folder-open",
-			"do": [{ "call": "forge.openFolder", "with": { "icons": "{{settings.workbench.fileIcons ? state.iconTheme : null}}" },
-				"into": "state.folder",
-				"onError": [{ "run": "notify", "with": { "severity": "info", "message": "{{'No folder opened: ' + error}}" } }],
-				"then": [{ "set": "state.explorer.expanded", "to": [] },
-				         { "run": "log", "with": { "text": "{{'Opened ' + result.root}}" } }] }] },
+			"do": [{ "chooseFolder": "workspace", "title": "Open Folder",
+				"onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'No folder opened: ' + error.message}}" } }],
+				"onDone": [{ "set": "state.explorer", "to": "{{ {expanded: [], selected: null} }}" },
+				           { "set": "state.explorerTree", "to": "{{ {entries: [], listed: []} }}" },
+				           { "set": "state.folder.root", "to": "{{result.name}}" },
+				           { "run": "explorerRefresh" }, { "run": "indexFolder" },
+				           { "run": "log", "with": { "text": "{{'Opened ' + result.name}}" } }] }] },
+		"indexFolder": [
+			{ "note": "Lists the folder's files for Go to File" },
+			{ "invoke": "search.files", "with": { "exclude": "{{state.folder.skip}}" },
+			  "onDone": [{ "run": "indexed", "with": { "files": "{{result.files}}" } }], "onError": [{ "set": "state.folder.files", "to": [] }] }
+		],
+		"indexed": [{ "set": "state.folder.files", "to": "{{map(files, {id: it, title: reverse(split(it, '/'))[0], detail: join(slice(split(it, '/'), 0, -1), '/')})}}" }],
 		"openExplorerItem": [
-			{ "if": "{{!empty(event.id) && slice(event.id, length(event.id) - 1) != '/'}}",
+			{ "if": "{{!empty(event.id) && (find(state.explorerTree.entries, it.path == event.id) ?? {}).kind != 'folder'}}",
 			  "then": [{ "run": "openPath", "with": { "path": "{{event.id}}", "label": "{{reverse(split(event.id, '/'))[0]}}" } }] }
 		],
 		"showTab": [
+			{ "if": "{{!state.nav.moving && !empty(state.groups[state.activeGroup].active) && state.groups[state.activeGroup].active != id}}",
+			  "then": [{ "set": "state.nav", "to": "{{ {back: slice(concat(state.nav.back, filter(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active)), max(0, length(state.nav.back) - 49)), forward: [], moving: false} }}" }] },
 			{ "if": "{{!some(state.groups[state.activeGroup].tabs, it.id == id)}}",
 			  "then": [{ "push": "state.groups[state.activeGroup].tabs", "value": "{{ {id: id, label: label} }}" }] },
 			{ "set": "state.groups[state.activeGroup].active", "to": "{{id}}" }
@@ -80,7 +113,9 @@
 		"mod+k z": "toggleZen",
 		"mod+o": "openFolder",
 		"mod+w": "closeEditor",
-		"mod+\\": "splitEditor"
+		"mod+\\": "splitEditor",
+		"ctrl+minus": "navigateBack",
+		"ctrl+shift+minus": "navigateForward"
 	},
 
 	"menus": {
@@ -94,6 +129,10 @@
 			"panel": { "run": "togglePanel", "group": "2_layout", "order": 2 },
 			"split": { "run": "splitEditor", "group": "2_layout", "order": 3 },
 			"zen": { "run": "toggleZen", "group": "2_layout", "order": 4 }
+		},
+		"go": {
+			"back": { "run": "navigateBack", "group": "0_history", "order": 1 },
+			"forward": { "run": "navigateForward", "group": "0_history", "order": 2 }
 		},
 		"help": {
 			"keybindings": { "run": "openKeybindings", "group": "1_help", "order": 1 },
@@ -110,71 +149,83 @@
 					{ "when": "{{!window.nativeMenuBar}}", "use": "menuBar", "id": "menu-bar", "width": 330,
 					  "with": { "open": "state.menuBar", "menus": "{{[{name: 'file', title: 'File', items: menus.file}, {name: 'view', title: 'View', items: menus.view}, {name: 'go', title: 'Go', items: menus.go}, {name: 'preferences', title: 'Preferences', items: menus.preferences}, {name: 'help', title: 'Help', items: menus.help}]}}" } },
 					{ "id": "title-left", "grow": 1 },
-					{ "type": "row", "id": "command-centre", "role": "button", "label": "Search Files", "width": 420, "height": 24, "color": "@color.input", "radius": 6,
+					{ "use": "forgeTitleButton", "id": "title-back", "with": { "icon": "arrow-left", "tip": "Go Back (Ctrl+-)", "on": "{{length(state.nav.back) > 0}}" },
+					  "onClick": { "run": "navigateBack" } },
+					{ "use": "forgeTitleButton", "id": "title-forward", "with": { "icon": "arrow-right", "tip": "Go Forward (Ctrl+Shift+-)", "on": "{{length(state.nav.forward) > 0}}" },
+					  "onClick": { "run": "navigateForward" } },
+					{ "id": "title-centre-gap", "width": 4 },
+					{ "type": "row", "id": "command-centre", "role": "button", "label": "Search Files", "width": 420, "height": 22, "color": "@color.input", "radius": 5,
 					  "borderWidth": 1, "borderColor": "@color.border", "alignItems": "center", "gap": 6,
-					  "cursor": "hand", "tooltip": "Search files (> for commands, : for a line)", "hover": { "borderColor": "@color.accent" },
+					  "cursor": "hand", "tooltip": "Search files (> for commands, : for a line)", "hover": { "color": "@color.hover" },
 					  "onClick": { "run": "quickOpen" },
 					  "children": [
-						{ "id": "command-centre-start", "width": 0 },
+						{ "id": "command-centre-start", "grow": 1 },
 						{ "type": "label", "id": "command-centre-icon", "icon": "search", "textColor": "@color.muted", "fitText": true },
 						{ "type": "label", "id": "command-centre-text", "text": "{{computed.folderName}}", "textColor": "@color.muted",
-						  "grow": 1, "height": 22, "align": "center" }
+						  "fitText": true, "height": 20 },
+						{ "id": "command-centre-end", "grow": 1 }
 					  ] },
 					{ "id": "title-right", "grow": 1 },
-					{ "type": "label", "id": "title-sidebar", "role": "button", "icon": "panel-left", "padding": 6, "fitText": true, "cursor": "hand",
-					  "textColor": "{{state.layout.sidebar ? '@color.text' : '@color.muted'}}", "tooltip": "Toggle Primary Side Bar",
-					  "hover": { "color": "@color.hover" }, "onClick": { "run": "toggleSidebar" } },
-					{ "type": "label", "id": "title-panel", "role": "button", "icon": "panel-bottom", "padding": 6, "fitText": true, "cursor": "hand",
-					  "textColor": "{{state.layout.panel ? '@color.text' : '@color.muted'}}", "tooltip": "Toggle Panel",
-					  "hover": { "color": "@color.hover" }, "onClick": { "run": "togglePanel" } },
-					{ "type": "label", "id": "title-split", "role": "button", "icon": "columns-2", "padding": 6, "fitText": true, "cursor": "hand",
-					  "textColor": "@color.muted", "tooltip": "Split Editor", "hover": { "color": "@color.hover" },
-					  "onClick": { "run": "splitEditor" } }
+					{ "use": "forgeTitleButton", "id": "title-sidebar", "with": { "icon": "panel-left", "tip": "Toggle Primary Side Bar (Cmd+B)", "on": "{{state.layout.sidebar}}" },
+					  "onClick": { "run": "toggleSidebar" } },
+					{ "use": "forgeTitleButton", "id": "title-panel", "with": { "icon": "panel-bottom", "tip": "Toggle Panel (Cmd+J)", "on": "{{state.layout.panel}}" },
+					  "onClick": { "run": "togglePanel" } },
+					{ "use": "forgeTitleButton", "id": "title-secondary", "with": { "icon": "panel-right", "tip": "Toggle Secondary Side Bar (Cmd+Alt+B)", "on": "{{state.layout.secondary}}" },
+					  "onClick": { "run": "toggleSecondarySidebar" } },
+					{ "id": "title-end", "width": 8 }
+				]
+			}
+		},
+		"forgeTitleButton": {
+			"params": { "icon": "", "tip": "", "on": false },
+			"node": { "type": "label", "role": "button", "label": "{{tip}}", "icon": "{{icon}}", "font": "icons", "width": 26, "height": 24, "align": "center",
+			          "radius": 5, "cursor": "hand", "textColor": "{{on ? '@color.text' : '@color.muted'}}", "tooltip": "{{tip}}",
+			          "hover": { "color": "@color.hover" } }
+		},
+		"forgeActivityItem": {
+			"params": { "view": "", "icon": "", "label": "", "tip": "", "badge": 0 },
+			"node": {
+				"id": "activity-{{view}}", "role": "tab", "label": "{{label}}", "selected": "{{state.layout.sidebar && state.sideView == view}}",
+				"width": 48, "height": 48, "color": "@color.activityBar", "cursor": "hand", "tooltip": "{{tip}}",
+				"children": [
+					{ "id": "activity-{{view}}-indicator", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": 2,
+					  "color": "{{state.layout.sidebar && state.sideView == view ? '@color.accent' : '@color.activityBar'}}" },
+					{ "type": "label", "icon": "{{icon}}", "font": "iconsLarge", "anchors": { "left": 0, "top": 0, "right": 0, "bottom": 0 }, "align": "center",
+					  "textColor": "{{state.layout.sidebar && state.sideView == view ? '@color.text' : '@color.muted'}}", "hover": { "textColor": "@color.text" } },
+					{ "type": "label", "id": "activity-{{view}}-badge", "when": "{{badge > 0}}", "text": "{{badge > 99 ? '99+' : text(badge)}}",
+					  "anchors": { "right": 6, "bottom": 7 }, "height": 16, "padding": 4, "fitText": true, "radius": 8, "align": "center",
+					  "color": "@color.accent", "textColor": "#ffffff" }
 				]
 			}
 		},
 		"forgeActivityBar": {
 			"node": {
 				"type": "column", "id": "activity-bar", "role": "tablist", "label": "Activity Bar", "width": 48, "height": "100%", "color": "@color.activityBar",
-				"alignItems": "center",
 				"children": [
-					{ "type": "label", "id": "activity-explorer", "role": "tab", "label": "Explorer",
-					  "selected": "{{state.layout.sidebar && state.sideView == 'explorer'}}", "icon": "files", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Explorer (Cmd+B)",
-					  "textColor": "{{state.layout.sidebar && state.sideView == 'explorer' ? '@color.text' : '@color.muted'}}",
+					{ "use": "forgeActivityItem", "with": { "view": "explorer", "icon": "files", "label": "Explorer", "tip": "Explorer (Cmd+Shift+E)" },
 					  "onClick": { "run": "showExplorer" } },
-					{ "type": "label", "id": "activity-search", "role": "button", "label": "Go to File", "icon": "search", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Go to File (Cmd+P)", "textColor": "@color.muted",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "quickOpen" } },
-					{ "type": "label", "id": "activity-problems", "role": "button", "label": "Problems", "icon": "alert-triangle", "font": "iconsLarge", "width": 48,
-					  "height": 48, "align": "center", "cursor": "hand", "tooltip": "Problems", "textColor": "@color.muted",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showProblems" } },
-					{ "type": "label", "id": "activity-scm", "role": "tab", "label": "Source Control",
-					  "selected": "{{state.layout.sidebar && state.sideView == 'scm'}}", "icon": "git-branch", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Source Control (Cmd+Shift+G)",
-					  "textColor": "{{state.layout.sidebar && state.sideView == 'scm' ? '@color.text' : '@color.muted'}}",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showSourceControl" } },
-					{ "type": "label", "id": "activity-debug", "role": "tab", "label": "Run and Debug",
-					  "selected": "{{state.layout.sidebar && state.sideView == 'debug'}}", "icon": "bug", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Run and Debug (Cmd+Shift+D)",
-					  "textColor": "{{state.layout.sidebar && state.sideView == 'debug' ? '@color.text' : '@color.muted'}}",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showDebug" } },
-										{ "type": "label", "id": "activity-agent", "role": "tab", "label": "Agent",
-					  "selected": "{{state.layout.sidebar && state.sideView == 'agent'}}", "icon": "bot", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Agent (Cmd+Alt+I)",
-					  "textColor": "{{state.layout.sidebar && state.sideView == 'agent' ? '@color.text' : '@color.muted'}}",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showAgent" } },
-					{ "type": "label", "id": "activity-features", "role": "tab", "label": "Features",
-					  "selected": "{{state.layout.sidebar && state.sideView == 'features'}}", "icon": "blocks", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Features (Cmd+Shift+X)",
-					  "textColor": "{{state.layout.sidebar && state.sideView == 'features' ? '@color.text' : '@color.muted'}}",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showFeatures" } },
+					{ "use": "forgeActivityItem", "with": { "view": "search", "icon": "search", "label": "Search", "tip": "Search (Cmd+Shift+F)" },
+					  "onClick": { "run": "showSearch" } },
+					{ "use": "forgeActivityItem", "with": { "view": "scm", "icon": "git-branch", "label": "Source Control", "tip": "Source Control (Cmd+Shift+G)",
+					  "badge": "{{state.scm.status.count}}" },
+					  "onClick": { "run": "showSourceControl" } },
+					{ "use": "forgeActivityItem", "with": { "view": "debug", "icon": "bug", "label": "Run and Debug", "tip": "Run and Debug (Cmd+Shift+D)" },
+					  "onClick": { "run": "showDebug" } },
+					{ "use": "forgeActivityItem", "with": { "view": "features", "icon": "blocks", "label": "Features", "tip": "Features (Cmd+Shift+X)" },
+					  "onClick": { "run": "showFeatures" } },
+					{ "use": "forgeActivityItem", "with": { "view": "agent", "icon": "bot", "label": "Agent", "tip": "Agent (Cmd+Alt+I)" },
+					  "onClick": { "run": "showAgent" } },
 					{ "id": "activity-gap", "grow": 1 },
+					{ "use": "forgeAccountsStatus" },
 					{ "type": "label", "id": "activity-settings", "role": "button", "label": "Settings", "icon": "settings", "font": "iconsLarge", "width": 48, "height": 48,
 					  "align": "center", "cursor": "hand", "tooltip": "Settings (Cmd+,)", "textColor": "@color.muted",
 					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "openSettings" } }
 				]
 			}
+		},
+		"forgeViewTitle": {
+			"params": { "text": "" },
+			"node": { "type": "label", "text": "{{text}}", "textColor": "@color.muted", "width": "100%", "height": 35, "padding": 12 }
 		},
 		"forgeSideBar": {
 			"node": {
@@ -184,8 +235,8 @@
 					{ "when": "{{state.sideView == 'debug'}}", "use": "forgeDebugView" },
 					{ "when": "{{state.sideView == 'agent'}}", "use": "forgeAgentView" },
 					{ "when": "{{state.sideView == 'features'}}", "use": "forgeFeaturesView" },
-					{ "type": "label", "id": "side-bar-title", "when": "{{state.sideView == 'explorer'}}", "text": "EXPLORER", "textColor": "@color.muted", "width": "100%",
-					  "height": 32, "padding": 12 },
+					{ "when": "{{state.sideView == 'search'}}", "use": "forgeSearchPage" },
+					{ "when": "{{state.sideView == 'explorer'}}", "use": "forgeViewTitle", "with": { "text": "EXPLORER" }, "id": "side-bar-title" },
 					{ "type": "label", "id": "side-bar-folder", "when": "{{state.sideView == 'explorer' && !empty(state.folder.root)}}", "icon": "chevron-down",
 					  "text": "{{upper(computed.folderName)}}", "textColor": "@color.text", "width": "100%", "height": 22,
 					  "padding": 6 },
@@ -227,35 +278,66 @@
 				]
 			}
 		},
+		"forgeStatusItem": {
+			"params": { "text": "", "icon": "", "tip": "" },
+			"node": { "type": "label", "role": "button", "label": "{{tip}}", "text": "{{text}}", "icon": "{{icon}}", "padding": 6, "height": 22, "fitText": true,
+			          "cursor": "hand", "textColor": "@color.statusText", "tooltip": "{{tip}}", "hover": { "color": "@color.hover" } }
+		},
 		"forgeStatusBar": {
 			"node": {
-				"type": "row", "id": "status-bar", "role": "status", "label": "Status Bar", "point": "statusBar.right", "width": "100%", "height": 24, "color": "@color.statusBar", "alignItems": "center",
-				"borderWidth": 1, "borderColor": "@color.border", "gap": 4,
+				"type": "row", "id": "status-bar", "role": "status", "label": "Status Bar", "point": "statusBar.right", "width": "100%", "height": 22, "color": "@color.statusBar", "alignItems": "center",
+				"borderWidth": 1, "borderColor": "@color.border", "gap": 2,
 				"children": [
-					{ "type": "label", "id": "status-folder", "icon": "folder", "text": "{{computed.folderName}}", "padding": 6,
-					  "fitText": true, "textColor": "@color.statusText" },
-					{ "type": "label", "id": "status-errors", "role": "button", "label": "{{plural(computed.errors, 'error')}}", "icon": "circle-x", "padding": 6, "fitText": true, "cursor": "hand",
-					  "text": "{{text(computed.errors)}}", "textColor": "@color.statusText", "tooltip": "Problems",
-					  "hover": { "color": "@color.hover" }, "onClick": { "run": "showProblems" } },
-					{ "type": "label", "id": "status-warnings", "role": "button", "label": "{{plural(computed.warnings, 'warning')}}", "icon": "alert-triangle", "padding": 6, "fitText": true,
-					  "cursor": "hand", "text": "{{text(computed.warnings)}}", "textColor": "@color.statusText", "tooltip": "Problems",
+					{ "type": "label", "id": "status-remote", "role": "button", "label": "Document Server", "icon": "chevrons-left-right", "width": 36, "height": 22,
+					  "align": "center", "cursor": "hand", "color": "@color.accent", "textColor": "#ffffff", "tooltip": "Document Server: sign in to share and sync",
+					  "onClick": { "run": "accountsMenu" } },
+					{ "use": "forgeStatusItem", "id": "status-branch", "when": "{{!empty(state.scm.status.branch.head)}}",
+					  "with": { "icon": "git-branch", "text": "{{computed.scmBranchText}}", "tip": "Show Branches" }, "onClick": { "run": "scmBranches" } },
+					{ "use": "forgeStatusItem", "id": "status-sync", "when": "{{!empty(state.scm.status.branch.head)}}",
+					  "with": { "icon": "refresh-cw", "tip": "Refresh Source Control" }, "onClick": { "run": "scmRefresh" } },
+					{ "type": "label", "id": "status-problems", "role": "button", "label": "{{plural(computed.errors, 'error') + ', ' + plural(computed.warnings, 'warning')}}",
+					  "runs": ["{{' '}}", { "icon": "circle-x" }, "{{' ' + text(computed.errors) + '  '}}", { "icon": "alert-triangle" }, "{{' ' + text(computed.warnings)}}"],
+					  "padding": 6, "height": 22, "fitText": true, "cursor": "hand", "textColor": "@color.statusText", "tooltip": "Problems (Cmd+Shift+M)",
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "showProblems" } },
 					{ "id": "status-gap", "grow": 1 },
-					{ "type": "label", "id": "status-position", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
-					  "role": "button", "label": "Go to Line", "padding": 6, "fitText": true, "cursor": "hand",
-					  "text": "{{'Ln ' + text(state.caret.line) + ', Col ' + text(state.caret.column) + (state.caret.selected > 0 ? ' (' + text(state.caret.selected) + ' selected)' : '')}}",
-					  "textColor": "@color.statusText", "hover": { "color": "@color.hover" }, "onClick": { "run": "goToLinePick" } },
-					{ "type": "label", "id": "status-language", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
-					  "text": "{{computed.activeDoc.language || 'Plain Text'}}", "padding": 6, "fitText": true,
-					  "textColor": "@color.statusText" },
-					{ "type": "label", "id": "status-theme", "role": "button", "label": "Color Theme", "icon": "palette", "padding": 6, "fitText": true, "cursor": "hand",
-					  "text": "{{find(state.themes, it.id == state.theme).name ?? state.theme}}", "textColor": "@color.statusText",
-					  "hover": { "color": "@color.hover" }, "onClick": { "run": "pickTheme" } },
-					{ "use": "forgeAccountsStatus" },
-					{ "type": "label", "id": "status-notifications", "role": "button", "label": "Notifications", "icon": "bell", "padding": 6, "fitText": true, "cursor": "hand",
-					  "text": "{{length(state.notifications) > 0 ? text(length(state.notifications)) : ''}}",
-					  "textColor": "@color.statusText", "tooltip": "Notifications", "hover": { "color": "@color.hover" },
-					  "onClick": { "run": "showNotifications" } }
+					{ "use": "forgeStatusItem", "id": "status-position", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
+					  "with": { "tip": "Go to Line", "text": "{{'Ln ' + text(state.caret.line) + ', Col ' + text(state.caret.column) + (state.caret.selected > 0 ? ' (' + text(state.caret.selected) + ' selected)' : '')}}" },
+					  "onClick": { "run": "goToLinePick" } },
+					{ "use": "forgeStatusItem", "id": "status-indent", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
+					  "with": { "text": "Spaces: 4", "tip": "Indentation: four spaces" } },
+					{ "use": "forgeStatusItem", "id": "status-encoding", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
+					  "with": { "text": "UTF-8", "tip": "Encoding" } },
+					{ "use": "forgeStatusItem", "id": "status-eol", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
+					  "with": { "text": "LF", "tip": "Line endings" } },
+					{ "use": "forgeStatusItem", "id": "status-language-status", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
+					  "with": { "icon": "braces", "tip": "Language Status" }, "onClick": { "run": "showOutput" } },
+					{ "use": "forgeStatusItem", "id": "status-language", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
+					  "with": { "text": "{{computed.activeDoc.language || 'Plain Text'}}", "tip": "Language" } },
+					{ "use": "forgeStatusItem", "id": "status-notifications", "with": { "icon": "{{length(state.notifications) > 0 ? 'bell-dot' : 'bell'}}", "tip": "Notifications" },
+					  "onClick": { "run": "showNotifications" } },
+					{ "id": "status-end", "width": 4 }
+				]
+			}
+		},
+		"forgeNotificationCentre": {
+			"node": {
+				"type": "column", "id": "notification-centre", "role": "dialog", "label": "Notifications", "width": 450,
+				"height": "{{40 + max(1, min(6, length(state.notifications))) * 28}}", "color": "@color.widget", "borderWidth": 1, "borderColor": "@color.border", "radius": 4,
+				"overlay": { "anchor": "#status-notifications", "placement": "above-end", "open": "state.notificationCentre", "dismiss": "outside" },
+				"children": [
+					{ "type": "row", "id": "notification-centre-head", "width": "100%", "height": 34, "alignItems": "center",
+					  "children": [
+						{ "type": "label", "id": "notification-centre-title", "text": "{{empty(state.notifications) ? 'NO NEW NOTIFICATIONS' : 'NOTIFICATIONS'}}",
+						  "textColor": "@color.muted", "grow": 1, "padding": 10 },
+						{ "use": "forgeTitleButton", "id": "notification-centre-clear", "with": { "icon": "list-x", "tip": "Clear All Notifications" },
+						  "onClick": { "run": "clearNotifications" } },
+						{ "use": "forgeTitleButton", "id": "notification-centre-hide", "with": { "icon": "chevron-down", "tip": "Hide Notifications" },
+						  "onClick": { "set": "state.notificationCentre", "to": false } },
+						{ "id": "notification-centre-end", "width": 4 }
+					  ] },
+					{ "type": "list", "id": "notifications", "label": "Notifications", "when": "{{!empty(state.notifications)}}", "width": "100%", "grow": 1,
+					  "items": "{{computed.notificationRows}}", "rowHeight": 28, "color": "@color.widget", "textColor": "@color.text",
+					  "selectedBackground": "@color.selection" }
 				]
 			}
 		}

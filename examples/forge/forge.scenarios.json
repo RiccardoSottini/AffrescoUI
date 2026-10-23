@@ -21,12 +21,12 @@
 		},
 		{
 			"name": "forge-toggle-the-layout",
-			"note": "mod+B hides the side bar, mod+J the panel, and the chord mod+K Z enters zen mode, which hides the title and status bars",
+			"note": "mod+B hides the side bar, mod+J shows the panel (hidden at first), and the chord mod+K Z enters zen mode, which hides the title and status bars",
 			"steps": [
 				{ "key": "mod+b" },
 				{ "expect": { "state": "layout.sidebar", "is": false } },
 				{ "key": "mod+j" },
-				{ "expect": { "state": "layout.panel", "is": false } },
+				{ "expect": { "state": "layout.panel", "is": true } },
 				{ "key": "mod+k" },
 				{ "key": "z" },
 				{ "expect": { "state": "layout.zen", "is": true } },
@@ -92,7 +92,7 @@
 			"name": "forge-problems-and-output",
 			"note": "Scan for Problems lists nothing in a clean folder and logs it to Output; Focus Problems shows the panel",
 			"steps": [
-				{ "action": "togglePanel" },
+				{ "expect": { "state": "layout.panel", "is": false } },
 				{ "action": "showProblems" },
 				{ "expect": { "state": "layout.panel", "is": true } },
 				{ "expect": { "state": "panelTab", "is": "problems" } },
