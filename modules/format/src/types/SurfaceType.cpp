@@ -9,6 +9,7 @@
 #include "affresco/render/GpuSurface.hpp"
 
 #include <memory>
+#include <typeinfo>
 #include <utility>
 
 namespace affresco::format {
@@ -48,7 +49,8 @@ void registerSurfaceType(TypeRegistry& registry) {
 	                                              const std::string& path) {
 		applySurface(*surfaces, panel, values, path);
 	};
-	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const SurfaceView*>(&panel) != nullptr; };
+	// Only a surface node itself: a scene node's view is a SurfaceView too, drawing its own scene
+	set->appliesTo = [](const Panel& panel) { return typeid(panel) == typeid(SurfaceView); };
 
 	registry.add({"surface", "Native GPU drawing the host registered, with the node's parameters",
 	              [] { return std::make_unique<SurfaceView>(); }, set, false});

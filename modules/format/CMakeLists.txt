@@ -104,7 +104,8 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/NavigationSteps.cpp
 	src/steps/TimeSteps.cpp
 	src/steps/OtherSteps.cpp
-	src/steps/ServiceSteps.cpp)
+	src/steps/ServiceSteps.cpp
+	src/steps/SceneSteps.cpp)
 target_include_directories(affrescoui_format PRIVATE src/steps)
 # src/calls/: asynchronous and service calls
 target_sources(affrescoui_format PRIVATE
@@ -125,7 +126,9 @@ target_sources(affrescoui_format PRIVATE src/components/BuiltInComponents.cpp sr
 # creative: the creative types (colour picker, gradient, curves, canvas, graph, timeline, path) and their values
 target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/creative/GradientType.cpp
 	src/creative/CurvesType.cpp src/creative/CreativeValues.cpp src/creative/CanvasType.cpp src/creative/GraphType.cpp
-	src/creative/TimelineType.cpp src/creative/PathType.cpp)
+	src/creative/TimelineType.cpp src/creative/PathType.cpp src/creative/SceneType.cpp)
+# scene: the 3D scene node and its camera step
+target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
 # properties: the properties node types share: look, layout, accessibility, transform, text fields, icons, runs
 target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/CommonProperties.cpp
 	src/properties/PropertyValues.cpp src/properties/LayoutProperties.cpp src/properties/AccessibilityProperties.cpp
@@ -133,7 +136,7 @@ target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/prope
 	src/properties/RunsProperty.cpp)
 # reference: the reference of nodes, sections and tables (the schema, SCREEN_FORMAT.md) and the catalog
 target_sources(affrescoui_format PRIVATE src/reference/Reference.cpp src/reference/ReferenceNodes.cpp
-	src/reference/ReferenceNodeTypes.cpp src/reference/ReferenceNodeEvents.cpp
+	src/reference/ReferenceNodeTypes.cpp src/reference/ReferenceSceneKeys.cpp src/reference/ReferenceNodeEvents.cpp
 	src/reference/ReferenceSections.cpp src/reference/ReferenceTables.cpp src/reference/Catalog.cpp)
 # sections: the section registry, the sections, the capability sections and the design tokens
 target_sources(affrescoui_format PRIVATE src/sections/Sections.cpp src/sections/CapabilitySections.cpp
