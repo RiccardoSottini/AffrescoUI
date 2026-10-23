@@ -22,6 +22,9 @@
 #include <string>
 #include <vector>
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 using affresco::json;
 using affresco::RevisionStatus;
 using affresco::format::Finding;
@@ -607,3 +610,5 @@ TEST_CASE("checker: checking a template again gives the same findings") {
 		CHECK(first == again); // both have a value: equal optionals hold equal findings
 	}
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

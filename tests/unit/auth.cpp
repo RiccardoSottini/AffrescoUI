@@ -23,6 +23,9 @@
 #include <variant>
 #include <vector>
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 using affresco::json;
 using affresco::detail::createHeadlessWindow;
 using affresco::detail::ManualClock;
@@ -337,3 +340,5 @@ TEST_CASE("auth: a provider's lifetimes and intervals are clamped, however large
 	CHECK(std::get<oauth::DeviceCodes>(codes).interval == std::chrono::seconds(60));
 	CHECK(std::get<oauth::DeviceCodes>(codes).lifetime == std::chrono::seconds(10));
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

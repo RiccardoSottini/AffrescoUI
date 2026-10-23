@@ -238,7 +238,7 @@ afr_status afr_screen_render_rgba(afr_screen* screen, int* width, int* height, u
 		afr_screen& handle = anyMode(screen);
 		require(width, "width");
 		require(height, "height");
-		require(static_cast<const void*>(rgba), "rgba");
+		require(rgba, "rgba");
 		*rgba = nullptr;
 		const affresco::Window& window = *handle.window;
 		const int whole = std::max(1, static_cast<int>(std::lround(handle.scale)));

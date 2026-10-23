@@ -13,6 +13,9 @@
 #include <optional>
 #include <thread>
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 using namespace affresco;
 using namespace affresco::net;
 using affresco::test::httpResponse;
@@ -254,7 +257,7 @@ bool upgrade(tcp::Connection& connection) {
 
 TEST_CASE("net client: a server that stops reading can't make a WebSocket hold more than its send queue") {
 	std::atomic<bool> done{false};
-	LocalServer server([&](tcp::Connection& connection) {
+	const LocalServer server([&](tcp::Connection& connection) {
 		if(!upgrade(connection)) return;
 		while(!done) std::this_thread::sleep_for(std::chrono::milliseconds{10}); // reads nothing
 	});
@@ -287,7 +290,7 @@ TEST_CASE("net client: a server that stops reading can't make a WebSocket hold m
 TEST_CASE("net client: a close without a code is answered with one without a code, and is a normal end") {
 	std::string answer;
 	std::atomic<bool> answered{false};
-	LocalServer server([&](tcp::Connection& connection) {
+	const LocalServer server([&](tcp::Connection& connection) {
 		if(!upgrade(connection)) return;
 		CHECK(connection.send(encodeFrame(Opcode::Close, ""), std::chrono::seconds{5}));
 		std::string bytes;
@@ -309,3 +312,5 @@ TEST_CASE("net client: a close without a code is answered with one without a cod
 	CHECK(static_cast<std::uint8_t>(answer[1]) == 0x80); // masked, no payload
 	CHECK(answer.size() == 6);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

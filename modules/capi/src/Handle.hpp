@@ -95,6 +95,15 @@ void copyOut(std::string_view text, char** out);
 /// @throws Failure If it is NULL.
 void require(const void* pointer, std::string_view what);
 
+/// @brief Throws a Failure if a required out-parameter for a pointer is NULL (a pointer to a pointer, which converts
+/// to `const void*` only through a cast that clang-tidy 18 still reports).
+/// @param pointer The pointer.
+/// @param what Its name.
+/// @throws Failure If it is NULL.
+template <typename T> void require(T* const* pointer, std::string_view what) {
+	if(pointer == nullptr) require(nullptr, what);
+}
+
 /// @brief Reads an enum a C caller passed as the int it holds. C allows any int there, but in C++ a value outside the
 /// enum's range is undefined even to compare, so the check that refuses it reads it this way.
 /// @tparam Enum The enum, the size of an int.

@@ -142,6 +142,7 @@ TEST_CASE("services: a screen invokes the prototype JSON-RPC server, and reads a
 	screen.runAction("local", window->root());
 	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/local") == "inside"; }));
 	screen.runAction("escape", window->root());
+	// NOLINTNEXTLINE(readability-container-size-empty): json's empty() is false for every string
 	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/denied") != ""; }));
 	CHECK(stateAt(screen, "/local") == "inside");
 }
@@ -163,9 +164,11 @@ TEST_CASE("services: a call that ends, or fails, before its timeout leaves no ti
 	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/local") == "inside"; }));
 	CHECK_FALSE(window->secondsToNextTimer()); // each call's timeout stayed, every frame looking at them
 	screen.runAction("escape", window->root());
+	// NOLINTNEXTLINE(readability-container-size-empty): json's empty() is false for every string
 	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/denied") != ""; }));
 	CHECK_FALSE(window->secondsToNextTimer());
 	screen.runAction("read", window->root()); // a process the host didn't allow
+	// NOLINTNEXTLINE(readability-container-size-empty): json's empty() is false for every string
 	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/error") != ""; }));
 	CHECK_FALSE(window->secondsToNextTimer());
 }

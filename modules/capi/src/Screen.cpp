@@ -191,7 +191,7 @@ extern "C" {
 
 afr_status afr_screen_create_from_file(const char* path, const afr_options* options, afr_screen** screen) {
 	return guarded([&] {
-		require(static_cast<const void*>(screen), "screen");
+		require(screen, "screen");
 		*screen = nullptr;
 		const std::filesystem::path file = std::filesystem::absolute(checkedString(path, "path", 4096));
 		const afr_options settings = readOptions(options);
@@ -213,7 +213,7 @@ afr_status afr_screen_create_from_file(const char* path, const afr_options* opti
 afr_status afr_screen_create_from_string(const char* json, size_t length, const char* base_directory,
                                          const afr_options* options, afr_screen** screen) {
 	return guarded([&] {
-		require(static_cast<const void*>(screen), "screen");
+		require(screen, "screen");
 		*screen = nullptr;
 		const std::string_view text = checkedText(json, length, "json");
 		std::filesystem::path base;
@@ -249,7 +249,7 @@ afr_status afr_screen_replace_document(afr_screen* screen, const char* json, siz
 afr_status afr_screen_get_state(afr_screen* screen, const char* path, char** json) {
 	return guarded([&] {
 		afr_screen& handle = checked(screen);
-		require(static_cast<const void*>(json), "json");
+		require(json, "json");
 		*json = nullptr;
 		const affresco::json::json_pointer pointer(pointerOf(checkedString(path, "path", affresco::capi::maximumPath)));
 		const affresco::json state = affresco::parseUntrusted(handle.screen->stateJson());

@@ -11,6 +11,9 @@
 #include <memory>
 #include <string>
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 using affresco::json;
 using affresco::detail::createHeadlessWindow;
 using affresco::detail::ManualClock;
@@ -186,3 +189,5 @@ TEST_CASE("format: a double click is two clicks closer than 0.4 s on the window'
 	CHECK(s.state("clicks") == 3);
 	CHECK(s.state("doubles") == 1);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)
