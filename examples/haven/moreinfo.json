@@ -4,10 +4,11 @@
 	"state": {
 		"info": { "open": false, "kind": "light", "index": 0 },
 		"tempHistory": [20.1, 19.8, 19.6, 19.4, 19.3, 19.2, 19.4, 20.2, 21.0, 21.4, 21.6, 21.5, 21.7, 21.8, 21.6, 21.5, 21.6, 21.9, 22.1, 22.0, 21.8, 21.6, 21.4, 21.5],
+		"coverTilt": 50,
 		"deviceFacts": {
-			"door": { "battery": 82, "changed": "08:12", "log": ["08:12", "07:40", "22:05"] },
-			"vacuum": { "battery": 64, "changed": "10:30", "log": ["10:30", "09:55", "18:20"] },
-			"speaker": { "battery": 100, "changed": "09:02", "log": ["09:02", "08:47", "21:30"] }
+			"door": { "related": "welcome", "battery": 82, "changed": "08:12", "log": ["08:12", "07:40", "22:05"] },
+			"vacuum": { "related": "morning", "battery": 64, "changed": "10:30", "log": ["10:30", "09:55", "18:20"] },
+			"speaker": { "related": "welcome", "battery": 100, "changed": "09:02", "log": ["09:02", "08:47", "21:30"] }
 		}
 	},
 
@@ -33,6 +34,14 @@
 		"pickLevel": [{ "run": "setLevel", "with": { "by": "{{level - computed.infoLight.level}}" } }],
 		"levelUp": [{ "run": "setLevel", "with": { "by": 10 } }],
 		"levelDown": [{ "run": "setLevel", "with": { "by": -10 } }],
+		"pickTilt": [{ "animate": "state.coverTilt", "to": "{{level}}", "ms": 300 }],
+		"tiltUp": [{ "set": "state.coverTilt", "to": "{{clamp(state.coverTilt + 10, 0, 100)}}" }],
+		"tiltDown": [{ "set": "state.coverTilt", "to": "{{clamp(state.coverTilt - 10, 0, 100)}}" }],
+		"openRelated": [
+			{ "set": "state.info.open", "to": false },
+			{ "set": "state.page", "to": "automations" },
+			{ "set": "state.autoOpen", "to": "{{indexOf(map(state.automations, it.id), computed.infoFacts.related)}}" }
+		],
 		"pickBlinds": [{ "animate": "state.rooms[state.room].blinds", "to": "{{level}}", "ms": 300 }],
 		"blindsUp": [{ "set": "state.rooms[state.room].blinds", "to": "{{clamp(computed.room.blinds + 10, 0, 100)}}" }],
 		"blindsDown": [{ "set": "state.rooms[state.room].blinds", "to": "{{clamp(computed.room.blinds - 10, 0, 100)}}" }]
@@ -56,15 +65,15 @@
 		},
 		"bigBar": {
 			"note": "A tall rounded bar filled from the bottom to share (0 to 1); a click on one of its ten bands runs pick with level, 10 to 100",
-			"params": { "share": 0, "fill": "@accent", "label": "", "pick": "", "up": "", "down": "" },
+			"params": { "share": 0, "fill": "@accent", "label": "", "pick": "", "up": "", "down": "", "left": 140, "width": 120 },
 			"node": {
-				"anchors": { "left": 140, "top": 132 }, "width": 120, "height": 240, "radius": 28, "color": "@raised",
+				"anchors": { "left": "{{left}}", "top": 132 }, "width": "{{width}}", "height": 240, "radius": 28, "color": "@raised",
 				"focusable": true, "role": "slider", "label": "{{label}}",
 				"keys": { "up": { "run": "{{up}}" }, "down": { "run": "{{down}}" } },
 				"children": [
 					{ "id": "barFill", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": "{{240 * share}}", "color": "{{fill}}",
 						"radius": "{{ { topLeft: share > 0.88 ? 28 : 0, topRight: share > 0.88 ? 28 : 0, bottomLeft: 28, bottomRight: 28 } }}" },
-					{ "id": "barHandle", "when": "{{share > 0.06}}", "anchors": { "left": 40, "bottom": "{{240 * share - (share > 0.92 ? 22 : 12)}}" }, "width": 40, "height": 4, "radius": 2,
+					{ "id": "barHandle", "when": "{{share > 0.06}}", "anchors": { "left": "{{(width - 40) / 2}}", "bottom": "{{240 * share - (share > 0.92 ? 22 : 12)}}" }, "width": 40, "height": 4, "radius": 2,
 						"color": "#ffffffcc" },
 					{ "id": "barBand", "repeat": { "for": "k", "in": "{{range(10)}}" }, "anchors": { "left": 0, "right": 0, "top": "{{k * 24}}" }, "height": 24,
 						"color": "transparent", "cursor": "hand", "onClick": { "run": "{{pick}}", "with": { "level": "{{(10 - k) * 10}}" } } }
@@ -110,7 +119,7 @@
 			"node": {
 				"dir": "auto",
 				"overlay": { "placement": "center", "open": "state.info.open", "dismiss": "outside", "modal": true },
-				"width": 400, "height": "{{state.info.kind == 'device' ? 560 : state.info.kind == 'climate' ? 536 : 500}}", "radius": 12, "color": "@card",
+				"width": 400, "height": "{{state.info.kind == 'device' ? 600 : state.info.kind == 'climate' ? 536 : 500}}", "radius": 28, "color": "@card",
 				"shadow": { "y": 8, "blur": 24, "color": "#00000040" },
 				"role": "dialog", "label": "{{computed.infoName}}",
 				"children": [
@@ -169,7 +178,9 @@
 
 					{ "use": "infoBody", "with": { "kind": "cover" }, "id": "infoCoverBody", "children": [
 						{ "use": "bigBar", "with": { "share": "{{computed.room.blinds / 100}}", "fill": "@cover", "label": "{{t('blinds.title')}}: {{t('blinds.open', { n: round(computed.room.blinds) })}}",
-							"pick": "pickBlinds", "up": "blindsUp", "down": "blindsDown" } },
+							"pick": "pickBlinds", "up": "blindsUp", "down": "blindsDown", "left": 96 } },
+						{ "use": "bigBar", "id": "infoTilt", "with": { "share": "{{state.coverTilt / 100}}", "fill": "@cover", "label": "{{t('info.tilt', { n: state.coverTilt })}}",
+							"pick": "pickTilt", "up": "tiltUp", "down": "tiltDown", "left": 232, "width": 72 } },
 						{ "use": "infoRow", "id": "infoCoverButtons",
 							"children": [
 								{ "use": "iconBtn", "with": { "icon": "chevron-up", "tip": "blinds.openButton" }, "id": "infoOpen",
@@ -191,14 +202,17 @@
 						{ "id": "infoDeviceAction", "style": "choiceOn", "anchors": { "left": 120, "top": 216 }, "width": 160, "height": 36, "radius": 18,
 							"text": "{{t('device.' + computed.infoDevice.id + (computed.infoDevice.on ? '.doOff' : '.doOn'))}}",
 							"onClick": { "run": "deviceCall", "with": { "i": "{{state.info.index}}" } } },
-						{ "id": "infoFacts", "type": "stack", "anchors": { "left": 24, "right": 24, "top": 276 }, "height": 80, "gap": 0, "role": "list", "children": [
+						{ "id": "infoFacts", "type": "stack", "anchors": { "left": 24, "right": 24, "top": 276 }, "height": 120, "gap": 0, "role": "list", "children": [
 							{ "id": "infoBattery", "type": "label", "icon": "battery-medium", "text": "  {{t('info.battery', { n: computed.infoFacts.battery })}}", "textColor": "@text", "role": "listitem",
 								"anchors": { "left": 0, "right": 0 }, "height": 40, "align": { "horizontal": "start", "vertical": "center" } },
 							{ "id": "infoChanged", "type": "label", "icon": "history", "text": "  {{t('info.changed', { time: computed.infoFacts.changed })}}", "textColor": "@text", "role": "listitem",
-								"anchors": { "left": 0, "right": 0 }, "height": 40, "align": { "horizontal": "start", "vertical": "center" } }
+								"anchors": { "left": 0, "right": 0 }, "height": 40, "align": { "horizontal": "start", "vertical": "center" } },
+							{ "id": "infoRelated", "type": "label", "icon": "workflow", "text": "  {{t('info.related', { name: t('rule.' + computed.infoFacts.related) })}}", "textColor": "@accent",
+								"anchors": { "left": 0, "right": 0 }, "height": 40, "align": { "horizontal": "start", "vertical": "center" }, "cursor": "hand", "focusable": true,
+								"role": "link", "label": "{{t('info.related', { name: t('rule.' + computed.infoFacts.related) })}}", "onClick": "openRelated" }
 						] },
-						{ "id": "infoLogTitle", "type": "label", "textColor": "@text", "icon": "activity", "text": " {{t('info.activity')}}", "anchors": { "left": 24, "top": 372 }, "fitText": true },
-						{ "id": "infoLog", "type": "stack", "anchors": { "left": 24, "right": 24, "top": 404 }, "height": 132, "gap": 4, "role": "list", "children": [
+						{ "id": "infoLogTitle", "type": "label", "textColor": "@text", "icon": "activity", "text": " {{t('info.activity')}}", "anchors": { "left": 24, "top": 412 }, "fitText": true },
+						{ "id": "infoLog", "type": "stack", "anchors": { "left": 24, "right": 24, "top": 444 }, "height": 132, "gap": 4, "role": "list", "children": [
 							{ "id": "infoLogRow", "repeat": { "for": "time", "in": "computed.infoFacts.log", "index": "n" }, "anchors": { "left": 0, "right": 0 }, "height": 40, "radius": 8,
 								"color": "@field", "role": "listitem", "label": "{{time}}", "children": [
 									{ "id": "infoLogTime", "style": "caption", "text": "{{time}}", "anchors": { "left": 12, "top": 12 } },

@@ -195,6 +195,23 @@
 			]
 		},
 		{
+			"name": "tilt-and-related",
+			"note": "The cover dialog tilts the slats; a device dialog's related automation opens in the editor",
+			"screen": "smart-home.screen.json",
+			"steps": [
+				{ "click": "#blindsIcon" },
+				{ "click": "#barBand", "nth": 12 },
+				{ "wait": 400 },
+				{ "expect": { "state": "coverTilt", "is": 80 } },
+				{ "key": "escape" },
+				{ "click": "#deviceName", "nth": 0 },
+				{ "click": "#infoRelated" },
+				{ "expect": { "state": "page", "is": "automations" } },
+				{ "expect": { "state": "autoOpen", "is": 0 } },
+				{ "expect": { "state": "info.open", "is": false } }
+			]
+		},
+		{
 			"name": "colour-a-light",
 			"note": "A light's dialog opens the colour dialog; Warm white sets its colour and Done closes it",
 			"steps": [

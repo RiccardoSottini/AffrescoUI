@@ -4,7 +4,7 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 45 done, 3 partial, 1 missing (49).
+**Counts:** 47 done, 1 partial, 1 missing (49).
 
 ## Shell
 
@@ -46,8 +46,8 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | --- | --- | --- |
 | Light dialog: big brightness bar, colour temperature | done | opens from a light tile; the bar fills with a flat top and a handle line |
 | Climate dialog: dial, modes, history | done | its own dial, modes and a 24-hour line with a scale |
-| Cover dialog: position, tilt | partial | position, no tilt |
-| Device dialog: attributes, related, logbook | partial | attributes and activity, no related |
+| Cover dialog: position, tilt | done | a position bar and a narrower tilt bar, open, stop and close |
+| Device dialog: attributes, related, logbook | done | battery, last change, the automation it is used in (which opens it), recent activity |
 | Dialogs dim the page behind them | done | the search too |
 | Dialog header: area above the name, history and settings | done | |
 
