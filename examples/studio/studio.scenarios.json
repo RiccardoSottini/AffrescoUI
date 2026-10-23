@@ -2225,7 +2225,7 @@
 				{
 					"expect": {
 						"node": "#label-evidence-after",
-						"text": "After: changed 2 × 3 at 1, 0"
+						"text": "After: this proposal, 2 × 3 pixels changed"
 					}
 				},
 				{
@@ -2237,26 +2237,26 @@
 				{
 					"expect": {
 						"node": "#label-evidence-scenario",
-						"text": "Passed: opens"
-					}
-				},
-				{
-					"expect": {
-						"node": "#label-evidence-scenario",
-						"text": "Failed: counts  ·  step 2: #count shows 0",
+						"text": "Passed: opens",
 						"nth": 1
 					}
 				},
 				{
 					"expect": {
+						"node": "#label-evidence-scenario",
+						"text": "Failed: counts  ·  step 2: #count shows 0"
+					}
+				},
+				{
+					"expect": {
 						"node": "#label-diff-original",
-						"text": "Tasks"
+						"text": "main: Tasks"
 					}
 				},
 				{
 					"expect": {
 						"node": "#label-diff-modified",
-						"text": "Clicks"
+						"text": "proposal: Clicks"
 					}
 				}
 			]

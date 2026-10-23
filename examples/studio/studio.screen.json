@@ -3838,7 +3838,7 @@
 																			"top": 24,
 																			"bottom": 6
 																		},
-																		"label": "{{t('review.after', {changed: computed.evidence.region[2] == 0 ? 'no' : 'yes', w: computed.evidence.region[2], h: computed.evidence.region[3], x: computed.evidence.region[0], y: computed.evidence.region[1]})}}",
+																		"label": "{{t('review.after', {changed: computed.evidence.region[2] == 0 ? 'no' : 'yes', w: computed.evidence.region[2], h: computed.evidence.region[3]})}}",
 																		"highlight": "{{computed.evidence.region}}"
 																	},
 																	{
@@ -3846,19 +3846,22 @@
 																		"style": "caption",
 																		"text": "{{t('review.before')}}",
 																		"anchors": {
-																			"left": 8,
+																			"left": 6,
+																			"right": "50%",
 																			"top": 4
-																		}
+																		},
+																		"align": "center"
 																	},
 																	{
 																		"id": "label-evidence-after",
 																		"style": "caption",
-																		"text": "{{t('review.after', {changed: computed.evidence.region[2] == 0 ? 'no' : 'yes', w: computed.evidence.region[2], h: computed.evidence.region[3], x: computed.evidence.region[0], y: computed.evidence.region[1]})}}",
+																		"text": "{{t('review.after', {changed: computed.evidence.region[2] == 0 ? 'no' : 'yes', w: computed.evidence.region[2], h: computed.evidence.region[3]})}}",
 																		"anchors": {
 																			"left": "50%",
-																			"top": 4,
-																			"right": 8
-																		}
+																			"right": 6,
+																			"top": 4
+																		},
+																		"align": "center"
 																	}
 																]
 															},
@@ -3889,7 +3892,7 @@
 																"when": "{{state.prTab == 'checks' && (computed.evidence != null)}}",
 																"repeat": {
 																	"for": "r",
-																	"in": "computed.evidence.scenarios"
+																	"in": "concat(filter(computed.evidence.scenarios, !it.passed), filter(computed.evidence.scenarios, it.passed))"
 																},
 																"text": "{{t('review.scenario', {passed: r.passed ? 'yes' : 'no', name: r.name}) + (empty(r.message) ? '' : '  ·  ' + r.message)}}",
 																"textColor": "{{r.passed ? '@color.good' : '@color.bad'}}",
@@ -3934,7 +3937,7 @@
 																		"id": "label-diff-original",
 																		"type": "label",
 																		"font": "symbols",
-																		"text": "{{d.original}}",
+																		"text": "{{t('review.main', {value: d.original})}}",
 																		"textColor": "@color.text",
 																		"color": "@color.cardRaised",
 																		"radius": 4,
@@ -3955,7 +3958,7 @@
 																		"id": "label-diff-modified",
 																		"type": "label",
 																		"font": "symbols",
-																		"text": "{{d.modified}}",
+																		"text": "{{t('review.proposal', {value: d.modified})}}",
 																		"textColor": "@color.text",
 																		"color": "@color.accentSoft",
 																		"radius": 4,
@@ -4273,7 +4276,7 @@
 																"font": "small",
 																"icon": "{{r.state == 'approved' ? 'check' : (r.state == 'changes' ? 'file-pen-line' : 'message-square')}}",
 																"fitText": false,
-																"height": 22,
+																"height": 16,
 																"textColor": "@color.text",
 																"runs": [
 																	"{{r.who + ' · '}}",
