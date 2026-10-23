@@ -166,8 +166,11 @@
 			"steps": [
 				{ "key": "mod+comma" },
 				{ "click": "#settingsRow", "nth": 5, "note": "open General" },
-				{ "click": [1068, 184], "note": "the Away temperature slider, near its start" },
-				{ "click": [1199, 241], "note": "switch device notifications off" },
+				{ "click": "#generalField", "nth": 0, "note": "the Away temperature" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "type": "13" },
+				{ "click": "#generalSwitch", "nth": 0, "note": "switch device notifications off" },
 				{ "key": "mod+1" },
 				{ "click": "#scene", "nth": 2 },
 				{ "expect": { "state": "rooms[2].target", "is": 13 } },

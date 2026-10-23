@@ -184,7 +184,6 @@
 		],
 		"toast": { "open": false, "message": "" },
 		"quickPick": { "open": false, "query": "" },
-		"settingsQuery": "",
 		"scenes": [
 			{ "name": "Morning", "key": "morning", "action": "sceneMorning", "icon": "sunrise" },
 			{ "name": "Movie night", "key": "movie", "action": "sceneMovie", "icon": "clapperboard" },
@@ -214,7 +213,6 @@
 		"rooms": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "image": {"type": "string"}, "temp": {"type": "number"}, "target": {"type": "number"}, "humidity": {"type": "number"}, "blinds": {"type": "number"}, "kwh": {"type": "number"}, "lights": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "on": {"type": "boolean"}, "level": {"type": "number"}, "color": {"type": "string"}}}}}}},
 		"devices": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "name": {"type": "string"}, "icon": {"type": "string"}, "iconOff": {"type": "string"}, "on": {"type": "boolean"}, "busy": {"type": "boolean"}, "progress": {"type": "number"}}}},
 		"toast": {"type": "object", "properties": {"open": {"type": "boolean"}, "message": {"type": "string"}}},
-		"settingsQuery": {"type": "string"},
 		"scenes": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "key": {"type": "string"}, "action": {"type": "string"}, "icon": {"type": "string"}}}},
 		"energyView": {"enum": ["day", "device", "room"]},
 		"energy": {"type": "array", "items": {"type": "object", "properties": {"day": {"type": "string"}, "kwh": {"type": "number"}}}},
@@ -847,6 +845,7 @@
 						"use": "quickPick",
 						"with": {
 							"highlight": "@accentSoft",
+							"rowHeight": 40,
 							"providers": [
 								{ "prefix": ">", "items": "{{computed.palette}}", "placeholder": "{{t('quick.commands')}}" },
 								{ "items": "{{computed.entities}}", "placeholder": "{{t('quick.entities')}}" }

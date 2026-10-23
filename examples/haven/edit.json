@@ -63,12 +63,12 @@
 
 		"pill": {
 			"note": "A rounded switch bound to the state path at, with its name: a track and a round thumb, drawn over a transparent toggle",
-			"params": { "at": "", "on": false, "name": "" },
+			"params": { "at": "", "on": false, "name": "", "thumb": "@accent", "track": "@accentTrack" },
 			"node": {
 				"width": 40, "height": 24, "color": "transparent",
 				"children": [
-					{ "anchors": { "left": 3, "right": 3, "top": 5 }, "height": 14, "radius": 7, "color": "{{on ? '@accentTrack' : '@off'}}" },
-					{ "anchors": { "left": "{{on ? 18 : 0}}", "top": 2 }, "width": 20, "height": 20, "radius": 10, "color": "{{on ? '@accent' : '@thumbOff'}}",
+					{ "anchors": { "left": 3, "right": 3, "top": 5 }, "height": 14, "radius": 7, "color": "{{on ? track : '@off'}}" },
+					{ "anchors": { "left": "{{on ? 18 : 0}}", "top": 2 }, "width": 20, "height": 20, "radius": 10, "color": "{{on ? thumb : '@thumbOff'}}",
 						"shadow": { "y": 1, "blur": 3, "color": "#00000047" } },
 					{ "type": "toggle", "fill": 0, "bind": "{{at}}", "label": "{{name}}", "cursor": "hand",
 						"trackColor": "transparent", "activeColor": "transparent", "knobColor": "transparent" }

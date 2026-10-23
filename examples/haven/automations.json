@@ -222,8 +222,8 @@
 								] }
 						]
 					},
-					{ "id": "autoAdd-{{part}}", "style": "button", "font": "small", "icon": "plus", "text": " {{addLabel}}", "color": "transparent", "textColor": "@accent", "borderWidth": 1, "borderColor": "@border", "radius": 16,
-							"anchors": { "left": 20, "bottom": 10 }, "width": 180, "height": 32, "align": { "horizontal": "start", "vertical": "center" },
+					{ "id": "autoAdd-{{part}}", "style": "button", "font": "small", "icon": "plus", "text": " {{addLabel}}", "color": "transparent", "textColor": "@accent", "borderWidth": 1, "borderColor": "@border",
+							"anchors": { "left": 20, "bottom": 10 }, "width": 196, "height": 36, "radius": 18,
 						"onClick": { "run": "addStep", "with": { "part": "{{part}}" } } }
 				]
 			}
@@ -235,7 +235,9 @@
 			"node": {
 				"color": "transparent",
 				"children": [
-					{ "id": "automationsTitle", "when": "{{state.autoOpen < 0 || state.autoTab == 'flow'}}", "style": "pageTitle", "icon": "workflow", "text": " {{t('page.automations')}}" },
+					{ "id": "automationsBar", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 56, "color": "@header", "role": "banner" },
+					{ "id": "automationsTitle", "when": "{{state.autoOpen < 0 || state.autoTab == 'flow'}}", "type": "label", "font": "heading", "text": "{{t('page.automations')}}",
+						"textColor": "@onHeader", "anchors": { "left": 24, "right": 24, "top": 0 }, "height": 56, "align": { "horizontal": "start", "vertical": "center" } },
 					{
 						"id": "autoTabs",
 							"when": "{{state.autoOpen < 0 || state.autoTab == 'flow'}}",
@@ -298,9 +300,8 @@
 														{ "type": "label", "font": "small", "text": "{{t('ran.' + auto.ran)}}", "textColor": "@muted", "anchors": { "right": 120, "top": 0, "bottom": 0 }, "width": 180,
 															"align": { "horizontal": "start", "vertical": "center" } }
 												] },
-											{ "id": "autoRowToggle", "type": "toggle", "anchors": { "right": 32, "top": 21 }, "width": 40, "height": 22,
-													"label": "{{t('auto.enabled')}}: {{t('rule.' + (auto.title ?? auto.id))}}", "bind": "state.automations[i].on",
-												"activeColor": "@accent", "trackColor": "@off", "knobColor": "@knob" },
+											{ "id": "autoRowToggle", "use": "pill", "anchors": { "right": 32, "top": 20 },
+												"with": { "at": "{{'state.automations[' + i + '].on'}}", "on": "{{auto.on}}", "name": "{{t('auto.enabled')}}: {{t('rule.' + (auto.title ?? auto.id))}}" } },
 											{ "when": "{{i < length(state.automations) - 1}}", "anchors": { "left": 24, "right": 24, "bottom": 0 }, "height": 1, "color": "@border" }
 										] }
 								]
@@ -313,15 +314,17 @@
 						"anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 },
 							"color": "transparent",
 						"children": [
-							{ "id": "autoBack", "style": "button", "icon": "arrow-left", "mirror": true, "text": "", "color": "transparent", "textColor": "@text",
-									"anchors": { "left": 22, "top": 26 }, "width": 40, "height": 40, "radius": 20,
+							{ "id": "autoBack", "style": "button", "icon": "arrow-left", "mirror": true, "text": "", "color": "transparent", "hover": { "color": "#ffffff22" }, "textColor": "@onHeader",
+									"anchors": { "left": 12, "top": 8 }, "width": 40, "height": 40, "radius": 20,
 								"label": "{{t('auto.back')}}", "tooltip": "{{t('auto.back')}}", "onClick": { "run": "openAutomation", "with": { "i": -1 } } },
 							{ "id": "autoName", "type": "label", "font": "heading", "icon": "{{computed.openAuto.icon}}",
-								"text": "  {{t('rule.' + (computed.openAuto.title ?? computed.openAuto.id))}}", "textColor": "@text", "font": "title", "anchors": { "left": 72, "top": 30 }, "fitText": true },
-							{ "id": "autoRun", "style": "button", "font": "small", "icon": "play", "text": " {{t('auto.run')}}", "anchors": { "right": 76, "top": 28 }, "width": 104, "height": 36,
+								"text": "  {{t('rule.' + (computed.openAuto.title ?? computed.openAuto.id))}}", "textColor": "@onHeader", "anchors": { "left": 64, "right": 320, "top": 0 }, "height": 56,
+								"align": { "horizontal": "start", "vertical": "center" } },
+							{ "id": "autoRun", "style": "button", "font": "small", "icon": "play", "text": " {{t('auto.run')}}", "color": "transparent", "hover": { "color": "#ffffff22" }, "textColor": "@onHeader",
+								"anchors": { "right": 64, "top": 10 }, "width": 104, "height": 36, "radius": 18,
 								"onClick": "runAutomation" },
-							{ "id": "autoMore", "style": "button", "icon": "ellipsis-vertical", "text": "", "color": "transparent", "textColor": "@text",
-								"anchors": { "right": 24, "top": 26 }, "width": 40, "height": 40, "radius": 20, "label": "{{t('auto.more')}}", "tooltip": "{{t('auto.more')}}",
+							{ "id": "autoMore", "style": "button", "icon": "ellipsis-vertical", "text": "", "color": "transparent", "hover": { "color": "#ffffff22" }, "textColor": "@onHeader",
+								"anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40, "radius": 20, "label": "{{t('auto.more')}}", "tooltip": "{{t('auto.more')}}",
 								"isOpen": "{{state.autoMenu}}", "onClick": { "toggle": "state.autoMenu" },
 								"children": [
 									{ "id": "autoMenu", "use": "menu", "with": { "open": "state.autoMenu", "placement": "below-end", "width": 200, "icons": true,
@@ -332,9 +335,10 @@
 											{ "title": "{{t('auto.delete')}}", "icon": "trash-2", "run": "confirmDelete" }
 										] } }
 								] },
-							{ "id": "autoEnabled", "type": "toggle", "anchors": { "right": 200, "top": 35 }, "width": 40, "height": 22, "label": "{{t('auto.enabled')}}",
-								"bind": "state.automations[state.autoOpen].on", "activeColor": "@accent", "trackColor": "@off", "knobColor": "@knob" },
-							{ "style": "caption", "text": "{{t('auto.enabled')}}", "anchors": { "right": 250, "top": 28 }, "height": 36, "align": { "horizontal": "end", "vertical": "center" } },
+							{ "id": "autoEnabled", "use": "pill", "anchors": { "right": 184, "top": 16 },
+								"with": { "at": "{{'state.automations[' + state.autoOpen + '].on'}}", "on": "{{computed.openAuto.on}}", "name": "{{t('auto.enabled')}}", "thumb": "#ffffff", "track": "#ffffff80" } },
+							{ "type": "label", "font": "small", "text": "{{t('auto.enabled')}}", "textColor": "@onHeader", "anchors": { "right": 232, "top": 0 }, "width": 120, "height": 56,
+								"align": { "horizontal": "end", "vertical": "center" } },
 							{
 								"id": "autoParts",
 								"type": "column",

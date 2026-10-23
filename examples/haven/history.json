@@ -99,10 +99,8 @@
 														"children": [
 															{ "type": "label", "icon": "{{ev.icon}}", "text": "", "anchors": { "left": 20, "top": 8 }, "width": 40, "height": 40, "radius": 20, "align": "center",
 																"color": "{{ev.rule != '' ? '@accentSoft' : '@raised'}}", "textColor": "{{ev.rule != '' ? '@accent' : '@muted'}}" },
-															{ "type": "label", "text": "{{ev.rule != '' ? t('rule.' + ev.rule) : ev.name}}", "textColor": "@text", "anchors": { "left": 76, "top": 9 }, "fitText": true },
-															{ "type": "label", "font": "small", "text": "{{t('log.' + ev.what)}}", "textColor": "@muted", "anchors": { "left": 76, "top": 31 }, "fitText": true },
-															{ "type": "label", "font": "small", "text": "{{ev.time}}", "textColor": "@muted", "anchors": { "right": 24, "top": 0, "bottom": 0 }, "fitText": true,
-																"align": { "horizontal": "end", "vertical": "center" } }
+															{ "type": "label", "text": "{{ev.rule != '' ? t('rule.' + ev.rule) : ev.name}} {{t('log.' + ev.what)}}", "textColor": "@text", "anchors": { "left": 76, "right": 24, "top": 9 }, "height": 20 },
+															{ "type": "label", "font": "small", "text": "{{ev.time}}", "textColor": "@muted", "anchors": { "left": 76, "top": 31 }, "fitText": true }
 														]
 													}
 												]
@@ -202,8 +200,17 @@
 						"children": [
 							{ "style": "cardTitle", "text": "{{t('hist.temp', { name: state.rooms[0].name })}}" },
 							{ "style": "caption", "text": "{{t('hist.range', { min: min(state.tempHistory), max: max(state.tempHistory) })}}", "anchors": { "right": 24, "top": 24 } },
+							{ "id": "histScale", "type": "column", "anchors": { "left": 24, "right": 24, "top": 52, "bottom": 32 }, "justify": "space-between", "children": [{
+								"repeat": { "for": "deg", "in": "{{[23, 22, 21, 20, 19]}}" }, "anchors": { "left": 0, "right": 0 }, "height": 16, "color": "transparent", "children": [
+									{ "type": "label", "font": "small", "text": "{{deg}}°", "textColor": "@muted", "anchors": { "left": 0, "top": 0 }, "width": 28, "height": 16,
+										"align": { "horizontal": "end", "vertical": "center" } },
+									{ "anchors": { "left": 40, "right": 0, "top": 8 }, "height": 1, "color": "@divider" }
+								] }] },
 							{ "use": "lineChart", "with": { "values": "{{map(state.tempHistory, it - 19)}}", "top": 4, "color": "@warm", "lineWidth": 2 },
-								"anchors": { "left": 24, "right": 24, "top": 60, "bottom": 20 } }
+								"anchors": { "left": 64, "right": 24, "top": 60, "bottom": 40 } },
+							{ "type": "row", "anchors": { "left": 64, "right": 24, "bottom": 12 }, "height": 16, "justify": "space-between", "children": [{
+								"repeat": { "for": "h", "in": "{{['00:00', '06:00', '12:00', '18:00', t('hist.now')]}}" }, "type": "label", "font": "small", "text": "{{h}}",
+								"textColor": "@muted", "fitText": true }] }
 						]
 					}
 				]

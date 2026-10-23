@@ -192,13 +192,34 @@
 					{
 						"id": "settingsGeneral",
 						"when": "{{state.settingsView == 'general'}}",
-						"anchors": { "left": 24, "right": 24, "top": 80, "bottom": 24 },
+						"anchors": { "top": 80 },
+						"x": "{{max(24, (window.width - computed.sideWidth - 1040) / 2)}}",
+						"width": "{{min(1040, window.width - computed.sideWidth - 48)}}",
+						"height": "{{length(settingsList) * 72 + 16}}",
 						"style": "card",
 						"children": [
-							{ "type": "label", "font": "small", "text": "{{t('settings.summary')}}", "textColor": "@muted", "anchors": { "left": 20, "right": 20, "top": 12 }, "height": 20,
-								"align": { "horizontal": "start", "vertical": "center" } },
-							{ "use": "settingsPage", "id": "settingsList", "anchors": { "left": 8, "right": 8, "top": 36, "bottom": 8 },
-								"with": { "search": "{{state.settingsQuery}}", "color": "@card", "textColor": "@text", "dimColor": "@muted", "accent": "@accent", "field": "@field" } }
+							{ "type": "column", "anchors": { "left": 0, "right": 0, "top": 8, "bottom": 8 }, "gap": 0, "children": [{
+								"id": "generalRow", "repeat": { "for": "s", "in": "{{filter(settingsList, true)}}", "index": "i" },
+								"anchors": { "left": 0, "right": 0 }, "height": 72, "color": "transparent", "role": "group", "label": "{{s.title}}",
+								"children": [
+									{ "when": "{{i > 0}}", "anchors": { "left": 20, "right": 20, "top": 0 }, "height": 1, "color": "@divider" },
+									{ "type": "label", "text": "{{s.title}}", "textColor": "@text", "anchors": { "left": 20, "top": 14 }, "height": 22, "fitText": true },
+									{ "type": "label", "font": "small", "text": "{{s.description}}", "textColor": "@muted", "anchors": { "left": 20, "right": 420, "top": 38 }, "height": 20 },
+									{ "when": "{{s.modified}}", "type": "label", "font": "small", "text": "{{t('set.reset')}}", "textColor": "@accent", "anchors": { "right": 176, "top": 26 }, "fitText": true,
+										"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('set.reset')}} {{s.title}}", "onClick": { "remove": "{{'settings.' + s.key}}" } },
+									{ "when": "{{s.type == 'boolean'}}", "use": "pill", "with": { "at": "{{'settings.' + s.key}}", "on": "{{s.value}}", "name": "{{s.title}}" },
+										"id": "generalSwitch", "anchors": { "right": 20, "top": 24 } },
+									{ "when": "{{s.type == 'number' || s.type == 'integer'}}", "id": "generalField", "type": "textarea", "text": "{{text(s.value)}}",
+										"anchors": { "right": 20, "top": 14 }, "width": 140, "height": 44, "padding": 12, "radius": 4, "color": "transparent",
+										"borderWidth": 1, "borderColor": "@border", "focused": { "borderColor": "@accent", "borderWidth": 2 }, "textColor": "@text", "label": "{{s.title}}",
+										"onChange": { "if": "{{number(event.value) != null && number(event.value) >= s.minimum && number(event.value) <= s.maximum}}",
+											"then": [{ "set": "{{'settings.' + s.key}}", "to": "{{number(event.value)}}" }] } },
+									{ "when": "{{s.type == 'string' && s.enum != null}}", "type": "row", "anchors": { "right": 20, "top": 18 }, "width": 400, "height": 36, "gap": 8,
+										"justify": "end", "role": "radiogroup", "label": "{{s.title}}", "children": [{
+											"repeat": { "for": "v", "in": "{{s.enum}}" }, "use": "settingsChoice", "with": { "text": "{{t('set.value.' + v)}}", "chosen": "{{s.value == v}}" },
+											"onClick": { "set": "{{'settings.' + s.key}}", "to": "{{v}}" } }] }
+								]
+							}] }
 						]
 					},
 					{

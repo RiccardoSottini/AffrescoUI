@@ -4,7 +4,7 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 40 done, 4 partial, 1 missing (45).
+**Counts:** 42 done, 3 partial, 1 missing (46).
 
 ## Shell
 
@@ -18,7 +18,8 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Light and dark themes | done | light by default, as the reference |
 | Right to left (Arabic) | done | the sidebar moves to the right and every card mirrors; the floor plan and the automation graph keep their drawing |
 | Notifications button with a badge | done | |
-| Search dialog over entities | done | E opens it over every light, climate, cover, device and the alarm; Enter opens its dialog |
+| Search dialog over entities | done | E opens it over every light, climate, cover, device and the alarm, dimming the page; Enter opens its dialog |
+| Entity icons in the search | partial | names and areas; the kit's quick pick has no icons |
 | Collapsible sidebar | done | the menu button folds it to icons with tooltips |
 
 ## Dashboard tiles
@@ -33,7 +34,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Cover (blinds) card with open, close and position | done | a rounded position bar |
 | Device tiles with one action each | done | |
 | Alarm panel tile and its keypad dialog | done | a button per mode; disarming takes a code |
-| Round toggle switches | partial | tiles use bars and the card editor a drawn round switch; settings keep the library's square switch |
+| Round toggle switches | done | drawn round switches in the automations, the card editor and the general settings; tiles use bars |
 | Tile names never cut at the smallest window | done | |
 | Edit mode for the dashboard | done | a blue-grey bar with close, the title and Done; each card outlined with a pencil |
 | Card editor: visual and code | done | title and options in a form, or the card as JSON, checked on save; cards cannot yet be added or moved |
@@ -62,8 +63,8 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Automations list with on and off | done | searchable table with name, last ran and enabled columns; disabled rules dimmed; a floating New automation button |
-| Editor: triggers, conditions, actions as cards | done | an editor bar with back, name, enabled and Run; When, And if, Then do cards with outlined add buttons; a graph view; an overflow menu with Run, Duplicate and Delete, which asks first |
+| Automations list with on and off | done | a coloured app bar; a searchable table with name, last ran and enabled columns; disabled rules dimmed; a floating New automation button |
+| Editor: triggers, conditions, actions as cards | done | a coloured app bar with back, name, enabled, Run and more; When, And if, Then do cards with outlined add buttons; a graph view; an overflow menu with Run, Duplicate and Delete, which asks first |
 | Automation trace / last run | done | a step-by-step timeline of the last run; Run starts it now |
 
 ## Areas, logbook and history
@@ -71,8 +72,8 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Areas page with a card per room | done | grouped by floor; a picture, temperature, humidity and lights on; a card opens its room |
-| Logbook: a dated list of events | done | today and yesterday, rules marked in the accent colour, searchable |
-| History: state bars and lines over time | done | a day timeline per entity with labelled states and a temperature line |
+| Logbook: a dated list of events | done | today and yesterday, the entity and what it did with the time beneath, rules marked in the accent colour, searchable |
+| History: state bars and lines over time | done | a day timeline per entity with labelled states and a temperature line on a scale with gridlines and hours |
 
 ## Settings
 
@@ -82,7 +83,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Profile: language, theme | done | |
 | Devices and entities tables | done | one table of devices with their room and state |
 | About page | done | |
-| General: climate, scenes, budget, notifications | partial | the library's settings page, with flat sliders and square switches |
+| General: climate, scenes, budget, notifications | done | rows from the settings schema in a card capped at 1040 pixels: outlined number fields, round switches, the language as choices, Reset when changed |
 
 ## Add-ons
 
