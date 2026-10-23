@@ -133,7 +133,6 @@
 		"quickPick": { "open": false, "query": "" },
 		"propPick": { "open": false, "query": "" },
 		"propKind": "status",
-		"me": "MK",
 		"members": [
 			{ "who": "RS", "name": "Remy Shaw", "color": "#4f46e5" },
 			{ "who": "MK", "name": "Maya Klein", "color": "#9333ea" },

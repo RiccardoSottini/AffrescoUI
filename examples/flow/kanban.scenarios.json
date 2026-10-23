@@ -488,7 +488,7 @@
 				{ "expect": { "state": "columns[0].cards[1].who", "is": "JD" } },
 				{ "wait": 50 },
 				{ "key": "i" },
-				{ "expect": { "state": "columns[0].cards[1].who", "is": "MK" } },
+				{ "expect": { "state": "columns[0].cards[1].who", "is": "RS" } },
 				{ "key": "s" },
 				{ "wait": 50 },
 				{ "type": "review" },
