@@ -36,8 +36,9 @@ std::shared_ptr<const Font> runFont(const json& run, const Label& label, const P
                                     const std::string& at) {
 	std::shared_ptr<const Font> named = run.contains("font") ? reader.font(run["font"], at + ".font") : nullptr;
 	const Font* base = named ? named.get() : label.font();
-	const FontStyle style{run.contains("bold") && boolean(run["bold"], at + ".bold"),
-	                      run.contains("italic") && boolean(run["italic"], at + ".italic")};
+	const FontStyle given = base ? base->style() : FontStyle{}; // a bold font's runs stay bold unless they say
+	const FontStyle style{run.contains("bold") ? boolean(run["bold"], at + ".bold") : given.bold,
+	                      run.contains("italic") ? boolean(run["italic"], at + ".italic") : given.italic};
 	float size = base ? base->pixelHeight() : 0.0f;
 	if(run.contains("size")) {
 		const json& value = run["size"];

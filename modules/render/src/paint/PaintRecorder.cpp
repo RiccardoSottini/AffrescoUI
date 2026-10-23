@@ -7,6 +7,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
+#include <span>
+#include <vector>
 
 namespace affresco::detail {
 
@@ -81,6 +84,136 @@ MeshPolygon clipQuad(const std::array<MeshVertex, 4>& corners, const Rect& clip)
 	polygon = cut(polygon, [&](Vec2 point) { return clip.right - point.x; });
 	polygon = cut(polygon, [&](Vec2 point) { return point.y - clip.top; });
 	return cut(polygon, [&](Vec2 point) { return clip.bottom - point.y; });
+}
+
+/// @brief Where the points of a rectangle fall along a gradient filling it, as in CSS.
+struct GradientPlace {
+	Vec2 centre; ///< The rectangle's centre.
+	Vec2 step;   ///< Linear: the position's change per unit right and down. Radial: the ellipse's scales.
+	bool radial; ///< Whether it is radial.
+
+	/// @brief Places a gradient in a rectangle.
+	/// @param gradient The gradient.
+	/// @param rect The rectangle, not empty.
+	GradientPlace(const Gradient& gradient, const Rect& rect) noexcept
+	    : centre{(rect.left + rect.right) / 2.0f, (rect.top + rect.bottom) / 2.0f},
+	      radial(gradient.kind == Gradient::Kind::Radial) {
+		if(radial) { // an ellipse through the corners, its sides in the rectangle's proportions
+			step = {std::numbers::sqrt2_v<float> / rect.width(), std::numbers::sqrt2_v<float> / rect.height()};
+			return;
+		}
+		const double radians = gradient.angle * std::numbers::pi / 180.0;
+		const double across = std::sin(radians), down = -std::cos(radians);
+		const double length = std::abs(rect.width() * across) + std::abs(rect.height() * down);
+		step = {static_cast<float>(across / length), static_cast<float>(down / length)};
+	}
+
+	/// @brief The position of a point.
+	/// @param point The point.
+	/// @return Its position along the gradient: 0 at the start, 1 at the end, beyond them outside.
+	[[nodiscard]] float at(Vec2 point) const noexcept {
+		const float x = point.x - centre.x, y = point.y - centre.y;
+		return radial ? std::hypot(x * step.x, y * step.y) : 0.5f + x * step.x + y * step.y;
+	}
+};
+
+/// @brief A rectangle as a polygon.
+/// @param area The rectangle.
+/// @return Its corners, clockwise from the top left.
+MeshPolygon polygonOf(const Rect& area) noexcept {
+	MeshPolygon result;
+	result.add({{area.left, area.top}, 1.0f});
+	result.add({{area.right, area.top}, 1.0f});
+	result.add({{area.right, area.bottom}, 1.0f});
+	result.add({{area.left, area.bottom}, 1.0f});
+	return result;
+}
+
+/// @brief The area of a polygon (shoelace).
+/// @param polygon The polygon.
+/// @return Its area; 0 for a line or a point, which a cut along an edge leaves.
+float areaOf(const MeshPolygon& polygon) noexcept {
+	float twice = 0.0f;
+	for(std::size_t index = 0; index < polygon.count; ++index) {
+		const Vec2 from = polygon.corners[index].position;
+		const Vec2 to = polygon.corners[(index + 1) % polygon.count].position;
+		twice += from.x * to.y - to.x * from.y;
+	}
+	return std::abs(twice) / 2.0f;
+}
+
+/// @brief A gradient's stops ready to be mixed in straight alpha, as CSS mixes them premultiplied: a transparent
+/// stop takes the colour of its neighbour on each side (two stops at one place), so a fade to transparent doesn't
+/// darken through black.
+/// @param stops The stops, sorted.
+/// @return The stops to mix.
+std::vector<GradientStop> fadingStops(std::span<const GradientStop> stops) {
+	std::vector<GradientStop> result;
+	result.reserve(stops.size() * 2);
+	for(std::size_t index = 0; index < stops.size(); ++index) {
+		const GradientStop& stop = stops[index];
+		if(stop.color.a > 0.0f || stops.size() == 1) {
+			result.push_back(stop);
+			continue;
+		}
+		if(index > 0) result.push_back({stop.at, stops[index - 1].color.withAlpha(0.0f)});
+		if(index + 1 < stops.size()) result.push_back({stop.at, stops[index + 1].color.withAlpha(0.0f)});
+	}
+	return result;
+}
+
+/// @brief Cuts a piece of a linear gradient where its colour stops change, each part mixing two stops' colours
+/// linearly (before the first stop and after the last, one colour). Each stop's line cuts what is left, so
+/// neighbouring parts share their corners exactly.
+/// @param piece The piece.
+/// @param place Where its points fall along the gradient.
+/// @param stops The stops, sorted.
+/// @param add Called with each part and its colour at a point.
+template <typename Add>
+void linearParts(const Rect& piece, const GradientPlace& place, std::span<const GradientStop> stops, const Add& add) {
+	MeshPolygon rest = polygonOf(piece);
+	for(std::size_t index = 0; index <= stops.size() && rest.count >= 3; ++index) {
+		const GradientStop& low = stops[index == 0 ? 0 : index - 1];
+		const GradientStop& high = stops[std::min(index, stops.size() - 1)];
+		if(index > 0 && index < stops.size() && !(high.at > low.at)) continue; // two stops at one place: no part
+		MeshPolygon part = rest;
+		if(index < stops.size()) {
+			const auto line = static_cast<float>(high.at);
+			part = cut(rest, [&](Vec2 point) { return line - place.at(point); });
+			rest = cut(rest, [&](Vec2 point) { return place.at(point) - line; });
+		}
+		if(!(areaOf(part) > 0.0f)) continue; // a cut along the piece's edge
+		const double span = high.at - low.at;
+		add(part, [&](Vec2 point) {
+			const double along = span > 0.0 ? std::clamp((place.at(point) - low.at) / span, 0.0, 1.0) : 0.0;
+			return Color::mix(low.color, high.color, static_cast<float>(along));
+		});
+	}
+}
+
+/// @brief Cuts a piece of a radial gradient into cells, about one every 12 units along each side (at most 12), small
+/// enough that the colours sampled at their corners, mixed, look the same.
+/// @param piece The piece.
+/// @param place Where its points fall along the gradient.
+/// @param stops The stops, sorted.
+/// @param add Called with each cell and its colour at a point.
+template <typename Add>
+void radialCells(const Rect& piece, const GradientPlace& place, std::span<const GradientStop> stops, const Add& add) {
+	const auto cells = [](float length) {
+		return static_cast<std::size_t>(std::clamp(std::ceil(length / 12.0f), 1.0f, 12.0f));
+	};
+	const std::size_t columns = cells(piece.width()), rows = cells(piece.height());
+	const float width = piece.width() / static_cast<float>(columns);
+	const float height = piece.height() / static_cast<float>(rows);
+	const auto colorAt = [&](Vec2 point) { return sampleGradient(stops, place.at(point)); };
+	for(std::size_t row = 0; row < rows; ++row)
+		for(std::size_t column = 0; column < columns; ++column) {
+			const float left = piece.left + width * static_cast<float>(column);
+			const float top = piece.top + height * static_cast<float>(row);
+			const float right = column + 1 == columns ? piece.right : left + width;
+			const float bottom = row + 1 == rows ? piece.bottom : top + height;
+			add(polygonOf({left, top, right, bottom}), colorAt);
+		}
 }
 
 } // namespace
@@ -244,18 +377,65 @@ void PaintRecorder::pushShape(const Rect& rect, const CornerRadii& radii, const 
 	if(clamped.outline >= largest) clamped.outline = 0.0f;
 
 	// Room past the edges for the anti-aliased edge, or three standard deviations of the blur
-	const float margin = 1.0f + style.blur * 1.5f;
-	const float centreX = (rect.left + rect.right) / 2.0f, centreY = (rect.top + rect.bottom) / 2.0f;
-	const std::array<Quarter, 4> quarters{{
-	    {{rect.left - margin, rect.top - margin, centreX, centreY}, radii.topLeft, true, true},
-	    {{centreX, rect.top - margin, rect.right + margin, centreY}, radii.topRight, false, true},
-	    {{centreX, centreY, rect.right + margin, rect.bottom + margin}, radii.bottomRight, false, false},
-	    {{rect.left - margin, centreY, centreX, rect.bottom + margin}, radii.bottomLeft, true, false},
-	}};
-	for(Quarter quarter : quarters) {
-		quarter.radius = std::clamp(quarter.radius, 0.0f, largest);
+	for(const Quarter& quarter : quartersOf(rect, radii, 1.0f + style.blur * 1.5f))
 		pushQuarter(rect, quarter, clamped, clip);
+}
+
+std::array<PaintRecorder::Quarter, 4> PaintRecorder::quartersOf(const Rect& rect, const CornerRadii& radii,
+                                                                float margin) noexcept {
+	const float largest = std::min(rect.width(), rect.height()) / 2.0f;
+	const auto radius = [&](float value) { return std::clamp(value, 0.0f, largest); };
+	const float centreX = (rect.left + rect.right) / 2.0f, centreY = (rect.top + rect.bottom) / 2.0f;
+	return {{
+	    {{rect.left - margin, rect.top - margin, centreX, centreY}, radius(radii.topLeft), true, true},
+	    {{centreX, rect.top - margin, rect.right + margin, centreY}, radius(radii.topRight), false, true},
+	    {{centreX, centreY, rect.right + margin, rect.bottom + margin}, radius(radii.bottomRight), false, false},
+	    {{rect.left - margin, centreY, centreX, rect.bottom + margin}, radius(radii.bottomLeft), true, false},
+	}};
+}
+
+// Like pushShape(), as four quarters anti-aliased by distance; square and drawn straight, one plain rectangle, as
+// fillRect() draws
+void PaintRecorder::fillGradient(const Rect& rect, const CornerRadii& radii, const Gradient& gradient) {
+	if(!(rect.width() > 0.0f) || !(rect.height() > 0.0f) || gradient.stops.empty()) return; // also drops NaN
+	beginStep(PaintStep::fill);
+	const Gradient fading{gradient.kind, gradient.angle, fadingStops(gradient.stops)};
+	const auto shown = [](const Rect& piece) { return piece.right > piece.left && piece.bottom > piece.top; };
+	if(radii.isSquare() && !smooth_) {
+		const Quarter whole{intersect(rect, clip_), 0.0f, true, true};
+		if(shown(whole.piece)) pushGradientPiece(rect, whole, fading, QuadKind::plain);
+		return;
 	}
+	for(Quarter quarter : quartersOf(rect, radii, 1.0f)) {
+		quarter.piece = intersect(quarter.piece, shapeClip_);
+		if(shown(quarter.piece)) pushGradientPiece(rect, quarter, fading, QuadKind::shape);
+	}
+	record_.shapes = true;
+}
+
+// Each part's corners take the gradient's colours there, which the GPU mixes across it
+void PaintRecorder::pushGradientPiece(const Rect& rect, const Quarter& quarter, const Gradient& gradient,
+                                      QuadKind kind) {
+	const auto insideX = [&](float x) { return quarter.left ? x - rect.left : rect.right - x; };
+	const auto insideY = [&](float y) { return quarter.top ? y - rect.top : rect.bottom - y; };
+	const std::uint16_t radius = toSixteenths(quarter.radius);
+	const auto marker = static_cast<std::uint16_t>(kind);
+	const GradientPlace place(gradient, rect);
+	const auto add = [&](const MeshPolygon& part, const auto& colorAt) {
+		const auto corner = [&](const MeshVertex& point) {
+			const auto [cr, cg, cb, ca] = colorAt(point.position).toBytes();
+			const float x = point.position.x, y = point.position.y;
+			return Vertex{x, y, 0, 0, cr, cg, cb, ca, insideX(x), insideY(y), radius, 0, 0, marker};
+		};
+		for(std::size_t index = 1; index + 1 < part.count; index += 2) {
+			const std::size_t last = std::min(index + 2, part.count - 1);
+			const std::array<Vertex, 4> quad{corner(part.corners[0]), corner(part.corners[index]),
+			                                 corner(part.corners[index + 1]), corner(part.corners[last])};
+			if(quad[0].a != 0 || quad[1].a != 0 || quad[2].a != 0 || quad[3].a != 0) addQuad(quad);
+		}
+	};
+	if(place.radial) radialCells(quarter.piece, place, gradient.stops, add);
+	else linearParts(quarter.piece, place, gradient.stops, add);
 }
 
 void PaintRecorder::pushQuarter(const Rect& rect, const Quarter& quarter, const ShapeStyle& style, const Rect& clip) {

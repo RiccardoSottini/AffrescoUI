@@ -401,6 +401,14 @@ public:
 	void setShadow(const Shadow& shadow);
 	/// @brief The shadow.
 	[[nodiscard]] const Shadow& shadow() const noexcept { return shadow_; }
+	/// @brief Fills the background with a gradient, over color() (like CSS background-image over background-color),
+	/// within the rounded corners.
+	/// @param gradient The gradient (normalised, see normalizeGradient()), shared with whoever else draws it; nullptr
+	/// (the default) draws none.
+	void setGradient(std::shared_ptr<const Gradient> gradient);
+	/// @brief The background's gradient.
+	/// @return It, or nullptr if there is none.
+	[[nodiscard]] const Gradient* gradient() const noexcept { return gradient_.get(); }
 	/// @brief Keeps the subtree's drawing in a texture, drawn as one quad until something in it changes.
 	/// @param cached true to cache it (worth it for a large subtree that rarely changes).
 	void setCached(bool cached) { setLook(cached_, cached); }
@@ -531,7 +539,7 @@ protected:
 	virtual void arrange() {}
 
 	/// @brief Draws this panel; the children are drawn after it, on top. The default draws the shadow, fills bounds()
-	/// with color() (rounding the corners, if any), then draws the border.
+	/// with color() and then gradient() (rounding the corners, if any), then draws the border.
 	/// @param painter Clips to bounds().
 	virtual void paint(Painter& painter) const;
 
@@ -734,6 +742,7 @@ private:
 	float borderWidth_ = 0.0f;                            ///< See borderWidth().
 	Color borderColor_ = colors::black;                   ///< See borderColor().
 	Shadow shadow_;                                       ///< See shadow().
+	std::shared_ptr<const Gradient> gradient_;            ///< See gradient().
 	bool visible_ = true;                                 ///< See setVisible().
 	bool cached_ = false;                                 ///< See setCached().
 	Affine2 transform_;                                   ///< See transform().

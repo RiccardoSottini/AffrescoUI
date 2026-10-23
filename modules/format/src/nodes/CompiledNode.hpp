@@ -49,6 +49,7 @@ enum class Slot : std::uint8_t {
 	BorderWidth, ///< "borderWidth".
 	BorderColor, ///< "borderColor".
 	Shadow,      ///< "shadow".
+	Gradient,    ///< "gradient".
 	Cache,       ///< "cache".
 	/* Every panel's layout (layoutProperty()) */
 	Layout, ///< x, y, width, height, minWidth, minHeight, grow, fill, anchors.

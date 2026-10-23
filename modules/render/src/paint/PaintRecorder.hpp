@@ -34,6 +34,7 @@ public:
 	void fillRect(const Rect& rect, Color color) override;
 	void drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) override;
 	void fillRoundedRect(const Rect& rect, const CornerRadii& radii, Color color) override;
+	void fillGradient(const Rect& rect, const CornerRadii& radii, const Gradient& gradient) override;
 	void strokeRoundedRect(const Rect& rect, const CornerRadii& radii, float width, Color color) override;
 	void drawShadow(const Rect& rect, const CornerRadii& radii, const Shadow& shadow) override;
 	void drawImage(const Bitmap& bitmap, const Rect& rect) override;
@@ -55,6 +56,13 @@ private:
 		bool left = false, top = false; ///< Which edges are nearest: left or right, top or bottom.
 	};
 
+	/// @brief Cuts a shape into its quarters (see pushShape()).
+	/// @param rect The shape.
+	/// @param radii Its corners; each is clamped to half the shorter side.
+	/// @param margin How far past the shape's edges they reach.
+	/// @return Top-left, top-right, bottom-right, bottom-left.
+	[[nodiscard]] static std::array<Quarter, 4> quartersOf(const Rect& rect, const CornerRadii& radii,
+	                                                       float margin) noexcept;
 	/// @brief Starts a step.
 	/// @param step What it does.
 	/// @param font Its font, for text steps.
@@ -78,6 +86,13 @@ private:
 	/// @param style How it is drawn, with the outline already clamped.
 	/// @param clip What it is clipped to.
 	void pushQuarter(const Rect& rect, const Quarter& quarter, const ShapeStyle& style, const Rect& clip);
+	/// @brief Adds a gradient's piece: one quarter of a rounded shape (or a whole rectangle), cut where its colours
+	/// change (a linear gradient's stops, a radial one's cells), each part's corners taking the gradient's colours.
+	/// @param rect The whole shape.
+	/// @param quarter The piece, already clipped; its radius and nearest edges for a shape.
+	/// @param gradient The gradient.
+	/// @param kind A shape, or a plain rectangle.
+	void pushGradientPiece(const Rect& rect, const Quarter& quarter, const Gradient& gradient, QuadKind kind);
 	/// @brief Clips a mesh's quad to the panel and adds what is left, as one quad or a fan of quads.
 	/// @param corners Its 4 corners, already moved to window units.
 	/// @param color Its colour, before the corners' coverage.
