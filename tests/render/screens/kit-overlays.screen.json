@@ -1,0 +1,66 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The desktop kit's overlays, for the rendering check: a popover under a button, a context menu with a checked item, an icon, a disabled item, a separator and a submenu, a dialog, and a stack of toasts, one with an action and one with a progress bar. The scenario opens the context menu from the keyboard and the dialog, then switches to the dark theme and to right to left.",
+
+	"window": { "title": "Kit overlays", "width": 560, "height": 360 },
+
+	"state": {
+		"theme": "light", "dir": "ltr", "pop": true, "ctx": { "open": false, "x": 0, "y": 0 }, "dlg": false,
+		"wrap": true, "n": 0,
+		"notes": [
+			{ "message": "Build finished", "actions": [{ "title": "Open", "run": "add" }] },
+			{ "message": "Uploading 3 files", "progress": 0.4 }
+		]
+	},
+	"theme": "{{state.theme}}",
+	"tokens": { "kit.radius": 4 },
+
+	"fonts": {
+		"default": {
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
+			"size": 13,
+			"fallback": ["icons"]
+		},
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 }
+	},
+
+	"actions": {
+		"add": [{ "increment": "state.n", "by": 1 }]
+	},
+
+	"root": {
+		"id": "root", "color": "@kit.background",
+		"children": [{ "type": "column", "id": "page", "fill": true, "gap": 12, "dir": "{{state.dir}}", "children": [
+			{ "height": 4 },
+			{ "use": "toasts", "with": { "name": "notes" } },
+			{ "id": "share", "x": 16, "width": 96, "height": 30, "radius": "@kit.radius", "color": "@kit.primary",
+			  "focusable": true, "role": "button", "label": "Share", "onClick": { "toggle": "state.pop" },
+			  "children": [
+				{ "type": "label", "text": "Share", "align": "center", "textColor": "@kit.onPrimary",
+				  "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } },
+				{ "use": "popover", "with": { "open": "state.pop", "title": "Share", "text": "Anyone with the link can view." } }
+			  ] },
+			{ "id": "doc", "x": 16, "width": 300, "height": 60, "color": "@kit.surface", "radius": "@kit.cardRadius",
+			  "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border", "focusable": true, "label": "Document",
+			  "focused": { "borderColor": "@kit.focus" },
+			  "onContextMenu": { "set": "state.ctx", "to": { "open": true, "x": "{{event.x}}", "y": "{{event.y}}" } },
+			  "children": [
+				{ "type": "label", "text": "{{'Document, ' + state.n + ' commands'}}", "textColor": "@kit.text",
+				  "anchors": { "left": 12, "top": 8 }, "height": 20, "width": 240 },
+				{ "use": "contextMenu", "with": { "open": "state.ctx.open", "x": "{{state.ctx.x}}", "y": "{{state.ctx.y}}",
+				  "icons": true, "items": [
+					{ "title": "Word wrap", "checked": "{{state.wrap}}", "run": "add" },
+					{ "title": "Copy", "icon": "copy", "keyLabel": "Ctrl+C", "run": "add" },
+					{ "title": "Paste", "icon": "clipboard", "enabled": false, "run": "add" },
+					{ "separator": true },
+					{ "title": "Zoom", "submenu": [{ "title": "In", "run": "add" }, { "title": "Out", "run": "add" }] }
+				  ] } }
+			  ] },
+			{ "use": "dialog", "with": { "open": "state.dlg", "title": "Save changes?",
+			  "message": "The document has changes that aren't saved.",
+			  "buttons": [{ "title": "Save", "run": "add" }, { "title": "Discard", "run": "add" }, { "title": "Cancel" }] } }
+		] }]
+	}
+}

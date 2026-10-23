@@ -19,8 +19,8 @@ missed is written as missed: the targets don't move, the code does.
 - **Worst case.** A budget that covers several workloads (every template's revisions, two sizes of state change) is
   the slowest of them, named in the table.
 - **Tokens.** Counted with tiktoken's `o200k_base` on what the MCP server sends or receives (`tests/perf/tokens.py`):
-  outlines, re-reads after one commit, the format guide's topics, the canonical edits of `tests/perf/edits`, and the
-  reference revisions of the agent benchmark's feature tasks.
+  outlines, re-reads after one commit, the format guide's topics, the canonical edits of `tests/perf/edits`, the
+  reference revisions of the agent benchmark's feature tasks, and each desktop kit component's use (`tests/perf/kit.json`).
 - **Measuring and recording.**
 
   ```sh
@@ -66,6 +66,7 @@ missed is written as missed: the targets don't move, the code does.
 | A re-read after one commit: 150 tokens at most | 150 | 29 | met | forge | 150 tokens |
 | The format guide: 1,500 tokens at most per topic | 1,500 | 1,669 | **missed** | Top level | 1,669 tokens |
 | A whole feature request: 2,000 output tokens at most (the oracle's feature tasks) | 2,000 | 174 | met | forge-focus | 2,000 tokens |
+| A desktop kit component's use: 120 output tokens at most (tests/perf/kit.json) | 120 | 75 | met | toolbar | 120 tokens |
 
 
 ### The misses

@@ -125,7 +125,9 @@ def token_values(encoding):
             "typical-edit": (statistics.median(edits), f"median of {len(edits)} canonical edits"),
             "reread": largest("/reread"),
             "guide-topic": guide_topics(mcp, count),
-            "feature-request": feature_requests(mcp, count)}
+            "feature-request": feature_requests(mcp, count),
+            "kit-use": max((value, name.split("/")[2]) for name, value in found.items()
+                           if name.startswith("tokens/kit/"))}
 
 
 def machine():

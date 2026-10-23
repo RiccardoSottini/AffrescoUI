@@ -3,7 +3,8 @@
 Node types for creative tools: `colorPicker`, `gradient` and `curves`, whose values are colours, gradients and curve
 points (`CreativeValues.*`, shared with the expression functions that read them); `canvas`, `graph` and `timeline`,
 views of items, nodes and links, or tracks and keyframes from the state or a host's model, with their cameras,
-selections and edits; and `path`, SVG path data filled and stroked.
+selections and edits; `path`, SVG path data filled and stroked; and `scene`, a 3D scene of primitives and glTF
+models (the `scene3d` module) with its camera, selection and gizmo.
 
 | File | Holds |
 |---|---|
@@ -11,6 +12,7 @@ selections and edits; and `path`, SVG path data filled and stroked.
 | `ColorPickerType.cpp`, `GradientType.cpp`, `CurvesType.cpp` | The editors of those values |
 | `CanvasType.cpp`, `GraphType.cpp`, `TimelineType.cpp` | The views, and the events their edits run |
 | `PathType.cpp` | `path` |
+| `SceneType.cpp` | `scene`, and its models read with the `reader.imageFile` permission (the `camera` step is in `steps/SceneSteps.cpp`) |
 
 An edit made in a view runs one of the node's handlers with the edit, through the sink its type's `listen` is
 given.
@@ -18,4 +20,4 @@ given.
 Adding a type follows `types/README.md`, "Adding a node type".
 
 Tests: `tests/unit/creative_controls.cpp`, `color_spaces.cpp`, `canvas.cpp`, `graph.cpp`, `timeline.cpp`,
-`paths.cpp`.
+`paths.cpp`, `scene_node.cpp`.
