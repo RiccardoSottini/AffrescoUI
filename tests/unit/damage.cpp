@@ -2,7 +2,7 @@
 /// @brief Retained geometry and damage (render's detail::GeometryCache), headless: what a change records again, what
 /// it damages, and which shaders the frame needs, with no OpenGL.
 
-#include "GeometryCache.hpp"
+#include "paint/GeometryCache.hpp"
 #include "Headless.hpp"
 
 #include <affresco/render/Panel.hpp>
@@ -157,4 +157,24 @@ TEST_CASE("damage: a cached subtree needs the colour shader, and damages like an
 
 	group.setCached(false);
 	CHECK_FALSE(refreshFrame(cache, *window).color);
+}
+
+TEST_CASE("damage: when the overlays drawn above the tree change, where each was and is; kept, nothing") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	Panel& menu = box(window->root(), 20, 30, 120, 80);
+	menu.setOverlay("", affresco::Placement::Window);
+	Panel& popover = box(window->root(), 250, 200, 100, 50);
+	popover.setOverlay("", affresco::Placement::Window);
+	GeometryCache cache;
+	static_cast<void>(refreshFrame(cache, *window));
+	CHECK_FALSE(refreshFrame(cache, *window).damage); // the same overlays, unchanged
+
+	// Drawn in the tree now, in the same place: the menu, still an overlay, is damaged too
+	popover.clearOverlay();
+	CHECK(refreshFrame(cache, *window).damage == Rect{20, 30, 350, 250});
+	CHECK_FALSE(refreshFrame(cache, *window).damage);
+
+	menu.clearOverlay(); // none left: only the menu's place
+	CHECK(refreshFrame(cache, *window).damage == Rect{20, 30, 140, 110});
 }

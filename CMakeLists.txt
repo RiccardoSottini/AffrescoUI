@@ -18,6 +18,9 @@ option(AFFRESCOUI_BUILD_BENCHMARKS "Build the benchmarks (tests/perf)" OFF)
 option(AFFRESCOUI_BUILD_TOOLS "Build the affrescoui command-line tool (tools/affrescoui)" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_CAPI "Build the C API (modules/capi) and its test (tests/capi)" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_CAPI_SHARED "Also build the C API as one shared library, libaffresco (bindings/python loads it)" OFF)
+if(AFFRESCOUI_BUILD_TESTS)
+	enable_testing() # before any add_subdirectory: a subdirectory added earlier keeps its tests from ctest
+endif()
 if(AFFRESCOUI_BUILD_CAPI_SHARED)
 	set(AFFRESCOUI_BUILD_CAPI ON CACHE BOOL "" FORCE)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON) # before the dependencies: the static libraries go into the shared one
@@ -161,8 +164,12 @@ set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/pa
 	examples/forge/features/editor/Editor.cpp examples/forge/features/search/Search.cpp
 	examples/forge/features/explorer/Explorer.cpp examples/forge/features/terminal/Terminal.cpp
 	examples/forge/features/terminal/TerminalModel.cpp examples/forge/features/debug/Debug.cpp)
+# The terminal's sessions and widget (examples/forge/features/terminal)
+list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/terminal/TerminalSessions.cpp
+	examples/forge/features/terminal/TerminalView.cpp)
 # The lsp feature (examples/forge/features/lsp)
-list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/lsp/Lsp.cpp examples/forge/features/lsp/LspProtocol.cpp)
+list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/lsp/Lsp.cpp examples/forge/features/lsp/LspCall.cpp
+	examples/forge/features/lsp/LspEdits.cpp examples/forge/features/lsp/LspProtocol.cpp examples/forge/features/lsp/LspText.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_host renders a screen and accepts peers; affrescoui_studio is a client for it (itself an AffrescoUI screen)
 	foreach(example host studio)
@@ -197,9 +204,13 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_options(affrescoui_modello PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_modello PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# Sinopia, slides and vector documents: its workspace is examples/sinopia/sinopia.screen.json (examples/sinopia/README.md)
-	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Deck.cpp examples/sinopia/Arrange.cpp
-		examples/sinopia/ShapeGeometry.cpp examples/sinopia/ShapePanel.cpp examples/sinopia/DeckView.cpp
-		examples/sinopia/Edit.cpp examples/sinopia/Transition.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp)
+	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp
+		# deck/: the deck model, read, checked, edited and arranged without a window
+		examples/sinopia/deck/Deck.cpp examples/sinopia/deck/Write.cpp examples/sinopia/deck/Edit.cpp
+		examples/sinopia/deck/Arrange.cpp
+		# drawing/: slides, shapes and transitions turned into pixels and paths, and the shape panel
+		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/ShapeGeometry.cpp
+		examples/sinopia/drawing/ShapePanel.cpp examples/sinopia/drawing/Transition.cpp)
 	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared modules/screen/src)
 	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export)
 	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})
@@ -223,8 +234,9 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	add_executable(affrescoui_server examples/server/main.cpp ${AFFRESCOUI_SERVER_SOURCES})
 	target_link_libraries(affrescoui_server PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel affrescoui::net)
 	target_compile_options(affrescoui_server PRIVATE ${AFFRESCOUI_WARNINGS})
-	if(AFFRESCOUI_BUILD_CAPI)
-		# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (examples/embed/README.md)
+	# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (examples/embed/README.md). Its
+	# scene is OpenGL 4.1 core, with that backend's glad: not built with gles3, whose render module has the other loader
+	if(AFFRESCOUI_BUILD_CAPI AND AFFRESCOUI_GL_BACKEND STREQUAL "gl41")
 		add_executable(affrescoui_embed examples/embed/main.cpp)
 		target_link_libraries(affrescoui_embed PRIVATE affrescoui::capi) # GLFW and glad come with it
 		target_include_directories(affrescoui_embed SYSTEM PRIVATE external/glad/include
@@ -235,7 +247,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 endif()
 
 if(AFFRESCOUI_BUILD_TESTS)
-	enable_testing() # here, so ctest finds the tests the subdirectories add
 	add_subdirectory(tests/render) # the rendering check
 	add_subdirectory(tests/unit)   # the unit tests and the window tests
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::imaging) # tests/unit/imaging_*.cpp
@@ -284,7 +295,8 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		tests/perf/syntax.cpp
 		tests/perf/tempera.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
-	target_include_directories(affrescoui_bench PRIVATE examples/shared examples/forge modules/format/src modules/render/src)
+	target_include_directories(affrescoui_bench PRIVATE examples/shared examples/forge
+		$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui affrescoui_vterm)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui::imaging)

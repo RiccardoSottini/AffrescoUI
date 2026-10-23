@@ -13,6 +13,7 @@ void StencilClips::start() noexcept {
 }
 
 // Only pixels inside every clip so far hold the level, so a pushed quad counts up just where both overlap
+// NOLINTNEXTLINE(readability-make-member-function-const): it sets the stencil state these clips own
 void StencilClips::beginStep(ClipStep step) noexcept {
 	glEnable(GL_STENCIL_TEST);
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);

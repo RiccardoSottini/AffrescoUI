@@ -3,11 +3,12 @@
 /// nothing outside it, frames are bounded, and revisions may add uses of declared, revisable methods only, with the
 /// ones that write reviewed.
 
-#include "Framing.hpp"
+#include "rpc/Framing.hpp"
 #include "Headless.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/format/Rules.hpp>
+#include <affresco/services/Schema.hpp>
 #include <affresco/services/ServiceRegistry.hpp>
 #include <affresco/vcs/Repository.hpp>
 
@@ -141,8 +142,35 @@ TEST_CASE("services: a screen invokes the prototype JSON-RPC server, and reads a
 	screen.runAction("local", window->root());
 	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/local") == "inside"; }));
 	screen.runAction("escape", window->root());
+	// NOLINTNEXTLINE(readability-container-size-empty): json's empty() is false for every string
 	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/denied") != ""; }));
 	CHECK(stateAt(screen, "/local") == "inside");
+}
+
+TEST_CASE("services: a call that ends, or fails, before its timeout leaves no timer behind") {
+	const TemporaryFolder folder;
+	writeText(folder.path / "work" / "note.txt", "inside");
+	PumpedExecutor executor;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(serviceScreen);
+	screen.services().addRoot("work", folder.path / "work");
+	screen.setExecutor(&executor);
+	screen.build(*window);
+	window->render();
+	REQUIRE_FALSE(window->secondsToNextTimer());
+
+	screen.runAction("local", window->root());
+	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/local") == "inside"; }));
+	CHECK_FALSE(window->secondsToNextTimer()); // each call's timeout stayed, every frame looking at them
+	screen.runAction("escape", window->root());
+	// NOLINTNEXTLINE(readability-container-size-empty): json's empty() is false for every string
+	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/denied") != ""; }));
+	CHECK_FALSE(window->secondsToNextTimer());
+	screen.runAction("read", window->root()); // a process the host didn't allow
+	// NOLINTNEXTLINE(readability-container-size-empty): json's empty() is false for every string
+	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/error") != ""; }));
+	CHECK_FALSE(window->secondsToNextTimer());
 }
 
 TEST_CASE("services: Content-Length frames are read in pieces, and bounded") {
@@ -182,6 +210,14 @@ TEST_CASE("services: Content-Length frames are read in pieces, and bounded") {
 	bodies.clear();
 	CHECK(over.feed("abcde\n", bodies));
 	CHECK(bodies.empty());
+
+	// Lines in pieces: the bytes searched before aren't searched again, and the next line starts afresh
+	FrameReader pieces(Framing::Lines, {64, 8});
+	bodies.clear();
+	for(const char* piece : {"ab", "c", "de\r", "\nf", "g", "\n", "h"}) CHECK_FALSE(pieces.feed(piece, bodies));
+	CHECK(bodies == std::vector<std::string>{"abcde", "fg"});
+	CHECK_FALSE(pieces.feed("12345678", bodies)); // "h" and 7 bytes: the limit and room for a '\r'
+	CHECK(pieces.feed("9", bodies));
 }
 
 TEST_CASE("services: a registry refuses what the host didn't grant") {
@@ -198,6 +234,21 @@ TEST_CASE("services: a registry refuses what the host didn't grant") {
 	CHECK(status["b"]["state"] == "refused");
 	CHECK(status["c"]["state"] == "refused");
 	CHECK(registry.catalog().contains("jsonrpc"));
+}
+
+// A number too large for a 64-bit integer was converted to one to test whether it was whole: undefined behaviour
+TEST_CASE("services: a schema's integer type takes whole numbers that fit, and refuses huge ones safely") {
+	using affresco::services::checkSchema;
+	const json integer = {{"type", "integer"}};
+	CHECK_FALSE(checkSchema(integer, 3.0, "with"));
+	CHECK_FALSE(checkSchema(integer, -9223372036854775808.0, "with"));
+	CHECK(checkSchema(integer, 3.5, "with") == "with: must be a value of type integer");
+	CHECK(checkSchema(integer, 1e300, "with") == "with: must be a value of type integer");
+	CHECK(checkSchema(integer, -1e300, "with") == "with: must be a value of type integer");
+	CHECK(checkSchema(integer, 9223372036854775808.0, "with") == "with: must be a value of type integer");
+	CHECK(checkSchema({{"type", "string"}, {"maxLength", 1e300}}, "abc", "with") == std::nullopt);
+	CHECK(checkSchema({{"type", "string"}, {"maxLength", 2}}, "abc", "with") == "with: at most 2 bytes");
+	CHECK(checkSchema({{"type", "array"}, {"maxItems", 1}}, json::array({1, 2}), "with") == "with: at most 1 items");
 }
 
 // A debug adapter can run code (debugpy's `evaluate`): a screen attached to any program listening on a loopback port

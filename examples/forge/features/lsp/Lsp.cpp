@@ -3,20 +3,18 @@
 
 #include "features/lsp/Lsp.hpp"
 
+#include "features/lsp/LspCall.hpp"
+#include "features/lsp/LspEdits.hpp"
 #include "features/lsp/LspProtocol.hpp"
-#include "features/palette/FileIndex.hpp"
 
 #include <affresco/core/Json.hpp>
 
-#include <atomic>
+#include <array>
 #include <cstdlib>
-#include <fstream>
 #include <functional>
 #include <map>
 #include <optional>
-#include <sstream>
 #include <stdexcept>
-#include <stop_token>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -28,66 +26,15 @@ namespace forge {
 namespace {
 
 using affresco::json;
-namespace services = affresco::services;
+using lsp::codePointsOf;
+using lsp::positionArgument;
+using lsp::ServerCall;
+using lsp::textArgument;
+using lsp::utf16Units;
 
 constexpr std::size_t mostWaiting = 64;    ///< Requests kept while a server initializes.
 constexpr std::size_t mostChanges = 1000;  ///< Changes kept before a document is sent whole instead.
 constexpr std::size_t longestName = 256;   ///< Bytes of a rename's new name, or a symbol query.
-constexpr std::size_t largestFile = std::size_t{8} << 20; ///< A file forge.lsp.apply edits on disk, at most 8 MiB.
-
-/// @brief A call to a server whose answer is handled on the main thread, while the client is alive.
-class ServerCall final : public services::Call {
-public:
-	/// @brief Gets the result, or no result and the error.
-	using Done = std::function<void(std::optional<json> result, const std::string& error)>;
-	/// @brief Gets one event of a subscription.
-	using Events = std::function<void(const json& event)>;
-
-	/// @brief A call.
-	/// @param arguments The params sent.
-	/// @param executor The main thread; nullptr drops what arrives.
-	/// @param alive The client's guard.
-	/// @param done Gets the result (may be empty).
-	/// @param events Gets a subscription's events (may be empty).
-	ServerCall(json arguments, affresco::Executor* executor, std::weak_ptr<bool> alive, Done done, Events events = {})
-	    : arguments_(std::move(arguments)), executor_(executor), alive_(std::move(alive)), done_(std::move(done)),
-	      events_(std::move(events)) {}
-
-	const json& arguments() const noexcept override { return arguments_; }
-	std::stop_token stopToken() const noexcept override { return stop_.get_token(); }
-	void progress(json) override {}
-	void event(json event) override {
-		if(!events_ || ended_ || stop_.stop_requested()) return;
-		post([events = events_, event = std::move(event)] { events(event); });
-	}
-	void finish(json result) override {
-		if(ended_.exchange(true) || !done_) return;
-		post([done = done_, result = std::move(result)] { done(result, {}); });
-	}
-	void fail(std::string, std::string message, json) override {
-		if(ended_.exchange(true) || !done_) return;
-		post([done = done_, message = std::move(message)] { done(std::nullopt, message); });
-	}
-	/// @brief Asks the service to stop it (a subscription of a server that is reset).
-	void stop() { stop_.request_stop(); }
-
-private:
-	/// @brief Runs a task on the main thread, if the client is still alive then.
-	/// @param task The task.
-	void post(std::function<void()> task) {
-		if(executor_) executor_->post([alive = alive_, task = std::move(task)] {
-			if(alive.lock()) task();
-		});
-	}
-
-	json arguments_;                   ///< See arguments().
-	affresco::Executor* executor_;     ///< See the constructor.
-	std::weak_ptr<bool> alive_;        ///< See the constructor.
-	Done done_;                        ///< See the constructor.
-	Events events_;                    ///< See the constructor.
-	std::stop_source stop_;            ///< See stopToken().
-	std::atomic<bool> ended_ = false;  ///< After finish() or fail().
-};
 
 /// @brief What a request kind asks a server.
 struct Kind {
@@ -98,7 +45,7 @@ struct Kind {
 };
 
 /// @brief The request kinds forge.lsp.request knows.
-constexpr Kind kinds[] = {
+constexpr std::array<Kind, 10> kinds = {{
     {"hover", "textDocument/hover", "hoverProvider", true},
     {"completion", "textDocument/completion", "completionProvider", true},
     {"signature", "textDocument/signatureHelp", "signatureHelpProvider", true},
@@ -109,55 +56,14 @@ constexpr Kind kinds[] = {
     {"symbols", "textDocument/documentSymbol", "documentSymbolProvider", false},
     {"workspaceSymbols", "workspace/symbol", "workspaceSymbolProvider", false},
     {"tokens", "textDocument/semanticTokens/full", "semanticTokensProvider", false},
-};
+}};
 
 /// @brief The semantic token types Forge asks servers for (those styleOfToken() knows, and the common rest).
-const json tokenTypes = {"namespace", "type",     "class",    "enum",      "interface", "struct",   "typeParameter",
-                         "parameter", "variable", "property", "enumMember", "event",    "function", "method",
-                         "macro",     "keyword",  "modifier", "comment",   "string",    "number",   "regexp",
-                         "operator",  "decorator", "concept"};
-
-/// @brief A text argument of a call.
-/// @param with The arguments.
-/// @param key The argument.
-/// @param bytes At most this long.
-/// @return It, or "".
-/// @throws std::runtime_error If it is longer.
-std::string textArgument(const json& with, const char* key, std::size_t bytes) {
-	const json& value = with.is_object() && with.contains(key) ? with[key] : json();
-	if(!value.is_string()) return {};
-	if(value.get_ref<const std::string&>().size() > bytes) throw std::runtime_error(std::string(key) + " is too long");
-	return value.get<std::string>();
-}
-
-/// @brief A positive number argument of a call.
-/// @param with The arguments.
-/// @param key The argument.
-/// @return It, or 1 if it isn't one.
-std::size_t positionArgument(const json& with, const char* key) {
-	const json& value = with.is_object() && with.contains(key) ? with[key] : json();
-	return value.is_number_unsigned() && value.get<std::size_t>() > 0 ? std::min(value.get<std::size_t>(), std::size_t{1} << 30)
-	                                                                  : 1;
-}
-
-/// @brief UTF-16 units of the first code points of a line.
-/// @param line The line.
-/// @param columns How many code points.
-/// @return Their units.
-std::size_t utf16Units(std::u32string_view line, std::size_t columns) {
-	std::size_t units = 0;
-	for(std::size_t i = 0; i < std::min(columns, line.size()); ++i) units += line[i] > 0xFFFF ? 2 : 1;
-	return units + (columns > line.size() ? columns - line.size() : 0);
-}
-
-/// @brief The code points of a line that make up a number of UTF-16 units.
-/// @param line The line.
-/// @param units The units.
-/// @return The code points (a unit inside a pair counts its whole code point).
-std::size_t codePointsOf(std::u32string_view line, std::size_t units) {
-	std::size_t i = 0;
-	for(std::size_t at = 0; i < line.size() && at < units; ++i) at += line[i] > 0xFFFF ? 2 : 1;
-	return i + (units > utf16Units(line, line.size()) ? units - utf16Units(line, line.size()) : 0);
+/// @return Them; a function, since a json built at static initialization could throw where nothing can catch it.
+json tokenTypes() {
+	return {"namespace", "type",     "class",      "enum",   "interface", "struct",   "typeParameter", "parameter",
+	        "variable",  "property", "enumMember", "event",  "function",  "method",   "macro",         "keyword",
+	        "modifier",  "comment",  "string",     "number", "regexp",    "operator", "decorator",     "concept"};
 }
 
 /// @brief The language servers of one screen, and what each knows of the open documents.
@@ -205,51 +111,10 @@ public:
 			return {{"pending", true}};
 		}
 		Server& entry = this->server(server["service"].get<std::string>());
-		whenReady(entry, [this, &entry, request] { send(entry, request); },
-		          [this, request](const std::string& error) { show(request, std::nullopt, error); });
+		whenReady(
+		    entry, [this, &entry, request = request] { send(entry, request); },
+		    [this, request = request](const std::string& error) { show(request, std::nullopt, error); });
 		return {{"pending", true}};
-	}
-
-	/// @brief forge.lsp.apply: applies edits, all or none.
-	/// @param with `{ "edits" }`.
-	/// @return `{ "files", "edits" }`.
-	/// @throws std::runtime_error With the reason nothing was applied.
-	json apply(const json& with) {
-		const json& edits = with.is_object() && with.contains("edits") ? with["edits"] : json();
-		if(!edits.is_array() || edits.size() > lsp::Limits{}.edits) throw std::runtime_error("expected { \"edits\": [...] }");
-		const std::filesystem::path& root = workspace_->root;
-		if(root.empty()) throw std::runtime_error("no folder is open");
-		std::map<std::string, json> byFile;
-		for(const json& edit : edits) {
-			const std::string id = textArgument(edit, "id", 4096);
-			// the id comes from the document: it must name a file inside the folder
-			if(id.empty() || lsp::idOfUri(root, lsp::uriOf(root, id)) != id)
-				throw std::runtime_error("an edit names a file outside the open folder");
-			byFile[id].push_back(edit);
-		}
-		std::map<std::string, std::string> texts; // checked first, so a bad edit changes nothing
-		for(auto& [id, list] : byFile) {
-			std::string text;
-			if(const auto model = buffers_->find(id)) text = model->text();
-			else {
-				std::error_code error;
-				if(std::filesystem::file_size(root / id, error) > largestFile || error)
-					throw std::runtime_error(id + " can't be read, or is too large");
-				std::ifstream in(root / id, std::ios::binary);
-				text.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
-			}
-			if(auto problem = lsp::applyEdits(text, list)) throw std::runtime_error(id + ": " + *problem);
-			texts.emplace(id, std::move(text));
-		}
-		for(auto& [id, text] : texts) {
-			if(const auto model = buffers_->find(id)) {
-				replace(*model, text);
-				continue;
-			}
-			// A fresh name, created exclusively: a link planted at a fixed name would send the text elsewhere
-			if(auto failed = writeInFolder(root / id, text)) throw std::runtime_error(id + ": " + *failed);
-		}
-		return {{"files", texts.size()}, {"edits", edits.size()}};
 	}
 
 	/// @brief forge.lsp.status: what the client knows of each server.
@@ -313,7 +178,7 @@ private:
 
 	/// @brief Forgets what a server knew (it crashed, or the client ends).
 	/// @param server The server.
-	void reset(Server& server) {
+	static void reset(Server& server) {
 		for(auto& [id, document] : server.documents)
 			if(const auto model = document.model.lock()) model->onChanged.disconnect(document.connection);
 		server.documents.clear();
@@ -362,7 +227,7 @@ private:
 		      {"publishDiagnostics", json::object()},
 		      {"semanticTokens",
 		       {{"requests", {{"full", true}}},
-		        {"tokenTypes", tokenTypes},
+		        {"tokenTypes", tokenTypes()},
 		        {"tokenModifiers", json::array()},
 		        {"formats", {"relative"}}}}}}};
 		const json params = {{"processId", nullptr},
@@ -440,14 +305,28 @@ private:
 		const json& offered = server.capabilities.contains(request.kind.capability) ? server.capabilities[request.kind.capability]
 		                                                                            : json();
 		if(offered.is_null() || offered == false) return show(request, std::nullopt, "the language server doesn't offer that");
+		const std::optional<json> params = paramsFor(server, request);
+		if(!params) return show(request, std::nullopt, request.id + " isn't open");
+		call(server.service, std::string(request.kind.method), *params,
+		     [this, &server, request = request](std::optional<json> result, const std::string& error) {
+			     answered(server, request, std::move(result), error);
+		     });
+	}
+
+	/// @brief A request's params: its document (opened with the server first), its position and its kind's own.
+	/// @param server The server, ready.
+	/// @param request The request.
+	/// @return They, or std::nullopt if its file has no buffer.
+	std::optional<json> paramsFor(Server& server, const Request& request) {
+		if(request.kind.name == "workspaceSymbols") return json{{"query", request.query}};
 		json params = json::object();
 		std::shared_ptr<affresco::TextModel> model;
-		if(!request.id.empty() && request.kind.name != "workspaceSymbols") {
+		if(!request.id.empty()) {
 			model = open(server, request.id, request.languageId);
-			if(!model) return show(request, std::nullopt, request.id + " isn't open");
+			if(!model) return std::nullopt;
 			params["textDocument"] = {{"uri", lsp::uriOf(server.root, request.id)}};
 		}
-		if(request.kind.positioned) {
+		if(request.kind.positioned) { // every kind but workspaceSymbols names a file (request())
 			const std::size_t line = std::min(request.line, model->lineCount() - 1);
 			params["position"] = {{"line", line}, {"character", serverColumn(server, *model, line, request.column)}};
 		}
@@ -455,20 +334,25 @@ private:
 		if(request.kind.name == "references") params["context"] = {{"includeDeclaration", true}};
 		if(request.kind.name == "rename") params["newName"] = request.newName;
 		if(request.kind.name == "format") params["options"] = {{"tabSize", 4}, {"insertSpaces", false}};
-		if(request.kind.name == "workspaceSymbols") params = {{"query", request.query}};
-		call(server.service, std::string(request.kind.method), params,
-		     [this, &server, request](std::optional<json> result, const std::string& error) {
-			     if(!result) return show(request, std::nullopt, error);
-			     if(request.kind.name == "tokens" && result->is_object()) {
-				     const json& provider = server.capabilities["semanticTokensProvider"];
-				     (*result)["legend"] = provider.is_object() && provider.contains("legend") ? provider["legend"] : json();
-			     }
-			     try {
-				     show(request, lsp::normalize(request.kind.name, *result, server.root, request.id, {}, mapper(server)), {});
-			     } catch(const std::exception& failure) {
-				     show(request, std::nullopt, failure.what());
-			     }
-		     });
+		return params;
+	}
+
+	/// @brief Shows a server's answer to a request, in the screen's shape.
+	/// @param server The server.
+	/// @param request The request.
+	/// @param result The result, or nothing if the call failed.
+	/// @param error Why it failed.
+	void answered(Server& server, const Request& request, std::optional<json> result, const std::string& error) {
+		if(!result) return show(request, std::nullopt, error);
+		if(request.kind.name == "tokens" && result->is_object()) {
+			const json& provider = server.capabilities["semanticTokensProvider"];
+			(*result)["legend"] = provider.is_object() && provider.contains("legend") ? provider["legend"] : json();
+		}
+		try {
+			show(request, lsp::normalize(request.kind.name, *result, server.root, request.id, {}, mapper(server)), {});
+		} catch(const std::exception& failure) {
+			show(request, std::nullopt, failure.what());
+		}
 	}
 
 	/// @brief Opens a document with a server (didOpen) if it isn't yet, closing those whose buffers are gone, and
@@ -485,7 +369,7 @@ private:
 			notify(server.service, "textDocument/didClose", {{"textDocument", {{"uri", lsp::uriOf(server.root, entry.first)}}}});
 			return true;
 		});
-		const std::shared_ptr<affresco::TextModel> model = buffers_->find(id);
+		std::shared_ptr<affresco::TextModel> model = buffers_->find(id);
 		if(!model) return nullptr;
 		if(const auto found = server.documents.find(id); found != server.documents.end()) {
 			flush(server, id);
@@ -494,7 +378,7 @@ private:
 		Document& document = server.documents[id];
 		document.model = model;
 		document.connection = model->onChanged.connect(
-		    [this, &server, id](const affresco::TextChange& change) { changed(server, id, change); });
+		    [this, &server, id = id](const affresco::TextChange& change) { changed(server, id, change); });
 		notify(server.service, "textDocument/didOpen",
 		       {{"textDocument",
 		         {{"uri", lsp::uriOf(server.root, id)}, {"languageId", languageId}, {"version", 1}, {"text", model->text()}}}});
@@ -519,7 +403,7 @@ private:
 			                            {"text", model->textIn(change.from, change.newEnd)}});
 		if(document.posted || !executor_) return;
 		document.posted = true;
-		executor_->post([this, alive = std::weak_ptr<bool>(alive_), &server, id] {
+		executor_->post([this, alive = std::weak_ptr<bool>(alive_), &server, id = id] {
 			if(alive.lock()) flush(server, id);
 		});
 	}
@@ -604,7 +488,7 @@ private:
 	/// @param method The method.
 	/// @param params Its params.
 	/// @param done Gets the answer, on the main thread (or now, if it can't be sent).
-	void call(const std::string& service, const std::string& method, json params, ServerCall::Done done) {
+	void call(const std::string& service, const std::string& method, json params, const ServerCall::Done& done) {
 		auto pending = std::make_shared<ServerCall>(std::move(params), executor_, alive_, done);
 		if(auto problem = screen_.services().invoke(service, method, std::move(pending))) done(std::nullopt, *problem);
 	}
@@ -616,26 +500,6 @@ private:
 	void notify(const std::string& service, const std::string& method, json params) {
 		auto pending = std::make_shared<ServerCall>(std::move(params), executor_, alive_, ServerCall::Done());
 		(void)screen_.services().invoke(service, method, std::move(pending));
-	}
-
-	/// @brief Replaces a buffer's text as one undo step, changing only the lines between the first and last that differ.
-	/// @param model The buffer.
-	/// @param text The new text.
-	static void replace(affresco::TextModel& model, std::string_view text) {
-		const std::string old = model.text();
-		std::size_t prefix = 0;
-		while(prefix < old.size() && prefix < text.size() && old[prefix] == text[prefix]) ++prefix;
-		std::size_t suffix = 0;
-		while(suffix < old.size() - prefix && suffix < text.size() - prefix &&
-		      old[old.size() - 1 - suffix] == text[text.size() - 1 - suffix])
-			++suffix;
-		while(prefix > 0 && (static_cast<unsigned char>(old[prefix]) & 0xC0) == 0x80) --prefix;
-		while(suffix > 0 && (static_cast<unsigned char>(old[old.size() - suffix]) & 0xC0) == 0x80) --suffix;
-		const affresco::TextPosition from = model.positionOf(prefix), to = model.positionOf(old.size() - suffix);
-		model.beginStep(false, from, from);
-		model.erase(from, to);
-		model.insert(from, text.substr(prefix, text.size() - prefix - suffix));
-		model.endStep();
 	}
 
 	affresco::Screen& screen_;                   ///< See the constructor.
@@ -668,21 +532,21 @@ std::filesystem::path findProgram(std::string_view name) {
 }
 
 void grantLanguageServers(affresco::Screen& screen) {
-	const std::pair<const char*, std::vector<std::string>> servers[] = {
-	    {"clangd", {}}, {"pyright-langserver", {"--stdio"}}, {"typescript-language-server", {"--stdio"}}};
+	const std::array<std::pair<const char*, std::vector<std::string>>, 3> servers = {
+	    {{"clangd", {}}, {"pyright-langserver", {"--stdio"}}, {"typescript-language-server", {"--stdio"}}}};
 	for(const auto& [name, arguments] : servers)
 		if(const std::filesystem::path program = findProgram(name); !program.empty())
 			screen.services().allowProcess(name, program, arguments);
 }
 
-void registerLsp(affresco::Screen& screen, std::shared_ptr<Workspace> workspace, std::shared_ptr<Buffers> buffers,
-                 affresco::Executor* executor) {
-	const auto client = std::make_shared<Client>(screen, workspace, std::move(buffers), executor);
+void registerLsp(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace,
+                 std::shared_ptr<Buffers> buffers, affresco::Executor* executor) {
+	const auto client = std::make_shared<Client>(screen, workspace, buffers, executor);
 	screen.onCall("forge.lsp.request", [client](const std::string& arguments) {
 		return client->request(affresco::parseUntrusted(arguments)).dump();
 	});
-	screen.onCall("forge.lsp.apply", [client](const std::string& arguments) {
-		return client->apply(affresco::parseUntrusted(arguments)).dump();
+	screen.onCall("forge.lsp.apply", [workspace, buffers = std::move(buffers)](const std::string& arguments) {
+		return lsp::applyToFolder(affresco::parseUntrusted(arguments), workspace->root, *buffers).dump();
 	});
 	screen.onCall("forge.lsp.status", [client](const std::string&) { return client->status().dump(); });
 	screen.onCall("forge.lsp.normalize", [workspace](const std::string& arguments) {

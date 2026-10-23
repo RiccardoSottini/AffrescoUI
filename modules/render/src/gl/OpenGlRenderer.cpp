@@ -134,9 +134,9 @@ private:
 		target.shaders = shaders;
 	}
 
-	QuadRenderer quads_; ///< Draws the panels.
-	Target screen_;      ///< The window's frames, copied to the window.
-	Target offscreen_;   ///< Screenshots at a fixed scale.
+	QuadRenderer quads_;  ///< Draws the panels.
+	Target screen_;       ///< The window's frames, copied to the window.
+	Target offscreen_;    ///< Screenshots at a fixed scale.
 	unsigned output_ = 0; ///< Where the window's frames are copied: see setOutputFramebuffer().
 };
 

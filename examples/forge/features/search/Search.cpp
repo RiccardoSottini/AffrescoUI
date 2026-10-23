@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <format>
 #include <fstream>
 #include <iterator>
 #include <mutex>
@@ -66,6 +67,7 @@ affresco::PatternOptions optionsOf(const json& arguments) {
 /// @throws std::runtime_error If they aren't an object.
 const json& objectOf(const json& arguments) {
 	if(!arguments.is_object()) throw std::runtime_error("expected an object of arguments");
+	// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): its callers pass the call's arguments, which outlive it
 	return arguments;
 }
 
@@ -98,11 +100,11 @@ json resultsOf(const std::vector<affresco::services::SearchFile>& files,
 		}
 		matches += file.matches.size();
 		const std::string count = std::to_string(file.matches.size());
-		tree.push_back(
-		    {{"id", "file:" + file.path},
-			 {"label", folder.empty() ? name + "  (" + count + ")" : name + "  " + folder + "  (" + count + ")"},
-			 {"icon", "file"},
-			 {"children", std::move(children)}});
+		tree.push_back({{"id", "file:" + file.path},
+		                {"label", folder.empty() ? std::format("{}  ({})", name, count)
+		                                         : std::format("{}  {}  ({})", name, folder, count)},
+		                {"icon", "file"},
+		                {"children", std::move(children)}});
 	}
 	return {
 	    {"tree", std::move(tree)},    {"hits", std::move(hits)},        {"files", files.size()}, {"matches", matches},
@@ -249,7 +251,7 @@ json replaceInFolder(const fs::path& root, const json& arguments, const SearchLi
 	        {"failed", std::move(failed)}};
 }
 
-void registerSearch(affresco::Screen& screen, std::shared_ptr<Workspace> workspace) {
+void registerSearch(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace) {
 	// The folder the next search looks in, taken on the main thread, where openFolder changes the workspace
 	struct Scope {
 		std::mutex mutex; ///< Guards root.

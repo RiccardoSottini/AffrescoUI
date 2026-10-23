@@ -3,76 +3,11 @@
 # (cmake/AffrescoUIImages.cmake).
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIImages.cmake)
 affrescoui_module(render
-	src/Accessibility.cpp
-	src/Application.cpp
-	src/Bitmap.cpp
-	src/ImageCache.cpp
-	src/ImageView.cpp
-	src/DiffView.cpp
-	src/TextEditor.cpp
-	src/TextEditorCursors.cpp
-	src/TextEditorFind.cpp
-	src/TextEditorMinimap.cpp
-	src/TextEditorPaint.cpp
-	src/TextEditorPaintView.cpp
-	src/TextEditorView.cpp
-	src/TextModel.cpp
-	src/text/PieceTree.cpp
-	src/Color.cpp
-	src/ColorSpaces.cpp
-	src/ColorPicker.cpp
-	src/ColorPickerPaint.cpp
-	src/CurvesEditor.cpp
-	src/GradientEditor.cpp
-	src/CivilDate.cpp
-	src/Calendar.cpp
-	src/Controls.cpp
-	src/Split.cpp
-	src/Tabs.cpp
-	src/RowWindow.cpp
-	src/ListView.cpp
-	src/TreeView.cpp
-	src/TableView.cpp
-	src/Font.cpp
-	src/FontCache.cpp
-	src/text/FontFace.cpp
-	src/text/FontOutlines.cpp
-	src/text/GlyphAtlas.cpp
-	src/text/LookupSpans.cpp
-	src/text/PlainText.cpp
-	src/text/Shaping.cpp
-	src/Label.cpp
-	src/RichText.cpp
-	src/Panel.cpp
-	src/Stack.cpp
-	src/layout/Flex.cpp
-	src/layout/Grid.cpp
-	src/TextArea.cpp
-	src/Window.cpp
-	src/WindowImage.cpp
-	src/Headless.cpp
-	src/GeometryCache.cpp
-	src/PaintRecorder.cpp
-	src/PathView.cpp
-	src/GraphView.cpp
-	src/TimelineView.cpp
-	src/CodeInput.cpp
-	src/Carousel.cpp
-	src/vector/VectorPath.cpp
-	src/vector/PathFill.cpp
-	src/vector/PathStroke.cpp
-	src/vector/Svg.cpp
-	src/vector/SvgStyle.cpp
-	src/vector/SvgXml.cpp
-	src/vector/MeshRasterizer.cpp
-	src/CanvasView.cpp
-	src/CanvasViewInput.cpp
-	src/SpatialIndex.cpp
-	src/Snapping.cpp
-	src/Rulers.cpp
-	src/platform/GlfwPlatform.cpp
-	src/platform/EmbeddedPlatform.cpp
-	src/platform/EmbeddedPlatformGl.cpp
+	# paint/: what a frame records per panel and replays, behind the Renderer interface
+	src/paint/PaintRecorder.cpp
+	src/paint/GeometryCache.cpp
+	src/paint/WindowImage.cpp
+	# gl/: the OpenGL backend that replays recorded geometry as batched quads
 	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp
 	src/gl/ImageTextures.cpp
@@ -81,10 +16,44 @@ affrescoui_module(render
 	src/gl/SubtreeTextures.cpp
 	src/gl/Shader.cpp
 	src/gl/Stencil.cpp
-	src/gl/SurfaceGuard.cpp
-	src/gl/SurfacePrelude.cpp
-	src/gl/Surfaces.cpp
-	src/gl/SurfaceView.cpp)
+	# gl/surfaces/: panels that draw with their own GL code, inside guarded state
+	src/gl/surfaces/SurfaceGuard.cpp
+	src/gl/surfaces/SurfacePrelude.cpp
+	src/gl/surfaces/Surfaces.cpp
+	src/gl/surfaces/SurfaceView.cpp
+	# font/: font files, faces, glyph lookups and outlines, the glyph atlas and the font cache
+	src/font/Font.cpp
+	src/font/FontCache.cpp
+	src/font/FontFace.cpp
+	src/font/FontOutlines.cpp
+	src/font/GlyphAtlas.cpp
+	src/font/LookupSpans.cpp
+	# text/: shaping, line layout, rich text and the piece tree that stores long texts
+	src/text/PieceTree.cpp
+	src/text/PlainText.cpp
+	src/text/Shaping.cpp
+	src/text/RichText.cpp
+	# vector/: paths, their fill and stroke, SVG and the mesh rasterizer
+	src/vector/VectorPath.cpp
+	src/vector/PathFill.cpp
+	src/vector/PathStroke.cpp
+	src/vector/Svg.cpp
+	src/vector/SvgStyle.cpp
+	src/vector/SvgXml.cpp
+	src/vector/MeshRasterizer.cpp
+	# layout/: the flex and grid layouts of panels
+	src/layout/Flex.cpp
+	src/layout/Grid.cpp
+	# image/: image decoding and caching, colours and colour spaces
+	src/image/Bitmap.cpp
+	src/image/ImageCache.cpp
+	src/image/Color.cpp
+	src/image/ColorSpaces.cpp
+	# spatial/: the spatial index and snapping of canvases
+	src/spatial/SpatialIndex.cpp
+	src/spatial/Snapping.cpp
+	# headless rendering: a window drawn offscreen, for tests, screenshots and agents
+	src/Headless.cpp)
 target_include_directories(affrescoui_render SYSTEM PRIVATE ${stb_image_SOURCE_DIR})
 affrescoui_gl_backend(affrescoui_render) # the glad loader of AFFRESCOUI_GL_BACKEND (cmake/AffrescoUIAngle.cmake)
 # nlohmann_json is public: GpuSurface.hpp hands a surface its document parameters as JSON
@@ -120,9 +89,42 @@ endif()
 # stb_image's JPEG decoder lets signed integers overflow on crafted input (found by the image fuzz target): wrapping
 # is what it expects, so the one file that compiles it wraps, and the sanitizers don't stop there
 if(NOT MSVC)
-	set_source_files_properties(src/Bitmap.cpp PROPERTIES COMPILE_OPTIONS "-fwrapv;-fno-sanitize=signed-integer-overflow")
+	set_source_files_properties(src/image/Bitmap.cpp PROPERTIES COMPILE_OPTIONS "-fwrapv;-fno-sanitize=signed-integer-overflow")
 endif()
 # File dialogs (open, save, choose a folder): nativefiledialog-extended, compiled in (cmake/AffrescoUIDialogs.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIDialogs.cmake)
 target_sources(affrescoui_render PRIVATE src/platform/FileDialogs.cpp)
 affrescoui_file_dialogs(affrescoui_render)
+
+# widgets: the views, the windows and the platform, one line per sub-folder of src/
+# The window, the application loop and the accessibility tree they publish
+target_sources(affrescoui_render PRIVATE src/window/Accessibility.cpp src/window/Application.cpp src/window/Window.cpp
+	src/window/WindowInput.cpp)
+# The panel tree: layout, hit tests, transforms; and the stack
+target_sources(affrescoui_render PRIVATE src/panel/Panel.cpp src/panel/PanelLayout.cpp src/panel/Stack.cpp)
+# The small widgets: labels, fields, controls, dates, tabs, splits, images and paths
+target_sources(affrescoui_render PRIVATE src/widgets/Calendar.cpp src/widgets/Carousel.cpp src/widgets/CivilDate.cpp
+	src/widgets/CodeInput.cpp src/widgets/Controls.cpp src/widgets/ImageView.cpp src/widgets/Label.cpp
+	src/widgets/PathView.cpp src/widgets/Split.cpp src/widgets/Tabs.cpp src/widgets/TextArea.cpp)
+# The virtualised rows: lists, trees and tables
+target_sources(affrescoui_render PRIVATE src/lists/ListView.cpp src/lists/RowWindow.cpp src/lists/TableView.cpp
+	src/lists/TreeView.cpp)
+# The code editor, its text model and the diff view
+target_sources(affrescoui_render PRIVATE src/editor/DiffView.cpp src/editor/TextEditor.cpp
+	src/editor/TextEditorCursors.cpp src/editor/TextEditorFind.cpp src/editor/TextEditorInput.cpp
+	src/editor/TextEditorMinimap.cpp src/editor/TextEditorPaint.cpp src/editor/TextEditorPaintView.cpp
+	src/editor/TextEditorView.cpp src/editor/TextModel.cpp)
+# The colour picker, the curves and the gradient editors
+target_sources(affrescoui_render PRIVATE src/creative/ColorPicker.cpp src/creative/ColorPickerPaint.cpp
+	src/creative/CurvesEditor.cpp src/creative/GradientEditor.cpp)
+# The infinite canvas and its rulers
+target_sources(affrescoui_render PRIVATE src/canvas/CanvasView.cpp src/canvas/CanvasViewInput.cpp src/canvas/Rulers.cpp)
+# The node graph
+target_sources(affrescoui_render PRIVATE src/graph/GraphView.cpp src/graph/GraphModel.cpp src/graph/GraphInput.cpp
+	src/graph/GraphPaint.cpp)
+# The timeline
+target_sources(affrescoui_render PRIVATE src/timeline/TimelineView.cpp src/timeline/TimelineInput.cpp
+	src/timeline/TimelineKeys.cpp src/timeline/TimelineMath.cpp src/timeline/TimelinePaint.cpp)
+# The desktop (GLFW) and embedded platforms; the per-OS parts are above
+target_sources(affrescoui_render PRIVATE src/platform/GlfwPlatform.cpp src/platform/EmbeddedPlatform.cpp
+	src/platform/EmbeddedPlatformGl.cpp)

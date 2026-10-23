@@ -44,6 +44,12 @@
 		"heading": { "type": "label", "height": 22, "textColor": "@muted" }
 	},
 
+	"permissions": {
+		"allow": ["studio"],
+		"ask": ["agent"],
+		"reviewers": ["studio"]
+	},
+
 	"state": {
 		"theme": "light",
 		"file": "sample.sinopia.json",

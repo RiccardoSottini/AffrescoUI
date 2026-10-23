@@ -3,9 +3,10 @@
 #     pipx install ./affrescoui_mcp-<version>-py3-none-any.whl   (from a GitHub release; not on PyPI)
 #     claude mcp add affrescoui -- affrescoui-mcp
 #
-# The server stays one file, affrescoui_mcp.py, run as it is from a checkout. The package puts it in a package
-# folder with the format guide it serves: build it with tools/release/build_mcp.py, which stages this file, the server,
-# SCREEN_FORMAT.md, LICENSE and NOTICE together (RELEASING.md). The version is the library's: check_version.py checks.
+# The server is the package folder affrescoui_mcp/, run from a checkout through affrescoui_mcp.py next to it. The wheel
+# holds that folder with the format guide it serves: build it with tools/release/build_mcp.py, which stages this file,
+# the package, SCREEN_FORMAT.md, LICENSE and NOTICE together (RELEASING.md). The version is the library's:
+# check_version.py checks.
 
 [build-system]
 requires = ["hatchling==1.27.0"]
@@ -40,13 +41,12 @@ Homepage = "https://github.com/RiccardoSottini/AffrescoUI"
 Documentation = "https://github.com/RiccardoSottini/AffrescoUI/blob/master/mcp/README.md"
 Issues = "https://github.com/RiccardoSottini/AffrescoUI/issues"
 
-# The wheel holds a package folder made of the server and the guide it serves (guide_path() finds it there)
+# The wheel holds the server's package folder and the guide it serves (guide_path() finds it there)
 [tool.hatch.build.targets.wheel]
-bypass-selection = true
+packages = ["affrescoui_mcp"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"affrescoui_mcp.py" = "affrescoui_mcp/__init__.py"
 "SCREEN_FORMAT.md" = "affrescoui_mcp/SCREEN_FORMAT.md"
 
 [tool.hatch.build.targets.sdist]
-include = ["affrescoui_mcp.py", "SCREEN_FORMAT.md", "README.md", "LICENSE", "NOTICE", "pyproject.toml"]
+include = ["affrescoui_mcp/*.py", "SCREEN_FORMAT.md", "README.md", "LICENSE", "NOTICE", "pyproject.toml"]

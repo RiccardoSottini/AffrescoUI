@@ -15,9 +15,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <numbers>
 #include <string>
 #include <vector>
+
+// NOLINTBEGIN(modernize-use-std-print): GCC 13, which CI builds with, has no <print>
 
 namespace {
 
@@ -223,7 +226,7 @@ void forwardInput(GLFWwindow* window) {
 	glfwSetCharCallback(window, [](GLFWwindow* from, unsigned int codepoint) {
 		afr_screen* screen = screenOf(from);
 		if(screen == nullptr || codepoint > 0x10FFFF) return;
-		char utf8[4];
+		std::array<char, 4> utf8{};
 		std::size_t length = 0;
 		if(codepoint < 0x80) utf8[length++] = static_cast<char>(codepoint);
 		else if(codepoint < 0x800) {
@@ -238,7 +241,7 @@ void forwardInput(GLFWwindow* window) {
 			utf8[length++] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
 			utf8[length++] = static_cast<char>(0x80 | (codepoint & 0x3F));
 		}
-		afr_screen_text(screen, utf8, length);
+		afr_screen_text(screen, utf8.data(), length);
 	});
 }
 
@@ -313,36 +316,43 @@ void drawFrame(Host& host, double seconds) {
 /// @param count The number of arguments.
 /// @param arguments "--texture" for the UI on the quad.
 /// @return The exit status.
-int main(int count, char** arguments) {
-	Host host;
-	host.texture = count > 1 && std::strcmp(arguments[1], "--texture") == 0;
-	const char* screenshot = std::getenv("AFFRESCOUI_SCREENSHOT");
-	host.window = openWindow(screenshot != nullptr);
-	glfwSetWindowUserPointer(host.window, &host);
-	makeScene(host);
-	openScreen(host);
-	forwardInput(host.window);
-	double seconds = 0.0, last = glfwGetTime();
-	while(glfwWindowShouldClose(host.window) == GLFW_FALSE) {
-		const double now = glfwGetTime();
-		if(!host.paused && screenshot == nullptr) seconds += (now - last) * host.speed;
-		last = now;
-		drawFrame(host, screenshot != nullptr ? 0.6 : seconds);
-		if(screenshot != nullptr) {
-			int width = 0, height = 0;
-			glfwGetFramebufferSize(host.window, &width, &height);
-			writeScreenshot(screenshot, width, height);
-			break;
+int main(int count, char** arguments) { // NOLINT(misc-const-correctness): main's own signature
+	try {
+		Host host;
+		host.texture = count > 1 && std::strcmp(arguments[1], "--texture") == 0;
+		const char* screenshot = std::getenv("AFFRESCOUI_SCREENSHOT");
+		host.window = openWindow(screenshot != nullptr);
+		glfwSetWindowUserPointer(host.window, &host);
+		makeScene(host);
+		openScreen(host);
+		forwardInput(host.window);
+		double seconds = 0.0, last = glfwGetTime();
+		while(glfwWindowShouldClose(host.window) == GLFW_FALSE) {
+			const double now = glfwGetTime();
+			if(!host.paused && screenshot == nullptr) seconds += (now - last) * host.speed;
+			last = now;
+			drawFrame(host, screenshot != nullptr ? 0.6 : seconds);
+			if(screenshot != nullptr) {
+				int width = 0, height = 0;
+				glfwGetFramebufferSize(host.window, &width, &height);
+				writeScreenshot(screenshot, width, height);
+				break;
+			}
+			glfwSwapBuffers(host.window);
+			glfwPollEvents();
 		}
-		glfwSwapBuffers(host.window);
-		glfwPollEvents();
+		afr_screen_destroy(host.screen);
+		glDeleteTextures(1, &host.blank);
+		glDeleteBuffers(1, &host.buffer);
+		glDeleteVertexArrays(1, &host.vertices);
+		glDeleteProgram(host.program);
+		glfwDestroyWindow(host.window);
+		glfwTerminate();
+		return 0;
+	} catch(const std::exception& error) { // out of memory: the calls that fail on their own exit with a message
+		std::fprintf(stderr, "embed: %s\n", error.what());
+		return 1;
 	}
-	afr_screen_destroy(host.screen);
-	glDeleteTextures(1, &host.blank);
-	glDeleteBuffers(1, &host.buffer);
-	glDeleteVertexArrays(1, &host.vertices);
-	glDeleteProgram(host.program);
-	glfwDestroyWindow(host.window);
-	glfwTerminate();
-	return 0;
 }
+
+// NOLINTEND(modernize-use-std-print)

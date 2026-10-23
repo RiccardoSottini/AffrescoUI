@@ -10,7 +10,7 @@ namespace affresco::vcs {
 
 json compositionRevision(const std::string& name, const json& record, std::string_view author, const json& host) {
 	const json proof = record.is_object() ? record.value("proof", json()) : json();
-	if(!proof.is_object() || proof.value("passed", false) != true || proof.value("feature", "") != name)
+	if(!proof.is_object() || !proof.value("passed", false) || proof.value("feature", "") != name)
 		throw DocumentError(std::format("features.{}: only a passed proof of this feature can be installed", name));
 	const bool section = host.contains("features") && host["features"].is_object();
 	return {{"author", author},
@@ -28,8 +28,7 @@ std::string proofLine(const json& record) {
 	};
 	return std::format("proof: {} {} from {}, {}, {} needs bound, {} scenarios", proof.value("feature", ""),
 	                   proof.value("release", ""), proof.value("source", ""),
-	                   proof.value("passed", false) == true ? "passed" : "not passed", count("bindings"),
-	                   count("scenarios"));
+	                   proof.value("passed", false) ? "passed" : "not passed", count("bindings"), count("scenarios"));
 }
 
 } // namespace affresco::vcs

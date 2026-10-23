@@ -42,6 +42,17 @@ constexpr std::array<std::string_view, 21> properties = {
     "tooltip", "checked", "value", "x",           "y",           "width", "height", "scrollX", "scrollY",
     "role",  "name",      "description"};
 
+/// @brief Reads a function key.
+/// @param name "f1" to "f12".
+/// @return The key, or std::nullopt.
+std::optional<Key> functionKey(std::string_view name) {
+	if(name.size() < 2 || name[0] != 'f') return std::nullopt;
+	int number = 0;
+	const auto [end, error] = std::from_chars(name.data() + 1, name.data() + name.size(), number);
+	if(error != std::errc() || end != name.data() + name.size() || number < 1 || number > 12) return std::nullopt;
+	return static_cast<Key>(static_cast<int>(Key::F1) + number - 1);
+}
+
 /// @brief Reads a key without modifiers.
 /// @param name "enter", "a", "7", "f5".
 /// @return The key, or std::nullopt.
@@ -52,13 +63,7 @@ std::optional<Key> keyOf(std::string_view name) {
 		return static_cast<Key>(static_cast<int>(Key::A) + (name[0] - 'a'));
 	if(name.size() == 1 && name[0] >= '0' && name[0] <= '9')
 		return static_cast<Key>(static_cast<int>(Key::Num0) + (name[0] - '0'));
-	int number = 0;
-	if(name.size() >= 2 && name[0] == 'f') {
-		const auto [end, error] = std::from_chars(name.data() + 1, name.data() + name.size(), number);
-		if(error == std::errc() && end == name.data() + name.size() && number >= 1 && number <= 12)
-			return static_cast<Key>(static_cast<int>(Key::F1) + number - 1);
-	}
-	return std::nullopt;
+	return functionKey(name);
 }
 
 /// @brief Reads a modifier.

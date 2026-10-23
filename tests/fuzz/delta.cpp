@@ -6,7 +6,7 @@
 /// json::exception or DocumentError, never crash or assert; and delta(a, b) applied to a must give b, written the
 /// same way.
 
-#include "../../modules/vcs/src/Deltas.hpp" // by its path: clang-tidy reads this file without its include folders
+#include "../../modules/vcs/src/revisions/Deltas.hpp" // by its path: clang-tidy reads this file without its include folders
 #include "Fuzz.hpp"
 
 #include <cstddef>

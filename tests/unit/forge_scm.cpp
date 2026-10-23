@@ -3,7 +3,7 @@
 /// commands Forge allows, the line diff and its gutter marks, and the status of a real repository made in a temporary
 /// folder (skipped where git isn't installed).
 
-#include "Process.hpp"
+#include "process/Process.hpp"
 #include "features/scm/GitArguments.hpp"
 #include "features/scm/GitStatus.hpp"
 #include "features/scm/LineDiff.hpp"

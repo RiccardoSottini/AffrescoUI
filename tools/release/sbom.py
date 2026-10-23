@@ -155,20 +155,43 @@ def check_entries(dependencies):
         if name in seen:
             problems.append(f"{name}: listed twice")
         seen.add(name)
-        if entry.get("kind") not in KINDS:
-            problems.append(f"{name}: kind is not one of {', '.join(KINDS)}")
-        if entry.get("scope") not in SCOPES:
-            problems.append(f"{name}: scope is not one of {', '.join(SCOPES)}")
-        files = entry.get("files", [])
-        hashes = [f.get("sha256") for f in files] if entry.get("kind") == "vendored" else [entry.get("sha256")]
-        if entry.get("kind") == "toolchain":
-            hashes = []  # fetched by the compiler's own toolchain: no hash to pin here
-        if entry.get("kind") == "vendored" and not files:
-            problems.append(f"{name}: a vendored component lists no files")
-        if entry.get("kind") in ("downloaded", "python") and not entry.get("pinnedIn"):
-            problems.append(f"{name}: no pinnedIn")
-        problems += [f"{name}: missing pin (no SHA-256)" for h in hashes if not h or not SHA256.match(h)]
+        problems += check_kind(entry, name)
+        problems += check_pins(entry, name)
         problems += check_licence(entry)
+    return problems
+
+
+def check_kind(entry, name):
+    """The kind and scope problems of one entry: either one not among those the manifest knows. Returns a list of
+    messages."""
+    problems = []
+    if entry.get("kind") not in KINDS:
+        problems.append(f"{name}: kind is not one of {', '.join(KINDS)}")
+    if entry.get("scope") not in SCOPES:
+        problems.append(f"{name}: scope is not one of {', '.join(SCOPES)}")
+    return problems
+
+
+def pinned_hashes(entry):
+    """The SHA-256 hashes an entry pins: one per file of a vendored component, its own for a download, none for what
+    the compiler's toolchain fetches (there is no hash to pin here)."""
+    kind = entry.get("kind")
+    if kind == "toolchain":
+        return []
+    if kind == "vendored":
+        return [f.get("sha256") for f in entry.get("files", [])]
+    return [entry.get("sha256")]
+
+
+def check_pins(entry, name):
+    """The pin problems of one entry: a vendored component with no files, a download with no pinnedIn, and a hash
+    that is missing or isn't a SHA-256. Returns a list of messages."""
+    problems = []
+    if entry.get("kind") == "vendored" and not entry.get("files", []):
+        problems.append(f"{name}: a vendored component lists no files")
+    if entry.get("kind") in ("downloaded", "python") and not entry.get("pinnedIn"):
+        problems.append(f"{name}: no pinnedIn")
+    problems += [f"{name}: missing pin (no SHA-256)" for h in pinned_hashes(entry) if not h or not SHA256.match(h)]
     return problems
 
 
@@ -211,15 +234,22 @@ def check_downloads(root, dependencies, files):
         elif pinned not in listed:
             problems.append(f"{path}: {name} ({pinned[:12]}...) is not in {MANIFEST}")
     for entry in dependencies:
-        if entry.get("kind") not in ("downloaded", "vendored") or not entry.get("pinnedIn"):
-            continue
-        text = read_text(root, entry["pinnedIn"])
-        hashes = [entry["sha256"]] if entry["kind"] == "downloaded" else [f["sha256"] for f in entry["files"]]
-        for value in hashes:
-            if value not in text:
-                problems.append(f"{entry['name']}: hash mismatch: {value[:12]}... is not in {entry['pinnedIn']}")
-        if entry["kind"] == "downloaded" and entry["version"] not in text + entry["url"]:
-            problems.append(f"{entry['name']}: version {entry['version']} is not in {entry['pinnedIn']}")
+        if entry.get("kind") in ("downloaded", "vendored") and entry.get("pinnedIn"):
+            problems += check_pinned_in(root, entry)
+    return problems
+
+
+def check_pinned_in(root, entry):
+    """The problems of one download or vendored component with the file it says pins it: a hash, or a download's
+    version, that isn't in that file. Returns a list of messages."""
+    problems = []
+    text = read_text(root, entry["pinnedIn"])
+    hashes = [entry["sha256"]] if entry["kind"] == "downloaded" else [f["sha256"] for f in entry["files"]]
+    for value in hashes:
+        if value not in text:
+            problems.append(f"{entry['name']}: hash mismatch: {value[:12]}... is not in {entry['pinnedIn']}")
+    if entry["kind"] == "downloaded" and entry["version"] not in text + entry["url"]:
+        problems.append(f"{entry['name']}: version {entry['version']} is not in {entry['pinnedIn']}")
     return problems
 
 

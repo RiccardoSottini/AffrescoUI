@@ -11,8 +11,8 @@
 #include <affresco/render/Font.hpp>
 
 #include "detail/Utf8.hpp"
-#include "text/FontInspector.hpp"
-#include "text/LookupSpans.hpp"
+#include "font/FontInspector.hpp"
+#include "font/LookupSpans.hpp"
 #include "Templates.hpp"
 
 #include <doctest/doctest.h>
@@ -227,4 +227,13 @@ TEST_CASE("plain text: turning the fast path off makes every word shaped, and me
 	CHECK_FALSE(FontInspector::isPlain(*font, U"Onboarding"));
 	FontInspector::setPlainTextEnabled(*font, true);
 	CHECK(FontInspector::isPlain(*font, U"Onboarding"));
+}
+
+// Found by fuzzing (tests/fuzz, richtext, under UBSan): a run of spaces trimmed to an empty view with no pointer was
+// measured by passing that null pointer to memcmp(), which is undefined even for no bytes
+TEST_CASE("plain text: an empty text that holds no pointer measures as nothing") {
+	const auto font = Font::load(fonts() / "Roboto-Regular.ttf", 16.0f);
+	CHECK(font->measure(std::u32string_view()) == 0.0f);
+	CHECK(font->measure(U"a") > 0.0f);
+	CHECK(font->measure(std::u32string_view()) == 0.0f);
 }

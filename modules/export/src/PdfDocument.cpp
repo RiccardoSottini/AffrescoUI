@@ -67,7 +67,8 @@ void PdfDocument::addPage(const Panel& root, const Rect& area, Vec2 pageSize) {
 	if(!state_) throw std::runtime_error("PDF document already finished");
 	if(state_->pages.size() >= state_->limits.pages)
 		throw std::runtime_error("PDF has too many pages (at most " + std::to_string(state_->limits.pages) + ")");
-	if(!(pageSize.x > 0.0f && pageSize.y > 0.0f && pageSize.x <= 14400.0f && pageSize.y <= 14400.0f))
+	const bool sizeInRange = pageSize.x > 0.0f && pageSize.y > 0.0f && pageSize.x <= 14400.0f && pageSize.y <= 14400.0f;
+	if(!sizeInRange) // NaN too: every comparison with it is false
 		throw std::runtime_error("PDF page size out of range (1 to 14400 points)");
 	// Window units onto the page: the area fitted and centred, y down (the page's origin is its bottom-left corner)
 	const float scale = area.width() > 0.0f && area.height() > 0.0f

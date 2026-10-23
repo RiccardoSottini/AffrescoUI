@@ -4,7 +4,7 @@
 /// @brief Sinopia's native functions: loading, editing and drawing decks, thumbnails for the sorter, the presenter's
 /// audience window, and exporting to PDF and PNG.
 
-#include "Deck.hpp"
+#include "deck/Deck.hpp"
 
 #include <affresco/affresco.hpp>
 

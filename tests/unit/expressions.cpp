@@ -4,6 +4,7 @@
 
 #include "Expression.hpp"
 #include "ExpressionFunctions.hpp"
+#include "Helpers.hpp"
 #include "Value.hpp"
 
 #include <doctest/doctest.h>
@@ -34,6 +35,23 @@ struct Case {
 std::string parentheses(int depth) {
 	const auto n = static_cast<std::size_t>(depth);
 	return std::string(n, '(') + "1" + std::string(n, ')');
+}
+
+/// @brief An expression whose value is infinity: two large numbers multiplied (literals have no exponents).
+/// @return It.
+std::string infinity() {
+	const std::string large = "1" + std::string(300, '0') + ".0";
+	return "(" + large + " * " + large + ")";
+}
+
+/// @brief Paths nested inside the brackets of paths, as paths were written before expressions.
+/// @param depth How many.
+/// @return E.g. "state.items[state.items[0]]" for 2.
+std::string nestedPaths(int depth) {
+	const auto n = static_cast<std::size_t>(depth);
+	std::string text;
+	for(std::size_t i = 0; i < n; ++i) text += "state.items[";
+	return text + "0" + std::string(n, ']');
 }
 
 /// @brief Parses JSON written in a row.
@@ -175,6 +193,23 @@ const std::vector<Case> cases = {
     {"{{" + std::string(99, '!') + "true}}", {}, "nested too deeply"},
     {"{{" + std::string(200, '!') + "true}}", {}, "nested too deeply"},
     {"{{" + std::string(200, '[') + " 1 " + std::string(200, ']') + "}}", {}, "nested too deeply"},
+    // Text that fails to parse may be read as a path, whose brackets were read without the limit, to a crash
+    {"{{" + nestedPaths(20000) + "}}", {}, "nested too deeply"},
+    {{{"$path", nestedPaths(20000)}}, {}, "nested too deeply"},
+    // A text an expression builds is at most 64 MiB: a join of joins could ask for gigabytes (here ~69 MB, ~42 MB)
+    {"{{length(join(range(500), join(range(10000), 'aaaaaaaaaa')))}}", {}, "text too long (more than 64 MiB)"},
+    {"{{join(range(300), join(range(10000), 'aaaaaaaaaa'))}}{{join(range(300), join(range(10000), 'aaaaaaaaaa'))}}",
+     {},
+     "text too long"},
+    {"{{length(concat(join(range(300), join(range(10000), 'aaaaaaaaaa')), join(range(300), join(range(10000), "
+     "'aaaaaaaaaa'))))}}",
+     {},
+     "text too long"},
+    {"{{length(join(range(300), join(range(10000), 'aaaaaaaaaa')) + join(range(300), join(range(10000), "
+     "'aaaaaaaaaa')))}}",
+     {},
+     "text too long"},
+    {"{{length(join(range(300), join(range(10000), 'aaaaaaaaaa')))}}", 41525910, {}},
     // A "$path" that isn't text was a json::type_error, which the runtime doesn't catch: now it is a document error
     {J(R"({"$path": 5})"), {}, "test.$path: expected a path written as text"},
     // `||` and `&&` give an operand, like JavaScript (D1): the first that decides, else the last
@@ -241,6 +276,11 @@ const std::vector<Case> cases = {
     {"{{fuzzy('z', 'abc')}}", nullptr, {}},
     {"{{fuzzySort(state.items, 'z')}}", json::array(), {}},
     {"{{fuzzySort(state.items, 'b')[0].item}}", "b", {}},
+    // A limit that isn't a number (infinity minus infinity) gives nothing: it was cast with no defined result
+    {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, " + infinity() + " - " + infinity() + "))}}", 0, {}},
+    {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, " + infinity() + "))}}", 3, {}},
+    {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, 2.7))}}", 2, {}},
+    {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, -1))}}", 0, {}},
     {"{{clamp(1.5, 0, 1)}}", J(R"(1.0)"), {}},
     // Dates, "YYYY-MM-DD": tests/unit/date_civil.cpp has the calendar arithmetic
     {"{{isDate(today())}}", true, {}},
@@ -386,6 +426,13 @@ const std::vector<Case> cases = {
     {"{{sort([3, 1, 2])}}", J(R"([1,2,3])"), {}},
     {"{{sort(['b', 'a', 'C'], it, 'desc')}}", J(R"(["b","a","C"])"), {}},
     {"{{sort([{a: 2}, {a: 1}], it)}}", J(R"([{"a":1},{"a":2}])"), {}},
+    // Numbers by size among themselves; with anything else, every key by its text (or its JSON text)
+    {"{{sort([2, 'b', 1, null, {b: 1}, true, 'a'])}}", J(R"([1,2,"a","b",null,true,{"b":1}])"), {}},
+    {"{{sort([10, 9, 1.5])}}", J(R"([1.5,9,10])"), {}},
+    {"{{sort([{k: 1, i: 0}, {k: 2, i: 1}, {k: 1, i: 2}], it.k, 'desc')}}",
+	 J(R"([{"k":2,"i":1},{"k":1,"i":0},{"k":1,"i":2}])"),
+	 {}},
+    {"{{sort([[2], [1, 3], [1]], it)}}", J(R"([[1,3],[1],[2]])"), {}},
     {"{{filter()}}", {}, "test.$filter: expected [list, expression]"},
     {J(R"({"$filter": 3})"), {}, "test.$filter: expected [list, expression]"},
     {"{{it}}", "outer", {}},
@@ -556,6 +603,31 @@ TEST_CASE("format: values are small, cheap to copy, and read JSON in place") {
 	CHECK(Value::fromText(std::string_view("\xC3")).toText() == "\xC3"); // a text is given back as it is
 	CHECK(Value::fromList({Value::fromText(std::string_view("\xC3"))}).toText() ==
 	      "[\"\xEF\xBF\xBD\"]"); // JSON: replaced
+}
+
+// An object written in an expression found each of its keys among those before it, when it was read and again each
+// time it was made, and so did merge(): one of a hundred thousand keys took seconds, at each frame that showed it
+TEST_CASE("format: an object of many keys is made at the cost of its size" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
+	std::string keys;
+	for(int i = 0; i < 100000; ++i) keys += (i ? ", k" : "k") + std::to_string(i) + ": " + std::to_string(i);
+	CHECK(evaluate("{{ ({" + keys + "}).k99999 }}") == 99999);                     // made once, when compiled
+	CHECK(evaluate("{{ ({" + keys + ", count: state.count}).k99999 }}") == 99999); // made when evaluated
+	CHECK(evaluate("{{ merge({" + keys + "}, {k5: 'five'}).k5 }}") == "five");
+
+	// A key written again keeps its first place and takes its last value, among a few keys and among many
+	CHECK(evaluate("{{ {a: 1, b: 2, a: state.count} }}").dump() == R"({"a":3,"b":2})");
+	std::string many = "{";
+	for(int i = 0; i < 20; ++i) many += "k" + std::to_string(i) + ": " + std::to_string(i) + ", ";
+	const json written = evaluate("{{ " + many + "k3: 'again', k0: state.count} }}");
+	REQUIRE(written.size() == 20);
+	CHECK(written.begin().key() == "k0");
+	CHECK(written["k0"] == 3);
+	CHECK(std::next(written.begin(), 3).key() == "k3");
+	CHECK(written["k3"] == "again");
+	CHECK(evaluate("{{ merge(" + many + "k3: 1}, {k3: 2, z: 0}) }}")
+	          .dump()
+	          .starts_with(R"({"k0":0,"k1":1,"k2":2,"k3":2,)"));
 }
 
 TEST_CASE("format: an expression still running survives the compile cache being cleared under it") {

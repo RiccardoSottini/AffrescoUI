@@ -162,6 +162,15 @@ TEST_CASE("i18n: malformed messages are refused, with where") {
 	CHECK(read == std::vector<std::string>{"a", "b"});
 }
 
+TEST_CASE("i18n: a short message can't repeat a long parameter into a huge text") {
+	// 100 copies of 1 MiB would be 100 MiB: past the longest text an expression builds, so the message is shown as is
+	std::string message;
+	for(int i = 0; i < 100; ++i) message += "{p}";
+	const Value values = parameters({{"p", Value::fromText(std::string(1u << 20, 'a'))}});
+	CHECK(affresco::format::formatMessage(message, values, findLocale("en")) == message);
+	CHECK(affresco::format::formatMessage("{p}{p}", values, findLocale("en")).size() == 2u << 20);
+}
+
 TEST_CASE("i18n: numbers, percents and currencies in the locale's way") {
 	using affresco::format::detail::formatCurrency;
 	using affresco::format::detail::formatNumber;
@@ -215,6 +224,17 @@ TEST_CASE("i18n: lists are joined, and text is compared letters first, then acce
 	CHECK(formatList(findLocale("en"), std::vector<std::string>{"tea", "coffee"}, true) == "tea or coffee");
 	CHECK(formatList(findLocale("en"), std::vector<std::string>{"alone"}, false) == "alone");
 	CHECK(formatList(findLocale("en"), std::vector<std::string>{}, false).empty());
+	const std::vector<std::string> five{"a", "b", "c", "d", "e"};
+	CHECK(formatList(findLocale("en"), five, true) == "a, b, c, d, or e");
+	CHECK(formatList(findLocale("ja"), five, true) == "a、b、c、d、またはe");
+	// formatList writes each pattern up to its {1} and the rest after the inner ones: one {1} in each
+	for(const auto& locale : affresco::format::detail::localeData())
+		for(const auto* patterns : {&locale.andList, &locale.orList})
+			for(const std::string_view pattern : *patterns) {
+				CAPTURE(pattern);
+				CHECK(pattern.find("{1}") != std::string_view::npos);
+				CHECK(pattern.find("{1}") == pattern.rfind("{1}"));
+			}
 
 	CHECK(compareText("apple", "Banana") < 0);
 	CHECK(compareText("e", "é") < 0);

@@ -4,12 +4,16 @@
 
 #include <affresco/Screen.hpp>
 
+#include "StateFile.hpp"                // modules/screen/src
+#include "features/FeaturesService.hpp" // modules/screen/src
+
 #include <doctest/doctest.h>
 
 #include <cstddef>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <optional>
 #include <memory>
 #include <string>
@@ -40,7 +44,10 @@ public:
 	ScopedVariable& operator=(const ScopedVariable&) = delete;
 
 	/// @brief Puts the old value back.
-	~ScopedVariable() { set(old_.value_or("")); }
+	~ScopedVariable() {
+		if(old_) set(*old_);
+		else set({});
+	}
 
 private:
 	/// @brief Reads the variable.
@@ -60,7 +67,7 @@ private:
 
 	/// @brief Sets or unsets the variable.
 	/// @param value The value; empty to unset it.
-	void set(const std::string& value) const {
+	void set(const std::string& value) const noexcept {
 #ifdef _WIN32
 		_putenv_s(name_.c_str(), value.c_str()); // an empty value unsets it
 #else
@@ -156,3 +163,38 @@ TEST_CASE("screen: a screen nested deeper than the limit is refused, not parsed"
 	CHECK_THROWS_WITH_AS((void)affresco::Screen::fromString(screenNestedIn(200000)),
 	                     doctest::Contains("nested more than 256 levels deep"), affresco::ScreenError);
 }
+
+// Before, a submission queued by the features service checked only that the guard had expired, and other tasks still
+// queued keep it from expiring: after the Screen ended, the submission reached its repository, already destroyed
+TEST_CASE("screen: a task queued by a screen that has ended does nothing, while other queued tasks hold its guard") {
+	auto alive = std::make_shared<bool>(true);
+	const std::weak_ptr<bool> guard = alive;
+	CHECK(affresco::detail::screenAlive(guard));
+
+	const std::shared_ptr<bool> heldByAnotherTask = alive;
+	*alive = false; // the Screen's destructor
+	alive.reset();
+	CHECK_FALSE(guard.expired());
+	CHECK_FALSE(affresco::detail::screenAlive(guard));
+	CHECK_FALSE(affresco::detail::screenAlive(std::weak_ptr<bool>()));
+}
+
+#ifndef _WIN32
+// Before, a new state file was created as the process's umask allows, most often readable by every user
+TEST_CASE("screen: a new state file is readable by its owner only, and one already there keeps its permissions") {
+	const TemporaryFolder folder;
+	namespace fs = std::filesystem;
+	const fs::path created = folder.path / "new.state.json";
+	REQUIRE(affresco::detail::writeStateFile(created, "{}\n"));
+	CHECK(fs::status(created).permissions() == (fs::perms::owner_read | fs::perms::owner_write));
+
+	const fs::path existing = folder.path / "old.state.json";
+	write(existing, "{ \"/count\": 1 }");
+	fs::permissions(existing, fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read);
+	REQUIRE(affresco::detail::writeStateFile(existing, "{}\n"));
+	CHECK(fs::status(existing).permissions() ==
+	      (fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read));
+	std::ifstream in(existing);
+	CHECK(std::string(std::istreambuf_iterator<char>(in), {}) == "{}\n");
+}
+#endif

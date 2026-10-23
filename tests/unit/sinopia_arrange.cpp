@@ -2,7 +2,7 @@
 /// @brief Sinopia's arranging (examples/sinopia): align, distribute, z-order, nudge, group and ungroup, and locked
 /// objects staying put.
 
-#include <sinopia/Arrange.hpp>
+#include <sinopia/deck/Arrange.hpp>
 
 #include <doctest/doctest.h>
 

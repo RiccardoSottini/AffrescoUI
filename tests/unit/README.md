@@ -63,7 +63,7 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
   test files don't touch a shared file.
 - A new expression is one more row in the table in `expressions.cpp`: the value, and its result or the error text.
 - Tests pin behaviour through the public headers. Private ones are fine when a module's logic lives there:
-  `modules/format/src` is on the include path for `Expression.hpp`. Don't make a header public for a test.
+  `modules/format/src` and its sub-folders are on the include path for `Expression.hpp`. Don't make a header public for a test.
 - Tests don't need a display or a network, so they run anywhere, CI included. Use a headless window for anything
   that happens on a window; only the files in `window/` need OpenGL. A test that needs files makes them in a temporary folder of its own and removes it
   (`history.cpp`, `sockets.cpp`, `peers.cpp`, `screen.cpp`); `protocol.cpp` reads `SCREEN_FORMAT.md`, `text.cpp`,
@@ -73,7 +73,7 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
 - Property tests (`vcs_properties.cpp`) draw from `std::mt19937` with a fixed seed and read it with `%`, never
   through a `std::uniform_*_distribution`, whose numbers differ between standard libraries: a seed then gives the
   same cases on every platform. `CAPTURE` the seed and the step, so a failure says how to repeat it.
-- CI holds a coverage floor for `core`, `vcs`, `channel` and `format/Rules.cpp`
+- CI holds a coverage floor for `core`, `vcs`, `channel`, `format/Rules.cpp` and `format/RulesControl.cpp`
   (`tools/quality/coverage-baseline.json`): a change that lowers their line coverage below it fails `Quality report`.
 - Don't change library code to make a test pass. If a test finds a bug, keep it, mark it `* doctest::skip(true)`
   with a comment that describes the bug, and report it.

@@ -4,7 +4,7 @@
 
 #include "platform/EmbeddedPlatform.hpp"
 
-#include "Renderer.hpp"
+#include "paint/Renderer.hpp"
 #include "gl/OpenGlRenderer.hpp"
 
 #include "affresco/core/Executor.hpp"
@@ -101,6 +101,7 @@ struct Embedding::Impl {
 	/// @return It.
 	std::unique_ptr<platform::NativeWindow> createNative(const std::string& title, int width, int height) {
 		auto created = platform.createWindow(title, width, height);
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast): EmbeddedPlatform makes only EmbeddedWindows
 		embedded = static_cast<platform::EmbeddedWindow*>(created.get());
 		return created;
 	}
@@ -123,7 +124,7 @@ struct Embedding::Impl {
 	/// @brief Runs the posted tasks, the ones they post waiting for the next call.
 	void runPosted() {
 		{
-			const std::lock_guard lock(mutex);
+			const std::scoped_lock lock(mutex);
 			running.swap(posted);
 		}
 		affresco::runTasks(running); // keeps its capacity (no allocation per frame), and is emptied even if one throws
@@ -135,21 +136,26 @@ struct Embedding::Impl {
 	/// @param scale Pixels per window unit.
 	void draw(int width, int height, float scale) {
 		embedded->resize(width, height, scale);
-		target->resize(width, height);
-		rendererOf->setOutputFramebuffer(target->framebuffer());
+		frames().resize(width, height);
+		rendererOf->setOutputFramebuffer(frames().framebuffer());
 		runPosted();
 		window->render();
 	}
 
-	platform::EmbeddedPlatform platform;                   ///< Opens the native window.
-	platform::EmbeddedWindow* embedded = nullptr;          ///< The native window, owned by the Window.
-	std::unique_ptr<platform::NativeWindow> native;        ///< Until the Window takes it.
-	detail::Renderer* rendererOf = nullptr;                ///< The window's renderer, owned by the Window.
-	std::unique_ptr<Window> window;                        ///< The window.
-	std::optional<gl::EmbeddedTarget> target;             ///< Its frames; after the window, which loads OpenGL.
-	std::mutex mutex;                                      ///< Guards posted.
-	std::vector<std::function<void()>> posted;             ///< Tasks posted from any thread.
-	std::vector<std::function<void()>> running;            ///< The tasks being run.
+	/// @brief The target, made by the constructor and kept until the destructor.
+	/// @return It.
+	// NOLINTNEXTLINE(bugprone-unchecked-optional-access): set from the constructor until the destructor
+	gl::EmbeddedTarget& frames() { return target.value(); }
+
+	platform::EmbeddedPlatform platform;            ///< Opens the native window.
+	platform::EmbeddedWindow* embedded = nullptr;   ///< The native window, owned by the Window.
+	std::unique_ptr<platform::NativeWindow> native; ///< Until the Window takes it.
+	detail::Renderer* rendererOf = nullptr;         ///< The window's renderer, owned by the Window.
+	std::unique_ptr<Window> window;                 ///< The window.
+	std::optional<gl::EmbeddedTarget> target;       ///< Its frames; after the window, which loads OpenGL.
+	std::mutex mutex;                               ///< Guards posted.
+	std::vector<std::function<void()>> posted;      ///< Tasks posted from any thread.
+	std::vector<std::function<void()>> running;     ///< The tasks being run.
 };
 
 namespace {
@@ -178,7 +184,7 @@ Embedding::~Embedding() {
 Window& Embedding::window() noexcept { return *impl_->window; }
 
 void Embedding::post(std::function<void()> task) {
-	const std::lock_guard lock(impl_->mutex);
+	const std::scoped_lock lock(impl_->mutex);
 	impl_->posted.push_back(std::move(task));
 }
 
@@ -202,7 +208,7 @@ bool Embedding::frame(int width, int height, float scale, unsigned framebuffer) 
 	if(!drawable(width, height, scale)) return false;
 	const gl::SavedState saved;
 	impl_->draw(width, height, scale);
-	impl_->target->composite(framebuffer, width, height);
+	impl_->frames().composite(framebuffer, width, height);
 	return true;
 }
 
@@ -210,14 +216,14 @@ unsigned Embedding::renderTexture(int width, int height, float scale) {
 	if(!drawable(width, height, scale)) return 0;
 	const gl::SavedState saved;
 	impl_->draw(width, height, scale);
-	return impl_->target->texture();
+	return impl_->frames().texture();
 }
 
 std::vector<std::uint8_t> Embedding::renderPixels(int width, int height, float scale) {
 	if(!drawable(width, height, scale)) return {};
 	const gl::SavedState saved;
 	impl_->draw(width, height, scale);
-	return impl_->target->pixels();
+	return impl_->frames().pixels();
 }
 
 } // namespace affresco

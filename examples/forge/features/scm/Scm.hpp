@@ -33,6 +33,6 @@ namespace forge {
 /// repository above it; with no folder open a run is refused.
 /// @param screen The screen.
 /// @param workspace The open folder.
-void registerScm(affresco::Screen& screen, std::shared_ptr<Workspace> workspace);
+void registerScm(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace);
 
 } // namespace forge

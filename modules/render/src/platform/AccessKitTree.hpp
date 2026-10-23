@@ -7,7 +7,7 @@
 
 #include "affresco/render/Accessibility.hpp"
 
-#if defined(_WIN32)
+#ifdef _WIN32
 #include <windows.h> // accesskit.h names HWND, WPARAM and LPARAM
 #endif
 #include <accesskit.h>

@@ -53,8 +53,9 @@ scene3d::Scene heavyScene() {
 			node.id = "sphere-" + std::to_string(row) + "-" + std::to_string(column);
 			node.name = node.id;
 			node.mesh = "bench:sphere";
-			node.transform.translation = {static_cast<float>(column - side / 2) * 2.5f, 1.0f,
-			                              static_cast<float>(row - side / 2) * 2.5f};
+			constexpr int middle = side / 2; // the grid's centre, a whole sphere
+			node.transform.translation = {static_cast<float>(column - middle) * 2.5f, 1.0f,
+			                              static_cast<float>(row - middle) * 2.5f};
 			scene.nodes.push_back(std::move(node));
 		}
 	scene3d::Node sun;
@@ -146,7 +147,8 @@ void picking(const scene3d::Assets& assets, const scene3d::Scene& scene) {
 	int pixel = 0, hits = 0;
 	timed("modello/pick-200k", pickBudget, [&] {
 		pixel = (pixel + 7919) % (width * height); // a prime step: a new place every time
-		const scene3d::Ray ray = camera.rayThrough(static_cast<float>(pixel % width), static_cast<float>(pixel / width),
+		const int column = pixel % width, line = pixel / width;
+		const scene3d::Ray ray = camera.rayThrough(static_cast<float>(column), static_cast<float>(line),
 		                                           static_cast<float>(width), static_cast<float>(height));
 		if(scene3d::pickNode(scene, assets, ray)) ++hits;
 	});

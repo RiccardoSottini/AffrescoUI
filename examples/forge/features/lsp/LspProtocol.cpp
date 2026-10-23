@@ -6,9 +6,8 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <map>
+#include <format>
 #include <stdexcept>
-#include <system_error>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -120,8 +119,8 @@ constexpr std::array<std::string_view, 25> completionKinds = {
 template <std::size_t N> std::string kindName(const std::array<std::string_view, N>& names, const json& kind) {
 	if(!kind.is_number_integer()) return {};
 	const long long value = kind.get<long long>();
-	return value >= 1 && value <= static_cast<long long>(N) ? std::string(names[static_cast<std::size_t>(value - 1)])
-	                                                        : std::string();
+	return value >= 1 && std::cmp_less_equal(value, N) ? std::string(names[static_cast<std::size_t>(value - 1)])
+	                                                   : std::string();
 }
 
 /// @brief Markdown or plain text from a hover's or an item's documentation.
@@ -366,6 +365,15 @@ json signature(const json& result, const Limits& limits) {
 	        {"count", signatures.size()}};
 }
 
+/// @brief One number of a semantic token.
+/// @param value The number.
+/// @return It, at most largestPosition, or 0 if it isn't a whole number from 0.
+std::size_t tokenField(const json& value) {
+	return value.is_number_integer() && value.get<long long>() >= 0 // whichever way it was read
+	           ? std::min(value.get<std::size_t>(), largestPosition)
+	           : 0;
+}
+
 /// @brief Decodes semantic tokens with their legend.
 /// @param result `{ "data": [5 numbers per token], "legend": { "tokenTypes" } }`.
 /// @param id The file.
@@ -381,12 +389,8 @@ json tokens(const json& result, const std::string& id, const Limits& limits, con
 	for(const json& type : types) styles.push_back(type.is_string() ? styleOfToken(type.get<std::string>()) : "");
 	std::size_t line = 0, start = 0;
 	for(std::size_t i = 0; i + 5 <= data.size() && runs.size() < limits.tokens; i += 5) {
-		std::array<std::size_t, 4> field{};
-		for(std::size_t k = 0; k < field.size(); ++k)
-			field[k] = data[i + k].is_number_integer() && data[i + k].get<long long>() >= 0 // whichever way it was read
-			               ? std::min(data[i + k].get<std::size_t>(), largestPosition)
-			               : 0;
-		const auto [deltaLine, deltaStart, length, type] = field;
+		const auto [deltaLine, deltaStart, length, type] = std::array{
+		    tokenField(data[i]), tokenField(data[i + 1]), tokenField(data[i + 2]), tokenField(data[i + 3])};
 		line = std::min(line + deltaLine, largestPosition);
 		start = deltaLine > 0 ? deltaStart : std::min(start + deltaStart, largestPosition);
 		if(type >= styles.size() || styles[type].empty() || length == 0) continue;
@@ -399,6 +403,16 @@ json tokens(const json& result, const std::string& id, const Limits& limits, con
 			runs.push_back({{"line", line}, {"column", column}, {"length", end - column}, {"style", styles[type]}});
 	}
 	return runs;
+}
+
+/// @brief A diagnostic's severity and its squiggle's color.
+/// @param diagnostic The diagnostic: its severity is 1 for an error, 2 (or none) for a warning, else information.
+/// @return Its Problems severity and its color.
+std::pair<const char*, const char*> severityOf(const json& diagnostic) {
+	const std::size_t level = number(diagnostic, "severity");
+	if(level == 1) return {"error", "#f85149"};
+	if(level == 2 || level == 0) return {"warning", "#cca700"};
+	return {"info", "#3794ff"};
 }
 
 /// @brief A file's diagnostics as Problems rows and squiggles.
@@ -417,14 +431,12 @@ json diagnostics(const json& params, const fs::path& root, const Limits& limits,
 	if(list.is_array())
 		for(const json& diagnostic : list) {
 			if(items.size() >= limits.diagnostics) break;
-			const std::size_t level = number(diagnostic, "severity");
-			const char* severity = level == 1 ? "error" : level == 2 || level == 0 ? "warning" : "info";
-			const char* color = level == 1 ? "#f85149" : level == 2 || level == 0 ? "#cca700" : "#3794ff";
+			const auto [severity, color] = severityOf(diagnostic);
 			Span span = spanOf(member(diagnostic, "range"), *id, columns);
 			const std::string message = text(diagnostic, "message", limits.text);
 			const std::string origin = text(diagnostic, "source", 64);
 			items.push_back({{"severity", severity},
-			                 {"message", origin.empty() ? message : message + " (" + origin + ")"},
+			                 {"message", origin.empty() ? message : std::format("{} ({})", message, origin)},
 			                 {"file", *id},
 			                 {"label", fileName(*id)},
 			                 {"line", span.line + 1},
@@ -442,14 +454,18 @@ json diagnostics(const json& params, const fs::path& root, const Limits& limits,
 	return {{"id", *id}, {"items", std::move(items)}, {"decorations", std::move(decorations)}, {"truncated", truncated}};
 }
 
-/// @brief The value of a hexadecimal digit.
-/// @param c The character.
-/// @return 0 to 15, or -1.
-int hexValue(char c) {
-	if(c >= '0' && c <= '9') return c - '0';
-	if(c >= 'a' && c <= 'f') return c - 'a' + 10;
-	if(c >= 'A' && c <= 'F') return c - 'A' + 10;
-	return -1;
+/// @brief A formatting's edits, all of one file.
+/// @param result textDocument/formatting's result: TextEdit[] or null.
+/// @param id The file.
+/// @param limits The limits.
+/// @param columns The mapper.
+/// @return `{ "edits", "files", "truncated" }`, or `{ "error" }`.
+json formatting(const json& result, const std::string& id, const Limits& limits, const ColumnMapper& columns) {
+	json edits = json::array();
+	if(!result.is_null())
+		if(auto problem = addEdits(id, result, limits, columns, edits)) return {{"error", *problem}};
+	const bool none = edits.empty();
+	return {{"edits", std::move(edits)}, {"files", none ? 0 : 1}, {"truncated", false}};
 }
 
 /// @brief The byte offset of a position (from 1, columns in code points) in a text.
@@ -473,61 +489,6 @@ std::optional<std::size_t> offsetIn(const std::vector<std::size_t>& lineStarts, 
 
 } // namespace
 
-std::string uriOf(const fs::path& root, std::string_view id) {
-	std::string path = (id.empty() ? root : root / fs::path(std::string(id))).lexically_normal().generic_string();
-	if(path.size() > 1 && path.back() == '/') path.pop_back();
-	if(path.empty() || path.front() != '/') path.insert(path.begin(), '/'); // C:/x becomes /C:/x
-	std::string uri = "file://";
-	constexpr char digits[] = "0123456789ABCDEF";
-	for(const char c : path) {
-		const auto byte = static_cast<unsigned char>(c);
-		if(std::isalnum(byte) || c == '/' || c == '-' || c == '.' || c == '_' || c == '~') uri += c;
-		else {
-			uri += '%';
-			uri += digits[byte >> 4];
-			uri += digits[byte & 0xF];
-		}
-	}
-	return uri;
-}
-
-std::optional<std::string> idOfUri(const fs::path& root, std::string_view uri) {
-	constexpr std::string_view scheme = "file://";
-	if(uri.size() > 4096 || !uri.starts_with(scheme)) return std::nullopt;
-	uri.remove_prefix(scheme.size());
-	const std::size_t slash = uri.find('/');
-	if(slash == std::string_view::npos) return std::nullopt;
-	if(const std::string_view host = uri.substr(0, slash); !host.empty() && host != "localhost") return std::nullopt;
-	uri.remove_prefix(slash);
-	std::string decoded;
-	for(std::size_t i = 0; i < uri.size(); ++i) {
-		if(uri[i] == '?' || uri[i] == '#') return std::nullopt;
-		if(uri[i] != '%') {
-			decoded += uri[i];
-			continue;
-		}
-		const int high = i + 2 < uri.size() ? hexValue(uri[i + 1]) : -1;
-		const int low = high >= 0 ? hexValue(uri[i + 2]) : -1;
-		if(low < 0 || (high == 0 && low == 0)) return std::nullopt;
-		decoded += static_cast<char>(high * 16 + low);
-		i += 2;
-	}
-#ifdef _WIN32
-	if(decoded.size() > 2 && decoded[0] == '/' && decoded[2] == ':') decoded.erase(0, 1); // /C:/x
-#endif
-	const fs::path path = fs::path(decoded).lexically_normal();
-	const fs::path base = root.lexically_normal();
-	if(base.empty() || !path.is_absolute()) return std::nullopt;
-	const fs::path relative = path.lexically_relative(base);
-	if(relative.empty() || relative == "." || *relative.begin() == "..") return std::nullopt;
-	std::error_code error; // a link inside the folder may lead out of it
-	const fs::path real = fs::weakly_canonical(path, error), realBase = fs::weakly_canonical(base, error);
-	if(error) return std::nullopt;
-	const fs::path inside = real.lexically_relative(realBase);
-	if(inside.empty() || *inside.begin() == "..") return std::nullopt;
-	return relative.generic_string();
-}
-
 json serverFor(std::string_view language) {
 	std::string name(language);
 	std::ranges::transform(name, name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
@@ -546,13 +507,7 @@ json normalize(std::string_view kind, const json& result, const fs::path& root, 
 	if(kind == "signature") return signature(result, limits);
 	if(kind == "definition" || kind == "references") return locations(result, root, limits, columns);
 	if(kind == "rename") return workspaceEdit(result, root, limits, columns);
-	if(kind == "format") {
-		json edits = json::array();
-		if(!result.is_null())
-			if(auto problem = addEdits(id, result, limits, columns, edits)) return {{"error", *problem}};
-		const bool none = edits.empty();
-		return {{"edits", std::move(edits)}, {"files", none ? 0 : 1}, {"truncated", false}};
-	}
+	if(kind == "format") return formatting(result, id, limits, columns);
 	if(kind == "symbols" || kind == "workspaceSymbols") return symbols(result, root, id, limits, columns);
 	if(kind == "tokens") return tokens(result, id, limits, columns);
 	if(kind == "diagnostics") return diagnostics(result, root, limits, columns);
@@ -588,57 +543,6 @@ std::optional<std::string> applyEdits(std::string& text, const json& edits) {
 	out.append(text, at);
 	text = std::move(out);
 	return std::nullopt;
-}
-
-std::string cut(std::string_view text, std::size_t bytes) {
-	if(text.size() <= bytes) return std::string(text);
-	std::size_t end = bytes;
-	while(end > 0 && (static_cast<unsigned char>(text[end]) & 0xC0) == 0x80) --end;
-	return std::string(text.substr(0, end)) + "\u2026";
-}
-
-std::string plainSnippet(std::string_view snippet) {
-	std::string out;
-	int open = 0; // placeholders open, whose closing brace is dropped
-	for(std::size_t i = 0; i < snippet.size(); ++i) {
-		const char c = snippet[i];
-		if(c == '\\' && i + 1 < snippet.size()) {
-			out += snippet[++i];
-		} else if(c == '}' && open > 0) {
-			--open;
-		} else if(c == '$' && i + 1 < snippet.size() && snippet[i + 1] == '{') {
-			std::size_t j = i + 2;
-			while(j < snippet.size() && (std::isalnum(static_cast<unsigned char>(snippet[j])) || snippet[j] == '_')) ++j;
-			if(j < snippet.size() && snippet[j] == ':') {
-				++open; // ${1:text}: the text stays
-				i = j;
-			} else if(j < snippet.size() && snippet[j] == '|') { // ${1|one,two|}: the first choice
-				const std::size_t end = snippet.find("|}", j + 1);
-				const std::string_view choices = snippet.substr(j + 1, (end == std::string_view::npos ? snippet.size() : end) - j - 1);
-				out += choices.substr(0, std::min(choices.find(','), choices.size()));
-				i = end == std::string_view::npos ? snippet.size() : end + 1;
-			} else {
-				i = j < snippet.size() && snippet[j] == '}' ? j : j - 1; // ${1}: nothing
-			}
-		} else if(c == '$' && i + 1 < snippet.size() &&
-		          (std::isalnum(static_cast<unsigned char>(snippet[i + 1])) || snippet[i + 1] == '_')) {
-			while(i + 1 < snippet.size() && (std::isalnum(static_cast<unsigned char>(snippet[i + 1])) || snippet[i + 1] == '_'))
-				++i; // $1, $0, $TM_FILENAME: nothing
-		} else {
-			out += c;
-		}
-	}
-	return out;
-}
-
-std::string styleOfToken(std::string_view type) {
-	static const std::map<std::string_view, std::string_view, std::less<>> styles = {
-	    {"class", "type"},         {"struct", "type"},      {"enum", "type"},           {"interface", "type"},
-	    {"type", "type"},          {"typeParameter", "type"}, {"namespace", "type"},    {"concept", "type"},
-	    {"keyword", "keyword"},    {"modifier", "keyword"}, {"macro", "constant.builtin"}, {"string", "string"},
-	    {"regexp", "string"},      {"number", "number"},    {"comment", "comment"}};
-	const auto found = styles.find(type);
-	return std::string(found == styles.end() ? type : found->second);
 }
 
 } // namespace forge::lsp

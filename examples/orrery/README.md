@@ -12,7 +12,8 @@ It was built by an outsider to the library, as a test of the public documentatio
 ./build/affrescoui_orrery [screen.json] [--socket DIR] [--data DIR]
 ```
 
-Like `affrescoui_host`, it listens for the Studio and an agent in `DIR` (`studio.sock`, `agent.sock`).
+Like `affrescoui_host`, it listens for the Studio and an agent in `DIR` (`studio.sock`, `agent.sock`). Its permissions
+apply the Studio's changes and send an agent's to review, which the Studio or the person at Orrery's window can give.
 
 ## What it has
 

@@ -1,11 +1,11 @@
 /// @file
-/// @brief The search engine and provider (affresco/services/Search.hpp, modules/services/src/Search*): globs and
+/// @brief The search engine and provider (affresco/services/Search.hpp, modules/services/src/search/): globs and
 /// .gitignore rules, a folder searched on several threads within its caps, cancelled, matches replaced, and a screen
 /// that finds through the `search` service then writes a replaced file through `fs`; and Forge's Search view natives
 /// (examples/forge/features/search), which search and replace in the open folder.
 
 #include "Headless.hpp"
-#include "SearchGlob.hpp"
+#include "search/SearchGlob.hpp"
 #include "features/search/Search.hpp"
 
 #include <affresco/affresco.hpp>
@@ -264,7 +264,8 @@ TEST_CASE("search: a folder's matches, with lines, columns and previews, filtere
 	folder.write(".git/HEAD", "needle\n");
 	folder.write("bin.dat", std::string("needle\0", 7));
 	folder.write("big.txt", std::string(100, 'x') + "needle");
-	const Found found = search(folder.path, {.pattern = "needle", .maxFileBytes = 64});
+	const Found found =
+	    search(folder.path, {.pattern = "needle", .options = {}, .include = {}, .exclude = {}, .maxFileBytes = 64});
 	REQUIRE_FALSE(found.error);
 	CHECK(paths(found) == std::vector<std::string>{"a.txt", "src/b.cpp"});
 	const std::vector<services::SearchMatch>& matches = found.files[0].matches;
@@ -280,27 +281,40 @@ TEST_CASE("search: a folder's matches, with lines, columns and previews, filtere
 	CHECK(found.summary.skipped == 2); // binary, too large
 	CHECK_FALSE(found.summary.truncated);
 
-	CHECK(paths(search(folder.path, {.pattern = "needle", .include = "*.cpp"})) ==
+	CHECK(paths(search(folder.path, {.pattern = "needle", .options = {}, .include = "*.cpp", .exclude = {}})) ==
 	      std::vector<std::string>{"src/b.cpp"});
-	CHECK(paths(search(folder.path, {.pattern = "needle", .exclude = "src"})) ==
+	CHECK(paths(search(folder.path, {.pattern = "needle", .options = {}, .include = {}, .exclude = "src"})) ==
 	      std::vector<std::string>{"a.txt", "big.txt"});
-	CHECK(paths(search(folder.path, {.pattern = "needle", .folder = "src", .gitignore = false})) ==
-	      std::vector<std::string>{"src/b.cpp", "src/c.log"});
-	CHECK(search(folder.path, {.pattern = "NEEDLE", .options = {.caseSensitive = true}}).files.empty());
-	CHECK(search(folder.path, {.pattern = "need", .options = {.wholeWord = true}}).files.empty());
-	CHECK(search(folder.path, {.pattern = "^two$", .options = {.regex = true}}).summary.matches == 1);
+	CHECK(
+	    paths(search(
+	        folder.path,
+	        {.pattern = "needle", .options = {}, .include = {}, .exclude = {}, .folder = "src", .gitignore = false})) ==
+	    std::vector<std::string>{"src/b.cpp", "src/c.log"});
+	CHECK(search(folder.path, {.pattern = "NEEDLE", .options = {.caseSensitive = true}, .include = {}, .exclude = {}})
+	          .files.empty());
+	CHECK(search(folder.path, {.pattern = "need", .options = {.wholeWord = true}, .include = {}, .exclude = {}})
+	          .files.empty());
+	CHECK(search(folder.path, {.pattern = "^two$", .options = {.regex = true}, .include = {}, .exclude = {}})
+	          .summary.matches == 1);
 }
 
 TEST_CASE("search: the wrong pattern, glob or folder is refused") {
 	const TempFolder folder;
-	CHECK(search(folder.path, {.pattern = "(", .options = {.regex = true}}).error.value_or("").starts_with("pattern"));
-	CHECK(search(folder.path, {.pattern = "a", .include = std::string(300, 'x')})
+	CHECK(search(folder.path, {.pattern = "(", .options = {.regex = true}, .include = {}, .exclude = {}})
+	          .error.value_or("")
+	          .starts_with("pattern"));
+	CHECK(search(folder.path, {.pattern = "a", .options = {}, .include = std::string(300, 'x'), .exclude = {}})
 	          .error.value_or("")
 	          .starts_with("include"));
-	CHECK(search(folder.path, {.pattern = "a", .folder = ".."}).error.value_or("").starts_with("folder"));
-	CHECK(search(folder.path, {.pattern = "a", .folder = "/etc"}).error.value_or("").starts_with("folder"));
-	CHECK(search(folder.path / "missing", {.pattern = "a"}).error.has_value());
-	const Found empty = search(folder.path, {.pattern = ""});
+	CHECK(search(folder.path, {.pattern = "a", .options = {}, .include = {}, .exclude = {}, .folder = ".."})
+	          .error.value_or("")
+	          .starts_with("folder"));
+	CHECK(search(folder.path, {.pattern = "a", .options = {}, .include = {}, .exclude = {}, .folder = "/etc"})
+	          .error.value_or("")
+	          .starts_with("folder"));
+	CHECK(search(folder.path / "missing", {.pattern = "a", .options = {}, .include = {}, .exclude = {}})
+	          .error.has_value());
+	const Found empty = search(folder.path, {.pattern = "", .options = {}, .include = {}, .exclude = {}});
 	CHECK_FALSE(empty.error);
 	CHECK(empty.files.empty());
 }
@@ -309,14 +323,17 @@ TEST_CASE("search: the caps hold, on one thread or many") {
 	const TempFolder folder;
 	for(int file = 0; file < 40; ++file) folder.write("f" + std::to_string(file) + ".txt", "x x x\n");
 	for(const unsigned threads : {1u, 8u}) {
-		const Found all = search(folder.path, {.pattern = "x", .threads = threads});
+		const Found all =
+		    search(folder.path, {.pattern = "x", .options = {}, .include = {}, .exclude = {}, .threads = threads});
 		CHECK(all.summary.matches == 120);
 		CHECK(all.summary.searched == 40);
-		const Found capped = search(folder.path, {.pattern = "x", .maxResults = 7, .threads = threads});
+		const Found capped =
+		    search(folder.path,
+		           {.pattern = "x", .options = {}, .include = {}, .exclude = {}, .maxResults = 7, .threads = threads});
 		CHECK(capped.summary.matches == 7);
 		CHECK(capped.summary.truncated);
 	}
-	const Found few = search(folder.path, {.pattern = "x", .maxFiles = 5});
+	const Found few = search(folder.path, {.pattern = "x", .options = {}, .include = {}, .exclude = {}, .maxFiles = 5});
 	CHECK(few.summary.searched == 5);
 	CHECK(few.summary.truncated);
 }
@@ -326,7 +343,8 @@ TEST_CASE("search: a stop request ends it, cancelled") {
 	folder.write("a.txt", "x\n");
 	std::stop_source stop;
 	stop.request_stop();
-	const Found found = search(folder.path, {.pattern = "x"}, stop.get_token());
+	const Found found =
+	    search(folder.path, {.pattern = "x", .options = {}, .include = {}, .exclude = {}}, stop.get_token());
 	CHECK_FALSE(found.error);
 	CHECK(found.summary.cancelled);
 	CHECK(found.files.empty());
@@ -337,7 +355,7 @@ TEST_CASE("search: a long line's preview is the part around the match, cut at co
 	std::string line;
 	for(int index = 0; index < 400; ++index) line += "é";
 	folder.write("long.txt", line + "needle" + line + "\n");
-	const Found found = search(folder.path, {.pattern = "needle"});
+	const Found found = search(folder.path, {.pattern = "needle", .options = {}, .include = {}, .exclude = {}});
 	REQUIRE(found.files.size() == 1);
 	const services::SearchMatch& match = found.files[0].matches[0];
 	CHECK(match.column == 800);
@@ -345,7 +363,7 @@ TEST_CASE("search: a long line's preview is the part around the match, cut at co
 	CHECK(match.text.substr(match.at, match.length) == "needle");
 	CHECK((static_cast<unsigned char>(match.text.front()) & 0xC0) != 0x80);
 	folder.write("bad.txt", "\xff needle\n");
-	const Found bad = search(folder.path, {.pattern = "needle", .include = "bad.txt"});
+	const Found bad = search(folder.path, {.pattern = "needle", .options = {}, .include = "bad.txt", .exclude = {}});
 	REQUIRE(bad.files.size() == 1);
 	CHECK(bad.files[0].matches[0].text == "(not UTF-8 text)");
 }
@@ -507,11 +525,37 @@ TEST_CASE("search: Forge's replace writes nothing through a link planted beside 
 	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "a.txt"));
 }
 
+// The fs service wrote through "<file>.affrescoui-writing", so a link left there by whoever made the folder (a cloned
+// repository) had the written text land on the file it pointed to, outside the root
+TEST_CASE("search: fs writes nothing through a link planted beside the file, and keeps its permissions") {
+	const TempFolder folder, elsewhere;
+	folder.write("work/a.txt", "a needle\n");
+	elsewhere.write("target", "untouched");
+	std::filesystem::create_symlink(elsewhere.path / "target", folder.path / "work" / "a.txt.affrescoui-writing");
+	std::filesystem::permissions(folder.path / "work" / "a.txt",
+	                             std::filesystem::perms::owner_read | std::filesystem::perms::owner_write);
+	PumpedExecutor executor;
+	const affresco::detail::ManualClock clock;
+	const auto window = affresco::detail::createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(searchScreen);
+	screen.services().addRoot("work", folder.path / "work");
+	screen.setExecutor(&executor);
+	screen.build(*window);
+	screen.runAction("replace", window->root());
+	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/written") == true; }));
+	CHECK(folder.read("work/a.txt") == "a pin\n");
+	CHECK(elsewhere.read("target") == "untouched");
+	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "work" / "a.txt"));
+	CHECK(std::filesystem::status(folder.path / "work" / "a.txt").permissions() ==
+	      (std::filesystem::perms::owner_read | std::filesystem::perms::owner_write));
+}
+
 // A .gitignore that is a FIFO would block the walk on opening it: only a file's rules are read
 TEST_CASE("search: a .gitignore that isn't a file is passed over") {
 	const TempFolder folder;
 	folder.write("a.txt", "needle\n");
 	REQUIRE(::mkfifo((folder.path / ".gitignore").c_str(), 0600) == 0);
-	CHECK(paths(search(folder.path, {.pattern = "needle"})) == std::vector<std::string>{"a.txt"});
+	CHECK(paths(search(folder.path, {.pattern = "needle", .options = {}, .include = {}, .exclude = {}})) ==
+	      std::vector<std::string>{"a.txt"});
 }
 #endif

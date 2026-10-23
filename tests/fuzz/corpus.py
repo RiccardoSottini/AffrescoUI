@@ -530,7 +530,7 @@ def adapters_seeds():
 
 
 def dap_seeds():
-    """Message bodies a debug adapter writes (modules/services/src/DapProtocol.hpp): responses, events and the reverse
+    """Message bodies a debug adapter writes (modules/services/src/dap/DapProtocol.hpp): responses, events and the reverse
     requests, with sources inside and outside the fuzz target's folder (/work)."""
     frame = {"id": 1, "name": "main", "line": 3, "column": 1, "source": {"name": "a.c", "path": "/work/a.c"}}
     return [compact({"seq": 1, "type": "response", "request_seq": 1, "success": True, "command": "stackTrace",
@@ -558,9 +558,9 @@ def syntax_seeds():
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
-    registry = "".join(path.read_text() for path in sorted((ROOT / "modules/format/src").glob("ExpressionFunctions*.cpp")))
+    registry = "".join(path.read_text() for path in sorted((ROOT / "modules/format/src/functions").glob("ExpressionFunctions*.cpp")))
     operators = set(re.findall(r'\.(?:name|alias) = "(\w+)"', registry))
-    operators |= set(re.findall(r'"\$(\w+)"', (ROOT / "modules/format/src/ExpressionLower.cpp").read_text()))
+    operators |= set(re.findall(r'"\$(\w+)"', (ROOT / "modules/format/src/expression/ExpressionLower.cpp").read_text()))
     operators = sorted(operators)
     expression = [f"{name}(" for name in operators] + [f"${name}" for name in operators]
     expression += ["{{", "}}", "state.", "event.", "window.", "computed.", "nodes.", "&&", "||", "??", "==", "!=",
@@ -573,8 +573,8 @@ def dictionaries():
               "//"]
     delta = tokens + ["from", "to", "delta", "op", "add", "remove", "replace", "move", "copy", "test", "path", "value",
                       "/0", "/-", "~0", "~1", "1.0", "-0.0"]
-    # The steps and the keys they read, from the step groups' registrations (modules/format/src/*Steps.cpp)
-    groups = "".join(path.read_text() for path in sorted((ROOT / "modules/format/src").glob("*Steps.cpp")))
+    # The steps and the keys they read, from the step groups' registrations (modules/format/src/**/*Steps.cpp)
+    groups = "".join(path.read_text() for path in sorted((ROOT / "modules/format/src").rglob("*Steps.cpp")))
     steps = sorted(set(re.findall(r'\{"(\w+)", \{', groups)) | set(re.findall(r'"(\w+)"', "".join(
         re.findall(r'\{"\w+", \{([^}]*)\}', groups)))) | {"do", "with", "run", "state.", "to", "value"})
     # Characters shaping treats apart: joiners, variation selectors, marks, spaces, line breaks, right-to-left letters

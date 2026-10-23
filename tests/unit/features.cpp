@@ -135,6 +135,12 @@ TEST_CASE("features: a manifest can never widen a capability") {
 		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"if": "{{true}}", "then": [{"call": "x"}]}])");
 		CHECK(refused(manifest, "'call'"));
 	}
+	SUBCASE("a sign-in step") { // it reaches a provider in the person's name
+		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"signIn": "api"}])");
+		CHECK(refused(manifest, "'signIn'"));
+		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"signOut": "api"}])");
+		CHECK(refused(manifest, "'signOut'"));
+	}
 	SUBCASE("a node id outside the namespace") {
 		manifest["provides"]["views"]["statusBar.right"]["label"] = manifest["provides"]["views"]["statusBar.right"]
 		                                                                    ["wordCount-label"];
@@ -200,6 +206,97 @@ TEST_CASE("features: what keeps a feature out is named with its place") {
 		document["features"]["wordCount"] = affresco::format::recordFor(package("word-count"), "revision", "", "", 10);
 		CHECK(problems(document).find("the namespace 'wordCount' is taken") != std::string::npos);
 	}
+}
+
+TEST_CASE("features: a chain of features can't grow the exports without bound") {
+	// Each feature exports its predecessor's export twice, so the expressions double from one to the next: without a
+	// bound, thirty of them would compose a screen of gigabytes.
+	json document = app();
+	for(int index = 0; index < 30; ++index) {
+		const std::string name = "double" + std::to_string(index);
+		const std::string previous = index == 0 ? "editor.text" : "double" + std::to_string(index - 1) + ".text";
+		const json manifest = {
+		    {"format", "affrescoui-feature"},
+		    {"version", 2},
+		    {"name", name},
+		    {"release", "1.0.0"},
+		    {"title", name},
+		    {"requires", {{"format", 2}, {"exports", {{previous, {{"type", "string"}}}}}}},
+		    {"provides",
+		     {{"exports",
+		       {{"text",
+		         {{"type", "string"},
+		          {"value",
+		           std::string("{{app.").append(previous).append(" + app.").append(previous).append("}}")}}}}}}}};
+		document["features"][name] = affresco::format::recordFor(manifest, "revision", "", "", index);
+	}
+	const std::string text = problems(document);
+	INFO(text);
+	CHECK(text.contains("features.double15.provides: its uses of the exports grow it by more than 1048576 bytes"));
+	CHECK_FALSE(text.contains("features.double14.provides"));
+}
+
+TEST_CASE("features: a section features merge into is checked only when a feature merges") {
+	json document = app();
+	document["keys"] = json::array({1});
+	CHECK(problems(document).empty()); // the document's check reports it, once
+	document["features"]["wordCount"] = affresco::format::recordFor(package("word-count"), "revision", "", "", 10);
+	document["features"]["wordCount"]["enabled"] = false;
+	CHECK(problems(document).empty());
+	document["features"]["wordCount"]["enabled"] = true;
+	CHECK(problems(document).contains("keys: expected an object, so no feature merges"));
+}
+
+TEST_CASE("features: a malformed feature is a problem, never a crash") {
+	// Composition runs before the document's check: each part it reads must be checked by composition itself.
+	json document = app();
+	const json valid = affresco::format::recordFor(package("word-count"), "revision", "", "", 10);
+	SUBCASE("a record that isn't an object") { document["features"]["wordCount"] = 5; }
+	SUBCASE("enabled that isn't a boolean") {
+		document["features"]["wordCount"] = valid;
+		document["features"]["wordCount"]["enabled"] = "yes";
+	}
+	SUBCASE("an order that isn't a number") {
+		document["features"]["wordCount"] = valid;
+		document["features"]["wordCount"]["order"] = "first";
+	}
+	SUBCASE("a required export without a type") {
+		document["features"]["wordCount"] = valid;
+		document["features"]["wordCount"]["requires"]["exports"]["editor.text"] = json::object();
+	}
+	SUBCASE("a required point that isn't a string") {
+		document["features"]["wordCount"] = valid;
+		document["features"]["wordCount"]["requires"]["points"] = json::array({5});
+	}
+	SUBCASE("a features section that isn't an object") { document["features"] = json::array({1}); }
+	SUBCASE("an export that isn't an object") {
+		document["features"]["wordCount"] = valid;
+		document["exports"]["editor.text"] = 5;
+	}
+	SUBCASE("an import that isn't a string") { document["imports"] = {{"wc", 5}}; }
+	SUBCASE("a section features merge into that isn't an object") {
+		document["features"]["wordCount"] = valid;
+		document["keys"] = json::array({1});
+	}
+	SUBCASE("a menu that isn't an object") {
+		document["features"]["wordCount"] = valid;
+		document["menus"]["view"] = 5;
+	}
+	affresco::format::Composition composition;
+	REQUIRE_NOTHROW(composition = affresco::format::compose(document));
+	CHECK_FALSE(composition.problems.empty());
+	for(const std::string& problem : composition.problems) // "place: message", prefixed once when it is reported
+		CHECK_FALSE(problem.starts_with("AffrescoUI screen: "));
+	CHECK_FALSE(composition.screen.contains("features"));
+
+	const affresco::format::Rules rules; // a revision that brings one is refused, with the checker's reason
+	affresco::vcs::Repository repository(rules, app());
+	json changes = json::object();
+	for(const auto& [key, value] : document.items())
+		if(value != repository.document().value(key, json())) changes["/" + key] = value;
+	affresco::RevisionResult result;
+	REQUIRE_NOTHROW(result = repository.submit({{"author", "studio"}, {"set", changes}}));
+	CHECK(result.status == RevisionStatus::Rejected);
 }
 
 TEST_CASE("features: two packages install, are disabled, enabled and removed by revision, each step undoable") {

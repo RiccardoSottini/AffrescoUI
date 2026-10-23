@@ -54,7 +54,8 @@ json randomValue(std::mt19937& random, int depth) {
 	case 5:
 	case 6: {
 		json object = json::object();
-		for(unsigned n = random() % 6; n > 0; --n) object[keys[random() % std::size(keys)]] = randomValue(random, depth - 1);
+		for(auto n = static_cast<unsigned>(random() % 6); n > 0; --n)
+			object[keys[random() % std::size(keys)]] = randomValue(random, depth - 1);
 		return object;
 	}
 	default: {

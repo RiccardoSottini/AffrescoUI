@@ -3,7 +3,7 @@
 /// and the same with 1,000 items, so that a lock shows the cost follows what is in view, not what the canvas holds.
 
 #include "Bench.hpp"
-#include "GeometryCache.hpp"
+#include "paint/GeometryCache.hpp"
 #include "Headless.hpp"
 
 #include <affresco/render/CanvasView.hpp>
@@ -35,7 +35,8 @@ struct HeadlessCanvas {
 		const auto columns = static_cast<std::size_t>(std::ceil(std::sqrt(static_cast<double>(count))));
 		std::vector<CanvasItem> items(count);
 		for(std::size_t i = 0; i < count; ++i) {
-			const float x = static_cast<float>(i % columns) * spacing, y = static_cast<float>(i / columns) * spacing;
+			const std::size_t column = i % columns, row = i / columns;
+			const float x = static_cast<float>(column) * spacing, y = static_cast<float>(row) * spacing;
 			items[i].id = "item " + std::to_string(i);
 			items[i].bounds = {x, y, x + 10.0f, y + 10.0f};
 		}

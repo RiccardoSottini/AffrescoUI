@@ -45,7 +45,7 @@ public:
 	/// @param address Where to listen, e.g. "127.0.0.1:7420".
 	/// @param options The listener's limits and origins.
 	/// @throws std::runtime_error If a document can't be read or listening fails.
-	DocumentServer(Executor& executor, std::filesystem::path folder, std::shared_ptr<TokenFile> tokens,
+	DocumentServer(Executor& executor, std::filesystem::path folder, const std::shared_ptr<TokenFile>& tokens,
 	               std::string_view address, net::PeerServerOptions options = {});
 	/// @brief Loads the documents and listens, admitting whom a verifier admits (e.g. a ChainVerifier of a TokenFile
 	/// and a UserInfoVerifier).
@@ -130,6 +130,10 @@ private:
 	/// @param peer The peer.
 	/// @param line The line.
 	void handle(Peer& peer, const std::string& line);
+	/// @brief Passes a line that isn't the server's own to the peer's Session, or answers that none is open yet.
+	/// @param peer The peer.
+	/// @param line The line.
+	static void forward(Peer& peer, const std::string& line);
 	/// @brief Handles a server message (presence, getPresence, lease, release) on an opened document.
 	/// @param peer The peer.
 	/// @param message The message.

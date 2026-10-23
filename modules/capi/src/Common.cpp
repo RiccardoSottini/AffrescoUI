@@ -32,7 +32,7 @@ afr_status reportException() noexcept {
 	try {
 		throw;
 	} catch(const Failure& failure) {
-		return fail(failure.status, failure.message);
+		return fail(failure.status, failure.what());
 	} catch(const std::bad_alloc&) {
 		return fail(AFR_ERROR_INTERNAL, "out of memory");
 	} catch(const DocumentError& error) {
@@ -60,6 +60,7 @@ std::string_view checkedText(const char* text, std::size_t length, std::string_v
 }
 
 void copyOut(std::string_view text, char** out) {
+	// NOLINTNEXTLINE(cppcoreguidelines-no-malloc): handed to C, which frees it with afr_free()
 	auto* copy = static_cast<char*>(std::malloc(text.size() + 1));
 	if(copy == nullptr) throw std::bad_alloc();
 	std::memcpy(copy, text.data(), text.size());
@@ -72,13 +73,13 @@ void require(const void* pointer, std::string_view what) {
 }
 
 void TaskQueue::post(std::function<void()> task) {
-	const std::lock_guard lock(mutex_);
+	const std::scoped_lock lock(mutex_);
 	tasks_.push_back(std::move(task));
 }
 
 void TaskQueue::run() {
 	{
-		const std::lock_guard lock(mutex_);
+		const std::scoped_lock lock(mutex_);
 		running_.swap(tasks_);
 	}
 	runTasks(running_); // emptied even if one throws: a failed step doesn't run them again
@@ -89,7 +90,7 @@ void TaskQueue::run() {
 affresco::Executor& afr_screen::executor() noexcept {
 	if(embedding) return *embedding;
 	if(mode == AFR_MODE_HEADLESS) return tasks;
-	return *application;
+	return *application; // NOLINT(bugprone-unchecked-optional-access): engaged unless embedded
 }
 
 extern "C" {
@@ -98,6 +99,7 @@ uint32_t afr_version(void) { return AFR_VERSION; }
 
 const char* afr_last_error(void) { return affresco::capi::lastError.c_str(); }
 
+// NOLINTNEXTLINE(cppcoreguidelines-no-malloc): frees what copyOut() and afr_screen_render_rgba() malloc'd for C
 void afr_free(void* memory) { std::free(memory); }
 
 afr_status afr_options_init(afr_options* options) {

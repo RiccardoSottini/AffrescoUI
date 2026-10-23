@@ -30,10 +30,10 @@ enum class SourceFormat {
 
 /// @brief How a conversion is written.
 struct Options {
-	std::string fontFile;     ///< The text font, relative to the screen file; empty: the screen has no fonts.
-	std::string title;        ///< The window's title; empty: the source's own, or the format's name.
-	float width = 480;        ///< The window's width, which text is wrapped to.
-	float height = 640;       ///< Its height.
+	std::string fontFile; ///< The text font, relative to the screen file; empty: the screen has no fonts.
+	std::string title;    ///< The window's title; empty: the source's own, or the format's name.
+	float width = 480;    ///< The window's width, which text is wrapped to.
+	float height = 640;   ///< Its height.
 };
 
 /// @brief A screen made from another format.

@@ -3,7 +3,7 @@
  * run without VS Code.
  */
 
-import { JsonNode, member } from './json';
+import { JsonMember, JsonNode, member } from './json';
 import { Doc } from './resolver';
 
 /** One problem as the tool reports it. */
@@ -17,6 +17,13 @@ export interface Problem {
 export interface PlacedProblem extends Problem {
 	start: number;
 	end: number;
+}
+
+/** A value a place names: the value, the member it is the value of, and whether the whole place was found. */
+export interface FoundPlace {
+	node: JsonNode;
+	key?: { start: number; end: number };
+	whole: boolean;
 }
 
 /**
@@ -46,7 +53,7 @@ export function parseReport(stdout: string): Problem[] | undefined {
  * @return the value reached, the member whose value it is, and whether the whole place was found; undefined when not
  *         even its first step was
  */
-export function locatePlace(root: JsonNode, place: string): { node: JsonNode; key?: { start: number; end: number }; whole: boolean } | undefined {
+export function locatePlace(root: JsonNode, place: string): FoundPlace | undefined {
 	const steps: (string | number)[] = [];
 	for (const match of place.matchAll(/\[(\d+)\]|\.?([^.[\]]+)/g)) steps.push(match[1] !== undefined ? Number(match[1]) : match[2]);
 	if (steps.length === 0) return undefined;
@@ -62,22 +69,31 @@ export function locatePlace(root: JsonNode, place: string): { node: JsonNode; ke
 			at++;
 			continue;
 		}
-		let names = 0;
-		while (at + names < steps.length && typeof steps[at + names] === 'string') names++;
-		let found = false;
-		for (let take = names; take > 0 && !found; take--) {
-			const m = member(node, steps.slice(at, at + take).join('.'));
-			if (m) {
-				node = m.value;
-				key = { start: m.keyStart, end: m.keyEnd };
-				at += take;
-				found = true;
-			}
-		}
+		const found = longestMember(node, steps, at);
 		if (!found) break;
+		node = found.member.value;
+		key = { start: found.member.keyStart, end: found.member.keyEnd };
+		at += found.take;
 	}
 	if (at === 0) return undefined;
 	return { node, key, whole: at === steps.length };
+}
+
+/**
+ * Finds the member that the most names of a place, joined with dots, are the key of.
+ * @param node  the value the names are looked up in
+ * @param steps the place's steps
+ * @param at    the first name
+ * @return the member and how many names its key took, or undefined when not even the first name is a key
+ */
+function longestMember(node: JsonNode, steps: (string | number)[], at: number): { member: JsonMember; take: number } | undefined {
+	let names = 0;
+	while (at + names < steps.length && typeof steps[at + names] === 'string') names++;
+	for (let take = names; take > 0; take--) {
+		const m = member(node, steps.slice(at, at + take).join('.'));
+		if (m) return { member: m, take };
+	}
+	return undefined;
 }
 
 /**
@@ -88,30 +104,59 @@ export function locatePlace(root: JsonNode, place: string): { node: JsonNode; ke
  * @return the problem with its range
  */
 export function placeProblem(doc: Doc, problem: Problem): PlacedProblem {
-	const candidates = [problem.place, ...problem.message.split(': ')].map((text) => text.trim()).filter(Boolean);
-	let best: { node: JsonNode; key?: { start: number; end: number }; whole: boolean } | undefined;
-	if (doc.root) {
-		for (const candidate of candidates) {
-			if (!/^[A-Za-z_$][\w$.\-[\]]*$/.test(candidate)) continue;
-			const found = locatePlace(doc.root, candidate);
-			if (found && (!best || (found.whole && !best.whole))) best = found;
-			if (best?.whole) break;
-		}
-	}
-	if (best) {
-		const scalar = best.node.kind !== 'object' && best.node.kind !== 'array';
-		const range = scalar || !best.key ? { start: best.node.start, end: best.node.end } : best.key;
-		if (!scalar && !best.key) range.end = range.start + 1;
-		return { ...problem, ...range };
-	}
+	const best = doc.root && bestPlace(doc.root, problem);
+	if (best) return { ...problem, ...rangeOfPlace(best) };
 	const line = /line (\d+), column (\d+)/.exec(problem.message);
 	if (line) {
-		const lines = doc.text.split('\n');
-		const index = Math.min(Number(line[1]), lines.length) - 1;
-		let start = 0;
-		for (let i = 0; i < index; i++) start += lines[i].length + 1;
-		start += Math.max(0, Math.min(Number(line[2]) - 1, lines[index].length));
+		const start = offsetOfLine(doc.text, Number(line[1]), Number(line[2]));
 		return { ...problem, start, end: Math.min(start + 1, doc.text.length) };
 	}
 	return { ...problem, start: 0, end: Math.min(1, doc.text.length) };
+}
+
+/**
+ * Finds the value a problem is about, from its place and the places at the start of its message: the first found
+ * whole, else the first found in part.
+ * @param root    the screen's value
+ * @param problem the problem
+ * @return the place found, or undefined
+ */
+function bestPlace(root: JsonNode, problem: Problem): FoundPlace | undefined {
+	const candidates = [problem.place, ...problem.message.split(': ')].map((text) => text.trim()).filter(Boolean);
+	let best: FoundPlace | undefined;
+	for (const candidate of candidates) {
+		if (!/^[A-Za-z_$][\w$.\-[\]]*$/.test(candidate)) continue;
+		const found = locatePlace(root, candidate);
+		if (found && (!best || (found.whole && !best.whole))) best = found;
+		if (best?.whole) break;
+	}
+	return best;
+}
+
+/**
+ * Returns the range to underline for a value found: a scalar whole, else its key, else the bracket it opens with.
+ * @param found the value found
+ * @return the range
+ */
+function rangeOfPlace(found: FoundPlace): { start: number; end: number } {
+	const scalar = found.node.kind !== 'object' && found.node.kind !== 'array';
+	if (scalar || !found.key) {
+		return { start: found.node.start, end: scalar ? found.node.end : found.node.start + 1 };
+	}
+	return found.key;
+}
+
+/**
+ * Converts a line and a column, both from 1, to an offset; past the end, the last line and its end.
+ * @param text   the text
+ * @param line   the line
+ * @param column the column
+ * @return the offset
+ */
+function offsetOfLine(text: string, line: number, column: number): number {
+	const lines = text.split('\n');
+	const index = Math.min(line, lines.length) - 1;
+	let start = 0;
+	for (let i = 0; i < index; i++) start += lines[i].length + 1;
+	return start + Math.max(0, Math.min(column - 1, lines[index].length));
 }

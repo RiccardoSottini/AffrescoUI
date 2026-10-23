@@ -16,6 +16,9 @@
 
 using namespace affresco::imaging;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief A source that paints each tile one colour from its place, and counts its loads.
@@ -96,7 +99,7 @@ TEST_CASE("imaging tiles: a tile holds each format") {
 	CHECK(mask.pixel(0, 0).alpha == 1.0f);
 	const auto filled = Tile::filled(PixelFormat::rgba8, {0.0f, 0.0f, 1.0f, 1.0f});
 	REQUIRE(filled->uniform());
-	CHECK(filled->uniform()->blue == 1.0f);
+	CHECK(filled->uniform().value().blue == 1.0f);
 	CHECK(convertTile(mask, PixelFormat::rgba8)->pixel(0, 0) == Pixel{1.0f, 1.0f, 1.0f, 1.0f});
 	CHECK_THROWS_AS(Tile(PixelFormat::rgba8, std::vector<std::uint8_t>(10)), std::invalid_argument);
 }
@@ -250,9 +253,11 @@ TEST_CASE("imaging tiles: undo restores tiles that came from a source") {
 	Image image(1024, 1024, PixelFormat::rgba8, {}, source);
 	std::map<std::uint64_t, Image*> images{{1, &image}};
 	const Pixel before = image.pixel(5, 5);
-	HistoryStep step = paint(image, 0, 0, 10, {0.0f, 0.0f, 0.0f, 0.0f});
+	const HistoryStep step = paint(image, 0, 0, 10, {0.0f, 0.0f, 0.0f, 0.0f});
 	CHECK(image.pixel(5, 5).alpha == 0.0f);
 	applyTiles(step, false, resolver(images));
 	CHECK(image.pixel(5, 5) == before);
 	CHECK(step.memoryBytes() >= 2 * tilePixels * 4);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

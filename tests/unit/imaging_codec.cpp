@@ -11,6 +11,9 @@
 
 using namespace affresco::imaging;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief A 300 by 300 image of four tiles: a red to blue ramp, half transparent on the right, the top left tile empty.
@@ -24,6 +27,37 @@ namespace {
 	return image;
 }
 
+/// @brief Reads a big-endian 32-bit number. @param bytes The bytes. @param at Where. @return It.
+[[nodiscard]] std::uint32_t read32(const std::vector<std::uint8_t>& bytes, std::size_t at) {
+	return static_cast<std::uint32_t>(bytes[at]) << 24 | static_cast<std::uint32_t>(bytes[at + 1]) << 16 |
+	       static_cast<std::uint32_t>(bytes[at + 2]) << 8 | bytes[at + 3];
+}
+
+/// @brief Writes a big-endian 32-bit number. @param bytes The bytes. @param at Where. @param value It.
+void write32(std::vector<std::uint8_t>& bytes, std::size_t at, std::uint32_t value) {
+	for(int shift = 24, i = 0; shift >= 0; shift -= 8, ++i)
+		bytes[at + static_cast<std::size_t>(i)] = static_cast<std::uint8_t>(value >> shift);
+}
+
+/// @brief An ICC profile with one more tag, private and as big as asked, which lcms keeps when it saves it.
+/// @param profile The profile. @param size The tag's bytes.
+/// @return The bigger profile.
+[[nodiscard]] std::vector<std::uint8_t> withPrivateTag(std::vector<std::uint8_t> profile, std::size_t size) {
+	constexpr std::size_t table = 128, entry = 12;
+	const std::uint32_t tags = read32(profile, table);
+	for(std::uint32_t tag = 0; tag < tags; ++tag) // the data moves down by the new entry
+		write32(profile, table + 4 + tag * entry + 4, read32(profile, table + 4 + tag * entry + 4) + entry);
+	const std::size_t end = (profile.size() + entry + 3) / 4 * 4;
+	const std::vector<std::uint8_t> added{'z', 'z', 'z', 'z', 0, 0, 0, 0, 0, 0, 0, 0};
+	profile.insert(profile.begin() + static_cast<std::ptrdiff_t>(table + 4 + tags * entry), added.begin(), added.end());
+	write32(profile, table, tags + 1);
+	write32(profile, table + 4 + tags * entry + 4, static_cast<std::uint32_t>(end));
+	write32(profile, table + 4 + tags * entry + 8, static_cast<std::uint32_t>(size));
+	profile.resize(end + size);
+	write32(profile, 0, static_cast<std::uint32_t>(profile.size()));
+	return profile;
+}
+
 } // namespace
 
 TEST_CASE("imaging codec: PNG round-trips pixels and an embedded profile") {
@@ -35,7 +69,7 @@ TEST_CASE("imaging codec: PNG round-trips pixels and an embedded profile") {
 	REQUIRE(decoded.image);
 	CHECK(decoded.warning.empty());
 	REQUIRE(decoded.profile);
-	CHECK(*decoded.profile == p3);
+	CHECK(decoded.profile.value() == p3);
 	CHECK(decoded.image->format() == PixelFormat::rgba8);
 	CHECK(decoded.image->width() == 300);
 	for(const auto& [x, y] : {std::pair{0, 0}, {150, 270}, {299, 299}, {290, 10}})
@@ -50,7 +84,7 @@ TEST_CASE("imaging codec: JPEG keeps a profile, and 16 bits decode to half float
 	const ColorProfile wide = ColorProfile::wideRgb();
 	const DecodedImage jpeg = decodeImageFile(encodeImageFile(image, ImageFileFormat::jpeg, wide, 95), {});
 	REQUIRE(jpeg.profile);
-	CHECK(*jpeg.profile == wide);
+	CHECK(jpeg.profile.value() == wide);
 	CHECK(jpeg.image->pixel(0, 0).alpha == 1.0f); // JPEG has no alpha
 	CHECK(std::abs(jpeg.image->pixel(150, 270).red - image.pixel(150, 270).red) < 0.05f);
 	const std::vector<std::uint8_t> split = encodeImageFile(image, ImageFileFormat::jpeg, std::nullopt);
@@ -88,6 +122,20 @@ TEST_CASE("imaging codec: files beyond the limits, broken files and broken profi
 	const DecodedImage warned = decodeImageFile(png, small);
 	CHECK_FALSE(warned.profile);
 	CHECK_FALSE(warned.warning.empty());
+	// Sizes past what the encoder's arithmetic holds are refused before any pixel is gathered
+	const Image huge(32768, 32768, PixelFormat::rgba8);
+	CHECK_THROWS_AS((void)encodeImageFile(huge, ImageFileFormat::png, std::nullopt), affresco::DocumentError);
+	CHECK_THROWS_AS((void)encodeImageFile(huge, ImageFileFormat::jpeg, std::nullopt), affresco::DocumentError);
+	const Image wide(32768, 8, PixelFormat::rgba8);
+	CHECK_FALSE(encodeImageFile(wide, ImageFileFormat::png, std::nullopt).empty());
+	// A profile JPEG's 255 numbered segments can't hold is refused, not numbered past 255
+	const std::vector<std::uint8_t> padded = withPrivateTag(ColorProfile::srgb().bytes(), std::size_t{17} << 20);
+	small = {};
+	small.profileBytes = padded.size();
+	const ColorProfile big = ColorProfile::parse(padded, small);
+	REQUIRE(big.bytes().size() > std::size_t{17} << 20);
+	CHECK_THROWS_AS((void)encodeImageFile(image, ImageFileFormat::jpeg, big), affresco::DocumentError);
+	CHECK_FALSE(encodeImageFile(image, ImageFileFormat::png, big).empty());
 	std::vector<std::uint8_t> broken = png;
 	broken[33 + 8 + 5] ^= 0xff; // the iCCP chunk's zlib header
 	const DecodedImage ignored = decodeImageFile(broken, {});
@@ -95,3 +143,5 @@ TEST_CASE("imaging codec: files beyond the limits, broken files and broken profi
 	CHECK_FALSE(ignored.profile);
 	CHECK_FALSE(ignored.warning.empty());
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

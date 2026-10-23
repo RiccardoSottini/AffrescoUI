@@ -4,7 +4,7 @@
 /// @brief What the network tests share: a local server on the loopback that answers with what a test scripts, and an
 /// Executor that worker threads may post to.
 
-#include "Http.hpp"
+#include "http/Http.hpp"
 #include "Tcp.hpp"
 
 #include <affresco/core/Executor.hpp>

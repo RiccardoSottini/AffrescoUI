@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Checks that the version is the same everywhere a release states it: the library (CMakeLists.txt, project
-VERSION), the MCP package (mcp/pyproject.toml) and the MCP server (serverInfo in mcp/affrescoui_mcp.py); and, for a
+VERSION), the MCP package (mcp/pyproject.toml) and the MCP server (serverInfo in mcp/affrescoui_mcp/server.py); and, for a
 tag, that the tag is "v" and that version. Prints the version.
 
     python3 tools/release/check_version.py [--tag v0.2.0]
@@ -15,7 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 PLACES = {  # file -> the pattern whose first group is the version
     "CMakeLists.txt": r"project\(AffrescoUI VERSION (\d+\.\d+\.\d+)",
     "mcp/pyproject.toml": r'(?m)^version = "([^"]+)"',
-    "mcp/affrescoui_mcp.py": r'"serverInfo": \{"name": "affrescoui", "version": "([^"]+)"\}',
+    "mcp/affrescoui_mcp/server.py": r'"serverInfo": \{"name": "affrescoui", "version": "([^"]+)"\}',
 }
 
 

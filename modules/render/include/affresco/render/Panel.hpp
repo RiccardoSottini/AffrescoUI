@@ -79,6 +79,7 @@ struct AccessibleState {
 	bool disabled = false;        ///< It takes no input.
 	LiveRegion live = LiveRegion::Off; ///< How changes to its text are announced.
 
+	/// @brief Equal when every field is.
 	bool operator==(const AccessibleState&) const = default;
 };
 

@@ -14,6 +14,9 @@
 
 using namespace affresco::scene3d;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief Whether two vectors are within a tolerance. @param a One. @param b The other. @param tolerance It.
@@ -50,7 +53,7 @@ TEST_CASE("scene3d: matrices, projection and inverse") {
 	CHECK(near(move.transformDirection({1, 0, 0}), {1, 0, 0}));
 	const auto inverse = move.inverse();
 	REQUIRE(inverse);
-	CHECK(near(inverse->transformPoint({1, 2, 3}), {0, 0, 0}));
+	CHECK(near(inverse.value().transformPoint({1, 2, 3}), {0, 0, 0}));
 	CHECK_FALSE(Mat4::scaling({0, 1, 1}).inverse());
 	const Mat4 view = Mat4::lookAt({0, 0, 5}, {0, 0, 0}, {0, 1, 0});
 	CHECK(near(view.transformPoint({0, 0, 0}), {0, 0, -5}));
@@ -68,20 +71,42 @@ TEST_CASE("scene3d: TRS composes and decomposes") {
 	transform.scale = {2, 3, 0.5f};
 	const auto back = Transform::decompose(transform.matrix());
 	REQUIRE(back);
-	CHECK(near(back->translation, transform.translation));
-	CHECK(near(back->scale, transform.scale));
-	CHECK(near(back->rotation.rotate({1, 2, 3}), transform.rotation.rotate({1, 2, 3})));
+	CHECK(near(back.value().translation, transform.translation));
+	CHECK(near(back.value().scale, transform.scale));
+	CHECK(near(back.value().rotation.rotate({1, 2, 3}), transform.rotation.rotate({1, 2, 3})));
 	CHECK_FALSE(Transform::decompose(Mat4::scaling({0, 0, 0})));
 }
 
 TEST_CASE("scene3d: the hierarchy places children in their parents' space") {
 	Scene scene;
-	scene.nodes.push_back({.id = "root", .name = "Root"});
+	scene.nodes.push_back({.id = "root",
+	                       .name = "Root",
+	                       .parent = {},
+	                       .transform = {},
+	                       .mesh = {},
+	                       .material = {},
+	                       .light = {},
+	                       .camera = {}});
 	scene.nodes[0].transform.translation = {10, 0, 0};
 	scene.nodes[0].transform.rotation = Quat::fromAxisAngle({0, 1, 0}, radians(90.0f));
-	scene.nodes.push_back({.id = "child", .name = "Child", .parent = "root"});
+	scene.nodes.push_back({.id = "child",
+	                       .name = "Child",
+	                       .parent = "root",
+	                       .transform = {},
+	                       .mesh = {},
+	                       .material = {},
+	                       .light = {},
+	                       .camera = {}});
 	scene.nodes[1].transform.translation = {1, 0, 0};
-	scene.nodes.push_back({.id = "hidden", .name = "Hidden", .parent = "child", .visible = false});
+	scene.nodes.push_back({.id = "hidden",
+	                       .name = "Hidden",
+	                       .parent = "child",
+	                       .transform = {},
+	                       .mesh = {},
+	                       .material = {},
+	                       .light = {},
+	                       .camera = {},
+	                       .visible = false});
 	CHECK(scene.validate().empty());
 	const auto world = scene.worldMatrices();
 	CHECK(near(world.at("child").first.origin(), {10, 0, -1}));
@@ -96,7 +121,14 @@ TEST_CASE("scene3d: the hierarchy places children in their parents' space") {
 	scene.nodes[0].parent = "missing";
 	CHECK_FALSE(scene.validate().empty());
 	scene.nodes[0].parent.clear();
-	scene.nodes.push_back({.id = "child", .name = "Twin"});
+	scene.nodes.push_back({.id = "child",
+	                       .name = "Twin",
+	                       .parent = {},
+	                       .transform = {},
+	                       .mesh = {},
+	                       .material = {},
+	                       .light = {},
+	                       .camera = {}});
 	CHECK_FALSE(scene.validate().empty());
 }
 
@@ -144,12 +176,34 @@ TEST_CASE("scene3d: bounds, rays and the frustum") {
 
 TEST_CASE("scene3d: the scene round-trips through JSON and refuses bad members") {
 	Scene scene;
-	Node lamp{.id = "lamp", .name = "Lamp"};
+	Node lamp{.id = "lamp",
+	          .name = "Lamp",
+	          .parent = {},
+	          .transform = {},
+	          .mesh = {},
+	          .material = {},
+	          .light = {},
+	          .camera = {}};
 	lamp.light = Light{.type = LightType::Spot, .intensity = 20.0f, .castsShadow = true};
 	lamp.transform.rotation = Quat::fromEuler({0.1f, 0.2f, 0.3f});
 	scene.nodes.push_back(lamp);
-	scene.nodes.push_back({.id = "box", .name = "Box", .mesh = "cube", .material = "red"});
-	scene.materials.push_back({.id = "red", .name = "Red", .baseColor = {1, 0, 0, 1}, .metallic = 0.25f});
+	scene.nodes.push_back({.id = "box",
+	                       .name = "Box",
+	                       .parent = {},
+	                       .transform = {},
+	                       .mesh = "cube",
+	                       .material = "red",
+	                       .light = {},
+	                       .camera = {}});
+	scene.materials.push_back({.id = "red",
+	                           .name = "Red",
+	                           .baseColor = {1, 0, 0, 1},
+	                           .metallic = 0.25f,
+	                           .emissive = {},
+	                           .baseColorTexture = {},
+	                           .metallicRoughnessTexture = {},
+	                           .normalTexture = {},
+	                           .emissiveTexture = {}});
 	const Scene back = sceneFromJson(toJson(scene));
 	REQUIRE(back.nodes.size() == 2);
 	CHECK(back.nodes[0].light == scene.nodes[0].light);
@@ -171,10 +225,10 @@ TEST_CASE("scene3d: the scene round-trips through JSON and refuses bad members")
 TEST_CASE("scene3d: tracks sample step, linear and cubic keys") {
 	Track track{.node = "box", .path = TrackPath::Translation, .times = {0, 1}, .values = {0, 0, 0, 2, 4, 6}};
 	CHECK(track.validate().empty());
-	CHECK((*track.sample(0.5f))[1] == doctest::Approx(2.0f));
-	CHECK((*track.sample(5.0f))[2] == doctest::Approx(6.0f));
+	CHECK(track.sample(0.5f).value()[1] == doctest::Approx(2.0f));
+	CHECK(track.sample(5.0f).value()[2] == doctest::Approx(6.0f));
 	track.interpolation = Interpolation::Step;
-	CHECK((*track.sample(0.9f))[0] == doctest::Approx(0.0f));
+	CHECK(track.sample(0.9f).value()[0] == doctest::Approx(0.0f));
 	setKey(track, 0.5f, {1, 1, 1, 0});
 	CHECK(track.times.size() == 3);
 	CHECK(track.times[1] == doctest::Approx(0.5f));
@@ -208,6 +262,24 @@ TEST_CASE("scene3d: the samples load") {
 	CHECK(texture->srgb);
 	CHECK(texture->pixels.size() == static_cast<std::size_t>(texture->width * texture->height * 4));
 	CHECK_FALSE(cube.animations.empty());
+
+	// An image given as a data: URI decodes; one that isn't an image is skipped with a warning
+	const auto withImage = [](std::string_view uri) {
+		return bytesOf(R"({"asset":{"version":"2.0"},"images":[{"uri":")" + std::string(uri) +
+		               R"("}],"textures":[{"source":0}],"materials":[{"pbrMetallicRoughness":)"
+		               R"({"baseColorTexture":{"index":0}}}]})");
+	};
+	const GltfImport embedded = loadGltf(withImage("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ"
+	                                               "AAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="),
+	                                     std::filesystem::path());
+	REQUIRE(embedded.scene.materials.size() == 1);
+	const auto pixel = embedded.assets.texture(embedded.scene.materials[0].baseColorTexture);
+	REQUIRE(pixel);
+	CHECK((pixel->width == 1 && pixel->height == 1 && pixel->pixels.size() == 4));
+	const GltfImport broken = loadGltf(withImage("data:image/png;base64,AAAA"), std::filesystem::path());
+	REQUIRE(broken.scene.materials.size() == 1);
+	CHECK(broken.scene.materials[0].baseColorTexture.empty());
+	CHECK_FALSE(broken.warnings.empty());
 }
 
 TEST_CASE("scene3d: malformed and hostile glTF files are refused") {
@@ -230,6 +302,7 @@ TEST_CASE("scene3d: malformed and hostile glTF files are refused") {
 	CHECK_THROWS_AS((void)loadGltf(withBuffer("data:application/octet-stream;base64,AAAA", 64), none), GltfError);
 	CHECK_NOTHROW((void)loadGltf(withBuffer("data:application/octet-stream;base64,AAAA", 3), none));
 	CHECK_NOTHROW((void)loadGltf(withBuffer("AnimatedCube.bin", 4), directory));
+	CHECK_NOTHROW((void)loadGltf(withBuffer("Animated%43ube.bin", 4), directory)); // decoded, and only the name
 
 	GltfLimits small;
 	small.fileBytes = 16;
@@ -237,6 +310,24 @@ TEST_CASE("scene3d: malformed and hostile glTF files are refused") {
 	small = {};
 	small.vertices = 10;
 	CHECK_THROWS_AS((void)loadGltfFile(sample("MetalRoughSpheresNoTextures/MetalRoughSpheresNoTextures.glb"), small),
+	                GltfError);
+
+	// Ranges whose sizes wrap around past 2^64 are refused, not read: a stride, and a sparse count
+	const auto withAccessor = [](std::string_view view, std::string_view accessor) {
+		return bytesOf(R"({"asset":{"version":"2.0"},"buffers":[{"uri":"data:application/octet-stream;base64,)"
+		               R"(AAAAAAAAAAAAAAAA","byteLength":12}],"bufferViews":[{"buffer":0,"byteLength":12)" +
+		               std::string(view) + R"(}],"accessors":[{"componentType":5126,"type":"VEC3",)" +
+		               std::string(accessor) +
+		               R"(}],"meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}],"nodes":[{"mesh":0}]})");
+	};
+	CHECK_NOTHROW((void)loadGltf(withAccessor("", R"("bufferView":0,"count":1)"), none));
+	CHECK_THROWS_AS(
+	    (void)loadGltf(withAccessor(R"(,"byteStride":4611686018427387904)", R"("bufferView":0,"count":5)"), none),
+	    GltfError);
+	CHECK_THROWS_AS((void)loadGltf(withAccessor("", R"("count":1,"sparse":{"count":4611686018427387904,)"
+	                                                R"("indices":{"bufferView":0,"componentType":5125},)"
+	                                                R"("values":{"bufferView":0}})"),
+	                               none),
 	                GltfError);
 
 	// An index past the vertices is caught by validation, not read
@@ -272,3 +363,5 @@ TEST_CASE("scene3d: an export loads back") {
 	CHECK(near(before.min, after.min, 1e-3f));
 	CHECK(near(before.max, after.max, 1e-3f));
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

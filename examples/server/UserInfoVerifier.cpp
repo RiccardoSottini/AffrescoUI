@@ -97,7 +97,7 @@ std::optional<std::string> UserInfoVerifier::ask(std::string_view token) {
 	request.timeout = timeout;
 	request.maxBodyBytes = maxAnswerBytes;
 	network::Handlers handlers;
-	handlers.done = [answer](network::Response response) {
+	handlers.done = [answer](const network::Response& response) {
 		const json body = json::parse(response.body, nullptr, false);
 		const auto subject = body.is_object() ? body.find("sub") : body.end();
 		answer->set_value(body.is_object() && subject != body.end() && subject->is_string()

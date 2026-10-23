@@ -3,7 +3,7 @@
 /// Origin allowlist, the caps, the loopback default, and connectPeer() against a PeerServer.
 
 #include "NetServer.hpp"
-#include "WebSocketFrames.hpp"
+#include "websocket/WebSocketFrames.hpp"
 
 #include <affresco/net/RemotePeers.hpp>
 
@@ -11,6 +11,9 @@
 
 #include <array>
 #include <stdexcept>
+
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
 
 using namespace affresco;
 using namespace affresco::net;
@@ -154,6 +157,32 @@ TEST_CASE("remote peers: the token may come as the first message, in time") {
 	CHECK(fixture.peers.size() == 1);
 }
 
+TEST_CASE("remote peers: before its token, a peer can't send more than a token's message") {
+	PeerServerOptions options;
+	options.authTimeout = 5s;
+	Fixture fixture(options);
+	RawPeer stranger = upgrade(fixture.server->port());
+	REQUIRE(stranger.answer.starts_with("HTTP/1.1 101"));
+	// The header of a 1 MiB message, and a little of it: before, the server took up to maxMessageBytes from anyone
+	// who could connect, and closed only once the time for the token was up (1008)
+	const std::string big =
+	    encodeFrame(Opcode::Text, std::string(std::size_t{1} << 20, 'x'), std::array<std::uint8_t, 4>{1, 2, 3, 4});
+	CHECK(stranger.connection->send(std::string_view(big).substr(0, 14 + 64), 1s));
+	auto frame = nextFrame(stranger);
+	REQUIRE(frame);
+	CHECK(frame->kind == FrameEvent::Kind::Close);
+	CHECK(frame->code == 1009);
+
+	RawPeer known = upgrade(fixture.server->port());
+	sendText(known, R"({"type": "auth", "token": "good"})");
+	REQUIRE(fixture.executor.runUntil([&] { return !fixture.peers.empty(); }));
+	std::size_t received = 0;
+	fixture.peers.front()->onMessage.connect([&](const std::string& message) { received = message.size(); });
+	sendText(known, std::string(std::size_t{1} << 20, 'x')); // once known, the whole limit
+	CHECK(fixture.executor.runUntil([&] { return received != 0; }));
+	CHECK(received == std::size_t{1} << 20);
+}
+
 TEST_CASE("remote peers: connections are capped, and the server stays on the loopback") {
 	PeerServerOptions options;
 	options.maxPeers = 1;
@@ -197,3 +226,5 @@ TEST_CASE("remote peers: connectPeer() reaches a server with its token") {
 	CHECK(received == R"({"type":"hello"})");
 	CHECK(answer == R"({"type":"welcome"})");
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

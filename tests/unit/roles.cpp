@@ -9,17 +9,18 @@
 #include <affresco/channel/Session.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
+#include <affresco/vcs/Roles.hpp>
 
 #include <doctest/doctest.h>
 
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <ranges>
 #include <sstream>
 #include <string>
 
 using affresco::json;
-using affresco::RevisionStatus;
 using affresco::channel::Session;
 using affresco::test::MemoryChannel;
 
@@ -57,8 +58,8 @@ struct Peer {
 	json ask(json message) {
 		message["id"] = 1;
 		channel.receive(message.dump());
-		for(auto each = channel.sent.rbegin(); each != channel.sent.rend(); ++each)
-			if(each->value("id", json()) == 1) return *each;
+		for(const json& each : std::views::reverse(channel.sent))
+			if(each.value("id", json()) == 1) return each;
 		return {};
 	}
 };
@@ -144,4 +145,15 @@ TEST_CASE("roles: an agent can't give itself a role, a lease beyond its rules, o
 	// A revision can't carry a lease: a "lease" key is not one
 	CHECK(bob.ask({{"type", "revision"}, {"author", "bob"}, {"lease", "#board"}, {"set", {{"/state/x", 1}}}})["type"] !=
 	      "leased");
+}
+
+TEST_CASE("roles: a channel's role is every one of its authors' unless an author has its own") {
+	affresco::vcs::Roles roles;
+	REQUIRE_FALSE(roles.set("agent", "design").has_value());
+	REQUIRE_FALSE(roles.set("agent/bob", "review").has_value());
+	// The channel's name is worked out for the lookup: it must live as long as the lookup does
+	CHECK(roles.of("agent/ada") == "design");
+	CHECK(roles.of("agent/bob") == "review");
+	CHECK(roles.of("agent") == "design");
+	CHECK(roles.of("studio/ann").empty());
 }

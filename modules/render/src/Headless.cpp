@@ -2,7 +2,7 @@
 /// @brief detail::createHeadlessWindow: a Window without a platform window or a renderer.
 
 #include "Headless.hpp"
-#include "Renderer.hpp"
+#include "paint/Renderer.hpp"
 #include "platform/Platform.hpp"
 
 #include <utility>

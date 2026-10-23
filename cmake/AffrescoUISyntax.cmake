@@ -1,4 +1,4 @@
-# The syntax service's parser (modules/services/src/Syntax*.cpp), included by the root CMakeLists.txt: tree-sitter and
+# The syntax service's parser (modules/services/src/syntax/), included by the root CMakeLists.txt: tree-sitter and
 # seven grammars, each downloaded as the archive of a tagged commit pinned by its hash and compiled into one small static
 # library (their own build files aren't run). The grammars ship their generated parser.c, so no generator runs either.
 # Their highlight queries, and ours for folds and brackets (modules/services/syntax/queries), are embedded in the

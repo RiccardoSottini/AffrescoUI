@@ -3,7 +3,7 @@
 /// limits, server-sent events, cancellation and WebSocket connections.
 
 #include "NetServer.hpp"
-#include "WebSocketFrames.hpp"
+#include "websocket/WebSocketFrames.hpp"
 
 #include <affresco/net/Client.hpp>
 
@@ -12,6 +12,9 @@
 #include <atomic>
 #include <optional>
 #include <thread>
+
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
 
 using namespace affresco;
 using namespace affresco::net;
@@ -235,3 +238,79 @@ TEST_CASE("net client: a WebSocket to a server that doesn't upgrade fails with i
 	CHECK((*closed)->code == "status");
 	CHECK((*closed)->status == 403);
 }
+
+namespace {
+
+/// @brief Answers a WebSocket upgrade request.
+/// @param connection The connection.
+/// @return Whether the request was an upgrade, and the answer went.
+bool upgrade(tcp::Connection& connection) {
+	auto request = readRequest(connection);
+	auto block = parseHeaderBlock(request.head);
+	const auto key = block ? findHeader(block->headers, "sec-websocket-key") : std::nullopt;
+	return key && connection.send("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+	                              "Sec-WebSocket-Accept: " + acceptKey(*key) + "\r\n\r\n",
+	                              std::chrono::seconds{5});
+}
+
+} // namespace
+
+TEST_CASE("net client: a server that stops reading can't make a WebSocket hold more than its send queue") {
+	std::atomic<bool> done{false};
+	const LocalServer server([&](tcp::Connection& connection) {
+		if(!upgrade(connection)) return;
+		while(!done) std::this_thread::sleep_for(std::chrono::milliseconds{10}); // reads nothing
+	});
+	ThreadExecutor executor;
+	ClientOptions options{.proxy = std::string{}};
+	options.maxSendQueueBytes = std::size_t{1} << 20;
+	Client client(executor, options);
+	CHECK_FALSE(client.allow(server.origin()));
+	bool opened = false;
+	auto socket = client.connect(server.origin("ws") + "/", {}, {[&] { opened = true; }, {}, {}});
+	REQUIRE(executor.runUntil([&] { return opened; }));
+	// Before, each message left the queue for an output buffer with no limit, so send() accepted without end
+	const std::string message(std::size_t{64} << 10, 'x');
+	constexpr std::size_t enough = std::size_t{64} << 20;
+	std::size_t accepted = 0;
+	for(int refusals = 0; refusals < 5 && accepted < enough;) {
+		if(socket->send(message)) {
+			accepted += message.size();
+			refusals = 0;
+		} else {
+			++refusals;
+			executor.runFor(std::chrono::milliseconds{50});
+		}
+	}
+	CHECK(accepted < enough);
+	done = true;
+	socket.reset();
+}
+
+TEST_CASE("net client: a close without a code is answered with one without a code, and is a normal end") {
+	std::string answer;
+	std::atomic<bool> answered{false};
+	const LocalServer server([&](tcp::Connection& connection) {
+		if(!upgrade(connection)) return;
+		CHECK(connection.send(encodeFrame(Opcode::Close, ""), std::chrono::seconds{5}));
+		std::string bytes;
+		while(bytes.size() < 6) // a masked frame's header and key
+			if(connection.receive(bytes, std::chrono::seconds{5}) != tcp::Received::Data) return;
+		answer = bytes;
+		answered = true;
+	});
+	ThreadExecutor executor;
+	auto client = clientFor(executor, server);
+	std::optional<std::optional<network::Failure>> closed;
+	auto socket = client->connect(server.origin("ws") + "/", {},
+	                              {{}, {}, [&](std::optional<network::Failure> failure) { closed = std::move(failure); }});
+	REQUIRE(executor.runUntil([&] { return closed.has_value(); }));
+	CHECK_FALSE(*closed); // before, the client reported "The server closed the connection (1005)."
+	REQUIRE(executor.runUntil([&] { return answered.load(); }));
+	// Before, the client sent 1005 back, which RFC 6455 section 7.4.1 forbids on the wire
+	CHECK(static_cast<std::uint8_t>(answer[0]) == 0x88); // FIN, close
+	CHECK(static_cast<std::uint8_t>(answer[1]) == 0x80); // masked, no payload
+	CHECK(answer.size() == 6);
+}
+
+// NOLINTEND(bugprone-unchecked-optional-access)

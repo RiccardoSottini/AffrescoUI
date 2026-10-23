@@ -1,7 +1,8 @@
 /// @file
 /// @brief The GLFW platform: windows with an OpenGL 4.1 core or OpenGL ES 3.0 context (AFFRESCOUI_GL_BACKEND), their
-/// input, cursors, clipboard, dropped files and display scale, and the event loop's waiting. What GLFW doesn't do (the colour scheme, native menu bars, file
-/// dialogs) comes from platform/Desktop.hpp; besides those files, the only one of the render module that calls GLFW.
+/// input, cursors, clipboard, dropped files and display scale, and the event loop's waiting. What GLFW doesn't do (the
+/// colour scheme, native menu bars, file dialogs) comes from platform/Desktop.hpp; besides those files, the only one of
+/// the render module that calls GLFW.
 
 #include "platform/Desktop.hpp"
 #include "platform/Platform.hpp"
@@ -26,7 +27,7 @@ namespace affresco::platform {
 
 namespace {
 
-#if defined(AFFRESCOUI_GLES3)
+#ifdef AFFRESCOUI_GLES3
 constexpr const char* contextName = "OpenGL ES 3.0 context"; ///< What windows ask for, for errors.
 #else
 constexpr const char* contextName = "OpenGL 4.1 core context"; ///< What windows ask for, for errors.
@@ -34,7 +35,7 @@ constexpr const char* contextName = "OpenGL 4.1 core context"; ///< What windows
 
 /// @brief Asks GLFW for the context of this build's backend in the windows created next.
 void hintContext() {
-#if defined(AFFRESCOUI_GLES3)
+#ifdef AFFRESCOUI_GLES3
 	// OpenGL ES 3.0 through EGL: ANGLE (macOS, Windows), Mesa (Linux)
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
 	glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
@@ -70,7 +71,8 @@ public:
 	/// @throws std::runtime_error If the window or its context can't be created.
 	GlfwWindow(const std::string& title, int width, int height, GLFWwindow* sharing = nullptr)
 	    : handle_(glfwCreateWindow(width, height, title.c_str(), nullptr, sharing)) {
-		if(!handle_) throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
+		if(!handle_)
+			throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
 		glfwMakeContextCurrent(handle_);
 		glfwSwapInterval(1); // vsync: never render faster than the display
 #ifdef __EMSCRIPTEN__
@@ -193,12 +195,14 @@ void GlfwWindow::connect(Window& window) {
 	glfwSetDropCallback(handle_, [](GLFWwindow* native, int count, const char** paths) {
 		double x = 0.0, y = 0.0;
 		glfwGetCursorPos(native, &x, &y);
-		DropEvent event{std::vector<std::string>(paths, paths + count), {static_cast<float>(x), static_cast<float>(y)}};
+		const DropEvent event{std::vector<std::string>(paths, paths + count),
+		                      {static_cast<float>(x), static_cast<float>(y)}};
 		dropped(owner(native), event);
 	});
 	glfwSetWindowContentScaleCallback(handle_,
 	                                  [](GLFWwindow* native, float x, float) { displayChanged(owner(native), x); });
 	glfwSetWindowFocusCallback(handle_, [](GLFWwindow* native, int focused) {
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast): GlfwPlatform makes only GlfwWindows
 		auto* self = static_cast<GlfwWindow*>(&of(owner(native)));
 		if(focused == GLFW_TRUE && self->menuBar_) self->menuBar_->activate(); // macOS: the bar is the app's
 	});

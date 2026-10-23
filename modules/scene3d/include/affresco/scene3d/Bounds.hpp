@@ -13,7 +13,8 @@ namespace affresco::scene3d {
 
 /// @brief An axis-aligned box; empty (min above max) until a point is added.
 struct Aabb {
-	Vec3 min{std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
+	Vec3 min{std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
+	         std::numeric_limits<float>::max()}; ///< The smallest corner.
 	Vec3 max{-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
 	         -std::numeric_limits<float>::max()}; ///< The largest corner.
 

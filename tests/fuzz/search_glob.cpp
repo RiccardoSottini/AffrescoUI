@@ -1,7 +1,7 @@
 /// @file
-/// @brief Fuzzes the search service's globs (services/src/SearchGlob.hpp): a screen's "include" and "exclude" lists and
-/// the `.gitignore` files of a searched folder come from peers and from anywhere on disk, so a list must compile or
-/// fail, and matching must stay within its limits.
+/// @brief Fuzzes the search service's globs (services/src/search/SearchGlob.hpp): a screen's "include" and "exclude"
+/// lists and the `.gitignore` files of a searched folder come from peers and from anywhere on disk, so a list must
+/// compile or fail, and matching must stay within its limits.
 ///
 /// The input is a glob list up to the first zero byte, then a `.gitignore` text up to the next, then paths, one per
 /// line. A list compiles or gives an error and keeps at most GlobList::maxGlobs globs; the rules kept are at most
@@ -9,7 +9,7 @@
 
 #include "Fuzz.hpp"
 
-#include "SearchGlob.hpp"
+#include "search/SearchGlob.hpp"
 
 #include <algorithm>
 #include <cstddef>

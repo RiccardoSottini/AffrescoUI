@@ -3,7 +3,7 @@
 /// newer main with it: a clean rebase, a conflict, and lists of nodes merged by id (D15).
 
 #include "Helpers.hpp"
-#include "Merge.hpp" // modules/vcs/src
+#include "review/Merge.hpp" // modules/vcs/src
 
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
@@ -140,9 +140,10 @@ TEST_CASE("vcs: a proposal whose operations no longer apply as written rebases t
 	REQUIRE(repository.proposals().size() == 1);
 	const affresco::ProposalInfo rebased = repository.proposals()[0];
 	CHECK(rebased.conflicts.empty());
-	const auto refused = repository.accept(proposed.proposal, {"studio", proposed.commit.substr(0, 7), false});
-	REQUIRE(refused);
-	CHECK(refused->find("changed since you reviewed it") != std::string::npos);
+	const std::string refused =
+	    repository.accept(proposed.proposal, {"studio", proposed.commit.substr(0, 7), false}).value_or("");
+	REQUIRE_FALSE(refused.empty());
+	CHECK(refused.find("changed since you reviewed it") != std::string::npos);
 
 	// What it merges is the keyed merge: "extra" after "board", where the agent put it
 	REQUIRE_FALSE(repository.accept(proposed.proposal, {"studio", rebased.head, false}));
@@ -168,9 +169,9 @@ TEST_CASE("vcs: a proposal that conflicts with main says where, and can't be acc
 	CHECK(conflicted.conflicts[0]["proposal"] == "Today");
 	CHECK(conflicted.reason.find("conflicts with main at #title/text") != std::string::npos);
 
-	const auto refused = repository.accept(proposed.proposal, {"studio", proposed.commit, false});
-	REQUIRE(refused);
-	CHECK(refused->find("conflicts with main") != std::string::npos);
+	const std::string refused = repository.accept(proposed.proposal, {"studio", proposed.commit, false}).value_or("");
+	REQUIRE_FALSE(refused.empty());
+	CHECK(refused.find("conflicts with main") != std::string::npos);
 	CHECK(repository.document()["root"]["children"][1]["text"] == "Tomorrow"); // main's side kept
 
 	// The author resolves it by pushing again: the branch moves onto main

@@ -17,8 +17,10 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco::capi {
@@ -30,9 +32,13 @@ inline constexpr std::size_t maximumText = std::size_t{1} << 30;
 inline constexpr std::size_t maximumPath = 4096;
 
 /// @brief A failure to report to C: its status and message.
-struct Failure {
-	afr_status status;   ///< What afr_status the call returns.
-	std::string message; ///< What afr_last_error() says.
+struct Failure : std::runtime_error {
+	/// @brief A failure.
+	/// @param code What afr_status the call returns.
+	/// @param message What afr_last_error() says.
+	Failure(afr_status code, const std::string& message) : std::runtime_error(message), status(code) {}
+
+	afr_status status; ///< What afr_status the call returns.
 };
 
 /// @brief Records why the current call failed, for afr_last_error().
@@ -55,7 +61,7 @@ afr_status reportException() noexcept;
 template <typename Body> afr_status guarded(Body&& body) noexcept {
 	try {
 		clearError();
-		return body();
+		return std::forward<Body>(body)();
 	} catch(...) {
 		return reportException();
 	}
@@ -88,6 +94,15 @@ void copyOut(std::string_view text, char** out);
 /// @param what Its name.
 /// @throws Failure If it is NULL.
 void require(const void* pointer, std::string_view what);
+
+/// @brief Throws a Failure if a required out-parameter for a pointer is NULL (a pointer to a pointer, which converts
+/// to `const void*` only through a cast that clang-tidy 18 still reports).
+/// @param pointer The pointer.
+/// @param what Its name.
+/// @throws Failure If it is NULL.
+template <typename T> void require(T* const* pointer, std::string_view what) {
+	if(pointer == nullptr) require(nullptr, what);
+}
 
 /// @brief Reads an enum a C caller passed as the int it holds. C allows any int there, but in C++ a value outside the
 /// enum's range is undefined even to compare, so the check that refuses it reads it this way.

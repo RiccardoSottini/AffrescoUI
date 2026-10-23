@@ -9,7 +9,7 @@ clean-ups can pick their files.
 | **Gate: clang-tidy** | No finding of [`.clang-tidy`](../../.clang-tidy) in a line the change adds or modifies | `Linux` fails (its "Quality gate" step) |
 | **Gate: function size** | No function the change touches is over 80 lines or complexity 15, unless it was already over and didn't grow | `Linux` fails (its "Quality gate" step) |
 | **Report: coverage** | Line, function and branch coverage of the unit tests, per module | Job summary, `coverage` artifact |
-| **Floor: coverage** | The line coverage of `core`, `vcs`, `channel` and `format/Rules.cpp` stays at or above [`coverage-baseline.json`](coverage-baseline.json) | `Quality report` fails |
+| **Floor: coverage** | The line coverage of `core`, `vcs`, `channel`, `format/Rules.cpp` and `format/RulesControl.cpp` stays at or above [`coverage-baseline.json`](coverage-baseline.json) | `Quality report` fails |
 | **Report: whole repository** | The 20 longest and 20 most complex functions, tidy findings per module, check and file | Job summary, `quality-report` artifact |
 
 The gates run in the `Linux` job of [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), on every pull request
@@ -43,7 +43,9 @@ touches, before and after:
 A function the change touches fails if it is over a limit and either is new, or got longer or more complex on that
 metric. A function that was already over and didn't get worse is listed, but passes: editing old code isn't blocked,
 and making it worse is. A function whose parameters changed is still matched by its name, when the name is unique in
-the file before and after the change; a new overload of an old function counts as new.
+the file before and after the change; a new overload of an old function counts as new. A function that moved out of
+a file the change removes, as when a file is split in several, is compared with what it was there, matched by its
+whole signature.
 
 The limits are in [`thresholds.json`](thresholds.json): `function` is enforced, `aim` (60 lines, complexity 12, from
 the project's aims) is reported. Thresholds tighten over time, when the maintainer decides: lower the numbers in

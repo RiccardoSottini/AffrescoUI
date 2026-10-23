@@ -6,7 +6,7 @@
 /// client id, code and token is generated per instance, so no test value is ever a fixed secret.
 
 #include "NetServer.hpp"
-#include "OAuth.hpp" // modules/net/src: form fields, the PKCE challenge, base64url
+#include "oauth/OAuth.hpp" // modules/net/src/oauth: form fields, the PKCE challenge, base64url
 
 #include <cstdio>
 #include <map>

@@ -51,10 +51,10 @@ private:
 	/// @param coverage How much of it.
 	void blend(std::size_t index, const std::array<float, 4>& color, float coverage) noexcept;
 
-	int width_;                         ///< See width().
-	int height_;                        ///< See height().
-	std::size_t workLeft_;              ///< Pixels that may still be visited.
-	std::vector<std::uint8_t> pixels_;  ///< Premultiplied RGBA.
+	int width_;                        ///< See width().
+	int height_;                       ///< See height().
+	std::size_t workLeft_;             ///< Pixels that may still be visited.
+	std::vector<std::uint8_t> pixels_; ///< Premultiplied RGBA.
 };
 
 } // namespace affresco::vector

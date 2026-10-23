@@ -28,3 +28,10 @@ Sign in, create an account, two-step verification, a password reset, provider si
 | `sign-in.screen.json` | The screen document |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
+
+## How it holds together
+
+- **Permissions:** none, on purpose: its policy file checks that without a `permissions` section a change applies, while the provider stays a capability that no change may point elsewhere, and nothing is stored beyond what it persists. Only the theme, the remembered choice and the language persist, never a password or a code. The `exampleId` connection names a made-up provider (`id.example.com`) with no secret; scenarios play its answers.
+- **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
+- **Extension points:** a screen of the flow is an entry of `screens`; a language is a table of `strings`; `checkedField` and `strengthMeter` are its local components. Its demo accounts have no passwords.
+- **Assets:** no pictures of its own; the fonts' licences are with them in `../shared/fonts`.

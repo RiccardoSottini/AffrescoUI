@@ -27,7 +27,8 @@ inline affresco::json templateFolders(const std::filesystem::path& examples) {
 /// @return Their names.
 inline std::vector<std::string> templateNames(const std::filesystem::path& examples) {
 	std::vector<std::string> names;
-	for(const auto& [name, folder] : templateFolders(examples).items()) names.push_back(name);
+	const affresco::json folders = templateFolders(examples); // named: a loop over a temporary's items dangles
+	for(const auto& [name, folder] : folders.items()) names.push_back(name);
 	std::ranges::sort(names);
 	return names;
 }

@@ -83,7 +83,9 @@ inline const json& kanbanTemplate() {
 		const std::filesystem::path path(AFFRESCOUI_FUZZ_TEMPLATE);
 		json screen = readJsonFile(path);
 		for(const json& name : screen.value("include", json::array())) {
-			for(const auto& [key, value] : readJsonFile(path.parent_path() / name.get<std::string>()).items()) {
+			// Named: a loop over a temporary's items dangles
+			const json part = readJsonFile(path.parent_path() / name.get<std::string>());
+			for(const auto& [key, value] : part.items()) {
 				if(key == "$schema") continue;
 				if(!screen.contains(key)) screen[key] = value;
 				else if(value.is_object() && screen[key].is_object())

@@ -114,6 +114,7 @@ void main() {
 /// @throws std::runtime_error With the log, if it doesn't compile.
 GLuint compile(GLenum kind, std::string_view prelude, const char* body) {
 	const GLuint shader = glCreateShader(kind);
+	// NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): its length goes with it, in lengths
 	const std::array<const GLchar*, 2> parts{prelude.data(), body};
 	const std::array<GLint, 2> lengths{static_cast<GLint>(prelude.size()), -1};
 	glShaderSource(shader, 2, parts.data(), lengths.data());
@@ -334,7 +335,7 @@ Matrix cubeTransform(float yaw, float pitch, float aspect) noexcept {
 
 /// @brief The cube's triangles: per vertex, its position and its face's colour (36 vertices of 6 floats).
 /// @return The vertices.
-std::array<float, 216> cubeVertices() noexcept {
+std::array<float, 216> cubeVertices() {
 	constexpr std::array<std::array<float, 3>, 8> corners{
 	    {{-1, -1, -1}, {1, -1, -1}, {1, 1, -1}, {-1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {1, 1, 1}, {-1, 1, 1}}};
 	constexpr std::array<std::array<std::size_t, 4>, 6> faces{

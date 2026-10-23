@@ -47,9 +47,38 @@ constexpr double minimumZoom = 1.0 / 64.0, maximumZoom = 64.0;
 void zoomAt(Session& session, Point at, double factor) {
 	imaging::CanvasView& view = session.view;
 	const double zoom = std::clamp(view.zoom * factor, minimumZoom, maximumZoom);
-	view.x = at.x + (view.x - at.x) * view.zoom / zoom;
-	view.y = at.y + (view.y - at.y) * view.zoom / zoom;
+	view.x = withinReach(at.x + (view.x - at.x) * view.zoom / zoom);
+	view.y = withinReach(at.y + (view.y - at.y) * view.zoom / zoom);
 	view.zoom = zoom;
+}
+
+/// @brief What a press of the clone stamp does before it paints: a right click sets the source, and with no source
+/// set it only says how to set one.
+/// @param session The session.
+/// @param at Where.
+/// @return Whether the press was handled here, so no stroke starts.
+bool pressCloneSource(Session& session, Point at) {
+	ToolSettings& settings = session.settings;
+	if(session.press.right) {
+		settings.cloneSource = at;
+		session.cloneOffset.reset();
+		session.message = "Clone source set";
+		return true;
+	}
+	if(!settings.cloneSource) {
+		session.message = "Right-click to set the clone source";
+		return true;
+	}
+	return false;
+}
+
+/// @brief The step name of a stroke of the paint tools, as the History panel shows it.
+/// @param settings The tool settings.
+/// @return It.
+[[nodiscard]] const char* strokeName(const ToolSettings& settings) noexcept {
+	if(settings.quickMask) return "Quick Mask";
+	if(settings.tool == Tool::eraser) return "Eraser";
+	return settings.tool == Tool::clone ? "Clone Stamp" : "Brush";
 }
 
 /// @brief Starts a brush, eraser or clone stroke.
@@ -57,29 +86,17 @@ void zoomAt(Session& session, Point at, double factor) {
 /// @param at Where.
 /// @return Whether the screen should hear of it.
 bool startStroke(Session& session, Point at) {
-	ToolSettings& settings = session.settings;
-	if(settings.tool == Tool::clone && session.press.right) {
-		settings.cloneSource = at;
-		session.cloneOffset.reset();
-		session.message = "Clone source set";
-		return true;
-	}
-	if(settings.tool == Tool::clone && !settings.cloneSource) {
-		session.message = "Right-click to set the clone source";
-		return true;
-	}
+	const ToolSettings& settings = session.settings;
+	if(settings.tool == Tool::clone && pressCloneSource(session, at)) return true;
 	const auto target = paintTarget(session);
 	if(!target) return true;
 	const auto mode = settings.tool == Tool::eraser  ? imaging::StrokeMode::erase
 	                  : settings.tool == Tool::clone ? imaging::StrokeMode::clone
 	                                                 : imaging::StrokeMode::paint;
-	const char* name = settings.quickMask              ? "Quick Mask"
-	                   : settings.tool == Tool::eraser ? "Eraser"
-	                   : settings.tool == Tool::clone  ? "Clone Stamp"
-	                                                   : "Brush";
 	session.stroke = std::make_unique<imaging::Stroke>(session.canvas->document(), *target, settings.tip, mode,
-	                                                   settings.foreground, name);
-	if(mode == imaging::StrokeMode::clone) {
+	                                                   settings.foreground, strokeName(settings));
+	if(mode == imaging::StrokeMode::clone && settings.cloneSource) {
+		// The offset is kept between strokes, so that the source follows the brush as in other editors
 		if(!session.cloneOffset)
 			session.cloneOffset = Point{settings.cloneSource->x - at.x, settings.cloneSource->y - at.y};
 		session.stroke->setCloneOffset(session.cloneOffset->x, session.cloneOffset->y);
@@ -124,14 +141,35 @@ bool pickColour(Session& session, Point at) {
 	return true;
 }
 
+/// @brief Selects with the magic wand from the pixel clicked.
+/// @param document The document.
+/// @param settings The tool settings: the sampling and the selection mode.
+/// @param at Where, in document pixels.
+/// @return Whether it was on the document, so the selection changed.
+bool clickWand(imaging::Document& document, const ToolSettings& settings, Point at) {
+	const int x = static_cast<int>(std::floor(at.x)), y = static_cast<int>(std::floor(at.y));
+	if(x < 0 || y < 0 || x >= document.width() || y >= document.height()) return false;
+	imaging::select(document, "Magic Wand", imaging::wandCoverage(document, x, y, settings.sample), settings.mode);
+	return true;
+}
+
+/// @brief Fills with the paint bucket from the pixel clicked.
+/// @param session The session; its message says why when nothing can be filled.
+/// @param at Where, in document pixels.
+void clickFill(Session& session, Point at) {
+	const auto target = paintTarget(session);
+	if(!target) return;
+	const ToolSettings& settings = session.settings;
+	imaging::fillAt(session.canvas->document(), *target, static_cast<int>(std::floor(at.x)),
+	                static_cast<int>(std::floor(at.y)), settings.foreground, settings.sample, settings.opacity);
+}
+
 /// @brief What a tool does when a button goes down.
 /// @param session The session.
 /// @param at Where, in document pixels.
 /// @return Whether the screen should hear of it.
 bool pressTool(Session& session, Point at) {
-	imaging::Document& document = session.canvas->document();
-	const ToolSettings& settings = session.settings;
-	switch(settings.tool) {
+	switch(session.settings.tool) {
 	case Tool::brush:
 	case Tool::eraser:
 	case Tool::clone:
@@ -139,19 +177,11 @@ bool pressTool(Session& session, Point at) {
 	case Tool::lasso:
 	case Tool::polygon:
 		return addCorner(session, at);
-	case Tool::wand: {
-		const int x = static_cast<int>(std::floor(at.x)), y = static_cast<int>(std::floor(at.y));
-		if(x < 0 || y < 0 || x >= document.width() || y >= document.height()) return false;
-		imaging::select(document, "Magic Wand", imaging::wandCoverage(document, x, y, settings.sample), settings.mode);
+	case Tool::wand:
+		return clickWand(session.canvas->document(), session.settings, at);
+	case Tool::fill:
+		clickFill(session, at);
 		return true;
-	}
-	case Tool::fill: {
-		const auto target = paintTarget(session);
-		if(target)
-			imaging::fillAt(document, *target, static_cast<int>(std::floor(at.x)), static_cast<int>(std::floor(at.y)),
-			                settings.foreground, settings.sample, settings.opacity);
-		return true;
-	}
 	case Tool::eyedropper:
 		return pickColour(session, at);
 	case Tool::zoom:
@@ -179,8 +209,8 @@ bool dragTool(Session& session, const imaging::CanvasPointer& event) {
 		return false;
 	case Tool::hand: {
 		const Press& press = session.press;
-		session.view.x = press.view.x - (event.pointer.position.x - press.surfaceX) / press.view.zoom;
-		session.view.y = press.view.y - (event.pointer.position.y - press.surfaceY) / press.view.zoom;
+		session.view.x = withinReach(press.view.x - (event.pointer.position.x - press.surfaceX) / press.view.zoom);
+		session.view.y = withinReach(press.view.y - (event.pointer.position.y - press.surfaceY) / press.view.zoom);
 		return true;
 	}
 	case Tool::eyedropper:
@@ -191,12 +221,11 @@ bool dragTool(Session& session, const imaging::CanvasPointer& event) {
 }
 
 /// @brief A marquee's selection, or none for a click without a drag.
-/// @param session The session.
-/// @param at Where the button went up.
-void selectShape(Session& session, Point at) {
-	imaging::Document& document = session.canvas->document();
-	const Point from = session.press.start;
-	const ToolSettings& settings = session.settings;
+/// @param document The document.
+/// @param settings The tool settings: the marquee's shape and the selection mode.
+/// @param from Where the button went down.
+/// @param at Where it went up.
+void selectShape(imaging::Document& document, const ToolSettings& settings, Point from, Point at) {
 	if(std::abs(at.x - from.x) < 1.0f && std::abs(at.y - from.y) < 1.0f) {
 		if(settings.mode == imaging::SelectionMode::replace) imaging::deselect(document);
 		return;
@@ -223,6 +252,28 @@ void drawGradient(Session& session, Point at) {
 	                      settings.opacity);
 }
 
+/// @brief Selects inside the lasso's path, if it has an area, and clears the path.
+/// @param session The session.
+void closeLasso(Session& session) {
+	imaging::Document& document = session.canvas->document();
+	if(session.path.size() >= 3)
+		imaging::select(document, "Lasso",
+		                imaging::polygonCoverage(document.width(), document.height(), session.path, session.limits),
+		                session.settings.mode);
+	session.path.clear();
+}
+
+/// @brief Crops to the rectangle dragged from the press to a point.
+/// @param session The session.
+/// @param at Where the button went up.
+void cropToDrag(Session& session, Point at) {
+	const Point from = session.press.start;
+	const float left = std::min(from.x, at.x), top = std::min(from.y, at.y);
+	crop(session, static_cast<int>(std::lround(left)), static_cast<int>(std::lround(top)),
+	     static_cast<int>(std::lround(std::max(from.x, at.x) - left)),
+	     static_cast<int>(std::lround(std::max(from.y, at.y) - top)));
+}
+
 /// @brief What a tool does when the button goes up.
 /// @param session The session.
 /// @param at Where, in document pixels.
@@ -239,17 +290,11 @@ bool releaseTool(Session& session, Point at) {
 		return true;
 	case Tool::marquee:
 	case Tool::ellipse:
-		selectShape(session, at);
+		selectShape(session.canvas->document(), session.settings, from, at);
 		return true;
-	case Tool::lasso: {
-		imaging::Document& document = session.canvas->document();
-		if(session.path.size() >= 3)
-			imaging::select(document, "Lasso",
-			                imaging::polygonCoverage(document.width(), document.height(), session.path, session.limits),
-			                session.settings.mode);
-		session.path.clear();
+	case Tool::lasso:
+		closeLasso(session);
 		return true;
-	}
 	case Tool::gradient:
 		drawGradient(session, at);
 		return true;
@@ -257,31 +302,41 @@ bool releaseTool(Session& session, Point at) {
 		moveActiveLayer(session.canvas->document(), static_cast<int>(std::lround(at.x - from.x)),
 		                static_cast<int>(std::lround(at.y - from.y)));
 		return true;
-	case Tool::crop: {
-		const float left = std::min(from.x, at.x), top = std::min(from.y, at.y);
-		crop(session, static_cast<int>(std::lround(left)), static_cast<int>(std::lround(top)),
-		     static_cast<int>(std::lround(std::max(from.x, at.x) - left)),
-		     static_cast<int>(std::lround(std::max(from.y, at.y) - top)));
+	case Tool::crop:
+		cropToDrag(session, at);
 		return true;
-	}
 	default:
 		return false;
 	}
 }
 
+/// @brief Where a tile lands in another image, and that image's size in tiles.
+struct Placement {
+	int left = 0;    ///< Where the tile's left edge lands, in the other image.
+	int top = 0;     ///< Where its top edge lands.
+	int columns = 0; ///< The other image's columns.
+	int rows = 0;    ///< The other image's rows.
+};
+
+/// @brief A rectangle of an image, in pixels.
+struct Area {
+	int left = 0;   ///< Its left edge.
+	int top = 0;    ///< Its top edge.
+	int width = 0;  ///< Its width.
+	int height = 0; ///< Its height.
+};
+
 /// @brief Copies a tile's pixels, placed at an offset, onto the tiles of another image they land on.
 /// @param tile The source tile.
-/// @param left Where its left edge lands, in the other image.
-/// @param top Where its top edge lands.
-/// @param columns The other image's columns.
-/// @param rows The other image's rows.
+/// @param placement Where it lands, and the other image's size in tiles.
 /// @param destinationOf The other image's tile to write at a column and row (of the same format).
-void copyPlaced(const imaging::Tile& tile, int left, int top, int columns, int rows,
+void copyPlaced(const imaging::Tile& tile, const Placement& placement,
                 const std::function<imaging::Tile&(int, int)>& destinationOf) {
 	constexpr int side = imaging::tileSize;
 	const auto pixelBytes = imaging::bytesPerPixel(tile.format());
-	const int lastColumn = std::min(columns - 1, (left + side - 1) / side);
-	const int lastRow = std::min(rows - 1, (top + side - 1) / side);
+	const int left = placement.left, top = placement.top;
+	const int lastColumn = std::min(placement.columns - 1, (left + side - 1) / side);
+	const int lastRow = std::min(placement.rows - 1, (top + side - 1) / side);
 	for(int row = std::max(0, top / side); row <= lastRow; ++row)
 		for(int column = std::max(0, left / side); column <= lastColumn; ++column) {
 			const int originX = column * side, originY = row * side;
@@ -312,14 +367,11 @@ void copyPlaced(const imaging::Tile& tile, int left, int top, int columns, int r
 
 /// @brief A part of an image as a new image; a mask's absent tiles stay absent (white).
 /// @param image The image.
-/// @param left The part's left.
-/// @param top Its top.
-/// @param width Its width.
-/// @param height Its height.
+/// @param part The part, inside the image.
 /// @param limits The limits.
-[[nodiscard]] std::shared_ptr<imaging::Image> cropImage(const imaging::Image& image, int left, int top, int width,
-                                                        int height, const imaging::Limits& limits) {
-	auto copy = std::make_shared<imaging::Image>(width, height, image.format(), limits);
+[[nodiscard]] std::shared_ptr<imaging::Image> cropImage(const imaging::Image& image, const Area& part,
+                                                        const imaging::Limits& limits) {
+	auto copy = std::make_shared<imaging::Image>(part.width, part.height, image.format(), limits);
 	const bool mask = image.format() == imaging::PixelFormat::mask8;
 	std::map<std::pair<int, int>, bool> started;
 	const auto destinationOf = [&](int column, int row) -> imaging::Tile& {
@@ -329,12 +381,19 @@ void copyPlaced(const imaging::Tile& tile, int left, int top, int columns, int r
 		return copy->writableTile(column, row);
 	};
 	for(const auto& [place, tile] : tilesOf(image))
-		copyPlaced(*tile, place.first * imaging::tileSize - left, place.second * imaging::tileSize - top,
-		           copy->columns(), copy->rows(), destinationOf);
+		copyPlaced(*tile,
+		           {place.first * imaging::tileSize - part.left, place.second * imaging::tileSize - part.top,
+		            copy->columns(), copy->rows()},
+		           destinationOf);
 	return copy;
 }
 
 } // namespace
+
+double withinReach(double coordinate) noexcept {
+	constexpr double farthest = 1e9;
+	return std::clamp(coordinate, -farthest, farthest);
+}
 
 bool applyPointer(Session& session, const imaging::CanvasPointer& event) {
 	const Point at{static_cast<float>(event.x), static_cast<float>(event.y)};
@@ -389,8 +448,9 @@ void moveActiveLayer(imaging::Document& document, int dx, int dy) {
 	try {
 		for(const auto& [place, tile] : before) document.replaceTile(target, place.first, place.second, nullptr);
 		for(const auto& [place, tile] : before)
-			copyPlaced(*tile, place.first * imaging::tileSize + dx, place.second * imaging::tileSize + dy, columns,
-			           rows, destinationOf);
+			copyPlaced(*tile,
+			           {place.first * imaging::tileSize + dx, place.second * imaging::tileSize + dy, columns, rows},
+			           destinationOf);
 	} catch(...) {
 		document.cancel();
 		throw;
@@ -407,7 +467,7 @@ void crop(Session& session, int x, int y, int width, int height) {
 	auto cropped = std::make_unique<imaging::Document>(width, height, session.limits, old.format());
 	imaging::Structure structure = old.structure();
 	structure.selection = false;
-	for(auto& [id, image] : structure.images) image = cropImage(*image, left, top, width, height, session.limits);
+	for(auto& [id, image] : structure.images) image = cropImage(*image, {left, top, width, height}, session.limits);
 	cropped->changeStructure("Crop", [&](imaging::Structure& replaced) { replaced = structure; });
 	cropped->clearHistory();
 	replaceDocument(session, std::move(cropped));

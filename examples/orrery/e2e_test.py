@@ -5,7 +5,8 @@ Starts Orrery's host (affrescoui_orrery, with its 3D view) on a private socket f
 its bodies strip, and drives it the way an agent would through the MCP server: it reads the screen, proves that
 Sinopia's slide sorter fits Orrery through Orrery's adapter, and installs it, which is a revision the agent may only
 propose. The agent gets a picture of the proposal and plays the strip's scenarios on it, the Studio approves it, and
-the strip is on main. Then it plays Orrery's own scenarios headless on the screen as shipped.
+the strip is on main. Then it plays Orrery's own scenarios headless on the screen as shipped, and opens Orrery on bodies
+whose id or parent isn't text.
 
 Usage: e2e_test.py BUILD_DIR
 """
@@ -48,10 +49,12 @@ def connect(path, timeout=20.0):
 class Mcp:
     """The MCP server over stdio, as Claude Code runs it."""
 
-    def __init__(self, socket_dir):
+    def __init__(self, socket_dir, cli):
+        """Starts it on `socket_dir`, with `cli` as its affrescoui tool: the build's under test, not one on the PATH."""
         self.proc = subprocess.Popen([sys.executable, os.path.join(ROOT, "mcp", "affrescoui_mcp.py"),
                                       "--socket", socket_dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     stderr=subprocess.DEVNULL, text=True, encoding="utf-8")
+                                     stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
+                                     env=dict(os.environ, AFFRESCOUI_CLI=cli))
         self.next_id = 0
         self.call_raw("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
                                      "clientInfo": {"name": "e2e", "version": "1"}})
@@ -102,6 +105,25 @@ def copy_without_strip(work):
     return screen
 
 
+def starts_with_odd_bodies(build, work):
+    """Opens Orrery for one frame on its screen with bodies whose id or parent isn't text (the screen takes them; a
+    colour that isn't one the screen refuses itself), and exits non-zero with a reason if it doesn't start."""
+    with open(SCREEN, encoding="utf-8") as f:
+        document = json.load(f)
+    bodies = document["state"]["bodies"]
+    bodies[3]["parent"] = 3
+    bodies[4]["id"] = 4
+    screen = os.path.join(work, "orrery", "odd.screen.json")
+    with open(screen, "w", encoding="utf-8") as f:
+        json.dump(document, f, indent="\t")
+    shot = os.path.join(work, "odd.ppm")
+    env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=os.path.join(work, "s"), AFFRESCOUI_SCREENSHOT=shot)
+    run = subprocess.run([os.path.join(build, "affrescoui_orrery"), screen, "--socket", os.path.join(work, "s"),
+                          "--data", os.path.join(work, "data")], env=env, capture_output=True, text=True, timeout=60)
+    if run.returncode != 0 or not os.path.exists(shot):
+        sys.exit("orrery didn't start with odd bodies: " + run.stderr)
+
+
 def main():
     """Runs the loop; exits non-zero with a reason on the first failure."""
     if len(sys.argv) != 2:
@@ -116,7 +138,7 @@ def main():
                             env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         studio, studio_stream = connect(os.path.join(sockets, "studio.sock"))
-        mcp = Mcp(sockets)
+        mcp = Mcp(sockets, os.path.join(build, "affrescoui"))
 
         # 1. The agent reads the screen: the dock the strip goes in, empty
         text = mcp.tool("get_screen", {"at": "#dock"})[0]["text"]
@@ -178,6 +200,9 @@ def main():
                          capture_output=True, text=True)
     if run.returncode != 0:
         sys.exit(run.stdout + run.stderr)
+
+    # 8. Bodies whose id or parent isn't text still open: the file is the person's to write
+    starts_with_odd_bodies(build, work)
     shutil.rmtree(work, ignore_errors=True)
     print("orrery: agent install, approval, picture and scenarios passed")
 
