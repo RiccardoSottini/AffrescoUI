@@ -3450,7 +3450,22 @@
 				{
 					"expect": {
 						"node": "#label-accept",
-						"exists": false
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "log.length",
+						"is": 2
+					}
+				},
+				{
+					"click": "#label-accept"
+				},
+				{
+					"expect": {
+						"state": "log.length",
+						"is": 2
 					}
 				},
 				{

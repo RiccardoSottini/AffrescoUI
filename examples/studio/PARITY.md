@@ -23,7 +23,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Diff | Unified view: old and new line numbers, added and removed lines coloured | A proposal's sections, as formatted JSON | missing | partial |
 | Diff | Split view | Unified or split, old on the left and new on the right, remembered | partial | partial |
 | Diff | Hunk headers and expanding the context | Headers; the whole file on a click, not a few lines at a time | missing | partial |
-| Diff | Hide whitespace changes; diff options | Unified, split and whitespace as buttons above the files, not a menu | missing | partial |
+| Diff | Hide whitespace changes; diff options | Unified and split as buttons and Hide whitespace as a check box above the files, not a menu | missing | partial |
 | Diff | Large-diff and binary placeholders | | missing | missing |
 | Branches | Compare a branch with main | From the branch menu: the proposal's Files changed page | missing | partial |
 | Branches | Merge conflicts dialog | A proposal that conflicts with main | partial | partial |
@@ -41,10 +41,10 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Pull request | Comments on a line, with suggestions | | missing | missing |
 | Pull request | Review box: Comment, Approve, Request changes | A text and the three kinds as radio choices, then Submit review; comments and change requests go to the agents as requests | partial | partial |
 | Pull request | Checks: what ran, with its results | Evidence: each scenario with a pass or fail mark, pictures before and after | partial | partial |
-| Pull request | Merge box states: conflicts, blocked, ready, merged | On Conversation only: ready, review required, changes requested, checks failed, blocked (the refusal), conflicts (grey), merging; a merged notice; no Resolve conflicts button | partial | partial |
+| Pull request | Merge box states: conflicts, blocked, ready, merged | On Conversation only: ready, review required, changes requested, checks failed, blocked (the refusal), conflicts (grey, with Merge proposal disabled), merging; a merged notice; no Resolve conflicts button | partial | partial |
 | Pull request | Merge button with options | "Merge proposal", green when ready, disabled while conflicts, change requests or failed checks hold it; "Always allow" under it; no squash or rebase | partial | partial |
 | Pull request | Close the pull request | "Close proposal", grey, below the merge box, asks first | partial | partial |
-| Pull request | Check out the pull request | Preview | partial | partial |
+| Pull request | Check out the pull request | Preview, with a Previewing pill; the panel keeps its colours | partial | partial |
 
 **Counts at the start:** 0 done, 19 partial, 17 missing.
 **Counts now:** 0 done, 33 partial, 3 missing.
