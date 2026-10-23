@@ -155,9 +155,8 @@
 									{ "id": "inboxUnread", "when": "{{!n.read}}", "width": 6, "height": 6, "radius": 3, "color": "@color.accent", "anchors": { "left": 8, "top": 27 } },
 									{ "id": "inboxWho", "style": "badge", "text": "{{n.who}}", "width": 24, "height": 24, "radius": 999, "anchors": { "left": 20, "top": 10 },
 										"color": "{{find(state.members, it.who == n.who).color ?? '@color.muted'}}", "textColor": "#ffffff" },
-									{ "id": "inboxRef", "type": "label", "font": "small", "text": "{{n.ref}}", "textColor": "{{n.read ? '@color.muted' : '@color.text'}}", "width": 52,
-										"anchors": { "left": 54, "top": 8 }, "height": 22, "align": { "horizontal": "start", "vertical": "center" } },
-									{ "id": "inboxTitle", "type": "label", "font": "small", "anchors": { "left": 108, "right": 64, "top": 8 }, "height": 22,
+									{ "id": "inboxRef", "type": "label", "font": "small", "width": 44, "textColor": "@color.muted", "text": "{{n.ref}}", "padding": 0, "anchors": { "left": 54, "top": 8 }, "height": 22, "align": { "horizontal": "start", "vertical": "center" } },
+									{ "id": "inboxTitle", "type": "label", "font": "small", "anchors": { "left": 98, "right": 64, "top": 8 }, "height": 22, "padding": 0,
 										"textColor": "{{n.read ? '@color.muted' : '@color.text'}}", "align": { "horizontal": "start", "vertical": "center" },
 										"text": "{{find(computed.allCards, it.ref == n.ref).title ?? ''}}" },
 									{ "id": "inboxWhat", "style": "caption", "anchors": { "left": 54, "right": 16, "top": 30 }, "height": 20,
@@ -181,7 +180,7 @@
 							{ "id": "inboxDetailRef", "style": "caption", "text": "{{computed.notification.ref}}", "anchors": { "left": 40, "top": 32 }, "height": 20 },
 							{ "id": "inboxDetailTitle", "type": "label", "font": "title", "text": "{{computed.notificationCard.title ?? ''}}", "textColor": "@color.text",
 								"anchors": { "left": 40, "right": 40, "top": 54 }, "height": 36, "align": { "horizontal": "start", "vertical": "center" } },
-							{ "id": "inboxDetailEvent", "anchors": { "left": 40, "right": 40, "top": 104 }, "height": 64, "radius": "@radius.card", "color": "@color.column",
+							{ "id": "inboxDetailEvent", "anchors": { "left": 40, "right": 40, "top": 144 }, "height": 64, "radius": "@radius.card", "color": "@color.column",
 								"children": [
 									{ "id": "inboxDetailWho", "style": "badge", "text": "{{computed.notification.who}}", "width": 24, "height": 24, "radius": 999, "anchors": { "left": 14, "top": 10 },
 										"color": "{{find(state.members, it.who == computed.notification.who).color ?? '@color.muted'}}", "textColor": "#ffffff" },
@@ -191,7 +190,15 @@
 									{ "id": "inboxDetailText", "style": "caption", "anchors": { "left": 48, "right": 14, "top": 34 }, "height": 20,
 										"align": { "horizontal": "start", "vertical": "center" }, "text": "{{computed.notification.text ?? ''}}" }
 								] },
-							{ "id": "inboxActions", "type": "row", "gap": 8, "anchors": { "left": 40, "top": 184 }, "height": 28, "children": [
+							{ "id": "inboxProps", "type": "row", "gap": 6, "anchors": { "left": 40, "right": 40, "top": 102 }, "height": 24, "alignItems": "center",
+								"let": { "card": "{{computed.notificationCard}}", "col": "{{state.columns[computed.notificationCard.c]}}" }, "children": [
+								{ "id": "inboxStatus", "style": "cardChip", "textColor": "@color.text", "runs": [{ "icon": "{{state.statusIcons[card.c] ?? 'circle'}}", "color": "{{col.color}}" }, "\u00a0{{col.name}}"] },
+								{ "id": "inboxPriority", "style": "cardChip", "textColor": "@color.text",
+									"runs": [{ "icon": "{{state.priorities[card.priority ?? 0]}}", "color": "{{card.priority == 1 ? '@bug' : '@color.muted'}}" }, "\u00a0{{t('priority.' + (card.priority ?? 0))}}"] },
+								{ "id": "inboxAssignee", "style": "cardChip", "textColor": "@color.text", "icon": "circle-user", "text": "\u00a0{{find(state.members, it.who == card.who).name ?? card.who}}" },
+								{ "id": "inboxTag", "style": "cardChip", "textColor": "@color.text", "runs": [{ "icon": "circle", "color": "@{{card.tag}}" }, "\u00a0{{t('tag.' + card.tag)}}"] }
+							] },
+							{ "id": "inboxActions", "type": "row", "gap": 8, "anchors": { "left": 40, "right": 40, "top": 224 }, "height": 28, "children": [
 								{ "id": "inboxOpen", "style": "propValue", "icon": "maximize-2", "text": " {{t('inbox.open')}}", "onClick": "openNotification", "tooltip": "Enter" },
 								{ "id": "inboxSnooze", "style": "propValue", "icon": "alarm-clock", "text": " {{t('inbox.snooze')}}", "onClick": "snoozeNotification", "tooltip": "H" },
 								{ "id": "inboxRead", "style": "propValue", "icon": "{{computed.notification.read ? 'mail' : 'mail-check'}}",

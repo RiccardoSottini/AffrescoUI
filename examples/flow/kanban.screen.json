@@ -860,7 +860,7 @@
 													{ "id": "columnTitle", "type": "row", "gap": 8, "alignItems": "center", "anchors": { "left": 36, "right": 44, "top": 0 }, "height": 40, "children": [
 														{ "id": "columnName", "type": "label", "font": "small", "text": "{{column.name}}", "textColor": "@color.text", "fitText": true, "height": 40,
 															"align": { "horizontal": "start", "vertical": "center" } },
-														{ "id": "columnCount", "type": "label", "font": "small", "text": "{{length(column.cards)}}", "fitText": true, "height": 40,
+														{ "id": "columnCount", "type": "label", "font": "small", "text": "{{count(computed.visible, it.c == c)}}", "fitText": true, "height": 40,
 															"align": { "horizontal": "start", "vertical": "center" }, "textColor": "{{computed.over[c] ? '@bug' : '@color.muted'}}",
 															"label": "{{computed.over[c] ? t('column.over', { name: column.name, count: length(column.cards), limit: column.limit }) : length(column.cards)}}" },
 														{ "id": "columnLimit", "style": "caption", "when": "{{column.limit != null}}", "text": "{{t('column.limit', { limit: column.limit })}}", "height": 40,
@@ -910,6 +910,8 @@
 																		{ "id": "cardPriority", "style": "cardChip", "borderWidth": 0, "when": "{{!contains(state.hidden, 'priority') && ((card.priority ?? 0) > 0)}}", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
 																			"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "tooltip": "{{t('priority.' + (card.priority ?? 0))}}" },
 																		{ "id": "cardTag", "when": "{{!contains(state.hidden, 'label')}}", "style": "cardChip", "runs": [{ "icon": "circle", "color": "@{{card.tag}}" }, " {{t('tag.' + card.tag)}}"], "tooltip": "{{t('tag.' + card.tag)}}" },
+																		{ "id": "cardLabels", "when": "{{!contains(state.hidden, 'label') && length(card.labels ?? []) > 0}}", "style": "cardChip", "text": "+{{length(card.labels ?? [])}}",
+																			"tooltip": "{{join(map(card.labels ?? [], t('label.' + it)), ', ')}}" },
 																		{ "id": "cardDue", "style": "cardChip", "when": "{{!contains(state.hidden, 'due') && (card.due != null)}}", "icon": "calendar", "text": "{{formatDate(dateMs(card.due), 'MMM d', 'utc')}}",
 																			"tooltip": "{{formatDate(dateMs(card.due), 'medium', 'utc')}}",
 																			"textColor": "{{daysBetween(state.today, card.due) < 0 && c != computed.lastColumn ? '@bug' : '@color.muted'}}" },

@@ -17,5 +17,5 @@ and all of its data is invented. This page lists what a daily user would reach f
 | Multi-select | X, Shift+J/K, a bar for bulk status, priority, assignee and delete | done | `select.json`; Cmd+A selects every shown issue, Escape clears, each bulk change is one undo step |
 | Cycles | current cycle, scope and progress | done | `pages.json`; scope, started and completed from the board, a burn-up, upcoming and past cycles; G then V |
 | Projects | a project list, status and progress | partial | health, lead, target date and progress; G then P. The project page with milestones and updates is missing |
-| Inbox | notifications, read and unread | done | unread count in the sidebar, J/K, U read or unread, H snooze, Enter opens the issue; G then I |
+| Inbox | notifications, read and unread | done | unread count in the sidebar, a preview with the issue's status, priority, assignee and label, J/K, U read or unread, H snooze, Enter opens the issue; G then I |
 | Roadmap | projects on a timeline | partial | the Timeline view |

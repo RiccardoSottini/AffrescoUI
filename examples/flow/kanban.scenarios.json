@@ -25,7 +25,7 @@
 		},
 		{
 			"name": "issue-page-next-and-previous",
-			"note": "The issue page's arrows step through the shown issues, its counter following; the page stays open",
+			"note": "The issue page's arrows step through the shown issues, its counter following; + Add sub-issues opens the field",
 			"steps": [
 				{ "click": "#cardTitle", "nth": 0 },
 				{ "key": "mod+enter" },
@@ -36,7 +36,14 @@
 				{ "expect": { "state": "selected.i", "is": 1 } },
 				{ "expect": { "node": "#issuePosition", "text": "2 / 12" } },
 				{ "click": "#issueUp" },
-				{ "expect": { "state": "selected.i", "is": 0 } }
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "click": "#issueDown" },
+				{ "click": "#issueDown" },
+				{ "click": "#issueAddSubButton" },
+				{ "wait": 50 },
+				{ "type": "Reproduce on an empty board" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[2].checklist[0].text", "is": "Reproduce on an empty board" } }
 			]
 		},
 		{

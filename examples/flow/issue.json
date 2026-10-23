@@ -3,6 +3,7 @@
 
 	"state": {
 		"issueOpen": false,
+		"subOpen": false,
 		"issueStatusOpen": false,
 		"issuePriorityOpen": false,
 		"issueLabelsOpen": false,
@@ -73,7 +74,7 @@
 			{ "run": "moveCard", "with": { "from": "{{state.selected.c}}", "at": "{{state.selected.i}}", "to": "{{to}}" } }
 		],
 		"openIssue": { "title": "Open issue", "category": "Issue", "icon": "maximize-2", "enablement": "{{computed.card != null}}", "do": [{ "set": "state.issueOpen", "to": true }] },
-		"closeIssue": { "title": "Close issue", "category": "Issue", "icon": "arrow-left", "enablement": "{{state.issueOpen}}", "do": [{ "set": "state.issueOpen", "to": false }, { "set": "state.issueDueOpen", "to": false }] }
+		"closeIssue": { "title": "Close issue", "category": "Issue", "icon": "arrow-left", "enablement": "{{state.issueOpen}}", "do": [{ "set": "state.issueOpen", "to": false }, { "set": "state.issueDueOpen", "to": false }, { "set": "state.subOpen", "to": false }] }
 	},
 
 	"components": {
@@ -122,7 +123,10 @@
 								{ "id": "issueNotesSave", "style": "detailButton", "text": "{{t('detail.save')}}", "focusable": true, "role": "button", "onClick": "saveNotes" },
 								{ "id": "issueNotesCancel", "style": "detailButton", "text": "{{t('detail.cancel')}}", "focusable": true, "role": "button", "onClick": "cancelNotes" }
 							] },
-							{ "id": "issueSubTitle", "style": "section", "anchors": { "left": 40, "right": 40 }, "height": 28,
+							{ "id": "issueAddSub", "when": "{{length(computed.card.checklist ?? []) == 0 && !state.subOpen}}", "type": "row", "anchors": { "left": 40, "right": 40 }, "height": 28, "children": [
+								{ "id": "issueAddSubButton", "style": "propValue", "icon": "plus", "text": "\u00a0{{t('issue.addSubs')}}", "textColor": "@color.muted", "onClick": { "set": "state.subOpen", "to": true } }
+							] },
+							{ "id": "issueSubTitle", "when": "{{length(computed.card.checklist ?? []) > 0}}", "style": "section", "anchors": { "left": 40, "right": 40 }, "height": 28,
 								"text": "{{t('issue.subIssues', { done: computed.checklistDone, total: length(computed.card.checklist ?? []) })}}" },
 							{ "id": "issueSubs", "type": "column", "anchors": { "left": 40, "right": 40 }, "height": "{{length(computed.card.checklist ?? []) * 34}}", "children": [
 								{ "id": "issueSub", "repeat": { "for": "item", "in": "computed.card.checklist", "index": "k" }, "anchors": { "left": 0, "right": 0 }, "height": 34,
@@ -137,7 +141,7 @@
 										"onClick": { "run": "removeFromCard", "with": { "field": "checklist", "at": "{{k}}" } } }
 								] }
 							] },
-							{ "id": "issueNewSub", "style": "drawerInput", "anchors": { "left": 40, "right": 40 }, "placeholder": "{{t('issue.addSub')}}", "label": "{{t('issue.addSub')}}",
+							{ "id": "issueNewSub", "when": "{{length(computed.card.checklist ?? []) > 0 || state.subOpen}}", "autofocus": "{{state.subOpen}}", "style": "drawerInput", "anchors": { "left": 40, "right": 40 }, "placeholder": "{{t('issue.addSub')}}", "label": "{{t('issue.addSub')}}",
 								"bind": "state.newItem",
 								"onSubmit": [{ "run": "addToCard", "with": { "field": "checklist", "input": "{{state.newItem}}", "value": { "text": "{{trim(state.newItem)}}", "done": false } } },
 									{ "set": "state.newItem", "to": "" }] },
