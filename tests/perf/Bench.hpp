@@ -236,6 +236,13 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @throws std::exception If it can't be read or isn't a valid screen.
 [[nodiscard]] json screenDocument(const std::filesystem::path& file);
 
+/// @brief A screen document as a history holds it: its "include" files merged in, and its state.
+/// @param document The document, as read from its file.
+/// @param directory The folder its includes are relative to.
+/// @return The document.
+/// @throws std::exception If it isn't a valid screen or an include can't be read.
+[[nodiscard]] json screenDocument(const json& document, const std::filesystem::path& directory);
+
 /// @brief The Kanban template with its four columns filled to a number of cards, by copying its own cards in turn.
 /// @param directory The Kanban template's folder.
 /// @param cards The cards in total; the template's own count, 12, leaves it as it is.
