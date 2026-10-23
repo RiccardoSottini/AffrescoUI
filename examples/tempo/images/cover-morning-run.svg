@@ -1,10 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="184" height="184" viewBox="0 0 184 184">
-	<rect width="184" height="184" fill="#fed7aa"/>
-	<circle cx="92" cy="112" r="56" fill="#f97316"/>
-	<rect y="112" width="184" height="72" fill="#7c2d12"/>
-	<rect y="122" width="184" height="8" fill="#9a3412"/>
-	<rect y="140" width="184" height="8" fill="#c2410c"/>
-	<rect y="158" width="184" height="8" fill="#ea580c"/>
-	<path d="M24 184 L72 112 L112 112 L160 184 Z" fill="#fdba74"/>
-	<path d="M92 120 L92 132 M92 142 L92 156 M92 166 L92 184" stroke="#7c2d12" stroke-width="4"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+	<rect x="0.0" y="0.0" width="200.0" height="200.0" fill="#ff6b35"/>
+	<path d="M-136.0 200.0 L-120.0 200.0 L0.0 0.0 L-16.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M-102.0 200.0 L-86.0 200.0 L34.0 0.0 L18.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M-68.0 200.0 L-52.0 200.0 L68.0 0.0 L52.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M-34.0 200.0 L-18.0 200.0 L102.0 0.0 L86.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M0.0 200.0 L16.0 200.0 L136.0 0.0 L120.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M34.0 200.0 L50.0 200.0 L170.0 0.0 L154.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M68.0 200.0 L84.0 200.0 L204.0 0.0 L188.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M102.0 200.0 L118.0 200.0 L238.0 0.0 L222.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M136.0 200.0 L152.0 200.0 L272.0 0.0 L256.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M170.0 200.0 L186.0 200.0 L306.0 0.0 L290.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M204.0 200.0 L220.0 200.0 L340.0 0.0 L324.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M238.0 200.0 L254.0 200.0 L374.0 0.0 L358.0 0.0 Z" fill="#ffd23f"/>
+	<path d="M272.0 200.0 L288.0 200.0 L408.0 0.0 L392.0 0.0 Z" fill="#ffd23f"/>
+	<circle cx="100.0" cy="100.0" r="46.0" fill="#1b1b1b"/>
+	<circle cx="100.0" cy="100.0" r="30.0" fill="#fff4e0"/>
 </svg>

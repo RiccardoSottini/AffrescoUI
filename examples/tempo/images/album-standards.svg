@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+	<rect x="0.0" y="0.0" width="200.0" height="200.0" fill="#0d2a5c"/>
+	<rect x="0.0" y="130.0" width="200.0" height="70.0" fill="#efe6d2"/>
+	<path d="M0 130 L0 200" fill="none" stroke="#0d2a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M20 130 L20 200" fill="none" stroke="#0d2a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M40 130 L40 200" fill="none" stroke="#0d2a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M60 130 L60 200" fill="none" stroke="#0d2a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M80 130 L80 200" fill="none" stroke="#0d2a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M100 130 L100 200" fill="none" stroke="#0d2a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M120 130 L120 200" fill="none" stroke="#0d2a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M140 130 L140 200" fill="none" stroke="#0d2a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M160 130 L160 200" fill="none" stroke="#0d2a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M180 130 L180 200" fill="none" stroke="#0d2a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<rect x="12.0" y="130.0" width="12.0" height="40.0" fill="#0d2a5c"/>
+	<rect x="32.0" y="130.0" width="12.0" height="40.0" fill="#0d2a5c"/>
+	<rect x="72.0" y="130.0" width="12.0" height="40.0" fill="#0d2a5c"/>
+	<rect x="92.0" y="130.0" width="12.0" height="40.0" fill="#0d2a5c"/>
+	<rect x="112.0" y="130.0" width="12.0" height="40.0" fill="#0d2a5c"/>
+	<rect x="152.0" y="130.0" width="12.0" height="40.0" fill="#0d2a5c"/>
+	<rect x="172.0" y="130.0" width="12.0" height="40.0" fill="#0d2a5c"/>
+	<circle cx="138.0" cy="64.0" r="36.0" fill="#d9a441"/>
+	<rect x="24.0" y="34.0" width="64.0" height="6.0" fill="#efe6d2"/>
+	<rect x="24.0" y="48.0" width="40.0" height="6.0" fill="#efe6d2"/>
+</svg>

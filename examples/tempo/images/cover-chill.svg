@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+	<rect x="0.0" y="0.0" width="200.0" height="200.0" fill="#b8e0d2"/>
+	<rect x="0.0" y="0.0" width="200.0" height="80.0" fill="#95b8d1"/>
+	<circle cx="150.0" cy="42.0" r="16.0" fill="#eac4d5"/>
+	<path d="M-10 84 Q0 74 10 84 T30 84 Q40 74 50 84 T70 84 Q80 74 90 84 T110 84 Q120 74 130 84 T150 84 Q160 74 170 84 T190 84 Q200 74 210 84 T230 84" fill="none" stroke="#5c7aa8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M-10 98 Q0 88 10 98 T30 98 Q40 88 50 98 T70 98 Q80 88 90 98 T110 98 Q120 88 130 98 T150 98 Q160 88 170 98 T190 98 Q200 88 210 98 T230 98" fill="none" stroke="#eac4d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M-10 112 Q0 102 10 112 T30 112 Q40 102 50 112 T70 112 Q80 102 90 112 T110 112 Q120 102 130 112 T150 112 Q160 102 170 112 T190 112 Q200 102 210 112 T230 112" fill="none" stroke="#5c7aa8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M-10 126 Q0 116 10 126 T30 126 Q40 116 50 126 T70 126 Q80 116 90 126 T110 126 Q120 116 130 126 T150 126 Q160 116 170 126 T190 126 Q200 116 210 126 T230 126" fill="none" stroke="#eac4d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M-10 140 Q0 130 10 140 T30 140 Q40 130 50 140 T70 140 Q80 130 90 140 T110 140 Q120 130 130 140 T150 140 Q160 130 170 140 T190 140 Q200 130 210 140 T230 140" fill="none" stroke="#5c7aa8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M-10 154 Q0 144 10 154 T30 154 Q40 144 50 154 T70 154 Q80 144 90 154 T110 154 Q120 144 130 154 T150 154 Q160 144 170 154 T190 154 Q200 144 210 154 T230 154" fill="none" stroke="#eac4d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M-10 168 Q0 158 10 168 T30 168 Q40 158 50 168 T70 168 Q80 158 90 168 T110 168 Q120 158 130 168 T150 168 Q160 158 170 168 T190 168 Q200 158 210 168 T230 168" fill="none" stroke="#5c7aa8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M-10 182 Q0 172 10 182 T30 182 Q40 172 50 182 T70 182 Q80 172 90 182 T110 182 Q120 172 130 182 T150 182 Q160 172 170 182 T190 182 Q200 172 210 182 T230 182" fill="none" stroke="#eac4d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M-10 196 Q0 186 10 196 T30 196 Q40 186 50 196 T70 196 Q80 186 90 196 T110 196 Q120 186 130 196 T150 196 Q160 186 170 196 T190 196 Q200 186 210 196 T230 196" fill="none" stroke="#5c7aa8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

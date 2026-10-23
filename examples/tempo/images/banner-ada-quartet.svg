@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="240" viewBox="0 0 640 240">
+	<rect x="0.0" y="0.0" width="640.0" height="240.0" fill="#0d2a5c"/>
+	<circle cx="455.1" cy="100.8" r="86.4" fill="#d9a441"/>
+	<circle cx="233.4" cy="82.7" r="4.2" fill="#efe6d2"/>
+	<circle cx="432.9" cy="137.0" r="3.3" fill="#efe6d2"/>
+	<circle cx="335.3" cy="54.8" r="9.9" fill="#efe6d2"/>
+	<circle cx="413.6" cy="18.0" r="3.9" fill="#efe6d2"/>
+	<circle cx="10.4" cy="37.0" r="7.8" fill="#efe6d2"/>
+	<path d="M343.1 242.0 Q344.8 189.9 391.8 183.2 Q438.8 189.9 440.5 242.0 Z" fill="#141414"/>
+	<circle cx="391.8" cy="168.1" r="18.5" fill="#141414"/>
+	<path d="M389.1 242.0 Q390.8 189.9 437.8 183.2 Q484.8 189.9 486.5 242.0 Z" fill="#efe6d2"/>
+	<circle cx="437.8" cy="168.1" r="18.5" fill="#efe6d2"/>
+	<path d="M435.1 242.0 Q436.8 189.9 483.8 183.2 Q530.8 189.9 532.5 242.0 Z" fill="#141414"/>
+	<circle cx="483.8" cy="168.1" r="18.5" fill="#141414"/>
+	<path d="M481.1 242.0 Q482.8 189.9 529.8 183.2 Q576.8 189.9 578.5 242.0 Z" fill="#efe6d2"/>
+	<circle cx="529.8" cy="168.1" r="18.5" fill="#efe6d2"/>
+</svg>
