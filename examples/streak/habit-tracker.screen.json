@@ -1635,10 +1635,6 @@
 			},
 			"node": {
 				"use": "prefRow",
-				"with": {
-					"title": "{{title}}",
-					"summary": "{{summary}}"
-				},
 				"onClick": {
 					"toggle": "{{bind}}"
 				},

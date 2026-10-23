@@ -22,7 +22,7 @@
 		{ "app": "Flow", "screen": "flow/kanban.screen.json", "scenarios": "flow/kanban.scenarios.json", "scene": "a-card-mid-drag", "output": "kanban", "runner": "render" },
 		{ "app": "Haven", "screen": "haven/smart-home.screen.json", "scenarios": "haven/smart-home.scenarios.json", "scene": "energy-by-device", "output": "smart-home", "runner": "render" },
 		{ "app": "Tempo", "screen": "tempo/music-player.screen.json", "scenarios": "tempo/music-player.scenarios.json", "scene": "now-playing-visualiser-and-lyrics", "output": "music-player", "runner": "render" },
-		{ "app": "Streak", "screen": "streak/habit-tracker.screen.json", "scenarios": "streak/habit-tracker.scenarios.json", "scene": "the-stats-page", "output": "habit-tracker", "runner": "render" },
+		{ "app": "Streak", "screen": "streak/habit-tracker.screen.json", "scenarios": "streak/habit-tracker.scenarios.json", "scene": "a-row-selects-its-habit", "output": "habit-tracker", "runner": "render" },
 		{ "app": "Sign in", "screen": "sign-in/sign-in.screen.json", "scenarios": "sign-in/sign-in.scenarios.json", "scene": "password-strength", "output": "sign-in", "runner": "render", "size": [1280, 960] },
 		{ "app": "Quaderno", "screen": "code-editor/code-editor.screen.json", "scenarios": "code-editor/code-editor.scenarios.json", "scene": "a-problem-opens-its-file", "output": "code-editor", "runner": "render" },
 		{ "app": "Forge", "screen": "forge/forge.screen.json", "scenarios": "forge/scm.scenarios.json", "scene": "forge-scm-diff-and-terminal", "output": "forge", "runner": "render", "size": [1280, 810] },
