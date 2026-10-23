@@ -1,7 +1,7 @@
 {
 	"id": "forge-agent-link",
 	"level": "forge",
-	"screen": "examples/forge/forge.screen.json",
+	"screen": "examples/forge/index.screen.json",
 	"request": "In Forge, add a link \"Ask the Agent\" (id welcome-agent) to the Welcome page's Start list, and a button with the id panel-agent in the panel's header, both showing the Agent view in the side bar.",
 	"scenarios": [
 		{

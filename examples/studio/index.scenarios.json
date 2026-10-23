@@ -1,7 +1,7 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screen": "studio.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "studio-starts-disconnected",

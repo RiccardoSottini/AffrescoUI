@@ -3,17 +3,17 @@
 Boards as tabs, swimlanes, a table and a timeline of every card, a card drawer, a burndown and an activity feed, drag and drop with a keyboard alternative, undo, Cmd+P and Cmd+Shift+P. The `kanban` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_host examples/flow/kanban.screen.json
-./build/affrescoui test examples/flow/kanban.scenarios.json
+./build/affrescoui_host examples/flow/index.screen.json
+./build/affrescoui test examples/flow/index.scenarios.json
 ```
 
 | File | What it is |
 |---|---|
 | `board.json` | Its board logic, included: undo, the activity feed, work-in-progress limits, keyboard moves, the drawer's edits, presence |
 | `drawer.json` | The card drawer, included: notes, due date, labels, assignees, checklist, comments, attachments |
-| `kanban.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `kanban.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
-| `kanban.screen.json` | The screen document |
+| `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
+| `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
+| `index.screen.json` | The screen document |
 | `strings.json` | Its string tables: English, Spanish and French |
 | `views.json` | Its other views, included: insights, swimlanes, the timeline, the settings |
 

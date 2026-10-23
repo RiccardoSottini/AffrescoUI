@@ -43,7 +43,7 @@ class Affrescoui < Formula
 
   test do
     assert_match "affrescoui #{version}", shell_output("#{bin}/affrescoui --version")
-    system bin/"affrescoui", "check", libexec/"assets/flow/kanban.screen.json"
+    system bin/"affrescoui", "check", libexec/"assets/flow/index.screen.json"
     assert_path_exists lib/"cmake/AffrescoUI/AffrescoUIConfig.cmake"
   end
 end

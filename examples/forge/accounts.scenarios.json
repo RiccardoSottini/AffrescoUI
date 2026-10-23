@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's accounts (features/accounts), checked headless: what the document server would send is played as the connections' actions, signed out (no network, no provider).",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "accounts-signed-out",

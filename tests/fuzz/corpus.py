@@ -47,7 +47,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
 DOCS = [ROOT / "SCREEN_FORMAT.md", ROOT / "VERSION_CONTROL.md"]
-KANBAN = EXAMPLES / "flow" / "kanban.screen.json"
+KANBAN = EXAMPLES / "flow" / "index.screen.json"
 MAX_NESTING = 256  # maxNesting in modules/core/include/affresco/core/Json.hpp
 
 # Values for the fields the protocol table names, and the fields of the messages it lists without them
@@ -448,7 +448,7 @@ def composition_seeds():
     """The slide sorter's manifest with each of Bottega's adapters, and Tempera's points and exports (examples/bottega)."""
     examples = ROOT / "examples"
     manifest = json.loads((examples / "sinopia" / "features" / "slide-sorter" / "feature.json").read_text(encoding="utf-8"))
-    tempera = json.loads((examples / "tempera" / "tempera.screen.json").read_text(encoding="utf-8"))
+    tempera = json.loads((examples / "tempera" / "index.screen.json").read_text(encoding="utf-8"))
     host = {part: tempera[part] for part in ("points", "exports") if part in tempera}
     adapters = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((examples / "bottega").glob("*.adapter.json"))]
     return [compact({"manifest": manifest, "adapter": adapter, **host}) for adapter in [None] + adapters]

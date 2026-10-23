@@ -3,16 +3,16 @@
 A desktop text editor: a side bar with open files and folders, tabs, a minimap, the Quick Switcher (files, symbols, lines, also scoped to a file), Find Symbol in Project, Find in Files with a results buffer, a command palette, a console and a status bar. The `code-editor` template: a screen document that the stock host runs. What it covers is in [`PARITY.md`](PARITY.md).
 
 ```sh
-./build/affrescoui_host examples/code-editor/code-editor.screen.json
-./build/affrescoui test examples/code-editor/code-editor.scenarios.json
+./build/affrescoui_host examples/code-editor/index.screen.json
+./build/affrescoui test examples/code-editor/index.scenarios.json
 ```
 
 | File | What it is |
 |---|---|
 | `PARITY.md` | The parity matrix: the reference's workflows, done, partial or missing |
-| `code-editor.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `code-editor.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
-| `code-editor.screen.json` | The screen document |
+| `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
+| `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
+| `index.screen.json` | The screen document |
 
 Its `code` type is the host's, in [`../shared/CodeEditor.cpp`](../shared/CodeEditor.cpp).
 

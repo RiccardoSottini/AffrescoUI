@@ -125,13 +125,13 @@ class Checker:
         self.expect(report["failed"] == 0 and report["passed"] >= 5, f"test --json {path}: {report}")
         wrong = os.path.join(self.scratch, "wrong.scenarios.json")
         with open(wrong, "w", encoding="utf-8") as file:
-            json.dump({"version": 2, "screens": KANBAN, "screen": "kanban.screen.json", "scenarios": [
+            json.dump({"version": 2, "screens": KANBAN, "screen": "index.screen.json", "scenarios": [
                 {"name": "wrong", "steps": [{"expect": {"state": "board", "is": "Not the board"}}]}]}, file)
         output = self.run("test", wrong, expect=1)
         self.expect('FAILED wrong, step 1: state board is "Product launch", expected "Not the board"' in output,
                     f"test: a failing expectation: {output}")
         with open(wrong, "w", encoding="utf-8") as file:
-            json.dump({"version": 2, "screens": KANBAN, "screen": "kanban.screen.json",
+            json.dump({"version": 2, "screens": KANBAN, "screen": "index.screen.json",
                        "scenarios": [{"name": "a", "steps": [{"clik": "#card"}]}]}, file)
         self.run("test", wrong, expect=1)
 
@@ -187,7 +187,7 @@ class Checker:
         for role, expect in [("design", 0), (7, 1)]:
             path = os.path.join(self.scratch, "roles.policy.json")
             with open(path, "w", encoding="utf-8") as file:
-                json.dump({"screen": os.path.join(KANBAN, "kanban.screen.json"),
+                json.dump({"screen": os.path.join(KANBAN, "index.screen.json"),
                            "roles": {"agent/claude-code": role}, "cases": [case]}, file)
             self.run("policy", "test", path, expect=expect)
 
@@ -232,7 +232,7 @@ def check_templates(checker, headless):
             checker.render(screens, scenario, path)
     for path in template_files("*.scenarios.json"):
         checker.test(path)
-    checker.history(os.path.join(KANBAN, "kanban.screen.json"))
+    checker.history(os.path.join(KANBAN, "index.screen.json"))
     return templates
 
 

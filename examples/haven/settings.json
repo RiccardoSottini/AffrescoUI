@@ -1,5 +1,5 @@
 {
-	"note": "Haven's settings page, included by smart-home.screen.json: grouped cards of rows that open the other pages or a sub-page (devices and entities, profile, general settings from the schema, about).",
+	"note": "Haven's settings page, included by index.screen.json: grouped cards of rows that open the other pages or a sub-page (devices and entities, profile, general settings from the schema, about).",
 
 	"state": {
 		"settingsView": "main",

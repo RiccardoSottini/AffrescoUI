@@ -1,7 +1,7 @@
 {
 	"id": "forge-reset-layout",
 	"level": "forge",
-	"screen": "examples/forge/forge.screen.json",
+	"screen": "examples/forge/index.screen.json",
 	"request": "In Forge, add a command \"Reset the Layout\" (category View) that shows the side bar and the panel and leaves Zen Mode, with a button (id status-reset) in the status bar.",
 	"scenarios": [
 		{

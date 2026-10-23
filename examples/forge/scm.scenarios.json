@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's source control, checked headless: git's output is given as events (scmApplyStatus, scmApplyBranches, scmCompare), so no repository is needed; tests/unit/forge_scm.cpp runs a real one. affrescoui_render_runner scm.scenarios.json",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "forge-scm-show-the-view",

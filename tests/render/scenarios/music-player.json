@@ -5,7 +5,7 @@
 	"scenarios": [
 		{
 			"name": "music-player",
-			"screen": "music-player.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
 				{ "click": "#track", "nth": 4 },

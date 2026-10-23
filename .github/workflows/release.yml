@@ -168,7 +168,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends xvfb xauth libgl1-mesa-dri
           cd affrescoui-*/
           AFFRESCOUI_SCREENSHOT=kanban.ppm xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui_host
-          xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui render assets/flow/kanban.screen.json -o kanban.png
+          xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui render assets/flow/index.screen.json -o kanban.png
           test -s kanban.ppm && test -s kanban.png
 
   vscode:

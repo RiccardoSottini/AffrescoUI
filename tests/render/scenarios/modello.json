@@ -5,7 +5,7 @@
 	"scenarios": [
 		{
 			"name": "modello",
-			"screen": "modello.screen.json",
+			"screen": "index.screen.json",
 			"note": "Modello, JSON only: the Layout workspace, Shift+A's Add menu, a typed move, the sidebar, the about dialog, the light theme",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },

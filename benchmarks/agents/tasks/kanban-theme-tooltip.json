@@ -1,7 +1,7 @@
 {
 	"id": "kanban-theme-tooltip",
 	"level": "edit",
-	"screen": "examples/flow/kanban.screen.json",
+	"screen": "examples/flow/index.screen.json",
 	"request": "Change the tooltip of the light and dark theme button to \"Light or dark (Cmd+J)\".",
 	"scenarios": [
 		{

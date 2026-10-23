@@ -1,6 +1,6 @@
 {
 	"$schema": "../../schema/affrescoui-screen.schema.json",
-	"note": "The Studio's Install from another app screen, included by studio.screen.json: pick an app and one of its installable parts, see what the part needs, and ask the agent to read what the host offers (its contribution points and exports), write the adapter that binds the two, prove it and submit it; or paste an adapter of your own for it to check. The agent's reply quotes the proof: each need bound, or unmet and why. The install is a revision on /features/<name>, proposed under the host's permissions: accept it in the Review tab, see it in History and Blame, and undo it like any other. Cmd+6 opens it.",
+	"note": "The Studio's Install from another app screen, included by index.screen.json: pick an app and one of its installable parts, see what the part needs, and ask the agent to read what the host offers (its contribution points and exports), write the adapter that binds the two, prove it and submit it; or paste an adapter of your own for it to check. The agent's reply quotes the proof: each need bound, or unmet and why. The install is a revision on /features/<name>, proposed under the host's permissions: accept it in the Review tab, see it in History and Blame, and undo it like any other. Cmd+6 opens it.",
 
 	"state": {
 		"installOpen": false,

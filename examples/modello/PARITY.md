@@ -1,7 +1,7 @@
 # Modello's parity list
 
 Modello is a 3D modeller. This list says what a daily user of such a modeller finds, and
-what isn't there yet. Modello is JSON only: `./build/affrescoui_host examples/modello/modello.screen.json` runs it.
+what isn't there yet. Modello is JSON only: `./build/affrescoui_host examples/modello/index.screen.json` runs it.
 
 `done`: it works as such a user expects. `partial`: it is there, with a difference the note says. `missing`: not yet.
 

@@ -163,11 +163,11 @@ class Scenarios(unittest.TestCase):
             mcp.apply_patch(document, [{"op": "test", "path": "/colors/accent", "value": "#000000"}])
 
     def test_the_report_is_a_few_lines(self):
-        report = {"file": "kanban.scenarios.json", "passed": 6, "failed": 1, "failures": [
+        report = {"file": "index.scenarios.json", "passed": 6, "failed": 1, "failures": [
             {"scenario": "add-a-card", "step": 5, "problem": "state columns[0].cards.length is 4, expected 5"},
             {"scenario": "broken", "step": 0, "problem": "could not start: no such file"}]}
         self.assertEqual(mcp.scenarios_report(report, "proposal 3"), "\n".join([
-            "kanban.scenarios.json on proposal 3: 6 passed, 1 failed",
+            "index.scenarios.json on proposal 3: 6 passed, 1 failed",
             "FAILED add-a-card, step 5: state columns[0].cards.length is 4, expected 5",
             "FAILED broken: could not start: no such file"]))
 

@@ -20,8 +20,8 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-SCREEN = os.path.join(HERE, "game-launcher.screen.json")
-SCENARIOS = os.path.join(HERE, "game-launcher.scenarios.json")
+SCREEN = os.path.join(HERE, "index.screen.json")
+SCENARIOS = os.path.join(HERE, "index.scenarios.json")
 
 
 def connect(path, timeout=20.0):

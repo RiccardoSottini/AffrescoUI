@@ -1,5 +1,5 @@
 /// @file
-/// @brief affrescoui_tempera: Tempera, an image editor whose workspace is a screen document (tempera.screen.json).
+/// @brief affrescoui_tempera: Tempera, an image editor whose workspace is a screen document (index.screen.json).
 //
 //   affrescoui_tempera [--socket DIR] [--data DIR]
 //
@@ -73,7 +73,7 @@ int run(const Options& options) {
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
 	affresco::Screen screen =
-	    affresco::Screen::fromFile(std::filesystem::path(AFFRESCOUI_TEMPERA_DIRECTORY) / "tempera.screen.json",
+	    affresco::Screen::fromFile(std::filesystem::path(AFFRESCOUI_TEMPERA_DIRECTORY) / "index.screen.json",
 		                           options.dataDir, screenshotOnly ? History::InMemory : History::OnDisk);
 	const auto session = std::make_shared<tempera::Session>(affresco::imaging::Limits{});
 	tempera::registerTempera(screen, session, &app);

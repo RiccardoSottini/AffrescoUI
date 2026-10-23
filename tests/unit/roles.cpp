@@ -30,7 +30,7 @@ namespace {
 /// @return The document.
 json kanban() {
 	const std::filesystem::path directory = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow";
-	const std::ifstream file(directory / "kanban.screen.json");
+	const std::ifstream file(directory / "index.screen.json");
 	REQUIRE(file);
 	std::stringstream text;
 	text << file.rdbuf();

@@ -5,8 +5,8 @@ A game launcher built only from what an outsider has: the public docs (`README.m
 single screen document, with no C++: the stock host runs it.
 
 ```sh
-./build/affrescoui_host examples/arcadia/game-launcher.screen.json
-./build/affrescoui test examples/arcadia/game-launcher.scenarios.json --out out/shots
+./build/affrescoui_host examples/arcadia/index.screen.json
+./build/affrescoui test examples/arcadia/index.scenarios.json --out out/shots
 python3 examples/arcadia/e2e_test.py build
 ```
 
@@ -29,7 +29,7 @@ python3 examples/arcadia/e2e_test.py build
   `mod+d`, `alt+left`, `escape` and the chords `mod+k mod+t` (theme) and `mod+k mod+l` (language).
 - **Layouts**: from the 960 x 640 minimum, where the top bar drops the name and labels to fit, to full screen, where the cover
   grid takes the extra width.
-- **Scenarios**: 33 in `game-launcher.scenarios.json`, covering each of the above, both themes, the three languages,
+- **Scenarios**: 33 in `index.scenarios.json`, covering each of the above, both themes, the three languages,
   keyboard-only use and the bugs found while walking the app across sizes, themes and languages.
 
 ### Gamepad

@@ -6,18 +6,18 @@ C++ only connects it.
 
 ```sh
 ./build/affrescoui_studio [--socket DIR] [--data DIR]
-./build/affrescoui test examples/studio/studio.scenarios.json
+./build/affrescoui test examples/studio/index.scenarios.json
 ```
 
 | File | What it is |
 |---|---|
 | `studio.cpp` | The program: loads the screen and connects it to the host's socket |
 | `EvidencePicture.hpp` | A proposal's evidence pictures: decoded, and the changed region outlined, clipped to the picture whatever region the peer sends (`tests/unit/studio_evidence.cpp`) |
-| `studio.screen.json` | The screen document |
+| `index.screen.json` | The screen document |
 | `studio-features.json`, `studio-repairs.json` | Parts of the document it includes |
 | `studio-strings.json` | Its texts in English, Spanish and French (`strings`, `t()`) |
-| `studio.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
-| `studio.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
+| `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
+| `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 
 ## What it shows
 

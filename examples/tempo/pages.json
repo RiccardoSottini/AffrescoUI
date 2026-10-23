@@ -1,5 +1,5 @@
 {
-	"note": "Tempo's pages beside the playlists and the library, included by music-player.screen.json: albums and artists in a grid, one album or artist in a table, search, now playing (cover, visualiser, lyrics), sound (equaliser, crossfade, theme, language) and the mini player.",
+	"note": "Tempo's pages beside the playlists and the library, included by index.screen.json: albums and artists in a grid, one album or artist in a table, search, now playing (cover, visualiser, lyrics), sound (equaliser, crossfade, theme, language) and the mini player.",
 
 	"state": {
 		"collection": { "kind": "album", "name": "" },

@@ -273,7 +273,7 @@ TEST_CASE("automation: scenarios play headless, on a clock that moves only when 
 	CHECK(summary["failures"][0] == json{{"scenario", "fails"}, {"step", 1}, {"problem", "state clicks is 0, expected 5"}});
 }
 
-// sign-in.scenarios.json's checks of the keys that take the platform's modifier, which each platform writes its own way
+// index.scenarios.json's checks of the keys that take the platform's modifier, which each platform writes its own way
 TEST_CASE("automation: the sign-in template writes its keys as the platform does") {
 #ifdef __APPLE__
 	const std::string j = "Cmd+J", h = "Shift+Cmd+H", q = "Shift+Cmd+Q";
@@ -282,7 +282,7 @@ TEST_CASE("automation: the sign-in template writes its keys as the platform does
 #endif
 	const json scenarios = {
 	    {"version", 2},
-	    {"screen", "sign-in.screen.json"},
+	    {"screen", "index.screen.json"},
 	    {"scenarios",
 	     {{{"name", "theme-key"},
 	       {"steps",

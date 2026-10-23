@@ -5,7 +5,7 @@
 	"scenarios": [
 		{
 			"name": "studio",
-			"screen": "studio.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
 				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },

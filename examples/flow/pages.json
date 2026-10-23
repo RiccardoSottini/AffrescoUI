@@ -1,5 +1,5 @@
 {
-	"note": "Flow's team pages, included by kanban.screen.json: the inbox of notifications, the cycles with their burn-up, and the projects. The sidebar and the G chords switch between them and the issues.",
+	"note": "Flow's team pages, included by index.screen.json: the inbox of notifications, the cycles with their burn-up, and the projects. The sidebar and the G chords switch between them and the issues.",
 
 	"state": {
 		"page": "issues",

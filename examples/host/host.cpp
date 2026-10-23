@@ -122,7 +122,7 @@ void applyPlugins(affresco::Screen& screen, const std::vector<std::string>& plug
 /// @param given The file on the command line, or "".
 /// @return It, or the Kanban template.
 std::filesystem::path screenFile(const std::string& given) {
-	return given.empty() ? assetsDirectory() / "flow" / "kanban.screen.json" : std::filesystem::path(given);
+	return given.empty() ? assetsDirectory() / "flow" / "index.screen.json" : std::filesystem::path(given);
 }
 
 /// @brief Whether this is a plain screenshot run (AFFRESCOUI_SCREENSHOT without AFFRESCOUI_SCREENSHOT_AFTER), which

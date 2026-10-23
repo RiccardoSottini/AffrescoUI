@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's Search view (features/search), checked headless with tests/render/forge/folder open; nothing is replaced (each Replace All dialog is cancelled), so the folder stays as it is: affrescoui_render_runner search.scenarios.json",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "forge-search-opens-a-page",

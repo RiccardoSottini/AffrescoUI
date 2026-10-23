@@ -1,5 +1,5 @@
 {
-	"note": "Flow's text in English, Spanish and French, included by kanban.screen.json. Card titles, names and boards are data, not text to translate.",
+	"note": "Flow's text in English, Spanish and French, included by index.screen.json. Card titles, names and boards are data, not text to translate.",
 	"strings": {
 		"default": "en",
 		"locale": "{{settings.appearance.language}}",

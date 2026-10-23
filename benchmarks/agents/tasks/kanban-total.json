@@ -1,7 +1,7 @@
 {
 	"id": "kanban-total",
 	"level": "feature",
-	"screen": "examples/flow/kanban.screen.json",
+	"screen": "examples/flow/index.screen.json",
 	"request": "Show how many cards the board has in total in the top bar, right of the app's name, as \"12 cards\", in a label with the id totalCards that counts as cards are added.",
 	"scenarios": [
 		{

@@ -34,7 +34,7 @@ function affrescoStart() {
 	}
 	window.Module = {
 		canvas: document.getElementById("canvas"),
-		arguments: screen === "" ? [] : ["/assets/" + folder + "/" + screen + ".screen.json"],
+		arguments: screen === "" ? [] : ["/assets/" + folder + "/index.screen.json"],
 		print: (text) => console.log(text),
 		printErr: (text) => console.warn(text),
 		setStatus: (text) => affrescoStatus(text || "Running."),

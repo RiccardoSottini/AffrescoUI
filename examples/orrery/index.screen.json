@@ -3054,37 +3054,37 @@
 						"problem": ""
 					},
 					{
-						"file": "orrery.scenarios.json",
+						"file": "index.scenarios.json",
 						"name": "starts-on-day-zero",
 						"passed": true,
 						"problem": ""
 					},
 					{
-						"file": "orrery.scenarios.json",
+						"file": "index.scenarios.json",
 						"name": "next-event-moves-the-planets",
 						"passed": true,
 						"problem": ""
 					},
 					{
-						"file": "orrery.scenarios.json",
+						"file": "index.scenarios.json",
 						"name": "play-advances-the-playhead",
 						"passed": true,
 						"problem": ""
 					},
 					{
-						"file": "orrery.scenarios.json",
+						"file": "index.scenarios.json",
 						"name": "annotate-the-chart",
 						"passed": true,
 						"problem": ""
 					},
 					{
-						"file": "orrery.scenarios.json",
+						"file": "index.scenarios.json",
 						"name": "reparent-in-the-graph",
 						"passed": true,
 						"problem": ""
 					},
 					{
-						"file": "orrery.scenarios.json",
+						"file": "index.scenarios.json",
 						"name": "turn-and-zoom-the-view",
 						"passed": true,
 						"problem": ""

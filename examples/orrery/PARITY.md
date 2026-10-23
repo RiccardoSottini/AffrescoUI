@@ -1,7 +1,7 @@
 # Orrery: parity
 
 Orrery has a 3D view of space and a sky chart from the ground. This file lists what those kinds of app
-do, and how far Orrery has come, one round at a time. Everything is in `orrery.screen.json` and the sky from the ground in `sky.json`, which it includes: no code of its own.
+do, and how far Orrery has come, one round at a time. Everything is in `index.screen.json` and the sky from the ground in `sky.json`, which it includes: no code of its own.
 
 Status: **done**, **part** (there, but less than the model) or **missing**. The data is invented: a toy solar
 system of six bodies on circular orbits in one plane.

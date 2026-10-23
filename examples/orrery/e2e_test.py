@@ -23,10 +23,10 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-SCREEN = os.path.join(HERE, "orrery.screen.json")
+SCREEN = os.path.join(HERE, "index.screen.json")
 ADAPTER = os.path.join(HERE, "orrery-sorter.adapter.json")
 FEATURE = os.path.join(ROOT, "examples", "sinopia", "features", "slide-sorter")
-SCENARIOS = [os.path.join(HERE, "orrery.scenarios.json"), os.path.join(HERE, "bodies-strip.scenarios.json")]
+SCENARIOS = [os.path.join(HERE, "index.scenarios.json"), os.path.join(HERE, "bodies-strip.scenarios.json")]
 
 
 def connect(path, timeout=20.0):
@@ -97,7 +97,7 @@ def copy_without_strip(work):
     folder = os.path.join(work, "orrery")
     os.makedirs(folder)
     os.symlink(os.path.join(ROOT, "examples", "shared"), os.path.join(work, "shared"))
-    screen = os.path.join(folder, "orrery.screen.json")
+    screen = os.path.join(folder, "index.screen.json")
     with open(screen, "w", encoding="utf-8") as f:
         json.dump(document, f, indent="\t")
     for scenarios in SCENARIOS:

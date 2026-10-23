@@ -1,5 +1,5 @@
 {
-	"note": "Flow's sidebar, included by kanban.screen.json: the workspace, the personal pages, the team's pages and its boards.",
+	"note": "Flow's sidebar, included by index.screen.json: the workspace, the personal pages, the team's pages and its boards.",
 
 	"components": {
 		"navItem": {

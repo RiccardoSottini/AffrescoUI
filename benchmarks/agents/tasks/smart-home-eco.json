@@ -1,7 +1,7 @@
 {
 	"id": "smart-home-eco",
 	"level": "feature",
-	"screen": "examples/haven/smart-home.screen.json",
+	"screen": "examples/haven/index.screen.json",
 	"request": "Add an \"Eco\" button with the id ecoMode to the Climate card that lowers the target temperature of the room shown by 2 degrees.",
 	"scenarios": [
 		{

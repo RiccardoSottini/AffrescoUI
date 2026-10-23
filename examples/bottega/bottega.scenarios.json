@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Sinopia's slide sorter installed into Tempera's panels dock: proven with tempera-sorter.adapter.json, submitted by the features service, then reordering Tempera's layers. affrescoui_bottega bottega.scenarios.json",
-	"screen": "../tempera/tempera.screen.json",
+	"screen": "../tempera/index.screen.json",
 	"scenarios": [
 		{
 			"name": "bottega-sorter",

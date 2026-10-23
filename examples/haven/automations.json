@@ -1,5 +1,5 @@
 {
-	"note": "Haven's automations, security and simulated service, included by smart-home.screen.json: rules as a node graph, schedules on a timeline, the security mode, the notifications beside the sidebar's bell, and a timer that stands in for the devices (rooms drift towards their target; motion while away).",
+	"note": "Haven's automations, security and simulated service, included by index.screen.json: rules as a node graph, schedules on a timeline, the security mode, the notifications beside the sidebar's bell, and a timer that stands in for the devices (rooms drift towards their target; motion while away).",
 
 	"settings": {
 		"security.motionAlerts": { "type": "boolean", "default": true, "title": "Motion alerts",

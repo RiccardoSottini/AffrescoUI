@@ -1420,7 +1420,8 @@ gives it (`Screen::connectChannel()`, e.g. from the Studio's connect form in a b
 without one, the server refuses the connection and `name:closed` runs. In a browser this is the only kind of channel.
 
 `"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json` (on Windows,
-`%APPDATA%\affrescoui\<file name>.state.json`), loaded at start and written when they change. A screen opened from
+`%APPDATA%\affrescoui\<file name>.state.json`), loaded at start and written when they change. A folder's
+`index.screen.json` is named after its folder (`flow/index.screen.json` keeps `flow.state.json`). A screen opened from
 a file keeps its version-control history in the same folder, in `<file name>.history/` (VERSION_CONTROL.md,
 "History on disk"). `AFFRESCOUI_DATA_DIR` (or the host's and the Studio's `--data`) puts both
 in another folder.
@@ -1558,7 +1559,7 @@ own scenarios. Schema: [`schema/affrescoui-scenarios.schema.json`](schema/affres
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screen": "kanban.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{ "name": "add-a-card", "steps": [
 			{ "click": "#newCard" },
@@ -1760,7 +1761,7 @@ A check visits each part of the document once (a repeat is not expanded), so it 
 
 ```cpp
 affresco::Application app;
-affresco::Screen screen = affresco::Screen::fromFile("kanban.screen.json");
+affresco::Screen screen = affresco::Screen::fromFile("index.screen.json");
 screen.registerType("chart", [] { return std::make_unique<MyChart>(); }); // a custom type, before createWindow
 // A custom type has the properties of the built-in type it derives from, plus its own, given here with their handler.
 // Registered under the name of a built-in type, it replaces that type.

@@ -35,7 +35,7 @@ std::filesystem::path forgeDirectory(const Context& context) { return context.ex
 /// @param context The context.
 /// @return The document, as text.
 std::string forgeDocument(const Context& context) {
-	json document = json::parse(readFile(forgeDirectory(context) / "forge.screen.json"));
+	json document = json::parse(readFile(forgeDirectory(context) / "index.screen.json"));
 	document["actions"]["benchType"] = json::parse(R"([{"set": "state.docs[0].text", "to": "{{event.text}}"}])");
 	document["actions"]["benchQuery"] = json::parse(
 	    R"([{"set": "state.quickPick.query", "to": "{{event.query}}"}, {"set": "state.quickPick.open", "to": true}])");

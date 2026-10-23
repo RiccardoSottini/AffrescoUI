@@ -1,4 +1,4 @@
-# Tempera, an image editor whose workspace is tempera.screen.json (examples/tempera/README.md)
+# Tempera, an image editor whose workspace is index.screen.json (examples/tempera/README.md)
 set(AFFRESCOUI_TEMPERA_SOURCES Session.cpp Tools.cpp Natives.cpp NativesEdit.cpp)
 add_executable(affrescoui_tempera main.cpp ${AFFRESCOUI_TEMPERA_SOURCES})
 target_link_libraries(affrescoui_tempera PRIVATE affrescoui affrescoui::imaging)

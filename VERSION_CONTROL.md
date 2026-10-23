@@ -149,7 +149,7 @@ A `*.policy.json` file beside a screen holds example revisions, their authors an
 
 ```json
 {
-  "screen": "kanban.screen.json",
+  "screen": "index.screen.json",
   "roles": { "agent/claude-code": "design" },
   "cases": [
     { "name": "the agent recolours a card", "revision": { "author": "agent", "set": { "#card1/color": "#1e293b" } },
@@ -512,7 +512,7 @@ A change set can carry what it was made for, the template it was made on, and ho
 ```json
 { "format": "affrescoui-changes", "version": 2, "name": "blocked column", "revisions": [ ... ],
   "request": "Add a Blocked column before Done",
-  "template": { "name": "kanban.screen.json", "commit": "35331cd…", "tree": "9f1c…" },
+  "template": { "name": "flow/index.screen.json", "commit": "35331cd…", "tree": "9f1c…" },
   "proof": { "scenarios": [ { "name": "blocked", "steps": [ { "expect": "...", "equals": "Blocked" } ] } ] } }
 ```
 

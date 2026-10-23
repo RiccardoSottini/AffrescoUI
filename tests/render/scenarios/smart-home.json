@@ -5,7 +5,7 @@
 	"scenarios": [
 		{
 			"name": "smart-home",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
 				{ "click": "#toggle-rooms-room-lights", "nth": 2 },
@@ -22,7 +22,7 @@
 		},
 		{
 			"name": "smart-home-devices",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#deviceAction", "nth": 1 },
 				{ "wait": 450 },
@@ -35,7 +35,7 @@
 		},
 		{
 			"name": "smart-home-info",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#light", "nth": 1 },
 				{ "expect": { "image": "light-info" } },
@@ -57,7 +57,7 @@
 		},
 		{
 			"name": "smart-home-pages",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "key": "mod+2" },
 				{ "expect": { "image": "energy" } },
@@ -111,7 +111,7 @@
 		},
 		{
 			"name": "smart-home-shell",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#searchButton" },
 				{ "wait": 100 },
@@ -149,7 +149,7 @@
 		},
 		{
 			"name": "smart-home-history",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "key": "mod+5" },
 				{ "expect": { "image": "logbook" } },

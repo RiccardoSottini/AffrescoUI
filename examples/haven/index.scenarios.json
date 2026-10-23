@@ -2,8 +2,8 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "What the Smart home template does, checked headless: affrescoui test smart-home.scenarios.json",
-	"screen": "smart-home.screen.json",
+	"note": "What the Smart home template does, checked headless: affrescoui test index.scenarios.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "switch-a-light-on",
@@ -197,7 +197,7 @@
 		{
 			"name": "tilt-and-related",
 			"note": "The cover dialog tilts the slats; a device dialog's related automation opens in the editor",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#blindsIcon" },
 				{ "click": "#barBand", "nth": 12 },
@@ -537,7 +537,7 @@
 		},
 		{
 			"name": "info-header-speaker-devices",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#light", "nth": 1 },
 				{ "click": "#infoClose" },

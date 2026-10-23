@@ -14,7 +14,7 @@ With a folder, Forge opens it; without one, it shows the welcome page and its Op
 
 ## How it is built
 
-`forge.screen.json` names the window, the fonts and the root, and includes one file per feature. Each feature lives in
+`index.screen.json` names the window, the fonts and the root, and includes one file per feature. Each feature lives in
 its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 
 | Feature | What it adds |
@@ -154,7 +154,7 @@ on a clash.
 | `state`, `computed`, `persist` | The feature's data, and what survives a restart | Its own components |
 
 To add a view, write `features/<name>/<name>.json` with these sections and add it to `include` in
-`forge.screen.json`. The palette, the menus and the settings and keybinding pages list it with no other change.
+`index.screen.json`. The palette, the menus and the settings and keybinding pages list it with no other change.
 
 ## Themes
 

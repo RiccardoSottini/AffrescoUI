@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file
-/// @brief Tempera, an image editor whose workspace is a screen document (tempera.screen.json): the session the
+/// @brief Tempera, an image editor whose workspace is a screen document (index.screen.json): the session the
 /// natives share (the document on its canvas, the tools' settings, the colour spaces) and the functions that register
 /// them. The pixels stay here, in the canvas model; the screen's state holds only a snapshot that describes them.
 

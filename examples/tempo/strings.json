@@ -1,5 +1,5 @@
 {
-	"note": "Tempo's text in English, Spanish and French, included by music-player.screen.json. Song, artist, album, playlist and lyric names are data, not text to translate.",
+	"note": "Tempo's text in English, Spanish and French, included by index.screen.json. Song, artist, album, playlist and lyric names are data, not text to translate.",
 	"strings": {
 		"default": "en",
 		"locale": "{{settings.ui.language}}",

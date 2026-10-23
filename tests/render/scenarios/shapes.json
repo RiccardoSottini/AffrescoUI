@@ -5,7 +5,7 @@
 	"scenarios": [
 		{
 			"name": "shapes",
-			"screen": "sign-in.screen.json",
+			"screen": "index.screen.json",
 			"note": "Rounded corners, borders and shadows, added by a revision: in styles, in hover and focused states, with a border colour transition, and clipped by a parent",
 			"steps": [
 				{ "revision": { "message": "Rounded corners, borders and shadows", "set": {
@@ -42,7 +42,7 @@
 		},
 		{
 			"name": "shapes-retina",
-			"screen": "sign-in.screen.json",
+			"screen": "index.screen.json",
 			"scale": 2,
 			"note": "The anti-aliased edges and blur at two pixels per window unit",
 			"steps": [

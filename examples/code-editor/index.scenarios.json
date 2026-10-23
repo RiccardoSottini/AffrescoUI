@@ -2,8 +2,8 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "What the Code editor template (Quaderno) does, checked headless: affrescoui test code-editor.scenarios.json",
-	"screen": "code-editor.screen.json",
+	"note": "What the Code editor template (Quaderno) does, checked headless: affrescoui test index.scenarios.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "open-files-from-the-tree",

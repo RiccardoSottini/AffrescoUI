@@ -1,7 +1,7 @@
 {
 	"id": "smart-home-target",
 	"level": "edit",
-	"screen": "examples/haven/smart-home.screen.json",
+	"screen": "examples/haven/index.screen.json",
 	"request": "Set the living room's target temperature to 23.",
 	"scenarios": [
 		{

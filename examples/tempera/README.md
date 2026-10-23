@@ -6,7 +6,7 @@ filters with a live preview, adjustment layers and colour management, on sparse 
 ```sh
 cmake -S . -B build -G Ninja && cmake --build build
 ./build/affrescoui_tempera [--socket DIR] [--data DIR]
-./build/affrescoui_tempera_scenarios [--out DIR] examples/tempera/tempera.scenarios.json   # --out: draws and saves the captures
+./build/affrescoui_tempera_scenarios [--out DIR] examples/tempera/index.scenarios.json   # --out: draws and saves the captures
 ```
 
 It opens a generated sample (1200 × 800: Sky, Sun and Hills).
@@ -15,13 +15,13 @@ It opens a generated sample (1200 × 800: Sky, Sun and Hills).
 
 | File | What it holds |
 | --- | --- |
-| `tempera.screen.json` | The window, fonts, colours, permissions and the initial state |
+| `index.screen.json` | The window, fonts, colours, permissions and the initial state |
 | `parts/commands.json` | One action per native, the menu commands, the tool keys and the filter watches |
 | `parts/workspace.json` | The menu bar, the options bar, the tool bar, the canvas with rulers and guides, and the status bar |
 | `parts/panels.json` | Navigator, Layers, History, Properties/Adjust, Colour/Palette, and the dialogs |
 | `Session.cpp`, `Natives.cpp`, `NativesEdit.cpp`, `Tools.cpp` | The host: the document, the tools and the `tempera.*` natives |
 | `main.cpp`, `scenarios_main.cpp`, `Tempera.hpp` | The program, the scenarios runner and the natives' declarations |
-| `tempera.scenarios.json` | 30 scenarios, run headless |
+| `index.scenarios.json` | 30 scenarios, run headless |
 | `agent-filter-panel.revision.json` | The revision an agent proposes in the scenario `tempera-agent-adds-a-filter-panel` |
 
 The pixels stay in the host. The screen's state holds `state.doc`, a snapshot that every native returns: the layers

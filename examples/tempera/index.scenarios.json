@@ -2,8 +2,8 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Tempera, checked headless against the sample document (1200 × 800: Sky, Sun, Hills). The canvas is driven through the pointer action in document pixels. affrescoui_tempera_scenarios tempera.scenarios.json",
-	"screen": "tempera.screen.json",
+	"note": "Tempera, checked headless against the sample document (1200 × 800: Sky, Sun, Hills). The canvas is driven through the pointer action in document pixels. affrescoui_tempera_scenarios index.scenarios.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "tempera-opens-the-sample",

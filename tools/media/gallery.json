@@ -19,19 +19,19 @@
 		}
 	},
 	"apps": [
-		{ "app": "Flow", "screen": "flow/kanban.screen.json", "scenarios": "flow/kanban.scenarios.json", "scene": "a-card-mid-drag", "output": "kanban", "runner": "render" },
-		{ "app": "Haven", "screen": "haven/smart-home.screen.json", "scenarios": "haven/smart-home.scenarios.json", "scene": "energy-by-device", "output": "smart-home", "runner": "render" },
-		{ "app": "Tempo", "screen": "tempo/music-player.screen.json", "scenarios": "tempo/music-player.scenarios.json", "scene": "now-playing-visualiser-and-lyrics", "output": "music-player", "runner": "render" },
-		{ "app": "Streak", "screen": "streak/habit-tracker.screen.json", "scenarios": "streak/habit-tracker.scenarios.json", "scene": "a-row-selects-its-habit", "output": "habit-tracker", "runner": "render" },
-		{ "app": "Sign in", "screen": "sign-in/sign-in.screen.json", "scenarios": "sign-in/sign-in.scenarios.json", "scene": "password-strength", "output": "sign-in", "runner": "render", "size": [1280, 960] },
-		{ "app": "Quaderno", "screen": "code-editor/code-editor.screen.json", "scenarios": "code-editor/code-editor.scenarios.json", "scene": "a-problem-opens-its-file", "output": "code-editor", "runner": "render" },
-		{ "app": "Forge", "screen": "forge/forge.screen.json", "scenarios": "forge/scm.scenarios.json", "scene": "forge-scm-diff-and-terminal", "output": "forge", "runner": "render", "size": [1280, 810] },
-		{ "app": "Studio", "screen": "studio/studio.screen.json", "scenarios": "studio/studio.scenarios.json", "scene": "a-proposal-to-review", "output": "studio", "runner": "render", "size": [1000, 691] },
-		{ "app": "Arcadia", "screen": "arcadia/game-launcher.screen.json", "scenarios": "arcadia/game-launcher.scenarios.json", "scene": "game-page", "output": "arcadia", "runner": "render" },
-		{ "app": "Tempera", "screen": "tempera/tempera.screen.json", "scenarios": "tempera/tempera.scenarios.json", "scene": "tempera-a-filter-previewing", "output": "tempera", "runner": "tempera" },
-		{ "app": "Sinopia", "screen": "sinopia/sinopia.screen.json", "scenarios": "sinopia/sinopia.scenarios.json", "scene": "sinopia-load-the-sample", "output": "sinopia", "runner": "sinopia", "settle": 400 },
-		{ "app": "Modello", "screen": "modello/modello.screen.json", "scenarios": "modello/modello.scenarios.json", "scene": "modello-assistant-open", "output": "modello", "runner": "render" },
-		{ "app": "Orrery", "screen": "orrery/orrery.screen.json", "scenarios": "orrery/orrery.scenarios.json", "scene": "an-eclipse-seen-from-the-ground", "output": "orrery", "runner": "render" },
+		{ "app": "Flow", "screen": "flow/index.screen.json", "scenarios": "flow/index.scenarios.json", "scene": "a-card-mid-drag", "output": "kanban", "runner": "render" },
+		{ "app": "Haven", "screen": "haven/index.screen.json", "scenarios": "haven/index.scenarios.json", "scene": "energy-by-device", "output": "smart-home", "runner": "render" },
+		{ "app": "Tempo", "screen": "tempo/index.screen.json", "scenarios": "tempo/index.scenarios.json", "scene": "now-playing-visualiser-and-lyrics", "output": "music-player", "runner": "render" },
+		{ "app": "Streak", "screen": "streak/index.screen.json", "scenarios": "streak/index.scenarios.json", "scene": "a-row-selects-its-habit", "output": "habit-tracker", "runner": "render" },
+		{ "app": "Sign in", "screen": "sign-in/index.screen.json", "scenarios": "sign-in/index.scenarios.json", "scene": "password-strength", "output": "sign-in", "runner": "render", "size": [1280, 960] },
+		{ "app": "Quaderno", "screen": "code-editor/index.screen.json", "scenarios": "code-editor/index.scenarios.json", "scene": "a-problem-opens-its-file", "output": "code-editor", "runner": "render" },
+		{ "app": "Forge", "screen": "forge/index.screen.json", "scenarios": "forge/scm.scenarios.json", "scene": "forge-scm-diff-and-terminal", "output": "forge", "runner": "render", "size": [1280, 810] },
+		{ "app": "Studio", "screen": "studio/index.screen.json", "scenarios": "studio/index.scenarios.json", "scene": "a-proposal-to-review", "output": "studio", "runner": "render", "size": [1000, 691] },
+		{ "app": "Arcadia", "screen": "arcadia/index.screen.json", "scenarios": "arcadia/index.scenarios.json", "scene": "game-page", "output": "arcadia", "runner": "render" },
+		{ "app": "Tempera", "screen": "tempera/index.screen.json", "scenarios": "tempera/index.scenarios.json", "scene": "tempera-a-filter-previewing", "output": "tempera", "runner": "tempera" },
+		{ "app": "Sinopia", "screen": "sinopia/index.screen.json", "scenarios": "sinopia/index.scenarios.json", "scene": "sinopia-load-the-sample", "output": "sinopia", "runner": "sinopia", "settle": 400 },
+		{ "app": "Modello", "screen": "modello/index.screen.json", "scenarios": "modello/index.scenarios.json", "scene": "modello-assistant-open", "output": "modello", "runner": "render" },
+		{ "app": "Orrery", "screen": "orrery/index.screen.json", "scenarios": "orrery/index.scenarios.json", "scene": "an-eclipse-seen-from-the-ground", "output": "orrery", "runner": "render" },
 		{ "app": "Bottega", "screen": "bottega/bottega.screen.json", "scenarios": "bottega/bottega.scenarios.json", "scene": "bottega-sorter", "output": "bottega", "runner": "bottega" }
 	]
 }

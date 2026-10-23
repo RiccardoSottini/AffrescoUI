@@ -2,8 +2,8 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Sinopia checked headless, with its natives: affrescoui_sinopia --check sinopia.scenarios.json. Headless there is no window, so thumbnails, PNG exports and the audience window are drawn only when it runs; the PDF export is written to a temporary folder.",
-	"screen": "sinopia.screen.json",
+	"note": "Sinopia checked headless, with its natives: affrescoui_sinopia --check index.scenarios.json. Headless there is no window, so thumbnails, PNG exports and the audience window are drawn only when it runs; the PDF export is written to a temporary folder.",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "sinopia-load-the-sample",

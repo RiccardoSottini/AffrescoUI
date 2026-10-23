@@ -152,18 +152,40 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 	}
 }
 
+/// @brief The name of the folder a screen file is in.
+/// @param screenFile The screen file, absolute or relative to the current folder.
+/// @return The folder's name, or nothing if it has none (the root) or the path can't be made absolute.
+std::optional<std::string> folderName(const std::filesystem::path& screenFile) {
+	std::error_code error;
+	const std::string folder = std::filesystem::absolute(screenFile, error).parent_path().filename().string();
+	if(error || folder.empty()) return std::nullopt;
+	return folder;
+}
+
 /// @brief Where a screen file's data on disk is kept: its "persist" state and its history.
 /// @param dataDirectory The data folder (Screen::defaultDataDirectory()).
 /// @param screenFile The screen file.
 /// @param suffix What is kept: ".state.json" or ".history".
 /// @return In the data folder, the file's name without ".screen.json", then @p suffix: "habits.screen.json" gives
-/// "habits.history".
+/// "habits.history". A folder's index screen is named after its folder: "flow/index.screen.json" gives "flow.history".
 std::filesystem::path stateLocation(const std::filesystem::path& dataDirectory, const std::filesystem::path& screenFile,
                                     std::string_view suffix) {
 	std::string name = screenFile.filename().string();
 	for(const char* extension : {".json", ".screen"})
 		if(name.ends_with(extension)) name.resize(name.size() - std::string_view(extension).size());
+	if(name == "index") name = folderName(screenFile).value_or(name);
 	return dataDirectory / (name + std::string(suffix));
+}
+
+/// @brief The name a change set records as its template: the screen file's name, with its folder for an index screen
+/// ("flow/index.screen.json"), whose own name says nothing.
+/// @param screenFile The screen file.
+/// @return The name.
+std::string templateName(const std::filesystem::path& screenFile) {
+	const std::string file = screenFile.filename().string();
+	if(file != "index.screen.json") return file;
+	const std::optional<std::string> folder = folderName(screenFile);
+	return folder ? *folder + "/" + file : file;
 }
 
 /// @brief A screen converted from another format (SCREEN_FORMAT.md, "Other formats"): its warnings logged, and its
@@ -207,7 +229,7 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 	std::stringstream content;
 	content << file.rdbuf();
 	Screen screen = fromString(content.str(), path.parent_path());
-	screen.impl_->repairs.setTemplateName(path.filename().string());
+	screen.impl_->repairs.setTemplateName(templateName(path));
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(stateLocation(dataDirectory, path, ".history"));
 	screen.setStateFile(stateLocation(dataDirectory, path, ".state.json"));

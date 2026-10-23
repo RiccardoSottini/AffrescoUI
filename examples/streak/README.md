@@ -3,16 +3,16 @@
 Habits to check day by day, with scores, charts, a calendar and notes, kept on disk with `persist`. The `habit-tracker` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_host examples/streak/habit-tracker.screen.json
-./build/affrescoui test examples/streak/habit-tracker.scenarios.json
+./build/affrescoui_host examples/streak/index.screen.json
+./build/affrescoui test examples/streak/index.scenarios.json
 ```
 
 | File | What it is |
 |---|---|
 | `PARITY.md` | What it covers of the app it is modelled on, area by area |
-| `habit-tracker.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `habit-tracker.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
-| `habit-tracker.screen.json` | The screen document |
+| `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
+| `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
+| `index.screen.json` | The screen document |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 

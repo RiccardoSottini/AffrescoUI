@@ -3,8 +3,8 @@
 Rooms in a tree by floor, a floor plan, scenes, lights with their colours, climate, blinds, media, automations, schedules, an energy page with charts, security and notifications, a settings page, light and dark themes, in English, Spanish and French. The `smart-home` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_host examples/haven/smart-home.screen.json
-./build/affrescoui test examples/haven/smart-home.scenarios.json
+./build/affrescoui_host examples/haven/index.screen.json
+./build/affrescoui test examples/haven/index.scenarios.json
 ```
 
 | File | What it is |
@@ -12,9 +12,9 @@ Rooms in a tree by floor, a floor plan, scenes, lights with their colours, clima
 | `automations.json` | The automation graph, the schedules, security, notifications and the simulated service (included) |
 | `images/` | The pictures the screen shows |
 | `plan.json` | The floor plan, the media card and the colour dialog (included) |
-| `smart-home.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `smart-home.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
-| `smart-home.screen.json` | The screen document |
+| `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
+| `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
+| `index.screen.json` | The screen document |
 | `strings.json` | Its string tables: English, Spanish and French |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).

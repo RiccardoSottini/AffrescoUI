@@ -87,11 +87,11 @@ corner: ask for a change in plain words, then review the proposal it becomes.
 </tr>
 <tr>
 <td valign="top"><img src=".github/media/sinopia.png" alt="Sinopia, a presentation editor with a ribbon, slide thumbnails and a slide canvas"><br/><b>Sinopia</b> · a presentation editor<br/><sub>A ribbon with tabs and galleries, slide thumbnails in sections, a canvas with shapes, zoom and fit, speaker notes and undo. Its slide sorter is a part that other applications install. <code>./build/affrescoui_sinopia</code></sub></td>
-<td valign="top"><img src=".github/media/modello.png" alt="Modello, a 3D modeller with a viewport, an outliner, properties and a timeline"><br/><b>Modello</b> · a 3D modeller<br/><sub>A lit 3D viewport with gizmos, an outliner, a properties editor, a timeline, search over every command and glTF import. Every scene edit is a revision, reviewed and undoable. No C++ of its own. <code>examples/modello/modello.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/modello.png" alt="Modello, a 3D modeller with a viewport, an outliner, properties and a timeline"><br/><b>Modello</b> · a 3D modeller<br/><sub>A lit 3D viewport with gizmos, an outliner, a properties editor, a timeline, search over every command and glTF import. Every scene edit is a revision, reviewed and undoable. No C++ of its own. <code>examples/modello/index.screen.json</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/code-editor.png" alt="Quaderno, a code editor with a side bar, tabs and a minimap"><br/><b>Quaderno</b> · a code editor<br/><sub>Open files and folders, tabs, a minimap, a quick switcher over files, symbols and lines, Find in Files, a command palette and a console. <code>examples/code-editor/code-editor.screen.json</code></sub></td>
-<td valign="top"><img src=".github/media/orrery.png" alt="Orrery, a planetarium with a 3D solar system, a sky chart, an orbit graph and an events timeline"><br/><b>Orrery</b> · a planetarium<br/><sub>A 3D solar system, the sky from the ground, an orbit graph and a timeline of eclipses. Its bodies strip is Sinopia's slide sorter, installed from that app. Built by an outsider from the public docs. <code>examples/orrery/orrery.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/code-editor.png" alt="Quaderno, a code editor with a side bar, tabs and a minimap"><br/><b>Quaderno</b> · a code editor<br/><sub>Open files and folders, tabs, a minimap, a quick switcher over files, symbols and lines, Find in Files, a command palette and a console. <code>examples/code-editor/index.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/orrery.png" alt="Orrery, a planetarium with a 3D solar system, a sky chart, an orbit graph and an events timeline"><br/><b>Orrery</b> · a planetarium<br/><sub>A 3D solar system, the sky from the ground, an orbit graph and a timeline of eclipses. Its bodies strip is Sinopia's slide sorter, installed from that app. Built by an outsider from the public docs. <code>examples/orrery/index.screen.json</code></sub></td>
 </tr>
 </table>
 
@@ -99,16 +99,16 @@ corner: ask for a change in plain words, then review the proposal it becomes.
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src=".github/media/smart-home.png" alt="Haven, a smart-home dashboard with rooms, device tiles and a floor plan"><br/><b>Haven</b> · a smart-home dashboard<br/><sub>Rooms by floor, a floor plan, scenes, lights, climate, blinds and media, automations as a node graph with schedules, energy charts, security and notifications, on simulated devices. <code>examples/haven/smart-home.screen.json</code></sub></td>
-<td width="50%" valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player with playlists, a song table and a queue"><br/><b>Tempo</b> · a music player<br/><sub>Playlists, a 3,000-song library, albums and artists, a queue to reorder, now playing with a visualiser and lyrics, an equaliser and a mini player. Playback is simulated. <code>examples/tempo/music-player.screen.json</code></sub></td>
+<td width="50%" valign="top"><img src=".github/media/smart-home.png" alt="Haven, a smart-home dashboard with rooms, device tiles and a floor plan"><br/><b>Haven</b> · a smart-home dashboard<br/><sub>Rooms by floor, a floor plan, scenes, lights, climate, blinds and media, automations as a node graph with schedules, energy charts, security and notifications, on simulated devices. <code>examples/haven/index.screen.json</code></sub></td>
+<td width="50%" valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player with playlists, a song table and a queue"><br/><b>Tempo</b> · a music player<br/><sub>Playlists, a 3,000-song library, albums and artists, a queue to reorder, now playing with a visualiser and lyrics, an equaliser and a mini player. Playback is simulated. <code>examples/tempo/index.screen.json</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker with daily habits, a score chart and a history chart"><br/><b>Streak</b> · a habit tracker<br/><sub>Daily habits with goals and schedules, scores, charts, a calendar, notes and reminders, all kept on disk. <code>examples/streak/habit-tracker.screen.json</code></sub></td>
-<td valign="top"><img src=".github/media/arcadia.png" alt="Arcadia, a game launcher with a library, a store and game pages"><br/><b>Arcadia</b> · a game launcher<br/><sub>A library and a store with carousels, game pages, downloads, a wishlist and a cart. Built by an outsider from the public docs. <code>examples/arcadia/game-launcher.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker with daily habits, a score chart and a history chart"><br/><b>Streak</b> · a habit tracker<br/><sub>Daily habits with goals and schedules, scores, charts, a calendar, notes and reminders, all kept on disk. <code>examples/streak/index.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/arcadia.png" alt="Arcadia, a game launcher with a library, a store and game pages"><br/><b>Arcadia</b> · a game launcher<br/><sub>A library and a store with carousels, game pages, downloads, a wishlist and a cart. Built by an outsider from the public docs. <code>examples/arcadia/index.screen.json</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board with a sidebar and four columns of issues"><br/><b>Flow</b> · a Kanban board<br/><sub>Boards with swimlanes, a table and a timeline of every card, a card drawer, a burndown, drag and drop with a keyboard alternative, undo and a command palette. The host's default. <code>examples/flow/kanban.screen.json</code></sub></td>
-<td valign="top"><img src=".github/media/sign-in.png" alt="Sign in, a form with validated fields and a password strength meter"><br/><b>Sign in</b> · accounts<br/><sub>Sign in and sign up, two-step codes, a password reset, a sample external provider, an account page and session expiry, all validated in the document. <code>examples/sign-in/sign-in.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board with a sidebar and four columns of issues"><br/><b>Flow</b> · a Kanban board<br/><sub>Boards with swimlanes, a table and a timeline of every card, a card drawer, a burndown, drag and drop with a keyboard alternative, undo and a command palette. The host's default. <code>examples/flow/index.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/sign-in.png" alt="Sign in, a form with validated fields and a password strength meter"><br/><b>Sign in</b> · accounts<br/><sub>Sign in and sign up, two-step codes, a password reset, a sample external provider, an account page and session expiry, all validated in the document. <code>examples/sign-in/index.screen.json</code></sub></td>
 </tr>
 </table>
 
@@ -339,7 +339,7 @@ changes the running board and the change comes back as a proposal: **Accept** it
 
 ```sh
 ./build/affrescoui_host --mode acceptEdits                              # agent changes apply unless a rule asks
-./build/affrescoui_host examples/haven/smart-home.screen.json            # any application, no C++
+./build/affrescoui_host examples/haven/index.screen.json            # any application, no C++
 ./build/affrescoui_host --plugin my-changes.json                         # start with a change set applied
 ```
 

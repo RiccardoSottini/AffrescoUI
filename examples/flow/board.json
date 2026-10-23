@@ -1,5 +1,5 @@
 {
-	"note": "Flow's board logic, included by kanban.screen.json: undo, the activity feed, work-in-progress limits, moves by keyboard and between swimlanes, the card drawer's edits, the timeline's tracks, presence from the host's channel, and the settings.",
+	"note": "Flow's board logic, included by index.screen.json: undo, the activity feed, work-in-progress limits, moves by keyboard and between swimlanes, the card drawer's edits, the timeline's tracks, presence from the host's channel, and the settings.",
 
 	"settings": {
 		"appearance.language": { "type": "string", "enum": ["en", "es", "fr"], "default": "en", "title": "Language", "description": "English, Spanish or French." },

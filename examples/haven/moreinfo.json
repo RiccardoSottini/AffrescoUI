@@ -1,5 +1,5 @@
 {
-	"note": "Haven's more-info dialog, included by smart-home.screen.json: a click on a light, the climate, the blinds or a device opens it in the middle of the window, with the big control of that kind, its details and its recent activity. Escape or a click outside closes it.",
+	"note": "Haven's more-info dialog, included by index.screen.json: a click on a light, the climate, the blinds or a device opens it in the middle of the window, with the big control of that kind, its details and its recent activity. Escape or a click outside closes it.",
 
 	"state": {
 		"info": { "open": false, "kind": "light", "index": 0 },

@@ -1,7 +1,7 @@
 {
 	"id": "kanban-clear-done",
 	"level": "feature",
-	"screen": "examples/flow/kanban.screen.json",
+	"screen": "examples/flow/index.screen.json",
 	"request": "Add a \"Clear done\" button with the id clearDone to the toolbar, left of the Board and Table switch, that removes every card from the Done column.",
 	"scenarios": [
 		{

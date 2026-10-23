@@ -1,5 +1,5 @@
 {
-	"note": "Haven's text in English, Spanish and French, included by smart-home.screen.json. Room, light and device names are data, not text to translate.",
+	"note": "Haven's text in English, Spanish and French, included by index.screen.json. Room, light and device names are data, not text to translate.",
 	"strings": {
 		"default": "en",
 		"locale": "{{settings.ui.language}}",

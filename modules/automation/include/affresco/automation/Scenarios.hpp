@@ -39,7 +39,7 @@ struct ScenarioFile {
 	/// @param path The file.
 	/// @return It.
 	/// @throws DocumentError If it can't be read, isn't JSON, or a scenario or step is malformed; the message names the
-	/// place: "AffrescoUI scenarios: kanban.scenarios.json: scenarios[1].steps[3]: unknown step 'clik'".
+	/// place: "AffrescoUI scenarios: index.scenarios.json: scenarios[1].steps[3]: unknown step 'clik'".
 	[[nodiscard]] static ScenarioFile load(const std::filesystem::path& path);
 
 	/// @brief Checks a scenarios file given as text.
@@ -120,7 +120,7 @@ struct Report {
 	[[nodiscard]] std::size_t failed() const noexcept;
 	/// @brief A compact report, cheap to read: one line for the file, then one per failure.
 	///
-	/// `kanban.scenarios.json: 6 passed, 1 failed` then `FAILED add-card, step 5: state cards.length is 6, expected 7`.
+	/// `index.scenarios.json: 6 passed, 1 failed` then `FAILED add-card, step 5: state cards.length is 6, expected 7`.
 	/// @return The text, ending with a line break.
 	[[nodiscard]] std::string text() const;
 	/// @brief The same as JSON: `{"file", "passed", "failed", "failures": [{"scenario", "step", "problem"}]}`.

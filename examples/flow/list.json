@@ -1,5 +1,5 @@
 {
-	"note": "Flow's list view, included by kanban.screen.json: every card in one list, grouped by column, a row each.",
+	"note": "Flow's list view, included by index.screen.json: every card in one list, grouped by column, a row each.",
 
 	"components": {
 		"listView": {

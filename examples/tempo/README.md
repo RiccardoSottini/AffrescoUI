@@ -3,8 +3,8 @@
 Playlists, a library of 3,000 songs in a table, albums and artists in grids, search, a queue you reorder, now playing with a visualiser and lyrics, an equaliser, crossfade and a mini player. Playback is simulated: a timer, no audio. The `music-player` template: a screen document whose one piece of C++, the visualiser surface, the stock host registers.
 
 ```sh
-./build/affrescoui_host examples/tempo/music-player.screen.json
-./build/affrescoui test examples/tempo/music-player.scenarios.json
+./build/affrescoui_host examples/tempo/index.screen.json
+./build/affrescoui test examples/tempo/index.scenarios.json
 ```
 
 | File | What it is |
@@ -13,9 +13,9 @@ Playlists, a library of 3,000 songs in a table, albums and artists in grids, sea
 | `pages.json` | The pages (albums, artists, a collection, search, now playing, sound), included by the screen |
 | `strings.json` | The string tables: English, Spanish and French |
 | `Visualiser.hpp`, `Visualiser.cpp` | The `visualiser` type: bars drawn on a GPU surface, registered by the host |
-| `music-player.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `music-player.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
-| `music-player.screen.json` | The screen document |
+| `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
+| `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
+| `index.screen.json` | The screen document |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 

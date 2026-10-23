@@ -2,8 +2,8 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "What the Music player template does, checked headless: affrescoui test music-player.scenarios.json",
-	"screen": "music-player.screen.json",
+	"note": "What the Music player template does, checked headless: affrescoui test index.scenarios.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "playback-advances-each-second",

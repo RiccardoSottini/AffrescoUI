@@ -3,8 +3,8 @@
 Sign in, create an account, two-step verification, a password reset, provider sign-in with a made-up provider (Example ID), session expiry and an account page, in English, Spanish and French, light and dark. The `sign-in` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_host examples/sign-in/sign-in.screen.json
-./build/affrescoui test examples/sign-in/sign-in.scenarios.json
+./build/affrescoui_host examples/sign-in/index.screen.json
+./build/affrescoui test examples/sign-in/index.scenarios.json
 ```
 
 ## What it shows
@@ -19,13 +19,13 @@ Sign in, create an account, two-step verification, a password reset, provider si
 - **Net:** a `connections` entry for the fake OAuth 2 provider (no real client id or secret) with the `signIn` and `signOut` steps; scenarios play its answers as the `providerSignedIn` and `providerFailed` actions.
 - **Accessibility:** roles (`button`, `link`, `switch`, `checkbox`, `radiogroup`, `alert`, `status`, `timer`, `heading`, `list`), names from labels, live regions and an announcer for loading and errors, busy and disabled buttons, keyboard use throughout.
 - **Document:** `tokens` with light and dark values, `theme`, `computed`, `stateTypes`, `persist` (theme, language and "remember me" only, never a password).
-- **Policy:** `sign-in.policy.json` shows that agents may change the look and the texts, but not the provider connection, what is persisted, or the sign-in and sign-out steps.
+- **Policy:** `index.policy.json` shows that agents may change the look and the texts, but not the provider connection, what is persisted, or the sign-in and sign-out steps.
 
 | File | What it is |
 |---|---|
-| `sign-in.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `sign-in.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
-| `sign-in.screen.json` | The screen document |
+| `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
+| `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
+| `index.screen.json` | The screen document |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 

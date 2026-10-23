@@ -17,7 +17,7 @@ rendering check (`tests/render`) is a set of scenarios whose expectations are pi
 
 - **Checked first.** A scenarios file is read whole and every step checked (one kind per step, known keys, keys,
   targets, state paths, properties, names) before anything plays; an error names the file and the place:
-  `AffrescoUI scenarios: kanban.scenarios.json: scenarios[1].steps[3]: unknown step {"clik":"#card"}`.
+  `AffrescoUI scenarios: index.scenarios.json: scenarios[1].steps[3]: unknown step {"clik":"#card"}`.
 - **Fresh and alone.** Each scenario loads its screen again: no saved history or `persist` state, channels looking for
   their hosts in a folder with none, even a channel at an absolute path (they show their disconnected state), what
   they post dropped. So a scenario plays the same way on any machine, whatever ran before, and never meets a running

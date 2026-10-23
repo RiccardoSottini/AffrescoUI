@@ -90,7 +90,7 @@ json readJson(const std::filesystem::path& path) {
 /// @param change Changes it (may be empty).
 /// @return The document.
 json kanban(const std::function<void(json&)>& change = {}) {
-	json document = readJson(screens() / "kanban.screen.json");
+	json document = readJson(screens() / "index.screen.json");
 	for(const json& file : document["include"]) {
 		const json part = readJson(screens() / file.get<std::string>()); // a loop over a temporary's items dangles
 		for(const auto& [section, entries] : part.items())
@@ -123,7 +123,7 @@ json blockedColumn() {
 	        {{{"expect", {{"state", "columns[3].name"}, {"is", "Blocked"}}}},
 	         {{"expect", {{"state", "columns.length"}, {"is", 5}}}}}}}}}};
 	return ChangeSetRepairs::describe(changes, "Add a Blocked column before the last one",
-	                                  {{"name", "kanban.screen.json"}, {"commit", "original"}, {"tree", "original"}},
+	                                  {{"name", "index.screen.json"}, {"commit", "original"}, {"tree", "original"}},
 	                                  proof);
 }
 
@@ -135,7 +135,7 @@ std::string playProof(const std::string& document, const std::string& proof) {
 	namespace automation = affresco::automation;
 	const json file = {{"format", "affrescoui-scenarios"},
 	                   {"version", 2},
-	                   {"screen", "kanban.screen.json"},
+	                   {"screen", "index.screen.json"},
 	                   {"scenarios", json::parse(proof).at("scenarios")}};
 	automation::Options options;
 	options.document = document;
@@ -161,7 +161,7 @@ void renameDone(json& document) { document["state"]["columns"][3]["name"] = "Shi
 struct Repairs {
 	affresco::format::Rules rules;                                ///< The screen format.
 	affresco::vcs::Repository repository{rules, kanban(renameDone)}; ///< The changed template.
-	ChangeSetRepairs repairs{repository, "kanban.screen.json"};   ///< Under test.
+	ChangeSetRepairs repairs{repository, "index.screen.json"};   ///< Under test.
 	std::vector<json> broadcast;                                  ///< What it told every peer.
 
 	/// @brief Sets the proof check and records the broadcasts.
@@ -281,7 +281,7 @@ TEST_CASE("change set repair: a change set whose scenarios fail is left off, wit
 	affresco::vcs::Repository repository{rules, kanban([](json& document) {
 		document["state"]["columns"].push_back({{"name", "Archived"}, {"color", "#64748b"}, {"cards", json::array()}});
 	})};
-	ChangeSetRepairs repairs{repository, "kanban.screen.json"};
+	ChangeSetRepairs repairs{repository, "index.screen.json"};
 	repairs.setProofCheck([](const json& document, const json& proof) -> std::optional<std::string> {
 		std::string failed = playProof(document.dump(), proof.dump());
 		if(failed.empty()) return std::nullopt;

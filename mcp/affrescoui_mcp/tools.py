@@ -70,7 +70,7 @@ TOOLS = [
                     "points (slot, the exports each receives), its typed exports (state, lists, actions, models, "
                     "surfaces, images) and the installable parts it ships (each one's needs and provides), one line "
                     "each. file is an app's screen file: another app's (e.g. "
-                    "\"examples/sinopia/sinopia.screen.json\"), to pick a part to install from it, or the running "
+                    "\"examples/sinopia/index.screen.json\"), to pick a part to install from it, or the running "
                     "app's with running=true, to read the running document's.",
      "inputSchema": object_schema({"file": {"type": "string", "description": "An app's *.screen.json"},
                                    "running": {"type": "boolean",
@@ -155,7 +155,7 @@ TOOLS = [
      "description": "Check your work with the screen's own scenarios (scripted clicks, typing, waits and expectations "
                     "of state and nodes, played headless): on main as it runs now, or with an open proposal applied "
                     "(`proposal`, e.g. the one submit_revision just opened). `file` is the scenarios file shipped "
-                    "next to the screen (examples/flow/kanban.scenarios.json). Pass `scenarios` (a list of "
+                    "next to the screen (examples/flow/index.scenarios.json). Pass `scenarios` (a list of "
                     "{name, steps}) to play your own instead of the file's, `only` for one by name. Answers in a few "
                     "lines: the totals, then \"FAILED <scenario>, step <n>: <what>\" per failure. Nothing changes: "
                     "scenarios play on a copy, without a window. SCREEN_FORMAT.md, \"Scenarios\", lists the steps.",

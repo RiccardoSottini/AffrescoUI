@@ -1,7 +1,7 @@
 {
 	"id": "kanban-move-card",
 	"level": "edit",
-	"screen": "examples/flow/kanban.screen.json",
+	"screen": "examples/flow/index.screen.json",
 	"request": "Move the card \"Onboarding checklist for new teams\" from the Backlog to the end of In progress.",
 	"scenarios": [
 		{

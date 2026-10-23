@@ -6,7 +6,7 @@
 	"title": "Debugger",
 	"description": "A debugger for lldb-dap and debugpy: launch configurations, breakpoints, stepping, the call stack, variables, watches and the debug console.",
 	"license": "Apache-2.0",
-	"note": "Built into Forge: forge.screen.json includes debug.json and debugViews.json, and its natives (Debug.cpp) are compiled in, so this manifest names and versions the package and lists no provides; it is not in the catalogue.",
+	"note": "Built into Forge: index.screen.json includes debug.json and debugViews.json, and its natives (Debug.cpp) are compiled in, so this manifest names and versions the package and lists no provides; it is not in the catalogue.",
 	"requires": { "format": 2 },
 	"provides": {}
 }

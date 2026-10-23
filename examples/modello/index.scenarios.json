@@ -1,8 +1,8 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Modello's scenarios: the stock host's runtime plays them (affrescoui test examples/modello/modello.scenarios.json)",
-	"screen": "modello.screen.json",
+	"note": "Modello's scenarios: the stock host's runtime plays them (affrescoui test examples/modello/index.scenarios.json)",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "modello-start",

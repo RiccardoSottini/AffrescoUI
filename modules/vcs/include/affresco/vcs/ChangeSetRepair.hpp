@@ -66,7 +66,7 @@ public:
 
 	/// @brief Starts with no change set installed.
 	/// @param repository The document; must outlive this.
-	/// @param templateName The template's name, recorded as the base of change sets (e.g. "kanban.screen.json").
+	/// @param templateName The template's name, recorded as the base of change sets (e.g. "flow/index.screen.json").
 	/// The repository's document is taken as the template, so construct this right after loading it.
 	ChangeSetRepairs(Repository& repository, std::string templateName);
 	/// @brief Disconnects from the repository.
@@ -75,7 +75,7 @@ public:
 	ChangeSetRepairs& operator=(const ChangeSetRepairs&) = delete;
 
 	/// @brief Names the template, as change sets record their base.
-	/// @param name Its file's name, e.g. "kanban.screen.json".
+	/// @param name Its file's name, e.g. "index.screen.json".
 	void setTemplateName(std::string name) { templateName_ = std::move(name); }
 
 	/// @brief Sets how proofs are checked; without one, a change set with a proof needs repair ("no proof check").

@@ -1,9 +1,9 @@
 /// @file
 /// @brief affrescoui_sinopia: Sinopia, slides and vector documents, whose whole workspace is a screen document
-/// (sinopia.screen.json).
+/// (index.screen.json).
 //
 //   affrescoui_sinopia [--socket DIR] [--data DIR]
-//   affrescoui_sinopia --check sinopia.scenarios.json [--out DIR]
+//   affrescoui_sinopia --check index.scenarios.json [--out DIR]
 //
 // Opens the sample deck in decks/. Like affrescoui_host, it listens for the Studio and an agent in DIR (studio.sock,
 // agent.sock). --check plays the scenarios headless, with the natives registered, and prints the report; with --out,
@@ -92,7 +92,7 @@ int check(const std::filesystem::path& file, const std::filesystem::path& out) {
 int run(const Options& options) {
 	const std::filesystem::path folder = AFFRESCOUI_SINOPIA_DIR;
 	affresco::Application app;
-	affresco::Screen screen = affresco::Screen::fromFile(folder / "sinopia.screen.json", options.dataDir);
+	affresco::Screen screen = affresco::Screen::fromFile(folder / "index.screen.json", options.dataDir);
 	const auto session = std::make_shared<sinopia::Session>();
 	session->folder = folder;
 	session->exportFolder = options.dataDir / "sinopia-exports";

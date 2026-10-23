@@ -1,5 +1,5 @@
 {
-	"screen": "smart-home.screen.json",
+	"screen": "index.screen.json",
 	"cases": [
 		{
 			"name": "the studio changes the screen",
