@@ -9,6 +9,7 @@
 #include <affresco/channel/Session.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
+#include <affresco/vcs/Roles.hpp>
 
 #include <doctest/doctest.h>
 
@@ -144,4 +145,15 @@ TEST_CASE("roles: an agent can't give itself a role, a lease beyond its rules, o
 	// A revision can't carry a lease: a "lease" key is not one
 	CHECK(bob.ask({{"type", "revision"}, {"author", "bob"}, {"lease", "#board"}, {"set", {{"/state/x", 1}}}})["type"] !=
 	      "leased");
+}
+
+TEST_CASE("roles: a channel's role is every one of its authors' unless an author has its own") {
+	affresco::vcs::Roles roles;
+	REQUIRE_FALSE(roles.set("agent", "design").has_value());
+	REQUIRE_FALSE(roles.set("agent/bob", "review").has_value());
+	// The channel's name is worked out for the lookup: it must live as long as the lookup does
+	CHECK(roles.of("agent/ada") == "design");
+	CHECK(roles.of("agent/bob") == "review");
+	CHECK(roles.of("agent") == "design");
+	CHECK(roles.of("studio/ann").empty());
 }
