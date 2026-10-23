@@ -163,7 +163,7 @@
 										"align": { "horizontal": "start", "vertical": "center" },
 										"text": "{{t('inbox.' + n.kind, { who: find(state.members, it.who == n.who).name ?? n.who, to: n.to ?? '' })}}" },
 									{ "id": "inboxWhen", "style": "caption", "anchors": { "right": 16, "top": 8 }, "height": 22, "width": 48, "fitText": false,
-										"align": { "horizontal": "end", "vertical": "center" }, "text": "{{formatDate(dateMs(n.when), 'short', 'utc')}}" }
+										"align": { "horizontal": "end", "vertical": "center" }, "text": "{{formatDate(dateMs(n.when), 'MMM d', 'utc')}}" }
 								]
 							}
 						]
@@ -223,7 +223,7 @@
 							{ "id": "cycleName", "type": "label", "font": "small", "anchors": { "left": 20, "top": 14 }, "height": 22, "fitText": true, "textColor": "@color.text",
 								"runs": [{ "text": "{{t('cycle.name', { n: state.cycle.number })}}", "bold": true }, "   ", { "text": "{{t('cycle.current')}}", "color": "@color.accent" }] },
 							{ "id": "cycleDates", "style": "caption", "anchors": { "left": 20, "top": 36 }, "height": 20,
-								"text": "{{formatDate(dateMs(state.cycle.start), 'short', 'utc')}} – {{formatDate(dateMs(state.cycle.end), 'short', 'utc')}}  ·  {{t('cycle.left', { n: daysBetween(state.today, state.cycle.end) })}}" },
+								"text": "{{formatDate(dateMs(state.cycle.start), 'MMM d', 'utc')}} – {{formatDate(dateMs(state.cycle.end), 'MMM d', 'utc')}}  ·  {{t('cycle.left', { n: daysBetween(state.today, state.cycle.end) })}}" },
 							{ "id": "cycleScope", "use": "cycleStat", "with": { "text": "{{t('cycle.scope')}}", "value": "{{computed.cycleScope}}", "color": "@color.text" }, "anchors": { "left": 20, "top": 70 } },
 							{ "id": "cycleStarted", "use": "cycleStat", "with": { "text": "{{t('cycle.started')}}", "value": "{{sum(filter(computed.allCards, it.c > 0 && it.c < computed.lastColumn), it.points ?? 0)}}", "color": "#d97706" },
 								"anchors": { "left": 160, "top": 70 } },
@@ -262,7 +262,7 @@
 									{ "id": "cycleRowName", "type": "label", "font": "small", "text": "{{t('cycle.name', { n: cycle.number })}}", "textColor": "@color.text", "width": 120,
 										"anchors": { "left": 36, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
 									{ "id": "cycleRowDates", "style": "caption", "width": 180, "fitText": false, "anchors": { "left": 160, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" },
-										"text": "{{formatDate(dateMs(cycle.start), 'short', 'utc')}} – {{formatDate(dateMs(cycle.end), 'short', 'utc')}}" },
+										"text": "{{formatDate(dateMs(cycle.start), 'MMM d', 'utc')}} – {{formatDate(dateMs(cycle.end), 'MMM d', 'utc')}}" },
 									{ "id": "cycleRowState", "style": "caption", "width": 120, "fitText": false, "anchors": { "left": 340, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" },
 										"text": "{{t(cycle.start > state.today ? 'cycle.upcoming' : 'cycle.past')}}" },
 									{ "id": "cycleRowBar", "use": "progressBar", "with": { "ratio": "{{cycle.done / max(cycle.scope, 1)}}", "color": "@color.accent", "width": 120 },
@@ -324,7 +324,7 @@
 										"color": "{{find(state.members, it.who == project.lead).color ?? '@color.muted'}}", "textColor": "#ffffff",
 										"tooltip": "{{find(state.members, it.who == project.lead).name ?? project.lead}}" },
 									{ "id": "projectTarget", "style": "caption", "width": 100, "fitText": false, "anchors": { "right": 240, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" },
-										"icon": "calendar", "text": " {{formatDate(dateMs(project.target), 'short', 'utc')}}",
+										"icon": "calendar", "text": " {{formatDate(dateMs(project.target), 'MMM d', 'utc')}}",
 										"textColor": "{{daysBetween(state.today, project.target) < 0 && project.progress < 1 ? '@bug' : '@color.muted'}}" },
 									{ "id": "projectBar", "use": "progressBar", "with": { "ratio": "{{project.progress}}", "color": "{{project.color}}", "width": 120 },
 										"anchors": { "right": 100, "top": 20 } },

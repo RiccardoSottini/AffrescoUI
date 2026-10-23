@@ -136,7 +136,7 @@
 		"filters": ["all", "bug", "feature", "design", "chore"],
 		"tagIcons": { "bug": "bug", "feature": "sparkles", "design": "palette", "chore": "wrench" },
 		"newCard": "",
-		"composer": { "open": false, "c": 0 },
+		"composer": { "open": false, "c": 0, "p": 0, "who": "RS", "notes": "", "more": false },
 		"filterOpen": false,
 		"displayOpen": false,
 		"workspaceOpen": false,
@@ -344,22 +344,24 @@
 				"push": "state.columns[state.composer.c].cards",
 				"value": {
 					"ref": "FLO-{{state.nextRef}}",
-					"priority": 0,
+					"priority": "{{state.composer.p}}",
 					"title": "{{trim(state.newCard)}}",
 					"tag": "{{state.filter == 'all' ? 'feature' : state.filter}}",
-					"who": "RS",
+					"who": "{{state.composer.who}}",
 					"points": 1
 				}
 			},
 			{ "run": "notify", "with": { "message": "{{t('toast.added', { title: trim(state.newCard), column: state.columns[state.composer.c].name })}}" } },
 			{ "run": "logActivity", "with": { "key": "added", "title": "{{trim(state.newCard)}}", "column": "" } },
 			{ "set": "state.nextRef", "to": "{{state.nextRef + 1}}" },
+			{ "if": "{{trim(state.composer.notes) != ''}}", "then": [{ "set": "state.columns[state.composer.c].cards[length(state.columns[state.composer.c].cards) - 1].notes", "to": "{{state.composer.notes}}" }] },
 			{ "set": "state.newCard", "to": "" },
-			{ "set": "state.composer.open", "to": false }
+			{ "set": "state.composer.notes", "to": "" },
+			{ "set": "state.composer.open", "to": "{{state.composer.more}}", "note": "Create more keeps the composer open for the next one" }
 		],
 		"openComposer": [
 			{ "note": "with: c, the column the new card goes to" },
-			{ "set": "state.composer", "to": { "open": true, "c": "{{c}}" } }
+			{ "set": "state.composer", "to": { "open": true, "c": "{{c}}", "p": 0, "who": "{{state.me}}", "notes": "", "more": "{{state.composer.more}}" } }
 		],
 		"moveCard": [
 			{ "note": "with: from (column), at (card index), to (column)" },
@@ -853,7 +855,7 @@
 																		{ "id": "cardPriority", "style": "cardChip", "borderWidth": 0, "when": "{{(card.priority ?? 0) > 0}}", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
 																			"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "tooltip": "{{t('priority.' + (card.priority ?? 0))}}" },
 																		{ "id": "cardTag", "style": "cardChip", "runs": [{ "icon": "circle", "color": "@{{card.tag}}" }, " {{t('tag.' + card.tag)}}"], "tooltip": "{{t('tag.' + card.tag)}}" },
-																		{ "id": "cardDue", "style": "cardChip", "when": "{{card.due != null}}", "icon": "calendar", "text": "{{formatDate(dateMs(card.due), 'short', 'utc')}}",
+																		{ "id": "cardDue", "style": "cardChip", "when": "{{card.due != null}}", "icon": "calendar", "text": "{{formatDate(dateMs(card.due), 'MMM d', 'utc')}}",
 																			"tooltip": "{{formatDate(dateMs(card.due), 'medium', 'utc')}}",
 																			"textColor": "{{daysBetween(state.today, card.due) < 0 && c != computed.lastColumn ? '@bug' : '@color.muted'}}" },
 																		{ "id": "cardNotes", "style": "cardChip", "borderWidth": 0, "when": "{{card.notes != null}}", "icon": "message-square", "text": "", "width": 22, "fitText": false, "align": "center" },
@@ -1022,11 +1024,13 @@
 				"children": [
 					{
 						"id": "composerBox",
-						"overlay": { "placement": "center", "open": "state.composer.open" },
+						"overlay": { "placement": "window", "open": "state.composer.open" },
 						"role": "dialog",
 						"label": "{{t('composer.title')}}",
+						"x": "{{max(0, round((window.width - 560) / 2))}}",
+						"y": "{{round(window.height * 0.15)}}",
 						"width": 560,
-						"height": 150,
+						"height": 210,
 						"radius": 10,
 						"color": "@color.menu",
 						"borderWidth": 1,
@@ -1038,9 +1042,10 @@
 							{
 								"id": "newCard",
 								"type": "textarea",
-								"anchors": { "left": 10, "right": 16, "top": 46 },
-								"height": 34,
+								"anchors": { "left": 10, "right": 16, "top": 44 },
+								"height": 36,
 								"padding": 6,
+								"font": "heading",
 								"color": "transparent",
 								"focused": { "color": "transparent" },
 								"textColor": "@color.text",
@@ -1052,9 +1057,23 @@
 								"onSubmit": "addCard",
 								"keys": { "escape": { "set": "state.composer.open", "to": false } }
 							},
+							{ "id": "composerNotes", "type": "textarea", "anchors": { "left": 10, "right": 16, "top": 80 }, "height": 30, "padding": 6, "color": "transparent",
+								"focused": { "color": "transparent" }, "textColor": "@color.text", "placeholder": "{{t('composer.notes')}}", "label": "{{t('composer.notes')}}",
+								"placeholderColor": "@color.muted", "bind": "state.composer.notes", "keys": { "escape": { "set": "state.composer.open", "to": false } } },
+							{ "id": "composerChips", "type": "row", "gap": 6, "anchors": { "left": 16, "right": 16, "bottom": 60 }, "height": 26, "children": [
+								{ "id": "composerStatus", "style": "cardChip", "runs": [{ "icon": "{{state.statusIcons[state.composer.c] ?? 'circle'}}", "color": "{{state.columns[state.composer.c].color}}" }, "\u00a0{{state.columns[state.composer.c].name}}"],
+									"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('composer.in', { column: state.columns[state.composer.c].name })}}", "onClick": { "set": "state.composer.c", "to": "{{(state.composer.c + 1) % length(state.columns)}}" } },
+								{ "id": "composerPriority", "style": "cardChip", "icon": "{{state.priorities[state.composer.p]}}", "text": "\u00a0{{t('priority.' + state.composer.p)}}",
+									"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('quick.priority')}}", "onClick": { "set": "state.composer.p", "to": "{{(state.composer.p + 1) % length(state.priorities)}}" } },
+								{ "id": "composerWho", "style": "cardChip", "icon": "circle-user", "text": "\u00a0{{find(state.members, it.who == state.composer.who).name}}",
+									"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('quick.assignee')}}",
+									"onClick": { "set": "state.composer.who", "to": "{{state.members[(indexOf(map(state.members, it.who), state.composer.who) + 1) % length(state.members)].who}}" } }
+							] },
 							{ "id": "composerLine", "anchors": { "left": 0, "right": 0, "bottom": 48 }, "height": 1, "color": "@color.border" },
-							{ "id": "composerStatus", "style": "cardChip", "runs": [{ "icon": "{{state.statusIcons[state.composer.c] ?? 'circle'}}", "color": "{{state.columns[state.composer.c].color}}" }, " {{state.columns[state.composer.c].name}}"],
-								"anchors": { "left": 16, "bottom": 13 } },
+							{ "id": "composerMore", "type": "label", "font": "small", "fitText": true, "height": 28, "anchors": { "right": "#composerCreate.left", "bottom": 10 }, "padding": 10,
+							"runs": [{ "icon": "{{state.composer.more ? 'toggle-right' : 'toggle-left'}}", "color": "{{state.composer.more ? '@color.accent' : '@color.muted'}}" }, "\u00a0\u00a0{{t('composer.more')}}"],
+							"textColor": "@color.muted", "cursor": "hand", "focusable": true, "role": "switch", "selected": "{{state.composer.more}}", "label": "{{t('composer.more')}}",
+							"onClick": { "set": "state.composer.more", "to": "{{!state.composer.more}}" } },
 							{ "id": "composerCreate", "type": "label", "font": "small", "text": "{{t('composer.create')}}", "fitText": true, "padding": 12, "height": 28, "radius": "@radius.chip",
 								"color": "@color.accent", "textColor": "#ffffff", "anchors": { "right": 12, "bottom": 10 }, "cursor": "hand", "focusable": true, "role": "button",
 								"align": "center", "onClick": "addCard" }

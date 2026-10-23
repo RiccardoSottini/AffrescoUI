@@ -231,7 +231,7 @@
 								{ "id": "propDueName", "style": "propName", "text": "{{t('issue.due')}}" },
 								{ "id": "propDueValue", "style": "propValue", "icon": "calendar", "isOpen": "{{state.issueDueOpen}}",
 									"textColor": "{{computed.dueDays != null && computed.dueDays < 0 && state.selected.c != computed.lastColumn ? '@bug' : '@color.text'}}",
-									"text": "  {{computed.card.due == null ? t('drawer.noDue') : formatDate(dateMs(computed.card.due), 'medium', 'utc')}}",
+									"text": "  {{computed.card.due == null ? t('drawer.noDue') : formatDate(dateMs(computed.card.due), 'MMM d', 'utc')}}",
 									"onClick": { "toggle": "state.issueDueOpen" } },
 								{
 									"id": "issueDuePicker",

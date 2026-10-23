@@ -6,6 +6,28 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "composer-properties-and-create-more",
+			"note": "The composer's chips set priority and assignee, a description is kept, and Create more leaves it open for the next issue",
+			"steps": [
+				{ "key": "c" },
+				{ "wait": 50 },
+				{ "type": "Write the release notes" },
+				{ "click": "#composerPriority" },
+				{ "click": "#composerPriority" },
+				{ "click": "#composerWho" },
+				{ "click": "#composerNotes" },
+				{ "type": "For the launch" },
+				{ "click": "#composerMore" },
+				{ "click": "#composerCreate" },
+				{ "expect": { "state": "columns[0].cards[4].title", "is": "Write the release notes" } },
+				{ "expect": { "state": "columns[0].cards[4].priority", "is": 2 } },
+				{ "expect": { "state": "columns[0].cards[4].who", "is": "MK" } },
+				{ "expect": { "state": "columns[0].cards[4].notes", "is": "For the launch" } },
+				{ "expect": { "state": "composer.open", "is": true } },
+				{ "expect": { "state": "composer.notes", "is": "" } }
+			]
+		},
+		{
 			"name": "command-palette-finds-issues",
 			"note": "Cmd+K lists issues beside the commands: typing a title and Enter goes to that issue",
 			"steps": [
