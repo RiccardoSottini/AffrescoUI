@@ -169,6 +169,20 @@ const std::vector<Case> cases = {
     {"{{sum([1, 2, 3.5])}}", 6.5, {}},
     {"{{count(state.scores, it > 3)}}", 2, {}},
     {"{{sort(state.scores, it, 'desc')}}", {9, 4, 2}, {}},
+    {"{{reduce([1, 2, 3], acc + it, 0)}}", 6, {}},
+    {"{{reduce(state.items, acc + it + index, '')}}", "a0b1c2", {}},
+    {"{{reduce([1, 2], acc)}}", nullptr, {}}, // no initial: acc starts null
+    {"{{reduce(state.none, acc + it, 5)}}", 5, {}},
+    {"{{reduce([], acc + it, 'x')}}", "x", {}},
+    {"{{scan([1, 1, 0, 1], it ? acc + 1 : 0, 0)}}", {1, 2, 0, 1}, {}}, // a running streak
+    {"{{scan(state.none, acc, 0)}}", json::array(), {}},
+    {"{{scan([1, 2], sum(map([10, 20], it + acc)), 0)}}", {30, 90}, {}}, // an inner map sees acc
+    {"{{map([1, 2], reduce([3], acc + it, 0) + it)}}", {4, 5}, {}},
+    {"{{reduce([1, 2], acc * 10 + reduce([it], acc + it, 0), 0)}}", 12, {}}, // the inner fold's acc is its own
+    {"{{reduce('abc', acc, 0)}}", nullptr, "expected a list"},
+    {"{{reduce([1])}}", nullptr, "expected [list, expression, initial?]"},
+    {"{{scan([1], acc, 0, 1)}}", nullptr, "expected [list, expression, initial?]"},
+    {"{{acc}}", nullptr, "unknown variable 'acc'"},
     {"{{contains(state.items, 'c')}}", true, {}},
     {"{{type([])}}", "list", {}},
     {"{{{a: 1, 'b c': [2]}}}", {{"a", 1}, {"b c", {2}}}, {}},

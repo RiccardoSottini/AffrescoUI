@@ -190,9 +190,11 @@ public:
 	/// @param place Its place.
 	/// @param item The item.
 	/// @param position Its position.
+	/// @param accumulator A fold's value so far, in scope as `acc`, or nullptr (outlives the call).
 	/// @return Its value.
 	/// @throws DocumentError If it is invalid.
-	[[nodiscard]] Value runFor(const Node& node, const Place& place, const Value& item, std::size_t position);
+	[[nodiscard]] Value runFor(const Node& node, const Place& place, const Value& item, std::size_t position,
+	                           const Value* accumulator = nullptr);
 	/// @brief Evaluates a text with `{{ }}` placeholders: a lone placeholder keeps its value's type.
 	/// @param text The text.
 	/// @param place Its place.
@@ -233,10 +235,15 @@ public:
 private:
 	/// @brief An item of a list function, in scope as `it` and `index`.
 	struct Item {
-		const Item* parent; ///< The enclosing list function's, or nullptr.
-		const Value& value; ///< `it`.
-		std::size_t index;  ///< `index`.
+		const Item* parent;                 ///< The enclosing list function's, or nullptr.
+		const Value& value;                 ///< `it`.
+		std::size_t index;                  ///< `index`.
+		const Value* accumulator = nullptr; ///< A fold's `acc`, or nullptr.
 	};
+
+	/// @brief The innermost fold's value so far, the variable `acc`.
+	/// @return It, or nullptr outside a fold.
+	[[nodiscard]] const Value* accumulator() const noexcept;
 
 	/// @brief Puts the enclosing list function's item back when it goes, also when an evaluation throws.
 	class ItemScope {
