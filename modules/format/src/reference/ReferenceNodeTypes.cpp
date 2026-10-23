@@ -53,10 +53,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most "
 	 "10,000 and 8 on a line; inline text is cut at 256 characters.",
 	 "editor"},
-    {"find", R"json({"type": ["object", "null"], "description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous",
-		"properties": {"text": {"type": "string"}, "regex": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
+    {"find", R"json({"anyOf": [{"type": ["object", "null"], "properties": {"text": {"type": "string"}, "regex": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
 		"caseSensitive": {"type": "boolean"}, "inSelection": {"type": "boolean"}, "replace": {"type": "string"},
-		"step": {"enum": ["first", "next", "previous", "replace", "replaceAll"]}, "request": {"type": "number"}}})json",
+		"step": {"enum": ["first", "next", "previous", "replace", "replaceAll"]}, "request": {"type": "number"}}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous"})json",
 	 R"(`{ "text", "regex", "wholeWord", "caseSensitive" }` or `null` (none): highlights the matches of `text` (plain, or a PCRE2 )"
 	 "pattern with `regex`, matched line by line within match and depth limits); Cmd+G and Cmd+Shift+G select "
 	 "the next and previous. A pattern that doesn't compile highlights nothing. `inSelection` limits it to the "
@@ -66,6 +66,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "editor"},
     {"brackets", "flag", "`true` highlights the bracket that pairs with the one at the caret.", "editor"},
     {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
+    {"rulers", R"json({"anyOf": [{"type": "array", "items": {"type": "number", "minimum": 0}}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`).", "editor"},
     {"minimap", "flag",
 	 "`true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or "
 	 "dragging it scrolls.",

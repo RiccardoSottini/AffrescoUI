@@ -92,6 +92,7 @@ public:
 	static constexpr std::size_t maxDecorationsPerLine = 8;  ///< Decorations starting on one line, at most.
 	static constexpr std::size_t maxCursors = 10'000;        ///< Extra cursors, at most.
 	static constexpr std::size_t maxFolds = 10'000;          ///< Folded ranges, at most.
+	static constexpr std::size_t maxRulers = 16;             ///< Rulers, at most.
 	static constexpr std::size_t maxMatches = 10'000;        ///< Matches counted or replaced at once, at most.
 	static constexpr std::size_t maxBracketScan = 100'000;   ///< Code points scanned for a matching bracket.
 	static constexpr std::size_t maxCompositionLength = 256; ///< Code points of IME composition shown, at most.
@@ -176,6 +177,12 @@ public:
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
+	/// @brief Draws a thin vertical line, the whole height of the text, at each of some columns (in the guides'
+	/// colour), e.g. to show where lines should end.
+	/// @param columns The columns, counted from 0 in spaces (at most maxRulers kept).
+	void setRulers(std::vector<std::size_t> columns);
+	/// @brief The columns rulers are drawn at.
+	[[nodiscard]] const std::vector<std::size_t>& rulers() const noexcept { return rulers_; }
 	/// @brief Shows a minimap at the right: an overview of the rows, with the visible ones marked, that scrolls the
 	/// editor when pressed or dragged.
 	/// @param shown true to show it.
@@ -838,11 +845,12 @@ private:
 	mutable std::string subject_;                                    ///< One line in UTF-8, reused.
 	/// @brief What visibleMatches_ was found for: the model's version, the lines and findGeneration_.
 	mutable std::array<std::uint64_t, 4> matchesKey_{};
-	bool brackets_ = false;        ///< See setBracketMatching().
-	bool guides_ = false;          ///< See setIndentGuides().
-	std::u32string composition_;   ///< See setComposition().
-	bool minimap_ = false;         ///< See setMinimap().
-	bool minimapDragging_ = false; ///< A press on the minimap is scrolling.
+	bool brackets_ = false;           ///< See setBracketMatching().
+	bool guides_ = false;             ///< See setIndentGuides().
+	std::vector<std::size_t> rulers_; ///< See setRulers().
+	std::u32string composition_;      ///< See setComposition().
+	bool minimap_ = false;            ///< See setMinimap().
+	bool minimapDragging_ = false;    ///< A press on the minimap is scrolling.
 
 	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.
 	bool lineNumbers_ = false;            ///< See setLineNumbers().

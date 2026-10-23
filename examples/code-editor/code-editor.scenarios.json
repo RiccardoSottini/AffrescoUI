@@ -112,12 +112,59 @@
 			]
 		},
 		{
+			"name": "find-panel",
+			"note": "Cmd+F opens the find panel at the bottom; typing counts the matches, Enter goes to the next, Escape closes it",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "mod+f" },
+				{ "wait": 50 },
+				{ "expect": { "state": "findBar.open", "is": true } },
+				{ "type": "affresco" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#findCount", "text": "5 matches" } },
+				{ "key": "escape" },
+				{ "wait": 50 },
+				{ "expect": { "state": "findBar.open", "is": false } }
+			]
+		},
+		{
+			"name": "find-replace-all",
+			"note": "Cmd+Alt+F opens find with replace; Replace All changes every match in the file",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "mod+alt+f" },
+				{ "wait": 50 },
+				{ "type": "station" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#findCount", "text": "6 matches" } },
+				{ "click": "#replaceText" },
+				{ "type": "probe" },
+				{ "click": "#replaceAllButton" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#findCount", "text": "No results" } },
+				{ "expect": { "state": "files[0].dirty", "is": true } }
+			]
+		},
+		{
+			"name": "word-wrap",
+			"note": "Alt+Cmd+W turns word wrap on and off",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "mod+alt+w" },
+				{ "wait": 50 },
+				{ "expect": { "state": "wrap", "is": true } },
+				{ "key": "mod+alt+w" },
+				{ "wait": 50 },
+				{ "expect": { "state": "wrap", "is": false } }
+			]
+		},
+		{
 			"name": "command-palette",
 			"note": "Cmd+Shift+P lists every command; running one hides the explorer, and another shows the about dialog",
 			"steps": [
 				{ "key": "mod+shift+p" },
 				{ "wait": 50 },
-				{ "expect": { "state": "quickPick.query", "is": ">" } },
+				{ "expect": { "state": "palette.open", "is": true } },
 				{ "type": "explorer" },
 				{ "wait": 50 },
 				{ "key": "enter" },

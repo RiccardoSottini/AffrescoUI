@@ -1719,49 +1719,70 @@
 						}
 					},
 					"find": {
-						"type": [
-							"object",
-							"null"
-						],
-						"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous",
-						"properties": {
-							"text": {
-								"type": "string"
+						"anyOf": [
+							{
+								"type": [
+									"object",
+									"null"
+								],
+								"properties": {
+									"text": {
+										"type": "string"
+									},
+									"regex": {
+										"type": "boolean"
+									},
+									"wholeWord": {
+										"type": "boolean"
+									},
+									"caseSensitive": {
+										"type": "boolean"
+									},
+									"inSelection": {
+										"type": "boolean"
+									},
+									"replace": {
+										"type": "string"
+									},
+									"step": {
+										"enum": [
+											"first",
+											"next",
+											"previous",
+											"replace",
+											"replaceAll"
+										]
+									},
+									"request": {
+										"type": "number"
+									}
+								}
 							},
-							"regex": {
-								"type": "boolean"
-							},
-							"wholeWord": {
-								"type": "boolean"
-							},
-							"caseSensitive": {
-								"type": "boolean"
-							},
-							"inSelection": {
-								"type": "boolean"
-							},
-							"replace": {
-								"type": "string"
-							},
-							"step": {
-								"enum": [
-									"first",
-									"next",
-									"previous",
-									"replace",
-									"replaceAll"
-								]
-							},
-							"request": {
-								"type": "number"
+							{
+								"$ref": "#/$defs/v2/dynamic"
 							}
-						}
+						],
+						"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous"
 					},
 					"brackets": {
 						"$ref": "#/$defs/v2/flag"
 					},
 					"indentGuides": {
 						"$ref": "#/$defs/v2/flag"
+					},
+					"rulers": {
+						"anyOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "number",
+									"minimum": 0
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
 					},
 					"minimap": {
 						"$ref": "#/$defs/v2/flag"
@@ -2579,9 +2600,6 @@
 						]
 					},
 					"snap": {
-						"$ref": "#/$defs/v2/flag"
-					},
-					"rulers": {
 						"$ref": "#/$defs/v2/flag"
 					},
 					"nodes": {

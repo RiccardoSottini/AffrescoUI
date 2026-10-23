@@ -131,6 +131,13 @@ void TextEditor::paint(Painter& painter) const {
 		const float top = lineTop(layout, caretRow);
 		painter.fillRect({box.left, top, box.right, top + lh}, lineColor_);
 	}
+	// Rulers, the whole height of the text, under it
+	const float space = f->glyph(U' ').advance;
+	for(const std::size_t column : rulers_) {
+		const float x = std::round(layout.textLeft + static_cast<float>(column) * space);
+		if(x >= box.left + layout.gutter && x < box.right)
+			painter.fillRect({x, box.top, x + 1.0f, box.bottom}, guideColor_);
+	}
 	paintUnder(painter, *f, layout);
 
 	// Each line's colouring state is kept, so the lines are coloured from the last one known (folded lines whose state

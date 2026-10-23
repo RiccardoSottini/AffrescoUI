@@ -141,6 +141,16 @@ TEST_CASE("editor view: folds a document offers again don't undo the user's fold
 	CHECK(test.editor.folds().size() == 1);
 }
 
+TEST_CASE("editor view: rulers are kept to maxRulers and drawn without changing the text") {
+	ViewWindow test("a line of text");
+	test.editor.setRulers(std::vector<std::size_t>(TextEditor::maxRulers + 4, 4));
+	CHECK(test.editor.rulers().size() == TextEditor::maxRulers);
+	test.editor.setRulers({4, 1'000'000});
+	test.window->render(); // a ruler past the right edge isn't drawn
+	CHECK(test.editor.rulers() == std::vector<std::size_t>{4, 1'000'000});
+	CHECK(test.editor.text() == "a line of text");
+}
+
 TEST_CASE("editor view: decorations are clamped, capped per line and move with the text") {
 	ViewWindow test("one\ntwo\nthree");
 	std::vector<EditorDecoration> given(20, {.line = 1, .endLine = 1, .color = {}, .text = {}});

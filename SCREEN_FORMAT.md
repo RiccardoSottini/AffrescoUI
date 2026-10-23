@@ -256,6 +256,7 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 | `find` | `{ "text", "regex", "wholeWord", "caseSensitive" }` or `null` (none): highlights the matches of `text` (plain, or a PCRE2 pattern with `regex`, matched line by line within match and depth limits); Cmd+G and Cmd+Shift+G select the next and previous. A pattern that doesn't compile highlights nothing. `inSelection` limits it to the selection as it is when turned on. A find bar asks for a step with `step` (`first` from the selection's start, `next`, `previous`, `replace` or `replaceAll`, with `replace` as the replacement) and a `request` number from 1, run once per new number. While a pattern is set, `caret` also gets `matches`, the count. |
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
 | `readOnly` | `true`: the user can select, find and fold, but not edit. |

@@ -14,14 +14,14 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Look | Status bar: line and column, indentation, syntax | done | |
 | Look | Gutter with line numbers and fold markers | partial | no fold markers shown |
 | Look | Indent guides, bracket matching | done | |
-| Look | Rulers | missing | |
+| Look | Rulers | done | one at column 80 |
 | Navigation | Goto Anything (Cmd+P) by file name | done | |
 | Navigation | Goto Anything with `@` symbol, `:` line, `#` search | partial | the prefix starts the query; no file name before it |
 | Navigation | Command Palette (Cmd+Shift+P) | done | |
 | Navigation | Goto Symbol in Project | missing | |
 | Navigation | Next and previous tab | done | |
 | Editing | Multiple selections | done | |
-| Editing | Find panel (Cmd+F), replace | missing | |
+| Editing | Find panel (Cmd+F), replace | done | regex, case, whole word and in-selection toggles |
 | Editing | Find in Files | missing | |
 | Editing | Layouts and split editing | missing | |
 | Editing | Distraction Free mode | missing | |
@@ -33,11 +33,11 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Text | Toggle comment | done | line comments only |
 | Text | Line operations (duplicate, move, delete) | done | also join, sort, reverse, unique, transpose |
 | Text | Case conversion | done | |
-| Text | Word wrap toggle | missing | |
+| Text | Word wrap toggle | done | |
 | Text | Hot exit | missing | |
 | Settings | Settings as JSON | missing | |
 | Settings | Key bindings as JSON | missing | |
 | Settings | Theme selector with live preview | missing | |
 | Extra | Problems list (from the sample build) | done | not in the reference; kept for the scenarios |
 
-Counts: 17 done, 4 partial, 12 missing.
+Counts: 20 done, 4 partial, 9 missing.

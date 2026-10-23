@@ -104,6 +104,13 @@ void TextEditor::setIndentGuides(bool shown) {
 	invalidatePaint();
 }
 
+void TextEditor::setRulers(std::vector<std::size_t> columns) {
+	if(columns.size() > maxRulers) columns.resize(maxRulers);
+	if(columns == rulers_) return;
+	rulers_ = std::move(columns);
+	invalidatePaint();
+}
+
 std::size_t TextEditor::rowCount() const noexcept { return rows_ ? rows_->total() : lines_.size(); }
 
 /* Folds */
