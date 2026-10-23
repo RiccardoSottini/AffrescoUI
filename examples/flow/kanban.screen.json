@@ -169,6 +169,7 @@
 		"toastUndo": false,
 		"quickPick": { "open": false, "query": "" },
 		"propPick": { "open": false, "query": "" },
+		"collapsedGroups": [],
 		"propKind": "status",
 		"members": [
 			{ "who": "RS", "name": "Remy Shaw", "color": "#4f46e5" },

@@ -40,6 +40,20 @@
 			]
 		},
 		{
+			"name": "list-group-collapses",
+			"note": "a list group's chevron hides and shows its rows",
+			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#viewList" },
+				{ "key": "escape" },
+				{ "click": "#listCollapse", "nth": 0 },
+				{ "expect": { "node": "#rowRef", "text": "FLO-5" } },
+				{ "click": "#listCollapse", "nth": 0 },
+				{ "expect": { "node": "#rowRef", "text": "FLO-1" } }
+			]
+		},
+		{
 			"name": "display-grouping",
 			"note": "Display's Grouping groups the board by status or by assignee (swimlanes)",
 			"steps": [

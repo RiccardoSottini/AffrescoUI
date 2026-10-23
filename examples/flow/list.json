@@ -17,7 +17,7 @@
 						"id": "listGroup",
 						"repeat": { "for": "column", "in": "state.columns", "index": "c" },
 						"anchors": { "left": 0, "right": 0 },
-						"height": "{{36 + 36 * count(column.cards, contains(computed.visibleRefs, it.ref))}}",
+						"height": "{{36 + (contains(state.collapsedGroups, c) ? 0 : 36 * count(column.cards, contains(computed.visibleRefs, it.ref)))}}",
 						"color": "transparent",
 						"role": "group",
 						"label": "{{column.name}}",
@@ -29,9 +29,13 @@
 								"height": 36,
 								"color": "@color.column",
 								"children": [
+									{ "id": "listCollapse", "type": "label", "icon": "{{contains(state.collapsedGroups, c) ? 'chevron-right' : 'chevron-down'}}", "text": "", "textColor": "@color.muted",
+										"width": 22, "height": 22, "radius": "@radius.chip", "align": "center", "anchors": { "left": 8, "top": 7 }, "hover": { "color": "@color.chipHover" }, "cursor": "hand",
+										"focusable": true, "role": "button", "label": "{{t('list.collapse', { name: column.name })}}",
+										"onClick": { "set": "state.collapsedGroups", "to": "{{contains(state.collapsedGroups, c) ? filter(state.collapsedGroups, it != c) : concat(state.collapsedGroups, [c])}}" } },
 									{ "id": "listStatus", "type": "label", "icon": "{{state.statusIcons[c] ?? 'circle'}}", "text": "", "textColor": "{{column.color}}", "fitText": true,
-										"anchors": { "left": 20, "top": 0, "bottom": 0 }, "align": "center" },
-									{ "id": "listTitle", "type": "row", "gap": 10, "alignItems": "center", "anchors": { "left": 44, "right": 52, "top": 0, "bottom": 0 }, "children": [
+										"anchors": { "left": 36, "top": 0, "bottom": 0 }, "align": "center" },
+									{ "id": "listTitle", "type": "row", "gap": 10, "alignItems": "center", "anchors": { "left": 60, "right": 52, "top": 0, "bottom": 0 }, "children": [
 										{ "id": "listName", "type": "label", "font": "small", "text": "{{column.name}}", "textColor": "@color.text", "fitText": true, "height": 36,
 											"align": { "horizontal": "start", "vertical": "center" } },
 										{ "id": "listCount", "style": "caption", "text": "{{length(column.cards)}}", "textColor": "{{computed.over[c] ? '@bug' : '@color.muted'}}", "fitText": true, "height": 36,
@@ -44,6 +48,7 @@
 							},
 							{
 								"id": "listRows",
+								"when": "{{!contains(state.collapsedGroups, c)}}",
 								"type": "column",
 								"anchors": { "left": 0, "right": 0, "top": 36, "bottom": 0 },
 								"children": [
