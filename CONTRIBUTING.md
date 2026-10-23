@@ -52,7 +52,7 @@ Then try it:
 ```sh
 ./build/affrescoui_host                                     # the Kanban template
 AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_host       # renders its first frame to out.ppm
-./build/affrescoui_studio                                   # the Studio client
+./build/affrescoui_host examples/studio/studio.screen.json --client # the Studio client
 ```
 
 The library is tested on macOS and Linux. Windows is not supported yet: the socket and process channels are POSIX.
@@ -65,7 +65,7 @@ don't meet anything else running on your machine:
 ```sh
 export AFFRESCOUI_SOCKET_DIR=out/s                 # also covers the relative channel paths inside screens
 ./build/affrescoui_host --socket out/s &
-./build/affrescoui_studio --socket out/s &
+./build/affrescoui_host examples/studio/studio.screen.json --client --socket out/s &
 claude mcp add affrescoui -- python3 mcp/affrescoui_mcp.py --socket out/s
 ```
 

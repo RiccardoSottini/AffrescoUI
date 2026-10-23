@@ -27,8 +27,7 @@ target_include_directories(affrescoui_unit_tests PRIVATE $<TARGET_PROPERTY:affre
 	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src
 	${PROJECT_SOURCE_DIR}/modules/automation/src ${PROJECT_SOURCE_DIR}/modules/net/src
 	${PROJECT_SOURCE_DIR}/modules/services/src ${affrescoui_forge_dir}
-	${PROJECT_SOURCE_DIR}/examples/shared # Templates.hpp
-	${PROJECT_SOURCE_DIR}/examples/studio) # EvidencePicture.hpp
+	${PROJECT_SOURCE_DIR}/examples/shared) # Templates.hpp
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/shared/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")

@@ -171,24 +171,18 @@ list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/terminal/TerminalSe
 list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/lsp/Lsp.cpp examples/forge/features/lsp/LspCall.cpp
 	examples/forge/features/lsp/LspEdits.cpp examples/forge/features/lsp/LspProtocol.cpp examples/forge/features/lsp/LspText.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)
-	# affrescoui_host renders a screen and accepts peers; affrescoui_studio is a client for it (itself an AffrescoUI screen)
-	foreach(example host studio)
-		add_executable(affrescoui_${example} examples/${example}/${example}.cpp)
-		target_include_directories(affrescoui_${example} PRIVATE examples/shared)
-		if(example STREQUAL "host")
-			target_sources(affrescoui_host PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
-			target_sources(affrescoui_host PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
-			target_include_directories(affrescoui_host PRIVATE examples)
-			target_include_directories(affrescoui_host SYSTEM PRIVATE external/glad/include)
-			# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice
-			# makes the linker warn about a duplicate library)
-			target_link_libraries(affrescoui_host PRIVATE affrescoui::automation)
-		else()
-			target_link_libraries(affrescoui_${example} PRIVATE affrescoui)
-		endif()
-		target_compile_options(affrescoui_${example} PRIVATE ${AFFRESCOUI_WARNINGS})
-		target_compile_definitions(affrescoui_${example} PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
-	endforeach()
+	# affrescoui_host renders a screen and accepts peers; with --client it runs a client of another host's screen,
+	# e.g. the Studio (examples/studio/studio.screen.json)
+	add_executable(affrescoui_host examples/host/host.cpp
+		examples/shared/CodeEditor.cpp # the Forge template's "code" type
+		examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
+	target_include_directories(affrescoui_host PRIVATE examples/shared examples)
+	target_include_directories(affrescoui_host SYSTEM PRIVATE external/glad/include)
+	# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice makes the
+	# linker warn about a duplicate library)
+	target_link_libraries(affrescoui_host PRIVATE affrescoui::automation)
+	target_compile_options(affrescoui_host PRIVATE ${AFFRESCOUI_WARNINGS})
+	target_compile_definitions(affrescoui_host PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/shared/CodeEditor.cpp)
 	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge)

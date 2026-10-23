@@ -23,12 +23,12 @@ fi
 # Without warnings as errors: the desktop builds hold the library to them, and a few of its files warn on wasm32 (a
 # 32-bit long) or with emsdk's newer clang, which is theirs to fix (web/README.md)
 emcmake cmake -S "$root" -B "$build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
-cmake --build "$build" --target affrescoui_host affrescoui_studio affrescoui_cli
+cmake --build "$build" --target affrescoui_host affrescoui_cli
 
 rm -rf "$site"
 mkdir -p "$site"
 cp "$root/web/index.html" "$root/web/studio.html" "$root/web/site.css" "$root/web/site.js" "$site/"
-for program in affrescoui_host affrescoui_studio; do
+for program in affrescoui_host; do
 	cp "$build/$program.js" "$build/$program.wasm" "$build/$program.data" "$site/"
 done
 
@@ -49,7 +49,7 @@ awk -v links="$links" '/<!-- templates -->/ { while ((getline line < links) > 0)
 rm "$links"
 
 echo "Site: $site"
-for program in affrescoui_host affrescoui_studio; do
+for program in affrescoui_host; do
 	echo "$program.wasm: $(wc -c <"$site/$program.wasm" | tr -d ' ') bytes, $(gzip -9 -c "$site/$program.wasm" | wc -c | tr -d ' ') gzipped"
 done
 echo "assets (each program's .data): $(wc -c <"$site/affrescoui_host.data" | tr -d ' ') bytes, $(gzip -9 -c "$site/affrescoui_host.data" | wc -c | tr -d ' ') gzipped"

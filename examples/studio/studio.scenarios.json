@@ -1126,28 +1126,28 @@
 				{
 					"expect": {
 						"node": "#label-entry-text",
-						"nth": 3,
+						"nth": 2,
 						"text": "Proposal #3 merged"
 					}
 				},
 				{
 					"expect": {
 						"node": "#label-entry-text",
-						"nth": 4,
+						"nth": 3,
 						"text": "Proposal #4 rejected: it conflicts with main"
 					}
 				},
 				{
 					"expect": {
 						"node": "#label-entry-text",
-						"nth": 5,
+						"nth": 4,
 						"text": "Rejected: not allowed"
 					}
 				},
 				{
 					"expect": {
 						"node": "#label-entry-text",
-						"nth": 6,
+						"nth": 5,
 						"text": "Revision 5 (f00ba47) by claude: Add a Blocked column"
 					}
 				}
@@ -1641,7 +1641,7 @@
 				{
 					"expect": {
 						"node": "#label-entry-text",
-						"nth": 1,
+						"nth": 0,
 						"text": "You: add a Blocked column"
 					}
 				}
@@ -1751,7 +1751,7 @@
 				{
 					"expect": {
 						"node": "#label-entry-text",
-						"nth": 3,
+						"nth": 2,
 						"text": "The host closed the connection"
 					}
 				}
@@ -1967,7 +1967,7 @@
 						"canReview": true
 					}
 				},
-				{"action": "prTab", "event": {"value": "checks"}},
+				{ "action": "prTab", "event": { "value": "checks" } },
 				{
 					"expect": {
 						"node": "#label-evidence",
@@ -2772,7 +2772,7 @@
 				{
 					"expect": {
 						"state": "log.length",
-						"is": 3
+						"is": 2
 					}
 				},
 				{
@@ -2781,7 +2781,7 @@
 				{
 					"expect": {
 						"state": "log.length",
-						"is": 3
+						"is": 2
 					}
 				},
 				{
@@ -2849,13 +2849,13 @@
 				{
 					"expect": {
 						"state": "log.length",
-						"is": 4
+						"is": 3
 					}
 				},
 				{
 					"expect": {
 						"node": "#label-entry-text",
-						"nth": 3,
+						"nth": 2,
 						"text": "Not accepted: proposal #3 is your own change, and nobody approves their own change"
 					}
 				}
@@ -2930,7 +2930,7 @@
 				{
 					"expect": {
 						"state": "log.length",
-						"is": 3
+						"is": 2
 					}
 				}
 			]
@@ -3118,16 +3118,18 @@
 				{
 					"expect": {
 						"state": "log.length",
-						"is": 3
+						"is": 2
 					}
 				},
+				{ "action": "clearActivity", "note": "a send while offline adds one error line" },
+				{ "expect": { "state": "log.length", "is": 0 } },
 				{
 					"key": "mod+shift+enter"
 				},
 				{
 					"expect": {
 						"state": "log.length",
-						"is": 4
+						"is": 1
 					}
 				}
 			]
@@ -3198,7 +3200,7 @@
 				{
 					"expect": {
 						"state": "log.length",
-						"is": 3
+						"is": 2
 					}
 				}
 			]
@@ -3273,7 +3275,7 @@
 				{
 					"expect": {
 						"state": "log.length",
-						"is": 4
+						"is": 3
 					}
 				}
 			]
@@ -3824,47 +3826,14 @@
 					}
 				},
 				{
-					"expect": {
-						"state": "connState",
-						"is": "switching"
-					}
+					"expect": { "state": "connState", "is": "failed" },
+					"note": "no token for this address: it fails at once"
 				},
-				{
-					"expect": {
-						"node": "#connRowState",
-						"nth": 1,
-						"text": "Connecting"
-					}
-				},
+				{ "expect": { "node": "#connRowState", "nth": 1, "text": "Failed" } },
 				{
 					"expect": {
 						"node": "#status",
-						"text": "Connecting to Staging..."
-					}
-				},
-				{
-					"action": "host:closed",
-					"event": {
-						"message": "No answer"
-					}
-				},
-				{
-					"expect": {
-						"state": "connState",
-						"is": "failed"
-					}
-				},
-				{
-					"expect": {
-						"node": "#connRowState",
-						"nth": 1,
-						"text": "Failed"
-					}
-				},
-				{
-					"expect": {
-						"node": "#status",
-						"text": "Could not connect to Staging: No answer"
+						"text": "Could not connect to Staging: Can't connect to ws://localhost:7300: it takes a wss:// address (ws:// on the loopback) and a token from the host"
 					}
 				}
 			]
@@ -4676,13 +4645,15 @@
 						"exists": true
 					}
 				},
+				{ "action": "clearActivity", "note": "a send while offline adds one error line" },
+				{ "expect": { "state": "log.length", "is": 0 } },
 				{
 					"click": "#inspBlame"
 				},
 				{
 					"expect": {
 						"state": "log.length",
-						"is": 4
+						"is": 1
 					}
 				},
 				{
@@ -4968,13 +4939,15 @@
 						"exists": true
 					}
 				},
+				{ "action": "clearActivity", "note": "a send while offline adds one error line" },
+				{ "expect": { "state": "log.length", "is": 0 } },
 				{
 					"click": "#repairRetry"
 				},
 				{
 					"expect": {
 						"state": "log.length",
-						"is": 5
+						"is": 1
 					}
 				},
 				{
@@ -5272,7 +5245,7 @@
 				{
 					"expect": {
 						"node": "#label-entry-text",
-						"nth": 1,
+						"nth": 0,
 						"text": "You: add a Blocked column"
 					}
 				}
@@ -5314,12 +5287,8 @@
 								"short": "e4f5a6b",
 								"commits": 1,
 								"operations": 3,
-								"touches": [
-									"/root/children/1"
-								],
-								"remember": [
-									"add columns"
-								],
+								"touches": ["/root/children/1"],
+								"remember": ["add columns"],
 								"changes": [
 									"add #column-blocked",
 									"set #column-blocked/title \"Blocked\"",
@@ -5338,13 +5307,9 @@
 								"short": "c7d8e9f",
 								"commits": 2,
 								"operations": 1,
-								"touches": [
-									"/theme"
-								],
+								"touches": ["/theme"],
 								"remember": [],
-								"changes": [
-									"set /theme \"dark\""
-								],
+								"changes": ["set /theme \"dark\""],
 								"reason": "asks",
 								"time": 1760000100
 							}
@@ -5427,10 +5392,7 @@
 					}
 				},
 				{
-					"click": [
-						190,
-						183
-					],
+					"click": [190, 183],
 					"note": "the second row"
 				},
 				{

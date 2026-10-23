@@ -7,7 +7,7 @@
 "use strict";
 
 /** The programs a page may start, and the screens and folders the host may show (the site preloads them in /assets). */
-const affrescoPrograms = new Set(["affrescoui_host", "affrescoui_studio"]);
+const affrescoPrograms = new Set(["affrescoui_host"]);
 const affrescoScreenName = /^[a-z][a-z0-9-]{0,63}$/;
 
 /**
@@ -47,8 +47,9 @@ function affrescoStart() {
 }
 
 /**
- * @brief Sends the Studio page's connect form to the Studio: the address, and the token, which leaves the page only
- * as the connection's first message (never in a URL, the page's storage or a log), and is cleared from the form.
+ * @brief Sends the Studio page's connect form to the screen's "host" channel (the host's affresco_connect): the
+ * address, and the token, which leaves the page only as the connection's first message (never in a URL, the page's
+ * storage or a log), and is cleared from the form.
  * @param event The form's submit event.
  */
 function affrescoConnect(event) {
@@ -57,7 +58,7 @@ function affrescoConnect(event) {
 	const token = document.getElementById("token");
 	const connected =
 		window.Module && typeof window.Module.ccall === "function"
-			? window.Module.ccall("affresco_studio_connect", "number", ["string", "string"], [address.value, token.value])
+			? window.Module.ccall("affresco_connect", "number", ["string", "string", "string"], ["host", address.value, token.value])
 			: 0;
 	token.value = "";
 	affrescoStatus(

@@ -1215,27 +1215,7 @@
 		"host:evidence": [
 			{
 				"set": "state.evidence",
-				"to": "{{merge({proposal: event.proposal, scale: event.scale}, {region: event.evidence.region, behaviour: event.evidence.behaviour, scenarios: event.evidence.scenarios, texts: event.evidence.texts ?? []})}}"
-			},
-			{
-				"call": "showEvidence",
-				"with": {
-					"before": "{{event.evidence.before}}",
-					"after": "{{event.evidence.after}}",
-					"region": "{{event.evidence.region}}"
-				},
-				"onError": [
-					{
-						"set": "state.statusKey",
-						"to": "status.evidence"
-					},
-					{
-						"set": "state.statusParams",
-						"to": {
-							"error": "{{error}}"
-						}
-					}
-				]
+				"to": "{{merge({proposal: event.proposal, scale: event.scale}, {region: event.evidence.region, behaviour: event.evidence.behaviour, scenarios: event.evidence.scenarios, texts: event.evidence.texts ?? [], before: event.evidence.before.data, after: event.evidence.after.data})}}"
 			}
 		],
 		"gatherEvidence": [
@@ -1694,39 +1674,9 @@
 				}
 			},
 			{
-				"call": "connectTo",
-				"with": {
-					"address": "{{find(state.connections, it.id == id).address}}",
-					"token": "{{find(state.tokens, it.id == id).token ?? ''}}"
-				},
-				"onError": [
-					{
-						"set": "state.connState",
-						"to": "failed"
-					},
-					{
-						"set": "state.statusKey",
-						"to": "status.failed"
-					},
-					{
-						"set": "state.statusParams",
-						"to": {
-							"name": "{{(empty(find(state.connections, it.id == id).name) ? t('conn.local') : find(state.connections, it.id == id).name)}}",
-							"error": "{{error}}"
-						}
-					},
-					{
-						"run": "logLine",
-						"with": {
-							"kind": "error",
-							"key": "log.connFailed",
-							"params": {
-								"name": "{{(empty(find(state.connections, it.id == id).name) ? t('conn.local') : find(state.connections, it.id == id).name)}}",
-								"error": "{{error}}"
-							}
-						}
-					}
-				]
+				"connect": "host",
+				"to": "{{find(state.connections, it.id == id).address}}",
+				"token": "{{find(state.tokens, it.id == id).token ?? ''}}"
 			}
 		],
 		"openChild": [
@@ -3555,7 +3505,7 @@
 																	{
 																		"id": "image-evidence-before",
 																		"type": "image",
-																		"source": "evidenceBefore",
+																		"source": "{{computed.evidence == null ? '' : 'data:image/png;base64,' + computed.evidence.before}}",
 																		"fit": "contain",
 																		"anchors": {
 																			"left": 6,
@@ -3563,12 +3513,13 @@
 																			"top": 24,
 																			"bottom": 6
 																		},
-																		"label": "{{t('review.before')}}"
+																		"label": "{{t('review.before')}}",
+																		"highlight": "{{computed.evidence.region}}"
 																	},
 																	{
 																		"id": "image-evidence-after",
 																		"type": "image",
-																		"source": "evidenceAfter",
+																		"source": "{{computed.evidence == null ? '' : 'data:image/png;base64,' + computed.evidence.after}}",
 																		"fit": "contain",
 																		"anchors": {
 																			"left": "50%",
@@ -3576,7 +3527,8 @@
 																			"top": 24,
 																			"bottom": 6
 																		},
-																		"label": "{{t('review.after', {changed: computed.evidence.region[2] == 0 ? 'no' : 'yes', w: computed.evidence.region[2], h: computed.evidence.region[3], x: computed.evidence.region[0], y: computed.evidence.region[1]})}}"
+																		"label": "{{t('review.after', {changed: computed.evidence.region[2] == 0 ? 'no' : 'yes', w: computed.evidence.region[2], h: computed.evidence.region[3], x: computed.evidence.region[0], y: computed.evidence.region[1]})}}",
+																		"highlight": "{{computed.evidence.region}}"
 																	},
 																	{
 																		"id": "label-evidence-before",

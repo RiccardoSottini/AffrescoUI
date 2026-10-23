@@ -2,7 +2,7 @@
 """Packs a build's programs into the archive a release offers for one platform:
 
     affrescoui-<version>-<platform>/
-        affrescoui, affrescoui_host, affrescoui_studio     (.exe on Windows)
+        affrescoui, affrescoui_host                        (.exe on Windows)
         assets/<folder>/, assets/shared/                   the templates' folders (examples/templates.json) and their
                                                            fonts, as in examples/ without the C++ sources (the
                                                            programs look here when the source tree they were built
@@ -26,12 +26,13 @@ import tempfile
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-PROGRAMS = ("affrescoui", "affrescoui_host", "affrescoui_studio")
+PROGRAMS = ("affrescoui", "affrescoui_host")
 NOTICES = ("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md")
 README = """AffrescoUI {version} for {platform}
 
   ./affrescoui_host                 the Kanban template (assets/flow); the other templates have a folder each in assets
-  ./affrescoui_studio               the Studio: ask an agent for changes, review them
+  ./affrescoui_host assets/studio/studio.screen.json --client
+                                    the Studio: ask an agent for changes, review them
   ./affrescoui help                 the command-line tool: check, render, fmt, ids, run, export, import
 
 The MCP server for AI agents is in this release (the .whl file): pipx install ./affrescoui_mcp-<version>-py3-none-any.whl, then

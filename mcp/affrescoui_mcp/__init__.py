@@ -1,6 +1,6 @@
 """AffrescoUI MCP server: connects an AI agent to a running AffrescoUI host, in both directions.
 
-    requests   affrescoui_studio ──"request"──▶ affrescoui_host ──agent.sock──▶ this server ──channel event──▶ AI agent
+    requests   the Studio ─────────"request"──▶ affrescoui_host ──agent.sock──▶ this server ──channel event──▶ AI agent
                                                                                     (or wait_for_request)
     changes    AI agent ──tools (submit_revision, reply, ...)──▶ this server ──agent.sock──▶ affrescoui_host ──▶ screen
 

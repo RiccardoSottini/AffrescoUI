@@ -32,13 +32,19 @@ class Affrescoui < Formula
     system "cmake", "-S", ".", "-B", "build", "-G", "Ninja", "-DAFFRESCOUI_BUILD_TESTS=OFF", *std_cmake_args
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
-    # The host and the Studio find their templates and fonts in "assets" next to themselves, as in a release archive
-    libexec.install "build/affrescoui_host", "build/affrescoui_studio"
+    # The host finds its templates and fonts in "assets" next to itself, as in a release archive
+    libexec.install "build/affrescoui_host"
     # (the templates' folders, examples/templates.json, and examples/shared, without the C++ sources)
     folders = JSON.parse(File.read("examples/templates.json"))["templates"].values.uniq
     (libexec/"assets").install "examples/shared", *folders.map { |folder| "examples/#{folder}" }
     rm Dir[libexec/"assets/**/*.{cpp,hpp}"]
-    bin.write_exec_script libexec/"affrescoui_host", libexec/"affrescoui_studio"
+    bin.write_exec_script libexec/"affrescoui_host"
+    # The Studio is a document the host runs as a client of other hosts
+    (bin/"affrescoui_studio").write <<~SH
+      #!/bin/sh
+      exec "#{libexec}/affrescoui_host" "#{libexec}/assets/studio/studio.screen.json" --client "$@"
+    SH
+    chmod 0755, bin/"affrescoui_studio"
   end
 
   test do

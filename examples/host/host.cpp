@@ -2,11 +2,11 @@
 /// @brief affrescoui_host: shows a screen file and lets other programs change it while it runs.
 //
 //   affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
-//               [--plugin changes.json ...] [--usage]
+//               [--plugin changes.json ...] [--usage] [--client]
 //
 // The window only renders: it has no idea where changes come from. Programs connect over two local sockets in DIR
 // (default $AFFRESCOUI_SOCKET_DIR, else /tmp/affrescoui-<uid>, or %LOCALAPPDATA%\affrescoui\sockets on Windows):
-//   studio.sock   the user's client (affrescoui_studio): author "studio", which the template lets review changes
+//   studio.sock   the user's client (the Studio, below): author "studio", which the template lets review changes
 //   agent.sock    an AI agent's MCP server (mcp/affrescoui_mcp.py): author "agent", whose changes wait for review
 // What each author may do is up to the screen's "permissions"; --auto-accept is --mode acceptEdits, for this run only.
 // The screen's history and "persist" state are kept in --data DIR (default $AFFRESCOUI_DATA_DIR, else ~/.affrescoui),
@@ -14,6 +14,8 @@
 // --usage counts how the screen is used (VERSION_CONTROL.md, "Usage"), on this device and only once the person agreed,
 // asked once on the terminal. Default screen:
 // the Kanban board template (examples/flow); the other templates have a folder each in examples (examples/README.md).
+// --client runs a screen that is a client of other hosts instead, listening on nothing: its channels connect in DIR,
+// e.g. the Studio, `affrescoui_host examples/studio/studio.screen.json --client`.
 
 #include "Assets.hpp"
 #include "CodeEditor.hpp"
@@ -38,6 +40,10 @@
 #include <io.h>
 #else
 #include <unistd.h>
+#endif
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
 #endif
 
 namespace {
@@ -137,6 +143,7 @@ struct Options {
 	std::optional<affresco::Mode> mode;
 	std::vector<std::string> plugins; ///< The change sets to apply, in order.
 	bool usage = false;               ///< Count usage summaries, with the person's consent (off by default).
+	bool client = false;              ///< Listen on nothing: the screen's channels connect to other hosts in socketDir.
 };
 
 /// @brief Reads one argument of the command line.
@@ -151,6 +158,10 @@ int readArgument(Options& options, std::string_view arg, const char* value) {
 	}
 	if(arg == "--usage") {
 		options.usage = true;
+		return 1;
+	}
+	if(arg == "--client") {
+		options.client = true;
 		return 1;
 	}
 	if(!arg.starts_with("--")) {
@@ -175,8 +186,9 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 	for(int i = 1; i < argc;) {
 		const int taken = readArgument(options, argv[i], i + 1 < argc ? argv[i + 1] : nullptr);
 		if(taken == 0) {
-			std::cerr << "usage: affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] "
-			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json] [--usage]\n";
+			std::cerr
+			    << "usage: affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] "
+			       "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json] [--usage] [--client]\n";
 			return std::nullopt;
 		}
 		i += taken;
@@ -204,6 +216,30 @@ void enableUsage(affresco::Screen& screen) {
 	if(!screen.usageConsented()) std::cerr << "affrescoui_host: usage summaries stay off: no consent\n";
 }
 
+#ifdef __EMSCRIPTEN__
+affresco::Screen* connectable = nullptr; ///< The screen, for the page's connect form (run() keeps it to the end).
+#endif
+
+/// @brief Listens for peers in the socket folder, or with --client checks it and lets the screen's channels connect
+/// in it.
+/// @param app The application.
+/// @param screen The screen.
+/// @param options The command line.
+void openSockets(affresco::Application& app, affresco::Screen& screen, const Options& options) {
+#ifdef __EMSCRIPTEN__ // a browser tab has no local sockets: the page's connect form gives a host's address
+	(void)app;
+	(void)options;
+	connectable = &screen;
+#else
+	if(options.client) return; // its channels were given the folder before the window opened them
+	createSocketDir(options.socketDir);
+	screen.listen(app, options.socketDir / "studio.sock", "studio");
+	screen.listen(app, options.socketDir / "agent.sock", "agent");
+	std::cerr << "affrescoui_host: listening in " << options.socketDir.string() << " (studio.sock, agent.sock)"
+	          << ", mode " << affresco::toString(screen.versions().mode()) << '\n';
+#endif
+}
+
 /// @brief Shows the screen and lets peers change it, until the window closes.
 /// @param options The command line.
 /// @return The exit status.
@@ -215,29 +251,40 @@ int run(const Options& options) {
 	using History = affresco::Screen::History;
 	affresco::Screen screen = affresco::Screen::fromFile(screenFile(options.file), options.dataDir,
 	                                                     screenshotOnly ? History::InMemory : History::OnDisk);
-	screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
-	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
+	screen.setPlaceholderTypes(true);            // custom types of other apps show as plain panels
+	examples::registerCodeEditor(screen);        // the Forge template's "code" type (application layer)
 	examples::tempo::registerVisualiser(screen); // the Tempo template's visualiser surface
 	if(options.mode) screen.setModeForThisRun(*options.mode);
 	if(options.usage && !screenshotOnly) enableUsage(screen);
 	if(!screenshotOnly) screen.setLocale(affresco::format::systemLocale()); // screenshots stay in the default locale
+#ifndef __EMSCRIPTEN__
+	if(options.client && !screenshotOnly) { // the window opens the screen's channels, in this folder
+		checkSocketDir(options.socketDir);
+		screen.setSocketDirectory(options.socketDir);
+	}
+#endif
 	screen.createWindow(app);
 	applyPlugins(screen, options.plugins);
 	checkScenariosForEvidence(screen, screenFile(options.file));
-
-#ifndef __EMSCRIPTEN__ // a browser tab has no local sockets to listen on (web/README.md)
-	if(!screenshotOnly) {
-		createSocketDir(options.socketDir);
-		screen.listen(app, options.socketDir / "studio.sock", "studio");
-		screen.listen(app, options.socketDir / "agent.sock", "agent");
-		std::cerr << "affrescoui_host: listening in " << options.socketDir.string() << " (studio.sock, agent.sock)"
-		          << ", mode " << affresco::toString(screen.versions().mode()) << '\n';
-	}
-#endif
+	if(!screenshotOnly) openSockets(app, screen, options);
 	return app.run();
 }
 
 } // namespace
+
+#ifdef __EMSCRIPTEN__
+/// @brief Connects one of the screen's channels to a host's remote-peer server, from the page's connect form (e.g.
+/// web/studio.html). The token is the server's to verify; it stays in this run's memory and is sent once, as the
+/// connection's credentials.
+/// @param channel The channel's name, e.g. "host".
+/// @param address The server's `wss://` address (`ws://` on the loopback).
+/// @param token The token.
+/// @return 1 if the screen is running and took the address (the connection reports on the channel's actions), else 0.
+extern "C" EMSCRIPTEN_KEEPALIVE int affresco_connect(const char* channel, const char* address, const char* token) {
+	if(!connectable || !channel || !address || !token) return 0;
+	return connectable->connectChannel(channel, address, token) ? 1 : 0;
+}
+#endif
 
 int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own signature
 	try {

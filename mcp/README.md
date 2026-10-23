@@ -4,10 +4,10 @@ Connects an AI agent (Claude Code, or any [Model Context Protocol](https://model
 running AffrescoUI host, **in both directions**:
 
 ```
-requests   affrescoui_studio ──"request"──▶ affrescoui_host ──agent.sock──▶ affrescoui_mcp.py ──channel event──▶ AI agent
+requests   the Studio ─────────"request"──▶ affrescoui_host ──agent.sock──▶ affrescoui_mcp.py ──channel event──▶ AI agent
                                                                                    (or wait_for_request)
 changes    AI agent ──tools──▶ affrescoui_mcp.py ──agent.sock──▶ affrescoui_host ──revision──▶ rendering engine
-                                                                       └──review, reply──▶ affrescoui_studio
+                                                                       └──review, reply──▶ the Studio
 ```
 
 - **Into the agent:** a person types a request in the AffrescoUI Studio ("add a dark theme"). The host passes it on to
@@ -29,7 +29,7 @@ Python standard library (3.9+). The socket directory is found the way the host f
    ```sh
    cmake -S . -B build && cmake --build build
    ./build/affrescoui_host &        # the Kanban board template
-   ./build/affrescoui_studio &      # the client
+   ./build/affrescoui_host examples/studio/studio.screen.json --client &  # the client
    ```
 2. Register the server with Claude Code:
    ```sh
@@ -72,7 +72,7 @@ The setup, once the host builds on Windows (work in progress) and Python can con
    cmake -S . -B build
    cmake --build build --config Release
    Start-Process .\build\Release\affrescoui_host.exe
-   Start-Process .\build\Release\affrescoui_studio.exe
+   Start-Process .\build\Release\affrescoui_host.exe "examples\studio\studio.screen.json --client"
    ```
 2. Register the server with Claude Code. Use `py` (the Python launcher) or `python`, since `python3` is often missing
    on Windows:

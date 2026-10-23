@@ -7,7 +7,7 @@ Version control and permissions: `VERSION_CONTROL.md`.
 Build & check: `cmake -S . -B build -G Ninja && cmake --build build`, then
 `AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_host` renders the first frame of the Kanban template to `out.ppm`.
 `AFFRESCOUI_SCREENSHOT_AFTER=<ms>` captures after running that long (e.g. while peers change it).
-MCP server (two-way): `mcp/affrescoui_mcp.py`. Studio client: `./build/affrescoui_studio`.
+MCP server (two-way): `mcp/affrescoui_mcp.py`. Studio client: `./build/affrescoui_host examples/studio/studio.screen.json --client`.
 After any change, `python3 tests/render/check.py` must pass: every template, scripted, pixel for pixel. Update the
 golden images (`--update`) only for an intended visual change.
 

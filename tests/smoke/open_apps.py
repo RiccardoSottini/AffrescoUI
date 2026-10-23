@@ -219,10 +219,8 @@ def ways(program):
 
 def studio_with_host(build, seconds):
     """The Studio connected to a running host, both on one socket folder; returns problems."""
-    studio, host = os.path.join(build, "affrescoui_studio"), os.path.join(build, "affrescoui_host")
-    if not os.path.exists(studio):
-        print("skipped studio: affrescoui_studio isn't built")
-        return None
+    host = os.path.join(build, "affrescoui_host")
+    studio = [host, os.path.join(ROOT, "examples", "studio", "studio.screen.json"), "--client"]
     home = tempfile.mkdtemp(prefix="open-apps-")
     socket = tempfile.mkdtemp(prefix="ao", dir="/tmp")
     environment = environment_for(home)
@@ -233,7 +231,7 @@ def studio_with_host(build, seconds):
         frame = os.path.join(home, "frame.ppm")
         studio_environment = dict(environment, AFFRESCOUI_SCREENSHOT=frame,
                                   AFFRESCOUI_SCREENSHOT_AFTER=str(seconds * 1000))
-        problems = watch([studio, "--socket", socket], ROOT, studio_environment, WINDOW, seconds)
+        problems = watch(studio + ["--socket", socket], ROOT, studio_environment, WINDOW, seconds)
         return problems or look(frame, "studio", "with a host", None)
     finally:
         running.terminate()

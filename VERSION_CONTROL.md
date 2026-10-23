@@ -408,7 +408,7 @@ only, as before, unless `Screen::setHistoryDirectory` (or `vcs::Repository::open
 is called once, before the first change, so a screen from `fromFile` keeps the folder it was given.
 
 The data folder is `~/.affrescoui` unless `AFFRESCOUI_DATA_DIR` names another (`Screen::defaultDataDirectory`), and
-`affrescoui_host` and `affrescoui_studio` take `--data DIR`. Parallel sessions should each use a folder of their
+`affrescoui_host` takes `--data DIR` (the Studio too, which it runs with `--client`). Parallel sessions should each use a folder of their
 own, as they do for sockets: one history per file name lives there, so two copies of a template that differ would
 keep moving each other's history aside. `fromFile(path, dataDirectory, Screen::History::InMemory)` keeps the
 history in memory only. The host does that for a plain screenshot run (`AFFRESCOUI_SCREENSHOT` without
