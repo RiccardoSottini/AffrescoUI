@@ -154,21 +154,25 @@ void CodeEditor::refreshPalette() {
 	auto* grammar = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
 	if(!grammar) return;
 	// The grammar's styles (a style without a token takes its parent's, e.g. "type.builtin" is "type")
-	static constexpr std::array<std::pair<std::string_view, Token>, 10> tokens = {{{"keyword", Token::Keyword},
-	                                                                               {"constant.builtin", Token::Keyword},
-	                                                                               {"type", Token::Type},
-	                                                                               {"constructor", Token::Type},
-	                                                                               {"string", Token::String},
-	                                                                               {"text.literal", Token::String},
-	                                                                               {"number", Token::Number},
-	                                                                               {"comment", Token::Comment},
-	                                                                               {"text.title", Token::Heading},
-	                                                                               {"punctuation.special", Token::Heading}}};
+	static constexpr std::array<std::pair<std::string_view, Token>, 11> tokens = {
+	    {{"keyword", Token::Keyword},
+		 {"constant.builtin", Token::Keyword},
+		 {"type", Token::Type},
+		 {"constructor", Token::Type},
+		 {"string", Token::String},
+		 {"text.literal", Token::String},
+		 {"number", Token::Number},
+		 {"comment", Token::Comment},
+		 {"text.title", Token::Heading},
+		 {"punctuation.special", Token::Heading},
+		 {"function", Token::Function}}};
 	grammar->setPalette([colors = tokenColors_](std::string_view style) -> std::optional<Color> {
 		// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer in some libraries only
 		const auto found = std::ranges::find(tokens, style, &std::pair<std::string_view, Token>::first);
 		if(found == tokens.end()) return std::nullopt;
-		return colors[static_cast<std::size_t>(found->second)];
+		const Color color = colors[static_cast<std::size_t>(found->second)];
+		if(found->second == Token::Function && color == Color{}) return std::nullopt; // unset: the text colour
+		return color;
 	});
 }
 
@@ -179,7 +183,8 @@ void CodeEditor::resetTokenColors() {
 	                Color::hex(0xe6b071),
 	                Color::hex(0xb5cea8),
 	                Color::hex(0x6f8f6b),
-	                Color::hex(0x7aa7ff)};
+	                Color::hex(0x7aa7ff),
+	                Color{}};
 	refreshPalette();
 	recolor();
 }

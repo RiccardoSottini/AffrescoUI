@@ -255,6 +255,7 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 | `decorations` | `[{ "line", "endLine", "column", "endColumn", "kind", "color", "icon", "text" }]`, lines and columns from 0: `background` tints the lines, `squiggle` underlines the columns (or the whole lines) with a wave, `gutter` draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most 10,000 and 8 on a line; inline text is cut at 256 characters. |
 | `find` | `{ "text", "regex", "wholeWord", "caseSensitive" }` or `null` (none): highlights the matches of `text` (plain, or a PCRE2 pattern with `regex`, matched line by line within match and depth limits); Cmd+G and Cmd+Shift+G select the next and previous. A pattern that doesn't compile highlights nothing. `inSelection` limits it to the selection as it is when turned on. A find bar asks for a step with `step` (`first` from the selection's start, `next`, `previous`, `replace` or `replaceAll`, with `replace` as the replacement) and a `request` number from 1, run once per new number. While a pattern is set, `caret` also gets `matches`, the count. |
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
+| `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
@@ -750,6 +751,8 @@ keep their open state where `open` says (a state path):
   `quickPick`): `open`, `query`, `index`, `top` and `recent` (the default provider's last `recentLimit` choices, shown
   first). Only the visible `rows` are built; the arrows move, Enter or a click runs the item's `run` (with its
   `with`), or else the provider's `run` with the item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
+  With `"stacked": true`, each row's `detail` goes on a second line under its title (in `detailFont`, if given):
+  give it a `rowHeight` of about 44.
 
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",

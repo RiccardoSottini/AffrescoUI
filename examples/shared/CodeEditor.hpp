@@ -31,13 +31,14 @@ class CodeEditor : public affresco::TextEditor {
 public:
 	/// @brief The kinds of text the syntax colouring tells apart (plain text uses textColor()).
 	enum class Token {
-		Plain,   ///< Anything else.
-		Keyword, ///< Language keywords, preprocessor lines, JSON literals, CMake commands.
-		Type,    ///< Type names, JSON keys, CMake variables and options.
-		String,  ///< Quoted text, Markdown code.
-		Number,  ///< Numeric literals.
-		Comment, ///< Comments.
-		Heading, ///< Markdown headings.
+		Plain,    ///< Anything else.
+		Keyword,  ///< Language keywords, preprocessor lines, JSON literals, CMake commands.
+		Type,     ///< Type names, JSON keys, CMake variables and options.
+		String,   ///< Quoted text, Markdown code.
+		Number,   ///< Numeric literals.
+		Comment,  ///< Comments.
+		Heading,  ///< Markdown headings.
+		Function, ///< Function names, with a grammar only; the text colour until setTokenColor() gives one.
 	};
 
 	/// @brief The languages it colours.
@@ -185,16 +186,16 @@ private:
 	long long goToRequest_ = 0;                  ///< The last request goToLine() carried out.
 	long long insertRequest_ = 0;                ///< The last request insertAtCaret() carried out.
 	std::function<bool(std::string_view)> popupKeys_; ///< See setPopupKeys().
-	std::array<affresco::Color, 7> tokenColors_; ///< Indexed by Token (Plain unused).
+	std::array<affresco::Color, 8> tokenColors_;      ///< Indexed by Token (Plain unused, Function unset as Color{}).
 };
 
 /// @brief Finds the text an application keeps for an id (e.g. Forge's open files), for "buffer".
 using BufferLookup = std::function<std::shared_ptr<affresco::TextModel>(std::string_view id)>;
 
 /// @brief Registers the "code" type on a screen: a CodeEditor with the properties of "editor", plus "language",
-/// "syntax" (`{ "keyword", "type", "string", "number", "comment", "heading" }`: a colour each), "goTo" (`{ "line",
-/// "column", "request" }`) and, with a lookup, "buffer": the id of a text the application keeps, which the editor then
-/// edits in place of "text" (so a large file never passes through the screen's state).
+/// "syntax" (`{ "keyword", "type", "string", "number", "comment", "heading", "function" }`: a colour each), "goTo"
+/// (`{ "line", "column", "request" }`) and, with a lookup, "buffer": the id of a text the application keeps, which the
+/// editor then edits in place of "text" (so a large file never passes through the screen's state).
 ///
 /// For features at the caret (e.g. a language server's): "onHover" names an action run when the code point under the
 /// resting mouse changes (event `{ "over", "line", "column", "x", "y", "top" }`: lines and columns from 1, x and y the

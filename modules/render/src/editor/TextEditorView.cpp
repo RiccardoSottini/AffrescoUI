@@ -98,6 +98,12 @@ void TextEditor::setBracketMatching(bool shown) {
 	invalidatePaint();
 }
 
+void TextEditor::setBracketUnderline(bool underline) {
+	if(underline == bracketUnderline_) return;
+	bracketUnderline_ = underline;
+	invalidatePaint();
+}
+
 void TextEditor::setIndentGuides(bool shown) {
 	if(shown == guides_) return;
 	guides_ = shown;

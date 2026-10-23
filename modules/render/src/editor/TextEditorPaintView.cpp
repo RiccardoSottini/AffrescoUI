@@ -85,7 +85,9 @@ void TextEditor::paintUnder(Painter& painter, const Font& /*font*/, const Layout
 		for(const Position p : {brackets->first, brackets->second})
 			forRowsOf(layout, p.line, p.line, [&](std::size_t row, RowSpan span) {
 				const auto [from, to] = spanColumns(p.column, 1, span.start, span.end);
-				if(from < to) paintColumns(painter, layout, span, row, {from, to}, bracketColor_);
+				if(from < to)
+					paintColumns(painter, layout, span, row, {from, to}, bracketColor_,
+					             bracketUnderline_ ? 2.0f : 0.0f);
 			});
 }
 

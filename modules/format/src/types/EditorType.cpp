@@ -194,8 +194,8 @@ void applyGrammar(TextEditor& editor, const json& values, const PropertyReader& 
 	});
 }
 
-/// @brief Sets an editor's view: wrap, folds, decorations, find, brackets, indentGuides, rulers, minimap, composition
-/// and readOnly.
+/// @brief Sets an editor's view: wrap, folds, decorations, find, brackets and bracketStyle, indentGuides, rulers,
+/// minimap, composition and readOnly.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours.
@@ -204,6 +204,11 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 	const auto flag = [&](const char* key) { return values.contains(key) && boolean(values[key], path + "." + key); };
 	editor.setWrap(flag("wrap"));
 	editor.setBracketMatching(flag("brackets"));
+	const std::string bracketStyle =
+	    values.contains("bracketStyle") ? string(values["bracketStyle"], path + ".bracketStyle") : "fill";
+	if(bracketStyle != "fill" && bracketStyle != "underline")
+		fail(path + ".bracketStyle", R"(expected "fill" or "underline")");
+	editor.setBracketUnderline(bracketStyle == "underline");
 	editor.setIndentGuides(flag("indentGuides"));
 	editor.setRulers(readList<std::size_t>(values, "rulers", path, lineNumber));
 	editor.setMinimap(flag("minimap"));
@@ -346,7 +351,8 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"readOnly", ValueKind::Boolean},      {"guideColor", ValueKind::Color},
 	                   {"matchColor", ValueKind::Color},      {"bracketColor", ValueKind::Color},
 	                   {"grammar", ValueKind::Text},          {"minimap", ValueKind::Boolean},
-	                   {"composition", ValueKind::Text},      {"rulers", ValueKind::Any}};
+	                   {"composition", ValueKind::Text},      {"rulers", ValueKind::Any},
+	                   {"bracketStyle", ValueKind::Text}};
 	set->apply = applyEditor;
 	set->everyUpdate = true; // colours follow the theme
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TextEditor*>(&panel) != nullptr; };

@@ -81,7 +81,8 @@ json menu(std::string_view placement, std::string_view extraParams, bool nested)
 /// @brief The quick pick: a search field over the matching items of its providers, the recently chosen first. Its
 /// state is under state[name]: open, query, index (the selected row), top (the first row shown) and recent. A
 /// provider with "filter": false gives items the document already matched to the query (a scoped search, a server's
-/// results, a "go to line" row), shown in its order with their key's text.
+/// results, a "go to line" row), shown in its order with their key's text. With "stacked", each row's detail goes on a
+/// second line under its title, in detailFont if given.
 constexpr std::string_view quickPickNode = R"({
 	"overlay": { "placement": "window", "open": "{{'state.' + name + '.open'}}", "dismiss": "outside", "modal": true },
 	"x": "{{max(0, (window.width - width) / 2)}}", "y": 48, "width": "{{width}}",
@@ -127,12 +128,21 @@ constexpr std::string_view quickPickNode = R"({
 			"onClick": [{ "set": "{{base + '.index'}}", "to": "{{top + i}}" },
 			            { "forEach": "{{[r]}}", "as": "pick", "do": [] }],
 			"children": [
-				{ "type": "row", "anchors": { "left": 14, "right": 140, "top": "{{(rowHeight - 18) / 2}}" }, "height": 18,
+				{ "type": "row", "anchors": { "left": 14, "right": "{{stacked ? 14 : 140}}",
+				  "top": "{{stacked ? rowHeight / 2 - 17 : (rowHeight - 18) / 2}}" }, "height": 18,
 				  "children": [{ "repeat": { "for": "p", "in": "{{r.parts}}" }, "type": "label", "text": "{{p.text}}",
 				                 "textColor": "{{p.match ? accent : textColor}}", "fitText": true }] },
-				{ "type": "label", "text": "{{top + i < length(recentHits) ? 'recently used' : r.item.detail ?? ''}}",
+				{ "when": "{{!stacked}}", "type": "label",
+				  "text": "{{top + i < length(recentHits) ? 'recently used' : r.item.detail ?? ''}}",
 				  "textColor": "{{dimColor}}", "anchors": { "right": 14, "top": "{{(rowHeight - 18) / 2}}" },
-				  "fitText": true }
+				  "fitText": true },
+				{ "when": "{{stacked && detailFont == null}}", "type": "label", "text": "{{r.item.detail ?? ''}}",
+				  "textColor": "{{dimColor}}", "anchors": { "left": 14, "right": 14, "top": "{{rowHeight / 2 + 1}}" },
+				  "height": 16, "align": { "horizontal": "start", "vertical": "center" } },
+				{ "when": "{{stacked && detailFont != null}}", "type": "label", "text": "{{r.item.detail ?? ''}}",
+				  "font": "{{detailFont}}", "textColor": "{{dimColor}}",
+				  "anchors": { "left": 14, "right": 14, "top": "{{rowHeight / 2 + 1}}" }, "height": 16,
+				  "align": { "horizontal": "start", "vertical": "center" } }
 			]
 		  }]
 		}
@@ -163,7 +173,7 @@ json quickPick() {
 	node["keys"]["enter"][0]["then"][0]["do"] = choose;
 	node["children"][2]["children"][0]["onClick"][1]["do"] = choose;
 	json params = json::parse(R"({"name": "quickPick", "providers": [], "rows": 10, "rowHeight": 26, "width": 600,
-		"limit": 1000, "recentLimit": 10, "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.dim",
+		"stacked": false, "detailFont": null, "limit": 1000, "recentLimit": 10, "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.dim",
 		"accent": "@kit.accent", "highlight": "@kit.selection", "field": "@kit.field"})");
 	return {{"params", std::move(params)}, {"node", std::move(node)}};
 }

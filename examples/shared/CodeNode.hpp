@@ -28,8 +28,8 @@ using Position = CodeEditor::Position;
 using syntax::utf8;
 
 /// Names of the kinds of text in "syntax", indexed by CodeEditor::Token ("plain" is the editor's "textColor").
-inline constexpr std::array<std::string_view, 7> tokenNames = {"plain",  "keyword", "type",   "string",
-                                                               "number", "comment", "heading"};
+inline constexpr std::array<std::string_view, 8> tokenNames = {"plain",  "keyword", "type",    "string",
+                                                               "number", "comment", "heading", "function"};
 
 /// @brief The "code" type's editor: a CodeEditor and the actions its properties name.
 struct ScreenCodeEditor : CodeEditor {
@@ -168,8 +168,9 @@ inline void applySyntax(const affresco::Screen& screen, ScreenCodeEditor& editor
 	for(const auto& [name, value] : properties["syntax"].items()) {
 		const auto token = static_cast<std::size_t>(std::ranges::find(tokenNames, name) - tokenNames.begin());
 		if(token == 0 || token == tokenNames.size() || !value.is_string()) // "plain" is "textColor"
-			throw std::invalid_argument("syntax." + name +
-			                            ": expected keyword, type, string, number, comment or heading, with a colour");
+			throw std::invalid_argument(
+			    "syntax." + name +
+			    ": expected keyword, type, string, number, comment, heading or function, with a colour");
 		editor.setTokenColor(static_cast<CodeEditor::Token>(token), screen.resolveColor(value.get<std::string>()));
 	}
 }

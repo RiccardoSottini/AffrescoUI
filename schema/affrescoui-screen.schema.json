@@ -1771,6 +1771,19 @@
 					"brackets": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"bracketStyle": {
+						"anyOf": [
+							{
+								"enum": [
+									"fill",
+									"underline"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"indentGuides": {
 						"$ref": "#/$defs/v2/flag"
 					},

@@ -43,6 +43,17 @@ void press(affresco::Window& window, affresco::Key key) {
 /// @return It.
 json state(const affresco::Screen& screen) { return json::parse(screen.stateJson()); }
 
+/// @brief The first label in a subtree with a text.
+/// @param panel The subtree's root.
+/// @param text The text.
+/// @return It, or nullptr.
+const affresco::Label* labelWith(const affresco::Panel& panel, const std::string& text) {
+	if(const auto* label = dynamic_cast<const affresco::Label*>(&panel); label && label->text() == text) return label;
+	for(const auto& child : panel.children())
+		if(const auto* found = labelWith(*child, text)) return found;
+	return nullptr;
+}
+
 /// @brief A screen with a quick pick over files (the default provider) and commands (after ">").
 constexpr const char* pickScreen = R"json({
 	"format": "affrescoui-screen", "version": 2,
@@ -146,4 +157,23 @@ TEST_CASE("format: a quick pick provider with filter false shows its items as gi
 	const json now = state(screen);
 	CHECK(now["ran"] == "save");
 	CHECK(now["quickPick"]["open"] == false);
+}
+
+TEST_CASE("format: a stacked quick pick shows each row's detail under its title") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	std::string text = pickScreen;
+	text.replace(text.find(R"("with": { "providers")"), 21,
+	             R"("with": { "stacked": true, "rowHeight": 44, "providers")");
+	affresco::Screen screen = affresco::Screen::fromString(text);
+	screen.build(*window);
+	window->render();
+	const affresco::Panel* root = screen.find("root");
+	REQUIRE(root);
+	const affresco::Label* title = labelWith(*root, "main.cpp");
+	const affresco::Label* detail = labelWith(*root, "src");
+	REQUIRE(title);
+	REQUIRE(detail);
+	CHECK(detail->bounds().top >= title->bounds().bottom); // below, not beside
+	CHECK(detail->bounds().left == doctest::Approx(title->bounds().left));
 }

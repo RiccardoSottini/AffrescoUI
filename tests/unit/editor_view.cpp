@@ -4,6 +4,7 @@
 
 #include "Headless.hpp"
 
+#include <affresco/affresco.hpp>
 #include <affresco/core/TextPattern.hpp>
 #include <affresco/render/Font.hpp>
 #include <affresco/render/TextEditor.hpp>
@@ -149,6 +150,32 @@ TEST_CASE("editor view: rulers are kept to maxRulers and drawn without changing 
 	test.window->render(); // a ruler past the right edge isn't drawn
 	CHECK(test.editor.rulers() == std::vector<std::size_t>{4, 1'000'000});
 	CHECK(test.editor.text() == "a line of text");
+}
+
+TEST_CASE("editor view: matching brackets are underlined when asked, from the node's bracketStyle") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	auto screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"root": { "id": "root", "children": [
+			{ "type": "editor", "id": "code", "width": 400, "height": 300, "text": "f(a)", "brackets": true,
+			  "bracketStyle": "underline" }
+		] }
+	})json");
+	screen.build(*window);
+	auto* editor = dynamic_cast<TextEditor*>(screen.find("code"));
+	REQUIRE(editor);
+	window->setFocus(editor);
+	editor->selectRange({0, 1}, {0, 1});
+	window->render(); // the brackets' bottom only
+	CHECK(editor->bracketUnderline());
+
+	std::string error;
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#code/bracketStyle": "box"}})", &error));
+	CHECK(error.find("bracketStyle") != std::string::npos);
+	REQUIRE(screen.applyRevision(R"({"set": {"#code/bracketStyle": "fill"}})", &error));
+	window->render();
+	CHECK_FALSE(editor->bracketUnderline());
 }
 
 TEST_CASE("editor view: decorations are clamped, capped per line and move with the text") {

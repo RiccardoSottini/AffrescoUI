@@ -174,6 +174,11 @@ public:
 	/// @brief Shows the matching bracket of one next to the caret.
 	/// @param shown true to show it.
 	void setBracketMatching(bool shown);
+	/// @brief Underlines the matching brackets instead of filling their background.
+	/// @param underline true to underline them (in the bracket colour, 2 pixels thick).
+	void setBracketUnderline(bool underline);
+	/// @brief Whether the matching brackets are underlined.
+	[[nodiscard]] bool bracketUnderline() const noexcept { return bracketUnderline_; }
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
@@ -706,6 +711,16 @@ private:
 	/// @param color The colour.
 	void paintColumns(Painter& painter, const Layout& layout, RowSpan span, std::size_t row,
 	                  std::pair<std::size_t, std::size_t> columns, Color color) const;
+	/// @brief Draws a range of columns of a row as paintColumns() does, only the bottom of the row.
+	/// @param painter The painter.
+	/// @param layout The frame's layout.
+	/// @param span The row.
+	/// @param row Its index.
+	/// @param columns The columns, first first; a second past the row's end adds a space's width.
+	/// @param color The colour.
+	/// @param thickness How much of the row's bottom, in pixels; 0 for all of it.
+	void paintColumns(Painter& painter, const Layout& layout, RowSpan span, std::size_t row,
+	                  std::pair<std::size_t, std::size_t> columns, Color color, float thickness) const;
 	/// @brief Draws the gutter over the text scrolled under it, the line labels, fold markers and gutter icons.
 	/// @param painter The painter.
 	/// @param font The font.
@@ -846,6 +861,7 @@ private:
 	/// @brief What visibleMatches_ was found for: the model's version, the lines and findGeneration_.
 	mutable std::array<std::uint64_t, 4> matchesKey_{};
 	bool brackets_ = false;           ///< See setBracketMatching().
+	bool bracketUnderline_ = false;   ///< See setBracketUnderline().
 	bool guides_ = false;             ///< See setIndentGuides().
 	std::vector<std::size_t> rulers_; ///< See setRulers().
 	std::u32string composition_;      ///< See setComposition().

@@ -228,6 +228,11 @@ bool TextEditor::rowSelected(RowSpan span, std::pair<Position, Position> selecti
 
 void TextEditor::paintColumns(Painter& painter, const Layout& layout, RowSpan span, std::size_t row,
                               std::pair<std::size_t, std::size_t> columns, Color color) const {
+	paintColumns(painter, layout, span, row, columns, color, 0.0f);
+}
+
+void TextEditor::paintColumns(Painter& painter, const Layout& layout, RowSpan span, std::size_t row,
+                              std::pair<std::size_t, std::size_t> columns, Color color, float thickness) const {
 	const Font* f = font();
 	if(!f) return;
 	const std::u32string& text = lines_[span.line];
@@ -240,7 +245,8 @@ void TextEditor::paintColumns(Painter& painter, const Layout& layout, RowSpan sp
 	if(carets.empty()) return;
 	const auto x = [&carets](std::size_t column) { return carets[std::min(column, carets.size() - 1)]; };
 	const float origin = wrap_ ? x(span.start) : 0.0f;
-	const float top = lineTop(layout, row), bottom = top + layout.lineHeight;
+	const float bottom = lineTop(layout, row) + layout.lineHeight;
+	const float top = thickness > 0.0f ? bottom - thickness : bottom - layout.lineHeight;
 	const auto fill = [&](float a, float b) {
 		painter.fillRect({layout.textLeft + std::min(a, b), top, layout.textLeft + std::max(a, b), bottom}, color);
 	};
