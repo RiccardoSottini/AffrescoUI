@@ -290,8 +290,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "",
-     R"(`{ "connect": "host" }`: connect a declared channel now; with `"to"` (a socket or a `ws://`/`wss://` address, )"
-     R"(an expression) and an optional `"token"`, connect it there instead (the token is kept in memory only))",
+     R"(`{ "connect": "host" }`: connect a declared channel now, or with `"to"` (a socket or `ws://` address) )"
+     R"(and `"token"` (kept in memory only) there instead)",
      "steps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},

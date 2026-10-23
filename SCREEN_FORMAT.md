@@ -1083,7 +1083,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `signOut` | `{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
-| `connect` | `{ "connect": "host" }`: connect a declared channel now; with `"to"` (a socket or a `ws://`/`wss://` address, an expression) and an optional `"token"`, connect it there instead (the token is kept in memory only) |
+| `connect` | `{ "connect": "host" }`: connect a declared channel now, or with `"to"` (a socket or `ws://` address) and `"token"` (kept in memory only) there instead |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
