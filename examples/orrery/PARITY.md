@@ -23,7 +23,7 @@ system of six bodies on circular orbits in one plane.
 | C11 | Orbits, labels and markers toggled from the keyboard and a menu | part | O and P and the View menu (menu bar and toolbar); no markers |
 | C12 | Solar system browser: the bodies as a tree | done | a `tree` from computed `bodyTree` (B, View menu); open a body to go to it |
 | C13 | Eclipse finder | missing | |
-| C14 | Bookmarks (saved camera places) | done | the browser's Places tab, a `list` of saved cameras; mod+D or the View menu adds one |
+| C14 | Bookmarks (saved camera places) | done | the browser's Places tab, a `list` of saved places (camera, time, field of view); mod+D or the View menu adds one, the bin deletes one |
 | C15 | Field of view and limiting magnitude shown, and changed | part | the field of view, bottom right, narrowed and widened with period and comma; no limiting magnitude |
 | C16 | Phase and lit side of each body | part | the selected body's phase in the info; no lit side drawn |
 | C17 | Render options dialog | missing | |
@@ -59,3 +59,4 @@ system of six bodies on circular orbits in one plane.
 | 2 | Celestia's overlays: selected body's info and phase, the date and rate, the time keys | 14 / 4 / 11 | 17,519 |
 | 3 | Go to, centre, follow; stars turn with the camera; culling behind it; clamped time; orbit and label toggles, View menu | 15 / 5 / 9 | 20,262 |
 | 4 | Solar system browser (a tree of the bodies), bookmarks, field of view | 17 / 6 / 6 | 22,685 |
+| 5 | Fixes from the round 4 critique: flights land once, moons placed round their planet, reparenting refused into a loop or past three levels, places keep the time and field of view and can be deleted, the view fits a small window | 17 / 6 / 6 | 24,401 |

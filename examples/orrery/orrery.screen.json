@@ -786,17 +786,29 @@
 					"distance": 15
 				},
 				"follow": "",
-				"selected": "earth"
+				"selected": "earth",
+				"time": 0,
+				"zoom": 1.1
 			}
 		],
-		"bookmark": "overview"
+		"bookmark": "overview",
+		"flying": "",
+		"flights": 0,
+		"landed": 0,
+		"nextPlace": 1
 	},
 	"computed": {
 		"ids": "{{map(state.bodies, it.id)}}",
 		"local": "{{map(state.bodies, merge(it, {f: it.parent == '' ? 0 : (it.phase + state.time / it.period) % 1, pi: indexOf(computed.ids, it.parent)}))}}",
 		"rel": "{{map(computed.local, merge(it, {lx: it.radius * cos(2 * pi() * it.f), lz: -it.radius * sin(2 * pi() * it.f)}))}}",
-		"positions": "{{map(computed.rel, merge(it, {x: it.lx + (it.pi >= 0 ? computed.rel[it.pi].lx : 0), z: it.lz + (it.pi >= 0 ? computed.rel[it.pi].lz : 0), cx: it.pi >= 0 ? computed.rel[it.pi].lx : 0, cz: it.pi >= 0 ? computed.rel[it.pi].lz : 0}))}}",
-		"chartItems": "{{concat(state.stars, map(filter(computed.positions, it.parent != ''), {id: 'ring-' + it.id, x: it.cx * 22 - it.radius * 22, y: it.cz * 22 - it.radius * 22, width: it.radius * 44, height: it.radius * 44, radius: it.radius * 22, color: 'transparent', borderColor: '#2f3a55', borderWidth: 1}), map(computed.positions, {id: 'body-' + it.id, x: it.x * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), y: it.z * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), width: it.parent == '' ? 18 : 8 + it.size * 20, height: it.parent == '' ? 18 : 8 + it.size * 20, radius: it.parent == '' ? 9 : 4 + it.size * 10, color: it.hex, borderColor: it.id == state.selected ? '#fbbf24' : 'transparent', borderWidth: 2}), map(filter(computed.positions, it.parent == 'sun'), {id: 'label-' + it.id, x: it.x * 22 + 9, y: it.z * 22 - 7, width: 70, height: 14, color: 'transparent', borderWidth: 0, text: it.name, textSize: 10, textColor: '#aab2c5'}), state.notes)}}",
+		"up1": "{{map(computed.local, it.pi)}}",
+		"up2": "{{map(computed.up1, it >= 0 ? computed.up1[it] : -1)}}",
+		"up3": "{{map(computed.up2, it >= 0 ? computed.up1[it] : -1)}}",
+		"depth": "{{map(computed.up1, it < 0 ? 0 : (computed.up2[index] < 0 ? 1 : (computed.up3[index] < 0 ? 2 : 3)))}}",
+		"below": "{{map(computed.up1, indexOf(computed.up3, index) >= 0 ? 3 : (indexOf(computed.up2, index) >= 0 ? 2 : (indexOf(computed.up1, index) >= 0 ? 1 : 0)))}}",
+		"positions": "{{map(computed.rel, merge(it, {cx: (it.pi >= 0 ? computed.rel[it.pi].lx : 0) + (computed.up2[index] >= 0 ? computed.rel[computed.up2[index]].lx : 0) + (computed.up3[index] >= 0 ? computed.rel[computed.up3[index]].lx : 0), cz: (it.pi >= 0 ? computed.rel[it.pi].lz : 0) + (computed.up2[index] >= 0 ? computed.rel[computed.up2[index]].lz : 0) + (computed.up3[index] >= 0 ? computed.rel[computed.up3[index]].lz : 0)}))}}",
+		"placed": "{{map(computed.positions, merge(it, {x: it.lx + it.cx, z: it.lz + it.cz}))}}",
+		"chartItems": "{{concat(state.stars, map(filter(computed.placed, it.parent != ''), {id: 'ring-' + it.id, x: it.cx * 22 - it.radius * 22, y: it.cz * 22 - it.radius * 22, width: it.radius * 44, height: it.radius * 44, radius: it.radius * 22, color: 'transparent', borderColor: '#2f3a55', borderWidth: 1}), map(computed.placed, {id: 'body-' + it.id, x: it.x * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), y: it.z * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), width: it.parent == '' ? 18 : 8 + it.size * 20, height: it.parent == '' ? 18 : 8 + it.size * 20, radius: it.parent == '' ? 9 : 4 + it.size * 10, color: it.hex, borderColor: it.id == state.selected ? '#fbbf24' : 'transparent', borderWidth: 2}), map(filter(computed.placed, it.parent == 'sun'), {id: 'label-' + it.id, x: it.x * 22 + 9, y: it.z * 22 - 7, width: 70, height: 14, color: 'transparent', borderWidth: 0, text: it.name, textSize: 10, textColor: '#aab2c5'}), state.notes)}}",
 		"catalogue": "{{map(state.bodies, {id: it.id, name: it.name, parent: it.parent, thumbnail: 'body:' + (it.look ?? it.id)})}}",
 		"graphNodes": "{{map(state.bodies, {id: it.id, title: it.name, x: it.gx ?? 400, y: it.gy ?? 20 + index * 40, width: 120, inputs: it.parent == '' ? [] : [{id: 'orbits', label: 'orbits', kind: 'orbit', links: 1}], outputs: [{id: 'satellites', label: 'satellites', kind: 'orbit'}]})}}",
 		"graphLinks": "{{map(filter(state.bodies, it.parent != ''), {from: it.parent, output: 'satellites', to: it.id, input: 'orbits'})}}",
@@ -805,17 +817,19 @@
 		"previous": "{{sort(filter(state.events, it.time < state.time - 0.5), it.time, 'desc')[0]}}",
 		"goal": "{{state.speed < 0 ? computed.previous : computed.next}}",
 		"selectedBody": "{{find(state.bodies, it.id == state.selected)}}",
-		"selectedPosition": "{{find(computed.positions, it.id == state.selected)}}",
-		"followed": "{{find(computed.positions, it.id == state.follow)}}",
-		"view": "{{ {w: max(window.width - 461, 200), h: max(window.height - 312, 160), f: state.zoom * min(max(window.width - 461, 200), max(window.height - 312, 160)), distance: state.camera.distance, cy: cos(state.camera.yaw), sy: sin(state.camera.yaw), cp: cos(state.camera.pitch), sp: sin(state.camera.pitch)} }}",
+		"selectedPosition": "{{find(computed.placed, it.id == state.selected)}}",
+		"followed": "{{find(computed.placed, it.id == state.follow)}}",
+		"flyPosition": "{{state.flying != '' ? find(computed.placed, it.id == state.flying) : null}}",
+		"pane": "{{ {w: max(window.width - 461, 200), h: max(window.height - 312, 160)} }}",
+		"view": "{{ {w: computed.pane.w, h: computed.pane.h, f: state.zoom * min(computed.pane.w, computed.pane.h), distance: state.camera.distance, cy: cos(state.camera.yaw), sy: sin(state.camera.yaw), cp: cos(state.camera.pitch), sp: sin(state.camera.pitch)} }}",
 		"stars": "{{map(range(400), {u: abs(sin(index * 12.9898) * 43758.5453) % 1 * 2 - 1, t: abs(sin(index * 78.233) * 12543.917) % 1 * 2 * pi()})}}",
 		"starVectors": "{{map(computed.stars, {x: sqrt(1 - it.u * it.u) * cos(it.t), y: it.u, z: sqrt(1 - it.u * it.u) * sin(it.t)})}}",
 		"starCamera": "{{map(computed.starVectors, {x: it.x * computed.view.cy - it.z * computed.view.sy, yy: (it.x * computed.view.sy + it.z * computed.view.cy) * computed.view.sp - it.y * computed.view.cp, dd: -((it.x * computed.view.sy + it.z * computed.view.cy) * computed.view.cp + it.y * computed.view.sp)})}}",
 		"starScreen": "{{filter(map(filter(computed.starCamera, it.dd > 0.1), {px: computed.view.w / 2 + it.x * computed.view.f / it.dd, py: computed.view.h / 2 + it.yy * computed.view.f / it.dd}), it.px > 0 && it.px < computed.view.w && it.py > 0 && it.py < computed.view.h)}}",
-		"target": "{{state.follow != '' && computed.followed ? {x: computed.followed.x, z: computed.followed.z} : {x: state.camera.tx + (computed.selectedPosition ? computed.selectedPosition.x - state.camera.tx : 0) * state.fly, z: state.camera.tz + (computed.selectedPosition ? computed.selectedPosition.z - state.camera.tz : 0) * state.fly}}}",
-		"turned": "{{map(computed.positions, merge(it, {x1: (it.x - computed.target.x) * computed.view.cy - (it.z - computed.target.z) * computed.view.sy, z1: (it.x - computed.target.x) * computed.view.sy + (it.z - computed.target.z) * computed.view.cy}))}}",
+		"target": "{{state.follow != '' && computed.followed ? {x: computed.followed.x, z: computed.followed.z} : {x: state.camera.tx + (computed.flyPosition ? computed.flyPosition.x - state.camera.tx : 0) * state.fly, z: state.camera.tz + (computed.flyPosition ? computed.flyPosition.z - state.camera.tz : 0) * state.fly}}}",
+		"turned": "{{map(computed.placed, merge(it, {x1: (it.x - computed.target.x) * computed.view.cy - (it.z - computed.target.z) * computed.view.sy, z1: (it.x - computed.target.x) * computed.view.sy + (it.z - computed.target.z) * computed.view.cy}))}}",
 		"projected": "{{sort(map(computed.turned, merge(it, {depth: computed.view.distance - it.z1 * computed.view.cp, px: computed.view.w / 2 + it.x1 * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), py: computed.view.h / 2 + it.z1 * computed.view.sp * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), r: min(max(3, it.size * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp)), computed.view.h * 0.4)})), it.depth, 'desc')}}",
-		"orbitPaths": "{{map(filter(computed.positions, it.parent != ''), {id: it.id, ox: it.cx - computed.target.x, oz: it.cz - computed.target.z, radius: it.radius})}}",
+		"orbitPaths": "{{map(filter(computed.placed, it.parent != ''), {id: it.id, ox: it.cx - computed.target.x, oz: it.cz - computed.target.z, radius: it.radius})}}",
 		"sight": "{{find(computed.projected, it.id == state.selected)}}",
 		"sun": "{{find(computed.turned, it.parent == '')}}",
 		"range": "{{computed.sight ? sqrt(computed.sight.x1 * computed.sight.x1 + computed.view.distance * computed.view.distance - 2 * computed.view.distance * computed.sight.z1 * computed.view.cp + computed.sight.z1 * computed.sight.z1) : 0}}",
@@ -824,7 +838,7 @@
 		"apparentText": "{{computed.apparent >= 1 ? fixed(computed.apparent, 2) + '°' : computed.apparent * 60 >= 1 ? fixed(computed.apparent * 60, 1) + '′' : fixed(computed.apparent * 3600, 1) + '″'}}",
 		"clock": "{{formatDate(dateMs('2030-01-01') + state.time * 86400000, 'yyyy-MM-dd HH:mm', 'utc') + ' UTC'}}",
 		"rate": "{{state.playing ? (state.speed < 0 ? 'Reversed, ' : '') + formatNumber(abs(state.speed) * 1728000, 0, 0) + 'x faster: ' + fixed(abs(state.speed) * 20, abs(state.speed) < 0.05 ? 2 : 0) + ' days a second' : 'Paused'}}",
-		"viewMenu": "{{menus.view}}",
+		"viewMenu": "{{map(menus.view, it.run == 'toggleOrbits' ? merge(it, {title: state.showOrbits ? 'Hide orbits' : 'Show orbits'}) : (it.run == 'toggleLabels' ? merge(it, {title: state.showLabels ? 'Hide labels' : 'Show labels'}) : (it.run == 'toggleBrowser' ? merge(it, {title: state.showBrowser ? 'Hide the browser' : 'Show the browser'}) : it)))}}",
 		"fov": "{{ {deg: degrees(2 * atan(min(computed.view.w, computed.view.h) / (2 * computed.view.f))), times: state.zoom / 1.1} }}",
 		"fovText": "{{'FOV: ' + floor(computed.fov.deg) + '° ' + pad(floor((computed.fov.deg - floor(computed.fov.deg)) * 60), 2, '0') + '′ (' + fixed(computed.fov.times, 2) + 'x)'}}",
 		"bodyCells": "{{map(range(length(state.bodies) * length(state.bodies)), state.bodies[index % length(state.bodies)].parent == state.bodies[floor(index / length(state.bodies))].id ? index % length(state.bodies) : -1)}}",
@@ -883,11 +897,11 @@
 		],
 		"cloneBody": [
 			{
-				"if": "{{find(state.bodies, it.id == args.id).parent ?? '' != ''}}",
+				"if": "{{(find(state.bodies, it.id == args.id).parent ?? '') != ''}}",
 				"then": [
 					{
 						"push": "state.bodies",
-						"value": "{{merge(find(state.bodies, it.id == args.id), {id: args.id + '-' + state.nextId, name: find(state.bodies, it.id == args.id).name + ' ' + state.nextId, phase: (find(state.bodies, it.id == args.id).phase + 0.5) % 1, look: find(state.bodies, it.id == args.id).look ?? args.id})}}"
+						"value": "{{merge(find(state.bodies, it.id == args.id), {id: args.id + '-' + state.nextId, name: find(state.bodies, it.id == args.id).name + ' ' + state.nextId, phase: (find(state.bodies, it.id == args.id).phase + 0.5) % 1, look: find(state.bodies, it.id == args.id).look ?? args.id, gx: (find(state.bodies, it.id == args.id).gx ?? 400) + 24, gy: (find(state.bodies, it.id == args.id).gy ?? 20) + 24})}}"
 					},
 					{
 						"set": "state.selected",
@@ -1019,7 +1033,7 @@
 		],
 		"reparent": [
 			{
-				"if": "{{event.from != event.to}}",
+				"if": "{{indexOf(computed.ids, event.from) >= 0 && indexOf(computed.ids, event.to) >= 0 && event.from != event.to && indexOf([computed.up1[indexOf(computed.ids, event.from)], computed.up2[indexOf(computed.ids, event.from)], computed.up3[indexOf(computed.ids, event.from)]], indexOf(computed.ids, event.to)) < 0 && computed.depth[indexOf(computed.ids, event.from)] + 1 + computed.below[indexOf(computed.ids, event.to)] <= 3}}",
 				"then": [
 					{
 						"set": "state.bodies",
@@ -1111,8 +1125,20 @@
 							"to": ""
 						},
 						{
+							"set": "state.flying",
+							"to": ""
+						},
+						{
 							"set": "state.fly",
 							"to": 0
+						},
+						{
+							"set": "state.flying",
+							"to": "{{state.selected}}"
+						},
+						{
+							"increment": "state.flights",
+							"by": 1
 						},
 						{
 							"animate": "state.fly",
@@ -1130,20 +1156,33 @@
 							"after": 950,
 							"do": [
 								{
-									"set": "state.camera.tx",
-									"to": "{{computed.selectedPosition.x}}"
+									"increment": "state.landed",
+									"by": 1
 								},
 								{
-									"set": "state.camera.tz",
-									"to": "{{computed.selectedPosition.z}}"
-								},
-								{
-									"set": "state.fly",
-									"to": 0
-								},
-								{
-									"set": "state.follow",
-									"to": "{{state.selected}}"
+									"if": "{{state.landed == state.flights && computed.flyPosition}}",
+									"then": [
+										{
+											"set": "state.camera.tx",
+											"to": "{{computed.flyPosition.x}}"
+										},
+										{
+											"set": "state.camera.tz",
+											"to": "{{computed.flyPosition.z}}"
+										},
+										{
+											"set": "state.fly",
+											"to": 0
+										},
+										{
+											"set": "state.follow",
+											"to": "{{state.flying}}"
+										},
+										{
+											"set": "state.flying",
+											"to": ""
+										}
+									]
 								}
 							]
 						}
@@ -1171,8 +1210,20 @@
 							"to": ""
 						},
 						{
+							"set": "state.flying",
+							"to": ""
+						},
+						{
 							"set": "state.fly",
 							"to": 0
+						},
+						{
+							"set": "state.flying",
+							"to": "{{state.selected}}"
+						},
+						{
+							"increment": "state.flights",
+							"by": 1
 						},
 						{
 							"animate": "state.fly",
@@ -1184,16 +1235,29 @@
 							"after": 550,
 							"do": [
 								{
-									"set": "state.camera.tx",
-									"to": "{{computed.selectedPosition.x}}"
+									"increment": "state.landed",
+									"by": 1
 								},
 								{
-									"set": "state.camera.tz",
-									"to": "{{computed.selectedPosition.z}}"
-								},
-								{
-									"set": "state.fly",
-									"to": 0
+									"if": "{{state.landed == state.flights && computed.flyPosition}}",
+									"then": [
+										{
+											"set": "state.camera.tx",
+											"to": "{{computed.flyPosition.x}}"
+										},
+										{
+											"set": "state.camera.tz",
+											"to": "{{computed.flyPosition.z}}"
+										},
+										{
+											"set": "state.fly",
+											"to": 0
+										},
+										{
+											"set": "state.flying",
+											"to": ""
+										}
+									]
 								}
 							]
 						}
@@ -1221,6 +1285,10 @@
 							"to": ""
 						},
 						{
+							"set": "state.flying",
+							"to": ""
+						},
+						{
 							"set": "state.fly",
 							"to": 0
 						}
@@ -1242,8 +1310,20 @@
 									"to": ""
 								},
 								{
+									"set": "state.flying",
+									"to": ""
+								},
+								{
 									"set": "state.fly",
 									"to": 0
+								},
+								{
+									"set": "state.flying",
+									"to": "{{state.selected}}"
+								},
+								{
+									"increment": "state.flights",
+									"by": 1
 								},
 								{
 									"animate": "state.fly",
@@ -1255,20 +1335,33 @@
 									"after": 550,
 									"do": [
 										{
-											"set": "state.camera.tx",
-											"to": "{{computed.selectedPosition.x}}"
+											"increment": "state.landed",
+											"by": 1
 										},
 										{
-											"set": "state.camera.tz",
-											"to": "{{computed.selectedPosition.z}}"
-										},
-										{
-											"set": "state.fly",
-											"to": 0
-										},
-										{
-											"set": "state.follow",
-											"to": "{{state.selected}}"
+											"if": "{{state.landed == state.flights && computed.flyPosition}}",
+											"then": [
+												{
+													"set": "state.camera.tx",
+													"to": "{{computed.flyPosition.x}}"
+												},
+												{
+													"set": "state.camera.tz",
+													"to": "{{computed.flyPosition.z}}"
+												},
+												{
+													"set": "state.fly",
+													"to": 0
+												},
+												{
+													"set": "state.follow",
+													"to": "{{state.flying}}"
+												},
+												{
+													"set": "state.flying",
+													"to": ""
+												}
+											]
 										}
 									]
 								}
@@ -1331,11 +1424,15 @@
 			"do": [
 				{
 					"set": "state.bookmarks",
-					"to": "{{concat(state.bookmarks, [{id: 'place-' + length(state.bookmarks), label: (computed.selectedBody ? computed.selectedBody.name : 'Space') + ', day ' + floor(state.time), camera: state.camera, follow: state.follow, selected: state.selected}])}}"
+					"to": "{{concat(state.bookmarks, [{id: 'place-' + state.nextPlace, label: (computed.selectedBody ? computed.selectedBody.name : 'Space') + ', day ' + floor(state.time), camera: merge(state.camera, {tx: computed.target.x, tz: computed.target.z}), follow: state.follow, selected: state.selected, time: state.time, zoom: state.zoom}])}}"
 				},
 				{
 					"set": "state.bookmark",
-					"to": "{{'place-' + (length(state.bookmarks) - 1)}}"
+					"to": "{{'place-' + state.nextPlace}}"
+				},
+				{
+					"increment": "state.nextPlace",
+					"by": 1
 				},
 				{
 					"set": "state.browserTab",
@@ -1352,16 +1449,32 @@
 				"if": "{{find(state.bookmarks, it.id == event.value)}}",
 				"then": [
 					{
-						"set": "state.bookmark",
-						"to": "{{event.value}}"
+						"set": "state.camera.tx",
+						"to": "{{computed.target.x}}"
+					},
+					{
+						"set": "state.camera.tz",
+						"to": "{{computed.target.z}}"
 					},
 					{
 						"set": "state.follow",
 						"to": ""
 					},
 					{
+						"set": "state.flying",
+						"to": ""
+					},
+					{
 						"set": "state.fly",
 						"to": 0
+					},
+					{
+						"set": "state.bookmark",
+						"to": "{{event.value}}"
+					},
+					{
+						"set": "state.playing",
+						"to": false
 					},
 					{
 						"set": "state.selected",
@@ -1372,12 +1485,39 @@
 						"to": "{{find(state.bookmarks, it.id == event.value).camera}}"
 					},
 					{
+						"set": "state.time",
+						"to": "{{find(state.bookmarks, it.id == event.value).time ?? state.time}}"
+					},
+					{
+						"set": "state.zoom",
+						"to": "{{find(state.bookmarks, it.id == event.value).zoom ?? state.zoom}}"
+					},
+					{
 						"set": "state.follow",
 						"to": "{{find(state.bookmarks, it.id == event.value).follow}}"
 					}
 				]
 			}
-		]
+		],
+		"deleteBookmark": {
+			"title": "Delete the bookmark",
+			"icon": "trash-2",
+			"do": [
+				{
+					"if": "{{find(state.bookmarks, it.id == state.bookmark)}}",
+					"then": [
+						{
+							"set": "state.bookmarks",
+							"to": "{{filter(state.bookmarks, it.id != state.bookmark)}}"
+						},
+						{
+							"set": "state.bookmark",
+							"to": "{{length(state.bookmarks) > 0 ? state.bookmarks[length(state.bookmarks) - 1].id : ''}}"
+						}
+					]
+				}
+			]
+		}
 	},
 	"keys": {
 		"mod+p": "togglePlay",
@@ -1904,16 +2044,38 @@
 														"accentColor": "@accent"
 													},
 													{
-														"type": "label",
-														"id": "add-bookmark",
-														"style": "button",
-														"width": 208,
-														"height": 28,
-														"icon": "bookmark-plus",
-														"text": "Bookmark this view",
-														"font": "small",
-														"role": "button",
-														"onClick": "addBookmark"
+														"type": "row",
+														"id": "places-bar",
+														"width": 220,
+														"height": 34,
+														"gap": 6,
+														"alignItems": "center",
+														"children": [
+															{
+																"type": "label",
+																"id": "add-bookmark",
+																"style": "button",
+																"width": 170,
+																"height": 28,
+																"icon": "bookmark-plus",
+																"text": "Bookmark this view",
+																"font": "small",
+																"role": "button",
+																"onClick": "addBookmark"
+															},
+															{
+																"type": "label",
+																"id": "delete-bookmark",
+																"style": "button",
+																"width": 32,
+																"height": 28,
+																"icon": "trash-2",
+																"role": "button",
+																"label": "Delete the bookmark",
+																"tooltip": "Delete the bookmark",
+																"onClick": "deleteBookmark"
+															}
+														]
 													}
 												]
 											}
@@ -1930,7 +2092,8 @@
 										"height": 20,
 										"font": "small",
 										"textColor": "@muted",
-										"text": "Drag to turn, scroll to zoom; G go to, C centre, F follow; B browser; comma and period field of view; O orbits, P labels; L K J time"
+										"text": "Drag to turn, scroll to zoom; G go to, C centre, F follow; B browser",
+										"visible": "{{!state.showBrowser && window.width - 461 >= 600}}"
 									},
 									{
 										"type": "label",
@@ -2019,7 +2182,7 @@
 										"id": "chart",
 										"bind": "state.chart",
 										"width": "100%",
-										"height": 300,
+										"height": "{{clamp(window.height - 512, 120, 300)}}",
 										"color": "@sky",
 										"rulers": false,
 										"snap": false,
@@ -2117,6 +2280,10 @@
 							{
 								"if": "{{find(state.events, it.id == event.ids[0])}}",
 								"then": [
+									{
+										"set": "state.playing",
+										"to": false
+									},
 									{
 										"set": "state.time",
 										"to": "{{find(state.events, it.id == event.ids[0]).time}}"
@@ -2618,6 +2785,11 @@
 				"run": "addBookmark",
 				"group": "4_places",
 				"order": 1
+			},
+			"deleteBookmark": {
+				"run": "deleteBookmark",
+				"group": "4_places",
+				"order": 2
 			}
 		}
 	}

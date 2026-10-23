@@ -579,6 +579,234 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "bookmarks-keep-the-time-and-the-field",
+			"steps": [
+				{
+					"key": "period"
+				},
+				{
+					"click": "#next-event"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"expect": {
+						"state": "bookmarks[1].time",
+						"is": 29.5
+					}
+				},
+				{
+					"action": "goToBookmark",
+					"event": {
+						"value": "overview"
+					}
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "zoom",
+						"is": 1.1
+					}
+				},
+				{
+					"action": "goToBookmark",
+					"event": {
+						"value": "place-1"
+					}
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 29.5
+					}
+				},
+				{
+					"expect": {
+						"state": "zoom",
+						"is": 1.375
+					}
+				},
+				{
+					"click": "#delete-bookmark"
+				},
+				{
+					"expect": {
+						"state": "bookmarks.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "overview"
+					}
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "place-2"
+					}
+				}
+			]
+		},
+		{
+			"name": "go-to-twice-lands-once",
+			"steps": [
+				{
+					"key": "g"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"key": "g"
+				},
+				{
+					"wait": 1100
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				},
+				{
+					"expect": {
+						"state": "fly",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "flying",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "flights",
+						"is": 2
+					}
+				}
+			]
+		},
+		{
+			"name": "go-to-while-playing",
+			"steps": [
+				{
+					"key": "space"
+				},
+				{
+					"key": "g"
+				},
+				{
+					"wait": 1100
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				},
+				{
+					"expect": {
+						"state": "fly",
+						"is": 0
+					}
+				},
+				{
+					"key": "space"
+				}
+			]
+		},
+		{
+			"name": "reparent-onto-a-moon-but-not-into-a-loop",
+			"steps": [
+				{
+					"action": "reparent",
+					"event": {
+						"from": "moon",
+						"output": "satellites",
+						"to": "mars",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[5].parent",
+						"is": "moon"
+					}
+				},
+				{
+					"action": "reparent",
+					"event": {
+						"from": "mars",
+						"output": "satellites",
+						"to": "earth",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[3].parent",
+						"is": "sun"
+					}
+				},
+				{
+					"action": "reparent",
+					"event": {
+						"from": "mars",
+						"output": "satellites",
+						"to": "venus",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[2].parent",
+						"is": "sun"
+					}
+				}
+			]
+		},
+		{
+			"name": "a-small-window-keeps-the-graph",
+			"steps": [
+				{
+					"resize": [1000, 700]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#view-hint",
+						"property": "visible",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart",
+						"property": "height",
+						"is": 188
+					}
+				}
+			]
 		}
 	]
 }
