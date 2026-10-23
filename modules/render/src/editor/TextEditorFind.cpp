@@ -128,9 +128,7 @@ void TextEditor::lineMatches(std::size_t line, std::size_t from, std::size_t cap
 		column += codepoints(subject_, counted, m.offset);
 		const std::size_t length = codepoints(subject_, m.offset, m.offset + m.length);
 		if(length > 0) out.emplace_back(column, length);
-		// An empty match (e.g. ^) is stepped over by one code point
-		byte = m.offset + std::max<std::size_t>(m.length, 1);
-		while(byte < subject_.size() && (static_cast<unsigned char>(subject_[byte]) & 0xC0) == 0x80) ++byte;
+		byte = afterMatch(subject_, m); // an empty match (e.g. ^) is stepped over by one code point
 		column += codepoints(subject_, m.offset, byte);
 		counted = byte;
 	}
