@@ -271,7 +271,7 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "behaviour"},
     {"keys", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/keyHandler"},
 		"description": "Shortcuts while focused: \"mod+k\" -> handler"})json",
-	 "Shortcuts while the node or a child has the focus: `\"enter\" → handler`.", "behaviour"},
+	 "Shortcuts while the node or a child has the focus: `\"enter\" → handler`; `\"*\"` takes any other press (`event.key`).", "behaviour"},
     {"locked", R"json({"type": "boolean"})json",
 	 "`true`: no revision may change this node or anything inside it. Needs an `id`.", "behaviour"},
     {"note", R"json({"type": "string", "description": "A comment"})json", "A comment.", "behaviour"},

@@ -29,6 +29,7 @@
 	"include": [
 		"parts/look.json",
 		"parts/state.json",
+		"parts/settings.json",
 		"parts/files.json",
 		"parts/frame.json",
 		"parts/commands.json",
@@ -204,6 +205,11 @@
 								]
 							}
 						]
+					},
+					{
+						"when": "{{state.mb.open && state.mb.comp != null}}",
+						"use": "completions",
+						"alignSelf": "stretch"
 					},
 					{ "id": "echoArea", "use": "echoArea", "alignSelf": "stretch" }
 				]

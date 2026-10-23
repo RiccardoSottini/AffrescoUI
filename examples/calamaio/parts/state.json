@@ -25,7 +25,17 @@
 			}
 		},
 		"echo": "Welcome to Calamaio.  Type C-h t for the tutorial.",
-		"mb": { "open": false, "prompt": "", "text": "", "kind": "", "def": "", "hist": {}, "hi": -1, "comp": null },
+		"mb": {
+			"open": false,
+			"prompt": "",
+			"text": "",
+			"kind": "",
+			"def": "",
+			"hist": {},
+			"hi": -1,
+			"comp": null,
+			"note": ""
+		},
 		"arg": null,
 		"mark": { "on": false, "line": 1, "column": 1 },
 		"kills": [],
@@ -44,6 +54,9 @@
 			"dired": { "title": "Dired by name", "menu": "dired" },
 			"buffer-menu": { "title": "Buffer Menu", "menu": "bufferMenu" }
 		},
-		"modeFor": { "py": "python", "c": "c", "h": "c", "el": "emacs-lisp", "md": "markdown", "org": "org", "txt": "text" }
+		"modeFor": { "py": "python", "c": "c", "h": "c", "el": "emacs-lisp", "md": "markdown", "org": "org", "txt": "text" },
+		"keyread": { "on": false, "seq": "" },
+		"argDigits": false,
+		"argU": 0
 	}
 }

@@ -31,6 +31,24 @@
 		"ctrl+x ctrl+s": "save-buffer",
 		"ctrl+x ctrl+c": "save-buffers-kill-terminal",
 		"ctrl+z": "suspend-frame",
-		"f10": "menu-bar-open"
+		"f10": "menu-bar-open",
+		"ctrl+u": "universal-argument",
+		"alt+0": { "do": "digit-argument", "with": { "d": 0 } },
+		"alt+1": { "do": "digit-argument", "with": { "d": 1 } },
+		"alt+2": { "do": "digit-argument", "with": { "d": 2 } },
+		"alt+3": { "do": "digit-argument", "with": { "d": 3 } },
+		"alt+4": { "do": "digit-argument", "with": { "d": 4 } },
+		"alt+5": { "do": "digit-argument", "with": { "d": 5 } },
+		"alt+6": { "do": "digit-argument", "with": { "d": 6 } },
+		"alt+7": { "do": "digit-argument", "with": { "d": 7 } },
+		"alt+8": { "do": "digit-argument", "with": { "d": 8 } },
+		"alt+9": { "do": "digit-argument", "with": { "d": 9 } },
+		"ctrl+h f": "describe-function",
+		"ctrl+h v": "describe-variable",
+		"ctrl+h k": "describe-key",
+		"ctrl+h b": "describe-bindings",
+		"ctrl+h m": "describe-mode",
+		"ctrl+h e": "view-echo-area-messages",
+		"ctrl+h t": "help-with-tutorial"
 	}
 }

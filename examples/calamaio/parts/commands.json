@@ -9,7 +9,13 @@
 		"wins": "{{split(join(map(state.layout.groups, join(it, ',')), ','), ',')}}",
 		"other": "{{find(state.order, it != state.win[state.sel].buf && state.bufs[it].kind != 'splash') ?? state.win[state.sel].buf}}",
 		"names": "{{map(state.order, state.bufs[it].name)}}",
-		"commandNames": "{{sortText(map(commands, it.name))}}"
+		"commandNames": "{{sortText(map(commands, it.name))}}",
+		"mbCands": "{{state.mb.kind == 'command' || state.mb.kind == 'function' ? computed.commandNames : state.mb.kind == 'buffer' || state.mb.kind == 'kill' ? computed.names : state.mb.kind == 'file' ? map(state.files, it.path) : state.mb.kind == 'theme' ? ['default', 'inchiostro', 'pergamena'] : state.mb.kind == 'variable' ? map(settingsList, it.key) : []}}",
+		"mbMatches": "{{sortText(filter(computed.mbCands, slice(it, 0, length(state.mb.text)) == state.mb.text))}}",
+		"mbA": "{{computed.mbMatches[0] ?? ''}}",
+		"mbB": "{{computed.mbMatches[length(computed.mbMatches) - 1] ?? ''}}",
+		"mbPrefix": "{{slice(computed.mbA, 0, count(range(min(length(computed.mbA), length(computed.mbB))), slice(computed.mbA, 0, it + 1) == slice(computed.mbB, 0, it + 1)))}}",
+		"argLabel": "{{state.arg == null ? '' : state.argDigits ? text(state.arg) : 'C-u'}}"
 	},
 	"actions": {
 		"message": [
@@ -17,6 +23,7 @@
 			{ "set": "state.bufs.b2.text", "to": "{{state.bufs.b2.text + m + '\n'}}" }
 		],
 		"move": [
+			{ "if": "{{state.arg != null}}", "then": [{ "set": "state.echo", "to": "" }] },
 			{
 				"if": "{{computed.text}}",
 				"then": [
@@ -30,6 +37,7 @@
 			{ "set": "state.arg", "to": null }
 		],
 		"edit-key": [
+			{ "if": "{{state.arg != null}}", "then": [{ "set": "state.echo", "to": "" }] },
 			{
 				"if": "{{computed.text && !computed.buf.readOnly}}",
 				"then": [{ "press": "{{k}}", "in": "{{computed.ed}}", "times": "{{computed.n}}" }],
@@ -479,9 +487,10 @@
 		"minibuffer-read": [
 			{
 				"set": "state.mb",
-				"to": "{{merge(state.mb, {open: true, kind: kind, prompt: prompt, def: def, text: init, hi: -1, comp: null})}}"
+				"to": "{{merge(state.mb, {open: true, kind: kind, prompt: prompt, def: def, text: init, hi: -1, comp: null, note: ''})}}"
 			},
-			{ "set": "state.echo", "to": "" }
+			{ "set": "state.echo", "to": "" },
+			{ "focus": "#mb" }
 		],
 		"minibuffer-exit": [
 			{
@@ -564,6 +573,215 @@
 					{ "focus": "{{computed.ed}}" }
 				]
 			}
-		]
+		],
+		"minibuffer-note": [
+			{ "set": "state.mb.note", "to": "{{note}}" },
+			{
+				"after": 1200,
+				"do": [{ "if": "{{state.mb.note == note}}", "then": [{ "set": "state.mb.note", "to": "" }] }]
+			}
+		],
+		"minibuffer-set": [{ "set": "state.mb.text", "to": "{{value}}" }, { "after": 0, "do": [{ "press": "cmd+right", "in": "#mb" }] }],
+		"minibuffer-complete": [
+			{
+				"if": "{{length(computed.mbMatches) == 0}}",
+				"then": [{ "run": "minibuffer-note", "with": { "note": " [Nothing matches]" } }, { "stop": true }]
+			},
+			{
+				"if": "{{length(computed.mbMatches) == 1}}",
+				"then": [
+					{ "run": "minibuffer-set", "with": { "value": "{{computed.mbA}}" } },
+					{ "set": "state.mb.comp", "to": null },
+					{
+						"run": "minibuffer-note",
+						"with": { "note": "{{state.mb.text == computed.mbA ? ' [The only match]' : ''}}" }
+					},
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{length(computed.mbPrefix) > length(state.mb.text)}}",
+				"then": [{ "run": "minibuffer-set", "with": { "value": "{{computed.mbPrefix}}" } }, { "stop": true }]
+			},
+			{ "set": "state.mb.comp", "to": "{{computed.mbMatches}}" }
+		],
+		"minibuffer-choose": [{ "run": "minibuffer-done", "with": { "value": "{{value}}", "kind": "{{state.mb.kind}}" } }],
+		"minibuffer-history": [
+			{
+				"if": "{{state.mb.hi + step >= length((state.mb.hist[state.mb.kind] ?? []))}}",
+				"then": [{ "run": "minibuffer-note", "with": { "note": " [No earlier input]" } }, { "stop": true }]
+			},
+			{
+				"if": "{{state.mb.hi + step < -1}}",
+				"then": [{ "run": "minibuffer-note", "with": { "note": " [No later input]" } }, { "stop": true }]
+			},
+			{ "increment": "state.mb.hi", "by": "{{step}}" },
+			{
+				"run": "minibuffer-set",
+				"with": { "value": "{{state.mb.hi < 0 ? state.mb.def : (state.mb.hist[state.mb.kind] ?? [])[state.mb.hi]}}" }
+			}
+		],
+		"universal-argument": {
+			"title": "Universal Argument",
+			"category": "Editing",
+			"description": "Starts a numeric argument for the next command: 4, and each further C-u multiplies it by 4.",
+			"do": [
+				{ "set": "state.argU", "to": "{{state.arg == null || state.argDigits ? 1 : (state.argU ?? 0) + 1}}" },
+				{ "set": "state.arg", "to": "{{state.arg == null || state.argDigits ? 4 : state.arg * 4}}" },
+				{ "set": "state.argDigits", "to": false },
+				{ "set": "state.echo", "to": "{{join(map(range(state.argU), 'C-u'), ' ') + '-'}}" }
+			]
+		},
+		"digit-argument": {
+			"title": "Digit Argument",
+			"category": "Editing",
+			"description": "Adds a digit to the numeric argument of the next command.",
+			"do": [
+				{ "set": "state.arg", "to": "{{state.argDigits && state.arg != null ? state.arg * 10 + d : d}}" },
+				{ "set": "state.argDigits", "to": true },
+				{ "set": "state.echo", "to": "{{'C-u ' + state.arg + '-'}}" }
+			]
+		},
+		"help-show": [
+			{ "set": "state.bufs.bh", "to": "{{ {name: '*Help*', mode: 'help', readOnly: true, text: text} }}" },
+			{
+				"if": "{{!contains(state.order, 'bh')}}",
+				"then": [{ "set": "state.order", "to": "{{concat(state.order, ['bh'])}}" }]
+			},
+			{ "if": "{{length(computed.wins) == 1}}", "then": [{ "run": "split", "with": { "below": true } }] },
+			{
+				"run": "help-in",
+				"with": { "x": "{{computed.wins[(indexOf(computed.wins, state.sel) + 1) % length(computed.wins)]}}" }
+			},
+			{ "run": "message", "with": { "m": "C-x 1 removes the help window; C-x o goes to it" } }
+		],
+		"help-in": [
+			{ "set": "{{'state.win.' + x + '.buf'}}", "to": "bh" },
+			{ "set": "{{'state.win.' + x + '.pt'}}", "to": { "line": 1, "column": 1 } },
+			{ "set": "{{'state.win.' + x + '.caret'}}", "to": { "line": 1, "column": 1 } },
+			{
+				"after": 40,
+				"do": [
+					{ "run": "goto-point", "with": { "e": "{{'#ed' + x}}", "pt": { "line": 1, "column": 1 } } },
+					{ "focus": "{{computed.ed}}" }
+				]
+			}
+		],
+		"help-function": [
+			{
+				"run": "help-show",
+				"with": {
+					"text": "{{f + ' is a command of the document' + \"'\" + 's actions, in the ' + find(commands, it.name == f).category + ' category.\\n\\n' + (some(keybindings, it.command == f) ? 'Its keys: ' + join(map(filter(keybindings, it.command == f), it.keyLabel), ', ') + '.' : 'It has no key: M-x ' + f + ' runs it.') + '\\n\\n' + find(commands, it.name == f).description + '\\n\\nIts menu and palette title is \"' + find(commands, it.name == f).title + '\".\\n'}}"
+				}
+			}
+		],
+		"describe-function": {
+			"title": "Describe Function...",
+			"category": "Help",
+			"description": "Shows what a command does, and the keys that run it.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": { "kind": "function", "prompt": "Describe function: ", "def": "", "init": "" }
+			}
+		},
+		"mb-function": [
+			{
+				"if": "{{contains(computed.commandNames, value)}}",
+				"then": [{ "run": "help-function", "with": { "f": "{{value}}" } }],
+				"else": [{ "run": "message", "with": { "m": "{{'No command named ' + value}}" } }]
+			}
+		],
+		"describe-variable": {
+			"title": "Describe Variable...",
+			"category": "Help",
+			"description": "Shows a variable's value, its default and what it changes.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": { "kind": "variable", "prompt": "Describe variable: ", "def": "", "init": "" }
+			}
+		},
+		"mb-variable": [
+			{
+				"if": "{{some(settingsList, it.key == value)}}",
+				"then": [{ "run": "help-variable", "with": { "s": "{{find(settingsList, it.key == value)}}" } }],
+				"else": [{ "run": "message", "with": { "m": "{{'No variable named ' + value}}" } }]
+			}
+		],
+		"help-variable": [
+			{
+				"run": "help-show",
+				"with": {
+					"text": "{{s.key + ' is a variable of the document' + \"'\" + 's settings.\\n\\nIts value is ' + json(s.value) + (s.modified ? ', changed from the default ' + json(s.default) + '.' : ', the default.') + '\\n\\n' + s.description + '\\n\\nType: ' + s.type + (s.enum ? ', one of ' + join(s.enum, ', ') : '') + (s.minimum != null ? ', from ' + s.minimum + ' to ' + s.maximum : '') + '.\\nM-x customize-variable changes it.\\n'}}"
+				}
+			}
+		],
+		"describe-key": {
+			"title": "Describe Key...",
+			"category": "Help",
+			"description": "Reads a key and shows the command it runs.",
+			"do": [
+				{ "set": "state.keyread", "to": { "on": true, "seq": "" } },
+				{ "set": "state.echo", "to": "" },
+				{ "after": 0, "do": [{ "focus": "#keyReader" }] }
+			]
+		},
+		"key-read": [
+			{ "set": "state.keyread.seq", "to": "{{trim(state.keyread.seq + ' ' + k)}}" },
+			{
+				"if": "{{state.keyread.seq == 'ctrl+g' || state.keyread.seq == 'escape'}}",
+				"then": [{ "run": "key-read-end" }, { "set": "state.echo", "to": "Quit" }, { "stop": true }]
+			},
+			{
+				"if": "{{some(keybindings, it.key == state.keyread.seq)}}",
+				"then": [
+					{ "run": "key-read-end" },
+					{ "run": "help-key", "with": { "b": "{{find(keybindings, it.key == state.keyread.seq)}}" } },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{some(keybindings, slice(it.key, 0, length(state.keyread.seq) + 1) == state.keyread.seq + ' ')}}",
+				"then": [{ "stop": true }]
+			},
+			{ "run": "key-read-end" },
+			{ "run": "message", "with": { "m": "{{keyLabel(state.keyread.seq, 'emacs') + ' has no binding'}}" } }
+		],
+		"key-read-end": [{ "set": "state.keyread.on", "to": false }, { "focus": "{{computed.ed}}" }],
+		"help-key": [
+			{
+				"run": "help-show",
+				"with": {
+					"text": "{{b.keyLabel + ' runs the command ' + b.command + ', bound in ' + (b.scope == 'screen' ? 'the document' + \"'\" + 's keys' : 'the keys of ' + b.scope) + '.\\n\\n' + (find(commands, it.name == b.command).description ?? '') + '\\n\\nC-h f ' + b.command + ' tells more about it.\\n'}}"
+				}
+			}
+		],
+		"describe-bindings": {
+			"title": "Describe Bindings",
+			"category": "Help",
+			"description": "Lists every key and the command it runs.",
+			"do": {
+				"run": "help-show",
+				"with": {
+					"text": "{{'Key bindings of the document:\\n\\nkey                 binding\\n---                 -------\\n' + join(map(filter(keybindings, it.scope == 'screen'), pad(it.keyLabel, 20, ' ') + it.command), '\\n') + '\\n'}}"
+				}
+			}
+		},
+		"describe-mode": {
+			"title": "Describe Mode",
+			"category": "Help",
+			"description": "Describes the selected buffer's major mode and the minor modes that are on.",
+			"do": {
+				"run": "help-show",
+				"with": {
+					"text": "{{'The major mode is ' + state.modes[computed.buf.mode].title + ' mode.\\n\\n' + (state.modes[computed.buf.mode].about ?? 'It has no keys of its own.') + '\\n'}}"
+				}
+			}
+		},
+		"view-echo-area-messages": {
+			"title": "Messages",
+			"category": "Help",
+			"description": "Shows the messages the echo area has shown so far.",
+			"do": { "run": "show-messages" }
+		}
 	}
 }

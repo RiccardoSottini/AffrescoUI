@@ -192,7 +192,7 @@ only for the elements that changed.
 | `every` | `{ "ms": 1000, "do": steps }`: runs while the node exists. |
 | `drag` | `{ "data": {...} }`: the node can be dragged; a node with `onDrop` receives `event.data`. |
 | `context` | `{ "editorFocus": true }`: keys added to the `context` variable while the node or a child has the focus (an inner node wins); `when` clauses read them. |
-| `keys` | Shortcuts while the node or a child has the focus: `"enter" → handler`. |
+| `keys` | Shortcuts while the node or a child has the focus: `"enter" → handler`; `"*"` takes any other press (`event.key`). |
 | `locked` | `true`: no revision may change this node or anything inside it. Needs an `id`. |
 | `note` | A comment. |
 | `on…` | Event handlers (see Events). |
@@ -982,7 +982,9 @@ has no handler, its nearest ancestor with one. A row with `onClick` needs no inv
 
 **Shortcuts:** `"keys"` on the document (anywhere) or on a node (while it or a child is focused): `"mod+k"`,
 `"cmd+shift+p"`, `"escape"`, `"up"`, `"f5"`. `mod` is Cmd on macOS, Ctrl elsewhere. While a text area is focused, keys
-without Cmd, Ctrl or Alt go to the text (Escape still works).
+without Cmd, Ctrl or Alt go to the text (Escape still works). A node's `"*"` takes every press its other keys don't
+name or begin, before the document's keys and the text, with the press in `event.key` (`"ctrl+x"`): a key recorder, or
+a keymap that owns the keyboard while its node has the focus.
 
 ### Commands and keybindings
 

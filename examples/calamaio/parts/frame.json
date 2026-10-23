@@ -14,7 +14,19 @@
 					"on": "{{state.sel == w}}",
 					"v": "{{state.win[w].view}}"
 				},
-				"keys": { "f10": "menu-bar-open" },
+				"keys": {
+					"f10": "menu-bar-open",
+					"0": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 0 } },
+					"1": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 1 } },
+					"2": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 2 } },
+					"3": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 3 } },
+					"4": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 4 } },
+					"5": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 5 } },
+					"6": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 6 } },
+					"7": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 7 } },
+					"8": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 8 } },
+					"9": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 9 } }
+				},
 				"children": [
 					{
 						"type": "row",
@@ -327,7 +339,7 @@
 						"textColor": "@fg",
 						"anchors": { "left": 2, "top": 2 },
 						"fitText": true,
-						"text": "{{context.chord != null ? keyLabel(context.chord, 'emacs') + '-' : state.echo}}"
+						"text": "{{context.chord != null ? keyLabel(context.chord, 'emacs') + '-' : state.keyread.on ? 'Key to describe: ' + (state.keyread.seq == '' ? '' : keyLabel(state.keyread.seq, 'emacs') + '-') : state.echo}}"
 					},
 					{
 						"when": "{{state.mb.open}}",
@@ -345,14 +357,111 @@
 							{
 								"id": "mb",
 								"type": "textarea",
-								"grow": 1,
+								"grow": 0,
 								"height": 19,
 								"font": "code",
 								"textColor": "@fg",
 								"color": "@bg",
 								"bind": "state.mb.text",
 								"autofocus": true,
-								"onSubmit": "minibuffer-exit"
+								"onSubmit": "minibuffer-exit",
+								"keys": {
+									"tab": "minibuffer-complete",
+									"alt+p": { "do": "minibuffer-history", "with": { "step": 1 } },
+									"up": { "do": "minibuffer-history", "with": { "step": 1 } },
+									"alt+n": { "do": "minibuffer-history", "with": { "step": -1 } },
+									"down": { "do": "minibuffer-history", "with": { "step": -1 } },
+									"ctrl+g": "keyboard-quit"
+								},
+								"onChange": { "set": "state.mb.comp", "to": null },
+								"width": "{{max(30, length(state.mb.text) * 8.4 + 10)}}"
+							},
+							{
+								"type": "label",
+								"font": "code",
+								"textColor": "@prompt",
+								"fitText": true,
+								"text": "{{state.mb.note}}"
+							}
+						]
+					},
+					{
+						"when": "{{state.keyread.on}}",
+						"id": "keyReader",
+						"focusable": true,
+						"width": 1,
+						"height": 1,
+						"label": "Key reader",
+						"keys": { "*": { "do": "key-read", "with": { "k": "{{event.key}}" } } }
+					}
+				]
+			}
+		},
+		"completions": {
+			"note": "The *Completions* window: the candidates in columns, the typed part in its own face; a click chooses one.",
+			"node": {
+				"type": "column",
+				"height": "{{min(260, 46 + 19 * ceil(length(state.mb.comp) / 4))}}",
+				"color": "@bg",
+				"let": { "t": "{{length(state.mb.text)}}" },
+				"children": [
+					{
+						"grow": 1,
+						"alignSelf": "stretch",
+						"color": "@bg",
+						"children": [
+							{
+								"type": "label",
+								"font": "code",
+								"textColor": "@fg",
+								"anchors": { "left": 12, "top": 3 },
+								"fitText": true,
+								"text": "{{length(state.mb.comp) + ' possible completions:'}}"
+							},
+							{
+								"repeat": { "for": "c", "in": "{{state.mb.comp}}", "index": "i" },
+								"x": "{{fixed(25 * (i % 4), 2)}}%",
+								"y": "{{22 + 19 * floor(i / 4)}}",
+								"width": "25%",
+								"height": 19,
+								"hover": { "color": "@hl" },
+								"cursor": "hand",
+								"onClick": { "run": "minibuffer-choose", "with": { "value": "{{c}}" } },
+								"children": [
+									{
+										"type": "label",
+										"font": "code",
+										"textColor": "@fg",
+										"anchors": { "left": 12, "top": 1 },
+										"fitText": true,
+										"runs": [
+											{ "text": "{{slice(c, 0, t)}}", "color": "@compCommon" },
+											{ "text": "{{slice(c, t, t + 1)}}", "bold": true, "color": "@compFirst" },
+											"{{slice(c, t + 1)}}"
+										]
+									}
+								],
+								"color": "@bg"
+							}
+						]
+					},
+					{
+						"height": 20,
+						"alignSelf": "stretch",
+						"color": "@mli",
+						"children": [
+							{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@mliBorder" },
+							{
+								"type": "label",
+								"font": "code",
+								"textColor": "@mliFg",
+								"anchors": { "left": 0, "top": 1 },
+								"fitText": true,
+								"runs": [
+									" U:%%-  ",
+									{ "text": "*Completions*", "bold": true },
+									"   All   L1     (Completion List)"
+								]
 							}
 						]
 					}

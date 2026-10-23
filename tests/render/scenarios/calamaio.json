@@ -37,7 +37,30 @@
 				{ "wait": 50 },
 				{ "key": "f10" },
 				{ "wait": 50 },
-				{ "expect": { "image": "file-menu" } }
+				{ "expect": { "image": "file-menu" } },
+				{ "key": "escape" },
+				{ "wait": 50 },
+				{ "key": "ctrl+g" },
+				{ "wait": 50 },
+				{ "key": "alt+x" },
+				{ "wait": 50 },
+				{ "type": "desc" },
+				{ "key": "tab" },
+				{ "wait": 50 },
+				{ "key": "tab" },
+				{ "wait": 50 },
+				{ "expect": { "image": "completions" } },
+				{ "type": "f" },
+				{ "key": "tab" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "type": "forward-c" },
+				{ "key": "tab" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 120 },
+				{ "expect": { "image": "describe-function" } }
 			]
 		}
 	]
