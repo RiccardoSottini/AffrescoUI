@@ -130,7 +130,7 @@
 					"expect": {
 						"node": {
 							"role": "text",
-							"name": "Day 9"
+							"name": "Day 0.1"
 						},
 						"property": "visible",
 						"is": true
@@ -282,7 +282,7 @@
 				{
 					"expect": {
 						"node": "#time-date",
-						"text": "2030-01-01 00:00 UTC"
+						"text": "2030-01-01 00:00:00 UTC"
 					}
 				},
 				{
@@ -300,13 +300,13 @@
 				{
 					"expect": {
 						"state": "speed",
-						"is": 10
+						"is": 0.1
 					}
 				},
 				{
 					"expect": {
 						"node": "#time-rate",
-						"text": "17,280,000x faster: 200 days a second"
+						"text": "172,800x faster: 2 days a second"
 					}
 				},
 				{
@@ -318,7 +318,7 @@
 				{
 					"expect": {
 						"state": "speed",
-						"is": 0.1
+						"is": 0.001
 					}
 				},
 				{
@@ -327,7 +327,7 @@
 				{
 					"expect": {
 						"node": "#time-rate",
-						"text": "Reversed, 172,800x faster: 2 days a second"
+						"text": "Reversed, 1,728x faster: 0.02 days a second"
 					}
 				},
 				{
@@ -351,7 +351,7 @@
 				{
 					"expect": {
 						"state": "speed",
-						"is": 1
+						"is": 0.01
 					}
 				}
 			]
@@ -383,11 +383,14 @@
 				{
 					"expect": {
 						"state": "follow",
-						"is": ""
+						"is": "earth"
 					}
 				},
 				{
-					"key": "f"
+					"click": {
+						"role": "button",
+						"name": "Follow the selected body"
+					}
 				},
 				{
 					"wait": 700
@@ -395,10 +398,11 @@
 				{
 					"expect": {
 						"state": "follow",
-						"is": "earth"
+						"is": ""
 					}
 				}
-			]
+			],
+			"note": ""
 		},
 		{
 			"name": "centre-the-selection",
@@ -1501,7 +1505,7 @@
 					"expect": {
 						"node": "#sky-place",
 						"property": "text",
-						"is": "Earth, 45°N   FOV 63.8°   2030-01-01 00:00 UTC"
+						"is": "Earth, 45°N   FOV 63.8°   2030-01-01 00:00:00 UTC"
 					}
 				}
 			]
@@ -1690,9 +1694,16 @@
 				},
 				{
 					"expect": {
-						"node": "#sky-grid-label-g6",
+						"node": "#sky-grid-label-g5",
 						"property": "text",
-						"is": "180°"
+						"is": "150°"
+					}
+				},
+				{
+					"expect": {
+						"node": "#sky-grid-label-g16",
+						"property": "text",
+						"is": "30°"
 					}
 				}
 			]

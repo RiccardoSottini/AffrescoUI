@@ -165,16 +165,16 @@
 		"skyEcliptic": "{{map(filter(computed.placed, it.id != 'earth'), {id: it.id, name: it.name, hex: it.hex, parent: it.parent, longitude: atan2(computed.skyHome.z - it.z, it.x - computed.skyHome.x)})}}",
 		"skyEarth": "{{ {sinLatitude: sin(radians(state.sky.latitude)), cosLatitude: cos(radians(state.sky.latitude)), sidereal: 2 * pi() * state.time * 1.0027379} }}",
 		"skyStars": "{{map(range(1200), {kind: 'star', u: abs(sin(index * 12.9898) * 43758.5453) % 1 * 2 - 1, t: abs(sin(index * 78.233) * 12543.917) % 1 * 2 * pi(), mag: 0.5 + 6 * sqrt(abs(sin(index * 39.425) * 24634.633) % 1), tint: floor(abs(sin(index * 7.131) * 9631.77) % 1 * 3)})}}",
-		"skyObjects": "{{state.skyMode != 'ground' ? [] : concat(map(computed.skyStars, merge(it, {r: round(max(0.5, 2.8 - it.mag * 0.4) * 100) / 100})), map(computed.skyEcliptic, merge(it, {kind: 'body', u: sin(it.longitude) * 0.3978, t: atan2(sin(it.longitude) * 0.9175, cos(it.longitude))})), map(state.constellations, merge(it, {kind: 'name'})), [{kind: 'cardinal', id: 'N', e: 0, n: 1, up: 0}, {kind: 'cardinal', id: 'E', e: 1, n: 0, up: 0}, {kind: 'cardinal', id: 'S', e: 0, n: -1, up: 0}, {kind: 'cardinal', id: 'W', e: -1, n: 0, up: 0}], state.skyLayers.ground ? map(range(73), {kind: 'land', e: sin(radians(5 * it)), n: cos(radians(5 * it)), up: sin(radians(max(0.4, 1.6 + 1.3 * sin(radians(15 * it) + 1) + 0.8 * sin(radians(35 * it)) + 0.5 * sin(radians(85 * it) + 2))))}) : [], state.skyLayers.grid ? map(range(20), {kind: 'gridLabel', id: 'g' + it, text: it < 12 ? 30 * it + '°' : 30 + 30 * (it % 2) + '°', e: it < 12 ? sin(radians(30 * it)) : sin(radians(90 * floor((it - 12) / 2))) * cos(radians(30 + 30 * (it % 2))), n: it < 12 ? cos(radians(30 * it)) : cos(radians(90 * floor((it - 12) / 2))) * cos(radians(30 + 30 * (it % 2))), up: it < 12 ? 0.02 : sin(radians(30 + 30 * (it % 2)))}) : [], state.skyLayers.grid ? map(range(111), {kind: 'grid', line: floor(it / 37), e: cos(radians(30 * floor(it / 37))) * sin(radians(10 * (it % 37))), n: cos(radians(30 * floor(it / 37))) * cos(radians(10 * (it % 37))), up: sin(radians(30 * floor(it / 37)))}) : [], state.skyLayers.grid ? map(range(108), {kind: 'grid', line: 3 + floor(it / 9), e: cos(radians(10 * (it % 9))) * sin(radians(30 * floor(it / 9))), n: cos(radians(10 * (it % 9))) * cos(radians(30 * floor(it / 9))), up: sin(radians(10 * (it % 9)))}) : [])}}",
+		"skyObjects": "{{state.skyMode != 'ground' ? [] : concat(map(computed.skyStars, merge(it, {r: round(max(0.5, 2.8 - it.mag * 0.4) * 100) / 100})), map(computed.skyEcliptic, merge(it, {kind: 'body', u: sin(it.longitude) * 0.3978, t: atan2(sin(it.longitude) * 0.9175, cos(it.longitude))})), map(state.constellations, merge(it, {kind: 'name'})), [{kind: 'cardinal', id: 'N', e: 0, n: 1, up: 0}, {kind: 'cardinal', id: 'E', e: 1, n: 0, up: 0}, {kind: 'cardinal', id: 'S', e: 0, n: -1, up: 0}, {kind: 'cardinal', id: 'W', e: -1, n: 0, up: 0}], state.skyLayers.ground ? map(range(73), {kind: 'land', e: sin(radians(5 * it)), n: cos(radians(5 * it)), up: sin(radians(max(0.4, 1.6 + 1.3 * sin(radians(15 * it) + 1) + 0.8 * sin(radians(35 * it)) + 0.5 * sin(radians(85 * it) + 2))))}) : [], state.skyLayers.grid ? map(range(20), {kind: 'gridLabel', id: 'g' + it, text: it < 12 ? 30 * it + '°' : round(30 + 30 * (it % 2)) + '°', e: it < 12 ? sin(radians(30 * it)) : sin(radians(90 * floor((it - 12) / 2))) * cos(radians(30 + 30 * (it % 2))), n: it < 12 ? cos(radians(30 * it)) : cos(radians(90 * floor((it - 12) / 2))) * cos(radians(30 + 30 * (it % 2))), up: it < 12 ? 0.02 : sin(radians(30 + 30 * (it % 2)))}) : [], state.skyLayers.grid ? map(range(111), {kind: 'grid', line: floor(it / 37), e: cos(radians(30 * floor(it / 37))) * sin(radians(10 * (it % 37))), n: cos(radians(30 * floor(it / 37))) * cos(radians(10 * (it % 37))), up: sin(radians(30 * floor(it / 37)))}) : [], state.skyLayers.grid ? map(range(108), {kind: 'grid', line: 3 + floor(it / 9), e: cos(radians(10 * (it % 9))) * sin(radians(30 * floor(it / 9))), n: cos(radians(10 * (it % 9))) * cos(radians(30 * floor(it / 9))), up: sin(radians(10 * (it % 9)))}) : [])}}",
 		"skyLocal": "{{map(computed.skyObjects, it.kind == 'cardinal' || it.kind == 'grid' || it.kind == 'land' || it.kind == 'gridLabel' ? it : merge(it, {e: -sqrt(1 - it.u * it.u) * sin(computed.skyEarth.sidereal - it.t), n: computed.skyEarth.cosLatitude * it.u - computed.skyEarth.sinLatitude * sqrt(1 - it.u * it.u) * cos(computed.skyEarth.sidereal - it.t), up: computed.skyEarth.sinLatitude * it.u + computed.skyEarth.cosLatitude * sqrt(1 - it.u * it.u) * cos(computed.skyEarth.sidereal - it.t)}))}}",
 		"skyDepth": "{{map(computed.skyLocal, merge(it, {depth: (it.e * computed.skyCamera.sinAzimuth + it.n * computed.skyCamera.cosAzimuth) * computed.skyCamera.cosAltitude + it.up * computed.skyCamera.sinAltitude, across: it.e * computed.skyCamera.cosAzimuth - it.n * computed.skyCamera.sinAzimuth, rise: it.up * computed.skyCamera.cosAltitude - (it.e * computed.skyCamera.sinAzimuth + it.n * computed.skyCamera.cosAzimuth) * computed.skyCamera.sinAltitude}))}}",
 		"skyPlaced": "{{map(computed.skyDepth, merge(it, {ahead: it.depth > 0.08, x: it.depth > 0.08 ? computed.skyCamera.cx + computed.skyCamera.f * it.across / it.depth : -1000, y: it.depth > 0.08 ? computed.skyCamera.cy - computed.skyCamera.f * it.rise / it.depth : -1000}))}}",
 		"skyShown": "{{filter(computed.skyPlaced, it.ahead && it.x > -24 && it.x < 484 && it.y > -24 && it.y < computed.skyHeight + 24)}}",
 		"skySun": "{{find(computed.skyPlaced, it.id == 'sun')}}",
-		"daylight": "{{state.skyLayers.atmosphere && computed.skySun ? clamp((computed.skySun.up + 0.1) / 0.2, 0, 1) * (1 - 0.92 * computed.eclipseCover) : 0}}",
+		"daylight": "{{state.skyLayers.atmosphere && computed.skySun ? pow(clamp((computed.skySun.up + 0.21) / 0.31, 0, 1), 1.6) * (1 - 0.92 * computed.eclipseCover) : 0}}",
 		"skyLimit": "{{state.limitMag - 9 * computed.daylight}}",
 		"skyColor": "{{gradientColor({kind: 'linear', stops: [{at: 0, color: '#04060cff'}, {at: 0.4, color: '#1b2a4cff'}, {at: 1, color: '#5b8ed4ff'}]}, computed.daylight)}}",
-		"groundColor": "{{gradientColor({kind: 'linear', stops: [{at: 0, color: '#0c120eff'}, {at: 1, color: '#3b4f33ff'}]}, computed.daylight)}}",
+		"groundColor": "{{gradientColor({kind: 'linear', stops: [{at: 0, color: '#0c120eff'}, {at: 1, color: '#62804dff'}]}, computed.daylight)}}",
 		"figureColor": "{{gradientColor({kind: 'linear', stops: [{at: 0, color: '#3d6fb0ff'}, {at: 1, color: '#3d6fb050'}]}, computed.daylight)}}",
 		"horizonY": "{{computed.skyCamera.cy + computed.skyCamera.f * tan(computed.skyView.altitude)}}",
 		"skyFigurePath": "{{state.skyLayers.lines && length(computed.skyPlaced) > 1200 ? join(map(filter(state.constellationLines, computed.skyPlaced[it[0]].ahead && computed.skyPlaced[it[1]].ahead), 'M' + fixed(computed.skyPlaced[it[0]].x, 1) + ' ' + fixed(computed.skyPlaced[it[0]].y, 1) + 'L' + fixed(computed.skyPlaced[it[1]].x, 1) + ' ' + fixed(computed.skyPlaced[it[1]].y, 1)), '') : ''}}",
@@ -327,7 +327,7 @@
 					{
 						"repeat": {
 							"for": "g",
-							"in": "{{filter(computed.skyShown, it.kind == 'gridLabel')}}",
+							"in": "{{filter(computed.skyShown, it.kind == 'gridLabel' && indexOf(['0°', '90°', '180°', '270°'], it.text) < 0)}}",
 							"key": "{{g.id}}"
 						},
 						"type": "label",
@@ -429,7 +429,9 @@
 								"borderColor": "{{b.id == state.selected ? '@accent' : '#00000000'}}",
 								"borderWidth": 1
 							}
-						]
+						],
+						"borderWidth": "{{b.id == state.selected ? 1.5 : 0}}",
+						"borderColor": "#ff8a5c"
 					},
 					{
 						"repeat": {

@@ -14,6 +14,10 @@
 			{
 				"menu": "view",
 				"title": "View"
+			},
+			{
+				"menu": "time",
+				"title": "Time"
 			}
 		]
 	},
@@ -146,7 +150,7 @@
 		"time": 0,
 		"duration": 420,
 		"playing": false,
-		"speed": 1,
+		"speed": 0.01,
 		"theme": "dark",
 		"selected": "earth",
 		"camera": {
@@ -823,11 +827,11 @@
 		"info": "{{computed.sight ? {name: computed.selectedBody.name, distance: computed.range / 4.3, lit: computed.sight.parent == '' ? 1 : (1 + ((computed.sun.x1 - computed.sight.x1) * -computed.sight.x1 + (computed.sun.z1 - computed.sight.z1) * (computed.view.distance * computed.view.cp - computed.sight.z1)) / max(hypot(computed.sun.x1 - computed.sight.x1, computed.sun.z1 - computed.sight.z1) * computed.range, 0.000001)) / 2} : null}}",
 		"apparent": "{{computed.sight && computed.range > 0 ? degrees(2 * atan(computed.sight.size / computed.range)) : 0}}",
 		"apparentText": "{{computed.apparent >= 1 ? fixed(computed.apparent, 2) + '°' : computed.apparent * 60 >= 1 ? fixed(computed.apparent * 60, 1) + '′' : fixed(computed.apparent * 3600, 1) + '″'}}",
-		"clock": "{{formatDate(dateMs('2030-01-01') + state.time * 86400000, 'yyyy-MM-dd HH:mm', 'utc') + ' UTC'}}",
+		"clock": "{{formatDate(dateMs('2030-01-01') + state.time * 86400000, 'yyyy-MM-dd HH:mm:ss', 'utc') + ' UTC'}}",
 		"realTime": "{{abs(abs(state.speed) * 1728000 - 1) < 0.01}}",
 		"rate": "{{state.playing ? (state.speed < 0 ? 'Reversed, ' : '') + (computed.realTime ? 'Real time' : formatNumber(abs(state.speed) * 1728000, 0, 0) + 'x faster' + (abs(state.speed) < 0.0005 ? '' : ': ' + fixed(abs(state.speed) * 20, abs(state.speed) < 0.05 ? 2 : 0) + ' days a second')) : 'Paused'}}",
 		"viewMenu": "{{map(menus.view, merge(it, {checked: it.run == 'toggleTheme' ? state.theme == 'light' : it.run == 'toggleOrbits' ? state.showOrbits : (it.run == 'toggleLabels' ? state.showLabels : (it.run == 'toggleBrowser' ? state.showBrowser : (it.run == 'toggleStars' ? state.showStars : (it.run == 'toggleShading' ? state.showShading : (it.run == 'toggleGlow' ? state.showGlow : (it.run == 'toggleMarker' ? indexOf(state.markers, state.selected) >= 0 : (it.run == 'follow' ? state.follow != '' && state.follow != null : false)))))))}))}}",
-		"toolbarItems": "{{[{title: 'Back to day 0', icon: 'skip-back', keyLabel: 'Ctrl+0', run: 'rewind'}, {title: state.playing ? 'Pause' : 'Play', icon: state.playing ? 'pause' : 'play', keyLabel: 'Space', run: 'togglePlay'}, {title: state.speed < 0 ? 'Previous event' : 'Next event', icon: state.speed < 0 ? 'skip-back' : 'skip-forward', keyLabel: 'Ctrl+N', run: 'nextEvent'}, {separator: true}, {title: 'Slower', icon: 'chevrons-left', keyLabel: 'K', run: 'slower'}, {title: 'Reverse', icon: 'arrow-left-right', keyLabel: 'J', checked: state.speed < 0, run: 'reverse'}, {title: 'Faster', icon: 'chevrons-right', keyLabel: 'L', run: 'faster'}, {title: 'Real time', icon: 'clock', keyLabel: 'Shift+K', checked: state.playing && computed.realTime, run: 'realTime'}, {separator: true}, {title: 'Go to the selected body', icon: 'rocket', keyLabel: 'G', run: 'goTo'}, {title: 'Centre the selected body', icon: 'crosshair', keyLabel: 'C', run: 'centre'}, {title: 'Follow the selected body', icon: 'locate-fixed', keyLabel: 'F', checked: state.follow != '' && state.follow != null, run: 'follow'}, {title: 'Mark the selected body', icon: 'scan', keyLabel: 'M', checked: indexOf(state.markers, state.selected) >= 0, run: 'toggleMarker'}, {separator: true}, {title: 'Orbits', icon: 'orbit', keyLabel: 'O', checked: state.showOrbits, run: 'toggleOrbits'}, {title: 'Labels', icon: 'tag', keyLabel: 'P', checked: state.showLabels, run: 'toggleLabels'}, {title: 'Browser', icon: 'list-tree', keyLabel: 'B', checked: state.showBrowser, run: 'toggleBrowser'}, {separator: true}, {title: 'Render options', icon: 'sliders-horizontal', keyLabel: 'Ctrl+,', run: 'openRender'}]}}",
+		"toolbarItems": "{{[{title: 'Back to day 0', icon: 'skip-back', keyLabel: 'Ctrl+0', run: 'rewind'}, {title: state.playing ? 'Pause' : 'Play', icon: state.playing ? 'pause' : 'play', keyLabel: 'Space', run: 'togglePlay'}, {title: state.speed < 0 ? 'Previous event' : 'Next event', icon: state.speed < 0 ? 'skip-back' : 'skip-forward', keyLabel: 'Ctrl+N', run: 'nextEvent'}, {separator: true}, {title: 'Slower', icon: 'chevrons-left', keyLabel: 'K', run: 'slower'}, {title: 'Reverse', icon: 'arrow-left-right', keyLabel: 'J', checked: state.speed < 0, run: 'reverse'}, {title: 'Faster', icon: 'chevrons-right', keyLabel: 'L', run: 'faster'}, {title: 'Real time', icon: 'timer', keyLabel: 'Shift+K', checked: state.playing && computed.realTime, run: 'realTime'}, {separator: true}, {title: 'Go to the selected body', icon: 'rocket', keyLabel: 'G', run: 'goTo'}, {title: 'Centre the selected body', icon: 'crosshair', keyLabel: 'C', run: 'centre'}, {title: 'Follow the selected body', icon: 'locate-fixed', keyLabel: 'F', checked: state.follow != '' && state.follow != null, run: 'follow'}, {title: 'Mark the selected body', icon: 'scan', keyLabel: 'M', checked: indexOf(state.markers, state.selected) >= 0, run: 'toggleMarker'}, {separator: true}, {title: 'Orbits', icon: 'orbit', keyLabel: 'O', checked: state.showOrbits, run: 'toggleOrbits'}, {title: 'Labels', icon: 'tag', keyLabel: 'P', checked: state.showLabels, run: 'toggleLabels'}, {title: 'Browser', icon: 'list-tree', keyLabel: 'B', checked: state.showBrowser, run: 'toggleBrowser'}, {separator: true}, {title: 'Render options', icon: 'sliders-horizontal', keyLabel: 'Ctrl+,', run: 'openRender'}]}}",
 		"statusItems": "{{[{text: 'Day ' + round(state.time * 10) / 10, color: '@accent'}, {text: computed.goal ? (state.speed < 0 ? 'Previous: ' : 'Next: ') + computed.goal.label + ' on day ' + round(computed.goal.time) + ' (' + (state.speed < 0 ? round(state.time - computed.goal.time) + ' days ago)' : 'in ' + round(computed.goal.time - state.time) + ' days)') : 'No more events in this window'}, {side: 'end', text: computed.selectedBody ? computed.selectedBody.name + (computed.selectedBody.parent ? ', orbits ' + (find(state.bodies, it.id == computed.selectedBody.parent).name ?? computed.selectedBody.parent) + ' every ' + computed.selectedBody.period + ' days' : ', at the centre') : 'Nothing selected'}]}}",
 		"fov": "{{ {deg: degrees(2 * atan(min(computed.view.w, computed.view.h) / (2 * computed.view.f))), times: state.zoom / 1.1} }}",
 		"fovText": "{{'FOV: ' + floor(computed.fov.deg) + '° ' + pad(floor((computed.fov.deg - floor(computed.fov.deg)) * 60), 2, '0') + '′ (' + fixed(computed.fov.times, 2) + 'x)'}}",
@@ -1155,7 +1159,7 @@
 		],
 		"realTime": {
 			"title": "Real time",
-			"icon": "clock",
+			"icon": "timer",
 			"do": [
 				{
 					"set": "state.speed",
@@ -1174,7 +1178,7 @@
 			},
 			{
 				"set": "state.speed",
-				"to": 1
+				"to": 0.01
 			}
 		],
 		"goTo": {
@@ -1748,7 +1752,21 @@
 					}
 				]
 			}
-		]
+		],
+		"followSelected": {
+			"title": "Follow the selected body",
+			"icon": "locate-fixed",
+			"do": [
+				{
+					"if": "{{state.selected != '' && state.follow != state.selected}}",
+					"then": [
+						{
+							"run": "follow"
+						}
+					]
+				}
+			]
+		}
 	},
 	"keys": {
 		"mod+p": "togglePlay",
@@ -1762,7 +1780,7 @@
 		"shift+k": "realTime",
 		"g": "goTo",
 		"c": "centre",
-		"f": "follow",
+		"f": "followSelected",
 		"o": "toggleOrbits",
 		"p": "toggleLabels",
 		"b": "toggleBrowser",
