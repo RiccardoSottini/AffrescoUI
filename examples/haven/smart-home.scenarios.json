@@ -219,6 +219,7 @@
 			"note": "The Add buttons put a new node on the automation graph, chosen",
 			"steps": [
 				{ "key": "mod+4" },
+				{ "click": "#autoTabFlow" },
 				{ "expect": { "state": "autoNodes.length", "is": 6 } },
 				{ "click": "#autoAddTime" },
 				{ "expect": { "state": "autoNodes.length", "is": 7 } },
@@ -233,9 +234,47 @@
 			"note": "Dragging the Morning heating clip two hours later moves it by whole hours",
 			"steps": [
 				{ "key": "mod+4" },
+				{ "click": "#autoTabFlow" },
 				{ "drag": [680, 630], "to": [748, 630], "moves": 8 },
 				{ "expect": { "state": "schedules[0].clips[0].start", "is": 8 } },
 				{ "expect": { "state": "schedules[0].clips[0].duration", "is": 3 } }
+			]
+		},
+		{
+			"name": "automations-list-and-editor",
+			"note": "The automations list turns one off, opens one as cards, adds and removes a step, runs it and goes back",
+			"steps": [
+				{ "key": "mod+4" },
+				{ "expect": { "node": "#autoRow", "nth": 3, "property": "shown", "is": true } },
+				{ "click": "#autoRowToggle", "nth": 0 },
+				{ "expect": { "state": "automations[0].on", "is": false } },
+				{ "click": "#autoRowOpen", "nth": 1 },
+				{ "expect": { "state": "autoOpen", "is": 1 } },
+				{ "expect": { "node": "#autoStep", "nth": 4, "property": "shown", "is": true } },
+				{ "click": "#autoAdd-if" },
+				{ "expect": { "state": "automations[1].steps.length", "is": 6 } },
+				{ "expect": { "state": "automations[1].steps[5].part", "is": "if" } },
+				{ "click": "#autoStepRemove", "nth": 0 },
+				{ "expect": { "state": "automations[1].steps.length", "is": 5 } },
+				{ "expect": { "state": "automations[1].steps[0].part", "is": "if" } },
+				{ "click": "#autoRun" },
+				{ "expect": { "state": "automations[1].ran", "is": "now" } },
+				{ "click": "#autoBack" },
+				{ "expect": { "state": "autoOpen", "is": -1 } },
+				{ "expect": { "node": "#autoList", "exists": true } }
+			]
+		},
+		{
+			"name": "new-automation-from-the-list",
+			"note": "New automation adds an untitled, empty one and opens it in the editor",
+			"steps": [
+				{ "key": "mod+4" },
+				{ "click": "#autoNew" },
+				{ "expect": { "state": "automations.length", "is": 5 } },
+				{ "expect": { "state": "autoOpen", "is": 4 } },
+				{ "expect": { "node": "#autoStep", "exists": false } },
+				{ "click": "#autoAdd-when" },
+				{ "expect": { "node": "#autoStep", "exists": true } }
 			]
 		},
 		{

@@ -65,11 +65,16 @@
 				{ "key": "mod+l" },
 				{ "expect": { "image": "energy-arabic" } },
 				{ "key": "mod+l" },
+				{ "key": "mod+4" },
+				{ "expect": { "image": "automations" } },
 				{ "key": "mod+comma" },
 				{ "expect": { "image": "settings" } },
 				{ "key": "mod+t" },
 				{ "wait": 600 },
-				{ "expect": { "image": "settings-dark" } }
+				{ "expect": { "image": "settings-dark" } },
+				{ "key": "mod+4" },
+				{ "click": "#autoRowOpen", "nth": 1 },
+				{ "expect": { "image": "automation-editor-dark" } }
 			]
 		}
 	]

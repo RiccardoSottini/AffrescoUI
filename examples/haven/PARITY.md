@@ -4,7 +4,7 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 20 done, 4 partial, 15 missing (39).
+**Counts:** 23 done, 4 partial, 12 missing (39).
 
 ## Shell
 
@@ -57,9 +57,9 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Automations list with on and off | missing | |
-| Editor: triggers, conditions, actions as cards | missing | |
-| Automation trace / last run | missing | |
+| Automations list with on and off | done | searchable table with name, last ran and enabled columns; disabled rules dimmed; a floating New automation button |
+| Editor: triggers, conditions, actions as cards | done | an editor bar with back, name, enabled and Run; When, And if, Then do cards with outlined add buttons; a graph view |
+| Automation trace / last run | done | a step-by-step timeline of the last run; Run starts it now |
 
 ## Areas, logbook and history
 
