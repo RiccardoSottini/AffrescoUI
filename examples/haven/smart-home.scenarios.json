@@ -234,10 +234,10 @@
 		},
 		{
 			"name": "edit-a-card",
-			"note": "Edit dashboard, in the top bar's menu, outlines the cards; a card's editor renames it in the form, hides its modes in code, and refuses code that is not an object",
+			"note": "Arrange cards, in the top bar's menu, outlines the cards; a card's editor renames it in the form, hides its modes in code, and refuses code that is not an object",
 			"steps": [
 				{ "click": "#dashMore" },
-				{ "click": { "role": "menuitem", "name": "Edit dashboard" } },
+				{ "click": { "role": "menuitem", "name": "Arrange cards" } },
 				{ "expect": { "state": "editing", "is": true } },
 				{ "click": "#editClimate" },
 				{ "expect": { "state": "cardEdit.open", "is": true } },
@@ -525,9 +525,9 @@
 		},
 		{
 			"name": "an-area-opens-its-room",
-			"note": "Areas in the sidebar opens the areas page, and an area's card opens that room on the home page",
+			"note": "Rooms in the sidebar opens the rooms page, and an area's card opens that room on the home page",
 			"steps": [
-				{ "click": { "role": "tab", "name": "Areas" } },
+				{ "click": { "role": "tab", "name": "Rooms" } },
 				{ "expect": { "state": "page", "is": "areas" } },
 				{ "click": "#areaTile", "nth": 2 },
 				{ "expect": { "state": "page", "is": "home" } },
@@ -557,7 +557,7 @@
 				{ "expect": { "state": "page", "is": "automations" } },
 				{ "key": "mod+comma" },
 				{ "click": "#settingsRow", "nth": 0 },
-				{ "click": { "role": "tab", "name": "Entities" } },
+				{ "click": { "role": "tab", "name": "Controls" } },
 				{ "expect": { "node": "#roomEntityTable", "property": "shown", "is": true } },
 				{ "click": "#devSearch" },
 				{ "type": "kit" },

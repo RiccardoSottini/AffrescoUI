@@ -19,7 +19,7 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 
 | Feature | What it adds |
 |---|---|
-| `shell` | The title bar with the command centre, the activity bar (explorer, go to file, problems, settings), the side bar with the explorer, editor groups with tabs, the panel area, the status bar, zen mode, and the welcome page |
+| `shell` | The title bar with the search box, the view rail (explorer, go to file, problems, settings), the side bar with the explorer, editor groups with tabs, the panel area, the status bar, zen mode, and the welcome page |
 | `palette` | The command palette (`>`), quick open over the file index, go to line (`:`), and the settings and keybinding pages, generated from the contributions |
 | `themes` | Themes as design tokens (Forge Dark, Forge Light), the colour theme importer (`ThemeImport.*`), and the file icon theme (`IconTheme.*`) |
 | `accounts` | Signing in to the document server (`apps/server`) with a device code, settings synced through the person's `~settings` document, and who is on a shared document, and where, in the status bar (`Accounts.*` keeps the sign-in in the system's secret store); `accounts.scenarios.json` |
@@ -28,7 +28,7 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 | `search` | Find in Files (`mod+shift+f`): an editor page that searches the open folder with the services' search engine (`Search.*`) as you submit, plain, whole word, case-sensitive or a regular expression, with include and exclude globs and the `.gitignore` files followed; the matches stream into a tree by file, a match opens at its line, and Replace All writes every file after a confirm, skipping those with unsaved edits and reloading the open ones |
 | `explorer` | The side bar's tree, kept current by the file watcher (`Explorer.*`, a `DirectoryModel`), with new file and folder, rename, delete (after a confirm dialog), copy and paste, move by drag and drop, and reveal of the active file, from its context menu, the File menu and the palette |
 | `terminal` | The panel's Terminal tab: up to 8 shells as tabs (`Terminal.*`, a VT terminal on libvterm in `TerminalModel.*`, on the `pty` provider; each shell's screen and pty in `TerminalSessions.*`, the widget in `TerminalView.*`), with bounded scrollback, the pty resized with the node, and no title or clipboard writes unless allowed; New Terminal is `mod+alt+t` |
-| `debug` | Run and Debug (`mod+shift+d`): launch configurations from `.forge/launch.json`, sessions with lldb-dap or debugpy on the `dap` provider, a floating toolbar and F5, Shift+F5, Cmd+Shift+F5, F6, F9, F10, F11, Shift+F11; gutter breakpoints (a click toggles one, Shift+click edits its condition, hit count or log message, Alt+click disables it) marked verified or not, the Breakpoints list with the exception filters, the call stack per thread, variables as a lazy tree paged by 100, Set Value, watches, the debug console with history and completion, and a value on hover while paused; `debug.scenarios.json` |
+| `debug` | The debugger (`mod+shift+d`): launch configurations from `.forge/launch.json`, sessions with lldb-dap or debugpy on the `dap` provider, a floating toolbar and F5, Shift+F5, Cmd+Shift+F5, F6, F9, F10, F11, Shift+F11; gutter breakpoints (a click toggles one, Shift+click edits its condition, hit count or log message, Alt+click disables it) marked verified or not, the Breakpoints list with the exception filters, the call stack per thread, variables as a lazy tree paged by 100, Set Value, watches, the debug console with history and completion, and a value on hover while paused; `debug.scenarios.json` |
 | `scm` | Source control (Cmd+Shift+G): git's status in staged changes and changes, stage and unstage, commit, branches, a change's diff against HEAD, and its gutter marks; git's output is read strictly in C++ (`GitStatus.*`, `LineDiff.*`) |
 | `agent` | The agent pane (Cmd+Alt+I): a request in plain words goes to the connected agents, and their change comes back as a proposal, reviewed here with its changes, evidence (screenshots, scenario results) and a live preview, then accepted or rejected; and the Features view (Cmd+Shift+X): the host's catalogue, install, enable and disable |
 | `editing` | The find and replace bar (`mod+f`, `mod+alt+f`): plain, whole word, case-sensitive or a regular expression, in the file or in the selection (`alt+l`), with the match count; word wrap (`alt+z`), bracket matching and indentation guides as settings; `editing.scenarios.json` |
@@ -87,8 +87,8 @@ Done means it works and a scenario covers it; partial says what is missing. Ever
 
 | Item | State | How to try it |
 |---|---|---|
-| Title bar and command centre | done | Click the command centre at the top, or `mod+p` |
-| Activity bar | done | The icons on the left; `workbench.activityBar.visible` hides it |
+| Title bar and search box | done | Click the search box at the top, or `mod+p` |
+| View rail | done | The icons on the left; `workbench.activityBar.visible` hides it |
 | Primary side bar | done | `mod+b` |
 | Secondary side bar | done | `mod+alt+b`: the outline of the active file (Refresh Outline) |
 | Editor groups: split | done | `mod+\`, then `mod+1` and `mod+2` focus a group |

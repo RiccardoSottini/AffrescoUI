@@ -4,11 +4,11 @@
 	"version": 2,
 	"note": "Arcadia's downloads: the current download with its network and disk graph, the queue to reorder, unscheduled items and completed ones.",
 	"tokens": {
-		"dl.net": { "dark": "#1a9fff", "light": "#1673c4" },
-		"dl.netSoft": { "dark": "#1a9fff40", "light": "#1673c440" },
-		"dl.disk": { "dark": "#5cb71f", "light": "#3f8a14" },
-		"dl.band": { "dark": "#0e141b", "light": "#dfe6ee" },
-		"dl.shade": { "dark": "#0e141be0", "light": "#eef2f6e6" },
+		"dl.net": { "dark": "#f5a524", "light": "#a65800" },
+		"dl.netSoft": { "dark": "#f5a52440", "light": "#a6580040" },
+		"dl.disk": { "dark": "#2ec4a0", "light": "#1f9e80" },
+		"dl.band": { "dark": "#130f17", "light": "#ebe3ef" },
+		"dl.shade": { "dark": "#130f17e0", "light": "#f6f2f7e6" },
 		"dl.row": { "dark": "#ffffff08", "light": "#ffffffc0" },
 		"dl.rowHover": { "dark": "#ffffff14", "light": "#ffffff" }
 	},
@@ -1099,7 +1099,7 @@
 				"role": "button",
 				"cursor": "hand",
 				"gradient": { "kind": "linear", "angle": 90, "stops": ["@color.play", "@color.playEnd"] },
-				"hover": { "shadow": { "blur": 10, "color": "#5cb71f66" } },
+				"hover": { "shadow": { "blur": 10, "color": "#2ec4a066" } },
 				"onClick": { "run": "play", "with": { "id": "{{id}}" } }
 			}
 		}

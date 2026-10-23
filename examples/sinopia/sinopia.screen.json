@@ -14,28 +14,31 @@
 	},
 
 	"colors": {
-		"brand": "#b7472a",
-		"brandLine": "#c43e1c",
-		"brandHover": "#c45a3f",
+		"brand": "#4b3fa8",
+		"brandLine": "#4b3fa8",
+		"brandHover": "#5d51c0",
 		"onBrand": "#ffffff",
-		"rb": "#f3f3f3",
-		"rbInk": "#262626",
-		"rbMuted": "#616161",
-		"rbHover": "#e0e0e0",
-		"rbPressed": "#d1d1d1",
-		"rbChecked": "#d6d6d6",
-		"rbCheckedHover": "#c7c7c7",
-		"rbDisabled": "#a6a6a6",
+		"titleBar": "#e8e7f1",
+		"titleInk": "#2a2740",
+		"titleHover": "#d9d7e8",
+		"rb": "#f5f5f9",
+		"rbInk": "#25232f",
+		"rbMuted": "#5e5c6f",
+		"rbHover": "#e6e5ef",
+		"rbPressed": "#d5d3e4",
+		"rbChecked": "#e0ddf3",
+		"rbCheckedHover": "#d2cfec",
+		"rbDisabled": "#a7a5b6",
 		"rbFieldBg": "#ffffff",
-		"rbFieldLine": "#c7c7c7",
-		"rbFieldHover": "#616161",
-		"rbLine": "#d6d6d6",
-		"work": "#e6e6e6",
-		"thumbLine": "#c7c7c7",
-		"thumbHover": "#a6a6a6",
+		"rbFieldLine": "#cac8d8",
+		"rbFieldHover": "#5e5c6f",
+		"rbLine": "#dad8e4",
+		"work": "#e5e5eb",
+		"thumbLine": "#cac8d8",
+		"thumbHover": "#aeabc6",
 		"notes": "#ffffff",
-		"barLine": "#d6d6d6",
-		"handles": "#616161"
+		"barLine": "#dad8e4",
+		"handles": "#4b3fa8"
 	},
 
 	"tokens": {
@@ -46,20 +49,20 @@
 
 	"styles": {
 		"tab": {
-			"type": "label", "height": 36, "fitText": true, "padding": 8, "color": "transparent", "textColor": "@rbInk", "cursor": "hand",
+			"type": "label", "height": 36, "fitText": true, "padding": 10, "radius": 14, "color": "transparent", "textColor": "@rbInk", "cursor": "hand",
 			"focusable": true, "role": "tab", "hover": { "color": "@rbHover" }
 		},
 		"titleButton": {
-			"type": "label", "width": 32, "height": 32, "radius": 4, "align": "center", "color": "transparent", "textColor": "@onBrand", "cursor": "hand",
-			"focusable": true, "hover": { "color": "@brandHover" }
+			"type": "label", "width": 32, "height": 32, "radius": 8, "align": "center", "color": "transparent", "textColor": "@titleInk", "cursor": "hand",
+			"focusable": true, "hover": { "color": "@titleHover" }
 		},
 		"barButton": {
-			"type": "label", "height": 22, "fitText": true, "padding": 4, "radius": 2, "color": "transparent", "textColor": "#424242", "cursor": "hand",
+			"type": "label", "height": 22, "fitText": true, "padding": 4, "radius": 6, "color": "transparent", "textColor": "#3e3c4d", "cursor": "hand",
 			"hover": { "color": "@rbHover" }
 		},
 		"barButtonOn": { "style": "barButton", "color": "@rbChecked" },
 		"pillButton": {
-			"type": "label", "height": 28, "fitText": true, "padding": 8, "radius": 4, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
+			"type": "label", "height": 28, "fitText": true, "padding": 10, "radius": 14, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
 			"textColor": "@rbInk", "cursor": "hand", "hover": { "color": "@rbHover" }
 		}
 	},
@@ -87,9 +90,9 @@
 
 	"computed": {
 		"tabs": [
-			{ "id": "file", "title": "File" }, { "id": "home", "title": "Home" }, { "id": "insert", "title": "Insert" }, { "id": "draw", "title": "Draw" },
-			{ "id": "design", "title": "Design" }, { "id": "transitions", "title": "Transitions" }, { "id": "animations", "title": "Animations" },
-			{ "id": "slideShow", "title": "Slide Show" }, { "id": "record", "title": "Record" }, { "id": "review", "title": "Review" },
+			{ "id": "file", "title": "File" }, { "id": "home", "title": "Home" }, { "id": "insert", "title": "Insert" }, { "id": "draw", "title": "Ink" },
+			{ "id": "design", "title": "Design" }, { "id": "transitions", "title": "Transitions" }, { "id": "animations", "title": "Motion" },
+			{ "id": "slideShow", "title": "Present" }, { "id": "record", "title": "Record" }, { "id": "review", "title": "Check" },
 			{ "id": "view", "title": "View" }, { "id": "help", "title": "Help" }
 		],
 		"canvasWidth": "{{max(window.width - 200, 100)}}",
@@ -146,33 +149,33 @@
 		"type": "column", "id": "window", "fill": 0, "color": "@work", "alignItems": "stretch",
 		"children": [
 			{
-				"id": "title-bar", "height": 40, "color": "@brand",
+				"id": "title-bar", "height": 40, "color": "@titleBar",
 				"children": [
 					{ "type": "row", "id": "title-left", "x": 0, "y": 0, "height": 40, "fitContent": "width", "gap": 2, "alignItems": "center", "color": "transparent",
 					  "children": [
-						{ "type": "label", "id": "app-mark", "width": 40, "height": 40, "align": "center", "textColor": "@onBrand", "runs": [{ "icon": "presentation", "size": 18 }] },
-						{ "type": "label", "id": "autosave", "height": 32, "fitText": true, "padding": 6, "textColor": "@onBrand", "runs": [{ "text": "AutoSave ", "size": 12 }] },
-						{ "id": "autosave-switch", "width": 34, "height": 16, "radius": 8, "color": "transparent", "borderWidth": 1, "borderColor": "@onBrand", "cursor": "hand",
-						  "tooltip": "AutoSave keeps the deck on this computer as you work",
-						  "children": [{ "id": "autosave-knob", "x": 4, "y": 4, "width": 8, "height": 8, "radius": 4, "color": "@onBrand" }] },
-						{ "type": "label", "id": "autosave-state", "height": 32, "fitText": true, "padding": 4, "textColor": "@onBrand", "runs": [{ "text": "Off", "size": 12 }] },
+						{ "type": "label", "id": "app-mark", "width": 40, "height": 40, "align": "center", "textColor": "@brand", "runs": [{ "icon": "gallery-vertical-end", "size": 18 }] },
+						{ "type": "label", "id": "autosave", "height": 32, "fitText": true, "padding": 6, "textColor": "@titleInk", "runs": [{ "text": "Keep saved ", "size": 12 }] },
+						{ "id": "autosave-switch", "width": 34, "height": 16, "radius": 8, "color": "transparent", "borderWidth": 1, "borderColor": "@rbMuted", "cursor": "hand",
+						  "tooltip": "Keeps the deck saved on this computer as you work",
+						  "children": [{ "id": "autosave-knob", "x": 4, "y": 4, "width": 8, "height": 8, "radius": 4, "color": "@rbMuted" }] },
+						{ "type": "label", "id": "autosave-state", "height": 32, "fitText": true, "padding": 4, "textColor": "@titleInk", "runs": [{ "text": "Off", "size": 12 }] },
 						{ "type": "label", "id": "qat-save", "style": "titleButton", "runs": [{ "icon": "save", "size": 16 }], "tooltip": "Save (Ctrl+S)" },
 						{ "type": "label", "id": "qat-undo", "style": "titleButton", "width": 40, "runs": [{ "icon": "undo-2", "size": 16 }, { "text": " ", "size": 8 }, { "icon": "chevron-down", "size": 9 }],
-						  "textColor": "{{computed.canUndo ? '@onBrand' : '#ffffff80'}}", "tooltip": "Undo (Ctrl+Z)", "onClick": "undo" },
+						  "textColor": "{{computed.canUndo ? '@titleInk' : '#2a274066'}}", "tooltip": "Undo (Ctrl+Z)", "onClick": "undo" },
 						{ "type": "label", "id": "qat-redo", "style": "titleButton", "runs": [{ "icon": "redo-2", "size": 16 }],
-						  "textColor": "{{computed.canRedo ? '@onBrand' : '#ffffff80'}}", "tooltip": "Redo (Ctrl+Y)", "onClick": "redo" },
-						{ "type": "label", "id": "qat-present", "style": "titleButton", "runs": [{ "icon": "monitor-play", "size": 16 }], "tooltip": "From Beginning (F5)" },
-						{ "type": "label", "id": "qat-more", "style": "titleButton", "width": 22, "runs": [{ "icon": "chevron-down", "size": 11 }], "tooltip": "Customize Quick Access Toolbar" },
-						{ "type": "label", "id": "doc-title", "height": 32, "fitText": true, "padding": 8, "radius": 4, "textColor": "@onBrand", "cursor": "hand", "hover": { "color": "@brandHover" },
-						  "runs": [{ "text": "{{state.deck.title}}", "size": 12 }, { "text": "  •  Saved to this PC ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] }
+						  "textColor": "{{computed.canRedo ? '@titleInk' : '#2a274066'}}", "tooltip": "Redo (Ctrl+Y)", "onClick": "redo" },
+						{ "type": "label", "id": "qat-present", "style": "titleButton", "runs": [{ "icon": "projector", "size": 16 }], "tooltip": "Present from the start (F5)" },
+						{ "type": "label", "id": "qat-more", "style": "titleButton", "width": 22, "runs": [{ "icon": "chevron-down", "size": 11 }], "tooltip": "More quick commands" },
+						{ "type": "label", "id": "doc-title", "height": 32, "fitText": true, "padding": 8, "radius": 8, "textColor": "@titleInk", "cursor": "hand", "hover": { "color": "@titleHover" },
+						  "runs": [{ "text": "{{state.deck.title}}", "size": 12 }, { "text": "  ·  On this computer ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] }
 					  ] },
 					{ "id": "search", "y": 6, "height": 28, "width": "{{clamp(window.width * 0.3, 200, 460)}}", "x": "{{(window.width - clamp(window.width * 0.3, 200, 460)) / 2 + 120}}",
-					  "radius": 4, "color": "#ffffffd9", "cursor": "ibeam",
-					  "children": [{ "type": "label", "id": "search-text", "fill": 0, "padding": 8, "textColor": "#424242", "runs": [{ "icon": "search", "size": 14 }, { "text": "  Search", "size": 12 }] }] },
+					  "radius": 14, "color": "#ffffff", "borderWidth": 1, "borderColor": "@rbFieldLine", "cursor": "ibeam",
+					  "children": [{ "type": "label", "id": "search-text", "fill": 0, "padding": 12, "textColor": "#5e5c6f", "runs": [{ "icon": "search", "size": 14 }, { "text": "  Search commands and slides", "size": 12 }] }] },
 					{ "type": "row", "id": "title-right", "anchors": { "right": 8 }, "y": 0, "height": 40, "width": 80, "gap": 6, "justify": "end", "alignItems": "center", "color": "transparent",
 					  "children": [
-						{ "type": "label", "id": "coauthor", "style": "titleButton", "runs": [{ "icon": "sparkles", "size": 16 }], "tooltip": "Ideas" },
-						{ "type": "label", "id": "account", "width": 28, "height": 28, "radius": 14, "align": "center", "color": "#ffffff33", "textColor": "@onBrand", "runs": [{ "icon": "user", "size": 15 }], "tooltip": "Account" }
+						{ "type": "label", "id": "coauthor", "style": "titleButton", "runs": [{ "icon": "lightbulb", "size": 16 }], "tooltip": "Suggestions" },
+						{ "type": "label", "id": "account", "width": 28, "height": 28, "radius": 14, "align": "center", "color": "@brand", "textColor": "@onBrand", "runs": [{ "icon": "user", "size": 15 }], "tooltip": "Account" }
 					  ] }
 				]
 			},
@@ -184,24 +187,24 @@
 					  "type": "column", "id": "{{'tab-' + t.id + '-box'}}", "fitContent": "width", "height": 36, "color": "transparent", "alignItems": "center",
 					  "children": [
 						{ "type": "label", "id": "{{'tab-' + t.id + '-label'}}", "style": "tab", "height": 33, "selected": "{{state.tab == t.id}}",
-						  "textColor": "{{state.tab == t.id ? '@brandLine' : '@rbInk'}}",
+						  "textColor": "{{state.tab == t.id ? '@brand' : '@rbInk'}}", "color": "{{state.tab == t.id ? '@rbChecked' : 'transparent'}}",
 						  "runs": [{ "text": "{{t.title}}", "size": 13, "bold": "{{state.tab == t.id}}" }],
 						  "onClick": [{ "set": "state.tab", "to": "{{t.id}}" }] },
 						{ "id": "{{'tab-' + t.id + '-line'}}", "width": "{{max(nodes['tab-' + t.id + '-label'].width - 16, 10)}}", "height": 3, "radius": 1.5,
-						  "color": "{{state.tab == t.id ? '@brandLine' : 'transparent'}}" }
+						  "color": "transparent" }
 					  ] },
 					{ "id": "tab-row-gap", "grow": 1, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "comments-button", "style": "barButton", "height": 28, "padding": 8, "textColor": "@rbInk",
-					  "runs": [{ "icon": "message-square", "size": 15 }, { "text": " Comments", "size": 12 }] },
+					  "radius": 14, "runs": [{ "icon": "message-circle", "size": 15 }, { "text": " Comments", "size": 12 }] },
 					{ "id": "tab-row-gap-1", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "record-button", "style": "pillButton",
 					  "runs": [{ "icon": "circle-dot", "size": 14, "color": "#c50f1f" }, { "text": " Record", "size": 12 }] },
 					{ "id": "tab-row-gap-2", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "present-button", "style": "pillButton",
-					  "runs": [{ "icon": "presentation", "size": 14 }, { "text": " Present ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] },
+					  "runs": [{ "icon": "projector", "size": 14 }, { "text": " Start ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] },
 					{ "id": "tab-row-gap-3", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "share-button", "style": "pillButton", "color": "@brandLine", "borderColor": "@brandLine", "textColor": "@onBrand", "hover": { "color": "@brand" },
-					  "runs": [{ "icon": "share-2", "size": 14 }, { "text": " Share ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] },
+					  "runs": [{ "icon": "send", "size": 14 }, { "text": " Share ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] },
 					{ "id": "tab-row-pad-end", "width": 10, "height": 1, "color": "transparent" }
 				]
 			},
@@ -219,7 +222,7 @@
 						  "with": { "name": "{{find(computed.tabs, it.id == state.tab).title}}" } }
 					  ] },
 					{ "type": "label", "id": "ribbon-collapse", "anchors": { "right": 6, "bottom": 6 }, "width": 20, "height": 20, "style": "rbButton", "align": "center",
-					  "runs": [{ "icon": "chevron-up", "size": 12 }], "tooltip": "Collapse the Ribbon (Ctrl+F1)" },
+					  "runs": [{ "icon": "chevron-up", "size": 12 }], "tooltip": "Hide the toolbar (Ctrl+F1)" },
 					{ "id": "ribbon-line", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@barLine" }
 				]
 			},
@@ -260,7 +263,7 @@
 										  "width": 22, "height": 16, "align": "end", "textColor": "@rbMuted", "runs": [{ "icon": "star", "size": 10 }], "tooltip": "Has a transition or animations" }
 									] },
 									{ "id": "{{'thumb-' + s.id + '-gap'}}", "width": 4, "height": 1, "color": "transparent" },
-									{ "id": "{{'thumb-' + s.id + '-frame'}}", "width": 164, "height": 94, "radius": 4,
+									{ "id": "{{'thumb-' + s.id + '-frame'}}", "width": 164, "height": 94, "radius": 6,
 									  "color": "{{i == state.current ? '@brandLine' : 'transparent'}}",
 									  "hover": { "color": "{{i == state.current ? '@brandLine' : '@thumbHover'}}" }, "dragOver": { "color": "@brandLine" },
 									  "children": [
@@ -310,19 +313,19 @@
 					{ "id": "status-pad", "width": 8, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "status-slide", "style": "barButton", "runs": [{ "text": "{{'Slide ' + (state.current + 1) + ' of ' + length(state.deck.slides)}}", "size": 11 }] },
 					{ "type": "label", "id": "status-language", "style": "barButton", "runs": [{ "icon": "spell-check", "size": 13 }, { "text": " English (United States)", "size": 11 }] },
-					{ "type": "label", "id": "status-access", "style": "barButton", "runs": [{ "icon": "accessibility", "size": 13 }, { "text": " Accessibility: Good to go", "size": 11 }] },
+					{ "type": "label", "id": "status-access", "style": "barButton", "runs": [{ "icon": "badge-check", "size": 13 }, { "text": " Access check: all clear", "size": 11 }] },
 					{ "id": "status-gap", "grow": 1, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "status-notes", "style": "{{state.notes ? 'barButtonOn' : 'barButton'}}", "runs": [{ "icon": "notebook-pen", "size": 13 }, { "text": " Notes", "size": 11 }],
 					  "onClick": [{ "toggle": "state.notes" }] },
-					{ "type": "label", "id": "status-display", "style": "barButton", "runs": [{ "icon": "monitor", "size": 13 }, { "text": " Display Settings", "size": 11 }] },
-					{ "type": "label", "id": "status-comments", "style": "barButton", "runs": [{ "icon": "message-square", "size": 13 }, { "text": " Comments", "size": 11 }] },
+					{ "type": "label", "id": "status-display", "style": "barButton", "runs": [{ "icon": "monitor", "size": 13 }, { "text": " Display", "size": 11 }] },
+					{ "type": "label", "id": "status-comments", "style": "barButton", "runs": [{ "icon": "message-circle", "size": 13 }, { "text": " Comments", "size": 11 }] },
 					{ "id": "status-gap-2", "width": 8, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "status-normal", "style": "{{state.view == 'normal' ? 'barButtonOn' : 'barButton'}}", "runs": [{ "icon": "panel-left", "size": 14 }], "tooltip": "Normal",
 					  "onClick": [{ "set": "state.view", "to": "normal" }] },
 					{ "type": "label", "id": "status-sorter", "style": "{{state.view == 'sorter' ? 'barButtonOn' : 'barButton'}}", "runs": [{ "icon": "layout-grid", "size": 14 }], "tooltip": "Slide Sorter",
 					  "onClick": [{ "set": "state.view", "to": "sorter" }] },
 					{ "type": "label", "id": "status-reading", "style": "barButton", "runs": [{ "icon": "book-open", "size": 14 }], "tooltip": "Reading View" },
-					{ "type": "label", "id": "status-show", "style": "barButton", "runs": [{ "icon": "presentation", "size": 14 }], "tooltip": "Slide Show" },
+					{ "type": "label", "id": "status-show", "style": "barButton", "runs": [{ "icon": "projector", "size": 14 }], "tooltip": "Present" },
 					{ "id": "status-gap-3", "width": 8, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "zoom-out", "style": "barButton", "runs": [{ "icon": "minus", "size": 12 }], "tooltip": "Zoom Out", "onClick": { "run": "zoomBy", "with": { "by": 0.9 } } },
 					{ "type": "slider", "id": "zoom-slider", "width": 100, "height": 16, "trackColor": "@rbFieldLine", "activeColor": "@rbMuted", "knobColor": "@rbFieldBg", "min": 10, "max": 400, "value": "{{round(computed.zoom * 100)}}",

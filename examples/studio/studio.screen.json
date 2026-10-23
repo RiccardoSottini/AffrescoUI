@@ -51,55 +51,55 @@
 	},
 	"theme": "{{state.theme}}",
 	"tokens": {
-		"radius.card": 10,
+		"radius.card": 12,
 		"radius.chip": 6,
 		"color.background": {
-			"light": "#eef1f6",
-			"dark": "#0b1020"
+			"light": "#f0eff5",
+			"dark": "#0d0f1c"
 		},
 		"color.card": {
 			"light": "#ffffff",
-			"dark": "#131a2e"
+			"dark": "#151729"
 		},
 		"color.cardRaised": {
-			"light": "#f5f7fb",
-			"dark": "#1b2440"
+			"light": "#f6f5fa",
+			"dark": "#1d2036"
 		},
 		"color.border": {
-			"light": "#dbe1ea",
-			"dark": "#232d4b"
+			"light": "#dedce8",
+			"dark": "#272a45"
 		},
 		"color.text": {
 			"light": "#0f172a",
 			"dark": "#e2e8f0"
 		},
 		"color.muted": {
-			"light": "#64748b",
-			"dark": "#7c89a8"
+			"light": "#64627e",
+			"dark": "#8a87a8"
 		},
 		"color.input": {
-			"light": "#f5f7fb",
-			"dark": "#0e1426"
+			"light": "#f6f5fa",
+			"dark": "#0f1120"
 		},
 		"color.inputFocused": {
-			"light": "#eef2ff",
-			"dark": "#18213d"
+			"light": "#f3efff",
+			"dark": "#1b1d38"
 		},
 		"color.accent": {
-			"light": "#4f46e5",
-			"dark": "#6366f1"
+			"light": "#6a43d9",
+			"dark": "#7c5cf2"
 		},
 		"color.accentHover": {
-			"light": "#6366f1",
-			"dark": "#7c7ff5"
+			"light": "#7c5cf2",
+			"dark": "#9277f6"
 		},
 		"color.accentPressed": {
-			"light": "#4338ca",
-			"dark": "#4f46e5"
+			"light": "#5934c4",
+			"dark": "#6846e0"
 		},
 		"color.accentSoft": {
-			"light": "#e0e7ff",
-			"dark": "#272f5a"
+			"light": "#ebe4ff",
+			"dark": "#2d2556"
 		},
 		"color.good": {
 			"light": "#16a34a",
@@ -122,24 +122,24 @@
 			"dark": "#f87171"
 		},
 		"color.neutral": {
-			"light": "#e5e9f0",
-			"dark": "#2a3556"
+			"light": "#e7e5ef",
+			"dark": "#2b2d4a"
 		},
 		"color.neutralHover": {
-			"light": "#d5dbe5",
-			"dark": "#35426b"
+			"light": "#d9d6e4",
+			"dark": "#383a5e"
 		},
 		"color.hover": {
-			"light": "#eef1f6",
-			"dark": "#1b2440"
+			"light": "#f0eff5",
+			"dark": "#1d2036"
 		},
 		"color.backdrop": {
 			"light": "#0f172a66",
 			"dark": "#00000099"
 		},
 		"color.logYou": {
-			"light": "#4338ca",
-			"dark": "#a5b4fc"
+			"light": "#5934c4",
+			"dark": "#c4b5fd"
 		},
 		"color.logAi": {
 			"light": "#0f766e",
@@ -158,8 +158,8 @@
 			"dark": "#fca5a5"
 		},
 		"color.logSystem": {
-			"light": "#64748b",
-			"dark": "#7c89a8"
+			"light": "#64627e",
+			"dark": "#8a87a8"
 		},
 		"color.warn": {
 			"light": "#b45309",
@@ -2011,7 +2011,7 @@
 						"id": "logo",
 						"type": "label",
 						"font": "iconsLarge",
-						"icon": "git-pull-request-arrow",
+						"icon": "paintbrush",
 						"textColor": "@color.accent",
 						"anchors": {
 							"left": 20,

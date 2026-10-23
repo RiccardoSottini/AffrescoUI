@@ -20,7 +20,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Options bar that changes with the tool | done | Every tool has its row, with the tool's icon at the left |
 | Tools bar on the left, one column, grouped with flyouts (long press) | done | Groups open on a right click (no long press); tools not built yet show disabled |
 | Foreground/background swatches with swap and reset, quick mask button | done | |
-| Document tabs: name, zoom, layer, mode ("@ 100% (Layer 1, RGB/8)") | partial | One document: the tab has its ×, but closing the only document isn't available yet |
+| Document tabs: name, layer, zoom, mode ("Untitled 1 — Layer 1 · 100% · RGB/8") | partial | One document: the tab has its ×, but closing the only document isn't available yet |
 | Rulers and guides | partial | Zero at the image's corner, minor ticks, click to add a guide; no dragging guides out of the rulers |
 | Dark grey pasteboard, checkerboard for transparency | done | |
 | Status bar: zoom field and document size | done | One information item at a time, chosen from its › menu |
@@ -39,7 +39,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Properties (context-sensitive) | partial | Collapsible Transform (selection or image box, read-only), Align (disabled) and Quick Actions; adjustment controls |
 | Adjustments (icon grid) | done | |
 | History (states and snapshots) | partial | States only, no snapshots |
-| Color, Swatches, Gradients and Patterns | partial | Foreground/background chips and a square with a horizontal hue strip; no patterns |
+| Colour, Palette, Gradients and Patterns | partial | Foreground/background chips and a square with a horizontal hue strip; no patterns |
 | Brushes (presets) | partial | Presets, size, hardness and spacing in the options bar's brush picker; no Brushes panel |
 | Channels | partial | Composite and channel rows, display only |
 | Paths | missing | An empty panel until the pen tool exists |

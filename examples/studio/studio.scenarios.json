@@ -2497,7 +2497,7 @@
 					"expect": {
 						"node": "#header",
 						"property": "color",
-						"is": "#131a2e"
+						"is": "#151729"
 					}
 				},
 				{

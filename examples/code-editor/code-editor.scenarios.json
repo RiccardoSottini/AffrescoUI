@@ -81,7 +81,7 @@
 				{ "click": "#editor" },
 				{ "key": "mod+end", "note": "the end of the file on every platform (Super+Down is macOS only)" },
 				{ "expect": { "state": "caret.line", "is": 5000 } },
-				{ "expect": { "node": "#statusSize", "text": "Line 5000, Column 2" } }
+				{ "expect": { "node": "#statusSize", "text": "Line 5000, Col 2" } }
 			]
 		},
 		{
@@ -231,7 +231,7 @@
 		},
 		{
 			"name": "goto-line",
-			"note": "Ctrl+G opens Goto Anything at ':'; a line number and Enter put the caret on that line",
+			"note": "Ctrl+G opens the Quick Switcher at ':'; a line number and Enter put the caret on that line",
 			"steps": [
 				{ "click": "#editor" },
 				{ "key": "ctrl+g" },
@@ -262,7 +262,7 @@
 		},
 		{
 			"name": "search-in-the-file",
-			"note": "'#' in Goto Anything lists the lines holding a text; choosing one selects it there",
+			"note": "'#' in the Quick Switcher lists the lines holding a text; choosing one selects it there",
 			"steps": [
 				{ "key": "mod+p" },
 				{ "wait": 50 },
@@ -275,7 +275,7 @@
 		},
 		{
 			"name": "goto-a-symbol-in-another-file",
-			"note": "A file name before '@' in Goto Anything lists that file's symbols; choosing one opens the file there",
+			"note": "A file name before '@' in the Quick Switcher lists that file's symbols; choosing one opens the file there",
 			"steps": [
 				{ "key": "mod+p" },
 				{ "wait": 50 },
@@ -318,7 +318,7 @@
 		},
 		{
 			"name": "find-in-files",
-			"note": "Cmd+Shift+F searches the project into a Find Results buffer; F4 goes to each match in turn, a double click to the one under the caret",
+			"note": "Cmd+Shift+F searches the project into a Search Results buffer; F4 goes to each match in turn, a double click to the one under the caret",
 			"steps": [
 				{ "key": "mod+shift+f" },
 				{ "wait": 50 },
@@ -326,7 +326,7 @@
 				{ "type": "sensor" },
 				{ "key": "enter" },
 				{ "wait": 50 },
-				{ "expect": { "state": "files[7].name", "is": "Find Results" } },
+				{ "expect": { "state": "files[7].name", "is": "Search Results" } },
 				{ "expect": { "state": "active", "is": 7 } },
 				{ "expect": { "state": "results.files", "is": 5 } },
 				{ "key": "f4" },
@@ -462,7 +462,7 @@
 				{ "key": "mod+b" },
 				{ "expect": { "state": "panelOpen", "is": true } },
 				{ "expect": { "state": "panelTab", "is": "terminal" } },
-				{ "expect": { "state": "terminal[6].t", "is": "[Finished in 0.8s]" } }
+				{ "expect": { "state": "terminal[6].t", "is": "[Done in 0.8s]" } }
 			]
 		},
 		{

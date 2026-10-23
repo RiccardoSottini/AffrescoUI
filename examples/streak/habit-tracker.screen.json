@@ -72,23 +72,23 @@
 	"theme": "{{computed.theme}}",
 	"tokens": {
 		"c.bg": {
-			"light": "#eeeeee",
-			"dark": "#212121",
+			"light": "#f2efec",
+			"dark": "#1f1d1c",
 			"black": "#000000"
 		},
 		"c.card": {
 			"light": "#ffffff",
-			"dark": "#303030",
+			"dark": "#2d2a28",
 			"black": "#0f0f0f"
 		},
 		"c.bar": {
 			"light": "#ffffff",
-			"dark": "#2b2b2b",
+			"dark": "#282523",
 			"black": "#000000"
 		},
 		"c.actionBar": {
-			"light": "#455a64",
-			"dark": "#37474f",
+			"light": "#5b4a42",
+			"dark": "#463a35",
 			"black": "#1c1c1c"
 		},
 		"c.text": {
@@ -107,12 +107,12 @@
 			"black": "#454545"
 		},
 		"c.track": {
-			"light": "#e8e8e8",
+			"light": "#ebe7e3",
 			"dark": "#424242",
 			"black": "#262626"
 		},
 		"c.divider": {
-			"light": "#e0e0e0",
+			"light": "#e3dfdb",
 			"dark": "#3d3d3d",
 			"black": "#222222"
 		},
@@ -122,19 +122,19 @@
 			"black": "#ffffff12"
 		},
 		"c.selected": {
-			"light": "#e3edf9",
-			"dark": "#3a4250",
-			"black": "#152131"
+			"light": "#fdebe1",
+			"dark": "#4a3a33",
+			"black": "#2a1810"
 		},
 		"c.primary": {
-			"light": "#1976d2",
-			"dark": "#64b5f6",
-			"black": "#64b5f6"
+			"light": "#c2410c",
+			"dark": "#ff9e6b",
+			"black": "#ff9e6b"
 		},
 		"c.onPrimary": {
 			"light": "#ffffff",
-			"dark": "#0d2440",
-			"black": "#0d2440"
+			"dark": "#3a1404",
+			"black": "#3a1404"
 		},
 		"c.danger": {
 			"light": "#d32f2f",
@@ -157,9 +157,9 @@
 			"black": "#bdbdbd"
 		},
 		"c.switchTrack": {
-			"light": "#1976d280",
-			"dark": "#64b5f680",
-			"black": "#64b5f680"
+			"light": "#c2410c80",
+			"dark": "#ff9e6b80",
+			"black": "#ff9e6b80"
 		},
 		"c.snack": {
 			"light": "#323232",
@@ -172,9 +172,9 @@
 			"black": "#212121"
 		},
 		"c.snackAction": {
-			"light": "#90caf9",
-			"dark": "#1565c0",
-			"black": "#1565c0"
+			"light": "#ffb38a",
+			"dark": "#b23a0a",
+			"black": "#b23a0a"
 		},
 		"assistant.accent": "@c.primary",
 		"assistant.accentHover": "@c.primary",
@@ -204,7 +204,7 @@
 		"kit.focus": "@c.primary",
 		"kit.backdrop": "@c.backdrop",
 		"kit.radius": 4,
-		"kit.cardRadius": 4
+		"kit.cardRadius": 10
 	},
 	"permissions": {
 		"allow": [
@@ -304,15 +304,15 @@
 			"target": "{type, select, atMost {At most} other {At least}} {value} {unit} {per, select, day {a day} week {a week} other {a month}}",
 			"reminderOff": "No reminder",
 			"archivedTag": "Archived",
-			"card.overview": "Overview",
+			"card.overview": "At a glance",
 			"card.target": "Target",
-			"card.score": "Score",
-			"card.history": "History",
+			"card.score": "Strength",
+			"card.history": "Progress",
 			"card.calendar": "Calendar",
-			"card.streaks": "Best streaks",
-			"card.frequency": "Frequency",
+			"card.streaks": "Longest runs",
+			"card.frequency": "By weekday",
 			"card.notes": "Notes",
-			"stat.score": "Score",
+			"stat.score": "Strength",
 			"stat.month": "Month",
 			"stat.year": "Year",
 			"stat.total": "Total",
@@ -389,7 +389,7 @@
 			"theme.light": "Light",
 			"theme.dark": "Dark",
 			"theme.system": "System default",
-			"set.pureBlack": "Pure black",
+			"set.pureBlack": "True black",
 			"set.pureBlackHint": "A black background in dark mode",
 			"set.reverse": "Reverse order of days",
 			"set.reverseHint": "Show the oldest day first",
@@ -474,15 +474,15 @@
 			"target": "{type, select, atMost {Como máximo} other {Al menos}} {value} {unit} {per, select, day {al día} week {a la semana} other {al mes}}",
 			"reminderOff": "Sin recordatorio",
 			"archivedTag": "Archivado",
-			"card.overview": "Resumen",
+			"card.overview": "De un vistazo",
 			"card.target": "Objetivo",
-			"card.score": "Puntuación",
-			"card.history": "Historial",
+			"card.score": "Fuerza",
+			"card.history": "Progreso",
 			"card.calendar": "Calendario",
-			"card.streaks": "Mejores rachas",
-			"card.frequency": "Frecuencia",
+			"card.streaks": "Rachas más largas",
+			"card.frequency": "Por día de la semana",
 			"card.notes": "Notas",
-			"stat.score": "Puntuación",
+			"stat.score": "Fuerza",
 			"stat.month": "Mes",
 			"stat.year": "Año",
 			"stat.total": "Total",
@@ -559,7 +559,7 @@
 			"theme.light": "Claro",
 			"theme.dark": "Oscuro",
 			"theme.system": "Predeterminado del sistema",
-			"set.pureBlack": "Negro puro",
+			"set.pureBlack": "Negro total",
 			"set.pureBlackHint": "Un fondo negro en modo oscuro",
 			"set.reverse": "Invertir el orden de los días",
 			"set.reverseHint": "Mostrar primero el día más antiguo",
@@ -644,15 +644,15 @@
 			"target": "{type, select, atMost {Au plus} other {Au moins}} {value} {unit} {per, select, day {par jour} week {par semaine} other {par mois}}",
 			"reminderOff": "Aucun rappel",
 			"archivedTag": "Archivée",
-			"card.overview": "Aperçu",
+			"card.overview": "En un coup d'œil",
 			"card.target": "Objectif",
-			"card.score": "Score",
-			"card.history": "Historique",
+			"card.score": "Solidité",
+			"card.history": "Progression",
 			"card.calendar": "Calendrier",
-			"card.streaks": "Meilleures séries",
-			"card.frequency": "Fréquence",
+			"card.streaks": "Plus longues séries",
+			"card.frequency": "Par jour de la semaine",
 			"card.notes": "Notes",
-			"stat.score": "Score",
+			"stat.score": "Solidité",
 			"stat.month": "Mois",
 			"stat.year": "Année",
 			"stat.total": "Total",
@@ -729,7 +729,7 @@
 			"theme.light": "Clair",
 			"theme.dark": "Sombre",
 			"theme.system": "Réglage du système",
-			"set.pureBlack": "Noir pur",
+			"set.pureBlack": "Noir intégral",
 			"set.pureBlackHint": "Un fond noir en mode sombre",
 			"set.reverse": "Inverser l’ordre des jours",
 			"set.reverseHint": "Afficher le jour le plus ancien en premier",
@@ -787,7 +787,7 @@
 				"id": "meditate",
 				"name": "Meditate",
 				"question": "Did you sit quietly for ten minutes?",
-				"color": 13,
+				"color": 8,
 				"kind": "yesNo",
 				"frequency": {
 					"times": 1,
@@ -1179,7 +1179,7 @@
 	],
 	"computed": {
 		"theme": "{{(state.theme == 'system' ? window.colorScheme : state.theme) == 'dark' ? (state.pureBlack ? 'black' : 'dark') : 'light'}}",
-		"pal": "{{computed.theme == 'light' ? ['#d32f2f', '#e64a19', '#f57c00', '#ff8f00', '#f9a825', '#afb42b', '#7cb342', '#388e3c', '#00897b', '#00acc1', '#039be5', '#1976d2', '#303f9f', '#5e35b1', '#8e24aa', '#d81b60', '#5d4037', '#303030', '#757575', '#aaaaaa'] : ['#e57373', '#ff8a65', '#ffb74d', '#ffd54f', '#fff176', '#dce775', '#aed581', '#81c784', '#4db6ac', '#4dd0e1', '#4fc3f7', '#64b5f6', '#7986cb', '#9575cd', '#ba68c8', '#f06292', '#a1887f', '#e0e0e0', '#9e9e9e', '#bdbdbd']}}",
+		"pal": "{{computed.theme == 'light' ? ['#c8443a', '#d4602a', '#d9822b', '#cf921c', '#b49a16', '#8a9a1c', '#5c9e3a', '#2f8a55', '#17877a', '#1592a6', '#2a7fc0', '#3366b8', '#4a4fa8', '#7048b0', '#9446a8', '#c23d78', '#7a5a44', '#3a3a3a', '#7a7a7a', '#a8a8a8'] : ['#e88a80', '#f09a72', '#f5b56e', '#f5cc66', '#e8dc72', '#cfdc78', '#a8d888', '#86cfa0', '#6cc8bc', '#6ad0e0', '#7cc0f0', '#8aaaf0', '#9a9ef0', '#b39af0', '#cc94e0', '#f08ab4', '#b8977f', '#e2e2e2', '#a2a2a2', '#c2c2c2']}}",
 		"onColor": "{{computed.theme == 'light' ? '#ffffff' : '#1b1b1b'}}",
 		"wide": "{{window.width >= 960}}",
 		"picking": "{{length(state.picked) > 0}}",
@@ -1204,7 +1204,7 @@
 		"sel": "{{indexOf(map(state.habits, it.id), state.selected)}}",
 		"h": "{{state.habits[computed.sel]}}",
 		"col": "{{computed.sel >= 0 ? computed.pal[computed.h.color] : '#757575'}}",
-		"bar": "{{computed.sel >= 0 ? ['#d32f2f', '#e64a19', '#f57c00', '#ff8f00', '#f9a825', '#afb42b', '#7cb342', '#388e3c', '#00897b', '#00acc1', '#039be5', '#1976d2', '#303f9f', '#5e35b1', '#8e24aa', '#d81b60', '#5d4037', '#303030', '#757575', '#aaaaaa'][computed.h.color] : '#616161'}}",
+		"bar": "{{computed.sel >= 0 ? ['#c8443a', '#d4602a', '#d9822b', '#cf921c', '#b49a16', '#8a9a1c', '#5c9e3a', '#2f8a55', '#17877a', '#1592a6', '#2a7fc0', '#3366b8', '#4a4fa8', '#7048b0', '#9446a8', '#c23d78', '#7a5a44', '#3a3a3a', '#7a7a7a', '#a8a8a8'][computed.h.color] : '#616161'}}",
 		"accent": "{{state.edit.open ? computed.pal[state.edit.color] : computed.col}}",
 		"n": "{{computed.sel >= 0 ? length(computed.vals[computed.sel]) : 0}}",
 		"v": "{{computed.sel >= 0 ? computed.vals[computed.sel] : []}}",
@@ -1274,7 +1274,7 @@
 		},
 		"card": {
 			"color": "@c.card",
-			"radius": 4,
+			"radius": 10,
 			"shadow": {
 				"y": 1,
 				"blur": 3,
@@ -1843,7 +1843,7 @@
 					}
 				}
 			],
-			"icon": "circle-check"
+			"icon": "check-circle"
 		},
 		"addMeasurable": {
 			"title": "New measurable habit",
@@ -1867,7 +1867,7 @@
 					"to": "{{{open: true, id: computed.h.id, kind: computed.h.kind, name: computed.h.name, question: computed.h.question, color: computed.h.color, freqMode: computed.h.frequency.days == 1 && computed.h.frequency.times == 1 ? 'daily' : computed.h.kind == 'measurable' ? (computed.h.frequency.days == 7 ? 'week' : 'month') : computed.h.frequency.times == 1 && computed.h.frequency.days != 7 && computed.h.frequency.days != 30 ? 'everyN' : computed.h.frequency.days == 7 ? 'week' : 'month', n: computed.h.frequency.times == 1 ? computed.h.frequency.days : computed.h.frequency.times, unit: computed.h.unit, target: text(computed.h.target), targetType: computed.h.targetType, reminderOn: computed.h.reminder != null, time: computed.h.reminder.time ?? '08:00', days: computed.h.reminder.days ?? [true, true, true, true, true, true, true], description: computed.h.description, error: ''}}}"
 				}
 			],
-			"icon": "pencil",
+			"icon": "edit",
 			"enablement": "{{computed.sel >= 0}}"
 		},
 		"saveHabit": [
@@ -2830,7 +2830,7 @@
 											{
 												"id": "filterButton",
 												"style": "iconButton",
-												"icon": "list-filter",
+												"icon": "sliders-horizontal",
 												"label": "{{t('filter')}}",
 												"tooltip": "{{t('filter')}}",
 												"textColor": "@c.muted",
@@ -2854,7 +2854,7 @@
 											{
 												"id": "moreButton",
 												"style": "iconButton",
-												"icon": "ellipsis-vertical",
+												"icon": "ellipsis",
 												"label": "{{t('more')}}",
 												"tooltip": "{{t('more')}}",
 												"textColor": "@c.muted",
@@ -3958,20 +3958,30 @@
 									"top": 0
 								},
 								"height": 56,
-								"color": "{{computed.bar}}",
+								"color": "@c.bar",
 								"shadow": {
-									"y": 2,
-									"blur": 4,
-									"color": "#00000030"
+									"y": 1,
+									"blur": 3,
+									"color": "#00000020"
 								},
 								"children": [
+									{
+										"id": "detailStripe",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"bottom": 0
+										},
+										"height": 4,
+										"color": "{{computed.bar}}"
+									},
 									{
 										"id": "backButton",
 										"style": "iconButton",
 										"icon": "arrow-left",
 										"label": "{{t('back')}}",
 										"tooltip": "{{t('back')}}",
-										"textColor": "#ffffff",
+										"textColor": "@c.text",
 										"onClick": {
 											"set": "state.page",
 											"to": "list"
@@ -3987,7 +3997,7 @@
 										"type": "label",
 										"text": "{{computed.sel >= 0 ? computed.h.name : t('app')}}",
 										"font": "title",
-										"textColor": "#ffffff",
+										"textColor": "{{computed.col}}",
 										"anchors": {
 											"left": "{{computed.wide ? 20 : 56}}",
 											"right": 100,
@@ -4012,19 +4022,19 @@
 											{
 												"id": "editButton",
 												"style": "iconButton",
-												"icon": "pencil",
+												"icon": "edit",
 												"label": "{{t('edit')}}",
 												"tooltip": "{{t('edit')}}",
-												"textColor": "#ffffff",
+												"textColor": "@c.text",
 												"onClick": "editHabit"
 											},
 											{
 												"id": "detailMore",
 												"style": "iconButton",
-												"icon": "ellipsis-vertical",
+												"icon": "ellipsis",
 												"label": "{{t('more')}}",
 												"tooltip": "{{t('more')}}",
-												"textColor": "#ffffff",
+												"textColor": "@c.text",
 												"onClick": {
 													"set": "state.menus.detail",
 													"to": true

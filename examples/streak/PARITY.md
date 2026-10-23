@@ -37,14 +37,14 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 
 | Area | Status | Gap |
 |---|---|---|
-| The app bar in the habit's colour, back, edit, more | done | |
+| The detail bar with a stripe and title in the habit's colour, back, edit, more | done | |
 | Question, frequency and reminder line | done | |
-| Overview: score ring, score, month and year change, total | done | |
+| At a glance: strength ring, strength, month and year change, total | done | |
 | Target card for measurable habits (today, week, month, quarter, year) | done | |
 | Score chart with a period (day to year) | done | |
 | History bars with a period | done | |
 | Calendar heatmap, scrolled to the latest weeks | done | |
-| Best streaks as bars | done | |
+| Longest runs as bars | done | |
 | Frequency: dots per weekday and month | done | |
 | Notes of past days | done | |
 
@@ -64,7 +64,7 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 
 | Area | Status | Gap |
 |---|---|---|
-| Theme: light, dark, pure black | done | |
+| Theme: light, dark, true black | done | |
 | First day of the week, reverse order of days, skip days | done | |
 | Notifications on or off | done | |
 | Language (English, Español, Français) | done | |

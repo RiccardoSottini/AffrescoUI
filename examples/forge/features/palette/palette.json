@@ -20,7 +20,7 @@
 	"settings": {
 		"workbench.statusBar.visible": { "type": "boolean", "default": true, "title": "Status bar",
 			"description": "Show the status bar at the bottom of the window." },
-		"workbench.activityBar.visible": { "type": "boolean", "default": true, "title": "Activity bar",
+		"workbench.activityBar.visible": { "type": "boolean", "default": true, "title": "View rail",
 			"description": "Show the activity bar on the left." },
 		"workbench.startupEditor": { "type": "string", "enum": ["welcome", "none"], "default": "welcome",
 			"title": "Startup editor", "description": "What the editor area shows when no file is open." },
@@ -31,7 +31,7 @@
 	"actions": {
 		"quickOpen": { "title": "Go to File...", "category": "Go", "icon": "search",
 			"do": [{ "set": "state.quickPick.query", "to": "" }, { "set": "state.quickPick.open", "to": true }] },
-		"showCommands": { "title": "Show All Commands", "category": "View", "icon": "search",
+		"showCommands": { "title": "Run a Command...", "category": "View", "icon": "search",
 			"do": [{ "set": "state.quickPick.query", "to": ">" }, { "set": "state.quickPick.open", "to": true }] },
 		"goToLinePick": { "title": "Go to Line...", "category": "Go", "icon": "hash",
 			"do": [{ "set": "state.quickPick.query", "to": ":" }, { "set": "state.quickPick.open", "to": true }] },

@@ -23,7 +23,7 @@
 	"computed": {
 		"agentCurrent": "{{length(proposals) == 0 ? null : find(proposals, text(it.id) == state.agent.selected) ?? proposals[0]}}",
 		"agentEvidence": "{{computed.agentCurrent == null ? null : computed.agentCurrent.evidence}}",
-		"agentLogRows": "{{map(state.agent.log, {id: text(index), label: it.text, icon: it.kind == 'you' ? 'user' : it.kind == 'agent' ? 'bot' : it.kind == 'error' ? 'circle-x' : it.kind == 'review' ? 'git-pull-request' : 'info', iconColor: it.kind == 'error' ? '#f85149' : it.kind == 'agent' ? '#0078d4' : '#8b949e'})}}",
+		"agentLogRows": "{{map(state.agent.log, {id: text(index), label: it.text, icon: it.kind == 'you' ? 'user' : it.kind == 'agent' ? 'bot' : it.kind == 'error' ? 'circle-x' : it.kind == 'review' ? 'git-pull-request' : 'info', iconColor: it.kind == 'error' ? '#f85149' : it.kind == 'agent' ? '#1fae9c' : '#8b949e'})}}",
 		"agentProposalRows": "{{map(proposals, {id: text(it.id), label: '#' + it.id + '  ' + it.message + '  · ' + it.author, icon: it.id == preview ? 'eye' : 'git-pull-request'})}}",
 		"agentChangeRows": "{{computed.agentCurrent == null ? [] : map(slice(computed.agentCurrent.changes ?? [], 0, 200), {id: text(index), label: it, icon: 'git-commit'})}}",
 		"agentScenarioRows": "{{computed.agentEvidence == null ? [] : map(slice(computed.agentEvidence.scenarios ?? [], 0, 200), {id: text(index), label: text(it.name) + (it.passed == true ? '' : ': ' + text(it.message ?? 'failed')), icon: it.passed == true ? 'circle-check' : 'circle-x', iconColor: it.passed == true ? '#2ea043' : '#f85149'})}}",
@@ -175,7 +175,7 @@
 			"node": {
 				"type": "column", "id": "agent-view", "width": "100%", "grow": 1, "color": "@color.sideBar", "gap": 4,
 				"children": [
-					{ "type": "label", "id": "agent-title", "text": "AGENT", "textColor": "@color.muted", "width": "100%", "height": 32,
+					{ "type": "label", "id": "agent-title", "text": "Agent", "textColor": "@color.muted", "width": "100%", "height": 32,
 					  "padding": 12 },
 					{ "type": "label", "id": "agent-status", "icon": "{{state.agent.connected ? 'plug' : 'unplug'}}",
 					  "text": "{{state.agent.status}}", "wrap": true, "width": "100%", "padding": 8, "textColor": "@color.muted" },
@@ -251,7 +251,7 @@
 				"children": [
 					{ "type": "row", "id": "features-head", "width": "100%", "height": 32, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "features-title", "text": "FEATURES", "textColor": "@color.muted", "grow": 1, "padding": 12 },
+						{ "type": "label", "id": "features-title", "text": "Features", "textColor": "@color.muted", "grow": 1, "padding": 12 },
 						{ "type": "label", "id": "features-refresh", "icon": "refresh-cw", "padding": 6, "fitText": true, "cursor": "hand",
 						  "textColor": "{{state.features.busy ? '@color.accent' : '@color.muted'}}", "tooltip": "Refresh",
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "featuresRefresh" } }

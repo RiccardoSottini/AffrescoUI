@@ -8,7 +8,7 @@ capabilities). Evidence names the frame of `tests/render/scenarios/sinopia.json`
 
 | Area | Feature | Start | Now | Evidence |
 |---|---|---|---|---|
-| Shell | Ribbon with tabs (Home, Insert, Draw, Design, Transitions, Animations, Slide Show, Review, View) | missing | partial | first-frame, insert-tab, design-tab |
+| Shell | Ribbon with tabs (Home, Insert, Ink, Design, Transitions, Motion, Present, Check, View) | missing | partial | first-frame, insert-tab, design-tab |
 | Shell | Ribbon groups with titles, large and small buttons | missing | done | first-frame |
 | Shell | Ribbon galleries (shapes, styles, themes, transitions, animations) | missing | partial | first-frame (shapes), design-tab (themes) |
 | Shell | Collapse and pin the ribbon | missing | missing | |

@@ -26,7 +26,7 @@
 	},
 
 	"actions": {
-		"toggleSecondarySidebar": { "title": "Toggle Secondary Side Bar", "category": "View", "icon": "panel-right",
+		"toggleSecondarySidebar": { "title": "Toggle Outline Bar", "category": "View", "icon": "panel-right",
 			"description": "Show or hide the side bar at the right, with the Outline of the active file.",
 			"do": [{ "toggle": "state.layout.secondary" }, { "run": "refreshOutline" }] },
 		"refreshOutline": { "title": "Refresh Outline", "category": "Outline", "icon": "refresh-cw",
@@ -163,16 +163,16 @@
 	"components": {
 		"forgeSecondarySideBar": {
 			"node": {
-				"type": "column", "id": "secondary-side-bar", "role": "complementary", "label": "Secondary Side Bar", "width": 240,
+				"type": "column", "id": "secondary-side-bar", "role": "complementary", "label": "Outline Bar", "width": 240,
 				"height": "100%", "color": "@color.sideBar", "borderWidth": 1, "borderColor": "@color.border",
 				"children": [
 					{ "type": "row", "id": "outline-head", "width": "100%", "height": 32, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "outline-title", "text": "OUTLINE", "textColor": "@color.muted", "grow": 1, "padding": 12 },
+						{ "type": "label", "id": "outline-title", "text": "Outline", "textColor": "@color.muted", "grow": 1, "padding": 12 },
 						{ "type": "label", "id": "outline-refresh", "role": "button", "label": "Refresh Outline", "icon": "refresh-cw",
 						  "padding": 6, "fitText": true, "cursor": "hand", "textColor": "@color.muted", "tooltip": "Refresh Outline",
 						  "hover": { "color": "@color.hover" }, "onClick": { "run": "refreshOutline" } },
-						{ "type": "label", "id": "outline-close", "role": "button", "label": "Hide Secondary Side Bar", "icon": "x",
+						{ "type": "label", "id": "outline-close", "role": "button", "label": "Hide Outline Bar", "icon": "x",
 						  "padding": 6, "fitText": true, "cursor": "hand", "textColor": "@color.muted", "tooltip": "Hide (Cmd+Alt+B)",
 						  "hover": { "color": "@color.hover" }, "onClick": { "run": "toggleSecondarySidebar" } }
 					  ] },

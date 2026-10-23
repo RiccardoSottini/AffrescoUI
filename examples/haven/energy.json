@@ -30,7 +30,7 @@
 	"components": {
 		"energyGauge": {
 			"note": "A half-circle gauge: share (0 to 1) of the arc in color, the percentage under it and the caption below.",
-			"params": { "share": 0, "color": "#03a9f4", "caption": "" },
+			"params": { "share": 0, "color": "#1f8a78", "caption": "" },
 			"node": {
 				"color": "transparent",
 				"width": 180,
@@ -51,7 +51,7 @@
 
 		"energyNode": {
 			"note": "One circle of the distribution: an icon and a figure inside a ring of color, its name above or below.",
-			"params": { "icon": "zap", "color": "#03a9f4", "figure": "", "name": "", "figureId": "figure", "nameTop": 0, "x": 0, "y": 0 },
+			"params": { "icon": "zap", "color": "#1f8a78", "figure": "", "name": "", "figureId": "figure", "nameTop": 0, "x": 0, "y": 0 },
 			"node": {
 				"color": "transparent",
 				"x": "{{x}}",

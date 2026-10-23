@@ -31,7 +31,7 @@
 			"params": { "icon": "", "tip": "", "run": "", "args": {}, "on": false, "off": false },
 			"node": {
 				"type": "label", "role": "button", "label": "{{tip}}", "tooltip": "{{tip}}", "icon": "{{icon}}", "width": 24, "height": 22,
-				"align": "center", "radius": 3, "cursor": "hand", "selected": "{{on}}", "disabled": "{{off}}",
+				"align": "center", "radius": 5, "cursor": "hand", "selected": "{{on}}", "disabled": "{{off}}",
 				"textColor": "{{off ? '@muted' : '@text'}}", "color": "{{on ? '@selected' : 'transparent'}}",
 				"hover": { "color": "{{off ? 'transparent' : '@hover'}}" },
 				"onClick": { "run": "{{run}}", "with": { "args": "{{args}}" } }
@@ -182,13 +182,13 @@
 			"node": {
 				"type": "row", "id": "menu-bar", "style": "bar", "height": 24, "arrows": "horizontal",
 				"children": [
-					{ "width": 4, "height": 1, "style": "clear" },
-					{ "repeat": { "for": "m", "in": "{{['File', 'Edit', 'Image', 'Layer', 'Type', 'Select', 'Filter', 'View', 'Window', 'Help']}}" },
-					  "let": { "key": "{{lower(m)}}" }, "id": "menu-{{key}}", "role": "button", "label": "{{m}}", "mnemonic": "{{m}}", "focusable": true,
-					  "width": "{{length(m) * 6.5 + 16}}", "height": 24, "color": "{{state.menuBar[key] ? '@hover' : 'transparent'}}",
+					{ "type": "label", "id": "app-mark", "icon": "palette", "width": 28, "height": 24, "align": "center", "textColor": "@accent", "tooltip": "Tempera" },
+					{ "repeat": { "for": "m", "in": "{{[{key: 'file', title: 'File'}, {key: 'edit', title: 'Edit'}, {key: 'image', title: 'Image'}, {key: 'layer', title: 'Layer'}, {key: 'type', title: 'Text'}, {key: 'select', title: 'Select'}, {key: 'filter', title: 'Filter'}, {key: 'view', title: 'View'}, {key: 'window', title: 'Window'}, {key: 'help', title: 'Help'}]}}" },
+					  "let": { "key": "{{m.key}}" }, "id": "menu-{{key}}", "role": "button", "label": "{{m.title}}", "mnemonic": "{{m.title}}", "focusable": true,
+					  "width": "{{length(m.title) * 6.5 + 16}}", "height": 24, "color": "{{state.menuBar[key] ? '@hover' : 'transparent'}}",
 					  "hover": { "color": "@hover" }, "focused": { "color": "@hover" }, "onClick": { "toggle": "{{'state.menuBar.' + key}}" },
 					  "children": [
-						{ "type": "label", "text": "{{m}}", "textColor": "@text", "anchors": { "left": 8, "top": 5 }, "fitText": true },
+						{ "type": "label", "text": "{{m.title}}", "textColor": "@text", "anchors": { "left": 8, "top": 5 }, "fitText": true },
 						{ "use": "tMenu", "with": { "items": "{{menus[key] ?? []}}", "open": "{{'state.menuBar.' + key}}", "width": 260 } }
 					  ] }
 				]
@@ -322,7 +322,7 @@
 							{ "type": "label", "icon": "layout-panel-left", "textColor": "@text", "width": 22, "height": 20, "align": "center" },
 							{ "type": "label", "icon": "chevron-down", "font": "small", "textColor": "@muted", "fitText": true },
 							{ "use": "tMenu", "with": { "open": "state.workspaceMenu", "placement": "below-end", "width": 200,
-							  "items": [{ "title": "Essentials", "checked": true, "run": "resetWorkspace" }, { "separator": true }, { "title": "Reset Essentials", "run": "resetWorkspace" }] } }
+							  "items": [{ "title": "Standard", "checked": true, "run": "resetWorkspace" }, { "separator": true }, { "title": "Reset the Workspace", "run": "resetWorkspace" }] } }
 						  ] },
 						{ "width": 6, "height": 1, "style": "clear" }
 					  ] }
@@ -342,7 +342,7 @@
 						{ "when": "{{empty(g)}}", "anchors": { "left": 4, "right": 4, "top": 3 }, "height": 1, "color": "@border" },
 						{ "when": "{{!empty(g)}}", "type": "label", "id": "tool-{{t.id ?? n}}", "role": "button", "label": "{{t.title}}",
 						  "tooltip": "{{t.title + (t.key ? ' (' + t.key + ')' : '') + (t.id ? '' : ', not available yet')}}", "disabled": "{{!t.id}}", "selected": "{{t.id == state.doc.tool}}",
-						  "icon": "{{t.icon}}", "font": "iconsLarge", "fill": true, "align": "center", "radius": 3, "cursor": "hand",
+						  "icon": "{{t.icon}}", "font": "iconsLarge", "fill": true, "align": "center", "radius": 5, "cursor": "hand",
 						  "textColor": "{{t.id ? '@text' : '@muted'}}", "color": "{{t.id == state.doc.tool ? '@selected' : 'transparent'}}",
 						  "hover": { "color": "{{t.id ? '@hover' : 'transparent'}}" },
 						  "onClick": { "run": "setTool", "with": { "args": { "tool": "{{t.id}}" } } },
@@ -376,9 +376,9 @@
 					  ] },
 					{ "height": 2, "width": 1, "style": "clear" },
 					{ "use": "tIcon", "id": "quick-mask", "width": 28, "height": 24,
-					  "with": { "icon": "circle-dashed", "tip": "Edit in Quick Mask Mode (Q)", "run": "toggleQuickMask", "on": "{{state.doc.options.quickMask}}" } },
+					  "with": { "icon": "circle-dashed", "tip": "Paint the selection as a mask (Q)", "run": "toggleQuickMask", "on": "{{state.doc.options.quickMask}}" } },
 					{ "type": "label", "id": "screen-mode", "role": "button", "label": "Screen mode", "tooltip": "Change Screen Mode (F)", "icon": "monitor",
-					  "width": 28, "height": 24, "align": "center", "radius": 3, "cursor": "hand", "textColor": "@text", "hover": { "color": "@hover" },
+					  "width": 28, "height": 24, "align": "center", "radius": 5, "cursor": "hand", "textColor": "@text", "hover": { "color": "@hover" },
 					  "onClick": { "run": "cycleScreenMode" }, "onContextMenu": { "toggle": "state.screenMenu" },
 					  "children": [
 						{ "type": "path", "d": "M 4 0 L 4 4 L 0 4 Z", "fillColor": "@muted", "width": 4, "height": 4, "anchors": { "right": 1, "bottom": 1 } },
@@ -394,8 +394,8 @@
 				"type": "column", "id": "canvas-area", "role": "main", "label": "Canvas", "grow": 1, "height": "100%", "color": "@canvasBack",
 				"children": [
 					{ "type": "tabs", "id": "document-tabs", "label": "Documents", "width": "100%", "height": 24, "color": "@header",
-					  "tabs": [{ "id": "doc", "closable": true, "label": "{{state.docName}} @ {{computed.zoomPercent}}% ({{computed.activeLayer.name ?? ''}}, {{computed.mode}})" }],
-					  "value": "doc", "textColor": "@muted", "activeTextColor": "@text", "activeBackground": "@panel", "accentColor": "@panel",
+					  "tabs": [{ "id": "doc", "closable": true, "label": "{{state.docName}} — {{computed.activeLayer.name ?? ''}} · {{round(computed.zoomPercent)}}% · {{computed.mode}}" }],
+					  "value": "doc", "textColor": "@muted", "activeTextColor": "@text", "activeBackground": "@panel", "accentColor": "@accent",
 					  "onClose": { "set": "state.doc.message", "to": "Closing the only document isn't available yet" } },
 					{ "type": "row", "id": "ruler-row", "when": "{{state.view.rulers}}", "width": "100%", "height": 16,
 					  "children": [

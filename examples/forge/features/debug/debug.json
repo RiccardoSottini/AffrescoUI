@@ -40,7 +40,7 @@
 	},
 
 	"actions": {
-		"showDebug": { "title": "Show Run and Debug", "category": "View", "icon": "bug",
+		"showDebug": { "title": "Show Debugger", "category": "View", "icon": "bug",
 			"do": [{ "run": "forgeShowView", "with": { "view": "debug" } },
 			       { "if": "{{state.sideView == 'debug' && state.debug.status == 'inactive'}}", "then": [{ "run": "debugLoadConfigurations" }] }] },
 		"debugLoadConfigurations": { "title": "Reload Launch Configurations", "category": "Debug", "icon": "refresh-cw",

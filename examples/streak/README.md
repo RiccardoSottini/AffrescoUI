@@ -26,11 +26,11 @@ Laid out for the desktop: the list and the selected habit's detail side by side
   note. Sort by hand (drag to reorder), name, colour, score or status; hide completed, show archived.
 - **Habits**: yes or no, or measurable with a unit and a target at least or at most; daily, every N days, N a week or
   N a month; a reminder at a time on chosen days, shown as a `toast` by an `every` timer.
-- **The detail**: overview, target, a score chart and history bars with a period, a calendar heatmap, best streaks,
+- **The detail**: at a glance, target, a strength chart and progress bars with a period, a calendar heatmap, longest runs,
   frequency dots by weekday and notes, all `computed` from the habit's entries.
 - **The edit dialog**: the built-in `dialog` with name, question, a 20-colour picker in a `popover`, frequency,
   reminder and notes; archive (with undo), delete (asks first) and export as CSV to the clipboard.
-- **Settings**: light, dark and pure black, the first day of the week, reverse order, skip days, notifications, the
+- **Settings**: light, dark and true black, the first day of the week, reverse order, skip days, notifications, the
   language and sync.
 - **Commands and keys**: a command palette (`mod+k`, `quickPick`), `mod+n` and `mod+shift+n` new habits, `mod+e`
   edit, `mod+shift+h` archive, `mod+backspace` delete, `mod+comma` settings, `mod+j` theme, `mod+up`/`mod+down`

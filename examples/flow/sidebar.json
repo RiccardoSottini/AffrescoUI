@@ -103,7 +103,7 @@
 					},
 					{ "id": "sidebarSearch", "style": "topButton", "text": "", "icon": "search", "anchors": { "right": 44, "top": 10 }, "height": 28, "width": 28, "padding": 0, "align": "center",
 						"hover": { "color": "@color.sidebarHover" }, "tooltip": "{{t('goTo.tooltip')}}", "onClick": "goToCardCommand" },
-					{ "id": "sidebarNew", "style": "topButton", "text": "", "icon": "pencil-line", "anchors": { "right": 12, "top": 10 }, "height": 28, "width": 28, "padding": 0, "align": "center",
+					{ "id": "sidebarNew", "style": "topButton", "text": "", "icon": "edit", "anchors": { "right": 12, "top": 10 }, "height": 28, "width": 28, "padding": 0, "align": "center",
 						"color": "@color.card", "borderWidth": 1, "borderColor": "@color.border", "hover": { "color": "@color.sidebarHover" },
 						"tooltip": "{{t('nav.newTooltip')}}", "onClick": "newCardCommand" },
 					{
@@ -129,7 +129,7 @@
 							{ "id": "navTeam", "use": "navItem", "with": { "icon": "square", "text": "Flow" }, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "showBoard" }] },
 							{ "id": "navIssues", "use": "navItem", "with": { "icon": "copy", "text": "{{t('nav.issues')}}", "active": "{{state.page == 'issues' && state.owner != state.me && state.boardId == state.boards[0].id}}" },
 								"padding": 26, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "set": "state.owner", "to": "" }] },
-							{ "id": "navCycles", "use": "navItem", "with": { "icon": "refresh-ccw", "text": "{{t('nav.cycles')}}", "active": "{{state.page == 'cycles'}}" }, "padding": 26, "onClick": "goToCycles" },
+							{ "id": "navCycles", "use": "navItem", "with": { "icon": "timer", "text": "{{t('nav.cycles')}}", "active": "{{state.page == 'cycles'}}" }, "padding": 26, "onClick": "goToCycles" },
 							{ "id": "navProjects", "use": "navItem", "with": { "icon": "box", "text": "{{t('nav.projects')}}", "active": "{{state.page == 'projects'}}" }, "padding": 26, "onClick": "goToProjects" }
 						]
 					},

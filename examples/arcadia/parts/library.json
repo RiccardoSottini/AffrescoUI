@@ -41,9 +41,9 @@
 			]
 		},
 		"libraryHome": {
-			"title": "Library home",
+			"title": "My games overview",
 			"category": "View",
-			"icon": "layout-grid",
+			"icon": "layout-dashboard",
 			"do": [{ "run": "go", "with": { "tab": "library", "page": "home", "id": null } }]
 		},
 		"play": {
@@ -187,7 +187,7 @@
 			"textColor": "@color.text",
 			"hover": { "textColor": "@color.bright" }
 		},
-		"card": { "color": "@color.panel", "radius": 3 }
+		"card": { "color": "@color.panel", "radius": 8 }
 	},
 
 	"components": {
@@ -238,7 +238,7 @@
 								"grow": 1,
 								"height": 40,
 								"font": "strong",
-								"icon": "layout-grid",
+								"icon": "layout-dashboard",
 								"text": "{{t('lib.home')}}",
 								"padding": 14,
 								"cursor": "hand",
@@ -439,7 +439,7 @@
 			"node": {
 				"width": "{{width}}",
 				"height": "{{width * 1.5}}",
-				"radius": 3,
+				"radius": 8,
 				"color": "@color.raised",
 				"focusable": true,
 				"role": "button",
@@ -447,8 +447,8 @@
 				"cursor": "hand",
 				"tooltip": "{{game.title}}",
 				"shadow": { "y": 2, "blur": 6, "color": "#00000060" },
-				"hover": { "scale": 1.04, "shadow": { "y": 6, "blur": 18, "color": "#66c0f455" } },
-				"focused": { "scale": 1.04, "shadow": { "y": 6, "blur": 18, "color": "#66c0f455" } },
+				"hover": { "scale": 1.04, "shadow": { "y": 6, "blur": 18, "color": "#f5a52455" } },
+				"focused": { "scale": 1.04, "shadow": { "y": 6, "blur": 18, "color": "#f5a52455" } },
 				"onClick": { "run": "openGame", "with": { "id": "{{game.id}}" } },
 				"children": [
 					{
@@ -456,9 +456,9 @@
 						"file": "{{'art/' + game.id + '/cover.svg'}}",
 						"fill": true,
 						"fit": "cover",
-						"radius": 3
+						"radius": 8
 					},
-					{ "when": "{{!game.installed}}", "fill": true, "color": "#0e111680", "radius": 3 }
+					{ "when": "{{!game.installed}}", "fill": true, "color": "#100c1480", "radius": 8 }
 				]
 			}
 		},
@@ -554,7 +554,7 @@
 												"anchors": { "left": 0, "right": 0 },
 												"height": 120,
 												"fit": "cover",
-												"radius": { "topLeft": 3, "topRight": 3 }
+												"radius": { "topLeft": 8, "topRight": 8 }
 											},
 											{
 												"type": "label",
@@ -778,14 +778,14 @@
 			"node": {
 				"width": 345,
 				"height": 225,
-				"radius": 3,
+				"radius": 8,
 				"color": "@color.raised",
 				"focusable": true,
 				"role": "button",
 				"cursor": "hand",
 				"label": "{{game.title}}",
 				"shadow": { "y": 2, "blur": 6, "color": "#00000060" },
-				"hover": { "scale": 1.02, "shadow": { "y": 6, "blur": 18, "color": "#66c0f455" } },
+				"hover": { "scale": 1.02, "shadow": { "y": 6, "blur": 18, "color": "#f5a52455" } },
 				"onClick": { "run": "openGame", "with": { "id": "{{game.id}}" } },
 				"children": [
 					{
@@ -793,11 +793,11 @@
 						"file": "{{'art/' + game.id + '/hero.svg'}}",
 						"fill": true,
 						"fit": "cover",
-						"radius": 3
+						"radius": 8
 					},
 					{
 						"fill": true,
-						"radius": 3,
+						"radius": 8,
 						"color": "transparent",
 						"gradient": {
 							"kind": "linear",
@@ -817,7 +817,7 @@
 						"font": "small",
 						"anchors": { "left": 14, "bottom": 18 },
 						"fitText": true,
-						"textColor": "#c7d5e0",
+						"textColor": "#e2d8e6",
 						"text": "{{t('game.hoursTotal', { n: formatNumber(game.hours, 0, 1) })}}"
 					},
 					{
@@ -863,7 +863,7 @@
 								"color": "transparent",
 								"gradient": {
 									"kind": "linear",
-									"stops": [{ "at": 0.55, "color": "#00000000" }, { "at": 1, "color": "#0b0e12c0" }]
+									"stops": [{ "at": 0.55, "color": "#00000000" }, { "at": 1, "color": "#0d0a10c0" }]
 								}
 							},
 							{
@@ -920,13 +920,13 @@
 										"gradient": {
 											"kind": "linear",
 											"angle": 90,
-											"stops": "{{g.status == 'ready' ? ['@color.play', '@color.playEnd'] : ['@color.blue', '@color.blueEnd']}}"
+											"stops": "{{g.status == 'ready' ? ['@color.play', '@color.playEnd'] : ['@color.warm', '@color.warmEnd']}}"
 										},
 										"hover": {
 											"gradient": {
 												"kind": "linear",
 												"angle": 90,
-												"stops": "{{g.status == 'ready' ? ['#79d63a', '@color.play'] : ['#6fd0ff', '@color.blue']}}"
+												"stops": "{{g.status == 'ready' ? ['#4fdcb6', '@color.play'] : ['#ffd27a', '@color.warm']}}"
 											}
 										},
 										"onClick": { "run": "primary", "with": { "game": "{{g}}" } }
@@ -944,7 +944,7 @@
 										"role": "button",
 										"label": "{{t('game.launchOptions')}}",
 										"cursor": "hand",
-										"color": "{{g.status == 'ready' ? '@color.playEnd' : '@color.blueEnd'}}",
+										"color": "{{g.status == 'ready' ? '@color.playEnd' : '@color.warmEnd'}}",
 										"radius": { "topRight": 3, "bottomRight": 3 },
 										"borderWidth": 1,
 										"borderColor": "#00000030",
@@ -1032,7 +1032,7 @@
 														"gradient": {
 															"kind": "linear",
 															"angle": 90,
-															"stops": ["@color.blue", "@color.accent"]
+															"stops": ["@color.warm", "@color.accent"]
 														}
 													}
 												]
@@ -1437,7 +1437,7 @@
 																"gradient": {
 																	"kind": "linear",
 																	"angle": 90,
-																	"stops": ["@color.blue", "@color.accent"]
+																	"stops": ["@color.warm", "@color.accent"]
 																}
 															}
 														]
@@ -1602,18 +1602,18 @@
 
 	"strings": {
 		"en": {
-			"lib.home": "HOME",
+			"lib.home": "Overview",
 			"lib.collections": "Collections",
-			"lib.games": "GAMES",
+			"lib.games": "Games",
 			"lib.recentFirst": "Most recent first",
 			"lib.readyOnly": "Ready to play only",
 			"lib.search": "Search",
 			"lib.advanced": "Advanced filters",
 			"lib.favourites": "Favourites",
-			"lib.uncategorised": "Uncategorised",
-			"lib.whatsNew": "What's New",
-			"lib.whatsNewSettings": "What's new settings",
-			"lib.recent": "Recent Games",
+			"lib.uncategorised": "Unsorted",
+			"lib.whatsNew": "Latest news",
+			"lib.whatsNewSettings": "Latest news settings",
+			"lib.recent": "Jump back in",
 			"lib.allGames": "All Games",
 			"lib.sortBy": "SORT BY",
 			"sort.name": "Alphabetical",
@@ -1657,7 +1657,7 @@
 			"game.release": "Release date",
 			"game.section.store": "Store Page",
 			"game.section.dlc": "DLC",
-			"game.section.hub": "Community Hub",
+			"game.section.hub": "Player hub",
 			"game.section.discussions": "Discussions",
 			"game.section.guides": "Guides",
 			"game.section.support": "Support",
@@ -1680,18 +1680,18 @@
 			"activity.review": "{text}"
 		},
 		"es": {
-			"lib.home": "INICIO",
+			"lib.home": "Resumen",
 			"lib.collections": "Colecciones",
-			"lib.games": "JUEGOS",
+			"lib.games": "Juegos",
 			"lib.recentFirst": "Más recientes primero",
 			"lib.readyOnly": "Solo listos para jugar",
 			"lib.search": "Buscar",
 			"lib.advanced": "Filtros avanzados",
 			"lib.favourites": "Favoritos",
-			"lib.uncategorised": "Sin categoría",
-			"lib.whatsNew": "Novedades",
-			"lib.whatsNewSettings": "Ajustes de novedades",
-			"lib.recent": "Juegos recientes",
+			"lib.uncategorised": "Sin ordenar",
+			"lib.whatsNew": "Últimas noticias",
+			"lib.whatsNewSettings": "Ajustes de últimas noticias",
+			"lib.recent": "Continuar jugando",
 			"lib.allGames": "Todos los juegos",
 			"lib.sortBy": "ORDENAR POR",
 			"sort.name": "Alfabético",
@@ -1735,7 +1735,7 @@
 			"game.release": "Fecha de lanzamiento",
 			"game.section.store": "Página de la tienda",
 			"game.section.dlc": "DLC",
-			"game.section.hub": "Centro de la comunidad",
+			"game.section.hub": "Espacio de jugadores",
 			"game.section.discussions": "Debates",
 			"game.section.guides": "Guías",
 			"game.section.support": "Soporte",
@@ -1758,18 +1758,18 @@
 			"activity.review": "{text}"
 		},
 		"fr": {
-			"lib.home": "ACCUEIL",
+			"lib.home": "Vue d'ensemble",
 			"lib.collections": "Collections",
-			"lib.games": "JEUX",
+			"lib.games": "Jeux",
 			"lib.recentFirst": "Plus récents d'abord",
 			"lib.readyOnly": "Prêts à jouer uniquement",
 			"lib.search": "Rechercher",
 			"lib.advanced": "Filtres avancés",
 			"lib.favourites": "Favoris",
-			"lib.uncategorised": "Sans catégorie",
-			"lib.whatsNew": "Nouveautés",
-			"lib.whatsNewSettings": "Paramètres des nouveautés",
-			"lib.recent": "Jeux récents",
+			"lib.uncategorised": "Non classés",
+			"lib.whatsNew": "Dernières nouvelles",
+			"lib.whatsNewSettings": "Paramètres des dernières nouvelles",
+			"lib.recent": "Reprendre",
 			"lib.allGames": "Tous les jeux",
 			"lib.sortBy": "TRIER PAR",
 			"sort.name": "Alphabétique",
@@ -1813,7 +1813,7 @@
 			"game.release": "Date de sortie",
 			"game.section.store": "Page de la boutique",
 			"game.section.dlc": "DLC",
-			"game.section.hub": "Hub communautaire",
+			"game.section.hub": "Espace joueurs",
 			"game.section.discussions": "Discussions",
 			"game.section.guides": "Guides",
 			"game.section.support": "Assistance",

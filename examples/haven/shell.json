@@ -20,7 +20,7 @@
 			{ "if": "{{room != null}}", "then": [{ "set": "state.room", "to": "{{room}}" }] },
 			{ "run": "openInfo", "with": { "kind": "{{kind}}", "i": "{{i}}" } }
 		],
-		"searchEntities": { "title": "Search entities", "category": "Go", "icon": "search",
+		"searchEntities": { "title": "Search controls", "category": "Go", "icon": "search",
 			"do": [{ "set": "state.quickPick.query", "to": "" }, { "set": "state.quickPick.open", "to": true }] },
 		"toggleSidebar": { "title": "Fold the sidebar", "category": "View", "icon": "panel-left",
 			"do": [{ "toggle": "state.sidebarCollapsed" }] },

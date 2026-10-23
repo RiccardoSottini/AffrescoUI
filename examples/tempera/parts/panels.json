@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempera's panels and dialogs. The dock on the right holds three tabbed groups (Colour | Swatches, Properties | Adjustments, Layers | Channels | Paths), and an icon strip beside it opens History and the Navigator. Every change goes through a tempera.* native, which returns the new snapshot into state.doc; the filter dialog only edits state.filter, and watches (parts/commands.json) preview, apply or cancel it.",
+	"note": "Tempera's panels and dialogs. The dock on the right holds three tabbed groups (Colour | Palette | Gradients | Patterns, Properties | Adjust, Layers | Channels | Paths), and an icon strip beside it opens History and the Navigator. Every change goes through a tempera.* native, which returns the new snapshot into state.doc; the filter dialog only edits state.filter, and watches (parts/commands.json) preview, apply or cancel it.",
 
 	"computed": {
 		"adjustment": "{{computed.activeLayer.adjustment}}",
@@ -20,8 +20,8 @@
 				"type": "column", "id": "group-{{slot}}", "width": "100%", "color": "@panel",
 				"children": [
 					{ "type": "tabs", "id": "panel-tabs-{{slot}}", "width": "100%", "height": 24, "color": "@header",
-					  "tabs": "{{map(tabs, {id: lower(it), label: it, closable: false})}}", "value": "{{state.panels[slot]}}",
-					  "textColor": "@muted", "activeTextColor": "@text", "activeBackground": "@panel", "accentColor": "@panel",
+					  "tabs": "{{map(tabs, {id: it.id, label: it.label, closable: false})}}", "value": "{{state.panels[slot]}}",
+					  "textColor": "@muted", "activeTextColor": "@text", "activeBackground": "@panel", "accentColor": "@accent",
 					  "onChange": { "run": "showPanel", "with": { "args": { "slot": "{{slot}}", "id": "{{event.value}}" } } } },
 					{ "id": "panel-{{slot}}", "style": "clear", "width": "100%", "grow": 1, "children": [{ "slot": true }] }
 				]
@@ -108,7 +108,7 @@
 					{ "type": "column", "id": "panels", "point": "panels.dock", "role": "complementary", "label": "Panels", "width": 262, "height": "100%",
 					  "color": "@background",
 					  "children": [
-						{ "use": "tGroup", "height": 150, "with": { "slot": "colour", "tabs": ["Colour", "Swatches", "Gradients", "Patterns"] }, "children": [
+						{ "use": "tGroup", "height": 150, "with": { "slot": "colour", "tabs": [{ "id": "colour", "label": "Colour" }, { "id": "swatches", "label": "Palette" }, { "id": "gradients", "label": "Gradients" }, { "id": "patterns", "label": "Patterns" }] }, "children": [
 							{ "use": "temperaColour", "when": "{{state.panels.colour == 'colour'}}" },
 							{ "use": "temperaSwatches", "when": "{{state.panels.colour == 'swatches'}}" },
 							{ "use": "temperaGradients", "when": "{{state.panels.colour == 'gradients'}}" },
@@ -116,12 +116,12 @@
 							  "text": "No patterns: pattern fills aren't available yet." }
 						] },
 						{ "id": "panels-split-1", "style": "clear", "width": "100%", "height": 1 },
-						{ "use": "tGroup", "height": 230, "with": { "slot": "properties", "tabs": ["Properties", "Adjustments"] }, "children": [
+						{ "use": "tGroup", "height": 230, "with": { "slot": "properties", "tabs": [{ "id": "properties", "label": "Properties" }, { "id": "adjustments", "label": "Adjust" }] }, "children": [
 							{ "use": "temperaProperties", "when": "{{state.panels.properties == 'properties'}}" },
 							{ "use": "temperaAdjustments", "when": "{{state.panels.properties == 'adjustments'}}" }
 						] },
 						{ "id": "panels-split-2", "style": "clear", "width": "100%", "height": 1 },
-						{ "use": "tGroup", "grow": 1, "with": { "slot": "layers", "tabs": ["Layers", "Channels", "Paths"] }, "children": [
+						{ "use": "tGroup", "grow": 1, "with": { "slot": "layers", "tabs": [{ "id": "layers", "label": "Layers" }, { "id": "channels", "label": "Channels" }, { "id": "paths", "label": "Paths" }] }, "children": [
 							{ "use": "temperaLayers", "when": "{{state.panels.layers == 'layers'}}" },
 							{ "use": "temperaChannels", "when": "{{state.panels.layers == 'channels'}}" },
 							{ "style": "dim", "id": "paths-empty", "when": "{{state.panels.layers == 'paths'}}", "anchors": { "left": 10, "top": 10 },
@@ -188,7 +188,7 @@
 
 		"temperaSwatches": {
 			"node": {
-				"type": "grid", "id": "swatches", "role": "group", "label": "Swatches", "columns": 12, "gap": 3,
+				"type": "grid", "id": "swatches", "role": "group", "label": "Palette", "columns": 12, "gap": 3,
 				"anchors": { "left": 8, "right": 8, "top": 8 }, "height": 40,
 				"children": [
 					{ "id": "swatch-{{index}}", "repeat": { "for": "swatch", "in": "state.swatches", "index": "index" }, "role": "button",

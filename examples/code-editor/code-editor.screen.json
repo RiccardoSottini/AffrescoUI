@@ -3,7 +3,7 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 
-	"note": "Quaderno: a code editor. A menu bar, an explorer tree, editor tabs with unsaved dots (closing an unsaved one asks first), a generated 5,000-line file, Goto Anything (Cmd+P; file@symbol, file:line), symbols in the project (Cmd+Shift+R), Find in Files (Cmd+Shift+F, F4 for the next result), every command in a palette (Cmd+Shift+P), the TODO and FIXME lines as problems (updated on save), and a terminal. A find panel (Cmd+F, Cmd+Alt+F to replace), word wrap (Alt+Cmd+W) and a ruler at column 80 (View); multiple selections, Cmd+/ comments, line operations.",
+	"note": "Quaderno: a code editor. A menu bar, an explorer tree, editor tabs with unsaved dots (closing an unsaved one asks first), a generated 5,000-line file, the Quick Switcher (Cmd+P; file@symbol, file:line), symbols in the project (Cmd+Shift+R), Find in Files (Cmd+Shift+F, F4 for the next result), every command in a palette (Cmd+Shift+P), the TODO and FIXME lines as problems (updated on save), and a terminal. A find panel (Cmd+F, Cmd+Alt+F to replace), word wrap (Alt+Cmd+W) and a ruler at column 80 (View); multiple selections, Cmd+/ comments, line operations.",
 
 	"window": {
 		"title": "Quaderno: an AffrescoUI template",
@@ -24,37 +24,37 @@
 	},
 
 	"colors": {
-		"background": "#2e3740",
-		"chrome": "#1f252b",
-		"sidebar": "#262d34",
-		"tabBar": "#22292f",
-		"tab": "#283038",
-		"hover": "#333c46",
-		"rowSelected": "#3a444f",
-		"panel": "#262d34",
-		"text": "#d6dce6",
-		"muted": "#8e97a3",
-		"faint": "#5c6670",
-		"border": "#1a1f24",
-		"accent": "#f5a855",
-		"accentSoft": "#3f4a55",
-		"input": "#1f252b",
-		"menu": "#2a323a",
+		"background": "#2b2a30",
+		"chrome": "#1e1d22",
+		"sidebar": "#252429",
+		"tabBar": "#211f25",
+		"tab": "#2a282f",
+		"hover": "#34323a",
+		"rowSelected": "#3c3944",
+		"panel": "#252429",
+		"text": "#e4dfd6",
+		"muted": "#9b958c",
+		"faint": "#645f59",
+		"border": "#18171b",
+		"accent": "#96c48a",
+		"accentSoft": "#3c4439",
+		"input": "#1e1d22",
+		"menu": "#28272d",
 		"backdrop": "#00000088",
-		"line": "#343e48",
-		"selection": "#4b5763",
-		"guide": "#3e4853",
-		"plain": "#d6dce6",
-		"comment": "#9aa2af",
-		"string": "#9bc795",
-		"prompt": "#62b3b1",
-		"error": "#e8646a",
-		"warning": "#f6c76a"
+		"line": "#333139",
+		"selection": "#4b4655",
+		"guide": "#3a3840",
+		"plain": "#e4dfd6",
+		"comment": "#a39d93",
+		"string": "#bccb7c",
+		"prompt": "#7ec4b8",
+		"error": "#e46a5e",
+		"warning": "#e6c26a"
 	},
 
 	"tokens": {
 		"assistant.accent": "@accent",
-		"assistant.accentHover": "#f7b96f",
+		"assistant.accentHover": "#a9d29d",
 		"assistant.onAccent": "@chrome",
 		"assistant.surface": "@sidebar",
 		"assistant.raised": "@tab",
@@ -65,23 +65,23 @@
 		"assistant.success": "@string",
 		"assistant.danger": "@error",
 		"assistant.warning": "#433b29",
-		"syntax.comment": "#a6acb9",
-		"syntax.keyword": "#c393c6",
-		"syntax.string": "#9bc795",
-		"syntax.string.escape": "#62b3b1",
-		"syntax.number": "#f6ad5c",
-		"syntax.constant": "#ea676c",
-		"syntax.function": "#659ccf",
-		"syntax.type": "#f6c56b",
-		"syntax.operator": "#f27d5c",
-		"syntax.punctuation": "#62b3b1",
-		"syntax.property": "#d6dce6",
-		"syntax.variable": "#d6dce6",
-		"syntax.attribute": "#c393c6",
-		"syntax.tag": "#ea676c",
-		"syntax.label": "#ea676c",
-		"syntax.text.title": "#659ccf",
-		"syntax.text.literal": "#9bc795"
+		"syntax.comment": "#8c867b",
+		"syntax.keyword": "#e58f6a",
+		"syntax.string": "#bccb7c",
+		"syntax.string.escape": "#7ec4b8",
+		"syntax.number": "#c9a3e6",
+		"syntax.constant": "#e6c26a",
+		"syntax.function": "#8fb8e0",
+		"syntax.type": "#7ec4b8",
+		"syntax.operator": "#d9a77c",
+		"syntax.punctuation": "#a8a29a",
+		"syntax.property": "#e4dfd6",
+		"syntax.variable": "#e4dfd6",
+		"syntax.attribute": "#e58f6a",
+		"syntax.tag": "#e58f6a",
+		"syntax.label": "#e6c26a",
+		"syntax.text.title": "#8fb8e0",
+		"syntax.text.literal": "#bccb7c"
 	},
 
 	"permissions": {
@@ -177,7 +177,7 @@
 		],
 		"outputs": {
 			"help": [{ "t": "commands: build, run, help, clear", "c": "plain" }],
-			"build": [{ "t": "[100%] Built target station", "c": "plain" }, { "t": "[Finished in 0.8s]", "c": "comment" }],
+			"build": [{ "t": "[100%] Built target station", "c": "plain" }, { "t": "[Done in 0.8s]", "c": "comment" }],
 			"run": [{ "t": "station: reading sensor-0 every second", "c": "plain" }]
 		}
 	},
@@ -399,7 +399,7 @@
 			{ "run": "goToPlace", "with": { "item": { "file": "{{number(split(event.id ?? event.value, ':')[0])}}", "line": "{{number(split(event.id ?? event.value, ':')[1])}}", "column": 1, "length": 0 } } }
 		],
 		"indexFile": [
-			{ "note": "with: file; its symbols for Goto Symbol (@) and Goto Symbol in Project: Markdown headings, C++ classes, structs and function definitions" },
+			{ "note": "with: file; its symbols for Find Symbol (@) and Find Symbol in Project: Markdown headings, C++ classes, structs and function definitions" },
 			{ "if": "{{state.files[file].scratch}}", "then": [{ "stop": true }] },
 			{ "set": "state.symbolIndex[file]", "to": "{{map(filter(map(split(state.files[file].text, '\\n'), { t: it, line: index + 1 }), state.files[file].language == 'Markdown' ? slice(it.t, 0, 1) == '#' : (state.files[file].language == 'C++' && indexOf(' \\t#/}', slice(it.t, 0, 1)) < 0 && (slice(it.t, 0, 6) == 'class ' || slice(it.t, 0, 7) == 'struct ' || (contains(it.t, '(') && !contains(it.t, ';'))))), { title: slice(it.t, 0, 1) == '#' ? trim(join(split(it.t, '#'), '')) : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? split(trim(split(it.t, '{')[0]), ' ')[1] : reverse(split(trim(split(it.t, '(')[0]), ' '))[0], badge: slice(it.t, 0, 1) == '#' ? '#' : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? 'c' : 'f', badgeColor: slice(it.t, 0, 1) == '#' ? '#4a3f5e' : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? '#5a4a2c' : '#3a4b66', detail: (state.files[file].folder ? state.files[file].folder + '/' : '') + state.files[file].name + ':' + it.line, file: file, line: it.line })}}" }
 		],
@@ -431,9 +431,9 @@
 				{ "push": "state.files", "value": { "name": "Untitled-{{length(state.files) - 6}}.md", "folder": "", "language": "Markdown", "dirty": true, "text": "", "saved": "" } },
 				{ "run": "open", "with": { "file": "{{length(state.files) - 1}}" } }
 			] },
-		"quickOpen": { "title": "Go to File…", "category": "Goto", "icon": "search",
+		"quickOpen": { "title": "Quick Switcher…", "category": "Go", "icon": "search",
 			"do": [{ "if": "{{state.active >= 0}}", "then": [{ "run": "indexFile", "with": { "file": "{{state.active}}" } }] }, { "set": "state.quickPick.query", "to": "" }, { "set": "state.quickPick.open", "to": true }] },
-		"commandPalette": { "title": "Command Palette…", "category": "View", "icon": "command",
+		"commandPalette": { "title": "All Commands…", "category": "View", "icon": "command",
 			"do": [{ "set": "state.palette.query", "to": "" }, { "set": "state.palette.open", "to": true }] },
 		"openFind": { "title": "Find…", "category": "Find", "icon": "search", "enablement": "{{state.active >= 0}}",
 			"do": [{ "set": "state.findBar.open", "to": true }, { "set": "state.findBar.replacing", "to": false }, { "set": "state.findBar.inFiles", "to": false }, { "focus": "#findText" }] },
@@ -485,13 +485,13 @@
 			"do": [{ "set": "state.files[state.active].text", "to": "{{state.files[state.active].saved}}" }, { "set": "state.files[state.active].dirty", "to": false }] },
 		"refreshFolders": { "title": "Refresh Folders", "category": "Project",
 			"do": [{ "forEach": "{{range(length(state.files))}}", "as": "f", "do": [{ "run": "indexFile", "with": { "file": "{{f}}" } }] }, { "run": "findProblems" }] },
-		"nextTab": { "title": "Next File", "category": "Goto", "icon": "chevron-right", "enablement": "{{length(state.tabs) > 1}}",
+		"nextTab": { "title": "Next File", "category": "Go", "icon": "chevron-right", "enablement": "{{length(state.tabs) > 1}}",
 			"do": [{ "set": "state.active", "to": "{{state.tabs[(indexOf(state.tabs, state.active) + 1) % length(state.tabs)]}}" }] },
-		"previousTab": { "title": "Previous File", "category": "Goto", "icon": "chevron-left", "enablement": "{{length(state.tabs) > 1}}",
+		"previousTab": { "title": "Previous File", "category": "Go", "icon": "chevron-left", "enablement": "{{length(state.tabs) > 1}}",
 			"do": [{ "set": "state.active", "to": "{{state.tabs[(indexOf(state.tabs, state.active) + length(state.tabs) - 1) % length(state.tabs)]}}" }] },
 		"toggleSidebar": { "title": "Toggle Side Bar", "category": "View", "icon": "panel-left",
 			"do": [{ "toggle": "state.sidebarOpen" }] },
-		"togglePanel": { "title": "Toggle Panel", "category": "View", "icon": "panel-bottom",
+		"togglePanel": { "title": "Toggle Panel", "category": "View", "icon": "square-terminal",
 			"do": [{ "toggle": "state.panelOpen" }] },
 		"showProblems": { "title": "Show Problems", "category": "View", "icon": "alert-triangle",
 			"do": [{ "set": "state.panelOpen", "to": true }, { "set": "state.panelTab", "to": "problems" }] },
@@ -543,11 +543,11 @@
 			"do": [{ "edit": "selectAllOccurrences", "in": "#editor" }] },
 		"toggleComment": { "title": "Toggle Comment", "category": "Edit", "icon": "message-square", "enablement": "{{state.active >= 0}}",
 			"do": [{ "edit": "toggleComment", "in": "#editor", "prefix": "{{computed.commentMark}}" }] },
-		"goToSymbol": { "title": "Go to Symbol…", "category": "Goto", "icon": "at-sign", "enablement": "{{state.active >= 0}}",
+		"goToSymbol": { "title": "Find Symbol…", "category": "Go", "icon": "at-sign", "enablement": "{{state.active >= 0}}",
 			"do": [{ "run": "indexFile", "with": { "file": "{{state.active}}" } }, { "set": "state.quickPick.query", "to": "@" }, { "set": "state.quickPick.open", "to": true }] },
-		"goToLine": { "title": "Go to Line…", "category": "Goto", "icon": "hash", "enablement": "{{state.active >= 0}}",
+		"goToLine": { "title": "Go to Line…", "category": "Go", "icon": "hash", "enablement": "{{state.active >= 0}}",
 			"do": [{ "set": "state.quickPick.query", "to": ":" }, { "set": "state.quickPick.open", "to": true }] },
-		"findInFile": { "title": "Search in File…", "category": "Goto", "icon": "search", "enablement": "{{state.active >= 0}}",
+		"findInFile": { "title": "Search in File…", "category": "Go", "icon": "search", "enablement": "{{state.active >= 0}}",
 			"do": [{ "set": "state.quickPick.query", "to": "#" }, { "set": "state.quickPick.open", "to": true }] },
 		"goToPlace": [
 			{ "note": "with: item, a row with a file (opened) and a line (and a column and a length: selects them)" },
@@ -556,15 +556,15 @@
 			{ "focus": "#editor" },
 			{ "edit": "select", "in": "#editor", "line": "{{item.line}}", "column": "{{item.column ?? 1}}", "toLine": "{{item.line}}", "toColumn": "{{(item.column ?? 1) + (item.length ?? 0)}}" }
 		],
-		"goToSymbolInProject": { "title": "Go to Symbol in Project…", "category": "Goto", "icon": "at-sign",
+		"goToSymbolInProject": { "title": "Find Symbol in Project…", "category": "Go", "icon": "at-sign",
 			"do": [{ "run": "indexFile", "with": { "file": "{{state.active}}" } }, { "set": "state.symbolPick.query", "to": "" }, { "set": "state.symbolPick.open", "to": true }] },
 		"showAssistant": { "title": "Assistant…", "category": "Tools", "icon": "message-circle",
 			"do": [{ "set": "state.assistant.show", "to": true }, { "run": "assistant.open" }] },
-		"findInFiles": { "title": "Find in Files…", "category": "Find", "icon": "files",
+		"findInFiles": { "title": "Find in Files…", "category": "Find", "icon": "folder-search",
 			"do": [{ "set": "state.findBar.open", "to": true }, { "set": "state.findBar.inFiles", "to": true }, { "set": "state.findBar.replacing", "to": true },
 				{ "set": "state.findBar.where", "to": "{{state.findBar.where || '<open folders>'}}" }, { "focus": "#findText" }] },
 		"searchFiles": [
-			{ "note": "Writes every matching line of the files that 'Where' names (<open folders>, <open files>, or parts of paths separated by commas) into the Find Results buffer, as Find in Files does" },
+			{ "note": "Writes every matching line of the files that 'Where' names (<open folders>, <open files>, or parts of paths separated by commas) into the Search Results buffer, as Find in Files does" },
 			{ "if": "{{empty(state.findBar.text)}}", "then": [{ "stop": true }] },
 			{ "set": "state.results", "to": { "query": "{{state.findBar.text}}", "at": 0, "text": "", "files": 0, "matches": 0, "searched": 0 } },
 			{ "run": "scopeFiles" },
@@ -582,7 +582,7 @@
 			] },
 			{ "set": "state.results.text", "to": "{{'Searching ' + plural(state.results.searched, 'file') + ' for \"' + state.results.query + '\"\\n\\n' + state.results.text + plural(state.results.matches, 'match', 'matches') + ' across ' + plural(state.results.files, 'file') + '\\n'}}" },
 			{ "if": "{{computed.resultsFile < 0}}",
-				"then": [{ "push": "state.files", "value": { "name": "Find Results", "folder": null, "language": "Find Results", "scratch": true, "dirty": false, "text": "{{state.results.text}}" } }],
+				"then": [{ "push": "state.files", "value": { "name": "Search Results", "folder": null, "language": "Search Results", "scratch": true, "dirty": false, "text": "{{state.results.text}}" } }],
 				"else": [{ "set": "state.files[computed.resultsFile].text", "to": "{{state.results.text}}" }] },
 			{ "run": "open", "with": { "file": "{{computed.resultsFile}}" } }
 		],
@@ -596,7 +596,7 @@
 		],
 		"replaceInFiles": { "title": "Replace in Files", "category": "Find", "enablement": "{{state.findBar.inFiles && !empty(state.findBar.text)}}",
 			"do": [
-				{ "note": "Lists the matches in Find Results, then replaces them (plain text, case sensitive) in the files 'Where' names" },
+				{ "note": "Lists the matches in Search Results, then replaces them (plain text, case sensitive) in the files 'Where' names" },
 				{ "run": "searchFiles" },
 				{ "forEach": "{{filter(state.findBar.scope, contains(state.files[it].text, state.findBar.text))}}", "as": "f", "do": [
 					{ "set": "state.files[f].text", "to": "{{join(split(state.files[f].text, state.findBar.text), state.findBar.replace)}}" },
@@ -604,7 +604,7 @@
 				] }
 			] },
 		"openResult": [
-			{ "note": "with: line, a line of the Find Results buffer; a match line ('   12: text') opens its file there, under the path line above it" },
+			{ "note": "with: line, a line of the Search Results buffer; a match line ('   12: text') opens its file there, under the path line above it" },
 			{ "forEach": "{{[split(state.files[computed.resultsFile].text, '\\n')]}}", "as": "lines", "do": [
 				{ "if": "{{!contains(computed.resultLines, line)}}", "then": [{ "stop": true }] },
 				{ "set": "state.results.at", "to": "{{line}}" },
@@ -690,7 +690,7 @@
 								{ "name": "selection", "title": "Selection", "width": 70, "items": "{{menus.selection}}" },
 								{ "name": "find", "title": "Find", "width": 40, "items": "{{menus.find}}" },
 								{ "name": "view", "title": "View", "width": 44, "items": "{{menus.view}}" },
-								{ "name": "go", "title": "Goto", "width": 44, "items": "{{menus.go}}" },
+								{ "name": "go", "title": "Go", "width": 32, "items": "{{menus.go}}" },
 								{ "name": "terminal", "title": "Tools", "width": 46, "items": "{{menus.terminal}}" },
 								{ "name": "project", "title": "Project", "width": 58, "items": "{{menus.project}}" },
 								{ "name": "window", "title": "Window", "width": 62, "items": "{{menus.window}}" },
@@ -731,7 +731,7 @@
 						"when": "{{state.sidebarOpen}}",
 						"color": "@sidebar",
 						"children": [
-							{ "id": "label-openFiles", "style": "caption", "text": "OPEN FILES", "anchors": { "left": 14, "top": 10 } },
+							{ "id": "label-openFiles", "style": "caption", "text": "Open Files", "anchors": { "left": 14, "top": 10 } },
 							{
 								"id": "openFiles",
 								"type": "column",
@@ -756,7 +756,7 @@
 									}
 								]
 							},
-							{ "id": "label-folders", "style": "caption", "text": "FOLDERS", "anchors": { "left": 14, "top": "{{44 + 24 * length(state.tabs)}}" } },
+							{ "id": "label-folders", "style": "caption", "text": "Project", "anchors": { "left": 14, "top": "{{44 + 24 * length(state.tabs)}}" } },
 							{
 								"id": "fileTree",
 								"type": "tree",
@@ -804,7 +804,7 @@
 										"textColor": "@muted",
 										"activeTextColor": "@text",
 										"activeBackground": "@background",
-										"accentColor": "@background",
+										"accentColor": "@accent",
 										"markerColor": "@text",
 										"keepMarker": true,
 										"onChange": { "set": "state.active", "to": "{{number(event.value)}}" },
@@ -1012,11 +1012,12 @@
 				"height": 22,
 				"color": "@chrome",
 				"children": [
+					{ "id": "statusEdge", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@accentSoft" },
 					{
 						"id": "panelSwitcher",
 						"type": "label",
 						"text": "",
-						"icon": "panel-bottom",
+						"icon": "square-terminal",
 						"anchors": { "left": 4, "top": 1 },
 						"width": 20,
 						"height": 20,
@@ -1029,7 +1030,7 @@
 					{
 						"id": "statusSize",
 						"style": "statusItem",
-						"text": "{{computed.file ? 'Line ' + state.caret.line + ', Column ' + state.caret.column + (state.caret.selected ? '; ' + state.caret.selected + ' characters selected' : '') : ''}}",
+						"text": "{{computed.file ? 'Line ' + state.caret.line + ', Col ' + state.caret.column + (state.caret.selected ? ' (' + state.caret.selected + ' selected)' : '') : ''}}",
 						"anchors": { "left": 30 }
 					},
 					{
@@ -1044,13 +1045,13 @@
 						"id": "statusText",
 						"style": "statusItem",
 						"text": "main",
-						"icon": "git-branch",
+						"icon": "git-fork",
 						"anchors": { "right": 260 }
 					},
 					{
 						"id": "statusIndent",
 						"style": "statusItem",
-						"text": "{{computed.file ? 'Tab Size: 4' : ''}}",
+						"text": "{{computed.file ? 'Indent: 4' : ''}}",
 						"anchors": { "right": 140 }
 					},
 					{

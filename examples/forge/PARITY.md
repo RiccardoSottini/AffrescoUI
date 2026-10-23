@@ -7,9 +7,9 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 
 | Area | Status | Gap |
 |---|---|---|
-| Title bar, command center | done | |
+| Title bar, search box | done | |
 | Back and forward navigation | done | |
-| Activity bar | done | |
+| View rail | done | |
 | Side bar views, title rows | partial | No view actions (new file, refresh, collapse) in the title rows |
 | Editor tabs | partial | No file-type icons; no preview (italic) tabs |
 | Breadcrumbs | partial | Shows the path; no symbol segments |

@@ -10,7 +10,7 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_host examples/mo
 | What | Status | Note |
 |---|---|---|
 | Top bar: File, Edit, Render, Window, Help menus | partial | the menus hold a few commands each |
-| Workspace tabs (Layout, Modeling, ... Scripting) | partial | drawn; only Layout is a workspace |
+| Workspace tabs (Layout, Model, ... Script) | partial | drawn; only Layout is a workspace |
 | Scene and view layer pickers | partial | drawn, one scene |
 | 3D viewport header: editor type, mode, View, Select, Add, Object | done | |
 | Header: orientation, pivot, snapping, proportional editing | done | proportional is a toggle only |
@@ -23,7 +23,7 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_host examples/mo
 | Outliner: collections, objects, data icons | done | |
 | Outliner: selectable, eye and camera toggles | done | |
 | Properties editor: tab strip | done | |
-| Properties: Object tab panels (Transform, Delta Transform, ...) | partial | only Transform has content |
+| Properties: Object tab panels (Transform, Transform Offset, ...) | partial | only Transform has content |
 | Timeline: play controls, frame, start, end | done | |
 | Timeline: keyframe diamonds | done | |
 | Status bar: mouse hints, counts, version | done | |
