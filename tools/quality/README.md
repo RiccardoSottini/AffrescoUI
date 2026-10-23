@@ -9,7 +9,7 @@ clean-ups can pick their files.
 | **Gate: clang-tidy** | No finding of [`.clang-tidy`](../../.clang-tidy) in a line the change adds or modifies | `Linux` fails (its "Quality gate" step) |
 | **Gate: function size** | No function the change touches is over 80 lines or complexity 15, unless it was already over and didn't grow | `Linux` fails (its "Quality gate" step) |
 | **Report: coverage** | Line, function and branch coverage of the unit tests, per module | Job summary, `coverage` artifact |
-| **Floor: coverage** | The line coverage of `core`, `vcs`, `channel` and `format/Rules.cpp` stays at or above [`coverage-baseline.json`](coverage-baseline.json) | `Quality report` fails |
+| **Floor: coverage** | The line coverage of `core`, `vcs`, `channel`, `format/Rules.cpp` and `format/RulesControl.cpp` stays at or above [`coverage-baseline.json`](coverage-baseline.json) | `Quality report` fails |
 | **Report: whole repository** | The 20 longest and 20 most complex functions, tidy findings per module, check and file | Job summary, `quality-report` artifact |
 
 The gates run in the `Linux` job of [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), on every pull request
