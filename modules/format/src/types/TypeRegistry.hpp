@@ -324,5 +324,8 @@ void registerCodeInputType(TypeRegistry& registry);
 /// @brief Registers "carousel" (CarouselType.cpp).
 /// @param registry The registry.
 void registerCarouselType(TypeRegistry& registry);
+/// @brief Registers "scene" (SceneType.cpp).
+/// @param registry The registry.
+void registerSceneType(TypeRegistry& registry);
 
 } // namespace affresco::format

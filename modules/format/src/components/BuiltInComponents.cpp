@@ -12,29 +12,36 @@ namespace {
 
 /// @brief The colours every menu takes, as parameters.
 constexpr std::string_view menuColours =
-    R"("color": "#252526", "textColor": "#cccccc", "dimColor": "#8b8b8b", "highlight": "#04395e")";
+    R"("color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.dim", "highlight": "@kit.selection")";
 
 /// @brief A menu's items: a column of rows (or separators) that the arrows, Home, End and mnemonics move through.
 constexpr std::string_view menuItems = R"({
 	"type": "column", "width": "{{width}}", "height": "{{sum(items, it.separator == true ? 9 : 26)}}",
-	"color": "{{color}}", "radius": 4, "borderWidth": 1, "borderColor": "#454545", "arrows": "vertical",
+	"color": "{{color}}", "radius": "@kit.radius", "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border",
+	"arrows": "vertical", "role": "menu",
 	"children": [{
 		"repeat": { "for": "item", "in": "{{items}}", "index": "i" },
 		"anchors": { "left": 0, "right": 0 }, "height": "{{item.separator == true ? 9 : 26}}", "color": "{{color}}",
+		"role": "{{item.separator == true ? 'separator' : 'menuitem'}}", "label": "{{item.title ?? item.name ?? ''}}",
 		"focusable": "{{item.separator != true}}",
 		"disabled": "{{item.separator == true || item.enabled == false}}",
 		"mnemonic": "{{item.mnemonic ?? item.title ?? ''}}",
 		"hover": { "color": "{{item.separator == true || item.enabled == false ? color : highlight}}" },
-		"focused": { "color": "{{highlight}}" },
+		"focused": { "color": "{{highlight}}" }, "selected": "{{item.checked == null ? null : item.checked == true}}",
 		"onClick": [{ "if": "{{item.submenu != null}}",
 		              "then": [{ "toggle": "{{(sub ?? open + 'Sub') + '.m' + i}}" }],
 		              "else": [{ "dismiss": true },
 		                       { "if": "{{item.run != null}}", "then": [{ "run": "{{item.run}}", "with": "{{item.with}}" }] }] }],
 		"children": [
 			{ "when": "{{item.separator == true}}", "anchors": { "left": 8, "right": 8, "top": 4 }, "height": 1,
-			  "color": "#454545" },
+			  "color": "@kit.border" },
+			{ "when": "{{item.separator != true && (item.checked == true || icons && item.icon != null)}}", "type": "label",
+			  "text": "", "icon": "{{item.checked == true ? 'check' : item.icon}}",
+			  "textColor": "{{item.enabled == false ? dimColor : textColor}}", "anchors": { "left": 10, "top": 5 },
+			  "fitText": true },
 			{ "when": "{{item.separator != true}}", "type": "label", "text": "{{item.title ?? item.name ?? ''}}",
-			  "textColor": "{{item.enabled == false ? dimColor : textColor}}", "anchors": { "left": 12, "top": 5 },
+			  "textColor": "{{item.enabled == false ? dimColor : textColor}}",
+			  "anchors": { "left": "{{icons || some(items, it.checked != null) ? 34 : 12}}", "top": 5 },
 			  "fitText": true },
 			{ "when": "{{item.separator != true}}", "type": "label",
 			  "text": "{{item.submenu != null ? '»' : item.keyLabel ?? ''}}", "textColor": "{{dimColor}}",
@@ -59,13 +66,13 @@ json menu(std::string_view placement, std::string_view extraParams, bool nested)
 		     {"with",
 		      {{"items", "{{item.submenu}}"}, {"open", "{{(sub ?? open + 'Sub') + '.m' + i}}"},
 		       {"width", "{{width}}"}, {"color", "{{color}}"}, {"textColor", "{{textColor}}"},
-		       {"dimColor", "{{dimColor}}"}, {"highlight", "{{highlight}}"}}}});
+		       {"dimColor", "{{dimColor}}"}, {"highlight", "{{highlight}}"}, {"icons", "{{icons}}"}}}});
 	if(placement == "window") { // a context menu, where the pointer is
 		node["x"] = "{{x}}";
 		node["y"] = "{{y}}";
 	}
 	json params = json::parse(std::string(R"({"items": [], "open": "state.menuOpen", "sub": null,
-		"anchor": "", "width": 240, )") +
+		"anchor": "", "width": 240, "icons": false, )") +
 	                          std::string(menuColours) + std::string(extraParams) + "}");
 	params["placement"] = placement;
 	return {{"params", std::move(params)}, {"node", std::move(node)}};
@@ -76,8 +83,8 @@ json menu(std::string_view placement, std::string_view extraParams, bool nested)
 constexpr std::string_view quickPickNode = R"({
 	"overlay": { "placement": "window", "open": "{{'state.' + name + '.open'}}", "dismiss": "outside", "modal": true },
 	"x": "{{max(0, (window.width - width) / 2)}}", "y": 48, "width": "{{width}}",
-	"height": "{{50 + max(1, min(total, rows)) * rowHeight}}", "color": "{{color}}", "radius": 6, "borderWidth": 1,
-	"borderColor": "#454545",
+	"height": "{{50 + max(1, min(total, rows)) * rowHeight}}", "color": "{{color}}", "radius": "@kit.cardRadius",
+	"borderWidth": "@kit.borderWidth", "borderColor": "@kit.border",
 	"let": {
 		"base": "{{'state.' + name}}",
 		"qp": "{{state[name]}}",
@@ -153,44 +160,46 @@ json quickPick() {
 	node["keys"]["enter"][0]["then"][0]["do"] = choose;
 	node["children"][2]["children"][0]["onClick"][1]["do"] = choose;
 	json params = json::parse(R"({"name": "quickPick", "providers": [], "rows": 10, "rowHeight": 26, "width": 600,
-		"limit": 1000, "recentLimit": 10, "color": "#252526", "textColor": "#cccccc", "dimColor": "#8b8b8b",
-		"accent": "#2aaaff", "highlight": "#04395e", "field": "#3c3c3c"})");
+		"limit": 1000, "recentLimit": 10, "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.dim",
+		"accent": "@kit.accent", "highlight": "@kit.selection", "field": "@kit.field"})");
 	return {{"params", std::move(params)}, {"node", std::move(node)}};
 }
 
 /// @brief The other built-ins, in the format.
 constexpr std::string_view others = R"({
 "menuBar": {
-	"params": { "menus": [], "open": "state.menuBar", "height": 30, "width": 240,
-	            "color": "#3c3c3c", "textColor": "#cccccc", "dimColor": "#8b8b8b", "highlight": "#505050" },
+	"params": { "source": "{{menus}}", "menus": "{{window.menuBar ?? []}}", "open": "state.menuBar", "height": 30,
+	            "width": 240,
+	            "color": "@kit.bar", "textColor": "@kit.text", "dimColor": "@kit.dim", "highlight": "@kit.barHover" },
 	"node": {
 		"type": "row", "height": "{{height}}", "color": "{{color}}", "arrows": "horizontal",
 		"children": [{
 			"repeat": { "for": "m", "in": "{{menus}}", "index": "n" },
-			"width": "{{length(m.title ?? m.name ?? '') * 8 + 20}}", "anchors": { "top": 0, "bottom": 0 },
-			"color": "{{color}}", "focusable": true, "mnemonic": "{{m.mnemonic ?? m.title ?? ''}}",
+			"let": { "key": "{{m.name ?? m.menu ?? n}}", "heading": "{{m.title ?? m.name ?? m.menu ?? ''}}" },
+			"width": "{{length(heading) * 8 + 20}}", "anchors": { "top": 0, "bottom": 0 },
+			"color": "{{color}}", "focusable": true, "mnemonic": "{{m.mnemonic ?? heading}}",
 			"hover": { "color": "{{highlight}}" }, "focused": { "color": "{{highlight}}" },
-			"onClick": { "toggle": "{{open + '.' + (m.name ?? n)}}" },
+			"onClick": { "toggle": "{{open + '.' + key}}" },
 			"children": [
-				{ "type": "label", "text": "{{m.title ?? m.name ?? ''}}", "textColor": "{{textColor}}",
+				{ "type": "label", "text": "{{heading}}", "textColor": "{{textColor}}",
 				  "anchors": { "left": 10, "top": 7 }, "fitText": true },
-				{ "use": "menu", "with": { "items": "{{m.items ?? []}}",
-				  "open": "{{open + '.' + (m.name ?? n)}}", "width": "{{width}}" } }
+				{ "use": "menu", "with": { "items": "{{m.items ?? source[m.menu ?? m.name ?? ''] ?? []}}",
+				  "open": "{{open + '.' + key}}", "width": "{{width}}" } }
 			]
 		}]
 	}
 },
 "dialog": {
 	"params": { "open": "state.dialogOpen", "title": "", "message": "", "buttons": [{ "title": "OK" }],
-	            "width": 420, "height": 160, "color": "#252526", "textColor": "#cccccc", "dimColor": "#a0a0a0",
-	            "highlight": "#0e639c", "backdrop": "#00000088" },
+	            "width": 420, "height": 160, "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.body",
+	            "highlight": "@kit.primary", "backdrop": "@kit.backdrop" },
 	"node": {
 		"overlay": { "placement": "window", "open": "{{open}}", "dismiss": "outside", "modal": true },
 		"fill": true, "color": "{{backdrop}}",
 		"children": [{
 			"overlay": { "placement": "center", "open": "{{open}}" }, "role": "dialog", "label": "{{title}}",
-			"width": "{{width}}", "height": "{{height}}", "color": "{{color}}", "radius": 6,
-			"borderWidth": 1, "borderColor": "#454545",
+			"width": "{{width}}", "height": "{{height}}", "color": "{{color}}", "radius": "@kit.cardRadius",
+			"borderWidth": "@kit.borderWidth", "borderColor": "@kit.border",
 			"children": [
 				{ "type": "label", "text": "{{title}}", "textColor": "{{textColor}}",
 				  "anchors": { "left": 20, "top": 16 }, "fitText": true },
@@ -201,12 +210,15 @@ constexpr std::string_view others = R"({
 				  "width": "{{length(buttons) * 96}}", "gap": 8, "arrows": "horizontal",
 				  "children": [{
 					"repeat": { "for": "b", "in": "{{buttons}}", "index": "i" },
-					"width": 88, "anchors": { "top": 0, "bottom": 0 }, "radius": 4, "focusable": true,
-					"color": "{{i == 0 ? highlight : '#3a3d41'}}", "focused": { "borderWidth": 1, "borderColor": "#ffffff" },
+					"width": 88, "anchors": { "top": 0, "bottom": 0 }, "radius": "@kit.radius", "focusable": true,
+					"role": "button", "label": "{{b.title ?? ''}}", "color": "{{i == 0 ? highlight : '@kit.secondary'}}",
+					"hover": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border" },
+					"focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
 					"mnemonic": "{{b.mnemonic ?? b.title ?? ''}}",
 					"onClick": [{ "dismiss": true },
 					            { "if": "{{b.run != null}}", "then": [{ "run": "{{b.run}}", "with": "{{b.with}}" }] }],
-					"children": [{ "type": "label", "text": "{{b.title ?? ''}}", "textColor": "#ffffff",
+					"children": [{ "type": "label", "text": "{{b.title ?? ''}}",
+					               "textColor": "{{i == 0 ? '@kit.onPrimary' : '@kit.onSecondary'}}",
 					               "anchors": { "left": 12, "top": 6 }, "fitText": true }]
 				  }]
 				}
@@ -216,19 +228,20 @@ constexpr std::string_view others = R"({
 },
 "toast": {
 	"params": { "open": "state.toastOpen", "message": "", "progress": null, "actions": [], "width": 360,
-	            "color": "#252526", "textColor": "#cccccc", "accent": "#0e639c" },
+	            "closeLabel": "Close", "color": "@kit.surface", "textColor": "@kit.text", "accent": "@kit.primary" },
 	"node": {
 		"overlay": { "placement": "window", "open": "{{open}}" },
 		"anchors": { "right": 16, "bottom": 16 }, "width": "{{width}}", "height": "{{progress == null ? 64 : 72}}",
-		"color": "{{color}}", "radius": 6, "borderWidth": 1, "borderColor": "#454545", "arrows": "horizontal",
-		"role": "status", "live": "polite",
+		"color": "{{color}}", "radius": "@kit.cardRadius", "borderWidth": "@kit.borderWidth",
+		"borderColor": "@kit.border", "arrows": "horizontal", "role": "status", "live": "polite",
 		"children": [
 			{ "type": "label", "text": "{{message}}", "textColor": "{{textColor}}", "anchors": { "left": 14, "top": 10 },
 			  "fitText": true },
 			{ "type": "label", "text": "×", "textColor": "{{textColor}}", "anchors": { "right": 12, "top": 8 },
-			  "fitText": true, "cursor": "hand", "onClick": { "set": "{{open}}", "to": false } },
+			  "fitText": true, "cursor": "hand", "focusable": true, "role": "button", "label": "{{closeLabel}}",
+			  "focused": { "color": "@kit.secondary" }, "onClick": { "set": "{{open}}", "to": false } },
 			{ "when": "{{progress != null}}", "anchors": { "left": 14, "right": 14, "bottom": 10 }, "height": 3,
-			  "color": "#3a3d41",
+			  "color": "@kit.secondary",
 			  "children": [{ "anchors": { "left": 0, "top": 0, "bottom": 0 }, "color": "{{accent}}",
 			                 "width": "{{max(0, min(1, progress ?? 0)) * 100 + '%'}}" }] },
 			{ "type": "row", "anchors": { "left": 14, "bottom": "{{progress == null ? 8 : 18}}" }, "height": 22,
@@ -236,8 +249,8 @@ constexpr std::string_view others = R"({
 			  "children": [{
 				"repeat": { "for": "a", "in": "{{actions}}", "index": "i" },
 				"width": 88, "anchors": { "top": 0, "bottom": 0 }, "focusable": true, "cursor": "hand",
-				"mnemonic": "{{a.mnemonic ?? a.title ?? ''}}",
-				"color": "{{color}}", "hover": { "color": "#3a3d41" }, "focused": { "color": "#3a3d41" },
+				"role": "button", "label": "{{a.title ?? ''}}", "mnemonic": "{{a.mnemonic ?? a.title ?? ''}}",
+				"color": "{{color}}", "hover": { "color": "@kit.secondary" }, "focused": { "color": "@kit.secondary" },
 				"onClick": [{ "set": "{{open}}", "to": false },
 				            { "if": "{{a.run != null}}", "then": [{ "run": "{{a.run}}", "with": "{{a.with}}" }] }],
 				"children": [{ "type": "label", "text": "{{a.title ?? ''}}", "textColor": "{{accent}}",
@@ -248,8 +261,8 @@ constexpr std::string_view others = R"({
 	}
 },
 "settingsPage": {
-	"params": { "query": "state.settingsQuery", "search": "", "color": "#1e1e1e", "textColor": "#cccccc",
-	            "dimColor": "#8b8b8b", "accent": "#0e639c", "field": "#3c3c3c" },
+	"params": { "query": "state.settingsQuery", "search": "", "color": "@kit.background", "textColor": "@kit.text",
+	            "dimColor": "@kit.dim", "accent": "@kit.primary", "field": "@kit.field" },
 	"node": {
 		"type": "column", "color": "{{color}}", "gap": 12,
 		"children": [
@@ -291,14 +304,14 @@ constexpr std::string_view others = R"({
 },
 "hoverCard": {
 	"params": { "open": "state.hoverCard", "title": "", "text": "", "width": 260, "height": 72,
-	            "placement": "below", "color": "#252526", "textColor": "#cccccc", "dimColor": "#a0a0a0" },
+	            "placement": "below", "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.body" },
 	"node": {
 		"onHover": { "set": "{{open}}", "to": true }, "onLeave": { "set": "{{open}}", "to": false },
 		"children": [
 			{ "slot": true },
 			{ "overlay": { "placement": "{{placement}}", "open": "{{open}}" },
-			  "width": "{{width}}", "height": "{{height}}", "color": "{{color}}", "radius": 6,
-			  "borderWidth": 1, "borderColor": "#454545",
+			  "width": "{{width}}", "height": "{{height}}", "color": "{{color}}", "radius": "@kit.cardRadius",
+			  "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border",
 			  "children": [
 				{ "type": "label", "text": "{{title}}", "textColor": "{{textColor}}", "anchors": { "left": 12, "top": 10 },
 				  "fitText": true },
@@ -324,6 +337,10 @@ const std::map<std::string, json, std::less<>>& all() {
 		for(auto& [name, definition] : parsed.items()) made.emplace(name, std::move(definition));
 		json form = json::parse(builtInFormComponents());
 		for(auto& [name, definition] : form.items()) made.emplace(name, std::move(definition));
+		json bars = json::parse(builtInKitBars());
+		for(auto& [name, definition] : bars.items()) made.emplace(name, std::move(definition));
+		json overlays = json::parse(builtInKitOverlays());
+		for(auto& [name, definition] : overlays.items()) made.emplace(name, std::move(definition));
 		return made;
 	}();
 	return components;
