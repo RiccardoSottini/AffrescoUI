@@ -14,7 +14,8 @@ namespace {
 
 /// The top-level sections, in the order of the table.
 constexpr auto sectionTable = std::to_array<KeyReference>({
-    {"version", R"json({"const": 2})json", "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
+    {"version", R"json({"const": 2})json",
+	 "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
     {"root", R"json({"$ref": "#/$defs/v2/node",
 		"description": "The window's root panel: it always fills the window"})json",
 	 "Required. The window's root node. It always fills the window, so layout properties aren't allowed on it.",
@@ -342,11 +343,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
     {"image", "",
-	 R"(`{ "image": "pointer", "of": "canvas", "with": {"phase": "press", "x": 10, "y": 20} }`: runs an operation )"
-	 R"(on an image the `images` section declares (`of`, optional with one image) and publishes its snapshot to )"
-	 R"(its `into` path, and the `raster` nodes showing it draw again; a failed operation runs `onError` with )"
-	 R"(`error` (see Images))",
-	 "steps"},
+	 R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation and publishes the image (see Images))", "steps"},
     {"of", "", "", ""},
     {"camera", "",
 	 R"(`{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view` (front, )"

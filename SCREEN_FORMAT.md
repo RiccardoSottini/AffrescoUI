@@ -1121,7 +1121,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
-| `image` | `{ "image": "pointer", "of": "canvas", "with": {"phase": "press", "x": 10, "y": 20} }`: runs an operation on an image the `images` section declares (`of`, optional with one image) and publishes its snapshot to its `into` path, and the `raster` nodes showing it draw again; a failed operation runs `onError` with `error` (see Images) |
+| `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation and publishes the image (see Images) |
 | `camera` | `{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view` (front, back, left, right, top, bottom), `frame` ("selection", "all" or ids), `projection` (perspective, orthographic, toggle), `orbit` [degrees right, down], `zoom` (wheel steps, positive to come closer) |
 <!-- end generated -->
 
@@ -1164,7 +1164,11 @@ its snapshot to `into` and tells the raster nodes that show it:
 ```
 
 `of` names the image, and may be left out when the screen declares only one. A failed operation runs `onError` with
-`error` (its message); without `onError` the step fails at its place. The operations, and the keys of `with` each reads:
+`error` (its message); without `onError` the step fails at its place.
+
+### Image operations
+
+The operations, and the keys of `with` each reads:
 
 <!-- generated: imageOperations -->
 | Operation | Reads from `with` | What it does |
@@ -1211,6 +1215,10 @@ or `by` places up (positive) or down. Filters and `fillSelection` change the act
 `alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. `open`, `save`
 and `revert` go through the file dialogs the person sees: a document never names a file.
 
+### Image values and the snapshot
+
+The names the operations and tool options take, and the library's limits:
+
 <!-- generated: imageNames -->
 | Value | Names |
 |---|---|
@@ -1228,6 +1236,8 @@ id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opa
 `"board/layer/3"` that an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`,
 `canRedo`, `memory`, `selection`, `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view`
 (`zoom`, `x`, `y`), `message` and `previewing`; `"<image>/navigator"` is a thumbnail of the whole image.
+
+### An image example
 
 A whiteboard with a marker, an eraser and undo:
 
