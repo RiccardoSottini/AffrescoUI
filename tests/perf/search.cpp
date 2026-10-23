@@ -77,8 +77,12 @@ Workload searching(std::string name, std::shared_ptr<const TempFolder> folder, s
 
 std::vector<Workload> searchWorkloads(Context&) {
 	const auto folder = std::make_shared<const TempFolder>(2000, 200);
-	const services::SearchQuery word{
-	    .pattern = "value", .options = {}, .maxResults = services::SearchQuery::mostResults, .threads = 1};
+	const services::SearchQuery word{.pattern = "value",
+	                                 .options = {},
+	                                 .include = {},
+	                                 .exclude = {},
+	                                 .maxResults = services::SearchQuery::mostResults,
+	                                 .threads = 1};
 	services::SearchQuery threads = word;
 	threads.threads = 8;
 	services::SearchQuery expression = word;
