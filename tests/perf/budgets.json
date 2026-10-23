@@ -339,6 +339,21 @@
         "commit": "1d60d3f",
         "date": "2026-10-22"
       }
+    },
+    {
+      "id": "kit-use",
+      "budget": "A desktop kit component's use: 120 output tokens at most (tests/perf/kit.json)",
+      "source": "tokens",
+      "limit": 120,
+      "unit": "tokens",
+      "ciThreshold": 120,
+      "measured": {
+        "value": 75,
+        "from": "toolbar",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "683b332",
+        "date": "2026-10-23"
+      }
     }
   ]
 }

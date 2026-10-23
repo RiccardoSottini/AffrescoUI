@@ -325,11 +325,16 @@ public:
 	/// @brief Makes this panel an overlay: drawn above everything, unclipped, placed next to an anchor panel.
 	/// @param anchorId The anchor's id; empty for the parent.
 	/// @param placement Where it goes.
-	void setOverlay(std::string anchorId, Placement placement);
+	/// @param flip true: placed on the opposite side (above for below, left for right) when the window has no room for
+	/// it on its own side and more on the other; its direct children are then mirrored on that axis, so an arrow
+	/// placed at the edge facing the anchor still faces it.
+	void setOverlay(std::string anchorId, Placement placement, bool flip = false);
 	/// @brief Makes it an ordinary panel again.
 	void clearOverlay();
 	/// @brief Whether it is out of its parent's flow: an overlay, or a snapshot's source.
 	[[nodiscard]] bool isOverlay() const noexcept { return overlay_ || snapshot_; }
+	/// @brief Whether it is an overlay placed on the opposite side by its last layout (see setOverlay()).
+	[[nodiscard]] bool isFlipped() const noexcept { return flipped_; }
 
 	/* Snapshots: a subtree drawn into an image instead of on the window */
 
@@ -769,6 +774,8 @@ private:
 	bool overlay_ = false;                   ///< See setOverlay().
 	std::string overlayAnchor_;              ///< See setOverlay().
 	Placement placement_ = Placement::Below; ///< See setOverlay().
+	bool flip_ = false;                      ///< See setOverlay().
+	bool flipped_ = false;                   ///< See isFlipped().
 
 	/// @brief What setSnapshot() set, and what the window last drew of it.
 	struct Snapshot {

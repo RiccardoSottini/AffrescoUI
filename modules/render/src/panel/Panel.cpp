@@ -257,15 +257,18 @@ void Panel::scrollIntoView() {
 
 /* Overlays */
 
-void Panel::setOverlay(std::string anchorId, Placement placement) {
+void Panel::setOverlay(std::string anchorId, Placement placement, bool flip) {
 	setProperty(overlay_, true);
 	setProperty(overlayAnchor_, std::move(anchorId));
 	setProperty(placement_, placement);
+	setProperty(flip_, flip);
 }
 
 void Panel::clearOverlay() {
 	setProperty(overlay_, false);
 	setProperty(overlayAnchor_, std::string());
+	setProperty(flip_, false);
+	flipped_ = false;
 }
 
 /* Snapshots */

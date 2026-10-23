@@ -117,7 +117,8 @@ CI compares base and head the same way, so the gate isn't affected.
 - `outline`: `get_screen` with `outline=true`;
 - `edit/<name>`: each canonical edit in `edits/<template>.json`, as an agent writes it for `submit_revision`.
 
-It also counts `SCREEN_FORMAT.md` (`format-guide`), the guide that agents load.
+It also counts `SCREEN_FORMAT.md` (`format-guide`), the guide that agents load. And `kit/<component>`: each desktop kit
+component's general use in `kit.json`, as an agent writes it.
 
 The document and the outline come from the MCP server's own functions (`compact`, `outline`), so a change to what the
 server sends shows up here. The counter is tiktoken's `o200k_base`. It stands in for Claude's tokenizer, which isn't

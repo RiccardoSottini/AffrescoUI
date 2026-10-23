@@ -1333,6 +1333,9 @@
 									"window"
 								]
 							},
+							"flip": {
+								"$ref": "#/$defs/v2/flag"
+							},
 							"open": {
 								"description": "A state path (\"state.menuOpen\") or a value"
 							},

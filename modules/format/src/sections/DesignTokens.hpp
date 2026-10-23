@@ -35,7 +35,7 @@ using NumberTable = std::map<std::string, Themed<float>, std::less<>>;
 
 /// @brief Reads "tokens": each one a number, a colour ("#rrggbb", "transparent"), an alias ("@other", of a token or of
 /// "colors") or a per-theme object ({"light": ..., "dark": ...}) of those. Colour tokens join `colors`, so "@name"
-/// finds both.
+/// finds both. The kit's tokens (KitTokens.hpp) come under them: those the document doesn't name itself.
 /// @param document The document.
 /// @param colors The colours of "colors": the colour tokens are added to them.
 /// @return The number tokens.

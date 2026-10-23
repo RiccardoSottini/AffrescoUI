@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Counts the tokens of what agents read and write: per template and for Forge (its features merged in), the minified
 document (the first get_screen read), its outline (get_screen with outline=true) and the canonical edits in
-tests/perf/edits (submit_revision's arguments); and SCREEN_FORMAT.md (get_format_guide). One JSON object per line, like affrescoui_bench.
+tests/perf/edits (submit_revision's arguments); each desktop kit component's general use in tests/perf/kit.json, as an
+agent writes it; and SCREEN_FORMAT.md (get_format_guide). One JSON object per line, like affrescoui_bench.
 
     pip install --require-hashes -r tests/perf/requirements.txt
     python3 tests/perf/tokens.py              # JSON lines
@@ -166,6 +167,10 @@ def counts(root, edits, encoding):
                     continue
                 yield f"tokens/{name}/reread", tokens(mcp.compact({"changes": changes}))
                 break
+    # The kit's uses are this checkout's, like the edits
+    with open(os.path.join(HERE, "kit.json"), encoding="utf-8") as file:
+        for component, use in json.load(file).items():
+            yield f"tokens/kit/{component}", tokens(mcp.compact(use))
 
 
 def table(results):
@@ -173,7 +178,7 @@ def table(results):
     templates = {}
     for name, value in results:
         parts = name.split("/")
-        if len(parts) >= 3 and parts[0] == "tokens" and parts[1] != "format-guide":
+        if len(parts) >= 3 and parts[0] == "tokens" and parts[1] not in ("format-guide", "kit"):
             templates.setdefault(parts[1], {"edits": []})
             if parts[2] == "edit":
                 templates[parts[1]]["edits"].append(value)

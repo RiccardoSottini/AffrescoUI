@@ -216,6 +216,24 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 		rect.left = 2.0f * origin.left + parentSize.x - rect.right;
 		rect.right = rect.left + width;
 	}
+	// In an overlay placed on the opposite side (see setOverlay()): mirrored on that axis, so what faced the anchor
+	// still does
+	if(parent_ && parent_->overlay_ && parent_->flipped_) {
+		const bool across = parent_->placement_ == Placement::Right || parent_->placement_ == Placement::Left;
+		const unsigned edges =
+		    across ? edgeBit(Edge::Left) | edgeBit(Edge::Right) : edgeBit(Edge::Top) | edgeBit(Edge::Bottom);
+		if((targetEdges_ & edges) == 0) {
+			if(across) {
+				const float width = rect.width();
+				rect.left = 2.0f * origin.left + parentSize.x - rect.right;
+				rect.right = rect.left + width;
+			} else {
+				const float height = rect.height();
+				rect.top = 2.0f * origin.top + parentSize.y - rect.bottom;
+				rect.bottom = rect.top + height;
+			}
+		}
+	}
 
 	// A panel anchored on opposite edges is stretched: its real size (what children measure against) comes from them
 	size_ = {std::max(rect.width(), 0.0f), std::max(rect.height(), 0.0f)};

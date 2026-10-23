@@ -14,7 +14,7 @@ namespace {
 
 /// The keys, in the order of the tables.
 constexpr auto eventTable = std::to_array<KeyReference>({
-    {"onClick", "handler", "Left click, two clicks on the same node, right click.", "events"},
+    {"onClick", "handler", "Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node).", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
     {"onPress", "handler", "Left button down, up.", "events"},

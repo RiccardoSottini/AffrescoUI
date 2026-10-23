@@ -137,16 +137,17 @@ bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const
 }
 
 void Properties::overlay(Panel& panel, Record& record, const json& value, const std::string& at, Look& look) const {
-	static constexpr std::array<std::string_view, 5> keys = {"anchor", "placement", "open", "dismiss", "modal"};
+	static constexpr std::array<std::string_view, 6> keys = {"anchor", "placement", "flip", "open", "dismiss", "modal"};
 	const json& overlay = object(value, at);
 	for(const auto& [k, v] : overlay.items())
 		if(std::ranges::find(keys, k) == keys.end())
-			fail(concatenate(at, ".", k), "unknown property (expected anchor, placement, open, dismiss or modal)");
+			fail(concatenate(at, ".", k), "unknown property (expected anchor, placement, flip, open, dismiss or modal)");
 	std::string anchor = overlay.contains("anchor") ? string(overlay["anchor"], at + ".anchor") : "";
 	if(anchor.starts_with('#')) anchor.erase(0, 1);
 	record.overlayAnchor = anchor;
 	panel.setOverlay(anchor, overlay.contains("placement") ? placement(overlay["placement"], at + ".placement")
-	                                                       : Placement::Below);
+	                                                       : Placement::Below,
+	                 overlay.contains("flip") && boolean(overlay["flip"], at + ".flip"));
 	if(overlay.contains("open")) overlayOpen(record, overlay["open"], at + ".open", look);
 	if(overlay.contains("dismiss")) {
 		if(string(overlay["dismiss"], at + ".dismiss") != "outside") fail(at + ".dismiss", "expected \"outside\"");
