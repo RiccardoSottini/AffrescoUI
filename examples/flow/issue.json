@@ -222,9 +222,9 @@
 								{ "id": "propLabelsName", "style": "propName", "text": "{{t('issue.labels')}}" },
 								{ "id": "propLabelChips", "type": "row", "wrap": true, "gap": 4, "grow": 1, "height": 60, "y": 4, "children": [
 									{ "id": "propTag", "style": "cardChip", "height": 24, "textColor": "@color.text", "tooltip": "{{t('tag.' + computed.card.tag)}}",
-										"runs": [{ "icon": "circle", "color": "@{{computed.card.tag}}" }, " {{t('tag.' + computed.card.tag)}}"] },
+										"runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@{{computed.card.tag}}" }, " {{t('tag.' + computed.card.tag)}}"] },
 									{ "id": "propLabel", "repeat": { "for": "name", "in": "computed.card.labels ?? []" }, "style": "cardChip", "height": 24,
-										"runs": [{ "icon": "circle", "color": "@color.accent" }, " {{t('label.' + name)}}"], "textColor": "@color.text",
+										"runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@color.accent" }, " {{t('label.' + name)}}"], "textColor": "@color.text",
 										"tooltip": "{{t('issue.removeLabel')}}", "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('label.' + name)}}",
 										"onClick": { "run": "toggleListItem", "with": { "field": "labels", "value": "{{name}}" } } },
 									{ "id": "propLabelAdd", "style": "cardChip", "height": 24, "width": 24, "fitText": false, "padding": 0, "align": "center", "icon": "plus", "text": "",

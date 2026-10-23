@@ -176,6 +176,10 @@
 				{ "wait": 50 },
 				{ "expect": { "image": "workspace-menu" } },
 				{ "key": "escape" },
+				{ "click": "#columnMore", "nth": 1 },
+				{ "wait": 50 },
+				{ "expect": { "image": "column-menu" } },
+				{ "key": "escape" },
 				{ "key": "mod+shift+a" },
 				{ "wait": 300 },
 				{ "expect": { "image": "assistant" } }

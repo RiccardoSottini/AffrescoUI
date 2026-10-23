@@ -6,6 +6,36 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "composer-label",
+			"note": "The composer's label chip picks the new issue's label",
+			"steps": [
+				{ "key": "c" },
+				{ "wait": 50 },
+				{ "expect": { "state": "composer.tag", "is": "feature" } },
+				{ "click": "#composerTag" },
+				{ "expect": { "state": "composer.tag", "is": "design" } },
+				{ "click": "#newCard" },
+				{ "type": "Pick a label" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[4].tag", "is": "design" } }
+			]
+		},
+		{
+			"name": "column-menu",
+			"note": "A column's … menu creates an issue in that status or selects all of its issues",
+			"steps": [
+				{ "click": "#columnMore", "nth": 1 },
+				{ "wait": 50 },
+				{ "expect": { "state": "columnMenu", "is": true } },
+				{ "expect": { "state": "menuColumn", "is": 1 } },
+				{ "key": "down" },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "columnMenu", "is": false } },
+				{ "expect": { "state": "marked", "is": ["FLO-5", "FLO-6", "FLO-7"] } }
+			]
+		},
+		{
 			"name": "assistant-opens-and-closes",
 			"note": "Cmd+Shift+A opens the assistant chat over the board and Escape closes it",
 			"steps": [

@@ -66,7 +66,7 @@
 			{ "if": "{{settings.board.wipWarnings && state.columns[c].limit != null && length(state.columns[c].cards) > state.columns[c].limit}}",
 				"then": [{ "run": "notify", "with": { "message": "{{t('toast.wip', { column: state.columns[c].name, limit: state.columns[c].limit })}}" } }] }
 		],
-		"undoChange": { "title": "Undo the last change", "category": "Issue", "icon": "undo-2",
+		"undoChange": { "title": "Undo", "category": "Issue", "icon": "undo-2",
 			"do": [
 				{ "if": "{{length(state.undoStack) == 0}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.nothingToUndo')}}" } }, { "stop": true }] },
 				{ "set": "state.columns", "to": "{{state.undoStack[length(state.undoStack) - 1]}}" },

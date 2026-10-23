@@ -148,7 +148,7 @@
 		"filters": ["all", "bug", "feature", "design", "chore"],
 		"tagIcons": { "bug": "bug", "feature": "sparkles", "design": "palette", "chore": "wrench" },
 		"newCard": "",
-		"composer": { "open": false, "c": 0, "p": 0, "who": "RS", "notes": "", "more": false },
+		"composer": { "open": false, "c": 0, "p": 0, "who": "RS", "tag": "feature", "notes": "", "more": false },
 		"filterOpen": false,
 		"displayOpen": false,
 		"workspaceOpen": false,
@@ -160,6 +160,8 @@
 		"tableSort": null,
 		"columnWidths": { "title": 300, "column": 120, "tag": 110, "who": 90, "points": 80 },
 		"cardMenu": false,
+		"columnMenu": false,
+		"menuColumn": 0,
 		"menuAt": { "x": 0, "y": 0 },
 		"edit": { "open": false, "title": "" },
 		"toast": { "open": false, "message": "", "undo": false },
@@ -251,7 +253,7 @@
 		"over": "{{map(state.columns, it.limit != null && length(it.cards) > it.limit)}}",
 		"tableColumns": "{{[{ id: 'title', title: t('table.card'), width: state.columnWidths.title }, { id: 'column', title: t('table.column'), width: state.columnWidths.column }, { id: 'tag', title: t('table.label'), width: state.columnWidths.tag }, { id: 'who', title: t('table.owner'), width: state.columnWidths.who }, { id: 'points', title: t('table.points'), width: state.columnWidths.points }]}}",
 		"paletteFirst": "{{filter(commands, it.enabled && contains(['changeStatus', 'changePriority', 'changeAssignee', 'assignToMe', 'editCard', 'openIssue'], it.name))}}",
-		"palette": "{{map(concat(computed.paletteFirst, filter(commands, it.enabled && it.category == 'Issue' && !contains(map(computed.paletteFirst, it.name), it.name)), filter(commands, it.enabled && it.category != 'Issue')), { title: it.title, detail: it.category + (it.keyLabel == null ? '' : '   ' + it.keyLabel), run: it.name })}}",
+		"palette": "{{map(concat(computed.paletteFirst, filter(commands, it.enabled && it.category == 'Issue' && !contains(map(computed.paletteFirst, it.name), it.name)), filter(commands, it.enabled && it.category != 'Issue')), { title: it.title, detail: it.keyLabel ?? '', run: it.name })}}",
 		"matches": "{{filter(computed.allCards, (state.scope == 'all' || (state.scope == 'backlog' ? it.c == 0 : it.c > 0 && it.c < length(state.columns) - 1)) && (state.filter == 'all' || it.tag == state.filter) && (state.fStatus < 0 || it.c == state.fStatus) && (state.fPrio < 0 || (it.priority ?? 0) == state.fPrio) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
 		"filterOptions": "{{state.filterProp == 'status' ? map(state.columns, { v: index, title: it.name, icon: state.statusIcons[index] ?? 'circle', color: it.color, on: state.fStatus == index }) : state.filterProp == 'assignee' ? map(state.members, { v: it.who, title: it.name, icon: 'circle-user', color: it.color, on: state.owner == it.who }) : state.filterProp == 'priority' ? map(state.priorities, { v: index, title: t('priority.' + index), icon: it, color: '@color.muted', on: state.fPrio == index }) : map(slice(state.filters, 1), { v: it, title: t('tag.' + it), icon: 'circle', color: '@' + it, on: state.filter == it })}}",
 		"activeFilters": "{{concat(state.fStatus >= 0 ? [{ prop: 'status', value: state.columns[state.fStatus].name }] : [], state.owner != '' ? [{ prop: 'assignee', value: find(state.members, it.who == state.owner).name ?? state.owner }] : [], state.fPrio >= 0 ? [{ prop: 'priority', value: t('priority.' + state.fPrio) }] : [], state.filter != 'all' ? [{ prop: 'label', value: t('tag.' + state.filter) }] : [])}}",
@@ -349,6 +351,10 @@
 			"left": { "run": "moveLeft", "group": "2_move", "order": 1 },
 			"right": { "run": "moveRight", "group": "2_move", "order": 2 },
 			"delete": { "run": "deleteCard", "group": "3_delete" }
+		},
+		"column": {
+			"new": { "run": "columnNew", "group": "1_add" },
+			"select": { "run": "columnSelect", "group": "2_select" }
 		}
 	},
 
@@ -362,7 +368,7 @@
 					"ref": "FLO-{{state.nextRef}}",
 					"priority": "{{state.composer.p}}",
 					"title": "{{trim(state.newCard)}}",
-					"tag": "{{state.filter == 'all' ? 'feature' : state.filter}}",
+					"tag": "{{state.composer.tag}}",
 					"who": "{{state.composer.who}}",
 					"points": 1
 				}
@@ -393,7 +399,7 @@
 		],
 		"openComposer": [
 			{ "note": "with: c, the column the new card goes to" },
-			{ "set": "state.composer", "to": { "open": true, "c": "{{c}}", "p": 0, "who": "{{state.me}}", "notes": "", "more": "{{state.composer.more}}" } }
+			{ "set": "state.composer", "to": { "open": true, "c": "{{c}}", "p": 0, "who": "{{state.me}}", "tag": "{{state.filter == 'all' ? 'feature' : state.filter}}", "notes": "", "more": "{{state.composer.more}}" } }
 		],
 		"moveCard": [
 			{ "note": "with: from (column), at (card index), to (column)" },
@@ -426,6 +432,16 @@
 			{ "set": "state.menuAt", "to": { "x": "{{event.x}}", "y": "{{event.y}}" } },
 			{ "set": "state.cardMenu", "to": true }
 		],
+		"openColumnMenu": [
+			{ "note": "with: c; below the column's … button" },
+			{ "set": "state.menuColumn", "to": "{{c}}" },
+			{ "set": "state.menuAt", "to": { "x": "{{event.x}}", "y": "{{event.y + 12}}" } },
+			{ "set": "state.columnMenu", "to": true }
+		],
+		"columnNew": { "title": "New issue in this status", "icon": "plus", "enablement": "{{state.columnMenu}}",
+			"do": [{ "set": "state.columnMenu", "to": false }, { "run": "openComposer", "with": { "c": "{{state.menuColumn}}" } }] },
+		"columnSelect": { "title": "Select all in this status", "icon": "list-checks", "enablement": "{{state.columnMenu}}",
+			"do": [{ "set": "state.columnMenu", "to": false }, { "set": "state.marked", "to": "{{map(filter(computed.visible, it.c == state.menuColumn), it.ref)}}" }] },
 		"goToCard": [
 			{ "note": "with: item, a quick pick row" },
 			{ "set": "state.view", "to": "board" },
@@ -865,7 +881,7 @@
 												"children": [
 													{ "id": "columnStatus", "type": "label", "icon": "{{state.statusIcons[c] ?? 'circle'}}", "text": "", "textColor": "{{column.color}}", "fitText": false, "width": 18,
 														"anchors": { "left": 10, "top": 0 }, "height": 40, "align": "center" },
-													{ "id": "columnTitle", "type": "row", "gap": 8, "alignItems": "center", "anchors": { "left": 36, "right": 44, "top": 0 }, "height": 40, "children": [
+													{ "id": "columnTitle", "type": "row", "gap": 8, "alignItems": "center", "anchors": { "left": 36, "right": 72, "top": 0 }, "height": 40, "children": [
 														{ "id": "columnName", "type": "label", "font": "small", "text": "{{column.name}}", "textColor": "@color.text", "fitText": true, "height": 40,
 															"align": { "horizontal": "start", "vertical": "center" } },
 														{ "id": "columnCount", "type": "label", "font": "small", "text": "{{count(computed.visible, it.c == c)}}", "fitText": true, "height": 40,
@@ -874,6 +890,9 @@
 														{ "id": "columnLimit", "style": "caption", "when": "{{column.limit != null}}", "text": "{{t('column.limit', { limit: column.limit })}}", "height": 40,
 															"align": { "horizontal": "start", "vertical": "center" }, "textColor": "{{computed.over[c] ? '@bug' : '@color.muted'}}" }
 													] },
+													{ "id": "columnMore", "type": "label", "icon": "ellipsis", "text": "", "fitText": false, "textColor": "@color.muted", "width": 26, "height": 26, "radius": "@radius.chip",
+														"align": "center", "anchors": { "right": 36, "top": 7 }, "hover": { "color": "@color.chipHover" }, "cursor": "hand", "focusable": true, "role": "button",
+														"tooltip": "{{t('column.more')}}", "label": "{{t('column.more')}}", "onClick": { "run": "openColumnMenu", "with": { "c": "{{c}}" } } },
 													{ "id": "columnAdd", "type": "label", "icon": "plus", "text": "", "fitText": false, "textColor": "@color.muted", "width": 26, "height": 26, "radius": "@radius.chip",
 														"align": "center", "anchors": { "right": 8, "top": 7 }, "hover": { "color": "@color.chipHover" }, "cursor": "hand", "focusable": true, "role": "button",
 														"tooltip": "{{t('composer.in', { column: column.name })}}", "label": "{{t('composer.in', { column: column.name })}}", "onClick": { "run": "openComposer", "with": { "c": "{{c}}" } } },
@@ -917,7 +936,7 @@
 																	{ "id": "cardChips", "type": "row", "gap": 4, "alignItems": "center", "anchors": { "left": 10, "right": 10, "bottom": 9 }, "height": 22, "children": [
 																		{ "id": "cardPriority", "style": "cardChip", "borderWidth": 0, "when": "{{!contains(state.hidden, 'priority') && ((card.priority ?? 0) > 0)}}", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
 																			"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "tooltip": "{{t('priority.' + (card.priority ?? 0))}}" },
-																		{ "id": "cardTag", "when": "{{!contains(state.hidden, 'label')}}", "style": "cardChip", "runs": [{ "icon": "circle", "color": "@{{card.tag}}" }, " {{t('tag.' + card.tag)}}"], "tooltip": "{{t('tag.' + card.tag)}}" },
+																		{ "id": "cardTag", "when": "{{!contains(state.hidden, 'label')}}", "style": "cardChip", "runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@{{card.tag}}" }, " {{t('tag.' + card.tag)}}"], "tooltip": "{{t('tag.' + card.tag)}}" },
 																		{ "id": "cardLabels", "when": "{{!contains(state.hidden, 'label') && length(card.labels ?? []) > 0}}", "style": "cardChip", "text": "+{{length(card.labels ?? [])}}",
 																			"tooltip": "{{join(map(card.labels ?? [], t('label.' + it)), ', ')}}" },
 																		{ "id": "cardDue", "style": "cardChip", "when": "{{!contains(state.hidden, 'due') && (card.due != null)}}", "icon": "calendar", "text": "{{formatDate(dateMs(card.due), 'MMM d', 'utc')}}",
@@ -1045,6 +1064,21 @@
 				}
 			},
 			{
+				"id": "columnMenuList",
+				"use": "contextMenu",
+				"with": {
+					"open": "state.columnMenu",
+					"items": "{{menus.column}}",
+					"x": "{{min(state.menuAt.x, window.width - 228)}}",
+					"y": "{{state.menuAt.y}}",
+					"width": 220,
+					"color": "@color.menu",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.accentSoft"
+				}
+			},
+			{
 				"id": "editDialog",
 				"use": "dialog",
 				"with": {
@@ -1107,10 +1141,10 @@
 							{
 								"id": "newCard",
 								"type": "textarea",
-								"anchors": { "left": 10, "right": 16, "top": 44 },
-								"height": 36,
+								"anchors": { "left": 10, "right": 16, "top": 42 },
+								"height": 40,
 								"padding": 6,
-								"font": "heading",
+								"font": "title",
 								"color": "transparent",
 								"focused": { "color": "transparent" },
 								"textColor": "@color.text",
@@ -1122,7 +1156,7 @@
 								"onSubmit": "addCard",
 								"keys": { "escape": { "set": "state.composer.open", "to": false } }
 							},
-							{ "id": "composerNotes", "type": "textarea", "anchors": { "left": 10, "right": 16, "top": 80 }, "height": 30, "padding": 6, "color": "transparent",
+							{ "id": "composerNotes", "type": "textarea", "anchors": { "left": 10, "right": 16, "top": 84 }, "height": 30, "padding": 6, "color": "transparent",
 								"focused": { "color": "transparent" }, "textColor": "@color.text", "placeholder": "{{t('composer.notes')}}", "label": "{{t('composer.notes')}}",
 								"placeholderColor": "@color.muted", "bind": "state.composer.notes", "keys": { "escape": { "set": "state.composer.open", "to": false } } },
 							{ "id": "composerChips", "type": "row", "gap": 6, "anchors": { "left": 16, "right": 16, "bottom": 60 }, "height": 26, "children": [
@@ -1132,7 +1166,10 @@
 									"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('quick.priority')}}", "onClick": { "set": "state.composer.p", "to": "{{(state.composer.p + 1) % length(state.priorities)}}" } },
 								{ "id": "composerWho", "style": "cardChip", "icon": "circle-user", "text": "\u00a0{{find(state.members, it.who == state.composer.who).name}}",
 									"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('quick.assignee')}}",
-									"onClick": { "set": "state.composer.who", "to": "{{state.members[(indexOf(map(state.members, it.who), state.composer.who) + 1) % length(state.members)].who}}" } }
+									"onClick": { "set": "state.composer.who", "to": "{{state.members[(indexOf(map(state.members, it.who), state.composer.who) + 1) % length(state.members)].who}}" } },
+								{ "id": "composerTag", "style": "cardChip", "runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@{{state.composer.tag}}" }, " {{t('tag.' + state.composer.tag)}}"],
+									"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('issue.labels')}}",
+									"onClick": { "set": "state.composer.tag", "to": "{{state.filters[indexOf(state.filters, state.composer.tag) % (length(state.filters) - 1) + 1]}}" } }
 							] },
 							{ "id": "composerLine", "anchors": { "left": 0, "right": 0, "bottom": 48 }, "height": 1, "color": "@color.border" },
 							{ "id": "composerMore", "type": "label", "font": "small", "fitText": true, "height": 28, "anchors": { "right": "#composerCreate.left", "bottom": 10 }, "padding": 10,

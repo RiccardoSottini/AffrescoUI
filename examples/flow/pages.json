@@ -196,7 +196,7 @@
 								{ "id": "inboxPriority", "style": "cardChip", "textColor": "@color.text",
 									"runs": [{ "icon": "{{state.priorities[card.priority ?? 0]}}", "color": "{{card.priority == 1 ? '@bug' : '@color.muted'}}" }, "\u00a0{{t('priority.' + (card.priority ?? 0))}}"] },
 								{ "id": "inboxAssignee", "style": "cardChip", "textColor": "@color.text", "icon": "circle-user", "text": "\u00a0{{find(state.members, it.who == card.who).name ?? card.who}}" },
-								{ "id": "inboxTag", "style": "cardChip", "textColor": "@color.text", "runs": [{ "icon": "circle", "color": "@{{card.tag}}" }, "\u00a0{{t('tag.' + card.tag)}}"] }
+								{ "id": "inboxTag", "style": "cardChip", "textColor": "@color.text", "runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@{{card.tag}}" }, "\u00a0{{t('tag.' + card.tag)}}"] }
 							] },
 							{ "id": "inboxActions", "type": "row", "gap": 8, "anchors": { "left": 40, "right": 40, "top": 224 }, "height": 28, "children": [
 								{ "id": "inboxOpen", "style": "propValue", "icon": "maximize-2", "text": " {{t('inbox.open')}}", "onClick": "openNotification", "tooltip": "Enter" },
