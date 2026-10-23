@@ -18,7 +18,6 @@
 #include "Assets.hpp"
 #include "CodeEditor.hpp"
 #include "SocketDir.hpp"
-#include "tempo/Visualiser.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
@@ -75,7 +74,6 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 			options.pictures = false;
 			options.prepare = [](affresco::Screen& played) {
 				examples::registerCodeEditor(played);
-				examples::tempo::registerVisualiser(played);
 			};
 			for(const automation::Scenario& scenario : loaded.scenarios)
 				if(!scenario.needsPictures) options.only.push_back(scenario.name);
@@ -217,7 +215,6 @@ int run(const Options& options) {
 	                                                     screenshotOnly ? History::InMemory : History::OnDisk);
 	screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
 	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
-	examples::tempo::registerVisualiser(screen); // the Tempo template's visualiser surface
 	if(options.mode) screen.setModeForThisRun(*options.mode);
 	if(options.usage && !screenshotOnly) enableUsage(screen);
 	if(!screenshotOnly) screen.setLocale(affresco::format::systemLocale()); // screenshots stay in the default locale
