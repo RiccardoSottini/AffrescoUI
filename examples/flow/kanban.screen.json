@@ -235,7 +235,7 @@
 		"counts": "{{map(state.columns, length(it.cards))}}",
 		"allCards": "{{parseJson('[' + join(filter(map(state.columns, slice(join(split(json(map(it.cards, { at: index, ref: it.ref, priority: it.priority, due: it.due, points: it.points, start: it.start, tag: it.tag, title: it.title, who: it.who })), '{\"at\":'), '{\"c\":' + index + ',\"at\":'), 1, -1)), it != ''), ',') + ']')}}",
 		"rows": "{{map(computed.allCards, { id: it.c + '-' + it.at, cells: [it.title, state.columns[it.c].name, it.tag, it.who, it.points] })}}",
-		"picks": "{{map(computed.allCards, { title: it.title, detail: state.columns[it.c].name + ' · ' + it.who, c: it.c, at: it.at })}}",
+		"picks": "{{map(computed.allCards, { title: it.title, detail: it.ref + ' · ' + state.columns[it.c].name, run: 'goToCard', with: { item: { c: it.c, at: it.at } } })}}",
 		"over": "{{map(state.columns, it.limit != null && length(it.cards) > it.limit)}}",
 		"tableColumns": "{{[{ id: 'title', title: t('table.card'), width: state.columnWidths.title }, { id: 'column', title: t('table.column'), width: state.columnWidths.column }, { id: 'tag', title: t('table.label'), width: state.columnWidths.tag }, { id: 'who', title: t('table.owner'), width: state.columnWidths.who }, { id: 'points', title: t('table.points'), width: state.columnWidths.points }]}}",
 		"paletteFirst": "{{filter(commands, it.enabled && contains(['changeStatus', 'changePriority', 'changeAssignee', 'assignToMe', 'editCard', 'openIssue'], it.name))}}",
@@ -397,6 +397,8 @@
 			{ "set": "state.view", "to": "board" },
 			{ "set": "state.filter", "to": "all" },
 			{ "set": "state.owner", "to": "" },
+			{ "set": "state.scope", "to": "all" },
+			{ "set": "state.query", "to": "" },
 			{ "run": "selectCard", "with": { "c": "{{item.c}}", "i": "{{item.at}}" } }
 		],
 		"openRow": [
@@ -447,9 +449,9 @@
 			"do": [{ "run": "setAssignee", "with": { "who": "{{state.me}}" } }] },
 		"newCardCommand": { "title": "New issue", "category": "Issue", "icon": "plus", "do": [{ "run": "openComposer", "with": { "c": 0 } }] },
 		"goToCardCommand": { "title": "Go to issue…", "category": "Go", "icon": "search",
-			"do": [{ "set": "state.quickPick.query", "to": "" }, { "set": "state.quickPick.open", "to": true }] },
+			"do": [{ "set": "state.quickPick.query", "to": "#" }, { "set": "state.quickPick.open", "to": true }] },
 		"commandPalette": { "title": "Show all commands", "category": "Go", "icon": "command",
-			"do": [{ "set": "state.quickPick.query", "to": ">" }, { "set": "state.quickPick.open", "to": true }] },
+			"do": [{ "set": "state.quickPick.query", "to": "" }, { "set": "state.quickPick.open", "to": true }] },
 		"editCard": { "title": "Edit issue…", "category": "Issue", "icon": "pencil", "enablement": "{{computed.card != null}}",
 			"do": [{ "set": "state.edit", "to": { "open": true, "title": "{{computed.card.title}}" } }] },
 		"deleteCard": { "title": "Delete issue", "category": "Issue", "icon": "trash-2", "enablement": "{{computed.card != null}}",
@@ -1086,8 +1088,8 @@
 					"highlight": "@color.accentSoft",
 					"field": "@color.field",
 					"providers": [
-						{ "items": "{{computed.picks}}", "run": "goToCard", "placeholder": "{{t('quick.cards')}}" },
-						{ "prefix": ">", "items": "{{computed.palette}}", "placeholder": "{{t('quick.commands')}}" }
+						{ "items": "{{concat(computed.palette, computed.picks)}}", "placeholder": "{{t('quick.commands')}}" },
+						{ "prefix": "#", "items": "{{computed.picks}}", "placeholder": "{{t('quick.cards')}}" }
 					]
 				}
 			},

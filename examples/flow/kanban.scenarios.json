@@ -6,6 +6,20 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "command-palette-finds-issues",
+			"note": "Cmd+K lists issues beside the commands: typing a title and Enter goes to that issue",
+			"steps": [
+				{ "key": "mod+k" },
+				{ "wait": 50 },
+				{ "type": "invite teammates" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "quickPick.open", "is": false } },
+				{ "expect": { "state": "selected.c", "is": 2 } },
+				{ "expect": { "state": "selected.i", "is": 0 } }
+			]
+		},
+		{
 			"name": "scope-tabs",
 			"note": "Active shows only the started cards, between the Backlog and Done; All issues shows every card again",
 			"steps": [
@@ -300,11 +314,11 @@
 		},
 		{
 			"name": "kanban-command-palette",
-			"note": "Cmd+Shift+P lists the commands; running Switch light and dark changes the theme",
+			"note": "Cmd+Shift+P lists the commands and issues, with no prefix; running Switch light and dark changes the theme",
 			"steps": [
 				{ "key": "mod+shift+p" },
 				{ "wait": 50 },
-				{ "expect": { "state": "quickPick.query", "is": ">" } },
+				{ "expect": { "state": "quickPick.query", "is": "" } },
 				{ "type": "dark" },
 				{ "wait": 50 },
 				{ "key": "enter" },
@@ -570,7 +584,7 @@
 				{ "key": "enter" },
 				{ "expect": { "state": "selected.c", "is": 2 } },
 				{ "key": "mod+k" },
-				{ "expect": { "state": "quickPick.query", "is": ">" } }
+				{ "expect": { "state": "quickPick.query", "is": "" } }
 			]
 		},
 		{
