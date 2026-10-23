@@ -2,8 +2,8 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"include": ["sky.json"],
-	"note": "Orrery, a small planetarium, all in this file: the 3D view is the bodies projected with sin and cos in computed values and drawn as discs and paths, and each body's thumbnail is a node drawn into the image body:<id> (snapshot). The bodies strip at the bottom is Sinopia's slide sorter, installed through the bodies.dock point and orrery-sorter.adapter.json.",
+	"include": ["sky.json", "../shared/addons/assistant/assistant.json"],
+	"note": "Orrery, a small planetarium, all in this file and the sky from the ground in sky.json: the 3D view is a scene node bound to computed values, and each body's thumbnail is a node drawn into the image body:<id> (snapshot). The bodies strip at the bottom is Sinopia's slide sorter, installed through the bodies.dock point and orrery-sorter.adapter.json.",
 	"window": {
 		"title": "Orrery",
 		"width": 1280,
@@ -85,7 +85,21 @@
 			"dark": "#fb7185"
 		},
 		"onSky": "#e6e8ee",
-		"onSkyMuted": "#8d94a3"
+		"onSkyMuted": "#8d94a3",
+		"assistant.accent": "@accent",
+		"assistant.accentHover": {
+			"light": "#d97706",
+			"dark": "#fcd34d"
+		},
+		"assistant.onAccent": {
+			"light": "#1b1606",
+			"dark": "#1b1606"
+		},
+		"assistant.surface": "@panel",
+		"assistant.raised": "@raised",
+		"assistant.border": "@border",
+		"assistant.text": "@text",
+		"assistant.dim": "@muted"
 	},
 	"permissions": {
 		"allow": ["studio"],

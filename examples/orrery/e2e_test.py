@@ -89,8 +89,8 @@ class Mcp:
 
 
 def copy_without_strip(work):
-    """Writes Orrery's screen without its installed part, as it was before the install, next to a link to the
-    examples' shared fonts; returns its path."""
+    """Writes Orrery's screen without its installed part, as it was before the install, next to the parts it
+    includes and a link to the examples' shared folder (fonts, the assistant add-on); returns its path."""
     with open(SCREEN, encoding="utf-8") as f:
         document = json.load(f)
     document.pop("features", None)
@@ -102,6 +102,9 @@ def copy_without_strip(work):
         json.dump(document, f, indent="\t")
     for scenarios in SCENARIOS:
         shutil.copy(scenarios, folder)
+    for part in document.get("include", []):
+        if not part.startswith(".."):
+            shutil.copy(os.path.join(os.path.dirname(SCREEN), part), folder)
     return screen
 
 

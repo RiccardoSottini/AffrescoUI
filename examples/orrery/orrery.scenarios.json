@@ -1707,6 +1707,33 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "ask-the-assistant",
+			"note": "The assistant add-on opens from its key and closes with Escape.",
+			"steps": [
+				{
+					"key": "mod+shift+a"
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": true
+					}
+				},
+				{
+					"wait": 400
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": false
+					}
+				}
+			]
 		}
 	]
 }

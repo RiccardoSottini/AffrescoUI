@@ -70,3 +70,4 @@ system of six bodies on circular orbits in one plane.
 | 13 | Real time and a Time menu; a light theme | 28 / 1 / 0 | 30,114 + 6,809 for `sky.json` |
 | 14 | Fixes from the round 11 critique still open: grid labels, the eclipse finder's start, length and kind per row, larger names from above, moon labels clear of their planet | 28 / 1 / 0 | 30,342 + 7,146 for `sky.json` |
 | 15 | Fixes from the round 14 critique: F after G keeps following, the grid's altitude labels, the Time menu in the native menu bar, a default rate that shows day and night, seconds on the clock, a real-time icon, a twilight and a brighter ground by day, the selection ringed in the sky | 28 / 1 / 0 | 30,455 + 7,213 for `sky.json` |
+| 16 | The assistant add-on (one include line, in Orrery's colours) | 28 / 1 / 0 | 30,588 + 7,213 for `sky.json` |
