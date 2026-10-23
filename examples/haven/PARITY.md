@@ -4,7 +4,7 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 48 done, 1 partial, 1 missing (50).
+**Counts:** 49 done, 1 partial, 0 missing (50).
 
 ## Shell
 
@@ -92,6 +92,6 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Chat assistant panel | missing | waits for 14-browser M1 |
+| Chat assistant panel | done | the shared assistant add-on in Haven's colours, opened from a chat button in the top bar; requests come back as proposals to accept or reject |
 | Overflow menus | done | raised and rounded, with a shadow, an icon and a title per item, on the app bars, the dialogs, each automation and each step |
 | Shared kit components | done | the kit quick pick, themed through `kit.*` colours |

@@ -3,7 +3,7 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 	"note": "Haven: a smart-home dashboard. Rooms in a tree by floor, scenes, lights (switch, dim, colour), climate, blinds, device tiles whose calls take a while (progress, then a toast), a floor plan on a canvas with media, automations as a node graph with schedules on a timeline, an energy page by day and by device, security modes and notifications, device state from a simulated service, and a settings page from the settings schema; light and dark themes, English, Italian and Arabic. Cmd+1 to Cmd+4 and Cmd+, change the page, Cmd+Shift+P runs a command, Cmd+T switches light and dark, Cmd+L the language, Cmd+Shift+A the security mode, Cmd+Shift+N the notifications, Up and Down the target temperature, Alt and Up or Down the room.",
-	"include": ["../shared/components/charts.json", "strings.json", "plan.json", "automations.json", "moreinfo.json", "energy.json", "areas.json", "history.json", "settings.json", "shell.json", "edit.json"],
+	"include": ["../shared/components/charts.json", "../shared/addons/assistant/assistant.json", "strings.json", "plan.json", "automations.json", "moreinfo.json", "energy.json", "areas.json", "history.json", "settings.json", "shell.json", "edit.json"],
 
 	"window": { "title": "Haven: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
@@ -26,7 +26,12 @@
 	},
 
 	"theme": "{{computed.themeNow}}",
-	"tokens": { "kit.cardRadius": 16 },
+	"tokens": {
+		"kit.cardRadius": 16,
+		"assistant.accent": "@accent", "assistant.accentHover": "@primary", "assistant.onAccent": "@knob", "assistant.surface": "@card",
+		"assistant.raised": "@raised", "assistant.border": "@border", "assistant.text": "@text", "assistant.dim": "@muted", "assistant.dot": "@off",
+		"assistant.success": "@ok", "assistant.danger": "@alert", "assistant.warning": "@warmSoft"
+	},
 	"colors": {
 		"background": { "dark": "#111111", "light": "#fafafa" },
 		"sidebar": { "dark": "#1c1c1c", "light": "#ffffff" },
@@ -454,11 +459,14 @@
 										"label": "{{t('edit.done')}}", "tooltip": "{{t('edit.done')}}", "onClick": "doneEditing" },
 									{ "id": "editTitle", "when": "{{state.editing}}", "type": "label", "font": "heading", "text": "{{t('edit.dashboard')}}", "textColor": "@onHeader",
 										"anchors": { "left": 60, "top": 0, "bottom": 0 }, "fitText": true, "align": { "horizontal": "start", "vertical": "center" } },
-									{ "id": "viewTabs", "type": "row", "anchors": { "left": "{{state.editing ? 240 : 12}}", "top": 0, "bottom": 0, "right": 120 }, "role": "tablist", "arrows": "horizontal",
+									{ "id": "viewTabs", "type": "row", "anchors": { "left": "{{state.editing ? 240 : 12}}", "top": 0, "bottom": 0, "right": 168 }, "role": "tablist", "arrows": "horizontal",
 										"label": "{{t('rooms.label')}}", "children": [
 										{ "id": "viewTab", "repeat": { "for": "r", "in": "state.rooms", "index": "i" }, "use": "viewTab",
 											"with": { "title": "{{r.name}}", "selected": "{{i == state.room}}" }, "label": "{{r.name}}", "onClick": { "set": "state.room", "to": "{{i}}" } }
 									] },
+									{ "id": "assistButton", "when": "{{!state.editing}}", "type": "label", "font": "iconsMedium", "icon": "message-circle", "text": "", "textColor": "@onHeader",
+										"anchors": { "right": 112, "top": 8 }, "width": 40, "height": 40, "radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand",
+										"focusable": true, "role": "button", "label": "{{t('toolbar.assist')}}", "tooltip": "{{t('toolbar.assist')}}", "onClick": { "run": "assistant.toggle" } },
 									{ "id": "searchButton", "when": "{{!state.editing}}", "type": "label", "font": "iconsMedium", "icon": "search", "text": "", "textColor": "@onHeader", "anchors": { "right": 64, "top": 8 }, "width": 40, "height": 40, "radius": 20,
 										"align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand", "focusable": true, "role": "button",
 										"label": "{{t('toolbar.search')}}", "tooltip": "{{t('toolbar.search')}} (E)", "onClick": "searchEntities" },
