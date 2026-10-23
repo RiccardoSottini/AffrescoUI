@@ -189,7 +189,7 @@
 		"closeSettings": [{ "set": "state.settingsOpen", "to": false }],
 		"changeLanguage": { "title": "Change the language", "category": "View", "icon": "languages",
 			"do": [{ "set": "settings.appearance.language", "to": "{{settings.appearance.language == 'en' ? 'it' : settings.appearance.language == 'it' ? 'ar' : 'en'}}" }] },
-		"focusSearch": { "title": "Search cards", "category": "Go", "icon": "search", "do": [{ "focus": "#search" }] }
+		"focusSearch": { "title": "Search cards", "category": "Go", "icon": "search", "do": [{ "set": "state.searchOpen", "to": true }, { "focus": "#search" }] }
 	},
 
 	"keys": {

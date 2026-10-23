@@ -87,7 +87,7 @@
 				{ "wait": 50 },
 				{ "expect": { "image": "go-to-card" } },
 				{ "key": "escape" },
-				{ "click": [582, 32], "note": "the Website board" },
+				{ "click": "#navBoard", "nth": 1, "note": "the Website board" },
 				{ "click": "#displayButton" },
 				{ "wait": 50 },
 				{ "click": "#viewBoard" },

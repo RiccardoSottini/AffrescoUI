@@ -6,6 +6,19 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "scope-tabs",
+			"note": "Active shows only the started cards, between the Backlog and Done; All issues shows every card again",
+			"steps": [
+				{ "click": "#scopeTab", "nth": 1 },
+				{ "expect": { "state": "scope", "is": "active" } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Keyboard shortcuts for moving cards" } },
+				{ "expect": { "node": "#card", "nth": 4, "exists": true } },
+				{ "expect": { "node": "#card", "nth": 5, "exists": false } },
+				{ "click": "#scopeTab", "nth": 0 },
+				{ "expect": { "node": "#card", "nth": 11, "exists": true } }
+			]
+		},
+		{
 			"name": "picker-starts-on-the-current-value",
 			"note": "P on a card highlights its priority, so Enter keeps it",
 			"steps": [
@@ -170,17 +183,16 @@
 		},
 		{
 			"name": "switch-boards-with-tabs",
-			"note": "A board tab brings that board's columns in and keeps the first board's; going back restores it",
+			"note": "A board in the sidebar brings that board's columns in and keeps the first board's; going back restores it",
 			"steps": [
 				{ "click": "#cardTitle", "note": "the first Backlog card" },
 				{ "key": "mod+right", "note": "so the board has changed" },
 				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
-				{ "click": "#boardTabs" },
-				{ "click": [583, 32], "note": "the Website tab" },
+				{ "click": "#navBoard", "nth": 1, "note": "the Website board" },
 				{ "expect": { "state": "boardId", "is": "website" } },
 				{ "expect": { "state": "board", "is": "Website" } },
 				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Pricing page comparison table" } },
-				{ "click": [503, 32], "note": "the Product launch tab" },
+				{ "click": "#navBoard", "nth": 0, "note": "the Product launch board" },
 				{ "expect": { "state": "boardId", "is": "launch" } },
 				{ "expect": { "state": "columns[1].cards.length", "is": 4 } }
 			]

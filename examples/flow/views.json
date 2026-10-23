@@ -98,7 +98,7 @@
 													{
 														"id": "laneCard",
 														"repeat": { "for": "card", "in": "column.cards", "index": "i" },
-														"when": "{{card.who == member.who && (state.filter == 'all' || card.tag == state.filter) && (state.query == '' || fuzzy(state.query, card.title) != null)}}",
+														"when": "{{card.who == member.who && contains(computed.matchRefs, card.ref)}}",
 														"type": "label",
 														"font": "small",
 														"text": "{{card.title}}",

@@ -130,6 +130,9 @@
 		"priorities": ["ellipsis", "badge-alert", "signal-high", "signal-medium", "signal-low"],
 		"statusIcons": ["circle-dashed", "circle-dot", "circle-ellipsis", "check-circle-2"],
 		"filter": "all",
+		"scope": "all",
+		"scopes": ["all", "active", "backlog"],
+		"searchOpen": false,
 		"filters": ["all", "bug", "feature", "design", "chore"],
 		"tagIcons": { "bug": "bug", "feature": "sparkles", "design": "palette", "chore": "wrench" },
 		"newCard": "",
@@ -237,7 +240,10 @@
 		"tableColumns": "{{[{ id: 'title', title: t('table.card'), width: state.columnWidths.title }, { id: 'column', title: t('table.column'), width: state.columnWidths.column }, { id: 'tag', title: t('table.label'), width: state.columnWidths.tag }, { id: 'who', title: t('table.owner'), width: state.columnWidths.who }, { id: 'points', title: t('table.points'), width: state.columnWidths.points }]}}",
 		"paletteFirst": "{{filter(commands, it.enabled && contains(['changeStatus', 'changePriority', 'changeAssignee', 'assignToMe', 'editCard', 'openIssue'], it.name))}}",
 		"palette": "{{map(concat(computed.paletteFirst, filter(commands, it.enabled && it.category == 'Card' && !contains(map(computed.paletteFirst, it.name), it.name)), filter(commands, it.enabled && it.category != 'Card')), { title: it.title, detail: it.category + (it.keyLabel == null ? '' : '   ' + it.keyLabel), run: it.name })}}",
-		"visible": "{{filter(computed.allCards, (state.filter == 'all' || it.tag == state.filter) && (state.owner == '' || it.who == state.owner) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
+		"matches": "{{filter(computed.allCards, (state.scope == 'all' || (state.scope == 'backlog' ? it.c == 0 : it.c > 0 && it.c < length(state.columns) - 1)) && (state.filter == 'all' || it.tag == state.filter) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
+		"matchRefs": "{{map(computed.matches, it.ref)}}",
+		"visible": "{{filter(computed.matches, state.owner == '' || it.who == state.owner)}}",
+		"visibleRefs": "{{map(computed.visible, it.ref)}}",
 		"next": "{{state.selected == null ? computed.visible[0] : find(computed.visible, it.c > state.selected.c || (it.c == state.selected.c && it.at > state.selected.i))}}",
 		"prev": "{{state.selected == null ? null : computed.visible[count(computed.visible, it.c < state.selected.c || (it.c == state.selected.c && it.at < state.selected.i)) - 1]}}",
 		"propItems": "{{state.propKind == 'status' ? map(state.columns, { title: it.name, detail: index == state.selected.c ? '✓' : '', run: 'setStatus', with: { to: index } }) : state.propKind == 'priority' ? map(state.priorities, { title: t('priority.' + index), detail: index == (computed.card.priority ?? 0) ? '✓' : '', run: 'setPriority', with: { p: index } }) : map(state.members, { title: it.name, detail: it.who == computed.card.who ? '✓' : it.who, run: 'setAssignee', with: { who: it.who } })}}"
@@ -398,12 +404,12 @@
 			{ "run": "selectCard", "with": { "c": "{{number(split(event.id ?? event.value, '-')[0])}}", "i": "{{number(split(event.id ?? event.value, '-')[1])}}" } }
 		],
 		"switchBoard": [
-			{ "note": "A board tab chosen: keeps this board's columns and brings the other's in" },
-			{ "if": "{{event.value == state.boardId}}", "then": [{ "stop": true }] },
+			{ "note": "with: id, a board from the sidebar: keeps this board's columns and brings the other's in" },
+			{ "if": "{{id == state.boardId}}", "then": [{ "stop": true }] },
 			{ "set": "state.stash[state.boardId]", "to": "{{state.columns}}" },
-			{ "set": "state.columns", "to": "{{state.stash[event.value]}}" },
-			{ "set": "state.boardId", "to": "{{event.value}}" },
-			{ "set": "state.board", "to": "{{find(state.boards, it.id == event.value).label}}" },
+			{ "set": "state.columns", "to": "{{state.stash[id]}}" },
+			{ "set": "state.boardId", "to": "{{id}}" },
+			{ "set": "state.board", "to": "{{find(state.boards, it.id == id).label}}" },
 			{ "set": "state.selected", "to": null },
 			{ "set": "state.undoStack", "to": [], "note": "undo keeps one board's columns" }
 		],
@@ -507,46 +513,26 @@
 					{
 						"id": "logo",
 						"type": "label",
-						"text": "  Flow",
-						"icon": "box",
+						"runs": [{ "icon": "box" }, "  Flow  ", { "text": "›  {{find(state.boards, it.id == state.boardId).label}}", "color": "@color.topMuted" }],
 						"textColor": "@color.topText",
 						"anchors": { "left": 16, "top": 0, "bottom": 0 },
-						"width": 100,
+						"width": 196,
 						"align": { "horizontal": "start", "vertical": "center" }
 					},
 					{ "id": "panel-top-bar", "anchors": { "left": 216, "top": 16, "bottom": 16 }, "width": 1, "color": "@color.topLine" },
 					{
-						"id": "boardTabs",
-						"type": "tabs",
+						"id": "scopeTabs",
+						"type": "row",
+						"gap": 2,
 						"anchors": { "left": 228, "top": 10 },
-						"width": 300,
+						"width": 360,
 						"height": 28,
-						"tabs": "{{state.boards}}",
-						"value": "{{state.boardId}}",
-						"textColor": "@color.topMuted",
-						"activeTextColor": "@color.topText",
-						"activeBackground": "@color.topLine",
-						"color": "transparent",
-						"accentColor": "@color.accent",
-						"onChange": "switchBoard"
-					},
-					{
-						"id": "search",
-						"type": "textarea",
-						"anchors": { "left": 544, "right": 104, "top": 10 },
-						"height": 28,
-						"padding": 10,
-						"radius": "@radius.chip",
-						"color": "@color.topLine",
-						"focused": { "color": "@color.topLine", "borderColor": "@color.accent" },
-						"borderWidth": 1,
-						"borderColor": "@color.topLine",
-						"textColor": "@color.topText",
-						"placeholder": "{{t('search.placeholder')}}",
-						"placeholderColor": "@color.topMuted",
-						"label": "{{t('search.label')}}",
-						"bind": "state.query",
-						"keys": { "escape": [{ "set": "state.query", "to": "" }] }
+						"role": "tablist",
+						"arrows": "horizontal",
+						"children": [
+							{ "id": "scopeTab", "repeat": { "for": "scope", "in": "state.scopes" }, "style": "{{state.scope == scope ? 'toolButtonOn' : 'toolButton'}}",
+								"borderWidth": "{{state.scope == scope ? 1 : 0}}", "text": "{{t('scope.' + scope)}}", "role": "tab", "selected": "{{state.scope == scope}}", "onClick": { "set": "state.scope", "to": "{{scope}}" } }
+						]
 					},
 					{
 						"id": "members",
@@ -686,6 +672,28 @@
 									}
 								]
 							},
+							{ "id": "searchButton", "style": "toolButton", "when": "{{!state.searchOpen && state.query == ''}}", "icon": "search", "text": "", "width": 28, "fitText": false, "padding": 0,
+								"align": "center", "label": "{{t('search.label')}}", "tooltip": "{{t('search.label')}} (Cmd+F)", "onClick": "focusSearch" },
+							{
+								"id": "search",
+								"type": "textarea",
+								"when": "{{state.searchOpen || state.query != ''}}",
+								"width": 220,
+								"height": 28,
+								"padding": 8,
+								"radius": "@radius.chip",
+								"color": "transparent",
+								"focused": { "borderColor": "@color.accent" },
+								"borderWidth": 1,
+								"borderColor": "@color.border",
+								"textColor": "@color.text",
+								"placeholder": "{{t('search.placeholder')}}",
+								"placeholderColor": "@color.muted",
+								"label": "{{t('search.label')}}",
+								"autofocus": true,
+								"bind": "state.query",
+								"keys": { "escape": [{ "set": "state.query", "to": "" }, { "set": "state.searchOpen", "to": false }] }
+							},
 							{ "id": "filterClear", "style": "toolButton", "when": "{{state.filter != 'all'}}", "icon": "x", "text": "", "width": 28, "fitText": false, "padding": 0, "align": "center",
 								"label": "{{t('filter.clear')}}", "tooltip": "{{t('filter.clear')}}", "onClick": { "set": "state.filter", "to": "all" } }
 						]
@@ -812,7 +820,7 @@
 															{
 																"id": "card",
 																"repeat": { "for": "card", "in": "column.cards", "index": "i" },
-																"when": "{{(state.filter == 'all' || card.tag == state.filter) && (state.owner == '' || card.who == state.owner) && (state.query == '' || fuzzy(state.query, card.title) != null)}}",
+																"when": "{{contains(computed.visibleRefs, card.ref)}}",
 																"anchors": { "left": 0, "right": 0 },
 																"height": 96,
 																"radius": "@radius.card",

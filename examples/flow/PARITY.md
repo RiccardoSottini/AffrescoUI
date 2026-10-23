@@ -10,7 +10,7 @@ and all of its data is invented. This page lists what a daily user would reach f
 | List view | select a row, Enter to edit, context menu, drag a row to another group | done | |
 | Issue page | full page, title, description, properties side panel, activity | done | `issue.json`; double-click or Cmd+Enter opens, Escape closes; only the applied labels show, + adds one |
 | Board | columns by status, cards with id, priority and assignee, drag and drop | done | cards show id, assignee, title, then priority, label, due and estimate chips; Space peeks in the side panel |
-| Filter and display | a Filter menu, a Display menu with the layouts, a new-issue composer | done | F opens Filter; Display picks board, list, table or timeline and swimlanes; C or a column's + opens the composer in that status |
+| Filter and display | view tabs, a Filter menu, a Display menu with the layouts, a new-issue composer | done | All issues, Active and Backlog tabs; Cmd+F opens a search field; F opens Filter; Display picks board, list, table or timeline and swimlanes; C or a column's + opens the composer in that status |
 | Workspace | a workspace menu with settings, theme and language, a facepile, toasts with Undo | done | |
 | Cmd+K | one palette for commands and going to an issue | done | Cmd+K opens the command palette; Cmd+P goes to a card |
 | Keyboard | C new, J/K move, single-key property changes, G-chords | done | C, J/K, S, P, A, I (assign to me), /, Cmd+Z; G then I, A, V or P |

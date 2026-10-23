@@ -17,7 +17,7 @@
 						"id": "listGroup",
 						"repeat": { "for": "column", "in": "state.columns", "index": "c" },
 						"anchors": { "left": 0, "right": 0 },
-						"height": "{{36 + 36 * count(column.cards, (state.filter == 'all' || it.tag == state.filter) && (state.owner == '' || it.who == state.owner) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
+						"height": "{{36 + 36 * count(column.cards, contains(computed.visibleRefs, it.ref))}}",
 						"color": "transparent",
 						"role": "group",
 						"label": "{{column.name}}",
@@ -50,7 +50,7 @@
 									{
 										"id": "listRow",
 										"repeat": { "for": "card", "in": "column.cards", "index": "i" },
-										"when": "{{(state.filter == 'all' || card.tag == state.filter) && (state.owner == '' || card.who == state.owner) && (state.query == '' || fuzzy(state.query, card.title) != null)}}",
+										"when": "{{contains(computed.visibleRefs, card.ref)}}",
 										"anchors": { "left": 0, "right": 0 },
 										"height": 36,
 										"color": "{{contains(state.marked, card.ref) || (state.selected != null && state.selected.c == c && state.selected.i == i) ? '@color.accentSoft' : 'transparent'}}",
