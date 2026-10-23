@@ -61,7 +61,7 @@
 		},
 		{
 			"name": "tempera-tool-keys",
-			"note": "The Photoshop keys choose the tools",
+			"note": "The single-letter keys choose the tools",
 			"steps": [
 				{
 					"key": "v"

@@ -23,7 +23,7 @@
 - oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
 - token_file: a document server's token file, with comments and blank lines;
 - git_output: `git status --porcelain=v2 -z --branch`, `git for-each-ref` and two texts to diff (the first byte picks);
-- vscode_theme: VS Code colour themes, dark and light, with comments and trailing commas;
+- color_theme: Colour themes, dark and light, with comments and trailing commas;
 - history:    refs.json (even first byte) or a commit object (odd first byte) of a history on disk.
 - gltf:       a small .gltf (a triangle, its material, a clip) with its buffer as data:, a .glb of it, broken copies;
 - scene:      a scene node's scene, animations and time, with primitives, lights, clips and that model placed in it.
@@ -506,8 +506,8 @@ def git_output_seeds():
             "\x02one\ntwo\nthree\n\0one\n2\nthree\nfour", "\x02\0added\n", "\x02a\r\nb\0a\nb\n"]
 
 
-def vscode_theme_seeds():
-    """VS Code colour themes, which allow comments and trailing commas."""
+def color_theme_seeds():
+    """Colour themes, which allow comments and trailing commas."""
     dark = {"name": "Fuzz Dark", "type": "dark", "colors": {"editor.background": "#1e1e1e",
             "editor.foreground": "#d4d4d4", "focusBorder": "#007fd4", "statusBar.background": "#007acc80",
             "list.hoverBackground": "#2a2d2e", "errorForeground": "#f48771"},
@@ -742,7 +742,7 @@ def dictionaries():
             "git_output": ["\x00", "\n", "# branch.oid ", "# branch.head ", "# branch.upstream ", "# branch.ab ",
                            "1 ", "2 ", "u ", "? ", "! ", ".M", "M.", "R.", "D.", "A.", "UU", "N...", "100644 ",
                            "R100 ", "*"],
-            "vscode_theme": tokens + ['"name"', '"type"', '"dark"', '"light"', '"colors"', '"tokenColors"',
+            "color_theme": tokens + ['"name"', '"type"', '"dark"', '"light"', '"colors"', '"tokenColors"',
                                       '"editor.background"', '"editor.foreground"', '"focusBorder"', '"#"',
                                       '"#ffffff"', '"#00000080"', ",}"],
             "history": tokens + [f'"{word}"' for word in ["version", "main", "proposals", "nextProposal", "grants",
@@ -819,7 +819,7 @@ def main():
     write(out, "composition", composition_seeds(), words["json"] + features + ["needs", "bindings", "adapter", "dock",
           "affrescoui-adapter", "affrescoui-proof", "list", "action", "image", "{{", "}}"])
     for target, seeds in [("url", url_seeds()), ("oauth", oauth_seeds()), ("token_file", token_file_seeds()),
-                          ("git_output", git_output_seeds()), ("vscode_theme", vscode_theme_seeds()),
+                          ("git_output", git_output_seeds()), ("color_theme", color_theme_seeds()),
                           ("history", history_seeds())]:
         write(out, target, seeds, words[target])
     write(out, "adapters", adapters_seeds(), words["json"] + ["surfaceUpdate", "beginRendering", "dataModelUpdate",

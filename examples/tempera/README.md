@@ -16,7 +16,7 @@ It opens a generated sample (1200 × 800: Sky, Sun and Hills).
 | File | What it holds |
 | --- | --- |
 | `tempera.screen.json` | The window, fonts, colours, permissions and the initial state |
-| `parts/commands.json` | One action per native, the menu commands, the Photoshop keys and the filter watches |
+| `parts/commands.json` | One action per native, the menu commands, the tool keys and the filter watches |
 | `parts/workspace.json` | The menu bar, the options bar, the tool bar, the canvas with rulers and guides, and the status bar |
 | `parts/panels.json` | Navigator, Layers, History, Properties/Adjustments, Colour/Swatches, and the dialogs |
 | `Session.cpp`, `Natives.cpp`, `NativesEdit.cpp`, `Tools.cpp` | The host: the document, the tools and the `tempera.*` natives |

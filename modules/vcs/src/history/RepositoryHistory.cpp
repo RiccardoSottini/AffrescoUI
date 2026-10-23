@@ -491,7 +491,7 @@ json Repository::objectOf(const Commit& commit) {
 }
 
 void Repository::writeCommit(const Commit& commit) {
-	// Like Git's trees, a document is written once; and only for snapshots: other commits are rebuilt from deltas
+	// A document is written once, and only for snapshots: other commits are rebuilt from deltas
 	if(commit.snapshot && !history_->hasObject(commit.tree)) {
 		expectReadable(*commit.snapshot, history_->objectFile(commit.tree));
 		history_->writeObject(commit.tree, commit.snapshot->dump());

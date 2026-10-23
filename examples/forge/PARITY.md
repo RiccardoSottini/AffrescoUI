@@ -1,6 +1,6 @@
 # Forge parity
 
-Forge is modelled on Visual Studio Code: laid out and working like it, in its own words, icons and sample data. Each area below is `done`, `partial` or
+Forge is a desktop code workbench, in its own words, icons and sample data. Each area below is `done`, `partial` or
 `missing`, with its gap in one line. Each round takes the gaps a daily user would notice first.
 
 ## Layout and chrome

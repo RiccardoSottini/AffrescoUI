@@ -1,7 +1,6 @@
 # vcs: version control
 
-`vcs` keeps a JSON document and its live state under version control, like Git, with approvals like Claude Code's
-(`VERSION_CONTROL.md`). `Repository` implements `core`'s `VersionControl`: content-addressed commits (SHA-256), an
+`vcs` keeps a JSON document and its live state under version control, with approvals (`VERSION_CONTROL.md`). `Repository` implements `core`'s `VersionControl`: content-addressed commits (SHA-256), an
 append-only `main`, proposals as branches merged with merge commits, revert, restore, diff and log, change sets, and
 the permission rules (`allow`, `ask`, `deny`), modes and "don't ask again" grants, and blame. A commit keeps a delta
 from its parent's document, with a whole document every 64th commit, so the history grows with the changes. It knows nothing about what the

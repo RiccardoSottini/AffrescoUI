@@ -18,7 +18,7 @@ class SectionRegistry;
 
 /// @brief The AffrescoUI Screen Format (SCREEN_FORMAT.md) as rules for version control (VERSION_CONTROL.md).
 ///
-/// "permissions" holds rules like Claude Code's: `{"allow": [...], "ask": [...], "deny": [...], "reviewers": [...]}`,
+/// "permissions" holds rules: `{"allow": [...], "ask": [...], "deny": [...], "reviewers": [...]}`,
 /// each rule "author" or "author(pattern)". Without a "permissions" section everyone may change everything.
 /// Revisions may never change the permissions or add or alter control steps (accept, reject, preview, restore,
 /// revert, undo, patch, call, send, connect, respond), so no author can approve itself. Nor may they refer to state

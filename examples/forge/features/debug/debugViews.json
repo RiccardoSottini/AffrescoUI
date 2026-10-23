@@ -38,7 +38,7 @@
 						  "textColor": "{{state.debug.status == 'inactive' ? '#89d185' : '@color.muted'}}", "tooltip": "Start Debugging (F5)",
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "debugContinueOrStart" } },
 						{ "type": "label", "id": "debug-reload", "icon": "refresh-cw", "padding": 6, "fitText": true, "cursor": "hand",
-						  "textColor": "@color.muted", "tooltip": "Reload .vscode/launch.json",
+						  "textColor": "@color.muted", "tooltip": "Reload .forge/launch.json",
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "debugLoadConfigurations" } }
 					  ] },
 					{ "type": "column", "id": "debug-empty", "when": "{{length(state.debug.configurations) == 0 && empty(state.debug.error) && state.debug.status == 'inactive'}}",
@@ -49,7 +49,7 @@
 							  "height": 28, "align": "center", "radius": 2, "cursor": "hand", "focusable": true, "color": "@color.accent",
 							  "textColor": "#ffffff", "onClick": { "run": "debugContinueOrStart" } } ] },
 						{ "type": "label", "id": "debug-empty-text", "wrap": true, "width": "100%", "height": 70, "padding": 12, "textColor": "@color.text",
-						  "text": "{{'To choose what runs, add a configuration of type lldb or python to ' + (empty(state.folder.root) ? 'the open folder' : 'this folder') + '\\'s .vscode/launch.json.' + (state.debug.skipped > 0 ? ' ' + plural(state.debug.skipped, 'configuration') + ' Forge can\\'t run were left out.' : '')}}" }
+						  "text": "{{'To choose what runs, add a configuration of type lldb or python to ' + (empty(state.folder.root) ? 'the open folder' : 'this folder') + '\\'s .forge/launch.json.' + (state.debug.skipped > 0 ? ' ' + plural(state.debug.skipped, 'configuration') + ' Forge can\\'t run were left out.' : '')}}" }
 					  ] },
 					{ "type": "label", "id": "debug-error", "when": "{{!empty(state.debug.error)}}", "icon": "circle-x", "wrap": true,
 					  "width": "100%", "padding": 8, "textColor": "@color.text", "text": "{{state.debug.error}}" },

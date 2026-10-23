@@ -7,7 +7,7 @@
 	"scenarios": [
 		{
 			"name": "terminal-run-task-reads-no-tasks",
-			"note": "Run Task reads the folder's .vscode/tasks.json; the test folder has none, so nothing opens",
+			"note": "Run Task reads the folder's .forge/tasks.json; the test folder has none, so nothing opens",
 			"steps": [
 				{ "action": "runTask" },
 				{ "expect": { "state": "tasks.items.length", "is": 0 } },

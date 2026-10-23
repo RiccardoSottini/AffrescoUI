@@ -18,7 +18,7 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 ## What it shows
 
-Modelled on Loop Habit Tracker, laid out for the desktop: the list and the selected habit's detail side by side
+Laid out for the desktop: the list and the selected habit's detail side by side
 ([`PARITY.md`](PARITY.md) lists every area and its gap).
 
 - **The list**: a row per habit with its colour, score ring and name under a header of the last days; a click on a

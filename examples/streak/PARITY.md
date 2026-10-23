@@ -1,6 +1,6 @@
 # Streak: parity
 
-Streak is modelled on Loop Habit Tracker, the open-source Android habit tracker, laid out for the desktop: the habit
+Streak is a habit tracker laid out for the desktop: the habit
 list and the selected habit's detail side by side, one pane at a time below 960 window units. It replicates the
 design and the workflows, not the product: its own name, Lucide icons, invented habits and text, no assets of the
 original.

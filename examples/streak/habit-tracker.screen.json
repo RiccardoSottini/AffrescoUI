@@ -5,7 +5,7 @@
 	"include": [
 		"../shared/addons/assistant/assistant.json"
 	],
-	"note": "Streak: a habit tracker modelled on Loop Habit Tracker and laid out for the desktop: the habits with their last days to tick on the left, the chosen habit's score, history, calendar, streaks and frequency on the right. Yes-or-no and measurable habits, frequencies, reminders, notes per day, sorting, archiving, CSV export, light, dark and pure black. In English, Italian and Arabic.",
+	"note": "Streak: a habit tracker laid out for the desktop: the habits with their last days to tick on the left, the chosen habit's score, history, calendar, streaks and frequency on the right. Yes-or-no and measurable habits, frequencies, reminders, notes per day, sorting, archiving, CSV export, light, dark and pure black. In English, Italian and Arabic.",
 	"window": {
 		"title": "Streak",
 		"width": 1280,

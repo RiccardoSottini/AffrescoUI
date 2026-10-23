@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes Forge's VS Code colour theme importer (examples/forge/features/themes/ThemeImport.hpp): a theme file
+/// @brief Fuzzes Forge's colour theme importer (examples/forge/features/themes/ThemeImport.hpp): a theme file
 /// someone downloaded is untrusted, and what it gives becomes a patch to the screen's design tokens.
 ///
 /// A theme gives an id of lower-case letters, digits and dashes (at most 40), and a patch whose every op adds a colour
@@ -48,7 +48,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	const auto text = affresco::fuzz::text(data, size);
 	if(!isThemeId(forge::themeId(text))) affresco::fuzz::broken("a name becomes a theme id");
 	try {
-		const affresco::json theme = forge::importVsCodeTheme(text, "fuzzed");
+		const affresco::json theme = forge::importColorTheme(text, "fuzzed");
 		if(!isThemeId(theme.at("id").get<std::string>())) affresco::fuzz::broken("a theme's id is a theme id");
 		for(const affresco::json& op : theme.at("patch")) {
 			if(op.at("op") != "add") affresco::fuzz::broken("a theme's ops add");

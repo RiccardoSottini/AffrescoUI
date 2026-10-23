@@ -413,7 +413,7 @@ set may now contain a feature record.
 **3. `include` files.** Merged at load, section by section, with no namespace, no live install and no record in
 history. Rejected for features; `include` stays for splitting one app's files.
 
-**4. Code plugins** (VS Code's model: a JavaScript extension host). Rejected by decision 3 (no scripts inside
+**4. Code plugins** (a JavaScript extension host). Rejected by decision 3 (no scripts inside
 documents). Native logic arrives as providers and services the host grants (RFC 0002), a WASM provider later.
 
 **5. Automatic dependency resolution across catalogues** (npm-style). The install resolves required features from the

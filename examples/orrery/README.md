@@ -1,6 +1,6 @@
 # Orrery: a small planetarium
 
-Orrery shows a few planets going round a sun, modelled on Celestia (the 3D view) and Stellarium (the sky chart). It
+Orrery shows a few planets going round a sun, in a 3D view and on a sky chart. It
 is one screen document, `orrery.screen.json` (with the sky from the ground in `sky.json`, which it includes), with no
 code of its own: the standard host runs it.
 

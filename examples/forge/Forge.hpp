@@ -25,7 +25,7 @@ struct Workspace {
 ///   - `forge.openFolder` `{ "icons" }`: asks for a folder, opens it and returns its index (the same one again on a
 ///     cancel);
 ///   - `forge.read` `{ "id" }`: the text of one of the folder's files;
-///   - `forge.importTheme`: asks for a VS Code colour theme and returns it as tokens (ThemeImport.hpp); fails on a
+///   - `forge.importTheme`: asks for a colour theme and returns it as tokens (ThemeImport.hpp); fails on a
 ///     cancel.
 /// And the source control's (features/scm/Scm.hpp), with git granted.
 /// @param screen The screen.

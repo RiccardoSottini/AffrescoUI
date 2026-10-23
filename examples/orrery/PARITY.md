@@ -1,12 +1,12 @@
 # Orrery: parity
 
-Orrery's 3D view is modelled on Celestia, and its sky chart on Stellarium. This file lists what those kinds of app
+Orrery has a 3D view of space and a sky chart from the ground. This file lists what those kinds of app
 do, and how far Orrery has come, one round at a time. Everything is in `orrery.screen.json` and the sky from the ground in `sky.json`, which it includes: no code of its own.
 
 Status: **done**, **part** (there, but less than the model) or **missing**. The data is invented: a toy solar
 system of six bodies on circular orbits in one plane.
 
-## The 3D view (modelled on Celestia)
+## The 3D view
 
 | # | Feature | Status | How |
 |---|---|---|---|
@@ -28,7 +28,7 @@ system of six bodies on circular orbits in one plane.
 | C16 | Phase and lit side of each body | done | the scene's point light at the Sun shades every sphere; the lit fraction in the info |
 | C17 | Render options dialog | done | the built-in `dialog` with a toggle per layer (orbits, labels, stars, lit side, Sun glow); mod+comma or the View menu |
 
-## The sky chart (modelled on Stellarium)
+## The sky chart
 
 | # | Feature | Status | How |
 |---|---|---|---|
@@ -56,7 +56,7 @@ system of six bodies on circular orbits in one plane.
 |---|---|---|---|
 | 0 | Before: the 3D view and the thumbnails came from a C++ host (`main.cpp`), counted as part | 4 / 10 / 15 | 15,178 + 2,654 for `main.cpp` |
 | 1 | JSON only: the 3D view and the thumbnails are in the screen, the host is the standard one | 11 / 3 / 15 | 16,006 |
-| 2 | Celestia's overlays: selected body's info and phase, the date and rate, the time keys | 14 / 4 / 11 | 17,519 |
+| 2 | The 3D view's overlays: selected body's info and phase, the date and rate, the time keys | 14 / 4 / 11 | 17,519 |
 | 3 | Go to, centre, follow; stars turn with the camera; culling behind it; clamped time; orbit and label toggles, View menu | 15 / 5 / 9 | 20,262 |
 | 4 | Solar system browser (a tree of the bodies), bookmarks, field of view | 17 / 6 / 6 | 22,685 |
 | 5 | Fixes from the round 4 critique: flights land once, moons placed round their planet, reparenting refused into a loop or past three levels, places keep the time and field of view and can be deleted, the view fits a small window | 17 / 6 / 6 | 24,401 |

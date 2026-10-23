@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Modello, a 3D modeller modelled on Blender's layout and keys, written only in the format: the stock host runs it. This file names the window, the fonts, the colours, the state and the areas; parts/commands.json holds the actions, keys and menus, parts/viewport.json the 3D viewport and its header, parts/editors.json the other editors (outliner, properties, timeline) and the bars.",
+	"note": "Modello, a 3D modeller, written only in the format: the stock host runs it. This file names the window, the fonts, the colours, the state and the areas; parts/commands.json holds the actions, keys and menus, parts/viewport.json the 3D viewport and its header, parts/editors.json the other editors (outliner, properties, timeline) and the bars.",
 	"window": { "title": "Modello", "width": 1440, "height": 900, "minWidth": 1000, "minHeight": 640 },
 	"fonts": {
 		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },

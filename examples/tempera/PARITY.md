@@ -1,6 +1,6 @@
 # Tempera parity matrix
 
-Tempera is modelled on a professional raster image editor (Photoshop). This matrix lists the areas and workflows a
+Tempera is a professional raster image editor. This matrix lists the areas and workflows a
 daily user of that kind of editor expects, each `done`, `partial` or `missing`, with the gap in one line. Every round
 takes the gaps a daily user would notice first. Tempera keeps its own name, the Lucide icons and invented sample data.
 

@@ -1,6 +1,6 @@
 # Flow: parity
 
-Flow is modelled on Linear, with a board that feels like Trello's. It is a JSON screen only. Its icons are Lucide's
+Flow is an issue tracker with a Kanban board. It is a JSON screen only. Its icons are Lucide's
 and all of its data is invented. This page lists what a daily user would reach for and how far Flow has got.
 
 | Area | What a daily user reaches for | Flow | Notes |

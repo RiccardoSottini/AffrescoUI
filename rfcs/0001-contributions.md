@@ -11,8 +11,8 @@
 
 Large apps such as IDEs and creative tools are mostly made of **commands**: hundreds of things the user can do, each
 reachable from a keyboard shortcut, a menu, a context menu, a toolbar button and a command palette, each enabled only
-when it makes sense, and each with settings that change how it behaves. VS Code describes all of that as data: an
-extension's `package.json` *contributes* commands, keybindings, menus and configuration, and `when` clauses decide
+when it makes sense, and each with settings that change how it behaves. Desktop editors commonly describe all of that as data: an
+extension *contributes* commands, keybindings, menus and configuration, and `when` clauses decide
 where each applies. The workbench then builds its palette, menus, keybinding editor and settings page from those
 declarations, so a new command shows up everywhere at once.
 
@@ -41,7 +41,7 @@ a CAD viewer, a game launcher with a settings page.
 - the widgets: menu bars, context menus and dialogs (8.2c), the quick pick and fuzzy matching (8.3), native menus
   (2.7). They read what this RFC declares; they are designed in their own items;
 - setting scopes beyond one user (per-workspace and per-language overrides): a later RFC (open question 8);
-- compatibility with VS Code's extension API or its `package.json` format: there is no JavaScript extension host.
+- compatibility with any editor's extension API or manifest format: there is no JavaScript extension host.
 
 ## The design
 
@@ -97,7 +97,7 @@ An action can already be a step, a list of steps or a name. It gains one more fo
 - **Arguments.** A command runs without variables from keys, menus and palettes. Callers that pass some still can
   (`{ "run": "files.save", "with": { "file": 3 } }`); bindings and menu items may give `with` too.
 - **Enablement guards the user's ways in, not the program's.** `enablement` is checked when a key, a menu item or a
-  palette runs the command. A `run` step or a native call runs it regardless, as in VS Code, so a screen's own logic
+  palette runs the command. A `run` step or a native call runs it regardless, so a screen's own logic
   never stops working because a condition about the UI is false.
 
 ### Keybindings: chords, `when`, and one resolution order
@@ -137,7 +137,7 @@ key's value can now also be a **binding object** or a **list of bindings**:
    press without Cmd, Ctrl or Alt goes to the text, except Escape and bindings on the focused node and its
    ancestors (so `enter` on a `textarea` still works). This is today's rule, now written down for every scope.
 2. **A chord in progress.** If earlier presses started a chord, only bindings whose next press matches are
-   candidates. A press that matches none ends the chord and is dropped (VS Code does the same), and Escape ends it.
+   candidates. A press that matches none ends the chord and is dropped, and Escape ends it.
    There is no timeout. While a chord is waiting, `context.chord` holds what was pressed (`"mod+k"`), so a status bar
    can say so.
 3. **Scopes, from the focus outward.** The focused node's `keys`, then its parent's, up to the root, then the
@@ -383,7 +383,7 @@ title can be changed in one place. A conditional shortcut is one edit too:
 
 ## The alternatives
 
-**1. A new `commands` section, beside `actions`.** VS Code keeps commands (ids with titles) apart from the code that
+**1. A new `commands` section, beside `actions`.** Commands (ids with titles) are kept apart from the code that
 runs them. Here it would be `"commands": { "view.toggleWordWrap": { "title": "...", "run": "view.toggleWordWrap" } }`
 next to the action.
 - *For:* `actions` keeps one shape; a command could point at a native action that the document doesn't define.
@@ -392,9 +392,9 @@ next to the action.
   section. A native action can still be a command: `{ "title": "Pick a file", "do": "pickFile" }`.
 - **Recommended: extend `actions`.** One name, one place; the card's own wording ("actions that gain a title").
 
-**2. A `keybindings` list, as in VS Code's `keybindings.json`.** `[{ "key": "alt+z", "command": "...", "when":
+**2. A `keybindings` list.** `[{ "key": "alt+z", "command": "...", "when":
 "..." }]`, priority by position.
-- *For:* familiar to VS Code users; several bindings per key are natural.
+- *For:* a familiar shape for keymaps; several bindings per key are natural.
 - *Against:* items are addressed by index, so edits depend on position and two features appending can't be told
   apart in review; it duplicates `keys`, which already exists on the document and on nodes; node-scoped bindings
   would need a `scope` field instead of locality. Measured edit: 84 tokens against 74.
@@ -512,12 +512,12 @@ Alternatives, same edit: a separate `commands` section 88; a `keybindings` list 
    step (a revision: history, undo, export as a change set, reviewable), or in persisted state (a second layer that
    overrides `keys`). *Recommendation:* the document. It needs no second resolution layer, and "the user customises
    the app" is exactly what version control is for. Settings values stay in state, because they are data.
-3. **Menu names with dots, or VS Code's slashes?** *Recommendation:* dots (`editor.context`): a slash costs `~1` in
+3. **Menu names with dots, or with slashes?** *Recommendation:* dots (`editor.context`): a slash costs `~1` in
    every pointer and every reviewer line.
 4. **Should a disabled command's binding fall through to the next binding and scope, or consume the key?**
    *Recommendation:* fall through. It lets an outer binding of the same key apply when the inner command can't run.
-   VS Code consumes it in some cases; falling through is easier to predict.
-5. **Should `enablement` also stop `run` steps?** *Recommendation:* no, as in VS Code: it guards the user's ways in
+   Consuming it in some cases is harder to predict; falling through is easier.
+5. **Should `enablement` also stop `run` steps?** *Recommendation:* no: it guards the user's ways in
    (keys, menus, palettes). A screen's own logic that wants the check writes an `if`.
 6. **An MCP `get_commands` tool?** *Recommendation:* yes, small and read-only, once 8.1a lands: it answers "what can
    this app do?" in about 15 tokens per command, without the steps.

@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's debugger: launch configurations from .vscode/launch.json (forge.debug.launchConfigurations, a subset), a session with lldb-dap or debugpy through the dap service the host granted (Debug.cpp), breakpoints in the editor's gutter, the call stack, variables, watches and the debug console. Every request goes through debugRequest, which names the service by state.debug.type and runs the answer action with `body` and `context`; the adapter's events go to debugEvent. The actions that take the adapter's messages as events (debugApplySession, debugApplyEvent, debugApplyResponse) let a scenario or an agent drive the views without an adapter. What an adapter sends is bounded in the dap service; here the console keeps 2000 lines, the history 100 entries and the variables 5000 rows. The views are in debugViews.json.",
+	"note": "Forge's debugger: launch configurations from .forge/launch.json (forge.debug.launchConfigurations, a subset), a session with lldb-dap or debugpy through the dap service the host granted (Debug.cpp), breakpoints in the editor's gutter, the call stack, variables, watches and the debug console. Every request goes through debugRequest, which names the service by state.debug.type and runs the answer action with `body` and `context`; the adapter's events go to debugEvent. The actions that take the adapter's messages as events (debugApplySession, debugApplyEvent, debugApplyResponse) let a scenario or an agent drive the views without an adapter. What an adapter sends is bounded in the dap service; here the console keeps 2000 lines, the history 100 entries and the variables 5000 rows. The views are in debugViews.json.",
 
 	"services": {
 		"debugLldb": { "provider": "dap", "process": "lldb-dap", "root": "workspace", "restart": { "after": 0, "times": 100 } },
@@ -44,9 +44,9 @@
 			"do": [{ "run": "forgeShowView", "with": { "view": "debug" } },
 			       { "if": "{{state.sideView == 'debug' && state.debug.status == 'inactive'}}", "then": [{ "run": "debugLoadConfigurations" }] }] },
 		"debugLoadConfigurations": { "title": "Reload Launch Configurations", "category": "Debug", "icon": "refresh-cw",
-			"description": "Read the open folder's .vscode/launch.json again.",
+			"description": "Read the open folder's .forge/launch.json again.",
 			"do": [{ "call": "forge.debug.launchConfigurations",
-				"onError": [{ "set": "state.debug.error", "to": "{{'Cannot read .vscode/launch.json: ' + error}}" }],
+				"onError": [{ "set": "state.debug.error", "to": "{{'Cannot read .forge/launch.json: ' + error}}" }],
 				"then": [{ "run": "debugApplyConfigurations", "with": { "found": "{{result}}" } }] }] },
 		"debugApplyConfigurations": [
 			{ "set": "state.debug.configurations", "to": "{{found.configurations ?? []}}" },
@@ -62,7 +62,7 @@
 		"debugStart": { "title": "Start Debugging", "category": "Debug", "icon": "play",
 			"enablement": "{{state.debug.status == 'inactive'}}",
 			"do": [{ "if": "{{computed.debugConfiguration == null}}",
-				"then": [{ "run": "notify", "with": { "severity": "info", "message": "No launch configuration: add one of type lldb or python to the open folder's .vscode/launch.json, then reload." } }],
+				"then": [{ "run": "notify", "with": { "severity": "info", "message": "No launch configuration: add one of type lldb or python to the open folder's .forge/launch.json, then reload." } }],
 				"else": [{ "run": "debugBegin", "with": { "configuration": "{{computed.debugConfiguration}}" } },
 				         { "run": "debugSubscribe" },
 				         { "run": "debugRequest", "with": { "command": "initialize", "answer": "debugOnInitialize", "context": {}, "refused": "",

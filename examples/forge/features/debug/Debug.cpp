@@ -55,7 +55,7 @@ std::size_t stringEnd(std::string_view text, std::size_t i) {
 	return text.size() - 1;
 }
 
-/// @brief VS Code's JSON with comments as plain JSON: its comments and trailing commas left out.
+/// @brief JSON with comments as plain JSON: its comments and trailing commas left out.
 /// @param text The text.
 /// @return Plain JSON (or text that still isn't JSON).
 std::string plainJson(std::string_view text) {
@@ -269,24 +269,24 @@ bool variableName(std::string_view name) {
 	       std::ranges::all_of(name, [&word](char c) { return word(c) || (c >= '0' && c <= '9'); });
 }
 
-/// @brief Reads a file of a folder's `.vscode`, comments allowed.
+/// @brief Reads a file of a folder's `.forge`, comments allowed.
 /// @param root The open folder, or empty.
 /// @param name The file's name, such as `launch.json`.
 /// @return Its JSON, or null when there is no folder or no file.
 /// @throws std::runtime_error If the file isn't JSON or is too large.
 json folderSettingsFile(const fs::path& root, const std::string& name) {
 	if(root.empty()) return nullptr;
-	const fs::path file = root / ".vscode" / name;
+	const fs::path file = root / ".forge" / name;
 	std::error_code error;
 	if(!fs::is_regular_file(file, error)) return nullptr;
 	if(fs::file_size(file, error) > largestLaunchFile || error)
-		throw std::runtime_error(".vscode/" + name + " is too large");
+		throw std::runtime_error(".forge/" + name + " is too large");
 	std::ifstream in(file, std::ios::binary);
 	const std::string text{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
 	try {
 		return affresco::parseUntrusted(plainJson(text));
 	} catch(const std::exception&) {
-		throw std::runtime_error(".vscode/" + name + " isn't JSON");
+		throw std::runtime_error(".forge/" + name + " isn't JSON");
 	}
 }
 

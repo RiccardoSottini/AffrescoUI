@@ -1,5 +1,5 @@
 /// @file
-/// @brief Forge's VS Code colour theme importer (ThemeImport.hpp).
+/// @brief Forge's colour theme importer (ThemeImport.hpp).
 
 #include "features/themes/ThemeImport.hpp"
 
@@ -16,14 +16,14 @@ namespace forge {
 
 namespace {
 
-/// @brief A Forge colour token and where a VS Code theme keeps it.
+/// @brief A Forge colour token and where a theme file keeps it.
 struct TokenSource {
 	std::string_view token;                     ///< Forge's token, without "color.".
-	std::initializer_list<std::string_view> keys; ///< VS Code's colour keys, the first one set winning.
+	std::initializer_list<std::string_view> keys; ///< The theme format's colour keys, the first one set winning.
 	std::array<std::string_view, 3> defaults;   ///< For a dark, a light and a high contrast theme without any of them.
 };
 
-/// @brief The tokens an imported theme sets, from VS Code's names (code.visualstudio.com/api/references/theme-color).
+/// @brief The tokens an imported theme sets, from the theme format's colour names.
 constexpr std::array<TokenSource, 21> tokenSources = {{
     {"titleBar", {"titleBar.activeBackground", "editorGroupHeader.tabsBackground"}, {"#3c3c3c", "#dddddd", "#000000"}},
     {"activityBar", {"activityBar.background", "sideBar.background"}, {"#333333", "#2c2c2c", "#000000"}},
@@ -71,7 +71,7 @@ std::size_t commentEnd(std::string_view text, std::size_t i) {
 	return end == std::string_view::npos ? text.size() : end + 1;
 }
 
-/// @brief Removes the comments and trailing commas VS Code allows in its JSON files, leaving strings untouched.
+/// @brief Removes the comments and trailing commas theme files allow, leaving strings untouched.
 /// @param text The file's text.
 /// @return Plain JSON text (if the rest of it is JSON).
 std::string plainJson(std::string_view text) {
@@ -156,14 +156,14 @@ std::string themeId(std::string_view name) {
 	return id.empty() ? "imported" : id;
 }
 
-affresco::json importVsCodeTheme(std::string_view text, std::string_view fallbackName) {
+affresco::json importColorTheme(std::string_view text, std::string_view fallbackName) {
 	affresco::json theme;
 	try {
 		theme = affresco::parseUntrusted(plainJson(text));
 	} catch(const std::exception&) {
-		throw std::runtime_error("not a VS Code colour theme: the file isn't JSON");
+		throw std::runtime_error("not a colour theme: the file isn't JSON");
 	}
-	if(!theme.is_object()) throw std::runtime_error("not a VS Code colour theme: the file isn't a JSON object");
+	if(!theme.is_object()) throw std::runtime_error("not a colour theme: the file isn't a JSON object");
 	const auto field = [&theme](const char* key, std::string_view otherwise) {
 		const auto it = theme.find(key);
 		return it != theme.end() && it->is_string() ? it->get<std::string>() : std::string(otherwise);

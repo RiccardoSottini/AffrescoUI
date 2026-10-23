@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's themes: every colour of the workbench is a token with one variant per theme, so a theme is a set of values and switching is one state change. Importing a VS Code colour theme adds a variant to each token through a patch. The file icon theme maps names and extensions to icons, applied by forge.index.",
+	"note": "Forge's themes: every colour of the workbench is a token with one variant per theme, so a theme is a set of values and switching is one state change. Importing a colour theme adds a variant to each token through a patch. The file icon theme maps names and extensions to icons, applied by forge.index.",
 
 	"tokens": {
 		"color.titleBar": { "forge-dark": "#1f1f1f", "forge-light": "#f8f8f8", "forge-high-contrast": "#000000" },
@@ -72,8 +72,8 @@
 			"description": "Choose the workbench's colour theme.",
 			"do": [{ "set": "state.quickPick.open", "to": true }, { "set": "state.quickPick.query", "to": "theme " }] },
 		"setTheme": [{ "set": "state.theme", "to": "{{item.id}}" }],
-		"importTheme": { "title": "Import VS Code Color Theme...", "category": "Preferences", "icon": "palette",
-			"description": "Read a VS Code colour theme (.json) and add it as a theme.",
+		"importTheme": { "title": "Import Color Theme...", "category": "Preferences", "icon": "palette",
+			"description": "Read a colour theme (.json) and add it as a theme.",
 			"do": [{ "call": "forge.importTheme", "into": "state.imported",
 				"onError": [{ "run": "notify", "with": { "severity": "info", "message": "{{'Theme not imported: ' + error}}" } }],
 				"then": [

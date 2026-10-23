@@ -90,7 +90,7 @@ corner: ask for a change in plain words, then review the proposal it becomes.
 <td valign="top"><img src=".github/media/modello.png" alt="Modello, a 3D modeller with a viewport, an outliner, properties and a timeline"><br/><b>Modello</b> · a 3D modeller<br/><sub>A lit 3D viewport with gizmos, an outliner, a properties editor, a timeline, search over every command and glTF import. Every scene edit is a revision, reviewed and undoable. No C++ of its own. <code>examples/modello/modello.screen.json</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/code-editor.png" alt="Quaderno, a code editor with a side bar, tabs and a minimap"><br/><b>Quaderno</b> · a code editor<br/><sub>Open files and folders, tabs, a minimap, Goto Anything over files, symbols and lines, Find in Files, a command palette and a console. <code>examples/code-editor/code-editor.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/code-editor.png" alt="Quaderno, a code editor with a side bar, tabs and a minimap"><br/><b>Quaderno</b> · a code editor<br/><sub>Open files and folders, tabs, a minimap, a quick switcher over files, symbols and lines, Find in Files, a command palette and a console. <code>examples/code-editor/code-editor.screen.json</code></sub></td>
 <td valign="top"><img src=".github/media/orrery.png" alt="Orrery, a planetarium with a 3D solar system, a sky chart, an orbit graph and an events timeline"><br/><b>Orrery</b> · a planetarium<br/><sub>A 3D solar system, the sky from the ground, an orbit graph and a timeline of eclipses. Its bodies strip is Sinopia's slide sorter, installed from that app. Built by an outsider from the public docs. <code>examples/orrery/orrery.screen.json</code></sub></td>
 </tr>
 </table>
@@ -211,9 +211,8 @@ A whole app in one readable document: layout, components, state, `{{expressions}
 <td width="33%" valign="top">
 
 ### 🛡️ Version control built in
-**Git's model with Claude Code's approvals:** content-addressed commits, proposals as branches with **live
-preview**, revert and diff; `allow` / `ask` / `deny` rules and change budgets. An AI can change your app but **can
-never approve its own changes**.
+Content-addressed commits, proposals as branches with **live preview**, revert and diff; `allow` / `ask` / `deny`
+rules and change budgets. An AI can change your app but **can never approve its own changes**.
 
 </td>
 </tr>
@@ -303,9 +302,9 @@ flowchart LR
 1. **Anyone can propose a change.** The host (`affrescoui_host`) renders a screen and listens for peers on local
    sockets. You ask through the app's assistant or the **AffrescoUI Studio**; an AI agent connects through the MCP
    server, which works both ways; any script can connect too. Every change is a **revision** of compact edits.
-2. **The permission rules decide**, written like Claude Code's: `deny` refuses, `ask` sends the change to review,
-   `allow` applies it. Rules judge what a change *does*, not how it is written. Flow's rules, for example, let the
-   Studio change anything, ask before an agent changes behaviour, and protect the status bar from everyone.
+2. **The permission rules decide:** `deny` refuses, `ask` sends the change to review, `allow` applies it. Rules judge
+   what a change *does*, not how it is written. Flow's rules, for example, let the Studio change anything, ask before
+   an agent changes behaviour, and protect the status bar from everyone.
 3. **You review proposals.** A proposal is a branch, like a pull request: the agent can refine it while you preview it
    live. Then **Accept**, **Always allow** (don't ask again for that part of the screen) or **Reject** with a reason.
    The modes *accept edits* and *plan* change how much is asked.
@@ -422,7 +421,7 @@ wraps it.
 <img align="right" src=".github/media/2020-layout-demo.png" width="200" alt="The original layout demo, running again in 2026">
 
 AffrescoUI started in **December 2017** as **sGLGUI**, when I was **16**, as a way to teach myself OpenGL and C++: nested panels,
-pixel/percent sizing, anchors and a Qt-style signal/slot system, all from scratch. In 2018 I added a text area. It
+pixel/percent sizing, anchors and a signal/slot event system, all from scratch. In 2018 I added a text area. It
 collected keystrokes but **could never draw them**, and the project stalled. A restart in 2020 rewrote the layout
 engine (the image on the right is that demo), then stalled again.
 

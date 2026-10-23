@@ -1,6 +1,6 @@
 # Sinopia parity matrix
 
-Sinopia is a presentation editor modelled on PowerPoint. This matrix lists what a daily user of such an editor
+Sinopia is a presentation editor. This matrix lists what a daily user of such an editor
 expects, and how far Sinopia goes: **done** (works as expected), **partial** (there, with less) or **missing**.
 *Start* is Sinopia before wave 14 (a C++ app); *Now* is this branch, where Sinopia is JSON only and the stock host
 runs it (the slide show, presenter view and export of the C++ app come back in later rounds, on library

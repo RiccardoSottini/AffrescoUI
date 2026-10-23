@@ -1,6 +1,6 @@
 # Quaderno parity
 
-Quaderno is modelled on Sublime Text. This matrix lists the areas and workflows a daily user of such an editor
+Quaderno is a desktop text editor. This matrix lists the areas and workflows a daily user of such an editor
 expects, each `done`, `partial` or `missing`, with the gap in one line. The design and the workflows are the
 reference; Quaderno keeps its own name, palette, icons, text and sample project.
 
