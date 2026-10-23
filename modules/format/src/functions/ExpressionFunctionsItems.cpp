@@ -125,27 +125,33 @@ Value every(const Call& call) { return any(call, false); }
 Value sort(const Call& call) {
 	const std::optional<Value> list = listOf(call);
 	if(!list) return Value::fromList({});
-	// Each key is written as text once, not at every comparison: a list of objects sorts in n log n, not n log n dumps
+	// A key that isn't text is written as JSON text once, not at every comparison: a list of objects sorts in
+	// n log n, not n log n dumps. Only when a comparison may read it: numbers compare by size
 	struct Key {
-		std::optional<double> number; ///< Its value, if it is a number.
-		std::string text;             ///< Its text, or its JSON text (a number's too, when the other key isn't one).
-		std::size_t index;            ///< The item's position.
+		Value value;       ///< The key.
+		std::string json;  ///< Its JSON text, if it is neither text nor (with every other key) a number.
+		std::size_t index; ///< The item's position.
+
+		/// @brief The text a comparison reads, from the key where it is now (it moves while sorting).
+		/// @return Its text, or its JSON text.
+		[[nodiscard]] std::string_view text() const { return value.isText() ? value.text() : json; }
 	};
 	std::vector<Key> keys;
 	keys.reserve(list->size());
+	bool numbers = true;
 	for(std::size_t i = 0; i < list->size(); ++i) {
-		const Value key = each(call, *list, i);
-		keys.push_back({.number = key.isNumber() ? std::optional(key.number()) : std::nullopt,
-		                .text = key.isText() ? std::string(key.text()) : key.dump(),
-		                .index = i});
+		keys.push_back({.value = each(call, *list, i), .json = {}, .index = i});
+		numbers = numbers && keys.back().value.isNumber();
 	}
+	if(!numbers)
+		for(Key& key : keys)
+			if(!key.value.isText()) key.json = key.value.dump();
 	const bool descending = call.size() > 2 && call.evaluate(2).toText() == "desc";
 	// Numbers by size, anything else by its text
 	std::ranges::stable_sort(keys, [&](const Key& a, const Key& b) {
-		const int c = a.number && b.number ? (*a.number < *b.number   ? -1
-		                                      : *a.number > *b.number ? 1
-		                                                              : 0)
-		                                   : a.text.compare(b.text);
+		const bool both = a.value.isNumber() && b.value.isNumber();
+		const double x = both ? a.value.number() : 0, y = both ? b.value.number() : 0;
+		const int c = both ? (x < y ? -1 : x > y ? 1 : 0) : a.text().compare(b.text());
 		return descending ? c > 0 : c < 0;
 	});
 	std::vector<Value> result;
