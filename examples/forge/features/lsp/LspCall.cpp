@@ -40,7 +40,7 @@ std::size_t positionArgument(const json& with, const char* key) {
 /// @return Their units.
 std::size_t utf16Units(std::u32string_view line, std::size_t columns) {
 	std::size_t units = 0;
-	for(std::size_t i = 0; i < std::min(columns, line.size()); ++i) units += line[i] > 0xFFFF ? 2 : 1;
+	for(std::size_t i = 0; i < std::min(columns, line.size()); ++i) units += line[i] > 0xFFFF ? 2u : 1u;
 	return units + (columns > line.size() ? columns - line.size() : 0);
 }
 
@@ -50,7 +50,7 @@ std::size_t utf16Units(std::u32string_view line, std::size_t columns) {
 /// @return The code points (a unit inside a pair counts its whole code point).
 std::size_t codePointsOf(std::u32string_view line, std::size_t units) {
 	std::size_t i = 0;
-	for(std::size_t at = 0; i < line.size() && at < units; ++i) at += line[i] > 0xFFFF ? 2 : 1;
+	for(std::size_t at = 0; i < line.size() && at < units; ++i) at += line[i] > 0xFFFF ? 2u : 1u;
 	return i + (units > utf16Units(line, line.size()) ? units - utf16Units(line, line.size()) : 0);
 }
 

@@ -58,7 +58,7 @@ std::vector<std::uint8_t> PdfObjects::finish(std::uint32_t root, std::uint32_t i
 	append("xref\n0 " + std::to_string(offsets_.size() + 1) + "\n0000000000 65535 f\r\n");
 	for(const std::size_t offset : offsets_) {
 		if(offset == 0) throw std::runtime_error("PDF object reserved but not defined");
-		std::array<char, 21> entry{};
+		std::array<char, 32> entry{}; // room for any size_t, which a PDF's offsets never reach
 		std::snprintf(entry.data(), entry.size(), "%010zu 00000 n\r\n", offset); // 20 bytes each, end of line included
 		append(entry.data());
 	}

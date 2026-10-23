@@ -90,7 +90,9 @@ TEST_SUITE("lsp call") {
 		CHECK(lsp::codePointsOf(line, 4) == 3);
 		CHECK(lsp::codePointsOf(line, 6) == 5);
 	}
+}
 
+TEST_SUITE("lsp call") { // the calls themselves
 	TEST_CASE("a call's answer arrives once, on the main thread") {
 		QueuedExecutor executor;
 		const auto alive = std::make_shared<bool>(true);

@@ -30,9 +30,9 @@ public:
 	}
 	/// @brief Runs posted tasks until a condition holds.
 	/// @param done The condition.
-	/// @throws std::runtime_error If it doesn't hold within 60 seconds.
+	/// @throws std::runtime_error If it doesn't hold within 60 seconds (times slowdown()).
 	void pumpUntil(const std::function<bool()>& done) {
-		const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(60);
+		const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(60) * slowdown();
 		while(!done()) {
 			std::vector<std::function<void()>> tasks;
 			{
@@ -89,8 +89,8 @@ std::vector<Workload> watchWorkloads(Context& /*context*/) {
 		                     if(model->size() != std::size_t{folderCount} * (filesPerFolder + 1) || !model->watching())
 			                     throw std::runtime_error("watch: the listing is incomplete");
 	                     }});
-	const auto model =
-	    services::DirectoryModel::open(files->executor, files->root, {.debounce = std::chrono::milliseconds(20)});
+	const auto model = services::DirectoryModel::open(files->executor, files->root,
+	                                                  {.ignore = {}, .debounce = std::chrono::milliseconds(20)});
 	files->executor.pumpUntil([model] { return model->ready(); });
 	const auto changed = std::make_shared<bool>(false);
 	(void)model->onChange.connect(

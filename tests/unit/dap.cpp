@@ -38,9 +38,9 @@ namespace dap = affresco::services::dap;
 
 namespace {
 
-/// @brief The fake adapter, beside this file's folder.
-const std::filesystem::path fakeAdapter =
-    std::filesystem::path(__FILE__).parent_path().parent_path() / "dap" / "fake_adapter.py";
+/// @brief The fake adapter (tests/dap), by an absolute path: it starts in the screen's folder, and __FILE__ may be
+/// relative (as the compile cache gives it).
+const std::filesystem::path fakeAdapter = AFFRESCOUI_FAKE_ADAPTER;
 
 /// @brief An executor whose posted tasks the test runs by hand, on the main thread.
 class PumpedExecutor final : public affresco::Executor {

@@ -1,6 +1,6 @@
 /// @file
 /// @brief The imaging module's blend modes and adjustments (the CPU reference; the GPU is compared with it in
-/// tests/unit/window/imaging_gpu.cpp).
+/// tests/unit/imaging_gpu.cpp).
 
 #include "affresco/imaging/Adjustment.hpp"
 #include "affresco/imaging/Blend.hpp"

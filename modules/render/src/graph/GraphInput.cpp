@@ -222,7 +222,7 @@ bool viewKey(const KeyEvent& event, const KeyState& state, KeyCommand& command) 
 /// @return The command; KeyAction::None for a key the graph doesn't use.
 KeyCommand keyCommand(const KeyEvent& event, const KeyState& state, const KeyPort& port) {
 	// A key none of them takes leaves the command as it starts: nothing, the keyboard where it was
-	KeyCommand command{.keyNode = state.keyNode, .keyPort = state.keyPort};
+	KeyCommand command{.keyNode = state.keyNode, .keyPort = state.keyPort, .delta = {}, .camera = {}, .edits = {}};
 	if(!stepKey(event, state, command) && !editKey(event, state, port, command)) viewKey(event, state, command);
 	return command;
 }

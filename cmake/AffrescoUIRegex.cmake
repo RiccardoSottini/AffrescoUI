@@ -29,9 +29,11 @@ target_link_libraries(affrescoui_regex PUBLIC affrescoui_core)
 target_compile_definitions(affrescoui_regex PRIVATE HAVE_CONFIG_H PCRE2_CODE_UNIT_WIDTH=8 PCRE2_STATIC SUPPORT_UNICODE
 	HAVE_MEMMOVE HAVE_STDINT_H HAVE_INTTYPES_H HAVE_LIMITS_H HAVE_STRERROR)
 set_target_properties(affrescoui_regex PROPERTIES C_STANDARD 99 CXX_EXTENSIONS OFF EXPORT_NAME regex)
-# Its warnings are not ours to fix; the wrapper gets the strict ones
+# Its warnings are not ours to fix; the wrapper gets the strict ones. Visual Studio's projects can't keep a target's C
+# and C++ options apart (both got /W4, and with warnings as errors PCRE2 failed), so there they are set file by file.
 if(MSVC)
-	target_compile_options(affrescoui_regex PRIVATE $<$<COMPILE_LANGUAGE:C>:/w> $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
+	set_source_files_properties(${AFFRESCOUI_PCRE2_SOURCES} PROPERTIES COMPILE_OPTIONS /w)
+	set_source_files_properties(modules/core/src/TextPattern.cpp PROPERTIES COMPILE_OPTIONS "${AFFRESCOUI_WARNINGS}")
 else()
 	target_compile_options(affrescoui_regex PRIVATE $<$<COMPILE_LANGUAGE:C>:-w> $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 endif()

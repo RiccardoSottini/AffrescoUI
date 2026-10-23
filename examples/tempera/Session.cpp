@@ -198,8 +198,8 @@ std::unique_ptr<imaging::Document> sampleDocument(int width, int height, const i
 	return document;
 }
 
-Session::Session(const imaging::Limits& limits)
-    : limits(limits), canvas(std::make_shared<imaging::CanvasModel>(sampleDocument(1200, 800, limits))) {
+Session::Session(const imaging::Limits& bounds)
+    : limits(bounds), canvas(std::make_shared<imaging::CanvasModel>(sampleDocument(1200, 800, bounds))) {
 	fitView(*this);
 }
 

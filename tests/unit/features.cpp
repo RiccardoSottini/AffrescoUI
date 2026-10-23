@@ -215,15 +215,19 @@ TEST_CASE("features: a chain of features can't grow the exports without bound") 
 	for(int index = 0; index < 30; ++index) {
 		const std::string name = "double" + std::to_string(index);
 		const std::string previous = index == 0 ? "editor.text" : "double" + std::to_string(index - 1) + ".text";
-		json manifest = {{"format", "affrescoui-feature"},
-		                 {"version", 2},
-		                 {"name", name},
-		                 {"release", "1.0.0"},
-		                 {"title", name},
-		                 {"requires", {{"format", 2}, {"exports", {{previous, {{"type", "string"}}}}}}},
-		                 {"provides",
-		                  {{"exports",
-		                    {{"text", {{"type", "string"}, {"value", "{{app." + previous + " + app." + previous + "}}"}}}}}}}};
+		const json manifest = {
+		    {"format", "affrescoui-feature"},
+		    {"version", 2},
+		    {"name", name},
+		    {"release", "1.0.0"},
+		    {"title", name},
+		    {"requires", {{"format", 2}, {"exports", {{previous, {{"type", "string"}}}}}}},
+		    {"provides",
+		     {{"exports",
+		       {{"text",
+		         {{"type", "string"},
+		          {"value",
+		           std::string("{{app.").append(previous).append(" + app.").append(previous).append("}}")}}}}}}}};
 		document["features"][name] = affresco::format::recordFor(manifest, "revision", "", "", index);
 	}
 	const std::string text = problems(document);

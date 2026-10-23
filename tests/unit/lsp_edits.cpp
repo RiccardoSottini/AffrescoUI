@@ -66,7 +66,7 @@ json edit(const std::string& id, int line, int column, int endColumn, const std:
 
 TEST_SUITE("lsp edits") {
 	TEST_CASE("an open file changes in its buffer, unsaved; a closed one on disk") {
-		TempFolder folder;
+		const TempFolder folder;
 		folder.write("a.cpp", "int count = 0;\n");
 		folder.write("b.cpp", "return count;\n");
 		forge::Buffers buffers;
@@ -81,7 +81,7 @@ TEST_SUITE("lsp edits") {
 	}
 
 	TEST_CASE("one bad edit changes nothing") {
-		TempFolder folder;
+		const TempFolder folder;
 		folder.write("a.cpp", "int count = 0;\n");
 		folder.write("b.cpp", "return count;\n");
 		forge::Buffers buffers;
@@ -94,9 +94,9 @@ TEST_SUITE("lsp edits") {
 	}
 
 	TEST_CASE("files outside the folder, missing files and malformed calls are refused") {
-		TempFolder folder;
+		const TempFolder folder;
 		folder.write("a.cpp", "int count = 0;\n");
-		forge::Buffers buffers;
+		const forge::Buffers buffers;
 		for(const std::string id : {"../a.cpp", "/etc/hosts", "", "missing.cpp"})
 			CHECK_THROWS_AS((void)lsp::applyToFolder({{"edits", {edit(id, 1, 1, 1, "x")}}}, folder.path, buffers),
 			                std::runtime_error);

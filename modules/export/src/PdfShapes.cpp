@@ -79,7 +79,7 @@ float signedArea(std::span<const Vec2> points) noexcept {
 /// @param out Where it goes.
 /// @param codepoint The code point.
 void appendUtf16(std::string& out, std::uint32_t codepoint) {
-	std::array<char, 5> unit{};
+	std::array<char, 9> unit{}; // room for any unsigned, past the four digits a unit takes
 	if(codepoint >= 0x10000) {
 		codepoint -= 0x10000;
 		std::snprintf(unit.data(), unit.size(), "%04X", static_cast<unsigned>(0xD800 + (codepoint >> 10)));

@@ -234,8 +234,9 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	add_executable(affrescoui_server examples/server/main.cpp ${AFFRESCOUI_SERVER_SOURCES})
 	target_link_libraries(affrescoui_server PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel affrescoui::net)
 	target_compile_options(affrescoui_server PRIVATE ${AFFRESCOUI_WARNINGS})
-	if(AFFRESCOUI_BUILD_CAPI)
-		# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (examples/embed/README.md)
+	# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (examples/embed/README.md). Its
+	# scene is OpenGL 4.1 core, with that backend's glad: not built with gles3, whose render module has the other loader
+	if(AFFRESCOUI_BUILD_CAPI AND AFFRESCOUI_GL_BACKEND STREQUAL "gl41")
 		add_executable(affrescoui_embed examples/embed/main.cpp)
 		target_link_libraries(affrescoui_embed PRIVATE affrescoui::capi) # GLFW and glad come with it
 		target_include_directories(affrescoui_embed SYSTEM PRIVATE external/glad/include

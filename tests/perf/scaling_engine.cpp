@@ -16,6 +16,7 @@
 #include <array>
 #include <chrono>
 #include <cstdio>
+#include <filesystem>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -32,7 +33,8 @@ namespace {
 std::vector<Workload> checkerWorkloads(Context& context, bool large) {
 	const auto rules = std::make_shared<const format::Rules>();
 	return perSize(scalingSizes(16, large), [&context, rules](int cards) {
-		const auto document = std::make_shared<const json>(kanbanWithCards(context.templateFolder("kanban"), cards));
+		const std::filesystem::path folder = context.templateFolder("kanban");
+		const auto document = std::make_shared<const json>(screenDocument(kanbanWithCards(folder, cards), folder));
 		Workload workload{.name = scalingName("checker", cards), .runs = 5};
 		workload.step = [rules, document] {
 			rules->validate(*document);
@@ -73,12 +75,10 @@ struct History {
 	}
 };
 
-/// @brief The Kanban template, as read from its file.
+/// @brief The Kanban template as a history holds it, its includes merged in.
 /// @param context The context.
 /// @return The document.
-json kanban(const Context& context) {
-	return json::parse(readFile(context.templateFolder("kanban") / "kanban.screen.json"));
-}
+json kanban(const Context& context) { return screenDocument(context.templateFolder("kanban") / "kanban.screen.json"); }
 
 /// @brief "scaling/history/commit/<n>": 16 more commits on a history of n, per commit; retainedBytes is what one keeps.
 /// @param context The context.

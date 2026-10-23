@@ -14,6 +14,11 @@
 #include <system_error>
 #include <tuple>
 
+#ifndef _WIN32
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
 namespace affresco::format {
 
 namespace {
@@ -148,10 +153,12 @@ void Usage::giveConsent() {
 
 void Usage::ran(std::string_view node, std::string_view action, bool failed, std::int64_t time) {
 	if(!enabled_ || !countable(node) || !countable(action)) return;
-	auto found = actions_.find(std::pair(node, action));
+	// A pair of views has no ordering with a pair of strings in every standard library (GCC 13's has none)
+	Key key(node, action);
+	auto found = actions_.find(key);
 	if(found == actions_.end()) {
 		if(actions_.size() >= maxEntries) return;
-		found = actions_.emplace(Key(node, action), Count{0, 0, time, time}).first;
+		found = actions_.emplace(std::move(key), Count{0, 0, time, time}).first;
 	}
 	addOne(found->second.runs);
 	if(failed) addOne(found->second.errors);
@@ -210,6 +217,16 @@ void Usage::save() {
 	written_ = now();
 	changed_ = false;
 	const std::filesystem::path temporary = file_.string() + ".tmp";
+	std::error_code error;
+	std::filesystem::remove(temporary, error); // one left behind keeps its mode: made again, the owner's only
+#ifndef _WIN32
+	const int descriptor = ::open(temporary.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+	if(descriptor < 0) {
+		log(LogLevel::Error, "AffrescoUI usage: could not write " + temporary.string());
+		return;
+	}
+	::close(descriptor);
+#endif
 	{
 		std::ofstream out(temporary, std::ios::trunc);
 		if(!out || !(out << toJson().dump(1, '\t') << '\n')) {
@@ -217,7 +234,6 @@ void Usage::save() {
 			return;
 		}
 	}
-	std::error_code error;
 	std::filesystem::rename(temporary, file_, error);
 	if(error) log(LogLevel::Error, "AffrescoUI usage: could not write " + file_.string() + ": " + error.message());
 }

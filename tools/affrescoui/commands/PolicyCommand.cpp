@@ -82,7 +82,8 @@ std::vector<CaseResult> playFile(const std::filesystem::path& file) {
 			expect::fail("cases", "expected a list of 1 to 1000 cases");
 		const format::Rules rules;
 		vcs::Repository repository(rules, screenOf(file, policy));
-		for(const auto& [author, role] : expect::object(policy.value("roles", json::object()), "roles").items())
+		const json roles = policy.value("roles", json::object()); // named: a loop over a temporary's items dangles
+		for(const auto& [author, role] : expect::object(roles, "roles").items())
 			if(const auto refused = repository.roles().set(author, expect::string(role, "roles." + author)))
 				expect::fail("roles." + author, *refused);
 		std::vector<CaseResult> results;

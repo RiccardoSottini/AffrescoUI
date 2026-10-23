@@ -98,9 +98,10 @@ const Font::ShapedText& Font::Data::shape(std::u32string_view text) {
 }
 
 const Font::Data::Measured& Font::Data::measure(std::u32string_view text) {
-	// Compared as bytes: a char32_t string compares character by character, which wrap() would pay for every line
+	// Compared as bytes: a char32_t string compares character by character, which wrap() would pay for every line. An
+	// empty view may hold no pointer, which memcmp() must never be given, even for no bytes
 	if(text.size() == measured.text.size() &&
-	   std::memcmp(text.data(), measured.text.data(), text.size() * sizeof(char32_t)) == 0)
+	   (text.empty() || std::memcmp(text.data(), measured.text.data(), text.size() * sizeof(char32_t)) == 0))
 		return measured;
 
 	measured.text.assign(text); // reuses its storage: no allocation once it is large enough

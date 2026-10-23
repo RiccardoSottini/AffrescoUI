@@ -8,6 +8,8 @@
 #include "Reference.hpp"
 
 #include <array>
+#include <initializer_list>
+#include <span>
 
 namespace affresco::format {
 
@@ -322,8 +324,8 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 /// @return The keys.
 std::vector<KeyReference> joinedKeys() {
 	std::vector<KeyReference> keys(commonTable.begin(), commonTable.end());
-	keys.append_range(nodeTypeKeys());
-	keys.append_range(nodeEventKeys());
+	for(const std::span<const KeyReference> part : {nodeTypeKeys(), nodeEventKeys()})
+		keys.insert(keys.end(), part.begin(), part.end());
 	return keys;
 }
 

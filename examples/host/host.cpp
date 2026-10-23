@@ -69,7 +69,7 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 		namespace automation = affresco::automation;
 		affresco::json results = affresco::json::array();
 		try {
-			const automation::ScenarioFile file = automation::ScenarioFile::load(scenarios);
+			const automation::ScenarioFile loaded = automation::ScenarioFile::load(scenarios);
 			automation::Options options;
 			options.document = document;
 			options.pictures = false;
@@ -77,10 +77,10 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 				examples::registerCodeEditor(played);
 				examples::tempo::registerVisualiser(played);
 			};
-			for(const automation::Scenario& scenario : file.scenarios)
+			for(const automation::Scenario& scenario : loaded.scenarios)
 				if(!scenario.needsPictures) options.only.push_back(scenario.name);
 			if(options.only.empty()) return results.dump(); // all of them draw
-			for(const automation::ScenarioResult& result : automation::run(file, options).scenarios) {
+			for(const automation::ScenarioResult& result : automation::run(loaded, options).scenarios) {
 				std::string message;
 				for(const automation::Failure& failure : result.failures)
 					message +=

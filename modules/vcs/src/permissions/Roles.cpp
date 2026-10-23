@@ -43,7 +43,9 @@ std::optional<std::string> Roles::set(std::string_view author, std::string_view 
 }
 
 std::string Roles::of(std::string_view author) const {
-	for(const std::string_view name : {author, std::string_view(detail::channelOf(author))}) {
+	// Named: a temporary in the range's initializer would end before the loop (no compiler keeps it alive before C++23)
+	const std::string channel = detail::channelOf(author);
+	for(const std::string_view name : {author, std::string_view(channel)}) {
 		const auto found = std::ranges::find_if(roles_, [&](const auto& entry) { return entry.first == name; });
 		if(found != roles_.end()) return found->second;
 	}

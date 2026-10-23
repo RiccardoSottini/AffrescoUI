@@ -42,7 +42,8 @@ target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 # The checker's tests read the shipped templates, which must have no findings
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_EXAMPLES_DIRECTORY="${PROJECT_SOURCE_DIR}/examples"
-	AFFRESCOUI_PROTOTYPES_DIR="${PROJECT_SOURCE_DIR}/rfcs/prototypes") # services.cpp starts the JSON-RPC prototype
+	AFFRESCOUI_PROTOTYPES_DIR="${PROJECT_SOURCE_DIR}/rfcs/prototypes" # services.cpp starts the JSON-RPC prototype
+	AFFRESCOUI_FAKE_ADAPTER="${PROJECT_SOURCE_DIR}/tests/dap/fake_adapter.py") # dap.cpp starts the fake debug adapter
 # document_server.cpp tests the document server (examples/server), which needs no window
 target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/server/DocumentServer.cpp
 	${PROJECT_SOURCE_DIR}/examples/server/TokenFile.cpp ${PROJECT_SOURCE_DIR}/examples/server/UserInfoVerifier.cpp)

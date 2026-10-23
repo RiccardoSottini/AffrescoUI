@@ -353,7 +353,7 @@ int SceneRenderer::setLights(const FrameView& view, const GlProgram& program) {
 	const std::vector<SceneLight> lights = lightsOf(view);
 	std::array<float, maxLights * 4> positions{}, directions{}, cones{};
 	std::array<float, maxLights * 3> colors{};
-	for(std::size_t i = 0; i < lights.size(); ++i) {
+	for(std::size_t i = 0; i < std::min(lights.size(), maxLights); ++i) { // lightsOf keeps to it: this tells GCC 13
 		const SceneLight& light = lights[i];
 		const float type = static_cast<float>(light.light.type); // 0 directional, 1 point, 2 spot
 		const Vec3 color = light.light.color * light.light.intensity;
@@ -410,7 +410,11 @@ void SceneRenderer::drawSurfaces(const FrameView& view, const ShadowMap& shadow)
 void SceneRenderer::drawShaded(const DrawItem& item, const GlProgram& program) {
 	const GpuMesh* mesh = resources_.mesh(item.node->mesh, *assets_, frames_, false);
 	if(mesh == nullptr) return;
-	static const Material fallback{.baseColor = {0.8f, 0.8f, 0.8f, 1.0f}};
+	static const Material fallback = [] {
+		Material grey{};
+		grey.baseColor = {0.8f, 0.8f, 0.8f, 1.0f};
+		return grey;
+	}();
 	const Material& material = item.material != nullptr ? *item.material : fallback;
 	int maps = 0;
 	if(mesh->buffers[2] != 0) {

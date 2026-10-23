@@ -3,9 +3,10 @@
 # pinned by its hash like the other dependencies, and holds prebuilt static libraries for each platform, so no Rust
 # toolchain is needed. The target affrescoui_accesskit links the one for this platform and architecture, with the
 # system libraries it needs. AFFRESCOUI_ACCESSIBILITY=OFF leaves it out: windows then expose nothing to assistive
-# technologies (modules/render/src/platform/AccessibilityNone.cpp).
+# technologies (modules/render/src/platform/AccessibilityNone.cpp). So does the browser, which AccessKit has no
+# library for.
 option(AFFRESCOUI_ACCESSIBILITY "Expose windows to screen readers through AccessKit (a prebuilt download)" ON)
-if(NOT AFFRESCOUI_ACCESSIBILITY)
+if(NOT AFFRESCOUI_ACCESSIBILITY OR EMSCRIPTEN)
 	return()
 endif()
 

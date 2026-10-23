@@ -428,7 +428,7 @@ void PseudoTerminal::signal(TerminalSignal signal) noexcept {
 
 int PseudoTerminal::end() noexcept {
 	const char wake = 0;
-	(void)::write(platform_->wakeWrite, &wake, 1);
+	[[maybe_unused]] const ssize_t woken = ::write(platform_->wakeWrite, &wake, 1); // a full pipe wakes it already
 	const std::scoped_lock guard(platform_->lock);
 	if(platform_->reaped) return platform_->code;
 	kill(-platform_->pid, SIGHUP); // what closing a terminal sends; whatever ignores it is killed below

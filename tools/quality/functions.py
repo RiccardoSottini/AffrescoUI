@@ -45,11 +45,17 @@ def previous_versions(functions):
     return versions
 
 
-def gate(changed, read_head, read_base, limits):
+def gate(changed, read_head, read_base, limits, removed=()):
     """Checks the functions a change touched. A function fails if it is over a limit and is new, or has grown on that
     metric: a function that was already over and didn't get worse is only noted, so editing old code isn't blocked.
+    A function not in its file's base is looked for, by its whole signature, in the files the change removed
+    (`removed`, their paths at the base), so one moved when a file was split is still compared with what it was.
     Returns (failures, notes), lists of (function, message)."""
     failures, notes = [], []
+    moved = {}
+    for path in removed:
+        if (text := read_base(path)) is not None:
+            moved.update((function["signature"], function) for function in measure(path, text))
     for file in changed:
         base_text = read_base(file.base_path) if file.base_path else None
         before = previous_versions(measure(file.path, base_text) if base_text is not None else [])
@@ -62,6 +68,7 @@ def gate(changed, read_head, read_base, limits):
                 continue
             previous = before.get(function["signature"],
                                   before.get(function["name"]) if function["name"] in unique else None)
+            previous = previous if previous is not None else moved.get(function["signature"])
             worse = [metric for metric in metrics if previous is None or function[metric] > previous[metric]]
             if worse:
                 status = "new" if previous is None else "was " + " and ".join(

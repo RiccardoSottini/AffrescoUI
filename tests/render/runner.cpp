@@ -7,6 +7,9 @@
 /// Each file is one area's (scenarios/kanban.json, ...), or a template's own scenarios (examples/<folder>/
 /// *.scenarios.json). A picture with no golden image yet is recorded from this run; --update records them all.
 /// Frames that differ are written to --out with a diff (changed pixels in red). Exits with 1 if anything failed.
+///
+/// With AFFRESCOUI_NO_OPENGL=1 in the environment (CI's macOS and Windows runners, which have no OpenGL 4.1), the
+/// scenarios that draw (capture, expect image) are left out, each one named; the others play headless.
 
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
@@ -91,23 +94,35 @@ bool readArguments(const std::vector<std::string_view>& args, automation::Option
 	return false;
 }
 
+/// @brief Leaves out the scenarios that draw, for a run with no OpenGL, naming each one.
+/// @param scenarios The file's scenarios.
+/// @return How many it left out.
+std::size_t leaveOutPictures(automation::ScenarioFile& scenarios) {
+	return std::erase_if(scenarios.scenarios, [](const automation::Scenario& scenario) {
+		if(scenario.needsPictures) std::cout << "skipped " << scenario.name << ": it draws; no OpenGL here\n";
+		return scenario.needsPictures;
+	});
+}
+
 /// @brief Plays every file, printing as it goes.
 /// @param files The scenario files.
 /// @param options How.
 /// @return How many failures there were.
 /// @throws affresco::DocumentError If a file is malformed, or two have a scenario of the same name.
 std::size_t playAll(const std::vector<std::string>& files, const automation::Options& options) {
-	std::size_t frames = 0, failed = 0;
+	std::size_t frames = 0, failed = 0, skipped = 0;
 	std::set<std::string, std::less<>> names; // a name is the prefix of its golden images: unique across the files
 	for(const std::string& file : files) {
-		const automation::ScenarioFile scenarios = automation::ScenarioFile::load(file);
+		automation::ScenarioFile scenarios = automation::ScenarioFile::load(file);
 		for(const automation::Scenario& scenario : scenarios.scenarios)
 			if(!names.insert(scenario.name).second)
 				throw affresco::DocumentError("scenario '" + scenario.name + "' is in two files; the second is " +
 				                              file);
+		if(!options.pictures) skipped += leaveOutPictures(scenarios);
 		failed += print(automation::run(scenarios, options), frames);
 	}
 	std::cout << frames << " frames, " << failed << " failed\n";
+	if(skipped) std::cout << skipped << " scenarios that draw left out: this run has no OpenGL\n";
 	return failed;
 }
 
@@ -137,6 +152,8 @@ int main(int argc, char** argv) {
 			// The inspector's overlay (inspector.json), without its times so that each picture is the same
 			screen.onAction("inspector:on", [&screen](affresco::Panel&) { screen.setInspector(true, false); });
 		};
+		const char* noOpenGL = std::getenv("AFFRESCOUI_NO_OPENGL");
+		options.pictures = !noOpenGL || std::string_view(noOpenGL) != "1";
 		std::vector<std::string> files;
 		if(!readArguments(std::vector<std::string_view>(argv + 1, argv + argc), options, files)) return 2;
 		return playAll(files, options) ? EXIT_FAILURE : EXIT_SUCCESS;

@@ -25,10 +25,10 @@ struct ComposedHolder {
 struct Runtime::Impl final : ComposedHolder, Engine {
 	/// @brief Builds the engine on the composed document.
 	/// @param runtime The runtime.
-	/// @param versions The document's version control.
+	/// @param control The document's version control.
 	/// @param baseDirectory Where relative paths start.
-	Impl(Runtime& runtime, VersionControl& versions, std::filesystem::path baseDirectory)
-	    : ComposedHolder(versions), Engine(runtime, composed, std::move(baseDirectory)) {}
+	Impl(Runtime& runtime, VersionControl& control, std::filesystem::path baseDirectory)
+	    : ComposedHolder(control), Engine(runtime, composed, std::move(baseDirectory)) {}
 };
 
 Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)

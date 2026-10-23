@@ -231,7 +231,7 @@ TEST_CASE("ColorPicker: fields, value, swatches and recent colours") {
 	CHECK(changes == 4);
 
 	for(int index = 0; index < 20; ++index) {
-		picker.setValue(Color{index / 20.0f, 0.0f, 0.0f, 1.0f});
+		picker.setValue(Color{static_cast<float>(index) / 20.0f, 0.0f, 0.0f, 1.0f});
 		picker.rememberValue();
 	}
 	CHECK(picker.recentColors().size() == ColorPicker::maxRecent);

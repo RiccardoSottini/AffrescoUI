@@ -451,7 +451,7 @@
 					"click": "#editor"
 				},
 				{
-					"key": "mod+up"
+					"key": "mod+home"
 				},
 				{
 					"type": "// TODO tidy\n"

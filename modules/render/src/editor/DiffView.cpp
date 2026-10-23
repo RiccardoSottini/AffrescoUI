@@ -42,8 +42,11 @@ void background(std::vector<EditorDecoration>& decorations, std::size_t row, std
 			return;
 		}
 	}
-	decorations.push_back(
-	    {.line = row, .endLine = row + count - 1, .kind = EditorDecoration::Kind::Background, .color = color});
+	decorations.push_back({.line = row,
+	                       .endLine = row + count - 1,
+	                       .kind = EditorDecoration::Kind::Background,
+	                       .color = color,
+	                       .text = {}});
 }
 
 /// @brief A change in the line script: the lines deleted, facing the lines inserted.
@@ -265,7 +268,8 @@ void DiffView::markCharacters(std::string_view from, std::string_view to, Side& 
 		                            .column = column,
 		                            .endColumn = column + edit.count,
 		                            .kind = EditorDecoration::Kind::Background,
-		                            .color = deleted ? colors_.deletedText : colors_.insertedText});
+		                            .color = deleted ? colors_.deletedText : colors_.insertedText,
+		                            .text = {}});
 	}
 }
 

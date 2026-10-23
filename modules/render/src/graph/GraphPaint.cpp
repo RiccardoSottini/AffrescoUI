@@ -241,7 +241,7 @@ void GraphView::buildLinks() const {
 	for(LinkMesh& mesh : linkMeshes_) mesh.quads.clear();
 	const Vec2 size = resolvedSize();
 	const Rect seen{0.0f, 0.0f, size.x, size.y};
-	const StrokeStyle style{.width = linkWidth, .cap = LineCap::round};
+	const StrokeStyle style{.width = linkWidth, .cap = LineCap::round, .dash = {}};
 	for(std::size_t i = 0; i < model_.links.size(); ++i) {
 		if(i == replacing_ && drag_ == Drag::Link) continue; // drawn as the preview instead
 		const std::optional<LinkEnds> ends = linkEnds(model_, byId_, model_.links[i]);
@@ -304,9 +304,10 @@ void GraphView::paintOver(Painter& painter) const {
 		// A link always runs from its output to its input, whichever end the pointer holds
 		const Vec2 output = linkStart_.output ? start : end, input = linkStart_.output ? end : start;
 		const VectorPath path = linkPath(output, input, camera_.zoom);
-		appendStroke(path.flatten({}, 0.25f), StrokeStyle{.width = linkWidth, .cap = LineCap::round}, quads);
-		const GraphPort& port = portOf(model_.nodes[linkStart_.node],
-		                               {linkStart_.node, linkStart_.port, linkStart_.output, linkStart_.valid});
+		const StrokeStyle stroke{.width = linkWidth, .cap = LineCap::round, .dash = {}};
+		appendStroke(path.flatten({}, 0.25f), stroke, quads);
+		const KeyPort from{linkStart_.node, linkStart_.port, linkStart_.output, linkStart_.valid};
+		const GraphPort& port = portOf(model_.nodes[linkStart_.node], from);
 		painter.fillMesh(quads, origin, kindColor(port.kind).withAlpha(0.8f));
 	}
 

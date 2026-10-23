@@ -99,8 +99,8 @@ TEST_CASE("diff: a change in the middle keeps both ends") {
 TEST_CASE("diff: the scripts are the shortest on random sequences") {
 	std::mt19937 random(2017); // NOLINT(bugprone-random-generator-seed): fixed, so a failure reproduces
 	for(int round = 0; round < 400; ++round) {
-		const std::size_t lengthA = random() % 40, lengthB = random() % 40;
-		const std::uint32_t alphabet = 1 + random() % 6;
+		const auto lengthA = static_cast<std::size_t>(random() % 40), lengthB = static_cast<std::size_t>(random() % 40);
+		const auto alphabet = static_cast<std::uint32_t>(1 + random() % 6);
 		const std::vector<std::uint32_t> a = randomSequence(random, lengthA, alphabet);
 		const std::vector<std::uint32_t> b = randomSequence(random, lengthB, alphabet);
 		const std::size_t kept = checkScript(diffSequences(a, b), a, b);

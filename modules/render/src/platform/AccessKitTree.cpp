@@ -89,7 +89,7 @@ constexpr std::array<std::pair<AccessibleAction, accesskit_action>, 6> actions{{
 /// @param role The name.
 /// @return The role; a generic container for an unknown name.
 accesskit_role roleOf(std::string_view role) {
-	const auto* found = std::ranges::find(roles, role, &std::pair<std::string_view, accesskit_role>::first);
+	const auto found = std::ranges::find(roles, role, &std::pair<std::string_view, accesskit_role>::first);
 	return found != roles.end() ? found->second : ACCESSKIT_ROLE_GENERIC_CONTAINER;
 }
 
@@ -239,7 +239,7 @@ accesskit_tree_update* AccessKitTree::changes() {
 }
 
 void AccessKitTree::queue(accesskit_action_request* request) {
-	const auto* found =
+	const auto found =
 	    std::ranges::find(actions, request->action, &std::pair<AccessibleAction, accesskit_action>::second);
 	if(found != actions.end()) {
 		const std::scoped_lock lock(mutex_);

@@ -298,7 +298,7 @@ private:
 			std::vector<std::string> needs;
 			if(const auto wanted = record->find("requires"); wanted != record->end() && wanted->contains("features"))
 				for(const auto& [other, range] : (*wanted)["features"].items()) needs.push_back(other);
-			waiting.push_back({{record->value("order", 0LL), name}, std::move(needs)});
+			waiting.emplace_back(std::pair{record->value("order", 0LL), name}, std::move(needs));
 		}
 		std::ranges::sort(waiting);
 		std::vector<std::string> order;

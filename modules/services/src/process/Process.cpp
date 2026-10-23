@@ -288,6 +288,7 @@ int closeTheRest(posix_spawn_file_actions_t& actions, short& flags) noexcept {
 	flags |= POSIX_SPAWN_CLOEXEC_DEFAULT; // all but the dup2 targets and those inherited explicitly
 	return posix_spawn_file_actions_addinherit_np(&actions, STDERR_FILENO);
 #elif defined(__GLIBC__) && (__GLIBC__ > 2 || __GLIBC_MINOR__ >= 34)
+	(void)flags;
 	return posix_spawn_file_actions_addclosefrom_np(&actions, STDERR_FILENO + 1);
 #else
 	(void)actions;

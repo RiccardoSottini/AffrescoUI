@@ -12,6 +12,9 @@
 #include <array>
 #include <stdexcept>
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 using namespace affresco;
 using namespace affresco::net;
 using namespace std::chrono_literals;
@@ -223,3 +226,5 @@ TEST_CASE("remote peers: connectPeer() reaches a server with its token") {
 	CHECK(received == R"({"type":"hello"})");
 	CHECK(answer == R"({"type":"welcome"})");
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

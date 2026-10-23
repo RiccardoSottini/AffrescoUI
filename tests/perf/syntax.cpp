@@ -50,9 +50,12 @@ struct Typed {
 	std::vector<double> samples;                                 ///< Each keystroke's time, in milliseconds.
 	bool typed = false;                                          ///< The next keystroke erases the last.
 
-	/// @brief Parses the text from scratch.
+	/// @brief Parses the text from scratch, with the engine's time limits stretched by slowdown().
 	void open() {
-		document = services::SyntaxDocument::create("cpp");
+		services::SyntaxLimits limits;
+		limits.parseMilliseconds *= static_cast<std::uint32_t>(slowdown());
+		limits.editMilliseconds *= static_cast<std::uint32_t>(slowdown());
+		document = services::SyntaxDocument::create("cpp", limits);
 		if(document->parse(readerOf(text), text.size()) != services::SyntaxParse::Parsed)
 			throw std::runtime_error("syntax: the file wasn't parsed");
 		highlight(0);

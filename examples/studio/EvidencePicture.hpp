@@ -69,6 +69,7 @@ inline std::vector<std::uint8_t> outlined(const affresco::Bitmap& picture, const
 	const auto mark = [&](std::int64_t px, std::int64_t py) {
 		if(px < 0 || py < 0 || px >= width || py >= height) return;
 		const auto at = static_cast<std::size_t>(py * width + px) * 4;
+		if(at + 4 > rgba.size()) return; // it isn't: but GCC 13 can't tell, and warns of a write outside
 		const std::array<std::uint8_t, 4> magenta = {236, 64, 122, 255};
 		std::ranges::copy(magenta, rgba.begin() + static_cast<std::ptrdiff_t>(at));
 	};

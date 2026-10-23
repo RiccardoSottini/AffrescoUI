@@ -95,6 +95,13 @@ json screenDocument(const std::filesystem::path& file) {
 	return document;
 }
 
+json screenDocument(const json& document, const std::filesystem::path& directory) {
+	const Screen screen = Screen::fromString(document.dump(), directory);
+	json merged = json::parse(screen.documentJson());
+	merged["state"] = json::parse(screen.stateJson());
+	return merged;
+}
+
 json kanbanWithCards(const std::filesystem::path& directory, int cards) {
 	json document = json::parse(readFile(directory / "kanban.screen.json"));
 	json& columns = document["state"]["columns"];

@@ -273,6 +273,44 @@ TEST_CASE("automation: scenarios play headless, on a clock that moves only when 
 	CHECK(summary["failures"][0] == json{{"scenario", "fails"}, {"step", 1}, {"problem", "state clicks is 0, expected 5"}});
 }
 
+// sign-in.scenarios.json's checks of the keys that take the platform's modifier, which each platform writes its own way
+TEST_CASE("automation: the sign-in template writes its keys as the platform does") {
+#ifdef __APPLE__
+	const std::string j = "Cmd+J", h = "Shift+Cmd+H", q = "Shift+Cmd+Q";
+#else
+	const std::string j = "Ctrl+J", h = "Ctrl+Shift+H", q = "Ctrl+Shift+Q";
+#endif
+	const json scenarios = {
+	    {"version", 2},
+	    {"screen", "sign-in.screen.json"},
+	    {"scenarios",
+	     {{{"name", "theme-key"},
+	       {"steps",
+	        {{{"expect", {{"node", "#themeToggle"}, {"property", "name"}, {"is", "Switch to dark (" + j + ")"}}}},
+	         {{"click", "#themeToggle"}},
+	         {{"expect", {{"node", "#themeToggle"}, {"property", "name"}, {"is", "Switch to light (" + j + ")"}}}}}}},
+	      {{"name", "shortcut-keys"},
+	       {"steps",
+	        {{{"key", "f1"}},
+	         {{"wait", 50}},
+	         {{"expect", {{"node", "#shortcut-key"}, {"nth", 0}, {"text", h}}}},
+	         {{"expect", {{"node", "#shortcut-key"}, {"nth", 1}, {"text", q}}}},
+	         {{"expect",
+	           {{"node", "#shortcut"},
+	            {"nth", 0},
+	            {"property", "name"},
+	            {"is", "Show or hide the password, " + h}}}}}}}}}};
+	automation::Options options;
+	options.pictures = false;
+	const automation::Report report = automation::run(
+	    automation::ScenarioFile::parse(scenarios.dump(), std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) /
+	                                                          "sign-in" / "keys.scenarios.json"),
+	    options);
+	INFO(report.text());
+	REQUIRE(report.scenarios.size() == 2);
+	for(const automation::ScenarioResult& scenario : report.scenarios) CHECK(scenario.passed());
+}
+
 TEST_CASE("automation: only the scenarios asked for, and on another document") {
 	const Fixture fixture;
 	automation::Options options;

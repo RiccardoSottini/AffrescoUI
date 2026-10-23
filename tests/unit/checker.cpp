@@ -22,6 +22,9 @@
 #include <string>
 #include <vector>
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 using affresco::json;
 using affresco::RevisionStatus;
 using affresco::format::Finding;
@@ -83,7 +86,8 @@ json screenTemplate(const std::string& name) {
 			REQUIRE(part);
 			std::stringstream partContent;
 			partContent << part.rdbuf();
-			for(const auto& [section, entries] : json::parse(partContent.str()).items())
+			const json sections = json::parse(partContent.str()); // a loop over a temporary's items dangles
+			for(const auto& [section, entries] : sections.items())
 				if(entries.is_object())
 					for(const auto& [key, entry] : entries.items())
 						if(!document[section].contains(key)) document[section][key] = entry;
@@ -606,3 +610,5 @@ TEST_CASE("checker: checking a template again gives the same findings") {
 		CHECK(first == again); // both have a value: equal optionals hold equal findings
 	}
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

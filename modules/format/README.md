@@ -26,8 +26,8 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 Private headers that tests and benchmarks may include: `src/expression/Expression.hpp` (compile and evaluate),
 `src/expression/Value.hpp` (the values expressions compute with), `src/functions/ExpressionFunctions.hpp` (the
 function registry), `src/checker/Checker.hpp` (`check`, `introduced`, `Finding`), and the registries
-(`src/TypeRegistry.hpp`, `src/steps/StepRegistry.hpp`, `src/SectionRegistry.hpp`). Each source folder is on the
-target's include path, so a source includes another folder's header by its name alone.
+(`src/types/TypeRegistry.hpp`, `src/steps/StepRegistry.hpp`, `src/sections/SectionRegistry.hpp`). Each source
+folder is on the target's include path, so a source includes another folder's header by its name alone.
 
 ## The runtime's parts
 
@@ -159,12 +159,12 @@ theme, and a name can't be both a colour and a token.
   the `connections` variable is each one's `{online, pending, state, error}`. At most 64 connections, 256
   operations each, 50 requests a second each. The section is a capability: a revision uses declared operations
   only (`checkServiceUses`), and one that writes is reviewed. While a proposal is previewed, only a read without a
-  `mock` reaches the server (`src/ConnectionSpec.*`, `src/Connections.*`, `tests/unit/connections.cpp`). A
-  connection's `auth` declares an OAuth provider (or names another connection's): `setIdentity` gives the runtime
-  an `identity::Identity` (the `net` module's `SignIn`, through `Screen`), which adds the bearer header to each
-  request; without one, a request fails with `signedOut`. The `signIn` and `signOut` steps are control steps, and
-  the `auth` variable is each provider's `{state, account, expires, ...}`, never a token (`src/ConnectionAuth.*`,
-  `src/AuthSteps.cpp`, `tests/unit/auth.cpp`).
+  `mock` reaches the server (`src/connections/ConnectionSpec.*`, `src/connections/Connections.*`,
+  `tests/unit/connections.cpp`). A connection's `auth` declares an OAuth provider (or names another connection's):
+  `setIdentity` gives the runtime an `identity::Identity` (the `net` module's `SignIn`, through `Screen`), which adds
+  the bearer header to each request; without one, a request fails with `signedOut`. The `signIn` and `signOut` steps
+  are control steps, and the `auth` variable is each provider's `{state, account, expires, ...}`, never a token
+  (`src/connections/ConnectionAuth.*`, `src/connections/AuthSteps.cpp`, `tests/unit/auth.cpp`).
 - **Image files come only from allowed folders:** the screen's own (its base directory) and those the host allows
   (`allowImageDirectory`). An `image` node's `file` elsewhere is a `DocumentError` naming its place, so a revision
   naming one is refused. A screen loaded from a string without a base directory allows none.
@@ -287,7 +287,7 @@ src/
   events/                  Events.*: input (EventsFocus.cpp, EventsKeys.cpp, EventsPointer.cpp); Shortcuts.* names
                            keys, chords and shortcuts
   steps/                   Steps.*: handlers and actions; StepRegistry.* and the *Steps.cpp groups (AuthSteps.cpp,
-                           the signIn and signOut steps, is at the top level)
+                           the signIn and signOut steps, is in connections/)
   calls/                   calls outside the document
     AsyncCalls.*           slow native calls on a worker pool: loading, progress, partial results, timeouts, cancel
     ServiceCalls.*         invoke, subscribe and respond: calls to the services, their results and events in the state
@@ -308,39 +308,49 @@ src/
     Migrate.cpp            version 1 documents migrated to version 2 (Migrate.hpp)
     ServiceRules.*         what revisions may do with services: declared ones only, and reviewed when they write or run
   adapters/                other formats converted to screens (Adapters.hpp): A2UI 0.8 (A2ui.*, A2uiComponents.cpp)
-                           and Adaptive Cards 1.6 (AdaptiveCards.*, AdaptiveCardActions.cpp); Layout.* what they share
-  (top level)              features, connections, node types, properties, the reference, registries
+                           and Adaptive Cards 1.6 (AdaptiveCards.*, AdaptiveCardActions.cpp); Layout.* what they share;
+                           AdapterMapping.* how a feature from another app gets what it needs from its host
+  features/                features (RFC 0004)
     Features.cpp           features (RFC 0004): trusted publishers, catalogues, the install and upgrade revisions
-    Composition.*          the enabled features merged into the screen the runtime builds, with RFC 0004's checks;
-                           CompositionProof.* the proof that a feature from another app fits a host
-    ComposedVersions.*     the document's version control as the runtime sees it, with the enabled features merged in
     FeatureManifest.*      a feature's manifest: releases and ranges, its shape, features, exports and imports
     FeatureCatalog.*       catalogue v0: a signed index and its releases' manifests, with every check
     FeatureSignatures.*    Ed25519 signatures over canonical JSON (RFC 8785), base64url, SHA-512 digests
-    ContributionPoints.*   the "points" section: where another app's views may go, and the contracts of exports;
-                           AdapterMapping.* how a feature from another app gets what it needs from its host
-    ConnectionSpec.*       the "connections" section, read and checked: connections, operations, messages
-    Connections.*          request and subscribe on connections: requests built from declarations, WebSockets, previews
-    ConnectionAuth.*       a connection's "auth": its provider, and the bearer header the host adds
-    AuthSteps.cpp          the signIn and signOut steps
-    DesignTokens.*         the "tokens" section: aliases, per-theme values, colour and number tables
-    BuiltInComponents.*    menus, the menu bar, dialogs, toasts, hover cards, the settings page and the quick
-                           pick, written in the format; BuiltInFormComponents.cpp comboBox and passwordMeter
-    Properties.*           a node's values on its panel; PropertyValues.* reads lengths, anchors, radii;
-                           AccessibilityProperties.cpp isOpen, selected and live; TextFieldProperties.cpp secret,
-                           maxLength and accept; TransformProperties.cpp rotate, scale, skew, translate, transformOrigin
-    LayoutProperties.*     the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
-                           alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,
-                           stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
+  composition/             the enabled features merged into what the runtime builds
+    Composition.*          the enabled features merged into the screen the runtime builds, with RFC 0004's checks;
+                           CompositionProof.* the proof that a feature from another app fits a host
+    ComposedVersions.*     the document's version control as the runtime sees it, with the enabled features merged in
+    ContributionPoints.*   the "points" section: where another app's views may go, and the contracts of exports
     Contributions.*        commands, keybindings and menus: what is one, enablement, the context, the commands,
                            keybindings and menus variables (built when read, DocumentContext::addVariable), and
                            the window's native menu bar (window.menuBar, shown after each update when it changed)
                            (Reconciler.cpp shows window.focusRing the same way; role, label and description are
                            properties, in Properties.cpp)
+  connections/             the "connections" section and sign-in
+    ConnectionSpec.*       the "connections" section, read and checked: connections, operations, messages
+    Connections.*          request and subscribe on connections: requests built from declarations, WebSockets, previews
+    ConnectionAuth.*       a connection's "auth": its provider, and the bearer header the host adds
+    AuthSteps.cpp          the signIn and signOut steps
+  sections/                top-level sections
+    SectionRegistry.hpp    sections; Sections.cpp, CapabilitySections.cpp register them
+    DesignTokens.*         the "tokens" section: aliases, per-theme values, colour and number tables
+  components/              the built-in components
+    BuiltInComponents.*    menus, the menu bar, dialogs, toasts, hover cards, the settings page and the quick
+                           pick, written in the format; BuiltInFormComponents.cpp comboBox and passwordMeter
+  properties/              node properties
+    Properties.*           a node's values on its panel; CommonProperties.cpp those every panel has and the core
+                           types'; PropertyValues.* reads lengths, anchors, radii;
+                           AccessibilityProperties.cpp isOpen, selected and live; TextFieldProperties.cpp secret,
+                           maxLength and accept; TransformProperties.cpp rotate, scale, skew, translate, transformOrigin
+    LayoutProperties.*     the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
+                           alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,
+                           stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
+  reference/               what the format offers, from the registries
     Catalog.*              the catalog, from the registries
     Reference*.*           the JSON Schema and SCREEN_FORMAT.md's tables, from the registries and each key's entry
-                           (ReferenceNodes.cpp, ReferenceSections.cpp, ReferenceTables.cpp); `affrescoui schema`
-                           writes them
+                           (ReferenceNodes.cpp, ReferenceNodeTypes.cpp, ReferenceNodeEvents.cpp, ReferenceSections.cpp,
+                           ReferenceTables.cpp); `affrescoui schema` writes them
+  types/, controls/,       node types: types/ the registry and the core types, controls/ calendar, carousel, codeInput,
+  creative/                slider and toggle, creative/ canvas, colorPicker, curves, gradient, graph, path, timeline
     TypeRegistry.*         node types; Types.cpp registers them, each in its <Name>Type.cpp: editor, toggle, slider,
                            image, split, tabs, list (list and tree), path ("path": d, viewBox, fill and stroke, the
                            data parsed only when it changes), calendar, carousel, codeInput, diff, surface (a GPU
@@ -352,7 +362,6 @@ src/
                            the labels' "icon", and RunsProperty.cpp their "runs", "selectable" and "selectionColor"
                            (within limits: 256 runs, 64 Ki characters)
     SyntaxHighlighter.cpp  a text editor's text kept parsed by the syntax engine, coloured a block of lines at a time
-    SectionRegistry.hpp    sections; Sections.cpp, CapabilitySections.cpp register them
 CMakeLists.txt             the affrescoui_format target and its sources
 ```
 
@@ -367,7 +376,7 @@ registry: give its properties their entries in `ReferenceNodes.cpp` and a table 
 
 **Add a property to every node.**
 1. give it a `Slot` (`CompiledNode.hpp`, and its name in `namedSlots` in `CompiledNode.cpp`), and apply it in
-   `Properties.cpp` (`commonProperty`, or a group such as `shapeProperty`), with a reset in `reset`; a layout key
+   `CommonProperties.cpp` (`commonProperty`, or a group such as `shapeProperty`), with a reset in `reset`; a layout key
    goes in `LayoutProperties.cpp` instead (`layoutItemProperty`, reset in `resetLayoutItem`, listed in
    `layoutItemProperties`);
 2. list it in the panel's set in `Types.cpp` (the catalog reads it), with `transition` if it can animate;

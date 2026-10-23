@@ -27,6 +27,15 @@ bool unreservedOrEscape(char character) noexcept {
 	       character == '%';
 }
 
+/// @brief Checks a parsed URL's target: it starts with '/' and has no space or control character.
+/// @param target The target.
+void checkTarget(std::string_view target) {
+	if(!target.starts_with('/')) affresco::fuzz::broken("a URL's target starts with '/'");
+	for(const char character : target)
+		if(static_cast<unsigned char>(character) <= ' ' || character == 0x7f)
+			affresco::fuzz::broken("a URL's target has no space or control character");
+}
+
 /// @brief Checks a URL that parsed.
 /// @param url The URL.
 void checkUrl(const affresco::net::Url& url) {
@@ -36,10 +45,7 @@ void checkUrl(const affresco::net::Url& url) {
 	for(const char character : url.host)
 		if(character >= 'A' && character <= 'Z') affresco::fuzz::broken("a URL's host is in lower case");
 	if(url.port == 0) affresco::fuzz::broken("a URL's port is from 1 to 65535");
-	if(!url.target.starts_with('/')) affresco::fuzz::broken("a URL's target starts with '/'");
-	for(const char character : url.target)
-		if(static_cast<unsigned char>(character) <= ' ' || character == 0x7f)
-			affresco::fuzz::broken("a URL's target has no space or control character");
+	checkTarget(url.target);
 	const auto again = affresco::net::parseUrl(url.origin());
 	if(!again || again->scheme != url.scheme || again->host != url.host || again->port != url.port)
 		affresco::fuzz::broken("a URL's origin parses to the same scheme, host and port");

@@ -91,11 +91,13 @@ json readJson(const std::filesystem::path& path) {
 /// @return The document.
 json kanban(const std::function<void(json&)>& change = {}) {
 	json document = readJson(screens() / "kanban.screen.json");
-	for(const json& file : document["include"])
-		for(const auto& [section, entries] : readJson(screens() / file.get<std::string>()).items())
+	for(const json& file : document["include"]) {
+		const json part = readJson(screens() / file.get<std::string>()); // a loop over a temporary's items dangles
+		for(const auto& [section, entries] : part.items())
 			if(entries.is_object())
 				for(const auto& [name, entry] : entries.items())
 					if(!document[section].contains(name)) document[section][name] = entry;
+	}
 	document.erase("include");
 	if(change) change(document);
 	return document;
