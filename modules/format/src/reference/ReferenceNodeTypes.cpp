@@ -75,6 +75,15 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or "
 	 "dragging it scrolls.",
 	 "editor"},
+    {"minimapStyle", R"json({"anyOf": [{"enum": ["bars", "text"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each "
+	 "character a pixel in its syntax colour.",
+	 "editor"},
+    {"minimapViewport", R"json({"anyOf": [{"enum": ["always", "hover"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it.",
+	 "editor"},
+    {"matchStyle", R"json({"anyOf": [{"enum": ["fill", "outline"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`.", "editor"},
     {"composition", R"json({"description": "Text, or a {{binding}}"})json",
 	 "Text an input method is composing, shown underlined at the caret without editing (empty: none).", "editor"},
     {"readOnly", "flag", "`true`: the user can select, find and fold, but not edit.", "editor"},

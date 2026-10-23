@@ -476,6 +476,52 @@
 				{ "key": "enter" },
 				{ "expect": { "state": "ruler", "is": true } }
 			]
+		},
+		{
+			"name": "reopen-a-closed-file",
+			"note": "Cmd+Shift+T brings back the last file closed, at the end of the tabs",
+			"steps": [
+				{ "key": "mod+w" },
+				{ "expect": { "state": "tabs", "is": [1, 3] } },
+				{ "key": "mod+shift+t" },
+				{ "expect": { "state": "tabs", "is": [1, 3, 0] } },
+				{ "expect": { "state": "active", "is": 0 } },
+				{ "expect": { "state": "closed", "is": [] } }
+			]
+		},
+		{
+			"name": "revert-a-file",
+			"note": "Revert File drops the unsaved changes",
+			"steps": [
+				{ "click": "#editor" },
+				{ "type": "x" },
+				{ "expect": { "state": "files[0].dirty", "is": true } },
+				{ "key": "mod+shift+p" },
+				{ "wait": 50 },
+				{ "type": "file: revert file" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "files[0].dirty", "is": false } },
+				{ "expect": { "state": "files[0].text.length", "is": 437 } }
+			]
+		},
+		{
+			"name": "close-all-files",
+			"note": "Close All Files closes the saved files, then asks about an unsaved one",
+			"steps": [
+				{ "click": "#editor" },
+				{ "type": "x" },
+				{ "key": "mod+shift+p" },
+				{ "wait": 50 },
+				{ "type": "file: close all files" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "tabs", "is": [0] } },
+				{ "expect": { "state": "closing.open", "is": true } },
+				{ "click": [639, 434], "note": "Don't Save" },
+				{ "expect": { "state": "tabs", "is": [] } }
+			]
 		}
 	]
 }

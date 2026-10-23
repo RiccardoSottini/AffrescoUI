@@ -261,6 +261,9 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 | `indentGuides` | `true` draws a line at each indentation level. |
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
+| `minimapStyle` | How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each character a pixel in its syntax colour. |
+| `minimapViewport` | When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it. |
+| `matchStyle` | How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
 | `readOnly` | `true`: the user can select, find and fold, but not edit. |
 | `guideColor`, `matchColor`, `bracketColor` | The indentation guides, find's matches and the paired brackets. |
@@ -726,8 +729,9 @@ keep their open state where `open` says (a state path):
   item (`.m0`, `.m1`, ...). Open a context menu from `onContextMenu`, which a right click and, on the focused node,
   Shift+F10 or the Menu key send.
 - `menuBar`: `menus` of `{ "name", "title", "items" }`, or of `{ "menu", "title" }` naming a menu of `source` (the
-  `menus` variable); by default `window.menuBar`, so one list feeds the native bar and the drawn one. Alt with a
-  menu's first letter opens it, and `open` is an object with one flag per menu name.
+  `menus` variable); by default `window.menuBar`, so one list feeds the native bar and the drawn one. A menu's `width`
+  sizes its heading (by default, from the title's length). Alt with a menu's first letter opens it, and `open` is an
+  object with one flag per menu name.
 - `toolbar`: a row of `items` (`{ "title", "icon", "keyLabel", "tooltip", "checked", "enabled", "run", "with" }`, or
   `{ "separator": true }`) as wide as `width`; the arrows move between them, a `checked` one is a pressed toggle, the
   tooltip names the shortcut, and those that don't fit go into a "more" menu (open at `open + '.more'`).

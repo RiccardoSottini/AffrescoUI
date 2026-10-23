@@ -142,25 +142,14 @@ void TextEditor::paint(Painter& painter) const {
 
 	// Each line's colouring state is kept, so the lines are coloured from the last one known (folded lines whose state
 	// is known are skipped); a highlighter keeps its own and colours only the lines drawn
-	const bool highlighted = highlighter_ != nullptr;
-	for(ColorCursor at = colorStart(states_, firstLine, highlighted); at.line < lastLine;) {
-		const std::u32string& text = lines_[at.line];
-		if(highlighted) {
-			colors_.assign(text.size(), textColor_);
-			highlighter_->colorLine(*model_, at.line, text, colors_);
-		} else {
-			colors_.resize(text.size());
-			colorLine(text, at.state, colors_);
-			if(at.line + 1 == states_.size()) states_.push_back(at.state);
-		}
-		if(at.line >= firstLine && !hidden(at.line))
-			for(std::size_t row = std::max(rowOf({at.line, 0}), layout.first); row < layout.last; ++row) {
+	colorLines(firstLine, lastLine, [&](std::size_t line) {
+		if(line >= firstLine && !hidden(line))
+			for(std::size_t row = std::max(rowOf({line, 0}), layout.first); row < layout.last; ++row) {
 				const RowSpan span = rowSpan(row);
-				if(span.line != at.line) break;
+				if(span.line != line) break;
 				paintLine(painter, *f, layout, span, row);
 			}
-		colorStep(at, nextShown(at.line), highlighted, states_);
-	}
+	});
 
 	paintAbove(painter, *f, layout);
 	paintGutter(painter, *f, layout);
@@ -226,6 +215,24 @@ bool TextEditor::rowSelected(RowSpan span, std::pair<Position, Position> selecti
 	return span.line != to.line || to.column >= span.start;
 }
 
+void TextEditor::colorLines(std::size_t first, std::size_t last,
+                            const std::function<void(std::size_t)>& body) const {
+	const bool highlighted = highlighter_ != nullptr;
+	for(ColorCursor at = colorStart(states_, first, highlighted); at.line < last;) {
+		const std::u32string& text = lines_[at.line];
+		if(highlighted) {
+			colors_.assign(text.size(), textColor_);
+			highlighter_->colorLine(*model_, at.line, text, colors_);
+		} else {
+			colors_.resize(text.size());
+			colorLine(text, at.state, colors_);
+			if(at.line + 1 == states_.size()) states_.push_back(at.state);
+		}
+		body(at.line);
+		colorStep(at, nextShown(at.line), highlighted, states_);
+	}
+}
+
 void TextEditor::paintColumns(Painter& painter, const Layout& layout, RowSpan span, std::size_t row,
                               std::pair<std::size_t, std::size_t> columns, Color color) const {
 	paintColumns(painter, layout, span, row, columns, color, 0.0f);
@@ -248,7 +255,9 @@ void TextEditor::paintColumns(Painter& painter, const Layout& layout, RowSpan sp
 	const float bottom = lineTop(layout, row) + layout.lineHeight;
 	const float top = thickness > 0.0f ? bottom - thickness : bottom - layout.lineHeight;
 	const auto fill = [&](float a, float b) {
-		painter.fillRect({layout.textLeft + std::min(a, b), top, layout.textLeft + std::max(a, b), bottom}, color);
+		const Rect rect{layout.textLeft + std::min(a, b), top, layout.textLeft + std::max(a, b), bottom};
+		if(thickness < 0.0f) painter.strokeRoundedRect(rect, CornerRadii::all(2.0f), -thickness, color);
+		else painter.fillRect(rect, color);
 	};
 	const float breakLeft = wrap_ ? x(span.end) - origin : measured;
 	if(std::ranges::is_sorted(carets)) {

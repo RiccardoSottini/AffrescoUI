@@ -194,8 +194,8 @@ void applyGrammar(TextEditor& editor, const json& values, const PropertyReader& 
 	});
 }
 
-/// @brief Sets an editor's view: wrap, folds, decorations, find, brackets and bracketStyle, indentGuides, rulers,
-/// minimap, composition and readOnly.
+/// @brief Sets an editor's view: wrap, folds, decorations, find and matchStyle, brackets and bracketStyle,
+/// indentGuides, rulers, minimap with minimapStyle and minimapViewport, composition and readOnly.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours.
@@ -212,6 +212,15 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 	editor.setIndentGuides(flag("indentGuides"));
 	editor.setRulers(readList<std::size_t>(values, "rulers", path, lineNumber));
 	editor.setMinimap(flag("minimap"));
+	const auto choice = [&](const char* key, const char* first, const char* second) {
+		const std::string chosen = values.contains(key) ? string(values[key], path + "." + key) : first;
+		if(chosen != first && chosen != second)
+			fail(path + "." + key, std::string("expected \"") + first + "\" or \"" + second + "\"");
+		return chosen == second;
+	};
+	editor.setMinimapText(choice("minimapStyle", "bars", "text"));
+	editor.setMinimapViewportOnHover(choice("minimapViewport", "always", "hover"));
+	editor.setMatchOutline(choice("matchStyle", "fill", "outline"));
 	editor.setComposition(std::string_view(values.contains("composition") ? text(values["composition"]) : std::string()));
 	editor.setReadOnly(flag("readOnly"));
 	// Folds the user made stay until the document gives others
@@ -352,7 +361,8 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"matchColor", ValueKind::Color},      {"bracketColor", ValueKind::Color},
 	                   {"grammar", ValueKind::Text},          {"minimap", ValueKind::Boolean},
 	                   {"composition", ValueKind::Text},      {"rulers", ValueKind::Any},
-	                   {"bracketStyle", ValueKind::Text}};
+	                   {"bracketStyle", ValueKind::Text},     {"minimapStyle", ValueKind::Text},
+	                   {"minimapViewport", ValueKind::Text},  {"matchStyle", ValueKind::Text}};
 	set->apply = applyEditor;
 	set->everyUpdate = true; // colours follow the theme
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TextEditor*>(&panel) != nullptr; };

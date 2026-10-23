@@ -376,6 +376,28 @@ TEST_CASE("format: the built-in dialog and toast run their buttons and actions, 
 	CHECK(state(screen)["toast"] == false);
 }
 
+TEST_CASE("format: a menu bar's heading takes its menu's width, or one from its title") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "bar": {} },
+		"root": { "id": "root", "children": [
+			{ "id": "bar", "use": "menuBar", "width": 400, "with": { "open": "state.bar", "menus": [
+				{ "name": "file", "title": "File", "items": [] },
+				{ "name": "selection", "title": "Selection", "width": 70, "items": [] }
+			] } }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+	const affresco::Panel* bar = screen.find("bar");
+	REQUIRE(bar);
+	REQUIRE(bar->children().size() == 2);
+	CHECK(bar->children()[0]->bounds().width() == doctest::Approx(4 * 8 + 20));
+	CHECK(bar->children()[1]->bounds().width() == doctest::Approx(70));
+}
+
 TEST_CASE("format: a dialog with primaryLast puts its first button on the right, still focused first") {
 	ManualClock clock;
 	const auto window = createHeadlessWindow(800, 600, clock);

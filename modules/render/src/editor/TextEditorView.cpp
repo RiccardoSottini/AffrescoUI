@@ -104,6 +104,12 @@ void TextEditor::setBracketUnderline(bool underline) {
 	invalidatePaint();
 }
 
+void TextEditor::setMatchOutline(bool outline) {
+	if(outline == matchOutline_) return;
+	matchOutline_ = outline;
+	invalidatePaint();
+}
+
 void TextEditor::setIndentGuides(bool shown) {
 	if(shown == guides_) return;
 	guides_ = shown;

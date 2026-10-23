@@ -7,11 +7,13 @@
 #include <affresco/affresco.hpp>
 #include <affresco/core/TextPattern.hpp>
 #include <affresco/render/Font.hpp>
+#include <affresco/render/Painter.hpp>
 #include <affresco/render/TextEditor.hpp>
 #include <affresco/render/Window.hpp>
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -176,6 +178,134 @@ TEST_CASE("editor view: matching brackets are underlined when asked, from the no
 	REQUIRE(screen.applyRevision(R"({"set": {"#code/bracketStyle": "fill"}})", &error));
 	window->render();
 	CHECK_FALSE(editor->bracketUnderline());
+}
+
+namespace {
+
+/// @brief A Painter that records the colours it fills and outlines with, and draws no text.
+class ColorPainter final : public affresco::Painter {
+public:
+	/// @brief Records a rectangle's colour.
+	/// @param rect Ignored.
+	/// @param color The colour.
+	void fillRect(const affresco::Rect& rect, affresco::Color color) override {
+		static_cast<void>(rect);
+		fills.push_back(color);
+	}
+
+	/// @brief Records an outline's colour.
+	/// @param rect Ignored.
+	/// @param radii Ignored.
+	/// @param width Ignored.
+	/// @param color The colour.
+	void strokeRoundedRect(const affresco::Rect& rect, const affresco::CornerRadii& radii, float width,
+	                       affresco::Color color) override {
+		static_cast<void>(rect);
+		static_cast<void>(radii);
+		static_cast<void>(width);
+		outlines.push_back(color);
+	}
+
+	/// @brief Draws no text.
+	/// @param font Ignored.
+	/// @param text Ignored.
+	/// @param origin Ignored.
+	/// @param color Ignored.
+	void drawText(const affresco::Font& font, std::u32string_view text, affresco::Vec2 origin,
+	              affresco::Color color) override {
+		static_cast<void>(font);
+		static_cast<void>(text);
+		static_cast<void>(origin);
+		static_cast<void>(color);
+	}
+
+	/// @brief How many fills had a colour.
+	/// @param color The colour.
+	/// @return The count.
+	[[nodiscard]] std::size_t count(affresco::Color color) const {
+		return static_cast<std::size_t>(std::ranges::count(fills, color));
+	}
+
+	std::vector<affresco::Color> fills;    ///< The fills' colours, in order.
+	std::vector<affresco::Color> outlines; ///< The outlines' colours, in order.
+};
+
+/// @brief An editor that colours each line's first word red, and whose paint() a test can call.
+class PaintableEditor final : public TextEditor {
+public:
+	/// @brief Paints the editor, as the renderer would.
+	/// @param painter The painter.
+	void paintWith(affresco::Painter& painter) const { paint(painter); }
+
+protected:
+	/// @brief Colours the first word red, the rest in the text colour.
+	/// @param line The line.
+	/// @param state Unused.
+	/// @param colors Filled.
+	void colorLine(std::u32string_view line, int& state, std::vector<affresco::Color>& colors) const override {
+		static_cast<void>(state);
+		const std::size_t space = line.find(U' ');
+		for(std::size_t i = 0; i < line.size(); ++i) colors[i] = i < space ? red : textColor();
+	}
+
+public:
+	static constexpr affresco::Color red = affresco::Color::hex(0xff0000); ///< The first words' colour.
+};
+
+} // namespace
+
+TEST_CASE("editor view: the minimap draws its rows as coloured text, and its viewport on hover only, when asked") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	auto& editor = window->root().add<PaintableEditor>();
+	editor.setFont(affresco::Font::load(std::filesystem::path(AFFRESCOUI_FONTS_DIR) / "Roboto-Regular.ttf", 14.0f));
+	editor.setSize(affresco::px(400.0f), affresco::px(300.0f));
+	editor.setTextColor(affresco::Color::hex(0x00ff00));
+	editor.setText("int a = 1;\nreturn a;\n");
+	editor.setMinimap(true);
+	static_cast<void>(affresco::detail::takeFrame(*window));
+	const affresco::Color redInk = PaintableEditor::red.withAlpha(0.6f);
+
+	ColorPainter bars;
+	editor.paintWith(bars);
+	CHECK(bars.count(redInk) == 0); // one bar a row, in the text colour
+
+	editor.setMinimapText(true);
+	editor.setMinimapViewportOnHover(true);
+	CHECK(editor.minimapText());
+	CHECK(editor.minimapViewportOnHover());
+	ColorPainter text;
+	editor.paintWith(text);
+	CHECK(text.count(redInk) == 2); // "int" and "return", each a run in its colour
+	CHECK(text.fills.size() + 1 == bars.fills.size() + 4); // 6 runs for 2 bars, and no viewport: the pointer is away
+}
+
+TEST_CASE("editor view: find's matches are outlined when asked, from the node's matchStyle") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	auto screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"root": { "id": "root", "children": [
+			{ "type": "editor", "id": "code", "width": 400, "height": 300, "text": "a b a", "find": { "text": "a" },
+			  "matchStyle": "outline", "minimap": true, "minimapStyle": "text", "minimapViewport": "hover" }
+		] }
+	})json");
+	screen.build(*window);
+	auto* editor = dynamic_cast<TextEditor*>(screen.find("code"));
+	REQUIRE(editor);
+	window->render();
+	CHECK(editor->matchOutline());
+	CHECK(editor->minimapText());
+	CHECK(editor->minimapViewportOnHover());
+
+	std::string error;
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#code/matchStyle": "box"}})", &error));
+	CHECK(error.find("matchStyle") != std::string::npos);
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#code/minimapStyle": "dots"}})", &error));
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#code/minimapViewport": "never"}})", &error));
+	REQUIRE(screen.applyRevision(R"({"set": {"#code/matchStyle": "fill"}})", &error));
+	window->render();
+	CHECK_FALSE(editor->matchOutline());
 }
 
 TEST_CASE("editor view: decorations are clamped, capped per line and move with the text") {

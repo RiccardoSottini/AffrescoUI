@@ -192,6 +192,22 @@ public:
 	/// editor when pressed or dragged.
 	/// @param shown true to show it.
 	void setMinimap(bool shown);
+	/// @brief Draws the minimap's rows as their text, each character a pixel in its syntax colour, instead of one bar
+	/// per row.
+	/// @param text true for the text.
+	void setMinimapText(bool text);
+	/// @brief Whether the minimap draws its rows as their text.
+	[[nodiscard]] bool minimapText() const noexcept { return minimapText_; }
+	/// @brief Marks the visible rows in the minimap only while the pointer is over it.
+	/// @param onHover true for only then, false for always.
+	void setMinimapViewportOnHover(bool onHover);
+	/// @brief Whether the minimap marks the visible rows only while the pointer is over it.
+	[[nodiscard]] bool minimapViewportOnHover() const noexcept { return minimapViewportOnHover_; }
+	/// @brief Outlines find's matches instead of filling their background.
+	/// @param outline true to outline them (in the match colour, 1 pixel thick).
+	void setMatchOutline(bool outline);
+	/// @brief Whether find's matches are outlined.
+	[[nodiscard]] bool matchOutline() const noexcept { return matchOutline_; }
 
 	/* Decorations and cursors: TextEditorCursors.cpp */
 
@@ -718,7 +734,8 @@ private:
 	/// @param row Its index.
 	/// @param columns The columns, first first; a second past the row's end adds a space's width.
 	/// @param color The colour.
-	/// @param thickness How much of the row's bottom, in pixels; 0 for all of it.
+	/// @param thickness How much of the row's bottom, in pixels; 0 for all of it; negative for an outline of the whole
+	/// row, that many pixels thick.
 	void paintColumns(Painter& painter, const Layout& layout, RowSpan span, std::size_t row,
 	                  std::pair<std::size_t, std::size_t> columns, Color color, float thickness) const;
 	/// @brief Draws the gutter over the text scrolled under it, the line labels, fold markers and gutter icons.
@@ -743,6 +760,11 @@ private:
 	/// @param painter The painter.
 	/// @param layout The frame's layout.
 	void paintMinimap(Painter& painter, const Layout& layout) const;
+	/// @brief Colours some lines, as drawn: by the highlighter, or else from the colouring state each line starts with.
+	/// @param first The first line.
+	/// @param last One past the last.
+	/// @param body Called with each line coloured, its colours in colors_; folded lines may be skipped.
+	void colorLines(std::size_t first, std::size_t last, const std::function<void(std::size_t)>& body) const;
 	/// @brief Starts or ends scrolling by the minimap.
 	/// @param position The pointer.
 	/// @param pressed true for a press, false for a release.
@@ -867,6 +889,10 @@ private:
 	std::u32string composition_;      ///< See setComposition().
 	bool minimap_ = false;            ///< See setMinimap().
 	bool minimapDragging_ = false;    ///< A press on the minimap is scrolling.
+	bool minimapText_ = false;        ///< See setMinimapText().
+	bool minimapViewportOnHover_ = false; ///< See setMinimapViewportOnHover().
+	bool minimapHovered_ = false;     ///< The pointer is over the minimap.
+	bool matchOutline_ = false;       ///< See setMatchOutline().
 
 	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.
 	bool lineNumbers_ = false;            ///< See setLineNumbers().

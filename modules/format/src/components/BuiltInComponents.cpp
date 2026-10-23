@@ -194,7 +194,7 @@ constexpr std::string_view others = R"({
 		"children": [{
 			"repeat": { "for": "m", "in": "{{menus}}", "index": "n" },
 			"let": { "key": "{{m.name ?? m.menu ?? n}}", "heading": "{{m.title ?? m.name ?? m.menu ?? ''}}" },
-			"width": "{{length(heading) * 8 + 20}}", "anchors": { "top": 0, "bottom": 0 },
+			"width": "{{m.width ?? length(heading) * 8 + 20}}", "anchors": { "top": 0, "bottom": 0 },
 			"color": "{{color}}", "focusable": true, "mnemonic": "{{m.mnemonic ?? heading}}",
 			"hover": { "color": "{{highlight}}" }, "focused": { "color": "{{highlight}}" },
 			"onClick": { "toggle": "{{open + '.' + key}}" },

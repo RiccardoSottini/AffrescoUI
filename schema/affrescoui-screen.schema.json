@@ -1814,6 +1814,45 @@
 					"minimap": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"minimapStyle": {
+						"anyOf": [
+							{
+								"enum": [
+									"bars",
+									"text"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"minimapViewport": {
+						"anyOf": [
+							{
+								"enum": [
+									"always",
+									"hover"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"matchStyle": {
+						"anyOf": [
+							{
+								"enum": [
+									"fill",
+									"outline"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"composition": {
 						"description": "Text, or a {{binding}}"
 					},
