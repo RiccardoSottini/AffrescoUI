@@ -704,7 +704,8 @@ Shows the current screen from `screens`, filling the outlet unless the screen pl
 ```
 The use's other properties override the component's node; `with` values are evaluated where it is used and become
 variables of the node and its children. A child `{ "slot": true }` in the component is replaced by the use's
-`children`. Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
+`children`; with several slots, each gets them, and they see the variables where they are placed (a slot inside a
+`repeat` shows them once per item). Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
 ### Built-in components
@@ -781,6 +782,28 @@ Controls of a desktop app's window, built in the same way as the built-in compon
 { "use": "segmentedControl", "with": { "name": "view", "label": "View",
   "items": [{ "id": "list", "title": "List" }, { "id": "grid", "title": "Grid", "icon": "layout-grid" }] } }
 { "use": "searchField", "with": { "name": "find", "run": "search" } }
+```
+
+- `dock`: a window's panels in tabbed areas: `left`, `right` and `bottom` around the `center`. `panels` names them
+  (`{ "explorer": { "title": "Explorer", "icon": "folder" } }`) and `state[name]` places them: each area
+  `{ "tabs", "active", "collapsed" }`, plus `sizes`, `maximized` (an area or null) and what is being done (`resizing`,
+  `menu`). The use's children are shown in every area, with `area` and `panel` (its active panel, `""` in a centre
+  without tabs), so each says which panel it is with `when`. A tab dragged to another area's tabs or body moves there,
+  as from an area's "Move to" menu (the keyboard's way); a side area collapses to a strip of its panels' icons, the
+  bottom one to its tabs, and one maximises over the others. An area without panels goes. An area resizes by dragging
+  its inner edge, or from it with the arrows (`dir`: the dock's writing direction, for which way they go; `sizes`,
+  `minSize`, `maxSize`). The areas mirror right to left.
+
+```json
+{ "fill": true, "use": "dock", "with": { "dir": "{{state.dir}}", "panels": {
+    "explorer": { "title": "Explorer", "icon": "folder" }, "terminal": { "title": "Terminal", "icon": "terminal" } } },
+  "children": [
+    { "when": "{{panel == ''}}", "fill": true, "type": "editor", "bind": "state.text" },
+    { "when": "{{panel == 'explorer'}}", "fill": true, "type": "tree", "items": "{{state.files}}" },
+    { "when": "{{panel == 'terminal'}}", "fill": true, "type": "label", "text": "{{state.output}}" }
+  ] }
+{ "set": "state.dock", "to": { "left": { "tabs": ["explorer"] }, "bottom": { "tabs": ["terminal"] },
+  "center": { "tabs": [] } } }
 ```
 
 ### The kit's tokens

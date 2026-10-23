@@ -76,27 +76,28 @@ std::optional<std::string> placeOf(std::string_view path, const Scope& locals) {
 	return pointer;
 }
 
-/// @brief Puts a use's children where a component has {"slot": true}, searching its node depth first (not inside
-/// other uses).
+/// @brief Puts a use's children wherever a component has {"slot": true}, searching its node depth first (not inside
+/// other uses). Every slot gets them, so a component can show them in several places (a dock's areas, each showing
+/// what is active in it), as the checker walks every slot.
 /// @param node The component's node, or a node inside it.
 /// @param children The use's children.
-/// @return true once they are placed.
+/// @return true if at least one slot took them.
 bool fillSlot(json& node, const json& children) {
 	if(!node.is_object() || !node.contains("children") || !node["children"].is_array()) return false;
 	json& list = node["children"];
-	for(std::size_t i = 0; i < list.size(); ++i) {
-		if(list[i].is_object() && list[i].value("slot", json(false)) == true) {
-			json replaced = json::array();
-			for(std::size_t j = 0; j < list.size(); ++j) {
-				if(j == i) replaced.insert(replaced.end(), children.begin(), children.end());
-				else replaced.push_back(list[j]);
-			}
-			list = std::move(replaced);
-			return true;
+	bool placed = false;
+	json replaced = json::array();
+	for(json& child : list) {
+		if(child.is_object() && child.value("slot", json(false)) == true) {
+			replaced.insert(replaced.end(), children.begin(), children.end());
+			placed = true;
+			continue;
 		}
-		if(!list[i].contains("use") && fillSlot(list[i], children)) return true;
+		if(!child.contains("use") && fillSlot(child, children)) placed = true;
+		replaced.push_back(std::move(child));
 	}
-	return false;
+	list = std::move(replaced);
+	return placed;
 }
 
 /// @brief Tells whether a node sets its own position or size (otherwise a screen fills its outlet).
@@ -203,8 +204,9 @@ json Builder::instantiateComponent(const json& use, const std::string& path) con
 	if(use.contains("with")) with.update(object(use["with"], path + ".with"));
 	result["with"] = std::move(with);
 
-	// The use's children go where the component has {"slot": true}
-	if(use.contains("children") && !fillSlot(result, use["children"])) result["children"] = use["children"];
+	// The use's children go where the component has {"slot": true} (nothing does if it has none)
+	const json children = use.contains("children") ? use["children"] : json::array();
+	if(!fillSlot(result, children) && use.contains("children")) result["children"] = children;
 	return result;
 }
 

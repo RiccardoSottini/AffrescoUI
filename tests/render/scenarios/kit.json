@@ -61,6 +61,33 @@
 				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
 				{ "expect": { "image": "rtl" } }
 			]
+		},
+		{
+			"name": "kit-dock",
+			"screen": "kit-dock.screen.json",
+			"note": "The desktop kit's dock: tabbed areas at the left, the right and the bottom around the editor in light, a tab dragged to another area, the move menu, a collapsed side, a maximised area, the left side resized from its edge and from the keyboard, then dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "drag": [87, 15], "to": [640, 15], "moves": 6 },
+				{ "expect": { "state": "dock.right.tabs", "is": ["properties", "outline"] } },
+				{ "click": [421, 315] },
+				{ "expect": { "image": "move-menu" } },
+				{ "click": [340, 369] },
+				{ "expect": { "state": "dock.left.tabs", "is": ["explorer", "terminal"] } },
+				{ "click": [182, 15] },
+				{ "expect": { "image": "collapsed" } },
+				{ "click": [20, 26] },
+				{ "click": [447, 315] },
+				{ "expect": { "image": "maximized" } },
+				{ "click": [697, 15] },
+				{ "drag": [198, 200], "to": [258, 200], "moves": 4 },
+				{ "expect": { "state": "dock.sizes.left", "is": 260 } },
+				{ "expect": { "image": "resized" } },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark" } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
 		}
 	]
 }

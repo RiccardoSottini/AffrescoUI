@@ -32,4 +32,8 @@ namespace affresco::format {
 /// @return Its text.
 [[nodiscard]] std::string_view builtInKitControls() noexcept;
 
+/// @brief The desktop kit's dock (KitDock.cpp): panels in tabbed areas, as one JSON object by name.
+/// @return Its text.
+[[nodiscard]] std::string_view builtInKitDock() noexcept;
+
 } // namespace affresco::format

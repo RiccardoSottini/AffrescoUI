@@ -59,5 +59,19 @@
 		"use": "breadcrumbs",
 		"with": { "items": [{ "title": "Projects", "icon": "folder", "run": "openProjects" }, { "title": "main.cpp" }] }
 	},
-	"tabStrip": { "use": "tabStrip", "with": { "name": "files", "onClose": "closeFile" } }
+	"tabStrip": { "use": "tabStrip", "with": { "name": "files", "onClose": "closeFile" } },
+	"dock": {
+		"fill": true,
+		"use": "dock",
+		"with": {
+			"panels": {
+				"explorer": { "title": "Explorer", "icon": "folder" }, "terminal": { "title": "Terminal", "icon": "terminal" }
+			}
+		},
+		"children": [
+			{ "when": "{{panel == ''}}", "fill": true, "type": "editor", "bind": "state.text" },
+			{ "when": "{{panel == 'explorer'}}", "fill": true, "type": "tree", "items": "{{state.files}}" },
+			{ "when": "{{panel == 'terminal'}}", "fill": true, "type": "label", "text": "{{state.output}}" }
+		]
+	}
 }
