@@ -14,6 +14,11 @@
 #include <system_error>
 #include <tuple>
 
+#ifndef _WIN32
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
 namespace affresco::format {
 
 namespace {
@@ -212,6 +217,16 @@ void Usage::save() {
 	written_ = now();
 	changed_ = false;
 	const std::filesystem::path temporary = file_.string() + ".tmp";
+	std::error_code error;
+	std::filesystem::remove(temporary, error); // one left behind keeps its mode: made again, the owner's only
+#ifndef _WIN32
+	const int descriptor = ::open(temporary.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+	if(descriptor < 0) {
+		log(LogLevel::Error, "AffrescoUI usage: could not write " + temporary.string());
+		return;
+	}
+	::close(descriptor);
+#endif
 	{
 		std::ofstream out(temporary, std::ios::trunc);
 		if(!out || !(out << toJson().dump(1, '\t') << '\n')) {
@@ -219,7 +234,6 @@ void Usage::save() {
 			return;
 		}
 	}
-	std::error_code error;
 	std::filesystem::rename(temporary, file_, error);
 	if(error) log(LogLevel::Error, "AffrescoUI usage: could not write " + file_.string() + ": " + error.message());
 }
