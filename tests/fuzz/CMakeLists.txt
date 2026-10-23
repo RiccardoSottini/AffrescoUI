@@ -49,6 +49,8 @@ target_compile_definitions(affrescoui_fuzz_cli PRIVATE
 affrescoui_fuzzer(actions affrescoui::format affrescoui::vcs)
 target_include_directories(affrescoui_fuzz_actions PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
+# The replies peers send to the screen's own requests ("ask" steps)
+affrescoui_fuzzer(ask_reply affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(lookups affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_lookups PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # LookupSpans.hpp
 affrescoui_fuzzer(image affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON

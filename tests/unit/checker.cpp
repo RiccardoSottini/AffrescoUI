@@ -12,6 +12,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <filesystem>
@@ -69,6 +70,20 @@ void checkAll(const std::vector<Case>& cases) {
 	}
 }
 
+/// @brief Merges one entry of an included file's section into the screen's, as a screen is loaded: the screen's own
+/// entry wins, and "menus" and "strings" merge one level deeper, menu by menu and locale by locale.
+/// @param entry The screen's entry (null if it has none), which receives the merge.
+/// @param section The section's name.
+/// @param part The included file's entry.
+void mergeEntry(json& entry, const std::string& section, const json& part) {
+	if(entry.is_null()) {
+		entry = part;
+	} else if((section == "menus" || section == "strings") && entry.is_object() && part.is_object()) {
+		for(const auto& [key, value] : part.items())
+			if(!entry.contains(key)) entry[key] = value;
+	}
+}
+
 /// @brief Reads a template from its folder in examples.
 /// @param name E.g. "kanban".
 /// @return The document.
@@ -79,7 +94,8 @@ json screenTemplate(const std::string& name) {
 	std::stringstream content;
 	content << file.rdbuf();
 	json document = json::parse(content.str());
-	// The "include" files are merged when a screen is loaded: each section's entries, the screen's own winning.
+	// The "include" files are merged when a screen is loaded: each section's entries, the screen's own winning;
+	// "persist" lists join.
 	if(const auto includes = document.find("include"); includes != document.end()) {
 		for(const json& include : *includes) {
 			const std::ifstream part(directory / include.get<std::string>());
@@ -89,8 +105,11 @@ json screenTemplate(const std::string& name) {
 			const json sections = json::parse(partContent.str()); // a loop over a temporary's items dangles
 			for(const auto& [section, entries] : sections.items())
 				if(entries.is_object())
-					for(const auto& [key, entry] : entries.items())
-						if(!document[section].contains(key)) document[section][key] = entry;
+					for(const auto& [key, entry] : entries.items()) mergeEntry(document[section][key], section, entry);
+				else if(section == "persist" && entries.is_array())
+					for(const json& entry : entries)
+						if(std::ranges::find(document[section], entry) == document[section].end())
+							document[section].push_back(entry);
 		}
 		document.erase("include");
 	}
@@ -119,7 +138,7 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 	    {R"("dragging":{"color":"@color.accentSoft"})", R"("dragging":{"color":"@color.accentSofty"})"},
 	    {R"("onSubmit":"addCard")", R"("onSubmit":"addCrad")"},
 	    {R"("id":"move-button-card","use":"moveButton","with":{"by":-1})",
-	     R"("id":"move-button-card","use":"moveButton","with":{"bye":-1})"},
+		 R"("id":"move-button-card","use":"moveButton","with":{"bye":-1})"},
 	    {"to < 0 ||", "too < 0 ||"},
 	    {"computed.lastColumn}}", "computed.lastColum}}"},
 	    {"{{member.name}}", "{{member.nmae}}"},
@@ -131,17 +150,18 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 	}
 	const std::string card = "root.children[2].children[0].children[2].children[0].children[0].children[4].children[0]";
 	const std::string drawer = "components.cardDrawer.node.children";
-	CHECK(lines(json::parse(text)) ==
-	      std::vector<std::string>{
-	          "actions.moveCard[1].if: unknown variable 'too' (did you mean 'to'?)",
-	          drawer + "[0].children[1].style: unknown style 'captoin' (did you mean 'caption'?)",
-	          drawer + "[12].children[0].label: 'member.nmae' doesn't exist (did you mean 'member.name'?)",
-	          drawer + "[6].children[2].when: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
-	          "components.swimlanes.node.children[0].children[3].children[0].children[1].children[0].dragging.color: "
-	          "unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
-	          "root.children[1].children[2].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)",
-	          card + ".children[6].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
-	          "root.children[7].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)"});
+	CHECK(
+	    lines(json::parse(text)) ==
+	    std::vector<std::string>{
+	        "actions.moveCard[1].if: unknown variable 'too' (did you mean 'to'?)",
+	        drawer + "[0].children[1].style: unknown style 'captoin' (did you mean 'caption'?)",
+	        drawer + "[12].children[0].label: 'member.nmae' doesn't exist (did you mean 'member.name'?)",
+	        drawer + "[6].children[2].when: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
+	        "components.swimlanes.node.children[0].children[3].children[0].children[1].children[0].dragging.color: "
+	        "unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
+	        "root.children[1].children[2].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)",
+	        card + ".children[6].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
+	        "root.children[7].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)"});
 }
 
 TEST_CASE("checker: state paths") {
@@ -270,8 +290,9 @@ TEST_CASE("checker: references to what a section defines") {
 	    {"steps it doesn't know",
 		 R"("root": {"onClick": [{"sett": "state.x", "to": 1}, {"note": "fine"}]})",
 		 {"root.onClick[0]: unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, "
-		  "call, emit, send, connect, patch, focus, scrollTo, navigate, press, insert, cut, dismiss, after, debounce, animate, copy, log, stop, "
-		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn "
+		  "call, emit, send, connect, patch, focus, scrollTo, navigate, press, insert, cut, dismiss, after, debounce, "
+		  "animate, copy, log, stop, "
+		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn "
 		  "or signOut)"}},
 	    {"expressions that don't parse, and writes outside the state",
 		 R"("root": {"text": "{{1 +}}", "onClick": {"set": "card.title", "to": 1}})",
@@ -357,9 +378,8 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 
 	// A long name with a typo: hints compare names of a sensible length only, not a square of a hundred thousand
 	const std::string longName(100000, 'a');
-	const json longTypo = {{"version", 2},
-	                       {"state", {{longName, 1}}},
-	                       {"root", {{"text", "{{state." + longName + "b}}"}}}};
+	const json longTypo = {
+	    {"version", 2}, {"state", {{longName, 1}}}, {"root", {{"text", "{{state." + longName + "b}}"}}}};
 	const auto found = affresco::format::check(longTypo, longTypo["state"]);
 	REQUIRE(found);
 	CHECK((found && found->size() == 1));
@@ -463,8 +483,7 @@ TEST_CASE("checker: the shapes of wide values are built at the cost of their siz
 
 // A path deeper than the runtime writes overflowed the stack (the checker followed it a level at a time), and so did a
 // step that puts what a place holds inside itself, once for each such step
-TEST_CASE("checker: a place too deep for the state is not followed" *
-          doctest::timeout(affresco::test::timeLimit(5))) {
+TEST_CASE("checker: a place too deep for the state is not followed" * doctest::timeout(affresco::test::timeLimit(5))) {
 	const auto writing = [](int levels) {
 		std::string path = "state";
 		for(int i = 0; i < levels; ++i) path += ".a";

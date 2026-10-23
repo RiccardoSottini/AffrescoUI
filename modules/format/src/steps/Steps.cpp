@@ -123,10 +123,11 @@ bool Steps::runStep(const json& step, Panel& sender, const json& event, const Sc
 	if(const std::optional<bool> keepGoing = engine_.steps->run(Running{*this, step, sender, event, locals, where}))
 		return *keepGoing;
 
-	fail(where,
-	     "unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, "
-	     "send, connect, patch, focus, scrollTo, navigate, press, insert, cut, after, debounce, animate, copy, log, stop, note, "
-	     "accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn or signOut)");
+	fail(where, "unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, "
+	            "send, connect, patch, focus, scrollTo, navigate, press, insert, cut, after, debounce, animate, copy, "
+	            "log, stop, note, "
+	            "accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn "
+	            "or signOut)");
 }
 
 // While a proposal is previewed its document runs, timers and all: a control step then runs only from the user's own

@@ -27,7 +27,7 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 	 "call",    "cancel",  "emit",      "send",       "connect",   "patch",    "accept",   "reject", "preview",
 	 "restore", "revert",  "undo",      "endPreview", "focus",     "scrollTo", "navigate", "press",  "insert",
 	 "cut",     "dismiss", "after",     "debounce",   "animate",   "copy",     "log",      "stop",   "note",
-	 "invoke",  "request", "subscribe", "respond",    "signIn",    "signOut",  "camera"});
+	 "invoke",  "request", "subscribe", "respond",    "ask",       "signIn",   "signOut",  "camera"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -116,12 +116,12 @@ bool mayReferTo(const std::string& key, const json& value) {
 /// @param kind The step.
 /// @param key A key of it.
 /// @return true for the target of a state step, "to" of set, "value" of push and "into", "loading" and
-/// "progress" of call, and "into" of cut.
+/// "progress" of call, and "into" of cut and of ask.
 bool writtenKey(std::string_view kind, std::string_view key) {
 	return (among(stateSteps, kind) && key == kind) || (kind == "set" && key == "to") ||
 	       (kind == "push" && key == "value") ||
 	       (kind == "call" && (key == "into" || key == "loading" || key == "progress")) ||
-	       (kind == "cut" && key == "into");
+	       (kind == "cut" && key == "into") || (kind == "ask" && key == "into");
 }
 
 /// @brief Tells whether a component's node has a `{"slot": true}` for the use's children, as the runtime looks for
@@ -486,7 +486,7 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 		       "patch, focus, scrollTo, navigate, press, insert, cut, dismiss, after, debounce, animate, copy, log, "
 		       "stop, note, accept, "
 		       "reject, "
-		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn or signOut");
+		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn or signOut");
 		return;
 	}
 	if(*kind == "run") return walkRun(step, scope, place);

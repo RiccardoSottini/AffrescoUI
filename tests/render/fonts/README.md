@@ -1,13 +1,15 @@
 # Fonts for the rendering check
 
-Subsets of open fonts, holding only the characters the check's `scripts` screen shows in their script, so shaping,
-fallback by coverage and colour emoji are tested with a few kilobytes of fonts. `subset.py` makes them again from the
-originals with HarfBuzz's `hb-subset`, which keeps the layout tables shaping needs (joining forms, conjuncts,
-ligatures, mark positions). Variable fonts are pinned to their regular instance (weight 400, width 100).
+Subsets of open fonts, holding only the characters the check's `scripts` screen shows in their script (and, for
+`NotoSansArabic-Assistant.ttf`, those of the assistant add-on's Arabic strings), so shaping, fallback by coverage and
+colour emoji are tested with a few kilobytes of fonts. `subset.py` makes them again from the originals with HarfBuzz's
+`hb-subset`, which keeps the layout tables shaping needs (joining forms, conjuncts, ligatures, mark positions). Variable
+fonts are pinned to their regular instance (weight 400, width 100).
 
 | Subset | Original (SHA-256 of the file used) | License |
 |---|---|---|
 | `NotoSansArabic-Subset.ttf` | `ofl/notosansarabic/NotoSansArabic[wdth,wght].ttf` (`63111b5b…e869e`) | SIL Open Font License 1.1: `LICENSE-NotoSansArabic.txt` |
+| `NotoSansArabic-Assistant.ttf` | the same | the same |
 | `NotoSansDevanagari-Subset.ttf` | `ofl/notosansdevanagari/NotoSansDevanagari[wdth,wght].ttf` (`14ec4af4…9853e`) | SIL Open Font License 1.1: `LICENSE-NotoSansDevanagari.txt` |
 | `NotoSansSC-Subset.ttf` | `ofl/notosanssc/NotoSansSC[wght].ttf` (`a3041811…af0da`) | SIL Open Font License 1.1: `LICENSE-NotoSansCJK.txt` |
 | `NotoSansJP-Subset.ttf` | `ofl/notosansjp/NotoSansJP[wght].ttf` (`c2f3b4d4…fc68f`) | SIL Open Font License 1.1: `LICENSE-NotoSansCJK.txt` |

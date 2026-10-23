@@ -632,6 +632,16 @@ def scene_seeds():
                      "interpolation": "cubic", "times": [1, 0], "values": [[1, 1, 1]]}]}], "time": -3})]
 
 
+def ask_reply_seeds():
+    """Replies to the screen's own request (tests/fuzz/ask_reply.cpp): one reply or a list, the request's id filled in
+    when a reply names none."""
+    replies = [{"text": "Done"}, {"text": "On it", "done": False}, {"error": "no agent is connected"},
+               {"from": "agent", "text": "Proposed a **blue** title", "done": True}, {"request": "ask-0-0"},
+               {"request": 7, "text": 42, "done": "yes", "error": []}, {"text": "\u00e9" * 8 + "\U0001F600"}]
+    lists = [[{"text": "On it", "done": False}, {"text": "Done"}], [{"error": "failed"}, {"text": "Again"}], [], [1]]
+    return [json.dumps(reply) for reply in replies + lists] + ["null", '"text"', "{"]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -675,6 +685,8 @@ def dictionaries():
             "path": list("MmLlHhVvCcSsQqTtAaZz") + [" ", ",", "-", ".", "e-", "1e6", "0 0 1 1"],
             "image": ["<svg", "viewBox=", "<path d=", "fill=", "stroke=", "transform=", "<g>", "</g>", "IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
             "scenarios": scenarios, "png": pngs,
+            "ask_reply": tokens + [f'"{word}"' for word in ["request", "text", "from", "done", "error", "type",
+                                                            "reply", "ask-0-0"]],
             "http_response": ["HTTP/1.1 ", "HTTP/2 ", "\r\n", "\r\n\r\n", ": ", "Content-Length", "Retry-After",
                               "Location", "Upgrade", "websocket", "Connection", "Sec-WebSocket-Accept"],
             "sse": ["data:", "data: ", "event:", "id:", "retry:", ":", "\n", "\r\n", "\r", "\n\n"],
@@ -792,6 +804,9 @@ def main():
     write(out, "scene", scene_seeds(), words["json"] + ["gltf", "scene", "animations", "time", "nodes", "materials",
           "mesh", "parent", "translation", "rotation", "rotationDegrees", "scale", "light", "asset", "tracks", "times",
           "values", "cube", "sphere", "cylinder", "cone", "torus", "plane", "directional", "point", "spot", "m"])
+
+
+    write(out, "ask_reply", ask_reply_seeds(), words["ask_reply"])
     write(out, "syntax", syntax_seeds(), ["(", ")", "{", "}", "[", "]", "\"", "'", "`", "/*", "*/", "//", "#", "\n"])
 
 

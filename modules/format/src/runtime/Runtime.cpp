@@ -197,6 +197,8 @@ bool Runtime::hasAction(std::string_view name) const {
 	return document.contains("actions") && document["actions"].contains(std::string(name));
 }
 
+bool Runtime::receiveReply(const json& reply) { return impl_->asks.receive(reply); }
+
 Window* Runtime::window() const noexcept { return impl_->window; }
 
 const UpdateStatistics& Runtime::lastUpdate() const noexcept { return impl_->reconciler.statistics(); }
