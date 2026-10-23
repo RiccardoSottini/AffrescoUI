@@ -65,8 +65,8 @@ void moveCamera(scene3d::SceneView& scene, const CameraMove& move) {
 		scene.setOrthographic(*move.projection == "toggle" ? !scene.camera().lens.orthographic
 		                                                   : *move.projection == "orthographic");
 	if(move.view) scene.showView(*move.view);
-	if(move.frameSelection) scene.frame(scene.selection());
-	else if(move.frame) scene.frame(*move.frame);
+	if(move.frameSelection) scene.frameNodes(scene.selection());
+	else if(move.frame) scene.frameNodes(*move.frame);
 	if(move.orbit) scene.orbit((*move.orbit)[0], (*move.orbit)[1]);
 	if(move.zoom) scene.zoom(*move.zoom);
 }

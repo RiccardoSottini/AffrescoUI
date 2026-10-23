@@ -122,7 +122,7 @@ public:
 	/// @brief Snaps the camera to a view, and signals it. @param view Which.
 	void showView(StandardView view);
 	/// @brief Frames nodes, and signals it. @param ids Them, or none for the whole scene.
-	void frame(const std::vector<std::string>& ids);
+	void frameNodes(const std::vector<std::string>& ids);
 	/// @brief Switches between perspective and orthographic, and signals it. @param orthographic Which.
 	void setOrthographic(bool orthographic);
 	/// @brief Zooms as the wheel does, and signals it. @param steps Positive to come closer.

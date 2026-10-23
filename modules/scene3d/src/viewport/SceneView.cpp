@@ -19,7 +19,7 @@ namespace affresco::scene3d {
 namespace {
 
 constexpr float dragPixels = 3.0f; ///< How far a press moves before it is a drag rather than a click.
-constexpr std::string_view surfaceName = "scene"; ///< The renderer's name in the window.
+constexpr std::string_view rendererName = "scene"; ///< The renderer's name in the window.
 
 /// @brief What the pointer is doing.
 enum class Gesture { None, Orbit, Pan, Pending, Moved, Box, Gizmo };
@@ -168,7 +168,7 @@ SceneView::SceneView() : internals_(std::make_unique<Internals>()) {
 	                                 Primitive::Torus, Primitive::Plane})
 		internals_->assets->setMesh(primitiveName(primitive), makePrimitive(primitive));
 	std::shared_ptr<const Assets> assets = internals_->assets;
-	setSurface(std::string(surfaceName),
+	setSurface(std::string(rendererName),
 	           [assets, probe = internals_->probe] { return makeSceneRenderer(assets, probe); }, {.depth = true});
 	refresh();
 }
@@ -251,7 +251,7 @@ void SceneView::showView(StandardView view) {
 	cameraMoved();
 }
 
-void SceneView::frame(const std::vector<std::string>& ids) {
+void SceneView::frameNodes(const std::vector<std::string>& ids) {
 	std::vector<std::string> under;
 	for(const std::string& id : ids)
 		for(std::string& node : internals_->scene.subtree(id)) under.push_back(std::move(node));
