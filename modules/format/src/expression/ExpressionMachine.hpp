@@ -183,9 +183,8 @@ public:
 	/// of text.
 	/// @param value It.
 	/// @param place Its place, for the error.
-	/// @return It.
 	/// @throws DocumentError If the budget has fewer left.
-	[[nodiscard]] Value built(Value value, const Place& place);
+	void charge(const Value& value, const Place& place);
 	/// @brief Evaluates a node with an item of a list in scope as `it`, and its position as `index`.
 	/// @param node The node.
 	/// @param place Its place.

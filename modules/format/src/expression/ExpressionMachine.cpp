@@ -211,16 +211,17 @@ void Machine::spend(std::size_t operations, const Place& place) {
 	budget->operations -= operations;
 }
 
-Value Machine::built(Value value, const Place& place) {
-	// What a function builds costs its size, so a loop can't fill memory in a few operations
+void Machine::charge(const Value& value, const Place& place) {
+	// What a function builds costs its size, so a loop can't fill memory in a few operations. It is charged where it
+	// is, not passed through: a move and a destruction per call cost a tenth of a loop over a list
+	if(context_.budget == nullptr) return;
 	constexpr std::size_t bytesPerOperation = 64;
 	if(value.isText()) spend(value.text().size() / bytesPerOperation, place);
 	else spend(value.size(), place);
-	return value;
 }
 
 Value Machine::run(const Node& node, const Place& place) {
-	spend(1, place);
+	if(context_.budget != nullptr) spend(1, place); // checked here too: most runs have none, and run() is the hot loop
 	switch(node.kind) {
 	case Node::Kind::Literal:
 		return node.value;
@@ -269,10 +270,13 @@ Value Machine::call(const Node& node, const Place& place) {
 	const std::span<Value> values = arguments.items();
 	for(std::size_t i = 0; i < values.size(); ++i) values[i] = run(node.children[i], node.indexed ? Place(at, i) : at);
 	if(!function) fail(at, "unknown operator '" + node.label + "'");
-	if(function->takes == Takes::One) return built(function->apply(Call(*this, node, at, values)), at);
-	if(function->spreads && values.size() == 1 && values[0].isList()) return spread(*function, node, at, values[0]);
-	if(!takesCount(*function, values.size())) fail(at, arityProblem(*function));
-	return built(function->apply(Call(*this, node, at, values)), at);
+	if(function->takes != Takes::One) {
+		if(function->spreads && values.size() == 1 && values[0].isList()) return spread(*function, node, at, values[0]);
+		if(!takesCount(*function, values.size())) fail(at, arityProblem(*function));
+	}
+	Value result = function->apply(Call(*this, node, at, values));
+	charge(result, at);
+	return result;
 }
 
 Value Machine::decide(const Function& function, const Node& node, const Place& at) {
@@ -286,7 +290,9 @@ Value Machine::spread(const Function& function, const Node& node, const Place& a
 	items.reserve(list.size());
 	for(std::size_t i = 0; i < list.size(); ++i) items.push_back(list.item(i));
 	if(items.size() < function.fewest) fail(at, arityProblem(function));
-	return built(function.apply(Call(*this, node, at, items)), at);
+	Value result = function.apply(Call(*this, node, at, items));
+	charge(result, at);
+	return result;
 }
 
 Value Machine::get(const Node& node, const Place& place) {
@@ -430,7 +436,9 @@ Value Machine::runTemplate(const Template& shape, const Place& place) {
 		if(piece.expression) appendText(result, run(piece.expression->program, place).toText(), place);
 	}
 	if(shape.failure) std::rethrow_exception(shape.failure); // after the placeholders before it, as they come
-	return built(Value::fromText(std::move(result)), place);
+	Value text = Value::fromText(std::move(result));
+	charge(text, place);
+	return text;
 }
 
 std::vector<Value> Machine::segments(std::string_view path, const Place& place) {
