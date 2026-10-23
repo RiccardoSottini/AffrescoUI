@@ -1,6 +1,6 @@
 # The MCP server as a Python package, `affrescoui-mcp`, so that it installs with one command:
 #
-#     pipx install affrescoui-mcp          (or: uvx affrescoui-mcp)
+#     pipx install ./affrescoui_mcp-<version>-py3-none-any.whl   (from a GitHub release; not on PyPI)
 #     claude mcp add affrescoui -- affrescoui-mcp
 #
 # The server is the package folder affrescoui_mcp/, run from a checkout through affrescoui_mcp.py next to it. The wheel

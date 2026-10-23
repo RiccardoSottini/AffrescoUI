@@ -1,6 +1,6 @@
 # The documentation site (website/README.md): builds it strictly, with every recipe checked by the affrescoui tool,
 # the references generated from this commit and the C++ API reference from the Doxyfile, and uploads it as the
-# artifact `site`. Nothing is deployed: publishing is the maintainer's, by hand (website/README.md, "Publishing").
+# artifact `site`. Nothing is deployed: the release carries the site as a zip (RELEASING.md).
 name: Site
 
 on:
