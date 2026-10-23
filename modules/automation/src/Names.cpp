@@ -13,7 +13,7 @@ namespace affresco::automation::detail {
 namespace {
 
 /// @brief The keys with a name of their own (letters, digits and f1-f12 are counted out).
-constexpr std::array<std::pair<std::string_view, Key>, 25> namedKeys = {{
+constexpr std::array<std::pair<std::string_view, Key>, 26> namedKeys = {{
     {"enter", Key::Enter},         {"escape", Key::Escape},       {"tab", Key::Tab},
     {"backspace", Key::Backspace}, {"delete", Key::Delete},       {"insert", Key::Insert},
     {"space", Key::Space},         {"left", Key::Left},           {"right", Key::Right},
@@ -22,7 +22,7 @@ constexpr std::array<std::pair<std::string_view, Key>, 25> namedKeys = {{
     {"slash", Key::Slash},         {"backslash", Key::Backslash}, {"minus", Key::Minus},
     {"equal", Key::Equal},         {"comma", Key::Comma},         {"period", Key::Period},
     {"semicolon", Key::Semicolon}, {"apostrophe", Key::Apostrophe}, {"leftbracket", Key::LeftBracket},
-    {"rightbracket", Key::RightBracket},
+    {"rightbracket", Key::RightBracket}, {"backquote", Key::GraveAccent},
 }};
 
 #ifdef __APPLE__

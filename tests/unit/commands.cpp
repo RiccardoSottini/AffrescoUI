@@ -125,6 +125,27 @@ TEST_CASE("format: a chord waits for its next press, and a press that doesn't co
 	CHECK(state(screen)["n"] == 11);
 }
 
+TEST_CASE("format: the punctuation keys have names: backquote, brackets, semicolon, apostrophe and backslash") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(
+	    document(R"({ "ctrl+backquote": "add", "ctrl+leftbracket ctrl+rightbracket": "addTen" })"));
+	screen.build(*window);
+
+	pressControl(*window, affresco::Key::GraveAccent);
+	CHECK(state(screen)["n"] == 1);
+	pressControl(*window, affresco::Key::LeftBracket);
+	pressControl(*window, affresco::Key::RightBracket);
+	CHECK(state(screen)["n"] == 11);
+	CHECK(affresco::format::keyLabel("ctrl+backquote").ends_with("`"));
+	CHECK(affresco::format::keyLabel("ctrl+semicolon").ends_with(";"));
+	CHECK(affresco::format::keyLabel("ctrl+apostrophe").ends_with("'"));
+	CHECK(affresco::format::keyLabel("ctrl+backslash").ends_with("\\"));
+	const std::string brackets = affresco::format::keyLabel("ctrl+leftbracket ctrl+rightbracket");
+	CHECK(brackets.contains("[ "));
+	CHECK(brackets.ends_with("]"));
+}
+
 TEST_CASE("format: a key skips a disabled command, and a run step ignores its enablement") {
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
