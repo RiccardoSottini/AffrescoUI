@@ -11,7 +11,7 @@
 
 	"fonts": {
 		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons", "symbols", "arabic"] },
-		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall", "arabicSmall"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["iconsSmall", "arabicSmall"] },
 		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["icons", "symbols", "arabic"] },
 		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 26, "fallback": ["iconsLarge", "arabicLarge"] },
 		"figure": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 48 },
@@ -21,7 +21,7 @@
 		"iconsMedium": { "file": "../shared/fonts/Lucide.ttf", "size": 22 },
 		"symbols": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 14 },
 		"arabic": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 15 },
-		"arabicSmall": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 12 },
+		"arabicSmall": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 13 },
 		"arabicLarge": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 26 }
 	},
 
@@ -464,7 +464,7 @@
 										"width": 40, "height": 40, "radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand", "focusable": true, "role": "button",
 										"label": "{{t('toolbar.more')}}", "tooltip": "{{t('toolbar.more')}}", "isOpen": "{{state.dashMenu}}", "onClick": { "toggle": "state.dashMenu" },
 										"children": [
-											{ "id": "dashMenu", "use": "menu", "with": { "open": "state.dashMenu", "placement": "below-end", "width": 220, "icons": true,
+											{ "id": "dashMenu", "use": "popMenu", "with": { "open": "state.dashMenu", "width": 220,
 												"items": [
 													{ "title": "{{t('toolbar.search')}}", "icon": "search", "run": "searchEntities" },
 													{ "separator": true },
@@ -505,14 +505,14 @@
 										{ "id": "areaStats", "type": "label", "font": "small", "textColor": "#ffffff", "icon": "thermometer",
 											"text": " {{computed.room.temp}}°   {{computed.room.humidity}}%", "anchors": { "right": 16, "bottom": 13 }, "fitText": true }
 									] },
-									{ "id": "label-lights", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.lights}}", "anchors": { "left": 4, "top": "{{computed.compact ? 0 : 136}}" }, "fitText": true },
+									{ "id": "label-lights", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.lights}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": "{{computed.compact ? 0 : 136}}" }, "fitText": true },
 									{ "id": "label-click-a-light", "when": "{{!state.editing}}", "style": "caption", "text": "{{t('lights.hint')}}", "anchors": { "right": 4, "top": "{{computed.compact ? 4 : 140}}" } },
 									{
 										"id": "lights",
 										"type": "grid",
 										"columns": 2,
 										"gap": 8,
-										"anchors": { "left": 0, "right": 0, "top": "{{computed.compact ? 30 : 166}}" },
+										"anchors": { "left": "{{state.editing ? 10 : 0}}", "right": "{{state.editing ? 10 : 0}}", "top": "{{computed.compact ? 30 : 166}}" },
 										"height": "{{ceil(length(computed.room.lights) / 2) * 112 - 8}}",
 										"role": "list",
 										"children": [
@@ -560,7 +560,7 @@
 														"knobColor": "transparent",
 														"onChange": { "set": "state.scene", "to": "" }
 													},
-													{ "use": "levelBar", "with": { "level": "{{(light.level - 10) / 90}}", "fill": "{{light.on ? tint : '@off'}}", "back": "{{light.on ? tint + '33' : '@raised'}}" },
+													{ "use": "levelBar", "with": { "level": "{{light.on ? (light.level - 10) / 90 : 0}}", "fill": "{{light.on ? tint : '@off'}}", "back": "{{light.on ? tint + '33' : '@raised'}}" },
 														"anchors": { "left": 12, "right": 12, "bottom": 10 } },
 													{
 														"id": "slider-rooms-room-lights",
@@ -583,11 +583,11 @@
 											}
 										]
 									},
-									{ "id": "label-scenes", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.scenes}}", "anchors": { "left": 4, "top": "#lights.bottom + 16" }, "fitText": true },
+									{ "id": "label-scenes", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.scenes}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": "#lights.bottom + 16" }, "fitText": true },
 									{
 										"id": "scenes",
 										"type": "row",
-										"anchors": { "left": 0, "right": 0, "top": "#label-scenes.bottom + 10" },
+										"anchors": { "left": "{{state.editing ? 10 : 0}}", "right": "{{state.editing ? 10 : 0}}", "top": "#label-scenes.bottom + 10" },
 										"height": 76,
 										"gap": 8,
 										"role": "toolbar",
@@ -628,14 +628,14 @@
 											}
 										]
 									},
-									{ "id": "label-security", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.security}}", "anchors": { "left": 4, "top": "#scenes.bottom + 16" }, "fitText": true },
-									{ "id": "alarmTile", "use": "alarmTile", "anchors": { "left": 0, "right": 0, "top": "#label-security.bottom + 10" } },
+									{ "id": "label-security", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.security}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": "#scenes.bottom + 16" }, "fitText": true },
+									{ "id": "alarmTile", "use": "alarmTile", "anchors": { "left": "{{state.editing ? 10 : 0}}", "right": "{{state.editing ? 10 : 0}}", "top": "#label-security.bottom + 10" } },
 									{ "use": "editFrame", "with": { "card": "lights", "name": "{{computed.cardTitle.lights}}" }, "id": "editLights",
-										"anchors": { "left": 0, "right": 0, "top": "#label-lights.top - 6", "bottom": "#lights.bottom + 6" } },
+										"anchors": { "left": 0, "right": 0, "top": "#label-lights.top - 6", "bottom": "#lights.bottom + 10" } },
 									{ "use": "editFrame", "with": { "card": "scenes", "name": "{{computed.cardTitle.scenes}}" }, "id": "editScenes",
-										"anchors": { "left": 0, "right": 0, "top": "#label-scenes.top - 6", "bottom": "#scenes.bottom + 6" } },
+										"anchors": { "left": 0, "right": 0, "top": "#label-scenes.top - 6", "bottom": "#scenes.bottom + 10" } },
 									{ "use": "editFrame", "with": { "card": "security", "name": "{{computed.cardTitle.security}}" }, "id": "editSecurity",
-										"anchors": { "left": 0, "right": 0, "top": "#label-security.top - 6", "bottom": "#alarmTile.bottom + 6" } }
+										"anchors": { "left": 0, "right": 0, "top": "#label-security.top - 6", "bottom": "#alarmTile.bottom + 10" } }
 								]
 							},
 							{
@@ -743,11 +743,11 @@
 								"role": "group",
 								"label": "{{t('devices.title')}}",
 								"children": [
-									{ "id": "label-devices", "when": "{{!computed.compact}}", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.devices}}", "anchors": { "left": 4, "top": 4 }, "fitText": true },
+									{ "id": "label-devices", "when": "{{!computed.compact}}", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.devices}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": 4 }, "fitText": true },
 									{
 										"id": "devices",
 										"type": "row",
-										"anchors": { "left": 0, "right": 0, "top": "{{computed.compact ? 0 : 34}}" },
+										"anchors": { "left": "{{state.editing ? 10 : 0}}", "right": "{{state.editing ? 10 : 0}}", "top": "{{computed.compact ? 0 : 34}}" },
 										"height": "{{computed.compact ? 96 : 124}}",
 										"gap": 8,
 										"children": [
@@ -787,7 +787,7 @@
 											}
 										]
 									},
-									{ "use": "editFrame", "with": { "card": "devices", "name": "{{computed.cardTitle.devices}}" }, "id": "editDevices", "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } }
+									{ "use": "editFrame", "with": { "card": "devices", "name": "{{computed.cardTitle.devices}}" }, "id": "editDevices", "anchors": { "left": 0, "right": 0, "top": 0, "bottom": "#devices.bottom + 10" } }
 								]
 							}
 						]

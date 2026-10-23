@@ -178,11 +178,12 @@
 												"type": "row",
 												"anchors": { "left": 148, "right": 0, "top": 6 },
 												"height": 28,
-												"gap": 2,
+												"gap": 0,
 												"children": [
-													{ "repeat": { "for": "seg", "in": "ent.segs" }, "type": "label", "grow": "{{seg.h}}", "basis": 0, "anchors": { "top": 0, "bottom": 0 }, "radius": 4,
+													{ "repeat": { "for": "seg", "in": "ent.segs", "index": "si" }, "type": "label", "grow": "{{seg.h}}", "basis": 0, "anchors": { "top": 0, "bottom": 0 },
+														"radius": { "topLeft": "{{si == 0 ? 4 : 0}}", "bottomLeft": "{{si == 0 ? 4 : 0}}", "topRight": "{{si == length(ent.segs) - 1 ? 4 : 0}}", "bottomRight": "{{si == length(ent.segs) - 1 ? 4 : 0}}" },
 														"color": "{{seg.on ? '@accent' : '@raised'}}", "textColor": "{{seg.on ? '@knob' : '@muted'}}", "font": "small", "align": "center",
-														"text": "{{seg.h >= 4 ? t(ent.k + (seg.on ? '.on' : '.off')) : ''}}", "tooltip": "{{t(ent.k + (seg.on ? '.on' : '.off'))}}" }
+														"text": "{{seg.h >= 2 ? t(ent.k + (seg.on ? '.on' : '.off')) : ''}}", "tooltip": "{{t(ent.k + (seg.on ? '.on' : '.off'))}}" }
 												]
 											}
 										]

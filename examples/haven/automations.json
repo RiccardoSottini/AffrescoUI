@@ -327,7 +327,7 @@
 								"anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40, "radius": 20, "label": "{{t('auto.more')}}", "tooltip": "{{t('auto.more')}}",
 								"isOpen": "{{state.autoMenu}}", "onClick": { "toggle": "state.autoMenu" },
 								"children": [
-									{ "id": "autoMenu", "use": "menu", "with": { "open": "state.autoMenu", "placement": "below-end", "width": 200, "icons": true,
+									{ "id": "autoMenu", "use": "popMenu", "with": { "open": "state.autoMenu", "width": 200,
 										"items": [
 											{ "title": "{{t('auto.run')}}", "icon": "play", "run": "runAutomation" },
 											{ "title": "{{t('auto.duplicate')}}", "icon": "copy", "run": "duplicateAutomation" },
@@ -336,7 +336,7 @@
 										] } }
 								] },
 							{ "id": "autoEnabled", "use": "pill", "anchors": { "right": 184, "top": 16 },
-								"with": { "at": "{{'state.automations[' + state.autoOpen + '].on'}}", "on": "{{computed.openAuto.on}}", "name": "{{t('auto.enabled')}}", "thumb": "#ffffff", "track": "#ffffff80" } },
+								"with": { "at": "{{'state.automations[' + state.autoOpen + '].on'}}", "on": "{{computed.openAuto.on}}", "name": "{{t('auto.enabled')}}", "thumb": "{{computed.themeNow == 'dark' ? '@accent' : '#ffffff'}}", "track": "{{computed.themeNow == 'dark' ? '@accentTrack' : '#ffffff80'}}" } },
 							{ "type": "label", "font": "small", "text": "{{t('auto.enabled')}}", "textColor": "@onHeader", "anchors": { "right": 232, "top": 0 }, "width": 120, "height": 56,
 								"align": { "horizontal": "end", "vertical": "center" } },
 							{

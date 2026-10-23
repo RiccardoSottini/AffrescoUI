@@ -31,9 +31,9 @@
 	"computed": {
 		"subPages": "{{['devices', 'profile', 'general', 'about']}}",
 		"deviceRows": "{{map(state.devices, { id: it.id, cells: [it.name, t('kind.' + it.id), t('device.' + it.id + '.' + (it.on ? 'on' : 'off'))] })}}",
-		"deviceColumns": "{{[{ id: 'name', title: t('table.device'), width: 220 }, { id: 'kind', title: t('table.kind'), width: 180 }, { id: 'state', title: t('table.state'), width: 160 }]}}",
+		"deviceColumns": "{{[{ id: 'name', title: t('table.device'), width: floor((window.width - computed.sideWidth - 66) * 0.4) }, { id: 'kind', title: t('table.kind'), width: floor((window.width - computed.sideWidth - 66) * 0.3) }, { id: 'state', title: t('table.state'), width: floor((window.width - computed.sideWidth - 66) * 0.3) }]}}",
 		"roomEntityRows": "{{map(state.rooms, { id: 'r' + index, cells: [it.name, t('summary.lights', { on: length(filter(it.lights, it.on)), total: length(it.lights) }), it.temp + '°  →  ' + it.target + '°'] })}}",
-		"roomEntityColumns": "{{[{ id: 'room', title: t('table.room'), width: 220 }, { id: 'lights', title: t('lights.title'), width: 180 }, { id: 'climate', title: t('climate.title'), width: 160 }]}}"
+		"roomEntityColumns": "{{[{ id: 'room', title: t('table.room'), width: floor((window.width - computed.sideWidth - 66) * 0.4) }, { id: 'lights', title: t('lights.title'), width: floor((window.width - computed.sideWidth - 66) * 0.3) }, { id: 'climate', title: t('climate.title'), width: floor((window.width - computed.sideWidth - 66) * 0.3) }]}}"
 	},
 
 	"components": {

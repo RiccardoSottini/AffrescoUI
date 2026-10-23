@@ -141,15 +141,21 @@
 											{ "id": "peakFigure", "type": "label", "font": "small", "textColor": "@text", "fitText": true, "text": "{{pad(computed.peakHour, 2)}}:00" }
 										]
 									},
+									{ "id": "usageAxis", "anchors": { "left": 24, "right": 24, "top": 80, "bottom": 36 }, "color": "transparent", "children": [{
+										"id": "usageTick", "repeat": { "for": "v", "in": "{{[1, 2]}}" }, "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": "{{v / 2.6 * 100 + '%'}}",
+										"color": "transparent", "children": [
+											{ "anchors": { "left": 40, "right": 0, "top": 0 }, "height": 1, "color": "@divider" },
+											{ "id": "usageTickLabel", "style": "caption", "text": "{{v}} kWh", "anchors": { "left": 0, "top": 2 } }
+										] }, { "anchors": { "left": 40, "right": 0, "bottom": 0 }, "height": 1, "color": "@divider" }] },
 									{ "id": "usageAll", "use": "barChart", "with": { "values": "{{state.hourly}}", "top": 2.6, "color": "@solar", "gap": 0.25 },
-										"anchors": { "left": 24, "right": 24, "top": 80, "bottom": 36 } },
+										"anchors": { "left": 64, "right": 24, "top": 80, "bottom": 37 } },
 									{ "id": "usageGrid", "use": "barChart", "with": { "values": "{{computed.gridHourly}}", "top": 2.6, "color": "@grid", "gap": 0.25 },
-										"anchors": { "left": 24, "right": 24, "top": 80, "bottom": 36 }, "role": "img",
+										"anchors": { "left": 64, "right": 24, "top": 80, "bottom": 37 }, "role": "img",
 										"label": "{{t('usage.label', { hour: pad(computed.peakHour, 2) + ':00' })}}" },
 									{
 										"id": "hours",
 										"type": "row",
-										"anchors": { "left": 24, "right": 24, "bottom": 10 },
+										"anchors": { "left": 64, "right": 24, "bottom": 10 },
 										"height": 18,
 										"children": [
 											{ "id": "hour", "repeat": { "for": "h", "in": "{{['00:00', '06:00', '12:00', '18:00', '23:00']}}" }, "type": "label", "text": "{{h}}",
