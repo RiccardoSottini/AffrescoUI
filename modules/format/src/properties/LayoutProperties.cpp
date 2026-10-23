@@ -239,10 +239,15 @@ void applyGrid(Panel& panel, const json& values, const PropertyReader& reader, c
 } // namespace
 
 std::vector<PropertySpec> layoutItemProperties() {
-	return {{"maxWidth"},    {"maxHeight"},
-	        {"aspectRatio"}, {"shrink", ValueKind::Number},
-	        {"basis"},       {"alignSelf", ValueKind::Text},
-	        {"cell"},        {"dir", ValueKind::Text}};
+	return {{"maxWidth"},
+	        {"maxHeight"},
+	        {"aspectRatio"},
+	        {"shrink", ValueKind::Number},
+	        {"basis"},
+	        {"alignSelf", ValueKind::Text},
+	        {"justifySelf", ValueKind::Text},
+	        {"cell"},
+	        {"dir", ValueKind::Text}};
 }
 
 bool layoutItemProperty(Panel& panel, std::string_view key, const json& value, const std::string& at) {
@@ -252,6 +257,7 @@ bool layoutItemProperty(Panel& panel, std::string_view key, const json& value, c
 	else if(key == "shrink") panel.setShrink(nonNegative(value, at));
 	else if(key == "basis") panel.setBasis(optionalLength(value, "auto", at));
 	else if(key == "alignSelf") panel.setAlignSelf(crossAlign(value, at));
+	else if(key == "justifySelf") panel.setJustifySelf(crossAlign(value, at));
 	else if(key == "cell") panel.setGridCell(cell(value, at));
 	else if(key == "dir") panel.setWritingDirection(writingDirection(value, at));
 	else return false;
@@ -264,6 +270,7 @@ void resetLayoutItem(Panel& panel) {
 	panel.setShrink(0.0f);
 	panel.setBasis(std::nullopt);
 	panel.setAlignSelf(std::nullopt);
+	panel.setJustifySelf(std::nullopt);
 	panel.setGridCell({});
 	panel.setWritingDirection(WritingDirection::Inherit);
 }

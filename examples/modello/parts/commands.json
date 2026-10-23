@@ -5,6 +5,8 @@
 	"note": "Modello's actions, keys and menus, modelled on Blender's keymap: G, R and S move, turn and scale the selection after the pointer (X, Y and Z lock an axis, Shift a plane, digits type the amount, Enter or a click confirms, Escape or a right click cancels); Shift+A adds, X and Delete delete, Shift+D duplicates, H hides; the numpad turns the view; Ctrl+Z undoes. Every change of the scene goes through an action that keeps an undo snapshot first.",
 	"computed": {
 		"centre": "{{ { x: nodes.viewport.x + nodes.viewport.width / 2 - 100, y: nodes.viewport.y + nodes.viewport.height / 2 - 60 } }}",
+		"lastCentre": "{{state.lastOp == null || length(state.lastOp.base) == 0 ? [0, 0, 0] : map([sum(map(state.lastOp.base, it.translation[0])), sum(map(state.lastOp.base, it.translation[1])), sum(map(state.lastOp.base, it.translation[2]))], it / length(state.lastOp.base))}}",
+		"searchItems": "{{map(filter(commands, it.enabled && it.name != 'search'), { title: it.title, detail: it.keyLabel ?? it.category, icon: it.icon, run: it.name })}}",
 		"cameraNode": "{{find(state.scene.nodes, it.kind == 'camera')}}",
 		"modalName": "{{state.modal ? (state.modal.mode == 'translate' ? 'Move' : state.modal.mode == 'rotate' ? 'Rotate' : 'Resize') : ''}}"
 	},
@@ -21,13 +23,27 @@
 			{ "set": "state.modalText", "to": "" },
 			{ "if": "{{event.phase != 'end'}}", "then": [{ "stop": true }] },
 			{ "run": "snapshot" },
+			{ "set": "state.lastBase", "to": [] },
 			{ "forEach": "{{event.nodes}}", "as": "m", "do": [
+				{ "push": "state.lastBase", "value": "{{find(state.undo[length(state.undo) - 1].nodes, it.id == m.id)}}" },
 				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), m.id)]",
 				  "to": "{{merge(state.scene.nodes[indexOf(map(state.scene.nodes, it.id), m.id)], { translation: map(m.translation, round(it * 10000) / 10000), rotationDegrees: map(m.rotationDegrees, round(it * 1000) / 1000), scale: map(m.scale, round(it * 10000) / 10000) })}}" }
 			] },
-			{ "set": "state.last", "to": "{{event.text}}" }
+			{ "set": "state.last", "to": "{{event.text}}" },
+			{ "set": "state.lastOp", "to": "{{ { title: event.mode == 'translate' ? 'Move' : event.mode == 'rotate' ? 'Rotate' : 'Resize', kind: event.mode, base: state.lastBase, values: event.mode == 'translate' ? map(event.nodes[0].translation, round((it - state.lastBase[0].translation[index]) * 10000) / 10000) : event.mode == 'scale' ? map(event.nodes[0].scale, state.lastBase[0].scale[index] == 0 ? 1 : round(it / state.lastBase[0].scale[index] * 10000) / 10000) : null } }}" }
+		],
+		"search": { "title": "Search…", "category": "Edit", "icon": "search", "do": [{ "dismiss": true }, { "set": "state.quickPick", "to": { "open": true, "query": "" } }] },
+		"adjustLastPanel": { "title": "Adjust Last Operation", "category": "Edit", "do": [{ "set": "state.redoOpen", "to": true }] },
+		"adjustLast": [
+			{ "if": "{{state.lastOp == null || state.lastOp.values == null}}", "then": [{ "stop": true }] },
+			{ "set": "state.lastOp.values[args.axis]", "to": "{{round(args.value * 10000) / 10000}}" },
+			{ "forEach": "{{state.lastOp.base}}", "as": "b", "do": [
+				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), b.id)]",
+				  "to": "{{merge(b, state.lastOp.kind == 'scale' ? { translation: map(b.translation, computed.lastCentre[index] + (it - computed.lastCentre[index]) * state.lastOp.values[index]), scale: map(b.scale, round(it * state.lastOp.values[index] * 10000) / 10000) } : { translation: map(b.translation, round((it + state.lastOp.values[index]) * 10000) / 10000) })}}" }
+			] }
 		],
 		"snapshot": [
+			{ "set": "state.lastOp", "to": null },
 			{ "push": "state.undo", "value": "{{state.scene}}" },
 			{ "if": "{{length(state.undo) > 32}}", "then": [{ "remove": "state.undo", "at": 0 }] },
 			{ "set": "state.redo", "to": [] }
@@ -35,6 +51,7 @@
 		"undo": {
 			"title": "Undo", "category": "Edit", "icon": "undo-2", "enablement": "{{length(state.undo) > 0}}",
 			"do": [
+				{ "set": "state.lastOp", "to": null },
 				{ "push": "state.redo", "value": "{{state.scene}}" },
 				{ "set": "state.scene", "to": "{{state.undo[length(state.undo) - 1]}}" },
 				{ "remove": "state.undo", "at": "{{length(state.undo) - 1}}" },
@@ -93,7 +110,8 @@
 				"translation": "{{state.cursor}}", "rotationDegrees": [0, 0, 0], "scale": [1, 1, 1] } },
 			{ "set": "state.view.selection", "to": "{{[lower(args.kind) + '-' + state.added]}}" },
 			{ "set": "state.active", "to": "{{lower(args.kind) + '-' + state.added}}" },
-			{ "set": "state.last", "to": "Add {{args.name}}" }
+			{ "set": "state.last", "to": "Add {{args.name}}" },
+			{ "set": "state.lastOp", "to": "{{ { title: 'Add ' + args.name, kind: 'translate', label: 'Location', base: [merge(state.scene.nodes[length(state.scene.nodes) - 1], { translation: [0, 0, 0] })], values: state.cursor } }}" }
 		],
 		"deleteSelected": {
 			"title": "Delete", "category": "Object", "icon": "trash-2", "enablement": "{{length(state.view.selection) > 0}}",
@@ -156,6 +174,7 @@
 			  "then": [{ "set": "state.view.selection", "to": "{{filter(state.view.selection, it != args.id)}}" }] }
 		],
 		"setField": [
+			{ "if": "{{args.key == 'redo'}}", "then": [{ "run": "adjustLast", "with": { "args": { "axis": "{{args.axis}}", "value": "{{args.value}}" } } }, { "stop": true }] },
 			{ "if": "{{computed.activeIndex < 0}}", "then": [{ "stop": true }] },
 			{ "set": "state.scene.nodes[computed.activeIndex][args.key][args.axis]", "to": "{{round(args.value * 10000) / 10000}}" }
 		],
@@ -277,6 +296,8 @@
 		"mod+z": { "do": "undo" },
 		"mod+shift+z": { "do": "redo" },
 		"n": { "do": "toggleSidebar" },
+		"f3": { "do": "search" },
+		"f9": { "when": "{{state.lastOp != null}}", "do": "adjustLastPanel" },
 		"t": { "do": "toggleToolbar" },
 		"tab": { "when": "{{!context.textInputFocus}}", "do": "toggleEditMode" },
 		"i": { "do": "insertKeyframe" },
@@ -291,7 +312,9 @@
 		},
 		"edit": {
 			"undo": { "run": "undo", "group": "1_history", "order": 1 },
-			"redo": { "run": "redo", "group": "1_history", "order": 2 }
+			"redo": { "run": "redo", "group": "1_history", "order": 2 },
+			"adjust": { "run": "adjustLastPanel", "group": "2_last" },
+			"search": { "run": "search", "group": "3_search" }
 		},
 		"render": {
 			"camera": { "run": "viewCamera", "title": "View Camera", "group": "1_view" }
@@ -299,7 +322,8 @@
 		"window": {
 			"theme": { "run": "toggleTheme", "group": "1_theme" },
 			"sidebar": { "run": "toggleSidebar", "group": "2_regions", "order": 1 },
-			"toolbar": { "run": "toggleToolbar", "group": "2_regions", "order": 2 }
+			"toolbar": { "run": "toggleToolbar", "group": "2_regions", "order": 2 },
+			"assistant": { "run": "assistant.toggle", "title": "Assistant", "group": "3_assistant" }
 		},
 		"help": {
 			"about": { "run": "about", "group": "1_help" }

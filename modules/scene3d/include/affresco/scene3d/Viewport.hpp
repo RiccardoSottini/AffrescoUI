@@ -54,6 +54,7 @@ struct ViewportSettings {
 	std::optional<std::array<float, 4>> box; ///< A box being dragged: x0, y0, x1, y1 in window units.
 	bool zUp = false;                        ///< The scene's frame has Z up (the world's has Y up).
 	std::optional<Vec3> cursor;              ///< A 3D cursor drawn there, in the scene's frame.
+	bool glyphs = false;                     ///< Lights and cameras drawn as shapes rather than as crosses.
 };
 
 /// @brief The id of the node a Z-up scene's root nodes are put under (withUpFrame()).
@@ -73,7 +74,7 @@ inline constexpr std::string_view upFrameId = "<up>";
 /// The keys are `camera` (see cameraFromJson()), `selection` and `outlined` (ids), `shading`, `grid`, `axes`,
 /// `background`, `gridColor` and `outline` (`"#rrggbb"` or three numbers 0..1), `exposure`, `time`, `gizmo`
 /// (`{ "visible", "mode", "space": "world" | "local", "axis", "pivot" }`), `box` (four numbers), `up` (`"y"` or
-/// `"z"`) and `cursor3d` (three numbers).
+/// `"z"`), `cursor3d` (three numbers) and `glyphs` (a flag).
 /// @param params The parameters.
 /// @return The settings.
 [[nodiscard]] ViewportSettings viewportSettingsFromJson(const json& params) noexcept;

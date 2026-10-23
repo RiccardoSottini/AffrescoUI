@@ -197,6 +197,7 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 		if(chording) { // Escape ends a chord, and does nothing else
 			chord_.clear();
 			engine_.document.contextChanged();
+			if(engine_.window) engine_.window->takeKey();
 			return true;
 		}
 		dismissOverlays(nullptr);
@@ -210,7 +211,10 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 	if(!ran && waits) chord_ = press; // the press starts a chord, or goes on with one
 	else chord_.clear();              // it ran, or ends a chord, which drops it
 	if(chording || !chord_.empty()) engine_.document.contextChanged();
-	return ran || waits || chording;
+	// A press that ran, starts or ends a chord is the bindings': the focused panel doesn't edit or type with it too
+	const bool taken = ran || waits || chording;
+	if(taken && engine_.window) engine_.window->takeKey();
+	return taken;
 }
 
 bool Events::runPanelKeys(Panel* from, const std::string& press, bool& waits) {

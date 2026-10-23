@@ -53,6 +53,11 @@ constexpr auto sceneTable = std::to_array<KeyReference>({
     {"grid", "", "A ground grid (default true).", "scene"},
     {"axes", "flag",
 	 "The X (red) and Z (blue) axes on the floor (default true); with `\"up\": \"z\"`, X and Y (green).", "scene"},
+    {"glyphs", "flag",
+	 "Lights and cameras drawn as a modeller draws them (default false: a small cross): a camera's frustum with its up "
+	 "triangle, a light's circle with a line down to the floor (a sun's rays, a spot's cone); the selected ones in "
+	 "`outlineColor`.",
+	 "scene"},
     {"up", R"json({"anyOf": [{"enum": ["y", "z"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Which way is up in the scene's frame: `\"y\"` (the default, as glTF) or `\"z\"` (as CAD and modelling tools): "
 	 "then the nodes' transforms, the world gizmo's axes, the picked `point`, the `cursor3d` and the pivot are Z up, "

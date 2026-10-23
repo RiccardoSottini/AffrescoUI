@@ -32,6 +32,14 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 		}
 	});
 	runtime.onUpdated.connect([this] { save(); });
+	runtime.onAsk.connect([this](const json& request) { // the person asks the agents, from inside the app
+		if(images.rendering()) return;
+		if(peers.empty()) {
+			(void)runtime.receiveReply({{"request", request["id"]}, {"error", "no agent is connected"}});
+			return;
+		}
+		broadcast(request);
+	});
 	repairs.onMessage.connect([this](const json& message) {
 		for(const auto& peer : peers) sendRepairs(*peer, message);
 	});
@@ -150,6 +158,7 @@ Screen::Impl::Peer& Screen::Impl::add(Channel& channel, std::unique_ptr<Channel>
 	peer->session->onRelay.connect([this, sender = peer.get()](const json& message) {
 		if(message.value("type", std::string()) == "repair")
 			return repairs.handle(message, [this, sender](const json& answer) { sendRepairs(*sender, answer); });
+		if(message.value("type", std::string()) == "reply" && runtime.receiveReply(message)) return; // the screen's
 		if(peers.size() < 2) {
 			sender->session->send({{"type", "error"},
 			                       {"message", "nobody else is connected to receive this " +

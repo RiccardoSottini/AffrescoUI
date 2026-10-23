@@ -137,7 +137,7 @@ json readDisplay(const json& values, const PropertyReader& reader, const std::st
 		if(!scene3d::shadingNamed(shading)) fail(path + ".shading", R"(expected "material", "solid" or "wireframe")");
 		display["shading"] = shading;
 	}
-	for(const char* key : {"grid", "axes"})
+	for(const char* key : {"grid", "axes", "glyphs"})
 		if(values.contains(key)) display[key] = boolean(values[key], path + "." + key);
 	const auto color = [&](const char* key, const char* as) {
 		if(!values.contains(key)) return;
@@ -328,7 +328,7 @@ void registerSceneType(TypeRegistry& registry) {
 	                   {"gridColor", ValueKind::Color},      {"outlineColor", ValueKind::Color},
 	                   {"exposure", ValueKind::Number},      {"gizmo", ValueKind::Any},
 	                   {"controls", ValueKind::Any},         {"up", ValueKind::Text},
-	                   {"cursor3d", ValueKind::Any}};
+	                   {"cursor3d", ValueKind::Any},         {"glyphs", ValueKind::Boolean}};
 	set->apply = applyScene;
 	set->everyUpdate = false; // a scene of thousands of nodes: read again only when the values change
 	set->keepsClicks = true;

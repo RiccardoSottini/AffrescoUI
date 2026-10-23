@@ -49,7 +49,7 @@
 				"children": [
 					{
 						"type": "scene", "id": "viewport", "anchors": { "left": 0, "right": 0, "top": 26, "bottom": 0 },
-						"bind": "state.view", "scene": "{{state.scene}}", "up": "z", "cursor3d": "{{state.cursor}}",
+						"bind": "state.view", "scene": "{{state.scene}}", "up": "z", "glyphs": true, "cursor3d": "{{state.cursor}}",
 						"shading": "{{state.shading == 'rendered' ? 'material' : state.shading}}",
 						"grid": "{{state.overlays}}", "axes": "{{state.overlays}}", "background": "@view",
 						"gridColor": "@grid", "outlineColor": "@selected", "gizmo": "{{computed.gizmo}}",
@@ -71,7 +71,32 @@
 					            "run": "toggleSidebar", "textColor": "@dim" } },
 					{ "when": "{{state.modal != null}}", "type": "label", "id": "modal-hint", "live": "polite",
 					  "text": "{{state.modalText}}", "textColor": "@text", "anchors": { "left": 52, "bottom": 12 },
-					  "fitText": true }
+					  "fitText": true },
+					{ "when": "{{state.modal == null && state.lastOp != null}}", "use": "redoPanel" }
+				]
+			}
+		},
+		"redoPanel": {
+			"node": {
+				"id": "redo-panel", "anchors": { "left": 48, "bottom": 8 }, "width": 230,
+				"height": "{{state.redoOpen && state.lastOp.values != null ? 94 : 24}}", "color": "@panel", "radius": 4,
+				"role": "region", "label": "Adjust Last Operation",
+				"children": [
+					{ "id": "redo-header", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 24, "color": "transparent",
+					  "role": "button", "focusable": true, "cursor": "hand", "label": "{{state.lastOp.title}}",
+					  "onClick": { "toggle": "state.redoOpen" },
+					  "children": [
+						{ "type": "label", "font": "iconsSmall", "icon": "{{state.redoOpen ? 'chevron-down' : 'chevron-right'}}", "text": "",
+						  "textColor": "@dim", "align": "center", "anchors": { "left": 4, "top": 0, "bottom": 0 }, "width": 14 },
+						{ "type": "label", "text": "{{state.lastOp.title}}", "textColor": "@text",
+						  "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 22, "right": 4, "top": 0, "bottom": 0 } }
+					  ] },
+					{ "when": "{{state.redoOpen && state.lastOp.values != null}}", "anchors": { "left": 4, "right": 0, "top": 26 }, "height": 62,
+					  "color": "transparent", "children": [
+						{ "use": "vectorField", "with": { "title": "{{state.lastOp.label ?? (state.lastOp.kind == 'scale' ? 'Scale' : 'Move')}}",
+						  "values": "{{state.lastOp.values}}", "key": "redo", "unit": "{{state.lastOp.kind == 'scale' ? '' : ' m'}}",
+						  "step": "{{state.lastOp.kind == 'scale' ? 0.005 : 0.01}}", "digits": 3, "fixed": "{{state.lastOp.kind == 'scale'}}" } }
+					  ] }
 				]
 			}
 		},

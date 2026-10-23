@@ -10,7 +10,7 @@
 		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 14 },
 		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 12 }
 	},
-	"include": ["parts/commands.json", "parts/viewport.json", "parts/editors.json"],
+	"include": ["parts/commands.json", "parts/viewport.json", "parts/editors.json", "../shared/addons/assistant/assistant.json"],
 	"theme": "{{state.theme}}",
 	"tokens": {
 		"gap": { "dark": "#161616", "light": "#8f8f8f" },
@@ -56,6 +56,14 @@
 		"kit.secondary": { "dark": "#545454", "light": "#f2f2f2" },
 		"kit.onSecondary": { "dark": "#e6e6e6", "light": "#1a1a1a" },
 		"kit.accent": { "dark": "#71a8ff", "light": "#2b5797" },
+		"assistant.accent": "@sel",
+		"assistant.accentHover": { "dark": "#5680c2", "light": "#4772b3" },
+		"assistant.onAccent": "#ffffff",
+		"assistant.surface": "@panelBack",
+		"assistant.raised": "@panel",
+		"assistant.border": "@gap",
+		"assistant.text": "@text",
+		"assistant.dim": "@dim",
 		"kit.radius": 4,
 		"kit.cardRadius": 6
 	},
@@ -108,6 +116,10 @@
 		"sidebarTab": "Item",
 		"ctx": { "open": false, "menu": "", "x": 0, "y": 0 },
 		"about": false,
+		"lastOp": null,
+		"lastBase": [],
+		"redoOpen": true,
+		"quickPick": { "open": false, "query": "" },
 		"sizes": { "main": [1102], "left": [720], "right": [262] }
 	},
 	"computed": {
@@ -147,6 +159,8 @@
 		  "items": "{{menus[state.ctx.menu] ?? []}}", "icons": "{{some(menus[state.ctx.menu] ?? [], it.icon != null)}}" } },
 		{ "use": "dialog", "id": "about-dialog", "with": { "open": "state.about", "title": "Modello 1.0", "width": 360, "height": 170,
 		  "message": "A 3D modeller written only as AffrescoUI screen documents: the stock host runs it.",
-		  "buttons": [{ "title": "Close" }] } }]
+		  "buttons": [{ "title": "Close" }] } },
+		{ "when": "{{state.quickPick.open}}", "use": "quickPick", "id": "search", "with": { "width": 460, "rows": 12, "rowHeight": 22,
+		  "providers": [{ "items": "{{computed.searchItems}}", "placeholder": "Search for a command" }] } }]
 	}
 }

@@ -20,8 +20,8 @@
 
 namespace affresco::format {
 
-/// @brief Where a document's node trees start: "root", each of "screens" and "templates", and each component's
-/// "node", in that order.
+/// @brief Where a document's node trees start: "root", each of "screens", "templates" and "overlays", and each
+/// component's "node", in that order.
 /// @param document The document.
 /// @return Each tree's JSON Pointer and node (pointing into @p document).
 [[nodiscard]] std::vector<std::pair<std::string, const json*>> nodeTrees(const json& document);
@@ -33,7 +33,7 @@ namespace affresco::format {
 [[nodiscard]] std::optional<std::string> findNodeWithId(const json& document, std::string_view id);
 
 /// @brief Calls a function for every node of a document, parents first, in document order: "root", then "screens",
-/// "templates" and the components' "node"s. A component's `{"slot": true}` placeholder is not a node.
+/// "templates", "overlays" and the components' "node"s. A component's `{"slot": true}` placeholder is not a node.
 /// @param document The document.
 /// @param visit Gets each node and its JSON Pointer.
 void forEachNode(const json& document, const std::function<void(const json& node, const std::string& pointer)>& visit);

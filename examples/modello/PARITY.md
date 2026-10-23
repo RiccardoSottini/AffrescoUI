@@ -28,7 +28,7 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_host examples/mo
 | Timeline: keyframe diamonds | done | |
 | Status bar: mouse hints, counts, version | done | |
 | Light and dark themes | done | Window › Toggle Light and Dark Theme |
-| Camera and light glyphs in the viewport | missing | the light is a cross, the camera isn't drawn |
+| Camera and light glyphs in the viewport | done | a frustum with its up triangle; a lamp with a line to the floor |
 
 ## Object mode
 
@@ -50,8 +50,8 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_host examples/mo
 | Pivot point (median, cursor, active) | done | |
 | Snapping | done | |
 | Ctrl+Z, Ctrl+Shift+Z | done | |
-| F3 search | missing | |
-| F9 redo last panel | missing | |
+| F3 search | done | over every command, with its key |
+| Adjust Last Operation panel, F9 | partial | Move, Resize and Add adjust; Rotate shows its name only; F9 opens it in place |
 | Z and ~ pie menus | partial | Z opens a shading popup, not a pie |
 | Right click object context menu | done | |
 | Editor-type switcher | partial | the menu is drawn; editors don't switch yet |
@@ -74,7 +74,7 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_host examples/mo
 | Import and export glTF | missing | |
 | Save and open | missing | |
 | Render window | missing | |
-| Chat add-on | missing | |
+| Chat add-on | done | Window › Assistant, Ctrl+Shift+A |
 | Keyboard access and accessibility names | partial | names on every control; Tab order not tuned |
 
 ## Counts

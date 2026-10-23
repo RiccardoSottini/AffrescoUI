@@ -107,6 +107,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"components", checkComponents});
 	registry.add({"templates", checkObject});
 	registry.add({"screens", checkObject});
+	registry.add({"overlays", checkObject}); // laid over the window, above the root (Reconciler::childrenOf())
 	registry.add({"state"});
 	registry.add({"stateTypes", checkStateTypes}); // a type per state key (StateTypes.hpp)
 	registry.add({"computed", checkObject});
