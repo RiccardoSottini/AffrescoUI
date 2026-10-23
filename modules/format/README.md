@@ -299,7 +299,8 @@ src/
     StateTypes.*           typed state: the stateTypes subset of JSON Schema, matching values, describing types
     CheckerTypes.cpp       the typed-state checks
   rules/                   the format as rules for version control
-    Rules.cpp              validation, findNode, permissions, checkChange (control steps, capability sections)
+    Rules.cpp              validation, findNode, permissions, checkChange (capability sections, controls added)
+    RulesControl.*         the control scan: control steps, and the actions and components that may run them
     BehaviourLines.cpp     behaviourLines: the actions, handlers, steps and bindings a change adds, removes or changes
     RulesNodes.cpp         Rules for revisions' nodes and paths: ids for the nodes they add, hints for paths
     NodeIds.cpp            where nodes are, their ids, duplicates, and readable ids for nodes without one
@@ -381,7 +382,7 @@ new group in a new file registered from `registerBuiltInSteps` (the order there 
 catalog lists it from the registry. Add the key to the checker's `stepNames` (`CheckerNodes.cpp`), give it and the
 keys it reads entries in `ReferenceSections.cpp`, and regenerate the schema and `SCREEN_FORMAT.md`'s tables with
 `affrescoui schema` (as above). If the step reaches outside the document (a program, a file, the network, history), it is a
-control step: mark it `control`, add it to `controlSteps` in `Rules.cpp` so a revision can't add it, and test that
+control step: mark it `control`, add it to `controlSteps` in `RulesControl.cpp` so a revision can't add it, and test that
 refusal in `tests/unit/rules.cpp`.
 
 **Add a document section.** A `SectionType` with its validator, added in `registerBuiltInSections` (`Sections.cpp`);

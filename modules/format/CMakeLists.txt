@@ -116,6 +116,7 @@ target_include_directories(affrescoui_format PRIVATE src/checker)
 target_sources(affrescoui_format PRIVATE
 	src/rules/Rules.cpp
 	src/rules/RulesNodes.cpp
+	src/rules/RulesControl.cpp
 	src/rules/BehaviourLines.cpp
 	src/rules/NodeIds.cpp
 	src/rules/Limits.cpp
