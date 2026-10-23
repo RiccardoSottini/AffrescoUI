@@ -218,34 +218,34 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export)
 	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_sinopia PRIVATE AFFRESCOUI_SINOPIA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia")
-	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (examples/surfaces)
-	add_executable(affrescoui_surfaces examples/surfaces/main.cpp examples/surfaces/Surfaces.cpp)
+	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (tests/render/surfaces)
+	add_executable(affrescoui_surfaces tests/render/surfaces/main.cpp tests/render/surfaces/Surfaces.cpp)
 	target_include_directories(affrescoui_surfaces SYSTEM PRIVATE external/glad/include)
 	target_link_libraries(affrescoui_surfaces PRIVATE affrescoui)
 	target_compile_options(affrescoui_surfaces PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_surfaces PRIVATE
-		AFFRESCOUI_SURFACES_SCREEN="${CMAKE_CURRENT_SOURCE_DIR}/examples/surfaces/surfaces.screen.json")
+		AFFRESCOUI_SURFACES_SCREEN="${CMAKE_CURRENT_SOURCE_DIR}/tests/render/surfaces/surfaces.screen.json")
 	# Tempera, an image editor on the imaging module (examples/tempera/README.md)
 	add_subdirectory(examples/tempera)
 	# Bottega, Sinopia's slide sorter installed into Tempera with an adapter and a proof (examples/bottega/)
 	add_subdirectory(examples/bottega)
 	# Orrery, a small planetarium with a 3D view, a sky chart, an orbit graph and an events timeline (examples/orrery/)
 	add_subdirectory(examples/orrery)
-	# The document server, headless: documents and their history on disk, shared with people (examples/server/README.md)
-	set(AFFRESCOUI_SERVER_SOURCES examples/server/DocumentServer.cpp examples/server/TokenFile.cpp
-	    examples/server/UserInfoVerifier.cpp)
-	add_executable(affrescoui_server examples/server/main.cpp ${AFFRESCOUI_SERVER_SOURCES})
+	# The document server, headless: documents and their history on disk, shared with people (apps/server/README.md)
+	set(AFFRESCOUI_SERVER_SOURCES apps/server/DocumentServer.cpp apps/server/TokenFile.cpp
+	    apps/server/UserInfoVerifier.cpp)
+	add_executable(affrescoui_server apps/server/main.cpp ${AFFRESCOUI_SERVER_SOURCES})
 	target_link_libraries(affrescoui_server PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel affrescoui::net)
 	target_compile_options(affrescoui_server PRIVATE ${AFFRESCOUI_WARNINGS})
-	# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (examples/embed/README.md). Its
+	# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (modules/capi/example/README.md). Its
 	# scene is OpenGL 4.1 core, with that backend's glad: not built with gles3, whose render module has the other loader
 	if(AFFRESCOUI_BUILD_CAPI AND AFFRESCOUI_GL_BACKEND STREQUAL "gl41")
-		add_executable(affrescoui_embed examples/embed/main.cpp)
+		add_executable(affrescoui_embed modules/capi/example/main.cpp)
 		target_link_libraries(affrescoui_embed PRIVATE affrescoui::capi) # GLFW and glad come with it
 		target_include_directories(affrescoui_embed SYSTEM PRIVATE external/glad/include
 			$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 		target_compile_options(affrescoui_embed PRIVATE ${AFFRESCOUI_WARNINGS})
-		target_compile_definitions(affrescoui_embed PRIVATE AFFRESCOUI_EMBED_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/embed")
+		target_compile_definitions(affrescoui_embed PRIVATE AFFRESCOUI_EMBED_DIR="${CMAKE_CURRENT_SOURCE_DIR}/modules/capi/example")
 	endif()
 endif()
 
