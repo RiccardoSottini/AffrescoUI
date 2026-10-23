@@ -1,6 +1,7 @@
 /// @file
 /// @brief The built-in components (menu, menuBar, contextMenu, dialog, toast, hoverCard, settingsPage, quickPick, the
-/// desktop kit's toolbar, statusBar and popover, the form and the chat components), used like a document's own.
+/// desktop kit's bars, overlays, controls, dock and panels, the form and the chat components), used like a document's
+/// own.
 
 #pragma once
 
@@ -23,9 +24,22 @@ namespace affresco::format {
 /// @return Its text.
 [[nodiscard]] std::string_view builtInKitBars() noexcept;
 
-/// @brief The desktop kit's overlays (KitOverlays.cpp): popover, as one JSON object by name.
+/// @brief The desktop kit's overlays (KitOverlays.cpp): popover and toasts, as one JSON object by name.
 /// @return Its text.
 [[nodiscard]] std::string_view builtInKitOverlays() noexcept;
+
+/// @brief The desktop kit's controls (KitControls.cpp): segmentedControl, searchField, breadcrumbs and tabStrip, as one
+/// JSON object by name.
+/// @return Its text.
+[[nodiscard]] std::string_view builtInKitControls() noexcept;
+
+/// @brief The desktop kit's dock (KitDock.cpp): panels in tabbed areas, as one JSON object by name.
+/// @return Its text.
+[[nodiscard]] std::string_view builtInKitDock() noexcept;
+
+/// @brief The desktop kit's panels (KitPanels.cpp): inspector and ribbon, as one JSON object by name.
+/// @return Its text.
+[[nodiscard]] std::string_view builtInKitPanels() noexcept;
 
 /// @brief The chat components (BuiltInChatComponents.cpp): chatBubble, typingIndicator, proposalCard, chatComposer and
 /// chatLauncher, as one JSON object by name.

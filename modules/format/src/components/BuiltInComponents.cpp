@@ -211,14 +211,16 @@ constexpr std::string_view others = R"({
 				  "children": [{
 					"repeat": { "for": "b", "in": "{{buttons}}", "index": "i" },
 					"width": 88, "anchors": { "top": 0, "bottom": 0 }, "radius": "@kit.radius", "focusable": true,
-					"role": "button", "label": "{{b.title ?? ''}}", "color": "{{i == 0 ? highlight : '@kit.secondary'}}",
+					"let": { "main": "{{b.default == true || i == 0 && !some(buttons, it.default == true)}}" },
+					"role": "button", "label": "{{b.title ?? ''}}", "color": "{{main ? highlight : '@kit.secondary'}}",
+					"autofocus": "{{b.default == true}}",
 					"hover": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border" },
 					"focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
 					"mnemonic": "{{b.mnemonic ?? b.title ?? ''}}",
-					"onClick": [{ "dismiss": true },
+					"onClick": [{ "if": "{{b.keepOpen != true}}", "then": [{ "dismiss": true }] },
 					            { "if": "{{b.run != null}}", "then": [{ "run": "{{b.run}}", "with": "{{b.with}}" }] }],
 					"children": [{ "type": "label", "text": "{{b.title ?? ''}}",
-					               "textColor": "{{i == 0 ? '@kit.onPrimary' : '@kit.onSecondary'}}",
+					               "textColor": "{{main ? '@kit.onPrimary' : '@kit.onSecondary'}}",
 					               "anchors": { "left": 12, "top": 6 }, "fitText": true }]
 				  }]
 				}
@@ -341,6 +343,12 @@ const std::map<std::string, json, std::less<>>& all() {
 		for(auto& [name, definition] : bars.items()) made.emplace(name, std::move(definition));
 		json overlays = json::parse(builtInKitOverlays());
 		for(auto& [name, definition] : overlays.items()) made.emplace(name, std::move(definition));
+		json controls = json::parse(builtInKitControls());
+		for(auto& [name, definition] : controls.items()) made.emplace(name, std::move(definition));
+		json dock = json::parse(builtInKitDock());
+		for(auto& [name, definition] : dock.items()) made.emplace(name, std::move(definition));
+		json panels = json::parse(builtInKitPanels());
+		for(auto& [name, definition] : panels.items()) made.emplace(name, std::move(definition));
 		json chat = json::parse(builtInChatComponents());
 		for(auto& [name, definition] : chat.items()) made.emplace(name, std::move(definition));
 		return made;

@@ -1,0 +1,72 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The desktop kit's ribbon, for the rendering check: a document editor's tabs of groups of large and small buttons. The scenario switches tabs, narrows the ribbon until its last groups fold into buttons, runs an item from a folded group's menu, collapses the ribbon to its tabs, then switches to the dark theme and to right to left.",
+
+	"window": { "title": "Kit ribbon", "width": 720, "height": 240 },
+
+	"state": { "theme": "light", "dir": "ltr", "width": 720, "bold": true, "last": "" },
+	"theme": "{{state.theme}}",
+	"tokens": { "kit.radius": 4 },
+
+	"actions": {
+		"command": { "set": "state.last", "to": "{{what}}" },
+		"bold": { "toggle": "state.bold" }
+	},
+
+	"fonts": {
+		"default": {
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
+			"size": 13,
+			"fallback": ["icons"]
+		},
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 },
+		"largeIcons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 24 }
+	},
+
+	"root": {
+		"id": "root", "color": "@kit.background",
+		"children": [{ "id": "frame", "dir": "{{state.dir}}", "fill": true, "color": "@kit.background",
+			"children": [
+				{ "id": "ribbon", "use": "ribbon", "with": { "width": "{{state.width}}", "largeFont": "largeIcons", "tabs": [
+					{ "id": "home", "title": "Home", "groups": [
+						{ "id": "clipboard", "title": "Clipboard", "icon": "clipboard", "items": [
+							{ "title": "Paste", "icon": "clipboard", "size": "large", "keyLabel": "Ctrl+V", "run": "command", "with": { "what": "paste" } },
+							{ "title": "Cut", "icon": "scissors", "run": "command", "with": { "what": "cut" } },
+							{ "title": "Copy", "icon": "copy", "run": "command", "with": { "what": "copy" } }
+						] },
+						{ "id": "font", "title": "Font", "icon": "type", "items": [
+							{ "title": "Bold", "icon": "bold", "checked": "{{state.bold}}", "run": "bold" },
+							{ "title": "Italic", "icon": "italic", "run": "command", "with": { "what": "italic" } },
+							{ "title": "Underline", "icon": "underline", "enabled": false }
+						] },
+						{ "id": "paragraph", "title": "Paragraph", "icon": "align-left", "items": [
+							{ "title": "Left", "icon": "align-left", "run": "command", "with": { "what": "left" } },
+							{ "title": "Centre", "icon": "align-center", "run": "command", "with": { "what": "centre" } },
+							{ "title": "Right", "icon": "align-right", "run": "command", "with": { "what": "right" } },
+							{ "title": "List", "icon": "list", "run": "command", "with": { "what": "list" } }
+						] },
+						{ "id": "editing", "title": "Editing", "icon": "search", "items": [
+							{ "title": "Find", "icon": "search", "size": "large", "run": "command", "with": { "what": "find" } },
+							{ "title": "Replace", "icon": "replace", "size": "large", "run": "command", "with": { "what": "replace" } }
+						] }
+					] },
+					{ "id": "insert", "title": "Insert", "groups": [
+						{ "id": "media", "title": "Media", "items": [
+							{ "title": "Picture", "icon": "image", "size": "large", "run": "command", "with": { "what": "picture" } },
+							{ "title": "Table", "icon": "table", "size": "large", "run": "command", "with": { "what": "table" } },
+							{ "title": "Shape", "icon": "shapes", "size": "large", "run": "command", "with": { "what": "shape" } }
+						] },
+						{ "id": "links", "title": "Links", "items": [
+							{ "title": "Link", "icon": "link", "run": "command", "with": { "what": "link" } },
+							{ "title": "Bookmark", "icon": "bookmark", "run": "command", "with": { "what": "bookmark" } }
+						] }
+					] },
+					{ "id": "view", "title": "View", "groups": [] }
+				] } },
+				{ "type": "label", "text": "{{'Last command: ' + state.last}}", "textColor": "@kit.text",
+				  "align": "start", "padding": 12, "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 40 }
+			] }]
+	}
+}

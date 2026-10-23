@@ -260,6 +260,8 @@ if(AFFRESCOUI_BUILD_TESTS)
 	find_package(Python3 COMPONENTS Interpreter)
 	if(Python3_FOUND)
 		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
+		# tests/perf/tokens.py reads a screen's includes as the host merges them
+		add_test(NAME perf_tokens COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/tests/perf/test_tokens.py)
 		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
 		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/e2e_test.py ${CMAKE_BINARY_DIR})

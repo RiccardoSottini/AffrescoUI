@@ -46,5 +46,53 @@
 		}
 	},
 	"toast": { "use": "toast", "with": { "open": "state.saved", "message": "Saved" } },
-	"toasts": { "use": "toasts", "with": { "name": "notes" } }
+	"toasts": { "use": "toasts", "with": { "name": "notes" } },
+	"segmentedControl": {
+		"use": "segmentedControl",
+		"with": {
+			"name": "view", "label": "View",
+			"items": [{ "id": "list", "title": "List" }, { "id": "grid", "title": "Grid", "icon": "layout-grid" }]
+		}
+	},
+	"searchField": { "use": "searchField", "with": { "name": "find", "run": "search" } },
+	"breadcrumbs": {
+		"use": "breadcrumbs",
+		"with": { "items": [{ "title": "Projects", "icon": "folder", "run": "openProjects" }, { "title": "main.cpp" }] }
+	},
+	"tabStrip": { "use": "tabStrip", "with": { "name": "files", "onClose": "closeFile" } },
+	"dock": {
+		"fill": true,
+		"use": "dock",
+		"with": {
+			"panels": {
+				"explorer": { "title": "Explorer", "icon": "folder" }, "terminal": { "title": "Terminal", "icon": "terminal" }
+			}
+		},
+		"children": [
+			{ "when": "{{panel == ''}}", "fill": true, "type": "editor", "bind": "state.text" },
+			{ "when": "{{panel == 'explorer'}}", "fill": true, "type": "tree", "items": "{{state.files}}" },
+			{ "when": "{{panel == 'terminal'}}", "fill": true, "type": "label", "text": "{{state.output}}" }
+		]
+	},
+	"inspector": {
+		"use": "inspector",
+		"with": {
+			"bind": "state.shape", "values": "{{state.shape}}",
+			"groups": [{ "id": "transform", "title": "Transform", "rows": [
+				{ "key": "width", "label": "Width", "unit": "px", "min": 0 },
+				{ "key": "position", "label": "Position", "type": "vector" },
+				{ "key": "blend", "label": "Blend", "type": "select", "options": ["normal", "multiply"] }
+			] }]
+		}
+	},
+	"ribbon": {
+		"use": "ribbon",
+		"with": {
+			"tabs": [{ "id": "home", "title": "Home", "groups": [{ "id": "clipboard", "title": "Clipboard", "items": [
+				{ "title": "Paste", "icon": "clipboard", "size": "large", "run": "paste" },
+				{ "title": "Cut", "icon": "scissors", "run": "cut" },
+				{ "title": "Copy", "icon": "copy", "run": "copy" }
+			] }] }]
+		}
+	}
 }

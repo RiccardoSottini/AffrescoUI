@@ -27,6 +27,19 @@ bool insideShown(const Panel& panel, Vec2 position) {
 	return std::ranges::any_of(panel.children(), [&](const auto& child) { return insideShown(*child, position); });
 }
 
+/// @brief Tells whether a node was written with "autofocus" true, as last applied.
+/// @param reconciler The records.
+/// @param panel The node's panel.
+/// @return true if it was.
+bool autofocused(Reconciler& reconciler, const Panel* panel) {
+	const Record* record = reconciler.recordOf(panel);
+	const CompiledProperty* property = record && record->node ? record->node->find("autofocus") : nullptr;
+	if(!property) return false;
+	const json& value =
+	    property->evaluated < record->values.size() ? record->values[property->evaluated] : property->value.written();
+	return value == true;
+}
+
 /// @brief The tab order being collected inside a scope: the stops with a positive "tabIndex", sorted by it, then the
 /// rest in document order.
 struct TabOrder {
@@ -154,7 +167,9 @@ void Events::focusLater(Panel* panel, Panel* scope, int frames) {
 		if(target.scope && within(engine_.window->focusedPanel(), *target.scope)) return; // already inside: kept
 		if(target.scope) {
 			const std::vector<Panel*> inside = focusables(*target.scope, false);
-			focus = inside.empty() ? target.scope : inside.front();
+			const auto chosen = std::ranges::find_if(
+			    inside, [this](const Panel* panel) { return autofocused(engine_.reconciler, panel); });
+			focus = inside.empty() ? target.scope : chosen != inside.end() ? *chosen : inside.front();
 		}
 		engine_.window->setFocus(focus);
 	});

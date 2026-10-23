@@ -47,12 +47,15 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "non-zero `height`, opposite anchors, or a container's stretch), then the width follows the height. With both "
 	 "set, it is ignored, as in CSS.",
 	 "node"},
-    {"anchors", R"json({"type": "object", "additionalProperties": false,
+    {"anchors", R"json({"oneOf": [{"type": "object", "additionalProperties": false,
 		"properties": {"top": {"$ref": "#/$defs/v2/edge"}, "bottom": {"$ref": "#/$defs/v2/edge"},
-		"left": {"$ref": "#/$defs/v2/edge"}, "right": {"$ref": "#/$defs/v2/edge"}}})json",
+		"left": {"$ref": "#/$defs/v2/edge"}, "right": {"$ref": "#/$defs/v2/edge"}}},
+		{"type": "string", "pattern":
+		"^ *(top|bottom|left|right)(:-?[0-9.]+(px|%)?)?( +(top|bottom|left|right)(:-?[0-9.]+(px|%)?)?)* *$"}]})json",
 	 "`{ \"top\", \"bottom\", \"left\", \"right\" }`: keep that edge this far from the parent's same edge. Anchoring "
 	 "opposite edges stretches the node. A value `\"#id.edge + 8\"` puts the edge at another node's edge (`\"top\": "
-	 "\"#header.bottom + 12\"`, `\"bottom\": \"#footer.top - 8\"`).",
+	 "\"#header.bottom + 12\"`, `\"bottom\": \"#footer.top - 8\"`). The same as text: edge names, each at 0 or "
+	 "at a length after a colon, `\"left right:12 top:8\"` is `{ \"left\": 0, \"right\": 12, \"top\": 8 }`.",
 	 "node"},
     {"fill", R"json({"oneOf": [{"const": true}, {"$ref": "#/$defs/v2/length"}],
 		"description": "Anchor all four edges, this far in"})json",
@@ -286,11 +289,14 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"font", R"json({"type": "string"})json", "Font name. Default: `default`.", "label"},
     {"padding", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Pixels between the edges and the text.", "label"},
-    {"align", R"json({"oneOf": [{"$ref": "#/$defs/v2/align"}, {"type": "object", "additionalProperties": false,
+    {"align", R"json({"oneOf": [{"$ref": "#/$defs/v2/align"},
+		{"type": "string", "pattern": "^(start|center|end) (start|center|end)$"},
+		{"type": "object", "additionalProperties": false,
 		"properties": {"horizontal": {"$ref": "#/$defs/v2/align"},
 		"vertical": {"$ref": "#/$defs/v2/align"}}}],
 		"description": "label: text alignment; stack: v1 name of \"from\""})json",
-	 R"(One value for both axes, or `{ "horizontal", "vertical" }`.)", "label"},
+	 R"(One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`.)",
+	 "label"},
     {"wrap", "flag", "Break lines that don't fit the width.", "label"},
     {"fitText", R"json({"oneOf": [{"type": "boolean"}, {"type": "object", "required": ["maxWidth"],
 		"additionalProperties": false, "properties": {"maxWidth": {"type": "number",

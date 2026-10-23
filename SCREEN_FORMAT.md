@@ -123,7 +123,7 @@ parent, later siblings on top of earlier ones.
 | `width`, `height`, `minWidth`, `minHeight` | Size. The minimum wins over a smaller size. |
 | `maxWidth`, `maxHeight` | The largest size (a length, or `"none"`, the default). The minimum wins over the maximum, as in CSS. |
 | `aspectRatio` | Width divided by height, `1.5` or `"16/9"`: the height follows the width, unless only the height is set (a non-zero `height`, opposite anchors, or a container's stretch), then the width follows the height. With both set, it is ignored, as in CSS. |
-| `anchors` | `{ "top", "bottom", "left", "right" }`: keep that edge this far from the parent's same edge. Anchoring opposite edges stretches the node. A value `"#id.edge + 8"` puts the edge at another node's edge (`"top": "#header.bottom + 12"`, `"bottom": "#footer.top - 8"`). |
+| `anchors` | `{ "top", "bottom", "left", "right" }`: keep that edge this far from the parent's same edge. Anchoring opposite edges stretches the node. A value `"#id.edge + 8"` puts the edge at another node's edge (`"top": "#header.bottom + 12"`, `"bottom": "#footer.top - 8"`). The same as text: edge names, each at 0 or at a length after a colon, `"left right:12 top:8"` is `{ "left": 0, "right": 12, "top": 8 }`. |
 | `fill` | Anchor all four edges this far in (`0` or `true` to cover the parent). |
 | `grow` | In a `row`/`column`: the share of the spare room it takes, like CSS flex-grow. |
 | `shrink` | In a `row`/`column`: how much of an overflow it gives up, in proportion to `shrink` times its size, down to its minimum (CSS flex-shrink). Default `0`: it keeps its size and the children overflow, as they always have (CSS's default is 1). |
@@ -208,7 +208,7 @@ only for the elements that changed.
 | `textColor` | Default black. |
 | `font` | Font name. Default: `default`. |
 | `padding` | Pixels between the edges and the text. |
-| `align` | One value for both axes, or `{ "horizontal", "vertical" }`. |
+| `align` | One value for both axes, two for horizontal then vertical (`"start center"`), or `{ "horizontal", "vertical" }`. |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
@@ -251,7 +251,7 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 | `lineNumbers` | `true` shows line numbers in a gutter. |
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
 | `lineColor`, `selectionColor`, `caretColor` | The caret's line background, the selection, the caret. |
-| `autofocus`, `onChange` | Focus when built; `event.value` is the new text. |
+| `autofocus`, `onChange` | Focus when built, and when a modal overlay holding it opens; `event.value` is the new text. |
 | `wrap` | `true` wraps lines at the width (at spaces, else anywhere); the gutter numbers each line once. |
 | `folds` | Folded ranges, `[{ "line", "endLine" }]` from 0: the lines after `line` up to `endLine` are hidden behind it. The user folds and unfolds with the gutter or Cmd+Alt+[ and ]; the document's folds replace theirs only when they change, and leaving the key out keeps them. At most 10,000. |
 | `decorations` | `[{ "line", "endLine", "column", "endColumn", "kind", "color", "icon", "text" }]`, lines and columns from 0: `background` tints the lines, `squiggle` underlines the columns (or the whole lines) with a wave, `gutter` draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most 10,000 and 8 on a line; inline text is cut at 256 characters. |
@@ -480,9 +480,9 @@ top stays in place.
 | Key | Meaning |
 |---|---|
 | `items` | The rows, in order (or a binding such as `"{{state.files}}"`): a string (its id and label), or `{ "id", "label", "icon", "iconColor" }` (an icon before the label, by name, as a label's `icon`, in a hex colour or the text's); in a `tree`, also `"children"` (a list of items) and `"expandable"` (a closed node whose children aren't loaded yet: `onExpand` can load them); in a `table`, `"cells"`: the texts of the row's columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep. |
-| `expanded` | On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there to keep them over a rebuild. |
+| `expanded` | On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there to keep them over a rebuild. A state path (`"expanded": "state.files.open"`) does that itself: the ids are read from there, and kept there before `onExpand` runs. |
 | `stickyRows` | On a `tree`: how many open folders stay pinned at the top while their children scroll by, nearest the root first (default 0, at most 16). A click on a pinned folder moves the cursor to it. |
-| `sort` | On a `table`: the rows' order, `{ "column": id, "descending": false }` (or null for the items' order). A click on a header sorts by its column, ascending then descending, and runs `onSort`: numbers by value before text, equal cells in the items' order. |
+| `sort` | On a `table`: the rows' order, `{ "column": id, "descending": false }` (or null for the items' order). A click on a header sorts by its column, ascending then descending, and runs `onSort`: numbers by value before text, equal cells in the items' order. A state path (`"sort": "state.files.sort"`) keeps the order there. |
 | `selection` | `"single"` (the default), `"multiple"` (Shift adds a range, Cmd or Ctrl one row) or `"none"`. |
 | `value` | The selected id, or with `"multiple"` the list of them (`bind` keeps it in a state path); a change runs `onChange`. |
 | `rowHeight` | Each row's height in pixels (default 24). |
@@ -706,7 +706,8 @@ Shows the current screen from `screens`, filling the outlet unless the screen pl
 ```
 The use's other properties override the component's node; `with` values are evaluated where it is used and become
 variables of the node and its children. A child `{ "slot": true }` in the component is replaced by the use's
-`children`. Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
+`children`; with several slots, each gets them, and they see the variables where they are placed (a slot inside a
+`repeat` shows them once per item). Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
 ### Built-in components
@@ -728,9 +729,11 @@ keep their open state where `open` says (a state path):
   tooltip names the shortcut, and those that don't fit go into a "more" menu (open at `open + '.more'`).
 - `statusBar`: a row of `items` (`{ "text", "icon", "tooltip", "color", "run", "with", "side" }`), `"side": "end"`
   putting one at the end; an item with a `run` is a button.
-- `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with" }`) over a backdrop; the focus is
-  trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels. Its
-  `children` go between the message and the buttons.
+- `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with", "keepOpen", "default" }`) over a
+  backdrop; the focus is trapped in it, the `"default": true` button is drawn as primary (else the first) and
+  takes the focus, Enter choosing the focused button, Alt with a letter a button, Escape cancels.
+  A `"keepOpen": true` button doesn't close it (its action does, setting `open` false). Its `children` go between the
+  message and the buttons.
 - `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`; its × is a
   button named `closeLabel`.
 - `toasts`: a stack of notifications in the bottom corner from the list at `state[name]` (`name` is `toasts`), each
@@ -762,6 +765,85 @@ keep their open state where `open` says (a state path):
   { "separator": true }, { "title": "Grid", "icon": "layout-grid", "checked": "{{state.grid}}", "run": "toggleGrid" }] } }
 ```
 
+### Built-in controls
+Controls of a desktop app's window, built in the same way as the built-in components (see Built-in components):
+- `segmentedControl`: a row of `items`, each `{ "id", "title", "icon", "tooltip", "enabled", "width", "run",
+  "with" }`; the chosen `id` is `state[name]`, a click or Space picks one (then runs its `run`), and the arrows move.
+  Screen readers hear a group of radio buttons.
+- `searchField`: a text box over `state[name]` with a search icon and a × that clears it (as Escape does); Enter runs
+  `run` with the text as `query`. Its border lights while it has focus, and it stays left to right.
+- `breadcrumbs`: a path of `items`, each `{ "title", "icon", "run", "with" }`, with chevrons between them; each but the
+  last is a link that runs its `run`.
+- `tabStrip`: the tabs at `state[name]` as `{ "tabs", "active" }`, each tab `{ "id", "label", "marker", "closable" }`
+  (`marker` draws a dot, for unsaved changes). A click activates one, its × closes it (running `onClose` with its
+  `id`, or else removing it and activating its neighbour), and a drag or Ctrl+Shift+Page Up/Down moves it. The tabs
+  that don't fit in `width` are listed under an "All tabs" button (`more` in its state).
+
+```json
+{ "use": "tabStrip", "with": { "name": "files", "onClose": "closeFile" } }
+{ "push": "state.files.tabs", "value": { "id": "notes", "label": "notes.txt", "closable": true } }
+{ "use": "breadcrumbs", "with": { "items": [{ "title": "Projects", "icon": "folder", "run": "openProjects" },
+  { "title": "main.cpp" }] } }
+{ "use": "segmentedControl", "with": { "name": "view", "label": "View",
+  "items": [{ "id": "list", "title": "List" }, { "id": "grid", "title": "Grid", "icon": "layout-grid" }] } }
+{ "use": "searchField", "with": { "name": "find", "run": "search" } }
+```
+
+### Built-in panels
+The larger parts of a desktop app's window, built in the same way (see Built-in components):
+- `dock`: a window's panels in tabbed areas: `left`, `right` and `bottom` around the `center`. `panels` names them
+  (`{ "explorer": { "title": "Explorer", "icon": "folder" } }`) and `state[name]` places them: each area
+  `{ "tabs", "active", "collapsed" }`, plus `sizes`, `maximized` (an area or null) and what is being done (`resizing`,
+  `menu`). The use's children are shown in every area, with `area` and `panel` (its active panel, `""` in a centre
+  without tabs), so each says which panel it is with `when`. A tab dragged to another area's tabs or body moves there,
+  as from an area's "Move to" menu (the keyboard's way); a side area collapses to a strip of its panels' icons, the
+  bottom one to its tabs, and one maximises over the others. An area without panels goes. An area resizes by dragging
+  its inner edge, or from it with the arrows (`dir`: the dock's writing direction, for which way they go; `sizes`,
+  `minSize`, `maxSize`). The areas mirror right to left.
+
+```json
+{ "fill": true, "use": "dock", "with": { "dir": "{{state.dir}}", "panels": {
+    "explorer": { "title": "Explorer", "icon": "folder" }, "terminal": { "title": "Terminal", "icon": "terminal" } } },
+  "children": [
+    { "when": "{{panel == ''}}", "fill": true, "type": "editor", "bind": "state.text" },
+    { "when": "{{panel == 'explorer'}}", "fill": true, "type": "tree", "items": "{{state.files}}" },
+    { "when": "{{panel == 'terminal'}}", "fill": true, "type": "label", "text": "{{state.output}}" }
+  ] }
+{ "set": "state.dock", "to": { "left": { "tabs": ["explorer"] }, "bottom": { "tabs": ["terminal"] },
+  "center": { "tabs": [] } } }
+```
+
+- `inspector`: a property sheet editing an object in the state, in collapsible `groups`
+  (`[{ "id", "title", "rows" }]`). A row is `{ "key", "label", "type", "unit", "min", "max", "step", "decimals",
+  "options", "axes", "enabled", "tooltip" }` and edits `values[key]` at `bind + "." + key`: a `number` (the default)
+  changes by dragging its label, typing or the arrows, rounded to `decimals` (from `step` when not given) and kept
+  within `min` and `max`, a text that isn't one changing nothing; a `slider`, a `color` (a swatch opening a picker), a
+  `select` (`options`: ids or `{ "id", "label" }`), a `toggle`, a `checkbox`, a `text`, or a `vector`, a list of
+  numbers with a field for each of `axes` (default `["x", "y", "z"]`). Every change runs the action `onChange` names
+  with `{ key, value }`. `state[name]` keeps the closed groups (`closed`) and the open picker or list (`open`).
+
+```json
+{ "use": "inspector", "with": { "bind": "state.shape", "values": "{{state.shape}}", "onChange": "shapeChanged",
+  "groups": [{ "id": "transform", "title": "Transform", "rows": [
+    { "key": "width", "label": "Width", "unit": "px", "min": 0 },
+    { "key": "position", "label": "Position", "type": "vector", "step": 0.5 },
+    { "key": "fill", "label": "Fill", "type": "color" },
+    { "key": "blend", "label": "Blend", "type": "select", "options": ["normal", "multiply"] } ] }] } }
+```
+
+- `ribbon`: tabs of groups of buttons across a window's top. `tabs` is `[{ "id", "title", "groups" }]`, a group
+  `{ "id", "title", "icon", "items" }` and an item a toolbar's (`title`, `icon`, `tooltip`, `keyLabel`, `checked`,
+  `enabled`, `run`, `with`) plus `size`: `"large"` (an icon over its title) or small (an icon beside it, three to a
+  column). Groups that don't fit its `width` fold, from the last, into a button each that opens a menu of their items.
+  A tab's double click or the end button collapses it to its tabs, and a tab opens it again. `largeFont` names a
+  bigger icon font for the large buttons. `state[name]` keeps `tab`, `collapsed` and the open menus (`menus`).
+
+```json
+{ "use": "ribbon", "with": { "largeFont": "largeIcons", "tabs": [{ "id": "home", "title": "Home", "groups": [
+  { "id": "clipboard", "title": "Clipboard", "items": [
+    { "title": "Paste", "icon": "clipboard", "size": "large", "run": "paste" },
+    { "title": "Cut", "icon": "scissors", "run": "cut" }, { "title": "Copy", "icon": "copy", "run": "copy" } ] }] }] } }
+```
 
 ### Chat components
 The parts of a conversation with an assistant (see Asking the agents) are built-in components too. They run the actions they are given with

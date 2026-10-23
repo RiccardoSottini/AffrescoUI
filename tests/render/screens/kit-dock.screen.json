@@ -1,0 +1,48 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The desktop kit's dock, for the rendering check: an explorer and an outline at the left, properties at the right, a terminal and problems at the bottom around the editor. The scenario drags the outline to the right, moves the terminal to the left from its menu, collapses and maximises areas, resizes the left one from its edge and the keyboard, then switches to the dark theme and to right to left.",
+
+	"window": { "title": "Kit dock", "width": 720, "height": 440 },
+
+	"state": {
+		"theme": "light", "dir": "ltr",
+		"dock": {
+			"left": { "tabs": ["explorer", "outline"], "active": "explorer" },
+			"right": { "tabs": ["properties"] },
+			"bottom": { "tabs": ["terminal", "problems"], "active": "terminal" },
+			"center": { "tabs": [] }
+		}
+	},
+	"theme": "{{state.theme}}",
+	"tokens": { "kit.radius": 4 },
+
+	"fonts": {
+		"default": {
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
+			"size": 13,
+			"fallback": ["icons"]
+		},
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 }
+	},
+
+	"root": {
+		"id": "root", "color": "@kit.background",
+		"children": [{ "id": "dock", "fill": true, "use": "dock", "with": {
+			"dir": "{{state.dir}}", "sizes": { "left": 200, "right": 230, "bottom": 140 },
+			"panels": {
+				"explorer": { "title": "Explorer", "icon": "folder" },
+				"outline": { "title": "Outline", "icon": "list-tree" },
+				"properties": { "title": "Properties", "icon": "sliders-horizontal" },
+				"terminal": { "title": "Terminal", "icon": "terminal" },
+				"problems": { "title": "Problems", "icon": "circle-alert" }
+			} },
+			"children": [
+				{ "when": "{{panel == ''}}", "type": "label", "anchors": { "left": 16, "right": 16, "top": 12, "bottom": 12 },
+				  "align": "start", "wrap": true, "textColor": "@kit.text", "text": "int main() {\n    return 0;\n}" },
+				{ "when": "{{panel != ''}}", "type": "label", "anchors": { "left": 12, "right": 12, "top": 8 }, "height": 20,
+				  "textColor": "@kit.dim", "text": "{{panel + ' in ' + area}}" }
+			] }]
+	}
+}

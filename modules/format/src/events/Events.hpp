@@ -52,9 +52,9 @@ public:
 	/// @brief The chord in progress: the presses so far of a key with several ("ctrl+k"), or empty.
 	/// @return It, normalised.
 	[[nodiscard]] const std::string& chord() const noexcept { return chord_; }
-	/// @brief A modal overlay opened or closed: it takes the focus (its first focusable node, after the layout, unless
-	/// the focus is or is to be inside it already) and keeps Tab inside, then gives the focus back to the panel that
-	/// had it.
+	/// @brief A modal overlay opened or closed: it takes the focus (its first focusable node written with "autofocus",
+	/// else its first focusable node, after the layout, unless the focus is or is to be inside it already) and keeps
+	/// Tab inside, then gives the focus back to the panel that had it.
 	/// @param overlay The overlay.
 	/// @param open Whether it opened.
 	void modal(Panel& overlay, bool open);
