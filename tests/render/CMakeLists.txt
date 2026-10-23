@@ -43,7 +43,8 @@ affrescoui_template_folders(template_folders)
 list(TRANSFORM template_folders PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_VARIABLE template_globs)
 list(TRANSFORM template_globs APPEND /*.scenarios.json)
 file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${template_globs}
-	${forge_dir}/*.scenarios.json ${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json)
+	${forge_dir}/*.scenarios.json ${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json
+	${PROJECT_SOURCE_DIR}/examples/modello/*.scenarios.json)
 if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	# Their captures (pictures they take for the gallery, not compared) go to the build folder
 	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/scenario-captures)

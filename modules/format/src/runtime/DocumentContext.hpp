@@ -235,6 +235,11 @@ public:
 	[[nodiscard]] std::uint64_t appearance() const noexcept { return appearance_; }
 	/// @brief Records that the same values may now look different (a node type was registered or replaced).
 	void changeAppearance() noexcept { ++appearance_; }
+	/// @brief Counts the changes of the theme and of the document's colours, tokens and fonts, which an application's
+	/// type reads its colours from: it is applied again when the count changes (unlike appearance(), not at every
+	/// revision).
+	/// @return The count; never 0.
+	[[nodiscard]] std::uint64_t looks() const noexcept { return looks_; }
 
 	/* Images */
 
@@ -309,6 +314,8 @@ private:
 	std::vector<std::string> screenHistory_; ///< For {"navigate": "back"}.
 
 	std::uint64_t appearance_ = 1;                  ///< See appearance().
+	std::uint64_t looks_ = 1;                       ///< See looks().
+	json lookSections_;                             ///< "colors", "tokens" and "fonts" when looks_ last changed.
 	WorkBudget* budget_ = nullptr;                  ///< The running event's or update's budget (BudgetScope), if any.
 	StateChanges changes_;                          ///< See takeChanges().
 	mutable ReadSet* reads_ = nullptr;              ///< Where the running ReadScope collects, if any.

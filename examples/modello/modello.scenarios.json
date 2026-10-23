@@ -1,445 +1,82 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Modello's scenarios need its natives: tests/unit/scene3d_modello.cpp plays them",
+	"note": "Modello's scenarios: the stock host's runtime plays them (affrescoui test examples/modello/modello.scenarios.json)",
 	"screen": "modello.screen.json",
 	"scenarios": [
 		{
-			"name": "modello-scene",
-			"note": "The sample scene opens with the cube selected, the outliner, the viewport and the properties",
+			"name": "modello-start",
+			"note": "The start scene: the cube selected and active, its name in the properties, the status bar's counts",
 			"steps": [
-				{"expect": {"node": "#counts", "text": "6 objects · 1 selected · translate, world"}},
-				{"expect": {"state": "selection", "is": ["cube"]}},
-				{"expect": {"node": "#viewport", "exists": true}},
-				{"expect": {"node": "#outliner-tree", "exists": true}},
-				{"expect": {"node": "#field-name", "text": "Cube"}},
-				{"expect": {"node": "#review-bar", "exists": false}},
-				{"expect": {"node": "#import-dialog", "exists": false}}
+				{ "expect": { "state": "view.selection", "is": ["cube"] } },
+				{ "expect": { "state": "active", "is": "cube" } },
+				{ "expect": { "node": "#viewport", "exists": true } },
+				{ "expect": { "state": "ctx.open", "is": false } }
 			]
 		},
 		{
-			"name": "modello-add-cube",
-			"note": "Add › Cube in the window's menu bar (positions in window units) adds a cube and selects it",
+			"name": "modello-grab-typed",
+			"note": "G, X, 2, Enter moves the cube two units along X; Ctrl+Z puts it back",
 			"steps": [
-				{"click": [126, 15]},
-				{"click": [180, 43]},
-				{"expect": {"node": "#counts", "text": "7 objects · 1 selected · translate, world"}}
+				{ "key": "g" },
+				{ "expect": { "state": "modal.mode", "is": "translate" } },
+				{ "key": "x" },
+				{ "expect": { "state": "modal.axis", "is": "x" } },
+				{ "key": "2" },
+				{ "key": "enter" },
+				{ "wait": 20 },
+				{ "expect": { "state": "modal", "is": null } },
+				{ "expect": { "state": "scene.nodes[1].translation", "is": [2, 0, 0] } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.nodes[1].translation", "is": [0, 0, 0] } }
 			]
 		},
 		{
-			"name": "modello-add-light",
-			"note": "Add › Point light adds a light, whose intensity shows in the properties",
+			"name": "modello-scale-cancel",
+			"note": "S, 3, Escape leaves the scale as it was",
 			"steps": [
-				{"click": [126, 15]},
-				{"click": [180, 208]},
-				{"expect": {"node": "#counts", "text": "7 objects · 1 selected · translate, world"}},
-				{"expect": {"node": "#field-intensity", "exists": true}}
+				{ "key": "s" },
+				{ "key": "3" },
+				{ "key": "escape" },
+				{ "wait": 20 },
+				{ "expect": { "state": "modal", "is": null } },
+				{ "expect": { "state": "scene.nodes[1].scale", "is": [1, 1, 1] } }
 			]
 		},
 		{
-			"name": "modello-delete-undo",
-			"note": "Delete removes the cube and its child; undo brings them back",
+			"name": "modello-add-delete",
+			"note": "Shift+A opens the Add menu; X opens Delete; select all, then H hides and Alt+H reveals",
 			"steps": [
-				{"key": "delete"},
-				{"expect": {"node": "#counts", "text": "4 objects · 0 selected · translate, world"}},
-				{"key": "mod+z"},
-				{"expect": {"node": "#counts", "text": "6 objects · 0 selected · translate, world"}}
+				{ "key": "shift+a" },
+				{ "expect": { "state": "ctx.menu", "is": "add" } },
+				{ "expect": { "state": "ctx.open", "is": true } },
+				{ "key": "escape" },
+				{ "key": "x" },
+				{ "expect": { "state": "ctx.menu", "is": "delete" } },
+				{ "key": "escape" },
+				{ "key": "a" },
+				{ "expect": { "state": "view.selection", "is": ["camera", "cube", "light"] } },
+				{ "key": "h" },
+				{ "expect": { "state": "scene.nodes[1].visible", "is": false } },
+				{ "key": "alt+h" },
+				{ "expect": { "state": "scene.nodes[1].visible", "is": true } }
 			]
 		},
 		{
-			"name": "modello-duplicate",
-			"note": "Duplicate copies the cube with its child and selects the copy",
+			"name": "modello-views",
+			"note": "Numpad 7 looks from the top, 5 switches to orthographic, Ctrl+numpad 1 looks from the back, N opens the sidebar",
 			"steps": [
-				{"key": "mod+d"},
-				{"expect": {"node": "#counts", "text": "8 objects · 1 selected · translate, world"}}
-			]
-		},
-		{
-			"name": "modello-move-typed",
-			"note": "G, 2, Enter moves the cube two units along X",
-			"steps": [
-				{"key": "g"},
-				{"key": "2"},
-				{"key": "enter"},
-				{"expect": {"state": "modal", "is": null}},
-				{"expect": {"node": "#field-translation", "text": "2.000, 0.500, 0.000"}}
-			]
-		},
-		{
-			"name": "modello-move-axis",
-			"note": "G, Y, 1, Enter moves the cube up one unit",
-			"steps": [
-				{"key": "g"},
-				{"key": "y"},
-				{"key": "1"},
-				{"key": "enter"},
-				{"expect": {"node": "#field-translation", "text": "0.000, 1.500, 0.000"}}
-			]
-		},
-		{
-			"name": "modello-move-negative",
-			"note": "G, minus, 1, period, 5 moves back along X",
-			"steps": [
-				{"key": "g"},
-				{"key": "minus"},
-				{"key": "1"},
-				{"key": "period"},
-				{"key": "5"},
-				{"key": "enter"},
-				{"expect": {"node": "#field-translation", "text": "-1.500, 0.500, 0.000"}}
-			]
-		},
-		{
-			"name": "modello-modal-cancel",
-			"note": "Escape cancels a typed move and leaves the cube where it was",
-			"steps": [
-				{"key": "g"},
-				{"key": "3"},
-				{"expect": {"state": "modal.text", "is": "3"}},
-				{"key": "escape"},
-				{"expect": {"state": "modal", "is": null}},
-				{"expect": {"node": "#field-translation", "text": "0.000, 0.500, 0.000"}},
-				{"expect": {"node": "#status", "text": "Ready"}}
-			]
-		},
-		{
-			"name": "modello-rotate-typed",
-			"note": "R, Z, 9, 0, Enter turns the cube a quarter about Z",
-			"steps": [
-				{"key": "r"},
-				{"key": "z"},
-				{"key": "9"},
-				{"key": "0"},
-				{"key": "enter"},
-				{"expect": {"node": "#value-rotation", "text": "0.000, 0.000, 0.707, 0.707 (R to turn)"}}
-			]
-		},
-		{
-			"name": "modello-scale-typed",
-			"note": "S, 2, Enter doubles the cube's size",
-			"steps": [
-				{"key": "s"},
-				{"key": "2"},
-				{"key": "enter"},
-				{"expect": {"node": "#field-scale", "text": "2.000, 2.000, 2.000"}}
-			]
-		},
-		{
-			"name": "modello-gizmo-modes",
-			"note": "The header switches the gizmo between translate, rotate and scale",
-			"steps": [
-				{"click": "#mode-rotate"},
-				{"expect": {"state": "gizmo.mode", "is": "rotate"}},
-				{"click": "#mode-scale"},
-				{"expect": {"state": "gizmo.mode", "is": "scale"}},
-				{"expect": {"node": "#counts", "text": "6 objects · 1 selected · scale, world"}}
-			]
-		},
-		{
-			"name": "modello-local-space",
-			"note": "The space button switches the gizmo to the object's own axes",
-			"steps": [
-				{"click": "#space"},
-				{"expect": {"state": "gizmo.space", "is": "local"}},
-				{"expect": {"node": "#counts", "text": "6 objects · 1 selected · translate, local"}}
-			]
-		},
-		{
-			"name": "modello-snap",
-			"note": "Snapping is a switch, and the status bar says when it is on",
-			"steps": [
-				{"click": "#snap"},
-				{"expect": {"state": "snap.on", "is": true}},
-				{"expect": {"node": "#counts", "text": "6 objects · 1 selected · translate, world, snap"}}
-			]
-		},
-		{
-			"name": "modello-shading",
-			"note": "Solid, material and wireframe shading",
-			"steps": [
-				{"click": "#shade-wireframe"},
-				{"expect": {"state": "shading", "is": "wireframe"}},
-				{"click": "#shade-solid"},
-				{"expect": {"state": "shading", "is": "solid"}},
-				{"click": "#shade-material"},
-				{"expect": {"state": "shading", "is": "material"}}
-			]
-		},
-		{
-			"name": "modello-grid",
-			"note": "The grid button hides and shows the grid",
-			"steps": [
-				{"click": "#toggle-grid"},
-				{"expect": {"state": "grid", "is": false}},
-				{"click": "#toggle-grid"},
-				{"expect": {"state": "grid", "is": true}}
-			]
-		},
-		{
-			"name": "modello-standard-views",
-			"note": "Front and top views turn the camera",
-			"steps": [
-				{"click": "#view-front"},
-				{"expect": {"state": "camera.yaw", "is": 0}},
-				{"expect": {"state": "camera.pitch", "is": 0}},
-				{"click": "#view-top"},
-				{"expect": {"state": "camera.yaw", "is": 0}}
-			]
-		},
-		{
-			"name": "modello-projection",
-			"note": "The projection button switches to orthographic and back",
-			"steps": [
-				{"click": "#projection"},
-				{"expect": {"state": "camera.orthographic", "is": true}},
-				{"click": "#projection"},
-				{"expect": {"state": "camera.orthographic", "is": false}}
-			]
-		},
-		{
-			"name": "modello-frame",
-			"note": "F frames the selection",
-			"steps": [
-				{"key": "f"},
-				{"expect": {"state": "camera.target", "is": [0, 0.5, 0]}}
-			]
-		},
-		{
-			"name": "modello-zoom",
-			"note": "A scroll of one step brings the camera 10% closer (from 8).",
-			"steps": [
-				{"scroll": "#viewport", "dx": 0, "dy": 1},
-				{"expect": {"state": "camera.distance", "is": 7.199999809265137}}
-			]
-		},
-		{
-			"name": "modello-pick-nothing",
-			"note": "A click on the empty sky clears the selection",
-			"steps": [
-				{"click": [260, 80]},
-				{"expect": {"node": "#counts", "text": "6 objects · 0 selected · translate, world"}}
-			]
-		},
-		{
-			"name": "modello-box-select",
-			"note": "In select mode, dragging across the viewport selects the objects inside the box: the four meshes, not the lights, whose markers lie outside it",
-			"steps": [
-				{"click": "#nav-select"},
-				{"expect": {"state": "navigate", "is": "select"}},
-				{"drag": [250, 72], "to": [1095, 585], "moves": 4},
-				{"expect": {"node": "#counts", "text": "6 objects · 4 selected · translate, world"}}
-			]
-		},
-		{
-			"name": "modello-outliner-select",
-			"note": "Clicking the outliner's Torus row (the fourth: Floor, Cube, its child Orbiter, Torus) selects it",
-			"steps": [
-				{"click": [100, 126]},
-				{"expect": {"state": "selection", "is": ["torus"]}},
-				{"expect": {"node": "#field-name", "text": "Torus"}}
-			]
-		},
-		{
-			"name": "modello-rename",
-			"note": "A field is edited by clearing it and typing",
-			"steps": [
-				{"click": "#field-name"},
-				{"key": "end"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"type": "Box"},
-				{"key": "enter"},
-				{"expect": {"node": "#field-name", "text": "Box"}}
-			]
-		},
-		{
-			"name": "modello-set-location",
-			"note": "A field is edited by clearing it and typing",
-			"steps": [
-				{"click": "#field-translation"},
-				{"key": "end"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"type": "1, 2, 3"},
-				{"key": "enter"},
-				{"expect": {"node": "#field-translation", "text": "1.000, 2.000, 3.000"}}
-			]
-		},
-		{
-			"name": "modello-material-metallic",
-			"note": "A field is edited by clearing it and typing",
-			"steps": [
-				{"click": "#field-metallic"},
-				{"key": "end"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"key": "backspace"},
-				{"type": "0.75"},
-				{"key": "enter"},
-				{"expect": {"node": "#field-metallic", "text": "0.75"}}
-			]
-		},
-		{
-			"name": "modello-material-graph",
-			"note": "Using a graph makes its output node (n1); an added Mix node is n2 and is selected.",
-			"steps": [
-				{"click": "#use-graph"},
-				{"wait": 0},
-				{"expect": {"node": "#material-graph", "exists": true}},
-				{"click": "#op-mix"},
-				{"expect": {"state": "graphSelected", "is": ["n2"]}}
-			]
-		},
-		{
-			"name": "modello-timeline-play",
-			"note": "The Timeline tab shows the timeline, which plays the Spin animation",
-			"steps": [
-				{"click": [340, 608]},
-				{"wait": 0},
-				{"expect": {"node": "#timeline-pane", "exists": true}},
-				{"click": "#play"},
-				{"expect": {"state": "playing", "is": true}},
-				{"wait": 500},
-				{"click": "#play"},
-				{"expect": {"state": "playing", "is": false}}
-			]
-		},
-		{
-			"name": "modello-key",
-			"note": "Key records the cube's transform at the current time",
-			"steps": [
-				{"click": [340, 608]},
-				{"wait": 0},
-				{"click": "#key"},
-				{"expect": {"node": "#status", "text": "Ready"}}
-			]
-		},
-		{
-			"name": "modello-import-dialog",
-			"note": "Import opens the file list; Cancel closes it",
-			"steps": [
-				{"key": "mod+i"},
-				{"expect": {"node": "#import-dialog", "exists": true}},
-				{"click": "#import-cancel"},
-				{"expect": {"node": "#import-dialog", "exists": false}}
-			]
-		},
-		{
-			"name": "modello-import-sample",
-			"note": "Importing a bundled sample (the first row, AnimatedCube) adds its nodes and selects them",
-			"steps": [
-				{"key": "mod+i"},
-				{"click": [720, 195]},
-				{"key": "enter"},
-				{"expect": {"node": "#import-dialog", "exists": false}},
-				{"expect": {"node": "#counts", "text": "7 objects · 1 selected · translate, world"}}
-			]
-		},
-		{
-			"name": "modello-export",
-			"note": "Export writes the scene as glTF to the data folder",
-			"steps": [
-				{"key": "mod+e"},
-				{"expect": {"node": "#status", "text": "Exported exports/scene.gltf"}}
-			]
-		},
-		{
-			"name": "modello-theme",
-			"note": "The theme button switches to the light theme",
-			"steps": [
-				{"click": "#theme"},
-				{"expect": {"state": "theme", "is": "light"}}
-			]
-		},
-		{
-			"name": "modello-agent-panel",
-			"note": "An agent proposes a notes panel; it shows only once the reviewer accepts it",
-			"steps": [
-				{"action": "testAgentProposesPanel"},
-				{"expect": {"node": "#agent-notes", "exists": false}},
-				{"expect": {"node": "#review-bar", "exists": true}},
-				{"expect": {"node": "#review-text", "text": "agent proposes: Add a notes panel to the properties"}},
-				{"click": "#review-accept"},
-				{"expect": {"node": "#agent-notes", "exists": true}},
-				{"expect": {"node": "#review-bar", "exists": false}},
-				{"expect": {"node": "#agent-notes", "text": "Notes: 6 objects in the scene"}}
-			]
-		},
-		{
-			"name": "modello-agent-panel-rejected",
-			"note": "A rejected panel never reaches the workspace",
-			"steps": [
-				{"action": "testAgentProposesPanel"},
-				{"wait": 0},
-				{"expect": {"node": "#review-bar", "exists": true}},
-				{"click": "#review-reject"},
-				{"expect": {"node": "#review-bar", "exists": false}},
-				{"expect": {"node": "#agent-notes", "exists": false}}
+				{ "key": "numpad7" },
+				{ "wait": 20 },
+				{ "expect": { "node": "#view-name", "text": "Top Perspective" } },
+				{ "key": "numpad5" },
+				{ "wait": 50 },
+				{ "expect": { "state": "view.camera.orthographic", "is": true } },
+				{ "key": "mod+numpad1" },
+				{ "wait": 20 },
+				{ "expect": { "node": "#view-name", "text": "Back Orthographic" } },
+				{ "key": "n" },
+				{ "expect": { "state": "sidebar", "is": true } }
 			]
 		}
 	]

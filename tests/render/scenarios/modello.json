@@ -1,0 +1,40 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../../../examples/modello",
+	"scenarios": [
+		{
+			"name": "modello",
+			"screen": "modello.screen.json",
+			"note": "Modello, JSON only: the Layout workspace, Shift+A's Add menu, a typed move, the sidebar, the about dialog, the light theme",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "key": "shift+a" },
+				{ "wait": 50 },
+				{ "expect": { "image": "add-menu" } },
+				{ "key": "escape" },
+				{ "key": "g" },
+				{ "key": "x" },
+				{ "key": "2" },
+				{ "wait": 50 },
+				{ "expect": { "image": "grab-x" } },
+				{ "key": "enter" },
+				{ "key": "n" },
+				{ "wait": 50 },
+				{ "expect": { "image": "sidebar" } },
+				{ "key": "n" },
+				{ "click": [290, 14] },
+				{ "wait": 50 },
+				{ "click": [320, 38] },
+				{ "wait": 50 },
+				{ "expect": { "image": "about" } },
+				{ "key": "escape" },
+				{ "click": [230, 14] },
+				{ "wait": 50 },
+				{ "click": [280, 38] },
+				{ "wait": 50 },
+				{ "expect": { "image": "light" } }
+			]
+		}
+	]
+}

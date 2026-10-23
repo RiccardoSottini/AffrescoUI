@@ -244,6 +244,30 @@ TEST_CASE("format: an application's type gets the built-in widget's properties a
 	CHECK(applied.back() == R"({"language":"rust"})");
 }
 
+// Its values may name colours ("@view"), which a theme switch changes though the values don't: it is applied again
+TEST_CASE("format: an application's type is applied again when the theme changes") {
+	const affresco::detail::ManualClock clock;
+	const auto window = affresco::detail::createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2, "theme": "{{state.theme}}",
+		"state": { "theme": "dark", "other": 1 },
+		"root": { "type": "panel", "children": [{ "type": "notes", "id": "notes", "language": "c++" }] }
+	})json");
+	std::vector<std::string> applied;
+	screen.registerType(
+	    "notes", [] { return std::make_unique<NotesEditor>(); }, {"language"},
+	    [&](affresco::Panel&, const std::string& properties) { applied.push_back(properties); });
+	screen.build(*window);
+	window->render();
+	REQUIRE(applied.size() == 1);
+	REQUIRE(screen.applyRevision(R"({"set": {"/state/other": 2}})"));
+	window->render();
+	CHECK(applied.size() == 1); // another revision: the same values, the same look
+	REQUIRE(screen.applyRevision(R"({"set": {"/state/theme": "light"}})"));
+	window->render();
+	CHECK(applied.size() == 2);
+}
+
 // Every node's events are a fixed list; an application's type may list events of its own ("onType"), which then
 // go to its apply function like its other properties, and an unknown event still fails
 TEST_CASE("format: an application's type gets the events it lists as its own") {

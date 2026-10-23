@@ -61,6 +61,7 @@ struct Record {
 	/// The values last given to the apply function of its property set that runs only when they change (an
 	/// application's type); there is at most one such set, its type's own.
 	std::optional<json> ownProperties;
+	std::uint64_t ownLooks = 0; ///< DocumentContext::looks() when ownProperties were applied.
 	std::optional<std::string> lastText; ///< "text" applied last time.
 	bool hovered = false;                ///< The pointer is over it ("hover" styles).
 	bool down = false;                ///< A mouse button went down on it or inside it, and is still down ("pressed").
