@@ -806,6 +806,24 @@ Controls of a desktop app's window, built in the same way as the built-in compon
   "center": { "tabs": [] } } }
 ```
 
+- `inspector`: a property sheet editing an object in the state, in collapsible `groups`
+  (`[{ "id", "title", "rows" }]`). A row is `{ "key", "label", "type", "unit", "min", "max", "step", "decimals",
+  "options", "axes", "enabled", "tooltip" }` and edits `values[key]` at `bind + "." + key`: a `number` (the default)
+  changes by dragging its label, typing or the arrows, rounded to `decimals` (from `step` when not given) and kept
+  within `min` and `max`, a text that isn't one changing nothing; a `slider`, a `color` (a swatch opening a picker), a
+  `select` (`options`: ids or `{ "id", "label" }`), a `toggle`, a `checkbox`, a `text`, or a `vector`, a list of
+  numbers with a field for each of `axes` (default `["x", "y", "z"]`). Every change runs the action `onChange` names
+  with `{ key, value }`. `state[name]` keeps the closed groups (`closed`) and the open picker or list (`open`).
+
+```json
+{ "use": "inspector", "with": { "bind": "state.shape", "values": "{{state.shape}}", "onChange": "shapeChanged",
+  "groups": [{ "id": "transform", "title": "Transform", "rows": [
+    { "key": "width", "label": "Width", "unit": "px", "min": 0 },
+    { "key": "position", "label": "Position", "type": "vector", "step": 0.5 },
+    { "key": "fill", "label": "Fill", "type": "color" },
+    { "key": "blend", "label": "Blend", "type": "select", "options": ["normal", "multiply"] } ] }] } }
+```
+
 ### The kit's tokens
 The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
 built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a

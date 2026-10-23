@@ -126,7 +126,8 @@ target_sources(affrescoui_format PRIVATE src/components/BuiltInComponents.cpp sr
 	src/components/KitTokens.cpp src/components/KitBars.cpp
 	src/components/KitOverlays.cpp
 	src/components/KitControls.cpp
-	src/components/KitDock.cpp)
+	src/components/KitDock.cpp
+	src/components/KitPanels.cpp)
 # creative: the creative types (colour picker, gradient, curves, canvas, graph, timeline, path) and their values
 target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/creative/GradientType.cpp
 	src/creative/CurvesType.cpp src/creative/CreativeValues.cpp src/creative/CanvasType.cpp src/creative/GraphType.cpp

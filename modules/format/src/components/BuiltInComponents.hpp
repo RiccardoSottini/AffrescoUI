@@ -36,4 +36,8 @@ namespace affresco::format {
 /// @return Its text.
 [[nodiscard]] std::string_view builtInKitDock() noexcept;
 
+/// @brief The desktop kit's panels (KitPanels.cpp): inspector and ribbon, as one JSON object by name.
+/// @return Its text.
+[[nodiscard]] std::string_view builtInKitPanels() noexcept;
+
 } // namespace affresco::format

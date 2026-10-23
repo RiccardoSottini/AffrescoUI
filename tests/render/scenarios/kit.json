@@ -88,6 +88,36 @@
 				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
 				{ "expect": { "image": "rtl" } }
 			]
+		},
+		{
+			"name": "kit-inspector",
+			"screen": "kit-inspector.screen.json",
+			"note": "The desktop kit's inspector: groups of numbers with units, a vector, a slider, a colour, a choice, switches and a text in light, a number scrubbed by dragging its name, one typed past its maximum, a vector's axis stepped with the arrows, a choice picked from its list, a group collapsed, then dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "drag": [30, 40], "to": [70, 40], "moves": 4 },
+				{ "expect": { "state": "shape.width", "is": 140 } },
+				{ "click": [200, 96] },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "type": "200" },
+				{ "key": "enter" },
+				{ "expect": { "state": "shape.rotation", "is": 180 } },
+				{ "click": [150, 124] },
+				{ "key": "up" },
+				{ "expect": { "state": "shape.position", "is": [10.5, 20.5, 0] } },
+				{ "click": [230, 240] },
+				{ "expect": { "image": "select-open" } },
+				{ "click": [200, 320] },
+				{ "expect": { "state": "shape.blend", "is": "screen" } },
+				{ "click": [20, 157] },
+				{ "expect": { "image": "collapsed" } },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark" } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
 		}
 	]
 }

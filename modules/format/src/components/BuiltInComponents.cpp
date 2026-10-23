@@ -345,6 +345,8 @@ const std::map<std::string, json, std::less<>>& all() {
 		for(auto& [name, definition] : controls.items()) made.emplace(name, std::move(definition));
 		json dock = json::parse(builtInKitDock());
 		for(auto& [name, definition] : dock.items()) made.emplace(name, std::move(definition));
+		json panels = json::parse(builtInKitPanels());
+		for(auto& [name, definition] : panels.items()) made.emplace(name, std::move(definition));
 		return made;
 	}();
 	return components;

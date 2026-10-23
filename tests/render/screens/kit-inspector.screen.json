@@ -1,0 +1,53 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The desktop kit's inspector, for the rendering check: a shape's transform, look and text in collapsible groups. The scenario scrubs the width by dragging its name, types a rotation past its maximum, steps a position with the arrows, picks a blend mode, collapses a group, then switches to the dark theme and to right to left.",
+
+	"window": { "title": "Kit inspector", "width": 360, "height": 480 },
+
+	"state": {
+		"theme": "light", "dir": "ltr",
+		"shape": { "width": 120, "height": 80, "rotation": 0, "position": [10, 20.5, 0], "opacity": 80,
+		           "fill": "#3e63ddff", "blend": "normal", "visible": true, "shadow": false, "name": "Card" }
+	},
+	"theme": "{{state.theme}}",
+	"tokens": { "kit.radius": 4 },
+
+	"fonts": {
+		"default": {
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
+			"size": 13,
+			"fallback": ["icons"]
+		},
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 }
+	},
+
+	"root": {
+		"id": "root", "color": "@kit.background",
+		"children": [{ "id": "frame", "dir": "{{state.dir}}", "fill": true, "color": "@kit.background",
+			"children": [{ "id": "inspector", "use": "inspector", "fill": true, "with": {
+				"bind": "state.shape", "values": "{{state.shape}}", "width": 360, "height": 480,
+				"groups": [
+					{ "id": "transform", "title": "Transform", "rows": [
+						{ "key": "width", "label": "Width", "unit": "px", "min": 0 },
+						{ "key": "height", "label": "Height", "unit": "px", "min": 0 },
+						{ "key": "rotation", "label": "Rotation", "unit": "°", "min": -180, "max": 180, "step": 0.5 },
+						{ "key": "position", "label": "Position", "type": "vector", "step": 0.5 }
+					] },
+					{ "id": "look", "title": "Appearance", "rows": [
+						{ "key": "opacity", "label": "Opacity", "type": "slider", "unit": "%" },
+						{ "key": "fill", "label": "Fill", "type": "color" },
+						{ "key": "blend", "label": "Blend", "type": "select",
+						  "options": ["normal", { "id": "multiply", "label": "Multiply" }, { "id": "screen", "label": "Screen" }] },
+						{ "key": "visible", "label": "Visible", "type": "toggle" },
+						{ "key": "shadow", "label": "Shadow", "type": "checkbox" }
+					] },
+					{ "id": "text", "title": "Text", "rows": [
+						{ "key": "name", "label": "Name", "type": "text" },
+						{ "key": "locked", "label": "Locked", "type": "toggle", "enabled": false }
+					] }
+				] } }]
+		}]
+	}
+}

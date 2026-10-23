@@ -73,5 +73,16 @@
 			{ "when": "{{panel == 'explorer'}}", "fill": true, "type": "tree", "items": "{{state.files}}" },
 			{ "when": "{{panel == 'terminal'}}", "fill": true, "type": "label", "text": "{{state.output}}" }
 		]
+	},
+	"inspector": {
+		"use": "inspector",
+		"with": {
+			"bind": "state.shape", "values": "{{state.shape}}",
+			"groups": [{ "id": "transform", "title": "Transform", "rows": [
+				{ "key": "width", "label": "Width", "unit": "px", "min": 0 },
+				{ "key": "position", "label": "Position", "type": "vector" },
+				{ "key": "blend", "label": "Blend", "type": "select", "options": ["normal", "multiply"] }
+			] }]
+		}
 	}
 }
