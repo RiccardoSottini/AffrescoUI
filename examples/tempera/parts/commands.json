@@ -143,6 +143,16 @@
 			"do": [{ "toggle": "state.view.guides" }] },
 		"clearGuides": { "title": "Clear Guides", "category": "View", "icon": "eraser",
 			"do": [{ "set": "state.guides", "to": { "vertical": [], "horizontal": [] } }] },
+		"setAdjustment": [{ "run": "setLayer", "with": { "args": { "adjustment": "{{merge(computed.adjustment, args)}}" } } }],
+		"setBalance": [{ "run": "setLayer", "with": { "args": { "adjustment":
+			"{{merge(computed.adjustment, {balance: map(range(3), it == args.channel ? args.value : computed.adjustment.balance[it])})}}" } } }],
+		"setFilterValue": [{ "set": "{{'state.filter.' + keys(args)[0]}}", "to": "{{values(args)[0]}}" }],
+		"toggleLayerKind": [{ "set": "state.layerFilter", "to": "{{ {on: true, kinds: contains(state.layerFilter.kinds, args.kind) ? filter(state.layerFilter.kinds, it != args.kind) : concat(state.layerFilter.kinds, [args.kind])} }}" }],
+		"toggleLayerFilter": [{ "toggle": "state.layerFilter.on" }],
+		"setStatusInfo": [{ "set": "state.statusInfo", "to": "{{args.id}}" }],
+		"setScreenMode": [{ "set": "state.screenMode", "to": "{{args.mode}}" }],
+		"cycleScreenMode": { "title": "Change Screen Mode", "category": "View", "icon": "monitor",
+			"do": [{ "set": "state.screenMode", "to": "{{state.screenMode == 'standard' ? 'full' : 'standard'}}" }] },
 		"addGuide": [{ "push": "state.guides[args.axis]", "value": "{{round(args.at)}}" }],
 		"toggleTheme": { "title": "Dark Theme", "category": "View", "icon": "moon",
 			"do": [{ "set": "state.theme", "to": "{{state.theme == 'dark' ? 'light' : 'dark'}}" }] },
@@ -219,7 +229,8 @@
 		"mod+0": "fitOnScreen",
 		"mod+1": "actualPixels",
 		"mod+r": "toggleRulers",
-		"mod+f": "showSearch"
+		"mod+f": "showSearch",
+		"f": "cycleScreenMode"
 	},
 
 	"menus": {
@@ -374,7 +385,12 @@
 			"rulers": { "run": "toggleRulers", "group": "3_show", "order": 1 },
 			"guides": { "run": "toggleGuides", "group": "3_show", "order": 2 },
 			"clearGuides": { "run": "clearGuides", "group": "3_show", "order": 3 },
-			"theme": { "run": "toggleTheme", "group": "4_theme" }
+			"screenMode": { "submenu": "screenMode", "title": "Screen Mode", "group": "4_theme", "order": 1 },
+			"theme": { "run": "toggleTheme", "group": "4_theme", "order": 2 }
+		},
+		"screenMode": {
+			"standard": { "run": "setScreenMode", "with": { "args": { "mode": "standard" } }, "title": "Standard Screen Mode", "order": 1 },
+			"full": { "run": "setScreenMode", "with": { "args": { "mode": "full" } }, "title": "Full Screen Mode with Menu Bar", "order": 2 }
 		},
 		"window": {
 			"adjustments": { "run": "showPanel", "with": { "args": { "slot": "properties", "id": "adjustments" } }, "title": "Adjustments", "order": 1 },

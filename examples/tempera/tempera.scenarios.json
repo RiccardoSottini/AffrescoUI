@@ -1466,6 +1466,16 @@
 					}
 				},
 				{
+					"note": "The status bar shows one item at a time: choose the document profile.",
+					"action": "perform",
+					"event": {
+						"run": "setStatusInfo",
+						"args": {
+							"id": "profile"
+						}
+					}
+				},
+				{
 					"expect": {
 						"node": "#status-profile",
 						"text": "Display P3 (proof: Grey, sRGB curve)"
@@ -1894,7 +1904,7 @@
 				{
 					"click": {
 						"role": "menuitem",
-						"name": "Elliptical Marquee Tool (Shift+M)"
+						"name": "Elliptical Marquee Tool"
 					}
 				},
 				{

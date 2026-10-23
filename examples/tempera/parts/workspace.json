@@ -99,7 +99,7 @@
 				"type": "row", "width": "{{length(title) * 6 + 26}}", "height": 24, "alignItems": "center", "gap": 5,
 				"children": [
 					{ "type": "checkbox", "label": "{{title}}", "width": 13, "height": 13, "checked": "{{checked}}", "disabled": "{{off}}",
-					  "activeColor": "@accent", "trackColor": "@border", "knobColor": "@input",
+					  "activeColor": "{{off ? '@muted' : '@accent'}}", "trackColor": "@border", "knobColor": "@input",
 					  "onChange": { "run": "setOptions", "with": { "args": "{{parseJson('{' + json(key) + ': ' + json(event.value) + '}')}}" } } },
 					{ "type": "label", "text": "{{title}}", "textColor": "{{off ? '@muted' : '@text'}}", "fitText": true }
 				]
@@ -241,7 +241,13 @@
 						{ "use": "tField", "id": "option-opacity", "with": { "title": "Opacity", "key": "opacity", "value": "{{state.doc.options.opacity}}" } },
 						{ "use": "tIcon", "id": "opacity-pressure", "with": { "icon": "pencil-line", "tip": "Pressure for opacity, not available yet", "off": true } },
 						{ "use": "tField", "id": "option-flow", "with": { "title": "Flow", "key": "flow", "value": "{{state.doc.options.flow}}" } },
-						{ "use": "tIcon", "id": "airbrush", "with": { "icon": "spray-can", "tip": "Airbrush, not available yet", "off": true } }
+						{ "use": "tIcon", "id": "airbrush", "with": { "icon": "spray-can", "tip": "Airbrush, not available yet", "off": true } },
+						{ "use": "tField", "id": "option-smoothing", "with": { "title": "Smoothing", "key": "smoothing", "value": 0, "off": true, "width": 40,
+						  "tip": "Stroke smoothing isn't available yet" } },
+						{ "type": "label", "icon": "rotate-cw", "textColor": "@muted", "width": 14, "height": 20, "align": "center", "tooltip": "Brush angle" },
+						{ "use": "tField", "id": "option-angle", "with": { "title": "", "key": "angle", "value": 0, "unit": "°", "pop": false, "off": true, "width": 36,
+						  "tip": "The brush angle isn't available yet" } },
+						{ "use": "tIcon", "id": "size-pressure", "with": { "icon": "pencil-line", "tip": "Pressure for size, not available yet", "off": true } }
 					  ] },
 
 					{ "type": "row", "id": "options-select", "when": "{{computed.selects}}", "alignItems": "center", "gap": 8, "height": 30, "grow": 100,
@@ -313,7 +319,7 @@
 						{ "type": "row", "id": "workspace-switcher", "role": "button", "label": "Workspace", "tooltip": "Choose a workspace", "width": 40, "height": 22,
 						  "alignItems": "center", "gap": 2, "radius": 3, "cursor": "hand", "hover": { "color": "@hover" }, "onClick": { "toggle": "state.workspaceMenu" },
 						  "children": [
-							{ "type": "label", "icon": "layout-panel-left", "textColor": "@text", "width": 22, "align": "center" },
+							{ "type": "label", "icon": "layout-panel-left", "textColor": "@text", "width": 22, "height": 20, "align": "center" },
 							{ "type": "label", "icon": "chevron-down", "font": "small", "textColor": "@muted", "fitText": true },
 							{ "use": "tMenu", "with": { "open": "state.workspaceMenu", "placement": "below-end", "width": 200,
 							  "items": [{ "title": "Essentials", "checked": true, "run": "resetWorkspace" }, { "separator": true }, { "title": "Reset Essentials", "run": "resetWorkspace" }] } }
@@ -335,7 +341,7 @@
 					  "children": [
 						{ "when": "{{empty(g)}}", "anchors": { "left": 4, "right": 4, "top": 3 }, "height": 1, "color": "@border" },
 						{ "when": "{{!empty(g)}}", "type": "label", "id": "tool-{{t.id ?? n}}", "role": "button", "label": "{{t.title}}",
-						  "tooltip": "{{t.title + (t.id ? '' : ', not available yet')}}", "disabled": "{{!t.id}}", "selected": "{{t.id == state.doc.tool}}",
+						  "tooltip": "{{t.title + (t.key ? ' (' + t.key + ')' : '') + (t.id ? '' : ', not available yet')}}", "disabled": "{{!t.id}}", "selected": "{{t.id == state.doc.tool}}",
 						  "icon": "{{t.icon}}", "font": "iconsLarge", "fill": true, "align": "center", "radius": 3, "cursor": "hand",
 						  "textColor": "{{t.id ? '@text' : '@muted'}}", "color": "{{t.id == state.doc.tool ? '@selected' : 'transparent'}}",
 						  "hover": { "color": "{{t.id ? '@hover' : 'transparent'}}" },
@@ -344,23 +350,24 @@
 						  "children": [
 							{ "type": "path", "when": "{{length(g) > 1}}", "d": "M 4 0 L 4 4 L 0 4 Z", "fillColor": "@muted", "width": 4, "height": 4,
 							  "anchors": { "right": 1, "bottom": 1 } },
-							{ "use": "menu", "when": "{{length(g) > 1}}", "with": { "open": "{{'state.flyout.g' + n}}", "placement": "right", "icons": true, "width": 230,
-							  "items": "{{map(g, {title: it.title, icon: it.icon, enabled: it.id != null, checked: it.id == state.doc.tool, run: 'setTool', with: {args: {tool: it.id}}})}}" } }
+							{ "use": "tMenu", "when": "{{length(g) > 1}}", "with": { "open": "{{'state.flyout.g' + n}}", "placement": "right", "icons": true, "mark": "square", "width": 230,
+							  "items": "{{map(g, {title: it.title, icon: it.icon, enabled: it.id != null, checked: it.id == state.doc.tool, keyLabel: slice(it.key ?? '', max(0, length(it.key ?? '') - 1)), run: 'setTool', with: {args: {tool: it.id}}})}}" } }
 						  ] }
 					  ] },
 					{ "height": 6, "width": 1, "style": "clear" },
-					{ "id": "colours", "role": "group", "label": "Colours", "style": "clear", "width": 28, "height": 32,
+					{ "id": "colours", "role": "group", "label": "Colours", "style": "clear", "width": 32, "height": 36,
 					  "children": [
-						{ "id": "background-colour", "role": "button", "label": "Background colour", "x": 11, "y": 11, "width": 15, "height": 15,
+						{ "id": "background-colour", "role": "button", "label": "Background colour", "x": 11, "y": 12, "width": 19, "height": 19,
 						  "color": "{{state.doc.background}}", "borderWidth": 1, "borderColor": "@muted", "tooltip": "Background colour",
 						  "cursor": "hand", "onClick": { "run": "showPanel", "with": { "args": { "slot": "colour", "id": "colour" } } } },
-						{ "id": "foreground-colour", "role": "button", "label": "Foreground colour", "x": 2, "y": 2, "width": 15, "height": 15,
+						{ "x": 1, "y": 2, "width": 21, "height": 21, "color": "@panel", "radius": 1 },
+						{ "id": "foreground-colour", "role": "button", "label": "Foreground colour", "x": 2, "y": 3, "width": 19, "height": 19,
 						  "color": "{{state.doc.foreground}}", "borderWidth": 1, "borderColor": "@muted", "tooltip": "Foreground colour",
 						  "cursor": "hand", "onClick": { "run": "showPanel", "with": { "args": { "slot": "colour", "id": "colour" } } } },
 						{ "type": "label", "id": "colour-swap", "role": "button", "label": "Swap colours", "icon": "arrow-left-right", "font": "small",
-						  "x": 18, "y": 0, "width": 10, "height": 10, "cursor": "hand", "tooltip": "Switch Foreground and Background Colours (X)",
+						  "x": 22, "y": 0, "width": 10, "height": 10, "cursor": "hand", "tooltip": "Switch Foreground and Background Colours (X)",
 						  "textColor": "@muted", "hover": { "textColor": "@text" }, "onClick": { "run": "swapColours" } },
-						{ "id": "colour-reset", "role": "button", "label": "Default colours", "style": "clear", "x": 1, "y": 22, "width": 9, "height": 9, "cursor": "hand",
+						{ "id": "colour-reset", "role": "button", "label": "Default colours", "style": "clear", "x": 1, "y": 26, "width": 9, "height": 9, "cursor": "hand",
 						  "tooltip": "Default Foreground and Background Colours (D)", "onClick": { "run": "resetColours" },
 						  "children": [
 							{ "x": 3, "y": 3, "width": 6, "height": 6, "color": "#ffffff", "borderWidth": 1, "borderColor": "@muted" },
@@ -369,7 +376,15 @@
 					  ] },
 					{ "height": 2, "width": 1, "style": "clear" },
 					{ "use": "tIcon", "id": "quick-mask", "width": 28, "height": 24,
-					  "with": { "icon": "circle-dashed", "tip": "Edit in Quick Mask Mode (Q)", "run": "toggleQuickMask", "on": "{{state.doc.options.quickMask}}" } }
+					  "with": { "icon": "circle-dashed", "tip": "Edit in Quick Mask Mode (Q)", "run": "toggleQuickMask", "on": "{{state.doc.options.quickMask}}" } },
+					{ "type": "label", "id": "screen-mode", "role": "button", "label": "Screen mode", "tooltip": "Change Screen Mode (F)", "icon": "monitor",
+					  "width": 28, "height": 24, "align": "center", "radius": 3, "cursor": "hand", "textColor": "@text", "hover": { "color": "@hover" },
+					  "onClick": { "run": "cycleScreenMode" }, "onContextMenu": { "toggle": "state.screenMenu" },
+					  "children": [
+						{ "type": "path", "d": "M 4 0 L 4 4 L 0 4 Z", "fillColor": "@muted", "width": 4, "height": 4, "anchors": { "right": 1, "bottom": 1 } },
+						{ "use": "tMenu", "with": { "open": "state.screenMenu", "placement": "right", "mark": "square", "width": 250, "items": "{{[ {title: 'Standard Screen Mode', keyLabel: 'F', checked: state.screenMode == 'standard', run: 'setScreenMode', with: {args: {mode: 'standard'}}}, {title: 'Full Screen Mode with Menu Bar', keyLabel: 'F', checked: state.screenMode == 'full', run: 'setScreenMode', with: {args: {mode: 'full'}}}]}}" } }
+					  ] },
+					{ "use": "tIcon", "id": "edit-toolbar", "width": 28, "height": 24, "with": { "icon": "ellipsis", "tip": "Edit the toolbar, not available yet", "off": true } }
 				]
 			}
 		},
@@ -379,8 +394,9 @@
 				"type": "column", "id": "canvas-area", "role": "main", "label": "Canvas", "grow": 1, "height": "100%", "color": "@canvasBack",
 				"children": [
 					{ "type": "tabs", "id": "document-tabs", "label": "Documents", "width": "100%", "height": 24, "color": "@header",
-					  "tabs": [{ "id": "doc", "closable": false, "label": "{{state.docName}} @ {{computed.zoomPercent}}% ({{computed.activeLayer.name ?? ''}}, {{computed.mode}})" }],
-					  "value": "doc", "textColor": "@muted", "activeTextColor": "@text", "activeBackground": "@panel", "accentColor": "@panel" },
+					  "tabs": [{ "id": "doc", "closable": true, "label": "{{state.docName}} @ {{computed.zoomPercent}}% ({{computed.activeLayer.name ?? ''}}, {{computed.mode}})" }],
+					  "value": "doc", "textColor": "@muted", "activeTextColor": "@text", "activeBackground": "@panel", "accentColor": "@panel",
+					  "onClose": { "set": "state.doc.message", "to": "Closing the only document isn't available yet" } },
 					{ "type": "row", "id": "ruler-row", "when": "{{state.view.rulers}}", "width": "100%", "height": 16,
 					  "children": [
 						{ "id": "ruler-corner", "width": 16, "height": 16, "color": "@ruler" },
@@ -438,10 +454,16 @@
 					{ "type": "textarea", "id": "status-zoom", "label": "Zoom", "text": "{{computed.zoomPercent}}%", "width": 52, "height": 22,
 					  "padding": 4, "textColor": "@text", "color": "@panel", "hover": { "color": "@input" },
 					  "onSubmit": { "run": "zoom", "with": { "args": { "to": "{{clamp(number(trim(split(event.text, '%')[0])) ?? computed.zoomPercent, 1, 3200) / 100}}" } } } },
-					{ "style": "dim", "id": "status-doc", "text": "Doc: {{fixed(state.doc.width * state.doc.height * (state.doc.format == 'rgba16f' ? 6 : 3) / 1048576, 2)}}M" },
-					{ "style": "dim", "id": "status-size", "text": "{{state.doc.width}} × {{state.doc.height}} px" },
-					{ "style": "dim", "id": "status-profile", "text": "{{state.doc.profile + (empty(state.doc.proof) ? '' : ' (proof: ' + state.doc.proof + ')')}}" },
-					{ "style": "dim", "id": "status-memory", "text": "Undo {{fixed(state.doc.memory / 1048576, 1)}} MiB" },
+					{ "style": "dim", "id": "status-doc", "when": "{{state.statusInfo == 'doc'}}", "text": "Doc: {{fixed(state.doc.width * state.doc.height * (state.doc.format == 'rgba16f' ? 6 : 3) / 1048576, 2)}}M" },
+					{ "style": "dim", "id": "status-size", "when": "{{state.statusInfo == 'size'}}", "text": "{{state.doc.width}} × {{state.doc.height}} px" },
+					{ "style": "dim", "id": "status-profile", "when": "{{state.statusInfo == 'profile'}}", "text": "{{state.doc.profile + (empty(state.doc.proof) ? '' : ' (proof: ' + state.doc.proof + ')')}}" },
+					{ "style": "dim", "id": "status-memory", "when": "{{state.statusInfo == 'memory'}}", "text": "Undo {{fixed(state.doc.memory / 1048576, 1)}} MiB" },
+					{ "type": "label", "id": "status-info", "role": "button", "label": "Status information", "tooltip": "Choose what the status bar shows",
+					  "icon": "chevron-right", "width": 18, "height": 18, "align": "center", "radius": 3, "cursor": "hand", "textColor": "@muted",
+					  "hover": { "color": "@hover", "textColor": "@text" }, "onClick": { "toggle": "state.statusMenu" },
+					  "children": [
+						{ "use": "tMenu", "with": { "open": "state.statusMenu", "placement": "above", "width": 200, "items": "{{map([ {id: 'doc', title: 'Document Sizes'}, {id: 'size', title: 'Document Dimensions'}, {id: 'profile', title: 'Document Profile'}, {id: 'memory', title: 'Undo Memory'}], {title: it.title, checked: state.statusInfo == it.id, run: 'setStatusInfo', with: {args: {id: it.id}}})}}" } }
+					  ] },
 					{ "grow": 1, "height": 1, "style": "clear" },
 					{ "style": "dim", "id": "status-message", "live": "polite", "text": "{{state.doc.message}}" },
 					{ "width": 2, "height": 1, "style": "clear" }

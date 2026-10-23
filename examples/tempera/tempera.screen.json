@@ -70,20 +70,20 @@
 			"view": { "zoom": 1, "x": 0, "y": 0 }, "message": "", "previewing": false
 		},
 		"tools": [
-			[{ "id": "move", "icon": "move", "title": "Move Tool (V)" }],
+			[{ "id": "move", "icon": "move", "title": "Move Tool", "key": "V" }],
 			[],
-			[{ "id": "marquee", "icon": "box-select", "title": "Rectangular Marquee Tool (M)" }, { "id": "ellipse", "icon": "circle-dashed", "title": "Elliptical Marquee Tool (Shift+M)" }],
-			[{ "id": "lasso", "icon": "lasso", "title": "Lasso Tool (L)" }, { "id": "polygon", "icon": "pentagon", "title": "Polygonal Lasso Tool (Shift+L)" }],
-			[{ "id": "wand", "icon": "wand", "title": "Magic Wand Tool (W)" }],
-			[{ "id": "crop", "icon": "crop", "title": "Crop Tool (C)" }],
+			[{ "id": "marquee", "icon": "box-select", "title": "Rectangular Marquee Tool", "key": "M" }, { "id": "ellipse", "icon": "circle-dashed", "title": "Elliptical Marquee Tool", "key": "Shift+M" }],
+			[{ "id": "lasso", "icon": "lasso", "title": "Lasso Tool", "key": "L" }, { "id": "polygon", "icon": "pentagon", "title": "Polygonal Lasso Tool", "key": "Shift+L" }],
+			[{ "id": "wand", "icon": "wand", "title": "Magic Wand Tool", "key": "W" }],
+			[{ "id": "crop", "icon": "crop", "title": "Crop Tool", "key": "C" }],
 			[],
-			[{ "id": "eyedropper", "icon": "pipette", "title": "Eyedropper Tool (I)" }],
+			[{ "id": "eyedropper", "icon": "pipette", "title": "Eyedropper Tool", "key": "I" }],
 			[{ "icon": "bandage", "title": "Healing Brush Tool" }],
-			[{ "id": "brush", "icon": "brush", "title": "Brush Tool (B)" }, { "icon": "pencil", "title": "Pencil Tool" }],
-			[{ "id": "clone", "icon": "stamp", "title": "Clone Stamp Tool (S)" }],
+			[{ "id": "brush", "icon": "brush", "title": "Brush Tool", "key": "B" }, { "icon": "pencil", "title": "Pencil Tool" }],
+			[{ "id": "clone", "icon": "stamp", "title": "Clone Stamp Tool", "key": "S" }],
 			[{ "icon": "history", "title": "History Brush Tool" }],
-			[{ "id": "eraser", "icon": "eraser", "title": "Eraser Tool (E)" }],
-			[{ "id": "gradient", "icon": "blend", "title": "Gradient Tool (G)" }, { "id": "fill", "icon": "paint-bucket", "title": "Paint Bucket Tool (Shift+G)" }],
+			[{ "id": "eraser", "icon": "eraser", "title": "Eraser Tool", "key": "E" }],
+			[{ "id": "gradient", "icon": "blend", "title": "Gradient Tool", "key": "G" }, { "id": "fill", "icon": "paint-bucket", "title": "Paint Bucket Tool", "key": "Shift+G" }],
 			[{ "icon": "droplet", "title": "Blur Tool" }],
 			[{ "icon": "sun-dim", "title": "Dodge Tool" }],
 			[],
@@ -92,8 +92,8 @@
 			[{ "icon": "mouse-pointer-2", "title": "Path Selection Tool" }],
 			[{ "icon": "square", "title": "Rectangle Tool" }],
 			[],
-			[{ "id": "hand", "icon": "hand", "title": "Hand Tool (H)" }],
-			[{ "id": "zoom", "icon": "zoom-in", "title": "Zoom Tool (Z)" }]
+			[{ "id": "hand", "icon": "hand", "title": "Hand Tool", "key": "H" }],
+			[{ "id": "zoom", "icon": "zoom-in", "title": "Zoom Tool", "key": "Z" }]
 		],
 		"brushes": ["Hard Round 5", "Hard Round 20", "Soft Round 30", "Soft Round 100", "Airbrush 60", "Pencil 1", "Chalk 40"],
 		"gradients": ["Black, White", "Spectrum", "Copper", "Black, Transparent"],
@@ -139,6 +139,7 @@
 		"slide": 0,
 		"pop": {},
 		"statusInfo": "size",
+		"colourTarget": "foreground",
 		"screenMode": "standard",
 		"layerFilter": { "on": false, "kinds": [] },
 		"props": { "transform": true, "align": true, "actions": true },
@@ -161,7 +162,7 @@
 				{ "type": "row", "id": "main", "width": "100%", "grow": 1, "gap": 1, "children": [
 					{ "use": "temperaToolBar" },
 					{ "use": "temperaCanvasArea" },
-					{ "use": "temperaPanels" }
+					{ "use": "temperaPanels", "when": "{{state.screenMode == 'standard'}}" }
 				] }
 			] },
 			{ "use": "quickPick", "with": { "width": 520, "providers": "{{[{placeholder: 'Search the commands', items: computed.searchItems}]}}" } },
