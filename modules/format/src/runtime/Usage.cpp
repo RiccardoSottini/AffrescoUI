@@ -148,10 +148,12 @@ void Usage::giveConsent() {
 
 void Usage::ran(std::string_view node, std::string_view action, bool failed, std::int64_t time) {
 	if(!enabled_ || !countable(node) || !countable(action)) return;
-	auto found = actions_.find(std::pair(node, action));
+	// A pair of views has no ordering with a pair of strings in every standard library (GCC 13's has none)
+	Key key(node, action);
+	auto found = actions_.find(key);
 	if(found == actions_.end()) {
 		if(actions_.size() >= maxEntries) return;
-		found = actions_.emplace(Key(node, action), Count{0, 0, time, time}).first;
+		found = actions_.emplace(std::move(key), Count{0, 0, time, time}).first;
 	}
 	addOne(found->second.runs);
 	if(failed) addOne(found->second.errors);
