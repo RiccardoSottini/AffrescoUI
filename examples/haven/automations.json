@@ -1,5 +1,5 @@
 {
-	"note": "Haven's automations, security and simulated service, included by smart-home.screen.json: rules as a node graph, schedules on a timeline, the security mode and the notifications at the foot of the sidebar, and a timer that stands in for the devices (rooms drift towards their target; motion while away).",
+	"note": "Haven's automations, security and simulated service, included by smart-home.screen.json: rules as a node graph, schedules on a timeline, the security mode, the notifications beside the sidebar's bell, and a timer that stands in for the devices (rooms drift towards their target; motion while away).",
 
 	"settings": {
 		"security.motionAlerts": { "type": "boolean", "default": true, "title": "Motion alerts",
@@ -141,34 +141,12 @@
 	},
 
 	"components": {
-		"securityBar": {
-			"note": "The foot of the sidebar: the security mode and the notifications bell with its count",
-			"params": {},
-			"node": {
-				"anchors": { "left": 16, "right": 16, "bottom": 12 },
-				"height": 36,
-				"color": "transparent",
-				"children": [
-					{ "id": "securityButton", "style": "{{state.security == 'off' ? 'button' : 'choiceOn'}}", "font": "small", "icon": "{{state.security == 'off' ? 'shield-off' : 'shield'}}",
-						"text": " {{computed.securityLabel}}", "anchors": { "left": 0, "top": 0, "bottom": 0, "right": 52 },
-						"color": "{{state.security == 'away' ? '@alertSoft' : (state.security == 'home' ? '@accentSoft' : '@raised')}}",
-						"textColor": "{{state.security == 'away' ? '@alert' : (state.security == 'home' ? '@accent' : '@text')}}",
-						"label": "{{t('security.label', { mode: computed.securityLabel })}}", "tooltip": "{{t('security.cycle')}}", "onClick": "cycleSecurity" },
-					{ "id": "bellButton", "style": "button", "icon": "bell", "text": "", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": 44,
-						"label": "{{t('notify.count', { n: length(state.notifications) })}}", "tooltip": "{{t('notify.open')}}", "isOpen": "{{state.notificationsOpen}}",
-						"onClick": "toggleNotifications" },
-					{ "id": "bellCount", "when": "{{length(state.notifications) > 0}}", "type": "label", "font": "small", "text": "{{min(length(state.notifications), 9)}}",
-						"anchors": { "right": -4, "top": -6 }, "width": 18, "height": 18, "radius": 9, "align": "center", "color": "@alert", "textColor": "@knob" }
-				]
-			}
-		},
-
 		"notificationsPanel": {
 			"note": "The notifications, beside the bell; Escape or a click outside closes them",
 			"params": {},
 			"node": {
 				"dir": "auto",
-				"overlay": { "anchor": "#bellButton", "placement": "right", "open": "state.notificationsOpen", "dismiss": "outside", "modal": true },
+				"overlay": { "anchor": "#bellButton", "placement": "right", "flip": true, "open": "state.notificationsOpen", "dismiss": "outside", "modal": true },
 				"x": 8,
 				"width": 320,
 				"height": 300,
@@ -478,7 +456,7 @@
 								"tracks": "{{computed.scheduleTracks}}",
 								"duration": 24,
 								"fps": 1,
-								"pixelsPerSecond": "{{max(16, (window.width - 248 - 64 - 16 - 140) / 24)}}",
+								"pixelsPerSecond": "{{max(16, (window.width - computed.sideWidth - 64 - 16 - 140) / 24)}}",
 								"offset": 0,
 								"time": 14,
 								"headerWidth": 140,

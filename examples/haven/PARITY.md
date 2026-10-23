@@ -4,21 +4,22 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 31 done, 5 partial, 4 missing (40).
+**Counts:** 36 done, 4 partial, 2 missing (42).
 
 ## Shell
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Sidebar with the app title, pages and their icons | done | Home, Energy, Floor plan, Logbook, History, Automations, Settings; Areas beside the rooms heading |
+| Sidebar with the app title, pages and their icons | done | Home, Energy, Floor plan, Logbook, History, Areas, Automations; Settings and Notifications at the foot |
 | Selected page highlighted in the sidebar | done | |
-| Rooms tree in the sidebar, floors that fold | done | |
+| Views as tabs in the top bar | done | one tab per room, the shown one underlined |
+| The user at the foot of the sidebar | done | an initial in a circle; it opens the profile |
 | Coloured top bar with the page title, search and edit | done | edit says it is coming |
 | Light and dark themes | done | light by default, as the reference |
-| Right to left (Arabic) | partial | the rooms tree keeps its left-to-right indent |
+| Right to left (Arabic) | done | the sidebar moves to the right and every card mirrors; the floor plan and the automation graph keep their drawing |
 | Notifications button with a badge | done | |
-| Search dialog over entities | missing | |
-| Collapsible sidebar | missing | |
+| Search dialog over entities | done | E opens it over every light, climate, cover, device and the alarm; Enter opens its dialog |
+| Collapsible sidebar | done | the menu button folds it to icons with tooltips |
 
 ## Dashboard tiles
 
@@ -31,6 +32,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Thermostat card with a dial, target and modes | done | |
 | Cover (blinds) card with open, close and position | done | |
 | Device tiles with one action each | done | |
+| Alarm panel tile and its keypad dialog | done | a button per mode; disarming takes a code |
 | Round toggle switches | partial | the library draws a square switch |
 | Tile names never cut at the smallest window | done | |
 | Edit mode for the dashboard | missing | |

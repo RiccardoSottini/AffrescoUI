@@ -48,18 +48,15 @@
 		},
 		{
 			"name": "pick-a-room",
-			"note": "Clicking a room in the rooms tree shows its name, its picture, its lights and its climate",
+			"note": "Clicking a room's tab in the top bar shows its tab selected, its picture, its lights and its climate",
 			"steps": [
-				{ "click": [130, 436], "note": "Kitchen, under Ground floor" },
+				{ "click": "#viewTab", "nth": 1, "note": "Kitchen" },
 				{ "expect": { "state": "room", "is": 1 } },
-				{ "expect": { "node": "#greeting", "text": "Kitchen" } },
+				{ "expect": { "node": "#areaName", "text": "Kitchen" } },
 				{ "expect": { "node": "#roomImage", "property": "shown", "is": true } },
 				{ "expect": { "node": "#label-light-name", "nth": 0, "text": "Pendants" } },
 				{ "expect": { "node": "#light", "nth": 2, "exists": false } },
-				{ "expect": { "node": "#target", "text": "21°" } },
-				{ "click": [26, 380], "note": "the arrow closes a floor; picking a floor picks no room" },
-				{ "expect": { "state": "room", "is": 1 } },
-				{ "expect": { "state": "floorsOpen", "is": ["upper"] } }
+				{ "expect": { "node": "#target", "text": "21°" } }
 			]
 		},
 		{
@@ -104,14 +101,12 @@
 		},
 		{
 			"name": "smart-home-switch-the-theme",
-			"note": "The theme switch and Cmd+T flip between the dark and the light theme",
+			"note": "Cmd+T flips between the dark and the light theme",
 			"steps": [
-				{ "click": "#toggle-theme-switch" },
-				{ "expect": { "state": "theme", "is": "dark" } },
-				{ "expect": { "node": "#toggle-theme-switch", "property": "checked", "is": false } },
 				{ "key": "mod+t" },
-				{ "expect": { "state": "theme", "is": "light" } },
-				{ "expect": { "node": "#toggle-theme-switch", "property": "checked", "is": true } }
+				{ "expect": { "state": "theme", "is": "dark" } },
+				{ "key": "mod+t" },
+				{ "expect": { "state": "theme", "is": "light" } }
 			]
 		},
 		{
@@ -141,15 +136,15 @@
 			"steps": [
 				{ "click": "#navItem", "nth": 1 },
 				{ "expect": { "state": "page", "is": "energy" } },
-				{ "expect": { "node": "#greeting", "exists": false } },
+				{ "expect": { "node": "#viewTabs", "exists": false } },
 				{ "expect": { "node": "#todayFigure", "text": "24.4 kWh" } },
 				{ "expect": { "node": "#peakFigure", "text": "18:00" } },
 				{ "key": "mod+comma" },
 				{ "expect": { "state": "page", "is": "settings" } },
 				{ "key": "mod+1" },
-				{ "expect": { "node": "#greeting", "text": "Living room" } },
-				{ "click": "#energy", "note": "the energy card in the sidebar opens the Energy page" },
-				{ "expect": { "state": "page", "is": "energy" } }
+				{ "expect": { "node": "#areaName", "text": "Living room" } },
+				{ "click": "#settingsItem", "note": "Settings, at the foot of the sidebar" },
+				{ "expect": { "state": "page", "is": "settings" } }
 			]
 		},
 		{
@@ -162,7 +157,7 @@
 				{ "click": [1000, 583], "note": "the Bedroom row" },
 				{ "expect": { "state": "room", "is": 2 } },
 				{ "key": "mod+1" },
-				{ "expect": { "node": "#greeting", "text": "Bedroom" } }
+				{ "expect": { "node": "#areaName", "text": "Bedroom" } }
 			]
 		},
 		{
@@ -193,7 +188,7 @@
 				{ "expect": { "node": "#planRoomName", "text": "Kitchen" } },
 				{ "click": "#planShow" },
 				{ "expect": { "state": "page", "is": "home" } },
-				{ "expect": { "node": "#greeting", "text": "Kitchen" } }
+				{ "expect": { "node": "#areaName", "text": "Kitchen" } }
 			]
 		},
 		{
@@ -325,9 +320,9 @@
 			"steps": [
 				{ "key": "mod+shift+a" },
 				{ "expect": { "state": "security", "is": "home" } },
-				{ "click": "#securityButton" },
+				{ "click": "#alarmMode", "nth": 2, "note": "Arm away, on the alarm tile" },
 				{ "expect": { "state": "security", "is": "away" } },
-				{ "expect": { "node": "#bellCount", "text": "2" } },
+				{ "expect": { "node": "#bellButton", "property": "name", "is": "2 notifications" } },
 				{ "key": "mod+shift+n" },
 				{ "expect": { "state": "notificationsOpen", "is": true } },
 				{ "expect": { "node": "#notification", "nth": 0, "text": "Security: Away" } },
@@ -364,24 +359,22 @@
 			"note": "Cmd+L twice switches to Arabic: the page title and the sidebar read in Arabic; once more is English again",
 			"steps": [
 				{ "key": "mod+l" },
-				{ "expect": { "node": "#languageButton", "text": "IT" } },
+				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "Casa" } },
 				{ "key": "mod+l" },
-				{ "expect": { "node": "#languageButton", "text": "AR" } },
 				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "المنزل" } },
 				{ "key": "mod+l" },
-				{ "expect": { "node": "#languageButton", "text": "EN" } }
+				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "Home" } }
 			]
 		},
 		{
 			"name": "small-dark-window",
-			"note": "Regression: at 1040 by 640 in the dark theme the sidebar's energy card makes room, the lights card ends before the climate card, and the devices stay usable",
+			"note": "Regression: at 1040 by 640 in the dark theme the lights card ends before the climate card, and the devices stay usable",
 			"steps": [
 				{ "resize": [1040, 640] },
 				{ "key": "mod+t" },
-				{ "expect": { "node": "#energy", "exists": false } },
-				{ "expect": { "node": "#lightsCard", "property": "x", "is": 272 } },
-				{ "expect": { "node": "#lightsCard", "property": "width", "is": 371.5999755859375 } },
-				{ "expect": { "node": "#climateCard", "property": "x", "is": 659.5999755859375, "note": "16 after the lights card" } },
+				{ "expect": { "node": "#lightsCard", "property": "x", "is": 280 } },
+				{ "expect": { "node": "#lightsCard", "property": "width", "is": 367.20001220703125 } },
+				{ "expect": { "node": "#climateCard", "property": "x", "is": 663.199951171875, "note": "16 after the lights card" } },
 				{ "click": "#deviceAction", "nth": 1 },
 				{ "expect": { "state": "devices[1].busy", "is": true } }
 			]
@@ -398,16 +391,48 @@
 			]
 		},
 		{
-			"name": "keyboard-only-language",
-			"note": "Tab reaches the language button and Enter presses it",
+			"name": "keyboard-only-sidebar",
+			"note": "Tab reaches the menu button first and Enter folds the sidebar to its icons",
 			"steps": [
 				{ "key": "tab" },
 				{ "wait": 50 },
 				{ "key": "tab" },
 				{ "wait": 50 },
-				{ "expect": { "node": "#languageButton", "property": "focused", "is": true } },
+				{ "expect": { "node": "#menuButton", "property": "focused", "is": true } },
 				{ "key": "enter" },
-				{ "expect": { "node": "#languageButton", "text": "IT" } }
+				{ "expect": { "state": "sidebarCollapsed", "is": true } },
+				{ "expect": { "node": "#lightsCard", "property": "x", "is": 80 } }
+			]
+		},
+		{
+			"name": "search-opens-an-entity",
+			"note": "E opens the entity search; typing filters every light, climate, cover and device, and Enter opens the picked one's dialog in its room",
+			"steps": [
+				{ "key": "e" },
+				{ "wait": 100 },
+				{ "type": "pendants" },
+				{ "key": "enter" },
+				{ "expect": { "state": "room", "is": 1 } },
+				{ "expect": { "state": "info.kind", "is": "light" } }
+			]
+		},
+		{
+			"name": "disarming-takes-a-code",
+			"note": "Arming needs no code; disarming without four digits on the keypad only says so, with them it disarms and clears the code",
+			"steps": [
+				{ "click": "#alarmMode", "nth": 1 },
+				{ "expect": { "state": "security", "is": "home" } },
+				{ "click": "#alarmMode", "nth": 0, "note": "Disarm opens the keypad" },
+				{ "click": "#alarmAction", "nth": 0 },
+				{ "expect": { "state": "security", "is": "home" } },
+				{ "click": "#alarmKey", "nth": 0 },
+				{ "click": "#alarmKey", "nth": 1 },
+				{ "click": "#alarmKey", "nth": 2 },
+				{ "click": "#alarmKey", "nth": 3 },
+				{ "expect": { "node": "#alarmCode", "text": "● ● ● ●" } },
+				{ "click": "#alarmAction", "nth": 0 },
+				{ "expect": { "state": "security", "is": "off" } },
+				{ "expect": { "state": "alarmCode", "is": "" } }
 			]
 		},
 		{
@@ -425,7 +450,7 @@
 			"name": "blinds-slider-on-the-first-frame",
 			"note": "Regression: the blinds slider anchored to a button laid out after it, so the first frame had no slider",
 			"steps": [
-				{ "expect": { "node": "#blinds", "property": "width", "is": 440.4000244140625 } }
+				{ "expect": { "node": "#blinds", "property": "width", "is": 436.79998779296875 } }
 			]
 		},
 		{
@@ -444,14 +469,14 @@
 		},
 		{
 			"name": "an-area-opens-its-room",
-			"note": "The button beside the rooms heading opens the areas page, and an area's card opens that room on the home page",
+			"note": "Areas in the sidebar opens the areas page, and an area's card opens that room on the home page",
 			"steps": [
-				{ "click": "#areasButton" },
+				{ "click": { "role": "tab", "name": "Areas" } },
 				{ "expect": { "state": "page", "is": "areas" } },
 				{ "click": "#areaTile", "nth": 2 },
 				{ "expect": { "state": "page", "is": "home" } },
 				{ "expect": { "state": "room", "is": 2 } },
-				{ "expect": { "node": "#greeting", "text": "Bedroom" } }
+				{ "expect": { "node": "#areaName", "text": "Bedroom" } }
 			]
 		}
 	]

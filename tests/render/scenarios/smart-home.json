@@ -10,12 +10,12 @@
 				{ "expect": { "image": "first-frame" } },
 				{ "click": "#toggle-rooms-room-lights", "nth": 2 },
 				{ "expect": { "image": "light-on" } },
-				{ "click": [130, 436], "note": "Kitchen, in the rooms tree" },
+				{ "click": "#viewTab", "nth": 1, "note": "Kitchen, in the view tabs" },
 				{ "expect": { "image": "kitchen" } },
 				{ "click": "#scene", "nth": 1 },
 				{ "wait": 1500 },
 				{ "expect": { "image": "scene-settled" } },
-				{ "click": "#toggle-theme-switch" },
+				{ "key": "mod+t" },
 				{ "wait": 600 },
 				{ "expect": { "image": "dark-theme" } }
 			]
@@ -29,8 +29,8 @@
 				{ "expect": { "image": "device-working" } },
 				{ "wait": 600 },
 				{ "expect": { "image": "device-answered" } },
-				{ "click": [26, 380], "note": "close the Ground floor in the rooms tree" },
-				{ "expect": { "image": "floor-closed" } }
+				{ "click": "#menuButton", "note": "fold the sidebar to its icons" },
+				{ "expect": { "image": "sidebar-folded" } }
 			]
 		},
 		{
@@ -105,6 +105,29 @@
 			]
 		},
 		{
+			"name": "smart-home-shell",
+			"screen": "smart-home.screen.json",
+			"steps": [
+				{ "key": "e" },
+				{ "wait": 100 },
+				{ "type": "ceil" },
+				{ "expect": { "image": "entity-search" } },
+				{ "key": "down" },
+				{ "key": "enter" },
+				{ "expect": { "image": "entity-light-info" } },
+				{ "key": "escape" },
+				{ "click": "#alarmMode", "nth": 2 },
+				{ "click": "#alarmName" },
+				{ "click": "#alarmKey", "nth": 0 },
+				{ "click": "#alarmKey", "nth": 1 },
+				{ "expect": { "image": "alarm-keypad" } },
+				{ "key": "escape" },
+				{ "key": "mod+l" },
+				{ "key": "mod+l" },
+				{ "expect": { "image": "home-arabic" } }
+			]
+		},
+		{
 			"name": "smart-home-history",
 			"screen": "smart-home.screen.json",
 			"steps": [
@@ -115,7 +138,7 @@
 				{ "expect": { "image": "logbook-search" } },
 				{ "key": "mod+6" },
 				{ "expect": { "image": "history" } },
-				{ "click": "#areasButton" },
+				{ "click": { "role": "tab", "name": "Areas" } },
 				{ "expect": { "image": "areas" } },
 				{ "key": "mod+l" },
 				{ "key": "mod+l" },
