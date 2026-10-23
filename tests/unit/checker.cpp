@@ -12,6 +12,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <filesystem>
@@ -69,6 +70,20 @@ void checkAll(const std::vector<Case>& cases) {
 	}
 }
 
+/// @brief Merges one entry of an included file's section into the screen's, as a screen is loaded: the screen's own
+/// entry wins, and "menus" and "strings" merge one level deeper, menu by menu and locale by locale.
+/// @param entry The screen's entry (null if it has none), which receives the merge.
+/// @param section The section's name.
+/// @param part The included file's entry.
+void mergeEntry(json& entry, const std::string& section, const json& part) {
+	if(entry.is_null()) {
+		entry = part;
+	} else if((section == "menus" || section == "strings") && entry.is_object() && part.is_object()) {
+		for(const auto& [key, value] : part.items())
+			if(!entry.contains(key)) entry[key] = value;
+	}
+}
+
 /// @brief Reads a template from its folder in examples.
 /// @param name E.g. "kanban".
 /// @return The document.
@@ -79,7 +94,8 @@ json screenTemplate(const std::string& name) {
 	std::stringstream content;
 	content << file.rdbuf();
 	json document = json::parse(content.str());
-	// The "include" files are merged when a screen is loaded: each section's entries, the screen's own winning.
+	// The "include" files are merged when a screen is loaded: each section's entries, the screen's own winning;
+	// "persist" lists join.
 	if(const auto includes = document.find("include"); includes != document.end()) {
 		for(const json& include : *includes) {
 			const std::ifstream part(directory / include.get<std::string>());
@@ -89,8 +105,11 @@ json screenTemplate(const std::string& name) {
 			const json sections = json::parse(partContent.str()); // a loop over a temporary's items dangles
 			for(const auto& [section, entries] : sections.items())
 				if(entries.is_object())
-					for(const auto& [key, entry] : entries.items())
-						if(!document[section].contains(key)) document[section][key] = entry;
+					for(const auto& [key, entry] : entries.items()) mergeEntry(document[section][key], section, entry);
+				else if(section == "persist" && entries.is_array())
+					for(const json& entry : entries)
+						if(std::ranges::find(document[section], entry) == document[section].end())
+							document[section].push_back(entry);
 		}
 		document.erase("include");
 	}
@@ -275,8 +294,8 @@ TEST_CASE("checker: references to what a section defines") {
 		 R"("root": {"onClick": [{"sett": "state.x", "to": 1}, {"note": "fine"}]})",
 		 {"root.onClick[0]: unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, "
 		  "call, emit, send, connect, patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, "
-		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn "
-		  "or signOut)"}},
+		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, "
+		  "signIn or signOut)"}},
 	    {"expressions that don't parse, and writes outside the state",
 		 R"("root": {"text": "{{1 +}}", "onClick": {"set": "card.title", "to": 1}})",
 		 {"root.onClick.set: can only change values under 'state', not 'card.title'",

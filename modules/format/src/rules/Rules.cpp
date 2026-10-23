@@ -232,7 +232,7 @@ Permissions Rules::permissions(const json& doc) const {
 	Permissions result;
 	if(doc.contains("permissions") && doc["permissions"].is_object()) readPermissions(doc["permissions"], result);
 	if(doc.contains("root")) denyLocked(doc["root"], result.deny);
-	for(const char* section : {"screens", "templates"})
+	for(const char* section : {"screens", "templates", "overlays"})
 		if(doc.contains(section) && doc[section].is_object())
 			for(const auto& [name, node] : doc[section].items()) denyLocked(node, result.deny);
 	return result;

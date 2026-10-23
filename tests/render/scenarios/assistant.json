@@ -1,0 +1,93 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "assistant-collapsed",
+			"screen": "assistant.screen.json",
+			"note": "The assistant add-on collapsed: the launcher in the corner",
+			"steps": [
+				{ "action": "test.show" },
+				{ "expect": { "image": "collapsed" } }
+			]
+		},
+		{
+			"name": "assistant-empty",
+			"screen": "assistant.screen.json",
+			"note": "An agent online and no conversation yet: the welcome text and three suggestions; Escape collapses it",
+			"steps": [
+				{ "action": "test.online" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "empty" } },
+				{ "expect": { "state": "assistant.open", "is": true } },
+				{ "key": "escape" },
+				{ "expect": { "state": "assistant.open", "is": false } }
+			]
+		},
+		{
+			"name": "assistant-conversation",
+			"screen": "assistant.screen.json",
+			"note": "A conversation: bubbles, an accepted proposal, a pending one and the agent still working",
+			"steps": [
+				{ "action": "test.conversation" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "conversation" } }
+			]
+		},
+		{
+			"name": "assistant-proposal",
+			"screen": "assistant.screen.json",
+			"note": "A reply with a proposal arrives while collapsed: a badge counts it, and opening shows its card",
+			"steps": [
+				{ "action": "test.proposal" },
+				{ "action": "ask:reply", "event": { "from": "claude", "text": "I drafted it for your review.",
+				                                    "time": 1773501000000, "proposals": ["p3"] } },
+				{ "expect": { "state": "assistant.unread", "is": 1 } },
+				{ "expect": { "image": "badge" } },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "state": "assistant.unread", "is": 0 } },
+				{ "expect": { "image": "card" } }
+			]
+		},
+		{
+			"name": "assistant-offline",
+			"screen": "assistant.screen.json",
+			"note": "No agent connected: the status says so and a banner explains how to connect one",
+			"steps": [
+				{ "action": "test.offline" },
+				{ "action": "test.show" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "offline" } }
+			]
+		},
+		{
+			"name": "assistant-dark",
+			"screen": "assistant.screen.json",
+			"note": "The conversation in the dark theme: every colour is a token",
+			"steps": [
+				{ "action": "test.dark" },
+				{ "action": "test.conversation" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "dark" } }
+			]
+		},
+		{
+			"name": "assistant-rtl",
+			"screen": "assistant.screen.json",
+			"note": "Arabic, right to left: the panel mirrors and the strings are translated",
+			"steps": [
+				{ "action": "test.arabic" },
+				{ "action": "test.online" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "rtl" } }
+			]
+		}
+	]
+}

@@ -349,6 +349,57 @@ class Requests(unittest.TestCase):
         self.assertEqual([request["text"] for request in server.requests.values()], ["second", "third"])
         self.assertEqual(list(server.requests), ["r2", "r3"])
 
+    class SendingHost:
+        """A host that keeps what the server sends it."""
+
+        def __init__(self):
+            self.sent = []
+
+        def send(self, message):
+            self.sent.append(message)
+
+    def serving(self):
+        """A server whose host keeps what it is sent."""
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        server.host = self.SendingHost()
+        return server
+
+    def test_only_the_screen_asks_from_inside_the_app(self):
+        server = self.serving()
+        with contextlib.redirect_stderr(io.StringIO()):
+            server.on_request({"type": "request", "id": "ask-1", "from": "user", "text": "a", "source": "screen"})
+            server.on_request({"type": "request", "id": "s-1", "from": "studio", "text": "b", "source": "studio"})
+            server.on_request({"type": "request", "id": "s-2", "from": "studio", "text": "c"})
+            origins = [server.wait_for_request(1)["origin"] for _ in range(3)]
+        self.assertEqual(origins, ["app", "studio", "studio"])
+        # The app's chat learns the agent has its request; the Studio shows its own requests' progress
+        self.assertEqual(server.host.sent, [{"type": "reply", "request": "ask-1", "done": False}])
+
+    def test_the_channel_says_where_a_request_comes_from(self):
+        server = self.serving()
+        server.ready = True
+        pushed = io.StringIO()
+        with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(pushed):
+            server.on_request({"type": "request", "id": "ask-1", "from": "user", "text": "a", "source": "screen"})
+            server.wait_for_request(1)  # given out by the channel already: not told again
+        meta = json.loads(pushed.getvalue())["params"]["meta"]
+        self.assertEqual(meta, {"request_id": "ask-1", "sender": "user", "origin": "app"})
+        self.assertEqual(server.host.sent, [{"type": "reply", "request": "ask-1", "done": False}])
+
+    def test_a_reply_not_done_keeps_the_request(self):
+        server = self.serving()
+        with contextlib.redirect_stderr(io.StringIO()):
+            server.on_request({"type": "request", "id": "ask-1", "from": "user", "text": "a", "source": "screen"})
+            server.wait_for_request(1)
+            server.host.sent.clear()
+            note = server.reply({"request_id": "ask-1", "text": "looking", "done": False})
+            kept = "ask-1" in server.requests
+            answer = server.reply({"request_id": "ask-1", "text": "done"})
+        self.assertEqual((note[0], kept, answer[0]), ("sent to the app", True, "sent to the app"))
+        self.assertNotIn("ask-1", server.requests)
+        self.assertEqual([message["done"] for message in server.host.sent], [False, True])
+        self.assertEqual(server.reply({"request_id": "gone", "text": "x"})[0], "sent to the Studio")
+
 
 class Events(unittest.TestCase):
     def test_news_nobody_takes_is_bounded(self):
