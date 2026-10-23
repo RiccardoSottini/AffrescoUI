@@ -30,7 +30,7 @@
 	},
 
 	"actions": {
-		"toggleSidebar": { "title": "Toggle Primary Side Bar", "category": "View", "icon": "panel-left",
+		"toggleSidebar": { "title": "Toggle Left Side Bar", "category": "View", "icon": "panel-left",
 			"do": [{ "toggle": "state.layout.sidebar" }] },
 		"forgeShowView": [
 			{ "if": "{{state.sideView == view && state.layout.sidebar}}",
@@ -143,7 +143,7 @@
 	"components": {
 		"forgeTitleBar": {
 			"node": {
-				"type": "row", "id": "title-bar", "role": "banner", "label": "Title Bar", "width": "100%", "height": 34, "color": "@color.titleBar", "alignItems": "center",
+				"type": "row", "id": "title-bar", "role": "banner", "label": "Title Bar", "width": "100%", "height": 36, "color": "@color.titleBar", "alignItems": "center",
 				"borderWidth": 1, "borderColor": "@color.border",
 				"children": [
 					{ "when": "{{!window.nativeMenuBar}}", "use": "menuBar", "id": "menu-bar", "width": 330,
@@ -154,23 +154,24 @@
 					{ "use": "forgeTitleButton", "id": "title-forward", "with": { "icon": "arrow-right", "tip": "Go Forward (Ctrl+Shift+-)", "on": "{{length(state.nav.forward) > 0}}" },
 					  "onClick": { "run": "navigateForward" } },
 					{ "id": "title-centre-gap", "width": 4 },
-					{ "type": "row", "id": "command-centre", "role": "button", "label": "Search Files", "width": 420, "height": 22, "color": "@color.input", "radius": 5,
+					{ "type": "row", "id": "command-centre", "role": "button", "label": "Search Files", "width": 400, "height": 24, "color": "@color.input", "radius": 12,
 					  "borderWidth": 1, "borderColor": "@color.border", "alignItems": "center", "gap": 6,
 					  "cursor": "hand", "tooltip": "Search files (> for commands, : for a line)", "hover": { "color": "@color.hover" },
 					  "onClick": { "run": "quickOpen" },
 					  "children": [
-						{ "id": "command-centre-start", "grow": 1 },
+						{ "id": "command-centre-start", "width": 6 },
 						{ "type": "label", "id": "command-centre-icon", "icon": "search", "textColor": "@color.muted", "fitText": true },
-						{ "type": "label", "id": "command-centre-text", "text": "{{computed.folderName}}", "textColor": "@color.muted",
+						{ "type": "label", "id": "command-centre-text", "text": "{{'Search ' + computed.folderName}}", "textColor": "@color.muted",
 						  "fitText": true, "height": 20 },
-						{ "id": "command-centre-end", "grow": 1 }
+						{ "id": "command-centre-end", "grow": 1 },
+						{ "type": "label", "id": "command-centre-hint", "text": "Cmd+P", "textColor": "@color.muted", "fitText": true, "padding": 8 }
 					  ] },
 					{ "id": "title-right", "grow": 1 },
-					{ "use": "forgeTitleButton", "id": "title-sidebar", "with": { "icon": "panel-left", "tip": "Toggle Primary Side Bar (Cmd+B)", "on": "{{state.layout.sidebar}}" },
+					{ "use": "forgeTitleButton", "id": "title-sidebar", "with": { "icon": "panel-left", "tip": "Toggle Left Side Bar (Cmd+B)", "on": "{{state.layout.sidebar}}" },
 					  "onClick": { "run": "toggleSidebar" } },
 					{ "use": "forgeTitleButton", "id": "title-panel", "with": { "icon": "panel-bottom", "tip": "Toggle Panel (Cmd+J)", "on": "{{state.layout.panel}}" },
 					  "onClick": { "run": "togglePanel" } },
-					{ "use": "forgeTitleButton", "id": "title-secondary", "with": { "icon": "panel-right", "tip": "Toggle Secondary Side Bar (Cmd+Alt+B)", "on": "{{state.layout.secondary}}" },
+					{ "use": "forgeTitleButton", "id": "title-secondary", "with": { "icon": "panel-right", "tip": "Toggle Outline Bar (Cmd+Alt+B)", "on": "{{state.layout.secondary}}" },
 					  "onClick": { "run": "toggleSecondarySidebar" } },
 					{ "id": "title-end", "width": 8 }
 				]
@@ -188,7 +189,7 @@
 				"id": "activity-{{view}}", "role": "tab", "label": "{{label}}", "selected": "{{state.layout.sidebar && state.sideView == view}}",
 				"width": 48, "height": 48, "color": "@color.activityBar", "cursor": "hand", "tooltip": "{{tip}}",
 				"children": [
-					{ "id": "activity-{{view}}-indicator", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": 2,
+					{ "id": "activity-{{view}}-indicator", "anchors": { "left": 0, "top": 12, "bottom": 12 }, "width": 3, "radius": 2,
 					  "color": "{{state.layout.sidebar && state.sideView == view ? '@color.accent' : '@color.activityBar'}}" },
 					{ "type": "label", "icon": "{{icon}}", "font": "iconsLarge", "anchors": { "left": 0, "top": 0, "right": 0, "bottom": 0 }, "align": "center",
 					  "textColor": "{{state.layout.sidebar && state.sideView == view ? '@color.text' : '@color.muted'}}", "hover": { "textColor": "@color.text" } },
@@ -200,20 +201,20 @@
 		},
 		"forgeActivityBar": {
 			"node": {
-				"type": "column", "id": "activity-bar", "role": "tablist", "label": "Activity Bar", "width": 48, "height": "100%", "color": "@color.activityBar",
+				"type": "column", "id": "activity-bar", "role": "tablist", "label": "View Rail", "width": 48, "height": "100%", "color": "@color.activityBar",
 				"children": [
-					{ "use": "forgeActivityItem", "with": { "view": "explorer", "icon": "files", "label": "Explorer", "tip": "Explorer (Cmd+Shift+E)" },
+					{ "use": "forgeActivityItem", "with": { "view": "explorer", "icon": "folder-tree", "label": "Explorer", "tip": "Explorer (Cmd+Shift+E)" },
 					  "onClick": { "run": "showExplorer" } },
-					{ "use": "forgeActivityItem", "with": { "view": "search", "icon": "search", "label": "Search", "tip": "Search (Cmd+Shift+F)" },
+					{ "use": "forgeActivityItem", "with": { "view": "search", "icon": "text-search", "label": "Search", "tip": "Search (Cmd+Shift+F)" },
 					  "onClick": { "run": "showSearch" } },
-					{ "use": "forgeActivityItem", "with": { "view": "scm", "icon": "git-branch", "label": "Source Control", "tip": "Source Control (Cmd+Shift+G)",
+					{ "use": "forgeActivityItem", "with": { "view": "scm", "icon": "git-fork", "label": "Source Control", "tip": "Source Control (Cmd+Shift+G)",
 					  "badge": "{{state.scm.status.count}}" },
 					  "onClick": { "run": "showSourceControl" } },
-					{ "use": "forgeActivityItem", "with": { "view": "debug", "icon": "bug", "label": "Run and Debug", "tip": "Run and Debug (Cmd+Shift+D)" },
+					{ "use": "forgeActivityItem", "with": { "view": "debug", "icon": "bug-play", "label": "Debugger", "tip": "Debugger (Cmd+Shift+D)" },
 					  "onClick": { "run": "showDebug" } },
-					{ "use": "forgeActivityItem", "with": { "view": "features", "icon": "blocks", "label": "Features", "tip": "Features (Cmd+Shift+X)" },
+					{ "use": "forgeActivityItem", "with": { "view": "features", "icon": "puzzle", "label": "Features", "tip": "Features (Cmd+Shift+X)" },
 					  "onClick": { "run": "showFeatures" } },
-					{ "use": "forgeActivityItem", "with": { "view": "agent", "icon": "bot", "label": "Agent", "tip": "Agent (Cmd+Alt+I)" },
+					{ "use": "forgeActivityItem", "with": { "view": "agent", "icon": "sparkles", "label": "Agent", "tip": "Agent (Cmd+Alt+I)" },
 					  "onClick": { "run": "showAgent" } },
 					{ "id": "activity-gap", "grow": 1 },
 					{ "use": "forgeAccountsStatus" },
@@ -229,14 +230,14 @@
 		},
 		"forgeSideBar": {
 			"node": {
-				"type": "column", "id": "side-bar", "role": "complementary", "label": "Primary Side Bar", "point": "sidebar.views", "color": "@color.sideBar",
+				"type": "column", "id": "side-bar", "role": "complementary", "label": "Left Side Bar", "point": "sidebar.views", "color": "@color.sideBar",
 				"children": [
 					{ "when": "{{state.sideView == 'scm'}}", "use": "forgeScmView" },
 					{ "when": "{{state.sideView == 'debug'}}", "use": "forgeDebugView" },
 					{ "when": "{{state.sideView == 'agent'}}", "use": "forgeAgentView" },
 					{ "when": "{{state.sideView == 'features'}}", "use": "forgeFeaturesView" },
 					{ "when": "{{state.sideView == 'search'}}", "use": "forgeSearchPage" },
-					{ "when": "{{state.sideView == 'explorer'}}", "use": "forgeViewTitle", "with": { "text": "EXPLORER" }, "id": "side-bar-title" },
+					{ "when": "{{state.sideView == 'explorer'}}", "use": "forgeViewTitle", "with": { "text": "Files" }, "id": "side-bar-title" },
 					{ "type": "label", "id": "side-bar-folder", "when": "{{state.sideView == 'explorer' && !empty(state.folder.root)}}", "icon": "chevron-down",
 					  "text": "{{upper(computed.folderName)}}", "textColor": "@color.text", "width": "100%", "height": 22,
 					  "padding": 6 },
@@ -263,12 +264,12 @@
 					{ "type": "label", "id": "welcome-title", "text": "Forge", "font": "title", "textColor": "@color.text", "fitText": true },
 					{ "type": "label", "id": "welcome-subtitle", "text": "A workbench written in JSON, changed live.",
 					  "textColor": "@color.muted", "fitText": true },
-					{ "type": "label", "id": "welcome-start", "text": "Start", "textColor": "@color.text", "fitText": true, "padding": 4 },
+					{ "type": "label", "id": "welcome-start", "text": "Quick actions", "textColor": "@color.text", "fitText": true, "padding": 4 },
 					{ "type": "label", "id": "welcome-open", "icon": "folder-open", "text": "Open Folder...", "textColor": "@color.info",
 					  "fitText": true, "cursor": "hand", "onClick": { "run": "openFolder" } },
-					{ "type": "label", "id": "welcome-files", "icon": "search", "text": "Go to File...", "textColor": "@color.info",
+					{ "type": "label", "id": "welcome-files", "icon": "file-search", "text": "Find a File...", "textColor": "@color.info",
 					  "fitText": true, "cursor": "hand", "onClick": { "run": "quickOpen" } },
-					{ "type": "label", "id": "welcome-commands", "icon": "square-terminal", "text": "Show All Commands",
+					{ "type": "label", "id": "welcome-commands", "icon": "command", "text": "Run a Command...",
 					  "textColor": "@color.info", "fitText": true, "cursor": "hand", "onClick": { "run": "showCommands" } },
 					{ "type": "label", "id": "welcome-theme", "icon": "palette", "text": "Color Theme", "textColor": "@color.info",
 					  "fitText": true, "cursor": "hand", "onClick": { "run": "pickTheme" } },
@@ -280,15 +281,16 @@
 		},
 		"forgeStatusItem": {
 			"params": { "text": "", "icon": "", "tip": "" },
-			"node": { "type": "label", "role": "button", "label": "{{tip}}", "text": "{{text}}", "icon": "{{icon}}", "padding": 6, "height": 22, "fitText": true,
+			"node": { "type": "label", "role": "button", "label": "{{tip}}", "text": "{{text}}", "icon": "{{icon}}", "padding": 6, "height": 24, "fitText": true,
 			          "cursor": "hand", "textColor": "@color.statusText", "tooltip": "{{tip}}", "hover": { "color": "@color.hover" } }
 		},
 		"forgeStatusBar": {
 			"node": {
-				"type": "row", "id": "status-bar", "role": "status", "label": "Status Bar", "point": "statusBar.right", "width": "100%", "height": 22, "color": "@color.statusBar", "alignItems": "center",
+				"type": "row", "id": "status-bar", "role": "status", "label": "Status Bar", "point": "statusBar.right", "width": "100%", "height": 24, "color": "@color.statusBar", "alignItems": "center",
 				"borderWidth": 1, "borderColor": "@color.border", "gap": 2,
 				"children": [
-					{ "type": "label", "id": "status-remote", "role": "button", "label": "Document Server", "icon": "chevrons-left-right", "width": 36, "height": 22,
+					{ "id": "status-start", "width": 4 },
+					{ "type": "label", "id": "status-remote", "role": "button", "label": "Document Server", "icon": "cloud", "width": 30, "height": 18, "radius": 9,
 					  "align": "center", "cursor": "hand", "color": "@color.accent", "textColor": "#ffffff", "tooltip": "Document Server: sign in to share and sync",
 					  "onClick": { "run": "accountsMenu" } },
 					{ "use": "forgeStatusItem", "id": "status-branch", "when": "{{!empty(state.scm.status.branch.head)}}",
@@ -297,7 +299,7 @@
 					  "with": { "icon": "refresh-cw", "tip": "Refresh Source Control" }, "onClick": { "run": "scmRefresh" } },
 					{ "type": "label", "id": "status-problems", "role": "button", "label": "{{plural(computed.errors, 'error') + ', ' + plural(computed.warnings, 'warning')}}",
 					  "runs": ["{{' '}}", { "icon": "circle-x" }, "{{' ' + text(computed.errors) + '  '}}", { "icon": "alert-triangle" }, "{{' ' + text(computed.warnings)}}"],
-					  "padding": 6, "height": 22, "fitText": true, "cursor": "hand", "textColor": "@color.statusText", "tooltip": "Problems (Cmd+Shift+M)",
+					  "padding": 6, "height": 24, "fitText": true, "cursor": "hand", "textColor": "@color.statusText", "tooltip": "Problems (Cmd+Shift+M)",
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "showProblems" } },
 					{ "id": "status-gap", "grow": 1 },
 					{ "use": "forgeStatusItem", "id": "status-position", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",

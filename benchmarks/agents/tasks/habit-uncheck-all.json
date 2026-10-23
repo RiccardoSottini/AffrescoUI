@@ -1,7 +1,7 @@
 {
 	"id": "habit-uncheck-all",
 	"level": "feature",
-	"screen": "examples/streak/habit-tracker.screen.json",
+	"screen": "examples/streak/index.screen.json",
 	"request": "Add an \"Uncheck all\" link with the id uncheckAll to the Today card's header that marks every habit as not done today.",
 	"scenarios": [
 		{

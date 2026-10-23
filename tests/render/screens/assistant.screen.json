@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "The assistant add-on, for the rendering check: a small page that includes it, and test actions that stand in for what the check's runner has none of (agents, requests and proposals) through the add-on's state.assistant.simulate, so the launcher, the empty, offline and conversation states, a proposal card, the dark theme and Arabic (right to left) can be drawn. Its Arabic font is a subset with the letters of the add-on's Arabic strings (tests/render/fonts/subset.py).",
+	"note": "The assistant add-on, for the rendering check: a small page that includes it, and test actions that stand in for what the check's runner has none of (agents, requests and proposals) through the add-on's state.assistant.simulate, so the launcher, the empty, offline and conversation states, a proposal card, the dark theme and right to left can be drawn. The examples ship English, Spanish and French; this page adds the add-on's keys in Arabic to check its right-to-left layout, with a font subset that has their letters (tests/render/fonts/subset.py).",
 	"include": ["../../../examples/shared/addons/assistant/assistant.json"],
 
 	"window": { "title": "Assistant", "width": 800, "height": 700 },
@@ -27,10 +27,40 @@
 	"state": { "theme": "light", "locale": "en" },
 	"theme": "{{state.theme}}",
 
-	"strings": { "locale": "{{state.locale}}" },
+	"strings": {
+		"locale": "{{state.locale}}",
+		"ar": {
+			"assistant.title": "المساعد",
+			"assistant.open": "افتح المساعد",
+			"assistant.close": "أغلق المساعد",
+			"assistant.shortcut": "المساعد (Ctrl+Shift+A)",
+			"assistant.online": "{n, plural, one {متصل} other {# وكلاء متصلون}}",
+			"assistant.offline": "غير متصل",
+			"assistant.offlineNote": "لا يوجد وكيل متصل. صِل وكيلًا (خادم MCP أو الاستوديو) لتسأله.",
+			"assistant.empty": "اطلب تغييرًا بكلمات بسيطة. يقترحه الوكيل وتراجعه هنا.",
+			"assistant.chip1": "ماذا يمكنك أن تغير هنا؟",
+			"assistant.chip2": "كبّر النص",
+			"assistant.chip3": "أضف سمة داكنة",
+			"assistant.message": "رسالة إلى المساعد",
+			"assistant.placeholder": "اطلب تغييرًا…",
+			"assistant.send": "أرسل",
+			"assistant.typing": "المساعد يعمل",
+			"assistant.messages": "المحادثة",
+			"assistant.you": "أنت",
+			"assistant.touches": "{n, plural, one {يغير عنصرًا واحدًا} other {يغير # عناصر}}",
+			"assistant.preview": "معاينة",
+			"assistant.accept": "اقبل",
+			"assistant.reject": "ارفض",
+			"assistant.accepted": "مقبول",
+			"assistant.rejected": "مرفوض",
+			"assistant.closed": "مغلق",
+			"assistant.clear": "امسح المحادثة"
+		}
+	},
 
 	"actions": {
 		"test.show": [{ "set": "state.assistant.show", "to": true }],
+		"test.hide": [{ "set": "state.assistant.show", "to": false }],
 		"test.online": [{ "set": "state.assistant.simulate", "to": { "online": true } }],
 		"test.offline": [{ "set": "state.assistant.simulate", "to": { "online": false } }],
 		"test.conversation": [

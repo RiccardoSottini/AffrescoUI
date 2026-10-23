@@ -1,5 +1,5 @@
 /// @file
-/// @brief Forge's plain C++ (examples/forge): the VS Code colour theme importer, the file index and its confinement to
+/// @brief Forge's plain C++ (examples/forge): the colour theme importer, the file index and its confinement to
 /// the open folder, and the file icon theme. None of it needs a window.
 
 #include "features/palette/FileIndex.hpp"
@@ -44,7 +44,7 @@ struct TempFolder {
 };
 
 /// @brief The value an imported theme's patch gives a token.
-/// @param theme importVsCodeTheme()'s result.
+/// @param theme importColorTheme()'s result.
 /// @param token The token, e.g. "color.editor".
 /// @return The colour, or an empty string if no op sets it.
 std::string patched(const json& theme, const std::string& token) {
@@ -63,8 +63,8 @@ TEST_CASE("forge: a theme's name becomes a short id") {
 	CHECK(forge::themeId(std::string(100, 'a')).size() == 40);
 }
 
-TEST_CASE("forge: a VS Code theme with comments and trailing commas becomes token variants") {
-	const json theme = forge::importVsCodeTheme(R"({
+TEST_CASE("forge: a colour theme with comments and trailing commas becomes token variants") {
+	const json theme = forge::importColorTheme(R"({
 		// a comment, and a "string // that isn't one"
 		"name": "Night Owl", "type": "dark",
 		"colors": {
@@ -74,7 +74,7 @@ TEST_CASE("forge: a VS Code theme with comments and trailing commas becomes toke
 			"button.background": "#7e57c2",
 		},
 	})",
-	                                            "night-owl.json");
+	                                           "night-owl.json");
 	CHECK(theme["id"] == "night-owl");
 	CHECK(theme["name"] == "Night Owl");
 	CHECK(theme["type"] == "dark");
@@ -87,15 +87,15 @@ TEST_CASE("forge: a VS Code theme with comments and trailing commas becomes toke
 }
 
 TEST_CASE("forge: a light theme without a name takes the file's name and light defaults") {
-	const json theme = forge::importVsCodeTheme(R"({ "type": "light" })", "Paper");
+	const json theme = forge::importColorTheme(R"({ "type": "light" })", "Paper");
 	CHECK(theme["id"] == "paper");
 	CHECK(theme["type"] == "light");
 	CHECK(patched(theme, "color.editor") == "#ffffff");
 }
 
 TEST_CASE("forge: a theme file that isn't a JSON object is refused") {
-	CHECK_THROWS_AS(forge::importVsCodeTheme("[1, 2]", "x"), std::runtime_error);
-	CHECK_THROWS_AS(forge::importVsCodeTheme("{ \"name\": ", "x"), std::runtime_error);
+	CHECK_THROWS_AS(forge::importColorTheme("[1, 2]", "x"), std::runtime_error);
+	CHECK_THROWS_AS(forge::importColorTheme("{ \"name\": ", "x"), std::runtime_error);
 }
 
 TEST_CASE("forge: the file index lists files, folders first, and skips hidden entries and build output") {

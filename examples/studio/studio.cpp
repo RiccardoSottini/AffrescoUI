@@ -7,7 +7,7 @@
 //
 //   affrescoui_studio [--socket DIR]      (default: where affrescoui_host listens; see host.cpp)
 //
-// The Studio is itself an AffrescoUI screen (examples/studio/studio.screen.json): layout, behaviour and the connection
+// The Studio is itself an AffrescoUI screen (examples/studio/index.screen.json): layout, behaviour and the connection
 // to the host. Its "channels" section connects to studio.sock (and reconnects); every message from the host runs the
 // screen's "host:<type>" action, and its "send" steps go to the host. This program only opens it, and shows the
 // pictures of a proposal's evidence (VERSION_CONTROL.md, "Evidence"), which a screen can't decode itself, and moves
@@ -118,7 +118,7 @@ int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own 
 #endif
 		affresco::Application app;
 		affresco::Screen studio =
-		    affresco::Screen::fromFile(assetsDirectory() / "studio" / "studio.screen.json", dataDir);
+		    affresco::Screen::fromFile(assetsDirectory() / "studio" / "index.screen.json", dataDir);
 		studio.setSocketDirectory(socketDir);
 		studio.onCall("showEvidence", [&studio](const std::string& argumentsJson) {
 			return std::string(showEvidence(studio, argumentsJson));

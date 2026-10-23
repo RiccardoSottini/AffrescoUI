@@ -5,7 +5,7 @@
 	"scenarios": [
 		{
 			"name": "code-editor",
-			"screen": "code-editor.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
 				{ "move": [340, 789] },
@@ -51,7 +51,7 @@
 		},
 		{
 			"name": "code-editing",
-			"screen": "code-editor.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": [900, 166] },
 				{ "key": "enter" },

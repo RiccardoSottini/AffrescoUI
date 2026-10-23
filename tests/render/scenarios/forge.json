@@ -6,7 +6,7 @@
 		{
 			"name": "forge-welcome",
 			"note": "The workbench as it opens: the Explorer on the sample folder, the welcome page",
-			"screen": "forge.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "wait": 100 },
 				{ "expect": { "image": "first-frame" } }
@@ -15,7 +15,7 @@
 		{
 			"name": "forge-editor",
 			"note": "A file open in the editor, then Quick Open and the command palette over it, then the file revealed in the explorer (its folder listed and opened)",
-			"screen": "forge.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "wait": 100 },
 				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
@@ -40,7 +40,7 @@
 		{
 			"name": "forge-search",
 			"note": "The Search view in the side bar with a query's results",
-			"screen": "forge.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "wait": 100 },
 				{ "key": "mod+shift+f" },
@@ -54,7 +54,7 @@
 		{
 			"name": "forge-views",
 			"note": "Source Control, Run and Debug and Features in the side bar, the panel's terminal tab",
-			"screen": "forge.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "wait": 100 },
 				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
@@ -72,7 +72,7 @@
 		{
 			"name": "forge-settings",
 			"note": "The settings editor and the colour theme picker",
-			"screen": "forge.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "wait": 100 },
 				{ "action": "openSettings" },

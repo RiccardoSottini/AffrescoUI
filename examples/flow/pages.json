@@ -1,5 +1,5 @@
 {
-	"note": "Flow's team pages, included by kanban.screen.json: the inbox of notifications, the cycles with their burn-up, and the projects. The sidebar and the G chords switch between them and the issues.",
+	"note": "Flow's team pages, included by index.screen.json: the inbox of notifications, the cycles with their burn-up, and the projects. The sidebar and the G chords switch between them and the issues.",
 
 	"state": {
 		"page": "issues",
@@ -26,13 +26,13 @@
 		"projectScope": "all",
 		"projectOf": { "feature": 0, "bug": 0, "design": 1, "chore": 2 },
 		"projects": [
-			{ "name": "Board keyboard access", "icon": "keyboard", "color": "#4f46e5", "health": "onTrack", "lead": "RS", "target": "2026-04-10", "progress": 0.62, "issues": 13 },
+			{ "name": "Board keyboard access", "icon": "keyboard", "color": "#0d9488", "health": "onTrack", "lead": "RS", "target": "2026-04-10", "progress": 0.62, "issues": 13 },
 			{ "name": "Label palette", "icon": "palette", "color": "#9333ea", "health": "atRisk", "lead": "MK", "target": "2026-03-27", "progress": 0.35, "issues": 8 },
 			{ "name": "Public board API", "icon": "plug", "color": "#0f766e", "health": "onTrack", "lead": "AL", "target": "2026-05-15", "progress": 0.18, "issues": 21 },
 			{ "name": "Team onboarding", "icon": "rocket", "color": "#d97706", "health": "offTrack", "lead": "JD", "target": "2026-03-20", "progress": 0.48, "issues": 11 },
 			{ "name": "Sharper text", "icon": "type", "color": "#2563eb", "health": "completed", "lead": "MK", "target": "2026-03-06", "progress": 1, "issues": 6 }
 		],
-		"healthColors": { "onTrack": "#16a34a", "atRisk": "#d97706", "offTrack": "#dc2626", "completed": "#6366f1" }
+		"healthColors": { "onTrack": "#16a34a", "atRisk": "#d97706", "offTrack": "#dc2626", "completed": "#0d9488" }
 	},
 
 	"computed": {
@@ -48,7 +48,7 @@
 	"actions": {
 		"addProject": { "title": "New project", "category": "Go", "icon": "plus",
 			"do": [
-				{ "push": "state.projects", "value": { "name": "{{t('projects.untitled', { n: length(state.projects) + 1 })}}", "icon": "box", "color": "#4f46e5", "health": "onTrack",
+				{ "push": "state.projects", "value": { "name": "{{t('projects.untitled', { n: length(state.projects) + 1 })}}", "icon": "box", "color": "#0d9488", "health": "onTrack",
 					"lead": "{{state.me}}", "target": "{{state.cycle.end}}", "progress": 0, "issues": 0 } },
 				{ "set": "state.projectScope", "to": "all" }
 			] },
@@ -59,7 +59,7 @@
 		],
 		"goToInbox": { "title": "Go to inbox", "category": "Go", "icon": "inbox", "do": [{ "run": "showPage", "with": { "page": "inbox" } }] },
 		"goToIssues": { "title": "Go to issues", "category": "Go", "icon": "copy", "do": [{ "run": "showPage", "with": { "page": "issues" } }] },
-		"goToCycles": { "title": "Go to cycles", "category": "Go", "icon": "refresh-ccw", "do": [{ "run": "showPage", "with": { "page": "cycles" } }] },
+		"goToCycles": { "title": "Go to sprints", "category": "Go", "icon": "timer", "do": [{ "run": "showPage", "with": { "page": "cycles" } }] },
 		"goToProjects": { "title": "Go to projects", "category": "Go", "icon": "box", "do": [{ "run": "showPage", "with": { "page": "projects" } }] },
 		"pickNotification": [
 			{ "note": "with: at, the notification's place among the shown ones; marks it read" },
@@ -110,7 +110,7 @@
 		},
 		"progressBar": {
 			"note": "A thin bar filled to a ratio from 0 to 1",
-			"params": { "ratio": 0, "color": "#4f46e5", "width": 120 },
+			"params": { "ratio": 0, "color": "#0d9488", "width": 120 },
 			"node": { "id": "progressTrack", "width": "{{width}}", "height": 4, "radius": 2, "color": "@color.border", "role": "progressbar", "value": "{{ratio}}", "children": [
 				{ "id": "progressFill", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{round(width * clamp(ratio, 0, 1))}}", "radius": 2, "color": "{{color}}" }
 			] }
@@ -225,7 +225,7 @@
 				"role": "region",
 				"label": "{{t('nav.cycles')}}",
 				"children": [
-					{ "id": "cyclesHeader", "use": "pageHeader", "with": { "icon": "refresh-ccw", "text": "{{t('nav.cycles')}}" } },
+					{ "id": "cyclesHeader", "use": "pageHeader", "with": { "icon": "timer", "text": "{{t('nav.cycles')}}" } },
 					{
 						"id": "cycleCurrent",
 						"anchors": { "left": 24, "right": 24, "top": 72 },
@@ -245,7 +245,7 @@
 							{ "id": "cycleCompleted", "use": "cycleStat", "with": { "text": "{{t('cycle.completed')}}", "value": "{{computed.cycleDone}}  ·  {{formatPercent(computed.cycleDone / max(computed.cycleScope, 1))}}", "color": "@color.accent" },
 								"anchors": { "left": 300, "top": 70 } },
 							{ "id": "cycleChartBase", "anchors": { "left": 20, "right": 20, "bottom": 20 }, "height": 1, "color": "@color.border" },
-							{ "id": "cycleScopeArea", "use": "areaChart", "with": { "values": "{{concat(state.cycle.scopeHistory, [computed.cycleScope])}}", "top": "{{computed.cycleTop}}", "color": "#6366f11f" },
+							{ "id": "cycleScopeArea", "use": "areaChart", "with": { "values": "{{concat(state.cycle.scopeHistory, [computed.cycleScope])}}", "top": "{{computed.cycleTop}}", "color": "#0d94881f" },
 								"anchors": { "left": 20, "right": 20, "bottom": 21 }, "height": 90 },
 							{ "id": "cycleScopeLine", "use": "lineChart", "with": { "values": "{{concat(state.cycle.scopeHistory, [computed.cycleScope])}}", "top": "{{computed.cycleTop}}", "color": "#9ca3af", "lineWidth": 1.5 },
 								"anchors": { "left": 20, "right": 20, "bottom": 21 }, "height": 90, "role": "img", "label": "{{t('cycle.scope')}}" },

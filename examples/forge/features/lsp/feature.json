@@ -6,7 +6,7 @@
 	"title": "Language servers",
 	"description": "Diagnostics, hover, completion, signature help, definitions, references, rename, formatting, symbols and semantic tokens from a language server per language (clangd, pyright, typescript-language-server).",
 	"license": "Apache-2.0",
-	"note": "Built into Forge: forge.screen.json includes lsp.json, and its natives (Lsp.cpp, LspProtocol.cpp) are compiled in, so this manifest names and versions the package and lists no provides; it is not in the catalogue. main.cpp grants the servers it finds on PATH; a language without one works as before.",
+	"note": "Built into Forge: index.screen.json includes lsp.json, and its natives (Lsp.cpp, LspProtocol.cpp) are compiled in, so this manifest names and versions the package and lists no provides; it is not in the catalogue. main.cpp grants the servers it finds on PATH; a language without one works as before.",
 	"requires": { "format": 2 },
 	"provides": {}
 }

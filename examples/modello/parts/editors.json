@@ -7,10 +7,10 @@
 		"activeIndex": "{{indexOf(map(state.scene.nodes, it.id), state.active)}}",
 		"kindIcons": "{{ { mesh: 'triangle', camera: 'video', light: 'lightbulb', empty: 'axis-3-d' } }}",
 		"editorItems": "{{map([['3D Viewport', 'axis-3-d'], ['Image Editor', 'image'], ['Shader Editor', 'git-fork'], ['Timeline', 'clock-3'], ['Outliner', 'list-tree'], ['Properties', 'sliders-horizontal'], ['Text Editor', 'file-text']], { title: it[0], icon: it[1] })}}",
-		"workspaces": "{{['Layout', 'Modeling', 'Sculpting', 'UV Editing', 'Texture Paint', 'Shading', 'Animation', 'Rendering', 'Compositing', 'Geometry Nodes', 'Scripting']}}",
+		"workspaces": "{{[{ id: 'layout', title: 'Layout' }, { id: 'modeling', title: 'Model' }, { id: 'sculpting', title: 'Sculpt' }, { id: 'uv editing', title: 'UV' }, { id: 'texture paint', title: 'Paint' }, { id: 'shading', title: 'Materials' }, { id: 'animation', title: 'Animate' }, { id: 'rendering', title: 'Render' }, { id: 'compositing', title: 'Compose' }, { id: 'geometry nodes', title: 'Nodes' }, { id: 'scripting', title: 'Script' }]}}",
 		"objectRows": "{{sort(state.scene.nodes, 'name')}}",
-		"propTabs": "{{[[{ id: 'tool', icon: 'wrench', title: 'Tool' }], [{ id: 'render', icon: 'camera', title: 'Render' }, { id: 'output', icon: 'printer', title: 'Output' }, { id: 'viewLayer', icon: 'images', title: 'View Layer' }, { id: 'scene', icon: 'shapes', title: 'Scene' }, { id: 'world', icon: 'globe', title: 'World' }], [{ id: 'collection', icon: 'package', title: 'Collection' }], [{ id: 'object', icon: 'square', title: 'Object', color: '@object' }, { id: 'modifiers', icon: 'wrench', title: 'Modifiers', color: '#6d9bd6' }, { id: 'particles', icon: 'sparkles', title: 'Particles' }, { id: 'physics', icon: 'orbit', title: 'Physics', color: '#5fa8d3' }, { id: 'constraints', icon: 'link', title: 'Object Constraints', color: '#6d9bd6' }, { id: 'data', icon: 'triangle', title: 'Data', color: '@data' }, { id: 'material', icon: 'circle', title: 'Material', color: '#d86a6a' }, { id: 'texture', icon: 'grid-2-x-2', title: 'Texture' }]]}}",
-		"objectPanels": "{{[['delta', 'Delta Transform'], ['relations', 'Relations'], ['collections', 'Collections'], ['instancing', 'Instancing'], ['motionPaths', 'Motion Paths'], ['visibility', 'Visibility'], ['display', 'Viewport Display'], ['lineArt', 'Line Art'], ['custom', 'Custom Properties']]}}",
+		"propTabs": "{{[[{ id: 'tool', icon: 'wrench', title: 'Tool' }], [{ id: 'render', icon: 'camera', title: 'Render' }, { id: 'output', icon: 'printer', title: 'Output' }, { id: 'viewLayer', icon: 'images', title: 'View Layer' }, { id: 'scene', icon: 'shapes', title: 'Scene' }, { id: 'world', icon: 'globe', title: 'World' }], [{ id: 'collection', icon: 'package', title: 'Collection' }], [{ id: 'object', icon: 'box', title: 'Object', color: '@object' }, { id: 'modifiers', icon: 'blocks', title: 'Modifiers', color: '#6d9bd6' }, { id: 'particles', icon: 'sparkles', title: 'Particles' }, { id: 'physics', icon: 'orbit', title: 'Physics', color: '#5fa8d3' }, { id: 'constraints', icon: 'link', title: 'Object Constraints', color: '#6d9bd6' }, { id: 'data', icon: 'triangle', title: 'Data', color: '@data' }, { id: 'material', icon: 'circle', title: 'Material', color: '#d86a6a' }, { id: 'texture', icon: 'grid-2-x-2', title: 'Texture' }]]}}",
+		"objectPanels": "{{[['delta', 'Transform Offset'], ['relations', 'Relations'], ['collections', 'Collections'], ['instancing', 'Instancing'], ['motionPaths', 'Motion Paths'], ['visibility', 'Visibility'], ['display', 'Viewport Display'], ['lineArt', 'Line Drawing'], ['custom', 'Custom Properties']]}}",
 		"keyframes": "{{map(state.keys, { time: (it - 1) / 24 })}}",
 		"stats": "{{state.overlays ? 'Objects ' + length(state.view.selection) + '/' + length(state.scene.nodes) + ' | ' : ''}}"
 	},
@@ -117,22 +117,22 @@
 				"type": "row", "id": "top-bar", "width": "100%", "height": 28, "color": "@bar", "alignItems": "center", "gap": 0,
 				"children": [
 					{ "use": "gap", "with": { "width": 6 } },
-					{ "type": "label", "id": "app-icon", "font": "icons", "icon": "hexagon", "text": "", "textColor": "@text",
+					{ "type": "label", "id": "app-icon", "font": "icons", "icon": "cuboid", "text": "", "textColor": "@kit.accent",
 					  "width": 26, "height": 26, "align": "center", "role": "img", "label": "Modello" },
 					{ "use": "menuBar", "id": "menu-bar", "width": 300,
 					  "with": { "open": "state.menuBar", "height": 28, "color": "@bar", "textColor": "@text", "dimColor": "@dim",
 					            "highlight": "@sel",
 					            "menus": "{{[{ name: 'file', title: 'File', items: menus.file }, { name: 'edit', title: 'Edit', items: menus.edit }, { name: 'render', title: 'Render', items: menus.render }, { name: 'window', title: 'Window', items: menus.window }, { name: 'help', title: 'Help', items: menus.help }]}}" } },
-					{ "type": "row", "id": "workspaces", "height": 28, "alignItems": "end", "gap": 1, "color": "transparent",
+					{ "type": "row", "id": "workspaces", "height": 28, "alignItems": "center", "gap": 2, "color": "transparent",
 					  "role": "tablist", "label": "Workspaces", "arrows": "horizontal", "grow": 1,
 					  "children": [{
 						"repeat": { "for": "w", "in": "{{computed.workspaces}}" },
-						"id": "workspace-{{lower(w)}}", "height": 24, "width": "{{length(w) * 6 + 14}}",
-						"radius": { "topLeft": 4, "topRight": 4 }, "role": "tab", "focusable": true, "label": "{{w}}",
-						"selected": "{{state.workspace == w}}", "color": "{{state.workspace == w ? '@header' : 'transparent'}}",
-						"hover": { "color": "{{state.workspace == w ? '@header' : '@widget'}}" },
-						"onClick": { "run": "setOption", "with": { "args": { "key": "workspace", "value": "{{w}}" } } },
-						"children": [{ "type": "label", "text": "{{w}}", "textColor": "{{state.workspace == w ? '@text' : '@dim'}}",
+						"id": "workspace-{{w.id}}", "height": 20, "width": "{{length(w.title) * 6 + 20}}",
+						"radius": 10, "role": "tab", "focusable": true, "label": "{{w.title}}",
+						"selected": "{{state.workspace == w.title}}", "color": "{{state.workspace == w.title ? '@selRow' : 'transparent'}}",
+						"hover": { "color": "{{state.workspace == w.title ? '@selRow' : '@widget'}}" },
+						"onClick": { "run": "setOption", "with": { "args": { "key": "workspace", "value": "{{w.title}}" } } },
+						"children": [{ "type": "label", "text": "{{w.title}}", "textColor": "{{state.workspace == w.title ? '@text' : '@dim'}}",
 						               "align": "center", "fill": true }]
 					  }] },
 					{ "use": "hButton", "id": "scene-picker", "with": { "icon": "shapes", "chevron": true, "width": 38, "tooltip": "Browse Scene" } },
@@ -142,7 +142,7 @@
 					{ "use": "gap", "with": { "width": 8 } },
 					{ "use": "hButton", "id": "layer-picker", "with": { "icon": "images", "chevron": true, "width": 38, "tooltip": "Browse View Layer" } },
 					{ "id": "layer-name", "width": 100, "height": 20, "color": "@field", "radius": 4, "children": [
-						{ "type": "label", "text": "ViewLayer", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 7, "top": 0, "bottom": 0, "right": 4 } }
+						{ "type": "label", "text": "Main Layer", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 7, "top": 0, "bottom": 0, "right": 4 } }
 					] },
 					{ "use": "gap", "with": { "width": 6 } }
 				]
@@ -196,7 +196,7 @@
 					{ "type": "column", "id": "outliner-rows", "anchors": { "left": 0, "right": 0, "top": 28, "bottom": 0 }, "gap": 0,
 					  "color": "transparent", "role": "tree", "label": "Outliner", "arrows": "vertical", "scroll": "vertical",
 					  "children": [
-						{ "use": "outlinerRow", "with": { "depth": 0, "name": "Scene Collection", "icon": "package", "iconColor": "@text" } },
+						{ "use": "outlinerRow", "with": { "depth": 0, "name": "Scene Root", "icon": "folder-tree", "iconColor": "@text" } },
 						{ "use": "outlinerRow", "with": { "depth": 1, "name": "Collection", "icon": "package-open", "iconColor": "@text", "stripe": true } },
 						{ "repeat": { "for": "n", "in": "{{filter(computed.objectRows, state.outlinerFilter == null || state.outlinerFilter == '' || contains(lower(it.name), lower(state.outlinerFilter)))}}", "index": "i", "key": "{{n.id}}" },
 						  "use": "outlinerRow", "with": { "depth": 2, "name": "{{n.name}}", "icon": "{{computed.kindIcons[n.kind]}}",

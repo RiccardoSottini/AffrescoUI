@@ -1,6 +1,6 @@
 # Sinopia parity matrix
 
-Sinopia is a presentation editor modelled on PowerPoint. This matrix lists what a daily user of such an editor
+Sinopia is a presentation editor. This matrix lists what a daily user of such an editor
 expects, and how far Sinopia goes: **done** (works as expected), **partial** (there, with less) or **missing**.
 *Start* is Sinopia before wave 14 (a C++ app); *Now* is this branch, where Sinopia is JSON only and the stock host
 runs it (the slide show, presenter view and export of the C++ app come back in later rounds, on library
@@ -8,7 +8,7 @@ capabilities). Evidence names the frame of `tests/render/scenarios/sinopia.json`
 
 | Area | Feature | Start | Now | Evidence |
 |---|---|---|---|---|
-| Shell | Ribbon with tabs (Home, Insert, Draw, Design, Transitions, Animations, Slide Show, Review, View) | missing | partial | first-frame, insert-tab, design-tab |
+| Shell | Ribbon with tabs (Home, Insert, Ink, Design, Transitions, Motion, Present, Check, View) | missing | partial | first-frame, insert-tab, design-tab |
 | Shell | Ribbon groups with titles, large and small buttons | missing | done | first-frame |
 | Shell | Ribbon galleries (shapes, styles, themes, transitions, animations) | missing | partial | first-frame (shapes), design-tab (themes) |
 | Shell | Collapse and pin the ribbon | missing | missing | |
@@ -115,7 +115,7 @@ capabilities). Evidence names the frame of `tests/render/scenarios/sinopia.json`
 | Files | Save in its own format | done | partial | |
 | Files | Open its own format | partial | missing | |
 | Always | Light and dark | done | missing | |
-| Always | Locales, right-to-left for Arabic | missing | missing | |
+| Always | Locales (English, Spanish, French) | missing | missing | |
 | Always | Keyboard access to every command | partial | partial | |
 | Always | Accessibility (names, roles, focus order) | partial | partial | |
 | Always | Assistant chat add-on | missing | missing | |

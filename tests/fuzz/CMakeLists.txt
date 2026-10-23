@@ -17,7 +17,7 @@ function(affrescoui_fuzzer name)
 	target_compile_options(affrescoui_fuzz_${name} PRIVATE ${AFFRESCOUI_WARNINGS})
 	# The template the targets load (kanbanTemplate() in Fuzz.hpp)
 	target_compile_definitions(affrescoui_fuzz_${name} PRIVATE
-		AFFRESCOUI_FUZZ_TEMPLATE="${PROJECT_SOURCE_DIR}/examples/flow/kanban.screen.json")
+		AFFRESCOUI_FUZZ_TEMPLATE="${PROJECT_SOURCE_DIR}/examples/flow/index.screen.json")
 endfunction()
 
 affrescoui_fuzzer(json affrescoui::core nlohmann_json::nlohmann_json)
@@ -91,7 +91,7 @@ target_include_directories(affrescoui_fuzz_signature PRIVATE $<TARGET_PROPERTY:a
 affrescoui_fuzzer(composition affrescoui::format)
 target_include_directories(affrescoui_fuzz_composition PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
 # The 1.0 security audit (SECURITY.md, README.md "Inventory of untrusted inputs"): URLs, sign-in responses, the token
-# file, what git prints, imported VS Code themes and history files on disk
+# file, what git prints, imported colour themes and history files on disk
 affrescoui_fuzzer(url affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(oauth affrescoui::net nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_oauth PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # OAuth.hpp
@@ -102,13 +102,13 @@ affrescoui_fuzzer(token_file affrescoui::net nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/apps/server) # TokenFile.hpp
 affrescoui_fuzzer(git_output affrescoui::core nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_git_output PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge)
-affrescoui_fuzzer(vscode_theme affrescoui::core nlohmann_json::nlohmann_json)
-target_include_directories(affrescoui_fuzz_vscode_theme PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge)
+affrescoui_fuzzer(color_theme affrescoui::core nlohmann_json::nlohmann_json)
+target_include_directories(affrescoui_fuzz_color_theme PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge)
 if(AFFRESCOUI_BUILD_FUZZERS)
 	target_sources(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/apps/server/TokenFile.cpp)
 	target_sources(affrescoui_fuzz_git_output PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge/features/scm/GitStatus.cpp
 		${PROJECT_SOURCE_DIR}/examples/forge/features/scm/LineDiff.cpp)
-	target_sources(affrescoui_fuzz_vscode_theme PRIVATE
+	target_sources(affrescoui_fuzz_color_theme PRIVATE
 		${PROJECT_SOURCE_DIR}/examples/forge/features/themes/ThemeImport.cpp)
 endif()
 affrescoui_fuzzer(sinopia_deck affrescoui::render nlohmann_json::nlohmann_json)

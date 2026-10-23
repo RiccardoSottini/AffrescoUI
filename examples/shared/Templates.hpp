@@ -22,7 +22,7 @@ inline affresco::json templateFolders(const std::filesystem::path& examples) {
 	return affresco::json::parse(file).at("templates");
 }
 
-/// @brief The templates' names ("kanban" for kanban.screen.json), in name order.
+/// @brief The templates' names ("kanban" for flow/index.screen.json), in name order.
 /// @param examples The examples folder.
 /// @return Their names.
 inline std::vector<std::string> templateNames(const std::filesystem::path& examples) {

@@ -1,6 +1,6 @@
 # Streak: parity
 
-Streak is modelled on Loop Habit Tracker, the open-source Android habit tracker, laid out for the desktop: the habit
+Streak is a habit tracker laid out for the desktop: the habit
 list and the selected habit's detail side by side, one pane at a time below 960 window units. It replicates the
 design and the workflows, not the product: its own name, Lucide icons, invented habits and text, no assets of the
 original.
@@ -37,14 +37,14 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 
 | Area | Status | Gap |
 |---|---|---|
-| The app bar in the habit's colour, back, edit, more | done | |
+| The detail bar with a stripe and title in the habit's colour, back, edit, more | done | |
 | Question, frequency and reminder line | done | |
-| Overview: score ring, score, month and year change, total | done | |
+| At a glance: strength ring, strength, month and year change, total | done | |
 | Target card for measurable habits (today, week, month, quarter, year) | done | |
 | Score chart with a period (day to year) | done | |
 | History bars with a period | done | |
 | Calendar heatmap, scrolled to the latest weeks | done | |
-| Best streaks as bars | done | |
+| Longest runs as bars | done | |
 | Frequency: dots per weekday and month | done | |
 | Notes of past days | done | |
 
@@ -64,10 +64,10 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 
 | Area | Status | Gap |
 |---|---|---|
-| Theme: light, dark, pure black | done | |
+| Theme: light, dark, true black | done | |
 | First day of the week, reverse order of days, skip days | done | |
 | Notifications on or off | done | |
-| Language (English, Italiano, العربية, right to left) | done | |
+| Language (English, Español, Français) | done | |
 | Export all as CSV | done | |
 | Sync (optional, a placeholder sign-in) | done | |
 | Widgets, backups to a file | missing | desktop documents have no widgets or file writes |

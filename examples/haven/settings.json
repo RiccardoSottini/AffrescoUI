@@ -1,5 +1,5 @@
 {
-	"note": "Haven's settings page, included by smart-home.screen.json: grouped cards of rows that open the other pages or a sub-page (devices and entities, profile, general settings from the schema, about).",
+	"note": "Haven's settings page, included by index.screen.json: grouped cards of rows that open the other pages or a sub-page (devices and entities, profile, general settings from the schema, about).",
 
 	"state": {
 		"settingsView": "main",
@@ -9,7 +9,7 @@
 		"devQuery": "",
 		"settingsGroups": [
 			{ "id": "home", "rows": [
-				{ "id": "devices", "icon": "cpu", "color": "#039be5" },
+				{ "id": "devices", "icon": "cpu", "color": "#1f8a78" },
 				{ "id": "automations", "icon": "bot", "color": "#0f9d58" },
 				{ "id": "areas", "icon": "layout-grid", "color": "#e67c19" },
 				{ "id": "energy", "icon": "zap", "color": "#f4b400" }
@@ -239,8 +239,8 @@
 											{ "id": "langMenu", "use": "menu", "with": { "open": "state.langMenu", "placement": "below", "width": 240,
 												"items": [
 													{ "title": "English", "checked": "{{settings.ui.language == 'en'}}", "run": "pickLanguage", "with": { "lang": "en" } },
-													{ "title": "Italiano", "checked": "{{settings.ui.language == 'it'}}", "run": "pickLanguage", "with": { "lang": "it" } },
-													{ "title": "العربية", "checked": "{{settings.ui.language == 'ar'}}", "run": "pickLanguage", "with": { "lang": "ar" } }
+													{ "title": "Español", "checked": "{{settings.ui.language == 'es'}}", "run": "pickLanguage", "with": { "lang": "es" } },
+													{ "title": "Français", "checked": "{{settings.ui.language == 'fr'}}", "run": "pickLanguage", "with": { "lang": "fr" } }
 												] } }
 										] }
 								] },

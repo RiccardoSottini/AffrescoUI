@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Modello's actions, keys and menus, modelled on Blender's keymap: G, R and S move, turn and scale the selection after the pointer (X, Y and Z lock an axis, Shift a plane, digits type the amount, Enter or a click confirms, Escape or a right click cancels); Shift+A adds, X and Delete delete, Shift+D duplicates, H hides; the numpad turns the view; Ctrl+Z undoes. Every change of the scene goes through an action that keeps an undo snapshot first.",
+	"note": "Modello's actions, keys and menus: G, R and S move, turn and scale the selection after the pointer (X, Y and Z lock an axis, Shift a plane, digits type the amount, Enter or a click confirms, Escape or a right click cancels); Shift+A adds, X and Delete delete, Shift+D duplicates, H hides; the numpad turns the view; Ctrl+Z undoes. Every change of the scene goes through an action that keeps an undo snapshot first.",
 	"computed": {
 		"centre": "{{ { x: nodes.viewport.x + nodes.viewport.width / 2 - 100, y: nodes.viewport.y + nodes.viewport.height / 2 - 60 } }}",
 		"lastCentre": "{{state.lastOp == null || length(state.lastOp.base) == 0 ? [0, 0, 0] : map([sum(map(state.lastOp.base, it.translation[0])), sum(map(state.lastOp.base, it.translation[1])), sum(map(state.lastOp.base, it.translation[2]))], it / length(state.lastOp.base))}}",

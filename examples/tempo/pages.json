@@ -1,5 +1,5 @@
 {
-	"note": "Tempo's pages beside the playlists and the library, included by music-player.screen.json: albums and artists in a grid, one album or artist in a table, search, now playing (cover, visualiser, lyrics), sound (equaliser, crossfade, theme, language) and the mini player.",
+	"note": "Tempo's pages beside the playlists and the library, included by index.screen.json: albums and artists in a grid, one album or artist in a table, search, now playing (cover, visualiser, lyrics), sound (equaliser, crossfade, theme, language) and the mini player.",
 
 	"state": {
 		"collection": { "kind": "album", "name": "" },
@@ -8,7 +8,7 @@
 		"searchPick": null,
 		"eq": { "points": [[0, 0.5], [0.25, 0.5], [0.5, 0.5], [0.75, 0.5], [1, 0.5]] },
 		"eqOn": true,
-		"tileColors": ["#fb7185", "#f59e0b", "#22d3ee", "#a78bfa", "#34d399", "#60a5fa", "#f472b6", "#facc15"],
+		"tileColors": ["#ff7f7a", "#f59e0b", "#22d3ee", "#a78bfa", "#34d399", "#60a5fa", "#f472b6", "#facc15"],
 		"bands": [{ "label": "60 Hz", "at": 0 }, { "label": "250 Hz", "at": 0.25 }, { "label": "1 kHz", "at": 0.5 }, { "label": "4 kHz", "at": 0.75 }, { "label": "16 kHz", "at": 1 }],
 		"presets": {
 			"flat": [[0, 0.5], [0.25, 0.5], [0.5, 0.5], [0.75, 0.5], [1, 0.5]],
@@ -387,7 +387,7 @@
 						"role": "toolbar",
 						"label": "{{t('language.toggle')}}",
 						"children": [
-							{ "id": "languageChoice", "repeat": { "for": "language", "in": "['en', 'it', 'ar']" }, "style": "chip", "text": "{{t('language.' + language)}}", "role": "radio",
+							{ "id": "languageChoice", "repeat": { "for": "language", "in": "['en', 'es', 'fr']" }, "style": "chip", "text": "{{t('language.' + language)}}", "role": "radio",
 								"checked": "{{settings.ui.language == language}}", "color": "{{settings.ui.language == language ? '@accentSoft' : '@button'}}",
 								"onClick": { "set": "settings.ui.language", "to": "{{language}}" } }
 						]

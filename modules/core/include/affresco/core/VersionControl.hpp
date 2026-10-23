@@ -21,7 +21,7 @@ enum class RevisionStatus {
 	Rejected, ///< Nothing changed; RevisionResult::error says why.
 };
 
-/// @brief How much a reviewer is asked, named after Claude Code's permission modes.
+/// @brief How much a reviewer is asked.
 enum class Mode {
 	Default,     ///< The rules decide; a change no rule allows waits for review.
 	AcceptEdits, ///< A change that would wait only because no rule allows it is applied. Ask and deny rules still hold.
@@ -113,7 +113,7 @@ public:
 	virtual void proposalsChanged() = 0;
 };
 
-/// @brief Version control for a live document, like Git, with approvals like Claude Code's.
+/// @brief Version control for a live document: content-addressed commits, proposals and approvals.
 ///
 /// Commits are content-addressed (SHA-256) and chained by their parents. "main" is the live branch; it only grows,
 /// so the history is an audit log that can't be rewritten. A change the permission rules don't allow becomes a

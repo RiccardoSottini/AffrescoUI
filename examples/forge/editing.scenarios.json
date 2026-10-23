@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's editing (features/editing): the find and replace bar, the caret's position in the status bar and the editor's settings, checked headless with tests/render/forge/folder open; nothing is saved: affrescoui_render_runner editing.scenarios.json",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "forge-find-opens-and-counts",

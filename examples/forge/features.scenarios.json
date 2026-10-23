@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's features as packages, from the example catalogue (catalog/, whose publisher only Forge trusts): listed by the features service, installed, disabled, enabled and removed by revisions on /features/<name>. The installs are the revisions features.install makes; a scenario can't wait for the service's own (what it posts never runs headless).",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "features-the-catalogue",

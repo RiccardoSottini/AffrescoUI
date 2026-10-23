@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's workbench extras (features/workbench), checked headless on tests/render/forge/folder: the secondary side bar and its Outline, moving editors between groups, the breadcrumbs, the recently opened files, the minimap setting, the settings and keys as JSON, and the diff's side by side and inline views. affrescoui_render_runner layout.scenarios.json",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "forge-layout-secondary-side-bar",

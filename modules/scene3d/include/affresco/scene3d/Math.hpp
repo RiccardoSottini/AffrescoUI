@@ -90,7 +90,7 @@ struct Quat {
 	/// @param radians The angle, counter-clockwise looking down the axis.
 	/// @return The rotation.
 	[[nodiscard]] static Quat fromAxisAngle(Vec3 axis, float radians) noexcept;
-	/// @brief A rotation from Euler angles, applied x, then y, then z (as Blender's default XYZ).
+	/// @brief A rotation from Euler angles, applied x, then y, then z (the common XYZ order).
 	/// @param radians The angles around x, y and z.
 	/// @return The rotation.
 	[[nodiscard]] static Quat fromEuler(Vec3 radians) noexcept;

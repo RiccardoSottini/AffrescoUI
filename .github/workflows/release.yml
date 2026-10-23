@@ -5,7 +5,7 @@
 # - A pushed tag v* (only the maintainer pushes tags) also makes a draft GitHub Release with the archives, SHA256SUMS,
 #   the SBOM and build-provenance attestations; the MCP package's wheel and sdist, the VS Code extension (.vsix), the
 #   web build and the docs site (zips), the AppImage and the package recipes (packages-<version>.zip) are release
-#   assets too. EVERYTHING lives only in that draft, which the maintainer reviews and publishes (RELEASING.md): no
+#   assets too. EVERYTHING lives only in that draft, which the maintainer reviews and publishes: no
 #   PyPI, marketplace, Pages, CDN, registry, tap or package index is ever touched.
 # - workflow_dispatch, and a pull request that changes the release files, are dry runs: everything is built, packed
 #   and checked, and the files are kept as this run's artifacts; nothing is released or published.
@@ -168,7 +168,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends xvfb xauth libgl1-mesa-dri
           cd affrescoui-*/
           AFFRESCOUI_SCREENSHOT=kanban.ppm xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui_host
-          xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui render assets/flow/kanban.screen.json -o kanban.png
+          xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui render assets/flow/index.screen.json -o kanban.png
           test -s kanban.ppm && test -s kanban.png
 
   vscode:
@@ -298,7 +298,7 @@ jobs:
           python3 source/tools/release/sbom.py --check
           SOURCE_DATE_EPOCH="$(git -C source log -1 --format=%ct)" \
             python3 source/tools/release/sbom.py --sbom "dist/affrescoui-$VERSION.spdx.json"
-      - name: Source tarball # what the recipes of packaging/ build from (RELEASING.md, Packages)
+      - name: Source tarball # what the recipes of packaging/ build from
         env:
           VERSION: ${{ needs.version.outputs.version }}
         run: git -C source archive --format=tar.gz --prefix="affrescoui-$VERSION/" -o "$PWD/dist/affrescoui-$VERSION-source.tar.gz" HEAD

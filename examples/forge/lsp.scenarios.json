@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's language servers (features/lsp), checked headless: the answers tests/lsp/fake_server.py gives (python3 tests/lsp/fake_server.py --print hover) are played through lspPlay, which normalizes them as the client does, so no server runs; tests/unit/lsp.cpp checks the protocol. affrescoui_render_runner lsp.scenarios.json",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "forge-lsp-diagnostics-squiggles",

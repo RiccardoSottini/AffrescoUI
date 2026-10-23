@@ -5,7 +5,7 @@
 	"scenarios": [
 		{
 			"name": "studio-evidence",
-			"screen": "studio.screen.json",
+			"screen": "index.screen.json",
 			"note": "A proposal's evidence in the review panel: pictures, behaviour lines, scenario results and a changed text, split",
 			"steps": [
 				{"action": "host:hello", "event": {"revision": 5, "head": {"short": "b2c3d4e"}, "you": "ada", "canReview": true, "mode": "default"}},

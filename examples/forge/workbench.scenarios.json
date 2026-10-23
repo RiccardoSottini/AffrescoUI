@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's workbench, checked headless on tests/render/forge/folder: panels, notifications, pickers, tabs and groups, keys and chords, and the side bar's views. affrescoui_render_runner workbench.scenarios.json",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "forge-workbench-about",

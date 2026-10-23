@@ -1,7 +1,7 @@
 {
 	"id": "forge-zen-buttons",
 	"level": "forge",
-	"screen": "examples/forge/forge.screen.json",
+	"screen": "examples/forge/index.screen.json",
 	"request": "In Forge, add a Zen Mode button with the id title-zen to the title bar, next to Toggle Panel, and one with the id panel-zen to the panel's header, next to its close button; both toggle Zen Mode.",
 	"scenarios": [
 		{

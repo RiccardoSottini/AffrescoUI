@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's terminal: up to 8 shells in the panel's Terminal tab, each a tab of its own (the terminal type in Terminal.cpp, on the pty provider). The Terminal tab shows only while a terminal is open. The node keeps Tab for the shell. Run Task (and mod+shift+b, the build task) runs a task of .vscode/tasks.json (forge.tasks.list, Debug.cpp) in a new terminal, through forge.terminal.run.",
+	"note": "Forge's terminal: up to 8 shells in the panel's Terminal tab, each a tab of its own (the terminal type in Terminal.cpp, on the pty provider). The Terminal tab shows only while a terminal is open. The node keeps Tab for the shell. Run Task (and mod+shift+b, the build task) runs a task of .forge/tasks.json (forge.tasks.list, Debug.cpp) in a new terminal, through forge.terminal.run.",
 
 	"state": {
 		"terminals": { "list": [], "active": "", "next": 1 },
@@ -45,13 +45,13 @@
 			"do": [{ "call": "forge.terminal.clear", "with": { "id": "{{state.terminals.active}}" } }] },
 		"terminalKeepTab": [],
 		"runTask": { "title": "Run Task...", "category": "Terminal", "icon": "play",
-			"description": "Pick a task of the open folder's .vscode/tasks.json and run it in a new terminal.",
+			"description": "Pick a task of the open folder's .forge/tasks.json and run it in a new terminal.",
 			"do": [{ "run": "tasksLoad", "with": { "then": "pick" } }] },
 		"runBuildTask": { "title": "Run Build Task...", "category": "Terminal", "icon": "play",
-			"description": "Run the build task of .vscode/tasks.json, or pick one if there are several.",
+			"description": "Run the build task of .forge/tasks.json, or pick one if there are several.",
 			"do": [{ "run": "tasksLoad", "with": { "then": "build" } }] },
 		"tasksLoad": [{ "call": "forge.tasks.list",
-			"onError": [{ "set": "state.tasks.error", "to": "{{'Cannot read .vscode/tasks.json: ' + error}}" },
+			"onError": [{ "set": "state.tasks.error", "to": "{{'Cannot read .forge/tasks.json: ' + error}}" },
 			            { "run": "notify", "with": { "severity": "error", "message": "{{state.tasks.error}}" } }],
 			"then": [{ "run": "tasksApply", "with": { "found": "{{result}}", "then": "{{then}}" } }] }],
 		"tasksApply": [
@@ -61,7 +61,7 @@
 			{ "if": "{{then == 'build' && length(filter(state.tasks.items, it.group == 'build')) == 1}}",
 			  "then": [{ "run": "taskStart", "with": { "item": "{{find(state.tasks.items, it.group == 'build')}}" } }],
 			  "else": [{ "if": "{{then != '' && empty(state.tasks.items)}}",
-			             "then": [{ "run": "notify", "with": { "severity": "info", "message": "No tasks in .vscode/tasks.json" } }],
+			             "then": [{ "run": "notify", "with": { "severity": "info", "message": "No tasks in .forge/tasks.json" } }],
 			             "else": [{ "if": "{{then != ''}}", "then": [{ "set": "state.quickPick.query", "to": "task " },
 			                                                         { "set": "state.quickPick.open", "to": true }] }] }] }
 		],

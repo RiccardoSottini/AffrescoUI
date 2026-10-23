@@ -78,7 +78,7 @@ struct History {
 /// @brief The Kanban template as a history holds it, its includes merged in.
 /// @param context The context.
 /// @return The document.
-json kanban(const Context& context) { return screenDocument(context.templateFolder("kanban") / "kanban.screen.json"); }
+json kanban(const Context& context) { return screenDocument(context.templateFolder("kanban") / "index.screen.json"); }
 
 /// @brief "scaling/history/commit/<n>": 16 more commits on a history of n, per commit; retainedBytes is what one keeps.
 /// @param context The context.

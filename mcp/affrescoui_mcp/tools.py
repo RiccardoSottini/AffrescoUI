@@ -70,7 +70,7 @@ TOOLS = [
                     "points (slot, the exports each receives), its typed exports (state, lists, actions, models, "
                     "surfaces, images) and the installable parts it ships (each one's needs and provides), one line "
                     "each. file is an app's screen file: another app's (e.g. "
-                    "\"examples/sinopia/sinopia.screen.json\"), to pick a part to install from it, or the running "
+                    "\"examples/sinopia/index.screen.json\"), to pick a part to install from it, or the running "
                     "app's with running=true, to read the running document's.",
      "inputSchema": object_schema({"file": {"type": "string", "description": "An app's *.screen.json"},
                                    "running": {"type": "boolean",
@@ -155,7 +155,7 @@ TOOLS = [
      "description": "Check your work with the screen's own scenarios (scripted clicks, typing, waits and expectations "
                     "of state and nodes, played headless): on main as it runs now, or with an open proposal applied "
                     "(`proposal`, e.g. the one submit_revision just opened). `file` is the scenarios file shipped "
-                    "next to the screen (examples/flow/kanban.scenarios.json). Pass `scenarios` (a list of "
+                    "next to the screen (examples/flow/index.scenarios.json). Pass `scenarios` (a list of "
                     "{name, steps}) to play your own instead of the file's, `only` for one by name. Answers in a few "
                     "lines: the totals, then \"FAILED <scenario>, step <n>: <what>\" per failure. Nothing changes: "
                     "scenarios play on a copy, without a window. SCREEN_FORMAT.md, \"Scenarios\", lists the steps.",
@@ -168,27 +168,27 @@ TOOLS = [
      }, ["file"]),
      "annotations": {"readOnlyHint": True}},
     {"name": "get_history",
-     "description": "main's commits, oldest first (like git log): number, short id, author, committer (who approved "
+     "description": "main's commits, oldest first: number, short id, author, committer (who approved "
                     "it), message, time, and parents (two for a merged proposal). Revision 0 is the file as loaded.",
      "inputSchema": object_schema({"limit": {"type": "integer", "description": "Only the newest N (optional)"}})},
     {"name": "get_diff",
-     "description": "What changed, as a JSON Patch (like git diff): between two revisions (`from`, `to`: numbers, "
+     "description": "What changed, as a JSON Patch: between two revisions (`from`, `to`: numbers, "
                     "commit ids, \"HEAD\", \"HEAD~1\"; default HEAD~1 to HEAD), or what accepting an open proposal "
                     "would change now (`proposal`).",
      "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "to": {"type": ["integer", "string"]},
                                    "proposal": {"type": "integer"}})},
     {"name": "get_blame",
-     "description": "Who last changed a node or a value, and when (like git blame): the commit on main that last "
+     "description": "Who last changed a node or a value, and when: the commit on main that last "
                     "changed `target`, a node (\"#board\", or \"#board/text\" inside it) or a path "
                     "(\"/colors/accent\", \"/state/cards\"). Gives its revision, id, author, committer (who applied "
                     "or approved it), message and time; revision 0 if it is as the screen file has it.",
      "inputSchema": object_schema({"target": {"type": "string"}}, ["target"])},
     {"name": "restore_revision",
-     "description": "Bring the whole screen back to how it was at an earlier revision (like git restore). This "
+     "description": "Bring the whole screen back to how it was at an earlier revision. This "
                     "creates a new revision (the history only grows) and follows the same permissions as any change.",
      "inputSchema": object_schema({"revision": {"type": ["integer", "string"]}}, ["revision"])},
     {"name": "revert_revision",
-     "description": "Undo one earlier revision and keep everything after it (like git revert): a new revision with "
+     "description": "Undo one earlier revision and keep everything after it: a new revision with "
                     "the inverse change. Refused as a conflict if later revisions changed the same parts. Follows "
                     "the same permissions as any change.",
      "inputSchema": object_schema({"revision": {"type": ["integer", "string"]}}, ["revision"])},

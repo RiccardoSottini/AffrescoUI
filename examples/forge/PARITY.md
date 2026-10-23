@@ -1,15 +1,15 @@
 # Forge parity
 
-Forge is modelled on Visual Studio Code: laid out and working like it, in its own words, icons and sample data. Each area below is `done`, `partial` or
+Forge is a desktop code workbench, in its own words, icons and sample data. Each area below is `done`, `partial` or
 `missing`, with its gap in one line. Each round takes the gaps a daily user would notice first.
 
 ## Layout and chrome
 
 | Area | Status | Gap |
 |---|---|---|
-| Title bar, command center | done | |
+| Title bar, search box | done | |
 | Back and forward navigation | done | |
-| Activity bar | done | |
+| View rail | done | |
 | Side bar views, title rows | partial | No view actions (new file, refresh, collapse) in the title rows |
 | Editor tabs | partial | No file-type icons; no preview (italic) tabs |
 | Breadcrumbs | partial | Shows the path; no symbol segments |

@@ -548,7 +548,7 @@ TEST_CASE("vcs: reverting a commit undoes what it changed in the live state too"
 }
 
 TEST_CASE("vcs: the revision fuzzer's input that found it: a value copied in the state and moved into the document") {
-	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/flow/kanban.screen.json");
+	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/flow/index.screen.json");
 	REQUIRE(file);
 	json kanban = json::parse(file);
 	kanban.erase("include"); // a Repository does not merge included files; this test needs none

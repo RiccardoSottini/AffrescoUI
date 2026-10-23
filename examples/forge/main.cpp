@@ -1,5 +1,5 @@
 /// @file
-/// @brief affrescoui_forge: Forge, a demo IDE whose whole workbench is a screen document (forge.screen.json).
+/// @brief affrescoui_forge: Forge, a demo IDE whose whole workbench is a screen document (index.screen.json).
 //
 //   affrescoui_forge [folder] [--socket DIR] [--data DIR]
 //
@@ -86,7 +86,7 @@ int run(const Options& options) {
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
 	affresco::Screen screen =
-	    affresco::Screen::fromFile(assetsDirectory() / "forge" / "forge.screen.json", options.dataDir,
+	    affresco::Screen::fromFile(assetsDirectory() / "forge" / "index.screen.json", options.dataDir,
 		                           screenshotOnly ? History::InMemory : History::OnDisk);
 	examples::registerCodeEditor(screen);
 	const auto workspace = std::make_shared<forge::Workspace>();

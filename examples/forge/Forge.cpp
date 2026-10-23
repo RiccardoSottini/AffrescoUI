@@ -85,9 +85,9 @@ void registerNatives(affresco::Screen& screen, const std::shared_ptr<Workspace>&
 	screen.onCall("forge.importTheme", [workspace](const std::string&) {
 		const std::filesystem::path file = choose(*workspace, {.kind = affresco::FileDialogKind::Open,
 		                                                       .title = "Import Color Theme",
-		                                                       .filters = {{"VS Code color themes", {"json"}}}});
+		                                                       .filters = {{"Color themes", {"json"}}}});
 		if(file.empty()) throw std::runtime_error("no theme chosen");
-		return importVsCodeTheme(readTheme(file), file.stem().string()).dump();
+		return importColorTheme(readTheme(file), file.stem().string()).dump();
 	});
 }
 

@@ -6,13 +6,13 @@
 
 	"styles": {
 		"rbButton": {
-			"type": "label", "radius": 3, "color": "transparent", "textColor": "@rbInk", "cursor": "hand", "focusable": true,
+			"type": "label", "radius": 6, "color": "transparent", "textColor": "@rbInk", "cursor": "hand", "focusable": true,
 			"hover": { "color": "@rbHover" }, "pressed": { "color": "@rbPressed" }
 		},
 		"rbButtonOn": { "style": "rbButton", "color": "@rbChecked", "hover": { "color": "@rbCheckedHover" } },
 		"rbButtonOff": { "style": "rbButton", "textColor": "@rbDisabled", "hover": { "color": "transparent" }, "cursor": "arrow" },
 		"rbField": {
-			"type": "label", "height": 22, "padding": 4, "radius": 2, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
+			"type": "label", "height": 22, "padding": 4, "radius": 4, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
 			"textColor": "@rbInk", "cursor": "hand", "hover": { "borderColor": "@rbFieldHover" }
 		},
 		"rbGroupTitle": { "type": "label", "height": 16, "align": "center", "textColor": "@rbMuted" }
@@ -44,7 +44,7 @@
 		"rbField": {
 			"params": { "text": "", "width": 100 },
 			"node": {
-				"type": "row", "width": "{{width}}", "height": 22, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine", "radius": 2,
+				"type": "row", "width": "{{width}}", "height": 22, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine", "radius": 4,
 				"cursor": "hand", "hover": { "borderColor": "@rbFieldHover" }, "alignItems": "center",
 				"children": [
 					{ "type": "label", "grow": 1, "height": 20, "padding": 4, "textColor": "@rbInk", "runs": [{ "text": "{{text}}", "size": 12 }] },
@@ -84,7 +84,7 @@
 			"params": { "items": [], "width": 200, "cell": 64 },
 			"note": "A ribbon gallery: one row of cells (each a node of the use's slot, with item and index), and the arrows that open the whole list.",
 			"node": {
-				"type": "row", "width": "{{width}}", "height": 70, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
+				"type": "row", "width": "{{width}}", "height": 70, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine", "radius": 6,
 				"children": [
 					{ "type": "row", "grow": 1, "height": 68, "gap": 2, "color": "transparent", "alignItems": "center", "children": [{ "slot": true }] },
 					{ "type": "column", "width": 16, "height": 68, "color": "transparent", "children": [

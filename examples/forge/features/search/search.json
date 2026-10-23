@@ -162,7 +162,7 @@
 			"node": {
 				"type": "column", "id": "search-page", "width": "100%", "grow": 1, "gap": 4,
 				"children": [
-					{ "use": "forgeViewTitle", "with": { "text": "SEARCH" } },
+					{ "use": "forgeViewTitle", "with": { "text": "Search" } },
 					{
 						"use": "forgeInset", "id": "search-query-row", "height": 26,
 						"children": [

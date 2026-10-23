@@ -160,7 +160,7 @@
 		"showPanel": [{ "set": "state.panels[args.slot]", "to": "{{args.id}}" }],
 		"showPopout": [{ "set": "state.popout", "to": "{{ {history: args.id == 'history' && !state.popout.history, navigator: args.id == 'navigator' && !state.popout.navigator} }}" }],
 		"showSearch": { "title": "Search", "category": "Help", "icon": "search", "do": [{ "set": "state.quickPick.open", "to": true }] },
-		"resetWorkspace": { "title": "Reset Essentials", "category": "Window", "icon": "layout-panel-left",
+		"resetWorkspace": { "title": "Reset the Workspace", "category": "Window", "icon": "layout-panel-left",
 			"do": [{ "set": "state.panels", "to": { "colour": "colour", "properties": "properties", "layers": "layers" } },
 			       { "set": "state.popout", "to": { "history": false, "navigator": false } }, { "set": "state.screenMode", "to": "standard" }] },
 		"unavailable": { "title": "Not available yet", "enablement": "{{false}}", "do": [{ "set": "state.doc.message", "to": "Not available yet" }] },
@@ -401,7 +401,7 @@
 			"navigator": { "run": "showPopout", "with": { "args": { "id": "navigator" } }, "title": "Navigator", "order": 6 },
 			"paths": { "run": "showPanel", "with": { "args": { "slot": "layers", "id": "paths" } }, "title": "Paths", "order": 7 },
 			"properties": { "run": "showPanel", "with": { "args": { "slot": "properties", "id": "properties" } }, "title": "Properties", "order": 8 },
-			"swatches": { "run": "showPanel", "with": { "args": { "slot": "colour", "id": "swatches" } }, "title": "Swatches", "order": 9 }
+			"swatches": { "run": "showPanel", "with": { "args": { "slot": "colour", "id": "swatches" } }, "title": "Palette", "order": 9 }
 		},
 		"help": {
 			"about": { "run": "showAbout" }

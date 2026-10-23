@@ -3,11 +3,11 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's terminal tabs, checked headless: affrescoui_render_runner terminal.scenarios.json. The runner registers the terminal type without an executor, so no shell starts; these check the tabs, the panel and the nodes.",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "terminal-run-task-reads-no-tasks",
-			"note": "Run Task reads the folder's .vscode/tasks.json; the test folder has none, so nothing opens",
+			"note": "Run Task reads the folder's .forge/tasks.json; the test folder has none, so nothing opens",
 			"steps": [
 				{ "action": "runTask" },
 				{ "expect": { "state": "tasks.items.length", "is": 0 } },

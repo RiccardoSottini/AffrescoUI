@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file
-/// @brief Forge's VS Code colour theme importer: a theme file's `colors` become one more variant of Forge's colour
+/// @brief Forge's colour theme importer: a theme file's `colors` become one more variant of Forge's colour
 /// tokens. Plain C++ with no window, so the unit tests use it too.
 
 #include <affresco/core/Json.hpp>
@@ -16,9 +16,9 @@ namespace forge {
 /// @return Its id, e.g. "solarized-dark"; "imported" if nothing is left.
 std::string themeId(std::string_view name);
 
-/// @brief Reads a VS Code colour theme (JSON with comments and trailing commas) into Forge's colour tokens.
+/// @brief Reads a colour theme (JSON with comments and trailing commas) into Forge's colour tokens.
 ///
-/// Each Forge token is read from the theme's `colors` by a list of VS Code keys, the first one set winning, else from
+/// Each Forge token is read from the theme's `colors` by a list of theme keys, the first one set winning, else from
 /// the theme's `type` ("dark", "light" or "hc"): a theme that sets only a few colours still gives a whole variant.
 /// Colours are kept as `#rrggbb` or `#rrggbbaa`; anything else is skipped. `include` and `tokenColors` are ignored.
 /// @param text The theme file's text.
@@ -26,6 +26,6 @@ std::string themeId(std::string_view name);
 /// @return `{ "id", "name", "type", "patch": [JSON Patch ops] }`: the ops add the id as a variant of each
 /// `color.*` token (`/tokens/color.editor/<id>`), for a `patch` step.
 /// @throws std::runtime_error If the text isn't a JSON object, even with its comments and trailing commas removed.
-affresco::json importVsCodeTheme(std::string_view text, std::string_view fallbackName);
+affresco::json importColorTheme(std::string_view text, std::string_view fallbackName);
 
 } // namespace forge

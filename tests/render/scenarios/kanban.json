@@ -5,7 +5,7 @@
 	"scenarios": [
 		{
 			"name": "kanban",
-			"screen": "kanban.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
 				{ "move": [358, 300], "note": "over the second Backlog card" },
@@ -37,7 +37,7 @@
 		},
 		{
 			"name": "kanban-drag",
-			"screen": "kanban.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "press": "#card" },
 				{ "move": [400, 300] },
@@ -49,7 +49,7 @@
 		},
 		{
 			"name": "kanban-details",
-			"screen": "kanban.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#cardTitle", "nth": 2 },
 				{ "key": "space", "note": "peeks at the card in the side panel" },
@@ -69,7 +69,7 @@
 		},
 		{
 			"name": "kanban-views",
-			"screen": "kanban.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#displayButton" },
 				{ "wait": 50 },
@@ -101,7 +101,7 @@
 		},
 		{
 			"name": "kanban-issue",
-			"screen": "kanban.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#cardTitle", "nth": 2 },
 				{ "key": "mod+enter" },
@@ -118,7 +118,7 @@
 		},
 		{
 			"name": "kanban-shortcuts",
-			"screen": "kanban.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "key": "j" },
 				{ "key": "j" },
@@ -136,7 +136,7 @@
 		},
 		{
 			"name": "kanban-pages",
-			"screen": "kanban.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#navInbox" },
 				{ "key": "j" },
@@ -157,7 +157,7 @@
 		},
 		{
 			"name": "kanban-menus",
-			"screen": "kanban.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "key": "f" },
 				{ "wait": 50 },
@@ -187,7 +187,7 @@
 		},
 		{
 			"name": "kanban-select",
-			"screen": "kanban.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "key": "j" },
 				{ "key": "x" },
@@ -202,7 +202,7 @@
 		},
 		{
 			"name": "kanban-retina",
-			"screen": "kanban.screen.json",
+			"screen": "index.screen.json",
 			"scale": 2,
 			"steps": [{ "expect": { "image": "first-frame" } }]
 		}

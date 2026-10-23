@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's agent pane and the Features view, checked headless: what the host would send on the channel is given as forgeAgent:* events, and the catalogue as featuresApplyCatalog; the runner has no host to relay to, so a request ends in the channel's error. affrescoui_render_runner agent.scenarios.json",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "forge-agent-show-the-view",

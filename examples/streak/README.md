@@ -3,22 +3,22 @@
 Habits to check day by day, with scores, charts, a calendar and notes, kept on disk with `persist`. The `habit-tracker` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_host examples/streak/habit-tracker.screen.json
-./build/affrescoui test examples/streak/habit-tracker.scenarios.json
+./build/affrescoui_host examples/streak/index.screen.json
+./build/affrescoui test examples/streak/index.scenarios.json
 ```
 
 | File | What it is |
 |---|---|
 | `PARITY.md` | What it covers of the app it is modelled on, area by area |
-| `habit-tracker.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `habit-tracker.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
-| `habit-tracker.screen.json` | The screen document |
+| `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
+| `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
+| `index.screen.json` | The screen document |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 ## What it shows
 
-Modelled on Loop Habit Tracker, laid out for the desktop: the list and the selected habit's detail side by side
+Laid out for the desktop: the list and the selected habit's detail side by side
 ([`PARITY.md`](PARITY.md) lists every area and its gap).
 
 - **The list**: a row per habit with its colour, score ring and name under a header of the last days; a click on a
@@ -26,17 +26,16 @@ Modelled on Loop Habit Tracker, laid out for the desktop: the list and the selec
   note. Sort by hand (drag to reorder), name, colour, score or status; hide completed, show archived.
 - **Habits**: yes or no, or measurable with a unit and a target at least or at most; daily, every N days, N a week or
   N a month; a reminder at a time on chosen days, shown as a `toast` by an `every` timer.
-- **The detail**: overview, target, a score chart and history bars with a period, a calendar heatmap, best streaks,
+- **The detail**: at a glance, target, a strength chart and progress bars with a period, a calendar heatmap, longest runs,
   frequency dots by weekday and notes, all `computed` from the habit's entries.
 - **The edit dialog**: the built-in `dialog` with name, question, a 20-colour picker in a `popover`, frequency,
   reminder and notes; archive (with undo), delete (asks first) and export as CSV to the clipboard.
-- **Settings**: light, dark and pure black, the first day of the week, reverse order, skip days, notifications, the
+- **Settings**: light, dark and true black, the first day of the week, reverse order, skip days, notifications, the
   language and sync.
 - **Commands and keys**: a command palette (`mod+k`, `quickPick`), `mod+n` and `mod+shift+n` new habits, `mod+e`
   edit, `mod+shift+h` archive, `mod+backspace` delete, `mod+comma` settings, `mod+j` theme, `mod+up`/`mod+down`
   between habits, `mod+enter` checks today, `mod+s` sync.
-- **Themes and languages**: English, Italiano and العربية through `strings` and `t()`, the body set to `dir: auto`
-  so Arabic lays out right to left.
+- **Themes and languages**: English, Español and Français through `strings` and `t()`, the body set to `dir: auto`.
 - **Layout**: one pane at a time below 960 window units, the list and the detail side by side above.
 - **Scenarios**: 27, one per workflow above.
 

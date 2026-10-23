@@ -5,7 +5,7 @@
   "scenarios": [
     {
       "name": "habit-tracker",
-      "screen": "habit-tracker.screen.json",
+      "screen": "index.screen.json",
       "steps": [
         {
           "expect": {
@@ -197,7 +197,7 @@
         },
         {
           "expect": {
-            "image": "arabic"
+            "image": "french"
           }
         },
         {

@@ -15,7 +15,7 @@
 						{ "use": "rbStack", "id": "s-clipboard", "children": [
 							{ "use": "rbSmall", "id": "b-cut", "with": { "icon": "scissors", "title": "Cut" }, "tooltip": "Cut (Ctrl+X)", "onClick": "cutObjects" },
 							{ "use": "rbSmall", "id": "b-copy", "with": { "icon": "copy", "title": "Copy", "menu": true }, "tooltip": "Copy (Ctrl+C)", "onClick": "copyObjects" },
-							{ "use": "rbSmall", "id": "b-painter", "with": { "icon": "paintbrush", "title": "Format Painter" }, "tooltip": "Format Painter" }
+							{ "use": "rbSmall", "id": "b-painter", "with": { "icon": "paint-roller", "title": "Copy Style" }, "tooltip": "Copy Style" }
 						] }
 					] },
 					{ "use": "rbGroup", "id": "g-slides", "with": { "title": "Slides" }, "children": [
@@ -86,7 +86,7 @@
 							] }
 						] },
 						{ "use": "rbBig", "id": "b-arrange", "with": { "icon": "layers-2", "title": "Arrange", "menu": true, "width": 52 }, "tooltip": "Arrange", "onClick": { "run": "order", "with": { "how": "front" } } },
-						{ "use": "rbBig", "id": "b-quick-styles", "with": { "icon": "shapes", "title": "Quick\nStyles", "menu": true, "width": 52 }, "tooltip": "Quick Styles" },
+						{ "use": "rbBig", "id": "b-quick-styles", "with": { "icon": "swatch-book", "title": "Shape\nStyles", "menu": true, "width": 52 }, "tooltip": "Shape Styles" },
 						{ "use": "rbStack", "id": "s-drawing", "children": [
 							{ "use": "rbSmall", "id": "b-fill", "with": { "icon": "paint-bucket", "title": "Shape Fill", "menu": true }, "tooltip": "Shape Fill" },
 							{ "use": "rbSmall", "id": "b-outline", "with": { "icon": "pen-tool", "title": "Shape Outline", "menu": true }, "tooltip": "Shape Outline" },
@@ -101,7 +101,7 @@
 						] }
 					] },
 					{ "use": "rbGroup", "id": "g-voice", "with": { "title": "Voice" }, "children": [
-						{ "use": "rbBig", "id": "b-dictate", "with": { "icon": "mic", "title": "Dictate", "menu": true, "width": 50, "enabled": false }, "tooltip": "Dictate" }
+						{ "use": "rbBig", "id": "b-dictate", "with": { "icon": "audio-lines", "title": "Speak", "menu": true, "width": 50, "enabled": false }, "tooltip": "Speak to type" }
 					] }
 				]
 			}
@@ -136,7 +136,7 @@
 					{ "use": "rbGroup", "id": "g-ins-text", "with": { "title": "Text" }, "children": [
 						{ "use": "rbBig", "id": "b-ins-textbox", "with": { "icon": "text-cursor-input", "title": "Text\nBox", "width": 44 }, "onClick": "insertTextBox" },
 						{ "use": "rbBig", "id": "b-ins-header", "with": { "icon": "panel-top", "title": "Header\n& Footer", "width": 52 } },
-						{ "use": "rbBig", "id": "b-ins-wordart", "with": { "icon": "type", "title": "Word\nArt", "menu": true, "width": 44 } }
+						{ "use": "rbBig", "id": "b-ins-wordart", "with": { "icon": "type", "title": "Art\nText", "menu": true, "width": 44 } }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-symbols", "with": { "title": "Symbols" }, "children": [
 						{ "use": "rbBig", "id": "b-ins-equation", "with": { "icon": "sigma", "title": "Equation", "menu": true, "width": 56 } },
@@ -229,7 +229,7 @@
 			"node": {
 				"type": "row", "fitContent": "width", "id": "tab-view", "height": 92, "gap": 2, "color": "transparent",
 				"children": [
-					{ "use": "rbGroup", "id": "g-views", "with": { "title": "Presentation Views" }, "children": [
+					{ "use": "rbGroup", "id": "g-views", "with": { "title": "Views" }, "children": [
 						{ "use": "rbBig", "id": "b-normal", "with": { "icon": "panel-left", "title": "Normal", "on": "{{state.view == 'normal'}}", "width": 46 }, "onClick": [{ "set": "state.view", "to": "normal" }] },
 						{ "use": "rbBig", "id": "b-outline-view", "with": { "icon": "list-tree", "title": "Outline\nView", "width": 48 } },
 						{ "use": "rbBig", "id": "b-sorter", "with": { "icon": "layout-grid", "title": "Slide\nSorter", "on": "{{state.view == 'sorter'}}", "width": 46 }, "onClick": [{ "set": "state.view", "to": "sorter" }] },

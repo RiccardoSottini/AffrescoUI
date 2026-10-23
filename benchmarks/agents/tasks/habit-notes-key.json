@@ -1,7 +1,7 @@
 {
 	"id": "habit-notes-key",
 	"level": "feature",
-	"screen": "examples/streak/habit-tracker.screen.json",
+	"screen": "examples/streak/index.screen.json",
 	"request": "Add a command \"Go to the notes\" that opens the Notes tab, on the shortcut Cmd+Shift+O (mod+shift+o).",
 	"scenarios": [
 		{

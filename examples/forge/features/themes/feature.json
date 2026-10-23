@@ -4,9 +4,9 @@
 	"name": "themes",
 	"release": "1.0.0",
 	"title": "Themes",
-	"description": "Colour themes as token variants, VS Code theme import, and the file icon theme.",
+	"description": "Colour themes as token variants, colour theme import, and the file icon theme.",
 	"license": "Apache-2.0",
-	"note": "Built into Forge: forge.screen.json includes themes.json, and its natives (if any) are compiled in, so this manifest names and versions the package and lists no provides; it is not in the catalogue. Theme import and the icon theme are natives (ThemeImport.cpp, IconTheme.cpp).",
+	"note": "Built into Forge: index.screen.json includes themes.json, and its natives (if any) are compiled in, so this manifest names and versions the package and lists no provides; it is not in the catalogue. Theme import and the icon theme are natives (ThemeImport.cpp, IconTheme.cpp).",
 	"requires": { "format": 2 },
 	"provides": {}
 }

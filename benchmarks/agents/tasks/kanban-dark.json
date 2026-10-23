@@ -1,7 +1,7 @@
 {
 	"id": "kanban-dark",
 	"level": "edit",
-	"screen": "examples/flow/kanban.screen.json",
+	"screen": "examples/flow/index.screen.json",
 	"request": "Switch the board to the dark theme.",
 	"scenarios": [
 		{

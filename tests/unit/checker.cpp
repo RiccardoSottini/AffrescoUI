@@ -89,7 +89,7 @@ void mergeEntry(json& entry, const std::string& section, const json& part) {
 /// @return The document.
 json screenTemplate(const std::string& name) {
 	const std::filesystem::path directory = templateDirectory(AFFRESCOUI_EXAMPLES_DIRECTORY, name);
-	const std::ifstream file(directory / (name + ".screen.json"));
+	const std::ifstream file(directory / "index.screen.json");
 	REQUIRE(file);
 	std::stringstream content;
 	content << file.rdbuf();

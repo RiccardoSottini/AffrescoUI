@@ -22,7 +22,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPERA = os.path.join(os.path.dirname(HERE), "tempera")
 
-LIVE_SCENARIOS = {"format": "affrescoui-scenarios", "version": 2, "screens": TEMPERA, "screen": "tempera.screen.json",
+LIVE_SCENARIOS = {"format": "affrescoui-scenarios", "version": 2, "screens": TEMPERA, "screen": "index.screen.json",
                   "scenarios": [{"name": "bottega-sorter-live", "steps": [
                       {"expect": {"node": "#slideSorter-view", "exists": True}},
                       {"expect": {"node": "#slideSorter-title", "text": "Pages (3)"}},

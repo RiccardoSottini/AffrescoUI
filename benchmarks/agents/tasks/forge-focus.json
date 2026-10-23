@@ -1,7 +1,7 @@
 {
 	"id": "forge-focus",
 	"level": "forge",
-	"screen": "examples/forge/forge.screen.json",
+	"screen": "examples/forge/index.screen.json",
 	"request": "In Forge, add a command \"Focus the Editor\" (category View) that hides the side bar and the panel, with a title-bar button (id title-focus) and a link \"Focus the Editor\" (id welcome-focus) in the Welcome page's Start list.",
 	"scenarios": [
 		{

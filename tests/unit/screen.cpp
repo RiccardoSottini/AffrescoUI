@@ -157,6 +157,34 @@ TEST_CASE("screen: persisted state is read from the platform's folder for applic
 	CHECK(json::parse(screen.stateJson()) == json{{"count", 7}, {"other", 0}}); // only what "persist" names
 }
 
+TEST_CASE("screen: an index screen keeps its data under its folder's name, so two apps never share it") {
+	const TemporaryFolder folder;
+#ifdef _WIN32
+	const ScopedVariable data("APPDATA", folder.path.string());
+	const std::filesystem::path dataFolder = folder.path / "affrescoui";
+#else
+	const ScopedVariable home("HOME", folder.path.string());
+	const std::filesystem::path dataFolder = folder.path / ".affrescoui";
+#endif
+	for(const char* app : {"alpha", "beta"})
+		write(folder.path / app / "index.screen.json", R"json({
+			"format": "affrescoui-screen", "version": 2,
+			"state": { "count": 0 },
+			"persist": ["state.count"],
+			"root": { "type": "panel", "id": "main" }
+		})json");
+	write(dataFolder / "alpha.state.json", R"json({ "/count": 1 })json");
+	write(dataFolder / "beta.state.json", R"json({ "/count": 2 })json");
+
+	const affresco::Screen alpha = affresco::Screen::fromFile(folder.path / "alpha" / "index.screen.json");
+	const affresco::Screen beta = affresco::Screen::fromFile(folder.path / "beta" / "index.screen.json");
+	CHECK(json::parse(alpha.stateJson())["count"] == 1);
+	CHECK(json::parse(beta.stateJson())["count"] == 2);
+	CHECK(std::filesystem::exists(dataFolder / "alpha.history"));
+	CHECK(std::filesystem::exists(dataFolder / "beta.history"));
+	CHECK_FALSE(std::filesystem::exists(dataFolder / "index.history"));
+}
+
 // A screen file is untrusted input: before, one nested 200,000 deep overflowed the stack (AddressSanitizer: SEGV)
 TEST_CASE("screen: a screen nested deeper than the limit is refused, not parsed") {
 	CHECK_NOTHROW((void)affresco::Screen::fromString(screenNestedIn(100)));

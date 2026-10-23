@@ -24,7 +24,7 @@ The build is Release. It makes `affrescoui_host` and `affrescoui_studio` for the
 `affrescoui` for Node, which plays the templates' scenarios on the same WebAssembly:
 
 ```sh
-node build-web/affrescoui.js test examples/flow/kanban.scenarios.json
+node build-web/affrescoui.js test examples/flow/index.scenarios.json
 ```
 
 The templates' folders (`examples/templates.json`) and `examples/shared` are preloaded into each program under `/assets`

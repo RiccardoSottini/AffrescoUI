@@ -1,5 +1,5 @@
 {
-	"note": "Haven's floor plan and media, included by smart-home.screen.json: the rooms on a canvas (drag to move, click to pick), the picked room's lights, the speaker's player, and the dialog that colours a light.",
+	"note": "Haven's floor plan and media, included by index.screen.json: the rooms on a canvas (drag to move, click to pick), the picked room's lights, the speaker's player, and the dialog that colours a light.",
 
 	"state": {
 		"planView": { "camera": { "x": -40, "y": -40, "zoom": 1 }, "selection": [], "guides": { "vertical": [], "horizontal": [] } },

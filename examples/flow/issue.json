@@ -1,5 +1,5 @@
 {
-	"note": "Flow's issue page, included by kanban.screen.json: the selected card on a page of its own, its description and activity on the left, its properties on the right.",
+	"note": "Flow's issue page, included by index.screen.json: the selected card on a page of its own, its description and activity on the left, its properties on the right.",
 
 	"state": {
 		"issueOpen": false,

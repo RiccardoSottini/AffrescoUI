@@ -25,7 +25,7 @@ namespace {
 /// @return The screen.
 affresco::Screen loadTemplate(const std::string& name) {
 	const std::filesystem::path directory = templateDirectory(AFFRESCOUI_EXAMPLES_DIRECTORY, name);
-	const std::ifstream file(directory / (name + ".screen.json"));
+	const std::ifstream file(directory / "index.screen.json");
 	REQUIRE(file);
 	std::stringstream text;
 	text << file.rdbuf();

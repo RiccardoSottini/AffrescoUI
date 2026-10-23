@@ -1,7 +1,7 @@
 # Orrery: a small planetarium
 
-Orrery shows a few planets going round a sun, modelled on Celestia (the 3D view) and Stellarium (the sky chart). It
-is one screen document, `orrery.screen.json` (with the sky from the ground in `sky.json`, which it includes), with no
+Orrery shows a few planets going round a sun, in a 3D view and on a sky chart. It
+is one screen document, `index.screen.json` (with the sky from the ground in `sky.json`, which it includes), with no
 code of its own: the standard host runs it.
 
 It was built by an outsider to the library, as a test of the public documentation. They had only `README.md`,
@@ -9,7 +9,7 @@ It was built by an outsider to the library, as a test of the public documentatio
 `affrescoui` tool and `mcp/`. It is an example, not part of the library.
 
 ```
-./build/affrescoui_host examples/orrery/orrery.screen.json [--socket DIR] [--data DIR]
+./build/affrescoui_host examples/orrery/index.screen.json [--socket DIR] [--data DIR]
 ```
 
 The host listens for the Studio and an agent in `DIR` (`studio.sock`, `agent.sock`). Its permissions
@@ -39,7 +39,7 @@ Orrery's file declares what it offers to parts written for other apps:
   And the actions `bodies.reorder`, `bodies.select` and `bodies.clone`.
 - **Point:** `bodies.dock`, a `dock` slot, which is the strip under the timeline.
 
-`affrescoui contributions examples/orrery/orrery.screen.json` lists them.
+`affrescoui contributions examples/orrery/index.screen.json` lists them.
 
 `orrery-sorter.adapter.json` binds the slide sorter's needs to those exports:
 
@@ -54,7 +54,7 @@ Orrery's file declares what it offers to parts written for other apps:
 The proof:
 
 ```
-./build/affrescoui check --compose examples/orrery/orrery.screen.json examples/sinopia/features/slide-sorter \
+./build/affrescoui check --compose examples/orrery/index.screen.json examples/sinopia/features/slide-sorter \
     --adapter examples/orrery/orrery-sorter.adapter.json --revision install.json
 ```
 
@@ -70,12 +70,12 @@ need gets those names.
 
 ## Checks
 
-- `orrery.scenarios.json`: the day counter, the next event, play, annotations, reparenting and the camera.
+- `index.scenarios.json`: the day counter, the next event, play, annotations, reparenting and the camera.
 - `bodies-strip.scenarios.json`: the installed strip. It is in a file of its own because the proof plays
-  `orrery.scenarios.json` before the strip is installed.
+  `index.scenarios.json` before the strip is installed.
 
 ```
-./build/affrescoui test examples/orrery/orrery.scenarios.json examples/orrery/bodies-strip.scenarios.json
+./build/affrescoui test examples/orrery/index.scenarios.json examples/orrery/bodies-strip.scenarios.json
 python3 examples/orrery/e2e_test.py build    # or: ctest --test-dir build -R mcp_orrery
 ```
 

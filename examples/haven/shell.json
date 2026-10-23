@@ -1,5 +1,5 @@
 {
-	"note": "Haven's shell, included by smart-home.screen.json: the sidebar's entries (open or folded to icons), the rooms as view tabs in the top bar, the entity search, and the alarm tile with its keypad.",
+	"note": "Haven's shell, included by index.screen.json: the sidebar's entries (open or folded to icons), the rooms as view tabs in the top bar, the entity search, and the alarm tile with its keypad.",
 
 	"state": {
 		"sidebarCollapsed": false,
@@ -20,7 +20,7 @@
 			{ "if": "{{room != null}}", "then": [{ "set": "state.room", "to": "{{room}}" }] },
 			{ "run": "openInfo", "with": { "kind": "{{kind}}", "i": "{{i}}" } }
 		],
-		"searchEntities": { "title": "Search entities", "category": "Go", "icon": "search",
+		"searchEntities": { "title": "Search controls", "category": "Go", "icon": "search",
 			"do": [{ "set": "state.quickPick.query", "to": "" }, { "set": "state.quickPick.open", "to": true }] },
 		"toggleSidebar": { "title": "Fold the sidebar", "category": "View", "icon": "panel-left",
 			"do": [{ "toggle": "state.sidebarCollapsed" }] },

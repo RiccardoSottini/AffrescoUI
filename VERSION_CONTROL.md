@@ -1,32 +1,20 @@
-# Version control: Git for a live app, with approvals like Claude Code's
+# Version control: a history and approvals for a live app
 
 AffrescoUI apps can be changed while they run, by the app itself, by the user, or by outside programs such as an AI agent.
 Version control is what makes that safe enough to use: **who may change what, who approves it, what happened, and how to
 go back.** It is built into the engine, so every app gets it.
 
-It borrows from two places:
+It has two halves:
 
-- **Git** for the history: content-addressed commits, a `main` branch, proposals as branches that get merged, `log`,
-  `diff`, `revert`, `restore`.
-- **Claude Code's tool permissions** for the approvals: `allow` / `ask` / `deny` rules, permission modes, and "Yes,
-  and don't ask again".
-
-| Git | AffrescoUI |
-|---|---|
-| a commit, named by its hash | every applied change is a commit, named by its SHA-256 (`a3f9c21` for short) |
-| `main` | the live branch: what the app shows. It only grows: no reset, no force-push |
-| a pull request from a branch | a **proposal**: branch `proposal/<n>`, which its author can keep pushing to |
-| `git merge --no-ff` | accepting a proposal: a merge commit whose author is the agent and whose committer is the reviewer |
-| `git log`, `git diff`, `git revert`, `git restore --source`, `HEAD~1` | the same ideas, same names |
-| `git format-patch` / `git am` | change sets ("plugins") |
-
-| Claude Code | AffrescoUI |
-|---|---|
-| `allow`, `ask`, `deny` rules like `Bash(npm test)` | rules like `agent(#board)` in the screen file |
-| deny beats ask beats allow; anything else asks | the same |
-| modes `default`, `acceptEdits`, `plan` | the same names, set by the reviewer |
-| "Yes, and don't ask again for …" | **Always allow**: accept, and allow that kind of change until a reviewer revokes it |
-| "No, and tell Claude what to do differently" | **Reject** with a reason; the agent hears it and can propose again |
+- **The history:** every applied change is a commit named by its SHA-256 (`a3f9c21` for short). `main` is the live
+  branch, what the app shows, and it only grows. A **proposal** is a branch (`proposal/<n>`) its author can keep
+  updating; accepting it makes a merge commit whose author is the proposer and whose committer is the reviewer. `log`,
+  `diff`, `revert`, `restore` and names like `HEAD~1` work as their names say, and a run of commits exports as a change
+  set ("plugin").
+- **The approvals:** `allow`, `ask` and `deny` rules like `agent(#board)` in the screen file, where deny beats ask beats
+  allow and anything else asks; modes `default`, `acceptEdits` and `plan`, set by the reviewer; **Always allow**, which
+  accepts and allows that kind of change until a reviewer revokes it; and **Reject** with a reason, which the agent hears
+  and can propose again.
 
 ## Revisions
 A revision is one change to the running screen:
@@ -86,12 +74,12 @@ The screen file decides, in a `permissions` section that no revision can change:
 }
 ```
 
-- A rule is `author` or `author(pattern)`, like Claude Code's `Tool(specifier)`.
+- A rule is `author` or `author(pattern)`.
   - **author**: `*` (everyone), a channel name (`agent` covers `agent/claude-code`), or a full name.
   - **pattern**: what the rule covers, with everything inside it. A JSON Pointer (`/colors`, `/state/cards`), a node
     (`#board`, `#board/children`), with `*` for one segment (`/actions/*`). A trailing `/**` means the same as none.
     No pattern covers the whole screen.
-- **Precedence, as in Claude Code:** a matching `deny` refuses the revision. Otherwise a matching `ask` sends it to
+- **Precedence:** a matching `deny` refuses the revision. Otherwise a matching `ask` sends it to
   review. Otherwise it applies only if `allow` rules (and grants, below) cover *everything* it changes. Anything else
   is reviewed. Without a `permissions` section every change applies and anyone may review.
 - **Rules judge what a change does, not how its patch is written.** The engine compares the screen before and after.
@@ -161,7 +149,7 @@ A `*.policy.json` file beside a screen holds example revisions, their authors an
 
 ```json
 {
-  "screen": "kanban.screen.json",
+  "screen": "index.screen.json",
   "roles": { "agent/claude-code": "design" },
   "cases": [
     { "name": "the agent recolours a card", "revision": { "author": "agent", "set": { "#card1/color": "#1e293b" } },
@@ -226,7 +214,7 @@ once, on the terminal, whether to count (without a terminal or a "yes", nothing 
   Agents tab shows them and clears them; the MCP server has `get_usage`.
 
 ## Modes
-A reviewer sets how much they are asked, like Claude Code's permission modes (`affrescoui_host --mode`, the Studio's
+A reviewer sets how much they are asked with a mode (`affrescoui_host --mode`, the Studio's
 switch, or `setMode` over the live protocol):
 
 | Mode | What happens |
@@ -423,13 +411,13 @@ kanban.history/
   packs/9b2f04c1…       loose objects packed together, named by the SHA-256 of the file
 ```
 
-- **Objects, like Git's.** Each commit is one object named by its id, holding everything the id covers (the parents,
+- **Objects.** Each commit is one object named by its id, holding everything the id covers (the parents,
   author, committer, time, message, patch, and the id of its document, its tree), then its delta (below). A document
   is an object of its own, named by the SHA-256 of its JSON, written only for a snapshot; commits that leave the
   document as it was (a change to the live state, a merge of a branch that main hadn't passed) share it. The commits
   written are those a ref reaches when the history is saved: `main`'s and the open proposals'. Once no ref reaches
   them (a rejected proposal, or a branch before it was rebuilt), they stay but are never read again: nothing deletes
-  them yet, as in Git before its garbage collection runs.
+  them yet.
 - **Packs.** Objects are first written loose, a file each. Once 256 are loose, they are written together into a pack,
   one line per object (`<id> <JSON>`), which the refs then name; only after the refs are on disk do the loose files
   go. Opening a file costs far more than reading a small one, so a history reads a few files, not one per commit.
@@ -524,7 +512,7 @@ A change set can carry what it was made for, the template it was made on, and ho
 ```json
 { "format": "affrescoui-changes", "version": 2, "name": "blocked column", "revisions": [ ... ],
   "request": "Add a Blocked column before Done",
-  "template": { "name": "kanban.screen.json", "commit": "35331cd…", "tree": "9f1c…" },
+  "template": { "name": "flow/index.screen.json", "commit": "35331cd…", "tree": "9f1c…" },
   "proof": { "scenarios": [ { "name": "blocked", "steps": [ { "expect": "...", "equals": "Blocked" } ] } ] } }
 ```
 

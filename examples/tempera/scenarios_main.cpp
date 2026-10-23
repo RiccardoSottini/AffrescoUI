@@ -1,5 +1,5 @@
 /// @file
-/// @brief affrescoui_tempera_scenarios: plays Tempera's scenarios (tempera.scenarios.json) with its natives, headless.
+/// @brief affrescoui_tempera_scenarios: plays Tempera's scenarios (index.scenarios.json) with its natives, headless.
 //
 //   affrescoui_tempera_scenarios [--out DIR] [FILE...]
 //
@@ -85,7 +85,7 @@ std::size_t playAll(const std::vector<std::filesystem::path>& files, const std::
 
 /// @brief Plays Tempera's scenarios.
 /// @param argc The number of arguments.
-/// @param argv `--out DIR` (see the file's brief), then the scenario files; none: tempera.scenarios.json.
+/// @param argv `--out DIR` (see the file's brief), then the scenario files; none: index.scenarios.json.
 /// @return 0 if every scenario passed, 1 otherwise.
 int main(int argc, char** argv) {
 	try {
@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
 			out = files[1];
 			files.erase(files.begin(), files.begin() + 2);
 		}
-		if(files.empty()) files.push_back(temperaDirectory() / "tempera.scenarios.json");
+		if(files.empty()) files.push_back(temperaDirectory() / "index.scenarios.json");
 		return playAll(files, out) ? EXIT_FAILURE : EXIT_SUCCESS;
 	} catch(const std::exception& error) {
 		std::cerr << "affrescoui_tempera_scenarios: " << error.what() << '\n';

@@ -103,7 +103,7 @@ json screenDocument(const json& document, const std::filesystem::path& directory
 }
 
 json kanbanWithCards(const std::filesystem::path& directory, int cards) {
-	json document = json::parse(readFile(directory / "kanban.screen.json"));
+	json document = json::parse(readFile(directory / "index.screen.json"));
 	json& columns = document["state"]["columns"];
 	std::vector<json> originals;
 	for(const json& column : columns)
@@ -138,7 +138,7 @@ std::vector<Workload> loadWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	for(const std::string& name : templateNames(context.examples())) {
 		const std::filesystem::path folder = context.templateFolder(name);
-		const auto text = std::make_shared<const std::string>(readFile(folder / (name + ".screen.json")));
+		const auto text = std::make_shared<const std::string>(readFile(folder / "index.screen.json"));
 		const auto document = std::make_shared<const json>(json::parse(*text));
 		const auto window = std::make_shared<Window*>(nullptr);
 		Workload workload{.name = "load/" + name, .unit = "ms", .runs = 5};
@@ -157,7 +157,7 @@ std::vector<Workload> buildWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	for(const std::string& name : templateNames(context.examples())) {
 		const std::filesystem::path folder = context.templateFolder(name);
-		const auto text = std::make_shared<const std::string>(readFile(folder / (name + ".screen.json")));
+		const auto text = std::make_shared<const std::string>(readFile(folder / "index.screen.json"));
 		const auto document = std::make_shared<const json>(json::parse(*text));
 		const auto window = std::make_shared<Window*>(nullptr);
 		const auto screen = std::make_shared<Screen*>(nullptr);
@@ -302,7 +302,7 @@ std::vector<Workload> revisionWorkloads(Context& context) {
 		const std::filesystem::path file = context.edits() / (name + ".json");
 		if(!std::filesystem::exists(file)) continue;
 		const std::filesystem::path folder = context.templateFolder(name);
-		const json document = json::parse(readFile(folder / (name + ".screen.json")));
+		const json document = json::parse(readFile(folder / "index.screen.json"));
 		const json edits = json::parse(readFile(file)); // named: items() refers to it during the loop
 		for(const auto& [editName, edit] : edits.items()) {
 			const LoadedScreen loaded = context.load(document, folder);

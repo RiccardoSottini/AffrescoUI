@@ -1,0 +1,98 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "home",
+			"steps": [{ "expect": { "node": "#library-home", "property": "shown", "is": true } }, { "capture": "home" }]
+		},
+		{
+			"name": "game-page",
+			"steps": [
+				{ "click": "#row-favourites-starfall" },
+				{ "expect": { "state": "selected", "is": "starfall" } },
+				{ "expect": { "node": "#details-title", "text": "Starfall Odyssey" } },
+				{ "capture": "game-page" },
+				{ "click": "#game-info" },
+				{ "expect": { "node": "#details-blurb", "property": "shown", "is": true } },
+				{ "capture": "game-info" },
+				{ "key": "escape" },
+				{ "action": "back" },
+				{ "expect": { "node": "#library-home", "property": "shown", "is": true } }
+			]
+		},
+		{
+			"name": "play",
+			"steps": [
+				{ "click": "#row-favourites-starfall" },
+				{ "click": "#play-button" },
+				{ "expect": { "state": "running", "is": "starfall" } },
+				{ "expect": { "node": "#play-button", "text": "STOP" } },
+				{ "click": "#play-button" },
+				{ "expect": { "state": "running", "is": null } }
+			]
+		},
+		{
+			"name": "install",
+			"steps": [
+				{ "click": "#row-favourites-mossheart" },
+				{ "expect": { "node": "#play-button", "text": "INSTALL" } },
+				{ "capture": "not-installed" },
+				{ "click": "#play-button" },
+				{ "expect": { "state": "downloads[6].id", "is": "mossheart" } }
+			]
+		},
+		{
+			"name": "filter",
+			"steps": [
+				{ "click": "#library-search" },
+				{ "type": "iron" },
+				{ "expect": { "node": "#row-uncategorised-ironhollow", "property": "shown", "is": true } },
+				{ "expect": { "node": "#row-favourites-starfall", "exists": false } },
+				{ "capture": "search" }
+			]
+		},
+		{
+			"name": "dark-light-french",
+			"steps": [
+				{ "action": "toggleTheme" },
+				{ "capture": "light" },
+				{ "action": "toggleTheme" },
+				{ "action": "nextLanguage" },
+				{ "action": "nextLanguage" },
+				{ "capture": "french" }
+			]
+		},
+		{
+			"name": "store",
+			"steps": [
+				{ "action": "storeHome" },
+				{ "expect": { "node": "#store-home", "property": "shown", "is": true } },
+				{ "move": "#offer-saltmarsh" },
+				{ "capture": "store-home" },
+				{ "click": "#offer-saltmarsh" },
+				{ "capture": "store-page" },
+				{ "scroll": "#store-title", "dy": -6 },
+				{ "expect": { "node": "#add-to-cart", "property": "shown", "is": true } },
+				{ "capture": "purchase" },
+				{ "click": "#add-to-cart" },
+				{ "capture": "added-to-cart" },
+				{ "key": "escape" },
+				{ "action": "showCart" },
+				{ "capture": "cart" },
+				{ "action": "showWishlist" },
+				{ "capture": "wishlist" }
+			]
+		},
+		{
+			"name": "assistant",
+			"steps": [
+				{ "action": "assistant.open" },
+				{ "expect": { "node": "#assistantPanel", "property": "shown", "is": true } },
+				{ "capture": "assistant" },
+				{ "key": "escape" }
+			]
+		}
+	]
+}

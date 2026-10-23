@@ -1,0 +1,871 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "What the Kanban template does, checked headless: affrescoui test index.scenarios.json",
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "filter-by-typing",
+			"note": "F opens Filter with its field focused: typing narrows the list and Enter picks the first",
+			"steps": [
+				{ "key": "f" },
+				{ "wait": 50 },
+				{ "type": "pri" },
+				{ "expect": { "node": "#filterProp", "nth": 1, "exists": false } },
+				{ "key": "enter" },
+				{ "expect": { "state": "filterProp", "is": "priority" } },
+				{ "wait": 50 },
+				{ "type": "urg" },
+				{ "expect": { "state": "filterQuery", "is": "urg" } },
+				{ "expect": { "node": "#filter", "nth": 1, "exists": false } },
+				{ "key": "enter" },
+				{ "expect": { "state": "fPrio", "is": 1 } }
+			]
+		},
+		{
+			"name": "projects-tabs-and-new-project",
+			"note": "Projects' tabs show all, active or completed projects, and New project adds one",
+			"steps": [
+				{ "key": "g" },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "click": "#projectTab", "nth": 2 },
+				{ "expect": { "state": "projectScope", "is": "completed" } },
+				{ "expect": { "node": "#projectName", "text": "Sharper text" } },
+				{ "expect": { "node": "#projectRow", "nth": 1, "exists": false } },
+				{ "click": "#newProject" },
+				{ "expect": { "state": "projects[5].name", "is": "Project 6" } },
+				{ "expect": { "state": "projectScope", "is": "all" } }
+			]
+		},
+		{
+			"name": "cycle-lists-its-issues",
+			"note": "the cycle page lists the cycle's issues, and a click opens one",
+			"steps": [
+				{ "key": "g" },
+				{ "key": "v" },
+				{ "wait": 50 },
+				{ "click": "#cycleIssue", "nth": 2 },
+				{ "expect": { "state": "page", "is": "issues" } },
+				{ "expect": { "state": "issueOpen", "is": true } },
+				{ "expect": { "node": "#propCycleValue", "exists": true } }
+			]
+		},
+		{
+			"name": "list-group-collapses",
+			"note": "a list group's chevron hides and shows its rows",
+			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#viewList" },
+				{ "key": "escape" },
+				{ "click": "#listCollapse", "nth": 0 },
+				{ "expect": { "node": "#rowRef", "text": "FLO-5" } },
+				{ "click": "#listCollapse", "nth": 0 },
+				{ "expect": { "node": "#rowRef", "text": "FLO-1" } }
+			]
+		},
+		{
+			"name": "display-grouping",
+			"note": "Display's Grouping groups the board by status or by assignee (swimlanes)",
+			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#grouping", "nth": 1 },
+				{ "expect": { "state": "swimlanes", "is": true } },
+				{ "click": "#grouping", "nth": 1 },
+				{ "expect": { "state": "swimlanes", "is": true } },
+				{ "click": "#grouping", "nth": 0 },
+				{ "expect": { "state": "swimlanes", "is": false } }
+			]
+		},
+		{
+			"name": "composer-label",
+			"note": "The composer's label chip picks the new issue's label",
+			"steps": [
+				{ "key": "c" },
+				{ "wait": 50 },
+				{ "expect": { "state": "composer.tag", "is": "feature" } },
+				{ "click": "#composerTag" },
+				{ "expect": { "state": "composer.tag", "is": "design" } },
+				{ "click": "#newCard" },
+				{ "type": "Pick a label" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[4].tag", "is": "design" } }
+			]
+		},
+		{
+			"name": "column-menu",
+			"note": "A column's … menu creates an issue in that status or selects all of its issues",
+			"steps": [
+				{ "click": "#columnMore", "nth": 1 },
+				{ "wait": 50 },
+				{ "expect": { "state": "columnMenu", "is": true } },
+				{ "expect": { "state": "menuColumn", "is": 1 } },
+				{ "key": "down" },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "columnMenu", "is": false } },
+				{ "expect": { "state": "marked", "is": ["FLO-5", "FLO-6", "FLO-7"] } }
+			]
+		},
+		{
+			"name": "assistant-opens-and-closes",
+			"note": "Cmd+Shift+A opens the assistant chat over the board and Escape closes it",
+			"steps": [
+				{ "key": "mod+shift+a" },
+				{ "wait": 50 },
+				{ "expect": { "state": "assistant.open", "is": true } },
+				{ "key": "escape" },
+				{ "wait": 50 },
+				{ "expect": { "state": "assistant.open", "is": false } }
+			]
+		},
+		{
+			"name": "display-ordering-and-properties",
+			"note": "Ordering by priority puts the urgent issue first in its column; turning a display property off hides it on every card",
+			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#ordering", "nth": 1 },
+				{ "expect": { "state": "order", "is": "priority" } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Crash when a board has no columns" } },
+				{ "click": "#displayProp", "nth": 3 },
+				{ "expect": { "state": "hidden[0]", "is": "due" } },
+				{ "expect": { "node": "#cardDue", "exists": false } },
+				{ "click": "#displayProp", "nth": 3 },
+				{ "expect": { "state": "hidden.length", "is": 0 } },
+				{ "click": "#ordering", "nth": 0 },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Onboarding checklist for new teams" } }
+			]
+		},
+		{
+			"name": "issue-page-next-and-previous",
+			"note": "The issue page's arrows step through the shown issues, its counter following; + Add sub-issues opens the field",
+			"steps": [
+				{ "click": "#cardTitle", "nth": 0 },
+				{ "key": "mod+enter" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#issuePosition", "text": "1 / 12" } },
+				{ "click": "#issueDown" },
+				{ "expect": { "state": "issueOpen", "is": true } },
+				{ "expect": { "state": "selected.i", "is": 1 } },
+				{ "expect": { "node": "#issuePosition", "text": "2 / 12" } },
+				{ "click": "#issueUp" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "click": "#issueDown" },
+				{ "click": "#issueDown" },
+				{ "click": "#issueAddSubButton" },
+				{ "wait": 50 },
+				{ "type": "Reproduce on an empty board" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[2].checklist[0].text", "is": "Reproduce on an empty board" } }
+			]
+		},
+		{
+			"name": "filter-by-status-and-priority",
+			"note": "The Filter menu lists properties, each opening its values; two filters combine, and a chip's × removes one",
+			"steps": [
+				{ "key": "f" },
+				{ "wait": 50 },
+				{ "click": "#filterProp", "nth": 0 },
+				{ "wait": 50 },
+				{ "click": "#filter", "nth": 0 },
+				{ "expect": { "state": "fStatus", "is": 0 } },
+				{ "expect": { "node": "#card", "nth": 3, "exists": true } },
+				{ "expect": { "node": "#card", "nth": 4, "exists": false } },
+				{ "key": "f" },
+				{ "wait": 50 },
+				{ "click": "#filterProp", "nth": 2 },
+				{ "wait": 50 },
+				{ "click": "#filter", "nth": 1 },
+				{ "expect": { "state": "fPrio", "is": 1 } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Crash when a board has no columns" } },
+				{ "expect": { "node": "#card", "nth": 1, "exists": false } },
+				{ "click": "#filterChipClear", "nth": 0 },
+				{ "expect": { "state": "fStatus", "is": -1 } },
+				{ "expect": { "node": "#filterChip", "nth": 1, "exists": false } }
+			]
+		},
+		{
+			"name": "composer-properties-and-create-more",
+			"note": "The composer's chips set priority and assignee, a description is kept, and Create more leaves it open for the next issue",
+			"steps": [
+				{ "key": "c" },
+				{ "wait": 50 },
+				{ "type": "Write the release notes" },
+				{ "click": "#composerPriority" },
+				{ "click": "#composerPriority" },
+				{ "click": "#composerWho" },
+				{ "click": "#composerNotes" },
+				{ "type": "For the launch" },
+				{ "click": "#composerMore" },
+				{ "click": "#composerCreate" },
+				{ "expect": { "state": "columns[0].cards[4].title", "is": "Write the release notes" } },
+				{ "expect": { "state": "columns[0].cards[4].priority", "is": 2 } },
+				{ "expect": { "state": "columns[0].cards[4].who", "is": "MK" } },
+				{ "expect": { "state": "columns[0].cards[4].notes", "is": "For the launch" } },
+				{ "expect": { "state": "composer.open", "is": true } },
+				{ "expect": { "state": "composer.notes", "is": "" } }
+			]
+		},
+		{
+			"name": "command-palette-finds-issues",
+			"note": "Cmd+K lists issues beside the commands: typing a title and Enter goes to that issue",
+			"steps": [
+				{ "key": "mod+k" },
+				{ "wait": 50 },
+				{ "type": "invite teammates" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "quickPick.open", "is": false } },
+				{ "expect": { "state": "selected.c", "is": 2 } },
+				{ "expect": { "state": "selected.i", "is": 0 } }
+			]
+		},
+		{
+			"name": "scope-tabs",
+			"note": "Active shows only the started cards, between the Backlog and Done; All issues shows every card again",
+			"steps": [
+				{ "click": "#scopeTab", "nth": 1 },
+				{ "expect": { "state": "scope", "is": "active" } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Keyboard shortcuts for moving cards" } },
+				{ "expect": { "node": "#card", "nth": 4, "exists": true } },
+				{ "expect": { "node": "#card", "nth": 5, "exists": false } },
+				{ "click": "#scopeTab", "nth": 0 },
+				{ "expect": { "node": "#card", "nth": 11, "exists": true } }
+			]
+		},
+		{
+			"name": "picker-starts-on-the-current-value",
+			"note": "P on a card highlights its priority, so Enter keeps it",
+			"steps": [
+				{ "key": "j" },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "expect": { "state": "propPick.index", "is": 3 } },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].priority", "is": 3 } }
+			]
+		},
+		{
+			"name": "add-in-a-list-group",
+			"note": "The + of a list group opens the composer in that status",
+			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#viewList" },
+				{ "key": "escape" },
+				{ "click": "#listAdd", "nth": 2 },
+				{ "wait": 50 },
+				{ "type": "Check the review queue" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[2].cards[2].title", "is": "Check the review queue" } }
+			]
+		},
+		{
+			"name": "issue-labels",
+			"note": "The issue page lists only the card's labels; + opens a menu that adds one",
+			"steps": [
+				{ "click": "#cardTitle", "nth": 2 },
+				{ "key": "mod+enter" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#propLabel", "nth": 1, "exists": true } },
+				{ "expect": { "node": "#propLabel", "nth": 2, "exists": false } },
+				{ "click": "#propLabelAdd" },
+				{ "wait": 50 },
+				{ "click": "#labelPick", "nth": 3 },
+				{ "expect": { "state": "columns[0].cards[2].labels[2]", "is": "docs" } }
+			]
+		},
+		{
+			"name": "add-a-card",
+			"note": "Typing in the new-card field and pressing Enter adds the card at the end of the Backlog",
+			"steps": [
+				{ "key": "c" },
+				{ "wait": 50 },
+				{ "type": "Write render tests" },
+				{ "expect": { "state": "newCard", "is": "Write render tests" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 5 } },
+				{ "expect": { "state": "columns[0].cards[4].title", "is": "Write render tests" } },
+				{ "expect": { "state": "newCard", "is": "" } },
+				{ "expect": { "node": "#cardTitle", "nth": 4, "text": "Write render tests" } },
+				{ "expect": { "node": "#columnCount", "text": "5" } },
+				{ "expect": { "state": "toast.undo", "is": true } }
+			]
+		},
+		{
+			"name": "ignore-a-blank-card",
+			"note": "Pressing Enter with only spaces in the new-card field adds nothing",
+			"steps": [
+				{ "key": "c" },
+				{ "wait": 50 },
+				{ "type": "   " },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
+				{ "expect": { "node": "#columnCount", "text": "4" } }
+			]
+		},
+		{
+			"name": "filter-by-tag",
+			"note": "Clicking the bug chip shows only bug cards, and a new card takes the filter's tag; Escape shows every card again",
+			"steps": [
+				{ "click": "#filterButton" },
+				{ "wait": 50 },
+				{ "click": "#filterProp", "nth": 3 },
+				{ "wait": 50 },
+				{ "click": "#filter", "nth": 0 },
+				{ "expect": { "state": "filter", "is": "bug" } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Crash when a board has no columns" } },
+				{ "expect": { "node": "#card", "nth": 2, "exists": true } },
+				{ "expect": { "node": "#card", "nth": 3, "exists": false } },
+				{ "key": "c" },
+				{ "wait": 50 },
+				{ "type": "Login loops forever" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[4].tag", "is": "bug" } },
+				{ "wait": 50, "note": "the composer closes" },
+				{ "key": "escape" },
+				{ "expect": { "state": "filter", "is": "all" } },
+				{ "expect": { "node": "#card", "nth": 12, "exists": true } }
+			]
+		},
+		{
+			"name": "move-a-card-with-shortcuts",
+			"note": "Cmd+Right moves the selected card one column right and Cmd+Left moves it back to the end of the column it came from",
+			"steps": [
+				{ "click": "#cardTitle", "note": "the first Backlog card" },
+				{ "key": "mod+right" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 3 } },
+				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "expect": { "state": "columns[1].cards[3].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "node": "#columnCount", "nth": 1, "text": "4" } },
+				{ "expect": { "state": "selected.c", "is": 1 } },
+				{ "key": "mod+left", "note": "the moved card is still selected" },
+				{ "expect": { "state": "columns[0].cards[3].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "state": "columns[1].cards.length", "is": 3 } }
+			]
+		},
+		{
+			"name": "drag-a-card-to-another-column",
+			"note": "Dragging the first Backlog card onto the Review column moves it there",
+			"steps": [
+				{ "drag": "#card", "to": "#column", "toNth": 2, "moves": 4, "note": "the first card onto the third column, Review" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 3 } },
+				{ "expect": { "state": "columns[2].cards.length", "is": 3 } },
+				{ "expect": { "state": "columns[2].cards[2].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "node": "#columnCount", "nth": 2, "text": "3" } }
+			]
+		},
+		{
+			"name": "show-one-members-cards",
+			"note": "The avatars open the members menu; picking a person shows only their cards and closes the menu; Escape clears it",
+			"steps": [
+				{ "click": "#member" },
+				{ "expect": { "state": "membersOpen", "is": true } },
+				{ "expect": { "node": "#label-member-name", "nth": 1, "text": "Maya Klein" } },
+				{ "click": "#panel-member", "nth": 1 },
+				{ "expect": { "state": "owner", "is": "MK" } },
+				{ "expect": { "state": "membersOpen", "is": false } },
+				{ "expect": { "node": "#cardOwner", "nth": 0, "text": "MK" } },
+				{ "expect": { "node": "#card", "nth": 2, "exists": true } },
+				{ "expect": { "node": "#card", "nth": 3, "exists": false } },
+				{ "key": "escape" },
+				{ "expect": { "state": "owner", "is": "" } }
+			]
+		},
+		{
+			"name": "shortcut-focuses-new-card",
+			"note": "Cmd+N puts the keyboard in the new-card field, so typing and Enter add a card",
+			"steps": [
+				{ "key": "mod+n" },
+				{ "wait": 50, "note": "the composer opens and takes the focus" },
+				{ "expect": { "node": "#newCard", "property": "focused", "is": true } },
+				{ "type": "From the keyboard" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[4].title", "is": "From the keyboard" } }
+			]
+		},
+		{
+			"name": "select-a-card-shows-its-details",
+			"note": "Clicking a card selects it; the details show its title, owner and description, and the link runs a toast",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.c", "is": 0 } },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
+				{ "expect": { "node": "#detailTitle", "text": "Onboarding checklist for new teams" } },
+				{ "expect": { "node": "#detailOwner", "text": "Ada Lewis" } },
+				{ "expect": { "node": "#noCard", "exists": false } }
+			]
+		},
+		{
+			"name": "switch-boards-with-tabs",
+			"note": "A board in the sidebar brings that board's columns in and keeps the first board's; going back restores it",
+			"steps": [
+				{ "click": "#cardTitle", "note": "the first Backlog card" },
+				{ "key": "mod+right", "note": "so the board has changed" },
+				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "click": "#navBoard", "nth": 1, "note": "the Website board" },
+				{ "expect": { "state": "boardId", "is": "website" } },
+				{ "expect": { "state": "board", "is": "Website" } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Pricing page comparison table" } },
+				{ "click": "#navBoard", "nth": 0, "note": "the Product launch board" },
+				{ "expect": { "state": "boardId", "is": "launch" } },
+				{ "expect": { "state": "columns[1].cards.length", "is": 4 } }
+			]
+		},
+		{
+			"name": "list-of-every-card",
+			"note": "The List view groups every card by column, one row each; choosing a row selects its card",
+			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#viewList" },
+				{ "expect": { "state": "view", "is": "list" } },
+				{ "expect": { "node": "#listView", "exists": true } },
+				{ "expect": { "node": "#board", "exists": false } },
+				{ "click": "#listRow", "nth": 2, "note": "Crash when a board has no columns" },
+				{ "expect": { "state": "selected.i", "is": 2 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
+				{ "expect": { "node": "#detailTitle", "text": "Crash when a board has no columns" } },
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#viewBoard" },
+				{ "expect": { "node": "#board", "exists": true } }
+			]
+		},
+		{
+			"name": "table-of-every-card",
+			"note": "The Table view lists every card of the board, one row each; choosing a row selects its card",
+			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#viewTable" },
+				{ "expect": { "state": "view", "is": "table" } },
+				{ "expect": { "node": "#cardTable", "exists": true } },
+				{ "expect": { "node": "#board", "exists": false } },
+				{ "expect": { "state": "selected", "is": null } },
+				{ "click": [400, 214], "note": "the third row: Crash when a board has no columns" },
+				{ "expect": { "state": "selected.c", "is": 0 } },
+				{ "expect": { "state": "selected.i", "is": 2 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
+				{ "expect": { "node": "#detailTitle", "text": "Crash when a board has no columns" } },
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#viewBoard" },
+				{ "expect": { "node": "#board", "exists": true } }
+			]
+		},
+		{
+			"name": "edit-a-card-in-a-dialog",
+			"note": "Cmd+E on the chosen card opens the edit dialog with its title; Enter saves it and shows a toast",
+			"steps": [
+				{ "key": "mod+e", "note": "no card chosen yet: the command is disabled" },
+				{ "expect": { "state": "edit.open", "is": false } },
+				{ "click": "#cardTitle", "nth": 1 },
+				{ "key": "mod+e" },
+				{ "wait": 50 },
+				{ "expect": { "state": "edit.open", "is": true } },
+				{ "expect": { "node": "#editTitle", "text": "Empty states for every page" } },
+				{ "type": ", even errors" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[1].title", "is": "Empty states for every page, even errors" } },
+				{ "expect": { "state": "edit.open", "is": false } },
+				{ "expect": { "state": "toast.open", "is": true } },
+				{ "wait": 4100 },
+				{ "expect": { "state": "toast.open", "is": false } }
+			]
+		},
+		{
+			"name": "card-menu",
+			"note": "The card's menu holds its commands; Move card right moves it",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "key": "space", "note": "Space peeks at the card in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
+				{ "click": "#detailMore" },
+				{ "wait": 50 },
+				{ "expect": { "state": "cardMenu", "is": true } },
+				{ "key": "down" },
+				{ "key": "enter", "note": "the next enabled item: Move card right (Move card left is disabled in the Backlog)" },
+				{ "expect": { "state": "cardMenu", "is": false } },
+				{ "expect": { "state": "columns[1].cards[3].title", "is": "Onboarding checklist for new teams" } },
+				{ "key": "mod+left" },
+				{ "expect": { "state": "columns[0].cards[3].title", "is": "Onboarding checklist for new teams" } }
+			]
+		},
+		{
+			"name": "go-to-a-card",
+			"note": "Cmd+P opens the quick pick over every card; typing filters it and Enter selects the card",
+			"steps": [
+				{ "click": "#filterButton" },
+				{ "wait": 50 },
+				{ "click": "#filterProp", "nth": 3 },
+				{ "wait": 50 },
+				{ "click": "#filter", "nth": 0, "note": "a filter that hides the card, cleared by going to it" },
+				{ "key": "mod+p" },
+				{ "wait": 50 },
+				{ "expect": { "state": "issuePick.open", "is": true } },
+				{ "expect": { "state": "issuePick.query", "is": "" } },
+				{ "type": "invite" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "issuePick.open", "is": false } },
+				{ "expect": { "state": "filter", "is": "all" } },
+				{ "expect": { "state": "selected.c", "is": 2 } },
+				{ "expect": { "state": "selected.i", "is": 0 } }
+			]
+		},
+		{
+			"name": "kanban-command-palette",
+			"note": "Cmd+Shift+P lists the commands and issues, with no prefix; running Switch light and dark changes the theme",
+			"steps": [
+				{ "key": "mod+shift+p" },
+				{ "wait": 50 },
+				{ "expect": { "state": "quickPick.query", "is": "" } },
+				{ "type": "dark" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "theme", "is": "dark" } },
+				{ "key": "mod+j" },
+				{ "expect": { "state": "theme", "is": "light" } }
+			]
+		},
+		{
+			"name": "undo-a-move",
+			"note": "Cmd+Z puts a moved card back and says so; a second undo with nothing left says that instead",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "mod+right" },
+				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
+				{ "expect": { "state": "columns[1].cards.length", "is": 3 } },
+				{ "expect": { "state": "undoStack.length", "is": 0 } },
+				{ "expect": { "state": "activity[0].key", "is": "undone" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
+				{ "expect": { "state": "toast.open", "is": true } }
+			]
+		},
+		{
+			"name": "wip-limit-warns",
+			"note": "Moving a fourth card into In progress (limit 3) shows a notice and the column's count turns to a warning",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "mod+right" },
+				{ "expect": { "state": "toast.open", "is": true } },
+				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "capture": "over-limit" }
+			]
+		},
+		{
+			"name": "move-a-card-with-the-keyboard",
+			"note": "Alt+arrows move the chosen card down, up, right and left, without a mouse",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "alt+down" },
+				{ "expect": { "state": "selected.i", "is": 1 } },
+				{ "expect": { "state": "columns[0].cards[1].title", "is": "Onboarding checklist for new teams" } },
+				{ "key": "alt+up" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "alt+right" },
+				{ "expect": { "state": "selected.c", "is": 1 } },
+				{ "key": "alt+left" },
+				{ "expect": { "state": "selected.c", "is": 0 } },
+				{ "expect": { "state": "columns[0].cards[3].title", "is": "Onboarding checklist for new teams" } }
+			]
+		},
+		{
+			"name": "tick-and-add-checklist-items",
+			"note": "The drawer's checklist: ticking an item and adding one; a blank item is ignored",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
+				{ "click": "#checkBox", "nth": 1 },
+				{ "expect": { "state": "columns[0].cards[0].checklist[1].done", "is": true } },
+				{ "click": "#newItem" },
+				{ "type": "Review the copy" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].checklist.length", "is": 4 } },
+				{ "expect": { "state": "newItem", "is": "" } },
+				{ "type": "  " },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].checklist.length", "is": 4 } }
+			]
+		},
+		{
+			"name": "pick-a-due-date",
+			"note": "The due button opens the calendar with the focus in it (a regression: the keyboard could not reach it); arrows and Enter pick the next day, and clearing removes it",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
+				{ "click": "#dueButton" },
+				{ "wait": 50 },
+				{ "expect": { "state": "dueOpen", "is": true } },
+				{ "capture": "date-picker" },
+				{ "key": "right" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].due", "is": "2026-03-21" } },
+				{ "expect": { "state": "dueOpen", "is": false } },
+				{ "click": "#dueClear" },
+				{ "expect": { "state": "columns[0].cards[0].due", "is": null } }
+			]
+		},
+		{
+			"name": "labels-comments-and-attachments",
+			"note": "A label chip toggles on the card, and a comment and an attachment name are added, the comment in the feed",
+			"steps": [
+				{ "resize": [1600, 1400], "note": "tall enough for the whole drawer" },
+				{ "wait": 50 },
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "space", "note": "peeks at it in the side panel" },
+				{ "expect": { "state": "peek", "is": true } },
+				{ "click": "#labelChip", "nth": 0 },
+				{ "expect": { "state": "columns[0].cards[0].labels.length", "is": 2 } },
+				{ "click": "#labelChip", "nth": 0 },
+				{ "expect": { "state": "columns[0].cards[0].labels.length", "is": 1 } },
+				{ "click": "#newComment" },
+				{ "type": "Looks good" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].comments.length", "is": 2 } },
+				{ "expect": { "state": "activity[0].key", "is": "commented" } },
+				{ "click": "#newAttachment" },
+				{ "type": "copy.txt" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].attachments[1]", "is": "copy.txt" } }
+			]
+		},
+		{
+			"name": "fuzzy-search",
+			"note": "Cmd+F focuses the search; letters in order match a title, and Escape clears it",
+			"steps": [
+				{ "key": "mod+f" },
+				{ "wait": 50 },
+				{ "type": "crsh" },
+				{ "expect": { "state": "query", "is": "crsh" } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Crash when a board has no columns" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "query", "is": "" } }
+			]
+		},
+		{
+			"name": "timeline-view",
+			"note": "The timeline shows a track a member with the dated cards; a regression for the generic scale transform drawing it as a block",
+			"steps": [
+				{ "action": "showTimeline" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#cardTimeline", "exists": true } },
+				{ "expect": { "state": "timelineTracks.length", "is": 4 } },
+				{ "capture": "timeline" }
+			]
+		},
+		{
+			"name": "swimlanes",
+			"note": "Swimlanes show one lane a member; toggling again goes back to the columns",
+			"steps": [
+				{ "action": "toggleSwimlanes" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#lane", "exists": true } },
+				{ "capture": "lanes" },
+				{ "action": "toggleSwimlanes" },
+				{ "expect": { "state": "swimlanes", "is": false } }
+			]
+		},
+		{
+			"name": "settings-sheet",
+			"note": "Cmd+, opens the settings in the middle; Escape closes them",
+			"steps": [
+				{ "key": "mod+comma" },
+				{ "wait": 50 },
+				{ "expect": { "state": "settingsOpen", "is": true } },
+				{ "capture": "settings" },
+				{ "key": "escape" },
+				{ "expect": { "state": "settingsOpen", "is": false } }
+			]
+		},
+		{
+			"name": "french",
+			"note": "Cmd+L twice switches to French: the filter and the board read in French",
+			"steps": [
+				{ "key": "mod+l" },
+				{ "key": "mod+l" },
+				{ "wait": 50 },
+				{ "key": "f" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#filterProp", "nth": 0, "text": "\u00a0\u00a0Statut" } },
+				{ "key": "escape" },
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "capture": "french" }
+			]
+		},
+		{
+			"name": "small-window-dark",
+			"note": "At the minimum size, in dark, the filters and drawer buttons become icons with names; a regression for clipped buttons",
+			"steps": [
+				{ "resize": [1040, 640] },
+				{ "key": "mod+j" },
+				{ "wait": 50 },
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "capture": "small-dark" }
+			]
+		},
+		{
+			"name": "a-card-mid-drag",
+			"note": "Half way through a drag, the first Backlog card is over the Review column and not moved yet (the gallery's scene, tools/media/gallery.json)",
+			"steps": [
+				{ "press": "#card" },
+				{ "move": "#column", "nth": 1 },
+				{ "move": "#column", "nth": 2 },
+				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
+				{ "expect": { "state": "columns[2].cards.length", "is": 2 } }
+			]
+		},
+		{
+			"name": "the-issue-page",
+			"note": "Cmd+Enter opens the chosen card as a page; its properties change it, and Escape goes back",
+			"steps": [
+				{ "click": "#cardTitle", "nth": 2 },
+				{ "key": "mod+enter" },
+				{ "expect": { "state": "issueOpen", "is": true } },
+				{ "expect": { "node": "#issuePage", "exists": true } },
+				{ "click": "#propPriorityValue" },
+				{ "click": "#priorityPick", "nth": 1 },
+				{ "expect": { "state": "issuePriorityOpen", "is": false } },
+				{ "expect": { "state": "columns[0].cards[2].priority", "is": 1 } },
+				{ "click": "#propStatusValue" },
+				{ "click": "#statusPick", "nth": 1 },
+				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "key": "escape" },
+				{ "expect": { "state": "issueOpen", "is": false } },
+				{ "expect": { "node": "#issuePage", "exists": false } }
+			]
+		},
+		{
+			"name": "single-key-shortcuts",
+			"note": "J and K walk the cards, P, S and A pick the selected card's priority, status and assignee, I assigns it to me",
+			"steps": [
+				{ "key": "j" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "j" },
+				{ "key": "j" },
+				{ "key": "k" },
+				{ "expect": { "state": "selected.i", "is": 1 } },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "expect": { "state": "propPick.open", "is": true } },
+				{ "type": "urgent" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "propPick.open", "is": false } },
+				{ "expect": { "state": "columns[0].cards[1].priority", "is": 1 } },
+				{ "wait": 50 },
+				{ "key": "a" },
+				{ "wait": 50 },
+				{ "expect": { "state": "propKind", "is": "assignee" } },
+				{ "expect": { "state": "propPick.open", "is": true } },
+				{ "type": "jon" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[1].who", "is": "JD" } },
+				{ "wait": 50 },
+				{ "key": "i" },
+				{ "expect": { "state": "columns[0].cards[1].who", "is": "RS" } },
+				{ "key": "s" },
+				{ "wait": 50 },
+				{ "type": "review" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "selected.c", "is": 2 } },
+				{ "key": "mod+k" },
+				{ "expect": { "state": "quickPick.query", "is": "" } }
+			]
+		},
+		{
+			"name": "team-pages",
+			"note": "The inbox picks, marks, snoozes and opens notifications; G chords go to cycles, projects and back to the issues",
+			"steps": [
+				{ "expect": { "node": "#navCount", "text": "3" } },
+				{ "click": "#navInbox" },
+				{ "expect": { "state": "page", "is": "inbox" } },
+				{ "key": "j" },
+				{ "expect": { "state": "inboxAt", "is": 1 } },
+				{ "expect": { "state": "inbox[1].read", "is": true } },
+				{ "key": "u" },
+				{ "expect": { "state": "inbox[1].read", "is": false } },
+				{ "key": "h" },
+				{ "expect": { "state": "inbox[1].snoozed", "is": true } },
+				{ "expect": { "node": "#navCount", "text": "2" } },
+				{ "key": "k" },
+				{ "key": "enter" },
+				{ "expect": { "state": "issueOpen", "is": true } },
+				{ "expect": { "state": "selected", "is": { "c": 0, "i": 2 } } },
+				{ "key": "escape" },
+				{ "key": "g" },
+				{ "key": "v" },
+				{ "expect": { "state": "page", "is": "cycles" } },
+				{ "expect": { "node": "#cycleRow", "nth": 2, "exists": true } },
+				{ "expect": { "node": "#cycleRow", "nth": 3, "exists": false } },
+				{ "key": "g" },
+				{ "key": "p" },
+				{ "expect": { "node": "#projectRow", "nth": 4, "exists": true } },
+				{ "key": "g" },
+				{ "key": "a" },
+				{ "expect": { "state": "page", "is": "issues" } }
+			]
+		},
+		{
+			"name": "multi-select",
+			"note": "X and Shift+J mark cards, P sets the priority of all of them, S moves them all, Cmd+Z undoes the move in one step, Escape clears the marks",
+			"steps": [
+				{ "key": "j" },
+				{ "key": "x" },
+				{ "key": "shift+j" },
+				{ "expect": { "state": "marked", "is": ["FLO-1", "FLO-2"] } },
+				{ "wait": 50 },
+				{ "expect": { "state": "page", "is": "issues" } },
+				{ "expect": { "node": "#bulkCount", "exists": true } },
+				{ "expect": { "node": "#bulkBar", "exists": true } },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "type": "high" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].priority", "is": 2 } },
+				{ "expect": { "state": "columns[0].cards[1].priority", "is": 2 } },
+				{ "wait": 50 },
+				{ "key": "s" },
+				{ "wait": 50 },
+				{ "type": "done" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].ref", "is": "FLO-3" } },
+				{ "expect": { "state": "columns[3].cards[3].ref", "is": "FLO-1" } },
+				{ "expect": { "state": "columns[3].cards[4].ref", "is": "FLO-2" } },
+				{ "wait": 50 },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "columns[0].cards[0].ref", "is": "FLO-1" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "marked", "is": [] } },
+				{ "expect": { "node": "#bulkBar", "exists": false } }
+			]
+		}
+	
+	]
+}

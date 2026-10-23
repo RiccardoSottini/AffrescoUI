@@ -1,5 +1,5 @@
 {
-	"note": "Haven's dashboard editing, included by smart-home.screen.json: Edit dashboard in the top bar's menu outlines each card with a pencil, and a card's editor changes its configuration in a visual form or as code.",
+	"note": "Haven's dashboard editing, included by index.screen.json: Arrange cards in the top bar's menu outlines each card with a pencil, and a card's editor changes its configuration in a visual form or as code.",
 
 	"state": {
 		"editing": false,
@@ -22,7 +22,7 @@
 	},
 
 	"actions": {
-		"editDashboard": { "title": "Edit dashboard", "category": "View", "icon": "pencil",
+		"editDashboard": { "title": "Arrange cards", "category": "View", "icon": "pencil",
 			"do": [{ "set": "state.page", "to": "home" }, { "set": "state.editing", "to": true }] },
 		"doneEditing": [{ "set": "state.editing", "to": false }, { "set": "state.cardEdit.open", "to": false }],
 		"editCard": [

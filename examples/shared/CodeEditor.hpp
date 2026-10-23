@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file
-/// @brief CodeEditor: an application-layer widget for the Forge template (code-editor.screen.json), built on the
+/// @brief CodeEditor: an application-layer widget for the Forge template (index.screen.json), built on the
 /// library's TextEditor. It shows how an application adds its own type: subclass a widget, register it with
 /// registerCodeEditor().
 

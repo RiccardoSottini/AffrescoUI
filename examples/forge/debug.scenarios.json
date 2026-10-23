@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's debugger, checked headless: affrescoui_render_runner debug.scenarios.json. No adapter runs: the steps named debugApply* play what tests/dap/fake_adapter.py answers (its capabilities, stops, frames, variables and evaluations), as the dap service hands them to the screen.",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "debug-view-and-configurations",

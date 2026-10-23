@@ -13,8 +13,8 @@
 
 namespace affresco {
 
-/// @brief One permission rule, written like a Claude Code permission rule (`Tool(specifier)`): `author` or
-/// `author(pattern)`, e.g. "studio", "agent(#board)", "*(#statusBar)", "agent(/state/cards)".
+/// @brief One permission rule, `author` or `author(pattern)`, e.g. "studio", "agent(#board)", "*(#statusBar)",
+/// "agent(/state/cards)".
 struct PermissionRule {
 	std::string text;    ///< As written.
 	std::string author;  ///< "*", a channel name ("agent" covers "agent/claude-code") or a full author name.

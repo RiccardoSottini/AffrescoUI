@@ -1,7 +1,7 @@
 {
 	"id": "music-mute",
 	"level": "feature",
-	"screen": "examples/tempo/music-player.screen.json",
+	"screen": "examples/tempo/index.screen.json",
 	"request": "Add a \"Mute\" button with the id mute in the playlist header, right of the play button, that sets the volume to 0, and make Cmd+M (mod+m) do the same.",
 	"scenarios": [
 		{

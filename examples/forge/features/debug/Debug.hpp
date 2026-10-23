@@ -14,7 +14,7 @@
 
 namespace forge {
 
-/// @brief Reads the launch configurations of a folder's `.vscode/launch.json`, in the subset Forge knows: `name`,
+/// @brief Reads the launch configurations of a folder's `.forge/launch.json`, in the subset Forge knows: `name`,
 /// `type` (`lldb`, `lldb-dap`, `python` or `debugpy`), `request` (`launch` or `attach`), `program`, `args`, `cwd`,
 /// `env`, `stopOnEntry`, `console` and, to attach, `pid` (lldb) or `port` (debugpy, on 127.0.0.1). Comments are
 /// allowed; other keys are left out.
@@ -25,7 +25,7 @@ namespace forge {
 /// @throws std::runtime_error If the file isn't JSON or is too large.
 [[nodiscard]] affresco::json launchConfigurations(const std::filesystem::path& root);
 
-/// @brief Reads the tasks of a folder's `.vscode/tasks.json`, in the subset Forge runs: `label`, `type` (`shell` or
+/// @brief Reads the tasks of a folder's `.forge/tasks.json`, in the subset Forge runs: `label`, `type` (`shell` or
 /// `process`), `command`, `args` and `group` (`build` or `test`, or `{ "kind" }`). `${workspaceFolder}` becomes `.`;
 /// a task with another variable is skipped. Comments are allowed.
 /// @param root The open folder, or empty.

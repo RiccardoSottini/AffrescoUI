@@ -16,7 +16,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-TEMPERA = "examples/tempera/tempera.screen.json"
+TEMPERA = "examples/tempera/index.screen.json"
 SORTER = "examples/sinopia/features/slide-sorter"
 
 
@@ -82,7 +82,7 @@ def main():
     if not request.get("request_id") or "slideSorter" not in request.get("text", ""):
         sys.exit(f"unexpected request: {request}")
     offers = mcp.tool("get_contributions", {"file": TEMPERA, "running": True})
-    if "slideSorter" not in mcp.tool("get_contributions", {"file": "examples/sinopia/sinopia.screen.json"}):
+    if "slideSorter" not in mcp.tool("get_contributions", {"file": "examples/sinopia/index.screen.json"}):
         sys.exit("Sinopia offers no slideSorter")
     bare = mcp.tool("check_composition", {"screen": TEMPERA, "feature": SORTER}, failing=True)
     if "unmet need pages" not in bare:

@@ -5,7 +5,7 @@
 	"scenarios": [
 		{
 			"name": "smart-home",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
 				{ "click": "#toggle-rooms-room-lights", "nth": 2 },
@@ -22,7 +22,7 @@
 		},
 		{
 			"name": "smart-home-devices",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#deviceAction", "nth": 1 },
 				{ "wait": 450 },
@@ -35,7 +35,7 @@
 		},
 		{
 			"name": "smart-home-info",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#light", "nth": 1 },
 				{ "expect": { "image": "light-info" } },
@@ -57,7 +57,7 @@
 		},
 		{
 			"name": "smart-home-pages",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "key": "mod+2" },
 				{ "expect": { "image": "energy" } },
@@ -65,7 +65,7 @@
 				{ "expect": { "image": "energy-room" } },
 				{ "key": "mod+l" },
 				{ "key": "mod+l" },
-				{ "expect": { "image": "energy-arabic" } },
+				{ "expect": { "image": "energy-french" } },
 				{ "key": "mod+l" },
 				{ "key": "mod+4" },
 				{ "expect": { "image": "automations" } },
@@ -92,7 +92,7 @@
 				{ "key": "mod+l" },
 				{ "key": "mod+l" },
 				{ "click": "#settingsRow", "nth": 4 },
-				{ "expect": { "image": "settings-profile-arabic-dark" } },
+				{ "expect": { "image": "settings-profile-french-dark" } },
 				{ "key": "mod+l" },
 				{ "key": "mod+4" },
 				{ "click": "#autoRowOpen", "nth": 1 },
@@ -111,7 +111,7 @@
 		},
 		{
 			"name": "smart-home-shell",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "click": "#searchButton" },
 				{ "wait": 100 },
@@ -133,7 +133,7 @@
 				{ "key": "escape" },
 				{ "click": "#dashMore" },
 				{ "expect": { "image": "dashboard-menu" } },
-				{ "click": { "role": "menuitem", "name": "Edit dashboard" } },
+				{ "click": { "role": "menuitem", "name": "Arrange cards" } },
 				{ "expect": { "image": "edit-mode" } },
 				{ "click": "#editClimate" },
 				{ "wait": 100 },
@@ -144,12 +144,12 @@
 				{ "click": "#editDone" },
 				{ "key": "mod+l" },
 				{ "key": "mod+l" },
-				{ "expect": { "image": "home-arabic" } }
+				{ "expect": { "image": "home-french" } }
 			]
 		},
 		{
 			"name": "smart-home-history",
-			"screen": "smart-home.screen.json",
+			"screen": "index.screen.json",
 			"steps": [
 				{ "key": "mod+5" },
 				{ "expect": { "image": "logbook" } },
@@ -158,13 +158,13 @@
 				{ "expect": { "image": "logbook-search" } },
 				{ "key": "mod+6" },
 				{ "expect": { "image": "history" } },
-				{ "click": { "role": "tab", "name": "Areas" } },
+				{ "click": { "role": "tab", "name": "Rooms" } },
 				{ "expect": { "image": "areas" } },
 				{ "key": "mod+l" },
 				{ "key": "mod+l" },
 				{ "key": "mod+t" },
 				{ "wait": 600 },
-				{ "expect": { "image": "areas-arabic-dark" } }
+				{ "expect": { "image": "areas-french-dark" } }
 			]
 		}
 	]

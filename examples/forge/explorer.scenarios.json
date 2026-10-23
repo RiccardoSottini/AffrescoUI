@@ -3,7 +3,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "Forge's explorer, checked headless, with tests/render/forge/folder open: affrescoui_render_runner explorer.scenarios.json. A scenario that makes files deletes them before it ends, so the folder stays as it is.",
-	"screen": "forge.screen.json",
+	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "explorer-list-the-folder",

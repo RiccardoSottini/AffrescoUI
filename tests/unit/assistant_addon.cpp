@@ -1,8 +1,9 @@
 /// @file
 /// @brief The assistant add-on (examples/shared/addons/assistant), through the rendering check's screen that includes
-/// it: the launcher shows only when there is someone to ask or something to show, the panel opens on the composer and
-/// says when no agent is connected, Escape gives the focus back to the launcher, a message sent is kept, and a request
-/// to a connected agent comes back as a proposal card the person accepts or rejects.
+/// it: the launcher shows by default (an app that hides it shows it again for an agent, a conversation or a request),
+/// the panel opens on the composer and says when no agent is connected, Escape gives the focus back to the launcher, a
+/// message sent is kept, and a request to a connected agent comes back as a proposal card the person accepts or
+/// rejects.
 
 #include "Headless.hpp"
 #include "Helpers.hpp"
@@ -149,9 +150,15 @@ struct Built {
 
 } // namespace
 
-TEST_CASE("assistant add-on: the launcher waits for an agent, a conversation or a request to show it") {
+TEST_CASE("assistant add-on: the launcher shows by default, and once hidden waits for an agent or a request") {
 	const DataFolder data;
 	Built built(data.path);
+	CHECK(built.shown("assistantLauncher"));
+	built.run("test.hide");
+	CHECK_FALSE(built.shown("assistantLauncher"));
+	built.run("test.online");
+	CHECK(built.shown("assistantLauncher"));
+	built.run("test.offline");
 	CHECK_FALSE(built.shown("assistantLauncher"));
 	built.run("test.show");
 	CHECK(built.shown("assistantLauncher"));
@@ -204,6 +211,7 @@ TEST_CASE("assistant add-on: Enter sends the draft, Shift+Enter starts a line, a
 		CHECK(built.assistant()["messages"].size() == 2);
 	}
 	Built again(data.path);
+	again.run("test.hide");
 	const json assistant = again.assistant();
 	REQUIRE(assistant["messages"].size() == 2);
 	CHECK(assistant["messages"][0]["text"] == "Bigger\ntitles");

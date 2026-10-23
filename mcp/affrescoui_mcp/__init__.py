@@ -6,8 +6,8 @@
 
 The host (examples/host/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
 plain words in the Studio; the request reaches the agent through this server; the agent reads the screen, sends
-revisions (JSON Patch), and replies. Revisions follow the screen's permission rules (allow / ask / deny, like
-Claude Code's): in the example templates the agent's changes become proposals the person reviews in the Studio,
+revisions (JSON Patch), and replies. Revisions follow the screen's permission rules (allow / ask / deny): in the
+example templates the agent's changes become proposals the person reviews in the Studio,
 unless the mode is acceptEdits or the reviewer said "don't ask again" for that kind of change. A proposal is a
 branch the agent can keep pushing to. There is no tool to accept or reject: that is the reviewer's decision.
 

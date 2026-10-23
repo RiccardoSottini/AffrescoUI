@@ -3,10 +3,10 @@
 Modello is a 3D modeller written only as screen documents: no C++ of its own. The stock host runs it:
 
 ```
-./build/affrescoui_host examples/modello/modello.screen.json [--socket DIR]
+./build/affrescoui_host examples/modello/index.screen.json [--socket DIR]
 ```
 
-Its layout and keys are modelled on Blender's, so a daily user of such a modeller finds what they expect where they
+Its layout and keys follow the conventions of desktop 3D modellers, so a daily user of such a modeller finds what they expect where they
 expect it: the top bar with its menus and workspace tabs, the 3D viewport with its header, toolbar, navigation gizmo
 and sidebar, the outliner, the properties editor, the timeline and the status bar. `PARITY.md` lists what is there and
 what isn't yet.
@@ -17,7 +17,7 @@ and review cover the scene and the workspace alike.
 
 | File | What it holds |
 |---|---|
-| `modello.screen.json` | The window, fonts, colours (dark and light), the state and the areas |
+| `index.screen.json` | The window, fonts, colours (dark and light), the state and the areas |
 | `parts/commands.json` | The actions, the keys and the menus |
 | `parts/viewport.json` | The 3D viewport, its header, toolbar, navigation gizmo and sidebar |
 | `parts/editors.json` | The top bar, outliner, properties editor, timeline and status bar |
@@ -46,8 +46,8 @@ For glTF import, from the Khronos glTF Sample Assets, each with its licence and 
 
 ## Tests
 
-- `modello.scenarios.json`: what the keys do, played headless (`./build/affrescoui test
-  examples/modello/modello.scenarios.json`, and in ctest's `scenarios`).
+- `index.scenarios.json`: what the keys do, played headless (`./build/affrescoui test
+  examples/modello/index.scenarios.json`, and in ctest's `scenarios`).
 - `tests/render/scenarios/modello.json`: its frames in the rendering check.
 - `tests/unit/scene3d*.cpp`: the scene module's maths, scene JSON, glTF loading and limits, picking, gizmos.
 - `tests/perf/modello.cpp` (`affrescoui_perf_modello`, built with `AFFRESCOUI_BUILD_BENCHMARKS`): a 200,000-triangle

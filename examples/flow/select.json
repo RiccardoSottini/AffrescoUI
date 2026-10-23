@@ -1,5 +1,5 @@
 {
-	"note": "Flow's multi-select, included by kanban.screen.json: X marks the selected card, Shift+J and Shift+K extend the marks, and a bar at the bottom changes the status, priority or assignee of every marked card at once, or deletes them. Each bulk change is one undo step.",
+	"note": "Flow's multi-select, included by index.screen.json: X marks the selected card, Shift+J and Shift+K extend the marks, and a bar at the bottom changes the status, priority or assignee of every marked card at once, or deletes them. Each bulk change is one undo step.",
 
 	"state": {
 		"marked": []

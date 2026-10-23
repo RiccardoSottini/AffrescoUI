@@ -192,13 +192,13 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		target_compile_options(affrescoui_${example} PRIVATE ${AFFRESCOUI_WARNINGS})
 		target_compile_definitions(affrescoui_${example} PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	endforeach()
-	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
+	# Forge, a demo IDE: its workbench is examples/forge/index.screen.json, with a few natives (examples/forge/README.md)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/shared/CodeEditor.cpp)
 	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
-	# Sinopia, slides and vector documents: its workspace is examples/sinopia/sinopia.screen.json (examples/sinopia/README.md)
+	# Sinopia, slides and vector documents: its workspace is examples/sinopia/index.screen.json (examples/sinopia/README.md)
 	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp
 		# deck/: the deck model, read, checked, edited and arranged without a window
 		examples/sinopia/deck/Deck.cpp examples/sinopia/deck/Write.cpp examples/sinopia/deck/Edit.cpp
@@ -267,7 +267,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 	if(AFFRESCOUI_BUILD_EXAMPLES)
 		# Sinopia's scenarios, headless: editing, the sorter, exporting and presenting (examples/sinopia/README.md)
 		add_test(NAME sinopia COMMAND affrescoui_sinopia --check
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia/sinopia.scenarios.json)
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia/index.scenarios.json)
 	endif()
 endif()
 

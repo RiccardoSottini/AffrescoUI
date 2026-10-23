@@ -104,7 +104,7 @@ std::optional<json> Repository::readable(std::string_view author) const {
 	return detail::readableView(policy, detail::view(document_, state_), author, roles_);
 }
 
-// Like Claude Code: deny beats ask beats allow; what no rule allows asks. Rules are judged by the change's effect.
+// Deny beats ask beats allow; what no rule allows asks. Rules are judged by the change's effect.
 Repository::Verdict Repository::evaluate(const json& before, const json& after, const std::string& author,
                                          bool reviewed) const {
 	using Kind = Verdict::Kind;

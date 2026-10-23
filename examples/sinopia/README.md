@@ -1,7 +1,7 @@
 # Sinopia, slides and vector documents
 
 Sinopia makes slide decks (16:9 and 4:3) and vector pages (A4, Letter, custom), presents them and exports them. Its
-whole workspace is a screen document, [`sinopia.screen.json`](sinopia.screen.json), with its parts in
+whole workspace is a screen document, [`index.screen.json`](index.screen.json), with its parts in
 [`parts/`](parts): people and agents change it live like any other screen. Its permissions apply the Studio's changes
 and send an agent's to review, which only the Studio can give. The C++ beside it is the deck model and the few natives
 a screen can't do itself: reading and checking decks, drawing thumbnails, exporting, and the audience window.
@@ -9,8 +9,8 @@ a screen can't do itself: reading and checking decks, drawing thumbnails, export
 ```sh
 cmake --build build --target affrescoui_sinopia
 ./build/affrescoui_sinopia --socket out/s --data out/data   # the workspace, with decks/sample.sinopia.json
-./build/affrescoui_sinopia --check examples/sinopia/sinopia.scenarios.json   # the scenarios, headless (ctest: sinopia)
-./build/affrescoui_sinopia --check examples/sinopia/sinopia.scenarios.json --out out/shots   # and their captures
+./build/affrescoui_sinopia --check examples/sinopia/index.scenarios.json   # the scenarios, headless (ctest: sinopia)
+./build/affrescoui_sinopia --check examples/sinopia/index.scenarios.json --out out/shots   # and their captures
 ```
 
 ## The workspace

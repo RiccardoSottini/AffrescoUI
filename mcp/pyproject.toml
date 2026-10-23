@@ -5,7 +5,7 @@
 #
 # The server is the package folder affrescoui_mcp/, run from a checkout through affrescoui_mcp.py next to it. The wheel
 # holds that folder with the format guide it serves: build it with tools/release/build_mcp.py, which stages this file,
-# the package, SCREEN_FORMAT.md, LICENSE and NOTICE together (RELEASING.md). The version is the library's:
+# the package, SCREEN_FORMAT.md, LICENSE and NOTICE together. The version is the library's:
 # check_version.py checks.
 
 [build-system]
