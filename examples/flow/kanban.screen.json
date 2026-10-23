@@ -131,6 +131,10 @@
 		"statusIcons": ["circle-dashed", "circle-dot", "circle-ellipsis", "check-circle-2"],
 		"filter": "all",
 		"scope": "all",
+		"fStatus": -1,
+		"fPrio": -1,
+		"filterProp": "",
+		"filterProps": [["status", "circle-dashed"], ["assignee", "circle-user"], ["priority", "signal-high"], ["label", "tag"]],
 		"scopes": ["all", "active", "backlog"],
 		"searchOpen": false,
 		"filters": ["all", "bug", "feature", "design", "chore"],
@@ -240,7 +244,9 @@
 		"tableColumns": "{{[{ id: 'title', title: t('table.card'), width: state.columnWidths.title }, { id: 'column', title: t('table.column'), width: state.columnWidths.column }, { id: 'tag', title: t('table.label'), width: state.columnWidths.tag }, { id: 'who', title: t('table.owner'), width: state.columnWidths.who }, { id: 'points', title: t('table.points'), width: state.columnWidths.points }]}}",
 		"paletteFirst": "{{filter(commands, it.enabled && contains(['changeStatus', 'changePriority', 'changeAssignee', 'assignToMe', 'editCard', 'openIssue'], it.name))}}",
 		"palette": "{{map(concat(computed.paletteFirst, filter(commands, it.enabled && it.category == 'Issue' && !contains(map(computed.paletteFirst, it.name), it.name)), filter(commands, it.enabled && it.category != 'Issue')), { title: it.title, detail: it.category + (it.keyLabel == null ? '' : '   ' + it.keyLabel), run: it.name })}}",
-		"matches": "{{filter(computed.allCards, (state.scope == 'all' || (state.scope == 'backlog' ? it.c == 0 : it.c > 0 && it.c < length(state.columns) - 1)) && (state.filter == 'all' || it.tag == state.filter) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
+		"matches": "{{filter(computed.allCards, (state.scope == 'all' || (state.scope == 'backlog' ? it.c == 0 : it.c > 0 && it.c < length(state.columns) - 1)) && (state.filter == 'all' || it.tag == state.filter) && (state.fStatus < 0 || it.c == state.fStatus) && (state.fPrio < 0 || (it.priority ?? 0) == state.fPrio) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
+		"filterOptions": "{{state.filterProp == 'status' ? map(state.columns, { v: index, title: it.name, icon: state.statusIcons[index] ?? 'circle', color: it.color, on: state.fStatus == index }) : state.filterProp == 'assignee' ? map(state.members, { v: it.who, title: it.name, icon: 'circle-user', color: it.color, on: state.owner == it.who }) : state.filterProp == 'priority' ? map(state.priorities, { v: index, title: t('priority.' + index), icon: it, color: '@color.muted', on: state.fPrio == index }) : map(slice(state.filters, 1), { v: it, title: t('tag.' + it), icon: 'circle', color: '@' + it, on: state.filter == it })}}",
+		"activeFilters": "{{concat(state.fStatus >= 0 ? [{ prop: 'status', value: state.columns[state.fStatus].name }] : [], state.owner != '' ? [{ prop: 'assignee', value: find(state.members, it.who == state.owner).name ?? state.owner }] : [], state.fPrio >= 0 ? [{ prop: 'priority', value: t('priority.' + state.fPrio) }] : [], state.filter != 'all' ? [{ prop: 'label', value: t('tag.' + state.filter) }] : [])}}",
 		"matchRefs": "{{map(computed.matches, it.ref)}}",
 		"visible": "{{filter(computed.matches, state.owner == '' || it.who == state.owner)}}",
 		"visibleRefs": "{{map(computed.visible, it.ref)}}",
@@ -359,6 +365,22 @@
 			{ "set": "state.composer.notes", "to": "" },
 			{ "set": "state.composer.open", "to": "{{state.composer.more}}", "note": "Create more keeps the composer open for the next one" }
 		],
+		"setFilter": [
+			{ "note": "with: prop, v and on, a value from the Filter menu and whether it is applied, which removes it" },
+			{ "if": "{{prop == 'status'}}", "then": [{ "set": "state.fStatus", "to": "{{on ? -1 : v}}" }] },
+			{ "if": "{{prop == 'assignee'}}", "then": [{ "set": "state.owner", "to": "{{on ? '' : v}}" }] },
+			{ "if": "{{prop == 'priority'}}", "then": [{ "set": "state.fPrio", "to": "{{on ? -1 : v}}" }] },
+			{ "if": "{{prop == 'label'}}", "then": [{ "set": "state.filter", "to": "{{on ? 'all' : v}}" }] },
+			{ "set": "state.filterOpen", "to": false },
+			{ "set": "state.filterProp", "to": "" }
+		],
+		"clearFilter": [
+			{ "note": "with: prop, the filter a chip's × removes" },
+			{ "if": "{{prop == 'status'}}", "then": [{ "set": "state.fStatus", "to": -1 }] },
+			{ "if": "{{prop == 'assignee'}}", "then": [{ "set": "state.owner", "to": "" }] },
+			{ "if": "{{prop == 'priority'}}", "then": [{ "set": "state.fPrio", "to": -1 }] },
+			{ "if": "{{prop == 'label'}}", "then": [{ "set": "state.filter", "to": "all" }] }
+		],
 		"openComposer": [
 			{ "note": "with: c, the column the new card goes to" },
 			{ "set": "state.composer", "to": { "open": true, "c": "{{c}}", "p": 0, "who": "{{state.me}}", "notes": "", "more": "{{state.composer.more}}" } }
@@ -399,6 +421,8 @@
 			{ "set": "state.view", "to": "board" },
 			{ "set": "state.filter", "to": "all" },
 			{ "set": "state.owner", "to": "" },
+			{ "set": "state.fStatus", "to": -1 },
+			{ "set": "state.fPrio", "to": -1 },
 			{ "set": "state.scope", "to": "all" },
 			{ "set": "state.query", "to": "" },
 			{ "run": "selectCard", "with": { "c": "{{item.c}}", "i": "{{item.at}}" } }
@@ -477,7 +501,7 @@
 			"do": [{ "set": "state.theme", "to": "{{state.theme == 'light' ? 'dark' : 'light'}}" }] },
 		"togglePeek": { "title": "Show or hide the side panel", "category": "View", "icon": "panel-right", "do": [{ "toggle": "state.peek" }] },
 		"clearFilters": { "title": "Clear the filters", "category": "View",
-			"do": [{ "set": "state.filter", "to": "all" }, { "set": "state.owner", "to": "" }, { "set": "state.query", "to": "" }] }
+			"do": [{ "set": "state.filter", "to": "all" }, { "set": "state.owner", "to": "" }, { "set": "state.fStatus", "to": -1 }, { "set": "state.fPrio", "to": -1 }, { "set": "state.query", "to": "" }] }
 	},
 
 	"keys": {
@@ -631,21 +655,21 @@
 						"children": [
 							{
 								"id": "filterButton",
-								"style": "{{state.filter == 'all' ? 'toolButton' : 'toolButtonOn'}}",
+								"style": "toolButton",
 								"icon": "list-filter",
-								"text": "{{state.filter == 'all' ? ' ' + t('filter.button') : ' ' + t('filter.active', { label: t('tag.' + state.filter) })}}",
+								"text": "{{length(computed.activeFilters) > 0 ? '' : '\u00a0' + t('filter.button')}}",
 								"label": "{{t('filter.button')}}",
 								"tooltip": "{{t('filter.button')}} (F)",
 								"isOpen": "{{state.filterOpen}}",
 								"keys": { "enter": { "toggle": "state.filterOpen" }, "space": { "toggle": "state.filterOpen" } },
-								"onClick": { "toggle": "state.filterOpen" },
+								"onClick": [{ "set": "state.filterProp", "to": "" }, { "toggle": "state.filterOpen" }],
 								"children": [
 									{
 										"id": "filterMenu",
 										"overlay": { "placement": "below", "open": "state.filterOpen", "dismiss": "outside" },
 										"y": 4,
-										"width": 200,
-										"height": "{{length(state.filters) * 30 + 12}}",
+										"width": 220,
+										"height": "{{(state.filterProp == '' ? length(state.filterProps) : length(computed.filterOptions)) * 30 + 12}}",
 										"radius": "@radius.card",
 										"shadow": { "y": 6, "blur": 16, "color": "#0000002e" },
 										"borderWidth": 1,
@@ -660,15 +684,27 @@
 												"arrows": "vertical",
 												"children": [
 													{
-														"id": "filter",
-														"repeat": { "for": "tag", "in": "state.filters" },
+														"id": "filterProp",
+														"repeat": { "for": "p", "in": "state.filterProps" },
+														"when": "{{state.filterProp == ''}}",
 														"style": "menuRow",
-														"runs": [{ "icon": "{{tag == 'all' ? 'layers-2' : 'circle'}}", "color": "{{tag == 'all' ? '@color.muted' : '@' + tag}}" }, "  {{tag == 'all' ? t('filter.all') : t('tag.' + tag)}}"],
-														"color": "{{tag == state.filter ? '@color.accentSoft' : 'transparent'}}",
-														"role": "menuitemradio",
-														"selected": "{{tag == state.filter}}",
-														"label": "{{tag == 'all' ? t('filter.all') : t('tag.' + tag)}}",
-														"onClick": [{ "set": "state.filter", "to": "{{tag}}" }, { "set": "state.filterOpen", "to": false }]
+														"runs": [{ "icon": "{{p[1]}}", "color": "@color.muted" }, "\u00a0\u00a0{{t('filter.' + p[0])}}"],
+														"role": "menuitem",
+														"label": "{{t('filter.' + p[0])}}",
+														"onClick": { "set": "state.filterProp", "to": "{{p[0]}}" },
+														"children": [{ "type": "label", "font": "small", "icon": "chevron-right", "mirror": true, "text": "", "textColor": "@color.muted", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": 16, "align": "center" }]
+													},
+													{
+														"id": "filter",
+														"repeat": { "for": "opt", "in": "computed.filterOptions" },
+														"when": "{{state.filterProp != ''}}",
+														"style": "menuRow",
+														"runs": [{ "icon": "{{opt.icon}}", "color": "{{opt.color}}" }, "\u00a0\u00a0{{opt.title}}"],
+														"color": "{{opt.on ? '@color.accentSoft' : 'transparent'}}",
+														"role": "menuitemcheckbox",
+														"selected": "{{opt.on}}",
+														"label": "{{opt.title}}",
+														"onClick": { "run": "setFilter", "with": { "prop": "{{state.filterProp}}", "v": "{{opt.v}}", "on": "{{opt.on}}" } }
 													}
 												]
 											}
@@ -698,8 +734,11 @@
 								"bind": "state.query",
 								"keys": { "escape": [{ "set": "state.query", "to": "" }, { "set": "state.searchOpen", "to": false }] }
 							},
-							{ "id": "filterClear", "style": "toolButton", "when": "{{state.filter != 'all'}}", "icon": "x", "text": "", "width": 28, "fitText": false, "padding": 0, "align": "center",
-								"label": "{{t('filter.clear')}}", "tooltip": "{{t('filter.clear')}}", "onClick": { "set": "state.filter", "to": "all" } }
+							{ "id": "filterChip", "repeat": { "for": "f", "in": "computed.activeFilters" }, "style": "toolButtonOn", "borderWidth": 1,
+								"runs": [{ "text": "{{t('filter.' + f.prop)}}", "color": "@color.muted" }, "\u00a0\u00a0{{t('filter.is')}}\u00a0\u00a0", { "text": "{{f.value}}", "color": "@color.text" }, "\u00a0\u00a0\u00a0\u00a0\u00a0"],
+								"children": [{ "id": "filterChipClear", "type": "label", "font": "small", "icon": "x", "text": "", "width": 20, "anchors": { "right": 2, "top": 4, "bottom": 4 }, "radius": 4, "align": "center",
+									"textColor": "@color.muted", "hover": { "color": "@color.chipHover" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('filter.clear')}}",
+									"onClick": { "run": "clearFilter", "with": { "prop": "{{f.prop}}" } } }] }
 						]
 					},
 					{

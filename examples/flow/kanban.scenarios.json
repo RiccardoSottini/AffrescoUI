@@ -6,6 +6,31 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "filter-by-status-and-priority",
+			"note": "The Filter menu lists properties, each opening its values; two filters combine, and a chip's × removes one",
+			"steps": [
+				{ "key": "f" },
+				{ "wait": 50 },
+				{ "click": "#filterProp", "nth": 0 },
+				{ "wait": 50 },
+				{ "click": "#filter", "nth": 0 },
+				{ "expect": { "state": "fStatus", "is": 0 } },
+				{ "expect": { "node": "#card", "nth": 3, "exists": true } },
+				{ "expect": { "node": "#card", "nth": 4, "exists": false } },
+				{ "key": "f" },
+				{ "wait": 50 },
+				{ "click": "#filterProp", "nth": 2 },
+				{ "wait": 50 },
+				{ "click": "#filter", "nth": 1 },
+				{ "expect": { "state": "fPrio", "is": 1 } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Crash when a board has no columns" } },
+				{ "expect": { "node": "#card", "nth": 1, "exists": false } },
+				{ "click": "#filterChipClear", "nth": 0 },
+				{ "expect": { "state": "fStatus", "is": -1 } },
+				{ "expect": { "node": "#filterChip", "nth": 1, "exists": false } }
+			]
+		},
+		{
 			"name": "composer-properties-and-create-more",
 			"note": "The composer's chips set priority and assignee, a description is kept, and Create more leaves it open for the next issue",
 			"steps": [
@@ -131,7 +156,9 @@
 			"steps": [
 				{ "click": "#filterButton" },
 				{ "wait": 50 },
-				{ "click": "#filter", "nth": 1 },
+				{ "click": "#filterProp", "nth": 3 },
+				{ "wait": 50 },
+				{ "click": "#filter", "nth": 0 },
 				{ "expect": { "state": "filter", "is": "bug" } },
 				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Crash when a board has no columns" } },
 				{ "expect": { "node": "#card", "nth": 2, "exists": true } },
@@ -321,7 +348,9 @@
 			"steps": [
 				{ "click": "#filterButton" },
 				{ "wait": 50 },
-				{ "click": "#filter", "nth": 1, "note": "a filter that hides the card, cleared by going to it" },
+				{ "click": "#filterProp", "nth": 3 },
+				{ "wait": 50 },
+				{ "click": "#filter", "nth": 0, "note": "a filter that hides the card, cleared by going to it" },
 				{ "key": "mod+p" },
 				{ "wait": 50 },
 				{ "expect": { "state": "quickPick.open", "is": true } },
@@ -519,7 +548,7 @@
 				{ "wait": 50 },
 				{ "key": "f" },
 				{ "wait": 50 },
-				{ "expect": { "node": "#filter", "nth": 0, "text": "  كل البطاقات" } },
+				{ "expect": { "node": "#filterProp", "nth": 0, "text": "\u00a0\u00a0الحالة" } },
 				{ "key": "escape" },
 				{ "click": "#cardTitle" },
 				{ "expect": { "state": "selected.i", "is": 0 } },
