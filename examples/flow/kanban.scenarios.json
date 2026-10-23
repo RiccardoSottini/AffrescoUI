@@ -6,6 +6,18 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "assistant-opens-and-closes",
+			"note": "Cmd+Shift+A opens the assistant chat over the board and Escape closes it",
+			"steps": [
+				{ "key": "mod+shift+a" },
+				{ "wait": 50 },
+				{ "expect": { "state": "assistant.open", "is": true } },
+				{ "key": "escape" },
+				{ "wait": 50 },
+				{ "expect": { "state": "assistant.open", "is": false } }
+			]
+		},
+		{
 			"name": "display-ordering-and-properties",
 			"note": "Ordering by priority puts the urgent issue first in its column; turning a display property off hides it on every card",
 			"steps": [

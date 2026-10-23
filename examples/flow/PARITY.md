@@ -19,3 +19,4 @@ and all of its data is invented. This page lists what a daily user would reach f
 | Projects | a project list, status and progress | partial | health, lead, target date and progress; G then P. The project page with milestones and updates is missing |
 | Inbox | notifications, read and unread | done | unread count in the sidebar, a preview with the issue's status, priority, assignee and label, J/K, U read or unread, H snooze, Enter opens the issue; G then I |
 | Roadmap | projects on a timeline | partial | the Timeline view |
+| Assistant | ask for a change in plain words | done | the shared assistant add-on; Cmd+Shift+A |

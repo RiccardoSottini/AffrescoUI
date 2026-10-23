@@ -6,7 +6,7 @@
 
 	"window": { "title": "Flow: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
-	"include": ["../shared/components/charts.json", "strings.json", "board.json", "drawer.json", "views.json", "sidebar.json", "list.json", "issue.json", "pages.json", "select.json"],
+	"include": ["../shared/components/charts.json", "strings.json", "board.json", "drawer.json", "views.json", "sidebar.json", "list.json", "issue.json", "pages.json", "select.json", "../shared/addons/assistant/assistant.json"],
 
 	"persist": ["state.theme", "state.sizes", "state.view", "state.swimlanes", "state.settings"],
 
@@ -30,6 +30,14 @@
 
 	"tokens": {
 		"radius.card": 6,
+		"assistant.accent": "@color.accent",
+		"assistant.accentHover": "@color.accent",
+		"assistant.surface": "@color.menu",
+		"assistant.raised": "@color.column",
+		"assistant.border": "@color.border",
+		"assistant.text": "@color.text",
+		"assistant.dim": "@color.muted",
+		"assistant.dot": "@color.muted",
 		"radius.chip": 6,
 		"color.background": { "light": "#f4f4f5", "dark": "#08090a" },
 		"color.topBar": { "light": "#ffffff", "dark": "#0f1011" },
