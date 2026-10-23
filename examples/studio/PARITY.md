@@ -12,7 +12,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Toolbar | Current repository drop-down: list, filter, add | The connections (hosts, document servers) | partial | partial |
 | Toolbar | Current branch drop-down: filter, default, recent and other branches | main and the open proposals | missing | partial |
 | Toolbar | Fetch / pull / push button with counts and "last fetched" | Refresh from the host, reconnect when offline | missing | partial |
-| Sidebar | Changes and History tabs with counts | Proposals and History, with counts; text tabs, no icons | partial | partial |
+| Sidebar | Changes and History tabs with counts | Proposals with its count, History; text tabs, no icons or count pills | partial | partial |
 | Changes | Changed files with check boxes and status icons; select all | Direct-change and permission drafts | missing | missing |
 | Changes | Summary and description, "Commit to main" | Message of a direct change, apply | partial | partial |
 | Changes | Nothing-changed state with suggestions | | partial | partial |
@@ -42,8 +42,8 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Pull request | Review box: Comment, Approve, Request changes | The three kinds and a text; comments and change requests go to the agents as requests, Approve merges | partial | partial |
 | Pull request | Checks: what ran, with its results | Evidence: scenarios, pictures before and after | partial | partial |
 | Pull request | Merge box states: conflicts, blocked, ready, merged | Ready, review required, changes requested, checks failed, blocked (the refusal), conflicts, merging; a merged notice | partial | partial |
-| Pull request | Merge button with options | Merge, "always allow" | partial | partial |
-| Pull request | Close the pull request | Reject, with a reason | partial | partial |
+| Pull request | Merge button with options | "Merge proposal", green when ready; "Always allow" under it; no squash or rebase | partial | partial |
+| Pull request | Close the pull request | "Close proposal", grey, below the merge box, asks first | partial | partial |
 | Pull request | Check out the pull request | Preview | partial | partial |
 
 **Counts at the start:** 0 done, 19 partial, 17 missing.

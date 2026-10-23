@@ -112,20 +112,20 @@
 			"dark": "#18213d"
 		},
 		"color.accent": {
-			"light": "#4f46e5",
-			"dark": "#6366f1"
+			"light": "#2563eb",
+			"dark": "#3b82f6"
 		},
 		"color.accentHover": {
-			"light": "#6366f1",
-			"dark": "#7c7ff5"
+			"light": "#3b82f6",
+			"dark": "#60a5fa"
 		},
 		"color.accentPressed": {
-			"light": "#4338ca",
-			"dark": "#4f46e5"
+			"light": "#1d4ed8",
+			"dark": "#2563eb"
 		},
 		"color.accentSoft": {
-			"light": "#e0e7ff",
-			"dark": "#272f5a"
+			"light": "#dbeafe",
+			"dark": "#1e2a4a"
 		},
 		"color.good": {
 			"light": "#16a34a",
@@ -2931,7 +2931,7 @@
 								"activeBackground": "@color.cardRaised",
 								"accentColor": "@color.accent",
 								"label": "{{t('a11y.side')}}",
-								"tabs": "{{[{id: 'review', label: t('side.changes', {n: length(state.proposals)}), closable: false}, {id: 'history', label: t('side.history', {n: length(state.history)}), closable: false}]}}",
+								"tabs": "{{[{id: 'review', label: t('side.changes', {n: length(state.proposals)}), closable: false}, {id: 'history', label: t('side.history'), closable: false}]}}",
 								"value": "{{state.tab == 'history' ? 'history' : 'review'}}",
 								"onChange": {
 									"run": "showTab",
@@ -3932,7 +3932,7 @@
 																	},
 																	{
 																		"id": "reviewSubmit",
-																		"style": "button",
+																		"style": "goodButton",
 																		"font": "small",
 																		"text": "{{t('review.submit')}}",
 																		"label": "{{t('review.submit')}}",
@@ -4137,7 +4137,7 @@
 															"right": "{{computed.prSide ? 200 : 16}}",
 															"bottom": 52
 														},
-														"height": 64,
+														"height": "{{computed.canAccept && !empty(computed.current.remember) ? 98 : 64}}",
 														"children": [
 															{
 																"id": "mergeIcon",
@@ -4223,7 +4223,7 @@
 																	"right": 16,
 																	"top": 16
 																},
-																"width": 96,
+																"width": 150,
 																"onClick": {
 																	"run": "accept",
 																	"with": {
@@ -4237,13 +4237,13 @@
 															{
 																"id": "label-always-allow",
 																"when": "{{computed.canAccept && !empty(computed.current.remember)}}",
-																"style": "goodButton",
+																"style": "smallButton",
 																"text": "{{t('review.always')}}",
 																"anchors": {
-																	"right": 120,
-																	"top": 16
+																	"right": 16,
+																	"top": 56
 																},
-																"width": 100,
+																"width": 150,
 																"onClick": {
 																	"run": "accept",
 																	"with": {
@@ -4273,14 +4273,14 @@
 													},
 													{
 														"id": "label-reject",
-														"style": "badButton",
+														"style": "smallButton",
 														"text": "{{t('review.reject')}}",
 														"icon": "git-pull-request-closed",
 														"anchors": {
 															"right": 16,
 															"bottom": 12
 														},
-														"width": 80,
+														"width": 130,
 														"onClick": "askReject",
 														"label": "{{t('review.reject')}}"
 													}
