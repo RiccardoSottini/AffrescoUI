@@ -22,21 +22,43 @@ const DragHooks* dragHooks(const Record* record) {
 	return nullptr;
 }
 
+/// @brief The modifier keys of a pointer event, named as a key event names them.
+/// @param type The event's type.
+/// @param mods The keys held.
+/// @return The event's fields: type, shift, ctrl, alt and cmd.
+json pointerFields(std::string_view type, Mods mods) {
+	return {{"type", std::string(type)},
+	        {"shift", mods.shift()},
+	        {"ctrl", mods.control()},
+	        {"alt", mods.alt()},
+	        {"cmd", mods.super()}};
+}
+
+/// @brief A pointer event's fields with another type.
+/// @param fields The fields (type and modifier keys).
+/// @param type The type.
+/// @return The fields, typed.
+json typed(json fields, std::string_view type) {
+	fields["type"] = std::string(type);
+	return fields;
+}
+
 } // namespace
 
 void Events::mouseButton(Panel& panel, const MouseButtonEvent& event) {
 	const Vec2 at = event.position;
 	if(event.button == MouseButton::Right) {
 		if(event.action == affresco::Action::Release && panel.bounds().contains(at))
-			bubble(panel, "onContextMenu", {{"type", "contextMenu"}}, &at);
+			bubble(panel, "onContextMenu", pointerFields("contextMenu", event.mods), &at);
 		return;
 	}
 	if(event.button != MouseButton::Left) return;
-	if(event.action == affresco::Action::Press) pressed(panel, at);
-	else released(panel, at);
+	const json mods = pointerFields("press", event.mods);
+	if(event.action == affresco::Action::Press) pressed(panel, at, mods);
+	else released(panel, at, mods);
 }
 
-void Events::pressed(Panel& panel, Vec2 at) {
+void Events::pressed(Panel& panel, Vec2 at, const json& mods) {
 	press_ = {};
 	press_.panel = &panel;
 	press_.position = at;
@@ -46,7 +68,7 @@ void Events::pressed(Panel& panel, Vec2 at) {
 			break;
 		}
 	setFlagUpwards(&panel, &Record::down, true);
-	bubble(panel, "onPress", {{"type", "press"}}, &at);
+	bubble(panel, "onPress", mods, &at);
 }
 
 void Events::dropped(const Press& ended, Vec2 at) {
@@ -66,7 +88,7 @@ void Events::dropped(const Press& ended, Vec2 at) {
 	fire(*ended.over, "onDrop", drop);
 }
 
-void Events::released(Panel& panel, Vec2 at) {
+void Events::released(Panel& panel, Vec2 at, const json& mods) {
 	setFlagUpwards(&panel, &Record::down, false);
 	const Press ended = std::exchange(press_, {});
 	if(ended.dragging) {
@@ -75,7 +97,7 @@ void Events::released(Panel& panel, Vec2 at) {
 	}
 	if(!panel.bounds().contains(at)) return;
 
-	bubble(panel, "onRelease", {{"type", "release"}}, &at);
+	bubble(panel, "onRelease", typed(mods, "release"), &at);
 
 	// A toggle or slider keeps its click (like a native control): it changed its value
 	const Record* own = engine_.reconciler.recordOf(&panel);
@@ -84,13 +106,13 @@ void Events::released(Panel& panel, Vec2 at) {
 	   (!own || !own->handlers.contains("onClick")))
 		return;
 	Panel* clicked = handlerOwner(&panel, "onClick");
-	if(clicked) bubble(panel, "onClick", {{"type", "click"}}, &at);
+	if(clicked) bubble(panel, "onClick", typed(mods, "click"), &at);
 
 	// The second click on the same panel soon after the first
 	const double time = engine_.now();
 	Panel* handler = clicked ? clicked : handlerOwner(&panel, "onDoubleClick");
 	if(handler && lastClick_.owner == handler && time - lastClick_.time < doubleClickSeconds) {
-		bubble(panel, "onDoubleClick", {{"type", "doubleClick"}}, &at);
+		bubble(panel, "onDoubleClick", typed(mods, "doubleClick"), &at);
 		lastClick_ = {};
 	} else {
 		lastClick_ = {handler, time};

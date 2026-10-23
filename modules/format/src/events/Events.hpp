@@ -144,11 +144,13 @@ private:
 	/// @brief Handles a press of the left button: it may become a click or a drag.
 	/// @param panel The panel pressed.
 	/// @param at Where.
-	void pressed(Panel& panel, Vec2 at);
+	/// @param mods The modifier keys held, as the event's fields.
+	void pressed(Panel& panel, Vec2 at, const json& mods);
 	/// @brief Handles a release of the left button: a drop, or a release and a click (or a double click).
 	/// @param panel The panel that holds the mouse.
 	/// @param at Where.
-	void released(Panel& panel, Vec2 at);
+	/// @param mods The modifier keys held, as the event's fields.
+	void released(Panel& panel, Vec2 at, const json& mods);
 	/// @brief Ends a drag: the source and the target lose their states, and the target gets "onDrop".
 	/// @param ended The press that became a drag.
 	/// @param at Where it ended.

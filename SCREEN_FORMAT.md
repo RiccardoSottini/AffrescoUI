@@ -935,13 +935,13 @@ are stored in the state as they are shown to a `calendar`. The functions give nu
 
 ## Events
 
-A handler is an action name, a step, or a list of steps. Pointer events get `event.x`/`y` (in the window),
+A handler is an action name, a step, or a list of steps. Pointer events get `event.x`/`y` (in the window), the modifier keys held (`shift`, `ctrl`, `alt`, `cmd`, as key events name them),
 `event.left`/`top` (in the handling node) and its `width`/`height`.
 
 <!-- generated: events -->
 | Handler | When |
 |---|---|
-| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node). |
+| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node). A mouse button's event says which modifier keys were held (`event.shift`, `ctrl`, `alt`, `cmd`), so a Cmd-click can add to a selection and a Shift-click extend it. |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
 | `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |
