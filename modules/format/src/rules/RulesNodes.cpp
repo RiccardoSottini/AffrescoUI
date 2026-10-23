@@ -144,7 +144,7 @@ void nameChildren(const json& document, const std::string& place, json& children
 	for(std::size_t i = 0; i < children.size(); ++i) namer.name(children[i], place + "/" + std::to_string(i), id);
 }
 
-/// @brief Gives ids to the nodes of a whole section ("screens" or "templates") that have none.
+/// @brief Gives ids to the nodes of a whole section ("screens", "templates" or "overlays") that have none.
 /// @param document The document before the operation.
 /// @param place The section's place ("/screens").
 /// @param nodes The section, changed in place.
@@ -173,7 +173,8 @@ void Rules::nameNodes(const json& document, std::string_view pointer, bool repla
 	const std::vector<std::string> keys = keysOfPointer(place);
 	if(isNodePlace(place) && value.is_object()) nameNode(document, place, replaces, value);
 	else if(isChildrenPlace(place) && value.is_array()) nameChildren(document, place, value);
-	else if((place == "/screens" || place == "/templates") && value.is_object()) nameSection(document, place, value);
+	else if((place == "/screens" || place == "/templates" || place == "/overlays") && value.is_object())
+		nameSection(document, place, value);
 	else if(keys.size() == 2 && keys[0] == "components") nameComponent(document, place, keys[1], value);
 }
 

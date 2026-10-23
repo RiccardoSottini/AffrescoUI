@@ -37,7 +37,8 @@ public:
 	/// @throws DocumentError If something is wrong; what() names the place.
 	void validate(const json& document) const override;
 
-	/// @brief Finds a node by "id" in "root", then in "screens", "templates" and the components (findNodeWithId()).
+	/// @brief Finds a node by "id" in "root", then in "screens", "templates", "overlays" and the components
+	/// (findNodeWithId()).
 	/// @param document The document.
 	/// @param id The id.
 	/// @return The node's JSON Pointer, or std::nullopt.

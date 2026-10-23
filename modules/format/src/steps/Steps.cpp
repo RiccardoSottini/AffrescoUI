@@ -126,7 +126,8 @@ bool Steps::runStep(const json& step, Panel& sender, const json& event, const Sc
 	fail(where,
 	     "unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, "
 	     "send, connect, patch, focus, scrollTo, navigate, after, debounce, animate, copy, log, stop, note, "
-	     "accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn or signOut)");
+	     "accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn or "
+	     "signOut)");
 }
 
 // While a proposal is previewed its document runs, timers and all: a control step then runs only from the user's own

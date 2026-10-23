@@ -274,6 +274,13 @@ public:
 	/// or a deferred task.
 	/// @return true while one of the route methods runs.
 	[[nodiscard]] bool routingInput() const noexcept { return routing_ > 0; }
+	/// @brief Takes the key being delivered: a binding ran for it, so the focused panel doesn't act on it as well (a
+	/// text field neither moves nor edits) and the character it types is dropped. It lasts until that character, the
+	/// key's release or the next key.
+	void takeKey() noexcept;
+	/// @brief Whether the key being delivered was taken (see takeKey()).
+	/// @return true from takeKey() until the key's character, its release or the next key.
+	[[nodiscard]] bool keyTaken() const noexcept { return keyTaken_; }
 
 	/* Rendering */
 
@@ -518,6 +525,7 @@ private:
 	std::unique_ptr<Panel> inspection_;  ///< See inspection().
 	FrameStatistics statistics_;         ///< See frameStatistics().
 	bool keyInput_ = false;              ///< The latest input was a key, not a mouse press.
+	bool keyTaken_ = false;              ///< See keyTaken().
 	bool focusVisible_ = false;          ///< See focusVisible().
 	std::unique_ptr<Label> tooltip_; ///< The tooltip, created on first use.
 	bool tooltipShown_ = false;      ///< The tooltip is on screen.

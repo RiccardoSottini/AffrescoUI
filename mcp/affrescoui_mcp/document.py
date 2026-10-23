@@ -93,7 +93,7 @@ def find_node(document, node_id):
                 return found
         return None
     found = search(document.get("root"), "/root")
-    for section in ("screens", "templates"):
+    for section in ("screens", "templates", "overlays"):
         for name, node in (document.get(section) or {}).items():
             found = found or search(node, f"/{section}/{name}")
     for name, component in (document.get("components") or {}).items():
@@ -102,9 +102,10 @@ def find_node(document, node_id):
 
 
 def trees(document):
-    """Where a document's nodes start, as (JSON Pointer, node): root, screens, templates, then components' nodes."""
+    """Where a document's nodes start, as (JSON Pointer, node): root, screens, templates, overlays, then components'
+    nodes."""
     yield "/root", document.get("root")
-    for section in ("screens", "templates"):
+    for section in ("screens", "templates", "overlays"):
         for name, node in (document.get(section) or {}).items():
             yield f"/{section}/{name}", node
     for name, component in (document.get("components") or {}).items():

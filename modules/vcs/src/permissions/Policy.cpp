@@ -247,7 +247,7 @@ void collectNodes(const json& node, const std::string& at, std::map<std::string,
 std::map<std::string, const json*> nodesOf(const json& view) {
 	std::map<std::string, const json*> nodes;
 	if(const json* root = locate(view, "/root")) collectNodes(*root, "/root", nodes);
-	for(const char* section : {"/screens", "/templates"})
+	for(const char* section : {"/screens", "/templates", "/overlays"})
 		if(const json* all = locate(view, section); all && all->is_object())
 			for(const auto& [name, node] : all->items())
 				collectNodes(node, std::string(section) + "/" + escapeKey(name), nodes);

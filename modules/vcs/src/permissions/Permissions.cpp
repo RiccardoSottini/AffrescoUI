@@ -190,7 +190,7 @@ std::string area(const DocumentRules& rules, const json& view, const std::string
 	if(segments.back() == "-" || (container && container->is_array())) segments.pop_back();
 	if(segments.empty()) return "/root";
 
-	if(segments[0] == "root" || segments[0] == "templates") {
+	if(segments[0] == "root" || segments[0] == "templates" || segments[0] == "overlays") {
 		for(std::size_t n = segments.size(); n > 0; --n) {
 			const std::string at = join(segments, n);
 			if(at == "/root") break; // the root node names everything

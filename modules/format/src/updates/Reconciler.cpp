@@ -100,9 +100,28 @@ std::optional<std::vector<Item>> Reconciler::childrenOf(const CompiledNode& node
 		}
 		return items;
 	}
-	if(node.children) return engine_.builder.expand(*node.children, record.locals, path);
-	if(record.managed == 0) return std::nullopt; // nothing built here before: leave the panel's own children alone
-	return std::vector<Item>{};
+	std::optional<std::vector<Item>> items;
+	if(node.children) items = engine_.builder.expand(*node.children, record.locals, path);
+	else if(record.managed > 0) items.emplace(); // else nothing built here before: leave the panel's own children alone
+	if(record.type == "root" && path == "root") addOverlays(record, items);
+	return items;
+}
+
+// After the root's children, so above the overlays inside them; keyed, so they stay when the root loses a child
+void Reconciler::addOverlays(const Record& record, std::optional<std::vector<Item>>& items) const {
+	const json& document = engine_.versions.document();
+	const auto overlays = document.find("overlays");
+	if(overlays == document.end() || !overlays->is_object() || overlays->empty()) return;
+	if(!items) items.emplace();
+	for(const auto& [name, node] : overlays->items()) {
+		std::string at = "overlays." + name;
+		SharedScope scope = record.locals;
+		CompiledRef scoped = engine_.builder.scoped(engine_.builder.compiledOverlay(node, at), scope, at);
+		if(scoped->when && // as a child's: not built while it doesn't hold
+		   !format::truthy(scoped->when->evaluate(engine_.document.context(*scope, emptyObject()), at, "when")))
+			continue;
+		items->push_back({std::move(scoped), std::move(scope), at, json(at)});
+	}
 }
 
 Panel* Reconciler::reusable(Panel& panel, std::size_t index, const Item& item, const std::string& type) {
