@@ -150,6 +150,8 @@ public:
 	/// @brief Whether the system asks for less motion (false when headless, or where it can't be read): animations
 	/// should then end at once.
 	[[nodiscard]] bool reducedMotion() const noexcept { return reducedMotion_; }
+	/// @brief Whether caps lock was on at the latest key event (false before the first one).
+	[[nodiscard]] bool capsLock() const noexcept { return capsLock_; }
 
 	/// @brief Sets the window's native menu bar (the screen's top on macOS, the window's top on Windows).
 	/// @param menus The menus, each with its items; empty removes the bar.
@@ -446,6 +448,7 @@ private:
 	float scale_ = 1.0f;                             ///< See contentScale().
 	ColorScheme colorScheme_ = ColorScheme::Light;   ///< See colorScheme().
 	bool reducedMotion_ = false;                     ///< See reducedMotion().
+	bool capsLock_ = false;                          ///< See capsLock().
 	std::vector<MenuItem> menus_;                    ///< See menuBar().
 	bool nativeMenuBar_ = false;                     ///< See nativeMenuBar().
 	FileDialogHandler fileDialogHandler_;            ///< See setFileDialogHandler().

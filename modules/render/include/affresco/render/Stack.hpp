@@ -27,7 +27,8 @@ enum class Direction {
 /// within its minimum and maximum; children with a grow share take the room left over, and children that shrink give
 /// up an overflow. The justification spreads them: at the start, the centre or the end (in a column, at the bottom like
 /// a chat history: older children overflow at the top and get clipped), or with the room between them. A wrapping stack
-/// starts a new line when the next child doesn't fit; each line flexes and is spread on its own.
+/// starts a new line when the next child doesn't fit; each line flexes and is spread on its own. A stack can keep room
+/// inside its edges (setPadding()) and be as long as its children (setFit()), like a card that grows with its content.
 class Stack : public Panel {
 public:
 	/// @brief An empty stack with a transparent background.
@@ -71,9 +72,29 @@ public:
 	/// @param wrap true to wrap.
 	void setWrap(bool wrap);
 
+	/// @brief Sets the room between the stack's edges and the children it places: along its direction, and across for
+	/// the children it aligns (setAlignItems(), Panel::setAlignSelf()). A scrolling stack keeps it after its content.
+	/// @param padding In pixels, on every side.
+	void setPadding(float padding);
+	/// @brief The room between the stack's edges and its children, in pixels.
+	[[nodiscard]] float padding() const noexcept { return padding_; }
+	/// @brief Makes the stack as long as its children along its direction, like a CSS box of `auto` height: their
+	/// sizes (basis or their own, within their minimum and maximum), the gaps and the padding, within the stack's
+	/// minimum and maximum. Its own width (in a row) or height (in a column) is then what it fits; a wrapping stack
+	/// fits its children as one line.
+	/// @param fit true to fit; false (the default) keeps the size it is given.
+	void setFit(bool fit);
+	/// @brief Whether the stack is as long as its children.
+	[[nodiscard]] bool fit() const noexcept { return fit_; }
+
 protected:
+	/// @brief A stack that fits sizes itself to its children (setFit()).
+	void prepareLayout() override;
 	/// @brief Anchors each visible child where the flexible layout places it, and gives it the sizes it decides.
 	void arrange() override;
+	/// @brief The padding.
+	/// @return In pixels.
+	[[nodiscard]] float scrollPadding() const noexcept override { return padding_; }
 
 private:
 	float gap_ = 0.0f;                        ///< See gap().
@@ -83,6 +104,8 @@ private:
 	std::optional<CrossAlign> alignItems_;    ///< See alignItems().
 	Direction direction_ = Direction::Column; ///< See direction().
 	bool wrap_ = false;                       ///< See setWrap().
+	float padding_ = 0.0f;                    ///< See padding().
+	bool fit_ = false;                        ///< See fit().
 };
 
 /// @brief Places its visible children in columns and rows, `gap` apart, like a CSS grid: each in the cell it asks for

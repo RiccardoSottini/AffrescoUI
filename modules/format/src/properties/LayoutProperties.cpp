@@ -17,6 +17,7 @@
 
 namespace affresco::format {
 
+using expect::boolean;
 using expect::fail;
 using expect::integer;
 using expect::object;
@@ -196,8 +197,8 @@ std::optional<Length> optionalLength(const json& value, std::string_view none, c
 	return length(value, at);
 }
 
-/// @brief Applies the keys of a row, a column or a stack that its set holds; justify only when given, since the
-/// runtime's reset (and "from") set it otherwise.
+/// @brief Applies the keys of a row, a column or a stack that its set holds (padding and fit among them); justify
+/// only when given, since the runtime's reset (and "from") set it otherwise.
 /// @param panel The panel, a Stack.
 /// @param values The keys the node gives.
 /// @param reader Not used: these keys have no colours or fonts.
@@ -214,6 +215,8 @@ void applyStack(Panel& panel, const json& values, const PropertyReader& reader, 
 	stack->setRowGap(values.contains("rowGap") ? std::optional(pixels(values["rowGap"], at("rowGap"))) : std::nullopt);
 	stack->setColumnGap(values.contains("columnGap") ? std::optional(pixels(values["columnGap"], at("columnGap")))
 	                                                 : std::nullopt);
+	stack->setPadding(values.contains("padding") ? pixels(values["padding"], at("padding")) : 0.0f);
+	stack->setFit(values.contains("fit") && boolean(values["fit"], at("fit")));
 }
 
 /// @brief Applies the keys of a grid that its set holds, each to its default when the node doesn't give it.
@@ -272,7 +275,8 @@ std::shared_ptr<const PropertySet> stackProperties(std::initializer_list<Propert
 	auto set = std::make_shared<PropertySet>();
 	set->properties = applied;
 	for(PropertySpec spec : {PropertySpec{"justify", ValueKind::Text}, PropertySpec{"alignItems", ValueKind::Text},
-	                         PropertySpec{"rowGap", ValueKind::Number}, PropertySpec{"columnGap", ValueKind::Number}})
+	                         PropertySpec{"rowGap", ValueKind::Number}, PropertySpec{"columnGap", ValueKind::Number},
+	                         PropertySpec{"padding", ValueKind::Number}, PropertySpec{"fit", ValueKind::Boolean}})
 		set->properties.push_back(std::move(spec));
 	set->apply = applyStack;
 	set->everyUpdate = true; // each key set once per update, so nothing changes when the node doesn't

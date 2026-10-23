@@ -31,9 +31,10 @@ constexpr int platformModifier = 0x8; ///< "mod": Cmd on macOS, as the format's 
 constexpr int platformModifier = 0x2; ///< "mod": Ctrl elsewhere, as the format's shortcuts read it.
 #endif
 
-/// @brief The modifiers and their bits (Mods, GLFW's values). "mod" plays a screen's "mod+k" on every platform.
-constexpr std::array<std::pair<std::string_view, int>, 5> modifiers = {{
-    {"shift", 0x1}, {"ctrl", 0x2}, {"alt", 0x4}, {"cmd", 0x8}, {"mod", platformModifier},
+/// @brief The modifiers and their bits (Mods, GLFW's values). "mod" plays a screen's "mod+k" on every platform;
+/// "capslock" is the lock's state, on for that key.
+constexpr std::array<std::pair<std::string_view, int>, 6> modifiers = {{
+    {"shift", 0x1}, {"ctrl", 0x2}, {"alt", 0x4}, {"cmd", 0x8}, {"mod", platformModifier}, {"capslock", 0x10},
 }};
 
 /// @brief The properties `expect` reads from a node.
@@ -67,7 +68,7 @@ std::optional<Key> keyOf(std::string_view name) {
 }
 
 /// @brief Reads a modifier.
-/// @param name "shift", "ctrl", "alt", "cmd" or "mod".
+/// @param name "shift", "ctrl", "alt", "cmd", "mod" or "capslock".
 /// @return Its bit in Mods, or std::nullopt.
 std::optional<int> modifierBit(std::string_view name) {
 	for(const auto& [modifier, bit] : modifiers)

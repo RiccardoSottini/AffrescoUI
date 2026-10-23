@@ -128,6 +128,15 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is "
 	 "spread on its own, and sits at the start of its line unless aligned.",
 	 "stack"},
+    {"padding", "",
+	 "Pixels kept free inside its edges: the children start and end that far in, and those aligned across keep it "
+	 "too; a scrolling stack scrolls that far past its last child.",
+	 "stack"},
+    {"fit", "",
+	 "`true`: as long as its children along it (a column as tall as them, a row as wide), with the gaps and the "
+	 "padding, within its `minHeight`/`maxHeight` (or width), like a CSS box of `auto` height; it follows them as "
+	 "they change. A wrapping stack fits them on one line. Default `false`: its own size.",
+	 "stack"},
     {"columns",
 	 R"json({"description": "grid: a number of equal columns, or a list of tracks, e.g. [200, \"1fr\", \"minmax(100, 2fr)\"]; table: the columns: an id (also the title), or { id, title, width }",
 		"anyOf": [{"type": "integer", "minimum": 1, "maximum": 1000}, {"type": "array", "minItems": 1,
@@ -174,8 +183,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "Instead of `file`: an image the host names (`Screen::setImage(\"chart\", …)`), e.g. a picture it made; the node "
 	 "shows each new one the host sets.",
 	 "image"},
-    {"fit", R"json({"anyOf": [{"enum": ["contain", "cover", "fill"]}, {"$ref": "#/$defs/v2/dynamic"}],
-		"description": "image and path: contain (default), cover or fill, like CSS object-fit"})json",
+    {"fit", R"json({"anyOf": [{"enum": ["contain", "cover", "fill"]}, {"type": "boolean"}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "image and path: contain (default), cover or fill, like CSS object-fit; row, column, stack: true to be as long as its children"})json",
 	 "`\"contain\"` (the default: all of it, as large as fits, centred), `\"cover\"` (the whole node, the image's "
 	 "edges cut off) or `\"fill\"` (stretched), like CSS `object-fit`.",
 	 "image"},

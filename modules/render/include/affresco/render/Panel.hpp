@@ -530,6 +530,15 @@ protected:
 	/// them (with setAnchor() and arrangeSize()). Property changes made here don't trigger another layout.
 	virtual void arrange() {}
 
+	/// @brief The room a scrollable panel keeps after its content (a stack's padding): it scrolls that much further.
+	/// @return In pixels; 0 by default.
+	[[nodiscard]] virtual float scrollPadding() const noexcept { return 0.0f; }
+
+	/// @brief Tells the panel whether its measured size depends on its children's (a stack that fits them): when a
+	/// child changes, the panel is measured again too, and its parent arranges it again.
+	/// @param sized true if so.
+	void setSizedByChildren(bool sized) noexcept { sizedByChildren_ = sized; }
+
 	/// @brief Draws this panel; the children are drawn after it, on top. The default draws the shadow, fills bounds()
 	/// with color() (rounding the corners, if any), then draws the border.
 	/// @param painter Clips to bounds().
@@ -758,6 +767,7 @@ private:
 	LayoutInputs laidOut_;                 ///< What the last pass gave it, once laid out (see hasSameInputs()).
 	std::optional<MeasuredSize> measured_; ///< See measuredSize(); nullopt once something changed.
 	bool layoutDirty_ = true;              ///< Its own properties changed since it was last laid out.
+	bool sizedByChildren_ = false;         ///< See setSizedByChildren().
 	bool layoutBelow_ = false;             ///< A descendant's layoutDirty_ is set.
 	bool anchorsBelow_ = false;            ///< It or a descendant is anchored to another panel: never skipped.
 	bool overlaysBelow_ = false;           ///< A descendant is an overlay, for Window::layoutOverlays().

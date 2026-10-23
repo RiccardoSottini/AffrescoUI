@@ -158,7 +158,8 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 		                         {"scale", window->contentScale()},
 		                         {"colorScheme", window->colorScheme() == ColorScheme::Dark ? "dark" : "light"},
 		                         {"nativeMenuBar", window->nativeMenuBar()},
-		                         {"reducedMotion", window->reducedMotion()}}
+		                         {"reducedMotion", window->reducedMotion()},
+		                         {"capsLock", window->capsLock()}}
 		                  : json::object();
 		g.revision = toJson(versions.head());
 

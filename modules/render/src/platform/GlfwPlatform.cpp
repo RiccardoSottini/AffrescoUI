@@ -75,6 +75,7 @@ public:
 			throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
 		glfwMakeContextCurrent(handle_);
 		glfwSwapInterval(1); // vsync: never render faster than the display
+		glfwSetInputMode(handle_, GLFW_LOCK_KEY_MODS, GLFW_TRUE); // key events tell whether caps lock is on
 #ifdef __EMSCRIPTEN__
 		// The canvas follows its container on the page (web/), at the page's devicePixelRatio (GLFW's port scales the
 		// framebuffer by default); a page without one keeps the window's size

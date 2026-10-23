@@ -128,10 +128,36 @@ void Stack::setDirection(Direction direction) { setProperty(direction_, directio
 
 void Stack::setWrap(bool wrap) { setProperty(wrap_, wrap); }
 
+void Stack::setPadding(float padding) { setProperty(padding_, std::max(padding, 0.0f)); }
+
+void Stack::setFit(bool fit) {
+	setSizedByChildren(fit);
+	setProperty(fit_, fit);
+}
+
+// The children measure as in arrange(), against the room inside the padding of the size the last pass gave
+void Stack::prepareLayout() {
+	if(!fit_) return;
+	const bool row = direction_ == Direction::Row;
+	const Vec2 outer = resolvedSize();
+	const Vec2 size{std::max(outer.x - 2.0f * padding_, 0.0f), std::max(outer.y - 2.0f * padding_, 0.0f)};
+	const std::vector<Panel*> children = placed(*this);
+	float length = 2.0f * padding_;
+	for(Panel* child : children) {
+		const detail::FlexItem item = flexItem(*child, row, size, alignItems_);
+		length += std::max(std::min(item.base, item.maxMain), item.minMain); // the minimum wins, as in CSS
+	}
+	if(children.size() > 1)
+		length += static_cast<float>(children.size() - 1) * (row ? columnGap_ : rowGap_).value_or(gap_);
+	if(row) setWidth(px(length));
+	else setHeight(px(length));
+}
+
 void Stack::arrange() {
 	const bool row = direction_ == Direction::Row;
 	const auto [start, end, crossStart, crossEnd] = flowEdges(row);
-	const Vec2 size = resolvedSize();
+	const Vec2 outer = resolvedSize();
+	const Vec2 size{std::max(outer.x - 2.0f * padding_, 0.0f), std::max(outer.y - 2.0f * padding_, 0.0f)};
 	const std::vector<Panel*> children = placed(*this);
 
 	std::vector<detail::FlexItem> items;
@@ -155,10 +181,10 @@ void Stack::arrange() {
 		Panel& child = *children[i];
 		const detail::FlexPlacement& placement = placements[i];
 		child.clearAnchor(placement.fromEnd ? start : end);
-		child.setAnchor(placement.fromEnd ? end : start, px(placement.main));
+		child.setAnchor(placement.fromEnd ? end : start, px(padding_ + placement.main));
 		if(placement.crossOffset) {
 			child.clearAnchor(crossEnd);
-			child.setAnchor(crossStart, px(*placement.crossOffset));
+			child.setAnchor(crossStart, px(padding_ + *placement.crossOffset));
 		}
 		if(row) arrangeSize(child, placement.mainSize, placement.crossSize);
 		else arrangeSize(child, placement.crossSize, placement.mainSize);

@@ -92,6 +92,11 @@ void Panel::invalidate() noexcept {
 	measured_.reset();
 	markLayoutDirty();
 	markPaintDirty();
+	// Parents sized by their children measure again, and their own parents arrange them again
+	for(Panel* ancestor = parent_; ancestor && ancestor->sizedByChildren_; ancestor = ancestor->parent_) {
+		ancestor->measured_.reset();
+		ancestor->markLayoutDirty();
+	}
 	if(window_) window_->requestLayout();
 }
 

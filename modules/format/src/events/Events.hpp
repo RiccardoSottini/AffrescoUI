@@ -257,6 +257,7 @@ private:
 		bool cancelled = false; ///< A target was destroyed meanwhile.
 	};
 	FocusLater focusLater_; ///< The focus change scheduled by focusLater().
+	bool capsLock_ = false; ///< Whether caps lock was on at the latest key event: bindings update when it changes.
 	/// @brief The connections connect() made to the window's signals (0: none).
 	struct WindowHooks {
 		Connection resized = 0; ///< onResize.

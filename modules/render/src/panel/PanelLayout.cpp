@@ -254,10 +254,14 @@ void Panel::layoutChildren() {
 	pass();
 	if(!isScrollable()) return;
 
-	// The content's extent, as if unscrolled; an offset the content no longer allows is pulled back
+	// The content's extent, as if unscrolled, with the room kept after it; an offset the content no longer allows is
+	// pulled back
 	const ContentExtent extent = contentExtent(children_, frame_, scroll_);
-	contentMin_ = extent.min;
-	contentMax_ = extent.max;
+	const float padding = scrollPadding();
+	const auto before = [padding](float edge) { return edge < 0.0f ? edge - padding : 0.0f; };
+	const auto after = [padding](float edge) { return edge > 0.0f ? edge + padding : 0.0f; };
+	contentMin_ = {before(extent.min.x), before(extent.min.y)};
+	contentMax_ = {after(extent.max.x), after(extent.max.y)};
 	if(scrollBy({0.0f, 0.0f})) pass();
 }
 

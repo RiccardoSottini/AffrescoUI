@@ -60,6 +60,7 @@ template <typename Event> Event inSpaceOf(const Panel& panel, Event event) noexc
 void Window::routeKey(const KeyEvent& event) {
 	++routing_;
 	keyInput_ = true;
+	capsLock_ = event.mods.capsLock();
 	if(focused_ && focused_->isShown()) focused_->keyEvent(event);
 	onKey(event);
 
