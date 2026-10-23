@@ -89,8 +89,8 @@ std::vector<Workload> watchWorkloads(Context& /*context*/) {
 		                     if(model->size() != std::size_t{folderCount} * (filesPerFolder + 1) || !model->watching())
 			                     throw std::runtime_error("watch: the listing is incomplete");
 	                     }});
-	const auto model =
-	    services::DirectoryModel::open(files->executor, files->root, {.debounce = std::chrono::milliseconds(20)});
+	const auto model = services::DirectoryModel::open(files->executor, files->root,
+	                                                  {.ignore = {}, .debounce = std::chrono::milliseconds(20)});
 	files->executor.pumpUntil([model] { return model->ready(); });
 	const auto changed = std::make_shared<bool>(false);
 	(void)model->onChange.connect(
