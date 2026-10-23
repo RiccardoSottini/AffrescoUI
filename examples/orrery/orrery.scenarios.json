@@ -2,7 +2,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"screen": "orrery.screen.json",
-	"note": "Orrery's own checks. They run without the 3D view (the affrescoui tool has no scene surface), the rest of the screen is the same.",
+	"note": "Orrery's own checks.",
 	"scenarios": [
 		{
 			"name": "starts-on-day-zero",
@@ -27,7 +27,7 @@
 				},
 				{
 					"expect": {
-						"node": "#viewport-missing",
+						"node": "#view-earth",
 						"exists": true
 					}
 				}
@@ -197,7 +197,7 @@
 					}
 				},
 				{
-					"scroll": "#viewport-missing",
+					"scroll": "#view-pane",
 					"dy": -3
 				},
 				{

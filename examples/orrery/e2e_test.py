@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """End-to-end agent loop for Orrery, the planetarium example.
 
-Starts Orrery's host (affrescoui_orrery, with its 3D view) on a private socket folder, on a copy of the screen without
+Starts Orrery, which is JSON only, in affrescoui_host on a private socket folder, on a copy of the screen without
 its bodies strip, and drives it the way an agent would through the MCP server: it reads the screen, proves that
 Sinopia's slide sorter fits Orrery through Orrery's adapter, and installs it, which is a revision the agent may only
 propose. The agent gets a picture of the proposal and plays the strip's scenarios on it, the Studio approves it, and
@@ -118,7 +118,7 @@ def starts_with_odd_bodies(build, work):
         json.dump(document, f, indent="\t")
     shot = os.path.join(work, "odd.ppm")
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=os.path.join(work, "s"), AFFRESCOUI_SCREENSHOT=shot)
-    run = subprocess.run([os.path.join(build, "affrescoui_orrery"), screen, "--socket", os.path.join(work, "s"),
+    run = subprocess.run([os.path.join(build, "affrescoui_host"), screen, "--socket", os.path.join(work, "s"),
                           "--data", os.path.join(work, "data")], env=env, capture_output=True, text=True, timeout=60)
     if run.returncode != 0 or not os.path.exists(shot):
         sys.exit("orrery didn't start with odd bodies: " + run.stderr)
@@ -134,7 +134,7 @@ def main():
     screen = copy_without_strip(work)
     strip = os.path.join(os.path.dirname(screen), os.path.basename(SCENARIOS[1]))
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets)
-    host = subprocess.Popen([os.path.join(build, "affrescoui_orrery"), screen, "--socket", sockets, "--data", data],
+    host = subprocess.Popen([os.path.join(build, "affrescoui_host"), screen, "--socket", sockets, "--data", data],
                             env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         studio, studio_stream = connect(os.path.join(sockets, "studio.sock"))
@@ -194,7 +194,7 @@ def main():
         host.terminate()
         host.wait(timeout=10)
 
-    # 7. Orrery's own scenarios, headless, on the screen as shipped (without the 3D view, which only the host has)
+    # 7. Orrery's own scenarios, headless, on the screen as shipped
     shots = os.path.join(work, "shots")
     run = subprocess.run([os.path.join(build, "affrescoui"), "test", *SCENARIOS, "--out", shots],
                          capture_output=True, text=True)

@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Orrery, a small planetarium. Everything is in this file except the 3D view's renderer and the bodies' thumbnails, which the host (main.cpp) registers: the scene3d module's 'scene' surface and an image per body. Positions are computed from state.time (days) with a cosine table read by curve(), since expressions have no sin or cos. The bodies strip at the bottom is Sinopia's slide sorter, installed through the bodies.dock point and orrery-sorter.adapter.json.",
+	"note": "Orrery, a small planetarium, all in this file: the 3D view is the bodies projected with sin and cos in computed values and drawn as discs and paths, and each body's thumbnail is a node drawn into the image body:<id> (snapshot). The bodies strip at the bottom is Sinopia's slide sorter, installed through the bodies.dock point and orrery-sorter.adapter.json.",
 	"window": {
 		"title": "Orrery",
 		"width": 1280,
@@ -139,7 +139,6 @@
 		"playing": false,
 		"speed": 1,
 		"selected": "earth",
-		"live3d": false,
 		"camera": {
 			"target": [0, 0, 0],
 			"yaw": 0.4,
@@ -729,23 +728,6 @@
 				"color": "#fff4d6"
 			}
 		],
-		"cos": {
-			"points": [
-				[0.0, 1.0],
-				[0.0833, 0.933],
-				[0.1667, 0.75],
-				[0.25, 0.5],
-				[0.3333, 0.25],
-				[0.4167, 0.067],
-				[0.5, 0.0],
-				[0.5833, 0.067],
-				[0.6667, 0.25],
-				[0.75, 0.5],
-				[0.8333, 0.75],
-				[0.9167, 0.933],
-				[1.0, 1.0]
-			]
-		},
 		"chart": {
 			"camera": {
 				"x": -215,
@@ -774,9 +756,8 @@
 	"computed": {
 		"ids": "{{map(state.bodies, it.id)}}",
 		"local": "{{map(state.bodies, merge(it, {f: it.parent == '' ? 0 : (it.phase + state.time / it.period) % 1, pi: indexOf(computed.ids, it.parent)}))}}",
-		"rel": "{{map(computed.local, merge(it, {lx: it.radius * (2 * curve(state.cos, it.f) - 1), lz: -it.radius * (2 * curve(state.cos, (it.f + 0.75) % 1) - 1)}))}}",
+		"rel": "{{map(computed.local, merge(it, {lx: it.radius * cos(2 * pi() * it.f), lz: -it.radius * sin(2 * pi() * it.f)}))}}",
 		"positions": "{{map(computed.rel, merge(it, {x: it.lx + (it.pi >= 0 ? computed.rel[it.pi].lx : 0), z: it.lz + (it.pi >= 0 ? computed.rel[it.pi].lz : 0), cx: it.pi >= 0 ? computed.rel[it.pi].lx : 0, cz: it.pi >= 0 ? computed.rel[it.pi].lz : 0}))}}",
-		"scene": "{{ {nodes: concat([{id: 'sunlight', name: 'Sunlight', light: {type: 'point', intensity: 60, color: [1, 0.95, 0.85]}}, {id: 'fill', name: 'Fill', rotation: [-0.38, 0, 0, 0.92], light: {type: 'directional', intensity: 0.25}}], map(computed.positions, {id: it.id, name: it.name, mesh: 'sphere', material: 'm-' + it.id, translation: [it.x, 0, it.z], scale: [it.size, it.size, it.size]}), map(filter(computed.positions, it.parent != ''), {id: 'orbit-' + it.id, name: it.name + ' orbit', mesh: 'orbit', material: 'm-orbit', translation: [it.cx, 0, it.cz], scale: [it.radius, 1, it.radius]})), materials: concat([{id: 'm-orbit', name: 'Orbit', baseColor: [0.05, 0.06, 0.09, 1], roughness: 1, emissive: [0.05, 0.06, 0.1]}], map(state.bodies, {id: 'm-' + it.id, name: it.name, baseColor: it.color, roughness: 0.85, metallic: 0, emissive: it.parent == '' ? [3, 2.2, 0.8] : [0, 0, 0]}))} }}",
 		"chartItems": "{{concat(state.stars, map(filter(computed.positions, it.parent != ''), {id: 'ring-' + it.id, x: it.cx * 22 - it.radius * 22, y: it.cz * 22 - it.radius * 22, width: it.radius * 44, height: it.radius * 44, radius: it.radius * 22, color: 'transparent', borderColor: '#2f3a55', borderWidth: 1}), map(computed.positions, {id: 'body-' + it.id, x: it.x * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), y: it.z * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), width: it.parent == '' ? 18 : 8 + it.size * 20, height: it.parent == '' ? 18 : 8 + it.size * 20, radius: it.parent == '' ? 9 : 4 + it.size * 10, color: it.hex, borderColor: it.id == state.selected ? '#fbbf24' : 'transparent', borderWidth: 2}), map(filter(computed.positions, it.parent == 'sun'), {id: 'label-' + it.id, x: it.x * 22 + 9, y: it.z * 22 - 7, width: 70, height: 14, color: 'transparent', borderWidth: 0, text: it.name, textSize: 10, textColor: '#aab2c5'}), state.notes)}}",
 		"catalogue": "{{map(state.bodies, {id: it.id, name: it.name, parent: it.parent, thumbnail: 'body:' + (it.look ?? it.id)})}}",
 		"graphNodes": "{{map(state.bodies, {id: it.id, title: it.name, x: it.gx ?? 400, y: it.gy ?? 20 + index * 40, width: 120, inputs: it.parent == '' ? [] : [{id: 'orbits', label: 'orbits', kind: 'orbit', links: 1}], outputs: [{id: 'satellites', label: 'satellites', kind: 'orbit'}]})}}",
@@ -784,7 +765,11 @@
 		"tracks": "{{[{id: 'eclipses', label: 'Eclipses', locked: true, clips: map(filter(state.events, it.kind == 'eclipse'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#7c3aed'})}, {id: 'conjunctions', label: 'Conjunctions', locked: true, clips: map(filter(state.events, it.kind == 'conjunction'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#0e7490'})}, {id: 'oppositions', label: 'Oppositions', locked: true, clips: map(filter(state.events, it.kind == 'opposition'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#b45309'})}]}}",
 		"next": "{{find(state.events, it.time > state.time + 0.5)}}",
 		"selectedBody": "{{find(state.bodies, it.id == state.selected)}}",
-		"selectedPosition": "{{find(computed.positions, it.id == state.selected)}}"
+		"selectedPosition": "{{find(computed.positions, it.id == state.selected)}}",
+		"view": "{{ {w: max(window.width - 461, 200), h: max(window.height - 312, 160), f: 1.1 * min(max(window.width - 461, 200), max(window.height - 312, 160)), distance: state.camera.distance, cy: cos(state.camera.yaw), sy: sin(state.camera.yaw), cp: cos(state.camera.pitch), sp: sin(state.camera.pitch)} }}",
+		"turned": "{{map(computed.positions, merge(it, {x1: it.x * computed.view.cy - it.z * computed.view.sy, z1: it.x * computed.view.sy + it.z * computed.view.cy}))}}",
+		"projected": "{{sort(map(computed.turned, merge(it, {depth: computed.view.distance - it.z1 * computed.view.cp, px: computed.view.w / 2 + it.x1 * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), py: computed.view.h / 2 + it.z1 * computed.view.sp * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), r: max(3, it.size * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp))})), it.depth, 'desc')}}",
+		"orbitPaths": "{{map(filter(computed.positions, it.parent != ''), {id: it.id, cx: it.cx, cz: it.cz, radius: it.radius})}}"
 	},
 	"styles": {
 		"button": {
@@ -1005,12 +990,6 @@
 			}
 		]
 	},
-	"onLoad": [
-		{
-			"call": "orrery.scene",
-			"into": "state.live3d"
-		}
-	],
 	"keys": {
 		"mod+p": "togglePlay",
 		"mod+n": "nextEvent",
@@ -1121,10 +1100,10 @@
 						"color": "@border",
 						"children": [
 							{
-								"type": "stack",
+								"type": "panel",
 								"id": "view-pane",
 								"grow": 1,
-								"height": "100%",
+								"alignSelf": "stretch",
 								"color": "@sky",
 								"onPress": "viewPress",
 								"onDrag": "viewDrag",
@@ -1132,38 +1111,139 @@
 								"onScroll": "viewScroll",
 								"children": [
 									{
-										"type": "surface",
-										"id": "viewport",
-										"surface": "scene",
-										"when": "{{state.live3d}}",
-										"width": "100%",
-										"height": "100%",
-										"continuous": false,
-										"role": "img",
-										"label": "3D view of the orrery",
-										"params": {
-											"scene": "{{computed.scene}}",
-											"camera": "{{state.camera}}",
-											"selection": "{{[state.selected]}}",
-											"grid": false,
-											"axes": false,
-											"background": "#07090e",
-											"outline": "#fbbf24",
-											"exposure": 1.2,
-											"gizmo": {
-												"visible": false
-											}
-										}
+										"type": "path",
+										"id": "view-stars",
+										"fill": true,
+										"d": "{{'M ' + join(map(range(180), fixed(abs(sin(index * 12.9898) * 43758.5453) % 1 * computed.view.w, 1) + ' ' + fixed(abs(sin(index * 78.233) * 12543.917) % 1 * computed.view.h, 1) + ' l 0 0.1'), ' M ')}}",
+										"stroke": "#c8cfe0",
+										"strokeWidth": 1.4,
+										"strokeCap": "round"
 									},
 									{
-										"type": "label",
-										"id": "viewport-missing",
-										"when": "{{!state.live3d}}",
-										"width": "100%",
-										"height": "100%",
-										"align": "center",
-										"textColor": "@muted",
-										"text": "The 3D view is drawn by affrescoui_orrery (the scene3d surface)"
+										"type": "panel",
+										"id": "view-orbits",
+										"color": "#00000000",
+										"fill": true,
+										"children": [
+											{
+												"repeat": {
+													"for": "o",
+													"in": "{{computed.orbitPaths}}",
+													"key": "id"
+												},
+												"type": "path",
+												"id": "{{'orbit-' + o.id}}",
+												"fill": true,
+												"d": "{{'M ' + join(map(range(65), fixed(computed.view.w / 2 + ((o.cx + o.radius * cos(index * pi() / 32)) * computed.view.cy - (o.cz + o.radius * sin(index * pi() / 32)) * computed.view.sy) * computed.view.f / (computed.view.distance - ((o.cx + o.radius * cos(index * pi() / 32)) * computed.view.sy + (o.cz + o.radius * sin(index * pi() / 32)) * computed.view.cy) * computed.view.cp), 1) + ' ' + fixed(computed.view.h / 2 + ((o.cx + o.radius * cos(index * pi() / 32)) * computed.view.sy + (o.cz + o.radius * sin(index * pi() / 32)) * computed.view.cy) * computed.view.sp * computed.view.f / (computed.view.distance - ((o.cx + o.radius * cos(index * pi() / 32)) * computed.view.sy + (o.cz + o.radius * sin(index * pi() / 32)) * computed.view.cy) * computed.view.cp), 1)), ' L ')}}",
+												"stroke": "{{o.id == state.selected ? '#fbbf2499' : '#5b6b8a66'}}",
+												"strokeWidth": 1
+											}
+										]
+									},
+									{
+										"type": "panel",
+										"id": "view-bodies",
+										"color": "#00000000",
+										"fill": true,
+										"children": [
+											{
+												"repeat": {
+													"for": "b",
+													"in": "{{computed.projected}}",
+													"key": "id"
+												},
+												"type": "panel",
+												"id": "{{'view-' + b.id}}",
+												"color": "#00000000",
+												"radius": 999,
+												"shadow": {
+													"blur": "{{2 * b.r}}",
+													"color": "{{b.parent == '' ? '#ffc94d99' : '#00000000'}}"
+												},
+												"x": "{{b.px - b.r}}",
+												"y": "{{b.py - b.r}}",
+												"width": "{{2 * b.r}}",
+												"height": "{{2 * b.r}}",
+												"role": "button",
+												"label": "{{b.name}}",
+												"cursor": "hand",
+												"onPress": [
+													{
+														"set": "state.selected",
+														"to": "{{b.id}}"
+													}
+												],
+												"children": [
+													{
+														"type": "panel",
+														"id": "{{'view-disc-' + b.id}}",
+														"fill": true,
+														"radius": 999,
+														"color": "{{b.hex}}"
+													},
+													{
+														"type": "panel",
+														"id": "{{'view-ring-' + b.id}}",
+														"visible": "{{b.id == state.selected}}",
+														"anchors": {
+															"left": -4,
+															"right": -4,
+															"top": -4,
+															"bottom": -4
+														},
+														"radius": 999,
+														"color": "transparent",
+														"borderWidth": 1.5,
+														"borderColor": "@accent"
+													}
+												]
+											},
+											{
+												"repeat": {
+													"for": "b",
+													"in": "{{computed.projected}}",
+													"key": "id"
+												},
+												"type": "label",
+												"id": "{{'view-label-' + b.id}}",
+												"x": "{{b.px + b.r + 6}}",
+												"y": "{{b.py - 9}}",
+												"height": 18,
+												"fitText": true,
+												"font": "small",
+												"text": "{{b.name}}",
+												"textColor": "{{b.id == state.selected ? '@accent' : '#9aa4b8'}}"
+											}
+										]
+									},
+									{
+										"repeat": {
+											"for": "b",
+											"in": "{{filter(state.bodies, (it.look ?? '') == '')}}",
+											"key": "id"
+										},
+										"type": "panel",
+										"id": "{{'thumb-' + b.id}}",
+										"snapshot": "{{ {image: 'body:' + b.id, scale: 1} }}",
+										"width": 96,
+										"height": 64,
+										"color": "#07090e",
+										"children": [
+											{
+												"type": "panel",
+												"id": "{{'thumb-disc-' + b.id}}",
+												"x": 25,
+												"y": 9,
+												"width": 46,
+												"height": 46,
+												"radius": 999,
+												"color": "{{b.hex}}",
+												"shadow": {
+													"blur": 14,
+													"color": "{{b.parent == '' ? '#ffc94d99' : '#00000000'}}"
+												}
+											}
+										]
 									},
 									{
 										"type": "label",
@@ -1640,7 +1720,7 @@
 				"base": "",
 				"adapter": {
 					"digest": "sha512:XRKpnO7AGnykUEjoBeWEhQ30LtfokmkdzNJ4Y5QavVXrt9OsZutr25eAovs7UCN-7_BuQEnKXVMlTD1IVr4vpw",
-					"note": "Sinopia's slide sorter in Orrery: every body but the Sun is a page, drawn from the thumbnail the host makes for it, and the sorter's actions are the body actions Orrery's bodies dock receives."
+					"note": "Sinopia's slide sorter in Orrery: every body but the Sun is a page, drawn from the thumbnail the screen draws for it, and the sorter's actions are the body actions Orrery's bodies dock receives."
 				},
 				"bindings": [
 					{

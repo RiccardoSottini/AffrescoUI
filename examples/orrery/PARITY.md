@@ -1,0 +1,58 @@
+# Orrery: parity
+
+Orrery's 3D view is modelled on Celestia, and its sky chart on Stellarium. This file lists what those kinds of app
+do, and how far Orrery has come, one round at a time. Everything is in `orrery.screen.json`: no code of its own.
+
+Status: **done**, **part** (there, but less than the model) or **missing**. The data is invented: a toy solar
+system of six bodies on circular orbits in one plane.
+
+## The 3D view (modelled on Celestia)
+
+| # | Feature | Status | How |
+|---|---|---|---|
+| C1 | A 3D view of the bodies and their orbits, drawn in perspective | done | computed `projected`, discs and `path`s, farthest first |
+| C2 | A star field behind | done | a `path` of fixed points |
+| C3 | Turn the camera by dragging, zoom with the wheel | done | `onDrag`, `onScroll` on the view |
+| C4 | Select a body by clicking it, the selection ringed | done | `onPress` on each disc |
+| C5 | A glow round the Sun | done | `shadow` on the Sun's disc |
+| C6 | Labels by the bodies | done | a repeated label |
+| C7 | Selected body's info, top left: name, distance, radius, apparent size | missing | |
+| C8 | Time, top right: date, rate ("1000x faster"), paused | missing | |
+| C9 | Time rate up and down (L, K), reverse (J), pause (Space), now (!) | missing | |
+| C10 | Go to the selected body (G), centre it (C), follow it | missing | |
+| C11 | Orbits, labels and markers toggled from the keyboard and a menu | missing | |
+| C12 | Solar system browser: the bodies as a tree | missing | |
+| C13 | Eclipse finder | missing | |
+| C14 | Bookmarks (saved camera places) | missing | |
+| C15 | Field of view and limiting magnitude shown, and changed | missing | |
+| C16 | Phase and lit side of each body | missing | |
+| C17 | Render options dialog | missing | |
+
+## The sky chart (modelled on Stellarium)
+
+| # | Feature | Status | How |
+|---|---|---|---|
+| S1 | A sky chart with stars, orbits and bodies | part | a `canvas` seen from above, not from the ground |
+| S2 | Horizon, ground and cardinal points | missing | |
+| S3 | Constellation lines and names | missing | |
+| S4 | Toggle bar at the bottom (lines, ground, atmosphere, grid) | missing | |
+| S5 | Object info on selection, top left | missing | |
+| S6 | Time controls: faster, slower, now, real time | part | play, next event, day 0 |
+| S7 | Annotations on the chart (notes, marks) | done | the canvas's items |
+
+## Orrery's own
+
+| # | Feature | Status | How |
+|---|---|---|---|
+| A1 | Orbit graph: what orbits what, relinked by dragging | done | `graph` |
+| A2 | Events timeline: eclipses, conjunctions, oppositions | done | `timeline` |
+| A3 | Bodies strip (Sinopia's slide sorter, installed from that app) | done | feature, adapter |
+| A4 | Thumbnails drawn by the screen | done | `snapshot` |
+| A5 | Themes, locales (right to left), accessibility | part | dark theme only so far |
+
+## Rounds
+
+| Round | What | Parity (done / part / missing) | Tokens (screen file, o200k) |
+|---|---|---|---|
+| 0 | Before: the 3D view and the thumbnails came from a C++ host (`main.cpp`), counted as part | 4 / 10 / 15 | 15,178 + 2,654 for `main.cpp` |
+| 1 | JSON only: the 3D view and the thumbnails are in the screen, the host is the standard one | 11 / 3 / 15 | 16,006 |
