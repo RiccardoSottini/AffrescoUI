@@ -449,8 +449,21 @@ std::string CanvasView::itemAt(Vec2 position) const {
 	const auto children = this->children();
 	for(const auto& child : std::views::reverse(children)) {
 		const Panel& panel = *child;
-		const Rect bounds = scaleChildren_ ? onScreen(worldBoundsOf(panel)) : panel.frame();
-		if(!bounds.contains(position) || panel.resolvedSize().x <= 0.0f) continue;
+		Rect bounds = scaleChildren_ ? onScreen(worldBoundsOf(panel)) : panel.frame();
+		const Vec2 size = panel.resolvedSize();
+		if(size.x <= 0.0f && size.y <= 0.0f) continue;
+		// A line's box may be flat: it is hit a few pixels across
+		if(bounds.right - bounds.left < 2.0f * canvas::thinPixels) {
+			const float middle = (bounds.left + bounds.right) / 2.0f;
+			bounds.left = middle - canvas::thinPixels;
+			bounds.right = middle + canvas::thinPixels;
+		}
+		if(bounds.bottom - bounds.top < 2.0f * canvas::thinPixels) {
+			const float middle = (bounds.top + bounds.bottom) / 2.0f;
+			bounds.top = middle - canvas::thinPixels;
+			bounds.bottom = middle + canvas::thinPixels;
+		}
+		if(!bounds.contains(position)) continue;
 		const auto& standIns = internals_->standIns;
 		const auto standing = std::ranges::find(standIns, &panel, &std::pair<const Panel*, const Panel*>::first);
 		const std::string& id = standing != standIns.end() ? standing->second->id() : panel.id();

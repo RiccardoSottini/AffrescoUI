@@ -128,6 +128,31 @@ void Stack::setDirection(Direction direction) { setProperty(direction_, directio
 
 void Stack::setWrap(bool wrap) { setProperty(wrap_, wrap); }
 
+void Stack::setFitContent(bool width, bool height) {
+	setProperty(fitWidth_, width);
+	setProperty(fitHeight_, height);
+}
+
+Vec2 Stack::fittedSize(Vec2 size, Vec2 reference) {
+	const bool row = direction_ == Direction::Row;
+	const std::vector<Panel*> children = placed(*this);
+	float length = 0.0f, thickness = 0.0f;
+	for(Panel* child : children) {
+		const Vec2 measured = child->measuredSize(size);
+		const std::optional<Length> basis = child->basis();
+		length += basis ? basis->resolve(along(size, row)) : along(measured, row);
+		thickness = std::max(thickness, across(measured, row));
+	}
+	if(children.size() > 1)
+		length += static_cast<float>(children.size() - 1) * (row ? columnGap_.value_or(gap_) : rowGap_.value_or(gap_));
+	const Vec2 content = row ? Vec2{length, thickness} : Vec2{thickness, length};
+	if(fitWidth_)
+		size.x = std::max(std::min(content.x, maximumOf(maxWidth(), reference.x)), minWidth().resolve(reference.x));
+	if(fitHeight_)
+		size.y = std::max(std::min(content.y, maximumOf(maxHeight(), reference.y)), minHeight().resolve(reference.y));
+	return size;
+}
+
 void Stack::arrange() {
 	const bool row = direction_ == Direction::Row;
 	const auto [start, end, crossStart, crossEnd] = flowEdges(row);

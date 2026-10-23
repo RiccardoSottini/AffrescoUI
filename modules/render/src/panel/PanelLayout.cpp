@@ -78,6 +78,7 @@ Vec2 Panel::measuredSize(Vec2 reference) {
 	prepareLayout();
 	Vec2 size{bounded(width_, minWidth_, maxWidth_, reference.x),
 	          bounded(height_, minHeight_, maxHeight_, reference.y)};
+	if(fitsChildren()) size = fittedSize(size, reference);
 	if(aspectRatio_ > 0.0f) size = withAspectRatio(size, width_.value != 0.0f, height_.value != 0.0f, reference);
 	measured_ = MeasuredSize{reference, size, generation};
 	return size;
@@ -196,6 +197,12 @@ void Panel::layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool p
 void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) {
 	size_ = {arrangedWidth_ ? *arrangedWidth_ : bounded(width_, minWidth_, maxWidth_, parentSize.x),
 	         arrangedHeight_ ? *arrangedHeight_ : bounded(height_, minHeight_, maxHeight_, parentSize.y)};
+	// Fitted to the children on the axes no container arranged (a stack's fitContent)
+	if(fitsChildren() && (!arrangedWidth_ || !arrangedHeight_)) {
+		const Vec2 fitted = fittedSize(size_, parentSize);
+		if(!arrangedWidth_) size_.x = fitted.x;
+		if(!arrangedHeight_) size_.y = fitted.y;
+	}
 
 	const auto top = anchoredEdge(Edge::Top, origin, parentSize);
 	const auto bottom = anchoredEdge(Edge::Bottom, origin, parentSize);
@@ -249,6 +256,7 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 	rect.right = std::min(rect.right, within.right);
 
 	bounds_ = rect;
+	childClip_ = within;
 	shown_ = parentShown && visible_ && rect.bottom >= rect.top && rect.right >= rect.left;
 }
 
@@ -260,7 +268,7 @@ void Panel::layoutChildren() {
 		                  frame_.bottom - scroll_.y};
 		bool below = false, anchors = targetEdges_ != 0, overlays = false;
 		for(auto& child : children_) {
-			if(!child->overlay_) child->layout(origin, bounds_, size_, shown_); // overlays: after the whole tree
+			if(!child->overlay_) child->layout(origin, childClip(), size_, shown_); // overlays: after the whole tree
 			below = below || child->layoutDirty_ || child->layoutBelow_;
 			anchors = anchors || child->anchorsBelow_;
 			overlays = overlays || child->overlay_ || child->overlaysBelow_;

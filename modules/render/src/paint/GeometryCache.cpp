@@ -126,7 +126,7 @@ void GeometryCache::refreshChild(const Panel& parent, Panel& child, const Affine
 	// A transformed child's shadow is clipped in its own space: the box of its parent's bounds seen from there
 	const std::optional<Affine2> inverse =
 	    child.isTransformed() ? child.localTransform().inverse() : std::nullopt;
-	refreshTree(child, inverse ? inverse->boundingBox(parent.bounds_) : parent.bounds_, parentWorld, moved);
+	refreshTree(child, inverse ? inverse->boundingBox(parent.childClip()) : parent.childClip(), parentWorld, moved);
 }
 
 void GeometryCache::refreshPanel(Panel& panel, const Rect& outerClip, PanelGeometry& geometry, const Affine2& world) {

@@ -302,6 +302,7 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setBorder(0.0f, colors::black);
 	panel.setShadow({});
 	panel.setCached(false);
+	panel.setOverflowVisible(false);
 	panel.setCursor(record.defaultCursor);
 	panel.setGrow(0.0f);
 	resetLayoutItem(panel);

@@ -142,6 +142,7 @@ parent, later siblings on top of earlier ones.
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `visible` | `false` hides the node and its children. |
 | `cache` | `true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same (a pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). Default: `false`. |
+| `overflow` | `"visible"` lets the children draw and be hit outside the node, clipped to what clips the node instead, as CSS `overflow: visible`: a line whose arrowhead passes its box, text longer than its frame. A cached or scrolling node still clips. Default: `"clip"`. |
 | `rotate` | Draws the node and its children turned, in degrees clockwise, about `transformOrigin`: `"rotate": 8`. Like every transform key it only changes how the node is drawn and hit: its place in the layout, and its siblings', stay. Bind it to a number in the state and an `animate` step turns it. Default: `0`. |
 | `scale` | Draws the node scaled about `transformOrigin`: one factor (`0.9`) or `[x, y]`. Default: `1`. |
 | `skew` | Draws the node skewed, `[x, y]` in degrees, as CSS `skew()`: `[-12, 0]` slants it. Default: `[0, 0]`. |
@@ -292,6 +293,7 @@ overflow.
 | `rowGap`, `columnGap` | Pixels between rows and between columns, over `gap`: in a column `rowGap` is between children, in a wrapping row between lines. |
 | `justify` | How the children are spread along it: `start` (default), `center`, `end` (a column from the bottom, like a chat: overflow is clipped at the top), `space-between`, `space-around` or `space-evenly`, as in CSS. |
 | `alignItems` | Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, within their maximum). Left out, they keep their own anchors across. |
+| `fitContent` | `true`, `"width"` or `"height"`: that size comes from the children instead of `width` and `height` (within the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, even when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with its text. A child that grows or is stretched by its anchors adds only its own size. |
 | `direction` | On a `stack`: `"row"` or `"column"`. |
 | `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
 <!-- end generated -->

@@ -132,6 +132,12 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). "
 	 "Default: `false`.",
 	 "look"},
+    {"overflow", R"json({"anyOf": [{"enum": ["clip", "visible"]}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "visible lets the children draw and be hit outside the node"})json",
+	 "`\"visible\"` lets the children draw and be hit outside the node, clipped to what clips the node instead, as "
+	 "CSS `overflow: visible`: a line whose arrowhead passes its box, text longer than its frame. A cached or "
+	 "scrolling node still clips. Default: `\"clip\"`.",
+	 "look"},
     {"rotate", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "Draws the node turned, in degrees clockwise, about transformOrigin; layout doesn't change"})json",
 	 "Draws the node and its children turned, in degrees clockwise, about `transformOrigin`: `\"rotate\": 8`. Like "
@@ -306,8 +312,8 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "label"},
     {"runs", R"json({"type": "array", "maxItems": 256, "items": {"oneOf": [{"type": ["string", "number", "boolean"]},
 		{"type": "object", "additionalProperties": false, "properties": {"text": {}, "icon": {"type": "string"},
-		"font": {"type": "string"}, "size": {"type": "number"}, "bold": {"type": "boolean"},
-		"italic": {"type": "boolean"}, "color": {"$ref": "#/$defs/v2/color"}, "link": {"type": "string",
+		"font": {"type": "string"}, "size": {"$ref": "#/$defs/v2/pixels"}, "bold": {"$ref": "#/$defs/v2/flag"},
+		"italic": {"$ref": "#/$defs/v2/flag"}, "color": {"$ref": "#/$defs/v2/color"}, "link": {"type": "string",
 		"maxLength": 2048}}}]},
 		"description": "label: rich text, parts with their own font, size, bold, italic, colour, link or icon"})json",
 	 "Rich text instead of `text`: a list of parts, each text or `{ \"text\", \"bold\", \"italic\", \"size\", "

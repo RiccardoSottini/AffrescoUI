@@ -39,6 +39,7 @@ namespace canvas {
 constexpr float snapPixels = 6.0f;     ///< How near, in screen units, a snap pulls.
 constexpr float guidePixels = 4.0f;    ///< How near, in screen units, a guide is grabbed.
 constexpr float clickPixels = 3.0f;    ///< A marquee smaller than this, in screen units, is a click.
+constexpr float thinPixels = 4.0f;     ///< How near, in screen units, a thin item (a line) is hit across.
 constexpr float rotateOffset = 24.0f;  ///< How far above the selection the rotation handle is, in screen units.
 constexpr float readablePixels = 6.0f; ///< Text shorter than this on screen draws as a bar.
 constexpr float fitMargin = 40.0f;     ///< The margin fit() leaves, in screen units.

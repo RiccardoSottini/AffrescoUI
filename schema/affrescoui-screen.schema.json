@@ -1157,6 +1157,20 @@
 					"cache": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"overflow": {
+						"anyOf": [
+							{
+								"enum": [
+									"clip",
+									"visible"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "visible lets the children draw and be hit outside the node"
+					},
 					"rotate": {
 						"anyOf": [
 							{
@@ -1604,13 +1618,13 @@
 											"type": "string"
 										},
 										"size": {
-											"type": "number"
+											"$ref": "#/$defs/v2/pixels"
 										},
 										"bold": {
-											"type": "boolean"
+											"$ref": "#/$defs/v2/flag"
 										},
 										"italic": {
-											"type": "boolean"
+											"$ref": "#/$defs/v2/flag"
 										},
 										"color": {
 											"$ref": "#/$defs/v2/color"
@@ -1878,6 +1892,23 @@
 					"alignItems": {
 						"description": "row, column, stack: where children sit across (left out: their own anchors); grid: down their cells (default start)",
 						"$ref": "#/$defs/v2/crossAlign"
+					},
+					"fitContent": {
+						"description": "row, column, stack: take the width, the height or both (true) from the children",
+						"anyOf": [
+							{
+								"type": "boolean"
+							},
+							{
+								"enum": [
+									"width",
+									"height"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
 					},
 					"direction": {
 						"anyOf": [

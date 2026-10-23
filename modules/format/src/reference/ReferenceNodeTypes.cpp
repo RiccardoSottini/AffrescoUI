@@ -122,6 +122,14 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, "
 	 "within their maximum). Left out, they keep their own anchors across.",
 	 "stack"},
+    {"fitContent",
+	 R"json({"description": "row, column, stack: take the width, the height or both (true) from the children",
+		"anyOf": [{"type": "boolean"}, {"enum": ["width", "height"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "`true`, `\"width\"` or `\"height\"`: that size comes from the children instead of `width` and `height` (within "
+	 "the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, even "
+	 "when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with its "
+	 "text. A child that grows or is stretched by its anchors adds only its own size.",
+	 "stack"},
     {"direction", R"json({"anyOf": [{"enum": ["row", "column"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(On a `stack`: `"row"` or `"column"`.)", "stack"},
     {"wrap", "",

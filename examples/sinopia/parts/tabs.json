@@ -1,0 +1,266 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The ribbon's tabs, each a row of groups built from parts/ribbon.json. Commands act on the current slide and its selected objects (parts/edit.json).",
+
+	"components": {
+		"tabHome": {
+			"params": {},
+			"node": {
+				"type": "row", "fitContent": "width", "id": "tab-home", "height": 92, "gap": 2, "color": "transparent",
+				"children": [
+					{ "use": "rbGroup", "id": "g-clipboard", "with": { "title": "Clipboard", "launcher": true }, "children": [
+						{ "use": "rbBig", "id": "b-paste", "with": { "icon": "clipboard-paste", "title": "Paste", "menu": true, "width": 46 }, "tooltip": "Paste (Ctrl+V)", "onClick": "pasteObjects" },
+						{ "use": "rbStack", "id": "s-clipboard", "children": [
+							{ "use": "rbSmall", "id": "b-cut", "with": { "icon": "scissors", "title": "Cut" }, "tooltip": "Cut (Ctrl+X)", "onClick": "cutObjects" },
+							{ "use": "rbSmall", "id": "b-copy", "with": { "icon": "copy", "title": "Copy", "menu": true }, "tooltip": "Copy (Ctrl+C)", "onClick": "copyObjects" },
+							{ "use": "rbSmall", "id": "b-painter", "with": { "icon": "paintbrush", "title": "Format Painter" }, "tooltip": "Format Painter" }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-slides", "with": { "title": "Slides" }, "children": [
+						{ "use": "rbBig", "id": "b-new-slide", "with": { "icon": "layout-panel-top", "title": "New\nSlide", "menu": true, "width": 50 },
+						  "tooltip": "New Slide (Ctrl+M)", "onClick": { "run": "newSlide", "with": { "layout": "content" } } },
+						{ "use": "rbStack", "id": "s-slides", "children": [
+							{ "use": "rbSmall", "id": "b-layout", "with": { "icon": "layout-template", "title": "Layout", "menu": true }, "tooltip": "Layout",
+							  "onClick": [{ "set": "state.popup", "to": "layouts" }] },
+							{ "use": "rbSmall", "id": "b-reset", "with": { "icon": "rotate-ccw", "title": "Reset" }, "tooltip": "Reset", "onClick": "resetSlide" },
+							{ "use": "rbSmall", "id": "b-section", "with": { "icon": "layout-list", "title": "Section", "menu": true }, "tooltip": "Section", "onClick": "addSection" }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-font", "with": { "title": "Font", "launcher": true }, "children": [
+						{ "use": "rbStack", "id": "s-font", "children": [
+							{ "use": "rbRow", "id": "r-font-1", "children": [
+								{ "use": "rbField", "id": "f-font", "with": { "text": "{{computed.titleLike || computed.first.ph == 'title' || computed.first.ph == 'ctrTitle' ? 'Roboto Light (Headings)' : 'Roboto (Body)'}}", "width": 150 }, "tooltip": "Font" },
+								{ "use": "rbField", "id": "f-size", "with": { "text": "{{text(computed.textSize)}}", "width": 46 }, "tooltip": "Font Size" },
+								{ "use": "rbSmall", "id": "b-grow", "with": { "icon": "a-arrow-up" }, "tooltip": "Increase Font Size (Ctrl+Shift+>)", "onClick": { "run": "growText", "with": { "by": 1 } } },
+								{ "use": "rbSmall", "id": "b-shrink", "with": { "icon": "a-arrow-down" }, "tooltip": "Decrease Font Size (Ctrl+Shift+<)", "onClick": { "run": "growText", "with": { "by": -1 } } },
+								{ "use": "rbSmall", "id": "b-clear", "with": { "icon": "remove-formatting" }, "tooltip": "Clear All Formatting", "onClick": "clearFormatting" }
+							] },
+							{ "use": "rbRow", "id": "r-font-2", "children": [
+								{ "use": "rbSmall", "id": "b-bold", "with": { "icon": "bold", "on": "{{computed.first != null && computed.allOn.bold}}" }, "tooltip": "Bold (Ctrl+B)", "onClick": { "run": "toggleText", "with": { "key": "bold" } } },
+								{ "use": "rbSmall", "id": "b-italic", "with": { "icon": "italic", "on": "{{computed.first != null && computed.allOn.italic}}" }, "tooltip": "Italic (Ctrl+I)", "onClick": { "run": "toggleText", "with": { "key": "italic" } } },
+								{ "use": "rbSmall", "id": "b-underline", "with": { "icon": "underline", "on": "{{computed.first != null && computed.allOn.underline}}" }, "tooltip": "Underline (Ctrl+U)", "onClick": { "run": "toggleText", "with": { "key": "underline" } } },
+								{ "use": "rbSmall", "id": "b-shadow", "with": { "icon": "type-outline", "on": "{{computed.first != null && computed.allOn.shadow}}" }, "tooltip": "Text Shadow", "onClick": { "run": "toggleText", "with": { "key": "shadow" } } },
+								{ "use": "rbSmall", "id": "b-strike", "with": { "icon": "strikethrough", "on": "{{computed.first != null && computed.allOn.strike}}" }, "tooltip": "Strikethrough", "onClick": { "run": "toggleText", "with": { "key": "strike" } } },
+								{ "use": "rbSmall", "id": "b-spacing", "with": { "icon": "move-horizontal", "menu": true }, "tooltip": "Character Spacing" },
+								{ "use": "rbSmall", "id": "b-case", "with": { "icon": "case-sensitive", "menu": true }, "tooltip": "Change Case", "onClick": { "run": "changeCase", "with": { "how": "upper" } } },
+								{ "use": "rbSmall", "id": "b-highlight", "with": { "icon": "highlighter", "menu": true, "tint": "#ffff00" }, "tooltip": "Text Highlight Color", "onClick": { "run": "setObjects", "with": { "props": { "highlight": "#ffff00" } } } },
+								{ "use": "rbSmall", "id": "b-color", "with": { "icon": "baseline", "menu": true, "tint": "#c00000" }, "tooltip": "Font Color", "onClick": { "run": "setObjects", "with": { "props": { "color": "#c00000" } } } }
+							] }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-paragraph", "with": { "title": "Paragraph", "launcher": true }, "children": [
+						{ "use": "rbStack", "id": "s-paragraph", "children": [
+							{ "use": "rbRow", "id": "r-para-1", "children": [
+								{ "use": "rbSmall", "id": "b-bullets", "with": { "icon": "list", "menu": true, "on": "{{computed.first != null && computed.allOn.bullets}}" }, "tooltip": "Bullets", "onClick": { "run": "toggleText", "with": { "key": "bullets" } } },
+								{ "use": "rbSmall", "id": "b-numbering", "with": { "icon": "list-ordered", "menu": true }, "tooltip": "Numbering" },
+								{ "use": "rbSmall", "id": "b-outdent", "with": { "icon": "indent-decrease" }, "tooltip": "Decrease List Level" },
+								{ "use": "rbSmall", "id": "b-indent", "with": { "icon": "indent-increase" }, "tooltip": "Increase List Level" },
+								{ "use": "rbSmall", "id": "b-line-spacing", "with": { "icon": "list-chevrons-up-down", "menu": true }, "tooltip": "Line Spacing" },
+								{ "use": "rbSmall", "id": "b-columns", "with": { "icon": "columns-2", "menu": true }, "tooltip": "Add or Remove Columns" }
+							] },
+							{ "use": "rbRow", "id": "r-para-2", "children": [
+								{ "repeat": { "for": "a", "in": "{{[['left', 'align-left', 'Align Left (Ctrl+L)'], ['center', 'align-center', 'Center (Ctrl+E)'], ['right', 'align-right', 'Align Right (Ctrl+R)'], ['justify', 'align-justify', 'Justify (Ctrl+J)']]}}" },
+								  "use": "rbSmall", "id": "{{'b-align-' + a[0]}}", "with": { "icon": "{{a[1]}}", "on": "{{computed.first != null && (computed.first.align ?? computed.firstPlaceholder.align ?? 'left') == a[0]}}" },
+								  "tooltip": "{{a[2]}}", "onClick": { "run": "setObjects", "with": { "props": "{{ {align: a[0]} }}" } } },
+								{ "use": "rbSmall", "id": "b-direction", "with": { "icon": "arrow-down-up", "menu": true }, "tooltip": "Text Direction" },
+								{ "use": "rbSmall", "id": "b-anchor", "with": { "icon": "align-vertical-justify-center", "menu": true }, "tooltip": "Align Text",
+								  "onClick": { "run": "setObjects", "with": { "props": "{{ {anchor: (computed.first.anchor ?? computed.firstPlaceholder.anchor ?? 'top') == 'top' ? 'middle' : (computed.first.anchor ?? computed.firstPlaceholder.anchor) == 'middle' ? 'bottom' : 'top'} }}" } } },
+								{ "use": "rbSmall", "id": "b-smart", "with": { "icon": "network", "menu": true }, "tooltip": "Convert to a Diagram" }
+							] }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-drawing", "with": { "title": "Drawing", "launcher": true }, "children": [
+						{ "use": "rbGallery", "id": "gal-shapes", "with": { "width": 168 }, "children": [
+							{ "type": "grid", "id": "gal-shapes-grid", "columns": 6, "width": 148, "height": 66, "gap": 1, "color": "transparent", "children": [
+								{ "repeat": { "for": "k", "in": "{{['textBox', 'rect', 'ellipse', 'triangle', 'rtTriangle', 'line', 'lineArrow', 'roundRect', 'rightArrow', 'downArrow', 'star5', 'curvedRightArrow', 'leftBrace', 'rightBrace', 'smileyFace', 'heart', 'cloud', 'wedgeRoundRectCallout']}}", "index": "n" },
+								  "type": "panel", "id": "{{'gal-shape-' + k}}", "width": 24, "height": 21, "radius": 2, "color": "transparent", "cursor": "hand",
+								  "hover": { "color": "@rbHover" }, "tooltip": "{{k == 'textBox' ? 'Text Box' : computed.shapes[k].name ?? k}}",
+								  "onClick": [{ "if": "{{k == 'textBox'}}", "then": [{ "run": "insertTextBox" }], "else": [{ "run": "insertShape", "with": { "shape": "{{k}}" } }] }],
+								  "children": [
+									{ "type": "label", "id": "{{'gal-shape-' + k + '-tb'}}", "when": "{{k == 'textBox'}}", "fill": 0, "align": "center", "textColor": "@rbInk", "runs": [{ "icon": "text-cursor-input", "size": 14 }] },
+									{ "id": "{{'gal-shape-' + k + '-box'}}", "color": "transparent", "when": "{{k != 'textBox'}}", "x": 5, "y": 4, "width": 14, "height": 13, "overflow": "visible",
+									  "children": [{ "use": "shapePath", "with": { "o": "{{ {shape: k, w: 14, h: computed.shapes[k].line ? 0 : 13, fill: 'none', line: '#444444', lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null} }}", "name": "{{'gal-shape-' + k}}" } }] }
+								  ] }
+							] }
+						] },
+						{ "use": "rbBig", "id": "b-arrange", "with": { "icon": "layers-2", "title": "Arrange", "menu": true, "width": 52 }, "tooltip": "Arrange", "onClick": { "run": "order", "with": { "how": "front" } } },
+						{ "use": "rbBig", "id": "b-quick-styles", "with": { "icon": "shapes", "title": "Quick\nStyles", "menu": true, "width": 52 }, "tooltip": "Quick Styles" },
+						{ "use": "rbStack", "id": "s-drawing", "children": [
+							{ "use": "rbSmall", "id": "b-fill", "with": { "icon": "paint-bucket", "title": "Shape Fill", "menu": true }, "tooltip": "Shape Fill" },
+							{ "use": "rbSmall", "id": "b-outline", "with": { "icon": "pen-tool", "title": "Shape Outline", "menu": true }, "tooltip": "Shape Outline" },
+							{ "use": "rbSmall", "id": "b-effects", "with": { "icon": "sparkles", "title": "Shape Effects", "menu": true }, "tooltip": "Shape Effects" }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-editing", "with": { "title": "Editing" }, "children": [
+						{ "use": "rbStack", "id": "s-editing", "children": [
+							{ "use": "rbSmall", "id": "b-find", "with": { "icon": "search", "title": "Find" }, "tooltip": "Find (Ctrl+F)" },
+							{ "use": "rbSmall", "id": "b-replace", "with": { "icon": "replace", "title": "Replace", "menu": true }, "tooltip": "Replace (Ctrl+H)" },
+							{ "use": "rbSmall", "id": "b-select", "with": { "icon": "mouse-pointer-2", "title": "Select", "menu": true }, "tooltip": "Select", "onClick": "selectAll" }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-voice", "with": { "title": "Voice" }, "children": [
+						{ "use": "rbBig", "id": "b-dictate", "with": { "icon": "mic", "title": "Dictate", "menu": true, "width": 50, "enabled": false }, "tooltip": "Dictate" }
+					] }
+				]
+			}
+		},
+
+		"tabInsert": {
+			"params": {},
+			"node": {
+				"type": "row", "fitContent": "width", "id": "tab-insert", "height": 92, "gap": 2, "color": "transparent",
+				"children": [
+					{ "use": "rbGroup", "id": "g-ins-slides", "with": { "title": "Slides" }, "children": [
+						{ "use": "rbBig", "id": "b-ins-new-slide", "with": { "icon": "layout-panel-top", "title": "New\nSlide", "menu": true, "width": 50 }, "onClick": { "run": "newSlide", "with": { "layout": "content" } } }
+					] },
+					{ "use": "rbGroup", "id": "g-ins-tables", "with": { "title": "Tables" }, "children": [
+						{ "use": "rbBig", "id": "b-ins-table", "with": { "icon": "table", "title": "Table", "menu": true, "width": 46 } }
+					] },
+					{ "use": "rbGroup", "id": "g-ins-images", "with": { "title": "Images" }, "children": [
+						{ "use": "rbBig", "id": "b-ins-pictures", "with": { "icon": "image", "title": "Pictures", "menu": true, "width": 52 } },
+						{ "use": "rbBig", "id": "b-ins-album", "with": { "icon": "images", "title": "Photo\nAlbum", "menu": true, "width": 50 } }
+					] },
+					{ "use": "rbGroup", "id": "g-ins-illustrations", "with": { "title": "Illustrations" }, "children": [
+						{ "use": "rbBig", "id": "b-ins-shapes", "with": { "icon": "shapes", "title": "Shapes", "menu": true, "width": 48 } },
+						{ "use": "rbBig", "id": "b-ins-icons", "with": { "icon": "face-slightly-smiling", "title": "Icons", "width": 44 } },
+						{ "use": "rbBig", "id": "b-ins-chart", "with": { "icon": "chart-column-stacked", "title": "Chart", "width": 44 } }
+					] },
+					{ "use": "rbGroup", "id": "g-ins-links", "with": { "title": "Links" }, "children": [
+						{ "use": "rbBig", "id": "b-ins-link", "with": { "icon": "link", "title": "Link", "menu": true, "width": 44 } }
+					] },
+					{ "use": "rbGroup", "id": "g-ins-comments", "with": { "title": "Comments" }, "children": [
+						{ "use": "rbBig", "id": "b-ins-comment", "with": { "icon": "message-square-plus", "title": "Comment", "width": 56 } }
+					] },
+					{ "use": "rbGroup", "id": "g-ins-text", "with": { "title": "Text" }, "children": [
+						{ "use": "rbBig", "id": "b-ins-textbox", "with": { "icon": "text-cursor-input", "title": "Text\nBox", "width": 44 }, "onClick": "insertTextBox" },
+						{ "use": "rbBig", "id": "b-ins-header", "with": { "icon": "panel-top", "title": "Header\n& Footer", "width": 52 } },
+						{ "use": "rbBig", "id": "b-ins-wordart", "with": { "icon": "type", "title": "Word\nArt", "menu": true, "width": 44 } }
+					] },
+					{ "use": "rbGroup", "id": "g-ins-symbols", "with": { "title": "Symbols" }, "children": [
+						{ "use": "rbBig", "id": "b-ins-equation", "with": { "icon": "sigma", "title": "Equation", "menu": true, "width": 56 } },
+						{ "use": "rbBig", "id": "b-ins-symbol", "with": { "icon": "omega", "title": "Symbol", "width": 48 } }
+					] },
+					{ "use": "rbGroup", "id": "g-ins-media", "with": { "title": "Media" }, "children": [
+						{ "use": "rbBig", "id": "b-ins-video", "with": { "icon": "film", "title": "Video", "menu": true, "width": 44 } },
+						{ "use": "rbBig", "id": "b-ins-audio", "with": { "icon": "music", "title": "Audio", "menu": true, "width": 44 } }
+					] }
+				]
+			}
+		},
+
+		"tabDesign": {
+			"params": {},
+			"node": {
+				"type": "row", "fitContent": "width", "id": "tab-design", "height": 92, "gap": 2, "color": "transparent",
+				"children": [
+					{ "use": "rbGroup", "id": "g-themes", "with": { "title": "Themes" }, "children": [
+						{ "use": "rbGallery", "id": "gal-themes", "with": { "width": 486 }, "children": [
+							{ "repeat": { "for": "t", "in": "{{slice(computed.themes, 0, 6)}}", "key": "{{t.id}}" },
+							  "type": "panel", "id": "{{'theme-' + t.id}}", "width": 76, "height": 60, "radius": 2, "cursor": "hand", "tooltip": "{{t.name}}",
+							  "color": "{{t.colors[t.background]}}", "borderWidth": "{{state.deck.theme == t.id ? 2 : 1}}",
+							  "borderColor": "{{state.deck.theme == t.id ? '@brand' : '@rbFieldLine'}}", "hover": { "borderColor": "@brand" },
+							  "onClick": { "run": "setTheme", "with": { "theme": "{{t.id}}" } },
+							  "children": [
+								{ "type": "label", "id": "{{'theme-' + t.id + '-aa'}}", "x": 8, "y": 10, "width": 40, "height": 24, "textColor": "{{t.colors.dark1}}", "runs": [{ "text": "Aa", "size": 18 }] },
+								{ "type": "row", "id": "{{'theme-' + t.id + '-bar'}}", "x": 8, "y": 42, "width": 60, "height": 8, "color": "transparent", "children": [
+									{ "repeat": { "for": "c", "in": "{{['accent1', 'accent2', 'accent3', 'accent4']}}" },
+									  "id": "{{'theme-' + t.id + '-' + c}}", "width": 15, "height": 8, "color": "{{t.colors[c]}}" }
+								] }
+							  ] }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-variants", "with": { "title": "Variants" }, "children": [
+						{ "use": "rbGallery", "id": "gal-variants", "with": { "width": 290 }, "children": [
+							{ "repeat": { "for": "v", "in": "{{computed.theme.variants}}", "index": "n" },
+							  "type": "panel", "id": "{{'variant-' + n}}", "width": 62, "height": 60, "radius": 2, "cursor": "hand",
+							  "color": "{{merge(computed.theme.colors, v)[computed.theme.background]}}", "borderWidth": "{{(state.deck.variant ?? 0) == n ? 2 : 1}}",
+							  "borderColor": "{{(state.deck.variant ?? 0) == n ? '@brand' : '@rbFieldLine'}}", "hover": { "borderColor": "@brand" },
+							  "onClick": { "run": "setVariant", "with": { "variant": "{{n}}" } },
+							  "children": [
+								{ "id": "{{'variant-' + n + '-band'}}", "x": 0, "y": 0, "width": 10, "height": 60, "color": "{{merge(computed.theme.colors, v).accent1}}" },
+								{ "id": "{{'variant-' + n + '-line'}}", "x": 18, "y": 22, "width": 34, "height": 5, "color": "{{merge(computed.theme.colors, v).dark1}}" },
+								{ "id": "{{'variant-' + n + '-line2'}}", "x": 18, "y": 32, "width": 24, "height": 3, "color": "{{merge(computed.theme.colors, v).accent2}}" }
+							  ] }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-customize", "with": { "title": "Customize" }, "children": [
+						{ "use": "rbBig", "id": "b-slide-size", "with": { "icon": "rectangle-horizontal", "title": "Slide\nSize", "menu": true, "width": 46 } },
+						{ "use": "rbBig", "id": "b-format-bg", "with": { "icon": "paint-bucket", "title": "Format\nBackground", "width": 70 } }
+					] }
+				]
+			}
+		},
+
+		"tabTransitions": {
+			"params": {},
+			"node": {
+				"type": "row", "fitContent": "width", "id": "tab-transitions", "height": 92, "gap": 2, "color": "transparent",
+				"children": [
+					{ "use": "rbGroup", "id": "g-preview", "with": { "title": "Preview" }, "children": [
+						{ "use": "rbBig", "id": "b-preview", "with": { "icon": "play", "title": "Preview", "width": 50 } }
+					] },
+					{ "use": "rbGroup", "id": "g-transition-to", "with": { "title": "Transition to This Slide" }, "children": [
+						{ "use": "rbGallery", "id": "gal-transitions", "with": { "width": 520 }, "children": [
+							{ "repeat": { "for": "k", "in": "{{[['none', 'ban', 'None'], ['morph', 'blend', 'Morph'], ['fade', 'sun-dim', 'Fade'], ['push', 'arrow-left-to-line', 'Push'], ['wipe', 'chevrons-left', 'Wipe'], ['split', 'columns-2', 'Split'], ['reveal', 'arrow-left-from-line', 'Reveal'], ['cover', 'square-stack', 'Cover']]}}" },
+							  "type": "label", "id": "{{'tr-' + k[0]}}", "width": 60, "height": 64, "wrap": true, "align": { "horizontal": "center", "vertical": "center" },
+							  "style": "{{(computed.slide.transition.kind ?? 'none') == k[0] ? 'rbButtonOn' : 'rbButton'}}",
+							  "runs": "{{[{ icon: k[1], size: 24 }, { text: '\n' + k[2], size: 11 }]}}",
+							  "onClick": { "run": "setTransition", "with": { "props": "{{ {kind: k[0]} }}" } } }
+						] },
+						{ "use": "rbBig", "id": "b-effect-options", "with": { "icon": "settings-2", "title": "Effect\nOptions", "menu": true, "width": 52 } }
+					] },
+					{ "use": "rbGroup", "id": "g-timing", "with": { "title": "Timing" }, "children": [
+						{ "type": "column", "id": "timing-col", "width": 200, "height": 72, "gap": 2, "color": "transparent", "children": [
+							{ "type": "label", "id": "timing-duration", "height": 22, "textColor": "@rbInk",
+							  "runs": "{{[{ icon: 'clock-3', size: 14 }, { text: ' Duration: ' + fixed((computed.slide.transition.ms ?? 500) / 1000, 2), size: 12 }]}}" },
+							{ "type": "label", "id": "timing-apply", "height": 22, "style": "rbButton", "padding": 2,
+							  "runs": [{ "icon": "copy-check", "size": 14 }, { "text": " Apply To All", "size": 12 }] },
+							{ "type": "label", "id": "timing-advance", "height": 22, "textColor": "@rbInk", "runs": [{ "icon": "check-square", "size": 14 }, { "text": " On Mouse Click", "size": 12 }] }
+						] }
+					] }
+				]
+			}
+		},
+
+		"tabView": {
+			"params": {},
+			"node": {
+				"type": "row", "fitContent": "width", "id": "tab-view", "height": 92, "gap": 2, "color": "transparent",
+				"children": [
+					{ "use": "rbGroup", "id": "g-views", "with": { "title": "Presentation Views" }, "children": [
+						{ "use": "rbBig", "id": "b-normal", "with": { "icon": "panel-left", "title": "Normal", "on": "{{state.view == 'normal'}}", "width": 46 }, "onClick": [{ "set": "state.view", "to": "normal" }] },
+						{ "use": "rbBig", "id": "b-outline-view", "with": { "icon": "list-tree", "title": "Outline\nView", "width": 48 } },
+						{ "use": "rbBig", "id": "b-sorter", "with": { "icon": "layout-grid", "title": "Slide\nSorter", "on": "{{state.view == 'sorter'}}", "width": 46 }, "onClick": [{ "set": "state.view", "to": "sorter" }] },
+						{ "use": "rbBig", "id": "b-notes-page", "with": { "icon": "notebook-text", "title": "Notes\nPage", "width": 46 } },
+						{ "use": "rbBig", "id": "b-reading", "with": { "icon": "book-open", "title": "Reading\nView", "width": 50 } }
+					] },
+					{ "use": "rbGroup", "id": "g-show", "with": { "title": "Show", "launcher": true }, "children": [
+						{ "type": "column", "id": "show-col", "width": 90, "height": 72, "gap": 2, "color": "transparent", "children": [
+							{ "type": "checkbox", "id": "cb-ruler", "height": 22, "text": "Ruler", "bind": "state.ruler" },
+							{ "type": "checkbox", "id": "cb-grid", "height": 22, "text": "Gridlines", "bind": "state.gridlines" },
+							{ "type": "checkbox", "id": "cb-guides", "height": 22, "text": "Guides", "bind": "state.guides" }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-zoom", "with": { "title": "Zoom" }, "children": [
+						{ "use": "rbBig", "id": "b-zoom", "with": { "icon": "zoom-in", "title": "Zoom", "width": 44 }, "onClick": { "run": "zoomBy", "with": { "by": 1.25 } } },
+						{ "use": "rbBig", "id": "b-fit", "with": { "icon": "maximize", "title": "Fit to\nWindow", "width": 50 }, "onClick": "fit" }
+					] },
+					{ "use": "rbGroup", "id": "g-notes-show", "with": { "title": "Show" }, "children": [
+						{ "use": "rbBig", "id": "b-notes-toggle", "with": { "icon": "notebook-pen", "title": "Notes", "on": "{{state.notes}}", "width": 44 }, "onClick": [{ "toggle": "state.notes" }] }
+					] }
+				]
+			}
+		},
+
+		"tabPlain": {
+			"params": { "name": "" },
+			"note": "A tab whose commands are still to come: its name and a muted line.",
+			"node": {
+				"type": "row", "fitContent": "width", "id": "tab-plain", "height": 92, "color": "transparent", "alignItems": "center",
+				"children": [{ "type": "label", "id": "tab-plain-text", "fitText": true, "padding": 12, "textColor": "@rbMuted", "runs": [{ "text": "{{name}}", "size": 12 }] }]
+			}
+		}
+	}
+}

@@ -1,0 +1,26 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../../../examples/sinopia",
+	"scenarios": [
+		{
+			"name": "sinopia",
+			"screen": "sinopia.screen.json",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": "#tab-insert-label" },
+				{ "expect": { "image": "insert-tab" } },
+				{ "click": "#tab-design-label" },
+				{ "expect": { "image": "design-tab" } },
+				{ "click": "#thumb-s4-row" },
+				{ "expect": { "image": "slide-4" } },
+				{ "click": "#o8" },
+				{ "expect": { "image": "selected" } },
+				{ "click": "#status-notes" },
+				{ "expect": { "image": "notes-hidden" } },
+				{ "resize": [1024, 680] },
+				{ "expect": { "image": "resized" } }
+			]
+		}
+	]
+}

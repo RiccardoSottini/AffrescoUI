@@ -198,7 +198,7 @@ void QuadRenderer::replayTree(const Panel& panel) {
 	if(!panel.isShown()) return; // hidden panels hide their whole subtree
 	const detail::PanelGeometry* geometry = panel.geometry_.get();
 	if(!geometry || !geometry->recorded) return;
-	if(region_ && !detail::overlaps(*region_, detail::screenReachOf(*geometry))) return;
+	if(region_ && !panel.overflows() && !detail::overlaps(*region_, detail::screenReachOf(*geometry))) return;
 	// A texture holds a subtree as laid out: one drawn transformed, or holding transforms, is drawn directly
 	const bool plain = geometry->world.isIdentity() && !geometry->subtreeTransformed;
 	if(geometry->cached && plain && replayCached(panel, *geometry)) return;
@@ -241,7 +241,7 @@ void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::s
 		const bool clipped = clipChild(panel, *child, world, ClipStep::push);
 		const std::optional<Affine2> inverse =
 		    child->isTransformed() ? child->localTransform().inverse() : std::nullopt;
-		scratchTree(*child, inverse ? inverse->boundingBox(panel.bounds()) : panel.bounds(), depth + 1, world);
+		scratchTree(*child, inverse ? inverse->boundingBox(panel.childClip()) : panel.childClip(), depth + 1, world);
 		if(clipped) clipChild(panel, *child, world, ClipStep::pop);
 	}
 	world_ = world;
@@ -257,7 +257,7 @@ bool QuadRenderer::clipChild(const Panel& parent, const Panel& child, const Affi
 	const std::size_t first = vertices_.size() / detail::verticesPerQuad;
 	batches_.push_back({whiteTexture_.id(), {0.5f, 0.5f}, first, 1});
 	batches_.back().clip = step;
-	const Rect& bounds = parent.bounds();
+	const Rect& bounds = parent.childClip();
 	const std::uint16_t half = toUnorm16(0.5f);
 	for(const Vec2 corner : {Vec2{bounds.left, bounds.top}, Vec2{bounds.right, bounds.top},
 	                         Vec2{bounds.right, bounds.bottom}, Vec2{bounds.left, bounds.bottom}}) {

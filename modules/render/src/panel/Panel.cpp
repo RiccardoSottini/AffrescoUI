@@ -90,6 +90,12 @@ void Panel::treeChanged() noexcept {
 
 void Panel::invalidate() noexcept {
 	measured_.reset();
+	// A container sized by its children changes size with them: measured again, and placed again by its own parent
+	if(!window_ || !window_->layingOut_)
+		for(Panel* ancestor = parent_; ancestor && ancestor->fitsChildren(); ancestor = ancestor->parent_) {
+			ancestor->measured_.reset();
+			ancestor->layoutDirty_ = true;
+		}
 	markLayoutDirty();
 	markPaintDirty();
 	if(window_) window_->requestLayout();
@@ -307,14 +313,15 @@ Panel* Panel::hitTest(Vec2 point) noexcept {
 		if(!inverse) return nullptr; // flattened: never hit
 		point = inverse->apply(point);
 	}
-	if(!bounds_.contains(point)) return nullptr;
+	const bool inside = bounds_.contains(point);
+	if(!inside && !(overflows() && childClip_.contains(point))) return nullptr;
 
 	for(const auto& child : std::views::reverse(children_)) {
 		if(child->overlay_) continue; // hit-tested by the window, above everything
 		if(Panel* hit = child->hitTest(point)) return hit;
 	}
 
-	return this;
+	return inside ? this : nullptr;
 }
 
 Rect Panel::clipInSpace(const Rect& clip) const noexcept {
