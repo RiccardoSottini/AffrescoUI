@@ -8,7 +8,7 @@ and all of its data is invented. This page lists what a daily user would reach f
 | Sidebar | workspace, search, new issue, My issues, the team, its issues, its boards, help | done | `sidebar.json` |
 | List view | issues grouped by status, a row each: priority, id, status, title, label, due, estimate, assignee | done | `list.json`; ids are `FLO-n` |
 | List view | select a row, Enter to edit, context menu, drag a row to another group | done | |
-| Issue page | full page, title, description, properties side panel, activity | done | `issue.json`; double-click or Cmd+Enter opens, Escape closes |
+| Issue page | full page, title, description, properties side panel, activity | done | `issue.json`; double-click or Cmd+Enter opens, Escape closes; only the applied labels show, + adds one |
 | Board | columns by status, cards with id, priority and assignee, drag and drop | done | cards show id, assignee, title, then priority, label, due and estimate chips; Space peeks in the side panel |
 | Filter and display | a Filter menu, a Display menu with the layouts, a new-issue composer | done | F opens Filter; Display picks board, list, table or timeline and swimlanes; C or a column's + opens the composer in that status |
 | Workspace | a workspace menu with settings, theme and language, a facepile, toasts with Undo | done | |

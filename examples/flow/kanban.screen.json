@@ -16,6 +16,7 @@
 		"tiny": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 9 },
 		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "symbols", "arabic"] },
 		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 20, "fallback": ["iconsLarge", "arabicLarge"] },
+		"display": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 24, "fallback": ["arabicLarge"] },
 		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 15 },
 		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 13 },
 		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 20 },
@@ -234,7 +235,8 @@
 		"picks": "{{map(computed.allCards, { title: it.title, detail: state.columns[it.c].name + ' · ' + it.who, c: it.c, at: it.at })}}",
 		"over": "{{map(state.columns, it.limit != null && length(it.cards) > it.limit)}}",
 		"tableColumns": "{{[{ id: 'title', title: t('table.card'), width: state.columnWidths.title }, { id: 'column', title: t('table.column'), width: state.columnWidths.column }, { id: 'tag', title: t('table.label'), width: state.columnWidths.tag }, { id: 'who', title: t('table.owner'), width: state.columnWidths.who }, { id: 'points', title: t('table.points'), width: state.columnWidths.points }]}}",
-		"palette": "{{map(filter(commands, it.enabled), { title: it.title, detail: it.keyLabel ?? it.category, run: it.name })}}",
+		"paletteFirst": "{{filter(commands, it.enabled && contains(['changeStatus', 'changePriority', 'changeAssignee', 'assignToMe', 'editCard', 'openIssue'], it.name))}}",
+		"palette": "{{map(concat(computed.paletteFirst, filter(commands, it.enabled && it.category == 'Card' && !contains(map(computed.paletteFirst, it.name), it.name)), filter(commands, it.enabled && it.category != 'Card')), { title: it.title, detail: it.category + (it.keyLabel == null ? '' : '   ' + it.keyLabel), run: it.name })}}",
 		"visible": "{{filter(computed.allCards, (state.filter == 'all' || it.tag == state.filter) && (state.owner == '' || it.who == state.owner) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
 		"next": "{{state.selected == null ? computed.visible[0] : find(computed.visible, it.c > state.selected.c || (it.c == state.selected.c && it.at > state.selected.i))}}",
 		"prev": "{{state.selected == null ? null : computed.visible[count(computed.visible, it.c < state.selected.c || (it.c == state.selected.c && it.at < state.selected.i)) - 1]}}",
@@ -421,7 +423,9 @@
 		"openPropPick": [
 			{ "note": "with: kind, 'status', 'priority' or 'assignee': a picker over the selected card's property" },
 			{ "set": "state.propKind", "to": "{{kind}}" },
-			{ "set": "state.propPick", "to": { "open": true, "query": "", "index": 0, "top": 0 } }
+			{ "note": "the current value is highlighted, as Enter would keep it" },
+			{ "set": "state.propPick", "to": { "open": true, "query": "", "top": 0,
+				"index": "{{length(state.marked) > 0 ? 0 : kind == 'status' ? state.selected.c : kind == 'priority' ? computed.card.priority ?? 0 : max(0, indexOf(map(state.members, it.who), computed.card.who))}}" } }
 		],
 		"selectNext": { "title": "Select the next card", "category": "Go", "icon": "arrow-down", "enablement": "{{computed.next != null}}",
 			"do": [{ "run": "selectCard", "with": { "c": "{{computed.next.c}}", "i": "{{computed.next.at}}" } }] },
@@ -836,14 +840,14 @@
 																	{ "id": "cardTitle", "type": "label", "text": "{{card.title}}", "textColor": "{{c == computed.lastColumn ? '@color.muted' : '@color.text'}}",
 																		"anchors": { "left": 12, "right": 12, "top": 30 }, "height": 34, "wrap": true, "align": { "horizontal": "start", "vertical": "start" } },
 																	{ "id": "cardChips", "type": "row", "gap": 4, "alignItems": "center", "anchors": { "left": 10, "right": 10, "bottom": 9 }, "height": 22, "children": [
-																		{ "id": "cardPriority", "style": "cardChip", "when": "{{(card.priority ?? 0) > 0}}", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
+																		{ "id": "cardPriority", "style": "cardChip", "borderWidth": 0, "when": "{{(card.priority ?? 0) > 0}}", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
 																			"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "tooltip": "{{t('priority.' + (card.priority ?? 0))}}" },
 																		{ "id": "cardTag", "style": "cardChip", "runs": [{ "icon": "circle", "color": "@{{card.tag}}" }, " {{t('tag.' + card.tag)}}"], "tooltip": "{{t('tag.' + card.tag)}}" },
 																		{ "id": "cardDue", "style": "cardChip", "when": "{{card.due != null}}", "icon": "calendar", "text": "{{formatDate(dateMs(card.due), 'short', 'utc')}}",
 																			"tooltip": "{{formatDate(dateMs(card.due), 'medium', 'utc')}}",
 																			"textColor": "{{daysBetween(state.today, card.due) < 0 && c != computed.lastColumn ? '@bug' : '@color.muted'}}" },
-																		{ "id": "cardNotes", "style": "cardChip", "when": "{{card.notes != null}}", "icon": "message-square", "text": "", "width": 22, "fitText": false, "align": "center" },
-																		{ "id": "cardPoints", "style": "cardChip", "icon": "triangle", "text": "{{card.points}}", "tooltip": "{{t('card.points', { n: card.points })}}" }
+																		{ "id": "cardNotes", "style": "cardChip", "borderWidth": 0, "when": "{{card.notes != null}}", "icon": "message-square", "text": "", "width": 22, "fitText": false, "align": "center" },
+																		{ "id": "cardPoints", "style": "cardChip", "borderWidth": 0, "icon": "triangle", "text": "{{card.points}}", "tooltip": "{{t('card.points', { n: card.points })}}" }
 																	] }
 																]
 															}

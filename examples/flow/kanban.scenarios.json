@@ -6,6 +6,48 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "picker-starts-on-the-current-value",
+			"note": "P on a card highlights its priority, so Enter keeps it",
+			"steps": [
+				{ "key": "j" },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "expect": { "state": "propPick.index", "is": 3 } },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].priority", "is": 3 } }
+			]
+		},
+		{
+			"name": "add-in-a-list-group",
+			"note": "The + of a list group opens the composer in that status",
+			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
+				{ "click": "#viewList" },
+				{ "key": "escape" },
+				{ "click": "#listAdd", "nth": 2 },
+				{ "wait": 50 },
+				{ "type": "Check the review queue" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[2].cards[2].title", "is": "Check the review queue" } }
+			]
+		},
+		{
+			"name": "issue-labels",
+			"note": "The issue page lists only the card's labels; + opens a menu that adds one",
+			"steps": [
+				{ "click": "#cardTitle", "nth": 2 },
+				{ "key": "mod+enter" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#propLabel", "nth": 1, "exists": true } },
+				{ "expect": { "node": "#propLabel", "nth": 2, "exists": false } },
+				{ "click": "#propLabelAdd" },
+				{ "wait": 50 },
+				{ "click": "#labelPick", "nth": 3 },
+				{ "expect": { "state": "columns[0].cards[2].labels[2]", "is": "docs" } }
+			]
+		},
+		{
 			"name": "add-a-card",
 			"note": "Typing in the new-card field and pressing Enter adds the card at the end of the Backlog",
 			"steps": [

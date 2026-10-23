@@ -8,9 +8,9 @@
 	"actions": {
 		"toggleMark": { "title": "Select or deselect the card", "category": "Card", "icon": "square-check", "enablement": "{{computed.card != null}}",
 			"do": [{ "set": "state.marked", "to": "{{contains(state.marked, computed.card.ref) ? filter(state.marked, it != computed.card.ref) : concat(state.marked, [computed.card.ref])}}" }] },
-		"markNext": { "title": "Extend the selection down", "category": "Card", "icon": "chevrons-down", "enablement": "{{computed.next != null}}",
+		"markNext": { "title": "Extend the selection down", "category": "Card", "icon": "chevrons-down", "enablement": "{{computed.card != null && computed.next != null}}",
 			"do": [{ "run": "markSelected" }, { "run": "selectNext" }, { "run": "markSelected" }] },
-		"markPrevious": { "title": "Extend the selection up", "category": "Card", "icon": "chevrons-up", "enablement": "{{computed.prev != null}}",
+		"markPrevious": { "title": "Extend the selection up", "category": "Card", "icon": "chevrons-up", "enablement": "{{computed.card != null && computed.prev != null}}",
 			"do": [{ "run": "markSelected" }, { "run": "selectPrev" }, { "run": "markSelected" }] },
 		"markSelected": [
 			{ "note": "Marks the selected card if it isn't marked yet" },

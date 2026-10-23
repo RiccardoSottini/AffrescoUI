@@ -5,6 +5,7 @@
 		"issueOpen": false,
 		"issueStatusOpen": false,
 		"issuePriorityOpen": false,
+		"issueLabelsOpen": false,
 		"issueWhoOpen": false,
 		"issueDueOpen": false
 	},
@@ -102,8 +103,8 @@
 						"color": "transparent",
 						"children": [
 							{ "id": "issueTop", "height": 28, "width": 1, "color": "transparent" },
-							{ "id": "issueTitle", "type": "label", "font": "title", "text": "{{computed.card.title}}", "textColor": "@color.text", "wrap": true,
-								"anchors": { "left": 40, "right": 40 }, "height": 40, "onDoubleClick": "editCard" },
+							{ "id": "issueTitle", "type": "label", "font": "display", "text": "{{computed.card.title}}", "textColor": "@color.text", "wrap": true,
+								"anchors": { "left": 40, "right": 40 }, "height": 44, "onDoubleClick": "editCard" },
 							{ "id": "issueNotes", "when": "{{!state.draft.editing}}", "type": "label", "anchors": { "left": 40, "right": 40 }, "height": 64, "wrap": true, "cursor": "ibeam",
 								"textColor": "{{computed.card.notes == null || computed.card.notes == '' ? '@color.muted' : '@color.text'}}",
 								"runs": "{{concat(computed.card.notes == null || computed.card.notes == '' ? [t('detail.noNotes')] : map(split(computed.card.notes, '*'), { text: it, bold: index % 2 == 1 }), [' ', { text: computed.card.linkText ?? '', link: computed.card.link ?? '' }])}}",
@@ -206,14 +207,24 @@
 									] }
 								] }
 							] },
-							{ "id": "propLabels", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 64, "alignItems": "start", "children": [
+							{ "id": "propLabels", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": "{{length(computed.card.labels ?? []) > 2 ? 60 : 32}}", "alignItems": "start", "children": [
 								{ "id": "propLabelsName", "style": "propName", "text": "{{t('issue.labels')}}" },
-								{ "id": "propLabelChips", "type": "row", "wrap": true, "gap": 4, "grow": 1, "height": 64, "y": 4, "children": [
-									{ "id": "propLabel", "repeat": { "for": "name", "in": "state.labels" }, "style": "pill", "height": 24,
-										"let": { "on": "{{contains(computed.card.labels ?? [], name)}}" },
-										"text": "{{t('label.' + name)}}", "selected": "{{on}}",
-										"color": "{{on ? '@color.accentSoft' : 'transparent'}}", "textColor": "{{on ? '@color.accent' : '@color.muted'}}",
-										"onClick": { "run": "toggleListItem", "with": { "field": "labels", "value": "{{name}}" } } }
+								{ "id": "propLabelChips", "type": "row", "wrap": true, "gap": 4, "grow": 1, "height": 60, "y": 4, "children": [
+									{ "id": "propLabel", "repeat": { "for": "name", "in": "computed.card.labels ?? []" }, "style": "cardChip", "height": 24,
+										"runs": [{ "icon": "circle", "color": "@color.accent" }, " {{t('label.' + name)}}"], "textColor": "@color.text",
+										"tooltip": "{{t('issue.removeLabel')}}", "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('label.' + name)}}",
+										"onClick": { "run": "toggleListItem", "with": { "field": "labels", "value": "{{name}}" } } },
+									{ "id": "propLabelAdd", "style": "cardChip", "height": 24, "width": 24, "fitText": false, "padding": 0, "align": "center", "icon": "plus", "text": "",
+										"label": "{{t('issue.addLabel')}}", "tooltip": "{{t('issue.addLabel')}}", "cursor": "hand", "focusable": true, "role": "button",
+										"isOpen": "{{state.issueLabelsOpen}}", "onClick": { "toggle": "state.issueLabelsOpen" }, "children": [
+										{ "id": "labelPicker", "style": "pickMenu", "overlay": { "placement": "below", "open": "state.issueLabelsOpen", "dismiss": "outside", "modal": true },
+											"height": "{{8 + 30 * length(state.labels)}}", "role": "menu", "children": [
+											{ "id": "labelPick", "repeat": { "for": "name", "in": "state.labels" }, "style": "pickRow",
+												"icon": "{{contains(computed.card.labels ?? [], name) ? 'square-check' : 'square'}}", "text": "  {{t('label.' + name)}}",
+												"selected": "{{contains(computed.card.labels ?? [], name)}}",
+												"onClick": { "run": "toggleListItem", "with": { "field": "labels", "value": "{{name}}" } } }
+										] }
+									] }
 								] }
 							] },
 							{ "id": "propDue", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [

@@ -38,8 +38,8 @@
 											"align": { "horizontal": "start", "vertical": "center" } }
 									] },
 									{ "id": "listAdd", "type": "label", "icon": "plus", "text": "", "textColor": "@color.muted", "width": 28, "height": 28, "radius": "@radius.chip", "align": "center",
-										"anchors": { "right": 12, "top": 4 }, "hover": { "color": "@color.chipHover" }, "cursor": "hand", "when": "{{c == 0}}",
-										"tooltip": "{{t('newCard.placeholder')}}", "onClick": { "focus": "#newCard" } }
+										"anchors": { "right": 12, "top": 4 }, "hover": { "color": "@color.chipHover" }, "cursor": "hand", "focusable": true, "role": "button",
+										"label": "{{t('composer.in', { column: column.name })}}", "tooltip": "{{t('composer.in', { column: column.name })}}", "onClick": { "run": "openComposer", "with": { "c": "{{c}}" } } }
 								]
 							},
 							{
