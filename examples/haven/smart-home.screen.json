@@ -575,7 +575,7 @@
 														"knobColor": "transparent",
 														"onChange": { "set": "state.scene", "to": "" }
 													},
-													{ "use": "levelBar", "with": { "level": "{{light.on ? (light.level - 10) / 90 : 0}}", "fill": "{{light.on ? tint : '@off'}}", "back": "{{light.on ? tint + '33' : '@raised'}}" },
+													{ "id": "level-bar-light", "use": "levelBar", "with": { "level": "{{light.on ? (light.level - 10) / 90 : 0}}", "fill": "{{light.on ? tint : '@off'}}", "back": "{{light.on ? tint + '33' : '@raised'}}" },
 														"anchors": { "left": 12, "right": 12, "bottom": 10 } },
 													{
 														"id": "slider-rooms-room-lights",
@@ -731,7 +731,7 @@
 									{ "id": "label-close", "type": "label", "icon": "chevron-down", "text": "", "anchors": { "right": "{{state.editing ? 96 : 56}}", "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center",
 										"color": "@raised", "hover": { "color": "@raisedHover" }, "textColor": "@text", "cursor": "hand", "focusable": true, "role": "button",
 										"label": "{{t('blinds.close')}}", "tooltip": "{{t('blinds.close')}}", "onClick": { "animate": "state.rooms[state.room].blinds", "to": 0, "ms": 500 } },
-									{ "use": "levelBar", "with": { "level": "{{computed.room.blinds / 100}}", "fill": "@cover", "back": "{{computed.coverTint}}" },
+									{ "id": "level-bar-blinds-card", "use": "levelBar", "with": { "level": "{{computed.room.blinds / 100}}", "fill": "@cover", "back": "{{computed.coverTint}}" },
 										"anchors": { "left": 12, "right": 12, "bottom": 12 } },
 									{
 										"id": "blinds",
@@ -843,18 +843,18 @@
 							}
 						]
 					},
-					{ "use": "scrim", "with": { "open": "state.colourOpen" } },
+					{ "id": "scrim-app", "use": "scrim", "with": { "open": "state.colourOpen" } },
 					{ "id": "colourDialog", "use": "colourDialog" },
-					{ "use": "scrim", "with": { "open": "state.info.open" } },
+					{ "id": "scrim-app-2", "use": "scrim", "with": { "open": "state.info.open" } },
 					{ "id": "moreInfo", "use": "moreInfo" },
-					{ "use": "scrim", "with": { "open": "state.cardEdit.open" } },
+					{ "id": "scrim-app-3", "use": "scrim", "with": { "open": "state.cardEdit.open" } },
 					{ "id": "cardEditor", "use": "cardEditor" },
 					{ "id": "notificationsPanel", "use": "notificationsPanel" },
 					{ "id": "simulator", "use": "simulator" },
 					{ "id": "toast", "dir": "auto", "use": "snackbar", "with": { "open": "state.toast.open", "message": "{{state.toast.message}}" } },
 					{ "id": "busyToast", "dir": "auto", "when": "{{computed.busyDevice != null}}", "use": "snackbar",
 						"with": { "open": true, "message": "{{t('device.busy', { name: lower(computed.busyDevice.name) })}}", "progress": "{{computed.busyDevice.progress}}" } },
-					{ "use": "scrim", "with": { "open": "state.quickPick.open" } },
+					{ "id": "scrim-app-4", "use": "scrim", "with": { "open": "state.quickPick.open" } },
 					{
 						"id": "quickPick",
 						"dir": "auto",
