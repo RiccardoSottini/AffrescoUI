@@ -1,7 +1,9 @@
 /// @file
-/// @brief format::readTokens(): the "tokens" section, resolved once per document change for every theme.
+/// @brief format::readTokens(): the "tokens" section, with the kit's defaults under it, resolved once per document
+/// change for every theme.
 
 #include "DesignTokens.hpp"
+#include "KitTokens.hpp"
 #include "PropertyValues.hpp"
 
 #include <cmath>
@@ -110,10 +112,11 @@ Themed<Value> collect(const TokenResolver& resolver, const std::string& name, Va
 
 NumberTable readTokens(const json& document, ColorTable& colors) {
 	NumberTable numbers;
-	if(!document.contains("tokens")) return numbers;
-	const json& tokens = object(document["tokens"], "tokens");
-
+	json tokens = document.contains("tokens") ? object(document["tokens"], "tokens") : json::object();
 	if(tokens.size() > tokenLimit) fail("tokens", "at most " + std::to_string(tokenLimit) + " tokens");
+	// The kit's defaults, under the document's own tokens and colours
+	for(const auto& [name, value] : kitTokens(followsKitThemes(document)).items())
+		if(!tokens.contains(name) && !colors.contains(name)) tokens[name] = value;
 	const TokenResolver resolver(tokens, colors);
 	const auto themes = resolver.themes();
 	if(themes.size() > themeLimit) fail("tokens", "at most " + std::to_string(themeLimit) + " themes");
