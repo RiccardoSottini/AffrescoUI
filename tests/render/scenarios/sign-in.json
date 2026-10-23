@@ -139,6 +139,55 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "sign-in-other-ways",
+			"screen": "sign-in.screen.json",
+			"steps": [
+				{
+					"click": "#passkey"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "passkey-picker"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#emailCode"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "246"
+				},
+				{
+					"expect": {
+						"image": "email-code"
+					}
+				}
+			]
 		}
 	]
 }

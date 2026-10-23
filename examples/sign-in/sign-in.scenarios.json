@@ -1296,7 +1296,7 @@
 				},
 				{
 					"expect": {
-						"node": "#provider",
+						"node": "#emailCode",
 						"property": "focused",
 						"is": true
 					}
@@ -1350,7 +1350,47 @@
 				},
 				{
 					"expect": {
+						"node": "#passkey",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
 						"node": "#provider",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#provider-wrenfield",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#provider-mossbank",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#provider-quillo",
 						"property": "focused",
 						"is": true
 					}
@@ -1590,7 +1630,10 @@
 			"note": "Bug: at the smallest window the create card with its errors ran past the window and over the footer; the card fits its content and is centred, so the email step's card is shorter than the password step's",
 			"steps": [
 				{
-					"resize": [480, 640]
+					"resize": [
+						480,
+						640
+					]
 				},
 				{
 					"wait": 50
@@ -1660,14 +1703,14 @@
 					"expect": {
 						"node": "#card",
 						"property": "y",
-						"is": 122
+						"is": 71
 					}
 				},
 				{
 					"expect": {
 						"node": "#card",
 						"property": "height",
-						"is": 408
+						"is": 510
 					}
 				},
 				{
@@ -1690,7 +1733,10 @@
 			"note": "Bug: sizes worked out in computed values kept the old window size until the next click, so the first click after a resize hit the wrong field; the card fits its content and is centred, so the email step's card is shorter than the password step's",
 			"steps": [
 				{
-					"resize": [480, 640]
+					"resize": [
+						480,
+						640
+					]
 				},
 				{
 					"expect": {
@@ -1702,14 +1748,14 @@
 					"expect": {
 						"node": "#card",
 						"property": "y",
-						"is": 122
+						"is": 71
 					}
 				},
 				{
 					"expect": {
 						"node": "#card",
 						"property": "height",
-						"is": 408
+						"is": 510
 					}
 				},
 				{
@@ -1731,7 +1777,10 @@
 					}
 				},
 				{
-					"resize": [960, 720]
+					"resize": [
+						960,
+						720
+					]
 				},
 				{
 					"expect": {
@@ -1743,7 +1792,7 @@
 					"expect": {
 						"node": "#card",
 						"property": "height",
-						"is": 476
+						"is": 578
 					}
 				}
 			]
@@ -1753,7 +1802,10 @@
 			"note": "At 1920 by 1080 the card stays 420 wide in the middle, with the logo and the footer",
 			"steps": [
 				{
-					"resize": [1920, 1080]
+					"resize": [
+						1920,
+						1080
+					]
 				},
 				{
 					"expect": {
@@ -3826,6 +3878,297 @@
 					"expect": {
 						"node": "#label-error",
 						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "passkey-sign-in",
+			"steps": [
+				{
+					"click": "#passkey"
+				},
+				{
+					"expect": {
+						"state": "passkeyOpen",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#passkey-choice",
+						"nth": 0,
+						"text": "Ada · ada@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#passkey-choice",
+						"nth": 1,
+						"exists": false
+					}
+				},
+				{
+					"click": "#passkey-choice"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "passkeyOpen",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as ada@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "passkey-cancelled",
+			"steps": [
+				{
+					"click": "#passkey"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#passkey-choice",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#passkey",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "passkeyOpen",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": false
+					}
+				},
+				{
+					"click": "#passkey"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "passkeyOpen",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#formError",
+						"property": "role",
+						"is": "alert"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#passkey",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "email-code-sign-in",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#emailCode",
+						"exists": true
+					}
+				},
+				{
+					"click": "#emailCode"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "email"
+					}
+				},
+				{
+					"expect": {
+						"node": "#twoStepCode",
+						"property": "name",
+						"is": "One-time code"
+					}
+				},
+				{
+					"click": "#twoStepCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as ada@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "email-code-then-two-step",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#emailCode"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#twoStepCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "twoStep"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-two-step-caption",
+						"text": "Enter the 6-digit code we sent to sam@example.com"
+					}
+				},
+				{
+					"click": "#twoStepCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "made-up-provider",
+			"steps": [
+				{
+					"expect": {
+						"node": "#provider-quillo",
+						"property": "description",
+						"is": "Other ways to sign in"
+					}
+				},
+				{
+					"click": "#provider-quillo"
+				},
+				{
+					"expect": {
+						"state": "busy",
+						"is": "provider"
+					}
+				},
+				{
+					"expect": {
+						"state": "providerName",
+						"is": "quillo"
+					}
+				},
+				{
+					"wait": 1300
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as you@quillo.example"
 					}
 				}
 			]

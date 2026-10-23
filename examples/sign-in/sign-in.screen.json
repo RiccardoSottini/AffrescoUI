@@ -184,7 +184,7 @@
 			"enterEmail": "Enter an email address",
 			"min8": "At least 8 characters",
 			"stronger": "Choose a stronger password",
-			"serverError": "{kind, select, noAccount {No account uses this email. Check it, or create one.} wrongPassword {The email or the password is not right.} provider {Example ID could not sign you in: {message}} other {Something went wrong. Try again.}}",
+			"serverError": "{kind, select, noAccount {No account uses this email. Check it, or create one.} wrongPassword {The email or the password is not right.} provider {{provider} could not sign you in: {message}} passkeyCancelled {The passkey was not used. Try again, or use your password.} other {Something went wrong. Try again.}}",
 			"sessionExpired": "Your session expired. Sign in again to go on.",
 			"signInAgain": "Sign in again",
 			"busy": "{what, select, lookup {Looking up your account…} signIn {Signing in…} create {Creating your account…} verify {Checking the code…} resend {Sending a new code…} reset {Sending the link…} setPassword {Saving your new password…} save {Saving your details…} password {Changing your password…} provider {Waiting for Example ID…} other {Please wait…}}",
@@ -265,7 +265,18 @@
 			"continue": "Continue",
 			"notYou": "Not you?",
 			"capsLock": "Caps Lock is on",
-			"signingInAs": "Signing in as {email}"
+			"signingInAs": "Signing in as {email}",
+			"passkey": "Sign in with a passkey",
+			"passkeyTitle": "Choose a passkey",
+			"passkeyMessage": "Saved on this device. Your fingerprint, face or screen lock confirms it.",
+			"emailCode": "Email me a code instead",
+			"emailCodeTitle": "Check your email",
+			"emailCodeCaption": "Enter the 6-digit code sent to {email}",
+			"provider_wrenfield": "Wrenfield",
+			"provider_mossbank": "Mossbank",
+			"provider_quillo": "Quillo",
+			"otherProviders": "Other ways to sign in",
+			"sending": "Sending a code…"
 		},
 		"it": {
 			"windowTitle": "Accedi",
@@ -288,7 +299,7 @@
 			"enterEmail": "Inserisci un indirizzo email",
 			"min8": "Almeno 8 caratteri",
 			"stronger": "Scegli una password più sicura",
-			"serverError": "{kind, select, noAccount {Nessun account usa questa email. Controllala o creane uno.} wrongPassword {L'email o la password non sono giuste.} provider {Example ID non è riuscito a farti accedere: {message}} other {Qualcosa è andato storto. Riprova.}}",
+			"serverError": "{kind, select, noAccount {Nessun account usa questa email. Controllala o creane uno.} wrongPassword {L'email o la password non sono giuste.} provider {{provider} non è riuscito a farti accedere: {message}} passkeyCancelled {La passkey non è stata usata. Riprova o usa la password.} other {Qualcosa è andato storto. Riprova.}}",
 			"sessionExpired": "La sessione è scaduta. Accedi di nuovo per continuare.",
 			"signInAgain": "Accedi di nuovo",
 			"busy": "{what, select, lookup {Ricerca del tuo account…} signIn {Accesso in corso…} create {Creazione dell'account…} verify {Verifica del codice…} resend {Invio di un nuovo codice…} reset {Invio del link…} setPassword {Salvataggio della nuova password…} save {Salvataggio dei dati…} password {Cambio della password…} provider {In attesa di Example ID…} other {Attendi…}}",
@@ -369,7 +380,18 @@
 			"continue": "Continua",
 			"notYou": "Non sei tu?",
 			"capsLock": "Il blocco maiuscole è attivo",
-			"signingInAs": "Accesso come {email}"
+			"signingInAs": "Accesso come {email}",
+			"passkey": "Accedi con una passkey",
+			"passkeyTitle": "Scegli una passkey",
+			"passkeyMessage": "Salvata su questo dispositivo. La confermi con impronta, volto o blocco schermo.",
+			"emailCode": "Inviami invece un codice per email",
+			"emailCodeTitle": "Controlla l'email",
+			"emailCodeCaption": "Inserisci il codice di 6 cifre inviato a {email}",
+			"provider_wrenfield": "Wrenfield",
+			"provider_mossbank": "Mossbank",
+			"provider_quillo": "Quillo",
+			"otherProviders": "Altri modi per accedere",
+			"sending": "Invio del codice…"
 		},
 		"ar": {
 			"windowTitle": "تسجيل الدخول",
@@ -392,7 +414,7 @@
 			"enterEmail": "أدخل عنوان بريد إلكتروني",
 			"min8": "8 أحرف على الأقل",
 			"stronger": "اختر كلمة مرور أقوى",
-			"serverError": "{kind, select, noAccount {لا يوجد حساب بهذا البريد. تحقّق منه أو أنشئ حسابًا.} wrongPassword {البريد الإلكتروني أو كلمة المرور غير صحيحين.} provider {تعذّر على Example ID تسجيل دخولك: {message}} other {حدث خطأ. حاول مرة أخرى.}}",
+			"serverError": "{kind, select, noAccount {لا يوجد حساب بهذا البريد. تحقّق منه أو أنشئ حسابًا.} wrongPassword {البريد الإلكتروني أو كلمة المرور غير صحيحين.} provider {تعذّر على {provider} تسجيل دخولك: {message}} passkeyCancelled {لم يُستخدم مفتاح المرور. حاول مرة أخرى أو استخدم كلمة المرور.} other {حدث خطأ. حاول مرة أخرى.}}",
 			"sessionExpired": "انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.",
 			"signInAgain": "سجّل الدخول مرة أخرى",
 			"busy": "{what, select, lookup {جارٍ البحث عن حسابك…} signIn {جارٍ تسجيل الدخول…} create {جارٍ إنشاء حسابك…} verify {جارٍ التحقق من الرمز…} resend {جارٍ إرسال رمز جديد…} reset {جارٍ إرسال الرابط…} setPassword {جارٍ حفظ كلمة المرور الجديدة…} save {جارٍ حفظ بياناتك…} password {جارٍ تغيير كلمة المرور…} provider {في انتظار Example ID…} other {يرجى الانتظار…}}",
@@ -473,7 +495,18 @@
 			"continue": "متابعة",
 			"notYou": "لست أنت؟",
 			"capsLock": "مفتاح الأحرف الكبيرة مُفعّل",
-			"signingInAs": "تسجيل الدخول باسم {email}"
+			"signingInAs": "تسجيل الدخول باسم {email}",
+			"passkey": "سجّل الدخول بمفتاح مرور",
+			"passkeyTitle": "اختر مفتاح مرور",
+			"passkeyMessage": "محفوظ على هذا الجهاز. تؤكّده ببصمتك أو وجهك أو قفل الشاشة.",
+			"emailCode": "أرسل لي رمزًا بالبريد بدلًا من ذلك",
+			"emailCodeTitle": "تحقّق من بريدك",
+			"emailCodeCaption": "أدخل الرمز المكوّن من 6 أرقام المرسل إلى {email}",
+			"provider_wrenfield": "Wrenfield",
+			"provider_mossbank": "Mossbank",
+			"provider_quillo": "Quillo",
+			"otherProviders": "طرق أخرى لتسجيل الدخول",
+			"sending": "جارٍ إرسال الرمز…"
 		}
 	},
 	"connections": {
@@ -513,27 +546,31 @@
 				"name": "Ada",
 				"password": "",
 				"twoStep": false,
-				"provider": false
+				"provider": false,
+				"passkey": true
 			},
 			{
 				"email": "sam@example.com",
 				"name": "Sam",
 				"password": "",
 				"twoStep": true,
-				"provider": false
+				"provider": false,
+				"passkey": false
 			}
 		],
 		"user": {
 			"email": "",
 			"name": "",
 			"twoStep": false,
-			"provider": false
+			"provider": false,
+			"passkey": false
 		},
 		"pending": {
 			"email": "",
 			"name": "",
 			"twoStep": false,
-			"provider": false
+			"provider": false,
+			"passkey": false
 		},
 		"code": "",
 		"codeError": "",
@@ -571,7 +608,10 @@
 			"open": false,
 			"message": "",
 			"action": ""
-		}
+		},
+		"codeMode": "twoStep",
+		"providerName": "exampleId",
+		"passkeyOpen": false
 	},
 	"stateTypes": {
 		"email": {
@@ -618,6 +658,9 @@
 		},
 		"step": {
 			"enum": ["email", "password"]
+		},
+		"codeMode": {
+			"enum": ["twoStep", "email"]
 		}
 	},
 	"persist": ["state.theme", "state.remember", "state.locale"],
@@ -643,7 +686,9 @@
 		"shortcuts": "{{map(commands, merge(it, { keyText: slice(join(split(join(split(join(split(join(split('|' + (it.keyLabel ?? ''), '⌃'), 'Ctrl+'), '⌥'), 'Option+'), '⇧'), 'Shift+'), '⌘'), 'Cmd+'), 1) }))}}",
 		"themeKey": "{{find(computed.shortcuts, it.name == 'toggleTheme').keyText}}",
 		"shortcutsKey": "{{find(computed.shortcuts, it.name == 'openShortcuts').keyText}}",
-		"signOutKey": "{{find(computed.shortcuts, it.name == 'signOut').keyText}}"
+		"signOutKey": "{{find(computed.shortcuts, it.name == 'signOut').keyText}}",
+		"passkeys": "{{filter(state.accounts, it.passkey)}}",
+		"providerTitle": "{{state.providerName == 'exampleId' ? 'Example ID' : t('provider_' + state.providerName)}}"
 	},
 	"styles": {
 		"caption": {
@@ -1381,6 +1426,10 @@
 				"to": "{{computed.account}}"
 			},
 			{
+				"set": "state.codeMode",
+				"to": "twoStep"
+			},
+			{
 				"if": "{{computed.account.twoStep}}",
 				"then": [
 					{
@@ -1528,6 +1577,21 @@
 				]
 			},
 			{
+				"if": "{{state.codeMode == 'email' && state.pending.twoStep}}",
+				"then": [
+					{
+						"set": "state.codeMode",
+						"to": "twoStep"
+					},
+					{
+						"run": "startTwoStep"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
 				"run": "enter"
 			}
 		],
@@ -1643,6 +1707,10 @@
 			{
 				"set": "state.formError",
 				"to": ""
+			},
+			{
+				"set": "state.providerName",
+				"to": "exampleId"
 			},
 			{
 				"set": "state.busy",
@@ -2323,7 +2391,152 @@
 					"to": "{{!state.slow}}"
 				}
 			]
-		}
+		},
+		"passkeySignIn": [
+			{
+				"note": "The browser's passkey picker, faked: the accounts on this device that saved one"
+			},
+			{
+				"if": "{{state.busy != ''}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.formError",
+				"to": ""
+			},
+			{
+				"set": "state.passkeyOpen",
+				"to": true
+			}
+		],
+		"choosePasskey": [
+			{
+				"note": "with: email"
+			},
+			{
+				"set": "state.passkeyOpen",
+				"to": false
+			},
+			{
+				"set": "state.pending",
+				"to": "{{merge(find(state.accounts, it.email == email), { twoStep: false })}}"
+			},
+			{
+				"run": "serverCall",
+				"with": {
+					"op": "passkeyDone",
+					"what": "passkey"
+				}
+			}
+		],
+		"passkeyDone": [
+			{
+				"note": "A passkey is two factors already, so it skips two-step"
+			},
+			{
+				"set": "state.submitted",
+				"to": false
+			},
+			{
+				"run": "enter"
+			}
+		],
+		"cancelPasskey": [
+			{
+				"set": "state.passkeyOpen",
+				"to": false
+			},
+			{
+				"set": "state.formError",
+				"to": "passkeyCancelled"
+			},
+			{
+				"after": 0,
+				"do": [
+					{
+						"focus": "#passkey"
+					}
+				]
+			}
+		],
+		"emailCodeSignIn": [
+			{
+				"if": "{{computed.account == null}}",
+				"then": [
+					{
+						"set": "state.formError",
+						"to": "noAccount"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.formError",
+				"to": ""
+			},
+			{
+				"set": "state.submitted",
+				"to": false
+			},
+			{
+				"set": "state.pending",
+				"to": "{{computed.account}}"
+			},
+			{
+				"set": "state.codeMode",
+				"to": "email"
+			},
+			{
+				"run": "serverCall",
+				"with": {
+					"op": "startTwoStep",
+					"what": "emailCode"
+				}
+			}
+		],
+		"otherProvider": [
+			{
+				"note": "with: name. A made-up provider that always says yes, after a moment"
+			},
+			{
+				"if": "{{state.busy != ''}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.formError",
+				"to": ""
+			},
+			{
+				"set": "state.providerName",
+				"to": "{{name}}"
+			},
+			{
+				"set": "state.busy",
+				"to": "provider"
+			},
+			{
+				"after": 1200,
+				"do": [
+					{
+						"run": "finishProvider",
+						"with": {
+							"email": "{{'you@' + name + '.example'}}",
+							"name": ""
+						}
+					}
+				]
+			}
+		]
 	},
 	"keys": {
 		"escape": {
@@ -2425,7 +2638,7 @@
 									"when": "{{state.formError != ''}}",
 									"style": "alert",
 									"height": 48,
-									"text": "{{t('serverError', { kind: state.formError, message: state.providerMessage })}}"
+									"text": "{{t('serverError', { kind: state.formError, message: state.providerMessage, provider: computed.providerTitle })}}"
 								},
 								{
 									"id": "label-email",
@@ -2616,6 +2829,15 @@
 									"onClick": "signIn"
 								},
 								{
+									"id": "emailCode",
+									"when": "{{state.step == 'password'}}",
+									"style": "link",
+									"font": "small",
+									"text": "{{state.busy == 'emailCode' ? t('sending') : t('emailCode')}}",
+									"disabled": "{{state.busy != ''}}",
+									"onClick": "emailCodeSignIn"
+								},
+								{
 									"id": "row-or",
 									"type": "row",
 									"height": 18,
@@ -2647,15 +2869,93 @@
 											"height": 1,
 											"color": "@color.border"
 										}
-									]
+									],
+									"when": "{{state.step == 'email'}}"
+								},
+								{
+									"id": "passkey",
+									"when": "{{state.step == 'email'}}",
+									"style": "secondary",
+									"icon": "{{state.busy == 'passkey' ? 'loader' : 'fingerprint-pattern'}}",
+									"text": "{{t('passkey')}}",
+									"disabled": "{{state.busy != ''}}",
+									"onClick": "passkeySignIn"
 								},
 								{
 									"id": "provider",
 									"style": "secondary",
-									"icon": "{{state.busy == 'provider' ? 'loader' : 'key-round'}}",
-									"text": "{{state.busy == 'provider' ? t('providerWaiting') : t('provider')}}",
+									"icon": "{{state.busy == 'provider' && state.providerName == 'exampleId' ? 'loader' : 'key-round'}}",
+									"text": "{{state.busy == 'provider' && state.providerName == 'exampleId' ? t('providerWaiting') : t('provider')}}",
 									"disabled": "{{state.busy != ''}}",
-									"onClick": "providerSignIn"
+									"onClick": "providerSignIn",
+									"when": "{{state.step == 'email'}}"
+								},
+								{
+									"id": "row-providers",
+									"when": "{{state.step == 'email'}}",
+									"type": "row",
+									"height": 40,
+									"gap": 8,
+									"anchors": {
+										"left": 0,
+										"right": 10
+									},
+									"children": [
+										{
+											"id": "provider-wrenfield",
+											"style": "secondary",
+											"grow": 1,
+											"height": 40,
+											"anchors": {},
+											"font": "small",
+											"icon": "{{state.busy == 'provider' && state.providerName == 'wrenfield' ? 'loader' : 'bird'}}",
+											"text": "{{t('provider_wrenfield')}}",
+											"description": "{{t('otherProviders')}}",
+											"disabled": "{{state.busy != ''}}",
+											"onClick": {
+												"run": "otherProvider",
+												"with": {
+													"name": "wrenfield"
+												}
+											}
+										},
+										{
+											"id": "provider-mossbank",
+											"style": "secondary",
+											"grow": 1,
+											"height": 40,
+											"anchors": {},
+											"font": "small",
+											"icon": "{{state.busy == 'provider' && state.providerName == 'mossbank' ? 'loader' : 'leaf'}}",
+											"text": "{{t('provider_mossbank')}}",
+											"description": "{{t('otherProviders')}}",
+											"disabled": "{{state.busy != ''}}",
+											"onClick": {
+												"run": "otherProvider",
+												"with": {
+													"name": "mossbank"
+												}
+											}
+										},
+										{
+											"id": "provider-quillo",
+											"style": "secondary",
+											"grow": 1,
+											"height": 40,
+											"anchors": {},
+											"font": "small",
+											"icon": "{{state.busy == 'provider' && state.providerName == 'quillo' ? 'loader' : 'feather'}}",
+											"text": "{{t('provider_quillo')}}",
+											"description": "{{t('otherProviders')}}",
+											"disabled": "{{state.busy != ''}}",
+											"onClick": {
+												"run": "otherProvider",
+												"with": {
+													"name": "quillo"
+												}
+											}
+										}
+									]
 								},
 								{
 									"id": "cancelProvider",
@@ -2843,7 +3143,7 @@
 								{
 									"id": "label-two-step",
 									"style": "title",
-									"text": "{{t('twoStepTitle')}}",
+									"text": "{{state.codeMode == 'email' ? t('emailCodeTitle') : t('twoStepTitle')}}",
 									"role": "heading"
 								},
 								{
@@ -2851,7 +3151,7 @@
 									"style": "caption",
 									"wrap": true,
 									"height": 40,
-									"text": "{{t('twoStepCaption', { email: state.pending.email })}}"
+									"text": "{{t(state.codeMode == 'email' ? 'emailCodeCaption' : 'twoStepCaption', { email: state.pending.email })}}"
 								},
 								{
 									"id": "label-code",
@@ -3534,6 +3834,55 @@
 							"left": 22,
 							"right": 20,
 							"top": 120
+						}
+					}
+				]
+			},
+			{
+				"id": "passkeyDialog",
+				"dir": "auto",
+				"use": "dialog",
+				"with": {
+					"open": "state.passkeyOpen",
+					"title": "{{t('passkeyTitle')}}",
+					"message": "{{t('passkeyMessage')}}",
+					"width": "{{min(420, window.width - 32)}}",
+					"height": "{{150 + 46 * length(computed.passkeys)}}",
+					"color": "@color.surface",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.accent",
+					"backdrop": "@color.backdrop",
+					"buttons": [
+						{
+							"title": "{{t('cancel')}}",
+							"run": "cancelPasskey"
+						}
+					]
+				},
+				"children": [
+					{
+						"id": "passkey-choice",
+						"repeat": {
+							"for": "pk",
+							"in": "computed.passkeys",
+							"index": "i",
+							"key": "{{pk.email}}"
+						},
+						"style": "secondary",
+						"height": 40,
+						"anchors": {
+							"left": 20,
+							"right": 20,
+							"top": "{{76 + 46 * i}}"
+						},
+						"icon": "fingerprint-pattern",
+						"text": "{{pk.name + ' · ' + pk.email}}",
+						"onClick": {
+							"run": "choosePasskey",
+							"with": {
+								"email": "{{pk.email}}"
+							}
 						}
 					}
 				]
