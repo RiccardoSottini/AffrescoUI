@@ -13,7 +13,7 @@
 	"fonts": {
 		"default": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
-			"size": 14,
+			"size": 15,
 			"fallback": [
 				"icons",
 				"arabic"
@@ -21,7 +21,7 @@
 		},
 		"small": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
-			"size": 12,
+			"size": 13,
 			"fallback": [
 				"icons",
 				"arabicSmall"
@@ -29,7 +29,7 @@
 		},
 		"tiny": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
-			"size": 10,
+			"size": 11,
 			"fallback": [
 				"icons",
 				"arabicTiny"
@@ -37,7 +37,7 @@
 		},
 		"heading": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
-			"size": 16,
+			"size": 17,
 			"fallback": [
 				"icons",
 				"arabicHeading"
@@ -65,7 +65,7 @@
 		},
 		"mark": {
 			"file": "../shared/fonts/Lucide.ttf",
-			"size": 18
+			"size": 22
 		},
 		"iconsSmall": {
 			"file": "../shared/fonts/Lucide.ttf",
@@ -73,19 +73,19 @@
 		},
 		"arabic": {
 			"file": "../shared/fonts/NotoSansArabic-Subset.ttf",
-			"size": 14
+			"size": 15
 		},
 		"arabicSmall": {
 			"file": "../shared/fonts/NotoSansArabic-Subset.ttf",
-			"size": 12
+			"size": 13
 		},
 		"arabicTiny": {
 			"file": "../shared/fonts/NotoSansArabic-Subset.ttf",
-			"size": 10
+			"size": 11
 		},
 		"arabicHeading": {
 			"file": "../shared/fonts/NotoSansArabic-Subset.ttf",
-			"size": 16
+			"size": 17
 		},
 		"arabicTitle": {
 			"file": "../shared/fonts/NotoSansArabic-Subset.ttf",
@@ -1187,6 +1187,8 @@
 		"sel": "{{indexOf(map(state.habits, it.id), state.selected)}}",
 		"h": "{{state.habits[computed.sel]}}",
 		"col": "{{computed.sel >= 0 ? computed.pal[computed.h.color] : '#757575'}}",
+		"bar": "{{computed.sel >= 0 ? ['#d32f2f', '#e64a19', '#f57c00', '#ff8f00', '#f9a825', '#afb42b', '#7cb342', '#388e3c', '#00897b', '#00acc1', '#039be5', '#1976d2', '#303f9f', '#5e35b1', '#8e24aa', '#d81b60', '#5d4037', '#303030', '#757575', '#aaaaaa'][computed.h.color] : '#616161'}}",
+		"accent": "{{state.edit.open ? computed.pal[state.edit.color] : computed.col}}",
 		"n": "{{computed.sel >= 0 ? length(computed.vals[computed.sel]) : 0}}",
 		"v": "{{computed.sel >= 0 ? computed.vals[computed.sel] : []}}",
 		"p": "{{computed.sel >= 0 ? computed.prefix[computed.sel] : []}}",
@@ -1205,7 +1207,7 @@
 		"historyVals": "{{map(computed.historyShown, computed.p[it] - (index + length(computed.historyEnds) - length(computed.historyShown) > 0 ? computed.p[computed.historyEnds[index + length(computed.historyEnds) - length(computed.historyShown) - 1]] : 0))}}",
 		"historyMax": "{{max(concat([1], computed.historyVals))}}",
 		"stats": "{{computed.n == 0 ? {score: 0, month: 0, year: 0, total: 0} : {score: computed.s[computed.n - 1].s, month: computed.s[computed.n - 1].s - (computed.n > 30 ? computed.s[computed.n - 31].s : 0), year: computed.s[computed.n - 1].s - (computed.n > 365 ? computed.s[computed.n - 366].s : 0), total: computed.p[computed.n - 1]}}}",
-		"weeks": "{{computed.sel >= 0 ? clamp(ceil((daysBetween(computed.h.from, computed.weekStart) + 1) / 7) + 1, 1, 105) : 0}}",
+		"weeks": "{{computed.sel >= 0 ? clamp(ceil((daysBetween(computed.h.from, computed.weekStart) + 1) / 7) + 1, 1, floor((computed.cardWidth - 65) / 25)) : 0}}",
 		"runs": "{{scan(computed.r, computed.v[index] == -1 ? acc : it.r >= 1 ? {len: acc.len + 1, start: acc.len > 0 ? acc.start : index} : {len: 0, start: index + 1}, {len: 0, start: 0})}}",
 		"streaks": "{{sort(slice(sort(map(filter(range(computed.n), computed.runs[it].len > 0 && (it == computed.n - 1 || computed.runs[it + 1].len == 0)), {len: computed.runs[it].len, from: computed.dates[computed.runs[it].start], to: computed.dates[it]}), -it.len), 0, 6), it.to, 'desc')}}",
 		"streakMax": "{{max(concat([1], map(computed.streaks, it.len)))}}",
@@ -1271,11 +1273,37 @@
 			},
 			"fitText": true
 		},
-		"caption": {
+		"small": {
 			"type": "label",
 			"font": "small",
-			"textColor": "@c.muted",
+			"textColor": "@c.muted"
+		},
+		"caption": {
+			"style": "small",
 			"fitText": true
+		},
+		"tiny": {
+			"type": "label",
+			"font": "tiny",
+			"textColor": "@c.muted"
+		},
+		"axis": {
+			"style": "tiny",
+			"anchors": {
+				"left": 0,
+				"right": 0,
+				"top": 2
+			},
+			"height": 12,
+			"align": "center"
+		},
+		"axis2": {
+			"style": "axis",
+			"anchors": {
+				"left": 0,
+				"right": 0,
+				"top": 16
+			}
 		},
 		"body": {
 			"type": "label",
@@ -1293,7 +1321,7 @@
 			"textColor": "@c.text",
 			"placeholderColor": "@c.muted",
 			"focused": {
-				"borderColor": "@c.primary",
+				"borderColor": "{{computed.accent}}",
 				"borderWidth": 2
 			}
 		},
@@ -1342,9 +1370,9 @@
 			"role": "radio",
 			"cursor": "hand",
 			"borderWidth": 1,
-			"borderColor": "@c.primary",
-			"color": "@c.selected",
-			"textColor": "@c.primary"
+			"borderColor": "{{computed.accent}}",
+			"color": "{{computed.accent + '1f'}}",
+			"textColor": "{{computed.accent}}"
 		},
 		"sectionTitle": {
 			"type": "label",
@@ -1365,8 +1393,8 @@
 			"params": {
 				"value": 0,
 				"color": "#888888",
-				"size": 20,
-				"stroke": 4
+				"size": 22,
+				"stroke": 3
 			},
 			"node": {
 				"width": "{{size}}",
@@ -1556,7 +1584,7 @@
 						},
 						"height": 14,
 						"radius": 7,
-						"color": "{{on && enabled ? '@c.switchTrack' : '@c.faint'}}"
+						"color": "{{on && enabled ? computed.accent + '80' : '@c.faint'}}"
 					},
 					{
 						"anchors": {
@@ -1566,7 +1594,7 @@
 						"width": 22,
 						"height": 22,
 						"radius": 11,
-						"color": "{{on && enabled ? '@c.primary' : '@c.knob'}}",
+						"color": "{{on && enabled ? computed.accent : '@c.knob'}}",
 						"shadow": {
 							"y": 1,
 							"blur": 3,
@@ -2307,10 +2335,8 @@
 												"color": "transparent",
 												"children": [
 													{
-														"type": "label",
+														"style": "tiny",
 														"text": "{{upper(formatDate(dateMs(d), 'EEE', 'utc'))}}",
-														"font": "tiny",
-														"textColor": "@c.muted",
 														"anchors": {
 															"left": 0,
 															"right": 0,
@@ -2371,7 +2397,7 @@
 											"right": 8
 										},
 										"height": 56,
-										"color": "{{on ? '@c.selected' : '@c.card'}}",
+										"color": "{{on ? computed.pal[hb.color] + '14' : '@c.card'}}",
 										"focusable": true,
 										"role": "listitem",
 										"label": "{{hb.name}}",
@@ -2599,10 +2625,8 @@
 										"align": "center"
 									},
 									{
-										"type": "label",
+										"style": "small",
 										"text": "{{t('emptyHint')}}",
-										"font": "small",
-										"textColor": "@c.muted",
 										"anchors": {
 											"left": 0,
 											"right": 0,
@@ -2774,18 +2798,18 @@
 									},
 									{
 										"id": "subtitle",
+										"style": "card",
 										"width": "{{computed.cardWidth}}",
-										"height": "{{computed.h.description != '' ? 84 : 62}}",
-										"color": "transparent",
+										"height": "{{computed.h.description != '' ? 92 : 70}}",
 										"children": [
 											{
 												"type": "label",
 												"text": "{{computed.h.question}}",
 												"textColor": "{{computed.col}}",
 												"anchors": {
-													"left": 4,
-													"right": 4,
-													"top": 8
+													"left": 16,
+													"right": 16,
+													"top": 12
 												},
 												"height": 20
 											},
@@ -2793,39 +2817,30 @@
 												"type": "row",
 												"id": "subtitleFacts",
 												"anchors": {
-													"left": 4,
-													"right": 4,
-													"top": 34
+													"left": 16,
+													"right": 16,
+													"top": 38
 												},
 												"height": 20,
 												"gap": 20,
 												"children": [
 													{
-														"type": "label",
+														"style": "caption",
 														"text": "{{computed.freqText}}",
-														"font": "small",
 														"icon": "repeat",
-														"textColor": "@c.muted",
-														"fitText": true,
 														"height": 20
 													},
 													{
-														"type": "label",
+														"style": "caption",
 														"text": "{{computed.h.reminder == null ? t('reminderOff') : formatTime(dateMs('2000-01-01') + (number(slice(computed.h.reminder.time, 0, 2)) * 60 + number(slice(computed.h.reminder.time, 3, 5))) * 60000, 'short', 'utc')}}",
-														"font": "small",
 														"icon": "{{computed.h.reminder == null ? 'bell-off' : 'bell'}}",
-														"textColor": "@c.muted",
-														"fitText": true,
 														"height": 20
 													},
 													{
-														"type": "label",
+														"style": "caption",
 														"text": "{{t('archivedTag')}}",
 														"when": "{{computed.h.archived}}",
-														"font": "small",
 														"icon": "archive",
-														"textColor": "@c.muted",
-														"fitText": true,
 														"height": 20
 													}
 												]
@@ -2837,9 +2852,9 @@
 												"font": "small",
 												"textColor": "@c.text",
 												"anchors": {
-													"left": 4,
-													"right": 4,
-													"top": 60
+													"left": 16,
+													"right": 16,
+													"top": 64
 												},
 												"height": 18
 											}
@@ -2875,8 +2890,8 @@
 														"with": {
 															"value": "{{computed.stats.score}}",
 															"color": "{{computed.col}}",
-															"size": 44,
-															"stroke": 3.5
+															"size": 48,
+															"stroke": 2.5
 														}
 													},
 													{
@@ -2967,15 +2982,12 @@
 																"fitText": true
 															},
 															{
-																"type": "label",
+																"style": "caption",
 																"text": "{{t('goalOf', {value: formatNumber(g.value, 0, 1), goal: formatNumber(g.goal, 0, 1)}) + ' ' + computed.h.unit}}",
-																"font": "small",
-																"textColor": "@c.muted",
 																"anchors": {
 																	"right": 0,
 																	"top": 0
-																},
-																"fitText": true
+																}
 															},
 															{
 																"anchors": {
@@ -3149,30 +3161,12 @@
 														"color": "transparent",
 														"children": [
 															{
-																"type": "label",
-																"text": "{{lb.a}}",
-																"font": "tiny",
-																"textColor": "@c.muted",
-																"anchors": {
-																	"left": 0,
-																	"right": 0,
-																	"top": 2
-																},
-																"height": 12,
-																"align": "center"
+																"style": "axis",
+																"text": "{{lb.a}}"
 															},
 															{
-																"type": "label",
-																"text": "{{lb.b}}",
-																"font": "tiny",
-																"textColor": "@c.muted",
-																"anchors": {
-																	"left": 0,
-																	"right": 0,
-																	"top": 16
-																},
-																"height": 12,
-																"align": "center"
+																"style": "axis2",
+																"text": "{{lb.b}}"
 															}
 														]
 													}
@@ -3304,30 +3298,12 @@
 														"color": "transparent",
 														"children": [
 															{
-																"type": "label",
-																"text": "{{lb.a}}",
-																"font": "tiny",
-																"textColor": "@c.muted",
-																"anchors": {
-																	"left": 0,
-																	"right": 0,
-																	"top": 2
-																},
-																"height": 12,
-																"align": "center"
+																"style": "axis",
+																"text": "{{lb.a}}"
 															},
 															{
-																"type": "label",
-																"text": "{{lb.b}}",
-																"font": "tiny",
-																"textColor": "@c.muted",
-																"anchors": {
-																	"left": 0,
-																	"right": 0,
-																	"top": 16
-																},
-																"height": 12,
-																"align": "center"
+																"style": "axis2",
+																"text": "{{lb.b}}"
 															}
 														]
 													}
@@ -3359,7 +3335,6 @@
 												},
 												"height": 210,
 												"gap": 3,
-												"scroll": "horizontal",
 												"children": [
 													{
 														"type": "column",
@@ -3377,10 +3352,8 @@
 														"gap": 3,
 														"children": [
 															{
-																"type": "label",
+																"style": "tiny",
 																"text": "{{number(formatDate(dateMs(addDays(computed.weekStart, -7 * w)), 'd', 'utc')) <= 7 ? formatDate(dateMs(addDays(computed.weekStart, -7 * w)), 'MMM', 'utc') : ''}}",
-																"font": "tiny",
-																"textColor": "@c.muted",
 																"height": 14,
 																"width": 40
 															},
@@ -3449,15 +3422,13 @@
 												"gap": 3,
 												"children": [
 													{
-														"type": "label",
+														"style": "tiny",
 														"text": "{{formatDate(dateMs(addDays('2000-01-02', wd)), 'EEE', 'utc')}}",
 														"id": "calWeekday",
 														"repeat": {
 															"for": "wd",
 															"in": "{{computed.weekdays}}"
 														},
-														"font": "tiny",
-														"textColor": "@c.muted",
 														"height": 22,
 														"width": 36,
 														"align": {
@@ -3483,16 +3454,13 @@
 												"textColor": "{{computed.col}}"
 											},
 											{
-												"type": "label",
+												"style": "caption",
 												"text": "{{t('noStreaks')}}",
 												"when": "{{length(computed.streaks) == 0}}",
-												"font": "small",
-												"textColor": "@c.muted",
 												"anchors": {
 													"left": 16,
 													"top": 46
-												},
-												"fitText": true
+												}
 											},
 											{
 												"type": "column",
@@ -3524,10 +3492,8 @@
 														"label": "{{formatDate(dateMs(st.from), 'medium', 'utc') + ' – ' + formatDate(dateMs(st.to), 'medium', 'utc') + ': ' + t('days', {n: st.len})}}",
 														"children": [
 															{
-																"type": "label",
+																"style": "tiny",
 																"text": "{{formatDate(dateMs(st.from), 'd MMM yyyy', 'utc')}}",
-																"font": "tiny",
-																"textColor": "@c.muted",
 																"width": 80,
 																"height": 14,
 																"align": "end"
@@ -3549,10 +3515,8 @@
 																]
 															},
 															{
-																"type": "label",
+																"style": "tiny",
 																"text": "{{formatDate(dateMs(st.to), 'd MMM yyyy', 'utc')}}",
-																"font": "tiny",
-																"textColor": "@c.muted",
 																"width": 80,
 																"height": 14,
 																"align": "start"
@@ -3626,15 +3590,13 @@
 																		"width": "{{c == 0 ? 4 : 8 + c * 4}}",
 																		"height": "{{c == 0 ? 4 : 8 + c * 4}}",
 																		"radius": 20,
-																		"color": "{{c == 0 ? '@c.track' : computed.col}}"
+																		"color": "{{c == 0 ? '@c.track' : computed.col + ['59', '80', 'a6', 'cc', 'f2'][min(c, 5) - 1]}}"
 																	}
 																]
 															},
 															{
-																"type": "label",
+																"style": "tiny",
 																"text": "{{formatDate(dateMs(mo + '-01'), 'MMM', 'utc')}}",
-																"font": "tiny",
-																"textColor": "@c.muted",
 																"anchors": {
 																	"left": 0,
 																	"right": 0
@@ -3657,15 +3619,13 @@
 												"height": 168,
 												"children": [
 													{
-														"type": "label",
+														"style": "tiny",
 														"text": "{{formatDate(dateMs(addDays('2000-01-02', wd)), 'EEE', 'utc')}}",
 														"id": "freqWeekday",
 														"repeat": {
 															"for": "wd",
 															"in": "{{computed.weekdays}}"
 														},
-														"font": "tiny",
-														"textColor": "@c.muted",
 														"height": 24,
 														"width": 36,
 														"align": {
@@ -3691,16 +3651,13 @@
 												"textColor": "{{computed.col}}"
 											},
 											{
-												"type": "label",
+												"style": "caption",
 												"text": "{{t('noNotes')}}",
 												"when": "{{length(computed.notes) == 0}}",
-												"font": "small",
-												"textColor": "@c.muted",
 												"anchors": {
 													"left": 16,
 													"top": 46
-												},
-												"fitText": true
+												}
 											},
 											{
 												"type": "column",
@@ -3798,7 +3755,7 @@
 									"top": 0
 								},
 								"height": 56,
-								"color": "{{computed.col}}",
+								"color": "{{computed.bar}}",
 								"shadow": {
 									"y": 2,
 									"blur": 4,
@@ -3811,7 +3768,7 @@
 										"icon": "arrow-left",
 										"label": "{{t('back')}}",
 										"tooltip": "{{t('back')}}",
-										"textColor": "{{computed.onColor}}",
+										"textColor": "#ffffff",
 										"onClick": {
 											"set": "state.page",
 											"to": "list"
@@ -3827,7 +3784,7 @@
 										"type": "label",
 										"text": "{{computed.sel >= 0 ? computed.h.name : t('app')}}",
 										"font": "title",
-										"textColor": "{{computed.onColor}}",
+										"textColor": "#ffffff",
 										"anchors": {
 											"left": "{{computed.wide ? 20 : 56}}",
 											"right": 100,
@@ -3855,7 +3812,7 @@
 												"icon": "pencil",
 												"label": "{{t('edit')}}",
 												"tooltip": "{{t('edit')}}",
-												"textColor": "{{computed.onColor}}",
+												"textColor": "#ffffff",
 												"onClick": "editHabit"
 											},
 											{
@@ -3864,7 +3821,7 @@
 												"icon": "ellipsis-vertical",
 												"label": "{{t('more')}}",
 												"tooltip": "{{t('more')}}",
-												"textColor": "{{computed.onColor}}",
+												"textColor": "#ffffff",
 												"onClick": {
 													"set": "state.menus.detail",
 													"to": true
@@ -4062,6 +4019,7 @@
 							"message": "",
 							"width": 600,
 							"height": "{{state.edit.kind == 'measurable' ? 500 : 436}}",
+							"highlight": "{{computed.accent}}",
 							"buttons": "{{[{title: t('save'), run: 'saveHabit'}, {title: t('cancel')}]}}"
 						},
 						"children": [
@@ -4086,15 +4044,12 @@
 										"color": "transparent",
 										"children": [
 											{
-												"type": "label",
+												"style": "caption",
 												"text": "{{t('edit.name')}}",
-												"font": "small",
-												"textColor": "@c.muted",
 												"anchors": {
 													"left": 2,
 													"top": 0
-												},
-												"fitText": true
+												}
 											},
 											{
 												"style": "field",
@@ -4156,7 +4111,7 @@
 																	"right": 12,
 																	"top": 38
 																},
-																"height": 150,
+																"height": 176,
 																"arrows": "both",
 																"children": [
 																	{
@@ -4220,15 +4175,12 @@
 										"color": "transparent",
 										"children": [
 											{
-												"type": "label",
+												"style": "caption",
 												"text": "{{t('edit.question')}}",
-												"font": "small",
-												"textColor": "@c.muted",
 												"anchors": {
 													"left": 2,
 													"top": 0
-												},
-												"fitText": true
+												}
 											},
 											{
 												"style": "field",
@@ -4254,15 +4206,12 @@
 										"color": "transparent",
 										"children": [
 											{
-												"type": "label",
+												"style": "caption",
 												"text": "{{t('edit.target')}}",
-												"font": "small",
-												"textColor": "@c.muted",
 												"anchors": {
 													"left": 2,
 													"top": 0
-												},
-												"fitText": true
+												}
 											},
 											{
 												"type": "row",
@@ -4326,15 +4275,12 @@
 										"color": "transparent",
 										"children": [
 											{
-												"type": "label",
+												"style": "caption",
 												"text": "{{t('edit.frequency')}}",
-												"font": "small",
-												"textColor": "@c.muted",
 												"anchors": {
 													"left": 2,
 													"top": 0
-												},
-												"fitText": true
+												}
 											},
 											{
 												"type": "row",
@@ -4486,15 +4432,12 @@
 										"color": "transparent",
 										"children": [
 											{
-												"type": "label",
+												"style": "caption",
 												"text": "{{t('edit.reminder')}}",
-												"font": "small",
-												"textColor": "@c.muted",
 												"anchors": {
 													"left": 2,
 													"top": 0
-												},
-												"fitText": true
+												}
 											},
 											{
 												"type": "row",
@@ -4557,15 +4500,12 @@
 										"color": "transparent",
 										"children": [
 											{
-												"type": "label",
+												"style": "caption",
 												"text": "{{t('edit.notes')}}",
-												"font": "small",
-												"textColor": "@c.muted",
 												"anchors": {
 													"left": 2,
 													"top": 0
-												},
-												"fitText": true
+												}
 											},
 											{
 												"style": "field",

@@ -189,9 +189,9 @@ private:
 	bool synced_ = false;                              ///< The last update ended without an error.
 	std::uint64_t syncedAppearance_ = 0;               ///< DocumentContext::appearance() then.
 	std::string syncedScreen_;                         ///< DocumentContext::screen() then.
-	std::string syncedWindow_; ///< The window's size, scale and colour scheme then ("window" in computed values).
-	ReadSet rootScopeReads_;                           ///< What the root's "with", "let" and "style" read.
-	UpdateStatistics statistics_;                      ///< See statistics().
+	std::string syncedWindow_;    ///< The window's size, scale and colour scheme then ("window" in computed values).
+	ReadSet rootScopeReads_;      ///< What the root's "with", "let" and "style" read.
+	UpdateStatistics statistics_; ///< See statistics().
 };
 
 } // namespace affresco::format
