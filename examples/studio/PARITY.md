@@ -34,15 +34,15 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | App | Keyboard shortcuts (tabs, commit, lists) | | partial | partial |
 | App | No-repository and offline states | Not connected | partial | partial |
 | Pull request | Header: title, number, state, "wants to merge N commits into main" | A proposal: open or conflicting | missing | partial |
-| Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence; nested in a second card | missing | partial |
-| Pull request | Conversation: description and timeline of commits and reviews | Opened, changes, pushed, approvals, policy | missing | partial |
+| Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence; under the Studio's own tabs | missing | partial |
+| Pull request | Conversation: description and timeline of commits and reviews | Opened, changes, pushed, approvals, reviews, policy | missing | partial |
 | Pull request | Sidebar: reviewers, state of each | Who approved, what the policy needs | missing | missing |
 | Pull request | Files changed: file tree, per-file +/− counts, "Viewed" | Per-file counts and blocks, collapse, Viewed; no tree | missing | partial |
 | Pull request | Comments on a line, with suggestions | | missing | missing |
-| Pull request | Review box: Comment, Approve, Request changes | Accept, reject | partial | partial |
+| Pull request | Review box: Comment, Approve, Request changes | The three kinds and a text; comments and change requests go to the agents as requests, Approve merges | partial | partial |
 | Pull request | Checks: what ran, with its results | Evidence: scenarios, pictures before and after | partial | partial |
-| Pull request | Merge box states: conflicts, blocked, ready, merged | Refusals and conflicts | partial | partial |
-| Pull request | Merge button with options | Accept, "always allow" | partial | partial |
+| Pull request | Merge box states: conflicts, blocked, ready, merged | Ready, blocked (the refusal), conflicts, merging; a merged notice | partial | partial |
+| Pull request | Merge button with options | Merge, "always allow" | partial | partial |
 | Pull request | Close the pull request | Reject, with a reason | partial | partial |
 | Pull request | Check out the pull request | Preview | partial | partial |
 

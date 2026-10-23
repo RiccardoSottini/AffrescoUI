@@ -1882,7 +1882,7 @@
 				},
 				{
 					"expect": {
-						"node": "#label-changes",
+						"node": "#acceptRefusal",
 						"text": "Conflicts with main: its author must push again"
 					}
 				},
