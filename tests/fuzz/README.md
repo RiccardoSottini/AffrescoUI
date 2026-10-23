@@ -45,6 +45,8 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `git_output` | What git prints for Forge (`examples/forge/features/scm`): `status --porcelain=v2 -z`, `for-each-ref`, and the line diff of two texts; the first byte picks which | Within the byte, entry and path limits; every file has a known kind, at most one branch is current, a diff's rows account for every line |
 | `vscode_theme` | A VS Code colour theme, imported by Forge (`examples/forge/features/themes/ThemeImport.hpp`) | An id of lower-case letters, digits and dashes (at most 40), and a patch adding only `#rrggbb` or `#rrggbbaa` colours under `/tokens/`, or a `std::runtime_error` |
 | `adapters` | Any text, to `convertForeign` (`format/include/affresco/format/Adapters.hpp`): an A2UI message stream or an Adaptive Card, as the screen loader converts it | Refused with `json::parse_error` or `DocumentError`, or not another format's; a conversion is a screen the format accepts, within the limits |
+| `gltf` | A file's bytes, `.gltf` or `.glb`, to the glTF loader (`modules/scene3d/src/gltf/`), without a folder, so only embedded and `data:` buffers are read | Refused with an error, or a model within the limits it was given |
+| `scene` | `{ gltf, scene, animations, time }`: a scene node's scene and clips (`format/src/creative/SceneType.cpp`), the glTF placed as an asset, read at the time | Within its node and material limits; every placed node is in the scene and selects its owner; read back from its JSON it is the same scene |
 
 ## Inventory of untrusted inputs
 
@@ -60,6 +62,8 @@ of these and what limits them.
 | URLs a connection, a sign-in provider or a peer names | Screens, peers, providers | `url` |
 | Sign-in answers (token, device code, error, redirect, id token) | The provider, or whoever answers in its place | `oauth` |
 | Image files a revision names (PNG, JPEG, SVG) | Peers, within the allowed folders | `image`, `path` |
+| glTF models a scene node names | Peers, within the allowed folders | `gltf`, `scene` |
+| A scene node's scene and animations (state) | Agents and peers, by revisions | `scene` |
 | Font files a revision names | Peers, within the allowed folders | `lookups` for the tables the app reads itself; the rest is FreeType and HarfBuzz, fuzzed upstream by OSS-Fuzz, and `text` and `richtext` shape through them |
 | Text typed, pasted or sent to an editor | Users and peers | `text_model`, `text`, `richtext`, `syntax` (the grammars that colour it) |
 | Find and search patterns, replacements, globs, `.gitignore` files | Peers, and whoever made the searched folder | `find_pattern`, `search_glob` |
@@ -95,7 +99,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output` or `vscode_theme` in place of
+Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output`, `vscode_theme`, `gltf` or `scene` in place of
 `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.
@@ -150,7 +154,7 @@ artifact, in a folder named after its target.
 
 | File | What it is |
 |---|---|
-| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp`, `url.cpp`, `oauth.cpp`, `history.cpp`, `token_file.cpp`, `git_output.cpp`, `vscode_theme.cpp` and the others named above | The targets |
+| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp`, `url.cpp`, `oauth.cpp`, `history.cpp`, `token_file.cpp`, `git_output.cpp`, `vscode_theme.cpp`, `gltf.cpp`, `scene.cpp` and the others named above | The targets |
 | `Fuzz.hpp` | What they share: the input as text, the Kanban template, `broken()` |
 | `corpus.py` | Writes the seeds and dictionaries: from the templates (`examples/templates.json`), the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
 | `CMakeLists.txt` | The targets, added when `AFFRESCOUI_BUILD_FUZZERS` is on |

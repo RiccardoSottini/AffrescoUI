@@ -136,10 +136,13 @@ ViewportSettings viewportSettingsFromJson(const json& params) noexcept {
 	try {
 		if(const auto selection = params.find("selection"); selection != params.end())
 			settings.selection = selectionFromJson(*selection);
+		if(const auto outlined = params.find("outlined"); outlined != params.end())
+			settings.outlined = selectionFromJson(*outlined);
 		settings.shading = shadingNamed(textOf(params, "shading")).value_or(Shading::Material);
 		if(const auto gizmo = params.find("gizmo"); gizmo != params.end()) settings.gizmo = gizmoFromJson(*gizmo);
 	} catch(const std::exception&) {
 		settings.selection.clear(); // only an allocation can fail here
+		settings.outlined.clear();
 	}
 	settings.grid = flagOr(params, "grid", true);
 	settings.axes = flagOr(params, "axes", true);
