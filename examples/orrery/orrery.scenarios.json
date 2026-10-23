@@ -142,6 +142,9 @@
 			"name": "annotate-the-chart",
 			"steps": [
 				{
+					"action": "skyAbove"
+				},
+				{
 					"expect": {
 						"state": "notes.length",
 						"is": 1
@@ -1414,6 +1417,9 @@
 			"name": "the-sky-chart-names-the-selected-body",
 			"steps": [
 				{
+					"action": "skyAbove"
+				},
+				{
 					"expect": {
 						"node": "#chart-info-name",
 						"property": "text",
@@ -1432,6 +1438,127 @@
 						"node": "#chart-info",
 						"property": "height",
 						"is": 42
+					}
+				}
+			]
+		},
+		{
+			"name": "the-sky-from-the-ground",
+			"note": "The sky chart opens on the sky from the ground. Dragging turns the view, a click on a planet selects it and names its place in the sky, the wheel widens the field of view.",
+			"steps": [
+				{
+					"expect": {
+						"state": "skyMode",
+						"is": "ground"
+					}
+				},
+				{
+					"action": "skyPress"
+				},
+				{
+					"action": "skyDrag",
+					"event": {
+						"dx": 900,
+						"dy": -46
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Mars"
+					}
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "mars"
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart-info-line",
+						"property": "text",
+						"is": "Az./Alt.: 65.6° / 8.3°"
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart-info-sky",
+						"property": "text",
+						"is": "RA/Dec.: 6.78h / 23.0°"
+					}
+				},
+				{
+					"action": "skyScroll",
+					"event": {
+						"dy": 1
+					}
+				},
+				{
+					"expect": {
+						"node": "#sky-place",
+						"property": "text",
+						"is": "Earth, 45°N   FOV 63.8°"
+					}
+				}
+			]
+		},
+		{
+			"name": "the-sky-layers-toggle",
+			"note": "The bar at the bottom of the sky hides and shows the ground and the constellation names; From above goes back to the chart.",
+			"steps": [
+				{
+					"expect": {
+						"node": "#sky-ground",
+						"property": "visible",
+						"is": true
+					}
+				},
+				{
+					"action": "toggleSkyGround"
+				},
+				{
+					"expect": {
+						"node": "#sky-ground",
+						"property": "visible",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "skyLayers.names",
+						"is": true
+					}
+				},
+				{
+					"action": "toggleSkyNames"
+				},
+				{
+					"expect": {
+						"state": "skyLayers.names",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "The chart from above"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyMode",
+						"is": "above"
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart",
+						"property": "visible",
+						"is": true
 					}
 				}
 			]

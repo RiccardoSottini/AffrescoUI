@@ -1,7 +1,7 @@
 # Orrery: parity
 
 Orrery's 3D view is modelled on Celestia, and its sky chart on Stellarium. This file lists what those kinds of app
-do, and how far Orrery has come, one round at a time. Everything is in `orrery.screen.json`: no code of its own.
+do, and how far Orrery has come, one round at a time. Everything is in `orrery.screen.json` and the sky from the ground in `sky.json`, which it includes: no code of its own.
 
 Status: **done**, **part** (there, but less than the model) or **missing**. The data is invented: a toy solar
 system of six bodies on circular orbits in one plane.
@@ -32,11 +32,11 @@ system of six bodies on circular orbits in one plane.
 
 | # | Feature | Status | How |
 |---|---|---|---|
-| S1 | A sky chart with stars, orbits and bodies | part | a `canvas` seen from above, not from the ground |
-| S2 | Horizon, ground and cardinal points | missing | |
-| S3 | Constellation lines and names | missing | |
-| S4 | Toggle bar at the bottom (lines, ground, atmosphere, grid) | missing | |
-| S5 | Object info on selection, top left | done | the selected body's name, distance from the Sun and orbit over the chart |
+| S1 | A sky chart with stars, orbits and bodies | done | from the ground (the default): the stars, the planets and the Sun seen from the Earth at 45°N, in a perspective view turned by dragging and zoomed with the wheel, every position a computed value from right ascension, declination and the sidereal time; from above: a `canvas` with the orbits |
+| S2 | Horizon, ground and cardinal points | done | a ground panel below the horizon, N, E, S and W on it, an azimuthal grid; the sky brightens and the stars fade while the Sun is up |
+| S3 | Constellation lines and names | done | fourteen invented constellations of the brighter stars, their lines in a `path`, their names at their centres |
+| S4 | Toggle bar at the bottom (lines, ground, atmosphere, grid) | done | the built-in `toolbar`, bottom left: lines, names, grid, ground, cardinal points, atmosphere, planet labels; the place and field of view bottom right |
+| S5 | Object info on selection, top left | done | the selected body's name, and its azimuth and altitude, right ascension and declination from the ground, or its distance from the Sun and orbit from above |
 | S6 | Time controls: faster, slower, now, real time | part | play, next or previous event (by direction), day 0, the time keys; no real time |
 | S7 | Annotations on the chart (notes, marks) | done | the canvas's items |
 
@@ -65,3 +65,4 @@ system of six bodies on circular orbits in one plane.
 | 8 | Markers (M, View menu); the limiting magnitude, shown and changed with equal and minus, the stars sized by magnitude | 21 / 3 / 5 | 27,039 |
 | 9 | The built-in menu bar, toolbar and status bar in place of hand-made ones; muting a kind of event; fixes from the round 8 critique: a body moved under a planet orbits close to it and goes back to its old orbit, spheres sized without the labels' clamp, nothing marked without a selection | 21 / 3 / 5 | 27,556 |
 | 10 | Eclipse finder (eclipses computed from the orbits and eclipse seasons, the timeline's eclipses with them); the selected body's info on the sky chart | 23 / 3 / 3 | 28,846 |
+| 11 | The sky from the ground: horizon, ground, cardinal points, grid, daylight, invented constellations, the toggle bar | 27 / 2 / 0 | 29,306 + 5,334 for `sky.json` |

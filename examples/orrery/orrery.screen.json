@@ -2,6 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
+	"include": ["sky.json"],
 	"note": "Orrery, a small planetarium, all in this file: the 3D view is the bodies projected with sin and cos in computed values and drawn as discs and paths, and each body's thumbnail is a node drawn into the image body:<id> (snapshot). The bodies strip at the bottom is Sinopia's slide sorter, installed through the bodies.dock point and orrery-sorter.adapter.json.",
 	"window": {
 		"title": "Orrery",
@@ -2245,15 +2246,31 @@
 										"color": "@panel",
 										"children": [
 											{
-												"type": "label",
-												"id": "chart-title",
-												"style": "heading",
-												"text": "Sky chart, from above",
-												"fitText": true
+												"id": "sky-mode-ground",
+												"style": "button",
+												"role": "button",
+												"text": "From the ground",
+												"label": "The sky from the ground",
+												"selected": "{{state.skyMode == 'ground'}}",
+												"color": "{{state.skyMode == 'ground' ? '@raised' : '@panel'}}",
+												"fitText": true,
+												"onClick": "skyGround"
+											},
+											{
+												"id": "sky-mode-above",
+												"style": "button",
+												"role": "button",
+												"text": "From above",
+												"label": "The chart from above",
+												"selected": "{{state.skyMode == 'above'}}",
+												"color": "{{state.skyMode == 'above' ? '@raised' : '@panel'}}",
+												"fitText": true,
+												"onClick": "skyAbove"
 											},
 											{
 												"type": "textarea",
 												"id": "note-text",
+												"visible": "{{state.skyMode == 'above'}}",
 												"bind": "state.draft",
 												"grow": 1,
 												"height": 28,
@@ -2264,6 +2281,7 @@
 											},
 											{
 												"id": "add-note",
+												"visible": "{{state.skyMode == 'above'}}",
 												"style": "button",
 												"icon": "sticky-note",
 												"role": "button",
@@ -2274,6 +2292,7 @@
 											},
 											{
 												"id": "mark",
+												"visible": "{{state.skyMode == 'above'}}",
 												"style": "button",
 												"icon": "crosshair",
 												"role": "button",
@@ -2284,6 +2303,7 @@
 											},
 											{
 												"id": "clear-notes",
+												"visible": "{{state.skyMode == 'above'}}",
 												"style": "button",
 												"icon": "trash-2",
 												"role": "button",
@@ -2303,6 +2323,7 @@
 											{
 												"type": "canvas",
 												"id": "chart",
+												"visible": "{{state.skyMode == 'above'}}",
 												"bind": "state.chart",
 												"color": "@sky",
 												"rulers": false,
@@ -2323,10 +2344,21 @@
 												}
 											},
 											{
+												"use": "skyFromGround",
+												"id": "sky-view",
+												"visible": "{{state.skyMode == 'ground'}}",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 0,
+													"bottom": 0
+												}
+											},
+											{
 												"type": "column",
 												"id": "chart-info",
 												"visible": "{{computed.selectedPosition != null}}",
-												"height": 42,
+												"height": "{{state.skyMode == 'ground' ? 62 : 42}}",
 												"anchors": {
 													"left": 8,
 													"top": 6
@@ -2349,8 +2381,18 @@
 														"height": 18,
 														"fitText": true,
 														"font": "small",
-														"textColor": "@muted",
-														"text": "{{computed.selectedBody.parent == '' ? 'The centre of the chart' : fixed(hypot(computed.selectedPosition.x, computed.selectedPosition.z) / 4.3, 2) + ' AU from the Sun, orbits ' + (computed.selectedBody.parent == 'sun' ? 'the Sun' : find(state.bodies, it.id == computed.selectedBody.parent).name) + ' every ' + computed.selectedBody.period + ' days'}}"
+														"textColor": "{{state.skyMode == 'ground' ? '#dfe7f2' : '@muted'}}",
+														"text": "{{state.skyMode == 'ground' ? (computed.skyInfo[0] ?? 'Where you stand') : computed.selectedBody.parent == '' ? 'The centre of the chart' : fixed(hypot(computed.selectedPosition.x, computed.selectedPosition.z) / 4.3, 2) + ' AU from the Sun, orbits ' + (computed.selectedBody.parent == 'sun' ? 'the Sun' : find(state.bodies, it.id == computed.selectedBody.parent).name) + ' every ' + computed.selectedBody.period + ' days'}}"
+													},
+													{
+														"type": "label",
+														"id": "chart-info-sky",
+														"visible": "{{state.skyMode == 'ground'}}",
+														"height": 18,
+														"fitText": true,
+														"font": "small",
+														"textColor": "#dfe7f2",
+														"text": "{{computed.skyInfo[1] ?? ''}}"
 													}
 												]
 											}
