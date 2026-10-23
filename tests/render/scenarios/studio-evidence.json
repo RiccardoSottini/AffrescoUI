@@ -21,6 +21,7 @@
 				{"expect": {"node": "#label-evidence-scenario", "text": "Failed: counts  ·  step 2: #count shows 0", "nth": 1}},
 				{"expect": {"node": "#label-diff-original", "text": "Tasks"}},
 				{"expect": {"node": "#label-diff-modified", "text": "Clicks"}},
+				{"expect": {"node": "#mergeTitle", "text": "Some checks failed"}},
 				{"expect": {"image": "evidence"}}
 			]
 		}

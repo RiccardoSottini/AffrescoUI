@@ -586,7 +586,11 @@
 		"hAfter": "{{computed.hBefore == null || state.historyDiff.commit == null ? null : applyPatch(computed.hBefore, state.historyDiff.commit)}}",
 		"hAreas": "{{computed.hAfter == null ? [] : map(map(state.historyDiff.commit, split(it.path, '/')), it[1] == 'root' && length(it) > 3 ? '/' + join(slice(it, 1, 4), '/') : '/' + it[1])}}",
 		"hFiles": "{{map(filter(computed.hAreas, indexOf(computed.hAreas, it) == index), {path: it, d: diffLines(atPointer(computed.hBefore, it) == null ? '' : formatJson(atPointer(computed.hBefore, it), 2), atPointer(computed.hAfter, it) == null ? '' : formatJson(atPointer(computed.hAfter, it), 2), {context: contains(state.diffExpanded, it) ? -1 : 3, ignoreWhitespace: state.diffWs, split: state.diffSplit})})}}",
-		"mergeState": "{{computed.current == null ? '' : (state.merging == computed.current.id ? 'merging' : (!empty(computed.current.conflicts) ? 'conflict' : (computed.canAccept ? 'ready' : 'blocked')))}}"
+		"mergeState": "{{computed.current == null ? '' : (state.merging == computed.current.id ? 'merging' : (!empty(computed.current.conflicts) ? 'conflict' : (!empty(computed.prChanges) ? 'changes' : (computed.prFailing > 0 ? 'failing' : (!computed.canAccept ? 'blocked' : (empty(computed.current.approvals ?? []) && !empty(computed.current.policy ?? '') ? 'review' : 'ready'))))))}}",
+		"prChanges": "{{computed.current == null ? [] : map(filter(filter(state.reviews, it.proposal == computed.current.id && it.head == computed.current.head), it.kind == 'changes'), it.author)}}",
+		"prFailing": "{{computed.evidence == null ? 0 : length(filter(computed.evidence.scenarios, !it.passed))}}",
+		"prSide": "{{state.prTab == 'conversation' && window.width >= 1080}}",
+		"prReviewers": "{{computed.current == null ? [] : concat(map(computed.current.approvals ?? [], {who: it, state: 'approved'}), map(filter(state.reviews, it.proposal == computed.current.id && it.head == computed.current.head), {who: it.author, state: it.kind}))}}"
 	},
 	"watch": {
 		"state.historyPick": "requestHistoryDiff",
@@ -2330,7 +2334,8 @@
 					"proposal": "{{computed.current.id}}",
 					"kind": "{{state.reviewKind}}",
 					"text": "{{state.reviewDraft}}",
-					"author": "{{state.you}}"
+					"author": "{{state.you}}",
+					"head": "{{computed.current.head}}"
 				}
 			},
 			{
@@ -3296,7 +3301,7 @@
 														"gap": 6,
 														"anchors": {
 															"left": 16,
-															"right": 16,
+															"right": "{{computed.prSide ? 200 : 16}}",
 															"top": 122,
 															"bottom": 124
 														},
@@ -3326,11 +3331,14 @@
 																},
 																"text": "{{c}}",
 																"textColor": "@color.text",
-																"color": "@color.card",
+																"color": "@color.input",
 																"radius": 4,
 																"padding": 6,
 																"height": 26,
-																"when": "{{state.prTab == 'conversation'}}"
+																"when": "{{state.prTab == 'conversation'}}",
+																"icon": "file-diff",
+																"borderWidth": 1,
+																"borderColor": "@color.border"
 															},
 															{
 																"id": "prEvent",
@@ -3668,7 +3676,7 @@
 																			"left": 12,
 																			"bottom": 10
 																		},
-																		"width": 120,
+																		"width": 104,
 																		"onClick": {
 																			"set": "state.reviewKind",
 																			"to": "comment"
@@ -3683,10 +3691,10 @@
 																		"selected": "{{state.reviewKind == 'approve'}}",
 																		"color": "{{state.reviewKind == 'approve' ? '@color.accentSoft' : '@color.neutral'}}",
 																		"anchors": {
-																			"left": 140,
+																			"left": 122,
 																			"bottom": 10
 																		},
-																		"width": 120,
+																		"width": 104,
 																		"onClick": {
 																			"set": "state.reviewKind",
 																			"to": "approve"
@@ -3701,10 +3709,10 @@
 																		"selected": "{{state.reviewKind == 'changes'}}",
 																		"color": "{{state.reviewKind == 'changes' ? '@color.accentSoft' : '@color.neutral'}}",
 																		"anchors": {
-																			"left": 268,
+																			"left": 232,
 																			"bottom": 10
 																		},
-																		"width": 120,
+																		"width": 104,
 																		"onClick": {
 																			"set": "state.reviewKind",
 																			"to": "changes"
@@ -3720,7 +3728,7 @@
 																			"right": 12,
 																			"bottom": 10
 																		},
-																		"width": 112,
+																		"width": 100,
 																		"height": 28,
 																		"onClick": "submitReview"
 																	}
@@ -3733,6 +3741,94 @@
 														]
 													},
 													{
+														"id": "prSide",
+														"note": "The reviewers sidebar: who approved or asked for changes, and what the policy needs",
+														"when": "{{computed.prSide}}",
+														"type": "stack",
+														"gap": 6,
+														"anchors": {
+															"right": 16,
+															"top": 130,
+															"bottom": 124
+														},
+														"width": 168,
+														"children": [
+															{
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"id": "label-prReviewers",
+																"style": "caption",
+																"text": "{{t('pr.reviewers')}}",
+																"height": 18
+															},
+															{
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"id": "prReviewer",
+																"type": "label",
+																"repeat": {
+																	"for": "r",
+																	"in": "computed.prReviewers"
+																},
+																"font": "small",
+																"icon": "{{r.state == 'approved' ? 'check' : (r.state == 'changes' ? 'file-pen-line' : 'message-square')}}",
+																"text": "{{t('pr.reviewer', {who: r.who, state: r.state})}}",
+																"textColor": "{{r.state == 'approved' ? '@color.good' : (r.state == 'changes' ? '@color.bad' : '@color.text')}}",
+																"fitText": false,
+																"height": 22
+															},
+															{
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"id": "label-prNoReviewers",
+																"when": "{{empty(computed.prReviewers)}}",
+																"style": "caption",
+																"text": "{{t('pr.noReviewers')}}",
+																"height": 18
+															},
+															{
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"id": "prSideLine",
+																"color": "@color.border",
+																"height": 1
+															},
+															{
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"id": "label-prRequired",
+																"style": "caption",
+																"text": "{{t('pr.required')}}",
+																"height": 18
+															},
+															{
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"id": "label-prPolicy",
+																"type": "label",
+																"font": "small",
+																"textColor": "@color.text",
+																"icon": "shield",
+																"text": "{{empty(computed.current.policy ?? '') ? t('pr.noPolicy') : computed.current.policy}}",
+																"fitText": false,
+																"wrap": true,
+																"height": 36
+															}
+														]
+													},
+													{
 														"id": "mergeView",
 														"note": "A conflicted proposal: per conflict, main's value and the proposal's, side by side",
 														"when": "{{!empty(computed.current.conflicts) && state.prTab == 'conversation'}}",
@@ -3740,7 +3836,7 @@
 														"gap": 6,
 														"anchors": {
 															"left": 16,
-															"right": 16,
+															"right": "{{computed.prSide ? 200 : 16}}",
 															"top": 122,
 															"bottom": 124
 														},
@@ -3823,10 +3919,10 @@
 														"color": "@color.card",
 														"radius": "@radius.chip",
 														"borderWidth": 1,
-														"borderColor": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'conflict' ? '@color.bad' : '@color.border')}}",
+														"borderColor": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'conflict' || computed.mergeState == 'changes' || computed.mergeState == 'failing' ? '@color.bad' : '@color.border')}}",
 														"anchors": {
 															"left": 16,
-															"right": 16,
+															"right": "{{computed.prSide ? 200 : 16}}",
 															"bottom": 52
 														},
 														"height": 64,
@@ -3834,9 +3930,9 @@
 															{
 																"id": "mergeIcon",
 																"type": "label",
-																"icon": "{{computed.mergeState == 'ready' ? 'git-merge' : (computed.mergeState == 'merging' ? 'git-pull-request' : (computed.mergeState == 'conflict' ? 'alert-triangle' : 'circle-x'))}}",
+																"icon": "{{computed.mergeState == 'ready' ? 'git-merge' : (computed.mergeState == 'merging' ? 'git-pull-request' : (computed.mergeState == 'conflict' ? 'alert-triangle' : (computed.mergeState == 'changes' ? 'file-pen-line' : (computed.mergeState == 'review' ? 'circle-dot' : 'circle-x'))))}}",
 																"textColor": "#ffffff",
-																"color": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'merging' ? '@color.accent' : (computed.mergeState == 'conflict' ? '@color.bad' : '@color.warn'))}}",
+																"color": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'merging' ? '@color.accent' : (computed.mergeState == 'conflict' || computed.mergeState == 'changes' || computed.mergeState == 'failing' ? '@color.bad' : '@color.warn'))}}",
 																"radius": 16,
 																"anchors": {
 																	"left": 12,
@@ -3864,7 +3960,7 @@
 																"style": "caption",
 																"fitText": false,
 																"when": "{{computed.refusal == '' && empty(computed.current.remember)}}",
-																"text": "{{t('review.mergeNeeds', {policy: computed.current.policy ?? '', n: length(computed.current.approvals ?? [])})}}",
+																"text": "{{computed.mergeState == 'changes' ? t('review.changesBy', {who: join(computed.prChanges, ', ')}) : (computed.mergeState == 'failing' ? t('review.failing', {n: computed.prFailing, total: length(computed.evidence.scenarios)}) : t('review.mergeNeeds', {policy: computed.current.policy ?? '', n: length(computed.current.approvals ?? [])}))}}",
 																"anchors": {
 																	"left": 56,
 																	"right": 232,
@@ -3967,7 +4063,7 @@
 														"id": "label-reject",
 														"style": "badButton",
 														"text": "{{t('review.reject')}}",
-														"icon": "x",
+														"icon": "git-pull-request-closed",
 														"anchors": {
 															"right": 16,
 															"bottom": 12

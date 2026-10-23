@@ -285,7 +285,7 @@
 			"diff.collapse": "Show only the changes",
 			"diff.expandFile": "Show this file",
 			"diff.collapseFile": "Hide this file",
-			"review.mergeTitle": "{state, select, merging {Merging…} conflict {This proposal has conflicts} ready {Ready to merge} other {Merging is blocked}}",
+			"review.mergeTitle": "{state, select, merging {Merging…} conflict {This proposal has conflicts} ready {Ready to merge} changes {Changes requested} failing {Some checks failed} review {Review required} other {Merging is blocked}}",
 			"review.mergeNeeds": "{n, plural, =0 {No approvals yet} one {# approval} other {# approvals}}{policy, select, other { · needs {policy}}}",
 			"review.merge": "Merge",
 			"review.reviewTitle": "Add your review",
@@ -295,7 +295,14 @@
 			"review.toAgent": "{kind, select, changes {Changes requested} other {Review comment}} on proposal #{id}: {text}",
 			"review.merged": "#{id} {message} merged into main as {short}",
 			"pr.reviewed": "{who} {kind, select, changes {requested changes} other {commented}}: {text}",
-			"log.reviewed": "Review of #{id} ({kind, select, changes {changes requested} other {comment}}): {text}"
+			"log.reviewed": "Review of #{id} ({kind, select, changes {changes requested} other {comment}}): {text}",
+			"pr.reviewers": "Reviewers",
+			"pr.noReviewers": "No reviews yet",
+			"pr.reviewer": "{who} · {state, select, approved {approved} changes {requested changes} other {commented}}",
+			"pr.required": "Required to merge",
+			"pr.noPolicy": "Nothing required",
+			"review.changesBy": "Changes requested by {who}",
+			"review.failing": "{n} of {total} checks failed"
 		},
 		"it": {
 			"a11y.connections": "Connessioni note",
@@ -578,7 +585,7 @@
 			"diff.collapse": "Mostra solo le modifiche",
 			"diff.expandFile": "Mostra questo file",
 			"diff.collapseFile": "Nascondi questo file",
-			"review.mergeTitle": "{state, select, merging {Unione in corso…} conflict {Questa proposta ha conflitti} ready {Pronta per l''unione} other {L''unione è bloccata}}",
+			"review.mergeTitle": "{state, select, merging {Unione in corso…} conflict {Questa proposta ha conflitti} ready {Pronta per l''unione} changes {Modifiche richieste} failing {Alcuni controlli falliti} review {Revisione richiesta} other {L''unione è bloccata}}",
 			"review.mergeNeeds": "{n, plural, =0 {Ancora nessuna approvazione} one {# approvazione} other {# approvazioni}}{policy, select, other { · richiede {policy}}}",
 			"review.merge": "Unisci",
 			"review.reviewTitle": "Aggiungi la tua revisione",
@@ -588,7 +595,14 @@
 			"review.toAgent": "{kind, select, changes {Modifiche richieste} other {Commento di revisione}} sulla proposta #{id}: {text}",
 			"review.merged": "#{id} {message} unita in main come {short}",
 			"pr.reviewed": "{who} {kind, select, changes {ha chiesto modifiche} other {ha commentato}}: {text}",
-			"log.reviewed": "Revisione di #{id} ({kind, select, changes {modifiche richieste} other {commento}}): {text}"
+			"log.reviewed": "Revisione di #{id} ({kind, select, changes {modifiche richieste} other {commento}}): {text}",
+			"pr.reviewers": "Revisori",
+			"pr.noReviewers": "Ancora nessuna revisione",
+			"pr.reviewer": "{who} · {state, select, approved {ha approvato} changes {ha chiesto modifiche} other {ha commentato}}",
+			"pr.required": "Richiesto per unire",
+			"pr.noPolicy": "Nessun requisito",
+			"review.changesBy": "Modifiche richieste da {who}",
+			"review.failing": "{n} controlli falliti su {total}"
 		},
 		"ar": {
 			"a11y.connections": "الاتصالات المعروفة",
@@ -871,7 +885,7 @@
 			"diff.collapse": "عرض التغييرات فقط",
 			"diff.expandFile": "عرض هذا الملف",
 			"diff.collapseFile": "إخفاء هذا الملف",
-			"review.mergeTitle": "{state, select, merging {جارٍ الدمج…} conflict {في هذا الاقتراح تعارضات} ready {جاهز للدمج} other {الدمج محظور}}",
+			"review.mergeTitle": "{state, select, merging {جارٍ الدمج…} conflict {في هذا الاقتراح تعارضات} ready {جاهز للدمج} changes {طُلبت تغييرات} failing {فشلت بعض الفحوص} review {المراجعة مطلوبة} other {الدمج محظور}}",
 			"review.mergeNeeds": "{n, plural, =0 {لا موافقات بعد} zero {لا موافقات بعد} one {موافقة واحدة} two {موافقتان} few {# موافقات} many {# موافقة} other {# موافقة}}{policy, select, other { · يتطلب {policy}}}",
 			"review.merge": "دمج",
 			"review.reviewTitle": "أضف مراجعتك",
@@ -881,7 +895,14 @@
 			"review.toAgent": "{kind, select, changes {طُلبت تغييرات} other {تعليق مراجعة}} على الاقتراح #{id}: {text}",
 			"review.merged": "دُمج #{id} {message} في main باسم {short}",
 			"pr.reviewed": "{kind, select, changes {طلب {who} تغييرات} other {علّق {who}}}: {text}",
-			"log.reviewed": "مراجعة #{id} ({kind, select, changes {طلب تغييرات} other {تعليق}}): {text}"
+			"log.reviewed": "مراجعة #{id} ({kind, select, changes {طلب تغييرات} other {تعليق}}): {text}",
+			"pr.reviewers": "المراجعون",
+			"pr.noReviewers": "لا مراجعات بعد",
+			"pr.reviewer": "{who} · {state, select, approved {وافق} changes {طلب تغييرات} other {علّق}}",
+			"pr.required": "مطلوب للدمج",
+			"pr.noPolicy": "لا شيء مطلوب",
+			"review.changesBy": "طلب {who} تغييرات",
+			"review.failing": "فشل {n} من {total} فحوص"
 		}
 	}
 }
