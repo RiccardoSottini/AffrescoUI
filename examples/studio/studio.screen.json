@@ -373,7 +373,8 @@
 		"reviews": [],
 		"merging": null,
 		"merged": null,
-		"stash": ""
+		"stash": "",
+		"branchFilter": ""
 	},
 	"stateTypes": {
 		"theme": {
@@ -621,7 +622,9 @@
 		"prChanges": "{{computed.current == null ? [] : map(filter(filter(state.reviews, it.proposal == computed.current.id && it.head == computed.current.head), it.kind == 'changes'), it.author)}}",
 		"prFailing": "{{computed.evidence == null ? 0 : length(filter(computed.evidence.scenarios, !it.passed))}}",
 		"prSide": "{{state.prTab == 'conversation' && window.width >= 1080}}",
-		"prReviewers": "{{computed.current == null ? [] : concat(map(computed.current.approvals ?? [], {who: it, state: 'approved'}), map(filter(state.reviews, it.proposal == computed.current.id && it.head == computed.current.head), {who: it.author, state: it.kind}))}}"
+		"prReviewers": "{{computed.current == null ? [] : concat(map(computed.current.approvals ?? [], {who: it, state: 'approved'}), map(filter(state.reviews, it.proposal == computed.current.id && it.head == computed.current.head), {who: it.author, state: it.kind}))}}",
+		"branchRows": "{{filter(state.proposals, empty(trim(state.branchFilter)) || contains(lower(it.branch ?? 'proposal/' + it.id) + ' ' + lower(it.message), lower(trim(state.branchFilter))))}}",
+		"branchMain": "{{empty(trim(state.branchFilter)) || contains('main', lower(trim(state.branchFilter)))}}"
 	},
 	"watch": {
 		"state.historyPick": "requestHistoryDiff",
@@ -2645,6 +2648,10 @@
 							{
 								"set": "state.branchOpen",
 								"to": "{{!state.branchOpen}}"
+							},
+							{
+								"set": "state.branchFilter",
+								"to": ""
 							}
 						],
 						"label": "{{t('toolbar.branch')}}",
@@ -2971,10 +2978,10 @@
 											"right": 6,
 											"top": 4
 										},
-										"height": "{{min(8 + 44 * length(state.proposals), 184)}}",
+										"height": "{{min(8 + 48 * length(state.proposals), 200)}}",
 										"color": "transparent",
-										"rowHeight": 44,
-										"items": "{{map(state.proposals, {id: text(it.id), label: (it.id == state.previewing ? '◉  ' : '') + t('review.list', {id: it.id, message: it.message, author: it.author})})}}",
+										"rowHeight": 48,
+										"items": "{{map(state.proposals, {id: text(it.id), label: (it.id == state.previewing ? '◉  ' : '') + it.message, icon: 'git-pull-request-arrow', detail: t('review.row', {id: it.id, author: it.author, date: formatDate(it.time * 1000, 'medium', 'utc'), conflicts: empty(it.conflicts ?? []) ? 'no' : 'yes'})})}}",
 										"value": "{{computed.current != null ? text(computed.current.id) : ''}}",
 										"textColor": "@color.text",
 										"selectedTextColor": "@color.text",
@@ -3463,9 +3470,9 @@
 														"type": "label",
 														"font": "small",
 														"icon": "git-pull-request-arrow",
-														"text": "{{t('pr.state', {conflicts: empty(computed.current.conflicts) ? 'no' : 'yes'})}}",
+														"text": "{{t('pr.state')}}",
 														"textColor": "#ffffff",
-														"color": "{{empty(computed.current.conflicts) ? '@color.good' : '@color.bad'}}",
+														"color": "@color.good",
 														"radius": 10,
 														"anchors": {
 															"left": 16,
@@ -5449,15 +5456,22 @@
 					"top": 64
 				},
 				"width": 340,
-				"height": "{{min(44 * (length(state.proposals) + 1), 308) + 44}}",
+				"height": "{{136 + min(44 * max(length(computed.branchRows), 1), 264)}}",
 				"children": [
 					{
-						"id": "label-t-toolbar-branches",
-						"style": "caption",
-						"text": "{{t('toolbar.branches')}}",
+						"id": "branchFilter",
+						"style": "input",
+						"height": 30,
+						"padding": 7,
+						"focusable": true,
+						"bind": "state.branchFilter",
+						"placeholder": "{{t('toolbar.filter')}}",
+						"label": "{{t('toolbar.filter')}}",
+						"maxLength": 80,
 						"anchors": {
-							"left": 14,
-							"top": 12
+							"left": 10,
+							"right": "{{computed.current != null ? 148 : 10}}",
+							"top": 8
 						}
 					},
 					{
@@ -5467,12 +5481,80 @@
 						"text": "{{t('toolbar.compare')}}",
 						"anchors": {
 							"right": 10,
-							"top": 6
+							"top": 10
 						},
 						"width": 130,
 						"tooltip": "{{t('toolbar.compareTip')}}",
 						"onClick": "compareWithMain",
-						"label": "{{t('toolbar.compareTip')}}"
+						"label": "{{t('toolbar.compareTip')}}",
+						"height": 26
+					},
+					{
+						"id": "label-t-toolbar-default",
+						"style": "caption",
+						"text": "{{t('toolbar.defaultBranch')}}",
+						"anchors": {
+							"left": 14,
+							"top": 48
+						}
+					},
+					{
+						"id": "branchMain",
+						"type": "list",
+						"anchors": {
+							"left": 6,
+							"right": 6,
+							"top": 64
+						},
+						"rowHeight": 44,
+						"height": 44,
+						"color": "transparent",
+						"items": "{{computed.branchMain ? [{id: 'main', label: t('toolbar.main'), icon: 'git-branch'}] : []}}",
+						"value": "{{computed.branch == 'main' ? 'main' : text(computed.current.id)}}",
+						"textColor": "@color.text",
+						"selectedTextColor": "@color.text",
+						"selectedBackground": "@color.accentSoft",
+						"accentColor": "@color.accent",
+						"label": "{{t('toolbar.defaultBranch')}}",
+						"onChange": [
+							{
+								"set": "state.repoOpen",
+								"to": false
+							},
+							{
+								"set": "state.branchOpen",
+								"to": false
+							},
+							{
+								"if": "{{event.value == 'main'}}",
+								"then": [
+									{
+										"run": "showHistory"
+									}
+								],
+								"else": [
+									{
+										"set": "state.selected",
+										"to": "{{number(event.value)}}"
+									},
+									{
+										"run": "showReview"
+									},
+									{
+										"run": "gatherEvidence"
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "label-t-toolbar-branches",
+						"style": "caption",
+						"text": "{{t('toolbar.branches')}}",
+						"anchors": {
+							"left": 14,
+							"top": 114
+						}
 					},
 					{
 						"id": "branchList",
@@ -5480,12 +5562,12 @@
 						"anchors": {
 							"left": 6,
 							"right": 6,
-							"top": 34
+							"top": 130
 						},
 						"rowHeight": 44,
-						"height": "{{min(44 * (length(state.proposals) + 1), 308)}}",
+						"height": "{{min(44 * max(length(computed.branchRows), 1), 264)}}",
 						"color": "transparent",
-						"items": "{{concat([{id: 'main', label: t('toolbar.main'), icon: 'git-branch'}], map(state.proposals, {id: text(it.id), label: t('toolbar.proposal', {branch: it.branch ?? 'proposal/' + it.id, message: it.message}), icon: 'git-pull-request'}))}}",
+						"items": "{{map(computed.branchRows, {id: text(it.id), label: t('toolbar.proposal', {branch: it.branch ?? 'proposal/' + it.id, message: it.message}), icon: 'git-pull-request'})}}",
 						"value": "{{computed.branch == 'main' ? 'main' : text(computed.current.id)}}",
 						"textColor": "@color.text",
 						"selectedTextColor": "@color.text",
@@ -5521,7 +5603,18 @@
 									}
 								]
 							}
-						]
+						],
+						"when": "{{!empty(computed.branchRows)}}"
+					},
+					{
+						"id": "label-branch-none",
+						"when": "{{empty(computed.branchRows)}}",
+						"style": "caption",
+						"text": "{{t('toolbar.noBranches')}}",
+						"anchors": {
+							"left": 14,
+							"top": 144
+						}
 					}
 				]
 			},

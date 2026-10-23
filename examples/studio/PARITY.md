@@ -10,9 +10,9 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Area | Feature | In the Studio | Start | Now |
 |---|---|---|---|---|
 | Toolbar | Current repository drop-down: list, filter, add | The connections (hosts, document servers) | partial | partial |
-| Toolbar | Current branch drop-down: filter, default, recent and other branches | main and the open proposals | missing | partial |
+| Toolbar | Current branch drop-down: filter, default, recent and other branches | A filter, then main under "Default branch" and the open proposals under "Proposals"; no recent group | missing | partial |
 | Toolbar | Fetch / pull / push button with counts and "last fetched" | Refresh from the host, reconnect when offline | missing | partial |
-| Sidebar | Changes and History tabs with counts | Proposals with its count, History; text tabs, no icons or count pills | partial | partial |
+| Sidebar | Changes and History tabs with counts | Proposals with its count, History; rows of two lines (message, then number, date and author); text tabs, no icons | partial | partial |
 | Changes | Changed files with check boxes and status icons; select all | Direct-change and permission drafts | missing | missing |
 | Changes | Summary and description, "Commit to main" | Message of a direct change, apply | partial | partial |
 | Changes | Nothing-changed state with suggestions | | partial | partial |
@@ -32,8 +32,8 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | App | Options: appearance and language | Settings | partial | partial |
 | App | Repository settings | Mode, grants, permissions | partial | partial |
 | App | Keyboard shortcuts (tabs, commit, lists) | | partial | partial |
-| App | No-repository and offline states | Not connected | partial | partial |
-| Pull request | Header: title, number, state, "wants to merge N commits into main" | A proposal: open or conflicting | missing | partial |
+| App | No-repository and offline states | Not connected, retrying every 2 s | partial | partial |
+| Pull request | Header: title, number, state, "wants to merge N commits into main" | A proposal, with a green "Open" pill (conflicts show in the merge box) | missing | partial |
 | Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence; under the Studio's own tabs | missing | partial |
 | Pull request | Conversation: description and timeline of commits and reviews | Opened, changes, pushed, approvals, reviews, policy | missing | partial |
 | Pull request | Sidebar: reviewers, state of each | Who approved or asked for changes, what the policy needs; only in wide windows | missing | partial |

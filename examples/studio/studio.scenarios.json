@@ -10,7 +10,7 @@
 				{
 					"expect": {
 						"node": "#status",
-						"text": "Not connected: start affrescoui_host (retrying every 2 s)"
+						"text": "Not connected to a host · trying again every 2 s"
 					}
 				},
 				{
@@ -1770,6 +1770,126 @@
 					"expect": {
 						"state": "stash",
 						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "the-branch-menu-filters",
+			"note": "The branch menu lists main as the default branch and the proposals under it; its filter matches a branch or a message",
+			"steps": [
+				{
+					"action": "host:hello",
+					"event": {
+						"revision": 7,
+						"head": {
+							"short": "f00d123"
+						},
+						"you": "studio/lead",
+						"canReview": true,
+						"mode": "default"
+					}
+				},
+				{
+					"action": "host:document",
+					"event": {
+						"revision": 7,
+						"head": {
+							"short": "f00d123"
+						},
+						"document": {},
+						"state": {},
+						"proposals": [
+							{
+								"id": 3,
+								"branch": "proposal/3",
+								"author": "agent/design",
+								"message": "Add a Blocked column",
+								"base": "f00d123",
+								"head": "beef003",
+								"short": "beef003",
+								"commits": 1,
+								"operations": 1,
+								"touches": ["/root/children/1"],
+								"remember": ["add columns"],
+								"changes": ["add #column-blocked"],
+								"reason": "asks",
+								"time": 1760000000
+							},
+							{
+								"id": 4,
+								"branch": "proposal/4",
+								"author": "agent/design",
+								"message": "Switch to a dark theme",
+								"base": "f00d123",
+								"head": "beef004",
+								"short": "beef004",
+								"commits": 1,
+								"operations": 1,
+								"touches": ["/root/children/1"],
+								"remember": ["add columns"],
+								"changes": ["add #column-blocked"],
+								"reason": "asks",
+								"time": 1760000000
+							}
+						],
+						"previewing": null,
+						"mode": "default",
+						"grants": []
+					}
+				},
+				{
+					"click": "#branchButton"
+				},
+				{
+					"expect": {
+						"node": "#label-branch-none",
+						"exists": false
+					}
+				},
+				{
+					"click": "#branchFilter"
+				},
+				{
+					"type": "dark"
+				},
+				{
+					"expect": {
+						"state": "branchFilter",
+						"is": "dark"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-branch-none",
+						"exists": false
+					}
+				},
+				{
+					"type": "zzz"
+				},
+				{
+					"expect": {
+						"node": "#label-branch-none",
+						"exists": true
+					}
+				},
+				{
+					"click": "#branchButton"
+				},
+				{
+					"click": "#branchButton"
+				},
+				{
+					"expect": {
+						"state": "branchFilter",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-branch-none",
+						"exists": false
 					}
 				}
 			]
