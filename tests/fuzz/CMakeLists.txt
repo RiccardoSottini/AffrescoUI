@@ -120,6 +120,8 @@ affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(syntax affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 # Modello imports glTF files (examples/modello)
 affrescoui_fuzzer(gltf affrescoui::scene3d nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+# The scene node's scene, animations and placed models (modules/format, creative/SceneType.cpp)
+affrescoui_fuzzer(scene affrescoui::scene3d nlohmann_json::nlohmann_json)
 # The image editor's inputs (examples/tempera): ICC profiles and project files
 affrescoui_fuzzer(icc affrescoui::imaging)
 affrescoui_fuzzer(tempera_project affrescoui::imaging)

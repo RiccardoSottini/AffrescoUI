@@ -107,6 +107,10 @@ Node nodeFromJson(const json& value, const std::string& where) {
 	if(value.contains("translation"))
 		node.transform.translation = vec3FromJson(value["translation"], where + ".translation");
 	if(value.contains("rotation")) node.transform.rotation = quatFromJson(value["rotation"], where + ".rotation");
+	if(value.contains("rotationDegrees")) { // what people type: Euler angles, x then y then z
+		const Vec3 angles = vec3FromJson(value["rotationDegrees"], where + ".rotationDegrees");
+		node.transform.rotation = Quat::fromEuler({radians(angles.x), radians(angles.y), radians(angles.z)});
+	}
 	if(value.contains("scale")) node.transform.scale = vec3FromJson(value["scale"], where + ".scale");
 	node.mesh = text(value, "mesh", where);
 	node.material = text(value, "material", where);

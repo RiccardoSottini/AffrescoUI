@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -100,15 +101,38 @@ void checkCounts(const cgltf_data& data, const GltfLimits& limits) {
 	            sparse.values_buffer_view->size);
 }
 
-/// @brief Checks that every accessor's data lies within its buffer views.
+/// @brief Whether data at `offset` in a buffer view starts on a multiple of `size` in memory, as glTF requires (cgltf
+/// reads it through typed pointers). @param view The view, or null. @param offset The offset in it. @param size The
+/// component's bytes. @return true if so, or if there's no loaded view.
+[[nodiscard]] bool aligned(const cgltf_buffer_view* view, std::size_t offset, std::size_t size) noexcept {
+	if(view == nullptr || view->buffer == nullptr || view->buffer->data == nullptr || size <= 1) return true;
+	const auto start = reinterpret_cast<std::uintptr_t>(view->buffer->data) + view->offset + offset;
+	return start % size == 0;
+}
+
+/// @brief Whether an accessor's data, and its sparse indices and values, are aligned to their components.
+/// @param accessor It. @return true if so.
+[[nodiscard]] bool accessorAligned(const cgltf_accessor& accessor) noexcept {
+	const std::size_t size = cgltf_component_size(accessor.component_type);
+	if(!aligned(accessor.buffer_view, accessor.offset, size) || (size > 1 && accessor.stride % size != 0)) return false;
+	if(!accessor.is_sparse) return true;
+	const cgltf_accessor_sparse& sparse = accessor.sparse;
+	return aligned(sparse.indices_buffer_view, sparse.indices_byte_offset,
+	               cgltf_component_size(sparse.indices_component_type)) &&
+	       aligned(sparse.values_buffer_view, sparse.values_byte_offset, size);
+}
+
+/// @brief Checks that every accessor's data lies within its buffer views, aligned to its components.
 ///
 /// cgltf_validate does the same sums unchecked, so a huge stride or count wraps them around to a small size that
 /// passes, and the reads then run far past the buffer. A buffer view's own sum can't wrap: cgltf parses its offset and
-/// size as at most 2^63 - 1 each.
-/// @param data The parsed file. @throws GltfError If one doesn't fit.
+/// size as at most 2^63 - 1 each. It also reads indices through typed pointers, so misaligned ones are refused first.
+/// @param data The parsed file. @throws GltfError If one doesn't fit or isn't aligned.
 void checkRanges(const cgltf_data& data) {
-	for(std::size_t i = 0; i < data.accessors_count; ++i)
+	for(std::size_t i = 0; i < data.accessors_count; ++i) {
 		if(!viewFits(data.accessors[i]) || !sparseFits(data.accessors[i])) throw GltfError("glTF: data too short");
+		if(!accessorAligned(data.accessors[i])) throw GltfError("glTF: an accessor isn't aligned to its components");
+	}
 }
 
 /// @brief A relative file in a directory, refusing one whose real path (after links) leaves it.

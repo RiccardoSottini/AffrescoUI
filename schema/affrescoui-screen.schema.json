@@ -848,7 +848,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, outlet, code, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -881,8 +881,8 @@
 									"calendar",
 									"codeInput",
 									"carousel",
-									"outlet",
-									"code"
+									"scene",
+									"outlet"
 								]
 							},
 							{
@@ -1306,6 +1306,9 @@
 									"center",
 									"window"
 								]
+							},
+							"flip": {
+								"$ref": "#/$defs/v2/flag"
 							},
 							"open": {
 								"description": "A state path (\"state.menuOpen\") or a value"
@@ -2019,6 +2022,28 @@
 						],
 						"description": "image and path: contain (default), cover or fill, like CSS object-fit"
 					},
+					"highlight": {
+						"anyOf": [
+							{
+								"type": "null"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "number"
+								},
+								"minItems": 4,
+								"maxItems": 4
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "image: null, or a region [x, y, width, height] in the image's pixels to outline"
+					},
+					"highlightColor": {
+						"$ref": "#/$defs/v2/color"
+					},
 					"surface": {
 						"anyOf": [
 							{
@@ -2581,6 +2606,9 @@
 								"maximum": 1000000
 							},
 							{
+								"type": "boolean"
+							},
+							{
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
@@ -2834,6 +2862,194 @@
 					"clipColor": {
 						"$ref": "#/$defs/v2/color"
 					},
+					"scene": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"nodes": {
+										"type": "array",
+										"maxItems": 100000,
+										"items": {
+											"type": "object"
+										}
+									},
+									"materials": {
+										"type": "array",
+										"maxItems": 10000,
+										"items": {
+											"type": "object"
+										}
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: { nodes, materials }"
+					},
+					"assets": {
+						"anyOf": [
+							{
+								"type": "object",
+								"maxProperties": 64,
+								"additionalProperties": {
+									"type": "string"
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: glTF models by name: { name: path }"
+					},
+					"animations": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 1000,
+								"items": {
+									"type": "object"
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: animation clips"
+					},
+					"shading": {
+						"anyOf": [
+							{
+								"enum": [
+									"material",
+									"solid",
+									"wireframe"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"axes": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"background": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"gridColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"outlineColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"exposure": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"gizmo": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"visible": {
+										"type": "boolean"
+									},
+									"mode": {
+										"enum": [
+											"translate",
+											"rotate",
+											"scale"
+										]
+									},
+									"space": {
+										"enum": [
+											"world",
+											"local"
+										]
+									},
+									"pixels": {
+										"type": "number",
+										"minimum": 10,
+										"maximum": 400
+									},
+									"snap": {
+										"type": "object",
+										"properties": {
+											"translate": {
+												"type": "number",
+												"minimum": 0
+											},
+											"rotate": {
+												"type": "number",
+												"minimum": 0
+											},
+											"scale": {
+												"type": "number",
+												"minimum": 0
+											}
+										}
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: the transform gizmo on the selection"
+					},
+					"controls": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"orbit": {
+										"type": "string"
+									},
+									"pan": {
+										"type": "string"
+									},
+									"select": {
+										"type": "string"
+									},
+									"zoom": {
+										"type": "boolean"
+									},
+									"selects": {
+										"type": "boolean"
+									},
+									"minimumDistance": {
+										"type": "number",
+										"minimum": 0
+									},
+									"maximumDistance": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: the pointer's gestures"
+					},
+					"onSelect": {
+						"$ref": "#/$defs/v2/handler"
+					},
+					"onTransform": {
+						"$ref": "#/$defs/v2/handler"
+					},
 					"onClick": {
 						"$ref": "#/$defs/v2/handler"
 					},
@@ -2903,9 +3119,6 @@
 					"onColumnResize": {
 						"$ref": "#/$defs/v2/handler"
 					},
-					"onTransform": {
-						"$ref": "#/$defs/v2/handler"
-					},
 					"onConnect": {
 						"$ref": "#/$defs/v2/handler"
 					},
@@ -2913,9 +3126,6 @@
 						"$ref": "#/$defs/v2/handler"
 					},
 					"onLinkDrop": {
-						"$ref": "#/$defs/v2/handler"
-					},
-					"onSelect": {
 						"$ref": "#/$defs/v2/handler"
 					},
 					"onDelete": {
@@ -3098,17 +3308,7 @@
 					},
 					"pickedTextColor": {
 						"$ref": "#/$defs/v2/color"
-					},
-					"highlight": {},
-					"highlightColor": {},
-					"syntax": {},
-					"goTo": {},
-					"buffer": {},
-					"onType": {},
-					"popup": {},
-					"onPopupKey": {},
-					"insert": {},
-					"tokens": {}
+					}
 				},
 				"if": {
 					"required": [
@@ -3147,8 +3347,8 @@
 									"calendar",
 									"codeInput",
 									"carousel",
-									"outlet",
-									"code"
+									"scene",
+									"outlet"
 								]
 							}
 						}
@@ -3164,7 +3364,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect(+to, token), patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect(+to, token), patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -3211,6 +3411,7 @@
 					"log": {},
 					"stop": {},
 					"note": {},
+					"camera": {},
 					"to": {},
 					"value": {},
 					"at": {},
@@ -3268,7 +3469,41 @@
 							"out",
 							"inOut"
 						]
-					}
+					},
+					"view": {
+						"anyOf": [
+							{
+								"enum": [
+									"front",
+									"back",
+									"left",
+									"right",
+									"top",
+									"bottom"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"frame": {},
+					"projection": {
+						"anyOf": [
+							{
+								"enum": [
+									"perspective",
+									"orthographic",
+									"toggle"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"orbit": {},
+					"zoom": {}
 				}
 			},
 			"expression": {
