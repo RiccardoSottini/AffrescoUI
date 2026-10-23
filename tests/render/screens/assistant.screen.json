@@ -1,0 +1,68 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The assistant add-on, for the rendering check: a small page that includes it, and test actions that stand in for what the check's runner has none of (agents, requests and proposals) through the add-on's state.assistant.simulate, so the launcher, the empty, offline and conversation states, a proposal card, the dark theme and Arabic (right to left) can be drawn. Its Arabic font is a subset with the letters of the add-on's Arabic strings (tests/render/fonts/subset.py).",
+	"include": ["../../../examples/shared/addons/assistant/assistant.json"],
+
+	"window": { "title": "Assistant", "width": 800, "height": 700 },
+
+	"fonts": {
+		"default": {
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
+			"size": 14,
+			"fallback": ["arabic", "icons"]
+		},
+		"arabic": { "file": "../fonts/NotoSansArabic-Assistant.ttf", "size": 14 },
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 14 }
+	},
+
+	"tokens": {
+		"page": { "light": "#eef1f4", "dark": "#0d1117" },
+		"pageText": { "light": "#1f2328", "dark": "#e6edf3" }
+	},
+
+	"permissions": { "allow": ["studio"], "reviewers": ["studio"] },
+
+	"state": { "theme": "light", "locale": "en" },
+	"theme": "{{state.theme}}",
+
+	"strings": { "locale": "{{state.locale}}" },
+
+	"actions": {
+		"test.show": [{ "set": "state.assistant.show", "to": true }],
+		"test.online": [{ "set": "state.assistant.simulate", "to": { "online": true } }],
+		"test.offline": [{ "set": "state.assistant.simulate", "to": { "online": false } }],
+		"test.conversation": [
+			{ "set": "state.assistant.simulate", "to": { "online": true, "pending": ["p2"], "working": true } },
+			{ "set": "state.assistant.decided", "to": { "p1": "accepted" } },
+			{ "set": "state.assistant.messages", "to": [
+				{ "mine": true, "from": "You", "text": "Add a Review column between Doing and Done.", "time": 1773500966000,
+				  "error": false },
+				{ "mine": false, "from": "claude", "text": "Done: it waits for your review.", "time": 1773500970000,
+				  "error": false },
+				{ "kind": "card", "id": "p1", "title": "Add a Review column", "summary": "Changes 2 elements",
+				  "lines": ["add at /root/children/0/children/2: {\"id\": \"review\", …}", "set /state/columns/2 to \"Review\""],
+				  "time": 1773500970000 },
+				{ "mine": true, "from": "You", "text": "Make the card titles larger too.", "time": 1773500990000,
+				  "error": false },
+				{ "mine": false, "from": "claude", "text": "Here it is.", "time": 1773500995000, "error": false },
+				{ "kind": "card", "id": "p2", "title": "Larger card titles", "summary": "Changes 1 element",
+				  "lines": ["set /styles/cardTitle/size to 17"], "time": 1773500995000 }
+			] }
+		],
+		"test.proposal": [{ "set": "state.assistant.simulate", "to": { "online": true, "pending": ["p3"],
+		                   "proposals": [{ "id": "p3", "message": "Group the cards by owner", "touches": ["a", "b", "c"],
+		                   "changes": ["add at /state/groupBy: \"owner\"", "set /screens/board/children/1/groupBy to \"owner\""] }] } }],
+		"test.dark": [{ "set": "state.theme", "to": "dark" }],
+		"test.arabic": [{ "set": "state.locale", "to": "ar" }]
+	},
+
+	"root": {
+		"color": "@page",
+		"children": [
+			{ "type": "label", "id": "pageTitle", "anchors": { "left": 24, "top": 20 }, "fitText": true,
+			  "textColor": "@pageText", "text": "{{t('assistant.title')}}" }
+		]
+	}
+}

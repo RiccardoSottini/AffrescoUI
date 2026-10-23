@@ -140,6 +140,9 @@ void registerServiceSteps(StepRegistry& registry);
 /// @brief Registers the sign-in steps: signIn, signOut (AuthSteps.cpp).
 /// @param registry The registry.
 void registerAuthSteps(StepRegistry& registry);
+/// @brief Registers the request step: ask (AskSteps.cpp, in assistant/).
+/// @param registry The registry.
+void registerAssistantSteps(StepRegistry& registry);
 
 /// @brief Registers the scene steps: camera (SceneSteps.cpp).
 /// @param registry The registry.
