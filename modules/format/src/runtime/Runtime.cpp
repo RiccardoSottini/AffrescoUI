@@ -4,6 +4,7 @@
 #include "Catalog.hpp"
 #include "ComposedVersions.hpp"
 #include "Engine.hpp"
+#include "KeyNotation.hpp"
 #include "Reference.hpp"
 
 namespace affresco::format {
@@ -76,9 +77,12 @@ Window& Runtime::createWindow(Application& app) {
 
 	for(const auto& [key, value] : settings.items()) {
 		if(key != "title" && key != "width" && key != "height" && key != "minWidth" && key != "minHeight" &&
-		   key != "menuBar" && key != "focusRing" && key != "icon")
+		   key != "menuBar" && key != "focusRing" && key != "icon" &&
+		   key != "keyLabels")
 			fail("window." + key, "unknown property");
 	}
+	if(settings.contains("keyLabels") && !knownKeyNotation(string(settings["keyLabels"], "window.keyLabels")))
+		fail("window.keyLabels", "expected \"platform\", \"mac\", \"pc\" or \"emacs\"");
 
 	Window& window =
 	    app.createWindow(settings.contains("title") ? string(settings["title"], "window.title") : "AffrescoUI",

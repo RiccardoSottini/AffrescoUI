@@ -150,6 +150,15 @@
 							"icon": {
 								"type": "string",
 								"description": "The window's icon (the app's in the macOS Dock): a PNG, JPEG or SVG file, as an image's file"
+							},
+							"keyLabels": {
+								"enum": [
+									"platform",
+									"mac",
+									"pc",
+									"emacs"
+								],
+								"description": "How keys are labelled in menus, commands and keybindings"
 							}
 						}
 					},
@@ -4537,7 +4546,8 @@
 						"$isDate",
 						"$passwordStrength",
 						"$isEmail",
-						"$pathTree"
+						"$pathTree",
+						"$keyLabel"
 					]
 				}
 			},

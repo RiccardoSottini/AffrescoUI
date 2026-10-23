@@ -191,6 +191,9 @@ struct Function {
 /// @brief The table of the path function, `pathTree` (ExpressionFunctionsPaths.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> pathFunctions();
+/// @brief The table of the key function, `keyLabel` (ExpressionFunctionsKeys.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> keyFunctions();
 
 /* Helpers the tables share */
 
