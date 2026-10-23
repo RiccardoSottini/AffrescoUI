@@ -141,4 +141,8 @@ void registerServiceSteps(StepRegistry& registry);
 /// @param registry The registry.
 void registerAuthSteps(StepRegistry& registry);
 
+/// @brief Registers the scene steps: camera (SceneSteps.cpp).
+/// @param registry The registry.
+void registerSceneSteps(StepRegistry& registry);
+
 } // namespace affresco::format

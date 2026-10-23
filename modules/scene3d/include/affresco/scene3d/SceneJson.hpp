@@ -4,7 +4,8 @@
 /// @brief Scenes and animation clips as JSON, the form they take in a document's state.
 ///
 /// A node: `{"id", "name", "parent", "translation": [x, y, z], "rotation": [x, y, z, w], "scale": [x, y, z],
-/// "mesh", "material", "light": {...}, "camera": {...}, "visible"}`; a material: `{"id", "name", "baseColor":
+/// "mesh", "material", "light": {...}, "camera": {...}, "visible"}`, where `"rotationDegrees": [x, y, z]` (Euler
+/// angles, applied x, then y, then z) may stand for the rotation and wins over it; a material: `{"id", "name", "baseColor":
 /// [r, g, b, a], "metallic", "roughness", "emissive": [r, g, b], "alphaMode", "alphaCutoff", "doubleSided",
 /// "textures": {"baseColor", "metallicRoughness", "normal", "emissive"}}`. Members left out take their defaults;
 /// members this file doesn't know (a material's "graph") are ignored here and kept by the document.
