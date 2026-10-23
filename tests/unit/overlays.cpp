@@ -222,6 +222,89 @@ TEST_CASE("format: a modal overlay takes the focus, keeps Tab inside, and gives 
 	CHECK(focusedId(*window) == "opener");
 }
 
+TEST_CASE("format: a modal overlay keeps the focus a step gives inside it") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2, "state": { "open": false },
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "opener", "height": 20, "focusable": true,
+			  "onClick": [{ "set": "state.open", "to": true }, { "focus": "#two" }] },
+			{ "id": "box", "width": 200, "height": 80, "type": "column",
+			  "overlay": { "placement": "center", "open": "state.open", "dismiss": "outside", "modal": true },
+			  "children": [
+				{ "id": "one", "height": 20, "focusable": true },
+				{ "id": "two", "height": 20, "focusable": true }
+			  ] }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	press(*window, affresco::Key::Tab);
+	REQUIRE(focusedId(*window) == "opener");
+	press(*window, affresco::Key::Enter);
+	settle(*window, clock, screen);
+	CHECK(focusedId(*window) == "two"); // the step's, not the modal's first
+}
+
+TEST_CASE("format: focusing a container focuses its first focusable node, unless the focus is already inside it") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"actions": { "toBox": [{ "focus": "#box" }] },
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "outside", "height": 20, "focusable": true },
+			{ "id": "box", "height": 80, "type": "column", "children": [
+				{ "id": "one", "height": 20, "focusable": true },
+				{ "id": "two", "height": 20, "focusable": true }
+			] }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	press(*window, affresco::Key::Tab);
+	REQUIRE(focusedId(*window) == "outside");
+	screen.runAction("toBox", window->root(), "{}"); // the column takes no focus: its first focusable node does
+	settle(*window, clock, screen);
+	CHECK(focusedId(*window) == "one");
+
+	press(*window, affresco::Key::Tab);
+	REQUIRE(focusedId(*window) == "two");
+	screen.runAction("toBox", window->root(), "{}"); // already inside: it stays
+	settle(*window, clock, screen);
+	CHECK(focusedId(*window) == "two");
+}
+
+TEST_CASE("format: scrollTo reaches a panel in an overlay that opens in the same update") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2, "state": { "open": false },
+		"actions": { "open": [{ "set": "state.open", "to": true }, { "scrollTo": "#end" }] },
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "list", "width": 200, "height": 100, "type": "column", "scroll": "vertical",
+			  "overlay": { "placement": "center", "open": "state.open" },
+			  "children": [
+				{ "height": 300 },
+				{ "id": "end", "height": 20 }
+			  ] }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+	affresco::Panel* list = screen.find("list");
+	REQUIRE(list);
+	REQUIRE_FALSE(list->isShown());
+
+	screen.runAction("open", window->root(), "{}");
+	for(int frame = 0; frame < 4; ++frame) settle(*window, clock, screen);
+	CHECK(list->isShown());
+	CHECK(list->scrollOffset().y > 0.0f); // scrolled to its last child
+}
+
 TEST_CASE("format: the built-in menu bar opens a menu, runs an item, and a submenu click keeps it open") {
 	ManualClock clock;
 	const auto window = createHeadlessWindow(800, 600, clock);

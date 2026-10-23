@@ -98,9 +98,19 @@ void mergeSection(json& section, std::string_view key, const json& part) {
 	mergeObject(section, part);
 }
 
+/// @brief Adds an included file's list to the screen's: its entries first, then the screen's it doesn't have.
+/// @param list The screen's list, which receives the merge.
+/// @param part The included file's.
+void mergeList(json& list, const json& part) {
+	json merged = part;
+	for(const json& entry : list)
+		if(std::ranges::find(merged, entry) == merged.end()) merged.push_back(entry);
+	list = std::move(merged);
+}
+
 /// @brief Merges one included file into a screen: each of its sections comes first and the screen's entries win;
 /// the screen's own root and window (and format and version) are kept, and an include's "$schema" is dropped. Menus
-/// merge one level deeper, menu by menu, so several files can add items to the same menu.
+/// merge one level deeper, menu by menu, so several files can add items to the same menu; "persist" lists join.
 /// @param document The screen.
 /// @param part The included file, its own includes already merged.
 void mergeInclude(json& document, const json& part) {
@@ -112,6 +122,8 @@ void mergeInclude(json& document, const json& part) {
 			document[key] = value;
 		} else if(value.is_object() && document[key].is_object()) {
 			mergeSection(document[key], key, value);
+		} else if(key == "persist" && value.is_array() && document[key].is_array()) {
+			mergeList(document[key], value);
 		}
 	}
 }

@@ -19,7 +19,8 @@ constexpr auto fixedVariables = std::to_array<std::string_view>({"window", "revi
 /// Variables every expression may read that a local can hide, whose contents the checker doesn't follow.
 constexpr auto screenVariables = std::to_array<std::string_view>(
     {"nodes", "proposals", "history", "preview", "mode", "theme", "locale", "screen", "context", "commands",
-	 "keybindings", "menus", "settings", "settingsList", "services", "connections", "auth"});
+	 "keybindings", "menus", "settings", "settingsList", "services", "connections", "auth", "requests",
+	 "peers"});
 
 /// List functions whose second argument sees each item as `it` (Expression.cpp, applyToItems()).
 constexpr auto itemOperators =

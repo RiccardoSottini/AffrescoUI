@@ -80,32 +80,57 @@ class Server:
         """A person's request, relayed by the host: pushed to the agent if it listens to channel events, and kept for
         wait_for_request until it is answered. One without an id gets a number no other had: one counted from the
         requests kept would be taken again once one of them was answered, replacing a request not answered yet."""
+        # Only the screen itself says "screen": the host drops the field from what its peers relay
         request = {"request_id": str(message.get("id") or f"r{next(self.unnamed)}"),
-                   "from": str(message.get("from") or "unknown"), "text": str(message.get("text", ""))}
+                   "from": str(message.get("from") or "unknown"), "text": str(message.get("text", "")),
+                   "origin": "app" if message.get("source") == "screen" else "studio"}
         if message.get("kind") == "repair":  # a change set whose template changed: answer with answer_repair
             request["kind"], request["repair"] = "repair", message.get("repair")
         with self.arrived:
             self.requests[request["request_id"]] = request
             self.arrived.notify_all()
-        log(f"request {request['request_id']} from {request['from']}: {request['text']}")
-        if self.ready:
+        log(f"request {request['request_id']} from {request['from']} ({request['origin']}): {request['text']}")
+        if self.ready:  # the channel tag has a "source" of its own: the server's name
             self.send({"jsonrpc": "2.0", "method": "notifications/claude/channel",
                        "params": {"content": request["text"],
-                                  "meta": {"request_id": request["request_id"], "sender": request["from"]}}})
+                                  "meta": {"request_id": request["request_id"], "sender": request["from"],
+                                           "origin": request["origin"]}}})
+            self.working(request)
+
+    def working(self, request):
+        """Tells the app that a request asked from inside it reached the agent: its chat shows the agent working
+        until the reply. The Studio shows its requests' progress itself, so nothing is sent for those."""
+        if request["origin"] != "app":
+            return
+        try:
+            self.host.send({"type": "reply", "request": request["request_id"], "done": False})
+        except (OSError, RuntimeError) as failure:  # the reply will say it again, or the app is gone
+            log(f"couldn't tell the app request {request['request_id']} arrived: {failure}")
 
     def wait_for_request(self, timeout):
-        """The first request not given out yet, waiting up to `timeout` seconds (1 to 600) for one; None if none came."""
+        """The first request not given out yet, waiting up to `timeout` seconds (1 to 600) for one; None if none came.
+        One asked from inside the app is told the agent has it (working), unless the channel told it already."""
         deadline = time.monotonic() + max(1, min(int(timeout), 600))
         with self.arrived:
-            while True:
-                for request_id, request in self.requests.items():
-                    if request_id not in self.delivered:
-                        self.delivered.add(request_id)
-                        return request
+            request = self.undelivered()
+            while request is None:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     return None
                 self.arrived.wait(remaining)
+                request = self.undelivered()
+        if not self.ready:
+            self.working(request)
+        return request
+
+    def undelivered(self):
+        """The first request not given out yet, now marked given out; None if there is none. Called with
+        self.arrived held."""
+        for request_id, request in self.requests.items():
+            if request_id not in self.delivered:
+                self.delivered.add(request_id)
+                return request
+        return None
 
     def render_screen(self, args):
         """A picture of main, or of an open proposal applied, as an MCP image block and a caption."""
@@ -267,11 +292,16 @@ class Server:
             self.delivered.discard(request_id)
 
     def reply(self, args):
-        """The reply tool: the agent's answer to a request, shown in the Studio."""
+        """The reply tool: the agent's answer to a request, shown where it was asked (the Studio or the app's chat).
+        One with done=false is a progress note: the request stays open for the answer that follows."""
         request_id = str(args.get("request_id", ""))
-        self.host.send({"type": "reply", "request": request_id, "text": args.get("text", "")})
-        self.forget(request_id)
-        return "sent to the Studio", False
+        done = args.get("done") is not False
+        with self.arrived:
+            asked = self.requests.get(request_id) or {}
+        self.host.send({"type": "reply", "request": request_id, "text": str(args.get("text", "")), "done": done})
+        if done:
+            self.forget(request_id)
+        return f"sent to {'the app' if asked.get('origin') == 'app' else 'the Studio'}", False
 
     def answer_repair(self, args):
         """The answer_repair tool: the repaired change set, proposed for review in answer to a repair request."""

@@ -11,14 +11,18 @@ def object_schema(properties=None, required=None):
 
 TOOLS = [
     {"name": "wait_for_request",
-     "description": "Wait for the next change request a person sends from the AffrescoUI Studio, and return it "
-                    "(request_id, from, text). Returns right away if some are already waiting; returns "
-                    "{\"request\": null} after the timeout. Not needed when requests arrive as <channel> events.",
+     "description": "Wait for the next change request a person sends from the AffrescoUI Studio or from inside "
+                    "the app (its chat), and return it (request_id, from, text, origin: \"studio\" or \"app\"). "
+                    "Returns right away if some are already waiting; returns {\"request\": null} after the timeout. "
+                    "Not needed when requests arrive as <channel> events.",
      "inputSchema": object_schema({"timeout_seconds": {"type": "integer", "description": "Default 120, at most 600"}})},
     {"name": "reply",
-     "description": "Answer a request in the Studio: say what you changed, or ask a question. Call it once you "
-                    "have submitted the revisions for a request.",
-     "inputSchema": object_schema({"request_id": {"type": "string"}, "text": {"type": "string"}},
+     "description": "Answer a request where it was asked (the Studio or the app's chat): say what you changed, or "
+                    "ask a question. Call it once you have submitted the revisions for a request; done=false sends "
+                    "a progress note and keeps the request open.",
+     "inputSchema": object_schema({"request_id": {"type": "string"}, "text": {"type": "string"},
+                                   "done": {"type": "boolean", "description": "false while still working; default "
+                                                                              "true"}},
                                   ["request_id", "text"])},
     {"name": "answer_repair",
      "description": "Answer a repair request (a wait_for_request result with kind \"repair\": a change set that no "
@@ -231,7 +235,8 @@ PROMPTS = [
 ]
 
 SERVE_PROMPT = (
-    "You are the builder behind a live AffrescoUI app. People ask for changes in the AffrescoUI Studio. Repeat: call "
+    "You are the builder behind a live AffrescoUI app. People ask for changes in the AffrescoUI Studio or in the "
+    "app's chat. Repeat: call "
     "wait_for_request; for each request, find what to change (get_screen with outline=true, or find_nodes; every "
     "node has an id), read just those parts (get_screen at=\"#id\"; after a first full read get_screen returns only "
     "what changed), and look up the format's parts you need (get_format_guide lists its topics), make "
@@ -242,9 +247,10 @@ SERVE_PROMPT = (
 
 INSTRUCTIONS = (
     "This server connects you to a running AffrescoUI app (a native C++/OpenGL UI described by a JSON screen document). "
-    "People ask for changes from a separate client, the AffrescoUI Studio. Their requests arrive as "
-    "<channel source=\"affrescoui\" request_id=\"...\" sender=\"...\"> events (if this session loaded the channel), or "
-    "from the wait_for_request tool. For each request: find what to change with get_screen (outline=true, then "
+    "People ask for changes from a separate client, the AffrescoUI Studio, or from inside the app (origin \"app\": a "
+    "chat; your proposals there still wait for the person's review). Their requests arrive as <channel "
+    "source=\"affrescoui\" request_id=\"...\" sender=\"...\" origin=\"...\"> events (if this session loaded the "
+    "channel), or from the wait_for_request tool. For each request: find what to change with get_screen (outline=true, then "
     "at=\"#id\": every node has an id) or find_nodes (get_format_guide explains the format, one topic at a time), "
     "change it with submit_revision, then answer with reply, passing the request_id. Your changes may "
     "wait for a reviewer's approval in the Studio; get_events tells you the decision.")

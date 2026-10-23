@@ -191,6 +191,15 @@ public:
 	/// @return true if "actions" has it.
 	[[nodiscard]] bool hasAction(std::string_view name) const;
 
+	/// @brief Takes a reply to a request the screen sent (onAsk): it is kept in the "requests" variable with the
+	/// proposals its replier made since, and runs the action "ask:reply" with `{"request", "from", "text", "done",
+	/// "error", "proposals", "time"}`. A reply never approves anything: that action can't accept, reject, restore,
+	/// revert or undo.
+	/// @param reply `{"request": id, "from"?, "text"?, "done"? (true: the last one), "error"?}`, e.g. a peer's
+	/// "reply" message.
+	/// @return false if it answers none of the screen's requests (it is for someone else).
+	bool receiveReply(const json& reply);
+
 	/// @brief What the format offers, for agents: node types and their properties, events, steps, operators, the
 	/// registered types, native actions and calls.
 	/// @return The catalog (see SCREEN_FORMAT.md, "Catalog").
@@ -268,6 +277,9 @@ public:
 	Signal<const std::string&> onError; ///< Errors in handlers and deferred changes (also printed on stderr).
 	Signal<const std::string&, const json&> onSend; ///< "send" steps: a channel's name and the message.
 	Signal<const std::string&> onConnect;           ///< "connect" steps: a channel's name.
+	/// "ask" steps, after the event: `{"type": "request", "id", "text", "from": "user", "source": "screen"}`, a request
+	/// from the screen's own person for the peers. Answer it with receiveReply().
+	Signal<const json&> onAsk;
 	Signal<> onUpdated;                             ///< The panels were brought in line with the document and state.
 	Usage usage; ///< Usage summaries (VERSION_CONTROL.md, "Usage"): off until the host switches them on, with consent.
 
