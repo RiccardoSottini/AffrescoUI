@@ -1,0 +1,25 @@
+{
+	"menuBar": { "use": "menuBar", "with": { "menus": "{{menus}}" } },
+	"toolbar": {
+		"use": "toolbar",
+		"with": {
+			"items": [
+				{ "title": "Undo", "icon": "undo", "keyLabel": "Ctrl+Z", "run": "undo" },
+				{ "title": "Redo", "icon": "redo", "keyLabel": "Ctrl+Y", "run": "redo" },
+				{ "separator": true },
+				{ "title": "Grid", "icon": "layout-grid", "checked": "{{state.grid}}", "run": "toggleGrid" }
+			]
+		}
+	},
+	"statusBar": {
+		"use": "statusBar",
+		"width": "100%",
+		"with": {
+			"items": [
+				{ "text": "{{state.status}}" },
+				{ "text": "Ln {{state.line}}", "side": "end" },
+				{ "text": "UTF-8", "side": "end", "tooltip": "Encoding", "run": "pickEncoding" }
+			]
+		}
+	}
+}

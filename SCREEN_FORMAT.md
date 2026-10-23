@@ -664,8 +664,8 @@ variables of the node and its children. A child `{ "slot": true }` in the compon
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
 **Built-in components** need no definition (a screen's own component of the same name wins). They are written in the
-format, take their colours and sizes as parameters whose defaults are the kit's tokens (below), and keep their open
-state where `open` says (a state path):
+format, take their colours and sizes as parameters whose defaults are the kit's tokens (see The kit's tokens), and
+keep their open state where `open` says (a state path):
 - `menu` (below its parent), `submenu` (to its right) and `contextMenu` (where `x`, `y` say): `items` of
   `{ "title", "keyLabel", "mnemonic", "enabled", "separator", "submenu", "run", "with" }`. The arrows, Home, End and
   the items' first letters move and choose; Enter or a click runs the item's action and closes the menus; a click
@@ -673,6 +673,11 @@ state where `open` says (a state path):
 - `menuBar`: `menus` of `{ "name", "title", "items" }`, or of `{ "menu", "title" }` naming a menu of `source` (the
   `menus` variable); by default `window.menuBar`, so one list feeds the native bar and the drawn one. Alt with a
   menu's first letter opens it, and `open` is an object with one flag per menu name.
+- `toolbar`: a row of `items` (`{ "title", "icon", "keyLabel", "tooltip", "checked", "enabled", "run", "with" }`, or
+  `{ "separator": true }`) as wide as `width`; the arrows move between them, a `checked` one is a pressed toggle, the
+  tooltip names the shortcut, and those that don't fit go into a "more" menu (open at `open + '.more'`).
+- `statusBar`: a row of `items` (`{ "text", "icon", "tooltip", "color", "run", "with", "side" }`), `"side": "end"`
+  putting one at the end; an item with a `run` is a button.
 - `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with" }`) over a backdrop; the focus is
   trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels. Its
   `children` go between the message and the buttons.
@@ -689,9 +694,12 @@ state where `open` says (a state path):
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
   "buttons": [{ "title": "Save", "run": "save" }, { "title": "Cancel" }] } }
+{ "use": "toolbar", "with": { "items": [{ "title": "Undo", "icon": "undo", "keyLabel": "Ctrl+Z", "run": "undo" },
+  { "separator": true }, { "title": "Grid", "icon": "grid-3x3", "checked": "{{state.grid}}", "run": "toggleGrid" }] } }
 ```
 
-**The kit's tokens:** the built-ins draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
+### The kit's tokens
+The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
 built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a
 `kit.` token itself (`"tokens": { "kit.radius": 4 }` is enough): then each has a light variant too, chosen by `theme`
 like the screen's own (`"theme": "{{window.colorScheme}}"` follows the system).

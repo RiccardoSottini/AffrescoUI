@@ -40,14 +40,17 @@ bool namesAction(std::string_view key) {
 }
 
 /// The built-in components that run the actions a parameter names, through a computed "run" the document never
-/// shows, each with that parameter: the "run" of a menu's items, a dialog's buttons, a toast's actions. The quick
-/// pick has none ("") as it runs its recent items, kept in the state, as well as its providers' items.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 7> runningBuiltIns{{{"menu", "items"},
+/// shows, each with that parameter: the "run" of a menu's items, a dialog's buttons, a toast's actions, a toolbar's
+/// and a status bar's items. The quick pick has none ("") as it runs its recent items, kept in the state, as well as
+/// its providers' items.
+constexpr std::array<std::pair<std::string_view, std::string_view>, 9> runningBuiltIns{{{"menu", "items"},
                                                                                         {"submenu", "items"},
                                                                                         {"contextMenu", "items"},
                                                                                         {"menuBar", "menus"},
                                                                                         {"dialog", "buttons"},
                                                                                         {"toast", "actions"},
+                                                                                        {"toolbar", "items"},
+                                                                                        {"statusBar", "items"},
                                                                                         {"quickPick", ""}}};
 
 /// @brief The names of the built-in components that run the actions a parameter names.
