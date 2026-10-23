@@ -38,7 +38,7 @@
 			"size": 14
 		}
 	},
-	"theme": "dark",
+	"theme": "{{state.theme}}",
 	"tokens": {
 		"background": {
 			"light": "#e9ebf0",
@@ -79,7 +79,9 @@
 		"mark": {
 			"light": "#f43f5e",
 			"dark": "#fb7185"
-		}
+		},
+		"onSky": "#e6e8ee",
+		"onSkyMuted": "#8d94a3"
 	},
 	"permissions": {
 		"allow": ["studio"],
@@ -145,6 +147,7 @@
 		"duration": 420,
 		"playing": false,
 		"speed": 1,
+		"theme": "dark",
 		"selected": "earth",
 		"camera": {
 			"tx": 0,
@@ -821,9 +824,10 @@
 		"apparent": "{{computed.sight && computed.range > 0 ? degrees(2 * atan(computed.sight.size / computed.range)) : 0}}",
 		"apparentText": "{{computed.apparent >= 1 ? fixed(computed.apparent, 2) + '°' : computed.apparent * 60 >= 1 ? fixed(computed.apparent * 60, 1) + '′' : fixed(computed.apparent * 3600, 1) + '″'}}",
 		"clock": "{{formatDate(dateMs('2030-01-01') + state.time * 86400000, 'yyyy-MM-dd HH:mm', 'utc') + ' UTC'}}",
-		"rate": "{{state.playing ? (state.speed < 0 ? 'Reversed, ' : '') + formatNumber(abs(state.speed) * 1728000, 0, 0) + 'x faster: ' + fixed(abs(state.speed) * 20, abs(state.speed) < 0.05 ? 2 : 0) + ' days a second' : 'Paused'}}",
-		"viewMenu": "{{map(menus.view, merge(it, {checked: it.run == 'toggleOrbits' ? state.showOrbits : (it.run == 'toggleLabels' ? state.showLabels : (it.run == 'toggleBrowser' ? state.showBrowser : (it.run == 'toggleStars' ? state.showStars : (it.run == 'toggleShading' ? state.showShading : (it.run == 'toggleGlow' ? state.showGlow : (it.run == 'toggleMarker' ? indexOf(state.markers, state.selected) >= 0 : (it.run == 'follow' ? state.follow != '' && state.follow != null : false)))))))}))}}",
-		"toolbarItems": "{{[{title: 'Back to day 0', icon: 'skip-back', keyLabel: 'Ctrl+0', run: 'rewind'}, {title: state.playing ? 'Pause' : 'Play', icon: state.playing ? 'pause' : 'play', keyLabel: 'Space', run: 'togglePlay'}, {title: state.speed < 0 ? 'Previous event' : 'Next event', icon: state.speed < 0 ? 'skip-back' : 'skip-forward', keyLabel: 'Ctrl+N', run: 'nextEvent'}, {separator: true}, {title: 'Slower', icon: 'chevrons-left', keyLabel: 'K', run: 'slower'}, {title: 'Reverse', icon: 'arrow-left-right', keyLabel: 'J', checked: state.speed < 0, run: 'reverse'}, {title: 'Faster', icon: 'chevrons-right', keyLabel: 'L', run: 'faster'}, {separator: true}, {title: 'Go to the selected body', icon: 'rocket', keyLabel: 'G', run: 'goTo'}, {title: 'Centre the selected body', icon: 'crosshair', keyLabel: 'C', run: 'centre'}, {title: 'Follow the selected body', icon: 'locate-fixed', keyLabel: 'F', checked: state.follow != '' && state.follow != null, run: 'follow'}, {title: 'Mark the selected body', icon: 'scan', keyLabel: 'M', checked: indexOf(state.markers, state.selected) >= 0, run: 'toggleMarker'}, {separator: true}, {title: 'Orbits', icon: 'orbit', keyLabel: 'O', checked: state.showOrbits, run: 'toggleOrbits'}, {title: 'Labels', icon: 'tag', keyLabel: 'P', checked: state.showLabels, run: 'toggleLabels'}, {title: 'Browser', icon: 'list-tree', keyLabel: 'B', checked: state.showBrowser, run: 'toggleBrowser'}, {separator: true}, {title: 'Render options', icon: 'sliders-horizontal', keyLabel: 'Ctrl+,', run: 'openRender'}]}}",
+		"realTime": "{{abs(abs(state.speed) * 1728000 - 1) < 0.01}}",
+		"rate": "{{state.playing ? (state.speed < 0 ? 'Reversed, ' : '') + (computed.realTime ? 'Real time' : formatNumber(abs(state.speed) * 1728000, 0, 0) + 'x faster' + (abs(state.speed) < 0.0005 ? '' : ': ' + fixed(abs(state.speed) * 20, abs(state.speed) < 0.05 ? 2 : 0) + ' days a second')) : 'Paused'}}",
+		"viewMenu": "{{map(menus.view, merge(it, {checked: it.run == 'toggleTheme' ? state.theme == 'light' : it.run == 'toggleOrbits' ? state.showOrbits : (it.run == 'toggleLabels' ? state.showLabels : (it.run == 'toggleBrowser' ? state.showBrowser : (it.run == 'toggleStars' ? state.showStars : (it.run == 'toggleShading' ? state.showShading : (it.run == 'toggleGlow' ? state.showGlow : (it.run == 'toggleMarker' ? indexOf(state.markers, state.selected) >= 0 : (it.run == 'follow' ? state.follow != '' && state.follow != null : false)))))))}))}}",
+		"toolbarItems": "{{[{title: 'Back to day 0', icon: 'skip-back', keyLabel: 'Ctrl+0', run: 'rewind'}, {title: state.playing ? 'Pause' : 'Play', icon: state.playing ? 'pause' : 'play', keyLabel: 'Space', run: 'togglePlay'}, {title: state.speed < 0 ? 'Previous event' : 'Next event', icon: state.speed < 0 ? 'skip-back' : 'skip-forward', keyLabel: 'Ctrl+N', run: 'nextEvent'}, {separator: true}, {title: 'Slower', icon: 'chevrons-left', keyLabel: 'K', run: 'slower'}, {title: 'Reverse', icon: 'arrow-left-right', keyLabel: 'J', checked: state.speed < 0, run: 'reverse'}, {title: 'Faster', icon: 'chevrons-right', keyLabel: 'L', run: 'faster'}, {title: 'Real time', icon: 'clock', keyLabel: 'Shift+K', checked: state.playing && computed.realTime, run: 'realTime'}, {separator: true}, {title: 'Go to the selected body', icon: 'rocket', keyLabel: 'G', run: 'goTo'}, {title: 'Centre the selected body', icon: 'crosshair', keyLabel: 'C', run: 'centre'}, {title: 'Follow the selected body', icon: 'locate-fixed', keyLabel: 'F', checked: state.follow != '' && state.follow != null, run: 'follow'}, {title: 'Mark the selected body', icon: 'scan', keyLabel: 'M', checked: indexOf(state.markers, state.selected) >= 0, run: 'toggleMarker'}, {separator: true}, {title: 'Orbits', icon: 'orbit', keyLabel: 'O', checked: state.showOrbits, run: 'toggleOrbits'}, {title: 'Labels', icon: 'tag', keyLabel: 'P', checked: state.showLabels, run: 'toggleLabels'}, {title: 'Browser', icon: 'list-tree', keyLabel: 'B', checked: state.showBrowser, run: 'toggleBrowser'}, {separator: true}, {title: 'Render options', icon: 'sliders-horizontal', keyLabel: 'Ctrl+,', run: 'openRender'}]}}",
 		"statusItems": "{{[{text: 'Day ' + round(state.time * 10) / 10, color: '@accent'}, {text: computed.goal ? (state.speed < 0 ? 'Previous: ' : 'Next: ') + computed.goal.label + ' on day ' + round(computed.goal.time) + ' (' + (state.speed < 0 ? round(state.time - computed.goal.time) + ' days ago)' : 'in ' + round(computed.goal.time - state.time) + ' days)') : 'No more events in this window'}, {side: 'end', text: computed.selectedBody ? computed.selectedBody.name + (computed.selectedBody.parent ? ', orbits ' + (find(state.bodies, it.id == computed.selectedBody.parent).name ?? computed.selectedBody.parent) + ' every ' + computed.selectedBody.period + ' days' : ', at the centre') : 'Nothing selected'}]}}",
 		"fov": "{{ {deg: degrees(2 * atan(min(computed.view.w, computed.view.h) / (2 * computed.view.f))), times: state.zoom / 1.1} }}",
 		"fovText": "{{'FOV: ' + floor(computed.fov.deg) + '° ' + pad(floor((computed.fov.deg - floor(computed.fov.deg)) * 60), 2, '0') + '′ (' + fixed(computed.fov.times, 2) + 'x)'}}",
@@ -1140,7 +1144,7 @@
 		"slower": [
 			{
 				"set": "state.speed",
-				"to": "{{state.speed < 0 ? min(state.speed / 10, -0.001) : max(state.speed / 10, 0.001)}}"
+				"to": "{{state.speed < 0 ? min(state.speed / 10, -0.000000578704) : max(state.speed / 10, 0.000000578704)}}"
 			}
 		],
 		"reverse": [
@@ -1149,6 +1153,20 @@
 				"to": "{{-state.speed}}"
 			}
 		],
+		"realTime": {
+			"title": "Real time",
+			"icon": "clock",
+			"do": [
+				{
+					"set": "state.speed",
+					"to": "{{state.speed < 0 ? -0.000000578704 : 0.000000578704}}"
+				},
+				{
+					"set": "state.playing",
+					"to": true
+				}
+			]
+		},
 		"now": [
 			{
 				"set": "state.time",
@@ -1470,6 +1488,16 @@
 				}
 			]
 		},
+		"toggleTheme": {
+			"title": "Light theme",
+			"icon": "sun-moon",
+			"do": [
+				{
+					"set": "state.theme",
+					"to": "{{state.theme == 'dark' ? 'light' : 'dark'}}"
+				}
+			]
+		},
 		"openRender": {
 			"title": "Render options",
 			"icon": "sliders-horizontal",
@@ -1731,6 +1759,7 @@
 		"j": "reverse",
 		"space": "togglePlay",
 		"shift+1": "now",
+		"shift+k": "realTime",
 		"g": "goTo",
 		"c": "centre",
 		"f": "follow",
@@ -1783,7 +1812,7 @@
 								"width": 56,
 								"with": {
 									"open": "state.menuBar",
-									"menus": "{{[{name: 'view', title: 'View', items: computed.viewMenu}]}}",
+									"menus": "{{[{name: 'view', title: 'View', items: computed.viewMenu}, {name: 'time', title: 'Time', items: map(menus.time, merge(it, {checked: it.run == 'realTime' ? state.playing && computed.realTime : (it.run == 'reverse' ? state.speed < 0 : (it.run == 'togglePlay' ? !state.playing : null))}))}]}}",
 									"width": 260,
 									"color": "@panel",
 									"textColor": "@text",
@@ -1932,7 +1961,7 @@
 												"height": 22,
 												"fitText": true,
 												"font": "title",
-												"textColor": "@text",
+												"textColor": "@onSky",
 												"text": "{{computed.info.name}}"
 											},
 											{
@@ -1941,7 +1970,7 @@
 												"height": 18,
 												"fitText": true,
 												"font": "small",
-												"textColor": "@muted",
+												"textColor": "@onSkyMuted",
 												"text": "{{'Distance: ' + fixed(computed.info.distance, 2) + ' AU'}}"
 											},
 											{
@@ -1950,7 +1979,7 @@
 												"height": 18,
 												"fitText": true,
 												"font": "small",
-												"textColor": "@muted",
+												"textColor": "@onSkyMuted",
 												"text": "{{'Radius: ' + computed.selectedBody.km + ' km'}}"
 											},
 											{
@@ -1959,7 +1988,7 @@
 												"height": 18,
 												"fitText": true,
 												"font": "small",
-												"textColor": "@muted",
+												"textColor": "@onSkyMuted",
 												"text": "{{'Apparent diameter: ' + computed.apparentText}}"
 											},
 											{
@@ -1968,7 +1997,7 @@
 												"height": 18,
 												"fitText": true,
 												"font": "small",
-												"textColor": "@muted",
+												"textColor": "@onSkyMuted",
 												"visible": "{{computed.selectedBody.parent != ''}}",
 												"text": "{{'Phase: ' + round(computed.info.lit * 100) + '% lit'}}"
 											}
@@ -1995,7 +2024,7 @@
 													"vertical": "center"
 												},
 												"font": "small",
-												"textColor": "@text",
+												"textColor": "@onSky",
 												"text": "{{computed.clock}}"
 											},
 											{
@@ -2008,7 +2037,7 @@
 													"vertical": "center"
 												},
 												"font": "small",
-												"textColor": "{{state.playing ? '@accent' : '@muted'}}",
+												"textColor": "{{state.playing ? '@accent' : '@onSkyMuted'}}",
 												"text": "{{computed.rate}}"
 											}
 										],
@@ -2200,7 +2229,7 @@
 										"fitText": true,
 										"height": 20,
 										"font": "small",
-										"textColor": "@muted",
+										"textColor": "@onSkyMuted",
 										"text": "Drag to turn, scroll to zoom; G go to, C centre, F follow; B browser",
 										"visible": "{{!state.showBrowser && window.width - 461 >= 600}}"
 									},
@@ -2214,7 +2243,7 @@
 										"fitText": true,
 										"height": 20,
 										"font": "small",
-										"textColor": "@muted",
+										"textColor": "@onSkyMuted",
 										"text": "{{computed.fovText}}"
 									},
 									{
@@ -2227,7 +2256,7 @@
 										"fitText": true,
 										"height": 20,
 										"font": "small",
-										"textColor": "@muted",
+										"textColor": "@onSkyMuted",
 										"text": "{{computed.magText}}"
 									}
 								]
@@ -2377,7 +2406,7 @@
 														"fitText": true,
 														"font": "title",
 														"text": "{{computed.selectedBody.name}}",
-														"textColor": "@text"
+														"textColor": "@onSky"
 													},
 													{
 														"type": "label",
@@ -2385,7 +2414,7 @@
 														"height": 18,
 														"fitText": true,
 														"font": "small",
-														"textColor": "{{state.skyMode == 'ground' ? '#dfe7f2' : '@muted'}}",
+														"textColor": "{{state.skyMode == 'ground' ? '#dfe7f2' : '@onSkyMuted'}}",
 														"text": "{{state.skyMode == 'ground' ? (computed.skyInfo[0] ?? 'Where you stand') : computed.selectedBody.parent == '' ? 'The centre of the chart' : fixed(hypot(computed.selectedPosition.x, computed.selectedPosition.z) / 4.3, 2) + ' AU from the Sun, orbits ' + (computed.selectedBody.parent == 'sun' ? 'the Sun' : find(state.bodies, it.id == computed.selectedBody.parent).name) + ' every ' + computed.selectedBody.period + ' days'}}"
 													},
 													{
@@ -3035,6 +3064,48 @@
 		}
 	},
 	"menus": {
+		"time": {
+			"faster": {
+				"run": "faster",
+				"title": "10x faster",
+				"group": "1_rate",
+				"order": 1
+			},
+			"slower": {
+				"run": "slower",
+				"title": "10x slower",
+				"group": "1_rate",
+				"order": 2
+			},
+			"freeze": {
+				"run": "togglePlay",
+				"title": "Freeze",
+				"group": "1_rate",
+				"order": 3
+			},
+			"realTime": {
+				"run": "realTime",
+				"group": "1_rate",
+				"order": 4
+			},
+			"reverse": {
+				"run": "reverse",
+				"title": "Reverse time",
+				"group": "1_rate",
+				"order": 5
+			},
+			"now": {
+				"run": "now",
+				"title": "Back to day 0",
+				"group": "2_set",
+				"order": 1
+			},
+			"eclipses": {
+				"run": "openEclipses",
+				"group": "2_set",
+				"order": 2
+			}
+		},
 		"view": {
 			"goTo": {
 				"run": "goTo",
@@ -3095,6 +3166,11 @@
 				"run": "openRender",
 				"group": "2_show",
 				"order": 7
+			},
+			"theme": {
+				"run": "toggleTheme",
+				"group": "2_show",
+				"order": 8
 			},
 			"stars": {
 				"run": "toggleStars",

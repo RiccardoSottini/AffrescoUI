@@ -460,10 +460,10 @@
 							"width": 272,
 							"label": "Sky layers",
 							"color": "#0b0f18d0",
-							"textColor": "@text",
-							"dimColor": "@muted",
-							"highlight": "@raised",
-							"checkedColor": "@border"
+							"textColor": "@onSky",
+							"dimColor": "@onSkyMuted",
+							"highlight": "#2a3142",
+							"checkedColor": "#3a4358"
 						}
 					},
 					{
@@ -476,7 +476,7 @@
 						"height": 18,
 						"fitText": true,
 						"font": "small",
-						"textColor": "@muted",
+						"textColor": "@onSkyMuted",
 						"text": "{{'Earth, ' + abs(state.sky.latitude) + '°' + (state.sky.latitude < 0 ? 'S' : 'N') + '   FOV ' + fixed(degrees(state.sky.fov), 1) + '°   ' + computed.clock}}"
 					}
 				]

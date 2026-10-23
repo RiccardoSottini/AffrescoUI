@@ -1608,6 +1608,75 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "time-at-the-real-rate",
+			"note": "Shift+K sets time going at the real rate, and slowing down stops there.",
+			"steps": [
+				{
+					"key": "shift+k"
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"property": "text",
+						"is": "Real time"
+					}
+				},
+				{
+					"action": "slower"
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"property": "text",
+						"is": "Real time"
+					}
+				},
+				{
+					"action": "faster"
+				},
+				{
+					"action": "reverse"
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"property": "text",
+						"is": "Reversed, 10x faster"
+					}
+				}
+			]
+		},
+		{
+			"name": "the-light-theme",
+			"note": "The View menu switches to the light theme and back; the views of space stay dark.",
+			"steps": [
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "light"
+					}
+				},
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				}
+			]
 		}
 	]
 }

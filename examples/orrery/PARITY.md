@@ -37,7 +37,7 @@ system of six bodies on circular orbits in one plane.
 | S3 | Constellation lines and names | done | fourteen invented constellations of the brighter stars, their lines in a `path`, their names at their centres |
 | S4 | Toggle bar at the bottom (lines, ground, atmosphere, grid) | done | the built-in `toolbar`, bottom left: centre on the selected body (and keep it there), lines, names, grid, ground, cardinal points, atmosphere, planet labels; the place and field of view bottom right |
 | S5 | Object info on selection, top left | done | the selected body's name, and its azimuth and altitude, right ascension and declination from the ground, or its distance from the Sun and orbit from above |
-| S6 | Time controls: faster, slower, now, real time | part | play, next or previous event (by direction), day 0, the time keys; no real time |
+| S6 | Time controls: faster, slower, now, real time | done | play, next or previous event (by direction), day 0, the time keys, real time (Shift+K, the toolbar, the Time menu: 10x faster and slower, freeze, real time, reverse, back to day 0, eclipses); the invented calendar has no "now" of its own |
 | S7 | Annotations on the chart (notes, marks) | done | the canvas's items |
 
 ## Orrery's own
@@ -48,7 +48,7 @@ system of six bodies on circular orbits in one plane.
 | A2 | Events timeline: eclipses, conjunctions, oppositions | done | `timeline`, a track per kind; muting a track skips that kind in next and previous event |
 | A3 | Bodies strip (Sinopia's slide sorter, installed from that app) | done | feature, adapter |
 | A4 | Thumbnails drawn by the screen | done | `snapshot` |
-| A5 | Themes, locales (right to left), accessibility | part | dark theme only so far |
+| A5 | Themes, locales (right to left), accessibility | part | dark and light themes (View menu), the views of space dark in both; one locale |
 
 ## Rounds
 
@@ -67,3 +67,4 @@ system of six bodies on circular orbits in one plane.
 | 10 | Eclipse finder (eclipses computed from the orbits and eclipse seasons, the timeline's eclipses with them); the selected body's info on the sky chart | 23 / 3 / 3 | 28,846 |
 | 11 | The sky from the ground: horizon, ground, cardinal points, grid, daylight, invented constellations, the toggle bar | 27 / 2 / 0 | 29,306 + 5,334 for `sky.json` |
 | 12 | Fixes from the round 11 critique: an eclipse turns the sky to the Sun or the Moon and the sky darkens under a solar eclipse, a landscape instead of a flat ground, more stars in three tints, the date under the sky, centring on a body, days with their decimal | 27 / 2 / 0 | 29,368 + 6,800 for `sky.json` |
+| 13 | Real time and a Time menu; a light theme | 28 / 1 / 0 | 30,114 + 6,809 for `sky.json` |
