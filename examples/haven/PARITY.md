@@ -4,7 +4,7 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 27 done, 4 partial, 8 missing (39).
+**Counts:** 31 done, 5 partial, 4 missing (40).
 
 ## Shell
 
@@ -73,10 +73,11 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Settings list grouped in cards | missing | |
-| Profile: language, theme | missing | |
-| Devices and entities tables | missing | |
-| About page | missing | |
+| Settings list grouped in cards | done | coloured icon circles, a subtitle and a chevron per row |
+| Profile: language, theme | done | |
+| Devices and entities tables | done | one table of devices with their room and state |
+| About page | done | |
+| General: climate, scenes, budget, notifications | partial | the library's settings page, with flat sliders and square switches |
 
 ## Add-ons
 

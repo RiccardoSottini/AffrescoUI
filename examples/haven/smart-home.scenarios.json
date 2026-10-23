@@ -170,8 +170,9 @@
 			"note": "The Away temperature and the device notifications come from the settings page",
 			"steps": [
 				{ "key": "mod+comma" },
-				{ "click": [1060, 180], "note": "the Away temperature slider, near its start" },
-				{ "click": [1191, 237], "note": "switch device notifications off" },
+				{ "click": "#settingsRow", "nth": 5, "note": "open General" },
+				{ "click": [1068, 184], "note": "the Away temperature slider, near its start" },
+				{ "click": [1199, 241], "note": "switch device notifications off" },
 				{ "key": "mod+1" },
 				{ "click": "#scene", "nth": 2 },
 				{ "expect": { "state": "rooms[2].target", "is": 13 } },

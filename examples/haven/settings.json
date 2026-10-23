@@ -1,0 +1,233 @@
+{
+	"note": "Haven's settings page, included by smart-home.screen.json: grouped cards of rows that open the other pages or a sub-page (devices and entities, profile, general settings from the schema, about).",
+
+	"state": {
+		"settingsView": "main",
+		"settingsGroups": [
+			{ "id": "home", "rows": [
+				{ "id": "devices", "icon": "cpu", "color": "#039be5" },
+				{ "id": "automations", "icon": "bot", "color": "#0f9d58" },
+				{ "id": "areas", "icon": "layout-grid", "color": "#e67c19" },
+				{ "id": "energy", "icon": "zap", "color": "#f4b400" }
+			] },
+			{ "id": "you", "rows": [
+				{ "id": "profile", "icon": "user", "color": "#8e44ad" },
+				{ "id": "general", "icon": "sliders-horizontal", "color": "#607d8b" },
+				{ "id": "about", "icon": "info", "color": "#5c6bc0" }
+			] }
+		]
+	},
+
+	"stateTypes": {
+		"settingsView": { "enum": ["main", "devices", "profile", "general", "about"] },
+		"settingsGroups": { "type": "array", "items": { "type": "object" } }
+	},
+
+	"computed": {
+		"subPages": "{{['devices', 'profile', 'general', 'about']}}",
+		"deviceRows": "{{map(state.devices, { id: it.id, cells: [it.name, t('kind.' + it.id), t('device.' + it.id + '.' + (it.on ? 'on' : 'off'))] })}}",
+		"deviceColumns": "{{[{ id: 'name', title: t('table.device'), width: 220 }, { id: 'kind', title: t('table.kind'), width: 180 }, { id: 'state', title: t('table.state'), width: 160 }]}}",
+		"roomEntityRows": "{{map(state.rooms, { id: 'r' + index, cells: [it.name, t('summary.lights', { on: length(filter(it.lights, it.on)), total: length(it.lights) }), it.temp + '°  →  ' + it.target + '°'] })}}",
+		"roomEntityColumns": "{{[{ id: 'room', title: t('table.room'), width: 220 }, { id: 'lights', title: t('lights.title'), width: 180 }, { id: 'climate', title: t('climate.title'), width: 160 }]}}"
+	},
+
+	"components": {
+		"settingsRow": {
+			"note": "One row of a settings card: an icon in a circle of colour, a title and a line under it, a chevron.",
+			"params": { "row": {} },
+			"node": {
+				"anchors": { "left": 0, "right": 0 },
+				"height": 72,
+				"color": "transparent",
+				"hover": { "color": "@cardHover" },
+				"cursor": "hand",
+				"focusable": true,
+				"role": "button",
+				"label": "{{t('set.' + row.id)}}",
+				"onClick": [
+					{ "set": "state.settingsView", "to": "{{contains(computed.subPages, row.id) ? row.id : 'main'}}" },
+					{ "set": "state.page", "to": "{{contains(computed.subPages, row.id) ? 'settings' : row.id}}" }
+				],
+				"children": [
+					{ "type": "label", "font": "icons", "icon": "{{row.icon}}", "text": "", "textColor": "#ffffff", "color": "{{row.color}}", "anchors": { "left": 16, "top": 16 },
+						"width": 40, "height": 40, "radius": 20, "align": "center" },
+					{ "type": "label", "text": "{{t('set.' + row.id)}}", "textColor": "@text", "anchors": { "left": 72, "right": 48, "top": 14 }, "height": 22,
+						"align": { "horizontal": "start", "vertical": "center" } },
+					{ "type": "label", "font": "small", "text": "{{t('set.' + row.id + '.sub')}}", "textColor": "@muted", "anchors": { "left": 72, "right": 48, "top": 38 },
+						"height": 20, "align": { "horizontal": "start", "vertical": "center" } },
+					{ "type": "label", "font": "icons", "icon": "chevron-right", "mirror": true, "text": "", "textColor": "@muted", "anchors": { "right": 16, "top": 24 }, "width": 24, "height": 24,
+						"align": "center" }
+				]
+			}
+		},
+
+		"settingsChoice": {
+			"note": "A pill of a choice row: filled with the accent when it is the chosen one.",
+			"params": { "text": "", "chosen": false },
+			"node": {
+				"type": "label",
+				"text": "{{text}}",
+				"height": 36,
+				"width": 112,
+				"radius": 18,
+				"align": "center",
+				"color": "{{chosen ? '@accent' : 'transparent'}}",
+				"textColor": "{{chosen ? '#ffffff' : '@text'}}",
+				"borderColor": "{{chosen ? '@accent' : '@border'}}",
+				"borderWidth": 1,
+				"hover": { "borderColor": "@accent" },
+				"cursor": "hand",
+				"focusable": true,
+				"role": "radio",
+				"checked": "{{chosen}}"
+			}
+		},
+
+		"settingsSection": {
+			"note": "A row of the profile card: its title and line on the start side, its choices on the end side.",
+			"params": { "title": "", "sub": "" },
+			"node": {
+				"anchors": { "left": 0, "right": 0 },
+				"height": 76,
+				"color": "transparent",
+				"role": "radiogroup",
+				"label": "{{title}}",
+				"children": [
+					{ "type": "label", "text": "{{title}}", "textColor": "@text", "anchors": { "left": 20, "top": 16 }, "height": 22, "fitText": true },
+					{ "type": "label", "font": "small", "text": "{{sub}}", "textColor": "@muted", "anchors": { "left": 20, "top": 40 }, "height": 20, "fitText": true },
+					{ "type": "row", "anchors": { "right": 20, "top": 20 }, "width": 360, "height": 36, "gap": 8, "justify": "end", "children": [{ "slot": true }] }
+				]
+			}
+		},
+
+		"settingsPageMain": {
+			"params": {},
+			"node": {
+				"dir": "auto",
+				"color": "transparent",
+				"children": [
+					{
+						"id": "settingsBar",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 56,
+						"color": "@header",
+						"role": "banner",
+						"children": [
+							{ "id": "settingsBack", "type": "label", "font": "icons", "icon": "arrow-left", "mirror": true, "text": "", "textColor": "@onHeader", "when": "{{state.settingsView != 'main'}}",
+								"anchors": { "left": 8, "top": 8 }, "width": 40, "height": 40, "radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand",
+								"focusable": true, "role": "button", "label": "{{t('set.back')}}", "tooltip": "{{t('set.back')}}", "onClick": { "set": "state.settingsView", "to": "main" } },
+							{ "id": "settingsTitle", "type": "label", "font": "heading", "textColor": "@onHeader", "fitText": true,
+								"text": "{{state.settingsView == 'main' ? t('page.settings') : t('set.' + state.settingsView)}}",
+								"anchors": { "left": "{{state.settingsView == 'main' ? 24 : 64}}", "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } }
+						]
+					},
+					{
+						"id": "settingsMain",
+						"when": "{{state.settingsView == 'main'}}",
+						"type": "column",
+						"anchors": { "left": 24, "right": 24, "top": 80, "bottom": 0 },
+						"gap": 24,
+						"scroll": "vertical",
+						"children": [
+							{
+								"id": "settingsGroup",
+								"repeat": { "for": "g", "in": "state.settingsGroups", "key": "{{g.id}}" },
+								"style": "card",
+								"anchors": { "left": 0, "right": 0 },
+								"height": "{{length(g.rows) * 72 + 16}}",
+								"role": "list",
+								"label": "{{t('set.group.' + g.id)}}",
+								"children": [
+									{ "type": "column", "anchors": { "left": 0, "right": 0, "top": 8, "bottom": 8 }, "gap": 0,
+										"children": [{ "use": "settingsRow", "id": "settingsRow", "repeat": { "for": "r", "in": "g.rows", "key": "{{r.id}}" }, "with": { "row": "{{r}}" } }] }
+								]
+							}
+						]
+					},
+					{
+						"id": "settingsDevices",
+						"when": "{{state.settingsView == 'devices'}}",
+						"type": "column",
+						"anchors": { "left": 24, "right": 24, "top": 80, "bottom": 0 },
+						"gap": 24,
+						"scroll": "vertical",
+						"children": [
+							{ "id": "deviceTableCard", "style": "card", "anchors": { "left": 0, "right": 0 }, "height": "{{length(state.devices) * 40 + 92}}",
+								"children": [
+									{ "type": "label", "icon": "cpu", "text": "  {{t('devices.title')}}", "font": "heading", "textColor": "@text", "anchors": { "left": 20, "top": 16 }, "fitText": true },
+									{ "id": "deviceTable", "type": "table", "anchors": { "left": 8, "right": 8, "top": 52, "bottom": 8 }, "rowHeight": 40, "color": "@card",
+										"items": "{{computed.deviceRows}}", "columns": "{{computed.deviceColumns}}", "label": "{{t('devices.title')}}", "textColor": "@text",
+										"selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@accent" }
+								] },
+							{ "id": "roomTableCard", "style": "card", "anchors": { "left": 0, "right": 0 }, "height": "{{length(state.rooms) * 40 + 92}}",
+								"children": [
+									{ "type": "label", "icon": "layout-grid", "text": "  {{t('set.entities')}}", "font": "heading", "textColor": "@text", "anchors": { "left": 20, "top": 16 }, "fitText": true },
+									{ "id": "roomEntityTable", "type": "table", "anchors": { "left": 8, "right": 8, "top": 52, "bottom": 8 }, "rowHeight": 40, "color": "@card",
+										"items": "{{computed.roomEntityRows}}", "columns": "{{computed.roomEntityColumns}}", "label": "{{t('set.entities')}}", "textColor": "@text",
+										"selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@accent",
+										"onOpen": [{ "run": "pickRoom", "with": { "id": "{{event.value}}" } }, { "set": "state.page", "to": "home" }] }
+								] }
+						]
+					},
+					{
+						"id": "settingsProfile",
+						"when": "{{state.settingsView == 'profile'}}",
+						"style": "card",
+						"anchors": { "left": 24, "right": 24, "top": 80 },
+						"height": 168,
+						"children": [
+							{ "type": "column", "anchors": { "left": 0, "right": 0, "top": 8, "bottom": 8 }, "gap": 0, "children": [
+								{ "use": "settingsSection", "id": "profileLanguage", "with": { "title": "{{t('set.language')}}", "sub": "{{t('set.language.sub')}}" }, "children": [
+									{ "use": "settingsChoice", "id": "pickEnglish", "with": { "text": "English", "chosen": "{{settings.ui.language == 'en'}}" }, "onClick": { "set": "settings.ui.language", "to": "en" } },
+									{ "use": "settingsChoice", "id": "pickItalian", "with": { "text": "Italiano", "chosen": "{{settings.ui.language == 'it'}}" }, "onClick": { "set": "settings.ui.language", "to": "it" } },
+									{ "use": "settingsChoice", "id": "pickArabic", "with": { "text": "العربية", "chosen": "{{settings.ui.language == 'ar'}}" }, "onClick": { "set": "settings.ui.language", "to": "ar" } }
+								] },
+								{ "use": "settingsSection", "id": "profileTheme", "with": { "title": "{{t('set.theme')}}", "sub": "{{t('set.theme.sub')}}" }, "children": [
+									{ "use": "settingsChoice", "id": "pickLight", "with": { "text": "{{t('set.light')}}", "chosen": "{{state.theme == 'light'}}" }, "onClick": { "set": "state.theme", "to": "light" } },
+									{ "use": "settingsChoice", "id": "pickDark", "with": { "text": "{{t('set.dark')}}", "chosen": "{{state.theme == 'dark'}}" }, "onClick": { "set": "state.theme", "to": "dark" } }
+								] }
+							] }
+						]
+					},
+					{
+						"id": "settingsGeneral",
+						"when": "{{state.settingsView == 'general'}}",
+						"anchors": { "left": 24, "right": 24, "top": 80, "bottom": 24 },
+						"style": "card",
+						"children": [
+							{ "type": "label", "font": "small", "text": "{{t('settings.summary')}}", "textColor": "@muted", "anchors": { "left": 20, "right": 20, "top": 12 }, "height": 20,
+								"align": { "horizontal": "start", "vertical": "center" } },
+							{ "use": "settingsPage", "id": "settingsList", "anchors": { "left": 8, "right": 8, "top": 36, "bottom": 8 },
+								"with": { "search": "{{state.settingsQuery}}", "color": "@card", "textColor": "@text", "dimColor": "@muted", "accent": "@accent", "field": "@field" } }
+						]
+					},
+					{
+						"id": "settingsAbout",
+						"when": "{{state.settingsView == 'about'}}",
+						"style": "card",
+						"anchors": { "left": 24, "right": 24, "top": 80 },
+						"height": 300,
+						"children": [
+							{ "type": "row", "anchors": { "left": 0, "right": 0, "top": 32 }, "height": 72, "justify": "center", "children": [
+								{ "type": "label", "font": "iconsLarge", "icon": "house", "text": "", "textColor": "#ffffff", "color": "@accent", "width": 72, "height": 72, "radius": 36, "align": "center" } ] },
+							{ "type": "label", "text": "Haven", "font": "title", "textColor": "@text", "anchors": { "left": 0, "right": 0, "top": 120 }, "height": 36, "align": "center" },
+							{ "type": "label", "text": "{{t('app.tagline')}}", "textColor": "@muted", "anchors": { "left": 0, "right": 0, "top": 156 }, "height": 22, "align": "center" },
+							{ "type": "panel", "color": "@border", "anchors": { "left": 0, "right": 0, "top": 198 }, "height": 1 },
+							{ "type": "column", "anchors": { "left": 20, "right": 20, "top": 206 }, "height": 84, "gap": 0, "children": [
+								{ "anchors": { "left": 0, "right": 0 }, "height": 28, "color": "transparent", "children": [
+									{ "type": "label", "text": "{{t('about.version')}}", "textColor": "@muted", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "fitText": true },
+									{ "type": "label", "text": "2026.10", "textColor": "@text", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "fitText": true } ] },
+								{ "anchors": { "left": 0, "right": 0 }, "height": 28, "color": "transparent", "children": [
+									{ "type": "label", "text": "{{t('about.devices')}}", "textColor": "@muted", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "fitText": true },
+									{ "type": "label", "text": "{{length(state.devices) + length(state.rooms)}}", "textColor": "@text", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "fitText": true } ] },
+								{ "anchors": { "left": 0, "right": 0 }, "height": 28, "color": "transparent", "children": [
+									{ "type": "label", "text": "{{t('about.license')}}", "textColor": "@muted", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "fitText": true },
+									{ "type": "label", "text": "Apache-2.0", "textColor": "@text", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "fitText": true } ] }
+							] }
+						]
+					}
+				]
+			}
+		}
+	}
+}
