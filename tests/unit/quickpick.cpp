@@ -58,7 +58,8 @@ constexpr const char* pickScreen = R"json({
 	"root": { "id": "root", "children": [
 		{ "id": "pick", "use": "quickPick", "with": { "providers": [
 			{ "items": "{{state.files}}", "run": "open" },
-			{ "prefix": ">", "items": [{ "title": "Save", "run": "save" }], "placeholder": "Run a command" }
+			{ "prefix": ">", "items": [{ "title": "Save", "run": "save" }], "placeholder": "Run a command" },
+			{ "prefix": ":", "filter": false, "items": [{ "title": "Go to line 12", "run": "save" }] }
 		] } }
 	] }
 })json";
@@ -128,4 +129,21 @@ TEST_CASE("format: the quick pick filters, moves with the arrows, runs with Ente
 	now = state(screen);
 	CHECK(now["ran"] == "save");
 	CHECK(now["quickPick"]["recent"].size() == 1); // only the default provider's choices are remembered
+}
+
+TEST_CASE("format: a quick pick provider with filter false shows its items as given") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	affresco::Screen screen = affresco::Screen::fromString(pickScreen);
+	screen.build(*window);
+	affresco::Panel* root = screen.find("root");
+	REQUIRE(root);
+
+	screen.runAction("query", *root, R"({"q": ":99"})"); // "99" isn't in the title: fuzzy matching would drop the row
+	window->render();
+	press(*window, affresco::Key::Enter);
+	window->render();
+	const json now = state(screen);
+	CHECK(now["ran"] == "save");
+	CHECK(now["quickPick"]["open"] == false);
 }

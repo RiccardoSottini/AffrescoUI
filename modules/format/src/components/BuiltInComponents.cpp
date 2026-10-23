@@ -79,7 +79,9 @@ json menu(std::string_view placement, std::string_view extraParams, bool nested)
 }
 
 /// @brief The quick pick: a search field over the matching items of its providers, the recently chosen first. Its
-/// state is under state[name]: open, query, index (the selected row), top (the first row shown) and recent.
+/// state is under state[name]: open, query, index (the selected row), top (the first row shown) and recent. A
+/// provider with "filter": false gives items the document already matched to the query (a scoped search, a server's
+/// results, a "go to line" row), shown in its order with their key's text.
 constexpr std::string_view quickPickNode = R"({
 	"overlay": { "placement": "window", "open": "{{'state.' + name + '.open'}}", "dismiss": "outside", "modal": true },
 	"x": "{{max(0, (window.width - width) / 2)}}", "y": 48, "width": "{{width}}",
@@ -96,7 +98,7 @@ constexpr std::string_view quickPickNode = R"({
 		"recent": "{{home ? qp.recent ?? [] : []}}",
 		"recentKeys": "{{map(recent, it[key])}}",
 		"recentHits": "{{fuzzySort(recent, search, key)}}",
-		"results": "{{slice(concat(recentHits, filter(fuzzySort(provider.items, search, key, limit + length(recent)), !contains(recentKeys, it.item[key]))), 0, limit)}}",
+		"results": "{{provider.filter == false ? map(slice(provider.items ?? [], 0, limit), { item: it, parts: [{ text: text(it[key] ?? '') }] }) : slice(concat(recentHits, filter(fuzzySort(provider.items, search, key, limit + length(recent)), !contains(recentKeys, it.item[key]))), 0, limit)}}",
 		"total": "{{length(results)}}",
 		"sel": "{{clamp(qp.index ?? 0, 0, max(0, total - 1))}}",
 		"top": "{{clamp(qp.top ?? 0, 0, max(0, total - rows))}}"
@@ -138,11 +140,12 @@ constexpr std::string_view quickPickNode = R"({
 })";
 
 /// @brief What choosing does, with the chosen result as "pick" (captured, as closing and clearing change the
-/// results): closes, puts it first in the recent items (for the default provider), clears the query, then runs the
+/// results): closes, puts it first in the recent items (for the default provider, unless it doesn't filter: its items
+/// belong to one query), clears the query, then runs the
 /// item's "run" (with its "with"), or else the provider's "run" with the item as "item".
 constexpr std::string_view quickPickChoose = R"([
 	{ "set": "{{base + '.open'}}", "to": false },
-	{ "if": "{{home}}", "then": [{ "set": "{{base + '.recent'}}",
+	{ "if": "{{home && provider.filter != false}}", "then": [{ "set": "{{base + '.recent'}}",
 		"to": "{{slice(concat([pick.item], filter(qp.recent ?? [], it[key] != pick.item[key])), 0, recentLimit)}}" }] },
 	{ "forEach": "{{[provider.run]}}", "as": "providerRun", "do": [
 		{ "set": "{{base + '.query'}}", "to": "" }, { "set": "{{base + '.index'}}", "to": 0 },

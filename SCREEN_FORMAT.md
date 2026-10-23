@@ -740,12 +740,13 @@ keep their open state where `open` says (a state path):
   `placement` `below-end` lines it up with the end) with an arrow `arrowAt` from its start pointing at it; it flips
   above when only that side has room, and a click outside or Escape closes it.
 - `settingsPage`: the document's settings with a search field (see Menus and settings).
-- `quickPick`: a search field over `providers` of `{ "prefix", "items", "key", "placeholder", "run" }` (the one whose
-  `prefix` starts the query, else the one without), matched with `fuzzySort` on each item's `key` (`title`) and the
-  matching letters highlighted. Its state is `state[name]` (`name` is `quickPick`): `open`, `query`, `index`, `top`
-  and `recent` (the default provider's last `recentLimit` choices, shown first). Only the visible `rows` are built;
-  the arrows move, Enter or a click runs the item's `run` (with its `with`), or else the provider's `run` with the
-  item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
+- `quickPick`: a search field over `providers` of `{ "prefix", "items", "key", "placeholder", "run", "filter" }` (the
+  one whose `prefix` starts the query, else the one without), matched with `fuzzySort` on each item's `key` (`title`)
+  and the matching letters highlighted; a provider with `"filter": false` shows its items as given (already matched
+  by the document, such as a search inside the file the query names). Its state is `state[name]` (`name` is
+  `quickPick`): `open`, `query`, `index`, `top` and `recent` (the default provider's last `recentLimit` choices, shown
+  first). Only the visible `rows` are built; the arrows move, Enter or a click runs the item's `run` (with its
+  `with`), or else the provider's `run` with the item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
 
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
@@ -818,7 +819,7 @@ Wherever a value is expected it can be computed:
   `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `upper(text)`,
   `lower(text)`, `trim(text)`, `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
   `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
-  `length(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
+  `length(value)`, `concat(a, b, ...)`, `flat(list)`, `join(list, separator)`, `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
   `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
   `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
@@ -993,7 +994,8 @@ is a handler, a binding `{ "when": "{{...}}", "do": "save", "with": { "tab": 2 }
 variables), or a list of bindings, where the first that applies runs.
 
 **Resolution:** one walk per press.
-1. A focused text area keeps plain keys, except Escape and the keys of the focused node and its ancestors.
+1. A focused text area keeps plain keys, except Escape, the function keys (F1 to F25) and the keys of the focused
+   node and its ancestors.
 2. During a chord, a press that doesn't continue it ends it and is dropped; Escape ends it.
 3. The scopes go from the focused node to the root, then to the document's `keys`.
 4. A binding is skipped when its `when` is false or its command is disabled.
@@ -1076,7 +1078,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
-| `edit`, `in`, `line`, `column`, `toLine`, `toColumn`, `prefix` | `{ "edit": "duplicateLines", "in": "#editor" }`: runs a code editor's command (the editor's commands), after the update; `"goTo"` puts the caret at `line` and `column`, `"select"` selects from them to `toLine` and `toColumn` (counted from 1), and `"toggleComment"` takes the line comment's `prefix` (`//`) |
+| `edit` | `{ "edit": "sortLines", "in": "#code" }`: a code editor's command (Editor steps) |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
@@ -1100,6 +1102,15 @@ more than 10,000 positions past a list's end (the positions between are filled w
 finish, the UI is updated once. Panels are reused where
 the structure didn't change, so focus, typing, scrolling and drags in progress are kept. Errors in actions are
 reported (on stderr and to the peers) and never crash the app.
+
+### Editor steps
+
+`{ "edit": NAME, "in": "#id" }` runs a command of the code editor `in` names once the event's routing ends, so a bound
+key's command sees the editor's text: `expandToLine`, `expandToWord`, `selectAllOccurrences`, `splitIntoLines`,
+`insertLineBefore`, `insertLineAfter`, `duplicateLines`, `deleteLines`, `moveLinesUp`, `moveLinesDown`, `joinLines`,
+`sortLines`, `reverseLines`, `uniqueLines`, `upperCase`, `lowerCase`, `titleCase`, `swapCase`, `transpose` and
+`toggleComment` (with the line comment's `prefix`, `//` by default). `goTo` puts the caret at `line` and `column`, and
+`select` selects from them to `toLine` and `toColumn` (all counted from 1).
 
 ## Channels and persistence
 

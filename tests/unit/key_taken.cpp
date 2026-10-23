@@ -120,3 +120,11 @@ TEST_CASE("key taken: text typed after a taken key, without a key press of its o
 	built.window->render();
 	CHECK(built.state("text") == "qab");
 }
+
+TEST_CASE("key taken: a function key reaches the document's bindings while a text field has focus") {
+	Built built(inputScreen("textarea", "{}", R"({ "f4": "add", "shift+f4": "add" })"));
+	built.press(affresco::Key::F4);
+	built.press(affresco::Key::F4, 0, 0x1); // GLFW_MOD_SHIFT
+	CHECK(built.state("n") == 2);
+	CHECK(built.state("text") == "ab");
+}

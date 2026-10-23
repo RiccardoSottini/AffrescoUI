@@ -3555,6 +3555,7 @@
 						"$json",
 						"$length",
 						"$concat",
+						"$flat",
 						"$join",
 						"$slice",
 						"$contains",
