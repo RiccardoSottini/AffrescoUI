@@ -1,6 +1,6 @@
 /// @file
-/// @brief The desktop kit's bars (src/components/KitBars.cpp): a toolbar's buttons, toggles and separators, the
-/// "more" menu its items that don't fit move into, and a status bar whose items with a "run" are buttons.
+/// @brief The desktop kit (src/components/Kit*.cpp): a toolbar's buttons, toggles and separators, the "more" menu
+/// its items that don't fit move into, a status bar whose items with a "run" are buttons, and overlays that flip.
 
 #include "Checker.hpp"
 #include "Headless.hpp"
@@ -109,7 +109,68 @@ std::string barsScreen(int width) {
 	})json";
 }
 
+/// @brief The first panel under another, depth first, with an id.
+/// @param panel Where to look.
+/// @param id The id.
+/// @return It, or nullptr.
+const affresco::Panel* findId(const affresco::Panel& panel, std::string_view id) {
+	if(panel.id() == id) return &panel;
+	for(const auto& child : panel.children())
+		if(const affresco::Panel* found = findId(*child, id)) return found;
+	return nullptr;
+}
+
+/// @brief A button at the top or the bottom of the window with an open, flipping overlay below it: a tip at the
+/// overlay's top over a body.
+/// @param atBottom Whether the button is at the bottom.
+/// @return The document.
+std::string flipScreen(bool atBottom) {
+	return R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"root": { "id": "root", "children": [{ "type": "column", "fill": true, "children": [)json" +
+	       std::string(atBottom ? R"json({ "grow": 1 },)json" : "") + R"json(
+			{ "id": "anchor", "width": 80, "height": 30, "children": [
+				{ "id": "pop", "width": 100, "height": 60,
+				  "overlay": { "placement": "below", "flip": true, "open": true }, "children": [
+					{ "id": "tip", "x": 10, "width": 10, "height": 10 },
+					{ "id": "body", "y": 5, "width": 100, "height": 55 }
+				] }
+			] }
+		] }] }
+	})json";
+}
+
 } // namespace
+
+TEST_CASE("format: a flipping overlay goes above its anchor when only that side has room, mirrored") {
+	for(const bool atBottom : {false, true}) {
+		CAPTURE(atBottom);
+		ManualClock clock;
+		const auto window = createHeadlessWindow(300, 200, clock);
+		affresco::Screen screen = affresco::Screen::fromString(flipScreen(atBottom));
+		screen.build(*window);
+		settle(*window, clock);
+		const affresco::Panel* anchor = findId(window->root(), "anchor");
+		const affresco::Panel* pop = findId(window->root(), "pop");
+		const affresco::Panel* tip = findId(window->root(), "tip");
+		const affresco::Panel* body = findId(window->root(), "body");
+		REQUIRE(anchor);
+		REQUIRE(pop);
+		REQUIRE(tip);
+		REQUIRE(body);
+		CHECK(pop->isFlipped() == atBottom);
+		if(atBottom) {
+			CHECK(pop->frame().bottom == doctest::Approx(anchor->frame().top));
+			CHECK(tip->frame().bottom == doctest::Approx(pop->frame().bottom)); // still facing the anchor
+			CHECK(body->frame().top == doctest::Approx(pop->frame().top));
+		} else {
+			CHECK(pop->frame().top == doctest::Approx(anchor->frame().bottom));
+			CHECK(tip->frame().top == doctest::Approx(pop->frame().top));
+			CHECK(body->frame().bottom == doctest::Approx(pop->frame().bottom));
+		}
+		CHECK(tip->frame().left == doctest::Approx(pop->frame().left + 10.0f)); // the other axis stays
+	}
+}
 
 TEST_CASE("format: a toolbar wide enough shows every item, with toggles selected and separators out of reach") {
 	ManualClock clock;

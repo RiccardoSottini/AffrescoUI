@@ -171,7 +171,7 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"overlay", R"json({"type": "object", "additionalProperties": false,
 		"description": "Drawn above everything, next to its anchor",
 		"properties": {"anchor": {"type": "string"}, "placement": {"enum": ["below", "below-end",
-		"above", "above-end", "right", "left", "center", "window"]},
+		"above", "above-end", "right", "left", "center", "window"]}, "flip": {"$ref": "#/$defs/v2/flag"},
 		"open": {"description": "A state path (\"state.menuOpen\") or a value"},
 		"dismiss": {"const": "outside"}, "modal": {"$ref": "#/$defs/v2/flag"}}})json",
 	 "`{ \"anchor\": \"#id\", \"placement\": \"below\", \"open\": \"state.menuOpen\", \"dismiss\": \"outside\" }`: "
@@ -180,7 +180,8 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "the window). `open` is a state path (or a value); with `\"dismiss\": \"outside\"`, a click outside it or Escape "
 	 "sets it to false. `\"modal\": true` traps the focus inside while it is open (Tab cycles in it, the first "
 	 "focusable "
-	 "node inside gets the focus) and gives it back when it closes.",
+	 "node inside gets the focus) and gives it back when it closes. `\"flip\": true` places it on the other side when "
+	 "only that side has room, its children mirrored on that axis.",
 	 "look"},
     {"focusable", "flag",
 	 "`true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable).",

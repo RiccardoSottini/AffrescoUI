@@ -42,6 +42,80 @@ std::string capped(std::string text) {
 	return text;
 }
 
+/// @brief Where an overlay's top left corner goes next to its anchor.
+/// @param placement Its placement.
+/// @param a The anchor's frame.
+/// @param size The overlay's size.
+/// @param window The window's size.
+/// @return The corner, before it is kept inside the window; {0, 0} for Placement::Window.
+Vec2 placedAt(Placement placement, const Rect& a, Vec2 size, Vec2 window) noexcept {
+	switch(placement) {
+	case Placement::Below:
+		return {a.left, a.bottom};
+	case Placement::BelowEnd:
+		return {a.right - size.x, a.bottom};
+	case Placement::Above:
+		return {a.left, a.top - size.y};
+	case Placement::AboveEnd:
+		return {a.right - size.x, a.top - size.y};
+	case Placement::Right:
+		return {a.right, a.top};
+	case Placement::Left:
+		return {a.left - size.x, a.top};
+	case Placement::Center:
+		return {(window.x - size.x) / 2.0f, (window.y - size.y) / 2.0f};
+	case Placement::Window:
+		break;
+	}
+	return {};
+}
+
+/// @brief The placement on the other side of the anchor.
+/// @param placement A placement.
+/// @return Above for below, left for right, ...; itself for Center and Window.
+Placement opposite(Placement placement) noexcept {
+	switch(placement) {
+	case Placement::Below:
+		return Placement::Above;
+	case Placement::BelowEnd:
+		return Placement::AboveEnd;
+	case Placement::Above:
+		return Placement::Below;
+	case Placement::AboveEnd:
+		return Placement::BelowEnd;
+	case Placement::Right:
+		return Placement::Left;
+	case Placement::Left:
+		return Placement::Right;
+	default:
+		return placement;
+	}
+}
+
+/// @brief Whether an overlay that flips goes on the other side: its own has no room for it, the other more.
+/// @param placement Its placement.
+/// @param a The anchor's frame.
+/// @param size The overlay's size.
+/// @param window The window's size.
+/// @return true to flip.
+bool flips(Placement placement, const Rect& a, Vec2 size, Vec2 window) noexcept {
+	const float below = window.y - a.bottom, right = window.x - a.right;
+	switch(placement) {
+	case Placement::Below:
+	case Placement::BelowEnd:
+		return size.y > below && a.top > below;
+	case Placement::Above:
+	case Placement::AboveEnd:
+		return size.y > a.top && below > a.top;
+	case Placement::Right:
+		return size.x > right && a.left > right;
+	case Placement::Left:
+		return size.x > a.left && right > a.left;
+	default:
+		return false;
+	}
+}
+
 } // namespace
 
 platform::NativeWindow& platform::NativeWindow::of(Window& window) { return *window.native_; }
@@ -287,32 +361,13 @@ void Window::layoutOverlay(Panel& overlay, const Panel& parent) {
 	const Rect& a = anchor->frame_;
 	const Vec2 size{overlay.measuredWidth(width), overlay.measuredHeight(height)};
 
-	Vec2 at;
-	switch(overlay.placement_) {
-	case Placement::Below:
-		at = {a.left, a.bottom};
-		break;
-	case Placement::BelowEnd:
-		at = {a.right - size.x, a.bottom};
-		break;
-	case Placement::Above:
-		at = {a.left, a.top - size.y};
-		break;
-	case Placement::AboveEnd:
-		at = {a.right - size.x, a.top - size.y};
-		break;
-	case Placement::Right:
-		at = {a.right, a.top};
-		break;
-	case Placement::Left:
-		at = {a.left - size.x, a.top};
-		break;
-	case Placement::Center:
-		at = {(width - size.x) / 2.0f, (height - size.y) / 2.0f};
-		break;
-	case Placement::Window:
-		break;
-	}
+	// A flipping overlay goes on the other side when only that one has room; its children mirror as it lays out
+	const bool flipped = overlay.flip_ && flips(overlay.placement_, a, size, Vec2{width, height});
+	if(flipped != overlay.flipped_)
+		for(auto& child : overlay.children_) child->markLayoutDirty();
+	overlay.flipped_ = flipped;
+	Vec2 at = placedAt(overlay.flipped_ ? opposite(overlay.placement_) : overlay.placement_, a, size,
+	                   Vec2{width, height});
 
 	// Kept inside the window; Window placement measures everything from the window itself
 	Rect origin = area;
