@@ -1888,6 +1888,24 @@
 							}
 						]
 					},
+					"fit": {
+						"anyOf": [
+							{
+								"enum": [
+									"contain",
+									"cover",
+									"fill"
+								]
+							},
+							{
+								"type": "boolean"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "image and path: contain (default), cover or fill, like CSS object-fit; row, column, stack: true to be as long as its children"
+					},
 					"columns": {
 						"description": "grid: a number of equal columns, or a list of tracks, e.g. [200, \"1fr\", \"minmax(100, 2fr)\"]; table: the columns: an id (also the title), or { id, title, width }",
 						"anyOf": [
@@ -2003,21 +2021,6 @@
 					"source": {
 						"type": "string",
 						"description": "image: an image the host names (Screen::setImage), instead of a file"
-					},
-					"fit": {
-						"anyOf": [
-							{
-								"enum": [
-									"contain",
-									"cover",
-									"fill"
-								]
-							},
-							{
-								"$ref": "#/$defs/v2/dynamic"
-							}
-						],
-						"description": "image and path: contain (default), cover or fill, like CSS object-fit"
 					},
 					"surface": {
 						"anyOf": [
@@ -3350,7 +3353,8 @@
 						"$dateMs",
 						"$isDate",
 						"$passwordStrength",
-						"$isEmail"
+						"$isEmail",
+						"$qrCode"
 					]
 				}
 			},

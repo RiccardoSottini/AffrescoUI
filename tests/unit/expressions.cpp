@@ -299,6 +299,7 @@ const std::vector<Case> cases = {
     {"{{gradientColor({ kind: 'linear', stops: [{ at: 0, color: '#000000ff' }, { at: 1, color: '#ffffffff' }] }, 1)}}",
      "#ffffffff", {}},
     {"{{gradientColor('#000000ff', 0)}}", {}, "test.$gradientColor: expected a gradient"},
+    {"{{qrCode('Affresca').viewBox}}", "-4 -4 29 29", {}}, // tests/unit/qr_code.cpp has the codes
     // Forms: tests/unit/form_inputs.cpp has the strengths and the shapes
     {"{{passwordStrength('').score}}", 0, {}},
     {"{{isEmail('ada@example.com')}}", true, {}},

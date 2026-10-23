@@ -132,7 +132,9 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "Pixels kept free inside its edges: the children start and end that far in, and those aligned across keep it "
 	 "too; a scrolling stack scrolls that far past its last child.",
 	 "stack"},
-    {"fit", "",
+    {"fit",
+	 R"json({"anyOf": [{"enum": ["contain", "cover", "fill"]}, {"type": "boolean"}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "image and path: contain (default), cover or fill, like CSS object-fit; row, column, stack: true to be as long as its children"})json",
 	 "`true`: as long as its children along it (a column as tall as them, a row as wide), with the gaps and the "
 	 "padding, within its `minHeight`/`maxHeight` (or width), like a CSS box of `auto` height; it follows them as "
 	 "they change. A wrapping stack fits them on one line. Default `false`: its own size.",
@@ -183,8 +185,7 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "Instead of `file`: an image the host names (`Screen::setImage(\"chart\", …)`), e.g. a picture it made; the node "
 	 "shows each new one the host sets.",
 	 "image"},
-    {"fit", R"json({"anyOf": [{"enum": ["contain", "cover", "fill"]}, {"type": "boolean"}, {"$ref": "#/$defs/v2/dynamic"}],
-		"description": "image and path: contain (default), cover or fill, like CSS object-fit; row, column, stack: true to be as long as its children"})json",
+    {"fit", "",
 	 "`\"contain\"` (the default: all of it, as large as fits, centred), `\"cover\"` (the whole node, the image's "
 	 "edges cut off) or `\"fill\"` (stretched), like CSS `object-fit`.",
 	 "image"},
