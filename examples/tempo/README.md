@@ -1,6 +1,8 @@
 # Tempo, a music player
 
-Playlists, a library of 3,000 songs in a table, albums and artists in grids, search, a queue you reorder, now playing with a visualiser and lyrics, an equaliser, crossfade and a mini player. Playback is simulated: a timer, no audio. The `music-player` template: a screen document whose one piece of C++, the visualiser surface, the stock host registers.
+A desktop streaming app's layout in one JSON screen: a resizable library, gradient pages with sticky table headers, a
+right panel with the song playing or the queue, and a full player bar. Playback is simulated: a timer, no audio. All
+the music, artists, lyrics and pictures are invented. The `music-player` template: no C++ of its own.
 
 ```sh
 ./build/affrescoui_host examples/tempo/music-player.screen.json
@@ -10,30 +12,44 @@ Playlists, a library of 3,000 songs in a table, albums and artists in grids, sea
 | File | What it is |
 |---|---|
 | `images/` | The pictures the screen shows |
-| `pages.json` | The pages (albums, artists, a collection, search, now playing, sound), included by the screen |
+| `catalog.json` | The invented catalogue: artists, albums, songs, playlists, shows, genres and lyrics, as `state` |
+| `panels.json` | The window's parts: the top bar, Your Library, the right panel, the player bar, full screen and the mini player |
+| `pages.json` | The pages: home, playlist and album, artist, search and genres, shows, lyrics |
 | `strings.json` | The string tables: English, Italian and Arabic |
-| `Visualiser.hpp`, `Visualiser.cpp` | The `visualiser` type: bars drawn on a GPU surface, registered by the host |
 | `music-player.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 | `music-player.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
-| `music-player.screen.json` | The screen document |
+| `music-player.screen.json` | The screen document: fonts, colours, state, actions and shortcuts |
+| `PARITY.md` | What the layout covers, feature by feature |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 ## What it shows
 
-- **Screen documents in parts:** `include` of the pages and the string tables; pages as components with `use`.
-- **Widgets:** virtualised tables (the library of 3,000 songs, a collection, search results), grids of albums and artists, a list for the queue (dragged, or moved with Alt+Up and Down), the `curves` control for a ten-band equaliser with presets, sliders, a waveform, a tab list for the menu.
-- **An application type:** `visualiser`, a GPU surface in C++ (`Visualiser.cpp`) that the host and the `affrescoui` tool register.
-- **A simulated player:** an `every` timer moves the song along, crossfades into the next one and steps the lyrics.
-- **Commands:** titled actions in the command palette (Cmd+Shift+P) and Quick Open of songs (Cmd+P); shortcuts for playback (Space, arrows), pages (Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5, Cmd+6), the queue (Cmd+U), the mini player (Cmd+M), the theme (Cmd+T), the language (Cmd+Shift+L).
-- **Settings** that persist (`settings` with a schema): language and crossfade; the theme, the equaliser and the volume persist too.
+- **Screen documents in parts:** `include` of the catalogue, the panels, the pages and the string tables; parts as
+  components with `use`.
+- **Your Library:** chips by kind, search and sort, list, compact and grid views, pins, a context menu; it widens,
+  narrows and collapses.
+- **Pages:** a gradient header from the cover's colour, a big play button, a table with sortable columns, hover play,
+  the row playing in the accent colour with an equaliser, multi-select (Cmd/Ctrl, Shift), drag to reorder, a context
+  menu with submenus, a sticky header and a sticky table head; artists with a banner, popular songs, discography chips
+  and fans also like; home with a greeting, shortcuts and shelves; search with genre tiles, a top result and songs.
+- **The player:** like, shuffle, repeat (off, all, one), a seek bar with a hover thumb, lyrics, the queue, a device
+  button, volume, mini player and full screen with a visualiser drawn as a `path`.
+- **Commands:** titled actions in the command palette (Cmd+Shift+P) and Quick Open of songs (Cmd+P); shortcuts for
+  playback (Space, Cmd+arrows), pages (Alt+Left and Right, Alt+Shift+H, Cmd+K), the panels (Alt+Shift+Q, R, Y), the
+  mini player (Cmd+M), full screen (Cmd+Shift+F), the theme (Cmd+T), the language (Cmd+Shift+L), and Cmd+/ for the list.
 - **Themes and locales:** light and dark tokens; English, Italian and Arabic string tables, Arabic right to left.
-- **Accessibility:** roles and names, live regions, the menu as a tab list with arrow keys, sliders and lists with the keyboard.
-- **Layouts** from 1040 × 640 to full screen, and a mini player.
+- **Accessibility:** roles and names, live regions for the lyric playing, menus and tables with the keyboard.
 
 ## How it holds together
 
-- **Permissions:** Studio peers change it directly; an agent's change waits for a Studio reviewer (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The theme, settings, equaliser and volume persist.
-- **Threading and ownership:** it has no C++ of its own but the visualiser, a GPU surface that the host registers. The stock host owns the window and the screen, and runs the document on its UI thread.
-- **Extension points:** the library, the playlists and the queue are entries of `state`; a page is a part of `pages.json`; a language is a table in `strings.json`.
-- **Assets:** the pictures in `images/` are simple vector drawings made for this project, under the repository's Apache-2.0 licence. The fonts' licences are with them in `../shared/fonts`.
+- **Permissions:** Studio peers change it directly; an agent's change waits for a Studio reviewer (a change to its
+  actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5
+  removed, 50 changed); no one may change the player bar. The theme, the library's layout, the volume and what was
+  liked or saved persist.
+- **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the
+  document on its UI thread.
+- **Extension points:** the catalogue is `state` in `catalog.json`; a page is a component of `pages.json`; a language
+  is a table in `strings.json`.
+- **Assets:** the pictures in `images/` are simple vector drawings made for this project, under the repository's
+  Apache-2.0 licence. The icons are Lucide's and the fonts' licences are with them in `../shared/fonts`.

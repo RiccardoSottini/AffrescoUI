@@ -6,7 +6,7 @@
 			"revision": {
 				"author": "studio",
 				"set": {
-					"#panel-root/color": "#000000"
+					"#window/color": "#000000"
 				}
 			},
 			"expect": "allow"
@@ -16,7 +16,7 @@
 			"revision": {
 				"author": "agent/claude-code",
 				"set": {
-					"#panel-root/color": "#000000"
+					"#window/color": "#000000"
 				}
 			},
 			"expect": "ask",
@@ -26,10 +26,10 @@
 			"name": "no one changes the status bar",
 			"revision": {
 				"author": "studio",
-				"remove": "#statusBar"
+				"remove": "#player"
 			},
 			"expect": "deny",
-			"reason": "#statusBar"
+			"reason": "#player"
 		},
 		{
 			"name": "an agent's new behaviour is always asked",
@@ -53,140 +53,140 @@
 				"patch": [
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel0"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel1"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel2"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel3"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel4"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel5"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel6"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel7"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel8"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel9"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel10"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel11"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel12"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel13"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel14"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel15"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel16"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel17"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel18"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel19"
 						}
@@ -203,147 +203,147 @@
 				"patch": [
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel0"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel1"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel2"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel3"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel4"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel5"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel6"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel7"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel8"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel9"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel10"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel11"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel12"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel13"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel14"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel15"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel16"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel17"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel18"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel19"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel20"
 						}
@@ -360,147 +360,147 @@
 				"patch": [
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel0"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel1"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel2"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel3"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel4"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel5"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel6"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel7"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel8"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel9"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel10"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel11"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel12"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel13"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel14"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel15"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel16"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel17"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel18"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel19"
 						}
 					},
 					{
 						"op": "add",
-						"path": "#panel-root/children/-",
+						"path": "#app/children/-",
 						"value": {
 							"id": "policyPanel20"
 						}

@@ -1,0 +1,740 @@
+{
+	"note": "Tempo's frame, included by music-player.screen.json: the top bar, Your Library, the Now Playing and queue panel, the player bar, full screen and the mini player, and the parts they share (cover tiles, track rows, toggles).",
+
+	"computed": {
+		"libAll": "{{concat([{ key: 'liked:0', kind: 'liked', i: 0, name: t('liked'), sub: t('lib.playlist') + ' · ' + t('lib.songs', { n: length(state.liked) }), type: 'playlists', by: 'Robin', n: 0, color: '#4527a0' }], map(state.saved, { key: 'playlist:' + it, kind: 'playlist', i: it, name: state.playlists[it].name, sub: t('lib.playlist') + ' · ' + state.playlists[it].owner, img: state.playlists[it].cover, type: 'playlists', color: state.playlists[it].color, by: state.playlists[it].owner, n: 10 + index }), map(state.following, { key: 'artist:' + it, kind: 'artist', i: it, name: state.artists[it].name, sub: t('lib.artist'), img: state.artists[it].image, round: true, type: 'artists', color: state.artists[it].color, by: state.artists[it].name, n: 40 + index }), map(state.savedAlbums, { key: 'album:' + it, kind: 'album', i: it, name: state.albums[it].title, sub: t('lib.album') + ' · ' + state.albums[it].artist, img: state.albums[it].cover, type: 'albums', color: state.albums[it].color, by: state.albums[it].artist, n: 70 + index }), map(state.savedShows, { key: 'show:' + it, kind: 'show', i: it, name: state.shows[it].name, sub: t('lib.podcast') + ' · ' + state.shows[it].publisher, img: state.shows[it].cover, type: 'podcasts', color: state.shows[it].color, by: state.shows[it].publisher, n: 90 + index }))}}",
+		"libItems": "{{sort(filter(computed.libAll, (state.lib.filter == '' || it.type == state.lib.filter) && (state.lib.query == '' || fuzzy(state.lib.query, it.name) != null)), (contains(state.pinned, it.key) ? '0' : '1') + (state.lib.sort == 'alpha' ? lower(it.name) : state.lib.sort == 'creator' ? lower(it.by) : state.lib.sort == 'added' ? pad(200 - it.n, 4) : pad(indexOf(state.recent, it.key) < 0 ? 500 + it.n : indexOf(state.recent, it.key), 4)))}}",
+		"libCols": "{{max(2, floor((computed.libW - 16) / 140))}}",
+		"rows": "{{state.view.page == 'playlist' ? state.playlists[state.view.i].tracks : state.view.page == 'liked' ? state.liked : state.view.page == 'album' ? filter(range(length(state.tracks)), state.tracks[it].al == state.view.i) : []}}",
+		"shown": "{{state.sort.by == '' ? computed.rows : sort(computed.rows, state.sort.by == 'title' ? lower(state.tracks[it].title) : state.sort.by == 'album' ? lower(state.tracks[it].album) : state.sort.by == 'added' ? pad(999 - indexOf(computed.rows, it), 4) : pad(state.tracks[it].d, 4), state.sort.desc ? 'desc' : 'asc')}}",
+		"playingHere": "{{state.ctx.kind == state.view.page && state.ctx.i == state.view.i}}",
+		"menuTrack": "{{state.tracks[state.menu.t]}}",
+		"menuItems": "{{state.menu.n < -1 ? computed.libMenu : [{ title: t('menu.queue'), icon: 'list-plus', run: 'addToQueue', with: { tracks: length(state.sel) > 1 ? map(state.sel, computed.shown[it]) : [state.menu.t] } }, { separator: true }, { title: t('menu.artist'), icon: 'user', run: 'go', with: { page: 'artist', i: computed.menuTrack.ar } }, { title: t('menu.album'), icon: 'disc-3', run: 'go', with: { page: 'album', i: computed.menuTrack.al } }, { separator: true }, { title: contains(state.liked, state.menu.t) ? t('menu.unlike') : t('menu.like'), icon: 'heart', run: 'like', with: { track: state.menu.t } }, { title: t('menu.addTo'), icon: 'plus', submenu: concat([{ title: t('menu.newPlaylist'), icon: 'circle-plus', run: 'createPlaylist', with: { tracks: [state.menu.t] } }, { separator: true }], map(computed.own, { title: state.playlists[it].name, run: 'addToPlaylist', with: { p: it, tracks: length(state.sel) > 1 ? map(state.sel, computed.shown[it]) : [state.menu.t] } })) }, { title: t('menu.remove'), icon: 'trash-2', enabled: state.view.page == 'playlist' && state.playlists[state.view.i].owner == 'Robin', run: 'removeFromPlaylist', with: { at: state.menu.n } }, { separator: true }, { title: t('menu.share'), icon: 'share-2', submenu: [{ title: t('menu.copyLink'), icon: 'link', run: 'copyLink', with: { name: computed.menuTrack.title } }, { title: t('menu.embed'), icon: 'code', run: 'copyLink', with: { name: computed.menuTrack.title } }] }]}}",
+		"libMenu": "{{[{ title: contains(state.pinned, state.menu.key) ? t('menu.unpin') : t('menu.pin'), icon: 'pin', run: 'pin', with: { key: state.menu.key } }, { title: t('menu.play'), icon: 'play', run: 'playItem', with: { kind: split(state.menu.key, ':')[0], i: number(split(state.menu.key, ':')[1]) } }, { separator: true }, { title: t('menu.removeLib'), icon: 'circle-minus', enabled: state.menu.key != 'liked:0', run: 'unsave', with: { key: state.menu.key } }]}}"
+	},
+
+	"actions": {
+		"addToQueue": [{ "set": "state.upNext", "to": "{{concat(state.upNext, tracks)}}" }, { "run": "say", "with": { "text": "{{t('toast.queued', { n: length(tracks) })}}" } }],
+		"addToPlaylist": [
+			{ "set": "{{'state.playlists[' + p + '].tracks'}}", "to": "{{concat(state.playlists[p].tracks, filter(tracks, !contains(state.playlists[p].tracks, it)))}}" },
+			{ "run": "say", "with": { "text": "{{t('toast.added', { name: state.playlists[p].name })}}" } }
+		],
+		"removeFromPlaylist": [
+			{ "set": "{{'state.playlists[' + state.view.i + '].tracks'}}", "to": "{{filter(state.playlists[state.view.i].tracks, !contains(length(state.sel) > 1 ? map(state.sel, computed.shown[it]) : [computed.shown[at]], it))}}" },
+			{ "set": "state.sel", "to": [] }
+		],
+		"createPlaylist": [
+			{ "push": "state.playlists", "value": { "name": "{{t('lib.newName', { n: length(computed.own) + 1 })}}", "cover": "images/cover-library.svg", "owner": "Robin", "saves": 0, "color": "#4a4a4a", "updated": "2026-10-23", "description": "", "tracks": "{{tracks ?? []}}" } },
+			{ "set": "state.saved", "to": "{{concat([length(state.playlists) - 1], state.saved)}}" },
+			{ "set": "state.recent", "to": "{{concat(['playlist:' + (length(state.playlists) - 1)], state.recent)}}" },
+			{ "run": "go", "with": { "page": "playlist", "i": "{{length(state.playlists) - 1}}" } }
+		],
+		"pin": [{ "set": "state.pinned", "to": "{{contains(state.pinned, key) ? filter(state.pinned, it != key) : concat([key], state.pinned)}}" }],
+		"unsave": [
+			{ "set": "state.saved", "to": "{{filter(state.saved, 'playlist:' + it != key)}}" },
+			{ "set": "state.following", "to": "{{filter(state.following, 'artist:' + it != key)}}" },
+			{ "set": "state.savedAlbums", "to": "{{filter(state.savedAlbums, 'album:' + it != key)}}" },
+			{ "set": "state.savedShows", "to": "{{filter(state.savedShows, 'show:' + it != key)}}" },
+			{ "set": "state.pinned", "to": "{{filter(state.pinned, it != key)}}" }
+		],
+		"save": [
+			{ "note": "with: kind, i. Adds a playlist, artist, album or show to Your Library, or takes it out" },
+			{ "if": "{{kind == 'artist'}}", "then": [{ "set": "state.following", "to": "{{contains(state.following, i) ? filter(state.following, it != i) : concat(state.following, [i])}}" }] },
+			{ "if": "{{kind == 'album'}}", "then": [{ "set": "state.savedAlbums", "to": "{{contains(state.savedAlbums, i) ? filter(state.savedAlbums, it != i) : concat(state.savedAlbums, [i])}}" }] },
+			{ "if": "{{kind == 'playlist'}}", "then": [{ "set": "state.saved", "to": "{{contains(state.saved, i) ? filter(state.saved, it != i) : concat(state.saved, [i])}}" }] },
+			{ "if": "{{kind == 'show'}}", "then": [{ "set": "state.savedShows", "to": "{{contains(state.savedShows, i) ? filter(state.savedShows, it != i) : concat(state.savedShows, [i])}}" }] }
+		],
+		"copyLink": [{ "copy": "tempo://song/{{lower(name)}}" }, { "run": "say", "with": { "text": "{{t('toast.copied')}}" } }],
+		"openMenu": [
+			{ "note": "with: t (a song), n (its row) and event: the song's menu where the pointer is" },
+			{ "if": "{{!contains(state.sel, n)}}", "then": [{ "set": "state.sel", "to": "{{n < 0 ? [] : [n]}}" }] },
+			{ "set": "state.menu", "to": { "x": "{{event.x}}", "y": "{{event.y}}", "t": "{{t}}", "n": "{{n}}", "key": "" } },
+			{ "set": "state.open.ctx", "to": true }
+		],
+		"jumpQueue": [
+			{ "note": "with: at, a place in the songs after this one: it plays, and the ones before it are skipped" },
+			{ "if": "{{at < length(state.upNext)}}", "then": [
+				{ "set": "state.track", "to": "{{state.upNext[at]}}" }, { "set": "state.upNext", "to": "{{slice(state.upNext, at + 1)}}" }
+			], "else": [
+				{ "set": "state.pos", "to": "{{state.pos + 1 + at - length(state.upNext)}}" }, { "set": "state.upNext", "to": [] },
+				{ "set": "state.track", "to": "{{state.list[state.pos]}}" }
+			] },
+			{ "set": "state.elapsed", "to": 0 },
+			{ "set": "state.isPlaying", "to": true }
+		]
+	},
+
+	"styles": {
+		"panel": { "color": "@panel", "radius": 8 }
+	},
+
+	"components": {
+		"toggleIcon": {
+			"params": { "icon": "", "on": false, "tip": "" },
+			"node": {
+				"style": "icon",
+				"icon": "{{icon}}",
+				"textColor": "{{on ? '@accent' : '@muted'}}",
+				"hover": { "textColor": "{{on ? '@accentHover' : '@text'}}", "scale": 1.04 },
+				"label": "{{tip}}",
+				"tooltip": "{{tip}}",
+				"selected": "{{on}}",
+				"children": [{ "when": "{{on}}", "anchors": { "left": 14, "bottom": 0 }, "width": 4, "height": 4, "radius": 2, "color": "@accent" }]
+			}
+		},
+		"cover": {
+			"params": { "kind": "", "img": "", "size": 48, "round": false },
+			"node": {
+				"width": "{{size}}",
+				"height": "{{size}}",
+				"radius": "{{round ? 999 : size > 100 ? 8 : 4}}",
+				"color": "@raised",
+				"children": [
+					{ "when": "{{kind == 'liked'}}", "fill": 0, "radius": 4, "gradient": { "kind": "linear", "angle": 135, "stops": ["#4527a0", "#8e7cc3"] } },
+					{ "when": "{{kind == 'liked'}}", "type": "label", "icon": "heart", "text": "", "font": "{{size > 56 ? 'iconsLarge' : 'icons'}}", "fill": 0, "align": "center", "textColor": "#ffffff", "scale": "{{size > 100 ? 3 : 1}}" },
+					{ "when": "{{kind != 'liked'}}", "type": "image", "file": "{{img}}", "fit": "cover", "fill": 0, "radius": "{{round ? 999 : size > 100 ? 8 : 4}}" }
+				]
+			}
+		},
+		"songRow": {
+			"note": "A song in the queue or the Now Playing panel: cover, title and artist; a click plays it",
+			"params": { "t": 0, "on": false },
+			"node": {
+				"anchors": { "left": 0, "right": 0 },
+				"height": 64,
+				"radius": 6,
+				"color": "transparent",
+				"hover": { "color": "@rowHover" },
+				"focused": { "color": "@rowHover" },
+				"cursor": "hand",
+				"focusable": true,
+				"label": "{{state.tracks[t].title}}, {{state.tracks[t].artist}}",
+				"children": [
+					{ "use": "cover", "with": { "img": "{{state.albums[state.tracks[t].al].cover}}", "size": 48 }, "anchors": { "left": 8, "top": 8 } },
+					{ "type": "label", "text": "{{state.tracks[t].title}}", "textColor": "{{on ? '@accent' : '@text'}}", "anchors": { "left": 68, "right": 8, "top": 13 }, "height": 18 },
+					{ "style": "small", "text": "{{state.tracks[t].artist}}", "anchors": { "left": 68, "top": 35 } }
+				]
+			}
+		},
+		"topBar": {
+			"node": {
+				"color": "transparent",
+				"role": "banner",
+				"children": [
+					{ "id": "backButton", "style": "icon", "icon": "chevron-left", "mirror": true, "font": "iconsLarge", "anchors": { "left": 16, "top": 16 }, "color": "@raised",
+						"disabled": "{{length(state.back) == 0}}", "textColor": "{{length(state.back) == 0 ? '@faint' : '@muted'}}", "label": "{{t('top.back')}}", "tooltip": "{{t('top.back')}}", "onClick": "goBack" },
+					{ "id": "forwardButton", "style": "icon", "icon": "chevron-right", "mirror": true, "font": "iconsLarge", "anchors": { "left": 56, "top": 16 }, "color": "@raised",
+						"disabled": "{{length(state.forward) == 0}}", "textColor": "{{length(state.forward) == 0 ? '@faint' : '@muted'}}", "label": "{{t('top.forward')}}", "tooltip": "{{t('top.forward')}}", "onClick": "goForward" },
+					{
+						"id": "centre",
+						"type": "row",
+						"gap": 8,
+						"x": "{{floor(window.width / 2) - 270}}",
+						"y": 8,
+						"width": 540,
+						"height": 48,
+						"children": [
+							{ "id": "homeButton", "style": "icon", "icon": "home", "font": "iconsLarge", "width": 48, "height": 48, "color": "@raised", "hover": { "textColor": "@text", "scale": 1.04 },
+								"textColor": "{{state.view.page == 'home' ? '@text' : '@muted'}}", "label": "{{t('top.home')}}", "tooltip": "{{t('top.home')}}", "onClick": "goHome" },
+							{
+								"id": "searchPill",
+								"grow": 1,
+								"height": 48,
+								"radius": 999,
+								"color": "@raised",
+								"hover": { "color": "@raisedHover" },
+								"borderWidth": 2,
+								"borderColor": "{{state.view.page == 'search' ? '@text' : 'transparent'}}",
+								"children": [
+									{ "id": "label-search-icon", "type": "label", "icon": "search", "font": "iconsLarge", "text": "", "textColor": "@muted", "anchors": { "left": 14, "top": 13 }, "fitText": true },
+									{
+										"id": "search",
+										"type": "textarea",
+										"bind": "state.query",
+										"placeholder": "{{t('top.search')}}",
+										"placeholderColor": "@muted",
+										"textColor": "@text",
+										"color": "transparent", "borderWidth": 0, "focused": { "borderWidth": 0 },
+										"anchors": { "left": 46, "right": 60, "top": 10 },
+										"height": 28,
+										"padding": 4,
+										"label": "{{t('top.searchLabel')}}",
+										"onFocus": { "if": "{{state.view.page != 'search'}}", "then": [{ "run": "go", "with": { "page": "search", "i": 0 } }] },
+										"onChange": [{ "set": "state.scroll", "to": 0 }, { "set": "state.searchKind", "to": "all" }],
+										"keys": { "escape": [{ "set": "state.query", "to": "" }] }
+									},
+									{ "id": "panel-search-divider", "anchors": { "right": 52, "top": 12, "bottom": 12 }, "width": 1, "color": "@faint" },
+									{ "id": "browseButton", "style": "icon", "icon": "layout-grid", "anchors": { "right": 12, "top": 8 }, "label": "{{t('top.browse')}}", "tooltip": "{{t('top.browse')}}",
+										"textColor": "{{state.view.page == 'search' && state.query == '' ? '@text' : '@muted'}}",
+										"onClick": [{ "set": "state.query", "to": "" }, { "run": "go", "with": { "page": "search", "i": 0 } }] }
+								]
+							}
+						]
+					},
+					{ "id": "themeButton", "style": "icon", "icon": "{{state.theme == 'dark' ? 'sun' : 'moon'}}", "anchors": { "right": 172, "top": 16 }, "label": "{{t('top.theme')}}", "tooltip": "{{t('top.theme')}}", "onClick": "toggleTheme" },
+					{ "id": "languageButton", "style": "icon", "icon": "languages", "anchors": { "right": 136, "top": 16 }, "label": "{{t('top.language')}}", "tooltip": "{{t('top.language')}}", "onClick": "switchLanguage" },
+					{ "id": "newsButton", "style": "icon", "icon": "bell", "anchors": { "right": 100, "top": 16 }, "label": "{{t('top.news')}}", "tooltip": "{{t('top.news')}}", "onClick": { "run": "say", "with": { "text": "{{t('toast.news')}}" } } },
+					{ "id": "friendsButton", "style": "icon", "icon": "users", "anchors": { "right": 64, "top": 16 }, "label": "{{t('top.friends')}}", "tooltip": "{{t('top.friends')}}", "onClick": { "run": "say", "with": { "text": "{{t('toast.friends')}}" } } },
+					{
+						"id": "avatarButton",
+						"anchors": { "right": 8, "top": 8 },
+						"width": 48,
+						"height": 48,
+						"radius": 999,
+						"color": "@raised",
+						"hover": { "scale": 1.04 },
+						"cursor": "hand",
+						"focusable": true,
+						"role": "button",
+						"label": "{{t('top.account')}}",
+						"tooltip": "Robin",
+						"isOpen": "{{state.open.user}}",
+						"onClick": { "toggle": "state.open.user" },
+						"children": [
+							{ "id": "label-avatar", "type": "label", "text": "R", "font": "bold", "fill": 8, "radius": 999, "align": "center", "color": "transparent", "gradient": ["#f59e0b", "#e0244b"], "textColor": "#000000" },
+							{
+								"id": "userMenu",
+								"use": "menu",
+								"with": {
+									"open": "state.open.user",
+									"placement": "below-end",
+									"width": 220,
+									"icons": true,
+									"items": [
+										{ "title": "{{t('user.account')}}", "icon": "external-link", "run": "say", "with": { "text": "{{t('toast.account')}}" } },
+										{ "title": "{{t('user.profile')}}", "icon": "user", "run": "say", "with": { "text": "{{t('toast.account')}}" } },
+										{ "title": "{{t('user.shortcuts')}}", "icon": "keyboard", "keyLabel": "⌘/", "run": "shortcuts" },
+										{ "title": "{{t('user.theme')}}", "icon": "{{state.theme == 'dark' ? 'sun' : 'moon'}}", "run": "toggleTheme" },
+										{ "title": "{{t('user.language')}}", "icon": "languages", "run": "switchLanguage" },
+										{ "separator": true },
+										{ "title": "{{t('user.logout')}}", "icon": "log-out", "run": "say", "with": { "text": "{{t('toast.account')}}" } }
+									]
+								}
+							}
+						]
+					}
+				]
+			}
+		},
+
+		"library": {
+			"node": {
+				"style": "panel",
+				"role": "navigation",
+				"label": "{{t('lib.title')}}",
+				"children": [
+					{
+						"id": "libHeader",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 56,
+						"color": "transparent",
+						"children": [
+							{ "id": "libToggle", "type": "label", "icon": "library", "font": "title", "text": "{{state.lib.collapsed ? '' : t('lib.title')}}", "textColor": "@muted",
+								"hover": { "textColor": "@text" }, "anchors": { "left": "{{state.lib.collapsed ? 24 : 16}}", "top": 16 }, "height": 24, "fitText": true, "cursor": "hand", "focusable": true, "role": "button",
+								"label": "{{state.lib.collapsed ? t('lib.expand') : t('lib.collapse')}}", "tooltip": "{{state.lib.collapsed ? t('lib.expand') : t('lib.collapse')}}", "onClick": "collapseLibrary" },
+							{ "id": "createButton", "when": "{{!state.lib.collapsed}}", "style": "pill", "icon": "plus", "font": "bold", "text": "{{t('lib.create')}}", "anchors": { "right": 52, "top": 12 },
+								"color": "@raised", "hover": { "color": "@raisedHover" }, "label": "{{t('lib.createLabel')}}", "tooltip": "{{t('lib.createLabel')}}", "isOpen": "{{state.open.create}}",
+								"onClick": { "toggle": "state.open.create" },
+								"children": [{ "id": "createMenu", "use": "menu", "with": { "open": "state.open.create", "width": 280, "icons": true, "items": [
+									{ "title": "{{t('lib.newPlaylist')}}", "icon": "music", "run": "createPlaylist", "with": { "tracks": [] } },
+									{ "title": "{{t('lib.newFolder')}}", "icon": "folder-plus", "run": "say", "with": { "text": "{{t('toast.folder')}}" } }
+								] } }] },
+							{ "id": "widenButton", "when": "{{!state.lib.collapsed}}", "style": "icon", "icon": "{{state.lib.width > 360 ? 'arrow-left' : 'arrow-right'}}", "mirror": true, "anchors": { "right": 12, "top": 12 },
+								"label": "{{state.lib.width > 360 ? t('lib.narrow') : t('lib.widen')}}", "tooltip": "{{state.lib.width > 360 ? t('lib.narrow') : t('lib.widen')}}",
+								"onClick": { "set": "state.lib.width", "to": "{{state.lib.width > 360 ? 300 : 480}}" } }
+						]
+					},
+					{
+						"id": "libFilters",
+						"when": "{{!state.lib.collapsed}}",
+						"type": "row",
+						"gap": 8,
+						"anchors": { "left": 16, "right": 16, "top": 56 },
+						"height": 32,
+						"role": "toolbar",
+						"arrows": "horizontal",
+						"label": "{{t('lib.filters')}}",
+						"children": [
+							{ "id": "clearFilter", "when": "{{state.lib.filter != ''}}", "style": "icon", "icon": "x", "color": "@chip", "hover": { "color": "@chipHover", "textColor": "@text" },
+								"label": "{{t('lib.clear')}}", "tooltip": "{{t('lib.clear')}}", "onClick": { "set": "state.lib.filter", "to": "" } },
+							{ "id": "filterChip", "repeat": { "for": "f", "in": "{{state.lib.filter == '' ? ['playlists', 'artists', 'albums', 'podcasts'] : [state.lib.filter]}}" },
+								"style": "{{state.lib.filter == f ? 'pillOn' : 'pill'}}", "text": "{{t('lib.' + f)}}", "selected": "{{state.lib.filter == f}}",
+								"onClick": { "set": "state.lib.filter", "to": "{{state.lib.filter == f ? '' : f}}" } }
+						]
+					},
+					{
+						"id": "libTools",
+						"when": "{{!state.lib.collapsed}}",
+						"anchors": { "left": 8, "right": 8, "top": 96 },
+						"height": 40,
+						"color": "transparent",
+						"children": [
+							{ "id": "libSearchButton", "when": "{{!state.lib.searching}}", "style": "icon", "icon": "search", "anchors": { "left": 4, "top": 4 }, "hover": { "color": "@raised", "textColor": "@text" },
+								"label": "{{t('lib.search')}}", "tooltip": "{{t('lib.search')}}", "onClick": [{ "set": "state.lib.searching", "to": true }, { "focus": "#libSearch" }] },
+							{
+								"id": "libSearchField",
+								"when": "{{state.lib.searching}}",
+								"anchors": { "left": 4, "top": 4 },
+								"width": 190,
+								"height": 32,
+								"radius": 4,
+								"color": "@raised",
+								"children": [
+									{ "id": "label-lib-search-icon", "type": "label", "icon": "search", "text": "", "textColor": "@muted", "anchors": { "left": 10, "top": 8 }, "fitText": true },
+									{ "id": "libSearch", "type": "textarea", "bind": "state.lib.query", "placeholder": "{{t('lib.searchIn')}}", "placeholderColor": "@muted", "textColor": "@text", "font": "small",
+										"color": "transparent", "anchors": { "left": 32, "right": 4, "top": 4 }, "height": 24, "padding": 4, "label": "{{t('lib.search')}}",
+										"onBlur": { "if": "{{state.lib.query == ''}}", "then": [{ "set": "state.lib.searching", "to": false }] },
+										"keys": { "escape": [{ "set": "state.lib.query", "to": "" }, { "set": "state.lib.searching", "to": false }] } }
+								]
+							},
+							{
+								"id": "sortButton",
+								"type": "label",
+								"text": "{{t('sort.' + state.lib.sort)}}",
+								"font": "small",
+								"anchors": { "right": 36, "top": 4 },
+								"height": 32,
+								"padding": 8,
+								"radius": 4,
+								"fitText": true,
+								"textColor": "@muted",
+								"hover": { "textColor": "@text" },
+								"cursor": "hand",
+								"focusable": true,
+								"role": "button",
+								"label": "{{t('lib.sortLabel')}}",
+								"isOpen": "{{state.open.sort}}",
+								"onClick": { "toggle": "state.open.sort" },
+								"children": [{ "id": "sortMenu", "use": "menu", "with": { "open": "state.open.sort", "anchor": "#viewButton", "placement": "below-end", "width": 200, "icons": true, "items": [
+									{ "title": "{{t('sort.by')}}", "enabled": false },
+									{ "title": "{{t('sort.recents')}}", "checked": "{{state.lib.sort == 'recents'}}", "run": "libSet", "with": { "key": "sort", "value": "recents" } },
+									{ "title": "{{t('sort.added')}}", "checked": "{{state.lib.sort == 'added'}}", "run": "libSet", "with": { "key": "sort", "value": "added" } },
+									{ "title": "{{t('sort.alpha')}}", "checked": "{{state.lib.sort == 'alpha'}}", "run": "libSet", "with": { "key": "sort", "value": "alpha" } },
+									{ "title": "{{t('sort.creator')}}", "checked": "{{state.lib.sort == 'creator'}}", "run": "libSet", "with": { "key": "sort", "value": "creator" } },
+									{ "separator": true },
+									{ "title": "{{t('view.as')}}", "enabled": false },
+									{ "title": "{{t('view.compact')}}", "icon": "align-justify", "checked": "{{state.lib.view == 'compact'}}", "run": "libSet", "with": { "key": "view", "value": "compact" } },
+									{ "title": "{{t('view.list')}}", "icon": "list", "checked": "{{state.lib.view == 'list'}}", "run": "libSet", "with": { "key": "view", "value": "list" } },
+									{ "title": "{{t('view.grid')}}", "icon": "layout-grid", "checked": "{{state.lib.view == 'grid'}}", "run": "libSet", "with": { "key": "view", "value": "grid" } }
+								] } }]
+							},
+							{ "id": "viewButton", "style": "icon", "icon": "{{state.lib.view == 'grid' ? 'layout-grid' : state.lib.view == 'compact' ? 'align-justify' : 'list'}}", "anchors": { "right": 4, "top": 4 },
+								"label": "{{t('lib.sortLabel')}}", "tooltip": "{{t('lib.sortLabel')}}", "onClick": { "toggle": "state.open.sort" } }
+						]
+					},
+					{
+						"id": "libList",
+						"type": "row",
+						"wrap": true,
+						"anchors": { "left": 8, "right": 8, "top": "{{state.lib.collapsed ? 56 : 140}}", "bottom": 8 },
+						"scroll": "vertical",
+						"role": "list",
+						"arrows": "vertical",
+						"label": "{{t('lib.items')}}",
+						"children": [
+							{
+								"id": "libItem",
+								"repeat": { "for": "item", "in": "computed.libItems", "key": "{{item.key}}" },
+								"let": {
+									"open": "{{state.view.page == item.kind && state.view.i == item.i}}",
+									"playing": "{{state.ctx.kind == item.kind && state.ctx.i == item.i}}",
+									"pinned": "{{contains(state.pinned, item.key)}}",
+									"tile": "{{state.lib.view == 'grid' && !state.lib.collapsed}}",
+									"compact": "{{state.lib.view == 'compact' && !state.lib.collapsed}}"
+								},
+								"width": "{{tile ? floor((computed.libW - 16) / computed.libCols) : computed.libW - 16}}",
+								"height": "{{tile ? floor((computed.libW - 16) / computed.libCols) + 44 : compact ? 32 : 64}}",
+								"radius": 6,
+								"color": "{{open ? '@rowHover' : 'transparent'}}",
+								"hover": { "color": "{{open ? '@rowOn' : '@rowHover'}}" },
+								"focused": { "color": "@rowHover" },
+								"cursor": "hand",
+								"focusable": true,
+								"role": "listitem",
+								"selected": "{{open}}",
+								"label": "{{item.name}}, {{item.sub}}",
+								"tooltip": "{{state.lib.collapsed ? item.name : ''}}",
+								"onClick": { "run": "go", "with": { "page": "{{item.kind}}", "i": "{{item.i}}" } },
+								"onDoubleClick": { "run": "playItem", "with": { "kind": "{{item.kind}}", "i": "{{item.i}}" } },
+								"onContextMenu": [
+									{ "set": "state.menu", "to": { "x": "{{event.x}}", "y": "{{event.y}}", "t": 0, "n": -2, "key": "{{item.key}}" } },
+									{ "set": "state.open.ctx", "to": true }
+								],
+								"children": [
+									{ "when": "{{!compact}}", "use": "cover", "with": { "kind": "{{item.kind}}", "img": "{{item.img}}", "round": "{{item.round == true}}", "size": "{{tile ? floor((computed.libW - 16) / computed.libCols) - 16 : 48}}" },
+										"anchors": { "left": 8, "top": 8 } },
+									{ "when": "{{!state.lib.collapsed && !compact}}", "type": "label", "text": "{{item.name}}", "textColor": "{{playing ? '@accent' : '@text'}}",
+										"anchors": { "left": "{{tile ? 8 : 68}}", "right": "{{playing && !tile ? 36 : 8}}", "top": "{{tile ? floor((computed.libW - 16) / computed.libCols) - 2 : 12}}" }, "height": 20 },
+									{ "when": "{{!state.lib.collapsed && !compact}}", "type": "label", "font": "small", "icon": "{{pinned ? 'pin' : ''}}", "text": "{{item.sub}}", "textColor": "@muted",
+										"anchors": { "left": "{{tile ? 8 : 68}}", "right": 8, "top": "{{tile ? floor((computed.libW - 16) / computed.libCols) + 18 : 34}}" }, "height": 18 },
+									{ "when": "{{compact}}", "type": "label", "runs": [{ "text": "{{item.name}}", "color": "{{playing ? '@accent' : '@text'}}" }, { "text": "  ·  {{split(item.sub, ' · ')[0]}}", "color": "@muted" }],
+										"icon": "{{pinned ? 'pin' : ''}}", "anchors": { "left": 8, "right": 36, "top": 6 }, "height": 20 },
+									{ "when": "{{playing && !tile && !state.lib.collapsed}}", "type": "label", "icon": "{{state.isPlaying ? 'volume-2' : ''}}", "text": "", "textColor": "@accent",
+										"anchors": { "right": 12, "top": "{{compact ? 8 : 24}}" }, "fitText": true }
+								]
+							}
+						]
+					},
+					{ "id": "libEmpty", "when": "{{length(computed.libItems) == 0}}", "style": "muted", "text": "{{t('lib.none')}}", "anchors": { "left": 24, "top": 156 } }
+				]
+			}
+		},
+
+		"rightPanel": {
+			"node": {
+				"style": "panel",
+				"role": "complementary",
+				"label": "{{state.right == 'queue' ? t('queue.title') : t('now.title')}}",
+				"children": [
+					{ "id": "rightTitle", "type": "label", "font": "title", "text": "{{state.right == 'queue' ? t('queue.title') : computed.ctxName}}", "textColor": "@text",
+						"anchors": { "left": 16, "right": 88, "top": 18 }, "height": 22, "cursor": "hand",
+						"onClick": { "if": "{{state.right == 'now'}}", "then": [{ "run": "go", "with": { "page": "{{state.ctx.kind}}", "i": "{{state.ctx.i}}" } }] } },
+					{ "id": "rightMore", "when": "{{state.right == 'now'}}", "style": "icon", "icon": "ellipsis", "anchors": { "right": 48, "top": 12 }, "hover": { "color": "@raised", "textColor": "@text" },
+						"label": "{{t('now.more')}}", "tooltip": "{{t('now.more')}}",
+						"onClick": { "run": "openMenu", "with": { "t": "{{state.track}}", "n": -1 } } },
+					{ "id": "rightClose", "style": "icon", "icon": "x", "anchors": { "right": 12, "top": 12 }, "hover": { "color": "@raised", "textColor": "@text" },
+						"label": "{{t('now.close')}}", "tooltip": "{{t('now.close')}}", "onClick": { "set": "state.right", "to": "" } },
+					{
+						"id": "nowBody",
+						"when": "{{state.right == 'now'}}",
+						"type": "column",
+						"gap": 16,
+						"anchors": { "left": 16, "right": 16, "top": 56, "bottom": 0 },
+						"scroll": "vertical",
+						"children": [
+							{ "id": "nowCover", "type": "image", "file": "{{computed.curAlbum.cover}}", "fit": "cover", "radius": 8, "anchors": { "left": 0, "right": 0 }, "height": 288,
+								"shadow": { "y": 8, "blur": 24, "color": "#00000066" }, "role": "img", "label": "{{computed.cur.album}}" },
+							{
+								"id": "nowTitleBlock",
+								"anchors": { "left": 0, "right": 0 },
+								"height": 56,
+								"color": "transparent",
+								"children": [
+									{ "id": "nowSong", "type": "label", "font": "h2", "text": "{{computed.cur.title}}", "textColor": "@text", "anchors": { "left": 0, "right": 72, "top": 0 }, "height": 30,
+										"cursor": "hand", "onClick": { "run": "go", "with": { "page": "album", "i": "{{computed.cur.al}}" } } },
+									{ "id": "nowArtist", "style": "link", "font": "default", "text": "{{computed.cur.artist}}", "anchors": { "left": 0, "top": 34 },
+										"onClick": { "run": "go", "with": { "page": "artist", "i": "{{computed.cur.ar}}" } } },
+									{ "id": "nowShare", "style": "icon", "icon": "share-2", "anchors": { "right": 36, "top": 8 }, "label": "{{t('menu.copyLink')}}", "tooltip": "{{t('menu.copyLink')}}",
+										"onClick": { "run": "copyLink", "with": { "name": "{{computed.cur.title}}" } } },
+									{ "id": "nowLike", "style": "icon", "icon": "{{computed.liked ? 'check-circle-2' : 'circle-plus'}}", "anchors": { "right": 0, "top": 8 },
+										"textColor": "{{computed.liked ? '@accent' : '@muted'}}", "label": "{{computed.liked ? t('menu.unlike') : t('menu.like')}}", "tooltip": "{{computed.liked ? t('menu.unlike') : t('menu.like')}}",
+										"onClick": "likeCurrent" }
+								]
+							},
+							{
+								"id": "aboutCard",
+								"anchors": { "left": 0, "right": 0 },
+								"height": 400,
+								"radius": 8,
+								"color": "@card",
+								"cursor": "hand",
+								"onClick": { "run": "go", "with": { "page": "artist", "i": "{{computed.cur.ar}}" } },
+								"children": [
+									{ "id": "aboutImage", "type": "image", "file": "{{computed.curArtist.banner}}", "fit": "cover", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 200, "radius": { "topLeft": 8, "topRight": 8 } },
+									{ "id": "aboutShade", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 80, "color": "transparent", "gradient": ["#00000099", "#00000000"], "radius": { "topLeft": 8, "topRight": 8 } },
+									{ "id": "aboutLabel", "type": "label", "font": "bold", "text": "{{t('now.about')}}", "textColor": "#ffffff", "anchors": { "left": 16, "top": 16 }, "fitText": true },
+									{ "id": "aboutName", "type": "label", "font": "title", "text": "{{computed.curArtist.name}}", "textColor": "@text", "anchors": { "left": 16, "top": 216 }, "fitText": true },
+									{ "id": "aboutListeners", "style": "muted", "text": "{{t('artist.listeners', { n: computed.curArtist.listeners })}}", "anchors": { "left": 16, "top": 244 } },
+									{ "id": "aboutFollow", "style": "outline", "font": "bold", "text": "{{contains(state.following, computed.cur.ar) ? t('artist.following') : t('artist.follow')}}", "anchors": { "right": 16, "top": 226 },
+										"onClick": { "run": "save", "with": { "kind": "artist", "i": "{{computed.cur.ar}}" } } },
+									{ "id": "aboutBio", "type": "label", "text": "{{computed.curArtist.bio}}", "textColor": "@muted", "wrap": true, "anchors": { "left": 16, "right": 16, "top": 280 }, "height": 104 }
+								]
+							},
+							{
+								"id": "creditsCard",
+								"anchors": { "left": 0, "right": 0 },
+								"height": 168,
+								"radius": 8,
+								"color": "@card",
+								"children": [
+									{ "id": "creditsTitle", "type": "label", "font": "title", "text": "{{t('now.credits')}}", "textColor": "@text", "anchors": { "left": 16, "top": 16 }, "fitText": true },
+									{ "id": "creditsAll", "style": "link", "font": "small", "text": "{{t('now.showAll')}}", "anchors": { "right": 16, "top": 20 },
+										"onClick": { "run": "go", "with": { "page": "album", "i": "{{computed.cur.al}}" } } },
+									{ "id": "creditArtist", "type": "label", "text": "{{computed.cur.artist}}", "textColor": "@text", "anchors": { "left": 16, "top": 56 }, "fitText": true },
+									{ "id": "creditArtistRole", "style": "small", "text": "{{t('now.mainArtist')}}", "anchors": { "left": 16, "top": 78 } },
+									{ "id": "creditFollow", "style": "outline", "font": "small", "height": 28, "text": "{{contains(state.following, computed.cur.ar) ? t('artist.following') : t('artist.follow')}}", "anchors": { "right": 16, "top": 58 },
+										"onClick": { "run": "save", "with": { "kind": "artist", "i": "{{computed.cur.ar}}" } } },
+									{ "id": "creditWriter", "type": "label", "text": "{{computed.curArtist.name}}", "textColor": "@text", "anchors": { "left": 16, "top": 108 }, "fitText": true },
+									{ "id": "creditWriterRole", "style": "small", "text": "{{t('now.writer')}}", "anchors": { "left": 16, "top": 130 } }
+								]
+							},
+							{
+								"id": "nextCard",
+								"anchors": { "left": 0, "right": 0 },
+								"height": 128,
+								"radius": 8,
+								"color": "@card",
+								"children": [
+									{ "id": "nextTitle", "type": "label", "font": "title", "text": "{{t('now.next')}}", "textColor": "@text", "anchors": { "left": 16, "top": 16 }, "fitText": true },
+									{ "id": "nextOpen", "style": "link", "font": "small", "text": "{{t('now.openQueue')}}", "anchors": { "right": 16, "top": 20 }, "onClick": "queue" },
+									{ "id": "nextSong", "when": "{{length(computed.nextTracks) > 0}}", "use": "songRow", "with": { "t": "{{computed.nextTracks[0]}}" }, "anchors": { "left": 8, "right": 8, "top": 52 },
+										"onClick": { "run": "jumpQueue", "with": { "at": 0 } } },
+									{ "id": "nextNone", "when": "{{length(computed.nextTracks) == 0}}", "style": "muted", "text": "{{t('queue.empty')}}", "anchors": { "left": 16, "top": 64 } }
+								]
+							},
+							{ "id": "panel-now-end", "anchors": { "left": 0, "right": 0 }, "height": 8, "color": "transparent" }
+						]
+					},
+					{
+						"id": "queueBody",
+						"when": "{{state.right == 'queue'}}",
+						"type": "column",
+						"anchors": { "left": 8, "right": 8, "top": 56, "bottom": 0 },
+						"scroll": "vertical",
+						"role": "list",
+						"label": "{{t('queue.title')}}",
+						"children": [
+							{ "id": "queueNowLabel", "type": "label", "font": "title", "text": "{{t('queue.now')}}", "textColor": "@text", "anchors": { "left": 8 }, "height": 36, "fitText": true },
+							{ "id": "queueNow", "use": "songRow", "with": { "t": "{{state.track}}", "on": true }, "onClick": "playPause" },
+							{ "id": "queueUserLabel", "when": "{{length(state.upNext) > 0}}", "anchors": { "left": 0, "right": 0 }, "height": 52, "color": "transparent", "children": [
+								{ "id": "label-queue-user", "type": "label", "font": "title", "text": "{{t('queue.user')}}", "textColor": "@text", "anchors": { "left": 8, "top": 20 }, "fitText": true },
+								{ "id": "queueClear", "style": "link", "font": "small", "text": "{{t('queue.clear')}}", "anchors": { "right": 8, "top": 22 }, "onClick": { "set": "state.upNext", "to": [] } }
+							] },
+							{ "id": "queueUser", "repeat": { "for": "q", "in": "state.upNext" }, "use": "songRow", "with": { "t": "{{q}}" }, "onClick": { "run": "jumpQueue", "with": { "at": "{{index}}" } } },
+							{ "id": "queueFromLabel", "type": "label", "font": "title", "text": "{{t('queue.from', { name: computed.ctxName })}}", "textColor": "@text", "anchors": { "left": 8, "right": 8 }, "height": 52, "padding": 0,
+								"align": { "horizontal": "start", "vertical": "end" } },
+							{ "id": "queueRest", "repeat": { "for": "q", "in": "{{slice(state.list, state.pos + 1, state.pos + 51)}}" }, "use": "songRow", "with": { "t": "{{q}}" },
+								"onClick": { "run": "jumpQueue", "with": { "at": "{{length(state.upNext) + index}}" } } },
+							{ "id": "queueEmpty", "when": "{{state.pos + 1 >= length(state.list)}}", "style": "muted", "text": "{{t('queue.empty')}}", "anchors": { "left": 8 }, "height": 40 }
+						]
+					}
+				]
+			}
+		},
+
+		"playerBar": {
+			"node": {
+				"color": "@window",
+				"role": "region",
+				"label": "{{t('player.label')}}",
+				"let": { "W": "{{min(722, floor(window.width * 0.4))}}" },
+				"children": [
+					{ "id": "playerCover", "use": "cover", "with": { "img": "{{computed.curAlbum.cover}}", "size": 56 }, "anchors": { "left": 8, "top": 8 }, "cursor": "hand",
+						"tooltip": "{{t('player.openNow')}}", "onClick": "nowPlayingView" },
+					{ "id": "playerTitle", "type": "label", "text": "{{computed.cur.title}}", "textColor": "@text", "hover": { "textColor": "@text" }, "anchors": { "left": 78, "top": 16 }, "fitText": { "maxWidth": 220 },
+						"cursor": "hand", "onClick": { "run": "go", "with": { "page": "album", "i": "{{computed.cur.al}}" } } },
+					{ "id": "playerArtist", "style": "small", "text": "{{computed.cur.artist}}", "hover": { "textColor": "@text" }, "anchors": { "left": 78, "top": 38 }, "cursor": "hand",
+						"onClick": { "run": "go", "with": { "page": "artist", "i": "{{computed.cur.ar}}" } } },
+					{ "id": "playerLike", "style": "icon", "icon": "{{computed.liked ? 'check-circle-2' : 'circle-plus'}}", "anchors": { "left": "#playerTitle.right + 16", "top": 12 },
+						"textColor": "{{computed.liked ? '@accent' : '@muted'}}", "label": "{{computed.liked ? t('menu.unlike') : t('menu.like')}}", "tooltip": "{{computed.liked ? t('menu.unlike') : t('menu.like')}}", "onClick": "likeCurrent" },
+					{
+						"id": "transport",
+						"x": "{{floor((window.width - W) / 2)}}",
+						"y": 0,
+						"width": "{{W}}",
+						"height": 72,
+						"color": "transparent",
+						"children": [
+							{
+								"id": "buttons",
+								"type": "row",
+								"gap": 8,
+								"x": "{{floor(W / 2) - 116}}",
+								"y": 8,
+								"width": 232,
+								"height": 32,
+								"role": "toolbar",
+								"label": "{{t('player.controls')}}",
+								"children": [
+									{ "id": "shuffleButton", "use": "toggleIcon", "with": { "icon": "shuffle", "on": "{{state.shuffle}}", "tip": "{{state.shuffle ? t('player.shuffleOff') : t('player.shuffleOn')}}" }, "onClick": "shuffle" },
+									{ "id": "previousButton", "style": "icon", "icon": "skip-back", "mirror": true, "label": "{{t('player.previous')}}", "tooltip": "{{t('player.previous')}}", "onClick": "previous" },
+									{ "id": "playButton", "style": "icon", "icon": "{{state.isPlaying ? 'pause' : 'play'}}", "color": "@text", "textColor": "@panel", "hover": { "textColor": "@panel", "scale": 1.06 },
+										"label": "{{state.isPlaying ? t('player.pause') : t('player.play')}}", "tooltip": "{{state.isPlaying ? t('player.pause') : t('player.play')}}", "onClick": "playPause" },
+									{ "id": "nextButton", "style": "icon", "icon": "skip-forward", "mirror": true, "label": "{{t('player.next')}}", "tooltip": "{{t('player.next')}}", "onClick": "next" },
+									{ "id": "repeatButton", "use": "toggleIcon", "with": { "icon": "{{state.repeat == 'one' ? 'repeat-1' : 'repeat'}}", "on": "{{state.repeat != 'off'}}", "tip": "{{t('player.repeat.' + state.repeat)}}" }, "onClick": "repeat" }
+								]
+							},
+							{ "id": "elapsed", "style": "small", "text": "{{computed.elapsedText}}", "anchors": { "left": 0, "top": 45 }, "width": 40, "align": "end", "fitText": false, "height": 16 },
+							{
+								"id": "seekBar",
+								"anchors": { "left": 48, "right": 48, "top": 48 },
+								"height": 12,
+								"color": "transparent",
+								"cursor": "hand",
+								"focusable": true,
+								"role": "slider",
+								"label": "{{t('player.seek')}}",
+								"description": "{{computed.elapsedText}} / {{computed.cur.time}}",
+								"onHover": { "set": "state.hov", "to": "seek" },
+								"onLeave": { "set": "state.hov", "to": "" },
+								"onPress": [
+									{ "set": "state.press", "to": { "at": "{{computed.rtl ? event.width - event.left : event.left}}", "width": "{{event.width}}", "from": 0 } },
+									{ "run": "seek", "with": { "to": "{{state.press.at / state.press.width}}" } }
+								],
+								"onDrag": { "run": "seek", "with": { "to": "{{(state.press.at + event.dx * (computed.rtl ? -1 : 1)) / state.press.width}}" } },
+								"keys": {
+									"right": { "set": "state.elapsed", "to": "{{min(state.elapsed + 5, computed.cur.d)}}" },
+									"left": { "set": "state.elapsed", "to": "{{max(state.elapsed - 5, 0)}}" }
+								},
+								"children": [
+									{ "id": "seekTrack", "anchors": { "left": 0, "right": 0, "top": 4 }, "height": 4, "radius": 2, "color": "@faint", "children": [
+										{ "id": "seekFill", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{100 * state.elapsed / computed.cur.d}}%", "radius": 2, "color": "{{state.hov == 'seek' ? '@accent' : '@text'}}" }
+									] },
+									{ "id": "seekThumb", "visible": "{{state.hov == 'seek'}}", "anchors": { "top": 0 }, "x": "{{floor((W - 96) * state.elapsed / computed.cur.d) - 6}}", "width": 12, "height": 12, "radius": 6, "color": "@text",
+										"shadow": { "y": 2, "blur": 4, "color": "#00000080" } }
+								]
+							},
+							{ "id": "duration", "style": "small", "text": "{{computed.cur.time}}", "anchors": { "right": 0, "top": 45 }, "width": 40, "fitText": false, "height": 16 }
+						]
+					},
+					{
+						"id": "extras",
+						"type": "row",
+						"gap": 0,
+						"alignItems": "center",
+						"anchors": { "right": 16, "top": 20 },
+						"width": 392,
+						"height": 32,
+						"justify": "end",
+						"role": "toolbar",
+						"label": "{{t('player.more')}}",
+						"children": [
+							{ "id": "nowButton", "use": "toggleIcon", "with": { "icon": "play-square", "on": "{{state.right == 'now'}}", "tip": "{{t('player.nowView')}}" }, "onClick": "nowPlayingView" },
+							{ "id": "lyricsButton", "use": "toggleIcon", "with": { "icon": "mic-2", "on": "{{state.view.page == 'lyrics'}}", "tip": "{{t('player.lyrics')}}" }, "onClick": "lyrics" },
+							{ "id": "queueButton", "use": "toggleIcon", "with": { "icon": "list-music", "on": "{{state.right == 'queue'}}", "tip": "{{t('player.queue')}}" }, "onClick": "queue" },
+							{ "id": "connectButton", "style": "icon", "icon": "monitor-speaker", "label": "{{t('player.connect')}}", "tooltip": "{{t('player.connect')}}", "onClick": { "run": "say", "with": { "text": "{{t('toast.connect')}}" } } },
+							{ "id": "muteButton", "style": "icon", "icon": "{{state.muted || state.volume == 0 ? 'volume-x' : state.volume < 40 ? 'volume-1' : 'volume-2'}}",
+								"label": "{{state.muted ? t('player.unmute') : t('player.mute')}}", "tooltip": "{{state.muted ? t('player.unmute') : t('player.mute')}}", "onClick": "mute" },
+							{
+								"id": "volumeBar",
+								"width": 96,
+								"height": 12,
+								"color": "transparent",
+								"cursor": "hand",
+								"focusable": true,
+								"role": "slider",
+								"label": "{{t('player.volume')}}",
+								"description": "{{state.muted ? 0 : state.volume}}%",
+								"onHover": { "set": "state.hov", "to": "volume" },
+								"onLeave": { "set": "state.hov", "to": "" },
+								"onPress": [
+									{ "set": "state.press", "to": { "at": "{{computed.rtl ? event.width - event.left : event.left}}", "width": "{{event.width}}", "from": 0 } },
+									{ "run": "setVolume", "with": { "to": "{{state.press.at / state.press.width}}" } }
+								],
+								"onDrag": { "run": "setVolume", "with": { "to": "{{(state.press.at + event.dx * (computed.rtl ? -1 : 1)) / state.press.width}}" } },
+								"keys": { "right": "volumeUp", "left": "volumeDown" },
+								"children": [
+									{ "id": "volumeTrack", "anchors": { "left": 0, "right": 0, "top": 4 }, "height": 4, "radius": 2, "color": "@faint", "children": [
+										{ "id": "volumeFill", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{state.muted ? 0 : state.volume}}%", "radius": 2, "color": "{{state.hov == 'volume' ? '@accent' : '@text'}}" }
+									] },
+									{ "id": "volumeThumb", "visible": "{{state.hov == 'volume'}}", "anchors": { "top": 0 }, "x": "{{floor(0.96 * (state.muted ? 0 : state.volume)) - 6}}", "width": 12, "height": 12, "radius": 6, "color": "@text" }
+								]
+							},
+							{ "id": "panel-extras-gap", "width": 8, "height": 8, "color": "transparent" },
+							{ "id": "miniButton", "style": "icon", "icon": "picture-in-picture-2", "label": "{{t('player.mini')}}", "tooltip": "{{t('player.mini')}}", "onClick": "miniPlayer" },
+							{ "id": "fullButton", "style": "icon", "icon": "maximize-2", "label": "{{t('player.full')}}", "tooltip": "{{t('player.full')}}", "onClick": "fullScreen" }
+						]
+					}
+				]
+			}
+		},
+
+		"fullScreen": {
+			"node": {
+				"color": "#000000",
+				"gradient": { "kind": "linear", "angle": 180, "stops": ["{{computed.curAlbum.color}}", "#000000"] },
+				"overlay": { "placement": "window", "open": "{{state.full}}" },
+				"x": 0,
+				"y": 0,
+				"width": "{{window.width}}",
+				"height": "{{window.height}}",
+				"role": "dialog",
+				"label": "{{t('player.full')}}",
+				"children": [
+					{ "id": "fullFrom", "type": "label", "font": "bold", "icon": "audio-lines", "text": "{{t('full.from', { name: computed.ctxName })}}", "textColor": "#ffffff", "anchors": { "left": 40, "top": 32 }, "fitText": true },
+					{ "id": "visualiser", "type": "path", "d": "{{computed.bars}}", "viewBox": "0 0 192 40", "fit": "fill", "anchors": { "left": 0, "right": 0, "bottom": 140 }, "height": 220,
+						"stroke": "#ffffff26", "strokeWidth": 2.4, "strokeCap": "round", "role": "img", "label": "{{t('full.visualiser')}}" },
+					{ "id": "fullCover", "type": "image", "file": "{{computed.curAlbum.cover}}", "fit": "cover", "radius": 8, "anchors": { "left": 40, "bottom": 168 }, "width": 260, "height": 260,
+						"shadow": { "y": 16, "blur": 48, "color": "#00000099" } },
+					{ "id": "fullTitle", "type": "label", "font": "heroSmall", "text": "{{computed.cur.title}}", "textColor": "#ffffff", "anchors": { "left": 324, "bottom": 216 }, "fitText": true },
+					{ "id": "fullArtist", "type": "label", "font": "title", "text": "{{computed.cur.artist}}", "textColor": "#ffffffb3", "anchors": { "left": 326, "bottom": 184 }, "fitText": true },
+					{
+						"id": "fullLyrics",
+						"when": "{{state.fullLyrics && length(computed.lyrics) > 0}}",
+						"type": "column",
+						"gap": 12,
+						"anchors": { "right": 40, "top": 96 },
+						"width": "{{floor(window.width * 0.42)}}",
+						"height": 320,
+						"children": [
+							{ "id": "fullLine", "repeat": { "for": "l", "in": "{{slice(computed.lyrics, max(0, computed.lyricAt - 1), max(0, computed.lyricAt - 1) + 5)}}" }, "type": "label", "font": "lyric", "text": "{{l.line}}",
+								"textColor": "{{l.at <= state.elapsed && (computed.lyricAt < 0 || l.at == computed.lyrics[computed.lyricAt].at) ? '#ffffff' : '#ffffff66'}}", "fitText": true }
+						]
+					},
+					{ "id": "fullSeekTrack", "anchors": { "left": 40, "right": 40, "bottom": 112 }, "height": 4, "radius": 2, "color": "#ffffff4d", "children": [
+						{ "id": "fullSeekFill", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{100 * state.elapsed / computed.cur.d}}%", "radius": 2, "color": "#ffffff" }
+					] },
+					{ "id": "fullElapsed", "type": "label", "font": "small", "text": "{{computed.elapsedText}}", "textColor": "#ffffffb3", "anchors": { "left": 40, "bottom": 88 }, "fitText": true },
+					{ "id": "fullDuration", "type": "label", "font": "small", "text": "{{computed.cur.time}}", "textColor": "#ffffffb3", "anchors": { "right": 40, "bottom": 88 }, "fitText": true },
+					{
+						"id": "fullButtons",
+						"type": "row",
+						"gap": 16,
+						"x": "{{floor(window.width / 2) - 136}}",
+						"anchors": { "bottom": 24 },
+						"width": 272,
+						"height": 48,
+						"alignItems": "center",
+						"children": [
+							{ "id": "fullShuffle", "use": "toggleIcon", "with": { "icon": "shuffle", "on": "{{state.shuffle}}", "tip": "{{t('player.shuffleOn')}}" }, "onClick": "shuffle" },
+							{ "id": "fullPrevious", "style": "icon", "icon": "skip-back", "mirror": true, "textColor": "#ffffff", "label": "{{t('player.previous')}}", "onClick": "previous" },
+							{ "id": "fullPlay", "style": "icon", "icon": "{{state.isPlaying ? 'pause' : 'play'}}", "font": "iconsLarge", "width": 48, "height": 48, "color": "#ffffff", "textColor": "#000000",
+								"hover": { "textColor": "#000000", "scale": 1.06 }, "label": "{{state.isPlaying ? t('player.pause') : t('player.play')}}", "onClick": "playPause" },
+							{ "id": "fullNext", "style": "icon", "icon": "skip-forward", "mirror": true, "textColor": "#ffffff", "label": "{{t('player.next')}}", "onClick": "next" },
+							{ "id": "fullRepeat", "use": "toggleIcon", "with": { "icon": "{{state.repeat == 'one' ? 'repeat-1' : 'repeat'}}", "on": "{{state.repeat != 'off'}}", "tip": "{{t('player.repeat.' + state.repeat)}}" }, "onClick": "repeat" }
+						]
+					},
+					{ "id": "fullLyricsButton", "use": "toggleIcon", "with": { "icon": "mic-2", "on": "{{state.fullLyrics}}", "tip": "{{t('player.lyrics')}}" }, "anchors": { "right": 80, "bottom": 32 },
+						"onClick": { "toggle": "state.fullLyrics" } },
+					{ "id": "fullExit", "style": "icon", "icon": "minimize-2", "textColor": "#ffffff", "anchors": { "right": 40, "bottom": 32 }, "label": "{{t('full.exit')}}", "tooltip": "{{t('full.exit')}} (Esc)", "onClick": "fullScreen" }
+				]
+			}
+		},
+
+		"miniPlayer": {
+			"node": {
+				"color": "@window",
+				"role": "region",
+				"label": "{{t('player.mini')}}",
+				"children": [
+					{
+						"id": "miniCard",
+						"x": "{{floor(window.width / 2) - 160}}",
+						"y": "{{floor(window.height / 2) - 220}}",
+						"width": 320,
+						"height": 440,
+						"radius": 12,
+						"color": "@panel",
+						"shadow": { "y": 16, "blur": 40, "color": "#00000099" },
+						"children": [
+							{ "id": "miniCover", "type": "image", "file": "{{computed.curAlbum.cover}}", "fit": "cover", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 320, "radius": { "topLeft": 12, "topRight": 12 } },
+							{ "id": "miniBack", "style": "icon", "icon": "maximize-2", "anchors": { "right": 8, "top": 8 }, "color": "#00000080", "textColor": "#ffffff", "label": "{{t('mini.back')}}", "tooltip": "{{t('mini.back')}}", "onClick": "miniPlayer" },
+							{ "id": "miniTitle", "type": "label", "font": "bold", "text": "{{computed.cur.title}}", "textColor": "@text", "anchors": { "left": 16, "right": 48, "top": 332 }, "height": 20 },
+							{ "id": "miniArtist", "style": "small", "text": "{{computed.cur.artist}}", "anchors": { "left": 16, "top": 354 } },
+							{ "id": "miniLike", "style": "icon", "icon": "{{computed.liked ? 'check-circle-2' : 'circle-plus'}}", "anchors": { "right": 8, "top": 332 }, "textColor": "{{computed.liked ? '@accent' : '@muted'}}",
+								"label": "{{t('menu.like')}}", "onClick": "likeCurrent" },
+							{ "id": "miniSeek", "anchors": { "left": 16, "right": 16, "top": 382 }, "height": 4, "radius": 2, "color": "@faint", "children": [
+								{ "id": "miniSeekFill", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{100 * state.elapsed / computed.cur.d}}%", "radius": 2, "color": "@text" }
+							] },
+							{
+								"id": "miniButtons",
+								"type": "row",
+								"gap": 16,
+								"x": 72,
+								"y": 396,
+								"width": 176,
+								"height": 32,
+								"children": [
+									{ "id": "miniPrevious", "style": "icon", "icon": "skip-back", "mirror": true, "label": "{{t('player.previous')}}", "onClick": "previous" },
+									{ "id": "miniPlay", "style": "icon", "icon": "{{state.isPlaying ? 'pause' : 'play'}}", "color": "@text", "textColor": "@panel", "hover": { "textColor": "@panel" },
+										"label": "{{state.isPlaying ? t('player.pause') : t('player.play')}}", "onClick": "playPause" },
+									{ "id": "miniNext", "style": "icon", "icon": "skip-forward", "mirror": true, "label": "{{t('player.next')}}", "onClick": "next" }
+								]
+							}
+						]
+					}
+				]
+			}
+		}
+	}
+}

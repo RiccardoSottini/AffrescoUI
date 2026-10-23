@@ -13,47 +13,33 @@
 				{ "wait": 3000 },
 				{ "expect": { "state": "elapsed", "is": 87 } },
 				{ "expect": { "node": "#elapsed", "text": "1:27" } },
-				{ "click": "#playPause" },
+				{ "click": "#playButton" },
 				{ "expect": { "state": "isPlaying", "is": false } },
-				{ "expect": { "node": "#playPause", "property": "tooltip", "is": "Play or pause (Space)" } },
 				{ "wait": 3000 },
-				{ "expect": { "state": "elapsed", "is": 87 } }
-			]
-		},
-		{
-			"name": "space-plays-and-pauses",
-			"note": "Space pauses and resumes playback, and the playing marker in the sidebar follows",
-			"steps": [
-				{ "expect": { "node": "#panel-playlist", "exists": true } },
+				{ "expect": { "state": "elapsed", "is": 87 } },
 				{ "key": "space" },
-				{ "expect": { "state": "isPlaying", "is": false } },
-				{ "expect": { "node": "#panel-playlist", "exists": false } },
-				{ "key": "space" },
-				{ "expect": { "state": "isPlaying", "is": true } },
-				{ "expect": { "node": "#playPause", "property": "tooltip", "is": "Play or pause (Space)" } }
+				{ "expect": { "state": "isPlaying", "is": true } }
 			]
 		},
 		{
 			"name": "skip-tracks",
-			"note": "» and the right arrow play the next track from the start; « and the left arrow go back",
+			"note": "Next plays the playlist's next song from the start; previous goes back",
 			"steps": [
-				{ "click": "#label-next" },
-				{ "expect": { "state": "playingTrack", "is": 3 } },
+				{ "click": "#nextButton" },
 				{ "expect": { "state": "elapsed", "is": 0 } },
-				{ "expect": { "node": "#nowPlaying", "text": "Glyph Atlas" } },
-				{ "key": "right" },
-				{ "expect": { "node": "#nowPlaying", "text": "Sixteen Bytes" } },
-				{ "click": "#label-previous" },
-				{ "key": "left" },
-				{ "expect": { "state": "playingTrack", "is": 2 } },
-				{ "expect": { "node": "#nowPlaying", "text": "One Draw Call" } }
+				{ "expect": { "node": "#playerTitle", "text": "Glyph Atlas" } },
+				{ "key": "mod+right" },
+				{ "expect": { "node": "#playerTitle", "text": "Sixteen Bytes" } },
+				{ "click": "#previousButton" },
+				{ "click": "#previousButton" },
+				{ "expect": { "node": "#playerTitle", "text": "One Draw Call" } }
 			]
 		},
 		{
 			"name": "seek-in-a-track",
-			"note": "Clicking the middle of the seek bar jumps to half of the track (3:18), and playback goes on from there",
+			"note": "Clicking the middle of the seek bar jumps to half of the song (3:18), and playback goes on from there",
 			"steps": [
-				{ "click": "#seek" },
+				{ "click": "#seekBar" },
 				{ "expect": { "state": "elapsed", "is": 99 } },
 				{ "expect": { "node": "#elapsed", "text": "1:39" } },
 				{ "wait": 1000 },
@@ -62,240 +48,132 @@
 		},
 		{
 			"name": "a-track-ends-and-the-next-plays",
-			"note": "When the elapsed time reaches the track's length, the next track starts from 0:00",
+			"note": "When the elapsed time reaches the song's length, the next one starts from 0:00",
 			"steps": [
-				{ "press": "#seek" },
-				{ "release": "#label-track-time-2", "note": "past the right end of the bar: the end of the track" },
-				{ "expect": { "state": "elapsed", "is": 198 } },
-				{ "wait": 1000 },
-				{ "expect": { "state": "playingTrack", "is": 3 } },
-				{ "expect": { "state": "elapsed", "is": 0 } },
-				{ "expect": { "node": "#nowPlaying", "text": "Glyph Atlas" } }
+				{ "wait": 115000 },
+				{ "expect": { "node": "#playerTitle", "text": "Glyph Atlas" } },
+				{ "expect": { "state": "elapsed", "is": 1 } }
 			]
 		},
 		{
-			"name": "play-another-playlist",
-			"note": "Clicking a playlist opens it; clicking one of its tracks plays it, and the last track's » stops playback",
+			"name": "repeat-has-three-states",
+			"note": "Repeat goes off, all, one; on one the song starts again when it ends",
 			"steps": [
-				{ "click": "#playlist", "nth": 1 },
-				{ "expect": { "state": "current", "is": 1 } },
-				{ "expect": { "node": "#cover", "property": "shown", "is": true } },
-				{ "expect": { "node": "#listName", "text": "Morning Run" } },
-				{ "expect": { "node": "#track", "nth": 4, "exists": false } },
-				{ "click": "#track", "nth": 3 },
-				{ "expect": { "state": "playingList", "is": 1 } },
-				{ "expect": { "node": "#nowPlaying", "text": "Finish Line" } },
-				{ "click": "#label-next" },
-				{ "expect": { "state": "isPlaying", "is": false } },
-				{ "expect": { "state": "playingTrack", "is": 3 } }
+				{ "click": "#repeatButton" },
+				{ "expect": { "state": "repeat", "is": "all" } },
+				{ "click": "#repeatButton" },
+				{ "expect": { "state": "repeat", "is": "one" } },
+				{ "wait": 115000 },
+				{ "expect": { "node": "#playerTitle", "text": "One Draw Call" } },
+				{ "click": "#repeatButton" },
+				{ "expect": { "state": "repeat", "is": "off" } }
+			]
+		},
+		{
+			"name": "like-the-song-playing",
+			"note": "The heart beside the song in the player saves it to Liked Songs, and says so",
+			"steps": [
+				{ "click": "#playerLike" },
+				{ "expect": { "node": "#toast", "exists": true } },
+				{ "expect": { "state": "liked[0]", "is": 1 } }
 			]
 		},
 		{
 			"name": "set-the-volume",
-			"note": "The up and down arrows move the volume by 10 and stop at 100",
+			"note": "Cmd+Up and Cmd+Down move the volume by 10 and stop at 100; the speaker mutes",
 			"steps": [
-				{ "key": "up" },
-				{ "key": "up" },
-				{ "key": "up" },
-				{ "key": "up" },
+				{ "key": "mod+up" },
+				{ "key": "mod+up" },
+				{ "key": "mod+up" },
+				{ "key": "mod+up" },
 				{ "expect": { "state": "volume", "is": 100 } },
-				{ "key": "down" },
+				{ "key": "mod+down" },
 				{ "expect": { "state": "volume", "is": 90 } },
-				{ "expect": { "node": "#volume", "property": "value", "is": 90 } }
+				{ "click": "#muteButton" },
+				{ "expect": { "state": "muted", "is": true } }
 			]
 		},
 		{
-			"name": "the-library-plays-a-song",
-			"note": "The library holds 3,000 songs in a table; picking one and pressing Enter plays it, and the queue shows the songs after it",
+			"name": "home-shortcuts-and-shelves",
+			"note": "Home greets, shows shortcuts and shelves; a shortcut opens its page",
 			"steps": [
-				{ "click": "#label-menu", "nth": 0 },
-				{ "expect": { "state": "page", "is": "library" } },
-				{ "expect": { "state": "library[2999].cells[0]", "is": 3000 } },
-				{ "expect": { "node": "#libraryCount", "text": "3,000 songs  ·  find one with Cmd+P" } },
-				{ "click": [400, 237], "note": "the third row" },
-				{ "expect": { "state": "libraryPick", "is": "2" } },
-				{ "key": "enter" },
-				{ "expect": { "state": "playingList", "is": -1 } },
-				{ "expect": { "state": "playingTrack", "is": 2 } },
-				{ "expect": { "node": "#nowPlaying", "text": "Electric Rivers" } },
-				{ "expect": { "node": "#queueFrom", "text": "from All songs" } },
-				{ "key": "right" },
-				{ "expect": { "node": "#nowPlaying", "text": "Paper Rivers" } }
+				{ "key": "alt+shift+h" },
+				{ "expect": { "node": "#greeting", "exists": true } },
+				{ "expect": { "node": "#homeShelf", "exists": true } },
+				{ "click": "#shortcut", "nth": 3 },
+				{ "expect": { "state": "view.page", "is": "liked" } },
+				{ "key": "alt+left" },
+				{ "expect": { "state": "view.page", "is": "home" } }
 			]
 		},
 		{
-			"name": "find-a-song-with-the-quick-pick",
-			"note": "Cmd+P finds a song among 3,000 by its title and plays it from the library",
+			"name": "search-browses-then-finds",
+			"note": "Search shows genre tiles; typing shows the top result and songs, and a song plays",
 			"steps": [
-				{ "key": "mod+p" },
-				{ "expect": { "state": "quickPick.open", "is": true } },
-				{ "type": "golden comets (live" },
-				{ "key": "enter" },
-				{ "expect": { "state": "quickPick.open", "is": false } },
-				{ "expect": { "state": "page", "is": "library" } },
-				{ "expect": { "state": "playingList", "is": -1 } },
-				{ "expect": { "node": "#nowPlaying", "text": "Golden Comets (Live)" } }
-			]
-		},
-		{
-			"name": "the-command-palette-and-shortcuts",
-			"note": "Cmd+Shift+P lists every command; Cmd+U hides the queue and Cmd+L shows the library",
-			"steps": [
-				{ "key": "mod+shift+p" },
-				{ "expect": { "state": "quickPick.query", "is": ">" } },
-				{ "type": "hide the queue" },
-				{ "key": "enter" },
-				{ "expect": { "state": "queueOpen", "is": false } },
-				{ "expect": { "node": "#queuePane", "exists": false } },
-				{ "key": "mod+u" },
-				{ "expect": { "state": "queueOpen", "is": true } },
-				{ "key": "mod+l" },
-				{ "expect": { "state": "page", "is": "library" } },
-				{ "click": "#playlist", "nth": 3 },
-				{ "expect": { "state": "page", "is": "playlist" } },
-				{ "expect": { "node": "#listName", "text": "Focus" } }
-			]
-		},
-		{
-			"name": "the-queue-plays-what-comes-next",
-			"note": "Picking a song under Up next and pressing Enter plays it, and the waveform restarts",
-			"steps": [
-				{ "expect": { "node": "#queueTitle", "text": "One Draw Call" } },
-				{ "click": [1100, 380], "note": "the second song up next" },
-				{ "key": "enter" },
-				{ "expect": { "state": "playingTrack", "is": 4 } },
-				{ "expect": { "node": "#queueTitle", "text": "Sixteen Bytes" } },
-				{ "expect": { "state": "elapsed", "is": 0 } }
-			]
-		},
-		{
-			"name": "albums-open-and-play",
-			"note": "Cmd+2 shows the albums; an album opens its songs, Play plays them, and Escape goes back",
-			"steps": [
-				{ "key": "mod+2" },
-				{ "expect": { "state": "page", "is": "albums" } },
-				{ "click": "#tile", "nth": 0 },
-				{ "expect": { "state": "page", "is": "collection" } },
-				{ "expect": { "state": "collection.kind", "is": "album" } },
-				{ "click": "#playCollectionButton" },
-				{ "expect": { "state": "playingList", "is": -1 } },
-				{ "expect": { "state": "isPlaying", "is": true } },
-				{ "click": "#collectionBack" },
-				{ "expect": { "state": "page", "is": "albums" } }
-			]
-		},
-		{
-			"name": "artists-open-and-play-a-song",
-			"note": "Cmd+3 shows the artists; an artist's songs open in a table, and Enter on one plays it",
-			"steps": [
-				{ "key": "mod+3" },
-				{ "expect": { "state": "page", "is": "artists" } },
-				{ "click": "#tile", "nth": 1 },
-				{ "expect": { "state": "collection.kind", "is": "artist" } },
+				{ "key": "mod+k" },
 				{ "wait": 100 },
-				{ "key": "down" },
-				{ "key": "enter" },
-				{ "expect": { "state": "playingList", "is": -1 } },
-				{ "key": "escape" },
-				{ "expect": { "state": "page", "is": "artists" } }
+				{ "expect": { "node": "#genreTile", "exists": true } },
+				{ "type": "shaders" },
+				{ "expect": { "node": "#topResult", "exists": true } },
+				{ "click": "#songResult", "nth": 0 },
+				{ "expect": { "state": "isPlaying", "is": true } }
 			]
 		},
 		{
-			"name": "search-finds-and-plays",
-			"note": "Cmd+F opens search with the field focused; typing filters the library, Down moves into the results and Enter plays a song",
+			"name": "a-playlist-row-plays",
+			"note": "Double-clicking a row in a playlist plays it; the row playing shows the equaliser",
 			"steps": [
-				{ "key": "mod+f" },
-				{ "expect": { "state": "page", "is": "search" } },
-				{ "wait": 100 },
-				{ "expect": { "node": "#searchField", "property": "focused", "is": true } },
-				{ "type": "rivers" },
-				{ "expect": { "state": "search", "is": "rivers" } },
-				{ "expect": { "node": "#searchTable", "exists": true } },
-				{ "key": "down" },
-				{ "wait": 50 },
-				{ "expect": { "node": "#searchTable", "property": "focused", "is": true } },
-				{ "key": "down", "note": "picks the first result" },
-				{ "key": "enter" },
-				{ "expect": { "state": "playingList", "is": -1 } }
+				{ "expect": { "node": "#rowEq", "exists": true } },
+				{ "click": [344, 564] },
+				{ "click": [344, 564] },
+				{ "expect": { "node": "#playerTitle", "text": "Vertex Buffers" } },
+				{ "expect": { "state": "pos", "is": 0 } }
 			]
 		},
 		{
-			"name": "queue-reorder-with-keys",
-			"note": "Alt+Down moves the picked song in Up next one place later, and the change is announced",
+			"name": "the-library-filters-and-sorts",
+			"note": "The library's chips keep one kind; the view menu changes the sort",
 			"steps": [
-				{ "click": [1100, 344], "note": "the first song up next" },
-				{ "expect": { "state": "queuePick", "is": "3" } },
-				{ "key": "alt+down" },
-				{ "expect": { "state": "queue[0]", "is": 4 } },
-				{ "expect": { "state": "queue[1]", "is": 3 } },
-				{ "expect": { "node": "#queueNote", "text": "Glyph Atlas moved to place 2" } },
-				{ "key": "alt+up" },
-				{ "expect": { "state": "queue[0]", "is": 3 } }
+				{ "click": "#filterChip", "nth": 1 },
+				{ "expect": { "state": "lib.filter", "is": "artists" } },
+				{ "click": "#clearFilter" },
+				{ "expect": { "state": "lib.filter", "is": "" } }
 			]
 		},
 		{
-			"name": "queue-reorder-by-drag",
-			"note": "Dragging the first song up next below the third puts it in third place",
+			"name": "the-queue-and-now-playing-view",
+			"note": "The queue button shows what plays next in the right panel; picking a song plays it",
 			"steps": [
-				{ "drag": [1100, 344], "to": [1100, 425], "moves": 8 },
-				{ "expect": { "state": "queue[0]", "is": 4 } },
-				{ "expect": { "state": "queue[2]", "is": 3 } }
+				{ "click": "#queueButton" },
+				{ "expect": { "node": "#queueBody", "exists": true } },
+				{ "click": "#queueRest", "nth": 0 },
+				{ "expect": { "node": "#playerTitle", "text": "Glyph Atlas" } },
+				{ "click": "#nowButton" },
+				{ "expect": { "node": "#nowBody", "exists": true } }
 			]
 		},
 		{
 			"name": "now-playing-visualiser-and-lyrics",
-			"note": "Cmd+5 shows the song large, a visualiser drawn on the GPU and the lyrics, which follow the time",
+			"note": "Full screen shows the song large with a visualiser drawn as a path, and the lyrics follow the time",
 			"steps": [
-				{ "key": "mod+5" },
-				{ "expect": { "state": "page", "is": "nowPlaying" } },
+				{ "click": "#fullButton" },
 				{ "expect": { "node": "#visualiser", "exists": true } },
-				{ "expect": { "node": "#nowTitle", "text": "One Draw Call" } },
-				{ "expect": { "node": "#lyric", "nth": 4, "exists": true } },
-				{ "capture": "now-playing" }
-			]
-		},
-		{
-			"name": "equaliser-presets",
-			"note": "Cmd+6 shows the equaliser; a preset reshapes the curve and switching it off keeps the curve",
-			"steps": [
-				{ "key": "mod+6" },
-				{ "expect": { "state": "page", "is": "sound" } },
-				{ "expect": { "state": "eq.points[0][1]", "is": 0.5 } },
-				{ "click": "#preset", "nth": 1 },
-				{ "expect": { "state": "eqOn", "is": true } },
-				{ "click": "#equaliserOn" },
-				{ "expect": { "state": "eqOn", "is": false } },
-				{ "capture": "sound" }
-			]
-		},
-		{
-			"name": "crossfade-starts-the-next-song-early",
-			"note": "With a crossfade the next song starts that many seconds in, as the last one fades",
-			"steps": [
-				{ "key": "mod+6" },
-				{ "click": "#crossfade" },
-				{ "key": "end" },
-				{ "expect": { "node": "#crossfadeValue", "text": "12 seconds" } },
-				{ "expect": { "node": "#crossfadeValue", "text": "12 seconds" } },
-				{ "click": "#seek" },
-				{ "key": "end" },
-				{ "wait": 1000 },
-				{ "expect": { "state": "playingTrack", "is": 3 } },
-				{ "expect": { "state": "elapsed", "is": 12 } }
+				{ "expect": { "node": "#fullTitle", "text": "One Draw Call" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "full", "is": false } },
+				{ "click": "#lyricsButton" },
+				{ "expect": { "state": "view.page", "is": "lyrics" } }
 			]
 		},
 		{
 			"name": "mini-player",
-			"note": "Cmd+M shrinks Tempo to a mini player with its own controls; its expand button brings the window back",
+			"note": "Cmd+M shrinks Tempo to a mini player with its own controls; its back button brings the window back",
 			"steps": [
 				{ "key": "mod+m" },
-				{ "expect": { "state": "mini", "is": true } },
-				{ "expect": { "node": "#sidebar", "exists": false } },
 				{ "expect": { "node": "#miniTitle", "text": "One Draw Call" } },
 				{ "click": "#miniNext" },
-				{ "expect": { "state": "playingTrack", "is": 3 } },
-				{ "capture": "mini" },
-				{ "click": "#miniExpand" },
+				{ "expect": { "node": "#miniTitle", "text": "Glyph Atlas" } },
+				{ "click": "#miniBack" },
 				{ "expect": { "state": "mini", "is": false } }
 			]
 		},
@@ -305,63 +183,40 @@
 			"steps": [
 				{ "key": "mod+t" },
 				{ "expect": { "state": "theme", "is": "light" } },
-				{ "capture": "light" },
 				{ "click": "#themeButton" },
 				{ "expect": { "state": "theme", "is": "dark" } }
 			]
 		},
 		{
 			"name": "italian-and-arabic",
-			"note": "The language button cycles English, Italian and Arabic; Arabic lays the pages out right to left",
+			"note": "The language button cycles English, Italian and Arabic; Arabic lays the window out right to left",
 			"steps": [
 				{ "click": "#languageButton" },
-				{ "expect": { "node": "#languageButton", "text": "IT" } },
-				{ "expect": { "node": "#label-menu", "nth": 0, "text": "Libreria" } },
+								{ "expect": { "node": "#createButton", "text": "Crea" } },
 				{ "click": "#languageButton" },
-				{ "expect": { "node": "#languageButton", "text": "AR" } },
-				{ "expect": { "node": "#label-menu", "nth": 0, "text": "المكتبة" } },
-				{ "capture": "arabic" },
-				{ "key": "mod+shift+l" },
-				{ "expect": { "node": "#languageButton", "text": "EN" } }
+				{ "expect": { "node": "#createButton", "text": "إنشاء" } },
+				{ "click": "#languageButton" },
+				{ "expect": { "node": "#createButton", "text": "Create" } }
 			]
 		},
 		{
-			"name": "keyboard-only",
-			"note": "The menu is a tab list: arrows move along it, Enter opens a page, Tab reaches the player",
+			"name": "find-a-song-with-the-quick-pick",
+			"note": "Cmd+P finds a song by its title and plays it",
 			"steps": [
-				{ "key": "tab" },
-				{ "wait": 50 },
-				{ "key": "tab" },
-				{ "wait": 50 },
-				{ "key": "tab" },
-				{ "wait": 50 },
-				{ "key": "tab" },
-				{ "wait": 50 },
-				{ "expect": { "node": "#label-menu", "nth": 0, "property": "focused", "is": true } },
-				{ "key": "down" },
+				{ "key": "mod+p" },
+				{ "wait": 100 },
+				{ "type": "retina" },
 				{ "key": "enter" },
-				{ "expect": { "state": "page", "is": "albums" } }
+				{ "expect": { "node": "#playerTitle", "text": "Retina" } }
 			]
 		},
 		{
 			"name": "small-window",
-			"note": "At the minimum size the queue, the sidebar and the player still fit",
+			"note": "At the minimum size the library, the page and the player still fit",
 			"steps": [
-				{ "resize": [960, 600] },
-				{ "expect": { "node": "#queuePane", "exists": true } },
-				{ "expect": { "node": "#volume", "exists": true } },
-				{ "capture": "small" }
-			]
-		},
-		{
-			"name": "palette-runs-a-command",
-			"note": "The command palette finds the equaliser by name",
-			"steps": [
-				{ "key": "mod+shift+p" },
-				{ "wait": 100 },
-				{ "type": "show the equaliser" },
-				{ "key": "enter" },
-				{ "expect": { "state": "page", "is": "sound" } }
+				{ "resize": [960, 640] },
+				{ "expect": { "node": "#player", "exists": true } },
+				{ "expect": { "node": "#library", "exists": true } }
 			]
 		}
 	]

@@ -1,1724 +1,213 @@
 {
-	"note": "Tempo's invented catalogue, included by music-player.screen.json: every artist, album, song, playlist, show and lyric line is made up. Songs are named by their title (unique); a playlist's tracks are titles, or whole song objects.",
+	"note": "Tempo's invented catalogue, included by music-player.screen.json: every artist, album, song, playlist, show and lyric line is made up. A song's al and ar are its album's and artist's places, d its length in seconds; a playlist's tracks and the liked songs are places in tracks. saved, following, savedAlbums and savedShows are what the library holds, in the order they were added.",
 	"state": {
 		"artists": [
-			{
-				"name": "The Shaders",
-				"image": "images/artist-the-shaders.svg",
-				"banner": "images/banner-the-shaders.svg",
-				"genre": "Synthwave",
-				"listeners": 2481033,
-				"followers": 412870,
-				"color": "#3b0f6b",
-				"bio": "A three-piece from a harbour town that writes night-drive synthwave on old drum machines. Their second album was recorded in one long weekend."
-			},
-			{
-				"name": "Nora Vale",
-				"image": "images/artist-nora-vale.svg",
-				"banner": "images/banner-nora-vale.svg",
-				"genre": "Indie pop",
-				"listeners": 5120448,
-				"followers": 980334,
-				"color": "#b8404c",
-				"bio": "Songwriter and producer who records vocals in her kitchen and drums in a borrowed church hall. Bright hooks, small-hours lyrics."
-			},
-			{
-				"name": "Kerning Club",
-				"image": "images/artist-kerning-club.svg",
-				"banner": "images/banner-kerning-club.svg",
-				"genre": "Post-punk",
-				"listeners": 893210,
-				"followers": 120554,
-				"color": "#8a6d12",
-				"bio": "Four friends from an art school print room. Wiry guitars, a drum machine called Gerald, and songs about getting the details right."
-			},
-			{
-				"name": "Idle Loop",
-				"image": "images/artist-idle-loop.svg",
-				"banner": "images/banner-idle-loop.svg",
-				"genre": "Lo-fi",
-				"listeners": 3307761,
-				"followers": 511902,
-				"color": "#2f5d62",
-				"bio": "Beats for the hours when nothing has to happen. Every track starts as a field recording from a different window."
-			},
-			{
-				"name": "Halfway",
-				"image": "images/artist-halfway.svg",
-				"banner": "images/banner-halfway.svg",
-				"genre": "Rock",
-				"listeners": 1204556,
-				"followers": 233410,
-				"color": "#a10d25",
-				"bio": "Loud, quick and built for running. Halfway formed at a marathon's halfway point and never stopped."
-			},
-			{
-				"name": "Mira Sol",
-				"image": "images/artist-mira-sol.svg",
-				"banner": "images/banner-mira-sol.svg",
-				"genre": "Pop",
-				"listeners": 8840127,
-				"followers": 1755203,
-				"color": "#d4632a",
-				"bio": "Sunlit pop with a stopwatch in its pocket. Mira writes every chorus while out on a run."
-			},
-			{
-				"name": "Ada Quartet",
-				"image": "images/artist-ada-quartet.svg",
-				"banner": "images/banner-ada-quartet.svg",
-				"genre": "Jazz",
-				"listeners": 402871,
-				"followers": 66120,
-				"color": "#0d2a5c",
-				"bio": "A quartet that plays standards the slow way: one take, one room, the lights low."
-			},
-			{
-				"name": "Leo Marsh Trio",
-				"image": "images/artist-leo-marsh-trio.svg",
-				"banner": "images/banner-leo-marsh-trio.svg",
-				"genre": "Jazz",
-				"listeners": 288340,
-				"followers": 41907,
-				"color": "#14342b",
-				"bio": "Piano, bass and brushes. Leo Marsh writes about the city after the last bus has gone."
-			},
-			{
-				"name": "Quiet Rooms",
-				"image": "images/artist-quiet-rooms.svg",
-				"banner": "images/banner-quiet-rooms.svg",
-				"genre": "Ambient",
-				"listeners": 1987402,
-				"followers": 302388,
-				"color": "#5f7388",
-				"bio": "Long, patient pieces made from tape loops and a cello. Music to think inside."
-			},
-			{
-				"name": "Paper Moons",
-				"image": "images/artist-paper-moons.svg",
-				"banner": "images/banner-paper-moons.svg",
-				"genre": "Folk",
-				"listeners": 742115,
-				"followers": 98432,
-				"color": "#8a5230",
-				"bio": "A duo with two guitars, one harmonium and a lot of songs about kitchens."
-			},
-			{
-				"name": "Orchard Lights",
-				"image": "images/artist-orchard-lights.svg",
-				"banner": "images/banner-orchard-lights.svg",
-				"genre": "Indie",
-				"listeners": 1530764,
-				"followers": 210877,
-				"color": "#4f7a28",
-				"bio": "Summer records from a farmhouse studio, with the windows open and the crickets left in."
-			},
-			{
-				"name": "Tidewater Hum",
-				"image": "images/artist-tidewater-hum.svg",
-				"banner": "images/banner-tidewater-hum.svg",
-				"genre": "Dream pop",
-				"listeners": 967332,
-				"followers": 150021,
-				"color": "#2d6e86",
-				"bio": "Reverb, tape hiss and a voice that sounds like it is calling from the far side of a bay."
-			},
-			{
-				"name": "Sable Coast",
-				"image": "images/artist-sable-coast.svg",
-				"banner": "images/banner-sable-coast.svg",
-				"genre": "Electronic",
-				"listeners": 2210945,
-				"followers": 377654,
-				"color": "#2a1f5c",
-				"bio": "A duo of former radio engineers making club music out of shipping forecasts."
-			},
-			{
-				"name": "Lanterns",
-				"image": "images/artist-lanterns.svg",
-				"banner": "images/banner-lanterns.svg",
-				"genre": "Singer-songwriter",
-				"listeners": 655410,
-				"followers": 87236,
-				"color": "#6b3a1f",
-				"bio": "One voice, one guitar and a box of paper lanterns hung around the stage."
-			}
+			{"name": "The Shaders", "image": "images/artist-the-shaders.svg", "banner": "images/banner-the-shaders.svg", "genre": "Synthwave", "listeners": 2481033, "followers": 412870, "color": "#3b0f6b", "bio": "A three-piece from a harbour town that writes night-drive synthwave on old drum machines. Their second album was recorded in one long weekend."},
+			{"name": "Nora Vale", "image": "images/artist-nora-vale.svg", "banner": "images/banner-nora-vale.svg", "genre": "Indie pop", "listeners": 5120448, "followers": 980334, "color": "#b8404c", "bio": "Songwriter and producer who records vocals in her kitchen and drums in a borrowed church hall. Bright hooks, small-hours lyrics."},
+			{"name": "Kerning Club", "image": "images/artist-kerning-club.svg", "banner": "images/banner-kerning-club.svg", "genre": "Post-punk", "listeners": 893210, "followers": 120554, "color": "#8a6d12", "bio": "Four friends from an art school print room. Wiry guitars, a drum machine called Gerald, and songs about getting the details right."},
+			{"name": "Idle Loop", "image": "images/artist-idle-loop.svg", "banner": "images/banner-idle-loop.svg", "genre": "Lo-fi", "listeners": 3307761, "followers": 511902, "color": "#2f5d62", "bio": "Beats for the hours when nothing has to happen. Every track starts as a field recording from a different window."},
+			{"name": "Halfway", "image": "images/artist-halfway.svg", "banner": "images/banner-halfway.svg", "genre": "Rock", "listeners": 1204556, "followers": 233410, "color": "#a10d25", "bio": "Loud, quick and built for running. Halfway formed at a marathon's halfway point and never stopped."},
+			{"name": "Mira Sol", "image": "images/artist-mira-sol.svg", "banner": "images/banner-mira-sol.svg", "genre": "Pop", "listeners": 8840127, "followers": 1755203, "color": "#d4632a", "bio": "Sunlit pop with a stopwatch in its pocket. Mira writes every chorus while out on a run."},
+			{"name": "Ada Quartet", "image": "images/artist-ada-quartet.svg", "banner": "images/banner-ada-quartet.svg", "genre": "Jazz", "listeners": 402871, "followers": 66120, "color": "#0d2a5c", "bio": "A quartet that plays standards the slow way: one take, one room, the lights low."},
+			{"name": "Leo Marsh Trio", "image": "images/artist-leo-marsh-trio.svg", "banner": "images/banner-leo-marsh-trio.svg", "genre": "Jazz", "listeners": 288340, "followers": 41907, "color": "#14342b", "bio": "Piano, bass and brushes. Leo Marsh writes about the city after the last bus has gone."},
+			{"name": "Quiet Rooms", "image": "images/artist-quiet-rooms.svg", "banner": "images/banner-quiet-rooms.svg", "genre": "Ambient", "listeners": 1987402, "followers": 302388, "color": "#5f7388", "bio": "Long, patient pieces made from tape loops and a cello. Music to think inside."},
+			{"name": "Paper Moons", "image": "images/artist-paper-moons.svg", "banner": "images/banner-paper-moons.svg", "genre": "Folk", "listeners": 742115, "followers": 98432, "color": "#8a5230", "bio": "A duo with two guitars, one harmonium and a lot of songs about kitchens."},
+			{"name": "Orchard Lights", "image": "images/artist-orchard-lights.svg", "banner": "images/banner-orchard-lights.svg", "genre": "Indie", "listeners": 1530764, "followers": 210877, "color": "#4f7a28", "bio": "Summer records from a farmhouse studio, with the windows open and the crickets left in."},
+			{"name": "Tidewater Hum", "image": "images/artist-tidewater-hum.svg", "banner": "images/banner-tidewater-hum.svg", "genre": "Dream pop", "listeners": 967332, "followers": 150021, "color": "#2d6e86", "bio": "Reverb, tape hiss and a voice that sounds like it is calling from the far side of a bay."},
+			{"name": "Sable Coast", "image": "images/artist-sable-coast.svg", "banner": "images/banner-sable-coast.svg", "genre": "Electronic", "listeners": 2210945, "followers": 377654, "color": "#2a1f5c", "bio": "A duo of former radio engineers making club music out of shipping forecasts."},
+			{"name": "Lanterns", "image": "images/artist-lanterns.svg", "banner": "images/banner-lanterns.svg", "genre": "Singer-songwriter", "listeners": 655410, "followers": 87236, "color": "#6b3a1f", "bio": "One voice, one guitar and a box of paper lanterns hung around the stage."}
 		],
 		"albums": [
-			{
-				"title": "Core Profile",
-				"artist": "The Shaders",
-				"year": 2024,
-				"kind": "Album",
-				"cover": "images/album-core-profile.svg",
-				"color": "#3b0f6b",
-				"label": "Low Orbit Records"
-			},
-			{
-				"title": "Fragment",
-				"artist": "The Shaders",
-				"year": 2021,
-				"kind": "EP",
-				"cover": "images/album-fragment.svg",
-				"color": "#3a1c71",
-				"label": "Low Orbit Records"
-			},
-			{
-				"title": "Redraw",
-				"artist": "Nora Vale",
-				"year": 2023,
-				"kind": "Album",
-				"cover": "images/album-redraw.svg",
-				"color": "#b8404c",
-				"label": "Kitchen Table Music"
-			},
-			{
-				"title": "Static Bloom",
-				"artist": "Nora Vale",
-				"year": 2025,
-				"kind": "Single",
-				"cover": "images/album-static-bloom.svg",
-				"color": "#20304a",
-				"label": "Kitchen Table Music"
-			},
-			{
-				"title": "Baseline",
-				"artist": "Kerning Club",
-				"year": 2022,
-				"kind": "Album",
-				"cover": "images/album-baseline.svg",
-				"color": "#8a6d12",
-				"label": "Print Room Records"
-			},
-			{
-				"title": "Zero Percent",
-				"artist": "Idle Loop",
-				"year": 2025,
-				"kind": "Album",
-				"cover": "images/album-zero-percent.svg",
-				"color": "#2f5d62",
-				"label": "Window Sounds"
-			},
-			{
-				"title": "Pace",
-				"artist": "Halfway",
-				"year": 2021,
-				"kind": "Album",
-				"cover": "images/album-pace.svg",
-				"color": "#a10d25",
-				"label": "Split Time Records"
-			},
-			{
-				"title": "Stride",
-				"artist": "Mira Sol",
-				"year": 2024,
-				"kind": "Album",
-				"cover": "images/album-stride.svg",
-				"color": "#d4632a",
-				"label": "Golden Hour Music"
-			},
-			{
-				"title": "Heat Map",
-				"artist": "Mira Sol",
-				"year": 2025,
-				"kind": "Single",
-				"cover": "images/album-heat-map.svg",
-				"color": "#8a2340",
-				"label": "Golden Hour Music"
-			},
-			{
-				"title": "Standards",
-				"artist": "Ada Quartet",
-				"year": 2019,
-				"kind": "Album",
-				"cover": "images/album-standards.svg",
-				"color": "#0d2a5c",
-				"label": "Late Set Records"
-			},
-			{
-				"title": "Avenue",
-				"artist": "Leo Marsh Trio",
-				"year": 2020,
-				"kind": "Album",
-				"cover": "images/album-avenue.svg",
-				"color": "#14342b",
-				"label": "Late Set Records"
-			},
-			{
-				"title": "Hours",
-				"artist": "Quiet Rooms",
-				"year": 2023,
-				"kind": "Album",
-				"cover": "images/album-hours.svg",
-				"color": "#5f7388",
-				"label": "Tape Loop Editions"
-			},
-			{
-				"title": "Kitchen Radio",
-				"artist": "Paper Moons",
-				"year": 2022,
-				"kind": "Album",
-				"cover": "images/album-kitchen-radio.svg",
-				"color": "#8a5230",
-				"label": "Harmonium House"
-			},
-			{
-				"title": "Long Summer",
-				"artist": "Orchard Lights",
-				"year": 2025,
-				"kind": "Album",
-				"cover": "images/album-long-summer.svg",
-				"color": "#4f7a28",
-				"label": "Farmhouse Tapes"
-			},
-			{
-				"title": "Low Tide",
-				"artist": "Tidewater Hum",
-				"year": 2021,
-				"kind": "Album",
-				"cover": "images/album-low-tide.svg",
-				"color": "#2d6e86",
-				"label": "Far Shore Audio"
-			},
-			{
-				"title": "Signal",
-				"artist": "Tidewater Hum",
-				"year": 2024,
-				"kind": "EP",
-				"cover": "images/album-signal.svg",
-				"color": "#1d4f4a",
-				"label": "Far Shore Audio"
-			},
-			{
-				"title": "Neon Harbour",
-				"artist": "Sable Coast",
-				"year": 2024,
-				"kind": "Album",
-				"cover": "images/album-neon-harbour.svg",
-				"color": "#2a1f5c",
-				"label": "Shipping Forecast"
-			},
-			{
-				"title": "Paper Lanterns",
-				"artist": "Lanterns",
-				"year": 2018,
-				"kind": "Album",
-				"cover": "images/album-paper-lanterns.svg",
-				"color": "#6b3a1f",
-				"label": "Harmonium House"
-			}
+			{"title": "Core Profile", "artist": "The Shaders", "year": 2024, "kind": "Album", "cover": "images/album-core-profile.svg", "color": "#3b0f6b", "label": "Low Orbit Records"},
+			{"title": "Fragment", "artist": "The Shaders", "year": 2021, "kind": "EP", "cover": "images/album-fragment.svg", "color": "#3a1c71", "label": "Low Orbit Records"},
+			{"title": "Redraw", "artist": "Nora Vale", "year": 2023, "kind": "Album", "cover": "images/album-redraw.svg", "color": "#b8404c", "label": "Kitchen Table Music"},
+			{"title": "Static Bloom", "artist": "Nora Vale", "year": 2025, "kind": "Single", "cover": "images/album-static-bloom.svg", "color": "#20304a", "label": "Kitchen Table Music"},
+			{"title": "Baseline", "artist": "Kerning Club", "year": 2022, "kind": "Album", "cover": "images/album-baseline.svg", "color": "#8a6d12", "label": "Print Room Records"},
+			{"title": "Zero Percent", "artist": "Idle Loop", "year": 2025, "kind": "Album", "cover": "images/album-zero-percent.svg", "color": "#2f5d62", "label": "Window Sounds"},
+			{"title": "Pace", "artist": "Halfway", "year": 2021, "kind": "Album", "cover": "images/album-pace.svg", "color": "#a10d25", "label": "Split Time Records"},
+			{"title": "Stride", "artist": "Mira Sol", "year": 2024, "kind": "Album", "cover": "images/album-stride.svg", "color": "#d4632a", "label": "Golden Hour Music"},
+			{"title": "Heat Map", "artist": "Mira Sol", "year": 2025, "kind": "Single", "cover": "images/album-heat-map.svg", "color": "#8a2340", "label": "Golden Hour Music"},
+			{"title": "Standards", "artist": "Ada Quartet", "year": 2019, "kind": "Album", "cover": "images/album-standards.svg", "color": "#0d2a5c", "label": "Late Set Records"},
+			{"title": "Avenue", "artist": "Leo Marsh Trio", "year": 2020, "kind": "Album", "cover": "images/album-avenue.svg", "color": "#14342b", "label": "Late Set Records"},
+			{"title": "Hours", "artist": "Quiet Rooms", "year": 2023, "kind": "Album", "cover": "images/album-hours.svg", "color": "#5f7388", "label": "Tape Loop Editions"},
+			{"title": "Kitchen Radio", "artist": "Paper Moons", "year": 2022, "kind": "Album", "cover": "images/album-kitchen-radio.svg", "color": "#8a5230", "label": "Harmonium House"},
+			{"title": "Long Summer", "artist": "Orchard Lights", "year": 2025, "kind": "Album", "cover": "images/album-long-summer.svg", "color": "#4f7a28", "label": "Farmhouse Tapes"},
+			{"title": "Low Tide", "artist": "Tidewater Hum", "year": 2021, "kind": "Album", "cover": "images/album-low-tide.svg", "color": "#2d6e86", "label": "Far Shore Audio"},
+			{"title": "Signal", "artist": "Tidewater Hum", "year": 2024, "kind": "EP", "cover": "images/album-signal.svg", "color": "#1d4f4a", "label": "Far Shore Audio"},
+			{"title": "Neon Harbour", "artist": "Sable Coast", "year": 2024, "kind": "Album", "cover": "images/album-neon-harbour.svg", "color": "#2a1f5c", "label": "Shipping Forecast"},
+			{"title": "Paper Lanterns", "artist": "Lanterns", "year": 2018, "kind": "Album", "cover": "images/album-paper-lanterns.svg", "color": "#6b3a1f", "label": "Harmonium House"}
 		],
 		"tracks": [
-			{
-				"title": "Vertex Buffers",
-				"artist": "The Shaders",
-				"album": "Core Profile",
-				"time": "3:42",
-				"plays": 180000000
-			},
-			{
-				"title": "One Draw Call",
-				"artist": "The Shaders",
-				"album": "Core Profile",
-				"time": "3:18",
-				"plays": 94841571
-			},
-			{
-				"title": "Retina",
-				"artist": "The Shaders",
-				"album": "Core Profile",
-				"time": "4:12",
-				"plays": 64495172
-			},
-			{
-				"title": "Night Shift Pipeline",
-				"artist": "The Shaders",
-				"album": "Core Profile",
-				"time": "3:55",
-				"plays": 48962835
-			},
-			{
-				"title": "Depth Test",
-				"artist": "The Shaders",
-				"album": "Core Profile",
-				"time": "4:01",
-				"plays": 39549350
-			},
-			{
-				"title": "Blend Mode",
-				"artist": "The Shaders",
-				"album": "Core Profile",
-				"time": "3:27",
-				"plays": 33250917
-			},
-			{
-				"title": "Late Frame",
-				"artist": "The Shaders",
-				"album": "Core Profile",
-				"time": "4:44",
-				"plays": 28753374
-			},
-			{
-				"title": "Swap Chain",
-				"artist": "The Shaders",
-				"album": "Core Profile",
-				"time": "3:09",
-				"plays": 25390637
-			},
-			{
-				"title": "Afterglow Pass",
-				"artist": "The Shaders",
-				"album": "Core Profile",
-				"time": "5:12",
-				"plays": 22789051
-			},
-			{
-				"title": "Clip Space",
-				"artist": "The Shaders",
-				"album": "Core Profile",
-				"time": "3:36",
-				"plays": 19822780
-			},
-			{
-				"title": "Shards",
-				"artist": "The Shaders",
-				"album": "Fragment",
-				"time": "3:20",
-				"plays": 133341252
-			},
-			{
-				"title": "Overdraw",
-				"artist": "The Shaders",
-				"album": "Fragment",
-				"time": "3:58",
-				"plays": 70288086
-			},
-			{
-				"title": "Barycentric",
-				"artist": "The Shaders",
-				"album": "Fragment",
-				"time": "4:15",
-				"plays": 47836424
-			},
-			{
-				"title": "Early Z",
-				"artist": "The Shaders",
-				"album": "Fragment",
-				"time": "2:51",
-				"plays": 36358142
-			},
-			{
-				"title": "Dirty Flags",
-				"artist": "Nora Vale",
-				"album": "Redraw",
-				"time": "4:05",
-				"plays": 105898190
-			},
-			{
-				"title": "Sixteen Bytes",
-				"artist": "Nora Vale",
-				"album": "Redraw",
-				"time": "2:57",
-				"plays": 55848121
-			},
-			{
-				"title": "Paper Planes",
-				"artist": "Nora Vale",
-				"album": "Redraw",
-				"time": "3:33",
-				"plays": 38040422
-			},
-			{
-				"title": "Small Hours",
-				"artist": "Nora Vale",
-				"album": "Redraw",
-				"time": "3:48",
-				"plays": 28946877
-			},
-			{
-				"title": "Soft Reset",
-				"artist": "Nora Vale",
-				"album": "Redraw",
-				"time": "3:12",
-				"plays": 23452656
-			},
-			{
-				"title": "Polaroid Summer",
-				"artist": "Nora Vale",
-				"album": "Redraw",
-				"time": "3:41",
-				"plays": 19790819
-			},
-			{
-				"title": "Second Draft",
-				"artist": "Nora Vale",
-				"album": "Redraw",
-				"time": "4:20",
-				"plays": 17188329
-			},
-			{
-				"title": "Window Seat",
-				"artist": "Nora Vale",
-				"album": "Redraw",
-				"time": "3:05",
-				"plays": 15253372
-			},
-			{
-				"title": "Redraw",
-				"artist": "Nora Vale",
-				"album": "Redraw",
-				"time": "4:30",
-				"plays": 13766152
-			},
-			{
-				"title": "Static Bloom",
-				"artist": "Nora Vale",
-				"album": "Static Bloom",
-				"time": "3:22",
-				"plays": 87828635
-			},
-			{
-				"title": "Static Bloom (Acoustic)",
-				"artist": "Nora Vale",
-				"album": "Static Bloom",
-				"time": "3:40",
-				"plays": 46341579
-			},
-			{
-				"title": "Glyph Atlas",
-				"artist": "Kerning Club",
-				"album": "Baseline",
-				"time": "5:01",
-				"plays": 75031676
-			},
-			{
-				"title": "Reconcile",
-				"artist": "Kerning Club",
-				"album": "Baseline",
-				"time": "3:50",
-				"plays": 39610089
-			},
-			{
-				"title": "Ascender",
-				"artist": "Kerning Club",
-				"album": "Baseline",
-				"time": "3:14",
-				"plays": 27026848
-			},
-			{
-				"title": "Hairline",
-				"artist": "Kerning Club",
-				"album": "Baseline",
-				"time": "2:49",
-				"plays": 20616133
-			},
-			{
-				"title": "Widow and Orphan",
-				"artist": "Kerning Club",
-				"album": "Baseline",
-				"time": "4:07",
-				"plays": 16754939
-			},
-			{
-				"title": "Tracking",
-				"artist": "Kerning Club",
-				"album": "Baseline",
-				"time": "3:31",
-				"plays": 14191684
-			},
-			{
-				"title": "Em Dash",
-				"artist": "Kerning Club",
-				"album": "Baseline",
-				"time": "2:38",
-				"plays": 12378800
-			},
-			{
-				"title": "Baseline",
-				"artist": "Kerning Club",
-				"album": "Baseline",
-				"time": "5:20",
-				"plays": 11038751
-			},
-			{
-				"title": "Wait Events",
-				"artist": "Idle Loop",
-				"album": "Zero Percent",
-				"time": "4:33",
-				"plays": 65494140
-			},
-			{
-				"title": "Hot Path",
-				"artist": "Idle Loop",
-				"album": "Zero Percent",
-				"time": "3:24",
-				"plays": 34594084
-			},
-			{
-				"title": "Low Power",
-				"artist": "Idle Loop",
-				"album": "Zero Percent",
-				"time": "2:58",
-				"plays": 23625676
-			},
-			{
-				"title": "Sleep Timer",
-				"artist": "Idle Loop",
-				"album": "Zero Percent",
-				"time": "3:15",
-				"plays": 18044199
-			},
-			{
-				"title": "Desk Plant",
-				"artist": "Idle Loop",
-				"album": "Zero Percent",
-				"time": "2:41",
-				"plays": 14687760
-			},
-			{
-				"title": "Kettle",
-				"artist": "Idle Loop",
-				"album": "Zero Percent",
-				"time": "2:22",
-				"plays": 12464066
-			},
-			{
-				"title": "Rain on Glass",
-				"artist": "Idle Loop",
-				"album": "Zero Percent",
-				"time": "3:47",
-				"plays": 10895241
-			},
-			{
-				"title": "Zero Percent",
-				"artist": "Idle Loop",
-				"album": "Zero Percent",
-				"time": "4:10",
-				"plays": 9739074
-			},
-			{
-				"title": "First Light",
-				"artist": "Halfway",
-				"album": "Pace",
-				"time": "3:05",
-				"plays": 58112030
-			},
-			{
-				"title": "Second Wind",
-				"artist": "Halfway",
-				"album": "Pace",
-				"time": "3:31",
-				"plays": 30712514
-			},
-			{
-				"title": "Red Line",
-				"artist": "Halfway",
-				"album": "Pace",
-				"time": "3:44",
-				"plays": 20994299
-			},
-			{
-				"title": "Split Times",
-				"artist": "Halfway",
-				"album": "Pace",
-				"time": "2:59",
-				"plays": 16054813
-			},
-			{
-				"title": "Last Lap",
-				"artist": "Halfway",
-				"album": "Pace",
-				"time": "4:18",
-				"plays": 13089150
-			},
-			{
-				"title": "Cool Down",
-				"artist": "Halfway",
-				"album": "Pace",
-				"time": "3:52",
-				"plays": 11128343
-			},
-			{
-				"title": "Pace",
-				"artist": "Halfway",
-				"album": "Pace",
-				"time": "3:26",
-				"plays": 9748468
-			},
-			{
-				"title": "Uphill",
-				"artist": "Mira Sol",
-				"album": "Stride",
-				"time": "2:48",
-				"plays": 52229346
-			},
-			{
-				"title": "Finish Line",
-				"artist": "Mira Sol",
-				"album": "Stride",
-				"time": "4:02",
-				"plays": 27620116
-			},
-			{
-				"title": "Golden Hour",
-				"artist": "Mira Sol",
-				"album": "Stride",
-				"time": "3:19",
-				"plays": 18898431
-			},
-			{
-				"title": "Neon Sneakers",
-				"artist": "Mira Sol",
-				"album": "Stride",
-				"time": "3:01",
-				"plays": 14470677
-			},
-			{
-				"title": "Overtake",
-				"artist": "Mira Sol",
-				"album": "Stride",
-				"time": "2:55",
-				"plays": 11816504
-			},
-			{
-				"title": "Breathe Out",
-				"artist": "Mira Sol",
-				"album": "Stride",
-				"time": "3:37",
-				"plays": 10065244
-			},
-			{
-				"title": "Long Way Home",
-				"artist": "Mira Sol",
-				"album": "Stride",
-				"time": "4:11",
-				"plays": 8835980
-			},
-			{
-				"title": "Stride",
-				"artist": "Mira Sol",
-				"album": "Stride",
-				"time": "3:23",
-				"plays": 7935647
-			},
-			{
-				"title": "Heat Map",
-				"artist": "Mira Sol",
-				"album": "Heat Map",
-				"time": "3:14",
-				"plays": 47431773
-			},
-			{
-				"title": "Blue Hour",
-				"artist": "Ada Quartet",
-				"album": "Standards",
-				"time": "6:12",
-				"plays": 43444764
-			},
-			{
-				"title": "Slow Burn",
-				"artist": "Ada Quartet",
-				"album": "Standards",
-				"time": "7:03",
-				"plays": 23004154
-			},
-			{
-				"title": "Tuesday Waltz",
-				"artist": "Ada Quartet",
-				"album": "Standards",
-				"time": "5:28",
-				"plays": 15771262
-			},
-			{
-				"title": "Brushes",
-				"artist": "Ada Quartet",
-				"album": "Standards",
-				"time": "6:45",
-				"plays": 12108023
-			},
-			{
-				"title": "Night Owl",
-				"artist": "Ada Quartet",
-				"album": "Standards",
-				"time": "5:55",
-				"plays": 9919207
-			},
-			{
-				"title": "Last Set",
-				"artist": "Ada Quartet",
-				"album": "Standards",
-				"time": "8:02",
-				"plays": 8481005
-			},
-			{
-				"title": "Rainy Avenue",
-				"artist": "Leo Marsh Trio",
-				"album": "Avenue",
-				"time": "5:40",
-				"plays": 40079190
-			},
-			{
-				"title": "Streetlight",
-				"artist": "Leo Marsh Trio",
-				"album": "Avenue",
-				"time": "4:58",
-				"plays": 21236550
-			},
-			{
-				"title": "Corner Table",
-				"artist": "Leo Marsh Trio",
-				"album": "Avenue",
-				"time": "6:20",
-				"plays": 14574362
-			},
-			{
-				"title": "Taxi Home",
-				"artist": "Leo Marsh Trio",
-				"album": "Avenue",
-				"time": "5:12",
-				"plays": 11204187
-			},
-			{
-				"title": "Late Bus",
-				"artist": "Leo Marsh Trio",
-				"album": "Avenue",
-				"time": "4:44",
-				"plays": 9193758
-			},
-			{
-				"title": "Avenue",
-				"artist": "Leo Marsh Trio",
-				"album": "Avenue",
-				"time": "7:10",
-				"plays": 7875562
-			},
-			{
-				"title": "Deep Work",
-				"artist": "Quiet Rooms",
-				"album": "Hours",
-				"time": "8:20",
-				"plays": 37200511
-			},
-			{
-				"title": "Flow State",
-				"artist": "Quiet Rooms",
-				"album": "Hours",
-				"time": "9:45",
-				"plays": 19725207
-			},
-			{
-				"title": "Morning Fog",
-				"artist": "Quiet Rooms",
-				"album": "Hours",
-				"time": "7:12",
-				"plays": 13551353
-			},
-			{
-				"title": "Long Shadows",
-				"artist": "Quiet Rooms",
-				"album": "Hours",
-				"time": "6:58",
-				"plays": 10431945
-			},
-			{
-				"title": "Still Water",
-				"artist": "Quiet Rooms",
-				"album": "Hours",
-				"time": "8:41",
-				"plays": 8574155
-			},
-			{
-				"title": "Hours",
-				"artist": "Quiet Rooms",
-				"album": "Hours",
-				"time": "10:05",
-				"plays": 7358645
-			},
-			{
-				"title": "Kitchen Radio",
-				"artist": "Paper Moons",
-				"album": "Kitchen Radio",
-				"time": "3:28",
-				"plays": 34710412
-			},
-			{
-				"title": "Apple Tree",
-				"artist": "Paper Moons",
-				"album": "Kitchen Radio",
-				"time": "3:02",
-				"plays": 18418380
-			},
-			{
-				"title": "Postcards",
-				"artist": "Paper Moons",
-				"album": "Kitchen Radio",
-				"time": "3:47",
-				"plays": 12667123
-			},
-			{
-				"title": "Wool Sweater",
-				"artist": "Paper Moons",
-				"album": "Kitchen Radio",
-				"time": "2:56",
-				"plays": 9764724
-			},
-			{
-				"title": "Harvest Road",
-				"artist": "Paper Moons",
-				"album": "Kitchen Radio",
-				"time": "4:09",
-				"plays": 8039027
-			},
-			{
-				"title": "Small Town Bells",
-				"artist": "Paper Moons",
-				"album": "Kitchen Radio",
-				"time": "3:33",
-				"plays": 6912379
-			},
-			{
-				"title": "Porch Light",
-				"artist": "Paper Moons",
-				"album": "Kitchen Radio",
-				"time": "3:51",
-				"plays": 6132055
-			},
-			{
-				"title": "Long Summer",
-				"artist": "Orchard Lights",
-				"album": "Long Summer",
-				"time": "3:36",
-				"plays": 32535379
-			},
-			{
-				"title": "Cherry Stones",
-				"artist": "Orchard Lights",
-				"album": "Long Summer",
-				"time": "3:12",
-				"plays": 17277377
-			},
-			{
-				"title": "Sprinkler",
-				"artist": "Orchard Lights",
-				"album": "Long Summer",
-				"time": "2:47",
-				"plays": 11895416
-			},
-			{
-				"title": "Fireflies",
-				"artist": "Orchard Lights",
-				"album": "Long Summer",
-				"time": "3:58",
-				"plays": 9182656
-			},
-			{
-				"title": "Lemonade Stand",
-				"artist": "Orchard Lights",
-				"album": "Long Summer",
-				"time": "3:05",
-				"plays": 7572391
-			},
-			{
-				"title": "Late August",
-				"artist": "Orchard Lights",
-				"album": "Long Summer",
-				"time": "4:15",
-				"plays": 6523397
-			},
-			{
-				"title": "Orchard",
-				"artist": "Orchard Lights",
-				"album": "Long Summer",
-				"time": "3:44",
-				"plays": 5798888
-			},
-			{
-				"title": "Low Tide",
-				"artist": "Tidewater Hum",
-				"album": "Low Tide",
-				"time": "4:22",
-				"plays": 30619340
-			},
-			{
-				"title": "Sea Glass",
-				"artist": "Tidewater Hum",
-				"album": "Low Tide",
-				"time": "3:49",
-				"plays": 16272686
-			},
-			{
-				"title": "Undertow",
-				"artist": "Tidewater Hum",
-				"album": "Low Tide",
-				"time": "4:37",
-				"plays": 11216207
-			},
-			{
-				"title": "Lighthouse",
-				"artist": "Tidewater Hum",
-				"album": "Low Tide",
-				"time": "3:58",
-				"plays": 8670586
-			},
-			{
-				"title": "Salt",
-				"artist": "Tidewater Hum",
-				"album": "Low Tide",
-				"time": "3:11",
-				"plays": 7162059
-			},
-			{
-				"title": "Driftwood",
-				"artist": "Tidewater Hum",
-				"album": "Low Tide",
-				"time": "4:05",
-				"plays": 6181506
-			},
-			{
-				"title": "High Water",
-				"artist": "Tidewater Hum",
-				"album": "Low Tide",
-				"time": "5:02",
-				"plays": 5506189
-			},
-			{
-				"title": "Signal",
-				"artist": "Tidewater Hum",
-				"album": "Signal",
-				"time": "3:44",
-				"plays": 28918785
-			},
-			{
-				"title": "Static Sea",
-				"artist": "Tidewater Hum",
-				"album": "Signal",
-				"time": "4:02",
-				"plays": 15381408
-			},
-			{
-				"title": "Morse",
-				"artist": "Tidewater Hum",
-				"album": "Signal",
-				"time": "3:18",
-				"plays": 10613957
-			},
-			{
-				"title": "Far Shore",
-				"artist": "Tidewater Hum",
-				"album": "Signal",
-				"time": "4:30",
-				"plays": 8216755
-			},
-			{
-				"title": "Neon Harbour",
-				"artist": "Sable Coast",
-				"album": "Neon Harbour",
-				"time": "4:08",
-				"plays": 27399431
-			},
-			{
-				"title": "Docklands",
-				"artist": "Sable Coast",
-				"album": "Neon Harbour",
-				"time": "3:52",
-				"plays": 14585499
-			},
-			{
-				"title": "Container Ship",
-				"artist": "Sable Coast",
-				"album": "Neon Harbour",
-				"time": "4:24",
-				"plays": 10076421
-			},
-			{
-				"title": "Night Ferry",
-				"artist": "Sable Coast",
-				"album": "Neon Harbour",
-				"time": "3:39",
-				"plays": 7811898
-			},
-			{
-				"title": "Harbour Lights",
-				"artist": "Sable Coast",
-				"album": "Neon Harbour",
-				"time": "4:11",
-				"plays": 6474473
-			},
-			{
-				"title": "Cargo",
-				"artist": "Sable Coast",
-				"album": "Neon Harbour",
-				"time": "3:28",
-				"plays": 5609026
-			},
-			{
-				"title": "Pier Nine",
-				"artist": "Sable Coast",
-				"album": "Neon Harbour",
-				"time": "3:57",
-				"plays": 5016441
-			},
-			{
-				"title": "Tidal Clock",
-				"artist": "Sable Coast",
-				"album": "Neon Harbour",
-				"time": "5:03",
-				"plays": 4595797
-			},
-			{
-				"title": "Paper Lanterns",
-				"artist": "Lanterns",
-				"album": "Paper Lanterns",
-				"time": "3:46",
-				"plays": 26033903
-			},
-			{
-				"title": "Festival Night",
-				"artist": "Lanterns",
-				"album": "Paper Lanterns",
-				"time": "3:58",
-				"plays": 13870552
-			},
-			{
-				"title": "Riverside",
-				"artist": "Lanterns",
-				"album": "Paper Lanterns",
-				"time": "4:12",
-				"plays": 9593824
-			},
-			{
-				"title": "Thread",
-				"artist": "Lanterns",
-				"album": "Paper Lanterns",
-				"time": "3:05",
-				"plays": 7448615
-			},
-			{
-				"title": "Moth",
-				"artist": "Lanterns",
-				"album": "Paper Lanterns",
-				"time": "3:31",
-				"plays": 6183817
-			},
-			{
-				"title": "Glow",
-				"artist": "Lanterns",
-				"album": "Paper Lanterns",
-				"time": "4:20",
-				"plays": 5367228
-			}
+			{"title": "Vertex Buffers", "artist": "The Shaders", "album": "Core Profile", "time": "3:42", "plays": 180000000, "al": 0, "ar": 0, "d": 222},
+			{"title": "One Draw Call", "artist": "The Shaders", "album": "Core Profile", "time": "3:18", "plays": 94841571, "al": 0, "ar": 0, "d": 198},
+			{"title": "Retina", "artist": "The Shaders", "album": "Core Profile", "time": "4:12", "plays": 64495172, "al": 0, "ar": 0, "d": 252},
+			{"title": "Night Shift Pipeline", "artist": "The Shaders", "album": "Core Profile", "time": "3:55", "plays": 48962835, "al": 0, "ar": 0, "d": 235},
+			{"title": "Depth Test", "artist": "The Shaders", "album": "Core Profile", "time": "4:01", "plays": 39549350, "al": 0, "ar": 0, "d": 241},
+			{"title": "Blend Mode", "artist": "The Shaders", "album": "Core Profile", "time": "3:27", "plays": 33250917, "al": 0, "ar": 0, "d": 207},
+			{"title": "Late Frame", "artist": "The Shaders", "album": "Core Profile", "time": "4:44", "plays": 28753374, "al": 0, "ar": 0, "d": 284},
+			{"title": "Swap Chain", "artist": "The Shaders", "album": "Core Profile", "time": "3:09", "plays": 25390637, "al": 0, "ar": 0, "d": 189},
+			{"title": "Afterglow Pass", "artist": "The Shaders", "album": "Core Profile", "time": "5:12", "plays": 22789051, "al": 0, "ar": 0, "d": 312},
+			{"title": "Clip Space", "artist": "The Shaders", "album": "Core Profile", "time": "3:36", "plays": 19822780, "al": 0, "ar": 0, "d": 216},
+			{"title": "Shards", "artist": "The Shaders", "album": "Fragment", "time": "3:20", "plays": 133341252, "al": 1, "ar": 0, "d": 200},
+			{"title": "Overdraw", "artist": "The Shaders", "album": "Fragment", "time": "3:58", "plays": 70288086, "al": 1, "ar": 0, "d": 238},
+			{"title": "Barycentric", "artist": "The Shaders", "album": "Fragment", "time": "4:15", "plays": 47836424, "al": 1, "ar": 0, "d": 255},
+			{"title": "Early Z", "artist": "The Shaders", "album": "Fragment", "time": "2:51", "plays": 36358142, "al": 1, "ar": 0, "d": 171},
+			{"title": "Dirty Flags", "artist": "Nora Vale", "album": "Redraw", "time": "4:05", "plays": 105898190, "al": 2, "ar": 1, "d": 245},
+			{"title": "Sixteen Bytes", "artist": "Nora Vale", "album": "Redraw", "time": "2:57", "plays": 55848121, "al": 2, "ar": 1, "d": 177},
+			{"title": "Paper Planes", "artist": "Nora Vale", "album": "Redraw", "time": "3:33", "plays": 38040422, "al": 2, "ar": 1, "d": 213},
+			{"title": "Small Hours", "artist": "Nora Vale", "album": "Redraw", "time": "3:48", "plays": 28946877, "al": 2, "ar": 1, "d": 228},
+			{"title": "Soft Reset", "artist": "Nora Vale", "album": "Redraw", "time": "3:12", "plays": 23452656, "al": 2, "ar": 1, "d": 192},
+			{"title": "Polaroid Summer", "artist": "Nora Vale", "album": "Redraw", "time": "3:41", "plays": 19790819, "al": 2, "ar": 1, "d": 221},
+			{"title": "Second Draft", "artist": "Nora Vale", "album": "Redraw", "time": "4:20", "plays": 17188329, "al": 2, "ar": 1, "d": 260},
+			{"title": "Window Seat", "artist": "Nora Vale", "album": "Redraw", "time": "3:05", "plays": 15253372, "al": 2, "ar": 1, "d": 185},
+			{"title": "Redraw", "artist": "Nora Vale", "album": "Redraw", "time": "4:30", "plays": 13766152, "al": 2, "ar": 1, "d": 270},
+			{"title": "Static Bloom", "artist": "Nora Vale", "album": "Static Bloom", "time": "3:22", "plays": 87828635, "al": 3, "ar": 1, "d": 202},
+			{"title": "Static Bloom (Acoustic)", "artist": "Nora Vale", "album": "Static Bloom", "time": "3:40", "plays": 46341579, "al": 3, "ar": 1, "d": 220},
+			{"title": "Glyph Atlas", "artist": "Kerning Club", "album": "Baseline", "time": "5:01", "plays": 75031676, "al": 4, "ar": 2, "d": 301},
+			{"title": "Reconcile", "artist": "Kerning Club", "album": "Baseline", "time": "3:50", "plays": 39610089, "al": 4, "ar": 2, "d": 230},
+			{"title": "Ascender", "artist": "Kerning Club", "album": "Baseline", "time": "3:14", "plays": 27026848, "al": 4, "ar": 2, "d": 194},
+			{"title": "Hairline", "artist": "Kerning Club", "album": "Baseline", "time": "2:49", "plays": 20616133, "al": 4, "ar": 2, "d": 169},
+			{"title": "Widow and Orphan", "artist": "Kerning Club", "album": "Baseline", "time": "4:07", "plays": 16754939, "al": 4, "ar": 2, "d": 247},
+			{"title": "Tracking", "artist": "Kerning Club", "album": "Baseline", "time": "3:31", "plays": 14191684, "al": 4, "ar": 2, "d": 211},
+			{"title": "Em Dash", "artist": "Kerning Club", "album": "Baseline", "time": "2:38", "plays": 12378800, "al": 4, "ar": 2, "d": 158},
+			{"title": "Baseline", "artist": "Kerning Club", "album": "Baseline", "time": "5:20", "plays": 11038751, "al": 4, "ar": 2, "d": 320},
+			{"title": "Wait Events", "artist": "Idle Loop", "album": "Zero Percent", "time": "4:33", "plays": 65494140, "al": 5, "ar": 3, "d": 273},
+			{"title": "Hot Path", "artist": "Idle Loop", "album": "Zero Percent", "time": "3:24", "plays": 34594084, "al": 5, "ar": 3, "d": 204},
+			{"title": "Low Power", "artist": "Idle Loop", "album": "Zero Percent", "time": "2:58", "plays": 23625676, "al": 5, "ar": 3, "d": 178},
+			{"title": "Sleep Timer", "artist": "Idle Loop", "album": "Zero Percent", "time": "3:15", "plays": 18044199, "al": 5, "ar": 3, "d": 195},
+			{"title": "Desk Plant", "artist": "Idle Loop", "album": "Zero Percent", "time": "2:41", "plays": 14687760, "al": 5, "ar": 3, "d": 161},
+			{"title": "Kettle", "artist": "Idle Loop", "album": "Zero Percent", "time": "2:22", "plays": 12464066, "al": 5, "ar": 3, "d": 142},
+			{"title": "Rain on Glass", "artist": "Idle Loop", "album": "Zero Percent", "time": "3:47", "plays": 10895241, "al": 5, "ar": 3, "d": 227},
+			{"title": "Zero Percent", "artist": "Idle Loop", "album": "Zero Percent", "time": "4:10", "plays": 9739074, "al": 5, "ar": 3, "d": 250},
+			{"title": "First Light", "artist": "Halfway", "album": "Pace", "time": "3:05", "plays": 58112030, "al": 6, "ar": 4, "d": 185},
+			{"title": "Second Wind", "artist": "Halfway", "album": "Pace", "time": "3:31", "plays": 30712514, "al": 6, "ar": 4, "d": 211},
+			{"title": "Red Line", "artist": "Halfway", "album": "Pace", "time": "3:44", "plays": 20994299, "al": 6, "ar": 4, "d": 224},
+			{"title": "Split Times", "artist": "Halfway", "album": "Pace", "time": "2:59", "plays": 16054813, "al": 6, "ar": 4, "d": 179},
+			{"title": "Last Lap", "artist": "Halfway", "album": "Pace", "time": "4:18", "plays": 13089150, "al": 6, "ar": 4, "d": 258},
+			{"title": "Cool Down", "artist": "Halfway", "album": "Pace", "time": "3:52", "plays": 11128343, "al": 6, "ar": 4, "d": 232},
+			{"title": "Pace", "artist": "Halfway", "album": "Pace", "time": "3:26", "plays": 9748468, "al": 6, "ar": 4, "d": 206},
+			{"title": "Uphill", "artist": "Mira Sol", "album": "Stride", "time": "2:48", "plays": 52229346, "al": 7, "ar": 5, "d": 168},
+			{"title": "Finish Line", "artist": "Mira Sol", "album": "Stride", "time": "4:02", "plays": 27620116, "al": 7, "ar": 5, "d": 242},
+			{"title": "Golden Hour", "artist": "Mira Sol", "album": "Stride", "time": "3:19", "plays": 18898431, "al": 7, "ar": 5, "d": 199},
+			{"title": "Neon Sneakers", "artist": "Mira Sol", "album": "Stride", "time": "3:01", "plays": 14470677, "al": 7, "ar": 5, "d": 181},
+			{"title": "Overtake", "artist": "Mira Sol", "album": "Stride", "time": "2:55", "plays": 11816504, "al": 7, "ar": 5, "d": 175},
+			{"title": "Breathe Out", "artist": "Mira Sol", "album": "Stride", "time": "3:37", "plays": 10065244, "al": 7, "ar": 5, "d": 217},
+			{"title": "Long Way Home", "artist": "Mira Sol", "album": "Stride", "time": "4:11", "plays": 8835980, "al": 7, "ar": 5, "d": 251},
+			{"title": "Stride", "artist": "Mira Sol", "album": "Stride", "time": "3:23", "plays": 7935647, "al": 7, "ar": 5, "d": 203},
+			{"title": "Heat Map", "artist": "Mira Sol", "album": "Heat Map", "time": "3:14", "plays": 47431773, "al": 8, "ar": 5, "d": 194},
+			{"title": "Blue Hour", "artist": "Ada Quartet", "album": "Standards", "time": "6:12", "plays": 43444764, "al": 9, "ar": 6, "d": 372},
+			{"title": "Slow Burn", "artist": "Ada Quartet", "album": "Standards", "time": "7:03", "plays": 23004154, "al": 9, "ar": 6, "d": 423},
+			{"title": "Tuesday Waltz", "artist": "Ada Quartet", "album": "Standards", "time": "5:28", "plays": 15771262, "al": 9, "ar": 6, "d": 328},
+			{"title": "Brushes", "artist": "Ada Quartet", "album": "Standards", "time": "6:45", "plays": 12108023, "al": 9, "ar": 6, "d": 405},
+			{"title": "Night Owl", "artist": "Ada Quartet", "album": "Standards", "time": "5:55", "plays": 9919207, "al": 9, "ar": 6, "d": 355},
+			{"title": "Last Set", "artist": "Ada Quartet", "album": "Standards", "time": "8:02", "plays": 8481005, "al": 9, "ar": 6, "d": 482},
+			{"title": "Rainy Avenue", "artist": "Leo Marsh Trio", "album": "Avenue", "time": "5:40", "plays": 40079190, "al": 10, "ar": 7, "d": 340},
+			{"title": "Streetlight", "artist": "Leo Marsh Trio", "album": "Avenue", "time": "4:58", "plays": 21236550, "al": 10, "ar": 7, "d": 298},
+			{"title": "Corner Table", "artist": "Leo Marsh Trio", "album": "Avenue", "time": "6:20", "plays": 14574362, "al": 10, "ar": 7, "d": 380},
+			{"title": "Taxi Home", "artist": "Leo Marsh Trio", "album": "Avenue", "time": "5:12", "plays": 11204187, "al": 10, "ar": 7, "d": 312},
+			{"title": "Late Bus", "artist": "Leo Marsh Trio", "album": "Avenue", "time": "4:44", "plays": 9193758, "al": 10, "ar": 7, "d": 284},
+			{"title": "Avenue", "artist": "Leo Marsh Trio", "album": "Avenue", "time": "7:10", "plays": 7875562, "al": 10, "ar": 7, "d": 430},
+			{"title": "Deep Work", "artist": "Quiet Rooms", "album": "Hours", "time": "8:20", "plays": 37200511, "al": 11, "ar": 8, "d": 500},
+			{"title": "Flow State", "artist": "Quiet Rooms", "album": "Hours", "time": "9:45", "plays": 19725207, "al": 11, "ar": 8, "d": 585},
+			{"title": "Morning Fog", "artist": "Quiet Rooms", "album": "Hours", "time": "7:12", "plays": 13551353, "al": 11, "ar": 8, "d": 432},
+			{"title": "Long Shadows", "artist": "Quiet Rooms", "album": "Hours", "time": "6:58", "plays": 10431945, "al": 11, "ar": 8, "d": 418},
+			{"title": "Still Water", "artist": "Quiet Rooms", "album": "Hours", "time": "8:41", "plays": 8574155, "al": 11, "ar": 8, "d": 521},
+			{"title": "Hours", "artist": "Quiet Rooms", "album": "Hours", "time": "10:05", "plays": 7358645, "al": 11, "ar": 8, "d": 605},
+			{"title": "Kitchen Radio", "artist": "Paper Moons", "album": "Kitchen Radio", "time": "3:28", "plays": 34710412, "al": 12, "ar": 9, "d": 208},
+			{"title": "Apple Tree", "artist": "Paper Moons", "album": "Kitchen Radio", "time": "3:02", "plays": 18418380, "al": 12, "ar": 9, "d": 182},
+			{"title": "Postcards", "artist": "Paper Moons", "album": "Kitchen Radio", "time": "3:47", "plays": 12667123, "al": 12, "ar": 9, "d": 227},
+			{"title": "Wool Sweater", "artist": "Paper Moons", "album": "Kitchen Radio", "time": "2:56", "plays": 9764724, "al": 12, "ar": 9, "d": 176},
+			{"title": "Harvest Road", "artist": "Paper Moons", "album": "Kitchen Radio", "time": "4:09", "plays": 8039027, "al": 12, "ar": 9, "d": 249},
+			{"title": "Small Town Bells", "artist": "Paper Moons", "album": "Kitchen Radio", "time": "3:33", "plays": 6912379, "al": 12, "ar": 9, "d": 213},
+			{"title": "Porch Light", "artist": "Paper Moons", "album": "Kitchen Radio", "time": "3:51", "plays": 6132055, "al": 12, "ar": 9, "d": 231},
+			{"title": "Long Summer", "artist": "Orchard Lights", "album": "Long Summer", "time": "3:36", "plays": 32535379, "al": 13, "ar": 10, "d": 216},
+			{"title": "Cherry Stones", "artist": "Orchard Lights", "album": "Long Summer", "time": "3:12", "plays": 17277377, "al": 13, "ar": 10, "d": 192},
+			{"title": "Sprinkler", "artist": "Orchard Lights", "album": "Long Summer", "time": "2:47", "plays": 11895416, "al": 13, "ar": 10, "d": 167},
+			{"title": "Fireflies", "artist": "Orchard Lights", "album": "Long Summer", "time": "3:58", "plays": 9182656, "al": 13, "ar": 10, "d": 238},
+			{"title": "Lemonade Stand", "artist": "Orchard Lights", "album": "Long Summer", "time": "3:05", "plays": 7572391, "al": 13, "ar": 10, "d": 185},
+			{"title": "Late August", "artist": "Orchard Lights", "album": "Long Summer", "time": "4:15", "plays": 6523397, "al": 13, "ar": 10, "d": 255},
+			{"title": "Orchard", "artist": "Orchard Lights", "album": "Long Summer", "time": "3:44", "plays": 5798888, "al": 13, "ar": 10, "d": 224},
+			{"title": "Low Tide", "artist": "Tidewater Hum", "album": "Low Tide", "time": "4:22", "plays": 30619340, "al": 14, "ar": 11, "d": 262},
+			{"title": "Sea Glass", "artist": "Tidewater Hum", "album": "Low Tide", "time": "3:49", "plays": 16272686, "al": 14, "ar": 11, "d": 229},
+			{"title": "Undertow", "artist": "Tidewater Hum", "album": "Low Tide", "time": "4:37", "plays": 11216207, "al": 14, "ar": 11, "d": 277},
+			{"title": "Lighthouse", "artist": "Tidewater Hum", "album": "Low Tide", "time": "3:58", "plays": 8670586, "al": 14, "ar": 11, "d": 238},
+			{"title": "Salt", "artist": "Tidewater Hum", "album": "Low Tide", "time": "3:11", "plays": 7162059, "al": 14, "ar": 11, "d": 191},
+			{"title": "Driftwood", "artist": "Tidewater Hum", "album": "Low Tide", "time": "4:05", "plays": 6181506, "al": 14, "ar": 11, "d": 245},
+			{"title": "High Water", "artist": "Tidewater Hum", "album": "Low Tide", "time": "5:02", "plays": 5506189, "al": 14, "ar": 11, "d": 302},
+			{"title": "Signal", "artist": "Tidewater Hum", "album": "Signal", "time": "3:44", "plays": 28918785, "al": 15, "ar": 11, "d": 224},
+			{"title": "Static Sea", "artist": "Tidewater Hum", "album": "Signal", "time": "4:02", "plays": 15381408, "al": 15, "ar": 11, "d": 242},
+			{"title": "Morse", "artist": "Tidewater Hum", "album": "Signal", "time": "3:18", "plays": 10613957, "al": 15, "ar": 11, "d": 198},
+			{"title": "Far Shore", "artist": "Tidewater Hum", "album": "Signal", "time": "4:30", "plays": 8216755, "al": 15, "ar": 11, "d": 270},
+			{"title": "Neon Harbour", "artist": "Sable Coast", "album": "Neon Harbour", "time": "4:08", "plays": 27399431, "al": 16, "ar": 12, "d": 248},
+			{"title": "Docklands", "artist": "Sable Coast", "album": "Neon Harbour", "time": "3:52", "plays": 14585499, "al": 16, "ar": 12, "d": 232},
+			{"title": "Container Ship", "artist": "Sable Coast", "album": "Neon Harbour", "time": "4:24", "plays": 10076421, "al": 16, "ar": 12, "d": 264},
+			{"title": "Night Ferry", "artist": "Sable Coast", "album": "Neon Harbour", "time": "3:39", "plays": 7811898, "al": 16, "ar": 12, "d": 219},
+			{"title": "Harbour Lights", "artist": "Sable Coast", "album": "Neon Harbour", "time": "4:11", "plays": 6474473, "al": 16, "ar": 12, "d": 251},
+			{"title": "Cargo", "artist": "Sable Coast", "album": "Neon Harbour", "time": "3:28", "plays": 5609026, "al": 16, "ar": 12, "d": 208},
+			{"title": "Pier Nine", "artist": "Sable Coast", "album": "Neon Harbour", "time": "3:57", "plays": 5016441, "al": 16, "ar": 12, "d": 237},
+			{"title": "Tidal Clock", "artist": "Sable Coast", "album": "Neon Harbour", "time": "5:03", "plays": 4595797, "al": 16, "ar": 12, "d": 303},
+			{"title": "Paper Lanterns", "artist": "Lanterns", "album": "Paper Lanterns", "time": "3:46", "plays": 26033903, "al": 17, "ar": 13, "d": 226},
+			{"title": "Festival Night", "artist": "Lanterns", "album": "Paper Lanterns", "time": "3:58", "plays": 13870552, "al": 17, "ar": 13, "d": 238},
+			{"title": "Riverside", "artist": "Lanterns", "album": "Paper Lanterns", "time": "4:12", "plays": 9593824, "al": 17, "ar": 13, "d": 252},
+			{"title": "Thread", "artist": "Lanterns", "album": "Paper Lanterns", "time": "3:05", "plays": 7448615, "al": 17, "ar": 13, "d": 185},
+			{"title": "Moth", "artist": "Lanterns", "album": "Paper Lanterns", "time": "3:31", "plays": 6183817, "al": 17, "ar": 13, "d": 211},
+			{"title": "Glow", "artist": "Lanterns", "album": "Paper Lanterns", "time": "4:20", "plays": 5367228, "al": 17, "ar": 13, "d": 260}
 		],
 		"playlists": [
-			{
-				"name": "Late Night Code",
-				"cover": "images/cover-late-night.svg",
-				"owner": "Robin",
-				"saves": 12,
-				"color": "#2c1a5c",
-				"updated": "2026-10-18",
-				"description": "Synths and soft drums for the hours after midnight.",
-				"tracks": [
-					"Vertex Buffers",
-					"Dirty Flags",
-					"One Draw Call",
-					"Glyph Atlas",
-					"Sixteen Bytes",
-					"Wait Events",
-					"Reconcile",
-					"Hot Path",
-					"Retina",
-					"Night Shift Pipeline",
-					"Docklands",
-					"Night Ferry",
-					"Rain on Glass",
-					"Afterglow Pass"
-				],
-				"pinned": true
-			},
-			{
-				"name": "Morning Run",
-				"cover": "images/cover-morning-run.svg",
-				"owner": "Robin",
-				"saves": 4,
-				"color": "#b8401c",
-				"updated": "2026-10-12",
-				"description": "Fast songs for the first five kilometres.",
-				"tracks": [
-					"First Light",
-					"Uphill",
-					"Second Wind",
-					"Finish Line",
-					"Neon Sneakers",
-					"Overtake",
-					"Red Line",
-					"Last Lap",
-					"Heat Map"
-				]
-			},
-			{
-				"name": "Sunday Jazz",
-				"cover": "images/cover-sunday-jazz.svg",
-				"owner": "Robin",
-				"saves": 31,
-				"color": "#5a2a17",
-				"updated": "2026-09-28",
-				"description": "Coffee, a newspaper and a slow trio.",
-				"tracks": [
-					"Blue Hour",
-					"Rainy Avenue",
-					"Slow Burn",
-					"Tuesday Waltz",
-					"Streetlight",
-					"Corner Table",
-					"Night Owl"
-				]
-			},
-			{
-				"name": "Focus",
-				"cover": "images/cover-focus.svg",
-				"owner": "Robin",
-				"saves": 2,
-				"color": "#4f7d72",
-				"updated": "2026-10-02",
-				"description": "Long pieces for deep work.",
-				"tracks": [
-					"Deep Work",
-					"Flow State",
-					"Morning Fog",
-					"Still Water",
-					"Low Power",
-					"Sleep Timer"
-				]
-			},
-			{
-				"name": "Road Trip",
-				"cover": "images/cover-road-trip.svg",
-				"owner": "Robin",
-				"saves": 9,
-				"color": "#b0552a",
-				"updated": "2026-08-30",
-				"description": "Windows down, map on the dashboard.",
-				"tracks": [
-					"Long Summer",
-					"Kitchen Radio",
-					"Apple Tree",
-					"Low Tide",
-					"Sea Glass",
-					"Golden Hour",
-					"Long Way Home",
-					"Fireflies",
-					"Postcards",
-					"Late August"
-				]
-			},
-			{
-				"name": "Rainy Day",
-				"cover": "images/cover-rainy-day.svg",
-				"owner": "Robin",
-				"saves": 3,
-				"color": "#2c3e50",
-				"updated": "2026-10-05",
-				"description": "For grey afternoons indoors.",
-				"tracks": [
-					"Rain on Glass",
-					"Rainy Avenue",
-					"Undertow",
-					"Still Water",
-					"Moth",
-					"Taxi Home",
-					"Kettle"
-				]
-			},
-			{
-				"name": "Daily Mix 1",
-				"cover": "images/cover-mix-1.svg",
-				"owner": "Tempo",
-				"saves": 0,
-				"color": "#3b2a7a",
-				"updated": "2026-10-20",
-				"description": "The Shaders, Sable Coast, Nora Vale and more",
-				"tracks": [
-					"Vertex Buffers",
-					"Neon Harbour",
-					"Dirty Flags",
-					"Shards",
-					"Docklands",
-					"Static Bloom",
-					"Late Frame",
-					"Container Ship",
-					"Paper Planes",
-					"Swap Chain",
-					"Night Ferry",
-					"Small Hours"
-				]
-			},
-			{
-				"name": "Daily Mix 2",
-				"cover": "images/cover-mix-2.svg",
-				"owner": "Tempo",
-				"saves": 0,
-				"color": "#14594a",
-				"updated": "2026-10-20",
-				"description": "Ada Quartet, Quiet Rooms, Leo Marsh Trio and more",
-				"tracks": [
-					"Blue Hour",
-					"Deep Work",
-					"Streetlight",
-					"Slow Burn",
-					"Morning Fog",
-					"Corner Table",
-					"Brushes",
-					"Hours",
-					"Late Bus",
-					"Last Set"
-				]
-			},
-			{
-				"name": "Daily Mix 3",
-				"cover": "images/cover-mix-3.svg",
-				"owner": "Tempo",
-				"saves": 0,
-				"color": "#7a2626",
-				"updated": "2026-10-20",
-				"description": "Paper Moons, Orchard Lights, Lanterns and more",
-				"tracks": [
-					"Kitchen Radio",
-					"Long Summer",
-					"Paper Lanterns",
-					"Apple Tree",
-					"Fireflies",
-					"Riverside",
-					"Postcards",
-					"Cherry Stones",
-					"Glow",
-					"Porch Light"
-				]
-			},
-			{
-				"name": "Weekly Finds",
-				"cover": "images/cover-weekly.svg",
-				"owner": "Tempo",
-				"saves": 0,
-				"color": "#0b3c5d",
-				"updated": "2026-10-19",
-				"description": "Your weekly mixtape of fresh music. Enjoy new songs picked for you.",
-				"tracks": [
-					"Barycentric",
-					"Sea Glass",
-					"Hairline",
-					"Golden Hour",
-					"Signal",
-					"Cargo",
-					"Thread",
-					"Sprinkler",
-					"Kettle",
-					"Overdraw",
-					"Morse",
-					"Lighthouse"
-				]
-			},
-			{
-				"name": "Fresh Friday",
-				"cover": "images/cover-fresh.svg",
-				"owner": "Tempo",
-				"saves": 0,
-				"color": "#3d2c8d",
-				"updated": "2026-10-16",
-				"description": "New songs from artists you follow and singles we think you'll love.",
-				"tracks": [
-					"Static Bloom",
-					"Heat Map",
-					"Wait Events",
-					"Long Summer",
-					"Late August",
-					"Zero Percent",
-					"Signal",
-					"Static Bloom (Acoustic)",
-					"Orchard",
-					"Desk Plant"
-				]
-			},
-			{
-				"name": "Throwback",
-				"cover": "images/cover-throwback.svg",
-				"owner": "Tempo",
-				"saves": 0,
-				"color": "#4b5a2a",
-				"updated": "2026-10-14",
-				"description": "Songs you loved a few years ago.",
-				"tracks": [
-					"Paper Lanterns",
-					"First Light",
-					"Blue Hour",
-					"Low Tide",
-					"Rainy Avenue",
-					"Festival Night",
-					"Second Wind",
-					"Undertow"
-				]
-			},
-			{
-				"name": "Chill Evening",
-				"cover": "images/cover-chill.svg",
-				"owner": "Tempo",
-				"saves": 0,
-				"color": "#5c7aa8",
-				"updated": "2026-10-11",
-				"description": "Unwind with soft, easy songs.",
-				"tracks": [
-					"Sea Glass",
-					"Window Seat",
-					"Still Water",
-					"Wool Sweater",
-					"Moth",
-					"Breathe Out",
-					"Driftwood",
-					"Desk Plant"
-				]
-			}
+			{"name": "Late Night Code", "cover": "images/cover-late-night.svg", "owner": "Robin", "saves": 12, "color": "#2c1a5c", "updated": "2026-10-18", "description": "Synths and soft drums for the hours after midnight.", "tracks": [0, 14, 1, 25, 15, 33, 26, 34, 2, 3, 101, 103, 39, 8]},
+			{"name": "Morning Run", "cover": "images/cover-morning-run.svg", "owner": "Robin", "saves": 4, "color": "#b8401c", "updated": "2026-10-12", "description": "Fast songs for the first five kilometres.", "tracks": [41, 48, 42, 49, 51, 52, 43, 45, 56]},
+			{"name": "Sunday Jazz", "cover": "images/cover-sunday-jazz.svg", "owner": "Robin", "saves": 31, "color": "#5a2a17", "updated": "2026-09-28", "description": "Coffee, a newspaper and a slow trio.", "tracks": [57, 63, 58, 59, 64, 65, 61]},
+			{"name": "Focus", "cover": "images/cover-focus.svg", "owner": "Robin", "saves": 2, "color": "#4f7d72", "updated": "2026-10-02", "description": "Long pieces for deep work.", "tracks": [69, 70, 71, 73, 35, 36]},
+			{"name": "Road Trip", "cover": "images/cover-road-trip.svg", "owner": "Robin", "saves": 9, "color": "#b0552a", "updated": "2026-08-30", "description": "Windows down, map on the dashboard.", "tracks": [82, 75, 76, 89, 90, 50, 54, 85, 77, 87]},
+			{"name": "Rainy Day", "cover": "images/cover-rainy-day.svg", "owner": "Robin", "saves": 3, "color": "#2c3e50", "updated": "2026-10-05", "description": "For grey afternoons indoors.", "tracks": [39, 63, 91, 73, 112, 66, 38]},
+			{"name": "Tempo Mix 1", "cover": "images/cover-mix-1.svg", "owner": "Tempo", "saves": 0, "color": "#3b2a7a", "updated": "2026-10-20", "description": "The Shaders, Sable Coast, Nora Vale and more", "tracks": [0, 100, 14, 10, 101, 23, 6, 102, 16, 7, 103, 17]},
+			{"name": "Tempo Mix 2", "cover": "images/cover-mix-2.svg", "owner": "Tempo", "saves": 0, "color": "#14594a", "updated": "2026-10-20", "description": "Ada Quartet, Quiet Rooms, Leo Marsh Trio and more", "tracks": [57, 69, 64, 58, 71, 65, 60, 74, 67, 62]},
+			{"name": "Tempo Mix 3", "cover": "images/cover-mix-3.svg", "owner": "Tempo", "saves": 0, "color": "#7a2626", "updated": "2026-10-20", "description": "Paper Moons, Orchard Lights, Lanterns and more", "tracks": [75, 82, 108, 76, 85, 110, 77, 83, 113, 81]},
+			{"name": "Weekly Finds", "cover": "images/cover-weekly.svg", "owner": "Tempo", "saves": 0, "color": "#0b3c5d", "updated": "2026-10-19", "description": "Your weekly mixtape of fresh music. Enjoy new songs picked for you.", "tracks": [12, 90, 28, 50, 96, 105, 111, 84, 38, 11, 98, 92]},
+			{"name": "Fresh Friday", "cover": "images/cover-fresh.svg", "owner": "Tempo", "saves": 0, "color": "#3d2c8d", "updated": "2026-10-16", "description": "New songs from artists you follow and singles we think you'll love.", "tracks": [23, 56, 33, 82, 87, 40, 96, 24, 88, 37]},
+			{"name": "Throwback", "cover": "images/cover-throwback.svg", "owner": "Tempo", "saves": 0, "color": "#4b5a2a", "updated": "2026-10-14", "description": "Songs you loved a few years ago.", "tracks": [108, 41, 57, 89, 63, 109, 42, 91]},
+			{"name": "Chill Evening", "cover": "images/cover-chill.svg", "owner": "Tempo", "saves": 0, "color": "#5c7aa8", "updated": "2026-10-11", "description": "Unwind with soft, easy songs.", "tracks": [90, 21, 73, 78, 112, 53, 94, 37]}
 		],
-		"liked": [
-			"Static Bloom",
-			"Golden Hour",
-			"Vertex Buffers",
-			"Sea Glass",
-			"Kitchen Radio",
-			"Dirty Flags",
-			"Blue Hour",
-			"Neon Harbour",
-			"Wait Events",
-			"Long Summer",
-			"First Light",
-			"Glyph Atlas",
-			"Deep Work",
-			"Paper Lanterns",
-			"Night Ferry",
-			"Polaroid Summer",
-			"Fireflies",
-			"Rainy Avenue",
-			"Uphill",
-			"Low Tide",
-			"Retina",
-			"Hot Path",
-			"Small Hours",
-			"Apple Tree"
-		],
+		"liked": [23, 50, 0, 90, 75, 14, 57, 100, 33, 82, 41, 25, 69, 108, 103, 19, 85, 63, 48, 89, 2, 34, 17, 76],
 		"shows": [
-			{
-				"name": "Render Loop",
-				"cover": "images/podcast-render-loop.svg",
-				"publisher": "Two Pixels",
-				"color": "#0e2a47",
-				"description": "Two friends talk about how screens get drawn, one frame at a time.",
-				"episodes": [
-					{
-						"title": "Why the first frame is slow",
-						"date": "2026-10-15",
-						"length": "48 min"
-					},
-					{
-						"title": "Text is harder than it looks",
-						"date": "2026-10-08",
-						"length": "55 min"
-					},
-					{
-						"title": "A short history of blinking cursors",
-						"date": "2026-10-01",
-						"length": "37 min"
-					}
-				]
-			},
-			{
-				"name": "Slow Mornings",
-				"cover": "images/podcast-slow-mornings.svg",
-				"publisher": "Ana and June",
-				"color": "#bc4b51",
-				"description": "Gentle conversations about making breakfast, plants and tiny routines.",
-				"episodes": [
-					{
-						"title": "Bread, mostly",
-						"date": "2026-10-17",
-						"length": "32 min"
-					},
-					{
-						"title": "The window box",
-						"date": "2026-10-10",
-						"length": "28 min"
-					},
-					{
-						"title": "Five quiet minutes",
-						"date": "2026-10-03",
-						"length": "21 min"
-					}
-				]
-			}
+			{"name": "Render Loop", "cover": "images/podcast-render-loop.svg", "publisher": "Two Pixels", "color": "#0e2a47", "description": "Two friends talk about how screens get drawn, one frame at a time.", "episodes": [{"title": "Why the first frame is slow", "date": "2026-10-15", "length": "48 min"}, {"title": "Text is harder than it looks", "date": "2026-10-08", "length": "55 min"}, {"title": "A short history of blinking cursors", "date": "2026-10-01", "length": "37 min"}]},
+			{"name": "Slow Mornings", "cover": "images/podcast-slow-mornings.svg", "publisher": "Ana and June", "color": "#bc4b51", "description": "Gentle conversations about making breakfast, plants and tiny routines.", "episodes": [{"title": "Bread, mostly", "date": "2026-10-17", "length": "32 min"}, {"title": "The window box", "date": "2026-10-10", "length": "28 min"}, {"title": "Five quiet minutes", "date": "2026-10-03", "length": "21 min"}]}
 		],
 		"genres": [
-			{
-				"name": "Music",
-				"color": "#dc148c",
-				"cover": "images/album-neon-harbour.svg"
-			},
-			{
-				"name": "Podcasts",
-				"color": "#006450",
-				"cover": "images/podcast-render-loop.svg"
-			},
-			{
-				"name": "Live Events",
-				"color": "#8400e7",
-				"cover": "images/album-heat-map.svg"
-			},
-			{
-				"name": "Made For You",
-				"color": "#1e3264",
-				"cover": "images/cover-mix-1.svg"
-			},
-			{
-				"name": "New Releases",
-				"color": "#608108",
-				"cover": "images/album-static-bloom.svg"
-			},
-			{
-				"name": "Pop",
-				"color": "#148a08",
-				"cover": "images/album-stride.svg"
-			},
-			{
-				"name": "Indie",
-				"color": "#e91429",
-				"cover": "images/album-redraw.svg"
-			},
-			{
-				"name": "Electronic",
-				"color": "#0d73ec",
-				"cover": "images/album-core-profile.svg"
-			},
-			{
-				"name": "Jazz",
-				"color": "#8d67ab",
-				"cover": "images/album-standards.svg"
-			},
-			{
-				"name": "Ambient",
-				"color": "#477d95",
-				"cover": "images/album-hours.svg"
-			},
-			{
-				"name": "Folk",
-				"color": "#a56752",
-				"cover": "images/album-kitchen-radio.svg"
-			},
-			{
-				"name": "Rock",
-				"color": "#e8115b",
-				"cover": "images/album-pace.svg"
-			},
-			{
-				"name": "Lo-fi",
-				"color": "#503750",
-				"cover": "images/album-zero-percent.svg"
-			},
-			{
-				"name": "Chill",
-				"color": "#d84000",
-				"cover": "images/cover-chill.svg"
-			},
-			{
-				"name": "Workout",
-				"color": "#777777",
-				"cover": "images/cover-morning-run.svg"
-			},
-			{
-				"name": "Focus",
-				"color": "#503750",
-				"cover": "images/cover-focus.svg"
-			},
-			{
-				"name": "Sleep",
-				"color": "#1e3264",
-				"cover": "images/cover-late-night.svg"
-			},
-			{
-				"name": "Party",
-				"color": "#af2896",
-				"cover": "images/album-fragment.svg"
-			},
-			{
-				"name": "Mood",
-				"color": "#e1118c",
-				"cover": "images/album-signal.svg"
-			},
-			{
-				"name": "Travel",
-				"color": "#0d73ec",
-				"cover": "images/cover-road-trip.svg"
-			},
-			{
-				"name": "Dinner",
-				"color": "#b06239",
-				"cover": "images/album-paper-lanterns.svg"
-			},
-			{
-				"name": "Instrumental",
-				"color": "#537aa1",
-				"cover": "images/album-low-tide.svg"
-			},
-			{
-				"name": "Rainy Day",
-				"color": "#27856a",
-				"cover": "images/cover-rainy-day.svg"
-			},
-			{
-				"name": "Summer",
-				"color": "#e61e32",
-				"cover": "images/album-long-summer.svg"
-			}
+			{"name": "Music", "color": "#c2185b", "cover": "images/album-neon-harbour.svg"},
+			{"name": "Podcasts", "color": "#1b7f5c", "cover": "images/podcast-render-loop.svg"},
+			{"name": "Concerts", "color": "#6a3fc9", "cover": "images/album-heat-map.svg"},
+			{"name": "Picked for You", "color": "#264a8c", "cover": "images/cover-mix-1.svg"},
+			{"name": "New Releases", "color": "#5f8f1a", "cover": "images/album-static-bloom.svg"},
+			{"name": "Pop", "color": "#2e8b3d", "cover": "images/album-stride.svg"},
+			{"name": "Indie", "color": "#d1343f", "cover": "images/album-redraw.svg"},
+			{"name": "Electronic", "color": "#1e6fd9", "cover": "images/album-core-profile.svg"},
+			{"name": "Jazz", "color": "#7d5ea6", "cover": "images/album-standards.svg"},
+			{"name": "Ambient", "color": "#3f7590", "cover": "images/album-hours.svg"},
+			{"name": "Folk", "color": "#9a5f45", "cover": "images/album-kitchen-radio.svg"},
+			{"name": "Rock", "color": "#c93a6a", "cover": "images/album-pace.svg"},
+			{"name": "Lo-fi", "color": "#5a3c5c", "cover": "images/album-zero-percent.svg"},
+			{"name": "Chill", "color": "#c8551a", "cover": "images/cover-chill.svg"},
+			{"name": "Workout", "color": "#6b6b6b", "cover": "images/cover-morning-run.svg"},
+			{"name": "Focus", "color": "#4b4470", "cover": "images/cover-focus.svg"},
+			{"name": "Sleep", "color": "#283e78", "cover": "images/cover-late-night.svg"},
+			{"name": "Party", "color": "#a03290", "cover": "images/album-fragment.svg"},
+			{"name": "Mood", "color": "#cf2e7a", "cover": "images/album-signal.svg"},
+			{"name": "Travel", "color": "#2a6fc0", "cover": "images/cover-road-trip.svg"},
+			{"name": "Dinner", "color": "#a35a32", "cover": "images/album-paper-lanterns.svg"},
+			{"name": "Instrumental", "color": "#4d7298", "cover": "images/album-low-tide.svg"},
+			{"name": "Rainy Day", "color": "#2c7a63", "cover": "images/cover-rainy-day.svg"},
+			{"name": "Summer", "color": "#d23a3a", "cover": "images/album-long-summer.svg"}
 		],
 		"lyrics": {
-			"Vertex Buffers": [
-				{
-					"at": 8,
-					"line": "Count the lights along the river"
-				},
-				{
-					"at": 28,
-					"line": "Every window keeps a song"
-				},
-				{
-					"at": 48,
-					"line": "We were drawing in the margins"
-				},
-				{
-					"at": 68,
-					"line": "Of a page that ran too long"
-				},
-				{
-					"at": 88,
-					"line": "Hold the line until the morning"
-				},
-				{
-					"at": 108,
-					"line": "Let the echoes find their way"
-				},
-				{
-					"at": 128,
-					"line": "All the signals in the static"
-				},
-				{
-					"at": 148,
-					"line": "Turn to colour, turn to grey"
-				},
-				{
-					"at": 168,
-					"line": "Keep the rhythm, keep it steady"
-				},
-				{
-					"at": 188,
-					"line": "Close your eyes and let it play"
-				}
-			],
-			"Static Bloom": [
-				{
-					"at": 8,
-					"line": "Radio hum in the kitchen light"
-				},
-				{
-					"at": 30,
-					"line": "Petals open on the screen"
-				},
-				{
-					"at": 52,
-					"line": "I keep the volume low tonight"
-				},
-				{
-					"at": 74,
-					"line": "Somewhere loud and in between"
-				},
-				{
-					"at": 96,
-					"line": "Static bloom, static bloom"
-				},
-				{
-					"at": 118,
-					"line": "Every flower is a sound"
-				},
-				{
-					"at": 140,
-					"line": "Static bloom, fill the room"
-				},
-				{
-					"at": 162,
-					"line": "Turn the whole thing upside down"
-				}
-			],
-			"Golden Hour": [
-				{
-					"at": 8,
-					"line": "Laces tight and the street is gold"
-				},
-				{
-					"at": 30,
-					"line": "Every shadow running long"
-				},
-				{
-					"at": 52,
-					"line": "Count my breath, I'm counting slow"
-				},
-				{
-					"at": 74,
-					"line": "Half a mile into the song"
-				},
-				{
-					"at": 96,
-					"line": "Golden hour, don't you stop"
-				},
-				{
-					"at": 118,
-					"line": "Catch the light before it's gone"
-				},
-				{
-					"at": 140,
-					"line": "Golden hour, to the top"
-				},
-				{
-					"at": 162,
-					"line": "Keep on running, keep on"
-				}
-			],
-			"Dirty Flags": [
-				{
-					"at": 8,
-					"line": "Marked the pages that I changed"
-				},
-				{
-					"at": 36,
-					"line": "Left the rest the way they were"
-				},
-				{
-					"at": 64,
-					"line": "Only redraw what is strange"
-				},
-				{
-					"at": 92,
-					"line": "Only what you can't ignore"
-				},
-				{
-					"at": 120,
-					"line": "Dirty flags on every line"
-				},
-				{
-					"at": 148,
-					"line": "I'll come back and make it right"
-				},
-				{
-					"at": 176,
-					"line": "Dirty flags, it's only time"
-				},
-				{
-					"at": 204,
-					"line": "Draw it once and say goodnight"
-				}
-			]
-		}
+			"Vertex Buffers": [{"at": 8, "line": "Count the lights along the river"}, {"at": 28, "line": "Every window keeps a song"}, {"at": 48, "line": "We were drawing in the margins"}, {"at": 68, "line": "Of a page that ran too long"}, {"at": 88, "line": "Hold the line until the morning"}, {"at": 108, "line": "Let the echoes find their way"}, {"at": 128, "line": "All the signals in the static"}, {"at": 148, "line": "Turn to colour, turn to grey"}, {"at": 168, "line": "Keep the rhythm, keep it steady"}, {"at": 188, "line": "Close your eyes and let it play"}],
+			"Static Bloom": [{"at": 8, "line": "Radio hum in the kitchen light"}, {"at": 30, "line": "Petals open on the screen"}, {"at": 52, "line": "I keep the volume low tonight"}, {"at": 74, "line": "Somewhere loud and in between"}, {"at": 96, "line": "Static bloom, static bloom"}, {"at": 118, "line": "Every flower is a sound"}, {"at": 140, "line": "Static bloom, fill the room"}, {"at": 162, "line": "Turn the whole thing upside down"}],
+			"Golden Hour": [{"at": 8, "line": "Laces tight and the street is gold"}, {"at": 30, "line": "Every shadow running long"}, {"at": 52, "line": "Count my breath, I'm counting slow"}, {"at": 74, "line": "Half a mile into the song"}, {"at": 96, "line": "Golden hour, don't you stop"}, {"at": 118, "line": "Catch the light before it's gone"}, {"at": 140, "line": "Golden hour, to the top"}, {"at": 162, "line": "Keep on running, keep on"}],
+			"Dirty Flags": [{"at": 8, "line": "Marked the pages that I changed"}, {"at": 36, "line": "Left the rest the way they were"}, {"at": 64, "line": "Only redraw what is strange"}, {"at": 92, "line": "Only what you can't ignore"}, {"at": 120, "line": "Dirty flags on every line"}, {"at": 148, "line": "I'll come back and make it right"}, {"at": 176, "line": "Dirty flags, it's only time"}, {"at": 204, "line": "Draw it once and say goodnight"}]
+		},
+		"saved": [1, 2, 3, 4, 5, 0, 6, 7, 9, 11],
+		"following": [1, 0, 8, 5, 6],
+		"savedAlbums": [0, 9, 14, 16],
+		"savedShows": [0, 1]
 	}
 }
