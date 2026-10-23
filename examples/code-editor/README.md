@@ -1,6 +1,6 @@
 # Quaderno, a code editor
 
-A menu bar, an explorer tree, editor tabs, quick open, a command palette, problems and a terminal. The `code-editor` template: a screen document that the stock host runs.
+A text editor modelled on Sublime Text: a side bar with open files and folders, tabs, a minimap, Goto Anything, a command palette, a console and a status bar. The `code-editor` template: a screen document that the stock host runs. What it covers is in [`PARITY.md`](PARITY.md).
 
 ```sh
 ./build/affrescoui_host examples/code-editor/code-editor.screen.json
@@ -9,6 +9,7 @@ A menu bar, an explorer tree, editor tabs, quick open, a command palette, proble
 
 | File | What it is |
 |---|---|
+| `PARITY.md` | The parity matrix: the reference's workflows, done, partial or missing |
 | `code-editor.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 | `code-editor.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `code-editor.screen.json` | The screen document |

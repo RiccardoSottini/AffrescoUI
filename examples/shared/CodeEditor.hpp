@@ -49,7 +49,9 @@ public:
 	/// @brief Sets which syntax to colour.
 	/// @param name "c++" (or "cpp", "c"), "json", "cmake", "markdown" (or "md"), "python" (or "py"), "javascript" (or
 	/// "js"), "typescript" (or "ts"); anything else is plain. Any case.
-	void setLanguage(std::string_view name);
+	/// @param colour Whether this editor colours it; false leaves the colouring to another highlighter (the node's
+	/// "grammar"), and the language picks only the commands' comment marker.
+	void setLanguage(std::string_view name, bool colour = true);
 
 	/// @brief Sets the colour of one kind of text.
 	/// @param token The kind (not Token::Plain, which is the text colour).

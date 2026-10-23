@@ -122,13 +122,18 @@ bool popupTakes(const std::function<bool(std::string_view)>& popupKeys, const af
 
 CodeEditor::CodeEditor() { resetTokenColors(); }
 
-void CodeEditor::setLanguage(std::string_view name) {
+void CodeEditor::setLanguage(std::string_view name, bool colour) {
 	std::string lower(name);
 	std::ranges::transform(lower, lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 	// A grammar colours (and folds) where one exists; the language still picks the comment marker
 	const std::string grammar = affresco::format::SyntaxHighlighter::canonical(lower);
 	const Language language = languageOf(grammar, lower);
 	const auto* current = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
+	if(!colour) {
+		language_ = language;
+		if(current && current->owner() == nullptr) setHighlighter(nullptr); // ours; another's stays
+		return;
+	}
 	if(language == language_ && (current ? current->language() : std::string()) == grammar) return;
 	language_ = language;
 	if(grammar.empty()) setHighlighter(nullptr);

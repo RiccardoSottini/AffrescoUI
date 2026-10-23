@@ -186,7 +186,9 @@ inline void applyProperties(affresco::Screen& screen, ScreenCodeEditor& editor, 
 	applyPopup(screen, editor, properties);
 	applyInsert(editor, properties);
 	applyBuffer(editor, properties, buffers);
-	editor.setLanguage(properties.contains("language") ? properties["language"].get<std::string>() : "");
+	// With a "grammar", the library's highlighter colours in "@syntax.<style>" tokens; the language keeps the commands
+	editor.setLanguage(properties.contains("language") ? properties["language"].get<std::string>() : "",
+	                   !properties.contains("grammar"));
 	editor.resetTokenColors();
 	applyTokens(editor, properties);
 	applyGoTo(editor, properties);

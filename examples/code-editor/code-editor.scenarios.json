@@ -9,16 +9,15 @@
 			"name": "open-files-from-the-tree",
 			"note": "A file row of the explorer tree opens the file in a new tab; a folder row opens or closes the folder",
 			"steps": [
-				{ "click": [130, 183], "note": "src / Station.cpp" },
+				{ "click": [130, 270], "note": "src / Station.cpp" },
 				{ "expect": { "state": "active", "is": 2 } },
 				{ "expect": { "state": "tabs", "is": [0, 1, 3, 2] } },
-				{ "expect": { "node": "#breadcrumbs", "text": "weather-station  /  src  /  Station.cpp" } },
 				{ "expect": { "node": "#windowTitle", "text": "Station.cpp  —  weather-station  —  Quaderno" } },
-				{ "click": [130, 313], "note": "README.md, at the root" },
+				{ "click": [130, 414], "note": "README.md, at the root (the open files above it grew by one)" },
 				{ "expect": { "state": "active", "is": 6 } },
-				{ "expect": { "node": "#breadcrumbs", "text": "weather-station  /  README.md" } },
-				{ "click": [100, 235], "note": "the screens folder" },
-				{ "expect": { "state": "expanded", "is": ["d:src"] } },
+				{ "expect": { "node": "#windowTitle", "text": "README.md  —  weather-station  —  Quaderno" } },
+				{ "click": [100, 366], "note": "the screens folder" },
+				{ "expect": { "state": "expanded", "is": ["d:root", "d:src"] } },
 				{ "expect": { "state": "tabs.length", "is": 5 } }
 			]
 		},
@@ -61,7 +60,7 @@
 			"steps": [
 				{ "expect": { "state": "problems.length", "is": 8 } },
 				{ "expect": { "node": "#statusProblems", "text": "1 error, 7 warnings" } },
-				{ "click": [130, 183] },
+				{ "click": [130, 270] },
 				{ "click": "#editor" },
 				{ "key": "mod+a" },
 				{ "type": "#include \"Station.hpp\"" },
@@ -75,21 +74,23 @@
 			"name": "a-large-file",
 			"note": "Calibration.cpp is generated on load: 5,000 lines, with a TODO every 1,000 lines",
 			"steps": [
-				{ "click": [537, 48], "note": "the Calibration.cpp tab" },
+				{ "click": [472, 42], "note": "the Calibration.cpp tab" },
 				{ "expect": { "state": "active", "is": 3 } },
 				{ "expect": { "state": "problems[2].id", "is": "3:508" } },
 				{ "expect": { "state": "problems[6].id", "is": "3:4508" } },
 				{ "click": "#editor" },
 				{ "key": "mod+end", "note": "the end of the file on every platform (Super+Down is macOS only)" },
 				{ "expect": { "state": "caret.line", "is": 5000 } },
-				{ "expect": { "node": "#statusSize", "text": "Ln 5000, Col 2  ·  Spaces: 4  ·  UTF-8  ·  C++" } }
+				{ "expect": { "node": "#statusSize", "text": "Line 5000, Column 2" } }
 			]
 		},
 		{
 			"name": "a-problem-opens-its-file",
 			"note": "Choosing a row of the problems table opens the file it is in",
 			"steps": [
-				{ "click": [500, 641], "note": "the FIXME in Station.cpp" },
+				{ "key": "mod+shift+m", "note": "the panel is hidden at first, as in the editor it models" },
+				{ "wait": 0 },
+				{ "click": [500, 682], "note": "the FIXME in Station.cpp" },
 				{ "expect": { "state": "problemPick", "is": "2:6" } },
 				{ "expect": { "state": "active", "is": 2 } },
 				{ "expect": { "state": "tabs", "is": [0, 1, 3, 2] } }
