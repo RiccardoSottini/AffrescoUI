@@ -193,9 +193,10 @@
 		},
 		{
 			"name": "colour-a-light",
-			"note": "A light's bulb opens the colour dialog; Warm white sets its colour and Done closes it",
+			"note": "A light's dialog opens the colour dialog; Warm white sets its colour and Done closes it",
 			"steps": [
-				{ "click": "#lightIcon", "nth": 1 },
+				{ "click": "#light", "nth": 1 },
+				{ "click": "#infoColour" },
 				{ "wait": 100, "note": "the dialog takes the focus once it is laid out" },
 				{ "expect": { "state": "colourOpen", "is": true } },
 				{ "expect": { "state": "light", "is": 1 } },
@@ -204,10 +205,42 @@
 				{ "expect": { "state": "rooms[0].lights[1].color", "is": "#ffd58aff" } },
 				{ "click": "#colourDone" },
 				{ "expect": { "state": "colourOpen", "is": false } },
-				{ "click": "#lightIcon", "nth": 0 },
+				{ "click": "#light", "nth": 0 },
+				{ "click": "#infoColour" },
 				{ "wait": 100 },
 				{ "key": "escape", "note": "Escape closes it too" },
 				{ "expect": { "state": "colourOpen", "is": false } }
+			]
+		},
+		{
+			"name": "edit-a-card",
+			"note": "Edit dashboard, in the top bar's menu, outlines the cards; a card's editor renames it in the form, hides its modes in code, and refuses code that is not an object",
+			"steps": [
+				{ "click": "#dashMore" },
+				{ "click": { "role": "menuitem", "name": "Edit dashboard" } },
+				{ "expect": { "state": "editing", "is": true } },
+				{ "click": "#editClimate" },
+				{ "expect": { "state": "cardEdit.open", "is": true } },
+				{ "click": "#cardTitleField" },
+				{ "type": "Living room" },
+				{ "click": "#cardSave" },
+				{ "expect": { "node": "#label-climate", "text": "Living room" } },
+				{ "click": "#editClimate" },
+				{ "click": "#cardCodeSwitch" },
+				{ "expect": { "state": "cardEdit.text", "is": "{\n  \"type\": \"thermostat\",\n  \"title\": \"Living room\",\n  \"modes\": true\n}" } },
+				{ "click": "#cardCode" },
+				{ "key": "mod+a" },
+				{ "type": "[1]" },
+				{ "click": "#cardSave" },
+				{ "expect": { "node": "#cardCodeError", "text": "The configuration is not a valid object" } },
+				{ "click": "#cardCode" },
+				{ "key": "mod+a" },
+				{ "type": "{ \"modes\": false }" },
+				{ "click": "#cardSave" },
+				{ "expect": { "state": "cards.climate.modes", "is": false } },
+				{ "expect": { "state": "cards.climate.type", "is": "thermostat" } },
+				{ "click": "#editDone" },
+				{ "expect": { "state": "editing", "is": false } }
 			]
 		},
 		{

@@ -57,6 +57,36 @@
 			}
 		},
 
+		"levelBar": {
+			"note": "A tile's rounded bar, filled from the start to level (0 to 1), with a mark at the fill's end; a transparent slider over it drags it",
+			"params": { "level": 0, "fill": "@accent", "back": "@raised" },
+			"node": {
+				"height": 40, "radius": 12, "color": "{{back}}",
+				"children": [{
+					"anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{clamp(level, 0, 1) * 100 + '%'}}", "minWidth": 24, "radius": 12, "color": "{{fill}}",
+					"children": [{ "anchors": { "right": 8, "top": 12 }, "width": 4, "height": 16, "radius": 2, "color": "#ffffffcc" }]
+				}]
+			}
+		},
+
+		"snackbar": {
+			"note": "A short message in a dark bar at the bottom centre, with Dismiss and, while a call runs, its progress",
+			"params": { "open": "state.toast.open", "message": "", "progress": null },
+			"node": {
+				"overlay": { "placement": "window", "open": "{{open}}" },
+				"anchors": { "bottom": 24 }, "x": "{{(window.width - min(480, window.width - 32)) / 2}}", "width": "{{min(480, window.width - 32)}}", "height": 48,
+				"color": "@snack", "radius": 4, "shadow": { "y": 3, "blur": 10, "color": "#00000052" }, "role": "status", "live": "polite",
+				"children": [
+					{ "type": "label", "text": "{{message}}", "textColor": "#ffffffde", "anchors": { "left": 16, "right": 104, "top": 0, "bottom": 0 },
+						"align": { "horizontal": "start", "vertical": "center" } },
+					{ "when": "{{progress == null}}", "style": "button", "text": "{{t('snack.dismiss')}}", "color": "transparent", "hover": { "color": "#ffffff14" },
+						"textColor": "@snackAction", "anchors": { "right": 8, "top": 6 }, "width": 88, "height": 36, "radius": 4, "onClick": { "set": "{{open}}", "to": false } },
+					{ "when": "{{progress != null}}", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 3, "color": "#ffffff1f",
+						"children": [{ "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{clamp(progress ?? 0, 0, 1) * 100 + '%'}}", "color": "@snackAction" }] }
+				]
+			}
+		},
+
 		"viewTab": {
 			"note": "A view in the top bar: its title, underlined while it is the one shown",
 			"params": { "title": "", "selected": false },

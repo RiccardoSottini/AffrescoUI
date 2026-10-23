@@ -4,7 +4,7 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 36 done, 4 partial, 2 missing (42).
+**Counts:** 40 done, 4 partial, 1 missing (45).
 
 ## Shell
 
@@ -14,7 +14,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Selected page highlighted in the sidebar | done | |
 | Views as tabs in the top bar | done | one tab per room, the shown one underlined |
 | The user at the foot of the sidebar | done | an initial in a circle; it opens the profile |
-| Coloured top bar with the page title, search and edit | done | edit says it is coming |
+| Coloured top bar with the views, search and a menu | done | the menu holds search and Edit dashboard |
 | Light and dark themes | done | light by default, as the reference |
 | Right to left (Arabic) | done | the sidebar moves to the right and every card mirrors; the floor plan and the automation graph keep their drawing |
 | Notifications button with a badge | done | |
@@ -27,15 +27,17 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | --- | --- | --- |
 | Summary chips row (lights on, weather, climate) | done | |
 | Area card with a picture and its sensors | done | |
-| Light tiles: icon, state, toggle, brightness | done | |
+| Light tiles: icon, state, toggle, brightness | done | the icon switches the light; a rounded bar in its colour sets the level |
 | Scene buttons with icons | done | |
-| Thermostat card with a dial, target and modes | done | |
-| Cover (blinds) card with open, close and position | done | |
+| Thermostat card with a dial, target and modes | done | minus and plus under the target, in the dial's gap |
+| Cover (blinds) card with open, close and position | done | a rounded position bar |
 | Device tiles with one action each | done | |
 | Alarm panel tile and its keypad dialog | done | a button per mode; disarming takes a code |
-| Round toggle switches | partial | the library draws a square switch |
+| Round toggle switches | partial | tiles use bars and the card editor a drawn round switch; settings keep the library's square switch |
 | Tile names never cut at the smallest window | done | |
-| Edit mode for the dashboard | missing | |
+| Edit mode for the dashboard | done | a blue-grey bar with close, the title and Done; each card outlined with a pencil |
+| Card editor: visual and code | done | title and options in a form, or the card as JSON, checked on save; cards cannot yet be added or moved |
+| Snackbar for short messages | done | a dark bar at the bottom centre with Dismiss, or a call's progress |
 
 ## More-info dialogs
 
@@ -45,7 +47,8 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Climate dialog: dial, modes, history | done | its own dial, modes and a 24-hour line with a scale |
 | Cover dialog: position, tilt | partial | position, no tilt |
 | Device dialog: attributes, related, logbook | partial | attributes and activity, no related |
-| Dialogs dim the page behind them | done | |
+| Dialogs dim the page behind them | done | the search too |
+| Dialog header: area above the name, history and settings | done | |
 
 ## Energy
 

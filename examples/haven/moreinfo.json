@@ -113,8 +113,12 @@
 				"children": [
 					{ "use": "iconBtn", "with": { "icon": "x", "tip": "info.close" }, "id": "infoClose", "font": "icons", "color": "transparent", "anchors": { "left": 10, "top": 10 },
 						"onClick": { "set": "state.info.open", "to": false } },
-					{ "id": "infoName", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.infoName}}", "anchors": { "left": 64, "right": 20, "top": 14 }, "height": 22 },
-					{ "id": "infoRoom", "style": "caption", "text": "{{state.info.kind == 'device' || state.info.kind == 'alarm' ? t('info.home') : computed.room.name}}", "anchors": { "left": 64, "top": 36 } },
+					{ "id": "infoRoom", "style": "caption", "text": "{{state.info.kind == 'device' || state.info.kind == 'alarm' ? t('info.home') : computed.room.name}}", "anchors": { "left": 64, "top": 12 } },
+					{ "id": "infoName", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.infoName}}", "anchors": { "left": 64, "right": 108, "top": 30 }, "height": 22 },
+					{ "use": "iconBtn", "with": { "icon": "chart-line", "tip": "page.history" }, "id": "infoToHistory", "font": "icons", "color": "transparent", "anchors": { "right": 58, "top": 10 },
+						"onClick": [{ "set": "state.info.open", "to": false }, { "set": "state.page", "to": "history" }] },
+					{ "use": "iconBtn", "with": { "icon": "settings", "tip": "page.settings" }, "id": "infoToSettings", "font": "icons", "color": "transparent", "anchors": { "right": 10, "top": 10 },
+						"onClick": [{ "set": "state.info.open", "to": false }, { "set": "state.page", "to": "settings" }] },
 					{ "id": "infoState", "when": "{{state.info.kind != 'climate'}}", "type": "label", "font": "title", "textColor": "@text", "text": "{{computed.infoState}}", "anchors": { "left": 0, "right": 0, "top": 76 }, "height": 36,
 						"align": "center", "live": "polite" },
 
@@ -128,7 +132,7 @@
 									"selected": "{{computed.infoLight.on}}", "color": "{{computed.infoLight.on ? '@warmSoft' : '@raised'}}", "textColor": "{{computed.infoLight.on ? '@warm' : '@text'}}",
 									"onClick": [{ "toggle": "state.rooms[state.room].lights[state.info.index].on" }, { "set": "state.scene", "to": "" }] },
 								{ "use": "iconBtn", "with": { "icon": "palette", "tip": "colour.title" }, "id": "infoColour",
-									"onClick": [{ "set": "state.info.open", "to": false }, { "run": "openColour", "with": { "i": "{{state.info.index}}" } }] },
+									"onClick": [{ "set": "state.info.open", "to": false }, { "run": "openColour", "with": { "i": "{{state.info.index}}" } }, { "focus": "#colourPicker" }] },
 								{ "use": "iconBtn", "with": { "icon": "thermometer-sun", "tip": "colour.warm" }, "id": "infoWarm",
 									"onClick": { "set": "state.rooms[state.room].lights[state.info.index].color", "to": "#ffd58aff" } }
 							] },
