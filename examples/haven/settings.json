@@ -4,6 +4,7 @@
 	"state": {
 		"settingsView": "main",
 		"langMenu": false,
+		"genMenu": false,
 		"settingsGroups": [
 			{ "id": "home", "rows": [
 				{ "id": "devices", "icon": "cpu", "color": "#039be5" },
@@ -25,6 +26,7 @@
 	},
 
 	"actions": {
+		"pickSetting": [{ "note": "with: key, a settings key, and value" }, { "set": "{{'settings.' + key}}", "to": "{{value}}" }],
 		"pickLanguage": [{ "note": "with: lang, a language code" }, { "set": "settings.ui.language", "to": "{{lang}}" }]
 	},
 
@@ -77,28 +79,6 @@
 						{ "when": "{{chosen}}", "anchors": { "left": 5, "top": 5 }, "width": 10, "height": 10, "radius": 5, "color": "@accent" }] },
 					{ "type": "label", "text": "{{text}}", "textColor": "@text", "fitText": true }
 				]
-			}
-		},
-
-		"settingsChoice": {
-			"note": "A pill of a choice row: filled with the accent when it is the chosen one.",
-			"params": { "text": "", "chosen": false },
-			"node": {
-				"type": "label",
-				"text": "{{text}}",
-				"height": 36,
-				"width": 112,
-				"radius": 18,
-				"align": "center",
-				"color": "{{chosen ? '@accent' : 'transparent'}}",
-				"textColor": "{{chosen ? '#ffffff' : '@text'}}",
-				"borderColor": "{{chosen ? '@accent' : '@border'}}",
-				"borderWidth": 1,
-				"hover": { "borderColor": "@accent" },
-				"cursor": "hand",
-				"focusable": true,
-				"role": "radio",
-				"checked": "{{chosen}}"
 			}
 		},
 
@@ -176,14 +156,14 @@
 									{ "type": "label", "icon": "cpu", "text": "  {{t('devices.title')}}", "font": "heading", "textColor": "@text", "anchors": { "left": 20, "top": 16 }, "fitText": true },
 									{ "id": "deviceTable", "type": "table", "anchors": { "left": 8, "right": 8, "top": 52, "bottom": 8 }, "rowHeight": 40, "color": "@card",
 										"items": "{{computed.deviceRows}}", "columns": "{{computed.deviceColumns}}", "label": "{{t('devices.title')}}", "textColor": "@text",
-										"selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@accent" }
+										"selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@border" }
 								] },
 							{ "id": "roomTableCard", "style": "card", "anchors": { "left": 0, "right": 0 }, "height": "{{length(state.rooms) * 40 + 92}}",
 								"children": [
 									{ "type": "label", "icon": "layout-grid", "text": "  {{t('set.entities')}}", "font": "heading", "textColor": "@text", "anchors": { "left": 20, "top": 16 }, "fitText": true },
 									{ "id": "roomEntityTable", "type": "table", "anchors": { "left": 8, "right": 8, "top": 52, "bottom": 8 }, "rowHeight": 40, "color": "@card",
 										"items": "{{computed.roomEntityRows}}", "columns": "{{computed.roomEntityColumns}}", "label": "{{t('set.entities')}}", "textColor": "@text",
-										"selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@accent",
+										"selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@border",
 										"onOpen": [{ "run": "pickRoom", "with": { "id": "{{event.value}}" } }, { "set": "state.page", "to": "home" }] }
 								] }
 						]
@@ -261,10 +241,16 @@
 										"onChange": { "if": "{{number(event.value) != null && number(event.value) >= s.minimum && number(event.value) <= s.maximum}}",
 											"then": [{ "set": "{{'settings.' + s.key}}", "to": "{{number(event.value)}}" }] } },
 									{ "when": "{{s.type == 'number' || s.type == 'integer'}}", "anchors": { "right": 20, "top": 57 }, "width": 140, "height": 1, "color": "@muted" },
-									{ "when": "{{s.type == 'string' && s.enum != null}}", "type": "row", "anchors": { "right": 20, "top": 18 }, "width": 400, "height": 36, "gap": 8,
-										"justify": "end", "role": "radiogroup", "label": "{{s.title}}", "children": [{
-											"repeat": { "for": "v", "in": "{{s.enum}}" }, "use": "settingsChoice", "with": { "text": "{{t('set.value.' + v)}}", "chosen": "{{s.value == v}}" },
-											"onClick": { "set": "{{'settings.' + s.key}}", "to": "{{v}}" } }] }
+									{ "when": "{{s.type == 'string' && s.enum != null}}", "id": "generalPick", "type": "label", "text": "{{t('set.value.' + s.value)}}", "textColor": "@text",
+										"anchors": { "right": 20, "top": 14 }, "width": 240, "height": 44, "padding": 12, "color": "@raised", "radius": { "topLeft": 4, "topRight": 4 },
+										"align": { "horizontal": "start", "vertical": "center" }, "hover": { "color": "@raisedHover" }, "cursor": "hand", "focusable": true, "role": "combobox",
+										"label": "{{s.title}}", "isOpen": "{{state.genMenu}}", "onClick": { "toggle": "state.genMenu" },
+										"children": [
+											{ "type": "label", "icon": "chevron-down", "text": "", "textColor": "@muted", "anchors": { "right": 8, "top": 10 }, "width": 24, "height": 24, "align": "center" },
+											{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@muted" },
+											{ "use": "menu", "with": { "open": "state.genMenu", "placement": "below", "width": 240,
+												"items": "{{map(s.enum, { title: t('set.value.' + it), checked: s.value == it, run: 'pickSetting', with: { key: s.key, value: it } })}}" } }
+										] }
 								]
 							}] }
 						]
@@ -274,10 +260,11 @@
 						"when": "{{state.settingsView == 'about'}}",
 						"style": "card",
 						"anchors": { "left": 24, "right": 24, "top": 80 },
-						"height": 300,
+						"height": 468,
 						"children": [
 							{ "type": "row", "anchors": { "left": 0, "right": 0, "top": 32 }, "height": 72, "justify": "center", "children": [
-								{ "type": "label", "font": "iconsLarge", "icon": "house", "text": "", "textColor": "#ffffff", "color": "@accent", "width": 72, "height": 72, "radius": 36, "align": "center" } ] },
+								{ "color": "@accent", "width": 72, "height": 72, "radius": 36, "children": [
+									{ "type": "label", "font": "iconsLarge", "icon": "home", "text": "", "textColor": "#ffffff", "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 }, "align": "center" } ] } ] },
 							{ "type": "label", "text": "Haven", "font": "title", "textColor": "@text", "anchors": { "left": 0, "right": 0, "top": 120 }, "height": 36, "align": "center" },
 							{ "type": "label", "text": "{{t('app.tagline')}}", "textColor": "@muted", "anchors": { "left": 0, "right": 0, "top": 156 }, "height": 22, "align": "center" },
 							{ "type": "panel", "color": "@border", "anchors": { "left": 0, "right": 0, "top": 198 }, "height": 1 },
@@ -291,7 +278,18 @@
 								{ "anchors": { "left": 0, "right": 0 }, "height": 28, "color": "transparent", "children": [
 									{ "type": "label", "text": "{{t('about.license')}}", "textColor": "@muted", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "fitText": true },
 									{ "type": "label", "text": "Apache-2.0", "textColor": "@text", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "fitText": true } ] }
-							] }
+							] },
+							{ "type": "panel", "color": "@border", "anchors": { "left": 0, "right": 0, "top": 300 }, "height": 1 },
+							{ "type": "column", "anchors": { "left": 0, "right": 0, "top": 304, "bottom": 8 }, "gap": 0, "role": "list", "children": [{
+								"id": "aboutLink", "repeat": { "for": "l", "in": "{{[{ key: 'docs', icon: 'book-open' }, { key: 'issue', icon: 'bug' }, { key: 'source', icon: 'code' }]}}" },
+								"anchors": { "left": 0, "right": 0 }, "height": 52, "color": "transparent", "hover": { "color": "@cardHover" }, "cursor": "hand", "focusable": true,
+								"role": "link", "label": "{{t('about.' + l.key)}}", "onClick": { "run": "showToast", "with": { "message": "{{t('about.offline')}}" } },
+								"children": [
+									{ "type": "label", "icon": "{{l.icon}}", "text": "", "textColor": "@muted", "anchors": { "left": 20, "top": 14 }, "width": 24, "height": 24, "align": "center" },
+									{ "type": "label", "text": "{{t('about.' + l.key)}}", "textColor": "@text", "anchors": { "left": 64, "right": 56, "top": 0, "bottom": 0 },
+										"align": { "horizontal": "start", "vertical": "center" } },
+									{ "type": "label", "icon": "external-link", "text": "", "textColor": "@muted", "anchors": { "right": 20, "top": 14 }, "width": 24, "height": 24, "align": "center" }
+								] }] }
 						]
 					}
 				]

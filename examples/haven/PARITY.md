@@ -37,7 +37,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Round toggle switches | done | drawn round switches in the automations, the card editor and the general settings; tiles use bars |
 | Tile names never cut at the smallest window | done | |
 | Edit mode for the dashboard | done | a blue-grey bar with close, the title and Done; each section outlined with even padding, with a pencil in its corner that covers none of its content |
-| Card editor: visual and code | done | title and options in a form, or the card as JSON, checked on save, beside a live preview of the card as the dashboard draws it (the thermostat with its dial); cards cannot yet be added or moved |
+| Card editor: visual and code | done | a filled title field with its label inside and the options in a form, or the card as JSON, checked on save, beside a live preview of the card as the dashboard draws it (the thermostat with its dial, minus and plus, and modes); cards cannot yet be added or moved |
 | Snackbar for short messages | done | a dark bar at the bottom centre with Dismiss, or a call's progress |
 
 ## More-info dialogs
@@ -63,7 +63,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Automations list with on and off | done | a coloured app bar; a searchable table with name, last ran and enabled columns; disabled rules dimmed; a floating New automation button |
+| Automations list with on and off | done | a coloured app bar; a searchable table with name and last ran columns; disabled rules dimmed; a menu per row to run, duplicate, disable or delete it; a floating New automation button |
 | Editor: triggers, conditions, actions as cards | done | a coloured app bar with back, name, enabled, Run and more; When, And if, Then do cards with outlined add buttons; a graph view; an overflow menu with Run, Duplicate and Delete, which asks first |
 | Confirm dialogs | done | rounded, with text buttons: Cancel, then Delete in red |
 | Automation trace / last run | done | a step-by-step timeline of the last run; Run starts it now |
@@ -73,7 +73,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Areas page with a card per room | done | grouped by floor; a picture, temperature, humidity and lights on; a card opens its room |
-| Logbook: a dated list of events | done | today and yesterday, the entity and what it did with the time beneath, rules marked in the accent colour, searchable |
+| Logbook: a dated list of events | done | today and yesterday, the entity and what it did with the time beneath, rules marked in the accent colour; a date range field and a Choose entity, area or device field that filters it |
 | History: state bars and lines over time | done | a continuous day timeline per entity with labelled states and a temperature line on a scale with gridlines and hours |
 | History: period and target pickers | done | a date range field and a Choose entity, area or device button, which opens the search |
 | Full-size app bar actions and add buttons | done | 24-pixel icons in every app bar; Add an area floats at the bottom corner |
@@ -84,14 +84,14 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | --- | --- | --- |
 | Settings list grouped in cards | done | coloured icon circles, a subtitle and a chevron per row |
 | Profile: user, language, theme | done | the user and Log out; the language in a dropdown; the theme as Auto, Light and Dark radio buttons |
-| Devices and entities tables | done | full-width tables of devices and of rooms |
-| About page | done | |
-| General: climate, scenes, budget, notifications | done | rows from the settings schema in a card capped at 1040 pixels: filled number fields, round switches, the language as choices, Reset when changed |
+| Devices and entities tables | done | full-width tables of devices and of rooms with plain headers |
+| About page | done | the logo, version, devices and licence, then links to the documentation, issues and source |
+| General: climate, scenes, budget, notifications | done | rows from the settings schema in a card capped at 1040 pixels: filled number fields, round switches, the language in a dropdown, Reset when changed |
 
 ## Add-ons
 
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Chat assistant panel | missing | waits for 14-browser M1 |
-| Overflow menus | done | raised and rounded, with a shadow, an icon and a title per item |
+| Overflow menus | done | raised and rounded, with a shadow, an icon and a title per item, on the app bars and on each automation |
 | Shared kit components | done | the kit quick pick, themed through `kit.*` colours |

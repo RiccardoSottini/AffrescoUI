@@ -466,7 +466,7 @@
 										"children": [
 											{ "id": "dashMenu", "use": "popMenu", "with": { "open": "state.dashMenu", "width": 220,
 												"items": [
-													{ "title": "{{t('toolbar.search')}}", "icon": "search", "run": "searchEntities" },
+													{ "title": "{{t('toolbar.search')}}", "icon": "search", "run": "searchEntities", "with": null },
 													{ "separator": true },
 													{ "title": "{{t('edit.dashboard')}}", "icon": "pencil", "run": "editDashboard" }
 												] } }

@@ -295,7 +295,8 @@
 			"steps": [
 				{ "key": "mod+4" },
 				{ "expect": { "node": "#autoRow", "nth": 3, "property": "shown", "is": true } },
-				{ "click": "#autoRowToggle", "nth": 0 },
+				{ "click": "#autoRowMore", "nth": 0 },
+				{ "click": { "role": "menuitem", "name": "Disable" } },
 				{ "expect": { "state": "automations[0].on", "is": false } },
 				{ "click": "#autoRowOpen", "nth": 1 },
 				{ "expect": { "state": "autoOpen", "is": 1 } },

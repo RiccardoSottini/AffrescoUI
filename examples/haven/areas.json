@@ -40,7 +40,7 @@
 								"role": "group",
 								"label": "{{t('floor.' + f.id)}}",
 								"children": [
-									{ "type": "label", "icon": "layers", "text": "  {{t('floor.' + f.id)}}", "font": "heading", "textColor": "@text", "anchors": { "left": 0, "top": 16 },
+									{ "type": "label", "icon": "layers-2", "text": "  {{t('floor.' + f.id)}}", "font": "heading", "textColor": "@text", "anchors": { "left": 0, "top": 16 },
 										"fitText": true },
 									{
 										"type": "row",

@@ -91,13 +91,16 @@
 
 					{ "id": "cardForm", "when": "{{!state.cardEdit.code}}", "anchors": { "left": 24, "right": 360, "top": 64, "bottom": 72 }, "color": "transparent",
 						"children": [
-							{ "style": "caption", "text": "{{t('edit.title')}}", "anchors": { "left": 0, "top": 0 } },
-							{ "id": "cardTitleField", "type": "textarea", "bind": "state.cardEdit.draft.title", "placeholder": "{{computed.cardTitle[state.cardEdit.id]}}",
-								"placeholderColor": "@muted", "textColor": "@text", "color": "@field", "borderWidth": 1, "borderColor": "@border",
-								"focused": { "borderColor": "@accent" }, "radius": 4, "padding": 12, "anchors": { "left": 0, "right": 0, "top": 22 }, "height": 48,
-								"label": "{{t('edit.title')}}" },
+							{ "id": "cardTitleBox", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 56, "color": "@raised", "hover": { "color": "@raisedHover" },
+								"radius": { "topLeft": 4, "topRight": 4 }, "children": [
+									{ "type": "label", "font": "small", "text": "{{t('edit.title')}}", "textColor": "@muted", "anchors": { "left": 16, "top": 6 }, "height": 16, "fitText": true },
+									{ "id": "cardTitleField", "type": "textarea", "bind": "state.cardEdit.draft.title", "placeholder": "{{computed.cardTitle[state.cardEdit.id]}}",
+										"placeholderColor": "@muted", "textColor": "@text", "color": "transparent", "padding": 16,
+										"anchors": { "left": 0, "right": 0, "top": 18, "bottom": 0 }, "label": "{{t('edit.title')}}" },
+									{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@muted" }
+								] },
 							{ "id": "cardOption", "repeat": { "for": "opt", "in": "{{filter(keys(state.cardEdit.draft), it != 'type' && it != 'title')}}", "index": "i" },
-								"anchors": { "left": 0, "right": 0, "top": "{{92 + i * 52}}" }, "height": 44, "color": "transparent",
+								"anchors": { "left": 0, "right": 0, "top": "{{76 + i * 52}}" }, "height": 44, "color": "transparent",
 								"children": [
 									{ "type": "label", "text": "{{t('edit.opt.' + opt)}}", "textColor": "@text", "anchors": { "left": 0, "right": 56, "top": 0, "bottom": 0 },
 										"align": { "horizontal": "start", "vertical": "center" } },
@@ -116,29 +119,31 @@
 							"radius": { "topRight": 28 },
 							"children": [
 								{ "style": "caption", "text": "{{t('edit.preview')}}", "anchors": { "left": 24, "top": 24 } },
-								{ "style": "card", "anchors": { "left": 24, "right": 24, "top": 56 }, "height": "{{state.cardEdit.id == 'climate' ? (state.cardEdit.draft.modes ? 280 : 228) : (state.cardEdit.draft.actions ? 176 : 120)}}",
+								{ "style": "card", "anchors": { "left": 24, "right": 24, "top": 56 }, "height": "{{state.cardEdit.id == 'climate' ? (state.cardEdit.draft.modes ? 260 : 196) : (state.cardEdit.draft.actions ? 124 : 68)}}",
 									"children": [
-										{ "type": "label", "icon": "{{computed.cardIcon[state.cardEdit.id]}}", "text": "", "textColor": "@accent", "color": "@accentSoft",
-											"anchors": { "left": 16, "top": 16 }, "width": 36, "height": 36, "radius": 18, "align": "center" },
-										{ "type": "label", "text": "{{state.cardEdit.draft.title || computed.cardTitle[state.cardEdit.id]}}", "textColor": "@text",
-											"anchors": { "left": 64, "right": 16, "top": 16 }, "height": 20 },
-										{ "type": "label", "font": "small", "text": "{{t('edit.kind.' + state.cardEdit.id)}}", "textColor": "@muted", "anchors": { "left": 64, "right": 16, "top": 36 }, "height": 16 },
-										{ "when": "{{state.cardEdit.id == 'climate'}}", "use": "thermoDial", "with": { "p": "preview", "small": true }, "anchors": { "left": 69, "top": 60 } },
-										{ "when": "{{state.cardEdit.draft.modes == true}}", "type": "row", "anchors": { "left": 76, "bottom": 16 }, "width": 136, "height": 40, "gap": 8, "children": [{
-											"repeat": { "for": "m", "in": "{{['flame', 'snowflake', 'wind']}}" }, "type": "label", "icon": "{{m}}", "text": "", "textColor": "@muted",
+										{ "style": "cardTitle", "icon": "{{computed.cardIcon[state.cardEdit.id]}}", "text": " {{state.cardEdit.draft.title || computed.cardTitle[state.cardEdit.id]}}",
+											"anchors": { "left": 24, "right": 16, "top": 20 }, "fitText": false, "height": 28 },
+										{ "when": "{{state.cardEdit.id == 'climate'}}", "use": "thermoDial", "with": { "p": "preview", "small": true }, "anchors": { "left": 69, "top": 44 } },
+										{ "when": "{{state.cardEdit.id == 'climate'}}", "type": "row", "anchors": { "left": 0, "right": 0, "top": 136 }, "height": 40, "gap": 12, "justify": "center", "children": [{
+											"repeat": { "for": "m", "in": "{{['minus', 'plus']}}" }, "type": "label", "icon": "{{m}}", "text": "", "textColor": "@text",
 											"color": "@raised", "width": 40, "height": 40, "radius": 20, "align": "center" }] },
-										{ "when": "{{state.cardEdit.draft.actions == true}}", "type": "row", "anchors": { "left": 16, "right": 16, "bottom": 16 }, "height": 32, "gap": 8, "children": [{
+										{ "when": "{{state.cardEdit.id == 'climate' && state.cardEdit.draft.modes == true}}", "type": "row", "anchors": { "left": 0, "right": 0, "bottom": 16 }, "height": 44, "gap": 12,
+											"justify": "center", "children": [{
+											"repeat": { "for": "mode", "in": "state.modes" }, "type": "label", "icon": "{{mode == 'Heat' ? 'flame' : (mode == 'Cool' ? 'snowflake' : 'sun-snow')}}", "text": "",
+											"color": "{{mode == state.mode ? computed.modeColor + '33' : '@raised'}}", "textColor": "{{mode == state.mode ? computed.modeColor : '@muted'}}",
+											"width": 44, "height": 44, "radius": 22, "align": "center" }] },
+										{ "when": "{{state.cardEdit.draft.actions == true}}", "type": "row", "anchors": { "left": 16, "right": 16, "bottom": 16 }, "height": 40, "gap": 8, "children": [{
 											"repeat": { "for": "d", "in": "{{state.devices}}" }, "type": "label", "font": "small", "text": "{{d.name}}", "textColor": "@text",
-											"color": "@raised", "grow": 1, "basis": 0, "height": 32, "radius": 8, "align": "center" }] }
+											"color": "@raised", "grow": 1, "basis": 0, "height": 40, "radius": 8, "align": "center" }] }
 									] }
 							] },
 						{ "anchors": { "left": 0, "right": 0, "bottom": 64 }, "height": 1, "color": "@divider" },
-					{ "id": "cardCodeSwitch", "style": "button", "color": "transparent", "textColor": "@accent", "padding": 12, "fitText": true,
+					{ "id": "cardCodeSwitch", "style": "button", "color": "transparent", "hover": { "color": "@accentSoft" }, "textColor": "@accent", "padding": 12, "fitText": true,
 						"text": "{{t(state.cardEdit.code ? 'edit.showForm' : 'edit.showCode')}}", "anchors": { "left": 16, "bottom": 14 }, "height": 36,
 						"onClick": { "if": "{{state.cardEdit.code}}", "then": [{ "run": "showCardForm" }], "else": [{ "run": "showCardCode" }] } },
 					{ "id": "cardSave", "style": "button", "color": "@accent", "hover": { "color": "@accent" }, "textColor": "#ffffff", "text": "{{t('edit.save')}}",
 						"anchors": { "right": 16, "bottom": 14 }, "width": 88, "height": 36, "radius": 18, "onClick": "saveCard" },
-					{ "id": "cardCancel", "style": "button", "color": "transparent", "textColor": "@accent", "text": "{{t('edit.cancel')}}",
+					{ "id": "cardCancel", "style": "button", "color": "transparent", "hover": { "color": "@accentSoft" }, "textColor": "@accent", "text": "{{t('edit.cancel')}}",
 						"anchors": { "right": 112, "bottom": 14 }, "width": 88, "height": 36, "radius": 18, "onClick": { "set": "state.cardEdit.open", "to": false } }
 				]
 			}

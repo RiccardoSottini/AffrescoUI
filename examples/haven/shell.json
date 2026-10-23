@@ -58,7 +58,7 @@
 		},
 
 		"popMenu": {
-			"note": "An overflow menu open at the state path: a raised, rounded list of items (title, icon, run, or a separator) under its button",
+			"note": "An overflow menu open at the state path: a raised, rounded list of items (title, icon, run and its with, or a separator) under its button",
 			"params": { "open": "", "items": [], "width": 200 },
 			"node": {
 				"overlay": { "placement": "below-end", "open": "{{open}}", "dismiss": "outside", "modal": true },
@@ -70,7 +70,7 @@
 						{ "when": "{{item.separator == true}}", "role": "separator", "anchors": { "left": 0, "right": 0, "top": 8 }, "height": 1, "color": "@divider" },
 						{ "when": "{{item.separator != true}}", "fill": 0, "color": "transparent", "hover": { "color": "@cardHover" }, "focused": { "color": "@cardHover" },
 							"cursor": "hand", "focusable": true, "role": "menuitem", "label": "{{item.title}}",
-							"onClick": [{ "set": "{{open}}", "to": false }, { "run": "{{item.run}}" }], "children": [
+							"onClick": [{ "set": "{{open}}", "to": false }, { "run": "{{item.run}}", "with": "{{item.with}}" }], "children": [
 								{ "type": "label", "icon": "{{item.icon}}", "text": "", "textColor": "@muted", "anchors": { "left": 16, "top": 12 }, "width": 24, "height": 24, "align": "center" },
 								{ "type": "label", "text": "{{item.title}}", "textColor": "@text", "anchors": { "left": 56, "right": 16, "top": 0, "bottom": 0 },
 									"align": { "horizontal": "start", "vertical": "center" } }

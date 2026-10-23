@@ -199,7 +199,7 @@
 														"name": "{{t('flow.solar')}}", "figureId": "solarFigure", "x": 102, "y": 0 } },
 													{ "id": "flowGrid", "use": "energyNode", "with": { "icon": "utility-pole", "color": "@grid", "figure": "{{t('kwh', { n: fixed(computed.gridIn, 1) })}}",
 														"name": "{{t('flow.grid')}}", "figureId": "gridFigure", "nameTop": 74, "x": 0, "y": "{{computed.flowHeight - 92}}" } },
-													{ "id": "flowHome", "use": "energyNode", "with": { "icon": "house", "color": "@accent", "figure": "{{t('kwh', { n: computed.today })}}",
+													{ "id": "flowHome", "use": "energyNode", "with": { "icon": "home", "color": "@accent", "figure": "{{t('kwh', { n: computed.today })}}",
 														"name": "{{t('flow.home')}}", "figureId": "todayFigure", "nameTop": 74, "x": 204, "y": "{{computed.flowHeight - 92}}" } }
 												]
 											}

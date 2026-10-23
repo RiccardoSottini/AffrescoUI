@@ -51,16 +51,24 @@
 								"tooltip": "{{t('energy.pick')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('log.twoDays')}}" } } }
 						]
 					},
-					{ "id": "logSearchBox", "anchors": { "left": 24, "top": 72 }, "width": 320, "height": 40, "radius": 20, "color": "@field",
+					{ "id": "logFilters", "type": "row", "anchors": { "left": 24, "right": 24, "top": 72 }, "height": 48, "gap": 16,
 						"children": [
-							{ "type": "label", "icon": "search", "text": "", "textColor": "@muted", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "width": 24, "align": "center" },
-							{ "id": "logSearch", "type": "textarea", "bind": "state.logQuery", "placeholder": "{{t('log.search')}}", "placeholderColor": "@muted", "textColor": "@text",
-								"color": "transparent", "anchors": { "left": 42, "right": 14, "top": 0, "bottom": 0 }, "label": "{{t('log.search')}}" }
+							{ "id": "logPeriod", "type": "label", "icon": "calendar", "text": "  {{t('log.period')}}", "textColor": "@text", "width": 280, "height": 48, "padding": 12,
+								"color": "@field", "borderWidth": 1, "borderColor": "@border", "radius": 4, "align": { "horizontal": "start", "vertical": "center" },
+								"hover": { "borderColor": "@text" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('log.period')}}",
+								"onClick": { "run": "showToast", "with": { "message": "{{t('log.twoDays')}}" } } },
+							{ "id": "logSearchBox", "width": 320, "height": 48, "radius": 24, "color": "transparent", "borderWidth": 1, "borderColor": "@border",
+								"hover": { "color": "@accentSoft" },
+								"children": [
+									{ "type": "label", "icon": "{{state.logQuery == '' ? 'plus' : 'search'}}", "text": "", "textColor": "@accent", "anchors": { "left": 14, "top": 0, "bottom": 0 }, "width": 24, "align": "center" },
+									{ "id": "logSearch", "type": "textarea", "bind": "state.logQuery", "placeholder": "{{t('hist.choose')}}", "placeholderColor": "@accent", "textColor": "@text",
+										"color": "transparent", "anchors": { "left": 44, "right": 16, "top": 0, "bottom": 0 }, "label": "{{t('hist.choose')}}" }
+								] }
 						] },
 					{
 						"id": "logCard",
 						"style": "card",
-						"anchors": { "left": 24, "right": 24, "top": 128, "bottom": 24 },
+						"anchors": { "left": 24, "right": 24, "top": 136, "bottom": 24 },
 						"children": [
 							{ "style": "caption", "when": "{{length(computed.logShown) == 0}}", "text": "{{t('log.empty')}}", "anchors": { "left": 24, "top": 24 } },
 							{
