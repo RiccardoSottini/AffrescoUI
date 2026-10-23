@@ -37,11 +37,12 @@ struct Built {
 		window->render();
 	}
 
-	/// @brief Presses a key.
+	/// @brief Presses and releases a key, as a keyboard does before the next character.
 	/// @param key The key.
 	/// @param mods The modifier bits held.
 	void press(affresco::Key key, int mods = 0) {
 		window->routeKey({key, 0, affresco::Action::Press, {mods}});
+		window->routeKey({key, 0, affresco::Action::Release, {mods}});
 		window->render();
 	}
 
