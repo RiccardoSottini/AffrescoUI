@@ -44,10 +44,10 @@ target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_EXAMPLES_DIRECTORY="${PROJECT_SOURCE_DIR}/examples"
 	AFFRESCOUI_PROTOTYPES_DIR="${PROJECT_SOURCE_DIR}/rfcs/prototypes" # services.cpp starts the JSON-RPC prototype
 	AFFRESCOUI_FAKE_ADAPTER="${PROJECT_SOURCE_DIR}/tests/dap/fake_adapter.py") # dap.cpp starts the fake debug adapter
-# document_server.cpp tests the document server (examples/server), which needs no window
-target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/server/DocumentServer.cpp
-	${PROJECT_SOURCE_DIR}/examples/server/TokenFile.cpp ${PROJECT_SOURCE_DIR}/examples/server/UserInfoVerifier.cpp)
-target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/server)
+# document_server.cpp tests the document server (apps/server), which needs no window
+target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/apps/server/DocumentServer.cpp
+	${PROJECT_SOURCE_DIR}/apps/server/TokenFile.cpp ${PROJECT_SOURCE_DIR}/apps/server/UserInfoVerifier.cpp)
+target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/apps/server)
 # scene3d*.cpp test the 3D module on Modello's sample models (examples/modello/samples)
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::scene3d)
 target_compile_definitions(affrescoui_unit_tests PRIVATE

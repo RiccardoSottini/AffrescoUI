@@ -12,15 +12,15 @@ add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/example
 	${forge_dir}/features/search/Search.cpp
 	${forge_dir}/features/scm/Scm.cpp ${forge_dir}/features/scm/GitStatus.cpp
 	${forge_dir}/features/scm/GitArguments.cpp ${forge_dir}/features/scm/LineDiff.cpp
-	${PROJECT_SOURCE_DIR}/examples/surfaces/Surfaces.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/surfaces/Surfaces.cpp
 	${PROJECT_SOURCE_DIR}/examples/tempo/Visualiser.cpp
 	${forge_dir}/features/debug/Debug.cpp)
 target_sources(affrescoui_render_runner PRIVATE ${forge_dir}/features/lsp/Lsp.cpp ${forge_dir}/features/lsp/LspCall.cpp
 	${forge_dir}/features/lsp/LspEdits.cpp ${forge_dir}/features/lsp/LspProtocol.cpp ${forge_dir}/features/lsp/LspText.cpp)
 target_sources(affrescoui_render_runner PRIVATE ${forge_dir}/features/terminal/TerminalSessions.cpp
 	${forge_dir}/features/terminal/TerminalView.cpp)
-# examples: surfaces/Surfaces.hpp; examples/shared: CodeEditor.hpp and the other shared headers
-target_include_directories(affrescoui_render_runner PRIVATE ${PROJECT_SOURCE_DIR}/examples
+# surfaces/Surfaces.hpp here, tempo/Visualiser.hpp in examples, CodeEditor.hpp and the shared headers in examples/shared
+target_include_directories(affrescoui_render_runner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/examples
 	${PROJECT_SOURCE_DIR}/examples/shared ${forge_dir})
 # The example surfaces, and a failing one, draw with OpenGL (surfaces.json)
 target_include_directories(affrescoui_render_runner SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include)
