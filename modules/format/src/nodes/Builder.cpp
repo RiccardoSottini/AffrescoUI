@@ -174,6 +174,18 @@ CompiledRef Builder::compiled(const json& node, const std::string& path, bool fi
 	return result;
 }
 
+CompiledRef Builder::compiledOverlay(const json& node, const std::string& path) const {
+	Cache& cached = cache();
+	if(const auto it = cached.overlays.find(&node); it != cached.overlays.end()) return it->second;
+	json merged = withStyles(withoutChildren(object(node, path)), path);
+	json& overlay = merged["overlay"];
+	if(overlay.is_null()) overlay = json::object();
+	if(overlay.is_object() && !overlay.contains("placement")) overlay["placement"] = "window";
+	CompiledRef result = compileNode(std::move(merged), childrenOf(node));
+	cached.overlays.emplace(&node, result);
+	return result;
+}
+
 std::vector<json> Builder::values(const CompiledNode& node, const Scope& locals, const std::string& path) const {
 	std::vector<json> result(node.evaluatedCount);
 	if(result.empty()) return result;

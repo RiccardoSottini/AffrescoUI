@@ -66,7 +66,7 @@ struct PolicyVerdict {
 /// @return The policy; empty without one.
 [[nodiscard]] Policy policyOf(const json& document);
 
-/// @brief Counts the nodes in "root", "screens" and "templates" a change adds, removes and changes.
+/// @brief Counts the nodes in "root", "screens", "templates" and "overlays" a change adds, removes and changes.
 /// @param before The view before.
 /// @param after The view after.
 /// @return The counts.

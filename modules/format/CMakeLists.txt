@@ -111,6 +111,9 @@ target_sources(affrescoui_format PRIVATE
 	src/calls/AsyncCalls.cpp
 	src/calls/ServiceCalls.cpp)
 target_include_directories(affrescoui_format PRIVATE src/calls)
+# src/assistant/: the requests the screen's own person sends its agents ("ask"), and their replies
+target_sources(affrescoui_format PRIVATE src/assistant/Asks.cpp src/assistant/AskSteps.cpp)
+target_include_directories(affrescoui_format PRIVATE src/assistant)
 # widgets: the node types and their properties, the reference, sections, connections, features, composition
 # and adapters, a folder each (src/<folder>/README.md)
 # types: the type registry and the node types: panels, surfaces, split, tabs, lists, diff, editor, image

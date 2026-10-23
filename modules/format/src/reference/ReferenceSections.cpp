@@ -94,6 +94,10 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "sections"},
     {"templates", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/node"}})json",
 	 "`name → node`, built by code on demand (`Screen::instantiate`).", "sections"},
+    {"overlays", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/node"}})json",
+	 "`name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each "
+	 "is an `overlay` placed in the window by its own anchors unless it says otherwise.",
+	 "sections"},
     {"state", R"json({"type": "object"})json", "The app's data, any JSON object.", "sections"},
     {"stateTypes", R"json({"type": "object",
 		"description": "A type per state key, written as JSON Schema: type, enum, const, properties, required, additionalProperties, items, minimum, maximum, minLength, maxLength, minItems, maxItems",
@@ -180,7 +184,7 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "capabilities"},
     {"include", R"json({"anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]})json",
 	 "`[\"parts/sidebar.json\", ...]`: files merged in at load, section by section (this file's entries win; `menus` "
-	 "menu by menu, so several files add to one menu).",
+	 "menu by menu, so several files add to one menu; `persist` lists join).",
 	 "sections"},
     {"permissions", R"json({"type": "object", "additionalProperties": false,
 		"description": "Who may change the running screen (VERSION_CONTROL.md). Revisions can't change it.",
@@ -290,6 +294,14 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
+    {"ask", "",
+	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: a request in plain words from the person to the "
+	 "agents connected to the screen (`peers`), sent after the event; `into` gets its id. Each reply runs the action "
+	 "`ask:reply` with `{request, from, text, done, error, proposals, time}` (`proposals`: the ids its replier proposed "
+	 "since), and `requests` lists them all. With no agent connected, the reply is the error `no agent is connected`. A "
+	 "reply is never the person's decision: while `ask:reply` runs, `accept`, `reject`, `restore`, `revert` and `undo` "
+	 "are refused. A control step",
+	 "steps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
     {"focus", "", R"(`{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update))", "steps"},

@@ -555,6 +555,16 @@ def syntax_seeds():
     return [chr(language) + text + edit for language, text in enumerate(texts)] + [chr(index) for index in range(8)]
 
 
+def ask_reply_seeds():
+    """Replies to the screen's own request (tests/fuzz/ask_reply.cpp): one reply or a list, the request's id filled in
+    when a reply names none."""
+    replies = [{"text": "Done"}, {"text": "On it", "done": False}, {"error": "no agent is connected"},
+               {"from": "agent", "text": "Proposed a **blue** title", "done": True}, {"request": "ask-0-0"},
+               {"request": 7, "text": 42, "done": "yes", "error": []}, {"text": "\u00e9" * 8 + "\U0001F600"}]
+    lists = [[{"text": "On it", "done": False}, {"text": "Done"}], [{"error": "failed"}, {"text": "Again"}], [], [1]]
+    return [json.dumps(reply) for reply in replies + lists] + ["null", '"text"', "{"]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -598,6 +608,8 @@ def dictionaries():
             "path": list("MmLlHhVvCcSsQqTtAaZz") + [" ", ",", "-", ".", "e-", "1e6", "0 0 1 1"],
             "image": ["<svg", "viewBox=", "<path d=", "fill=", "stroke=", "transform=", "<g>", "</g>", "IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
             "scenarios": scenarios, "png": pngs,
+            "ask_reply": tokens + [f'"{word}"' for word in ["request", "text", "from", "done", "error", "type",
+                                                            "reply", "ask-0-0"]],
             "http_response": ["HTTP/1.1 ", "HTTP/2 ", "\r\n", "\r\n\r\n", ": ", "Content-Length", "Retry-After",
                               "Location", "Upgrade", "websocket", "Connection", "Sec-WebSocket-Accept"],
             "sse": ["data:", "data: ", "event:", "id:", "retry:", ":", "\n", "\r\n", "\r", "\n\n"],
@@ -705,6 +717,7 @@ def main():
           "literalString", "explicitList", "AdaptiveCard", "TextBlock", "Input.Text", "Action.Submit", "${"])
     write(out, "dap", dap_seeds(), words["json"] + ["response", "event", "request", "request_seq", "success",
           "command", "body", "source", "path", "/work/", "../", "stackFrames", "variables", "runInTerminal"])
+    write(out, "ask_reply", ask_reply_seeds(), words["ask_reply"])
     write(out, "syntax", syntax_seeds(), ["(", ")", "{", "}", "[", "]", "\"", "'", "`", "/*", "*/", "//", "#", "\n"])
 
 

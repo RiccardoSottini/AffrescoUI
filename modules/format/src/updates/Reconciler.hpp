@@ -146,13 +146,18 @@ private:
 	/// @param changes What changed (nullptr: everything): a panel kept with the same node and variables then updates
 	/// only what reads it.
 	void reconcileChild(Panel& panel, std::size_t index, Item& item, int depth, const StateChanges* changes);
-	/// @brief The children to build: the current screen for an outlet, else the node's "children".
+	/// @brief The children to build: the current screen for an outlet, else the node's "children" (and for the root,
+	/// the document's "overlays" after them).
 	/// @param node The node.
 	/// @param record Its record.
 	/// @param path Its place, for errors.
 	/// @return The children, or std::nullopt to leave the panel's children alone.
 	[[nodiscard]] std::optional<std::vector<Item>> childrenOf(const CompiledNode& node, const Record& record,
 	                                                          const std::string& path) const;
+	/// @brief Adds the nodes of the document's "overlays" to the root's children, each keyed by its place.
+	/// @param record The root's record.
+	/// @param items The root's children so far; made a list if there are overlays.
+	void addOverlays(const Record& record, std::optional<std::vector<Item>>& items) const;
 	/// @brief The panel already built for one child, moved to its place: the one there if it has the same type and key.
 	/// @param panel The parent.
 	/// @param index Its place among the children.

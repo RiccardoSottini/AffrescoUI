@@ -737,7 +737,10 @@ display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `n
 is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
-`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; and the names given by `repeat`, `let`,
+`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (who is connected: `author`,
+`role`); `requests` (what the person asked the agents with `ask`, oldest first, at most 64: `id`, `text`, `time` in
+milliseconds since 1970, `state` (`sent`, `working`, `answered`, `failed`), `replies` (`from`, `text`, `time`, `done`,
+`error`), `proposals` (the ids of the proposals its repliers made since)); and the names given by `repeat`, `let`,
 `with`, `forEach`, a component's params, `it`/`index` inside list functions.
 
 **`computed`** values are evaluated when first read after the state changed, then cached; they may use each other
@@ -1068,7 +1071,8 @@ line:
 | peer → | `revision` (compact edits or `patch`, `proposal`?), `revert` / `restore` (`revision`), `undo` |
 | peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
-| peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`), relayed with `from` |
+| peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
+| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`) from the screen's own `ask` step; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
 Requests may carry an `"id"`; answers repeat it.
 
