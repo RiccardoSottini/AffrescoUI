@@ -608,7 +608,7 @@
 		"activeConn": "{{find(state.connections, it.id == state.active) ?? state.connections[0]}}",
 		"activeName": "{{empty(computed.activeConn.name) ? t('conn.local') : computed.activeConn.name}}",
 		"addressOptions": "{{concat(map(state.connections, it.address), ['ws://localhost:7300', 'wss://docs.example.org/studio'])}}",
-		"branch": "{{state.tab == 'review' && computed.current != null ? (computed.current.branch ?? 'proposal/' + computed.current.id) : 'main'}}",
+		"branch": "{{state.tab != 'history' && computed.current != null ? (computed.current.branch ?? 'proposal/' + computed.current.id) : 'main'}}",
 		"prTabs": "{{computed.current == null ? [] : [{id: 'conversation', label: t('pr.conversation'), closable: false}, {id: 'commits', label: t('pr.commits', {n: computed.current.commits}), closable: false}, {id: 'checks', label: t('pr.checks', {n: computed.evidence == null ? 0 : length(computed.evidence.scenarios)}), closable: false}, {id: 'files', label: t('pr.files', {n: length(computed.current.touches)}), closable: false}]}}",
 		"prStale": "{{computed.current == null || state.prDiff == null || state.prDiff.for != computed.current.id + ':' + computed.current.head}}",
 		"prAfter": "{{computed.prStale || state.prDiff.patch == null ? null : applyPatch(state.hostDocument, state.prDiff.patch)}}",
@@ -4057,7 +4057,12 @@
 																			"top": 36
 																		},
 																		"fitText": false,
-																		"height": 16
+																		"height": 32,
+																		"wrap": true,
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "start"
+																		}
 																	},
 																	{
 																		"id": "acceptRefusal",
@@ -4232,7 +4237,13 @@
 																				"run": "submitReview"
 																			}
 																		],
-																		"disabled": "{{empty(trim(state.reviewDraft))}}"
+																		"disabled": "{{empty(trim(state.reviewDraft))}}",
+																		"color": "{{empty(trim(state.reviewDraft)) ? '@color.neutral' : '@color.good'}}",
+																		"textColor": "{{empty(trim(state.reviewDraft)) ? '@color.muted' : '@color.goodText'}}",
+																		"hover": {
+																			"color": "{{empty(trim(state.reviewDraft)) ? '@color.neutral' : '@color.goodHover'}}"
+																		},
+																		"cursor": "{{empty(trim(state.reviewDraft)) ? 'arrow' : 'hand'}}"
 																	}
 																],
 																"anchors": {
@@ -4414,6 +4425,29 @@
 																"anchors": {
 																	"left": 12,
 																	"top": 8
+																}
+															},
+															{
+																"id": "label-reviewClose",
+																"type": "label",
+																"icon": "x",
+																"label": "{{t('review.close')}}",
+																"textColor": "@color.muted",
+																"hover": {
+																	"textColor": "@color.text"
+																},
+																"cursor": "hand",
+																"role": "button",
+																"anchors": {
+																	"right": 8,
+																	"top": 4
+																},
+																"width": 24,
+																"height": 24,
+																"align": "center",
+																"onClick": {
+																	"set": "state.reviewOpen",
+																	"to": false
 																}
 															},
 															{
@@ -6972,7 +7006,7 @@
 						"id": "label-diffWs",
 						"type": "label",
 						"font": "small",
-						"textColor": "{{state.diffWs ? '@color.accent' : '@color.text'}}",
+						"textColor": "@color.text",
 						"text": "{{t('diff.whitespace')}}",
 						"height": 20,
 						"cursor": "hand",
