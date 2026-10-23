@@ -9,36 +9,37 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Round | done | partial | missing |
 | --- | --- | --- | --- |
 | 0 (start) | 9 | 22 | 27 |
+| 1 | 15 | 25 | 19 |
 
 ## Workspace
 
 | Area | Status | Gap |
 | --- | --- | --- |
-| Menu bar: File, Edit, Image, Layer, Type, Select, Filter, View, Window, Help | partial | Fewer menus and items than expected; Type and Window missing |
-| Options bar that changes with the tool | partial | Present for a few tools only |
-| Tools bar on the left, one column, grouped with flyouts (long press) | partial | No flyouts; groups shown as separate buttons |
-| Foreground/background swatches with swap and reset, quick mask button | partial | Swatches present; quick mask button missing |
-| Document tabs: name, zoom, layer, mode ("@ 100% (Layer 1, RGB/8)") | missing | No document tab strip |
+| Menu bar: File, Edit, Image, Layer, Type, Select, Filter, View, Window, Help | done | The ten menus with the counterpart's items and shortcuts; items without behaviour yet are disabled |
+| Options bar that changes with the tool | done | Every tool has its row, with the tool's icon at the left |
+| Tools bar on the left, one column, grouped with flyouts (long press) | done | Groups open on a right click (no long press); tools not built yet show disabled |
+| Foreground/background swatches with swap and reset, quick mask button | done | |
+| Document tabs: name, zoom, layer, mode ("@ 100% (Layer 1, RGB/8)") | partial | One document; no close button (nothing to close it to yet) |
 | Rulers and guides | partial | Rulers and guides; no dragging guides out of the rulers |
 | Dark grey pasteboard, checkerboard for transparency | done | |
-| Status bar: zoom field and document size | partial | Zoom shown; no editable zoom field or document size |
-| Panels docked right in tabbed groups, collapsible to icons | missing | Panels stacked, no tabs, no icon strip |
+| Status bar: zoom field and document size | done | |
+| Panels docked right in tabbed groups, collapsible to icons | partial | Tabbed groups and an icon strip (History, Navigator); groups can't be dragged, resized or collapsed |
 | Light and dark interface, locales, keyboard focus, accessible names | partial | Keep and extend every round |
 
 ## Panels
 
 | Panel | Status | Gap |
 | --- | --- | --- |
-| Layers: thumbnails, eye, locks, blend mode, opacity and fill | partial | No fill, no lock icons row |
-| Layers: groups with disclosure, masks with link, adjustment layers, fx | partial | No link icon between layer and mask; fx badge missing |
-| Layers: bottom buttons link, fx, mask, adjustment, group, new, delete | partial | Some buttons missing |
-| Properties (context-sensitive) | partial | Shows layer only |
-| Adjustments (icon grid) | missing | |
+| Layers: thumbnails, eye, locks, blend mode, opacity and fill | partial | Fill shown, not editable |
+| Layers: groups with disclosure, masks with link, adjustment layers, fx | partial | Disclosure isn't clickable; no fx |
+| Layers: bottom buttons link, fx, mask, adjustment, group, new, delete | partial | Link and fx disabled |
+| Properties (context-sensitive) | partial | Layer kind and adjustment controls; no transform or alignment |
+| Adjustments (icon grid) | done | |
 | History (states and snapshots) | partial | States only, no snapshots |
 | Color and Swatches | partial | Basic |
 | Brushes (presets) | missing | |
-| Channels | missing | |
-| Paths | missing | |
+| Channels | partial | Composite and channel rows, display only |
+| Paths | missing | An empty panel until the pen tool exists |
 | Navigator | done | |
 | Info (pointer position, colour under the pointer) | missing | |
 | Character and Paragraph | missing | |
@@ -47,9 +48,9 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 
 | Tool or workflow | Status | Gap |
 | --- | --- | --- |
-| Brush: size, hardness, opacity, flow, round outline cursor, `[` `]` | partial | Keys are `,` `.`; no outline cursor |
+| Brush: size, hardness, opacity, flow, round outline cursor, `[` `]` | partial | Keys are `,` `.`: the format's shortcuts don't name the bracket keys yet; no outline cursor |
 | Eraser | done | |
-| Pencil | missing | |
+| Pencil | missing | Shown disabled in the brush group |
 | Marquee rectangle and ellipse, Shift/Alt add/subtract/intersect, marching ants | partial | Modifier combinations incomplete |
 | Lasso and polygonal lasso | done | |
 | Magic wand with tolerance, quick selection | partial | No quick selection |
@@ -90,5 +91,5 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Export as PNG/JPEG | partial | PNG only |
 | Open and save its own format | done | |
 | Undo/redo with the History panel | done | |
-| Keyboard shortcuts as the counterpart's | partial | Most single-key tools; several menu shortcuts missing |
+| Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6; no bracket keys |
 | Assistant chat add-on (shared) | missing | Waiting for the shared add-on |

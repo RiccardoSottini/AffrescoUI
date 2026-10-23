@@ -1871,6 +1871,143 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-tool-flyout",
+			"note": "A right click (here Shift+F10) on a grouped tool opens its other tools; the one chosen takes the group's place",
+			"steps": [
+				{
+					"click": "#tool-marquee"
+				},
+				{
+					"key": "shift+f10"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "flyout.g2",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Elliptical Marquee Tool (Shift+M)"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "ellipse"
+					}
+				},
+				{
+					"expect": {
+						"node": "#tool-ellipse",
+						"property": "shown",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-zoom-field",
+			"note": "The status bar's zoom field takes a percentage",
+			"steps": [
+				{
+					"click": "#status-zoom"
+				},
+				{
+					"key": "end"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "200"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "doc.view.zoom",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"node": "#status-zoom",
+						"text": "200%"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-collapsed-panels",
+			"note": "The icon strip beside the dock opens History and the Navigator, one at a time",
+			"steps": [
+				{
+					"click": "#history-button"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "popout.history",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#history-list",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"click": "#navigator-button"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "popout.history",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "popout.navigator",
+						"is": true
+					}
+				}
+			]
 		}
 	]
 }

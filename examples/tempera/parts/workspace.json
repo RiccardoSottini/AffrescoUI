@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempera's workspace: the menu bar (drawn when the menus aren't native), the options bar of the current tool, the tool bar with the colours, the canvas with its rulers and guides, and the status bar. The canvas is the host's temperaCanvas surface: the pointer on it paints, selects and pans in the host, which sends temperaChanged.",
+	"note": "Tempera's workspace: the menu bar, the options bar of the current tool, the tools bar (one column of tool groups, a right click opening a group's other tools) with the colours and the quick mask, the document tab, the canvas with its rulers and guides, and the status bar under it. The canvas is the host's temperaCanvas surface: the pointer on it paints, selects and pans in the host, which sends temperaChanged.",
 
 	"computed": {
 		"canvasWidth": "{{(nodes.canvas.width ?? 0) > 0 ? nodes.canvas.width : 800}}",
@@ -12,192 +12,211 @@
 		"rulerTicksY": "{{map(range(min(200, ceil(computed.canvasHeight / (computed.rulerStep * state.doc.view.zoom)) + 2)), floor((state.doc.view.y - computed.canvasHeight / 2 / state.doc.view.zoom) / computed.rulerStep) * computed.rulerStep + it * computed.rulerStep)}}",
 		"paints": "{{contains(['brush', 'eraser', 'clone'], state.doc.tool)}}",
 		"selects": "{{contains(['marquee', 'ellipse', 'lasso', 'polygon', 'wand'], state.doc.tool)}}",
-		"toolTitle": "{{find(state.tools, it.id == state.doc.tool).title ?? ''}}"
+		"tool": "{{find(find(state.tools, some(it, it.id == state.doc.tool)) ?? [], it.id == state.doc.tool) ?? {}}}",
+		"mode": "{{(contains(state.doc.profile, 'Grey') ? 'Gray' : 'RGB') + (state.doc.format == 'rgba16f' ? '/16' : '/8')}}"
+	},
+
+	"styles": {
+		"bar": { "color": "@panel", "alignItems": "center", "width": "100%" },
+		"dim": { "type": "label", "textColor": "@muted", "fitText": true },
+		"sep": { "width": 1, "height": 20, "color": "@border" },
+		"clear": { "color": "transparent" }
 	},
 
 	"components": {
-		"temperaButton": {
-			"params": { "title": "", "icon": "", "run": "", "args": {}, "tip": "" },
+		"tIcon": {
+			"params": { "icon": "", "tip": "", "run": "", "args": {}, "on": false, "off": false },
 			"node": {
-				"type": "label", "role": "button", "text": "{{title}}", "icon": "{{icon}}", "textColor": "@text", "padding": 6,
-				"height": 26, "fitText": true, "radius": 4, "color": "@input", "borderWidth": 1, "borderColor": "@border",
-				"cursor": "hand", "tooltip": "{{tip}}", "hover": { "color": "@hover" },
+				"type": "label", "role": "button", "label": "{{tip}}", "tooltip": "{{tip}}", "icon": "{{icon}}", "width": 24, "height": 22,
+				"align": "center", "radius": 3, "cursor": "hand", "selected": "{{on}}", "disabled": "{{off}}",
+				"textColor": "{{off ? '@muted' : '@text'}}", "color": "{{on ? '@selected' : 'transparent'}}",
+				"hover": { "color": "{{off ? 'transparent' : '@hover'}}" },
 				"onClick": { "run": "{{run}}", "with": { "args": "{{args}}" } }
 			}
 		},
-		"temperaSlider": {
-			"params": { "title": "", "key": "", "value": 0, "min": 0, "max": 100, "unit": "", "run": "setOptions", "width": 64 },
+		"tSlider": {
+			"params": { "title": "", "key": "", "value": 0, "min": 0, "max": 100, "unit": "%", "run": "setOptions", "width": 56 },
 			"node": {
-				"type": "row", "width": "{{width + 118}}", "height": 26, "alignItems": "center", "gap": 6,
+				"type": "row", "width": "{{width + length(title) * 6 + 54}}", "height": 24, "alignItems": "center", "gap": 4,
 				"children": [
-					{ "type": "label", "align": { "horizontal": "start", "vertical": "center" }, "text": "{{title}}", "textColor": "@muted", "width": 60, "height": 26 },
-					{ "type": "slider", "label": "{{title}}", "width": "{{width}}", "height": 20, "min": "{{min}}", "max": "{{max}}",
-					  "step": 1, "value": "{{value}}", "trackColor": "@border", "activeColor": "@accent", "knobColor": "@text",
-					  "onChange": { "run": "{{run}}",
-					                "with": { "args": "{{parseJson('{' + json(key) + ': ' + json(event.value) + '}')}}" } } },
-					{ "type": "label", "height": 24, "align": { "horizontal": "start", "vertical": "center" }, "text": "{{text(round(value)) + unit}}", "textColor": "@text", "width": 46 }
+					{ "style": "dim", "text": "{{title}}:" },
+					{ "type": "slider", "label": "{{title}}", "width": "{{width}}", "height": 16, "min": "{{min}}", "max": "{{max}}",
+					  "step": 1, "value": "{{value}}", "trackColor": "@border", "activeColor": "@muted", "knobColor": "@text",
+					  "onChange": { "run": "{{run}}", "with": { "args": "{{parseJson('{' + json(key) + ': ' + json(event.value) + '}')}}" } } },
+					{ "type": "label", "text": "{{text(round(value)) + unit}}", "textColor": "@text", "width": 40, "height": 20,
+					  "padding": 2, "color": "@input", "borderWidth": 1, "borderColor": "@border", "radius": 2 }
 				]
 			}
 		},
-		"temperaCheck": {
-			"params": { "title": "", "key": "", "checked": false, "width": 110 },
+		"tCheck": {
+			"params": { "title": "", "key": "", "checked": false },
 			"node": {
-				"type": "row", "width": "{{width}}", "height": 26, "alignItems": "center", "gap": 6,
+				"type": "row", "width": "{{length(title) * 6 + 26}}", "height": 24, "alignItems": "center", "gap": 5,
 				"children": [
-					{ "type": "checkbox", "label": "{{title}}", "width": 16, "height": 16, "checked": "{{checked}}",
+					{ "type": "checkbox", "label": "{{title}}", "width": 13, "height": 13, "checked": "{{checked}}",
 					  "activeColor": "@accent", "trackColor": "@border", "knobColor": "@input",
-					  "onChange": { "run": "setOptions",
-					                "with": { "args": "{{parseJson('{' + json(key) + ': ' + json(event.value) + '}')}}" } } },
+					  "onChange": { "run": "setOptions", "with": { "args": "{{parseJson('{' + json(key) + ': ' + json(event.value) + '}')}}" } } },
 					{ "type": "label", "text": "{{title}}", "textColor": "@text", "fitText": true }
 				]
 			}
 		},
-		"temperaChoice": {
-			"params": { "tabs": [], "value": "", "key": "" },
+		"tChoice": {
+			"params": { "tabs": [], "value": "", "key": "", "tip": "" },
 			"node": {
-				"type": "tabs", "height": 26, "width": "{{length(tabs) * 78}}", "tabs": "{{tabs}}", "value": "{{value}}",
-				"textColor": "@muted", "activeTextColor": "@text", "activeBackground": "@selected", "accentColor": "@accent",
-				"onChange": { "run": "setOptions",
-				              "with": { "args": "{{parseJson('{' + json(key) + ': ' + json(event.value) + '}')}}" } }
+				"type": "row", "role": "group", "label": "{{tip}}", "width": "{{length(tabs) * 25}}", "height": 22, "gap": 1,
+				"children": [
+					{ "use": "tIcon", "repeat": { "for": "c", "in": "{{tabs}}" },
+					  "with": { "icon": "{{c.icon}}", "tip": "{{c.title}}", "on": "{{c.id == value}}", "run": "setOptions",
+					            "args": "{{parseJson('{' + json(key) + ': ' + json(c.id) + '}')}}" } }
+				]
+			}
+		},
+		"tPicker": {
+			"params": { "title": "", "tip": "", "open": "", "items": [], "width": 64 },
+			"node": {
+				"type": "label", "role": "button", "label": "{{tip}}", "tooltip": "{{tip}}", "text": "{{title}}", "width": "{{width}}",
+				"height": 22, "padding": 4, "radius": 2, "color": "@input", "textColor": "@text", "borderWidth": 1,
+				"borderColor": "@border", "cursor": "hand", "hover": { "borderColor": "@muted" }, "onClick": { "toggle": "{{open}}" },
+				"children": [
+					{ "type": "label", "icon": "chevron-down", "font": "small", "textColor": "@muted", "anchors": { "right": 3, "top": 5 }, "fitText": true },
+					{ "use": "menu", "with": { "open": "{{open}}", "width": 200, "items": "{{items}}" } }
+				]
 			}
 		},
 
 		"temperaMenuBar": {
 			"node": {
-				"use": "menuBar", "id": "menu-bar", "width": "100%",
-				"with": { "open": "state.menuBar", "height": 28, "color": "@panel", "textColor": "@text", "dimColor": "@muted",
-				          "highlight": "@hover",
-				          "menus": "{{[{name: 'file', title: 'File', items: menus.file}, {name: 'edit', title: 'Edit', items: menus.edit}, {name: 'image', title: 'Image', items: menus.image}, {name: 'layer', title: 'Layer', items: menus.layer}, {name: 'select', title: 'Select', items: menus.select}, {name: 'filter', title: 'Filter', items: menus.filter}, {name: 'view', title: 'View', items: menus.view}, {name: 'window', title: 'Window', items: menus.window}]}}" }
+				"type": "row", "id": "menu-bar", "style": "bar", "height": 24,
+				"children": [
+					{ "use": "menuBar", "width": "100%", "with": { "height": 24, "width": 260,
+					  "menus": "{{map(['File', 'Edit', 'Image', 'Layer', 'Type', 'Select', 'Filter', 'View', 'Window', 'Help'], {menu: lower(it), title: it})}}" } }
+				]
 			}
 		},
 
 		"temperaOptionsBar": {
 			"node": {
-				"type": "row", "id": "options-bar", "role": "toolbar", "label": "Options", "width": "100%", "height": 38,
-				"color": "@panel", "borderWidth": 1, "borderColor": "@border", "alignItems": "center", "gap": 12,
+				"type": "row", "id": "options-bar", "role": "toolbar", "label": "Options", "style": "bar", "height": 34, "gap": 8,
 				"children": [
-					{ "id": "options-start", "color": "transparent", "width": 0 },
-					{ "type": "label", "align": { "horizontal": "start", "vertical": "center" }, "id": "options-tool", "text": "{{computed.toolTitle}}", "textColor": "@muted", "width": 120, "height": 26 },
+					{ "width": 2, "height": 1, "style": "clear" },
+					{ "type": "label", "id": "options-tool", "label": "Current tool", "tooltip": "{{computed.tool.title}}",
+					  "icon": "{{computed.tool.icon}}", "font": "iconsLarge", "textColor": "@text", "width": 30, "height": 26, "align": "center" },
+					{ "style": "sep" },
 
-					{ "type": "row", "id": "options-paint", "when": "{{computed.paints}}", "alignItems": "center", "gap": 12, "height": 30, "grow": 100,
+					{ "type": "row", "id": "options-paint", "when": "{{computed.paints}}", "alignItems": "center", "gap": 10, "height": 30, "grow": 100,
 					  "children": [
-						{ "type": "label", "id": "brush-preset", "role": "button", "label": "Brush presets", "text": "Presets", "icon": "chevron-down", "textColor": "@text",
-						  "padding": 6, "height": 26, "fitText": true, "radius": 4, "color": "@input", "borderWidth": 1, "borderColor": "@border",
-						  "cursor": "hand", "tooltip": "Brush presets", "hover": { "color": "@hover" }, "onClick": [{ "toggle": "state.brushMenu" }],
-						  "children": [
-							{ "use": "menu", "id": "brush-menu", "with": { "open": "state.brushMenu", "width": 200, "color": "@panel",
-							  "textColor": "@text", "dimColor": "@muted", "highlight": "@hover",
-							  "items": "{{map(state.brushes, {title: it, run: 'setOptions', with: {args: {preset: it}}})}}" } }
-						  ] },
-						{ "use": "temperaSlider", "id": "option-size", "with": { "title": "Size", "key": "size", "value": "{{state.doc.options.size}}", "min": 1, "max": 500, "unit": " px" } },
-						{ "use": "temperaSlider", "id": "option-hardness", "with": { "title": "Hardness", "key": "hardness", "value": "{{state.doc.options.hardness}}", "unit": "%" } },
-						{ "use": "temperaSlider", "id": "option-spacing", "with": { "title": "Spacing", "key": "spacing", "value": "{{state.doc.options.spacing}}", "min": 1, "max": 200, "unit": "%" } },
-						{ "use": "temperaSlider", "id": "option-opacity", "with": { "title": "Opacity", "key": "opacity", "value": "{{state.doc.options.opacity}}", "unit": "%" } },
-						{ "use": "temperaSlider", "id": "option-flow", "with": { "title": "Flow", "key": "flow", "value": "{{state.doc.options.flow}}", "unit": "%" } }
+						{ "use": "tPicker", "id": "brush-preset", "with": { "title": "{{state.doc.options.size}}", "tip": "Brush presets", "width": 46, "open": "state.brushMenu",
+						  "items": "{{map(state.brushes, {title: it, run: 'setOptions', with: {args: {preset: it}}})}}" } },
+						{ "use": "tSlider", "id": "option-size", "with": { "title": "Size", "key": "size", "value": "{{state.doc.options.size}}", "min": 1, "max": 500, "unit": " px" } },
+						{ "use": "tSlider", "id": "option-hardness", "with": { "title": "Hardness", "key": "hardness", "value": "{{state.doc.options.hardness}}" } },
+						{ "use": "tSlider", "id": "option-spacing", "with": { "title": "Spacing", "key": "spacing", "value": "{{state.doc.options.spacing}}", "min": 1, "max": 200 } },
+						{ "style": "sep" },
+						{ "use": "tSlider", "id": "option-opacity", "with": { "title": "Opacity", "key": "opacity", "value": "{{state.doc.options.opacity}}" } },
+						{ "use": "tSlider", "id": "option-flow", "with": { "title": "Flow", "key": "flow", "value": "{{state.doc.options.flow}}" } }
 					  ] },
 
-					{ "type": "row", "id": "options-select", "when": "{{computed.selects}}", "alignItems": "center", "gap": 12, "height": 30, "grow": 100,
+					{ "type": "row", "id": "options-select", "when": "{{computed.selects}}", "alignItems": "center", "gap": 10, "height": 30, "grow": 100,
 					  "children": [
-						{ "use": "temperaChoice", "id": "option-mode", "with": { "key": "mode", "value": "{{state.doc.options.mode}}",
-						  "tabs": [{ "id": "replace", "label": "New", "closable": false }, { "id": "add", "label": "Add", "closable": false },
-						           { "id": "subtract", "label": "Subtract", "closable": false }, { "id": "intersect", "label": "Intersect", "closable": false }] } },
-						{ "use": "temperaSlider", "id": "option-wand-tolerance", "when": "{{state.doc.tool == 'wand'}}",
-						  "with": { "title": "Tolerance", "key": "tolerance", "value": "{{state.doc.options.tolerance}}", "max": 255 } },
-						{ "use": "temperaCheck", "id": "option-wand-contiguous", "when": "{{state.doc.tool == 'wand'}}",
+						{ "use": "tChoice", "id": "option-mode", "with": { "key": "mode", "value": "{{state.doc.options.mode}}", "tip": "Selection mode",
+						  "tabs": [{ "id": "replace", "icon": "square", "title": "New selection" }, { "id": "add", "icon": "copy-plus", "title": "Add to selection (Shift)" },
+						           { "id": "subtract", "icon": "copy-minus", "title": "Subtract from selection (Alt)" }, { "id": "intersect", "icon": "copy-x", "title": "Intersect with selection" }] } },
+						{ "style": "sep" },
+						{ "use": "tSlider", "id": "option-wand-tolerance", "when": "{{state.doc.tool == 'wand'}}",
+						  "with": { "title": "Tolerance", "key": "tolerance", "value": "{{state.doc.options.tolerance}}", "max": 255, "unit": "" } },
+						{ "use": "tCheck", "id": "option-wand-contiguous", "when": "{{state.doc.tool == 'wand'}}",
 						  "with": { "title": "Contiguous", "key": "contiguous", "checked": "{{state.doc.options.contiguous}}" } },
-						{ "use": "temperaCheck", "id": "option-wand-all", "when": "{{state.doc.tool == 'wand'}}",
-						  "with": { "title": "All layers", "key": "allLayers", "checked": "{{state.doc.options.allLayers}}" } },
-						{ "use": "temperaButton", "id": "option-feather", "with": { "title": "Feather", "icon": "feather", "run": "featherSelection",
-						  "tip": "Feather the selection by 8 px" } }
+						{ "use": "tCheck", "id": "option-wand-all", "when": "{{state.doc.tool == 'wand'}}",
+						  "with": { "title": "Sample All Layers", "key": "allLayers", "checked": "{{state.doc.options.allLayers}}" } },
+						{ "use": "tPicker", "id": "option-feather", "with": { "title": "Select and Mask", "width": 110, "tip": "Refine the selection", "open": "state.featherMenu",
+						  "items": [{ "title": "Feather 8 px", "run": "featherSelection" }, { "title": "Edit in Quick Mask Mode", "run": "toggleQuickMask" }] } }
 					  ] },
 
-					{ "type": "row", "id": "options-fill", "when": "{{state.doc.tool == 'fill'}}", "alignItems": "center", "gap": 12, "height": 30, "grow": 100,
+					{ "type": "row", "id": "options-fill", "when": "{{state.doc.tool == 'fill'}}", "alignItems": "center", "gap": 10, "height": 30, "grow": 100,
 					  "children": [
-						{ "use": "temperaSlider", "id": "option-fill-tolerance", "with": { "title": "Tolerance", "key": "tolerance", "value": "{{state.doc.options.tolerance}}", "max": 255 } },
-						{ "use": "temperaSlider", "id": "option-fill-opacity", "with": { "title": "Opacity", "key": "fillOpacity", "value": "{{state.doc.options.fillOpacity}}", "unit": "%" } },
-						{ "use": "temperaCheck", "id": "option-fill-contiguous", "with": { "title": "Contiguous", "key": "contiguous", "checked": "{{state.doc.options.contiguous}}" } },
-						{ "use": "temperaCheck", "id": "option-fill-all", "with": { "title": "All layers", "key": "allLayers", "checked": "{{state.doc.options.allLayers}}" } }
+						{ "use": "tSlider", "id": "option-fill-opacity", "with": { "title": "Opacity", "key": "fillOpacity", "value": "{{state.doc.options.fillOpacity}}" } },
+						{ "use": "tSlider", "id": "option-fill-tolerance", "with": { "title": "Tolerance", "key": "tolerance", "value": "{{state.doc.options.tolerance}}", "max": 255, "unit": "" } },
+						{ "use": "tCheck", "id": "option-fill-contiguous", "with": { "title": "Contiguous", "key": "contiguous", "checked": "{{state.doc.options.contiguous}}" } },
+						{ "use": "tCheck", "id": "option-fill-all", "with": { "title": "All Layers", "key": "allLayers", "checked": "{{state.doc.options.allLayers}}" } }
 					  ] },
 
-					{ "type": "row", "id": "options-gradient", "when": "{{state.doc.tool == 'gradient'}}", "alignItems": "center", "gap": 12, "height": 30, "grow": 100,
+					{ "type": "row", "id": "options-gradient", "when": "{{state.doc.tool == 'gradient'}}", "alignItems": "center", "gap": 10, "height": 30, "grow": 100,
 					  "children": [
-						{ "type": "label", "id": "gradient-preset", "role": "button", "label": "Gradient presets", "text": "Gradients", "icon": "chevron-down", "textColor": "@text",
-						  "padding": 6, "height": 26, "fitText": true, "radius": 4, "color": "@input", "borderWidth": 1, "borderColor": "@border",
-						  "cursor": "hand", "tooltip": "Gradient presets", "hover": { "color": "@hover" }, "onClick": [{ "toggle": "state.gradientMenu" }],
-						  "children": [
-							{ "use": "menu", "id": "gradient-menu", "with": { "open": "state.gradientMenu", "width": 200, "color": "@panel",
-							  "textColor": "@text", "dimColor": "@muted", "highlight": "@hover",
-							  "items": "{{map(state.gradients, {title: it, run: 'setOptions', with: {args: {gradientPreset: it}}})}}" } }
-						  ] },
-						{ "type": "gradient", "id": "option-gradient", "label": "Gradient", "width": 160, "height": 30, "focusable": true,
+						{ "type": "gradient", "id": "option-gradient", "label": "Gradient", "width": 120, "height": 22, "focusable": true,
 						  "value": "{{state.gradientEdit}}", "accentColor": "@accent",
 						  "onChange": { "run": "setGradient", "with": { "args": "{{event.value}}" } } },
-						{ "use": "temperaChoice", "id": "option-shape", "with": { "key": "shape", "value": "{{state.doc.options.shape}}",
-						  "tabs": [{ "id": "linear", "label": "Linear", "closable": false }, { "id": "radial", "label": "Radial", "closable": false },
-						           { "id": "angle", "label": "Angle", "closable": false }, { "id": "reflected", "label": "Reflected", "closable": false },
-						           { "id": "diamond", "label": "Diamond", "closable": false }] } },
-						{ "use": "temperaSlider", "id": "option-gradient-opacity", "with": { "title": "Opacity", "key": "fillOpacity", "value": "{{state.doc.options.fillOpacity}}", "unit": "%" } }
+						{ "use": "tPicker", "id": "gradient-preset", "with": { "title": "", "width": 20, "tip": "Gradient presets", "open": "state.gradientMenu",
+						  "items": "{{map(state.gradients, {title: it, run: 'setOptions', with: {args: {gradientPreset: it}}})}}" } },
+						{ "use": "tChoice", "id": "option-shape", "with": { "key": "shape", "value": "{{state.doc.options.shape}}", "tip": "Gradient shape",
+						  "tabs": [{ "id": "linear", "icon": "align-vertical-space-around", "title": "Linear" }, { "id": "radial", "icon": "circle-dot", "title": "Radial" },
+						           { "id": "angle", "icon": "rotate-cw", "title": "Angle" }, { "id": "reflected", "icon": "flip-vertical", "title": "Reflected" },
+						           { "id": "diamond", "icon": "diamond", "title": "Diamond" }] } },
+						{ "style": "sep" },
+						{ "use": "tSlider", "id": "option-gradient-opacity", "with": { "title": "Opacity", "key": "fillOpacity", "value": "{{state.doc.options.fillOpacity}}" } }
 					  ] },
 
-					{ "use": "temperaButton", "id": "option-crop", "when": "{{state.doc.tool == 'crop'}}",
-					  "with": { "title": "Crop to Selection", "icon": "crop", "run": "cropToSelection" } },
-					{ "use": "temperaCheck", "id": "option-sample-all", "when": "{{state.doc.tool == 'eyedropper'}}",
-					  "with": { "title": "Sample all layers", "width": 140, "key": "allLayers", "checked": "{{state.doc.options.allLayers}}" } },
-					{ "type": "label", "id": "option-move", "when": "{{state.doc.tool == 'move'}}", "text": "Drag to move the active layer",
-					  "textColor": "@muted", "fitText": true },
+					{ "use": "tPicker", "id": "option-crop", "when": "{{state.doc.tool == 'crop'}}",
+					  "with": { "title": "Ratio", "tip": "Crop", "open": "state.cropMenu", "items": [{ "title": "Crop to Selection", "run": "cropToSelection" }] } },
+					{ "use": "tCheck", "id": "option-sample-all", "when": "{{state.doc.tool == 'eyedropper'}}",
+					  "with": { "title": "Sample All Layers", "key": "allLayers", "checked": "{{state.doc.options.allLayers}}" } },
+					{ "style": "dim", "id": "option-move", "when": "{{state.doc.tool == 'move'}}", "text": "Drag to move the active layer" },
 
-					{ "type": "row", "id": "options-view", "when": "{{state.doc.tool == 'hand' || state.doc.tool == 'zoom'}}", "alignItems": "center", "gap": 6, "height": 30, "grow": 100,
+					{ "type": "row", "id": "options-view", "when": "{{state.doc.tool == 'hand' || state.doc.tool == 'zoom'}}", "alignItems": "center", "gap": 4, "height": 30, "grow": 100,
 					  "children": [
-						{ "use": "temperaButton", "id": "view-zoom-out", "with": { "icon": "zoom-out", "run": "zoomOut", "tip": "Zoom Out (Cmd+-)" } },
-						{ "use": "temperaButton", "id": "view-zoom-in", "with": { "icon": "zoom-in", "run": "zoomIn", "tip": "Zoom In (Cmd+=)" } },
-						{ "use": "temperaButton", "id": "view-actual", "with": { "title": "100%", "run": "actualPixels" } },
-						{ "use": "temperaButton", "id": "view-fit", "with": { "title": "Fit Screen", "run": "fitOnScreen" } }
-					  ] },
-
-					{ "id": "options-gap", "color": "transparent", "grow": 1 },
-					{ "type": "label", "id": "options-quick-mask", "role": "button", "label": "Quick Mask", "icon": "scan-line",
-					  "font": "iconsLarge", "padding": 6, "fitText": true, "radius": 4, "cursor": "hand", "tooltip": "Quick Mask (Q)",
-					  "color": "{{state.doc.options.quickMask ? '@selected' : 'transparent'}}", "textColor": "@text",
-					  "hover": { "color": "@hover" }, "onClick": { "run": "toggleQuickMask" } },
-					{ "type": "label", "id": "options-theme", "role": "button", "label": "Theme", "icon": "{{state.theme == 'dark' ? 'sun' : 'moon'}}",
-					  "font": "iconsLarge", "padding": 6, "fitText": true, "radius": 4, "cursor": "hand", "tooltip": "Light or dark theme",
-					  "textColor": "@text", "hover": { "color": "@hover" }, "onClick": { "run": "toggleTheme" } },
-					{ "id": "options-end", "color": "transparent", "width": 0 }
+						{ "use": "tIcon", "id": "view-zoom-in", "with": { "icon": "zoom-in", "run": "zoomIn", "tip": "Zoom In" } },
+						{ "use": "tIcon", "id": "view-zoom-out", "with": { "icon": "zoom-out", "run": "zoomOut", "tip": "Zoom Out" } },
+						{ "use": "tPicker", "id": "view-actual", "with": { "title": "100%", "width": 50, "tip": "Zoom", "open": "state.zoomMenu",
+						  "items": [{ "title": "100%", "run": "actualPixels" }, { "title": "Fit Screen", "run": "fitOnScreen" }] } }
+					  ] }
 				]
 			}
 		},
 
 		"temperaToolBar": {
 			"node": {
-				"type": "column", "id": "tool-bar", "role": "toolbar", "label": "Tools", "width": 44, "height": "100%", "color": "@panel",
-				"borderWidth": 1, "borderColor": "@border", "alignItems": "center", "gap": 2,
+				"type": "column", "id": "tool-bar", "role": "toolbar", "label": "Tools", "width": 34, "height": "100%", "color": "@panel",
+				"alignItems": "center", "gap": 1,
 				"children": [
-					{ "id": "tools-start", "color": "transparent", "height": 4 },
-					{ "type": "label", "id": "tool-{{tool.id}}", "repeat": { "for": "tool", "in": "state.tools", "key": "{{tool.id}}" },
-					  "role": "button", "label": "{{tool.title}}", "selected": "{{tool.id == state.doc.tool}}", "icon": "{{tool.icon}}",
-					  "font": "iconsLarge", "width": 36, "height": 32, "align": "center", "radius": 4, "cursor": "hand",
-					  "tooltip": "{{tool.title}}", "textColor": "{{tool.id == state.doc.tool ? '@text' : '@muted'}}",
-					  "color": "{{tool.id == state.doc.tool ? '@selected' : 'transparent'}}", "hover": { "textColor": "@text" },
-					  "onClick": { "run": "setTool", "with": { "args": { "tool": "{{tool.id}}" } } } },
-					{ "id": "tools-gap", "color": "transparent", "height": 10 },
-					{ "id": "colours", "color": "transparent", "role": "group", "label": "Colours", "width": 36, "height": 36,
+					{ "height": 5, "width": 1, "style": "clear" },
+					{ "id": "tool-group-{{n}}", "repeat": { "for": "g", "in": "state.tools", "index": "n" }, "style": "clear",
+					  "let": { "t": "{{find(g, it.id == state.doc.tool) ?? g[0]}}" }, "width": 28, "height": "{{empty(g) ? 7 : 26}}",
 					  "children": [
-						{ "id": "background-colour", "role": "button", "label": "Background colour", "x": 13, "y": 13, "width": 22, "height": 22,
-						  "color": "{{state.doc.background}}", "borderWidth": 1, "borderColor": "@border", "tooltip": "Background colour",
-						  "cursor": "hand", "onClick": { "run": "swapColours" } },
-						{ "id": "foreground-colour", "role": "button", "label": "Foreground colour", "x": 1, "y": 1, "width": 22, "height": 22,
-						  "color": "{{state.doc.foreground}}", "borderWidth": 1, "borderColor": "@text", "tooltip": "Foreground colour",
-						  "cursor": "hand", "onClick": { "run": "showPanel", "with": { "args": { "slot": "top", "id": "color" } } } }
+						{ "when": "{{empty(g)}}", "anchors": { "left": 4, "right": 4, "top": 3 }, "height": 1, "color": "@border" },
+						{ "when": "{{!empty(g)}}", "type": "label", "id": "tool-{{t.id ?? n}}", "role": "button", "label": "{{t.title}}",
+						  "tooltip": "{{t.title + (t.id ? '' : ', not available yet')}}", "disabled": "{{!t.id}}", "selected": "{{t.id == state.doc.tool}}",
+						  "icon": "{{t.icon}}", "font": "iconsLarge", "fill": true, "align": "center", "radius": 3, "cursor": "hand",
+						  "textColor": "{{t.id ? '@text' : '@muted'}}", "color": "{{t.id == state.doc.tool ? '@selected' : 'transparent'}}",
+						  "hover": { "color": "{{t.id ? '@hover' : 'transparent'}}" },
+						  "onClick": { "run": "setTool", "with": { "args": { "tool": "{{t.id}}" } } },
+						  "onContextMenu": { "toggle": "{{'state.flyout.g' + n}}" },
+						  "children": [
+							{ "type": "path", "when": "{{length(g) > 1}}", "d": "M 4 0 L 4 4 L 0 4 Z", "fillColor": "@muted", "width": 4, "height": 4,
+							  "anchors": { "right": 1, "bottom": 1 } },
+							{ "use": "menu", "when": "{{length(g) > 1}}", "with": { "open": "{{'state.flyout.g' + n}}", "placement": "right", "icons": true, "width": 230,
+							  "items": "{{map(g, {title: it.title, icon: it.icon, enabled: it.id != null, checked: it.id == state.doc.tool, run: 'setTool', with: {args: {tool: it.id}}})}}" } }
+						  ] }
 					  ] },
-					{ "type": "row", "id": "colour-buttons", "width": 36, "height": 18, "justify": "space-between",
+					{ "height": 6, "width": 1, "style": "clear" },
+					{ "id": "colours", "role": "group", "label": "Colours", "style": "clear", "width": 28, "height": 32,
 					  "children": [
+						{ "id": "background-colour", "role": "button", "label": "Background colour", "x": 11, "y": 11, "width": 15, "height": 15,
+						  "color": "{{state.doc.background}}", "borderWidth": 1, "borderColor": "@muted", "tooltip": "Background colour",
+						  "cursor": "hand", "onClick": { "run": "showPanel", "with": { "args": { "slot": "colour", "id": "colour" } } } },
+						{ "id": "foreground-colour", "role": "button", "label": "Foreground colour", "x": 2, "y": 2, "width": 15, "height": 15,
+						  "color": "{{state.doc.foreground}}", "borderWidth": 1, "borderColor": "@muted", "tooltip": "Foreground colour",
+						  "cursor": "hand", "onClick": { "run": "showPanel", "with": { "args": { "slot": "colour", "id": "colour" } } } },
 						{ "type": "label", "id": "colour-swap", "role": "button", "label": "Swap colours", "icon": "arrow-left-right", "font": "small",
-						  "fitText": true, "cursor": "hand", "tooltip": "Swap (X)", "textColor": "@muted", "hover": { "textColor": "@text" },
-						  "onClick": { "run": "swapColours" } },
-						{ "type": "label", "id": "colour-reset", "role": "button", "label": "Default colours", "icon": "rotate-ccw", "font": "small",
-						  "fitText": true, "cursor": "hand", "tooltip": "Default colours (D)", "textColor": "@muted", "hover": { "textColor": "@text" },
-						  "onClick": { "run": "resetColours" } }
-					  ] }
+						  "x": 18, "y": 0, "width": 10, "height": 10, "cursor": "hand", "tooltip": "Switch Foreground and Background Colours (X)",
+						  "textColor": "@muted", "hover": { "textColor": "@text" }, "onClick": { "run": "swapColours" } },
+						{ "id": "colour-reset", "role": "button", "label": "Default colours", "style": "clear", "x": 1, "y": 22, "width": 9, "height": 9, "cursor": "hand",
+						  "tooltip": "Default Foreground and Background Colours (D)", "onClick": { "run": "resetColours" },
+						  "children": [
+							{ "x": 3, "y": 3, "width": 6, "height": 6, "color": "#ffffff", "borderWidth": 1, "borderColor": "@muted" },
+							{ "width": 6, "height": 6, "color": "#000000", "borderWidth": 1, "borderColor": "@muted" }
+						  ] }
+					  ] },
+					{ "height": 2, "width": 1, "style": "clear" },
+					{ "use": "tIcon", "id": "quick-mask", "width": 28, "height": 24,
+					  "with": { "icon": "circle-dashed", "tip": "Edit in Quick Mask Mode (Q)", "run": "toggleQuickMask", "on": "{{state.doc.options.quickMask}}" } }
 				]
 			}
 		},
@@ -206,33 +225,36 @@
 			"node": {
 				"type": "column", "id": "canvas-area", "role": "main", "label": "Canvas", "grow": 1, "height": "100%", "color": "@canvasBack",
 				"children": [
-					{ "type": "row", "id": "ruler-row", "when": "{{state.view.rulers}}", "width": "100%", "height": 18,
+					{ "type": "tabs", "id": "document-tabs", "label": "Documents", "width": "100%", "height": 24, "color": "@header",
+					  "tabs": [{ "id": "doc", "closable": false, "label": "{{state.docName}} @ {{computed.zoomPercent}}% ({{computed.activeLayer.name ?? ''}}, {{computed.mode}})" }],
+					  "value": "doc", "textColor": "@muted", "activeTextColor": "@text", "activeBackground": "@panel", "accentColor": "@panel" },
+					{ "type": "row", "id": "ruler-row", "when": "{{state.view.rulers}}", "width": "100%", "height": 16,
 					  "children": [
-						{ "id": "ruler-corner", "width": 18, "height": 18, "color": "@ruler", "borderWidth": 1, "borderColor": "@border" },
-						{ "id": "ruler-top", "label": "Horizontal ruler", "grow": 1, "height": 18, "color": "@ruler", "cursor": "hand",
+						{ "id": "ruler-corner", "width": 16, "height": 16, "color": "@ruler" },
+						{ "id": "ruler-top", "label": "Horizontal ruler", "grow": 1, "height": 16, "color": "@ruler", "cursor": "hand",
 						  "tooltip": "Click to add a vertical guide",
 						  "onClick": { "run": "addGuide", "with": { "args": { "axis": "vertical",
 						    "at": "{{state.doc.view.x + (event.left - event.width / 2) / state.doc.view.zoom}}" } } },
 						  "children": [
 							{ "repeat": { "for": "t", "in": "computed.rulerTicksX" }, "x": "{{computed.canvasWidth / 2 + (t - state.doc.view.x) * state.doc.view.zoom}}",
-							  "y": 11, "width": 1, "height": 7, "color": "@muted" },
+							  "width": 1, "height": 16, "color": "@muted" },
 							{ "type": "label", "repeat": { "for": "t", "in": "computed.rulerTicksX" }, "font": "small", "text": "{{t}}", "textColor": "@muted",
-							  "x": "{{computed.canvasWidth / 2 + (t - state.doc.view.x) * state.doc.view.zoom + 3}}", "y": 1, "fitText": true }
+							  "x": "{{computed.canvasWidth / 2 + (t - state.doc.view.x) * state.doc.view.zoom + 2}}", "y": 0, "fitText": true }
 						  ] }
 					  ] },
 					{ "type": "row", "id": "canvas-row", "width": "100%", "grow": 1,
 					  "children": [
-						{ "id": "ruler-left", "label": "Vertical ruler", "when": "{{state.view.rulers}}", "width": 18, "height": "100%", "color": "@ruler",
+						{ "id": "ruler-left", "label": "Vertical ruler", "when": "{{state.view.rulers}}", "width": 16, "height": "100%", "color": "@ruler",
 						  "cursor": "hand", "tooltip": "Click to add a horizontal guide",
 						  "onClick": { "run": "addGuide", "with": { "args": { "axis": "horizontal",
 						    "at": "{{state.doc.view.y + (event.top - event.height / 2) / state.doc.view.zoom}}" } } },
 						  "children": [
 							{ "repeat": { "for": "t", "in": "computed.rulerTicksY" }, "y": "{{computed.canvasHeight / 2 + (t - state.doc.view.y) * state.doc.view.zoom}}",
-							  "x": 11, "width": 7, "height": 1, "color": "@muted" },
+							  "width": 16, "height": 1, "color": "@muted" },
 							{ "type": "label", "align": { "horizontal": "start", "vertical": "center" }, "repeat": { "for": "t", "in": "computed.rulerTicksY" }, "font": "small", "text": "{{t}}", "textColor": "@muted",
-							  "y": "{{computed.canvasHeight / 2 + (t - state.doc.view.y) * state.doc.view.zoom + 2}}", "x": 1, "width": 17, "height": 12 }
+							  "y": "{{computed.canvasHeight / 2 + (t - state.doc.view.y) * state.doc.view.zoom + 2}}", "x": 1, "width": 15, "height": 12 }
 						  ] },
-						{ "id": "canvas-frame", "color": "transparent", "grow": 1, "height": "100%",
+						{ "id": "canvas-frame", "style": "clear", "grow": 1, "height": "100%",
 						  "children": [
 							{ "type": "surface", "id": "canvas", "label": "Image", "surface": "temperaCanvas", "fill": true,
 							  "continuous": "{{state.doc.selection}}",
@@ -246,26 +268,26 @@
 							  "y": "{{computed.canvasHeight / 2 + (g - state.doc.view.y) * state.doc.view.zoom}}", "height": 1,
 							  "anchors": { "left": 0, "right": 0 }, "color": "@guide" }
 						  ] }
-					  ] }
+					  ] },
+					{ "use": "temperaStatusBar" }
 				]
 			}
 		},
 
 		"temperaStatusBar": {
 			"node": {
-				"type": "row", "id": "status-bar", "role": "status", "label": "Status", "width": "100%", "height": 24, "color": "@panel",
-				"borderWidth": 1, "borderColor": "@border", "alignItems": "center", "gap": 18,
+				"type": "row", "id": "status-bar", "role": "status", "label": "Status", "style": "bar", "height": 22, "gap": 12,
 				"children": [
-					{ "id": "status-start", "color": "transparent", "width": 0 },
-					{ "type": "label", "id": "status-zoom", "text": "{{computed.zoomPercent}}%", "textColor": "@text", "fitText": true },
-					{ "type": "label", "id": "status-size", "text": "{{state.doc.width}} × {{state.doc.height}} px", "textColor": "@text", "fitText": true },
-					{ "type": "label", "id": "status-format", "text": "{{state.doc.format == 'rgba16f' ? '16-bit float' : '8-bit'}}", "textColor": "@muted", "fitText": true },
-					{ "type": "label", "id": "status-profile", "text": "{{state.doc.profile + (empty(state.doc.proof) ? '' : ' (proof: ' + state.doc.proof + ')')}}",
-					  "textColor": "@muted", "fitText": true },
-					{ "type": "label", "id": "status-memory", "text": "Undo {{fixed(state.doc.memory / 1048576, 1)}} MiB", "textColor": "@muted", "fitText": true },
-					{ "id": "status-gap", "color": "transparent", "grow": 1 },
-					{ "type": "label", "id": "status-message", "live": "polite", "text": "{{state.doc.message}}", "textColor": "@muted", "fitText": true },
-					{ "id": "status-end", "color": "transparent", "width": 4 }
+					{ "type": "textarea", "id": "status-zoom", "label": "Zoom", "text": "{{computed.zoomPercent}}%", "width": 52, "height": 22,
+					  "padding": 4, "textColor": "@text", "color": "@panel", "hover": { "color": "@input" },
+					  "onSubmit": { "run": "zoom", "with": { "args": { "to": "{{clamp(number(trim(split(event.text, '%')[0])) ?? computed.zoomPercent, 1, 3200) / 100}}" } } } },
+					{ "style": "dim", "id": "status-doc", "text": "Doc: {{fixed(state.doc.width * state.doc.height * (state.doc.format == 'rgba16f' ? 6 : 3) / 1048576, 2)}}M" },
+					{ "style": "dim", "id": "status-size", "text": "{{state.doc.width}} × {{state.doc.height}} px" },
+					{ "style": "dim", "id": "status-profile", "text": "{{state.doc.profile + (empty(state.doc.proof) ? '' : ' (proof: ' + state.doc.proof + ')')}}" },
+					{ "style": "dim", "id": "status-memory", "text": "Undo {{fixed(state.doc.memory / 1048576, 1)}} MiB" },
+					{ "grow": 1, "height": 1, "style": "clear" },
+					{ "style": "dim", "id": "status-message", "live": "polite", "text": "{{state.doc.message}}" },
+					{ "width": 2, "height": 1, "style": "clear" }
 				]
 			}
 		}
