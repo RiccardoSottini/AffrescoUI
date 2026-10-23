@@ -182,6 +182,17 @@ TEST_CASE("assistant: replies to unknown requests, and fields of the wrong type,
 	CHECK(replies[0]["error"] == "");
 }
 
+TEST_CASE("assistant: a note that the agent is working, with nothing to say yet, is no reply") {
+	Asking asking;
+	asking.screen.connect(asking.agent, "agent");
+	asking.run("send");
+	asking.reply({{"request", asking.state()["asked"]}, {"done", false}});
+	CHECK(asking.state()["replies"].empty()); // no action ran
+	asking.run("look");
+	CHECK(asking.state()["seen"][0]["state"] == "working");
+	CHECK(asking.state()["seen"][0]["replies"].empty());
+}
+
 TEST_CASE("assistant: requests and replies are bounded") {
 	Asking asking;
 	asking.screen.connect(asking.agent, "agent");

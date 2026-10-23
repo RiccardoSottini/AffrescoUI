@@ -737,10 +737,8 @@ display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `n
 is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
-`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (who is connected: `author`,
-`role`); `requests` (what the person asked the agents with `ask`, oldest first, at most 64: `id`, `text`, `time` in
-milliseconds since 1970, `state` (`sent`, `working`, `answered`, `failed`), `replies` (`from`, `text`, `time`, `done`,
-`error`), `proposals` (the ids of the proposals its repliers made since)); and the names given by `repeat`, `let`,
+`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (`author`, `role`);
+`requests` (the `ask` requests, see "Asking the agents"); and the names given by `repeat`, `let`,
 `with`, `forEach`, a component's params, `it`/`index` inside list functions.
 
 **`computed`** values are evaluated when first read after the state changed, then cached; they may use each other
@@ -1089,6 +1087,34 @@ refusal in a row is logged:
 
 On a socket, the host also asks the operating system which user the program on the other end runs as, and refuses a
 program of another user.
+
+### Asking the agents
+A screen can ask the agents connected to it in plain words, e.g. from a chat (the assistant add-on in
+`examples/shared/addons/assistant/`):
+
+```json
+"actions": {
+	"send": [{ "ask": "{{state.draft}}", "into": "state.asked" }, { "set": "state.draft", "to": "" }],
+	"ask:reply": [{ "push": "state.notes", "value": "{{event.text}}" }]
+}
+```
+
+- `ask` sends the request to every peer after the event, from the author `user` (`request` in the table above), and
+  writes its id (`ask-<milliseconds>-<n>`) `into` a state path. It is a control step. With no peer connected it
+  fails at once: `ask:reply` runs with the error `no agent is connected`.
+- Each reply runs `ask:reply` with `event` `{request, from, text, done, error, proposals, time}`. `done: false` is a
+  progress note (an agent at work); one with no text only marks the request `working`, with no reply. `proposals`
+  lists the ids of the proposals the replier (any author of the same channel: `agent/...`) opened or changed since the
+  request, each once per head, so the screen can show them for review with `preview`, `accept` and `reject`.
+- `requests` lists the requests, oldest first (at most 64, the oldest finished one goes first):
+  `{id, text, time, state, replies, proposals}`, with `time` in milliseconds since 1970, `state` `sent`, `working`,
+  `answered` or `failed`, and `replies` (at most 256 each) `{from, text, time, done, error}`. `peers` lists who is
+  connected (`author`, `role`).
+- **A reply is a reply, never a decision.** While `ask:reply` runs, `accept`, `reject`, `restore`, `revert` and
+  `undo` are refused: only the person's own events review. An agent's changes keep their permissions: a proposal
+  waits for review as any other.
+- Limits: a request is at most 16 KiB; a reply's `text` and `error` are cut to 64 KiB, `from` to 256 bytes; a reply
+  to an id the screen didn't send is for the other peers, and fields of the wrong type are ignored.
 
 ### Pictures
 `render` (MCP: `render_screen`) lets a peer see its work before a person reviews it. Any peer may ask: it is a read.

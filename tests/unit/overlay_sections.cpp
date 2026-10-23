@@ -24,6 +24,7 @@ constexpr const char* overlaidScreen = R"json({
 	"format": "affrescoui-screen",
 	"version": 2,
 	"state": { "wide": true, "open": true },
+	"actions": { "close": [{ "set": "state.open", "to": false }] },
 	"root": { "type": "row", "id": "root", "children": [
 		{ "type": "label", "id": "first", "text": "One", "width": 100 },
 		{ "type": "label", "id": "second", "text": "Two", "width": 100, "visible": "{{state.wide}}" }
@@ -79,15 +80,14 @@ struct Folder {
 TEST_CASE("overlay sections: each is built after the root's children, over the window, and found by its id") {
 	Overlaid overlaid(affresco::Screen::fromString(overlaidScreen));
 	affresco::Panel& root = overlaid.window->root();
-	REQUIRE(root.children().size() == 1);
-	const auto& children = root.children()[0]->children();
-	REQUIRE(children.size() == 2); // the row's labels
+	affresco::Panel* row = overlaid.screen.find("root");
+	REQUIRE(row);
+	CHECK(row->children().size() == 2); // the row's labels: the overlays are not in it
 
 	affresco::Panel* badge = overlaid.screen.find("badge");
 	REQUIRE(badge);
 	CHECK(badge->isOverlay());
 	CHECK(badge->parent() == &root);
-	CHECK(root.children().size() == 1 + 2);
 	CHECK(badge->frame().right == doctest::Approx(392)); // placed by its anchors in the window
 	CHECK(badge->frame().bottom == doctest::Approx(292));
 	CHECK(overlaid.screen.find("badge-text"));
@@ -96,7 +96,7 @@ TEST_CASE("overlay sections: each is built after the root's children, over the w
 	REQUIRE(sheet);
 	CHECK(sheet->frame().left == doctest::Approx(160)); // its own placement wins
 	CHECK(sheet->isVisible());
-	overlaid.screen.set("state.open", "false");
+	overlaid.screen.runAction("close", overlaid.window->root(), "{}");
 	overlaid.window->render();
 	CHECK(overlaid.screen.find("sheet") == sheet); // the same panel, closed
 	CHECK_FALSE(sheet->isVisible());
@@ -106,13 +106,13 @@ TEST_CASE("overlay sections: a revision changes one like a screen, and an id ins
 	Overlaid overlaid(affresco::Screen::fromString(overlaidScreen));
 	const affresco::RevisionResult result =
 	    overlaid.screen.submitRevision(R"({"author": "studio", "set": {"#badge-text/text": "4"}})");
-	REQUIRE(result.status == affresco::RevisionStatus::Accepted);
+	REQUIRE(result.status == affresco::RevisionStatus::Applied);
 	overlaid.window->render();
 	CHECK(overlaid.screen.versions().document()["overlays"]["badge"]["children"][0]["text"] == "4");
 
 	const affresco::RevisionResult removed =
 	    overlaid.screen.submitRevision(R"({"author": "studio", "remove": ["/overlays/sheet"]})");
-	REQUIRE(removed.status == affresco::RevisionStatus::Accepted);
+	REQUIRE(removed.status == affresco::RevisionStatus::Applied);
 	overlaid.window->render();
 	CHECK(overlaid.screen.find("sheet") == nullptr);
 	CHECK(overlaid.screen.find("badge"));

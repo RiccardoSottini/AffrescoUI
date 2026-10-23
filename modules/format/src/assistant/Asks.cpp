@@ -83,10 +83,13 @@ bool Asks::receive(const json& reply) {
 	const std::string from = bounded(reply.value("from", json()), maxFrom);
 	const bool done = !reply.contains("done") || !reply["done"].is_boolean() || reply["done"].get<bool>();
 	const std::string error = bounded(reply.value("error", json()), maxText);
-	json entry = {{"from", from},
-	              {"text", bounded(reply.value("text", json()), maxText)},
-	              {"time", millisecondsNow()},
-	              {"done", done}};
+	const std::string text = bounded(reply.value("text", json()), maxText);
+	if(!done && error.empty() && text.empty()) { // "working on it", with nothing to say yet
+		request->state = "working";
+		engine_.document.globalsChanged();
+		return true;
+	}
+	json entry = {{"from", from}, {"text", text}, {"time", millisecondsNow()}, {"done", done}};
 	if(!error.empty()) entry["error"] = error;
 	if(request->replies.size() >= maxReplies) request->replies.erase(request->replies.begin());
 	request->replies.push_back(entry);

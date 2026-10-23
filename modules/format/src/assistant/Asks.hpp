@@ -54,7 +54,7 @@ public:
 	/// @brief Takes a reply to one of the screen's requests: records it, finds the proposals its replier made since
 	/// the request, and runs "ask:reply" with `{"request", "from", "text", "done", "error", "proposals", "time"}`.
 	/// @param reply `{"request": id, "from"?, "text"?, "done"? (true), "error"?}`; fields of the wrong type are
-	/// ignored.
+	/// ignored. One not done, with no text and no error, only marks the request "working".
 	/// @return false if it answers no request of the screen's (it is for another peer).
 	bool receive(const json& reply);
 
