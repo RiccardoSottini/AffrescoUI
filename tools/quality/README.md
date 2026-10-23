@@ -43,7 +43,9 @@ touches, before and after:
 A function the change touches fails if it is over a limit and either is new, or got longer or more complex on that
 metric. A function that was already over and didn't get worse is listed, but passes: editing old code isn't blocked,
 and making it worse is. A function whose parameters changed is still matched by its name, when the name is unique in
-the file before and after the change; a new overload of an old function counts as new.
+the file before and after the change; a new overload of an old function counts as new. A function that moved out of
+a file the change removes, as when a file is split in several, is compared with what it was there, matched by its
+whole signature.
 
 The limits are in [`thresholds.json`](thresholds.json): `function` is enforced, `aim` (60 lines, complexity 12, from
 the project's aims) is reported. Thresholds tighten over time, when the maintainer decides: lower the numbers in
