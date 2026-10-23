@@ -79,7 +79,10 @@ json menu(std::string_view placement, std::string_view extraParams, bool nested)
 }
 
 /// @brief The quick pick: a search field over the matching items of its providers, the recently chosen first. Its
-/// state is under state[name]: open, query, index (the selected row), top (the first row shown) and recent.
+/// state is under state[name]: open, query, index (the selected row), top (the first row shown) and recent. A
+/// provider with "filter": false gives items the document already matched to the query (a scoped search, a server's
+/// results, a "go to line" row), shown in its order with their key's text. With "stacked", each row's detail goes on a
+/// second line under its title, in detailFont if given.
 constexpr std::string_view quickPickNode = R"({
 	"overlay": { "placement": "window", "open": "{{'state.' + name + '.open'}}", "dismiss": "outside", "modal": true },
 	"x": "{{max(0, (window.width - width) / 2)}}", "y": 48, "width": "{{width}}",
@@ -96,7 +99,7 @@ constexpr std::string_view quickPickNode = R"({
 		"recent": "{{home ? qp.recent ?? [] : []}}",
 		"recentKeys": "{{map(recent, it[key])}}",
 		"recentHits": "{{fuzzySort(recent, search, key)}}",
-		"results": "{{slice(concat(recentHits, filter(fuzzySort(provider.items, search, key, limit + length(recent)), !contains(recentKeys, it.item[key]))), 0, limit)}}",
+		"results": "{{provider.filter == false ? map(slice(provider.items ?? [], 0, limit), { item: it, parts: [{ text: text(it[key] ?? '') }] }) : slice(concat(recentHits, filter(fuzzySort(provider.items, search, key, limit + length(recent)), !contains(recentKeys, it.item[key]))), 0, limit)}}",
 		"total": "{{length(results)}}",
 		"sel": "{{clamp(qp.index ?? 0, 0, max(0, total - 1))}}",
 		"top": "{{clamp(qp.top ?? 0, 0, max(0, total - rows))}}"
@@ -125,12 +128,26 @@ constexpr std::string_view quickPickNode = R"({
 			"onClick": [{ "set": "{{base + '.index'}}", "to": "{{top + i}}" },
 			            { "forEach": "{{[r]}}", "as": "pick", "do": [] }],
 			"children": [
-				{ "type": "row", "anchors": { "left": 14, "right": 140, "top": "{{(rowHeight - 18) / 2}}" }, "height": 18,
-				  "children": [{ "repeat": { "for": "p", "in": "{{r.parts}}" }, "type": "label", "text": "{{p.text}}",
-				                 "textColor": "{{p.match ? accent : textColor}}", "fitText": true }] },
-				{ "type": "label", "text": "{{top + i < length(recentHits) ? 'recently used' : r.item.detail ?? ''}}",
+				{ "type": "row", "anchors": { "left": 14, "right": "{{stacked ? 14 : 140}}",
+				  "top": "{{stacked ? rowHeight / 2 - 17 : (rowHeight - 18) / 2}}" }, "height": 18,
+				  "children": [
+					{ "when": "{{r.item.badge != null}}", "type": "label", "text": "{{r.item.badge}}", "width": 18,
+					  "height": 18, "radius": 3, "align": "center", "color": "{{r.item.badgeColor ?? highlight}}",
+					  "textColor": "{{textColor}}" },
+					{ "when": "{{r.item.badge != null}}", "width": 8, "height": 18, "color": "transparent" },
+					{ "repeat": { "for": "p", "in": "{{r.parts}}" }, "type": "label", "text": "{{p.text}}",
+					  "textColor": "{{p.match ? accent : textColor}}", "fitText": true }] },
+				{ "when": "{{!stacked}}", "type": "label",
+				  "text": "{{top + i < length(recentHits) ? 'recently used' : r.item.detail ?? ''}}",
 				  "textColor": "{{dimColor}}", "anchors": { "right": 14, "top": "{{(rowHeight - 18) / 2}}" },
-				  "fitText": true }
+				  "fitText": true },
+				{ "when": "{{stacked && detailFont == null}}", "type": "label", "text": "{{r.item.detail ?? ''}}",
+				  "textColor": "{{dimColor}}", "anchors": { "left": "{{r.item.badge != null ? 40 : 14}}", "right": 14, "top": "{{rowHeight / 2 + 1}}" },
+				  "height": 16, "align": { "horizontal": "start", "vertical": "center" } },
+				{ "when": "{{stacked && detailFont != null}}", "type": "label", "text": "{{r.item.detail ?? ''}}",
+				  "font": "{{detailFont}}", "textColor": "{{dimColor}}",
+				  "anchors": { "left": "{{r.item.badge != null ? 40 : 14}}", "right": 14, "top": "{{rowHeight / 2 + 1}}" }, "height": 16,
+				  "align": { "horizontal": "start", "vertical": "center" } }
 			]
 		  }]
 		}
@@ -138,11 +155,12 @@ constexpr std::string_view quickPickNode = R"({
 })";
 
 /// @brief What choosing does, with the chosen result as "pick" (captured, as closing and clearing change the
-/// results): closes, puts it first in the recent items (for the default provider), clears the query, then runs the
+/// results): closes, puts it first in the recent items (for the default provider, unless it doesn't filter: its items
+/// belong to one query), clears the query, then runs the
 /// item's "run" (with its "with"), or else the provider's "run" with the item as "item".
 constexpr std::string_view quickPickChoose = R"([
 	{ "set": "{{base + '.open'}}", "to": false },
-	{ "if": "{{home}}", "then": [{ "set": "{{base + '.recent'}}",
+	{ "if": "{{home && provider.filter != false}}", "then": [{ "set": "{{base + '.recent'}}",
 		"to": "{{slice(concat([pick.item], filter(qp.recent ?? [], it[key] != pick.item[key])), 0, recentLimit)}}" }] },
 	{ "forEach": "{{[provider.run]}}", "as": "providerRun", "do": [
 		{ "set": "{{base + '.query'}}", "to": "" }, { "set": "{{base + '.index'}}", "to": 0 },
@@ -160,7 +178,7 @@ json quickPick() {
 	node["keys"]["enter"][0]["then"][0]["do"] = choose;
 	node["children"][2]["children"][0]["onClick"][1]["do"] = choose;
 	json params = json::parse(R"({"name": "quickPick", "providers": [], "rows": 10, "rowHeight": 26, "width": 600,
-		"limit": 1000, "recentLimit": 10, "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.dim",
+		"stacked": false, "detailFont": null, "limit": 1000, "recentLimit": 10, "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.dim",
 		"accent": "@kit.accent", "highlight": "@kit.selection", "field": "@kit.field"})");
 	return {{"params", std::move(params)}, {"node", std::move(node)}};
 }
@@ -176,7 +194,7 @@ constexpr std::string_view others = R"({
 		"children": [{
 			"repeat": { "for": "m", "in": "{{menus}}", "index": "n" },
 			"let": { "key": "{{m.name ?? m.menu ?? n}}", "heading": "{{m.title ?? m.name ?? m.menu ?? ''}}" },
-			"width": "{{length(heading) * 8 + 20}}", "anchors": { "top": 0, "bottom": 0 },
+			"width": "{{m.width ?? length(heading) * 8 + 20}}", "anchors": { "top": 0, "bottom": 0 },
 			"color": "{{color}}", "focusable": true, "mnemonic": "{{m.mnemonic ?? heading}}",
 			"hover": { "color": "{{highlight}}" }, "focused": { "color": "{{highlight}}" },
 			"onClick": { "toggle": "{{open + '.' + key}}" },
@@ -191,7 +209,7 @@ constexpr std::string_view others = R"({
 },
 "dialog": {
 	"params": { "open": "state.dialogOpen", "title": "", "message": "", "buttons": [{ "title": "OK" }],
-	            "width": 420, "height": 160, "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.body",
+	            "primaryLast": false, "width": 420, "height": 160, "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.body",
 	            "highlight": "@kit.primary", "backdrop": "@kit.backdrop" },
 	"node": {
 		"overlay": { "placement": "window", "open": "{{open}}", "dismiss": "outside", "modal": true },
@@ -208,10 +226,12 @@ constexpr std::string_view others = R"({
 				{ "slot": true },
 				{ "type": "row", "anchors": { "right": 16, "bottom": 14 }, "height": 28,
 				  "width": "{{length(buttons) * 96}}", "gap": 8, "arrows": "horizontal",
+				  "dir": "{{primaryLast ? 'rtl' : 'inherit'}}",
 				  "children": [{
 					"repeat": { "for": "b", "in": "{{buttons}}", "index": "i" },
 					"width": 88, "anchors": { "top": 0, "bottom": 0 }, "radius": "@kit.radius", "focusable": true,
 					"let": { "main": "{{b.default == true || i == 0 && !some(buttons, it.default == true)}}" },
+					"dir": "{{primaryLast ? 'ltr' : 'inherit'}}",
 					"role": "button", "label": "{{b.title ?? ''}}", "color": "{{main ? highlight : '@kit.secondary'}}",
 					"autofocus": "{{b.default == true}}",
 					"hover": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border" },

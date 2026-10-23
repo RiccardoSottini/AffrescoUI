@@ -15,7 +15,7 @@ namespace affresco::format {
 namespace {
 
 /// The names of the keys that aren't letters, digits or function keys.
-constexpr std::array<std::pair<Key, std::string_view>, 40> namedKeys = {{{Key::Enter, "enter"},
+constexpr std::array<std::pair<Key, std::string_view>, 41> namedKeys = {{{Key::Enter, "enter"},
                                                                          {Key::KeypadEnter, "enter"},
                                                                          {Key::Escape, "escape"},
                                                                          {Key::Tab, "tab"},
@@ -54,7 +54,8 @@ constexpr std::array<std::pair<Key, std::string_view>, 40> namedKeys = {{{Key::E
                                                                          {Key::KeypadDecimal, "numpadperiod"},
                                                                          {Key::KeypadAdd, "numpadplus"},
                                                                          {Key::KeypadSubtract, "numpadminus"},
-                                                                         {Key::KeypadMultiply, "numpadmultiply"}}};
+                                                                         {Key::KeypadMultiply, "numpadmultiply"},
+                                                                         {Key::GraveAccent, "backquote"}}};
 
 /// The modifier keys, in the order a shortcut writes them.
 enum Modifier { Command, Control, Alt, Shift }; // NOLINT(cppcoreguidelines-use-enum-class): it indexes held[]
@@ -104,11 +105,11 @@ std::optional<Modifier> modifierNamed(std::string_view name) {
 }
 
 /// The labels of the keys whose names are words, for keyLabel().
-constexpr std::array<std::pair<std::string_view, std::string_view>, 15> keyLabels = {
+constexpr std::array<std::pair<std::string_view, std::string_view>, 16> keyLabels = {
     {{"minus", "-"},          {"equal", "="},          {"comma", ","},          {"period", "."},
      {"slash", "/"},          {"backslash", "\\"},     {"semicolon", ";"},      {"apostrophe", "'"},
      {"leftbracket", "["},    {"rightbracket", "]"},   {"grave", "`"},          {"numpadperiod", "Numpad ."},
-     {"numpadplus", "Numpad +"}, {"numpadminus", "Numpad -"}, {"numpadmultiply", "Numpad *"}}};
+     {"numpadplus", "Numpad +"}, {"numpadminus", "Numpad -"}, {"numpadmultiply", "Numpad *"}, {"backquote", "`"}}};
 
 /// @brief The label of one normalised press: "⌘⇧K" on macOS, "Ctrl+Shift+K" elsewhere.
 /// @param press The press, "cmd+shift+k".

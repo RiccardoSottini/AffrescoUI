@@ -98,9 +98,28 @@ void TextEditor::setBracketMatching(bool shown) {
 	invalidatePaint();
 }
 
+void TextEditor::setBracketUnderline(bool underline) {
+	if(underline == bracketUnderline_) return;
+	bracketUnderline_ = underline;
+	invalidatePaint();
+}
+
+void TextEditor::setMatchOutline(bool outline) {
+	if(outline == matchOutline_) return;
+	matchOutline_ = outline;
+	invalidatePaint();
+}
+
 void TextEditor::setIndentGuides(bool shown) {
 	if(shown == guides_) return;
 	guides_ = shown;
+	invalidatePaint();
+}
+
+void TextEditor::setRulers(std::vector<std::size_t> columns) {
+	if(columns.size() > maxRulers) columns.resize(maxRulers);
+	if(columns == rulers_) return;
+	rulers_ = std::move(columns);
 	invalidatePaint();
 }
 

@@ -49,6 +49,7 @@ void registerBuiltInSteps(StepRegistry& registry) {
 	registerFolderSteps(registry);
 	registerReviewSteps(registry);
 	registerNavigationSteps(registry);
+	registerEditorSteps(registry);
 	registerTimeSteps(registry);
 	registerOtherSteps(registry);
 	registerSceneSteps(registry);

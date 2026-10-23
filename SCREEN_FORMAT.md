@@ -62,6 +62,7 @@ Every part of the format follows these, and so should every extension:
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS, Windows; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the node the keyboard focused: a colour, `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (none). |
 | `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script (kerning, ligatures, Arabic, Indic; right-to-left runs), colour emoji from COLR fonts. `"fallback": ["symbols"]` names other fonts asked in order for a character this one lacks; a character none has shows as `?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has). |
+| `languages` | `name → language`: the code languages an editor's `language` names (by name, alias or file name). Each has `title`, `aliases`, `files` (`["*.py", "CMakeLists.txt"]`), `comments` (`{ "line": "//", "block": ["/*", "*/"] }`), `brackets` and `pairs` (`[["(", ")"], ...]`: Enter between brackets indents, typing an opener of a pair adds its closer), `indent` (`{ "increase": regex, "decrease": regex }`), `wordPattern` (regex), and TextMate-style `patterns` with a `repository`: `{ "match": regex, "scope": "keyword" }`, `{ "begin": regex, "end": regex, "scope", "contentScope", "patterns" }` (an `end` may use the begin's groups, `\1`), `captures` / `beginCaptures` / `endCaptures` (`{ "1": { "scope": "type" } }`) and `{ "include": "#name" }` or `"$self"`. A scope is coloured by `@syntax.<scope>`, or its parent's (`keyword.control` by `@syntax.keyword`). Regular expressions are PCRE2, each find limited in steps and each line in time; a language has at most 2,048 rules. Ready-made languages are data files to `include` (`examples/shared/languages/`). |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `tokens` | `name → value`: a number (spacing, a radius, a type size), a colour (`"#rrggbb"`, `"transparent"`), an alias (`"@other"`, of a token or of `colors`), or per theme `{ "light": ..., "dark": ... }` of those. Used as `"@name"` wherever a number or a colour fits (`"padding": "@space.m"`, a font's `"size"`). Switched by `theme` like `colors`; a name in both is an error. Aliases go at most 16 deep. |
 | `theme` | Which variant of the colors and tokens is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
@@ -259,12 +260,22 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 | `decorations` | `[{ "line", "endLine", "column", "endColumn", "kind", "color", "icon", "text" }]`, lines and columns from 0: `background` tints the lines, `squiggle` underlines the columns (or the whole lines) with a wave, `gutter` draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most 10,000 and 8 on a line; inline text is cut at 256 characters. |
 | `find` | `{ "text", "regex", "wholeWord", "caseSensitive" }` or `null` (none): highlights the matches of `text` (plain, or a PCRE2 pattern with `regex`, matched line by line within match and depth limits); Cmd+G and Cmd+Shift+G select the next and previous. A pattern that doesn't compile highlights nothing. `inSelection` limits it to the selection as it is when turned on. A find bar asks for a step with `step` (`first` from the selection's start, `next`, `previous`, `replace` or `replaceAll`, with `replace` as the replacement) and a `request` number from 1, run once per new number. While a pattern is set, `caret` also gets `matches`, the count. |
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
+| `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
+| `minimapStyle` | How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each character a pixel in its syntax colour. |
+| `minimapViewport` | When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it. |
+| `matchStyle` | How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
 | `readOnly` | `true`: the user can select, find and fold, but not edit. |
 | `guideColor`, `matchColor`, `bracketColor` | The indentation guides, find's matches and the paired brackets. |
 | `grammar` | The language parsed for syntax colours, folds and bracket pairs: `c`, `cpp`, `json`, `python`, `javascript`, `typescript`, `markdown` or an alias (`c++`, `js`, `ts`, `py`, `md`), or a file name whose extension says it. Each capture is coloured by the theme's `@syntax.<capture>` token (e.g. `@syntax.keyword`; `keyword.return` falls back to `@syntax.keyword`). Left out, plain text. |
+| `commands` | Keys bound to code commands, each one undo step: `{ "mod+/": "toggleComment", "alt+up": "moveLinesUp" }` (`mod` is cmd on macOS, ctrl elsewhere). `toggleComment` (the language's line comment), `moveLinesUp`, `moveLinesDown`, `deleteLines`, `copyLine` and `cutLine` (the caret's line, when nothing is selected), `indentLines`, `outdentLines`, `insertLineAfter`, `insertLineBefore`. A bound key isn't typed. |
+| `popup` | `true` while the document shows a popup over the editor (completions): up, down, page up, page down, enter, tab and escape without modifiers go to `onPopupKey` instead of the text. |
+| `goTo` | `{ "line", "column", "request" }` (from 0): moves the caret there, once per `request` number (a new number moves it again). |
+| `insert` | `{ "text", "before", "request" }`: replaces the selection and the `before` characters just before it with `text` (a completion), once per `request` number; one undo step. |
+| `tokens` | `[{ "line", "column", "length", "style" }]` (from 0): runs coloured by `@syntax.<style>` over the colours of `language` or `grammar`, e.g. a language server's semantic tokens. They move with edits until the next list. |
 <!-- end generated -->
 
 ### `diff`
@@ -278,7 +289,7 @@ then character by character on the lines changed, in read-only editors that numb
 | `original` | The text compared from (lines split at `\n`, a `\r` before it dropped). |
 | `modified` | The text compared to. |
 | `mode` | `split` (default): the original on the left, the modified text on the right, rows aligned with blank rows and scrolled together; `inline`: one editor, the deleted lines above the lines inserted for them. |
-| `language` | A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. |
+| `language` | A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. On an `editor`: a language of the `languages` section, by name, alias or file name (`main.py`). It colours the text unless `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, or wrapping the selection), Backspace between an empty pair deletes both, Enter between `brackets` or after an `indent.increase` line indents a level, and a line that comes to match `indent.decrease` goes back one. Unknown, plain text. |
 | `deletedColor`, `insertedColor` | Behind deleted and inserted lines (the changed characters in the same colour, twice as strong). |
 <!-- end generated -->
 
@@ -495,6 +506,8 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
 | `value` | The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`. |
 | `textColor`, `activeTextColor`, `activeBackground`, `accentColor` | The labels' colour (default muted), the active tab's, its background and its line. |
 | `accentEdge` | The edge of the active tab its accent line is on: `bottom` (default) or `top`. |
+| `markerColor` | The markers' colour (default `accentColor`). |
+| `keepMarker` | A marked tab keeps its marker while active, and shows its close button only while hovered (default false). |
 <!-- end generated -->
 
 ```json
@@ -522,6 +535,7 @@ top stays in place.
 | `items` | The rows, in order (or a binding such as `"{{state.files}}"`): a string (its id and label), or `{ "id", "label", "icon", "iconColor" }` (an icon before the label, by name, as a label's `icon`, in a hex colour or the text's); in a `tree`, also `"children"` (a list of items) and `"expandable"` (a closed node whose children aren't loaded yet: `onExpand` can load them); in a `table`, `"cells"`: the texts of the row's columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep. |
 | `expanded` | On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there to keep them over a rebuild. A state path (`"expanded": "state.files.open"`) does that itself: the ids are read from there, and kept there before `onExpand` runs. |
 | `stickyRows` | On a `tree`: how many open folders stay pinned at the top while their children scroll by, nearest the root first (default 0, at most 16). A click on a pinned folder moves the cursor to it. |
+| `guides` | On a `tree`: a line per level left of the nested rows (default true). |
 | `sort` | On a `table`: the rows' order, `{ "column": id, "descending": false }` (or null for the items' order). A click on a header sorts by its column, ascending then descending, and runs `onSort`: numbers by value before text, equal cells in the items' order. A state path (`"sort": "state.files.sort"`) keeps the order there. |
 | `selection` | `"single"` (the default), `"multiple"` (Shift adds a range, Cmd or Ctrl one row) or `"none"`. |
 | `value` | The selected id, or with `"multiple"` the list of them (`bind` keeps it in a state path); a change runs `onChange`. |
@@ -712,6 +726,7 @@ to load is left out and named in the log.
 | `shading` | `"material"` (the default: lit, with the lights and materials), `"solid"` (one grey, a studio light) or `"wireframe"`. |
 | `grid` | A ground grid (default true). |
 | `axes` | The X (red) and Z (blue) axes on the floor (default true); with `"up": "z"`, X and Y (green). |
+| `glyphs` | Lights and cameras drawn as a modeller draws them (default false: a small cross): a camera's frustum with its up triangle, a light's circle with a line down to the floor (a sun's rays, a spot's cone); the selected ones in `outlineColor`. |
 | `up` | Which way is up in the scene's frame: `"y"` (the default, as glTF) or `"z"` (as CAD and modelling tools): then the nodes' transforms, the world gizmo's axes, the picked `point`, the `cursor3d` and the pivot are Z up, and the floor is the XY plane. |
 | `cursor3d` | A 3D cursor drawn at `[x, y, z]` (none without it): a ring of red and white dashes facing the eye; e.g. set from a pick's `point`, and used as the gizmo's `pivot` or where new nodes go. |
 | `background` | Behind the scene (default the theme's). |
@@ -767,8 +782,9 @@ keep their open state where `open` says (a state path):
   item (`.m0`, `.m1`, ...). Open a context menu from `onContextMenu`, which a right click and, on the focused node,
   Shift+F10 or the Menu key send.
 - `menuBar`: `menus` of `{ "name", "title", "items" }`, or of `{ "menu", "title" }` naming a menu of `source` (the
-  `menus` variable); by default `window.menuBar`, so one list feeds the native bar and the drawn one. Alt with a
-  menu's first letter opens it, and `open` is an object with one flag per menu name.
+  `menus` variable); by default `window.menuBar`, so one list feeds the native bar and the drawn one. A menu's `width`
+  sizes its heading (by default, from the title's length). Alt with a menu's first letter opens it, and `open` is an
+  object with one flag per menu name.
 - `toolbar`: a row of `items` (`{ "title", "icon", "keyLabel", "tooltip", "checked", "enabled", "run", "with" }`, or
   `{ "separator": true }`) as wide as `width`; the arrows move between them, a `checked` one is a pressed toggle, the
   tooltip names the shortcut, and those that don't fit go into a "more" menu (open at `open + '.more'`).
@@ -789,12 +805,16 @@ keep their open state where `open` says (a state path):
   `placement` `below-end` lines it up with the end) with an arrow `arrowAt` from its start pointing at it; it flips
   above when only that side has room, and a click outside or Escape closes it.
 - `settingsPage`: the document's settings with a search field (see Menus and settings).
-- `quickPick`: a search field over `providers` of `{ "prefix", "items", "key", "placeholder", "run" }` (the one whose
-  `prefix` starts the query, else the one without), matched with `fuzzySort` on each item's `key` (`title`) and the
-  matching letters highlighted. Its state is `state[name]` (`name` is `quickPick`): `open`, `query`, `index`, `top`
-  and `recent` (the default provider's last `recentLimit` choices, shown first). Only the visible `rows` are built;
-  the arrows move, Enter or a click runs the item's `run` (with its `with`), or else the provider's `run` with the
-  item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
+- `quickPick`: a search field over `providers` of `{ "prefix", "items", "key", "placeholder", "run", "filter" }` (the
+  one whose `prefix` starts the query, else the one without), matched with `fuzzySort` on each item's `key` (`title`)
+  and the matching letters highlighted; a provider with `"filter": false` shows its items as given (already matched
+  by the document, such as a search inside the file the query names). Its state is `state[name]` (`name` is
+  `quickPick`): `open`, `query`, `index`, `top` and `recent` (the default provider's last `recentLimit` choices, shown
+  first). Only the visible `rows` are built; the arrows move, Enter or a click runs the item's `run` (with its
+  `with`), or else the provider's `run` with the item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
+  With `"stacked": true`, each row's `detail` goes on a second line under its title (in `detailFont`, if given):
+  give it a `rowHeight` of about 44. An item's `badge` (a letter or two, e.g. the kind of a symbol) shows in a small box
+  before its title, coloured `badgeColor`.
 
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
@@ -960,7 +980,7 @@ Wherever a value is expected it can be computed:
   `hypot(a, b, ...)` (numbers or a list), `sign(number)`, `upper(text)`, `lower(text)`, `trim(text)`,
   `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
   `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
-  `length(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
+  `length(value)`, `concat(a, b, ...)`, `flat(list)`, `join(list, separator)`, `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
   `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
   `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
@@ -1116,6 +1136,9 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onClipChange` | A timeline's clip moved or trimmed: `event.id`, `track` (where it is now), `fromTrack`, `index` (in `fromTrack`), `start`, `duration`, `from` (the start before) and `edge` (`"move"`, `"start"` or `"end"`). |
 | `onGutterClick` | A press in an editor's gutter: `event.line` (from 0), `shift`, `alt`, `control`, `super`. While a node has one, the press doesn't move the caret. |
 | `onWordHover` | The pointer moved onto a word of an editor, or off one: `event.word`, `line`, `column` (where it starts, from 0); off a word, `word` is empty and `line` null. |
+| `onType` | Typing in an editor that has a `language` or not: `event.text` (what was typed; `""` for a deletion), `word` (the word that now ends at the caret, by the language's `wordPattern`), `line`, `column` (the caret, from 0), and `x`, `y`, `top` (the caret's box, for a popup). |
+| `onTextHover` | The pointer moved over an editor's text: `event.over` (`false` when it left the text), `line`, `column` (from 0), and `x`, `y`, `top` (the place's box). For hover cards, e.g. a language server's. |
+| `onPopupKey` | A popup key while an editor's `popup` is `true`: `event.key` is `up`, `down`, `pageUp`, `pageDown`, `enter`, `tab` or `escape`. |
 <!-- end generated -->
 
 **Bubbling:** click, double click, context menu, press, release, drag, scroll and key events go to the node or, if it
@@ -1141,7 +1164,8 @@ is a handler, a binding `{ "when": "{{...}}", "do": "save", "with": { "tab": 2 }
 variables), or a list of bindings, where the first that applies runs.
 
 **Resolution:** one walk per press.
-1. A focused text area keeps plain keys, except Escape and the keys of the focused node and its ancestors.
+1. A focused text area keeps plain keys, except Escape, the function keys (F1 to F25) and the keys of the focused
+   node and its ancestors.
 2. During a chord, a press that doesn't continue it ends it and is dropped; Escape ends it.
 3. The scopes go from the focused node to the root, then to the document's `keys`.
 4. A binding is skipped when its `when` is false or its command is disabled.
@@ -1226,6 +1250,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out) |
+| `edit` | `{ "edit": "sortLines", "in": "#code" }`: a code editor's command (Editor steps) |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
@@ -1233,7 +1258,9 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
+| `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation and publishes the image (see Images) |
 | `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
+| `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
 <!-- end generated -->
 
 ### Control steps and paths
@@ -1550,7 +1577,7 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 | `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
 | `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
 | `{ "type": "text" }` | Types into the focused node, a character at a time |
-| `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket`, `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere) |
+| `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket backquote`, `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere) |
 | `{ "wait": 500 }` | Moves the clock on, running timers, animations and tooltips as they come due. What a handler leaves for the next frame (`focus`) runs at the next wait: `{ "wait": 0 }` |
 | `{ "revision": { ... } }` | Applies a revision as the application would |
 | `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |

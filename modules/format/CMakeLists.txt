@@ -104,6 +104,7 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/FlowSteps.cpp
 	src/steps/OutsideSteps.cpp
 	src/steps/ReviewSteps.cpp
+	src/steps/EditorSteps.cpp
 	src/steps/NavigationSteps.cpp
 	src/steps/TimeSteps.cpp
 	src/steps/OtherSteps.cpp

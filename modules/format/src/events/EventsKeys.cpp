@@ -88,7 +88,7 @@ bool isTextInput(const Panel* panel) {
 }
 
 /// @brief Tells whether a focused text input types a key, which the document's "keys" then leave to it: a plain key,
-/// outside a chord, that isn't Escape.
+/// outside a chord, that isn't Escape or a function key.
 /// @param from The focused panel, or nullptr.
 /// @param event The key.
 /// @param name The key's shortcut name.
@@ -96,7 +96,7 @@ bool isTextInput(const Panel* panel) {
 /// @return true if it types it.
 bool typesKey(const Panel* from, const KeyEvent& event, std::string_view name, bool chording) {
 	return isTextInput(from) && !chording && !event.mods.super() && !event.mods.control() && !event.mods.alt() &&
-	       name != "escape";
+	       name != "escape" && (event.key < Key::F1 || event.key > Key::F25);
 }
 
 /// @brief Tells whether a key of a "keys" object starts with a press, so the press may begin or go on with a chord.

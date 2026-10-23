@@ -274,6 +274,84 @@
 							"$ref": "#/$defs/v2/node"
 						}
 					},
+					"languages": {
+						"type": "object",
+						"maxProperties": 64,
+						"description": "Code languages an editor's \"language\" names: patterns whose scopes the @syntax.* tokens colour, and editing rules",
+						"additionalProperties": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"title": {
+									"type": "string"
+								},
+								"aliases": {
+									"type": "array",
+									"maxItems": 64,
+									"items": {
+										"type": "string"
+									}
+								},
+								"files": {
+									"type": "array",
+									"maxItems": 64,
+									"items": {
+										"type": "string"
+									}
+								},
+								"comments": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"line": {
+											"type": "string"
+										},
+										"block": {
+											"type": "array",
+											"minItems": 2,
+											"maxItems": 2,
+											"items": {
+												"type": "string"
+											}
+										}
+									}
+								},
+								"brackets": {
+									"$ref": "#/$defs/v2/characterPairs"
+								},
+								"pairs": {
+									"$ref": "#/$defs/v2/characterPairs"
+								},
+								"indent": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"increase": {
+											"type": "string"
+										},
+										"decrease": {
+											"type": "string"
+										}
+									}
+								},
+								"wordPattern": {
+									"type": "string"
+								},
+								"patterns": {
+									"type": "array",
+									"items": {
+										"type": "object"
+									}
+								},
+								"repository": {
+									"type": "object",
+									"additionalProperties": {
+										"type": "object"
+									}
+								}
+							}
+						}
+					},
 					"state": {
 						"type": "object"
 					},
@@ -914,7 +992,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, raster, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, code, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -949,7 +1027,8 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet"
+									"outlet",
+									"code"
 								]
 							},
 							{
@@ -1819,52 +1898,125 @@
 						}
 					},
 					"find": {
-						"type": [
-							"object",
-							"null"
-						],
-						"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous",
-						"properties": {
-							"text": {
-								"type": "string"
+						"anyOf": [
+							{
+								"type": [
+									"object",
+									"null"
+								],
+								"properties": {
+									"text": {
+										"type": "string"
+									},
+									"regex": {
+										"type": "boolean"
+									},
+									"wholeWord": {
+										"type": "boolean"
+									},
+									"caseSensitive": {
+										"type": "boolean"
+									},
+									"inSelection": {
+										"type": "boolean"
+									},
+									"replace": {
+										"type": "string"
+									},
+									"step": {
+										"enum": [
+											"first",
+											"next",
+											"previous",
+											"replace",
+											"replaceAll"
+										]
+									},
+									"request": {
+										"type": "number"
+									}
+								}
 							},
-							"regex": {
-								"type": "boolean"
-							},
-							"wholeWord": {
-								"type": "boolean"
-							},
-							"caseSensitive": {
-								"type": "boolean"
-							},
-							"inSelection": {
-								"type": "boolean"
-							},
-							"replace": {
-								"type": "string"
-							},
-							"step": {
-								"enum": [
-									"first",
-									"next",
-									"previous",
-									"replace",
-									"replaceAll"
-								]
-							},
-							"request": {
-								"type": "number"
+							{
+								"$ref": "#/$defs/v2/dynamic"
 							}
-						}
+						],
+						"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous"
 					},
 					"brackets": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"bracketStyle": {
+						"anyOf": [
+							{
+								"enum": [
+									"fill",
+									"underline"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"indentGuides": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"rulers": {
+						"anyOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "number",
+									"minimum": 0
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"minimap": {
 						"$ref": "#/$defs/v2/flag"
+					},
+					"minimapStyle": {
+						"anyOf": [
+							{
+								"enum": [
+									"bars",
+									"text"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"minimapViewport": {
+						"anyOf": [
+							{
+								"enum": [
+									"always",
+									"hover"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"matchStyle": {
+						"anyOf": [
+							{
+								"enum": [
+									"fill",
+									"outline"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
 					},
 					"composition": {
 						"description": "Text, or a {{binding}}"
@@ -1911,7 +2063,117 @@
 					},
 					"language": {
 						"type": "string",
-						"description": "diff: a language id for the application's editors (e.g. cpp)"
+						"description": "diff: a language id for the application's editors (e.g. cpp); editor: a language of the languages section, by name, alias or file name"
+					},
+					"commands": {
+						"type": "object",
+						"maxProperties": 256,
+						"additionalProperties": {
+							"enum": [
+								"toggleComment",
+								"moveLinesUp",
+								"moveLinesDown",
+								"deleteLines",
+								"copyLine",
+								"cutLine",
+								"indentLines",
+								"outdentLines",
+								"insertLineAfter",
+								"insertLineBefore"
+							]
+						},
+						"description": "editor: keys bound to code commands"
+					},
+					"popup": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"goTo": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"line": {
+										"type": "number",
+										"minimum": 0
+									},
+									"column": {
+										"type": "number",
+										"minimum": 0
+									},
+									"request": {
+										"type": "number"
+									}
+								}
+							},
+							{
+								"type": "null"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "editor: moves the caret once per request"
+					},
+					"insert": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"text": {
+										"type": "string"
+									},
+									"before": {
+										"type": "number",
+										"minimum": 0
+									},
+									"request": {
+										"type": "number"
+									}
+								}
+							},
+							{
+								"type": "null"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "editor: replaces the selection once per request"
+					},
+					"tokens": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 100000,
+								"items": {
+									"type": "object",
+									"required": [
+										"style"
+									],
+									"properties": {
+										"line": {
+											"type": "number",
+											"minimum": 0
+										},
+										"column": {
+											"type": "number",
+											"minimum": 0
+										},
+										"length": {
+											"type": "number",
+											"minimum": 0
+										},
+										"style": {
+											"type": "string"
+										}
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "editor: runs coloured over the language's colours (e.g. a language server's)"
 					},
 					"deletedColor": {
 						"$ref": "#/$defs/v2/color"
@@ -2311,6 +2573,12 @@
 						],
 						"description": "tabs: the edge of the active tab its line is on: bottom (default) or top"
 					},
+					"markerColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"keepMarker": {
+						"type": "boolean"
+					},
 					"items": {
 						"anyOf": [
 							{
@@ -2415,6 +2683,9 @@
 							}
 						],
 						"description": "tree: how many open folders stay pinned at the top while their rows scroll (default 0)"
+					},
+					"guides": {
+						"type": "boolean"
 					},
 					"sort": {
 						"anyOf": [
@@ -2794,9 +3065,6 @@
 					"snap": {
 						"$ref": "#/$defs/v2/flag"
 					},
-					"rulers": {
-						"$ref": "#/$defs/v2/flag"
-					},
 					"scaleChildren": {
 						"$ref": "#/$defs/v2/flag"
 					},
@@ -3117,6 +3385,9 @@
 					"axes": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"glyphs": {
+						"$ref": "#/$defs/v2/flag"
+					},
 					"up": {
 						"anyOf": [
 							{
@@ -3374,6 +3645,15 @@
 					"onWordHover": {
 						"$ref": "#/$defs/v2/handler"
 					},
+					"onType": {
+						"$ref": "#/$defs/v2/handler"
+					},
+					"onTextHover": {
+						"$ref": "#/$defs/v2/handler"
+					},
+					"onPopupKey": {
+						"$ref": "#/$defs/v2/handler"
+					},
 					"secret": {
 						"$ref": "#/$defs/v2/flag"
 					},
@@ -3536,7 +3816,9 @@
 					},
 					"pickedTextColor": {
 						"$ref": "#/$defs/v2/color"
-					}
+					},
+					"syntax": {},
+					"buffer": {}
 				},
 				"if": {
 					"required": [
@@ -3577,7 +3859,8 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet"
+									"outlet",
+									"code"
 								]
 							}
 						}
@@ -3593,7 +3876,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into), focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -3617,6 +3900,7 @@
 					"signIn": {},
 					"signOut": {},
 					"ask": {},
+					"chooseFolder": {},
 					"accept": {},
 					"reject": {},
 					"preview": {},
@@ -3634,6 +3918,7 @@
 					"dismiss": {
 						"const": true
 					},
+					"edit": {},
 					"after": {},
 					"debounce": {},
 					"animate": {},
@@ -3643,6 +3928,7 @@
 					"note": {},
 					"camera": {},
 					"transform": {},
+					"image": {},
 					"to": {},
 					"value": {},
 					"at": {},
@@ -3692,6 +3978,12 @@
 					"title": {},
 					"head": {},
 					"reason": {},
+					"in": {},
+					"line": {},
+					"column": {},
+					"toLine": {},
+					"toColumn": {},
+					"prefix": {},
 					"ms": {},
 					"easing": {
 						"enum": [
@@ -3779,7 +4071,8 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
-					}
+					},
+					"of": {}
 				}
 			},
 			"expression": {
@@ -3842,6 +4135,7 @@
 						"$json",
 						"$length",
 						"$concat",
+						"$flat",
 						"$join",
 						"$slice",
 						"$contains",
@@ -3896,6 +4190,20 @@
 				"type": "string",
 				"pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
 				"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""
+			},
+			"characterPairs": {
+				"type": "array",
+				"maxItems": 32,
+				"items": {
+					"type": "array",
+					"minItems": 2,
+					"maxItems": 2,
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1
+					}
+				}
 			},
 			"hexColor": {
 				"type": "string",

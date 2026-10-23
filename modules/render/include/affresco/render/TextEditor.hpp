@@ -92,6 +92,7 @@ public:
 	static constexpr std::size_t maxDecorationsPerLine = 8;  ///< Decorations starting on one line, at most.
 	static constexpr std::size_t maxCursors = 10'000;        ///< Extra cursors, at most.
 	static constexpr std::size_t maxFolds = 10'000;          ///< Folded ranges, at most.
+	static constexpr std::size_t maxRulers = 16;             ///< Rulers, at most.
 	static constexpr std::size_t maxMatches = 10'000;        ///< Matches counted or replaced at once, at most.
 	static constexpr std::size_t maxBracketScan = 100'000;   ///< Code points scanned for a matching bracket.
 	static constexpr std::size_t maxCompositionLength = 256; ///< Code points of IME composition shown, at most.
@@ -173,13 +174,40 @@ public:
 	/// @brief Shows the matching bracket of one next to the caret.
 	/// @param shown true to show it.
 	void setBracketMatching(bool shown);
+	/// @brief Underlines the matching brackets instead of filling their background.
+	/// @param underline true to underline them (in the bracket colour, 2 pixels thick).
+	void setBracketUnderline(bool underline);
+	/// @brief Whether the matching brackets are underlined.
+	[[nodiscard]] bool bracketUnderline() const noexcept { return bracketUnderline_; }
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
+	/// @brief Draws a thin vertical line, the whole height of the text, at each of some columns (in the guides'
+	/// colour), e.g. to show where lines should end.
+	/// @param columns The columns, counted from 0 in spaces (at most maxRulers kept).
+	void setRulers(std::vector<std::size_t> columns);
+	/// @brief The columns rulers are drawn at.
+	[[nodiscard]] const std::vector<std::size_t>& rulers() const noexcept { return rulers_; }
 	/// @brief Shows a minimap at the right: an overview of the rows, with the visible ones marked, that scrolls the
 	/// editor when pressed or dragged.
 	/// @param shown true to show it.
 	void setMinimap(bool shown);
+	/// @brief Draws the minimap's rows as their text, each character a pixel in its syntax colour, instead of one bar
+	/// per row.
+	/// @param text true for the text.
+	void setMinimapText(bool text);
+	/// @brief Whether the minimap draws its rows as their text.
+	[[nodiscard]] bool minimapText() const noexcept { return minimapText_; }
+	/// @brief Marks the visible rows in the minimap only while the pointer is over it.
+	/// @param onHover true for only then, false for always.
+	void setMinimapViewportOnHover(bool onHover);
+	/// @brief Whether the minimap marks the visible rows only while the pointer is over it.
+	[[nodiscard]] bool minimapViewportOnHover() const noexcept { return minimapViewportOnHover_; }
+	/// @brief Outlines find's matches instead of filling their background.
+	/// @param outline true to outline them (in the match colour, 1 pixel thick).
+	void setMatchOutline(bool outline);
+	/// @brief Whether find's matches are outlined.
+	[[nodiscard]] bool matchOutline() const noexcept { return matchOutline_; }
 
 	/* Decorations and cursors: TextEditorCursors.cpp */
 
@@ -197,6 +225,23 @@ public:
 	[[nodiscard]] const std::vector<EditorSelection>& cursors() const noexcept { return cursors_; }
 	/// @brief Leaves only the caret.
 	void clearCursors();
+
+	/* Commands: TextEditorCommands.cpp */
+
+	/// @brief The commands runCommand() knows, by name: selections (goTo is selectRange()), line operations, case
+	/// conversion, transpose and toggleComment.
+	[[nodiscard]] static const std::vector<std::string_view>& commandNames();
+	/// @brief Runs a command, as one undo step (ignored when it edits and the text is read-only).
+	/// @param name One of commandNames().
+	/// @return Whether the name is known.
+	bool runCommand(std::string_view name);
+	/// @brief Selects a range (clamped to the text), leaving only the caret, and reveals it.
+	/// @param anchor The fixed end.
+	/// @param caret The moving end.
+	void selectRange(Position anchor, Position caret);
+	/// @brief Comments the selected lines out with a line prefix, or removes it if every non-blank one has it.
+	/// @param prefix The prefix, such as "//" or "#".
+	void toggleComment(std::string_view prefix);
 
 	/* Find and replace: TextEditorFind.cpp */
 
@@ -324,6 +369,9 @@ protected:
 	};
 
 	void keyEvent(const KeyEvent& event) override;
+	/// @brief The editor's own handling of a key (caret moves, editing, clipboard, undo), without the signals.
+	/// @param event The event, pressed or repeated.
+	void builtInKey(const KeyEvent& event);
 	void charEvent(const CharEvent& event) override;
 	void mouseButtonEvent(const MouseButtonEvent& event) override;
 	void mouseMoveEvent(const MouseMoveEvent& event) override;
@@ -353,7 +401,6 @@ public:
 	[[nodiscard]] EditorHighlighter* highlighter() const noexcept { return highlighter_.get(); }
 
 protected:
-
 	/// @brief Gives the gutter's label of a line (by default its number, from 1).
 	/// @param line The line.
 	/// @param out Gets the label (empty: none).
@@ -584,6 +631,22 @@ private:
 	void commandKey(const KeyEvent& event);
 	/// @brief Cmd+D: selects the word at the caret, or adds a cursor at the next occurrence of the selection.
 	void selectNextOccurrence();
+	/// @brief Replaces whole lines, as one edit, and selects a range of the result.
+	/// @param first The first line replaced.
+	/// @param last The last line replaced (from @p first to it).
+	/// @param with The new lines (at least one).
+	/// @param anchor The selection's fixed end afterwards.
+	/// @param caret Its moving end.
+	void replaceLines(std::size_t first, std::size_t last, const std::vector<std::u32string>& with, Position anchor,
+	                  Position caret);
+	/// @brief Runs a command that changes the selected lines: duplicate, delete, move, join, sort, reverse, unique.
+	/// @param name The command.
+	/// @return Whether the name is one.
+	bool lineCommand(std::string_view name);
+	/// @brief Runs a command that changes the selection's text at each cursor: case conversion and transpose.
+	/// @param name The command.
+	/// @return Whether the name is one.
+	bool textCommand(std::string_view name);
 	/// @brief Cmd+Alt+Up/Down: adds a cursor on the row above or below the outermost one.
 	/// @param down true for below.
 	void addCursorRow(bool down);
@@ -664,6 +727,17 @@ private:
 	/// @param color The colour.
 	void paintColumns(Painter& painter, const Layout& layout, RowSpan span, std::size_t row,
 	                  std::pair<std::size_t, std::size_t> columns, Color color) const;
+	/// @brief Draws a range of columns of a row as paintColumns() does, only the bottom of the row.
+	/// @param painter The painter.
+	/// @param layout The frame's layout.
+	/// @param span The row.
+	/// @param row Its index.
+	/// @param columns The columns, first first; a second past the row's end adds a space's width.
+	/// @param color The colour.
+	/// @param thickness How much of the row's bottom, in pixels; 0 for all of it; negative for an outline of the whole
+	/// row, that many pixels thick.
+	void paintColumns(Painter& painter, const Layout& layout, RowSpan span, std::size_t row,
+	                  std::pair<std::size_t, std::size_t> columns, Color color, float thickness) const;
 	/// @brief Draws the gutter over the text scrolled under it, the line labels, fold markers and gutter icons.
 	/// @param painter The painter.
 	/// @param font The font.
@@ -686,6 +760,11 @@ private:
 	/// @param painter The painter.
 	/// @param layout The frame's layout.
 	void paintMinimap(Painter& painter, const Layout& layout) const;
+	/// @brief Colours some lines, as drawn: by the highlighter, or else from the colouring state each line starts with.
+	/// @param first The first line.
+	/// @param last One past the last.
+	/// @param body Called with each line coloured, its colours in colors_; folded lines may be skipped.
+	void colorLines(std::size_t first, std::size_t last, const std::function<void(std::size_t)>& body) const;
 	/// @brief Starts or ends scrolling by the minimap.
 	/// @param position The pointer.
 	/// @param pressed true for a press, false for a release.
@@ -735,26 +814,26 @@ private:
 
 	/// @brief The text; shared, as a file buffer may be shown by several editors at once (setModel()).
 	std::shared_ptr<TextModel> model_ = std::make_shared<TextModel>();
-	TextLines lines_{*model_};       ///< See lines().
-	Connection modelConnection_ = 0; ///< To model_->onChanged.
-	Position caret_;                 ///< Where typing happens.
-	Position anchor_;                ///< The selection's other end (== caret_: none).
-	float preferredX_ = -1.0f;       ///< The x vertical moves aim for (< 0: the caret's).
-	Vec2 scroll_;                    ///< Pixels scrolled right and down.
-	bool dragging_ = false;          ///< A button press is selecting text.
+	TextLines lines_{*model_};          ///< See lines().
+	Connection modelConnection_ = 0;    ///< To model_->onChanged.
+	Position caret_;                    ///< Where typing happens.
+	Position anchor_;                   ///< The selection's other end (== caret_: none).
+	float preferredX_ = -1.0f;          ///< The x vertical moves aim for (< 0: the caret's).
+	Vec2 scroll_;                       ///< Pixels scrolled right and down.
+	bool dragging_ = false;             ///< A button press is selecting text.
 	Position hoveredWord_{SIZE_MAX, 0}; ///< Where the word under the pointer starts, for onWordHovered.
-	double lastClickTime_ = -1.0;    ///< When the last press happened, for double clicks.
-	Position lastClickAt_;           ///< Where it happened.
-	int clicks_ = 0;                 ///< Presses in a row at one place (1, 2 or 3).
-	bool editing_ = false;           ///< This editor is changing the model: its caret is set by the edit, not moved.
-	bool readOnly_ = false;          ///< See setReadOnly().
+	double lastClickTime_ = -1.0;       ///< When the last press happened, for double clicks.
+	Position lastClickAt_;              ///< Where it happened.
+	int clicks_ = 0;                    ///< Presses in a row at one place (1, 2 or 3).
+	bool editing_ = false;              ///< This editor is changing the model: its caret is set by the edit, not moved.
+	bool readOnly_ = false;             ///< See setReadOnly().
 
 	Edit lastEdit_ = Edit::Other;        ///< The edit that made the newest undo step (Other: start a new step).
 	mutable std::vector<int> states_{0}; ///< The colouring state each line starts with, for the lines coloured so far.
 	std::unique_ptr<EditorHighlighter> highlighter_; ///< See setHighlighter().
-	mutable float widest_ = -1.0f;       ///< See widestLine(); < 0: to work out.
-	mutable const Font* widestFont_ = nullptr; ///< The font widest_ was measured with.
-	mutable std::vector<Color> colors_;        ///< One line's colours, reused from frame to frame.
+	mutable float widest_ = -1.0f;                   ///< See widestLine(); < 0: to work out.
+	mutable const Font* widestFont_ = nullptr;       ///< The font widest_ was measured with.
+	mutable std::vector<Color> colors_;              ///< One line's colours, reused from frame to frame.
 	mutable std::vector<std::tuple<std::size_t, float, float>> runs_; ///< One row's colour runs: end, x and width.
 	mutable std::vector<std::size_t> breaks_;                         ///< One line's row starts, reused.
 	mutable std::u32string label_;                                    ///< One line's gutter label, reused.
@@ -786,10 +865,10 @@ private:
 	bool cursorsMerge_ = false;                  ///< The edit joins the newest undo step.
 	bool cursorsPending_ = false;                ///< An edit began, and recordCursorStep() hasn't kept it.
 
-	TextPattern find_;                 ///< The find pattern; invalid: none.
-	std::string findText_;             ///< Its text.
-	PatternOptions findOptions_;       ///< Its options.
-	std::uint64_t findGeneration_ = 0; ///< Counts setFind() calls, for the cached matches.
+	TextPattern find_;                                       ///< The find pattern; invalid: none.
+	std::string findText_;                                   ///< Its text.
+	PatternOptions findOptions_;                             ///< Its options.
+	std::uint64_t findGeneration_ = 0;                       ///< Counts setFind() calls, for the cached matches.
 	std::optional<std::pair<Position, Position>> findScope_; ///< See setFindInSelection().
 	std::uint64_t findRequest_ = 0;                          ///< The last request findStep() ran.
 	/// @brief The matches of the rows drawn last: line, column and length.
@@ -803,11 +882,17 @@ private:
 	mutable std::string subject_;                                    ///< One line in UTF-8, reused.
 	/// @brief What visibleMatches_ was found for: the model's version, the lines and findGeneration_.
 	mutable std::array<std::uint64_t, 4> matchesKey_{};
-	bool brackets_ = false;      ///< See setBracketMatching().
-	bool guides_ = false;        ///< See setIndentGuides().
-	std::u32string composition_; ///< See setComposition().
-	bool minimap_ = false;         ///< See setMinimap().
-	bool minimapDragging_ = false; ///< A press on the minimap is scrolling.
+	bool brackets_ = false;           ///< See setBracketMatching().
+	bool bracketUnderline_ = false;   ///< See setBracketUnderline().
+	bool guides_ = false;             ///< See setIndentGuides().
+	std::vector<std::size_t> rulers_; ///< See setRulers().
+	std::u32string composition_;      ///< See setComposition().
+	bool minimap_ = false;            ///< See setMinimap().
+	bool minimapDragging_ = false;    ///< A press on the minimap is scrolling.
+	bool minimapText_ = false;        ///< See setMinimapText().
+	bool minimapViewportOnHover_ = false; ///< See setMinimapViewportOnHover().
+	bool minimapHovered_ = false;     ///< The pointer is over the minimap.
+	bool matchOutline_ = false;       ///< See setMatchOutline().
 
 	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.
 	bool lineNumbers_ = false;            ///< See setLineNumbers().

@@ -92,6 +92,8 @@ void TreeView::setStickyRows(std::size_t count) {
 	invalidatePaint();
 }
 
+void TreeView::setGuides(bool shown) { setLook(guides_, shown); }
+
 void TreeView::viewChanged() {
 	stuck_.clear();
 	const RowWindow& rows = rowWindow();
@@ -148,7 +150,7 @@ void TreeView::paintItem(Painter& painter, const Font& font, std::size_t item, s
 	const ListItem& entry = model()->item(item);
 	const float middle = std::round(area.top + area.height() / 2.0f);
 	// Indent guides: one line per level above this item
-	for(std::uint32_t level = 0; level < entry.depth; ++level) {
+	for(std::uint32_t level = 0; guides_ && level < entry.depth; ++level) {
 		const float x = std::round(area.left + padding() + static_cast<float>(level) * indent() + chevronSize / 2.0f);
 		painter.fillRect({x, area.top, x + 1.0f, area.bottom}, accent().withAlpha(0.25f));
 	}

@@ -30,7 +30,7 @@ inline constexpr std::array<std::string_view, 5> capabilitySections = {"services
                                                                        "permissions"};
 
 /// The steps that reach outside the screen or review it: a feature installed by revision can't contain them.
-inline constexpr std::array<std::string_view, 15> controlSteps = {
+inline constexpr std::array<std::string_view, 16> controlSteps = {
     "call",    "send",       "connect", "patch",  "respond", "accept", "reject", "preview",
     "endPreview", "restore", "revert", "undo",    "signIn", "signOut", "ask", "chooseFolder"};
 

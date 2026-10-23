@@ -18,7 +18,7 @@ namespace affresco::format {
 namespace {
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
-constexpr std::array<std::string_view, 15> controlSteps{"accept",  "reject",  "preview", "endPreview", "restore",
+constexpr std::array<std::string_view, 16> controlSteps{"accept",  "reject",  "preview", "endPreview", "restore",
                                                         "revert",  "undo",    "patch",   "call",       "send",
                                                         "connect", "respond", "signIn",  "signOut",    "ask", "chooseFolder"};
 

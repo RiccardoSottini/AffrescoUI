@@ -38,6 +38,18 @@ void TextEditor::setMinimap(bool shown) {
 	invalidate();
 }
 
+void TextEditor::setMinimapText(bool text) {
+	if(text == minimapText_) return;
+	minimapText_ = text;
+	invalidatePaint();
+}
+
+void TextEditor::setMinimapViewportOnHover(bool onHover) {
+	if(onHover == minimapViewportOnHover_) return;
+	minimapViewportOnHover_ = onHover;
+	invalidatePaint();
+}
+
 float TextEditor::minimapWidth() const noexcept { return minimap_ ? minimapSize + 4.0f : 0.0f; }
 
 Rect TextEditor::minimapFrame() const noexcept {
@@ -65,16 +77,47 @@ void TextEditor::paintMinimap(Painter& painter, const Layout& layout) const {
 	const std::size_t last =
 	    std::min(rowCount(), first + static_cast<std::size_t>(map.height() / minimapRowHeight) + 1);
 	const Color ink = textColor_.withAlpha(0.35f);
-	for(std::size_t row = first; row < last; ++row) {
-		const RowSpan span = rowSpan(row);
-		const auto [from, to] = inkOf(lines_[span.line], span.start, span.end);
-		if(from == to) continue;
+	const auto paintRow = [&](std::size_t row, const RowSpan& span) {
+		const std::u32string& text = lines_[span.line];
+		const auto [from, to] = inkOf(text, span.start, span.end);
+		if(from == to) return;
 		const float top = map.top + static_cast<float>(row) * minimapRowHeight - offset;
-		const float left = map.left + 2.0f + static_cast<float>(from) * minimapColumnWidth;
-		const float right = std::min(map.left + 2.0f + static_cast<float>(to) * minimapColumnWidth, map.right - 2.0f);
-		if(left < right) painter.fillRect({left, top, right, top + minimapRowHeight - 0.5f}, ink);
-	}
-	// The visible rows, as a slider
+		const auto x = [&](std::size_t column) {
+			return std::min(map.left + 2.0f + static_cast<float>(column) * minimapColumnWidth, map.right - 2.0f);
+		};
+		if(!minimapText_) {
+			if(x(from) < x(to)) painter.fillRect({x(from), top, x(to), top + minimapRowHeight - 0.5f}, ink);
+			return;
+		}
+		// Runs of one colour, blanks skipped, each code point a column
+		for(std::size_t column = from; column < to;) {
+			const std::size_t at = span.start + column;
+			if(text[at] == U' ' || text[at] == U'\t' || at >= colors_.size()) {
+				++column;
+				continue;
+			}
+			std::size_t end = column + 1;
+			while(end < to && span.start + end < colors_.size() && colors_[span.start + end] == colors_[at] &&
+			      text[span.start + end] != U' ' && text[span.start + end] != U'\t')
+				++end;
+			if(x(column) < x(end))
+				painter.fillRect({x(column), top, x(end), top + minimapRowHeight - 0.5f}, colors_[at].withAlpha(0.6f));
+			column = end;
+		}
+	};
+	if(!minimapText_)
+		for(std::size_t row = first; row < last; ++row) paintRow(row, rowSpan(row));
+	else if(first < last)
+		colorLines(rowSpan(first).line, rowSpan(last - 1).line + 1, [&](std::size_t line) {
+			if(hidden(line)) return;
+			for(std::size_t row = std::max(rowOf({line, 0}), first); row < last; ++row) {
+				const RowSpan span = rowSpan(row);
+				if(span.line != line) break;
+				paintRow(row, span);
+			}
+		});
+	// The visible rows, as a slider (only while the pointer is over the minimap, when asked)
+	if(minimapViewportOnHover_ && !minimapHovered_ && !minimapDragging_) return;
 	const float sliderTop = map.top + scroll_.y / layout.lineHeight * minimapRowHeight - offset;
 	const float sliderHeight = frame().height() / layout.lineHeight * minimapRowHeight;
 	painter.fillRect({map.left, std::max(sliderTop, map.top), map.right, std::min(sliderTop + sliderHeight, map.bottom)},

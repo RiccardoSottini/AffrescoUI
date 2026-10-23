@@ -95,6 +95,10 @@ void Tabs::setColors(Color text, Color activeText, Color activeBackground, Color
 
 void Tabs::setAccentOnTop(bool top) { setLook(accentOnTop_, top); }
 
+void Tabs::setMarkerColor(std::optional<Color> color) { setLook(markerColor_, color); }
+
+void Tabs::setKeepMarker(bool keep) { setLook(keepMarker_, keep); }
+
 const Font* Tabs::font() const noexcept {
 	if(font_) return font_.get();
 	return window() ? window()->defaultFont() : nullptr;
@@ -264,15 +268,15 @@ void Tabs::paintTab(Painter& painter, const Font& font, std::size_t index) const
 	const float baseline = std::round(f.top + (f.height() - font.lineHeight()) / 2.0f + font.ascent());
 	painter.drawText(font, place.text, {left + padding, baseline}, active ? activeText_ : text_);
 
-	// The close button when it can be used now, else the marker
+	// The close button when it can be used now, else the marker (kept on the active tab too, if asked)
 	const float buttonLeft = area.right - padding - closeSize, middle = f.top + f.height() / 2.0f;
-	if(tab.closable && (active || hovered)) {
+	if(tab.closable && (hovered || (active && !(keepMarker_ && tab.marker)))) {
 		const std::u32string_view mark(&closeMark, 1);
 		const float x = std::round(buttonLeft + (closeSize - font.measure(mark)) / 2.0f);
 		painter.drawText(font, mark, {x, baseline}, active ? activeText_ : text_);
 	} else if(tab.marker) {
 		const float dot = 8.0f, x = buttonLeft + (closeSize - dot) / 2.0f, y = std::round(middle - dot / 2.0f);
-		painter.fillRoundedRect({x, y, x + dot, y + dot}, CornerRadii::all(dot / 2.0f), accent_);
+		painter.fillRoundedRect({x, y, x + dot, y + dot}, CornerRadii::all(dot / 2.0f), markerColor_.value_or(accent_));
 	}
 }
 

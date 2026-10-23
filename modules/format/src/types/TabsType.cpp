@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -38,7 +39,8 @@ Tab readTab(const json& value, const std::string& path) {
 
 /// @brief Sets a strip's tabs, font and colours: those the node gives, the defaults for the others.
 /// @param panel The panel, a Tabs.
-/// @param values Its tabs, font, textColor, activeTextColor, activeBackground, accentColor and accentEdge, if given.
+/// @param values Its tabs, font, textColor, activeTextColor, activeBackground, accentColor, accentEdge, markerColor and
+/// keepMarker, if given.
 /// @param reader Reads colours and fonts.
 /// @param path The node's place, for errors.
 void applyTabs(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
@@ -63,6 +65,10 @@ void applyTabs(Panel& panel, const json& values, const PropertyReader& reader, c
 	    values.contains("accentEdge") ? string(values["accentEdge"], path + ".accentEdge") : "bottom";
 	if(edge != "top" && edge != "bottom") fail(path + ".accentEdge", R"(expected "top" or "bottom")");
 	tabs->setAccentOnTop(edge == "top");
+	tabs->setMarkerColor(values.contains("markerColor")
+	                         ? std::optional<Color>(reader.color(values["markerColor"], path + ".markerColor"))
+							 : std::nullopt);
+	tabs->setKeepMarker(values.contains("keepMarker") && boolean(values["keepMarker"], path + ".keepMarker"));
 }
 
 /// @brief Shows the active tab: the bound value, else "value".
@@ -162,7 +168,9 @@ void registerTabsType(TypeRegistry& registry) {
 	                   {"activeTextColor", ValueKind::Color},
 	                   {"activeBackground", ValueKind::Color},
 	                   {"accentColor", ValueKind::Color},
-	                   {"accentEdge", ValueKind::Text}};
+	                   {"accentEdge", ValueKind::Text},
+	                   {"markerColor", ValueKind::Color},
+	                   {"keepMarker", ValueKind::Boolean}};
 	set->apply = applyTabs;
 	set->everyUpdate = true; // colours follow the theme
 	set->keepsClicks = true;
