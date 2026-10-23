@@ -89,11 +89,13 @@ std::optional<float> intersect(const Ray& ray, Vec3 a, Vec3 b, Vec3 c) noexcept 
 	if(std::abs(determinant) < 1e-12f) return std::nullopt;
 	const float inverse = 1.0f / determinant;
 	const Vec3 t = ray.origin - a;
+	// A little past the edges, so a ray along an edge two triangles share can't slip between them by rounding
+	constexpr float edge = 1e-5f;
 	const float u = dot(t, p) * inverse;
-	if(u < 0.0f || u > 1.0f) return std::nullopt;
+	if(u < -edge || u > 1.0f + edge) return std::nullopt;
 	const Vec3 q = cross(t, edge1);
 	const float v = dot(ray.direction, q) * inverse;
-	if(v < 0.0f || u + v > 1.0f) return std::nullopt;
+	if(v < -edge || u + v > 1.0f + edge) return std::nullopt;
 	const float distance = dot(edge2, q) * inverse;
 	if(distance < 0.0f) return std::nullopt;
 	return distance;

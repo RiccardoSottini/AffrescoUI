@@ -1,6 +1,6 @@
 /// @file
 /// @brief What the renderer draws over the scene (Renderer.hpp): the floor grid and axes, the selection's outline, the
-/// gizmo, light and camera markers, and the box being dragged.
+/// gizmo, light and camera markers, the 3D cursor, and the box being dragged.
 
 #include "RendererInternal.hpp"
 
@@ -114,6 +114,25 @@ void addMarkers(Lines& lines, const FrameView& view) {
 	}
 }
 
+/// @brief Adds the 3D cursor, a ring of red and white dashes facing the eye with a cross around it.
+/// @param lines The list. @param view The frame.
+void addCursor(Lines& lines, const FrameView& view) {
+	if(!view.settings.cursor) return;
+	constexpr int dashes = 16;
+	constexpr Vec4 red{0.9f, 0.2f, 0.2f, 1.0f}, white{1.0f, 1.0f, 1.0f, 1.0f}, dark{0.1f, 0.1f, 0.1f, 0.9f};
+	const Vec3 at = upTurn(view.settings.zUp).rotate(*view.settings.cursor);
+	const float s = worldSizeForPixels(view.settings.camera, at, static_cast<float>(view.height) / view.scale, 10.0f);
+	const Vec3 toEye = normalize(view.eye - at);
+	const Vec3 side = normalize(cross(toEye, std::abs(toEye.y) < 0.99f ? Vec3{0, 1, 0} : Vec3{1, 0, 0}));
+	const Vec3 up = cross(side, toEye);
+	const auto ring = [&](int k) {
+		const float angle = 2.0f * std::numbers::pi_v<float> * static_cast<float>(k) / dashes;
+		return at + side * (s * std::cos(angle)) + up * (s * std::sin(angle));
+	};
+	for(int i = 0; i < dashes; ++i) lines.add(ring(i), ring(i + 1), i % 2 == 0 ? red : white);
+	for(const Vec3 direction : {side, -side, up, -up}) lines.add(at + direction * (s * 1.3f), at + direction * (s * 2.2f), dark);
+}
+
 /// @brief A matrix from window units (y down) over the viewport to clip space. @param view The frame.
 /// @return The matrix.
 Mat4 windowToClip(const FrameView& view) noexcept {
@@ -146,6 +165,8 @@ void SceneRenderer::drawGrid(const FrameView& view) {
 	glUniform1f(grid_.uniform("fade"), std::max(distance * 8.0f, 10.0f));
 	glUniform1i(grid_.uniform("showGrid"), view.settings.grid ? 1 : 0);
 	glUniform1i(grid_.uniform("showAxes"), view.settings.axes ? 1 : 0);
+	const Vec3 depthAxis = view.settings.zUp ? Vec3{0.55f, 0.8f, 0.2f} : Vec3{0.3f, 0.5f, 0.92f}; // y, or z
+	glUniform3f(grid_.uniform("depthAxisColor"), depthAxis.x, depthAxis.y, depthAxis.z);
 	glBindVertexArray(emptyArray_);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glDepthMask(GL_TRUE);
@@ -197,6 +218,7 @@ void SceneRenderer::drawLines(const FrameView& view) {
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	Lines world;
 	addMarkers(world, view);
+	addCursor(world, view);
 	if(const auto gizmo = gizmoFor(view.scene, view.settings, static_cast<float>(view.height) / view.scale))
 		addGizmo(world, *gizmo, view.settings.gizmo, normalize(view.eye - gizmo->origin));
 	drawLineList(world.vertices(), view.viewProjection);

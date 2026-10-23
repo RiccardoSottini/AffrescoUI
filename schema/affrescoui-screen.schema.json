@@ -2907,6 +2907,38 @@
 					"axes": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"up": {
+						"anyOf": [
+							{
+								"enum": [
+									"y",
+									"z"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"cursor3d": {
+						"anyOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "number"
+								},
+								"minItems": 3,
+								"maxItems": 3
+							},
+							{
+								"type": "null"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "scene: a 3D cursor"
+					},
 					"background": {
 						"$ref": "#/$defs/v2/color"
 					},
@@ -2953,6 +2985,21 @@
 										"type": "number",
 										"minimum": 10,
 										"maximum": 400
+									},
+									"pivot": {
+										"anyOf": [
+											{
+												"type": "array",
+												"items": {
+													"type": "number"
+												},
+												"minItems": 3,
+												"maxItems": 3
+											},
+											{
+												"type": "null"
+											}
+										]
 									},
 									"snap": {
 										"type": "object",
@@ -3335,7 +3382,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, end); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -3553,6 +3600,22 @@
 						"$min",
 						"$max",
 						"$clamp",
+						"$sin",
+						"$cos",
+						"$tan",
+						"$asin",
+						"$acos",
+						"$atan",
+						"$atan2",
+						"$radians",
+						"$degrees",
+						"$pi",
+						"$sqrt",
+						"$pow",
+						"$exp",
+						"$log",
+						"$hypot",
+						"$sign",
 						"$upper",
 						"$lower",
 						"$trim",

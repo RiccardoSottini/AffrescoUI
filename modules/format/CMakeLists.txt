@@ -29,6 +29,7 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsLists.cpp
 	src/functions/ExpressionFunctionsLocale.cpp
 	src/functions/ExpressionFunctionsLogic.cpp
+	src/functions/ExpressionFunctionsMaths.cpp
 	src/functions/ExpressionFunctionsNumbers.cpp
 	src/functions/ExpressionFunctionsText.cpp
 	src/functions/ExpressionFunctionsTime.cpp)

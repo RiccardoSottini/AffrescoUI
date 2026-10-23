@@ -137,6 +137,10 @@ public:
 	bool startTransform(GizmoMode mode, GizmoAxis axis = GizmoAxis::View);
 	/// @brief Changes a modal transform's constraint, from where it started. @param axis The new one.
 	void setTransformAxis(GizmoAxis axis);
+	/// @brief Gives a modal transform a typed amount instead of the pointer's: units along its axis (X when it is
+	/// free), degrees about it (the view's when free), or a factor along it (all three when free).
+	/// @param value The amount, or nothing to follow the pointer again.
+	void setTransformValue(std::optional<float> value);
 	/// @brief Ends a gizmo drag or modal transform. @param confirm Whether to keep it, or give it up.
 	void endTransform(bool confirm);
 	/// @brief Whether a gizmo drag or modal transform runs. @return It.

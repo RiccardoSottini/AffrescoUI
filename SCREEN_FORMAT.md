@@ -666,12 +666,14 @@ to load is left out and named in the log.
 | `time` | The animations' time, in seconds (default 0). |
 | `shading` | `"material"` (the default: lit, with the lights and materials), `"solid"` (one grey, a studio light) or `"wireframe"`. |
 | `grid` | A ground grid (default true). |
-| `axes` | The X (red) and Z (blue) axes on the floor (default true). |
+| `axes` | The X (red) and Z (blue) axes on the floor (default true); with `"up": "z"`, X and Y (green). |
+| `up` | Which way is up in the scene's frame: `"y"` (the default, as glTF) or `"z"` (as CAD and modelling tools): then the nodes' transforms, the world gizmo's axes, the picked `point`, the `cursor3d` and the pivot are Z up, and the floor is the XY plane. |
+| `cursor3d` | A 3D cursor drawn at `[x, y, z]` (none without it): a ring of red and white dashes facing the eye; e.g. set from a pick's `point`, and used as the gizmo's `pivot` or where new nodes go. |
 | `background` | Behind the scene (default the theme's). |
 | `gridColor` | The grid's lines. |
 | `outlineColor` | The selection's outline (default orange). |
 | `exposure` | The light's multiplier, before tone mapping (default 1). |
-| `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local", "pixels" (its size), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
+| `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local", "pixels" (its size), "pivot": [x, y, z] (where it turns and scales about, if not the selection's centre), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
 | `controls` | The pointer's gestures: `{ "orbit": "middle", "pan": "shift+middle", "select": "left", "zoom": true, "selects": true, "minimumDistance", "maximumDistance" }` (these are the defaults); a binding is `"left"`, `"middle"` or `"right"` after any of `"shift+"`, `"control+"` and `"alt+"`, or `"none"`. A click picks, a drag on nothing draws a box; `selects` false leaves the selection to the handlers. |
 | `onSelect` | A click (`event.type` `"pick"`: `id`, or null on nothing, `button`, `shift`, `x`, `y`, the world `point`) or a box (`"boxSelect"`: `ids`, `shift`, `box`), with the `selection` after it. |
 | `onTransform` | A gizmo drag: `event.phase` (`"preview"`, `"end"` or `"cancel"`), `mode`, `axis`, and `nodes`: `[{ "id", "translation", "rotation", "rotationDegrees", "scale" }]`, and `text` (e.g. `"Move 1, 0, 0"`). |
@@ -814,8 +816,11 @@ Wherever a value is expected it can be computed:
   `a ?? b` (b when a is null), `c ? a : b`; `&&` and `||` give an operand, as in JavaScript: `user && user.name` is the
   name (or `user` when it is false or null), `title || 'Untitled'` is the title unless it is empty;
 - functions: `empty(value)`, `type(value)`, `round(number)`, `floor(number)`, `ceil(number)`, `abs(number)`,
-  `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `upper(text)`,
-  `lower(text)`, `trim(text)`, `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
+  `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `sin(radians)`,
+  `cos(radians)`, `tan(radians)`, `asin(number)`, `acos(number)`, `atan(number)`, `atan2(y, x)`, `radians(degrees)`,
+  `degrees(radians)`, `pi()`, `sqrt(number)`, `pow(base, exponent)`, `exp(number)`, `log(number, base?)`,
+  `hypot(a, b, ...)` (numbers or a list), `sign(number)`, `upper(text)`, `lower(text)`, `trim(text)`,
+  `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
   `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
   `length(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
@@ -827,6 +832,9 @@ Wherever a value is expected it can be computed:
   `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`,
   `addMonths(date, months)`, `daysBetween(from, to)`, `weekday(date)`, `daysInMonth(date)`, `dateOf(milliseconds)`,
   `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`;
+- per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
+  `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
+  `every(list, condition)`, `sort(list, key?, 'desc'?)`.
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
@@ -1081,7 +1089,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
 | `camera` | `{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view`, `frame` ("selection", "all", ids), `projection`, `orbit` [° right, ° down], `zoom` (wheel steps) |
-| `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `end` (confirm, cancel) ends it |
+| `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
 <!-- end generated -->
 
 ### Control steps and paths
