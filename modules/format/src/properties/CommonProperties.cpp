@@ -183,11 +183,9 @@ bool Properties::textProperty(Look& look, Slot slot, const json& value, const st
 	else if(slot == Slot::Padding) label.setPadding(number(value, at));
 	else if(slot == Slot::Wrap) label.setWrap(boolean(value, at));
 	else if(slot == Slot::Font) label.setFont(font(value, at));
-	else if(slot == Slot::Align && value.is_string()) label.setAlignment(align(value, at), align(value, at));
 	else if(slot == Slot::Align) {
-		object(value, at);
-		label.setAlignment(align(value.value("horizontal", json("start")), at + ".horizontal"),
-		                   align(value.value("vertical", json("start")), at + ".vertical"));
+		const auto [horizontal, vertical] = alignments(value, at);
+		label.setAlignment(horizontal, vertical);
 	} else if(slot == Slot::FitText && value.is_boolean()) label.setFitToText(value.get<bool>());
 	else if(slot == Slot::FitText)
 		label.setFitToText(true, number(object(value, at).value("maxWidth", json()), at + ".maxWidth"));

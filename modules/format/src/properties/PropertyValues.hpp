@@ -13,6 +13,7 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace affresco::format {
 
@@ -29,6 +30,14 @@ namespace affresco::format {
 /// @return The alignment.
 /// @throws DocumentError If it is something else.
 [[nodiscard]] Align align(const json& value, const std::string& path);
+
+/// @brief Reads a label's alignment: one value for both axes, two words for horizontal then vertical
+/// ("start center"), or `{ "horizontal", "vertical" }` (each start when left out).
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return The horizontal and vertical alignments.
+/// @throws DocumentError If it is something else.
+[[nodiscard]] std::pair<Align, Align> alignments(const json& value, const std::string& path);
 
 /// @brief Reads a cursor name, e.g. "hand".
 /// @param value The value.
