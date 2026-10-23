@@ -103,6 +103,24 @@
 			]
 		},
 		{
+			"name": "kanban-shortcuts",
+			"screen": "kanban.screen.json",
+			"steps": [
+				{ "key": "j" },
+				{ "key": "j" },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "expect": { "image": "priority-picker" } },
+				{ "key": "escape" },
+				{ "wait": 50 },
+				{ "key": "s" },
+				{ "wait": 50 },
+				{ "type": "rev" },
+				{ "wait": 50 },
+				{ "expect": { "image": "status-picker" } }
+			]
+		},
+		{
 			"name": "kanban-retina",
 			"screen": "kanban.screen.json",
 			"scale": 2,

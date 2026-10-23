@@ -458,6 +458,46 @@
 				{ "expect": { "state": "issueOpen", "is": false } },
 				{ "expect": { "node": "#issuePage", "exists": false } }
 			]
+		},
+		{
+			"name": "single-key-shortcuts",
+			"note": "J and K walk the cards, P, S and A pick the selected card's priority, status and assignee, I assigns it to me",
+			"steps": [
+				{ "key": "j" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "j" },
+				{ "key": "j" },
+				{ "key": "k" },
+				{ "expect": { "state": "selected.i", "is": 1 } },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "expect": { "state": "propPick.open", "is": true } },
+				{ "type": "urgent" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "propPick.open", "is": false } },
+				{ "expect": { "state": "columns[0].cards[1].priority", "is": 1 } },
+				{ "wait": 50 },
+				{ "key": "a" },
+				{ "wait": 50 },
+				{ "expect": { "state": "propKind", "is": "assignee" } },
+				{ "expect": { "state": "propPick.open", "is": true } },
+				{ "type": "jon" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[1].who", "is": "JD" } },
+				{ "wait": 50 },
+				{ "key": "i" },
+				{ "expect": { "state": "columns[0].cards[1].who", "is": "MK" } },
+				{ "key": "s" },
+				{ "wait": 50 },
+				{ "type": "review" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "selected.c", "is": 2 } },
+				{ "key": "mod+k" },
+				{ "expect": { "state": "quickPick.query", "is": ">" } }
+			]
 		}
 	
 	]

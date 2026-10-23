@@ -131,6 +131,9 @@
 		"edit": { "open": false, "title": "" },
 		"toast": { "open": false, "message": "" },
 		"quickPick": { "open": false, "query": "" },
+		"propPick": { "open": false, "query": "" },
+		"propKind": "status",
+		"me": "MK",
 		"members": [
 			{ "who": "RS", "name": "Remy Shaw", "color": "#4f46e5" },
 			{ "who": "MK", "name": "Maya Klein", "color": "#9333ea" },
@@ -214,7 +217,11 @@
 		"picks": "{{map(computed.allCards, { title: it.title, detail: state.columns[it.c].name + ' · ' + it.who, c: it.c, at: it.at })}}",
 		"over": "{{map(state.columns, it.limit != null && length(it.cards) > it.limit)}}",
 		"tableColumns": "{{[{ id: 'title', title: t('table.card'), width: state.columnWidths.title }, { id: 'column', title: t('table.column'), width: state.columnWidths.column }, { id: 'tag', title: t('table.label'), width: state.columnWidths.tag }, { id: 'who', title: t('table.owner'), width: state.columnWidths.who }, { id: 'points', title: t('table.points'), width: state.columnWidths.points }]}}",
-		"palette": "{{map(filter(commands, it.enabled), { title: it.title, detail: it.keyLabel ?? it.category, run: it.name })}}"
+		"palette": "{{map(filter(commands, it.enabled), { title: it.title, detail: it.keyLabel ?? it.category, run: it.name })}}",
+		"visible": "{{filter(computed.allCards, (state.filter == 'all' || it.tag == state.filter) && (state.owner == '' || it.who == state.owner) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
+		"next": "{{state.selected == null ? computed.visible[0] : find(computed.visible, it.c > state.selected.c || (it.c == state.selected.c && it.at > state.selected.i))}}",
+		"prev": "{{state.selected == null ? null : computed.visible[count(computed.visible, it.c < state.selected.c || (it.c == state.selected.c && it.at < state.selected.i)) - 1]}}",
+		"propItems": "{{state.propKind == 'status' ? map(state.columns, { title: it.name, detail: index == state.selected.c ? '✓' : '', run: 'setStatus', with: { to: index } }) : state.propKind == 'priority' ? map(state.priorities, { title: t('priority.' + index), detail: index == (computed.card.priority ?? 0) ? '✓' : '', run: 'setPriority', with: { p: index } }) : map(state.members, { title: it.name, detail: it.who == computed.card.who ? '✓' : it.who, run: 'setAssignee', with: { who: it.who } })}}"
 	},
 
 	"styles": {
@@ -356,6 +363,23 @@
 			{ "note": "with: by, -1 or 1" },
 			{ "run": "moveCard", "with": { "from": "{{state.selected.c}}", "at": "{{state.selected.i}}", "to": "{{state.selected.c + by}}" } }
 		],
+		"openPropPick": [
+			{ "note": "with: kind, 'status', 'priority' or 'assignee': a picker over the selected card's property" },
+			{ "set": "state.propKind", "to": "{{kind}}" },
+			{ "set": "state.propPick", "to": { "open": true, "query": "", "index": 0, "top": 0 } }
+		],
+		"selectNext": { "title": "Select the next card", "category": "Go", "icon": "arrow-down", "enablement": "{{computed.next != null}}",
+			"do": [{ "run": "selectCard", "with": { "c": "{{computed.next.c}}", "i": "{{computed.next.at}}" } }] },
+		"selectPrev": { "title": "Select the previous card", "category": "Go", "icon": "arrow-up", "enablement": "{{computed.prev != null}}",
+			"do": [{ "run": "selectCard", "with": { "c": "{{computed.prev.c}}", "i": "{{computed.prev.at}}" } }] },
+		"changeStatus": { "title": "Change status…", "category": "Card", "icon": "circle-dashed", "enablement": "{{computed.card != null}}",
+			"do": [{ "run": "openPropPick", "with": { "kind": "status" } }] },
+		"changePriority": { "title": "Change priority…", "category": "Card", "icon": "signal-high", "enablement": "{{computed.card != null}}",
+			"do": [{ "run": "openPropPick", "with": { "kind": "priority" } }] },
+		"changeAssignee": { "title": "Assign to…", "category": "Card", "icon": "user", "enablement": "{{computed.card != null}}",
+			"do": [{ "run": "openPropPick", "with": { "kind": "assignee" } }] },
+		"assignToMe": { "title": "Assign to me", "category": "Card", "icon": "user-check", "enablement": "{{computed.card != null}}",
+			"do": [{ "run": "setAssignee", "with": { "who": "{{state.me}}" } }] },
 		"newCardCommand": { "title": "New card", "category": "Card", "icon": "plus", "do": [{ "focus": "#newCard" }] },
 		"goToCardCommand": { "title": "Go to card…", "category": "Go", "icon": "search",
 			"do": [{ "set": "state.quickPick.query", "to": "" }, { "set": "state.quickPick.open", "to": true }] },
@@ -391,6 +415,15 @@
 		"mod+n": "newCardCommand",
 		"mod+p": "goToCardCommand",
 		"mod+shift+p": "commandPalette",
+		"mod+k": "commandPalette",
+		"c": { "when": "{{!context.textInputFocus}}", "do": "newCardCommand" },
+		"j": { "when": "{{!context.textInputFocus}}", "do": "selectNext" },
+		"k": { "when": "{{!context.textInputFocus}}", "do": "selectPrev" },
+		"s": { "when": "{{!context.textInputFocus}}", "do": "changeStatus" },
+		"p": { "when": "{{!context.textInputFocus}}", "do": "changePriority" },
+		"a": { "when": "{{!context.textInputFocus}}", "do": "changeAssignee" },
+		"i": { "when": "{{!context.textInputFocus}}", "do": "assignToMe" },
+		"slash": { "when": "{{!context.textInputFocus}}", "do": "focusSearch" },
 		"mod+e": "editCard",
 		"mod+j": "toggleTheme",
 		"mod+right": "moveRight",
@@ -818,33 +851,13 @@
 			},
 			{
 				"id": "statusBar",
-				"dir": "auto",
+				"use": "statusBar",
 				"anchors": { "left": 228, "right": 8, "bottom": 8 },
-				"height": 32,
 				"radius": { "bottomLeft": 8, "bottomRight": 8 },
-				"color": "@color.surface",
-				"children": [
-					{ "id": "panel-status-bar", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@color.border" },
-					{
-						"id": "statusText",
-						"type": "label",
-						"text": "{{t('status.revision', { number: revision.number, author: revision.author, message: revision.message })}}",
-						"font": "small",
-						"textColor": "@color.muted",
-						"anchors": { "left": 24, "top": 0, "bottom": 0, "right": 200 },
-						"align": { "horizontal": "start", "vertical": "center" }
-					},
-					{
-						"id": "statusSize",
-						"type": "label",
-						"text": "{{window.width}} × {{window.height}}",
-						"font": "small",
-						"textColor": "@color.muted",
-						"anchors": { "right": 24, "top": 0, "bottom": 0 },
-						"width": 160,
-						"align": { "horizontal": "end", "vertical": "center" }
-					}
-				]
+				"with": { "height": 32, "color": "@color.surface", "textColor": "@color.muted", "highlight": "@color.chipHover", "items": [
+					{ "text": "{{t('status.revision', { number: revision.number, author: revision.author, message: revision.message })}}" },
+					{ "text": "{{window.width}} × {{window.height}}", "side": "end" }
+				] }
 			},
 			{
 				"id": "issuePage",
@@ -930,6 +943,22 @@
 						{ "items": "{{computed.picks}}", "run": "goToCard", "placeholder": "{{t('quick.cards')}}" },
 						{ "prefix": ">", "items": "{{computed.palette}}", "placeholder": "{{t('quick.commands')}}" }
 					]
+				}
+			},
+			{
+				"id": "propPick",
+				"use": "quickPick",
+				"with": {
+					"name": "propPick",
+					"width": 360,
+					"recentLimit": 0,
+					"color": "@color.menu",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"accent": "@color.accent",
+					"highlight": "@color.accentSoft",
+					"field": "@color.field",
+					"providers": [{ "items": "{{computed.propItems}}", "placeholder": "{{t('quick.' + (state.propKind ?? 'status'))}}" }]
 				}
 			},
 			{ "id": "sidebar", "use": "sidebar" }
