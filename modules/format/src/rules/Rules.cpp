@@ -53,6 +53,17 @@ std::string typeNote(const Mismatch& mismatch) {
 	return " (stateTypes." + std::string(place.substr(0, place.find_first_of(".["))) + ")";
 }
 
+/// @brief Rejects a revision for the findings it brings, listing at most maxListed of them.
+/// @param added The findings the revision brings.
+/// @throws DocumentError If there are any.
+void failOnFindings(const std::vector<Finding>& added) {
+	if(added.empty()) return;
+	std::string message = "the checker found:";
+	for(std::size_t i = 0; i < added.size() && i < maxListed; ++i) message += (i ? "; " : " ") + added[i].text();
+	if(added.size() > maxListed) message += "; and " + std::to_string(added.size() - maxListed) + " more";
+	fail("revision", message);
+}
+
 /// @brief Refuses a document larger than maxDocumentBytes without its "state", or whose "state" is larger than
 /// maxStateBytes.
 /// @param document The document.
@@ -262,12 +273,7 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 		now = duplicateIdFindings(after);
 		old = duplicateIdFindings(before);
 	}
-	const std::vector<Finding> added = introduced(*old, *now);
-	if(added.empty()) return;
-	std::string message = "the checker found:";
-	for(std::size_t i = 0; i < added.size() && i < maxListed; ++i) message += (i ? "; " : " ") + added[i].text();
-	if(added.size() > maxListed) message += "; and " + std::to_string(added.size() - maxListed) + " more";
-	fail("revision", message);
+	failOnFindings(introduced(*old, *now));
 }
 
 std::vector<std::string> Rules::findings(const json& document, const json& state) const {
