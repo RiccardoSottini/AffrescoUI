@@ -5,6 +5,7 @@
 
 #include "affresco/render/Events.hpp"
 
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -19,6 +20,18 @@ namespace affresco::format {
 /// @param event The key event.
 /// @return The shortcut, or "" for keys without a name (and lone modifiers).
 [[nodiscard]] std::string shortcut(const KeyEvent& event);
+
+/// @brief The key press a shortcut names, the opposite of shortcut(): "ctrl+shift+k" is K with Control and Shift.
+/// @param text The shortcut as written, one press ("Mod+K" or "Return"); a name that is a modifier alone or no key is
+/// none.
+/// @return The press, or std::nullopt if it names no key.
+[[nodiscard]] std::optional<KeyEvent> keyPress(std::string_view text);
+
+/// @brief The character a press types on a US keyboard: a letter (capital with Shift), a digit, a space or a
+/// punctuation mark (its shifted one with Shift). A press with Control, Alt or Cmd types nothing.
+/// @param event The press.
+/// @return The character, or 0 for none.
+[[nodiscard]] char32_t typedBy(const KeyEvent& event) noexcept;
 
 /// @brief Writes a shortcut from the document the way shortcut() does: "Shift+Cmd+K" is "cmd+shift+k". "mod" is cmd
 /// on macOS and ctrl elsewhere.

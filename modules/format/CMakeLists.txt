@@ -102,6 +102,7 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/OutsideSteps.cpp
 	src/steps/ReviewSteps.cpp
 	src/steps/NavigationSteps.cpp
+	src/steps/KeySteps.cpp
 	src/steps/TimeSteps.cpp
 	src/steps/OtherSteps.cpp
 	src/steps/ServiceSteps.cpp)

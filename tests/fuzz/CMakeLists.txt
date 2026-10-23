@@ -118,3 +118,5 @@ affrescoui_fuzzer(gltf affrescoui::scene3d nlohmann_json::nlohmann_json) # Fuzz.
 # The image editor's inputs (examples/tempera): ICC profiles and project files
 affrescoui_fuzzer(icc affrescoui::imaging)
 affrescoui_fuzzer(tempera_project affrescoui::imaging)
+affrescoui_fuzzer(key_press affrescoui::format)
+target_include_directories(affrescoui_fuzz_key_press PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src/events) # Shortcuts.hpp

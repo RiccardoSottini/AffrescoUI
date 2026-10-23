@@ -967,6 +967,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
+| `press` | `{ "press": "ctrl+x ctrl+s", "in": "#ed", "times": 3 }`: keys as the keyboard sends them (US layout), unheard by bindings |
+| `insert`, `cut` | `{ "insert": "hi" }`, `{ "cut": "lineEnd", "into": "state.kill", "append": true }`: at the caret; cut takes "lineEnd", "word", "selection" or "line" to "into" or the clipboard |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |

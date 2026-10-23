@@ -60,11 +60,12 @@ std::optional<bool> recognisesNothing(const Running& step) {
 TEST_CASE("format: the built-in node types register in catalog order, each with a factory") {
 	TypeRegistry registry;
 	registerBuiltInTypes(registry);
-	CHECK(typeNames(registry) == std::vector<std::string>{"panel", "label", "textarea", "editor", "diff", "stack",
-	                                                      "row", "column", "grid", "toggle", "checkbox", "slider",
-	                                                      "image", "surface", "split", "tabs", "list", "tree", "table", "path",
-	                                                      "colorPicker", "gradient", "curves", "canvas", "graph", "timeline", "calendar",
-	                                                      "codeInput", "carousel", "outlet"});
+	CHECK(typeNames(registry) ==
+	      std::vector<std::string>{"panel", "label",    "textarea",    "editor",    "diff",     "stack",
+	                               "row",   "column",   "grid",        "toggle",    "checkbox", "slider",
+	                               "image", "surface",  "split",       "tabs",      "list",     "tree",
+	                               "table", "path",     "colorPicker", "gradient",  "curves",   "canvas",
+	                               "graph", "timeline", "calendar",    "codeInput", "carousel", "outlet"});
 	for(const NodeType* type : registry.inOrder()) {
 		CAPTURE(type->name);
 		CHECK(type->create());
@@ -90,7 +91,7 @@ TEST_CASE("format: a type's property sets: its own, then the built-in widgets it
 	REQUIRE(sets[0] == own);
 	REQUIRE(sets[1]);
 	CHECK(sets[1]->find("lineNumbers")); // the editor's
-	CHECK(sets[2]); // then the sets that apply to every node, such as the transform properties
+	CHECK(sets[2]);                      // then the sets that apply to every node, such as the transform properties
 
 	const affresco::Panel panel;
 	const PropertySets none = registry.setsFor(registry.find("panel"), panel);
@@ -120,7 +121,7 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
 	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "auth", "review", "navigation",
-	                                         "time", "other"});
+	                                         "keys", "time", "other"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())

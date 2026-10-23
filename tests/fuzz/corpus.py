@@ -24,7 +24,8 @@
 - token_file: a document server's token file, with comments and blank lines;
 - git_output: `git status --porcelain=v2 -z --branch`, `git for-each-ref` and two texts to diff (the first byte picks);
 - vscode_theme: VS Code colour themes, dark and light, with comments and trailing commas;
-- history:    refs.json (even first byte) or a commit object (odd first byte) of a history on disk.
+- history:    refs.json (even first byte) or a commit object (odd first byte) of a history on disk;
+- key_press:  key chords, as the "keys" of a screen and the "press" step write them.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -555,6 +556,20 @@ def syntax_seeds():
     return [chr(language) + text + edit for language, text in enumerate(texts)] + [chr(index) for index in range(8)]
 
 
+def key_press_seeds():
+    """Chords for the key names (tests/fuzz/key_press.cpp): the templates' "keys", and some written loosely."""
+    chords = set()
+    for path in sorted((ROOT / "examples").rglob("*.screen.json")):
+        try:
+            screen = json.loads(path.read_text(encoding="utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            continue
+        if isinstance(screen, dict) and isinstance(screen.get("keys"), dict):
+            chords.update(screen["keys"])
+    return sorted(chords) + ["ctrl+x ctrl+s", "Shift + K", "mod+enter", "alt+shift+5", "esc", "ctrl+ +", "f12",
+                             "  ctrl +x   s ", "cmd+option+period", "shift+space"]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -624,6 +639,10 @@ def dictionaries():
             "vscode_theme": tokens + ['"name"', '"type"', '"dark"', '"light"', '"colors"', '"tokenColors"',
                                       '"editor.background"', '"editor.foreground"', '"focusBorder"', '"#"',
                                       '"#ffffff"', '"#00000080"', ",}"],
+            "key_press": ["+", " ", "mod", "cmd", "command", "super", "meta", "ctrl", "control", "alt", "option",
+                          "shift", "enter", "return", "escape", "esc", "tab", "backspace", "delete", "space", "up",
+                          "down", "left", "right", "home", "end", "pageup", "pagedown", "minus", "equal", "comma",
+                          "period", "slash", "f1", "f25"],
             "history": tokens + [f'"{word}"' for word in ["version", "main", "proposals", "nextProposal", "grants",
                                                           "mode", "packs", "checksum", "parents", "author",
                                                           "committer", "time", "message", "patch", "tree", "delta",
@@ -699,7 +718,7 @@ def main():
           "affrescoui-adapter", "affrescoui-proof", "list", "action", "image", "{{", "}}"])
     for target, seeds in [("url", url_seeds()), ("oauth", oauth_seeds()), ("token_file", token_file_seeds()),
                           ("git_output", git_output_seeds()), ("vscode_theme", vscode_theme_seeds()),
-                          ("history", history_seeds())]:
+                          ("history", history_seeds()), ("key_press", key_press_seeds())]:
         write(out, target, seeds, words[target])
     write(out, "adapters", adapters_seeds(), words["json"] + ["surfaceUpdate", "beginRendering", "dataModelUpdate",
           "literalString", "explicitList", "AdaptiveCard", "TextBlock", "Input.Text", "Action.Submit", "${"])

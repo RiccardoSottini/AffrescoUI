@@ -23,10 +23,11 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(
-    {"set",    "push",       "remove", "toggle",   "increment", "if",        "forEach", "while",    "run",     "call",
-	 "cancel", "emit",       "send",   "connect",  "patch",     "accept",    "reject",  "preview",  "restore", "revert",
-	 "undo",   "endPreview", "focus",  "scrollTo", "navigate",  "dismiss",   "after",   "debounce", "animate", "copy",
-	 "log",    "stop",       "note",   "invoke",   "request",   "subscribe", "respond", "signIn",   "signOut"});
+    {"set",     "push",    "remove",    "toggle",     "increment", "if",       "forEach",  "while",  "run",
+	 "call",    "cancel",  "emit",      "send",       "connect",   "patch",    "accept",   "reject", "preview",
+	 "restore", "revert",  "undo",      "endPreview", "focus",     "scrollTo", "navigate", "press",  "insert",
+	 "cut",     "dismiss", "after",     "debounce",   "animate",   "copy",     "log",      "stop",   "note",
+	 "invoke",  "request", "subscribe", "respond",    "signIn",    "signOut"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -114,11 +115,12 @@ bool mayReferTo(const std::string& key, const json& value) {
 /// @param kind The step.
 /// @param key A key of it.
 /// @return true for the target of a state step, "to" of set, "value" of push and "into", "loading" and
-/// "progress" of call.
+/// "progress" of call, and "into" of cut.
 bool writtenKey(std::string_view kind, std::string_view key) {
 	return (among(stateSteps, kind) && key == kind) || (kind == "set" && key == "to") ||
 	       (kind == "push" && key == "value") ||
-	       (kind == "call" && (key == "into" || key == "loading" || key == "progress"));
+	       (kind == "call" && (key == "into" || key == "loading" || key == "progress")) ||
+	       (kind == "cut" && key == "into");
 }
 
 /// @brief Tells whether a component's node has a `{"slot": true}` for the use's children, as the runtime looks for
@@ -480,7 +482,8 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 	if(!kind) {
 		report(place, "unknown step",
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
-		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, "
+		       "patch, focus, scrollTo, navigate, press, insert, cut, dismiss, after, debounce, animate, copy, log, "
+		       "stop, note, accept, "
 		       "reject, "
 		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn or signOut");
 		return;
@@ -532,6 +535,8 @@ void Checker::walkWrite(std::string_view kind, const json& step, const Scope& sc
 			if(step.contains(name))
 				write(step[name], std::string_view(name) == "into" ? anything : single, Change::set, scope,
 				      place + "." + name);
+	if(kind == "cut" && step.contains("into"))
+		write(step["into"], single, Change::set, scope, place + ".into"); // the text it took
 }
 
 void Checker::walkRun(const json& step, const Scope& scope, const std::string& place) {

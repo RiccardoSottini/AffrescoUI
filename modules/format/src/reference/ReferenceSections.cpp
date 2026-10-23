@@ -14,7 +14,8 @@ namespace {
 
 /// The top-level sections, in the order of the table.
 constexpr auto sectionTable = std::to_array<KeyReference>({
-    {"version", R"json({"const": 2})json", "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
+    {"version", R"json({"const": 2})json",
+	 "Required. `2` (a file of version 1 is read by migrating it: \"Migrating from version 1\").", "sections"},
     {"root", R"json({"$ref": "#/$defs/v2/node",
 		"description": "The window's root panel: it always fills the window"})json",
 	 "Required. The window's root node. It always fills the window, so layout properties aren't allowed on it.",
@@ -294,6 +295,15 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
     {"focus", "", R"(`{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update))", "steps"},
     {"scrollTo", "", "", "steps"},
+    {"press", "",
+	 R"(`{ "press": "ctrl+x ctrl+s", "in": "#ed", "times": 3 }`: keys as the keyboard sends them (US layout), )"
+	 "unheard by bindings",
+	 "steps"},
+    {"insert", "",
+	 R"(`{ "insert": "hi" }`, `{ "cut": "lineEnd", "into": "state.kill", "append": true }`: at the caret; cut takes )"
+	 R"("lineEnd", "word", "selection" or "line" to "into" or the clipboard)",
+	 "steps"},
+    {"cut", "", "", "steps"},
     {"dismiss", R"json({"const": true})json",
 	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},
     {"after", "", R"(`{ "after": 2000, "do": [...] }`: later)", "steps"},
@@ -328,7 +338,11 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
     {"append", "", "", ""},
-    {"keep", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "string"}]})json", "", ""},
+    {"keep",
+	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "boolean"}, {"type": "string"}]})json",
+	 "", ""},
+    {"in", "", "", ""},
+    {"times", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 1000}, {"type": "string"}]})json", "", ""},
     {"id", "", "", ""},
     {"error", "", "", ""},
     {"data", "", "", ""},
