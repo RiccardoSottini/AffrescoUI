@@ -142,6 +142,21 @@
 			]
 		},
 		{
+			"name": "kanban-select",
+			"screen": "kanban.screen.json",
+			"steps": [
+				{ "key": "j" },
+				{ "key": "x" },
+				{ "key": "shift+j" },
+				{ "key": "shift+j" },
+				{ "wait": 50 },
+				{ "expect": { "image": "bulk-bar" } },
+				{ "key": "s" },
+				{ "wait": 50 },
+				{ "expect": { "image": "bulk-status" } }
+			]
+		},
+		{
 			"name": "kanban-retina",
 			"screen": "kanban.screen.json",
 			"scale": 2,

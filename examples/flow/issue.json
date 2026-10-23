@@ -49,21 +49,24 @@
 
 	"actions": {
 		"setPriority": [
-			{ "note": "with: p, the priority from 0 (none) to 4 (low)" },
+			{ "note": "with: p, the priority from 0 (none) to 4 (low); every marked card while some are" },
+			{ "if": "{{length(state.marked) > 0}}", "then": [{ "run": "bulkPriority", "with": { "p": "{{p}}" } }, { "stop": true }] },
 			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
 			{ "run": "remember" },
 			{ "set": "state.columns[state.selected.c].cards[state.selected.i].priority", "to": "{{p}}" },
 			{ "set": "state.issuePriorityOpen", "to": false }
 		],
 		"setAssignee": [
-			{ "note": "with: who, a member's initials" },
+			{ "note": "with: who, a member's initials; every marked card while some are" },
+			{ "if": "{{length(state.marked) > 0}}", "then": [{ "run": "bulkAssignee", "with": { "who": "{{who}}" } }, { "stop": true }] },
 			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
 			{ "run": "remember" },
 			{ "set": "state.columns[state.selected.c].cards[state.selected.i].who", "to": "{{who}}" },
 			{ "set": "state.issueWhoOpen", "to": false }
 		],
 		"setStatus": [
-			{ "note": "with: to, the column the selected card moves to" },
+			{ "note": "with: to, the column the selected card moves to; every marked card while some are" },
+			{ "if": "{{length(state.marked) > 0}}", "then": [{ "set": "state.issueStatusOpen", "to": false }, { "run": "bulkStatus", "with": { "to": "{{to}}" } }, { "stop": true }] },
 			{ "set": "state.issueStatusOpen", "to": false },
 			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
 			{ "run": "moveCard", "with": { "from": "{{state.selected.c}}", "at": "{{state.selected.i}}", "to": "{{to}}" } }

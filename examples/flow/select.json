@@ -1,0 +1,69 @@
+{
+	"note": "Flow's multi-select, included by kanban.screen.json: X marks the selected card, Shift+J and Shift+K extend the marks, and a bar at the bottom changes the status, priority or assignee of every marked card at once, or deletes them. Each bulk change is one undo step.",
+
+	"state": {
+		"marked": []
+	},
+
+	"actions": {
+		"toggleMark": { "title": "Select or deselect the card", "category": "Card", "icon": "square-check", "enablement": "{{computed.card != null}}",
+			"do": [{ "set": "state.marked", "to": "{{contains(state.marked, computed.card.ref) ? filter(state.marked, it != computed.card.ref) : concat(state.marked, [computed.card.ref])}}" }] },
+		"markNext": { "title": "Extend the selection down", "category": "Card", "icon": "chevrons-down", "enablement": "{{computed.next != null}}",
+			"do": [{ "run": "markSelected" }, { "run": "selectNext" }, { "run": "markSelected" }] },
+		"markPrevious": { "title": "Extend the selection up", "category": "Card", "icon": "chevrons-up", "enablement": "{{computed.prev != null}}",
+			"do": [{ "run": "markSelected" }, { "run": "selectPrev" }, { "run": "markSelected" }] },
+		"markSelected": [
+			{ "note": "Marks the selected card if it isn't marked yet" },
+			{ "if": "{{computed.card != null && !contains(state.marked, computed.card.ref)}}", "then": [{ "push": "state.marked", "value": "{{computed.card.ref}}" }] }
+		],
+		"clearMarks": { "title": "Clear the selection", "category": "Card", "icon": "x", "enablement": "{{length(state.marked) > 0}}",
+			"do": [{ "set": "state.marked", "to": [] }] },
+		"markAll": { "title": "Select all cards", "category": "Card", "icon": "list-checks",
+			"do": [{ "set": "state.marked", "to": "{{map(computed.visible, it.ref)}}" }] },
+
+		"bulkPriority": [
+			{ "note": "with: p; sets every marked card's priority" },
+			{ "run": "remember" },
+			{ "set": "state.columns", "to": "{{map(state.columns, merge(it, { cards: map(it.cards, contains(state.marked, it.ref) ? merge(it, { priority: p }) : it) }))}}" },
+			{ "run": "notify", "with": { "message": "{{t('bulk.changed', { n: length(state.marked) })}}" } }
+		],
+		"bulkAssignee": [
+			{ "note": "with: who; assigns every marked card" },
+			{ "run": "remember" },
+			{ "set": "state.columns", "to": "{{map(state.columns, merge(it, { cards: map(it.cards, contains(state.marked, it.ref) ? merge(it, { who: who }) : it) }))}}" },
+			{ "run": "notify", "with": { "message": "{{t('bulk.changed', { n: length(state.marked) })}}" } }
+		],
+		"bulkStatus": [
+			{ "note": "with: to; moves every marked card to the end of that column, in the order they were marked" },
+			{ "run": "remember" },
+			{ "forEach": "state.marked", "as": "ref", "do": [
+				{ "run": "moveMarked", "with": { "ref": "{{ref}}", "to": "{{to}}", "from": "{{indexOf(map(state.columns, some(it.cards, it.ref == ref)), true)}}" } }
+			] },
+			{ "set": "state.selected", "to": null },
+			{ "run": "notify", "with": { "message": "{{t('bulk.changed', { n: length(state.marked) })}}" } }
+		],
+		"moveMarked": [
+			{ "note": "with: ref, from, to; one card of a bulk move, without its own undo step" },
+			{ "if": "{{from < 0 || from == to}}", "then": [{ "stop": true }] },
+			{ "push": "state.columns[to].cards", "value": "{{find(state.columns[from].cards, it.ref == ref)}}" },
+			{ "remove": "state.columns[from].cards", "at": "{{indexOf(map(state.columns[from].cards, it.ref), ref)}}" }
+		],
+		"bulkDelete": { "title": "Delete the selected cards", "category": "Card", "icon": "trash-2", "enablement": "{{length(state.marked) > 0}}",
+			"do": [
+				{ "run": "remember" },
+				{ "run": "notify", "with": { "message": "{{t('bulk.deleted', { n: length(state.marked) })}}" } },
+				{ "set": "state.columns", "to": "{{map(state.columns, merge(it, { cards: filter(it.cards, !contains(state.marked, it.ref)) }))}}" },
+				{ "set": "state.marked", "to": [] },
+				{ "set": "state.selected", "to": null }
+			] }
+	},
+
+	"keys": {
+		"x": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "toggleMark" },
+		"shift+j": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "markNext" },
+		"shift+down": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "markNext" },
+		"shift+k": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "markPrevious" },
+		"shift+up": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "markPrevious" },
+		"mod+a": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "markAll" }
+	}
+}

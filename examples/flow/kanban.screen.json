@@ -6,7 +6,7 @@
 
 	"window": { "title": "Flow: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
-	"include": ["../shared/components/charts.json", "strings.json", "board.json", "drawer.json", "views.json", "sidebar.json", "list.json", "issue.json", "pages.json"],
+	"include": ["../shared/components/charts.json", "strings.json", "board.json", "drawer.json", "views.json", "sidebar.json", "list.json", "issue.json", "pages.json", "select.json"],
 
 	"persist": ["state.theme", "state.sizes", "state.view", "state.swimlanes", "state.settings"],
 
@@ -371,11 +371,11 @@
 			"do": [{ "run": "selectCard", "with": { "c": "{{computed.next.c}}", "i": "{{computed.next.at}}" } }] },
 		"selectPrev": { "title": "Select the previous card", "category": "Go", "icon": "arrow-up", "enablement": "{{computed.prev != null}}",
 			"do": [{ "run": "selectCard", "with": { "c": "{{computed.prev.c}}", "i": "{{computed.prev.at}}" } }] },
-		"changeStatus": { "title": "Change status…", "category": "Card", "icon": "circle-dashed", "enablement": "{{computed.card != null}}",
+		"changeStatus": { "title": "Change status…", "category": "Card", "icon": "circle-dashed", "enablement": "{{computed.card != null || length(state.marked) > 0}}",
 			"do": [{ "run": "openPropPick", "with": { "kind": "status" } }] },
-		"changePriority": { "title": "Change priority…", "category": "Card", "icon": "signal-high", "enablement": "{{computed.card != null}}",
+		"changePriority": { "title": "Change priority…", "category": "Card", "icon": "signal-high", "enablement": "{{computed.card != null || length(state.marked) > 0}}",
 			"do": [{ "run": "openPropPick", "with": { "kind": "priority" } }] },
-		"changeAssignee": { "title": "Assign to…", "category": "Card", "icon": "user", "enablement": "{{computed.card != null}}",
+		"changeAssignee": { "title": "Assign to…", "category": "Card", "icon": "user", "enablement": "{{computed.card != null || length(state.marked) > 0}}",
 			"do": [{ "run": "openPropPick", "with": { "kind": "assignee" } }] },
 		"assignToMe": { "title": "Assign to me", "category": "Card", "icon": "user-check", "enablement": "{{computed.card != null}}",
 			"do": [{ "run": "setAssignee", "with": { "who": "{{state.me}}" } }] },
@@ -428,7 +428,7 @@
 		"mod+right": "moveRight",
 		"mod+left": "moveLeft",
 		"mod+enter": "openIssue",
-		"escape": [{ "when": "{{state.issueOpen}}", "do": "closeIssue" }, { "do": "clearFilters" }]
+		"escape": [{ "when": "{{state.issueOpen}}", "do": "closeIssue" }, { "when": "{{length(state.marked) > 0}}", "do": "clearMarks" }, { "do": "clearFilters" }]
 	},
 
 	"root": {
@@ -729,9 +729,9 @@
 																"anchors": { "left": 0, "right": 0 },
 																"height": 96,
 																"radius": "@radius.card",
-																"color": "@color.card",
+																"color": "{{contains(state.marked, card.ref) ? '@color.accentSoft' : '@color.card'}}",
 																"borderWidth": 1,
-																"borderColor": "{{state.selected != null && state.selected.c == c && state.selected.i == i ? '@color.accent' : '@color.border'}}",
+																"borderColor": "{{(state.selected != null && state.selected.c == c && state.selected.i == i) || contains(state.marked, card.ref) ? '@color.accent' : '@color.border'}}",
 																"shadow": { "y": 1, "blur": 2, "color": "#0000000f" },
 																"hover": { "borderColor": "{{state.selected != null && state.selected.c == c && state.selected.i == i ? '@color.accent' : '@color.muted'}}" },
 																"cursor": "hand",
@@ -963,7 +963,112 @@
 			{ "id": "inboxPage", "use": "inboxPage", "when": "{{state.page == 'inbox'}}", "anchors": { "left": 228, "right": 8, "top": 8, "bottom": "#statusBar.top" }, "radius": { "topLeft": 8, "topRight": 8 } },
 			{ "id": "cyclesPage", "use": "cyclesPage", "when": "{{state.page == 'cycles'}}", "anchors": { "left": 228, "right": 8, "top": 8, "bottom": "#statusBar.top" }, "radius": { "topLeft": 8, "topRight": 8 } },
 			{ "id": "projectsPage", "use": "projectsPage", "when": "{{state.page == 'projects'}}", "anchors": { "left": 228, "right": 8, "top": 8, "bottom": "#statusBar.top" }, "radius": { "topLeft": 8, "topRight": 8 } },
-			{ "id": "sidebar", "use": "sidebar" }
+			{ "id": "sidebar", "use": "sidebar" },
+			{
+				"id": "bulkBar",
+				"when": "{{state.page == 'issues' && length(state.marked) > 0}}",
+				"x": "{{228 + round((window.width - 236 - 340) / 2)}}",
+				"anchors": {
+					"bottom": 56
+				},
+				"width": 340,
+				"height": 40,
+				"radius": 8,
+				"color": "@color.menu",
+				"borderWidth": 1,
+				"borderColor": "@color.border",
+				"shadow": {
+					"y": 6,
+					"blur": 18,
+					"color": "#00000030"
+				},
+				"role": "toolbar",
+				"label": "{{t('bulk.count', { n: length(state.marked) })}}",
+				"children": [
+					{
+						"type": "row",
+						"gap": 4,
+						"alignItems": "center",
+						"color": "transparent",
+						"anchors": {
+							"left": 6,
+							"right": 6,
+							"top": 6,
+							"bottom": 6
+						},
+						"children": [
+							{
+								"id": "bulkCount",
+								"type": "label",
+								"font": "small",
+								"text": "{{t('bulk.count', { n: length(state.marked) })}}",
+								"textColor": "@color.text",
+								"fitText": true,
+								"height": 28,
+								"padding": 8,
+								"radius": 6,
+								"borderWidth": 1,
+								"borderColor": "@color.border",
+								"align": {
+									"horizontal": "start",
+									"vertical": "center"
+								}
+							},
+							{
+								"id": "bulkClear",
+								"style": "propValue",
+								"icon": "x",
+								"text": "",
+								"width": 28,
+								"fitText": false,
+								"padding": 0,
+								"align": "center",
+								"tooltip": "{{t('bulk.clear')}}",
+								"label": "{{t('bulk.clear')}}",
+								"onClick": "clearMarks"
+							},
+							{
+								"id": "bulkStatus",
+								"style": "propValue",
+								"icon": "circle-dashed",
+								"text": " {{t('issue.status')}}",
+								"tooltip": "S",
+								"onClick": "changeStatus"
+							},
+							{
+								"id": "bulkPriority",
+								"style": "propValue",
+								"icon": "signal-high",
+								"text": " {{t('issue.priority')}}",
+								"tooltip": "P",
+								"onClick": "changePriority"
+							},
+							{
+								"id": "bulkAssignee",
+								"style": "propValue",
+								"icon": "user",
+								"text": " {{t('issue.assignee')}}",
+								"tooltip": "A",
+								"onClick": "changeAssignee"
+							},
+							{
+								"id": "bulkDelete",
+								"style": "propValue",
+								"icon": "trash-2",
+								"text": "",
+								"width": 28,
+								"fitText": false,
+								"padding": 0,
+								"align": "center",
+								"textColor": "@bug",
+								"tooltip": "{{t('bulk.delete')}}",
+								"label": "{{t('bulk.delete')}}",
+								"onClick": "bulkDelete"
+							}
+						]
+					}
+				]
+			}
 		]
 	}
 }

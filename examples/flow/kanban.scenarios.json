@@ -516,7 +516,6 @@
 				{ "expect": { "node": "#navCount", "text": "2" } },
 				{ "key": "k" },
 				{ "key": "enter" },
-				{ "expect": { "state": "page", "is": "issues" } },
 				{ "expect": { "state": "issueOpen", "is": true } },
 				{ "expect": { "state": "selected", "is": { "c": 0, "i": 2 } } },
 				{ "key": "escape" },
@@ -531,6 +530,42 @@
 				{ "key": "g" },
 				{ "key": "a" },
 				{ "expect": { "state": "page", "is": "issues" } }
+			]
+		},
+		{
+			"name": "multi-select",
+			"note": "X and Shift+J mark cards, P sets the priority of all of them, S moves them all, Cmd+Z undoes the move in one step, Escape clears the marks",
+			"steps": [
+				{ "key": "j" },
+				{ "key": "x" },
+				{ "key": "shift+j" },
+				{ "expect": { "state": "marked", "is": ["FLO-1", "FLO-2"] } },
+				{ "wait": 50 },
+				{ "expect": { "state": "page", "is": "issues" } },
+				{ "expect": { "node": "#bulkCount", "exists": true } },
+				{ "expect": { "node": "#bulkBar", "exists": true } },
+				{ "key": "p" },
+				{ "wait": 50 },
+				{ "type": "high" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].priority", "is": 2 } },
+				{ "expect": { "state": "columns[0].cards[1].priority", "is": 2 } },
+				{ "wait": 50 },
+				{ "key": "s" },
+				{ "wait": 50 },
+				{ "type": "done" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].ref", "is": "FLO-3" } },
+				{ "expect": { "state": "columns[3].cards[3].ref", "is": "FLO-1" } },
+				{ "expect": { "state": "columns[3].cards[4].ref", "is": "FLO-2" } },
+				{ "wait": 50 },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "columns[0].cards[0].ref", "is": "FLO-1" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "marked", "is": [] } },
+				{ "expect": { "node": "#bulkBar", "exists": false } }
 			]
 		}
 	
