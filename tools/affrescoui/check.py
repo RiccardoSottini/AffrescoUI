@@ -10,6 +10,7 @@
 - export and import: a change set goes into a screen's history on disk once, and comes back out of it;
 - the exit codes of a file that isn't JSON (1), a wrong command line (2) and a file that can't be read (3);
 - a text too long for the schema's patterns is reported, not matched (std::regex could overflow the stack);
+- policy test sets a file's roles, and refuses one that isn't text;
 - render connects to no channel the screen declares, even by an absolute path;
 - render draws a code editor whose "insert" has no "text".
 
@@ -178,6 +179,18 @@ class Checker:
                                                             "insert": {"before": 1}}]}}, file)
         self.run("render", path, "-o", os.path.join(self.scratch, "insert.png"))
 
+    def policy_roles(self):
+        """A policy test file that gives roles: each one is set, and one that isn't text is refused (the roles were
+        read from a temporary that was gone, which GCC's AddressSanitizer reported)."""
+        case = {"name": "a designer's change waits for review", "expect": "ask",
+                "revision": {"author": "agent/claude-code", "set": {"#panel-root/color": "#000000"}}}
+        for role, expect in [("design", 0), (7, 1)]:
+            path = os.path.join(self.scratch, "roles.policy.json")
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump({"screen": os.path.join(KANBAN, "kanban.screen.json"),
+                           "roles": {"agent/claude-code": role}, "cases": [case]}, file)
+            self.run("policy", "test", path, expect=expect)
+
     def long_pattern_input(self):
         """A colour expression of 30,000 characters: the schema's patterns aren't run on it (libstdc++'s std::regex
         overflowed the stack on it), so check reports it as too long to check instead of crashing."""
@@ -241,6 +254,7 @@ def main():
         checker.expect(json.loads(checker.run("check", broken, "--json", expect=1))["problems"][0]["source"] == "json",
                        "check: a file that isn't JSON")
         checker.long_pattern_input()
+        checker.policy_roles()
         if not headless:
             checker.render_reaches_nobody()
             checker.insert_without_text()
