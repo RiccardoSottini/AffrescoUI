@@ -4,13 +4,13 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 24 done, 4 partial, 11 missing (39).
+**Counts:** 27 done, 4 partial, 8 missing (39).
 
 ## Shell
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Sidebar with the app title, pages and their icons | done | Home, Energy, Floor plan, Automations, Settings |
+| Sidebar with the app title, pages and their icons | done | Home, Energy, Floor plan, Logbook, History, Automations, Settings; Areas beside the rooms heading |
 | Selected page highlighted in the sidebar | done | |
 | Rooms tree in the sidebar, floors that fold | done | |
 | Coloured top bar with the page title, search and edit | done | edit says it is coming |
@@ -65,9 +65,9 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Areas page with a card per room | missing | |
-| Logbook: a dated list of events | missing | |
-| History: state bars and lines over time | missing | |
+| Areas page with a card per room | done | grouped by floor; a picture, temperature, humidity and lights on; a card opens its room |
+| Logbook: a dated list of events | done | today and yesterday, rules marked in the accent colour, searchable |
+| History: state bars and lines over time | done | a day timeline per entity with labelled states and a temperature line |
 
 ## Settings
 

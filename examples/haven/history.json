@@ -1,0 +1,213 @@
+{
+	"note": "Haven's logbook and history pages, included by smart-home.screen.json: the logbook lists today's and yesterday's events with a search; history draws a day of on and off states per device and the living room's temperature. The events are invented.",
+
+	"state": {
+		"logQuery": "",
+		"logbook": [
+			{ "id": "e1", "day": "today", "time": "21:42", "icon": "lamp-floor", "name": "Floor lamp", "rule": "", "what": "on" },
+			{ "id": "e2", "day": "today", "time": "21:40", "icon": "door-open", "name": "Front door", "rule": "", "what": "opened" },
+			{ "id": "e3", "day": "today", "time": "21:40", "icon": "workflow", "name": "", "rule": "welcome", "what": "triggered" },
+			{ "id": "e4", "day": "today", "time": "19:05", "icon": "bot", "name": "Vacuum", "rule": "", "what": "docked" },
+			{ "id": "e5", "day": "today", "time": "07:00", "icon": "blinds", "name": "Bedroom blinds", "rule": "", "what": "opened" },
+			{ "id": "e6", "day": "yesterday", "time": "23:00", "icon": "workflow", "name": "", "rule": "goodNight", "what": "triggered" },
+			{ "id": "e7", "day": "yesterday", "time": "23:00", "icon": "lock", "name": "Front door", "rule": "", "what": "locked" },
+			{ "id": "e8", "day": "yesterday", "time": "22:58", "icon": "lightbulb", "name": "Ceiling", "rule": "", "what": "off" },
+			{ "id": "e9", "day": "yesterday", "time": "18:12", "icon": "speaker", "name": "Speaker", "rule": "", "what": "playing" }
+		],
+		"timeline": [
+			{ "id": "door", "name": "Front door", "k": "device.door", "segs": [{ "on": true, "h": 8 }, { "on": false, "h": 1 }, { "on": true, "h": 9 }, { "on": false, "h": 1 }, { "on": true, "h": 5 }] },
+			{ "id": "lamp", "name": "Floor lamp", "k": "hist", "segs": [{ "on": false, "h": 7 }, { "on": true, "h": 1 }, { "on": false, "h": 10 }, { "on": true, "h": 6 }] },
+			{ "id": "vacuum", "name": "Vacuum", "k": "device.vacuum", "segs": [{ "on": false, "h": 10 }, { "on": true, "h": 2 }, { "on": false, "h": 5 }, { "on": true, "h": 2 }, { "on": false, "h": 5 }] },
+			{ "id": "speaker", "name": "Speaker", "k": "device.speaker", "segs": [{ "on": false, "h": 18 }, { "on": true, "h": 4 }, { "on": false, "h": 2 }] }
+		]
+	},
+
+	"stateTypes": {
+		"logQuery": { "type": "string", "maxLength": 64 }
+	},
+
+	"computed": {
+		"logShown": "{{filter(state.logbook, state.logQuery == '' || contains(lower(it.rule != '' ? t('rule.' + it.rule) : it.name), lower(trim(state.logQuery))))}}"
+	},
+
+	"components": {
+		"logbookPage": {
+			"params": {},
+			"node": {
+				"dir": "auto",
+				"color": "transparent",
+				"children": [
+					{
+						"id": "logBar",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 56,
+						"color": "@header",
+						"role": "banner",
+						"children": [
+							{ "type": "label", "text": "{{t('page.logbook')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 }, "fitText": true,
+								"align": { "horizontal": "start", "vertical": "center" } },
+							{ "id": "logRange", "type": "label", "icon": "calendar", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
+								"radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('energy.pick')}}",
+								"tooltip": "{{t('energy.pick')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('log.twoDays')}}" } } }
+						]
+					},
+					{ "id": "logSearchBox", "anchors": { "left": 24, "top": 72 }, "width": 320, "height": 40, "radius": 20, "color": "@field",
+						"children": [
+							{ "type": "label", "icon": "search", "text": "", "textColor": "@muted", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "width": 24, "align": "center" },
+							{ "id": "logSearch", "type": "textarea", "bind": "state.logQuery", "placeholder": "{{t('log.search')}}", "placeholderColor": "@muted", "textColor": "@text",
+								"color": "transparent", "anchors": { "left": 42, "right": 14, "top": 0, "bottom": 0 }, "label": "{{t('log.search')}}" }
+						] },
+					{
+						"id": "logCard",
+						"style": "card",
+						"anchors": { "left": 24, "right": 24, "top": 128, "bottom": 24 },
+						"children": [
+							{ "style": "caption", "when": "{{length(computed.logShown) == 0}}", "text": "{{t('log.empty')}}", "anchors": { "left": 24, "top": 24 } },
+							{
+								"id": "logList",
+								"type": "column",
+								"anchors": { "left": 0, "right": 0, "top": 8, "bottom": 8 },
+								"scroll": "vertical",
+								"role": "list",
+								"label": "{{t('page.logbook')}}",
+								"children": [
+									{
+										"id": "logDay",
+										"repeat": { "for": "day", "in": "['today', 'yesterday']", "key": "{{day}}" },
+										"let": { "events": "{{filter(computed.logShown, it.day == day)}}" },
+										"when": "{{length(events) > 0}}",
+										"anchors": { "left": 0, "right": 0 },
+										"height": "{{40 + length(events) * 56}}",
+										"color": "transparent",
+										"role": "group",
+										"label": "{{t('log.' + day)}}",
+										"children": [
+											{ "style": "caption", "text": "{{upper(t('log.' + day))}}", "anchors": { "left": 24, "top": 16 } },
+											{
+												"type": "column",
+												"anchors": { "left": 0, "right": 0, "top": 40, "bottom": 0 },
+												"children": [
+													{
+														"id": "logRow",
+														"repeat": { "for": "ev", "in": "events", "key": "{{ev.id}}" },
+														"anchors": { "left": 0, "right": 0 },
+														"height": 56,
+														"color": "transparent",
+														"hover": { "color": "@cardHover" },
+														"role": "listitem",
+														"label": "{{ev.rule != '' ? t('rule.' + ev.rule) : ev.name}}: {{t('log.' + ev.what)}}, {{ev.time}}",
+														"children": [
+															{ "type": "label", "icon": "{{ev.icon}}", "text": "", "anchors": { "left": 20, "top": 8 }, "width": 40, "height": 40, "radius": 20, "align": "center",
+																"color": "{{ev.rule != '' ? '@accentSoft' : '@raised'}}", "textColor": "{{ev.rule != '' ? '@accent' : '@muted'}}" },
+															{ "type": "label", "text": "{{ev.rule != '' ? t('rule.' + ev.rule) : ev.name}}", "textColor": "@text", "anchors": { "left": 76, "top": 9 }, "fitText": true },
+															{ "type": "label", "font": "small", "text": "{{t('log.' + ev.what)}}", "textColor": "@muted", "anchors": { "left": 76, "top": 31 }, "fitText": true },
+															{ "type": "label", "font": "small", "text": "{{ev.time}}", "textColor": "@muted", "anchors": { "right": 24, "top": 0, "bottom": 0 }, "fitText": true,
+																"align": { "horizontal": "end", "vertical": "center" } }
+														]
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+
+		"historyPage": {
+			"params": {},
+			"node": {
+				"dir": "auto",
+				"color": "transparent",
+				"children": [
+					{
+						"id": "histBar",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 56,
+						"color": "@header",
+						"role": "banner",
+						"children": [
+							{ "type": "label", "text": "{{t('page.history')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 }, "fitText": true,
+								"align": { "horizontal": "start", "vertical": "center" } },
+							{ "id": "histRange", "type": "label", "icon": "calendar", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
+								"radius": 20, "align": "center", "hover": { "color": "#ffffff22" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('energy.pick')}}",
+								"tooltip": "{{t('energy.pick')}}", "onClick": { "run": "showToast", "with": { "message": "{{t('energy.onlyToday')}}" } } }
+						]
+					},
+					{
+						"id": "histTimeline",
+						"style": "card",
+						"anchors": { "left": 24, "right": 24, "top": 72 },
+						"height": "{{76 + length(state.timeline) * 40 + 28}}",
+						"role": "group",
+						"label": "{{t('hist.timeline')}}",
+						"children": [
+							{ "style": "cardTitle", "text": "{{t('hist.timeline')}}" },
+							{
+								"type": "column",
+								"anchors": { "left": 24, "right": 24, "top": 60 },
+								"height": "{{length(state.timeline) * 40}}",
+								"role": "list",
+								"children": [
+									{
+										"id": "histEntity",
+										"repeat": { "for": "ent", "in": "state.timeline", "key": "{{ent.id}}" },
+										"anchors": { "left": 0, "right": 0 },
+										"height": 40,
+										"color": "transparent",
+										"role": "listitem",
+										"label": "{{ent.name}}",
+										"children": [
+											{ "type": "label", "text": "{{ent.name}}", "textColor": "@text", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": 140,
+												"align": { "horizontal": "start", "vertical": "center" } },
+											{
+												"type": "row",
+												"anchors": { "left": 148, "right": 0, "top": 6 },
+												"height": 28,
+												"gap": 2,
+												"children": [
+													{ "repeat": { "for": "seg", "in": "ent.segs" }, "type": "label", "grow": "{{seg.h}}", "basis": 0, "anchors": { "top": 0, "bottom": 0 }, "radius": 4,
+														"color": "{{seg.on ? '@accent' : '@raised'}}", "textColor": "{{seg.on ? '@knob' : '@muted'}}", "font": "small", "align": "center",
+														"text": "{{seg.h >= 4 ? t(ent.k + (seg.on ? '.on' : '.off')) : ''}}", "tooltip": "{{t(ent.k + (seg.on ? '.on' : '.off'))}}" }
+												]
+											}
+										]
+									}
+								]
+							},
+							{
+								"type": "row",
+								"anchors": { "left": 172, "right": 24, "bottom": 12 },
+								"height": 20,
+								"justify": "space-between",
+								"children": [
+									{ "style": "caption", "text": "00:00" },
+									{ "style": "caption", "text": "06:00" },
+									{ "style": "caption", "text": "12:00" },
+									{ "style": "caption", "text": "18:00" },
+									{ "style": "caption", "text": "{{t('hist.now')}}" }
+								]
+							}
+						]
+					},
+					{
+						"id": "histTemp",
+						"style": "card",
+						"anchors": { "left": 24, "right": 24, "top": "{{72 + 104 + length(state.timeline) * 40 + 16}}", "bottom": 24 },
+						"role": "group",
+						"label": "{{t('hist.temp', { name: state.rooms[0].name })}}",
+						"children": [
+							{ "style": "cardTitle", "text": "{{t('hist.temp', { name: state.rooms[0].name })}}" },
+							{ "style": "caption", "text": "{{t('hist.range', { min: min(state.tempHistory), max: max(state.tempHistory) })}}", "anchors": { "right": 24, "top": 24 } },
+							{ "use": "lineChart", "with": { "values": "{{map(state.tempHistory, it - 19)}}", "top": 4, "color": "@warm", "lineWidth": 2 },
+								"anchors": { "left": 24, "right": 24, "top": 60, "bottom": 20 } }
+						]
+					}
+				]
+			}
+		}
+	}
+}

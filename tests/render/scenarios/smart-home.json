@@ -10,7 +10,7 @@
 				{ "expect": { "image": "first-frame" } },
 				{ "click": "#toggle-rooms-room-lights", "nth": 2 },
 				{ "expect": { "image": "light-on" } },
-				{ "click": [130, 397], "note": "Kitchen, in the rooms tree" },
+				{ "click": [130, 436], "note": "Kitchen, in the rooms tree" },
 				{ "expect": { "image": "kitchen" } },
 				{ "click": "#scene", "nth": 1 },
 				{ "wait": 1500 },
@@ -29,7 +29,7 @@
 				{ "expect": { "image": "device-working" } },
 				{ "wait": 600 },
 				{ "expect": { "image": "device-answered" } },
-				{ "click": [26, 337], "note": "close the Ground floor in the rooms tree" },
+				{ "click": [26, 380], "note": "close the Ground floor in the rooms tree" },
 				{ "expect": { "image": "floor-closed" } }
 			]
 		},
@@ -85,6 +85,26 @@
 				{ "click": "#autoMore" },
 				{ "click": { "role": "menuitem", "name": "Delete" } },
 				{ "expect": { "image": "automation-delete-light" } }
+			]
+		},
+		{
+			"name": "smart-home-history",
+			"screen": "smart-home.screen.json",
+			"steps": [
+				{ "key": "mod+5" },
+				{ "expect": { "image": "logbook" } },
+				{ "click": "#logSearch" },
+				{ "type": "door" },
+				{ "expect": { "image": "logbook-search" } },
+				{ "key": "mod+6" },
+				{ "expect": { "image": "history" } },
+				{ "click": "#areasButton" },
+				{ "expect": { "image": "areas" } },
+				{ "key": "mod+l" },
+				{ "key": "mod+l" },
+				{ "key": "mod+t" },
+				{ "wait": 600 },
+				{ "expect": { "image": "areas-arabic-dark" } }
 			]
 		}
 	]

@@ -50,14 +50,14 @@
 			"name": "pick-a-room",
 			"note": "Clicking a room in the rooms tree shows its name, its picture, its lights and its climate",
 			"steps": [
-				{ "click": [130, 397], "note": "Kitchen, under Ground floor" },
+				{ "click": [130, 436], "note": "Kitchen, under Ground floor" },
 				{ "expect": { "state": "room", "is": 1 } },
 				{ "expect": { "node": "#greeting", "text": "Kitchen" } },
 				{ "expect": { "node": "#roomImage", "property": "shown", "is": true } },
 				{ "expect": { "node": "#label-light-name", "nth": 0, "text": "Pendants" } },
 				{ "expect": { "node": "#light", "nth": 2, "exists": false } },
 				{ "expect": { "node": "#target", "text": "21°" } },
-				{ "click": [26, 337], "note": "the arrow closes a floor; picking a floor picks no room" },
+				{ "click": [26, 380], "note": "the arrow closes a floor; picking a floor picks no room" },
 				{ "expect": { "state": "room", "is": 1 } },
 				{ "expect": { "state": "floorsOpen", "is": ["upper"] } }
 			]
@@ -425,6 +425,32 @@
 			"note": "Regression: the blinds slider anchored to a button laid out after it, so the first frame had no slider",
 			"steps": [
 				{ "expect": { "node": "#blinds", "property": "width", "is": 440.4000244140625 } }
+			]
+		},
+		{
+			"name": "search-the-logbook",
+			"note": "Typing in the logbook's search keeps the events whose device or rule matches, and an empty day is hidden",
+			"steps": [
+				{ "key": "mod+5" },
+				{ "expect": { "state": "page", "is": "logbook" } },
+				{ "expect": { "node": "#logRow", "nth": 8, "exists": true } },
+				{ "click": "#logSearch" },
+				{ "type": "night" },
+				{ "expect": { "state": "logQuery", "is": "night" } },
+				{ "expect": { "node": "#logRow", "nth": 0, "exists": true } },
+				{ "expect": { "node": "#logRow", "nth": 1, "exists": false } }
+			]
+		},
+		{
+			"name": "an-area-opens-its-room",
+			"note": "The button beside the rooms heading opens the areas page, and an area's card opens that room on the home page",
+			"steps": [
+				{ "click": "#areasButton" },
+				{ "expect": { "state": "page", "is": "areas" } },
+				{ "click": "#areaTile", "nth": 2 },
+				{ "expect": { "state": "page", "is": "home" } },
+				{ "expect": { "state": "room", "is": 2 } },
+				{ "expect": { "node": "#greeting", "text": "Bedroom" } }
 			]
 		}
 	]
