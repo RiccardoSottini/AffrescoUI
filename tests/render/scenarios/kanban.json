@@ -84,6 +84,23 @@
 			]
 		},
 		{
+			"name": "kanban-issue",
+			"screen": "kanban.screen.json",
+			"steps": [
+				{ "click": "#cardTitle", "nth": 2 },
+				{ "key": "mod+enter" },
+				{ "wait": 50 },
+				{ "expect": { "image": "issue-page" } },
+				{ "click": "#propPriorityValue" },
+				{ "wait": 50 },
+				{ "expect": { "image": "issue-priority" } },
+				{ "key": "escape" },
+				{ "key": "escape" },
+				{ "wait": 50 },
+				{ "expect": { "image": "issue-closed" } }
+			]
+		},
+		{
 			"name": "kanban-retina",
 			"screen": "kanban.screen.json",
 			"scale": 2,

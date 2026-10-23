@@ -63,7 +63,7 @@
 										"keys": { "enter": "editCard", "shift+f10": { "run": "openCardMenu", "with": { "c": "{{c}}", "i": "{{i}}" } } },
 										"drag": { "data": { "from": "{{c}}", "at": "{{i}}" } },
 										"onClick": { "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } },
-										"onDoubleClick": [{ "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } }, { "run": "editCard" }],
+										"onDoubleClick": [{ "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } }, { "run": "openIssue" }],
 										"onContextMenu": { "run": "openCardMenu", "with": { "c": "{{c}}", "i": "{{i}}" } },
 										"children": [
 											{ "id": "rowLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" },

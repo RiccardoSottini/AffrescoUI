@@ -421,6 +421,27 @@
 				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
 				{ "expect": { "state": "columns[2].cards.length", "is": 2 } }
 			]
+		},
+		{
+			"name": "the-issue-page",
+			"note": "Cmd+Enter opens the chosen card as a page; its properties change it, and Escape goes back",
+			"steps": [
+				{ "click": "#cardTitle", "nth": 2 },
+				{ "key": "mod+enter" },
+				{ "expect": { "state": "issueOpen", "is": true } },
+				{ "expect": { "node": "#issuePage", "exists": true } },
+				{ "click": "#propPriorityValue" },
+				{ "click": "#priorityPick", "nth": 1 },
+				{ "expect": { "state": "issuePriorityOpen", "is": false } },
+				{ "expect": { "state": "columns[0].cards[2].priority", "is": 1 } },
+				{ "click": "#propStatusValue" },
+				{ "click": "#statusPick", "nth": 1 },
+				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "key": "escape" },
+				{ "expect": { "state": "issueOpen", "is": false } },
+				{ "expect": { "node": "#issuePage", "exists": false } }
+			]
 		}
+	
 	]
 }

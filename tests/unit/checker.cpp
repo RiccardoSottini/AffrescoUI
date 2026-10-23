@@ -141,7 +141,7 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 	          "unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
 	          "root.children[1].children[2].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)",
 	          card + ".children[6].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
-	          "root.children[7].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)"});
+	          "root.children[8].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)"});
 }
 
 TEST_CASE("checker: state paths") {

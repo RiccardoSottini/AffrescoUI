@@ -2,11 +2,11 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Flow: a kanban board. Boards are tabs; the board, swimlanes by member, a table of every card or a timeline of due dates shares a split with the chosen card's drawer, or the board's insights. Drag a card to another column, use « and », Alt and the arrows, or right-click it for its menu; double-click it to edit it. Cmd+P goes to a card, Cmd+Shift+P runs a command, Cmd+N types a new card, Cmd+F searches, Cmd+Z undoes, Cmd+J switches light and dark, Cmd+L the language, Cmd+, opens the settings, Escape clears the filters.",
+	"note": "Flow: a kanban board. Boards are tabs; the board, swimlanes by member, a table of every card or a timeline of due dates shares a split with the chosen card's drawer, or the board's insights. Drag a card to another column, use « and », Alt and the arrows, or right-click it for its menu; double-click it or press Cmd+Enter to open it as a page, Enter to edit it. Cmd+P goes to a card, Cmd+Shift+P runs a command, Cmd+N types a new card, Cmd+F searches, Cmd+Z undoes, Cmd+J switches light and dark, Cmd+L the language, Cmd+, opens the settings, Escape closes the issue page, then clears the filters.",
 
 	"window": { "title": "Flow: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
-	"include": ["../shared/components/charts.json", "strings.json", "board.json", "drawer.json", "views.json", "sidebar.json", "list.json"],
+	"include": ["../shared/components/charts.json", "strings.json", "board.json", "drawer.json", "views.json", "sidebar.json", "list.json", "issue.json"],
 
 	"persist": ["state.theme", "state.sizes", "state.view", "state.swimlanes", "state.settings"],
 
@@ -415,7 +415,8 @@
 		"mod+j": "toggleTheme",
 		"mod+right": "moveRight",
 		"mod+left": "moveLeft",
-		"escape": "clearFilters"
+		"mod+enter": "openIssue",
+		"escape": [{ "when": "{{state.issueOpen}}", "do": "closeIssue" }, { "do": "clearFilters" }]
 	},
 
 	"root": {
@@ -739,7 +740,7 @@
 																"drag": { "data": { "from": "{{c}}", "at": "{{i}}" } },
 																"dragging": { "color": "@color.accentSoft" },
 																"onClick": { "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } },
-																"onDoubleClick": [{ "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } }, { "run": "editCard" }],
+																"onDoubleClick": [{ "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } }, { "run": "openIssue" }],
 																"onContextMenu": { "run": "openCardMenu", "with": { "c": "{{c}}", "i": "{{i}}" } },
 																"children": [
 																	{
@@ -900,6 +901,13 @@
 						"align": { "horizontal": "end", "vertical": "center" }
 					}
 				]
+			},
+			{
+				"id": "issuePage",
+				"use": "issuePage",
+				"when": "{{state.issueOpen && computed.card != null}}",
+				"anchors": { "left": 228, "right": 8, "top": 8, "bottom": "#statusBar.top" },
+				"radius": { "topLeft": 8, "topRight": 8 }
 			},
 			{
 				"id": "cardMenu",
