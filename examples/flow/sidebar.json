@@ -120,7 +120,7 @@
 								"count": "{{length(filter(computed.allCards, it.who == state.me))}}" }, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "set": "state.owner", "to": "{{state.owner == state.me ? '' : state.me}}" }] },
 							{ "id": "navHeadingTeams", "use": "navHeading", "with": { "text": "{{t('nav.teams')}}" } },
 							{ "id": "navTeam", "use": "navItem", "with": { "icon": "box", "text": "Flow" }, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "showBoard" }] },
-							{ "id": "navIssues", "use": "navItem", "with": { "icon": "copy", "text": "{{t('nav.issues')}}", "active": "{{state.page == 'issues' && state.owner != state.me}}" },
+							{ "id": "navIssues", "use": "navItem", "with": { "icon": "copy", "text": "{{t('nav.issues')}}", "active": "{{state.page == 'issues' && state.owner != state.me && state.boardId == state.boards[0].id}}" },
 								"padding": 26, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "set": "state.owner", "to": "" }] },
 							{ "id": "navCycles", "use": "navItem", "with": { "icon": "refresh-ccw", "text": "{{t('nav.cycles')}}", "active": "{{state.page == 'cycles'}}" }, "padding": 26, "onClick": "goToCycles" },
 							{ "id": "navProjects", "use": "navItem", "with": { "icon": "box", "text": "{{t('nav.projects')}}", "active": "{{state.page == 'projects'}}" }, "padding": 26, "onClick": "goToProjects" },
@@ -129,7 +129,7 @@
 								"id": "navBoard",
 								"repeat": { "for": "b", "in": "state.boards", "key": "{{b.id}}" },
 								"use": "navItem",
-								"with": { "icon": "layers-2", "text": "{{b.label}}", "active": "{{b.id == state.boardId && state.page == 'issues'}}" },
+								"with": { "icon": "layers-2", "text": "{{b.label}}", "active": "{{b.id == state.boardId && b.id != state.boards[0].id && state.page == 'issues'}}" },
 								"onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "switchBoard", "with": { "id": "{{b.id}}" } }]
 							}
 						]

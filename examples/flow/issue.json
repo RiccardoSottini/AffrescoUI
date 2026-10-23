@@ -274,8 +274,8 @@
 							{ "id": "propCycle", "type": "column", "anchors": { "left": 8, "right": 16 }, "height": 56, "alignItems": "start", "children": [
 								{ "id": "propCycleName", "style": "propName", "height": 24, "padding": 8, "width": 200, "text": "{{t('issue.cycle')}}" },
 								{ "id": "propCycleValue", "style": "propValue", "focusable": false, "cursor": "arrow", "hover": { "color": "transparent" }, "icon": "refresh-cw",
-									"textColor": "{{state.selected.c == 0 ? '@color.muted' : '@color.text'}}",
-									"text": "\u00a0\u00a0{{state.selected.c == 0 ? t('issue.noCycle') : t('cycle.name', { n: state.cycle.number })}}" }
+									"textColor": "@color.text",
+									"text": "\u00a0\u00a0{{t('cycle.name', { n: state.cycle.number })}}" }
 							] }
 						]
 					}

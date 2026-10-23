@@ -535,11 +535,11 @@
 	},
 
 	"keys": {
+		"c": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "newCardCommand" },
 		"mod+n": "newCardCommand",
 		"mod+p": "goToCardCommand",
 		"mod+shift+p": "commandPalette",
 		"mod+k": "commandPalette",
-		"c": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "newCardCommand" },
 		"f": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": [{ "set": "state.filterQuery", "to": "" }, { "toggle": "state.filterOpen" }, { "focus": "#filterField" }] },
 		"j": [{ "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "nextNotification" }, { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "selectNext" }],
 		"k": [{ "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "previousNotification" }, { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "selectPrev" }],

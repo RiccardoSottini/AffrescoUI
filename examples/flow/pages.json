@@ -253,14 +253,44 @@
 								"anchors": { "left": 20, "right": 20, "bottom": 21 }, "height": 90, "role": "img", "label": "{{t('cycle.completed')}}" }
 						]
 					},
-					{ "id": "cyclesOthers", "style": "caption", "text": "{{t('cycle.others')}}", "anchors": { "left": 24, "top": 328 }, "height": 20 },
 					{
 						"id": "cycleRows",
 						"type": "column",
-						"anchors": { "left": 24, "right": 24, "top": 352, "bottom": 0 },
+						"anchors": { "left": 24, "right": 24, "top": 320, "bottom": 0 },
 						"scroll": "vertical",
 						"role": "list",
 						"children": [
+							{ "id": "cycleIssuesTitle", "style": "caption", "text": "{{t('cycle.issues', { n: length(computed.allCards) })}}", "height": 32, "align": { "horizontal": "start", "vertical": "center" } },
+							{
+								"id": "cycleIssue",
+								"repeat": { "for": "card", "in": "sort(computed.allCards, it.c * 100 + it.at)" },
+								"anchors": { "left": 0, "right": 0 },
+								"height": 36,
+								"color": "transparent",
+								"hover": { "color": "@color.column" },
+								"cursor": "hand",
+								"focusable": true,
+								"role": "listitem",
+								"label": "{{card.ref}} {{card.title}}",
+								"onClick": [{ "run": "selectCard", "with": { "c": "{{card.c}}", "i": "{{card.at}}" } }, { "set": "state.page", "to": "issues" }, { "set": "state.issueOpen", "to": true }],
+								"keys": { "enter": [{ "run": "selectCard", "with": { "c": "{{card.c}}", "i": "{{card.at}}" } }, { "set": "state.page", "to": "issues" }, { "set": "state.issueOpen", "to": true }] },
+								"children": [
+									{ "id": "cycleIssueLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" },
+									{ "id": "cycleIssuePriority", "type": "label", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "fitText": true,
+										"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "align": "center" },
+									{ "id": "cycleIssueRef", "style": "caption", "text": "{{card.ref}}", "width": 56, "fitText": false, "anchors": { "left": 36, "top": 0, "bottom": 0 },
+										"align": { "horizontal": "start", "vertical": "center" } },
+									{ "id": "cycleIssueStatus", "type": "label", "icon": "{{state.statusIcons[card.c] ?? 'circle'}}", "text": "", "fitText": true, "textColor": "{{state.columns[card.c].color}}",
+										"anchors": { "left": 100, "top": 0, "bottom": 0 }, "align": "center" },
+									{ "id": "cycleIssueTitle", "type": "label", "font": "small", "text": "{{card.title}}", "textColor": "@color.text", "anchors": { "left": 124, "right": 120, "top": 0, "bottom": 0 },
+										"align": { "horizontal": "start", "vertical": "center" } },
+									{ "id": "cycleIssuePoints", "style": "caption", "text": "{{card.points ?? ''}}", "width": 24, "fitText": false, "anchors": { "right": 44, "top": 0, "bottom": 0 },
+										"align": { "horizontal": "end", "vertical": "center" } },
+									{ "id": "cycleIssueOwner", "style": "badge", "font": "tiny", "text": "{{card.who}}", "width": 20, "height": 20, "radius": 999, "anchors": { "right": 12, "top": 8 },
+										"color": "{{find(state.members, it.who == card.who).color ?? '@color.muted'}}", "textColor": "#ffffff" }
+								]
+							},
+							{ "id": "cyclesOthers", "style": "caption", "text": "{{t('cycle.others')}}", "height": 44, "align": { "horizontal": "start", "vertical": "center" } },
 							{
 								"id": "cycleRow",
 								"repeat": { "for": "cycle", "in": "state.cycles", "key": "{{cycle.number}}" },

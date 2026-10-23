@@ -40,6 +40,19 @@
 			]
 		},
 		{
+			"name": "cycle-lists-its-issues",
+			"note": "the cycle page lists the cycle's issues, and a click opens one",
+			"steps": [
+				{ "key": "g" },
+				{ "key": "v" },
+				{ "wait": 50 },
+				{ "click": "#cycleIssue", "nth": 2 },
+				{ "expect": { "state": "page", "is": "issues" } },
+				{ "expect": { "state": "issueOpen", "is": true } },
+				{ "expect": { "node": "#propCycleValue", "exists": true } }
+			]
+		},
+		{
 			"name": "list-group-collapses",
 			"note": "a list group's chevron hides and shows its rows",
 			"steps": [

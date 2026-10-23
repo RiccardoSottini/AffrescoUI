@@ -15,7 +15,7 @@ and all of its data is invented. This page lists what a daily user would reach f
 | Cmd+K | one palette for commands and going to an issue | done | Cmd+K lists commands (the selected issue's first) and issues together; Cmd+P searches issues only |
 | Keyboard | C new, J/K move, single-key property changes, G-chords | done | C, J/K, S, P, A, I (assign to me), /, Cmd+Z; G then I, A, V or P |
 | Multi-select | X, Shift+J/K, a bar for bulk status, priority, assignee and delete | done | `select.json`; Cmd+A selects every shown issue, Escape clears, each bulk change is one undo step |
-| Cycles | current cycle, scope and progress | done | `pages.json`; scope, started and completed from the board, a burn-up, upcoming and past cycles; G then V |
+| Cycles | current cycle, scope, progress and its issues | done | `pages.json`; scope, started and completed from the board, a burn-up, the cycle's issues (a click opens one), upcoming and past cycles; G then V |
 | Projects | a project list, status and progress | partial | All, Active and Completed tabs, New project; health, lead, target date and progress; G then P. The project page with milestones and updates is missing |
 | Inbox | notifications, read and unread | done | unread count in the sidebar, a preview with the issue's status, priority, assignee and label, J/K, U read or unread, H snooze, Enter opens the issue; G then I |
 | Roadmap | projects on a timeline | partial | the Timeline view |
