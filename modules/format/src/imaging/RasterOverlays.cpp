@@ -39,10 +39,12 @@ void strokeOutline(Painter& painter, const VectorPath::Contour& contour, Color c
 	if(contour.points.size() < 2) return;
 	const std::span<const VectorPath::Contour> contours(&contour, 1);
 	std::vector<MeshVertex> mesh;
-	appendStroke(contours, StrokeStyle{.width = 1.0f}, mesh);
+	StrokeStyle style; // one unit wide, solid
+	appendStroke(contours, style, mesh);
 	painter.fillMesh(mesh, {}, underline);
 	mesh.clear();
-	appendStroke(contours, StrokeStyle{.width = 1.0f, .dash = {dashLength, dashLength}}, mesh);
+	style.dash = {dashLength, dashLength};
+	appendStroke(contours, style, mesh);
 	painter.fillMesh(mesh, {}, color);
 }
 
