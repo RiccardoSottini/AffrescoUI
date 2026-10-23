@@ -240,6 +240,10 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 (`{ text, before, request }`: replaces the `before` characters before the caret, once per request), and `tokens`
 (`[{ line, column, length, style }]`, from 0, coloured by `@syntax.<style>` over the grammar's colours).
 
+Steps: `{ "press": "ctrl+x ctrl+s", "in": "#ed" }` sends keys (US layout, `"times"` repeats, no binding hears
+them), `insert` types at the caret, `cut` takes `lineEnd`, `word`, `selection` or `line` to `into` (`"append"`) or the
+clipboard.
+
 <!-- generated: editor -->
 | Key | Meaning |
 |---|---|
@@ -260,7 +264,6 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
 | `caretStyle` | The caret: `line` (the default) a bar before the character, `block` a box over it, `underline` a bar under it. |
-| Steps | `{ "press": "ctrl+x ctrl+s", "in": "#ed" }` sends keys as the keyboard does (US layout; `"times": 3` repeats; no binding hears them), `insert` types text at the caret, `cut` takes `lineEnd`, `word`, `selection` or `line` into `into` (`"append": true` adds to it) or the clipboard. |
 | `readOnly` | `true`: the user can select, find and fold, but not edit. |
 | `guideColor`, `matchColor`, `bracketColor` | The indentation guides, find's matches and the paired brackets. |
 | `grammar` | The language parsed for syntax colours, folds and bracket pairs: `c`, `cpp`, `json`, `python`, `javascript`, `typescript`, `markdown` or an alias (`c++`, `js`, `ts`, `py`, `md`), or a file name whose extension says it. Each capture is coloured by the theme's `@syntax.<capture>` token (e.g. `@syntax.keyword`; `keyword.return` falls back to `@syntax.keyword`). Left out, plain text. |

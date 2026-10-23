@@ -295,14 +295,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
     {"focus", "", R"(`{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update))", "steps"},
     {"scrollTo", "", "", "steps"},
-    {"press", "",
-	 R"(`{ "press": "ctrl+x ctrl+s", "in": "#ed", "times": 3 }`: keys as the keyboard sends them (US layout), )"
-	 "unheard by bindings",
-	 "steps"},
-    {"insert", "",
-	 R"(`{ "insert": "hi" }`, `{ "cut": "lineEnd", "into": "state.kill", "append": true }`: at the caret; cut takes )"
-	 R"("lineEnd", "word", "selection" or "line" to "into" or the clipboard)",
-	 "steps"},
+    {"press", "", R"(`{ "press": "ctrl+e" }`: editing at the caret, see [editor](#editor))", "steps"},
+    {"insert", "", "", "steps"},
     {"cut", "", "", "steps"},
     {"dismiss", R"json({"const": true})json",
 	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},
