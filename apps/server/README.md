@@ -13,7 +13,7 @@ cmake --build build --target affrescoui_server
 ```
 
 Options: `--listen ADDRESS:PORT` (default `127.0.0.1:7420`), `--allow-remote` (accept peers from other machines: only
-behind a proxy that terminates TLS, see [`examples/server/deploy`](deploy/README.md)), `--origin URL` (repeatable: the
+behind a proxy that terminates TLS, see [`apps/server/deploy`](deploy/README.md)), `--origin URL` (repeatable: the
 browser origins allowed), `--userinfo URL --people FILE` (also admit OAuth access tokens, below). It stops on
 SIGINT or SIGTERM. [`Dockerfile`](Dockerfile) builds a container of it.
 

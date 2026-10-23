@@ -1,5 +1,5 @@
 /// @file
-/// @brief affrescoui_server: the document server, headless (examples/server/README.md).
+/// @brief affrescoui_server: the document server, headless (apps/server/README.md).
 ///
 ///   affrescoui_server --folder DIR [--listen 127.0.0.1:7420] [--allow-remote] [--origin URL]...
 ///                     [--userinfo URL --people FILE]

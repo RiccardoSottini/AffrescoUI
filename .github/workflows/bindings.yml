@@ -4,7 +4,7 @@ name: Bindings
 
 on:
   pull_request:
-    paths: [modules/**, bindings/**, examples/embed/**, tests/capi/**, external/**, cmake/**, CMakeLists.txt,
+    paths: [modules/**, bindings/**, tests/capi/**, external/**, cmake/**, CMakeLists.txt,
             .github/workflows/bindings.yml, .github/actions/setup/**]
   push:
     branches: [master]
