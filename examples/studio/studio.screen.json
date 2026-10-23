@@ -374,7 +374,8 @@
 		"merging": null,
 		"merged": null,
 		"stash": "",
-		"branchFilter": ""
+		"branchFilter": "",
+		"reviewOpen": false
 	},
 	"stateTypes": {
 		"theme": {
@@ -3528,7 +3529,6 @@
 													},
 													{
 														"id": "changes",
-														"when": "{{empty(computed.current.conflicts)}}",
 														"type": "stack",
 														"gap": 6,
 														"anchors": {
@@ -3599,6 +3599,76 @@
 																	"left": 0,
 																	"right": 12
 																}
+															},
+															{
+																"id": "conflict",
+																"repeat": {
+																	"for": "k",
+																	"in": "computed.current.conflicts"
+																},
+																"color": "@color.card",
+																"radius": 4,
+																"anchors": {
+																	"left": 0,
+																	"right": 12
+																},
+																"height": 72,
+																"children": [
+																	{
+																		"id": "label-conflict-path",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{k.path}}  ·  {{k.reason}}",
+																		"textColor": "@color.text",
+																		"anchors": {
+																			"left": 8,
+																			"right": 8,
+																			"top": 6
+																		},
+																		"height": 18
+																	},
+																	{
+																		"id": "label-conflict-main",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{t('review.main', {value: k.main == null ? t('review.removed') : json(k.main)})}}",
+																		"textColor": "@color.text",
+																		"color": "@color.cardRaised",
+																		"radius": 4,
+																		"padding": 6,
+																		"anchors": {
+																			"left": 8,
+																			"right": "51%",
+																			"top": 30
+																		},
+																		"height": 34,
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "center"
+																		}
+																	},
+																	{
+																		"id": "label-conflict-proposal",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{t('review.proposal', {value: k.proposal == null ? t('review.removed') : json(k.proposal)})}}",
+																		"textColor": "@color.text",
+																		"color": "@color.accentSoft",
+																		"radius": 4,
+																		"padding": 6,
+																		"anchors": {
+																			"left": "51%",
+																			"right": 8,
+																			"top": 30
+																		},
+																		"height": 34,
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "center"
+																		}
+																	}
+																],
+																"when": "{{state.prTab == 'conversation'}}"
 															},
 															{
 																"id": "label-prCommit",
@@ -3905,7 +3975,7 @@
 															},
 															{
 																"id": "reviewBox",
-																"note": "Add a review: a comment or a change request goes to the agents; an approval merges",
+																"note": "Add a comment: it goes to the agents as a request; reviews are on Files changed",
 																"when": "{{state.prTab == 'conversation'}}",
 																"color": "@color.card",
 																"radius": "@radius.chip",
@@ -3916,7 +3986,7 @@
 																	{
 																		"id": "reviewTitle",
 																		"style": "caption",
-																		"text": "{{t('review.reviewTitle')}}",
+																		"text": "{{t('review.commentTitle')}}",
 																		"anchors": {
 																			"left": 12,
 																			"top": 8
@@ -3936,93 +4006,41 @@
 																		"height": 48
 																	},
 																	{
-																		"id": "reviewComment",
+																		"id": "label-reject",
 																		"style": "smallButton",
-																		"icon": "{{state.reviewKind == 'comment' ? 'circle-dot' : 'circle'}}",
-																		"text": "{{t('review.kind', {kind: 'comment'})}}",
-																		"label": "{{t('review.kind', {kind: 'comment'})}}",
-																		"selected": "{{state.reviewKind == 'comment'}}",
-																		"color": "transparent",
+																		"text": "{{t('review.reject')}}",
+																		"icon": "git-pull-request-closed",
 																		"anchors": {
-																			"left": 12,
+																			"right": 122,
 																			"bottom": 10
 																		},
-																		"width": 104,
-																		"onClick": {
-																			"set": "state.reviewKind",
-																			"to": "comment"
-																		},
-																		"hover": {
-																			"color": "@color.neutral"
-																		},
-																		"align": "start",
-																		"padding": 6,
-																		"role": "radio",
-																		"textColor": "{{state.reviewKind == 'comment' ? '@color.text' : '@color.muted'}}"
+																		"width": 130,
+																		"onClick": "askReject",
+																		"label": "{{t('review.reject')}}",
+																		"height": 28
 																	},
 																	{
-																		"id": "reviewApprove",
-																		"style": "smallButton",
-																		"icon": "{{state.reviewKind == 'approve' ? 'circle-dot' : 'circle'}}",
-																		"text": "{{t('review.kind', {kind: 'approve'})}}",
-																		"label": "{{t('review.kind', {kind: 'approve'})}}",
-																		"selected": "{{state.reviewKind == 'approve'}}",
-																		"color": "transparent",
-																		"anchors": {
-																			"left": 122,
-																			"bottom": 10
-																		},
-																		"width": 104,
-																		"onClick": {
-																			"set": "state.reviewKind",
-																			"to": "approve"
-																		},
-																		"hover": {
-																			"color": "@color.neutral"
-																		},
-																		"align": "start",
-																		"padding": 6,
-																		"role": "radio",
-																		"textColor": "{{state.reviewKind == 'approve' ? '@color.text' : '@color.muted'}}"
-																	},
-																	{
-																		"id": "reviewChanges",
-																		"style": "smallButton",
-																		"icon": "{{state.reviewKind == 'changes' ? 'circle-dot' : 'circle'}}",
-																		"text": "{{t('review.kind', {kind: 'changes'})}}",
-																		"label": "{{t('review.kind', {kind: 'changes'})}}",
-																		"selected": "{{state.reviewKind == 'changes'}}",
-																		"color": "transparent",
-																		"anchors": {
-																			"left": 232,
-																			"bottom": 10
-																		},
-																		"width": 104,
-																		"onClick": {
-																			"set": "state.reviewKind",
-																			"to": "changes"
-																		},
-																		"hover": {
-																			"color": "@color.neutral"
-																		},
-																		"align": "start",
-																		"padding": 6,
-																		"role": "radio",
-																		"textColor": "{{state.reviewKind == 'changes' ? '@color.text' : '@color.muted'}}"
-																	},
-																	{
-																		"id": "reviewSubmit",
+																		"id": "reviewCommentSend",
 																		"style": "goodButton",
 																		"font": "small",
-																		"text": "{{t('review.submit')}}",
-																		"label": "{{t('review.submit')}}",
+																		"text": "{{t('review.kind', {kind: 'comment'})}}",
+																		"label": "{{t('review.kind', {kind: 'comment'})}}",
 																		"anchors": {
 																			"right": 12,
 																			"bottom": 10
 																		},
 																		"width": 100,
 																		"height": 28,
-																		"onClick": "submitReview"
+																		"onClick": [
+																			{
+																				"set": "state.reviewKind",
+																				"to": "comment"
+																			},
+																			{
+																				"run": "submitReview"
+																			}
+																		],
+																		"disabled": "{{empty(trim(state.reviewDraft))}}"
 																	}
 																],
 																"anchors": {
@@ -4123,91 +4141,6 @@
 																"fitText": false,
 																"wrap": true,
 																"height": 36
-															}
-														]
-													},
-													{
-														"id": "mergeView",
-														"note": "A conflicted proposal: per conflict, main's value and the proposal's, side by side",
-														"when": "{{!empty(computed.current.conflicts) && state.prTab == 'conversation'}}",
-														"type": "stack",
-														"gap": 6,
-														"anchors": {
-															"left": 16,
-															"right": "{{computed.prSide ? 200 : 16}}",
-															"top": 122,
-															"bottom": "{{60 + computed.mergeBoxHeight}}"
-														},
-														"scroll": "vertical",
-														"children": [
-															{
-																"id": "conflict",
-																"repeat": {
-																	"for": "k",
-																	"in": "computed.current.conflicts"
-																},
-																"color": "@color.card",
-																"radius": 4,
-																"anchors": {
-																	"left": 0,
-																	"right": 0
-																},
-																"height": 72,
-																"children": [
-																	{
-																		"id": "label-conflict-path",
-																		"type": "label",
-																		"font": "symbols",
-																		"text": "{{k.path}}  ·  {{k.reason}}",
-																		"textColor": "@color.text",
-																		"anchors": {
-																			"left": 8,
-																			"right": 8,
-																			"top": 6
-																		},
-																		"height": 18
-																	},
-																	{
-																		"id": "label-conflict-main",
-																		"type": "label",
-																		"font": "symbols",
-																		"text": "{{t('review.main', {value: k.main == null ? t('review.removed') : json(k.main)})}}",
-																		"textColor": "@color.text",
-																		"color": "@color.cardRaised",
-																		"radius": 4,
-																		"padding": 6,
-																		"anchors": {
-																			"left": 8,
-																			"right": "51%",
-																			"top": 30
-																		},
-																		"height": 34,
-																		"align": {
-																			"horizontal": "start",
-																			"vertical": "center"
-																		}
-																	},
-																	{
-																		"id": "label-conflict-proposal",
-																		"type": "label",
-																		"font": "symbols",
-																		"text": "{{t('review.proposal', {value: k.proposal == null ? t('review.removed') : json(k.proposal)})}}",
-																		"textColor": "@color.text",
-																		"color": "@color.accentSoft",
-																		"radius": 4,
-																		"padding": 6,
-																		"anchors": {
-																			"left": "51%",
-																			"right": 8,
-																			"top": 30
-																		},
-																		"height": 34,
-																		"align": {
-																			"horizontal": "start",
-																			"vertical": "center"
-																		}
-																	}
-																]
 															}
 														]
 													},
@@ -4362,17 +4295,217 @@
 														"selected": "{{computed.current.id == state.previewing}}"
 													},
 													{
-														"id": "label-reject",
-														"style": "smallButton",
-														"text": "{{t('review.reject')}}",
-														"icon": "git-pull-request-closed",
+														"id": "reviewChangesButton",
+														"style": "goodButton",
+														"font": "small",
+														"icon": "chevron-down",
+														"text": "{{t('review.reviewChanges')}}",
+														"label": "{{t('review.reviewChanges')}}",
+														"when": "{{state.prTab == 'files'}}",
 														"anchors": {
 															"right": 16,
-															"bottom": 12
+															"top": 82
 														},
-														"width": 130,
-														"onClick": "askReject",
-														"label": "{{t('review.reject')}}"
+														"width": 136,
+														"height": 28,
+														"onClick": {
+															"toggle": "state.reviewOpen"
+														},
+														"role": "button",
+														"selected": "{{state.reviewOpen}}"
+													},
+													{
+														"id": "reviewPanel",
+														"note": "Review changes, as on Files changed: a comment, an approval (which merges) or a change request",
+														"when": "{{state.prTab == 'files' && state.reviewOpen}}",
+														"color": "@color.card",
+														"radius": "@radius.chip",
+														"borderWidth": 1,
+														"borderColor": "@color.border",
+														"anchors": {
+															"right": 16,
+															"top": 116
+														},
+														"width": "{{min(380, window.width - 32)}}",
+														"height": 292,
+														"children": [
+															{
+																"id": "reviewPanelTitle",
+																"style": "caption",
+																"text": "{{t('review.finishTitle')}}",
+																"anchors": {
+																	"left": 12,
+																	"top": 8
+																}
+															},
+															{
+																"id": "reviewPanelDraft",
+																"style": "input",
+																"bind": "state.reviewDraft",
+																"placeholder": "{{t('review.reviewPlaceholder')}}",
+																"label": "{{t('review.reviewTitle')}}",
+																"anchors": {
+																	"left": 12,
+																	"right": 12,
+																	"top": 30
+																},
+																"height": 64
+															},
+															{
+																"id": "reviewComment",
+																"style": "smallButton",
+																"icon": "{{state.reviewKind == 'comment' ? 'circle-dot' : 'circle'}}",
+																"text": "{{t('review.kind', {kind: 'comment'})}}",
+																"label": "{{t('review.kind', {kind: 'comment'})}}",
+																"selected": "{{state.reviewKind == 'comment'}}",
+																"color": "transparent",
+																"anchors": {
+																	"left": 8,
+																	"right": 12,
+																	"top": 106
+																},
+																"onClick": {
+																	"set": "state.reviewKind",
+																	"to": "comment"
+																},
+																"hover": {
+																	"color": "@color.neutral"
+																},
+																"align": "start",
+																"padding": 6,
+																"role": "radio",
+																"textColor": "{{state.reviewKind == 'comment' ? '@color.text' : '@color.muted'}}",
+																"height": 40
+															},
+															{
+																"id": "label-review-comment-help",
+																"type": "label",
+																"font": "small",
+																"textColor": "@color.muted",
+																"text": "{{t('review.kindComment')}}",
+																"anchors": {
+																	"left": 34,
+																	"right": 12,
+																	"top": 128
+																},
+																"height": 16,
+																"cursor": "hand",
+																"onClick": {
+																	"set": "state.reviewKind",
+																	"to": "comment"
+																}
+															},
+															{
+																"id": "reviewApprove",
+																"style": "smallButton",
+																"icon": "{{state.reviewKind == 'approve' ? 'circle-dot' : 'circle'}}",
+																"text": "{{t('review.kind', {kind: 'approve'})}}",
+																"label": "{{t('review.kind', {kind: 'approve'})}}",
+																"selected": "{{state.reviewKind == 'approve'}}",
+																"color": "transparent",
+																"anchors": {
+																	"left": 8,
+																	"right": 12,
+																	"top": 152
+																},
+																"onClick": {
+																	"set": "state.reviewKind",
+																	"to": "approve"
+																},
+																"hover": {
+																	"color": "@color.neutral"
+																},
+																"align": "start",
+																"padding": 6,
+																"role": "radio",
+																"textColor": "{{state.reviewKind == 'approve' ? '@color.text' : '@color.muted'}}",
+																"height": 40
+															},
+															{
+																"id": "label-review-approve-help",
+																"type": "label",
+																"font": "small",
+																"textColor": "@color.muted",
+																"text": "{{t('review.kindApprove')}}",
+																"anchors": {
+																	"left": 34,
+																	"right": 12,
+																	"top": 174
+																},
+																"height": 16,
+																"cursor": "hand",
+																"onClick": {
+																	"set": "state.reviewKind",
+																	"to": "approve"
+																}
+															},
+															{
+																"id": "reviewChanges",
+																"style": "smallButton",
+																"icon": "{{state.reviewKind == 'changes' ? 'circle-dot' : 'circle'}}",
+																"text": "{{t('review.kind', {kind: 'changes'})}}",
+																"label": "{{t('review.kind', {kind: 'changes'})}}",
+																"selected": "{{state.reviewKind == 'changes'}}",
+																"color": "transparent",
+																"anchors": {
+																	"left": 8,
+																	"right": 12,
+																	"top": 198
+																},
+																"onClick": {
+																	"set": "state.reviewKind",
+																	"to": "changes"
+																},
+																"hover": {
+																	"color": "@color.neutral"
+																},
+																"align": "start",
+																"padding": 6,
+																"role": "radio",
+																"textColor": "{{state.reviewKind == 'changes' ? '@color.text' : '@color.muted'}}",
+																"height": 40
+															},
+															{
+																"id": "label-review-changes-help",
+																"type": "label",
+																"font": "small",
+																"textColor": "@color.muted",
+																"text": "{{t('review.kindChanges')}}",
+																"anchors": {
+																	"left": 34,
+																	"right": 12,
+																	"top": 220
+																},
+																"height": 16,
+																"cursor": "hand",
+																"onClick": {
+																	"set": "state.reviewKind",
+																	"to": "changes"
+																}
+															},
+															{
+																"id": "reviewSubmit",
+																"style": "goodButton",
+																"font": "small",
+																"text": "{{t('review.submit')}}",
+																"label": "{{t('review.submit')}}",
+																"anchors": {
+																	"right": 12,
+																	"bottom": 12
+																},
+																"width": 100,
+																"height": 28,
+																"onClick": [
+																	{
+																		"run": "submitReview"
+																	},
+																	{
+																		"set": "state.reviewOpen",
+																		"to": false
+																	}
+																]
+															}
+														]
 													}
 												]
 											}

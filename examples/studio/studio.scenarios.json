@@ -1990,7 +1990,7 @@
 		},
 		{
 			"name": "a-conflict-shows-the-merge-view",
-			"note": "A proposal that conflicts with main shows main's and the proposal's values instead of its changes",
+			"note": "A proposal that conflicts with main keeps its timeline and shows main's and the proposal's values",
 			"steps": [
 				{
 					"action": "host:hello",
@@ -2068,8 +2068,8 @@
 				},
 				{
 					"expect": {
-						"node": "#changes",
-						"exists": false
+						"node": "#label-prOpened",
+						"exists": true
 					}
 				},
 				{
@@ -5321,7 +5321,7 @@
 				},
 				{
 					"expect": {
-						"node": "#label-reject",
+						"node": "#label-previewed-end-preview",
 						"property": "shown",
 						"is": true
 					}
