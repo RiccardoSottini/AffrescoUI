@@ -1,6 +1,6 @@
 # tools/i18n: the compact CLDR subset
 
-`generate_locale_data.py` writes `modules/format/src/LocaleData.cpp`, the locale data the expression functions
+`generate_locale_data.py` writes `modules/format/src/locale/LocaleData.cpp`, the locale data the expression functions
 format with (`formatNumber`, `formatDate`, `formatRelative`, `formatList`, plural rules for `t()`, ...): number
 symbols and patterns, cardinal plural rules, currency symbols, Gregorian month and day names, date and time patterns,
 relative-time patterns and list patterns of ten locales (en, it, fr, de, es, pt, ja, zh, ar, he).
@@ -27,8 +27,8 @@ python3 -I tools/i18n/generate_locale_data.py out/cldr --download
 ```
 
 `--download` fetches the missing packages from the npm registry into the folder given (keep it outside `tools/`);
-`-o` writes elsewhere than `modules/format/src/LocaleData.cpp`. To add a locale or a currency, extend `LOCALES` or
-`CURRENCIES`; to add a field, change `LocaleData` (`modules/format/src/Locale.hpp`) and the script together.
+`-o` writes elsewhere than `modules/format/src/locale/LocaleData.cpp`. To add a locale or a currency, extend `LOCALES` or
+`CURRENCIES`; to add a field, change `LocaleData` (`modules/format/src/locale/Locale.hpp`) and the script together.
 
 ## License
 

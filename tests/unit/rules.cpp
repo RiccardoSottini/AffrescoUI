@@ -1,6 +1,9 @@
 /// @file
 /// @brief Unit tests for format::Rules::checkChange: what a revision may never add, change or move.
 
+#include "Checker.hpp"
+#include "Helpers.hpp"
+
 #include <affresco/format/Rules.hpp>
 
 #include <doctest/doctest.h>
@@ -179,13 +182,13 @@ TEST_CASE("format: a revision may not add a use of the document's own component 
 		}
 	};
 	for(const char* node : {
-	        R"({"use": "go", "with": {"act": "approve"}})",       // an action holding a control step
-	        R"({"use": "go", "with": {"act": "save"}})",          // one holding a call
-	        R"({"use": "go", "with": {"act": "openFile"}})",      // a native action
-	        R"({"use": "goApprove"})",                            // the default names it
-	        R"({"use": "outer", "with": {"what": "approve"}})",   // through a component inside
-	        R"({"use": "menu", "with": {"act": "approve"}})",     // the screen's own "menu" wins over the built-in
-	        R"({"use": "self"})", // expanded without end: past the budget, it may
+	        R"({"use": "go", "with": {"act": "approve"}})",     // an action holding a control step
+	        R"({"use": "go", "with": {"act": "save"}})",        // one holding a call
+	        R"({"use": "go", "with": {"act": "openFile"}})",    // a native action
+	        R"({"use": "goApprove"})",                          // the default names it
+	        R"({"use": "outer", "with": {"what": "approve"}})", // through a component inside
+	        R"({"use": "menu", "with": {"act": "approve"}})",   // the screen's own "menu" wins over the built-in
+	        R"({"use": "self"})",                               // expanded without end: past the budget, it may
 	    }) {
 		CAPTURE(node);
 		CHECK(added(node));
@@ -194,4 +197,133 @@ TEST_CASE("format: a revision may not add a use of the document's own component 
 	CHECK_FALSE(added(R"({"use": "go"})"));
 	CHECK_FALSE(added(R"({"use": "outer"})"));
 	CHECK_FALSE(added(R"({"use": "goApprove", "with": {"act": "refresh"}})"));
+}
+
+// Each control step was written out whole, the ones inside it again at each level: 250 nested around 4 MiB made
+// 2 GiB of text, and took seconds, at each revision
+TEST_CASE("format: control steps inside each other are compared whole, at the cost of their size" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
+	const auto nested = [](const json& inner) {
+		json before = screenWithActions();
+		json step = {{"accept", inner}, {"note", std::string(4u << 20, 'a')}};
+		for(int i = 0; i < 250; ++i) step = {{"accept", step}};
+		before["actions"]["approve"] = json::array({step});
+		return before;
+	};
+	const json before = nested(1);
+	const affresco::format::Rules rules;
+	CHECK_NOTHROW(rules.checkChange(before, before));
+	CHECK_THROWS_WITH_AS(rules.checkChange(before, nested(2)), doctest::Contains("permission denied"),
+	                     affresco::DocumentError); // a change deep inside is still one
+	CHECK_THROWS_WITH_AS(rules.checkChange(before, nested({{"accept", 1}})), doctest::Contains("permission denied"),
+	                     affresco::DocumentError); // and so is a control step added there
+}
+
+// Each round scanned every action (and component) again, to add the next link of a chain: 3000 actions that run each
+// other took 11 s at each revision
+TEST_CASE("format: actions and components that run each other in a long chain are found at the cost of the chain" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
+	json before = screenWithActions();
+	const int links = 3000;
+	for(int i = 0; i < links; ++i)
+		before["actions"]["link" + std::to_string(i)] = json::array({{{"run", "link" + std::to_string(i + 1)}}});
+	before["actions"]["link" + std::to_string(links)] = json::array({{{"run", "approve"}}});
+	before["components"]["part0"] = json::parse(R"({"node": {"type": "panel", "onClick": "{{act}}"}})");
+	for(int i = 1; i < 1000; ++i)
+		before["components"]["part" + std::to_string(i)] = {
+		    {"node", {{"use", "part" + std::to_string(i - 1)}, {"with", {{"act", "{{act}}"}}}}}};
+	const affresco::format::Rules rules;
+	CHECK_NOTHROW(rules.checkChange(before, before));
+	for(const char* node : {R"({"type": "panel", "onClick": "link0"})", // runs approve at the end of the chain
+	                        R"({"use": "part999", "with": {"act": "{{state.p}}"}})"}) { // a computed run at its end
+		CAPTURE(node);
+		json after = before;
+		after["root"]["children"][0]["children"] = json::array({json::parse(node)});
+		CHECK_THROWS_WITH_AS(rules.checkChange(before, after), doctest::Contains("permission denied"),
+		                     affresco::DocumentError);
+	}
+	json harmless = before; // a chain that ends in an action that changes only the screen may be run
+	harmless["actions"]["link" + std::to_string(links)] = json::array({{{"run", "refresh"}}});
+	json after = harmless;
+	after["root"]["children"][0]["children"] = json::array({json::parse(R"({"type": "panel", "onClick": "link0"})")});
+	CHECK_NOTHROW(rules.checkChange(harmless, after));
+}
+
+// Each action and component the scan reached was found by name in a list: 30,000 of each took 15 seconds to
+// check, and each revision is checked
+TEST_CASE("format: many actions and components are scanned at the cost of their number" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
+	json before = screenWithActions();
+	json::object_t& actions = before["actions"].get_ref<json::object_t&>();
+	json::object_t& components = (before["components"] = json::object()).get_ref<json::object_t&>();
+	for(int i = 0; i < 30000; ++i) { // read as text, a JSON object would find each key among those before it
+		const std::string name = std::to_string(i);
+		actions.emplace_back("a" + name, json::array({{{"run", "refresh"}}}));
+		components.emplace_back("c" + name, json{{"node", {{"type", "panel"}, {"onClick", "a" + name}}}});
+	}
+	const auto using29999 = [](json screen) {
+		screen["root"]["children"][0]["children"] = json::array({{{"use", "c29999"}}});
+		return screen;
+	};
+	const affresco::format::Rules rules;
+	CHECK_NOTHROW(rules.checkChange(before, before));
+	CHECK_NOTHROW(rules.checkChange(before, using29999(before))); // it runs refresh
+	json controlling = before;
+	controlling["actions"]["a29999"] = json::array({{{"run", "approve"}}});
+	CHECK_THROWS_WITH_AS(rules.checkChange(controlling, using29999(controlling)),
+	                     doctest::Contains("permission denied"), affresco::DocumentError);
+}
+
+// Each use of the screen's own component was scanned on a copy of it, without bound: 2000 uses of a large one took
+// 11 s at each revision, and a large parameter put in 1000 times took a GiB
+TEST_CASE("format: components are expanded up to a document's size, past which a use may control" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
+	json before = screenWithActions();
+	json labels = json::array();
+	for(int i = 0; i < 20000; ++i) labels.push_back({{"type", "label"}, {"text", "hello"}});
+	before["components"]["large"] = {{"node", {{"type", "panel"}, {"onClick", "{{act}}"}, {"children", labels}}}};
+	json uses = json::array();
+	for(int i = 0; i < 2000; ++i) uses.push_back({{"use", "large"}, {"with", {{"act", "refresh"}}}});
+	before["root"]["children"][0]["children"] = uses;
+	const affresco::format::Rules rules;
+	CHECK_NOTHROW(rules.checkChange(before, before)); // the same uses, the same answers
+
+	json copies = screenWithActions();
+	copies["components"]["copies"] = {
+	    {"node", {{"type", "panel"}, {"onClick", "{{act}}"}, {"children", json::array()}}}};
+	const auto added = [&](int times) {
+		json screen = copies;
+		for(int i = 0; i < times; ++i) screen["components"]["copies"]["node"]["children"].push_back("{{text}}");
+		json after = screen;
+		after["root"]["children"][0]["children"] =
+		    json::array({{{"use", "copies"}, {"with", {{"act", "refresh"}, {"text", std::string(1u << 20, 'a')}}}}});
+		try {
+			rules.checkChange(screen, after);
+			return false;
+		} catch(const affresco::DocumentError& error) {
+			return std::string_view(error.what()).contains("permission denied");
+		}
+	};
+	CHECK_FALSE(added(20)); // 20 MiB, scanned: it runs refresh
+	CHECK(added(40));       // 40 MiB, past the budget: it may run anything
+}
+
+// A document too large to check passed any revision the other rules let through: one that gave a node before a locked
+// one its id would pass for it, as rules find a node by its id, the first that has it
+TEST_CASE("format: a revision can't give a taken id to another node, even in a document too large to check") {
+	json before = screenWithActions();
+	json& text = before["root"]["children"][0]["text"] = json::array();
+	text.get_ref<json::array_t&>().resize(1100000, json::array()); // lists cost the checker a visit each
+	REQUIRE_FALSE(affresco::format::check(before, before["state"]));
+	json after = before;
+	after["root"]["children"].insert(after["root"]["children"].begin(),
+	                                 json{{"type", "panel"}, {"id", "approveButton"}});
+	const affresco::format::Rules rules;
+	CHECK_THROWS_WITH_AS(rules.checkChange(before, after),
+	                     doctest::Contains("root.children[2]: id 'approveButton' is taken by root.children[0]"),
+	                     affresco::DocumentError);
+	json renamed = after; // the same node with an id of its own may come
+	renamed["root"]["children"][0]["id"] = "decoy";
+	CHECK_NOTHROW(rules.checkChange(before, renamed));
+	CHECK_NOTHROW(rules.checkChange(after, after)); // and a duplicate already there doesn't block what follows
 }

@@ -4,6 +4,7 @@
 
 #include "Checker.hpp"
 #include "Expression.hpp"
+#include "Helpers.hpp"
 #include "Templates.hpp"
 
 #include <affresco/format/Rules.hpp>
@@ -183,6 +184,18 @@ TEST_CASE("checker: state paths") {
 	});
 }
 
+TEST_CASE("checker: paths nested past the expression limit are findings, not a crash") {
+	std::string deep;
+	for(int i = 0; i < 20000; ++i) deep += "state.items[";
+	deep += "0" + std::string(20000, ']');
+	json document = screen(R"("state": {"items": [0]}, "actions": {"go": {"set": "", "to": 1}}, "root": {})");
+	document["root"]["text"] = "{{" + deep + "}}";
+	document["actions"]["go"]["set"] = deep;
+	const std::vector<std::string> found = lines(document);
+	REQUIRE(found.size() == 3); // the text, the step's target, and the action that holds it
+	for(const std::string& line : found) CHECK(line.find("nested too deeply") != std::string::npos);
+}
+
 TEST_CASE("checker: variables in scope") {
 	checkAll({
 	    {"an unknown variable",
@@ -275,6 +288,12 @@ TEST_CASE("checker: findings inside styles and components name them, and see the
 	        "root": {"children": [{"repeat": {"for": "card", "in": "state.cards", "index": "c"}, "use": "frame",
 	          "with": {"label": "{{card.title}}"}, "children": [{"text": "{{label}} {{card.titel}}"}]}]})",
 		 {"root.children[0].children[0].text: 'card.titel' doesn't exist (did you mean 'card.title'?)"}},
+	    {"a node of many properties, and its style, are checked where the property that wins is written",
+		 R"("state": {"title": ""}, "styles": {"wide": {"text": "{{state.nope}}", "color": "{{state.titel}}",
+	        "a0": 1, "a1": 1, "a2": 1, "a3": 1, "a4": 1, "a5": 1, "a6": 1, "a7": 1}}, "root": {"style": "wide", "text": "{{state.tilte}}", "b0": 1, "b1": 1, "b2": 1, "b3": 1, "b4": 1, "b5": 1, "b6": 1, "b7": 1})",
+		 {"root.text: 'state.tilte' doesn't exist (did you mean 'state.title'?)",
+		  "styles.wide.color: 'state.titel' doesn't exist (did you mean 'state.title'?)",
+		  "styles.wide.text: 'state.nope' doesn't exist (state has title)"}},
 	    {"a component no node uses is checked with every variable allowed",
 		 R"("components": {"badge": {"node": {"text": "{{whatever}} {{state.nope}}", "color": "@nope"}}})",
 		 {"components.badge.node.color: unknown color '@nope' (defined: none)",
@@ -340,6 +359,134 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 	const auto found = affresco::format::check(longTypo, longTypo["state"]);
 	REQUIRE(found);
 	CHECK((found && found->size() == 1));
+}
+
+namespace {
+
+/// Keys in each wide object, and items in each long list, of the tests below: enough that looking through those
+/// before each one costs seconds.
+constexpr int wideCount = 100000;
+
+/// @brief Writes an item many times, each with its number in place of every `$`.
+/// @param item JSON text with `$` in it.
+/// @param count How many.
+/// @param open Written before the first: "{" or "[".
+/// @param close Written after the last: "}" or "]".
+/// @return The text.
+std::string repeated(const std::string& item, int count, char open, char close) {
+	std::string text(1, open);
+	for(int i = 0; i < count; ++i) {
+		std::string one = item;
+		for(std::size_t at = one.find('$'); at != std::string::npos; at = one.find('$', at))
+			one.replace(at, 1, std::to_string(i));
+		text += (i ? "," : "") + one;
+	}
+	return text + close;
+}
+
+/// @brief One object of wideCount keys, at its place in a document.
+struct Wide {
+	const char* pointer; ///< Its place, as a JSON pointer.
+	const char* entry;   ///< Each key and its value, `"<key>", <value>`, `$` its number.
+};
+
+/// @brief A row of a table: a wide document.
+struct WideCase {
+	const char* what;          ///< What the row shows.
+	std::string sections;      ///< The screen's sections, without "version", with null where an object goes.
+	std::vector<Wide> objects; ///< The objects.
+};
+
+/// @brief Checks wide documents, which must be checked (not too large) and have no findings.
+/// @param cases The table.
+void checkWide(const std::vector<WideCase>& cases) {
+	for(const WideCase& row : cases) {
+		CAPTURE(row.what);
+		json document = screen(row.sections);
+		for(const Wide& wide : row.objects) { // read as text, a JSON object would find each key among those before it
+			json& object = document[json::json_pointer(wide.pointer)] = json::object();
+			for(json& entry : json::parse(repeated(std::string("[") + wide.entry + "]", wideCount, '[', ']')))
+				object.get_ref<json::object_t&>().emplace_back(entry[0].get<std::string>(), std::move(entry[1]));
+		}
+		const auto found = affresco::format::check(document, document.value("state", json::object()));
+		REQUIRE(found);
+		CHECK(found->empty());
+	}
+}
+
+/// The screen's root, for documents whose sections are what is checked.
+const std::string panel = R"("root": {"type": "panel", "id": "main"})";
+
+} // namespace
+
+// Sections and a node's properties were found by name in a list, once for each name: a hundred thousand actions,
+// components or properties took seconds to check, and each revision is checked
+TEST_CASE("checker: many sections and properties are checked at the cost of their number" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
+	checkWide({
+	    {"actions",
+		 R"("state": {"p": 0}, "actions": null, )" + panel,
+		 {{"/actions", R"("a$", [{"set": "state.p", "to": $}])"}}},
+	    {"styles", R"("styles": null, )" + panel, {{"/styles", R"("s$", {"padding": $})"}}},
+	    {"components", R"("components": null, )" + panel, {{"/components", R"("c$", {"node": {"type": "panel"}})"}}},
+	    {"computed values",
+		 R"("state": {"p": 1}, "computed": null, )" + panel,
+		 {{"/computed", R"("c$", "{{state.p + $}}")"}}},
+	    {"a node's properties", R"("root": null)", {{"/root", R"("x$", $)"}}},
+	});
+}
+
+// The shape of an object, of what a list's items hold or of what the state's types let it hold was built a key at a
+// time, each found among those before it: a hundred thousand keys took from seconds to a minute to check
+TEST_CASE("checker: the shapes of wide values are built at the cost of their size" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
+	checkWide({
+	    {"items of many keys",
+		 R"("state": {"rows": [null, null]}, )" + panel,
+		 {{"/state/rows/0", R"("k$", $)"}, {"/state/rows/1", R"("j$", $)"}}},
+	    {"items of one key each",
+		 R"("state": {"rows": )" + repeated(R"({"k$": 1})", wideCount, '[', ']') + "}, " + panel,
+		 {}},
+	    {"state types",
+		 R"("state": {}, "stateTypes": null, )" + panel,
+		 {{"/stateTypes", R"("k$", {"type": "number"})"}}},
+	    {"an object set onto another",
+		 R"("state": {"o": null}, "actions": {"go": [{"set": "state.o", "to": null}]}, )" + panel,
+		 {{"/state/o", R"("k$", $)"}, {"/actions/go/0/to", R"("k$", [$])"}}},
+	    {"$object", R"("root": {"type": "text", "text": {"$object": null}})", {{"/root/text/$object", R"("k$", $)"}}},
+	});
+}
+
+// A path deeper than the runtime writes overflowed the stack (the checker followed it a level at a time), and so did a
+// step that puts what a place holds inside itself, once for each such step
+TEST_CASE("checker: a place too deep for the state is not followed" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
+	const auto writing = [](int levels) {
+		std::string path = "state";
+		for(int i = 0; i < levels; ++i) path += ".a";
+		return lines(screen(R"("state": {}, "actions": {"go": [{"set": ")" + path +
+		                    R"(", "to": 1}, {"set": "state.b", "to": "{{state.a}}"}]}, "root": {"type": "panel"})"));
+	};
+	CHECK(writing(200).empty()); // the deepest place the runtime writes
+	const std::vector<std::string> unwritten = {"actions.go[1].to: 'state.a' doesn't exist (did you mean 'state.b'?)"};
+	CHECK(writing(201) == unwritten); // the runtime refuses it, so it writes nothing
+	CHECK(writing(100000) == unwritten);
+
+	const std::string wraps = repeated(R"({"set": "state.a", "to": {"x": "{{state.a}}"}})", 20000, '[', ']');
+	CHECK(
+	    lines(screen(R"("state": {"a": 1}, "actions": {"go": )" + wraps + R"(}, "root": {"type": "panel"})")).empty());
+}
+
+// Each step that writes the state into the state doubled what the checker copied: forty of them took more memory than
+// a computer has
+TEST_CASE("checker: a document that copies too much is too large to check" *
+          doctest::timeout(affresco::test::timeLimit(5))) {
+	const std::string copies = repeated(R"({"set": "state.x$", "to": "{{state}}"})", 40, '[', ']');
+	const json document =
+	    screen(R"("state": {"s": 1}, "actions": {"go": )" + copies + R"(}, "root": {"type": "panel"})");
+	CHECK_FALSE(affresco::format::check(document, document["state"]));
+	const std::string few = repeated(R"({"set": "state.x$", "to": "{{state}}"})", 10, '[', ']');
+	CHECK(lines(screen(R"("state": {"s": 1}, "actions": {"go": )" + few + R"(}, "root": {"type": "panel"})")).empty());
 }
 
 // Before, every finding compared its name with every name there is: 8,000 typos against a state of 8,000 keys took

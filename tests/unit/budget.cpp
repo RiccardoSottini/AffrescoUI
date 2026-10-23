@@ -114,6 +114,29 @@ TEST_CASE("budget: an expression that does too much stops at its place") {
 	CHECK(built.state("count") == 0);
 }
 
+TEST_CASE("budget: what a function builds spends from it, so a loop can't fill memory in a few operations") {
+	const Errors errors;
+	// 1100 lists of 10000 items, then 1000 copies of a 1 MB text: each costs its size, past 10^7 operations
+	const Built built(R"({
+		"lists": [{"set": "state.count", "to": "{{count(range(1100), length(range(10000)) > 0)}}"}],
+		"fill": [{"set": "state.text", "to": "{{join(range(10000), 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')}}"}],
+		"texts": [{"set": "state.count", "to": "{{count(range(1000), length(state.text + '') > 0)}}"}],
+		"some": [{"set": "state.count", "to": "{{count(range(100), length(state.text + '') > 0)}}"}]
+	})");
+	built.run("lists");
+	REQUIRE(errors.lines.size() == 1);
+	CHECK(errors.lines[0].find("actions.lists[0].to") != std::string::npos);
+	CHECK(errors.lines[0].find("10000000 operations, its work budget") != std::string::npos);
+	built.run("fill");
+	built.run("texts");
+	REQUIRE(errors.lines.size() == 2);
+	CHECK(errors.lines[1].find("actions.texts[0].to") != std::string::npos);
+	CHECK(built.state("count") == 0);
+	built.run("some"); // a tenth of it fits
+	CHECK(errors.lines.size() == 2);
+	CHECK(built.state("count") == 100);
+}
+
 TEST_CASE("budget: an event can't write more than its bytes into the state") {
 	const Errors errors;
 	const Built built(R"({"grow": [{"while": "{{true}}", "do": [{"set": "state.text", "to": "{{state.text + state.text}}"}]}]})");

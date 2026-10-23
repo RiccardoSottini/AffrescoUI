@@ -5,8 +5,9 @@ document is, where a node is, who may change what, and which changes are forbidd
 a document refers to but doesn't define, without running it; `Runtime` builds the document into `render` panels,
 keeps them in line with every new version and state, and runs events, actions and steps. Expressions (`{{...}}`) are
 parsed into JSON operator trees (what the checker reads), lowered once into typed nodes, and run by a small machine
-on `Value`s, which read the state in place: JSON appears only at the edges. The format is general: it describes any application's UI,
-and what one application needs that the format can't express comes in through an extension point, not a feature.
+on `Value`s, which read the state in place: JSON appears only at the edges. The format is general: it describes any
+application's UI, and what one application needs that the format can't express comes in through an extension point,
+not a feature.
 Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 
 ## Public headers (`include/affresco/format/`)
@@ -22,14 +23,16 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 | `Adapters.hpp` | Other formats (SCREEN_FORMAT.md): `detect`, `fromA2ui` (A2UI 0.8), `fromAdaptiveCard` (Adaptive Cards 1.6) and `convertForeign`, pure functions that give a screen document, its warnings and A2UI's later updates as revisions (`src/adapters/`) |
 | `SyntaxHighlighter.hpp` | `SyntaxHighlighter`: a `TextEditor`'s `EditorHighlighter` on the services' syntax engine: follows the model's edits incrementally, colours a block of lines at a time through a palette (style name to colour, a dotted style falling back to its parent), and gives the editor folds and bracket pairs. The `editor` type's `grammar` key installs one, coloured by `@syntax.*` tokens |
 
-Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
-(the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),
-`src/Checker.hpp` (`check`, `introduced`, `Finding`), and the registries (`src/TypeRegistry.hpp`,
-`src/StepRegistry.hpp`, `src/SectionRegistry.hpp`).
+Private headers that tests and benchmarks may include: `src/expression/Expression.hpp` (compile and evaluate),
+`src/expression/Value.hpp` (the values expressions compute with), `src/functions/ExpressionFunctions.hpp` (the
+function registry), `src/checker/Checker.hpp` (`check`, `introduced`, `Finding`), and the registries
+(`src/TypeRegistry.hpp`, `src/steps/StepRegistry.hpp`, `src/SectionRegistry.hpp`). Each source folder is on the
+target's include path, so a source includes another folder's header by its name alone.
 
 ## The runtime's parts
 
-`Runtime::Impl` is `Engine` (`src/Engine.hpp`), a composition root that owns the registries and eight subsystems.
+`Runtime::Impl` is `Engine` (`src/runtime/Engine.hpp`), a composition root that owns the registries and eight
+subsystems.
 Each subsystem's header says its role, its invariants and its callers:
 
 | Subsystem | Does |
@@ -46,7 +49,7 @@ Each subsystem's header says its role, its invariants and its callers:
 | Registry | Registers | From |
 |---|---|---|
 | `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks, its own events (`WidgetEvents`: signals run as handlers, such as `onClose`) and its part in drag and drop (`DragHooks`) | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`, `SplitType.cpp`, `TabsType.cpp`, `ListType.cpp`, `PathType.cpp`, `ColorPickerType.cpp`, `GradientType.cpp`, `CurvesType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`, `RunsProperty.cpp`; the application's `registerType` |
-| `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ServiceSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp` |
+| `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `steps/`: `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ServiceSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp`; `AuthSteps.cpp` |
 | `SectionRegistry` | a top-level section: its validation, whether it is required, and whether it is a capability | `Sections.cpp`, `CapabilitySections.cpp` |
 
 The type registry belongs to each runtime, since applications add to it; the built-in steps and sections never
@@ -110,7 +113,7 @@ theme, and a name can't be both a colour and a token.
   it back.
 - **State changes during one event become one update,** run once the event has been delivered.
 - **Cost follows the change** (4.1). Each record keeps what its values, its list of children and its subtree read
-  (`ReadSet`, `src/Reads.hpp`: JSON Pointers, a key read as any key `~*` when there are too many, and `~#` for a
+  (`ReadSet`, `src/updates/Reads.hpp`: JSON Pointers, a key read as any key `~*` when there are too many, and `~#` for a
   repeat's reading of a list's shape only). A state step records the places it wrote (`StateChanges`); the update
   after it visits only the records whose subtree reads one, applies again the values that do and builds again the
   lists of children that do. A repeat over a place of the state gives each item that place (`Scope::origin`), so its
@@ -119,7 +122,7 @@ theme, and a name can't be both a colour and a token.
   place describes update everything. A subtree's reads may say more than it reads, never less: an update that
   visits only part of the panels gives the panels a full build gives (`tests/unit/updates.cpp`).
 - **Data models** (4.3). `setModel(name, model)` registers rows the application owns (`DataModel`), which
-  `"repeat": {"in": "models.<name>"}` goes over (`src/Models.*`). Their rows lie at `/~m/<name>/<row>` among the
+  `"repeat": {"in": "models.<name>"}` goes over (`src/updates/Models.*`). Their rows lie at `/~m/<name>/<row>` among the
   places values read (`~m` is no JSON Pointer key, so it is never one of the state), and an item's bindings read its
   row there, live. A changed row marks its own place, so an update applies again only what reads it; an insertion, a
   removal, a reset or many rows at once mark the whole model, so the repeats over it build again. The catalog's
@@ -127,11 +130,12 @@ theme, and a name can't be both a colour and a token.
   accepts any `models.<name>` (models exist only while the application runs), and building fails, naming the models
   there are, when the name is none of them (`tests/unit/models.cpp`).
 - **Async calls** (4.7). `onAsyncCall(name, call)` registers a slow native function: a `call` step runs it on a
-  worker pool (2 to 4 threads, started on first use), so no frame waits for it (`src/AsyncCalls.*`). The step's
+  worker pool (2 to 4 threads, started on first use), so no frame waits for it (`src/calls/AsyncCalls.*`). The step's
   `loading` place is true while it runs, `progress` goes from 0 to 1, partial results stream into `into`, `timeout`
   (ms) ends it with the error `timeout`, `then` runs with `result` and `onError` with `error`; `{"cancel": name}`
-  stops its calls. A plain `onCall` function runs `then` with `result` too, right after it returns. Reports are coalesced: at most one delivery per call waits on the `Executor` (the Application,
-  or `setExecutor`), and it carries the latest values. At most 64 calls run at once. A call ended (cancelled, timed
+  stops its calls. A plain `onCall` function runs `then` with `result` too, right after it returns. Reports are
+  coalesced: at most one delivery per call waits on the `Executor` (the Application, or `setExecutor`), and it
+  carries the latest values. At most 64 calls run at once. A call ended (cancelled, timed
   out, or its runtime destroyed) changes nothing more; destroying the runtime waits for the functions running, so
   they should check `cancelled()`. Without an executor the call runs at once (`tests/unit/async.cpp`).
 - **Services** (8.5a, RFC 0002). `setServices` gives the runtime a `services::Services` (the `services` module's
@@ -143,9 +147,9 @@ theme, and a name can't be both a colour and a token.
   sends runs the action `<service>:<method>` with its params and `request`, whose `respond` step answers it (within
   30 s; at most 256 wait). The `services` variable is each service's status. At most
   1,024 calls run and 256 subscriptions are open per screen; results come back through the `Executor`, and a call
-  ended changes nothing more (`src/ServiceCalls.*`, `tests/unit/services.cpp`). A revision can't change the section,
-  may use only the declared services' revisable methods (`checkServiceUses`), and a step it adds that writes or runs
-  something is always reviewed (`reviewLines`, `src/ServiceRules.*`).
+  ended changes nothing more (`src/calls/ServiceCalls.*`, `tests/unit/services.cpp`). A revision can't change the
+  section, may use only the declared services' revisable methods (`checkServiceUses`), and a step it adds that writes
+  or runs something is always reviewed (`reviewLines`, `src/rules/ServiceRules.*`).
 - **Connections** (8.6b, RFC 0003). `setNetwork` gives the runtime a `network::Network` (the `net` module's
   `Client`, through `Screen::network()`). The `connections` section declares servers and their operations (method,
   `path` with `{name}` segments, `query`, `body`, `headers`, `effect`, `stream`, `result`, `timeout`, `mock`), or a
@@ -170,10 +174,17 @@ theme, and a name can't be both a colour and a token.
 - **Limits** (untrusted documents): expression nesting 100; `while` 10,000 iterations; `forEach` lists, `range` and
   `pad` 10,000; nested actions 32; nested components 32; computed values reading computed values 32; panels built
   inside each other 256 (`maxNodeDepth`); styles using styles 16; `include` inside `include` 8; a state write at most
-  10,000 positions past a list's end (`maxListGap`). The checker gives hints to the first 50 findings of a pass, each
-  compared with at most 1,000 names.
-- **State writes go through `statePlace()`** (`Expression.hpp`), never `state[pointer]`: it throws `DocumentError`
-  where nlohmann would throw a `json::exception`, which no event handler catches, and bounds how far a list grows.
+  10,000 positions past a list's end (`maxListGap`); a text an expression builds (a template, `join`, `+`, `t`, a
+  message) 64 MiB (`textLimit`); 250,000 panels per screen (`maxPanels`); a timer's delay about 24.8 days, as in web
+  browsers, and 10,000 `after` steps waiting at once. The checker gives hints to the first 50 findings of a pass,
+  each compared with at most 1,000 names. It gives up on a document that makes it visit more than 1,000,000 nodes,
+  steps and values, or copy more than 4,000,000 shape nodes (a step that writes the state into the state doubles
+  what it may hold): `checkChange` then compares only the node ids before and after. `checkChange` expands
+  components looking for a way to run a control step until it has expanded as many bytes as a document may hold;
+  past that, it refuses the revision.
+- **State writes go through `statePlace()`** (`src/expression/Expression.hpp`), never `state[pointer]`: it throws
+  `DocumentError` where nlohmann would throw a `json::exception`, which no event handler catches, and bounds how far a
+  list grows.
 - **Every event and every update has a work budget** (1.8c, `WorkBudget` in `Expression.hpp`, started by
   `DocumentContext::BudgetScope` in `Steps::handle` and `Reconciler::reconcile`, and in `Events` where a drag's
   data, a caret's place, a `bind` target or an overlay's dismissal is evaluated): 100,000 steps
@@ -182,15 +193,26 @@ theme, and a name can't be both a colour and a token.
 - **Sizes** (`Limits.hpp`, in `Rules`): a revision of at most 100,000 operations and 16 MiB (`checkRevision`, called
   by version control before applying it), a document of 32 MiB without its state, a state of 32 MiB.
 
-## Threads
+## Threads and ownership
 
-Main thread only. The runtime reads and writes the `VersionControl` it was given, and its deferred work, timers and
-animations run through the window (`Window::defer`, `setTimer`) and read its clock. When it is destroyed it cancels
-its timers, its deferred tasks check that it is still alive, and it disconnects every signal it connected (the
-window's and its panels'), so a window can outlive its screen. Image files are decoded on the `ImageCache`'s worker
-thread; from `createWindow(app)` on, the decoded images come back through the `Application` (an `Executor`), and
-before it (`build` on a window of the caller's) they are decoded when asked for. `waitForImages` waits for the worker
-and shows what it decoded.
+Main thread only, except the workers named here. The runtime reads and writes the `VersionControl` it was given, and its
+deferred work, timers and animations run through the window (`Window::defer`, `setTimer`) and read its clock. When it is
+destroyed it cancels its timers, its deferred tasks check that it is still alive, and it disconnects every signal it
+connected (the window's and its panels'), so a window can outlive its screen. Image files are decoded on the
+`ImageCache`'s worker thread; from `createWindow(app)` on, the decoded images come back through the `Application` (an
+`Executor`), and before it (`build` on a window of the caller's) they are decoded when asked for. `waitForImages` waits
+for the worker and shows what it decoded. `onAsyncCall` functions run on a pool of 2 to 4 threads
+(`src/calls/AsyncCalls.*`), which share only a call's cancellation and its latest report with the main thread; every
+result comes back through the `Executor`, and destroying the runtime joins them.
+
+`Runtime` owns its `Engine`, which owns the registries and the subsystems, declared in the order they are built in
+(and destroyed in the reverse order: the async calls first, so no worker outlives what it reports to). The panels
+belong to the window's panel tree (`render`); the `Reconciler` keeps one `Record` per panel it built, and drops a
+subtree's records before the subtree is destroyed. A compiled node belongs to the `Builder` for one version of the
+document, and its bindings point into that version (or into the component instance the compiled node keeps), which
+outlives them. The checker reads the document where it is and copies only shapes, within its budget. Callers own the
+`VersionControl` and the executor they give the runtime, which outlive it, and the services, network and identity,
+which outlive it or are replaced first.
 
 ## Errors
 
@@ -215,101 +237,122 @@ and shows what it decoded.
 - **Item icons:** a list, tree or table item may carry `icon` (a glyph name) and `iconColor`; an application's
   model gives them through `ListItem`, so file icon themes stay in the application (`examples/forge`).
 - **Expression functions:** a new function is a new row of the table in its group's file
-  (`src/ExpressionFunctions<Group>.cpp`): its name, arguments, one line of documentation, arity and implementation.
+  (`src/functions/ExpressionFunctions<Group>.cpp`): its name, arguments, one line of documentation, arity and
+  implementation.
   The parser, the catalog's `operators` and SCREEN_FORMAT.md's function list (a unit test checks it against
   `functionGuide()`) come from the registry. A new group is a new file whose table `functions()` lists.
 
 ## Files
 
 ```
-include/affresco/format/   Rules.hpp, NodeIds.hpp, Runtime.hpp, Features.hpp, Usage.hpp, Locale.hpp
+include/affresco/format/   Rules.hpp, NodeIds.hpp, Migrate.hpp, Runtime.hpp, Features.hpp, Usage.hpp, Locale.hpp,
+                           Adapters.hpp, SyntaxHighlighter.hpp
 src/
-  Features.cpp             features (RFC 0004): trusted publishers, catalogues, the install and upgrade revisions
-  Composition.*            the enabled features merged into the screen the runtime builds, with RFC 0004's checks
-  ComposedVersions.*       the document's version control as the runtime sees it, with the enabled features merged in
-  FeatureManifest.*        a feature's manifest: releases and ranges, its shape, features, exports and imports
-  FeatureCatalog.*         catalogue v0: a signed index and its releases' manifests, with every check
-  FeatureSignatures.*      Ed25519 signatures over canonical JSON (RFC 8785), base64url, SHA-512 digests
-  Rules.cpp                validation, findNode, permissions, checkChange (control steps, capability sections)
-  BehaviourLines.cpp       behaviourLines: the actions, handlers, steps and bindings a change adds, removes or changes
-  RulesNodes.cpp           Rules for revisions' nodes and paths: ids for the nodes they add, hints for paths
-  NodeIds.cpp              where nodes are, their ids, duplicates, and readable ids for nodes without one
-  Checker.hpp / .cpp       the static checker: its passes, findings and hints ("did you mean ...")
-  CheckerImpl.hpp          the checker's private parts
-  CheckerNodes.cpp         the checker's walk of nodes: components, styles, repeat, variables, references
-  CheckerValues.cpp        the checker's reading of values: expressions, operators, paths
-  Expression.hpp / .cpp    expressions: the API, and the caches of compiled expressions and split templates
-  ExpressionParser.*       the parser: an expression's text into its JSON operator tree
-  ExpressionLower.cpp      lowering an operator tree once into typed nodes
-  ExpressionMachine.*      the typed nodes and the machine that runs them: calls, paths, variables, templates
-  ExpressionFunctions.*    the function registry; ExpressionFunctions<Group>.cpp hold its tables (Color:
-                           curve() and gradientColor())
-  Strings.*                the "strings" section (6.9): translations per locale, the fallback chain (fr-CA, fr,
+  runtime/                 the runtime and what it is made of
+    Runtime.cpp            the public API, forwarding to the engine
+    Engine.hpp / .cpp      the composition root: registries and subsystems
+    DocumentContext.*      colours, fonts, theme, globals, computed values, the screen shown
+    Scheduler.*            timers, animations, debounces, transitions, deferred tasks (instant when
+                           window.reducedMotion)
+    Settings.*             the settings section: defaults, checked writes to settings.x, the settings and
+                           settingsList variables
+    Usage.cpp              usage summaries (Usage.hpp): counts per node id and action and per screen, the controls
+                           never used, bounded, over 30 days, in a file beside the "persist" state
+  expression/              the expression language
+    Expression.hpp / .cpp  the API, and the caches of compiled expressions and split templates
+    ExpressionParser.*     the parser: an expression's text into its JSON operator tree
+    ExpressionLower.cpp    lowering an operator tree once into typed nodes
+    ExpressionMachine.*    the typed nodes and the machine that runs them: calls, paths, variables, templates
+    Value.hpp / .cpp       the values expressions compute with: inline short texts, shared lists and objects
+  functions/               ExpressionFunctions.*: the function registry; ExpressionFunctions<Group>.cpp hold its
+                           tables (Color: curve() and gradientColor(); Locale: formatNumber, formatPercent,
+                           formatCurrency, formatDate, formatTime, formatRelative, formatList, compareText, sortText)
+  locale/                  translations and the CLDR subset
+    Strings.*              the "strings" section (6.9): translations per locale, the fallback chain (fr-CA, fr,
                            the default), t() and its checks (unknown keys, missing and extra parameters)
-  StringsMessage.cpp       ICU MessageFormat's subset: {name}, plural (=0, #), select, number, date and time
-  Locale.hpp, Locale*.cpp  the compact CLDR subset (LocaleData.cpp, generated by tools/i18n/): plural rules,
+    StringsMessage.cpp     ICU MessageFormat's subset: {name}, plural (=0, #), select, number, date and time
+    Locale.hpp, Locale*.cpp  the compact CLDR subset (LocaleData.cpp, generated by tools/i18n/): plural rules,
                            numbers, currencies, dates, relative times, lists, sorting; LocaleSystem.cpp the OS's locale
-  ExpressionFunctionsLocale.cpp  formatNumber, formatPercent, formatCurrency, formatDate, formatTime,
-                           formatRelative, formatList, compareText and sortText
-  Value.hpp / .cpp         the values expressions compute with: inline short texts, shared lists and objects
-  Runtime.cpp              the public API, forwarding to the engine
-  Engine.hpp / .cpp        the composition root: registries and subsystems
-  DocumentContext.*        colours, fonts, theme, globals, computed values, the screen shown
-  DesignTokens.*           the "tokens" section: aliases, per-theme values, colour and number tables
-  Builder.*                use, repeat, with, let, check, styles, when; the compiled nodes of a version
-  BuiltInComponents.*      menus, the menu bar, dialogs, toasts, hover cards, the settings page and the quick
-                           pick, written in the format
-  CompiledNode.*           a node compiled: slots, bindings, scoping keys
-  Binding.*                a value compiled once: templates split, operators lowered
-  StateTypes.*             typed state: the stateTypes subset of JSON Schema, matching values, describing types
-  CheckerTypes.cpp         the checker's typed-state checks
-  Reconciler.*             records, building and reconciling panels; updates of only what reads a change
-  Reads.*                  what values read and what changed in the state, and when they meet
-  ItemIndex.*              the children of a long list by the item of the state they read
-  Models.*                 the application's data models, their rows' places and their outline for agents
-  AsyncCalls.*             slow native calls on a worker pool: loading, progress, partial results, timeouts, cancel
-  ServiceCalls.*           invoke, subscribe and respond: calls to the services, their results and events in the state
-  ServiceRules.*           what revisions may do with services: declared ones only, and reviewed when they write or run
-  ConnectionSpec.*         the "connections" section, read and checked: connections, operations, messages
-  Connections.*            request and subscribe on connections: requests built from declarations, WebSockets, previews
-  ConnectionAuth.*         a connection's "auth": its provider, and the bearer header the host adds
-  AuthSteps.cpp            the signIn and signOut steps
-  Properties.*             a node's values on its panel; PropertyValues.* reads lengths, anchors, radii
-  LayoutProperties.*       the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
+  nodes/                   a version's nodes, compiled
+    Builder.*              use, repeat, with, let, check, styles, when; the compiled nodes of a version
+    CompiledNode.*         a node compiled: slots, bindings, scoping keys
+    Binding.*              a value compiled once: templates split, operators lowered
+    Record.hpp, NodeKeys.hpp  what the runtime keeps per panel, and what a node's keys mean
+  updates/                 building panels, and updating only what reads a change
+    Reconciler.*           records, building and reconciling panels; updates of only what reads a change
+    Reads.*                what values read and what changed in the state, and when they meet
+    ItemIndex.*            the children of a long list by the item of the state they read
+    ListItems.*            a list's and a tree's items, read within limits, without recursion
+    Models.*               the application's data models, their rows' places and their outline for agents
+  events/                  Events.*: input (EventsFocus.cpp, EventsKeys.cpp, EventsPointer.cpp); Shortcuts.* names
+                           keys, chords and shortcuts
+  steps/                   Steps.*: handlers and actions; StepRegistry.* and the *Steps.cpp groups (AuthSteps.cpp,
+                           the signIn and signOut steps, is at the top level)
+  calls/                   calls outside the document
+    AsyncCalls.*           slow native calls on a worker pool: loading, progress, partial results, timeouts, cancel
+    ServiceCalls.*         invoke, subscribe and respond: calls to the services, their results and events in the state
+  checker/                 the static checker
+    Checker.hpp / .cpp     its passes, findings and hints ("did you mean ...")
+    CheckerImpl.hpp        its private parts; CheckerShapes.hpp what it knows about values, and its limits
+    CheckerNodes.cpp       its walk of nodes: components, styles, repeat, variables, references
+    CheckerValues.cpp      its reading of values: expressions, operators, paths
+    StateTypes.*           typed state: the stateTypes subset of JSON Schema, matching values, describing types
+    CheckerTypes.cpp       the typed-state checks
+  rules/                   the format as rules for version control
+    Rules.cpp              validation, findNode, permissions, checkChange (capability sections, controls added)
+    RulesControl.*         the control scan: control steps, and the actions and components that may run them
+    BehaviourLines.cpp     behaviourLines: the actions, handlers, steps and bindings a change adds, removes or changes
+    RulesNodes.cpp         Rules for revisions' nodes and paths: ids for the nodes they add, hints for paths
+    NodeIds.cpp            where nodes are, their ids, duplicates, and readable ids for nodes without one
+    Limits.*               how large a revision, a document and a state may get, and how a value's size is measured
+    Migrate.cpp            version 1 documents migrated to version 2 (Migrate.hpp)
+    ServiceRules.*         what revisions may do with services: declared ones only, and reviewed when they write or run
+  adapters/                other formats converted to screens (Adapters.hpp): A2UI 0.8 (A2ui.*, A2uiComponents.cpp)
+                           and Adaptive Cards 1.6 (AdaptiveCards.*, AdaptiveCardActions.cpp); Layout.* what they share
+  (top level)              features, connections, node types, properties, the reference, registries
+    Features.cpp           features (RFC 0004): trusted publishers, catalogues, the install and upgrade revisions
+    Composition.*          the enabled features merged into the screen the runtime builds, with RFC 0004's checks;
+                           CompositionProof.* the proof that a feature from another app fits a host
+    ComposedVersions.*     the document's version control as the runtime sees it, with the enabled features merged in
+    FeatureManifest.*      a feature's manifest: releases and ranges, its shape, features, exports and imports
+    FeatureCatalog.*       catalogue v0: a signed index and its releases' manifests, with every check
+    FeatureSignatures.*    Ed25519 signatures over canonical JSON (RFC 8785), base64url, SHA-512 digests
+    ContributionPoints.*   the "points" section: where another app's views may go, and the contracts of exports;
+                           AdapterMapping.* how a feature from another app gets what it needs from its host
+    ConnectionSpec.*       the "connections" section, read and checked: connections, operations, messages
+    Connections.*          request and subscribe on connections: requests built from declarations, WebSockets, previews
+    ConnectionAuth.*       a connection's "auth": its provider, and the bearer header the host adds
+    AuthSteps.cpp          the signIn and signOut steps
+    DesignTokens.*         the "tokens" section: aliases, per-theme values, colour and number tables
+    BuiltInComponents.*    menus, the menu bar, dialogs, toasts, hover cards, the settings page and the quick
+                           pick, written in the format; BuiltInFormComponents.cpp comboBox and passwordMeter
+    Properties.*           a node's values on its panel; PropertyValues.* reads lengths, anchors, radii;
+                           AccessibilityProperties.cpp isOpen, selected and live; TextFieldProperties.cpp secret,
+                           maxLength and accept; TransformProperties.cpp rotate, scale, skew, translate, transformOrigin
+    LayoutProperties.*     the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
                            alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,
                            stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
-  Events.*                 input; Shortcuts.* names keys, chords and shortcuts
-  Contributions.*          commands, keybindings and menus: what is one, enablement, the context, the commands,
+    Contributions.*        commands, keybindings and menus: what is one, enablement, the context, the commands,
                            keybindings and menus variables (built when read, DocumentContext::addVariable), and
                            the window's native menu bar (window.menuBar, shown after each update when it changed)
                            (Reconciler.cpp shows window.focusRing the same way; role, label and description are
-                           properties, in Properties.cpp; isOpen, selected and live in
-                           AccessibilityProperties.cpp)
-  Settings.*               the settings section: defaults, checked writes to settings.x, the settings and
-                           settingsList variables
-  Usage.cpp                usage summaries (Usage.hpp): counts per node id and action and per screen, the controls
-                           never used, bounded, over 30 days, in a file beside the "persist" state
-  Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups
-  Scheduler.*              timers, animations, debounces, transitions, deferred tasks (instant when
-                           window.reducedMotion)
-  Catalog.*                the catalog, from the registries
-  Reference*.*             the JSON Schema and SCREEN_FORMAT.md's tables, from the registries and each key's entry
-                           (ReferenceNodes.cpp, ReferenceSections.cpp); `affrescoui schema` writes them
-  TypeRegistry.*           node types; Types.cpp, EditorType.cpp, ToggleType.cpp, SliderType.cpp, ImageType.cpp,
-                           SplitType.cpp, TabsType.cpp, ListType.cpp (list and tree; ListItems.* reads their
-                           items within limits, without recursion), PathType.cpp ("path": d, viewBox, fill and
-                           stroke, the data parsed only when it changes), ColorPickerType.cpp, GradientType.cpp,
-                           CurvesType.cpp (the creative controls; CreativeValues.* reads and writes their values),
-                           CanvasType.cpp ("canvas": its items within limits, levels of detail, and its view bound
-                           both ways),
-                           GraphType.cpp ("graph": nodes, ports and links read within limits, the edits as
-                           events for its handlers),
-                           TimelineType.cpp ("timeline": tracks, keyframes, clips and markers read within
-                           limits, scrubs and edits as events for its handlers)
-                           register them, IconProperty.cpp the labels' "icon", and RunsProperty.cpp their
-                           "runs", "selectable" and "selectionColor" (within limits: 256 runs, 64 Ki characters)
-  SectionRegistry.hpp      sections; Sections.cpp, CapabilitySections.cpp register them
-  Record.hpp, NodeKeys.hpp what the runtime keeps per panel, and what a node's keys mean
+                           properties, in Properties.cpp)
+    Catalog.*              the catalog, from the registries
+    Reference*.*           the JSON Schema and SCREEN_FORMAT.md's tables, from the registries and each key's entry
+                           (ReferenceNodes.cpp, ReferenceSections.cpp, ReferenceTables.cpp); `affrescoui schema`
+                           writes them
+    TypeRegistry.*         node types; Types.cpp registers them, each in its <Name>Type.cpp: editor, toggle, slider,
+                           image, split, tabs, list (list and tree), path ("path": d, viewBox, fill and stroke, the
+                           data parsed only when it changes), calendar, carousel, codeInput, diff, surface (a GPU
+                           surface the host registered), and the creative controls colorPicker, gradient and curves
+                           (CreativeValues.* reads and writes their values); canvas (its items within limits, levels
+                           of detail, and its view bound both ways); graph (nodes, ports and links read within
+                           limits, the edits as events for its handlers); timeline (tracks, keyframes, clips and
+                           markers read within limits, scrubs and edits as events for its handlers); IconProperty.cpp
+                           the labels' "icon", and RunsProperty.cpp their "runs", "selectable" and "selectionColor"
+                           (within limits: 256 runs, 64 Ki characters)
+    SyntaxHighlighter.cpp  a text editor's text kept parsed by the syntax engine, coloured a block of lines at a time
+    SectionRegistry.hpp    sections; Sections.cpp, CapabilitySections.cpp register them
 CMakeLists.txt             the affrescoui_format target and its sources
 ```
 
@@ -339,7 +382,7 @@ new group in a new file registered from `registerBuiltInSteps` (the order there 
 catalog lists it from the registry. Add the key to the checker's `stepNames` (`CheckerNodes.cpp`), give it and the
 keys it reads entries in `ReferenceSections.cpp`, and regenerate the schema and `SCREEN_FORMAT.md`'s tables with
 `affrescoui schema` (as above). If the step reaches outside the document (a program, a file, the network, history), it is a
-control step: mark it `control`, add it to `controlSteps` in `Rules.cpp` so a revision can't add it, and test that
+control step: mark it `control`, add it to `controlSteps` in `RulesControl.cpp` so a revision can't add it, and test that
 refusal in `tests/unit/rules.cpp`.
 
 **Add a document section.** A `SectionType` with its validator, added in `registerBuiltInSections` (`Sections.cpp`);

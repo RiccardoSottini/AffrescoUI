@@ -27,7 +27,10 @@ public:
 	~Features();
 	Features(const Features&) = delete;
 	Features& operator=(const Features&) = delete;
+	/// @brief Takes over another's features.
 	Features(Features&&) noexcept;
+	/// @brief Takes over another's features.
+	/// @return This one.
 	Features& operator=(Features&&) noexcept;
 
 	/// @brief Trusts a publisher's key: catalogues and manifests it signed are accepted.
