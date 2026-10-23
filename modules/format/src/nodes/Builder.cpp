@@ -197,10 +197,17 @@ json Builder::instantiateComponent(const json& use, const std::string& path) con
 	for(const auto& [key, value] : use.items())
 		if(key != "use" && key != "with" && key != "children") result[key] = value;
 
-	// Parameters: the component's defaults, then what the use passes (evaluated in the caller's scope)
-	json with =
-	    component.contains("params") ? object(component["params"], "components." + name + ".params") : json::object();
-	if(use.contains("with")) with.update(object(use["with"], path + ".with"));
+	// Parameters: what the use passes first (evaluated in the caller's scope), then the defaults it left out, which
+	// see them. A node that has a "with" of its own (a component that uses another one) keeps it after them.
+	json with = use.contains("with") ? object(use["with"], path + ".with") : json::object();
+	if(component.contains("params"))
+		for(const auto& [key, value] : object(component["params"], "components." + name + ".params").items())
+			if(!with.contains(key)) with[key] = value;
+	if(result.contains("with"))
+		for(const auto& [key, value] : object(result["with"], "components." + name + ".node.with").items()) {
+			with.erase(key);
+			with[key] = value;
+		}
 	result["with"] = std::move(with);
 
 	// The use's children go where the component has {"slot": true}
