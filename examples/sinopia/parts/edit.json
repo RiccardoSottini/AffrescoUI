@@ -1,0 +1,187 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Editing the deck: every change first keeps the deck as it was (commit), so Undo and Redo step through up to 50 of them. Objects are changed on the current slide, the selected ones (the canvas's selection, which holds object ids); new slides take their layout's placeholders, empty, and new ids from deck.next.",
+
+	"state": {
+		"undo": [],
+		"redo": [],
+		"clip": []
+	},
+
+	"computed": {
+		"slide": "{{state.deck.slides[state.current] ?? state.deck.slides[0]}}",
+		"objects": "{{computed.slide.objects ?? []}}",
+		"selected": "{{filter(computed.objects, contains(state.board.selection, it.id))}}",
+		"first": "{{computed.selected[0] ?? null}}",
+		"firstPlaceholder": "{{find(computed.layout.ph, it.ph == computed.first.ph) ?? {}}}",
+		"textSize": "{{computed.first == null ? 18 : computed.first.size ?? computed.firstPlaceholder.size ?? 18}}",
+		"sizes": [8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 66, 72, 80, 88, 96],
+		"allOn": "{{ {bold: every(computed.selected, it.bold ?? false), italic: every(computed.selected, it.italic ?? false), underline: every(computed.selected, it.underline ?? false), strike: every(computed.selected, it.strike ?? false), shadow: every(computed.selected, it.shadow ?? false), bullets: every(computed.selected, it.bullets ?? false)} }}",
+		"canUndo": "{{length(state.undo) > 0}}",
+		"canRedo": "{{length(state.redo) > 0}}"
+	},
+
+	"actions": {
+		"commit": [
+			{ "push": "state.undo", "value": "{{ {deck: state.deck, current: state.current} }}" },
+			{ "if": "{{length(state.undo) > 50}}", "then": [{ "remove": "state.undo", "at": 0 }] },
+			{ "set": "state.redo", "to": [] }
+		],
+		"undo": [
+			{ "if": "{{computed.canUndo}}", "then": [
+				{ "push": "state.redo", "value": "{{ {deck: state.deck, current: state.current} }}" },
+				{ "set": "state.deck", "to": "{{state.undo[length(state.undo) - 1].deck}}" },
+				{ "set": "state.current", "to": "{{state.undo[length(state.undo) - 1].current}}" },
+				{ "remove": "state.undo", "at": "{{length(state.undo) - 1}}" },
+				{ "set": "state.board.selection", "to": [] }
+			] }
+		],
+		"redo": [
+			{ "if": "{{computed.canRedo}}", "then": [
+				{ "push": "state.undo", "value": "{{ {deck: state.deck, current: state.current} }}" },
+				{ "set": "state.deck", "to": "{{state.redo[length(state.redo) - 1].deck}}" },
+				{ "set": "state.current", "to": "{{state.redo[length(state.redo) - 1].current}}" },
+				{ "remove": "state.redo", "at": "{{length(state.redo) - 1}}" },
+				{ "set": "state.board.selection", "to": [] }
+			] }
+		],
+
+		"pickSlide": [
+			{ "set": "state.current", "to": "{{clamp(index, 0, length(state.deck.slides) - 1)}}" },
+			{ "set": "state.board.selection", "to": [] }
+		],
+		"newSlide": [
+			{ "run": "commit" },
+			{ "set": "state.deck.slides", "to": "{{concat(slice(state.deck.slides, 0, state.current + 1), [{ id: 's' + state.deck.next, layout: layout, notes: '', transition: { kind: 'none', ms: 500 }, animations: [], objects: map(find(computed.layouts, it.id == layout).ph, { id: 'o' + (state.deck.next + 1 + index), kind: 'text', ph: it.ph, text: '' }) }], slice(state.deck.slides, state.current + 1))}}" },
+			{ "increment": "state.deck.next", "by": 20 },
+			{ "set": "state.current", "to": "{{state.current + 1}}" },
+			{ "set": "state.board.selection", "to": [] }
+		],
+		"duplicateSlide": [
+			{ "run": "commit" },
+			{ "set": "state.deck.slides", "to": "{{concat(slice(state.deck.slides, 0, state.current + 1), [merge(computed.slide, { id: 's' + state.deck.next, objects: map(computed.objects, merge(it, { id: 'o' + (state.deck.next + 1 + index) })), animations: [] })], slice(state.deck.slides, state.current + 1))}}" },
+			{ "increment": "state.deck.next", "by": "{{length(computed.objects) + 2}}" },
+			{ "set": "state.current", "to": "{{state.current + 1}}" },
+			{ "set": "state.board.selection", "to": [] }
+		],
+		"deleteSlide": [
+			{ "if": "{{length(state.deck.slides) > 1}}", "then": [
+				{ "run": "commit" },
+				{ "remove": "state.deck.slides", "at": "{{state.current}}" },
+				{ "set": "state.current", "to": "{{min(state.current, length(state.deck.slides) - 1)}}" },
+				{ "set": "state.board.selection", "to": [] }
+			] }
+		],
+		"moveSlide": [
+			{ "if": "{{from >= 0 && to >= 0 && from != to && from < length(state.deck.slides) && to < length(state.deck.slides)}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides", "to": "{{from < to ? concat(slice(state.deck.slides, 0, from), slice(state.deck.slides, from + 1, to + 1), [state.deck.slides[from]], slice(state.deck.slides, to + 1)) : concat(slice(state.deck.slides, 0, to), [state.deck.slides[from]], slice(state.deck.slides, to, from), slice(state.deck.slides, from + 1))}}" },
+				{ "set": "state.current", "to": "{{to}}" }
+			] }
+		],
+		"hideSlide": [
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].hidden", "to": "{{!(computed.slide.hidden ?? false)}}" }
+		],
+		"setLayout": [
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current]", "to": "{{merge(computed.slide, { layout: layout, objects: concat(filter(computed.objects, it.ph == null || contains(map(find(computed.layouts, it.id == layout).ph, it.ph), it.ph)), map(filter(find(computed.layouts, it.id == layout).ph, !contains(map(computed.objects, it.ph), it.ph)), { id: 'o' + (state.deck.next + index), kind: 'text', ph: it.ph, text: '' })) })}}" },
+			{ "increment": "state.deck.next", "by": 10 }
+		],
+		"resetSlide": [
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, it.ph == null ? it : { id: it.id, kind: it.kind, ph: it.ph, text: it.text })}}" }
+		],
+		"addSection": [
+			{ "run": "commit" },
+			{ "set": "state.deck.sections", "to": "{{sort(concat(filter(state.deck.sections ?? [], it.first != state.current), [{ id: 'x' + state.deck.next, name: 'Untitled Section', first: state.current }]), 'first')}}" },
+			{ "increment": "state.deck.next", "by": 1 }
+		],
+
+		"setObjects": [
+			{ "if": "{{length(computed.selected) > 0}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, contains(state.board.selection, it.id) ? merge(it, props) : it)}}" }
+			] }
+		],
+		"toggleText": [{ "run": "setObjects", "with": { "props": "{{parseJson('{' + json(key) + ':' + json(!computed.allOn[key]) + '}')}}" } }],
+		"growText": [
+			{ "run": "setObjects", "with": { "props": "{{ {size: by > 0 ? find(computed.sizes, it > computed.textSize) ?? computed.textSize + 8 : find(reverse(computed.sizes), it < computed.textSize) ?? max(computed.textSize - 1, 1)} }}" } }
+		],
+		"clearFormatting": [
+			{ "run": "setObjects", "with": { "props": { "bold": null, "italic": null, "underline": null, "strike": null, "shadow": null, "size": null, "color": null, "highlight": null } } }
+		],
+		"changeCase": [
+			{ "if": "{{length(computed.selected) > 0}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, contains(state.board.selection, it.id) ? merge(it, { text: how == 'upper' ? upper(it.text ?? '') : how == 'lower' ? lower(it.text ?? '') : it.text }) : it)}}" }
+			] }
+		],
+		"placeObjects": [
+			{ "run": "commit" },
+			{ "forEach": "moved", "as": "m", "do": [
+				{ "run": "placeObject", "with": { "m": "{{m}}", "k": "{{indexOf(map(computed.objects, it.id), m.id)}}" } }
+			] }
+		],
+		"placeObject": [
+			{ "if": "{{k >= 0}}", "then": [
+				{ "set": "state.deck.slides[state.current].objects[k]", "to": "{{merge(computed.objects[k], { x: round(m.x * 10) / 10, y: round(m.y * 10) / 10, w: round(m.width * 10) / 10, h: round(m.height * 10) / 10, rotate: round((m.rotate ?? 0) * 10) / 10 })}}" }
+			] }
+		],
+		"deleteObjects": [
+			{ "if": "{{length(computed.selected) > 0}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{filter(computed.objects, !contains(state.board.selection, it.id))}}" },
+				{ "set": "state.board.selection", "to": [] }
+			] }
+		],
+		"copyObjects": [{ "if": "{{length(computed.selected) > 0}}", "then": [{ "set": "state.clip", "to": "{{computed.selected}}" }] }],
+		"cutObjects": [{ "run": "copyObjects" }, { "run": "deleteObjects" }],
+		"pasteObjects": [
+			{ "if": "{{length(state.clip) > 0}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{concat(computed.objects, map(state.clip, merge(it, { id: 'o' + (state.deck.next + index), x: (it.x ?? 0) + 18, y: (it.y ?? 0) + 18, ph: null })))}}" },
+				{ "set": "state.board.selection", "to": "{{map(state.clip, 'o' + (state.deck.next + index))}}" },
+				{ "increment": "state.deck.next", "by": "{{length(state.clip)}}" }
+			] }
+		],
+		"duplicateObjects": [{ "run": "copyObjects" }, { "run": "pasteObjects" }],
+		"selectAll": [{ "set": "state.board.selection", "to": "{{map(computed.objects, it.id)}}" }],
+		"insertObject": [
+			{ "run": "commit" },
+			{ "push": "state.deck.slides[state.current].objects", "value": "{{merge(object, { id: 'o' + state.deck.next })}}" },
+			{ "set": "state.board.selection", "to": "{{['o' + state.deck.next]}}" },
+			{ "increment": "state.deck.next", "by": 1 }
+		],
+		"insertShape": [
+			{ "run": "insertObject", "with": { "object": "{{computed.shapes[shape].line ? { kind: 'line', shape: shape, x: 380, y: 270, w: 200, h: 0, line: 'accent1', lineWidth: 1 } : { kind: 'shape', shape: shape, x: 405, y: 195, w: 150, h: 150, fill: 'accent1', line: 'accent1.4', lineWidth: 1, text: '' }}}" } }
+		],
+		"insertTextBox": [
+			{ "run": "insertObject", "with": { "object": { "kind": "text", "x": 330, "y": 240, "w": 300, "h": 40, "text": "Text", "size": 18 } } }
+		],
+		"order": [
+			{ "if": "{{length(computed.selected) > 0}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{how == 'front' ? concat(filter(computed.objects, !contains(state.board.selection, it.id)), computed.selected) : concat(computed.selected, filter(computed.objects, !contains(state.board.selection, it.id)))}}" }
+			] }
+		],
+
+		"setTheme": [
+			{ "run": "commit" },
+			{ "set": "state.deck.theme", "to": "{{theme}}" },
+			{ "set": "state.deck.variant", "to": 0 }
+		],
+		"setVariant": [{ "run": "commit" }, { "set": "state.deck.variant", "to": "{{variant}}" }],
+		"setTransition": [
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].transition", "to": "{{merge(computed.slide.transition ?? { kind: 'none', ms: 500 }, props)}}" }
+		],
+		"setNotes": [
+			{ "if": "{{text != (computed.slide.notes ?? '')}}", "then": [
+				{ "set": "state.deck.slides[state.current].notes", "to": "{{text}}" }
+			] }
+		]
+	}
+}

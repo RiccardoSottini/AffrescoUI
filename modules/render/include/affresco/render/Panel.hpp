@@ -416,6 +416,17 @@ public:
 	void setCached(bool cached) { setLook(cached_, cached); }
 	/// @brief The flag set by setCached().
 	[[nodiscard]] bool isCached() const noexcept { return cached_; }
+	/// @brief Lets the children draw and be hit outside the panel, as CSS `overflow: visible`: they are clipped to
+	/// what clips the panel instead (a slide's line or its overflowing text). A cached or scrolling panel still clips.
+	/// @param visible true to let them overflow.
+	void setOverflowVisible(bool visible) { setProperty(overflowVisible_, visible); }
+	/// @brief The flag set by setOverflowVisible().
+	[[nodiscard]] bool isOverflowVisible() const noexcept { return overflowVisible_; }
+	/// @brief The area the children are clipped to, absolute: bounds(), or with setOverflowVisible() what clips the
+	/// panel itself.
+	[[nodiscard]] const Rect& childClip() const noexcept { return overflows() ? childClip_ : bounds_; }
+	/// @brief Whether the children overflow now: setOverflowVisible(), unless the panel is cached or scrolls.
+	[[nodiscard]] bool overflows() const noexcept { return overflowVisible_ && !cached_ && !isScrollable(); }
 	/// @brief Transforms how the panel and its subtree are painted, as CSS transform: layout keeps the untransformed
 	/// frame, while drawing, hit-testing and pointer positions go through it. It composes with the ancestors'
 	/// transforms (an overlay has only its own).
@@ -426,8 +437,19 @@ public:
 	[[nodiscard]] const Affine2& transform() const noexcept { return transform_; }
 	/// @brief Where the transform applies, as a share of the frame's size.
 	[[nodiscard]] Vec2 transformOrigin() const noexcept { return transformOrigin_; }
-	/// @brief The transform about its origin: from this panel's layout space into its parent's.
-	/// @return The identity when it has none.
+	/// @brief Places the panel, as laid out, in its parent's space: set by a container that draws its children
+	/// through a view (a zoomed canvas), apart from the panel's own transform, which applies first.
+	/// @param transform From the panel's transformed space into its parent's; the identity by default.
+	void setParentTransform(const Affine2& transform);
+	/// @brief The transform set by setParentTransform().
+	[[nodiscard]] const Affine2& parentTransform() const noexcept { return parentTransform_; }
+	/// @brief Whether the panel is drawn through its own or its parent's transform.
+	/// @return false when both are the identity.
+	[[nodiscard]] bool isTransformed() const noexcept {
+		return !transform_.isIdentity() || !parentTransform_.isIdentity();
+	}
+	/// @brief The transform about its origin, then the parent's transform: from this panel's layout space into its parent's.
+	/// @return The identity when it has neither.
 	[[nodiscard]] Affine2 localTransform() const noexcept;
 	/// @brief From this panel's layout space (where frame() and bounds() are) into the window.
 	/// @return Its own and its ancestors' local transforms; an overlay's own only.
@@ -539,6 +561,20 @@ protected:
 	/// @brief Called once this panel's frame is known, before its children are laid out, so containers can place
 	/// them (with setAnchor() and arrangeSize()). Property changes made here don't trigger another layout.
 	virtual void arrange() {}
+
+	/// @brief Whether the panel takes its size on some axis from its children (a stack's fitContent), so a change in
+	/// a child changes its size too.
+	/// @return false by default.
+	[[nodiscard]] virtual bool fitsChildren() const noexcept { return false; }
+
+	/// @brief The size the panel takes once its children are measured, on the axes it fits to them.
+	/// @param size Its own size, from its width and height.
+	/// @param reference What the children's percentages refer to on the axes it doesn't fit.
+	/// @return @p size by default.
+	[[nodiscard]] virtual Vec2 fittedSize(Vec2 size, Vec2 reference) {
+		static_cast<void>(reference);
+		return size;
+	}
 
 	/// @brief Draws this panel; the children are drawn after it, on top. The default draws the shadow, fills bounds()
 	/// with color() (rounding the corners, if any), then draws the border.
@@ -747,8 +783,10 @@ private:
 	Shadow shadow_;                                       ///< See shadow().
 	bool visible_ = true;                                 ///< See setVisible().
 	bool cached_ = false;                                 ///< See setCached().
+	bool overflowVisible_ = false;                        ///< See setOverflowVisible().
 	Affine2 transform_;                                   ///< See transform().
 	Vec2 transformOrigin_{0.5f, 0.5f};                    ///< See transformOrigin().
+	Affine2 parentTransform_;                             ///< See parentTransform().
 	Cursor cursor_ = Cursor::Arrow;                       ///< See setCursor().
 	std::string tooltip_;                                 ///< See tooltip().
 	std::string role_;                                    ///< See accessibleRole().
@@ -776,6 +814,7 @@ private:
 	bool overlaysBelow_ = false;           ///< A descendant is an overlay, for Window::layoutOverlays().
 	Rect frame_;                           ///< See frame().
 	Rect bounds_;                          ///< See bounds().
+	Rect childClip_;                       ///< See childClip().
 	Vec2 size_;                            ///< See resolvedSize().
 	bool shown_ = false;                   ///< See isShown().
 

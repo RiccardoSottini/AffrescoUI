@@ -125,6 +125,9 @@ bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const
 	case Slot::Cache:
 		panel.setCached(boolean(value, at));
 		break;
+	case Slot::Overflow:
+		panel.setOverflowVisible(overflowVisible(value, at));
+		break;
 	default:
 		return false;
 	}

@@ -3,6 +3,7 @@
 /// @file
 /// @brief PathView: a panel that draws a vector path (filled, stroked or both), fitted to it through a view box.
 
+#include "affresco/render/GradientFill.hpp"
 #include "affresco/render/ImageView.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/VectorPath.hpp"
@@ -56,6 +57,11 @@ public:
 	void setFillRule(FillRule rule);
 	/// @brief Which points are inside.
 	[[nodiscard]] FillRule fillRule() const noexcept { return fillRule_; }
+	/// @brief Sets a gradient to fill the inside with, in place of the fill colour, spread over the panel.
+	/// @param gradient The gradient (normalised, see normalizeGradient()), or nullopt for the fill colour.
+	void setFillGradient(std::optional<Gradient> gradient);
+	/// @brief The inside's gradient, if any.
+	[[nodiscard]] const std::optional<Gradient>& fillGradient() const noexcept { return fillGradient_; }
 
 	/// @brief Sets the outline's colour (transparent: no outline).
 	/// @param color The colour.
@@ -88,12 +94,14 @@ private:
 	ImageFit fit_ = ImageFit::contain;        ///< See fit().
 	Color fillColor_ = colors::transparent;   ///< See fillColor().
 	FillRule fillRule_ = FillRule::nonZero;   ///< See fillRule().
+	std::optional<Gradient> fillGradient_;    ///< See fillGradient().
 	Color strokeColor_ = colors::transparent; ///< See strokeColor().
 	StrokeStyle strokeStyle_;                 ///< See strokeStyle().
 
-	mutable std::vector<MeshVertex> fillMesh_;   ///< The inside, from the panel's top-left corner.
-	mutable std::vector<MeshVertex> strokeMesh_; ///< The outline, likewise.
-	mutable std::optional<Vec2> builtFor_;       ///< The size the meshes are built for; nullopt when stale.
+	mutable std::vector<MeshVertex> fillMesh_;        ///< The inside, from the panel's top-left corner.
+	mutable std::vector<MeshVertex> strokeMesh_;      ///< The outline, likewise.
+	mutable std::vector<GradientBand> gradientBands_; ///< The inside cut into the gradient's colours, if it has one.
+	mutable std::optional<Vec2> builtFor_;            ///< The size the meshes are built for; nullopt when stale.
 };
 
 } // namespace affresco

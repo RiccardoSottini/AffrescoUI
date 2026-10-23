@@ -90,6 +90,12 @@ void Panel::treeChanged() noexcept {
 
 void Panel::invalidate() noexcept {
 	measured_.reset();
+	// A container sized by its children changes size with them: measured again, and placed again by its own parent
+	if(!window_ || !window_->layingOut_)
+		for(Panel* ancestor = parent_; ancestor && ancestor->fitsChildren(); ancestor = ancestor->parent_) {
+			ancestor->measured_.reset();
+			ancestor->layoutDirty_ = true;
+		}
 	markLayoutDirty();
 	markPaintDirty();
 	if(window_) window_->requestLayout();
@@ -304,19 +310,20 @@ void Panel::setVisible(bool visible) { setProperty(visible_, visible); }
 // A rotated panel's bounds are a bounding box: the parent already checked the point is inside its own bounds
 Panel* Panel::hitTest(Vec2 point) noexcept {
 	if(!shown_) return nullptr;
-	if(!transform_.isIdentity()) {
+	if(isTransformed()) {
 		const std::optional<Affine2> inverse = localTransform().inverse();
 		if(!inverse) return nullptr; // flattened: never hit
 		point = inverse->apply(point);
 	}
-	if(!bounds_.contains(point)) return nullptr;
+	const bool inside = bounds_.contains(point);
+	if(!inside && !(overflows() && childClip_.contains(point))) return nullptr;
 
 	for(const auto& child : std::views::reverse(children_)) {
 		if(child->overlay_) continue; // hit-tested by the window, above everything
 		if(Panel* hit = child->hitTest(point)) return hit;
 	}
 
-	return this;
+	return inside ? this : nullptr;
 }
 
 Rect Panel::clipInSpace(const Rect& clip) const noexcept {
@@ -329,16 +336,20 @@ void Panel::setTransform(const Affine2& transform, Vec2 origin) {
 	setProperty(transformOrigin_, origin);
 }
 
+void Panel::setParentTransform(const Affine2& transform) { setProperty(parentTransform_, transform); }
+
 Affine2 Panel::localTransform() const noexcept {
-	if(transform_.isIdentity()) return {};
-	return transform_.about({frame_.left + transformOrigin_.x * size_.x, frame_.top + transformOrigin_.y * size_.y});
+	if(transform_.isIdentity()) return parentTransform_;
+	const Affine2 own =
+	    transform_.about({frame_.left + transformOrigin_.x * size_.x, frame_.top + transformOrigin_.y * size_.y});
+	return parentTransform_.isIdentity() ? own : parentTransform_ * own;
 }
 
 Affine2 Panel::worldTransform() const noexcept {
 	Affine2 world = localTransform();
 	for(const Panel* panel = this; !panel->overlay_ && panel->parent_;) {
 		panel = panel->parent_;
-		if(!panel->transform_.isIdentity()) world = panel->localTransform() * world;
+		if(panel->isTransformed()) world = panel->localTransform() * world;
 	}
 	return world;
 }

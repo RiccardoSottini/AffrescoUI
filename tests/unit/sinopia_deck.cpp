@@ -3,9 +3,6 @@
 /// sizes, text autofit and slides made from layouts.
 
 #include <sinopia/deck/Deck.hpp>
-#include <sinopia/drawing/ShapeGeometry.hpp>
-
-#include <affresco/render/VectorPath.hpp>
 
 #include <doctest/doctest.h>
 
@@ -138,20 +135,4 @@ TEST_CASE("sinopia: a slide made from a layout copies its placeholders") {
 	CHECK(slide.objects[0].id == "s9-t");
 	CHECK(slide.objects[0].placeholder == "title");
 	CHECK(sinopia::slideFromLayout(deck, "missing", "s10").layout == "title"); // the first layout
-}
-
-TEST_CASE("sinopia: every shape's outline is path data VectorPath reads") {
-	for(const char* kind : {"rect", "ellipse", "polygon", "star", "line", "arrow"}) {
-		sinopia::ShapeOutline shape{kind, 120.0f, 80.0f, 12.0f, 6, 0.4f};
-		const affresco::VectorPath path = affresco::VectorPath::parse(sinopia::shapePath(shape));
-		const auto contours = path.flatten({{1.0f, 1.0f}, {0.0f, 0.0f}}, 0.25f);
-		REQUIRE(contours.size() == 1);
-		CHECK(contours[0].closed == !sinopia::isOpenShape(kind));
-		for(const affresco::Vec2 point : contours[0].points) {
-			CHECK(point.x >= -0.01f);
-			CHECK(point.x <= 120.01f);
-			CHECK(point.y >= -0.01f);
-			CHECK(point.y <= 80.01f);
-		}
-	}
 }

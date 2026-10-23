@@ -145,6 +145,7 @@ parent, later siblings on top of earlier ones.
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `visible` | `false` hides the node and its children. |
 | `cache` | `true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same (a pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). Default: `false`. |
+| `overflow` | `"visible"` lets the children draw and be hit outside the node, clipped to what clips the node instead, as CSS `overflow: visible`: a line whose arrowhead passes its box, text longer than its frame. A cached or scrolling node still clips. Default: `"clip"`. |
 | `rotate` | Draws the node and its children turned, in degrees clockwise, about `transformOrigin`: `"rotate": 8`. Like every transform key it only changes how the node is drawn and hit: its place in the layout, and its siblings', stay. Bind it to a number in the state and an `animate` step turns it. Default: `0`. |
 | `scale` | Draws the node scaled about `transformOrigin`: one factor (`0.9`) or `[x, y]`. Default: `1`. |
 | `skew` | Draws the node skewed, `[x, y]` in degrees, as CSS `skew()`: `[-12, 0]` slants it. Default: `[0, 0]`. |
@@ -295,6 +296,7 @@ overflow.
 | `rowGap`, `columnGap` | Pixels between rows and between columns, over `gap`: in a column `rowGap` is between children, in a wrapping row between lines. |
 | `justify` | How the children are spread along it: `start` (default), `center`, `end` (a column from the bottom, like a chat: overflow is clipped at the top), `space-between`, `space-around` or `space-evenly`, as in CSS. |
 | `alignItems` | Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, within their maximum). Left out, they keep their own anchors across. |
+| `fitContent` | `true`, `"width"` or `"height"`: that size comes from the children instead of `width` and `height` (within the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, even when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with its text. A child that grows or is stretched by its anchors adds only its own size. |
 | `direction` | On a `stack`: `"row"` or `"column"`. |
 | `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
 <!-- end generated -->
@@ -635,6 +637,7 @@ data or its size changes.
 | `fit` | How the view box fills the node: `"contain"` (the default), `"cover"` or `"fill"`, as for images. |
 | `fillColor` | The inside's colour; without it the path isn't filled. |
 | `fillRule` | Which points are inside: `"nonzero"` (the default) or `"evenodd"` (a shape inside another is a hole). |
+| `fillGradient` | The inside as a gradient across the node's box, in place of `fillColor`: the `gradient` node's value, `{ "kind": "linear" or "radial", "angle": 90, "stops": [{ "at": 0, "color": "@accent" }] }` (1 to 32 stops; a radial one is centred, reaching the corners). |
 | `stroke` | The outline's colour; without it there is no outline. |
 | `strokeWidth` | The outline's width (default 1), in the view box's units (pixels when stretched by `"fill"`). |
 | `strokeJoin` | Corners: `"miter"` (the default, bevelled past 4 widths), `"round"` or `"bevel"`. |
@@ -661,7 +664,8 @@ smart guides drawn while dragging. Rulers along the top and left follow the zoom
 dragging a guide back onto it removes it. The canvas doesn't move anything itself: it runs `onTransform` with where
 the items should go, and the document applies it. `items` are drawn by the canvas, only those in view, so thousands
 cost what is on screen; an application with more (up to a million) gives them through a model. The selection is
-announced as a state of the canvas ("3 selected").
+announced as a state of the canvas ("3 selected"). With `scaleChildren` the children are drawn at the camera's zoom,
+text included, like a slide or a page in a drawing app, and a single selected child can be rotated by its handle.
 
 <!-- generated: canvas -->
 | Key | Meaning |
@@ -672,6 +676,7 @@ announced as a state of the canvas ("3 selected").
 | `grid` | World units between grid lines (default 0: none); drawn when the lines are far enough apart, and snapped to. |
 | `snap` | Moves and resizes snap to the grid, other items' edges and centres, and guides (default true). |
 | `rulers` | Rulers along the top and left, in world units; dragging out of one makes a guide (default true). |
+| `scaleChildren` | Children are drawn at the camera's zoom, text and all, like a page in a drawing app, and can be rotated by their handle (default false: their rectangles scale while their text keeps its size). |
 | `font` | The items' text font (default `default`), in a few sizes. |
 | `accentColor` | The selection, the marquee, the handles and the guides. |
 <!-- end generated -->

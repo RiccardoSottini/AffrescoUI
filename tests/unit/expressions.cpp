@@ -308,6 +308,12 @@ const std::vector<Case> cases = {
     {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, 2.7))}}", 2, {}},
     {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, -1))}}", 0, {}},
     {"{{clamp(1.5, 0, 1)}}", J(R"(1.0)"), {}},
+    // Geometry, in degrees
+    {"{{round(sin(30) * 1000)}}", 500, {}},
+    {"{{round(cos(180))}}", -1, {}},
+    {"{{atan2(1, 0)}}", J(R"(90.0)"), {}},
+    {"{{sqrt(9)}}", J(R"(3.0)"), {}},
+    {"{{sqrt(-1)}}", {}, "test.$sqrt: expected a number of zero or more"},
     // Dates, "YYYY-MM-DD": tests/unit/date_civil.cpp has the calendar arithmetic
     {"{{isDate(today())}}", true, {}},
     {"{{addDays('2024-02-28', 2)}}", "2024-03-01", {}},

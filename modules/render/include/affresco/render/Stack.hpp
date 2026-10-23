@@ -71,9 +71,30 @@ public:
 	/// @param wrap true to wrap.
 	void setWrap(bool wrap);
 
+	/// @brief Sets the axes the stack takes from its children instead of its width and height (within its minimum
+	/// and maximum): along the direction, their sizes and the gaps between them (one line, even when it wraps);
+	/// across it, the largest.
+	/// @param width Whether its width is fitted.
+	/// @param height Whether its height is fitted.
+	void setFitContent(bool width, bool height);
+	/// @brief Whether the width is fitted to the children (setFitContent()).
+	[[nodiscard]] bool fitsWidth() const noexcept { return fitWidth_; }
+	/// @brief Whether the height is fitted to the children (setFitContent()).
+	[[nodiscard]] bool fitsHeight() const noexcept { return fitHeight_; }
+
+	/// @brief Whether it fits an axis to its children.
+	/// @return true if setFitContent() set one.
+	[[nodiscard]] bool fitsChildren() const noexcept override { return fitWidth_ || fitHeight_; }
+
 protected:
 	/// @brief Anchors each visible child where the flexible layout places it, and gives it the sizes it decides.
 	void arrange() override;
+
+	/// @brief Its size with the fitted axes taken from the children, measured against @p size on the others.
+	/// @param size Its own size.
+	/// @param reference What its own minimum and maximum refer to.
+	/// @return The size.
+	[[nodiscard]] Vec2 fittedSize(Vec2 size, Vec2 reference) override;
 
 private:
 	float gap_ = 0.0f;                        ///< See gap().
@@ -83,6 +104,8 @@ private:
 	std::optional<CrossAlign> alignItems_;    ///< See alignItems().
 	Direction direction_ = Direction::Column; ///< See direction().
 	bool wrap_ = false;                       ///< See setWrap().
+	bool fitWidth_ = false;                   ///< See setFitContent().
+	bool fitHeight_ = false;                  ///< See setFitContent().
 };
 
 /// @brief Places its visible children in columns and rows, `gap` apart, like a CSS grid: each in the cell it asks for

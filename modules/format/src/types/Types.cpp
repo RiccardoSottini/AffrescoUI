@@ -49,6 +49,7 @@ std::shared_ptr<const PropertySet> commonProperties() {
 	                  {"borderColor", ValueKind::Color, true, true},
 	                  {"shadow"},
 	                  {"cache", ValueKind::Boolean},
+	                  {"overflow", ValueKind::Text},
 	                  {"visible", ValueKind::Boolean},
 	                  {"cursor", ValueKind::Text},
 	                  {"tooltip", ValueKind::Text},

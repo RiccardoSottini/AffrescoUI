@@ -139,6 +139,13 @@ Cursor cursor(const json& value, const std::string& path) {
 	fail(path, R"(expected "arrow", "ibeam", "hand", "resize-horizontal" or "resize-vertical")");
 }
 
+bool overflowVisible(const json& value, const std::string& path) {
+	const std::string name = string(value, path);
+	if(name == "visible") return true;
+	if(name == "clip") return false;
+	fail(path, R"(expected "clip" or "visible")");
+}
+
 Placement placement(const json& value, const std::string& path) {
 	const std::string name = string(value, path);
 	if(name == "below") return Placement::Below;

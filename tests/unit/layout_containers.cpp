@@ -160,3 +160,32 @@ TEST_CASE("layout: a grid child's justifySelf places it across its cell, over th
 	window->render();
 	checkFrames(children, {{0, 0, 40, 20}, {160, 0, 320, 20}});
 }
+
+TEST_CASE("layout: a stack fitted to its children takes their size, and follows them when they change") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(300, 100, clock);
+	Stack& row = window->root().add<Stack>();
+	row.setDirection(affresco::Direction::Row);
+	row.setGap(5.0f);
+	row.setHeight(px(50));
+	row.setFitContent(true, false);
+	Stack& column = row.add<Stack>();
+	column.setFitContent(true, true);
+	Panel* inner = child(column, 30, 10);
+	Panel* last = child(column, 20, 15);
+	Panel* side = child(row, 40, 20);
+	window->render();
+	checkFrames({&row, &column, inner, last, side},
+	            {{0, 0, 75, 50}, {0, 0, 30, 25}, {0, 0, 30, 10}, {0, 10, 20, 25}, {35, 0, 75, 20}});
+
+	// A grandchild grows: the column and the row around it grow with it, within the row's maximum
+	inner->setWidth(px(60));
+	row.setMaxWidth(px(100));
+	window->render();
+	checkFrames({&row, &column, side}, {{0, 0, 100, 50}, {0, 0, 60, 25}, {65, 0, 105, 20}});
+
+	// A hidden child takes no room
+	inner->setVisible(false);
+	window->render();
+	checkFrames({&row, &column}, {{0, 0, 65, 50}, {0, 0, 20, 15}});
+}

@@ -46,6 +46,13 @@ namespace affresco::format {
 /// @throws DocumentError If the name is unknown.
 [[nodiscard]] Cursor cursor(const json& value, const std::string& path);
 
+/// @brief Reads an overflow, "clip" or "visible".
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return true for "visible".
+/// @throws DocumentError If it is something else.
+[[nodiscard]] bool overflowVisible(const json& value, const std::string& path);
+
 /// @brief Reads an overlay placement, e.g. "below".
 /// @param value The value.
 /// @param path Its place, for errors.

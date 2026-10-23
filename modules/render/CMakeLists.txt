@@ -41,6 +41,7 @@ affrescoui_module(render
 	src/vector/SvgStyle.cpp
 	src/vector/SvgXml.cpp
 	src/vector/MeshRasterizer.cpp
+	src/vector/GradientFill.cpp
 	# layout/: the flex and grid layouts of panels
 	src/layout/Flex.cpp
 	src/layout/Grid.cpp

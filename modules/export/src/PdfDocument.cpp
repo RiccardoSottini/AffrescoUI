@@ -41,7 +41,7 @@ namespace {
 void drawTree(const Panel& panel, detail::PdfPainter& painter, std::string& content) {
 	if(!panel.isShown()) return;
 	content += "q\n";
-	if(!panel.transform().isIdentity()) {
+	if(panel.isTransformed()) {
 		detail::appendMatrix(content, panel.localTransform());
 		content += "cm\n";
 	}

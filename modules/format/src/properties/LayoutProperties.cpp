@@ -214,6 +214,10 @@ void applyStack(Panel& panel, const json& values, const PropertyReader& reader, 
 	stack->setRowGap(values.contains("rowGap") ? std::optional(pixels(values["rowGap"], at("rowGap"))) : std::nullopt);
 	stack->setColumnGap(values.contains("columnGap") ? std::optional(pixels(values["columnGap"], at("columnGap")))
 	                                                 : std::nullopt);
+	const json fit = values.value("fitContent", json(false));
+	if(fit.is_boolean()) stack->setFitContent(fit.get<bool>(), fit.get<bool>());
+	else if(fit == "width" || fit == "height") stack->setFitContent(fit == "width", fit == "height");
+	else fail(at("fitContent"), R"(expected true, false, "width" or "height")");
 }
 
 /// @brief Applies the keys of a grid that its set holds, each to its default when the node doesn't give it.
@@ -279,7 +283,8 @@ std::shared_ptr<const PropertySet> stackProperties(std::initializer_list<Propert
 	auto set = std::make_shared<PropertySet>();
 	set->properties = applied;
 	for(PropertySpec spec : {PropertySpec{"justify", ValueKind::Text}, PropertySpec{"alignItems", ValueKind::Text},
-	                         PropertySpec{"rowGap", ValueKind::Number}, PropertySpec{"columnGap", ValueKind::Number}})
+	                         PropertySpec{"rowGap", ValueKind::Number}, PropertySpec{"columnGap", ValueKind::Number},
+	                         PropertySpec{"fitContent", ValueKind::Any}})
 		set->properties.push_back(std::move(spec));
 	set->apply = applyStack;
 	set->everyUpdate = true; // each key set once per update, so nothing changes when the node doesn't
