@@ -1,54 +1,199 @@
 {
-	"format": "affrescoui-scenarios",
-	"version": 2,
-	"screens": "../../../examples/streak",
-	"scenarios": [
-		{
-			"name": "habit-tracker",
-			"screen": "habit-tracker.screen.json",
-			"steps": [
-				{ "expect": { "image": "first-frame" } },
-				{ "click": [557, 128], "note": "Meditate, eight days ago: no becomes yes" },
-				{ "expect": { "image": "checked" } },
-				{ "click": [100, 188], "note": "Run: a measurable habit with a weekly target" },
-				{ "expect": { "image": "measurable-detail" } },
-				{ "key": "shift+f10" },
-				{ "wait": 50 },
-				{ "expect": { "image": "entry-popup" } },
-				{ "key": "escape" },
-				{ "click": "#filterButton" },
-				{ "wait": 50 },
-				{ "expect": { "image": "filter-menu" } },
-				{ "key": "escape" },
-				{ "key": "mod+e" },
-				{ "wait": 50 },
-				{ "expect": { "image": "edit-dialog" } },
-				{ "key": "escape" },
-				{ "key": "mod+n" },
-				{ "wait": 50 },
-				{ "click": "#colorButton" },
-				{ "wait": 50 },
-				{ "expect": { "image": "new-habit-colors" } },
-				{ "key": "escape" },
-				{ "key": "escape" },
-				{ "key": "mod+comma" },
-				{ "wait": 50 },
-				{ "expect": { "image": "settings" } },
-				{ "key": "escape" },
-				{ "key": "mod+j" },
-				{ "expect": { "image": "dark" } },
-				{ "key": "mod+comma" },
-				{ "wait": 50 },
-				{ "click": "#languageRow" },
-				{ "wait": 50 },
-				{ "click": [830, 548] },
-				{ "wait": 50 },
-				{ "key": "escape" },
-				{ "wait": 50 },
-				{ "expect": { "image": "arabic" } },
-				{ "resize": [520, 800] },
-				{ "expect": { "image": "narrow" } }
-			]
-		}
-	]
+  "format": "affrescoui-scenarios",
+  "version": 2,
+  "screens": "../../../examples/streak",
+  "scenarios": [
+    {
+      "name": "habit-tracker",
+      "screen": "habit-tracker.screen.json",
+      "steps": [
+        {
+          "expect": {
+            "image": "first-frame"
+          }
+        },
+        {
+          "click": [
+            557,
+            128
+          ],
+          "note": "Meditate, eight days ago: no becomes yes"
+        },
+        {
+          "expect": {
+            "image": "checked"
+          }
+        },
+        {
+          "click": [
+            100,
+            188
+          ],
+          "note": "Run: a measurable habit with a weekly target"
+        },
+        {
+          "expect": {
+            "image": "measurable-detail"
+          }
+        },
+        {
+          "key": "shift+space"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "entry-popup"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "click": "#filterButton"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "filter-menu"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "key": "mod+e"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "edit-dialog"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "click": [
+            100,
+            248
+          ],
+          "note": "Read, then Shift+F10 (a right click) picks it; a click adds Exercise: the selection bar"
+        },
+        {
+          "key": "shift+f10"
+        },
+        {
+          "click": [
+            100,
+            308
+          ]
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "picked"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "key": "mod+n"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "click": "#colorButton"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "new-habit-colors"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "key": "mod+comma"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "settings"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "key": "mod+j"
+        },
+        {
+          "expect": {
+            "image": "dark"
+          }
+        },
+        {
+          "key": "mod+comma"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "click": "#languageRow"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "click": [
+            830,
+            548
+          ]
+        },
+        {
+          "wait": 50
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "arabic"
+          }
+        },
+        {
+          "resize": [
+            520,
+            800
+          ]
+        },
+        {
+          "expect": {
+            "image": "narrow"
+          }
+        }
+      ]
+    }
+  ]
 }

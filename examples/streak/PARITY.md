@@ -16,13 +16,13 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 | Click a box to check it: done, skipped (if allowed), cleared | done | |
 | Done in the habit's colour, a faded tick for "on target" by frequency, × for missed | done | |
 | Measurable boxes: the number and its unit, faded below the target | done | |
-| A long-press equivalent: Shift+F10 (or a click on a measurable box) opens the day's popup (value, note, yes/skip/no) | done | no right click in the scenarios, so the keyboard is the proof |
+| A long-press equivalent: a right click or Shift+F10 on a box, Shift+Space on a row (or a click on a measurable box) opens the day's popup (value, note, yes/skip/no) | done | |
 | A dot on days with a note | done | |
 | Sort: manually, by name, colour, score, status | done | |
 | Hide completed, show archived | done | |
 | Drag to reorder | done | |
 | An empty list's message | done | |
-| Selecting several habits for a bulk action | missing | the list selects one habit at a time |
+| Selecting several habits: a right click (or Shift+F10) on a row picks it, clicks add more; a bar archives or deletes them, Escape leaves | done | the bar has no colour change for the picked habits |
 
 ## Habit types and frequencies
 
@@ -83,6 +83,6 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 
 ## Counts
 
-- done: 40
+- done: 41
 - partial: 1
-- missing: 3
+- missing: 2

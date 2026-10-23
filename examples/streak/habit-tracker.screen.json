@@ -109,6 +109,11 @@
 			"dark": "#2b2b2b",
 			"black": "#000000"
 		},
+		"c.actionBar": {
+			"light": "#455a64",
+			"dark": "#37474f",
+			"black": "#1c1c1c"
+		},
 		"c.text": {
 			"light": "#212121",
 			"dark": "#e0e0e0",
@@ -376,6 +381,13 @@
 			"chip.perDay": "Per day",
 			"save": "Save",
 			"cancel": "Cancel",
+			"picked": "{n} selected",
+			"clearPick": "Clear selection",
+			"delete.titleN": "Delete these habits?",
+			"delete.messageN": "{n} habits and their whole history will be removed. This can't be undone.",
+			"toast.archivedN": "{n, plural, one {# habit archived} other {# habits archived}}",
+			"toast.unarchivedN": "{n, plural, one {# habit restored} other {# habits restored}}",
+			"toast.deletedN": "{n, plural, one {# habit deleted} other {# habits deleted}}",
 			"delete.title": "Delete this habit?",
 			"delete.message": "{name} and its whole history will be removed. This can't be undone.",
 			"toast.archived": "{name} archived",
@@ -539,6 +551,13 @@
 			"chip.perDay": "Al giorno",
 			"save": "Salva",
 			"cancel": "Annulla",
+			"picked": "{n} selezionate",
+			"clearPick": "Annulla selezione",
+			"delete.titleN": "Eliminare queste abitudini?",
+			"delete.messageN": "{n} abitudini e tutto il loro storico saranno rimossi. Non si può annullare.",
+			"toast.archivedN": "{n, plural, one {# abitudine archiviata} other {# abitudini archiviate}}",
+			"toast.unarchivedN": "{n, plural, one {# abitudine ripristinata} other {# abitudini ripristinate}}",
+			"toast.deletedN": "{n, plural, one {# abitudine eliminata} other {# abitudini eliminate}}",
 			"delete.title": "Eliminare questa abitudine?",
 			"delete.message": "{name} e tutto il suo storico saranno eliminati. Non si può annullare.",
 			"toast.archived": "{name} archiviata",
@@ -702,6 +721,13 @@
 			"chip.perDay": "في اليوم",
 			"save": "حفظ",
 			"cancel": "إلغاء",
+			"picked": "{n} محددة",
+			"clearPick": "إلغاء التحديد",
+			"delete.titleN": "حذف هذه العادات؟",
+			"delete.messageN": "ستُحذف {n} عادات وسجلها كله. لا يمكن التراجع.",
+			"toast.archivedN": "أُرشفت {n} عادات",
+			"toast.unarchivedN": "استُعيدت {n} عادات",
+			"toast.deletedN": "حُذفت {n} عادات",
 			"delete.title": "حذف هذه العادة؟",
 			"delete.message": "ستُحذف {name} وسجلها كله. لا يمكن التراجع.",
 			"toast.archived": "أُرشفت {name}",
@@ -1044,6 +1070,8 @@
 		},
 		"colorOpen": false,
 		"confirmDelete": false,
+		"picked": [],
+		"unpicked": [],
 		"settingsOpen": false,
 		"menus": {
 			"add": false,
@@ -1167,6 +1195,8 @@
 		"pal": "{{computed.theme == 'light' ? ['#d32f2f', '#e64a19', '#f57c00', '#ff8f00', '#f9a825', '#afb42b', '#7cb342', '#388e3c', '#00897b', '#00acc1', '#039be5', '#1976d2', '#303f9f', '#5e35b1', '#8e24aa', '#d81b60', '#5d4037', '#303030', '#757575', '#aaaaaa'] : ['#e57373', '#ff8a65', '#ffb74d', '#ffd54f', '#fff176', '#dce775', '#aed581', '#81c784', '#4db6ac', '#4dd0e1', '#4fc3f7', '#64b5f6', '#7986cb', '#9575cd', '#ba68c8', '#f06292', '#a1887f', '#e0e0e0', '#9e9e9e', '#bdbdbd']}}",
 		"onColor": "{{computed.theme == 'light' ? '#ffffff' : '#1b1b1b'}}",
 		"wide": "{{window.width >= 960}}",
+		"picking": "{{length(state.picked) > 0}}",
+		"pickedArchived": "{{every(state.habits, !contains(state.picked, it.id) || it.archived)}}",
 		"listWidth": "{{computed.wide ? clamp(floor(window.width * 0.46), 460, 640) : window.width}}",
 		"detailWidth": "{{computed.wide ? window.width - computed.listWidth - 1 : window.width}}",
 		"cardWidth": "{{min(760, computed.detailWidth - 32)}}",
@@ -1935,7 +1965,76 @@
 			"icon": "trash-2",
 			"enablement": "{{computed.sel >= 0}}"
 		},
+		"togglePick": [
+			{
+				"if": "{{contains(state.picked, id)}}",
+				"then": [
+					{
+						"set": "state.picked",
+						"to": "{{filter(state.picked, it != id)}}"
+					}
+				],
+				"else": [
+					{
+						"push": "state.picked",
+						"value": "{{id}}"
+					}
+				]
+			}
+		],
+		"archivePicked": [
+			{
+				"set": "state.unpicked",
+				"to": "{{state.picked}}"
+			},
+			{
+				"set": "state.habits",
+				"to": "{{map(state.habits, contains(state.picked, it.id) ? merge(it, {archived: !computed.pickedArchived}) : it)}}"
+			},
+			{
+				"push": "state.toasts",
+				"value": "{{{message: t(!computed.pickedArchived ? 'toast.unarchivedN' : 'toast.archivedN', {n: length(state.picked)}), actions: [{title: t('undo'), run: 'unarchivePicked'}]}}}"
+			},
+			{
+				"set": "state.picked",
+				"to": []
+			}
+		],
+		"unarchivePicked": [
+			{
+				"set": "state.habits",
+				"to": "{{map(state.habits, contains(state.unpicked, it.id) ? merge(it, {archived: !it.archived}) : it)}}"
+			}
+		],
 		"deleteHabit": [
+			{
+				"if": "{{computed.picking}}",
+				"then": [
+					{
+						"push": "state.toasts",
+						"value": "{{{message: t('toast.deletedN', {n: length(state.picked)})}}}"
+					},
+					{
+						"set": "state.habits",
+						"to": "{{filter(state.habits, !contains(state.picked, it.id))}}"
+					},
+					{
+						"set": "state.selected",
+						"to": "{{state.habits[0].id ?? ''}}"
+					},
+					{
+						"set": "state.picked",
+						"to": []
+					}
+				],
+				"else": [
+					{
+						"run": "deleteOne"
+					}
+				]
+			}
+		],
+		"deleteOne": [
 			{
 				"push": "state.toasts",
 				"value": "{{{message: t('toast.deleted', {name: computed.h.name})}}}"
@@ -2263,11 +2362,22 @@
 		"mod+up": "prevHabit",
 		"mod+enter": "checkToday",
 		"escape": {
-			"when": "{{!computed.wide && state.page == 'detail'}}",
+			"when": "{{computed.picking || !computed.wide && state.page == 'detail'}}",
 			"do": [
 				{
-					"set": "state.page",
-					"to": "list"
+					"if": "{{computed.picking}}",
+					"then": [
+						{
+							"set": "state.picked",
+							"to": []
+						}
+					],
+					"else": [
+						{
+							"set": "state.page",
+							"to": "list"
+						}
+					]
 				}
 			]
 		}
@@ -2389,7 +2499,8 @@
 										"let": {
 											"hb": "{{state.habits[h]}}",
 											"col": "{{hb.archived ? '@c.muted' : computed.pal[hb.color]}}",
-											"on": "{{computed.wide && hb.id == state.selected}}"
+											"on": "{{computed.wide && hb.id == state.selected && !computed.picking}}",
+											"pk": "{{contains(state.picked, hb.id)}}"
 										},
 										"style": "card",
 										"anchors": {
@@ -2397,12 +2508,13 @@
 											"right": 8
 										},
 										"height": 56,
-										"color": "{{on ? computed.pal[hb.color] + '14' : '@c.card'}}",
+										"borderWidth": "{{pk ? 2 : 0}}",
+										"borderColor": "{{col}}",
 										"focusable": true,
 										"role": "listitem",
 										"label": "{{hb.name}}",
 										"description": "{{formatPercent(computed.now[h])}}",
-										"selected": "{{on}}",
+										"selected": "{{on || pk}}",
 										"focused": {
 											"borderWidth": 2,
 											"borderColor": "@c.primary"
@@ -2424,18 +2536,28 @@
 											}
 										},
 										"onClick": {
-											"run": "select",
-											"with": {
-												"h": "{{h}}"
-											}
+											"if": "{{computed.picking}}",
+											"then": [
+												{
+													"run": "togglePick",
+													"with": {
+														"id": "{{hb.id}}"
+													}
+												}
+											],
+											"else": [
+												{
+													"run": "select",
+													"with": {
+														"h": "{{h}}"
+													}
+												}
+											]
 										},
 										"onContextMenu": {
-											"run": "openPopup",
+											"run": "togglePick",
 											"with": {
-												"h": "{{h}}",
-												"d": "{{state.today}}",
-												"x": "{{event.x}}",
-												"y": "{{event.y}}"
+												"id": "{{hb.id}}"
 											}
 										},
 										"keys": {
@@ -2447,9 +2569,30 @@
 													"x": "{{window.width / 2}}",
 													"y": "{{window.height / 3}}"
 												}
+											},
+											"shift+space": {
+												"run": "openPopup",
+												"with": {
+													"h": "{{h}}",
+													"d": "{{state.today}}",
+													"x": "{{window.width / 2}}",
+													"y": "{{window.height / 3}}"
+												}
 											}
 										},
 										"children": [
+											{
+												"id": "tint",
+												"visible": "{{on || pk}}",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 0,
+													"bottom": 0
+												},
+												"radius": 4,
+												"color": "{{computed.pal[hb.color] + (pk ? '30' : '18')}}"
+											},
 											{
 												"use": "ring",
 												"with": {
@@ -2748,6 +2891,83 @@
 													}
 												],
 												"isOpen": "{{state.menus.more}}"
+											}
+										]
+									},
+									{
+										"id": "pickBar",
+										"when": "{{computed.picking}}",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 0,
+											"bottom": 0
+										},
+										"color": "@c.actionBar",
+										"role": "toolbar",
+										"label": "{{t('picked', {n: length(state.picked)})}}",
+										"children": [
+											{
+												"id": "clearPick",
+												"style": "iconButton",
+												"icon": "x",
+												"label": "{{t('clearPick')}}",
+												"tooltip": "{{t('clearPick')}}",
+												"textColor": "#ffffff",
+												"onClick": {
+													"set": "state.picked",
+													"to": []
+												},
+												"anchors": {
+													"left": 4,
+													"top": 8
+												}
+											},
+											{
+												"type": "label",
+												"text": "{{t('picked', {n: length(state.picked)})}}",
+												"font": "title",
+												"textColor": "#ffffff",
+												"anchors": {
+													"left": 56,
+													"top": 16
+												},
+												"fitText": true,
+												"live": "polite"
+											},
+											{
+												"type": "row",
+												"anchors": {
+													"right": 4,
+													"top": 8
+												},
+												"width": 84,
+												"height": 40,
+												"gap": 4,
+												"arrows": "horizontal",
+												"children": [
+													{
+														"id": "archivePicked",
+														"style": "iconButton",
+														"icon": "archive",
+														"label": "{{t('archive')}}",
+														"tooltip": "{{t('archive')}}",
+														"textColor": "#ffffff",
+														"onClick": "archivePicked"
+													},
+													{
+														"id": "deletePicked",
+														"style": "iconButton",
+														"icon": "trash-2",
+														"label": "{{t('delete')}}",
+														"tooltip": "{{t('delete')}}",
+														"textColor": "#ffffff",
+														"onClick": {
+															"set": "state.confirmDelete",
+															"to": true
+														}
+													}
+												]
 											}
 										]
 									}
@@ -4540,8 +4760,8 @@
 						"id": "deleteDialog",
 						"with": {
 							"open": "state.confirmDelete",
-							"title": "{{t('delete.title')}}",
-							"message": "{{t('delete.message', {name: computed.sel >= 0 ? computed.h.name : ''})}}",
+							"title": "{{t(computed.picking ? 'delete.titleN' : 'delete.title')}}",
+							"message": "{{computed.picking ? t('delete.messageN', {n: length(state.picked)}) : t('delete.message', {name: computed.sel >= 0 ? computed.h.name : ''})}}",
 							"highlight": "@c.danger",
 							"buttons": "{{[{title: t('delete'), run: 'deleteHabit'}, {title: t('cancel')}]}}"
 						}
