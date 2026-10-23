@@ -1,7 +1,7 @@
 /// @file
 /// @brief The desktop kit (src/components/Kit*.cpp): a toolbar's buttons, toggles and separators, the "more" menu
-/// its items that don't fit move into, a status bar whose items with a "run" are buttons, overlays that flip, and a
-/// popover's arrow facing its anchor.
+/// its items that don't fit move into, a status bar whose items with a "run" are buttons, overlays that flip, a
+/// popover's arrow facing its anchor, a context menu, a dialog's buttons and focus trap, and a stack of toasts.
 
 #include "Checker.hpp"
 #include "Headless.hpp"
@@ -22,9 +22,10 @@ namespace {
 /// @brief Presses and releases a key.
 /// @param window The window.
 /// @param key The key.
-void press(affresco::Window& window, affresco::Key key) {
-	window.routeKey({key, 0, affresco::Action::Press, {0}});
-	window.routeKey({key, 0, affresco::Action::Release, {0}});
+/// @param mods The modifiers held (1 Shift, 0x4 Alt).
+void press(affresco::Window& window, affresco::Key key, int mods = 0) {
+	window.routeKey({key, 0, affresco::Action::Press, {mods}});
+	window.routeKey({key, 0, affresco::Action::Release, {mods}});
 }
 
 /// @brief Clicks the middle of a panel, as the user would.
@@ -448,4 +449,181 @@ TEST_CASE("format: a context menu's checked item is selected, its icons opt in, 
 		CHECK(state(screen)["n"] == 1);
 		CHECK(state(screen)["ctx"]["open"] == false);
 	}
+}
+
+/// @brief A dialog of three buttons over a button outside it, and a toast with an action.
+/// @return The document.
+std::string dialogScreen() {
+	return R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "dlg": true, "toast": true, "answer": null },
+		"actions": { "answer": [{ "set": "state.answer", "to": "{{what}}" }] },
+		"root": { "id": "root", "children": [{ "type": "column", "fill": true, "children": [
+			{ "width": 80, "height": 24, "focusable": true, "label": "Outside",
+			  "onClick": { "set": "state.answer", "to": "outside" } },
+			{ "use": "dialog", "with": { "open": "state.dlg", "title": "Save changes?", "message": "The file has changes.",
+			  "buttons": [{ "title": "Save", "run": "answer", "with": { "what": "save" } },
+			              { "title": "Discard", "run": "answer", "with": { "what": "discard" } },
+			              { "title": "Cancel" }] } },
+			{ "use": "toast", "with": { "open": "state.toast", "message": "Saved",
+			  "actions": [{ "title": "Undo", "run": "answer", "with": { "what": "undo" } }] } }
+		] }] }
+	})json";
+}
+
+TEST_CASE("format: a dialog's buttons are named buttons, and Tab and Shift+Tab stay in it") {
+	for(const int mods : {0, 1}) {
+		CAPTURE(mods);
+		ManualClock clock;
+		const auto window = createHeadlessWindow(600, 400, clock);
+		affresco::Screen screen = affresco::Screen::fromString(dialogScreen());
+		screen.build(*window);
+		settle(*window, clock);
+		const affresco::Panel* dialog = findAccessible(window->root(), "dialog", "Save changes?");
+		REQUIRE(dialog);
+		CHECK(countRole(*dialog, "button") == 3);
+		CHECK(findAccessible(*dialog, "button", "Discard"));
+		for(int i = 0; i < 5; ++i) {
+			press(*window, affresco::Key::Tab, mods);
+			const std::string label = focusedLabel(*window);
+			CAPTURE(label);
+			CHECK((label == "Save" || label == "Discard" || label == "Cancel"));
+		}
+		CHECK(state(screen)["answer"].is_null());
+	}
+}
+
+TEST_CASE("format: Escape cancels a dialog, and the arrows and Enter choose a button") {
+	for(const bool escape : {true, false}) {
+		CAPTURE(escape);
+		ManualClock clock;
+		const auto window = createHeadlessWindow(600, 400, clock);
+		affresco::Screen screen = affresco::Screen::fromString(dialogScreen());
+		screen.build(*window);
+		settle(*window, clock);
+		if(escape) {
+			press(*window, affresco::Key::Escape);
+			settle(*window, clock);
+			CHECK(state(screen)["answer"].is_null());
+		} else {
+			for(int i = 0; i < 3 && focusedLabel(*window) != "Save"; ++i) press(*window, affresco::Key::Tab);
+			REQUIRE(focusedLabel(*window) == "Save");
+			press(*window, affresco::Key::Right);
+			CHECK(focusedLabel(*window) == "Discard");
+			press(*window, affresco::Key::Enter);
+			settle(*window, clock);
+			CHECK(state(screen)["answer"] == "discard");
+		}
+		CHECK(state(screen)["dlg"] == false);
+	}
+}
+
+TEST_CASE("format: a toast's close button and actions are named buttons") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(dialogScreen());
+	screen.build(*window);
+	settle(*window, clock);
+	press(*window, affresco::Key::Escape); // the dialog
+	settle(*window, clock);
+	const affresco::Panel* toast = findAccessible(window->root(), "status", "");
+	REQUIRE(toast);
+	CHECK(findAccessible(*toast, "button", "Undo"));
+	const affresco::Panel* close = findAccessible(*toast, "button", "Close");
+	REQUIRE(close);
+	bool reached = false;
+	for(int i = 0; i < 4 && !reached; ++i) {
+		press(*window, affresco::Key::Tab);
+		reached = focusedLabel(*window) == "Close";
+	}
+	CHECK(reached);
+	clickOn(*window, *close);
+	settle(*window, clock);
+	CHECK(state(screen)["toast"] == false);
+	CHECK(state(screen)["answer"].is_null());
+}
+
+/// @brief A stack of toasts showing the last three of four, one with a progress bar and one with an action.
+/// @return The document.
+std::string toastsScreen() {
+	return R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "answer": null, "notes": [
+			{ "message": "One" },
+			{ "message": "Two", "progress": 0.5 },
+			{ "message": "Three", "actions": [{ "title": "Undo", "run": "answer", "with": { "what": "three" } }] },
+			{ "message": "Four" }
+		] },
+		"actions": { "answer": [{ "set": "state.answer", "to": "{{what}}" }] },
+		"root": { "id": "root", "children": [{ "type": "column", "fill": true, "children": [
+			{ "use": "toasts", "with": { "name": "notes", "limit": 3 } }
+		] }] }
+	})json";
+}
+
+/// @brief The messages of the toasts in a state.
+/// @param state The state.
+/// @return They, joined by spaces.
+std::string messages(const json& state) {
+	std::string joined;
+	for(const json& note : state["notes"]) joined += (joined.empty() ? "" : " ") + note["message"].get<std::string>();
+	return joined;
+}
+
+TEST_CASE("format: a stack of toasts shows the last ones, newest at the bottom") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(toastsScreen());
+	screen.build(*window);
+	settle(*window, clock);
+	const affresco::Panel* stack = findAccessible(window->root(), "region", "Notifications");
+	REQUIRE(stack);
+	CHECK(countRole(*stack, "status") == 3);
+	CHECK_FALSE(findAccessible(*stack, "status", "One"));
+	const affresco::Panel* two = findAccessible(*stack, "status", "Two");
+	const affresco::Panel* four = findAccessible(*stack, "status", "Four");
+	REQUIRE(two);
+	REQUIRE(four);
+	CHECK(stack->frame().bottom == doctest::Approx(384.0f));
+	CHECK(stack->frame().right == doctest::Approx(584.0f));
+	CHECK(stack->frame().bottom - stack->frame().top == doctest::Approx(72.0f + 64.0f + 64.0f + 2 * 8.0f));
+	CHECK(two->frame().top == doctest::Approx(stack->frame().top));
+	CHECK(four->frame().bottom == doctest::Approx(stack->frame().bottom));
+}
+
+TEST_CASE("format: a toast's close button removes it, and an action removes it and runs") {
+	for(const bool action : {false, true}) {
+		CAPTURE(action);
+		ManualClock clock;
+		const auto window = createHeadlessWindow(600, 400, clock);
+		affresco::Screen screen = affresco::Screen::fromString(toastsScreen());
+		screen.build(*window);
+		settle(*window, clock);
+		const affresco::Panel* three = findAccessible(window->root(), "status", "Three");
+		REQUIRE(three);
+		const affresco::Panel* button = findAccessible(*three, "button", action ? "Undo" : "Close");
+		REQUIRE(button);
+		clickOn(*window, *button);
+		settle(*window, clock);
+		CHECK(messages(state(screen)) == "One Two Four");
+		CHECK(state(screen)["answer"] == (action ? json("three") : json(nullptr)));
+		CHECK(findAccessible(window->root(), "status", "One"));
+	}
+}
+
+TEST_CASE("format: a stack of toasts closes when its last one goes") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(toastsScreen());
+	screen.build(*window);
+	settle(*window, clock);
+	for(int i = 0; i < 4; ++i) {
+		const affresco::Panel* close = findAccessible(window->root(), "button", "Close");
+		REQUIRE(close);
+		clickOn(*window, *close);
+		settle(*window, clock);
+	}
+	CHECK(state(screen)["notes"].empty());
+	CHECK(countRole(window->root(), "status") == 0);
+	CHECK_FALSE(findAccessible(window->root(), "button", "Close"));
 }

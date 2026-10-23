@@ -663,7 +663,8 @@ variables of the node and its children. A child `{ "slot": true }` in the compon
 `children`. Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
-**Built-in components** need no definition (a screen's own component of the same name wins). They are written in the
+### Built-in components
+These need no definition (a screen's own component of the same name wins). They are written in the
 format, take their colours and sizes as parameters whose defaults are the kit's tokens (see The kit's tokens), and
 keep their open state where `open` says (a state path):
 - `menu` (below its parent), `submenu` (to its right) and `contextMenu` (where `x`, `y` say): `items` of
@@ -684,7 +685,11 @@ keep their open state where `open` says (a state path):
 - `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with" }`) over a backdrop; the focus is
   trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels. Its
   `children` go between the message and the buttons.
-- `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`.
+- `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`; its × is a
+  button named `closeLabel`.
+- `toasts`: a stack of notifications in the bottom corner from the list at `state[name]` (`name` is `toasts`), each
+  `{ "message", "progress", "color", "actions" }`: the last `limit` show, the newest at the bottom, and screen
+  readers announce them. A toast's × or action removes it from the list (an action then runs its `run`).
 - `hoverCard`: shows a card with `title` and `text` while the pointer is over its `children`.
 - `popover`: a card with `title`, `text` and its `children`, `width` by `height`, below its parent (or `anchor`;
   `placement` `below-end` lines it up with the end) with an arrow `arrowAt` from its start pointing at it; it flips
@@ -701,6 +706,8 @@ keep their open state where `open` says (a state path):
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
   "buttons": [{ "title": "Save", "run": "save" }, { "title": "Cancel" }] } }
 { "use": "popover", "with": { "open": "state.share", "title": "Share", "text": "Anyone with the link can view." } }
+{ "use": "toasts", "with": { "name": "notes" } }
+{ "push": "state.notes", "value": { "message": "Export finished", "actions": [{ "title": "Open", "run": "open" }] } }
 { "label": "Document", "focusable": true,
   "onContextMenu": { "set": "state.ctx", "to": { "open": true, "x": "{{event.x}}", "y": "{{event.y}}" } },
   "children": [{ "use": "contextMenu", "with": { "open": "state.ctx.open", "x": "{{state.ctx.x}}",

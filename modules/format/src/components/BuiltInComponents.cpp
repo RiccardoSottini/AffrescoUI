@@ -211,7 +211,8 @@ constexpr std::string_view others = R"({
 				  "children": [{
 					"repeat": { "for": "b", "in": "{{buttons}}", "index": "i" },
 					"width": 88, "anchors": { "top": 0, "bottom": 0 }, "radius": "@kit.radius", "focusable": true,
-					"color": "{{i == 0 ? highlight : '@kit.secondary'}}",
+					"role": "button", "label": "{{b.title ?? ''}}", "color": "{{i == 0 ? highlight : '@kit.secondary'}}",
+					"hover": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border" },
 					"focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
 					"mnemonic": "{{b.mnemonic ?? b.title ?? ''}}",
 					"onClick": [{ "dismiss": true },
@@ -227,7 +228,7 @@ constexpr std::string_view others = R"({
 },
 "toast": {
 	"params": { "open": "state.toastOpen", "message": "", "progress": null, "actions": [], "width": 360,
-	            "color": "@kit.surface", "textColor": "@kit.text", "accent": "@kit.primary" },
+	            "closeLabel": "Close", "color": "@kit.surface", "textColor": "@kit.text", "accent": "@kit.primary" },
 	"node": {
 		"overlay": { "placement": "window", "open": "{{open}}" },
 		"anchors": { "right": 16, "bottom": 16 }, "width": "{{width}}", "height": "{{progress == null ? 64 : 72}}",
@@ -237,7 +238,8 @@ constexpr std::string_view others = R"({
 			{ "type": "label", "text": "{{message}}", "textColor": "{{textColor}}", "anchors": { "left": 14, "top": 10 },
 			  "fitText": true },
 			{ "type": "label", "text": "×", "textColor": "{{textColor}}", "anchors": { "right": 12, "top": 8 },
-			  "fitText": true, "cursor": "hand", "onClick": { "set": "{{open}}", "to": false } },
+			  "fitText": true, "cursor": "hand", "focusable": true, "role": "button", "label": "{{closeLabel}}",
+			  "focused": { "color": "@kit.secondary" }, "onClick": { "set": "{{open}}", "to": false } },
 			{ "when": "{{progress != null}}", "anchors": { "left": 14, "right": 14, "bottom": 10 }, "height": 3,
 			  "color": "@kit.secondary",
 			  "children": [{ "anchors": { "left": 0, "top": 0, "bottom": 0 }, "color": "{{accent}}",
@@ -247,7 +249,7 @@ constexpr std::string_view others = R"({
 			  "children": [{
 				"repeat": { "for": "a", "in": "{{actions}}", "index": "i" },
 				"width": 88, "anchors": { "top": 0, "bottom": 0 }, "focusable": true, "cursor": "hand",
-				"mnemonic": "{{a.mnemonic ?? a.title ?? ''}}",
+				"role": "button", "label": "{{a.title ?? ''}}", "mnemonic": "{{a.mnemonic ?? a.title ?? ''}}",
 				"color": "{{color}}", "hover": { "color": "@kit.secondary" }, "focused": { "color": "@kit.secondary" },
 				"onClick": [{ "set": "{{open}}", "to": false },
 				            { "if": "{{a.run != null}}", "then": [{ "run": "{{a.run}}", "with": "{{a.with}}" }] }],
