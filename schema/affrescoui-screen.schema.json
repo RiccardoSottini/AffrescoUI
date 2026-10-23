@@ -268,6 +268,12 @@
 							"$ref": "#/$defs/v2/node"
 						}
 					},
+					"overlays": {
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v2/node"
+						}
+					},
 					"state": {
 						"type": "object"
 					},
@@ -1034,6 +1040,10 @@
 					},
 					"alignSelf": {
 						"description": "In a row, column or grid: where it sits across, over the container's alignItems",
+						"$ref": "#/$defs/v2/crossAlign"
+					},
+					"justifySelf": {
+						"description": "In a grid: where it sits along its cell's row, over the grid's justifyItems",
 						"$ref": "#/$defs/v2/crossAlign"
 					},
 					"cell": {
@@ -3368,6 +3378,7 @@
 					"respond": {},
 					"signIn": {},
 					"signOut": {},
+					"ask": {},
 					"accept": {},
 					"reject": {},
 					"preview": {},

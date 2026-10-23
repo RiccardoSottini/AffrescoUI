@@ -141,3 +141,22 @@ TEST_CASE("layout: a grid with tracks, cells and spans") {
 	window->render();
 	checkFrames(children, {{0, 0, 155, 20}, {165, 0, 320, 30}, {0, 40, 155, 80}, {165, 40, 320, 100}});
 }
+
+TEST_CASE("layout: a grid child's justifySelf places it across its cell, over the grid's justifyItems") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(320, 100, clock);
+	affresco::Grid& grid = window->root().add<affresco::Grid>();
+	grid.setSize(px(320), px(100));
+	grid.setColumns(2);
+	const std::vector<Panel*> children{child(grid, 40, 20), child(grid, 40, 20)};
+	children[0]->setJustifySelf(CrossAlign::End);
+	children[1]->setJustifySelf(CrossAlign::Center);
+	window->render();
+	checkFrames(children, {{120, 0, 160, 20}, {220, 0, 260, 20}});
+
+	grid.setJustifyItems(CrossAlign::Start);
+	children[0]->setJustifySelf(std::nullopt); // the grid's again
+	children[1]->setJustifySelf(CrossAlign::Stretch);
+	window->render();
+	checkFrames(children, {{0, 0, 40, 20}, {160, 0, 320, 20}});
+}

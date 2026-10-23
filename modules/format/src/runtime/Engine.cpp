@@ -19,7 +19,7 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		      "AffrescoUI screen: no handler for action '" + action + "' (from '" + sender.id() + "')");
       }),
       document(*this, std::move(baseDirectory)), builder(*this), scheduler(*this), properties(*this), reconciler(*this),
-      events(*this), runner(*this), models(*this), connections(*this), serviceCalls(*this), calls(*this) {
+      events(*this), runner(*this), models(*this), connections(*this), serviceCalls(*this), asks(*this), calls(*this) {
 	registerBuiltInTypes(types);
 	addContributionVariables(*this);
 	addSettingsVariables(*this);
@@ -34,7 +34,15 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		document.globalsChanged(); // the "connections" variable
 		reconciler.requestReconcile();
 	});
+	document.addVariable("requests", [this] { return asks.list(); }); // the person's requests ("ask") and replies
+	document.addVariable("peers", [this] { // [{author, role}]: who is connected
+		const json coordination = versions.coordination();
+		return coordination.contains("peers") ? coordination["peers"] : json::array();
+	});
+	peersChanged = versions.onReviewChanged.connect([this] { proposalsChanged(); });
 }
+
+Engine::~Engine() { versions.onReviewChanged.disconnect(peersChanged); }
 
 void Engine::documentChanged() {
 	builder.forgetVersion(); // what was compiled belongs to the version before

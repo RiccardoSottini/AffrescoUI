@@ -47,6 +47,13 @@ public:
 	/// @return The compiled node.
 	/// @throws DocumentError If a style is unknown.
 	[[nodiscard]] CompiledRef compiled(const json& node, const std::string& path, bool fill = false) const;
+	/// @brief A node of "overlays", compiled once per version: an overlay placed in the window unless it says
+	/// otherwise ("overlay": {"placement": "window"}).
+	/// @param node The node, in the document.
+	/// @param path Its place, for errors ("overlays.chat").
+	/// @return The compiled node.
+	/// @throws DocumentError If a style is unknown.
+	[[nodiscard]] CompiledRef compiledOverlay(const json& node, const std::string& path) const;
 	/// @brief The values of a node an update evaluates, placed as CompiledProperty::evaluated says.
 	/// @param node The compiled node.
 	/// @param locals Its variables.
@@ -80,6 +87,7 @@ private:
 		std::unordered_map<const json*, CompiledRef> children;  ///< Children of "children", by their place.
 		std::unordered_map<const json*, CompiledRef> nodes;     ///< The root, screens and templates.
 		std::unordered_map<const json*, CompiledRef> screens;   ///< Screens as an outlet shows them.
+		std::unordered_map<const json*, CompiledRef> overlays;  ///< The nodes of "overlays".
 		std::unordered_map<const CompiledNode*, Styled> styled; ///< Nodes with a dynamic style, per style.
 	};
 	/// @brief The cache, dropped first if it belongs to another version of the document.

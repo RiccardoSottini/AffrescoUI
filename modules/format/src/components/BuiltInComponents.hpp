@@ -1,6 +1,6 @@
 /// @file
-/// @brief The built-in components (menu, menuBar, contextMenu, dialog, toast, hoverCard, settingsPage, quickPick, and
-/// the desktop kit's toolbar and statusBar), used like a document's own.
+/// @brief The built-in components (menu, menuBar, contextMenu, dialog, toast, hoverCard, settingsPage, quickPick, the
+/// desktop kit's toolbar, statusBar and popover, the form and the chat components), used like a document's own.
 
 #pragma once
 
@@ -26,5 +26,10 @@ namespace affresco::format {
 /// @brief The desktop kit's overlays (KitOverlays.cpp): popover, as one JSON object by name.
 /// @return Its text.
 [[nodiscard]] std::string_view builtInKitOverlays() noexcept;
+
+/// @brief The chat components (BuiltInChatComponents.cpp): chatBubble, typingIndicator, proposalCard, chatComposer and
+/// chatLauncher, as one JSON object by name.
+/// @return Its text.
+[[nodiscard]] std::string_view builtInChatComponents() noexcept;
 
 } // namespace affresco::format
