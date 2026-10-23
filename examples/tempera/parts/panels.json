@@ -248,7 +248,7 @@
 						{ "use": "tPicker", "id": "layer-blend", "with": { "title": "{{computed.blendTitle}}", "tip": "Blend mode", "width": 104, "open": "state.blendMenu",
 						  "items": "{{map(state.blends, it == '-' ? {separator: true} : {title: join(map(split(it, '-'), upper(slice(it, 0, 1)) + slice(it, 1)), ' '), checked: it == computed.activeLayer.blend, run: 'setLayer', with: {args: {blend: it}}})}}" } },
 						{ "grow": 1, "height": 1, "style": "clear" },
-						{ "use": "tSlider", "id": "layer-opacity", "with": { "title": "Opacity", "key": "opacity", "value": "{{computed.activeLayer.opacity ?? 100}}", "run": "setLayer", "width": 36 } }
+						{ "use": "tField", "id": "layer-opacity", "with": { "title": "Opacity", "key": "opacity", "value": "{{computed.activeLayer.opacity ?? 100}}", "run": "setLayer", "width": 40 } }
 					  ] },
 					{ "type": "row", "id": "layers-lock-row", "height": 26, "width": "100%", "gap": 2, "alignItems": "center",
 					  "children": [

@@ -6,6 +6,7 @@
 
 	"computed": {
 		"activeLayer": "{{find(state.doc.layers, it.id == state.doc.active)}}",
+		"searchItems": "{{map(filter(commands, it.enabled != false && !empty(it.title ?? '') && it.name != 'unavailable'), {title: (empty(it.category ?? '') ? '' : it.category + ': ') + it.title, run: it.name})}}",
 		"zoomPercent": "{{round(state.doc.view.zoom * 1000) / 10}}"
 	},
 
@@ -88,6 +89,12 @@
 			"do": [{ "run": "moveLayer", "with": { "args": { "by": 1 } } }] },
 		"layerDown": { "title": "Send Backward", "category": "Layer", "icon": "arrow-down",
 			"do": [{ "run": "moveLayer", "with": { "args": { "by": -1 } } }] },
+		"layerToFront": { "title": "Bring to Front", "category": "Layer", "icon": "chevrons-up",
+			"do": [{ "run": "moveLayer", "with": { "args": { "by": 1000000 } } }] },
+		"layerToBack": { "title": "Send to Back", "category": "Layer", "icon": "chevrons-down",
+			"do": [{ "run": "moveLayer", "with": { "args": { "by": -1000000 } } }] },
+		"toggleLockAll": { "title": "Lock All", "category": "Layer", "icon": "lock",
+			"do": [{ "run": "setLayer", "with": { "args": { "lockAll": "{{!computed.activeLayer.lockAll}}" } } }] },
 		"addLayerMask": { "title": "Add Layer Mask", "category": "Layer", "icon": "circle-dot",
 			"enablement": "{{computed.activeLayer && !computed.activeLayer.mask}}",
 			"do": [{ "run": "addMask", "with": { "args": {} } }] },
@@ -142,6 +149,10 @@
 
 		"showPanel": [{ "set": "state.panels[args.slot]", "to": "{{args.id}}" }],
 		"showPopout": [{ "set": "state.popout", "to": "{{ {history: args.id == 'history' && !state.popout.history, navigator: args.id == 'navigator' && !state.popout.navigator} }}" }],
+		"showSearch": { "title": "Search", "category": "Help", "icon": "search", "do": [{ "set": "state.quickPick.open", "to": true }] },
+		"resetWorkspace": { "title": "Reset Essentials", "category": "Window", "icon": "layout-panel-left",
+			"do": [{ "set": "state.panels", "to": { "colour": "colour", "properties": "properties", "layers": "layers" } },
+			       { "set": "state.popout", "to": { "history": false, "navigator": false } }, { "set": "state.screenMode", "to": "standard" }] },
 		"unavailable": { "title": "Not available yet", "enablement": "{{false}}", "do": [{ "set": "state.doc.message", "to": "Not available yet" }] },
 		"showAbout": { "title": "About Tempera", "category": "Help", "icon": "info", "do": [{ "set": "state.about", "to": true }] },
 		"acceptAgentProposal": [{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }]
@@ -199,12 +210,16 @@
 		"mod+alt+g": "toggleClipping",
 		"mod+up": "layerUp",
 		"mod+down": "layerDown",
+		"mod+shift+up": "layerToFront",
+		"mod+shift+down": "layerToBack",
+		"mod+slash": "toggleLockAll",
 		"mod+y": "toggleProof",
 		"mod+equal": "zoomIn",
 		"mod+minus": "zoomOut",
 		"mod+0": "fitOnScreen",
 		"mod+1": "actualPixels",
-		"mod+r": "toggleRulers"
+		"mod+r": "toggleRulers",
+		"mod+f": "showSearch"
 	},
 
 	"menus": {
@@ -258,19 +273,55 @@
 			"gray": { "run": "setProfile", "with": { "args": { "proof": "gray" } }, "title": "Grey", "group": "2_spaces", "order": 3 }
 		},
 		"layer": {
-			"new": { "run": "newLayer", "title": "New Layer...", "group": "1_new", "order": 1 },
+			"new": { "submenu": "layerNew", "title": "New", "group": "1_new", "order": 1 },
 			"duplicate": { "run": "duplicateActive", "title": "Duplicate Layer...", "group": "1_new", "order": 2 },
-			"delete": { "run": "deleteActive", "group": "1_new", "order": 3 },
-			"style": { "run": "unavailable", "title": "Layer Style", "group": "2_style" },
-			"adjustment": { "submenu": "adjustmentLayers", "title": "New Adjustment Layer", "group": "3_adjust" },
-			"addMask": { "run": "addLayerMask", "group": "4_mask", "order": 1 },
-			"deleteMask": { "run": "deleteLayerMask", "group": "4_mask", "order": 2 },
-			"clip": { "run": "toggleClipping", "title": "Create Clipping Mask", "group": "4_mask", "order": 3 },
-			"group": { "run": "newGroup", "title": "Group Layers", "group": "5_group" },
-			"up": { "run": "layerUp", "group": "6_arrange", "order": 1 },
-			"down": { "run": "layerDown", "group": "6_arrange", "order": 2 },
-			"mergeDown": { "run": "unavailable", "title": "Merge Down", "group": "7_merge", "order": 1 },
-			"flatten": { "run": "unavailable", "title": "Flatten Image", "group": "7_merge", "order": 2 }
+			"delete": { "submenu": "layerDelete", "title": "Delete", "group": "1_new", "order": 3 },
+			"rename": { "run": "unavailable", "title": "Rename Layer...", "group": "2_props", "order": 1 },
+			"style": { "submenu": "layerStyle", "title": "Layer Style", "group": "2_props", "order": 2 },
+			"fillLayer": { "submenu": "fillLayers", "title": "New Fill Layer", "group": "3_adjust", "order": 1 },
+			"adjustment": { "submenu": "adjustmentLayers", "title": "New Adjustment Layer", "group": "3_adjust", "order": 2 },
+			"mask": { "submenu": "layerMask", "title": "Layer Mask", "group": "4_mask", "order": 1 },
+			"clip": { "run": "toggleClipping", "title": "Create Clipping Mask", "group": "4_mask", "order": 2 },
+			"group": { "run": "newGroup", "title": "Group Layers", "group": "5_group", "order": 1 },
+			"ungroup": { "run": "unavailable", "title": "Ungroup Layers", "group": "5_group", "order": 2 },
+			"arrange": { "submenu": "arrange", "title": "Arrange", "group": "6_arrange", "order": 1 },
+			"lock": { "run": "toggleLockAll", "title": "Lock Layers...", "group": "6_arrange", "order": 2 },
+			"rasterize": { "run": "unavailable", "title": "Rasterize", "group": "7_merge", "order": 1 },
+			"mergeDown": { "run": "unavailable", "title": "Merge Down", "group": "7_merge", "order": 2 },
+			"mergeVisible": { "run": "unavailable", "title": "Merge Visible", "group": "7_merge", "order": 3 },
+			"flatten": { "run": "unavailable", "title": "Flatten Image", "group": "7_merge", "order": 4 }
+		},
+		"layerNew": {
+			"layer": { "run": "newLayer", "title": "Layer...", "group": "1", "order": 1 },
+			"group": { "run": "newGroup", "title": "Group...", "group": "1", "order": 2 },
+			"copy": { "run": "duplicateActive", "title": "Layer via Copy", "group": "2" }
+		},
+		"layerDelete": {
+			"layer": { "run": "deleteActive", "title": "Layer", "order": 1 },
+			"hidden": { "run": "unavailable", "title": "Hidden Layers", "order": 2 }
+		},
+		"layerStyle": {
+			"options": { "run": "unavailable", "title": "Blending Options...", "group": "1" },
+			"bevel": { "run": "unavailable", "title": "Bevel & Emboss...", "group": "2", "order": 1 },
+			"stroke": { "run": "unavailable", "title": "Stroke...", "group": "2", "order": 2 },
+			"innerShadow": { "run": "unavailable", "title": "Inner Shadow...", "group": "2", "order": 3 },
+			"outerGlow": { "run": "unavailable", "title": "Outer Glow...", "group": "2", "order": 4 },
+			"dropShadow": { "run": "unavailable", "title": "Drop Shadow...", "group": "2", "order": 5 }
+		},
+		"fillLayers": {
+			"solid": { "run": "unavailable", "title": "Solid Colour...", "order": 1 },
+			"gradient": { "run": "unavailable", "title": "Gradient...", "order": 2 },
+			"pattern": { "run": "unavailable", "title": "Pattern...", "order": 3 }
+		},
+		"layerMask": {
+			"reveal": { "run": "addLayerMask", "title": "Reveal All", "order": 1 },
+			"delete": { "run": "deleteLayerMask", "title": "Delete", "order": 2 }
+		},
+		"arrange": {
+			"front": { "run": "layerToFront", "order": 1 },
+			"up": { "run": "layerUp", "order": 2 },
+			"down": { "run": "layerDown", "order": 3 },
+			"back": { "run": "layerToBack", "order": 4 }
 		},
 		"adjustmentLayers": {
 			"brightnessContrast": { "run": "addLayer", "with": { "args": { "kind": "brightness-contrast", "name": "Brightness/Contrast" } }, "title": "Brightness/Contrast...", "group": "1_tone", "order": 1 },
