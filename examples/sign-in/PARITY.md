@@ -40,16 +40,17 @@ Legend: **yes** shown and tested by a scenario; **part** shown, with a gap noted
 | 5 | Account | Delete by typing | yes |
 | 6 | Throughout | Inline accessible errors | yes |
 | 6 | Throughout | Loading and disabled states | yes |
+| 6 | Throughout | Notices that fit their message and leave with their step | yes |
 | 6 | Throughout | Success screens | part |
 | 6 | Throughout | Responsive card | part |
 
-Start: 8 yes, 5 part, 21 no (34 features). Now: 32 yes, 2 part, 0 no.
+Start: 8 yes, 5 part, 21 no (34 features). Now: 33 yes, 2 part, 0 no (35 features).
 
 ## Metrics
 
 | | Start | Now |
 |---|---|---|
-| Document tokens (`sign-in.screen.json`, about 4.7 bytes a token) | 17,818 | 46,375 |
+| Document tokens (`sign-in.screen.json`, about 4.7 bytes a token) | 17,818 | 46,765 |
 | C++ lines in the example | 0 | 0 |
 | Host registrations | 0 | 0 |
 | Rendering-check frames | 8 | 31 |

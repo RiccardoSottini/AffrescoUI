@@ -218,6 +218,10 @@
 		"color.selected": {
 			"light": "#eef2ff",
 			"dark": "#1a2244"
+		},
+		"color.toastAction": {
+			"light": "#a5b4fc",
+			"dark": "#4f46e5"
 		}
 	},
 	"colors": {
@@ -2386,6 +2390,10 @@
 				"if": "{{computed.locked}}",
 				"then": [
 					{
+						"set": "state.toast.open",
+						"to": false
+					},
+					{
 						"set": "state.formError",
 						"to": "locked"
 					},
@@ -2402,6 +2410,10 @@
 				"then": [
 					{
 						"note": "Five wrong passwords in a row lock the account until its password is reset"
+					},
+					{
+						"set": "state.toast.open",
+						"to": false
 					},
 					{
 						"push": "state.failures",
@@ -4062,6 +4074,10 @@
 				"note": "with: mode (twoStep, sms or backup)"
 			},
 			{
+				"set": "state.toast.open",
+				"to": false
+			},
+			{
 				"set": "state.codeMode",
 				"to": "{{mode}}"
 			},
@@ -5200,7 +5216,7 @@
 								},
 								{
 									"id": "capsLockWarning",
-									"when": "{{state.step == 'password' && window.capsLock && state.focus == 'password'}}",
+									"when": "{{state.step == 'password' && window.capsLock}}",
 									"type": "label",
 									"font": "small",
 									"icon": "arrow-big-up",
@@ -7966,16 +7982,95 @@
 			{
 				"id": "toast",
 				"dir": "auto",
-				"use": "toast",
-				"with": {
-					"open": "state.toast.open",
-					"message": "{{state.toast.message}}",
-					"width": "{{min(420, window.width - 32)}}",
-					"color": "@color.toast",
-					"textColor": "@color.toastText",
-					"accent": "@color.accent",
-					"actions": "{{state.toast.action == 'stay' ? [{ title: t('stay'), run: 'staySignedIn' }] : []}}"
-				}
+				"type": "row",
+				"overlay": {
+					"placement": "window",
+					"open": "{{state.toast.open}}"
+				},
+				"anchors": {
+					"left": 0,
+					"right": 0,
+					"bottom": 58
+				},
+				"height": 40,
+				"justify": "center",
+				"color": "transparent",
+				"role": "status",
+				"live": "polite",
+				"children": [
+					{
+						"id": "toastPill",
+						"type": "row",
+						"fit": true,
+						"height": 40,
+						"padding": 16,
+						"gap": 10,
+						"alignItems": "center",
+						"radius": 20,
+						"color": "@color.toast",
+						"shadow": {
+							"y": 6,
+							"blur": 18,
+							"color": "@color.shadow"
+						},
+						"children": [
+							{
+								"id": "toastIcon",
+								"type": "label",
+								"font": "iconsSmall",
+								"icon": "check",
+								"textColor": "@color.toastText",
+								"fitText": true
+							},
+							{
+								"id": "toastMessage",
+								"type": "label",
+								"font": "small",
+								"text": "{{state.toast.message}}",
+								"textColor": "@color.toastText",
+								"fitText": true
+							},
+							{
+								"id": "toastStay",
+								"when": "{{state.toast.action == 'stay'}}",
+								"type": "label",
+								"font": "small",
+								"text": "{{t('stay')}}",
+								"textColor": "@color.toastAction",
+								"fitText": true,
+								"cursor": "hand",
+								"focusable": true,
+								"role": "button",
+								"onClick": [
+									{
+										"set": "state.toast.open",
+										"to": false
+									},
+									{
+										"run": "staySignedIn"
+									}
+								]
+							},
+							{
+								"id": "toastClose",
+								"type": "label",
+								"font": "iconsSmall",
+								"icon": "x",
+								"text": "",
+								"textColor": "@color.toastText",
+								"fitText": true,
+								"cursor": "hand",
+								"focusable": true,
+								"role": "button",
+								"label": "{{t('close')}}",
+								"onClick": {
+									"set": "state.toast.open",
+									"to": false
+								}
+							}
+						]
+					}
+				]
 			}
 		]
 	}
