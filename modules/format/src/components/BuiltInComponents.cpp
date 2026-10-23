@@ -349,6 +349,8 @@ const std::map<std::string, json, std::less<>>& all() {
 		for(auto& [name, definition] : dock.items()) made.emplace(name, std::move(definition));
 		json panels = json::parse(builtInKitPanels());
 		for(auto& [name, definition] : panels.items()) made.emplace(name, std::move(definition));
+		json chat = json::parse(builtInChatComponents());
+		for(auto& [name, definition] : chat.items()) made.emplace(name, std::move(definition));
 		return made;
 	}();
 	return components;

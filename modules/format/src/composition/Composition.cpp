@@ -539,7 +539,7 @@ private:
 			}
 			aliases.emplace(alias, parts->first);
 		}
-		for(const char* section : {"root", "screens", "templates", "components"})
+		for(const char* section : {"root", "screens", "templates", "overlays", "components"})
 			if(screen_.contains(section)) resolveImports(screen_[section], aliases);
 	}
 

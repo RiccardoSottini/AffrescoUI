@@ -80,7 +80,7 @@ void collectIds(const json& node, std::vector<std::string_view>& ids) {
 void idsOf(const json& document, std::vector<std::string_view>& ids) {
 	if(!document.is_object()) return;
 	if(const auto root = document.find("root"); root != document.end()) collectIds(*root, ids);
-	for(const char* name : {"screens", "templates"}) {
+	for(const char* name : {"screens", "templates", "overlays"}) {
 		const auto section = document.find(name);
 		if(section == document.end() || !section->is_object()) continue;
 		for(const json& node : *section) collectIds(node, ids);
@@ -182,7 +182,7 @@ std::vector<std::string> describingWords(const json& node) {
 	return {};
 }
 
-/// @brief Finds the node with an id in the trees of a section of named node trees ("screens", "templates").
+/// @brief Finds the node with an id in the trees of a section of named node trees ("screens", "templates", "overlays").
 /// @param document The document, an object.
 /// @param section The section.
 /// @param id The id.
@@ -216,7 +216,7 @@ std::vector<std::pair<std::string, const json*>> nodeTrees(const json& document)
 	std::vector<std::pair<std::string, const json*>> trees;
 	if(!document.is_object()) return trees;
 	if(const auto root = document.find("root"); root != document.end()) trees.emplace_back("/root", &*root);
-	for(const char* section : {"screens", "templates"}) {
+	for(const char* section : {"screens", "templates", "overlays"}) {
 		const auto nodes = document.find(section);
 		if(nodes == document.end() || !nodes->is_object()) continue;
 		for(const auto& [name, node] : nodes->items())
@@ -239,7 +239,7 @@ std::optional<std::string> findNodeWithId(const json& document, std::string_view
 	if(!document.is_object()) return std::nullopt;
 	if(const auto root = document.find("root"); root != document.end())
 		if(std::optional<std::string> path = pathTo(*root, id)) return "/root" + *path;
-	for(const char* section : {"screens", "templates"})
+	for(const char* section : {"screens", "templates", "overlays"})
 		if(std::optional<std::string> path = findInSection(document, section, id)) return path;
 	return findInComponents(document, id);
 }
@@ -300,7 +300,9 @@ bool isNodePlace(std::string_view pointer) {
 	}
 	if(pointer == "/root") return true;
 	const auto slashes = static_cast<std::size_t>(std::ranges::count(pointer, '/'));
-	if(slashes == 2 && (pointer.starts_with("/screens/") || pointer.starts_with("/templates/"))) return true;
+	if(slashes == 2 &&
+	   (pointer.starts_with("/screens/") || pointer.starts_with("/templates/") || pointer.starts_with("/overlays/")))
+		return true;
 	return slashes == 3 && pointer.starts_with("/components/") && pointer.ends_with("/node");
 }
 
@@ -371,7 +373,7 @@ std::vector<std::pair<std::string, std::string>> NodeNamer::nameAll(json& docume
 	const Visit note = [&](const std::string& pointer, const std::string& id) { named.emplace_back(pointer, id); };
 
 	if(document.contains("root")) namer.name(document["root"], "/root", "root", note); // "panel-root"
-	for(const char* section : {"screens", "templates"}) {
+	for(const char* section : {"screens", "templates", "overlays"}) {
 		if(!document.contains(section) || !document[section].is_object()) continue;
 		for(auto& [key, node] : document[section].items())
 			namer.name(node, "/" + std::string(section) + "/" + escaped(key), key, note);

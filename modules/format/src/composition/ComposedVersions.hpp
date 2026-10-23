@@ -90,6 +90,8 @@ public:
 	}
 	/// @copydoc VersionControl::importChanges
 	std::optional<std::string> importChanges(const json& changes) override { return inner_.importChanges(changes); }
+	/// @copydoc VersionControl::coordination
+	[[nodiscard]] json coordination() const override { return inner_.coordination(); }
 
 private:
 	/// @brief Recomposes the screen and brings the live state in line with the features, then tells the observer.

@@ -55,7 +55,7 @@ double now() { return std::chrono::duration<double>(std::chrono::steady_clock::n
 
 void TextEditor::keyEvent(const KeyEvent& event) {
 	Panel::keyEvent(event);
-	if(event.action == Action::Release) return;
+	if(event.action == Action::Release || (window() && window()->keyTaken())) return; // a binding may have taken it
 	if(viewKey(event) || cursorsKey(event) || caretKey(event) || editingKey(event)) return;
 	if(commandHeld(event.mods)) commandKey(event);
 }

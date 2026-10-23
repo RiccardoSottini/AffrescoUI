@@ -53,11 +53,15 @@ public:
 	/// @return It, normalised.
 	[[nodiscard]] const std::string& chord() const noexcept { return chord_; }
 	/// @brief A modal overlay opened or closed: it takes the focus (its first focusable node written with "autofocus",
-	/// else its first focusable node, after the layout) and
-	/// keeps Tab inside, then gives the focus back to the panel that had it.
+	/// else its first focusable node, after the layout, unless the focus is or is to be inside it already) and keeps
+	/// Tab inside, then gives the focus back to the panel that had it.
 	/// @param overlay The overlay.
 	/// @param open Whether it opened.
 	void modal(Panel& overlay, bool open);
+	/// @brief Focuses a panel (the "focus" step), or its first focusable node if it takes no focus itself (once it is
+	/// shown, for one not laid out yet).
+	/// @param panel The panel.
+	void focus(Panel& panel);
 	/// @brief Closes every open overlay that closes on a click outside it (the "dismiss" step, Escape).
 	void dismissAll() { dismissOverlays(nullptr); }
 

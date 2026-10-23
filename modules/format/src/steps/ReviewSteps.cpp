@@ -63,9 +63,11 @@ std::optional<bool> runReviewStep(const Running& s) {
 	                        [&s](const char* key) { return s.step.contains(key); }))
 		return std::nullopt;
 	s.steps.checkControl(s.where);
+	Engine& engine = s.steps.engine();
+	if(engine.asks.deciding() && !s.step.contains("preview") && !s.step.contains("endPreview"))
+		fail(s.where, "an agent's reply runs this action: a reply is never the person's decision");
 
 	json control = evaluateControl(s);
-	Engine& engine = s.steps.engine();
 	if(!engine.window) return true;
 
 	engine.scheduler.defer([&engine, control = std::move(control)] {

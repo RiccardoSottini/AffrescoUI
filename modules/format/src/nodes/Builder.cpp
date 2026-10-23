@@ -175,6 +175,33 @@ CompiledRef Builder::compiled(const json& node, const std::string& path, bool fi
 	return result;
 }
 
+CompiledRef Builder::compiledOverlay(const json& node, const std::string& path) const {
+	Cache& cached = cache();
+	if(const auto it = cached.overlays.find(&node); it != cached.overlays.end()) return it->second;
+	const auto placed = [](json& merged) {
+		json& overlay = merged["overlay"];
+		if(overlay.is_null()) overlay = json::object();
+		if(overlay.is_object() && !overlay.contains("placement")) overlay["placement"] = "window";
+	};
+	CompiledRef result;
+	if(object(node, path).contains("use")) { // an overlay that is a component: its node, as resolve() makes it
+		json raw = node;
+		for(int depth = 0; raw.contains("use"); ++depth) {
+			if(depth >= maxComponentDepth) fail(path, "components nested too deeply (a component uses itself?)");
+			raw = instantiateComponent(raw, path);
+		}
+		json merged = withStyles(raw, path);
+		placed(merged);
+		result = compileNode(std::make_shared<const json>(std::move(merged))); // it holds the use's children
+	} else {
+		json merged = withStyles(withoutChildren(node), path);
+		placed(merged);
+		result = compileNode(std::move(merged), childrenOf(node));
+	}
+	cached.overlays.emplace(&node, result);
+	return result;
+}
+
 std::vector<json> Builder::values(const CompiledNode& node, const Scope& locals, const std::string& path) const {
 	std::vector<json> result(node.evaluatedCount);
 	if(result.empty()) return result;
