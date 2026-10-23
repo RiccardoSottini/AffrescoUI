@@ -113,7 +113,7 @@
 				{ "name": "In progress", "color": "#4f46e5", "cards": [
 					{ "ref": "FLO-15", "priority": 3, "title": "Blog with tags and search", "tag": "feature", "who": "JD", "points": 5 }
 				] },
-				{ "name": "Review", "color": "#d97706", "cards": [] },
+				{ "name": "In review", "color": "#d97706", "cards": [] },
 				{ "name": "Done", "color": "#059669", "cards": [
 					{ "ref": "FLO-16", "priority": 4, "title": "Move hosting to the new provider", "tag": "chore", "who": "RS", "points": 2 }
 				] }
@@ -126,7 +126,7 @@
 					{ "ref": "FLO-18", "priority": 3, "title": "Push notifications for mentions", "tag": "feature", "who": "AL", "points": 3 },
 					{ "ref": "FLO-19", "priority": 4, "title": "Dark launch screen", "tag": "design", "who": "MK", "points": 1 }
 				] },
-				{ "name": "Review", "color": "#d97706", "cards": [
+				{ "name": "In review", "color": "#d97706", "cards": [
 					{ "ref": "FLO-20", "priority": 1, "title": "Crash on rotate in card view", "tag": "bug", "who": "JD", "points": 2 }
 				] },
 				{ "name": "Done", "color": "#059669", "cards": [] }
@@ -142,6 +142,7 @@
 		"fStatus": -1,
 		"fPrio": -1,
 		"filterProp": "",
+		"filterQuery": "",
 		"filterProps": [["status", "circle-dashed"], ["assignee", "circle-user"], ["priority", "signal-high"], ["label", "tag"]],
 		"scopes": ["all", "active", "backlog"],
 		"searchOpen": false,
@@ -204,7 +205,7 @@
 				]
 			},
 			{
-				"name": "Review",
+				"name": "In review",
 				"color": "#d97706",
 				"limit": 3,
 				"cards": [
@@ -257,6 +258,8 @@
 		"matches": "{{filter(computed.allCards, (state.scope == 'all' || (state.scope == 'backlog' ? it.c == 0 : it.c > 0 && it.c < length(state.columns) - 1)) && (state.filter == 'all' || it.tag == state.filter) && (state.fStatus < 0 || it.c == state.fStatus) && (state.fPrio < 0 || (it.priority ?? 0) == state.fPrio) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
 		"filterOptions": "{{state.filterProp == 'status' ? map(state.columns, { v: index, title: it.name, icon: state.statusIcons[index] ?? 'circle', color: it.color, on: state.fStatus == index }) : state.filterProp == 'assignee' ? map(state.members, { v: it.who, title: it.name, icon: 'circle-user', color: it.color, on: state.owner == it.who }) : state.filterProp == 'priority' ? map(state.priorities, { v: index, title: t('priority.' + index), icon: it, color: '@color.muted', on: state.fPrio == index }) : map(slice(state.filters, 1), { v: it, title: t('tag.' + it), icon: 'circle', color: '@' + it, on: state.filter == it })}}",
 		"activeFilters": "{{concat(state.fStatus >= 0 ? [{ prop: 'status', value: state.columns[state.fStatus].name }] : [], state.owner != '' ? [{ prop: 'assignee', value: find(state.members, it.who == state.owner).name ?? state.owner }] : [], state.fPrio >= 0 ? [{ prop: 'priority', value: t('priority.' + state.fPrio) }] : [], state.filter != 'all' ? [{ prop: 'label', value: t('tag.' + state.filter) }] : [])}}",
+		"filterPropsShown": "{{filter(state.filterProps, state.filterQuery == '' || fuzzy(state.filterQuery, t('filter.' + it[0])) != null)}}",
+		"filterOptionsShown": "{{filter(computed.filterOptions, state.filterQuery == '' || fuzzy(state.filterQuery, it.title) != null)}}",
 		"matchRefs": "{{map(computed.matches, it.ref)}}",
 		"visible": "{{filter(computed.matches, state.owner == '' || it.who == state.owner)}}",
 		"visibleRefs": "{{map(computed.visible, it.ref)}}",
@@ -536,7 +539,7 @@
 		"mod+shift+p": "commandPalette",
 		"mod+k": "commandPalette",
 		"c": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "newCardCommand" },
-		"f": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": { "toggle": "state.filterOpen" } },
+		"f": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": [{ "set": "state.filterQuery", "to": "" }, { "toggle": "state.filterOpen" }, { "focus": "#filterField" }] },
 		"j": [{ "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "nextNotification" }, { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "selectNext" }],
 		"k": [{ "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "previousNotification" }, { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "selectPrev" }],
 		"s": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "changeStatus" },
@@ -687,42 +690,51 @@
 								"label": "{{t('filter.button')}}",
 								"tooltip": "{{t('filter.button')}} (F)",
 								"isOpen": "{{state.filterOpen}}",
-								"keys": { "enter": { "toggle": "state.filterOpen" }, "space": { "toggle": "state.filterOpen" } },
-								"onClick": [{ "set": "state.filterProp", "to": "" }, { "toggle": "state.filterOpen" }],
+								"keys": { "enter": { "when": "{{!context.textInputFocus}}", "do": { "toggle": "state.filterOpen" } }, "space": { "when": "{{!context.textInputFocus}}", "do": { "toggle": "state.filterOpen" } } },
+								"onClick": [{ "set": "state.filterProp", "to": "" }, { "set": "state.filterQuery", "to": "" }, { "toggle": "state.filterOpen" }],
 								"children": [
 									{
 										"id": "filterMenu",
 										"overlay": { "placement": "below", "open": "state.filterOpen", "dismiss": "outside" },
 										"y": 4,
 										"width": 220,
-										"height": "{{(state.filterProp == '' ? length(state.filterProps) : length(computed.filterOptions)) * 30 + 12}}",
+										"height": "{{(state.filterProp == '' ? length(computed.filterPropsShown) : length(computed.filterOptionsShown)) * 30 + 48}}",
 										"radius": "@radius.card",
 										"shadow": { "y": 6, "blur": 16, "color": "#0000002e" },
 										"borderWidth": 1,
 										"borderColor": "@color.border",
 										"color": "@color.menu",
 										"children": [
+											{ "id": "filterField", "type": "textarea", "anchors": { "left": 6, "right": 6, "top": 4 }, "height": 32, "padding": 8, "color": "transparent",
+												"focused": { "color": "transparent" }, "textColor": "@color.text", "placeholder": "{{t('filter.placeholder')}}", "placeholderColor": "@color.muted",
+												"label": "{{t('filter.placeholder')}}", "autofocus": true, "bind": "state.filterQuery",
+												"onSubmit": [{ "if": "{{state.filterProp == '' && length(computed.filterPropsShown) > 0}}",
+													"then": [{ "set": "state.filterProp", "to": "{{computed.filterPropsShown[0][0]}}" }, { "set": "state.filterQuery", "to": "" }, { "focus": "#filterField" }],
+													"else": [{ "if": "{{state.filterProp != '' && length(computed.filterOptionsShown) > 0}}", "then": [{ "run": "setFilter",
+														"with": { "prop": "{{state.filterProp}}", "v": "{{computed.filterOptionsShown[0].v}}", "on": "{{computed.filterOptionsShown[0].on}}" } }] }] }],
+												"keys": { "escape": { "set": "state.filterOpen", "to": false } } },
+											{ "id": "filterFieldLine", "anchors": { "left": 0, "right": 0, "top": 38 }, "height": 1, "color": "@color.border" },
 											{
 												"id": "filterList",
 												"type": "column",
-												"anchors": { "left": 6, "right": 6, "top": 6, "bottom": 6 },
+												"anchors": { "left": 6, "right": 6, "top": 42, "bottom": 6 },
 												"role": "menu",
 												"arrows": "vertical",
 												"children": [
 													{
 														"id": "filterProp",
-														"repeat": { "for": "p", "in": "state.filterProps" },
+														"repeat": { "for": "p", "in": "computed.filterPropsShown" },
 														"when": "{{state.filterProp == ''}}",
 														"style": "menuRow",
 														"runs": [{ "icon": "{{p[1]}}", "color": "@color.muted" }, "\u00a0\u00a0{{t('filter.' + p[0])}}"],
 														"role": "menuitem",
 														"label": "{{t('filter.' + p[0])}}",
-														"onClick": { "set": "state.filterProp", "to": "{{p[0]}}" },
+														"onClick": [{ "set": "state.filterProp", "to": "{{p[0]}}" }, { "set": "state.filterQuery", "to": "" }, { "focus": "#filterField" }],
 														"children": [{ "type": "label", "font": "small", "icon": "chevron-right", "mirror": true, "text": "", "textColor": "@color.muted", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": 16, "align": "center" }]
 													},
 													{
 														"id": "filter",
-														"repeat": { "for": "opt", "in": "computed.filterOptions" },
+														"repeat": { "for": "opt", "in": "computed.filterOptionsShown" },
 														"when": "{{state.filterProp != ''}}",
 														"style": "menuRow",
 														"runs": [{ "icon": "{{opt.icon}}", "color": "{{opt.color}}" }, "\u00a0\u00a0{{opt.title}}"],
@@ -938,7 +950,7 @@
 																	{ "id": "cardTitle", "type": "label", "text": "{{card.title}}", "textColor": "{{c == computed.lastColumn ? '@color.muted' : '@color.text'}}",
 																		"anchors": { "left": 12, "right": 12, "top": 30 }, "height": 34, "wrap": true, "align": { "horizontal": "start", "vertical": "start" } },
 																	{ "id": "cardChips", "type": "row", "gap": 4, "alignItems": "center", "anchors": { "left": 10, "right": 10, "bottom": 9 }, "height": 22, "children": [
-																		{ "id": "cardPriority", "style": "cardChip", "borderWidth": 0, "when": "{{!contains(state.hidden, 'priority') && ((card.priority ?? 0) > 0)}}", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
+																		{ "id": "cardPriority", "style": "cardChip", "borderWidth": 0, "when": "{{!contains(state.hidden, 'priority')}}", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "width": 22, "fitText": false, "align": "center",
 																			"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "tooltip": "{{t('priority.' + (card.priority ?? 0))}}" },
 																		{ "id": "cardTag", "when": "{{!contains(state.hidden, 'label')}}", "style": "cardChip", "runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@{{card.tag}}" }, " {{t('tag.' + card.tag)}}"], "tooltip": "{{t('tag.' + card.tag)}}" },
 																		{ "id": "cardLabels", "when": "{{!contains(state.hidden, 'label') && length(card.labels ?? []) > 0}}", "style": "cardChip", "text": "+{{length(card.labels ?? [])}}",

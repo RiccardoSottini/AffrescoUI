@@ -6,6 +6,24 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "filter-by-typing",
+			"note": "F opens Filter with its field focused: typing narrows the list and Enter picks the first",
+			"steps": [
+				{ "key": "f" },
+				{ "wait": 50 },
+				{ "type": "pri" },
+				{ "expect": { "node": "#filterProp", "nth": 1, "exists": false } },
+				{ "key": "enter" },
+				{ "expect": { "state": "filterProp", "is": "priority" } },
+				{ "wait": 50 },
+				{ "type": "urg" },
+				{ "expect": { "state": "filterQuery", "is": "urg" } },
+				{ "expect": { "node": "#filter", "nth": 1, "exists": false } },
+				{ "key": "enter" },
+				{ "expect": { "state": "fPrio", "is": 1 } }
+			]
+		},
+		{
 			"name": "projects-tabs-and-new-project",
 			"note": "Projects' tabs show all, active or completed projects, and New project adds one",
 			"steps": [
