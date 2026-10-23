@@ -463,6 +463,7 @@ void TextEditor::arrange() {
 	// The wrapped rows follow the width (and the font)
 	if(wrap_ && (wrapWidth() != rowsWidth_ || font() != rowsFont_)) rebuildRows();
 	clampScroll();
+	if(revealPending_ && frame().height() > textPadding) return revealCaret(); // it notes the view
 	noteView();
 }
 

@@ -1,0 +1,41 @@
+{
+	"note": "Calamaio's menus: the menu bar's File, Edit, Options, Tools and Help, and one menu per major mode (shown after Tools while a buffer in that mode is selected). Buffers is made from the buffer list (computed.buffersMenu).",
+	"menus": {
+		"file": {
+			"find": { "run": "find-file", "title": "Visit New File...", "group": "1_open", "order": 1 },
+			"open": { "run": "find-file", "title": "Open File...", "group": "1_open", "order": 2 },
+			"save": { "run": "save-buffer", "group": "2_save", "order": 1 },
+			"close": { "run": "kill-buffer", "group": "3_close", "order": 1 },
+			"below": { "run": "split-window-below", "group": "4_windows", "order": 1 },
+			"right": { "run": "split-window-right", "group": "4_windows", "order": 2 },
+			"one": { "run": "delete-other-windows", "group": "4_windows", "order": 3 },
+			"remove": { "run": "delete-window", "group": "4_windows", "order": 4 },
+			"quit": { "run": "save-buffers-kill-terminal", "group": "9_quit" }
+		},
+		"edit": {
+			"undo": { "run": "undo", "group": "1_undo", "order": 1 },
+			"redo": { "run": "undo-redo", "group": "1_undo", "order": 2 },
+			"mark": { "run": "set-mark-command", "group": "3_mark" },
+			"top": { "run": "beginning-of-buffer", "group": "4_go", "order": 1 },
+			"bottom": { "run": "end-of-buffer", "group": "4_go", "order": 2 }
+		},
+		"options": {
+			"theme": { "run": "load-theme", "title": "Load Theme...", "group": "5_look" },
+			"splash": { "run": "toggle-splash", "title": "Show the Start Screen", "group": "6_start" }
+		},
+		"tools": { "command": { "run": "execute-extended-command", "group": "1_run" } },
+		"help": {
+			"splash": { "run": "show-splash", "title": "Start Screen", "group": "1_start" },
+			"command": { "run": "execute-extended-command", "title": "Run a Command by Name...", "group": "2_find" },
+			"messages": { "run": "show-messages", "title": "Messages", "group": "3_log" }
+		},
+		"lisp": {
+			"top": { "run": "beginning-of-buffer", "group": "1_move", "title": "Go to the Start" },
+			"bottom": { "run": "end-of-buffer", "group": "1_move", "title": "Go to the End" }
+		},
+		"text": { "top": { "run": "beginning-of-buffer", "group": "1_move", "title": "Go to the Start" } },
+		"python": { "top": { "run": "beginning-of-buffer", "group": "1_move", "title": "Go to the Start" } },
+		"c": { "top": { "run": "beginning-of-buffer", "group": "1_move", "title": "Go to the Start" } },
+		"outline": { "top": { "run": "beginning-of-buffer", "group": "1_move", "title": "Go to the Start" } }
+	}
+}

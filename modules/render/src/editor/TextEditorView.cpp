@@ -450,6 +450,9 @@ void TextEditor::clampScroll() {
 
 void TextEditor::revealCaret() {
 	if(hidden(caret_.line)) unfoldAround(caret_.line);
+	// Without a height yet (just built), any scroll would hide the text: the first arrange() reveals it
+	revealPending_ = frame().height() <= textPadding;
+	if(revealPending_) return;
 	const Vec2 before = scroll_;
 	const float lh = lineHeight();
 	const float top = static_cast<float>(rowOf(caret_)) * lh;
