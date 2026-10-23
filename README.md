@@ -2,7 +2,7 @@
 
 # AffrescoUI
 
-### One format. Any application. Rendered natively.<br/>Reshaped live by its users, with AI.
+### Any application, written in one format and rendered natively.<br/>Its users reshape it live, just by asking an AI.
 
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-00599C?logo=cplusplus&logoColor=white)](#use-it-in-your-app)
 [![OpenGL 4.1 · ES 3.0](https://img.shields.io/badge/OpenGL-4.1%20%C2%B7%20ES%203.0-5586A4?logo=opengl&logoColor=white)](#architecture)
