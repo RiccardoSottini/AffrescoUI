@@ -196,7 +196,7 @@
 			"enterEmail": "Enter a full email address, like name@example.com",
 			"min8": "At least 8 characters",
 			"stronger": "Choose a stronger password",
-			"serverError": "{kind, select, noAccount {No account uses this email. Check it, or create one.} wrongPassword {The email or the password is not right.} provider {{provider} could not sign you in: {message}} passkeyCancelled {The passkey was not used. Try again, or use your password.} other {Something went wrong. Try again.}}",
+			"serverError": "{kind, select, noAccount {No account uses this email. Check it, or create one.} wrongPassword {The email or the password is not right.} provider {{provider} could not sign you in: {message}} passkeyCancelled {The passkey was not used. Try again, or use your password.} locked {Too many wrong passwords. The account is locked for now: reset its password to unlock it.} other {Something went wrong. Try again.}}",
 			"sessionExpired": "Your session expired. Sign in again to go on.",
 			"signInAgain": "Sign in again",
 			"busy": "{what, select, lookup {Looking up your account…} signIn {Signing in…} create {Creating your account…} verify {Checking the code…} resend {Sending a new code…} reset {Sending the link…} setPassword {Saving your new password…} save {Saving your details…} password {Changing your password…} provider {Waiting for Example ID…} other {Please wait…}}",
@@ -226,7 +226,7 @@
 			"code": "One-time code",
 			"demoCode": "Demo account: the code is {code}",
 			"verify": "Verify",
-			"codeError": "{kind, select, short {Enter all 6 digits} wrong {That code is not right. Check it and try again.} wrongBackup {That backup code is not right, or it was already used} shortBackup {Enter a backup code} other {}}",
+			"codeError": "{kind, select, short {Enter all 6 digits} wrong {That code is not right. Check it and try again.} wrongBackup {That backup code is not right, or it was already used} shortBackup {Enter a backup code} expired {This code expired. Send a new one.} other {}}",
 			"resend": "Send a new code",
 			"resendIn": "Send a new code in {n}s",
 			"codeResent": "We sent a new code to {email}",
@@ -345,7 +345,13 @@
 			"trustedDays": "{n, plural, one {# day left} other {# days left}}",
 			"removeDevice": "Remove",
 			"noTrusted": "No trusted devices: every sign-in asks for a code",
-			"deviceRemoved": "Device removed. It will be asked for a code again"
+			"deviceRemoved": "Device removed. It will be asked for a code again",
+			"unlock": "Reset the password",
+			"codeExpires": "The code expires in {time}",
+			"reauthTitle": "Confirm it's you",
+			"reauthMessage": "Enter the password of {email} to continue.",
+			"confirmIt": "Confirm",
+			"reauthError": "{kind, select, empty {Enter your password} wrong {That password is not right} other {}}"
 		},
 		"it": {
 			"windowTitle": "Accedi",
@@ -368,7 +374,7 @@
 			"enterEmail": "Inserisci un indirizzo email completo, come nome@example.com",
 			"min8": "Almeno 8 caratteri",
 			"stronger": "Scegli una password più sicura",
-			"serverError": "{kind, select, noAccount {Nessun account usa questa email. Controllala o creane uno.} wrongPassword {L'email o la password non sono giuste.} provider {{provider} non è riuscito a farti accedere: {message}} passkeyCancelled {La passkey non è stata usata. Riprova o usa la password.} other {Qualcosa è andato storto. Riprova.}}",
+			"serverError": "{kind, select, noAccount {Nessun account usa questa email. Controllala o creane uno.} wrongPassword {L'email o la password non sono giuste.} provider {{provider} non è riuscito a farti accedere: {message}} passkeyCancelled {La passkey non è stata usata. Riprova o usa la password.} locked {Troppe password sbagliate. L'account è bloccato per ora: reimposta la password per sbloccarlo.} other {Qualcosa è andato storto. Riprova.}}",
 			"sessionExpired": "La sessione è scaduta. Accedi di nuovo per continuare.",
 			"signInAgain": "Accedi di nuovo",
 			"busy": "{what, select, lookup {Ricerca del tuo account…} signIn {Accesso in corso…} create {Creazione dell'account…} verify {Verifica del codice…} resend {Invio di un nuovo codice…} reset {Invio del link…} setPassword {Salvataggio della nuova password…} save {Salvataggio dei dati…} password {Cambio della password…} provider {In attesa di Example ID…} other {Attendi…}}",
@@ -398,7 +404,7 @@
 			"code": "Codice monouso",
 			"demoCode": "Account di prova: il codice è {code}",
 			"verify": "Verifica",
-			"codeError": "{kind, select, short {Inserisci tutte le 6 cifre} wrong {Il codice non è giusto. Controllalo e riprova.} wrongBackup {Il codice di riserva non è giusto, o è già stato usato} shortBackup {Inserisci un codice di riserva} other {}}",
+			"codeError": "{kind, select, short {Inserisci tutte le 6 cifre} wrong {Il codice non è giusto. Controllalo e riprova.} wrongBackup {Il codice di riserva non è giusto, o è già stato usato} shortBackup {Inserisci un codice di riserva} expired {Il codice è scaduto. Fattene inviare uno nuovo.} other {}}",
 			"resend": "Invia un nuovo codice",
 			"resendIn": "Nuovo codice tra {n} s",
 			"codeResent": "Abbiamo inviato un nuovo codice a {email}",
@@ -517,7 +523,13 @@
 			"trustedDays": "{n, plural, one {ancora # giorno} other {ancora # giorni}}",
 			"removeDevice": "Rimuovi",
 			"noTrusted": "Nessun dispositivo attendibile: ogni accesso chiede un codice",
-			"deviceRemoved": "Dispositivo rimosso. Gli verrà chiesto di nuovo un codice"
+			"deviceRemoved": "Dispositivo rimosso. Gli verrà chiesto di nuovo un codice",
+			"unlock": "Reimposta la password",
+			"codeExpires": "Il codice scade tra {time}",
+			"reauthTitle": "Conferma che sei tu",
+			"reauthMessage": "Inserisci la password di {email} per continuare.",
+			"confirmIt": "Conferma",
+			"reauthError": "{kind, select, empty {Inserisci la password} wrong {La password non è giusta} other {}}"
 		},
 		"ar": {
 			"windowTitle": "تسجيل الدخول",
@@ -540,7 +552,7 @@
 			"enterEmail": "أدخل عنوان بريد إلكتروني كاملًا، مثل name@example.com",
 			"min8": "8 أحرف على الأقل",
 			"stronger": "اختر كلمة مرور أقوى",
-			"serverError": "{kind, select, noAccount {لا يوجد حساب بهذا البريد. تحقّق منه أو أنشئ حسابًا.} wrongPassword {البريد الإلكتروني أو كلمة المرور غير صحيحين.} provider {تعذّر على {provider} تسجيل دخولك: {message}} passkeyCancelled {لم يُستخدم مفتاح المرور. حاول مرة أخرى أو استخدم كلمة المرور.} other {حدث خطأ. حاول مرة أخرى.}}",
+			"serverError": "{kind, select, noAccount {لا يوجد حساب بهذا البريد. تحقّق منه أو أنشئ حسابًا.} wrongPassword {البريد الإلكتروني أو كلمة المرور غير صحيحين.} provider {تعذّر على {provider} تسجيل دخولك: {message}} passkeyCancelled {لم يُستخدم مفتاح المرور. حاول مرة أخرى أو استخدم كلمة المرور.} locked {محاولات خاطئة كثيرة. الحساب مقفل الآن: أعد تعيين كلمة المرور لفتحه.} other {حدث خطأ. حاول مرة أخرى.}}",
 			"sessionExpired": "انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.",
 			"signInAgain": "سجّل الدخول مرة أخرى",
 			"busy": "{what, select, lookup {جارٍ البحث عن حسابك…} signIn {جارٍ تسجيل الدخول…} create {جارٍ إنشاء حسابك…} verify {جارٍ التحقق من الرمز…} resend {جارٍ إرسال رمز جديد…} reset {جارٍ إرسال الرابط…} setPassword {جارٍ حفظ كلمة المرور الجديدة…} save {جارٍ حفظ بياناتك…} password {جارٍ تغيير كلمة المرور…} provider {في انتظار Example ID…} other {يرجى الانتظار…}}",
@@ -570,7 +582,7 @@
 			"code": "رمز لمرة واحدة",
 			"demoCode": "حساب تجريبي: الرمز هو {code}",
 			"verify": "تحقّق",
-			"codeError": "{kind, select, short {أدخل الأرقام الستة كلها} wrong {الرمز غير صحيح. تحقّق منه وحاول مرة أخرى.} wrongBackup {الرمز الاحتياطي غير صحيح أو سبق استخدامه} shortBackup {أدخل رمزًا احتياطيًا} other {}}",
+			"codeError": "{kind, select, short {أدخل الأرقام الستة كلها} wrong {الرمز غير صحيح. تحقّق منه وحاول مرة أخرى.} wrongBackup {الرمز الاحتياطي غير صحيح أو سبق استخدامه} shortBackup {أدخل رمزًا احتياطيًا} expired {انتهت صلاحية الرمز. اطلب رمزًا جديدًا.} other {}}",
 			"resend": "إرسال رمز جديد",
 			"resendIn": "إرسال رمز جديد بعد {n} ث",
 			"codeResent": "أرسلنا رمزًا جديدًا إلى {email}",
@@ -689,7 +701,13 @@
 			"trustedDays": "{n, plural, one {يتبقّى يوم واحد} two {يتبقّى يومان} few {تتبقّى # أيام} other {يتبقّى # يومًا}}",
 			"removeDevice": "إزالة",
 			"noTrusted": "لا أجهزة موثوقة: يُطلب رمز عند كل تسجيل دخول",
-			"deviceRemoved": "تمت إزالة الجهاز. سيُطلب منه رمز مجددًا"
+			"deviceRemoved": "تمت إزالة الجهاز. سيُطلب منه رمز مجددًا",
+			"unlock": "إعادة تعيين كلمة المرور",
+			"codeExpires": "تنتهي صلاحية الرمز بعد {time}",
+			"reauthTitle": "أكّد هويتك",
+			"reauthMessage": "أدخل كلمة مرور {email} للمتابعة.",
+			"confirmIt": "تأكيد",
+			"reauthError": "{kind, select, empty {أدخل كلمة المرور} wrong {كلمة المرور غير صحيحة} other {}}"
 		}
 	},
 	"connections": {
@@ -783,7 +801,8 @@
 			"password": "",
 			"confirm": "",
 			"submitted": false,
-			"error": ""
+			"error": "",
+			"left": 0
 		},
 		"shortcutsOpen": false,
 		"forgot": {
@@ -833,7 +852,15 @@
 				"device": "phone",
 				"days": 12
 			}
-		]
+		],
+		"failures": [],
+		"confirmedLeft": 0,
+		"reauth": {
+			"open": false,
+			"password": "",
+			"error": "",
+			"then": ""
+		}
 	},
 	"stateTypes": {
 		"email": {
@@ -928,7 +955,9 @@
 		"otpUri": "{{'otpauth://totp/Example%20ID:' + state.user.email + '?secret=EXAMPLEEXAMPLE23&issuer=Example%20ID'}}",
 		"otpQr": "{{qrCode(computed.otpUri, 'M')}}",
 		"trustedHere": "{{some(state.trusted, lower(it.email) == lower(state.pending.email) && it.device == 'this')}}",
-		"myTrusted": "{{filter(state.trusted, lower(it.email) == lower(state.user.email))}}"
+		"myTrusted": "{{filter(state.trusted, lower(it.email) == lower(state.user.email))}}",
+		"locked": "{{count(state.failures, it == lower(trim(state.email))) >= 5}}",
+		"resetTime": "{{floor(max(0, state.reset.left) / 60) + ':' + pad(max(0, state.reset.left) % 60, 2, '0')}}"
 	},
 	"styles": {
 		"caption": {
@@ -1724,11 +1753,33 @@
 				]
 			},
 			{
-				"if": "{{computed.account.password != '' && computed.account.password != state.password}}",
+				"if": "{{computed.locked}}",
 				"then": [
 					{
 						"set": "state.formError",
-						"to": "wrongPassword"
+						"to": "locked"
+					},
+					{
+						"focus": "#unlock"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{computed.account.password != '' && computed.account.password != state.password}}",
+				"then": [
+					{
+						"note": "Five wrong passwords in a row lock the account until its password is reset"
+					},
+					{
+						"push": "state.failures",
+						"value": "{{lower(trim(state.email))}}"
+					},
+					{
+						"set": "state.formError",
+						"to": "{{computed.locked ? 'locked' : 'wrongPassword'}}"
 					},
 					{
 						"stop": true
@@ -1819,6 +1870,10 @@
 					"email": "{{state.pending.email}}",
 					"submitted": false
 				}
+			},
+			{
+				"set": "state.confirmedLeft",
+				"to": 120
 			},
 			{
 				"navigate": "signedIn"
@@ -2256,6 +2311,14 @@
 		},
 		"endSession": [
 			{
+				"set": "state.confirmedLeft",
+				"to": 0
+			},
+			{
+				"set": "state.reauth.open",
+				"to": false
+			},
+			{
 				"set": "state.step",
 				"to": "email"
 			},
@@ -2293,6 +2356,15 @@
 			}
 		],
 		"tick": [
+			{
+				"if": "{{state.confirmedLeft > 0}}",
+				"then": [
+					{
+						"increment": "state.confirmedLeft",
+						"by": -1
+					}
+				]
+			},
 			{
 				"increment": "state.session.left",
 				"by": -1
@@ -2452,7 +2524,8 @@
 					"password": "",
 					"confirm": "",
 					"submitted": false,
-					"error": ""
+					"error": "",
+					"left": 600
 				}
 			},
 			{
@@ -2501,6 +2574,21 @@
 		],
 		"finishReset": [
 			{
+				"if": "{{state.reset.left <= 0}}",
+				"then": [
+					{
+						"set": "state.reset.error",
+						"to": "expired"
+					},
+					{
+						"focus": "#resendReset"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
 				"if": "{{state.reset.code != state.demoCode}}",
 				"then": [
 					{
@@ -2524,6 +2612,10 @@
 				"to": "{{map(state.accounts, lower(it.email) == lower(state.reset.email) ? merge(it, { password: state.reset.password }) : it)}}"
 			},
 			{
+				"set": "state.failures",
+				"to": "{{filter(state.failures, it != lower(state.reset.email))}}"
+			},
+			{
 				"set": "state.email",
 				"to": "{{state.reset.email}}"
 			},
@@ -2543,7 +2635,8 @@
 					"password": "",
 					"confirm": "",
 					"submitted": false,
-					"error": ""
+					"error": "",
+					"left": 0
 				}
 			},
 			{
@@ -2614,16 +2707,10 @@
 		],
 		"openChange": [
 			{
-				"set": "state.change",
-				"to": {
-					"open": true,
-					"password": "",
-					"confirm": "",
-					"submitted": false
+				"run": "stepUp",
+				"with": {
+					"then": "showChange"
 				}
-			},
-			{
-				"focus": "#newPassword"
 			}
 		],
 		"changePassword": [
@@ -2702,6 +2789,20 @@
 							"code": "",
 							"error": "",
 							"saved": false
+						}
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{!on && state.user.twoStep}}",
+				"then": [
+					{
+						"run": "stepUp",
+						"with": {
+							"then": "twoStepOff"
 						}
 					},
 					{
@@ -3367,6 +3468,167 @@
 					"message": "{{t('deviceRemoved')}}"
 				}
 			}
+		],
+		"resetTick": [
+			{
+				"note": "Each second on the reset screen: the emailed code lasts 10 minutes"
+			},
+			{
+				"if": "{{state.reset.left > 0}}",
+				"then": [
+					{
+						"increment": "state.reset.left",
+						"by": -1
+					},
+					{
+						"if": "{{state.reset.left <= 0}}",
+						"then": [
+							{
+								"set": "state.reset.error",
+								"to": "expired"
+							}
+						]
+					}
+				]
+			}
+		],
+		"resendReset": [
+			{
+				"set": "state.reset.left",
+				"to": 600
+			},
+			{
+				"set": "state.reset.code",
+				"to": ""
+			},
+			{
+				"set": "state.reset.error",
+				"to": ""
+			},
+			{
+				"focus": "#resetCode"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('linkSent', { email: state.reset.email })}}"
+				}
+			}
+		],
+		"showChange": [
+			{
+				"set": "state.change",
+				"to": {
+					"open": true,
+					"password": "",
+					"confirm": "",
+					"submitted": false
+				}
+			},
+			{
+				"focus": "#newPassword"
+			}
+		],
+		"stepUp": [
+			{
+				"note": "with: then (the action to run). Sensitive changes ask for the password again, unless it was given in the last 2 minutes"
+			},
+			{
+				"if": "{{state.confirmedLeft > 0 || state.user.provider}}",
+				"then": [
+					{
+						"run": "{{then}}"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.reauth",
+				"to": {
+					"open": true,
+					"password": "",
+					"error": "",
+					"then": "{{then}}"
+				}
+			},
+			{
+				"focus": "#reauthPassword"
+			}
+		],
+		"confirmReauth": [
+			{
+				"set": "state.reauth.open",
+				"to": true
+			},
+			{
+				"if": "{{state.reauth.password == ''}}",
+				"then": [
+					{
+						"set": "state.reauth.error",
+						"to": "empty"
+					},
+					{
+						"focus": "#reauthPassword"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{find(state.accounts, lower(it.email) == lower(state.user.email)).password != '' && find(state.accounts, lower(it.email) == lower(state.user.email)).password != state.reauth.password}}",
+				"then": [
+					{
+						"set": "state.reauth.error",
+						"to": "wrong"
+					},
+					{
+						"set": "state.reauth.password",
+						"to": ""
+					},
+					{
+						"focus": "#reauthPassword"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.confirmedLeft",
+				"to": 120
+			},
+			{
+				"set": "state.reauth.open",
+				"to": false
+			},
+			{
+				"set": "state.reauth.password",
+				"to": ""
+			},
+			{
+				"run": "{{state.reauth.then}}"
+			}
+		],
+		"closeReauth": [
+			{
+				"set": "state.reauth.open",
+				"to": false
+			},
+			{
+				"set": "state.reauth.password",
+				"to": ""
+			}
+		],
+		"twoStepOff": [
+			{
+				"run": "applyTwoStep",
+				"with": {
+					"on": false
+				}
+			}
 		]
 	},
 	"keys": {
@@ -3468,8 +3730,16 @@
 									"id": "formError",
 									"when": "{{state.formError != ''}}",
 									"style": "alert",
-									"height": 48,
+									"height": "{{state.formError == 'locked' ? 56 : 48}}",
 									"text": "{{t('serverError', { kind: state.formError, message: state.providerMessage, provider: computed.providerTitle })}}"
+								},
+								{
+									"id": "unlock",
+									"when": "{{state.formError == 'locked'}}",
+									"style": "secondary",
+									"icon": "key-round",
+									"text": "{{t('unlock')}}",
+									"onClick": "openForgot"
 								},
 								{
 									"id": "label-email",
@@ -4345,7 +4615,7 @@
 									"cellBorderColor": "{{state.reset.error == '' ? '@color.border' : '@color.error'}}",
 									"onChange": {
 										"set": "state.reset.error",
-										"to": ""
+										"to": "{{state.reset.left <= 0 ? 'expired' : ''}}"
 									},
 									"onSubmit": {
 										"focus": "#textarea-placeholder"
@@ -4356,6 +4626,22 @@
 									"when": "{{state.reset.error != ''}}",
 									"style": "inlineError",
 									"text": "{{t('codeError', { kind: state.reset.error })}}"
+								},
+								{
+									"id": "resendReset",
+									"when": "{{state.reset.left <= 0}}",
+									"style": "smallLink",
+									"icon": "refresh-cw",
+									"text": "{{t('resend')}}",
+									"onClick": "resendReset",
+									"height": 18
+								},
+								{
+									"id": "resetExpiry",
+									"when": "{{state.reset.left > 0}}",
+									"style": "hint",
+									"icon": "timer",
+									"text": "{{t('codeExpires', { time: computed.resetTime })}}"
 								},
 								{
 									"id": "demoCode-reset",
@@ -4438,7 +4724,11 @@
 					],
 					"maxHeight": "{{window.height - 116}}"
 				}
-			]
+			],
+			"every": {
+				"ms": 1000,
+				"do": "resetTick"
+			}
 		},
 		"signedIn": {
 			"id": "panel-signed-in",
@@ -5397,6 +5687,68 @@
 							"left": 22,
 							"right": 20,
 							"top": "{{state.showPassword ? 162 : 208}}"
+						}
+					}
+				]
+			},
+			{
+				"id": "reauthDialog",
+				"dir": "auto",
+				"use": "dialog",
+				"with": {
+					"open": "state.reauth.open",
+					"title": "{{t('reauthTitle')}}",
+					"message": "{{t('reauthMessage', { email: state.user.email })}}",
+					"width": "{{min(420, window.width - 32)}}",
+					"height": "{{state.reauth.error == '' ? 196 : 218}}",
+					"color": "@color.surface",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.accent",
+					"backdrop": "@color.backdrop",
+					"buttons": [
+						{
+							"title": "{{t('confirmIt')}}",
+							"run": "confirmReauth"
+						},
+						{
+							"title": "{{t('cancel')}}",
+							"run": "closeReauth"
+						}
+					]
+				},
+				"children": [
+					{
+						"id": "reauthPassword",
+						"style": "field",
+						"anchors": {
+							"left": 20,
+							"right": 20,
+							"top": 76
+						},
+						"height": 38,
+						"secret": true,
+						"maxLength": 128,
+						"borderColor": "{{state.reauth.error == '' ? '@color.border' : '@color.error'}}",
+						"placeholder": "{{t('passwordPlaceholder')}}",
+						"label": "{{t('password')}}",
+						"description": "{{state.reauth.error == '' ? '' : t('reauthError', { kind: state.reauth.error })}}",
+						"bind": "state.reauth.password",
+						"onChange": {
+							"set": "state.reauth.error",
+							"to": ""
+						},
+						"onSubmit": "confirmReauth"
+					},
+					{
+						"id": "reauthError",
+						"when": "{{state.reauth.error != ''}}",
+						"style": "inlineError",
+						"text": "{{t('reauthError', { kind: state.reauth.error })}}",
+						"anchors": {
+							"left": 22,
+							"right": 20,
+							"top": 120
 						}
 					}
 				]

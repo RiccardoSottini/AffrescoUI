@@ -26,10 +26,10 @@ Legend: **yes** shown and tested by a scenario; **part** shown, with a gap noted
 | 3 | Two-step | SMS fallback | yes |
 | 3 | Two-step | Trusted devices | yes |
 | 4 | Recovery | Forgot password | yes |
-| 4 | Recovery | Reset with token expiry | part |
-| 4 | Recovery | Locked account | no |
+| 4 | Recovery | Reset with token expiry | yes |
+| 4 | Recovery | Locked account | yes |
 | 4 | Recovery | Session expired | yes |
-| 4 | Recovery | Step-up (confirm the password again) | no |
+| 4 | Recovery | Step-up (confirm the password again) | yes |
 | 5 | Account | Profile | yes |
 | 5 | Account | Emails | no |
 | 5 | Account | Password change | yes |
@@ -43,14 +43,14 @@ Legend: **yes** shown and tested by a scenario; **part** shown, with a gap noted
 | 6 | Throughout | Success screens | part |
 | 6 | Throughout | Responsive card | part |
 
-Start: 8 yes, 5 part, 21 no (34 features). Now: 23 yes, 3 part, 8 no.
+Start: 8 yes, 5 part, 21 no (34 features). Now: 26 yes, 2 part, 6 no.
 
 ## Metrics
 
 | | Start | Now |
 |---|---|---|
-| Document tokens (`sign-in.screen.json`, about 4.7 bytes a token) | 17,818 | 30,980 |
+| Document tokens (`sign-in.screen.json`, about 4.7 bytes a token) | 17,818 | 32,749 |
 | C++ lines in the example | 0 | 0 |
 | Host registrations | 0 | 0 |
-| Rendering-check frames | 8 | 17 |
-| App scenarios | 44 | 64 |
+| Rendering-check frames | 8 | 21 |
+| App scenarios | 44 | 68 |

@@ -1702,10 +1702,7 @@
 			"note": "Bug: at the smallest window the create card with its errors ran past the window and over the footer; the card fits its content and is centred, so the email step's card is shorter than the password step's",
 			"steps": [
 				{
-					"resize": [
-						480,
-						640
-					]
+					"resize": [480, 640]
 				},
 				{
 					"wait": 50
@@ -1809,10 +1806,7 @@
 			"note": "Bug: sizes worked out in computed values kept the old window size until the next click, so the first click after a resize hit the wrong field; the card fits its content and is centred, so the email step's card is shorter than the password step's",
 			"steps": [
 				{
-					"resize": [
-						480,
-						640
-					]
+					"resize": [480, 640]
 				},
 				{
 					"expect": {
@@ -1853,10 +1847,7 @@
 					}
 				},
 				{
-					"resize": [
-						960,
-						720
-					]
+					"resize": [960, 720]
 				},
 				{
 					"expect": {
@@ -1878,10 +1869,7 @@
 			"note": "At 1920 by 1080 the card stays 420 wide in the middle, with the logo and the footer",
 			"steps": [
 				{
-					"resize": [
-						1920,
-						1080
-					]
+					"resize": [1920, 1080]
 				},
 				{
 					"expect": {
@@ -5544,6 +5532,660 @@
 					"expect": {
 						"state": "toast.message",
 						"is": "New backup codes are ready. The old ones no longer work"
+					}
+				}
+			]
+		},
+		{
+			"name": "lock-after-five",
+			"note": "Five wrong passwords lock the account; resetting the password unlocks it",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "formError",
+						"is": ""
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "formError",
+						"is": "wrongPassword"
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "formError",
+						"is": "locked"
+					}
+				},
+				{
+					"expect": {
+						"node": "#unlock",
+						"exists": true
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "formError",
+						"is": "locked"
+					}
+				},
+				{
+					"click": "#unlock"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "forgot.open",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "reset-unlocks",
+			"note": "A finished reset clears the failures, so the new password signs in",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "formError",
+						"is": "locked"
+					}
+				},
+				{
+					"click": "#unlock"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-24"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-24"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "failures",
+						"is": []
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "Example-Pass-24"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "user.email",
+						"is": "ada@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "reset-code-expires",
+			"note": "The emailed code lasts 10 minutes; after that it is refused until a new one is sent",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#resetExpiry",
+						"text": "The code expires in 10:00"
+					}
+				},
+				{
+					"wait": 600000
+				},
+				{
+					"expect": {
+						"state": "reset.error",
+						"is": "expired"
+					}
+				},
+				{
+					"expect": {
+						"node": "#resendReset",
+						"exists": true
+					}
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "reset.error",
+						"is": "expired"
+					}
+				},
+				{
+					"click": "#resendReset"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "reset.left",
+						"is": 600
+					}
+				},
+				{
+					"expect": {
+						"state": "reset.error",
+						"is": ""
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "reset.left",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "password",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "step-up",
+			"note": "Two minutes after signing in, changing the password asks for it again first",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"click": "#changePassword"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "change.open",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"wait": 121000
+				},
+				{
+					"click": "#changePassword"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "reauth.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "change.open",
+						"is": false
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "reauth.error",
+						"is": "empty"
+					}
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "reauth.error",
+						"is": "wrong"
+					}
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "reauth.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "change.open",
+						"is": true
 					}
 				}
 			]
