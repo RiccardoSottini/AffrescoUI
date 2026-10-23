@@ -129,7 +129,7 @@
 								"id": "navBoard",
 								"repeat": { "for": "b", "in": "state.boards", "key": "{{b.id}}" },
 								"use": "navItem",
-								"with": { "icon": "layers-2", "text": "{{b.label}}", "active": "{{b.id == state.boardId}}" },
+								"with": { "icon": "layers-2", "text": "{{b.label}}", "active": "{{b.id == state.boardId && state.page == 'issues'}}" },
 								"onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "switchBoard", "with": { "id": "{{b.id}}" } }]
 							}
 						]

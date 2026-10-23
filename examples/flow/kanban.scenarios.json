@@ -6,6 +6,22 @@
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{
+			"name": "issue-page-next-and-previous",
+			"note": "The issue page's arrows step through the shown issues, its counter following; the page stays open",
+			"steps": [
+				{ "click": "#cardTitle", "nth": 0 },
+				{ "key": "mod+enter" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#issuePosition", "text": "1 / 12" } },
+				{ "click": "#issueDown" },
+				{ "expect": { "state": "issueOpen", "is": true } },
+				{ "expect": { "state": "selected.i", "is": 1 } },
+				{ "expect": { "node": "#issuePosition", "text": "2 / 12" } },
+				{ "click": "#issueUp" },
+				{ "expect": { "state": "selected.i", "is": 0 } }
+			]
+		},
+		{
 			"name": "filter-by-status-and-priority",
 			"note": "The Filter menu lists properties, each opening its values; two filters combine, and a chip's × removes one",
 			"steps": [

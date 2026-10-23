@@ -90,8 +90,14 @@
 							"tooltip": "{{t('issue.back')}}", "label": "{{t('issue.back')}}", "onClick": "closeIssue" },
 						{ "id": "issueCrumb", "type": "label", "font": "small", "anchors": { "left": 48, "top": 10 }, "height": 28, "width": 400, "textColor": "@color.muted",
 							"align": { "horizontal": "start", "vertical": "center" }, "runs": ["Flow  ›  ", { "text": "{{computed.card.ref ?? ''}}", "bold": true }] },
-						{ "id": "issueClose", "style": "propValue", "icon": "x", "text": "", "width": 28, "fitText": false, "padding": 0, "align": { "horizontal": "center", "vertical": "center" }, "anchors": { "right": 12, "top": 10 },
-							"tooltip": "{{t('issue.close')}}", "label": "{{t('issue.close')}}", "onClick": "closeIssue" },
+						{ "id": "issueNav", "type": "row", "gap": 2, "alignItems": "center", "justify": "end", "anchors": { "right": 12, "top": 10 }, "width": 140, "height": 28, "children": [
+							{ "id": "issuePosition", "type": "label", "font": "small", "fitText": true, "padding": 8, "textColor": "@color.muted",
+								"text": "{{indexOf(computed.visibleRefs, computed.card.ref) + 1}} / {{length(computed.visibleRefs)}}" },
+							{ "id": "issueUp", "style": "propValue", "icon": "chevron-up", "text": "", "width": 28, "fitText": false, "padding": 0, "align": "center",
+								"tooltip": "{{t('issue.previous')}} (K)", "label": "{{t('issue.previous')}}", "disabled": "{{computed.prev == null}}", "onClick": "selectPrev" },
+							{ "id": "issueDown", "style": "propValue", "icon": "chevron-down", "text": "", "width": 28, "fitText": false, "padding": 0, "align": "center",
+								"tooltip": "{{t('issue.next')}} (J)", "label": "{{t('issue.next')}}", "disabled": "{{computed.next == null}}", "onClick": "selectNext" }
+						] },
 						{ "id": "issueHeaderLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" }
 					] },
 					{
@@ -173,8 +179,8 @@
 							{ "id": "issueSideTitle", "style": "section", "text": "{{t('issue.properties')}}", "anchors": { "left": 16, "right": 16 }, "height": 28 },
 							{ "id": "propStatus", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
 								{ "id": "propStatusName", "style": "propName", "text": "{{t('issue.status')}}" },
-								{ "id": "propStatusValue", "style": "propValue", "icon": "{{state.statusIcons[state.selected.c] ?? 'circle'}}", "isOpen": "{{state.issueStatusOpen}}",
-									"text": "  {{state.columns[state.selected.c].name}}", "onClick": { "toggle": "state.issueStatusOpen" } },
+								{ "id": "propStatusValue", "style": "propValue", "isOpen": "{{state.issueStatusOpen}}", "label": "{{state.columns[state.selected.c].name}}",
+									"runs": [{ "icon": "{{state.statusIcons[state.selected.c] ?? 'circle'}}", "color": "{{state.columns[state.selected.c].color}}" }, "\u00a0\u00a0{{state.columns[state.selected.c].name}}"], "onClick": { "toggle": "state.issueStatusOpen" } },
 								{ "id": "statusPicker", "style": "pickMenu", "overlay": { "placement": "below", "open": "state.issueStatusOpen", "dismiss": "outside", "modal": true },
 									"height": "{{8 + 30 * length(state.columns)}}", "role": "menu", "children": [
 									{ "id": "statusPick", "repeat": { "for": "column", "in": "state.columns", "index": "k" }, "style": "pickRow",
@@ -184,8 +190,8 @@
 							] },
 							{ "id": "propPriority", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
 								{ "id": "propPriorityName", "style": "propName", "text": "{{t('issue.priority')}}" },
-								{ "id": "propPriorityValue", "style": "propValue", "icon": "{{state.priorities[computed.card.priority ?? 0]}}", "isOpen": "{{state.issuePriorityOpen}}",
-									"text": "  {{t('priority.' + (computed.card.priority ?? 0))}}", "onClick": { "toggle": "state.issuePriorityOpen" } },
+								{ "id": "propPriorityValue", "style": "propValue", "isOpen": "{{state.issuePriorityOpen}}", "label": "{{t('priority.' + (computed.card.priority ?? 0))}}",
+									"runs": [{ "icon": "{{state.priorities[computed.card.priority ?? 0]}}", "color": "{{computed.card.priority == 1 ? '@bug' : '@color.muted'}}" }, "\u00a0\u00a0{{t('priority.' + (computed.card.priority ?? 0))}}"], "onClick": { "toggle": "state.issuePriorityOpen" } },
 								{ "id": "priorityPicker", "style": "pickMenu", "overlay": { "placement": "below", "open": "state.issuePriorityOpen", "dismiss": "outside", "modal": true },
 									"height": 158, "role": "menu", "children": [
 									{ "id": "priorityPick", "repeat": { "for": "icon", "in": "state.priorities", "index": "p" }, "style": "pickRow",
@@ -210,6 +216,8 @@
 							{ "id": "propLabels", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": "{{length(computed.card.labels ?? []) > 2 ? 60 : 32}}", "alignItems": "start", "children": [
 								{ "id": "propLabelsName", "style": "propName", "text": "{{t('issue.labels')}}" },
 								{ "id": "propLabelChips", "type": "row", "wrap": true, "gap": 4, "grow": 1, "height": 60, "y": 4, "children": [
+									{ "id": "propTag", "style": "cardChip", "height": 24, "textColor": "@color.text", "tooltip": "{{t('tag.' + computed.card.tag)}}",
+										"runs": [{ "icon": "circle", "color": "@{{computed.card.tag}}" }, " {{t('tag.' + computed.card.tag)}}"] },
 									{ "id": "propLabel", "repeat": { "for": "name", "in": "computed.card.labels ?? []" }, "style": "cardChip", "height": 24,
 										"runs": [{ "icon": "circle", "color": "@color.accent" }, " {{t('label.' + name)}}"], "textColor": "@color.text",
 										"tooltip": "{{t('issue.removeLabel')}}", "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('label.' + name)}}",
@@ -250,6 +258,18 @@
 											"onChange": [{ "run": "setDue", "with": { "date": "{{event.value}}" } }, { "set": "state.issueDueOpen", "to": false }] }
 									]
 								}
+							] },
+							{ "id": "propProject", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
+								{ "id": "propProjectName", "style": "propName", "text": "{{t('issue.project')}}" },
+								{ "id": "propProjectValue", "style": "propValue", "focusable": false, "cursor": "arrow", "hover": { "color": "transparent" },
+									"let": { "project": "{{state.projects[state.projectOf[computed.card.tag] ?? 0]}}" },
+									"runs": [{ "icon": "{{project.icon}}", "color": "{{project.color}}" }, "\u00a0\u00a0{{project.name}}"] }
+							] },
+							{ "id": "propCycle", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
+								{ "id": "propCycleName", "style": "propName", "text": "{{t('issue.cycle')}}" },
+								{ "id": "propCycleValue", "style": "propValue", "focusable": false, "cursor": "arrow", "hover": { "color": "transparent" }, "icon": "refresh-cw",
+									"textColor": "{{state.selected.c == 0 ? '@color.muted' : '@color.text'}}",
+									"text": "\u00a0\u00a0{{state.selected.c == 0 ? t('issue.noCycle') : t('cycle.name', { n: state.cycle.number })}}" }
 							] },
 							{ "id": "propEstimate", "type": "row", "anchors": { "left": 16, "right": 16 }, "height": 32, "alignItems": "center", "children": [
 								{ "id": "propEstimateName", "style": "propName", "text": "{{t('issue.estimate')}}" },
