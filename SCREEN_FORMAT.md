@@ -735,7 +735,8 @@ keep their open state where `open` says (a state path):
   putting one at the end; an item with a `run` is a button.
 - `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with" }`) over a backdrop; the focus is
   trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels. Its
-  `children` go between the message and the buttons.
+  `children` go between the message and the buttons. With `"primaryLast": true` the buttons run from the right, the
+  first one last, as macOS places them.
 - `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`; its × is a
   button named `closeLabel`.
 - `toasts`: a stack of notifications in the bottom corner from the list at `state[name]` (`name` is `toasts`), each
@@ -754,7 +755,8 @@ keep their open state where `open` says (a state path):
   first). Only the visible `rows` are built; the arrows move, Enter or a click runs the item's `run` (with its
   `with`), or else the provider's `run` with the item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
   With `"stacked": true`, each row's `detail` goes on a second line under its title (in `detailFont`, if given):
-  give it a `rowHeight` of about 44.
+  give it a `rowHeight` of about 44. An item's `badge` (a letter or two, e.g. the kind of a symbol) shows in a small box
+  before its title, coloured `badgeColor`.
 
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",

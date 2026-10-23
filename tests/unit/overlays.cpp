@@ -376,6 +376,33 @@ TEST_CASE("format: the built-in dialog and toast run their buttons and actions, 
 	CHECK(state(screen)["toast"] == false);
 }
 
+TEST_CASE("format: a dialog with primaryLast puts its first button on the right, still focused first") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "dialog": true, "answer": null },
+		"actions": { "answer": [{ "set": "state.answer", "to": "{{choice}}" }] },
+		"root": { "id": "root", "children": [
+			{ "id": "ask", "use": "dialog", "with": { "open": "state.dialog", "title": "Save changes?", "primaryLast": true,
+			  "buttons": [{ "title": "Save", "run": "answer", "with": { "choice": "save" } }, { "title": "Cancel" }] } }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	const affresco::Panel* focused = window->focusedPanel();
+	REQUIRE(focused);
+	REQUIRE(focused->parent());
+	const auto& buttons = focused->parent()->children();
+	REQUIRE(buttons.size() == 2);
+	CHECK(focused == buttons[0].get());                              // Save, the first
+	CHECK(buttons[0]->bounds().left > buttons[1]->bounds().left); // on the right of Cancel
+	press(*window, affresco::Key::Enter);
+	settle(*window, clock, screen);
+	CHECK(state(screen)["answer"] == "save");
+}
+
 TEST_CASE("format: the checker knows the built-in components, and a document's own component wins") {
 	const json document = json::parse(menuScreen);
 	const auto found = affresco::format::check(document, document["state"], {});

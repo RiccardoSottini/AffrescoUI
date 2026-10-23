@@ -130,18 +130,23 @@ constexpr std::string_view quickPickNode = R"({
 			"children": [
 				{ "type": "row", "anchors": { "left": 14, "right": "{{stacked ? 14 : 140}}",
 				  "top": "{{stacked ? rowHeight / 2 - 17 : (rowHeight - 18) / 2}}" }, "height": 18,
-				  "children": [{ "repeat": { "for": "p", "in": "{{r.parts}}" }, "type": "label", "text": "{{p.text}}",
-				                 "textColor": "{{p.match ? accent : textColor}}", "fitText": true }] },
+				  "children": [
+					{ "when": "{{r.item.badge != null}}", "type": "label", "text": "{{r.item.badge}}", "width": 18,
+					  "height": 18, "radius": 3, "align": "center", "color": "{{r.item.badgeColor ?? highlight}}",
+					  "textColor": "{{textColor}}" },
+					{ "when": "{{r.item.badge != null}}", "width": 8, "height": 18, "color": "transparent" },
+					{ "repeat": { "for": "p", "in": "{{r.parts}}" }, "type": "label", "text": "{{p.text}}",
+					  "textColor": "{{p.match ? accent : textColor}}", "fitText": true }] },
 				{ "when": "{{!stacked}}", "type": "label",
 				  "text": "{{top + i < length(recentHits) ? 'recently used' : r.item.detail ?? ''}}",
 				  "textColor": "{{dimColor}}", "anchors": { "right": 14, "top": "{{(rowHeight - 18) / 2}}" },
 				  "fitText": true },
 				{ "when": "{{stacked && detailFont == null}}", "type": "label", "text": "{{r.item.detail ?? ''}}",
-				  "textColor": "{{dimColor}}", "anchors": { "left": 14, "right": 14, "top": "{{rowHeight / 2 + 1}}" },
+				  "textColor": "{{dimColor}}", "anchors": { "left": "{{r.item.badge != null ? 40 : 14}}", "right": 14, "top": "{{rowHeight / 2 + 1}}" },
 				  "height": 16, "align": { "horizontal": "start", "vertical": "center" } },
 				{ "when": "{{stacked && detailFont != null}}", "type": "label", "text": "{{r.item.detail ?? ''}}",
 				  "font": "{{detailFont}}", "textColor": "{{dimColor}}",
-				  "anchors": { "left": 14, "right": 14, "top": "{{rowHeight / 2 + 1}}" }, "height": 16,
+				  "anchors": { "left": "{{r.item.badge != null ? 40 : 14}}", "right": 14, "top": "{{rowHeight / 2 + 1}}" }, "height": 16,
 				  "align": { "horizontal": "start", "vertical": "center" } }
 			]
 		  }]
@@ -204,7 +209,7 @@ constexpr std::string_view others = R"({
 },
 "dialog": {
 	"params": { "open": "state.dialogOpen", "title": "", "message": "", "buttons": [{ "title": "OK" }],
-	            "width": 420, "height": 160, "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.body",
+	            "primaryLast": false, "width": 420, "height": 160, "color": "@kit.surface", "textColor": "@kit.text", "dimColor": "@kit.body",
 	            "highlight": "@kit.primary", "backdrop": "@kit.backdrop" },
 	"node": {
 		"overlay": { "placement": "window", "open": "{{open}}", "dismiss": "outside", "modal": true },
@@ -221,9 +226,11 @@ constexpr std::string_view others = R"({
 				{ "slot": true },
 				{ "type": "row", "anchors": { "right": 16, "bottom": 14 }, "height": 28,
 				  "width": "{{length(buttons) * 96}}", "gap": 8, "arrows": "horizontal",
+				  "dir": "{{primaryLast ? 'rtl' : 'inherit'}}",
 				  "children": [{
 					"repeat": { "for": "b", "in": "{{buttons}}", "index": "i" },
 					"width": 88, "anchors": { "top": 0, "bottom": 0 }, "radius": "@kit.radius", "focusable": true,
+					"dir": "{{primaryLast ? 'ltr' : 'inherit'}}",
 					"role": "button", "label": "{{b.title ?? ''}}", "color": "{{i == 0 ? highlight : '@kit.secondary'}}",
 					"hover": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border" },
 					"focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },

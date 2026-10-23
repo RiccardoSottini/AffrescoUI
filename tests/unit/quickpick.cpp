@@ -177,3 +177,23 @@ TEST_CASE("format: a stacked quick pick shows each row's detail under its title"
 	CHECK(detail->bounds().top >= title->bounds().bottom); // below, not beside
 	CHECK(detail->bounds().left == doctest::Approx(title->bounds().left));
 }
+
+TEST_CASE("format: a quick pick item's badge shows before its title") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	std::string text = pickScreen;
+	text.replace(text.find(R"({ "title": "main.cpp", "detail": "src" })"), 40,
+	             R"({ "title": "main.cpp", "detail": "src", "badge": "f", "badgeColor": "#336699" })");
+	affresco::Screen screen = affresco::Screen::fromString(text);
+	screen.build(*window);
+	window->render();
+	const affresco::Panel* root = screen.find("root");
+	REQUIRE(root);
+	const affresco::Label* badge = labelWith(*root, "f");
+	const affresco::Label* title = labelWith(*root, "main.cpp");
+	REQUIRE(badge);
+	REQUIRE(title);
+	CHECK(badge->bounds().right <= title->bounds().left); // before it, on its line
+	CHECK(badge->bounds().top == doctest::Approx(title->bounds().top));
+	CHECK(badge->color() == affresco::Color::hex(0x336699));
+}

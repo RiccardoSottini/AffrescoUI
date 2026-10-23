@@ -19,7 +19,7 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Navigation | Goto Anything (Cmd+P) by file name | done | two-line rows: name, then its path |
 | Navigation | Goto Anything with `@` symbol, `:` line, `#` search | done | also after a file name: `file@symbol`, `file:line` |
 | Navigation | Command Palette (Cmd+Shift+P) | done | "Category: Title" rows in Title Case, no placeholder |
-| Navigation | Goto Symbol in Project | done | symbols from a heuristic: classes, functions, Markdown headings |
+| Navigation | Goto Symbol in Project | done | symbols by name with a kind badge, from a heuristic: classes, functions, Markdown headings |
 | Navigation | Next and previous tab | done | |
 | Editing | Multiple selections | done | |
 | Editing | Find panel (Cmd+F), replace | done | regex, case, whole word and in-selection toggles |
@@ -29,7 +29,7 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Editing | Projects (folder tree, open files) | done | one sample project |
 | Editing | Build (Cmd+B) with an output panel | done | a panel without tabs (Escape hides it), ending with the time taken |
 | Editing | Console | done | a command line with build, run, help, clear |
-| Editing | Save, save all, close with unsaved changes | done | |
+| Editing | Save, save all, close with unsaved changes | done | the prompt places Don't Save, Cancel and Save as macOS does |
 | Text | Snippets | missing | |
 | Text | Toggle comment | done | line comments only |
 | Text | Line operations (duplicate, move, delete) | done | also join, sort, reverse, unique, transpose |

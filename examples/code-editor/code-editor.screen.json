@@ -382,7 +382,7 @@
 		"indexFile": [
 			{ "note": "with: file; its symbols for Goto Symbol (@) and Goto Symbol in Project: Markdown headings, C++ classes, structs and function definitions" },
 			{ "if": "{{state.files[file].scratch}}", "then": [{ "stop": true }] },
-			{ "set": "state.symbolIndex[file]", "to": "{{map(filter(map(split(state.files[file].text, '\\n'), { t: it, line: index + 1 }), state.files[file].language == 'Markdown' ? slice(it.t, 0, 1) == '#' : (state.files[file].language == 'C++' && indexOf(' \\t#/}', slice(it.t, 0, 1)) < 0 && (slice(it.t, 0, 6) == 'class ' || slice(it.t, 0, 7) == 'struct ' || (contains(it.t, '(') && !contains(it.t, ';'))))), { title: trim(split(it.t, '{')[0]), detail: (state.files[file].folder ? state.files[file].folder + '/' : '') + state.files[file].name + ':' + it.line, file: file, line: it.line })}}" }
+			{ "set": "state.symbolIndex[file]", "to": "{{map(filter(map(split(state.files[file].text, '\\n'), { t: it, line: index + 1 }), state.files[file].language == 'Markdown' ? slice(it.t, 0, 1) == '#' : (state.files[file].language == 'C++' && indexOf(' \\t#/}', slice(it.t, 0, 1)) < 0 && (slice(it.t, 0, 6) == 'class ' || slice(it.t, 0, 7) == 'struct ' || (contains(it.t, '(') && !contains(it.t, ';'))))), { title: slice(it.t, 0, 1) == '#' ? trim(join(split(it.t, '#'), '')) : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? split(trim(split(it.t, '{')[0]), ' ')[1] : reverse(split(trim(split(it.t, '(')[0]), ' '))[0], badge: slice(it.t, 0, 1) == '#' ? '#' : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? 'c' : 'f', badgeColor: slice(it.t, 0, 1) == '#' ? '#4a3f5e' : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? '#5a4a2c' : '#3a4b66', detail: (state.files[file].folder ? state.files[file].folder + '/' : '') + state.files[file].name + ':' + it.line, file: file, line: it.line })}}" }
 		],
 		"runCommand": [
 			{ "if": "{{length(trim(state.command)) == 0}}", "then": [{ "stop": true }] },
@@ -672,7 +672,7 @@
 						"id": "windowTitle",
 						"type": "label",
 						"font": "small",
-						"text": "{{computed.file ? computed.file.name + (computed.file.dirty ? ' •' : '') + '  —  ' : ''}}{{state.project}}  —  Quaderno",
+						"text": "{{computed.file ? computed.file.name + '  —  ' : ''}}{{state.project}}  —  Quaderno",
 						"textColor": "@muted",
 						"anchors": { "left": 470, "right": 470, "top": 0, "bottom": 0 },
 						"align": "center"
@@ -1027,19 +1027,20 @@
 				"use": "dialog",
 				"with": {
 					"open": "state.closing.open",
-					"title": "Save the changes to {{state.closing.file >= 0 ? state.files[state.closing.file].name : ''}}?",
-					"message": "Your changes are lost if you don't save them.",
-					"width": 440,
-					"height": 150,
+					"title": "Do you want to save the changes you made to {{state.closing.file >= 0 ? state.files[state.closing.file].name : ''}}?",
+					"message": "Your changes will be lost if you don't save them.",
+					"primaryLast": true,
+					"width": 470,
+					"height": 124,
 					"color": "@menu",
 					"textColor": "@text",
 					"dimColor": "@muted",
-					"highlight": "@selection",
+					"highlight": "@accent",
 					"backdrop": "@backdrop",
 					"buttons": [
 						{ "title": "Save", "run": "saveAndClose" },
-						{ "title": "Don't Save", "run": "discardAndClose" },
-						{ "title": "Cancel" }
+						{ "title": "Cancel" },
+						{ "title": "Don't Save", "run": "discardAndClose" }
 					]
 				}
 			},
