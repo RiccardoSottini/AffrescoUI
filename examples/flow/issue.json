@@ -72,8 +72,8 @@
 			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
 			{ "run": "moveCard", "with": { "from": "{{state.selected.c}}", "at": "{{state.selected.i}}", "to": "{{to}}" } }
 		],
-		"openIssue": { "title": "Open issue", "category": "Card", "icon": "maximize-2", "enablement": "{{computed.card != null}}", "do": [{ "set": "state.issueOpen", "to": true }] },
-		"closeIssue": { "title": "Close issue", "category": "Card", "icon": "arrow-left", "enablement": "{{state.issueOpen}}", "do": [{ "set": "state.issueOpen", "to": false }, { "set": "state.issueDueOpen", "to": false }] }
+		"openIssue": { "title": "Open issue", "category": "Issue", "icon": "maximize-2", "enablement": "{{computed.card != null}}", "do": [{ "set": "state.issueOpen", "to": true }] },
+		"closeIssue": { "title": "Close issue", "category": "Issue", "icon": "arrow-left", "enablement": "{{state.issueOpen}}", "do": [{ "set": "state.issueOpen", "to": false }, { "set": "state.issueDueOpen", "to": false }] }
 	},
 
 	"components": {

@@ -109,8 +109,9 @@
 					{ "id": "labels", "type": "row", "gap": 6, "anchors": { "left": 12, "right": 12 }, "height": 26, "arrows": "horizontal", "children": [
 						{ "id": "labelChip", "repeat": { "for": "name", "in": "state.labels" }, "style": "pill",
 							"let": { "on": "{{contains(computed.card.labels ?? [], name)}}" },
-							"text": "{{t('label.' + name)}}", "selected": "{{on}}",
-							"color": "{{on ? '@color.accent' : '@color.field'}}", "textColor": "{{on ? '@color.chipOnText' : '@color.text'}}",
+							"text": "\u00a0{{t('label.' + name)}}", "selected": "{{on}}",
+							"icon": "{{on ? 'check' : 'plus'}}", "color": "transparent", "borderWidth": 1, "borderColor": "{{on ? '@color.accent' : '@color.border'}}",
+							"textColor": "{{on ? '@color.text' : '@color.muted'}}",
 							"onClick": { "run": "toggleListItem", "with": { "field": "labels", "value": "{{name}}" } } }
 					] },
 					{ "id": "assigneesTitle", "style": "section", "text": "{{t('drawer.assignees')}}", "anchors": { "left": 12, "right": 12 } },

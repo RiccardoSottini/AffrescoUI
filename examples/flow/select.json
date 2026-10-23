@@ -6,19 +6,19 @@
 	},
 
 	"actions": {
-		"toggleMark": { "title": "Select or deselect the card", "category": "Card", "icon": "square-check", "enablement": "{{computed.card != null}}",
+		"toggleMark": { "title": "Select or deselect the issue", "category": "Issue", "icon": "square-check", "enablement": "{{computed.card != null}}",
 			"do": [{ "set": "state.marked", "to": "{{contains(state.marked, computed.card.ref) ? filter(state.marked, it != computed.card.ref) : concat(state.marked, [computed.card.ref])}}" }] },
-		"markNext": { "title": "Extend the selection down", "category": "Card", "icon": "chevrons-down", "enablement": "{{computed.card != null && computed.next != null}}",
+		"markNext": { "title": "Extend the selection down", "category": "Issue", "icon": "chevrons-down", "enablement": "{{computed.card != null && computed.next != null}}",
 			"do": [{ "run": "markSelected" }, { "run": "selectNext" }, { "run": "markSelected" }] },
-		"markPrevious": { "title": "Extend the selection up", "category": "Card", "icon": "chevrons-up", "enablement": "{{computed.card != null && computed.prev != null}}",
+		"markPrevious": { "title": "Extend the selection up", "category": "Issue", "icon": "chevrons-up", "enablement": "{{computed.card != null && computed.prev != null}}",
 			"do": [{ "run": "markSelected" }, { "run": "selectPrev" }, { "run": "markSelected" }] },
 		"markSelected": [
 			{ "note": "Marks the selected card if it isn't marked yet" },
 			{ "if": "{{computed.card != null && !contains(state.marked, computed.card.ref)}}", "then": [{ "push": "state.marked", "value": "{{computed.card.ref}}" }] }
 		],
-		"clearMarks": { "title": "Clear the selection", "category": "Card", "icon": "x", "enablement": "{{length(state.marked) > 0}}",
+		"clearMarks": { "title": "Clear the selection", "category": "Issue", "icon": "x", "enablement": "{{length(state.marked) > 0}}",
 			"do": [{ "set": "state.marked", "to": [] }] },
-		"markAll": { "title": "Select all cards", "category": "Card", "icon": "list-checks",
+		"markAll": { "title": "Select all issues", "category": "Issue", "icon": "list-checks",
 			"do": [{ "set": "state.marked", "to": "{{map(computed.visible, it.ref)}}" }] },
 
 		"bulkPriority": [
@@ -48,7 +48,7 @@
 			{ "push": "state.columns[to].cards", "value": "{{find(state.columns[from].cards, it.ref == ref)}}" },
 			{ "remove": "state.columns[from].cards", "at": "{{indexOf(map(state.columns[from].cards, it.ref), ref)}}" }
 		],
-		"bulkDelete": { "title": "Delete the selected cards", "category": "Card", "icon": "trash-2", "enablement": "{{length(state.marked) > 0}}",
+		"bulkDelete": { "title": "Delete the selected issues", "category": "Issue", "icon": "trash-2", "enablement": "{{length(state.marked) > 0}}",
 			"do": [
 				{ "run": "remember" },
 				{ "run": "notify", "with": { "message": "{{t('bulk.deleted', { n: length(state.marked) })}}" } },
