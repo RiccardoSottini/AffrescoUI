@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, slides and vector documents: a deck (a .sinopia.json file in decks/) loaded into state.deck, drawn from what sinopia.render makes of it, and changed only through sinopia.edit. The hidden stage holds one panel per slide, which thumbnails, PNG and PDF exports and the presented frames are rendered from. Keynote's keys: mod+alt+P presents, the arrows and Space step, B blacks the screen, Escape ends.",
 
-	"include": ["parts/objects.json", "parts/sorter.json", "parts/inspector.json", "parts/presenter.json"],
+	"include": ["parts/geometry.json", "parts/objects.json", "parts/sorter.json", "parts/inspector.json", "parts/presenter.json"],
 
 	"window": { "title": "Sinopia", "width": 1280, "height": 800, "minWidth": 1000, "minHeight": 700 },
 

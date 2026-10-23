@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Sinopia's slide objects, drawn from the deck as sinopia.render gives it: a shape (sinopiaShape), its text and its image, and a group's children inside it. The same component draws the canvas, the stage the thumbnails and exports are rendered from, and the presented slides. A hidden build is invisible until its step; a fly-in build comes up from below while state.show.t runs.",
+	"note": "Sinopia's slide objects, drawn from the deck as sinopia.render gives it: a shape (shapePath, in geometry.json), its text and its image, and a group's children inside it. The same component draws the canvas, the stage the thumbnails and exports are rendered from, and the presented slides. A hidden build is invisible until its step; a fly-in build comes up from below while state.show.t runs.",
 
 	"components": {
 		"objectBody": {
@@ -10,14 +10,7 @@
 			"node": {
 				"id": "{{name + '-body'}}", "color": "transparent", "fill": 0,
 				"children": [
-					{
-						"type": "sinopiaShape", "id": "{{name + '-shape'}}", "fill": 0,
-						"when": "{{!contains(['text', 'image', 'group'], o.kind)}}",
-						"shape": "{{o.kind}}", "sides": "{{o.sides}}", "inner": "{{o.inner}}", "cornerRadius": "{{o.radius}}",
-						"gradient": "{{o.gradient}}", "outlineShadow": "{{o.shadow}}", "fillColor": "{{o.fill}}",
-						"stroke": "{{o.stroke}}", "strokeWidth": "{{o.strokeWidth}}", "viewBox": "{{o.viewBox}}",
-						"d": "{{o.kind == 'path' ? o.d : ''}}"
-					},
+					{ "use": "shapePath", "when": "{{!contains(['text', 'image', 'group'], o.kind)}}", "with": { "o": "{{o}}", "name": "{{name}}" } },
 					{
 						"type": "image", "id": "{{name + '-image'}}", "fill": 0, "when": "{{o.kind == 'image' && o.image != ''}}",
 						"file": "{{'decks/' + o.image}}", "fit": "{{o.fit == 'fill' ? 'fill' : o.fit == 'cover' ? 'cover' : 'contain'}}"

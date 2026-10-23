@@ -17,8 +17,8 @@ std::span<const Function> functions() {
 	static const std::vector<Function> all = [] {
 		std::vector<Function> rows;
 		for(const std::span<const Function> group :
-		    {logicFunctions(), numberFunctions(), textFunctions(), listFunctions(), itemFunctions(), timeFunctions(),
-		     fuzzyFunctions(), colorFunctions(), keyframeFunctions(), localeFunctions(), dateFunctions(),
+		    {logicFunctions(), numberFunctions(), geometryFunctions(), textFunctions(), listFunctions(), itemFunctions(),
+		     timeFunctions(), fuzzyFunctions(), colorFunctions(), keyframeFunctions(), localeFunctions(), dateFunctions(),
 		     formFunctions()})
 			rows.insert(rows.end(), group.begin(), group.end());
 		return rows;

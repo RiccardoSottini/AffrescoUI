@@ -208,9 +208,8 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		# deck/: the deck model, read, checked, edited and arranged without a window
 		examples/sinopia/deck/Deck.cpp examples/sinopia/deck/Write.cpp examples/sinopia/deck/Edit.cpp
 		examples/sinopia/deck/Arrange.cpp
-		# drawing/: slides, shapes and transitions turned into pixels and paths, and the shape panel
-		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/ShapeGeometry.cpp
-		examples/sinopia/drawing/ShapePanel.cpp examples/sinopia/drawing/Transition.cpp)
+		# drawing/: slides and transitions turned into pixels
+		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/Transition.cpp)
 	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared modules/screen/src)
 	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export)
 	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})

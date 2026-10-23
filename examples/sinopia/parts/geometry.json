@@ -1,0 +1,42 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "A slide object's shape as a path node, its data computed at the object's size (each side at least 1): a rect with rounded corners, an ellipse, a polygon or a star of 3 to 64 sides, a line, an arrow, or the object's own path data stretched from its view box. A drawn shape's view box grows by half the stroke on each side, so its outline isn't cut by the frame. The curves are cubic Béziers of 0.5522848 per radius. A gradient fill is linear, its angle the deck's plus 90 (the deck's 0 points right, a path's up); the shadow falls on the frame, rounded like the shape.",
+
+	"components": {
+		"shapePath": {
+			"params": { "o": null, "name": "" },
+			"node": {
+				"id": "{{name + '-shape'}}", "color": "transparent", "fill": 0,
+				"let": {
+					"w": "{{max(o.w ?? 100, 1)}}",
+					"h": "{{max(o.h ?? 100, 1)}}",
+					"r": "{{o.kind == 'rect' ? clamp(o.radius ?? 0, 0, min(w, h) / 2) : 0}}",
+					"c": "{{r * (1 - 0.5522848)}}",
+					"rx": "{{w / 2}}",
+					"ry": "{{h / 2}}",
+					"cx": "{{rx * 0.5522848}}",
+					"cy": "{{ry * 0.5522848}}",
+					"head": "{{min(w / 2, h)}}",
+					"star": "{{o.kind == 'star'}}",
+					"corners": "{{clamp(round(o.sides ?? 5), 3, 64) * (star ? 2 : 1)}}",
+					"inner": "{{clamp(o.inner ?? 0.5, 0.05, 0.95)}}",
+					"edge": "{{o.stroke ? (o.strokeWidth ?? 0) / 2 : 0}}"
+				},
+				"radius": "{{o.kind == 'ellipse' ? min(w, h) / 2 : r}}",
+				"shadow": "{{o.shadow ?? { color: 'transparent' }}}",
+				"children": [
+					{
+						"type": "path", "id": "{{name + '-path'}}", "fill": 0, "fit": "fill",
+						"viewBox": "{{o.kind == 'path' ? o.viewBox ?? '0 0 100 100' : -edge + ' ' + -edge + ' ' + (w + 2 * edge) + ' ' + (h + 2 * edge)}}",
+						"d": "{{o.kind == 'path' ? o.d ?? '' : o.kind == 'ellipse' ? 'M0 ' + ry + 'C0 ' + (ry - cy) + ' ' + (rx - cx) + ' 0 ' + rx + ' 0C' + (rx + cx) + ' 0 ' + w + ' ' + (ry - cy) + ' ' + w + ' ' + ry + 'C' + w + ' ' + (ry + cy) + ' ' + (rx + cx) + ' ' + h + ' ' + rx + ' ' + h + 'C' + (rx - cx) + ' ' + h + ' 0 ' + (ry + cy) + ' 0 ' + ry + 'Z' : o.kind == 'polygon' || star ? 'M' + join(map(range(corners), fixed(rx * (1 + (star && it % 2 == 1 ? inner : 1) * cos(360 * it / corners - 90)), 2) + ' ' + fixed(ry * (1 + (star && it % 2 == 1 ? inner : 1) * sin(360 * it / corners - 90)), 2)), 'L') + 'Z' : o.kind == 'line' ? 'M0 0L' + w + ' ' + h : o.kind == 'arrow' ? 'M0 ' + 0.3 * h + 'H' + (w - head) + 'V0L' + w + ' ' + h / 2 + 'L' + (w - head) + ' ' + h + 'V' + 0.7 * h + 'H0Z' : r == 0 ? 'M0 0H' + w + 'V' + h + 'H0Z' : 'M' + r + ' 0H' + (w - r) + 'C' + (w - c) + ' 0 ' + w + ' ' + c + ' ' + w + ' ' + r + 'V' + (h - r) + 'C' + w + ' ' + (h - c) + ' ' + (w - c) + ' ' + h + ' ' + (w - r) + ' ' + h + 'H' + r + 'C' + c + ' ' + h + ' 0 ' + (h - c) + ' 0 ' + (h - r) + 'V' + r + 'C0 ' + c + ' ' + c + ' 0 ' + r + ' 0Z'}}",
+						"fillColor": "{{o.kind == 'line' || o.gradient ? 'transparent' : o.fill ?? 'transparent'}}",
+						"fillGradient": "{{o.kind != 'line' && o.gradient ? { kind: 'linear', angle: (o.gradient.angle ?? 90) + 90, stops: [{ at: 0, color: o.gradient.from }, { at: 1, color: o.gradient.to }] } : null}}",
+						"stroke": "{{o.stroke ?? 'transparent'}}", "strokeWidth": "{{o.strokeWidth ?? 0}}", "strokeJoin": "round"
+					}
+				]
+			}
+		}
+	}
+}

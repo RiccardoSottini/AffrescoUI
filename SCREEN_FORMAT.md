@@ -711,19 +711,20 @@ Wherever a value is expected it can be computed:
   `a ?? b` (b when a is null), `c ? a : b`; `&&` and `||` give an operand, as in JavaScript: `user && user.name` is the
   name (or `user` when it is false or null), `title || 'Untitled'` is the title unless it is empty;
 - functions: `empty(value)`, `type(value)`, `round(number)`, `floor(number)`, `ceil(number)`, `abs(number)`,
-  `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `upper(text)`,
-  `lower(text)`, `trim(text)`, `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
-  `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
-  `length(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
-  `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
-  `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
-  `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
-  `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`, `keyframeValue(track, time)`, `t('key', {params})`,
-  `formatNumber(n, fewest?, most?)`, `formatPercent(ratio, decimals?)`, `formatCurrency(amount, 'EUR')`,
-  `formatDate(milliseconds, style?, zone?)`, `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`,
-  `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`,
-  `addMonths(date, months)`, `daysBetween(from, to)`, `weekday(date)`, `daysInMonth(date)`, `dateOf(milliseconds)`,
-  `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`;
+  `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `sin(degrees)`,
+  `cos(degrees)`, `atan2(y, x)`, `sqrt(number)`, `upper(text)`, `lower(text)`, `trim(text)`, `split(text, separator)`,
+  `number(value)`, `text(value)`, `fixed(number, digits)`, `pad(value, width, fill?)` (width up to 10000),
+  `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`, `length(value)`, `concat(a, b, ...)`,
+  `join(list, separator)`, `slice(list or text, from, to?)`, `contains(list or text or object, value)`,
+  `indexOf(list or text, value)`, `keys(object)`, `values(object)`, `entries(object)`, `merge(a, b, ...)`,
+  `reverse(list or text)`, `range(count)` (count up to 10000), `now()`, `time(milliseconds, 'ddd D MMM HH:mm')`,
+  `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`, `curve(points, x, interpolation?)`,
+  `gradientColor(gradient, at)`, `keyframeValue(track, time)`, `t('key', {params})`, `formatNumber(n, fewest?, most?)`,
+  `formatPercent(ratio, decimals?)`, `formatCurrency(amount, 'EUR')`, `formatDate(milliseconds, style?, zone?)`,
+  `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`, `formatList(list, 'and' | 'or')`,
+  `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`, `addMonths(date, months)`,
+  `daysBetween(from, to)`, `weekday(date)`, `daysInMonth(date)`, `dateOf(milliseconds)`, `dateMs(date)`, `isDate(text)`,
+  `passwordStrength(text)`, `isEmail(text)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
