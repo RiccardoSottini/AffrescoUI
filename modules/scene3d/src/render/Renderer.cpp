@@ -112,7 +112,8 @@ void readScene(FrameView& view, const json& params, const json& scene) {
 /// @brief Makes a draw item of every visible mesh node with a mesh in the store, in scene order, and their bounds.
 /// @param view The frame, with its scene, worlds and eye. @param assets The store.
 void collectItems(FrameView& view, const Assets& assets) {
-	const std::set<std::string, std::less<>> selected(view.settings.selection.begin(), view.settings.selection.end());
+	std::set<std::string, std::less<>> selected(view.settings.selection.begin(), view.settings.selection.end());
+	selected.insert(view.settings.outlined.begin(), view.settings.outlined.end());
 	const std::string active = view.settings.selection.empty() ? std::string() : view.settings.selection.back();
 	for(const Node& node : view.scene.nodes) {
 		const auto world = view.worlds.find(node.id);

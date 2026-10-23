@@ -39,6 +39,7 @@ struct GizmoSettings {
 struct ViewportSettings {
 	OrbitCamera camera;                      ///< The view.
 	std::vector<std::string> selection;      ///< Selected node ids; the last is the active one.
+	std::vector<std::string> outlined;       ///< More nodes outlined as selected: the parts of a selected model.
 	Shading shading = Shading::Material;     ///< How surfaces are shaded.
 	bool grid = true;                        ///< The floor grid.
 	bool axes = true;                        ///< The x and z axes on the floor.
@@ -53,8 +54,8 @@ struct ViewportSettings {
 
 /// @brief Reads a viewport's parameters, keeping the default for anything missing or malformed (never throws).
 ///
-/// The keys are `camera` (see cameraFromJson()), `selection` (ids), `shading`, `grid`, `axes`, `background`,
-/// `gridColor` and `outline` (`"#rrggbb"` or three numbers 0..1), `exposure`, `time`, `gizmo`
+/// The keys are `camera` (see cameraFromJson()), `selection` and `outlined` (ids), `shading`, `grid`, `axes`,
+/// `background`, `gridColor` and `outline` (`"#rrggbb"` or three numbers 0..1), `exposure`, `time`, `gizmo`
 /// (`{ "visible", "mode", "space": "world" | "local", "axis" }`) and `box` (four numbers).
 /// @param params The parameters.
 /// @return The settings.
