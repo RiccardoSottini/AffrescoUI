@@ -4,6 +4,8 @@
 /// subclass has these properties too. Its "caret" is the runtime's (Events.cpp), as it writes the state.
 
 #include "ExpressionFunctions.hpp"
+#include "LanguageHighlighter.hpp"
+#include "LanguageKeys.hpp"
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"
 
@@ -194,6 +196,40 @@ void applyGrammar(TextEditor& editor, const json& values, const PropertyReader& 
 	});
 }
 
+/// @brief Sets an editor's language: the editing rules of the language "language" names (by name, alias or file
+/// name, in the document's "languages"), and its colours unless "grammar" is given: each scope in "@syntax.<scope>" or
+/// its parent scope's. Only a highlighter this key installed is replaced or removed.
+/// @param editor The editor.
+/// @param values The node's values.
+/// @param reader Reads colours and the languages.
+/// @param path The node's place, for errors.
+void applyLanguage(TextEditor& editor, const json& values, const PropertyReader& reader, const std::string& path) {
+	static const char tag = 0; // what marks the highlighters this key installs
+	auto* current = dynamic_cast<LanguageHighlighter*>(editor.highlighter());
+	const bool ours = current && current->owner() == &tag;
+	std::shared_ptr<const Language> language;
+	if(values.contains("language") && reader.languages())
+		language = reader.languages()->find(string(values["language"], path + ".language"));
+	if(auto* code = dynamic_cast<LanguageEditor*>(&editor)) code->setLanguage(language);
+	if(!language || values.contains("grammar")) {
+		if(ours) editor.setHighlighter(nullptr);
+		return;
+	}
+	if(editor.highlighter() && !ours) return;
+	if(!ours || current->language() != language) {
+		auto made = std::make_unique<LanguageHighlighter>(language);
+		made->setOwner(&tag);
+		current = made.get();
+		editor.setHighlighter(std::move(made));
+	}
+	// Resolved now, in the current theme: the reader lives only through this update
+	auto palette = paletteOf(language->scopes, reader, path + ".language");
+	current->setPalette([palette = std::move(palette)](std::string_view style) -> std::optional<Color> {
+		const auto found = palette.find(style);
+		return found == palette.end() ? std::nullopt : std::optional(found->second);
+	});
+}
+
 /// @brief Sets an editor's view: wrap, folds, decorations, find, brackets, indentGuides, minimap, composition and
 /// readOnly.
 /// @param editor The editor.
@@ -253,7 +289,9 @@ void applyEditor(Panel& panel, const json& values, const PropertyReader& reader,
 			if(key == name) (editor->*setter)(reader.color(value, at));
 	}
 	applyView(*editor, values, reader, path);
+	applyLanguage(*editor, values, reader, path);
 	applyGrammar(*editor, values, reader, path);
+	applyCodeKeys(*editor, values, path);
 }
 
 /// @brief Shows an editor's text: its bound value always, else "text" when it changed (so typing isn't overwritten
@@ -292,8 +330,8 @@ void stopListeningToEditor(Panel& panel, Connection connection) {
 	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) editor->onTextChanged.disconnect(connection);
 }
 
-/// @brief Runs "onGutterClick" on a press in the gutter and "onWordHover" when the pointer moves onto a word or off
-/// one.
+/// @brief Runs "onGutterClick" on a press in the gutter, "onWordHover" when the pointer moves onto a word or off
+/// one, and the code events (LanguageKeys.hpp).
 /// @param panel The panel, a TextEditor.
 /// @param sink Runs a handler.
 /// @return The connections.
@@ -308,15 +346,16 @@ EventConnections listenToEditorEvents(Panel& panel, EventSink sink) {
 		                           {"control", mods.control()},
 		                           {"super", mods.super()}});
 	});
-	const Connection hover = editor->onWordHovered.connect([sink = std::move(sink)](TextEditor::Position at,
-	                                                                                const std::string& word) {
-		const bool onWord = at.line != SIZE_MAX;
-		sink("onWordHover", json{{"type", "wordHover"},
-		                         {"line", onWord ? json(at.line) : json()},
-		                         {"column", onWord ? json(at.column) : json()},
-		                         {"word", word}});
-	});
-	return {gutter, hover, 0, 0};
+	const Connection code = listenToCodeEvents(*editor, sink);
+	const Connection hover =
+	    editor->onWordHovered.connect([sink = std::move(sink)](TextEditor::Position at, const std::string& word) {
+		    const bool onWord = at.line != SIZE_MAX;
+		    sink("onWordHover", json{{"type", "wordHover"},
+			                         {"line", onWord ? json(at.line) : json()},
+			                         {"column", onWord ? json(at.column) : json()},
+			                         {"word", word}});
+	    });
+	return {gutter, hover, code, 0};
 }
 
 /// @brief Disconnects listenToEditorEvents().
@@ -327,33 +366,54 @@ void stopListeningToEditorEvents(Panel& panel, const EventConnections& connectio
 	if(!editor) return;
 	editor->onGutterClicked.disconnect(connections[0]);
 	editor->onWordHovered.disconnect(connections[1]);
+	stopListeningToCodeEvents(*editor, connections[2]);
 }
 
 } // namespace
 
 void registerEditorType(TypeRegistry& registry) {
 	const auto set = std::make_shared<PropertySet>();
-	set->properties = {{"bind", ValueKind::StatePath},        {"text", ValueKind::Text},
-	                   {"caret", ValueKind::StatePath},       {"font", ValueKind::Font},
-	                   {"textColor", ValueKind::Color},       {"lineNumbers", ValueKind::Boolean},
-	                   {"lineNumberColor", ValueKind::Color}, {"activeLineNumberColor", ValueKind::Color},
-	                   {"lineColor", ValueKind::Color},       {"selectionColor", ValueKind::Color},
-	                   {"caretColor", ValueKind::Color},      {"autofocus", ValueKind::Boolean},
-	                   {"wrap", ValueKind::Boolean},          {"folds", ValueKind::Any},
-	                   {"decorations", ValueKind::Any},       {"find", ValueKind::Any},
-	                   {"brackets", ValueKind::Boolean},      {"indentGuides", ValueKind::Boolean},
-	                   {"readOnly", ValueKind::Boolean},      {"guideColor", ValueKind::Color},
-	                   {"matchColor", ValueKind::Color},      {"bracketColor", ValueKind::Color},
-	                   {"grammar", ValueKind::Text},          {"minimap", ValueKind::Boolean},
-	                   {"composition", ValueKind::Text}};
+	set->properties = {{"bind", ValueKind::StatePath},
+	                   {"text", ValueKind::Text},
+	                   {"caret", ValueKind::StatePath},
+	                   {"font", ValueKind::Font},
+	                   {"textColor", ValueKind::Color},
+	                   {"lineNumbers", ValueKind::Boolean},
+	                   {"lineNumberColor", ValueKind::Color},
+	                   {"activeLineNumberColor", ValueKind::Color},
+	                   {"lineColor", ValueKind::Color},
+	                   {"selectionColor", ValueKind::Color},
+	                   {"caretColor", ValueKind::Color},
+	                   {"autofocus", ValueKind::Boolean},
+	                   {"wrap", ValueKind::Boolean},
+	                   {"folds", ValueKind::Any},
+	                   {"decorations", ValueKind::Any},
+	                   {"find", ValueKind::Any},
+	                   {"brackets", ValueKind::Boolean},
+	                   {"indentGuides", ValueKind::Boolean},
+	                   {"readOnly", ValueKind::Boolean},
+	                   {"guideColor", ValueKind::Color},
+	                   {"matchColor", ValueKind::Color},
+	                   {"bracketColor", ValueKind::Color},
+	                   {"grammar", ValueKind::Text},
+	                   {"minimap", ValueKind::Boolean},
+	                   {"composition", ValueKind::Text},
+	                   {"language", ValueKind::Text},
+	                   {"commands", ValueKind::Any},
+	                   {"popup", ValueKind::Boolean},
+	                   {"goTo", ValueKind::Any},
+	                   {"insert", ValueKind::Any},
+	                   {"tokens", ValueKind::Any}};
 	set->apply = applyEditor;
 	set->everyUpdate = true; // colours follow the theme
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TextEditor*>(&panel) != nullptr; };
 	set->value = {"text", showText, listenToEditor, stopListeningToEditor};
 	set->events = {listenToEditorEvents, stopListeningToEditorEvents};
 
-	registry.add({"editor", "A multi-line text editor: selection, undo, clipboard, line numbers, wrap, folds, decorations, find, cursors",
-	              [] { return std::make_unique<TextEditor>(); }, set, false});
+	registry.add(
+	    {"editor",
+		 "A multi-line text editor: selection, undo, clipboard, line numbers, wrap, folds, decorations, find, cursors",
+		 [] { return std::make_unique<LanguageEditor>(); }, set, false});
 }
 
 } // namespace affresco::format

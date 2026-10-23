@@ -8,6 +8,7 @@
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Window.hpp"
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -62,6 +63,11 @@ public:
 	/// shown, for one not laid out yet).
 	/// @param panel The panel.
 	void focus(Panel& panel);
+	/// @brief The "focus" step: focuses a panel by id (focus()) after the update and its layout, so it exists and
+	/// has its place. It wins over a focus scheduled before it, and gives way to a later step, to a node that took
+	/// the focus after it, and to a focus scheduled after it outside its node (a dialog a later key opened).
+	/// @param id The panel's id.
+	void focusStep(std::string id);
 	/// @brief Closes every open overlay that closes on a click outside it (the "dismiss" step, Escape).
 	void dismissAll() { dismissOverlays(nullptr); }
 
@@ -261,7 +267,9 @@ private:
 		bool pending = false;   ///< Scheduled.
 		bool cancelled = false; ///< A target was destroyed meanwhile.
 	};
-	FocusLater focusLater_; ///< The focus change scheduled by focusLater().
+	FocusLater focusLater_;           ///< The focus change scheduled by focusLater().
+	std::uint64_t focusSteps_ = 0;     ///< focusStep() calls so far.
+	std::uint64_t focusSchedules_ = 0; ///< focusLater() calls so far.
 	/// @brief The connections connect() made to the window's signals (0: none).
 	struct WindowHooks {
 		Connection resized = 0; ///< onResize.

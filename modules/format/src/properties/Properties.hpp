@@ -63,6 +63,7 @@ public:
 	                                                      const std::string& at) const override;
 	[[nodiscard]] ImageCache& images() const override;
 	[[nodiscard]] std::filesystem::path imageFile(const json& value, const std::string& at) const override;
+	[[nodiscard]] const LanguageCatalog* languages() const override;
 
 private:
 	/// @brief What an update reads from the behaviour keys and applies after the look.
@@ -286,7 +287,7 @@ private:
 	/// @param at Its place, for errors.
 	/// @return false if it isn't one of these.
 	static bool gridProperty(Grid& grid, Slot slot, const json& value, const std::string& at);
-	/// @brief Keeps a property for one of the record's property sets, if one has it (the built-in widgets' first).
+	/// @brief Keeps a property for each of the record's property sets that has it (a type's own, a built-in widget's).
 	/// @param record The record.
 	/// @param key The property.
 	/// @param value Its value.

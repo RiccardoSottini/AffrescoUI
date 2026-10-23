@@ -42,6 +42,8 @@ struct PropertySpec {
 	bool transition = false;         ///< Whether "transition" may animate it.
 };
 
+class LanguageCatalog;
+
 /// @brief What a type's apply function reads its values with: colours in the current theme, fonts by name.
 class PropertyReader {
 public:
@@ -80,6 +82,10 @@ public:
 	/// @return The file.
 	/// @throws DocumentError If it isn't text or is outside those folders.
 	[[nodiscard]] virtual std::filesystem::path imageFile(const json& value, const std::string& at) const = 0;
+
+	/// @brief The languages the document declares ("languages"), for code editors.
+	/// @return Them, or nullptr for none.
+	[[nodiscard]] virtual const LanguageCatalog* languages() const { return nullptr; }
 
 protected:
 	PropertyReader() = default;

@@ -121,6 +121,11 @@ target_include_directories(affrescoui_format PRIVATE src/assistant)
 target_sources(affrescoui_format PRIVATE src/types/TypeRegistry.cpp src/types/Types.cpp src/types/ImageType.cpp
 	src/types/SurfaceType.cpp src/types/SplitType.cpp src/types/TabsType.cpp src/types/ListType.cpp src/types/DiffType.cpp
 	src/types/EditorType.cpp src/types/SyntaxHighlighter.cpp)
+# languages: code languages declared in a document's "languages" section, their tokenizer and editing rules
+target_sources(affrescoui_format PRIVATE src/languages/Language.cpp src/languages/LanguageRules.cpp
+	src/languages/LanguageTokenizer.cpp src/languages/LanguageHighlighter.cpp src/languages/LanguageEditor.cpp
+	src/languages/LanguageEditorCommands.cpp src/languages/LanguageKeys.cpp)
+target_include_directories(affrescoui_format PRIVATE src/languages)
 # controls: the form controls: toggle, slider, calendar, code input, carousel
 target_sources(affrescoui_format PRIVATE src/controls/ToggleType.cpp src/controls/SliderType.cpp
 	src/controls/CalendarType.cpp src/controls/CodeInputType.cpp src/controls/CarouselType.cpp)

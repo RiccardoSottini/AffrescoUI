@@ -60,8 +60,10 @@ An app can run them from its own menus or buttons, e.g. `{ "run": "assistant.ope
 ## Restyling and strings
 
 The colours are the `assistant.*` tokens, each with a light and a dark value: `accent`, `accentHover`, `onAccent`,
-`surface`, `raised`, `border`, `text`, `dim`, `dot`, `success`, `danger`, `warning`. A screen's own `tokens` win over an
-included file's, so an app restyles the add-on by redefining them, e.g. `"assistant.accent": "@accent"`.
+`surface`, `raised`, `border`, `text`, `dim`, `dot`, `success`, `danger`, `warningBackground`. `warningBackground` is
+the pale tint behind the note shown when no agent is online, under `text`: map it to a background colour, not
+to a bright warning colour. A screen's own `tokens` win over an included file's, so an app restyles the add-on by
+redefining them, e.g. `"assistant.accent": "@accent"`.
 
 The strings are the `assistant.*` keys in English, Italian and Arabic; the panel follows the screen's direction
 (right to left in Arabic). A screen adds a language, or rewords one, with the same keys in its own `strings`.

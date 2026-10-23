@@ -151,6 +151,7 @@ void Events::modal(Panel& overlay, bool open) {
 }
 
 void Events::focusLater(Panel* panel, Panel* scope, int frames) {
+	++focusSchedules_;
 	focusLater_.panel = panel;
 	focusLater_.scope = scope;
 	focusLater_.cancelled = false;
@@ -176,7 +177,6 @@ void Events::focusLater(Panel* panel, Panel* scope, int frames) {
 }
 
 void Events::focus(Panel& panel) {
-	if(focusLater_.pending) focusLater_.cancelled = true; // a later "focus" wins over one scheduled before
 	const Record* record = engine_.reconciler.recordOf(&panel);
 	if(engine_.window && record && !tabStop(panel, *record) && within(engine_.window->focusedPanel(), panel)) return;
 	if(!engine_.window || !record || tabStop(panel, *record)) {
@@ -190,6 +190,26 @@ void Events::focus(Panel& panel) {
 	} else {
 		engine_.window->setFocus(&panel);
 	}
+}
+
+void Events::focusStep(std::string id) {
+	if(!engine_.window) return;
+	const std::uint64_t step = ++focusSteps_, scheduled = focusSchedules_;
+	const Panel* focused = engine_.window->focusedPanel();
+	engine_.scheduler.once(0.0, [this, id = std::move(id), step, scheduled, focused] {
+		if(!engine_.window || step != focusSteps_) return; // a later step wins
+		Panel* panel = engine_.window->root().findById(id);
+		const Panel* now = engine_.window->focusedPanel();
+		if(!panel || (now && now != focused)) return; // a node took the focus after it: it keeps it
+		if(focusLater_.pending && !focusLater_.cancelled) {
+			// A focus scheduled after it, elsewhere (a dialog a later key opened), wins; one before it, or for the
+			// dialog the step's node is in, gives way
+			const Panel* scope = focusLater_.panel ? focusLater_.panel : focusLater_.scope;
+			if(focusSchedules_ != scheduled && scope && !within(panel, *scope)) return;
+			focusLater_.cancelled = true;
+		}
+		focus(*panel);
+	});
 }
 
 std::vector<Panel*> Events::focusables(Panel& scope, bool list) {

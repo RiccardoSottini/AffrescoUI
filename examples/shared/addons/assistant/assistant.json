@@ -15,7 +15,7 @@
 		"assistant.dot": { "light": "#8c959f", "dark": "#6e7681" },
 		"assistant.success": { "light": "#1f883d", "dark": "#3fb950" },
 		"assistant.danger": { "light": "#cf222e", "dark": "#f85149" },
-		"assistant.warning": { "light": "#fff8c5", "dark": "#3b2e0a" }
+		"assistant.warningBackground": { "light": "#fff8c5", "dark": "#3b2e0a" }
 	},
 	"strings": {
 		"default": "en",
@@ -227,7 +227,7 @@
 					{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@assistant.border" }
 				] },
 				{ "when": "{{!assistantOnline}}", "id": "assistantOffline", "alignSelf": "stretch", "height": 52,
-				  "color": "@assistant.warning", "role": "alert", "children": [
+				  "color": "@assistant.warningBackground", "role": "alert", "children": [
 					{ "type": "label", "text": "{{t('assistant.offlineNote')}}", "textColor": "@assistant.text",
 					  "wrap": true, "anchors": { "left": 16, "right": 16, "top": 8, "bottom": 8 } }
 				] },

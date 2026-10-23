@@ -50,6 +50,30 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "[\"symbols\"]` names other fonts asked in order for a character this one lacks; a character none has shows as "
 	 "`?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has).",
 	 "sections"},
+    {"languages", R"json({"type": "object", "maxProperties": 64,
+		"description": "Code languages an editor's \"language\" names: patterns whose scopes the @syntax.* tokens colour, and editing rules",
+		"additionalProperties": {"type": "object", "additionalProperties": false, "properties": {
+		"title": {"type": "string"}, "aliases": {"type": "array", "maxItems": 64, "items": {"type": "string"}},
+		"files": {"type": "array", "maxItems": 64, "items": {"type": "string"}},
+		"comments": {"type": "object", "additionalProperties": false, "properties": {"line": {"type": "string"},
+		"block": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string"}}}},
+		"brackets": {"$ref": "#/$defs/v2/characterPairs"}, "pairs": {"$ref": "#/$defs/v2/characterPairs"},
+		"indent": {"type": "object", "additionalProperties": false, "properties": {"increase": {"type": "string"},
+		"decrease": {"type": "string"}}}, "wordPattern": {"type": "string"},
+		"patterns": {"type": "array", "items": {"type": "object"}},
+		"repository": {"type": "object", "additionalProperties": {"type": "object"}}}}})json",
+	 "`name → language`: the code languages an editor's `language` names (by name, alias or file name). Each has "
+	 "`title`, `aliases`, `files` (`[\"*.py\", \"CMakeLists.txt\"]`), `comments` (`{ \"line\": \"//\", \"block\": "
+	 "[\"/*\", \"*/\"] }`), `brackets` and `pairs` (`[[\"(\", \")\"], ...]`: Enter between brackets indents, typing "
+	 "an opener of a pair adds its closer), `indent` (`{ \"increase\": regex, \"decrease\": regex }`), "
+	 "`wordPattern` (regex), and TextMate-style `patterns` with a `repository`: `{ \"match\": regex, \"scope\": "
+	 "\"keyword\" }`, `{ \"begin\": regex, \"end\": regex, \"scope\", \"contentScope\", \"patterns\" }` (an `end` may "
+	 "use the begin's groups, `\\1`), `captures` / `beginCaptures` / `endCaptures` (`{ \"1\": { \"scope\": "
+	 "\"type\" } }`) and `{ \"include\": \"#name\" }` or `\"$self\"`. A scope is coloured by `@syntax.<scope>`, or "
+	 "its parent's (`keyword.control` by `@syntax.keyword`). Regular expressions are PCRE2, each find limited in "
+	 "steps and each line in time; a language has at most 2,048 rules. Ready-made languages are data files to "
+	 "`include` (`examples/shared/languages/`).",
+	 "sections"},
     {"colors", R"json({"type": "object",
 		"description": "Named colors (\"@name\"), or per theme: {\"light\": ..., \"dark\": ...}",
 		"additionalProperties": {"anyOf": [{"$ref": "#/$defs/v2/hexColor"}, {"type": "object",
@@ -374,6 +398,9 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 constexpr auto definitionTable = std::to_array<KeyReference>({
     {"permissionRule", R"json({"type": "string", "pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
 		"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""})json",
+	 "", ""},
+    {"characterPairs", R"json({"type": "array", "maxItems": 32, "items": {"type": "array", "minItems": 2, "maxItems": 2,
+		"items": {"type": "string", "minLength": 1, "maxLength": 1}}})json",
 	 "", ""},
     {"hexColor", R"json({"type": "string", "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"})json", "",
 	 ""},
