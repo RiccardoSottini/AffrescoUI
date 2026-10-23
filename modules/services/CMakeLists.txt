@@ -10,6 +10,7 @@ affrescoui_module(services
 	src/dap/DapTransport.cpp
 	# files/: the file and watch services, the directory model and the watcher
 	src/files/DirectoryModel.cpp
+	src/files/FileEntries.cpp
 	src/files/FileProvider.cpp
 	src/files/WatchProvider.cpp
 	src/files/Watcher.cpp

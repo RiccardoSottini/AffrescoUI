@@ -232,6 +232,8 @@ void ServiceRegistry::allowAttach(std::uint16_t port) { attachPorts_.insert(port
 
 void ServiceRegistry::setExecutor(Executor* executor) noexcept { executor_ = executor; }
 
+void ServiceRegistry::setInline(bool now) noexcept { inline_ = now; }
+
 json ServiceRegistry::catalog() const {
 	json catalog = json::object();
 	for(const auto& [name, provider] : providers_) {
@@ -363,7 +365,7 @@ std::optional<std::string> ServiceRegistry::ensureStarted(Entry& entry) {
 	entry.service.reset(); // a failed one ends before its replacement starts
 	entry.generation = ++generations_;
 	setState(entry, ServiceState::Starting, {});
-	ServiceContext context{*executor_, entry.grant, {}, {}};
+	ServiceContext context{*executor_, entry.grant, {}, {}, inline_};
 	postToMainThread(
 	    context, alive_,
 	    [this, name = entry.name, generation = entry.generation](ServiceState state, std::string reason) {

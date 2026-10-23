@@ -49,7 +49,8 @@ class Tasks {
 public:
 	/// @brief Starts an empty set.
 	/// @param limit The most that may run at once.
-	explicit Tasks(std::size_t limit) noexcept;
+	/// @param now Whether each work runs at once on the calling thread instead (ServiceContext::now).
+	explicit Tasks(std::size_t limit, bool now = false) noexcept;
 	/// @brief Asks every task to stop and waits for them.
 	~Tasks();
 	Tasks(const Tasks&) = delete;
@@ -57,7 +58,7 @@ public:
 	Tasks(Tasks&&) = delete;
 	Tasks& operator=(Tasks&&) = delete;
 
-	/// @brief Runs work on a thread of its own.
+	/// @brief Runs work on a thread of its own (or now, on this one, if the set was made so).
 	/// @param work The work; its stop token says the set is ending.
 	/// @return false if @p limit tasks are running already (the work then doesn't run).
 	[[nodiscard]] bool run(std::function<void(std::stop_token)> work);
@@ -69,6 +70,7 @@ private:
 		std::jthread thread;                     ///< Its thread.
 	};
 	std::size_t limit_;       ///< See the constructor.
+	bool now_;                ///< See the constructor.
 	std::vector<Task> tasks_; ///< Those started, finished ones pruned at each run().
 };
 

@@ -55,6 +55,10 @@ public:
 	/// @brief Sets the main thread services report to. Without one, no service starts.
 	/// @param executor The executor, or nullptr; it must outlive the registry.
 	void setExecutor(Executor* executor) noexcept;
+	/// @brief Has the services started from now on do each call's work before invoke() returns (ServiceContext::now),
+	/// so a scripted run sees its results at once and the same every time. Off by default.
+	/// @param now Whether to.
+	void setInline(bool now) noexcept;
 	/// @brief The providers, for the catalog: {name: {about, configuration, methods}} (methods as the default
 	/// configuration gives them).
 	[[nodiscard]] json catalog() const;
@@ -103,6 +107,7 @@ private:
 	std::set<std::uint16_t> attachPorts_;                                      ///< Granted loopback ports.
 	std::map<std::string, std::unique_ptr<Entry>, std::less<>> entries_;       ///< The loaded services.
 	Executor* executor_ = nullptr;                                             ///< The main thread.
+	bool inline_ = false;                                                      ///< See setInline().
 	std::uint64_t generations_ = 0;                                            ///< Starts so far, to number them.
 	std::function<void()> statusChanged_;                                      ///< See onStatus().
 	RequestHandler requests_;                                                  ///< See onRequest().

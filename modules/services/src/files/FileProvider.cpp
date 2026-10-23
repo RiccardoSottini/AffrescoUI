@@ -1,6 +1,8 @@
 /// @file
-/// @brief The `fs` provider: text files under a granted folder, read, written and listed on worker threads.
+/// @brief The `fs` provider: text files under a granted folder, read, written and listed on worker threads, and its
+/// entries made, moved, deleted, copied and described (FileEntries.hpp).
 
+#include "FileEntries.hpp"
 #include "Providers.hpp"
 
 #include <cerrno>
@@ -20,8 +22,8 @@ namespace affresco::services {
 namespace {
 
 constexpr std::uintmax_t largestFile = std::uintmax_t{8} << 20; ///< A file read or written, at most 8 MiB.
-constexpr std::size_t mostEntries = 10000;                       ///< A listing, at most 10,000 entries.
-constexpr std::size_t mostAtOnce = 16;                           ///< Calls running at once, per service.
+constexpr std::size_t mostEntries = 10000;                      ///< A listing, at most 10,000 entries.
+constexpr std::size_t mostAtOnce = 16;                          ///< Calls running at once, per service.
 
 /// @brief Reads a text file.
 /// @param path The file (under the root).
@@ -122,13 +124,14 @@ void listFolder(const std::filesystem::path& path, const std::stop_token& stop, 
 	if(error) return call.fail("notFound", "no such folder");
 	json entries = json::array();
 	for(; entry != std::filesystem::directory_iterator() && !stop.stop_requested(); entry.increment(error)) {
-		if(entries.size() == mostEntries)
-			return call.fail("tooLarge", "the folder has over 10000 entries");
+		if(entries.size() == mostEntries) return call.fail("tooLarge", "the folder has over 10000 entries");
 		const std::string name = entry->path().filename().string();
 		if(!isUtf8(name)) continue; // a name the document can't hold
 		const bool file = entry->is_regular_file(error), folder = entry->is_directory(error);
 		entries.push_back({{"name", name},
-		                   {"kind", file ? "file" : folder ? "folder" : "other"},
+		                   {"kind", file     ? "file"
+		                            : folder ? "folder"
+		                                     : "other"},
 		                   {"size", file ? json(entry->file_size(error)) : json()}});
 		if(error) break;
 	}
@@ -136,24 +139,48 @@ void listFolder(const std::filesystem::path& path, const std::stop_token& stop, 
 	call.finish({{"entries", std::move(entries)}});
 }
 
+/// @brief A path for an error message, cut if it is long.
+/// @param path The path.
+/// @return It, or an ellipsis.
+std::string shortened(const std::string& path) { return path.size() > 200 ? "…" : path; }
+
 /// @brief One `fs` service: a root and its worker threads.
 class FileService final : public Service {
 public:
 	/// @brief Serves a root.
 	/// @param root The root (canonical).
 	/// @param readOnly Whether writing is refused.
-	FileService(std::filesystem::path root, bool readOnly) : root_(std::move(root)), readOnly_(readOnly) {}
+	/// @param now Whether each call's work runs before invoke() returns (ServiceContext::now).
+	FileService(std::filesystem::path root, bool readOnly, bool now)
+	    : root_(std::move(root)), readOnly_(readOnly), tasks_(mostAtOnce, now) {}
 
 	std::optional<std::string> invoke(const MethodSpec& method, std::shared_ptr<Call> call) override {
 		const json& with = call->arguments();
+		const std::string& name = method.name;
+		if(readOnly_ && name != "read" && name != "list" && name != "stat") return "the service is read-only";
+		// An entry's own path (a link is moved, deleted or copied as a link); a text's path follows links
+		const bool entry = name == "rename" || name == "delete" || name == "copy";
 		const std::string relative = with.is_object() ? with.value("path", std::string(".")) : ".";
-		const std::optional<std::filesystem::path> path = underRoot(root_, relative);
-		if(!path) return "with.path: must be a path inside the root '" + std::string(relative.size() > 200 ? "…" : relative) + "'";
-		if(method.name == "write" && readOnly_) return "the service is read-only";
-		const bool started = tasks_.run([name = method.name, path = *path, call](const std::stop_token&) {
+		const std::optional<std::filesystem::path> path =
+		    entry ? entryUnderRoot(root_, relative) : underRoot(root_, relative);
+		if(!path) return "with.path: must be a path inside the root '" + shortened(relative) + "'";
+		std::optional<std::filesystem::path> to;
+		if(name == "rename" || name == "copy") {
+			const std::string target = with.value("to", std::string());
+			to = entryUnderRoot(root_, target);
+			if(!to) return "with.to: must be a path inside the root '" + shortened(target) + "'";
+		}
+		const bool started = tasks_.run([root = root_, name, path = *path, to, call](const std::stop_token&) {
+			const json& arguments = call->arguments();
 			if(name == "read") readFile(path, *call);
-			else if(name == "write") writeFile(path, call->arguments().value("text", std::string()), *call);
-			else listFolder(path, call->stopToken(), *call);
+			else if(name == "write") writeFile(path, arguments.value("text", std::string()), *call);
+			else if(name == "list") listFolder(path, call->stopToken(), *call);
+			else if(name == "mkdir") makeFolder(root, path, *call);
+			else if(name == "rename") moveEntry(root, path, *to, *call);
+			else if(name == "delete") removeEntry(path, {}, call->stopToken(), *call);
+			else if(name == "copy")
+				copyEntry(root, path, *to, arguments.value("free", false), {}, call->stopToken(), *call);
+			else describeEntry(path, *call);
 		});
 		return started ? std::nullopt : std::optional<std::string>("the service is busy (16 calls at once)");
 	}
@@ -161,7 +188,7 @@ public:
 private:
 	std::filesystem::path root_; ///< See the constructor.
 	bool readOnly_;              ///< See the constructor.
-	Tasks tasks_{mostAtOnce};    ///< The calls running (last, so they end first).
+	Tasks tasks_;                ///< The calls running (last, so they end first).
 };
 
 /// @brief The `fs` provider.
@@ -177,24 +204,51 @@ public:
 	}
 	std::vector<MethodSpec> methods(const json& configuration) const override {
 		const json path = {{"type", "string"}, {"maxLength", 4096}};
+		// An arguments schema: an object of these properties, the required ones named
+		const auto object = [](json properties, json required) {
+			return json{{"type", "object"},
+			            {"required", std::move(required)},
+			            {"properties", std::move(properties)},
+			            {"additionalProperties", false}};
+		};
 		std::vector<MethodSpec> methods = {
-		    {"read", Effect::Read, true, false,
-		     {{"type", "object"}, {"required", {"path"}}, {"properties", {{"path", path}}}, {"additionalProperties", false}},
-		     "reads a UTF-8 text file under the root (at most 8 MiB): {text}"},
-		    {"list", Effect::Read, true, false,
-		     {{"type", "object"}, {"properties", {{"path", path}}}, {"additionalProperties", false}},
-		     "lists a folder under the root: {entries: [{name, kind, size}]}"}};
-		if(!configuration.value("readOnly", false))
-			methods.push_back({"write", Effect::Write, true, false,
-			                   {{"type", "object"},
-			                    {"required", {"path", "text"}},
-			                    {"properties", {{"path", path}, {"text", {{"type", "string"}, {"maxLength", largestFile}}}}},
-			                    {"additionalProperties", false}},
-			                   "replaces a text file under the root: {bytes}"});
+		    {"read",
+			 Effect::Read,
+			 true,
+			 false,
+			 {{"type", "object"},
+			  {"required", {"path"}},
+			  {"properties", {{"path", path}}},
+			  {"additionalProperties", false}},
+			 "reads a UTF-8 text file under the root (at most 8 MiB): {text}"},
+		    {"list",
+			 Effect::Read,
+			 true,
+			 false,
+			 {{"type", "object"}, {"properties", {{"path", path}}}, {"additionalProperties", false}},
+			 "lists a folder under the root: {entries: [{name, kind, size}]}"}};
+		methods.push_back({"stat", Effect::Read, true, false, object({{"path", path}}, {"path"}),
+		                   "describes what is at a path under the root: {exists, kind, size, modified}"});
+		if(configuration.value("readOnly", false)) return methods;
+		methods.push_back(
+		    {"write", Effect::Write, true, false,
+			 object({{"path", path}, {"text", {{"type", "string"}, {"maxLength", largestFile}}}}, {"path", "text"}),
+			 "replaces a text file under the root: {bytes}"});
+		methods.push_back({"mkdir", Effect::Write, true, false, object({{"path", path}}, {"path"}),
+		                   "makes a folder under the root, and the folders missing above it: {path}"});
+		methods.push_back(
+		    {"rename", Effect::Write, true, false, object({{"path", path}, {"to", path}}, {"path", "to"}),
+			 "moves or renames a file or folder under the root (fails if the new path is taken): {path}"});
+		methods.push_back({"delete", Effect::Write, true, false, object({{"path", path}}, {"path"}),
+		                   "deletes a file, or a folder with all it holds (at most 10,000 entries): {removed}"});
+		methods.push_back({"copy", Effect::Write, true, false,
+		                   object({{"path", path}, {"to", path}, {"free", {{"type", "boolean"}}}}, {"path", "to"}),
+		                   "copies a file or folder under the root (at most 10,000 entries, 256 MiB); with free, a "
+		                   "taken path becomes \"<name> copy<ext>\": {path}"});
 		return methods;
 	}
 	std::unique_ptr<Service> create(const json& configuration, ServiceContext context) override {
-		return std::make_unique<FileService>(context.grant.root, configuration.value("readOnly", false));
+		return std::make_unique<FileService>(context.grant.root, configuration.value("readOnly", false), context.now);
 	}
 };
 

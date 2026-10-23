@@ -42,7 +42,7 @@ constexpr bool isScalar(std::string_view sequence) noexcept {
 
 } // namespace
 
-Tasks::Tasks(std::size_t limit) noexcept : limit_(limit) {}
+Tasks::Tasks(std::size_t limit, bool now) noexcept : limit_(limit), now_(now) {}
 
 Tasks::~Tasks() {
 	for(Task& task : tasks_) task.thread.request_stop();
@@ -52,18 +52,21 @@ Tasks::~Tasks() {
 bool Tasks::run(std::function<void(std::stop_token)> work) {
 	std::erase_if(tasks_, [](const Task& task) { return task.done->load(); });
 	if(tasks_.size() >= limit_) return false;
-#ifdef __EMSCRIPTEN__ // the browser build has one thread: the work runs now, on it (web/README.md)
-	work(std::stop_token{});
-	return true;
+#ifdef __EMSCRIPTEN__ // the browser build has one thread: every work runs now, on it (web/README.md)
+	static_cast<void>(now_);
 #else
-	auto done = std::make_shared<std::atomic<bool>>(false);
-	std::jthread thread([work = std::move(work), done](std::stop_token stop) {
-		work(std::move(stop));
-		done->store(true);
-	});
-	tasks_.push_back({std::move(done), std::move(thread)});
-	return true;
+	if(!now_) {
+		auto done = std::make_shared<std::atomic<bool>>(false);
+		std::jthread thread([work = std::move(work), done](std::stop_token stop) {
+			work(std::move(stop));
+			done->store(true);
+		});
+		tasks_.push_back({std::move(done), std::move(thread)});
+		return true;
+	}
 #endif
+	work(std::stop_token{}); // now, on this thread
+	return true;
 }
 
 std::optional<std::filesystem::path> underRoot(const std::filesystem::path& root, std::string_view relative) {

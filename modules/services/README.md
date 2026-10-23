@@ -27,11 +27,25 @@ interface, not on this module.
 |---|---|
 | `jsonrpc` | A JSON-RPC 2.0 program the host allowed, over its stdin and stdout, framed with `Content-Length` headers (LSP's way) or one message per line. Calls, notifications as streams, cancellation (`$/cancelRequest`), and requests from the program answered by `respond`. Methods listed in the declaration's `notifications` (at most 256) are sent without an id, and their call ends once sent |
 | `process` | A command the host allowed, run once per `invoke`: its arguments and stdin from `with`, its exit code and output as the result, its lines as events while it runs |
-| `fs` | A folder the host granted: `read` and `list`, and `write` unless the declaration is read-only, with UTF-8 text files and paths inside it. A write goes through a file beside it, so a reader never sees half of it |
+| `fs` | A folder the host granted: `read`, `list` and `stat` (`{exists, kind, size, modified}`, modified in milliseconds since 1970), and unless the declaration is read-only `write`, `mkdir` (the folders missing above it too), `rename {path, to}` (fails with `exists` if `to` is taken), `delete` (a file, or a folder with all it holds; there is no trash) and `copy {path, to, free}` (with `free`, a taken `to` becomes the first free `<name> copy<ext>`, `<name> copy 2<ext>`...; each gives the new `{path}`), with UTF-8 text files and paths inside it. A write goes through a file beside it, so a reader never sees half of it. `rename`, `delete` and `copy` act on a link itself, never on what it points to |
 | `watch` | A folder the host granted, watched: the `changes` stream sends `{changes: [{path, kind}], rescan}` batches, debounced (`debounce`, 20 to 2,000 ms, 100 by default), without the paths an `ignore` glob matches (`*` and `?` within a name, `**` across names; a glob without `/` matches any name). `rescan` means too much changed to list: read the folder again |
 | `pty` | A command the host allowed, on a terminal of its own (no shell unless the host allows one as the program): `open {cols, rows}` starts it and streams a first event `{session}`, then its output as `{data}` text (UTF-8, a split character waits for the rest, other bytes become U+FFFD), and ends with `{code}`; `write {session, data}` types, `resize {session, cols, rows}` resizes (the program hears `SIGWINCH`), `signal {session, name}` sends `interrupt` (to the foreground group), `terminate`, `hangup` or `kill`. On Windows it needs a pseudo console (Windows 10 1809 or later); there `interrupt` types Ctrl+C and the other signals end the program and what it started. The Windows side isn't built in this repository's local checks |
 | `search` | A folder the host granted, searched: `find` matches its text files against a plain, whole-word or case-sensitive pattern or a regular expression (PCRE2, with match limits) on several threads, filtered by `include` and `exclude` globs and the `.gitignore` files, one event `{file, matches}` per file, cancellable and capped at `maxResults`; `replace` returns a file's text with every match replaced (`$1` in an expression), for an `fs` write: it writes nothing |
 | `syntax` | Text parsed with tree-sitter on worker threads (at most 4 calls at once, 4 MiB each): `languages`, `highlight {language, text, first, last}` gives `{styles, spans: [[line, start, end, style]], complete}` (columns in bytes, later runs over earlier), `folds` gives `{folds: [[first, last]]}` |
+
+A notes app keeps its notes in a folder the host granted (`notes`): a button makes a folder, another duplicates the
+open note beside it, and the list re-reads the folder after either.
+
+```json
+"services": { "notes": { "provider": "fs", "root": "notes" } },
+"actions": {
+  "newFolder": [{ "invoke": "notes.mkdir", "with": { "path": "{{state.folderName}}" }, "onDone": [{ "run": "reload" }],
+                  "onError": [{ "set": "state.problem", "to": "{{error.message}}" }] }],
+  "duplicate": [{ "invoke": "notes.copy", "with": { "path": "{{state.open}}", "to": "{{state.open}}", "free": true },
+                  "onDone": [{ "set": "state.open", "to": "{{result.path}}" }, { "run": "reload" }] }],
+  "reload": [{ "invoke": "notes.list", "with": { "path": "." }, "into": "state.entries" }]
+}
+```
 
 ## Invariants
 
@@ -46,7 +60,7 @@ interface, not on this module.
 - **Paths stay inside the root:** `fs` refuses absolute paths, and resolves every other one (symbolic links and
   `..` included) before it is used: a path that ends outside the folder is refused.
 - **Every byte read is bounded:** a frame's headers 8 KiB, a body or a line 8 MiB, an error message from a program
-  1,000 bytes; a file read or written 8 MiB, a listing 10,000 entries; a `process` line 64 KiB (longer ones arrive in
+  1,000 bytes; a file read or written 8 MiB, a listing 10,000 entries, a `delete` or a `copy` 10,000 entries and a `copy` 256 MiB (past them nothing is touched); a `process` line 64 KiB (longer ones arrive in
   pieces), its input 1 MiB, its added arguments 64 of 4 KiB each, and with `collect` its whole output 8 MiB of UTF-8
   (a run that writes more is ended).
   A search skips files over 8 MiB, binary files (a NUL byte in the first 8 KiB), symbolic links, `.git` and folders
