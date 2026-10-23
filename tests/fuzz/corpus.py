@@ -705,6 +705,9 @@ def main():
           "literalString", "explicitList", "AdaptiveCard", "TextBlock", "Input.Text", "Action.Submit", "${"])
     write(out, "dap", dap_seeds(), words["json"] + ["response", "event", "request", "request_seq", "success",
           "command", "body", "source", "path", "/work/", "../", "stackFrames", "variables", "runInTerminal"])
+    # qr_code: the first byte picks the level (& 3) and the mask (>> 2 & 15, 8 and above meaning automatic)
+    write(out, "qr_code", ["\x00Affresca", "\x20https://id.example/enroll?secret=EXAMPLE", "\x03", "\x1f" + "q" * 300],
+          ["otpauth://", "id.example", "secret=", "\x00", "\xff"])
     write(out, "syntax", syntax_seeds(), ["(", ")", "{", "}", "[", "]", "\"", "'", "`", "/*", "*/", "//", "#", "\n"])
 
 

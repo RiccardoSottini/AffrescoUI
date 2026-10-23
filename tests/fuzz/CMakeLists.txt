@@ -84,6 +84,9 @@ target_include_directories(affrescoui_fuzz_signature PRIVATE $<TARGET_PROPERTY:a
 # Composition across apps: a feature's needs, its adapter and the host's points (CompositionProof.hpp)
 affrescoui_fuzzer(composition affrescoui::format)
 target_include_directories(affrescoui_fuzz_composition PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
+# The qrCode expression function's encoder and path data (QrCode.hpp)
+affrescoui_fuzzer(qr_code affrescoui::format)
+target_include_directories(affrescoui_fuzz_qr_code PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
 # The 1.0 security audit (SECURITY.md, README.md "Inventory of untrusted inputs"): URLs, sign-in responses, the token
 # file, what git prints, imported VS Code themes and history files on disk
 affrescoui_fuzzer(url affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
