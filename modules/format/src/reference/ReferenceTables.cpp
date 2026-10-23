@@ -3,6 +3,7 @@
 
 #include "Reference.hpp"
 #include "Engine.hpp"
+#include "KitTokens.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -49,12 +50,14 @@ void addRow(const Engine& engine, std::string& text, const std::string& names, s
 	text += "| " + names + " | " + meaning + " |\n";
 }
 
-/// @brief A table: a row for each entry with an about, joined by the entries without one after it.
+/// @brief A table: a row for each entry with an about, joined by the entries without one after it ("kitTokens": the
+/// kit's tokens).
 /// @param engine The engine: a row lists only the keys it has (a name with "…" always).
 /// @param table The table's name.
 /// @return Its text.
 /// @throws std::invalid_argument If no entry is in it.
 std::string tableText(const Engine& engine, std::string_view table) {
+	if(table == "kitTokens") return kitTokenTable();
 	const auto [keys, known] = keysOf(engine, table);
 	std::string text(header(table)), names;
 	std::string_view about;

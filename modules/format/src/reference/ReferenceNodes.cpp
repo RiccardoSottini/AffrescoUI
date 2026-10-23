@@ -189,7 +189,7 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"overlay", R"json({"type": "object", "additionalProperties": false,
 		"description": "Drawn above everything, next to its anchor",
 		"properties": {"anchor": {"type": "string"}, "placement": {"enum": ["below", "below-end",
-		"above", "above-end", "right", "left", "center", "window"]},
+		"above", "above-end", "right", "left", "center", "window"]}, "flip": {"$ref": "#/$defs/v2/flag"},
 		"open": {"description": "A state path (\"state.menuOpen\") or a value"},
 		"dismiss": {"const": "outside"}, "modal": {"$ref": "#/$defs/v2/flag"}}})json",
 	 "`{ \"anchor\": \"#id\", \"placement\": \"below\", \"open\": \"state.menuOpen\", \"dismiss\": \"outside\" }`: "
@@ -198,7 +198,8 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "the window). `open` is a state path (or a value); with `\"dismiss\": \"outside\"`, a click outside it or Escape "
 	 "sets it to false. `\"modal\": true` traps the focus inside while it is open (Tab cycles in it, the first "
 	 "focusable "
-	 "node inside gets the focus) and gives it back when it closes.",
+	 "node inside gets the focus) and gives it back when it closes. `\"flip\": true` places it on the other side when "
+	 "only that side has room, its children mirrored on that axis.",
 	 "look"},
     {"focusable", "flag",
 	 "`true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable).",
@@ -219,7 +220,9 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "Whether the node is expanded (a tree item, a disclosure, a menu button: `expanded` to assistive tools); leave it "
 	 "out for one that doesn't expand. Screen readers say it, and offer to expand or collapse it (a click).",
 	 "access"},
-    {"selected", "flag", "Whether the node is selected (a tab, a list item); leave it out for one that can't be.",
+    {"selected", "flag",
+	 "Whether the node is selected (a tab, a list item, a menu's check); leave it out, or bind it to `null`, for one "
+	 "that can't be.",
 	 "access"},
     {"live", R"json({"anyOf": [{"enum": ["off", "polite", "assertive"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "A live region: changes to its text are read without moving the focus, `polite` when the person is idle (a "
@@ -342,7 +345,7 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 /// @return The keys.
 std::vector<KeyReference> joinedKeys() {
 	std::vector<KeyReference> keys(commonTable.begin(), commonTable.end());
-	for(const std::span<const KeyReference> part : {nodeTypeKeys(), nodeEventKeys()})
+	for(const std::span<const KeyReference> part : {nodeTypeKeys(), sceneKeys(), nodeEventKeys()})
 		keys.insert(keys.end(), part.begin(), part.end());
 	return keys;
 }

@@ -324,11 +324,16 @@ public:
 	/// @brief Makes this panel an overlay: drawn above everything, unclipped, placed next to an anchor panel.
 	/// @param anchorId The anchor's id; empty for the parent.
 	/// @param placement Where it goes.
-	void setOverlay(std::string anchorId, Placement placement);
+	/// @param flip true: placed on the opposite side (above for below, left for right) when the window has no room for
+	/// it on its own side and more on the other; its direct children are then mirrored on that axis, so an arrow
+	/// placed at the edge facing the anchor still faces it.
+	void setOverlay(std::string anchorId, Placement placement, bool flip = false);
 	/// @brief Makes it an ordinary panel again.
 	void clearOverlay();
 	/// @brief Whether it is an overlay.
 	[[nodiscard]] bool isOverlay() const noexcept { return overlay_; }
+	/// @brief Whether it is an overlay placed on the opposite side by its last layout (see setOverlay()).
+	[[nodiscard]] bool isFlipped() const noexcept { return flipped_; }
 
 	/// @brief Draws this panel's own content, as a frame would, into a painter of another kind (a PDF page, an image):
 	/// paint(), for drawers outside the window's renderer. The caller clips to bounds() and draws the children after.
@@ -761,6 +766,8 @@ private:
 	bool overlay_ = false;                   ///< See isOverlay().
 	std::string overlayAnchor_;              ///< See setOverlay().
 	Placement placement_ = Placement::Below; ///< See setOverlay().
+	bool flip_ = false;                      ///< See setOverlay().
+	bool flipped_ = false;                   ///< See isFlipped().
 
 	std::uint64_t layoutPass_ = 0;         ///< The window's layout pass this panel was last laid out in.
 	std::uint64_t skippedPass_ = 0;        ///< The window's layout pass that last skipped this panel and its subtree.

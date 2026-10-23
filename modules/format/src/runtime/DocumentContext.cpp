@@ -71,6 +71,16 @@ Color hexColor(const json& hex, const std::string& at) {
 	return *parsed;
 }
 
+/// @brief The document's "window.menuBar", for expressions ("window.menuBar"): the drawn menu bar's default.
+/// @param document The document.
+/// @return Its list of {menu, title}, or [] if it has none.
+json menuBarOf(const json& document) {
+	const auto window = document.find("window");
+	if(window == document.end() || !window->is_object()) return json::array();
+	const auto menuBar = window->find("menuBar");
+	return menuBar != window->end() && menuBar->is_array() ? *menuBar : json::array();
+}
+
 } // namespace
 
 DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirectory)
@@ -160,7 +170,8 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 		                         {"scale", window->contentScale()},
 		                         {"colorScheme", window->colorScheme() == ColorScheme::Dark ? "dark" : "light"},
 		                         {"nativeMenuBar", window->nativeMenuBar()},
-		                         {"reducedMotion", window->reducedMotion()}}
+		                         {"reducedMotion", window->reducedMotion()},
+		                         {"menuBar", menuBarOf(versions.document())}}
 		                  : json::object();
 		g.revision = toJson(versions.head());
 
