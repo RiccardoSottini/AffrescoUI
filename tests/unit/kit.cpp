@@ -544,6 +544,22 @@ TEST_CASE("format: a dialog button that keeps it open runs its action and leaves
 	CHECK(state(screen)["dlg"] == false);
 }
 
+TEST_CASE("format: a dialog's default button takes the focus, so Enter chooses it, whatever its place") {
+	std::string document = dialogScreen();
+	const std::string discard = R"("title": "Discard", )";
+	document.replace(document.find(discard), discard.size(), discard + R"("default": true, )");
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(document);
+	screen.build(*window);
+	settle(*window, clock);
+	CHECK(focusedLabel(*window) == "Discard");
+	press(*window, affresco::Key::Enter);
+	settle(*window, clock);
+	CHECK(state(screen)["answer"] == "discard");
+	CHECK(state(screen)["dlg"] == false);
+}
+
 TEST_CASE("format: a toast's close button and actions are named buttons") {
 	ManualClock clock;
 	const auto window = createHeadlessWindow(600, 400, clock);

@@ -249,7 +249,7 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 | `lineNumbers` | `true` shows line numbers in a gutter. |
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
 | `lineColor`, `selectionColor`, `caretColor` | The caret's line background, the selection, the caret. |
-| `autofocus`, `onChange` | Focus when built; `event.value` is the new text. |
+| `autofocus`, `onChange` | Focus when built, and when a modal overlay holding it opens; `event.value` is the new text. |
 | `wrap` | `true` wraps lines at the width (at spaces, else anywhere); the gutter numbers each line once. |
 | `folds` | Folded ranges, `[{ "line", "endLine" }]` from 0: the lines after `line` up to `endLine` are hidden behind it. The user folds and unfolds with the gutter or Cmd+Alt+[ and ]; the document's folds replace theirs only when they change, and leaving the key out keeps them. At most 10,000. |
 | `decorations` | `[{ "line", "endLine", "column", "endColumn", "kind", "color", "icon", "text" }]`, lines and columns from 0: `background` tints the lines, `squiggle` underlines the columns (or the whole lines) with a wave, `gutter` draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most 10,000 and 8 on a line; inline text is cut at 256 characters. |
@@ -727,8 +727,9 @@ keep their open state where `open` says (a state path):
   tooltip names the shortcut, and those that don't fit go into a "more" menu (open at `open + '.more'`).
 - `statusBar`: a row of `items` (`{ "text", "icon", "tooltip", "color", "run", "with", "side" }`), `"side": "end"`
   putting one at the end; an item with a `run` is a button.
-- `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with", "keepOpen" }`) over a backdrop; the
-  focus is trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels.
+- `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with", "keepOpen", "default" }`) over a
+  backdrop; the focus is trapped in it, the `"default": true` button is drawn as primary (else the first) and
+  takes the focus, Enter choosing the focused button, Alt with a letter a button, Escape cancels.
   A `"keepOpen": true` button doesn't close it (its action does, setting `open` false). Its `children` go between the
   message and the buttons.
 - `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`; its × is a
