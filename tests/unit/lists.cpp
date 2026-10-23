@@ -409,6 +409,10 @@ TEST_CASE("list and tree nodes: selection and expanded items bound to state, ope
 	window->routeKey({Key::Enter, 0, Action::Press, {}});
 	window->render();
 	CHECK(state()["opened"] == "main");
+	CHECK(tree->guides()); // drawn by default
+	REQUIRE(screen.applyRevision(R"({"set": {"#files/guides": false}})"));
+	window->render();
+	CHECK_FALSE(tree->guides());
 
 	auto* list = dynamic_cast<ListView*>(screen.find("picks"));
 	REQUIRE(list);
@@ -421,6 +425,8 @@ TEST_CASE("list and tree nodes: selection and expanded items bound to state, ope
 	std::string error;
 	CHECK_FALSE(screen.applyRevision(R"({"set": {"#files/selection": "some"}})", &error));
 	CHECK(error.find("selection") != std::string::npos);
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#files/guides": "no"}})", &error));
+	CHECK(error.find("guides") != std::string::npos);
 	CHECK_FALSE(screen.applyRevision(R"({"set": {"#picks/items": [{ "label": "no id" }]}})", &error));
 	CHECK(error.find("id") != std::string::npos);
 	REQUIRE(screen.applyRevision(R"({"set": {"#picks/items": ["x", "z"]}})", &error));

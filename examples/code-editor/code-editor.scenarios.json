@@ -171,6 +171,7 @@
 				{ "key": "enter" },
 				{ "expect": { "state": "sidebarOpen", "is": false } },
 				{ "expect": { "node": "#explorer", "exists": false } },
+				{ "key": "mod+k" },
 				{ "key": "mod+b" },
 				{ "expect": { "node": "#explorer", "exists": true } },
 				{ "key": "mod+shift+p" },
@@ -414,6 +415,28 @@
 				{ "key": "enter" },
 				{ "wait": 50 },
 				{ "expect": { "state": "files[0].text", "is": "#include <affresco/affresco.hpp>\n#include \"Station.hpp\"\n\n// A weather station: the UI is a live document, the readings come from C++\nINT main() {\n    affresco::Application app;\n    affresco::Screen screen = affresco::Screen::fromFile(\"screens/station.screen.json\");\n    screen.createWindow(app);\n\n    Station station(screen);\n    // TODO: read the sensor's name from the settings\n    station.connect(\"sensor-0\");\n    return app.run();\n}\n" } }
+			]
+		},
+		{
+			"name": "build-shows-its-output",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "mod+b" },
+				{ "expect": { "state": "panelOpen", "is": true } },
+				{ "expect": { "state": "panelTab", "is": "terminal" } },
+				{ "expect": { "state": "terminal[6].t", "is": "[Finished in 0.8s]" } }
+			]
+		},
+		{
+			"name": "the-ruler-is-off-until-toggled",
+			"steps": [
+				{ "expect": { "state": "ruler", "is": false } },
+				{ "key": "mod+shift+p" },
+				{ "wait": 50 },
+				{ "type": "view: toggle ruler" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "ruler", "is": true } }
 			]
 		}
 	]

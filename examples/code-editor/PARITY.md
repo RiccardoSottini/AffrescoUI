@@ -8,16 +8,16 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 |---|---|---|---|
 | Look | Dark theme, warm accent, muted chrome | done | |
 | Look | Syntax colours by role (keywords, strings, comments, types, numbers) | done | |
-| Look | Tab strip: flat tabs, active tab joins the editor | partial | tabs are flat, not the sloped shape |
-| Look | Side bar with OPEN FILES and FOLDERS | done | |
+| Look | Tab strip: active tab joins the editor, a dot on unsaved tabs (× on hover) | partial | tabs are flat, not the sloped shape |
+| Look | Side bar with OPEN FILES and FOLDERS | done | no indent guide lines, as in the reference |
 | Look | Minimap | done | no viewport box drag |
 | Look | Status bar: line and column, indentation, syntax | done | |
 | Look | Gutter with line numbers and fold markers | partial | no fold markers shown |
 | Look | Indent guides, bracket matching | done | |
-| Look | Rulers | done | one at column 80 |
+| Look | Rulers | done | off by default; View, Toggle Ruler shows one at column 80 |
 | Navigation | Goto Anything (Cmd+P) by file name | done | |
 | Navigation | Goto Anything with `@` symbol, `:` line, `#` search | done | also after a file name: `file@symbol`, `file:line` |
-| Navigation | Command Palette (Cmd+Shift+P) | done | |
+| Navigation | Command Palette (Cmd+Shift+P) | done | "Category: Title" rows |
 | Navigation | Goto Symbol in Project | done | symbols from a heuristic: classes, functions, Markdown headings |
 | Navigation | Next and previous tab | done | |
 | Editing | Multiple selections | done | |
@@ -26,7 +26,7 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Editing | Layouts and split editing | missing | |
 | Editing | Distraction Free mode | missing | |
 | Editing | Projects (folder tree, open files) | done | one sample project |
-| Editing | Build (Cmd+B) with an output panel | partial | build is Cmd+Shift+B, output in the Console |
+| Editing | Build (Cmd+B) with an output panel | done | output in the Console, ending with the time taken |
 | Editing | Console | done | a command line with build, run, help, clear |
 | Editing | Save, save all, close with unsaved changes | done | |
 | Text | Snippets | missing | |
@@ -40,4 +40,4 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Settings | Theme selector with live preview | missing | |
 | Extra | Problems list (from the sample build) | done | not in the reference; kept for the scenarios |
 
-Counts: 22 done, 4 partial, 7 missing.
+Counts: 23 done, 3 partial, 7 missing.

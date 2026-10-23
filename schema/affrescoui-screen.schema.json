@@ -2185,6 +2185,12 @@
 					"accentColor": {
 						"$ref": "#/$defs/v2/color"
 					},
+					"markerColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"keepMarker": {
+						"type": "boolean"
+					},
 					"items": {
 						"anyOf": [
 							{
@@ -2285,6 +2291,9 @@
 							}
 						],
 						"description": "tree: how many open folders stay pinned at the top while their rows scroll (default 0)"
+					},
+					"guides": {
+						"type": "boolean"
 					},
 					"sort": {
 						"anyOf": [

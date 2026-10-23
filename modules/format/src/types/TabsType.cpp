@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -38,7 +39,8 @@ Tab readTab(const json& value, const std::string& path) {
 
 /// @brief Sets a strip's tabs, font and colours: those the node gives, the defaults for the others.
 /// @param panel The panel, a Tabs.
-/// @param values Its tabs, font, textColor, activeTextColor, activeBackground and accentColor, if given.
+/// @param values Its tabs, font, textColor, activeTextColor, activeBackground, accentColor, markerColor and keepMarker,
+/// if given.
 /// @param reader Reads colours and fonts.
 /// @param path The node's place, for errors.
 void applyTabs(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
@@ -59,6 +61,10 @@ void applyTabs(Panel& panel, const json& values, const PropertyReader& reader, c
 	tabs->setFont(values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr);
 	tabs->setColors(colorOr("textColor", colors::muted), colorOr("activeTextColor", colors::black),
 	                colorOr("activeBackground", colors::white), colorOr("accentColor", colors::accent));
+	tabs->setMarkerColor(values.contains("markerColor")
+	                         ? std::optional<Color>(reader.color(values["markerColor"], path + ".markerColor"))
+							 : std::nullopt);
+	tabs->setKeepMarker(values.contains("keepMarker") && boolean(values["keepMarker"], path + ".keepMarker"));
 }
 
 /// @brief Shows the active tab: the bound value, else "value".
@@ -157,7 +163,9 @@ void registerTabsType(TypeRegistry& registry) {
 	                   {"textColor", ValueKind::Color},
 	                   {"activeTextColor", ValueKind::Color},
 	                   {"activeBackground", ValueKind::Color},
-	                   {"accentColor", ValueKind::Color}};
+	                   {"accentColor", ValueKind::Color},
+	                   {"markerColor", ValueKind::Color},
+	                   {"keepMarker", ValueKind::Boolean}};
 	set->apply = applyTabs;
 	set->everyUpdate = true; // colours follow the theme
 	set->keepsClicks = true;

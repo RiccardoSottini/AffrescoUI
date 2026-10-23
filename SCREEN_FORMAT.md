@@ -454,6 +454,8 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
 | `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most 10,000; the strip scrolls sideways when they don't fit. |
 | `value` | The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`. |
 | `textColor`, `activeTextColor`, `activeBackground`, `accentColor` | The labels' colour (default muted), the active tab's, its background and its line. |
+| `markerColor` | The markers' colour (default `accentColor`). |
+| `keepMarker` | A marked tab keeps its marker while active, and shows its close button only while hovered (default false). |
 <!-- end generated -->
 
 ```json
@@ -481,6 +483,7 @@ top stays in place.
 | `items` | The rows, in order (or a binding such as `"{{state.files}}"`): a string (its id and label), or `{ "id", "label", "icon", "iconColor" }` (an icon before the label, by name, as a label's `icon`, in a hex colour or the text's); in a `tree`, also `"children"` (a list of items) and `"expandable"` (a closed node whose children aren't loaded yet: `onExpand` can load them); in a `table`, `"cells"`: the texts of the row's columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep. |
 | `expanded` | On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there to keep them over a rebuild. |
 | `stickyRows` | On a `tree`: how many open folders stay pinned at the top while their children scroll by, nearest the root first (default 0, at most 16). A click on a pinned folder moves the cursor to it. |
+| `guides` | On a `tree`: a line per level left of the nested rows (default true). |
 | `sort` | On a `table`: the rows' order, `{ "column": id, "descending": false }` (or null for the items' order). A click on a header sorts by its column, ascending then descending, and runs `onSort`: numbers by value before text, equal cells in the items' order. |
 | `selection` | `"single"` (the default), `"multiple"` (Shift adds a range, Cmd or Ctrl one row) or `"none"`. |
 | `value` | The selected id, or with `"multiple"` the list of them (`bind` keeps it in a state path); a change runs `onChange`. |
