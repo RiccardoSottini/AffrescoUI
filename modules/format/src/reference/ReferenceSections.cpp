@@ -225,6 +225,19 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "`{\"ui\": \"workbench@^1.0.0\"}`: `\"use\": \"ui.panel\"` builds the feature's `workbench.panel`, if its "
 	 "release is in the range.",
 	 "capabilities"},
+    {"images", R"json({"type": "object", "maxProperties": 16,
+		"description": "Raster images the image step edits, with their tools and lowered limits",
+		"additionalProperties": {"type": "object", "required": ["width", "height"],
+		"properties": {"width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1},
+		"format": {"enum": ["rgba8", "rgba16f"]}, "background": {"type": "string"},
+		"into": {"type": "string", "pattern": "^state\\."}, "tool": {"type": "string"},
+		"tools": {"type": "object", "maxProperties": 64, "additionalProperties": {"type": "object",
+		"required": ["gesture"], "properties": {"gesture": {"type": "string"}}}},
+		"limits": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}}}}})json",
+	 "`{\"canvas\": {\"width\": 800, \"height\": 600, \"into\": \"state.canvas\", \"tools\": {\"brush\": "
+	 "{\"gesture\": \"paint\", \"size\": 12}}}}`: the images the `image` step edits; `tools` names the "
+	 "library's gestures with their settings, and `limits` only lowers the library's. Revisions can't change it.",
+	 "capabilities"},
     {"points", R"json({"type": "object", "description": "Contribution points another app's features may fill",
 		"additionalProperties": {"type": "object", "required": ["slot"],
 		"properties": {"slot": {"enum": ["dock", "panel", "menu", "toolbar"]},

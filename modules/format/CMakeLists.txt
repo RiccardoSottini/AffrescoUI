@@ -131,6 +131,10 @@ target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/cr
 	src/creative/TimelineType.cpp src/creative/PathType.cpp src/creative/SceneType.cpp)
 # scene: the 3D scene node and its camera step
 target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
+# imaging: the images a screen edits ("images" section, "image" step): the store, the tools, the operations
+target_sources(affrescoui_format PRIVATE src/imaging/ImageDocuments.cpp src/imaging/ImageOptions.cpp
+	src/imaging/ImagesSection.cpp src/imaging/ImageGestures.cpp)
+target_link_libraries(affrescoui_format PRIVATE affrescoui::imaging)
 # properties: the properties node types share: look, layout, accessibility, transform, text fields, icons, runs
 target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/CommonProperties.cpp
 	src/properties/PropertyValues.cpp src/properties/LayoutProperties.cpp src/properties/AccessibilityProperties.cpp
@@ -157,4 +161,4 @@ target_sources(affrescoui_format PRIVATE src/adapters/Layout.cpp src/adapters/A2
 	src/adapters/AdaptiveCards.cpp src/adapters/AdaptiveCardActions.cpp src/adapters/Adapters.cpp
 	src/adapters/AdapterMapping.cpp)
 target_include_directories(affrescoui_format PRIVATE src/types src/controls src/components src/creative src/properties
-	src/reference src/sections src/connections src/features src/composition src/adapters)
+	src/reference src/sections src/connections src/features src/composition src/adapters src/imaging)

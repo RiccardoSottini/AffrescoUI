@@ -180,7 +180,8 @@ TEST_CASE("format: the capability sections are the ones a revision can't change"
 	for(const SectionType& section : sections.sections())
 		if(section.capability) capabilities.push_back(section.name);
 	CHECK(capabilities ==
-	      std::vector<std::string>{"channels", "services", "connections", "persist", "permissions", "points"});
+	      std::vector<std::string>{"channels", "services", "connections", "persist", "permissions", "images",
+	                               "points"});
 
 	const Rules rules;
 	const json before = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}}}};

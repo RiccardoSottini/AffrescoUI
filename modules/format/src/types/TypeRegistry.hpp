@@ -23,6 +23,13 @@
 
 namespace affresco::format {
 
+namespace editing {
+class ImageDocuments;
+/// @brief A new, empty store of images (ImageDocuments.cpp), so this header needn't include the imaging module.
+/// @return The store.
+[[nodiscard]] std::shared_ptr<ImageDocuments> makeImageDocuments();
+} // namespace editing
+
 /// @brief The kind of value a property takes, for the catalog and the checker.
 enum class ValueKind {
 	Any,       ///< Anything; the type's apply function checks it.
@@ -242,12 +249,18 @@ public:
 	}
 	/// @brief The GPU surfaces the host registered, which "surface" nodes name (shared with that type's apply).
 	[[nodiscard]] const std::shared_ptr<SurfaceRegistry>& surfaces() const noexcept { return surfaces_; }
+	/// @brief The images the "images" section declares, made when an "image" step first names one (shared with the
+	/// views that show them, which may outlive a rebuilt screen).
+	[[nodiscard]] const std::shared_ptr<editing::ImageDocuments>& imageDocuments() const noexcept {
+		return imageDocuments_;
+	}
 
 private:
 	std::map<std::string, NodeType, std::less<>> types_;        ///< See types().
 	std::vector<std::string> order_;                            ///< Their names, in the order first added.
 	std::vector<std::shared_ptr<const PropertySet>> inherited_; ///< Sets with appliesTo, in the order added.
 	std::shared_ptr<SurfaceRegistry> surfaces_ = std::make_shared<SurfaceRegistry>(); ///< See surfaces().
+	std::shared_ptr<editing::ImageDocuments> imageDocuments_ = editing::makeImageDocuments(); ///< See imageDocuments().
 };
 
 /// @brief Registers the built-in node types (Types.cpp, and the widgets' own files).
