@@ -121,3 +121,6 @@ affrescoui_fuzzer(scene affrescoui::scene3d nlohmann_json::nlohmann_json)
 # The image editor's inputs (examples/tempera): ICC profiles and project files
 affrescoui_fuzzer(icc affrescoui::imaging)
 affrescoui_fuzzer(tempera_project affrescoui::imaging)
+# The images a screen edits: the "images" section's entries and the "image" step (format/src/imaging)
+affrescoui_fuzzer(images affrescoui::format)
+target_include_directories(affrescoui_fuzz_images PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)

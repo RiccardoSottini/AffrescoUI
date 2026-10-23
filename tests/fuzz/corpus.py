@@ -27,6 +27,7 @@
 - history:    refs.json (even first byte) or a commit object (odd first byte) of a history on disk.
 - gltf:       a small .gltf (a triangle, its material, a clip) with its buffer as data:, a .glb of it, broken copies;
 - scene:      a scene node's scene, animations and time, with primitives, lights, clips and that model placed in it.
+- images:     the "images" sections of the docs and the rendering check's screens, with the "image" steps they run.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -593,6 +594,43 @@ def gltf_seeds():
     return [text, glb, *[compact(each) for each in broken], compact({"asset": {"version": "2.0"}})]
 
 
+def image_operations():
+    """The "image" step's operations and the "with" keys they read, from SCREEN_FORMAT.md's generated table."""
+    text = (ROOT / "SCREEN_FORMAT.md").read_text(encoding="utf-8")
+    table = text.split("<!-- generated: imageOperations -->", 1)[1].split("<!-- end generated -->", 1)[0]
+    operations = {}
+    for name, keys in re.findall(r"^\| `(\w+)` \| ([^|]*) \|", table, re.M):
+        operations[name] = re.findall(r"`(\w+)`", keys)
+    return operations
+
+
+def images_seeds():
+    """The images target's input (tests/fuzz/images.cpp): each document's images with the "image" steps it runs."""
+    operations = image_operations()
+    documents = [json.loads(path.read_text(encoding="utf-8"))
+                 for path in sorted((ROOT / "tests" / "render" / "screens").glob("*.json"))]
+    for text in re.findall(r"```json\n(.*?)```", (ROOT / "SCREEN_FORMAT.md").read_text(encoding="utf-8"), re.S):
+        try:
+            documents.append(json.loads("{" + text + "}"))  # the examples of Images are a document's keys
+        except json.JSONDecodeError:
+            pass
+    seeds = []
+    for document in documents:
+        if not isinstance(document, dict) or not isinstance(document.get("images"), dict):
+            continue
+        steps = [value for value in walk(document) if isinstance(value, dict)
+                 and isinstance(value.get("image"), str) and value["image"] in operations]
+        seeds.append(compact({"images": document["images"], "steps": steps}))
+    board = {"board": {"width": 64, "height": 48, "into": "state.board",
+                       "tools": {"pen": {"gesture": "paint", "size": 4}, "box": {"gesture": "select-rectangle"}}}}
+    pointer = [{"image": "setTool", "with": {"tool": "pen"}}] + [
+        {"image": "pointer", "with": {"phase": phase, "x": x, "y": 20}}
+        for phase, x in [("press", 4), ("move", 30), ("release", 60)]]
+    seeds.append(compact({"images": board, "steps": pointer + [{"image": "undo"}, {"image": "redo"}]}))
+    seeds.append(compact({"images": board, "steps": [{"image": name, "with": {}} for name in operations]}))
+    return seeds
+
+
 def scene_seeds():
     """Scene nodes' input (tests/fuzz/scene.cpp): scenes of primitives, lights and materials, clips, a placed model."""
     nodes = [{"id": "cube", "mesh": "cube", "material": "paint", "translation": [0, 1, 0], "rotationDegrees": [0, 45, 0]},
@@ -773,6 +811,9 @@ def main():
     write(out, "scene", scene_seeds(), words["json"] + ["gltf", "scene", "animations", "time", "nodes", "materials",
           "mesh", "parent", "translation", "rotation", "rotationDegrees", "scale", "light", "asset", "tracks", "times",
           "values", "cube", "sphere", "cylinder", "cone", "torus", "plane", "directional", "point", "spot", "m"])
+    operations = image_operations()
+    write(out, "images", images_seeds(), words["json"] + ["images", "steps", "image", "of", "with", "limits"]
+          + list(operations) + sorted({key for keys in operations.values() for key in keys}))
     write(out, "syntax", syntax_seeds(), ["(", ")", "{", "}", "[", "]", "\"", "'", "`", "/*", "*/", "//", "#", "\n"])
 
 
