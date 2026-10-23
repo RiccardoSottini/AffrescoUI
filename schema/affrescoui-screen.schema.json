@@ -2077,6 +2077,10 @@
 						"type": "string",
 						"description": "editor: a state path the editor writes its caret to, as { line, column, selected } (from 1)"
 					},
+					"viewport": {
+						"type": "string",
+						"description": "editor: a state path the editor writes what it shows to, as { first, last, rows, lines } (lines from 1)"
+					},
 					"lineNumbers": {
 						"type": "boolean",
 						"description": "editor: show line numbers in a gutter"

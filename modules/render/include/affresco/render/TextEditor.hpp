@@ -349,9 +349,24 @@ public:
 	/// @brief The text, one element per line (at least one), decoded when read.
 	[[nodiscard]] const TextLines& lines() const noexcept { return lines_; }
 
+	/// @brief What the editor shows: the lines of its first and last visible rows, counted from 1, how many rows
+	/// fit, and how many lines there are.
+	struct View {
+		std::size_t first = 0; ///< The line of the first visible row, from 1.
+		std::size_t last = 0;  ///< The line of the last visible row, from 1.
+		std::size_t rows = 0;  ///< How many whole rows fit.
+		std::size_t lines = 0; ///< How many lines the text has.
+		/// @brief Whether two views are the same.
+		bool operator==(const View&) const = default;
+	};
+	/// @brief What the editor shows now.
+	/// @return See View.
+	[[nodiscard]] View view() const;
+
 	Signal<const std::string&> onTextChanged; ///< The user edited the text (not setText()); UTF-8.
 	Signal<Position> onCaretMoved;            ///< The caret or the selection changed, by the user or by an edit.
 	Signal<Vec2> onScrolled;                  ///< The scroll offset changed (by the wheel, the caret or setScroll()).
+	Signal<View> onViewChanged;               ///< What view() returns changed: a scroll, an edit or a new size.
 	/// A left press on the gutter (line numbers, gutter decorations) that didn't unfold a line: the line, the keys
 	/// held. Only fired, and the press only kept from moving the caret, while something listens.
 	Signal<std::size_t, Mods> onGutterClicked;
@@ -534,6 +549,8 @@ private:
 	[[nodiscard]] std::size_t visibleLines() const noexcept;
 	/// @brief Keeps the scroll offset inside the content.
 	void clampScroll();
+	/// @brief Fires onViewChanged if view() changed since it last did.
+	void noteView();
 	/// @brief Scrolls so the caret is visible.
 	void revealCaret();
 	/// @brief The position one code point, or one word, to the left or right.
@@ -938,6 +955,7 @@ private:
 	bool minimapHovered_ = false;     ///< The pointer is over the minimap.
 	bool matchOutline_ = false;       ///< See setMatchOutline().
 	CaretStyle caretStyle_ = CaretStyle::Line; ///< See setCaretStyle().
+	View lastView_;                            ///< What onViewChanged last told.
 
 	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.
 	bool lineNumbers_ = false;            ///< See setLineNumbers().

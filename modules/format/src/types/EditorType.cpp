@@ -1,7 +1,8 @@
 /// @file
 /// @brief The "editor" node type: a TextEditor, its font, line numbers and colours, its text, and its view: wrapping,
 /// folds, decorations, the find highlight, brackets, indentation guides and read-only. An application's TextEditor
-/// subclass has these properties too. Its "caret" is the runtime's (Events.cpp), as it writes the state.
+/// subclass has these properties too. Its "caret" and "viewport" are the runtime's (Events.cpp), as it writes the
+/// state.
 
 #include "ExpressionFunctions.hpp"
 #include "LanguageHighlighter.hpp"
@@ -62,8 +63,10 @@ EditorDecoration readDecoration(const json& value, const PropertyReader& reader,
 	if(value.contains("endColumn")) d.endColumn = lineNumber(value["endColumn"], path + ".endColumn");
 	const std::string kind = value.contains("kind") ? string(value["kind"], path + ".kind") : "background";
 	using Kind = EditorDecoration::Kind;
-	static constexpr std::array<std::pair<const char*, Kind>, 4> kinds = {
-	    {{"background", Kind::Background}, {"squiggle", Kind::Squiggle}, {"gutter", Kind::Gutter}, {"inline", Kind::Inline}}};
+	static constexpr std::array<std::pair<const char*, Kind>, 4> kinds = {{{"background", Kind::Background},
+	                                                                       {"squiggle", Kind::Squiggle},
+	                                                                       {"gutter", Kind::Gutter},
+	                                                                       {"inline", Kind::Inline}}};
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	const auto found = std::ranges::find_if(kinds, [&kind](const auto& k) { return kind == k.first; });
 	if(found == kinds.end()) fail(path + ".kind", "expected background, squiggle, gutter or inline");
@@ -103,9 +106,11 @@ std::vector<Item> readList(const json& values, const char* key, const std::strin
 void applyFindStep(TextEditor& editor, const json& find, const std::string& at) {
 	if(!find.contains("step") || !find.contains("request")) return;
 	using Step = TextEditor::FindStep;
-	static const std::array<std::pair<std::string_view, Step>, 5> steps = {
-	    {{"first", Step::First}, {"next", Step::Next}, {"previous", Step::Previous}, {"replace", Step::Replace},
-	     {"replaceAll", Step::ReplaceAll}}};
+	static const std::array<std::pair<std::string_view, Step>, 5> steps = {{{"first", Step::First},
+	                                                                        {"next", Step::Next},
+	                                                                        {"previous", Step::Previous},
+	                                                                        {"replace", Step::Replace},
+	                                                                        {"replaceAll", Step::ReplaceAll}}};
 	const std::string name = string(find["step"], at + ".step");
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	const auto found = std::ranges::find(steps, std::string_view(name), &std::pair<std::string_view, Step>::first);
@@ -130,8 +135,8 @@ void applyFind(TextEditor& editor, const json& values, const std::string& path) 
 	const std::string at = path + ".find";
 	object(find, at);
 	const auto flag = [&](const char* key) { return find.contains(key) && boolean(find[key], at + "." + key); };
-	const PatternOptions options{.regex = flag("regex"), .wholeWord = flag("wholeWord"),
-	                             .caseSensitive = flag("caseSensitive")};
+	const PatternOptions options{
+	    .regex = flag("regex"), .wholeWord = flag("wholeWord"), .caseSensitive = flag("caseSensitive")};
 	// A pattern that doesn't compile highlights nothing: the user may be typing it
 	static_cast<void>(editor.setFind(find.contains("text") ? text(find["text"]) : std::string(), options));
 	editor.setFindInSelection(flag("inSelection"));
@@ -271,10 +276,10 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 			const std::size_t line = value.contains("line") ? lineNumber(value["line"], at + ".line") : 0;
 			return FoldRange{line, value.contains("endLine") ? lineNumber(value["endLine"], at + ".endLine") : line};
 		}));
-	editor.setDecorations(readList<EditorDecoration>(values, "decorations", path,
-	                                                 [&reader](const json& value, const std::string& at) {
-		                                                 return readDecoration(value, reader, at);
-	                                                 }));
+	editor.setDecorations(
+	    readList<EditorDecoration>(values, "decorations", path, [&reader](const json& value, const std::string& at) {
+		    return readDecoration(value, reader, at);
+	    }));
 	applyFind(editor, values, path);
 }
 
@@ -396,6 +401,7 @@ void registerEditorType(TypeRegistry& registry) {
 	set->properties = {{"bind", ValueKind::StatePath},
 	                   {"text", ValueKind::Text},
 	                   {"caret", ValueKind::StatePath},
+	                   {"viewport", ValueKind::StatePath},
 	                   {"font", ValueKind::Font},
 	                   {"textColor", ValueKind::Color},
 	                   {"lineNumbers", ValueKind::Boolean},

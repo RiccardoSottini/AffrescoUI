@@ -134,7 +134,8 @@ std::optional<Reference> referenceOf(std::string_view key) {
 bool mayReferTo(const std::string& key, const json& value) {
 	if(value.is_structured()) return true;
 	if(!value.is_string()) return false;
-	return isDynamic(value) || handlerKey(key) || key == "bind" || key == "caret" || referenceOf(key).has_value();
+	return isDynamic(value) || handlerKey(key) || key == "bind" || key == "caret" || key == "viewport" ||
+	       referenceOf(key).has_value();
 }
 
 /// @brief Tells whether a step's key is what the step writes, or where: those are read by walkWrite().
@@ -353,7 +354,7 @@ void Checker::walkProperty(const Prepared& node, const std::string& key, const j
 	if(!mayReferTo(key, value)) return; // most properties: no place is built for them
 	const std::string at = layer.place + "." + key;
 	if(walkBehaviour(key, value, scope, at)) return;
-	if(key == "bind" || key == "caret") {
+	if(key == "bind" || key == "caret" || key == "viewport") {
 		walkBinding(key, value, scope, at);
 		if(key == "bind") checkBind(node, value, at);
 	} else if(key == "overlay") {
@@ -413,7 +414,7 @@ void Checker::walkBinding(const std::string& key, const json& value, const Scope
 		return;
 	}
 	if(key == "bind") (void)shapeOfPath(value.get_ref<const std::string&>(), scope, place);
-	write(value, key == "caret" ? caretShape() : single, Change::set, scope, place);
+	write(value, key == "caret" ? caretShape() : key == "viewport" ? viewShape() : single, Change::set, scope, place);
 }
 
 void Checker::walkOverlay(const json& value, const Scope& scope, const std::string& place) {
