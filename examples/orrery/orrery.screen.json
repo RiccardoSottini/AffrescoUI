@@ -769,6 +769,10 @@
 		"fly": 0,
 		"showOrbits": true,
 		"showLabels": true,
+		"showStars": true,
+		"showShading": true,
+		"showGlow": true,
+		"renderOpen": false,
 		"viewMenu": false,
 		"zoom": 1.1,
 		"showBrowser": false,
@@ -830,6 +834,7 @@
 		"turned": "{{map(computed.placed, merge(it, {x1: (it.x - computed.target.x) * computed.view.cy - (it.z - computed.target.z) * computed.view.sy, z1: (it.x - computed.target.x) * computed.view.sy + (it.z - computed.target.z) * computed.view.cy}))}}",
 		"projected": "{{sort(map(computed.turned, merge(it, {depth: computed.view.distance - it.z1 * computed.view.cp, px: computed.view.w / 2 + it.x1 * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), py: computed.view.h / 2 + it.z1 * computed.view.sp * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp), r: min(max(3, it.size * computed.view.f / (computed.view.distance - it.z1 * computed.view.cp)), computed.view.h * 0.4)})), it.depth, 'desc')}}",
 		"orbitPaths": "{{map(filter(computed.placed, it.parent != ''), {id: it.id, ox: it.cx - computed.target.x, oz: it.cz - computed.target.z, radius: it.radius})}}",
+		"shaded": "{{map(computed.projected, merge(it, {k: it.parent == '' ? 1 : (1 + ((computed.sun.x1 - it.x1) * -it.x1 + (computed.sun.z1 - it.z1) * (computed.view.distance * computed.view.cp - it.z1)) / max(hypot((computed.sun.x1 - it.x1), (computed.sun.z1 - it.z1)) * sqrt(it.x1 * it.x1 + computed.view.distance * computed.view.distance - 2 * computed.view.distance * it.z1 * computed.view.cp + it.z1 * it.z1), 0.000001)) / 2, ux: (computed.sun.x1 - it.x1) / max(hypot((computed.sun.x1 - it.x1), (computed.sun.z1 - it.z1) * computed.view.sp), 0.000001), uy: (computed.sun.z1 - it.z1) * computed.view.sp / max(hypot((computed.sun.x1 - it.x1), (computed.sun.z1 - it.z1) * computed.view.sp), 0.000001)}))}}",
 		"sight": "{{find(computed.projected, it.id == state.selected)}}",
 		"sun": "{{find(computed.turned, it.parent == '')}}",
 		"range": "{{computed.sight ? sqrt(computed.sight.x1 * computed.sight.x1 + computed.view.distance * computed.view.distance - 2 * computed.view.distance * computed.sight.z1 * computed.view.cp + computed.sight.z1 * computed.sight.z1) : 0}}",
@@ -848,7 +853,8 @@
 		"bodyLevel2": "{{map(computed.bodyLevel1, length(computed.bodyKids[index]) > 0 ? merge(it, {children: map(computed.bodyKids[index], computed.bodyLevel1[it])}) : it)}}",
 		"bodyLevel3": "{{map(computed.bodyLevel2, length(computed.bodyKids[index]) > 0 ? merge(it, {children: map(computed.bodyKids[index], computed.bodyLevel2[it])}) : it)}}",
 		"bodyTree": "{{map(filter(range(length(state.bodies)), state.bodies[it].parent == ''), computed.bodyLevel3[it])}}",
-		"bookmarkRows": "{{map(state.bookmarks, {id: it.id, label: it.label, icon: 'bookmark'})}}"
+		"bookmarkRows": "{{map(state.bookmarks, {id: it.id, label: it.label, icon: 'bookmark'})}}",
+		"renderOptions": "{{[{id: 'orbits', title: 'Orbits', on: state.showOrbits, run: 'toggleOrbits'}, {id: 'labels', title: 'Labels', on: state.showLabels, run: 'toggleLabels'}, {id: 'stars', title: 'Stars', on: state.showStars, run: 'toggleStars'}, {id: 'shading', title: 'Lit side', on: state.showShading, run: 'toggleShading'}, {id: 'glow', title: 'Sun glow', on: state.showGlow, run: 'toggleGlow'}]}}"
 	},
 	"styles": {
 		"button": {
@@ -1389,6 +1395,43 @@
 				}
 			]
 		},
+		"toggleStars": {
+			"title": "Show stars",
+			"icon": "sparkles",
+			"do": [
+				{
+					"toggle": "state.showStars"
+				}
+			]
+		},
+		"toggleShading": {
+			"title": "Show the lit side",
+			"icon": "moon",
+			"do": [
+				{
+					"toggle": "state.showShading"
+				}
+			]
+		},
+		"toggleGlow": {
+			"title": "Show the Sun's glow",
+			"icon": "sun",
+			"do": [
+				{
+					"toggle": "state.showGlow"
+				}
+			]
+		},
+		"openRender": {
+			"title": "Render options",
+			"icon": "sliders-horizontal",
+			"do": [
+				{
+					"set": "state.renderOpen",
+					"to": true
+				}
+			]
+		},
 		"zoomIn": {
 			"title": "Narrow the field of view",
 			"icon": "zoom-in",
@@ -1536,7 +1579,8 @@
 		"b": "toggleBrowser",
 		"mod+d": "addBookmark",
 		"period": "zoomIn",
-		"comma": "zoomOut"
+		"comma": "zoomOut",
+		"mod+comma": "openRender"
 	},
 	"root": {
 		"id": "root",
@@ -1697,7 +1741,8 @@
 										"d": "{{'M ' + join(map(computed.starScreen, fixed(it.px, 1) + ' ' + fixed(it.py, 1) + ' l 0 0.1'), ' M ')}}",
 										"stroke": "#c8cfe0",
 										"strokeWidth": 1.4,
-										"strokeCap": "round"
+										"strokeCap": "round",
+										"visible": "{{state.showStars}}"
 									},
 									{
 										"type": "panel",
@@ -1730,7 +1775,7 @@
 											{
 												"repeat": {
 													"for": "b",
-													"in": "{{computed.projected}}",
+													"in": "{{computed.shaded}}",
 													"key": "id"
 												},
 												"type": "panel",
@@ -1739,7 +1784,7 @@
 												"radius": 999,
 												"shadow": {
 													"blur": "{{2 * b.r}}",
-													"color": "{{b.parent == '' ? '#ffc94d99' : '#00000000'}}"
+													"color": "{{b.parent == '' && state.showGlow ? '#ffc94d99' : '#00000000'}}"
 												},
 												"x": "{{b.px - b.r - 4}}",
 												"y": "{{b.py - b.r - 4}}",
@@ -1766,6 +1811,14 @@
 															"top": 4,
 															"bottom": 4
 														}
+													},
+													{
+														"type": "path",
+														"id": "{{'view-shade-' + b.id}}",
+														"visible": "{{state.showShading && b.k < 0.99}}",
+														"fill": true,
+														"fillColor": "#000000c0",
+														"d": "{{'M ' + ((b.r + 4) - b.r * b.uy) + ' ' + ((b.r + 4) + b.r * b.ux) + ' A ' + b.r + ' ' + b.r + ' 0 0 1 ' + ((b.r + 4) + b.r * b.uy) + ' ' + ((b.r + 4) - b.r * b.ux) + ' A ' + b.r + ' ' + max(b.r * abs(2 * b.k - 1), 0.01) + ' ' + degrees(atan2(b.ux, -b.uy)) + ' 0 ' + (b.k < 0.5 ? 1 : 0) + ' ' + ((b.r + 4) - b.r * b.uy) + ' ' + ((b.r + 4) + b.r * b.ux) + ' Z'}}"
 													},
 													{
 														"type": "panel",
@@ -2302,6 +2355,71 @@
 						"children": []
 					}
 				]
+			},
+			{
+				"use": "dialog",
+				"id": "render",
+				"with": {
+					"open": "state.renderOpen",
+					"title": "Render options",
+					"message": "What the 3D view draws",
+					"buttons": [
+						{
+							"title": "Done"
+						}
+					],
+					"width": 340,
+					"height": 330
+				},
+				"children": [
+					{
+						"type": "column",
+						"id": "render-options",
+						"gap": 6,
+						"children": [
+							{
+								"repeat": {
+									"for": "o",
+									"in": "{{computed.renderOptions}}",
+									"key": "id"
+								},
+								"type": "row",
+								"id": "{{'render-' + o.id}}",
+								"width": "100%",
+								"height": 30,
+								"children": [
+									{
+										"type": "label",
+										"id": "{{'render-' + o.id + '-title'}}",
+										"text": "{{o.title}}",
+										"textColor": "@text",
+										"width": 200,
+										"height": 30
+									},
+									{
+										"type": "toggle",
+										"id": "{{'render-' + o.id + '-toggle'}}",
+										"width": 44,
+										"height": 24,
+										"label": "{{o.title}}",
+										"checked": "{{o.on}}",
+										"activeColor": "@accent",
+										"trackColor": "@border",
+										"onChange": {
+											"run": "{{o.run}}"
+										}
+									}
+								]
+							}
+						],
+						"anchors": {
+							"left": 20,
+							"right": 20,
+							"top": 76,
+							"bottom": 64
+						}
+					}
+				]
 			}
 		]
 	},
@@ -2790,6 +2908,11 @@
 				"run": "deleteBookmark",
 				"group": "4_places",
 				"order": 2
+			},
+			"renderOptions": {
+				"run": "openRender",
+				"group": "2_show",
+				"order": 4
 			}
 		}
 	}

@@ -25,8 +25,8 @@ system of six bodies on circular orbits in one plane.
 | C13 | Eclipse finder | missing | |
 | C14 | Bookmarks (saved camera places) | done | the browser's Places tab, a `list` of saved places (camera, time, field of view); mod+D or the View menu adds one, the bin deletes one |
 | C15 | Field of view and limiting magnitude shown, and changed | part | the field of view, bottom right, narrowed and widened with period and comma; no limiting magnitude |
-| C16 | Phase and lit side of each body | part | the selected body's phase in the info; no lit side drawn |
-| C17 | Render options dialog | missing | |
+| C16 | Phase and lit side of each body | done | computed `shaded`: each body's lit fraction and the screen direction to the Sun; a dark `path` (a half disc and a half ellipse) over the disc's night side |
+| C17 | Render options dialog | done | the built-in `dialog` with a toggle per layer (orbits, labels, stars, lit side, Sun glow); mod+comma or the View menu |
 
 ## The sky chart (modelled on Stellarium)
 
@@ -60,3 +60,4 @@ system of six bodies on circular orbits in one plane.
 | 3 | Go to, centre, follow; stars turn with the camera; culling behind it; clamped time; orbit and label toggles, View menu | 15 / 5 / 9 | 20,262 |
 | 4 | Solar system browser (a tree of the bodies), bookmarks, field of view | 17 / 6 / 6 | 22,685 |
 | 5 | Fixes from the round 4 critique: flights land once, moons placed round their planet, reparenting refused into a loop or past three levels, places keep the time and field of view and can be deleted, the view fits a small window | 17 / 6 / 6 | 24,401 |
+| 6 | The lit side of every body, the render options dialog (stars, lit side and glow can be hidden) | 19 / 5 / 5 | 25,816 |
