@@ -9,7 +9,33 @@
 		"width": 1100,
 		"height": 760,
 		"minWidth": 480,
-		"minHeight": 640
+		"minHeight": 640,
+		"menuBar": [
+			{
+				"menu": "file",
+				"title": "File"
+			},
+			{
+				"menu": "edit",
+				"title": "Edit"
+			},
+			{
+				"menu": "view",
+				"title": "View"
+			},
+			{
+				"menu": "repository",
+				"title": "Repository"
+			},
+			{
+				"menu": "branch",
+				"title": "Branch"
+			},
+			{
+				"menu": "help",
+				"title": "Help"
+			}
+		]
 	},
 	"fonts": {
 		"default": {
@@ -2321,53 +2347,197 @@
 				"to": ""
 			}
 		],
-		"stashPatch": [
-			{
-				"note": "Sets the draft aside, as a stash does, until it is restored"
+		"stashPatch": {
+			"title": "Stash the change",
+			"category": "branch",
+			"icon": "archive",
+			"enablement": "{{trim(state.patch) != '' && state.stash == ''}}",
+			"do": [
+				{
+					"note": "Sets the draft aside, as a stash does, until it is restored"
+				},
+				{
+					"set": "state.stash",
+					"to": "{{state.patch}}"
+				},
+				{
+					"set": "state.patch",
+					"to": ""
+				}
+			]
+		},
+		"unstashPatch": {
+			"title": "Restore the stash",
+			"category": "branch",
+			"icon": "archive-restore",
+			"enablement": "{{trim(state.patch) == '' && state.stash != ''}}",
+			"do": [
+				{
+					"set": "state.patch",
+					"to": "{{state.stash}}"
+				},
+				{
+					"set": "state.stash",
+					"to": ""
+				}
+			]
+		},
+		"compareWithMain": {
+			"title": "Compare with main",
+			"category": "branch",
+			"icon": "git-compare",
+			"enablement": "{{computed.current != null}}",
+			"do": [
+				{
+					"note": "A proposal against main: its Files changed page"
+				},
+				{
+					"set": "state.branchOpen",
+					"to": false
+				},
+				{
+					"run": "showReview"
+				},
+				{
+					"set": "state.prTab",
+					"to": "files"
+				},
+				{
+					"if": "{{computed.prStale}}",
+					"then": [
+						{
+							"run": "requestDiff"
+						}
+					]
+				}
+			]
+		}
+	},
+	"menus": {
+		"file": {
+			"connections": {
+				"run": "openConnections",
+				"group": "1_repository"
 			},
-			{
-				"set": "state.stash",
-				"to": "{{state.patch}}"
-			},
-			{
-				"set": "state.patch",
-				"to": ""
+			"settings": {
+				"run": "openSettings",
+				"group": "2_settings"
 			}
-		],
-		"unstashPatch": [
-			{
-				"set": "state.patch",
-				"to": "{{state.stash}}"
+		},
+		"edit": {
+			"undo": {
+				"run": "undoCommit",
+				"group": "1_undo"
 			},
-			{
-				"set": "state.stash",
-				"to": ""
+			"request": {
+				"run": "sendRequest",
+				"group": "2_request"
+			},
+			"clearLog": {
+				"run": "clearActivity",
+				"group": "3_log"
 			}
-		],
-		"compareWithMain": [
-			{
-				"note": "A proposal against main: its Files changed page"
+		},
+		"view": {
+			"review": {
+				"run": "showReview",
+				"group": "1_tabs"
 			},
-			{
-				"set": "state.branchOpen",
-				"to": false
+			"history": {
+				"run": "showHistory",
+				"group": "1_tabs",
+				"order": 2
 			},
-			{
-				"run": "showReview"
+			"rules": {
+				"run": "showRules",
+				"group": "1_tabs",
+				"order": 3
 			},
-			{
-				"set": "state.prTab",
-				"to": "files"
+			"agents": {
+				"run": "showAgents",
+				"group": "1_tabs",
+				"order": 4
 			},
-			{
-				"if": "{{computed.prStale}}",
-				"then": [
-					{
-						"run": "requestDiff"
-					}
-				]
+			"permissions": {
+				"run": "showPermissions",
+				"group": "1_tabs",
+				"order": 5
+			},
+			"inspector": {
+				"run": "showInspector",
+				"group": "1_tabs",
+				"order": 6
+			},
+			"theme": {
+				"run": "switchTheme",
+				"group": "2_appearance"
+			},
+			"commands": {
+				"run": "showCommands",
+				"group": "3_commands"
 			}
-		]
+		},
+		"repository": {
+			"fetch": {
+				"run": "fetch",
+				"group": "1_sync"
+			},
+			"reconnect": {
+				"run": "reconnectHost",
+				"group": "1_sync",
+				"order": 2
+			},
+			"inspect": {
+				"run": "inspectApp",
+				"group": "2_app"
+			},
+			"settings": {
+				"run": "showRules",
+				"title": "Repository settings",
+				"group": "3_settings"
+			}
+		},
+		"branch": {
+			"compare": {
+				"run": "compareWithMain",
+				"group": "1_compare"
+			},
+			"preview": {
+				"run": "previewProposal",
+				"group": "1_compare",
+				"order": 2
+			},
+			"evidence": {
+				"run": "collectEvidence",
+				"group": "1_compare",
+				"order": 3
+			},
+			"stash": {
+				"run": "stashPatch",
+				"group": "2_stash"
+			},
+			"unstash": {
+				"run": "unstashPatch",
+				"group": "2_stash",
+				"order": 2
+			},
+			"merge": {
+				"run": "acceptProposal",
+				"group": "3_merge"
+			},
+			"close": {
+				"run": "rejectProposal",
+				"group": "3_merge",
+				"order": 2
+			}
+		},
+		"help": {
+			"commands": {
+				"run": "showCommands",
+				"title": "Show the commands and shortcuts",
+				"group": "1_help"
+			}
+		}
 	},
 	"keys": {
 		"mod+enter": "sendRequest",

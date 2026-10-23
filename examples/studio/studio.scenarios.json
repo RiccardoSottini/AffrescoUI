@@ -1715,6 +1715,66 @@
 			]
 		},
 		{
+			"name": "the-branch-menu-commands-stash",
+			"note": "Stash and Restore, which the Branch menu lists, are commands the palette runs too",
+			"steps": [
+				{
+					"click": "#patch"
+				},
+				{
+					"type": "{\"set\": {\"#boardName/text\": \"Q4\"}}"
+				},
+				{
+					"key": "mod+shift+p"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "stash the change"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "patch",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "stash",
+						"is": "{\"set\": {\"#boardName/text\": \"Q4\"}}"
+					}
+				},
+				{
+					"key": "mod+shift+p"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "restore the stash"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "patch",
+						"is": "{\"set\": {\"#boardName/text\": \"Q4\"}}"
+					}
+				},
+				{
+					"expect": {
+						"state": "stash",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
 			"name": "losing-the-host",
 			"note": "When the host goes, the header says so and offers Reconnect",
 			"steps": [
@@ -1967,7 +2027,12 @@
 						"canReview": true
 					}
 				},
-				{ "action": "prTab", "event": { "value": "checks" } },
+				{
+					"action": "prTab",
+					"event": {
+						"value": "checks"
+					}
+				},
 				{
 					"expect": {
 						"node": "#label-evidence",
@@ -3121,8 +3186,16 @@
 						"is": 2
 					}
 				},
-				{ "action": "clearActivity", "note": "a send while offline adds one error line" },
-				{ "expect": { "state": "log.length", "is": 0 } },
+				{
+					"action": "clearActivity",
+					"note": "a send while offline adds one error line"
+				},
+				{
+					"expect": {
+						"state": "log.length",
+						"is": 0
+					}
+				},
 				{
 					"key": "mod+shift+enter"
 				},
@@ -3826,10 +3899,19 @@
 					}
 				},
 				{
-					"expect": { "state": "connState", "is": "failed" },
+					"expect": {
+						"state": "connState",
+						"is": "failed"
+					},
 					"note": "no token for this address: it fails at once"
 				},
-				{ "expect": { "node": "#connRowState", "nth": 1, "text": "Failed" } },
+				{
+					"expect": {
+						"node": "#connRowState",
+						"nth": 1,
+						"text": "Failed"
+					}
+				},
 				{
 					"expect": {
 						"node": "#status",
@@ -4645,8 +4727,16 @@
 						"exists": true
 					}
 				},
-				{ "action": "clearActivity", "note": "a send while offline adds one error line" },
-				{ "expect": { "state": "log.length", "is": 0 } },
+				{
+					"action": "clearActivity",
+					"note": "a send while offline adds one error line"
+				},
+				{
+					"expect": {
+						"state": "log.length",
+						"is": 0
+					}
+				},
 				{
 					"click": "#inspBlame"
 				},
@@ -4939,8 +5029,16 @@
 						"exists": true
 					}
 				},
-				{ "action": "clearActivity", "note": "a send while offline adds one error line" },
-				{ "expect": { "state": "log.length", "is": 0 } },
+				{
+					"action": "clearActivity",
+					"note": "a send while offline adds one error line"
+				},
+				{
+					"expect": {
+						"state": "log.length",
+						"is": 0
+					}
+				},
 				{
 					"click": "#repairRetry"
 				},

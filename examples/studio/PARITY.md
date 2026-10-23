@@ -28,7 +28,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Branches | Compare a branch with main | From the branch menu: the proposal's Files changed page | missing | partial |
 | Branches | Merge conflicts dialog | A proposal that conflicts with main | partial | partial |
 | Branches | Stash changes | Set the direct change aside and restore it; one stash | missing | partial |
-| App | Menu bar (File, Edit, View, Repository, Branch, Help) | | missing | missing |
+| App | Menu bar (File, Edit, View, Repository, Branch, Help) | The system's menu bar, each item a command (disabled when it can't run); titles in English only, none drawn where there is no system bar | missing | partial |
 | App | Options: appearance and language | Settings | partial | partial |
 | App | Repository settings | Mode, grants, permissions | partial | partial |
 | App | Keyboard shortcuts (tabs, commit, lists) | | partial | partial |
@@ -47,7 +47,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Pull request | Check out the pull request | Preview | partial | partial |
 
 **Counts at the start:** 0 done, 19 partial, 17 missing.
-**Counts now:** 0 done, 32 partial, 4 missing.
+**Counts now:** 0 done, 33 partial, 3 missing.
 
 ## The Studio's own parts
 

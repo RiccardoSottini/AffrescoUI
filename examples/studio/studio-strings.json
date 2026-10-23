@@ -308,7 +308,11 @@
 			"patch.unstash": "Restore stash",
 			"patch.unstashTip": "Bring back the change set aside",
 			"toolbar.compare": "Compare with main",
-			"toolbar.compareTip": "What the chosen proposal changes against main"
+			"toolbar.compareTip": "What the chosen proposal changes against main",
+			"cmd.stashPatch": "Stash the change",
+			"cmd.unstashPatch": "Restore the stash",
+			"cmd.compareWithMain": "Compare with main",
+			"cat.branch": "Branch"
 		},
 		"it": {
 			"a11y.connections": "Connessioni note",
@@ -614,7 +618,11 @@
 			"patch.unstash": "Riprendi",
 			"patch.unstashTip": "Riprendi la modifica messa da parte",
 			"toolbar.compare": "Confronta con main",
-			"toolbar.compareTip": "Cosa cambia la proposta scelta rispetto a main"
+			"toolbar.compareTip": "Cosa cambia la proposta scelta rispetto a main",
+			"cmd.stashPatch": "Accantona la modifica",
+			"cmd.unstashPatch": "Riprendi la modifica accantonata",
+			"cmd.compareWithMain": "Confronta con main",
+			"cat.branch": "Ramo"
 		},
 		"ar": {
 			"a11y.connections": "الاتصالات المعروفة",
@@ -920,7 +928,11 @@
 			"patch.unstash": "استعادة",
 			"patch.unstashTip": "أعد التغيير الذي وُضع جانبًا",
 			"toolbar.compare": "قارن مع main",
-			"toolbar.compareTip": "ما يغيّره الاقتراح المختار مقارنةً بـ main"
+			"toolbar.compareTip": "ما يغيّره الاقتراح المختار مقارنةً بـ main",
+			"cmd.stashPatch": "نحِّ التغيير جانبًا",
+			"cmd.unstashPatch": "استعد التغيير المنحّى",
+			"cmd.compareWithMain": "قارن مع main",
+			"cat.branch": "الفرع"
 		}
 	}
 }
