@@ -797,7 +797,7 @@
 		"below": "{{map(computed.up1, indexOf(computed.up3, index) >= 0 ? 3 : (indexOf(computed.up2, index) >= 0 ? 2 : (indexOf(computed.up1, index) >= 0 ? 1 : 0)))}}",
 		"positions": "{{map(computed.rel, merge(it, {cx: (it.pi >= 0 ? computed.rel[it.pi].lx : 0) + (computed.up2[index] >= 0 ? computed.rel[computed.up2[index]].lx : 0) + (computed.up3[index] >= 0 ? computed.rel[computed.up3[index]].lx : 0), cz: (it.pi >= 0 ? computed.rel[it.pi].lz : 0) + (computed.up2[index] >= 0 ? computed.rel[computed.up2[index]].lz : 0) + (computed.up3[index] >= 0 ? computed.rel[computed.up3[index]].lz : 0)}))}}",
 		"placed": "{{map(computed.positions, merge(it, {x: it.lx + it.cx, z: it.lz + it.cz}))}}",
-		"chartItems": "{{concat(state.stars, map(filter(computed.placed, it.parent != ''), {id: 'ring-' + it.id, x: it.cx * 22 - it.radius * 22, y: it.cz * 22 - it.radius * 22, width: it.radius * 44, height: it.radius * 44, radius: it.radius * 22, color: 'transparent', borderColor: '#2f3a55', borderWidth: 1}), map(computed.placed, {id: 'body-' + it.id, x: it.x * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), y: it.z * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), width: it.parent == '' ? 18 : 8 + it.size * 20, height: it.parent == '' ? 18 : 8 + it.size * 20, radius: it.parent == '' ? 9 : 4 + it.size * 10, color: it.hex, borderColor: it.id == state.selected ? '#fbbf24' : 'transparent', borderWidth: 2}), map(filter(computed.placed, it.parent == 'sun'), {id: 'label-' + it.id, x: it.x * 22 + 9, y: it.z * 22 - 7, width: 70, height: 14, color: 'transparent', borderWidth: 0, text: it.name, textSize: 10, textColor: '#aab2c5'}), state.notes)}}",
+		"chartItems": "{{concat(state.stars, map(filter(computed.placed, it.parent != ''), {id: 'ring-' + it.id, x: it.cx * 22 - it.radius * 22, y: it.cz * 22 - it.radius * 22, width: it.radius * 44, height: it.radius * 44, radius: it.radius * 22, color: 'transparent', borderColor: '#2f3a55', borderWidth: 1}), map(computed.placed, {id: 'body-' + it.id, x: it.x * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), y: it.z * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), width: it.parent == '' ? 18 : 8 + it.size * 20, height: it.parent == '' ? 18 : 8 + it.size * 20, radius: it.parent == '' ? 9 : 4 + it.size * 10, color: it.hex, borderColor: it.id == state.selected ? '#fbbf24' : 'transparent', borderWidth: 2}), map(filter(computed.placed, it.parent == 'sun'), {id: 'label-' + it.id, x: it.x * 22 + 10, y: it.z * 22 - 10, width: 110, height: 20, color: 'transparent', borderWidth: 0, text: it.name, textSize: 16, textColor: '#aab2c5'}), state.notes)}}",
 		"catalogue": "{{map(state.bodies, {id: it.id, name: it.name, parent: it.parent, thumbnail: 'body:' + (it.look ?? it.id)})}}",
 		"graphNodes": "{{map(state.bodies, {id: it.id, title: it.name, x: it.gx ?? 400, y: it.gy ?? 20 + index * 40, width: 120, inputs: it.parent == '' ? [] : [{id: 'orbits', label: 'orbits', kind: 'orbit', links: 1}], outputs: [{id: 'satellites', label: 'satellites', kind: 'orbit'}]})}}",
 		"graphLinks": "{{map(filter(state.bodies, it.parent != ''), {from: it.parent, output: 'satellites', to: it.id, input: 'orbits'})}}",
@@ -841,9 +841,9 @@
 		"bookmarkRows": "{{map(state.bookmarks, {id: it.id, label: it.label, icon: 'bookmark'})}}",
 		"eclipseOrbits": "{{map(filter(map(filter(state.bodies, it.parent != '' && it.parent != 'sun'), merge(it, {host: state.bodies[indexOf(computed.ids, it.parent)]})), it.host.parent == 'sun' && it.period != it.host.period), merge(it, {d: 1 / it.period - 1 / it.host.period, o: it.phase - it.host.phase, from: ceil(2 * min(it.phase - it.host.phase, it.phase - it.host.phase + (1 / it.period - 1 / it.host.period) * state.duration)), to: floor(2 * max(it.phase - it.host.phase, it.phase - it.host.phase + (1 / it.period - 1 / it.host.period) * state.duration))}))}}",
 		"eclipseSpan": "{{max(concat([0], map(computed.eclipseOrbits, it.to - it.from + 1)))}}",
-		"eclipses": "{{sort(map(filter(map(filter(map(range(length(computed.eclipseOrbits) * computed.eclipseSpan), {m: computed.eclipseOrbits[floor(it / computed.eclipseSpan)], n: computed.eclipseOrbits[floor(it / computed.eclipseSpan)].from + it % computed.eclipseSpan}), it.n <= it.m.to), merge(it, {time: (it.n / 2 - it.m.o) / it.m.d})), it.m.eclipseYear == null || abs(it.time - it.m.nodeDay - round((it.time - it.m.nodeDay) * 2 / it.m.eclipseYear) * it.m.eclipseYear / 2) * 2 < it.m.eclipseSeason), {id: it.m.id + '-' + it.n, time: round(it.time * 10) / 10, solar: it.n % 2 != 0, moon: it.m.id, host: it.m.host.id, label: it.n % 2 != 0 ? it.m.name + ' eclipses the Sun' : it.m.name + ' in the shadow of ' + it.m.host.name}), it.time)}}",
+		"eclipses": "{{sort(map(filter(map(filter(map(range(length(computed.eclipseOrbits) * computed.eclipseSpan), {m: computed.eclipseOrbits[floor(it / computed.eclipseSpan)], n: computed.eclipseOrbits[floor(it / computed.eclipseSpan)].from + it % computed.eclipseSpan}), it.n <= it.m.to), merge(it, {time: (it.n / 2 - it.m.o) / it.m.d})), it.m.eclipseYear == null || abs(it.time - it.m.nodeDay - round((it.time - it.m.nodeDay) * 2 / it.m.eclipseYear) * it.m.eclipseYear / 2) * 2 < it.m.eclipseSeason), {id: it.m.id + '-' + it.n, time: round(it.time * 10) / 10, solar: it.n % 2 != 0, moon: it.m.id, moonName: it.m.name, host: it.m.host.id, hostName: it.m.host.name, hours: (it.n % 2 != 0 ? 0.0186 : 0.0405) * 24 / (2 * pi() * abs(it.m.d)), label: it.n % 2 != 0 ? it.m.name + ' eclipses the Sun' : it.m.name + ' in the shadow of ' + it.m.host.name}), it.time)}}",
 		"events": "{{sort(concat(state.events, map(computed.eclipses, {id: it.id, time: it.time, kind: 'eclipse', label: it.solar ? 'Solar eclipse' : 'Lunar eclipse'})), it.time)}}",
-		"eclipseRows": "{{map(computed.eclipses, {id: it.id, label: 'Day ' + it.time + ': ' + it.label, icon: it.solar ? 'sun' : 'moon'})}}",
+		"eclipseRows": "{{map(computed.eclipses, {id: it.id, label: formatDate(dateMs('2030-01-01') + (it.time - it.hours / 48) * 86400000, 'yyyy-MM-dd HH:mm', 'utc') + '   ' + floor(it.hours) + ' h ' + round(it.hours % 1 * 60) + ' min   ' + (it.solar ? 'Solar, ' : 'Lunar, ') + it.hostName + ' and the ' + it.moonName, icon: it.solar ? 'sun' : 'moon'})}}",
 		"renderOptions": "{{[{id: 'orbits', title: 'Orbits', on: state.showOrbits, run: 'toggleOrbits'}, {id: 'labels', title: 'Labels', on: state.showLabels, run: 'toggleLabels'}, {id: 'stars', title: 'Stars', on: state.showStars, run: 'toggleStars'}, {id: 'shading', title: 'Lit side', on: state.showShading, run: 'toggleShading'}, {id: 'glow', title: 'Sun glow', on: state.showGlow, run: 'toggleGlow'}]}}",
 		"sceneView": "{{ {camera: {target: [computed.target.x, 0, computed.target.z], yaw: state.camera.yaw, pitch: state.camera.pitch, distance: computed.view.distance, fieldOfView: 2 * atan(computed.view.h / (2 * computed.view.f))}, selection: state.selected != '' ? [state.selected] : []} }}",
 		"orbitRings": "{{map(filter(computed.placed, it.parent != ''), {id: it.id, cx: it.cx, cz: it.cz, radius: it.radius})}}",
@@ -1906,8 +1906,8 @@
 										},
 										"type": "label",
 										"id": "{{'view-label-' + b.id}}",
-										"x": "{{b.px + b.r + 6}}",
-										"y": "{{b.py - 9}}",
+										"x": "{{b.parent != '' && b.parent != 'sun' ? b.px - b.r - 4 : b.px + b.r + 6}}",
+										"y": "{{b.parent != '' && b.parent != 'sun' ? b.py + b.r + 2 : b.py - 9}}",
 										"height": 18,
 										"fitText": true,
 										"font": "small",
@@ -2050,7 +2050,7 @@
 											"left": 12,
 											"top": 130
 										},
-										"width": 220,
+										"width": "{{state.browserTab == 'eclipses' ? 360 : 220}}",
 										"height": 250,
 										"visible": "{{state.showBrowser}}",
 										"color": "@panel",
@@ -2061,7 +2061,7 @@
 											{
 												"type": "tabs",
 												"id": "browser-tabs",
-												"width": 220,
+												"width": "{{state.browserTab == 'eclipses' ? 360 : 220}}",
 												"height": 30,
 												"tabs": [
 													{
@@ -2195,7 +2195,7 @@
 											{
 												"type": "list",
 												"id": "browser-eclipses",
-												"width": 220,
+												"width": "{{state.browserTab == 'eclipses' ? 360 : 220}}",
 												"height": 220,
 												"visible": "{{state.browserTab == 'eclipses'}}",
 												"items": "{{computed.eclipseRows}}",

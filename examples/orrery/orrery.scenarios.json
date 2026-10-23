@@ -1677,6 +1677,25 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "the-grid-names-its-azimuths",
+			"note": "The grid, once on, names its azimuths along the horizon.",
+			"steps": [
+				{
+					"action": "toggleSkyGrid"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#sky-grid-label-g6",
+						"property": "text",
+						"is": "180°"
+					}
+				}
+			]
 		}
 	]
 }
