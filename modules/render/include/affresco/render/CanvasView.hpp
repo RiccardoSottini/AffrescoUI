@@ -93,8 +93,9 @@ struct CanvasLevel {
 /// @brief An infinite canvas.
 ///
 /// Children are placed at their own x, y, width and height, read as world units (pixels only) and mapped through
-/// the camera; until panels can be transformed, their text keeps its size while boxes, images and paths scale (all
-/// in placeChildren(), the one function to switch to a transform). Model items are drawn by the canvas itself, only
+/// the camera: by default their rectangles scale while their text keeps its size; with setScaleChildren() they are
+/// laid out at their world size and drawn through the camera's zoom, text included (a page, a slide), and can be
+/// rotated by the handle like the model items. Model items are drawn by the canvas itself, only
 /// those in view (a spatial index), with their text scaled through setTextFonts() and drawn as a bar when too small
 /// to read. Pointer: drag the background or a ruler, or with Space or the middle button to pan; scroll to pan;
 /// Ctrl or Cmd with the wheel zooms at the pointer; click, Shift-click and a marquee select; the handles move,
@@ -173,6 +174,12 @@ public:
 	/// @brief Turns snapping to the grid, items and guides on or off.
 	/// @param snap Whether moves and resizes snap.
 	void setSnap(bool snap);
+	/// @brief Draws the children through the camera's zoom (a placement), text and all, instead of scaling their
+	/// rectangles; a single selected child then gets the rotation handle too.
+	/// @param scale Whether to.
+	void setScaleChildren(bool scale);
+	/// @brief Whether the children are drawn through the camera's zoom.
+	[[nodiscard]] bool scaleChildren() const noexcept { return scaleChildren_; }
 	/// @brief Shows or hides the rulers (and with them, new guides).
 	/// @param rulers Whether to show them.
 	void setRulers(bool rulers);
@@ -221,8 +228,8 @@ private:
 
 	/* CanvasView.cpp: content, layout and painting */
 
-	/// @brief Gives each child its screen rectangle, or hides it for a level of detail. The one place children are
-	/// mapped through the camera: once panels take a transform, it sets one instead of scaling their rectangles.
+	/// @brief Gives each child its screen rectangle (or its world rectangle and the camera as a placement, see
+	/// setScaleChildren()), or hides it for a level of detail. The one place children are mapped through the camera.
 	void placeChildren();
 	/// @brief The child that stands in for another at the current zoom, if any.
 	/// @param child The child.
@@ -336,6 +343,7 @@ private:
 	Color accent_ = Color::hex(0x4f46e5);                                    ///< See setAccentColor().
 	float grid_ = 0.0f;                                                      ///< See grid().
 	bool snap_ = true;                                                       ///< See setSnap().
+	bool scaleChildren_ = false;                                             ///< See setScaleChildren().
 	bool rulers_ = true;                                                     ///< See setRulers().
 	mutable std::size_t drawn_ = 0;                                          ///< See drawnItems().
 

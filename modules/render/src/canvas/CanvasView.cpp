@@ -9,8 +9,21 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 namespace affresco {
+
+namespace {
+
+/// @brief How far a child is turned by its own transform.
+/// @param child The child.
+/// @return The angle, in degrees clockwise.
+[[nodiscard]] float turnOf(const Panel& child) noexcept {
+	const Affine2& transform = child.transform();
+	return std::atan2(transform.b, transform.a) * 180.0f / std::numbers::pi_v<float>;
+}
+
+} // namespace
 
 CanvasView::CanvasView() : internals_(std::make_unique<Internals>()) {}
 
@@ -109,6 +122,8 @@ void CanvasView::setGrid(float spacing) { setLook(grid_, std::isfinite(spacing) 
 
 void CanvasView::setSnap(bool snap) { snap_ = snap; }
 
+void CanvasView::setScaleChildren(bool scale) { setProperty(scaleChildren_, scale); }
+
 void CanvasView::setRulers(bool rulers) { setLook(rulers_, rulers); }
 
 void CanvasView::setTextFonts(std::vector<std::shared_ptr<const Font>> fonts) {
@@ -156,7 +171,7 @@ Rect CanvasView::onScreen(const Rect& world) const noexcept {
 void CanvasView::selectedItems(std::vector<CanvasTransform>& out) const {
 	out.clear();
 	for(const auto& child : children())
-		if(isSelected(child->id())) out.push_back({child->id(), worldBoundsOf(*child), 0.0f});
+		if(isSelected(child->id())) out.push_back({child->id(), worldBoundsOf(*child), turnOf(*child)});
 	for(const std::string& id : selection_)
 		if(const CanvasItem* item = modelItem(id)) out.push_back({item->id, item->bounds, item->rotate});
 }
@@ -202,8 +217,14 @@ void CanvasView::placeChildren() {
 	for(const auto& child : children())
 		if(Panel* other = standIn(*child)) standIns.emplace_back(other, child.get());
 	const auto place = [this](Panel& panel, std::optional<Rect> world) {
-		// Hidden: no size, far outside the view, so it neither paints nor takes the pointer
-		const Rect screen = world ? camera_.toScreen(*world) : Rect{-1e7f, -1e7f, -1e7f, -1e7f};
+		// Scaled: laid out at its world rectangle, then the camera as a placement (Camera2D::toScreen() about the
+		// canvas's corner). Hidden: no size, far outside the view, so it neither paints nor takes the pointer
+		const bool scaled = scaleChildren_ && world;
+		const Rect screen = scaled ? *world : world ? camera_.toScreen(*world) : Rect{-1e7f, -1e7f, -1e7f, -1e7f};
+		const float zoom = camera_.zoom;
+		panel.setPlacement(scaled ? Affine2{zoom, 0.0f, 0.0f, zoom, frame().left * (1.0f - zoom) - camera_.x * zoom,
+		                                    frame().top * (1.0f - zoom) - camera_.y * zoom}
+		                          : Affine2{});
 		panel.clearAnchor(Edge::Right);
 		panel.clearAnchor(Edge::Bottom);
 		panel.setAnchor(Edge::Left, px(screen.left));
@@ -319,7 +340,7 @@ void CanvasView::paintSelection(Painter& painter) const {
 	}
 	const Rect box = onScreen(group);
 	painter.strokeRoundedRect(box, {}, 1.0f, accent_);
-	const bool rotatable = rects.size() == 1 && modelItem(selection_.front()) != nullptr;
+	const bool rotatable = rects.size() == 1 && (scaleChildren_ || modelItem(selection_.front()) != nullptr);
 	for(int handle = 0; handle < (rotatable ? 9 : 8); ++handle) {
 		const Vec2 at = canvas::handlePoint(box, handle);
 		const float half = handleSize / 2.0f;

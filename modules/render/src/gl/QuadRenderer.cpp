@@ -225,7 +225,7 @@ void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::s
 	if(scratch_.size() <= depth) scratch_.emplace_back();
 	detail::PaintRecord& record = scratch_[depth];
 	record.clear();
-	const Affine2 world = panel.transform().isIdentity() ? parentWorld : parentWorld * panel.localTransform();
+	const Affine2 world = panel.isTransformed() ? parentWorld * panel.localTransform() : parentWorld;
 	detail::PaintRecorder recorder(record, panel.bounds(), outerClip);
 	if(!world.isAxisAligned()) recorder.smoothEdges(panel.frame());
 	panel.paint(recorder);
@@ -240,7 +240,7 @@ void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::s
 		if(child->isOverlay()) continue;
 		const bool clipped = clipChild(panel, *child, world, ClipStep::push);
 		const std::optional<Affine2> inverse =
-		    child->transform().isIdentity() ? std::nullopt : child->localTransform().inverse();
+		    child->isTransformed() ? child->localTransform().inverse() : std::nullopt;
 		scratchTree(*child, inverse ? inverse->boundingBox(panel.bounds()) : panel.bounds(), depth + 1, world);
 		if(clipped) clipChild(panel, *child, world, ClipStep::pop);
 	}
@@ -250,7 +250,7 @@ void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::s
 
 // The clip is one white quad in a batch of its own, then the batch in use carries on in a new one
 bool QuadRenderer::clipChild(const Panel& parent, const Panel& child, const Affine2& parentWorld, ClipStep step) {
-	if(!child.isShown() || child.transform().isAxisAligned()) return false;
+	if(!child.isShown() || child.localTransform().isAxisAligned()) return false;
 	if(step == ClipStep::push && clipDepth_ >= maxClipDepth) return false;
 	if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
 	Batch resume = batches_.back();

@@ -416,8 +416,17 @@ public:
 	[[nodiscard]] const Affine2& transform() const noexcept { return transform_; }
 	/// @brief Where the transform applies, as a share of the frame's size.
 	[[nodiscard]] Vec2 transformOrigin() const noexcept { return transformOrigin_; }
-	/// @brief The transform about its origin: from this panel's layout space into its parent's.
-	/// @return The identity when it has none.
+	/// @brief Places the panel, as laid out, in its parent's space: set by a container that draws its children
+	/// through a view (a zoomed canvas), apart from the panel's own transform, which applies first.
+	/// @param placement From the panel's transformed space into its parent's; the identity by default.
+	void setPlacement(const Affine2& placement);
+	/// @brief The placement set by setPlacement().
+	[[nodiscard]] const Affine2& placement() const noexcept { return placement_; }
+	/// @brief Whether the panel is drawn through a transform or a placement.
+	/// @return false when both are the identity.
+	[[nodiscard]] bool isTransformed() const noexcept { return !transform_.isIdentity() || !placement_.isIdentity(); }
+	/// @brief The transform about its origin, then the placement: from this panel's layout space into its parent's.
+	/// @return The identity when it has neither.
 	[[nodiscard]] Affine2 localTransform() const noexcept;
 	/// @brief From this panel's layout space (where frame() and bounds() are) into the window.
 	/// @return Its own and its ancestors' local transforms; an overlay's own only.
@@ -738,6 +747,7 @@ private:
 	bool cached_ = false;                                 ///< See setCached().
 	Affine2 transform_;                                   ///< See transform().
 	Vec2 transformOrigin_{0.5f, 0.5f};                    ///< See transformOrigin().
+	Affine2 placement_;                                   ///< See placement().
 	Cursor cursor_ = Cursor::Arrow;                       ///< See setCursor().
 	std::string tooltip_;                                 ///< See tooltip().
 	std::string role_;                                    ///< See accessibleRole().

@@ -299,7 +299,7 @@ void Panel::setVisible(bool visible) { setProperty(visible_, visible); }
 // A rotated panel's bounds are a bounding box: the parent already checked the point is inside its own bounds
 Panel* Panel::hitTest(Vec2 point) noexcept {
 	if(!shown_) return nullptr;
-	if(!transform_.isIdentity()) {
+	if(isTransformed()) {
 		const std::optional<Affine2> inverse = localTransform().inverse();
 		if(!inverse) return nullptr; // flattened: never hit
 		point = inverse->apply(point);
@@ -324,16 +324,20 @@ void Panel::setTransform(const Affine2& transform, Vec2 origin) {
 	setProperty(transformOrigin_, origin);
 }
 
+void Panel::setPlacement(const Affine2& placement) { setProperty(placement_, placement); }
+
 Affine2 Panel::localTransform() const noexcept {
-	if(transform_.isIdentity()) return {};
-	return transform_.about({frame_.left + transformOrigin_.x * size_.x, frame_.top + transformOrigin_.y * size_.y});
+	if(transform_.isIdentity()) return placement_;
+	const Affine2 own =
+	    transform_.about({frame_.left + transformOrigin_.x * size_.x, frame_.top + transformOrigin_.y * size_.y});
+	return placement_.isIdentity() ? own : placement_ * own;
 }
 
 Affine2 Panel::worldTransform() const noexcept {
 	Affine2 world = localTransform();
 	for(const Panel* panel = this; !panel->overlay_ && panel->parent_;) {
 		panel = panel->parent_;
-		if(!panel->transform_.isIdentity()) world = panel->localTransform() * world;
+		if(panel->isTransformed()) world = panel->localTransform() * world;
 	}
 	return world;
 }

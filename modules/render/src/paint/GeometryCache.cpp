@@ -97,7 +97,7 @@ void GeometryCache::refreshTree(Panel& panel, const Rect& outerClip, const Affin
 	PanelGeometry& geometry = geometryOf(panel);
 	const std::uint64_t changesBefore = changes_;
 	const bool marked = panel.paintStale_ || panel.paintBelow_;
-	const Affine2 world = panel.transform_.isIdentity() ? parentWorld : parentWorld * panel.localTransform();
+	const Affine2 world = panel.isTransformed() ? parentWorld * panel.localTransform() : parentWorld;
 	moved = moved || geometry.world != world;
 	if(needsRecord(panel, geometry, moved)) refreshPanel(panel, outerClip, geometry, world);
 
@@ -118,14 +118,14 @@ void GeometryCache::refreshChildren(Panel& panel, PanelGeometry& geometry, bool 
 		if(child->overlay_) continue; // refreshed from the frame's overlays, unclipped
 		if(moved || needsVisit(*child)) refreshChild(panel, *child, geometry.world, moved);
 		if(const PanelGeometry* below = child->geometry_.get())
-			addSubtree(geometry, *below, !child->transform_.isIdentity());
+			addSubtree(geometry, *below, child->isTransformed());
 	}
 }
 
 void GeometryCache::refreshChild(const Panel& parent, Panel& child, const Affine2& parentWorld, bool moved) {
 	// A transformed child's shadow is clipped in its own space: the box of its parent's bounds seen from there
 	const std::optional<Affine2> inverse =
-	    child.transform_.isIdentity() ? std::nullopt : child.localTransform().inverse();
+	    child.isTransformed() ? child.localTransform().inverse() : std::nullopt;
 	refreshTree(child, inverse ? inverse->boundingBox(parent.bounds_) : parent.bounds_, parentWorld, moved);
 }
 

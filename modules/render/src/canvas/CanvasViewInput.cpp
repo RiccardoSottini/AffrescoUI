@@ -449,7 +449,8 @@ std::string CanvasView::itemAt(Vec2 position) const {
 	const auto children = this->children();
 	for(const auto& child : std::views::reverse(children)) {
 		const Panel& panel = *child;
-		if(!panel.frame().contains(position) || panel.resolvedSize().x <= 0.0f) continue;
+		const Rect bounds = scaleChildren_ ? onScreen(worldBoundsOf(panel)) : panel.frame();
+		if(!bounds.contains(position) || panel.resolvedSize().x <= 0.0f) continue;
 		const auto& standIns = internals_->standIns;
 		const auto standing = std::ranges::find(standIns, &panel, &std::pair<const Panel*, const Panel*>::first);
 		const std::string& id = standing != standIns.end() ? standing->second->id() : panel.id();
@@ -468,7 +469,7 @@ int CanvasView::handleAt(Vec2 position) const noexcept {
 	Rect group = internals_->rects.front();
 	for(const Rect& rect : internals_->rects) group = canvas::united(group, rect);
 	const Rect box = onScreen(group);
-	const bool rotatable = internals_->rects.size() == 1 && modelItem(selection_.front()) != nullptr;
+	const bool rotatable = internals_->rects.size() == 1 && (scaleChildren_ || modelItem(selection_.front()) != nullptr);
 	const float reach = handleSize / 2.0f + 2.0f;
 	for(int handle = rotatable ? 8 : 7; handle >= 0; --handle) {
 		const Vec2 at = canvas::handlePoint(box, handle);

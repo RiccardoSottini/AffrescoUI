@@ -224,7 +224,7 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 
 	// Clip to the parent; a transformed panel to the parent's clip brought into its space (exact when the transform
 	// keeps rectangles, else that area's bounding box, which the renderer narrows with a stencil)
-	const Rect within = transform_.isIdentity() ? clip : clipInSpace(clip);
+	const Rect within = isTransformed() ? clipInSpace(clip) : clip;
 	rect.top = std::max(rect.top, within.top);
 	rect.bottom = std::min(rect.bottom, within.bottom);
 	rect.left = std::max(rect.left, within.left);
