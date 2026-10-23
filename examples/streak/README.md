@@ -1,6 +1,6 @@
 # Streak, a habit tracker
 
-Habits to tick, a heatmap, charts, a day-by-day history and notes, kept on disk with `persist`. The `habit-tracker` template: a screen document with no C++ of its own, which the stock host runs.
+Habits to check day by day, with scores, charts, a calendar and notes, kept on disk with `persist`. The `habit-tracker` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
 ./build/affrescoui_host examples/streak/habit-tracker.screen.json
@@ -9,6 +9,7 @@ Habits to tick, a heatmap, charts, a day-by-day history and notes, kept on disk 
 
 | File | What it is |
 |---|---|
+| `PARITY.md` | What it covers of the app it is modelled on, area by area |
 | `habit-tracker.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 | `habit-tracker.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `habit-tracker.screen.json` | The screen document |
@@ -17,30 +18,31 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 ## What it shows
 
-- **Schedules**: every habit is daily, on chosen weekdays, or n times a week; "Due today" and the streaks follow the
-  schedule, and the habit dialog edits it (weekday chips, a times-a-week stepper).
-- **Goals and categories**: a weekly or monthly goal per habit with its progress, a category per habit (a `comboBox`
-  that takes new ones) and a chip row that filters the list. Category and habit names are data, not translated.
-- **Reminders**: a time per habit, checked by an `every` timer, shown as a `toast`; one switch turns them all off.
-- **Notes**: a note per day and habit (`textarea` with `maxLength`, `mod+d` for today's), listed on their own page.
-- **Pages**: Today, History (a `table` of the last weeks), Notes and Stats (a 53 x 7 year heatmap, streak and
-  completion charts, goals and a weekday chart) in `tabs`.
-- **Sync**: a `connections` entry to the document server with device sign-in at a placeholder provider
-  (`id.example.com`); the policy example shows that no one, studio or agent, may move it.
-- **Commands and keys**: a command palette (`mod+k`, `quickPick`), `mod+1`..`mod+4` for the pages, `mod+shift+n`
-  new habit, `mod+j` theme, `mod+l` language, `mod+comma` settings, `mod+s` sync; the habit list is one tab stop
-  driven by the arrows, Space ticks, E edits, Escape closes the dialog and returns to the row.
-- **Themes and languages**: light and dark; English, Italiano and العربية through `strings` and `t()` with plural
-  and select forms and `formatDate`, the body set to `dir: auto` so Arabic lays out right to left.
-- **Layout**: a narrow single column below 1000 pixels and two columns above, from 480 x 640 to full screen.
-- **Expressions**: `computed` values, `watch` (one debounced, sending changes to the server) and `persist` of
-  habits, notes, settings and reminders.
-- **Scenarios**: 37, covering every page, the dialog by mouse and by keyboard only, both themes, the three
-  languages, the palette and shortcuts, resizes and a regression for each bug fixed.
+Modelled on Loop Habit Tracker, laid out for the desktop: the list and the selected habit's detail side by side
+([`PARITY.md`](PARITY.md) lists every area and its gap).
+
+- **The list**: a row per habit with its colour, score ring and name under a header of the last days; a click on a
+  box checks it (done, skipped, cleared), a measurable box asks for the number, Shift+F10 opens the day's popup with a
+  note. Sort by hand (drag to reorder), name, colour, score or status; hide completed, show archived.
+- **Habits**: yes or no, or measurable with a unit and a target at least or at most; daily, every N days, N a week or
+  N a month; a reminder at a time on chosen days, shown as a `toast` by an `every` timer.
+- **The detail**: overview, target, a score chart and history bars with a period, a calendar heatmap, best streaks,
+  frequency dots by weekday and notes, all `computed` from the habit's entries.
+- **The edit dialog**: the built-in `dialog` with name, question, a 20-colour picker in a `popover`, frequency,
+  reminder and notes; archive (with undo), delete (asks first) and export as CSV to the clipboard.
+- **Settings**: light, dark and pure black, the first day of the week, reverse order, skip days, notifications, the
+  language and sync.
+- **Commands and keys**: a command palette (`mod+k`, `quickPick`), `mod+n` and `mod+shift+n` new habits, `mod+e`
+  edit, `mod+shift+a` archive, `mod+backspace` delete, `mod+comma` settings, `mod+j` theme, `mod+up`/`mod+down`
+  between habits, `mod+enter` checks today, `mod+s` sync.
+- **Themes and languages**: English, Italiano and العربية through `strings` and `t()`, the body set to `dir: auto`
+  so Arabic lays out right to left.
+- **Layout**: one pane at a time below 960 window units, the list and the detail side by side above.
+- **Scenarios**: 24, one per workflow above.
 
 ## How it holds together
 
-- **Permissions:** Studio peers change it directly; an agent's change waits for a Studio reviewer (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The habits, weeks, notes, categories, theme, language and reminders persist. The `streakServer` connection syncs the habits with a document server at a local address, signed in with a placeholder provider; its policy shows that no one may move where the habits sync.
+- **Permissions:** Studio peers change it directly; an agent's change waits for a Studio reviewer (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the app bar. The habits, the list's order and filters, and the settings persist. The `streakServer` connection syncs the habits with a document server at a local address, signed in with a placeholder provider; its policy shows that no one may move where the habits sync.
 - **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
-- **Extension points:** a habit is an entry of `state.habits`; a category of `state.categories`; a language is a table of `strings`; `chip` is its local component.
+- **Extension points:** a habit is an entry of `state.habits` (its days in one `entries` string); a language is a table of `strings`; `ring`, `switch`, `periodButton`, `prefRow`, `toggleRow` and `stat` are its local components.
 - **Assets:** no pictures of its own; the fonts' licences are with them in `../shared/fonts`.

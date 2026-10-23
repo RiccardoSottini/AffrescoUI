@@ -2,620 +2,1185 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "What the Habit tracker template (Streak) does, checked headless: affrescoui test habit-tracker.scenarios.json",
+	"note": "What Streak does, checked headless: affrescoui test habit-tracker.scenarios.json",
 	"screen": "habit-tracker.screen.json",
 	"scenarios": [
 		{
 			"name": "check-a-habit",
-			"note": "Clicking an unchecked habit ticks it, adds a day to its streak and counts it as done today",
+			"note": "A click on an empty box ticks it, a second skips the day, a third clears it",
 			"steps": [
-				{ "expect": { "node": "#doneCount", "text": "2 of 5 done" } },
-				{ "click": "#habit", "nth": 2 },
-				{ "expect": { "state": "habits[2].done", "is": true } },
-				{ "expect": { "state": "habits[2].streak", "is": 32 } },
-				{ "expect": { "node": "#checkbox-habit", "nth": 2, "property": "checked", "is": true } },
-				{ "expect": { "node": "#label-habit-streak-0", "nth": 2, "text": "32 day streak" } },
-				{ "expect": { "node": "#doneCount", "text": "3 of 5 done" } },
-				{ "expect": { "node": "#label-stat-value", "nth": 1, "text": "32 days" } }
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 40,
+						"property": "name",
+						"is": "Thu 15 Oct: 1 cups"
+					}
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 48,
+						"property": "name",
+						"is": "Thu 15 Oct: on target"
+					}
+				},
+				{
+					"click": "#cell",
+					"nth": 48
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 48,
+						"property": "name",
+						"is": "Thu 15 Oct: done"
+					}
+				},
+				{
+					"click": "#cell",
+					"nth": 48
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 48,
+						"property": "name",
+						"is": "Thu 15 Oct: skipped"
+					}
+				},
+				{
+					"click": "#cell",
+					"nth": 48
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 48,
+						"property": "name",
+						"is": "Thu 15 Oct: on target"
+					}
+				}
 			]
 		},
 		{
-			"name": "uncheck-a-habit",
-			"note": "Clicking the checkbox of a done habit unticks it and takes the day back off its streak",
+			"name": "a-row-selects-its-habit",
+			"note": "A click on a habit's name shows it in the detail pane",
 			"steps": [
-				{ "click": "#checkbox-habit", "nth": 0 },
-				{ "expect": { "state": "habits[0].done", "is": false } },
-				{ "expect": { "state": "habits[0].streak", "is": 11 } },
-				{ "expect": { "node": "#checkbox-habit", "nth": 0, "property": "checked", "is": false } },
-				{ "expect": { "node": "#label-stat-value", "nth": 0, "text": "11 days" } },
-				{ "expect": { "node": "#label-stat-value", "nth": 2, "text": "1 / 5" } }
+				{
+					"expect": {
+						"state": "selected",
+						"is": "meditate"
+					}
+				},
+				{
+					"click": [
+						100,
+						248
+					]
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "read"
+					}
+				},
+				{
+					"expect": {
+						"node": "#detailBar",
+						"property": "name",
+						"is": "Read"
+					}
+				}
 			]
 		},
 		{
-			"name": "today-follows-the-checks",
-			"note": "Today's square in the heatmap follows how many habits are done (the watch on doneToday)",
+			"name": "enter-a-number",
+			"note": "A measurable box asks for the number; Enter saves it",
 			"steps": [
-				{ "expect": { "state": "weeks[19][3]", "is": 2 } },
-				{ "click": "#habit", "nth": 2 },
-				{ "click": "#habit", "nth": 3 },
-				{ "expect": { "state": "weeks[19][3]", "is": 4 } },
-				{ "expect": { "node": "#panel-level", "nth": 136, "property": "tooltip", "is": "4 habits", "note": "Thursday has no day label" } },
-				{ "click": "#habit", "nth": 4 },
-				{ "expect": { "state": "weeks[19][3]", "is": 4, "note": "five done still shows the darkest shade" } }
+				{
+					"click": "#cell",
+					"nth": 40
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#popupValue",
+						"exists": true
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "4"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 40,
+						"property": "name",
+						"is": "Thu 15 Oct: 4 cups"
+					}
+				},
+				{
+					"expect": {
+						"state": "popup.open",
+						"is": false
+					}
+				}
 			]
 		},
 		{
-			"name": "add-a-habit",
-			"note": "Typing a name and pressing Enter adds an unchecked habit with the next colour",
+			"name": "a-note-on-a-day",
+			"note": "The day's menu (Shift+F10) writes a note; the notes card shows it",
 			"steps": [
-				{ "click": "#newHabit" },
-				{ "type": "  Drink water " },
-				{ "key": "enter" },
-				{ "expect": { "state": "habits.length", "is": 6 } },
-				{ "expect": { "state": "habits[5]", "is": { "name": "Drink water", "done": false, "streak": 0, "week": 0, "color": "#0891b2" } } },
-				{ "expect": { "state": "newHabit", "is": "" } },
-				{ "expect": { "node": "#label-habit-name", "nth": 5, "text": "Drink water" } },
-				{ "expect": { "node": "#label-habit-streak-0", "nth": 5, "text": "Start today" } },
-				{ "expect": { "node": "#doneCount", "text": "2 of 6 done" } }
+				{
+					"click": "#cell",
+					"nth": 0
+				},
+				{
+					"click": "#cell",
+					"nth": 0
+				},
+				{
+					"click": "#cell",
+					"nth": 0
+				},
+				{
+					"key": "shift+f10"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#popupNote",
+						"exists": true
+					}
+				},
+				{
+					"type": "Felt calm"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "popup.open",
+						"is": false
+					}
+				}
 			]
 		},
 		{
-			"name": "ignore-a-blank-habit",
-			"note": "Enter with an empty or blank name adds nothing; Cmd+N puts the keyboard in the field",
+			"name": "sort-by-name",
+			"note": "The filter menu sorts the list by name and back by hand",
 			"steps": [
-				{ "key": "mod+n" },
-				{ "wait": 0, "note": "the focus lands on the next frame" },
-				{ "expect": { "node": "#newHabit", "property": "focused", "is": true } },
-				{ "key": "enter" },
-				{ "type": "    " },
-				{ "key": "enter" },
-				{ "expect": { "state": "habits.length", "is": 5 } },
-				{ "expect": { "node": "#habit", "nth": 5, "exists": false } }
+				{
+					"click": "#filterButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "By name"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "sort",
+						"is": "name"
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Call the family"
+					}
+				},
+				{
+					"click": "#filterButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Manually"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "sort",
+						"is": "manual"
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Meditate"
+					}
+				}
 			]
 		},
 		{
-			"name": "change-a-past-day",
-			"note": "Clicking a day in the heatmap steps it to the next shade, wrapping from 4 back to 0",
+			"name": "hide-completed",
+			"note": "Hiding the completed habits leaves only those still due today",
 			"steps": [
-				{ "expect": { "node": "#panel-level", "nth": 0, "property": "tooltip", "is": "Mon: 2 habits" } },
-				{ "click": "#panel-level", "nth": 0 },
-				{ "expect": { "state": "weeks[0][0]", "is": 3 } },
-				{ "expect": { "node": "#panel-level", "nth": 0, "property": "color", "is": "#16a34a" } },
-				{ "click": "#panel-level", "nth": 0 },
-				{ "click": "#panel-level", "nth": 0 },
-				{ "expect": { "state": "weeks[0][0]", "is": 0 } },
-				{ "expect": { "node": "#label-stat-value", "nth": 3, "text": "318", "note": "the 320 check-ins, less the 2 of that day" } }
+				{
+					"click": "#filterButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Hide completed"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "hideCompleted",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Run"
+					}
+				}
 			]
 		},
 		{
-			"name": "switch-pages",
-			"note": "The tabs and Cmd+1, Cmd+2, Cmd+3 switch between Today, History and Notes",
+			"name": "show-archived",
+			"note": "Archived habits come back with the filter",
 			"steps": [
-				{ "click": [275, 50], "note": "History" },
-				{ "expect": { "state": "tab", "is": "history" } },
-				{ "expect": { "node": "#historyTable", "exists": true } },
-				{ "expect": { "node": "#habits", "exists": false } },
-				{ "key": "mod+3" },
-				{ "expect": { "state": "tab", "is": "notes" } },
-				{ "expect": { "node": "#notesList", "exists": true } },
-				{ "key": "mod+1" },
-				{ "expect": { "state": "tab", "is": "today" } }
+				{
+					"expect": {
+						"node": "#habitRow",
+						"nth": 7,
+						"exists": false
+					}
+				},
+				{
+					"click": "#filterButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Show archived"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "showArchived",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"nth": 7,
+						"property": "name",
+						"is": "Guitar"
+					}
+				}
 			]
 		},
 		{
-			"name": "habit-tracker-switch-the-theme",
-			"note": "The moon button and Cmd+J switch between the light and the dark tokens",
+			"name": "drag-to-reorder",
+			"note": "Dragging a habit onto another moves it there",
 			"steps": [
-				{ "click": [1236, 46] },
-				{ "expect": { "state": "theme", "is": "dark" } },
-				{ "key": "mod+j" },
-				{ "expect": { "state": "theme", "is": "light" } }
+				{
+					"drag": "#habitRow",
+					"nth": 1,
+					"to": "#habitRow",
+					"toNth": 0,
+					"moves": 6
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Run"
+					}
+				},
+				{
+					"expect": {
+						"state": "sort",
+						"is": "manual"
+					}
+				}
 			]
 		},
 		{
-			"name": "sort-and-pick-the-history",
-			"note": "The history table lists 137 days; a title sorts it, a row is picked",
+			"name": "create-a-habit",
+			"note": "Cmd+N, a name, a colour and Save add a yes-or-no habit and select it",
 			"steps": [
-				{ "key": "mod+2" },
-				{ "expect": { "node": "#historySummary", "text": "137 days  ·  47% on average  ·  click a title to sort" } },
-				{ "click": [100, 236], "note": "the second row: yesterday" },
-				{ "expect": { "state": "historyPick", "is": "1" } },
-				{ "click": [1100, 174], "note": "the Score title" },
-				{ "expect": { "state": "historySort.column", "is": "score" } },
-				{ "key": "mod+1" },
-				{ "key": "mod+2" },
-				{ "expect": { "state": "historySort.column", "is": "score", "note": "kept across pages" } },
-				{ "click": [1100, 174], "note": "Score again" },
-				{ "expect": { "state": "historySort.descending", "is": true } },
-				{ "expect": { "state": "historyPick", "is": "1", "note": "the pick stays on its day" } }
+				{
+					"key": "mod+n"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "Stretch"
+				},
+				{
+					"click": "#colorButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#swatch",
+					"nth": 3
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "habits.length",
+						"is": 9
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[8].name",
+						"is": "Stretch"
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[8].color",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[8].kind",
+						"is": "yesNo"
+					}
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "habit1"
+					}
+				},
+				{
+					"expect": {
+						"state": "edit.open",
+						"is": false
+					}
+				}
 			]
 		},
 		{
-			"name": "filter-notes-by-habit",
-			"note": "A habit's name in a note is a link: it shows only that habit's notes, and Show all clears it",
+			"name": "a-habit-needs-a-name",
+			"note": "Save with no name keeps the dialog open and marks the field",
 			"steps": [
-				{ "key": "mod+3" },
-				{ "click": [181, 239], "note": "Run or walk 5 km, in the second note" },
-				{ "expect": { "state": "noteFilter", "is": "Run or walk 5 km" } },
-				{ "expect": { "node": "#noteFilter", "text": "Only the notes about Run or walk 5 km" } },
-				{ "expect": { "node": "#note", "nth": 1, "exists": false } },
-				{ "click": "#showAll" },
-				{ "expect": { "state": "noteFilter", "is": "" } },
-				{ "expect": { "node": "#note", "nth": 5, "exists": true } }
+				{
+					"key": "mod+n"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "habits.length",
+						"is": 8
+					}
+				},
+				{
+					"expect": {
+						"state": "edit.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#nameField",
+						"property": "focused",
+						"is": true
+					}
+				}
 			]
 		},
 		{
-			"name": "add-a-note",
-			"note": "A note goes to the habit in the filter, or to the first habit, and shows at the top",
+			"name": "create-a-measurable-habit",
+			"note": "Cmd+Shift+N asks for a unit and a target, at least or at most",
 			"steps": [
-				{ "key": "mod+3" },
-				{ "click": "#newNote" },
-				{ "type": "Ran in the park" },
-				{ "key": "enter" },
-				{ "expect": { "state": "notes.length", "is": 7 } },
-				{ "expect": { "state": "notes[6].habit", "is": "Read 20 pages" } },
-				{ "expect": { "state": "notes[6].date", "is": "Thu 15 Oct" } },
-				{ "expect": { "state": "newNote", "is": "" } },
-				{ "click": [181, 295], "note": "Run or walk 5 km, now in the third note" },
-				{ "click": "#newNote" },
-				{ "type": "Hills" },
-				{ "key": "enter" },
-				{ "expect": { "state": "notes[7].habit", "is": "Run or walk 5 km" } }
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "Water"
+				},
+				{
+					"click": "#targetField"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "8"
+				},
+				{
+					"click": "#unitField"
+				},
+				{
+					"type": "glasses"
+				},
+				{
+					"click": "#atMost"
+				},
+				{
+					"click": "#per_week"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "habits[8].kind",
+						"is": "measurable"
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[8].unit",
+						"is": "glasses"
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[8].target",
+						"is": 8
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[8].targetType",
+						"is": "atMost"
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[8].frequency.days",
+						"is": 7
+					}
+				}
 			]
 		},
 		{
-			"name": "new-habit-dialog",
-			"note": "Cmd+Shift+N asks for a name and a colour; Add saves it and says so in a toast",
+			"name": "edit-a-habit",
+			"note": "Cmd+E opens the selected habit; a new name is saved",
 			"steps": [
-				{ "key": "mod+shift+n" },
-				{ "wait": 50 },
-				{ "expect": { "state": "draft.open", "is": true } },
-				{ "type": "Stretch" },
-				{ "click": "#swatch", "nth": 3 },
-				{ "expect": { "state": "draft.color", "is": "#db2777" } },
-				{ "click": { "role": "button", "name": "Add" }, "note": "Add (the dialog grew with the schedule, category, goal and reminder, so its button moved)" },
-				{ "expect": { "state": "draft.open", "is": false } },
-				{ "expect": { "state": "habits.length", "is": 6 } },
-				{ "expect": { "state": "habits[5].color", "is": "#db2777" } },
-				{ "expect": { "state": "toast.message", "is": "Added Stretch" } },
-				{ "expect": { "state": "toast.open", "is": true } },
-				{ "wait": 4100 },
-				{ "expect": { "state": "toast.open", "is": false } }
+				{
+					"key": "mod+e"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#nameField",
+						"text": "Meditate"
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "Sit"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "habits[0].name",
+						"is": "Sit"
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Sit"
+					}
+				}
 			]
 		},
 		{
-			"name": "new-habit-needs-a-name",
-			"note": "Add with a blank name keeps the dialog open and adds nothing",
+			"name": "every-n-days",
+			"note": "A frequency of every three days",
 			"steps": [
-				{ "click": "#newHabitButton" },
-				{ "wait": 50 },
-				{ "key": "enter" },
-				{ "expect": { "state": "draft.open", "is": true } },
-				{ "expect": { "state": "habits.length", "is": 5 } }
+				{
+					"key": "mod+e"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#freq_everyN"
+				},
+				{
+					"click": "#freqMore"
+				},
+				{
+					"click": "#freqMore"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "habits[0].frequency.days",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[0].frequency.times",
+						"is": 1
+					}
+				}
 			]
 		},
 		{
-			"name": "delete-a-habit",
-			"note": "The bin asks first (without ticking the row); Delete removes the habit",
+			"name": "a-reminder",
+			"note": "A reminder at a time on chosen days",
 			"steps": [
-				{ "click": "#deleteHabit", "nth": 1 },
-				{ "wait": 50 },
-				{ "expect": { "state": "deleting.open", "is": true } },
-				{ "expect": { "state": "deleting.name", "is": "Run or walk 5 km" } },
-				{ "expect": { "state": "habits[1].done", "is": true, "note": "the row's own click did not run" } },
-				{ "click": [696, 452], "note": "Delete" },
-				{ "expect": { "state": "deleting.open", "is": false } },
-				{ "expect": { "state": "habits.length", "is": 4 } },
-				{ "expect": { "state": "habits[1].name", "is": "Practise C++ for an hour" } },
-				{ "expect": { "state": "toast.message", "is": "Deleted Run or walk 5 km" } }
+				{
+					"key": "mod+e"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#timeField"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "06:45"
+				},
+				{
+					"click": "#dayChip",
+					"nth": 6
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "habits[0].reminder.time",
+						"is": "06:45"
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[0].reminder.days[0]",
+						"is": false
+					}
+				}
 			]
 		},
 		{
-			"name": "cancel-a-delete",
-			"note": "Escape closes the delete dialog and keeps the habit",
+			"name": "archive-and-undo",
+			"note": "Archive hides the habit and offers to undo",
 			"steps": [
-				{ "click": "#deleteHabit", "nth": 0 },
-				{ "wait": 50 },
-				{ "key": "escape" },
-				{ "expect": { "state": "deleting.open", "is": false } },
-				{ "expect": { "state": "habits.length", "is": 5 } }
+				{
+					"key": "mod+shift+a"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "habits[0].archived",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Run"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Undo"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "habits[0].archived",
+						"is": false
+					}
+				}
 			]
 		},
 		{
-			"name": "the-schedule-decides-what-is-due",
-			"note": "On a Saturday the weekday habits are not due, the Monday-Wednesday-Saturday one is, and the count follows",
+			"name": "delete-asks-first",
+			"note": "Delete asks; Cancel keeps the habit, Delete removes it",
 			"steps": [
-				{ "expect": { "node": "#label-habit-not-due", "exists": false, "note": "on Thursday every habit is due" } },
-				{ "expect": { "node": "#doneCount", "text": "2 of 5 done" } },
-				{ "revision": { "set": { "/state/weekday": 5 } } },
-				{ "expect": { "node": "#label-habit-not-due", "text": "Not due today  ·" } },
-				{ "expect": { "node": "#habit", "nth": 2, "property": "name", "is": "Practise C++ for an hour, not due today" } },
-				{ "expect": { "node": "#doneCount", "text": "2 of 4 done" } },
-				{ "revision": { "set": { "/state/habits/1/weekDone": 4 } } },
-				{ "expect": { "node": "#doneCount", "text": "1 of 3 done", "note": "three runs this week, counting today's, meet a three-times-a-week habit" } }
+				{
+					"key": "mod+backspace"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "confirmDelete",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Cancel"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "habits.length",
+						"is": 8
+					}
+				},
+				{
+					"key": "mod+backspace"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Delete"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "habits.length",
+						"is": 7
+					}
+				},
+				{
+					"expect": {
+						"state": "confirmDelete",
+						"is": false
+					}
+				}
 			]
 		},
 		{
-			"name": "edit-a-schedule",
-			"note": "E on a habit opens the dialog filled in; some days, Monday and Wednesday, Save: it is not due on Thursday",
+			"name": "settings-theme-and-week",
+			"note": "Settings switch the theme, pure black and the first day of the week",
 			"steps": [
-				{ "click": "#habit", "nth": 3 },
-				{ "click": "#habit", "nth": 3 },
-				{ "key": "e" },
-				{ "expect": { "state": "draft.open", "is": true } },
-				{ "expect": { "state": "draft.index", "is": 3 } },
-				{ "expect": { "node": "#draftName", "text": "No phone after 22:00" } },
-				{ "click": { "role": "radio", "name": "Some days" } },
-				{ "click": { "role": "checkbox", "name": "Monday" } },
-				{ "click": { "role": "checkbox", "name": "Wednesday" } },
-				{ "click": { "role": "button", "name": "Save" } },
-				{ "expect": { "state": "draft.open", "is": false } },
-				{ "expect": { "state": "habits[3].schedule", "is": "days" } },
-				{ "expect": { "state": "habits[3].days", "is": [0, 2] } },
-				{ "expect": { "state": "habits.length", "is": 5 } },
-				{ "expect": { "node": "#label-habit-not-due", "text": "Not due today  ·" } },
-				{ "expect": { "node": "#doneCount", "text": "2 of 4 done" } }
-			]
-		},
-		{
-			"name": "times-a-week-and-a-monthly-goal",
-			"note": "A new habit four times a week with a goal of 16 a month, in a new category",
-			"steps": [
-				{ "key": "mod+shift+n" },
-				{ "wait": 0 },
-				{ "type": "Swim" },
-				{ "click": { "role": "radio", "name": "Times a week" } },
-				{ "click": { "role": "button", "name": "More times a week" } },
-				{ "click": "#categoryBox" },
-				{ "type": "Sport" },
-				{ "click": { "role": "radio", "name": "a month" } },
-				{ "click": { "role": "button", "name": "Add" } },
-				{ "expect": { "state": "habits.length", "is": 6 } },
-				{ "expect": { "state": "habits[5].schedule", "is": "times" } },
-				{ "expect": { "state": "habits[5].times", "is": 4 } },
-				{ "expect": { "state": "habits[5].period", "is": "month" } },
-				{ "expect": { "state": "habits[5].category", "is": "Sport" } },
-				{ "expect": { "state": "categories", "is": ["Health", "Learning", "Rest", "Sport"] } },
-				{ "expect": { "node": "#label-habit-goal", "nth": 5, "text": "·  0 / 7 this month" } },
-				{ "expect": { "node": "#toast", "property": "shown", "is": true } }
-			]
-		},
-		{
-			"name": "filter-by-category",
-			"note": "A category chip shows only its habits; a habit added while filtered joins the category",
-			"steps": [
-				{ "click": { "role": "radio", "name": "Learning" } },
-				{ "expect": { "state": "category", "is": "Learning" } },
-				{ "expect": { "node": "#habit", "nth": 2, "exists": false } },
-				{ "expect": { "node": "#label-habit-name", "nth": 1, "text": "Practise C++ for an hour" } },
-				{ "click": "#habit", "nth": 1 },
-				{ "expect": { "state": "habits[2].done", "is": true, "note": "the row ticks the right habit while filtered" } },
-				{ "click": "#newHabit" },
-				{ "type": "Learn a word" },
-				{ "key": "enter" },
-				{ "expect": { "state": "habits[5].category", "is": "Learning" } },
-				{ "expect": { "node": "#label-habit-name", "nth": 2, "text": "Learn a word" } },
-				{ "click": { "role": "radio", "name": "All" } },
-				{ "expect": { "node": "#label-habit-name", "nth": 5, "text": "Learn a word" } }
-			]
-		},
-		{
-			"name": "goals-move-with-the-checks",
-			"note": "Ticking a habit counts toward its goal, on the row and on the Stats page",
-			"steps": [
-				{ "expect": { "node": "#label-habit-goal", "nth": 2, "text": "·  10 / 20 this month" } },
-				{ "click": "#habit", "nth": 2 },
-				{ "expect": { "node": "#label-habit-goal", "nth": 2, "text": "·  11 / 20 this month" } },
-				{ "revision": { "set": { "/state/habits/0/weekDone": 5, "/state/habits/0/done": false } } },
-				{ "click": "#checkbox-habit", "nth": 0 },
-				{ "key": "mod+4" },
-				{ "expect": { "node": "#label-goal-value", "nth": 0, "text": "6 / 6 this week" } },
-				{ "expect": { "node": "#label-goal-value", "nth": 2, "text": "11 / 20 this month" } },
-				{ "expect": { "node": "#yearTile", "nth": 2, "property": "name", "is": "Goals reached: 1 / 5" } }
-			]
-		},
-		{
-			"name": "a-reminder-at-its-time",
-			"note": "At 07:30 the C++ habit, due and not done, reminds with a toast; Mark done ticks it",
-			"steps": [
-				{ "expect": { "node": "#toast", "property": "shown", "is": false } },
-				{ "wait": 60000 },
-				{ "expect": { "state": "minute", "is": 450 } },
-				{ "expect": { "state": "toast.message", "is": "Time for Practise C++ for an hour" } },
-				{ "click": { "role": "button", "name": "Mark done" } },
-				{ "expect": { "state": "habits[2].done", "is": true } },
-				{ "expect": { "state": "toast.open", "is": false } }
-			]
-		},
-		{
-			"name": "reminders-can-be-turned-off",
-			"note": "With reminders off in the settings, 07:30 passes quietly",
-			"steps": [
-				{ "key": "mod+comma" },
-				{ "click": { "role": "checkbox", "name": "Show reminders" } },
-				{ "expect": { "state": "reminders", "is": false } },
-				{ "key": "escape" },
-				{ "expect": { "state": "settingsOpen", "is": false } },
-				{ "wait": 60000 },
-				{ "expect": { "state": "toast.open", "is": false } }
-			]
-		},
-		{
-			"name": "write-a-note-for-today",
-			"note": "Ctrl/Cmd+D opens today's note on the History page; Enter saves it",
-			"steps": [
-				{ "key": "mod+d" },
-				{ "wait": 0 },
-				{ "expect": { "state": "tab", "is": "history" } },
-				{ "expect": { "node": "#dayNote", "property": "focused", "is": true } },
-				{ "type": "Good day" },
-				{ "key": "enter" },
-				{ "expect": { "state": "dayNotes['1792065600000']", "is": "Good day" } },
-				{ "expect": { "state": "toast.open", "is": true } },
-				{ "click": [100, 236], "note": "yesterday's row" },
-				{ "expect": { "state": "historyPick", "is": "1" } },
-				{ "expect": { "node": "#dayNote", "text": "Slow day: only the walk and the book." } }
-			]
-		},
-		{
-			"name": "add-needs-a-name-by-click-too",
-			"note": "Regression: clicking Add with a blank name closed the dialog; it stays open, with the name focused",
-			"steps": [
-				{ "key": "mod+shift+n" },
-				{ "wait": 0 },
-				{ "expect": { "node": "#draftName", "property": "focused", "is": true, "note": "regression: the dialog opened without focus, so typing went nowhere" } },
-				{ "click": { "role": "button", "name": "Add" } },
-				{ "wait": 0 },
-				{ "expect": { "state": "draft.open", "is": true } },
-				{ "expect": { "state": "habits.length", "is": 5 } },
-				{ "type": "Stretch" },
-				{ "key": "tab" },
-				{ "click": "#draftReminder" },
-				{ "type": "7:5" },
-				{ "click": { "role": "button", "name": "Add" } },
-				{ "wait": 0 },
-				{ "expect": { "state": "draft.open", "is": true, "note": "a reminder that isn't hh:mm keeps it open too" } },
-				{ "expect": { "node": "#draftReminder", "property": "focused", "is": true } },
-				{ "key": "backspace" },
-				{ "key": "backspace" },
-				{ "key": "backspace" },
-				{ "type": "07:15" },
-				{ "click": { "role": "button", "name": "Add" } },
-				{ "expect": { "state": "habits[5].reminder", "is": "07:15" } }
-			]
-		},
-		{
-			"name": "the-dialog-fields-are-in-place",
-			"note": "Regression: the field labels sat at the dialog's edge, and the goal's week and month chips had no width",
-			"steps": [
-				{ "key": "mod+shift+n" },
-				{ "wait": 300 },
-				{ "expect": { "node": "#label-colour", "property": "x", "is": 430 } },
-				{ "expect": { "node": "#label-goal", "property": "x", "is": 430 } },
-				{ "expect": { "node": "#periodChips", "property": "width", "is": 170 } },
-				{ "expect": { "node": { "role": "radio", "name": "a month" }, "property": "shown", "is": true } }
-			]
-		},
-		{
-			"name": "the-stats-page",
-			"note": "The year's 53 by 7 heatmap, the totals, the goals and the weekdays; regression: the rows below the heatmap had no height",
-			"steps": [
-				{ "key": "mod+4" },
-				{ "expect": { "state": "tab", "is": "stats" } },
-				{ "expect": { "node": "#yearTile", "nth": 0, "property": "name", "is": "Check-ins this year: 651" } },
-				{ "expect": { "node": "#yearTile", "nth": 3, "property": "name", "is": "Best weekday: Tuesday" } },
-				{ "expect": { "node": "#yearDay", "nth": 370, "exists": true } },
-				{ "expect": { "node": "#yearDay", "nth": 371, "exists": false } },
-				{ "expect": { "node": "#yearTiles", "property": "height", "is": 96 } },
-				{ "expect": { "node": "#goalRow", "nth": 4, "property": "shown", "is": true } },
-				{ "expect": { "node": "#label-goal-name", "nth": 4, "text": "Ten minutes of stretching" } },
-				{ "expect": { "node": "#weekdayCard", "property": "height", "is": 280 } }
-			]
-		},
-		{
-			"name": "sync-with-the-document-server",
-			"note": "The server's copy arrives (hello) and wins; a commit is counted; an error shows in the status bar",
-			"steps": [
-				{ "expect": { "node": "#syncStatus", "text": "Not signed in" } },
-				{ "action": "streakServer:hello", "event": { "state": { "habits": [{ "name": "Walk the dog", "done": false, "streak": 2, "week": 50, "color": "#16a34a", "schedule": "daily", "days": [], "times": 3, "category": "Health", "goal": 7, "period": "week", "weekDone": 1, "monthDone": 4, "reminder": "" }] } } },
-				{ "expect": { "state": "habits.length", "is": 1 } },
-				{ "expect": { "node": "#label-habit-name", "nth": 0, "text": "Walk the dog" } },
-				{ "expect": { "node": "#doneCount", "text": "0 of 1 done" } },
-				{ "expect": { "state": "toast.open", "is": true } },
-				{ "action": "streakServer:committed", "event": {} },
-				{ "expect": { "state": "sync.commits", "is": 1 } },
-				{ "expect": { "node": "#syncStatus", "text": "Not signed in  ·  1 change sent" } },
-				{ "action": "streakServer:error", "event": { "message": "refused" } },
-				{ "expect": { "node": "#syncStatus", "text": "Sync error: refused" } },
-				{ "key": "mod+s" },
-				{ "expect": { "state": "toast.message", "is": "Sync error: refused", "note": "offline, Sync Now says why" } }
+				{
+					"key": "mod+comma"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "settingsOpen",
+						"is": true
+					}
+				},
+				{
+					"click": "#pureBlackRow"
+				},
+				{
+					"expect": {
+						"state": "pureBlack",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				},
+				{
+					"click": "#firstDayRow"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Sunday"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "firstWeekday",
+						"is": 0
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "settingsOpen",
+						"is": false
+					}
+				}
 			]
 		},
 		{
 			"name": "speak-italian",
-			"note": "Ctrl/Cmd+L moves to Italian: the counts, rows and dialog follow",
+			"note": "The language menu switches the whole app",
 			"steps": [
-				{ "key": "mod+l" },
-				{ "expect": { "state": "locale", "is": "it" } },
-				{ "expect": { "node": "#doneCount", "text": "2 di 5 fatte" } },
-				{ "expect": { "node": "#label-habit-goal", "nth": 0, "text": "·  4 / 6 questa settimana" } },
-				{ "key": "mod+shift+n" },
-				{ "expect": { "node": { "role": "button", "name": "Alza l'obiettivo" }, "property": "role", "is": "button" } },
-				{ "expect": { "node": { "role": "radio", "name": "Alcuni giorni" }, "property": "shown", "is": true } }
+				{
+					"key": "mod+comma"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#languageRow"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Italiano"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "locale",
+						"is": "it"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"property": "name",
+						"is": "gio 15 ott: fatto",
+						"nth": 0
+					}
+				}
 			]
 		},
 		{
 			"name": "speak-arabic-right-to-left",
-			"note": "Arabic from the settings: the texts follow and the page mirrors",
+			"note": "Arabic lays the panes out right to left",
 			"steps": [
-				{ "expect": { "node": "#doneCount", "property": "x", "is": 318 } },
-				{ "key": "mod+comma" },
-				{ "click": { "role": "radio", "name": "العربية" } },
-				{ "key": "escape" },
-				{ "expect": { "state": "locale", "is": "ar" } },
-				{ "expect": { "node": "#doneCount", "text": "تم 2 من 5" } },
-				{ "expect": { "node": "#doneCount", "property": "x", "is": 916, "note": "the Today card is on the right, its count on its left" } }
+				{
+					"key": "mod+comma"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#languageRow"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": [
+						830,
+						548
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "locale",
+						"is": "ar"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#listPane",
+						"property": "x",
+						"is": 692
+					}
+				}
 			]
 		},
 		{
-			"name": "dark-and-light-from-the-settings",
-			"note": "The theme chips switch the palette both ways",
+			"name": "keyboard-only",
+			"note": "The keyboard moves between habits and checks today",
 			"steps": [
-				{ "key": "mod+comma" },
-				{ "click": { "role": "radio", "name": "Dark" } },
-				{ "expect": { "state": "theme", "is": "dark" } },
-				{ "expect": { "node": "#today", "property": "color", "is": "#1c1917" } },
-				{ "click": { "role": "radio", "name": "Light" } },
-				{ "expect": { "state": "theme", "is": "light" } },
-				{ "expect": { "node": "#today", "property": "color", "is": "#ffffff" } }
-			]
-		},
-		{
-			"name": "keyboard-only-habits",
-			"note": "Without the pointer: add a habit in the dialog, walk the list with the arrows, tick with Space, edit with E, Escape closes",
-			"steps": [
-				{ "key": "mod+shift+n" },
-				{ "wait": 0 },
-				{ "type": "Drink water" },
-				{ "key": "enter" },
-				{ "expect": { "state": "habits.length", "is": 6 } },
-				{ "expect": { "state": "draft.open", "is": false } },
-				{ "key": "mod+n" },
-				{ "wait": 0 },
-				{ "expect": { "node": "#newHabit", "property": "focused", "is": true } },
-				{ "key": "shift+tab" },
-				{ "expect": { "node": "#habit", "nth": 0, "property": "focused", "is": true, "note": "the list is one tab stop, entered at its first row" } },
-				{ "key": "down" },
-				{ "key": "down" },
-				{ "expect": { "node": "#habit", "nth": 2, "property": "focused", "is": true } },
-				{ "key": "space" },
-				{ "expect": { "state": "habits[2].done", "is": true } },
-				{ "key": "e" },
-				{ "wait": 0 },
-				{ "expect": { "state": "draft.index", "is": 2 } },
-				{ "key": "escape" },
-				{ "wait": 0 },
-				{ "expect": { "state": "draft.open", "is": false } },
-				{ "expect": { "node": "#habit", "nth": 2, "property": "focused", "is": true, "note": "the focus comes back to the row" } },
-				{ "key": "delete" },
-				{ "expect": { "state": "deleting.open", "is": true } },
-				{ "key": "escape" },
-				{ "expect": { "state": "deleting.open", "is": false } },
-				{ "expect": { "state": "habits.length", "is": 6 } }
-			]
-		},
-		{
-			"name": "keyboard-only-dialog",
-			"note": "Tab through the new-habit dialog: the schedule chips and weekdays answer Space, Enter on Add adds",
-			"steps": [
-				{ "key": "mod+shift+n" },
-				{ "wait": 0 },
-				{ "type": "Yoga" },
-				{ "key": "tab" },
-				{ "expect": { "node": "#swatch", "nth": 0, "property": "focused", "is": true } },
-				{ "key": "tab" },
-				{ "expect": { "node": "#scheduleChip", "nth": 0, "property": "focused", "is": true } },
-				{ "key": "right" },
-				{ "key": "space" },
-				{ "expect": { "state": "draft.schedule", "is": "days" } },
-				{ "key": "tab" },
-				{ "key": "space" },
-				{ "key": "right" },
-				{ "key": "right" },
-				{ "key": "space" },
-				{ "expect": { "state": "draft.days", "is": [0, 2] } }
+				{
+					"key": "mod+down"
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "run"
+					}
+				},
+				{
+					"key": "mod+down"
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "read"
+					}
+				},
+				{
+					"key": "mod+up"
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "run"
+					}
+				},
+				{
+					"key": "mod+up"
+				},
+				{
+					"key": "mod+enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 0,
+						"property": "name",
+						"is": "Thu 15 Oct: skipped"
+					}
+				}
 			]
 		},
 		{
 			"name": "the-command-palette",
-			"note": "Ctrl/Cmd+K lists the commands with their keys; typing finds one and Enter runs it",
+			"note": "Cmd+K finds a command by name",
 			"steps": [
-				{ "key": "mod+k" },
-				{ "wait": 50 },
-				{ "expect": { "state": "quickPick.open", "is": true } },
-				{ "type": "light and dark" },
-				{ "key": "enter" },
-				{ "expect": { "state": "theme", "is": "dark" } },
-				{ "expect": { "state": "quickPick.open", "is": false } },
-				{ "key": "mod+shift+p" },
-				{ "wait": 50 },
-				{ "type": "go to stats" },
-				{ "key": "enter" },
-				{ "expect": { "state": "tab", "is": "stats" } },
-				{ "key": "mod+k" },
-				{ "wait": 50 },
-				{ "key": "escape" },
-				{ "expect": { "state": "quickPick.open", "is": false } }
+				{
+					"key": "mod+k"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": true
+					}
+				},
+				{
+					"type": "settings"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "settingsOpen",
+						"is": true
+					}
+				}
 			]
 		},
 		{
-			"name": "shortcuts",
-			"note": "Ctrl/Cmd with 1 to 4 picks the page, J the theme, comma the settings, N the quick add",
+			"name": "export-csv",
+			"note": "Export copies the habit's history as CSV and says so",
 			"steps": [
-				{ "key": "mod+2" },
-				{ "expect": { "state": "tab", "is": "history" } },
-				{ "key": "mod+3" },
-				{ "expect": { "state": "tab", "is": "notes" } },
-				{ "key": "mod+4" },
-				{ "expect": { "state": "tab", "is": "stats" } },
-				{ "key": "mod+n" },
-				{ "expect": { "state": "tab", "is": "today", "note": "the quick add is on Today" } },
-				{ "key": "mod+j" },
-				{ "expect": { "state": "theme", "is": "dark" } },
-				{ "key": "mod+j" },
-				{ "expect": { "state": "theme", "is": "light" } },
-				{ "key": "mod+comma" },
-				{ "expect": { "state": "settingsOpen", "is": true } },
-				{ "key": "escape" },
-				{ "expect": { "state": "settingsOpen", "is": false } }
+				{
+					"click": "#detailMore"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Export as CSV"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toasts.length",
+						"is": 1
+					}
+				}
 			]
 		},
 		{
-			"name": "from-the-smallest-window-to-full-screen",
-			"note": "At 480 by 640 the tabs drop below the title and the side panels go; at 1920 by 1080 everything is back",
+			"name": "score-period",
+			"note": "The score card's period button switches to months",
 			"steps": [
-				{ "resize": [480, 640] },
-				{ "expect": { "node": "#date", "exists": false } },
-				{ "expect": { "node": "#stats", "exists": false } },
-				{ "expect": { "node": "#tabs", "property": "shown", "is": true } },
-				{ "expect": { "node": "#tabs", "property": "y", "is": 86 } },
-				{ "expect": { "node": "#today", "property": "width", "is": 432 } },
-				{ "expect": { "node": "#themeToggle", "property": "x", "is": 420 } },
-				{ "expect": { "node": "#newHabit", "property": "shown", "is": true } },
-				{ "key": "mod+2" },
-				{ "expect": { "node": "#historyTable", "property": "width", "is": 408 } },
-				{ "key": "mod+4" },
-				{ "expect": { "node": "#yearCard", "property": "width", "is": 432 } },
-				{ "resize": [1920, 1080] },
-				{ "key": "mod+1" },
-				{ "expect": { "node": "#date", "property": "shown", "is": true } },
-				{ "expect": { "node": "#stats", "property": "shown", "is": true } },
-				{ "expect": { "node": "#tabs", "property": "y", "is": 32 } },
-				{ "expect": { "node": "#themeToggle", "property": "x", "is": 1860 } },
-				{ "expect": { "node": "#statusSize", "text": "1920 × 1080" } }
+				{
+					"click": {
+						"role": "button",
+						"name": "Period: Week"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Month"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "scorePeriod",
+						"is": "month"
+					}
+				}
 			]
 		},
 		{
-			"name": "the-layout-follows-a-resize",
-			"note": "Regression: the narrow layout came from a computed value that a resize didn't refresh, so the Today card kept its old width",
+			"name": "narrow-shows-one-pane",
+			"note": "In a narrow window the list fills it; a habit opens its detail, Escape comes back",
 			"steps": [
-				{ "expect": { "node": "#today", "property": "width", "is": 400 } },
-				{ "resize": [600, 700] },
-				{ "expect": { "node": "#today", "property": "width", "is": 552 } },
-				{ "resize": [1280, 800] },
-				{ "expect": { "node": "#today", "property": "width", "is": 400 } },
-				{ "expect": { "node": "#tabs", "property": "x", "is": 190 } }
-			]
-		},
-		{
-			"name": "long-notes-wrap-in-a-narrow-window",
-			"note": "Regression: note rows had a fixed height of 48, so at a narrow width the wrapped text was clipped",
-			"steps": [
-				{ "key": "mod+3" },
-				{ "expect": { "node": "#note", "nth": 0, "property": "height", "is": 48 } },
-				{ "resize": [480, 640] },
-				{ "expect": { "node": "#note", "nth": 0, "property": "height", "is": 88 } },
-				{ "expect": { "node": "#note", "nth": 2, "property": "height", "is": 88 } }
+				{
+					"resize": [
+						520,
+						800
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#detailPane",
+						"property": "shown",
+						"is": false
+					}
+				},
+				{
+					"click": [
+						100,
+						188
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "page",
+						"is": "detail"
+					}
+				},
+				{
+					"expect": {
+						"node": "#detailPane",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "page",
+						"is": "list"
+					}
+				},
+				{
+					"resize": [
+						1280,
+						800
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#detailPane",
+						"property": "shown",
+						"is": true
+					}
+				}
 			]
 		}
 	]
