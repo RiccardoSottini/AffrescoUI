@@ -9,7 +9,8 @@
 			"name": "add-a-card",
 			"note": "Typing in the new-card field and pressing Enter adds the card at the end of the Backlog",
 			"steps": [
-				{ "click": "#newCard" },
+				{ "key": "c" },
+				{ "wait": 50 },
 				{ "type": "Write render tests" },
 				{ "expect": { "state": "newCard", "is": "Write render tests" } },
 				{ "key": "enter" },
@@ -17,14 +18,16 @@
 				{ "expect": { "state": "columns[0].cards[4].title", "is": "Write render tests" } },
 				{ "expect": { "state": "newCard", "is": "" } },
 				{ "expect": { "node": "#cardTitle", "nth": 4, "text": "Write render tests" } },
-				{ "expect": { "node": "#columnCount", "text": "5" } }
+				{ "expect": { "node": "#columnCount", "text": "5" } },
+				{ "expect": { "state": "toast.undo", "is": true } }
 			]
 		},
 		{
 			"name": "ignore-a-blank-card",
 			"note": "Pressing Enter with only spaces in the new-card field adds nothing",
 			"steps": [
-				{ "click": "#newCard" },
+				{ "key": "c" },
+				{ "wait": 50 },
 				{ "type": "   " },
 				{ "key": "enter" },
 				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
@@ -35,15 +38,19 @@
 			"name": "filter-by-tag",
 			"note": "Clicking the bug chip shows only bug cards, and a new card takes the filter's tag; Escape shows every card again",
 			"steps": [
+				{ "click": "#filterButton" },
+				{ "wait": 50 },
 				{ "click": "#filter", "nth": 1 },
 				{ "expect": { "state": "filter", "is": "bug" } },
 				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Crash when a board has no columns" } },
 				{ "expect": { "node": "#card", "nth": 2, "exists": true } },
 				{ "expect": { "node": "#card", "nth": 3, "exists": false } },
-				{ "click": "#newCard" },
+				{ "key": "c" },
+				{ "wait": 50 },
 				{ "type": "Login loops forever" },
 				{ "key": "enter" },
 				{ "expect": { "state": "columns[0].cards[4].tag", "is": "bug" } },
+				{ "wait": 50, "note": "the composer closes" },
 				{ "key": "escape" },
 				{ "expect": { "state": "filter", "is": "all" } },
 				{ "expect": { "node": "#card", "nth": 12, "exists": true } }
@@ -98,7 +105,7 @@
 			"note": "Cmd+N puts the keyboard in the new-card field, so typing and Enter add a card",
 			"steps": [
 				{ "key": "mod+n" },
-				{ "wait": 0, "note": "the focus lands on the next frame" },
+				{ "wait": 50, "note": "the composer opens and takes the focus" },
 				{ "expect": { "node": "#newCard", "property": "focused", "is": true } },
 				{ "type": "From the keyboard" },
 				{ "key": "enter" },
@@ -140,6 +147,8 @@
 			"name": "list-of-every-card",
 			"note": "The List view groups every card by column, one row each; choosing a row selects its card",
 			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
 				{ "click": "#viewList" },
 				{ "expect": { "state": "view", "is": "list" } },
 				{ "expect": { "node": "#listView", "exists": true } },
@@ -149,6 +158,8 @@
 				{ "key": "space", "note": "peeks at it in the side panel" },
 				{ "expect": { "state": "peek", "is": true } },
 				{ "expect": { "node": "#detailTitle", "text": "Crash when a board has no columns" } },
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
 				{ "click": "#viewBoard" },
 				{ "expect": { "node": "#board", "exists": true } }
 			]
@@ -157,6 +168,8 @@
 			"name": "table-of-every-card",
 			"note": "The Table view lists every card of the board, one row each; choosing a row selects its card",
 			"steps": [
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
 				{ "click": "#viewTable" },
 				{ "expect": { "state": "view", "is": "table" } },
 				{ "expect": { "node": "#cardTable", "exists": true } },
@@ -168,6 +181,8 @@
 				{ "key": "space", "note": "peeks at it in the side panel" },
 				{ "expect": { "state": "peek", "is": true } },
 				{ "expect": { "node": "#detailTitle", "text": "Crash when a board has no columns" } },
+				{ "click": "#displayButton" },
+				{ "wait": 50 },
 				{ "click": "#viewBoard" },
 				{ "expect": { "node": "#board", "exists": true } }
 			]
@@ -214,6 +229,8 @@
 			"name": "go-to-a-card",
 			"note": "Cmd+P opens the quick pick over every card; typing filters it and Enter selects the card",
 			"steps": [
+				{ "click": "#filterButton" },
+				{ "wait": 50 },
 				{ "click": "#filter", "nth": 1, "note": "a filter that hides the card, cleared by going to it" },
 				{ "key": "mod+p" },
 				{ "wait": 50 },
@@ -410,7 +427,10 @@
 				{ "key": "mod+l" },
 				{ "key": "mod+l" },
 				{ "wait": 50 },
-				{ "expect": { "node": "#filter", "nth": 0, "text": "كل البطاقات" } },
+				{ "key": "f" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#filter", "nth": 0, "text": "  كل البطاقات" } },
+				{ "key": "escape" },
 				{ "click": "#cardTitle" },
 				{ "expect": { "state": "selected.i", "is": 0 } },
 				{ "capture": "arabic" }

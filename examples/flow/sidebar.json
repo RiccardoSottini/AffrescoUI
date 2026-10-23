@@ -55,7 +55,44 @@
 						"radius": "@radius.chip",
 						"color": "transparent",
 						"hover": { "color": "@color.sidebarHover" },
+						"cursor": "hand",
+						"focusable": true,
+						"role": "button",
+						"label": "{{t('workspace.name')}}",
+						"isOpen": "{{state.workspaceOpen}}",
+						"keys": { "enter": { "toggle": "state.workspaceOpen" }, "space": { "toggle": "state.workspaceOpen" } },
+						"onClick": { "toggle": "state.workspaceOpen" },
 						"children": [
+							{
+								"id": "workspaceMenu",
+								"overlay": { "placement": "below", "open": "state.workspaceOpen", "dismiss": "outside" },
+								"y": 4,
+								"width": 240,
+								"height": 108,
+								"radius": "@radius.card",
+								"shadow": { "y": 6, "blur": 16, "color": "#0000002e" },
+								"borderWidth": 1,
+								"borderColor": "@color.border",
+								"color": "@color.menu",
+								"children": [
+									{
+										"id": "workspaceItems",
+										"type": "column",
+										"anchors": { "left": 6, "right": 6, "top": 6, "bottom": 6 },
+										"gap": 2,
+										"role": "menu",
+										"arrows": "vertical",
+										"children": [
+											{ "id": "settingsButton", "style": "menuRow", "icon": "settings", "text": "  {{t('settings.title')}}", "role": "menuitem", "label": "{{t('settings.title')}}",
+												"tooltip": "Cmd+,", "onClick": [{ "set": "state.workspaceOpen", "to": false }, { "run": "openSettings" }] },
+											{ "id": "themeToggle", "style": "menuRow", "icon": "{{state.theme == 'light' ? 'moon' : 'sun'}}", "text": "  {{t('theme.menu')}}", "role": "menuitem",
+												"label": "{{t('theme.tooltip')}}", "tooltip": "Cmd+J", "onClick": [{ "set": "state.workspaceOpen", "to": false }, { "run": "toggleTheme" }] },
+											{ "id": "languageButton", "style": "menuRow", "icon": "languages", "text": "  {{t('locale.menu', { code: upper(settings.appearance.language) })}}", "role": "menuitem",
+												"label": "{{t('locale.tooltip')}}", "tooltip": "Cmd+L", "onClick": [{ "set": "state.workspaceOpen", "to": false }, { "run": "changeLanguage" }] }
+										]
+									}
+								]
+							},
 							{ "id": "workspaceMark", "type": "label", "font": "small", "text": "L", "textColor": "#ffffff", "color": "@color.accent", "radius": 4,
 								"width": 18, "height": 18, "align": "center", "x": 6 },
 							{ "id": "workspaceName", "type": "label", "font": "small", "text": "{{t('workspace.name')}}", "textColor": "@color.text", "fitText": true, "height": 28,

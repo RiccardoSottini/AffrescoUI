@@ -54,6 +54,7 @@
 		"remember": [
 			{ "note": "Keeps the columns before a change, for undoChange (the last 20)" },
 			{ "push": "state.undoStack", "value": "{{state.columns}}" },
+			{ "set": "state.toastUndo", "to": true },
 			{ "if": "{{length(state.undoStack) > 20}}", "then": [{ "remove": "state.undoStack", "at": 0 }] }
 		],
 		"logActivity": [
