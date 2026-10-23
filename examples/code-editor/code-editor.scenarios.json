@@ -90,7 +90,7 @@
 			"steps": [
 				{ "key": "mod+shift+m", "note": "the panel is hidden at first, as in the editor it models" },
 				{ "wait": 0 },
-				{ "click": [500, 682], "note": "the FIXME in Station.cpp" },
+				{ "click": [500, 656], "note": "the FIXME in Station.cpp" },
 				{ "expect": { "state": "problemPick", "is": "2:6" } },
 				{ "expect": { "state": "active", "is": 2 } },
 				{ "expect": { "state": "caret.line", "is": 6, "note": "at the problem's line" } },
@@ -166,7 +166,7 @@
 				{ "key": "mod+shift+p" },
 				{ "wait": 50 },
 				{ "expect": { "state": "palette.open", "is": true } },
-				{ "type": "explorer" },
+				{ "type": "toggle side bar" },
 				{ "wait": 50 },
 				{ "key": "enter" },
 				{ "expect": { "state": "sidebarOpen", "is": false } },
