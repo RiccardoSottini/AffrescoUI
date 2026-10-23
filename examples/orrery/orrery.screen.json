@@ -811,7 +811,8 @@
 			"selection": ["earth"]
 		},
 		"limitMag": 5,
-		"markers": []
+		"markers": [],
+		"muted": []
 	},
 	"computed": {
 		"ids": "{{map(state.bodies, it.id)}}",
@@ -828,15 +829,15 @@
 		"catalogue": "{{map(state.bodies, {id: it.id, name: it.name, parent: it.parent, thumbnail: 'body:' + (it.look ?? it.id)})}}",
 		"graphNodes": "{{map(state.bodies, {id: it.id, title: it.name, x: it.gx ?? 400, y: it.gy ?? 20 + index * 40, width: 120, inputs: it.parent == '' ? [] : [{id: 'orbits', label: 'orbits', kind: 'orbit', links: 1}], outputs: [{id: 'satellites', label: 'satellites', kind: 'orbit'}]})}}",
 		"graphLinks": "{{map(filter(state.bodies, it.parent != ''), {from: it.parent, output: 'satellites', to: it.id, input: 'orbits'})}}",
-		"tracks": "{{[{id: 'eclipses', label: 'Eclipses', locked: true, clips: map(filter(state.events, it.kind == 'eclipse'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#7c3aed'})}, {id: 'conjunctions', label: 'Conjunctions', locked: true, clips: map(filter(state.events, it.kind == 'conjunction'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#0e7490'})}, {id: 'oppositions', label: 'Oppositions', locked: true, clips: map(filter(state.events, it.kind == 'opposition'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#b45309'})}]}}",
-		"next": "{{find(state.events, it.time > state.time + 0.5)}}",
-		"previous": "{{sort(filter(state.events, it.time < state.time - 0.5), it.time, 'desc')[0]}}",
+		"tracks": "{{[{id: 'eclipses', label: 'Eclipses', locked: true, muted: indexOf(state.muted, 'eclipse') >= 0, clips: map(filter(state.events, it.kind == 'eclipse'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#7c3aed'})}, {id: 'conjunctions', label: 'Conjunctions', locked: true, muted: indexOf(state.muted, 'conjunction') >= 0, clips: map(filter(state.events, it.kind == 'conjunction'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#0e7490'})}, {id: 'oppositions', label: 'Oppositions', locked: true, muted: indexOf(state.muted, 'opposition') >= 0, clips: map(filter(state.events, it.kind == 'opposition'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#b45309'})}]}}",
+		"next": "{{find(state.events, it.time > state.time + 0.5 && indexOf(state.muted, it.kind) < 0)}}",
+		"previous": "{{sort(filter(state.events, it.time < state.time - 0.5 && indexOf(state.muted, it.kind) < 0), it.time, 'desc')[0]}}",
 		"goal": "{{state.speed < 0 ? computed.previous : computed.next}}",
 		"selectedBody": "{{find(state.bodies, it.id == state.selected)}}",
 		"selectedPosition": "{{find(computed.placed, it.id == state.selected)}}",
 		"followed": "{{find(computed.placed, it.id == state.follow)}}",
 		"flyPosition": "{{state.flying != '' ? find(computed.placed, it.id == state.flying) : null}}",
-		"pane": "{{ {w: max(window.width - 461, 200), h: max(window.height - 312, 160)} }}",
+		"pane": "{{ {w: max(window.width - 461, 200), h: max(window.height - 324, 160)} }}",
 		"view": "{{ {w: computed.pane.w, h: computed.pane.h, f: state.zoom * min(computed.pane.w, computed.pane.h), distance: state.camera.distance, cy: cos(state.camera.yaw), sy: sin(state.camera.yaw), cp: cos(state.camera.pitch), sp: sin(state.camera.pitch)} }}",
 		"stars": "{{map(range(400), {u: abs(sin(index * 12.9898) * 43758.5453) % 1 * 2 - 1, t: abs(sin(index * 78.233) * 12543.917) % 1 * 2 * pi(), mag: 0.5 + 6 * sqrt(abs(sin(index * 39.425) * 24634.633) % 1)})}}",
 		"starVectors": "{{map(computed.stars, {x: sqrt(1 - it.u * it.u) * cos(it.t), y: it.u, z: sqrt(1 - it.u * it.u) * sin(it.t), mag: it.mag})}}",
@@ -852,7 +853,9 @@
 		"apparentText": "{{computed.apparent >= 1 ? fixed(computed.apparent, 2) + '°' : computed.apparent * 60 >= 1 ? fixed(computed.apparent * 60, 1) + '′' : fixed(computed.apparent * 3600, 1) + '″'}}",
 		"clock": "{{formatDate(dateMs('2030-01-01') + state.time * 86400000, 'yyyy-MM-dd HH:mm', 'utc') + ' UTC'}}",
 		"rate": "{{state.playing ? (state.speed < 0 ? 'Reversed, ' : '') + formatNumber(abs(state.speed) * 1728000, 0, 0) + 'x faster: ' + fixed(abs(state.speed) * 20, abs(state.speed) < 0.05 ? 2 : 0) + ' days a second' : 'Paused'}}",
-		"viewMenu": "{{map(menus.view, it.run == 'toggleOrbits' ? merge(it, {title: state.showOrbits ? 'Hide orbits' : 'Show orbits'}) : (it.run == 'toggleLabels' ? merge(it, {title: state.showLabels ? 'Hide labels' : 'Show labels'}) : (it.run == 'toggleBrowser' ? merge(it, {title: state.showBrowser ? 'Hide the browser' : 'Show the browser'}) : it)))}}",
+		"viewMenu": "{{map(menus.view, merge(it, {checked: it.run == 'toggleOrbits' ? state.showOrbits : (it.run == 'toggleLabels' ? state.showLabels : (it.run == 'toggleBrowser' ? state.showBrowser : (it.run == 'toggleStars' ? state.showStars : (it.run == 'toggleShading' ? state.showShading : (it.run == 'toggleGlow' ? state.showGlow : (it.run == 'toggleMarker' ? indexOf(state.markers, state.selected) >= 0 : (it.run == 'follow' ? state.follow != '' && state.follow != null : false)))))))}))}}",
+		"toolbarItems": "{{[{title: 'Back to day 0', icon: 'skip-back', keyLabel: 'Ctrl+0', run: 'rewind'}, {title: state.playing ? 'Pause' : 'Play', icon: state.playing ? 'pause' : 'play', keyLabel: 'Space', run: 'togglePlay'}, {title: state.speed < 0 ? 'Previous event' : 'Next event', icon: state.speed < 0 ? 'skip-back' : 'skip-forward', keyLabel: 'Ctrl+N', run: 'nextEvent'}, {separator: true}, {title: 'Slower', icon: 'chevrons-left', keyLabel: 'K', run: 'slower'}, {title: 'Reverse', icon: 'arrow-left-right', keyLabel: 'J', checked: state.speed < 0, run: 'reverse'}, {title: 'Faster', icon: 'chevrons-right', keyLabel: 'L', run: 'faster'}, {separator: true}, {title: 'Go to the selected body', icon: 'rocket', keyLabel: 'G', run: 'goTo'}, {title: 'Centre the selected body', icon: 'crosshair', keyLabel: 'C', run: 'centre'}, {title: 'Follow the selected body', icon: 'locate-fixed', keyLabel: 'F', checked: state.follow != '' && state.follow != null, run: 'follow'}, {title: 'Mark the selected body', icon: 'scan', keyLabel: 'M', checked: indexOf(state.markers, state.selected) >= 0, run: 'toggleMarker'}, {separator: true}, {title: 'Orbits', icon: 'orbit', keyLabel: 'O', checked: state.showOrbits, run: 'toggleOrbits'}, {title: 'Labels', icon: 'tag', keyLabel: 'P', checked: state.showLabels, run: 'toggleLabels'}, {title: 'Browser', icon: 'list-tree', keyLabel: 'B', checked: state.showBrowser, run: 'toggleBrowser'}, {separator: true}, {title: 'Render options', icon: 'sliders-horizontal', keyLabel: 'Ctrl+,', run: 'openRender'}]}}",
+		"statusItems": "{{[{text: 'Day ' + round(state.time), color: '@accent'}, {text: computed.goal ? (state.speed < 0 ? 'Previous: ' : 'Next: ') + computed.goal.label + ' on day ' + round(computed.goal.time) + ' (' + (state.speed < 0 ? round(state.time - computed.goal.time) + ' days ago)' : 'in ' + round(computed.goal.time - state.time) + ' days)') : 'No more events in this window'}, {side: 'end', text: computed.selectedBody ? computed.selectedBody.name + (computed.selectedBody.parent ? ', orbits ' + (find(state.bodies, it.id == computed.selectedBody.parent).name ?? computed.selectedBody.parent) + ' every ' + computed.selectedBody.period + ' days' : ', at the centre') : 'Nothing selected'}]}}",
 		"fov": "{{ {deg: degrees(2 * atan(min(computed.view.w, computed.view.h) / (2 * computed.view.f))), times: state.zoom / 1.1} }}",
 		"fovText": "{{'FOV: ' + floor(computed.fov.deg) + '° ' + pad(floor((computed.fov.deg - floor(computed.fov.deg)) * 60), 2, '0') + '′ (' + fixed(computed.fov.times, 2) + 'x)'}}",
 		"bodyCells": "{{map(range(length(state.bodies) * length(state.bodies)), state.bodies[index % length(state.bodies)].parent == state.bodies[floor(index / length(state.bodies))].id ? index % length(state.bodies) : -1)}}",
@@ -868,7 +871,7 @@
 		"orbitRings": "{{map(filter(computed.placed, it.parent != ''), {id: it.id, cx: it.cx, cz: it.cz, radius: it.radius})}}",
 		"orbitSegments": "{{state.showOrbits ? map(range(length(computed.orbitRings) * 64), {id: 'orbit-' + computed.orbitRings[floor(index / 64)].id + '-' + index % 64, translation: [computed.orbitRings[floor(index / 64)].cx + computed.orbitRings[floor(index / 64)].radius * cos((index % 64 + 0.5) * pi() / 32), 0, computed.orbitRings[floor(index / 64)].cz + computed.orbitRings[floor(index / 64)].radius * sin((index % 64 + 0.5) * pi() / 32)], rotationDegrees: [0, 90 - (index % 64 + 0.5) * 5.625, 0], scale: [computed.orbitRings[floor(index / 64)].radius * pi() / 62, computed.view.distance * 0.6 / computed.view.f, computed.view.distance * 0.6 / computed.view.f], mesh: 'cube', material: computed.orbitRings[floor(index / 64)].id == state.selected ? 'orbit-on' : 'orbit'}) : []}}",
 		"starNodes": "{{state.showStars ? map(filter(computed.starVectors, it.mag <= state.limitMag), {id: 'star-' + index, translation: [computed.target.x + it.x * 300, it.y * 300, computed.target.z + it.z * 300], scale: [310 * (1.3 - it.mag * 0.13) / computed.view.f, 310 * (1.3 - it.mag * 0.13) / computed.view.f, 310 * (1.3 - it.mag * 0.13) / computed.view.f], mesh: 'cube', material: 'star'}) : []}}",
-		"bodyNodes": "{{map(computed.projected, {id: '' + it.id, name: it.name, translation: [it.x, 0, it.z], scale: [it.r * it.depth / computed.view.f, it.r * it.depth / computed.view.f, it.r * it.depth / computed.view.f], mesh: 'sphere', material: 'm-' + it.id, visible: it.depth > 0.3})}}",
+		"bodyNodes": "{{map(computed.projected, {id: '' + it.id, name: it.name, translation: [it.x, 0, it.z], scale: [max(it.size, 3 * it.depth / computed.view.f), max(it.size, 3 * it.depth / computed.view.f), max(it.size, 3 * it.depth / computed.view.f)], mesh: 'sphere', material: 'm-' + it.id, visible: it.depth > 0.3})}}",
 		"bodyMaterials": "{{map(state.bodies, it.parent == '' ? {id: 'm-' + it.id, baseColor: [0, 0, 0, 1], emissive: state.showGlow ? [1.5, 0.85, 0.22] : [1.1, 0.65, 0.18], roughness: 1} : (state.showShading ? {id: 'm-' + it.id, baseColor: it.color, roughness: 0.9} : {id: 'm-' + it.id, baseColor: [0, 0, 0, 1], emissive: [it.color[0] * 0.8, it.color[1] * 0.8, it.color[2] * 0.8], roughness: 1}))}}",
 		"sceneGraph": "{{ {nodes: concat(computed.bodyNodes, [{id: 'sunlight', translation: computed.sun ? [computed.sun.x, 0, computed.sun.z] : [0, 0, 0], light: {type: 'point', color: [1, 0.95, 0.85], intensity: 60}}], state.showGlow && computed.sun ? [{id: 'halo', translation: [computed.sun.x, 0, computed.sun.z], scale: [1.7, 1.7, 1.7], mesh: 'sphere', material: 'halo'}] : [], computed.orbitSegments, computed.starNodes), materials: concat(computed.bodyMaterials, [{id: 'orbit', baseColor: [0, 0, 0, 1], emissive: [0.1, 0.12, 0.18], roughness: 1}, {id: 'orbit-on', baseColor: [0, 0, 0, 1], emissive: [0.9, 0.55, 0.08], roughness: 1}, {id: 'star', baseColor: [0, 0, 0, 1], emissive: [0.75, 0.8, 0.9], roughness: 1}, {id: 'halo', baseColor: [1, 0.6, 0.1, 0.12], emissive: [0.5, 0.3, 0.05], alphaMode: 'blend', roughness: 1}])} }}",
 		"magText": "{{'Limiting magnitude: ' + fixed(state.limitMag, 1) + ' (' + length(filter(computed.stars, it.mag <= state.limitMag)) + ' stars)'}}",
@@ -1104,15 +1107,20 @@
 				"then": [
 					{
 						"set": "state.bodies",
-						"to": "{{map(state.bodies, it.id == event.to ? merge(it, {parent: event.from}) : it)}}"
+						"to": "{{map(state.bodies, it.id == event.to ? merge(it, {parent: event.from, home: it.home ?? it.radius, radius: event.from == 'sun' ? it.home ?? it.radius : 0.65 + 0.35 * length(filter(state.bodies, it.parent == event.from))}) : it)}}"
 					}
 				]
 			}
 		],
 		"orbitAround": [
 			{
-				"set": "state.bodies",
-				"to": "{{map(state.bodies, it.id == event.to ? merge(it, {parent: 'sun'}) : it)}}"
+				"if": "{{indexOf(computed.ids, event.to) > 0 && (find(state.bodies, it.id == event.to).parent ?? '') != 'sun' && 1 + computed.below[indexOf(computed.ids, event.to)] <= 3}}",
+				"then": [
+					{
+						"set": "state.bodies",
+						"to": "{{map(state.bodies, it.id == event.to ? merge(it, {parent: 'sun', radius: it.home ?? it.radius}) : it)}}"
+					}
+				]
 			}
 		],
 		"viewPress": [
@@ -1543,7 +1551,7 @@
 			"icon": "crosshair",
 			"do": [
 				{
-					"if": "{{indexOf(state.markers, state.selected) >= 0}}",
+					"if": "{{indexOf(state.markers, state.selected) >= 0 || indexOf(computed.ids, state.selected) < 0}}",
 					"then": [
 						{
 							"set": "state.markers",
@@ -1727,121 +1735,50 @@
 				"children": [
 					{
 						"type": "row",
-						"id": "toolbar",
+						"id": "top-bar",
 						"width": "100%",
-						"height": 48,
-						"gap": 8,
+						"height": 36,
 						"alignItems": "center",
 						"color": "@panel",
 						"children": [
-							{
-								"type": "label",
-								"id": "toolbar-start",
-								"width": 4,
-								"height": 30
-							},
 							{
 								"type": "label",
 								"id": "app-title",
 								"font": "title",
 								"text": "Orrery",
 								"textColor": "@text",
-								"fitText": true,
-								"height": 30
-							},
-							{
-								"type": "label",
-								"id": "day",
-								"text": "Day {{round(state.time)}}",
-								"textColor": "@accent",
-								"width": 70,
+								"width": 84,
 								"height": 30,
 								"align": "center"
 							},
 							{
-								"id": "rewind",
-								"style": "button",
-								"icon": "skip-back",
-								"role": "button",
-								"label": "Back to day 0",
-								"tooltip": "Back to day 0",
-								"onClick": "rewind",
-								"width": 30
+								"when": "{{!window.nativeMenuBar}}",
+								"use": "menuBar",
+								"id": "menu-bar",
+								"width": 56,
+								"with": {
+									"open": "state.menuBar",
+									"menus": "{{[{name: 'view', title: 'View', items: computed.viewMenu}]}}",
+									"width": 260,
+									"color": "@panel",
+									"textColor": "@text",
+									"dimColor": "@muted",
+									"highlight": "@raised"
+								}
 							},
 							{
-								"id": "play",
-								"style": "button",
-								"icon": "{{state.playing ? 'pause' : 'play'}}",
-								"role": "button",
-								"label": "{{state.playing ? 'Pause' : 'Play'}}",
-								"tooltip": "{{state.playing ? 'Pause' : 'Play'}}",
-								"onClick": "togglePlay",
-								"width": 30
-							},
-							{
-								"id": "next-event",
-								"style": "button",
-								"icon": "{{state.speed < 0 ? 'skip-back' : 'skip-forward'}}",
-								"role": "button",
-								"label": "{{state.speed < 0 ? 'Previous event' : 'Next event'}}",
-								"tooltip": "{{state.speed < 0 ? 'Previous event' : 'Next event'}}",
-								"onClick": "nextEvent",
-								"width": 30
-							},
-							{
-								"type": "label",
-								"id": "next-label",
-								"grow": 1,
-								"height": 30,
-								"textColor": "@muted",
-								"padding": 6,
-								"text": "{{computed.goal ? (state.speed < 0 ? 'Previous: ' : 'Next: ') + computed.goal.label + ' on day ' + round(computed.goal.time) + ' (' + (state.speed < 0 ? round(state.time - computed.goal.time) + ' days ago)' : 'in ' + round(computed.goal.time - state.time) + ' days)') : 'No more events in this window'}}"
-							},
-							{
-								"type": "label",
-								"id": "selected-label",
-								"fitText": true,
-								"height": 30,
-								"textColor": "@text",
-								"padding": 6,
-								"text": "{{computed.selectedBody ? computed.selectedBody.name + (computed.selectedBody.parent ? ', orbits ' + (find(state.bodies, it.id == computed.selectedBody.parent).name ?? computed.selectedBody.parent) + ' every ' + computed.selectedBody.period + ' days' : ', at the centre') : 'Nothing selected'}}"
-							},
-							{
-								"id": "view-menu-button",
-								"style": "button",
-								"icon": "ellipsis",
-								"role": "button",
-								"label": "View",
-								"tooltip": "View",
-								"width": 30,
-								"isOpen": "{{state.viewMenu}}",
-								"onClick": [
-									{
-										"toggle": "state.viewMenu"
-									}
-								],
-								"children": [
-									{
-										"id": "view-menu",
-										"use": "menu",
-										"with": {
-											"items": "{{computed.viewMenu}}",
-											"open": "state.viewMenu",
-											"placement": "below-end",
-											"width": 260,
-											"color": "@panel",
-											"textColor": "@text",
-											"dimColor": "@muted",
-											"highlight": "@raised"
-										}
-									}
-								]
-							},
-							{
-								"type": "label",
-								"id": "toolbar-end",
-								"width": 4,
-								"height": 30
+								"use": "toolbar",
+								"id": "toolbar",
+								"with": {
+									"items": "{{computed.toolbarItems}}",
+									"width": "{{window.width - (window.nativeMenuBar ? 84 : 140)}}",
+									"label": "Time and view",
+									"color": "@panel",
+									"textColor": "@text",
+									"dimColor": "@muted",
+									"highlight": "@raised",
+									"checkedColor": "@border"
+								}
 							}
 						]
 					},
@@ -1897,7 +1834,7 @@
 										"repeat": {
 											"for": "t",
 											"in": "{{computed.marked}}",
-											"key": "id"
+											"key": "{{t.id}}"
 										},
 										"type": "panel",
 										"id": "{{'view-marker-' + t.id}}",
@@ -1911,7 +1848,7 @@
 										"repeat": {
 											"for": "b",
 											"in": "{{computed.projected}}",
-											"key": "id"
+											"key": "{{b.id}}"
 										},
 										"type": "label",
 										"id": "{{'view-label-' + b.id}}",
@@ -1928,7 +1865,7 @@
 										"repeat": {
 											"for": "b",
 											"in": "{{filter(state.bodies, (it.look ?? '') == '')}}",
-											"key": "id"
+											"key": "{{b.id}}"
 										},
 										"type": "panel",
 										"id": "{{'thumb-' + b.id}}",
@@ -2312,7 +2249,7 @@
 										"id": "chart",
 										"bind": "state.chart",
 										"width": "100%",
-										"height": "{{clamp(window.height - 512, 120, 300)}}",
+										"height": "{{clamp(window.height - 524, 120, 300)}}",
 										"color": "@sky",
 										"rulers": false,
 										"snap": false,
@@ -2387,15 +2324,26 @@
 						"time": "{{state.time}}",
 						"duration": "{{state.duration}}",
 						"fps": 1,
-						"timeFormat": "seconds",
+						"timeFormat": "frames",
 						"pixelsPerSecond": 2.6,
 						"headerWidth": 130,
-						"markers": "{{map(filter(state.events, it.kind == 'eclipse'), {time: it.time, label: ''})}}",
+						"markers": "{{map(filter(state.events, it.kind == 'eclipse' && indexOf(state.muted, 'eclipse') < 0), {time: it.time, label: ''})}}",
 						"headerColor": "@panel",
 						"textColor": "@text",
 						"accentColor": "@accent",
 						"color": "@background",
-						"label": "Upcoming events, one second a day",
+						"label": "Upcoming events, by day; M mutes a kind of event",
+						"onChange": [
+							{
+								"if": "{{event.type == 'track'}}",
+								"then": [
+									{
+										"set": "state.muted",
+										"to": "{{event.muted ? concat(filter(state.muted, it != slice(event.id, 0, length(event.id) - 1)), [slice(event.id, 0, length(event.id) - 1)]) : filter(state.muted, it != slice(event.id, 0, length(event.id) - 1))}}"
+									}
+								]
+							}
+						],
 						"onScrub": [
 							{
 								"set": "state.playing",
@@ -2430,6 +2378,18 @@
 						"height": 136,
 						"color": "@panel",
 						"children": []
+					},
+					{
+						"use": "statusBar",
+						"id": "status-bar",
+						"width": "100%",
+						"with": {
+							"items": "{{computed.statusItems}}",
+							"label": "Time and selection",
+							"color": "@panel",
+							"textColor": "@muted",
+							"highlight": "@raised"
+						}
 					}
 				]
 			},
@@ -2458,7 +2418,7 @@
 								"repeat": {
 									"for": "o",
 									"in": "{{computed.renderOptions}}",
-									"key": "id"
+									"key": "{{o.id}}"
 								},
 								"type": "row",
 								"id": "{{'render-' + o.id}}",

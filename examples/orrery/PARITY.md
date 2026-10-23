@@ -11,7 +11,7 @@ system of six bodies on circular orbits in one plane.
 | # | Feature | Status | How |
 |---|---|---|---|
 | C1 | A 3D view of the bodies and their orbits, drawn in perspective | done | a `scene` node bound to computed `sceneView`: a sphere per body, orbits as rings of thin boxes |
-| C2 | A star field behind, turning with the camera | done | 400 small boxes on a far sphere in the scene (computed `starNodes`), seen through the same camera |
+| C2 | A star field behind, turning with the camera | done | small boxes on a far sphere in the scene (computed `starNodes`, as many as the limiting magnitude lets through, out of 400), seen through the same camera |
 | C3 | Turn the camera by dragging, zoom with the wheel | done | `onDrag`, `onScroll` on the view |
 | C4 | Select a body by clicking it, the selection ringed | done | the scene's `onSelect` picks a body; the selection outlined |
 | C5 | A glow round the Sun | done | an emissive Sun with a point light, and a translucent halo sphere round it |
@@ -20,7 +20,7 @@ system of six bodies on circular orbits in one plane.
 | C8 | Time, top right: date, rate ("1000x faster"), reversed, paused | done | `formatDate` from an invented epoch, computed `rate`; time stops at the window's ends |
 | C9 | Time rate up and down (L, K), reverse (J), pause (Space), start (!) | done | screen `keys`; `!` is `shift+1` and resets the rate |
 | C10 | Go to the selected body (G), centre it (C), follow it (F) | done | titled actions animating `fly` and the distance; computed `target`; follow moves to a new selection; the wheel or a place stops a flight |
-| C11 | Orbits, labels and markers toggled from the keyboard and a menu | done | O and P and the View menu (menu bar and toolbar), which also toggles stars, lit side and glow; M marks or unmarks the selected body (four ticks round it) |
+| C11 | Orbits, labels and markers toggled from the keyboard and a menu | done | O and P, the View menu (its items checked when on) and the built-in `toolbar` (toggles shown pressed); the menu also toggles stars, lit side and glow; M marks or unmarks the selected body (four ticks round it) |
 | C12 | Solar system browser: the bodies as a tree | done | a `tree` from computed `bodyTree` (B, View menu); open a body to go to it |
 | C13 | Eclipse finder | missing | |
 | C14 | Bookmarks (saved camera places) | done | the browser's Places tab, a `list` of saved places (camera, time, field of view); mod+D or the View menu adds one, the bin deletes one |
@@ -45,7 +45,7 @@ system of six bodies on circular orbits in one plane.
 | # | Feature | Status | How |
 |---|---|---|---|
 | A1 | Orbit graph: what orbits what, relinked by dragging | done | `graph` |
-| A2 | Events timeline: eclipses, conjunctions, oppositions | done | `timeline` |
+| A2 | Events timeline: eclipses, conjunctions, oppositions | done | `timeline`, a track per kind; muting a track skips that kind in next and previous event |
 | A3 | Bodies strip (Sinopia's slide sorter, installed from that app) | done | feature, adapter |
 | A4 | Thumbnails drawn by the screen | done | `snapshot` |
 | A5 | Themes, locales (right to left), accessibility | part | dark theme only so far |
@@ -63,3 +63,4 @@ system of six bodies on circular orbits in one plane.
 | 6 | The lit side of every body, the render options dialog (stars, lit side and glow can be hidden) | 19 / 5 / 5 | 25,816 |
 | 7 | The 3D view on the scene node (spheres, a point light, picking); fixes from the round 6 critique: the wheel and places stop a flight, follow moves to a new selection, apparent size from the scene | 19 / 5 / 5 | 25,999 |
 | 8 | Markers (M, View menu); the limiting magnitude, shown and changed with equal and minus, the stars sized by magnitude | 21 / 3 / 5 | 27,039 |
+| 9 | The built-in menu bar, toolbar and status bar in place of hand-made ones; muting a kind of event; fixes from the round 8 critique: a body moved under a planet orbits close to it and goes back to its old orbit, spheres sized without the labels' clamp, nothing marked without a selection | 21 / 3 / 5 | 27,556 |

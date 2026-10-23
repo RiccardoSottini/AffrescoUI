@@ -15,14 +15,22 @@
 				},
 				{
 					"expect": {
-						"node": "#day",
-						"text": "Day 0"
+						"node": {
+							"role": "text",
+							"name": "Day 0"
+						},
+						"property": "visible",
+						"is": true
 					}
 				},
 				{
 					"expect": {
-						"node": "#next-label",
-						"text": "Next: Solar eclipse on day 30 (in 30 days)"
+						"node": {
+							"role": "text",
+							"name": "Next: Solar eclipse on day 30 (in 30 days)"
+						},
+						"property": "visible",
+						"is": true
 					}
 				},
 				{
@@ -50,7 +58,10 @@
 			"name": "next-event-moves-the-planets",
 			"steps": [
 				{
-					"click": "#next-event"
+					"click": {
+						"role": "button",
+						"name": "Next event"
+					}
 				},
 				{
 					"wait": 800
@@ -63,12 +74,19 @@
 				},
 				{
 					"expect": {
-						"node": "#next-label",
-						"text": "Next: Lunar eclipse on day 44 (in 15 days)"
+						"node": {
+							"role": "text",
+							"name": "Next: Lunar eclipse on day 44 (in 15 days)"
+						},
+						"property": "visible",
+						"is": true
 					}
 				},
 				{
-					"click": "#rewind"
+					"click": {
+						"role": "button",
+						"name": "Back to day 0"
+					}
 				},
 				{
 					"expect": {
@@ -82,7 +100,10 @@
 			"name": "play-advances-the-playhead",
 			"steps": [
 				{
-					"click": "#play"
+					"click": {
+						"role": "button",
+						"name": "Play"
+					}
 				},
 				{
 					"wait": 500
@@ -94,7 +115,10 @@
 					}
 				},
 				{
-					"click": "#play"
+					"click": {
+						"role": "button",
+						"name": "Pause"
+					}
 				},
 				{
 					"expect": {
@@ -104,8 +128,12 @@
 				},
 				{
 					"expect": {
-						"node": "#day",
-						"text": "Day 9"
+						"node": {
+							"role": "text",
+							"name": "Day 9"
+						},
+						"property": "visible",
+						"is": true
 					}
 				}
 			]
@@ -194,8 +222,14 @@
 			"note": "The camera's handlers are on the view's pane, so they work where the 3D view isn't drawn too (the note in its place).",
 			"steps": [
 				{
-					"drag": [200, 200],
-					"to": [300, 200]
+					"drag": [
+						200,
+						200
+					],
+					"to": [
+						300,
+						200
+					]
 				},
 				{
 					"expect": {
@@ -450,8 +484,12 @@
 				},
 				{
 					"expect": {
-						"node": "#next-label",
-						"text": "No more events in this window"
+						"node": {
+							"role": "text",
+							"name": "No more events in this window"
+						},
+						"property": "visible",
+						"is": true
 					}
 				}
 			]
@@ -600,7 +638,10 @@
 					"key": "period"
 				},
 				{
-					"click": "#next-event"
+					"click": {
+						"role": "button",
+						"name": "Next event"
+					}
 				},
 				{
 					"wait": 800
@@ -800,7 +841,10 @@
 			"name": "a-small-window-keeps-the-graph",
 			"steps": [
 				{
-					"resize": [1000, 700]
+					"resize": [
+						1000,
+						700
+					]
 				},
 				{
 					"wait": 50
@@ -816,7 +860,7 @@
 					"expect": {
 						"node": "#chart",
 						"property": "height",
-						"is": 188
+						"is": 176
 					}
 				}
 			]
@@ -886,7 +930,10 @@
 			"name": "the-camera-follows-the-state",
 			"steps": [
 				{
-					"click": [582, 247]
+					"click": [
+						579,
+						232
+					]
 				},
 				{
 					"expect": {
@@ -934,7 +981,10 @@
 					}
 				},
 				{
-					"click": [261, 278]
+					"click": [
+						261,
+						278
+					]
 				},
 				{
 					"expect": {
@@ -1045,7 +1095,9 @@
 				{
 					"expect": {
 						"state": "markers",
-						"is": ["earth"]
+						"is": [
+							"earth"
+						]
 					}
 				},
 				{
@@ -1107,6 +1159,165 @@
 						"node": "#view-mag",
 						"property": "text",
 						"is": "Limiting magnitude: 6.0 (344 stars)"
+					}
+				}
+			]
+		},
+		{
+			"name": "muting-a-kind-of-event-skips-it",
+			"steps": [
+				{
+					"click": [
+						97,
+						608
+					]
+				},
+				{
+					"expect": {
+						"state": "muted",
+						"is": [
+							"eclipse"
+						]
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "text",
+							"name": "Next: Mercury inferior conjunction on day 81 (in 81 days)"
+						},
+						"property": "visible",
+						"is": true
+					}
+				},
+				{
+					"click": [
+						97,
+						608
+					]
+				},
+				{
+					"expect": {
+						"state": "muted",
+						"is": []
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "text",
+							"name": "Next: Solar eclipse on day 30 (in 30 days)"
+						},
+						"property": "visible",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "a-new-moon-orbits-close-and-goes-home",
+			"steps": [
+				{
+					"action": "reparent",
+					"event": {
+						"from": "earth",
+						"output": "satellites",
+						"to": "mars",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[5].radius",
+						"is": 1.0
+					}
+				},
+				{
+					"action": "orbitAround",
+					"event": {
+						"from": "earth",
+						"output": "satellites",
+						"to": "mars",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[5].parent",
+						"is": "sun"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[5].radius",
+						"is": 5.8
+					}
+				},
+				{
+					"action": "orbitAround",
+					"event": {
+						"from": "earth",
+						"output": "satellites",
+						"to": "sun",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[0].parent",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "the-last-place-deleted",
+			"steps": [
+				{
+					"action": "deleteBookmark"
+				},
+				{
+					"expect": {
+						"state": "bookmarks.length",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": ""
+					}
+				},
+				{
+					"action": "deleteBookmark"
+				},
+				{
+					"expect": {
+						"state": "bookmarks.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "the-glow-toggles",
+			"steps": [
+				{
+					"action": "toggleGlow"
+				},
+				{
+					"expect": {
+						"state": "showGlow",
+						"is": false
+					}
+				},
+				{
+					"action": "toggleGlow"
+				},
+				{
+					"expect": {
+						"state": "showGlow",
+						"is": true
 					}
 				}
 			]
