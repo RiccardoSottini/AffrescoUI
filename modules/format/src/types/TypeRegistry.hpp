@@ -285,6 +285,9 @@ void registerImageType(TypeRegistry& registry);
 /// @brief Registers "surface" (SurfaceType.cpp).
 /// @param registry The registry.
 void registerSurfaceType(TypeRegistry& registry);
+/// @brief Registers "raster" (imaging/RasterType.cpp).
+/// @param registry The registry.
+void registerRasterType(TypeRegistry& registry);
 /// @brief Registers "split" (SplitType.cpp).
 /// @param registry The registry.
 void registerSplitType(TypeRegistry& registry);

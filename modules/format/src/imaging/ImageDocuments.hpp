@@ -116,6 +116,7 @@ struct Press {
 	double surfaceX = 0.0;    ///< Where it began on the surface.
 	double surfaceY = 0.0;    ///< Where it began on the surface.
 	imaging::CanvasView view; ///< The view when it began.
+	bool pan = false;         ///< Whether it pans the view whatever the tool (the space bar was held).
 };
 
 /// @brief One image being edited: its document on a canvas model, and everything the operations share. Main thread
@@ -151,6 +152,7 @@ struct ImageDocument {
 	Press press;                                                   ///< The press in progress.
 	std::optional<imaging::Point> cloneOffset;                     ///< clone: from the point painted to the one copied.
 	float pressure = 1.0f;                                 ///< The pen's pressure of the event played (a mouse's is 1).
+	bool spaceHeld = false;                                ///< The space bar is held: a press pans the view.
 	std::vector<imaging::Point> path;                      ///< lasso, polygon-lasso: the points so far.
 	std::vector<std::uint8_t> saved;                       ///< The bytes last saved or opened (revert reads them).
 	std::string message;                                   ///< What the last operation has to say (a status line).
@@ -158,12 +160,63 @@ struct ImageDocument {
 	std::uint64_t thumbnailGeneration = ~std::uint64_t{0}; ///< The document the thumbnails show.
 };
 
-/// @brief The images of one runtime, by name, made when an "image" step first names one.
+/// @brief What shows an image (a "raster" node's view): told when it changes, to draw it again.
+class ImageWatcher {
+public:
+	/// @brief The image changed: its pixels, its view, its selection or its tools, or it was made again (a new
+	/// canvas).
+	/// @param image The image.
+	virtual void imageChanged(ImageDocument& image) = 0;
+
+protected:
+	/// @brief Nothing to set up.
+	ImageWatcher() = default;
+	/// @brief Not destroyed through this interface.
+	~ImageWatcher() = default;
+	ImageWatcher(const ImageWatcher&) = default;
+	ImageWatcher& operator=(const ImageWatcher&) = default;
+	ImageWatcher(ImageWatcher&&) noexcept = default;
+	ImageWatcher& operator=(ImageWatcher&&) noexcept = default;
+};
+
+/// @brief The images of one runtime, by name, made when an "image" step or a "raster" node first names one.
 ///
 /// Shared (std::shared_ptr in TypeRegistry::imageDocuments()) because the steps and the views that show the images
-/// read the same ones, and a view may outlive a screen rebuilt around it. Main thread only.
+/// read the same ones, and a view may outlive a screen rebuilt around it. The runtime attaches the document's
+/// declarations and the publisher that hands an image to the screen (its snapshot to "into", its thumbnails); the
+/// views watch the images they show. Main thread only.
 class ImageDocuments {
 public:
+	/// @brief The "images" section of the document shown, or nullptr when it has none.
+	using Declarations = std::function<const json*()>;
+	/// @brief Hands an image to the screen: its snapshot to its "into" state path, its thumbnails to the image cache.
+	using Publisher = std::function<void(ImageDocument&)>;
+
+	/// @brief Attaches the runtime: where the images are declared, and how the screen hears of them.
+	/// @param declarations The document's "images" section.
+	/// @param publisher The publisher.
+	void attach(Declarations declarations, Publisher publisher);
+	/// @brief Detaches the runtime, which is going away: no image is declared or published after.
+	void detach() noexcept;
+	/// @brief The image of a name the document declares, made from its entry the first time (image()).
+	/// @param name Its name.
+	/// @return The image, or nullptr if the document (or no runtime) declares none of that name.
+	/// @throws DocumentError If its entry is malformed.
+	[[nodiscard]] ImageDocument* declared(const std::string& name);
+	/// @brief Tells a watcher whenever the image of a name changes, until unwatch().
+	/// @param name The image's name.
+	/// @param watcher The watcher; it unwatches before it goes away.
+	void watch(const std::string& name, ImageWatcher& watcher);
+	/// @brief Stops telling a watcher of an image.
+	/// @param name The image's name.
+	/// @param watcher The watcher.
+	void unwatch(std::string_view name, const ImageWatcher& watcher) noexcept;
+	/// @brief An image changed: tells the screen (when it should hear) and the watchers of that image only.
+	/// @param image The image.
+	/// @param publish Whether the screen hears of it (the publisher): a stroke on its way only draws again.
+	/// @throws DocumentError If the publisher can't write the snapshot.
+	void changed(ImageDocument& image, bool publish);
+
 	/// @brief The image of a name, made from its definition the first time, and made again when the definition
 	/// changes (a new screen with the same name).
 	/// @param name Its name.
@@ -180,7 +233,14 @@ public:
 	void clear() noexcept { images_.clear(); }
 
 private:
-	std::map<std::string, std::unique_ptr<ImageDocument>, std::less<>> images_; ///< The images, by name.
+	/// @brief Tells the watchers of an image that it changed.
+	/// @param image The image.
+	void tell(ImageDocument& image);
+
+	std::map<std::string, std::unique_ptr<ImageDocument>, std::less<>> images_;    ///< The images, by name.
+	std::map<std::string, std::vector<ImageWatcher*>, std::less<>> watchers_;      ///< The watchers, by image name.
+	Declarations declarations_;                                                    ///< See attach().
+	Publisher publisher_;                                                          ///< See attach().
 };
 
 /// @brief Parses "#rrggbb" or "#rrggbbaa".
@@ -233,7 +293,9 @@ void updateThumbnails(ImageDocument& image, ImageCache& images);
 /// @return It, clamped.
 [[nodiscard]] double withinReach(double coordinate) noexcept;
 
-/// @brief Plays a pointer event of the canvas with the tool chosen.
+/// @brief Plays a pointer event of the canvas with the tool chosen, or, for a press while the space bar is held
+/// (ImageDocument::spaceHeld), pans the view until the release. The "pointer" operation and the "raster" node's view
+/// both play their events here.
 /// @param image The image.
 /// @param event The event, in surface and document pixels.
 /// @return Whether the screen should hear of it (the document, the view or a colour changed).

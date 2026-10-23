@@ -57,7 +57,7 @@ struct Engine : VersionObserver {
 	Engine& operator=(const Engine&) = delete;
 	Engine(Engine&&) = delete;
 	Engine& operator=(Engine&&) = delete;
-	~Engine() override = default;
+	~Engine() override;
 
 	Runtime& owner;                         ///< For onEvent, onError, onSend, onConnect and onUpdated.
 	VersionControl& versions;               ///< The document and state.

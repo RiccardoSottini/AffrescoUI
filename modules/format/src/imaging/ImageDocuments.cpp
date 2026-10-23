@@ -192,12 +192,56 @@ ImageDocument& ImageDocuments::image(const std::string& name, const json& defini
 	auto made = std::make_unique<ImageDocument>(name, std::move(read), definition);
 	ImageDocument& image = *made;
 	images_.insert_or_assign(name, std::move(made));
+	tell(image); // a new canvas for the views that show it
 	return image;
 }
 
 ImageDocument* ImageDocuments::find(std::string_view name) noexcept {
 	const auto found = images_.find(name);
 	return found == images_.end() ? nullptr : found->second.get();
+}
+
+void ImageDocuments::attach(Declarations declarations, Publisher publisher) {
+	declarations_ = std::move(declarations);
+	publisher_ = std::move(publisher);
+}
+
+void ImageDocuments::detach() noexcept {
+	declarations_ = nullptr;
+	publisher_ = nullptr;
+}
+
+ImageDocument* ImageDocuments::declared(const std::string& name) {
+	const json* section = declarations_ ? declarations_() : nullptr;
+	if(section == nullptr || !section->is_object()) return nullptr;
+	const auto entry = section->find(name);
+	if(entry == section->end()) return nullptr;
+	return &image(name, *entry, "images." + name);
+}
+
+void ImageDocuments::watch(const std::string& name, ImageWatcher& watcher) {
+	std::vector<ImageWatcher*>& list = watchers_[name];
+	if(std::ranges::find(list, &watcher) == list.end()) list.push_back(&watcher);
+}
+
+void ImageDocuments::unwatch(std::string_view name, const ImageWatcher& watcher) noexcept {
+	const auto found = watchers_.find(name);
+	if(found == watchers_.end()) return;
+	std::erase(found->second, &watcher);
+	if(found->second.empty()) watchers_.erase(found);
+}
+
+void ImageDocuments::changed(ImageDocument& image, bool publish) {
+	if(publish && publisher_) publisher_(image);
+	tell(image);
+}
+
+// A copy of the list: a watcher may stop watching while it is told
+void ImageDocuments::tell(ImageDocument& image) {
+	const auto found = watchers_.find(image.name);
+	if(found == watchers_.end()) return;
+	const std::vector<ImageWatcher*> told = found->second;
+	for(ImageWatcher* watcher : told) watcher->imageChanged(image);
 }
 
 void replaceDocument(ImageDocument& image, std::unique_ptr<imaging::Document> document) {

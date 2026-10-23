@@ -74,8 +74,16 @@ void setProfile(ImageDocument& image, const json& with, Window*) {
 	updateDisplay(image);
 }
 
+/// @brief Whether a pointer event holds the space bar, which pans whatever the tool.
+/// @param point The event: modifiers, a list that may name "space".
+/// @return Whether it does.
+[[nodiscard]] bool holdsSpace(const json& point) {
+	const auto found = point.find("modifiers");
+	return found != point.end() && found->is_array() && std::ranges::find(*found, json("space")) != found->end();
+}
+
 /// @brief The modifier keys of a pointer event.
-/// @param point The event: modifiers, a list of "shift", "control", "alt" and "super".
+/// @param point The event: modifiers, a list of "shift", "control", "alt" and "super" ("space" is holdsSpace()'s).
 /// @return The bits.
 [[nodiscard]] Mods modifiersOf(const json& point) {
 	constexpr std::array<std::string_view, 4> names{"shift", "control", "alt", "super"};
@@ -93,7 +101,7 @@ void setProfile(ImageDocument& image, const json& with, Window*) {
 /// @brief Plays one pointer event through the current tool, at the view's surface point of its document point.
 /// @param image The image.
 /// @param point phase ("press", "move", "release" or "scroll"; "kind" is read too), x, y (document pixels),
-/// button ("left" or "right"), pressure (0 to 1), scroll, modifiers.
+/// button ("left" or "right"), pressure (0 to 1), scroll, modifiers ("space" pans whatever the tool).
 /// @param view The view at the call's start: a pan or zoom on the way doesn't move the points played after it.
 void playPoint(ImageDocument& image, const json& point, const imaging::CanvasView& view) {
 	const std::string phase = textOf(point, "phase", textOf(point, "kind", "move"));
@@ -110,7 +118,10 @@ void playPoint(ImageDocument& image, const json& point, const imaging::CanvasVie
 	event.pointer.scroll = {0.0f, static_cast<float>(std::clamp(numberOf(point, "scroll", 0.0), -1e3, 1e3))};
 	event.pointer.mods = modifiersOf(point);
 	image.pressure = static_cast<float>(std::clamp(numberOf(point, "pressure", 1.0), 0.0, 1.0));
+	const bool held = image.spaceHeld; // the view's space bar
+	image.spaceHeld = held || holdsSpace(point);
 	applyPointer(image, event);
+	image.spaceHeld = held;
 }
 
 /// @brief pointer: plays pointer events through the current tool, as a view's canvas does, so scenarios, agents and

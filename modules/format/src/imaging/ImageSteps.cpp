@@ -1,6 +1,7 @@
 /// @file
 /// @brief The "image" step: runs one operation (ImageOperations.hpp) on an image the "images" section declares, then
-/// publishes the image's snapshot to its "into" state path and its thumbnails to the image cache.
+/// tells the screen (the image's snapshot to its "into" state path, its thumbnails to the image cache) and the views
+/// that show it (ImageDocuments::changed()).
 
 #include "Engine.hpp"
 #include "ImageOperations.hpp"
@@ -23,22 +24,6 @@ namespace {
 	std::string name = string(s.value("of"), where + ".of");
 	if(!images.contains(name)) fail(where + ".of", "no image \"" + name + "\" in the \"images\" section");
 	return name;
-}
-
-/// @brief Writes an image's snapshot to its "into" state path, and its thumbnails to the image cache.
-/// @param s The step.
-/// @param image The image.
-void publish(const Running& s, editing::ImageDocument& image) {
-	Engine& engine = s.steps.engine();
-	editing::updateThumbnails(image, engine.document.images());
-	if(image.definition.into.empty()) return;
-	const std::string at = "images." + image.name + ".into";
-	const json::json_pointer pointer =
-	    statePointer(image.definition.into, engine.document.context(s.locals, s.event), at);
-	json snapshot = editing::snapshot(image);
-	expect::shallowEnough(snapshot, pointerDepth(pointer), at);
-	statePlace(engine.versions.state(), pointer, at) = std::move(snapshot);
-	engine.document.markStateChanged(pointer);
 }
 
 /// @brief Runs an "image" step.
@@ -68,7 +53,7 @@ std::optional<bool> runImageStep(const Running& s) {
 		problem = error.what();
 		image.message = *problem;
 	}
-	publish(s, image);
+	engine.types.imageDocuments()->changed(image, true); // the screen and the views that show it
 	if(!problem) return true;
 	if(!step.contains("onError")) fail(where + ".image", operation + ": " + *problem);
 	const Scope scope{&s.locals, nullptr, {{"error", *problem}}, {}, {}};

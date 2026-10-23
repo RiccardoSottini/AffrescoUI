@@ -164,6 +164,15 @@ void clickFill(ImageDocument& image, Point at) {
 	                static_cast<int>(std::floor(at.y)), settings.foreground, settings.sample, settings.opacity);
 }
 
+/// @brief Pans the view by how far the pointer moved since the press.
+/// @param image The image.
+/// @param event The event.
+void panView(ImageDocument& image, const imaging::CanvasPointer& event) {
+	const Press& press = image.press;
+	image.view.x = withinReach(press.view.x - (event.pointer.position.x - press.surfaceX) / press.view.zoom);
+	image.view.y = withinReach(press.view.y - (event.pointer.position.y - press.surfaceY) / press.view.zoom);
+}
+
 /// @brief What a tool does when a button goes down.
 /// @param image The image.
 /// @param at Where, in document pixels.
@@ -207,12 +216,9 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 	case Gesture::lasso:
 		if(image.path.size() < image.limits.polygonPoints) image.path.push_back(at);
 		return false;
-	case Gesture::pan: {
-		const Press& press = image.press;
-		image.view.x = withinReach(press.view.x - (event.pointer.position.x - press.surfaceX) / press.view.zoom);
-		image.view.y = withinReach(press.view.y - (event.pointer.position.y - press.surfaceY) / press.view.zoom);
+	case Gesture::pan:
+		panView(image, event);
 		return true;
-	}
 	case Gesture::sample:
 		return pickColour(image, at);
 	default:
@@ -410,17 +416,20 @@ bool applyPointer(ImageDocument& image, const imaging::CanvasPointer& event) {
 			         at,
 			         static_cast<double>(event.pointer.position.x),
 			         static_cast<double>(event.pointer.position.y),
-			         image.view};
+			         image.view,
+			         image.spaceHeld};
 			image.message.clear();
-			return pressTool(image, at);
+			return !press.pan && pressTool(image, at);
 		case affresco::PointerKind::move:
 			if(!press.down) return false;
 			press.last = at;
-			return dragTool(image, event);
+			if(!press.pan) return dragTool(image, event);
+			panView(image, event);
+			return true;
 		case affresco::PointerKind::release:
 			if(!press.down) return false;
 			press.down = false;
-			return releaseTool(image, at);
+			return press.pan || releaseTool(image, at);
 		}
 	} catch(const DocumentError& error) {
 		image.stroke.reset();
