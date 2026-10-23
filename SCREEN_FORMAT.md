@@ -70,6 +70,7 @@ Every part of the format follows these, and so should every extension:
 | `components` | `name → { "params": {defaults}, "node": node }`: reusable nodes with parameters (see Components). |
 | `screens` | `name → node`: the screens an `outlet` shows; `{"navigate": "name"}` switches. The first is shown first. |
 | `templates` | `name → node`, built by code on demand (`Screen::instantiate`). |
+| `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise. |
 | `state` | The app's data, any JSON object. |
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
@@ -79,7 +80,7 @@ Every part of the format follows these, and so should every extension:
 | `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
 | `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
-| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu). |
+| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu; `persist` lists join). |
 <!-- end generated -->
 
 ### Capabilities and features
@@ -965,6 +966,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
+| `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: a request in plain words from the person to the agents connected to the screen (`peers`), sent after the event; `into` gets its id. Each reply runs the action `ask:reply` with `{request, from, text, done, error, proposals, time}` (`proposals`: the ids its replier proposed since), and `requests` lists them all. With no agent connected, the reply is the error `no agent is connected`. A reply is never the person's decision: while `ask:reply` runs, `accept`, `reject`, `restore`, `revert` and `undo` are refused. A control step |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
