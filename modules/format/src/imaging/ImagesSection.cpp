@@ -205,6 +205,13 @@ ImageDefinition readImageDefinition(const json& value, const std::string& at) {
 	return definition;
 }
 
+std::vector<std::pair<std::string_view, std::size_t>> libraryLimits() {
+	const imaging::Limits library;
+	std::vector<std::pair<std::string_view, std::size_t>> limits;
+	for(const LimitKey& key : limitKeys) limits.emplace_back(key.name, key.read(library));
+	return limits;
+}
+
 } // namespace editing
 
 namespace {

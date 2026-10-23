@@ -58,6 +58,8 @@ void addRow(const Engine& engine, std::string& text, const std::string& names, s
 /// @throws std::invalid_argument If no entry is in it.
 std::string tableText(const Engine& engine, std::string_view table) {
 	if(table == "kitTokens") return kitTokenTable();
+	if(table == "imageOperations") return imageOperationTable();
+	if(table == "imageNames") return imageNameTable();
 	const auto [keys, known] = keysOf(engine, table);
 	std::string text(header(table)), names;
 	std::string_view about;

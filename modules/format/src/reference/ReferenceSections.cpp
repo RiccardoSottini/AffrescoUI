@@ -236,7 +236,8 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"limits": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}}}}})json",
 	 "`{\"canvas\": {\"width\": 800, \"height\": 600, \"into\": \"state.canvas\", \"tools\": {\"brush\": "
 	 "{\"gesture\": \"paint\", \"size\": 12}}}}`: the images the `image` step edits; `tools` names the "
-	 "library's gestures with their settings, and `limits` only lowers the library's. Revisions can't change it.",
+	 "library's gestures with their settings, and `limits` only lowers the library's (see Images). Revisions can't "
+	 "change it.",
 	 "capabilities"},
     {"points", R"json({"type": "object", "description": "Contribution points another app's features may fill",
 		"additionalProperties": {"type": "object", "required": ["slot"],
@@ -343,7 +344,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"image", "",
 	 R"(`{ "image": "pointer", "of": "canvas", "with": {"phase": "press", "x": 10, "y": 20} }`: runs an operation )"
 	 R"(on an image the `images` section declares (`of`, optional with one image) and publishes its snapshot to )"
-	 R"(its `into` path; a failed operation runs `onError` with `error`)",
+	 R"(its `into` path, and the `raster` nodes showing it draw again; a failed operation runs `onError` with )"
+	 R"(`error` (see Images))",
 	 "steps"},
     {"of", "", "", ""},
     {"camera", "",

@@ -148,7 +148,8 @@ target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/prope
 # reference: the reference of nodes, sections and tables (the schema, SCREEN_FORMAT.md) and the catalog
 target_sources(affrescoui_format PRIVATE src/reference/Reference.cpp src/reference/ReferenceNodes.cpp
 	src/reference/ReferenceNodeTypes.cpp src/reference/ReferenceSceneKeys.cpp src/reference/ReferenceNodeEvents.cpp
-	src/reference/ReferenceSections.cpp src/reference/ReferenceTables.cpp src/reference/Catalog.cpp)
+	src/reference/ReferenceSections.cpp src/reference/ReferenceTables.cpp src/reference/ReferenceImages.cpp
+	src/reference/Catalog.cpp)
 # sections: the section registry, the sections, the capability sections and the design tokens
 target_sources(affrescoui_format PRIVATE src/sections/Sections.cpp src/sections/CapabilitySections.cpp
 	src/sections/DesignTokens.cpp)

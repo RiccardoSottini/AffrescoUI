@@ -22,6 +22,8 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <cstddef>
+#include <utility>
 #include <vector>
 
 namespace affresco {
@@ -53,6 +55,10 @@ enum class Gesture : std::uint8_t {
 
 /// @brief The gestures' names, in Gesture's order ("paint", "select-rectangle", ...).
 [[nodiscard]] std::span<const std::string_view> gestureNames() noexcept;
+
+/// @brief The limits an image may lower ("limits" in the "images" section), with the library's values.
+/// @return {key, value}, in the reference's order.
+[[nodiscard]] std::vector<std::pair<std::string_view, std::size_t>> libraryLimits();
 
 /// @brief The gesture of a name.
 /// @param name Its name.

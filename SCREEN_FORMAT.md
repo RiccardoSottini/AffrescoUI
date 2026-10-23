@@ -97,6 +97,7 @@ The sections the host grants and revisions can't widen, and the installed featur
 | `features` | `{"wordCount": {"release": "1.0.0", "enabled": true, "order": 10, "requires": {...}, "provides": {...}}}`: installed features, each kept whole in its record (with `title`, `source`, `digest` and `publisher`). The runtime merges the enabled ones in `order`, under their names (`state.wordCount`, `wordCount.toggle`); views join the nodes whose `point` they name. Install, enable, disable and remove are revisions on `/features/<name>`. A feature can't bring a capability or a control step. |
 | `exports` | `{"editor.text": {"type": "string", "value": "{{state.text}}"}}`: values features read as `app.editor.text`. |
 | `imports` | `{"ui": "workbench@^1.0.0"}`: `"use": "ui.panel"` builds the feature's `workbench.panel`, if its release is in the range. |
+| `images` | `{"canvas": {"width": 800, "height": 600, "into": "state.canvas", "tools": {"brush": {"gesture": "paint", "size": 12}}}}`: the images the `image` step edits; `tools` names the library's gestures with their settings, and `limits` only lowers the library's (see Images). Revisions can't change it. |
 | `points` | `{"panels.dock": {"slot": "dock", "receives": ["doc.layers", "layers.move"]}}`: where a feature from another app may put its views (the node whose `point` has the name) and the exports it receives; the action exports a point receives are the host actions such features may run. Revisions can't change it. |
 <!-- end generated -->
 
@@ -114,7 +115,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `codeInput`, `carousel`, `scene`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `raster`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `codeInput`, `carousel`, `scene`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -416,6 +417,42 @@ window draws as before.
 
 A document can't supply shader source: it only names what the host registered (see `SECURITY.md` for the limits on
 a surface's passes and memory).
+
+### `raster`
+An image the screen edits (see Images), shown at its view: its layers flattened over a checkerboard where it is
+transparent, on the node's `color`. Over it, the node draws what the tools are doing: the selection's marching ants,
+the quick mask's tint, the crop being dragged (its rule-of-thirds lines, the rest shaded), the marquee or lasso being
+drawn, and the brush's outline under the pointer (painting, erasing, cloning). The first raster node to show an image
+fits it to the node.
+
+The pointer on the node plays the image's current tool exactly as the `pointer` operation does: presses, moves,
+releases and the wheel, with their modifier keys. While the node has the focus, the space bar held pans whatever the
+tool; the wheel zooms about the pointer. Every node showing an image draws again when it changes, whoever changed it
+(a node, a step, an agent's scenario), and the image's snapshot is published to its `into` path after each press,
+release, pan and zoom (a drag's moves only draw). To assistive technology the node is an image named after its image,
+unless the node has its own `label`.
+
+<!-- generated: raster -->
+| Key | Meaning |
+|---|---|
+| `image` | The name of an image the `images` section declares, made the first time a node or an `image` step names it. A name the section doesn't declare is an error at the node. |
+| `checker` | A checkerboard where the image is transparent. Default: `true`. |
+| `overlayColor` | The outlines of what the tools are doing (the marquee, the lasso, the crop and its thirds, the brush). Default: white, over a dark line. |
+| `shadeColor` | Over what the crop being dragged leaves out. Default: black at half opacity. |
+<!-- end generated -->
+
+A profile-picture cropper: the person drags the crop, and a button keeps the square it shows.
+
+```json
+"images": { "avatar": { "width": 512, "height": 512, "into": "state.avatar",
+                        "tools": { "crop": { "gesture": "crop" }, "hand": { "gesture": "pan" } } } },
+"root": { "type": "column", "children": [
+  { "type": "raster", "image": "avatar", "grow": 1, "color": "#1f2937", "shadeColor": "#000000aa" },
+  { "type": "row", "children": [
+    { "text": "Move", "onClick": [{ "image": "setTool", "with": { "tool": "hand" } }] },
+    { "text": "Crop", "onClick": [{ "image": "setTool", "with": { "tool": "crop" } }] },
+    { "text": "Undo", "disabled": "{{!state.avatar.canUndo}}", "onClick": [{ "image": "undo" }] } ] } ] }
+```
 
 ### `split`
 Its children are panes laid side by side (or one above the other), with a sash between each two: drag a sash to
@@ -1084,6 +1121,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
+| `image` | `{ "image": "pointer", "of": "canvas", "with": {"phase": "press", "x": 10, "y": 20} }`: runs an operation on an image the `images` section declares (`of`, optional with one image) and publishes its snapshot to its `into` path, and the `raster` nodes showing it draw again; a failed operation runs `onError` with `error` (see Images) |
 | `camera` | `{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view` (front, back, left, right, top, bottom), `frame` ("selection", "all" or ids), `projection` (perspective, orthographic, toggle), `orbit` [degrees right, down], `zoom` (wheel steps, positive to come closer) |
 <!-- end generated -->
 
@@ -1100,6 +1138,113 @@ more than 10,000 positions past a list's end (the positions between are filled w
 finish, the UI is updated once. Panels are reused where
 the structure didn't change, so focus, typing, scrolling and drags in progress are kept. Errors in actions are
 reported (on stderr and to the peers) and never crash the app.
+
+## Images
+
+A screen can edit raster images: paint and erase, select, crop, work in layers, apply filters, undo and redo. The
+`images` section declares them; `image` steps run operations on them; a `raster` node shows one and plays the pointer
+through its current tool. The section is a capability: revisions can't change it, and its `limits` can only lower the
+library's.
+
+| Key of an image | Meaning |
+|---|---|
+| `width`, `height` | Required. Its size in pixels, from 1 to the `side` limit (and at most `pixels` in all). |
+| `format` | `"rgba8"` (the default) or `"rgba16f"`. |
+| `background` | Its first layer: `"#rrggbb"` (the default: white) or `"transparent"`. |
+| `into` | A literal state path, e.g. `"state.drawing"`: where its snapshot is published after each change. |
+| `tools` | `name → { "gesture": "paint", ...options }`, at most 64: the tools a screen offers, each a gesture of the library with its options (those of `setOptions`). Without it, every gesture is a tool of its own name. |
+| `tool` | The tool chosen first. Default: the first painting tool. |
+| `limits` | `name → whole number`: lowers a library limit for this image (see the names below). |
+
+An image is made the first time a step or a node names it. The `image` step runs one operation on it, then publishes
+its snapshot to `into` and tells the raster nodes that show it:
+
+```json
+{ "image": "pointer", "of": "board", "with": { "phase": "press", "x": 10, "y": 20 }, "onError": [...] }
+```
+
+`of` names the image, and may be left out when the screen declares only one. A failed operation runs `onError` with
+`error` (its message); without `onError` the step fails at its place. The operations, and the keys of `with` each reads:
+
+<!-- generated: imageOperations -->
+| Operation | Reads from `with` | What it does |
+|---|---|---|
+| `newImage` | `width`, `height`, `format`, `background` | Replaces the image with a new one of one layer. |
+| `open` | `projectExtension` | Opens a project, PNG or JPEG file the person chooses. |
+| `save` | `format`, `extension` | Saves the image where the person chooses, and keeps it for revert. |
+| `revert` | — | Opens again what was last saved or opened. |
+| `undo` | — | Takes back the last step. |
+| `redo` | — | Does again the step last taken back. |
+| `history` | `position` | Goes to a place in the history (0 is before the first step). |
+| `clearHistory` | — | Forgets every step of the history. |
+| `addLayer` | `kind`, `name` | Adds a pixel layer, a group or an adjustment layer. |
+| `deleteLayer` | `id` | Deletes a layer (a group with its layers). |
+| `duplicateLayer` | `id` | Duplicates a layer. |
+| `selectLayer` | `id` | Makes a layer the active one. |
+| `addMask` | `id` | Adds a mask to a layer. |
+| `deleteMask` | `id` | Deletes a layer's mask. |
+| `moveLayer` | `id`, `onto`, `by` | Moves a layer onto another's place, or a step up or down. |
+| `setLayer` | `id`, `name`, `visible`, `opacity`, `blend`, `lockPixels`, `lockPosition`, `lockAll`, `clipped`, `maskEnabled`, `adjustment` | Changes a layer's settings. |
+| `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
+| `feather` | `radius` | Softens the selection's edge. |
+| `fillSelection` | `color`, `mask` | Fills the selection of the active layer with a colour. |
+| `crop` | `x`, `y`, `width`, `height` | Keeps a rectangle of the image, and forgets the history. |
+| `previewFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Previews a filter on the active layer until it is applied or cancelled. |
+| `applyFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Applies the filter previewed, or the one given, as one step. |
+| `cancelFilter` | — | Drops the filter's preview. |
+| `snapshot` | — | Changes nothing; publishes the image's snapshot. |
+| `fit` | — | Zooms and centres the view on the whole image. |
+| `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
+| `setTool` | `tool` | Chooses one of the document's tools, with its options. |
+| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource` | Sets the tools' options and the colours. |
+| `setProfile` | `working`, `display`, `proof` | Sets the working, display or proof colour profile. |
+| `pointer` | `phase`, `x`, `y`, `button`, `pressure`, `scroll`, `modifiers`, `points` | Plays pointer events (document pixels) through the current tool. |
+<!-- end generated -->
+
+Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `invert`, `rectangle`
+and `ellipse` from `from` to `to`, `polygon` through `points`, `wand` at `x`, `y`, `colorRange` of `color` within
+`fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` onto the place of `onto`,
+or `by` places up (positive) or down. Filters and `fillSelection` change the active layer's pixels, or its mask with
+`"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
+`srgb`, `displayP3`, `wideRgb` or `gray`. `pointer` takes one event (`phase`: `press`, `move`, `release` or `scroll`;
+`x`, `y`; `button`: `left` or `right`; `pressure` from 0 to 1; `scroll`; `modifiers`: a list of `shift`, `control`,
+`alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. `open`, `save`
+and `revert` go through the file dialogs the person sees: a document never names a file.
+
+<!-- generated: imageNames -->
+| Value | Names |
+|---|---|
+| A tool's `gesture` | `move`, `select-rectangle`, `select-ellipse`, `lasso`, `polygon-lasso`, `magic-wand`, `crop`, `paint`, `erase`, `clone`, `gradient`, `fill`, `sample`, `pan`, `zoom` |
+| A layer's `blend` | `normal`, `multiply`, `screen`, `overlay`, `soft-light`, `darken`, `lighten`, `difference`, `hue`, `saturation`, `color`, `luminosity` |
+| `addLayer`'s `kind`, besides `pixel` and `group` | `levels`, `curves`, `hue-saturation`, `color-balance`, `brightness-contrast`, `invert`, `threshold`, `gradient-map` |
+| A filter's `kind` (`previewFilter`, `applyFilter`) | `gaussian-blur`, `sharpen`, `unsharp-mask`, `add-noise`, `motion-blur` |
+| The `shape` tool option (gradients) | `linear`, `radial`, `angle`, `reflected`, `diamond` |
+| `limits`, with the library's values | `side` 32768, `pixels` 1073741824, `layers` 256, `groupDepth` 2, `cacheBytes` 536870912, `gpuBytes` 268435456, `undoBytes` 536870912, `undoSteps` 200, `filterRadius` 250, `brushSize` 5000, `imageFileBytes` 268435456, `imageFileSide` 30000, `projectFileBytes` 4294967296, `manifestBytes` 16777216, `profileBytes` 4194304, `floodPixels` 67108864, `polygonPoints` 100000 |
+<!-- end generated -->
+
+The snapshot has `width`, `height`, `format`, `profile`, `display`, `proof`, `revision`, `active` (the active layer's
+id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opacity`, `blend`, `lockPixels`,
+`lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as
+`"board/layer/3"` that an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`,
+`canRedo`, `memory`, `selection`, `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view`
+(`zoom`, `x`, `y`), `message` and `previewing`; `"<image>/navigator"` is a thumbnail of the whole image.
+
+A whiteboard with a marker, an eraser and undo:
+
+```json
+"images": { "board": { "width": 1600, "height": 900, "into": "state.board",
+                       "tools": { "marker": { "gesture": "paint", "size": 6, "hardness": 100, "foreground": "#1d4ed8" },
+                                  "eraser": { "gesture": "erase", "size": 40 } } } },
+"root": { "type": "column", "children": [
+  { "type": "row", "children": [
+    { "text": "Marker", "onClick": [{ "image": "setTool", "with": { "tool": "marker" } }] },
+    { "text": "Eraser", "onClick": [{ "image": "setTool", "with": { "tool": "eraser" } }] },
+    { "text": "Undo", "disabled": "{{!state.board.canUndo}}", "onClick": [{ "image": "undo" }] },
+    { "text": "Clear", "onClick": [{ "image": "select", "with": { "kind": "all" } },
+                                   { "image": "fillSelection", "with": { "color": "#ffffff" } },
+                                   { "image": "select", "with": { "kind": "none" } }] } ] },
+  { "type": "raster", "image": "board", "grow": 1 } ] }
+```
 
 ## Channels and persistence
 
