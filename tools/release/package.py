@@ -34,7 +34,7 @@ README = """AffrescoUI {version} for {platform}
   ./affrescoui_studio               the Studio: ask an agent for changes, review them
   ./affrescoui help                 the command-line tool: check, render, fmt, ids, run, export, import
 
-The MCP server for AI agents is on PyPI: pipx install affrescoui-mcp, then
+The MCP server for AI agents is in this release (the .whl file): pipx install ./affrescoui_mcp-<version>-py3-none-any.whl, then
   claude mcp add affrescoui -- affrescoui-mcp
 
 On macOS, a downloaded program is quarantined until you allow it: xattr -dr com.apple.quarantine <this folder>.
