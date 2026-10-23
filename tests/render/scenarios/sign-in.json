@@ -7,33 +7,137 @@
 			"name": "sign-in",
 			"screen": "sign-in.screen.json",
 			"steps": [
-				{ "expect": { "image": "first-frame" } },
-				{ "click": "#email" },
-				{ "type": "ada@example" },
-				{ "click": "#password" },
-				{ "expect": { "image": "invalid-email" } },
-				{ "type": "short" },
-				{ "click": "#signIn" },
-				{ "expect": { "image": "errors" } },
-				{ "click": "#forgot" },
-				{ "wait": 50 },
-				{ "expect": { "image": "forgot-dialog" } },
-				{ "key": "escape" },
-				{ "click": "#toCreate" },
-				{ "expect": { "image": "create-account" } },
-				{ "click": "#checked-field-form-3" },
-				{ "type": "Secret12" },
-				{ "click": "#field-eye" },
-				{ "expect": { "image": "strength-shown" } },
-				{ "key": "mod+j" },
-				{ "expect": { "image": "dark" } },
-				{ "click": "#checked-field-form" },
-				{ "type": "Ada Lovelace" },
-				{ "click": "#checked-field-form-2" },
-				{ "key": "end" },
-				{ "type": ".com" },
-				{ "click": "#label-create-account" },
-				{ "expect": { "image": "signed-in-dark" } }
+				{
+					"expect": {
+						"image": "first-frame"
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "invalid-email"
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"key": "end"
+				},
+				{
+					"type": ".com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "password-step"
+					}
+				},
+				{
+					"key": "capslock+s"
+				},
+				{
+					"expect": {
+						"image": "caps-lock"
+					}
+				},
+				{
+					"type": "short"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "errors"
+					}
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "forgot-dialog"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"click": "#toCreate"
+				},
+				{
+					"expect": {
+						"image": "create-account"
+					}
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "Secret12"
+				},
+				{
+					"click": "#field-eye"
+				},
+				{
+					"expect": {
+						"image": "strength-shown"
+					}
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"expect": {
+						"image": "dark"
+					}
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Ada Lovelace"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"key": "end"
+				},
+				{
+					"type": ".com"
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"expect": {
+						"image": "signed-in-dark"
+					}
+				}
 			]
 		}
 	]
