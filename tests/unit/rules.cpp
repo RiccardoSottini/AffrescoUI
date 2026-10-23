@@ -270,8 +270,8 @@ TEST_CASE("format: many actions and components are scanned at the cost of their 
 	CHECK_NOTHROW(rules.checkChange(before, using29999(before))); // it runs refresh
 	json controlling = before;
 	controlling["actions"]["a29999"] = json::array({{{"run", "approve"}}});
-	CHECK_THROWS_WITH_AS(rules.checkChange(controlling, using29999(controlling)), doctest::Contains("permission denied"),
-	                     affresco::DocumentError);
+	CHECK_THROWS_WITH_AS(rules.checkChange(controlling, using29999(controlling)),
+	                     doctest::Contains("permission denied"), affresco::DocumentError);
 }
 
 // Each use of the screen's own component was scanned on a copy of it, without bound: 2000 uses of a large one took
