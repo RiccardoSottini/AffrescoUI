@@ -97,6 +97,11 @@ private:
 /// @brief A group's only workload, moved into its list (a braced list would copy it).
 /// @param workload The workload.
 /// @return A list of one.
+/// @brief How many times longer a time limit is in this run: 100 under valgrind (the callgrind job, tests/perf/ci.sh),
+/// which runs the code about that much slower, else 1. The limits guard against a hang; they aren't what is measured.
+/// @return The factor.
+[[nodiscard]] int slowdown();
+
 [[nodiscard]] inline std::vector<Workload> single(Workload workload) {
 	std::vector<Workload> workloads;
 	workloads.push_back(std::move(workload));

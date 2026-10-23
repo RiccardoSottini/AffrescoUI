@@ -58,6 +58,10 @@ void stopCounting(const std::string& name) {
 	CALLGRIND_DUMP_STATS_AT(name.c_str());
 	CALLGRIND_STOP_INSTRUMENTATION;
 }
+
+/// @brief Whether the program runs under valgrind.
+/// @return True under valgrind.
+bool underValgrind() { return RUNNING_ON_VALGRIND != 0; }
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
@@ -67,6 +71,9 @@ constexpr bool callgrindAvailable = false; ///< Built without valgrind's header:
 void startCounting() {}
 /// @brief Does nothing: built without valgrind's header.
 void stopCounting(const std::string& /*name*/) {}
+/// @brief False: built without valgrind's header, which tells.
+/// @return False.
+bool underValgrind() { return false; }
 #endif
 
 /// @brief What the command line asked for.
@@ -264,6 +271,8 @@ int runAll(const Options& options, affresco::bench::Context& context) {
 }
 
 } // namespace
+
+int affresco::bench::slowdown() { return underValgrind() ? 100 : 1; }
 
 int main(int argc, char** argv) {
 	// Every message to stderr: stdout carries only the results

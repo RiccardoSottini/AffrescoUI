@@ -30,9 +30,9 @@ public:
 	}
 	/// @brief Runs posted tasks until a condition holds.
 	/// @param done The condition.
-	/// @throws std::runtime_error If it doesn't hold within 60 seconds.
+	/// @throws std::runtime_error If it doesn't hold within 60 seconds (times slowdown()).
 	void pumpUntil(const std::function<bool()>& done) {
-		const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(60);
+		const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(60) * slowdown();
 		while(!done()) {
 			std::vector<std::function<void()>> tasks;
 			{
