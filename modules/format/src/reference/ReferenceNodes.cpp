@@ -335,7 +335,7 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 /// @return The keys.
 std::vector<KeyReference> joinedKeys() {
 	std::vector<KeyReference> keys(commonTable.begin(), commonTable.end());
-	for(const std::span<const KeyReference> part : {nodeTypeKeys(), nodeEventKeys()})
+	for(const std::span<const KeyReference> part : {nodeTypeKeys(), sceneKeys(), nodeEventKeys()})
 		keys.insert(keys.end(), part.begin(), part.end());
 	return keys;
 }
