@@ -133,8 +133,8 @@ TEST_CASE("scene3d: the hierarchy places children in their parents' space") {
 }
 
 TEST_CASE("scene3d: primitives are valid closed meshes with outward normals") {
-	for(const auto primitive :
-	    {Primitive::Cube, Primitive::Sphere, Primitive::Cylinder, Primitive::Torus, Primitive::Plane}) {
+	for(const auto primitive : {Primitive::Cube, Primitive::Sphere, Primitive::Cylinder, Primitive::Cone, Primitive::Torus,
+	                            Primitive::Plane}) {
 		CAPTURE(primitiveName(primitive));
 		const MeshData mesh = makePrimitive(primitive);
 		CHECK(mesh.validate().empty());
