@@ -520,6 +520,31 @@ TEST_CASE("format: Escape cancels a dialog, and the arrows and Enter choose a bu
 	}
 }
 
+TEST_CASE("format: a dialog button that keeps it open runs its action and leaves it shown") {
+	std::string document = dialogScreen();
+	const std::string discard = R"("title": "Discard", )";
+	document.replace(document.find(discard), discard.size(), discard + R"("keepOpen": true, )");
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(document);
+	screen.build(*window);
+	settle(*window, clock);
+	const affresco::Panel* button = findAccessible(window->root(), "button", "Discard");
+	REQUIRE(button);
+	clickOn(*window, *button);
+	settle(*window, clock);
+	CHECK(state(screen)["answer"] == "discard");
+	CHECK(state(screen)["dlg"] == true);
+	REQUIRE(findAccessible(window->root(), "dialog", "Save changes?"));
+
+	button = findAccessible(window->root(), "button", "Save"); // the others still close it
+	REQUIRE(button);
+	clickOn(*window, *button);
+	settle(*window, clock);
+	CHECK(state(screen)["answer"] == "save");
+	CHECK(state(screen)["dlg"] == false);
+}
+
 TEST_CASE("format: a toast's close button and actions are named buttons") {
 	ManualClock clock;
 	const auto window = createHeadlessWindow(600, 400, clock);

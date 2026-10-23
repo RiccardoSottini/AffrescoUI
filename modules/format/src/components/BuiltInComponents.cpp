@@ -215,7 +215,7 @@ constexpr std::string_view others = R"({
 					"hover": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border" },
 					"focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
 					"mnemonic": "{{b.mnemonic ?? b.title ?? ''}}",
-					"onClick": [{ "dismiss": true },
+					"onClick": [{ "if": "{{b.keepOpen != true}}", "then": [{ "dismiss": true }] },
 					            { "if": "{{b.run != null}}", "then": [{ "run": "{{b.run}}", "with": "{{b.with}}" }] }],
 					"children": [{ "type": "label", "text": "{{b.title ?? ''}}",
 					               "textColor": "{{i == 0 ? '@kit.onPrimary' : '@kit.onSecondary'}}",

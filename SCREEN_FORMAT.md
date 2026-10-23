@@ -727,9 +727,10 @@ keep their open state where `open` says (a state path):
   tooltip names the shortcut, and those that don't fit go into a "more" menu (open at `open + '.more'`).
 - `statusBar`: a row of `items` (`{ "text", "icon", "tooltip", "color", "run", "with", "side" }`), `"side": "end"`
   putting one at the end; an item with a `run` is a button.
-- `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with" }`) over a backdrop; the focus is
-  trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels. Its
-  `children` go between the message and the buttons.
+- `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with", "keepOpen" }`) over a backdrop; the
+  focus is trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels.
+  A `"keepOpen": true` button doesn't close it (its action does, setting `open` false). Its `children` go between the
+  message and the buttons.
 - `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`; its × is a
   button named `closeLabel`.
 - `toasts`: a stack of notifications in the bottom corner from the list at `state[name]` (`name` is `toasts`), each
@@ -772,7 +773,8 @@ Controls of a desktop app's window, built in the same way as the built-in compon
   last is a link that runs its `run`.
 - `tabStrip`: the tabs at `state[name]` as `{ "tabs", "active" }`, each tab `{ "id", "label", "marker", "closable" }`
   (`marker` draws a dot, for unsaved changes). A click activates one, its × closes it (running `onClose` with its
-  `id`, or else removing it and activating its neighbour), and a drag or Ctrl+Shift+Page Up/Down moves it. The tabs that don't fit in `width` are listed under an "All tabs" button (`more` in its state).
+  `id`, or else removing it and activating its neighbour), and a drag or Ctrl+Shift+Page Up/Down moves it. The tabs
+  that don't fit in `width` are listed under an "All tabs" button (`more` in its state).
 
 ```json
 { "use": "tabStrip", "with": { "name": "files", "onClose": "closeFile" } }
@@ -784,6 +786,8 @@ Controls of a desktop app's window, built in the same way as the built-in compon
 { "use": "searchField", "with": { "name": "find", "run": "search" } }
 ```
 
+### Built-in panels
+The larger parts of a desktop app's window, built in the same way (see Built-in components):
 - `dock`: a window's panels in tabbed areas: `left`, `right` and `bottom` around the `center`. `panels` names them
   (`{ "explorer": { "title": "Explorer", "icon": "folder" } }`) and `state[name]` places them: each area
   `{ "tabs", "active", "collapsed" }`, plus `sizes`, `maximized` (an area or null) and what is being done (`resizing`,
