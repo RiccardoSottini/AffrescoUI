@@ -480,10 +480,6 @@ public:
 	/// @brief Whether this is its window's focused panel.
 	[[nodiscard]] bool hasFocus() const noexcept;
 
-	/// @brief Takes the key being routed, from a listener of onKey: a widget that handles keys itself (the text
-	/// editor) then skips it, so a key bound on the panel replaces the widget's own meaning of it.
-	void takeKey() noexcept { keyTaken_ = true; }
-
 	/* Signals, fired by the default event hooks */
 
 	Signal<const KeyEvent&> onKey;                 ///< Key event while focused.
@@ -500,14 +496,6 @@ protected:
 	/// @brief Handles a key event while focused.
 	/// @param event The event.
 	virtual void keyEvent(const KeyEvent& event) { onKey(event); }
-	/// @brief Fires onKey, for a widget that handles keys itself after its listeners.
-	/// @param event The event.
-	/// @return true if a listener took the key (takeKey()): the widget leaves it.
-	bool notifyKey(const KeyEvent& event) {
-		keyTaken_ = false;
-		onKey(event);
-		return std::exchange(keyTaken_, false);
-	}
 	/// @brief Handles a typed character while focused.
 	/// @param event The event.
 	virtual void charEvent(const CharEvent& event) { onChar(event); }
@@ -777,7 +765,6 @@ private:
 	Rect bounds_;                          ///< See bounds().
 	Vec2 size_;                            ///< See resolvedSize().
 	bool shown_ = false;                   ///< See isShown().
-	bool keyTaken_ = false;                ///< See takeKey().
 
 	bool paintStale_ = true;                          ///< Its drawing changed since the renderer last recorded it.
 	bool paintBelow_ = false;                         ///< A descendant's paintStale_ is set.

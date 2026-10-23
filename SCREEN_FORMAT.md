@@ -193,7 +193,7 @@ only for the elements that changed.
 | `every` | `{ "ms": 1000, "do": steps }`: runs while the node exists. |
 | `drag` | `{ "data": {...} }`: the node can be dragged; a node with `onDrop` receives `event.data`. |
 | `context` | `{ "editorFocus": true }`: keys added to the `context` variable while the node or a child has the focus (an inner node wins); `when` clauses read them. |
-| `keys` | Shortcuts while the node or a child has the focus: `"enter" → handler`. A key the focused node binds itself replaces the widget's own meaning of it (an `editor`'s `enter` no longer breaks the line) when its handler runs. |
+| `keys` | Shortcuts while the node or a child has the focus: `"enter" → handler`. |
 | `locked` | `true`: no revision may change this node or anything inside it. Needs an `id`. |
 | `note` | A comment. |
 | `on…` | Event handlers (see Events). |
