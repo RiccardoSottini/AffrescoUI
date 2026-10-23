@@ -30,8 +30,10 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsLocale.cpp
 	src/functions/ExpressionFunctionsLogic.cpp
 	src/functions/ExpressionFunctionsNumbers.cpp
+	src/functions/ExpressionFunctionsQr.cpp
 	src/functions/ExpressionFunctionsText.cpp
-	src/functions/ExpressionFunctionsTime.cpp)
+	src/functions/ExpressionFunctionsTime.cpp
+	src/functions/QrCode.cpp)
 target_include_directories(affrescoui_format PRIVATE src/functions)
 # src/locale/: locale data (CLDR subset), number, date and plural formatting, and the strings tables
 target_sources(affrescoui_format PRIVATE
