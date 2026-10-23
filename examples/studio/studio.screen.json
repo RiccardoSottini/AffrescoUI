@@ -5689,7 +5689,7 @@
 					"title": "{{t('reject.title', {id: state.rejecting.id})}}",
 					"message": "{{t('reject.message', {message: state.rejecting.message})}}",
 					"width": "{{min(440, window.width - 32)}}",
-					"height": 160,
+					"height": 124,
 					"highlight": "@color.bad",
 					"buttons": [
 						{
@@ -5716,7 +5716,7 @@
 					"title": "{{t('history.dialogTitle', {kind: state.changing.kind, number: state.changing.number})}}",
 					"message": "{{t('history.dialogMessage', {kind: state.changing.kind, message: state.changing.message})}}",
 					"width": "{{min(460, window.width - 32)}}",
-					"height": 160,
+					"height": 124,
 					"highlight": "@color.accent",
 					"buttons": [
 						{
