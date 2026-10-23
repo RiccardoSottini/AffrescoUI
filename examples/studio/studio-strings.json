@@ -302,7 +302,13 @@
 			"pr.required": "Required to merge",
 			"pr.noPolicy": "Nothing required",
 			"review.changesBy": "Changes requested by {who}",
-			"review.failing": "{n} of {total} checks failed"
+			"review.failing": "{n} of {total} checks failed",
+			"patch.stash": "Stash",
+			"patch.stashTip": "Set this change aside and clear the box",
+			"patch.unstash": "Restore stash",
+			"patch.unstashTip": "Bring back the change set aside",
+			"toolbar.compare": "Compare with main",
+			"toolbar.compareTip": "What the chosen proposal changes against main"
 		},
 		"it": {
 			"a11y.connections": "Connessioni note",
@@ -602,7 +608,13 @@
 			"pr.required": "Richiesto per unire",
 			"pr.noPolicy": "Nessun requisito",
 			"review.changesBy": "Modifiche richieste da {who}",
-			"review.failing": "{n} controlli falliti su {total}"
+			"review.failing": "{n} controlli falliti su {total}",
+			"patch.stash": "Accantona",
+			"patch.stashTip": "Metti da parte questa modifica e svuota il campo",
+			"patch.unstash": "Riprendi",
+			"patch.unstashTip": "Riprendi la modifica messa da parte",
+			"toolbar.compare": "Confronta con main",
+			"toolbar.compareTip": "Cosa cambia la proposta scelta rispetto a main"
 		},
 		"ar": {
 			"a11y.connections": "الاتصالات المعروفة",
@@ -902,7 +914,13 @@
 			"pr.required": "مطلوب للدمج",
 			"pr.noPolicy": "لا شيء مطلوب",
 			"review.changesBy": "طلب {who} تغييرات",
-			"review.failing": "فشل {n} من {total} فحوص"
+			"review.failing": "فشل {n} من {total} فحوص",
+			"patch.stash": "تنحية",
+			"patch.stashTip": "ضع هذا التغيير جانبًا وأفرغ الحقل",
+			"patch.unstash": "استعادة",
+			"patch.unstashTip": "أعد التغيير الذي وُضع جانبًا",
+			"toolbar.compare": "قارن مع main",
+			"toolbar.compareTip": "ما يغيّره الاقتراح المختار مقارنةً بـ main"
 		}
 	}
 }

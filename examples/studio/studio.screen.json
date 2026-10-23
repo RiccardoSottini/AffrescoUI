@@ -225,7 +225,8 @@
 		"state.connections",
 		"state.connNext",
 		"state.diffSplit",
-		"state.diffWs"
+		"state.diffWs",
+		"state.stash"
 	],
 	"state": {
 		"theme": "dark",
@@ -345,7 +346,8 @@
 		"reviewKind": "comment",
 		"reviews": [],
 		"merging": null,
-		"merged": null
+		"merged": null,
+		"stash": ""
 	},
 	"stateTypes": {
 		"theme": {
@@ -548,6 +550,9 @@
 		},
 		"merged": {
 			"type": ["object", "null"]
+		},
+		"stash": {
+			"type": "string"
 		}
 	},
 	"computed": {
@@ -1378,11 +1383,17 @@
 		],
 		"host:error": [
 			{
-				"push": "state.log",
-				"value": {
-					"kind": "error",
-					"text": "{{event.message}}"
-				}
+				"note": "A send while offline is already shown by the toolbar; a repeated line is shown once",
+				"if": "{{state.connected && (length(state.log) == 0 || state.log[length(state.log) - 1].text != event.message)}}",
+				"then": [
+					{
+						"push": "state.log",
+						"value": {
+							"kind": "error",
+							"text": "{{event.message}}"
+						}
+					}
+				]
 			}
 		],
 		"host:event": [
@@ -1508,13 +1519,18 @@
 				"note": "with: kind, key, params. One activity line: its text now, and its key to translate it later"
 			},
 			{
-				"push": "state.log",
-				"value": {
-					"kind": "{{kind}}",
-					"key": "{{key}}",
-					"params": "{{params}}",
-					"text": "{{t(key, params)}}"
-				}
+				"if": "{{(length(state.log) == 0 || state.log[length(state.log) - 1].text != t(key, params))}}",
+				"then": [
+					{
+						"push": "state.log",
+						"value": {
+							"kind": "{{kind}}",
+							"key": "{{key}}",
+							"params": "{{params}}",
+							"text": "{{t(key, params)}}"
+						}
+					}
+				]
 			}
 		],
 		"showTab": [
@@ -2354,6 +2370,53 @@
 				"set": "state.reviewDraft",
 				"to": ""
 			}
+		],
+		"stashPatch": [
+			{
+				"note": "Sets the draft aside, as a stash does, until it is restored"
+			},
+			{
+				"set": "state.stash",
+				"to": "{{state.patch}}"
+			},
+			{
+				"set": "state.patch",
+				"to": ""
+			}
+		],
+		"unstashPatch": [
+			{
+				"set": "state.patch",
+				"to": "{{state.stash}}"
+			},
+			{
+				"set": "state.stash",
+				"to": ""
+			}
+		],
+		"compareWithMain": [
+			{
+				"note": "A proposal against main: its Files changed page"
+			},
+			{
+				"set": "state.branchOpen",
+				"to": false
+			},
+			{
+				"run": "showReview"
+			},
+			{
+				"set": "state.prTab",
+				"to": "files"
+			},
+			{
+				"if": "{{computed.prStale}}",
+				"then": [
+					{
+						"run": "requestDiff"
+					}
+				]
+			}
 		]
 	},
 	"keys": {
@@ -3010,6 +3073,34 @@
 												"height": 40,
 												"onClick": "applyPatch",
 												"label": "{{t('patch.apply')}}"
+											},
+											{
+												"id": "patchStash",
+												"when": "{{trim(state.patch) != ''}}",
+												"style": "smallButton",
+												"text": "{{t('patch.stash')}}",
+												"anchors": {
+													"right": 20,
+													"top": 14
+												},
+												"width": 60,
+												"tooltip": "{{t('patch.stashTip')}}",
+												"onClick": "stashPatch",
+												"label": "{{t('patch.stashTip')}}"
+											},
+											{
+												"id": "patchUnstash",
+												"when": "{{trim(state.patch) == '' && state.stash != ''}}",
+												"style": "smallButton",
+												"text": "{{t('patch.unstash')}}",
+												"anchors": {
+													"right": 20,
+													"top": 14
+												},
+												"width": 120,
+												"tooltip": "{{t('patch.unstashTip')}}",
+												"onClick": "unstashPatch",
+												"label": "{{t('patch.unstashTip')}}"
 											}
 										]
 									}
@@ -5247,6 +5338,20 @@
 							"left": 14,
 							"top": 12
 						}
+					},
+					{
+						"id": "branchCompare",
+						"when": "{{computed.current != null}}",
+						"style": "smallButton",
+						"text": "{{t('toolbar.compare')}}",
+						"anchors": {
+							"right": 10,
+							"top": 6
+						},
+						"width": 130,
+						"tooltip": "{{t('toolbar.compareTip')}}",
+						"onClick": "compareWithMain",
+						"label": "{{t('toolbar.compareTip')}}"
 					},
 					{
 						"id": "branchList",

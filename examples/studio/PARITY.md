@@ -25,9 +25,9 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Diff | Hunk headers and expanding the context | Headers; the whole file on a click, not a few lines at a time | missing | partial |
 | Diff | Hide whitespace changes; diff options | Unified, split and whitespace as buttons above the files, not a menu | missing | partial |
 | Diff | Large-diff and binary placeholders | | missing | missing |
-| Branches | Compare a branch with main | A proposal against main | missing | missing |
+| Branches | Compare a branch with main | From the branch menu: the proposal's Files changed page | missing | partial |
 | Branches | Merge conflicts dialog | A proposal that conflicts with main | partial | partial |
-| Branches | Stash changes | Set a draft aside | missing | missing |
+| Branches | Stash changes | Set the direct change aside and restore it; one stash | missing | partial |
 | App | Menu bar (File, Edit, View, Repository, Branch, Help) | | missing | missing |
 | App | Options: appearance and language | Settings | partial | partial |
 | App | Repository settings | Mode, grants, permissions | partial | partial |
@@ -47,7 +47,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Pull request | Check out the pull request | Preview | partial | partial |
 
 **Counts at the start:** 0 done, 19 partial, 17 missing.
-**Counts now:** 0 done, 30 partial, 6 missing.
+**Counts now:** 0 done, 32 partial, 4 missing.
 
 ## The Studio's own parts
 

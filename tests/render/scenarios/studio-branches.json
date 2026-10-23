@@ -1,0 +1,190 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../../../examples/studio",
+	"scenarios": [
+		{
+			"name": "studio-branches",
+			"screen": "studio.screen.json",
+			"note": "Branch tools: a repeated error shown once, the direct change stashed and restored, and a proposal compared with main from the branch menu",
+			"steps": [
+				{
+					"action": "host:hello",
+					"event": {
+						"revision": 5,
+						"head": {
+							"short": "b2c3d4e"
+						},
+						"you": "ada",
+						"canReview": true,
+						"mode": "default"
+					}
+				},
+				{
+					"action": "host:document",
+					"event": {
+						"revision": 5,
+						"head": {
+							"short": "b2c3d4e"
+						},
+						"document": {
+							"theme": "light",
+							"root": {
+								"type": "stack",
+								"gap": 8,
+								"children": [
+									{
+										"id": "title",
+										"type": "label",
+										"text": "Tasks",
+										"height": 32
+									},
+									{
+										"id": "count",
+										"type": "label",
+										"text": "0",
+										"font": "small",
+										"width": 40,
+										"height": 24
+									}
+								]
+							}
+						},
+						"state": {},
+						"proposals": [
+							{
+								"id": 4,
+								"branch": "proposal/4",
+								"author": "claude",
+								"message": "Count the clicks",
+								"base": "b2c3d4e",
+								"head": "f6a7b8c",
+								"short": "f6a7b8c",
+								"commits": 2,
+								"operations": 3,
+								"touches": [
+									"/root/children/1",
+									"/theme"
+								],
+								"remember": [],
+								"changes": [
+									"set #count/text \"Clicks: 0\"",
+									"set #count/onClick [...]",
+									"set /theme \"dark\""
+								],
+								"reason": "",
+								"time": 1760000000,
+								"conflicts": [],
+								"approvals": [
+									"grace"
+								],
+								"policy": "1 approval",
+								"behaviour": []
+							}
+						],
+						"previewing": null,
+						"mode": "default",
+						"grants": [],
+						"you": "ada",
+						"canReview": true
+					}
+				},
+				{
+					"action": "host:error",
+					"event": {
+						"message": "The host refused the patch"
+					}
+				},
+				{
+					"action": "host:error",
+					"event": {
+						"message": "The host refused the patch"
+					}
+				},
+				{
+					"expect": {
+						"state": "log.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "log[2].text",
+						"is": "The host refused the patch"
+					}
+				},
+				{
+					"click": "#patch"
+				},
+				{
+					"type": "Jobs board"
+				},
+				{
+					"click": "#patchStash"
+				},
+				{
+					"expect": {
+						"state": "patch",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "stash",
+						"is": "Jobs board"
+					}
+				},
+				{
+					"expect": {
+						"node": "#patchUnstash",
+						"text": "Restore stash"
+					}
+				},
+				{
+					"click": "#branchButton"
+				},
+				{
+					"expect": {
+						"node": "#branchCompare",
+						"text": "Compare with main"
+					}
+				},
+				{
+					"expect": {
+						"image": "branch-menu"
+					}
+				},
+				{
+					"click": "#branchCompare"
+				},
+				{
+					"expect": {
+						"state": "prTab",
+						"is": "files"
+					}
+				},
+				{
+					"expect": {
+						"state": "branchOpen",
+						"is": false
+					}
+				},
+				{
+					"click": "#patchUnstash"
+				},
+				{
+					"expect": {
+						"state": "patch",
+						"is": "Jobs board"
+					}
+				},
+				{
+					"expect": {
+						"state": "stash",
+						"is": ""
+					}
+				}
+			]
+		}
+	]
+}
