@@ -223,3 +223,24 @@ TEST_CASE("compiler: a property that fails to apply fails again at the next upda
 	REQUIRE(errors.size() == 2);
 	CHECK(errors[1].find("root.children[0].color") != std::string::npos);
 }
+
+TEST_CASE("compiler: a component whose node uses another component passes its own with on, after its params") {
+	Built built(json::parse(R"({
+		"format": "affrescoui-screen", "version": 2,
+		"state": {"name": "Ada"},
+		"components": {
+			"caption": {"params": {"text": "none", "suffix": "."},
+			            "node": {"type": "label", "text": "{{text}}{{suffix}}"}},
+			"greeting": {"params": {"name": "nobody", "loud": "{{name}}!"},
+			             "node": {"use": "caption", "with": {"text": "Hello {{loud}}"}}}
+		},
+		"root": {"id": "root", "children": [
+			{"id": "passed", "use": "greeting", "with": {"name": "{{state.name}}"}},
+			{"id": "defaulted", "use": "greeting"},
+			{"id": "plain", "use": "caption", "with": {"suffix": "?"}}
+		]}
+	})"));
+	CHECK(built.screen->get<affresco::Label>("passed").text() == "Hello Ada!.");
+	CHECK(built.screen->get<affresco::Label>("defaulted").text() == "Hello nobody!.");
+	CHECK(built.screen->get<affresco::Label>("plain").text() == "none?");
+}

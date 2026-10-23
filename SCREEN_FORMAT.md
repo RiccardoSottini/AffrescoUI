@@ -703,7 +703,9 @@ Shows the current screen from `screens`, filling the outlet unless the screen pl
 { "use": "chip", "with": { "label": "{{tag}}", "on": "{{tag == state.filter}}" }, "onClick": "..." }
 ```
 The use's other properties override the component's node; `with` values are evaluated where it is used and become
-variables of the node and its children. A child `{ "slot": true }` in the component is replaced by the use's
+variables of the node and its children, then the params it didn't pass (which may read the passed ones). A component
+whose node is itself a `use` of another component keeps that node's `with`: it is evaluated after the params, so it
+can pass them on (`"with": { "text": "{{label}}" }`). A child `{ "slot": true }` in the component is replaced by the use's
 `children`. Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 

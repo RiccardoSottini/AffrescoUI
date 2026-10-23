@@ -86,7 +86,8 @@ private:
 	/// @return It.
 	Cache& cache() const;
 	/// @brief Turns a "use" of a component into its node: the component's node with the use's properties on top, its
-	/// params defaulted under "with", and the use's children in its slot.
+	/// "with" made of the use's arguments, the params it didn't pass and the node's own "with" (kept, so a component
+	/// that uses another passes its arguments on), and the use's children in its slot.
 	/// @param use The node with "use".
 	/// @param path Its place, for errors.
 	/// @return The node.
