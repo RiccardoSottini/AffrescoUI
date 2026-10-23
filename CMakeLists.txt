@@ -265,6 +265,9 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/bottega)
 		add_test(NAME bottega_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/bottega/e2e_test.py ${CMAKE_BINARY_DIR})
+		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
+		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
 		# Orrery end to end: host, MCP server, a revision, an approval, a picture (examples/orrery)
 		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/e2e_test.py ${CMAKE_BINARY_DIR})

@@ -10,9 +10,11 @@ changes    AI agent ──tools──▶ affrescoui_mcp.py ──agent.sock─�
                                                                        └──review, reply──▶ affrescoui_studio
 ```
 
-- **Into the agent:** a person types a request in the AffrescoUI Studio ("add a dark theme"). The host passes it on to
-  this server, which pushes it into the agent's session as a Claude Code **channel event**, and also keeps it for the
-  `wait_for_request` tool (for any MCP client).
+- **Into the agent:** a person types a request in the AffrescoUI Studio ("add a dark theme"), or in the app itself
+  (a screen's `ask` step, e.g. the assistant add-on's chat). The host passes it on to this server, which pushes it into
+  the agent's session as a Claude Code **channel event**, and also keeps it for the `wait_for_request` tool (for any
+  MCP client). A request from inside the app gets a "working" note right away, and a request is never an approval:
+  the person still reviews the agent's proposals.
 - **Out of the agent:** the agent reads the screen and sends revisions (JSON Patch) with the tools. They go through
   the host's permission rules: for the templates they become proposals a reviewer merges or rejects in the Studio,
   unless the mode is `acceptEdits` or the reviewer said "don't ask again" for that kind of change. The agent answers the person with `reply`.
@@ -43,7 +45,8 @@ Python standard library (3.9+). The socket directory is found the way the host f
    ```sh
    claude --dangerously-load-development-channels server:affrescoui
    ```
-   Requests from the Studio now arrive as `<channel source="affrescoui" request_id="request-1" sender="studio">`.
+   Requests now arrive as `<channel source="affrescoui" request_id="request-1" sender="studio" origin="studio">`
+   (`origin="app"` for a request typed inside the app).
 
 Without channels (or with another MCP client), ask the agent to use the `serve_studio` prompt, or just tell it to
 "wait for requests from the AffrescoUI Studio and handle them": it loops on `wait_for_request`.
@@ -87,8 +90,8 @@ The setup, once the host builds on Windows (work in progress) and Python can con
 
 | Tool | What it does |
 |---|---|
-| `wait_for_request` | The next request from the Studio (`request_id`, `from`, `text`), waiting for it if needed |
-| `reply` | Answer a request in the Studio |
+| `wait_for_request` | The next request from the Studio or from inside the app (`request_id`, `from`, `text`, `origin`: `"studio"` or `"app"`), waiting for it if needed |
+| `reply` | Answer a request where it was asked; `done: false` sends a progress note and keeps it open |
 | `get_screen` | The document (with its permission rules), live state, revision and head commit, open proposals, mode, grants and the agent's author name. Later calls return only what changed (`full` for everything). `outline` gives the node tree, one line per node: its address, type, text, `bind`, `onClick`, `repeat` and `when`, without the styling. `at` gives one node (`"#id"` or a JSON Pointer). `depth` limits both: outline lines say `+12` for what is below, and a node's deeper children become their addresses |
 | `find_nodes` | Nodes by `type` (or component), `text` (in their text, placeholder or tooltip, any case) or `property` (with a `value`), one outline line each with its parent |
 | `get_catalog` | What the screen's format offers: node types and properties, events, steps, functions, and the app's registered types |

@@ -335,15 +335,17 @@ src/
     DesignTokens.*         the "tokens" section: aliases, per-theme values, colour and number tables
   components/              the built-in components
     BuiltInComponents.*    menus, the menu bar, dialogs, toasts, hover cards, the settings page and the quick
-                           pick, written in the format; BuiltInFormComponents.cpp comboBox and passwordMeter
+                           pick, written in the format; BuiltInFormComponents.cpp comboBox and passwordMeter;
+                           BuiltInChatComponents.cpp the chat bubble, typing indicator, proposal card, composer
+                           and launcher
   properties/              node properties
     Properties.*           a node's values on its panel; CommonProperties.cpp those every panel has and the core
                            types'; PropertyValues.* reads lengths, anchors, radii;
                            AccessibilityProperties.cpp isOpen, selected and live; TextFieldProperties.cpp secret,
                            maxLength and accept; TransformProperties.cpp rotate, scale, skew, translate, transformOrigin
     LayoutProperties.*     the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
-                           alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,
-                           stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
+                           alignSelf, justifySelf, cell, applied from layoutProperty()), the property sets of rows,
+                           columns, stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
   reference/               what the format offers, from the registries
     Catalog.*              the catalog, from the registries
     Reference*.*           the JSON Schema and SCREEN_FORMAT.md's tables, from the registries and each key's entry

@@ -273,6 +273,7 @@ void Session::handle(const std::string& line) {
 		if(relayed(in.type)) {
 			json relayed = m;
 			relayed["from"] = in.author;
+			relayed.erase("source"); // only the screen says a request comes from inside the app
 			onRelay(relayed);
 		} else if(readsTooMuch(versions_, author_, in.type)) {
 			expect::fail(in.type, "permission denied: the data rules let '" + author_ + "' read only some paths");

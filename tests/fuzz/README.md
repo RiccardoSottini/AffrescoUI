@@ -24,6 +24,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `search_glob` | A glob list, a `.gitignore` text and paths, as the search service gets "include", "exclude" and the ignore files of a searched folder (`services/src/search/SearchGlob.hpp`) | A list compiles or gives an error; the rules kept are capped; a path matches the same way twice, and whatever a matching folder holds matches too |
 | `cli` | A screen file, as the `affrescoui` tool reads it (`tools/affrescoui`): the text reader and printer behind `fmt` and `ids`, the places `ids` names, and the schema check behind `check` | `fmt` writes the same JSON value, and formatting its output again changes nothing; the schema check reports problems, never throws |
 | `actions` | A JSON value, run as the steps of an action of the Kanban template (its state and actions, no window) | Every event stops within its work budget (the run's `-timeout` catches one that doesn't), and writes no more into the state than the budget lets it |
+| `ask_reply` | A JSON value: a reply, or a list of replies (at most 300), to the request a screen's `ask` step just sent (`Runtime::receiveReply`, `format/src/assistant/Asks.hpp`); one without `request` answers it | The request stays listed in `requests`; a reply's text and replier are cut to their size at a character boundary, so the state still writes as UTF-8 |
 | `image` | A file's bytes, decoded by `Bitmap::decode` (stb_image for PNG and JPEG, the SVG subset rasterised with vector paths) within small limits: a revision can name any file in an allowed folder | What decodes is within the limits, four bytes a pixel, premultiplied (no channel above its alpha); anything else is a `std::runtime_error` |
 | `lookups` | A font's GSUB or GPOS table (the first byte: odd for GPOS), read by `font/LookupSpans` for the fast path of plain text: a revision can name any font file | Every span is at most `unbounded`, and the same when read again |
 | `http_response` | A response head, to the network module's parsers (`net/src/http/Http.hpp`): status lines, header lines and blocks (the WebSocket handshake), Retry-After | A status is 100..999, header names are lower-case tokens, a block holds at most 256 headers and no value spans lines, a retry delay is within an hour |
@@ -57,6 +58,7 @@ of these and what limits them.
 | Where bytes come in | Who controls them | Target, or why none |
 |---|---|---|
 | A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, Studio, a remote peer | `session`, `json`, `revision`, `expression`, `actions`, `delta`, `layout`, `policy` |
+| A peer's replies to the screen's own requests (`ask`) | Any peer | `ask_reply` |
 | A remote peer's opening (upgrade request, first message) | Anyone who reaches the document server | `peer_handshake`, `http_response` |
 | WebSocket frames, server-sent events, HTTP response heads | The server a connection opens, or a peer | `websocket`, `sse`, `http_response` |
 | URLs a connection, a sign-in provider or a peer names | Screens, peers, providers | `url` |

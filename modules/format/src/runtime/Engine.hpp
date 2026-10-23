@@ -20,6 +20,7 @@
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/format/Runtime.hpp"
 
+#include "Asks.hpp"
 #include "AsyncCalls.hpp"
 #include "Builder.hpp"
 #include "Connections.hpp"
@@ -57,7 +58,8 @@ struct Engine : VersionObserver {
 	Engine& operator=(const Engine&) = delete;
 	Engine(Engine&&) = delete;
 	Engine& operator=(Engine&&) = delete;
-	~Engine() override = default;
+	/// @brief Stops listening to the version control, which outlives the engine.
+	~Engine() override;
 
 	Runtime& owner;                         ///< For onEvent, onError, onSend, onConnect and onUpdated.
 	VersionControl& versions;               ///< The document and state.
@@ -88,7 +90,9 @@ struct Engine : VersionObserver {
 	Models models;             ///< The application's data models (their changes reach the others).
 	Connections connections;   ///< The declared connections (RFC 0003), started by "request" and "subscribe".
 	ServiceCalls serviceCalls; ///< Service calls and subscriptions (RFC 0002).
+	Asks asks;                 ///< The person's requests to the agents ("ask") and their replies.
 	AsyncCalls calls;          ///< Slow native calls (last: destroyed first, joining their workers).
+	Connection peersChanged = 0; ///< On versions.onReviewChanged: who is connected (the "peers" variable).
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.

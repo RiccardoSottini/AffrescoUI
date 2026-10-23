@@ -284,6 +284,11 @@ public:
 	void setAlignSelf(std::optional<CrossAlign> align);
 	/// @brief Where it sits across its row or column, if it chose.
 	[[nodiscard]] std::optional<CrossAlign> alignSelf() const noexcept { return alignSelf_; }
+	/// @brief Sets where this panel sits along its row in a Grid cell, over the grid's choice (CSS justify-self).
+	/// @param align The place, or std::nullopt (the default) for the grid's justifyItems.
+	void setJustifySelf(std::optional<CrossAlign> align);
+	/// @brief Where it sits along its row in a Grid cell, if it chose.
+	[[nodiscard]] std::optional<CrossAlign> justifySelf() const noexcept { return justifySelf_; }
 	/// @brief Sets the cell it takes in a Grid.
 	/// @param cell Its column, row and spans; the default lets the grid place it in the next free cell.
 	void setGridCell(GridCell cell);
@@ -739,6 +744,7 @@ private:
 	float shrink_ = 0.0f;                                ///< See shrink().
 	std::optional<Length> basis_;                        ///< See basis().
 	std::optional<CrossAlign> alignSelf_;                ///< See alignSelf().
+	std::optional<CrossAlign> justifySelf_;              ///< See justifySelf().
 	GridCell gridCell_;                                  ///< See gridCell().
 	WritingDirection writingDirection_ = WritingDirection::Inherit; ///< See writingDirection().
 	bool rightToLeft_ = false;                                      ///< See rightToLeft().
