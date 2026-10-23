@@ -294,6 +294,17 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
     {"focus", "", R"(`{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update))", "steps"},
     {"scrollTo", "", "", "steps"},
+    {"edit", "",
+	 "`{ \"edit\": \"duplicateLines\", \"in\": \"#editor\" }`: runs a code editor's command (the editor's "
+	 "commands), after the update; `\"goTo\"` puts the caret at `line` and `column`, `\"select\"` selects from them to "
+	 "`toLine` and `toColumn` (counted from 1), and `\"toggleComment\"` takes the line comment's `prefix` (`//`)",
+	 "steps"},
+    {"in", "", "", "steps"},
+    {"line", "", "", "steps"},
+    {"column", "", "", "steps"},
+    {"toLine", "", "", "steps"},
+    {"toColumn", "", "", "steps"},
+    {"prefix", "", "", "steps"},
     {"dismiss", R"json({"const": true})json",
 	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},
     {"after", "", R"(`{ "after": 2000, "do": [...] }`: later)", "steps"},

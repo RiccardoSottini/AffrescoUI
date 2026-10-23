@@ -312,12 +312,13 @@ void CodeEditor::keyEvent(const affresco::KeyEvent& event) {
 		Panel::keyEvent(event);
 		return;
 	}
+	// NOLINTNEXTLINE(bugprone-parent-virtual-call): the signals first, as a key a binding takes is its command alone
+	Panel::keyEvent(event);
+	if(window() && window()->keyTaken()) return;
 	const std::uint64_t before = model().version();
 	const bool handled =
 	    runShortcut(event) || (event.key == Key::Backspace && !command && !m.alt() && deleteEmptyPair());
-	// NOLINTNEXTLINE(bugprone-parent-virtual-call): skips TextEditor's handling, and keeps the signals firing
-	if(handled) Panel::keyEvent(event);
-	else TextEditor::keyEvent(event);
+	if(!handled) builtInKey(event);
 	if((event.key == Key::Backspace || event.key == Key::Delete) && model().version() != before) onTyped(std::string());
 }
 

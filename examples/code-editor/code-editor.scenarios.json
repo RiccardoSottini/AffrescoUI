@@ -150,9 +150,9 @@
 		},
 		{
 			"name": "run-terminal-commands",
-			"note": "Cmd+J shows and focuses the terminal; help prints the commands, an unknown one says so, and clear empties it",
+			"note": "Ctrl+` shows and focuses the terminal; help prints the commands, an unknown one says so, and clear empties it",
 			"steps": [
-				{ "key": "mod+j" },
+				{ "key": "ctrl+backquote" },
 				{ "wait": 0 },
 				{ "expect": { "state": "panelTab", "is": "terminal" } },
 				{ "type": "help" },
@@ -178,6 +178,112 @@
 				{ "expect": { "state": "files[0].text.length", "is": 1 } },
 				{ "key": "mod+z" },
 				{ "expect": { "state": "files[0].text.length", "is": 437, "note": "main.cpp as it was" } }
+			]
+		},
+		{
+			"name": "goto-line",
+			"note": "Ctrl+G opens Goto Anything at ':'; a line number and Enter put the caret on that line",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "ctrl+g" },
+				{ "wait": 50 },
+				{ "expect": { "state": "quickPick.query", "is": ":" } },
+				{ "type": "8" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "quickPick.open", "is": false } },
+				{ "expect": { "state": "caret.line", "is": 8 } }
+			]
+		},
+		{
+			"name": "goto-symbol",
+			"note": "Cmd+R lists the file's symbols after '@'; choosing one goes to its line",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "mod+r" },
+				{ "wait": 50 },
+				{ "expect": { "state": "quickPick.query", "is": "@" } },
+				{ "type": "main" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "caret.line", "is": 5 } }
+			]
+		},
+		{
+			"name": "search-in-the-file",
+			"note": "'#' in Goto Anything lists the lines holding a text; choosing one selects it there",
+			"steps": [
+				{ "key": "mod+p" },
+				{ "wait": 50 },
+				{ "type": "#todo" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "caret.line", "is": 11 } }
+			]
+		},
+		{
+			"name": "line-operations",
+			"note": "Duplicate, delete and move the caret's line up, each with its key",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "ctrl+g" },
+				{ "wait": 50 },
+				{ "type": "1" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "key": "mod+shift+d" },
+				{ "wait": 50 },
+				{ "expect": { "state": "files[0].text", "is": "#include <affresco/affresco.hpp>\n#include <affresco/affresco.hpp>\n#include \"Station.hpp\"\n\n// A weather station: the UI is a live document, the readings come from C++\nint main() {\n    affresco::Application app;\n    affresco::Screen screen = affresco::Screen::fromFile(\"screens/station.screen.json\");\n    screen.createWindow(app);\n\n    Station station(screen);\n    // TODO: read the sensor's name from the settings\n    station.connect(\"sensor-0\");\n    return app.run();\n}\n" } },
+				{ "key": "ctrl+shift+k" },
+				{ "wait": 50 },
+				{ "expect": { "state": "files[0].text", "is": "#include <affresco/affresco.hpp>\n#include \"Station.hpp\"\n\n// A weather station: the UI is a live document, the readings come from C++\nint main() {\n    affresco::Application app;\n    affresco::Screen screen = affresco::Screen::fromFile(\"screens/station.screen.json\");\n    screen.createWindow(app);\n\n    Station station(screen);\n    // TODO: read the sensor's name from the settings\n    station.connect(\"sensor-0\");\n    return app.run();\n}\n" } },
+				{ "key": "ctrl+mod+up" },
+				{ "wait": 50 },
+				{ "expect": { "state": "files[0].text", "is": "#include \"Station.hpp\"\n#include <affresco/affresco.hpp>\n\n// A weather station: the UI is a live document, the readings come from C++\nint main() {\n    affresco::Application app;\n    affresco::Screen screen = affresco::Screen::fromFile(\"screens/station.screen.json\");\n    screen.createWindow(app);\n\n    Station station(screen);\n    // TODO: read the sensor's name from the settings\n    station.connect(\"sensor-0\");\n    return app.run();\n}\n" } },
+				{ "expect": { "state": "caret.line", "is": 1 } }
+			]
+		},
+		{
+			"name": "toggle-comment",
+			"note": "Cmd+/ comments the caret's line out with the file's line comment, and back",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "ctrl+g" },
+				{ "wait": 50 },
+				{ "type": "1" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "key": "mod+slash" },
+				{ "wait": 50 },
+				{ "expect": { "state": "files[0].text", "is": "// #include <affresco/affresco.hpp>\n#include \"Station.hpp\"\n\n// A weather station: the UI is a live document, the readings come from C++\nint main() {\n    affresco::Application app;\n    affresco::Screen screen = affresco::Screen::fromFile(\"screens/station.screen.json\");\n    screen.createWindow(app);\n\n    Station station(screen);\n    // TODO: read the sensor's name from the settings\n    station.connect(\"sensor-0\");\n    return app.run();\n}\n" } },
+				{ "key": "mod+slash" },
+				{ "wait": 50 },
+				{ "expect": { "state": "files[0].text", "is": "#include <affresco/affresco.hpp>\n#include \"Station.hpp\"\n\n// A weather station: the UI is a live document, the readings come from C++\nint main() {\n    affresco::Application app;\n    affresco::Screen screen = affresco::Screen::fromFile(\"screens/station.screen.json\");\n    screen.createWindow(app);\n\n    Station station(screen);\n    // TODO: read the sensor's name from the settings\n    station.connect(\"sensor-0\");\n    return app.run();\n}\n" } }
+			]
+		},
+		{
+			"name": "convert-case",
+			"note": "Upper case, from the command palette, acts on the word at the caret",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "ctrl+g" },
+				{ "wait": 50 },
+				{ "type": "5" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "key": "mod+shift+p" },
+				{ "wait": 50 },
+				{ "type": "upper" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "files[0].text", "is": "#include <affresco/affresco.hpp>\n#include \"Station.hpp\"\n\n// A weather station: the UI is a live document, the readings come from C++\nINT main() {\n    affresco::Application app;\n    affresco::Screen screen = affresco::Screen::fromFile(\"screens/station.screen.json\");\n    screen.createWindow(app);\n\n    Station station(screen);\n    // TODO: read the sensor's name from the settings\n    station.connect(\"sensor-0\");\n    return app.run();\n}\n" } }
 			]
 		}
 	]

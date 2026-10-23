@@ -26,7 +26,7 @@ constexpr auto stepNames = std::to_array<std::string_view>(
     {"set",    "push",       "remove", "toggle",   "increment", "if",        "forEach", "while",    "run",     "call",
 	 "cancel", "emit",       "send",   "connect",  "patch",     "accept",    "reject",  "preview",  "restore", "revert",
 	 "undo",   "endPreview", "focus",  "scrollTo", "navigate",  "dismiss",   "after",   "debounce", "animate", "copy",
-	 "log",    "stop",       "note",   "invoke",   "request",   "subscribe", "respond", "signIn",   "signOut"});
+	 "log",    "stop",       "note",   "invoke",   "request",   "subscribe", "respond", "signIn",   "signOut", "edit"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =

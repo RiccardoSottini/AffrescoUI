@@ -128,6 +128,9 @@ void registerReviewSteps(StepRegistry& registry);
 /// @brief focus, scrollTo, navigate (NavigationSteps.cpp).
 /// @param registry The registry.
 void registerNavigationSteps(StepRegistry& registry);
+/// @brief edit: a code editor's command (EditorSteps.cpp).
+/// @param registry The registry.
+void registerEditorSteps(StepRegistry& registry);
 /// @brief after, debounce, animate (TimeSteps.cpp).
 /// @param registry The registry.
 void registerTimeSteps(StepRegistry& registry);

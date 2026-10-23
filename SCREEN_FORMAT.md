@@ -969,6 +969,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
+| `edit`, `in`, `line`, `column`, `toLine`, `toColumn`, `prefix` | `{ "edit": "duplicateLines", "in": "#editor" }`: runs a code editor's command (the editor's commands), after the update; `"goTo"` puts the caret at `line` and `column`, `"select"` selects from them to `toLine` and `toColumn` (counted from 1), and `"toggleComment"` takes the line comment's `prefix` (`//`) |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |

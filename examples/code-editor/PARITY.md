@@ -16,11 +16,11 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Look | Indent guides, bracket matching | done | |
 | Look | Rulers | missing | |
 | Navigation | Goto Anything (Cmd+P) by file name | done | |
-| Navigation | Goto Anything with `@` symbol, `:` line, `#` search | missing | |
+| Navigation | Goto Anything with `@` symbol, `:` line, `#` search | partial | the prefix starts the query; no file name before it |
 | Navigation | Command Palette (Cmd+Shift+P) | done | |
 | Navigation | Goto Symbol in Project | missing | |
 | Navigation | Next and previous tab | done | |
-| Editing | Multiple selections | missing | |
+| Editing | Multiple selections | done | |
 | Editing | Find panel (Cmd+F), replace | missing | |
 | Editing | Find in Files | missing | |
 | Editing | Layouts and split editing | missing | |
@@ -30,9 +30,9 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Editing | Console | done | a command line with build, run, help, clear |
 | Editing | Save, save all, close with unsaved changes | done | |
 | Text | Snippets | missing | |
-| Text | Toggle comment | missing | |
-| Text | Line operations (duplicate, move, delete) | missing | |
-| Text | Case conversion | missing | |
+| Text | Toggle comment | done | line comments only |
+| Text | Line operations (duplicate, move, delete) | done | also join, sort, reverse, unique, transpose |
+| Text | Case conversion | done | |
 | Text | Word wrap toggle | missing | |
 | Text | Hot exit | missing | |
 | Settings | Settings as JSON | missing | |
@@ -40,4 +40,4 @@ reference; Quaderno keeps its own name, palette, icons, text and sample project.
 | Settings | Theme selector with live preview | missing | |
 | Extra | Problems list (from the sample build) | done | not in the reference; kept for the scenarios |
 
-Counts: 13 done, 3 partial, 17 missing.
+Counts: 17 done, 4 partial, 12 missing.

@@ -38,7 +38,7 @@
 				{ "wait": 50 },
 				{ "expect": { "image": "close-dialog" } },
 				{ "click": [792, 447] },
-				{ "key": "cmd+j" },
+				{ "key": "ctrl+backquote" },
 				{ "wait": 0 },
 				{ "click": "#command" },
 				{ "type": "help" },
