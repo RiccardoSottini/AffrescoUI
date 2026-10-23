@@ -1,0 +1,56 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The desktop kit's controls, for the rendering check: a tab strip with more tabs than fit, one with a dot, breadcrumbs, a segmented control with an icon and a disabled choice, and a search field. The scenario opens the list of all tabs, types into the search field, then switches to the dark theme and to right to left.",
+
+	"window": { "title": "Kit controls", "width": 560, "height": 360 },
+
+	"state": {
+		"theme": "light", "dir": "ltr", "view": "list", "find": "", "n": 0,
+		"files": {
+			"active": "main",
+			"tabs": [
+				{ "id": "main", "label": "main.cpp", "closable": true },
+				{ "id": "app", "label": "App.hpp", "closable": true, "marker": true },
+				{ "id": "readme", "label": "README.md", "closable": true },
+				{ "id": "build", "label": "CMakeLists.txt", "closable": true },
+				{ "id": "notes", "label": "notes.txt", "closable": true },
+				{ "id": "settings", "label": "settings.json", "closable": true }
+			]
+		}
+	},
+	"theme": "{{state.theme}}",
+	"tokens": { "kit.radius": 4 },
+
+	"fonts": {
+		"default": {
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
+			"size": 13,
+			"fallback": ["icons"]
+		},
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 }
+	},
+
+	"actions": {
+		"add": [{ "increment": "state.n", "by": 1 }]
+	},
+
+	"root": {
+		"id": "root", "color": "@kit.background",
+		"children": [{ "type": "column", "id": "page", "fill": true, "gap": 12, "dir": "{{state.dir}}", "children": [
+			{ "use": "tabStrip", "with": { "name": "files", "width": 560 } },
+			{ "x": 16, "use": "breadcrumbs", "with": { "items": [
+				{ "title": "Projects", "icon": "folder", "run": "add" }, { "title": "AffrescoUI", "run": "add" },
+				{ "title": "main.cpp" }
+			] } },
+			{ "x": 16, "use": "segmentedControl", "with": { "name": "view", "label": "View", "items": [
+				{ "id": "list", "title": "List" }, { "id": "grid", "title": "Grid", "icon": "layout-grid" },
+				{ "id": "board", "title": "Board", "enabled": false }
+			] } },
+			{ "x": 16, "id": "find", "use": "searchField", "with": { "name": "find", "run": "add" } },
+			{ "type": "label", "x": 16, "width": 300, "height": 20, "textColor": "@kit.dim",
+			  "text": "{{'Active: ' + state.files.active + ', view: ' + state.view + ', ' + state.n + ' commands'}}" }
+		] }]
+	}
+}

@@ -716,6 +716,29 @@ keep their open state where `open` says (a state path):
   { "separator": true }, { "title": "Grid", "icon": "layout-grid", "checked": "{{state.grid}}", "run": "toggleGrid" }] } }
 ```
 
+### Built-in controls
+Controls of a desktop app's window, built in the same way as the built-in components (see Built-in components):
+- `segmentedControl`: a row of `items`, each `{ "id", "title", "icon", "tooltip", "enabled", "width", "run",
+  "with" }`; the chosen `id` is `state[name]`, a click or Space picks one (then runs its `run`), and the arrows move.
+  Screen readers hear a group of radio buttons.
+- `searchField`: a text box over `state[name]` with a search icon and a × that clears it (as Escape does); Enter runs
+  `run` with the text as `query`. Its border lights while it has focus, and it stays left to right.
+- `breadcrumbs`: a path of `items`, each `{ "title", "icon", "run", "with" }`, with chevrons between them; each but the
+  last is a link that runs its `run`.
+- `tabStrip`: the tabs at `state[name]` as `{ "tabs", "active" }`, each tab `{ "id", "label", "marker", "closable" }`
+  (`marker` draws a dot, for unsaved changes). A click activates one, its × closes it (running `onClose` with its
+  `id`, or else removing it and activating its neighbour), and a drag or Ctrl+Shift+Page Up/Down moves it. The tabs that don't fit in `width` are listed under an "All tabs" button (`more` in its state).
+
+```json
+{ "use": "tabStrip", "with": { "name": "files", "onClose": "closeFile" } }
+{ "push": "state.files.tabs", "value": { "id": "notes", "label": "notes.txt", "closable": true } }
+{ "use": "breadcrumbs", "with": { "items": [{ "title": "Projects", "icon": "folder", "run": "openProjects" },
+  { "title": "main.cpp" }] } }
+{ "use": "segmentedControl", "with": { "name": "view", "label": "View",
+  "items": [{ "id": "list", "title": "List" }, { "id": "grid", "title": "Grid", "icon": "layout-grid" }] } }
+{ "use": "searchField", "with": { "name": "find", "run": "search" } }
+```
+
 ### The kit's tokens
 The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
 built-in at once by setting them in `tokens` or `colors`. The colours are the dark ones unless the screen names a

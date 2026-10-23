@@ -1,6 +1,6 @@
 /// @file
 /// @brief The built-in components (menu, menuBar, contextMenu, dialog, toast, hoverCard, settingsPage, quickPick, and
-/// the desktop kit's toolbar and statusBar), used like a document's own.
+/// the desktop kit's bars, overlays and controls), used like a document's own.
 
 #pragma once
 
@@ -23,8 +23,13 @@ namespace affresco::format {
 /// @return Its text.
 [[nodiscard]] std::string_view builtInKitBars() noexcept;
 
-/// @brief The desktop kit's overlays (KitOverlays.cpp): popover, as one JSON object by name.
+/// @brief The desktop kit's overlays (KitOverlays.cpp): popover and toasts, as one JSON object by name.
 /// @return Its text.
 [[nodiscard]] std::string_view builtInKitOverlays() noexcept;
+
+/// @brief The desktop kit's controls (KitControls.cpp): segmentedControl, searchField, breadcrumbs and tabStrip, as one
+/// JSON object by name.
+/// @return Its text.
+[[nodiscard]] std::string_view builtInKitControls() noexcept;
 
 } // namespace affresco::format

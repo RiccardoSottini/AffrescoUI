@@ -40,10 +40,11 @@ bool namesAction(std::string_view key) {
 }
 
 /// The built-in components that run the actions a parameter names, through a computed "run" the document never
-/// shows, each with that parameter: the "run" of a menu's items, a dialog's buttons, a toast's actions, a toolbar's
-/// and a status bar's items. The quick pick has none ("") as it runs its recent items, kept in the state, as well as
-/// its providers' items, and so do the toasts, whose actions are kept in the state.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 10> runningBuiltIns{{{"menu", "items"},
+/// shows, each with that parameter: the "run" of a menu's items, a dialog's buttons, a toast's actions, a toolbar's,
+/// a status bar's, a segmented control's and a breadcrumbs' items, a search field's "run" and a tab strip's "onClose".
+/// The quick pick has none ("") as it runs its recent items, kept in the state, as well as its providers' items, and
+/// so do the toasts, whose actions are kept in the state.
+constexpr std::array<std::pair<std::string_view, std::string_view>, 14> runningBuiltIns{{{"menu", "items"},
                                                                                          {"submenu", "items"},
                                                                                          {"contextMenu", "items"},
                                                                                          {"menuBar", "menus"},
@@ -51,6 +52,10 @@ constexpr std::array<std::pair<std::string_view, std::string_view>, 10> runningB
                                                                                          {"toast", "actions"},
                                                                                          {"toolbar", "items"},
                                                                                          {"statusBar", "items"},
+                                                                                         {"segmentedControl", "items"},
+                                                                                         {"breadcrumbs", "items"},
+                                                                                         {"searchField", "run"},
+                                                                                         {"tabStrip", "onClose"},
                                                                                          {"quickPick", ""},
                                                                                          {"toasts", ""}}};
 

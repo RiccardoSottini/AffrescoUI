@@ -1,12 +1,14 @@
 /// @file
 /// @brief The desktop kit (src/components/Kit*.cpp): a toolbar's buttons, toggles and separators, the "more" menu
 /// its items that don't fit move into, a status bar whose items with a "run" are buttons, overlays that flip, a
-/// popover's arrow facing its anchor, a context menu, a dialog's buttons and focus trap, and a stack of toasts.
+/// popover's arrow facing its anchor, a context menu, a dialog's buttons and focus trap, a stack of toasts, a
+/// segmented control, breadcrumbs, a search field, and a tab strip that closes, reorders and lists what doesn't fit.
 
 #include "Checker.hpp"
 #include "Headless.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/render/Tabs.hpp>
 
 #include <doctest/doctest.h>
 
@@ -626,4 +628,248 @@ TEST_CASE("format: a stack of toasts closes when its last one goes") {
 	CHECK(state(screen)["notes"].empty());
 	CHECK(countRole(window->root(), "status") == 0);
 	CHECK_FALSE(findAccessible(window->root(), "button", "Close"));
+}
+
+namespace {
+
+/// @brief A tab strip of three tabs, or of six that don't fit, breadcrumbs, a segmented control and a search field.
+/// @param onClose The tab strip's close action, or "" for the default.
+/// @param many Whether the strip has six tabs.
+/// @return The document.
+std::string controlsScreen(std::string_view onClose = "", bool many = false) {
+	return R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "view": "list", "find": "", "n": 0, "last": null, "files": { "active": "b", "tabs": [
+			{ "id": "a", "label": "a.cpp", "closable": true }, { "id": "b", "label": "b.cpp", "closable": true },
+			{ "id": "c", "label": "c.cpp", "closable": true })json" +
+	       std::string(many ? R"json(, { "id": "d", "label": "d.cpp", "closable": true },
+			{ "id": "e", "label": "e.cpp", "closable": true }, { "id": "f", "label": "f.cpp", "closable": true })json"
+	                        : "") +
+	       R"json(] } },
+		"actions": {
+			"pick": [{ "increment": "state.n", "by": 1 }, { "set": "state.last", "to": "{{what}}" }],
+			"search": [{ "set": "state.last", "to": "{{query}}" }],
+			"close": [{ "set": "state.last", "to": "{{id}}" }]
+		},
+		"root": { "id": "root", "children": [{ "type": "column", "fill": true, "gap": 8, "children": [
+			{ "use": "tabStrip", "with": { "name": "files", "width": )json" +
+	       std::string(many ? "200" : "560") + R"json(, "onClose": ")json" + std::string(onClose) + R"json(" } },
+			{ "use": "breadcrumbs", "with": { "items": [
+				{ "title": "Projects", "run": "pick", "with": { "what": "projects" } }, { "title": "main.cpp" }
+			] } },
+			{ "use": "segmentedControl", "with": { "name": "view", "label": "View", "items": [
+				{ "id": "list", "title": "List" }, { "id": "grid", "title": "Grid", "run": "pick", "with": { "what": "grid" } },
+				{ "id": "board", "title": "Board", "enabled": false }
+			] } },
+			{ "id": "find", "use": "searchField", "with": { "name": "find", "run": "search" } }
+		] }] }
+	})json";
+}
+
+/// @brief The ids of the tabs in the strip at state.files, joined by spaces.
+/// @param state The state.
+/// @return Them.
+std::string tabIds(const json& state) {
+	std::string joined;
+	for(const json& tab : state["files"]["tabs"]) joined += (joined.empty() ? "" : " ") + tab["id"].get<std::string>();
+	return joined;
+}
+
+/// @brief Whether a panel is there and shown, as a closed overlay stays in the tree hidden.
+/// @param panel The panel, or nullptr.
+/// @return Whether it shows.
+bool shown(const affresco::Panel* panel) { return panel && panel->isShown(); }
+
+/// @brief The native tab strip under a panel.
+/// @param panel Where to look.
+/// @return It, or nullptr.
+affresco::Tabs* findTabs(affresco::Panel& panel) {
+	if(auto* tabs = dynamic_cast<affresco::Tabs*>(&panel)) return tabs;
+	for(const auto& child : panel.children())
+		if(affresco::Tabs* found = findTabs(*child)) return found;
+	return nullptr;
+}
+
+} // namespace
+
+TEST_CASE("format: the kit's controls tell screen readers what they are") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(controlsScreen());
+	screen.build(*window);
+	settle(*window, clock);
+	affresco::Panel& root = window->root();
+
+	CHECK(findAccessible(root, "group", "Tabs"));
+	CHECK_FALSE(findAccessible(root, "button", "All tabs")); // three tabs fit
+	CHECK(findAccessible(root, "navigation", "Breadcrumbs"));
+	CHECK(findAccessible(root, "link", "Projects"));
+	CHECK_FALSE(findAccessible(root, "link", "main.cpp")); // where you are
+	CHECK(findAccessible(root, "group", "View"));
+	CHECK(countRole(root, "radio") == 3);
+	const affresco::Panel* list = findAccessible(root, "radio", "List");
+	const affresco::Panel* grid = findAccessible(root, "radio", "Grid");
+	REQUIRE(list);
+	REQUIRE(grid);
+	CHECK(list->accessibleState().selected == true);
+	CHECK(grid->accessibleState().selected == false);
+	CHECK(findAccessible(root, "search", "Search"));
+	CHECK(findAccessible(root, "searchbox", "Search"));
+	CHECK_FALSE(findAccessible(root, "button", "Clear")); // nothing to clear
+}
+
+TEST_CASE("format: a segmented control's choice sets its state and runs, and a breadcrumb runs") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(controlsScreen());
+	screen.build(*window);
+	settle(*window, clock);
+
+	const affresco::Panel* grid = findAccessible(window->root(), "radio", "Grid");
+	REQUIRE(grid);
+	clickOn(*window, *grid);
+	settle(*window, clock);
+	CHECK(state(screen)["view"] == "grid");
+	CHECK(state(screen)["last"] == "grid");
+	grid = findAccessible(window->root(), "radio", "Grid");
+	REQUIRE(grid);
+	CHECK(grid->accessibleState().selected == true);
+
+	const affresco::Panel* board = findAccessible(window->root(), "radio", "Board");
+	REQUIRE(board);
+	clickOn(*window, *board);
+	settle(*window, clock);
+	CHECK(state(screen)["view"] == "grid"); // disabled
+
+	const affresco::Panel* projects = findAccessible(window->root(), "link", "Projects");
+	REQUIRE(projects);
+	clickOn(*window, *projects);
+	settle(*window, clock);
+	CHECK(state(screen)["last"] == "projects");
+	CHECK(state(screen)["n"] == 2);
+}
+
+TEST_CASE("format: a search field runs on Enter, clears with Escape or its button, and lights up while focused") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(controlsScreen());
+	screen.build(*window);
+	settle(*window, clock);
+	const affresco::Panel* field = findAccessible(window->root(), "search", "Search");
+	const affresco::Panel* box = findAccessible(window->root(), "searchbox", "Search");
+	REQUIRE(field);
+	REQUIRE(box);
+	const affresco::Color idle = box->borderColor();
+
+	clickOn(*window, *box);
+	settle(*window, clock);
+	CHECK(window->focusedPanel() == box);
+	CHECK(box->borderColor() != idle);
+	for(const char c : std::string_view("kit")) window->routeChar({static_cast<char32_t>(c)});
+	settle(*window, clock);
+	CHECK(state(screen)["find"] == "kit");
+	press(*window, affresco::Key::Enter);
+	settle(*window, clock);
+	CHECK(state(screen)["last"] == "kit");
+
+	press(*window, affresco::Key::Escape);
+	settle(*window, clock);
+	CHECK(state(screen)["find"] == "");
+
+	for(const char c : std::string_view("ui")) window->routeChar({static_cast<char32_t>(c)});
+	settle(*window, clock);
+	const affresco::Panel* clear = findAccessible(window->root(), "button", "Clear");
+	REQUIRE(clear);
+	clickOn(*window, *clear);
+	settle(*window, clock);
+	CHECK(state(screen)["find"] == "");
+	CHECK_FALSE(findAccessible(window->root(), "button", "Clear"));
+}
+
+TEST_CASE("format: closing a tab in a tab strip makes its neighbour active, or runs the strip's action") {
+	for(const bool action : {false, true}) {
+		CAPTURE(action);
+		ManualClock clock;
+		const auto window = createHeadlessWindow(600, 400, clock);
+		affresco::Screen screen = affresco::Screen::fromString(controlsScreen(action ? "close" : ""));
+		screen.build(*window);
+		settle(*window, clock);
+		affresco::Tabs* tabs = findTabs(window->root());
+		REQUIRE(tabs);
+		window->setFocus(tabs);
+		press(*window, affresco::Key::Delete); // the active tab, b
+		settle(*window, clock);
+		if(action) {
+			CHECK(tabIds(state(screen)) == "a b c");
+			CHECK(state(screen)["last"] == "b");
+		} else {
+			CHECK(tabIds(state(screen)) == "a c");
+			CHECK(state(screen)["files"]["active"] == "c");
+			tabs = findTabs(window->root());
+			REQUIRE(tabs);
+			window->setFocus(tabs);
+			press(*window, affresco::Key::Delete);
+			settle(*window, clock);
+			CHECK(tabIds(state(screen)) == "a");
+			CHECK(state(screen)["files"]["active"] == "a"); // the last one has no next
+		}
+	}
+}
+
+TEST_CASE("format: a tab strip's tabs move by dragging or with Ctrl+Shift+Page Up and Down") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(controlsScreen());
+	screen.build(*window);
+	settle(*window, clock);
+	affresco::Tabs* tabs = findTabs(window->root());
+	REQUIRE(tabs);
+	tabs->onMoved.emit(affresco::TabMove{"a", 0, 2}); // as a drag does
+	settle(*window, clock);
+	CHECK(tabIds(state(screen)) == "b c a");
+
+	constexpr int ctrlShift = 0x0002 | 0x0001;
+	tabs = findTabs(window->root());
+	REQUIRE(tabs);
+	window->setFocus(tabs);
+	press(*window, affresco::Key::PageUp, ctrlShift); // b is first already
+	settle(*window, clock);
+	CHECK(tabIds(state(screen)) == "b c a");
+	press(*window, affresco::Key::PageDown, ctrlShift);
+	settle(*window, clock);
+	CHECK(tabIds(state(screen)) == "c b a");
+	press(*window, affresco::Key::PageDown, ctrlShift);
+	press(*window, affresco::Key::PageDown, ctrlShift);
+	settle(*window, clock);
+	CHECK(tabIds(state(screen)) == "c a b");
+	press(*window, affresco::Key::PageUp, ctrlShift);
+	settle(*window, clock);
+	CHECK(tabIds(state(screen)) == "c b a");
+	CHECK(state(screen)["files"]["active"] == "b");
+}
+
+TEST_CASE("format: a tab strip too narrow lists every tab under its button, and picking one closes the list") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(controlsScreen("", true));
+	screen.build(*window);
+	settle(*window, clock);
+	const affresco::Panel* more = findAccessible(window->root(), "button", "All tabs");
+	REQUIRE(more);
+	CHECK_FALSE(shown(findAccessible(window->root(), "menu", "All tabs")));
+	clickOn(*window, *more);
+	settle(*window, clock);
+	const affresco::Panel* menu = findAccessible(window->root(), "menu", "All tabs");
+	REQUIRE(menu);
+	CHECK(countRole(*menu, "menuitem") == 6);
+	const affresco::Panel* b = findAccessible(*menu, "menuitem", "b.cpp");
+	const affresco::Panel* e = findAccessible(*menu, "menuitem", "e.cpp");
+	REQUIRE(b);
+	REQUIRE(e);
+	CHECK(b->accessibleState().selected == true);
+	clickOn(*window, *e);
+	settle(*window, clock);
+	CHECK(state(screen)["files"]["active"] == "e");
+	CHECK(state(screen)["files"]["more"] == false);
+	CHECK_FALSE(shown(findAccessible(window->root(), "menu", "All tabs")));
 }

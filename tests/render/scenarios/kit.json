@@ -40,6 +40,27 @@
 				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
 				{ "expect": { "image": "rtl" } }
 			]
+		},
+		{
+			"name": "kit-controls",
+			"screen": "kit-controls.screen.json",
+			"note": "The desktop kit's controls: a tab strip that lists the tabs that don't fit, breadcrumbs, a segmented control and a search field in light, the list of all tabs, a search typed in, a choice picked from the keyboard, then dark and right-to-left",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": [546, 16] },
+				{ "expect": { "image": "all-tabs" } },
+				{ "click": [400, 104] },
+				{ "click": [120, 134] },
+				{ "type": "kit" },
+				{ "key": "shift+tab" },
+				{ "key": "right" },
+				{ "key": "space" },
+				{ "expect": { "image": "picked" } },
+				{ "revision": { "message": "Dark theme", "set": { "/state/theme": "dark" } } },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "expect": { "image": "rtl" } }
+			]
 		}
 	]
 }
