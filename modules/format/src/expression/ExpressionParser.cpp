@@ -260,7 +260,7 @@ private:
 		error("number '" + digits + "' is too large");
 	}
 
-	/// @brief Literals, ( ), [ ], @colors, function calls and variables.
+	/// @brief Literals, `( )`, `[ ]`, `{ }`, `@colors`, function calls and variables.
 	/// @return The node.
 	json primary() {
 		skip();
@@ -286,7 +286,7 @@ private:
 		return node("$get", json::array({identifier}));
 	}
 
-	/// @brief A colour name, e.g. @accent, which stays text.
+	/// @brief A colour name, such as `@accent`, which stays text.
 	/// @return The node.
 	json colour() {
 		const std::size_t start = position_++;

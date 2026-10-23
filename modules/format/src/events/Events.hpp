@@ -258,9 +258,13 @@ private:
 	};
 	FocusLater focusLater_; ///< The focus change scheduled by focusLater().
 	/// @brief The connections connect() made to the window's signals (0: none).
-	struct {
-		Connection resized = 0, key = 0, button = 0, display = 0, drop = 0; ///< onResize, onKey, onMouseButton, ...
-	} windowHooks_;
+	struct WindowHooks {
+		Connection resized = 0; ///< onResize.
+		Connection key = 0;     ///< onKey.
+		Connection button = 0;  ///< onMouseButton.
+		Connection display = 0; ///< onDisplay.
+		Connection drop = 0;    ///< onDrop.
+	} windowHooks_;             ///< See WindowHooks.
 };
 
 } // namespace affresco::format

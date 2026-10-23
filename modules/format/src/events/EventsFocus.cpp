@@ -30,10 +30,11 @@ bool insideShown(const Panel& panel, Vec2 position) {
 /// @brief The tab order being collected inside a scope: the stops with a positive "tabIndex", sorted by it, then the
 /// rest in document order.
 struct TabOrder {
-	Reconciler& reconciler;             ///< The records.
-	const Panel* focused;               ///< The focused panel, or nullptr: Tab stops on a list's focused item.
-	bool list;                          ///< An "arrows" scope: document order only.
-	std::vector<Panel*> positive, rest; ///< The stops.
+	Reconciler& reconciler;       ///< The records.
+	const Panel* focused;         ///< The focused panel, or nullptr: Tab stops on a list's focused item.
+	bool list;                    ///< An "arrows" scope: document order only.
+	std::vector<Panel*> positive; ///< The stops with a positive "tabIndex", sorted by it.
+	std::vector<Panel*> rest;     ///< The others, in document order.
 
 	/// @brief Adds a stop.
 	/// @param panel The stop.

@@ -135,28 +135,41 @@ struct Function {
 /// @return Its row, or nullptr.
 [[nodiscard]] const Function* findOperator(std::string_view name);
 
-/// @brief The tables of the groups (one per file).
-/// @return Their rows.
+/// @brief The table of the logic functions: `if`, `and`, `coalesce`, ... (ExpressionFunctionsLogic.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> logicFunctions();
-/// @copydoc logicFunctions
+/// @brief The table of the number functions: `clamp`, `round`, `max`, ... (ExpressionFunctionsNumbers.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> numberFunctions();
-/// @copydoc logicFunctions
+/// @brief The table of the text functions: `upper`, `split`, `plural`, ... (ExpressionFunctionsText.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> textFunctions();
-/// @copydoc logicFunctions
+/// @brief The table of the list functions: `length`, `slice`, `merge`, ... (ExpressionFunctionsLists.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> listFunctions();
-/// @copydoc logicFunctions
+/// @brief The table of the item functions: `filter`, `map`, `sort`, ... (ExpressionFunctionsItems.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> itemFunctions();
-/// @copydoc logicFunctions
+/// @brief The table of the clock functions, `now` and `time` (ExpressionFunctionsTime.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> timeFunctions();
-/// @copydoc logicFunctions
+/// @brief The table of the fuzzy search functions, `fuzzy` and `fuzzySort` (ExpressionFunctionsFuzzy.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> fuzzyFunctions();
-/// @copydoc logicFunctions
+/// @brief The table of the colour functions, `curve` and `gradientColor` (ExpressionFunctionsColor.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> colorFunctions();
-/// @copydoc logicFunctions
+/// @brief The table of the keyframe function, `keyframeValue` (ExpressionFunctionsKeyframes.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> keyframeFunctions();
+/// @brief The table of the locale functions: `t`, `formatNumber`, `sortText`, ... (ExpressionFunctionsLocale.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> localeFunctions();
-/// @copydoc logicFunctions
+/// @brief The table of the date functions: `today`, `addDays`, `weekday`, ... (ExpressionFunctionsDates.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> dateFunctions();
+/// @brief The table of the form functions, `passwordStrength` and `isEmail` (ExpressionFunctionsForm.cpp).
+/// @return Its rows.
 [[nodiscard]] std::span<const Function> formFunctions();
 
 /* Helpers the tables share */

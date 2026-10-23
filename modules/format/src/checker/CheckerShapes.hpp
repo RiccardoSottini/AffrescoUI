@@ -113,7 +113,7 @@ void addItem(Shape& list, const Shape& item);
 
 /// @brief The keys of an object.
 /// @param object Any value.
-/// @return Its keys, sorted; none if it isn't an object.
+/// @return Its keys, in the order they were added; none if it isn't an object.
 [[nodiscard]] std::vector<std::string> keysOf(const json& object);
 
 /// @brief Writes a compiled index expression the way it reads: `state.current`, `0`, or "...".

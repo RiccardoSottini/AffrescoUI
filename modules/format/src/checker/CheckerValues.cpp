@@ -13,9 +13,10 @@ namespace affresco::format::checker {
 
 namespace {
 
-/// Variables every expression may read (Expression.cpp, variable()), whose contents the checker doesn't follow.
-/// "window", "revision" and "event" can't be hidden by a local; the others can.
+/// Variables every expression may read (Expression.cpp, variable()) that a local can't hide, whose contents the
+/// checker doesn't follow.
 constexpr auto fixedVariables = std::to_array<std::string_view>({"window", "revision", "event"});
+/// Variables every expression may read that a local can hide, whose contents the checker doesn't follow.
 constexpr auto screenVariables = std::to_array<std::string_view>(
     {"nodes", "proposals", "history", "preview", "mode", "theme", "locale", "screen", "context", "commands",
 	 "keybindings", "menus", "settings", "settingsList", "services", "connections", "auth"});

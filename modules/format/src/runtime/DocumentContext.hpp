@@ -265,7 +265,9 @@ public:
 private:
 	/// @brief Screen-wide variables for expressions.
 	struct Globals {
-		json window, revision, other; ///< Window size, current revision, and the rest (proposals, computed, ...).
+		json window;   ///< The window: its size, scale, colour scheme, ...
+		json revision; ///< The current revision.
+		json other;    ///< The rest: proposals, history, preview, mode, theme, locale and screen.
 	};
 	/// @brief A named colour, with variants per theme.
 	using NamedColor = Themed<Color>;

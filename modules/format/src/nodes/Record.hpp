@@ -26,7 +26,8 @@ namespace affresco::format {
 
 /// @brief A colour animating towards a target (a "transition").
 struct Tween {
-	Color from, to;          ///< Where it started and where it goes.
+	Color from;              ///< Where it started.
+	Color to;                ///< Where it goes.
 	double start = 0.0;      ///< The clock's seconds when it started.
 	double ms = 0.0;         ///< How long it takes.
 	std::uint64_t timer = 0; ///< The next frame's timer, if running.
@@ -61,11 +62,17 @@ struct Record {
 	/// application's type); there is at most one such set, its type's own.
 	std::optional<json> ownProperties;
 	std::optional<std::string> lastText; ///< "text" applied last time.
-	bool hovered = false, down = false, focused = false, dragOver = false, dragging = false; ///< Visual states.
-	bool disabled = false;                                                                   ///< No events but hover.
-	bool shown = false;                       ///< Applied at least once (transitions start only after that).
-	json transition = json::object();         ///< "transition": property -> milliseconds.
-	Tween colorTween, textTween, borderTween; ///< Running transitions.
+	bool hovered = false;                ///< The pointer is over it ("hover" styles).
+	bool down = false;                ///< A mouse button went down on it or inside it, and is still down ("pressed").
+	bool focused = false;             ///< It has the keyboard focus ("focused").
+	bool dragOver = false;            ///< Something dragged is over it ("dragOver").
+	bool dragging = false;            ///< It is being dragged ("dragging").
+	bool disabled = false;            ///< No events but hover.
+	bool shown = false;               ///< Applied at least once (transitions start only after that).
+	json transition = json::object(); ///< "transition": property -> milliseconds.
+	Tween colorTween;                 ///< The running transition of "color".
+	Tween textTween;                  ///< The running transition of "textColor".
+	Tween borderTween;                ///< The running transition of "borderColor".
 
 	/// @brief The transitions, so their timers can be cancelled together.
 	/// @return Each one.
@@ -84,7 +91,12 @@ struct Record {
 
 	/// @brief The connections the events subsystem made to the panel's signals, which ~Runtime takes back (0: none).
 	struct Hooks {
-		Connection hover = 0, focus = 0, button = 0, move = 0, scroll = 0, key = 0; ///< Every panel's.
+		Connection hover = 0;      ///< Every panel's onHover.
+		Connection focus = 0;      ///< Every panel's onFocusChanged.
+		Connection button = 0;     ///< Every panel's onMouseButton.
+		Connection move = 0;       ///< Every panel's onMouseMove.
+		Connection scroll = 0;     ///< Every panel's onScroll.
+		Connection key = 0;        ///< Every panel's onKey.
 		Connection value = 0;      ///< A widget's value (a text area's text, or ValueHooks::listen()).
 		Connection caret = 0;      ///< A text editor's caret.
 		EventConnections events{}; ///< A widget's own events (WidgetEvents::listen()).

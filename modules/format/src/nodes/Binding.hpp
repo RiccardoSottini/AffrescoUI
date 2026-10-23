@@ -33,8 +33,12 @@ public:
 
 	Binding(const Binding&) = delete;
 	Binding& operator=(const Binding&) = delete;
+	/// @brief Takes over another binding.
 	Binding(Binding&&) noexcept;
+	/// @brief Takes over another binding.
+	/// @return This one.
 	Binding& operator=(Binding&&) noexcept;
+	/// @brief Frees its compiled form.
 	~Binding();
 
 	/// @brief Whether evaluating it may give something other than the value as written.

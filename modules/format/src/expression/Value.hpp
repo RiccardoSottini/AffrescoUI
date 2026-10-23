@@ -174,6 +174,7 @@ private:
 	[[nodiscard]] static bool sameNumber(const Value& left, const Value& right);
 
 	std::shared_ptr<const Storage> storage_; ///< Long texts, lists, objects and owned JSON.
+	/// @brief The value itself, when it is small enough to hold without storage_.
 	union Inline {
 		bool boolean;                    ///< Holding::Boolean.
 		std::int64_t integer;            ///< Holding::Integer.

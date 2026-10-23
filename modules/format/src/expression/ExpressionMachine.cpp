@@ -18,10 +18,11 @@ namespace affresco::format::detail {
 
 /// @brief A key of a path, ready to follow: a name, a position, or neither (which gives null).
 struct PathKey {
-	/// What it is.
-	enum class Kind : std::uint8_t { Name, Index, Missing } kind = Kind::Missing;
-	std::string_view name;  ///< Kind::Name; a view into the node or an evaluated Value.
-	std::int64_t index = 0; ///< Kind::Index.
+	/// @brief What a key is.
+	enum class Kind : std::uint8_t { Name, Index, Missing };
+	Kind kind = Kind::Missing; ///< What it is.
+	std::string_view name;     ///< Kind::Name; a view into the node or an evaluated Value.
+	std::int64_t index = 0;    ///< Kind::Index.
 };
 
 namespace {
