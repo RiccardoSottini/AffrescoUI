@@ -2527,7 +2527,7 @@
 				},
 				{
 					"expect": {
-						"node": "#label-account-email",
+						"node": "#label-photo",
 						"property": "color",
 						"is": "#00000000"
 					}
@@ -2568,6 +2568,10 @@
 				},
 				{
 					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 2
 				},
 				{
 					"click": "#changePassword"
@@ -3454,6 +3458,10 @@
 					}
 				},
 				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
 					"expect": {
 						"node": "#twoStep",
 						"property": "role",
@@ -3752,39 +3760,6 @@
 					"wait": 50
 				},
 				{
-					"click": "#account-email"
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"key": "backspace"
-				},
-				{
 					"key": "backspace"
 				},
 				{
@@ -3805,15 +3780,50 @@
 				{
 					"expect": {
 						"node": "#label-error",
-						"nth": 0,
 						"text": "Enter your name"
 					}
 				},
 				{
+					"click": "#nav",
+					"nth": 1
+				},
+				{
+					"click": "#addEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "ada@example"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
 					"expect": {
 						"node": "#label-error",
-						"nth": 1,
 						"text": "Enter a full email address, like name@example.com"
+					}
+				},
+				{
+					"click": "#newEmailField"
+				},
+				{
+					"type": ".com"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"text": "This email is already on your account"
 					}
 				},
 				{
@@ -4875,6 +4885,10 @@
 					"wait": 50
 				},
 				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
 					"click": "#twoStep"
 				},
 				{
@@ -5227,6 +5241,10 @@
 					}
 				},
 				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
 					"expect": {
 						"node": "#backupLeft",
 						"text": "7 backup codes left"
@@ -5332,6 +5350,10 @@
 					}
 				},
 				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
 					"expect": {
 						"node": "#trusted-name",
 						"nth": 1,
@@ -5373,6 +5395,10 @@
 						"node": "#label-signed-in-as",
 						"text": "Signed in as sam@example.com"
 					}
+				},
+				{
+					"click": "#nav",
+					"nth": 2
 				},
 				{
 					"click": "#trusted-remove",
@@ -5485,6 +5511,10 @@
 				},
 				{
 					"wait": 300
+				},
+				{
+					"click": "#nav",
+					"nth": 2
 				},
 				{
 					"expect": {
@@ -6102,6 +6132,10 @@
 					"wait": 800
 				},
 				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
 					"click": "#changePassword"
 				},
 				{
@@ -6186,6 +6220,840 @@
 					"expect": {
 						"state": "change.open",
 						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "account-sections-are-tabs",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#navColumn",
+						"property": "role",
+						"is": "tablist"
+					}
+				},
+				{
+					"expect": {
+						"node": "#nav",
+						"nth": 0,
+						"property": "role",
+						"is": "tab"
+					}
+				},
+				{
+					"expect": {
+						"node": "#section-title",
+						"text": "Personal info"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 3
+				},
+				{
+					"expect": {
+						"state": "section",
+						"is": "devices"
+					}
+				},
+				{
+					"expect": {
+						"node": "#section-title",
+						"text": "Devices"
+					}
+				},
+				{
+					"resize": [600, 720]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#navColumn",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#navRow",
+						"property": "role",
+						"is": "tablist"
+					}
+				},
+				{
+					"click": "#navChip",
+					"nth": 1
+				},
+				{
+					"expect": {
+						"state": "section",
+						"is": "emails"
+					}
+				}
+			]
+		},
+		{
+			"name": "profile-photo-colour",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#changePhoto"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "photoOpen",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#swatch",
+						"nth": 3,
+						"property": "role",
+						"is": "radio"
+					}
+				},
+				{
+					"click": "#swatch",
+					"nth": 3
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "user.avatar",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "photoOpen",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Your photo was updated"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "user.avatar",
+						"is": 3
+					}
+				}
+			]
+		},
+		{
+			"name": "emails-verify-and-make-primary",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 1
+				},
+				{
+					"expect": {
+						"node": "#badge-unverified",
+						"text": "Not verified"
+					}
+				},
+				{
+					"click": "#verifyEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#badge-unverified",
+						"text": "Link sent"
+					}
+				},
+				{
+					"wait": 5100
+				},
+				{
+					"expect": {
+						"node": "#badge-unverified",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "ada@work.example.org is verified"
+					}
+				},
+				{
+					"click": "#makePrimary",
+					"nth": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "ada.home@example.net is now your primary email"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as ada.home@example.net"
+					}
+				},
+				{
+					"click": "#removeEmail",
+					"nth": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#emailRow",
+						"nth": 2,
+						"exists": false
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"expect": {
+						"state": "email",
+						"is": "ada.home@example.net"
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as ada.home@example.net"
+					}
+				}
+			]
+		},
+		{
+			"name": "add-an-email",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 1
+				},
+				{
+					"click": "#addEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "ada.new@example.com"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "We sent a link to ada.new@example.com: open it to verify the address"
+					}
+				},
+				{
+					"expect": {
+						"node": "#emailRow",
+						"nth": 3,
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#addEmail",
+						"exists": true
+					}
+				},
+				{
+					"click": "#addEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "five@example.com"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#addEmail",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#newEmailForm",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "passkeys-add-and-remove",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"expect": {
+						"node": "#passkeyRow",
+						"nth": 1,
+						"exists": false
+					}
+				},
+				{
+					"click": "#addPasskey"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Passkey added. You can use it at your next sign-in"
+					}
+				},
+				{
+					"expect": {
+						"node": "#item-title",
+						"nth": 2,
+						"exists": true
+					}
+				},
+				{
+					"click": "#removePasskey",
+					"nth": 0
+				},
+				{
+					"click": "#removePasskey",
+					"nth": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#noPasskeys",
+						"exists": true
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"expect": {
+						"state": "accounts[0].passkey",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-out-other-devices",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 3
+				},
+				{
+					"click": "#signOutSession",
+					"nth": 0
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Phone was signed out"
+					}
+				},
+				{
+					"click": "#signOutOthers"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Every other device was signed out"
+					}
+				},
+				{
+					"expect": {
+						"node": "#onlyThisDevice",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#signOutOthers",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "connect-and-disconnect",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 4
+				},
+				{
+					"click": "#connectProvider",
+					"nth": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Wrenfield is connected"
+					}
+				},
+				{
+					"expect": {
+						"node": "#item-hint",
+						"nth": 0,
+						"text": "Connected as ada@wrenfield.example"
+					}
+				},
+				{
+					"click": "#disconnectProvider",
+					"nth": 1
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Quillo is no longer connected"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 5
+				},
+				{
+					"expect": {
+						"node": "#item-title",
+						"nth": 0,
+						"text": "Account disconnected"
+					}
+				},
+				{
+					"expect": {
+						"node": "#item-title",
+						"nth": 1,
+						"text": "Account connected"
+					}
+				}
+			]
+		},
+		{
+			"name": "activity-not-you",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 5
+				},
+				{
+					"expect": {
+						"node": "#item-title",
+						"nth": 0,
+						"text": "Signed in"
+					}
+				},
+				{
+					"expect": {
+						"node": "#item-hint",
+						"nth": 2,
+						"text": "3 days ago  ·  Laptop  ·  Eastvale"
+					}
+				},
+				{
+					"click": "#notYou"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "change.open",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "delete-account",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 6
+				},
+				{
+					"click": "#deleteAccount"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#deleteError",
+						"text": "Type DELETE to confirm"
+					}
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#deleteError",
+						"text": "That isn't DELETE. Type it exactly"
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "delete"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Your account was deleted"
+					}
+				},
+				{
+					"expect": {
+						"node": "#email",
+						"exists": true
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "step",
+						"is": "email"
 					}
 				}
 			]

@@ -294,6 +294,8 @@ overflow.
 | `alignItems` | Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, within their maximum). Left out, they keep their own anchors across. |
 | `direction` | On a `stack`: `"row"` or `"column"`. |
 | `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
+| `padding` | Pixels kept free inside its edges: the children start and end that far in, and those aligned across keep it too; a scrolling stack scrolls that far past its last child. |
+| `fit` | `true`: as long as its children along it (a column as tall as them, a row as wide), with the gaps and the padding, within its `minHeight`/`maxHeight` (or width), like a CSS box of `auto` height; it follows them as they change. A wrapping stack fits them on one line. Default `false`: its own size. |
 <!-- end generated -->
 
 **Direction.** A node's `dir` (`"ltr"`, `"rtl"`, `"auto"` for the locale's, or `"inherit"`, the default) says which
@@ -826,7 +828,7 @@ Wherever a value is expected it can be computed:
   `formatDate(milliseconds, style?, zone?)`, `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`,
   `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`,
   `addMonths(date, months)`, `daysBetween(from, to)`, `weekday(date)`, `daysInMonth(date)`, `dateOf(milliseconds)`,
-  `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`;
+  `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`, `qrCode(text, level?)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
@@ -948,7 +950,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
 | `onFocus`, `onBlur` | Keyboard focus. |
 | `onScroll` | `event.dx`, `event.dy`. |
-| `onKey` | A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`. |
+| `onKey` | A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`, `capsLock`. |
 | `onChange` | A bound or value control changed: `event.value`; a timeline's track muted or locked: `event.type` `"track"`, `id`, `muted`, `locked`. |
 | `onSubmit` | Enter in a text area: `event.text`. |
 | `onLink` | A press on a part of `runs` with a link: `event.link`. |
@@ -1073,7 +1075,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
-| `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
+| `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update); `"#form #input"` is the `input` inside `form`, for a component's node |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |

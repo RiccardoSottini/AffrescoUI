@@ -7,16 +7,35 @@ namespace affresco::format {
 
 namespace {
 
-/// @brief "focus" or "scrollTo": a panel by id, after the update and its layout, so it exists and has its place.
+/// @brief The panel a path of ids names: "#a #b" is the "b" inside "a", as in CSS, so that a component's inner node
+/// can be told apart between its uses.
+/// @param root Where the search starts.
+/// @param path Ids separated by spaces, each with or without its "#".
+/// @return The panel, or null when one of the ids isn't found.
+Panel* findByPath(Panel& root, std::string_view path) {
+	Panel* panel = &root;
+	for(std::size_t at = 0; panel && at < path.size();) {
+		const std::size_t start = path.find_first_not_of(' ', at);
+		if(start == std::string_view::npos) break;
+		const std::size_t end = std::min(path.find(' ', start), path.size());
+		std::string_view id = path.substr(start, end - start);
+		if(id.starts_with('#')) id.remove_prefix(1);
+		panel = panel->findById(id);
+		at = end;
+	}
+	return panel == &root ? nullptr : panel;
+}
+
+/// @brief "focus" or "scrollTo": a panel by id (or a path of ids), after the update and its layout, so it exists and
+/// has its place.
 /// @param s The step.
 void focusOrScroll(const Running& s) {
 	const bool focus = s.step.contains("focus");
-	std::string id = text(s.value(s.step[focus ? "focus" : "scrollTo"], s.where));
-	if(id.starts_with('#')) id.erase(0, 1);
+	std::string path = text(s.value(s.step[focus ? "focus" : "scrollTo"], s.where));
 	Engine& engine = s.steps.engine();
 	if(!engine.window) return;
-	engine.scheduler.once(0.0, [&engine, id, focus] {
-		if(Panel* panel = engine.window->root().findById(id)) {
+	engine.scheduler.once(0.0, [&engine, path, focus] {
+		if(Panel* panel = findByPath(engine.window->root(), path)) {
 			if(focus) engine.window->setFocus(panel);
 			else panel->scrollIntoView();
 		}

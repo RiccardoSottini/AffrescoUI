@@ -240,6 +240,10 @@
 					"wait": 50
 				},
 				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
 					"click": "#twoStep"
 				},
 				{
@@ -505,6 +509,10 @@
 					"wait": 121000
 				},
 				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
 					"click": "#changePassword"
 				},
 				{
@@ -522,6 +530,196 @@
 				{
 					"expect": {
 						"image": "reauth-wrong"
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-in-account",
+			"screen": "sign-in.screen.json",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "profile"
+					}
+				},
+				{
+					"click": "#changePhoto"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "photo"
+					}
+				},
+				{
+					"click": "#swatch",
+					"nth": 2
+				},
+				{
+					"wait": 4500
+				},
+				{
+					"click": "#nav",
+					"nth": 1
+				},
+				{
+					"click": "#addEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "ada@exa"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "emails"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "security"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 3
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "devices"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 4
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "connected"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 5
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "activity"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 6
+				},
+				{
+					"click": "#deleteAccount"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "delete"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 1
+				},
+				{
+					"resize": [
+						600,
+						720
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "narrow"
+					}
+				},
+				{
+					"key": "mod+l"
+				},
+				{
+					"key": "mod+l"
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "rtl-dark"
 					}
 				}
 			]

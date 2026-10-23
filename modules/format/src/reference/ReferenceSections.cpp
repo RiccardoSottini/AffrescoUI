@@ -292,7 +292,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
-    {"focus", "", R"(`{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update))", "steps"},
+    {"focus", "", R"(`{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update); `"#form #input"` is the `input` inside `form`, for a component's node)", "steps"},
     {"scrollTo", "", "", "steps"},
     {"dismiss", R"json({"const": true})json",
 	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},

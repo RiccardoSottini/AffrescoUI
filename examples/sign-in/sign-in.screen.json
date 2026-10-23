@@ -14,16 +14,17 @@
 		"default": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 15,
-			"fallback": ["icons"]
+			"fallback": ["icons", "arabic"]
 		},
 		"small": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 13,
-			"fallback": ["iconsSmall"]
+			"fallback": ["iconsSmall", "arabicSmall"]
 		},
 		"title": {
 			"file": "../shared/fonts/Roboto-Regular.ttf",
-			"size": 26
+			"size": 26,
+			"fallback": ["arabicTitle"]
 		},
 		"icons": {
 			"file": "../shared/fonts/Lucide.ttf",
@@ -40,6 +41,27 @@
 		"mono": {
 			"file": "../shared/fonts/JetBrainsMono-Regular.ttf",
 			"size": 15
+		},
+		"heading": {
+			"file": "../shared/fonts/Roboto-Regular.ttf",
+			"size": 19,
+			"fallback": ["icons", "arabicHeading"]
+		},
+		"arabic": {
+			"file": "../shared/fonts/NotoSansArabic-Subset.ttf",
+			"size": 15
+		},
+		"arabicSmall": {
+			"file": "../shared/fonts/NotoSansArabic-Subset.ttf",
+			"size": 13
+		},
+		"arabicTitle": {
+			"file": "../shared/fonts/NotoSansArabic-Subset.ttf",
+			"size": 26
+		},
+		"arabicHeading": {
+			"file": "../shared/fonts/NotoSansArabic-Subset.ttf",
+			"size": 19
 		}
 	},
 	"tokens": {
@@ -164,6 +186,38 @@
 		"color.qrInk": {
 			"light": "#111111",
 			"dark": "#111111"
+		},
+		"color.avatar1": {
+			"light": "#0ea5e9",
+			"dark": "#38bdf8"
+		},
+		"color.avatar2": {
+			"light": "#10b981",
+			"dark": "#34d399"
+		},
+		"color.avatar3": {
+			"light": "#f59e0b",
+			"dark": "#fbbf24"
+		},
+		"color.avatar4": {
+			"light": "#ef4444",
+			"dark": "#f87171"
+		},
+		"color.avatar5": {
+			"light": "#8b5cf6",
+			"dark": "#a78bfa"
+		},
+		"color.avatar6": {
+			"light": "#ec4899",
+			"dark": "#f472b6"
+		},
+		"color.avatarText": {
+			"light": "#ffffff",
+			"dark": "#0b1020"
+		},
+		"color.selected": {
+			"light": "#eef2ff",
+			"dark": "#1a2244"
 		}
 	},
 	"colors": {
@@ -199,7 +253,7 @@
 			"serverError": "{kind, select, noAccount {No account uses this email. Check it, or create one.} wrongPassword {The email or the password is not right.} provider {{provider} could not sign you in: {message}} passkeyCancelled {The passkey was not used. Try again, or use your password.} locked {Too many wrong passwords. The account is locked for now: reset its password to unlock it.} other {Something went wrong. Try again.}}",
 			"sessionExpired": "Your session expired. Sign in again to go on.",
 			"signInAgain": "Sign in again",
-			"busy": "{what, select, lookup {Looking up your account…} signIn {Signing in…} create {Creating your account…} verify {Checking the code…} resend {Sending a new code…} reset {Sending the link…} setPassword {Saving your new password…} save {Saving your details…} password {Changing your password…} provider {Waiting for Example ID…} other {Please wait…}}",
+			"busy": "{what, select, lookup {Looking up your account…} signIn {Signing in…} create {Creating your account…} verify {Checking the code…} resend {Sending a new code…} reset {Sending the link…} setPassword {Saving your new password…} save {Saving your details…} password {Changing your password…} provider {Waiting for Example ID…} verifyEmail {Sending the link…} passkey {Waiting for your device…} connect {Connecting…} devices {Signing out…} delete {Deleting your account…} other {Please wait…}}",
 			"pleaseWait": "Working, please wait",
 			"createAnAccount": "Create an account",
 			"createCaption": "Free, and it takes a minute",
@@ -351,7 +405,91 @@
 			"reauthTitle": "Confirm it's you",
 			"reauthMessage": "Enter the password of {email} to continue.",
 			"confirmIt": "Confirm",
-			"reauthError": "{kind, select, empty {Enter your password} wrong {That password is not right} other {}}"
+			"reauthError": "{kind, select, empty {Enter your password} wrong {That password is not right} other {}}",
+			"accountSections": "Account sections",
+			"section_profile": "Personal info",
+			"section_emails": "Emails",
+			"section_security": "Security",
+			"section_devices": "Devices",
+			"section_connected": "Connected accounts",
+			"section_activity": "Security activity",
+			"section_data": "Delete account",
+			"caption_profile": "Your name and photo, as people see them",
+			"caption_emails": "Where sign-in codes and security alerts go",
+			"caption_security": "How you sign in, and what keeps your account safe",
+			"caption_devices": "Where your account is signed in right now",
+			"caption_connected": "Other accounts you can sign in with",
+			"caption_activity": "Recent sign-ins and changes to your account",
+			"caption_data": "Delete your account and everything in it",
+			"photo": "Profile photo",
+			"changePhoto": "Change photo",
+			"photoTitle": "Choose a colour",
+			"photoText": "Your initials, on the colour you pick",
+			"photoColor": "Colour {n}",
+			"photoSaved": "Your photo was updated",
+			"usernameIs": "Username: @{name}",
+			"primary": "Primary",
+			"unverified": "Not verified",
+			"verifyEmail": "Verify",
+			"linkSentBadge": "Link sent",
+			"makePrimary": "Make primary",
+			"remove": "Remove",
+			"addEmail": "Add an email",
+			"add": "Add",
+			"newEmail": "New email address",
+			"emailError": "{kind, select, invalid {Enter a full email address, like name@example.com} taken {This email is already on your account} full {You can add up to 5 emails} other {}}",
+			"emailAdded": "We sent a link to {email}: open it to verify the address",
+			"emailVerified": "{email} is verified",
+			"emailRemoved": "{email} was removed",
+			"primaryChanged": "{email} is now your primary email",
+			"emailsHint": "Sign-in codes and alerts go to your primary email",
+			"passwordAge": "{n, plural, =0 {Changed today} one {Changed # day ago} other {Changed # days ago}}",
+			"providerPassword": "You sign in with Example ID, which keeps your password",
+			"passkeys": "Passkeys",
+			"passkeysCaption": "Sign in with your fingerprint, face or screen lock instead of a password",
+			"addPasskey": "Add a passkey",
+			"noPasskeys": "No passkeys yet",
+			"passkeyLine": "Added {added}  ·  last used {used}",
+			"passkeyAdded": "Passkey added. You can use it at your next sign-in",
+			"passkeyRemoved": "Passkey removed",
+			"device_key": "Security key",
+			"device_laptop": "Laptop",
+			"device_tablet": "Tablet",
+			"app_desktop": "Desktop app",
+			"app_mobile": "Mobile app",
+			"app_browser": "Browser",
+			"daysAgo": "{n, plural, =0 {today} one {# day ago} other {# days ago}}",
+			"minutesAgo": "{n, plural, =0 {Just now} one {# minute ago} other {# minutes ago}}",
+			"activeNow": "Active now",
+			"lastActive": "Last active {when}",
+			"thisDevice": "This device",
+			"signOutDevice": "Sign out",
+			"signOutOthers": "Sign out of all other devices",
+			"signedOutDevice": "{device} was signed out",
+			"signedOutOthers": "Every other device was signed out",
+			"onlyThisDevice": "Only this device is signed in",
+			"connectedAs": "Connected as {account}",
+			"notConnected": "Not connected",
+			"connect": "Connect",
+			"disconnect": "Disconnect",
+			"connectedNow": "{provider} is connected",
+			"disconnectedNow": "{provider} is no longer connected",
+			"event": "{kind, select, signIn {Signed in} signInBlocked {Sign-in blocked: wrong password} password {Password changed} twoStepOn {Two-step verification turned on} twoStepOff {Two-step verification turned off} newCodes {New backup codes made} passkeyAdded {Passkey added} passkeyRemoved {Passkey removed} emailAdded {Email added} emailRemoved {Email removed} emailVerified {Email verified} primaryChanged {Primary email changed} signedOutOthers {Other devices signed out} signedOutDevice {A device was signed out} connected {Account connected} disconnected {Account disconnected} profile {Profile updated} other {Account changed}}",
+			"eventLine": "{when}  ·  {device}  ·  {place}",
+			"notYouLink": "Not you? Change your password",
+			"deleteTitle": "Delete your account",
+			"deleteText": "Your profile, emails, passkeys and devices are removed, and this can't be undone. You'll be signed out everywhere.",
+			"deleteButton": "Delete account",
+			"deleteDialogTitle": "Delete {email}?",
+			"deleteDialogMessage": "This can't be undone. Type {word} to confirm.",
+			"deleteWord": "DELETE",
+			"deleteField": "Type {word} to confirm",
+			"deleteForever": "Delete",
+			"deleteError": "{kind, select, empty {Type {word} to confirm} wrong {That isn't {word}. Type it exactly} other {}}",
+			"deleted": "Your account was deleted",
+			"passkeyNew": "Added {added}  ·  not used yet",
+			"verified": "Verified",
+			"linkSentHint": "Link sent: open it to verify the address"
 		},
 		"it": {
 			"windowTitle": "Accedi",
@@ -377,7 +515,7 @@
 			"serverError": "{kind, select, noAccount {Nessun account usa questa email. Controllala o creane uno.} wrongPassword {L'email o la password non sono giuste.} provider {{provider} non è riuscito a farti accedere: {message}} passkeyCancelled {La passkey non è stata usata. Riprova o usa la password.} locked {Troppe password sbagliate. L'account è bloccato per ora: reimposta la password per sbloccarlo.} other {Qualcosa è andato storto. Riprova.}}",
 			"sessionExpired": "La sessione è scaduta. Accedi di nuovo per continuare.",
 			"signInAgain": "Accedi di nuovo",
-			"busy": "{what, select, lookup {Ricerca del tuo account…} signIn {Accesso in corso…} create {Creazione dell'account…} verify {Verifica del codice…} resend {Invio di un nuovo codice…} reset {Invio del link…} setPassword {Salvataggio della nuova password…} save {Salvataggio dei dati…} password {Cambio della password…} provider {In attesa di Example ID…} other {Attendi…}}",
+			"busy": "{what, select, lookup {Ricerca del tuo account…} signIn {Accesso in corso…} create {Creazione dell'account…} verify {Verifica del codice…} resend {Invio di un nuovo codice…} reset {Invio del link…} setPassword {Salvataggio della nuova password…} save {Salvataggio dei dati…} password {Cambio della password…} provider {In attesa di Example ID…} verifyEmail {Invio del link…} passkey {In attesa del dispositivo…} connect {Collegamento…} devices {Disconnessione…} delete {Eliminazione dell'account…} other {Attendi…}}",
 			"pleaseWait": "Operazione in corso, attendi",
 			"createAnAccount": "Crea un account",
 			"createCaption": "È gratis e ci vuole un minuto",
@@ -529,7 +667,91 @@
 			"reauthTitle": "Conferma che sei tu",
 			"reauthMessage": "Inserisci la password di {email} per continuare.",
 			"confirmIt": "Conferma",
-			"reauthError": "{kind, select, empty {Inserisci la password} wrong {La password non è giusta} other {}}"
+			"reauthError": "{kind, select, empty {Inserisci la password} wrong {La password non è giusta} other {}}",
+			"accountSections": "Sezioni dell'account",
+			"section_profile": "Dati personali",
+			"section_emails": "Email",
+			"section_security": "Sicurezza",
+			"section_devices": "Dispositivi",
+			"section_connected": "Account collegati",
+			"section_activity": "Attività di sicurezza",
+			"section_data": "Elimina account",
+			"caption_profile": "Il tuo nome e la tua foto, come li vedono gli altri",
+			"caption_emails": "Dove arrivano i codici di accesso e gli avvisi di sicurezza",
+			"caption_security": "Come accedi e cosa protegge il tuo account",
+			"caption_devices": "Dove il tuo account è connesso in questo momento",
+			"caption_connected": "Altri account con cui puoi accedere",
+			"caption_activity": "Accessi recenti e modifiche al tuo account",
+			"caption_data": "Elimina il tuo account e tutto ciò che contiene",
+			"photo": "Foto del profilo",
+			"changePhoto": "Cambia foto",
+			"photoTitle": "Scegli un colore",
+			"photoText": "Le tue iniziali, sul colore che scegli",
+			"photoColor": "Colore {n}",
+			"photoSaved": "La tua foto è stata aggiornata",
+			"usernameIs": "Nome utente: @{name}",
+			"primary": "Principale",
+			"unverified": "Non verificata",
+			"verifyEmail": "Verifica",
+			"linkSentBadge": "Link inviato",
+			"makePrimary": "Rendi principale",
+			"remove": "Rimuovi",
+			"addEmail": "Aggiungi un'email",
+			"add": "Aggiungi",
+			"newEmail": "Nuovo indirizzo email",
+			"emailError": "{kind, select, invalid {Inserisci un indirizzo email completo, come nome@example.com} taken {Questa email è già nel tuo account} full {Puoi aggiungere fino a 5 email} other {}}",
+			"emailAdded": "Abbiamo inviato un link a {email}: aprilo per verificare l'indirizzo",
+			"emailVerified": "{email} è verificata",
+			"emailRemoved": "{email} è stata rimossa",
+			"primaryChanged": "{email} ora è la tua email principale",
+			"emailsHint": "I codici di accesso e gli avvisi arrivano alla tua email principale",
+			"passwordAge": "{n, plural, =0 {Cambiata oggi} one {Cambiata # giorno fa} other {Cambiata # giorni fa}}",
+			"providerPassword": "Accedi con Example ID, che custodisce la tua password",
+			"passkeys": "Passkey",
+			"passkeysCaption": "Accedi con l'impronta, il volto o il blocco schermo invece della password",
+			"addPasskey": "Aggiungi una passkey",
+			"noPasskeys": "Ancora nessuna passkey",
+			"passkeyLine": "Aggiunta {added}  ·  ultimo uso {used}",
+			"passkeyAdded": "Passkey aggiunta. Puoi usarla al prossimo accesso",
+			"passkeyRemoved": "Passkey rimossa",
+			"device_key": "Chiave di sicurezza",
+			"device_laptop": "Portatile",
+			"device_tablet": "Tablet",
+			"app_desktop": "App desktop",
+			"app_mobile": "App mobile",
+			"app_browser": "Browser",
+			"daysAgo": "{n, plural, =0 {oggi} one {# giorno fa} other {# giorni fa}}",
+			"minutesAgo": "{n, plural, =0 {Proprio ora} one {# minuto fa} other {# minuti fa}}",
+			"activeNow": "Attivo ora",
+			"lastActive": "Ultima attività {when}",
+			"thisDevice": "Questo dispositivo",
+			"signOutDevice": "Esci",
+			"signOutOthers": "Esci da tutti gli altri dispositivi",
+			"signedOutDevice": "{device} è stato disconnesso",
+			"signedOutOthers": "Tutti gli altri dispositivi sono stati disconnessi",
+			"onlyThisDevice": "Solo questo dispositivo è connesso",
+			"connectedAs": "Collegato come {account}",
+			"notConnected": "Non collegato",
+			"connect": "Collega",
+			"disconnect": "Scollega",
+			"connectedNow": "{provider} è collegato",
+			"disconnectedNow": "{provider} non è più collegato",
+			"event": "{kind, select, signIn {Accesso eseguito} signInBlocked {Accesso bloccato: password sbagliata} password {Password cambiata} twoStepOn {Verifica in due passaggi attivata} twoStepOff {Verifica in due passaggi disattivata} newCodes {Nuovi codici di backup creati} passkeyAdded {Passkey aggiunta} passkeyRemoved {Passkey rimossa} emailAdded {Email aggiunta} emailRemoved {Email rimossa} emailVerified {Email verificata} primaryChanged {Email principale cambiata} signedOutOthers {Altri dispositivi disconnessi} signedOutDevice {Un dispositivo è stato disconnesso} connected {Account collegato} disconnected {Account scollegato} profile {Profilo aggiornato} other {Account modificato}}",
+			"eventLine": "{when}  ·  {device}  ·  {place}",
+			"notYouLink": "Non eri tu? Cambia la password",
+			"deleteTitle": "Elimina il tuo account",
+			"deleteText": "Il profilo, le email, le passkey e i dispositivi vengono rimossi, e non si può annullare. Uscirai ovunque.",
+			"deleteButton": "Elimina account",
+			"deleteDialogTitle": "Eliminare {email}?",
+			"deleteDialogMessage": "Non si può annullare. Scrivi {word} per confermare.",
+			"deleteWord": "ELIMINA",
+			"deleteField": "Scrivi {word} per confermare",
+			"deleteForever": "Elimina",
+			"deleteError": "{kind, select, empty {Scrivi {word} per confermare} wrong {Non è {word}. Scrivilo esattamente} other {}}",
+			"deleted": "Il tuo account è stato eliminato",
+			"passkeyNew": "Aggiunta {added}  ·  non ancora usata",
+			"verified": "Verificata",
+			"linkSentHint": "Link inviato: aprilo per verificare l'indirizzo"
 		},
 		"ar": {
 			"windowTitle": "تسجيل الدخول",
@@ -555,7 +777,7 @@
 			"serverError": "{kind, select, noAccount {لا يوجد حساب بهذا البريد. تحقّق منه أو أنشئ حسابًا.} wrongPassword {البريد الإلكتروني أو كلمة المرور غير صحيحين.} provider {تعذّر على {provider} تسجيل دخولك: {message}} passkeyCancelled {لم يُستخدم مفتاح المرور. حاول مرة أخرى أو استخدم كلمة المرور.} locked {محاولات خاطئة كثيرة. الحساب مقفل الآن: أعد تعيين كلمة المرور لفتحه.} other {حدث خطأ. حاول مرة أخرى.}}",
 			"sessionExpired": "انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.",
 			"signInAgain": "سجّل الدخول مرة أخرى",
-			"busy": "{what, select, lookup {جارٍ البحث عن حسابك…} signIn {جارٍ تسجيل الدخول…} create {جارٍ إنشاء حسابك…} verify {جارٍ التحقق من الرمز…} resend {جارٍ إرسال رمز جديد…} reset {جارٍ إرسال الرابط…} setPassword {جارٍ حفظ كلمة المرور الجديدة…} save {جارٍ حفظ بياناتك…} password {جارٍ تغيير كلمة المرور…} provider {في انتظار Example ID…} other {يرجى الانتظار…}}",
+			"busy": "{what, select, lookup {جارٍ البحث عن حسابك…} signIn {جارٍ تسجيل الدخول…} create {جارٍ إنشاء حسابك…} verify {جارٍ التحقق من الرمز…} resend {جارٍ إرسال رمز جديد…} reset {جارٍ إرسال الرابط…} setPassword {جارٍ حفظ كلمة المرور الجديدة…} save {جارٍ حفظ بياناتك…} password {جارٍ تغيير كلمة المرور…} provider {في انتظار Example ID…} verifyEmail {جارٍ إرسال الرابط…} passkey {في انتظار جهازك…} connect {جارٍ الربط…} devices {جارٍ تسجيل الخروج…} delete {جارٍ حذف حسابك…} other {يرجى الانتظار…}}",
 			"pleaseWait": "جارٍ العمل، يرجى الانتظار",
 			"createAnAccount": "إنشاء حساب",
 			"createCaption": "مجاني ويستغرق دقيقة",
@@ -707,7 +929,91 @@
 			"reauthTitle": "أكّد هويتك",
 			"reauthMessage": "أدخل كلمة مرور {email} للمتابعة.",
 			"confirmIt": "تأكيد",
-			"reauthError": "{kind, select, empty {أدخل كلمة المرور} wrong {كلمة المرور غير صحيحة} other {}}"
+			"reauthError": "{kind, select, empty {أدخل كلمة المرور} wrong {كلمة المرور غير صحيحة} other {}}",
+			"accountSections": "أقسام الحساب",
+			"section_profile": "المعلومات الشخصية",
+			"section_emails": "البريد الإلكتروني",
+			"section_security": "الأمان",
+			"section_devices": "الأجهزة",
+			"section_connected": "الحسابات المرتبطة",
+			"section_activity": "نشاط الأمان",
+			"section_data": "حذف الحساب",
+			"caption_profile": "اسمك وصورتك كما يراهما الآخرون",
+			"caption_emails": "حيث تصل رموز تسجيل الدخول وتنبيهات الأمان",
+			"caption_security": "طريقة تسجيل دخولك وما يحمي حسابك",
+			"caption_devices": "الأماكن التي سُجّل فيها دخول حسابك الآن",
+			"caption_connected": "حسابات أخرى يمكنك تسجيل الدخول بها",
+			"caption_activity": "عمليات الدخول الأخيرة والتغييرات على حسابك",
+			"caption_data": "احذف حسابك وكل ما فيه",
+			"photo": "صورة الملف الشخصي",
+			"changePhoto": "تغيير الصورة",
+			"photoTitle": "اختر لونًا",
+			"photoText": "أحرفك الأولى على اللون الذي تختاره",
+			"photoColor": "اللون {n}",
+			"photoSaved": "تم تحديث صورتك",
+			"usernameIs": "اسم المستخدم: @{name}",
+			"primary": "أساسي",
+			"unverified": "غير موثّق",
+			"verifyEmail": "توثيق",
+			"linkSentBadge": "أُرسل الرابط",
+			"makePrimary": "اجعله أساسيًا",
+			"remove": "إزالة",
+			"addEmail": "إضافة بريد إلكتروني",
+			"add": "إضافة",
+			"newEmail": "عنوان بريد إلكتروني جديد",
+			"emailError": "{kind, select, invalid {أدخل عنوان بريد إلكتروني كاملًا، مثل name@example.com} taken {هذا البريد موجود في حسابك بالفعل} full {يمكنك إضافة 5 عناوين بريد على الأكثر} other {}}",
+			"emailAdded": "أرسلنا رابطًا إلى {email}: افتحه لتوثيق العنوان",
+			"emailVerified": "تم توثيق {email}",
+			"emailRemoved": "تمت إزالة {email}",
+			"primaryChanged": "أصبح {email} بريدك الأساسي",
+			"emailsHint": "تصل رموز تسجيل الدخول والتنبيهات إلى بريدك الأساسي",
+			"passwordAge": "{n, plural, =0 {تم تغييرها اليوم} one {تم تغييرها قبل يوم واحد} two {تم تغييرها قبل يومين} few {تم تغييرها قبل # أيام} other {تم تغييرها قبل # يومًا}}",
+			"providerPassword": "تسجّل الدخول باستخدام Example ID، الذي يحفظ كلمة مرورك",
+			"passkeys": "مفاتيح المرور",
+			"passkeysCaption": "سجّل الدخول ببصمتك أو وجهك أو قفل الشاشة بدلًا من كلمة المرور",
+			"addPasskey": "إضافة مفتاح مرور",
+			"noPasskeys": "لا توجد مفاتيح مرور بعد",
+			"passkeyLine": "أُضيف {added}  ·  آخر استخدام {used}",
+			"passkeyAdded": "تمت إضافة مفتاح المرور. يمكنك استخدامه عند تسجيل الدخول التالي",
+			"passkeyRemoved": "تمت إزالة مفتاح المرور",
+			"device_key": "مفتاح أمان",
+			"device_laptop": "حاسوب محمول",
+			"device_tablet": "جهاز لوحي",
+			"app_desktop": "تطبيق سطح المكتب",
+			"app_mobile": "تطبيق الجوال",
+			"app_browser": "المتصفح",
+			"daysAgo": "{n, plural, =0 {اليوم} one {قبل يوم واحد} two {قبل يومين} few {قبل # أيام} other {قبل # يومًا}}",
+			"minutesAgo": "{n, plural, =0 {الآن} one {قبل دقيقة واحدة} two {قبل دقيقتين} few {قبل # دقائق} other {قبل # دقيقة}}",
+			"activeNow": "نشط الآن",
+			"lastActive": "آخر نشاط {when}",
+			"thisDevice": "هذا الجهاز",
+			"signOutDevice": "تسجيل الخروج",
+			"signOutOthers": "تسجيل الخروج من كل الأجهزة الأخرى",
+			"signedOutDevice": "تم تسجيل خروج {device}",
+			"signedOutOthers": "تم تسجيل خروج كل الأجهزة الأخرى",
+			"onlyThisDevice": "هذا الجهاز وحده مسجّل الدخول",
+			"connectedAs": "مرتبط باسم {account}",
+			"notConnected": "غير مرتبط",
+			"connect": "ربط",
+			"disconnect": "إلغاء الربط",
+			"connectedNow": "تم ربط {provider}",
+			"disconnectedNow": "لم يعد {provider} مرتبطًا",
+			"event": "{kind, select, signIn {تسجيل دخول} signInBlocked {مُنع تسجيل الدخول: كلمة مرور خاطئة} password {تم تغيير كلمة المرور} twoStepOn {تم تفعيل التحقق بخطوتين} twoStepOff {تم إيقاف التحقق بخطوتين} newCodes {تم إنشاء رموز احتياطية جديدة} passkeyAdded {تمت إضافة مفتاح مرور} passkeyRemoved {تمت إزالة مفتاح مرور} emailAdded {تمت إضافة بريد إلكتروني} emailRemoved {تمت إزالة بريد إلكتروني} emailVerified {تم توثيق بريد إلكتروني} primaryChanged {تم تغيير البريد الأساسي} signedOutOthers {تم تسجيل خروج الأجهزة الأخرى} signedOutDevice {تم تسجيل خروج جهاز} connected {تم ربط حساب} disconnected {تم إلغاء ربط حساب} profile {تم تحديث الملف الشخصي} other {تم تغيير الحساب}}",
+			"eventLine": "{when}  ·  {device}  ·  {place}",
+			"notYouLink": "لم تكن أنت؟ غيّر كلمة المرور",
+			"deleteTitle": "حذف حسابك",
+			"deleteText": "تُزال بياناتك الشخصية وعناوين بريدك ومفاتيح المرور والأجهزة، ولا يمكن التراجع عن ذلك. سيتم تسجيل خروجك من كل مكان.",
+			"deleteButton": "حذف الحساب",
+			"deleteDialogTitle": "حذف {email}؟",
+			"deleteDialogMessage": "لا يمكن التراجع عن ذلك. اكتب {word} للتأكيد.",
+			"deleteWord": "حذف",
+			"deleteField": "اكتب {word} للتأكيد",
+			"deleteForever": "حذف",
+			"deleteError": "{kind, select, empty {اكتب {word} للتأكيد} wrong {هذا ليس {word}. اكتبه كما هو} other {}}",
+			"deleted": "تم حذف حسابك",
+			"passkeyNew": "أُضيف {added}  ·  لم يُستخدم بعد",
+			"verified": "موثّق",
+			"linkSentHint": "أُرسل الرابط: افتحه لتوثيق العنوان"
 		}
 	},
 	"connections": {
@@ -749,7 +1055,9 @@
 				"twoStep": false,
 				"provider": false,
 				"passkey": true,
-				"username": "ada"
+				"username": "ada",
+				"demo": true,
+				"passwordDays": 30
 			},
 			{
 				"email": "sam@example.com",
@@ -758,7 +1066,9 @@
 				"twoStep": true,
 				"provider": false,
 				"passkey": false,
-				"username": "sam"
+				"username": "sam",
+				"demo": true,
+				"passwordDays": 90
 			}
 		],
 		"user": {
@@ -860,6 +1170,25 @@
 			"password": "",
 			"error": "",
 			"then": ""
+		},
+		"section": "profile",
+		"clock": 0,
+		"target": "",
+		"photoOpen": false,
+		"emails": [],
+		"newEmail": {
+			"open": false,
+			"address": "",
+			"submitted": false
+		},
+		"myPasskeys": [],
+		"sessions": [],
+		"connected": [],
+		"log": [],
+		"deleting": {
+			"open": false,
+			"typed": "",
+			"error": ""
 		}
 	},
 	"stateTypes": {
@@ -922,6 +1251,15 @@
 		},
 		"terms": {
 			"type": "boolean"
+		},
+		"section": {
+			"enum": ["profile", "emails", "security", "devices", "connected", "activity", "data"]
+		},
+		"clock": {
+			"type": "number"
+		},
+		"target": {
+			"type": "string"
 		}
 	},
 	"persist": ["state.theme", "state.remember", "state.locale"],
@@ -941,7 +1279,7 @@
 		"resetConfirmValid": "{{state.showPassword || state.reset.confirm == state.reset.password}}",
 		"resetErrors": "{{!state.reset.submitted ? 0 : (computed.resetValid ? 0 : 1) + (computed.resetConfirmValid ? 0 : 1)}}",
 		"changeError": "{{length(state.change.password) < 8 ? t('min8') : merge({ score: 0, label: '', missing: [] }, passwordStrength(state.change.password)).score < 2 ? t('stronger') : !state.showPassword && state.change.confirm != state.change.password ? t('mismatch') : ''}}",
-		"profileErrors": "{{!state.profile.submitted ? 0 : (length(trim(state.profile.name)) > 0 ? 0 : 1) + (isEmail(trim(state.profile.email)) ? 0 : 1)}}",
+		"profileErrors": "{{!state.profile.submitted ? 0 : (length(trim(state.profile.name)) > 0 ? 0 : 1)}}",
 		"busyText": "{{state.busy == '' ? '' : t('busy', { what: state.busy })}}",
 		"sessionTime": "{{floor(max(0, state.session.left) / 60) + ':' + pad(max(0, state.session.left) % 60, 2, '0')}}",
 		"shortcuts": "{{map(commands, merge(it, { keyText: slice(join(split(join(split(join(split(join(split('|' + (it.keyLabel ?? ''), '⌃'), 'Ctrl+'), '⌥'), 'Option+'), '⇧'), 'Shift+'), '⌘'), 'Cmd+'), 1) }))}}",
@@ -957,7 +1295,41 @@
 		"trustedHere": "{{some(state.trusted, lower(it.email) == lower(state.pending.email) && it.device == 'this')}}",
 		"myTrusted": "{{filter(state.trusted, lower(it.email) == lower(state.user.email))}}",
 		"locked": "{{count(state.failures, it == lower(trim(state.email))) >= 5}}",
-		"resetTime": "{{floor(max(0, state.reset.left) / 60) + ':' + pad(max(0, state.reset.left) % 60, 2, '0')}}"
+		"resetTime": "{{floor(max(0, state.reset.left) / 60) + ':' + pad(max(0, state.reset.left) % 60, 2, '0')}}",
+		"sections": "{{[{ name: 'profile', icon: 'user' }, { name: 'emails', icon: 'mail' }, { name: 'security', icon: 'shield-check' }, { name: 'devices', icon: 'monitor-smartphone' }, { name: 'connected', icon: 'link' }, { name: 'activity', icon: 'history' }, { name: 'data', icon: 'trash-2' }]}}",
+		"wide": "{{window.width >= 760}}",
+		"avatarColor": "{{(state.user.avatar ?? 0) > 0 ? '@color.avatar' + state.user.avatar : '@color.accentSoft'}}",
+		"avatarText": "{{(state.user.avatar ?? 0) > 0 ? '@color.avatarText' : '@color.accent'}}",
+		"passwordDays": "{{state.user.passwordDays ?? 0}}",
+		"newEmailError": "{{!isEmail(trim(state.newEmail.address)) ? 'invalid' : some(state.emails, lower(it.address) == lower(trim(state.newEmail.address))) ? 'taken' : length(state.emails) >= 5 ? 'full' : ''}}",
+		"providers": "{{[{ name: 'wrenfield', icon: 'bird' }, { name: 'mossbank', icon: 'leaf' }, { name: 'quillo', icon: 'feather' }]}}",
+		"deleteWord": "{{t('deleteWord')}}",
+		"eventIcons": {
+			"signIn": "log-in",
+			"signInBlocked": "shield-alert",
+			"password": "key-round",
+			"twoStepOn": "shield-check",
+			"twoStepOff": "shield-off",
+			"newCodes": "key",
+			"passkeyAdded": "fingerprint",
+			"passkeyRemoved": "fingerprint",
+			"emailAdded": "mail-plus",
+			"emailRemoved": "mail-x",
+			"emailVerified": "mail-check",
+			"primaryChanged": "mail",
+			"signedOutOthers": "log-out",
+			"signedOutDevice": "log-out",
+			"connected": "link",
+			"disconnected": "link-2-off",
+			"profile": "user"
+		},
+		"deviceIcons": {
+			"this": "monitor",
+			"phone": "smartphone",
+			"laptop": "laptop",
+			"tablet": "tablet",
+			"key": "key-round"
+		}
 	},
 	"styles": {
 		"caption": {
@@ -1300,6 +1672,163 @@
 			"justify": "center",
 			"alignItems": "center",
 			"color": "transparent"
+		},
+		"accountCard": {
+			"style": "card",
+			"fit": false,
+			"padding": 28,
+			"gap": 14,
+			"scroll": "none",
+			"alignItems": "stretch"
+		},
+		"heading": {
+			"type": "label",
+			"font": "heading",
+			"height": 28,
+			"textColor": "@color.text",
+			"role": "heading",
+			"anchors": {
+				"left": 0,
+				"right": 10
+			}
+		},
+		"navItem": {
+			"type": "label",
+			"font": "default",
+			"height": 38,
+			"radius": 8,
+			"padding": 10,
+			"color": "transparent",
+			"textColor": "@color.muted",
+			"cursor": "hand",
+			"focusable": true,
+			"role": "tab",
+			"anchors": {
+				"left": 0,
+				"right": 0
+			},
+			"hover": {
+				"color": "@color.hover",
+				"textColor": "@color.text"
+			}
+		},
+		"navItemOn": {
+			"style": "navItem",
+			"color": "@color.selected",
+			"textColor": "@color.accent",
+			"hover": {
+				"color": "@color.selected",
+				"textColor": "@color.accent"
+			}
+		},
+		"itemRow": {
+			"type": "row",
+			"height": 60,
+			"gap": 12,
+			"padding": 12,
+			"alignItems": "center",
+			"radius": "@radius.field",
+			"color": "@color.input",
+			"borderWidth": 1,
+			"borderColor": "@color.border",
+			"anchors": {
+				"left": 0,
+				"right": 10
+			}
+		},
+		"itemIcon": {
+			"type": "label",
+			"font": "icons",
+			"text": "",
+			"width": 36,
+			"height": 36,
+			"radius": 8,
+			"align": "center",
+			"color": "@color.accentSoft",
+			"textColor": "@color.accent"
+		},
+		"itemText": {
+			"type": "column",
+			"grow": 1,
+			"height": 38,
+			"gap": 2
+		},
+		"itemTitle": {
+			"type": "label",
+			"height": 20,
+			"textColor": "@color.text",
+			"anchors": {
+				"left": 0,
+				"right": 0
+			}
+		},
+		"itemHint": {
+			"type": "label",
+			"font": "small",
+			"height": 16,
+			"textColor": "@color.muted",
+			"anchors": {
+				"left": 0,
+				"right": 0
+			}
+		},
+		"badge": {
+			"type": "label",
+			"font": "small",
+			"height": 22,
+			"radius": 999,
+			"padding": 8,
+			"fitText": true,
+			"color": "@color.accentSoft",
+			"textColor": "@color.accent"
+		},
+		"badgeWarn": {
+			"style": "badge",
+			"color": "@color.notice",
+			"textColor": "@color.warning"
+		},
+		"smallButton": {
+			"style": "secondary",
+			"height": 34,
+			"anchors": {},
+			"font": "small",
+			"padding": 12,
+			"fitText": true,
+			"shadow": {
+				"color": "#00000000"
+			}
+		},
+		"danger": {
+			"style": "primary",
+			"color": "@color.error",
+			"textColor": "@color.accentText",
+			"shadow": {
+				"color": "#00000000"
+			},
+			"hover": {
+				"color": "@color.weak"
+			},
+			"pressed": {
+				"color": "@color.error"
+			}
+		},
+		"navItemChip": {
+			"style": "navItem",
+			"fitText": true,
+			"anchors": {}
+		},
+		"navItemOnChip": {
+			"style": "navItemOn",
+			"fitText": true,
+			"anchors": {}
+		},
+		"divider": {
+			"height": 1,
+			"color": "@color.border",
+			"anchors": {
+				"left": 0,
+				"right": 0
+			}
 		}
 	},
 	"components": {
@@ -1548,6 +2077,107 @@
 						"label": "{{t('ruleSymbol') + ': ' + t('ruleState', { ok: n > 0 && !contains(m, 'symbol') })}}"
 					}
 				]
+			}
+		},
+		"sectionHeader": {
+			"note": "A section's heading and caption. params: name (the section)",
+			"params": {
+				"name": ""
+			},
+			"node": {
+				"type": "column",
+				"fit": true,
+				"gap": 2,
+				"anchors": {
+					"left": 0,
+					"right": 10
+				},
+				"children": [
+					{
+						"id": "section-title",
+						"style": "heading",
+						"text": "{{t('section_' + name)}}"
+					},
+					{
+						"id": "section-caption",
+						"style": "caption",
+						"text": "{{t('caption_' + name)}}"
+					}
+				]
+			}
+		},
+		"itemRow": {
+			"note": "A row of a list: an icon, a title and a hint, then the row's own children (badges, links, buttons). params: icon, title, hint, label (the row's accessible name)",
+			"params": {
+				"icon": "",
+				"title": "",
+				"hint": "",
+				"label": ""
+			},
+			"node": {
+				"style": "itemRow",
+				"role": "group",
+				"label": "{{label || title}}",
+				"children": [
+					{
+						"id": "item-icon",
+						"style": "itemIcon",
+						"icon": "{{icon}}"
+					},
+					{
+						"id": "item-text",
+						"style": "itemText",
+						"children": [
+							{
+								"id": "item-title",
+								"style": "itemTitle",
+								"text": "{{title}}"
+							},
+							{
+								"id": "item-hint",
+								"style": "itemHint",
+								"text": "{{hint}}"
+							}
+						]
+					},
+					{
+						"slot": true
+					}
+				]
+			}
+		},
+		"navItem": {
+			"note": "One tab of the account's sections. params: name, icon, wide (a full-width row, or a chip)",
+			"params": {
+				"name": "",
+				"icon": "",
+				"wide": true
+			},
+			"node": {
+				"style": "{{(state.section == name ? 'navItemOn' : 'navItem') + (wide ? '' : 'Chip')}}",
+				"icon": "{{icon}}",
+				"text": "{{t('section_' + name)}}",
+				"selected": "{{state.section == name}}",
+				"onClick": {
+					"run": "setSection",
+					"with": {
+						"name": "{{name}}"
+					}
+				},
+				"keys": {
+					"enter": {
+						"run": "setSection",
+						"with": {
+							"name": "{{name}}"
+						}
+					},
+					"space": {
+						"run": "setSection",
+						"with": {
+							"name": "{{name}}"
+						}
+					}
+				}
 			}
 		}
 	},
@@ -1874,6 +2504,9 @@
 			{
 				"set": "state.confirmedLeft",
 				"to": 120
+			},
+			{
+				"run": "seedAccount"
 			},
 			{
 				"navigate": "signedIn"
@@ -2311,6 +2944,14 @@
 		},
 		"endSession": [
 			{
+				"if": "{{state.user.email != ''}}",
+				"then": [
+					{
+						"run": "saveAccount"
+					}
+				]
+			},
+			{
 				"set": "state.confirmedLeft",
 				"to": 0
 			},
@@ -2356,6 +2997,34 @@
 			}
 		],
 		"tick": [
+			{
+				"increment": "state.clock",
+				"by": 1
+			},
+			{
+				"if": "{{some(state.emails, it.sent && !it.verified && state.clock - it.sentAt >= 5)}}",
+				"then": [
+					{
+						"note": "The demo has no mail: a link sent is opened 5 seconds later"
+					},
+					{
+						"run": "notify",
+						"with": {
+							"message": "{{t('emailVerified', { email: find(state.emails, it.sent && !it.verified && state.clock - it.sentAt >= 5).address })}}"
+						}
+					},
+					{
+						"set": "state.emails",
+						"to": "{{map(state.emails, it.sent && !it.verified && state.clock - it.sentAt >= 5 ? merge(it, { verified: true, sent: false }) : it)}}"
+					},
+					{
+						"run": "logEvent",
+						"with": {
+							"kind": "emailVerified"
+						}
+					}
+				]
+			},
 			{
 				"if": "{{state.confirmedLeft > 0}}",
 				"then": [
@@ -2609,7 +3278,7 @@
 			},
 			{
 				"set": "state.accounts",
-				"to": "{{map(state.accounts, lower(it.email) == lower(state.reset.email) ? merge(it, { password: state.reset.password }) : it)}}"
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.reset.email) ? merge(it, { password: state.reset.password, passwordDays: 0 }) : it)}}"
 			},
 			{
 				"set": "state.failures",
@@ -2680,23 +3349,21 @@
 		"finishSave": [
 			{
 				"set": "state.accounts",
-				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { name: trim(state.profile.name), email: trim(state.profile.email) }) : it)}}"
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { name: trim(state.profile.name) }) : it)}}"
 			},
 			{
 				"set": "state.user.name",
 				"to": "{{trim(state.profile.name)}}"
 			},
 			{
-				"set": "state.user.email",
-				"to": "{{trim(state.profile.email)}}"
-			},
-			{
-				"set": "state.email",
-				"to": "{{trim(state.profile.email)}}"
-			},
-			{
 				"set": "state.profile.submitted",
 				"to": false
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "profile"
+				}
 			},
 			{
 				"run": "notify",
@@ -2744,7 +3411,11 @@
 		"finishChange": [
 			{
 				"set": "state.accounts",
-				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { password: state.change.password }) : it)}}"
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { password: state.change.password, passwordDays: 0 }) : it)}}"
+			},
+			{
+				"set": "state.user.passwordDays",
+				"to": 0
 			},
 			{
 				"set": "state.change",
@@ -2762,6 +3433,12 @@
 				"run": "notify",
 				"with": {
 					"message": "{{t('changed')}}"
+				}
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "password"
 				}
 			}
 		],
@@ -3159,6 +3836,25 @@
 				"with": {
 					"message": "{{t('twoStepTurned', { on: on })}}"
 				}
+			},
+			{
+				"if": "{{on}}",
+				"then": [
+					{
+						"run": "logEvent",
+						"with": {
+							"kind": "twoStepOn"
+						}
+					}
+				],
+				"else": [
+					{
+						"run": "logEvent",
+						"with": {
+							"kind": "twoStepOff"
+						}
+					}
+				]
 			}
 		],
 		"setupCodeChanged": [
@@ -3343,6 +4039,12 @@
 			},
 			{
 				"run": "freshCodes"
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "newCodes"
+				}
 			}
 		],
 		"toggleSaved": [
@@ -3627,6 +4329,631 @@
 				"run": "applyTwoStep",
 				"with": {
 					"on": false
+				}
+			}
+		],
+		"seedAccount": [
+			{
+				"note": "The signed-in account's emails, passkeys, devices, connections and log: kept on the account between sessions (endSession writes them back); the demo accounts start with a few made-up ones"
+			},
+			{
+				"set": "state.section",
+				"to": "profile"
+			},
+			{
+				"set": "state.clock",
+				"to": 0
+			},
+			{
+				"set": "state.photoOpen",
+				"to": false
+			},
+			{
+				"set": "state.newEmail",
+				"to": {
+					"open": false,
+					"address": "",
+					"submitted": false
+				}
+			},
+			{
+				"set": "state.emails",
+				"to": "{{state.user.emails ?? concat([{ address: state.user.email, primary: true, verified: true }], state.user.demo ? [{ address: state.user.username + '.home@example.net', primary: false, verified: true }, { address: state.user.username + '@work.example.org', primary: false, verified: false }] : [])}}"
+			},
+			{
+				"set": "state.myPasskeys",
+				"to": "{{state.user.passkeys ?? (state.user.passkey ? [{ id: 'pk1', device: 'this', added: 12, used: 0 }] : [])}}"
+			},
+			{
+				"set": "state.sessions",
+				"to": "{{state.user.sessions ?? concat([{ id: 'here', device: 'this', app: 'desktop', place: 'Lakeside', days: 0 }], state.user.demo ? [{ id: 'phone', device: 'phone', app: 'mobile', place: 'Lakeside', days: 1 }, { id: 'laptop', device: 'laptop', app: 'browser', place: 'Northport', days: 6 }] : [])}}"
+			},
+			{
+				"set": "state.connected",
+				"to": "{{state.user.connected ?? (state.user.demo ? [{ provider: 'quillo', account: state.user.username + '@quillo.example' }] : [])}}"
+			},
+			{
+				"set": "state.log",
+				"to": "{{slice(concat([{ kind: 'signIn', at: 0, days: 0, device: 'this', place: 'Lakeside' }], state.user.log ?? (state.user.demo ? [{ kind: 'signIn', at: 0, days: 1, device: 'phone', place: 'Lakeside' }, { kind: 'signInBlocked', at: 0, days: 3, device: 'laptop', place: 'Eastvale' }, { kind: 'password', at: 0, days: state.user.passwordDays ?? 30, device: 'laptop', place: 'Northport' }] : [])), 0, 50)}}"
+			}
+		],
+		"saveAccount": [
+			{
+				"note": "Writes the session's lists back on the account, so the next sign-in finds them (times kept relative)"
+			},
+			{
+				"set": "state.accounts",
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { emails: state.emails, passkeys: state.myPasskeys, passkey: length(state.myPasskeys) > 0, sessions: state.sessions, connected: state.connected, log: map(state.log, merge(it, { at: it.at - state.clock })) }) : it)}}"
+			}
+		],
+		"logEvent": [
+			{
+				"note": "with: kind. The newest first, at most 50"
+			},
+			{
+				"set": "state.log",
+				"to": "{{slice(concat([{ kind: kind, at: state.clock, days: 0, device: 'this', place: 'Lakeside' }], state.log), 0, 50)}}"
+			}
+		],
+		"setSection": [
+			{
+				"note": "with: name"
+			},
+			{
+				"set": "state.section",
+				"to": "{{name}}"
+			},
+			{
+				"set": "state.newEmail.open",
+				"to": false
+			},
+			{
+				"set": "state.photoOpen",
+				"to": false
+			}
+		],
+		"setAvatar": [
+			{
+				"note": "with: color (0 for the initials on the accent)"
+			},
+			{
+				"set": "state.user.avatar",
+				"to": "{{color}}"
+			},
+			{
+				"set": "state.accounts",
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { avatar: color }) : it)}}"
+			},
+			{
+				"set": "state.photoOpen",
+				"to": false
+			},
+			{
+				"focus": "#changePhoto"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('photoSaved')}}"
+				}
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "profile"
+				}
+			}
+		],
+		"openAddEmail": [
+			{
+				"set": "state.newEmail",
+				"to": {
+					"open": true,
+					"address": "",
+					"submitted": false
+				}
+			},
+			{
+				"focus": "#newEmailField #textarea-placeholder"
+			}
+		],
+		"closeAddEmail": [
+			{
+				"set": "state.newEmail.open",
+				"to": false
+			},
+			{
+				"focus": "#addEmail"
+			}
+		],
+		"addEmail": [
+			{
+				"set": "state.newEmail.submitted",
+				"to": true
+			},
+			{
+				"if": "{{computed.newEmailError != ''}}",
+				"then": [
+					{
+						"focus": "#newEmailField #textarea-placeholder"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "serverCall",
+				"with": {
+					"op": "finishAddEmail",
+					"what": "verifyEmail"
+				}
+			}
+		],
+		"finishAddEmail": [
+			{
+				"push": "state.emails",
+				"value": {
+					"address": "{{trim(state.newEmail.address)}}",
+					"primary": false,
+					"verified": false,
+					"sent": true,
+					"sentAt": "{{state.clock}}"
+				}
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('emailAdded', { email: trim(state.newEmail.address) })}}"
+				}
+			},
+			{
+				"set": "state.newEmail",
+				"to": {
+					"open": false,
+					"address": "",
+					"submitted": false
+				}
+			},
+			{
+				"focus": "#addEmail"
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "emailAdded"
+				}
+			}
+		],
+		"verifyEmail": [
+			{
+				"note": "with: address"
+			},
+			{
+				"set": "state.target",
+				"to": "{{address}}"
+			},
+			{
+				"run": "serverCall",
+				"with": {
+					"op": "sendVerification",
+					"what": "verifyEmail"
+				}
+			}
+		],
+		"sendVerification": [
+			{
+				"set": "state.emails",
+				"to": "{{map(state.emails, it.address == state.target ? merge(it, { sent: true, sentAt: state.clock }) : it)}}"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('emailAdded', { email: state.target })}}"
+				}
+			}
+		],
+		"removeEmail": [
+			{
+				"note": "with: address"
+			},
+			{
+				"set": "state.target",
+				"to": "{{address}}"
+			},
+			{
+				"run": "stepUp",
+				"with": {
+					"then": "finishRemoveEmail"
+				}
+			}
+		],
+		"finishRemoveEmail": [
+			{
+				"set": "state.emails",
+				"to": "{{filter(state.emails, it.address != state.target || it.primary)}}"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('emailRemoved', { email: state.target })}}"
+				}
+			},
+			{
+				"focus": "#addEmail"
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "emailRemoved"
+				}
+			}
+		],
+		"makePrimary": [
+			{
+				"note": "with: address (a verified one)"
+			},
+			{
+				"set": "state.target",
+				"to": "{{address}}"
+			},
+			{
+				"run": "stepUp",
+				"with": {
+					"then": "finishPrimary"
+				}
+			}
+		],
+		"finishPrimary": [
+			{
+				"note": "The account, its trusted devices and the sign-in form follow the new address"
+			},
+			{
+				"set": "state.emails",
+				"to": "{{map(state.emails, merge(it, { primary: it.address == state.target }))}}"
+			},
+			{
+				"set": "state.accounts",
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { email: state.target }) : it)}}"
+			},
+			{
+				"set": "state.trusted",
+				"to": "{{map(state.trusted, lower(it.email) == lower(state.user.email) ? merge(it, { email: state.target }) : it)}}"
+			},
+			{
+				"set": "state.user.email",
+				"to": "{{state.target}}"
+			},
+			{
+				"set": "state.email",
+				"to": "{{state.target}}"
+			},
+			{
+				"set": "state.profile.email",
+				"to": "{{state.target}}"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('primaryChanged', { email: state.target })}}"
+				}
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "primaryChanged"
+				}
+			}
+		],
+		"addPasskey": [
+			{
+				"run": "stepUp",
+				"with": {
+					"then": "createPasskey"
+				}
+			}
+		],
+		"createPasskey": [
+			{
+				"note": "The device's prompt is simulated: a real one creates the key pair and sends only the public key"
+			},
+			{
+				"run": "serverCall",
+				"with": {
+					"op": "finishPasskey",
+					"what": "passkey"
+				}
+			}
+		],
+		"finishPasskey": [
+			{
+				"push": "state.myPasskeys",
+				"value": {
+					"id": "{{'pk' + (length(state.myPasskeys) + 1) + '-' + state.clock}}",
+					"device": "{{some(state.myPasskeys, it.device == 'this') ? 'key' : 'this'}}",
+					"added": 0,
+					"used": -1
+				}
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('passkeyAdded')}}"
+				}
+			},
+			{
+				"focus": "#addPasskey"
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "passkeyAdded"
+				}
+			}
+		],
+		"removePasskey": [
+			{
+				"note": "with: id"
+			},
+			{
+				"set": "state.target",
+				"to": "{{id}}"
+			},
+			{
+				"run": "stepUp",
+				"with": {
+					"then": "finishRemovePasskey"
+				}
+			}
+		],
+		"finishRemovePasskey": [
+			{
+				"set": "state.myPasskeys",
+				"to": "{{filter(state.myPasskeys, it.id != state.target)}}"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('passkeyRemoved')}}"
+				}
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "passkeyRemoved"
+				}
+			}
+		],
+		"signOutSession": [
+			{
+				"note": "with: id (another device's session)"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('signedOutDevice', { device: t('device_' + find(state.sessions, it.id == id).device) })}}"
+				}
+			},
+			{
+				"set": "state.sessions",
+				"to": "{{filter(state.sessions, it.id != id || it.id == 'here')}}"
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "signedOutDevice"
+				}
+			}
+		],
+		"signOutOthers": [
+			{
+				"run": "stepUp",
+				"with": {
+					"then": "endOtherSessions"
+				}
+			}
+		],
+		"endOtherSessions": [
+			{
+				"run": "serverCall",
+				"with": {
+					"op": "finishSignOutOthers",
+					"what": "devices"
+				}
+			}
+		],
+		"finishSignOutOthers": [
+			{
+				"set": "state.sessions",
+				"to": "{{filter(state.sessions, it.id == 'here')}}"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('signedOutOthers')}}"
+				}
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "signedOutOthers"
+				}
+			}
+		],
+		"connectProvider": [
+			{
+				"note": "with: provider. The provider's consent page is simulated"
+			},
+			{
+				"set": "state.target",
+				"to": "{{provider}}"
+			},
+			{
+				"run": "serverCall",
+				"with": {
+					"op": "finishConnect",
+					"what": "connect"
+				}
+			}
+		],
+		"finishConnect": [
+			{
+				"push": "state.connected",
+				"value": {
+					"provider": "{{state.target}}",
+					"account": "{{(state.user.username || split(state.user.email, '@')[0]) + '@' + state.target + '.example'}}"
+				}
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('connectedNow', { provider: t('provider_' + state.target) })}}"
+				}
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "connected"
+				}
+			}
+		],
+		"disconnectProvider": [
+			{
+				"note": "with: provider"
+			},
+			{
+				"set": "state.target",
+				"to": "{{provider}}"
+			},
+			{
+				"run": "stepUp",
+				"with": {
+					"then": "finishDisconnect"
+				}
+			}
+		],
+		"finishDisconnect": [
+			{
+				"set": "state.connected",
+				"to": "{{filter(state.connected, it.provider != state.target)}}"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('disconnectedNow', { provider: t('provider_' + state.target) })}}"
+				}
+			},
+			{
+				"run": "logEvent",
+				"with": {
+					"kind": "disconnected"
+				}
+			}
+		],
+		"openDelete": [
+			{
+				"set": "state.deleting",
+				"to": {
+					"open": true,
+					"typed": "",
+					"error": ""
+				}
+			},
+			{
+				"focus": "#deleteConfirm"
+			}
+		],
+		"closeDelete": [
+			{
+				"set": "state.deleting.open",
+				"to": false
+			},
+			{
+				"focus": "#deleteAccount"
+			}
+		],
+		"confirmDelete": [
+			{
+				"set": "state.deleting.open",
+				"to": true
+			},
+			{
+				"if": "{{trim(state.deleting.typed) == ''}}",
+				"then": [
+					{
+						"set": "state.deleting.error",
+						"to": "empty"
+					},
+					{
+						"focus": "#deleteConfirm"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{upper(trim(state.deleting.typed)) != upper(computed.deleteWord)}}",
+				"then": [
+					{
+						"set": "state.deleting.error",
+						"to": "wrong"
+					},
+					{
+						"focus": "#deleteConfirm"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.deleting.open",
+				"to": false
+			},
+			{
+				"run": "stepUp",
+				"with": {
+					"then": "deleteAccount"
+				}
+			}
+		],
+		"deleteAccount": [
+			{
+				"run": "serverCall",
+				"with": {
+					"op": "finishDelete",
+					"what": "delete"
+				}
+			}
+		],
+		"finishDelete": [
+			{
+				"note": "The account, its trusted devices and its failed attempts go; nothing is written back"
+			},
+			{
+				"set": "state.accounts",
+				"to": "{{filter(state.accounts, lower(it.email) != lower(state.user.email))}}"
+			},
+			{
+				"set": "state.trusted",
+				"to": "{{filter(state.trusted, lower(it.email) != lower(state.user.email))}}"
+			},
+			{
+				"set": "state.user.email",
+				"to": ""
+			},
+			{
+				"set": "state.email",
+				"to": ""
+			},
+			{
+				"run": "endSession"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{t('deleted')}}"
 				}
 			}
 		]
@@ -4739,60 +6066,87 @@
 			},
 			"children": [
 				{
-					"id": "panel-card-2",
-					"style": "card",
-					"width": "{{min(420, window.width - 32)}}",
+					"id": "accountCard",
+					"style": "accountCard",
+					"width": "{{min(880, window.width - 32)}}",
+					"height": "{{min(604, window.height - 116)}}",
 					"children": [
 						{
-							"id": "stack-form-3",
-							"style": "form",
+							"id": "row-account",
+							"type": "row",
+							"height": 56,
+							"gap": 14,
+							"alignItems": "center",
+							"anchors": {
+								"left": 0,
+								"right": 0
+							},
 							"children": [
 								{
-									"id": "row-account",
-									"type": "row",
+									"id": "avatar",
+									"type": "label",
+									"font": "title",
+									"text": "{{computed.initials}}",
+									"width": 56,
 									"height": 56,
-									"gap": 12,
-									"alignItems": "center",
-									"anchors": {
-										"left": 0,
-										"right": 10
-									},
+									"radius": 999,
+									"align": "center",
+									"color": "{{computed.avatarColor}}",
+									"textColor": "{{computed.avatarText}}",
+									"role": "img",
+									"label": "{{state.user.name}}"
+								},
+								{
+									"id": "column-account",
+									"type": "column",
+									"grow": 1,
+									"height": 56,
+									"gap": 2,
 									"children": [
 										{
-											"id": "avatar",
-											"type": "label",
-											"font": "title",
-											"text": "{{computed.initials}}",
-											"width": 56,
-											"height": 56,
-											"radius": 999,
-											"align": "center",
-											"color": "@color.accentSoft",
-											"textColor": "@color.accent",
-											"role": "img",
-											"label": "{{state.user.name}}"
+											"id": "label-you-re-in",
+											"style": "title",
+											"text": "{{t('youreIn')}}",
+											"role": "heading"
 										},
 										{
-											"id": "column-account",
-											"type": "column",
-											"grow": 1,
-											"height": 56,
-											"gap": 2,
-											"children": [
-												{
-													"id": "label-you-re-in",
-													"style": "title",
-													"text": "{{t('youreIn')}}",
-													"role": "heading"
-												},
-												{
-													"id": "label-signed-in-as",
-													"style": "caption",
-													"text": "{{t('signedInAs', { email: state.user.email })}}"
-												}
-											]
+											"id": "label-signed-in-as",
+											"style": "caption",
+											"text": "{{t('signedInAs', { email: state.user.email })}}"
 										}
 									]
+								},
+								{
+									"id": "label-sign-out",
+									"style": "smallButton",
+									"icon": "log-out",
+									"text": "{{t('signOutButton')}}",
+									"tooltip": "{{t('signOutButton')}} ({{computed.signOutKey}})",
+									"onClick": "signOut",
+									"height": 38
+								}
+							]
+						},
+						{
+							"id": "row-meta",
+							"type": "row",
+							"height": 20,
+							"gap": 18,
+							"alignItems": "center",
+							"anchors": {
+								"left": 0,
+								"right": 0
+							},
+							"children": [
+								{
+									"id": "label-remembered",
+									"type": "label",
+									"font": "small",
+									"height": 20,
+									"icon": "{{state.remember ? 'shield-check' : 'clock-3'}}",
+									"textColor": "@color.muted",
+									"text": "{{state.remember ? t('staysSignedIn') : t('signedOutOnClose')}}",
+									"fitText": true
 								},
 								{
 									"id": "label-provider",
@@ -4800,292 +6154,994 @@
 									"type": "label",
 									"font": "small",
 									"height": 20,
-									"anchors": {
-										"left": 0,
-										"right": 10
-									},
 									"icon": "key-round",
 									"textColor": "@color.muted",
-									"text": "{{t('signedInWith')}}"
+									"text": "{{t('signedInWith')}}",
+									"fitText": true
 								},
 								{
-									"id": "label-remembered",
+									"id": "session",
 									"type": "label",
 									"font": "small",
+									"fitText": true,
 									"height": 20,
-									"anchors": {
-										"left": 0,
-										"right": 10
-									},
-									"icon": "{{state.remember ? 'shield-check' : 'clock-3'}}",
-									"textColor": "@color.muted",
-									"text": "{{state.remember ? t('staysSignedIn') : t('signedOutOnClose')}}"
+									"icon": "timer",
+									"role": "timer",
+									"textColor": "{{state.session.left <= 60 ? '@color.error' : '@color.muted'}}",
+									"text": "{{t('sessionEnds', { time: computed.sessionTime })}}"
 								},
 								{
-									"id": "row-session",
-									"type": "row",
+									"id": "staySignedIn",
+									"when": "{{state.session.left <= 60}}",
+									"style": "smallLink",
 									"height": 20,
-									"gap": 10,
-									"alignItems": "center",
-									"anchors": {
-										"left": 0,
-										"right": 10
+									"text": "{{t('stay')}}",
+									"onClick": "staySignedIn"
+								}
+							]
+						},
+						{
+							"id": "divider",
+							"style": "divider"
+						},
+						{
+							"id": "navRow",
+							"when": "{{!computed.wide}}",
+							"type": "row",
+							"height": 46,
+							"gap": 4,
+							"role": "tablist",
+							"label": "{{t('accountSections')}}",
+							"arrows": "horizontal",
+							"scroll": "horizontal",
+							"anchors": {
+								"left": 0,
+								"right": 0
+							},
+							"children": [
+								{
+									"id": "navChip",
+									"repeat": {
+										"for": "s",
+										"in": "computed.sections"
 									},
-									"children": [
-										{
-											"id": "session",
-											"type": "label",
-											"font": "small",
-											"fitText": true,
-											"height": 20,
-											"icon": "timer",
-											"role": "timer",
-											"textColor": "{{state.session.left <= 60 ? '@color.error' : '@color.muted'}}",
-											"text": "{{t('sessionEnds', { time: computed.sessionTime })}}"
-										},
-										{
-											"id": "staySignedIn",
-											"when": "{{state.session.left <= 60}}",
-											"style": "smallLink",
-											"height": 20,
-											"text": "{{t('stay')}}",
-											"onClick": "staySignedIn"
-										}
-									]
-								},
-								{
-									"id": "label-account-name",
-									"style": "fieldLabel",
-									"text": "{{t('name')}}"
-								},
-								{
-									"id": "account-name",
-									"use": "checkedField",
+									"use": "navItem",
 									"with": {
-										"submit": "saveProfile",
-										"bind": "state.profile.name",
-										"content": "{{state.profile.name}}",
-										"key": "accountName",
-										"icon": "user",
-										"name": "{{t('name')}}",
-										"placeholder": "{{t('namePlaceholder')}}",
-										"valid": "{{length(trim(state.profile.name)) > 0}}",
-										"message": "{{t('enterName')}}",
-										"submitted": "{{state.profile.submitted}}",
-										"maxLength": 60
+										"name": "{{s.name}}",
+										"icon": "{{s.icon}}",
+										"wide": false
 									}
-								},
+								}
+							],
+							"alignItems": "start"
+						},
+						{
+							"id": "row-body",
+							"type": "row",
+							"grow": 1,
+							"gap": 24,
+							"alignItems": "stretch",
+							"anchors": {
+								"left": 0,
+								"right": 0
+							},
+							"children": [
 								{
-									"id": "label-account-email",
-									"style": "fieldLabel",
-									"text": "{{t('email')}}"
-								},
-								{
-									"id": "account-email",
-									"use": "checkedField",
-									"with": {
-										"submit": "saveProfile",
-										"bind": "state.profile.email",
-										"content": "{{state.profile.email}}",
-										"key": "accountEmail",
-										"icon": "mail",
-										"name": "{{t('email')}}",
-										"placeholder": "{{t('emailPlaceholder')}}",
-										"valid": "{{isEmail(trim(state.profile.email))}}",
-										"message": "{{t('enterEmail')}}",
-										"submitted": "{{state.profile.submitted}}",
-										"maxLength": 254
-									}
-								},
-								{
-									"id": "row-account-buttons",
-									"type": "row",
-									"height": 46,
-									"gap": 8,
-									"anchors": {
-										"left": 0,
-										"right": 10
-									},
+									"id": "navColumn",
+									"when": "{{computed.wide}}",
+									"type": "column",
+									"width": 196,
+									"gap": 2,
+									"role": "tablist",
+									"label": "{{t('accountSections')}}",
+									"arrows": "vertical",
 									"children": [
 										{
-											"id": "saveProfile",
-											"style": "primary",
-											"anchors": {},
-											"grow": 1,
-											"icon": "{{state.busy == 'save' ? 'loader' : 'save'}}",
-											"text": "{{state.busy == 'save' ? computed.busyText : t('saveChanges')}}",
-											"disabled": "{{state.busy != ''}}",
-											"onClick": "saveProfile"
-										},
-										{
-											"id": "changePassword",
-											"when": "{{!state.user.provider}}",
-											"style": "secondary",
-											"anchors": {},
-											"grow": 1,
-											"icon": "key-round",
-											"text": "{{t('changePassword')}}",
-											"isOpen": "{{state.change.open}}",
-											"onClick": "openChange"
-										}
-									]
-								},
-								{
-									"id": "row-two-step",
-									"type": "row",
-									"height": 36,
-									"gap": 12,
-									"alignItems": "center",
-									"anchors": {
-										"left": 0,
-										"right": 10
-									},
-									"children": [
-										{
-											"id": "twoStep",
-											"type": "toggle",
-											"width": 44,
-											"height": 24,
-											"role": "switch",
-											"focusable": true,
-											"label": "{{t('twoStep')}}",
-											"description": "{{t('twoStepState', { on: state.user.twoStep })}}",
-											"checked": "{{state.user.twoStep}}",
-											"activeColor": "@color.accent",
-											"trackColor": "@color.border",
-											"onChange": {
-												"run": "setTwoStep",
-												"with": {
-													"on": "{{event.value}}"
-												}
+											"id": "nav",
+											"repeat": {
+												"for": "s",
+												"in": "computed.sections"
 											},
-											"keys": {
-												"space": {
-													"run": "setTwoStep",
-													"with": {
-														"on": "{{!state.user.twoStep}}"
-													}
-												},
-												"enter": {
-													"run": "setTwoStep",
-													"with": {
-														"on": "{{!state.user.twoStep}}"
-													}
-												}
+											"use": "navItem",
+											"with": {
+												"name": "{{s.name}}",
+												"icon": "{{s.icon}}",
+												"wide": true
 											}
-										},
+										}
+									]
+								},
+								{
+									"id": "sectionPanel",
+									"type": "column",
+									"grow": 1,
+									"gap": 10,
+									"scroll": "vertical",
+									"children": [
 										{
-											"id": "column-two-step",
+											"id": "section-profile",
+											"when": "{{state.section == 'profile'}}",
 											"type": "column",
-											"grow": 1,
-											"height": 36,
+											"fit": true,
+											"gap": 10,
+											"anchors": {
+												"left": 0,
+												"right": 0
+											},
+											"role": "tabpanel",
+											"label": "{{t('section_profile')}}",
 											"children": [
 												{
-													"id": "label-two-step-name",
-													"style": "fieldLabel",
-													"text": "{{t('twoStep')}}"
+													"id": "header-profile",
+													"use": "sectionHeader",
+													"with": {
+														"name": "profile"
+													}
 												},
 												{
-													"id": "label-two-step-state",
+													"id": "row-photo",
+													"type": "row",
+													"height": 64,
+													"gap": 16,
+													"alignItems": "center",
+													"anchors": {
+														"left": 0,
+														"right": 10
+													},
+													"children": [
+														{
+															"id": "avatarLarge",
+															"type": "label",
+															"font": "title",
+															"text": "{{computed.initials}}",
+															"width": 64,
+															"height": 64,
+															"radius": 999,
+															"align": "center",
+															"color": "{{computed.avatarColor}}",
+															"textColor": "{{computed.avatarText}}",
+															"role": "img",
+															"label": "{{t('photo')}}"
+														},
+														{
+															"id": "column-photo",
+															"type": "column",
+															"grow": 1,
+															"height": 42,
+															"gap": 2,
+															"children": [
+																{
+																	"id": "label-photo",
+																	"style": "itemTitle",
+																	"text": "{{t('photo')}}"
+																},
+																{
+																	"id": "changePhoto",
+																	"style": "smallLink",
+																	"height": 20,
+																	"text": "{{t('changePhoto')}}",
+																	"onClick": {
+																		"toggle": "state.photoOpen"
+																	},
+																	"isOpen": "{{state.photoOpen}}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"id": "label-account-name",
+													"style": "fieldLabel",
+													"text": "{{t('name')}}"
+												},
+												{
+													"id": "account-name",
+													"use": "checkedField",
+													"with": {
+														"submit": "saveProfile",
+														"bind": "state.profile.name",
+														"content": "{{state.profile.name}}",
+														"key": "accountName",
+														"icon": "user",
+														"name": "{{t('name')}}",
+														"placeholder": "{{t('namePlaceholder')}}",
+														"valid": "{{length(trim(state.profile.name)) > 0}}",
+														"message": "{{t('enterName')}}",
+														"submitted": "{{state.profile.submitted}}",
+														"maxLength": 60
+													}
+												},
+												{
+													"id": "usernameLine",
+													"when": "{{(state.user.username ?? '') != ''}}",
 													"style": "hint",
-													"text": "{{t('twoStepState', { on: state.user.twoStep })}}"
+													"icon": "at-sign",
+													"text": "{{t('usernameIs', { name: state.user.username })}}"
+												},
+												{
+													"id": "row-account-buttons",
+													"type": "row",
+													"height": 42,
+													"anchors": {
+														"left": 0,
+														"right": 10
+													},
+													"children": [
+														{
+															"id": "saveProfile",
+															"style": "primary",
+															"anchors": {},
+															"icon": "{{state.busy == 'save' ? 'loader' : 'save'}}",
+															"text": "{{state.busy == 'save' ? computed.busyText : t('saveChanges')}}",
+															"disabled": "{{state.busy != ''}}",
+															"onClick": "saveProfile",
+															"width": 200,
+															"height": 42
+														}
+													]
+												}
+											]
+										},
+										{
+											"id": "section-emails",
+											"when": "{{state.section == 'emails'}}",
+											"type": "column",
+											"fit": true,
+											"gap": 10,
+											"anchors": {
+												"left": 0,
+												"right": 0
+											},
+											"role": "tabpanel",
+											"label": "{{t('section_emails')}}",
+											"children": [
+												{
+													"id": "header-emails",
+													"use": "sectionHeader",
+													"with": {
+														"name": "emails"
+													}
+												},
+												{
+													"id": "emailRow",
+													"repeat": {
+														"for": "em",
+														"in": "state.emails",
+														"key": "{{em.address}}"
+													},
+													"use": "itemRow",
+													"with": {
+														"icon": "{{em.verified ? 'mail-check' : 'mail-warning'}}",
+														"title": "{{em.address}}",
+														"hint": "{{em.primary ? t('emailsHint') : em.verified ? t('verified') : em.sent ? t('linkSentHint') : t('unverified')}}"
+													},
+													"children": [
+														{
+															"id": "badge-primary",
+															"when": "{{em.primary}}",
+															"style": "badge",
+															"text": "{{t('primary')}}"
+														},
+														{
+															"id": "badge-unverified",
+															"when": "{{!em.verified}}",
+															"style": "badgeWarn",
+															"text": "{{em.sent ? t('linkSentBadge') : t('unverified')}}"
+														},
+														{
+															"id": "verifyEmail",
+															"style": "smallLink",
+															"height": 20,
+															"text": "{{t('verifyEmail')}}",
+															"onClick": {
+																"run": "verifyEmail",
+																"with": {
+																	"address": "{{em.address}}"
+																}
+															},
+															"when": "{{!em.verified && !em.sent}}",
+															"label": "{{t('verifyEmail') + ' ' + em.address}}"
+														},
+														{
+															"id": "makePrimary",
+															"style": "smallLink",
+															"height": 20,
+															"text": "{{t('makePrimary')}}",
+															"onClick": {
+																"run": "makePrimary",
+																"with": {
+																	"address": "{{em.address}}"
+																}
+															},
+															"when": "{{em.verified && !em.primary}}",
+															"label": "{{t('makePrimary') + ': ' + em.address}}"
+														},
+														{
+															"id": "removeEmail",
+															"style": "smallLink",
+															"height": 20,
+															"text": "{{t('remove')}}",
+															"onClick": {
+																"run": "removeEmail",
+																"with": {
+																	"address": "{{em.address}}"
+																}
+															},
+															"when": "{{!em.primary}}",
+															"label": "{{t('remove') + ' ' + em.address}}"
+														}
+													]
+												},
+												{
+													"id": "addEmail",
+													"style": "smallButton",
+													"icon": "plus",
+													"text": "{{t('addEmail')}}",
+													"onClick": "openAddEmail",
+													"when": "{{!state.newEmail.open && length(state.emails) < 5}}"
+												},
+												{
+													"id": "newEmailForm",
+													"when": "{{state.newEmail.open}}",
+													"type": "column",
+													"fit": true,
+													"gap": 8,
+													"anchors": {
+														"left": 0,
+														"right": 0
+													},
+													"children": [
+														{
+															"id": "label-new-email",
+															"style": "fieldLabel",
+															"text": "{{t('newEmail')}}"
+														},
+														{
+															"id": "newEmailField",
+															"use": "checkedField",
+															"with": {
+																"submit": "addEmail",
+																"bind": "state.newEmail.address",
+																"content": "{{state.newEmail.address}}",
+																"key": "newEmail",
+																"icon": "mail-plus",
+																"name": "{{t('newEmail')}}",
+																"placeholder": "{{t('emailPlaceholder')}}",
+																"valid": "{{computed.newEmailError == ''}}",
+																"message": "{{t('emailError', { kind: computed.newEmailError })}}",
+																"submitted": "{{state.newEmail.submitted}}",
+																"maxLength": 254
+															}
+														},
+														{
+															"id": "row-new-email",
+															"type": "row",
+															"height": 34,
+															"gap": 8,
+															"anchors": {
+																"left": 0,
+																"right": 10
+															},
+															"children": [
+																{
+																	"id": "addEmailButton",
+																	"style": "primary",
+																	"anchors": {},
+																	"height": 34,
+																	"font": "small",
+																	"padding": 12,
+																	"fitText": true,
+																	"shadow": {
+																		"color": "#00000000"
+																	},
+																	"icon": "{{state.busy == 'verifyEmail' ? 'loader' : 'plus'}}",
+																	"text": "{{state.busy == 'verifyEmail' ? computed.busyText : t('add')}}",
+																	"disabled": "{{state.busy != ''}}",
+																	"onClick": "addEmail"
+																},
+																{
+																	"id": "cancelEmail",
+																	"style": "smallButton",
+																	"text": "{{t('cancel')}}",
+																	"onClick": "closeAddEmail"
+																}
+															]
+														}
+													]
+												}
+											]
+										},
+										{
+											"id": "section-security",
+											"when": "{{state.section == 'security'}}",
+											"type": "column",
+											"fit": true,
+											"gap": 10,
+											"anchors": {
+												"left": 0,
+												"right": 0
+											},
+											"role": "tabpanel",
+											"label": "{{t('section_security')}}",
+											"children": [
+												{
+													"id": "header-security",
+													"use": "sectionHeader",
+													"with": {
+														"name": "security"
+													}
+												},
+												{
+													"id": "passwordRow",
+													"use": "itemRow",
+													"with": {
+														"icon": "key-round",
+														"title": "{{t('password')}}",
+														"hint": "{{state.user.provider ? t('providerPassword') : t('passwordAge', { n: computed.passwordDays })}}"
+													},
+													"children": [
+														{
+															"id": "changePassword",
+															"when": "{{!state.user.provider}}",
+															"style": "smallButton",
+															"anchors": {},
+															"icon": "key-round",
+															"text": "{{t('changePassword')}}",
+															"isOpen": "{{state.change.open}}",
+															"onClick": "openChange"
+														}
+													]
+												},
+												{
+													"id": "twoStepBox",
+													"type": "column",
+													"fit": true,
+													"gap": 8,
+													"padding": 12,
+													"radius": "@radius.field",
+													"color": "@color.input",
+													"borderWidth": 1,
+													"borderColor": "@color.border",
+													"anchors": {
+														"left": 0,
+														"right": 10
+													},
+													"children": [
+														{
+															"id": "row-two-step",
+															"type": "row",
+															"height": 36,
+															"gap": 12,
+															"alignItems": "center",
+															"anchors": {
+																"left": 0,
+																"right": 10
+															},
+															"children": [
+																{
+																	"id": "twoStep",
+																	"type": "toggle",
+																	"width": 44,
+																	"height": 24,
+																	"role": "switch",
+																	"focusable": true,
+																	"label": "{{t('twoStep')}}",
+																	"description": "{{t('twoStepState', { on: state.user.twoStep })}}",
+																	"checked": "{{state.user.twoStep}}",
+																	"activeColor": "@color.accent",
+																	"trackColor": "@color.border",
+																	"onChange": {
+																		"run": "setTwoStep",
+																		"with": {
+																			"on": "{{event.value}}"
+																		}
+																	},
+																	"keys": {
+																		"space": {
+																			"run": "setTwoStep",
+																			"with": {
+																				"on": "{{!state.user.twoStep}}"
+																			}
+																		},
+																		"enter": {
+																			"run": "setTwoStep",
+																			"with": {
+																				"on": "{{!state.user.twoStep}}"
+																			}
+																		}
+																	}
+																},
+																{
+																	"id": "column-two-step",
+																	"type": "column",
+																	"grow": 1,
+																	"height": 36,
+																	"children": [
+																		{
+																			"id": "label-two-step-name",
+																			"style": "fieldLabel",
+																			"text": "{{t('twoStep')}}"
+																		},
+																		{
+																			"id": "label-two-step-state",
+																			"style": "hint",
+																			"text": "{{t('twoStepState', { on: state.user.twoStep })}}"
+																		}
+																	]
+																}
+															]
+														},
+														{
+															"id": "row-backup",
+															"when": "{{state.user.twoStep}}",
+															"type": "row",
+															"height": 18,
+															"gap": 12,
+															"alignItems": "center",
+															"anchors": {
+																"left": 0,
+																"right": 10
+															},
+															"children": [
+																{
+																	"id": "backupLeft",
+																	"style": "hint",
+																	"icon": "key-round",
+																	"grow": 1,
+																	"anchors": {},
+																	"text": "{{t('backupLeft', { n: length(state.backupCodes) })}}"
+																},
+																{
+																	"id": "newCodes",
+																	"style": "smallLink",
+																	"text": "{{t('newCodes')}}",
+																	"onClick": "newCodes"
+																}
+															]
+														},
+														{
+															"id": "label-trusted",
+															"when": "{{state.user.twoStep}}",
+															"style": "fieldLabel",
+															"text": "{{t('trustedDevices')}}"
+														},
+														{
+															"id": "row-trusted",
+															"when": "{{state.user.twoStep}}",
+															"repeat": {
+																"for": "dv",
+																"in": "computed.myTrusted",
+																"index": "i",
+																"key": "{{dv.device}}"
+															},
+															"type": "row",
+															"height": 18,
+															"gap": 12,
+															"alignItems": "center",
+															"anchors": {
+																"left": 0,
+																"right": 10
+															},
+															"children": [
+																{
+																	"id": "trusted-name",
+																	"style": "hint",
+																	"grow": 1,
+																	"anchors": {},
+																	"icon": "{{dv.device == 'phone' ? 'smartphone' : 'laptop'}}",
+																	"text": "{{t('device_' + dv.device) + '  ·  ' + t('trustedDays', { n: dv.days })}}"
+																},
+																{
+																	"id": "trusted-remove",
+																	"style": "smallLink",
+																	"text": "{{t('removeDevice')}}",
+																	"label": "{{t('removeDevice') + ' ' + t('device_' + dv.device)}}",
+																	"onClick": {
+																		"run": "removeTrusted",
+																		"with": {
+																			"device": "{{dv.device}}"
+																		}
+																	}
+																}
+															]
+														},
+														{
+															"id": "noTrusted",
+															"when": "{{state.user.twoStep && length(computed.myTrusted) == 0}}",
+															"style": "hint",
+															"text": "{{t('noTrusted')}}"
+														}
+													],
+													"alignItems": "stretch"
+												},
+												{
+													"id": "label-passkeys",
+													"style": "fieldLabel",
+													"text": "{{t('passkeys')}}",
+													"role": "heading"
+												},
+												{
+													"id": "passkeysCaption",
+													"style": "hint",
+													"text": "{{t('passkeysCaption')}}"
+												},
+												{
+													"id": "passkeyRow",
+													"repeat": {
+														"for": "pk",
+														"in": "state.myPasskeys",
+														"key": "{{pk.id}}"
+													},
+													"use": "itemRow",
+													"with": {
+														"icon": "fingerprint-pattern",
+														"title": "{{t('device_' + pk.device)}}",
+														"hint": "{{pk.used < 0 ? t('passkeyNew', { added: t('daysAgo', { n: pk.added }) }) : t('passkeyLine', { added: t('daysAgo', { n: pk.added }), used: t('daysAgo', { n: pk.used }) })}}"
+													},
+													"children": [
+														{
+															"id": "removePasskey",
+															"style": "smallLink",
+															"height": 20,
+															"text": "{{t('remove')}}",
+															"onClick": {
+																"run": "removePasskey",
+																"with": {
+																	"id": "{{pk.id}}"
+																}
+															},
+															"label": "{{t('remove') + ' ' + t('device_' + pk.device)}}"
+														}
+													]
+												},
+												{
+													"id": "noPasskeys",
+													"when": "{{length(state.myPasskeys) == 0}}",
+													"style": "hint",
+													"icon": "fingerprint-pattern",
+													"text": "{{t('noPasskeys')}}"
+												},
+												{
+													"id": "addPasskey",
+													"style": "smallButton",
+													"icon": "{{state.busy == 'passkey' ? 'loader' : 'plus'}}",
+													"text": "{{state.busy == 'passkey' ? computed.busyText : t('addPasskey')}}",
+													"onClick": "addPasskey",
+													"when": "{{length(state.myPasskeys) < 5}}",
+													"disabled": "{{state.busy != ''}}"
+												}
+											]
+										},
+										{
+											"id": "section-devices",
+											"when": "{{state.section == 'devices'}}",
+											"type": "column",
+											"fit": true,
+											"gap": 10,
+											"anchors": {
+												"left": 0,
+												"right": 0
+											},
+											"role": "tabpanel",
+											"label": "{{t('section_devices')}}",
+											"children": [
+												{
+													"id": "header-devices",
+													"use": "sectionHeader",
+													"with": {
+														"name": "devices"
+													}
+												},
+												{
+													"id": "sessionRow",
+													"repeat": {
+														"for": "ss",
+														"in": "state.sessions",
+														"key": "{{ss.id}}"
+													},
+													"use": "itemRow",
+													"with": {
+														"icon": "{{computed.deviceIcons[ss.device]}}",
+														"title": "{{t('device_' + ss.device) + '  ·  ' + t('app_' + ss.app)}}",
+														"hint": "{{ss.place + '  ·  ' + (ss.id == 'here' ? t('activeNow') : t('lastActive', { when: t('daysAgo', { n: ss.days }) }))}}"
+													},
+													"children": [
+														{
+															"id": "badge-here",
+															"when": "{{ss.id == 'here'}}",
+															"style": "badge",
+															"text": "{{t('thisDevice')}}"
+														},
+														{
+															"id": "signOutSession",
+															"style": "smallLink",
+															"height": 20,
+															"text": "{{t('signOutDevice')}}",
+															"onClick": {
+																"run": "signOutSession",
+																"with": {
+																	"id": "{{ss.id}}"
+																}
+															},
+															"when": "{{ss.id != 'here'}}",
+															"label": "{{t('signOutDevice') + ': ' + t('device_' + ss.device)}}"
+														}
+													]
+												},
+												{
+													"id": "signOutOthers",
+													"style": "smallButton",
+													"icon": "{{state.busy == 'devices' ? 'loader' : 'log-out'}}",
+													"text": "{{state.busy == 'devices' ? computed.busyText : t('signOutOthers')}}",
+													"onClick": "signOutOthers",
+													"when": "{{length(state.sessions) > 1}}",
+													"disabled": "{{state.busy != ''}}"
+												},
+												{
+													"id": "onlyThisDevice",
+													"when": "{{length(state.sessions) <= 1}}",
+													"style": "hint",
+													"icon": "shield-check",
+													"text": "{{t('onlyThisDevice')}}"
+												}
+											]
+										},
+										{
+											"id": "section-connected",
+											"when": "{{state.section == 'connected'}}",
+											"type": "column",
+											"fit": true,
+											"gap": 10,
+											"anchors": {
+												"left": 0,
+												"right": 0
+											},
+											"role": "tabpanel",
+											"label": "{{t('section_connected')}}",
+											"children": [
+												{
+													"id": "header-connected",
+													"use": "sectionHeader",
+													"with": {
+														"name": "connected"
+													}
+												},
+												{
+													"id": "providerRow",
+													"repeat": {
+														"for": "pv",
+														"in": "computed.providers",
+														"key": "{{pv.name}}"
+													},
+													"use": "itemRow",
+													"with": {
+														"icon": "{{pv.icon}}",
+														"title": "{{t('provider_' + pv.name)}}",
+														"hint": "{{some(state.connected, it.provider == pv.name) ? t('connectedAs', { account: find(state.connected, it.provider == pv.name).account }) : t('notConnected')}}"
+													},
+													"children": [
+														{
+															"id": "connectProvider",
+															"style": "smallButton",
+															"icon": "{{state.busy == 'connect' && state.target == pv.name ? 'loader' : 'link'}}",
+															"text": "{{t('connect')}}",
+															"onClick": {
+																"run": "connectProvider",
+																"with": {
+																	"provider": "{{pv.name}}"
+																}
+															},
+															"when": "{{!some(state.connected, it.provider == pv.name)}}",
+															"disabled": "{{state.busy != ''}}",
+															"label": "{{t('connect') + ' ' + t('provider_' + pv.name)}}"
+														},
+														{
+															"id": "disconnectProvider",
+															"style": "smallButton",
+															"icon": "link-2-off",
+															"text": "{{t('disconnect')}}",
+															"onClick": {
+																"run": "disconnectProvider",
+																"with": {
+																	"provider": "{{pv.name}}"
+																}
+															},
+															"when": "{{some(state.connected, it.provider == pv.name)}}",
+															"label": "{{t('disconnect') + ' ' + t('provider_' + pv.name)}}"
+														}
+													]
+												}
+											]
+										},
+										{
+											"id": "section-activity",
+											"when": "{{state.section == 'activity'}}",
+											"type": "column",
+											"fit": true,
+											"gap": 10,
+											"anchors": {
+												"left": 0,
+												"right": 0
+											},
+											"role": "tabpanel",
+											"label": "{{t('section_activity')}}",
+											"children": [
+												{
+													"id": "header-activity",
+													"use": "sectionHeader",
+													"with": {
+														"name": "activity"
+													}
+												},
+												{
+													"id": "eventRow",
+													"repeat": {
+														"for": "ev",
+														"in": "state.log",
+														"index": "i"
+													},
+													"use": "itemRow",
+													"with": {
+														"icon": "{{computed.eventIcons[ev.kind] ?? 'shield'}}",
+														"title": "{{t('event', { kind: ev.kind })}}",
+														"hint": "{{t('eventLine', { when: ev.days > 0 ? t('daysAgo', { n: ev.days }) : t('minutesAgo', { n: floor(max(0, state.clock - ev.at) / 60) }), device: t('device_' + ev.device), place: ev.place })}}"
+													},
+													"children": [
+														{
+															"id": "notYou",
+															"style": "smallLink",
+															"height": 20,
+															"text": "{{t('notYouLink')}}",
+															"onClick": "openChange",
+															"when": "{{ev.kind == 'signInBlocked' && !state.user.provider}}"
+														}
+													]
+												}
+											]
+										},
+										{
+											"id": "section-data",
+											"when": "{{state.section == 'data'}}",
+											"type": "column",
+											"fit": true,
+											"gap": 10,
+											"anchors": {
+												"left": 0,
+												"right": 0
+											},
+											"role": "tabpanel",
+											"label": "{{t('section_data')}}",
+											"children": [
+												{
+													"id": "header-data",
+													"use": "sectionHeader",
+													"with": {
+														"name": "data"
+													}
+												},
+												{
+													"id": "deleteWarning",
+													"type": "label",
+													"font": "small",
+													"icon": "alert-triangle",
+													"wrap": true,
+													"padding": 12,
+													"radius": 8,
+													"height": 62,
+													"color": "@color.errorSoft",
+													"textColor": "@color.error",
+													"anchors": {
+														"left": 0,
+														"right": 10
+													},
+													"text": "{{t('deleteText')}}"
+												},
+												{
+													"id": "row-delete",
+													"type": "row",
+													"height": 42,
+													"anchors": {
+														"left": 0,
+														"right": 10
+													},
+													"children": [
+														{
+															"id": "deleteAccount",
+															"style": "danger",
+															"anchors": {},
+															"width": 200,
+															"height": 42,
+															"icon": "trash-2",
+															"text": "{{t('deleteButton')}}",
+															"isOpen": "{{state.deleting.open}}",
+															"onClick": "openDelete"
+														}
+													]
 												}
 											]
 										}
 									]
-								},
-								{
-									"id": "row-backup",
-									"when": "{{state.user.twoStep}}",
-									"type": "row",
-									"height": 18,
-									"gap": 12,
-									"alignItems": "center",
-									"anchors": {
-										"left": 0,
-										"right": 10
-									},
-									"children": [
-										{
-											"id": "backupLeft",
-											"style": "hint",
-											"icon": "key-round",
-											"grow": 1,
-											"anchors": {},
-											"text": "{{t('backupLeft', { n: length(state.backupCodes) })}}"
-										},
-										{
-											"id": "newCodes",
-											"style": "smallLink",
-											"text": "{{t('newCodes')}}",
-											"onClick": "newCodes"
-										}
-									]
-								},
-								{
-									"id": "label-trusted",
-									"when": "{{state.user.twoStep}}",
-									"style": "fieldLabel",
-									"text": "{{t('trustedDevices')}}"
-								},
-								{
-									"id": "row-trusted",
-									"when": "{{state.user.twoStep}}",
-									"repeat": {
-										"for": "dv",
-										"in": "computed.myTrusted",
-										"index": "i",
-										"key": "{{dv.device}}"
-									},
-									"type": "row",
-									"height": 18,
-									"gap": 12,
-									"alignItems": "center",
-									"anchors": {
-										"left": 0,
-										"right": 10
-									},
-									"children": [
-										{
-											"id": "trusted-name",
-											"style": "hint",
-											"grow": 1,
-											"anchors": {},
-											"icon": "{{dv.device == 'phone' ? 'smartphone' : 'laptop'}}",
-											"text": "{{t('device_' + dv.device) + '  ·  ' + t('trustedDays', { n: dv.days })}}"
-										},
-										{
-											"id": "trusted-remove",
-											"style": "smallLink",
-											"text": "{{t('removeDevice')}}",
-											"label": "{{t('removeDevice') + ' ' + t('device_' + dv.device)}}",
-											"onClick": {
-												"run": "removeTrusted",
-												"with": {
-													"device": "{{dv.device}}"
-												}
-											}
-										}
-									]
-								},
-								{
-									"id": "noTrusted",
-									"when": "{{state.user.twoStep && length(computed.myTrusted) == 0}}",
-									"style": "hint",
-									"text": "{{t('noTrusted')}}"
-								},
-								{
-									"id": "label-sign-out",
-									"style": "secondary",
-									"icon": "log-out",
-									"text": "{{t('signOutButton')}}",
-									"tooltip": "{{t('signOutButton')}} ({{computed.signOutKey}})",
-									"onClick": "signOut"
 								}
 							]
 						}
-					],
-					"maxHeight": "{{window.height - 116}}"
+					]
+				},
+				{
+					"id": "photoPopover",
+					"use": "popover",
+					"with": {
+						"open": "state.photoOpen",
+						"anchor": "#changePhoto",
+						"title": "{{t('photoTitle')}}",
+						"text": "{{t('photoText')}}",
+						"width": 290,
+						"height": 112,
+						"color": "@color.surface",
+						"textColor": "@color.text",
+						"dimColor": "@color.muted"
+					},
+					"children": [
+						{
+							"id": "swatches",
+							"type": "row",
+							"gap": 8,
+							"height": 30,
+							"role": "radiogroup",
+							"label": "{{t('photoTitle')}}",
+							"arrows": "horizontal",
+							"anchors": {
+								"left": 12,
+								"right": 12,
+								"top": 64
+							},
+							"children": [
+								{
+									"id": "swatch",
+									"repeat": {
+										"for": "c",
+										"in": "{{range(7)}}"
+									},
+									"type": "label",
+									"width": 30,
+									"height": 30,
+									"radius": 999,
+									"cursor": "hand",
+									"focusable": true,
+									"role": "radio",
+									"text": "",
+									"font": "iconsSmall",
+									"align": "center",
+									"icon": "{{(state.user.avatar ?? 0) == c ? 'check' : ''}}",
+									"label": "{{c == 0 ? t('photoColor', { n: 1 }) : t('photoColor', { n: c + 1 })}}",
+									"selected": "{{(state.user.avatar ?? 0) == c}}",
+									"color": "{{c == 0 ? '@color.accentSoft' : '@color.avatar' + c}}",
+									"textColor": "{{c == 0 ? '@color.accent' : '@color.avatarText'}}",
+									"borderWidth": "{{(state.user.avatar ?? 0) == c ? 2 : 0}}",
+									"borderColor": "@color.text",
+									"onClick": {
+										"run": "setAvatar",
+										"with": {
+											"color": "{{c}}"
+										}
+									},
+									"keys": {
+										"enter": {
+											"run": "setAvatar",
+											"with": {
+												"color": "{{c}}"
+											}
+										},
+										"space": {
+											"run": "setAvatar",
+											"with": {
+												"color": "{{c}}"
+											}
+										}
+									}
+								}
+							]
+						}
+					]
 				}
 			]
 		}
@@ -5687,6 +7743,67 @@
 							"left": 22,
 							"right": 20,
 							"top": "{{state.showPassword ? 162 : 208}}"
+						}
+					}
+				]
+			},
+			{
+				"id": "deleteDialog",
+				"dir": "auto",
+				"use": "dialog",
+				"with": {
+					"open": "state.deleting.open",
+					"title": "{{t('deleteDialogTitle', { email: state.user.email })}}",
+					"message": "{{t('deleteDialogMessage', { word: computed.deleteWord })}}",
+					"width": "{{min(420, window.width - 32)}}",
+					"height": "{{state.deleting.error == '' ? 196 : 218}}",
+					"color": "@color.surface",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.error",
+					"backdrop": "@color.backdrop",
+					"buttons": [
+						{
+							"title": "{{t('deleteForever')}}",
+							"run": "confirmDelete"
+						},
+						{
+							"title": "{{t('cancel')}}",
+							"run": "closeDelete"
+						}
+					]
+				},
+				"children": [
+					{
+						"id": "deleteConfirm",
+						"style": "field",
+						"anchors": {
+							"left": 20,
+							"right": 20,
+							"top": 76
+						},
+						"height": 38,
+						"maxLength": 32,
+						"borderColor": "{{state.deleting.error == '' ? '@color.border' : '@color.error'}}",
+						"placeholder": "{{t('deleteField', { word: computed.deleteWord })}}",
+						"label": "{{t('deleteField', { word: computed.deleteWord })}}",
+						"description": "{{state.deleting.error == '' ? '' : t('deleteError', { kind: state.deleting.error, word: computed.deleteWord })}}",
+						"bind": "state.deleting.typed",
+						"onChange": {
+							"set": "state.deleting.error",
+							"to": ""
+						},
+						"onSubmit": "confirmDelete"
+					},
+					{
+						"id": "deleteError",
+						"when": "{{state.deleting.error != ''}}",
+						"style": "inlineError",
+						"text": "{{t('deleteError', { kind: state.deleting.error, word: computed.deleteWord })}}",
+						"anchors": {
+							"left": 22,
+							"right": 20,
+							"top": 120
 						}
 					}
 				]
