@@ -59,6 +59,12 @@
 			"steps": [
 				{ "key": "mod+2" },
 				{ "expect": { "image": "energy" } },
+				{ "click": "#energyByRoom" },
+				{ "expect": { "image": "energy-room" } },
+				{ "key": "mod+l" },
+				{ "key": "mod+l" },
+				{ "expect": { "image": "energy-arabic" } },
+				{ "key": "mod+l" },
 				{ "key": "mod+comma" },
 				{ "expect": { "image": "settings" } },
 				{ "key": "mod+t" },

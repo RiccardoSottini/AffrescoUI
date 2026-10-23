@@ -154,10 +154,12 @@
 		},
 		{
 			"name": "the-room-table-picks-a-room",
-			"note": "On the Energy page, picking a row of the table picks that room",
+			"note": "On the Energy page, the By room view's table picks a room",
 			"steps": [
 				{ "key": "mod+2" },
-				{ "click": [800, 629], "note": "the Bedroom row" },
+				{ "click": "#energyByRoom" },
+				{ "expect": { "state": "energyView", "is": "room" } },
+				{ "click": [1000, 583], "note": "the Bedroom row" },
 				{ "expect": { "state": "room", "is": 2 } },
 				{ "key": "mod+1" },
 				{ "expect": { "node": "#greeting", "text": "Bedroom" } }

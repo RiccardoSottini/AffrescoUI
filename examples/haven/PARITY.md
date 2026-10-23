@@ -4,7 +4,7 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 17 done, 5 partial, 17 missing (39).
+**Counts:** 20 done, 4 partial, 15 missing (39).
 
 ## Shell
 
@@ -49,9 +49,9 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Energy page with the week and the hour | partial | the layout predates this work |
-| Energy distribution (grid, solar, home) | missing | |
-| Sources table and costs | missing | |
+| Energy page with the week and the hour | done | hourly use stacked by solar and grid; the week by day, device or room |
+| Energy distribution (grid, solar, home) | done | three nodes joined by flows, with the day's totals |
+| Sources table and costs | done | grid in and out, solar, net cost; self-use gauges and a daily budget bar |
 
 ## Automations
 
