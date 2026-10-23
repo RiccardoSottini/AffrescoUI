@@ -22,9 +22,10 @@ constexpr auto screenVariables = std::to_array<std::string_view>(
 	 "keybindings", "menus", "settings", "settingsList", "services", "connections", "auth", "requests",
 	 "peers"});
 
-/// List functions whose second argument sees each item as `it` (Expression.cpp, applyToItems()).
-constexpr auto itemOperators =
-    std::to_array<std::string_view>({"$filter", "$map", "$count", "$sum", "$find", "$some", "$every", "$sort"});
+/// List functions whose second argument sees each item as `it` (ExpressionFunctionsItems.cpp), and the folds' as well
+/// as `acc` (ExpressionFunctionsFold.cpp).
+constexpr auto itemOperators = std::to_array<std::string_view>(
+    {"$filter", "$map", "$count", "$sum", "$find", "$some", "$every", "$sort", "$reduce", "$scan"});
 
 /// Operators that give their arguments merged: lists joined, objects merged.
 constexpr auto mergingOperators = std::to_array<std::string_view>({"$concat", "$merge"});
@@ -297,11 +298,14 @@ Shape Checker::shapeOfItems(const std::string& name, const json& raw, const Scop
 	}
 	Shape list = shapeOf(raw[0], scope, place); // not const: returned, so moved
 	const Shape item = itemOf(list);
+	const bool folds = name == "$reduce" || name == "$scan";
 	const Scope each{&scope, nullptr, {{"it", item}, {"index", single}}, {}, {}};
-	const Shape result = raw.size() > 1 ? shapeOf(raw[1], each, place) : item;
-	for(std::size_t i = 2; i < raw.size(); ++i) read(raw[i], scope, place); // "desc"
+	const Scope fold{&scope, nullptr, {{"it", item}, {"index", single}, {"acc", anything}}, {}, {}};
+	const Shape result = raw.size() > 1 ? shapeOf(raw[1], folds ? fold : each, place) : item;
+	for(std::size_t i = 2; i < raw.size(); ++i) read(raw[i], scope, place); // "desc", or a fold's initial value
 	if(name == "$filter" || name == "$sort") return list;
-	if(name == "$map") return Shape::array({result});
+	if(name == "$map" || name == "$scan") return Shape::array({result});
+	if(name == "$reduce") return anything;
 	return name == "$find" ? item : single;
 }
 

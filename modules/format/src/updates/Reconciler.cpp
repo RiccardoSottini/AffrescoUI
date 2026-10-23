@@ -359,6 +359,14 @@ void Reconciler::update(bool full) {
 	// The screen an outlet shows: the first one, unless navigation chose another that still exists
 	context.keepScreen(document);
 	context.globalsChanged(); // window size, history, proposals, screen: refreshed once per update
+	// Computed values are cached per state version, and may read the window: a resize makes them stale too
+	std::string windowNow = std::to_string(window->width()) + "x" + std::to_string(window->height()) + "@" +
+	                        std::to_string(window->contentScale()) +
+	                        (window->colorScheme() == ColorScheme::Dark ? "d" : "l");
+	if(windowNow != syncedWindow_) {
+		if(!syncedWindow_.empty()) context.bumpStateVersion();
+		syncedWindow_ = std::move(windowNow);
+	}
 	context.updateTheme();
 	context.updateLocale();
 

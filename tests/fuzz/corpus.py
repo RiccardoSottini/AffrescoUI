@@ -287,6 +287,10 @@ def action_seeds():
         [{"set": "state.text", "to": "ab"}, {"while": "{{true}}", "do": [{"set": "state.text",
                                                                            "to": "{{state.text + state.text}}"}]}],
         [{"set": "state.total", "to": "{{sum(range(10000), sum(range(10000), it))}}"}],
+        [{"set": "state.text", "to": "{{reduce(range(10000), acc + acc, 'ab')}}"}],
+        [{"set": "state.total", "to": "{{pow(pow(10, 300), 300) + sqrt(pow(-1, 0.5))}}"}],
+        [{"set": "state.total", "to": "{{sum(range(10000), sin(it) * cos(pow(10, 300)))}}"}],
+        [{"set": "state.runs", "to": "{{scan(range(10000), scan(range(10000), acc + it, 0), [])}}"}],
     ]]
     return list(dict.fromkeys(seeds))
 

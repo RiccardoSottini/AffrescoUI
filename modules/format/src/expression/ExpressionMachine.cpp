@@ -172,6 +172,10 @@ Value Call::evaluateFor(std::size_t index, const Value& item, std::size_t positi
 	return machine_.runFor(node_.children[index], at_, item, position);
 }
 
+Value Call::evaluateFold(std::size_t index, const Value& item, std::size_t position, const Value& accumulator) const {
+	return machine_.runFor(node_.children[index], at_, item, position, &accumulator);
+}
+
 void Call::fail(const std::string& message) const { Machine::fail(at_, message); }
 
 void Call::appendText(std::string& text, std::string_view piece) const { Machine::appendText(text, piece, at_); }
@@ -253,10 +257,18 @@ Value Machine::run(const Node& node, const Place& place) {
 	return Value::fromObject(std::move(fields));
 }
 
-Value Machine::runFor(const Node& node, const Place& place, const Value& item, std::size_t position) {
-	const Item frame{item_, item, position};
+Value Machine::runFor(const Node& node, const Place& place, const Value& item, std::size_t position,
+                      const Value* accumulator) {
+	const Item frame{item_, item, position, accumulator};
 	const ItemScope scope(item_, frame);
 	return run(node, place);
+}
+
+const Value* Machine::accumulator() const noexcept {
+	// An inner map or filter inside a fold still sees the fold's acc
+	for(const Item* item = item_; item; item = item->parent)
+		if(item->accumulator) return item->accumulator;
+	return nullptr;
 }
 
 Value Machine::call(const Node& node, const Place& place) {
@@ -331,7 +343,7 @@ void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey
 	std::string pointer;
 	if(root == Root::Named) { // a repeat's item lying in the state reads it there; other variables never change
 		const std::string* origin = context_.locals.originOf(name);
-		if(!origin || (item_ && (name == "it" || name == "index"))) return;
+		if(!origin || (item_ && (name == "it" || name == "index")) || (name == "acc" && accumulator())) return;
 		pointer = *origin;
 	} else if(root != Root::State) {
 		return;
@@ -374,6 +386,8 @@ std::optional<Value> Machine::namedVariable(std::string_view name) const {
 	if(item_) { // a list function's `it` and `index` hide any other variable with their names
 		if(name == "it") return item_->value;
 		if(name == "index") return Value::fromInteger(static_cast<std::int64_t>(item_->index));
+		if(name == "acc")
+			if(const Value* accumulated = accumulator()) return *accumulated;
 	}
 	for(const Scope* scope = &context_.locals; scope; scope = scope->parent) {
 		const auto local = scope->vars.find(name);

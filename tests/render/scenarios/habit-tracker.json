@@ -1,38 +1,217 @@
 {
-	"format": "affrescoui-scenarios",
-	"version": 2,
-	"screens": "../../../examples/streak",
-	"scenarios": [
-		{
-			"name": "habit-tracker",
-			"screen": "habit-tracker.screen.json",
-			"steps": [
-				{ "expect": { "image": "first-frame" } },
-				{ "click": "#habit", "nth": 2 },
-				{ "expect": { "image": "habit-done" } },
-				{ "click": "#newHabit" },
-				{ "type": "Drink water" },
-				{ "key": "enter" },
-				{ "expect": { "image": "habit-added" } },
-				{ "key": "mod+shift+n" },
-				{ "wait": 50 },
-				{ "type": "Stretch" },
-				{ "click": "#swatch", "nth": 3 },
-				{ "expect": { "image": "new-habit-dialog" } },
-				{ "key": "escape" },
-				{ "click": "#deleteHabit", "nth": 1 },
-				{ "wait": 50 },
-				{ "expect": { "image": "delete-dialog" } },
-				{ "key": "escape" },
-				{ "key": "mod+j" },
-				{ "expect": { "image": "dark" } },
-				{ "key": "mod+2" },
-				{ "expect": { "image": "history" } },
-				{ "key": "mod+3" },
-				{ "expect": { "image": "notes" } },
-				{ "click": [181, 239] },
-				{ "expect": { "image": "notes-filtered" } }
-			]
-		}
-	]
+  "format": "affrescoui-scenarios",
+  "version": 2,
+  "screens": "../../../examples/streak",
+  "scenarios": [
+    {
+      "name": "habit-tracker",
+      "screen": "habit-tracker.screen.json",
+      "steps": [
+        {
+          "expect": {
+            "image": "first-frame"
+          }
+        },
+        {
+          "click": [
+            557,
+            128
+          ],
+          "note": "Meditate, eight days ago: no becomes yes"
+        },
+        {
+          "expect": {
+            "image": "checked"
+          }
+        },
+        {
+          "click": [
+            100,
+            188
+          ],
+          "note": "Run: a measurable habit with a weekly target"
+        },
+        {
+          "expect": {
+            "image": "measurable-detail"
+          }
+        },
+        {
+          "key": "shift+space"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "entry-popup"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "click": "#filterButton"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "filter-menu"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "key": "mod+e"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "edit-dialog"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "click": [
+            100,
+            248
+          ],
+          "note": "Read, then Shift+F10 (a right click) picks it; a click adds Exercise: the selection bar"
+        },
+        {
+          "key": "shift+f10"
+        },
+        {
+          "click": [
+            100,
+            308
+          ]
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "picked"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "key": "mod+shift+a",
+          "note": "the assistant chat add-on, with no agent connected"
+        },
+        {
+          "wait": 400
+        },
+        {
+          "expect": {
+            "image": "assistant"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "wait": 400
+        },
+        {
+          "key": "mod+n"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "click": "#colorButton"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "new-habit-colors"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "key": "mod+comma"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "settings"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "key": "mod+j"
+        },
+        {
+          "expect": {
+            "image": "dark"
+          }
+        },
+        {
+          "key": "mod+comma"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "click": "#languageRow"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "click": [
+            830,
+            548
+          ]
+        },
+        {
+          "wait": 50
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "expect": {
+            "image": "arabic"
+          }
+        },
+        {
+          "resize": [
+            520,
+            800
+          ]
+        },
+        {
+          "expect": {
+            "image": "narrow"
+          }
+        }
+      ]
+    }
+  ]
 }

@@ -996,9 +996,12 @@ Wherever a value is expected it can be computed:
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
-  `every(list, condition)`, `sort(list, key?, 'desc'?)`.
+  `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
+  `scan(list, expression, initial?)`.
 
-Each function is also an operator: `length(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
+`reduce` and `scan` fold a list: the expression also sees the value so far as `acc` (first `initial`, else null),
+and its result is the next one; `reduce` gives the last, `scan` every one (`scan(days, it ? acc + 1 : 0, 0)` gives the
+running streak). Each function is also an operator: `length(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
 are UTF-8: `length`, `indexOf` and `slice` count bytes, `split(text, '')` and `reverse` keep characters whole.
 `fuzzy` matches the query's characters in order, in any case, and gives null or `{ score, ranges, parts }`: `ranges`
 are the matched `[start, end]` character spans, `parts` the text cut into `{ text, match }` for highlighting.
