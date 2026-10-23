@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Tempo: a music player laid out like the desktop streaming apps people use every day. A top bar with back, forward, home and search; Your Library on the left (filters, search, sort, list, compact and grid views, pins; drag its edge to resize or collapse it); the main view (home, playlists, albums, artists, podcasts, search, lyrics) with a header in the cover's colour that turns into a bar as it scrolls; the Now Playing or queue panel on the right; the player bar at the bottom; full screen and a mini player. Track tables select with Cmd and Shift, sort by a column, reorder by dragging and open a menu on a right click. Light and dark themes, English, Italian and Arabic. Playback is simulated: no sound plays. Catalogue, art and names are invented.",
 
-	"include": ["strings.json", "catalog.json", "panels.json", "pages.json"],
+	"include": ["strings.json", "catalog.json", "panels.json", "pages.json", "../shared/addons/assistant/assistant.json"],
 
 	"window": { "title": "Tempo", "width": 1280, "height": 800, "minWidth": 960, "minHeight": 600, "focusRing": { "color": "@text", "width": 2 } },
 
@@ -68,7 +68,29 @@
 		"kit.primary": "@accent",
 		"kit.onPrimary": "@onAccent",
 		"kit.field": "@raised",
-		"kit.radius": 4
+		"kit.radius": 4,
+		"assistant.accent": "@accent",
+		"assistant.accentHover": "@accentHover",
+		"assistant.onAccent": "@onAccent",
+		"assistant.surface": "@menu",
+		"assistant.raised": "@raised",
+		"assistant.border": "@line",
+		"assistant.text": "@text",
+		"assistant.dim": "@muted",
+		"assistant.dot": "@faint"
+	},
+
+	"overlays": {
+		"assistantLauncher": {
+			"when": "{{(state.assistant.simulate.online ?? (length(peers) > 0)) || length(state.assistant.messages) > 0 || state.assistant.show}}",
+			"id": "assistantLauncher", "use": "chatLauncher", "anchors": { "right": 24, "bottom": 96 },
+			"with": {
+				"isOpen": "{{state.assistant.open}}", "run": "assistant.toggle", "unread": "{{state.assistant.unread}}",
+				"label": "{{t(state.assistant.open ? 'assistant.close' : 'assistant.open')}}", "tooltip": "{{t('assistant.shortcut')}}",
+				"color": "@assistant.accent", "hoverColor": "@assistant.accentHover", "iconColor": "@assistant.onAccent",
+				"badgeColor": "@assistant.danger", "badgeTextColor": "@assistant.onAccent"
+			}
+		}
 	},
 
 	"permissions": {

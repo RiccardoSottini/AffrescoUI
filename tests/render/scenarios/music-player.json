@@ -43,6 +43,20 @@
 				{ "key": "mod+shift+l" },
 				{ "expect": { "image": "arabic" } }
 			]
+		},
+		{
+			"name": "music-player-assistant",
+			"screen": "music-player.screen.json",
+			"note": "The assistant add-on in Tempo's colours: an agent online, the launcher above the player bar, then the panel open",
+			"steps": [
+				{ "revision": { "message": "An agent online", "set": { "/state/assistant/simulate": { "online": true, "pending": [], "working": false, "proposals": [] } } } },
+				{ "expect": { "image": "launcher" } },
+				{ "click": "#assistantLauncher" },
+				{ "wait": 250 },
+				{ "expect": { "image": "open" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "assistant.open", "is": false } }
+			]
 		}
 	]
 }
