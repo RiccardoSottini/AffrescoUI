@@ -156,7 +156,7 @@ void TextEditor::paintCarets(Painter& painter, const Font& font, const Layout& l
 			const std::size_t row = rowOf(s.caret);
 			if(row < layout.first || row >= layout.last || hidden(s.caret.line)) continue;
 			const float x = std::round(layout.textLeft + xOnRow(s.caret)), top = lineTop(layout, row);
-			painter.fillRect({x, top + 1.0f, x + 2.0f, top + lh - 1.0f}, caretColor_);
+			paintCaret(painter, font, layout, s.caret, x, top);
 		}
 
 	if(composition_.empty()) return;

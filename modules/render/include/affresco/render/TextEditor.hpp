@@ -180,6 +180,18 @@ public:
 	/// editor when pressed or dragged.
 	/// @param shown true to show it.
 	void setMinimap(bool shown);
+	/// @brief How the caret is drawn.
+	enum class CaretStyle {
+		Line,     ///< A thin bar before the character.
+		Block,    ///< A box over the character, which shows through in the background colour.
+		Underline ///< A bar under the character.
+	};
+	/// @brief Sets how the caret (and each extra one) is drawn.
+	/// @param style The style.
+	void setCaretStyle(CaretStyle style);
+	/// @brief How the caret is drawn.
+	/// @return See setCaretStyle().
+	[[nodiscard]] CaretStyle caretStyle() const noexcept { return caretStyle_; }
 
 	/* Decorations and cursors: TextEditorCursors.cpp */
 
@@ -749,6 +761,14 @@ private:
 	/// @param font The font.
 	/// @param layout The frame's layout.
 	void paintCarets(Painter& painter, const Font& font, const Layout& layout) const;
+	/// @brief Draws one caret in the caret style.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param layout The frame's layout.
+	/// @param at Where it is.
+	/// @param x Its left, on its row.
+	/// @param top Its row's top.
+	void paintCaret(Painter& painter, const Font& font, const Layout& layout, Position at, float x, float top) const;
 	/// @brief Calls a function for each row drawn that a range of lines shows.
 	/// @param layout The frame's layout.
 	/// @param from The first line.
@@ -831,6 +851,7 @@ private:
 	bool guides_ = false;        ///< See setIndentGuides().
 	std::u32string composition_; ///< See setComposition().
 	bool minimap_ = false;         ///< See setMinimap().
+	CaretStyle caretStyle_ = CaretStyle::Line; ///< See setCaretStyle().
 	bool minimapDragging_ = false; ///< A press on the minimap is scrolling.
 
 	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.

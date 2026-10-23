@@ -1769,6 +1769,20 @@
 					"composition": {
 						"description": "Text, or a {{binding}}"
 					},
+					"caretStyle": {
+						"anyOf": [
+							{
+								"enum": [
+									"line",
+									"block",
+									"underline"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"readOnly": {
 						"$ref": "#/$defs/v2/flag"
 					},
