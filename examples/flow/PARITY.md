@@ -1,0 +1,22 @@
+# Flow: parity
+
+Flow is modelled on Linear, with a board that feels like Trello's. It is a JSON screen only. Its icons are Lucide's
+and all of its data is invented. This page lists what a daily user would reach for and how far Flow has got.
+
+| Area | What a daily user reaches for | Flow | Notes |
+| --- | --- | --- | --- |
+| Sidebar | workspace, search, new issue, My issues, the team, its issues, its boards, help | done | `sidebar.json` |
+| List view | issues grouped by status, a row each: priority, id, status, title, label, due, estimate, assignee | done | `list.json`; ids are `FLO-n` |
+| List view | select a row, Enter to edit, context menu, drag a row to another group, collapse a group | done | a chevron on each group header folds its rows |
+| Issue page | full page, title, description, properties side panel, activity | done | `issue.json`; double-click or Cmd+Enter opens, Escape closes; arrows and a "3 / 12" counter step through the shown issues; coloured status and priority, the panel lists status, priority, assignee, due date and estimate without captions, then headed Labels (+ adds one), Project and Cycle sections |
+| Board | columns by status, cards with id, priority and assignee, drag and drop | done | cards show id, assignee, title, then priority, label, due and estimate chips, one-line titles on shorter cards; a status shows its limit only when over it; Space peeks in the side panel; a column's … menu adds an issue in that status or selects all of them |
+| Filter and display | view tabs, a Filter menu, a Display menu with the layouts, a new-issue composer | done | All issues, Active and Backlog tabs; Cmd+F opens a search field; F opens Filter with a "Filter…" field to type into (Enter picks the first match), its properties (status, assignee, priority, label) each opening their values, applied filters shown as "Label is bug ×" chips; Display picks board, list, table or timeline, the grouping (status, or assignee as swimlanes), the ordering (manual, priority, due date) and which properties show; C or a column's + opens the composer in that status, with a large title, a description, status, priority, assignee and label chips and Create more |
+| Workspace | a workspace menu with settings, theme and language, a facepile, toasts with Undo | done | |
+| Cmd+K | one palette for commands and going to an issue | done | Cmd+K lists commands (the selected issue's first) and issues together; Cmd+P searches issues only |
+| Keyboard | C new, J/K move, single-key property changes, G-chords | done | C, J/K, S, P, A, I (assign to me), /, Cmd+Z; G then I, A, V or P |
+| Multi-select | X, Shift+J/K, a bar for bulk status, priority, assignee and delete | done | `select.json`; Cmd+A selects every shown issue, Escape clears, each bulk change is one undo step |
+| Cycles | current cycle, scope, progress and its issues | done | `pages.json`; scope, started and completed from the board, a burn-up, the cycle's issues (a click opens one), upcoming and past cycles; G then V |
+| Projects | a project list, status and progress | partial | All, Active and Completed tabs, New project; health, lead, target date and progress; G then P. The project page with milestones and updates is missing |
+| Inbox | notifications, read and unread | done | unread count in the sidebar, a preview with the issue's status, priority, assignee and label, J/K, U read or unread, H snooze, Enter opens the issue; G then I |
+| Roadmap | projects on a timeline | partial | the Timeline view |
+| Assistant | ask for a change in plain words | done | the shared assistant add-on; Cmd+Shift+A |

@@ -97,8 +97,8 @@
 												"children": [
 													{
 														"id": "laneCard",
-														"repeat": { "for": "card", "in": "column.cards", "index": "i" },
-														"when": "{{card.who == member.who && (state.filter == 'all' || card.tag == state.filter) && (state.query == '' || fuzzy(state.query, card.title) != null)}}",
+														"repeat": { "for": "row", "in": "sort(filter(computed.allCards, it.c == c), state.order == 'priority' ? ((it.priority ?? 0) == 0 ? 9 : it.priority) : state.order == 'due' ? (it.due ?? '9999-12-31') : it.at)", "index": "k" }, "let": { "i": "{{row.at}}", "card": "{{column.cards[row.at]}}" },
+														"when": "{{card.who == member.who && contains(computed.matchRefs, card.ref)}}",
 														"type": "label",
 														"font": "small",
 														"text": "{{card.title}}",
