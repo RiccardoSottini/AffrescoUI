@@ -212,7 +212,9 @@ bool Events::runPanelKeys(Panel* from, const std::string& press, bool& waits) {
 		if(!record->keys.contains(press)) continue;
 		const json handler = record->keys[press]; // a copy: the handler may revise the document
 		const SharedScope locals = record->locals;
-		if(runBinding(handler, *p, *locals, press, record->path + ".keys." + press)) return true;
+		if(!runBinding(handler, *p, *locals, press, record->path + ".keys." + press)) continue;
+		if(p == from) p->takeKey(); // the focused node's own binding replaces the widget's meaning of the key
+		return true;
 	}
 	return false;
 }
