@@ -1035,7 +1035,8 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet"
+									"outlet",
+									"code"
 								]
 							},
 							{
@@ -1395,6 +1396,31 @@
 							}
 						],
 						"description": "visible lets the children draw and be hit outside the node"
+					},
+					"snapshot": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "object",
+								"required": [
+									"image"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"image": {
+										"type": "string"
+									},
+									"scale": {
+										"type": "number",
+										"exclusiveMinimum": 0,
+										"maximum": 4
+									}
+								}
+							}
+						],
+						"description": "Draws the node into a named image, out of the layout, instead of on the screen"
 					},
 					"rotate": {
 						"anyOf": [
@@ -3927,7 +3953,8 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet"
+									"outlet",
+									"code"
 								]
 							}
 						}
@@ -4173,6 +4200,10 @@
 						"$min",
 						"$max",
 						"$clamp",
+						"$pow",
+						"$sqrt",
+						"$sin",
+						"$cos",
 						"$sin",
 						"$cos",
 						"$tan",
