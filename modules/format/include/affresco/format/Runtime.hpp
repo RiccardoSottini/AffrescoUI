@@ -267,7 +267,8 @@ public:
 	Signal<const json&> onEvent;        ///< "emit" steps: `{"type": "event", "name", "data", "revision"}`.
 	Signal<const std::string&> onError; ///< Errors in handlers and deferred changes (also printed on stderr).
 	Signal<const std::string&, const json&> onSend; ///< "send" steps: a channel's name and the message.
-	Signal<const std::string&> onConnect;           ///< "connect" steps: a channel's name.
+	/// "connect" steps: a channel's name, and the address and token to connect it to (both empty: as declared).
+	Signal<const std::string&, const std::string&, const std::string&> onConnect;
 	Signal<> onUpdated;                             ///< The panels were brought in line with the document and state.
 	Usage usage; ///< Usage summaries (VERSION_CONTROL.md, "Usage"): off until the host switches them on, with consent.
 

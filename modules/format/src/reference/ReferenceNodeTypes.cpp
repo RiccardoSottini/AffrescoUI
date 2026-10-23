@@ -179,6 +179,14 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`\"contain\"` (the default: all of it, as large as fits, centred), `\"cover\"` (the whole node, the image's "
 	 "edges cut off) or `\"fill\"` (stretched), like CSS `object-fit`.",
 	 "image"},
+    {"highlight", R"json({"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "number"}, "minItems": 4,
+		"maxItems": 4}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "image: null, or a region [x, y, width, height] in the image's pixels to outline"})json",
+	 "`null` (the default) or `[x, y, width, height]` in the image's pixels: a region outlined over the image, e.g. a "
+	 "picture's changed part. A source starting `data:image/png;base64,` or `data:image/jpeg;base64,` is decoded "
+	 "inline, within the same limits as a file.",
+	 "image"},
+    {"highlightColor", "color", "The outline's colour.", "image"},
     {"surface", R"json({"anyOf": [{"type": "string"}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "surface: the name of a GPU surface the host registered (Screen::registerSurface)"})json",
 	 "The name of a GPU surface the host registered (`Screen::registerSurface(\"cube\", …)`). A document can only "

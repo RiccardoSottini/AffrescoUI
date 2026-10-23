@@ -24,9 +24,10 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 		broadcast({{"type", "error"}, {"message", message}, {"revision", repository.head().number}});
 	});
 	runtime.onSend.connect([this](const std::string& name, const json& message) { send(name, message); });
-	runtime.onConnect.connect([this](const std::string& name) {
+	runtime.onConnect.connect([this](const std::string& name, const std::string& address, const std::string& token) {
 		if(const auto it = channels.find(name); it != channels.end()) {
-			if(!it->second.socket && !it->second.remote) open(it->second);
+			if(!address.empty()) reconnect(it->second, address, token);
+			else if(!it->second.socket && !it->second.remote) open(it->second);
 		} else {
 			runtime.onError("AffrescoUI screen: connect: no channel '" + name + "' in \"channels\"");
 		}

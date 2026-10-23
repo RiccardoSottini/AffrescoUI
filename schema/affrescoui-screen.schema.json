@@ -3099,6 +3099,8 @@
 					"pickedTextColor": {
 						"$ref": "#/$defs/v2/color"
 					},
+					"highlight": {},
+					"highlightColor": {},
 					"syntax": {},
 					"goTo": {},
 					"buffer": {},
@@ -3162,7 +3164,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect(+to, token), patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -3233,6 +3235,7 @@
 					"progress": {},
 					"timeout": {},
 					"data": {},
+					"token": {},
 					"message": {},
 					"append": {},
 					"keep": {

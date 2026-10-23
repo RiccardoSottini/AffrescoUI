@@ -63,6 +63,27 @@ void patch(const Running& s) {
 	});
 }
 
+/// @brief Runs a "connect" step: connects a declared channel, as declared or (with "to") to another address, with an
+/// optional "token" that the program keeps in memory only.
+/// @param s The step.
+/// @throws DocumentError If "to" is empty or longer than 2,048 bytes, or "token" longer than 4,096.
+void connect(const Running& s) {
+	const json& step = s.step;
+	const std::string& where = s.where;
+	const std::string name = string(step["connect"], where + ".connect");
+	std::string address, token;
+	if(step.contains("to")) {
+		address = string(s.value(step["to"], where + ".to"), where + ".to");
+		if(address.empty() || address.size() > 2048) fail(where + ".to", "expected an address of 1 to 2,048 bytes");
+	}
+	if(step.contains("token")) {
+		if(!step.contains("to")) fail(where + ".token", "a token goes with \"to\"");
+		token = string(s.value(step["token"], where + ".token"), where + ".token");
+		if(token.size() > 4096) fail(where + ".token", "expected at most 4,096 bytes");
+	}
+	s.steps.engine().owner.onConnect(name, address, token);
+}
+
 /// @brief Runs a step that reaches outside the screen.
 /// @param s The step.
 /// @return std::nullopt if it isn't one, else whether to keep going.
@@ -91,7 +112,7 @@ std::optional<bool> runOutsideStep(const Running& s) {
 		owner.onSend(string(step["send"], where + ".send"),
 		             s.value(step.value("data", json::object()), where + ".data"));
 	} else if(step.contains("connect")) {
-		owner.onConnect(string(step["connect"], where + ".connect"));
+		connect(s);
 	} else if(step.contains("patch")) {
 		patch(s); // applied after the event, like any other document change
 	} else {
@@ -108,7 +129,7 @@ void registerOutsideSteps(StepRegistry& registry) {
 	               {"cancel", {}},
 	               {"emit", {"data"}},
 	               {"send", {"data"}, true},
-	               {"connect", {}, true},
+	               {"connect", {"to", "token"}, true},
 	               {"patch", {"message"}, true}},
 	              runOutsideStep});
 }

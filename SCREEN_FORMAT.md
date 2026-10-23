@@ -732,14 +732,6 @@ are UTF-8: `length`, `indexOf` and `slice` count bytes, `split(text, '')` and `r
 are the matched `[start, end]` character spans, `parts` the text cut into `{ text, match }` for highlighting.
 `fuzzySort` keeps a list's matches (on each item's `key`, or the item itself) as `{ item, score, ranges, parts, index }`,
 the best first (an empty query keeps the order), at most `limit` of them.
-`diffLines` compares two texts line by line, as a unified diff does: `{ hunks, added, removed, same, hiddenAfter,
-truncated }`, each hunk `{ header, oldStart, oldLines, newStart, newLines, hiddenBefore, lines }` with a header such as
-`@@ -2,7 +2,7 @@` and lines `{ kind: 'context' | 'delete' | 'insert', old, new, text }` numbered from 1 (null on the
-side a line isn't on). Its options: `context` (3 lines around each change; -1 shows the whole text), `ignoreWhitespace`,
-`split` (adds `rows`, `{ left, right }` pairs `{ n, text, kind }` or null, for a side-by-side view) and `limit` (5000
-lines at most; past it `truncated` is true). `atPointer` reads a JSON Pointer (`/nodes/0/id`, `~1` for `/`), and
-`applyPatch` applies a JSON Patch such as the host's `diff` message carries; both give null when the path or the patch
-doesn't fit. `formatJson` writes a value as indented JSON, to diff it line by line.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the
 display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `nativeMenuBar`: whether `window.menuBar`
@@ -753,6 +745,17 @@ is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`no
 (not in a circle, and at most 32 deep). Prefer them to actions that recount things by hand.
 
 **Truthy** means anything except `false`, `null`, `0`, `""`, `[]` and `{}`.
+
+### Diffs and JSON paths
+
+`diffLines` compares two texts line by line, as a unified diff does: `{ hunks, added, removed, same, hiddenAfter,
+truncated }`, each hunk `{ header, oldStart, oldLines, newStart, newLines, hiddenBefore, lines }` with a header such as
+`@@ -2,7 +2,7 @@` and lines `{ kind: 'context' | 'delete' | 'insert', old, new, text }` numbered from 1 (null on the
+side a line isn't on). Its options: `context` (3 lines around each change; -1 shows the whole text), `ignoreWhitespace`,
+`split` (adds `rows`, `{ left, right }` pairs `{ n, text, kind }` or null, for a side-by-side view) and `limit` (5000
+lines at most; past it `truncated` is true). `atPointer` reads a JSON Pointer (`/nodes/0/id`, `~1` for `/`), and
+`applyPatch` applies a JSON Patch such as the host's `diff` message carries; both give null when the path or the patch
+doesn't fit. `formatJson` writes a value as indented JSON, to diff it line by line.
 
 ### Work budget
 An event (a handler, a timer, `onLoad`, `watch`) or an update may run 100,000 steps, evaluate
@@ -972,7 +975,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `signOut` | `{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
-| `connect` | `{ "connect": "host" }`: connect a declared channel now |
+| `connect` | `{ "connect": "host" }`: connect a declared channel now; with `"to"` (a socket or a `ws://`/`wss://` address, an expression) and an optional `"token"`, connect it there instead (the token is kept in memory only) |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |

@@ -26,6 +26,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `cli` | A screen file, as the `affrescoui` tool reads it (`tools/affrescoui`): the text reader and printer behind `fmt` and `ids`, the places `ids` names, and the schema check behind `check` | `fmt` writes the same JSON value, and formatting its output again changes nothing; the schema check reports problems, never throws |
 | `actions` | A JSON value, run as the steps of an action of the Kanban template (its state and actions, no window) | Every event stops within its work budget (the run's `-timeout` catches one that doesn't), and writes no more into the state than the budget lets it |
 | `image` | A file's bytes, decoded by `Bitmap::decode` (stb_image for PNG and JPEG, the SVG subset rasterised with vector paths) within small limits: a revision can name any file in an allowed folder | What decodes is within the limits, four bytes a pixel, premultiplied (no channel above its alpha); anything else is a `std::runtime_error` |
+| `data_uri` | An image node's inline `source`, decoded by `Bitmap::fromDataUri` (base64, then PNG or JPEG) within small limits: a document, a channel's message or a peer's evidence can send any text | What decodes is within the limits, four bytes a pixel; anything else is a `std::runtime_error` |
 | `lookups` | A font's GSUB or GPOS table (the first byte: odd for GPOS), read by `font/LookupSpans` for the fast path of plain text: a revision can name any font file | Every span is at most `unbounded`, and the same when read again |
 | `http_response` | A response head, to the network module's parsers (`net/src/http/Http.hpp`): status lines, header lines and blocks (the WebSocket handshake), Retry-After | A status is 100..999, header names are lower-case tokens, a block holds at most 256 headers and no value spans lines, a retry delay is within an hour |
 | `sse` | A streamed body cut into chunks (the first byte picks their size), to the server-sent events and line stream parsers (`net/src/http/Streams.hpp`), with a 64-byte limit | Every event and line is within the limit, a line is one line and not blank, and a parser over its limit stops |
@@ -61,6 +62,7 @@ of these and what limits them.
 | URLs a connection, a sign-in provider or a peer names | Screens, peers, providers | `url` |
 | Sign-in answers (token, device code, error, redirect, id token) | The provider, or whoever answers in its place | `oauth` |
 | Image files a revision names (PNG, JPEG, SVG) | Peers, within the allowed folders | `image`, `path` |
+| Inline images (`data:` sources, the host's evidence pictures) | Documents, channels, peers | `data_uri` |
 | Font files a revision names | Peers, within the allowed folders | `lookups` for the tables the app reads itself; the rest is FreeType and HarfBuzz, fuzzed upstream by OSS-Fuzz, and `text` and `richtext` shape through them |
 | Text typed, pasted or sent to an editor | Users and peers | `text_model`, `text`, `richtext`, `syntax` (the grammars that colour it) |
 | Find and search patterns, replacements, globs, `.gitignore` files | Peers, and whoever made the searched folder | `find_pattern`, `search_glob` |
@@ -96,7 +98,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `diff_functions`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output` or `vscode_theme` in place of
+Use `json`, `expression`, `diff_functions`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `data_uri`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output` or `vscode_theme` in place of
 `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.

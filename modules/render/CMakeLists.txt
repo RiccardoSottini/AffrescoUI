@@ -46,6 +46,7 @@ affrescoui_module(render
 	src/layout/Grid.cpp
 	# image/: image decoding and caching, colours and colour spaces
 	src/image/Bitmap.cpp
+	src/image/DataUri.cpp
 	src/image/ImageCache.cpp
 	src/image/Color.cpp
 	src/image/ColorSpaces.cpp

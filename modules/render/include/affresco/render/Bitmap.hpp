@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <memory>
 #include <span>
+#include <string_view>
 #include <vector>
 
 namespace affresco {
@@ -42,6 +43,12 @@ public:
 	/// @throws std::runtime_error If they aren't an image within the limits.
 	[[nodiscard]] static std::shared_ptr<const Bitmap> decode(std::span<const std::uint8_t> bytes,
 	                                                          const Limits& limits);
+	/// @brief Decodes a PNG or JPEG image given inline: `data:image/png;base64,...` or `data:image/jpeg;base64,...`.
+	/// @param uri The URI.
+	/// @param limits What the image may be: its data is bounded by Limits::fileBytes too.
+	/// @return The image.
+	/// @throws std::runtime_error If it is no such URI, or not an image within the limits.
+	[[nodiscard]] static std::shared_ptr<const Bitmap> fromDataUri(std::string_view uri, const Limits& limits);
 	/// @brief Makes an image of pixels.
 	/// @param width Its width, at least 1.
 	/// @param height Its height, at least 1.

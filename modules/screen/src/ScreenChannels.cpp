@@ -111,12 +111,14 @@ void Screen::Impl::send(const std::string& name, const json& message) {
 void Screen::setSocketDirectory(std::filesystem::path directory) { impl_->socketDirectory = std::move(directory); }
 
 bool Screen::connectChannel(const std::string& name, std::string address, std::string token) {
-	Impl& impl = *impl_;
-	const auto it = impl.channels.find(name);
-	if(it == impl.channels.end()) return false;
-	Impl::DeclaredChannel& channel = it->second;
-	if(Window* window = impl.runtime.window(); window && channel.retry)
-		window->cancelTimer(std::exchange(channel.retry, 0));
+	const auto it = impl_->channels.find(name);
+	if(it == impl_->channels.end()) return false;
+	impl_->reconnect(it->second, std::move(address), std::move(token));
+	return true;
+}
+
+void Screen::Impl::reconnect(DeclaredChannel& channel, std::string address, std::string token) {
+	if(Window* window = runtime.window(); window && channel.retry) window->cancelTimer(std::exchange(channel.retry, 0));
 	channel.socket.reset(); // no handler runs after: the signals go with their channel
 	channel.remote.reset();
 	channel.url.clear();
@@ -126,10 +128,9 @@ bool Screen::connectChannel(const std::string& name, std::string address, std::s
 		channel.token = std::move(token);
 	} else {
 		const std::filesystem::path socket = address;
-		channel.path = socket.is_absolute() ? socket : impl.socketDirectory / socket;
+		channel.path = socket.is_absolute() ? socket : socketDirectory / socket;
 	}
-	impl.open(channel);
-	return true;
+	open(channel);
 }
 
 void Screen::startChannels(Executor& executor) {

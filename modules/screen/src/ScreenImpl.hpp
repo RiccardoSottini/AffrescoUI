@@ -125,6 +125,11 @@ struct Screen::Impl {
 	/// @brief Connects a declared channel; on failure runs "<name>:closed" and tries again later if it should.
 	/// @param channel The channel.
 	void open(DeclaredChannel& channel);
+	/// @brief Connects a declared channel to an address, at once (Screen::connectChannel).
+	/// @param channel The channel.
+	/// @param address A socket (relative to the socket folder, or a path) or a `ws://` or `wss://` peer address.
+	/// @param token The peer's token, kept in memory only.
+	void reconnect(DeclaredChannel& channel, std::string address, std::string token);
 
 	/// @brief Connects a declared channel to its socket or remote peer; on failure runs "<name>:closed".
 	/// @param channel The channel, with no connection.
