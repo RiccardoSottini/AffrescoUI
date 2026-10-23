@@ -23,10 +23,11 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(
-    {"set",    "push",       "remove", "toggle",   "increment", "if",        "forEach", "while",    "run",     "call",
-	 "cancel", "emit",       "send",   "connect",  "patch",     "accept",    "reject",  "preview",  "restore", "revert",
-	 "undo",   "endPreview", "focus",  "scrollTo", "navigate",  "dismiss",   "after",   "debounce", "animate", "copy",
-	 "log",    "stop",       "note",   "invoke",   "request",   "subscribe", "respond", "signIn",   "signOut"});
+    {"set",      "push",    "remove",  "toggle",    "increment", "if",         "forEach", "while",
+	 "run",      "call",    "cancel",  "emit",      "send",      "connect",    "patch",   "accept",
+	 "reject",   "preview", "restore", "revert",    "undo",      "endPreview", "focus",   "scrollTo",
+	 "navigate", "dismiss", "after",   "debounce",  "animate",   "copy",       "log",     "stop",
+	 "note",     "invoke",  "request", "subscribe", "respond",   "signIn",     "signOut", "camera"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =

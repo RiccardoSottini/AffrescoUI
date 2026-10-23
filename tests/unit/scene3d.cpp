@@ -330,6 +330,17 @@ TEST_CASE("scene3d: malformed and hostile glTF files are refused") {
 	                               none),
 	                GltfError);
 
+	// Data off its components' alignment is refused (cgltf reads it through typed pointers)
+	const auto shifted = [](int offset) {
+		return bytesOf(R"({"asset":{"version":"2.0"},"buffers":[{"uri":"data:application/octet-stream;base64,)"
+		               R"(AAAAAAAAAAAAAAAAAAAAAA==","byteLength":16}],"bufferViews":[{"buffer":0,"byteLength":16}],)"
+		               R"("accessors":[{"bufferView":0,"byteOffset":)" +
+		               std::to_string(offset) + R"(,"componentType":5126,"type":"VEC3","count":1}],)"
+		               R"("meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}],"nodes":[{"mesh":0}]})");
+	};
+	CHECK_NOTHROW((void)loadGltf(shifted(4), none));
+	CHECK_THROWS_AS((void)loadGltf(shifted(2), none), GltfError);
+
 	// An index past the vertices is caught by validation, not read
 	const auto box = loadGltfFile(sample("BoxAnimated/BoxAnimated.glb"));
 	CHECK(box.warnings.empty());

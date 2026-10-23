@@ -114,7 +114,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `codeInput`, `carousel`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `codeInput`, `carousel`, `scene`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -646,6 +646,54 @@ announced as a state of the canvas ("3 selected").
 `{ "animate": "state.board.camera.zoom", "to": 2, "ms": 300 }` moves the camera smoothly. Until panels can be
 transformed, a child's text keeps its size while its box, images and paths scale with the zoom.
 
+### `scene`
+A 3D scene: primitive meshes (`cube`, `sphere`, `cylinder`, `cone`, `torus`, `plane`) and glTF models, placed by
+transforms, lit by point, sun (`directional`) and spot lights, and drawn with PBR materials (base colour, metallic,
+roughness, emission, alpha), over a ground grid and axes. The middle button orbits, Shift with it pans and the wheel
+zooms at the pointer (`controls` changes the bindings); a click picks the object under the pointer and a drag over
+nothing draws a box, both running `onSelect` with the object ids, and the selection is drawn with an outline. The
+node has no keys of its own: a document binds them, with the `camera` step for the views (front, side, top), the
+projection and framing. A `gizmo` on the selection moves, rotates and scales it by its handles, running `onTransform`
+with where the nodes should go; the scene doesn't move them itself, the document applies it. The camera and the
+selection are the node's value (`bind`), written back when a person changes them. glTF models (`.gltf` and `.glb`,
+with their buffers and textures) are read with the `reader.imageFile` permission, checked and bounded (64 MiB a
+file, 4,096 nodes and meshes, two million vertices); a model that fails to load is left out and named in the log.
+
+<!-- generated: scene -->
+| Key | Meaning |
+|---|---|
+| `bind` | A state path keeping the view (camera and selection), both ways. |
+| `view` | The view, if there is no `bind`: `{ "camera": { "target": [x, y, z], "yaw", "pitch", "distance", "fieldOfView", "orthographic" }, "selection": [ids] }`, each part only if given. Angles are in radians; the pitch stays within ±90°, the distance within 0.01 and 100,000, the field of view within 0.05 and 3. Orbiting, panning, zooming and selecting write it back and run `onChange`. |
+| `scene` | The scene, usually `{{state.scene}}`: `{ "nodes": [...], "materials": [...] }`. A node: `{ "id", "name", "parent", "translation": [x, y, z], "rotation": [x, y, z, w] (or `"rotationDegrees": [x, y, z]`), "scale", "mesh", "material", "light", "camera", "visible", "asset" }`; `mesh` is `"cube"`, `"sphere"`, `"cylinder"`, `"cone"`, `"torus"`, `"plane"` or a mesh of an asset; `light` is `{ "type": "directional" | "point" | "spot", "color", "intensity", "range", "innerCone", "outerCone" }`. A material (PBR): `{ "id", "name", "baseColor": [r, g, b, a], "metallic", "roughness", "emissive", "alphaMode", "alphaCutoff", "doubleSided" }`. Read when it changes, checked and bounded. |
+| `assets` | glTF models (`.gltf` or `.glb`) by name: `{ "robot": "models/robot.glb" }`, at most 64, each read with the `reader.imageFile` permission and checked. A node with `"asset": "robot"` holds the model's nodes (ids `"<its id>/<id>"`); a click on them selects that node. |
+| `animations` | Animation clips: `[{ "name", "tracks": [{ "node", "path": "translation" | "rotation" | "scale", "interpolation": "linear" | "step" | "cubic", "times", "values" }] }]`, played at `time`. |
+| `time` | The animations' time, in seconds (default 0). |
+| `shading` | `"material"` (the default: lit, with the lights and materials), `"solid"` (one grey, a studio light) or `"wireframe"`. |
+| `grid` | A ground grid (default true). |
+| `axes` | The X (red) and Z (blue) axes on the floor (default true). |
+| `background` | Behind the scene (default the theme's). |
+| `gridColor` | The grid's lines. |
+| `outlineColor` | The selection's outline (default orange). |
+| `exposure` | The light's multiplier, before tone mapping (default 1). |
+| `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local", "pixels" (its size), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
+| `controls` | The pointer's gestures: `{ "orbit": "middle", "pan": "shift+middle", "select": "left", "zoom": true, "selects": true, "minimumDistance", "maximumDistance" }` (these are the defaults); a binding is `"left"`, `"middle"` or `"right"` after any of `"shift+"`, `"control+"` and `"alt+"`, or `"none"`. A click picks, a drag on nothing draws a box; `selects` false leaves the selection to the handlers. |
+| `onSelect` | A click (`event.type` `"pick"`: `id`, or null on nothing, `button`, `shift`, `x`, `y`, the world `point`) or a box (`"boxSelect"`: `ids`, `shift`, `box`), with the `selection` after it. |
+| `onTransform` | A gizmo drag: `event.phase` (`"preview"`, `"end"` or `"cancel"`), `mode`, `axis`, and `nodes`: `[{ "id", "translation", "rotation", "rotationDegrees", "scale" }]`, and `text` (e.g. `"Move 1, 0, 0"`). |
+<!-- end generated -->
+
+```json
+{ "type": "scene", "id": "viewport", "bind": "state.view", "scene": "{{state.scene}}",
+  "assets": { "robot": "models/robot.glb" }, "shading": "{{state.shading}}",
+  "gizmo": { "mode": "translate", "snap": { "translate": 0.5 } },
+  "onSelect": { "set": "state.view.selection", "to": "{{event.selection}}" },
+  "onTransform": { "run": "moveNodes", "with": { "nodes": "{{event.nodes}}" } } }
+```
+
+`{ "camera": "#viewport", "view": "top", "frame": "selection" }` snaps the camera to a view and frames the
+selection; `"projection": "toggle"` switches between perspective and orthographic, `"orbit": [15, 0]` turns it as a
+drag would and `"zoom": 1` comes one wheel step closer. A frame of a scene is drawn like any other node, so scenarios
+and `affrescoui render` capture it.
+
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
 
@@ -974,6 +1022,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
+| `camera` | `{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view` (front, back, left, right, top, bottom), `frame` ("selection", "all" or ids), `projection` (perspective, orthographic, toggle), `orbit` [degrees right, down], `zoom` (wheel steps, positive to come closer) |
 <!-- end generated -->
 
 ### Control steps and paths
