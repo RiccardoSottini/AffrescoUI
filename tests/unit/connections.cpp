@@ -156,7 +156,7 @@ TEST_CASE("connections: a header's value is one line of text, without control by
 	json& header = document["connections"]["api"]["headers"]["X-Client"];
 	header = "a\tb";
 	CHECK_NOTHROW(rules.validate(document));
-	const std::vector<std::string> bad = {"a\r\nb", "a\nb", std::string("a\0b", 3), "a\x1b" "b", "a\x7f" "b"};
+	const std::vector<std::string> bad = {"a\r\nb", "a\nb", std::string("a\0b", 3), "a\033b", "a\177b"};
 	for(const std::string& value : bad) {
 		CAPTURE(value.size());
 		header = value;

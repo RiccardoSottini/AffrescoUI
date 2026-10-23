@@ -205,7 +205,8 @@ TEST_CASE("fs watch: a watched model reports what changes as ranges of rows") {
 	writeText(folder.path / "old" / "inner" / "one.txt", "1");
 	writeText(folder.path / "keep.txt", "k");
 	PumpedExecutor executor;
-	const auto model = DirectoryModel::open(executor, folder.path, {.debounce = std::chrono::milliseconds(20)});
+	const auto model =
+	    DirectoryModel::open(executor, folder.path, {.ignore = {}, .debounce = std::chrono::milliseconds(20)});
 	std::vector<ModelChange> changes;
 	(void)model->onChange.connect([&](const ModelChange& change) { changes.push_back(change); });
 	REQUIRE(executor.pumpUntil([&] { return model->ready(); }));

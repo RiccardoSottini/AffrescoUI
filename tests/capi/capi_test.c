@@ -306,7 +306,12 @@ static void testWindow(void) {
 }
 
 /** @brief Looks GL functions up for the embedded screen. */
-static void* loadGl(const char* name) { return (void*)glfwGetProcAddress(name); }
+static void* loadGl(const char* name) {
+	GLFWglproc proc = glfwGetProcAddress(name);
+	void* address; /* ISO C has no cast from a function pointer to an object pointer: copy its bytes */
+	memcpy(&address, &proc, sizeof address);
+	return address;
+}
 
 /** @brief An embedded screen in a hidden GLFW window's context of the test's own. */
 static void testEmbedded(void) {

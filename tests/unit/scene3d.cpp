@@ -79,12 +79,34 @@ TEST_CASE("scene3d: TRS composes and decomposes") {
 
 TEST_CASE("scene3d: the hierarchy places children in their parents' space") {
 	Scene scene;
-	scene.nodes.push_back({.id = "root", .name = "Root"});
+	scene.nodes.push_back({.id = "root",
+	                       .name = "Root",
+	                       .parent = {},
+	                       .transform = {},
+	                       .mesh = {},
+	                       .material = {},
+	                       .light = {},
+	                       .camera = {}});
 	scene.nodes[0].transform.translation = {10, 0, 0};
 	scene.nodes[0].transform.rotation = Quat::fromAxisAngle({0, 1, 0}, radians(90.0f));
-	scene.nodes.push_back({.id = "child", .name = "Child", .parent = "root"});
+	scene.nodes.push_back({.id = "child",
+	                       .name = "Child",
+	                       .parent = "root",
+	                       .transform = {},
+	                       .mesh = {},
+	                       .material = {},
+	                       .light = {},
+	                       .camera = {}});
 	scene.nodes[1].transform.translation = {1, 0, 0};
-	scene.nodes.push_back({.id = "hidden", .name = "Hidden", .parent = "child", .visible = false});
+	scene.nodes.push_back({.id = "hidden",
+	                       .name = "Hidden",
+	                       .parent = "child",
+	                       .transform = {},
+	                       .mesh = {},
+	                       .material = {},
+	                       .light = {},
+	                       .camera = {},
+	                       .visible = false});
 	CHECK(scene.validate().empty());
 	const auto world = scene.worldMatrices();
 	CHECK(near(world.at("child").first.origin(), {10, 0, -1}));
@@ -99,7 +121,14 @@ TEST_CASE("scene3d: the hierarchy places children in their parents' space") {
 	scene.nodes[0].parent = "missing";
 	CHECK_FALSE(scene.validate().empty());
 	scene.nodes[0].parent.clear();
-	scene.nodes.push_back({.id = "child", .name = "Twin"});
+	scene.nodes.push_back({.id = "child",
+	                       .name = "Twin",
+	                       .parent = {},
+	                       .transform = {},
+	                       .mesh = {},
+	                       .material = {},
+	                       .light = {},
+	                       .camera = {}});
 	CHECK_FALSE(scene.validate().empty());
 }
 
@@ -147,12 +176,34 @@ TEST_CASE("scene3d: bounds, rays and the frustum") {
 
 TEST_CASE("scene3d: the scene round-trips through JSON and refuses bad members") {
 	Scene scene;
-	Node lamp{.id = "lamp", .name = "Lamp"};
+	Node lamp{.id = "lamp",
+	          .name = "Lamp",
+	          .parent = {},
+	          .transform = {},
+	          .mesh = {},
+	          .material = {},
+	          .light = {},
+	          .camera = {}};
 	lamp.light = Light{.type = LightType::Spot, .intensity = 20.0f, .castsShadow = true};
 	lamp.transform.rotation = Quat::fromEuler({0.1f, 0.2f, 0.3f});
 	scene.nodes.push_back(lamp);
-	scene.nodes.push_back({.id = "box", .name = "Box", .mesh = "cube", .material = "red"});
-	scene.materials.push_back({.id = "red", .name = "Red", .baseColor = {1, 0, 0, 1}, .metallic = 0.25f});
+	scene.nodes.push_back({.id = "box",
+	                       .name = "Box",
+	                       .parent = {},
+	                       .transform = {},
+	                       .mesh = "cube",
+	                       .material = "red",
+	                       .light = {},
+	                       .camera = {}});
+	scene.materials.push_back({.id = "red",
+	                           .name = "Red",
+	                           .baseColor = {1, 0, 0, 1},
+	                           .metallic = 0.25f,
+	                           .emissive = {},
+	                           .baseColorTexture = {},
+	                           .metallicRoughnessTexture = {},
+	                           .normalTexture = {},
+	                           .emissiveTexture = {}});
 	const Scene back = sceneFromJson(toJson(scene));
 	REQUIRE(back.nodes.size() == 2);
 	CHECK(back.nodes[0].light == scene.nodes[0].light);
