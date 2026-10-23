@@ -168,21 +168,25 @@
 	"components": {
 		"forgeAccountsStatus": {
 			"node": {
-				"type": "row",
+				"type": "column",
 				"id": "status-accounts-slot",
-				"alignItems": "center",
+				"width": 48,
+				"height": 48,
 				"children": [
 					{
 						"type": "label",
 						"id": "status-accounts",
-						"icon": "user",
-						"padding": 6,
-						"fitText": true,
+						"role": "button",
+						"icon": "circle-user",
+						"font": "iconsLarge",
+						"width": 48,
+						"height": 48,
+						"align": "center",
 						"cursor": "hand",
-						"text": "{{auth.accountsServer.state == 'signedIn' ? (auth.accountsServer.account ?? 'Signed in') + (length(state.accounts.peers) > 1 ? ' · ' + text(length(state.accounts.peers)) + ' here' : '') : auth.accountsServer.state == 'signingIn' && auth.accountsServer.code != null ? 'Code ' + auth.accountsServer.code + ' at ' + auth.accountsServer.verificationUrl : 'Sign in'}}",
-						"textColor": "@color.statusText",
-						"tooltip": "Accounts",
-						"hover": { "color": "@color.hover" },
+						"label": "{{auth.accountsServer.state == 'signedIn' ? (auth.accountsServer.account ?? 'Signed in') + (length(state.accounts.peers) > 1 ? ' · ' + text(length(state.accounts.peers)) + ' here' : '') : auth.accountsServer.state == 'signingIn' && auth.accountsServer.code != null ? 'Code ' + auth.accountsServer.code + ' at ' + auth.accountsServer.verificationUrl : 'Sign in'}}",
+						"textColor": "{{auth.accountsServer.state == 'signedIn' ? '@color.text' : '@color.muted'}}",
+						"tooltip": "{{auth.accountsServer.state == 'signedIn' ? (auth.accountsServer.account ?? 'Signed in') + (length(state.accounts.peers) > 1 ? ' · ' + text(length(state.accounts.peers)) + ' here' : '') : auth.accountsServer.state == 'signingIn' && auth.accountsServer.code != null ? 'Code ' + auth.accountsServer.code + ' at ' + auth.accountsServer.verificationUrl : 'Sign in'}}",
+						"hover": { "textColor": "@color.text" },
 						"onClick": { "run": "accountsMenu" }
 					},
 					{
@@ -193,7 +197,7 @@
 						"borderColor": "@color.border",
 						"overlay": {
 							"anchor": "#status-accounts",
-							"placement": "above-end",
+							"placement": "right",
 							"open": "state.accounts.menuOpen",
 							"dismiss": "outside"
 						},

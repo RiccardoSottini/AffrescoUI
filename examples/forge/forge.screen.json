@@ -81,7 +81,7 @@
 					{ "type": "split", "id": "editor-split", "direction": "column", "bind": "state.layout.panelSizes", "minSize": 100,
 					  "sashSize": 1, "sashColor": "@color.border", "sashActiveColor": "@color.accent",
 					  "children": [
-						{ "use": "forgeEditors" },
+						{ "visible": "{{!(state.layout.panelMax && state.layout.panel && !state.layout.zen)}}", "use": "forgeEditors" },
 						{ "visible": "{{state.layout.panel && !state.layout.zen}}", "use": "forgePanel" }
 					  ] }
 				  ] },
@@ -89,6 +89,7 @@
 			  ] },
 			{ "when": "{{!state.layout.zen && settings.workbench.statusBar.visible}}", "use": "forgeStatusBar" }
 			] },
+			{ "use": "forgeNotificationCentre" },
 			{ "use": "forgePalette" },
 			{ "use": "forgeDebugOverlays" },
 			{ "use": "forgeLsp" },

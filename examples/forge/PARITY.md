@@ -1,6 +1,6 @@
 # Forge parity
 
-Forge is laid out and works like the code editors people use every day. Each area below is `done`, `partial` or
+Forge is modelled on Visual Studio Code: laid out and working like it, in its own words, icons and sample data. Each area below is `done`, `partial` or
 `missing`, with its gap in one line. Each round takes the gaps a daily user would notice first.
 
 ## Layout and chrome
@@ -8,13 +8,15 @@ Forge is laid out and works like the code editors people use every day. Each are
 | Area | Status | Gap |
 |---|---|---|
 | Title bar, command center | done | |
-| Activity bar | partial | No badge counts on Source Control |
+| Back and forward navigation | done | |
+| Activity bar | done | |
 | Side bar views, title rows | partial | No view actions (new file, refresh, collapse) in the title rows |
 | Editor tabs | partial | No file-type icons; no preview (italic) tabs |
 | Breadcrumbs | partial | Shows the path; no symbol segments |
 | Minimap and overview ruler | missing | No minimap; no scrollbar markers |
-| Panel (Problems, Output, Debug Console, Terminal) | partial | Opens with the window; the Terminal tab appears only after a terminal starts |
-| Status bar | partial | No branch, encoding, line endings or indentation items |
+| Panel (Problems, Output, Debug Console, Terminal) | done | |
+| Status bar | partial | Indentation, encoding and line endings are fixed texts, not pickers |
+| Notifications centre | done | |
 | Sashes | done | |
 | Welcome page | partial | Few start links, no recent folders |
 
@@ -28,8 +30,8 @@ Forge is laid out and works like the code editors people use every day. Each are
 | Explorer: open, create, rename, delete | partial | Native code; moves to the files service |
 | Editing, find and replace in a file | partial | Native code; moves to the files service |
 | Search across files, replace all | partial | Search lives in the side bar; the results come from native code |
-| Source control: stage, commit, branches | partial | No repository in the sample folder; native code, moves to git through the process service |
-| Run and debug | partial | No section headers; no floating debug toolbar |
+| Source control: stage, commit, branches | partial | Native code; moves to git through the process service |
+| Run and debug | partial | Sections don't collapse; the debugger glue is native code |
 | Terminal | partial | The cursor is an outlined box |
 | Problems and language features | partial | Native code; moves to the RPC service |
 | Features (extensions) view | partial | Single-line items; no header |

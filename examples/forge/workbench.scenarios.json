@@ -25,7 +25,10 @@
 			"note": "Focus Output shows the panel on Output; Clear Output empties it",
 			"steps": [
 				{
-					"action": "togglePanel"
+					"expect": {
+						"state": "layout.panel",
+						"is": false
+					}
 				},
 				{
 					"action": "showOutput"
@@ -358,7 +361,7 @@
 		},
 		{
 			"name": "forge-workbench-notifications",
-			"note": "Show Notifications shows the panel on them; Clear All Notifications empties the list and closes the toast",
+			"note": "Show Notifications opens the notification centre over the bell; Clear All Notifications empties the list and closes the centre and the toast",
 			"steps": [
 				{
 					"action": "reindex"
@@ -368,14 +371,15 @@
 				},
 				{
 					"expect": {
-						"state": "layout.panel",
+						"state": "notificationCentre",
 						"is": true
 					}
 				},
 				{
 					"expect": {
-						"state": "panelTab",
-						"is": "notifications"
+						"node": "#notification-centre",
+						"property": "shown",
+						"is": true
 					}
 				},
 				{

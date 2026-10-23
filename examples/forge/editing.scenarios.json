@@ -540,13 +540,10 @@
 		},
 		{
 			"name": "forge-editor-settings-listed",
-			"note": "The settings page lists the editor's settings: word wrap, bracket matching and indentation guides (with the panel hidden, as the list is taller than the editor area)",
+			"note": "The settings page lists the editor's settings: word wrap, bracket matching and indentation guides (the panel, hidden at first, would leave too little room)",
 			"steps": [
 				{
 					"action": "openSettings"
-				},
-				{
-					"action": "togglePanel"
 				},
 				{
 					"expect": {
