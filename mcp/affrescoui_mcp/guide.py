@@ -1,6 +1,6 @@
 """The format guide (SCREEN_FORMAT.md) one topic at a time, so an agent reads only the part it needs."""
 
-GUIDE_TOPIC = 5000  # characters: about 1,500 tokens, the most a topic of the format guide gives
+GUIDE_TOPIC = 6000  # characters: about 1,800 tokens, the most a topic of the format guide gives
 
 
 def headings(lines):

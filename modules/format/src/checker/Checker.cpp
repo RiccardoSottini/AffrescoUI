@@ -306,7 +306,7 @@ void Checker::walkNodes() {
 		for(const auto& [name, value] : computed->items()) (void)computedShape(name);
 	if(const auto theme = document_.find("theme"); theme != document_.end()) read(*theme, none, "theme");
 	if(const auto root = document_.find("root"); root != document_.end()) walkNode(*root, "root", none, nullptr, false);
-	for(const char* name : {"screens", "templates"})
+	for(const char* name : {"screens", "templates", "overlays"})
 		if(const json* nodes = section(name))
 			for(const auto& [key, node] : nodes->items())
 				walkNode(node, std::string(name) + "." + key, none, nullptr, false);
