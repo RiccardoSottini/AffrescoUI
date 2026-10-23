@@ -708,8 +708,9 @@ Wherever a value is expected it can be computed:
   `a ?? b` (b when a is null), `c ? a : b`; `&&` and `||` give an operand, as in JavaScript: `user && user.name` is the
   name (or `user` when it is false or null), `title || 'Untitled'` is the title unless it is empty;
 - functions: `empty(value)`, `type(value)`, `round(number)`, `floor(number)`, `ceil(number)`, `abs(number)`,
-  `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `upper(text)`,
-  `lower(text)`, `trim(text)`, `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
+  `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`,
+  `pow(base, exponent)`, `sqrt(number)`, `sin(radians)`, `cos(radians)`, `upper(text)`, `lower(text)`, `trim(text)`,
+  `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
   `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
   `length(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
