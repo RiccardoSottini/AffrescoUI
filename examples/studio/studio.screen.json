@@ -164,6 +164,26 @@
 		"color.warn": {
 			"light": "#b45309",
 			"dark": "#f59e0b"
+		},
+		"color.toolbar": {
+			"light": "#1f2433",
+			"dark": "#0d1220"
+		},
+		"color.toolbarHover": {
+			"light": "#2e3447",
+			"dark": "#1a2136"
+		},
+		"color.toolbarBorder": {
+			"light": "#3a4157",
+			"dark": "#252d45"
+		},
+		"color.toolbarText": {
+			"light": "#f1f4f9",
+			"dark": "#e2e8f0"
+		},
+		"color.toolbarMuted": {
+			"light": "#9ba4b8",
+			"dark": "#7c89a8"
 		}
 	},
 	"channels": {
@@ -178,7 +198,7 @@
 	"state": {
 		"theme": "dark",
 		"tab": "review",
-		"sizes": [560],
+		"sizes": [380],
 		"selected": null,
 		"historyPick": null,
 		"rejecting": {
@@ -278,7 +298,9 @@
 		"permSection": "rules",
 		"permDraft": "",
 		"permProposals": [],
-		"permNext": 1
+		"permNext": 1,
+		"repoOpen": false,
+		"branchOpen": false
 	},
 	"stateTypes": {
 		"theme": {
@@ -474,13 +496,13 @@
 		"mine": "{{computed.current != null && !empty(state.you) && computed.current.author == state.you}}",
 		"refusal": "{{computed.current == null ? 'none' : (!state.connected ? 'offline' : (!state.canReview ? 'reviewer' : (computed.mine ? 'own' : (!empty(computed.current.conflicts) ? 'conflict' : ''))))}}",
 		"canAccept": "{{computed.refusal == ''}}",
-		"commandItems": "{{map(filter(commands, it.enabled && it.name != 'showCommands'), {title: t('cmd.' + it.name), detail: t('cat.' + it.category) + (empty(it.keyLabel ?? '') ? '' : '  ·  ' + it.keyLabel), run: it.name})}}",
+		"commandItems": "{{map(filter(commands, it.enabled && it.name != 'showCommands'), {title: t('cmd.' + it.name), detail: t('cat.' + it.category) + (empty(it.keyLabel ?? '') ? '' : '  \u00b7  ' + it.keyLabel), run: it.name})}}",
 		"modeItems": "{{map(state.modes, merge(it, {label: t('mode.label', {mode: it.mode})}))}}",
 		"inspectRoot": "{{state.hostDocument == null ? null : state.hostDocument.root}}",
 		"inspectNode": "{{length(state.inspectStack) > 0 ? state.inspectStack[length(state.inspectStack) - 1] : computed.inspectRoot}}",
 		"inspectChildren": "{{computed.inspectNode == null ? [] : (computed.inspectNode.children ?? [])}}",
 		"inspectShown": "{{state.inspectSel != '' && number(state.inspectSel) < length(computed.inspectChildren) ? computed.inspectChildren[number(state.inspectSel)] : computed.inspectNode}}",
-		"inspectTrail": "{{join(concat(['root'], map(state.inspectStack, it.id ?? it.type ?? '?')), '  ›  ')}}",
+		"inspectTrail": "{{join(concat(['root'], map(state.inspectStack, it.id ?? it.type ?? '?')), '  \u203a  ')}}",
 		"inspectProps": "{{computed.inspectShown == null ? [] : map(filter(entries(computed.inspectShown), it.key != 'children'), {id: it.key, cells: [it.key, json(it.value)]})}}",
 		"perm": "{{state.hostDocument == null ? {} : (state.hostDocument.permissions ?? {})}}",
 		"permValue": "{{state.permSection == 'budgets' ? (computed.perm.budgets ?? []) : (state.permSection == 'data' ? (computed.perm.data ?? []) : (state.permSection == 'roles' ? {reviewers: computed.perm.reviewers ?? [], review: computed.perm.review ?? {}, roles: state.coordination.roles ?? {}} : {allow: computed.perm.allow ?? [], ask: computed.perm.ask ?? [], deny: computed.perm.deny ?? []}))}}",
@@ -489,7 +511,8 @@
 		"permSections": "{{map(['rules', 'budgets', 'data', 'roles'], {id: it, label: t('perm.section', {section: it}), closable: false})}}",
 		"activeConn": "{{find(state.connections, it.id == state.active) ?? state.connections[0]}}",
 		"activeName": "{{empty(computed.activeConn.name) ? t('conn.local') : computed.activeConn.name}}",
-		"addressOptions": "{{concat(map(state.connections, it.address), ['ws://localhost:7300', 'wss://docs.example.org/studio'])}}"
+		"addressOptions": "{{concat(map(state.connections, it.address), ['ws://localhost:7300', 'wss://docs.example.org/studio'])}}",
+		"branch": "{{state.tab == 'review' && computed.current != null ? (computed.current.branch ?? 'proposal/' + computed.current.id) : 'main'}}"
 	},
 	"styles": {
 		"card": {
@@ -607,6 +630,41 @@
 			"textColor": "@color.muted",
 			"align": "center",
 			"wrap": true
+		},
+		"toolbarSection": {
+			"color": "transparent",
+			"hover": {
+				"color": "@color.toolbarHover"
+			},
+			"cursor": "hand",
+			"focusable": true,
+			"focused": {
+				"borderWidth": 2,
+				"borderColor": "@color.toolbarText"
+			},
+			"role": "button"
+		},
+		"toolbarCaption": {
+			"font": "small",
+			"textColor": "@color.toolbarMuted"
+		},
+		"toolbarValue": {
+			"textColor": "@color.toolbarText",
+			"anchors": {
+				"left": 40,
+				"right": 28,
+				"top": 28
+			},
+			"height": 20
+		},
+		"foldout": {
+			"style": "card",
+			"radius": 8,
+			"shadow": {
+				"y": 6,
+				"blur": 18,
+				"color": "#0000004d"
+			}
 		}
 	},
 	"actions": {
@@ -1969,6 +2027,23 @@
 					"to": "review"
 				}
 			]
+		},
+		"fetch": {
+			"title": "Fetch from the host",
+			"category": "connection",
+			"icon": "refresh-cw",
+			"enablement": "{{state.connected}}",
+			"do": [
+				{
+					"send": "host",
+					"data": {
+						"type": "getDocument"
+					}
+				},
+				{
+					"run": "refreshHistory"
+				}
+			]
 		}
 	},
 	"keys": {
@@ -2004,7 +2079,7 @@
 					"top": 0
 				},
 				"height": 60,
-				"color": "@color.card",
+				"color": "@color.toolbar",
 				"borderWidth": 0,
 				"children": [
 					{
@@ -2012,9 +2087,9 @@
 						"type": "label",
 						"font": "iconsLarge",
 						"icon": "git-pull-request-arrow",
-						"textColor": "@color.accent",
+						"textColor": "@color.toolbarText",
 						"anchors": {
-							"left": 20,
+							"left": 12,
 							"top": 14
 						},
 						"width": 32,
@@ -2022,27 +2097,148 @@
 						"align": "center"
 					},
 					{
-						"type": "label",
-						"text": "{{t('app.title')}}",
-						"font": "title",
-						"textColor": "@color.text",
+						"use": "toolbarSection",
+						"with": {
+							"icon": "database",
+							"caption": "{{t('toolbar.repo')}}"
+						},
+						"id": "repoButton",
 						"anchors": {
-							"left": 60,
+							"left": 52,
 							"top": 0,
-							"bottom": 0
+							"bottom": 1
 						},
-						"width": 190,
-						"align": {
-							"horizontal": "start",
-							"vertical": "center"
+						"width": 220,
+						"onClick": [
+							{
+								"set": "state.branchOpen",
+								"to": false
+							},
+							{
+								"set": "state.repoOpen",
+								"to": "{{!state.repoOpen}}"
+							}
+						],
+						"label": "{{t('toolbar.repo')}}",
+						"tooltip": "{{t('toolbar.repo')}}",
+						"when": "{{!(window.width < 900)}}",
+						"children": [
+							{
+								"type": "label",
+								"style": "toolbarValue",
+								"id": "repoName",
+								"text": "{{find(state.connections, it.id == state.active) == null ? '' : (empty(find(state.connections, it.id == state.active).name) ? t('conn.local') : find(state.connections, it.id == state.active).name)}}"
+							}
+						]
+					},
+					{
+						"use": "toolbarSection",
+						"with": {
+							"icon": "git-branch",
+							"caption": "{{t('toolbar.branch')}}"
 						},
-						"id": "title",
-						"when": "{{!(window.width < 900)}}"
+						"id": "branchButton",
+						"anchors": {
+							"left": "{{(window.width < 900) ? 52 : 272}}",
+							"top": 0,
+							"bottom": 1
+						},
+						"width": "{{(window.width < 900) ? 160 : 220}}",
+						"onClick": [
+							{
+								"set": "state.repoOpen",
+								"to": false
+							},
+							{
+								"set": "state.branchOpen",
+								"to": "{{!state.branchOpen}}"
+							}
+						],
+						"label": "{{t('toolbar.branch')}}",
+						"tooltip": "{{t('toolbar.branch')}}",
+						"children": [
+							{
+								"type": "label",
+								"style": "toolbarValue",
+								"id": "branchName",
+								"text": "{{computed.branch}}"
+							}
+						]
+					},
+					{
+						"use": "toolbarSection",
+						"with": {
+							"icon": "refresh-cw",
+							"caption": "{{(window.width < 900) ? '' : t('toolbar.fetch')}}",
+							"chevron": false
+						},
+						"id": "fetchButton",
+						"anchors": {
+							"left": "{{(window.width < 900) ? 212 : 492}}",
+							"top": 0,
+							"bottom": 1
+						},
+						"width": "{{(window.width < 900) ? 52 : 240}}",
+						"onClick": "fetch",
+						"label": "{{t('toolbar.fetchTip')}}",
+						"tooltip": "{{t('toolbar.fetchTip')}}",
+						"when": "{{state.connected}}",
+						"children": [
+							{
+								"type": "label",
+								"style": "toolbarValue",
+								"anchors": {
+									"left": 40,
+									"right": 12,
+									"top": 30
+								},
+								"id": "label-main-revision-revision",
+								"when": "{{state.connected}}",
+								"text": "{{t('header.chip', {revision: state.revision, head: state.head})}}",
+								"font": "small",
+								"tooltip": "{{t('header.chipTip')}}",
+								"label": "{{t('header.chipTip')}}"
+							}
+						]
+					},
+					{
+						"use": "toolbarSection",
+						"with": {
+							"icon": "refresh-cw",
+							"caption": "{{(window.width < 900) ? '' : t('header.reconnect')}}",
+							"chevron": false
+						},
+						"id": "label-reconnect",
+						"anchors": {
+							"left": "{{(window.width < 900) ? 212 : 492}}",
+							"top": 0,
+							"bottom": 1
+						},
+						"width": "{{(window.width < 900) ? 52 : 240}}",
+						"onClick": "reconnectHost",
+						"label": "{{t('header.reconnect')}}",
+						"tooltip": "{{t('header.reconnect')}}",
+						"when": "{{!state.connected}}",
+						"children": [
+							{
+								"type": "label",
+								"style": "toolbarValue",
+								"anchors": {
+									"left": 40,
+									"right": 12,
+									"top": 30
+								},
+								"font": "small",
+								"id": "reconnectState",
+								"when": "{{!(window.width < 900)}}",
+								"text": "{{t('toolbar.offline')}}"
+							}
+						]
 					},
 					{
 						"anchors": {
-							"left": "{{(window.width < 900) ? 60 : 258}}",
-							"top": 26
+							"left": "{{(window.width < 900) ? 72 : 76}}",
+							"top": 36
 						},
 						"width": 8,
 						"height": 8,
@@ -2051,17 +2247,19 @@
 						"id": "connection",
 						"tooltip": "{{t('conn.dot', {state: state.connState})}}",
 						"label": "{{t('conn.dot', {state: state.connState})}}",
-						"role": "img"
+						"role": "img",
+						"borderWidth": 2,
+						"borderColor": "@color.toolbar"
 					},
 					{
 						"type": "label",
 						"text": "{{t(state.statusKey, state.statusParams)}}",
-						"textColor": "@color.muted",
+						"textColor": "@color.toolbarMuted",
 						"anchors": {
-							"left": "{{(window.width < 900) ? 76 : 276}}",
+							"left": "{{(window.width < 900) ? 264 : 744}}",
 							"top": 0,
 							"bottom": 0,
-							"right": "{{(window.width < 900) ? 208 : (state.connected ? 444 : 274)}}"
+							"right": "{{state.connected && state.canReview ? 204 : 168}}"
 						},
 						"align": {
 							"horizontal": "start",
@@ -2074,58 +2272,25 @@
 						"wrap": true
 					},
 					{
-						"id": "label-reconnect",
-						"when": "{{!state.connected}}",
-						"style": "smallButton",
-						"text": "{{(window.width < 900) ? '' : t('header.reconnect')}}",
-						"anchors": {
-							"right": 168,
-							"top": 14
-						},
-						"width": "{{(window.width < 900) ? 32 : 96}}",
-						"onClick": "reconnectHost",
-						"label": "{{t('header.reconnect')}}",
-						"icon": "refresh-cw",
-						"height": 32,
-						"tooltip": "{{t('header.reconnect')}}"
-					},
-					{
-						"id": "label-main-revision-revision",
-						"when": "{{state.connected && !(window.width < 900)}}",
-						"type": "label",
-						"text": "{{t('header.chip', {revision: state.revision, head: state.head})}}",
-						"font": "small",
-						"textColor": "@color.text",
-						"color": "@color.cardRaised",
-						"radius": 14,
-						"borderWidth": 1,
-						"borderColor": "@color.border",
-						"anchors": {
-							"right": 168,
-							"top": 16
-						},
-						"width": 230,
-						"height": 28,
-						"align": "center",
-						"tooltip": "{{t('header.chipTip')}}",
-						"label": "{{t('header.chipTip')}}"
-					},
-					{
 						"id": "inspectorToggle",
 						"when": "{{state.connected && state.canReview}}",
 						"style": "iconButton",
 						"icon": "search",
 						"font": "icons",
-						"textColor": "{{state.inspecting ? '@color.accent' : '@color.muted'}}",
+						"textColor": "{{state.inspecting ? '@color.accentHover' : '@color.toolbarMuted'}}",
 						"anchors": {
-							"right": "{{(window.width < 900) ? 168 : 406}}",
+							"right": 164,
 							"top": 14
 						},
 						"tooltip": "{{t('header.inspect')}}",
 						"onClick": "toggleInspector",
 						"label": "{{t('header.inspect')}}",
 						"role": "switch",
-						"selected": "{{state.inspecting}}"
+						"selected": "{{state.inspecting}}",
+						"hover": {
+							"color": "@color.toolbarHover",
+							"textColor": "@color.toolbarText"
+						}
 					},
 					{
 						"id": "themeToggle",
@@ -2138,7 +2303,12 @@
 						},
 						"tooltip": "{{t('header.theme')}}",
 						"onClick": "toggleTheme",
-						"label": "{{t('header.theme')}}"
+						"label": "{{t('header.theme')}}",
+						"textColor": "@color.toolbarMuted",
+						"hover": {
+							"color": "@color.toolbarHover",
+							"textColor": "@color.toolbarText"
+						}
 					},
 					{
 						"id": "settingsButton",
@@ -2152,7 +2322,12 @@
 						"onClick": "openSettings",
 						"icon": "settings",
 						"font": "icons",
-						"tooltip": "{{t('header.settings')}}"
+						"tooltip": "{{t('header.settings')}}",
+						"textColor": "@color.toolbarMuted",
+						"hover": {
+							"color": "@color.toolbarHover",
+							"textColor": "@color.toolbarText"
+						}
 					},
 					{
 						"id": "connectionsButton",
@@ -2166,7 +2341,12 @@
 						"onClick": "openConnections",
 						"icon": "plug",
 						"font": "icons",
-						"tooltip": "{{t('header.connections')}}"
+						"tooltip": "{{t('header.connections')}}",
+						"textColor": "@color.toolbarMuted",
+						"hover": {
+							"color": "@color.toolbarHover",
+							"textColor": "@color.toolbarText"
+						}
 					},
 					{
 						"id": "paletteButton",
@@ -2180,7 +2360,12 @@
 						"onClick": "showCommands",
 						"icon": "command",
 						"font": "icons",
-						"tooltip": "{{t('header.palette')}}"
+						"tooltip": "{{t('header.palette')}}",
+						"textColor": "@color.toolbarMuted",
+						"hover": {
+							"color": "@color.toolbarHover",
+							"textColor": "@color.toolbarText"
+						}
 					},
 					{
 						"id": "headerLine",
@@ -2190,7 +2375,7 @@
 							"bottom": 0
 						},
 						"height": 1,
-						"color": "@color.border"
+						"color": "@color.toolbarBorder"
 					}
 				],
 				"dir": "auto"
@@ -2228,205 +2413,374 @@
 					"top": "{{(window.width < 900) ? 104 : 60}}",
 					"bottom": 0
 				},
-				"defaultSizes": [560],
-				"minSize": "{{(window.width < 900) ? [0, 0] : [420, 420]}}",
-				"sashSize": "{{(window.width < 900) ? 0 : 4}}",
-				"sashColor": "transparent",
+				"defaultSizes": [380],
+				"minSize": "{{(window.width < 900) ? [0, 0] : [340, 420]}}",
+				"sashSize": "{{(window.width < 900) ? 0 : 1}}",
+				"sashColor": "@color.border",
 				"sashActiveColor": "@color.accent",
 				"children": [
 					{
 						"id": "left",
-						"color": "transparent",
+						"color": "@color.background",
 						"children": [
 							{
-								"id": "askCard",
-								"style": "card",
+								"id": "sideTabs",
+								"type": "tabs",
 								"anchors": {
-									"left": 20,
-									"right": "{{(window.width < 900) ? 20 : 10}}",
-									"top": 20
+									"left": 0,
+									"right": 0,
+									"top": 0
 								},
-								"height": 132,
-								"children": [
-									{
-										"id": "label-ask-the-ai",
-										"style": "cardTitle",
-										"text": "{{t('ask.title')}}"
-									},
-									{
-										"id": "label-describe-a-change",
-										"style": "caption",
-										"text": "{{t('ask.caption')}}",
-										"anchors": {
-											"left": 20,
-											"right": 20,
-											"top": 42
-										},
-										"fitText": false,
-										"height": 16
-									},
-									{
-										"id": "draft",
-										"style": "input",
-										"anchors": {
-											"left": 20,
-											"right": 112,
-											"top": 72
-										},
-										"placeholder": "{{t('ask.placeholder')}}",
-										"bind": "state.draft",
-										"onSubmit": "ask",
-										"autofocus": true,
-										"label": "{{t('ask.title')}}"
-									},
-									{
-										"id": "label-send",
-										"style": "button",
-										"text": "{{t('ask.send')}}",
-										"icon": "send",
-										"anchors": {
-											"right": 20,
-											"top": 72
-										},
-										"width": 80,
-										"height": 40,
-										"onClick": "ask",
-										"label": "{{t('ask.send')}}",
-										"tooltip": "{{t('cmd.sendRequest')}}"
+								"height": 40,
+								"color": "@color.card",
+								"textColor": "@color.muted",
+								"activeTextColor": "@color.text",
+								"activeBackground": "@color.cardRaised",
+								"accentColor": "@color.accent",
+								"label": "{{t('a11y.side')}}",
+								"tabs": "{{[{id: 'review', label: t('side.changes', {n: length(state.proposals)}), closable: false}, {id: 'history', label: t('side.history', {n: length(state.history)}), closable: false}]}}",
+								"value": "{{state.tab == 'history' ? 'history' : 'review'}}",
+								"onChange": {
+									"run": "showTab",
+									"with": {
+										"tab": "{{event.value}}"
 									}
-								]
+								},
+								"dir": "auto"
 							},
 							{
-								"id": "patchCard",
-								"style": "card",
+								"id": "sideLine",
 								"anchors": {
-									"left": 20,
-									"right": "{{(window.width < 900) ? 20 : 10}}",
-									"top": 168
+									"left": 0,
+									"right": 0,
+									"top": 40
 								},
-								"height": 132,
-								"children": [
-									{
-										"id": "label-direct-change",
-										"style": "cardTitle",
-										"text": "{{t('patch.title')}}"
-									},
-									{
-										"id": "label-a-json-patch",
-										"style": "caption",
-										"text": "{{t('patch.caption', {example: '{\"set\": {\"#boardName/text\": \"Q4\"}}'})}}",
-										"anchors": {
-											"left": 20,
-											"right": 20,
-											"top": 42
-										},
-										"fitText": false,
-										"height": 16
-									},
-									{
-										"id": "patch",
-										"style": "input",
-										"anchors": {
-											"left": 20,
-											"right": 112,
-											"top": 72
-										},
-										"placeholder": "{\"set\": {\"/colors/accent\": \"#e11d48\"}}",
-										"bind": "state.patch",
-										"onSubmit": "applyPatch",
-										"label": "{{t('patch.title')}}"
-									},
-									{
-										"id": "label-apply",
-										"style": "button",
-										"text": "{{t('patch.apply')}}",
-										"icon": "check",
-										"anchors": {
-											"right": 20,
-											"top": 72
-										},
-										"width": 80,
-										"height": 40,
-										"onClick": "applyPatch",
-										"label": "{{t('patch.apply')}}"
-									}
-								]
+								"height": 1,
+								"color": "@color.border"
 							},
 							{
-								"id": "activityCard",
-								"style": "card",
+								"id": "changesSide",
+								"color": "transparent",
+								"when": "{{state.tab != 'history'}}",
 								"anchors": {
-									"left": 20,
-									"right": "{{(window.width < 900) ? 20 : 10}}",
-									"top": 316,
-									"bottom": 20
+									"left": 0,
+									"right": 0,
+									"top": 49,
+									"bottom": 0
 								},
 								"children": [
 									{
-										"id": "label-activity",
-										"style": "cardTitle",
-										"text": "{{t('activity.title')}}"
-									},
-									{
-										"id": "label-clear-log",
-										"when": "{{length(state.log) > 0}}",
-										"style": "smallButton",
-										"text": "{{t('activity.clear')}}",
+										"id": "proposals",
+										"when": "{{length(state.proposals) > 0}}",
+										"type": "list",
 										"anchors": {
-											"right": 20,
-											"top": 14
+											"left": 6,
+											"right": 6,
+											"top": 4
 										},
-										"width": 60,
-										"tooltip": "{{t('activity.clearTip')}}",
-										"onClick": "clearActivity",
-										"label": "{{t('activity.clearTip')}}"
+										"height": "{{min(8 + 44 * length(state.proposals), 184)}}",
+										"color": "transparent",
+										"rowHeight": 44,
+										"items": "{{map(state.proposals, {id: text(it.id), label: (it.id == state.previewing ? '\u25c9  ' : '') + t('review.list', {id: it.id, message: it.message, author: it.author})})}}",
+										"value": "{{computed.current != null ? text(computed.current.id) : ''}}",
+										"textColor": "@color.text",
+										"selectedTextColor": "@color.text",
+										"selectedBackground": "@color.accentSoft",
+										"accentColor": "@color.accent",
+										"onChange": [
+											{
+												"set": "state.tab",
+												"to": "review"
+											},
+											{
+												"set": "state.selected",
+												"to": "{{number(event.value)}}"
+											},
+											{
+												"run": "gatherEvidence"
+											},
+											{
+												"if": "{{(window.width < 900)}}",
+												"then": [
+													{
+														"set": "state.pane",
+														"to": "review"
+													}
+												]
+											}
+										],
+										"label": "{{t('a11y.proposals')}}"
 									},
 									{
-										"id": "logEmpty",
-										"when": "{{length(state.log) == 0}}",
-										"style": "empty",
-										"text": "{{t('activity.empty')}}",
+										"id": "activityCard",
+										"style": "card",
 										"anchors": {
-											"left": 20,
-											"right": 20,
-											"top": 48,
-											"bottom": 16
-										}
-									},
-									{
-										"id": "log",
-										"type": "stack",
-										"gap": 8,
-										"anchors": {
-											"left": 20,
-											"right": 20,
-											"top": 52,
-											"bottom": 16
+											"left": 12,
+											"right": "{{(window.width < 900) ? 12 : 6}}",
+											"top": "{{(length(state.proposals) > 0 ? min(8 + 44 * length(state.proposals), 184) + 8 : 0) + 8}}",
+											"bottom": 300
 										},
 										"children": [
 											{
-												"id": "label-entry-text",
-												"repeat": {
-													"for": "entry",
-													"in": "state.log"
-												},
-												"type": "label",
-												"text": "{{(entry.key ?? '') == '' ? entry.text : t(entry.key, entry.params)}}",
+												"id": "label-activity",
+												"style": "cardTitle",
+												"text": "{{t('activity.title')}}"
+											},
+											{
+												"id": "label-clear-log",
+												"when": "{{length(state.log) > 0}}",
+												"style": "smallButton",
+												"text": "{{t('activity.clear')}}",
 												"anchors": {
-													"left": 0
+													"right": 20,
+													"top": 14
 												},
-												"wrap": true,
-												"fitText": {
-													"maxWidth": 520
+												"width": 60,
+												"tooltip": "{{t('activity.clearTip')}}",
+												"onClick": "clearActivity",
+												"label": "{{t('activity.clearTip')}}"
+											},
+											{
+												"id": "logEmpty",
+												"when": "{{length(state.log) == 0}}",
+												"style": "empty",
+												"text": "{{t('activity.empty')}}",
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 48,
+													"bottom": 16
+												}
+											},
+											{
+												"id": "log",
+												"type": "stack",
+												"gap": 8,
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 52,
+													"bottom": 16
 												},
-												"textColor": "{{state.logColors[entry.kind] ?? '@color.logSystem'}}"
+												"children": [
+													{
+														"id": "label-entry-text",
+														"repeat": {
+															"for": "entry",
+															"in": "state.log"
+														},
+														"type": "label",
+														"text": "{{(entry.key ?? '') == '' ? entry.text : t(entry.key, entry.params)}}",
+														"anchors": {
+															"left": 0
+														},
+														"wrap": true,
+														"fitText": {
+															"maxWidth": 520
+														},
+														"textColor": "{{state.logColors[entry.kind] ?? '@color.logSystem'}}"
+													}
+												],
+												"justify": "end",
+												"scroll": "vertical",
+												"role": "log",
+												"label": "{{t('a11y.log')}}",
+												"live": "polite"
+											}
+										]
+									},
+									{
+										"id": "askCard",
+										"style": "card",
+										"anchors": {
+											"left": 12,
+											"right": "{{(window.width < 900) ? 12 : 6}}",
+											"bottom": 156
+										},
+										"height": 132,
+										"children": [
+											{
+												"id": "label-ask-the-ai",
+												"style": "cardTitle",
+												"text": "{{t('ask.title')}}"
+											},
+											{
+												"id": "label-describe-a-change",
+												"style": "caption",
+												"text": "{{t('ask.caption')}}",
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 42
+												},
+												"fitText": false,
+												"height": 16
+											},
+											{
+												"id": "draft",
+												"style": "input",
+												"anchors": {
+													"left": 20,
+													"right": 112,
+													"top": 72
+												},
+												"placeholder": "{{t('ask.placeholder')}}",
+												"bind": "state.draft",
+												"onSubmit": "ask",
+												"autofocus": true,
+												"label": "{{t('ask.title')}}"
+											},
+											{
+												"id": "label-send",
+												"style": "button",
+												"text": "{{t('ask.send')}}",
+												"icon": "send",
+												"anchors": {
+													"right": 20,
+													"top": 72
+												},
+												"width": 80,
+												"height": 40,
+												"onClick": "ask",
+												"label": "{{t('ask.send')}}",
+												"tooltip": "{{t('cmd.sendRequest')}}"
+											}
+										]
+									},
+									{
+										"id": "patchCard",
+										"style": "card",
+										"anchors": {
+											"left": 12,
+											"right": "{{(window.width < 900) ? 12 : 6}}",
+											"bottom": 12
+										},
+										"height": 132,
+										"children": [
+											{
+												"id": "label-direct-change",
+												"style": "cardTitle",
+												"text": "{{t('patch.title')}}"
+											},
+											{
+												"id": "label-a-json-patch",
+												"style": "caption",
+												"text": "{{t('patch.caption', {example: '{\"set\": {\"#boardName/text\": \"Q4\"}}'})}}",
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 42
+												},
+												"fitText": false,
+												"height": 16
+											},
+											{
+												"id": "patch",
+												"style": "input",
+												"anchors": {
+													"left": 20,
+													"right": 112,
+													"top": 72
+												},
+												"placeholder": "{\"set\": {\"/colors/accent\": \"#e11d48\"}}",
+												"bind": "state.patch",
+												"onSubmit": "applyPatch",
+												"label": "{{t('patch.title')}}"
+											},
+											{
+												"id": "label-apply",
+												"style": "button",
+												"text": "{{t('patch.apply')}}",
+												"icon": "check",
+												"anchors": {
+													"right": 20,
+													"top": 72
+												},
+												"width": 80,
+												"height": 40,
+												"onClick": "applyPatch",
+												"label": "{{t('patch.apply')}}"
+											}
+										]
+									}
+								]
+							},
+							{
+								"id": "historySide",
+								"color": "transparent",
+								"when": "{{state.tab == 'history'}}",
+								"anchors": {
+									"left": 0,
+									"right": 0,
+									"top": 41,
+									"bottom": 0
+								},
+								"children": [
+									{
+										"id": "history",
+										"type": "table",
+										"anchors": {
+											"left": 6,
+											"right": 6,
+											"top": 4,
+											"bottom": 8
+										},
+										"color": "transparent",
+										"rowHeight": 30,
+										"items": "{{map(reverse(state.history), {id: text(it.number), cells: [t('history.glyph', {kind: length(it.parents ?? []) > 1 ? 'merge' : 'commit'}), it.number, it.short, it.author, it.message, it.committer != it.author ? it.committer : '']})}}",
+										"value": "{{computed.entry != null ? text(computed.entry.number) : ''}}",
+										"columns": [
+											{
+												"id": "graph",
+												"title": "{{t('history.graph')}}",
+												"width": 44
+											},
+											{
+												"id": "number",
+												"title": "#",
+												"width": 36
+											},
+											{
+												"id": "short",
+												"title": "{{t('history.commit')}}",
+												"width": 72
+											},
+											{
+												"id": "author",
+												"title": "{{t('history.author')}}",
+												"width": 80
+											},
+											{
+												"id": "message",
+												"title": "{{t('history.message')}}",
+												"width": 160
+											},
+											{
+												"id": "approved",
+												"title": "{{t('history.approved')}}",
+												"width": 96
 											}
 										],
-										"justify": "end",
-										"scroll": "vertical",
-										"role": "log",
-										"label": "{{t('a11y.log')}}",
-										"live": "polite"
+										"textColor": "@color.text",
+										"selectedTextColor": "@color.text",
+										"selectedBackground": "@color.accentSoft",
+										"accentColor": "@color.accent",
+										"onChange": [
+											{
+												"set": "state.historyPick",
+												"to": "{{number(event.value)}}"
+											},
+											{
+												"if": "{{(window.width < 900)}}",
+												"then": [
+													{
+														"set": "state.pane",
+														"to": "review"
+													}
+												]
+											}
+										],
+										"label": "{{t('a11y.history')}}"
 									}
 								]
 							}
@@ -2547,41 +2901,12 @@
 												]
 											},
 											{
-												"id": "proposals",
-												"when": "{{length(state.proposals) > 0}}",
-												"type": "list",
-												"anchors": {
-													"left": 12,
-													"right": 12,
-													"top": 0
-												},
-												"height": "{{min(8 + 44 * length(state.proposals), 184)}}",
-												"color": "transparent",
-												"rowHeight": 44,
-												"items": "{{map(state.proposals, {id: text(it.id), label: (it.id == state.previewing ? '◉  ' : '') + t('review.list', {id: it.id, message: it.message, author: it.author})})}}",
-												"value": "{{computed.current != null ? text(computed.current.id) : ''}}",
-												"textColor": "@color.text",
-												"selectedTextColor": "@color.text",
-												"selectedBackground": "@color.accentSoft",
-												"accentColor": "@color.accent",
-												"onChange": [
-													{
-														"set": "state.selected",
-														"to": "{{number(event.value)}}"
-													},
-													{
-														"run": "gatherEvidence"
-													}
-												],
-												"label": "{{t('a11y.proposals')}}"
-											},
-											{
 												"id": "proposal",
 												"when": "{{computed.current != null}}",
 												"anchors": {
 													"left": 20,
 													"right": 20,
-													"top": "{{min(8 + 44 * length(state.proposals), 184) + 12}}",
+													"top": 8,
 													"bottom": 20
 												},
 												"color": "{{computed.current.id == state.previewing ? '@color.accentSoft' : '@color.cardRaised'}}",
@@ -2801,7 +3126,7 @@
 																},
 																"type": "label",
 																"font": "symbols",
-																"text": "{{t('review.scenario', {passed: r.passed ? 'yes' : 'no', name: r.name}) + (empty(r.message) ? '' : '  ·  ' + r.message)}}",
+																"text": "{{t('review.scenario', {passed: r.passed ? 'yes' : 'no', name: r.name}) + (empty(r.message) ? '' : '  \u00b7  ' + r.message)}}",
 																"textColor": "@color.text",
 																"color": "{{r.passed ? '@color.card' : '@color.bad'}}",
 																"radius": 4,
@@ -2835,7 +3160,7 @@
 																		"id": "label-diff-node",
 																		"type": "label",
 																		"font": "symbols",
-																		"text": "{{d.node}}  ·  {{d.language}}",
+																		"text": "{{d.node}}  \u00b7  {{d.language}}",
 																		"textColor": "@color.muted",
 																		"anchors": {
 																			"left": 8,
@@ -2941,7 +3266,7 @@
 																		"id": "label-conflict-path",
 																		"type": "label",
 																		"font": "symbols",
-																		"text": "{{k.path}}  ·  {{k.reason}}",
+																		"text": "{{k.path}}  \u00b7  {{k.reason}}",
 																		"textColor": "@color.text",
 																		"anchors": {
 																			"left": 8,
@@ -3135,67 +3460,12 @@
 												"label": "{{t('history.undoTip')}}"
 											},
 											{
-												"id": "history",
-												"type": "table",
-												"anchors": {
-													"left": 12,
-													"right": 12,
-													"top": 40,
-													"bottom": 148
-												},
-												"color": "transparent",
-												"rowHeight": 30,
-												"items": "{{map(reverse(state.history), {id: text(it.number), cells: [t('history.glyph', {kind: length(it.parents ?? []) > 1 ? 'merge' : 'commit'}), it.number, it.short, it.author, it.message, it.committer != it.author ? it.committer : '']})}}",
-												"value": "{{computed.entry != null ? text(computed.entry.number) : ''}}",
-												"columns": [
-													{
-														"id": "graph",
-														"title": "{{t('history.graph')}}",
-														"width": 44
-													},
-													{
-														"id": "number",
-														"title": "#",
-														"width": 36
-													},
-													{
-														"id": "short",
-														"title": "{{t('history.commit')}}",
-														"width": 72
-													},
-													{
-														"id": "author",
-														"title": "{{t('history.author')}}",
-														"width": 80
-													},
-													{
-														"id": "message",
-														"title": "{{t('history.message')}}",
-														"width": 160
-													},
-													{
-														"id": "approved",
-														"title": "{{t('history.approved')}}",
-														"width": 96
-													}
-												],
-												"textColor": "@color.text",
-												"selectedTextColor": "@color.text",
-												"selectedBackground": "@color.accentSoft",
-												"accentColor": "@color.accent",
-												"onChange": {
-													"set": "state.historyPick",
-													"to": "{{number(event.value)}}"
-												},
-												"label": "{{t('a11y.history')}}"
-											},
-											{
 												"id": "entry",
 												"when": "{{computed.entry != null}}",
 												"anchors": {
 													"left": 20,
 													"right": 20,
-													"bottom": 20
+													"top": 40
 												},
 												"height": 116,
 												"color": "@color.cardRaised",
@@ -3733,7 +4003,7 @@
 											{
 												"id": "inspChildren",
 												"style": "caption",
-												"text": "{{t('insp.children', {n: length(computed.inspectChildren)})}}{{empty(computed.inspectChildren) ? '' : '  ·  ' + t('insp.select')}}",
+												"text": "{{t('insp.children', {n: length(computed.inspectChildren)})}}{{empty(computed.inspectChildren) ? '' : '  \u00b7  ' + t('insp.select')}}",
 												"anchors": {
 													"left": 20,
 													"right": 20,
@@ -3756,7 +4026,7 @@
 												"height": 136,
 												"rowHeight": 26,
 												"color": "transparent",
-												"items": "{{map(computed.inspectChildren, {id: text(index), label: (it.id ?? t('insp.noId')) + '  ·  ' + (it.type ?? 'panel') + (empty(it.children ?? []) ? '' : '  ›')})}}",
+												"items": "{{map(computed.inspectChildren, {id: text(index), label: (it.id ?? t('insp.noId')) + '  \u00b7  ' + (it.type ?? 'panel') + (empty(it.children ?? []) ? '' : '  \u203a')})}}",
 												"value": "{{state.inspectSel}}",
 												"textColor": "@color.text",
 												"selectedTextColor": "@color.text",
@@ -4156,6 +4426,187 @@
 				"dir": "auto"
 			},
 			{
+				"id": "foldoutBackdrop",
+				"when": "{{state.repoOpen || state.branchOpen}}",
+				"anchors": {
+					"left": 0,
+					"right": 0,
+					"top": 60,
+					"bottom": 0
+				},
+				"color": "transparent",
+				"onClick": [
+					{
+						"set": "state.repoOpen",
+						"to": false
+					},
+					{
+						"set": "state.branchOpen",
+						"to": false
+					}
+				]
+			},
+			{
+				"id": "repoMenu",
+				"style": "foldout",
+				"when": "{{state.repoOpen}}",
+				"role": "menu",
+				"label": "{{t('toolbar.repo')}}",
+				"anchors": {
+					"left": 52,
+					"top": 64
+				},
+				"width": 300,
+				"height": "{{min(44 * length(state.connections), 264) + 92}}",
+				"children": [
+					{
+						"style": "caption",
+						"text": "{{t('toolbar.repos')}}",
+						"anchors": {
+							"left": 14,
+							"top": 12
+						}
+					},
+					{
+						"id": "repoList",
+						"type": "list",
+						"anchors": {
+							"left": 6,
+							"right": 6,
+							"top": 34
+						},
+						"rowHeight": 44,
+						"height": "{{min(44 * length(state.connections), 264)}}",
+						"color": "transparent",
+						"items": "{{map(state.connections, {id: it.id, label: (empty(it.name) ? t('conn.local') : it.name) + '  \u00b7  ' + it.address, icon: 'database'})}}",
+						"value": "{{state.active}}",
+						"textColor": "@color.text",
+						"selectedTextColor": "@color.text",
+						"selectedBackground": "@color.accentSoft",
+						"accentColor": "@color.accent",
+						"onChange": [
+							{
+								"set": "state.repoOpen",
+								"to": false
+							},
+							{
+								"set": "state.branchOpen",
+								"to": false
+							},
+							{
+								"if": "{{event.value != state.active}}",
+								"then": [
+									{
+										"run": "switchConnection",
+										"with": {
+											"id": "{{event.value}}"
+										}
+									}
+								]
+							}
+						],
+						"label": "{{t('toolbar.repos')}}"
+					},
+					{
+						"id": "repoAdd",
+						"style": "smallButton",
+						"icon": "plus",
+						"text": "{{t('toolbar.addRepo')}}",
+						"label": "{{t('toolbar.addRepo')}}",
+						"anchors": {
+							"left": 14,
+							"right": 14,
+							"bottom": 12
+						},
+						"onClick": [
+							{
+								"set": "state.repoOpen",
+								"to": false
+							},
+							{
+								"set": "state.branchOpen",
+								"to": false
+							},
+							{
+								"run": "openConnections"
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "branchMenu",
+				"style": "foldout",
+				"when": "{{state.branchOpen}}",
+				"role": "menu",
+				"label": "{{t('toolbar.branch')}}",
+				"anchors": {
+					"left": "{{(window.width < 900) ? 52 : 272}}",
+					"top": 64
+				},
+				"width": 340,
+				"height": "{{min(44 * (length(state.proposals) + 1), 308) + 44}}",
+				"children": [
+					{
+						"style": "caption",
+						"text": "{{t('toolbar.branches')}}",
+						"anchors": {
+							"left": 14,
+							"top": 12
+						}
+					},
+					{
+						"id": "branchList",
+						"type": "list",
+						"anchors": {
+							"left": 6,
+							"right": 6,
+							"top": 34
+						},
+						"rowHeight": 44,
+						"height": "{{min(44 * (length(state.proposals) + 1), 308)}}",
+						"color": "transparent",
+						"items": "{{concat([{id: 'main', label: t('toolbar.main'), icon: 'git-branch'}], map(state.proposals, {id: text(it.id), label: t('toolbar.proposal', {branch: it.branch ?? 'proposal/' + it.id, message: it.message}), icon: 'git-pull-request'}))}}",
+						"value": "{{computed.branch == 'main' ? 'main' : text(computed.current.id)}}",
+						"textColor": "@color.text",
+						"selectedTextColor": "@color.text",
+						"selectedBackground": "@color.accentSoft",
+						"accentColor": "@color.accent",
+						"label": "{{t('toolbar.branches')}}",
+						"onChange": [
+							{
+								"set": "state.repoOpen",
+								"to": false
+							},
+							{
+								"set": "state.branchOpen",
+								"to": false
+							},
+							{
+								"if": "{{event.value == 'main'}}",
+								"then": [
+									{
+										"run": "showHistory"
+									}
+								],
+								"else": [
+									{
+										"set": "state.selected",
+										"to": "{{number(event.value)}}"
+									},
+									{
+										"run": "showReview"
+									},
+									{
+										"run": "gatherEvidence"
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
 				"id": "featuresDialog",
 				"use": "featuresDialog",
 				"dir": "auto"
@@ -4487,7 +4938,7 @@
 									{
 										"id": "connRowName",
 										"type": "label",
-										"text": "{{(empty(c.name) ? t('conn.local') : c.name) + '  ·  ' + c.address}}",
+										"text": "{{(empty(c.name) ? t('conn.local') : c.name) + '  \u00b7  ' + c.address}}",
 										"textColor": "@color.text",
 										"font": "small",
 										"anchors": {
@@ -4693,5 +5144,70 @@
 				"dir": "auto"
 			}
 		]
+	},
+	"components": {
+		"toolbarSection": {
+			"params": {
+				"icon": "",
+				"caption": "",
+				"chevron": true
+			},
+			"node": {
+				"style": "toolbarSection",
+				"children": [
+					{
+						"type": "label",
+						"font": "icons",
+						"icon": "{{icon}}",
+						"textColor": "@color.toolbarMuted",
+						"align": "center",
+						"anchors": {
+							"left": 10,
+							"top": 0,
+							"bottom": 0
+						},
+						"width": 22
+					},
+					{
+						"type": "label",
+						"style": "toolbarCaption",
+						"text": "{{caption}}",
+						"when": "{{!empty(caption)}}",
+						"anchors": {
+							"left": 40,
+							"right": 28,
+							"top": 11
+						},
+						"height": 16
+					},
+					{
+						"slot": true
+					},
+					{
+						"type": "label",
+						"when": "{{chevron}}",
+						"font": "iconsSmall",
+						"icon": "chevron-down",
+						"textColor": "@color.toolbarMuted",
+						"align": "center",
+						"anchors": {
+							"right": 8,
+							"top": 0,
+							"bottom": 0
+						},
+						"width": 16
+					},
+					{
+						"anchors": {
+							"right": 0,
+							"top": 0,
+							"bottom": 0
+						},
+						"width": 1,
+						"color": "@color.toolbarBorder"
+					}
+				]
+			}
+		}
 	}
 }

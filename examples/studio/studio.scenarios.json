@@ -371,7 +371,7 @@
 					}
 				},
 				{
-					"click": [700, 198],
+					"click": [190, 183],
 					"note": "the second row"
 				},
 				{
@@ -1321,7 +1321,7 @@
 					}
 				},
 				{
-					"click": [700, 245],
+					"click": [190, 180],
 					"note": "revision 3"
 				},
 				{
@@ -2431,7 +2431,7 @@
 					"expect": {
 						"node": "#header",
 						"property": "color",
-						"is": "#ffffff"
+						"is": "#1f2433"
 					}
 				},
 				{
@@ -2497,7 +2497,7 @@
 					"expect": {
 						"node": "#header",
 						"property": "color",
-						"is": "#131a2e"
+						"is": "#0d1220"
 					}
 				},
 				{
@@ -5427,8 +5427,8 @@
 				},
 				{
 					"click": [
-						700,
-						198
+						190,
+						183
 					],
 					"note": "the second row"
 				},

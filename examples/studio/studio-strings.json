@@ -247,7 +247,21 @@
 			"tab.permissions": "Permissions",
 			"tab.review": "{n, plural, =0 {Review} other {Review (#)}}",
 			"tab.rules": "{n, plural, =0 {Rules} other {Rules (#)}}",
-			"toast.newProposal": "New proposal #{id} from {author}"
+			"toast.newProposal": "New proposal #{id} from {author}",
+			"toolbar.repo": "Current repository",
+			"toolbar.repos": "Repositories",
+			"toolbar.addRepo": "Add a connection…",
+			"toolbar.branch": "Current branch",
+			"toolbar.branches": "Branches",
+			"toolbar.main": "main  ·  default branch",
+			"toolbar.proposal": "{branch}  ·  {message}",
+			"toolbar.fetch": "Fetch from the host",
+			"toolbar.fetchTip": "Fetch main and the proposals again",
+			"toolbar.offline": "Not connected",
+			"side.changes": "Changes ({n})",
+			"side.history": "History ({n})",
+			"a11y.side": "Changes and history",
+			"cmd.fetch": "Fetch from the host"
 		},
 		"it": {
 			"a11y.connections": "Connessioni note",
@@ -492,7 +506,21 @@
 			"tab.permissions": "Permessi",
 			"tab.review": "{n, plural, =0 {Revisione} other {Revisione (#)}}",
 			"tab.rules": "{n, plural, =0 {Regole} other {Regole (#)}}",
-			"toast.newProposal": "Nuova proposta #{id} da {author}"
+			"toast.newProposal": "Nuova proposta #{id} da {author}",
+			"toolbar.repo": "Repository attuale",
+			"toolbar.repos": "Repository",
+			"toolbar.addRepo": "Aggiungi una connessione…",
+			"toolbar.branch": "Branch attuale",
+			"toolbar.branches": "Branch",
+			"toolbar.main": "main  ·  branch predefinito",
+			"toolbar.proposal": "{branch}  ·  {message}",
+			"toolbar.fetch": "Aggiorna dall'host",
+			"toolbar.fetchTip": "Scarica di nuovo main e le proposte",
+			"toolbar.offline": "Non connesso",
+			"side.changes": "Modifiche ({n})",
+			"side.history": "Cronologia ({n})",
+			"a11y.side": "Modifiche e cronologia",
+			"cmd.fetch": "Aggiorna dall'host"
 		},
 		"ar": {
 			"a11y.connections": "الاتصالات المعروفة",
@@ -737,7 +765,21 @@
 			"tab.permissions": "الأذونات",
 			"tab.review": "{n, plural, =0 {المراجعة} other {المراجعة (#)}}",
 			"tab.rules": "{n, plural, =0 {القواعد} other {القواعد (#)}}",
-			"toast.newProposal": "اقتراح جديد #{id} من {author}"
+			"toast.newProposal": "اقتراح جديد #{id} من {author}",
+			"toolbar.repo": "المستودع الحالي",
+			"toolbar.repos": "المستودعات",
+			"toolbar.addRepo": "إضافة اتصال…",
+			"toolbar.branch": "الفرع الحالي",
+			"toolbar.branches": "الفروع",
+			"toolbar.main": "main  ·  الفرع الافتراضي",
+			"toolbar.proposal": "{branch}  ·  {message}",
+			"toolbar.fetch": "جلب من المضيف",
+			"toolbar.fetchTip": "جلب main والمقترحات مرة أخرى",
+			"toolbar.offline": "غير متصل",
+			"side.changes": "التغييرات ({n})",
+			"side.history": "السجل ({n})",
+			"a11y.side": "التغييرات والسجل",
+			"cmd.fetch": "جلب من المضيف"
 		}
 	}
 }

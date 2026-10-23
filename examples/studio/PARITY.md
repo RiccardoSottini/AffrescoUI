@@ -10,9 +10,9 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Area | Feature | In the Studio | Start | Now |
 |---|---|---|---|---|
 | Toolbar | Current repository drop-down: list, filter, add | The connections (hosts, document servers) | partial | partial |
-| Toolbar | Current branch drop-down: filter, default, recent and other branches | main and the open proposals | missing | missing |
-| Toolbar | Fetch / pull / push button with counts and "last fetched" | Refresh from the host, reconnect when offline | missing | missing |
-| Sidebar | Changes and History tabs with counts | | partial | partial |
+| Toolbar | Current branch drop-down: filter, default, recent and other branches | main and the open proposals | missing | partial |
+| Toolbar | Fetch / pull / push button with counts and "last fetched" | Refresh from the host, reconnect when offline | missing | partial |
+| Sidebar | Changes and History tabs with counts | | partial | done |
 | Changes | Changed files with check boxes and status icons; select all | Direct-change and permission drafts | missing | missing |
 | Changes | Summary and description, "Commit to main" | Message of a direct change, apply | partial | partial |
 | Changes | Nothing-changed state with suggestions | | partial | partial |
@@ -47,6 +47,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Pull request | Check out the pull request | Preview | partial | partial |
 
 **Counts at the start:** 0 done, 19 partial, 17 missing.
+**Counts now:** 1 done, 20 partial, 15 missing.
 
 ## The Studio's own parts
 
