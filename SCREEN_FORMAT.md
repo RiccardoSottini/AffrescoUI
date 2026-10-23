@@ -747,14 +747,6 @@ keep their open state where `open` says (a state path):
   and `recent` (the default provider's last `recentLimit` choices, shown first). Only the visible `rows` are built;
   the arrows move, Enter or a click runs the item's `run` (with its `with`), or else the provider's `run` with the
   item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
-- The parts of a conversation with an assistant (see Asking the agents), which run the actions they are given with
-  `with`: `chatBubble` (`text`, `from`, `mine`, `time`, `error`), `typingIndicator` (`label`; its active dot is
-  `phase % 3`), `proposalCard` (`title`, `summary`, up to three `lines` such as a proposal's `changes`, in the font
-  `lineFont`, a `status`, and `preview`, `accept`, `reject` buttons until the status is `accepted`, `rejected` or
-  `closed`), `chatComposer` (an editor bound to `bind`, showing `value`: Enter runs `send`
-  unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; it lays out left to right, as the editor
-  starts its lines at the left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
-  badge).
 
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
@@ -769,6 +761,17 @@ keep their open state where `open` says (a state path):
 { "use": "toolbar", "with": { "items": [{ "title": "Undo", "icon": "undo", "keyLabel": "Ctrl+Z", "run": "undo" },
   { "separator": true }, { "title": "Grid", "icon": "layout-grid", "checked": "{{state.grid}}", "run": "toggleGrid" }] } }
 ```
+
+
+### Chat components
+The parts of a conversation with an assistant (see Asking the agents) are built-in components too. They run the actions they are given with
+  `with`: `chatBubble` (`text`, `from`, `mine`, `time`, `error`), `typingIndicator` (`label`; its active dot is
+  `phase % 3`), `proposalCard` (`title`, `summary`, up to three `lines` such as a proposal's `changes`, in the font
+  `lineFont`, a `status`, and `preview`, `accept`, `reject` buttons until the status is `accepted`, `rejected` or
+  `closed`), `chatComposer` (an editor bound to `bind`, showing `value`: Enter runs `send`
+  unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; it lays out left to right, as the editor
+  starts its lines at the left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
+  badge).
 
 ### The kit's tokens
 The built-in components draw with these design tokens, used as `"@kit.surface"`. A screen restyles every
@@ -1081,7 +1084,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
-| `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: a request in plain words to the connected agents (`peers`); `into` gets its id, and each reply runs `ask:reply`, never as the person's decision (see Asking the agents). A control step |
+| `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: asks the agents in plain words; replies run `ask:reply`, never as the person's decision (Asking the agents). A control step |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out) |
@@ -1092,7 +1095,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
-| `camera` | `{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view` (front, back, left, right, top, bottom), `frame` ("selection", "all" or ids), `projection` (perspective, orthographic, toggle), `orbit` [degrees right, down], `zoom` (wheel steps, positive to come closer) |
+| `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
 <!-- end generated -->
 
 ### Control steps and paths

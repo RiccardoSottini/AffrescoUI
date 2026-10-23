@@ -296,9 +296,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
     {"ask", "",
-	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: a request in plain words to the connected agents "
-	 "(`peers`); `into` gets its id, and each reply runs `ask:reply`, never as the person's decision (see Asking the "
-	 "agents). A control step",
+	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: asks the agents in plain words; replies "
+	 "run `ask:reply`, never as the person's decision (Asking the agents). A control step",
 	 "steps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
@@ -341,9 +340,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
     {"camera", "",
-	 R"(`{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view` (front, )"
-	 R"(back, left, right, top, bottom), `frame` ("selection", "all" or ids), `projection` (perspective, )"
-	 R"(orthographic, toggle), `orbit` [degrees right, down], `zoom` (wheel steps, positive to come closer))",
+	 R"(`{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, )"
+	 R"(`zoom`: see `scene`))",
 	 "steps"},
     {"view", R"json({"anyOf": [{"enum": ["front", "back", "left", "right", "top", "bottom"]},
 		{"$ref": "#/$defs/v2/dynamic"}]})json",
