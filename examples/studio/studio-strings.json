@@ -276,7 +276,15 @@
 			"pr.load": "{loading, select, yes {Loading the changes…} other {Load the changes}}",
 			"pr.loadTip": "Ask the host for the proposal against main",
 			"pr.stat": "+{added}  −{removed}",
-			"history.row": "{author} · {short}{approved, select, yes { · approved by {committer}} other {}}"
+			"history.row": "{author} · {short}{approved, select, yes { · approved by {committer}} other {}}",
+			"diff.unified": "Unified",
+			"diff.split": "Split",
+			"diff.whitespace": "Hide whitespace changes",
+			"diff.viewed": "Viewed",
+			"diff.expand": "Show the whole file",
+			"diff.collapse": "Show only the changes",
+			"diff.expandFile": "Show this file",
+			"diff.collapseFile": "Hide this file"
 		},
 		"it": {
 			"a11y.connections": "Connessioni note",
@@ -550,7 +558,15 @@
 			"pr.load": "{loading, select, yes {Caricamento delle modifiche…} other {Carica le modifiche}}",
 			"pr.loadTip": "Chiedi all''host la proposta rispetto a main",
 			"pr.stat": "+{added}  −{removed}",
-			"history.row": "{author} · {short}{approved, select, yes { · approvato da {committer}} other {}}"
+			"history.row": "{author} · {short}{approved, select, yes { · approvato da {committer}} other {}}",
+			"diff.unified": "Unificata",
+			"diff.split": "Affiancata",
+			"diff.whitespace": "Nascondi le modifiche agli spazi",
+			"diff.viewed": "Visto",
+			"diff.expand": "Mostra tutto il file",
+			"diff.collapse": "Mostra solo le modifiche",
+			"diff.expandFile": "Mostra questo file",
+			"diff.collapseFile": "Nascondi questo file"
 		},
 		"ar": {
 			"a11y.connections": "الاتصالات المعروفة",
@@ -824,7 +840,15 @@
 			"pr.load": "{loading, select, yes {جارٍ تحميل التغييرات…} other {تحميل التغييرات}}",
 			"pr.loadTip": "اطلب من المضيف المقترح مقارنةً بـ main",
 			"pr.stat": "+{added}  −{removed}",
-			"history.row": "{author} · {short}{approved, select, yes { · وافق عليه {committer}} other {}}"
+			"history.row": "{author} · {short}{approved, select, yes { · وافق عليه {committer}} other {}}",
+			"diff.unified": "موحّد",
+			"diff.split": "جنبًا إلى جنب",
+			"diff.whitespace": "إخفاء تغييرات المسافات",
+			"diff.viewed": "تمت المشاهدة",
+			"diff.expand": "عرض الملف كاملًا",
+			"diff.collapse": "عرض التغييرات فقط",
+			"diff.expandFile": "عرض هذا الملف",
+			"diff.collapseFile": "إخفاء هذا الملف"
 		}
 	}
 }

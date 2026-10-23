@@ -21,9 +21,9 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | History | The chosen commit: header, files and their diffs | A revision's changed sections against its parent | missing | partial |
 | History | Revert a commit; restore | Revert, restore | partial | partial |
 | Diff | Unified view: old and new line numbers, added and removed lines coloured | A proposal's sections, as formatted JSON | missing | partial |
-| Diff | Split view | | partial | partial |
-| Diff | Hunk headers and expanding the context | Headers; no expanding yet | missing | partial |
-| Diff | Hide whitespace changes; diff options | | missing | missing |
+| Diff | Split view | Unified or split, old on the left and new on the right, remembered | partial | partial |
+| Diff | Hunk headers and expanding the context | Headers; the whole file on a click, not a few lines at a time | missing | partial |
+| Diff | Hide whitespace changes; diff options | Unified, split and whitespace as buttons above the files, not a menu | missing | partial |
 | Diff | Large-diff and binary placeholders | | missing | missing |
 | Branches | Compare a branch with main | A proposal against main | missing | missing |
 | Branches | Merge conflicts dialog | A proposal that conflicts with main | partial | partial |
@@ -37,7 +37,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Pull request | Conversation, Commits, Checks, Files changed tabs with counts | Checks are the evidence; nested in a second card | missing | partial |
 | Pull request | Conversation: description and timeline of commits and reviews | Opened, changes, pushed, approvals, policy | missing | partial |
 | Pull request | Sidebar: reviewers, state of each | Who approved, what the policy needs | missing | missing |
-| Pull request | Files changed: file tree, per-file +/− counts, "Viewed" | Changed sections with counts; no tree or Viewed yet | missing | partial |
+| Pull request | Files changed: file tree, per-file +/− counts, "Viewed" | Per-file counts and blocks, collapse, Viewed; no tree | missing | partial |
 | Pull request | Comments on a line, with suggestions | | missing | missing |
 | Pull request | Review box: Comment, Approve, Request changes | Accept, reject | partial | partial |
 | Pull request | Checks: what ran, with its results | Evidence: scenarios, pictures before and after | partial | partial |
@@ -47,7 +47,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Pull request | Check out the pull request | Preview | partial | partial |
 
 **Counts at the start:** 0 done, 19 partial, 17 missing.
-**Counts now:** 0 done, 28 partial, 8 missing.
+**Counts now:** 0 done, 29 partial, 7 missing.
 
 ## The Studio's own parts
 
