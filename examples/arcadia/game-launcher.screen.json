@@ -13,7 +13,7 @@
 		"focusRing": { "color": "#1a9fff", "width": 2, "offset": 1 }
 	},
 
-	"include": ["parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json"],
+	"include": ["parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json", "parts/downloads.json", "../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{settings.appearance.theme}}",
 
@@ -85,6 +85,15 @@
 		"color.badge": { "dark": "#4c6b22", "light": "#4c6b22" },
 		"color.onBadge": { "dark": "#beee11", "light": "#d8ff4a" },
 		"color.shade": { "dark": "#0e1116cc", "light": "#0e1116aa" },
+		"assistant.accent": "@color.accent",
+		"assistant.accentHover": "@color.blue",
+		"assistant.surface": "@color.panel",
+		"assistant.raised": "@color.raised",
+		"assistant.border": "@color.border",
+		"assistant.text": "@color.text",
+		"assistant.dim": "@color.muted",
+		"assistant.dot": "@color.dim",
+		"assistant.success": "@color.play",
 		"kit.background": "@color.page",
 		"kit.surface": { "dark": "#3d4450", "light": "#ffffff" },
 		"kit.bar": "@color.top",
@@ -243,7 +252,8 @@
 						"children": [
 							{ "when": "{{computed.here.tab == 'library'}}", "use": "libraryPage", "id": "library" },
 							{ "when": "{{computed.here.tab == 'store'}}", "use": "storePage" },
-							{ "when": "{{computed.here.tab != 'library' && computed.here.tab != 'store'}}", "use": "comingSoon", "id": "elsewhere" }
+							{ "when": "{{computed.here.tab == 'downloads'}}", "use": "downloadsPage" },
+							{ "when": "{{!contains(['library', 'store', 'downloads'], computed.here.tab)}}", "use": "comingSoon", "id": "elsewhere" }
 						]
 					},
 					{ "use": "bottomBar", "id": "bottom-bar" }

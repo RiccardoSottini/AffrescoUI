@@ -40,7 +40,7 @@
 				{ "expect": { "node": "#play-button", "text": "INSTALL" } },
 				{ "capture": "not-installed" },
 				{ "click": "#play-button" },
-				{ "expect": { "state": "downloads[2].id", "is": "mossheart" } }
+				{ "expect": { "state": "downloads[6].id", "is": "mossheart" } }
 			]
 		},
 		{
@@ -83,6 +83,15 @@
 				{ "capture": "cart" },
 				{ "action": "showWishlist" },
 				{ "capture": "wishlist" }
+			]
+		},
+		{
+			"name": "assistant",
+			"steps": [
+				{ "action": "assistant.open" },
+				{ "expect": { "node": "#assistantPanel", "property": "shown", "is": true } },
+				{ "capture": "assistant" },
+				{ "key": "escape" }
 			]
 		}
 	]

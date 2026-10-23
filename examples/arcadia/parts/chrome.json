@@ -10,8 +10,12 @@
 		"bellOpen": false,
 		"addOpen": false,
 		"downloads": [
-			{ "id": "skyward", "doneGb": 12.4, "status": "downloading" },
-			{ "id": "ember", "doneGb": 0, "status": "queued", "patchGb": 1.2 }
+			{ "id": "skyward", "doneGb": 12.4, "status": "downloading", "kind": "install" },
+			{ "id": "ember", "doneGb": 0, "status": "queued", "sizeGb": 1.2, "kind": "update" },
+			{ "id": "frostline", "doneGb": 0, "status": "queued", "sizeGb": 0.8, "kind": "update" },
+			{ "id": "thornwick", "doneGb": 0.2, "status": "paused", "sizeGb": 2.6, "kind": "update" },
+			{ "id": "lumen", "doneGb": 0.3, "status": "done", "sizeGb": 0.3, "kind": "update" },
+			{ "id": "quietorbit", "doneGb": 4.3, "status": "done", "kind": "install" }
 		],
 		"notifications": [
 			{ "icon": "download", "text": "notice.update", "game": "Ember Vigil", "unread": true },
@@ -371,6 +375,7 @@
 						"cursor": "hand",
 						"radius": 2,
 						"hover": { "color": "@color.hover" },
+						"onClick": "showDownloads",
 						"label": "{{computed.download ? t('bottom.downloading', { title: computed.downloadGame.title, percent: floor(computed.download.doneGb / computed.downloadGame.sizeGb * 100) }) : t('bottom.manage')}}",
 						"children": [
 							{
@@ -607,7 +612,7 @@
 			"bottom.browse": "تصفّح المتجر",
 			"bottom.friends": "الأصدقاء والدردشة",
 			"bottom.manage": "إدارة التنزيلات",
-			"bottom.downloading": "جارٍ تنزيل {title}: ‏{percent}٪"
+			"bottom.downloading": "تم تنزيل {percent}٪ من {title}"
 		}
 	}
 }
