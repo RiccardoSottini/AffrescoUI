@@ -34,9 +34,9 @@ inline constexpr std::size_t maximumPath = 4096;
 /// @brief A failure to report to C: its status and message.
 struct Failure : std::runtime_error {
 	/// @brief A failure.
-	/// @param status What afr_status the call returns.
+	/// @param code What afr_status the call returns.
 	/// @param message What afr_last_error() says.
-	Failure(afr_status status, const std::string& message) : std::runtime_error(message), status(status) {}
+	Failure(afr_status code, const std::string& message) : std::runtime_error(message), status(code) {}
 
 	afr_status status; ///< What afr_status the call returns.
 };

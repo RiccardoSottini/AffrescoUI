@@ -258,7 +258,7 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 	auto now = check(after, stateOf(after), nativeActions_);
 	if(now && now->empty()) return;
 	auto old = now ? check(before, stateOf(before), nativeActions_) : std::nullopt;
-	if(!old) { // too large to check: ids still are, as a node given a locked one's id first would pass for it
+	if(!old || !now) { // too large to check: ids still are, as a node given a locked one's id first would pass for it
 		now = duplicateIdFindings(after);
 		old = duplicateIdFindings(before);
 	}

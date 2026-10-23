@@ -58,8 +58,9 @@ Built A2uiConverter::build(const std::string& id, float width, const Scope& scop
 	if(found == components_.end()) return out_.placeholder("missing component '" + id + "'", at, width);
 	if(visiting_.contains(id)) return out_.placeholder("component '" + id + "' inside itself", at, width);
 	visiting_.insert(id);
-	const std::string type = found->second.begin().key();
-	const json& body = found->second.begin().value();
+	const auto entry = found->second.begin();
+	const std::string type = entry.key();
+	const json& body = entry.value();
 	Built built = body.is_object() ? buildType(type, body, id, width, {scope.inTemplate, scope.depth + 1})
 	                               : out_.placeholder(type + " without properties", at, width);
 	visiting_.erase(id);

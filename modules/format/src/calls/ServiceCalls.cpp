@@ -338,8 +338,8 @@ void ServiceCalls::deliver(std::uint64_t call) {
 		finished = job->finished;
 		job->posted = false;
 	}
-	if(progressed && it->second.progress)
-		write(*it->second.progress, std::move(*progressed), it->second.where + ".progress");
+	if(const auto& progress = it->second.progress; progressed && progress)
+		write(*progress, std::move(*progressed), it->second.where + ".progress");
 	if(!events.empty())
 		deliverEvents(
 		    call, std::vector<json>(std::make_move_iterator(events.begin()), std::make_move_iterator(events.end())));

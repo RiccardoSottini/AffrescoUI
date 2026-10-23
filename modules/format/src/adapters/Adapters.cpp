@@ -18,7 +18,8 @@ namespace {
 	constexpr std::array<std::string_view, 4> kinds{"surfaceUpdate", "dataModelUpdate", "beginRendering",
 	                                                "deleteSurface"};
 	if(!value.is_object() || value.size() != 1) return false;
-	const std::string& key = value.begin().key();
+	const auto entry = value.begin();
+	const std::string& key = entry.key();
 	return std::ranges::find(kinds, key) != kinds.end();
 }
 
