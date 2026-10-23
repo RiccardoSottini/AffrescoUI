@@ -125,38 +125,36 @@ Value every(const Call& call) { return any(call, false); }
 Value sort(const Call& call) {
 	const std::optional<Value> list = listOf(call);
 	if(!list) return Value::fromList({});
-	// A key that isn't text is written as JSON text once, not at every comparison: a list of objects sorts in
-	// n log n, not n log n dumps. Only when a comparison may read it: numbers compare by size
-	struct Key {
-		Value value;       ///< The key.
-		std::string json;  ///< Its JSON text, if it is neither text nor (with every other key) a number.
-		std::size_t index; ///< The item's position.
-
-		/// @brief The text a comparison reads, from the key where it is now (it moves while sorting).
-		/// @return Its text, or its JSON text.
-		[[nodiscard]] std::string_view text() const { return value.isText() ? value.text() : json; }
-	};
-	std::vector<Key> keys;
+	std::vector<std::pair<Value, std::size_t>> keys; // with their items' positions
 	keys.reserve(list->size());
 	bool numbers = true;
 	for(std::size_t i = 0; i < list->size(); ++i) {
-		keys.push_back({.value = each(call, *list, i), .json = {}, .index = i});
-		numbers = numbers && keys.back().value.isNumber();
+		keys.emplace_back(each(call, *list, i), i);
+		numbers = numbers && keys.back().first.isNumber();
 	}
-	if(!numbers)
-		for(Key& key : keys)
-			if(!key.value.isText()) key.json = key.value.dump();
+	// A key that isn't text is written as JSON text once, not at every comparison: a list of objects sorts in
+	// n log n, not n log n dumps. Beside the keys, by position, as they move while sorting; and only when a comparison
+	// may read them, as numbers compare by size
+	std::vector<std::string> texts;
+	if(!numbers) {
+		texts.resize(keys.size());
+		for(const auto& [key, i] : keys)
+			if(!key.isText()) texts[i] = key.dump();
+	}
+	const auto text = [&](const std::pair<Value, std::size_t>& key) {
+		return key.first.isText() ? key.first.text() : std::string_view(texts[key.second]);
+	};
 	const bool descending = call.size() > 2 && call.evaluate(2).toText() == "desc";
 	// Numbers by size, anything else by its text
-	std::ranges::stable_sort(keys, [&](const Key& a, const Key& b) {
-		const bool both = a.value.isNumber() && b.value.isNumber();
-		const double x = both ? a.value.number() : 0, y = both ? b.value.number() : 0;
-		const int c = both ? (x < y ? -1 : x > y ? 1 : 0) : a.text().compare(b.text());
+	std::ranges::stable_sort(keys, [&](const auto& a, const auto& b) {
+		const bool both = a.first.isNumber() && b.first.isNumber();
+		const double x = both ? a.first.number() : 0, y = both ? b.first.number() : 0;
+		const int c = both ? (x < y ? -1 : x > y ? 1 : 0) : text(a).compare(text(b));
 		return descending ? c > 0 : c < 0;
 	});
 	std::vector<Value> result;
 	result.reserve(keys.size());
-	for(const Key& key : keys) result.push_back(list->item(key.index));
+	for(const auto& key : keys) result.push_back(list->item(key.second));
 	return Value::fromList(std::move(result));
 }
 
