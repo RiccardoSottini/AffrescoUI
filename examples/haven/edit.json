@@ -140,7 +140,7 @@
 									] }
 							] },
 						{ "anchors": { "left": 0, "right": 0, "bottom": 64 }, "height": 1, "color": "@divider" },
-					{ "id": "cardCodeSwitch", "style": "button", "color": "transparent", "hover": { "color": "@accentSoft" }, "textColor": "@accent", "padding": 12, "fitText": true,
+					{ "id": "cardCodeSwitch", "style": "button", "color": "transparent", "hover": { "color": "transparent" }, "textColor": "@accent", "padding": 12, "fitText": true,
 						"text": "{{t(state.cardEdit.code ? 'edit.showForm' : 'edit.showCode')}}", "anchors": { "left": 16, "bottom": 14 }, "height": 36,
 						"onClick": { "if": "{{state.cardEdit.code}}", "then": [{ "run": "showCardForm" }], "else": [{ "run": "showCardCode" }] } },
 					{ "id": "cardSave", "style": "button", "color": "@accent", "hover": { "color": "@accent" }, "textColor": "#ffffff", "text": "{{t('edit.save')}}",

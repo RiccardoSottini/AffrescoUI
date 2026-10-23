@@ -4,7 +4,7 @@ Haven aims at the look and the flow of a mature open-source home dashboard, buil
 the stock host. All names, data, text and pictures are invented; the icons are Lucide. Each row is one thing a user
 of such a dashboard notices; the status is `done`, `partial` or `missing`, and the counts are updated every round.
 
-**Counts:** 49 done, 1 partial, 0 missing (50).
+**Counts:** 50 done, 0 partial, 0 missing (50).
 
 ## Shell
 
@@ -18,8 +18,8 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Light and dark themes | done | light by default, as the reference |
 | Right to left (Arabic) | done | the sidebar moves to the right and every card mirrors; the floor plan and the automation graph keep their drawing |
 | Notifications button with a badge | done | |
-| Search dialog over entities | done | E opens it, rounded and centred, over every light, climate, cover, device and the alarm, dimming the page; Enter opens its dialog |
-| Entity icons in the search | partial | names and areas; the kit's quick pick has no icons |
+| Search dialog over entities | done | E or the magnifier opens it, a rounded dialog over every light, climate, cover, device and the alarm, dimming the page: a filled field with a magnifier and a clear button; Enter opens the picked one's dialog |
+| Entity icons in the search | done | each result's icon in a circle, its name and its area beneath; Haven's own component replaces the kit's quick pick, with the same search and keys |
 | Collapsible sidebar | done | the menu button folds it to icons with tooltips |
 
 ## Dashboard tiles
@@ -36,7 +36,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Alarm panel tile and its keypad dialog | done | a button per mode; disarming takes a code |
 | Round toggle switches | done | drawn round switches in the automations, the card editor and the general settings; tiles use bars |
 | Tile names never cut at the smallest window | done | |
-| Edit mode for the dashboard | done | a blue-grey bar with close, the title and Done; each section outlined with even padding, with a pencil in its corner that covers none of its content; a floating Add card button |
+| Edit mode for the dashboard | done | a blue-grey bar with close, the title and Done; each section outlined with even padding, with a pencil in its corner that covers none of its content; Add card in the edit bar |
 | Card editor: visual and code | done | a filled title field with its label inside and the options in a form, or the card as JSON, checked on save, beside a live preview of the card as the dashboard draws it (the thermostat with the current temperature, its dial, minus and plus clear below it, and modes); cards cannot yet be moved |
 | Snackbar for short messages | done | a dark bar at the bottom centre with Dismiss, or a call's progress |
 
@@ -45,7 +45,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Light dialog: big brightness bar, colour temperature | done | opens from a light tile; the bar fills with a flat top and a handle line |
-| Climate dialog: dial, modes, history | done | its own dial, modes and a 24-hour line with a scale |
+| Climate dialog: dial, modes, history | done | its own dial with minus and plus in its gap, a Mode dropdown, and a 24-hour line with a scale |
 | Cover dialog: position, tilt | done | a position bar and a narrower tilt bar, open, stop and close |
 | Device dialog: attributes, related, logbook | done | the speaker with previous, play or pause, next and a volume bar; battery, last change, the automation it is used in (which opens it), recent activity |
 | Dialogs dim the page behind them | done | the search too |
@@ -64,7 +64,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Automations list with on and off | done | a coloured app bar; a searchable table with name and last ran columns, without a count that could be cut; disabled rules dimmed; a menu per row to run, duplicate, disable or delete it; a floating New automation button |
-| Editor: triggers, conditions, actions as cards | done | a coloured app bar with back, name, enabled, Run and more; When, And if, Then do cards, each step an outlined row with a chevron and a menu to duplicate or delete it, and outlined add buttons; a graph view; an overflow menu with Run, Duplicate and Delete, which asks first |
+| Editor: triggers, conditions, actions as cards | done | a coloured app bar with back, the name and more; a banner with Enable while it is disabled; When, And if, Then do cards, each step an outlined row with a chevron and a menu to duplicate or delete it, and outlined add buttons; a graph view; an overflow menu with Run, Disable, Duplicate and Delete, which asks first |
 | Confirm dialogs | done | rounded, with text buttons: Cancel, then Delete in red |
 | Automation trace / last run | done | a step-by-step timeline of the last run; Run starts it now |
 
@@ -84,7 +84,7 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | --- | --- | --- |
 | Settings list grouped in cards | done | coloured icon circles, a subtitle and a chevron per row |
 | Profile: user, language, theme | done | the user and Log out; the language in the same filled dropdown as the general settings; the theme as Auto, Light and Dark radio buttons |
-| Devices and entities tables | done | Integrations, Devices, Entities and Helpers tabs, a rounded search field with Filters that narrows the table, plain headers, and a floating add button |
+| Devices and entities tables | done | Integrations, Devices, Entities and Helpers tabs in the app bar (under it in a narrow window), Filters then a Search 3 devices field that narrows the table, a full-width table with lines between rows and the manufacturer, model, area and integration, and a floating add button |
 | About page | done | the logo, version, devices and licence, then links to the documentation, issues and source |
 | General: climate, scenes, budget, notifications | done | rows from the settings schema in a card capped at 1040 pixels: filled number fields, round switches, the language in a dropdown, Reset when changed |
 

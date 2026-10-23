@@ -10,8 +10,8 @@
 		"sideWidth": "{{state.sidebarCollapsed ? 56 : 256}}",
 		"navPages": "{{filter(state.pages, it.id != 'settings')}}",
 		"alarmColor": "{{state.security == 'off' ? '@ok' : '@alert'}}",
-		"entities": "{{concat(computed.lightEntities, map(state.rooms, { title: t('info.climate'), detail: it.name, run: 'openEntity', with: { room: index, kind: 'climate', i: 0 } }), map(state.rooms, { title: t('info.cover'), detail: it.name, run: 'openEntity', with: { room: index, kind: 'cover', i: 0 } }), map(state.devices, { title: it.name, detail: t('info.home'), run: 'openEntity', with: { room: null, kind: 'device', i: index } }), [{ title: t('alarm.title'), detail: t('info.home'), run: 'openEntity', with: { room: null, kind: 'alarm', i: 0 } }])}}",
-		"lightEntities": "{{concat(map(state.rooms[0].lights, { title: it.name, detail: state.rooms[0].name, run: 'openEntity', with: { room: 0, kind: 'light', i: index } }), map(state.rooms[1].lights, { title: it.name, detail: state.rooms[1].name, run: 'openEntity', with: { room: 1, kind: 'light', i: index } }), map(state.rooms[2].lights, { title: it.name, detail: state.rooms[2].name, run: 'openEntity', with: { room: 2, kind: 'light', i: index } }), map(state.rooms[3].lights, { title: it.name, detail: state.rooms[3].name, run: 'openEntity', with: { room: 3, kind: 'light', i: index } }))}}"
+		"entities": "{{concat(computed.lightEntities, map(state.rooms, { title: t('info.climate'), detail: it.name, icon: 'thermometer', run: 'openEntity', with: { room: index, kind: 'climate', i: 0 } }), map(state.rooms, { title: t('info.cover'), detail: it.name, icon: 'blinds', run: 'openEntity', with: { room: index, kind: 'cover', i: 0 } }), map(state.devices, { title: it.name, detail: t('info.home'), icon: it.icon, run: 'openEntity', with: { room: null, kind: 'device', i: index } }), [{ title: t('alarm.title'), detail: t('info.home'), icon: 'shield', run: 'openEntity', with: { room: null, kind: 'alarm', i: 0 } }])}}",
+		"lightEntities": "{{concat(map(state.rooms[0].lights, { title: it.name, detail: state.rooms[0].name, icon: 'lightbulb', run: 'openEntity', with: { room: 0, kind: 'light', i: index } }), map(state.rooms[1].lights, { title: it.name, detail: state.rooms[1].name, icon: 'lightbulb', run: 'openEntity', with: { room: 1, kind: 'light', i: index } }), map(state.rooms[2].lights, { title: it.name, detail: state.rooms[2].name, icon: 'lightbulb', run: 'openEntity', with: { room: 2, kind: 'light', i: index } }), map(state.rooms[3].lights, { title: it.name, detail: state.rooms[3].name, icon: 'lightbulb', run: 'openEntity', with: { room: 3, kind: 'light', i: index } }))}}"
 	},
 
 	"actions": {
@@ -53,6 +53,86 @@
 					{ "when": "{{badge > 0}}", "type": "label", "font": "small", "text": "{{min(badge, 9)}}", "textColor": "@knob", "color": "@accent",
 						"anchors": { "left": "{{state.sidebarCollapsed ? 22 : 196}}", "top": "{{state.sidebarCollapsed ? 2 : 10}}" }, "width": 20, "height": 20,
 						"radius": 10, "align": "center" }
+				]
+			}
+		},
+
+		"quickPick": {
+			"note": "Replaces the kit's quick pick with the same search and keys: a rounded dialog with a filled field (a magnifier and a clear button), then each result's icon, name and area",
+			"params": { "name": "quickPick", "providers": [], "rows": 7, "rowHeight": 56, "width": 560, "limit": 1000, "recentLimit": 10, "highlight": "@accentSoft" },
+			"node": {
+				"overlay": { "placement": "window", "open": "{{'state.' + name + '.open'}}", "dismiss": "outside", "modal": true },
+				"x": "{{max(0, (window.width - width) / 2)}}", "y": 48, "width": "{{width}}", "height": "{{104 + max(1, min(total, rows)) * rowHeight}}",
+				"color": "@card", "radius": 24, "shadow": { "y": 8, "blur": 24, "color": "#00000047" }, "role": "dialog", "label": "{{provider.placeholder}}",
+				"let": {
+					"base": "{{'state.' + name}}",
+					"qp": "{{state[name]}}",
+					"q": "{{qp.query ?? ''}}",
+					"provider": "{{find(providers, length(it.prefix ?? '') > 0 && indexOf(q, it.prefix) == 0) ?? find(providers, length(it.prefix ?? '') == 0)}}",
+					"search": "{{slice(q, length(provider.prefix ?? ''))}}",
+					"key": "{{provider.key ?? 'title'}}",
+					"home": "{{length(provider.prefix ?? '') == 0}}",
+					"recent": "{{home ? qp.recent ?? [] : []}}",
+					"recentKeys": "{{map(recent, it[key])}}",
+					"recentHits": "{{fuzzySort(recent, search, key)}}",
+					"results": "{{slice(concat(recentHits, filter(fuzzySort(provider.items, search, key, limit + length(recent)), !contains(recentKeys, it.item[key]))), 0, limit)}}",
+					"total": "{{length(results)}}",
+					"sel": "{{clamp(qp.index ?? 0, 0, max(0, total - 1))}}",
+					"top": "{{clamp(qp.top ?? 0, 0, max(0, total - rows))}}"
+				},
+				"keys": {
+					"down": [{ "set": "{{base + '.top'}}", "to": "{{max(top, min(sel + 1, total - 1) - rows + 1)}}" }, { "set": "{{base + '.index'}}", "to": "{{min(sel + 1, max(0, total - 1))}}" }],
+					"up": [{ "set": "{{base + '.top'}}", "to": "{{min(top, max(sel - 1, 0))}}" }, { "set": "{{base + '.index'}}", "to": "{{max(sel - 1, 0)}}" }],
+					"enter": [{ "if": "{{total > 0}}", "then": [{ "forEach": "{{[results[sel]]}}", "as": "pick", "do": [
+				{ "set": "{{base + '.open'}}", "to": false },
+				{ "if": "{{home}}", "then": [{ "set": "{{base + '.recent'}}",
+					"to": "{{slice(concat([pick.item], filter(qp.recent ?? [], it[key] != pick.item[key])), 0, recentLimit)}}" }] },
+				{ "forEach": "{{[provider.run]}}", "as": "providerRun", "do": [
+					{ "set": "{{base + '.query'}}", "to": "" }, { "set": "{{base + '.index'}}", "to": 0 }, { "set": "{{base + '.top'}}", "to": 0 },
+					{ "if": "{{pick.item.run != null}}", "then": [{ "run": "{{pick.item.run}}", "with": "{{pick.item.with}}" }],
+						"else": [{ "if": "{{providerRun != null}}", "then": [{ "run": "{{providerRun}}", "with": "{{ {item: pick.item} }}" }] }] }
+				] }
+			] }] }]
+				},
+				"children": [
+					{ "anchors": { "left": 16, "right": 16, "top": 16 }, "height": 48, "radius": { "topLeft": 4, "topRight": 4 }, "color": "@raised", "children": [
+						{ "type": "label", "font": "icons", "icon": "search", "text": "", "textColor": "@muted", "anchors": { "left": 10, "top": 12 }, "width": 24, "height": 24, "align": "center" },
+						{ "type": "textarea", "bind": "{{base + '.query'}}", "autofocus": true, "placeholder": "{{provider.placeholder ?? ''}}", "label": "{{provider.placeholder ?? ''}}",
+							"anchors": { "left": 40, "right": 44, "top": 8 }, "height": 32, "padding": 6, "color": "transparent", "textColor": "@text", "placeholderColor": "@muted",
+							"onChange": [{ "set": "{{base + '.index'}}", "to": 0 }, { "set": "{{base + '.top'}}", "to": 0 }] },
+						{ "when": "{{q != ''}}", "type": "label", "font": "icons", "icon": "x", "text": "", "textColor": "@muted", "anchors": { "right": 6, "top": 6 }, "width": 36, "height": 36, "radius": 18,
+							"align": "center", "hover": { "color": "@cardHover" }, "cursor": "hand", "role": "button", "label": "{{t('quick.clear')}}", "tooltip": "{{t('quick.clear')}}",
+							"onClick": [{ "set": "{{base + '.query'}}", "to": "" }, { "set": "{{base + '.index'}}", "to": 0 }, { "set": "{{base + '.top'}}", "to": 0 }] },
+						{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@accent" }
+					] },
+					{ "anchors": { "left": 0, "right": 0, "top": 79 }, "height": 1, "color": "@divider" },
+					{ "when": "{{total == 0}}", "type": "label", "text": "{{t('quick.none')}}", "textColor": "@muted", "anchors": { "left": 24, "top": 100 }, "fitText": true },
+					{ "type": "column", "anchors": { "left": 0, "right": 0, "top": 88 }, "height": "{{min(total, rows) * rowHeight}}",
+						"onScroll": { "set": "{{base + '.top'}}", "to": "{{clamp(top + (event.dy < 0 ? 1 : event.dy > 0 ? -1 : 0), 0, max(0, total - rows))}}" },
+						"children": [{
+							"repeat": { "for": "r", "in": "{{slice(results, top, top + rows)}}", "index": "i" },
+							"anchors": { "left": 0, "right": 0 }, "height": "{{rowHeight}}", "cursor": "hand", "role": "option", "label": "{{r.item.title}}", "selected": "{{top + i == sel}}",
+							"color": "{{top + i == sel ? highlight : '@card'}}", "hover": { "color": "{{top + i == sel ? highlight : '@cardHover'}}" },
+							"onClick": [{ "set": "{{base + '.index'}}", "to": "{{top + i}}" }, { "forEach": "{{[r]}}", "as": "pick", "do": [
+				{ "set": "{{base + '.open'}}", "to": false },
+				{ "if": "{{home}}", "then": [{ "set": "{{base + '.recent'}}",
+					"to": "{{slice(concat([pick.item], filter(qp.recent ?? [], it[key] != pick.item[key])), 0, recentLimit)}}" }] },
+				{ "forEach": "{{[provider.run]}}", "as": "providerRun", "do": [
+					{ "set": "{{base + '.query'}}", "to": "" }, { "set": "{{base + '.index'}}", "to": 0 }, { "set": "{{base + '.top'}}", "to": 0 },
+					{ "if": "{{pick.item.run != null}}", "then": [{ "run": "{{pick.item.run}}", "with": "{{pick.item.with}}" }],
+						"else": [{ "if": "{{providerRun != null}}", "then": [{ "run": "{{providerRun}}", "with": "{{ {item: pick.item} }}" }] }] }
+				] }
+			] }],
+							"children": [
+								{ "type": "label", "font": "icons", "icon": "{{r.item.icon ?? 'circle'}}", "text": "", "textColor": "@muted", "color": "@raised", "anchors": { "left": 24, "top": "{{(rowHeight - 40) / 2}}" },
+									"width": 40, "height": 40, "radius": 20, "align": "center" },
+								{ "type": "row", "anchors": { "left": 80, "right": 24, "top": "{{rowHeight / 2 - 19}}" }, "height": 18,
+									"children": [{ "repeat": { "for": "p", "in": "{{r.parts}}" }, "type": "label", "text": "{{p.text}}", "textColor": "{{p.match ? '@accent' : '@text'}}", "fitText": true }] },
+								{ "type": "label", "font": "small", "text": "{{top + i < length(recentHits) ? t('quick.recent') : r.item.detail ?? ''}}", "textColor": "@muted",
+									"anchors": { "left": 80, "top": "{{rowHeight / 2 + 1}}" }, "fitText": true }
+							]
+						}]
+					}
 				]
 			}
 		},

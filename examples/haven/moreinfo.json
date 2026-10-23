@@ -7,6 +7,7 @@
 		"coverTilt": 50,
 		"speakerVolume": 40,
 		"infoMenu": false,
+		"modeMenu": false,
 		"deviceFacts": {
 			"door": { "related": "welcome", "battery": 82, "changed": "08:12", "log": ["08:12", "07:40", "22:05"] },
 			"vacuum": { "related": "morning", "battery": 64, "changed": "10:30", "log": ["10:30", "09:55", "18:20"] },
@@ -39,6 +40,7 @@
 		"pickTilt": [{ "animate": "state.coverTilt", "to": "{{level}}", "ms": 300 }],
 		"tiltUp": [{ "set": "state.coverTilt", "to": "{{clamp(state.coverTilt + 10, 0, 100)}}" }],
 		"tiltDown": [{ "set": "state.coverTilt", "to": "{{clamp(state.coverTilt - 10, 0, 100)}}" }],
+		"pickMode": [{ "note": "with: mode, a heating mode" }, { "set": "state.mode", "to": "{{mode}}" }],
 		"infoRelatedMenu": [{ "if": "{{state.info.kind == 'device' && computed.infoFacts.related != null}}", "then": [{ "run": "openRelated" }],
 			"else": [{ "run": "showToast", "with": { "message": "{{t('info.noRelated')}}" } }] }],
 		"openRelated": [
@@ -149,16 +151,26 @@
 
 					{ "use": "infoBody", "with": { "kind": "climate" }, "id": "infoClimateBody", "children": [
 						{ "use": "thermoDial", "with": { "p": "info-" }, "id": "infoDial", "anchors": { "left": 0, "right": 0, "top": 64 } },
-						{ "use": "iconBtn", "with": { "icon": "minus", "tip": "climate.down" }, "id": "infoDown", "anchors": { "left": 132, "top": 232 },
+						{ "use": "iconBtn", "with": { "icon": "minus", "tip": "climate.down" }, "id": "infoDown", "anchors": { "left": 146, "top": 212 },
 							"onClick": { "run": "setTarget", "with": { "by": -0.5 } } },
-						{ "use": "iconBtn", "with": { "icon": "plus", "tip": "climate.up" }, "id": "infoUp", "anchors": { "right": 132, "top": 232 },
+						{ "use": "iconBtn", "with": { "icon": "plus", "tip": "climate.up" }, "id": "infoUp", "anchors": { "right": 146, "top": 212 },
 							"onClick": { "run": "setTarget", "with": { "by": 0.5 } } },
-						{ "id": "infoModes", "type": "row", "anchors": { "left": 0, "right": 0, "top": 288 }, "height": 40, "gap": 8, "justify": "center", "role": "toolbar", "arrows": "horizontal",
+						{ "id": "infoModeRow", "anchors": { "left": 24, "right": 24, "top": 276 }, "height": 52, "radius": { "topLeft": 4, "topRight": 4 }, "color": "@raised",
+							"hover": { "color": "@raisedHover" }, "cursor": "hand", "focusable": true, "role": "combobox", "label": "{{t('climate.mode')}}",
+							"isOpen": "{{state.modeMenu}}", "onClick": { "toggle": "state.modeMenu" },
 							"children": [
-								{ "id": "infoMode", "repeat": { "for": "mode", "in": "state.modes" }, "style": "{{mode == state.mode ? 'choiceOn' : 'choice'}}",
-									"icon": "{{mode == 'Heat' ? 'flame' : (mode == 'Cool' ? 'snowflake' : 'sun-snow')}}", "text": " {{t('mode.' + mode)}}", "width": 104, "height": 40, "radius": 20,
-									"color": "{{mode == state.mode ? computed.modeColor + '33' : '@raised'}}", "textColor": "{{mode == state.mode ? computed.modeColor : '@text'}}",
-									"selected": "{{mode == state.mode}}", "onClick": { "set": "state.mode", "to": "{{mode}}" } }
+								{ "type": "label", "icon": "{{state.mode == 'Heat' ? 'flame' : (state.mode == 'Cool' ? 'snowflake' : 'sun-snow')}}", "text": "", "textColor": "{{computed.modeColor}}",
+									"anchors": { "left": 8, "top": 10 }, "width": 32, "height": 32, "align": "center" },
+								{ "style": "caption", "text": "{{t('climate.mode')}}", "anchors": { "left": 48, "top": 8 } },
+								{ "id": "infoModeValue", "type": "label", "text": "{{t('mode.' + state.mode)}}", "textColor": "@text", "anchors": { "left": 48, "top": 24 }, "fitText": true },
+								{ "type": "label", "icon": "chevron-down", "text": "", "textColor": "@muted", "anchors": { "right": 8, "top": 14 }, "width": 24, "height": 24, "align": "center" },
+								{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@muted" },
+								{ "id": "modeMenu", "use": "menu", "with": { "open": "state.modeMenu", "placement": "below", "width": 352,
+									"items": [
+										{ "title": "{{t('mode.Heat')}}", "checked": "{{state.mode == 'Heat'}}", "run": "pickMode", "with": { "mode": "Heat" } },
+										{ "title": "{{t('mode.Cool')}}", "checked": "{{state.mode == 'Cool'}}", "run": "pickMode", "with": { "mode": "Cool" } },
+										{ "title": "{{t('mode.Auto')}}", "checked": "{{state.mode == 'Auto'}}", "run": "pickMode", "with": { "mode": "Auto" } }
+									] } }
 							] },
 						{ "id": "infoHistoryTitle", "type": "label", "textColor": "@text", "icon": "history", "text": " {{t('info.history')}}", "anchors": { "left": 24, "top": 348 }, "fitText": true },
 						{ "id": "infoHistory", "style": "card", "anchors": { "left": 24, "right": 24, "top": 376 }, "height": 136, "color": "@field", "borderWidth": 0,

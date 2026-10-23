@@ -359,31 +359,34 @@
 									"anchors": { "left": 12, "top": 8 }, "width": 40, "height": 40, "radius": 20,
 								"label": "{{t('auto.back')}}", "tooltip": "{{t('auto.back')}}", "onClick": { "run": "openAutomation", "with": { "i": -1 } } },
 							{ "id": "autoName", "type": "label", "font": "heading", "icon": "{{computed.openAuto.icon}}",
-								"text": "  {{t('rule.' + (computed.openAuto.title ?? computed.openAuto.id))}}", "textColor": "@onHeader", "anchors": { "left": 64, "right": 320, "top": 0 }, "height": 56,
+								"text": "  {{t('rule.' + (computed.openAuto.title ?? computed.openAuto.id))}}", "textColor": "@onHeader", "anchors": { "left": 64, "right": 72, "top": 0 }, "height": 56,
 								"align": { "horizontal": "start", "vertical": "center" } },
-							{ "id": "autoRun", "style": "button", "font": "small", "icon": "play", "text": " {{t('auto.run')}}", "color": "transparent", "hover": { "color": "#ffffff22" }, "textColor": "@onHeader",
-								"anchors": { "right": 64, "top": 10 }, "width": 104, "height": 36, "radius": 18,
-								"onClick": "runAutomation" },
+							{ "id": "autoMoreAnchor", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40, "color": "transparent", "children": [
+								{ "id": "autoMenu", "use": "popMenu", "with": { "open": "state.autoMenu", "width": 200,
+									"items": [
+										{ "title": "{{t('auto.run')}}", "icon": "play", "run": "runAutomation", "with": null },
+										{ "title": "{{t(computed.openAuto.on ? 'auto.disable' : 'auto.enable')}}", "icon": "{{computed.openAuto.on ? 'circle-off' : 'check-circle'}}", "run": "rowAction",
+											"with": { "i": "{{state.autoOpen}}", "what": "enable" } },
+										{ "title": "{{t('auto.duplicate')}}", "icon": "copy", "run": "duplicateAutomation" },
+										{ "separator": true },
+										{ "title": "{{t('auto.delete')}}", "icon": "trash-2", "run": "confirmDelete" }
+									] } }
+							] },
 							{ "id": "autoMore", "style": "button", "icon": "ellipsis-vertical", "text": "", "color": "transparent", "hover": { "color": "#ffffff22" }, "textColor": "@onHeader",
 								"anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40, "radius": 20, "label": "{{t('auto.more')}}", "tooltip": "{{t('auto.more')}}",
-								"isOpen": "{{state.autoMenu}}", "onClick": { "toggle": "state.autoMenu" },
-								"children": [
-									{ "id": "autoMenu", "use": "popMenu", "with": { "open": "state.autoMenu", "width": 200,
-										"items": [
-											{ "title": "{{t('auto.run')}}", "icon": "play", "run": "runAutomation", "with": null },
-											{ "title": "{{t('auto.duplicate')}}", "icon": "copy", "run": "duplicateAutomation" },
-											{ "separator": true },
-											{ "title": "{{t('auto.delete')}}", "icon": "trash-2", "run": "confirmDelete" }
-										] } }
+								"isOpen": "{{state.autoMenu}}", "onClick": { "toggle": "state.autoMenu" } },
+							{ "id": "autoOffBanner", "when": "{{!computed.openAuto.on}}", "anchors": { "left": 32, "right": "{{computed.compact ? 32 : 364}}", "top": 80 }, "height": 48,
+								"radius": 8, "color": "@warmSoft", "role": "status", "children": [
+									{ "type": "label", "icon": "info", "text": "  {{t('auto.offBanner')}}", "textColor": "@text", "anchors": { "left": 16, "right": 120, "top": 0, "bottom": 0 },
+										"align": { "horizontal": "start", "vertical": "center" } },
+									{ "id": "autoOffEnable", "style": "button", "text": "{{t('auto.enable')}}", "color": "transparent", "hover": { "color": "@accentSoft" }, "textColor": "@accent",
+										"anchors": { "right": 8, "top": 6 }, "padding": 12, "fitText": true, "height": 36, "radius": 18,
+										"onClick": { "run": "rowAction", "with": { "i": "{{state.autoOpen}}", "what": "enable" } } }
 								] },
-							{ "id": "autoEnabled", "use": "pill", "anchors": { "right": 184, "top": 16 },
-								"with": { "at": "{{'state.automations[' + state.autoOpen + '].on'}}", "on": "{{computed.openAuto.on}}", "name": "{{t('auto.enabled')}}", "thumb": "{{computed.themeNow == 'dark' ? '@accent' : '#ffffff'}}", "track": "{{computed.themeNow == 'dark' ? '@accentTrack' : '#ffffff80'}}" } },
-							{ "type": "label", "font": "small", "text": "{{t('auto.enabled')}}", "textColor": "@onHeader", "anchors": { "right": 232, "top": 0 }, "width": 120, "height": 56,
-								"align": { "horizontal": "end", "vertical": "center" } },
 							{
 								"id": "autoParts",
 								"type": "column",
-								"anchors": { "left": 32, "right": "{{computed.compact ? 32 : 364}}", "top": 88, "bottom": 0 },
+								"anchors": { "left": 32, "right": "{{computed.compact ? 32 : 364}}", "top": "{{computed.openAuto.on ? 88 : 144}}", "bottom": 0 },
 								"gap": 12,
 								"scroll": "vertical",
 								"children": [

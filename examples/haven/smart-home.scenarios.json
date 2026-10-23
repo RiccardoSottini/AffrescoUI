@@ -308,7 +308,8 @@
 				{ "click": { "role": "menuitem", "name": "Delete" } },
 				{ "expect": { "state": "automations[1].steps.length", "is": 5 } },
 				{ "expect": { "state": "automations[1].steps[0].part", "is": "if" } },
-				{ "click": "#autoRun" },
+				{ "click": "#autoMore" },
+				{ "click": { "role": "menuitem", "name": "Run" } },
 				{ "expect": { "state": "automations[1].ran", "is": "now" } },
 				{ "click": "#autoBack" },
 				{ "expect": { "state": "autoOpen", "is": -1 } },
@@ -541,6 +542,12 @@
 				{ "click": "#light", "nth": 1 },
 				{ "click": "#infoClose" },
 				{ "expect": { "state": "info.open", "is": false } },
+				{ "click": "#label-climate" },
+				{ "click": "#infoModeRow" },
+				{ "click": { "role": "menuitem", "name": "Cool" } },
+				{ "expect": { "state": "mode", "is": "Cool" } },
+				{ "expect": { "node": "#infoModeValue", "text": "Cool" } },
+				{ "key": "escape" },
 				{ "click": "#deviceName", "nth": 2 },
 				{ "expect": { "node": "#infoVolume", "property": "shown", "is": true } },
 				{ "click": "#infoPlay" },
@@ -554,7 +561,14 @@
 				{ "expect": { "node": "#roomEntityTable", "property": "shown", "is": true } },
 				{ "click": "#devSearch" },
 				{ "type": "kit" },
-				{ "expect": { "state": "devQuery", "is": "kit" } }
+				{ "expect": { "state": "devQuery", "is": "kit" } },
+				{ "click": "#settingsBack" },
+				{ "key": "mod+4", "note": "the related automation is still open" },
+				{ "click": "#autoMore" },
+				{ "click": { "role": "menuitem", "name": "Disable" } },
+				{ "expect": { "node": "#autoOffBanner", "property": "shown", "is": true } },
+				{ "click": "#autoOffEnable" },
+				{ "expect": { "node": "#autoOffBanner", "exists": false } }
 			]
 		}
 	]

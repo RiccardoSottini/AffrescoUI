@@ -113,7 +113,7 @@
 			"name": "smart-home-shell",
 			"screen": "smart-home.screen.json",
 			"steps": [
-				{ "key": "e" },
+				{ "click": "#searchButton" },
 				{ "wait": 100 },
 				{ "type": "ceil" },
 				{ "expect": { "image": "entity-search" } },
