@@ -231,7 +231,7 @@ void applyLanguage(TextEditor& editor, const json& values, const PropertyReader&
 }
 
 /// @brief Sets an editor's view: wrap, folds, decorations, find and matchStyle, brackets and bracketStyle,
-/// indentGuides, rulers, minimap with minimapStyle and minimapViewport, composition and readOnly.
+/// indentGuides, rulers, minimap with minimapStyle and minimapViewport, composition, caretStyle and readOnly.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours.
@@ -259,6 +259,11 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 	editor.setMatchOutline(choice("matchStyle", "fill", "outline"));
 	editor.setComposition(std::string_view(values.contains("composition") ? text(values["composition"]) : std::string()));
 	editor.setReadOnly(flag("readOnly"));
+	const std::string caret = values.contains("caretStyle") ? text(values["caretStyle"]) : std::string("line");
+	if(caret == "line") editor.setCaretStyle(TextEditor::CaretStyle::Line);
+	else if(caret == "block") editor.setCaretStyle(TextEditor::CaretStyle::Block);
+	else if(caret == "underline") editor.setCaretStyle(TextEditor::CaretStyle::Underline);
+	else fail(path + ".caretStyle", "expected line, block or underline");
 	// Folds the user made stay until the document gives others
 	if(values.contains("folds"))
 		editor.offerFolds(readList<FoldRange>(values, "folds", path, [](const json& value, const std::string& at) {
@@ -423,7 +428,8 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"bracketStyle", ValueKind::Text},
 	                   {"minimapStyle", ValueKind::Text},
 	                   {"minimapViewport", ValueKind::Text},
-	                   {"matchStyle", ValueKind::Text}};
+	                   {"matchStyle", ValueKind::Text},
+	                   {"caretStyle", ValueKind::Text}};
 	set->apply = applyEditor;
 	set->everyUpdate = true; // colours follow the theme
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TextEditor*>(&panel) != nullptr; };
