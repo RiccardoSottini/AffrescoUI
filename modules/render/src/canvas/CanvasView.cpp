@@ -217,12 +217,12 @@ void CanvasView::placeChildren() {
 	for(const auto& child : children())
 		if(Panel* other = standIn(*child)) standIns.emplace_back(other, child.get());
 	const auto place = [this](Panel& panel, std::optional<Rect> world) {
-		// Scaled: laid out at its world rectangle, then the camera as a placement (Camera2D::toScreen() about the
+		// Scaled: laid out at its world rectangle, then the camera as its parent transform (Camera2D::toScreen() about the
 		// canvas's corner). Hidden: no size, far outside the view, so it neither paints nor takes the pointer
 		const bool scaled = scaleChildren_ && world;
 		const Rect screen = scaled ? *world : world ? camera_.toScreen(*world) : Rect{-1e7f, -1e7f, -1e7f, -1e7f};
 		const float zoom = camera_.zoom;
-		panel.setPlacement(scaled ? Affine2{zoom, 0.0f, 0.0f, zoom, frame().left * (1.0f - zoom) - camera_.x * zoom,
+		panel.setParentTransform(scaled ? Affine2{zoom, 0.0f, 0.0f, zoom, frame().left * (1.0f - zoom) - camera_.x * zoom,
 		                                    frame().top * (1.0f - zoom) - camera_.y * zoom}
 		                          : Affine2{});
 		panel.clearAnchor(Edge::Right);

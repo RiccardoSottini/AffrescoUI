@@ -324,13 +324,13 @@ void Panel::setTransform(const Affine2& transform, Vec2 origin) {
 	setProperty(transformOrigin_, origin);
 }
 
-void Panel::setPlacement(const Affine2& placement) { setProperty(placement_, placement); }
+void Panel::setParentTransform(const Affine2& transform) { setProperty(parentTransform_, transform); }
 
 Affine2 Panel::localTransform() const noexcept {
-	if(transform_.isIdentity()) return placement_;
+	if(transform_.isIdentity()) return parentTransform_;
 	const Affine2 own =
 	    transform_.about({frame_.left + transformOrigin_.x * size_.x, frame_.top + transformOrigin_.y * size_.y});
-	return placement_.isIdentity() ? own : placement_ * own;
+	return parentTransform_.isIdentity() ? own : parentTransform_ * own;
 }
 
 Affine2 Panel::worldTransform() const noexcept {

@@ -174,7 +174,7 @@ public:
 	/// @brief Turns snapping to the grid, items and guides on or off.
 	/// @param snap Whether moves and resizes snap.
 	void setSnap(bool snap);
-	/// @brief Draws the children through the camera's zoom (a placement), text and all, instead of scaling their
+	/// @brief Draws the children through the camera's zoom (a parent transform), text and all, instead of scaling their
 	/// rectangles; a single selected child then gets the rotation handle too.
 	/// @param scale Whether to.
 	void setScaleChildren(bool scale);
@@ -228,7 +228,7 @@ private:
 
 	/* CanvasView.cpp: content, layout and painting */
 
-	/// @brief Gives each child its screen rectangle (or its world rectangle and the camera as a placement, see
+	/// @brief Gives each child its screen rectangle (or its world rectangle and the camera as its parent transform, see
 	/// setScaleChildren()), or hides it for a level of detail. The one place children are mapped through the camera.
 	void placeChildren();
 	/// @brief The child that stands in for another at the current zoom, if any.
