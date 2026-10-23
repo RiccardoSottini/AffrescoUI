@@ -122,16 +122,38 @@
 					"type": "Ada Lovelace"
 				},
 				{
-					"click": "#checked-field-form-2"
+					"click": "#username"
 				},
 				{
-					"key": "end"
+					"type": "ada_l"
 				},
 				{
-					"type": ".com"
+					"wait": 700
+				},
+				{
+					"expect": {
+						"image": "username-available"
+					}
+				},
+				{
+					"click": "#terms"
 				},
 				{
 					"click": "#label-create-account"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "verify-email"
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 800
 				},
 				{
 					"expect": {

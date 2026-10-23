@@ -167,7 +167,7 @@
 			"windowTitle": "Sign in",
 			"footer": "An AffrescoUI template  ·  every screen, rule and colour is in one JSON file",
 			"welcomeBack": "Welcome back",
-			"signInTo": "Sign in to continue to AffrescoUI",
+			"signInTo": "Sign in with your Example ID",
 			"email": "Email",
 			"emailPlaceholder": "you@example.com",
 			"password": "Password",
@@ -181,7 +181,7 @@
 			"providerWaiting": "Waiting for Example ID…",
 			"cancelProvider": "Cancel and use your email",
 			"toCreate": "No account yet? Create one",
-			"enterEmail": "Enter an email address",
+			"enterEmail": "Enter a full email address, like name@example.com",
 			"min8": "At least 8 characters",
 			"stronger": "Choose a stronger password",
 			"serverError": "{kind, select, noAccount {No account uses this email. Check it, or create one.} wrongPassword {The email or the password is not right.} provider {{provider} could not sign you in: {message}} passkeyCancelled {The passkey was not used. Try again, or use your password.} other {Something went wrong. Try again.}}",
@@ -268,7 +268,7 @@
 			"signingInAs": "Signing in as {email}",
 			"passkey": "Sign in with a passkey",
 			"passkeyTitle": "Choose a passkey",
-			"passkeyMessage": "Saved on this device. Your fingerprint, face or screen lock confirms it.",
+			"passkeyMessage": "Saved on this device. You'll confirm with this device's unlock.",
 			"emailCode": "Email me a code instead",
 			"emailCodeTitle": "Check your email",
 			"emailCodeCaption": "Enter the 6-digit code sent to {email}",
@@ -276,13 +276,34 @@
 			"provider_mossbank": "Mossbank",
 			"provider_quillo": "Quillo",
 			"otherProviders": "Other ways to sign in",
-			"sending": "Sending a code…"
+			"sending": "Sending a code…",
+			"username": "Username",
+			"usernamePlaceholder": "3 to 20 letters, digits, _ or .",
+			"usernameStatus": "{kind, select, checking {Checking {name}…} available {{name} is available} taken {{name} is taken. Try another.} invalid {Use 3 to 20 letters, digits, _ or .} other {}}",
+			"usernameError": "{kind, select, checking {Wait for the check to finish} taken {That username is taken} invalid {Use 3 to 20 letters, digits, _ or .} other {Choose a username}}",
+			"rule8": "8 or more characters",
+			"ruleCase": "Capital and small letters",
+			"ruleDigit": "A digit",
+			"ruleSymbol": "A symbol",
+			"ruleState": "{ok, select, true {done} other {not yet}}",
+			"terms": "I agree to the demo Terms and Privacy notice",
+			"termsError": "Agree to the terms to continue",
+			"haveInvite": "I have an invitation code",
+			"inviteCode": "Invitation code",
+			"invitePlaceholder": "Like EXAMPLE-INVITE",
+			"inviteValid": "Sam invited you to Example Team",
+			"inviteUnknown": "That code is not known. The demo code is EXAMPLE-INVITE.",
+			"joinedTeam": "Welcome, {name}. You joined Example Team.",
+			"verifyEmailTitle": "Verify your email",
+			"verifyEmailCaption": "We sent a 6-digit code to {email}. Enter it to finish creating your account.",
+			"backToCreate": "Back to create account",
+			"yourPassword": "Your password"
 		},
 		"it": {
 			"windowTitle": "Accedi",
 			"footer": "Un modello AffrescoUI  ·  ogni schermata, regola e colore è in un solo file JSON",
 			"welcomeBack": "Bentornato",
-			"signInTo": "Accedi per continuare su AffrescoUI",
+			"signInTo": "Accedi con il tuo Example ID",
 			"email": "Email",
 			"emailPlaceholder": "tu@example.com",
 			"password": "Password",
@@ -296,7 +317,7 @@
 			"providerWaiting": "In attesa di Example ID…",
 			"cancelProvider": "Annulla e usa la tua email",
 			"toCreate": "Non hai un account? Creane uno",
-			"enterEmail": "Inserisci un indirizzo email",
+			"enterEmail": "Inserisci un indirizzo email completo, come nome@example.com",
 			"min8": "Almeno 8 caratteri",
 			"stronger": "Scegli una password più sicura",
 			"serverError": "{kind, select, noAccount {Nessun account usa questa email. Controllala o creane uno.} wrongPassword {L'email o la password non sono giuste.} provider {{provider} non è riuscito a farti accedere: {message}} passkeyCancelled {La passkey non è stata usata. Riprova o usa la password.} other {Qualcosa è andato storto. Riprova.}}",
@@ -383,7 +404,7 @@
 			"signingInAs": "Accesso come {email}",
 			"passkey": "Accedi con una passkey",
 			"passkeyTitle": "Scegli una passkey",
-			"passkeyMessage": "Salvata su questo dispositivo. La confermi con impronta, volto o blocco schermo.",
+			"passkeyMessage": "Salvata su questo dispositivo. La confermi sbloccando il dispositivo.",
 			"emailCode": "Inviami invece un codice per email",
 			"emailCodeTitle": "Controlla l'email",
 			"emailCodeCaption": "Inserisci il codice di 6 cifre inviato a {email}",
@@ -391,13 +412,34 @@
 			"provider_mossbank": "Mossbank",
 			"provider_quillo": "Quillo",
 			"otherProviders": "Altri modi per accedere",
-			"sending": "Invio del codice…"
+			"sending": "Invio del codice…",
+			"username": "Nome utente",
+			"usernamePlaceholder": "Da 3 a 20 lettere, cifre, _ o .",
+			"usernameStatus": "{kind, select, checking {Verifico {name}…} available {{name} è disponibile} taken {{name} è già in uso. Provane un altro.} invalid {Usa da 3 a 20 lettere, cifre, _ o .} other {}}",
+			"usernameError": "{kind, select, checking {Attendi la fine della verifica} taken {Quel nome utente è già in uso} invalid {Usa da 3 a 20 lettere, cifre, _ o .} other {Scegli un nome utente}}",
+			"rule8": "Almeno 8 caratteri",
+			"ruleCase": "Maiuscole e minuscole",
+			"ruleDigit": "Una cifra",
+			"ruleSymbol": "Un simbolo",
+			"ruleState": "{ok, select, true {fatto} other {non ancora}}",
+			"terms": "Accetto i Termini e l'Informativa privacy della demo",
+			"termsError": "Accetta i termini per continuare",
+			"haveInvite": "Ho un codice di invito",
+			"inviteCode": "Codice di invito",
+			"invitePlaceholder": "Per esempio EXAMPLE-INVITE",
+			"inviteValid": "Sam ti ha invitato in Example Team",
+			"inviteUnknown": "Codice sconosciuto. Il codice della demo è EXAMPLE-INVITE.",
+			"joinedTeam": "Ti diamo il benvenuto, {name}. Ora fai parte di Example Team.",
+			"verifyEmailTitle": "Verifica la tua email",
+			"verifyEmailCaption": "Abbiamo inviato un codice di 6 cifre a {email}. Inseriscilo per completare l'account.",
+			"backToCreate": "Torna alla creazione dell'account",
+			"yourPassword": "La tua password"
 		},
 		"ar": {
 			"windowTitle": "تسجيل الدخول",
 			"footer": "قالب من AffrescoUI  ·  كل شاشة وقاعدة ولون في ملف JSON واحد",
 			"welcomeBack": "مرحبًا بعودتك",
-			"signInTo": "سجّل الدخول للمتابعة إلى AffrescoUI",
+			"signInTo": "سجّل الدخول باستخدام Example ID",
 			"email": "البريد الإلكتروني",
 			"emailPlaceholder": "you@example.com",
 			"password": "كلمة المرور",
@@ -411,7 +453,7 @@
 			"providerWaiting": "في انتظار Example ID…",
 			"cancelProvider": "إلغاء واستخدام بريدك الإلكتروني",
 			"toCreate": "ليس لديك حساب؟ أنشئ حسابًا",
-			"enterEmail": "أدخل عنوان بريد إلكتروني",
+			"enterEmail": "أدخل عنوان بريد إلكتروني كاملًا، مثل name@example.com",
 			"min8": "8 أحرف على الأقل",
 			"stronger": "اختر كلمة مرور أقوى",
 			"serverError": "{kind, select, noAccount {لا يوجد حساب بهذا البريد. تحقّق منه أو أنشئ حسابًا.} wrongPassword {البريد الإلكتروني أو كلمة المرور غير صحيحين.} provider {تعذّر على {provider} تسجيل دخولك: {message}} passkeyCancelled {لم يُستخدم مفتاح المرور. حاول مرة أخرى أو استخدم كلمة المرور.} other {حدث خطأ. حاول مرة أخرى.}}",
@@ -498,7 +540,7 @@
 			"signingInAs": "تسجيل الدخول باسم {email}",
 			"passkey": "سجّل الدخول بمفتاح مرور",
 			"passkeyTitle": "اختر مفتاح مرور",
-			"passkeyMessage": "محفوظ على هذا الجهاز. تؤكّده ببصمتك أو وجهك أو قفل الشاشة.",
+			"passkeyMessage": "محفوظ على هذا الجهاز. تؤكّده بفتح قفل الجهاز.",
 			"emailCode": "أرسل لي رمزًا بالبريد بدلًا من ذلك",
 			"emailCodeTitle": "تحقّق من بريدك",
 			"emailCodeCaption": "أدخل الرمز المكوّن من 6 أرقام المرسل إلى {email}",
@@ -506,7 +548,28 @@
 			"provider_mossbank": "Mossbank",
 			"provider_quillo": "Quillo",
 			"otherProviders": "طرق أخرى لتسجيل الدخول",
-			"sending": "جارٍ إرسال الرمز…"
+			"sending": "جارٍ إرسال الرمز…",
+			"username": "اسم المستخدم",
+			"usernamePlaceholder": "من 3 إلى 20 حرفًا أو رقمًا أو _ أو .",
+			"usernameStatus": "{kind, select, checking {جارٍ التحقق من {name}…} available {{name} متاح} taken {{name} مستخدم. جرّب اسمًا آخر.} invalid {استخدم من 3 إلى 20 حرفًا أو رقمًا أو _ أو .} other {}}",
+			"usernameError": "{kind, select, checking {انتظر انتهاء التحقق} taken {اسم المستخدم هذا مستخدم} invalid {استخدم من 3 إلى 20 حرفًا أو رقمًا أو _ أو .} other {اختر اسم مستخدم}}",
+			"rule8": "8 أحرف أو أكثر",
+			"ruleCase": "أحرف لاتينية كبيرة وصغيرة",
+			"ruleDigit": "رقم واحد",
+			"ruleSymbol": "رمز واحد",
+			"ruleState": "{ok, select, true {تم} other {ليس بعد}}",
+			"terms": "أوافق على شروط العرض التجريبي وإشعار الخصوصية",
+			"termsError": "وافق على الشروط للمتابعة",
+			"haveInvite": "لديّ رمز دعوة",
+			"inviteCode": "رمز الدعوة",
+			"invitePlaceholder": "مثل EXAMPLE-INVITE",
+			"inviteValid": "دعاك Sam إلى Example Team",
+			"inviteUnknown": "هذا الرمز غير معروف. رمز العرض التجريبي هو EXAMPLE-INVITE.",
+			"joinedTeam": "مرحبًا {name}. انضممت إلى Example Team.",
+			"verifyEmailTitle": "تحقّق من بريدك الإلكتروني",
+			"verifyEmailCaption": "أرسلنا رمزًا من 6 أرقام إلى {email}. أدخله لإكمال إنشاء حسابك.",
+			"backToCreate": "العودة إلى إنشاء الحساب",
+			"yourPassword": "كلمة المرور"
 		}
 	},
 	"connections": {
@@ -547,7 +610,8 @@
 				"password": "",
 				"twoStep": false,
 				"provider": false,
-				"passkey": true
+				"passkey": true,
+				"username": "ada"
 			},
 			{
 				"email": "sam@example.com",
@@ -555,7 +619,8 @@
 				"password": "",
 				"twoStep": true,
 				"provider": false,
-				"passkey": false
+				"passkey": false,
+				"username": "sam"
 			}
 		],
 		"user": {
@@ -563,14 +628,16 @@
 			"name": "",
 			"twoStep": false,
 			"provider": false,
-			"passkey": false
+			"passkey": false,
+			"username": ""
 		},
 		"pending": {
 			"email": "",
 			"name": "",
 			"twoStep": false,
 			"provider": false,
-			"passkey": false
+			"passkey": false,
+			"username": ""
 		},
 		"code": "",
 		"codeError": "",
@@ -611,7 +678,15 @@
 		},
 		"codeMode": "twoStep",
 		"providerName": "exampleId",
-		"passkeyOpen": false
+		"passkeyOpen": false,
+		"username": "",
+		"usernameChecked": "",
+		"spin": 0,
+		"terms": false,
+		"invite": {
+			"open": false,
+			"code": ""
+		}
 	},
 	"stateTypes": {
 		"email": {
@@ -660,7 +735,19 @@
 			"enum": ["email", "password"]
 		},
 		"codeMode": {
-			"enum": ["twoStep", "email"]
+			"enum": ["twoStep", "email", "verify"]
+		},
+		"username": {
+			"type": "string"
+		},
+		"usernameChecked": {
+			"type": "string"
+		},
+		"spin": {
+			"type": "number"
+		},
+		"terms": {
+			"type": "boolean"
 		}
 	},
 	"persist": ["state.theme", "state.remember", "state.locale"],
@@ -672,7 +759,7 @@
 		"newPasswordMessage": "{{computed.passwordValid ? t('stronger') : t('min8')}}",
 		"confirmValid": "{{state.showPassword || state.confirm == state.password}}",
 		"errors": "{{!state.submitted ? 0 : (computed.emailValid ? 0 : 1) + (computed.passwordValid ? 0 : 1)}}",
-		"createErrors": "{{!state.submitted ? 0 : (length(trim(state.name)) > 0 ? 0 : 1) + (computed.emailValid ? 0 : 1) + (computed.newPasswordValid ? 0 : 1) + (computed.confirmValid ? 0 : 1)}}",
+		"createErrors": "{{!state.submitted ? 0 : (length(trim(state.name)) > 0 ? 0 : 1) + (computed.emailValid ? 0 : 1) + (computed.usernameStatus == 'available' ? 0 : 1) + (computed.newPasswordValid ? 0 : 1) + (computed.confirmValid ? 0 : 1) + (state.terms ? 0 : 1) + (state.invite.open && length(trim(state.invite.code)) > 0 && !computed.inviteValid ? 1 : 0)}}",
 		"account": "{{find(state.accounts, lower(it.email) == lower(trim(state.email)))}}",
 		"initials": "{{upper(slice(length(trim(state.user.name)) > 0 ? trim(state.user.name) : state.user.email, 0, 1))}}",
 		"resetStrength": "{{merge({ score: 0, label: '', missing: [] }, passwordStrength(state.reset.password))}}",
@@ -688,7 +775,9 @@
 		"shortcutsKey": "{{find(computed.shortcuts, it.name == 'openShortcuts').keyText}}",
 		"signOutKey": "{{find(computed.shortcuts, it.name == 'signOut').keyText}}",
 		"passkeys": "{{filter(state.accounts, it.passkey)}}",
-		"providerTitle": "{{state.providerName == 'exampleId' ? 'Example ID' : t('provider_' + state.providerName)}}"
+		"providerTitle": "{{state.providerName == 'exampleId' ? 'Example ID' : t('provider_' + state.providerName)}}",
+		"usernameStatus": "{{length(trim(state.username)) == 0 ? '' : length(trim(state.username)) < 3 || length(trim(state.username)) > 20 || !every(split(lower(trim(state.username)), ''), contains('abcdefghijklmnopqrstuvwxyz0123456789_.', it)) ? 'invalid' : state.usernameChecked != lower(trim(state.username)) ? 'checking' : contains(['ada', 'sam', 'admin'], state.usernameChecked) ? 'taken' : 'available'}}",
+		"inviteValid": "{{upper(trim(state.invite.code)) == 'EXAMPLE-INVITE'}}"
 	},
 	"styles": {
 		"caption": {
@@ -989,7 +1078,7 @@
 		"alert": {
 			"type": "label",
 			"font": "small",
-			"icon": "circle-alert",
+			"icon": "alert-circle",
 			"wrap": true,
 			"padding": 8,
 			"radius": 8,
@@ -1005,7 +1094,7 @@
 		"inlineError": {
 			"type": "label",
 			"font": "small",
-			"icon": "circle-alert",
+			"icon": "alert-circle",
 			"height": 18,
 			"role": "alert",
 			"live": "assertive",
@@ -1049,7 +1138,8 @@
 				"secret": false,
 				"eye": false,
 				"maxLength": 0,
-				"submit": ""
+				"submit": "",
+				"change": ""
 			},
 			"node": {
 				"id": "panel-checked-field",
@@ -1120,6 +1210,14 @@
 										{
 											"set": "state.focus",
 											"to": ""
+										}
+									]
+								},
+								"onChange": {
+									"if": "{{change != ''}}",
+									"then": [
+										{
+											"run": "{{change}}"
 										}
 									]
 								}
@@ -1199,6 +1297,75 @@
 							"top": 32
 						},
 						"text": "{{length(password) == 0 ? t('strengthHint') : length(s.missing) == 0 ? t('strengthDone') : t('strengthAdd', { list: formatList(map(s.missing, t('missingItem', { what: it })), 'and') })}}"
+					}
+				]
+			}
+		},
+		"passwordRules": {
+			"note": "What a new password needs, each ticked off as it is met. params: password",
+			"params": {
+				"password": ""
+			},
+			"node": {
+				"id": "rules",
+				"type": "grid",
+				"columns": 2,
+				"rowGap": 4,
+				"columnGap": 8,
+				"height": 40,
+				"color": "transparent",
+				"anchors": {
+					"left": 0,
+					"right": 10
+				},
+				"let": {
+					"m": "{{merge({ score: 0, label: '', missing: [] }, passwordStrength(password)).missing}}",
+					"n": "{{length(password)}}"
+				},
+				"children": [
+					{
+						"id": "rule-length",
+						"type": "label",
+						"font": "small",
+						"height": 18,
+						"color": "transparent",
+						"icon": "{{n >= 8 ? 'check-circle' : 'circle'}}",
+						"text": "{{t('rule8')}}",
+						"textColor": "{{n >= 8 ? '@color.text' : '@color.muted'}}",
+						"label": "{{t('rule8') + ': ' + t('ruleState', { ok: n >= 8 })}}"
+					},
+					{
+						"id": "rule-case",
+						"type": "label",
+						"font": "small",
+						"height": 18,
+						"color": "transparent",
+						"icon": "{{n > 0 && !contains(m, 'upper') && !contains(m, 'lower') ? 'check-circle' : 'circle'}}",
+						"text": "{{t('ruleCase')}}",
+						"textColor": "{{n > 0 && !contains(m, 'upper') && !contains(m, 'lower') ? '@color.text' : '@color.muted'}}",
+						"label": "{{t('ruleCase') + ': ' + t('ruleState', { ok: n > 0 && !contains(m, 'upper') && !contains(m, 'lower') })}}"
+					},
+					{
+						"id": "rule-digit",
+						"type": "label",
+						"font": "small",
+						"height": 18,
+						"color": "transparent",
+						"icon": "{{n > 0 && !contains(m, 'digit') ? 'check-circle' : 'circle'}}",
+						"text": "{{t('ruleDigit')}}",
+						"textColor": "{{n > 0 && !contains(m, 'digit') ? '@color.text' : '@color.muted'}}",
+						"label": "{{t('ruleDigit') + ': ' + t('ruleState', { ok: n > 0 && !contains(m, 'digit') })}}"
+					},
+					{
+						"id": "rule-symbol",
+						"type": "label",
+						"font": "small",
+						"height": 18,
+						"color": "transparent",
+						"icon": "{{n > 0 && !contains(m, 'symbol') ? 'check-circle' : 'circle'}}",
+						"text": "{{t('ruleSymbol')}}",
+						"textColor": "{{n > 0 && !contains(m, 'symbol') ? '@color.text' : '@color.muted'}}",
+						"label": "{{t('ruleSymbol') + ': ' + t('ruleState', { ok: n > 0 && !contains(m, 'symbol') })}}"
 					}
 				]
 			}
@@ -1577,6 +1744,17 @@
 				]
 			},
 			{
+				"if": "{{state.codeMode == 'verify'}}",
+				"then": [
+					{
+						"run": "finishVerify"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
 				"if": "{{state.codeMode == 'email' && state.pending.twoStep}}",
 				"then": [
 					{
@@ -1669,8 +1847,7 @@
 		],
 		"finishCreate": [
 			{
-				"set": "state.accounts",
-				"to": "{{concat(filter(state.accounts, lower(it.email) != lower(trim(state.email))), [{ email: trim(state.email), name: trim(state.name), password: state.password, twoStep: false, provider: false }])}}"
+				"note": "The account waits for its email to be verified"
 			},
 			{
 				"set": "state.submitted",
@@ -1681,18 +1858,18 @@
 				"to": {
 					"email": "{{trim(state.email)}}",
 					"name": "{{trim(state.name)}}",
+					"username": "{{lower(trim(state.username))}}",
 					"twoStep": false,
-					"provider": false
+					"provider": false,
+					"passkey": false
 				}
 			},
 			{
-				"run": "enter"
+				"set": "state.codeMode",
+				"to": "verify"
 			},
 			{
-				"run": "notify",
-				"with": {
-					"message": "{{t('welcome', { name: trim(state.name) })}}"
-				}
+				"run": "startTwoStep"
 			}
 		],
 		"providerSignIn": [
@@ -2023,6 +2200,17 @@
 			},
 			{
 				"set": "state.formError",
+				"to": ""
+			},
+			{
+				"note": "A new account starts with an empty password, not the one typed to sign in"
+			},
+			{
+				"set": "state.password",
+				"to": ""
+			},
+			{
+				"set": "state.confirm",
 				"to": ""
 			},
 			{
@@ -2536,6 +2724,115 @@
 					}
 				]
 			}
+		],
+		"usernameChanged": [
+			{
+				"note": "Asks the demo server whether the username is free, once typing stops"
+			},
+			{
+				"set": "state.spin",
+				"to": 0
+			},
+			{
+				"animate": "state.spin",
+				"to": 360,
+				"ms": 600,
+				"easing": "linear"
+			},
+			{
+				"debounce": 600,
+				"do": [
+					{
+						"set": "state.usernameChecked",
+						"to": "{{lower(trim(state.username))}}"
+					}
+				]
+			}
+		],
+		"toggleTerms": [
+			{
+				"set": "state.terms",
+				"to": "{{!state.terms}}"
+			}
+		],
+		"openInvite": [
+			{
+				"set": "state.invite.open",
+				"to": true
+			},
+			{
+				"after": 0,
+				"do": [
+					{
+						"focus": "#invite #textarea-placeholder"
+					}
+				]
+			}
+		],
+		"finishVerify": [
+			{
+				"note": "The email is verified: the account exists"
+			},
+			{
+				"set": "state.accounts",
+				"to": "{{concat(filter(state.accounts, lower(it.email) != lower(state.pending.email)), [merge(state.pending, { password: state.password })])}}"
+			},
+			{
+				"set": "state.codeMode",
+				"to": "twoStep"
+			},
+			{
+				"run": "enter"
+			},
+			{
+				"run": "notify",
+				"with": {
+					"message": "{{computed.inviteValid ? t('joinedTeam', { name: state.pending.name }) : t('welcome', { name: state.pending.name })}}"
+				}
+			},
+			{
+				"set": "state.username",
+				"to": ""
+			},
+			{
+				"set": "state.usernameChecked",
+				"to": ""
+			},
+			{
+				"set": "state.terms",
+				"to": false
+			},
+			{
+				"set": "state.invite",
+				"to": {
+					"open": false,
+					"code": ""
+				}
+			}
+		],
+		"codeBack": [
+			{
+				"if": "{{state.codeMode == 'verify'}}",
+				"then": [
+					{
+						"set": "state.codeMode",
+						"to": "twoStep"
+					},
+					{
+						"set": "state.codeError",
+						"to": ""
+					},
+					{
+						"navigate": "createAccount"
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"run": "goBack"
+			}
 		]
 	},
 	"keys": {
@@ -2610,7 +2907,7 @@
 											"id": "label-session-expired",
 											"type": "label",
 											"font": "small",
-											"icon": "clock",
+											"icon": "clock-3",
 											"text": "{{t('sessionExpired')}}",
 											"textColor": "@color.text",
 											"anchors": {
@@ -2761,7 +3058,7 @@
 										"key": "password",
 										"icon": "lock",
 										"name": "{{t('password')}}",
-										"placeholder": "{{t('passwordPlaceholder')}}",
+										"placeholder": "{{t('yourPassword')}}",
 										"valid": "{{computed.passwordValid}}",
 										"message": "{{t('min8')}}",
 										"submitted": "{{state.submitted}}",
@@ -3047,6 +3344,70 @@
 									}
 								},
 								{
+									"id": "label-username",
+									"style": "fieldLabel",
+									"text": "{{t('username')}}"
+								},
+								{
+									"id": "username",
+									"use": "checkedField",
+									"with": {
+										"submit": "createAccount",
+										"change": "usernameChanged",
+										"bind": "state.username",
+										"content": "{{state.username}}",
+										"key": "username",
+										"icon": "at-sign",
+										"name": "{{t('username')}}",
+										"placeholder": "{{t('usernamePlaceholder')}}",
+										"valid": "{{computed.usernameStatus == 'available'}}",
+										"message": "{{t('usernameError', { kind: computed.usernameStatus })}}",
+										"submitted": "{{state.submitted}}",
+										"maxLength": 20
+									}
+								},
+								{
+									"id": "usernameStatus",
+									"when": "{{computed.usernameStatus != '' && !(state.submitted && computed.usernameStatus != 'available')}}",
+									"type": "row",
+									"height": 18,
+									"gap": 6,
+									"alignItems": "center",
+									"anchors": {
+										"left": 2,
+										"right": 10
+									},
+									"color": "transparent",
+									"role": "status",
+									"live": "polite",
+									"label": "{{t('usernameStatus', { kind: computed.usernameStatus, name: lower(trim(state.username)) })}}",
+									"children": [
+										{
+											"id": "username-status-icon",
+											"type": "label",
+											"font": "iconsSmall",
+											"text": "",
+											"width": 14,
+											"height": 14,
+											"align": "center",
+											"color": "transparent",
+											"icon": "{{computed.usernameStatus == 'checking' ? 'loader' : computed.usernameStatus == 'available' ? 'check-circle' : 'alert-circle'}}",
+											"rotate": "{{computed.usernameStatus == 'checking' ? state.spin : 0}}",
+											"textColor": "{{computed.usernameStatus == 'checking' ? '@color.muted' : computed.usernameStatus == 'available' ? '@color.strong' : '@color.error'}}"
+										},
+										{
+											"id": "username-status-text",
+											"type": "label",
+											"font": "small",
+											"fitText": true,
+											"height": 18,
+											"color": "transparent",
+											"text": "{{t('usernameStatus', { kind: computed.usernameStatus, name: lower(trim(state.username)) })}}",
+											"textColor": "{{computed.usernameStatus == 'checking' ? '@color.muted' : computed.usernameStatus == 'available' ? '@color.strong' : '@color.error'}}"
+										}
+									]
+								},
+								{
 									"id": "label-password-2",
 									"style": "fieldLabel",
 									"text": "{{t('password')}}"
@@ -3078,6 +3439,13 @@
 									}
 								},
 								{
+									"id": "rules-create",
+									"use": "passwordRules",
+									"with": {
+										"password": "{{state.password}}"
+									}
+								},
+								{
 									"id": "label-confirm",
 									"when": "{{!state.showPassword}}",
 									"style": "fieldLabel",
@@ -3101,6 +3469,87 @@
 										"secret": true,
 										"maxLength": 128
 									}
+								},
+								{
+									"id": "row-terms",
+									"style": "checkRow",
+									"children": [
+										{
+											"id": "terms",
+											"style": "{{state.terms ? 'checkOn' : 'checkOff'}}",
+											"label": "{{t('terms')}}",
+											"description": "{{state.submitted && !state.terms ? t('termsError') : ''}}",
+											"onClick": "toggleTerms"
+										},
+										{
+											"id": "label-terms",
+											"type": "label",
+											"font": "small",
+											"text": "{{t('terms')}}",
+											"fitText": true,
+											"textColor": "@color.text",
+											"cursor": "hand",
+											"onClick": "toggleTerms"
+										}
+									]
+								},
+								{
+									"id": "termsError",
+									"when": "{{state.submitted && !state.terms}}",
+									"style": "inlineError",
+									"text": "{{t('termsError')}}"
+								},
+								{
+									"id": "haveInvite",
+									"when": "{{!state.invite.open}}",
+									"style": "smallLink",
+									"text": "{{t('haveInvite')}}",
+									"onClick": "openInvite"
+								},
+								{
+									"id": "label-invite",
+									"when": "{{state.invite.open}}",
+									"style": "fieldLabel",
+									"text": "{{t('inviteCode')}}"
+								},
+								{
+									"id": "invite",
+									"when": "{{state.invite.open}}",
+									"use": "checkedField",
+									"with": {
+										"submit": "createAccount",
+										"bind": "state.invite.code",
+										"content": "{{state.invite.code}}",
+										"key": "invite",
+										"icon": "ticket",
+										"name": "{{t('inviteCode')}}",
+										"placeholder": "{{t('invitePlaceholder')}}",
+										"valid": "{{length(trim(state.invite.code)) == 0 || computed.inviteValid}}",
+										"message": "{{t('inviteUnknown')}}",
+										"submitted": "{{state.submitted}}",
+										"maxLength": 40
+									}
+								},
+								{
+									"id": "inviteNotice",
+									"when": "{{state.invite.open && computed.inviteValid}}",
+									"type": "label",
+									"font": "small",
+									"icon": "users",
+									"height": 36,
+									"padding": 10,
+									"anchors": {
+										"left": 0,
+										"right": 10
+									},
+									"radius": 8,
+									"color": "@color.notice",
+									"borderWidth": 1,
+									"borderColor": "@color.noticeBorder",
+									"textColor": "@color.text",
+									"role": "status",
+									"live": "polite",
+									"text": "{{t('inviteValid')}}"
 								},
 								{
 									"id": "label-create-account",
@@ -3143,7 +3592,7 @@
 								{
 									"id": "label-two-step",
 									"style": "title",
-									"text": "{{state.codeMode == 'email' ? t('emailCodeTitle') : t('twoStepTitle')}}",
+									"text": "{{t(state.codeMode == 'verify' ? 'verifyEmailTitle' : state.codeMode == 'email' ? 'emailCodeTitle' : 'twoStepTitle')}}",
 									"role": "heading"
 								},
 								{
@@ -3151,7 +3600,7 @@
 									"style": "caption",
 									"wrap": true,
 									"height": 40,
-									"text": "{{t(state.codeMode == 'email' ? 'emailCodeCaption' : 'twoStepCaption', { email: state.pending.email })}}"
+									"text": "{{t(state.codeMode == 'verify' ? 'verifyEmailCaption' : state.codeMode == 'email' ? 'emailCodeCaption' : 'twoStepCaption', { email: state.pending.email })}}"
 								},
 								{
 									"id": "label-code",
@@ -3200,8 +3649,8 @@
 								{
 									"id": "twoStepBack",
 									"style": "link",
-									"text": "{{t('backToSignIn')}}",
-									"onClick": "goBack"
+									"text": "{{state.codeMode == 'verify' ? t('backToCreate') : t('backToSignIn')}}",
+									"onClick": "codeBack"
 								}
 							]
 						}
@@ -3433,7 +3882,7 @@
 										"left": 0,
 										"right": 10
 									},
-									"icon": "{{state.remember ? 'shield-check' : 'clock'}}",
+									"icon": "{{state.remember ? 'shield-check' : 'clock-3'}}",
 									"textColor": "@color.muted",
 									"text": "{{state.remember ? t('staysSignedIn') : t('signedOutOnClose')}}"
 								},

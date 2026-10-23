@@ -97,7 +97,7 @@
 					"expect": {
 						"node": "#label-error",
 						"nth": 0,
-						"text": "Enter an email address"
+						"text": "Enter a full email address, like name@example.com"
 					}
 				},
 				{
@@ -308,6 +308,10 @@
 					}
 				},
 				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
 					"click": "#label-back-to-sign"
 				},
 				{
@@ -362,6 +366,26 @@
 					"type": "a long password"
 				},
 				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
 					"click": "#label-create-account"
 				},
 				{
@@ -378,13 +402,36 @@
 					}
 				},
 				{
+					"scroll": "#stack-form-2",
+					"dy": 200
+				},
+				{
 					"click": "#checked-field-form"
 				},
 				{
 					"type": "Jon Doe"
 				},
 				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
 					"click": "#label-create-account"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"text": "Verify your email"
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 800
 				},
 				{
 					"expect": {
@@ -952,10 +999,35 @@
 					"type": "a long password"
 				},
 				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
 					"key": "enter"
 				},
 				{
 					"wait": 50
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 800
 				},
 				{
 					"expect": {
@@ -1551,7 +1623,7 @@
 						"node": "#textarea-placeholder",
 						"nth": 0,
 						"property": "description",
-						"is": "Enter an email address"
+						"is": "Enter a full email address, like name@example.com"
 					}
 				},
 				{
@@ -1644,6 +1716,10 @@
 				{
 					"scroll": "#stack-form-2",
 					"dy": -20
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
 				},
 				{
 					"click": "#label-create-account"
@@ -1938,7 +2014,7 @@
 					"expect": {
 						"node": "#label-error",
 						"nth": 0,
-						"text": "Inserisci un indirizzo email"
+						"text": "Inserisci un indirizzo email completo, come nome@example.com"
 					}
 				},
 				{
@@ -1989,7 +2065,7 @@
 					"expect": {
 						"node": "#label-error",
 						"nth": 0,
-						"text": "أدخل عنوان بريد إلكتروني"
+						"text": "أدخل عنوان بريد إلكتروني كاملًا، مثل name@example.com"
 					}
 				},
 				{
@@ -2851,6 +2927,26 @@
 					"type": "a long passwork"
 				},
 				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
 					"click": "#label-create-account"
 				},
 				{
@@ -2863,7 +2959,7 @@
 				{
 					"expect": {
 						"node": "#textarea-placeholder",
-						"nth": 3,
+						"nth": 4,
 						"property": "description",
 						"is": "The passwords don't match"
 					}
@@ -3660,7 +3756,7 @@
 					"expect": {
 						"node": "#label-error",
 						"nth": 1,
-						"text": "Enter an email address"
+						"text": "Enter a full email address, like name@example.com"
 					}
 				},
 				{
@@ -4169,6 +4265,526 @@
 					"expect": {
 						"node": "#label-signed-in-as",
 						"text": "Signed in as you@quillo.example"
+					}
+				}
+			]
+		},
+		{
+			"name": "username-is-checked",
+			"note": "A username is checked as it is typed: a spinner while checking, then taken, available or invalid",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "Ada"
+				},
+				{
+					"expect": {
+						"node": "#username-status-text",
+						"text": "Checking ada…"
+					}
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"node": "#username-status-text",
+						"text": "ada is taken. Try another."
+					}
+				},
+				{
+					"type": "_x"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"node": "#username-status-text",
+						"text": "ada_x is available"
+					}
+				},
+				{
+					"type": "!"
+				},
+				{
+					"expect": {
+						"node": "#username-status-text",
+						"text": "Use 3 to 20 letters, digits, _ or ."
+					}
+				}
+			]
+		},
+		{
+			"name": "create-waits-for-the-username-check",
+			"note": "Creating while the name is still being checked asks to wait",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Jon Doe"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"text": "Wait for the check to finish"
+					}
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "twoStep"
+					}
+				}
+			]
+		},
+		{
+			"name": "terms-are-required",
+			"note": "The account is not created until the terms are agreed",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Jon Doe"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"expect": {
+						"node": "#termsError",
+						"text": "Agree to the terms to continue"
+					}
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "twoStep"
+					}
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"expect": {
+						"node": "#termsError",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "invitation-code",
+			"note": "An invitation code is checked, and a known one names the team",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Jon Doe"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#haveInvite"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#invite"
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"text": "That code is not known. The demo code is EXAMPLE-INVITE."
+					}
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "twoStep"
+					}
+				},
+				{
+					"click": "#invite"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "example-invite"
+				},
+				{
+					"expect": {
+						"node": "#inviteNotice",
+						"text": "Sam invited you to Example Team"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": false
+					}
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Welcome, Jon Doe. You joined Example Team."
+					}
+				}
+			]
+		},
+		{
+			"name": "email-is-verified-before-sign-in",
+			"note": "A new account gets a 6-digit email code; a wrong one is refused, and going back keeps the form",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Jon Doe"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"text": "Verify your email"
+					}
+				},
+				{
+					"expect": {
+						"node": "#avatar",
+						"exists": false
+					}
+				},
+				{
+					"type": "111111"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"node": "#codeError",
+						"text": "That code is not right. Check it and try again."
+					}
+				},
+				{
+					"click": "#twoStepBack"
+				},
+				{
+					"expect": {
+						"node": "#label-create-an-account",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "username",
+						"is": "jon_d"
+					}
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"node": "#avatar",
+						"text": "J"
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Welcome, Jon Doe"
+					}
+				}
+			]
+		},
+		{
+			"name": "password-rules-tick-off",
+			"note": "Each password rule is ticked off, for the eye and for a screen reader",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"expect": {
+						"node": "#rule-length",
+						"property": "name",
+						"is": "8 or more characters: not yet"
+					}
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "abcdefgh"
+				},
+				{
+					"expect": {
+						"node": "#rule-length",
+						"property": "name",
+						"is": "8 or more characters: done"
+					}
+				},
+				{
+					"expect": {
+						"node": "#rule-digit",
+						"property": "name",
+						"is": "A digit: not yet"
+					}
+				},
+				{
+					"type": "1"
+				},
+				{
+					"expect": {
+						"node": "#rule-digit",
+						"property": "name",
+						"is": "A digit: done"
+					}
+				}
+			]
+		},
+		{
+			"name": "create-starts-with-an-empty-password",
+			"note": "The password typed to sign in is not carried into a new account",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "shortSecret12"
+				},
+				{
+					"click": "#toCreate"
+				},
+				{
+					"expect": {
+						"state": "password",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "confirm",
+						"is": ""
 					}
 				}
 			]
