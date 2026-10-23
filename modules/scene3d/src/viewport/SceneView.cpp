@@ -161,6 +161,7 @@ struct SceneView::Internals {
 	SceneTransform transform;                                                   ///< The drag's last step.
 	std::optional<json> preview;                                                ///< The scene with it applied.
 	std::optional<std::array<float, 4>> box;                                    ///< The box being dragged.
+	bool modal = false;                                                         ///< Whether the drag needs no button.
 };
 
 SceneView::SceneView() : internals_(std::make_unique<Internals>()) {
@@ -335,6 +336,8 @@ void SceneView::scrollEvent(const ScrollEvent& event) {
 
 void SceneView::press(MouseButton button, Mods mods, Vec2 at) {
 	Internals& in = *internals_;
+	if(in.gesture == Gesture::Gizmo && in.modal)
+		return endDrag(button == in.controls.select.button ? TransformPhase::End : TransformPhase::Cancel);
 	if(in.gesture == Gesture::Gizmo && button != in.button) return endDrag(TransformPhase::Cancel);
 	if(in.gesture != Gesture::None) return;
 	in.preview.reset();
@@ -351,6 +354,12 @@ void SceneView::press(MouseButton button, Mods mods, Vec2 at) {
 	in.gizmo = gizmoFor(in.scene, settings, height);
 	in.axis = in.gizmo ? hitHandle(*in.gizmo, in.camera.rayThrough(at.x, at.y, width, height)) : GizmoAxis::None;
 	if(in.axis == GizmoAxis::None) return;
+	beginDrag();
+	refresh();
+}
+
+void SceneView::beginDrag() {
+	Internals& in = *internals_;
 	in.gesture = Gesture::Gizmo;
 	in.dragged.clear();
 	const auto worlds = in.scene.worldMatrices();
@@ -360,12 +369,41 @@ void SceneView::press(MouseButton button, Mods mods, Vec2 at) {
 	}
 	in.transform = {TransformPhase::Preview, in.gizmo->mode, in.axis, {}, {}};
 	for(const DragStart& node : in.dragged) in.transform.nodes.push_back({node.id, node.transform});
-	refresh();
 }
+
+bool SceneView::startTransform(GizmoMode mode, GizmoAxis axis) {
+	Internals& in = *internals_;
+	if(in.gesture != Gesture::None || axis == GizmoAxis::None) return false;
+	ViewportSettings settings = viewportSettingsFromJson(params());
+	settings.selection = in.selection;
+	settings.gizmo.visible = true; // a hidden gizmo still has a centre and a size to work from
+	settings.gizmo.mode = mode;
+	in.gizmo = gizmoFor(in.scene, settings, std::max(frame().height(), 1.0f));
+	if(!in.gizmo) return false;
+	in.preview.reset();
+	in.axis = axis;
+	in.button = in.controls.select.button;
+	in.start = in.last; // from where the pointer is
+	in.modal = true;
+	beginDrag();
+	dragTo(in.last);
+	return true;
+}
+
+void SceneView::setTransformAxis(GizmoAxis axis) {
+	Internals& in = *internals_;
+	if(in.gesture != Gesture::Gizmo || !in.modal || axis == GizmoAxis::None) return;
+	in.axis = in.transform.axis = axis;
+	dragTo(in.last);
+}
+
+void SceneView::endTransform(bool confirm) { endDrag(confirm ? TransformPhase::End : TransformPhase::Cancel); }
+
+bool SceneView::transforming() const noexcept { return internals_->gesture == Gesture::Gizmo; }
 
 void SceneView::release(MouseButton button, Vec2 at) {
 	Internals& in = *internals_;
-	if(in.gesture == Gesture::None || button != in.button) return;
+	if(in.gesture == Gesture::None || button != in.button || in.modal) return;
 	const Gesture gesture = in.gesture;
 	in.gesture = Gesture::None;
 	if(gesture == Gesture::Pending) click(at, button, in.shift);
@@ -445,6 +483,7 @@ void SceneView::endDrag(TransformPhase phase) {
 	Internals& in = *internals_;
 	if(in.gesture != Gesture::Gizmo) return;
 	in.gesture = Gesture::None;
+	in.modal = false;
 	in.transform.phase = phase;
 	if(phase == TransformPhase::Cancel) {
 		in.transform.nodes.clear();

@@ -848,7 +848,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, code, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -882,8 +882,7 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							},
 							{
@@ -3277,15 +3276,7 @@
 					},
 					"pickedTextColor": {
 						"$ref": "#/$defs/v2/color"
-					},
-					"syntax": {},
-					"goTo": {},
-					"buffer": {},
-					"onType": {},
-					"popup": {},
-					"onPopupKey": {},
-					"insert": {},
-					"tokens": {}
+					}
 				},
 				"if": {
 					"required": [
@@ -3325,8 +3316,7 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							}
 						}
@@ -3342,7 +3332,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, end); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -3390,6 +3380,7 @@
 					"stop": {},
 					"note": {},
 					"camera": {},
+					"transform": {},
 					"to": {},
 					"value": {},
 					"at": {},
@@ -3480,7 +3471,52 @@
 						]
 					},
 					"orbit": {},
-					"zoom": {}
+					"zoom": {},
+					"mode": {
+						"anyOf": [
+							{
+								"enum": [
+									"translate",
+									"rotate",
+									"scale"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"axis": {
+						"anyOf": [
+							{
+								"enum": [
+									"x",
+									"y",
+									"z",
+									"xy",
+									"yz",
+									"zx",
+									"view"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"end": {
+						"anyOf": [
+							{
+								"enum": [
+									"confirm",
+									"cancel"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					}
 				}
 			},
 			"expression": {

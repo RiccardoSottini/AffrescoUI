@@ -328,9 +328,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
     {"camera", "",
-	 R"(`{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view` (front, )"
-	 R"(back, left, right, top, bottom), `frame` ("selection", "all" or ids), `projection` (perspective, )"
-	 R"(orthographic, toggle), `orbit` [degrees right, down], `zoom` (wheel steps, positive to come closer))",
+	 R"(`{ "camera": "#viewport", "view": "front", "frame": "selection" }`: moves a scene's camera: `view`, `frame` )"
+	 R"(("selection", "all", ids), `projection`, `orbit` [° right, ° down], `zoom` (wheel steps))",
 	 "steps"},
     {"view", R"json({"anyOf": [{"enum": ["front", "back", "left", "right", "top", "bottom"]},
 		{"$ref": "#/$defs/v2/dynamic"}]})json",
@@ -341,6 +340,16 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "", ""},
     {"orbit", "", "", ""},
     {"zoom", "", "", ""},
+    {"transform", "",
+	 R"(`{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the )"
+	 R"(pointer until a click; `axis` locks it, `end` (confirm, cancel) ends it)",
+	 "steps"},
+    {"mode", R"json({"anyOf": [{"enum": ["translate", "rotate", "scale"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "",
+	 ""},
+    {"axis",
+	 R"json({"anyOf": [{"enum": ["x", "y", "z", "xy", "yz", "zx", "view"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "",
+	 ""},
+    {"end", R"json({"anyOf": [{"enum": ["confirm", "cancel"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "", ""},
     {"append", "", "", ""},
     {"keep", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "string"}]})json", "", ""},
     {"id", "", "", ""},

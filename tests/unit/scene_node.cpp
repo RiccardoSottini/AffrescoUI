@@ -214,3 +214,58 @@ TEST_CASE("format: a scene node places a glTF model from the screen's folder") {
 	for(const auto& node : scene->scene().nodes) held = held || node.id.starts_with("model/");
 	CHECK(held);
 }
+
+TEST_CASE("format: the transform step moves the selection with the pointer, and a click or a cancel ends it") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(600, 400, clock);
+	std::string text = sceneScreen(R"json("onTransform": [{ "set": "state.moved", "to": "{{event}}" }])json", R"json({
+		"grab": [{ "transform": "#viewport", "mode": "translate", "axis": "x" }],
+		"free": [{ "transform": "viewport", "axis": "view" }],
+		"keep": [{ "transform": "viewport", "end": "confirm" }],
+		"drop": [{ "transform": "viewport", "end": "cancel" }] })json");
+	affresco::Screen screen = affresco::Screen::fromString(text);
+	screen.build(*window);
+	window->render();
+	auto* scene = dynamic_cast<SceneView*>(screen.find("viewport"));
+	REQUIRE(scene);
+	std::string error;
+	REQUIRE(screen.applyRevision(R"({"set": {"/state/view/selection": ["cube"]}})", &error));
+	window->render();
+
+	/// Runs an action and lets the step's deferred work run.
+	const auto press = [&](const char* action) {
+		screen.runAction(action, *scene);
+		clock.advance(1);
+		window->render();
+	};
+	const Vec2 middle = shown(*scene, {0.0f, 0.0f, 0.0f});
+	window->routeMouseMove(middle);
+	press("grab");
+	CHECK(scene->transforming());
+	window->routeMouseMove({middle.x + 60.0f, middle.y});
+	/// Where the last report moved the cube to: a preview is drawn and reported, and the document applies it.
+	const auto moved = [&] { return state(screen)["moved"]["nodes"][0]["translation"]; };
+	CHECK(moved()[0].get<double>() > 0.5);
+	CHECK(moved()[1].get<double>() == doctest::Approx(0.0)); // held to x
+	CHECK(state(screen)["moved"]["phase"] == "preview");
+	press("free");
+	window->routeMouseMove({middle.x + 60.0f, middle.y - 40.0f});
+	CHECK(moved()[1].get<double>() > 0.5);
+	press("keep");
+	CHECK_FALSE(scene->transforming());
+	CHECK(state(screen)["moved"]["phase"] == "end");
+
+	press("grab");
+	window->routeMouseMove({middle.x + 200.0f, middle.y});
+	press("drop");
+	CHECK(state(screen)["moved"]["phase"] == "cancel");
+
+	// A click ends one too, keeping it, and never selects what is under it
+	press("grab");
+	window->routeMouseMove({middle.x + 120.0f, middle.y});
+	window->routeMouseButton({MouseButton::Left, Action::Press, {}, {middle.x + 120.0f, middle.y}});
+	window->routeMouseButton({MouseButton::Left, Action::Release, {}, {middle.x + 120.0f, middle.y}});
+	CHECK_FALSE(scene->transforming());
+	CHECK(state(screen)["moved"]["phase"] == "end");
+	CHECK(state(screen)["view"]["selection"] == json{"cube"});
+}
