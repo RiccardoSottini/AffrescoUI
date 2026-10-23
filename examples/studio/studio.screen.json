@@ -2954,7 +2954,6 @@
 														"textColor": "{{state.logColors[entry.kind] ?? '@color.logSystem'}}"
 													}
 												],
-												"justify": "end",
 												"scroll": "vertical",
 												"role": "log",
 												"label": "{{t('a11y.log')}}",
@@ -4095,7 +4094,7 @@
 															},
 															{
 																"id": "label-accept",
-																"style": "goodButton",
+																"style": "{{computed.mergeState == 'ready' ? 'goodButton' : 'smallButton'}}",
 																"text": "{{t('review.merge')}}",
 																"icon": "git-merge",
 																"anchors": {

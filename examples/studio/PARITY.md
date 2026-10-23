@@ -12,7 +12,7 @@ works differently), **missing**. The Studio's own parts that its counterparts do
 | Toolbar | Current repository drop-down: list, filter, add | The connections (hosts, document servers) | partial | partial |
 | Toolbar | Current branch drop-down: filter, default, recent and other branches | main and the open proposals | missing | partial |
 | Toolbar | Fetch / pull / push button with counts and "last fetched" | Refresh from the host, reconnect when offline | missing | partial |
-| Sidebar | Changes and History tabs with counts | Tabs as text buttons; no icons | partial | partial |
+| Sidebar | Changes and History tabs with counts | Proposals and History, with counts; text tabs, no icons | partial | partial |
 | Changes | Changed files with check boxes and status icons; select all | Direct-change and permission drafts | missing | missing |
 | Changes | Summary and description, "Commit to main" | Message of a direct change, apply | partial | partial |
 | Changes | Nothing-changed state with suggestions | | partial | partial |
