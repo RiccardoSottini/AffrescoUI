@@ -106,6 +106,24 @@
           "key": "escape"
         },
         {
+          "key": "mod+shift+a",
+          "note": "the assistant chat add-on, with no agent connected"
+        },
+        {
+          "wait": 400
+        },
+        {
+          "expect": {
+            "image": "assistant"
+          }
+        },
+        {
+          "key": "escape"
+        },
+        {
+          "wait": 400
+        },
+        {
           "key": "mod+n"
         },
         {

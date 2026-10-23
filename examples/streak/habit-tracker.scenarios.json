@@ -714,7 +714,7 @@
 			"note": "Archive hides the habit and offers to undo",
 			"steps": [
 				{
-					"key": "mod+shift+a"
+					"key": "mod+shift+h"
 				},
 				{
 					"wait": 50
@@ -950,6 +950,49 @@
 					"expect": {
 						"state": "picked.length",
 						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "the-assistant-opens",
+			"note": "Cmd+Shift+A opens the assistant chat; Escape closes it",
+			"steps": [
+				{
+					"key": "mod+shift+a"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#assistantPanel",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[0].archived",
+						"is": false
 					}
 				}
 			]

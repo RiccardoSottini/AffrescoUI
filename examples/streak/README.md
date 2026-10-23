@@ -33,12 +33,12 @@ Modelled on Loop Habit Tracker, laid out for the desktop: the list and the selec
 - **Settings**: light, dark and pure black, the first day of the week, reverse order, skip days, notifications, the
   language and sync.
 - **Commands and keys**: a command palette (`mod+k`, `quickPick`), `mod+n` and `mod+shift+n` new habits, `mod+e`
-  edit, `mod+shift+a` archive, `mod+backspace` delete, `mod+comma` settings, `mod+j` theme, `mod+up`/`mod+down`
+  edit, `mod+shift+h` archive, `mod+backspace` delete, `mod+comma` settings, `mod+j` theme, `mod+up`/`mod+down`
   between habits, `mod+enter` checks today, `mod+s` sync.
 - **Themes and languages**: English, Italiano and العربية through `strings` and `t()`, the body set to `dir: auto`
   so Arabic lays out right to left.
 - **Layout**: one pane at a time below 960 window units, the list and the detail side by side above.
-- **Scenarios**: 24, one per workflow above.
+- **Scenarios**: 27, one per workflow above.
 
 ## How it holds together
 

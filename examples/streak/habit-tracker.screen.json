@@ -2,6 +2,9 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
+	"include": [
+		"../shared/addons/assistant/assistant.json"
+	],
 	"note": "Streak: a habit tracker modelled on Loop Habit Tracker and laid out for the desktop: the habits with their last days to tick on the left, the chosen habit's score, history, calendar, streaks and frequency on the right. Yes-or-no and measurable habits, frequencies, reminders, notes per day, sorting, archiving, CSV export, light, dark and pure black. In English, Italian and Arabic.",
 	"window": {
 		"title": "Streak",
@@ -199,6 +202,16 @@
 			"dark": "#1565c0",
 			"black": "#1565c0"
 		},
+		"assistant.accent": "@c.primary",
+		"assistant.accentHover": "@c.primary",
+		"assistant.onAccent": "@c.onPrimary",
+		"assistant.surface": "@c.card",
+		"assistant.raised": "@c.bg",
+		"assistant.border": "@c.divider",
+		"assistant.text": "@c.text",
+		"assistant.dim": "@c.muted",
+		"assistant.dot": "@c.faint",
+		"assistant.danger": "@c.danger",
 		"kit.background": "@c.bg",
 		"kit.surface": "@c.raised",
 		"kit.bar": "@c.bar",
@@ -2352,7 +2365,7 @@
 		"mod+shift+n": "addMeasurable",
 		"mod+e": "editHabit",
 		"mod+backspace": "confirmDelete",
-		"mod+shift+a": "archiveHabit",
+		"mod+shift+h": "archiveHabit",
 		"mod+comma": "openSettings",
 		"mod+j": "toggleTheme",
 		"mod+k": "commandPalette",

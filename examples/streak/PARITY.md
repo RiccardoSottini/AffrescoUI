@@ -76,13 +76,13 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 
 | Area | Status | Gap |
 |---|---|---|
-| Keyboard: Cmd+N, Cmd+Shift+N, Cmd+E, Cmd+Backspace, Cmd+Shift+A, Cmd+comma, Cmd+J, Cmd+K, Cmd+arrows, Cmd+Enter | done | |
+| Keyboard: Cmd+N, Cmd+Shift+N, Cmd+E, Cmd+Backspace, Cmd+Shift+H, Cmd+comma, Cmd+J, Cmd+K, Cmd+arrows, Cmd+Enter | done | |
 | Accessible names on every box and control | done | |
 | A narrow window shows one pane | done | |
-| The assistant chat add-on | missing | waits for the shared add-on to land |
+| The assistant chat add-on (Cmd+Shift+A), in the app's colours | done | |
 
 ## Counts
 
-- done: 41
+- done: 42
 - partial: 1
-- missing: 2
+- missing: 1
