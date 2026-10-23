@@ -22,7 +22,7 @@ system of six bodies on circular orbits in one plane.
 | C10 | Go to the selected body (G), centre it (C), follow it (F) | done | titled actions animating `fly` and the distance; computed `target`; follow moves to a new selection; the wheel or a place stops a flight |
 | C11 | Orbits, labels and markers toggled from the keyboard and a menu | done | O and P, the View menu (its items checked when on) and the built-in `toolbar` (toggles shown pressed); the menu also toggles stars, lit side and glow; M marks or unmarks the selected body (four ticks round it) |
 | C12 | Solar system browser: the bodies as a tree | done | a `tree` from computed `bodyTree` (B, View menu); open a body to go to it |
-| C13 | Eclipse finder | missing | |
+| C13 | Eclipse finder | done | the browser's Eclipses tab (View menu), a `list` from computed `eclipses`: every new and full moon that falls in an eclipse season (the Sun near the moon's line of nodes, from the moon's invented `nodeDay`, `eclipseYear` and `eclipseSeason`); choosing one stops time, selects and follows the planet and moves to the day. The timeline's eclipses come from the same list |
 | C14 | Bookmarks (saved camera places) | done | the browser's Places tab, a `list` of saved places (camera, time, field of view); mod+D or the View menu adds one, the bin deletes one |
 | C15 | Field of view and limiting magnitude shown, and changed | done | bottom right: the field of view, narrowed and widened with period and comma; the limiting magnitude and the stars it shows, raised and lowered with equal and minus (the stars have invented magnitudes, brighter ones drawn larger) |
 | C16 | Phase and lit side of each body | done | the scene's point light at the Sun shades every sphere; the lit fraction in the info |
@@ -36,7 +36,7 @@ system of six bodies on circular orbits in one plane.
 | S2 | Horizon, ground and cardinal points | missing | |
 | S3 | Constellation lines and names | missing | |
 | S4 | Toggle bar at the bottom (lines, ground, atmosphere, grid) | missing | |
-| S5 | Object info on selection, top left | missing | |
+| S5 | Object info on selection, top left | done | the selected body's name, distance from the Sun and orbit over the chart |
 | S6 | Time controls: faster, slower, now, real time | part | play, next or previous event (by direction), day 0, the time keys; no real time |
 | S7 | Annotations on the chart (notes, marks) | done | the canvas's items |
 
@@ -64,3 +64,4 @@ system of six bodies on circular orbits in one plane.
 | 7 | The 3D view on the scene node (spheres, a point light, picking); fixes from the round 6 critique: the wheel and places stop a flight, follow moves to a new selection, apparent size from the scene | 19 / 5 / 5 | 25,999 |
 | 8 | Markers (M, View menu); the limiting magnitude, shown and changed with equal and minus, the stars sized by magnitude | 21 / 3 / 5 | 27,039 |
 | 9 | The built-in menu bar, toolbar and status bar in place of hand-made ones; muting a kind of event; fixes from the round 8 critique: a body moved under a planet orbits close to it and goes back to its old orbit, spheres sized without the labels' clamp, nothing marked without a selection | 21 / 3 / 5 | 27,556 |
+| 10 | Eclipse finder (eclipses computed from the orbits and eclipse seasons, the timeline's eclipses with them); the selected body's info on the sky chart | 23 / 3 / 3 | 28,846 |

@@ -217,6 +217,9 @@
 				"radius": 0.65,
 				"period": 27.32,
 				"phase": 0.5,
+				"nodeDay": 36.9,
+				"eclipseYear": 354.4,
+				"eclipseSeason": 18,
 				"size": 0.09,
 				"hex": "#d4d4d4",
 				"color": [0.6584, 0.6584, 0.6584, 1],
@@ -241,18 +244,6 @@
 		],
 		"events": [
 			{
-				"id": "solar-1",
-				"time": 29.5,
-				"kind": "eclipse",
-				"label": "Solar eclipse"
-			},
-			{
-				"id": "lunar-1",
-				"time": 44.3,
-				"kind": "eclipse",
-				"label": "Lunar eclipse"
-			},
-			{
 				"id": "mercury-1",
 				"time": 81.2,
 				"kind": "conjunction",
@@ -271,18 +262,6 @@
 				"label": "Mercury inferior conjunction"
 			},
 			{
-				"id": "solar-2",
-				"time": 206.7,
-				"kind": "eclipse",
-				"label": "Solar eclipse"
-			},
-			{
-				"id": "lunar-2",
-				"time": 221.5,
-				"kind": "eclipse",
-				"label": "Lunar eclipse"
-			},
-			{
 				"id": "venus-1",
 				"time": 234.6,
 				"kind": "conjunction",
@@ -293,18 +272,6 @@
 				"time": 313.1,
 				"kind": "conjunction",
 				"label": "Mercury inferior conjunction"
-			},
-			{
-				"id": "solar-3",
-				"time": 383.9,
-				"kind": "eclipse",
-				"label": "Solar eclipse"
-			},
-			{
-				"id": "lunar-3",
-				"time": 398.7,
-				"kind": "eclipse",
-				"label": "Lunar eclipse"
 			}
 		],
 		"stars": [
@@ -812,7 +779,8 @@
 		},
 		"limitMag": 5,
 		"markers": [],
-		"muted": []
+		"muted": [],
+		"eclipse": ""
 	},
 	"computed": {
 		"ids": "{{map(state.bodies, it.id)}}",
@@ -829,9 +797,9 @@
 		"catalogue": "{{map(state.bodies, {id: it.id, name: it.name, parent: it.parent, thumbnail: 'body:' + (it.look ?? it.id)})}}",
 		"graphNodes": "{{map(state.bodies, {id: it.id, title: it.name, x: it.gx ?? 400, y: it.gy ?? 20 + index * 40, width: 120, inputs: it.parent == '' ? [] : [{id: 'orbits', label: 'orbits', kind: 'orbit', links: 1}], outputs: [{id: 'satellites', label: 'satellites', kind: 'orbit'}]})}}",
 		"graphLinks": "{{map(filter(state.bodies, it.parent != ''), {from: it.parent, output: 'satellites', to: it.id, input: 'orbits'})}}",
-		"tracks": "{{[{id: 'eclipses', label: 'Eclipses', locked: true, muted: indexOf(state.muted, 'eclipse') >= 0, clips: map(filter(state.events, it.kind == 'eclipse'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#7c3aed'})}, {id: 'conjunctions', label: 'Conjunctions', locked: true, muted: indexOf(state.muted, 'conjunction') >= 0, clips: map(filter(state.events, it.kind == 'conjunction'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#0e7490'})}, {id: 'oppositions', label: 'Oppositions', locked: true, muted: indexOf(state.muted, 'opposition') >= 0, clips: map(filter(state.events, it.kind == 'opposition'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#b45309'})}]}}",
-		"next": "{{find(state.events, it.time > state.time + 0.5 && indexOf(state.muted, it.kind) < 0)}}",
-		"previous": "{{sort(filter(state.events, it.time < state.time - 0.5 && indexOf(state.muted, it.kind) < 0), it.time, 'desc')[0]}}",
+		"tracks": "{{[{id: 'eclipses', label: 'Eclipses', locked: true, muted: indexOf(state.muted, 'eclipse') >= 0, clips: map(filter(computed.events, it.kind == 'eclipse'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#7c3aed'})}, {id: 'conjunctions', label: 'Conjunctions', locked: true, muted: indexOf(state.muted, 'conjunction') >= 0, clips: map(filter(computed.events, it.kind == 'conjunction'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#0e7490'})}, {id: 'oppositions', label: 'Oppositions', locked: true, muted: indexOf(state.muted, 'opposition') >= 0, clips: map(filter(computed.events, it.kind == 'opposition'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#b45309'})}]}}",
+		"next": "{{find(computed.events, it.time > state.time + 0.5 && indexOf(state.muted, it.kind) < 0)}}",
+		"previous": "{{sort(filter(computed.events, it.time < state.time - 0.5 && indexOf(state.muted, it.kind) < 0), it.time, 'desc')[0]}}",
 		"goal": "{{state.speed < 0 ? computed.previous : computed.next}}",
 		"selectedBody": "{{find(state.bodies, it.id == state.selected)}}",
 		"selectedPosition": "{{find(computed.placed, it.id == state.selected)}}",
@@ -866,6 +834,11 @@
 		"bodyLevel3": "{{map(computed.bodyLevel2, length(computed.bodyKids[index]) > 0 ? merge(it, {children: map(computed.bodyKids[index], computed.bodyLevel2[it])}) : it)}}",
 		"bodyTree": "{{map(filter(range(length(state.bodies)), state.bodies[it].parent == ''), computed.bodyLevel3[it])}}",
 		"bookmarkRows": "{{map(state.bookmarks, {id: it.id, label: it.label, icon: 'bookmark'})}}",
+		"eclipseOrbits": "{{map(filter(map(filter(state.bodies, it.parent != '' && it.parent != 'sun'), merge(it, {host: state.bodies[indexOf(computed.ids, it.parent)]})), it.host.parent == 'sun' && it.period != it.host.period), merge(it, {d: 1 / it.period - 1 / it.host.period, o: it.phase - it.host.phase, from: ceil(2 * min(it.phase - it.host.phase, it.phase - it.host.phase + (1 / it.period - 1 / it.host.period) * state.duration)), to: floor(2 * max(it.phase - it.host.phase, it.phase - it.host.phase + (1 / it.period - 1 / it.host.period) * state.duration))}))}}",
+		"eclipseSpan": "{{max(concat([0], map(computed.eclipseOrbits, it.to - it.from + 1)))}}",
+		"eclipses": "{{sort(map(filter(map(filter(map(range(length(computed.eclipseOrbits) * computed.eclipseSpan), {m: computed.eclipseOrbits[floor(it / computed.eclipseSpan)], n: computed.eclipseOrbits[floor(it / computed.eclipseSpan)].from + it % computed.eclipseSpan}), it.n <= it.m.to), merge(it, {time: (it.n / 2 - it.m.o) / it.m.d})), it.m.eclipseYear == null || abs(it.time - it.m.nodeDay - round((it.time - it.m.nodeDay) * 2 / it.m.eclipseYear) * it.m.eclipseYear / 2) * 2 < it.m.eclipseSeason), {id: it.m.id + '-' + it.n, time: round(it.time * 10) / 10, solar: it.n % 2 != 0, moon: it.m.id, host: it.m.host.id, label: it.n % 2 != 0 ? it.m.name + ' eclipses the Sun' : it.m.name + ' in the shadow of ' + it.m.host.name}), it.time)}}",
+		"events": "{{sort(concat(state.events, map(computed.eclipses, {id: it.id, time: it.time, kind: 'eclipse', label: it.solar ? 'Solar eclipse' : 'Lunar eclipse'})), it.time)}}",
+		"eclipseRows": "{{map(computed.eclipses, {id: it.id, label: 'Day ' + round(it.time) + ': ' + it.label, icon: it.solar ? 'sun' : 'moon'})}}",
 		"renderOptions": "{{[{id: 'orbits', title: 'Orbits', on: state.showOrbits, run: 'toggleOrbits'}, {id: 'labels', title: 'Labels', on: state.showLabels, run: 'toggleLabels'}, {id: 'stars', title: 'Stars', on: state.showStars, run: 'toggleStars'}, {id: 'shading', title: 'Lit side', on: state.showShading, run: 'toggleShading'}, {id: 'glow', title: 'Sun glow', on: state.showGlow, run: 'toggleGlow'}]}}",
 		"sceneView": "{{ {camera: {target: [computed.target.x, 0, computed.target.z], yaw: state.camera.yaw, pitch: state.camera.pitch, distance: computed.view.distance, fieldOfView: 2 * atan(computed.view.h / (2 * computed.view.f))}, selection: state.selected != '' ? [state.selected] : []} }}",
 		"orbitRings": "{{map(filter(computed.placed, it.parent != ''), {id: it.id, cx: it.cx, cz: it.cz, radius: it.radius})}}",
@@ -1576,6 +1549,20 @@
 				}
 			]
 		},
+		"openEclipses": {
+			"title": "Eclipse finder",
+			"icon": "moon",
+			"do": [
+				{
+					"set": "state.showBrowser",
+					"to": true
+				},
+				{
+					"set": "state.browserTab",
+					"to": "eclipses"
+				}
+			]
+		},
 		"addBookmark": {
 			"title": "Bookmark this view",
 			"icon": "bookmark-plus",
@@ -1694,6 +1681,39 @@
 			{
 				"set": "state.sceneView",
 				"to": "{{computed.sceneView}}"
+			}
+		],
+		"goToEclipse": [
+			{
+				"if": "{{find(computed.eclipses, it.id == event.value)}}",
+				"then": [
+					{
+						"set": "state.eclipse",
+						"to": "{{event.value}}"
+					},
+					{
+						"set": "state.playing",
+						"to": false
+					},
+					{
+						"set": "state.selected",
+						"to": "{{find(computed.eclipses, it.id == event.value).host}}"
+					},
+					{
+						"if": "{{state.follow != state.selected}}",
+						"then": [
+							{
+								"run": "follow"
+							}
+						]
+					},
+					{
+						"animate": "state.time",
+						"to": "{{find(computed.eclipses, it.id == event.value).time}}",
+						"ms": 600,
+						"easing": "inOut"
+					}
+				]
 			}
 		]
 	},
@@ -2019,6 +2039,11 @@
 														"id": "places",
 														"label": "Places",
 														"closable": false
+													},
+													{
+														"id": "eclipses",
+														"label": "Eclipses",
+														"closable": false
 													}
 												],
 												"bind": "state.browserTab",
@@ -2132,6 +2157,31 @@
 														]
 													}
 												]
+											},
+											{
+												"type": "list",
+												"id": "browser-eclipses",
+												"width": 220,
+												"height": 220,
+												"visible": "{{state.browserTab == 'eclipses'}}",
+												"items": "{{computed.eclipseRows}}",
+												"value": "{{state.eclipse}}",
+												"rowHeight": 24,
+												"onChange": [
+													{
+														"run": "goToEclipse"
+													}
+												],
+												"onOpen": [
+													{
+														"run": "goToEclipse"
+													}
+												],
+												"color": "@panel",
+												"textColor": "@text",
+												"selectedTextColor": "@text",
+												"selectedBackground": "@raised",
+												"accentColor": "@accent"
 											}
 										]
 									},
@@ -2245,22 +2295,66 @@
 										]
 									},
 									{
-										"type": "canvas",
-										"id": "chart",
-										"bind": "state.chart",
+										"type": "panel",
+										"id": "chart-frame",
 										"width": "100%",
 										"height": "{{clamp(window.height - 524, 120, 300)}}",
-										"color": "@sky",
-										"rulers": false,
-										"snap": false,
-										"accentColor": "@accent",
-										"items": "{{computed.chartItems}}",
-										"label": "Sky chart",
-										"onTransform": "moveNotes",
-										"keys": {
-											"delete": "deleteNotes",
-											"backspace": "deleteNotes"
-										}
+										"children": [
+											{
+												"type": "canvas",
+												"id": "chart",
+												"bind": "state.chart",
+												"color": "@sky",
+												"rulers": false,
+												"snap": false,
+												"accentColor": "@accent",
+												"items": "{{computed.chartItems}}",
+												"label": "Sky chart",
+												"onTransform": "moveNotes",
+												"keys": {
+													"delete": "deleteNotes",
+													"backspace": "deleteNotes"
+												},
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 0,
+													"bottom": 0
+												}
+											},
+											{
+												"type": "column",
+												"id": "chart-info",
+												"visible": "{{computed.selectedPosition != null}}",
+												"height": 42,
+												"anchors": {
+													"left": 8,
+													"top": 6
+												},
+												"width": 260,
+												"gap": 2,
+												"children": [
+													{
+														"type": "label",
+														"id": "chart-info-name",
+														"height": 22,
+														"fitText": true,
+														"font": "title",
+														"text": "{{computed.selectedBody.name}}",
+														"textColor": "@text"
+													},
+													{
+														"type": "label",
+														"id": "chart-info-line",
+														"height": 18,
+														"fitText": true,
+														"font": "small",
+														"textColor": "@muted",
+														"text": "{{computed.selectedBody.parent == '' ? 'The centre of the chart' : fixed(hypot(computed.selectedPosition.x, computed.selectedPosition.z) / 4.3, 2) + ' AU from the Sun, orbits ' + (computed.selectedBody.parent == 'sun' ? 'the Sun' : find(state.bodies, it.id == computed.selectedBody.parent).name) + ' every ' + computed.selectedBody.period + ' days'}}"
+													}
+												]
+											}
+										]
 									},
 									{
 										"type": "row",
@@ -2327,7 +2421,7 @@
 						"timeFormat": "frames",
 						"pixelsPerSecond": 2.6,
 						"headerWidth": 130,
-						"markers": "{{map(filter(state.events, it.kind == 'eclipse' && indexOf(state.muted, 'eclipse') < 0), {time: it.time, label: ''})}}",
+						"markers": "{{map(filter(computed.events, it.kind == 'eclipse' && indexOf(state.muted, 'eclipse') < 0), {time: it.time, label: ''})}}",
 						"headerColor": "@panel",
 						"textColor": "@text",
 						"accentColor": "@accent",
@@ -2356,7 +2450,7 @@
 						],
 						"onSelect": [
 							{
-								"if": "{{find(state.events, it.id == event.ids[0])}}",
+								"if": "{{find(computed.events, it.id == event.ids[0])}}",
 								"then": [
 									{
 										"set": "state.playing",
@@ -2364,7 +2458,7 @@
 									},
 									{
 										"set": "state.time",
-										"to": "{{find(state.events, it.id == event.ids[0]).time}}"
+										"to": "{{find(computed.events, it.id == event.ids[0]).time}}"
 									}
 								]
 							}
@@ -2945,6 +3039,11 @@
 				"run": "deleteBookmark",
 				"group": "4_places",
 				"order": 2
+			},
+			"eclipses": {
+				"run": "openEclipses",
+				"group": "4_places",
+				"order": 3
 			},
 			"renderOptions": {
 				"run": "openRender",

@@ -1321,6 +1321,120 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "an-eclipse-found-and-gone-to",
+			"steps": [
+				{
+					"action": "goToEclipse",
+					"event": {
+						"value": "moon-3"
+					}
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "eclipse",
+						"is": "moon-3"
+					}
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "earth"
+					}
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				}
+			]
+		},
+		{
+			"name": "an-unknown-eclipse-does-nothing",
+			"steps": [
+				{
+					"action": "goToEclipse",
+					"event": {
+						"value": "moon-99"
+					}
+				},
+				{
+					"expect": {
+						"state": "eclipse",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "the-eclipse-finder-opens-from-the-menu",
+			"steps": [
+				{
+					"action": "openEclipses"
+				},
+				{
+					"expect": {
+						"state": "showBrowser",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "browserTab",
+						"is": "eclipses"
+					}
+				},
+				{
+					"action": "goToEclipse",
+					"event": {
+						"value": "moon-2"
+					}
+				},
+				{
+					"expect": {
+						"state": "eclipse",
+						"is": ""
+					}
+				}
+			],
+			"note": "Day 15's full moon falls outside an eclipse season, so it is no eclipse."
+		},
+		{
+			"name": "the-sky-chart-names-the-selected-body",
+			"steps": [
+				{
+					"expect": {
+						"node": "#chart-info-name",
+						"property": "text",
+						"is": "Earth"
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart-info-line",
+						"property": "text",
+						"is": "1.00 AU from the Sun, orbits the Sun every 365.25 days"
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart-info",
+						"property": "height",
+						"is": 42
+					}
+				}
+			]
 		}
 	]
 }
