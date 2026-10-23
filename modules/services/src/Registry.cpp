@@ -166,25 +166,35 @@ MethodSpec named(const MethodSpec& spec, std::string_view name) {
 	return copy;
 }
 
+/// @brief A folder's own name, as UTF-8.
+/// @param folder The folder.
+/// @return Its name.
+std::string utf8Name(const std::filesystem::path& folder) {
+	const std::u8string name = folder.filename().u8string();
+	return {name.begin(), name.end()};
+}
+
 } // namespace
 
 /// @brief One declared service: its provider, configuration and grant, and its life.
 struct ServiceRegistry::Entry {
-	std::string name;                                             ///< Its name.
-	Provider* provider = nullptr;                                 ///< Its provider, or nullptr if refused for want of one.
-	json configuration = json::object();                          ///< Its provider's keys.
-	Grant grant;                                                  ///< What it may touch.
-	std::map<std::string, MethodSpec, std::less<>> methods;       ///< By name.
-	MethodSpec unlisted;                                          ///< For a method it doesn't list (if it takes them).
-	bool startOnLoad = false;                                     ///< `"start": "onLoad"`.
-	int restartAfter = 0;                                         ///< `restart.after`, in ms.
-	int restartTimes = 0;                                         ///< `restart.times`.
-	ServiceState state = ServiceState::Stopped;                   ///< Where it is.
-	std::string error;                                            ///< Why it was refused or failed.
-	int restarts = 0;                                             ///< How often it was restarted.
-	Clock::time_point failedAt;                                   ///< When it last failed.
-	std::uint64_t generation = 0;                                 ///< Its start's number: older reports are ignored.
-	std::unique_ptr<Service> service;                             ///< The running service, or nullptr.
+	std::string name;                                       ///< Its name.
+	Provider* provider = nullptr;                           ///< Its provider, or nullptr if refused for want of one.
+	json declaration = json::object();                      ///< As the document gave it.
+	json configuration = json::object();                    ///< Its provider's keys.
+	Grant grant;                                            ///< What it may touch.
+	std::map<std::string, MethodSpec, std::less<>> methods; ///< By name.
+	MethodSpec unlisted;                                    ///< For a method it doesn't list (if it takes them).
+	bool startOnLoad = false;                               ///< `"start": "onLoad"`.
+	int restartAfter = 0;                                   ///< `restart.after`, in ms.
+	int restartTimes = 0;                                   ///< `restart.times`.
+	ServiceState state = ServiceState::Stopped;             ///< Where it is.
+	std::string error;                                      ///< Why it was refused or failed.
+	bool waiting = false;             ///< Refused only until the person chooses its root's folder (not reported).
+	int restarts = 0;                 ///< How often it was restarted.
+	Clock::time_point failedAt;       ///< When it last failed.
+	std::uint64_t generation = 0;     ///< Its start's number: older reports are ignored.
+	std::unique_ptr<Service> service; ///< The running service, or nullptr.
 };
 
 // NOLINTNEXTLINE(performance-unnecessary-value-param): a virtual; overrides that keep the call take it by value
@@ -230,6 +240,28 @@ void ServiceRegistry::allowProcess(std::string name, const std::filesystem::path
 
 void ServiceRegistry::allowAttach(std::uint16_t port) { attachPorts_.insert(port); }
 
+void ServiceRegistry::allowChosenRoot(std::string name) { choosableRoots_.insert(std::move(name)); }
+
+bool ServiceRegistry::choosable(std::string_view root) const { return choosableRoots_.contains(root); }
+
+std::optional<std::string> ServiceRegistry::chooseRoot(std::string_view root, std::string_view folder) {
+	if(!choosable(root)) return "the folder '" + std::string(root) + "' can't be chosen";
+	std::error_code error;
+	std::filesystem::path canonical =
+	    std::filesystem::canonical(std::filesystem::path(std::u8string(folder.begin(), folder.end())), error);
+	if(error || !std::filesystem::is_directory(canonical, error)) return "the chosen folder isn't a folder";
+	roots_.insert_or_assign(std::string(root), std::move(canonical));
+	// The services that use it start again, on the new folder: their calls end, their processes stop
+	for(auto& [name, entry] : entries_) {
+		const json& configuration = entry->declaration;
+		if(!configuration.is_object() || configuration.value("root", json()) != json(root)) continue;
+		entry = declare(name, entry->declaration);
+		if(entry->startOnLoad && entry->state == ServiceState::Stopped) (void)ensureStarted(*entry);
+	}
+	if(statusChanged_) statusChanged_();
+	return std::nullopt;
+}
+
 void ServiceRegistry::setExecutor(Executor* executor) noexcept { executor_ = executor; }
 
 void ServiceRegistry::setInline(bool now) noexcept { inline_ = now; }
@@ -255,7 +287,7 @@ std::vector<std::string> ServiceRegistry::load(const json& section) {
 	if(!section.is_object()) return {"services: must be an object"};
 	for(const auto& [name, declaration] : section.items()) {
 		std::unique_ptr<Entry> entry = declare(name, declaration);
-		if(entry->state == ServiceState::Refused) refused.push_back(entry->error);
+		if(entry->state == ServiceState::Refused && !entry->waiting) refused.push_back(entry->error);
 		entries_.insert_or_assign(name, std::move(entry));
 	}
 	for(const auto& [name, entry] : entries_)
@@ -268,6 +300,7 @@ std::unique_ptr<ServiceRegistry::Entry> ServiceRegistry::declare(const std::stri
                                                                  const json& declaration) const {
 	auto entry = std::make_unique<Entry>();
 	entry->name = name;
+	entry->declaration = declaration;
 	const std::string place = "services." + name;
 	const auto refuse = [&](std::string reason) {
 		entry->state = ServiceState::Refused;
@@ -285,6 +318,11 @@ std::unique_ptr<ServiceRegistry::Entry> ServiceRegistry::declare(const std::stri
 		return refuse(*problem);
 	entry->methods = methodsOf(*entry->provider, entry->configuration);
 	entry->unlisted = {"*", Effect::Run, false, false, nullptr, "not declared: a call or a stream, the file's only"};
+	if(const json root = entry->configuration.value("root", json());
+	   root.is_string() && choosable(root.get<std::string>()) && !roots_.contains(root.get<std::string>())) {
+		entry->waiting = true;
+		return refuse(place + ".root: no folder chosen yet");
+	}
 	if(auto problem = resolve(name, entry->configuration, entry->grant)) return refuse(*problem);
 	return entry;
 }
@@ -404,7 +442,8 @@ json ServiceRegistry::status() const {
 	for(const auto& [name, entry] : entries_)
 		status[name] = {{"state", stateName(entry->state)},
 		                {"error", entry->error.empty() ? json() : json(entry->error)},
-		                {"restarts", entry->restarts}};
+		                {"restarts", entry->restarts},
+		                {"folder", entry->grant.root.empty() ? json() : json(utf8Name(entry->grant.root))}};
 	return status;
 }
 

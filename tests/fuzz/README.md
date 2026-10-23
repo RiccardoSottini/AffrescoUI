@@ -22,6 +22,8 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `text_model` | Edit commands (inserts of any bytes, erases, undo, redo, edits outside an undo step) run on `TextModel`, the piece tree under the text editor | After every command the text is valid UTF-8, its size and lines match the line index, and a position survives its offset; undoing every step and redoing them all gives the same text |
 | `find_pattern` | A pattern (plain, whole word or a regular expression), a replacement and a subject of any bytes, as the editor's find and the search service get them from peers | A pattern compiles or gives an error, never both; patterns over the length limit are refused; every match lies inside the subject at or after where the search started, and a plain pattern's replacement always expands. The match limits end catastrophic backtracking |
 | `search_glob` | A glob list, a `.gitignore` text and paths, as the search service gets "include", "exclude" and the ignore files of a searched folder (`services/src/search/SearchGlob.hpp`) | A list compiles or gives an error; the rules kept are capped; a path matches the same way twice, and whatever a matching folder holds matches too |
+| `path_tree` | Paths, one per line, as a file explorer gives `pathTree` the names a folder holds (`format/src/functions/ExpressionFunctionsPaths.cpp`) | Each path has one node, whose id is its parent's and its label; every path given has its node; folders come first |
+| `git_policy` | git arguments, as a screen asks the git grant to run them (`services/src/grants/GitPolicy.cpp`) | What is accepted names only the options the policy lists and paths inside the folder; the shaper runs it on the root's own repository |
 | `cli` | A screen file, as the `affrescoui` tool reads it (`tools/affrescoui`): the text reader and printer behind `fmt` and `ids`, the places `ids` names, and the schema check behind `check` | `fmt` writes the same JSON value, and formatting its output again changes nothing; the schema check reports problems, never throws |
 | `actions` | A JSON value, run as the steps of an action of the Kanban template (its state and actions, no window) | Every event stops within its work budget (the run's `-timeout` catches one that doesn't), and writes no more into the state than the budget lets it |
 | `image` | A file's bytes, decoded by `Bitmap::decode` (stb_image for PNG and JPEG, the SVG subset rasterised with vector paths) within small limits: a revision can name any file in an allowed folder | What decodes is within the limits, four bytes a pixel, premultiplied (no channel above its alpha); anything else is a `std::runtime_error` |
@@ -66,10 +68,11 @@ of these and what limits them.
 | A scene node's scene and animations (state) | Agents and peers, by revisions | `scene` |
 | Font files a revision names | Peers, within the allowed folders | `lookups` for the tables the app reads itself; the rest is FreeType and HarfBuzz, fuzzed upstream by OSS-Fuzz, and `text` and `richtext` shape through them |
 | Text typed, pasted or sent to an editor | Users and peers | `text_model`, `text`, `richtext`, `syntax` (the grammars that colour it) |
-| Find and search patterns, replacements, globs, `.gitignore` files | Peers, and whoever made the searched folder | `find_pattern`, `search_glob` |
+| Find and search patterns, replacements, globs, `.gitignore` files | Peers, and whoever made the searched folder | `find_pattern`, `search_glob`, `path_tree` |
 | What a service program writes (process, `jsonrpc` for language and debug servers) | The program the screen runs | `frames` for the framing, `json` for the messages, `dap` for what a debug adapter sends |
 | What a terminal program writes (the VT stream) | The program running in the terminal | None yet: a target is pending (`SECURITY.md`, gap G-24). The parser is libvterm; the stream reaches the screen only as cells within the terminal's size |
 | What git prints for Forge | Whoever made the repository (file names, branches, contents) | `git_output` |
+| The git commands a screen asks the git grant to run | The screen, a revision of it | `git_policy` |
 | A history folder on disk | Anyone who can write to it, a crash, a full disk | `history`, `delta` |
 | Feature manifests, catalogue indexes, signatures and key files | A catalogue's publisher, or whoever serves it | `feature_manifest`, `catalog_index`, `signature` |
 | Features from another app, their adapters and proofs | Another app's author, an agent or a peer | `composition` |
@@ -99,7 +102,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output`, `vscode_theme`, `gltf` or `scene` in place of
+Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `path_tree`, `git_policy`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output`, `vscode_theme`, `gltf` or `scene` in place of
 `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.
@@ -154,7 +157,7 @@ artifact, in a folder named after its target.
 
 | File | What it is |
 |---|---|
-| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp`, `url.cpp`, `oauth.cpp`, `history.cpp`, `token_file.cpp`, `git_output.cpp`, `vscode_theme.cpp`, `gltf.cpp`, `scene.cpp` and the others named above | The targets |
+| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `path_tree.cpp`, `git_policy.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp`, `url.cpp`, `oauth.cpp`, `history.cpp`, `token_file.cpp`, `git_output.cpp`, `vscode_theme.cpp`, `gltf.cpp`, `scene.cpp` and the others named above | The targets |
 | `Fuzz.hpp` | What they share: the input as text, the Kanban template, `broken()` |
 | `corpus.py` | Writes the seeds and dictionaries: from the templates (`examples/templates.json`), the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
 | `CMakeLists.txt` | The targets, added when `AFFRESCOUI_BUILD_FUZZERS` is on |

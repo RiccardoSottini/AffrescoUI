@@ -2,7 +2,7 @@
 /// @brief affrescoui_host: shows a screen file and lets other programs change it while it runs.
 //
 //   affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
-//               [--plugin changes.json ...] [--usage]
+//               [--plugin changes.json ...] [--usage] [--folder DIR] [--allow NAME[=PROGRAM ARG...] ...]
 //
 // The window only renders: it has no idea where changes come from. Programs connect over two local sockets in DIR
 // (default $AFFRESCOUI_SOCKET_DIR, else /tmp/affrescoui-<uid>, or %LOCALAPPDATA%\affrescoui\sockets on Windows):
@@ -12,7 +12,9 @@
 // The screen's history and "persist" state are kept in --data DIR (default $AFFRESCOUI_DATA_DIR, else ~/.affrescoui),
 // and a plugin is applied once: the history remembers it.
 // --usage counts how the screen is used (VERSION_CONTROL.md, "Usage"), on this device and only once the person agreed,
-// asked once on the terminal. Default screen:
+// asked once on the terminal. A screen's services may use the folder "workspace": --folder DIR, or the one the person
+// chooses in its folder dialog (the chooseFolder step); --allow grants them a program: a name on the PATH, "shell" (the
+// login shell) or "git" (the source control commands only), or NAME=PROGRAM ARG... Default screen:
 // the Kanban board template (examples/flow); the other templates have a folder each in examples (examples/README.md).
 
 #include "Assets.hpp"
@@ -23,6 +25,7 @@
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/format/Locale.hpp>
+#include <affresco/services/Grants.hpp>
 
 #include <cstdlib>
 #include <format>
@@ -30,6 +33,7 @@
 #include <iostream>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -137,6 +141,8 @@ struct Options {
 	std::optional<affresco::Mode> mode;
 	std::vector<std::string> plugins; ///< The change sets to apply, in order.
 	bool usage = false;               ///< Count usage summaries, with the person's consent (off by default).
+	std::filesystem::path folder;     ///< The folder "workspace", or empty until the person chooses one.
+	std::vector<std::string> allowed; ///< The programs granted (Grants.hpp's specs).
 };
 
 /// @brief Reads one argument of the command line.
@@ -161,6 +167,8 @@ int readArgument(Options& options, std::string_view arg, const char* value) {
 	if(arg == "--socket") options.socketDir = value;
 	else if(arg == "--data") options.dataDir = value;
 	else if(arg == "--plugin") options.plugins.emplace_back(value);
+	else if(arg == "--folder") options.folder = value;
+	else if(arg == "--allow") options.allowed.emplace_back(value);
 	else if(arg == "--mode" && affresco::modeFromString(value)) options.mode = affresco::modeFromString(value);
 	else return 0;
 	return 2;
@@ -176,7 +184,8 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 		const int taken = readArgument(options, argv[i], i + 1 < argc ? argv[i + 1] : nullptr);
 		if(taken == 0) {
 			std::cerr << "usage: affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] "
-			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json] [--usage]\n";
+			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json] [--usage] "
+			             "[--folder DIR] [--allow NAME[=PROGRAM ARG...]]\n";
 			return std::nullopt;
 		}
 		i += taken;
@@ -218,6 +227,11 @@ int run(const Options& options) {
 	screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
 	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
 	examples::tempo::registerVisualiser(screen); // the Tempo template's visualiser surface
+	screen.services().allowChosenRoot("workspace");
+	if(!options.folder.empty()) screen.services().addRoot("workspace", options.folder);
+	for(const std::string& spec : options.allowed)
+		if(const auto refused = affresco::services::grantProgram(screen.services(), spec))
+			throw std::runtime_error("--allow " + spec + ": " + *refused);
 	if(options.mode) screen.setModeForThisRun(*options.mode);
 	if(options.usage && !screenshotOnly) enableUsage(screen);
 	if(!screenshotOnly) screen.setLocale(affresco::format::systemLocale()); // screenshots stay in the default locale
