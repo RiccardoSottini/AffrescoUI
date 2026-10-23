@@ -51,6 +51,7 @@ enum class Slot : std::uint8_t {
 	Shadow,      ///< "shadow".
 	Gradient,    ///< "gradient".
 	Cache,       ///< "cache".
+	FocusRing,   ///< "focusRing".
 	/* Every panel's layout (layoutProperty()) */
 	Layout, ///< x, y, width, height, minWidth, minHeight, grow, fill, anchors.
 	/* Labels, text areas, rows, columns and grids */

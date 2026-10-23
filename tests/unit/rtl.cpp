@@ -162,4 +162,13 @@ TEST_CASE("rtl: shaping orders runs by their levels: Arabic right to left, Latin
 		CHECK(shaped.carets[4] < shaped.carets[5]); // "1" before "2", left to right
 		CHECK(shaped.carets[5] < shaped.carets[0]); // the number is left of the Arabic
 	}
+	// Arabic, a separator, then Latin: the separator sits between the two, not on the Latin word's far side
+	{
+		const std::u32string text = U"كيف · Anna";
+		const Font::ShapedText& shaped = font->shape(text);
+		REQUIRE(shaped.carets.size() == text.size() + 1);
+		CHECK(shaped.carets[6] < shaped.carets[10]); // "Anna" left to right
+		CHECK(shaped.carets[4] > shaped.carets[10]); // the dot right of "Anna"
+		CHECK(shaped.carets[4] < shaped.carets[2]);  // and left of the Arabic
+	}
 }

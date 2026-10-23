@@ -419,6 +419,11 @@ public:
 	void setCached(bool cached) { setLook(cached_, cached); }
 	/// @brief The flag set by setCached().
 	[[nodiscard]] bool isCached() const noexcept { return cached_; }
+	/// @brief Whether the window's keyboard focus ring is drawn around the panel when it has the focus.
+	/// @param ringed false for a panel that shows its focus itself (a field inside a pill that lights its border).
+	void setFocusRinged(bool ringed) noexcept { focusRinged_ = ringed; }
+	/// @brief The flag set by setFocusRinged().
+	[[nodiscard]] bool isFocusRinged() const noexcept { return focusRinged_; }
 	/// @brief Transforms how the panel and its subtree are painted, as CSS transform: layout keeps the untransformed
 	/// frame, while drawing, hit-testing and pointer positions go through it. It composes with the ancestors'
 	/// transforms (an overlay has only its own).
@@ -750,6 +755,7 @@ private:
 	std::shared_ptr<const Gradient> gradient_;            ///< See gradient().
 	bool visible_ = true;                                 ///< See setVisible().
 	bool cached_ = false;                                 ///< See setCached().
+	bool focusRinged_ = true;                             ///< See setFocusRinged().
 	Affine2 transform_;                                   ///< See transform().
 	Vec2 transformOrigin_{0.5f, 0.5f};                    ///< See transformOrigin().
 	Cursor cursor_ = Cursor::Arrow;                       ///< See setCursor().

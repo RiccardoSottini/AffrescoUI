@@ -201,6 +201,10 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "node inside gets the focus) and gives it back when it closes. `\"flip\": true` places it on the other side when "
 	 "only that side has room, its children mirrored on that axis.",
 	 "look"},
+    {"focusRing", "flag",
+	 "`false`: the window's keyboard focus ring (`window.focusRing`) is not drawn around the node, for one that "
+	 "shows its focus itself (a search field inside a pill whose border lights up).",
+	 "access"},
     {"focusable", "flag",
 	 "`true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable).",
 	 "access"},

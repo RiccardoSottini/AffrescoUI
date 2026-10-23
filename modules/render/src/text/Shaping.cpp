@@ -318,14 +318,18 @@ void Font::Data::resolveDirections() noexcept {
 void Font::Data::itemize(std::u32string_view text) {
 	hb_unicode_funcs_t* unicode = hb_unicode_funcs_get_default();
 	runs.clear();
+	const bool mixed = hasRightToLeft(unicode, text);
 
 	for(std::size_t i = 0; i < text.size(); ++i) {
 		const hb_script_t script = hb_unicode_script(unicode, text[i]);
 		const bool wantsColor = i + 1 < text.size() && text[i + 1] == variationSelectorEmoji;
 		Run* last = runs.empty() ? nullptr : &runs.back();
 		const std::size_t face = faceAt(text[i], script, wantsColor, last);
+		// In a text with right-to-left script, neutral characters before a strong one stay a run of their own, so
+		// they take the direction of both sides (N1, N2) rather than the next word's ("قائمة · Robin")
+		const bool neutralBefore = mixed && last && isOwnScript(script) && !isOwnScript(last->script);
 
-		if(last && face == last->face &&
+		if(last && face == last->face && !neutralBefore &&
 		   (!isOwnScript(script) || !isOwnScript(last->script) || script == last->script)) {
 			if(isOwnScript(script)) last->script = script;
 			last->end = i + 1;
@@ -333,7 +337,7 @@ void Font::Data::itemize(std::u32string_view text) {
 			runs.push_back({i, i + 1, face, isOwnScript(script) ? script : HB_SCRIPT_COMMON});
 		}
 	}
-	if(hasRightToLeft(unicode, text)) splitNumbers(text);
+	if(mixed) splitNumbers(text);
 	resolveDirections();
 }
 

@@ -116,6 +116,23 @@ TEST_CASE("accessibility: the focus ring shows after Tab, not after a click") {
 	CHECK_FALSE(window.focusVisible());
 }
 
+TEST_CASE("accessibility: focusRing false leaves a node out of the focus ring") {
+	Built built(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "q": "", "ring": false },
+		"actions": { "ring": [{ "set": "state.ring", "to": true }] },
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "search", "type": "textarea", "bind": "state.q", "width": 100, "height": 24, "focusRing": "{{state.ring}}" },
+			{ "id": "other", "type": "textarea", "bind": "state.q", "width": 100, "height": 24 }
+		] }
+	})json");
+	CHECK_FALSE(built.screen.find("search")->isFocusRinged());
+	CHECK(built.screen.find("other")->isFocusRinged());
+	built.screen.runAction("ring", built.window->root());
+	built.window->render();
+	CHECK(built.screen.find("search")->isFocusRinged());
+}
+
 TEST_CASE("accessibility: window.reducedMotion makes animations instant") {
 	Built built(R"json({
 		"format": "affrescoui-screen", "version": 2,

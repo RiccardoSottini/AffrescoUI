@@ -8,7 +8,10 @@
 		"isTable": "{{contains(['playlist', 'liked', 'album'], state.view.page)}}",
 		"pageColor": "{{state.view.page == 'playlist' ? state.playlists[state.view.i].color : state.view.page == 'album' ? state.albums[state.view.i].color : state.view.page == 'artist' ? state.artists[state.view.i].color : state.view.page == 'show' ? state.shows[state.view.i].color : state.view.page == 'genre' ? state.genres[state.view.i].color : state.view.page == 'liked' ? '#4527a0' : state.view.page == 'lyrics' ? computed.curAlbum.color : '#3b2a7a'}}",
 		"pageName": "{{state.view.page == 'playlist' ? state.playlists[state.view.i].name : state.view.page == 'album' ? state.albums[state.view.i].title : state.view.page == 'artist' ? state.artists[state.view.i].name : state.view.page == 'show' ? state.shows[state.view.i].name : state.view.page == 'genre' ? state.genres[state.view.i].name : t('liked')}}",
-		"heroFont": "{{length(computed.pageName) * 40 < computed.mainW - 300 ? 'hero' : length(computed.pageName) * 24 < computed.mainW - 300 ? 'heroSmall' : length(computed.pageName) * 18 < computed.mainW - 300 ? 'heroMid' : 'h2'}}",
+		"coverW": "{{computed.mainW < 760 ? 168 : 232}}",
+		"heroRoom": "{{state.view.page == 'artist' ? computed.mainW - 44 : computed.mainW - computed.coverW - 72}}",
+		"heroFont": "{{length(computed.pageName) * 40 < computed.heroRoom ? 'hero' : length(computed.pageName) * 24 < computed.heroRoom ? 'heroSmall' : length(computed.pageName) * 18 < computed.heroRoom ? 'heroMid' : 'h2'}}",
+		"heroH": "{{computed.heroFont == 'hero' ? 88 : computed.heroFont == 'heroSmall' ? 56 : 42}}",
 		"totalTime": "{{sum(computed.rows, state.tracks[it].d)}}",
 		"shelfH": "{{computed.cardW + 112}}",
 		"shortcutCols": "{{computed.mainW > 720 ? 4 : 2}}",
@@ -194,13 +197,13 @@
 				"gradient": ["#00000000", "#00000080"],
 				"radius": { "topLeft": 8, "topRight": 8 },
 				"children": [
-					{ "id": "headerCover", "use": "cover", "with": { "kind": "{{kind}}", "img": "{{img}}", "size": 232, "round": "{{round}}" }, "anchors": { "left": 24, "top": 68 },
+					{ "id": "headerCover", "use": "cover", "with": { "kind": "{{kind}}", "img": "{{img}}", "size": "{{computed.coverW}}", "round": "{{round}}" }, "anchors": { "left": 24, "bottom": 24 },
 						"shadow": { "y": 4, "blur": 60, "color": "#00000080" } },
-					{ "id": "headerKind", "type": "label", "text": "{{label}}", "textColor": "#ffffff", "anchors": { "left": 280, "top": "{{computed.heroFont == 'hero' ? 150 : 176}}" }, "fitText": true },
-					{ "id": "headerName", "type": "label", "font": "{{computed.heroFont}}", "text": "{{computed.pageName}}", "textColor": "#ffffff", "anchors": { "left": 276, "right": 24, "top": "{{computed.heroFont == 'hero' ? 170 : 196}}" },
-						"height": "{{computed.heroFont == 'hero' ? 88 : computed.heroFont == 'heroSmall' ? 56 : 42}}", "role": "heading" },
-					{ "id": "headerDescription", "when": "{{description != ''}}", "type": "label", "text": "{{description}}", "textColor": "#ffffffb3", "anchors": { "left": 280, "right": 24, "top": 260 }, "height": 20 },
-					{ "id": "headerDetails", "type": "label", "text": "{{details}}", "textColor": "#ffffff", "anchors": { "left": 280, "right": 24, "top": "{{description != '' ? 286 : 272}}" }, "height": 20 }
+					{ "id": "headerKind", "type": "label", "text": "{{label}}", "textColor": "#ffffff", "anchors": { "left": "{{computed.coverW + 48}}", "bottom": "{{(description != '' ? 76 : 50) + computed.heroH}}" }, "fitText": true },
+					{ "id": "headerName", "type": "label", "font": "{{computed.heroFont}}", "text": "{{computed.pageName}}", "textColor": "#ffffff", "anchors": { "left": "{{computed.coverW + 44}}", "right": 24, "bottom": "{{description != '' ? 72 : 46}}" },
+						"height": "{{computed.heroH}}", "role": "heading" },
+					{ "id": "headerDescription", "when": "{{description != ''}}", "type": "label", "text": "{{description}}", "textColor": "#ffffffb3", "anchors": { "left": "{{computed.coverW + 48}}", "right": 24, "bottom": 50 }, "height": 20 },
+					{ "id": "headerDetails", "type": "label", "text": "{{details}}", "textColor": "#ffffff", "anchors": { "left": "{{computed.coverW + 48}}", "right": 24, "bottom": 24 }, "height": 20 }
 				]
 			}
 		},
@@ -224,7 +227,7 @@
 					{ "id": "pageSave", "when": "{{!follow}}", "style": "icon", "icon": "{{saved ? 'check-circle-2' : 'circle-plus'}}", "font": "iconsLarge", "width": 40, "height": 40, "anchors": { "left": 148, "top": 32 },
 						"textColor": "{{saved ? '@accent' : '@muted'}}", "label": "{{saved ? t('page.unsave') : t('page.save')}}", "tooltip": "{{saved ? t('page.unsave') : t('page.save')}}",
 						"onClick": { "run": "save", "with": { "kind": "{{kind}}", "i": "{{i}}" } } },
-					{ "id": "pageMore", "style": "icon", "icon": "ellipsis", "font": "iconsLarge", "width": 40, "height": 40, "anchors": { "left": "{{follow ? 260 : 196}}", "top": 32 },
+					{ "id": "pageMore", "style": "icon", "icon": "ellipsis", "font": "iconsLarge", "width": 40, "height": 40, "anchors": { "left": "{{follow ? '#pageFollow.right + 12' : 196}}", "top": 32 },
 						"label": "{{t('page.more', { name: computed.pageName })}}", "tooltip": "{{t('page.more', { name: computed.pageName })}}",
 						"onClick": [
 							{ "set": "state.menu", "to": { "x": "{{event.x}}", "y": "{{event.y}}", "t": 0, "n": -2, "key": "{{kind}}:{{i}}" } },
@@ -237,7 +240,7 @@
 
 		"trackRow": {
 			"note": "A song in a playlist, album or artist table; n is its row",
-			"params": { "t": 0, "n": 0, "cover": true, "album": true, "added": "", "plays": false, "movable": false },
+			"params": { "t": 0, "n": 0, "cover": true, "album": true, "added": "", "plays": false, "movable": false, "num": true },
 			"node": {
 				"let": {
 					"song": "{{state.tracks[t]}}",
@@ -269,25 +272,25 @@
 					"shift+f10": { "run": "openMenu", "with": { "t": "{{t}}", "n": "{{n}}" } }
 				},
 				"children": [
-					{ "id": "rowNumber", "visible": "{{!hovered && !(on && state.isPlaying)}}", "type": "label", "text": "{{n + 1}}", "textColor": "{{on ? '@accent' : '@muted'}}", "anchors": { "left": 8, "top": 18 }, "width": 24, "height": 20, "align": "center" },
-					{ "id": "rowPlay", "visible": "{{hovered}}", "type": "label", "icon": "{{on && state.isPlaying ? 'pause' : 'play'}}", "text": "", "textColor": "@text", "anchors": { "left": 8, "top": 12 }, "width": 24, "height": 32, "align": "center",
+					{ "id": "rowNumber", "visible": "{{num && !hovered && !(on && state.isPlaying)}}", "type": "label", "text": "{{n + 1}}", "textColor": "{{on ? '@accent' : '@muted'}}", "anchors": { "left": 8, "top": 18 }, "width": 24, "height": 20, "align": "center" },
+					{ "id": "rowEq", "visible": "{{num && on && state.isPlaying && !hovered}}", "type": "path", "d": "{{computed.eq}}", "viewBox": "0 0 16 16", "anchors": { "left": 12, "top": 20 }, "width": 16, "height": 16,
+						"stroke": "@accent", "strokeWidth": 2.2, "strokeCap": "round" },
+					{ "id": "rowCover", "when": "{{cover}}", "type": "image", "file": "{{state.albums[song.al].cover}}", "fit": "cover", "anchors": { "left": "{{num ? 48 : 8}}", "top": 8 }, "width": 40, "height": 40, "radius": 4 },
+					{ "id": "rowPlay", "visible": "{{hovered}}", "type": "label", "icon": "{{on && state.isPlaying ? 'pause' : 'play'}}", "text": "", "textColor": "{{num ? '@text' : '#ffffff'}}", "color": "{{num ? 'transparent' : '#00000080'}}", "anchors": { "left": 8, "top": "{{num ? 12 : 8}}" }, "width": "{{num ? 24 : 40}}", "height": "{{num ? 32 : 40}}", "radius": 4, "align": "center",
 						"cursor": "hand", "label": "{{t('player.play')}} {{song.title}}",
 						"onClick": { "if": "{{on}}", "then": [{ "run": "playPause" }], "else": [{ "run": "playRow", "with": { "n": "{{n}}" } }] } },
-					{ "id": "rowEq", "visible": "{{on && state.isPlaying && !hovered}}", "type": "path", "d": "{{computed.eq}}", "viewBox": "0 0 16 16", "anchors": { "left": 12, "top": 20 }, "width": 16, "height": 16,
-						"stroke": "@accent", "strokeWidth": 2.2, "strokeCap": "round" },
-					{ "id": "rowCover", "when": "{{cover}}", "type": "image", "file": "{{state.albums[song.al].cover}}", "fit": "cover", "anchors": { "left": 48, "top": 8 }, "width": 40, "height": 40, "radius": 4 },
-					{ "id": "rowTitle", "type": "label", "text": "{{song.title}}", "textColor": "{{on ? '@accent' : '@text'}}", "anchors": { "left": "{{cover ? 100 : 48}}", "right": "{{album ? floor(computed.mainW * 0.55) + 8 : 160}}", "top": 9 }, "height": 20 },
-					{ "id": "rowArtist", "type": "label", "font": "small", "text": "{{song.artist}}", "textColor": "{{picked || hovered ? '@text' : '@muted'}}", "hover": { "textColor": "@text" }, "anchors": { "left": "{{cover ? 100 : 48}}", "top": 31 },
+					{ "id": "rowTitle", "type": "label", "text": "{{song.title}}", "textColor": "{{on ? '@accent' : '@text'}}", "anchors": { "left": "{{cover ? (num ? 100 : 60) : 48}}", "right": "{{album ? floor(computed.mainW * 0.55) + 8 : 160}}", "top": "{{plays ? 18 : 9}}" }, "height": 20 },
+					{ "id": "rowArtist", "when": "{{!plays}}", "type": "label", "font": "small", "text": "{{song.artist}}", "textColor": "{{picked || hovered ? '@text' : '@muted'}}", "hover": { "textColor": "@text" }, "anchors": { "left": "{{cover ? (num ? 100 : 60) : 48}}", "top": 31 },
 						"fitText": true, "cursor": "hand", "onClick": { "run": "go", "with": { "page": "artist", "i": "{{song.ar}}" } } },
 					{ "id": "rowAlbum", "when": "{{album}}", "type": "label", "text": "{{song.album}}", "textColor": "{{picked || hovered ? '@text' : '@muted'}}", "hover": { "textColor": "@text" },
-						"anchors": { "left": "{{floor(computed.mainW * 0.45) - 8}}", "top": 18 }, "fitText": { "maxWidth": "{{floor(computed.mainW * 0.22)}}" }, "cursor": "hand",
+						"anchors": { "left": "{{floor(computed.mainW * 0.45) - 8}}", "top": 18 }, "height": 20, "width": "{{floor(computed.mainW * 0.22)}}", "cursor": "hand",
 						"onClick": { "run": "go", "with": { "page": "album", "i": "{{song.al}}" } } },
-					{ "id": "rowPlays", "when": "{{plays}}", "type": "label", "text": "{{formatNumber(song.plays)}}", "textColor": "@muted", "anchors": { "left": "{{floor(computed.mainW * 0.55)}}", "top": 18 }, "fitText": true },
-					{ "id": "rowAdded", "when": "{{added != '' && computed.mainW > 700}}", "type": "label", "text": "{{added}}", "textColor": "@muted", "anchors": { "left": "{{floor(computed.mainW * 0.68) - 8}}", "top": 18 }, "fitText": true },
+					{ "id": "rowPlays", "when": "{{plays}}", "type": "label", "text": "{{formatNumber(song.plays)}}", "textColor": "@muted", "anchors": { "left": "{{floor(computed.mainW * 0.55)}}", "top": 18 }, "width": 120, "height": 20 },
+					{ "id": "rowAdded", "when": "{{added != '' && computed.mainW > 700}}", "type": "label", "text": "{{added}}", "textColor": "@muted", "anchors": { "left": "{{floor(computed.mainW * 0.68) - 8}}", "top": 18 }, "width": 120, "height": 20 },
 					{ "id": "rowLike", "visible": "{{hovered || contains(state.liked, t)}}", "style": "icon", "icon": "{{contains(state.liked, t) ? 'check-circle-2' : 'circle-plus'}}", "anchors": { "right": 96, "top": 12 },
 						"textColor": "{{contains(state.liked, t) ? '@accent' : '@muted'}}", "label": "{{contains(state.liked, t) ? t('menu.unlike') : t('menu.like')}}", "tooltip": "{{contains(state.liked, t) ? t('menu.unlike') : t('menu.like')}}",
 						"onClick": { "run": "like", "with": { "track": "{{t}}" } } },
-					{ "id": "rowTime", "type": "label", "text": "{{song.time}}", "textColor": "@muted", "anchors": { "right": 44, "top": 18 }, "width": 44, "height": 20, "align": "end" },
+					{ "id": "rowTime", "type": "label", "text": "{{song.time}}", "textColor": "@muted", "anchors": { "right": 44, "top": 18 }, "width": 44, "height": 20, "align": { "horizontal": "end" } },
 					{ "id": "rowMore", "visible": "{{hovered}}", "style": "icon", "icon": "ellipsis", "anchors": { "right": 8, "top": 12 }, "label": "{{t('page.more', { name: song.title })}}", "tooltip": "{{t('page.more', { name: song.title })}}",
 						"onClick": { "run": "openMenu", "with": { "t": "{{t}}", "n": "{{n}}" } } }
 				]
@@ -360,9 +363,9 @@
 				"children": [
 					{ "id": "artistBanner", "type": "image", "file": "{{a.banner}}", "fit": "cover", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 340, "radius": { "topLeft": 8, "topRight": 8 } },
 					{ "id": "artistShade", "anchors": { "left": 0, "right": 0, "top": 140 }, "height": 200, "color": "transparent", "gradient": ["#00000000", "#00000099"] },
-					{ "id": "artistVerified", "type": "label", "icon": "badge-check", "text": " {{t('artist.verified')}}", "textColor": "#ffffff", "anchors": { "left": 24, "top": 176 }, "fitText": true },
-					{ "id": "artistName", "type": "label", "font": "{{computed.heroFont}}", "text": "{{a.name}}", "textColor": "#ffffff", "anchors": { "left": 20, "right": 24, "top": "{{computed.heroFont == 'hero' ? 196 : 212}}" },
-						"height": "{{computed.heroFont == 'hero' ? 88 : 56}}", "role": "heading" },
+					{ "id": "artistVerified", "type": "label", "icon": "badge-check", "text": " {{t('artist.verified')}}", "textColor": "#ffffff", "anchors": { "left": 24, "top": "{{264 - computed.heroH}}" }, "fitText": true },
+					{ "id": "artistName", "type": "label", "font": "{{computed.heroFont}}", "text": "{{a.name}}", "textColor": "#ffffff", "anchors": { "left": 20, "right": 24, "top": "{{288 - computed.heroH}}" },
+						"height": "{{computed.heroH}}", "role": "heading" },
 					{ "id": "artistListeners", "type": "label", "text": "{{t('artist.listeners', { n: formatNumber(a.listeners) })}}", "textColor": "#ffffff", "anchors": { "left": 24, "top": 296 }, "fitText": true },
 					{ "id": "artistActions", "use": "actionBar", "anchors": { "left": 0, "right": 0, "top": 340 },
 						"with": { "kind": "artist", "i": "{{state.view.i}}", "follow": true, "saved": "{{contains(state.following, state.view.i)}}" } },
@@ -577,8 +580,8 @@
 								"children": [
 									{ "id": "topCover", "use": "cover", "with": { "img": "{{computed.topResult.img}}", "size": 92, "round": "{{computed.topResult.kind == 'artist'}}" }, "anchors": { "left": 20, "top": 20 },
 										"shadow": { "y": 8, "blur": 24, "color": "#00000080" } },
-									{ "id": "label-top-name", "type": "label", "font": "h2", "text": "{{computed.topResult.title}}", "textColor": "@text", "anchors": { "left": 20, "right": 20, "top": 132 }, "height": 34 },
-									{ "id": "label-top-sub", "style": "muted", "text": "{{computed.topResult.sub}}", "anchors": { "left": 20, "top": 176 } },
+									{ "id": "label-top-name", "type": "label", "font": "h2", "text": "{{computed.topResult.title}}", "textColor": "@text", "anchors": { "left": 20, "right": 20, "top": 128 }, "height": 34 },
+									{ "id": "label-top-sub", "style": "pill", "font": "bold", "text": "{{computed.topResult.sub}}", "color": "@chip", "focusable": false, "cursor": "arrow", "role": "text", "height": 26, "padding": 6, "anchors": { "left": 20, "top": 168 } },
 									{ "id": "topPlay", "visible": "{{state.hov == 'top'}}", "style": "bigPlay", "font": "icons", "icon": "play", "width": 48, "height": 48, "anchors": { "right": 20, "bottom": 20 },
 										"label": "{{t('player.play')}} {{computed.topResult.title}}", "onClick": { "run": "playItem", "with": { "kind": "{{computed.topResult.kind}}", "i": "{{computed.topResult.i}}" } } }
 								]
@@ -590,7 +593,7 @@
 						"when": "{{state.query != '' && (state.searchKind == 'all' || state.searchKind == 'songs') && length(computed.found.tracks) > 0}}",
 						"anchors": {
 							"left": "{{state.searchKind == 'all' && computed.topResult != null ? max(260, floor((computed.mainW - 72) * 0.4)) + 32 : 0}}",
-							"right": "{{state.searchKind == 'all' ? 16 : 0}}",
+							"right": 0,
 							"top": "{{state.searchKind == 'all' ? 64 : 56}}"
 						},
 						"height": "{{state.searchKind == 'all' ? 280 : 56 * length(computed.found.tracks) + 8}}",
@@ -606,7 +609,7 @@
 								"arrows": "vertical",
 								"children": [
 									{ "id": "songResult", "repeat": { "for": "t", "in": "{{slice(computed.found.tracks, 0, state.searchKind == 'all' ? 4 : 20)}}", "key": "{{t}}" }, "use": "trackRow",
-										"with": { "t": "{{t}}", "n": "{{index}}", "album": "{{state.searchKind == 'songs'}}" },
+										"with": { "t": "{{t}}", "n": "{{index}}", "album": "{{state.searchKind == 'songs'}}", "num": false },
 										"onDoubleClick": { "run": "start", "with": { "kind": "album", "i": "{{state.tracks[t].al}}", "tracks": "{{filter(range(length(state.tracks)), state.tracks[it].al == state.tracks[t].al)}}", "at": "{{indexOf(filter(range(length(state.tracks)), state.tracks[it].al == state.tracks[t].al), t)}}" } },
 										"keys": { "enter": { "run": "start", "with": { "kind": "album", "i": "{{state.tracks[t].al}}", "tracks": "{{filter(range(length(state.tracks)), state.tracks[it].al == state.tracks[t].al)}}", "at": "{{indexOf(filter(range(length(state.tracks)), state.tracks[it].al == state.tracks[t].al), t)}}" } } } }
 								]

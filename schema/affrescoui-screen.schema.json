@@ -1390,6 +1390,9 @@
 							}
 						}
 					},
+					"focusRing": {
+						"$ref": "#/$defs/v2/flag"
+					},
 					"focusable": {
 						"$ref": "#/$defs/v2/flag"
 					},

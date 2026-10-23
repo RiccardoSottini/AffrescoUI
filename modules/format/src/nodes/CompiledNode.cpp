@@ -48,6 +48,7 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"shadow", Slot::Shadow},
     {"gradient", Slot::Gradient},
     {"cache", Slot::Cache},
+    {"focusRing", Slot::FocusRing},
     {"x", Slot::Layout},
     {"y", Slot::Layout},
     {"width", Slot::Layout},

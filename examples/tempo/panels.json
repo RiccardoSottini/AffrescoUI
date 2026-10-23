@@ -9,7 +9,7 @@
 		"shown": "{{state.sort.by == '' ? computed.rows : sort(computed.rows, state.sort.by == 'title' ? lower(state.tracks[it].title) : state.sort.by == 'album' ? lower(state.tracks[it].album) : state.sort.by == 'added' ? pad(999 - indexOf(computed.rows, it), 4) : pad(state.tracks[it].d, 4), state.sort.desc ? 'desc' : 'asc')}}",
 		"playingHere": "{{state.ctx.kind == state.view.page && state.ctx.i == state.view.i}}",
 		"menuTrack": "{{state.tracks[state.menu.t]}}",
-		"menuItems": "{{state.menu.n < -1 ? computed.libMenu : [{ title: t('menu.queue'), icon: 'list-plus', run: 'addToQueue', with: { tracks: length(state.sel) > 1 ? map(state.sel, computed.shown[it]) : [state.menu.t] } }, { separator: true }, { title: t('menu.artist'), icon: 'user', run: 'go', with: { page: 'artist', i: computed.menuTrack.ar } }, { title: t('menu.album'), icon: 'disc-3', run: 'go', with: { page: 'album', i: computed.menuTrack.al } }, { separator: true }, { title: contains(state.liked, state.menu.t) ? t('menu.unlike') : t('menu.like'), icon: 'heart', run: 'like', with: { track: state.menu.t } }, { title: t('menu.addTo'), icon: 'plus', submenu: concat([{ title: t('menu.newPlaylist'), icon: 'circle-plus', run: 'createPlaylist', with: { tracks: [state.menu.t] } }, { separator: true }], map(computed.own, { title: state.playlists[it].name, run: 'addToPlaylist', with: { p: it, tracks: length(state.sel) > 1 ? map(state.sel, computed.shown[it]) : [state.menu.t] } })) }, { title: t('menu.remove'), icon: 'trash-2', enabled: state.view.page == 'playlist' && state.playlists[state.view.i].owner == 'Robin', run: 'removeFromPlaylist', with: { at: state.menu.n } }, { separator: true }, { title: t('menu.share'), icon: 'share-2', submenu: [{ title: t('menu.copyLink'), icon: 'link', run: 'copyLink', with: { name: computed.menuTrack.title } }, { title: t('menu.embed'), icon: 'code', run: 'copyLink', with: { name: computed.menuTrack.title } }] }]}}",
+		"menuItems": "{{state.menu.n < -1 ? computed.libMenu : [{ title: t('menu.addTo'), icon: 'plus', submenu: concat([{ title: t('menu.newPlaylist'), icon: 'circle-plus', run: 'createPlaylist', with: { tracks: [state.menu.t] } }, { separator: true }], map(computed.own, { title: state.playlists[it].name, run: 'addToPlaylist', with: { p: it, tracks: length(state.sel) > 1 ? map(state.sel, computed.shown[it]) : [state.menu.t] } })) }, { title: t('menu.remove'), icon: 'trash-2', enabled: state.view.page == 'playlist' && state.playlists[state.view.i].owner == 'Robin', run: 'removeFromPlaylist', with: { at: state.menu.n } }, { title: contains(state.liked, state.menu.t) ? t('menu.unlike') : t('menu.like'), icon: 'heart', run: 'like', with: { track: state.menu.t } }, { title: t('menu.queue'), icon: 'list-plus', run: 'addToQueue', with: { tracks: length(state.sel) > 1 ? map(state.sel, computed.shown[it]) : [state.menu.t] } }, { separator: true }, { title: t('menu.artist'), icon: 'user', run: 'go', with: { page: 'artist', i: computed.menuTrack.ar } }, { title: t('menu.album'), icon: 'disc-3', run: 'go', with: { page: 'album', i: computed.menuTrack.al } }, { separator: true }, { title: t('menu.share'), icon: 'share-2', submenu: [{ title: t('menu.copyLink'), icon: 'link', run: 'copyLink', with: { name: computed.menuTrack.title } }, { title: t('menu.embed'), icon: 'code', run: 'copyLink', with: { name: computed.menuTrack.title } }] }]}}",
 		"libMenu": "{{[{ title: contains(state.pinned, state.menu.key) ? t('menu.unpin') : t('menu.pin'), icon: 'pin', run: 'pin', with: { key: state.menu.key } }, { title: t('menu.play'), icon: 'play', run: 'playItem', with: { kind: split(state.menu.key, ':')[0], i: number(split(state.menu.key, ':')[1]) } }, { separator: true }, { title: t('menu.removeLib'), icon: 'circle-minus', enabled: state.menu.key != 'liked:0', run: 'unsave', with: { key: state.menu.key } }]}}"
 	},
 
@@ -154,7 +154,7 @@
 										"placeholder": "{{t('top.search')}}",
 										"placeholderColor": "@muted",
 										"textColor": "@text",
-										"color": "transparent", "borderWidth": 0, "focused": { "borderWidth": 0 },
+										"color": "transparent", "borderWidth": 0, "focused": { "borderWidth": 0 }, "focusRing": false,
 										"anchors": { "left": 46, "right": 60, "top": 10 },
 										"height": 28,
 										"padding": 4,
@@ -491,7 +491,7 @@
 								{ "id": "queueClear", "style": "link", "font": "small", "text": "{{t('queue.clear')}}", "anchors": { "right": 8, "top": 22 }, "onClick": { "set": "state.upNext", "to": [] } }
 							] },
 							{ "id": "queueUser", "repeat": { "for": "q", "in": "state.upNext" }, "use": "songRow", "with": { "t": "{{q}}" }, "onClick": { "run": "jumpQueue", "with": { "at": "{{index}}" } } },
-							{ "id": "queueFromLabel", "type": "label", "font": "title", "text": "{{t('queue.from', { name: computed.ctxName })}}", "textColor": "@text", "anchors": { "left": 8, "right": 8 }, "height": 52, "padding": 0,
+							{ "id": "queueFromLabel", "type": "label", "font": "title", "text": "{{t('queue.from', { name: computed.ctxName })}}", "textColor": "@text", "anchors": { "left": 8, "right": 8 }, "height": 40, "padding": 4,
 								"align": { "horizontal": "start", "vertical": "end" } },
 							{ "id": "queueRest", "repeat": { "for": "q", "in": "{{slice(state.list, state.pos + 1, state.pos + 51)}}" }, "use": "songRow", "with": { "t": "{{q}}" },
 								"onClick": { "run": "jumpQueue", "with": { "at": "{{length(state.upNext) + index}}" } } },
@@ -544,7 +544,7 @@
 									{ "id": "repeatButton", "use": "toggleIcon", "with": { "icon": "{{state.repeat == 'one' ? 'repeat-1' : 'repeat'}}", "on": "{{state.repeat != 'off'}}", "tip": "{{t('player.repeat.' + state.repeat)}}" }, "onClick": "repeat" }
 								]
 							},
-							{ "id": "elapsed", "style": "small", "text": "{{computed.elapsedText}}", "anchors": { "left": 0, "top": 45 }, "width": 40, "align": "end", "fitText": false, "height": 16 },
+							{ "id": "elapsed", "style": "small", "text": "{{computed.elapsedText}}", "anchors": { "left": 0, "top": 45 }, "width": 40, "align": { "horizontal": "end" }, "fitText": false, "height": 16 },
 							{
 								"id": "seekBar",
 								"anchors": { "left": 48, "right": 48, "top": 48 },
@@ -642,8 +642,8 @@
 				"label": "{{t('player.full')}}",
 				"children": [
 					{ "id": "fullFrom", "type": "label", "font": "bold", "icon": "audio-lines", "text": "{{t('full.from', { name: computed.ctxName })}}", "textColor": "#ffffff", "anchors": { "left": 40, "top": 32 }, "fitText": true },
-					{ "id": "visualiser", "type": "path", "d": "{{computed.bars}}", "viewBox": "0 0 192 40", "fit": "fill", "anchors": { "left": 0, "right": 0, "bottom": 140 }, "height": 220,
-						"stroke": "#ffffff26", "strokeWidth": 2.4, "strokeCap": "round", "role": "img", "label": "{{t('full.visualiser')}}" },
+					{ "id": "visualiser", "type": "path", "d": "{{computed.bars}}", "viewBox": "0 0 192 40", "fit": "fill", "anchors": { "left": 40, "right": 40, "top": 88 }, "height": "{{max(80, window.height - 560)}}",
+						"stroke": "#ffffff1f", "strokeWidth": 2.4, "strokeCap": "round", "role": "img", "label": "{{t('full.visualiser')}}" },
 					{ "id": "fullCover", "type": "image", "file": "{{computed.curAlbum.cover}}", "fit": "cover", "radius": 8, "anchors": { "left": 40, "bottom": 168 }, "width": 260, "height": 260,
 						"shadow": { "y": 16, "blur": 48, "color": "#00000099" } },
 					{ "id": "fullTitle", "type": "label", "font": "heroSmall", "text": "{{computed.cur.title}}", "textColor": "#ffffff", "anchors": { "left": 324, "bottom": 216 }, "fitText": true },
@@ -720,9 +720,9 @@
 								"id": "miniButtons",
 								"type": "row",
 								"gap": 16,
-								"x": 72,
+								"x": 96,
 								"y": 396,
-								"width": 176,
+								"width": 128,
 								"height": 32,
 								"children": [
 									{ "id": "miniPrevious", "style": "icon", "icon": "skip-back", "mirror": true, "label": "{{t('player.previous')}}", "onClick": "previous" },

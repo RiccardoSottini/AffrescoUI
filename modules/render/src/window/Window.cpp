@@ -324,7 +324,7 @@ void Window::updateLayout() {
 
 void Window::layoutFocusRing() {
 	drawn_ = overlays_;
-	if(!focusRing_ || !focusVisible() || !focused_->isShown()) return;
+	if(!focusRing_ || !focusVisible() || !focused_->isShown() || !focused_->isFocusRinged()) return;
 	if(!ring_) {
 		ring_ = std::make_unique<Panel>();
 		ring_->attachTo(this);

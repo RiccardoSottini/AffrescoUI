@@ -50,6 +50,7 @@ std::shared_ptr<const PropertySet> commonProperties() {
 	                  {"shadow"},
 	                  {"gradient"},
 	                  {"cache", ValueKind::Boolean},
+	                  {"focusRing", ValueKind::Boolean},
 	                  {"visible", ValueKind::Boolean},
 	                  {"cursor", ValueKind::Text},
 	                  {"tooltip", ValueKind::Text},

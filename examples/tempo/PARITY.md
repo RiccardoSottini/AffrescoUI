@@ -10,7 +10,7 @@ name, picture, song and line of text is Tempo's own, and the icons are Lucide's.
 | Rounded panels on near-black, 8 px gaps | ✅ | |
 | Top bar: back, forward, home, search pill with browse, avatar menu | ✅ | |
 | Light theme | ✅ | An extra: the reference has none |
-| Right to left (Arabic) | ✅ | |
+| Right to left (Arabic) | ✅ | Separators between Arabic and Latin names fall between them |
 
 ## Your Library
 
@@ -39,7 +39,7 @@ name, picture, song and line of text is Tempo's own, and the icons are Lucide's.
 | Album footer (date, ℗ and ©) and More by | ✅ | |
 | Artist: banner, verified, listeners, popular, see more, discography chips, about, fans also like | ✅ | |
 | Home: greeting by time of day, chips, shortcut grid, shelves with hover play, arrows, Show all | ✅ | |
-| Search: genre tiles, then top result, songs and shelves, chips by kind | ✅ | |
+| Search: genre tiles, then top result (with its kind as a chip), songs and shelves, chips by kind | ✅ | |
 | Podcast show and episodes | ◐ | Episodes don't play: a note says so |
 
 ## Player and panels
@@ -53,7 +53,7 @@ name, picture, song and line of text is Tempo's own, and the icons are Lucide's.
 | Right panel: cover, title, About the artist, credits, next in queue | ✅ | |
 | Queue: now playing, the user's queue, next from | ✅ | |
 | Synced lyrics that follow the time; click a line to jump | ✅ | |
-| Full screen with a visualiser drawn as a path | ✅ | |
+| Full screen with a visualiser drawn as a path | ✅ | The visualiser stays above the cover and title |
 | Mini player | ✅ | Drawn inside the window: the format has no second window |
 | Keyboard shortcuts and their list (Cmd+/) | ✅ | |
 | Equaliser and crossfade settings | ◐ | Crossfade is a setting; the old equaliser page is gone |

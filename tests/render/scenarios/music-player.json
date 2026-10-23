@@ -25,6 +25,7 @@
 				{ "click": "#queueButton" },
 				{ "expect": { "image": "queue" } },
 				{ "key": "alt+shift+y" },
+				{ "revision": { "message": "Halfway through the song", "set": { "/state/elapsed": 70 } } },
 				{ "expect": { "image": "lyrics" } },
 				{ "revision": { "message": "Library as a grid", "set": { "/state/lib/view": "grid", "/state/lib/width": 520 } } },
 				{ "expect": { "image": "library-grid" } },

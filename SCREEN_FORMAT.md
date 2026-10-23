@@ -161,6 +161,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: access -->
 | Key | Meaning |
 |---|---|
+| `focusRing` | `false`: the window's keyboard focus ring (`window.focusRing`) is not drawn around the node, for one that shows its focus itself (a search field inside a pill whose border lights up). |
 | `focusable` | `true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable). |
 | `role` | What the node is to assistive tools and to scenarios (ARIA's names: `button`, `checkbox`, `textbox`, `dialog`, `list`, `listitem`, `menu`, `menuitem`, `tab`, ...). Default: `textbox` for inputs and editors, `text` for labels, `checkbox` for toggles, `slider` for sliders, `img` for images, `button` for a focusable node with an `onClick`; other nodes have none and are skipped in the accessibility tree. |
 | `label` | The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an input's or a slider's text is its value, not its name). |

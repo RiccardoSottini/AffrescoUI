@@ -23,6 +23,8 @@
 		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 16 },
 		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 12 },
 		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 22 },
+		"iconsMid": { "file": "../shared/fonts/Lucide.ttf", "size": 18 },
+		"ui": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["iconsMid", "arabic"] },
 		"arabic": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 14 },
 		"arabicSmall": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 12 },
 		"arabicBold": { "file": "../shared/fonts/NotoSansArabic-Subset.ttf", "size": 14, "bold": true },
@@ -178,6 +180,7 @@
 		"heading": { "type": "label", "font": "h2", "textColor": "@text", "fitText": true },
 		"icon": {
 			"type": "label",
+			"font": "ui",
 			"text": "",
 			"width": 32,
 			"height": 32,
@@ -185,7 +188,7 @@
 			"align": "center",
 			"textColor": "@muted",
 			"hover": { "textColor": "@text" },
-			"focused": { "textColor": "@text", "borderWidth": 1, "borderColor": "@muted" },
+			"focused": { "textColor": "@text" },
 			"cursor": "hand",
 			"focusable": true,
 			"role": "button"
@@ -199,7 +202,6 @@
 			"fitText": true,
 			"color": "@chip",
 			"hover": { "color": "@chipHover" },
-			"focused": { "borderWidth": 1, "borderColor": "@muted" },
 			"textColor": "@text",
 			"cursor": "hand",
 			"focusable": true,
@@ -425,7 +427,7 @@
 				{
 					"id": "trackMenu",
 					"use": "contextMenu",
-					"with": { "open": "state.open.ctx", "x": "{{state.menu.x}}", "y": "{{min(state.menu.y, window.height - 24 - 30 * length(computed.menuItems))}}", "icons": true, "items": "{{computed.menuItems}}" }
+					"with": { "open": "state.open.ctx", "x": "{{state.menu.x}}", "y": "{{state.menu.y + 30 * length(computed.menuItems) > window.height - 24 ? max(8, state.menu.y - 30 * length(computed.menuItems)) : state.menu.y}}", "icons": true, "items": "{{computed.menuItems}}" }
 				},
 				{
 					"id": "shortcutsDialog",

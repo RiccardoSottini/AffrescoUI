@@ -299,6 +299,7 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setShadow({});
 	panel.setGradient(nullptr);
 	panel.setCached(false);
+	panel.setFocusRinged(true);
 	panel.setCursor(record.defaultCursor);
 	panel.setGrow(0.0f);
 	resetLayoutItem(panel);

@@ -128,6 +128,9 @@ bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const
 	case Slot::Cache:
 		panel.setCached(boolean(value, at));
 		break;
+	case Slot::FocusRing:
+		panel.setFocusRinged(boolean(value, at));
+		break;
 	default:
 		return false;
 	}
