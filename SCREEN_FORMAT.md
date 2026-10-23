@@ -648,16 +648,12 @@ transformed, a child's text keeps its size while its box, images and paths scale
 
 ### `scene`
 A 3D scene: primitive meshes (`cube`, `sphere`, `cylinder`, `cone`, `torus`, `plane`) and glTF models, placed by
-transforms, lit by point, sun (`directional`) and spot lights, and drawn with PBR materials (base colour, metallic,
-roughness, emission, alpha), over a ground grid and axes. The middle button orbits, Shift with it pans and the wheel
-zooms at the pointer (`controls` changes the bindings); a click picks the object under the pointer and a drag over
-nothing draws a box, both running `onSelect` with the object ids, and the selection is drawn with an outline. The
-node has no keys of its own: a document binds them, with the `camera` step for the views (front, side, top), the
-projection and framing. A `gizmo` on the selection moves, rotates and scales it by its handles, running `onTransform`
-with where the nodes should go; the scene doesn't move them itself, the document applies it. The camera and the
-selection are the node's value (`bind`), written back when a person changes them. glTF models (`.gltf` and `.glb`,
-with their buffers and textures) are read with the `reader.imageFile` permission, checked and bounded (64 MiB a
-file, 4,096 nodes and meshes, two million vertices); a model that fails to load is left out and named in the log.
+transforms, lit by point, sun and spot lights and drawn with PBR materials, over a ground grid and axes. The middle
+button orbits, Shift with it pans and the wheel zooms at the pointer (`controls`); a click picks, a drag over nothing
+draws a box, and the selection is outlined. A `gizmo` moves, rotates and scales the selection by its handles; the
+scene doesn't move the nodes itself, the document applies `onTransform`. glTF models (with their buffers and
+textures) are checked and bounded (64 MiB a file, 4,096 nodes and meshes, two million vertices); a model that fails
+to load is left out and named in the log.
 
 <!-- generated: scene -->
 | Key | Meaning |
@@ -689,10 +685,10 @@ file, 4,096 nodes and meshes, two million vertices); a model that fails to load 
   "onTransform": { "run": "moveNodes", "with": { "nodes": "{{event.nodes}}" } } }
 ```
 
-`{ "camera": "#viewport", "view": "top", "frame": "selection" }` snaps the camera to a view and frames the
-selection; `"projection": "toggle"` switches between perspective and orthographic, `"orbit": [15, 0]` turns it as a
-drag would and `"zoom": 1` comes one wheel step closer. A frame of a scene is drawn like any other node, so scenarios
-and `affrescoui render` capture it.
+`{ "camera": "#viewport", "view": "top", "frame": "selection" }` snaps the camera to a view (front, side, top) and
+frames the selection; `"projection": "toggle"` switches between perspective and orthographic, `"orbit": [15, 0]`
+turns it as a drag would and `"zoom": 1` comes one wheel step closer. Scenarios and `affrescoui render` capture a
+scene like any other node.
 
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
