@@ -1,6 +1,6 @@
 /// @file
-/// @brief The properties every panel has (format::Properties::commonProperty(), shapeProperty(), overlay()), and
-/// those of the core widget types: labels, text areas, rows, columns and grids (widgetProperty()).
+/// @brief The properties every panel has (format::Properties::commonProperty(), shapeProperty(), overlay(),
+/// snapshot()), and those of the core widget types: labels, text areas, rows, columns and grids (widgetProperty()).
 
 #include "Engine.hpp"
 #include "LayoutProperties.hpp"
@@ -12,6 +12,8 @@
 #include <array>
 #include <cctype>
 #include <format>
+#include <memory>
+#include <utility>
 
 namespace affresco::format {
 
@@ -68,6 +70,9 @@ bool Properties::recordProperty(Panel& panel, Record& record, const KeyValue& pr
 		break;
 	case Slot::Overlay:
 		overlay(panel, record, value, at, look);
+		break;
+	case Slot::Snapshot:
+		snapshot(value, at, look);
 		break;
 	case Slot::Focusable:
 		record.focusable = boolean(value, at);
@@ -167,6 +172,47 @@ void Properties::overlayOpen(Record& record, const json& open, const std::string
 	record.overlayOpen = open.get<std::string>(); // a state path, so a click outside can close it
 	look.overlayOpen =
 	    truthy(format::lookup(*record.overlayOpen, engine_.document.context(*record.locals, json::object()), at));
+}
+
+void Properties::snapshot(const json& value, const std::string& at, Look& look) {
+	if(value.is_string()) {
+		look.snapshot = value.get<std::string>(); // empty: drawn in place, so a binding can turn it off
+		return;
+	}
+	static constexpr std::array<std::string_view, 2> keys = {"image", "scale"};
+	const json& snapshot = object(value, at);
+	for(const auto& [k, v] : snapshot.items())
+		if(std::ranges::find(keys, k) == keys.end())
+			fail(concatenate(at, ".", k), "unknown property (expected image or scale)");
+	if(!snapshot.contains("image")) fail(at, R"(needs "image", the name image nodes show it by)");
+	look.snapshot = string(snapshot["image"], at + ".image");
+	if(!snapshot.contains("scale")) return;
+	look.snapshotScale = number(snapshot["scale"], at + ".scale");
+	if(look.snapshotScale <= 0.0f || look.snapshotScale > 4.0f)
+		fail(at + ".scale", "expected a number above 0, at most 4");
+}
+
+// The window draws a snapshot into its image before each frame in which it changed; image nodes show it by name
+void Properties::showSnapshot(Panel& panel, Record& record, const Look& look, bool isRoot) const {
+	if(look.snapshot.empty()) {
+		if(record.snapshotImage.empty()) return;
+		panel.clearSnapshot();
+		images().setNamed(std::exchange(record.snapshotImage, {}), nullptr);
+		return;
+	}
+	const std::string at = record.path + ".snapshot";
+	if(isRoot) fail(at, "not allowed on the root, which always fills the window");
+	if(panel.isOverlay() && !panel.isSnapshot()) fail(at, R"(not allowed with "overlay": give it to a node inside)");
+	if(look.snapshot == record.snapshotImage && look.snapshotScale == record.snapshotScale) return;
+	if(look.snapshot != record.snapshotImage && !record.snapshotImage.empty())
+		images().setNamed(record.snapshotImage, nullptr);
+	record.snapshotImage = look.snapshot;
+	record.snapshotScale = look.snapshotScale;
+	// The window keeps the panel, and so the handler, after the runtime is gone
+	panel.setSnapshot(look.snapshotScale, [&engine = engine_, alive = std::weak_ptr<bool>(engine_.alive),
+	                                       name = look.snapshot](const std::shared_ptr<const Bitmap>& image) {
+		if(!alive.expired()) engine.document.images().setNamed(name, image);
+	});
 }
 
 // A modal overlay traps the focus while it is open, and gives it back when it closes

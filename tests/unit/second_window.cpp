@@ -1,7 +1,8 @@
 /// @file
 /// @brief Tests that need a window: images of one panel's subtree (Window::renderToImage(), what slide thumbnails
 /// and a presenter's audience view are made from), and second windows that share the first one's OpenGL context and
-/// font (Application::createWindow(..., sharing), Screen::createWindow(app, sharing)).
+/// font (Application::createWindow(..., sharing), Screen::createWindow(app, sharing)), and nodes drawn into the named
+/// images that image nodes show ("snapshot").
 ///
 /// Built into affrescoui_window_tests (tests/unit/CMakeLists.txt): drawing needs an OpenGL context, so a display or
 /// Xvfb. The windows are never shown.
@@ -29,6 +30,23 @@ constexpr const char* boardScreen = R"json({
 				{ "type": "panel", "id": "corner", "color": "#ffffff", "width": 20, "height": 20 }
 			] },
 			{ "type": "panel", "id": "side", "color": "#0000ff", "width": 50, "height": 60 }
+		] }
+	] }
+})json";
+
+/// @brief A screen with a red card, a white square in its corner, drawn out of the layout into the image "thumb" at
+/// twice its size, and an image node showing that image.
+constexpr const char* snapshotScreen = R"json({
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "snapshot", "width": 200, "height": 120 },
+	"root": { "type": "panel", "id": "main", "color": "#202020", "children": [
+		{ "type": "row", "width": "100%", "height": 60, "children": [
+			{ "type": "panel", "id": "card", "snapshot": { "image": "thumb", "scale": 2 }, "color": "#ff0000",
+			  "width": 40, "height": 30, "children": [
+				{ "type": "panel", "color": "#ffffff", "width": 10, "height": 10 }
+			] },
+			{ "type": "image", "id": "preview", "source": "thumb", "fit": "fill", "width": 80, "height": 60 }
 		] }
 	] }
 })json";
@@ -130,4 +148,25 @@ TEST_CASE("second window: a screen built into it shows an image of a panel of th
 	REQUIRE(shown);
 	CHECK(pixel(*shown, 50, 40) == 0xff0000);
 	CHECK(pixel(*shown, 5, 5) == 0xffffff);
+}
+
+TEST_CASE("snapshot: a node drawn into a named image, shown by an image node, and drawn again when it changes") {
+	affresco::Application app({nullptr, true});
+	affresco::Screen screen = affresco::Screen::fromString(snapshotScreen);
+	affresco::Window& window = screen.createWindow(app);
+	window.render();
+	CHECK(screen.get("preview").frame().left == doctest::Approx(0.0f)); // the card takes no place in the row
+
+	const auto shown = window.renderToImage(window.root(), 1.0f);
+	REQUIRE(shown);
+	CHECK(pixel(*shown, 5, 5) == 0xffffff);    // the card's corner, twice its size
+	CHECK(pixel(*shown, 60, 40) == 0xff0000);  // the card
+	CHECK(pixel(*shown, 150, 30) == 0x202020); // the card isn't drawn in the window itself
+
+	screen.get("card").setColor(affresco::Color{0.0f, 1.0f, 0.0f, 1.0f});
+	window.render();
+	const auto changed = window.renderToImage(window.root(), 1.0f);
+	REQUIRE(changed);
+	CHECK(pixel(*changed, 60, 40) == 0x00ff00);
+	CHECK(pixel(*changed, 5, 5) == 0xffffff);
 }

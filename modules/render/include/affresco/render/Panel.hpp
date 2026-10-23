@@ -15,6 +15,7 @@
 #include <array>
 #include <cstdint>
 #include <concepts>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
@@ -335,10 +336,26 @@ public:
 	void setOverlay(std::string anchorId, Placement placement, bool flip = false);
 	/// @brief Makes it an ordinary panel again.
 	void clearOverlay();
-	/// @brief Whether it is an overlay.
-	[[nodiscard]] bool isOverlay() const noexcept { return overlay_; }
+	/// @brief Whether it is out of its parent's flow: an overlay, or a snapshot's source.
+	[[nodiscard]] bool isOverlay() const noexcept { return overlay_ || snapshot_; }
 	/// @brief Whether it is an overlay placed on the opposite side by its last layout (see setOverlay()).
 	[[nodiscard]] bool isFlipped() const noexcept { return flipped_; }
+
+	/* Snapshots: a subtree drawn into an image instead of on the window */
+
+	/// @brief Gives each new image of a snapshot's subtree.
+	using SnapshotHandler = std::function<void(std::shared_ptr<const Bitmap>)>;
+	/// @brief Makes this panel a snapshot's source: out of its parent's flow, like an overlay, and laid out from the
+	/// window's top left, unclipped, but never drawn on the window, hit, focused or shown to screen readers. Its
+	/// subtree is drawn into an image, as Window::renderToImage() draws, before each frame in which something in it
+	/// changed. Overlays inside it, and snapshots inside it, are left out.
+	/// @param scale Pixels per window unit: more than 0, up to 4 (1 otherwise).
+	/// @param onImage Given each new image, during the frame; a headless window gives none.
+	void setSnapshot(float scale, SnapshotHandler onImage);
+	/// @brief Makes it an ordinary panel again.
+	void clearSnapshot();
+	/// @brief Whether it is a snapshot's source.
+	[[nodiscard]] bool isSnapshot() const noexcept { return snapshot_ != nullptr; }
 
 	/// @brief Draws this panel's own content, as a frame would, into a painter of another kind (a PDF page, an image):
 	/// paint(), for drawers outside the window's renderer. The caller clips to bounds() and draws the children after.
@@ -807,11 +824,21 @@ private:
 	Vec2 scroll_;                            ///< See scrollOffset().
 	Vec2 contentMin_, contentMax_;           ///< The children's extent, unscrolled, relative to the frame.
 
-	bool overlay_ = false;                   ///< See isOverlay().
+	bool overlay_ = false;                   ///< See setOverlay().
 	std::string overlayAnchor_;              ///< See setOverlay().
 	Placement placement_ = Placement::Below; ///< See setOverlay().
 	bool flip_ = false;                      ///< See setOverlay().
 	bool flipped_ = false;                   ///< See isFlipped().
+
+	/// @brief What setSnapshot() set, and what the window last drew of it.
+	struct Snapshot {
+		float scale = 1.0f;           ///< Pixels per window unit.
+		SnapshotHandler onImage;      ///< Given each new image.
+		std::uint64_t pass = 0;       ///< The window's layout pass when it was last drawn.
+		std::uint64_t generation = 0; ///< The window's paint generation then.
+		bool drawn = false;           ///< Drawn since setSnapshot().
+	};
+	std::unique_ptr<Snapshot> snapshot_; ///< See setSnapshot(); null for an ordinary panel.
 
 	std::uint64_t layoutPass_ = 0;         ///< The window's layout pass this panel was last laid out in.
 	std::uint64_t skippedPass_ = 0;        ///< The window's layout pass that last skipped this panel and its subtree.
@@ -820,7 +847,7 @@ private:
 	bool layoutDirty_ = true;              ///< Its own properties changed since it was last laid out.
 	bool layoutBelow_ = false;             ///< A descendant's layoutDirty_ is set.
 	bool anchorsBelow_ = false;            ///< It or a descendant is anchored to another panel: never skipped.
-	bool overlaysBelow_ = false;           ///< A descendant is an overlay, for Window::layoutOverlays().
+	bool overlaysBelow_ = false;           ///< A descendant is an overlay or a snapshot, for Window::layoutOverlays().
 	Rect frame_;                           ///< See frame().
 	Rect bounds_;                          ///< See bounds().
 	Rect childClip_;                       ///< See childClip().

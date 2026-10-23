@@ -2,7 +2,7 @@
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"screen": "orrery.screen.json",
-	"note": "Orrery's own checks. They run without the 3D view (the affrescoui tool has no scene surface), the rest of the screen is the same.",
+	"note": "Orrery's own checks.",
 	"scenarios": [
 		{
 			"name": "starts-on-day-zero",
@@ -15,20 +15,41 @@
 				},
 				{
 					"expect": {
-						"node": "#day",
-						"text": "Day 0"
+						"node": {
+							"role": "text",
+							"name": "Day 0"
+						},
+						"property": "visible",
+						"is": true
 					}
 				},
 				{
 					"expect": {
-						"node": "#next-label",
-						"text": "Next: Solar eclipse on day 30 (in 30 days)"
+						"node": {
+							"role": "text",
+							"name": "Next: Solar eclipse on day 30 (in 30 days)"
+						},
+						"property": "visible",
+						"is": true
 					}
 				},
 				{
 					"expect": {
-						"node": "#viewport-missing",
+						"node": "#view-scene",
+						"property": "visible",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#view-label-earth",
 						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "sceneView.selection[0]",
+						"is": "earth"
 					}
 				}
 			]
@@ -37,7 +58,10 @@
 			"name": "next-event-moves-the-planets",
 			"steps": [
 				{
-					"click": "#next-event"
+					"click": {
+						"role": "button",
+						"name": "Next event"
+					}
 				},
 				{
 					"wait": 800
@@ -50,12 +74,19 @@
 				},
 				{
 					"expect": {
-						"node": "#next-label",
-						"text": "Next: Lunar eclipse on day 44 (in 15 days)"
+						"node": {
+							"role": "text",
+							"name": "Next: Lunar eclipse on day 44 (in 15 days)"
+						},
+						"property": "visible",
+						"is": true
 					}
 				},
 				{
-					"click": "#rewind"
+					"click": {
+						"role": "button",
+						"name": "Back to day 0"
+					}
 				},
 				{
 					"expect": {
@@ -69,7 +100,10 @@
 			"name": "play-advances-the-playhead",
 			"steps": [
 				{
-					"click": "#play"
+					"click": {
+						"role": "button",
+						"name": "Play"
+					}
 				},
 				{
 					"wait": 500
@@ -81,7 +115,10 @@
 					}
 				},
 				{
-					"click": "#play"
+					"click": {
+						"role": "button",
+						"name": "Pause"
+					}
 				},
 				{
 					"expect": {
@@ -91,8 +128,12 @@
 				},
 				{
 					"expect": {
-						"node": "#day",
-						"text": "Day 9"
+						"node": {
+							"role": "text",
+							"name": "Day 0.1"
+						},
+						"property": "visible",
+						"is": true
 					}
 				}
 			]
@@ -100,6 +141,9 @@
 		{
 			"name": "annotate-the-chart",
 			"steps": [
+				{
+					"action": "skyAbove"
+				},
 				{
 					"expect": {
 						"state": "notes.length",
@@ -181,8 +225,14 @@
 			"note": "The camera's handlers are on the view's pane, so they work where the 3D view isn't drawn too (the note in its place).",
 			"steps": [
 				{
-					"drag": [200, 200],
-					"to": [300, 200]
+					"drag": [
+						200,
+						200
+					],
+					"to": [
+						300,
+						200
+					]
 				},
 				{
 					"expect": {
@@ -197,13 +247,1490 @@
 					}
 				},
 				{
-					"scroll": "#viewport-missing",
+					"scroll": "#view-pane",
 					"dy": -3
 				},
 				{
 					"expect": {
 						"state": "camera.distance",
 						"is": 12.3
+					}
+				}
+			]
+		},
+		{
+			"name": "overlays-show-the-selection-and-the-time",
+			"steps": [
+				{
+					"expect": {
+						"node": "#info-name",
+						"text": "Earth"
+					}
+				},
+				{
+					"expect": {
+						"node": "#info-distance",
+						"text": "Distance: 3.34 AU"
+					}
+				},
+				{
+					"expect": {
+						"node": "#info-radius",
+						"text": "Radius: 6371 km"
+					}
+				},
+				{
+					"expect": {
+						"node": "#time-date",
+						"text": "2030-01-01 00:00:00 UTC"
+					}
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"text": "Paused"
+					}
+				},
+				{
+					"key": "space"
+				},
+				{
+					"key": "l"
+				},
+				{
+					"expect": {
+						"state": "speed",
+						"is": 0.1
+					}
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"text": "172,800x faster: 2 days a second"
+					}
+				},
+				{
+					"key": "k"
+				},
+				{
+					"key": "k"
+				},
+				{
+					"expect": {
+						"state": "speed",
+						"is": 0.001
+					}
+				},
+				{
+					"key": "j"
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"text": "Reversed, 1,728x faster: 0.02 days a second"
+					}
+				},
+				{
+					"key": "space"
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"text": "Paused"
+					}
+				},
+				{
+					"key": "shift+1"
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "speed",
+						"is": 0.01
+					}
+				}
+			]
+		},
+		{
+			"name": "go-to-and-follow-the-selection",
+			"steps": [
+				{
+					"key": "g"
+				},
+				{
+					"wait": 1000
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				},
+				{
+					"expect": {
+						"state": "fly",
+						"is": 0
+					}
+				},
+				{
+					"key": "f"
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Follow the selected body"
+					}
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": ""
+					}
+				}
+			],
+			"note": ""
+		},
+		{
+			"name": "centre-the-selection",
+			"steps": [
+				{
+					"key": "c"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "fly",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "camera.tx",
+						"is": 4.3
+					}
+				}
+			]
+		},
+		{
+			"name": "toggle-orbits-and-labels",
+			"steps": [
+				{
+					"key": "o"
+				},
+				{
+					"expect": {
+						"state": "showOrbits",
+						"is": false
+					}
+				},
+				{
+					"key": "p"
+				},
+				{
+					"expect": {
+						"state": "showLabels",
+						"is": false
+					}
+				},
+				{
+					"key": "o"
+				},
+				{
+					"expect": {
+						"state": "showOrbits",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "time-stops-at-the-start",
+			"steps": [
+				{
+					"key": "j"
+				},
+				{
+					"key": "space"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "text",
+							"name": "No more events in this window"
+						},
+						"property": "visible",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "show-the-browser",
+			"steps": [
+				{
+					"expect": {
+						"state": "showBrowser",
+						"is": false
+					}
+				},
+				{
+					"key": "b"
+				},
+				{
+					"expect": {
+						"state": "showBrowser",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#browser-bodies",
+						"property": "visible",
+						"is": true
+					}
+				},
+				{
+					"key": "b"
+				},
+				{
+					"expect": {
+						"state": "showBrowser",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "narrow-and-widen-the-field",
+			"steps": [
+				{
+					"expect": {
+						"node": "#view-fov",
+						"text": "FOV: 48° 53′ (1.00x)"
+					}
+				},
+				{
+					"key": "period"
+				},
+				{
+					"expect": {
+						"state": "zoom",
+						"is": 1.375
+					}
+				},
+				{
+					"expect": {
+						"node": "#view-fov",
+						"text": "FOV: 39° 57′ (1.25x)"
+					}
+				},
+				{
+					"key": "comma"
+				},
+				{
+					"expect": {
+						"state": "zoom",
+						"is": 1.1
+					}
+				}
+			]
+		},
+		{
+			"name": "bookmark-and-return",
+			"steps": [
+				{
+					"scroll": "#view-pane",
+					"dy": -3
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"expect": {
+						"state": "bookmarks.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "place-1"
+					}
+				},
+				{
+					"expect": {
+						"state": "browserTab",
+						"is": "places"
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmarks[1].camera.distance",
+						"is": 12.3
+					}
+				},
+				{
+					"action": "goToBookmark",
+					"event": {
+						"value": "overview"
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "overview"
+					}
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 15
+					}
+				},
+				{
+					"action": "goToBookmark",
+					"event": {
+						"value": "place-1"
+					}
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 12.3
+					}
+				}
+			]
+		},
+		{
+			"name": "bookmarks-keep-the-time-and-the-field",
+			"steps": [
+				{
+					"key": "period"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Next event"
+					}
+				},
+				{
+					"wait": 800
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"expect": {
+						"state": "bookmarks[1].time",
+						"is": 29.5
+					}
+				},
+				{
+					"action": "goToBookmark",
+					"event": {
+						"value": "overview"
+					}
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "zoom",
+						"is": 1.1
+					}
+				},
+				{
+					"action": "goToBookmark",
+					"event": {
+						"value": "place-1"
+					}
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 29.5
+					}
+				},
+				{
+					"expect": {
+						"state": "zoom",
+						"is": 1.375
+					}
+				},
+				{
+					"click": "#delete-bookmark"
+				},
+				{
+					"expect": {
+						"state": "bookmarks.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "overview"
+					}
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": "place-2"
+					}
+				}
+			]
+		},
+		{
+			"name": "go-to-twice-lands-once",
+			"steps": [
+				{
+					"key": "g"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"key": "g"
+				},
+				{
+					"wait": 1100
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				},
+				{
+					"expect": {
+						"state": "fly",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "flying",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "flights",
+						"is": 2
+					}
+				}
+			]
+		},
+		{
+			"name": "go-to-while-playing",
+			"steps": [
+				{
+					"key": "space"
+				},
+				{
+					"key": "g"
+				},
+				{
+					"wait": 1100
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				},
+				{
+					"expect": {
+						"state": "fly",
+						"is": 0
+					}
+				},
+				{
+					"key": "space"
+				}
+			]
+		},
+		{
+			"name": "reparent-onto-a-moon-but-not-into-a-loop",
+			"steps": [
+				{
+					"action": "reparent",
+					"event": {
+						"from": "moon",
+						"output": "satellites",
+						"to": "mars",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[5].parent",
+						"is": "moon"
+					}
+				},
+				{
+					"action": "reparent",
+					"event": {
+						"from": "mars",
+						"output": "satellites",
+						"to": "earth",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[3].parent",
+						"is": "sun"
+					}
+				},
+				{
+					"action": "reparent",
+					"event": {
+						"from": "mars",
+						"output": "satellites",
+						"to": "venus",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[2].parent",
+						"is": "sun"
+					}
+				}
+			]
+		},
+		{
+			"name": "a-small-window-keeps-the-graph",
+			"steps": [
+				{
+					"resize": [
+						1000,
+						700
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#view-hint",
+						"property": "visible",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart",
+						"property": "height",
+						"is": 176
+					}
+				}
+			]
+		},
+		{
+			"name": "the-lit-side-is-drawn",
+			"steps": [
+				{
+					"expect": {
+						"state": "showShading",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+comma"
+				},
+				{
+					"expect": {
+						"state": "renderOpen",
+						"is": true
+					}
+				},
+				{
+					"click": "#render-shading-toggle"
+				},
+				{
+					"expect": {
+						"state": "showShading",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "render-options-hide-the-stars",
+			"steps": [
+				{
+					"action": "openRender"
+				},
+				{
+					"expect": {
+						"state": "renderOpen",
+						"is": true
+					}
+				},
+				{
+					"click": "#render-stars-toggle"
+				},
+				{
+					"expect": {
+						"state": "showStars",
+						"is": false
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "renderOpen",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "the-camera-follows-the-state",
+			"steps": [
+				{
+					"click": [
+						579,
+						232
+					]
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "mars"
+					}
+				},
+				{
+					"expect": {
+						"state": "sceneView.selection[0]",
+						"is": "mars"
+					}
+				},
+				{
+					"expect": {
+						"state": "sceneView.camera.distance",
+						"is": 15
+					}
+				},
+				{
+					"scroll": "#view-pane",
+					"dy": -3
+				},
+				{
+					"expect": {
+						"state": "sceneView.camera.distance",
+						"is": 12.3
+					}
+				}
+			]
+		},
+		{
+			"name": "follow-switches-to-the-new-selection",
+			"steps": [
+				{
+					"key": "g"
+				},
+				{
+					"wait": 1000
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				},
+				{
+					"click": [
+						261,
+						278
+					]
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "moon"
+					}
+				},
+				{
+					"key": "f"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "moon"
+					}
+				}
+			]
+		},
+		{
+			"name": "the-wheel-wins-over-a-flight",
+			"steps": [
+				{
+					"key": "g"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"scroll": "#view-scene",
+					"dy": -3
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 10.928453160379494
+					}
+				},
+				{
+					"wait": 1000
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 10.928453160379494
+					}
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				}
+			]
+		},
+		{
+			"name": "a-place-stops-a-flight",
+			"steps": [
+				{
+					"key": "g"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"action": "goToBookmark",
+					"event": {
+						"value": "overview"
+					}
+				},
+				{
+					"wait": 1000
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 15
+					}
+				},
+				{
+					"expect": {
+						"state": "camera.tx",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "fly",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "m-marks-the-selected-body",
+			"steps": [
+				{
+					"key": "m"
+				},
+				{
+					"expect": {
+						"state": "markers",
+						"is": [
+							"earth"
+						]
+					}
+				},
+				{
+					"expect": {
+						"node": "#view-marker-earth-0",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"key": "m"
+				},
+				{
+					"expect": {
+						"state": "markers",
+						"is": []
+					}
+				}
+			]
+		},
+		{
+			"name": "keys-change-the-limiting-magnitude",
+			"steps": [
+				{
+					"expect": {
+						"state": "limitMag",
+						"is": 5
+					}
+				},
+				{
+					"key": "equal"
+				},
+				{
+					"key": "equal"
+				},
+				{
+					"key": "equal"
+				},
+				{
+					"key": "equal"
+				},
+				{
+					"expect": {
+						"state": "limitMag",
+						"is": 6.5
+					}
+				},
+				{
+					"key": "minus"
+				},
+				{
+					"expect": {
+						"state": "limitMag",
+						"is": 6
+					}
+				},
+				{
+					"expect": {
+						"node": "#view-mag",
+						"property": "text",
+						"is": "Limiting magnitude: 6.0 (344 stars)"
+					}
+				}
+			]
+		},
+		{
+			"name": "muting-a-kind-of-event-skips-it",
+			"steps": [
+				{
+					"click": [
+						97,
+						608
+					]
+				},
+				{
+					"expect": {
+						"state": "muted",
+						"is": [
+							"eclipse"
+						]
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "text",
+							"name": "Next: Mercury inferior conjunction on day 81 (in 81 days)"
+						},
+						"property": "visible",
+						"is": true
+					}
+				},
+				{
+					"click": [
+						97,
+						608
+					]
+				},
+				{
+					"expect": {
+						"state": "muted",
+						"is": []
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "text",
+							"name": "Next: Solar eclipse on day 30 (in 30 days)"
+						},
+						"property": "visible",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "a-new-moon-orbits-close-and-goes-home",
+			"steps": [
+				{
+					"action": "reparent",
+					"event": {
+						"from": "earth",
+						"output": "satellites",
+						"to": "mars",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[5].radius",
+						"is": 1.0
+					}
+				},
+				{
+					"action": "orbitAround",
+					"event": {
+						"from": "earth",
+						"output": "satellites",
+						"to": "mars",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[5].parent",
+						"is": "sun"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[5].radius",
+						"is": 5.8
+					}
+				},
+				{
+					"action": "orbitAround",
+					"event": {
+						"from": "earth",
+						"output": "satellites",
+						"to": "sun",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[0].parent",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "the-last-place-deleted",
+			"steps": [
+				{
+					"action": "deleteBookmark"
+				},
+				{
+					"expect": {
+						"state": "bookmarks.length",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "bookmark",
+						"is": ""
+					}
+				},
+				{
+					"action": "deleteBookmark"
+				},
+				{
+					"expect": {
+						"state": "bookmarks.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "the-glow-toggles",
+			"steps": [
+				{
+					"action": "toggleGlow"
+				},
+				{
+					"expect": {
+						"state": "showGlow",
+						"is": false
+					}
+				},
+				{
+					"action": "toggleGlow"
+				},
+				{
+					"expect": {
+						"state": "showGlow",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "an-eclipse-found-and-gone-to",
+			"steps": [
+				{
+					"action": "goToEclipse",
+					"event": {
+						"value": "moon-3"
+					}
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "eclipse",
+						"is": "moon-3"
+					}
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "earth"
+					}
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "follow",
+						"is": "earth"
+					}
+				}
+			]
+		},
+		{
+			"name": "an-unknown-eclipse-does-nothing",
+			"steps": [
+				{
+					"action": "goToEclipse",
+					"event": {
+						"value": "moon-99"
+					}
+				},
+				{
+					"expect": {
+						"state": "eclipse",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "the-eclipse-finder-opens-from-the-menu",
+			"steps": [
+				{
+					"action": "openEclipses"
+				},
+				{
+					"expect": {
+						"state": "showBrowser",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "browserTab",
+						"is": "eclipses"
+					}
+				},
+				{
+					"action": "goToEclipse",
+					"event": {
+						"value": "moon-2"
+					}
+				},
+				{
+					"expect": {
+						"state": "eclipse",
+						"is": ""
+					}
+				}
+			],
+			"note": "Day 15's full moon falls outside an eclipse season, so it is no eclipse."
+		},
+		{
+			"name": "the-sky-chart-names-the-selected-body",
+			"steps": [
+				{
+					"action": "skyAbove"
+				},
+				{
+					"expect": {
+						"node": "#chart-info-name",
+						"property": "text",
+						"is": "Earth"
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart-info-line",
+						"property": "text",
+						"is": "1.00 AU from the Sun, orbits the Sun every 365.25 days"
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart-info",
+						"property": "height",
+						"is": 42
+					}
+				}
+			]
+		},
+		{
+			"name": "the-sky-from-the-ground",
+			"note": "The sky chart opens on the sky from the ground. Dragging turns the view, a click on a planet selects it and names its place in the sky, the wheel widens the field of view.",
+			"steps": [
+				{
+					"expect": {
+						"state": "skyMode",
+						"is": "ground"
+					}
+				},
+				{
+					"action": "skyPress"
+				},
+				{
+					"action": "skyDrag",
+					"event": {
+						"dx": 900,
+						"dy": -46
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Mars"
+					}
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "mars"
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart-info-line",
+						"property": "text",
+						"is": "Az./Alt.: 65.6° / 8.3°"
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart-info-sky",
+						"property": "text",
+						"is": "RA/Dec.: 6.78h / 23.0°"
+					}
+				},
+				{
+					"action": "skyScroll",
+					"event": {
+						"dy": 1
+					}
+				},
+				{
+					"expect": {
+						"node": "#sky-place",
+						"property": "text",
+						"is": "Earth, 45°N   FOV 63.8°   2030-01-01 00:00:00 UTC"
+					}
+				}
+			]
+		},
+		{
+			"name": "the-sky-layers-toggle",
+			"note": "The bar at the bottom of the sky hides and shows the ground and the constellation names; From above goes back to the chart.",
+			"steps": [
+				{
+					"expect": {
+						"node": "#sky-ground",
+						"property": "visible",
+						"is": true
+					}
+				},
+				{
+					"action": "toggleSkyGround"
+				},
+				{
+					"expect": {
+						"node": "#sky-ground",
+						"property": "visible",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "skyLayers.names",
+						"is": true
+					}
+				},
+				{
+					"action": "toggleSkyNames"
+				},
+				{
+					"expect": {
+						"state": "skyLayers.names",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "The chart from above"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyMode",
+						"is": "above"
+					}
+				},
+				{
+					"expect": {
+						"node": "#chart",
+						"property": "visible",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "an-eclipse-seen-from-the-ground",
+			"note": "Going to a solar eclipse turns the sky from the ground to the Sun and keeps it there; a drag lets it go.",
+			"steps": [
+				{
+					"action": "goToEclipse",
+					"event": {
+						"value": "moon-3"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyTrack",
+						"is": "sun"
+					}
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"node": "#sky-body-sun",
+						"property": "visible",
+						"is": true
+					}
+				},
+				{
+					"action": "skyPress"
+				},
+				{
+					"expect": {
+						"state": "skyTrack",
+						"is": ""
+					}
+				},
+				{
+					"action": "skyCentre"
+				},
+				{
+					"expect": {
+						"state": "skyTrack",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "time-at-the-real-rate",
+			"note": "Shift+K sets time going at the real rate, and slowing down stops there.",
+			"steps": [
+				{
+					"key": "shift+k"
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"property": "text",
+						"is": "Real time"
+					}
+				},
+				{
+					"action": "slower"
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"property": "text",
+						"is": "Real time"
+					}
+				},
+				{
+					"action": "faster"
+				},
+				{
+					"action": "reverse"
+				},
+				{
+					"expect": {
+						"node": "#time-rate",
+						"property": "text",
+						"is": "Reversed, 10x faster"
+					}
+				}
+			]
+		},
+		{
+			"name": "the-light-theme",
+			"note": "The View menu switches to the light theme and back; the views of space stay dark.",
+			"steps": [
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "light"
+					}
+				},
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				}
+			]
+		},
+		{
+			"name": "the-grid-names-its-azimuths",
+			"note": "The grid, once on, names its azimuths along the horizon.",
+			"steps": [
+				{
+					"action": "toggleSkyGrid"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#sky-grid-label-g5",
+						"property": "text",
+						"is": "150°"
+					}
+				},
+				{
+					"expect": {
+						"node": "#sky-grid-label-g16",
+						"property": "text",
+						"is": "30°"
+					}
+				}
+			]
+		},
+		{
+			"name": "ask-the-assistant",
+			"note": "The assistant add-on opens from its key and closes with Escape.",
+			"steps": [
+				{
+					"key": "mod+shift+a"
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": true
+					}
+				},
+				{
+					"wait": 400
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": false
 					}
 				}
 			]

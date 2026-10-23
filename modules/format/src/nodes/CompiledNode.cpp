@@ -36,6 +36,7 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"tabIndex", Slot::TabIndex},
     {"arrows", Slot::Arrows},
     {"mnemonic", Slot::Mnemonic},
+    {"snapshot", Slot::Snapshot},
     {"role", Slot::Role},
     {"label", Slot::Label},
     {"description", Slot::Description},

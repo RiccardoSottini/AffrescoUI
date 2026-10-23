@@ -220,8 +220,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	add_subdirectory(examples/tempera)
 	# Bottega, Sinopia's slide sorter installed into Tempera with an adapter and a proof (examples/bottega/)
 	add_subdirectory(examples/bottega)
-	# Orrery, a small planetarium with a 3D view, a sky chart, an orbit graph and an events timeline (examples/orrery/)
-	add_subdirectory(examples/orrery)
 	# The document server, headless: documents and their history on disk, shared with people (apps/server/README.md)
 	set(AFFRESCOUI_SERVER_SOURCES apps/server/DocumentServer.cpp apps/server/TokenFile.cpp
 	    apps/server/UserInfoVerifier.cpp)
@@ -262,7 +260,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
 		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
-		# Orrery end to end: host, MCP server, a revision, an approval, a picture (examples/orrery)
+		# Orrery end to end, JSON only on affrescoui_host: MCP server, a revision, an approval, a picture (examples/orrery)
 		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/e2e_test.py ${CMAKE_BINARY_DIR})
 	endif()

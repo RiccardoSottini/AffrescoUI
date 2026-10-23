@@ -115,7 +115,7 @@ void GeometryCache::refreshChildren(Panel& panel, PanelGeometry& geometry, bool 
 	geometry.subtreeColor = geometry.recorded && geometry.record.color;
 	geometry.subtreeTransformed = false;
 	for(const auto& child : panel.children_) {
-		if(child->overlay_) continue; // refreshed from the frame's overlays, unclipped
+		if(child->isOverlay()) continue; // refreshed from the frame's overlays, unclipped; snapshots never
 		if(moved || needsVisit(*child)) refreshChild(panel, *child, geometry.world, moved);
 		if(const PanelGeometry* below = child->geometry_.get())
 			addSubtree(geometry, *below, child->isTransformed());

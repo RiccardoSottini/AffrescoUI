@@ -57,6 +57,7 @@ std::shared_ptr<const PropertySet> commonProperties() {
 	                  {"disabled", ValueKind::Boolean},
 	                  {"scroll"},
 	                  {"overlay"},
+	                  {"snapshot"},
 	                  {"focusable", ValueKind::Boolean},
 	                  {"tabIndex", ValueKind::Number},
 	                  {"arrows", ValueKind::Text},

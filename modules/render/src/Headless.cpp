@@ -51,6 +51,7 @@ struct WindowFactory {
 		window.runDeferred();
 		window.native_->makeCurrent();
 		window.updateLayout();
+		window.refreshSnapshots();
 		return window.renderer_->drawFromScratch(window.frame(), {window.width_ * scale, window.height_ * scale});
 	}
 };

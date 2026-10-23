@@ -83,6 +83,8 @@ private:
 		std::optional<Color> border = {};                 ///< "borderColor".
 		std::optional<std::pair<bool, bool>> scroll = {}; ///< "scroll": horizontal, vertical.
 		std::optional<bool> overlayOpen = {};             ///< An overlay's "open", evaluated.
+		std::string snapshot = {};                        ///< "snapshot": the image's name (empty: none).
+		float snapshotScale = 1.0f;                       ///< Its pixels per layout pixel.
 		std::array<json, std::tuple_size_v<PropertySets>> values = {}; ///< For each of the record's property sets.
 	};
 	/// @brief The properties shown now: the node at rest, with the active state blocks on top.
@@ -265,6 +267,20 @@ private:
 	/// @param record Its record, with "modal" read.
 	/// @param look Whether it is open.
 	void showModal(Panel& panel, Record& record, const Look& look) const;
+	/// @brief Reads "snapshot": an image name, or `{ "image": name, "scale": 0.25 }`.
+	/// @param value The value.
+	/// @param at Its place, for errors.
+	/// @param look Gets the name and the scale.
+	/// @throws DocumentError If it is malformed.
+	static void snapshot(const json& value, const std::string& at, Look& look);
+	/// @brief Draws the panel into the image its "snapshot" names, out of the layout, or back into it when the key
+	/// is gone (its image then goes too).
+	/// @param panel The panel.
+	/// @param record Its record, which keeps the image drawn into.
+	/// @param look The name and scale read, if any.
+	/// @param isRoot Whether it is the window's root.
+	/// @throws DocumentError On the root, or with "overlay".
+	void showSnapshot(Panel& panel, Record& record, const Look& look, bool isRoot) const;
 	/// @brief Applies a property of labels, text areas, rows, columns or grids.
 	/// @param look The panel as each type, and the values set at the end.
 	/// @param slot The property.

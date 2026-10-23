@@ -401,7 +401,7 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 | Key | Meaning |
 |---|---|
 | `file` | A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). |
-| `source` | Instead of `file`: an image the host names (`Screen::setImage("chart", …)`), e.g. a picture it made; the node shows each new one the host sets. |
+| `source` | Instead of `file`: a named image, which a node draws (its `snapshot`: a thumbnail of it) or the host sets (`Screen::setImage("chart", …)`, e.g. a picture it made); the node shows each new one. |
 | `fit` | `"contain"` (the default: all of it, as large as fits, centred), `"cover"` (the whole node, the image's edges cut off) or `"fill"` (stretched), like CSS `object-fit`. |
 <!-- end generated -->
 
@@ -1801,7 +1801,8 @@ second window, the presenter the first.
 bounds times `scale`: what a thumbnail, a sorter or a second window shows. The image is opaque (black where nothing
 draws), the panel's own transform is drawn but its ancestors' are not, and a hidden panel, an empty one or a headless
 window gives none. `screen.setImage(name, image)` then shows it in an `image` node, in this window or another: a
-second window that mirrors a panel shows such an image and is given a new one when the panel changes.
+second window that mirrors a panel shows such an image and is given a new one when the panel changes. A document
+does the same without the host: a node's `snapshot` draws it into a named image whenever it changes.
 
 **From C and Python.** `affresco/affresco.h` (`modules/capi`) is the same in C, for hosts in other languages: create a
 screen from a file or a string (`afr_options.native_actions` lists the actions the host will answer, so the document's

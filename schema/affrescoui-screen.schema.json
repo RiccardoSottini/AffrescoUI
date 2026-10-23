@@ -2449,7 +2449,7 @@
 					},
 					"source": {
 						"type": "string",
-						"description": "image: an image the host names (Screen::setImage), instead of a file"
+						"description": "image: a named image (a node's snapshot, or Screen::setImage), instead of a file"
 					},
 					"fit": {
 						"anyOf": [
