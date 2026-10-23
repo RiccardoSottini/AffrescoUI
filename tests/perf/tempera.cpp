@@ -2,11 +2,15 @@
 /// @brief The "tempera" workloads: a 20,000 by 20,000 project of modules/imaging opened (its manifest read and the
 /// fitted view composited from the tiles it inflates), panned at 100% (a 1280 by 800 view composited at a new place),
 /// and painted (a brush stroke across it, committed as a step). CPU only: the GPU compositor draws the same tiles.
+/// The same stroke is also played as a screen plays it, on a 4,000 by 4,000 image of an "images" section: through the
+/// image store and the "image" step's "pointer" operation, then the snapshot the screen's state receives.
 ///
-/// With AFFRESCOUI_PERF_BUDGETS set, a run over its budget fails: open 8 s, a pan 60 ms, a stroke 20 ms (measured on
-/// macOS: 1.1 s, 15 ms and 1 ms).
+/// With AFFRESCOUI_PERF_BUDGETS set, a run over its budget fails: open 8 s, a pan 60 ms, a stroke 20 ms, a stroke
+/// through the store 20 ms (measured on macOS: 1.1 s, 15 ms, 1 ms and 1.2 ms).
 
 #include "Bench.hpp"
+#include "ImageDocuments.hpp"
+#include "ImageOperations.hpp"
 
 #include <affresco/imaging/Brush.hpp>
 #include <affresco/imaging/Canvas.hpp>
@@ -36,6 +40,8 @@ constexpr int viewWidth = 1280, viewHeight = 800; ///< The view, in surface pixe
 constexpr double openBudget = 8000.0;             ///< Opening, in milliseconds.
 constexpr double panBudget = 60.0;                ///< A pan, in milliseconds.
 constexpr double paintBudget = 20.0;              ///< A stroke, in milliseconds.
+constexpr double storeBudget = 20.0;              ///< A stroke through the store, in milliseconds.
+constexpr int storeSide = 4000;                   ///< The store's image's width and height.
 
 /// @brief Fails the run if a step took longer than its budget and budgets are on.
 /// @param name The workload.
@@ -112,6 +118,38 @@ struct Opened {
 	}
 };
 
+/// @brief An image of an "images" section, as a screen's store makes it, painted through the "pointer" operation.
+struct Stored {
+	format::editing::ImageDocuments images;          ///< The store.
+	format::editing::ImageDocument* image = nullptr; ///< Its image.
+	/// @brief The "pointer" operation, as the "image" step runs it.
+	const format::editing::ImageOperation* pointer = format::editing::findImageOperation("pointer");
+	std::size_t next = 0; ///< Picks the next place.
+
+	/// @brief Makes the image, with a brush as its tool.
+	Stored() {
+		const json entry = {{"width", storeSide},
+		                    {"height", storeSide},
+		                    {"into", "state.picture"},
+		                    {"tools", {{"brush", {{"gesture", "paint"}, {"size", 40}, {"hardness", 100}}}}}};
+		image = &images.image("picture", entry, "images.picture");
+		if(pointer == nullptr) throw std::runtime_error("no \"pointer\" operation");
+	}
+
+	/// @brief Plays a 40-pixel stroke 1,000 pixels long at a new place, as one "pointer" step, then takes the
+	/// snapshot the screen's state receives.
+	void paint() {
+		next = (next + 7919) % 100'003;
+		const auto x = static_cast<double>(next * 37 % static_cast<std::size_t>(storeSide - 1200));
+		const auto y = static_cast<double>(next * 13 % static_cast<std::size_t>(storeSide - 200)) + 100.0;
+		json points = json::array({{{"phase", "press"}, {"x", x}, {"y", y}}});
+		for(int i = 1; i <= 100; ++i) points.push_back({{"phase", "move"}, {"x", x + i * 10.0}, {"y", y}});
+		points.push_back({{"phase", "release"}, {"x", x + 1000.0}, {"y", y}});
+		pointer->run(*image, {{"points", points}}, nullptr);
+		if(format::editing::snapshot(*image).empty()) throw std::runtime_error("an empty snapshot");
+	}
+};
+
 } // namespace
 
 std::vector<Workload> temperaWorkloads(Context& /*context*/) {
@@ -132,6 +170,12 @@ std::vector<Workload> temperaWorkloads(Context& /*context*/) {
 		                     const auto start = std::chrono::steady_clock::now();
 		                     opened->paint();
 		                     checkBudget("tempera/paint-20k", start, paintBudget);
+	                     }});
+	const auto stored = std::make_shared<Stored>();
+	workloads.push_back({.name = "tempera/paint-store", .unit = "ms", .runs = 21, .step = [stored] {
+		                     const auto start = std::chrono::steady_clock::now();
+		                     stored->paint();
+		                     checkBudget("tempera/paint-store", start, storeBudget);
 	                     }});
 	return workloads;
 }
