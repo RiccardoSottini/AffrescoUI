@@ -1,0 +1,613 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The bars around Arcadia's pages: the menu row (menus on the left, TV mode, notifications and the account with its wallet on the right), the big navigation with back and forward, and the bottom bar (add a game, the download in progress, friends and chat).",
+
+	"state": {
+		"menus": {},
+		"accountOpen": false,
+		"bellOpen": false,
+		"addOpen": false,
+		"downloads": [
+			{ "id": "skyward", "doneGb": 12.4, "status": "downloading" },
+			{ "id": "ember", "doneGb": 0, "status": "queued", "patchGb": 1.2 }
+		],
+		"notifications": [
+			{ "icon": "download", "text": "notice.update", "game": "Ember Vigil", "unread": true },
+			{ "icon": "user-plus", "text": "notice.friend", "who": "NightDrifter", "unread": true },
+			{ "icon": "tag", "text": "notice.sale", "n": 2, "unread": false }
+		]
+	},
+
+	"computed": {
+		"download": "{{find(state.downloads, it.status == 'downloading')}}",
+		"downloadGame": "{{find(state.games, it.id == computed.download.id)}}",
+		"unread": "{{count(state.notifications, it.unread)}}"
+	},
+
+	"styles": {
+		"navTab": {
+			"type": "label",
+			"font": "nav",
+			"fitText": true,
+			"padding": 10,
+			"cursor": "hand",
+			"focusable": true,
+			"role": "tab",
+			"hover": { "textColor": "@color.bright" }
+		},
+		"barButton": {
+			"type": "label",
+			"font": "small",
+			"fitText": true,
+			"padding": 8,
+			"cursor": "hand",
+			"focusable": true,
+			"role": "button",
+			"textColor": "@color.muted",
+			"radius": 2,
+			"hover": { "textColor": "@color.bright", "color": "@color.hover" }
+		}
+	},
+
+	"components": {
+		"menuRow": {
+			"note": "The top row: the client's menus, then TV mode, notifications and the account on the right.",
+			"params": {},
+			"node": {
+				"type": "row",
+				"height": 30,
+				"anchors": { "left": 0, "right": 0 },
+				"color": "@color.top",
+				"alignItems": "center",
+				"children": [
+					{
+						"id": "menus",
+						"use": "menuBar",
+						"grow": 1,
+						"with": {
+							"height": 30,
+							"width": 230,
+							"open": "state.menus",
+							"textColor": "@color.muted",
+							"highlight": "@color.hover",
+							"menus": [
+								{
+									"name": "app",
+									"title": "{{t('menu.app')}}",
+									"items": [
+										{ "title": "{{t('menu.changeAccount')}}" },
+										{ "title": "{{t('menu.offline')}}" },
+										{ "separator": true },
+										{ "title": "{{t('menu.updates')}}" },
+										{ "title": "{{t('menu.backup')}}" },
+										{ "title": "{{t('menu.settings')}}", "keyLabel": "⌘," },
+										{ "separator": true },
+										{ "title": "{{t('menu.exit')}}" }
+									]
+								},
+								{
+									"name": "view",
+									"title": "{{t('menu.view')}}",
+									"items": [
+										{ "title": "{{t('menu.tv')}}" },
+										{ "separator": true },
+										{ "title": "{{t('nav.store')}}", "run": "showStore", "keyLabel": "⌘1" },
+										{ "title": "{{t('nav.library')}}", "run": "showLibrary", "keyLabel": "⌘2" },
+										{
+											"title": "{{t('nav.community')}}",
+											"run": "showCommunity",
+											"keyLabel": "⌘3"
+										},
+										{ "title": "{{t('menu.downloads')}}" },
+										{ "separator": true },
+										{ "title": "{{t('menu.theme')}}", "run": "toggleTheme" },
+										{ "title": "{{t('menu.language')}}", "run": "nextLanguage" }
+									]
+								},
+								{
+									"name": "friends",
+									"title": "{{t('menu.friends')}}",
+									"items": [
+										{ "title": "{{t('menu.friendsList')}}" },
+										{ "title": "{{t('menu.addFriend')}}" },
+										{ "separator": true },
+										{
+											"title": "{{t('presence.online')}}",
+											"checked": "{{state.user.status == 'online'}}"
+										},
+										{
+											"title": "{{t('presence.away')}}",
+											"checked": "{{state.user.status == 'away'}}"
+										},
+										{
+											"title": "{{t('presence.invisible')}}",
+											"checked": "{{state.user.status == 'invisible'}}"
+										},
+										{
+											"title": "{{t('presence.offline')}}",
+											"checked": "{{state.user.status == 'offline'}}"
+										}
+									]
+								},
+								{
+									"name": "games",
+									"title": "{{t('menu.games')}}",
+									"items": [
+										{ "title": "{{t('menu.viewLibrary')}}", "run": "showLibrary" },
+										{ "title": "{{t('menu.activate')}}" },
+										{ "title": "{{t('menu.redeem')}}" },
+										{ "title": "{{t('menu.addOther')}}" }
+									]
+								},
+								{
+									"name": "help",
+									"title": "{{t('menu.help')}}",
+									"items": [
+										{ "title": "{{t('menu.support')}}" },
+										{ "title": "{{t('menu.privacy')}}" },
+										{ "title": "{{t('menu.system')}}" },
+										{ "separator": true },
+										{ "title": "{{t('menu.about')}}" }
+									]
+								}
+							]
+						}
+					},
+					{
+						"id": "tv-button",
+						"style": "barButton",
+						"icon": "tv",
+						"text": "",
+						"tooltip": "{{t('menu.tv')}}",
+						"label": "{{t('menu.tv')}}"
+					},
+					{
+						"id": "bell",
+						"style": "barButton",
+						"icon": "bell",
+						"text": "{{computed.unread > 0 ? text(computed.unread) : ''}}",
+						"color": "{{computed.unread > 0 ? '@color.play' : 'transparent'}}",
+						"textColor": "{{computed.unread > 0 ? '#ffffff' : '@color.muted'}}",
+						"label": "{{t('notice.title', { n: computed.unread })}}",
+						"isOpen": "{{state.bellOpen}}",
+						"onClick": { "toggle": "state.bellOpen" },
+						"children": [
+							{
+								"use": "menu",
+								"with": {
+									"open": "state.bellOpen",
+									"width": 330,
+									"icons": true,
+									"placement": "below-end",
+									"items": "{{map(state.notifications, { title: t(it.text, { game: it.game ?? '', who: it.who ?? '', n: it.n ?? 0 }), icon: it.icon })}}"
+								}
+							}
+						]
+					},
+					{
+						"id": "account",
+						"type": "row",
+						"height": 30,
+						"width": 168,
+						"gap": 6,
+						"alignItems": "center",
+						"focusable": true,
+						"role": "button",
+						"cursor": "hand",
+						"isOpen": "{{state.accountOpen}}",
+						"label": "{{t('account.label', { name: state.user.name })}}",
+						"hover": { "color": "@color.hover" },
+						"onClick": { "toggle": "state.accountOpen" },
+						"children": [
+							{ "type": "panel", "width": 4, "height": 1, "color": "transparent" },
+							{
+								"id": "account-avatar",
+								"type": "image",
+								"file": "{{'art/avatars/' + state.user.avatar + '.svg'}}",
+								"width": 22,
+								"height": 22,
+								"fit": "cover",
+								"borderWidth": 1,
+								"borderColor": "@color.online"
+							},
+							{
+								"id": "account-name",
+								"type": "label",
+								"font": "small",
+								"text": "{{state.user.name}}",
+								"textColor": "@color.online",
+								"fitText": true
+							},
+							{
+								"id": "account-wallet",
+								"type": "label",
+								"font": "small",
+								"text": "{{formatCurrency(state.user.wallet, 'EUR')}}",
+								"textColor": "@color.muted",
+								"fitText": true
+							},
+							{
+								"id": "account-chevron",
+								"type": "label",
+								"font": "small",
+								"icon": "chevron-down",
+								"text": "",
+								"textColor": "@color.muted",
+								"fitText": true
+							},
+							{
+								"use": "menu",
+								"with": {
+									"open": "state.accountOpen",
+									"width": 240,
+									"placement": "below-end",
+									"items": [
+										{ "title": "{{t('account.profile')}}", "run": "showProfile" },
+										{ "title": "{{t('account.details')}}" },
+										{
+											"title": "{{t('account.wallet', { amount: formatCurrency(state.user.wallet, 'EUR') })}}"
+										},
+										{ "title": "{{t('account.language')}}", "run": "nextLanguage" },
+										{ "separator": true },
+										{ "title": "{{t('account.signOut')}}" }
+									]
+								}
+							}
+						]
+					}
+				]
+			}
+		},
+		"navRow": {
+			"note": "The big navigation: back and forward, then the store, the library, the community and the profile, the current one lit.",
+			"params": {},
+			"node": {
+				"type": "row",
+				"height": 56,
+				"anchors": { "left": 0, "right": 0 },
+				"color": "@color.top",
+				"alignItems": "center",
+				"arrows": "horizontal",
+				"role": "tablist",
+				"children": [
+					{ "type": "panel", "width": 12, "height": 1, "color": "transparent" },
+					{
+						"id": "nav-back",
+						"type": "label",
+						"font": "nav",
+						"icon": "chevron-left",
+						"mirror": true,
+						"text": "",
+						"fitText": true,
+						"padding": 6,
+						"textColor": "{{state.at > 0 ? '@color.text' : '@color.dim'}}",
+						"focusable": true,
+						"role": "button",
+						"label": "{{t('nav.back')}}",
+						"tooltip": "{{t('nav.back')}}",
+						"cursor": "hand",
+						"onClick": "back",
+						"hover": { "textColor": "@color.bright" }
+					},
+					{
+						"id": "nav-forward",
+						"type": "label",
+						"font": "nav",
+						"icon": "chevron-right",
+						"mirror": true,
+						"text": "",
+						"fitText": true,
+						"padding": 6,
+						"textColor": "{{state.at < length(state.nav) - 1 ? '@color.text' : '@color.dim'}}",
+						"focusable": true,
+						"role": "button",
+						"label": "{{t('nav.forward')}}",
+						"tooltip": "{{t('nav.forward')}}",
+						"cursor": "hand",
+						"onClick": "forward",
+						"hover": { "textColor": "@color.bright" }
+					},
+					{ "type": "panel", "width": 18, "height": 1, "color": "transparent" },
+					{
+						"repeat": { "for": "tab", "in": "{{['store', 'library', 'community', 'profile']}}" },
+						"id": "{{'nav-' + tab}}",
+						"style": "navTab",
+						"text": "{{tab == 'profile' ? upper(state.user.name) : t('nav.' + tab)}}",
+						"textColor": "{{computed.here.tab == tab ? '@color.accent' : '@color.text'}}",
+						"selected": "{{computed.here.tab == tab}}",
+						"onClick": { "run": "go", "with": { "tab": "{{tab}}", "page": "home", "id": null } }
+					}
+				]
+			}
+		},
+		"bottomBar": {
+			"note": "The bottom bar: add a game, the download in progress (or a link to the downloads) and friends and chat.",
+			"params": {},
+			"node": {
+				"type": "row",
+				"height": 40,
+				"anchors": { "left": 0, "right": 0 },
+				"alignItems": "center",
+				"gradient": { "kind": "linear", "stops": ["@color.sideTop", "@color.top"] },
+				"borderWidth": 0,
+				"children": [
+					{ "type": "panel", "width": 8, "height": 1, "color": "transparent" },
+					{
+						"id": "add-game",
+						"style": "barButton",
+						"font": "default",
+						"icon": "circle-plus",
+						"text": "{{t('bottom.add')}}",
+						"isOpen": "{{state.addOpen}}",
+						"onClick": { "toggle": "state.addOpen" },
+						"children": [
+							{
+								"use": "menu",
+								"with": {
+									"open": "state.addOpen",
+									"width": 260,
+									"placement": "above",
+									"items": [
+										{ "title": "{{t('menu.addOther')}}" },
+										{ "title": "{{t('menu.activate')}}" },
+										{ "title": "{{t('bottom.browse')}}", "run": "showStore" }
+									]
+								}
+							}
+						]
+					},
+					{ "type": "panel", "grow": 1, "height": 1, "color": "transparent" },
+					{
+						"id": "downloads-status",
+						"type": "row",
+						"width": 340,
+						"height": 34,
+						"gap": 10,
+						"alignItems": "center",
+						"focusable": true,
+						"role": "button",
+						"cursor": "hand",
+						"radius": 2,
+						"hover": { "color": "@color.hover" },
+						"label": "{{computed.download ? t('bottom.downloading', { title: computed.downloadGame.title, percent: floor(computed.download.doneGb / computed.downloadGame.sizeGb * 100) }) : t('bottom.manage')}}",
+						"children": [
+							{
+								"type": "label",
+								"icon": "download",
+								"text": "",
+								"textColor": "{{computed.download ? '@color.accent' : '@color.muted'}}",
+								"fitText": true,
+								"padding": 6
+							},
+							{
+								"type": "column",
+								"grow": 1,
+								"height": 30,
+								"gap": 5,
+								"children": [
+									{
+										"id": "downloads-text",
+										"type": "label",
+										"font": "small",
+										"anchors": { "left": 0, "right": 0 },
+										"height": 15,
+										"textColor": "@color.text",
+										"text": "{{computed.download ? t('bottom.downloading', { title: computed.downloadGame.title, percent: floor(computed.download.doneGb / computed.downloadGame.sizeGb * 100) }) : t('bottom.manage')}}"
+									},
+									{
+										"when": "{{computed.download != null}}",
+										"id": "downloads-track",
+										"anchors": { "left": 0, "right": 0 },
+										"height": 4,
+										"color": "@color.raised",
+										"radius": 2,
+										"children": [
+											{
+												"id": "downloads-fill",
+												"anchors": { "left": 0, "top": 0, "bottom": 0 },
+												"radius": 2,
+												"width": "{{text(floor(100 * computed.download.doneGb / computed.downloadGame.sizeGb)) + '%'}}",
+												"gradient": {
+													"kind": "linear",
+													"angle": 90,
+													"stops": ["@color.blue", "@color.accent"]
+												}
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{ "type": "panel", "grow": 1, "height": 1, "color": "transparent" },
+					{
+						"id": "friends-chat",
+						"style": "barButton",
+						"font": "default",
+						"icon": "users",
+						"text": "{{t('bottom.friends')}}"
+					},
+					{ "type": "panel", "width": 8, "height": 1, "color": "transparent" }
+				]
+			}
+		},
+		"comingSoon": {
+			"params": {},
+			"node": {
+				"fill": true,
+				"color": "@color.page",
+				"children": [
+					{
+						"type": "label",
+						"font": "heading",
+						"text": "{{t('nav.' + computed.here.tab)}}",
+						"textColor": "@color.muted",
+						"align": "center",
+						"fill": true
+					}
+				]
+			}
+		}
+	},
+
+	"strings": {
+		"en": {
+			"menu.app": "Arcadia",
+			"menu.view": "View",
+			"menu.friends": "Friends",
+			"menu.games": "Games",
+			"menu.help": "Help",
+			"menu.changeAccount": "Change Account…",
+			"menu.offline": "Go Offline…",
+			"menu.updates": "Check for Client Updates…",
+			"menu.backup": "Back Up and Restore Games…",
+			"menu.settings": "Settings",
+			"menu.exit": "Exit",
+			"menu.tv": "TV Mode",
+			"menu.downloads": "Downloads",
+			"menu.theme": "Dark or Light",
+			"menu.language": "Next Language",
+			"menu.friendsList": "View Friends List",
+			"menu.addFriend": "Add a Friend…",
+			"menu.viewLibrary": "View Games Library",
+			"menu.activate": "Activate a Product…",
+			"menu.redeem": "Redeem a Wallet Code…",
+			"menu.addOther": "Add a Game from This Computer…",
+			"menu.support": "Arcadia Support",
+			"menu.privacy": "Privacy Policy",
+			"menu.system": "System Information",
+			"menu.about": "About Arcadia",
+			"presence.online": "Online",
+			"presence.away": "Away",
+			"presence.invisible": "Invisible",
+			"presence.offline": "Offline",
+			"nav.store": "STORE",
+			"nav.library": "LIBRARY",
+			"nav.community": "COMMUNITY",
+			"nav.profile": "PROFILE",
+			"nav.back": "Back",
+			"nav.forward": "Forward",
+			"notice.title": "{n, plural, =0 {Notifications} one {Notifications: {n} new} other {Notifications: {n} new}}",
+			"notice.update": "{game}: an update is ready",
+			"notice.friend": "{who} accepted your friend request",
+			"notice.sale": "{n, plural, one {An item} other {{n} items}} on your wishlist on sale",
+			"account.label": "Account: {name}",
+			"account.profile": "View my profile",
+			"account.details": "Account details",
+			"account.wallet": "View my wallet ({amount})",
+			"account.language": "Change language",
+			"account.signOut": "Sign out",
+			"bottom.add": "Add a Game",
+			"bottom.browse": "Browse the Store",
+			"bottom.friends": "Friends & Chat",
+			"bottom.manage": "Manage Downloads",
+			"bottom.downloading": "Downloading {title}: {percent}%"
+		},
+		"it": {
+			"menu.app": "Arcadia",
+			"menu.view": "Visualizza",
+			"menu.friends": "Amici",
+			"menu.games": "Giochi",
+			"menu.help": "Aiuto",
+			"menu.changeAccount": "Cambia account…",
+			"menu.offline": "Passa offline…",
+			"menu.updates": "Cerca aggiornamenti del client…",
+			"menu.backup": "Backup e ripristino dei giochi…",
+			"menu.settings": "Impostazioni",
+			"menu.exit": "Esci",
+			"menu.tv": "Modalità TV",
+			"menu.downloads": "Download",
+			"menu.theme": "Scuro o chiaro",
+			"menu.language": "Lingua successiva",
+			"menu.friendsList": "Mostra la lista amici",
+			"menu.addFriend": "Aggiungi un amico…",
+			"menu.viewLibrary": "Mostra la libreria",
+			"menu.activate": "Attiva un prodotto…",
+			"menu.redeem": "Riscatta un codice del portafoglio…",
+			"menu.addOther": "Aggiungi un gioco da questo computer…",
+			"menu.support": "Assistenza Arcadia",
+			"menu.privacy": "Informativa sulla privacy",
+			"menu.system": "Informazioni di sistema",
+			"menu.about": "Informazioni su Arcadia",
+			"presence.online": "Online",
+			"presence.away": "Assente",
+			"presence.invisible": "Invisibile",
+			"presence.offline": "Offline",
+			"nav.store": "NEGOZIO",
+			"nav.library": "LIBRERIA",
+			"nav.community": "COMUNITÀ",
+			"nav.profile": "PROFILO",
+			"nav.back": "Indietro",
+			"nav.forward": "Avanti",
+			"notice.title": "{n, plural, =0 {Notifiche} one {Notifiche: {n} nuova} other {Notifiche: {n} nuove}}",
+			"notice.update": "{game}: un aggiornamento è pronto",
+			"notice.friend": "{who} ha accettato la tua richiesta di amicizia",
+			"notice.sale": "{n, plural, one {Un oggetto} other {{n} oggetti}} della lista dei desideri in saldo",
+			"account.label": "Account: {name}",
+			"account.profile": "Mostra il mio profilo",
+			"account.details": "Dettagli dell'account",
+			"account.wallet": "Mostra il portafoglio ({amount})",
+			"account.language": "Cambia lingua",
+			"account.signOut": "Esci dall'account",
+			"bottom.add": "Aggiungi un gioco",
+			"bottom.browse": "Sfoglia il negozio",
+			"bottom.friends": "Amici e chat",
+			"bottom.manage": "Gestisci i download",
+			"bottom.downloading": "Download di {title}: {percent}%"
+		},
+		"ar": {
+			"menu.app": "أركاديا",
+			"menu.view": "عرض",
+			"menu.friends": "الأصدقاء",
+			"menu.games": "الألعاب",
+			"menu.help": "مساعدة",
+			"menu.changeAccount": "تغيير الحساب…",
+			"menu.offline": "العمل دون اتصال…",
+			"menu.updates": "البحث عن تحديثات البرنامج…",
+			"menu.backup": "نسخ الألعاب احتياطيًا واستعادتها…",
+			"menu.settings": "الإعدادات",
+			"menu.exit": "خروج",
+			"menu.tv": "وضع التلفاز",
+			"menu.downloads": "التنزيلات",
+			"menu.theme": "داكن أو فاتح",
+			"menu.language": "اللغة التالية",
+			"menu.friendsList": "عرض قائمة الأصدقاء",
+			"menu.addFriend": "إضافة صديق…",
+			"menu.viewLibrary": "عرض مكتبة الألعاب",
+			"menu.activate": "تفعيل منتج…",
+			"menu.redeem": "استرداد رمز المحفظة…",
+			"menu.addOther": "إضافة لعبة من هذا الحاسوب…",
+			"menu.support": "دعم أركاديا",
+			"menu.privacy": "سياسة الخصوصية",
+			"menu.system": "معلومات النظام",
+			"menu.about": "حول أركاديا",
+			"presence.online": "متصل",
+			"presence.away": "بعيد",
+			"presence.invisible": "مخفي",
+			"presence.offline": "غير متصل",
+			"nav.store": "المتجر",
+			"nav.library": "المكتبة",
+			"nav.community": "المجتمع",
+			"nav.profile": "الملف الشخصي",
+			"nav.back": "رجوع",
+			"nav.forward": "تقدّم",
+			"notice.title": "{n, plural, =0 {الإشعارات} other {الإشعارات: {n} جديدة}}",
+			"notice.update": "{game}: تحديث جاهز",
+			"notice.friend": "قبل {who} طلب صداقتك",
+			"notice.sale": "{n, plural, one {عنصر} other {{n} عناصر}} من قائمة أمنياتك بسعر مخفّض",
+			"account.label": "الحساب: {name}",
+			"account.profile": "عرض ملفي الشخصي",
+			"account.details": "تفاصيل الحساب",
+			"account.wallet": "عرض محفظتي ({amount})",
+			"account.language": "تغيير اللغة",
+			"account.signOut": "تسجيل الخروج",
+			"bottom.add": "إضافة لعبة",
+			"bottom.browse": "تصفّح المتجر",
+			"bottom.friends": "الأصدقاء والدردشة",
+			"bottom.manage": "إدارة التنزيلات",
+			"bottom.downloading": "جارٍ تنزيل {title}: ‏{percent}٪"
+		}
+	}
+}
