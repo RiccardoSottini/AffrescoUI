@@ -8,7 +8,7 @@
 			"screen": "smart-home.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
-				{ "click": "#light", "nth": 2 },
+				{ "click": "#toggle-rooms-room-lights", "nth": 2 },
 				{ "expect": { "image": "light-on" } },
 				{ "click": [130, 397], "note": "Kitchen, in the rooms tree" },
 				{ "expect": { "image": "kitchen" } },
@@ -31,6 +31,26 @@
 				{ "expect": { "image": "device-answered" } },
 				{ "click": [26, 337], "note": "close the Ground floor in the rooms tree" },
 				{ "expect": { "image": "floor-closed" } }
+			]
+		},
+		{
+			"name": "smart-home-info",
+			"screen": "smart-home.screen.json",
+			"steps": [
+				{ "click": "#light", "nth": 1 },
+				{ "expect": { "image": "light-info" } },
+				{ "click": "#barBand", "nth": 3 },
+				{ "expect": { "image": "light-info-level" } },
+				{ "key": "escape" },
+				{ "click": "#label-climate" },
+				{ "expect": { "image": "climate-info" } },
+				{ "key": "escape" },
+				{ "click": "#blindsIcon" },
+				{ "wait": 400 },
+				{ "expect": { "image": "cover-info" } },
+				{ "key": "escape" },
+				{ "click": "#deviceName", "nth": 2 },
+				{ "expect": { "image": "device-info" } }
 			]
 		},
 		{

@@ -7,17 +7,33 @@
 	"scenarios": [
 		{
 			"name": "switch-a-light-on",
-			"note": "Clicking a light that is off switches it on, its toggle follows, and the summary counts it",
+			"note": "Switching a light that is off on with its toggle (the tile itself opens its dialog), and the summary counts it",
 			"steps": [
 				{ "expect": { "node": "#toggle-rooms-room-lights", "nth": 2, "property": "checked", "is": false } },
-				{ "click": "#light", "nth": 2 },
+				{ "click": "#toggle-rooms-room-lights", "nth": 2 },
 				{ "expect": { "state": "rooms[0].lights[2].on", "is": true } },
 				{ "expect": { "node": "#toggle-rooms-room-lights", "nth": 2, "property": "checked", "is": true } },
 				{ "expect": { "node": "#label-light-on-on", "nth": 2, "text": "On  ·  30%" } },
 				{ "expect": { "node": "#summary", "text": "  3 of 4 lights on" } },
-				{ "click": "#toggle-rooms-room-lights", "nth": 2, "note": "the toggle itself switches it off again" },
+				{ "click": "#toggle-rooms-room-lights", "nth": 2, "note": "a second click switches it off again" },
 				{ "expect": { "state": "rooms[0].lights[2].on", "is": false } },
 				{ "expect": { "node": "#label-light-on-on", "nth": 2, "text": "Off" } }
+			]
+		},
+		{
+			"name": "dim-a-light-in-its-dialog",
+			"note": "Clicking a light's tile opens its dialog; the big bar sets the level and switches it on, Escape closes it",
+			"steps": [
+				{ "click": "#light", "nth": 2 },
+				{ "expect": { "state": "info.open", "is": true } },
+				{ "expect": { "state": "info.index", "is": 2 } },
+				{ "click": "#barBand", "nth": 5 },
+				{ "expect": { "state": "rooms[0].lights[2].level", "is": 50 } },
+				{ "expect": { "state": "rooms[0].lights[2].on", "is": true } },
+				{ "click": "#infoPower" },
+				{ "expect": { "state": "rooms[0].lights[2].on", "is": false } },
+				{ "key": "escape" },
+				{ "expect": { "state": "info.open", "is": false } }
 			]
 		},
 		{
@@ -68,7 +84,7 @@
 				{ "expect": { "state": "rooms[3].lights[0].on", "is": false } },
 				{ "expect": { "state": "rooms[2].target", "is": 17 } },
 				{ "expect": { "node": "#summary", "text": "  0 of 4 lights on  ·  scene: Away" } },
-				{ "click": "#light", "nth": 0, "note": "touching a light clears the scene" },
+				{ "click": "#toggle-rooms-room-lights", "nth": 0, "note": "switching a light clears the scene" },
 				{ "expect": { "state": "scene", "is": "" } }
 			]
 		},

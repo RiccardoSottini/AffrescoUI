@@ -3,7 +3,7 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 	"note": "Haven: a smart-home dashboard. Rooms in a tree by floor, scenes, lights (switch, dim, colour), climate, blinds, device tiles whose calls take a while (progress, then a toast), a floor plan on a canvas with media, automations as a node graph with schedules on a timeline, an energy page by day and by device, security modes and notifications, device state from a simulated service, and a settings page from the settings schema; light and dark themes, English, Italian and Arabic. Cmd+1 to Cmd+4 and Cmd+, change the page, Cmd+Shift+P runs a command, Cmd+T switches light and dark, Cmd+L the language, Cmd+Shift+A the security mode, Cmd+Shift+N the notifications, Up and Down the target temperature, Alt and Up or Down the room.",
-	"include": ["../shared/components/charts.json", "strings.json", "plan.json", "automations.json"],
+	"include": ["../shared/components/charts.json", "strings.json", "plan.json", "automations.json", "moreinfo.json"],
 
 	"window": { "title": "Haven: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
@@ -559,19 +559,20 @@
 										"cursor": "hand",
 										"role": "listitem",
 										"label": "{{light.name}}",
-										"onClick": [{ "toggle": "state.rooms[state.room].lights[i].on" }, { "set": "state.scene", "to": "" }],
+										"description": "{{t('info.open')}}",
+										"onClick": { "run": "openInfo", "with": { "kind": "light", "i": "{{i}}" } },
 										"children": [
 											{ "id": "lightIcon", "type": "label", "icon": "{{light.on ? 'lightbulb' : 'lightbulb-off'}}", "text": "",
 												"textColor": "{{light.on ? slice(light.color, 0, 7) : '@muted'}}", "color": "{{light.on ? slice(light.color, 0, 7) + '33' : '@raised'}}",
 												"anchors": { "left": 12, "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center",
 												"focusable": true, "role": "button", "label": "{{t('light.colour', { name: light.name })}}", "tooltip": "{{t('light.colour', { name: light.name })}}",
 												"onClick": { "run": "openColour", "with": { "i": "{{i}}" } } },
-											{ "id": "label-light-name", "type": "label", "text": "{{light.name}}", "textColor": "@text", "anchors": { "left": 60, "right": 64, "top": 12 }, "height": 18 },
+											{ "id": "label-light-name", "type": "label", "text": "{{light.name}}", "textColor": "@text", "anchors": { "left": 56, "right": 58, "top": 12 }, "height": 18 },
 											{
 												"id": "label-light-on-on",
 												"style": "caption",
 												"text": "{{light.on ? t('light.on', { level: light.level }) : t('light.off')}}",
-												"anchors": { "left": 60, "top": 32 }
+												"anchors": { "left": 56, "top": 32 }
 											},
 											{
 												"id": "toggle-rooms-room-lights",
@@ -662,40 +663,12 @@
 						"role": "group",
 						"label": "{{t('climate.label')}}",
 						"children": [
-							{ "id": "label-climate", "style": "cardTitle", "icon": "thermometer", "text": " {{t('climate.title')}}" },
+							{ "id": "label-climate", "style": "cardTitle", "icon": "thermometer", "text": " {{t('climate.title')}}", "cursor": "hand", "focusable": true, "role": "button",
+								"tooltip": "{{t('info.open')}}", "onClick": { "run": "openInfo", "with": { "kind": "climate", "i": 0 } } },
 							{ "id": "label-now-room-temp", "style": "caption", "text": "{{t('climate.now', { temp: computed.room.temp, humidity: computed.room.humidity })}}", "anchors": { "right": 24, "top": 24 } },
-							{
-								"id": "dial",
-								"anchors": { "left": 0, "right": 0, "top": 44 },
-								"width": "{{computed.compact ? 150 : 200}}",
-								"height": "{{computed.compact ? 150 : 200}}",
-								"color": "transparent",
-								"children": [
-									{ "id": "dialTrack", "type": "path", "fill": 0, "viewBox": "0 0 200 200", "d": "M 43.43 156.57 A 80 80 0 1 1 156.57 156.57",
-										"stroke": "@off", "strokeWidth": 14, "strokeCap": "round" },
-									{ "id": "dialArc", "type": "path", "fill": 0, "viewBox": "0 0 200 200", "d": "M 43.43 156.57 A 80 80 0 1 1 156.57 156.57",
-										"stroke": "{{computed.modeColor}}", "strokeWidth": 14, "strokeCap": "round",
-										"strokeDash": "{{[max(computed.dialShare * 377, 0.01), 400]}}" },
-									{ "id": "dialKnob", "type": "path", "fill": 0, "viewBox": "0 0 200 200", "d": "M 93 20 A 7 7 0 1 0 107 20 A 7 7 0 1 0 93 20",
-										"fillColor": "@knob", "stroke": "{{computed.modeColor}}", "strokeWidth": 3, "rotate": "{{-135 + 270 * computed.dialShare}}" },
-									{ "id": "label-mode-now", "type": "label", "font": "small", "textColor": "@muted", "text": "{{t('mode.' + state.mode)}}", "anchors": { "left": 0, "right": 0, "top": "{{computed.compact ? 30 : 46}}" }, "height": 16, "align": "center" },
-									{
-										"id": "target",
-										"type": "label",
-										"text": "{{computed.room.target}}°",
-										"font": "figure",
-										"textColor": "@text",
-										"anchors": { "left": 0, "right": 0, "top": "{{computed.compact ? 46 : 66}}" },
-										"height": 60,
-										"align": "center",
-										"label": "{{t('climate.targetIs', { target: computed.room.target })}}",
-										"live": "polite"
-									},
-									{ "id": "label-target", "when": "{{!computed.compact}}", "style": "caption", "icon": "thermometer", "text": " {{computed.room.temp}}°", "anchors": { "left": 0, "right": 0, "top": 128 }, "height": 16, "align": "center" }
-								]
-							},
-							{ "id": "label-down-arrow", "style": "round", "icon": "minus", "text": "", "anchors": { "left": 24, "bottom": "{{computed.compact ? 60 : 72}}" }, "label": "{{t('climate.down')}}", "tooltip": "{{t('climate.down')}}", "onClick": { "run": "setTarget", "with": { "by": -0.5 } } },
-							{ "id": "label-up-arrow", "style": "round", "icon": "plus", "text": "", "anchors": { "right": 24, "bottom": "{{computed.compact ? 60 : 72}}" }, "label": "{{t('climate.up')}}", "tooltip": "{{t('climate.up')}}", "onClick": { "run": "setTarget", "with": { "by": 0.5 } } },
+							{ "use": "thermoDial", "with": { "p": "", "small": "{{computed.compact}}" }, "id": "dial", "anchors": { "left": 0, "right": 0, "top": 44 } },
+							{ "use": "iconBtn", "with": { "icon": "minus", "tip": "climate.down" }, "id": "label-down-arrow", "anchors": { "left": 24, "bottom": "{{computed.compact ? 60 : 72}}" }, "onClick": { "run": "setTarget", "with": { "by": -0.5 } } },
+							{ "use": "iconBtn", "with": { "icon": "plus", "tip": "climate.up" }, "id": "label-up-arrow", "anchors": { "right": 24, "bottom": "{{computed.compact ? 60 : 72}}" }, "onClick": { "run": "setTarget", "with": { "by": 0.5 } } },
 							{
 								"id": "modes",
 								"type": "row",
@@ -741,8 +714,10 @@
 						"role": "group",
 						"label": "{{t('blinds.title')}}",
 						"children": [
-							{ "id": "blindsIcon", "type": "label", "icon": "blinds", "text": "", "textColor": "@cover", "color": "{{computed.coverTint}}", "anchors": { "left": 12, "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center" },
-							{ "id": "label-blinds", "type": "label", "text": "{{t('blinds.title')}}", "textColor": "@text", "anchors": { "left": 60, "top": 12 }, "fitText": true },
+							{ "id": "blindsIcon", "type": "label", "icon": "blinds", "text": "", "textColor": "@cover", "color": "{{computed.coverTint}}", "anchors": { "left": 12, "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center",
+								"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('info.cover')}}", "tooltip": "{{t('info.open')}}", "onClick": { "run": "openInfo", "with": { "kind": "cover", "i": 0 } } },
+							{ "id": "label-blinds", "type": "label", "text": "{{t('blinds.title')}}", "textColor": "@text", "anchors": { "left": 60, "top": 12 }, "fitText": true,
+								"cursor": "hand", "onClick": { "run": "openInfo", "with": { "kind": "cover", "i": 0 } } },
 							{ "id": "label-round-room-blinds", "style": "caption", "text": "{{t('blinds.open', { n: round(computed.room.blinds) })}}", "anchors": { "left": 60, "top": 32 } },
 							{ "id": "label-open", "type": "label", "icon": "chevron-up", "text": "", "anchors": { "right": 12, "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center",
 								"color": "@raised", "hover": { "color": "@raisedHover" }, "textColor": "@text", "cursor": "hand", "focusable": true, "role": "button",
@@ -791,13 +766,16 @@
 										"color": "@card",
 										"borderWidth": 1,
 										"borderColor": "@border",
+										"hover": { "color": "@cardHover" },
+										"cursor": "hand",
 										"role": "group",
 										"label": "{{d.name}}",
+										"onClick": { "run": "openInfo", "with": { "kind": "device", "i": "{{i}}" } },
 										"children": [
 											{ "id": "deviceIcon", "type": "label", "icon": "{{d.on ? d.icon : d.iconOff}}", "text": "", "textColor": "{{d.on ? '@accent' : '@muted'}}", "color": "{{d.on ? '@accentSoft' : '@raised'}}",
-												"anchors": { "left": 12, "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center" },
-											{ "id": "deviceName", "type": "label", "text": "{{d.name}}", "textColor": "@text", "anchors": { "left": 56, "right": 8, "top": 12 }, "height": 18 },
-											{ "id": "deviceState", "style": "caption", "text": "{{d.busy ? t('device.waiting') : t('device.' + d.id + (d.on ? '.on' : '.off'))}}", "anchors": { "left": 56, "top": 32 }, "live": "polite" },
+												"anchors": { "left": 10, "top": 12 }, "width": 32, "height": 32, "radius": 16, "align": "center" },
+											{ "id": "deviceName", "type": "label", "text": "{{d.name}}", "textColor": "@text", "anchors": { "left": 50, "right": 4, "top": 12 }, "height": 18 },
+											{ "id": "deviceState", "style": "caption", "text": "{{d.busy ? t('device.waiting') : t('device.' + d.id + (d.on ? '.on' : '.off'))}}", "anchors": { "left": 50, "top": 32 }, "live": "polite" },
 											{
 												"id": "deviceAction",
 												"style": "button",
@@ -995,7 +973,10 @@
 					}
 				]
 			},
+			{ "use": "scrim", "with": { "open": "state.colourOpen" } },
 			{ "id": "colourDialog", "use": "colourDialog" },
+			{ "use": "scrim", "with": { "open": "state.info.open" } },
+			{ "id": "moreInfo", "use": "moreInfo" },
 			{ "id": "notificationsPanel", "use": "notificationsPanel" },
 			{ "id": "simulator", "use": "simulator" },
 			{
