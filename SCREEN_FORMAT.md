@@ -70,7 +70,7 @@ Every part of the format follows these, and so should every extension:
 | `components` | `name → { "params": {defaults}, "node": node }`: reusable nodes with parameters (see Components). |
 | `screens` | `name → node`: the screens an `outlet` shows; `{"navigate": "name"}` switches. The first is shown first. |
 | `templates` | `name → node`, built by code on demand (`Screen::instantiate`). |
-| `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise. |
+| `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and isn't built while its `when` doesn't hold. |
 | `state` | The app's data, any JSON object. |
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
@@ -129,6 +129,7 @@ parent, later siblings on top of earlier ones.
 | `shrink` | In a `row`/`column`: how much of an overflow it gives up, in proportion to `shrink` times its size, down to its minimum (CSS flex-shrink). Default `0`: it keeps its size and the children overflow, as they always have (CSS's default is 1). |
 | `basis` | In a `row`/`column`: its size along it before growing or shrinking (CSS flex-basis), a length; `"auto"` (the default) for its own `width` or `height`. |
 | `alignSelf` | In a `row`/`column`/`grid`: where it sits across (`start`, `center`, `end`, `stretch`), over the container's `alignItems`. |
+| `justifySelf` | In a `grid`: where it sits along its cell's row (`start`, `center`, `end`, `stretch`), over the grid's `justifyItems`. |
 | `cell` | In a `grid`: `{ "column": 2, "row": 1, "columnSpan": 2, "rowSpan": 1 }`, counted from 1 (each key optional). Without `column` and `row`, it takes the next free cell, row after row. |
 | `dir` | Which way its children and text run, inherited: `"ltr"`, `"rtl"`, `"auto"` (the locale's: Arabic and Hebrew are right to left) or `"inherit"` (the default; the root is left to right). Right to left mirrors row order, grid columns, left and right anchors, `x`, padding and scrolling, swaps a label's `align` start and end, and draws an icon marked `mirror` mirrored. |
 <!-- end generated -->
@@ -152,7 +153,7 @@ parent, later siblings on top of earlier ones.
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
-| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. |
+| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus unless one inside already has it) and gives it back when it closes. |
 | `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
 | `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
 <!-- end generated -->
@@ -305,7 +306,7 @@ Hebrew runs right to left, numbers left to right). `"dir": "auto"` on the root m
 
 `grid` places its children in columns and rows, like a CSS grid: each in its `cell`, or in the next free cell, row
 after row. A child is as wide as its cell and keeps its own height at the top of it, unless `justifyItems`,
-`alignItems` or its `alignSelf` say otherwise.
+`alignItems`, or its own `justifySelf` and `alignSelf` say otherwise.
 
 <!-- generated: grid -->
 | Key | Meaning |
@@ -686,10 +687,12 @@ format, take their colours as parameters, and keep their open state where `open`
   item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
 - The parts of a conversation with an assistant (see Asking the agents), which run the actions they are given with
   `with`: `chatBubble` (`text`, `from`, `mine`, `time`, `error`), `typingIndicator` (`label`; its active dot is
-  `phase % 3`), `proposalCard` (`title`, `summary`, `status`, and `preview`, `accept`, `reject` buttons until the
-  status is `accepted` or `rejected`), `chatComposer` (an editor bound to `bind`, showing `value`: Enter runs `send`
-  unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`) and `chatLauncher` (a round button that
-  toggles `open`, or runs `run`, with an `unread` badge).
+  `phase % 3`), `proposalCard` (`title`, `summary`, up to three `lines` such as a proposal's `changes`, in the font
+  `lineFont`, a `status`, and `preview`, `accept`, `reject` buttons until the status is `accepted`, `rejected` or
+  `closed`), `chatComposer` (an editor bound to `bind`, showing `value`: Enter runs `send`
+  unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; it lays out left to right, as the editor
+  starts its lines at the left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
+  badge).
 
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
@@ -975,7 +978,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: a request in plain words to the connected agents (`peers`); `into` gets its id, and each reply runs `ask:reply`, never as the person's decision (see Asking the agents). A control step |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
-| `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
+| `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out) |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |

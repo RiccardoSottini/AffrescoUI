@@ -1041,6 +1041,10 @@
 						"description": "In a row, column or grid: where it sits across, over the container's alignItems",
 						"$ref": "#/$defs/v2/crossAlign"
 					},
+					"justifySelf": {
+						"description": "In a grid: where it sits along its cell's row, over the grid's justifyItems",
+						"$ref": "#/$defs/v2/crossAlign"
+					},
 					"cell": {
 						"description": "In a grid: its first column and row (from 1) and how many it spans; left out, the next free cell",
 						"type": "object",

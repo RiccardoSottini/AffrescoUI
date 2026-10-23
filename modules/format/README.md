@@ -344,8 +344,8 @@ src/
                            AccessibilityProperties.cpp isOpen, selected and live; TextFieldProperties.cpp secret,
                            maxLength and accept; TransformProperties.cpp rotate, scale, skew, translate, transformOrigin
     LayoutProperties.*     the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
-                           alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,
-                           stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
+                           alignSelf, justifySelf, cell, applied from layoutProperty()), the property sets of rows,
+                           columns, stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
   reference/               what the format offers, from the registries
     Catalog.*              the catalog, from the registries
     Reference*.*           the JSON Schema and SCREEN_FORMAT.md's tables, from the registries and each key's entry

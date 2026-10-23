@@ -147,14 +147,15 @@ private:
 	/// only what reads it.
 	void reconcileChild(Panel& panel, std::size_t index, Item& item, int depth, const StateChanges* changes);
 	/// @brief The children to build: the current screen for an outlet, else the node's "children" (and for the root,
-	/// the document's "overlays" after them).
+	/// the document's "overlays" after them, those whose "when" holds).
 	/// @param node The node.
 	/// @param record Its record.
 	/// @param path Its place, for errors.
 	/// @return The children, or std::nullopt to leave the panel's children alone.
 	[[nodiscard]] std::optional<std::vector<Item>> childrenOf(const CompiledNode& node, const Record& record,
 	                                                          const std::string& path) const;
-	/// @brief Adds the nodes of the document's "overlays" to the root's children, each keyed by its place.
+	/// @brief Adds the nodes of the document's "overlays" whose "when" holds to the root's children, each keyed by its
+	/// place.
 	/// @param record The root's record.
 	/// @param items The root's children so far; made a list if there are overlays.
 	void addOverlays(const Record& record, std::optional<std::vector<Item>>& items) const;

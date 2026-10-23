@@ -13,6 +13,8 @@ namespace {
 /// @brief The chat components, in the format. They hold no state of their own: the document passes the values
 /// (the text, the draft, the unread count) and the actions to run (send, close, accept), and each runs a given action
 /// with `{ "run", "with" }`, as the dialog's buttons do. Every colour is a parameter, so an app passes its theme's.
+/// The composer lays out left to right in every direction, as the text editor starts its lines at the left, so its
+/// placeholder sits where the caret is.
 constexpr std::string_view chatComponents = R"({
 "chatBubble": {
 	"params": { "text": "", "mine": false, "from": "", "time": "", "error": false, "maxWidth": 280,
@@ -20,7 +22,8 @@ constexpr std::string_view chatComponents = R"({
 	            "errorColor": "#cf222e" },
 	"node": {
 		"type": "label", "text": "{{text}}", "wrap": true, "fitText": { "maxWidth": "{{maxWidth}}" }, "padding": 10,
-		"radius": 12, "alignSelf": "{{mine ? 'end' : 'start'}}", "role": "listitem", "tooltip": "{{time}}",
+		"radius": 12, "alignSelf": "{{mine ? 'end' : 'start'}}", "justifySelf": "{{mine ? 'end' : 'start'}}",
+		"role": "listitem", "tooltip": "{{time}}",
 		"label": "{{length(from) > 0 ? from + ': ' + text : text}}",
 		"color": "{{mine ? mineColor : color}}",
 		"textColor": "{{error ? errorColor : mine ? mineTextColor : textColor}}",
@@ -31,7 +34,7 @@ constexpr std::string_view chatComponents = R"({
 	"params": { "label": "Typing", "phase": 0, "color": "#f6f8fa", "dotColor": "#8c959f", "activeColor": "#57606a" },
 	"node": {
 		"width": 56, "height": 32, "radius": 12, "color": "{{color}}", "alignSelf": "start",
-		"role": "status", "live": "polite", "label": "{{label}}",
+		"justifySelf": "start", "role": "status", "live": "polite", "label": "{{label}}",
 		"children": [
 			{ "anchors": { "left": 12, "top": 12 }, "width": 8, "height": 8, "radius": 4,
 			  "color": "{{phase % 3 == 0 ? activeColor : dotColor}}" },
@@ -44,24 +47,28 @@ constexpr std::string_view chatComponents = R"({
 },
 "proposalCard": {
 	"params": { "title": "", "summary": "", "status": "pending", "preview": null, "accept": null, "reject": null,
-	            "with": null, "width": 300, "height": 116,
+	            "lines": [], "lineFont": "default", "with": null, "width": 300, "height": null,
 	            "labels": { "preview": "Preview", "accept": "Accept", "reject": "Reject", "accepted": "Accepted",
-	                        "rejected": "Rejected" },
+	                        "rejected": "Rejected", "closed": "Closed" },
 	            "color": "#ffffff", "textColor": "#1f2328", "dimColor": "#57606a", "borderColor": "#d0d7de",
 	            "accent": "#1f883d", "accentTextColor": "#ffffff", "buttonColor": "#f6f8fa" },
 	"node": {
-		"width": "{{width}}", "height": "{{height}}", "radius": 8, "color": "{{color}}", "alignSelf": "start",
-		"borderWidth": 1, "borderColor": "{{borderColor}}", "role": "group", "label": "{{title}}",
+		"width": "{{width}}", "height": "{{height ?? 100 + 18 * min(length(lines), 3)}}", "radius": 8,
+		"color": "{{color}}", "alignSelf": "start",
+		"justifySelf": "start", "borderWidth": 1, "borderColor": "{{borderColor}}", "role": "group", "label": "{{title}}",
 		"description": "{{summary}}",
 		"children": [
 			{ "type": "label", "text": "{{title}}", "textColor": "{{textColor}}", "anchors": { "left": 12, "top": 10 },
 			  "fitText": { "maxWidth": "{{width - 24}}" } },
-			{ "type": "label", "text": "{{summary}}", "textColor": "{{dimColor}}", "wrap": true,
-			  "anchors": { "left": 12, "right": 12, "top": 34, "bottom": 46 } },
-			{ "when": "{{status == 'accepted' || status == 'rejected'}}", "type": "label", "role": "status",
+			{ "type": "label", "text": "{{summary}}", "textColor": "{{dimColor}}",
+			  "anchors": { "left": 12, "top": 32 }, "fitText": { "maxWidth": "{{width - 24}}" } },
+			{ "repeat": { "for": "line", "in": "{{slice(lines, 0, 3)}}", "index": "l" }, "type": "label",
+			  "text": "{{line}}", "textColor": "{{textColor}}", "font": "{{lineFont}}",
+			  "anchors": { "left": 12, "top": "{{54 + 18 * l}}" }, "fitText": { "maxWidth": "{{width - 24}}" } },
+			{ "when": "{{status != 'pending' && status != 'previewing'}}", "type": "label", "role": "status",
 			  "text": "{{labels[status] ?? status}}", "textColor": "{{status == 'accepted' ? accent : dimColor}}",
 			  "anchors": { "left": 12, "bottom": 14 }, "fitText": true },
-			{ "when": "{{status != 'accepted' && status != 'rejected'}}", "type": "row", "gap": 8,
+			{ "when": "{{status == 'pending' || status == 'previewing'}}", "type": "row", "gap": 8,
 			  "anchors": { "left": 12, "right": 12, "bottom": 10 }, "height": 28, "arrows": "horizontal",
 			  "children": [
 				{ "when": "{{preview != null}}", "width": 84, "anchors": { "top": 0, "bottom": 0 }, "radius": 6,
@@ -70,20 +77,20 @@ constexpr std::string_view chatComponents = R"({
 				  "focused": { "borderColor": "{{accent}}" }, "label": "{{labels.preview}}",
 				  "onClick": [{ "run": "{{preview}}", "with": "{{with}}" }],
 				  "children": [{ "type": "label", "text": "{{labels.preview}}", "textColor": "{{textColor}}",
-				                 "anchors": { "left": 0, "right": 0, "top": 5 }, "align": "center" }] },
+				                 "anchors": { "left": 0, "right": 0, "top": 5 }, "height": 18, "align": "center" }] },
 				{ "when": "{{accept != null}}", "width": 84, "anchors": { "top": 0, "bottom": 0 }, "radius": 6,
 				  "role": "button", "focusable": true, "cursor": "hand", "color": "{{accent}}",
 				  "focused": { "borderWidth": 1, "borderColor": "{{textColor}}" }, "label": "{{labels.accept}}",
 				  "onClick": [{ "run": "{{accept}}", "with": "{{with}}" }],
 				  "children": [{ "type": "label", "text": "{{labels.accept}}", "textColor": "{{accentTextColor}}",
-				                 "anchors": { "left": 0, "right": 0, "top": 5 }, "align": "center" }] },
+				                 "anchors": { "left": 0, "right": 0, "top": 5 }, "height": 18, "align": "center" }] },
 				{ "when": "{{reject != null}}", "width": 84, "anchors": { "top": 0, "bottom": 0 }, "radius": 6,
 				  "role": "button", "focusable": true, "cursor": "hand", "color": "{{buttonColor}}",
 				  "borderWidth": 1, "borderColor": "{{borderColor}}",
 				  "focused": { "borderColor": "{{accent}}" }, "label": "{{labels.reject}}",
 				  "onClick": [{ "run": "{{reject}}", "with": "{{with}}" }],
 				  "children": [{ "type": "label", "text": "{{labels.reject}}", "textColor": "{{textColor}}",
-				                 "anchors": { "left": 0, "right": 0, "top": 5 }, "align": "center" }] }
+				                 "anchors": { "left": 0, "right": 0, "top": 5 }, "height": 18, "align": "center" }] }
 			  ] }
 		]
 	}
@@ -95,6 +102,7 @@ constexpr std::string_view chatComponents = R"({
 	            "accent": "#0969da", "accentTextColor": "#ffffff" },
 	"node": {
 		"height": "{{height}}", "color": "{{color}}", "radius": 8, "borderWidth": 1, "borderColor": "{{borderColor}}",
+		"dir": "ltr",
 		"let": { "ready": "{{send != null && length(trim(value ?? '')) > 0}}" },
 		"children": [
 			{ "type": "editor", "bind": "{{bind}}", "wrap": true, "label": "{{label}}", "autofocus": "{{autofocus}}",
@@ -105,13 +113,13 @@ constexpr std::string_view chatComponents = R"({
 				"escape": [{ "if": "{{close != null}}", "then": [{ "run": "{{close}}", "with": "{{with}}" }] }]
 			  } },
 			{ "when": "{{length(value ?? '') == 0}}", "type": "label", "text": "{{placeholder}}", "disabled": true,
-			  "textColor": "{{dimColor}}", "anchors": { "left": 14, "top": 10 }, "fitText": true },
+			  "textColor": "{{dimColor}}", "anchors": { "left": 22, "top": 10 }, "fitText": true },
 			{ "anchors": { "right": 8, "bottom": 8 }, "width": 60, "height": 30, "radius": 6, "role": "button",
 			  "focusable": true, "cursor": "hand", "label": "{{sendLabel}}", "disabled": "{{!ready}}",
 			  "color": "{{ready ? accent : borderColor}}", "focused": { "borderWidth": 1, "borderColor": "{{textColor}}" },
 			  "onClick": [{ "if": "{{ready}}", "then": [{ "run": "{{send}}", "with": "{{with}}" }] }],
-			  "children": [{ "type": "label", "text": "{{sendLabel}}", "textColor": "{{accentTextColor}}",
-			                 "anchors": { "left": 0, "right": 0, "top": 6 }, "align": "center" }] }
+			  "children": [{ "type": "label", "text": "{{sendLabel}}", "textColor": "{{ready ? accentTextColor : dimColor}}",
+			                 "anchors": { "left": 0, "right": 0, "top": 6 }, "height": 18, "align": "center" }] }
 		]
 	}
 },
@@ -140,7 +148,7 @@ constexpr std::string_view chatComponents = R"({
 			  "height": 20, "radius": 999, "color": "{{badgeColor}}",
 			  "children": [{ "type": "label", "text": "{{unread > 99 ? '99+' : text(unread)}}",
 			                 "textColor": "{{badgeTextColor}}", "anchors": { "left": 0, "right": 0, "top": 1 },
-			                 "align": "center" }] }
+			                 "height": 18, "align": "center" }] }
 		]
 	}
 }

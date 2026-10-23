@@ -96,7 +96,8 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "`name → node`, built by code on demand (`Screen::instantiate`).", "sections"},
     {"overlays", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/node"}})json",
 	 "`name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each "
-	 "is an `overlay` placed in the window by its own anchors unless it says otherwise.",
+	 "is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and "
+	 "isn't built while its `when` doesn't hold.",
 	 "sections"},
     {"state", R"json({"type": "object"})json", "The app's data, any JSON object.", "sections"},
     {"stateTypes", R"json({"type": "object",
@@ -301,7 +302,10 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "steps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
-    {"focus", "", R"(`{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update))", "steps"},
+    {"focus", "",
+	 R"(`{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` )"
+	 R"((after the update, waiting up to two frames for a node that is still being laid out))",
+	 "steps"},
     {"scrollTo", "", "", "steps"},
     {"dismiss", R"json({"const": true})json",
 	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},

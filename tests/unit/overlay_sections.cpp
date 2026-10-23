@@ -141,3 +141,45 @@ TEST_CASE("overlay sections: one from an include joins the screen's, and its per
 	CHECK(document["state"]["count"] == 0); // the screen's own entries win
 	CHECK(overlaid.screen.find("addon"));
 }
+
+TEST_CASE("overlay sections: one that uses a component is that component's node, over the window by default") {
+	Overlaid overlaid(affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "open": true },
+		"components": {
+			"pill": { "params": { "text": "" }, "node": { "width": 60, "height": 24, "anchors": { "left": 4, "top": 4 },
+				"children": [{ "type": "label", "id": "pill-text", "text": "{{text}}" }] } }
+		},
+		"root": { "id": "root", "children": [] },
+		"overlays": {
+			"pill": { "id": "pill", "use": "pill", "with": { "text": "Hi" }, "visible": "{{state.open}}" }
+		}
+	})json"));
+	affresco::Panel* pill = overlaid.screen.find("pill");
+	REQUIRE(pill);
+	CHECK(pill->isOverlay());
+	CHECK(pill->frame().left == doctest::Approx(4));
+	CHECK(pill->frame().right == doctest::Approx(64));
+	REQUIRE(overlaid.screen.find("pill-text"));
+	CHECK(pill->isVisible());
+}
+
+TEST_CASE("overlay sections: one whose \"when\" doesn't hold isn't built, until it holds") {
+	Overlaid overlaid(affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "ready": false },
+		"actions": { "ready": [{ "set": "state.ready", "to": true }], "gone": [{ "set": "state.ready", "to": false }] },
+		"root": { "id": "root", "children": [] },
+		"overlays": {
+			"tip": { "id": "tip", "when": "{{state.ready}}", "width": 20, "height": 20 }
+		}
+	})json"));
+	CHECK(overlaid.screen.find("tip") == nullptr);
+	overlaid.screen.runAction("ready", overlaid.window->root(), "{}");
+	overlaid.window->render();
+	REQUIRE(overlaid.screen.find("tip"));
+	CHECK(overlaid.screen.find("tip")->isOverlay());
+	overlaid.screen.runAction("gone", overlaid.window->root(), "{}");
+	overlaid.window->render();
+	CHECK(overlaid.screen.find("tip") == nullptr);
+}

@@ -78,6 +78,12 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "In a `row`/`column`/`grid`: where it sits across (`start`, `center`, `end`, `stretch`), over the container's "
 	 "`alignItems`.",
 	 "node"},
+    {"justifySelf",
+	 R"json({"description": "In a grid: where it sits along its cell's row, over the grid's justifyItems",
+		"$ref": "#/$defs/v2/crossAlign"})json",
+	 "In a `grid`: where it sits along its cell's row (`start`, `center`, `end`, `stretch`), over the grid's "
+	 "`justifyItems`.",
+	 "node"},
     {"cell",
 	 R"json({"description": "In a grid: its first column and row (from 1) and how many it spans; left out, the next free cell",
 		"type": "object", "additionalProperties": false, "properties": {"column": {"type": "integer",
@@ -179,8 +185,7 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "`above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in "
 	 "the window). `open` is a state path (or a value); with `\"dismiss\": \"outside\"`, a click outside it or Escape "
 	 "sets it to false. `\"modal\": true` traps the focus inside while it is open (Tab cycles in it, the first "
-	 "focusable "
-	 "node inside gets the focus) and gives it back when it closes.",
+	 "focusable node inside gets the focus unless one inside already has it) and gives it back when it closes.",
 	 "look"},
     {"focusable", "flag",
 	 "`true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable).",

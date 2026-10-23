@@ -8,7 +8,9 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <string>
+#include <vector>
 
 using affresco::json;
 using affresco::detail::createHeadlessWindow;
@@ -70,6 +72,18 @@ constexpr const char* composerScreen = R"json({ "format": "affrescoui-screen", "
 		"bind": "state.draft", "value": "{{state.draft}}", "send": "send", "close": "close", "autofocus": true,
 		"placeholder": "Ask anything" }, "width": 300 }] } })json";
 
+/// @brief The texts of a panel's shown labels, depth first.
+/// @param panel The panel.
+/// @return Them.
+std::vector<std::string> shownTexts(const affresco::Panel& panel) {
+	std::vector<std::string> result;
+	if(!panel.isVisible()) return result;
+	if(const auto* label = dynamic_cast<const affresco::Label*>(&panel)) result.push_back(label->text());
+	for(const auto& child : panel.children())
+		for(std::string& text : shownTexts(*child)) result.push_back(std::move(text));
+	return result;
+}
+
 } // namespace
 
 TEST_CASE("chat: Enter in the composer sends the draft, Shift+Enter breaks the line, and an empty one isn't sent") {
@@ -119,13 +133,13 @@ TEST_CASE("chat: a proposal card's buttons run their actions with its value, and
 		"preview": "preview", "accept": "accept", "reject": "reject", "with": { "id": "p1" } } }] } })json";
 	Built built(screen);
 	CHECK(affresco::accessibleName(*built.screen.find("card")) == "Add a column");
-	built.click(50.0f, 92.0f);  // Preview
-	built.click(140.0f, 92.0f); // Accept
-	built.click(230.0f, 92.0f); // Reject
+	built.click(50.0f, 76.0f);  // Preview
+	built.click(140.0f, 76.0f); // Accept
+	built.click(230.0f, 76.0f); // Reject
 	CHECK(built.state("log") == json::array({"preview p1", "accept p1", "reject p1"}));
 
 	Built decided(std::string(screen).replace(screen.find("\"pending\""), 9, "\"accepted\""));
-	decided.click(140.0f, 92.0f);
+	decided.click(140.0f, 76.0f);
 	CHECK(decided.state("log").empty()); // no buttons once decided
 }
 
@@ -137,4 +151,18 @@ TEST_CASE("chat: a bubble is named by its author and text, and the typing indica
 		] } })json");
 	CHECK(affresco::accessibleName(*built.screen.find("bubble")) == "agent: Done.");
 	CHECK(affresco::accessibleName(*built.screen.find("typing")) == "The assistant is typing");
+}
+
+TEST_CASE("chat: a proposal card whose proposal is gone says so, and an unknown status shows as it is") {
+	const std::string screen = R"json({ "format": "affrescoui-screen", "version": 2, "state": {},
+		"root": { "id": "root", "children": [{ "id": "card", "use": "proposalCard", "with": {
+		"title": "Add a column", "summary": "Adds Review.", "status": "closed", "accept": "accept" } }] } })json";
+	Built closed(screen);
+	const std::vector<std::string> texts = shownTexts(*closed.screen.find("card"));
+	CHECK(std::find(texts.begin(), texts.end(), "Closed") != texts.end());
+	CHECK(std::find(texts.begin(), texts.end(), "Accept") == texts.end()); // no buttons
+
+	Built other(std::string(screen).replace(screen.find("\"closed\""), 8, "\"merged\""));
+	const std::vector<std::string> otherTexts = shownTexts(*other.screen.find("card"));
+	CHECK(std::find(otherTexts.begin(), otherTexts.end(), "merged") != otherTexts.end());
 }

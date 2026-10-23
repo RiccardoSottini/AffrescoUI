@@ -117,6 +117,9 @@ void Reconciler::addOverlays(const Record& record, std::optional<std::vector<Ite
 		std::string at = "overlays." + name;
 		SharedScope scope = record.locals;
 		CompiledRef scoped = engine_.builder.scoped(engine_.builder.compiledOverlay(node, at), scope, at);
+		if(scoped->when && // as a child's: not built while it doesn't hold
+		   !format::truthy(scoped->when->evaluate(engine_.document.context(*scope, emptyObject()), at, "when")))
+			continue;
 		items->push_back({std::move(scoped), std::move(scope), at, json(at)});
 	}
 }
