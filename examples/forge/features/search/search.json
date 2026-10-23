@@ -134,7 +134,8 @@
 				],
 				"then": [
 					{ "set": "state.search.reload", "to": "{{filter(result.changed, contains(computed.docIds, it))}}" },
-					{ "forEach": "state.search.reload", "as": "file", "do": [{ "call": "forge.revert", "with": { "id": "{{file}}" } }] },
+					{ "forEach": "state.search.reload", "as": "file", "do": [{ "invoke": "files.read", "with": { "path": "{{file}}" },
+						"onDone": [{ "run": "reloaded", "with": { "id": "{{file}}", "text": "{{result.text}}" } }] }] },
 					{
 						"run": "notify",
 						"with": {

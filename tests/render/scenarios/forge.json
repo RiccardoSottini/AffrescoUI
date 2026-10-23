@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "forge-editor",
-			"note": "A file open in the editor, then Quick Open and the command palette over it",
+			"note": "A file open in the editor, then Quick Open and the command palette over it, then the file revealed in the explorer (its folder listed and opened)",
 			"screen": "forge.screen.json",
 			"steps": [
 				{ "wait": 100 },
@@ -27,7 +27,14 @@
 				{ "key": "escape" },
 				{ "key": "mod+shift+p" },
 				{ "wait": 50 },
-				{ "expect": { "image": "command-palette" } }
+				{ "expect": { "image": "command-palette" } },
+				{ "key": "escape" },
+				{ "action": "explorerReveal" },
+				{ "wait": 50 },
+				{ "expect": { "state": "explorer.expanded", "is": ["src"] } },
+				{ "expect": { "state": "explorerTree.listed", "is": ["src"] } },
+				{ "expect": { "state": "explorer.selected", "is": "src/main.cpp" } },
+				{ "expect": { "image": "file-revealed" } }
 			]
 		},
 		{

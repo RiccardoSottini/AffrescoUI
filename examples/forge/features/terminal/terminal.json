@@ -10,7 +10,7 @@
 	},
 
 	"services": {
-		"terminal": { "provider": "pty", "process": "shell", "root": "terminal" }
+		"terminal": { "provider": "pty", "process": "shell", "root": "workspace" }
 	},
 
 	"actions": {

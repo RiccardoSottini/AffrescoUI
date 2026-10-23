@@ -94,7 +94,9 @@ int run(const Options& options) {
 	forge::registerNatives(screen, workspace);
 	forge::registerAccounts(screen, !screenshotOnly);
 	forge::addExampleCatalog(screen, assetsDirectory() / "forge");
-	forge::registerExplorer(screen, workspace, &app);
+	screen.services().allowChosenRoot(
+	    "workspace"); // the explorer, editor and terminal's folder: Open Folder chooses it
+	if(!workspace->root.empty()) screen.services().addRoot("workspace", workspace->root);
 	forge::grantTerminal(screen, workspace->root);
 	forge::registerTerminal(screen, &app);
 	forge::grantLanguageServers(screen);

@@ -5,9 +5,9 @@
 	"note": "Forge's debugger: launch configurations from .vscode/launch.json (forge.debug.launchConfigurations, a subset), a session with lldb-dap or debugpy through the dap service the host granted (Debug.cpp), breakpoints in the editor's gutter, the call stack, variables, watches and the debug console. Every request goes through debugRequest, which names the service by state.debug.type and runs the answer action with `body` and `context`; the adapter's events go to debugEvent. The actions that take the adapter's messages as events (debugApplySession, debugApplyEvent, debugApplyResponse) let a scenario or an agent drive the views without an adapter. What an adapter sends is bounded in the dap service; here the console keeps 2000 lines, the history 100 entries and the variables 5000 rows. The views are in debugViews.json.",
 
 	"services": {
-		"debugLldb": { "provider": "dap", "process": "lldb-dap", "root": "debug", "restart": { "after": 0, "times": 100 } },
-		"debugPython": { "provider": "dap", "process": "debugpy", "root": "debug", "restart": { "after": 0, "times": 100 } },
-		"debugTerminal": { "provider": "pty", "process": "shell", "root": "terminal" }
+		"debugLldb": { "provider": "dap", "process": "lldb-dap", "root": "workspace", "restart": { "after": 0, "times": 100 } },
+		"debugPython": { "provider": "dap", "process": "debugpy", "root": "workspace", "restart": { "after": 0, "times": 100 } },
+		"debugTerminal": { "provider": "pty", "process": "shell", "root": "workspace" }
 	},
 
 	"state": {

@@ -6,7 +6,8 @@
 
 	"state": {
 		"layout": { "sidebar": true, "panel": false, "panelMax": false, "zen": false, "secondary": false, "sizes": [240], "panelSizes": [480], "groupSizes": [] },
-		"folder": { "root": "", "files": [], "tree": [], "truncated": false },
+		"folder": { "root": "", "files": [],
+			"skip": "**/node_modules/**,**/build/**,**/out/**,**/dist/**,**/target/**,**/__pycache__/**,**/.*/**,**/.*" },
 		"explorer": { "expanded": [], "selected": null },
 		"docs": [],
 		"groups": [{ "tabs": [], "active": null }],
@@ -64,13 +65,21 @@
 			"description": "Hide everything but the editors; run it again to bring the workbench back.",
 			"do": [{ "toggle": "state.layout.zen" }] },
 		"openFolder": { "title": "Open Folder...", "category": "File", "icon": "folder-open",
-			"do": [{ "call": "forge.openFolder", "with": { "icons": "{{settings.workbench.fileIcons ? state.iconTheme : null}}" },
-				"into": "state.folder",
-				"onError": [{ "run": "notify", "with": { "severity": "info", "message": "{{'No folder opened: ' + error}}" } }],
-				"then": [{ "set": "state.explorer.expanded", "to": [] },
-				         { "run": "log", "with": { "text": "{{'Opened ' + result.root}}" } }] }] },
+			"do": [{ "chooseFolder": "workspace", "title": "Open Folder",
+				"onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'No folder opened: ' + error.message}}" } }],
+				"onDone": [{ "set": "state.explorer", "to": "{{ {expanded: [], selected: null} }}" },
+				           { "set": "state.explorerTree", "to": "{{ {entries: [], listed: []} }}" },
+				           { "set": "state.folder.root", "to": "{{result.name}}" },
+				           { "run": "explorerRefresh" }, { "run": "indexFolder" },
+				           { "run": "log", "with": { "text": "{{'Opened ' + result.name}}" } }] }] },
+		"indexFolder": [
+			{ "note": "Lists the folder's files for Go to File" },
+			{ "invoke": "search.files", "with": { "exclude": "{{state.folder.skip}}" },
+			  "onDone": [{ "run": "indexed", "with": { "files": "{{result.files}}" } }], "onError": [{ "set": "state.folder.files", "to": [] }] }
+		],
+		"indexed": [{ "set": "state.folder.files", "to": "{{map(files, {id: it, title: reverse(split(it, '/'))[0], detail: join(slice(split(it, '/'), 0, -1), '/')})}}" }],
 		"openExplorerItem": [
-			{ "if": "{{!empty(event.id) && slice(event.id, length(event.id) - 1) != '/'}}",
+			{ "if": "{{!empty(event.id) && (find(state.explorerTree.entries, it.path == event.id) ?? {}).kind != 'folder'}}",
 			  "then": [{ "run": "openPath", "with": { "path": "{{event.id}}", "label": "{{reverse(split(event.id, '/'))[0]}}" } }] }
 		],
 		"showTab": [

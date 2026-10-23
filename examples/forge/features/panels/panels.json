@@ -47,10 +47,11 @@
 			"description": "Read the folder again, showing the progress.",
 			"do": [
 				{ "set": "state.toast", "to": { "open": true, "message": "Indexing the folder", "progress": 0.2 } },
-				{ "call": "forge.index", "with": { "icons": "{{settings.workbench.fileIcons ? state.iconTheme : null}}" },
-				  "into": "state.folder",
-				  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Indexing failed: ' + error}}" } }],
-				  "then": [
+				{ "run": "explorerRefresh" },
+				{ "invoke": "search.files", "with": { "exclude": "{{state.folder.skip}}" },
+				  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Indexing failed: ' + error.message}}" } }],
+				  "onDone": [
+					{ "run": "indexed", "with": { "files": "{{result.files}}" } },
 					{ "set": "state.toast.progress", "to": 1 },
 					{ "run": "log", "with": { "text": "{{'Indexed ' + plural(length(result.files), 'file') + (result.truncated ? ' (truncated)' : '')}}" } },
 					{ "debounce": 1500, "do": [{ "set": "state.toast.open", "to": false }] }

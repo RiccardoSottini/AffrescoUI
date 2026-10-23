@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's workbench extras: the secondary side bar with the Outline (forge.outline), moving tabs between editor groups (by dragging, or Move Editor into Next or Previous Group), the breadcrumbs over the editor, the recently opened files (first in Go to File, kept by persist), the minimap setting, and the settings and keyboard shortcuts as JSON. The editor groups (features/editor) use forgeBreadcrumbs and the pages; the shell (features/shell) has state.layout.secondary.",
+	"note": "Forge's workbench extras: the secondary side bar with the Outline (the active file's headings, or its lines that open a block), moving tabs between editor groups (by dragging, or Move Editor into Next or Previous Group), the breadcrumbs over the editor, the recently opened files (first in Go to File, kept by persist), the minimap setting, and the settings and keyboard shortcuts as JSON. The editor groups (features/editor) use forgeBreadcrumbs and the pages; the shell (features/shell) has state.layout.secondary.",
 
 	"state": {
 		"outline": [],
@@ -31,8 +31,13 @@
 			"do": [{ "toggle": "state.layout.secondary" }, { "run": "refreshOutline" }] },
 		"refreshOutline": { "title": "Refresh Outline", "category": "Outline", "icon": "refresh-cw",
 			"do": [{ "if": "{{computed.activeDoc.kind == 'file'}}",
-			         "then": [{ "call": "forge.outline", "with": { "id": "{{computed.activeDoc.id}}" }, "into": "state.outline" }],
+			         "then": [{ "run": "outlineOf", "with": { "rows": "{{computed.activeDoc.language == 'Markdown' ? [] : map(slice(split(computed.activeDoc.text, '\\n'), 0, 20000), {line: index + 1, row: it, code: trim(it)})}}",
+			           "headings": "{{computed.activeDoc.language == 'Markdown' ? filter(map(slice(split(computed.activeDoc.text, '\\n'), 0, 20000), {line: index + 1, row: it}), indexOf(it.row, '#') == 0) : []}}" } }],
 			         "else": [{ "set": "state.outline", "to": [] }] }] },
+		"outlineOf": [
+			{ "note": "rows: a file's lines (line, row, code: the row trimmed); headings: a Markdown file's lines that start with #. The outline: the headings, or the lines of code that open a block, at the first or second level" },
+			{ "set": "state.outline", "to": "{{slice(concat(map(filter(headings, contains(['# ', '## ', '### ', '#### '], slice(it.row, 0, indexOf(it.row, ' ') + 1))), {line: it.line, depth: indexOf(it.row, ' ') - 1, label: slice(trim(slice(it.row, indexOf(it.row, ' '))), 0, 120)}), map(filter(map(filter(rows, slice(it.code, -1) == '{' && !contains(['}', '/', '#'], slice(it.code, 0, 1))), {line: it.line, indent: indexOf(it.row, it.code), tab: slice(it.row, 0, 1) == '\t', label: slice(trim(slice(it.code, 0, -1)), 0, 120)}), !empty(it.label) && (it.indent == 0 || (it.tab ? it.indent == 1 : it.indent <= 4))), {line: it.line, depth: it.indent == 0 ? 0 : 1, label: it.label})), 0, 2000)}}" }
+		],
 		"outlinePicked": [{ "if": "{{number(event.value) > 0}}", "then": [{ "run": "goToLine", "with": { "line": "{{number(event.value)}}" } }] }],
 		"toggleMinimap": { "title": "Toggle Minimap", "category": "View", "icon": "map",
 			"do": [{ "set": "settings.editor.minimap.enabled", "to": "{{!settings.editor.minimap.enabled}}" }] },
@@ -41,8 +46,9 @@
 		"toggleBreadcrumbs": { "title": "Toggle Breadcrumbs", "category": "View", "icon": "chevrons-right",
 			"do": [{ "set": "settings.breadcrumbs.enabled", "to": "{{!settings.breadcrumbs.enabled}}" }] },
 		"revealFolder": [
-			{ "note": "path: a folder's id (ending in /). Opens the explorer with that folder and its parents open" },
-			{ "set": "state.explorer.expanded", "to": "{{concat(filter(state.explorer.expanded, !contains(map(split(slice(path, 0, length(path) - 1), '/'), join(slice(split(path, '/'), 0, index + 1), '/') + '/'), it)), map(split(slice(path, 0, length(path) - 1), '/'), join(slice(split(path, '/'), 0, index + 1), '/') + '/'))}}" },
+			{ "note": "path: a folder's path. Opens the explorer with that folder and its parents open" },
+			{ "run": "explorerShow", "with": { "id": "{{path}}" } },
+			{ "run": "explorerExpand", "with": { "event": "{{ {id: path, expanded: !contains(state.explorer.expanded, path)} }}" } },
 			{ "set": "state.sideView", "to": "explorer" },
 			{ "set": "state.layout.sidebar", "to": true }
 		],
@@ -189,7 +195,7 @@
 					  "role": "button", "label": "{{segment}}", "text": "{{segment}}", "icon": "{{si > 0 ? 'chevron-right' : ''}}",
 					  "fitText": true, "padding": 2, "cursor": "hand", "textColor": "@color.muted", "hover": { "textColor": "@color.text" },
 					  "onClick": [{ "if": "{{si < length(split(path, '/')) - 1}}",
-					               "then": [{ "run": "revealFolder", "with": { "path": "{{join(slice(split(path, '/'), 0, si + 1), '/') + '/'}}" } }],
+					               "then": [{ "run": "revealFolder", "with": { "path": "{{join(slice(split(path, '/'), 0, si + 1), '/')}}" } }],
 					               "else": [{ "run": "goToSymbol" }] }] },
 					{ "type": "label", "id": "breadcrumb-symbol", "when": "{{computed.symbolAtCaret != null}}", "role": "button",
 					  "label": "{{trim(computed.symbolAtCaret.label ?? '')}}", "text": "{{trim(computed.symbolAtCaret.label ?? '')}}",

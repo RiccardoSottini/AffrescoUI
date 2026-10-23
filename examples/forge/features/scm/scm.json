@@ -127,9 +127,9 @@
 				  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'git did not run: ' + error.message}}" } }],
 				  "onDone": [
 					{ "set": "state.scm.compare.original", "to": "{{result.code == 0 ? result.output : ''}}" },
-					{ "call": "forge.read", "with": { "id": "{{path}}" },
+					{ "invoke": "files.read", "with": { "path": "{{path}}" },
 					  "onError": [{ "run": "scmShowDiff" }],
-					  "then": [{ "set": "state.scm.compare.modified", "to": "{{result}}" }, { "run": "scmShowDiff" }] }
+					  "onDone": [{ "set": "state.scm.compare.modified", "to": "{{result.text}}" }, { "run": "scmShowDiff" }] }
 				  ] }
 			] }
 		],

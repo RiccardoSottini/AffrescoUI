@@ -24,16 +24,18 @@ Forge is modelled on Visual Studio Code: laid out and working like it, in its ow
 
 | Workflow | Status | Gap |
 |---|---|---|
+| Open Folder | done | |
 | Quick Open (Cmd+P) | done | |
 | Command palette (Cmd+Shift+P) | done | |
 | Toggle side bar, panel, layout | done | |
-| Explorer: open, create, rename, delete | partial | Native code; moves to the files service |
-| Editing, find and replace in a file | partial | Native code; moves to the files service |
+| Explorer: open, create, rename, delete, move, reveal | done | |
+| Editing, find and replace in a file | done | |
 | Search across files, replace all | partial | Search lives in the side bar; the results come from native code |
 | Source control: stage, commit, branches | partial | Native code; moves to git through the process service |
 | Run and debug | partial | Sections don't collapse; the debugger glue is native code |
 | Terminal | partial | The cursor is an outlined box |
 | Problems and language features | partial | Native code; moves to the RPC service |
+| Outline | partial | Headings and the lines that open a block, not a language's symbols |
 | Features (extensions) view | partial | Single-line items; no header |
 | Settings editor | partial | No table of contents; large checkboxes |
 | Themes | done | |
