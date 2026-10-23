@@ -43,6 +43,8 @@ inline constexpr std::size_t maxHints = 50;
 inline constexpr int maxPasses = 5;                ///< Passes that learn what steps write, at most.
 inline constexpr int maxDepth = maxNesting;        ///< Nodes and actions inside each other before a branch stops.
 inline constexpr std::string_view openScope = "*"; ///< A variable that lets any name through (callers unknown).
+/// Keys an object has before the checker finds them by name rather than one after another (as an ordered object does).
+inline constexpr std::size_t indexedEntries = 16;
 
 /// `$if`, `$and`, `$or` and `$coalesce`: operators that give one of their arguments.
 inline constexpr auto choiceOperators = std::to_array<std::string_view>({"$if", "$and", "$or", "$coalesce"});
@@ -61,6 +63,9 @@ public:
 private:
 	std::size_t left_ = maxShapeWork; ///< Nodes it may still copy.
 	bool over_ = false;               ///< It copied more.
+	/// The shapes pay() has still to count, kept between calls: it is called for each write, so allocating its own
+	/// would cost an allocation each.
+	std::vector<const Shape*> pending_;
 };
 
 /// @brief Tells whether a list of names has one.
@@ -185,12 +190,22 @@ struct Prepared {
 	/// @brief Visits each property once, from the layer that wins.
 	/// @param visit Called with the key, the value and the layer.
 	template <class Visit> void forEach(const Visit& visit) const {
-		std::unordered_set<std::string_view> seen; // keys stay where they are in their objects
-		for(const Layer& layer : std::views::reverse(layers))
-			for(const auto& [key, value] : layer.properties->items()) {
-				if(!layer.holds(key) || !seen.insert(key).second) continue;
-				visit(key, value, layer);
+		// The keys seen, which stay where they are in their objects: a few are looked at one after another (an index
+		// would cost an allocation each), many through an index, made once there are indexedEntries
+		std::vector<std::string_view> few;
+		std::unordered_set<std::string_view> many;
+		const auto first = [&](std::string_view key) {
+			if(many.empty() && few.size() < indexedEntries) {
+				if(std::ranges::find(few, key) != few.end()) return false;
+				few.push_back(key);
+				return true;
 			}
+			if(many.empty()) many.insert(few.begin(), few.end());
+			return many.insert(key).second;
+		};
+		for(const Layer& layer : std::views::reverse(layers))
+			for(const auto& [key, value] : layer.properties->items())
+				if(layer.holds(key) && first(key)) visit(key, value, layer);
 	}
 };
 

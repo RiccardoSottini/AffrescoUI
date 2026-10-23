@@ -122,16 +122,21 @@ bool substitute(json& value, const json& parameters, std::size_t& room) {
 }
 
 /// An object's members by key. An ordered object finds a key by looking at each one, which, for each of thousands of
-/// actions, took seconds.
-using Members = std::unordered_map<std::string_view, const json*>;
+/// actions, took seconds; a small one is still looked through, as an index would cost an allocation per member.
+struct Members {
+	const json* object = nullptr;                          ///< The object, or nullptr if there is none.
+	std::unordered_map<std::string_view, const json*> big; ///< Its members, once it has checker::indexedEntries.
+};
 
 /// @brief Indexes an object's members by key.
 /// @param object The object (anything else has none).
 /// @return Its members, which point into it.
 Members membersOf(const json& object) {
 	Members members;
-	if(object.is_object())
-		for(const auto& [key, value] : object.items()) members.emplace(key, &value);
+	if(!object.is_object()) return members;
+	members.object = &object;
+	if(object.size() >= checker::indexedEntries)
+		for(const auto& [key, value] : object.items()) members.big.emplace(key, &value);
 	return members;
 }
 
@@ -140,8 +145,13 @@ Members membersOf(const json& object) {
 /// @param key The key.
 /// @return The member, or nullptr.
 const json* memberOf(const Members& members, std::string_view key) {
-	const auto it = members.find(key);
-	return it != members.end() ? it->second : nullptr;
+	if(!members.object) return nullptr;
+	if(members.object->size() < checker::indexedEntries) {
+		const auto it = members.object->find(key);
+		return it != members.object->end() ? &*it : nullptr;
+	}
+	const auto it = members.big.find(key);
+	return it != members.big.end() ? it->second : nullptr;
 }
 
 /// @brief Where a scan is in the document: what its strings mean.

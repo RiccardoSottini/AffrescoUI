@@ -25,9 +25,6 @@ namespace checker {
 
 namespace {
 
-/// Keys an object has before the checker finds them by name rather than one after another (as an ordered object does).
-constexpr std::size_t indexedEntries = 16;
-
 /// @brief Merges the keys of many into an object, finding each by name: an ordered object would look for each key
 /// among all those before it.
 /// @param into An object's shape.
@@ -68,13 +65,13 @@ void mergeInto(Shape& into, const Shape& other) {
 bool Work::pay(const Shape& shape) {
 	if(over_) return false;
 	std::size_t nodes = 0;
-	std::vector<const Shape*> pending{&shape};
-	while(!pending.empty() && !over_) {
-		const Shape* node = pending.back();
-		pending.pop_back();
+	pending_.assign(1, &shape);
+	while(!pending_.empty() && !over_) {
+		const Shape* node = pending_.back();
+		pending_.pop_back();
 		over_ = ++nodes > left_;
 		if(node->is_structured())
-			for(const Shape& inside : *node) pending.push_back(&inside);
+			for(const Shape& inside : *node) pending_.push_back(&inside);
 	}
 	left_ -= over_ ? left_ : nodes;
 	return !over_;
