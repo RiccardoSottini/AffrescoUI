@@ -412,7 +412,6 @@ wraps it.
 | [mcp/README.md](mcp/README.md) | The MCP server and its tools |
 | [BENCHMARKS.md](BENCHMARKS.md) | Speed, memory and token budgets, with every measurement |
 | [ACCESSIBILITY.md](ACCESSIBILITY.md) | What screen readers see and drive, on every platform |
-| [COMPATIBILITY.md](COMPATIBILITY.md) | What stays stable: the format, the C++ API, the protocol and the MCP tools |
 | [SECURITY.md](SECURITY.md) | The trust model, what is protected, and how to report a vulnerability |
 | [CHANGELOG.md](CHANGELOG.md) | What changed in each release |
 

@@ -664,7 +664,7 @@ change can't loosen what judges it. A pull request can still change the workflow
 (`.github/`, `tools/quality/`, `tests/perf/`, `tests/render/`, `tests/fuzz/`), and its checks then run its own
 version: a green check on such a pull request says nothing until someone has read that part of it.
 
-A release is made only from a tag `v*`, which only the maintainer can push (RELEASING.md). It builds in a fresh run,
+A release is made only from a tag `v*`, which only the maintainer can push. It builds in a fresh run,
 with no cache, and makes a draft: the archives, `SHA256SUMS` and build-provenance attestations signed through the
 run's identity. The MCP package is a release asset only: nothing is published to PyPI or anywhere but GitHub.
 

@@ -2,7 +2,7 @@
 
 /// @file
 /// @brief Format versions: the one this library writes, and the migration of version 1 documents to it
-/// (SCREEN_FORMAT.md, "Migrating from version 1"; COMPATIBILITY.md).
+/// (SCREEN_FORMAT.md, "Migrating from version 1").
 ///
 /// Version 2 keeps one form of each thing that version 1 wrote two ways: `justify` on rows, columns and stacks (not
 /// `from`, nor `align` on a stack), `length()` in expressions (not `len()`), and a feature's `requires.format` of 2.

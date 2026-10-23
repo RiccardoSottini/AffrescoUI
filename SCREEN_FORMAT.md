@@ -1688,8 +1688,7 @@ text.
 
 ## Migrating from version 1
 
-Version 1 grew by additions; version 2 keeps one form of each thing it wrote two ways, before 1.0
-([COMPATIBILITY.md](COMPATIBILITY.md) says when a version changes). What changed:
+Version 1 grew by additions; version 2 keeps one form of each thing it wrote two ways, before 1.0. What changed:
 
 | Version 1 | Version 2 |
 |---|---|

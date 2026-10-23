@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes headers.cpp: one section per installed C++ header, so each compiles on its own (COMPATIBILITY.md).
+"""Writes headers.cpp: one section per installed C++ header, so each compiles on its own.
 
 Usage:
     python3 tests/package/headers.py [--check]

@@ -3,7 +3,7 @@
 A recipe for each package manager, one folder each. They are templates: `tools/release/packaging.py` fills in one
 release's version and hashes and writes the filled copies to `dist/packages/`. Nothing here is published or submitted
 anywhere, by a workflow or by hand: the filled copies are the release asset `packages-<version>.zip` on the GitHub
-Release, for you to use locally (`RELEASING.md`, Packages).
+Release, for you to use locally.
 
 | Folder | What it makes | Built from |
 |---|---|---|

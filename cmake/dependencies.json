@@ -1,5 +1,5 @@
 {
-  "$comment": "Every third-party component AffrescoUI downloads, vendors or builds with: its version, where it comes from, its SHA-256 and its SPDX licence. tools/release/sbom.py --check keeps this in step with the CMake files, the vendored files, tools/release/requirements.txt and THIRD_PARTY_NOTICES.md (RELEASING.md).",
+  "$comment": "Every third-party component AffrescoUI downloads, vendors or builds with: its version, where it comes from, its SHA-256 and its SPDX licence. tools/release/sbom.py --check keeps this in step with the CMake files, the vendored files, tools/release/requirements.txt and THIRD_PARTY_NOTICES.md.",
   "schemaVersion": 1,
   "dependencies": [
     {
