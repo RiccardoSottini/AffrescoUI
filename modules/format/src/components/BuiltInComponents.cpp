@@ -329,6 +329,8 @@ const std::map<std::string, json, std::less<>>& all() {
 		for(auto& [name, definition] : parsed.items()) made.emplace(name, std::move(definition));
 		json form = json::parse(builtInFormComponents());
 		for(auto& [name, definition] : form.items()) made.emplace(name, std::move(definition));
+		json bars = json::parse(builtInKitBars());
+		for(auto& [name, definition] : bars.items()) made.emplace(name, std::move(definition));
 		return made;
 	}();
 	return components;
