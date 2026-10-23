@@ -5,6 +5,7 @@
 
 #include "BuiltInComponents.hpp"
 #include "CheckerImpl.hpp"
+#include "KitTokens.hpp"
 
 #include "affresco/format/NodeIds.hpp"
 
@@ -383,7 +384,8 @@ std::vector<std::string> Checker::definedNames(const char* sectionName) const {
 void Checker::refer(std::string_view kind, const char* sectionName, const std::string& name, std::string_view prefix,
                     const std::string& place) {
 	if(definition(sectionName, name)) return;
-	if(std::string_view(sectionName) == "colors" && definition("tokens", name)) return; // a colour token
+	if(std::string_view(sectionName) == "colors" && (definition("tokens", name) || isKitToken(name)))
+		return; // a colour token, the document's or the kit's
 	report(place, "unknown " + std::string(kind) + " '" + std::string(prefix) + name + "'", hint([&] {
 		       std::vector<std::string> names = definedNames(sectionName);
 		       if(std::string_view(sectionName) == "colors") // the colour tokens are named too
