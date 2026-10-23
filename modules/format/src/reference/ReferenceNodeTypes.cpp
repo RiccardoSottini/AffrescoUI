@@ -298,6 +298,16 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 		"description": "path: which points are inside, nonzero (default) or evenodd"})json",
 	 R"(Which points are inside: `"nonzero"` (the default) or `"evenodd"` (a shape inside another is a hole).)",
 	 "path"},
+    {"fillGradient", R"json({"anyOf": [{"type": "object", "required": ["stops"], "additionalProperties": false,
+		"properties": {"kind": {"enum": ["linear", "radial"]}, "angle": {"type": "number"},
+		"stops": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "object",
+		"required": ["at", "color"], "properties": {"at": {"type": "number", "minimum": 0, "maximum": 1},
+		"color": {"type": "string"}}}}}}, {"type": "null"}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "path: the inside as a gradient, { kind, angle, stops }"})json",
+	 "The inside as a gradient across the node's box, in place of `fillColor`: the `gradient` node's value, `{ "
+	 "\"kind\": \"linear\" or \"radial\", \"angle\": 90, \"stops\": [{ \"at\": 0, \"color\": \"@accent\" }] }` "
+	 "(1 to 32 stops; a radial one is centred, reaching the corners).",
+	 "path"},
     {"stroke", "color", "The outline's colour; without it there is no outline.", "path"},
     {"strokeWidth", R"json({"anyOf": [{"type": "number", "minimum": 0}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "The outline's width (default 1), in the view box's units (pixels when stretched by `\"fill\"`).", "path"},

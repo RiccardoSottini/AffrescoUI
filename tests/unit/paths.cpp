@@ -6,6 +6,7 @@
 
 #include <affresco/affresco.hpp>
 #include <affresco/render/Bitmap.hpp>
+#include <affresco/render/GradientFill.hpp>
 #include <affresco/render/PathView.hpp>
 #include <affresco/render/VectorPath.hpp>
 
@@ -71,6 +72,35 @@ float coverageAt(std::span<const MeshVertex> mesh, affresco::Vec2 point) {
 		if(solid && (inside || reversed)) return 1.0f;
 	}
 	return 0.0f;
+}
+
+/// @brief The area a mesh covers, summing its quads' areas.
+/// @param mesh The mesh, 4 vertices a quad.
+/// @return The area.
+double areaOf(std::span<const MeshVertex> mesh) {
+	double area = 0.0;
+	for(std::size_t quad = 0; quad + 3 < mesh.size(); quad += 4) {
+		double twice = 0.0;
+		for(std::size_t corner = 0; corner < 4; ++corner) {
+			const affresco::Vec2 from = mesh[quad + corner].position, to = mesh[quad + (corner + 1) % 4].position;
+			twice += double(from.x) * to.y - double(to.x) * from.y;
+		}
+		area += std::abs(twice) / 2.0;
+	}
+	return area;
+}
+
+/// @brief The colour of the band that covers a point fully (skipping quads with no area, which draw nothing).
+/// @param bands The bands.
+/// @param point The point.
+/// @return Its colour, or transparent if no band covers it.
+affresco::Color bandAt(const std::vector<affresco::GradientBand>& bands, affresco::Vec2 point) {
+	for(const affresco::GradientBand& band : bands)
+		for(std::size_t quad = 0; quad + 3 < band.quads.size(); quad += 4) {
+			const std::span<const MeshVertex> one = std::span(band.quads).subspan(quad, 4);
+			if(areaOf(one) > 1e-3 && coverageAt(one, point) == 1.0f) return band.color;
+		}
+	return affresco::colors::transparent;
 }
 
 /// @brief A screen with one path node, "mark".
@@ -364,4 +394,76 @@ TEST_CASE("format: a path node applies its properties, and refuses broken ones n
 	headless->render();
 	CHECK(mark->path() == VectorPath::parse("M0 0 H24"));
 	CHECK(mark->strokeStyle().dash.empty());
+}
+
+TEST_CASE("render: a gradient fill cuts the fill into bands that cover it once, each in its colour") {
+	const std::vector<VectorPath::Contour> square = contoursOf("M0 0 H100 V100 H0 Z");
+	std::vector<MeshVertex> fill;
+	affresco::appendFill(square, FillRule::nonZero, fill, 0.0f);
+	const affresco::Color red = affresco::Color::parseHex("#ff0000").value_or(affresco::Color{});
+	const affresco::Color blue = affresco::Color::parseHex("#0000ff").value_or(affresco::Color{});
+
+	affresco::Gradient linear{affresco::Gradient::Kind::Linear, 90.0, {{0.0, red}, {1.0, blue}}};
+	std::vector<affresco::GradientBand> bands;
+	affresco::appendGradientFill(fill, linear, {0.0f, 0.0f, 100.0f, 100.0f}, bands);
+	double area = 0.0;
+	for(const affresco::GradientBand& band : bands) area += areaOf(band.quads);
+	CHECK(area == doctest::Approx(10000.0).epsilon(1e-4));
+	CHECK(bands.size() == 128);
+	const affresco::Color left = bandAt(bands, {0.2f, 50.0f}), right = bandAt(bands, {99.8f, 50.0f});
+	CHECK(left.r > 0.95f);
+	CHECK(left.b < 0.05f);
+	CHECK(right.b > 0.95f);
+	CHECK(bandAt(bands, {0.2f, 10.0f}) == left); // across its direction, one colour
+
+	affresco::Gradient radial{affresco::Gradient::Kind::Radial, 90.0, {{0.0, red}, {1.0, blue}}};
+	bands.clear();
+	affresco::appendGradientFill(fill, radial, {0.0f, 0.0f, 100.0f, 100.0f}, bands);
+	area = 0.0;
+	for(const affresco::GradientBand& band : bands) area += areaOf(band.quads);
+	CHECK(area == doctest::Approx(10000.0).epsilon(1e-4));
+	CHECK(bandAt(bands, {50.2f, 50.2f}).r > 0.95f);
+	CHECK(bandAt(bands, {0.3f, 0.3f}).b > 0.95f);
+	CHECK(bandAt(bands, {50.0f, 10.0f}) == bandAt(bands, {10.0f, 50.0f})); // the same distance, one colour
+
+	// A box with no size paints the first stop; no stops, nothing
+	bands.clear();
+	affresco::appendGradientFill(fill, radial, {0.0f, 0.0f, 0.0f, 0.0f}, bands);
+	REQUIRE(bands.size() == 1);
+	CHECK(bands[0].color == red);
+	bands.clear();
+	affresco::appendGradientFill(fill, affresco::Gradient{}, {0.0f, 0.0f, 100.0f, 100.0f}, bands);
+	CHECK(bands.empty());
+}
+
+TEST_CASE("format: a path node's fillGradient applies, and broken ones are refused naming the place") {
+	const ManualClock clock;
+	const auto headless = createHeadlessWindow(200, 200, clock);
+	affresco::Screen screen = affresco::Screen::fromString(markScreen);
+	screen.build(*headless);
+	const auto* mark = dynamic_cast<const affresco::PathView*>(screen.find("mark"));
+	REQUIRE(mark);
+	CHECK_FALSE(mark->fillGradient());
+
+	REQUIRE(screen.applyRevision(R"({"set": {"#mark/fillGradient": {"kind": "radial", "stops": [
+		{"at": 1, "color": "#ffffff"}, {"at": 0, "color": "@accent"}]}}})"));
+	headless->render();
+	REQUIRE(mark->fillGradient());
+	CHECK(mark->fillGradient()->kind == affresco::Gradient::Kind::Radial);
+	REQUIRE(mark->fillGradient()->stops.size() == 2);
+	CHECK(mark->fillGradient()->stops[0].color == affresco::Color::parseHex("#7c3aed").value_or(affresco::Color{}));
+
+	std::string error;
+	for(const std::string_view broken :
+	    {R"({"kind": "conic", "stops": [{"at": 0, "color": "#fff"}]})", R"({"stops": []})",
+	     R"({"stops": [{"at": 2, "color": "#fff"}]})", R"({"angle": "up", "stops": [{"at": 0, "color": "#fff"}]})",
+	     R"({"stops": [{"at": 0}]})", R"("red")"}) {
+		CAPTURE(broken);
+		CHECK_FALSE(screen.applyRevision(R"({"set": {"#mark/fillGradient": )" + std::string(broken) + "}}", &error));
+		CHECK(error.find("fillGradient") != std::string::npos);
+	}
+
+	REQUIRE(screen.applyRevision(R"({"remove": ["#mark/fillGradient"]})"));
+	headless->render();
+	CHECK_FALSE(mark->fillGradient());
 }

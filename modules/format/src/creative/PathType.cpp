@@ -76,6 +76,40 @@ std::vector<float> dashOf(const json& value, const std::string& at) {
 	return lengths;
 }
 
+/// @brief Reads "fillGradient": { "kind": "linear" or "radial", "angle": degrees, "stops": [{ "at", "color" }] }, with
+/// 1 to 32 stops, each at 0 to 1.
+/// @param value The gradient.
+/// @param reader Reads the stops' colours, through the theme.
+/// @param at Its place, for errors.
+/// @return The gradient, normalised.
+/// @throws DocumentError If it isn't such a gradient.
+Gradient gradientOf(const json& value, const PropertyReader& reader, const std::string& at) {
+	static constexpr std::array<std::pair<std::string_view, Gradient::Kind>, 2> kinds{
+	    {{"linear", Gradient::Kind::Linear}, {"radial", Gradient::Kind::Radial}}};
+	if(!value.is_object()) fail(at, R"(expected { "kind", "angle", "stops" })");
+	Gradient gradient;
+	if(value.contains("kind")) gradient.kind = choiceOf(value["kind"], at + ".kind", kinds, R"("linear" or "radial")");
+	if(value.contains("angle")) {
+		gradient.angle = number(value["angle"], at + ".angle");
+		if(!std::isfinite(gradient.angle)) fail(at + ".angle", "expected a finite angle");
+	}
+	const std::string stopsAt = at + ".stops";
+	if(!value.contains("stops") || !value["stops"].is_array() || value["stops"].empty() ||
+	   value["stops"].size() > maxGradientStops)
+		fail(stopsAt, "expected a list of 1 to 32 stops");
+	for(std::size_t index = 0; index < value["stops"].size(); ++index) {
+		const json& stop = value["stops"][index];
+		const std::string stopAt = stopsAt + "[" + std::to_string(index) + "]";
+		if(!stop.is_object() || !stop.contains("at") || !stop.contains("color"))
+			fail(stopAt, R"(expected { "at", "color" })");
+		const double place = number(stop["at"], stopAt + ".at");
+		if(place < 0.0 || place > 1.0) fail(stopAt + ".at", "expected a place from 0 to 1");
+		gradient.stops.push_back({place, reader.color(stop["color"], stopAt + ".color")});
+	}
+	normalizeGradient(gradient);
+	return gradient;
+}
+
 /// @brief Reads the stroke's shape: width, joins, caps and dashes.
 /// @param values The node's values.
 /// @param path The node's place, for errors.
@@ -123,6 +157,9 @@ void applyPath(Panel& panel, const json& values, const PropertyReader& reader, c
 					 : ImageFit::contain);
 	view->setFillColor(values.contains("fillColor") ? reader.color(values["fillColor"], path + ".fillColor")
 	                                                : colors::transparent);
+	view->setFillGradient(values.contains("fillGradient") && !values["fillGradient"].is_null()
+	                          ? std::optional(gradientOf(values["fillGradient"], reader, path + ".fillGradient"))
+	                          : std::nullopt);
 	view->setFillRule(values.contains("fillRule")
 	                      ? choiceOf(values["fillRule"], path + ".fillRule", rules, R"("nonzero" or "evenodd")")
 						  : FillRule::nonZero);
@@ -140,6 +177,7 @@ void registerPathType(TypeRegistry& registry) {
 	                   {"fit", ValueKind::Text},
 	                   {"fillColor", ValueKind::Color},
 	                   {"fillRule", ValueKind::Text},
+	                   {"fillGradient", ValueKind::Any},
 	                   {"stroke", ValueKind::Color},
 	                   {"strokeWidth", ValueKind::Number},
 	                   {"strokeJoin", ValueKind::Text},
