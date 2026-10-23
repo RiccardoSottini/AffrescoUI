@@ -8,12 +8,11 @@
 [![OpenGL 4.1 · ES 3.0](https://img.shields.io/badge/OpenGL-4.1%20%C2%B7%20ES%203.0-5586A4?logo=opengl&logoColor=white)](#architecture)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20Web-475569)](#quick-start)
 [![MCP](https://img.shields.io/badge/MCP-two--way-8B5CF6)](mcp/README.md)
-[![Frame time](https://img.shields.io/badge/full%20frame-0.39%20ms-10B981)](#native-performance)
+[![Frame time](https://img.shields.io/badge/full%20frame-0.44%20ms-10B981)](BENCHMARKS.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 **[Vision](#the-vision)** · **[Applications](#applications)** · **[Architecture](#architecture)** ·
-**[How it works](#how-it-works)** · **[Quick start](#quick-start)** · **[Performance](#native-performance)** ·
-**[Documentation](#documentation)**
+**[How it works](#how-it-works)** · **[Quick start](#quick-start)** · **[Documentation](#documentation)**
 
 <br/>
 
@@ -45,6 +44,33 @@ AffrescoUI applications keep evolving while they are used, shaped by the people 
   changes without your approval.
 - **Prototyping without stopping.** Every idea is tried in the running application: no rebuilding, no restarting, no
   reloading, and your work stays where it was. When the prototype is right, it is already the app.
+
+## How an application grows
+
+An application starts from a document, then **grows by being talked to**: *"add a filter to this list"*, *"make the
+sidebar collapsible"*, *"show the total in red when it's negative"*. Each request becomes a reviewed revision. A run
+of revisions becomes a **change set**, a portable file that works like a **plugin**, and whole features move between
+applications: the planetarium below reuses the presentation editor's slide sorter.
+
+```mermaid
+flowchart LR
+    app["📦 An application<br/>one live document"]
+    ask["💬 You ask<br/>'add a filter to this list'"]
+    propose["🤖 An agent proposes<br/>a revision"]
+    approve["✅ You preview,<br/>accept or reject"]
+    plugin[("🧩 Change set<br/>or feature")]
+    catalogue[("🌍 Shared<br/>others can install")]
+    app --> ask --> propose --> approve --> plugin --> catalogue
+    catalogue -. "install" .-> app
+
+    classDef step fill:#EEF2FF,stroke:#6366F1,color:#312E81
+    classDef win fill:#10B981,stroke:#047857,color:#fff
+    class app,ask,propose,approve step
+    class plugin,catalogue win
+```
+
+The direction: applications as complex as the professional tools people use every day, in one format, rendered
+natively, and shaped by the people who use them while they run.
 
 ## Applications
 
@@ -134,8 +160,8 @@ flowchart TB
   list, validating a form, filtering, drag and drop, shortcuts, navigation, calls to services) is data, so an agent
   changes it as safely as a colour.
 - **Compact for agents.** Edits address nodes by id (`{"set": {"#title/text": "Q4"}}`, stored as JSON Patch) and
-  re-reads return only what changed: a typical edit is 26 tokens, a re-read after one commit 27
-  ([Native performance](#native-performance)).
+  re-reads return only what changed: a typical edit is 24 tokens, a re-read after one commit 29
+  ([BENCHMARKS.md](BENCHMARKS.md)).
 - **Swappable layers.** Modules talk only through the interfaces in `modules/core`, and `affresco::Screen` plugs them
   together. No public header exposes OpenGL or GLFW, and each module links on its own (`affrescoui::render`,
   `affrescoui::vcs`, ...) or all together (`affrescoui::affrescoui`).
@@ -324,29 +350,6 @@ macOS, where it is developed; [web/](web/README.md) builds it for the browser. `
 tests, every application's scenarios and the rendering check, which compares each frame with a golden image, pixel
 for pixel ([tests/render/README.md](tests/render/README.md)).
 
-## Native performance
-
-Measured on an Apple M4 Pro (macOS 27.0.1, Release build) on 2026-10-23 with `python3 tests/perf/run.py --budgets`:
-
-| Workload | Target | Measured |
-|---|---:|---:|
-| A full frame | 1 ms | **0.39 ms** |
-| Typing in a 100,000-line file, key to frame (p99) | 8 ms | **2.69 ms** |
-| Scrolling a 1,000,000-line file, per frame (p99) | 8.33 ms | **0.40 ms** |
-| Quick open over 100,000 files, per keystroke | 30 ms | **2.08 ms** |
-| Expanding a 100,000-node tree | 4 ms | **0.13 ms** |
-| Opening a 50 MB file | 1 s | **161 ms** |
-| An agent's typical edit · a re-read after one commit | 40 · 150 tokens | **26 · 27 tokens** |
-
-- **Batched and incremental:** one draw call per texture switch (text, icons and small images of an atlas page share
-  it), and each frame redraws only what changed.
-- **No browser engine:** the host is an 18.6 MB native binary (stripped); the browser build is 2.2 MB of WebAssembly,
-  gzipped.
-- **Guarded in CI:** a pull request fails when a workload's instruction count grows by more than 3%, or an area's cost
-  grows faster than its recorded complexity class.
-- **Not every budget is met yet:** state changes and revisions on the largest screens, idle CPU, Forge's cold start
-  and memory are above target. Every budget, met or missed, with its method: [BENCHMARKS.md](BENCHMARKS.md).
-
 ## Use it in your app
 
 ```cpp
@@ -413,33 +416,6 @@ wraps it.
 | [COMPATIBILITY.md](COMPATIBILITY.md) | What stays stable: the format, the C++ API, the protocol and the MCP tools |
 | [SECURITY.md](SECURITY.md) | The trust model, what is protected, and how to report a vulnerability |
 | [CONTRIBUTING.md](CONTRIBUTING.md) · [CHANGELOG.md](CHANGELOG.md) | How to contribute, and what changed in each release |
-
-## Where it's going
-
-An application starts from a document, then **grows by being talked to**: *"add a filter to this list"*, *"make the
-sidebar collapsible"*, *"show the total in red when it's negative"*. Each request becomes a reviewed revision. A run
-of revisions becomes a **change set**, a portable file that works like a **plugin**, and whole features move between
-applications (Orrery's bodies strip is Sinopia's slide sorter).
-
-```mermaid
-flowchart LR
-    app["📦 An application<br/>one live document"]
-    ask["💬 You ask<br/>'add a filter to this list'"]
-    propose["🤖 An agent proposes<br/>a revision"]
-    approve["✅ You preview,<br/>accept or reject"]
-    plugin[("🧩 Change set<br/>or feature")]
-    catalogue[("🌍 Shared<br/>others can install")]
-    app --> ask --> propose --> approve --> plugin --> catalogue
-    catalogue -. "install" .-> app
-
-    classDef step fill:#EEF2FF,stroke:#6366F1,color:#312E81
-    classDef win fill:#10B981,stroke:#047857,color:#fff
-    class app,ask,propose,approve step
-    class plugin,catalogue win
-```
-
-The direction: applications as complex as the professional tools people use every day, in one format, rendered
-natively, and shaped by the people who use them while they run.
 
 ## The story
 
