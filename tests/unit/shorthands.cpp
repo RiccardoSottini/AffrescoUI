@@ -1,13 +1,17 @@
 /// @file
 /// @brief The format's shorthands: "anchors" as text ("left right:12 top:8"), each edge at 0 or at its length, and a
 /// label's "align" as two words, horizontal then vertical ("start center"); both read like their object forms, the
-/// checker accepts them and rejects a malformed one, and a revision swaps one form for the other.
+/// checker accepts them and rejects a malformed one, and a revision swaps one form for the other. A tree's "expanded"
+/// and a table's "sort" written as a state path keep their value there, before the node's own handler runs.
 
 #include "Checker.hpp"
 #include "Headless.hpp"
 #include "PropertyValues.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/render/TableView.hpp>
+#include <affresco/render/TreeView.hpp>
+#include <affresco/render/Window.hpp>
 
 #include <doctest/doctest.h>
 
@@ -15,8 +19,11 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
+using affresco::Action;
 using affresco::json;
+using affresco::MouseButton;
 using affresco::detail::createHeadlessWindow;
 using affresco::detail::ManualClock;
 
@@ -96,6 +103,24 @@ void checkFrame(const affresco::Rect& frame, float left, float top, float right,
 	CHECK(frame.bottom == doctest::Approx(bottom));
 }
 
+/// @brief Clicks a point of a window and renders it.
+/// @param window The window.
+/// @param x, y The point.
+void click(affresco::Window& window, float x, float y) {
+	window.routeMouseButton({MouseButton::Left, Action::Press, {}, {x, y}});
+	window.routeMouseButton({MouseButton::Left, Action::Release, {}, {x, y}});
+	window.render();
+}
+
+/// @brief A table's rows in the order shown, by id.
+/// @param table The table.
+/// @return The ids.
+[[nodiscard]] std::vector<std::string> shownIds(const affresco::TableView& table) {
+	std::vector<std::string> ids;
+	for(std::size_t row = 0; row < table.rowCount(); ++row) ids.push_back(table.model()->item(table.itemAt(row)).id);
+	return ids;
+}
+
 } // namespace
 
 TEST_CASE("shorthands: text anchors put each named edge at 0 or at the length after its colon") {
@@ -147,4 +172,77 @@ TEST_CASE("shorthands: a label's align as two words is horizontal then vertical,
 	json broken = label;
 	broken["root"]["children"][0]["align"] = "end middle";
 	CHECK_FALSE(builds(broken));
+}
+
+TEST_CASE("shorthands: a tree's expanded as a state path keeps the open ids there, then runs its own onExpand") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(200, 120, clock);
+	const json document =
+	    json::parse(R"({"version": 2, "state": {"files": [{"id": "src", "children": ["main"]}, "README"],
+		"ui": {}, "count": 0},
+		"actions": {"noted": {"do": [{"set": "state.count", "to": "{{state.count + 1}}"}]}},
+		"root": {"id": "root", "children": [
+			{"type": "tree", "id": "files", "width": 200, "height": 120, "items": "{{state.files}}",
+			 "expanded": "state.ui.open", "onExpand": "noted"}]}})");
+	checkClean(document);
+	auto screen = affresco::Screen::fromString(document.dump());
+	screen.build(*window);
+	window->render();
+	const auto state = [&screen] { return json::parse(screen.stateJson()); };
+	auto* tree = dynamic_cast<affresco::TreeView*>(screen.find("files"));
+	REQUIRE(tree);
+	CHECK(tree->rowCount() == 2); // nothing kept yet: none open
+
+	click(*window, 12.0f, 12.0f);
+	CHECK(state()["ui"]["open"] == json{"src"});
+	CHECK(state()["count"] == 1);
+	CHECK(tree->rowCount() == 3);
+	clock.advance(1000.0);
+	click(*window, 12.0f, 12.0f);
+	CHECK(state()["ui"]["open"] == json::array());
+	CHECK(state()["count"] == 2);
+	CHECK(tree->rowCount() == 2);
+
+	// The state opens it too, and a path that isn't plain is read as written: not ids, so it doesn't build
+	REQUIRE(screen.applyRevision(R"({"set": {"/state/ui/open": ["src"]}})"));
+	window->render();
+	CHECK(tree->rowCount() == 3);
+	for(const char* bad : {"state.ui..open", "state.", "state.ui open", "files.open"}) {
+		CAPTURE(bad);
+		json broken = document;
+		broken["root"]["children"][0]["expanded"] = bad;
+		CHECK_FALSE(builds(broken));
+	}
+}
+
+TEST_CASE("shorthands: a table's sort as a state path keeps the order there, then runs its own onSort steps") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(240, 148, clock);
+	const json document = json::parse(R"({"version": 2, "state": {"order": null, "sorted": ""},
+		"root": {"id": "root", "children": [
+			{"type": "table", "id": "files", "width": 240, "height": 148,
+			 "columns": ["Name", {"id": "size", "title": "Size", "width": 80}],
+			 "items": [{"id": "b", "cells": ["beta", 2]}, {"id": "a", "cells": ["alpha", 1]}],
+			 "sort": "state.order", "onSort": [{"set": "state.sorted", "to": "{{state.order.column}}"}]}]}})");
+	checkClean(document);
+	auto screen = affresco::Screen::fromString(document.dump());
+	screen.build(*window);
+	window->render();
+	const auto state = [&screen] { return json::parse(screen.stateJson()); };
+	auto* table = dynamic_cast<affresco::TableView*>(screen.find("files"));
+	REQUIRE(table);
+	CHECK(shownIds(*table) == std::vector<std::string>{"b", "a"}); // null: the items' order
+
+	click(*window, 60.0f, 14.0f);
+	CHECK(state()["order"] == json{{"column", "Name"}, {"descending", false}});
+	CHECK(state()["sorted"] == "Name"); // its own steps see the order kept
+	CHECK(shownIds(*table) == std::vector<std::string>{"a", "b"});
+	clock.advance(1000.0);
+	click(*window, 60.0f, 14.0f);
+	CHECK(state()["order"] == json{{"column", "Name"}, {"descending", true}});
+	CHECK(shownIds(*table) == std::vector<std::string>{"b", "a"});
+
+	REQUIRE(screen.applyRevision(R"({"set": {"/state/order": {"column": "size"}}})"));
+	window->render();
+	CHECK(shownIds(*table) == std::vector<std::string>{"a", "b"});
 }

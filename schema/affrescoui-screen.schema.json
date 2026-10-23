@@ -2259,10 +2259,14 @@
 								}
 							},
 							{
+								"type": "string",
+								"pattern": "^state\\.[A-Za-z0-9_.]+$"
+							},
+							{
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
-						"description": "tree: the ids of the open nodes"
+						"description": "tree: the ids of the open nodes, or a state path keeping them"
 					},
 					"stickyRows": {
 						"anyOf": [
@@ -2300,10 +2304,14 @@
 								}
 							},
 							{
+								"type": "string",
+								"pattern": "^state\\.[A-Za-z0-9_.]+$"
+							},
+							{
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
-						"description": "table: the order: { column, descending }, or null"
+						"description": "table: the order: { column, descending }, or null; or a state path keeping it"
 					},
 					"selection": {
 						"anyOf": [

@@ -246,9 +246,11 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "fast as through ten. At most 1,000,000 items, nested at most 256 deep.",
 	 "list"},
     {"expanded", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"type": ["string", "number"]}},
-		{"$ref": "#/$defs/v2/dynamic"}], "description": "tree: the ids of the open nodes"})json",
+		{"type": "string", "pattern": "^state\\.[A-Za-z0-9_.]+$"}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "tree: the ids of the open nodes, or a state path keeping them"})json",
 	 "On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there "
-	 "to keep them over a rebuild.",
+	 "to keep them over a rebuild. A state path (`\"expanded\": \"state.files.open\"`) does that itself: the ids are "
+	 "read from there, and kept there before `onExpand` runs.",
 	 "list"},
     {"stickyRows", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 16}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "tree: how many open folders stay pinned at the top while their rows scroll (default 0)"})json",
@@ -257,10 +259,11 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "list"},
     {"sort", R"json({"anyOf": [{"type": "null"}, {"type": "object", "required": ["column"],
 		"properties": {"column": {"type": ["string", "number"]}, "descending": {"type": "boolean"}}},
-		{"$ref": "#/$defs/v2/dynamic"}], "description": "table: the order: { column, descending }, or null"})json",
+		{"type": "string", "pattern": "^state\\.[A-Za-z0-9_.]+$"}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "table: the order: { column, descending }, or null; or a state path keeping it"})json",
 	 "On a `table`: the rows' order, `{ \"column\": id, \"descending\": false }` (or null for the items' order). A "
 	 "click on a header sorts by its column, ascending then descending, and runs `onSort`: numbers by value before "
-	 "text, equal cells in the items' order.",
+	 "text, equal cells in the items' order. A state path (`\"sort\": \"state.files.sort\"`) keeps the order there.",
 	 "list"},
     {"selection", R"json({"anyOf": [{"enum": ["none", "single", "multiple"]}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "list, tree: none, single (default) or multiple"})json",
