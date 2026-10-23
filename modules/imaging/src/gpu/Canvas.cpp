@@ -77,16 +77,45 @@ void bindTexture(int unit, unsigned texture, GLenum target = GL_TEXTURE_2D) {
 	glBindTexture(target, texture);
 }
 
-/// @brief The view a frame's parameters ask for: the zoom clamped, the centre the document's by default.
+/// @brief The view a frame's parameters ask for: the zoom clamped, the centre the document's by default. A zoom set
+/// for another scale (the "scale" parameter: pixels per window unit) is drawn at the frame's, so a capture drawn at
+/// another scale shows the same picture.
 /// @param params The frame's parameters.
 /// @param document The document.
-/// @param frame The frame, for its size.
+/// @param frame The frame, for its size and scale.
 /// @return The view.
 [[nodiscard]] CanvasView viewOf(const json& params, const Document& document, const SurfaceFrame& frame) {
-	return {std::clamp(numberOf(params, "zoom", 1.0), 1.0 / 1024.0, 256.0),
+	const double setFor = std::clamp(numberOf(params, "scale", frame.scale), 0.25, 8.0);
+	return {std::clamp(numberOf(params, "zoom", 1.0) * frame.scale / setFor, 1.0 / 1024.0, 256.0),
 	        numberOf(params, "x", document.width() * 0.5), numberOf(params, "y", document.height() * 0.5), frame.width,
 	        frame.height};
 }
+
+/// @brief Puts a model's view back when it goes, for a frame drawn at another scale than its zoom was set for (a
+/// capture): such a frame doesn't change where the canvas looks, which fitting an image reads.
+class ViewKeeper {
+public:
+	/// @brief Keeps the model's view if the frame is drawn at another scale than the parameters' zoom was set for.
+	/// @param model The model.
+	/// @param params The frame's parameters.
+	/// @param frame The frame.
+	ViewKeeper(CanvasModel& model, const json& params, const SurfaceFrame& frame)
+	    : model_(model), kept_(model.view),
+	      keep_(params.contains("scale") && numberOf(params, "scale", frame.scale) != frame.scale) {}
+	/// @brief Puts the view back, if it kept it.
+	~ViewKeeper() {
+		if(keep_) model_.view = kept_;
+	}
+	ViewKeeper(const ViewKeeper&) = delete;
+	ViewKeeper& operator=(const ViewKeeper&) = delete;
+	ViewKeeper(ViewKeeper&&) = delete;
+	ViewKeeper& operator=(ViewKeeper&&) = delete;
+
+private:
+	CanvasModel& model_; ///< The model.
+	CanvasView kept_;    ///< Its view before the frame.
+	bool keep_;          ///< Whether to put it back.
+};
 
 /// @brief Hands a frame's pointer events to the model's tools, in document coordinates.
 /// @param model The model.
@@ -410,6 +439,7 @@ void CanvasSurface::render(SurfaceFrame& frame) {
 	if(!model || layerProgram_ == 0) return; // the framebuffer is already transparent
 	const json& params = frame.params();
 	const CanvasView view = viewOf(params, model->document(), frame);
+	const ViewKeeper keeper(*model, params, frame);
 	model->view = view;
 	forwardPointers(*model, view, frame.input);
 	const Document& document = model->document(); // after the tools, which may have changed it

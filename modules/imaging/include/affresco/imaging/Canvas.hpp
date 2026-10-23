@@ -9,7 +9,9 @@
 /// empty canvas. The view (zoom, centre) and the overlays are the surface's parameters, bound to the screen's state:
 ///   zoom (1 = one document pixel per surface pixel), x and y (the document point at the centre), ants, quickMask and
 ///   checker (booleans: marching ants around the selection, the red quick mask outside it, a checkerboard under
-///   transparency; checker is on by default), and revision (any number that changes when the pixels did).
+///   transparency; checker is on by default), revision (any number that changes when the pixels did) and scale (the
+///   pixels per window unit the zoom was set for, by default the frame's: a frame drawn at another scale, such as a
+///   capture, zooms by the ratio, so it shows the same picture).
 /// The pixels never go into the screen's state: only these parameters do.
 
 #include "affresco/imaging/Color.hpp"

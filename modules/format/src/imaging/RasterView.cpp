@@ -53,6 +53,7 @@ void RasterView::imageChanged(editing::ImageDocument& image) {
 	           {"ants", true},
 	           {"quickMask", image.settings.quickMask},
 	           {"checker", look_.checker},
+	           {"scale", scale()}, // the view is in the window's pixels: a capture at another scale zooms by the ratio
 	           {"change", ++changes_}});
 	setContinuous(image.canvas->document().hasSelection()); // the ants march
 	invalidatePaint();                                      // the overlays
