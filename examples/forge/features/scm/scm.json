@@ -162,9 +162,9 @@
 			"node": {
 				"type": "column", "id": "scm-view", "width": "100%", "grow": 1, "color": "@color.sideBar", "gap": 4,
 				"children": [
-					{ "type": "row", "id": "scm-head", "width": "100%", "height": 32, "alignItems": "center",
+					{ "type": "row", "id": "scm-head", "width": "100%", "height": 35, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "scm-title", "text": "SOURCE CONTROL", "textColor": "@color.muted", "grow": 1,
+						{ "type": "label", "id": "scm-title", "text": "SOURCE CONTROL", "textColor": "@color.muted", "grow": 1, "height": 35,
 						  "padding": 12 },
 						{ "type": "label", "id": "scm-refresh", "icon": "refresh-cw", "padding": 6, "fitText": true, "cursor": "hand",
 						  "textColor": "{{state.scm.busy ? '@color.accent' : '@color.muted'}}", "tooltip": "Refresh",
@@ -177,22 +177,24 @@
 					  "padding": 12, "textColor": "@color.text",
 					  "text": "Open a folder that is a git repository to see its changes." },
 					{ "type": "label", "id": "scm-error", "when": "{{!empty(state.scm.error)}}", "icon": "circle-x", "wrap": true,
-					  "width": "100%", "padding": 8, "textColor": "@color.text", "text": "{{state.scm.error}}" },
-					{ "type": "label", "id": "scm-branch", "icon": "git-branch", "text": "{{computed.scmBranchText}}", "width": "100%",
-					  "height": 22, "padding": 8, "textColor": "@color.text", "cursor": "hand", "tooltip": "Branches",
-					  "onClick": { "run": "scmBranches" } },
-					{ "type": "textarea", "id": "scm-message", "width": "100%", "height": 26, "padding": 6, "color": "@color.input",
-					  "textColor": "@color.text", "placeholderColor": "@color.muted", "bind": "state.scm.message",
-					  "placeholder": "{{'Message (Enter to commit on ' + (state.scm.status.branch.head || 'HEAD') + ')'}}",
-					  "onSubmit": { "run": "scmCommit" } },
-					{ "type": "label", "id": "scm-commit", "icon": "check", "text": "Commit", "width": "100%", "height": 28,
-					  "align": "center", "radius": 2, "cursor": "hand", "focusable": true, "textColor": "#ffffff",
-					  "color": "{{!empty(trim(state.scm.message)) && length(state.scm.status.staged) > 0 ? '@color.accent' : '@color.border'}}",
-					  "onClick": { "run": "scmCommit" } },
+					  "width": "100%", "padding": 12, "textColor": "@color.text", "text": "{{state.scm.error}}" },
+					{ "use": "forgeInset", "height": 26, "children": [
+						{ "type": "label", "id": "scm-branch", "icon": "git-branch", "text": "{{computed.scmBranchText}}", "grow": 1,
+						  "height": 26, "textColor": "@color.text", "cursor": "hand", "tooltip": "Branches",
+						  "onClick": { "run": "scmBranches" } } ] },
+					{ "use": "forgeInset", "height": 26, "children": [
+						{ "type": "textarea", "id": "scm-message", "grow": 1, "height": 26, "padding": 6, "color": "@color.input",
+						  "textColor": "@color.text", "placeholderColor": "@color.muted", "bind": "state.scm.message",
+						  "placeholder": "{{'Message (Enter to commit on ' + (state.scm.status.branch.head || 'HEAD') + ')'}}",
+						  "onSubmit": { "run": "scmCommit" } } ] },
+					{ "use": "forgeInset", "height": 28, "children": [
+						{ "type": "label", "id": "scm-commit", "icon": "check", "text": "Commit", "grow": 1, "height": 28,
+						  "align": "center", "radius": 2, "cursor": "hand", "focusable": true, "textColor": "#ffffff", "color": "{{!empty(trim(state.scm.message)) && length(state.scm.status.staged) > 0 ? '@color.accent' : '@color.border'}}",
+						  "onClick": { "run": "scmCommit" } } ] },
 					{ "type": "row", "id": "scm-staged-head", "width": "100%", "height": 22, "alignItems": "center",
 					  "children": [
 						{ "type": "label", "id": "scm-staged-title", "text": "{{'STAGED CHANGES  ' + length(state.scm.status.staged)}}",
-						  "textColor": "@color.muted", "grow": 1, "padding": 8 },
+						  "textColor": "@color.muted", "grow": 1, "padding": 8, "height": 22 },
 						{ "type": "label", "id": "scm-unstage", "icon": "minus", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Unstage the selected change", "hover": { "textColor": "@color.text" },
 						  "onClick": { "run": "scmUnstage" } },
@@ -207,7 +209,7 @@
 					{ "type": "row", "id": "scm-changes-head", "width": "100%", "height": 22, "alignItems": "center",
 					  "children": [
 						{ "type": "label", "id": "scm-changes-title", "text": "{{'CHANGES  ' + length(state.scm.status.changes)}}",
-						  "textColor": "@color.muted", "grow": 1, "padding": 8 },
+						  "textColor": "@color.muted", "grow": 1, "padding": 8, "height": 22 },
 						{ "type": "label", "id": "scm-stage", "icon": "plus", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Stage the selected change", "hover": { "textColor": "@color.text" },
 						  "onClick": { "run": "scmStage" } },
@@ -224,7 +226,7 @@
 						{ "type": "row", "id": "scm-branch-list-head", "width": "100%", "height": 22, "alignItems": "center",
 						  "children": [
 							{ "type": "label", "id": "scm-branch-list-title", "text": "BRANCHES", "textColor": "@color.muted",
-							  "grow": 1, "padding": 8 },
+							  "grow": 1, "padding": 8, "height": 22 },
 							{ "type": "label", "id": "scm-branch-list-close", "icon": "x", "padding": 4, "fitText": true,
 							  "cursor": "hand", "textColor": "@color.muted", "tooltip": "Hide Branches",
 							  "hover": { "textColor": "@color.text" }, "onClick": { "set": "state.scm.showBranches", "to": false } }

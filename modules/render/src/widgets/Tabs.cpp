@@ -93,6 +93,8 @@ void Tabs::setColors(Color text, Color activeText, Color activeBackground, Color
 	setLook(accent_, accent);
 }
 
+void Tabs::setAccentOnTop(bool top) { setLook(accentOnTop_, top); }
+
 const Font* Tabs::font() const noexcept {
 	if(font_) return font_.get();
 	return window() ? window()->defaultFont() : nullptr;
@@ -256,7 +258,8 @@ void Tabs::paintTab(Painter& painter, const Font& font, std::size_t index) const
 	const Rect area{left, f.top, left + place.width, f.bottom};
 	if(active) {
 		painter.fillRect(area, activeBackground_);
-		painter.fillRect({area.left, area.bottom - underline, area.right, area.bottom}, accent_);
+		const float lineTop = accentOnTop_ ? area.top : area.bottom - underline;
+		painter.fillRect({area.left, lineTop, area.right, lineTop + underline}, accent_);
 	}
 	const float baseline = std::round(f.top + (f.height() - font.lineHeight()) / 2.0f + font.ascent());
 	painter.drawText(font, place.text, {left + padding, baseline}, active ? activeText_ : text_);

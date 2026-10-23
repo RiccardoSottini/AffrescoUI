@@ -313,3 +313,23 @@ TEST_CASE("format: the checker knows the built-in components, and a document's o
 	settle(*window, clock, screen);
 	CHECK(screen.find("m"));
 }
+
+TEST_CASE("format: a component that uses another one passes it its parameters, and the defaults see the use's") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"components": {
+			"field": { "params": { "name": "", "hint": "{{name}} here" },
+			           "node": { "type": "label", "id": "field-{{name}}", "text": "{{hint}}" } },
+			"row": { "params": { "query": "" },
+			         "node": { "id": "row-{{query}}", "use": "field", "with": { "name": "{{query}}-inner" } } }
+		},
+		"root": { "id": "root", "children": [{ "use": "row", "with": { "query": "query" } }] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+	auto* label = dynamic_cast<affresco::Label*>(screen.find("row-query"));
+	REQUIRE(label);
+	CHECK(label->text() == "query-inner here");
+}

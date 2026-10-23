@@ -67,6 +67,12 @@ public:
 	/// @param activeBackground The active tab's background.
 	/// @param accent The line under the active tab, the markers and the drop indicator.
 	void setColors(Color text, Color activeText, Color activeBackground, Color accent);
+	/// @brief Sets which edge of the active tab its accent line is on.
+	/// @param top The top edge; false (the default) for the bottom one.
+	void setAccentOnTop(bool top);
+	/// @brief Whether the accent line is on the active tab's top edge.
+	/// @return True for the top edge, false for the bottom one.
+	bool accentOnTop() const { return accentOnTop_; }
 
 	/// @brief Where a tab dropped at a point would go.
 	/// @param position In window units.
@@ -132,6 +138,7 @@ private:
 	Color activeText_ = colors::black;         ///< See setColors().
 	Color activeBackground_ = colors::white;   ///< See setColors().
 	Color accent_ = colors::accent;            ///< See setColors().
+	bool accentOnTop_ = false;                 ///< See setAccentOnTop().
 	float scroll_ = 0.0f;                      ///< See scrollPosition().
 	float contentWidth_ = 0.0f;                ///< All the tabs' width.
 	std::size_t hovered_ = 0;                  ///< The tab under the pointer, or tabs_.size().

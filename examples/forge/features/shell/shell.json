@@ -36,6 +36,8 @@
 		],
 		"showExplorer": { "title": "Show Explorer", "category": "View", "icon": "files",
 			"do": [{ "run": "forgeShowView", "with": { "view": "explorer" } }] },
+		"showSearch": { "title": "Show Search", "category": "View", "icon": "search",
+			"do": [{ "run": "forgeShowView", "with": { "view": "search" } }] },
 		"togglePanel": { "title": "Toggle Panel", "category": "View", "icon": "panel-bottom",
 			"do": [{ "toggle": "state.layout.panel" }] },
 		"toggleZen": { "title": "Toggle Zen Mode", "category": "View", "icon": "maximize",
@@ -133,48 +135,45 @@
 				]
 			}
 		},
+		"forgeActivityItem": {
+			"params": { "view": "", "icon": "", "label": "", "tip": "" },
+			"node": {
+				"type": "row", "id": "activity-{{view}}", "role": "tab", "label": "{{label}}", "selected": "{{state.layout.sidebar && state.sideView == view}}",
+				"width": 48, "height": 48, "cursor": "hand", "tooltip": "{{tip}}",
+				"children": [
+					{ "id": "activity-{{view}}-indicator", "width": 2, "height": 48,
+					  "color": "{{state.layout.sidebar && state.sideView == view ? '@color.text' : '@color.activityBar'}}" },
+					{ "type": "label", "icon": "{{icon}}", "font": "iconsLarge", "width": 44, "height": 48, "align": "center",
+					  "textColor": "{{state.layout.sidebar && state.sideView == view ? '@color.text' : '@color.muted'}}", "hover": { "textColor": "@color.text" } }
+				]
+			}
+		},
 		"forgeActivityBar": {
 			"node": {
 				"type": "column", "id": "activity-bar", "role": "tablist", "label": "Activity Bar", "width": 48, "height": "100%", "color": "@color.activityBar",
-				"alignItems": "center",
 				"children": [
-					{ "type": "label", "id": "activity-explorer", "role": "tab", "label": "Explorer",
-					  "selected": "{{state.layout.sidebar && state.sideView == 'explorer'}}", "icon": "files", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Explorer (Cmd+B)",
-					  "textColor": "{{state.layout.sidebar && state.sideView == 'explorer' ? '@color.text' : '@color.muted'}}",
+					{ "use": "forgeActivityItem", "with": { "view": "explorer", "icon": "files", "label": "Explorer", "tip": "Explorer (Cmd+Shift+E)" },
 					  "onClick": { "run": "showExplorer" } },
-					{ "type": "label", "id": "activity-search", "role": "button", "label": "Go to File", "icon": "search", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Go to File (Cmd+P)", "textColor": "@color.muted",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "quickOpen" } },
-					{ "type": "label", "id": "activity-problems", "role": "button", "label": "Problems", "icon": "alert-triangle", "font": "iconsLarge", "width": 48,
-					  "height": 48, "align": "center", "cursor": "hand", "tooltip": "Problems", "textColor": "@color.muted",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showProblems" } },
-					{ "type": "label", "id": "activity-scm", "role": "tab", "label": "Source Control",
-					  "selected": "{{state.layout.sidebar && state.sideView == 'scm'}}", "icon": "git-branch", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Source Control (Cmd+Shift+G)",
-					  "textColor": "{{state.layout.sidebar && state.sideView == 'scm' ? '@color.text' : '@color.muted'}}",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showSourceControl" } },
-					{ "type": "label", "id": "activity-debug", "role": "tab", "label": "Run and Debug",
-					  "selected": "{{state.layout.sidebar && state.sideView == 'debug'}}", "icon": "bug", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Run and Debug (Cmd+Shift+D)",
-					  "textColor": "{{state.layout.sidebar && state.sideView == 'debug' ? '@color.text' : '@color.muted'}}",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showDebug" } },
-										{ "type": "label", "id": "activity-agent", "role": "tab", "label": "Agent",
-					  "selected": "{{state.layout.sidebar && state.sideView == 'agent'}}", "icon": "bot", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Agent (Cmd+Alt+I)",
-					  "textColor": "{{state.layout.sidebar && state.sideView == 'agent' ? '@color.text' : '@color.muted'}}",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showAgent" } },
-					{ "type": "label", "id": "activity-features", "role": "tab", "label": "Features",
-					  "selected": "{{state.layout.sidebar && state.sideView == 'features'}}", "icon": "blocks", "font": "iconsLarge", "width": 48, "height": 48,
-					  "align": "center", "cursor": "hand", "tooltip": "Features (Cmd+Shift+X)",
-					  "textColor": "{{state.layout.sidebar && state.sideView == 'features' ? '@color.text' : '@color.muted'}}",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showFeatures" } },
+					{ "use": "forgeActivityItem", "with": { "view": "search", "icon": "search", "label": "Search", "tip": "Search (Cmd+Shift+F)" },
+					  "onClick": { "run": "showSearch" } },
+					{ "use": "forgeActivityItem", "with": { "view": "scm", "icon": "git-branch", "label": "Source Control", "tip": "Source Control (Cmd+Shift+G)" },
+					  "onClick": { "run": "showSourceControl" } },
+					{ "use": "forgeActivityItem", "with": { "view": "debug", "icon": "bug", "label": "Run and Debug", "tip": "Run and Debug (Cmd+Shift+D)" },
+					  "onClick": { "run": "showDebug" } },
+					{ "use": "forgeActivityItem", "with": { "view": "features", "icon": "blocks", "label": "Features", "tip": "Features (Cmd+Shift+X)" },
+					  "onClick": { "run": "showFeatures" } },
+					{ "use": "forgeActivityItem", "with": { "view": "agent", "icon": "bot", "label": "Agent", "tip": "Agent (Cmd+Alt+I)" },
+					  "onClick": { "run": "showAgent" } },
 					{ "id": "activity-gap", "grow": 1 },
 					{ "type": "label", "id": "activity-settings", "role": "button", "label": "Settings", "icon": "settings", "font": "iconsLarge", "width": 48, "height": 48,
 					  "align": "center", "cursor": "hand", "tooltip": "Settings (Cmd+,)", "textColor": "@color.muted",
 					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "openSettings" } }
 				]
 			}
+		},
+		"forgeViewTitle": {
+			"params": { "text": "" },
+			"node": { "type": "label", "text": "{{text}}", "textColor": "@color.muted", "width": "100%", "height": 35, "padding": 12 }
 		},
 		"forgeSideBar": {
 			"node": {
@@ -184,8 +183,8 @@
 					{ "when": "{{state.sideView == 'debug'}}", "use": "forgeDebugView" },
 					{ "when": "{{state.sideView == 'agent'}}", "use": "forgeAgentView" },
 					{ "when": "{{state.sideView == 'features'}}", "use": "forgeFeaturesView" },
-					{ "type": "label", "id": "side-bar-title", "when": "{{state.sideView == 'explorer'}}", "text": "EXPLORER", "textColor": "@color.muted", "width": "100%",
-					  "height": 32, "padding": 12 },
+					{ "when": "{{state.sideView == 'search'}}", "use": "forgeSearchPage" },
+					{ "when": "{{state.sideView == 'explorer'}}", "use": "forgeViewTitle", "with": { "text": "EXPLORER" }, "id": "side-bar-title" },
 					{ "type": "label", "id": "side-bar-folder", "when": "{{state.sideView == 'explorer' && !empty(state.folder.root)}}", "icon": "chevron-down",
 					  "text": "{{upper(computed.folderName)}}", "textColor": "@color.text", "width": "100%", "height": 22,
 					  "padding": 6 },

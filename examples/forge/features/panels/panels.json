@@ -81,9 +81,9 @@
 						{ "type": "tabs", "id": "panel-tabs", "role": "tablist", "label": "Panel Views", "width": 420, "height": 32, "bind": "state.panelTab",
 						  "color": "@color.panel", "textColor": "@color.muted", "activeTextColor": "@color.text",
 						  "activeBackground": "@color.panel", "accentColor": "@color.accent",
-						  "tabs": "{{concat([{id: 'problems', label: 'Problems' + (length(state.problems) > 0 ? ' ' + length(state.problems) : ''), closable: false}, {id: 'output', label: 'Output', closable: false}, {id: 'notifications', label: 'Notifications', closable: false}], length(state.terminals.list) > 0 ? [{id: 'terminal', label: 'Terminal', closable: false}] : [], [{id: 'debugConsole', label: 'Debug Console', closable: false}])}}" },
+						  "tabs": "{{concat([{id: 'problems', label: 'PROBLEMS' + (length(state.problems) > 0 ? ' ' + length(state.problems) : ''), closable: false}, {id: 'output', label: 'OUTPUT', closable: false}, {id: 'debugConsole', label: 'DEBUG CONSOLE', closable: false}], length(state.terminals.list) > 0 ? [{id: 'terminal', label: 'TERMINAL', closable: false}] : [], [{id: 'notifications', label: 'NOTIFICATIONS', closable: false}])}}" },
 						{ "id": "panel-gap", "grow": 1 },
-						{ "type": "label", "id": "panel-close", "role": "button", "icon": "x", "textColor": "@color.muted", "padding": 8,
+						{ "type": "label", "id": "panel-close", "role": "button", "icon": "x", "font": "icons", "textColor": "@color.muted", "padding": 8,
 						  "fitText": true, "cursor": "hand", "tooltip": "Close Panel", "hover": { "color": "@color.hover" },
 						  "onClick": { "run": "togglePanel" } }
 					  ] },

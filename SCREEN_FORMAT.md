@@ -453,6 +453,7 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
 | `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most 10,000; the strip scrolls sideways when they don't fit. |
 | `value` | The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`. |
 | `textColor`, `activeTextColor`, `activeBackground`, `accentColor` | The labels' colour (default muted), the active tab's, its background and its line. |
+| `accentEdge` | The edge of the active tab its accent line is on: `bottom` (default) or `top`. |
 <!-- end generated -->
 
 ```json

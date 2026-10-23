@@ -243,6 +243,7 @@
 								"textColor": "@color.muted",
 								"activeTextColor": "@color.text",
 								"activeBackground": "@color.tabActive",
+								"accentEdge": "top",
 								"accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
 								"tabs": "{{map(g.tabs, merge(it, {label: it.preview ? it.label + ' (preview)' : it.label, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky}))}}",
 								"onClose": { "run": "closeTab", "with": { "gi": "{{gi}}", "id": "{{event.id}}" } },
@@ -323,7 +324,6 @@
 									{ "when": "{{state.docs[d].kind == 'keybindings'}}", "use": "forgeKeybindingsPage" },
 									{ "when": "{{state.docs[d].kind == 'settingsJson'}}", "use": "forgeSettingsJsonPage" },
 									{ "when": "{{state.docs[d].kind == 'keybindingsJson'}}", "use": "forgeKeybindingsJsonPage" },
-									{ "when": "{{state.docs[d].kind == 'search'}}", "use": "forgeSearchPage" },
 									{ "when": "{{state.docs[d].kind == 'diff'}}", "use": "forgeDiffEditor", "with": { "d": "{{d}}" } },
 									{ "when": "{{state.docs[d].kind == 'debugSource'}}", "use": "forgeDebugSource", "with": { "doc": "{{state.docs[d]}}" } }
 								]

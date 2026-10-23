@@ -75,11 +75,11 @@
 			  "children": [
 				{ "when": "{{!state.layout.zen && settings.workbench.activityBar.visible}}", "use": "forgeActivityBar" },
 				{ "type": "split", "id": "main-split", "grow": 1, "height": "100%", "bind": "state.layout.sizes", "minSize": 170,
-				  "sashSize": 4, "sashColor": "@color.border", "sashActiveColor": "@color.accent",
+				  "sashSize": 1, "sashColor": "@color.border", "sashActiveColor": "@color.accent",
 				  "children": [
 					{ "visible": "{{state.layout.sidebar && !state.layout.zen}}", "use": "forgeSideBar" },
 					{ "type": "split", "id": "editor-split", "direction": "column", "bind": "state.layout.panelSizes", "minSize": 100,
-					  "sashSize": 4, "sashColor": "@color.border", "sashActiveColor": "@color.accent",
+					  "sashSize": 1, "sashColor": "@color.border", "sashActiveColor": "@color.accent",
 					  "children": [
 						{ "use": "forgeEditors" },
 						{ "visible": "{{state.layout.panel && !state.layout.zen}}", "use": "forgePanel" }

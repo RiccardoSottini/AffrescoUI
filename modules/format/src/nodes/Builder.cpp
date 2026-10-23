@@ -198,7 +198,8 @@ json Builder::instantiateComponent(const json& use, const std::string& path) con
 		if(key != "use" && key != "with" && key != "children") result[key] = value;
 
 	// Parameters: what the use passes first (evaluated in the caller's scope), then the defaults it left out, which
-	// see them. A node that has a "with" of its own (a component that uses another one) keeps it after them.
+	// see them. A node that has a "with" of its own (a component that uses another one) keeps it after them, in the same
+	// scope: its names replace the component's, so they should differ.
 	json with = use.contains("with") ? object(use["with"], path + ".with") : json::object();
 	if(component.contains("params"))
 		for(const auto& [key, value] : object(component["params"], "components." + name + ".params").items())

@@ -321,6 +321,12 @@ TEST_CASE("split and tabs nodes: sizes and the active tab bound to state, close 
 	CHECK(error.find("direction") != std::string::npos);
 	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/tabs": [{ "label": "no id" }]}})", &error));
 	CHECK(error.find("id") != std::string::npos);
+	CHECK_FALSE(tabs->accentOnTop());
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/accentEdge": "left"}})", &error));
+	CHECK(error.find("accentEdge") != std::string::npos);
+	REQUIRE(screen.applyRevision(R"({"set": {"#strip/accentEdge": "top"}})", &error));
+	window->render();
+	CHECK(tabs->accentOnTop());
 	REQUIRE(screen.applyRevision(R"({"set": {"#panes/direction": "column"}})", &error));
 	window->render();
 	CHECK(split->direction() == Split::Direction::Column);
