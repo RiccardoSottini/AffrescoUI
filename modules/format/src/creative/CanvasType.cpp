@@ -150,7 +150,8 @@ void applyLevels(CanvasView& canvas, const json& values, const std::string& path
 	for(auto& [child, levels] : wanted) canvas.setLevels(child, std::move(levels));
 }
 
-/// @brief Sets a canvas from its node: items, levels of detail, grid, snapping, rulers and accent colour.
+/// @brief Sets a canvas from its node: items, levels of detail, grid, snapping, rulers, scaled children and accent
+/// colour.
 /// @param panel The panel, a CanvasView.
 /// @param values Its values, if given.
 /// @param reader Reads colours and fonts.
@@ -163,6 +164,8 @@ void applyCanvas(Panel& panel, const json& values, const PropertyReader& reader,
 	canvas->setGrid(values.contains("grid") ? within(values["grid"], path + ".grid", 0.0f, 1e6f) : 0.0f);
 	canvas->setSnap(!values.contains("snap") || boolean(values["snap"], path + ".snap"));
 	canvas->setRulers(!values.contains("rulers") || boolean(values["rulers"], path + ".rulers"));
+	canvas->setScaleChildren(values.contains("scaleChildren") &&
+	                         boolean(values["scaleChildren"], path + ".scaleChildren"));
 	canvas->setAccentColor(values.contains("accentColor") ? reader.color(values["accentColor"], path + ".accentColor")
 	                                                      : colors::accent);
 }
@@ -282,9 +285,11 @@ void stopListeningToCanvasEvents(Panel& panel, const EventConnections& connectio
 
 void registerCanvasType(TypeRegistry& registry) {
 	const auto set = std::make_shared<PropertySet>();
-	set->properties = {{"bind", ValueKind::StatePath}, {"view", ValueKind::Any},    {"items", ValueKind::Any},
-	                   {"lod", ValueKind::Any},        {"grid", ValueKind::Number}, {"snap", ValueKind::Boolean},
-	                   {"rulers", ValueKind::Boolean}, {"font", ValueKind::Font},   {"accentColor", ValueKind::Color}};
+	set->properties = {{"bind", ValueKind::StatePath}, {"view", ValueKind::Any},
+	                   {"items", ValueKind::Any},      {"lod", ValueKind::Any},
+	                   {"grid", ValueKind::Number},    {"snap", ValueKind::Boolean},
+	                   {"rulers", ValueKind::Boolean}, {"scaleChildren", ValueKind::Boolean},
+	                   {"font", ValueKind::Font},      {"accentColor", ValueKind::Color}};
 	set->apply = applyCanvas;
 	set->everyUpdate = false; // up to 10,000 items: read again only when the values change
 	set->keepsClicks = true;

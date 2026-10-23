@@ -2584,6 +2584,9 @@
 					"rulers": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"scaleChildren": {
+						"$ref": "#/$defs/v2/flag"
+					},
 					"nodes": {
 						"anyOf": [
 							{

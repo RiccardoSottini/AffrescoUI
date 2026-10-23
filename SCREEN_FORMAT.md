@@ -622,7 +622,8 @@ smart guides drawn while dragging. Rulers along the top and left follow the zoom
 dragging a guide back onto it removes it. The canvas doesn't move anything itself: it runs `onTransform` with where
 the items should go, and the document applies it. `items` are drawn by the canvas, only those in view, so thousands
 cost what is on screen; an application with more (up to a million) gives them through a model. The selection is
-announced as a state of the canvas ("3 selected").
+announced as a state of the canvas ("3 selected"). With `scaleChildren` the children are drawn at the camera's zoom,
+text included, like a slide or a page in a drawing app, and a single selected child can be rotated by its handle.
 
 <!-- generated: canvas -->
 | Key | Meaning |
@@ -633,6 +634,7 @@ announced as a state of the canvas ("3 selected").
 | `grid` | World units between grid lines (default 0: none); drawn when the lines are far enough apart, and snapped to. |
 | `snap` | Moves and resizes snap to the grid, other items' edges and centres, and guides (default true). |
 | `rulers` | Rulers along the top and left, in world units; dragging out of one makes a guide (default true). |
+| `scaleChildren` | Children are drawn at the camera's zoom, text and all, like a page in a drawing app, and can be rotated by their handle (default false: their rectangles scale while their text keeps its size). |
 | `font` | The items' text font (default `default`), in a few sizes. |
 | `accentColor` | The selection, the marquee, the handles and the guides. |
 <!-- end generated -->

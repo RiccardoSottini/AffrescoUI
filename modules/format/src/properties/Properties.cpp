@@ -231,9 +231,13 @@ void Properties::showValue(Panel& panel, Record& record) const {
 void Properties::showWidgetValue(Panel& panel, Record& record, const json* bound) {
 	if(std::ranges::none_of(record.sets, [](const auto& set) { return set && set->value.show; })) return;
 	json shown = json::object(); // what the value hooks read
-	for(const std::string_view key : valueKeys)
+	const auto read = [&](std::string_view key) {
 		if(const CompiledProperty* property = record.node->find(key))
 			shown[std::string(key)] = CompiledNode::valueOf(*property, record.values);
+	};
+	for(const std::string_view key : valueKeys) read(key);
+	for(const auto& set : record.sets) // a type's own value key, e.g. a canvas's "view"
+		if(set && set->value.show && set->value.property) read(set->value.property);
 	for(const auto& set : record.sets)
 		if(set && set->value.show) set->value.show(panel, bound, shown, record.lastText);
 }

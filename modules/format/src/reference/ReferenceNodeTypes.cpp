@@ -378,6 +378,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "canvas"},
     {"rulers", "flag",
 	 "Rulers along the top and left, in world units; dragging out of one makes a guide (default true).", "canvas"},
+    {"scaleChildren", "flag",
+	 "Children are drawn at the camera's zoom, text and all, like a page in a drawing app, and can be rotated by "
+	 "their handle (default false: their rectangles scale while their text keeps its size).",
+	 "canvas"},
     {"font", "", "The items' text font (default `default`), in a few sizes.", "canvas"},
     {"accentColor", "", "The selection, the marquee, the handles and the guides.", "canvas"},
     {"nodes", R"json({"anyOf": [{"type": "array", "maxItems": 10000, "items": {"type": "object", "required": ["id"]}},
