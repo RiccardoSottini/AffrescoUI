@@ -3535,7 +3535,7 @@
 															"left": 16,
 															"right": "{{computed.prSide ? 200 : 16}}",
 															"top": 122,
-															"bottom": "{{state.prTab == 'conversation' ? 60 + computed.mergeBoxHeight : 52}}"
+															"bottom": 52
 														},
 														"scroll": "vertical",
 														"children": [
@@ -3974,6 +3974,139 @@
 																"when": "{{state.prTab == 'checks'}}"
 															},
 															{
+																"id": "mergeBox",
+																"note": "The merge box: whether the chosen proposal can merge, what it needs, and the merge button",
+																"color": "@color.card",
+																"radius": "@radius.chip",
+																"borderWidth": 1,
+																"borderColor": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'changes' || computed.mergeState == 'failing' ? '@color.bad' : '@color.border')}}",
+																"anchors": {
+																	"left": 0,
+																	"right": 12
+																},
+																"height": "{{computed.mergeBoxHeight}}",
+																"children": [
+																	{
+																		"id": "mergeIcon",
+																		"type": "label",
+																		"icon": "{{computed.mergeState == 'ready' ? 'git-merge' : (computed.mergeState == 'merging' ? 'git-pull-request' : (computed.mergeState == 'conflict' ? 'alert-triangle' : (computed.mergeState == 'changes' ? 'file-pen-line' : (computed.mergeState == 'review' ? 'circle-dot' : 'circle-x'))))}}",
+																		"textColor": "#ffffff",
+																		"color": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'merging' ? '@color.accent' : (computed.mergeState == 'conflict' ? '@color.muted' : (computed.mergeState == 'changes' || computed.mergeState == 'failing' ? '@color.bad' : '@color.warn')))}}",
+																		"radius": 16,
+																		"anchors": {
+																			"left": 12,
+																			"top": 16
+																		},
+																		"width": 32,
+																		"height": 32,
+																		"align": "center"
+																	},
+																	{
+																		"id": "mergeTitle",
+																		"type": "label",
+																		"font": "heading",
+																		"textColor": "@color.text",
+																		"text": "{{t('review.mergeTitle', {state: computed.mergeState})}}",
+																		"anchors": {
+																			"left": 56,
+																			"right": 232,
+																			"top": 10
+																		},
+																		"height": 22
+																	},
+																	{
+																		"id": "mergeDetail",
+																		"style": "caption",
+																		"fitText": false,
+																		"when": "{{computed.refusal == '' && empty(computed.current.remember)}}",
+																		"text": "{{computed.mergeState == 'changes' ? t('review.changesBy', {who: join(computed.prChanges, ', ')}) : (computed.mergeState == 'failing' ? t('review.failing', {n: computed.prFailing, total: length(computed.evidence.scenarios)}) : t('review.mergeNeeds', {policy: computed.current.policy ?? '', n: length(computed.current.approvals ?? [])}))}}",
+																		"anchors": {
+																			"left": 56,
+																			"right": 232,
+																			"top": 36
+																		},
+																		"height": 16
+																	},
+																	{
+																		"id": "label-remember",
+																		"when": "{{!empty(computed.current.remember)}}",
+																		"style": "caption",
+																		"text": "{{t('review.remember', {rules: join(computed.current.remember, ', ')})}}",
+																		"anchors": {
+																			"left": 56,
+																			"right": 232,
+																			"top": 36
+																		},
+																		"fitText": false,
+																		"height": 16
+																	},
+																	{
+																		"id": "acceptRefusal",
+																		"when": "{{computed.refusal != '' && computed.refusal != 'none'}}",
+																		"type": "label",
+																		"font": "small",
+																		"role": "status",
+																		"live": "polite",
+																		"text": "{{t('review.refusal', {why: computed.refusal})}}",
+																		"textColor": "{{computed.mergeState == 'conflict' ? '@color.muted' : '@color.warn'}}",
+																		"wrap": true,
+																		"anchors": {
+																			"left": 56,
+																			"right": 16,
+																			"top": 34
+																		},
+																		"height": 22,
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "center"
+																		}
+																	},
+																	{
+																		"id": "label-accept",
+																		"style": "{{computed.mergeState == 'ready' ? 'goodButton' : 'smallButton'}}",
+																		"text": "{{t('review.merge')}}",
+																		"icon": "git-merge",
+																		"anchors": {
+																			"right": 16,
+																			"top": 16
+																		},
+																		"width": 150,
+																		"onClick": {
+																			"run": "accept",
+																			"with": {
+																				"always": false
+																			}
+																		},
+																		"when": "{{computed.canAccept || computed.mergeState == 'conflict'}}",
+																		"label": "{{t('review.merge')}}",
+																		"tooltip": "{{t('review.acceptTip')}}",
+																		"disabled": "{{computed.mergeHeld}}",
+																		"textColor": "{{computed.mergeState == 'ready' ? '@color.goodText' : (computed.mergeHeld ? '@color.muted' : '@color.text')}}",
+																		"cursor": "{{computed.mergeHeld ? 'arrow' : 'hand'}}"
+																	},
+																	{
+																		"id": "label-always-allow",
+																		"when": "{{computed.canAccept && !empty(computed.current.remember)}}",
+																		"style": "smallButton",
+																		"text": "{{t('review.always')}}",
+																		"anchors": {
+																			"right": 16,
+																			"top": 56
+																		},
+																		"width": 150,
+																		"onClick": {
+																			"run": "accept",
+																			"with": {
+																				"always": true
+																			}
+																		},
+																		"tooltip": "{{t('review.alwaysTip', {rules: join(computed.current.remember, ', ')})}}",
+																		"label": "{{t('review.always')}}"
+																	}
+																],
+																"when": "{{state.prTab == 'conversation'}}"
+															},
+															{
 																"id": "reviewBox",
 																"note": "Add a comment: it goes to the agents as a request; reviews are on Files changed",
 																"when": "{{state.prTab == 'conversation'}}",
@@ -3993,17 +4126,57 @@
 																		}
 																	},
 																	{
-																		"id": "reviewDraft",
-																		"style": "input",
-																		"bind": "state.reviewDraft",
-																		"placeholder": "{{t('review.reviewPlaceholder')}}",
-																		"label": "{{t('review.reviewTitle')}}",
+																		"id": "reviewDraft-box",
+																		"note": "The text box drawn around the editor, with its hint while empty",
+																		"color": "@color.input",
+																		"radius": "@radius.chip",
+																		"borderWidth": 0,
 																		"anchors": {
 																			"left": 12,
 																			"right": 12,
 																			"top": 30
 																		},
-																		"height": 48
+																		"height": 48,
+																		"children": [
+																			{
+																				"id": "label-reviewDraft-hint",
+																				"type": "label",
+																				"font": "small",
+																				"textColor": "@color.muted",
+																				"text": "{{t('review.reviewPlaceholder')}}",
+																				"when": "{{empty(state.reviewDraft)}}",
+																				"anchors": {
+																					"left": 10,
+																					"top": 8
+																				},
+																				"height": 18,
+																				"fitText": true
+																			}
+																		]
+																	},
+																	{
+																		"id": "reviewDraft",
+																		"type": "editor",
+																		"bind": "state.reviewDraft",
+																		"label": "{{t('review.reviewTitle')}}",
+																		"wrap": true,
+																		"font": "small",
+																		"color": "transparent",
+																		"lineColor": "transparent",
+																		"textColor": "@color.text",
+																		"caretColor": "@color.text",
+																		"anchors": {
+																			"left": 12,
+																			"right": 12,
+																			"top": 30
+																		},
+																		"height": 48,
+																		"borderWidth": 1,
+																		"borderColor": "@color.border",
+																		"radius": "@radius.chip",
+																		"focused": {
+																			"borderColor": "@color.accent"
+																		}
 																	},
 																	{
 																		"id": "label-reject",
@@ -4059,7 +4232,7 @@
 														"anchors": {
 															"right": 16,
 															"top": 130,
-															"bottom": 124
+															"bottom": 52
 														},
 														"width": 168,
 														"children": [
@@ -4145,140 +4318,6 @@
 														]
 													},
 													{
-														"id": "mergeBox",
-														"note": "The merge box: whether the chosen proposal can merge, what it needs, and the merge button",
-														"color": "@color.card",
-														"radius": "@radius.chip",
-														"borderWidth": 1,
-														"borderColor": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'changes' || computed.mergeState == 'failing' ? '@color.bad' : '@color.border')}}",
-														"anchors": {
-															"left": 16,
-															"right": "{{computed.prSide ? 200 : 16}}",
-															"bottom": 52
-														},
-														"height": "{{computed.mergeBoxHeight}}",
-														"children": [
-															{
-																"id": "mergeIcon",
-																"type": "label",
-																"icon": "{{computed.mergeState == 'ready' ? 'git-merge' : (computed.mergeState == 'merging' ? 'git-pull-request' : (computed.mergeState == 'conflict' ? 'alert-triangle' : (computed.mergeState == 'changes' ? 'file-pen-line' : (computed.mergeState == 'review' ? 'circle-dot' : 'circle-x'))))}}",
-																"textColor": "#ffffff",
-																"color": "{{computed.mergeState == 'ready' ? '@color.good' : (computed.mergeState == 'merging' ? '@color.accent' : (computed.mergeState == 'conflict' ? '@color.muted' : (computed.mergeState == 'changes' || computed.mergeState == 'failing' ? '@color.bad' : '@color.warn')))}}",
-																"radius": 16,
-																"anchors": {
-																	"left": 12,
-																	"top": 16
-																},
-																"width": 32,
-																"height": 32,
-																"align": "center"
-															},
-															{
-																"id": "mergeTitle",
-																"type": "label",
-																"font": "heading",
-																"textColor": "@color.text",
-																"text": "{{t('review.mergeTitle', {state: computed.mergeState})}}",
-																"anchors": {
-																	"left": 56,
-																	"right": 232,
-																	"top": 10
-																},
-																"height": 22
-															},
-															{
-																"id": "mergeDetail",
-																"style": "caption",
-																"fitText": false,
-																"when": "{{computed.refusal == '' && empty(computed.current.remember)}}",
-																"text": "{{computed.mergeState == 'changes' ? t('review.changesBy', {who: join(computed.prChanges, ', ')}) : (computed.mergeState == 'failing' ? t('review.failing', {n: computed.prFailing, total: length(computed.evidence.scenarios)}) : t('review.mergeNeeds', {policy: computed.current.policy ?? '', n: length(computed.current.approvals ?? [])}))}}",
-																"anchors": {
-																	"left": 56,
-																	"right": 232,
-																	"top": 36
-																},
-																"height": 16
-															},
-															{
-																"id": "label-remember",
-																"when": "{{!empty(computed.current.remember)}}",
-																"style": "caption",
-																"text": "{{t('review.remember', {rules: join(computed.current.remember, ', ')})}}",
-																"anchors": {
-																	"left": 56,
-																	"right": 232,
-																	"top": 36
-																},
-																"fitText": false,
-																"height": 16
-															},
-															{
-																"id": "acceptRefusal",
-																"when": "{{computed.refusal != '' && computed.refusal != 'none'}}",
-																"type": "label",
-																"font": "small",
-																"role": "status",
-																"live": "polite",
-																"text": "{{t('review.refusal', {why: computed.refusal})}}",
-																"textColor": "{{computed.mergeState == 'conflict' ? '@color.muted' : '@color.warn'}}",
-																"wrap": true,
-																"anchors": {
-																	"left": 56,
-																	"right": 16,
-																	"top": 34
-																},
-																"height": 22,
-																"align": {
-																	"horizontal": "start",
-																	"vertical": "center"
-																}
-															},
-															{
-																"id": "label-accept",
-																"style": "{{computed.mergeState == 'ready' ? 'goodButton' : 'smallButton'}}",
-																"text": "{{t('review.merge')}}",
-																"icon": "git-merge",
-																"anchors": {
-																	"right": 16,
-																	"top": 16
-																},
-																"width": 150,
-																"onClick": {
-																	"run": "accept",
-																	"with": {
-																		"always": false
-																	}
-																},
-																"when": "{{computed.canAccept || computed.mergeState == 'conflict'}}",
-																"label": "{{t('review.merge')}}",
-																"tooltip": "{{t('review.acceptTip')}}",
-																"disabled": "{{computed.mergeHeld}}",
-																"textColor": "{{computed.mergeState == 'ready' ? '@color.goodText' : (computed.mergeHeld ? '@color.muted' : '@color.text')}}",
-																"cursor": "{{computed.mergeHeld ? 'arrow' : 'hand'}}"
-															},
-															{
-																"id": "label-always-allow",
-																"when": "{{computed.canAccept && !empty(computed.current.remember)}}",
-																"style": "smallButton",
-																"text": "{{t('review.always')}}",
-																"anchors": {
-																	"right": 16,
-																	"top": 56
-																},
-																"width": 150,
-																"onClick": {
-																	"run": "accept",
-																	"with": {
-																		"always": true
-																	}
-																},
-																"tooltip": "{{t('review.alwaysTip', {rules: join(computed.current.remember, ', ')})}}",
-																"label": "{{t('review.always')}}"
-															}
-														],
-														"when": "{{state.prTab == 'conversation'}}"
-													},
-													{
 														"id": "label-previewed-end-preview",
 														"style": "smallButton",
 														"text": "{{t('review.preview', {on: computed.current.id == state.previewing ? 'yes' : 'no'})}}",
@@ -4298,8 +4337,6 @@
 														"id": "reviewChangesButton",
 														"style": "goodButton",
 														"font": "small",
-														"icon": "chevron-down",
-														"text": "{{t('review.reviewChanges')}}",
 														"label": "{{t('review.reviewChanges')}}",
 														"when": "{{state.prTab == 'files'}}",
 														"anchors": {
@@ -4312,7 +4349,29 @@
 															"toggle": "state.reviewOpen"
 														},
 														"role": "button",
-														"selected": "{{state.reviewOpen}}"
+														"selected": "{{state.reviewOpen}}",
+														"text": "{{t('review.reviewChanges')}}",
+														"align": {
+															"horizontal": "start",
+															"vertical": "center"
+														},
+														"padding": 14,
+														"children": [
+															{
+																"id": "label-reviewCaret",
+																"type": "label",
+																"icon": "chevron-down",
+																"font": "small",
+																"textColor": "@color.goodText",
+																"anchors": {
+																	"right": 10,
+																	"top": 0,
+																	"bottom": 0
+																},
+																"width": 14,
+																"align": "center"
+															}
+														]
 													},
 													{
 														"id": "reviewPanel",
@@ -4339,17 +4398,57 @@
 																}
 															},
 															{
-																"id": "reviewPanelDraft",
-																"style": "input",
-																"bind": "state.reviewDraft",
-																"placeholder": "{{t('review.reviewPlaceholder')}}",
-																"label": "{{t('review.reviewTitle')}}",
+																"id": "reviewPanelDraft-box",
+																"note": "The text box drawn around the editor, with its hint while empty",
+																"color": "@color.input",
+																"radius": "@radius.chip",
+																"borderWidth": 0,
 																"anchors": {
 																	"left": 12,
 																	"right": 12,
 																	"top": 30
 																},
-																"height": 64
+																"height": 64,
+																"children": [
+																	{
+																		"id": "label-reviewPanelDraft-hint",
+																		"type": "label",
+																		"font": "small",
+																		"textColor": "@color.muted",
+																		"text": "{{t('review.reviewPlaceholder')}}",
+																		"when": "{{empty(state.reviewDraft)}}",
+																		"anchors": {
+																			"left": 10,
+																			"top": 8
+																		},
+																		"height": 18,
+																		"fitText": true
+																	}
+																]
+															},
+															{
+																"id": "reviewPanelDraft",
+																"type": "editor",
+																"bind": "state.reviewDraft",
+																"label": "{{t('review.reviewTitle')}}",
+																"wrap": true,
+																"font": "small",
+																"color": "transparent",
+																"lineColor": "transparent",
+																"textColor": "@color.text",
+																"caretColor": "@color.text",
+																"anchors": {
+																	"left": 12,
+																	"right": 12,
+																	"top": 30
+																},
+																"height": 64,
+																"borderWidth": 1,
+																"borderColor": "@color.border",
+																"radius": "@radius.chip",
+																"focused": {
+																	"borderColor": "@color.accent"
+																}
 															},
 															{
 																"id": "reviewComment",
@@ -6781,32 +6880,72 @@
 				"height": 28,
 				"children": [
 					{
-						"id": "label-diffUnified",
-						"type": "label",
-						"style": "smallButton",
-						"icon": "rows-2",
-						"text": "{{t('diff.unified')}}",
-						"width": 96,
-						"color": "{{state.diffSplit == false ? '@color.accentSoft' : '@color.neutral'}}",
-						"onClick": [
+						"id": "diffMode",
+						"note": "Unified or split, one joined control",
+						"width": 187,
+						"height": 28,
+						"radius": "@radius.chip",
+						"borderWidth": 1,
+						"borderColor": "@color.border",
+						"color": "transparent",
+						"children": [
 							{
-								"set": "state.diffSplit",
-								"to": false
-							}
-						]
-					},
-					{
-						"id": "label-diffSplit",
-						"type": "label",
-						"style": "smallButton",
-						"icon": "columns-2",
-						"text": "{{t('diff.split')}}",
-						"width": 96,
-						"color": "{{state.diffSplit == true ? '@color.accentSoft' : '@color.neutral'}}",
-						"onClick": [
+								"id": "label-diffUnified",
+								"type": "label",
+								"style": "smallButton",
+								"icon": "rows-2",
+								"text": "{{t('diff.unified')}}",
+								"width": 92,
+								"color": "{{state.diffSplit == false ? '@color.neutral' : 'transparent'}}",
+								"onClick": [
+									{
+										"set": "state.diffSplit",
+										"to": false
+									}
+								],
+								"textColor": "{{state.diffSplit == false ? '@color.text' : '@color.muted'}}",
+								"radius": 0,
+								"role": "radio",
+								"selected": "{{state.diffSplit == false}}",
+								"height": 26,
+								"anchors": {
+									"left": 0,
+									"top": 0
+								}
+							},
 							{
-								"set": "state.diffSplit",
-								"to": true
+								"id": "label-diffSplit",
+								"type": "label",
+								"style": "smallButton",
+								"icon": "columns-2",
+								"text": "{{t('diff.split')}}",
+								"width": 92,
+								"color": "{{state.diffSplit == true ? '@color.neutral' : 'transparent'}}",
+								"onClick": [
+									{
+										"set": "state.diffSplit",
+										"to": true
+									}
+								],
+								"textColor": "{{state.diffSplit == true ? '@color.text' : '@color.muted'}}",
+								"radius": 0,
+								"role": "radio",
+								"selected": "{{state.diffSplit == true}}",
+								"height": 26,
+								"anchors": {
+									"left": 93,
+									"top": 0
+								}
+							},
+							{
+								"id": "diffModeLine",
+								"color": "@color.border",
+								"anchors": {
+									"left": 92,
+									"top": 0,
+									"bottom": 0
+								},
+								"width": 1
 							}
 						]
 					},
