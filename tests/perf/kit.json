@@ -1,0 +1,50 @@
+{
+	"menuBar": { "use": "menuBar", "with": { "menus": "{{menus}}" } },
+	"toolbar": {
+		"use": "toolbar",
+		"with": {
+			"items": [
+				{ "title": "Undo", "icon": "undo", "keyLabel": "Ctrl+Z", "run": "undo" },
+				{ "title": "Redo", "icon": "redo", "keyLabel": "Ctrl+Y", "run": "redo" },
+				{ "separator": true },
+				{ "title": "Grid", "icon": "layout-grid", "checked": "{{state.grid}}", "run": "toggleGrid" }
+			]
+		}
+	},
+	"statusBar": {
+		"use": "statusBar",
+		"width": "100%",
+		"with": {
+			"items": [
+				{ "text": "{{state.status}}" },
+				{ "text": "Ln {{state.line}}", "side": "end" },
+				{ "text": "UTF-8", "side": "end", "tooltip": "Encoding", "run": "pickEncoding" }
+			]
+		}
+	},
+	"popover": {
+		"use": "popover",
+		"with": { "open": "state.sharing", "title": "Share", "text": "Anyone with the link can view." }
+	},
+	"contextMenu": {
+		"use": "contextMenu",
+		"with": {
+			"open": "state.menu.open", "x": "{{state.menu.x}}", "y": "{{state.menu.y}}",
+			"items": [
+				{ "title": "Cut", "keyLabel": "Ctrl+X", "run": "cut" },
+				{ "title": "Copy", "keyLabel": "Ctrl+C", "run": "copy" },
+				{ "separator": true },
+				{ "title": "Word wrap", "checked": "{{state.wrap}}", "run": "toggleWrap" }
+			]
+		}
+	},
+	"dialog": {
+		"use": "dialog",
+		"with": {
+			"open": "state.asking", "title": "Save changes?", "message": "Your changes will be lost if you don't save them.",
+			"buttons": [{ "title": "Save", "run": "save" }, { "title": "Don't save", "run": "discard" }, { "title": "Cancel" }]
+		}
+	},
+	"toast": { "use": "toast", "with": { "open": "state.saved", "message": "Saved" } },
+	"toasts": { "use": "toasts", "with": { "name": "notes" } }
+}

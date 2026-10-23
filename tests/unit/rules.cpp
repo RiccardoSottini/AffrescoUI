@@ -117,7 +117,7 @@ TEST_CASE("format: a revision may not move a control step or a reference to one 
 	CHECK(allowed(reordered));
 }
 
-// The built-in menus, dialog, toast and quick pick run the actions their items name, through a computed "run" in the
+// The built-in menus, dialog, toast, bars and quick pick run the actions their items name, through a computed "run" in the
 // library's own definition, which the document never shows: a revision fed them items from the state, and so ran
 // any action, a control one too
 TEST_CASE("format: a revision may not add a built-in that runs actions named by the state") {
@@ -133,6 +133,8 @@ TEST_CASE("format: a revision may not add a built-in that runs actions named by 
 	        R"({"use": "contextMenu", "with": {"open": "state.m", "items": [{"title": "A", "run": "{{state.a}}"}]}})",
 	        R"({"use": "toast", "with": {"open": "state.t", "actions": "{{state.actions}}"}})",
 	        R"({"use": "menuBar", "with": {"menus": "{{state.menus}}"}})",
+	        R"({"use": "toolbar", "with": {"items": "{{state.items}}"}})",
+	        R"({"use": "statusBar", "with": {"items": [{"text": "A", "run": "{{state.a}}"}]}})",
 	        R"({"use": "quickPick", "with": {"providers": [{"items": [{"title": "A", "run": "refresh"}]}]}})",
 	        R"({"use": "dialog", "with": {"open": "state.d", "buttons": [{"title": "OK", "run": "approve"}]}})",
 	    }) {
@@ -142,6 +144,7 @@ TEST_CASE("format: a revision may not add a built-in that runs actions named by 
 	CHECK(added(R"({"use": "dialog", "with": {"open": "state.d", "title": "{{state.title}}",
 		"buttons": [{"title": "OK", "run": "refresh"}]}})"));
 	CHECK(added(R"({"use": "menu", "with": {"open": "state.m", "items": [{"title": "A", "run": "refresh"}]}})"));
+	CHECK(added(R"({"use": "toolbar", "with": {"items": [{"title": "A", "run": "refresh"}]}})"));
 }
 
 TEST_CASE("format: a revision may not add a use of the document's own component that runs a computed action, fed "

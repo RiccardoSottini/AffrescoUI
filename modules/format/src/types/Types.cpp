@@ -194,6 +194,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerCalendarType(registry);
 	registerCodeInputType(registry);
 	registerCarouselType(registry);
+	registerSceneType(registry);
 	registerTextFieldProperties(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
