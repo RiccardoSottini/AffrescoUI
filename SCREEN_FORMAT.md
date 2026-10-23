@@ -260,6 +260,7 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
 | `caretStyle` | The caret: `line` (the default) a bar before the character, `block` a box over it, `underline` a bar under it. |
+| Steps | `{ "press": "ctrl+x ctrl+s", "in": "#ed" }` sends keys as the keyboard does (US layout; `"times": 3` repeats; no binding hears them), `insert` types text at the caret, `cut` takes `lineEnd`, `word`, `selection` or `line` into `into` (`"append": true` adds to it) or the clipboard. |
 | `readOnly` | `true`: the user can select, find and fold, but not edit. |
 | `guideColor`, `matchColor`, `bracketColor` | The indentation guides, find's matches and the paired brackets. |
 | `grammar` | The language parsed for syntax colours, folds and bracket pairs: `c`, `cpp`, `json`, `python`, `javascript`, `typescript`, `markdown` or an alias (`c++`, `js`, `ts`, `py`, `md`), or a file name whose extension says it. Each capture is coloured by the theme's `@syntax.<capture>` token (e.g. `@syntax.keyword`; `keyword.return` falls back to `@syntax.keyword`). Left out, plain text. |
@@ -1075,8 +1076,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
-| `press` | `{ "press": "ctrl+x ctrl+s", "in": "#ed", "times": 3 }`: keys as the keyboard sends them (US layout), unheard by bindings |
-| `insert`, `cut` | `{ "insert": "hi" }`, `{ "cut": "lineEnd", "into": "state.kill", "append": true }`: at the caret; cut takes "lineEnd", "word", "selection" or "line" to "into" or the clipboard |
+| `press`, `insert`, `cut` | `{ "press": "ctrl+e" }`: editing at the caret, see [editor](#editor) |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
