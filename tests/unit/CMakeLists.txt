@@ -52,11 +52,6 @@ target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/a
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::scene3d)
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_MODELLO_SAMPLES="${PROJECT_SOURCE_DIR}/examples/modello/samples")
-# scene3d_modello.cpp plays Modello's scenarios with its natives
-target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/modello/Modello.cpp
-	${PROJECT_SOURCE_DIR}/examples/modello/ModelloView.cpp ${PROJECT_SOURCE_DIR}/examples/modello/ModelloEdit.cpp
-	${PROJECT_SOURCE_DIR}/examples/modello/ModelloFiles.cpp)
-target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/modello)
 # sinopia_*.cpp test the slides app's deck model, edits, arranging and shapes (examples/sinopia), which need no window
 target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Deck.cpp
 	${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Write.cpp
