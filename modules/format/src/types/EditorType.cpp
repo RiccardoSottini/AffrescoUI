@@ -9,6 +9,8 @@
 #include "TypeRegistry.hpp"
 
 #include "affresco/format/SyntaxHighlighter.hpp"
+
+#include "PatternHighlighter.hpp"
 #include "affresco/render/TextEditor.hpp"
 
 #include <array>
@@ -163,6 +165,56 @@ std::map<std::string, Color, std::less<>> paletteOf(const std::vector<std::strin
 	return palette;
 }
 
+/// @brief Sets an editor's patterns, when its grammar names no language: a highlighter that colours each line's
+/// matches of "patterns" ([{ match, style }]) in "@syntax.<style>" (or its parent style's), or none. Only a
+/// highlighter this key installed is replaced or removed.
+/// @param editor The editor.
+/// @param values The node's values.
+/// @param reader Reads colours.
+/// @param path The node's place, for errors.
+void applyPatterns(TextEditor& editor, const json& values, const PropertyReader& reader, const std::string& path) {
+	static const char tag = 0; // what marks the highlighters this key installs
+	auto* current = dynamic_cast<PatternHighlighter*>(editor.highlighter());
+	const bool ours = current && current->owner() == &tag;
+	if(!values.contains("patterns") || values["patterns"].empty()) {
+		if(ours) editor.setHighlighter(nullptr);
+		return;
+	}
+	if(editor.highlighter() && !ours) return;
+	const std::string at = path + ".patterns";
+	const json& given = values["patterns"];
+	if(!given.is_array()) fail(at, "expected a list of { match, style }");
+	std::vector<std::string> styles;
+	std::vector<PatternHighlighter::Rule> rules;
+	for(std::size_t i = 0; i < given.size() && i < PatternHighlighter::maxRules; ++i) {
+		const std::string place = concatenate(at, "[", std::to_string(i), "]");
+		object(given[i], place);
+		if(!given[i].contains("match")) fail(place + ".match", "expected a regular expression");
+		PatternHighlighter::Rule rule;
+		rule.pattern = string(given[i]["match"], place + ".match");
+		rule.style = given[i].contains("style") ? string(given[i]["style"], place + ".style") : std::string();
+		styles.push_back(rule.style);
+		rules.push_back(std::move(rule));
+	}
+	// Resolved now, in the current theme: the reader lives only through this update
+	const auto palette = paletteOf(styles, reader, at);
+	for(PatternHighlighter::Rule& rule : rules)
+		for(std::string_view name = rule.style; !name.empty() && !rule.color;) {
+			if(const auto found = palette.find(name); found != palette.end()) rule.color = found->second;
+			const std::size_t dot = name.rfind('.');
+			name = dot == std::string_view::npos ? std::string_view() : name.substr(0, dot);
+		}
+	if(!ours) {
+		auto made = std::make_unique<PatternHighlighter>();
+		made->setOwner(&tag);
+		current = made.get();
+		editor.setHighlighter(std::move(made));
+	}
+	if(rules == current->rules()) return;
+	if(auto error = current->setRules(std::move(rules))) fail(at, *error);
+	editor.recolor();
+}
+
 /// @brief Sets an editor's grammar: a highlighter for the language "grammar" names (or a file name's), its styles in
 /// the colours "@syntax.<style>" gives (or its parent style's), or none. Only a highlighter this key installed is
 /// replaced or removed: a subclass may install its own.
@@ -182,6 +234,7 @@ void applyGrammar(TextEditor& editor, const json& values, const PropertyReader& 
 	}
 	if(language.empty()) {
 		if(ours) editor.setHighlighter(nullptr);
+		applyPatterns(editor, values, reader, path);
 		return;
 	}
 	if(editor.highlighter() && !ours) return;
@@ -368,6 +421,7 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"matchColor", ValueKind::Color},
 	                   {"bracketColor", ValueKind::Color},
 	                   {"grammar", ValueKind::Text},
+	                   {"patterns", ValueKind::Any},
 	                   {"minimap", ValueKind::Boolean},
 	                   {"composition", ValueKind::Text},
 	                   {"caretStyle", ValueKind::Text}};

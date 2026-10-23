@@ -25,7 +25,12 @@
 					"6": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 6 } },
 					"7": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 7 } },
 					"8": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 8 } },
-					"9": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 9 } }
+					"9": { "when": "{{state.arg != null && state.argDigits}}", "do": "digit-argument", "with": { "d": 9 } },
+					"*": {
+						"when": "{{state.sel == w && (state.is.on || state.qr.on)}}",
+						"do": "search-key",
+						"with": { "k": "{{event.key}}" }
+					}
 				},
 				"children": [
 					{
@@ -54,15 +59,17 @@
 										"textColor": "@fg",
 										"color": "@bg",
 										"lineColor": "@line",
-										"selectionColor": "@region",
+										"selectionColor": "{{on && (state.is.on || state.qr.on) ? @isearch : @region}}",
 										"caretColor": "@cursor",
 										"caretStyle": "block",
 										"readOnly": "{{b.readOnly == true}}",
 										"grammar": "{{state.modes[b.mode].grammar ?? ''}}",
+										"patterns": "{{state.modes[b.mode].patterns ?? []}}",
 										"matchColor": "@lazy",
 										"bracketColor": "@paren",
 										"onFocus": { "set": "state.sel", "to": "{{w}}" },
-										"onChange": { "set": "{{'state.bufs.' + win.buf + '.dirty'}}", "to": true }
+										"onChange": { "set": "{{'state.bufs.' + win.buf + '.dirty'}}", "to": true },
+										"find": "{{on && state.is.on && state.is.text != '' ? {text: state.is.text, caseSensitive: lower(state.is.text) != state.is.text, step: state.is.step, request: state.is.req} : on && state.qr.on ? {text: state.qr.from, caseSensitive: lower(state.qr.from) != state.qr.from, step: state.qr.step, request: state.qr.req, replace: state.qr.replace} : null}}"
 									}
 								]
 							},
@@ -339,7 +346,7 @@
 						"textColor": "@fg",
 						"anchors": { "left": 2, "top": 2 },
 						"fitText": true,
-						"text": "{{context.chord != null ? keyLabel(context.chord, 'emacs') + '-' : state.keyread.on ? 'Key to describe: ' + (state.keyread.seq == '' ? '' : keyLabel(state.keyread.seq, 'emacs') + '-') : state.echo}}"
+						"text": "{{context.chord != null ? keyLabel(context.chord, 'emacs') + '-' : state.is.on ? (state.is.text != '' && (state.win[state.sel].caret.matches ?? 0) == 0 ? 'Failing ' : '') + (state.is.back ? 'Search backward: ' : 'Search: ') + state.is.text : state.qr.on ? 'Replace ' + state.qr.from + ' with ' + state.qr.to + '? (y, n, !, q, . or C-h) ' : state.keyread.on ? 'Key to describe: ' + (state.keyread.seq == '' ? '' : keyLabel(state.keyread.seq, 'emacs') + '-') : state.echo}}"
 					},
 					{
 						"when": "{{state.mb.open}}",

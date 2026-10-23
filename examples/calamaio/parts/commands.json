@@ -10,12 +10,42 @@
 		"other": "{{find(state.order, it != state.win[state.sel].buf && state.bufs[it].kind != 'splash') ?? state.win[state.sel].buf}}",
 		"names": "{{map(state.order, state.bufs[it].name)}}",
 		"commandNames": "{{sortText(map(commands, it.name))}}",
-		"mbCands": "{{state.mb.kind == 'command' || state.mb.kind == 'function' ? computed.commandNames : state.mb.kind == 'buffer' || state.mb.kind == 'kill' ? computed.names : state.mb.kind == 'file' ? map(state.files, it.path) : state.mb.kind == 'theme' ? ['default', 'inchiostro', 'pergamena'] : state.mb.kind == 'variable' ? map(settingsList, it.key) : []}}",
+		"mbCands": "{{state.mb.kind == 'command' || state.mb.kind == 'function' ? computed.commandNames : state.mb.kind == 'buffer' || state.mb.kind == 'kill' ? computed.names : contains(['file', 'write', 'insert'], state.mb.kind) ? map(state.files, it.path) : state.mb.kind == 'theme' ? ['default', 'inchiostro', 'pergamena'] : state.mb.kind == 'variable' ? map(settingsList, it.key) : []}}",
 		"mbMatches": "{{sortText(filter(computed.mbCands, slice(it, 0, length(state.mb.text)) == state.mb.text))}}",
 		"mbA": "{{computed.mbMatches[0] ?? ''}}",
 		"mbB": "{{computed.mbMatches[length(computed.mbMatches) - 1] ?? ''}}",
 		"mbPrefix": "{{slice(computed.mbA, 0, count(range(min(length(computed.mbA), length(computed.mbB))), slice(computed.mbA, 0, it + 1) == slice(computed.mbB, 0, it + 1)))}}",
-		"argLabel": "{{state.arg == null ? '' : state.argDigits ? text(state.arg) : 'C-u'}}"
+		"argLabel": "{{state.arg == null ? '' : state.argDigits ? text(state.arg) : 'C-u'}}",
+		"keyChars": {
+			"space": " ",
+			"minus": "-",
+			"period": ".",
+			"comma": ",",
+			"slash": "/",
+			"semicolon": ";",
+			"apostrophe": "'",
+			"equal": "=",
+			"leftbracket": "[",
+			"rightbracket": "]",
+			"backslash": "\\",
+			"shift+9": "(",
+			"shift+0": ")",
+			"shift+1": "!",
+			"shift+2": "@",
+			"shift+3": "#",
+			"shift+4": "$",
+			"shift+5": "%",
+			"shift+6": "^",
+			"shift+7": "&",
+			"shift+8": "*",
+			"shift+minus": "_",
+			"shift+equal": "+",
+			"shift+semicolon": ":",
+			"shift+apostrophe": "\"",
+			"shift+comma": "<",
+			"shift+period": ">",
+			"shift+slash": "?"
+		}
 	},
 	"actions": {
 		"message": [
@@ -782,6 +812,253 @@
 			"category": "Help",
 			"description": "Shows the messages the echo area has shown so far.",
 			"do": { "run": "show-messages" }
-		}
+		},
+		"isearch-forward": {
+			"title": "Search Forward",
+			"category": "Search",
+			"description": "Searches forward as you type: C-s again goes to the next match, RET stops at it, C-g goes back.",
+			"do": { "run": "isearch-start", "with": { "back": false } }
+		},
+		"isearch-backward": {
+			"title": "Search Backward",
+			"category": "Search",
+			"description": "Searches backward as you type: C-r again goes to the previous match.",
+			"do": { "run": "isearch-start", "with": { "back": true } }
+		},
+		"isearch-start": [
+			{ "if": "{{!computed.text}}", "then": [{ "stop": true }] },
+			{
+				"set": "state.is",
+				"to": "{{merge(state.is, {on: true, text: '', back: back, step: 'first', req: state.is.req + 1, start: {line: state.win[state.sel].caret.line, column: state.win[state.sel].caret.column}, wrapped: false})}}"
+			},
+			{ "set": "state.echo", "to": "" }
+		],
+		"isearch-step": [
+			{ "set": "state.is.back", "to": "{{back}}" },
+			{ "if": "{{state.is.text == ''}}", "then": [{ "set": "state.is.text", "to": "{{state.is.last ?? ''}}" }] },
+			{ "set": "state.is.step", "to": "{{back ? 'previous' : 'next'}}" },
+			{ "increment": "state.is.req" }
+		],
+		"isearch-key": [
+			{
+				"if": "{{k == 'ctrl+s' || k == 'ctrl+r'}}",
+				"then": [{ "run": "isearch-step", "with": { "back": "{{k == 'ctrl+r'}}" } }, { "stop": true }]
+			},
+			{
+				"if": "{{k == 'backspace'}}",
+				"then": [
+					{ "set": "state.is.text", "to": "{{slice(state.is.text, 0, max(0, length(state.is.text) - 1))}}" },
+					{ "set": "state.is.step", "to": "first" },
+					{ "increment": "state.is.req" },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{k == 'ctrl+g'}}",
+				"then": [
+					{ "run": "isearch-end" },
+					{ "run": "goto-point", "with": { "e": "{{computed.ed}}", "pt": "{{state.is.start}}" } },
+					{ "set": "state.echo", "to": "Quit" },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{k == 'enter' || k == 'escape'}}",
+				"then": [
+					{ "run": "isearch-end" },
+					{ "run": "message", "with": { "m": "Mark saved where the search started" } },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{(length(k) == 1 ? k : length(k) == 7 && slice(k, 0, 6) == 'shift+' && upper(slice(k, 6)) != slice(k, 6) ? upper(slice(k, 6)) : computed.keyChars[k]) != null}}",
+				"then": [
+					{
+						"set": "state.is.text",
+						"to": "{{state.is.text + (length(k) == 1 ? k : length(k) == 7 && slice(k, 0, 6) == 'shift+' && upper(slice(k, 6)) != slice(k, 6) ? upper(slice(k, 6)) : computed.keyChars[k])}}"
+					},
+					{ "set": "state.is.step", "to": "{{state.is.back ? 'previous' : 'first'}}" },
+					{ "increment": "state.is.req" },
+					{ "stop": true }
+				]
+			},
+			{ "run": "isearch-end" },
+			{
+				"if": "{{some(keybindings, it.key == k)}}",
+				"then": [{ "run": "{{find(keybindings, it.key == k).command}}" }]
+			}
+		],
+		"isearch-end": [
+			{ "if": "{{state.is.text != ''}}", "then": [{ "set": "state.is.last", "to": "{{state.is.text}}" }] },
+			{ "set": "state.is.on", "to": false },
+			{ "set": "state.mark", "to": "{{ {on: false, line: state.is.start.line, column: state.is.start.column} }}" },
+			{
+				"after": 0,
+				"do": [
+					{
+						"if": "{{computed.text && state.win[state.sel].caret.selected > 0}}",
+						"then": [{ "press": "{{state.is.back ? 'left' : 'right'}}", "in": "{{computed.ed}}" }]
+					}
+				]
+			}
+		],
+		"query-replace": {
+			"title": "Replace...",
+			"category": "Search",
+			"description": "Replaces a text with another, asking at each match: y or SPC replaces, n skips, ! replaces the rest, q stops.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": {
+					"kind": "replace-from",
+					"prompt": "{{'Query replace' + (state.qr.from ? ' (default ' + state.qr.from + ' → ' + state.qr.to + ')' : '') + ': '}}",
+					"def": "{{state.qr.from ?? ''}}",
+					"init": ""
+				}
+			}
+		},
+		"mb-replace-from": [
+			{ "if": "{{value == ''}}", "then": [{ "stop": true }] },
+			{
+				"if": "{{value == state.qr.from && state.mb.text == ''}}",
+				"then": [{ "run": "query-replace-start", "with": { "to": "{{state.qr.to}}" } }, { "stop": true }]
+			},
+			{ "set": "state.qr.from", "to": "{{value}}" },
+			{
+				"after": 0,
+				"do": [
+					{
+						"run": "minibuffer-read",
+						"with": {
+							"kind": "replace-to",
+							"prompt": "{{'Query replace ' + value + ' with: '}}",
+							"def": "",
+							"init": ""
+						}
+					}
+				]
+			}
+		],
+		"mb-replace-to": [{ "run": "query-replace-start", "with": { "to": "{{value}}" } }],
+		"query-replace-start": [
+			{
+				"set": "state.qr",
+				"to": "{{merge(state.qr, {on: true, to: to, step: 'first', req: state.qr.req + 1, done: 0})}}"
+			},
+			{
+				"after": 60,
+				"do": [
+					{
+						"if": "{{state.qr.on && (state.win[state.sel].caret.matches ?? 0) == 0}}",
+						"then": [{ "run": "query-replace-end" }]
+					}
+				]
+			}
+		],
+		"query-replace-key": [
+			{
+				"if": "{{k == 'y' || k == 'space' || k == 'period'}}",
+				"then": [
+					{ "set": "state.qr.step", "to": "replace" },
+					{ "set": "state.qr.replace", "to": "{{state.qr.to}}" },
+					{ "increment": "state.qr.req" },
+					{ "increment": "state.qr.done" },
+					{ "if": "{{k == 'period'}}", "then": [{ "run": "query-replace-end" }, { "stop": true }] },
+					{
+						"after": 60,
+						"do": [
+							{
+								"if": "{{state.qr.on && (state.win[state.sel].caret.matches ?? 0) == 0}}",
+								"then": [{ "run": "query-replace-end" }]
+							}
+						]
+					},
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{k == 'n' || k == 'delete' || k == 'backspace'}}",
+				"then": [{ "set": "state.qr.step", "to": "next" }, { "increment": "state.qr.req" }, { "stop": true }]
+			},
+			{
+				"if": "{{k == 'shift+1'}}",
+				"then": [
+					{ "set": "state.qr.done", "to": "{{state.qr.done + (state.win[state.sel].caret.matches ?? 0)}}" },
+					{ "set": "state.qr.step", "to": "replaceAll" },
+					{ "set": "state.qr.replace", "to": "{{state.qr.to}}" },
+					{ "increment": "state.qr.req" },
+					{ "after": 60, "do": [{ "run": "query-replace-end" }] },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{k == 'ctrl+g'}}",
+				"then": [{ "set": "state.qr.on", "to": false }, { "set": "state.echo", "to": "Quit" }, { "stop": true }]
+			},
+			{ "run": "query-replace-end" }
+		],
+		"query-replace-end": [
+			{ "set": "state.qr.on", "to": false },
+			{ "run": "message", "with": { "m": "{{'Replaced ' + plural(state.qr.done, 'occurrence')}}" } },
+			{
+				"after": 0,
+				"do": [
+					{
+						"if": "{{computed.text && state.win[state.sel].caret.selected > 0}}",
+						"then": [{ "press": "right", "in": "{{computed.ed}}" }]
+					}
+				]
+			}
+		],
+		"search-key": [
+			{
+				"if": "{{state.is.on}}",
+				"then": [{ "run": "isearch-key", "with": { "k": "{{k}}" } }],
+				"else": [{ "run": "query-replace-key", "with": { "k": "{{k}}" } }]
+			}
+		],
+		"write-file": {
+			"title": "Save As...",
+			"category": "Files",
+			"description": "Writes the buffer to a file you name, which it then visits.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": { "kind": "write", "prompt": "Write file: ", "def": "", "init": "{{state.home}}" }
+			}
+		},
+		"mb-write": [
+			{ "set": "{{'state.bufs.' + computed.cur + '.file'}}", "to": "{{value}}" },
+			{
+				"set": "{{'state.bufs.' + computed.cur + '.name'}}",
+				"to": "{{split(value, '/')[length(split(value, '/')) - 1]}}"
+			},
+			{
+				"run": "write-file-to",
+				"with": { "b": "{{computed.cur}}", "i": "{{indexOf(map(state.files, it.path), value)}}" }
+			}
+		],
+		"insert-file": {
+			"title": "Insert File...",
+			"category": "Files",
+			"description": "Inserts a file's text at point.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": { "kind": "insert", "prompt": "Insert file: ", "def": "", "init": "{{state.home}}" }
+			}
+		},
+		"mb-insert": [
+			{
+				"if": "{{!contains(map(state.files, it.path), value)}}",
+				"then": [{ "run": "message", "with": { "m": "{{'No file named ' + value}}" } }, { "stop": true }]
+			},
+			{
+				"after": 0,
+				"do": [
+					{
+						"insert": "{{state.files[indexOf(map(state.files, it.path), value)].text}}",
+						"in": "{{computed.ed}}"
+					}
+				]
+			}
+		]
 	}
 }

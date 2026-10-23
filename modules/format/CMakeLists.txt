@@ -123,7 +123,7 @@ target_include_directories(affrescoui_format PRIVATE src/assistant)
 # types: the type registry and the node types: panels, surfaces, split, tabs, lists, diff, editor, image
 target_sources(affrescoui_format PRIVATE src/types/TypeRegistry.cpp src/types/Types.cpp src/types/ImageType.cpp
 	src/types/SurfaceType.cpp src/types/SplitType.cpp src/types/TabsType.cpp src/types/ListType.cpp src/types/DiffType.cpp
-	src/types/EditorType.cpp src/types/SyntaxHighlighter.cpp)
+	src/types/EditorType.cpp src/types/SyntaxHighlighter.cpp src/types/PatternHighlighter.cpp)
 # controls: the form controls: toggle, slider, calendar, code input, carousel
 target_sources(affrescoui_format PRIVATE src/controls/ToggleType.cpp src/controls/SliderType.cpp
 	src/controls/CalendarType.cpp src/controls/CodeInputType.cpp src/controls/CarouselType.cpp)

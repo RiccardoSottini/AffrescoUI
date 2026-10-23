@@ -34,7 +34,8 @@
 		"parts/frame.json",
 		"parts/commands.json",
 		"parts/keys.json",
-		"parts/menus.json"
+		"parts/menus.json",
+		"../shared/addons/assistant/assistant.json"
 	],
 	"computed": {
 		"splashLinks": [

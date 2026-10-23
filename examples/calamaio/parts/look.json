@@ -76,6 +76,18 @@
 		"kit.success": "@ok",
 		"kit.radius": 3,
 		"kit.cardRadius": 4,
-		"kit.borderWidth": 1
+		"kit.borderWidth": 1,
+		"assistant.accent": "@link",
+		"assistant.accentHover": "@link",
+		"assistant.onAccent": "#ffffff",
+		"assistant.surface": "@kit.surface",
+		"assistant.raised": "@bar",
+		"assistant.border": "@kit.border",
+		"assistant.text": "@barFg",
+		"assistant.dim": "@kit.dim",
+		"assistant.dot": "@kit.dim",
+		"assistant.success": "@ok",
+		"assistant.danger": "@err",
+		"assistant.warning": "@kit.selection"
 	}
 }

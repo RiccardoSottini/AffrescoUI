@@ -43,12 +43,58 @@
 		"modes": {
 			"fundamental": { "title": "Fundamental" },
 			"text": { "title": "Text", "menu": "text" },
-			"lisp-interaction": { "title": "Lisp Interaction", "menu": "lisp" },
-			"emacs-lisp": { "title": "ELisp/l", "menu": "lisp" },
+			"lisp-interaction": {
+				"title": "Lisp Interaction",
+				"menu": "lisp",
+				"patterns": [
+					{ "match": ";.*", "style": "comment" },
+					{ "match": "\"(?:[^\"\\\\]|\\\\.)*\"?", "style": "string" },
+					{
+						"match": "(?<=\\()(?:defun|defmacro|defvar|defcustom|defconst|defgroup|let\\*?|if|when|unless|cond|while|dolist|dotimes|progn|lambda|setq|and|or|require|provide|interactive|save-excursion|condition-case)(?=[\\s()])",
+						"style": "keyword"
+					},
+					{ "match": "(?<=\\(defun )[^\\s()]+|(?<=\\(defmacro )[^\\s()]+", "style": "function" },
+					{
+						"match": "(?<=\\(defvar )[^\\s()]+|(?<=\\(defcustom )[^\\s()]+|(?<=\\(defconst )[^\\s()]+",
+						"style": "label"
+					},
+					{ "match": "(?<![\\w-]):[\\w-]+", "style": "function.builtin" }
+				]
+			},
+			"emacs-lisp": {
+				"title": "ELisp/l",
+				"menu": "lisp",
+				"patterns": [
+					{ "match": ";.*", "style": "comment" },
+					{ "match": "\"(?:[^\"\\\\]|\\\\.)*\"?", "style": "string" },
+					{
+						"match": "(?<=\\()(?:defun|defmacro|defvar|defcustom|defconst|defgroup|let\\*?|if|when|unless|cond|while|dolist|dotimes|progn|lambda|setq|and|or|require|provide|interactive|save-excursion|condition-case)(?=[\\s()])",
+						"style": "keyword"
+					},
+					{ "match": "(?<=\\(defun )[^\\s()]+|(?<=\\(defmacro )[^\\s()]+", "style": "function" },
+					{
+						"match": "(?<=\\(defvar )[^\\s()]+|(?<=\\(defcustom )[^\\s()]+|(?<=\\(defconst )[^\\s()]+",
+						"style": "label"
+					},
+					{ "match": "(?<![\\w-]):[\\w-]+", "style": "function.builtin" }
+				]
+			},
 			"python": { "title": "Python", "menu": "python", "grammar": "python" },
 			"c": { "title": "C/*l", "menu": "c", "grammar": "c" },
 			"markdown": { "title": "Markdown", "menu": "outline", "grammar": "markdown" },
-			"org": { "title": "Org", "menu": "outline" },
+			"org": {
+				"title": "Org",
+				"menu": "outline",
+				"patterns": [
+					{ "match": "^#\\+\\w+:.*", "style": "comment" },
+					{ "match": "^\\* .*", "style": "text.title" },
+					{ "match": "^\\*\\* .*", "style": "label" },
+					{ "match": "^\\*{3,} .*", "style": "keyword" },
+					{ "match": "\\[\\[[^\\]]*\\](?:\\[[^\\]]*\\])?\\]", "style": "text.uri" },
+					{ "match": "\\b(?:TODO|NEXT)\\b", "style": "string" },
+					{ "match": "\\bDONE\\b", "style": "type" }
+				]
+			},
 			"messages": { "title": "Messages" },
 			"help": { "title": "Help" },
 			"dired": { "title": "Dired by name", "menu": "dired" },
@@ -57,6 +103,16 @@
 		"modeFor": { "py": "python", "c": "c", "h": "c", "el": "emacs-lisp", "md": "markdown", "org": "org", "txt": "text" },
 		"keyread": { "on": false, "seq": "" },
 		"argDigits": false,
-		"argU": 0
+		"argU": 0,
+		"is": {
+			"on": false,
+			"text": "",
+			"back": false,
+			"step": "first",
+			"req": 0,
+			"start": { "line": 1, "column": 1 },
+			"last": null
+		},
+		"qr": { "on": false, "from": null, "to": "", "step": "first", "req": 0, "replace": "", "done": 0 }
 	}
 }

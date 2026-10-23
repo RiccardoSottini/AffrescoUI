@@ -92,6 +92,13 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "Each capture is coloured by the theme's `@syntax.<capture>` token (e.g. `@syntax.keyword`; `keyword.return` "
 	 "falls back to `@syntax.keyword`). Left out, plain text.",
 	 "editor"},
+    {"patterns",
+	 R"json({"type": "array", "maxItems": 64, "description": "editor: colours by regular expression when grammar names no language", "items": {"type": "object", "required": ["match"], "additionalProperties": false, "properties": {"match": {"type": "string"}, "style": {"type": "string"}}}})json",
+	 "Without a `grammar`, colours each line by regular expressions (PCRE2), for languages that have none: "
+	 "`[{ \"match\": \";.*\", \"style\": \"comment\" }]`. The pattern whose match starts first wins (the earlier "
+	 "one on a tie) and the search goes on after it; a match never spans lines. Coloured by `@syntax.<style>` as a "
+	 "grammar's captures. At most 64.",
+	 "editor"},
     {"original", R"json({"type": "string", "description": "diff: the text compared from"})json",
 	 "The text compared from (lines split at `\\n`, a `\\r` before it dropped).", "diff"},
     {"modified", R"json({"type": "string", "description": "diff: the text compared to"})json", "The text compared to.",
