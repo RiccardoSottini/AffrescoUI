@@ -20,7 +20,7 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 ## How it holds together
 
-- **Permissions:** Studio peers change it directly; an agent's change waits for a Studio reviewer (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. Nothing persists.
+- **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. Nothing persists.
 - **Threading and ownership:** it has no C++ of its own but the host's `code` type. The stock host owns the window and the screen, and runs the document on its UI thread.
 - **Extension points:** files are entries of `state`; menus and commands are `menus` and `actions`.
 - **Assets:** no pictures of its own; the fonts' licences are with them in `../shared/fonts`.

@@ -28,7 +28,7 @@ def log(text):
 
 
 def default_socket_dir():
-    """Where the host listens unless --socket says otherwise: one rule for the host, the Studio and this server."""
+    """Where the host listens unless --socket says otherwise: one rule for the host and this server."""
     if os.environ.get("AFFRESCOUI_SOCKET_DIR"):
         return os.environ["AFFRESCOUI_SOCKET_DIR"]
     if os.name == "nt":  # a folder in the user's profile, which its ACL keeps private to the user

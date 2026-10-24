@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file
-/// @brief Where the examples meet: the host listens there, the Studio and the MCP server (mcp/affrescoui_mcp.py)
+/// @brief Where the examples meet: the host listens there, its clients and the MCP server (mcp/affrescoui_mcp.py)
 /// connect there. The default folder is affresco::Screen::defaultSocketDirectory(); these check and create it.
 
 #include <filesystem>

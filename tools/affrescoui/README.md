@@ -9,7 +9,7 @@ affrescoui check screen.json            # the schema, the format's rules and the
 affrescoui fmt screen.json              # write it the way AffrescoUI files are written
 affrescoui render screen.json -o out.png --scale 2
 affrescoui test screen.scenarios.json   # play the screen's scenarios: what passed, what failed
-affrescoui run screen.json              # show it, and let the Studio and agents change it
+affrescoui run screen.json              # show it, and let people's clients and agents change it
 affrescoui help                         # every command; affrescoui <command> --help for one
 ```
 

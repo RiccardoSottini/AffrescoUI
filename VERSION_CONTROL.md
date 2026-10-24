@@ -194,8 +194,8 @@ Several agents at once claim the parts they work on, so one doesn't undo another
 - **A lease can't reach beyond its holder's rules:** a part the holder may not change at all is refused. One name holds
   leases on one connection only.
 - A reviewer ends anyone's lease (`endLease`, with `target`). Every `review` message carries `coordination`: who is
-  connected and their role, the leases with the seconds left, and the roles. The Studio shows it in its Agents tab,
-  where a reviewer ends a lease or gives a role; the MCP server has `lease_part`, `renew_lease` and `release_part`.
+  connected and their role, the leases with the seconds left, and the roles. A reviewer's client shows it, and ends a
+  lease or gives a role with `endLease` and `setRole`; the MCP server has `lease_part`, `renew_lease` and `release_part`.
 - At most 256 peers and 256 leases, 16 per holder and 16 per connection; targets are at most 256 bytes, holder names 64.
 
 ### Usage
@@ -210,12 +210,12 @@ once, on the terminal, whether to count (without a terminal or a "yes", nothing 
   not made for 30 days are dropped.
 - Bounded: 1,024 node and action pairs, 64 screens, names of 1 to 64 printable bytes, counts up to 10^9.
 - **Only a reviewer reads them,** and only while they are on: `getUsage` answers `{ "type": "usage", "usage": {...} }`,
-  `clearUsage` forgets the counts (the consent stays). An agent can't read them, nor grant itself that. The Studio's
-  Agents tab shows them and clears them; the MCP server has `get_usage`.
+  `clearUsage` forgets the counts (the consent stays). An agent can't read them, nor grant itself that. The MCP
+  server has `get_usage`.
 
 ## Modes
-A reviewer sets how much they are asked with a mode (`affrescoui_host --mode`, the Studio's
-switch, or `setMode` over the live protocol):
+A reviewer sets how much they are asked with a mode (`affrescoui_host --mode`, or `setMode` over the live
+protocol):
 
 | Mode | What happens |
 |---|---|
@@ -245,8 +245,9 @@ A revision that needs review becomes a **proposal**, the equivalent of a pull re
    it with a reason.
 5. Every peer, the author included, hears the decision (`applied` / `rejected` with the proposal number).
 
-Who reviews is up to the application. In the examples it is the person, in the **AffrescoUI Studio** (a separate
-client). A screen can also have its own review controls (`accept`, `reject`, `preview` steps).
+Who reviews is up to the application. In the examples it is the person, on the proposal's card in the app's
+assistant chat, or in any client connected on `studio.sock` (author `studio`). A screen can also have its own review
+controls (`accept`, `reject`, `preview` steps).
 
 ### "Don't ask again": grants
 Accepting with **Always allow** (`"dontAskAgain": true`) adds a rule for exactly what the proposal touched, for its
@@ -308,7 +309,7 @@ conflict.
   the branch becomes one commit with the merge's changes, "Rebase onto ...". That is a change nobody reviewed:
   **its approvals are dismissed**, and an approval naming an older head is refused. Reviewers look again.
 - **Conflict.** The proposal stays where it was, and lists its conflicts (`conflicts`: `[{"path", "reason", "base",
-  "main", "proposal"}]`, paths from the nearest node, e.g. `#title/text`), which the Studio shows side by side. It
+  "main", "proposal"}]`, paths from the nearest node, e.g. `#title/text`), for a reviewer to see side by side. It
   can't be accepted until its author pushes again (which rebuilds the branch on the current `main`); it can be
   rejected.
 
@@ -332,15 +333,15 @@ gets it back as `evidence`:
 - `behaviour` is the proposal's lines of behaviour change (as in "Review policies").
 - `scenarios` are the results of the screen's scenarios (`<name>.scenarios.json` beside the screen) played on the
   proposal's document, headless: those that need no pictures. The host decides whether to play any.
-- `texts` lists each text the proposal changes, added or removes, by node, for a diff view (the Studio shows them side
-  by side).
+- `texts` lists each text the proposal changes, added or removes, by node, for a diff view that shows them side by
+  side.
 
 **The host gathers all of it itself**, when asked, from the proposal as it is now: a revision that carries
 `evidence` or `behaviour` is refused, so an author can never supply or forge it. Gathering draws two pictures, so it
 counts against the same rate as `render`.
 
 ### Inspector
-A reviewer can turn on the host's **inspector** (`{"type": "inspect", "on": true}`; the Studio's search button): a
+A reviewer can turn on the host's **inspector** (`{"type": "inspect", "on": true}`): a
 debug overlay on the screen's window. For the panel under the pointer it shows its node, bounds, bindings as written
 (`{{state.count}}`, never the value) and handlers, and the commit that last changed it (`blame`); then the last frame's
 time and draw calls, the last update's time and panels rebuilt and created, and the latest events: clicks and scrolls
@@ -389,14 +390,14 @@ drawn for a peer. The host answers `done`, or `rejected` with no window or no in
   aren't commits). What no commit changed gives revision 0.
 
 ## History on disk
-A screen opened from a file (`Screen::fromFile`, which `affrescoui_host` and the Studio use) keeps its history in
+A screen opened from a file (`Screen::fromFile`, which `affrescoui_host` uses) keeps its history in
 `~/.affrescoui/<file name>.history/`, next to its `persist` state file. Restarting the app brings back `main`, the
 open proposals, the grants and the mode. A screen loaded from a string (`fromString`) keeps its history in memory
 only, as before, unless `Screen::setHistoryDirectory` (or `vcs::Repository::openHistory`) gives it a folder. Either
 is called once, before the first change, so a screen from `fromFile` keeps the folder it was given.
 
 The data folder is `~/.affrescoui` unless `AFFRESCOUI_DATA_DIR` names another (`Screen::defaultDataDirectory`), and
-`affrescoui_host` and `affrescoui_studio` take `--data DIR`. Parallel sessions should each use a folder of their
+`affrescoui_host` takes `--data DIR`. Parallel sessions should each use a folder of their
 own, as they do for sockets: one history per file name lives there, so two copies of a template that differ would
 keep moving each other's history aside. `fromFile(path, dataDirectory, Screen::History::InMemory)` keeps the
 history in memory only. The host does that for a plain screenshot run (`AFFRESCOUI_SCREENSHOT` without
@@ -528,7 +529,7 @@ check it as any other revision. Once a reviewer accepts it, the change set is re
 `repairedFrom` naming the change set it replaces (its SHA-256), its old base and the proposal; it carries no
 signature until its publisher signs it again. One repair runs at a time; a change set whose repair is refused,
 rejected or fails is asked for again, at most three times, and then gives up until a reviewer retries it
-(`{"type": "repair", "retry": name}`, the Studio's Repairs dialog, Cmd+5). `{"type": "repair"}` alone answers with
+(`{"type": "repair", "retry": name}`). `{"type": "repair"}` alone answers with
 every installed change set's status (`{"type": "repairs", "changeSets": [...]}`), which is also sent to every peer
 when it changes.
 
@@ -553,13 +554,13 @@ needs bound to what the host offers ([Screen format](SCREEN_FORMAT.md), "Feature
   missing), its message naming the proof (`Install slideSorter from app:sinopia (proof: slideSorter 1.0.0 from
   app:sinopia, passed, ...)`) and its record carrying the bindings and the proof with the base commit. It is reviewed
   under the document's `permissions` like any author's: Tempera proposes what `features` and `agent` write, and a
-  reviewer accepts it in the Studio;
+  reviewer accepts it;
 - **after**: history and blame show the install, and undo or `remove /features/<name>` takes it out. Signatures and
   trusted publishers apply unchanged to a signed manifest.
 
 Over the channel, the revision's author is the connection's: an agent's install through MCP (`install_feature`) is the
-agent's, an in-screen `features.compose` is `features`'. The Studio's "Install from another app" (Cmd+6) asks the
-agent to read the contributions, write the adapter and submit it, and shows the proof in its reply.
+agent's, an in-screen `features.compose` is `features`'. A person can ask an agent to install from another app (a
+`request`): it reads the contributions, writes the adapter, submits it, and gives the proof in its reply.
 
 ## Where it lives in the API
 

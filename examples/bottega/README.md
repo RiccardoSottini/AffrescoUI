@@ -16,7 +16,7 @@ python3 examples/bottega/e2e_test.py build                   # the whole install
 | `bottega.scenarios.json` | Its scenarios: the install proven and submitted, and refused without an adapter or with a broken one (ctest `bottega_scenarios`) |
 | `broken-sorter.adapter.json` | An adapter whose proof fails, so nothing is installed |
 | `CMakeLists.txt` | The `affrescoui_bottega` program: this folder's `main.cpp`, Tempera's natives and affrescoui's composition commands |
-| `e2e_test.py` | End to end: Tempera live, the Studio asks an agent to install the sorter, accepts it, plays it, then undoes it |
+| `e2e_test.py` | End to end: Tempera live, a `studio` peer asks an agent to install the sorter, accepts it, plays it, then undoes it |
 | `fake_agent.py` | A deterministic stand-in for the agent: it reads the contributions over MCP, writes the adapter, checks and installs |
 | `main.cpp` | The program: the scenarios' install actions, and the `check` and `contributions` commands |
 | `tempera-sorter.adapter.json` | The adapter that binds the sorter's needs (pages, the current page, reorder, select, duplicate) to Tempera's exports and actions |
@@ -29,8 +29,8 @@ The sorter itself is Sinopia's, in [`../sinopia/features/slide-sorter`](../sinop
   screen's permissions decide whether it applies or waits for a reviewer, and undoing it removes it. The manifest and
   the adapters are read as untrusted JSON.
 - **Threading and ownership:** each scenario's screen owns its Tempera session; everything runs on the thread that
-  plays the scenarios. The e2e test runs Tempera and the agent as separate processes and plays the Studio itself, on a
-  socket folder of its own.
+  plays the scenarios. The e2e test runs Tempera and the agent as separate processes and plays the `studio` peer
+  itself, on a socket folder of its own.
 - **Extension points:** another feature is another manifest and adapter; another host app is another adapter, bound
   to what that app exports.
 - **Assets:** none of its own.

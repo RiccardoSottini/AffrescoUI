@@ -4,7 +4,7 @@
 Starts Orrery, which is JSON only, in affrescoui_host on a private socket folder, on a copy of the screen without
 its bodies strip, and drives it the way an agent would through the MCP server: it reads the screen, proves that
 Sinopia's slide sorter fits Orrery through Orrery's adapter, and installs it, which is a revision the agent may only
-propose. The agent gets a picture of the proposal and plays the strip's scenarios on it, the Studio approves it, and
+propose. The agent gets a picture of the proposal and plays the strip's scenarios on it, a `studio` peer approves it, and
 the strip is on main. Then it plays Orrery's own scenarios headless on the screen as shipped, and opens Orrery on bodies
 whose id or parent isn't text.
 
@@ -160,7 +160,7 @@ def main():
         assert "proposed as proposal " in text, text
         proposal = int(text.split("proposed as proposal ")[1].split()[0].rstrip(".,:;"))
 
-        # The Studio is told of it, with the head it will approve
+        # The studio peer is told of it, with the head it will approve
         studio.settimeout(20)
         head = None
         while head is None:
@@ -176,7 +176,7 @@ def main():
         text = mcp.tool("run_scenarios", {"file": strip, "proposal": proposal})[0]["text"]
         assert "FAILED" not in text and "1 passed" in text, text
 
-        # 5. The person approves it in the Studio
+        # 5. The person approves it, as a studio peer
         studio_stream.write((json.dumps({"type": "accept", "proposal": proposal,
                                          "head": head}) + "\n").encode())
         studio_stream.flush()

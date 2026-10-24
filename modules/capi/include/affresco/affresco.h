@@ -368,7 +368,7 @@ AFR_API afr_status afr_screen_render_texture(afr_screen* screen, int width, int 
 AFR_API afr_status afr_screen_render_rgba(afr_screen* screen, int* width, int* height, uint8_t** rgba);
 
 /**
- * @brief Accepts peers (the Studio, the MCP server, other programs) on a local socket.
+ * @brief Accepts peers (a person's client, the MCP server, other programs) on a local socket.
  * @param screen The screen.
  * @param name The socket's file name, inside the socket directory (no separators), e.g. "agent.sock".
  * @param author The name its peers' changes are authored as, which the document's "permissions" know them by, e.g.

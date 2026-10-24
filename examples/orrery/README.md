@@ -12,8 +12,9 @@ It was built by an outsider to the library, as a test of the public documentatio
 ./build/affrescoui_host examples/orrery/index.screen.json [--socket DIR] [--data DIR]
 ```
 
-The host listens for the Studio and an agent in `DIR` (`studio.sock`, `agent.sock`). Its permissions
-apply the Studio's changes and send an agent's to review, which the Studio or the person at Orrery's window can give.
+The host listens for the person's client and an agent in `DIR` (`studio.sock`, `agent.sock`). Its permissions
+apply a `studio` peer's changes and send an agent's to review, which a `studio` peer or the person at Orrery's window
+can give.
 
 ## What it has
 
@@ -85,7 +86,7 @@ python3 examples/orrery/e2e_test.py build    # or: ctest --test-dir build -R mcp
 2. The agent reads the screen and its contributions, proves the slide sorter fits through the adapter, and installs
    it. In this screen an agent's revision is only proposed.
 3. The agent gets a picture of the proposal and plays the strip's scenarios on it.
-4. The Studio approves the proposal, and the strip is on main.
+4. A `studio` peer approves the proposal, and the strip is on main.
 5. Finally, the test plays Orrery's scenarios on the screen as shipped.
 
 ## Assets

@@ -1,5 +1,5 @@
 name: Feature request
-description: Something the library, the examples, the Studio or the MCP server could do.
+description: Something the library, the examples, the Launcher or the MCP server could do.
 labels: ["enhancement"]
 body:
   - type: markdown
@@ -36,7 +36,7 @@ body:
         - Screen format runtime (modules/format)
         - Version control (modules/vcs)
         - Channels and the live protocol (modules/channel)
-        - The examples, templates or the Studio
+        - The examples, templates or the Launcher
         - The MCP server
         - Build, CI or docs
   - type: checkboxes

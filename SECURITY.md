@@ -81,10 +81,10 @@ A **peer** is a program connected to the running screen over a local socket. The
   or one the system can't tell about, is refused, its connection closed, and the refusal logged. An embedding
   application can pass its own check to `SocketServer` (`PeerCheck`).
 - The socket file is made readable and writable only by its owner, just after it is created; until then it has the
-  process's default permissions. The example host, the Studio and the MCP server keep the sockets in a directory
+  process's default permissions. The example host and the MCP server keep the sockets in a directory
   (`/tmp/affrescoui-<uid>` by default, or `--socket DIR`) that must be a real directory owned by the current user,
   not a symbolic link (only the last part of the path is checked); the host makes it accessible only to that user,
-  and the Studio and the MCP server don't check its permissions. The directory and the file keep other users from
+  and the MCP server doesn't check its permissions. The directory and the file keep other users from
   connecting at all; the user check above refuses them if they get through.
 
 ### Remote peers
@@ -216,7 +216,7 @@ Grants are allow rules, so `ask` and `deny` still win.
 An author can keep pushing commits to its open proposal. Every approval must name the proposal's head commit (at
 least its first 7 characters): the version the reviewer looked at. If the author pushed since, the approval is
 refused and the proposal stays open for another look. An approval without a head is refused. This holds for all
-three ways to accept: an `accept` message from a peer such as the Studio, the C++ call
+three ways to accept: an `accept` message from a reviewer's peer (on `studio.sock`), the C++ call
 `Screen::acceptProposal(id, head, error)`, and an `accept` step in the screen, which names it with `"head"` (for
 example `"{{proposals[0].head}}"`).
 

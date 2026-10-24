@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """End-to-end: add Sinopia's slide sorter to Tempera.
 
-Starts Tempera, connects as the Studio and asks an agent to install the sorter, as the "Install from another app"
-dialog does (examples/studio/studio-install.json). A scripted fake agent (fake_agent.py) reads the contributions
-through the MCP server, writes the adapter, checks the composition and submits the install; the Studio accepts the
-proposal. Then the live document plays the sorter docked and reordering Tempera's layers, the install shows in history
-and blame, and undoing it removes it.
+Starts Tempera, connects as a `studio` peer (the person's client) and asks an agent to install the sorter in a
+request. A scripted fake agent (fake_agent.py) reads the contributions through the MCP server, writes the adapter,
+checks the composition and submits the install; the `studio` peer accepts the proposal. Then the live document plays
+the sorter docked and reordering Tempera's layers, the install shows in history and blame, and undoing it removes it.
 
 Usage: e2e_test.py BUILD_DIR
 """
@@ -30,8 +29,8 @@ LIVE_SCENARIOS = {"format": "affrescoui-scenarios", "version": 2, "screens": TEM
                       {"expect": {"state": "doc.layers[1].name", "is": "Hills"}}]}]}
 
 
-class Studio:
-    """The Studio's connection to the host: one JSON object per line."""
+class StudioPeer:
+    """A `studio` peer's connection to the host: one JSON object per line."""
 
     def __init__(self, path, timeout=20.0):
         deadline = time.monotonic() + timeout
@@ -60,7 +59,7 @@ class Studio:
         while True:
             line = self.stream.readline()
             if not line:
-                sys.exit("the host closed the Studio's connection")
+                sys.exit("the host closed the studio peer's connection")
             message = json.loads(line)
             if wanted(message):
                 return message
@@ -73,7 +72,7 @@ class Studio:
 
 
 def install(build, sockets, studio):
-    """The Studio asks, the fake agent installs, the Studio accepts. Returns the agent's reply."""
+    """The `studio` peer asks, the fake agent installs, the `studio` peer accepts. Returns the agent's reply."""
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets, AFFRESCOUI_CLI=os.path.join(build, "affrescoui_bottega"))
     agent = subprocess.Popen([sys.executable, os.path.join(HERE, "fake_agent.py"), sockets], env=env,
                              stdout=subprocess.PIPE, text=True)
@@ -128,7 +127,7 @@ def main():
                             env=dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets),
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
-        studio = Studio(os.path.join(sockets, "studio.sock"))
+        studio = StudioPeer(os.path.join(sockets, "studio.sock"))
         reply = install(build, sockets, studio)
         assert "slide sorter" in reply.get("text", ""), reply
         check_live(build, work, studio)

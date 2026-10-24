@@ -49,7 +49,7 @@ def describe(reply):
                 f"(commit {str(reply.get('commit', ''))[:7]})"), False
     if kind == "proposed":
         return (f"proposed as proposal {reply.get('proposal')} (head {str(reply.get('commit', ''))[:7]}): a reviewer "
-                f"decides in the Studio. It is not applied yet; get_events will report the decision. Pass "
+                f"decides (the person, on its card in the app's chat). It is not applied yet; get_events will report the decision. Pass "
                 f"proposal={reply.get('proposal')} to submit_revision to add to it."), False
     return f"rejected, nothing changed: {explain_denial(reply.get('error'))}", True
 

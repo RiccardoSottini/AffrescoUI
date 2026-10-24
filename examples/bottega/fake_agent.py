@@ -2,9 +2,9 @@
 """A deterministic stand-in for an AI agent that installs Sinopia's slide sorter into Tempera through the MCP server
 (VERSION_CONTROL.md, "Installing across apps"), as tests/repair/fake_agent.py stands in for a repairing one.
 
-It waits for the Studio's request, reads what Tempera offers and what the sorter needs (get_contributions), checks the
-composition without an adapter (it fails, naming the unmet needs), writes the adapter from Tempera's exports, checks
-again, installs it (a proposal for a reviewer) and replies. It prints one JSON line: {"proposal": N}.
+It waits for the `studio` peer's request, reads what Tempera offers and what the sorter needs (get_contributions),
+checks the composition without an adapter (it fails, naming the unmet needs), writes the adapter from Tempera's
+exports, checks again, installs it (a proposal for a reviewer) and replies. It prints one JSON line: {"proposal": N}.
 
 Usage: fake_agent.py SOCKET_DIR    (AFFRESCOUI_CLI: affrescoui_bottega, so proofs play Tempera's scenarios)
 """
@@ -76,7 +76,7 @@ def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     mcp = Mcp(sys.argv[1])
-    mcp.tool("get_screen", {"outline": True, "depth": 0})  # connects, so the Studio's request reaches it
+    mcp.tool("get_screen", {"outline": True, "depth": 0})  # connects, so the studio peer's request reaches it
     print(json.dumps({"ready": True}), flush=True)
     request = json.loads(mcp.tool("wait_for_request", {"timeout_seconds": 60}))
     if not request.get("request_id") or "slideSorter" not in request.get("text", ""):

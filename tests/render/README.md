@@ -33,7 +33,7 @@ behaviour, not pictures: ctest `scenarios` plays them headless with the same run
 
 ## Scenarios
 
-The scenarios are in `scenarios/`, one file per area: `kanban.json`, `code-editor.json`, `studio.json`, and so on.
+The scenarios are in `scenarios/`, one file per area: `kanban.json`, `code-editor.json`, `forge.json`, and so on.
 `check.py` passes every `.json` there in the order of the file names, so a new file needs no other edit, and parallel
 changes that add scenarios to different areas don't touch the same file. A scenario's name must be unique across the
 files, because it is the prefix of its pictures' names.
@@ -45,9 +45,9 @@ an optional `scale` and `note`, and the steps. A picture is an expectation, name
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/studio",
+	"screens": "../../../examples/flow",
 	"scenarios": [
-		{ "name": "studio", "screen": "index.screen.json", "steps": [{ "expect": { "image": "first-frame" } }] }
+		{ "name": "kanban", "screen": "index.screen.json", "steps": [{ "expect": { "image": "first-frame" } }] }
 	]
 }
 ```
