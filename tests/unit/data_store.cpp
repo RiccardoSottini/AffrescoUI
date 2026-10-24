@@ -16,6 +16,18 @@ using affresco::data::Store;
 
 namespace {
 
+/// @brief A field of a stored record, or null if there is no such record.
+/// @param store The store.
+/// @param collection The collection.
+/// @param id The record.
+/// @param field The field.
+/// @return Its value.
+json fieldOf(const affresco::data::Store& store, const std::string& collection, const std::string& id,
+             const std::string& field) {
+	const std::optional<affresco::data::Record> record = store.get(collection, id);
+	return record ? record->fields.value(field, json()) : json();
+}
+
 /// @brief Generated test models: notes with tags and a folder they refer to.
 const json& models() {
 	static const json value = json::parse(R"json({
@@ -61,7 +73,7 @@ TEST_CASE("data: a new collection starts with its seed, once") {
 	Store store;
 	follow(store);
 	CHECK(store.size("folders") == 2);
-	CHECK(store.get("folders", "inbox").value().fields["name"] == "Inbox");
+	CHECK(fieldOf(store, "folders", "inbox", "name") == "Inbox");
 	(void)store.follow(models(), "test"); // the same models again: nothing new
 	CHECK(store.size("folders") == 2);
 }
@@ -85,7 +97,7 @@ TEST_CASE("data: validation refuses bad records, and nothing gets in") {
 	const auto note = store.insert("notes", {{"title", "Plan"}, {"folder", "work"}, {"tags", {"a", "b"}}}, "app");
 	CHECK(note.fields["stars"] == 0); // the default
 	CHECK(codeOf([&] { (void)store.update("notes", note.id, {{"stars", 6}}, "app"); }) == "invalid");
-	CHECK(store.get("notes", note.id).value().fields["stars"] == 0);
+	CHECK(fieldOf(store, "notes", note.id, "stars") == 0);
 	CHECK(codeOf([&] { store.remove("folders", "work", "app"); }) == "reference"); // a note refers to it
 	CHECK(store.size("folders") == 2);
 }
@@ -109,16 +121,16 @@ TEST_CASE("data: the journal undoes and redoes, one batch at a time") {
 
 	CHECK(store.undo()); // the batch, both writes
 	CHECK(store.size("notes") == 1);
-	CHECK(store.get("notes", a.id).value().fields["title"] == "A");
+	CHECK(fieldOf(store, "notes", a.id, "title") == "A");
 	CHECK(store.canRedo());
 	CHECK(store.redo());
 	CHECK(store.size("notes") == 2);
-	CHECK(store.get("notes", a.id).value().fields["title"] == "A2");
+	CHECK(fieldOf(store, "notes", a.id, "title") == "A2");
 
 	store.remove("notes", a.id, "app");
 	CHECK_FALSE(store.get("notes", a.id));
 	CHECK(store.undo());
-	CHECK(store.get("notes", a.id).value().fields["title"] == "A2");
+	CHECK(fieldOf(store, "notes", a.id, "title") == "A2");
 	(void)store.insert("notes", {{"title", "C"}}, "app"); // a new write: nothing to redo
 	CHECK_FALSE(store.canRedo());
 }

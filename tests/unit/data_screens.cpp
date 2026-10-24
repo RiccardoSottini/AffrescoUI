@@ -24,6 +24,18 @@ using affresco::detail::ManualClock;
 
 namespace {
 
+/// @brief A field of a stored record, or null if there is no such record.
+/// @param store The store.
+/// @param collection The collection.
+/// @param id The record.
+/// @param field The field.
+/// @return Its value.
+json fieldOf(const affresco::data::Store& store, const std::string& collection, const std::string& id,
+             const std::string& field) {
+	const std::optional<affresco::data::Record> record = store.get(collection, id);
+	return record ? record->fields.value(field, json()) : json();
+}
+
 /// @brief A notes screen: generated test data only.
 const json& notesScreen() {
 	static const json value = json::parse(R"json({
@@ -253,8 +265,8 @@ TEST_CASE("data screens: a previewed proposal that migrates shows its records on
 	REQUIRE(proposed.status == affresco::RevisionStatus::Proposed); // a migration is always reviewed
 	CHECK(screen.proposals().front().impact["data"] == "migrates 2 records");
 	REQUIRE(screen.previewProposal(proposed.proposal));
-	CHECK(json::parse(screen.dataJson())["notes"][0]["name"] == "First");       // the preview reads a migrated copy
-	CHECK(screen.data().get("notes", "n1").value().fields["title"] == "First"); // the store is as it was
+	CHECK(json::parse(screen.dataJson())["notes"][0]["name"] == "First"); // the preview reads a migrated copy
+	CHECK(fieldOf(screen.data(), "notes", "n1", "title") == "First");     // the store is as it was
 	screen.endPreview();
 	CHECK(json::parse(screen.dataJson())["notes"][0]["title"] == "First");
 }

@@ -156,7 +156,9 @@ bool releaseReference(Store::Impl& impl, const ReferringField& referring, const 
 		throw DataError("reference",
 		                where + ": '" + name + "' record '" + ids.front() + "' refers to it (" + referring.name + ")");
 	for(const std::string& referrer : ids) {
-		Row other = impl.row(name, referrer).value(); // found by the query above, in this transaction
+		const std::optional<Row> found = impl.row(name, referrer); // found by the query above, in this transaction
+		if(!found) continue;
+		Row other = *found;
 		const json before = rowJson(other);
 		if(!list) other.body.erase(referring.name);
 		else {
