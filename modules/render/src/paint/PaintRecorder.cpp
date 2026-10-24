@@ -248,24 +248,30 @@ void PaintRecorder::fillRect(const Rect& rect, Color color) {
 	else pushQuad(rect, Rect{}, color);
 }
 
+// Laid out by the font, drawn from its raster: the same places at any scale, denser glyphs. A raster's baseline is
+// put on a pixel row, so its glyphs' rows are the framebuffer's (a scale of 1.5 would otherwise blur them)
 void PaintRecorder::drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) {
-	beginStep(PaintStep::text, &font);
+	const Font& raster = font.rasterAt(scale_);
+	const float scale = raster.rasterScale();
+	beginStep(PaintStep::text, &raster);
 
 	// Shaped glyphs come left to right, and spaces aren't among them
 	for(const Font::ShapedGlyph& placed : font.shape(text).glyphs) {
-		const float penX = origin.x + placed.x, baseline = origin.y + placed.y;
+		const float penX = origin.x + placed.x;
+		float baseline = origin.y + placed.y;
 		if(penX > clip_.right) break; // the rest of the line is clipped anyway
+		if(&raster != &font) baseline = std::round(baseline * scale) / scale;
 
-		const Font::Glyph& glyph = *placed.glyph;
+		const Font::Glyph& glyph = raster.rasterGlyph(*placed.glyph);
 		const Rect quad{penX + glyph.quad.left, baseline + glyph.quad.top, penX + glyph.quad.right,
 		                baseline + glyph.quad.bottom};
 		if(glyph.color) {
-			beginStep(PaintStep::colorGlyph, &font, glyph.page);
+			beginStep(PaintStep::colorGlyph, &raster, glyph.page);
 			pushQuad(quad, glyph.uv, Color{1.0f, 1.0f, 1.0f, color.a}, QuadKind::colorGlyph); // its own colours
 			continue;
 		}
 		const PaintOp& last = record_.ops.back();
-		if(last.step != PaintStep::glyphs || last.page != glyph.page) beginStep(PaintStep::glyphs, &font, glyph.page);
+		if(last.step != PaintStep::glyphs || last.page != glyph.page) beginStep(PaintStep::glyphs, &raster, glyph.page);
 		pushQuad(quad, glyph.uv, color);
 	}
 }

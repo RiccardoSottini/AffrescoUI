@@ -96,6 +96,7 @@ struct PaintKey {
 	Vec2 contentMin, contentMax;  ///< Its children's extent (the scroll bar).
 	std::uint64_t generation = 0; ///< The window's paint generation (Window::invalidate() starts a new one).
 	bool smooth = false;          ///< Drawn turned or skewed: its rectangles are shapes, so their edges stay smooth.
+	float scale = 1.0f;           ///< The raster scale its text was drawn from (Font::rasterAt()).
 
 	/// @brief Equal when every member is equal.
 	bool operator==(const PaintKey&) const = default;

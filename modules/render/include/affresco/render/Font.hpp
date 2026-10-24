@@ -56,17 +56,27 @@ struct FontStyle {
 /// pages, so text that mixes them still draws in one batch. The pages of one font hold at most 64 MiB together;
 /// characters past that draw as '?', so text from a peer can't grow the atlas without bound.
 ///
+/// **Display scale.** Sizes, metrics, shaping, measuring and wrapping are in pixels of the window (logical units),
+/// whatever the display. A frame drawn with more framebuffer pixels per unit (a Retina display: 2) draws its glyphs
+/// from a raster of the font at that scale (rasterAt()): the same faces and glyphs, rasterised that many times
+/// denser into atlas pages of its own, on demand, each glyph's quad still in pixels. So text is sharp on any
+/// display and lays out the same on all of them. A font keeps a raster per scale it has drawn at (scales are rounded
+/// to quarters, from 1 to 4) for as long as it lives, so windows on displays of different scales can share it; each
+/// raster's pages have the same 64 MiB bound, and memoryBytes() counts them.
+///
 /// Pure CPU data: each window uploads the pages to its own GPU context when it draws with them, then only what was
 /// added since. Not thread-safe: a font is used on the main thread, like the panels that draw with it.
 class Font : public std::enable_shared_from_this<Font> {
 public:
 	/// @brief Where a glyph is in the atlas and how to place it.
 	struct Glyph {
-		Rect quad;              ///< Relative to the pen position on the baseline (y pointing down).
-		Rect uv;                ///< Texture coordinates in its atlas page.
-		float advance;          ///< Horizontal pen movement, before shaping (kerning and the like).
-		std::uint32_t page = 0; ///< The atlas page that holds it.
-		bool color = false;     ///< Whether the page is a colour page (AtlasKind::color): its texels are the colours.
+		Rect quad;               ///< Relative to the pen position on the baseline (y pointing down).
+		Rect uv;                 ///< Texture coordinates in its atlas page.
+		float advance;           ///< Horizontal pen movement, before shaping (kerning and the like).
+		std::uint32_t page = 0;  ///< The atlas page that holds it.
+		bool color = false;      ///< Whether the page is a colour page (AtlasKind::color): its texels are the colours.
+		std::uint32_t face = 0;  ///< Which of the font's faces it comes from (the font first, then its fallbacks).
+		std::uint32_t index = 0; ///< Its glyph index in that face.
 	};
 
 	/// @brief A glyph of shaped text, placed.
@@ -169,8 +179,32 @@ public:
 	/// @return Views into @p text, one per line.
 	[[nodiscard]] std::vector<std::u32string_view> wrap(std::u32string_view text, float maxWidth) const;
 
-	/// @brief How much memory the font's atlas pages, glyphs and shaped text take, without its font files.
+	/// @brief How much memory the font's atlas pages, glyphs and shaped text take, its rasters at other scales
+	/// included, without its font files.
 	[[nodiscard]] std::size_t memoryBytes() const noexcept;
+
+	/* Display scale */
+
+	/// @brief The raster scale a frame's pixels per unit draw text at: rounded to a quarter, from 1 to 4.
+	/// @param pixelScale Framebuffer pixels per window unit.
+	/// @return 1 for 1.125 or less (and for anything not a number): the font's own glyphs.
+	[[nodiscard]] static float rasterScaleFor(float pixelScale) noexcept;
+	/// @brief The font as drawn into a framebuffer with more pixels per unit: its glyphs rasterised that much denser,
+	/// into atlas pages of its own, made on first use and kept as long as the font.
+	///
+	/// A raster only draws: shape, measure and wrap with the font itself, then draw each glyph's rasterGlyph(). Its
+	/// atlas functions, id() and memoryBytes() are its own; the rest is the font's.
+	/// @param pixelScale Framebuffer pixels per window unit, rounded by rasterScaleFor().
+	/// @return This font for a scale of 1, or for a raster of a size past FontFace's largest (or out of memory); else
+	/// the raster.
+	[[nodiscard]] const Font& rasterAt(float pixelScale) const noexcept;
+	/// @brief Texels per pixel of its glyphs: 1 for a font, the scale for a raster (rasterAt()).
+	[[nodiscard]] float rasterScale() const noexcept;
+	/// @brief A raster's glyph for one of its font's glyphs (from glyph() or shape()), rasterised the first time.
+	/// @param glyph A glyph of the font this is a raster of, or of this font.
+	/// @return For a raster, its glyph: the same face and glyph index, its quad in pixels (its bitmap's texels divided
+	/// by the scale), its texture coordinates in the raster's pages; '?' if it doesn't fit. For a font, @p glyph.
+	[[nodiscard]] const Glyph& rasterGlyph(const Glyph& glyph) const noexcept;
 
 	/* Atlas */
 
@@ -245,6 +279,15 @@ private:
 	                                                      std::span<const std::filesystem::path> optional,
 	                                                      detail::FontFiles& files, FontStyle style = {});
 
+	/// @brief Gives a font loaded into its faces its id, its metrics and its Latin-1 page.
+	/// @param path Its file, for the error.
+	/// @throws std::runtime_error If Latin-1 doesn't fit the largest page.
+	void finishLoading(const std::filesystem::path& path);
+	/// @brief Makes a raster of the font at a scale.
+	/// @param scale From rasterScaleFor(), more than 1.
+	/// @return The raster: the font's faces again, at that raster scale, with a first page holding '?'.
+	/// @throws std::runtime_error If a face can't be opened at that scale (past FontFace::largestSize).
+	[[nodiscard]] std::shared_ptr<const Font> makeRaster(float scale) const;
 	/// @brief Rasterises Latin-1 into the first page, if it fits, taking what the font lacks from its fallbacks.
 	/// @param size The page's width and height, in texels.
 	/// @return Whether it fit.

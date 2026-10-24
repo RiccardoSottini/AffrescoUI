@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <optional>
@@ -21,7 +22,15 @@ namespace affresco {
 
 namespace {
 
-constexpr int smallestPage = 256; ///< The first page starts at this size and doubles until Latin-1 fits.
+constexpr int smallestPage = 256;          ///< The first page starts at this size and doubles until Latin-1 fits.
+constexpr float largestRasterScale = 4.0f; ///< Frames with more pixels per unit draw text from rasters at this scale.
+
+/// @brief A new font id, never given before.
+/// @return The id.
+std::uint64_t nextFontId() noexcept {
+	static std::atomic<std::uint64_t> next = 1;
+	return next++;
+}
 
 /// @brief Copies a rendered glyph's rows into an atlas page; colour ones from BGRA to RGBA.
 /// @param bitmap The glyph.
@@ -111,7 +120,7 @@ const Font::Glyph& Font::Data::glyph(std::size_t face, unsigned index) {
 
 std::optional<Font::Glyph> Font::Data::rasterise(std::size_t face, unsigned index, bool mayAddPage) {
 	const detail::FontFace& from = faces[face];
-	Glyph glyph{Rect{}, Rect{}, from.advance(index), 0, false};
+	Glyph glyph{Rect{}, Rect{}, from.advance(index), 0, false, static_cast<std::uint32_t>(face), index};
 
 	// A glyph that can't be rendered (a broken outline) draws nothing, and still moves the pen
 	const auto bitmap = from.render(index);
@@ -130,8 +139,10 @@ std::optional<Font::Glyph> Font::Data::rasterise(std::size_t face, unsigned inde
 	page.changes.push_back({left, top, left + width, top + height});
 
 	const auto texel = 1.0f / static_cast<float>(page.size);
-	glyph.quad = Rect{static_cast<float>(bitmap->left), static_cast<float>(-bitmap->top),
+	const float scale = rasterScale; // the bitmap is in texels, the quad in pixels
+	const Rect texels{static_cast<float>(bitmap->left), static_cast<float>(-bitmap->top),
 	                  static_cast<float>(bitmap->left + width), static_cast<float>(height - bitmap->top)};
+	glyph.quad = Rect{texels.left / scale, texels.top / scale, texels.right / scale, texels.bottom / scale};
 	glyph.uv = Rect{static_cast<float>(left) * texel, static_cast<float>(top) * texel,
 	                static_cast<float>(left + width) * texel, static_cast<float>(top + height) * texel};
 	glyph.page = spot->page;
@@ -155,8 +166,6 @@ std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float 
                                        std::span<const std::filesystem::path> fallbacks,
                                        std::span<const std::filesystem::path> optional, detail::FontFiles& files,
                                        FontStyle style) {
-	static std::atomic<std::uint64_t> nextId = 1;
-
 	std::shared_ptr<Font> font(new Font());
 	Data& data = *font->data_;
 	data.library = detail::startFreeType();
@@ -174,18 +183,24 @@ std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float 
 			log(LogLevel::Warning, std::string("AffrescoUI: skipping a system font: ") + error.what());
 		}
 	}
+	font->pixelHeight_ = pixelHeight;
+	font->style_ = style;
+	font->finishLoading(path);
+	return font;
+}
+
+void Font::finishLoading(const std::filesystem::path& path) {
+	Data& data = *data_;
 	data.buffer.reset(hb_buffer_create());
 	if(!hb_buffer_allocation_successful(data.buffer.get())) throw std::bad_alloc();
 
-	font->id_ = nextId++;
-	font->pixelHeight_ = pixelHeight;
-	font->style_ = style;
-	font->ascent_ = data.faces.front().ascent();
-	font->lineHeight_ = data.faces.front().lineHeight();
+	id_ = nextFontId();
+	ascent_ = data.faces.front().ascent();
+	lineHeight_ = data.faces.front().lineHeight();
 
 	// Smallest square page (power of two) that fits Latin-1
 	for(int size = smallestPage; size <= detail::GlyphAtlas::largestPage; size *= 2)
-		if(font->bakeLatin1(size)) return font;
+		if(bakeLatin1(size)) return;
 
 	throw std::runtime_error("AffrescoUI: font too large to fit an atlas: " + path.string());
 }
@@ -221,6 +236,85 @@ bool Font::bakeLatin1(int size) {
 	data.spaceAdvance = latin1_[U' ' - firstCodepoint].advance;
 	data.atlas.forgetChanges(); // Latin-1 is the first page's content: nothing to upload twice
 	return true;
+}
+
+/* Display scale */
+
+float Font::rasterScaleFor(float pixelScale) noexcept {
+	if(!(pixelScale > 1.125f)) return 1.0f; // nearer 1 than 1.25 (or not a number): the font's own glyphs
+	return std::min(std::round(pixelScale * 4.0f) / 4.0f, largestRasterScale);
+}
+
+float Font::rasterScale() const noexcept { return data_->rasterScale; }
+
+// A raster draws only: no Latin-1 at load (its glyphs are rasterised as text draws them), and no rasters of its own
+std::shared_ptr<const Font> Font::makeRaster(float scale) const {
+	std::shared_ptr<Font> raster(new Font());
+	Data& data = *raster->data_;
+	data.library = detail::startFreeType();
+	data.rasterScale = scale;
+	data.faces.reserve(data_->faces.size());
+	for(const detail::FontFace& face : data_->faces) data.faces.emplace_back(data.library.get(), face, scale);
+	data.buffer.reset(hb_buffer_create());
+	if(!hb_buffer_allocation_successful(data.buffer.get())) throw std::bad_alloc();
+
+	raster->id_ = nextFontId();
+	raster->pixelHeight_ = pixelHeight_;
+	raster->style_ = style_;
+	raster->ascent_ = ascent_;
+	raster->lineHeight_ = lineHeight_;
+	data.spaceAdvance = data_->spaceAdvance;
+
+	// A first page as much larger than the font's as its glyphs are
+	const float side = static_cast<float>(data_->atlas.pages(AtlasKind::coverage).front().size) * scale;
+	const unsigned first = std::min(std::bit_ceil(static_cast<unsigned>(std::ceil(side))),
+	                                static_cast<unsigned>(detail::GlyphAtlas::largestPage));
+	data.atlas = detail::GlyphAtlas(static_cast<int>(first),
+	                                static_cast<int>(std::ceil(pixelHeight_ * scale)) + detail::GlyphAtlas::padding);
+
+	// '?' first, the font's own: what glyphs that don't fit draw
+	const Glyph& question = *data_->question;
+	const std::optional<Glyph> glyph = data.rasterise(question.face, question.index, false);
+	if(!glyph) throw std::runtime_error("AffrescoUI: font too large to rasterise at its display's scale");
+	const std::uint64_t key = (static_cast<std::uint64_t>(question.face) << 32) | question.index;
+	data.question = &data.glyphs.emplace(key, *glyph).first->second;
+	return raster;
+}
+
+const Font& Font::rasterAt(float pixelScale) const noexcept {
+	const float scale = rasterScaleFor(pixelScale);
+	Data& data = *data_;
+	if(scale == 1.0f || data.rasterScale != 1.0f) return *this;
+	for(const auto& [at, raster] : data.rasters)
+		if(at == scale) return raster ? *raster : *this;
+
+	// Made once per scale: one that can't be (a size past the largest, or out of memory) draws from the font itself
+	std::shared_ptr<const Font> raster;
+	try {
+		raster = makeRaster(scale);
+	} catch(const std::exception& error) {
+		try {
+			log(LogLevel::Warning, std::string("AffrescoUI: text drawn unscaled: ") + error.what());
+		} catch(...) { // nothing more to tell
+		}
+	}
+	try {
+		data.rasters.emplace_back(scale, raster);
+	} catch(...) {
+		return *this; // out of memory: the raster goes, and the font draws
+	}
+	return raster ? *raster : *this;
+}
+
+const Font::Glyph& Font::rasterGlyph(const Glyph& glyph) const noexcept {
+	Data& data = *data_;
+	if(data.rasterScale == 1.0f) return glyph;
+	if(glyph.face >= data.faces.size()) return *data.question; // not a glyph of this raster's font
+	try {
+		return data.glyph(glyph.face, glyph.index);
+	} catch(...) {
+		return *data.question; // out of memory
+	}
 }
 
 /* Glyphs */
@@ -311,9 +405,12 @@ std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxW
 std::size_t Font::memoryBytes() const noexcept {
 	const Data& data = *data_;
 	constexpr std::size_t node = 32; // a hash map node's pointers and hash, roughly
+	std::size_t rasters = data.rasters.capacity() * sizeof(decltype(data.rasters)::value_type);
+	for(const auto& [scale, raster] : data.rasters)
+		if(raster) rasters += raster->memoryBytes();
 	return sizeof(Font) + data.atlas.bytes() + data.glyphs.size() * (sizeof(Glyph) + node) +
 	       data.nominal.size() * (sizeof(const Glyph*) + node) + data.words.bytes() + data.lines.bytes() +
-	       data.uncached.glyphs.capacity() * sizeof(ShapedGlyph) + (data.plain ? data.plain->bytes() : 0);
+	       data.uncached.glyphs.capacity() * sizeof(ShapedGlyph) + (data.plain ? data.plain->bytes() : 0) + rasters;
 }
 
 /* What tests see */
