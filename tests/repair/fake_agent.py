@@ -2,7 +2,7 @@
 """A deterministic stand-in for an AI agent that repairs the "Blocked column" change set (VERSION_CONTROL.md,
 "Self-repairing change sets").
 
-It reads the host's messages, one JSON object per line, on stdin, remembers the board's columns from "hello", and
+It reads the host's messages, one JSON object per line, on stdin, remembers the board's columns (state.lanes.launch) from "hello", and
 answers a "request" of kind "repair" with one revision: a "Blocked" column before the last one, whatever that one is
 now called. tests/unit/change_set_repair.cpp runs it through a ProcessChannel.
 """
@@ -20,8 +20,8 @@ def repair(request, columns):
             "message": "Repair: Blocked before the last column",
             "patch": [{
                 "op": "add",
-                "path": "/state/columns/%d" % max(len(columns) - 1, 0),
-                "value": {"name": "Blocked", "color": "#dc2626", "cards": []},
+                "path": "/state/lanes/launch/%d" % max(len(columns) - 1, 0),
+                "value": {"name": "Blocked", "color": "#dc2626"},
             }],
         },
     }
@@ -36,7 +36,7 @@ def main():
         except ValueError:
             continue
         if message.get("type") == "hello":
-            columns = message.get("state", {}).get("columns", [])
+            columns = message.get("state", {}).get("lanes", {}).get("launch", [])
         elif message.get("type") == "request" and message.get("kind") == "repair":
             print(json.dumps(repair(message, columns)), flush=True)
 

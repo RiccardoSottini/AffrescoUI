@@ -3,14 +3,14 @@
 	"rename-label": { "message": "Call the app Board", "set": { "#logo/text": "Board" } },
 	"add-column": {
 		"message": "Add a Blocked column",
-		"add": { "/state/columns/-": { "name": "Blocked", "color": "#dc2626", "cards": [] } }
+		"add": { "/state/lanes/launch/-": { "name": "Blocked", "color": "#dc2626" } }
 	},
 	"add-filter": { "message": "Add a docs filter", "add": { "/state/filters/-": "docs", "/state/tagIcons/docs": "book-open" } },
 	"restyle": { "message": "Wider filter chips", "set": { "/styles/chip/width": 96 } },
 	"add-button": {
 		"message": "Add a button that clears the Done column",
 		"add": {
-			"/actions/clearDone": [{ "set": "state.columns[3].cards", "to": [] }],
+			"/actions/clearDone": [{ "delete": "issues", "where": { "board": "{{state.boardId}}", "status": 3 } }],
 			"#topBar/children/-": {
 				"style": "chip", "text": "Clear done", "anchors": { "right": 180, "top": 16 },
 				"onClick": "clearDone"
@@ -18,8 +18,8 @@
 		}
 	},
 	"move-card": {
-		"message": "Start the first Backlog card",
-		"move": { "/state/columns/0/cards/0": "/state/columns/1/cards/0" }
+		"message": "Swap the first two columns",
+		"move": { "/state/lanes/launch/0": "/state/lanes/launch/1" }
 	},
 	"remove-node": { "message": "Hide the member badges", "remove": ["#members"] }
 }

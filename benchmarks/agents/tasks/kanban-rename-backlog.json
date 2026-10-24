@@ -9,7 +9,7 @@
 			"steps": [
 				{
 					"expect": {
-						"state": "columns[0].name",
+						"state": "lanes.launch[0].name",
 						"is": "Ideas"
 					}
 				},
@@ -41,7 +41,7 @@
 		{
 			"message": "Backlog is now Ideas",
 			"set": {
-				"/state/columns/0/name": "Ideas"
+				"/state/lanes/launch/0/name": "Ideas"
 			}
 		}
 	]
