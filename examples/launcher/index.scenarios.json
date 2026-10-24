@@ -1,0 +1,110 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screen": "index.screen.json",
+	"note": "The Launcher's behaviour, played headless with nothing granted: its services are refused, so the examples come from apps.json and My apps from the launcher.show action, as the apps folder would answer",
+	"scenarios": [
+		{
+			"name": "apps-grid",
+			"steps": [
+				{ "expect": { "state": "page", "is": "apps" } },
+				{ "expect": { "node": "#appsCount", "text": "12 apps" } },
+				{ "expect": { "node": "#cardName", "text": "Flow" } },
+				{ "expect": { "node": { "role": "button", "name": "Open Forge: An IDE with a terminal, source control and a debugger" }, "property": "shown", "is": true } },
+				{ "capture": "apps" }
+			]
+		},
+		{
+			"name": "search-and-categories",
+			"steps": [
+				{ "click": "#appSearch" },
+				{ "type": "tem" },
+				{ "expect": { "state": "query", "is": "tem" } },
+				{ "expect": { "node": "#appsCount", "text": "2 apps" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "query", "is": "" } },
+				{ "click": { "role": "radio", "name": "Code" } },
+				{ "expect": { "state": "category", "is": "code" } },
+				{ "expect": { "node": "#appsCount", "text": "2 apps" } },
+				{ "click": "#appSearch" },
+				{ "type": "zzzz" },
+				{ "expect": { "node": "#appsNone", "text": "No app matches “zzzz”." } }
+			]
+		},
+		{
+			"name": "create-validation",
+			"steps": [
+				{ "key": "mod+n" },
+				{ "expect": { "state": "page", "is": "create" } },
+				{ "click": "#createName" },
+				{ "key": "enter" },
+				{ "expect": { "state": "create.tried", "is": true } },
+				{ "expect": { "state": "create.busy", "is": false } },
+				{ "expect": { "node": "#createNameHint", "text": "Give the app a name." } },
+				{ "click": "#createName" },
+				{ "type": "Flow" },
+				{ "expect": { "node": "#createNameHint", "text": "That name is kept for an example app: choose another." } },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "type": "!!!" },
+				{ "expect": { "node": "#createNameHint", "text": "The name needs at least one letter or digit, a to z or 0 to 9." } },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "type": "My Budget 2026!" },
+				{ "expect": { "node": "#createNameHint", "text": "Its folder: AffrescoUI/my-budget-2026" } },
+				{ "click": { "role": "radio", "name": "Haven" } },
+				{ "expect": { "state": "create.from", "is": "haven" } },
+				{ "scroll": "#createScroll", "dy": -12 },
+				{ "click": { "role": "checkbox", "name": "Charts, from Haven" } },
+				{ "expect": { "state": "create.features", "is": ["charts"] } },
+				{ "capture": "create" }
+			]
+		},
+		{
+			"name": "start-from-an-example",
+			"steps": [
+				{ "click": { "role": "button", "name": "Start a new app from Flow" } },
+				{ "expect": { "state": "page", "is": "create" } },
+				{ "expect": { "state": "create.from", "is": "flow" } }
+			]
+		},
+		{
+			"name": "my-apps",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "expect": { "state": "page", "is": "mine" } },
+				{ "expect": { "node": "#mineEmpty", "property": "shown", "is": true } },
+				{ "expect": { "node": "#mineUnavailable", "property": "shown", "is": true } },
+				{ "action": "launcher.show", "event": { "mine": [
+					{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 },
+					{ "id": "my-budget", "name": "My budget", "modified": 1759000000000 }
+				] } },
+				{ "expect": { "node": "#mineName", "text": "Reading list" } },
+				{ "expect": { "node": "#mineName", "nth": 1, "text": "My budget" } },
+				{ "click": "#mineDelete" },
+				{ "wait": 0 },
+				{ "expect": { "state": "confirmOpen", "is": true } },
+				{ "expect": { "state": "confirm.id", "is": "reading-list" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "confirmOpen", "is": false } },
+				{ "capture": "mine" }
+			]
+		},
+		{
+			"name": "settings",
+			"steps": [
+				{ "key": "mod+comma" },
+				{ "expect": { "state": "page", "is": "settings" } },
+				{ "expect": { "node": "#settingsIntelligence", "exists": true } },
+				{ "click": { "role": "radio", "name": "Dark" } },
+				{ "expect": { "state": "theme", "is": "dark" } },
+				{ "click": { "role": "radio", "name": "Español" } },
+				{ "expect": { "state": "locale", "is": "es" } },
+				{ "expect": { "node": "#settingsTitle", "text": "Ajustes" } }
+			]
+		}
+	]
+}

@@ -2,7 +2,7 @@
 /// @brief affrescoui_host: shows a screen file and lets other programs change it while it runs.
 //
 //   affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
-//               [--plugin changes.json ...] [--usage] [--folder DIR] [--allow NAME[=PROGRAM ARG...] ...]
+//               [--plugin changes.json ...] [--usage] [--folder DIR] [--allow NAME[=PROGRAM ARG...] ...] [--apps DIR]
 //
 // The window only renders: it has no idea where changes come from. Programs connect over two local sockets in DIR
 // (default $AFFRESCOUI_SOCKET_DIR, else /tmp/affrescoui-<uid>, or %LOCALAPPDATA%\affrescoui\sockets on Windows):
@@ -14,8 +14,11 @@
 // --usage counts how the screen is used (VERSION_CONTROL.md, "Usage"), on this device and only once the person agreed,
 // asked once on the terminal. A screen's services may use the folder "workspace": --folder DIR, or the one the person
 // chooses in its folder dialog (the chooseFolder step); --allow grants them a program: a name on the PATH, "shell" (the
-// login shell) or "git" (the source control commands only), or NAME=PROGRAM ARG... Default screen:
-// the Kanban board template (examples/flow); the other templates have a folder each in examples (examples/README.md).
+// login shell) or "git" (the source control commands only), or NAME=PROGRAM ARG...
+// Without a file, the host opens the Launcher (examples/launcher), which lists the apps and opens them, and grants it
+// what it needs (grantLauncher()): the examples folder to read, the person's apps folder ("apps": --apps DIR, else
+// AffrescoUI in the home folder) and the sibling programs, each app opened with --data DIR and a socket folder of its
+// own in DIR. Every template has a folder in examples (examples/README.md): the Kanban board is examples/flow.
 
 #include "Assets.hpp"
 #include "CodeEditor.hpp"
@@ -120,9 +123,9 @@ void applyPlugins(affresco::Screen& screen, const std::vector<std::string>& plug
 
 /// @brief The screen file to show.
 /// @param given The file on the command line, or "".
-/// @return It, or the Kanban template.
+/// @return It, or the Launcher.
 std::filesystem::path screenFile(const std::string& given) {
-	return given.empty() ? assetsDirectory() / "flow" / "index.screen.json" : std::filesystem::path(given);
+	return given.empty() ? assetsDirectory() / "launcher" / "index.screen.json" : std::filesystem::path(given);
 }
 
 /// @brief Whether this is a plain screenshot run (AFFRESCOUI_SCREENSHOT without AFFRESCOUI_SCREENSHOT_AFTER), which
@@ -134,7 +137,7 @@ bool firstFrameOnly() {
 
 /// @brief What the command line asks for.
 struct Options {
-	std::string file; ///< The screen file; "" for the Kanban template.
+	std::string file; ///< The screen file; "" for the Launcher.
 	std::filesystem::path socketDir = affresco::Screen::defaultSocketDirectory(); ///< Where peers connect.
 	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();     ///< Where the history is kept.
 	/// For this run only: without --mode, the one a reviewer last chose, which the screen's history keeps.
@@ -143,6 +146,7 @@ struct Options {
 	bool usage = false;               ///< Count usage summaries, with the person's consent (off by default).
 	std::filesystem::path folder;     ///< The folder "workspace", or empty until the person chooses one.
 	std::vector<std::string> allowed; ///< The programs granted (Grants.hpp's specs).
+	std::filesystem::path apps;       ///< The Launcher's apps folder; empty for AffrescoUI in the home folder.
 };
 
 /// @brief Reads one argument of the command line.
@@ -169,6 +173,7 @@ int readArgument(Options& options, std::string_view arg, const char* value) {
 	else if(arg == "--plugin") options.plugins.emplace_back(value);
 	else if(arg == "--folder") options.folder = value;
 	else if(arg == "--allow") options.allowed.emplace_back(value);
+	else if(arg == "--apps") options.apps = value;
 	else if(arg == "--mode" && affresco::modeFromString(value)) options.mode = affresco::modeFromString(value);
 	else return 0;
 	return 2;
@@ -185,7 +190,7 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 		if(taken == 0) {
 			std::cerr << "usage: affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] "
 			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json] [--usage] "
-			             "[--folder DIR] [--allow NAME[=PROGRAM ARG...]]\n";
+			             "[--folder DIR] [--allow NAME[=PROGRAM ARG...]] [--apps DIR]\n";
 			return std::nullopt;
 		}
 		i += taken;
@@ -213,6 +218,55 @@ void enableUsage(affresco::Screen& screen) {
 	if(!screen.usageConsented()) std::cerr << "affrescoui_host: usage summaries stay off: no consent\n";
 }
 
+/// @brief The Launcher's apps folder: --apps DIR, else "AffrescoUI" in the home folder, where a person sees it.
+/// @param options The command line.
+/// @return It, absolute; empty if there is no home folder.
+std::filesystem::path appsFolder(const Options& options) {
+	if(!options.apps.empty()) return std::filesystem::absolute(options.apps);
+#ifdef _WIN32
+	const char* variable = "USERPROFILE";
+#else
+	const char* variable = "HOME";
+#endif
+	if(!environmentHas(variable)) return {};
+#ifdef _WIN32
+	std::size_t length = 0;
+	std::vector<char> home(32768);
+	if(getenv_s(&length, home.data(), home.size(), variable) != 0 || length == 0) return {};
+	return std::filesystem::path(home.data()) / "AffrescoUI";
+#else
+	return std::filesystem::path(std::getenv(variable)) / "AffrescoUI"; // NOLINT(concurrency-mt-unsafe): at launch
+#endif
+}
+
+/// @brief Grants the Launcher (the screen the host opens without a file) what it uses: the examples folder to read
+/// ("examples"), the person's apps folder ("apps", made if missing), and the sibling programs that open the apps
+/// ("affresco", detached: each with --data DIR and a socket folder of its own in DIR; Grants.hpp, grantAppPrograms).
+/// @param screen The Launcher's screen.
+/// @param options The command line.
+/// @throws std::runtime_error If the apps folder can't be made.
+void grantLauncher(affresco::Screen& screen, const Options& options) {
+	namespace services = affresco::services;
+	const std::filesystem::path examples = assetsDirectory();
+	screen.services().addRoot("examples", examples, true);
+	const std::filesystem::path apps = appsFolder(options);
+	if(apps.empty()) throw std::runtime_error("no home folder for the apps: pass --apps DIR");
+	std::filesystem::create_directories(apps);
+	screen.services().addRoot("apps", apps);
+	services::AppPrograms programs;
+	programs.folder = programFile().parent_path();
+	programs.programs = {{"affrescoui_host", true, true},
+	                     {"affrescoui_forge", false, false},
+	                     {"affrescoui_tempera", false, false},
+	                     {"affrescoui_sinopia", false, false}};
+	programs.roots = {{"examples", examples}, {"apps", apps}};
+	programs.dataDirectory = std::filesystem::absolute(options.dataDir);
+	programs.socketDirectory = std::filesystem::absolute(options.socketDir);
+	programs.reveal = true;
+	if(const auto refused = services::grantAppPrograms(screen.services(), "affresco", std::move(programs)))
+		throw std::runtime_error("the Launcher's programs: " + *refused);
+}
+
 /// @brief Shows the screen and lets peers change it, until the window closes.
 /// @param options The command line.
 /// @return The exit status.
@@ -232,6 +286,9 @@ int run(const Options& options) {
 	for(const std::string& spec : options.allowed)
 		if(const auto refused = affresco::services::grantProgram(screen.services(), spec))
 			throw std::runtime_error("--allow " + spec + ": " + *refused);
+#ifndef __EMSCRIPTEN__
+	if(options.file.empty() && !screenshotOnly) grantLauncher(screen, options); // a screenshot shows its stand-ins
+#endif
 	if(options.mode) screen.setModeForThisRun(*options.mode);
 	if(options.usage && !screenshotOnly) enableUsage(screen);
 	if(!screenshotOnly) screen.setLocale(affresco::format::systemLocale()); // screenshots stay in the default locale

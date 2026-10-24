@@ -1,0 +1,51 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../../../examples/launcher",
+	"scenarios": [
+		{
+			"name": "launcher",
+			"screen": "index.screen.json",
+			"note": "The Launcher with nothing granted: the apps grid, a search, My apps empty then with two apps, the delete confirmation, the create form and its error, the settings in dark and in French, and a small window",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": "#appSearch" },
+				{ "type": "tem" },
+				{ "expect": { "image": "search" } },
+				{ "key": "escape" },
+				{ "key": "mod+2" },
+				{ "expect": { "image": "mine-empty" } },
+				{ "action": "launcher.show", "event": { "mine": [
+					{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 },
+					{ "id": "my-budget", "name": "My budget", "modified": 1759000000000 }
+				] } },
+				{ "expect": { "image": "mine-list" } },
+				{ "click": "#mineDelete" },
+				{ "wait": 50 },
+				{ "expect": { "image": "confirm" } },
+				{ "key": "escape" },
+				{ "key": "mod+n" },
+				{ "wait": 0 },
+				{ "click": "#createName" },
+				{ "key": "enter" },
+				{ "expect": { "image": "create-error" } },
+				{ "click": "#createName" },
+				{ "type": "Garden planner" },
+				{ "click": { "role": "radio", "name": "Haven" } },
+				{ "scroll": "#createScroll", "dy": -12 },
+				{ "click": { "role": "checkbox", "name": "Charts, from Haven" } },
+				{ "expect": { "image": "create-filled" } },
+				{ "key": "mod+comma" },
+				{ "click": { "role": "radio", "name": "Dark" } },
+				{ "expect": { "image": "settings-dark" } },
+				{ "click": { "role": "radio", "name": "Light" } },
+				{ "expect": { "image": "settings-light" } },
+				{ "click": { "role": "radio", "name": "Français" } },
+				{ "key": "mod+1" },
+				{ "expect": { "image": "french" } },
+				{ "resize": [800, 600] },
+				{ "expect": { "image": "small" } }
+			]
+		}
+	]
+}
