@@ -113,6 +113,9 @@ endif()
 # PCRE2 and affresco::TextPattern: the regular expressions of the editor's find and the search service
 include(cmake/AffrescoUIRegex.cmake)
 
+# miniaudio: the audio module's devices and decoders (AFFRESCOUI_AUDIO, on by default)
+include(cmake/AffrescoUIAudio.cmake)
+
 # AccessKit: the accessibility tree of each window, for screen readers (decision D8)
 include(cmake/AffrescoUIAccessibility.cmake)
 # tree-sitter and its grammars: the syntax service and the editor's highlighting, folds and brackets
@@ -129,6 +132,7 @@ include(cmake/AffrescoUISyntax.cmake)
 #   channel  communication: process/stdio channels, the live protocol                core
 #   net      network: HTTP(S), SSE and WebSocket over libcurl                        core
 #   services services: folders, programs and JSON-RPC servers a screen calls         core
+#   audio    audio: an output that mixes files, bytes, streams and generators       core   (AFFRESCOUI_AUDIO)
 #   affrescoui  affresco::Screen, which puts them together                         all of the above
 #   automation  scenarios: scripted checks a screen ships with, played headless     affrescoui
 #
@@ -144,6 +148,9 @@ function(affrescoui_module name)
 	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 endfunction()
 
+if(AFFRESCOUI_AUDIO)
+	add_subdirectory(modules/audio) # before format and screen, which use it
+endif()
 foreach(module core render export format vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
