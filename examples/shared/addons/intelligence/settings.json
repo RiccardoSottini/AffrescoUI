@@ -154,6 +154,7 @@
 		"intelligenceButton": {
 			"params": { "text": "", "run": "", "primary": false, "enabled": true, "width": 150 },
 			"node": {
+				"id": "label-text",
 				"type": "label", "text": "{{text}}", "width": "{{width}}", "height": 32, "radius": 6, "align": "center",
 				"color": "{{primary ? '@intelligence.accent' : '@intelligence.raised'}}",
 				"textColor": "{{primary ? '@intelligence.onAccent' : '@intelligence.text'}}",
@@ -200,15 +201,15 @@
 							  "onClick": [{ "run": "intelligence.pick", "with": { "id": "{{provider.id}}" } }],
 							  "keys": { "space": [{ "run": "intelligence.pick", "with": { "id": "{{provider.id}}" } }] },
 							  "children": [
-								{ "type": "label", "anchors": { "left": 16, "top": 9 }, "fitText": true, "textColor": "@intelligence.text",
+								{ "id": "label-intelligence-provider-p", "type": "label", "anchors": { "left": 16, "top": 9 }, "fitText": true, "textColor": "@intelligence.text",
 								  "runs": [{ "text": "{{provider.name}}", "bold": true }] },
-								{ "type": "label", "anchors": { "left": 16, "top": 31 }, "fitText": true, "textColor": "@intelligence.dim",
+								{ "id": "label-provider-kind-claude", "type": "label", "anchors": { "left": 16, "top": 31 }, "fitText": true, "textColor": "@intelligence.dim",
 								  "text": "{{provider.kind == 'claude-code' ? 'claude' : provider.baseUrl}}" },
-								{ "anchors": { "right": 16, "top": 17 }, "height": 22, "fitContent": "width", "type": "row", "gap": 6,
+								{ "id": "row-intelligence-provider-p", "anchors": { "right": 16, "top": 17 }, "height": 22, "fitContent": "width", "type": "row", "gap": 6,
 								  "alignItems": "center", "children": [
-									{ "width": 8, "height": 8, "radius": 4,
+									{ "id": "panel-intelligence-provider", "width": 8, "height": 8, "radius": 4,
 									  "color": "{{iStatus == 'inUse' || iStatus == 'keySaved' || iStatus == 'ready' ? '@intelligence.success' : iStatus == 'needsKey' ? '@intelligence.warning' : '@intelligence.dim'}}" },
-									{ "type": "label", "fitText": true, "textColor": "@intelligence.dim",
+									{ "id": "label-t-intelligence-status", "type": "label", "fitText": true, "textColor": "@intelligence.dim",
 									  "text": "{{t('intelligence.status.' + iStatus)}}" }
 								  ] }
 							  ] }
@@ -244,7 +245,7 @@
 							  ] },
 							{ "when": "{{iProvider.takesKey && iProvider.hasKey}}", "id": "intelligenceKeySaved", "type": "row", "height": 32, "gap": 8,
 							  "anchors": { "left": 14, "right": 14 }, "alignItems": "center", "children": [
-								{ "type": "label", "grow": 1, "height": 32, "align": "start center", "textColor": "@intelligence.success",
+								{ "id": "label-t-intelligence-key", "type": "label", "grow": 1, "height": 32, "align": "start center", "textColor": "@intelligence.success",
 								  "text": "{{t('intelligence.keySaved', {store: iData.keyStore})}}" },
 								{ "use": "intelligenceButton", "id": "intelligenceRemoveKey",
 								  "with": { "text": "{{t('intelligence.removeKey')}}", "run": "intelligence.removeKey", "width": 140 } }
@@ -288,9 +289,9 @@
 								  "onClick": [{ "run": "intelligence.pickModel", "with": { "id": "{{model.id}}" } }],
 								  "keys": { "space": [{ "run": "intelligence.pickModel", "with": { "id": "{{model.id}}" } }] },
 								  "children": [
-									{ "type": "label", "anchors": { "left": 8, "top": 7 }, "fitText": true, "textColor": "@intelligence.text",
+									{ "id": "label-model-name", "type": "label", "anchors": { "left": 8, "top": 7 }, "fitText": true, "textColor": "@intelligence.text",
 									  "text": "{{model.name}}" },
-									{ "when": "{{model.name != model.id}}", "type": "label", "anchors": { "right": 8, "top": 7 }, "fitText": true,
+									{ "id": "label-model-id", "when": "{{model.name != model.id}}", "type": "label", "anchors": { "right": 8, "top": 7 }, "fitText": true,
 									  "textColor": "@intelligence.dim", "text": "{{model.id}}" }
 								  ] },
 								{ "when": "{{length(trim(state.intelligence.query)) > 0 && !some(iMatches, it.id == trim(state.intelligence.query))}}",
@@ -299,7 +300,7 @@
 								  "role": "option", "focusable": true, "cursor": "hand",
 								  "label": "{{t('intelligence.useModel', {model: trim(state.intelligence.query)})}}",
 								  "onClick": [{ "run": "intelligence.pickModel", "with": { "id": "{{trim(state.intelligence.query)}}" } }],
-								  "children": [{ "type": "label", "anchors": { "left": 8, "top": 7 }, "fitText": true,
+								  "children": [{ "id": "label-t-intelligence-use", "type": "label", "anchors": { "left": 8, "top": 7 }, "fitText": true,
 								                 "textColor": "@intelligence.accent",
 								                 "text": "{{t('intelligence.useModel', {model: trim(state.intelligence.query)})}}" }] }
 							  ] },
@@ -320,7 +321,7 @@
 							  "textColor": "{{state.intelligence.error != '' || (state.intelligence.test != null && !state.intelligence.test.ok) ? '@intelligence.danger' : '@intelligence.success'}}",
 							  "text": "{{state.intelligence.error != '' ? state.intelligence.error : state.intelligence.test != null ? state.intelligence.test.message : state.intelligence.notice}}" }
 						  ] },
-						{ "height": 24, "color": "transparent" }
+						{ "id": "panel-intelligence-column", "height": 24, "color": "transparent" }
 					]
 				}]
 			}

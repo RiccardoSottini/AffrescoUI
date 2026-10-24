@@ -16,16 +16,16 @@ namespace examples::intelligence {
 
 /// @brief A tool the model may call.
 struct ToolSpec {
-	std::string name;            ///< E.g. "get_screen".
-	std::string description;     ///< What it does, for the model.
-	affresco::json parameters;   ///< Its arguments, as a JSON Schema object.
+	std::string name;          ///< E.g. "get_screen".
+	std::string description;   ///< What it does, for the model.
+	affresco::json parameters; ///< Its arguments, as a JSON Schema object.
 };
 
 /// @brief A call the model asked for.
 struct ToolCall {
-	std::string id;          ///< The provider's id for it, which its result repeats.
-	std::string name;        ///< The tool.
-	affresco::json input;    ///< Its arguments (an object; {} if the model gave malformed ones).
+	std::string id;       ///< The provider's id for it, which its result repeats.
+	std::string name;     ///< The tool.
+	affresco::json input; ///< Its arguments (an object; {} if the model gave malformed ones).
 };
 
 /// @brief The result of a tool call, for the model.
@@ -37,16 +37,16 @@ struct ToolResult {
 
 /// @brief One answer of the model.
 struct Turn {
-	std::string text;               ///< Its text, the parts joined.
-	std::vector<ToolCall> calls;    ///< The tools it calls, in order.
-	std::string stop;               ///< Why it stopped: "end", "tools", "length", "refusal" or the provider's word.
-	affresco::json message;         ///< The assistant message, as the conversation keeps it.
-	long long outputTokens = 0;     ///< The tokens it wrote, if the provider says.
+	std::string text;            ///< Its text, the parts joined.
+	std::vector<ToolCall> calls; ///< The tools it calls, in order.
+	std::string stop;            ///< Why it stopped: "end", "tools", "length", "refusal" or the provider's word.
+	affresco::json message;      ///< The assistant message, as the conversation keeps it.
+	long long outputTokens = 0;  ///< The tokens it wrote, if the provider says.
 };
 
 /// @brief A conversation in a provider's own shape.
 struct Conversation {
-	std::string system;                 ///< The system prompt.
+	std::string system;                                ///< The system prompt.
 	affresco::json messages = affresco::json::array(); ///< The messages, in the provider's shape.
 };
 

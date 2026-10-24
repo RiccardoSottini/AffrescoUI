@@ -70,7 +70,8 @@ void walk(const json& node, std::string address, int depth, const std::string& p
 /// @param styles The document's styles.
 /// @return The type.
 std::string typeOf(const json& node, const json& styles) {
-	if(node.contains("use")) return "use " + (node["use"].is_string() ? node["use"].get<std::string>() : compact(node["use"]));
+	if(node.contains("use"))
+		return "use " + (node["use"].is_string() ? node["use"].get<std::string>() : compact(node["use"]));
 	const json* at = &node;
 	for(int i = 0; i < 16; ++i) {
 		if(at->contains("type") && (*at)["type"].is_string()) return (*at)["type"].get<std::string>();
@@ -178,7 +179,8 @@ json pruned(const json& node, const std::string& address, int depth) {
 	for(std::size_t i = 0; i < node["children"].size(); ++i) {
 		const json& child = node["children"][i];
 		const bool named = child.is_object() && child.contains("id") && child["id"].is_string();
-		const std::string at = named ? "#" + child["id"].get<std::string>() : address + "/children/" + std::to_string(i);
+		const std::string at =
+		    named ? "#" + child["id"].get<std::string>() : address + "/children/" + std::to_string(i);
 		children.push_back(depth <= 0 ? json(at) : pruned(child, at, depth - 1));
 	}
 	copy["children"] = children;
@@ -309,17 +311,15 @@ std::string findNodes(const json& document, const std::string& type, const std::
 		walk(*start, pointer, 0, "", [&](const Visit& visit) {
 			const json& node = *visit.node;
 			if(!type.empty() && typeOf(node, styles) != type && !(node.contains("use") && node["use"] == type)) return;
-			if(!needle.empty() && std::ranges::none_of(std::array<const char*, 3>{"text", "placeholder", "tooltip"},
-			                                           [&](const char* key) {
-				                                           return node.contains(key) && node[key].is_string() &&
-				                                                  lower(node[key].get<std::string>()).find(needle) !=
-				                                                      std::string::npos;
-			                                           }))
+			if(!needle.empty() &&
+			   std::ranges::none_of(std::array<const char*, 3>{"text", "placeholder", "tooltip"}, [&](const char* key) {
+				   return node.contains(key) && node[key].is_string() &&
+				          lower(node[key].get<std::string>()).find(needle) != std::string::npos;
+			   }))
 				return;
-			if(!property.empty() &&
-			   (!node.contains(property) ||
-			    (!value.is_null() && node[property] != value &&
-			     !(value.is_string() && compact(node[property]) == value.get<std::string>()))))
+			if(!property.empty() && (!node.contains(property) ||
+			                         (!value.is_null() && node[property] != value &&
+			                          !(value.is_string() && compact(node[property]) == value.get<std::string>()))))
 				return;
 			std::string line = visit.address;
 			const std::string said = summary(node, visit.address, styles);

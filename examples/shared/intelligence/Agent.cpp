@@ -36,7 +36,8 @@ constexpr const char* rules =
 constexpr const char* toolRules =
     "Work with the tools: read the screen with get_screen (outline=true to see the node tree, then at=\"#id\" for the "
     "nodes you change) or find_nodes; look up the parts of the format you need with get_format_guide (a topic such "
-    "as \"Revisions\", \"label\", \"Events\", \"Actions\"); change it with submit_revision (if it is rejected, read the "
+    "as \"Revisions\", \"label\", \"Events\", \"Actions\"); change it with submit_revision (if it is rejected, read "
+    "the "
     "error, fix the revision and submit again); then finish with reply, saying what you changed.";
 
 /// How claude-code answers, without tools.
@@ -73,34 +74,38 @@ std::vector<ToolSpec> agentTools() {
 	const json text = {{"type", "string"}};
 	return {
 	    {"get_format_guide",
-	     "The AffrescoUI Screen Format a part at a time: without topic, its introduction and the list of topics; with "
-	     "topic, that section (a heading or a word of one, e.g. \"Revisions\", \"label\", \"Events\").",
-	     objectSchema({{"topic", text}})},
+		 "The AffrescoUI Screen Format a part at a time: without topic, its introduction and the list of topics; with "
+		 "topic, that section (a heading or a word of one, e.g. \"Revisions\", \"label\", \"Events\").",
+		 objectSchema({{"topic", text}})},
 	    {"get_screen",
-	     "The running screen as it is now (its live state as its \"state\"). outline=true gives the node tree, one "
-	     "line per node (address, type, text, bind, onClick, repeat, when); at=\"#id\" (or a JSON Pointer) gives one "
-	     "node or value; depth limits both to that many levels below. Without arguments, the whole document.",
-	     objectSchema({{"at", text}, {"outline", {{"type", "boolean"}}}, {"depth", {{"type", "integer"}}}})},
+		 "The running screen as it is now (its live state as its \"state\"). outline=true gives the node tree, one "
+		 "line per node (address, type, text, bind, onClick, repeat, when); at=\"#id\" (or a JSON Pointer) gives one "
+		 "node or value; depth limits both to that many levels below. Without arguments, the whole document.",
+		 objectSchema({{"at", text}, {"outline", {{"type", "boolean"}}}, {"depth", {{"type", "integer"}}}})},
 	    {"find_nodes",
-	     "Search the screen's nodes: by type (or a component's name), by text (in the text, placeholder or tooltip, "
-	     "any case), by a property it has (optionally with value). One line per match, with its parent.",
-	     objectSchema({{"type", text}, {"text", text}, {"property", text}, {"value", json::object()},
-	                   {"limit", {{"type", "integer"}}}})},
+		 "Search the screen's nodes: by type (or a component's name), by text (in the text, placeholder or tooltip, "
+		 "any case), by a property it has (optionally with value). One line per match, with its parent.",
+		 objectSchema({{"type", text},
+		               {"text", text},
+		               {"property", text},
+		               {"value", json::object()},
+		               {"limit", {{"type", "integer"}}}})},
 	    {"submit_revision",
-	     "Change the running screen with compact edits: set (path -> value: replaces, or adds where nothing is), add "
-	     "(path -> value: inserts; \"/-\" appends to a list), remove (paths), move (from -> to); or a JSON Patch in "
-	     "patch. Paths address nodes by id: \"#statusBar/color\", \"#card/children/-\", \"#oldBadge\"; \"/state/...\" "
-	     "changes live data. The result: proposed (it waits for the person's review), applied, or rejected with the "
-	     "error (fix it and submit again).",
-	     objectSchema({{"message", text},
-	                   {"set", {{"type", "object"}}},
-	                   {"add", {{"type", "object"}}},
-	                   {"remove", {{"type", "array"}, {"items", text}}},
-	                   {"move", {{"type", "object"}}},
-	                   {"patch", {{"type", "array"}, {"items", {{"type", "object"}}}}}},
-	                  json::array({"message"}))},
-	    {"reply", "Answer the person in the chat and finish: what you changed (it waits for their review), or your answer.",
-	     objectSchema({{"text", text}}, json::array({"text"}))},
+		 "Change the running screen with compact edits: set (path -> value: replaces, or adds where nothing is), add "
+		 "(path -> value: inserts; \"/-\" appends to a list), remove (paths), move (from -> to); or a JSON Patch in "
+		 "patch. Paths address nodes by id: \"#statusBar/color\", \"#card/children/-\", \"#oldBadge\"; \"/state/...\" "
+		 "changes live data. The result: proposed (it waits for the person's review), applied, or rejected with the "
+		 "error (fix it and submit again).",
+		 objectSchema({{"message", text},
+		               {"set", {{"type", "object"}}},
+		               {"add", {{"type", "object"}}},
+		               {"remove", {{"type", "array"}, {"items", text}}},
+		               {"move", {{"type", "object"}}},
+		               {"patch", {{"type", "array"}, {"items", {{"type", "object"}}}}}},
+		              json::array({"message"}))},
+	    {"reply",
+		 "Answer the person in the chat and finish: what you changed (it waits for their review), or your answer.",
+		 objectSchema({{"text", text}}, json::array({"text"}))},
 	};
 }
 
@@ -188,7 +193,8 @@ private:
 		} else {
 			screen = "The screen (revision " + std::to_string(revision_) + ") is large: its outline, one line per " +
 			         "node (read the nodes you change by their address):\n" +
-			         cut(outline(document_), options_.inlineDocument) + "\n\nIts live state (\"/state/...\" paths), minified:\n" +
+			         cut(outline(document_), options_.inlineDocument) +
+			         "\n\nIts live state (\"/state/...\" paths), minified:\n" +
 			         cut(compact(document_.value("state", json::object())), options_.inlineDocument / 2);
 		}
 		return "The person asks: " + text_ + "\n\n" + screen;
@@ -212,10 +218,10 @@ private:
 				result.content = screenTool(call.input);
 			} else if(call.name == "find_nodes") {
 				if(!readScreen()) throw std::runtime_error("the app didn't answer");
-				result.content = findNodes(document_, call.input.value("type", std::string()),
-				                           call.input.value("text", std::string()),
-				                           call.input.value("property", std::string()), call.input.value("value", json()),
-				                           call.input.value("limit", 20));
+				result.content =
+				    findNodes(document_, call.input.value("type", std::string()),
+					          call.input.value("text", std::string()), call.input.value("property", std::string()),
+					          call.input.value("value", json()), call.input.value("limit", 20));
 			} else if(call.name == "submit_revision") {
 				result.content = submit(call.input, result.error);
 			} else {
@@ -234,7 +240,8 @@ private:
 	std::string screenTool(const json& input) {
 		if(!readScreen()) throw std::runtime_error("the app didn't answer");
 		const std::string at = input.value("at", std::string());
-		const int depth = input.contains("depth") && input["depth"].is_number_integer() ? input["depth"].get<int>() : -1;
+		const int depth =
+		    input.contains("depth") && input["depth"].is_number_integer() ? input["depth"].get<int>() : -1;
 		if(input.value("outline", false)) return outline(document_, at, depth);
 		if(!at.empty()) return compact(nodeAt(document_, at, depth));
 		return compact(document_);
@@ -301,7 +308,8 @@ private:
 			try {
 				turn = parseTurn(kind, std::get<affresco::network::Response>(outcome).body);
 			} catch(const std::exception& error) {
-				return {endpoint_.provider->name + "'s answer couldn't be read (" + std::string(error.what()) + ").", true};
+				return {endpoint_.provider->name + "'s answer couldn't be read (" + std::string(error.what()) + ").",
+				        true};
 			}
 			if(turn.stop == "refusal") return {endpoint_.provider->name + " declined this request.", true};
 			written += turn.outputTokens;
@@ -328,10 +336,10 @@ private:
 		std::string input = context();
 		bool retried = false;
 		for(int round = 0; round < 4; ++round) {
-			const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline_ - std::chrono::steady_clock::now());
+			const auto left =
+			    std::chrono::duration_cast<std::chrono::milliseconds>(deadline_ - std::chrono::steady_clock::now());
 			if(left.count() <= 0 || agent_.stopping()) return {"The request took too long, so it stopped.", true};
-			const ClaudeAnswer answer =
-			    options_.claude(endpoint_.model, system, input, [this] { return overTime(); });
+			const ClaudeAnswer answer = options_.claude(endpoint_.model, system, input, [this] { return overTime(); });
 			if(!answer.ok) return {answer.text, true};
 			const json said = firstObject(answer.text);
 			if(!said.is_object()) return {cut(answer.text, 4000), false}; // a plain answer, no change
@@ -365,7 +373,8 @@ private:
 			for(const json& at : said["read"]) {
 				if(!at.is_string() || out.size() > options_.inlineDocument) continue;
 				try {
-					out += at.get<std::string>() + ": " + cut(compact(nodeAt(document_, at.get<std::string>())), 8000) + "\n";
+					out += at.get<std::string>() + ": " + cut(compact(nodeAt(document_, at.get<std::string>())), 8000) +
+					       "\n";
 				} catch(const std::exception& error) {
 					out += at.get<std::string>() + ": " + error.what() + "\n";
 				}
@@ -373,7 +382,8 @@ private:
 		if(said.contains("guide") && said["guide"].is_array())
 			for(const json& topic : said["guide"])
 				if(topic.is_string() && out.size() < options_.inlineDocument * 2)
-					out += "\n" + formatGuide(options_.guide, topic.get<std::string>()).value_or("(no such topic)") + "\n";
+					out +=
+					    "\n" + formatGuide(options_.guide, topic.get<std::string>()).value_or("(no such topic)") + "\n";
 		return out.empty() ? "(nothing)" : out;
 	}
 
@@ -421,8 +431,11 @@ void ProviderAgent::send(std::string_view message) {
 	if(!in.is_object()) return;
 	const std::string type = in.value("type", "");
 	if(type == "request") {
-		// Only the app's own chat: requests other peers relay are for the agent they name
-		if(in.value("source", "") != "screen" || !in.contains("id") || !in["id"].is_string()) return;
+		// Only the app's own chat (its ask step, from "user"): a request another peer relays has that peer as its
+		// "from"
+		if(in.value("source", "") != "screen" || in.value("from", "") != "user" || !in.contains("id") ||
+		   !in["id"].is_string())
+			return;
 		const std::string id = in["id"].get<std::string>();
 		const std::string text = in.contains("text") && in["text"].is_string() ? in["text"].get<std::string>() : "";
 		bool busy = false;
@@ -431,7 +444,8 @@ void ProviderAgent::send(std::string_view message) {
 			busy = jobs_.size() >= maxQueued;
 			if(!busy) jobs_.push_back({id, text});
 		}
-		if(busy) deliver({{"type", "reply"}, {"request", id}, {"error", "The assistant is busy: ask again in a moment."}});
+		if(busy)
+			deliver({{"type", "reply"}, {"request", id}, {"error", "The assistant is busy: ask again in a moment."}});
 		else wake_.notify_all();
 		return;
 	}

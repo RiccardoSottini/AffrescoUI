@@ -25,11 +25,11 @@ namespace {
 
 /// @brief What the natives share.
 struct Shared {
-	std::filesystem::path dataDir;                  ///< Where intelligence.json is.
-	Catalog catalog;                                ///< The providers.
-	CallsOptions options;                           ///< See registerCalls().
-	std::mutex mutex;                               ///< Guards staged.
-	std::map<std::string, std::string> staged;      ///< Keys typed and not yet saved, by provider. Memory only.
+	std::filesystem::path dataDir;             ///< Where intelligence.json is.
+	Catalog catalog;                           ///< The providers.
+	CallsOptions options;                      ///< See registerCalls().
+	std::mutex mutex;                          ///< Guards staged.
+	std::map<std::string, std::string> staged; ///< Keys typed and not yet saved, by provider. Memory only.
 };
 
 /// @brief A text argument.
@@ -37,8 +37,9 @@ struct Shared {
 /// @param key Its name.
 /// @return It, or "".
 std::string argument(const json& arguments, const char* key) {
-	return arguments.is_object() && arguments.contains(key) && arguments[key].is_string() ? arguments[key].get<std::string>()
-	                                                                                      : "";
+	return arguments.is_object() && arguments.contains(key) && arguments[key].is_string()
+	           ? arguments[key].get<std::string>()
+			   : "";
 }
 
 /// @brief A provider named in the arguments.
@@ -77,7 +78,8 @@ std::string cleanBaseUrl(std::string url) {
 	if(url.size() > 512 || !parsed || (parsed->scheme != "https" && parsed->scheme != "http"))
 		throw std::runtime_error("the base URL must be an https:// URL, or http:// on this computer");
 	if(parsed->scheme == "http" && !affresco::net::isLoopback(parsed->host))
-		throw std::runtime_error("http:// is only for a server on this computer (127.0.0.1 or localhost): use https://");
+		throw std::runtime_error(
+		    "http:// is only for a server on this computer (127.0.0.1 or localhost): use https://");
 	if(url.find_first_of("?#") != std::string::npos) throw std::runtime_error("the base URL can't have a query");
 	return url;
 }
@@ -108,11 +110,11 @@ json providersJson(const Shared& shared) {
 	json list = json::array();
 	for(const Provider& provider : shared.catalog.providers) {
 		const std::optional<Endpoint> endpoint = endpointOf(shared.catalog, settings, provider.id);
-		const bool hasKey = provider.kind != Kind::ClaudeCode &&
-		                    !shared.options.keys->read(keyName(provider.id)).value_or("").empty();
+		const bool hasKey =
+		    provider.kind != Kind::ClaudeCode && !shared.options.keys->read(keyName(provider.id)).value_or("").empty();
 		list.push_back({{"id", provider.id},
 		                {"name", provider.name},
-		                {"kind", toString(provider.kind)},
+		                {"kind", kindName(provider.kind)},
 		                {"needsKey", provider.needsKey},
 		                {"takesKey", provider.kind != Kind::ClaudeCode},
 		                {"hasKey", hasKey},
@@ -214,11 +216,12 @@ json test(const Shared& shared, affresco::CallProgress& call) {
 		        ? shared.options.claude(endpoint->model, "Answer with the word OK.", "Say OK.", stopped)
 		        : runClaude(*program, endpoint->model, "Answer with the word OK.", "Say OK.", std::chrono::seconds(90),
 		                    stopped);
-		return {{"ok", answer.ok}, {"message", answer.ok ? "Connected: Claude Code answered with " + endpoint->model + "."
-		                                                 : answer.text}};
+		return {{"ok", answer.ok},
+		        {"message", answer.ok ? "Connected: Claude Code answered with " + endpoint->model + "." : answer.text}};
 	}
 	endpoint->key = shared.options.keys->read(keyName(provider.id)).value_or("");
-	if(provider.needsKey && endpoint->key.empty()) return {{"ok", false}, {"message", provider.name + " needs an API key."}};
+	if(provider.needsKey && endpoint->key.empty())
+		return {{"ok", false}, {"message", provider.name + " needs an API key."}};
 	if(endpoint->model.empty()) return {{"ok", false}, {"message", "Choose a model first."}};
 	const std::optional<std::string> origin = originOf(endpoint->baseUrl);
 	if(!origin) return {{"ok", false}, {"message", "The base URL isn't an http(s) URL."}};

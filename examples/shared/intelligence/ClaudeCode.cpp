@@ -53,8 +53,9 @@ struct EmptyFolder {
 		std::random_device random;
 		std::error_code error;
 		for(int attempt = 0; attempt < 8 && path.empty(); ++attempt) {
-			const std::filesystem::path candidate = std::filesystem::temp_directory_path(error) /
-			                                        ("affrescoui-claude-" + std::to_string(random()) + std::to_string(random()));
+			const std::filesystem::path candidate =
+			    std::filesystem::temp_directory_path(error) /
+			    ("affrescoui-claude-" + std::to_string(random()) + std::to_string(random()));
 			if(!error && std::filesystem::create_directory(candidate, error) && !error) path = candidate;
 		}
 	}
@@ -89,16 +90,21 @@ std::optional<std::filesystem::path> findClaude() {
 
 std::vector<std::string> claudeArguments(const std::string& model, const std::string& system) {
 	return {"-p",
-	        "--output-format", "json",
-	        "--model", model,
-	        "--tools", "",                     // no tools at all: it can't run commands, read or write files
-	        "--restricted",                    // and none come back from settings; their files are ignored
-	        "--safe-mode",                     // no hooks, plugins, skills, CLAUDE.md, MCP servers of the person's
-	        "--strict-mcp-config",             // no MCP servers but those given (none)
+	        "--output-format",
+	        "json",
+	        "--model",
+	        model,
+	        "--tools",
+	        "",                    // no tools at all: it can't run commands, read or write files
+	        "--restricted",        // and none come back from settings; their files are ignored
+	        "--safe-mode",         // no hooks, plugins, skills, CLAUDE.md, MCP servers of the person's
+	        "--strict-mcp-config", // no MCP servers but those given (none)
 	        "--disable-slash-commands",
-	        "--no-session-persistence",        // nothing of the screen is kept
-	        "--permission-mode", "dontAsk",    // anything that would need a permission is refused
-	        "--system-prompt", system};
+	        "--no-session-persistence", // nothing of the screen is kept
+	        "--permission-mode",
+	        "dontAsk", // anything that would need a permission is refused
+	        "--system-prompt",
+	        system};
 }
 
 ClaudeAnswer parseClaudeOutput(const std::string& output) {
@@ -108,7 +114,8 @@ ClaudeAnswer parseClaudeOutput(const std::string& output) {
 		return {false, loggedOut ? "Claude Code isn't signed in: run `claude` once in a terminal to sign in."
 		                         : "Claude Code's answer isn't JSON."};
 	}
-	const std::string result = parsed.contains("result") && parsed["result"].is_string() ? parsed["result"].get<std::string>() : "";
+	const std::string result =
+	    parsed.contains("result") && parsed["result"].is_string() ? parsed["result"].get<std::string>() : "";
 	if(parsed.value("is_error", false)) {
 		std::string said = result.empty() ? parsed.value("subtype", std::string("an error")) : result;
 		if(said.size() > 300) said = said.substr(0, 300) + "…";

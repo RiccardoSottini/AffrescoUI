@@ -20,11 +20,11 @@ namespace examples::intelligence {
 
 /// @brief What the settings' natives use; the defaults are the system's.
 struct CallsOptions {
-	std::shared_ptr<affresco::SecretStore> keys;   ///< Where keys are kept; null: systemKeys().
-	NetworkFactory network = systemNetwork();      ///< Makes the HTTP client of a models list or a test.
-	std::function<bool()> claudeInstalled;         ///< Whether claude-code can run; empty: findClaude().
-	ClaudeRunner claude;                           ///< Runs claude-code for a test; empty: the installed one.
-	std::function<void()> changed;                 ///< Called on the main thread after the settings changed.
+	std::shared_ptr<affresco::SecretStore> keys; ///< Where keys are kept; null: systemKeys().
+	NetworkFactory network = systemNetwork();    ///< Makes the HTTP client of a models list or a test.
+	std::function<bool()> claudeInstalled;       ///< Whether claude-code can run; empty: findClaude().
+	ClaudeRunner claude;                         ///< Runs claude-code for a test; empty: the installed one.
+	std::function<void()> changed;               ///< Called on the main thread after the settings changed.
 };
 
 /// @brief Registers the settings' natives on a screen. Only the AffrescoUI Launcher's host does: a call step any
@@ -67,9 +67,9 @@ public:
 	void enableSettings(affresco::Screen& screen);
 
 private:
-	affresco::Executor& executor_;          ///< The main thread.
-	std::filesystem::path dataDir_;         ///< See the constructor.
-	std::unique_ptr<ProviderAgent> agent_;  ///< The agent, once connected.
+	affresco::Executor& executor_;         ///< The main thread.
+	std::filesystem::path dataDir_;        ///< See the constructor.
+	std::unique_ptr<ProviderAgent> agent_; ///< The agent, once connected.
 };
 
 /// @brief Opens the assistant and sends a request as the person's first message once the window is up (the host's

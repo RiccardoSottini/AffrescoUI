@@ -37,18 +37,18 @@ using ClaudeRunner = std::function<ClaudeAnswer(const std::string& model, const 
 
 /// @brief The bounds and the parts an agent works with.
 struct AgentOptions {
-	std::filesystem::path dataDir;                    ///< Where intelligence.json is (read at each request).
-	Catalog catalog;                                  ///< The providers.
-	std::string guide;                                ///< SCREEN_FORMAT.md's text (readFormatGuide()).
-	std::shared_ptr<affresco::SecretStore> keys;      ///< The keys (systemKeys()).
-	NetworkFactory network = systemNetwork();         ///< Makes the HTTP client of a request.
-	ClaudeRunner claude;                              ///< Runs claude-code; empty: the installed command line.
-	int maxSteps = 12;                                ///< The most answers of the model per request.
-	int maxRevisions = 6;                             ///< The most revisions per request.
-	long long maxOutputTokens = 60000;                ///< The most tokens the model writes per request.
-	std::chrono::milliseconds budget{240000};         ///< The longest a request may take.
-	std::chrono::milliseconds screenTimeout{30000};   ///< The longest the screen may take to answer the agent.
-	std::size_t inlineDocument = 32 * 1024;           ///< A screen this large or smaller is sent whole, else its outline.
+	std::filesystem::path dataDir;                  ///< Where intelligence.json is (read at each request).
+	Catalog catalog;                                ///< The providers.
+	std::string guide;                              ///< SCREEN_FORMAT.md's text (readFormatGuide()).
+	std::shared_ptr<affresco::SecretStore> keys;    ///< The keys (systemKeys()).
+	NetworkFactory network = systemNetwork();       ///< Makes the HTTP client of a request.
+	ClaudeRunner claude;                            ///< Runs claude-code; empty: the installed command line.
+	int maxSteps = 12;                              ///< The most answers of the model per request.
+	int maxRevisions = 6;                           ///< The most revisions per request.
+	long long maxOutputTokens = 60000;              ///< The most tokens the model writes per request.
+	std::chrono::milliseconds budget{240000};       ///< The longest a request may take.
+	std::chrono::milliseconds screenTimeout{30000}; ///< The longest the screen may take to answer the agent.
+	std::size_t inlineDocument = 32 * 1024;         ///< A screen this large or smaller is sent whole, else its outline.
 };
 
 /// @brief The agent: a Channel whose other end is the screen (Screen::connect(agent, "agent")).
@@ -102,17 +102,17 @@ private:
 	/// @return Whether it is.
 	[[nodiscard]] bool stopping() const noexcept { return stop_; }
 
-	affresco::Executor& executor_;                                 ///< The main thread.
-	AgentOptions options_;                                         ///< See the constructor.
-	std::mutex mutex_;                                             ///< Guards jobs_, answers_ and waiting_.
-	std::condition_variable wake_;                                 ///< Told of a job, an answer or the stop.
-	std::deque<Job> jobs_;                                         ///< Waiting.
-	std::map<std::string, affresco::json> answers_;                ///< The screen's answers, by id.
-	std::map<std::string, bool> waiting_;                          ///< The ids the worker waits for.
-	std::atomic<bool> stop_ = false;                               ///< Set by the destructor.
-	std::atomic<unsigned long> asked_ = 0;                         ///< Numbers the questions.
-	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);   ///< Guards deliveries queued after destruction.
-	std::thread worker_;                                           ///< Works on the jobs.
+	affresco::Executor& executor_;                               ///< The main thread.
+	AgentOptions options_;                                       ///< See the constructor.
+	std::mutex mutex_;                                           ///< Guards jobs_, answers_ and waiting_.
+	std::condition_variable wake_;                               ///< Told of a job, an answer or the stop.
+	std::deque<Job> jobs_;                                       ///< Waiting.
+	std::map<std::string, affresco::json> answers_;              ///< The screen's answers, by id.
+	std::map<std::string, bool> waiting_;                        ///< The ids the worker waits for.
+	std::atomic<bool> stop_ = false;                             ///< Set by the destructor.
+	std::atomic<unsigned long> asked_ = 0;                       ///< Numbers the questions.
+	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards deliveries queued after destruction.
+	std::thread worker_;                                         ///< Works on the jobs.
 	friend class AgentRun;
 };
 

@@ -16,8 +16,8 @@ namespace examples::intelligence {
 
 /// @brief What a run of the command line gave.
 struct ClaudeAnswer {
-	bool ok = false;     ///< Whether it answered.
-	std::string text;    ///< Its answer (the "result"), or why it failed, for people.
+	bool ok = false;  ///< Whether it answered.
+	std::string text; ///< Its answer (the "result"), or why it failed, for people.
 };
 
 /// @brief Where the command line is.

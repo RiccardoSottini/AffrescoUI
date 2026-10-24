@@ -50,7 +50,7 @@ std::string urlOf(const Endpoint& endpoint, std::string_view path) {
 /// @return Whether it does.
 bool isChatModel(const std::string& id) {
 	constexpr std::array<std::string_view, 5> starts{"gpt-", "o1", "o3", "o4", "chatgpt-"};
-	constexpr std::array<std::string_view, 10> never{"embedding", "whisper", "tts",        "dall-e", "audio",
+	constexpr std::array<std::string_view, 10> never{"embedding", "whisper",    "tts",   "dall-e",     "audio",
 	                                                 "realtime",  "transcribe", "image", "moderation", "search"};
 	if(std::ranges::none_of(starts, [&](std::string_view start) { return id.starts_with(start); })) return false;
 	return std::ranges::none_of(never, [&](std::string_view word) { return id.find(word) != std::string::npos; });
@@ -72,9 +72,9 @@ json anthropicTools(const std::vector<ToolSpec>& tools) {
 json openaiTools(const std::vector<ToolSpec>& tools) {
 	json list = json::array();
 	for(const ToolSpec& tool : tools)
-		list.push_back({{"type", "function"},
-		                {"function", {{"name", tool.name}, {"description", tool.description},
-		                              {"parameters", tool.parameters}}}});
+		list.push_back(
+		    {{"type", "function"},
+			 {"function", {{"name", tool.name}, {"description", tool.description}, {"parameters", tool.parameters}}}});
 	return list;
 }
 
@@ -89,14 +89,15 @@ Turn anthropicTurn(const json& answer) {
 		const std::string type = block.value("type", "");
 		if(type == "text") turn.text += (turn.text.empty() ? "" : "\n") + block.value("text", "");
 		else if(type == "tool_use")
-			turn.calls.push_back({block.value("id", ""), block.value("name", ""),
-			                      block.contains("input") && block["input"].is_object() ? block["input"] : json::object()});
+			turn.calls.push_back(
+			    {block.value("id", ""), block.value("name", ""),
+				 block.contains("input") && block["input"].is_object() ? block["input"] : json::object()});
 	}
 	const std::string stop = answer.value("stop_reason", "");
 	turn.stop = stop == "end_turn" || stop == "stop_sequence" ? "end"
-	            : stop == "tool_use"                         ? "tools"
-	            : stop == "max_tokens"                       ? "length"
-	                                                         : stop;
+	            : stop == "tool_use"                          ? "tools"
+	            : stop == "max_tokens"                        ? "length"
+	                                                          : stop;
 	turn.message = {{"role", "assistant"}, {"content", answer["content"]}}; // whole, thinking blocks included
 	if(answer.contains("usage") && answer["usage"].is_object())
 		turn.outputTokens = answer["usage"].value("output_tokens", 0LL);
@@ -151,9 +152,7 @@ std::string errorMessageOf(const std::string& body) {
 /// @brief Whether a character may be part of a key.
 /// @param c The character.
 /// @return Whether it may.
-bool keyCharacter(char c) {
-	return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '-' || c == '_';
-}
+bool keyCharacter(char c) { return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '-' || c == '_'; }
 
 } // namespace
 
@@ -176,8 +175,9 @@ std::vector<Model> parseModels(Kind kind, const std::string& body) {
 		if(!entry.is_object() || !entry.contains("id") || !entry["id"].is_string()) continue;
 		const std::string id = entry["id"].get<std::string>();
 		if(id.empty() || id.size() > 200 || (kind == Kind::OpenAI && !isChatModel(id))) continue;
-		const std::string name =
-		    entry.contains("display_name") && entry["display_name"].is_string() ? entry["display_name"].get<std::string>() : id;
+		const std::string name = entry.contains("display_name") && entry["display_name"].is_string()
+		                             ? entry["display_name"].get<std::string>()
+		                             : id;
 		models.push_back({id, name});
 		if(models.size() >= 500) break;
 	}
@@ -196,13 +196,16 @@ void addResults(Kind kind, Conversation& conversation, const std::vector<ToolRes
 	if(kind == Kind::Anthropic) {
 		json blocks = json::array();
 		for(const ToolResult& result : results)
-			blocks.push_back({{"type", "tool_result"}, {"tool_use_id", result.id}, {"content", result.content},
+			blocks.push_back({{"type", "tool_result"},
+			                  {"tool_use_id", result.id},
+			                  {"content", result.content},
 			                  {"is_error", result.error}});
 		conversation.messages.push_back({{"role", "user"}, {"content", blocks}});
 		return;
 	}
 	for(const ToolResult& result : results)
-		conversation.messages.push_back({{"role", "tool"}, {"tool_call_id", result.id},
+		conversation.messages.push_back({{"role", "tool"},
+		                                 {"tool_call_id", result.id},
 		                                 {"content", result.error ? "Error: " + result.content : result.content}});
 }
 
@@ -211,7 +214,9 @@ network::Request chatRequest(const Endpoint& endpoint, const Conversation& conve
 	const Kind kind = endpoint.provider->kind;
 	json body;
 	if(kind == Kind::Anthropic) {
-		body = {{"model", endpoint.model}, {"max_tokens", maxOutputTokens}, {"system", conversation.system},
+		body = {{"model", endpoint.model},
+		        {"max_tokens", maxOutputTokens},
+		        {"system", conversation.system},
 		        {"messages", conversation.messages}};
 		if(!tools.empty()) body["tools"] = anthropicTools(tools);
 	} else {
@@ -247,7 +252,8 @@ std::string redact(std::string text, const std::string& key) {
 		std::size_t end = i;
 		while(end < text.size() && keyCharacter(text[end])) ++end;
 		const std::string_view word(text.data() + i, end - i);
-		const bool digit = std::ranges::any_of(word, [](char c) { return std::isdigit(static_cast<unsigned char>(c)); });
+		const bool digit =
+		    std::ranges::any_of(word, [](char c) { return std::isdigit(static_cast<unsigned char>(c)); });
 		const bool looksLikeKey = word.starts_with("sk-") || word.starts_with("sk_") || (word.size() >= 32 && digit);
 		if(end > i) {
 			out += looksLikeKey ? "[hidden]" : std::string(word);

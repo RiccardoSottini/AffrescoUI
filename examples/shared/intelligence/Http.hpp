@@ -37,9 +37,9 @@ public:
 	void pump(std::chrono::milliseconds wait);
 
 private:
-	std::mutex mutex_;                           ///< Guards tasks_.
-	std::condition_variable wake_;               ///< Told of a new task.
-	std::deque<std::function<void()>> tasks_;    ///< Queued, not yet run.
+	std::mutex mutex_;                        ///< Guards tasks_.
+	std::condition_variable wake_;            ///< Told of a new task.
+	std::deque<std::function<void()>> tasks_; ///< Queued, not yet run.
 };
 
 /// @brief The outcome of a request: its response or its failure.

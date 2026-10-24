@@ -33,14 +33,14 @@ struct Model {
 
 /// @brief One provider of the catalogue (providers.json).
 struct Provider {
-	std::string id;             ///< E.g. "anthropic".
-	std::string name;           ///< For people, e.g. "Anthropic (Claude)".
-	Kind kind = Kind::OpenAI;   ///< How it is spoken to.
-	std::string baseUrl;        ///< Its default base URL ("" for claude-code).
-	bool needsKey = false;      ///< Whether it can't work without a key.
-	std::string keyHelp;        ///< Where to get a key (or the program), for people.
-	std::string model;          ///< The model chosen when the person hasn't chosen one.
-	std::vector<Model> models;  ///< The fallback list, when the live one can't be read.
+	std::string id;            ///< E.g. "anthropic".
+	std::string name;          ///< For people, e.g. "Anthropic (Claude)".
+	Kind kind = Kind::OpenAI;  ///< How it is spoken to.
+	std::string baseUrl;       ///< Its default base URL ("" for claude-code).
+	bool needsKey = false;     ///< Whether it can't work without a key.
+	std::string keyHelp;       ///< Where to get a key (or the program), for people.
+	std::string model;         ///< The model chosen when the person hasn't chosen one.
+	std::vector<Model> models; ///< The fallback list, when the live one can't be read.
 };
 
 /// @brief The catalogue of providers.
@@ -124,6 +124,6 @@ struct Endpoint {
 /// @brief A kind's name in providers.json.
 /// @param kind The kind.
 /// @return E.g. "openai-compatible".
-[[nodiscard]] std::string toString(Kind kind);
+[[nodiscard]] std::string kindName(Kind kind);
 
 } // namespace examples::intelligence

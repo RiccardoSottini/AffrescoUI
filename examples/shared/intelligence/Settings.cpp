@@ -58,7 +58,8 @@ Provider providerOf(const json& value) {
 	Provider provider;
 	provider.id = text(value, "id");
 	provider.name = text(value, "name");
-	if(provider.id.empty() || provider.name.empty()) throw std::runtime_error("providers.json: a provider needs an id and a name");
+	if(provider.id.empty() || provider.name.empty())
+		throw std::runtime_error("providers.json: a provider needs an id and a name");
 	provider.kind = kindOf(text(value, "kind"));
 	provider.baseUrl = text(value, "baseUrl");
 	provider.needsKey = value.value("needsKey", false);
@@ -195,12 +196,16 @@ std::shared_ptr<affresco::SecretStore> systemKeys() {
 	return store;
 }
 
-std::string toString(Kind kind) {
+std::string kindName(Kind kind) {
 	switch(kind) {
-	case Kind::Anthropic: return "anthropic";
-	case Kind::OpenAI: return "openai";
-	case Kind::OpenAICompatible: return "openai-compatible";
-	case Kind::ClaudeCode: return "claude-code";
+	case Kind::Anthropic:
+		return "anthropic";
+	case Kind::OpenAI:
+		return "openai";
+	case Kind::OpenAICompatible:
+		return "openai-compatible";
+	case Kind::ClaudeCode:
+		return "claude-code";
 	}
 	return "openai";
 }
