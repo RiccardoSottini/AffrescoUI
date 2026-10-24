@@ -1,7 +1,8 @@
 # net: HTTP(S), server-sent events and WebSocket clients, and remote peers
 
 `net` reaches servers for the app. `Client` implements `core`'s `network::Network` (`Network.hpp`): requests with a
-timeout, retries, a proxy and cancellation, bodies streamed as server-sent events or one line at a time, and
+timeout, retries, a proxy and cancellation, bodies streamed as server-sent events, one line at a time or as raw bytes
+(`Stream::Bytes`: each chunk of a success as it arrives, at most `maxBodyBytes`, e.g. audio), and
 WebSocket connections. The `connections` section of screens and remote peers are built on it, and host code may use
 it directly. The transport is libcurl with the platform's TLS (the system's libcurl on macOS; a pinned curl 8.22.0
 built statically elsewhere, over OpenSSL 3 on Linux and Schannel on Windows). WebSocket frames are read and written by

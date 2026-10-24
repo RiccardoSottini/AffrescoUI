@@ -299,6 +299,16 @@ void grantLauncher(affresco::Screen& screen, const Options& options) {
 		throw std::runtime_error("the Launcher's programs: " + *refused);
 }
 
+/// @brief Lets a screen that declares sounds (its "audio" section, which revisions can't add) play them on the system's
+/// output; other screens open no audio device. A screenshot plays nothing ($AFFRESCOUI_AUDIO_OUTPUT=null plays to no
+/// hardware, for tests).
+/// @param screen The screen.
+/// @param screenshotOnly Whether this run only takes a picture.
+void enableAudio(affresco::Screen& screen, bool screenshotOnly) {
+	if(screenshotOnly || !screen.versions().document().contains("audio")) return;
+	static_cast<void>(screen.audio()); // nullptr in a build without audio: its steps then say so
+}
+
 /// @brief Shows the screen and lets peers change it, until the window closes.
 /// @param options The command line.
 /// @return The exit status.
@@ -325,6 +335,7 @@ int run(const Options& options) {
 	if(options.mode) screen.setModeForThisRun(*options.mode);
 	if(options.usage && !screenshotOnly) enableUsage(screen);
 	if(!screenshotOnly) screen.setLocale(affresco::format::systemLocale()); // screenshots stay in the default locale
+	enableAudio(screen, screenshotOnly);
 	affresco::Window& window = screen.createWindow(app);
 	if(!screenshotOnly) startAssistant(assistant, app, screen, window, options);
 	applyPlugins(screen, options.plugins);

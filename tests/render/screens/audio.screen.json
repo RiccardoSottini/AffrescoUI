@@ -1,0 +1,58 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "A player for the rendering check: a tone declared in the audio section, a play and pause button, a progress bar and the time, all from the sound's state at state.song. The runner gives the screen no audio engine, so a press shows the error a host without sound gives; a revision then stands in for a playing sound.",
+
+	"window": { "title": "Audio", "width": 420, "height": 132 },
+
+	"fonts": {
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons"] },
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 18 }
+	},
+
+	"colors": { "background": "#0f172a", "card": "#1e293b", "text": "#f8fafc", "muted": "#94a3b8",
+		"accent": "#22c55e", "track": "#334155", "error": "#f87171" },
+
+	"audio": {
+		"song": { "tone": { "frequency": 440, "seconds": 8, "amplitude": 0.3 }, "into": "state.song", "loop": true }
+	},
+
+	"state": {
+		"song": { "status": "stopped", "playing": false, "position": 0, "duration": 8, "progress": 0, "error": null }
+	},
+
+	"computed": {
+		"time": "{{floor(state.song.position / 60)}}:{{pad(floor(state.song.position % 60), 2)}} / {{floor((state.song.duration ?? 0) / 60)}}:{{pad(floor((state.song.duration ?? 0) % 60), 2)}}"
+	},
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{
+				"id": "card",
+				"color": "@card",
+				"radius": 12,
+				"anchors": { "left": 16, "top": 16, "right": 16, "bottom": 16 },
+				"children": [
+					{ "id": "play", "type": "label", "icon": "{{state.song.playing ? 'pause' : 'play'}}", "align": "center",
+					  "color": "@accent", "textColor": "@background", "radius": 20, "width": 40, "height": 40,
+					  "anchors": { "left": 16, "top": 16 }, "cursor": "hand", "role": "button", "label": "Play or pause",
+					  "onClick": [{ "audio": "toggle", "of": "song" }] },
+					{ "id": "title", "type": "label", "text": "A tone, 440 Hz", "textColor": "@text",
+					  "anchors": { "left": 72, "top": 16 }, "fitText": true },
+					{ "id": "time", "type": "label", "text": "{{computed.time}}", "textColor": "@muted",
+					  "anchors": { "right": 16, "top": 16 }, "fitText": true },
+					{ "id": "bar", "color": "@track", "radius": 3, "height": 6, "anchors": { "left": 72, "right": 16, "top": 44 },
+					  "children": [
+						{ "id": "played", "color": "@accent", "radius": 3, "anchors": { "left": 0, "top": 0, "bottom": 0 },
+						  "width": "{{(state.song.progress ?? 0) * 100}}%" }
+					  ] },
+					{ "id": "status", "type": "label", "text": "{{state.song.error ?? state.song.status}}",
+					  "textColor": "{{state.song.error ? '@error' : '@muted'}}", "anchors": { "left": 16, "top": 68 }, "fitText": true }
+				]
+			}
+		]
+	}
+}

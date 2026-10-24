@@ -415,8 +415,8 @@
 	},
 
 	"watch": {
-		"note": "The beat follows the player: play and pause, a new song starts it again, the volume slider sets it. A host without sound fails these quietly",
-		"state.isPlaying": [{ "audio": "{{state.isPlaying ? 'play' : 'pause'}}", "of": "beat", "onError": [] }],
+		"state.isPlaying": [{ "note": "The beat follows the player: play and pause, a new song starts it again, the volume slider sets it. A host without sound fails these quietly" },
+			{ "audio": "{{state.isPlaying ? 'play' : 'pause'}}", "of": "beat", "onError": [] }],
 		"state.playingTrack": [{ "if": "{{state.beat.playing}}", "then": [{ "audio": "seek", "of": "beat", "to": 0, "onError": [] }] }],
 		"state.volume": [{ "audio": "volume", "of": "beat", "to": "{{state.volume / 100}}", "ms": 80, "onError": [] }]
 	},

@@ -55,6 +55,7 @@ flowchart TB
 | [`vcs`](modules/vcs/README.md) | `affrescoui::vcs` | Version control of any JSON document | `VersionControl` (`Repository`) | `DocumentRules` |
 | [`channel`](modules/channel/README.md) | `affrescoui::channel` | Transports and the live protocol | `Channel` | `Executor`, `VersionControl`, `ScreenImages` |
 | [`screen`](modules/screen/README.md) | `affrescoui::affrescoui` | The composition root, `affresco::Screen` | `ScreenImages` | every module |
+| [`audio`](modules/audio/README.md) | `affrescoui::audio` | Sound: an output that mixes voices of files, bytes, streams and generators (miniaudio); optional (`AFFRESCOUI_AUDIO`) | | `Executor` |
 | [`automation`](modules/automation/README.md) | `affrescoui::automation` | Scenarios: the checks a screen ships with, played headless, pictures against golden images | | `screen` |
 
 Outside the library: `examples/` (the host, the Launcher and the apps it opens, an application type), `mcp/` (an MCP
@@ -167,6 +168,7 @@ code. The **host grants them, and a revision never widens them.**
 | Who may change what, and who reviews | the screen file's `permissions`; the host's mode | `permissions` can't be changed by a revision; `deny` holds even in `acceptEdits` |
 | Native code | the application's `onCall`, `onAction` and `registerType` | a revision can't add, change or move a `call`, `send`, `connect` or `patch` step, nor a way to run one |
 | Deciding on proposals, history | review steps in the screen file; reviewer peers | a revision can't add review or history steps (`accept`, `reject`, `preview`, `restore`, `revert`, `undo`, ...); an author can't approve itself |
+| Playing sound | the screen file's `audio`; `Screen::audio()` in the host, and the folders and network it allows | `audio` can't be changed by a revision: a revision plays only the sounds declared |
 | Peers | a socket only this user may open | each peer is authored by the name it was connected as |
 
 All of it is enforced in one place for revisions, `format::Rules::checkChange`, called by version control on every

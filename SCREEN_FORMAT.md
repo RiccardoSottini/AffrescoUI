@@ -1401,6 +1401,62 @@ A whiteboard with a marker, an eraser and undo:
   { "type": "raster", "image": "board", "grow": 1 } ] }
 ```
 
+## Audio
+
+A screen can play sound: music, effects, a podcast, speech, a stream from a server. The `audio` section declares the
+sounds, each from one source; `audio` steps play and change them; each sound's state is written to its `into` path,
+and what happens to it runs actions. The section is a capability: revisions can't change it, so an agent can play,
+pause or seek what the screen declares, never another file or URL.
+
+| Key of a sound | Meaning |
+|---|---|
+| `file` | A WAV, FLAC or MP3 file, relative to the screen's folder: inside it, or inside a folder the host allows (`Screen::allowAudioDirectory`). Decoded as it plays, never read whole. |
+| `url` | An `https://` URL (`http://` to the loopback only) the host's network allows (`network.allow`), streamed as it downloads; `maxBytes` (1 KiB to 64 MiB, 8 MiB by default) bounds what is buffered. |
+| `source` | A source the host gives by name (`Screen::setAudioSource`): a stream the application feeds (speech, a call, its own decoder), or anything else it makes. |
+| `tone` | `{ "frequency": 440, "seconds": 1, "amplitude": 0.5 }`: a sine, with short ramps at its ends. |
+| `into` | A literal state path, e.g. `"state.song"`: where the sound's state is written. |
+| `volume`, `pan`, `rate`, `loop` | How it starts: a gain from 0 to 4, a balance from -1 to 1, a playback rate from 0.25 to 4 (speed and pitch), and whether it starts again at its end. |
+| `updates` | Milliseconds between position updates while it plays: 50 to 5,000, 250 by default. |
+
+A sound has exactly one of `file`, `url`, `source` and `tone`. Its state is `{status, playing, position, duration,
+progress, volume, pan, rate, loop, level, underruns, error}`: `status` is `stopped`, `playing`, `paused` or `error`;
+`position` and `duration` are seconds (`duration` is null for a live stream), `progress` goes from 0 to 1, and `level`
+is the sound's peak over the last block mixed (0 to 1), for meters. The step:
+
+```json
+{ "audio": "play", "of": "song", "from": 30, "onError": [{ "set": "state.problem", "to": "{{error}}" }] }
+```
+
+| Operation | Reads | What it does |
+|---|---|---|
+| `play` | `from` (seconds) | Plays, from where it is (from the start after its end). A stream that ended starts again from its source. |
+| `pause` | — | Holds it where it is. |
+| `toggle` | — | Plays, or pauses if it plays. |
+| `stop` | `ms` | Stops it and goes back to the start; with `ms`, fades out first. |
+| `seek` | `to` (seconds) | Moves it (a file, bytes or a tone; not a live stream). |
+| `volume` | `to` (0 to 4), `ms` | Sets its gain, over `ms` if given. |
+| `pan`, `rate`, `loop` | `to` | Sets its balance, its playback rate, whether it loops. |
+| `master` | `to` (0 to 4) | Sets the gain of every sound (no `of`). |
+
+`of` names the sound, and may be left out when the screen declares only one; the operation may be computed
+(`"{{state.on ? 'play' : 'pause'}}"`). The actions `name:started`, `name:ended` (at its end, not after `stop`),
+`name:underrun` (a stream ran dry) and `name:error` run with `event` (`position`, `message`). What can't play (the host
+gives the screen no audio, a file outside the allowed folders, a URL the network doesn't allow) shows in the sound's
+`error`, runs the step's `onError` with `error`, and is logged otherwise: the action goes on, as a channel's does
+without its host. A host chooses to give a screen sound (`Screen::audio()`); the rendering check, scenarios played
+headless and pictures of a screen get none, so they stay silent and the same every time.
+
+A music player's controls:
+
+```json
+"audio": { "song": { "file": "music/track.mp3", "into": "state.song" } },
+"actions": { "song:ended": [{ "run": "next" }] },
+"root": { "type": "row", "children": [
+  { "text": "{{state.song.playing ? 'Pause' : 'Play'}}", "onClick": [{ "audio": "toggle", "of": "song" }] },
+  { "type": "slider", "max": "{{state.song.duration ?? 0}}", "value": "{{state.song.position}}",
+    "onChange": [{ "audio": "seek", "of": "song", "to": "{{event.value}}" }] } ] }
+```
+
 ## Channels and persistence
 
 ```json
