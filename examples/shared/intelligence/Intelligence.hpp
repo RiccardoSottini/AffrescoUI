@@ -25,6 +25,7 @@ struct CallsOptions {
 	std::function<bool()> claudeInstalled;       ///< Whether claude-code can run; empty: findClaude().
 	ClaudeRunner claude;                         ///< Runs claude-code for a test; empty: the installed one.
 	std::function<void()> changed;               ///< Called on the main thread after the settings changed.
+	bool hidden = false; ///< Offer the providers providers.json hides too (for tests of the other providers).
 };
 
 /// @brief Registers the settings' natives on a screen. Only the AffrescoUI Launcher's host does: a call step any

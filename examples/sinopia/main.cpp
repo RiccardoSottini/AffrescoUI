@@ -11,6 +11,7 @@
 
 #include "Sinopia.hpp"
 #include "SocketDir.hpp"
+#include "intelligence/Intelligence.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
@@ -92,6 +93,7 @@ int check(const std::filesystem::path& file, const std::filesystem::path& out) {
 int run(const Options& options) {
 	const std::filesystem::path folder = AFFRESCOUI_SINOPIA_DIR;
 	affresco::Application app;
+	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
 	affresco::Screen screen = affresco::Screen::fromFile(folder / "index.screen.json", options.dataDir);
 	const auto session = std::make_shared<sinopia::Session>();
 	session->folder = folder;
@@ -99,6 +101,7 @@ int run(const Options& options) {
 	session->app = &app;
 	prepare(screen, session);
 	session->window = &screen.createWindow(app);
+	assistant.attach(screen); // the provider chosen in the Launcher's Settings answers the assistant
 	createSocketDir(options.socketDir);
 	screen.listen(app, options.socketDir / "studio.sock", "studio");
 	screen.listen(app, options.socketDir / "agent.sock", "agent");

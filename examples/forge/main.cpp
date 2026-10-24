@@ -11,6 +11,7 @@
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "features/editor/Editor.hpp"
+#include "intelligence/Intelligence.hpp"
 #include "features/lsp/Lsp.hpp"
 #include "features/search/Search.hpp"
 #include "SocketDir.hpp"
@@ -83,6 +84,7 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 /// @throws std::exception If the screen or a socket can't be opened.
 int run(const Options& options) {
 	affresco::Application app;
+	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
 	affresco::Screen screen =
@@ -107,6 +109,7 @@ int run(const Options& options) {
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {
+		assistant.attach(screen); // the provider chosen in the Launcher's Settings answers the assistant
 		createSocketDir(options.socketDir);
 		screen.listen(app, options.socketDir / "studio.sock", "studio");
 		screen.listen(app, options.socketDir / "agent.sock", "agent");

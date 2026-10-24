@@ -69,6 +69,7 @@ Provider providerOf(const json& value) {
 	provider.needsKey = value.value("needsKey", false);
 	provider.keyHelp = text(value, "keyHelp");
 	provider.model = text(value, "model");
+	provider.shown = value.value("shown", true);
 	for(const json& model : value.value("models", json::array()))
 		if(model.is_object() && !text(model, "id").empty())
 			provider.models.push_back({text(model, "id"), text(model, "name", text(model, "id"))});

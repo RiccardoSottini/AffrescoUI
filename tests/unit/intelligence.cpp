@@ -292,7 +292,8 @@ struct SettingsScreen {
 
 	/// @brief Builds it.
 	/// @param data The data folder.
-	explicit SettingsScreen(const std::filesystem::path& data)
+	/// @param hidden Whether the natives offer the providers providers.json hides.
+	explicit SettingsScreen(const std::filesystem::path& data, bool hidden = true)
 	    : window(affresco::detail::createHeadlessWindow(400, 300, clock)),
 	      screen(affresco::Screen::fromString(R"({"format": "affrescoui-screen", "version": 2,
 		"state": {"out": null, "error": ""},
@@ -306,6 +307,7 @@ struct SettingsScreen {
 		"root": {"id": "page"}})")) {
 		intelligence::CallsOptions options;
 		options.keys = keys;
+		options.hidden = hidden; // the other providers, which providers.json hides for now
 		options.claudeInstalled = [] { return false; };
 		options.changed = [this] { ++changes; };
 		intelligence::registerCalls(screen, data, std::move(options));
@@ -555,3 +557,18 @@ TEST_CASE("intelligence: claude-code past its time ends even when a program it s
 	CHECK(took < std::chrono::seconds(3)); // not behind the program that left its group
 }
 #endif
+
+TEST_CASE("intelligence: the settings offer only the providers the catalogue shows (Claude Code, for now)") {
+	const DataFolder data;
+	SettingsScreen settings(data.path, false);
+	const json answer = settings.run("providers");
+	REQUIRE(answer["providers"].size() == 1);
+	CHECK(answer["providers"][0]["id"] == "claude-code");
+	settings.run("save", {{"provider", "anthropic"}, {"model", "claude-sonnet-5-5"}});
+	CHECK(settings.error().find("no such provider") != std::string::npos); // a hidden one can't be chosen
+	// One chosen before it was hidden isn't in use
+	intelligence::Settings chosen;
+	chosen.provider = "openai";
+	chosen.save(data.path);
+	CHECK(settings.run("providers")["current"]["provider"] == "");
+}
