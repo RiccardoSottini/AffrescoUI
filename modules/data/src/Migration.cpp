@@ -257,6 +257,27 @@ std::optional<std::vector<MigrationStep>> inverseOf(const Migration& migration) 
 	return inverse;
 }
 
+json seedFields(const Model& model, const json& record, const Evaluator& evaluate, const std::string& where) {
+	if(!record.is_object()) throw DataError("invalid", where + ": expected a record");
+	json fields = record;
+	fields.erase("id");
+	if(!model.migrations.empty()) {
+		const std::vector<Migration> chain = migrationsOf(model, "models." + model.name);
+		int at = chain.front().from;
+		for(const Migration& migration : chain) {
+			if(migration.from != at) continue;
+			for(const MigrationStep& step : migration.steps) applyStep(step, fields, evaluate);
+			at = migration.to;
+		}
+	}
+	json declared = json::object();
+	for(const auto& [name, value] : fields.items())
+		if(model.fields.contains(name)) declared[name] = value;
+	json checked = validateRecord(model, declared, where);
+	if(record.contains("id")) checked["id"] = record["id"];
+	return checked;
+}
+
 bool dropsData(const Migration& migration) noexcept {
 	return std::ranges::any_of(migration.steps,
 	                           [](const MigrationStep& step) { return step.kind == MigrationStep::Kind::Drop; });

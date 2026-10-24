@@ -4,6 +4,7 @@
 #include "SectionRegistry.hpp"
 #include "ContributionPoints.hpp"
 #include "Contributions.hpp"
+#include "DataRules.hpp"
 #include "FeatureManifest.hpp"
 #include "Language.hpp"
 #include "Settings.hpp"
@@ -124,6 +125,8 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"languages", checkLanguages}); // code languages for editors (Language.hpp)
 	registry.add({"state"});
 	registry.add({"stateTypes", checkStateTypes}); // a type per state key (StateTypes.hpp)
+	registry.add({"models", checkModelsSection});   // the records' collections and fields (data/DataRules.hpp)
+	registry.add({"queries", checkQueriesSection}); // named queries of the records, read as data.<name>
 	registry.add({"computed", checkObject});
 	registry.add({"watch", checkObject});
 	registry.add({"actions", checkObject});

@@ -25,6 +25,7 @@
 #include "AsyncCalls.hpp"
 #include "Builder.hpp"
 #include "Connections.hpp"
+#include "DataLayer.hpp"
 #include "DocumentContext.hpp"
 #include "Events.hpp"
 #include "Models.hpp"
@@ -95,6 +96,7 @@ struct Engine : VersionObserver {
 	AsyncCalls calls;          ///< Slow native calls (last: destroyed first, joining their workers).
 	Connection peersChanged = 0; ///< On versions.onReviewChanged: who is connected (the "peers" variable).
 	AudioPlayers audio{*this}; ///< The declared sounds, played by "audio" steps.
+	DataLayer data{*this};     ///< The records: the store following the "models", the `data` variable.
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.

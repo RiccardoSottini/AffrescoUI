@@ -471,6 +471,7 @@ void Repository::recheckProposal(Proposal& proposal, const json& base) const {
 		                        : rememberedRules(proposal.author, next.touches, verdict.askedByRule);
 		proposal.touches = next.touches;
 		proposal.behaviour = rules_.behaviourLines(next.before, next.after);
+		proposal.impact = rules_.impact(next.before, next.after);
 		proposal.policy = reviewNeeds(next.before, next.after, {}).first;
 	} catch(const DocumentError&) {
 		proposal.remember.clear(); // accept() replays it on main's head, and says if it no longer applies

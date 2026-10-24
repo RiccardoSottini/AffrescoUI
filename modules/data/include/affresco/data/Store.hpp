@@ -145,6 +145,10 @@ public:
 	/// @throws DocumentError If the section is malformed.
 	[[nodiscard]] FollowReport plan(const json& section, const json* oldState = nullptr) const;
 
+	/// @brief A copy of the store in memory (records, journal, archive and models), e.g. for a preview to change.
+	/// @return The copy, with the same evaluator and clock.
+	[[nodiscard]] std::unique_ptr<Store> copy() const;
+
 	/// @brief Whether a version of the models differs from the one followed last.
 	/// @param section The models.
 	/// @return true if it does.

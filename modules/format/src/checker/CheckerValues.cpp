@@ -393,12 +393,13 @@ const Shape* Checker::variable(const std::string& name, const Scope& scope) cons
 	if(name == "state") return &state_;
 	if(among(fixedVariables, name)) return &anything;
 	if(const json* local = scope.find(name)) return local;
+	if(name == "data") return scope.find(openScope) ? &anything : &data_; // the records (CheckerData.cpp)
 	if(among(screenVariables, name) || scope.find(openScope)) return &anything;
 	return nullptr;
 }
 
 std::vector<std::string> Checker::visibleNames(const Scope& scope) {
-	std::vector<std::string> names = {"state", "computed"};
+	std::vector<std::string> names = {"state", "computed", "data"};
 	names.insert(names.end(), fixedVariables.begin(), fixedVariables.end());
 	names.insert(names.end(), screenVariables.begin(), screenVariables.end());
 	for(const Scope* layer = &scope; layer; layer = layer->parent)

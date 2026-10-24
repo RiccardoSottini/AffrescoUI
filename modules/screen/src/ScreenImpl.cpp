@@ -44,6 +44,7 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 		for(const auto& peer : peers) sendRepairs(*peer, message);
 	});
 	rules.setServices(&services);
+	rules.setData(&runtime.dataStore()); // a change to the models dry-runs on a copy of the records first
 	runtime.setServices(&services);
 	services.add(detail::makeFeaturesProvider(features, repository, alive));
 

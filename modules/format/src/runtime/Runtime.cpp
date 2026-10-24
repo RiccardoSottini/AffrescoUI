@@ -190,6 +190,14 @@ void Runtime::setModel(std::string name, std::shared_ptr<DataModel> model) {
 	impl_->models.set(std::move(name), std::move(model));
 }
 
+void Runtime::setDataStore(data::Store* store, const json* oldState) { impl_->data.setStore(store, oldState); }
+
+data::Store& Runtime::dataStore() noexcept { return impl_->data.mainStore(); }
+
+void Runtime::setDataAuthor(std::string author) { impl_->data.setAuthor(std::move(author)); }
+
+void Runtime::allowDataDirectory(const std::filesystem::path& directory) { impl_->data.allowDirectory(directory); }
+
 void Runtime::onUnhandledAction(UnhandledAction fallback) { impl_->unhandled = std::move(fallback); }
 
 void Runtime::runAction(std::string_view name, Panel& sender, const json& event) {

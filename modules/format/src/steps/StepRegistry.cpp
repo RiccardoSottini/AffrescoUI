@@ -55,6 +55,7 @@ void registerBuiltInSteps(StepRegistry& registry) {
 	registerSceneSteps(registry);
 	registerImageSteps(registry);
 	registerAudioSteps(registry);
+	registerDataSteps(registry);
 }
 
 } // namespace affresco::format

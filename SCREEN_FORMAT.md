@@ -74,6 +74,8 @@ Every part of the format follows these, and so should every extension:
 | `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and isn't built while its `when` doesn't hold. |
 | `state` | The app's data, any JSON object. |
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
+| `models` | `collection → { "version", "fields", "seed", "migrations", "importFrom" }`: the models of the app's records, kept in a store of their own; read as `data.<collection>` (see Data: models and records). |
+| `queries` | `name → { "from", "where", "sort", "limit", "offset", "count" }`: records a screen reads as `data.<name>`, selected and sorted by the store (see Data: models and records). |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
 | `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels; or a command `{ "title", "category", "icon", "enablement", "description", "do" }`, listed by the `commands` variable (see Commands and keybindings). |
@@ -1266,6 +1268,11 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
 | `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images) |
 | `audio` | `{ "audio": "play", "of": "song" }`: see Audio |
+| `insert` | `{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, checked against its model; `result` in `then` is the record, `error` in `onError` is `{code, message}` (see Data: models and records) |
+| `update` | `{ "update": "songs", "id": "{{song.id}}", "fields": { "rating": 5 } }`: changes fields of records (an `id`, a list of them, or a `where`) |
+| `delete` | `{ "delete": "songs", "id": "{{song.id}}" }`: deletes records (an `id`, a list, or a `where`) |
+| `undoData`, `redoData` | `{ "undoData": true }`, `{ "redoData": true }`: undoes or redoes the last write step's records |
+| `importCsv` | `{ "importCsv": "songs", "file": "songs.csv", "columns": { "title": "Title" }, "into": "state.report" }`: imports a CSV's rows as records (`file` in the screen's folder, or `text`); `result` is `{imported, failed, failures}` |
 | `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
 | `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
 <!-- end generated -->

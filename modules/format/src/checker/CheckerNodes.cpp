@@ -28,7 +28,12 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 	 "reject",   "preview", "restore", "revert",    "undo",      "endPreview", "focus",   "scrollTo",
 	 "navigate", "dismiss", "after",   "debounce",  "animate",   "copy",       "log",     "stop",
 	 "note",     "invoke",  "request", "subscribe", "respond",   "ask",        "signIn",  "signOut",
-	 "camera",   "transform", "image", "chooseFolder", "edit", "audio"});
+	 "camera",   "transform", "image", "chooseFolder", "edit", "audio", "insert", "update", "delete", "undoData",
+	 "redoData", "importCsv"});
+
+/// The data layer's write steps (DataSteps.cpp): `then` sees `result`, `onError` sees `error` ({code, message}).
+constexpr auto dataSteps =
+    std::to_array<std::string_view>({"insert", "update", "delete", "undoData", "redoData", "importCsv"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -513,10 +518,11 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 		const auto steps = step.find(key);
 		if(steps == step.end()) continue;
 		Scope layer{&scope, nullptr, json(), {}, {}};
+		const bool writes = std::ranges::any_of(dataSteps, [&](std::string_view name) { return step.contains(name); });
 		const bool service = step.contains("invoke") || step.contains("request") || step.contains("subscribe") ||
-		                     step.contains("signIn") || step.contains("chooseFolder"); // {code, message} too
+		                     step.contains("signIn") || step.contains("chooseFolder") || writes; // {code, message}
 		if(key == "onError") layer.vars["error"] = service ? anything : single; // a call's error (a service's: code...)
-		if(key == "then" && step.contains("call")) layer.vars["result"] = anything;      // and its result
+		if(key == "then" && (step.contains("call") || writes)) layer.vars["result"] = anything; // and its result
 		if(key == "onDone") layer.vars["result"] = anything;                             // a service call's result
 		if(key == "onEvent" || (key == "do" && service)) layer.vars["event"] = anything; // what it streams
 		walkHandler(*steps, layer, place + "." + std::string(key));

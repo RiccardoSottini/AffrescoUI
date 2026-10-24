@@ -35,6 +35,10 @@ class Engine;
 class Source;
 } // namespace affresco::audio
 
+namespace affresco::data {
+class Store;
+} // namespace affresco::data
+
 namespace affresco::format {
 
 /// @brief What the last update of the panels cost: read with Runtime::lastUpdate(), for an inspector.
@@ -173,6 +177,25 @@ public:
 	/// @param model The model, or nullptr to remove it.
 	/// @throws std::invalid_argument If the name isn't one.
 	void setModel(std::string name, std::shared_ptr<DataModel> model);
+
+	/// @brief Gives the screen the store its records live in (the document's "models"; SCREEN_FORMAT.md, "Data:
+	/// models and records"); it follows the models from now on. Until one is given, the runtime keeps its records in
+	/// memory.
+	/// @param store The store (outlives the runtime, or is replaced first), or nullptr for an in-memory one.
+	/// @param oldState A state an earlier version of the app kept on disk, for the models' "importFrom" (or nullptr).
+	/// @throws DocumentError If the store's records don't fit the models.
+	void setDataStore(data::Store* store, const json* oldState = nullptr);
+	/// @brief The store the screen's records live in: the host's, or the runtime's own in-memory one.
+	/// @return It (while a proposal is previewed, still main's: the preview writes a copy).
+	[[nodiscard]] data::Store& dataStore() noexcept;
+	/// @brief Sets who the write steps (insert, update, delete, importCsv) write as: "app" (the person using the app)
+	/// by default. A host running steps for an agent (a reviewed run-once step) sets the agent's name around them, so
+	/// the journal names it and the screen's data rules (`/data/<collection>`) apply.
+	/// @param author The author ("" for "app").
+	void setDataAuthor(std::string author);
+	/// @brief Lets importCsv steps read files in a folder besides the screen's own.
+	/// @param directory The folder.
+	void allowDataDirectory(const std::filesystem::path& directory);
 
 	/// @brief Sets what happens with actions nobody handles (default: a message on stderr).
 	/// @param fallback The handler.

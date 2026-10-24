@@ -116,6 +116,9 @@ public:
 	void requestUpdate() noexcept { changes_.addAll(); }
 	/// @brief Makes computed values stale (a revision may change the state too).
 	void bumpStateVersion() noexcept { ++stateVersion_; }
+	/// @brief Counts the state's changes: what is cached per version of the state compares it.
+	/// @return The count.
+	[[nodiscard]] std::uint64_t stateVersion() const noexcept { return stateVersion_; }
 
 	/* What values read */
 

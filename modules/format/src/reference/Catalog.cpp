@@ -75,12 +75,13 @@ json catalog(const Engine& engine) {
 	        {"variables",
 	         {"state", "event", "window", "revision", "proposals", "history", "preview", "mode", "computed", "theme",
 	          "locale", "screen", "nodes", "context", "commands", "keybindings", "services", "connections", "auth",
-	          "requests", "peers"}},
+	          "requests", "peers", "data"}},
 	        {"sections", sections},
 	        {"customTypes", customTypes},
 	        {"nativeActions", names(engine.nativeActions)},
 	        {"nativeCalls", names(engine.nativeCalls)},
-	        {"models", engine.models.outline()}};
+	        {"models", engine.models.outline()},
+	        {"data", engine.data.outline()}}; // each collection's version, fields and count: never a record
 }
 
 } // namespace affresco::format

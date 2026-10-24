@@ -221,6 +221,7 @@ struct Follower {
 					if(!impl.evaluate) throw DataError("migration", "importFrom needs the screen format's expressions");
 					fields = impl.evaluate(model.importFrom->expression, {{"it", source[i]}, {"index", i}});
 				}
+				if(!importing) fields = seedFields(model, fields, impl.evaluate, where); // written for version 1
 				if(!fields.is_object()) throw DataError("invalid", where + ": expected a record");
 				std::string id;
 				if(fields.contains("id") && fields["id"].is_string() && isRecordId(fields["id"].get<std::string>()) &&
@@ -425,13 +426,19 @@ FollowReport Store::follow(const json& section, const std::string& author, const
 	return report;
 }
 
+std::unique_ptr<Store> Store::copy() const {
+	auto copy = std::make_unique<Store>();
+	sql::copy(impl_->db, copy->impl_->db);
+	copy->impl_->loadModels();
+	copy->impl_->evaluate = impl_->evaluate;
+	copy->impl_->clock = impl_->clock;
+	return copy;
+}
+
 FollowReport Store::plan(const json& section, const json* oldState) const {
-	Store copy;
-	sql::copy(impl_->db, copy.impl_->db);
-	copy.impl_->loadModels();
-	copy.impl_->evaluate = impl_->evaluate;
-	copy.impl_->clock = impl_->clock;
-	return copy.impl_->apply(section, "plan", oldState);
+	const std::unique_ptr<Store> copied = copy();
+	sql::Transaction transaction(copied->impl_->db); // never committed: the copy is dropped anyway
+	return copied->impl_->apply(section, "plan", oldState);
 }
 
 } // namespace affresco::data

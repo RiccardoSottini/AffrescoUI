@@ -53,6 +53,7 @@ target_sources(affrescoui_format PRIVATE
 	src/checker/CheckerImages.cpp
 	src/checker/CheckerAudio.cpp
 	src/checker/CheckerTypes.cpp
+	src/checker/CheckerData.cpp
 	src/checker/CheckerValues.cpp
 	src/checker/StateTypes.cpp)
 target_include_directories(affrescoui_format PRIVATE src/checker)
@@ -159,6 +160,11 @@ target_sources(affrescoui_format PRIVATE src/imaging/ImageDocuments.cpp src/imag
 	src/imaging/RasterOverlays.cpp src/imaging/RasterType.cpp)
 target_link_libraries(affrescoui_format PRIVATE affrescoui::imaging)
 # audio: the sounds a screen plays ("audio" section, "audio" step), on the audio module if it is built
+# src/data/: the data layer: the store following the "models", the `data` variable, the write steps (modules/data)
+target_sources(affrescoui_format PRIVATE src/data/DataLayer.cpp src/data/DataSteps.cpp src/data/DataRules.cpp
+	src/expression/Evaluate.cpp)
+target_include_directories(affrescoui_format PRIVATE src/data)
+target_link_libraries(affrescoui_format PRIVATE affrescoui::data)
 target_sources(affrescoui_format PRIVATE src/audio/AudioSection.cpp src/audio/AudioSteps.cpp)
 if(AFFRESCOUI_AUDIO)
 	target_sources(affrescoui_format PRIVATE src/audio/AudioPlayers.cpp)

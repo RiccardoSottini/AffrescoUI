@@ -222,6 +222,10 @@ void DocumentContext::addVariable(std::string name, std::function<json()> build)
 }
 
 const json* DocumentContext::variable(std::string_view name) const {
+	if(name == "data") { // the records (DataLayer): read again after any state or store change
+		if(reads_) reads_->always = true;
+		return engine_.data.variable();
+	}
 	const auto builder = builders_.find(name);
 	if(builder == builders_.end()) return nullptr;
 	if(building_.empty() && (builtEpoch_ != variablesEpoch_ || builtStateVersion_ != stateVersion_)) {

@@ -134,6 +134,23 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"description": "A type per state key, written as JSON Schema: type, enum, const, properties, required, additionalProperties, items, minimum, maximum, minLength, maxLength, minItems, maxItems",
 		"additionalProperties": {"$ref": "#/$defs/v2/stateType"}})json",
 	 "`key → type`: what each state key holds, written as JSON Schema (see Typed state).", "sections"},
+    {"models", R"json({"type": "object", "maxProperties": 256,
+		"description": "The records' collections: collection -> {version, fields, seed, migrations, importFrom}",
+		"additionalProperties": {"type": "object", "required": ["fields"], "properties": {
+		"version": {"type": "integer", "minimum": 1}, "fields": {"type": "object"}, "seed": {"type": "array"},
+		"migrations": {"type": "array"}, "importFrom": {}, "title": {"type": "string"},
+		"description": {"type": "string"}, "note": {}}, "additionalProperties": false}})json",
+	 "`collection → { \"version\", \"fields\", \"seed\", \"migrations\", \"importFrom\" }`: the models of the app's "
+	 "records, kept in a store of their own; read as `data.<collection>` (see Data: models and records).",
+	 "sections"},
+    {"queries", R"json({"type": "object", "maxProperties": 256,
+		"description": "Named queries of the records, read as data.<name>",
+		"additionalProperties": {"type": "object", "required": ["from"], "properties": {
+		"from": {"type": "string"}, "where": {}, "sort": {}, "limit": {}, "offset": {}, "count": {}, "note": {}},
+		"additionalProperties": false}})json",
+	 "`name → { \"from\", \"where\", \"sort\", \"limit\", \"offset\", \"count\" }`: records a screen reads as "
+	 "`data.<name>`, selected and sorted by the store (see Data: models and records).",
+	 "sections"},
     {"computed", R"json({"type": "object", "description": "Values derived from the state, read as computed.name"})json",
 	 "`name → expression`: values derived from the state, read as `computed.name` (see Values).", "sections"},
     {"watch", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/handler"},
@@ -426,6 +443,32 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 		"master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(`{ "audio": "play", "of": "song" }`: see Audio)",
 	 "steps"},
+    {"insert", "",
+	 R"(`{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, )"
+	 R"(checked against its model; `result` in `then` is the record, `error` in `onError` is `{code, message}` (see )"
+	 R"(Data: models and records))",
+	 "steps"},
+    {"update", "",
+	 R"(`{ "update": "songs", "id": "{{song.id}}", "fields": { "rating": 5 } }`: changes fields of records (an `id`, )"
+	 R"(a list of them, or a `where`))",
+	 "steps"},
+    {"delete", "", R"(`{ "delete": "songs", "id": "{{song.id}}" }`: deletes records (an `id`, a list, or a `where`))",
+	 "steps"},
+    {"undoData", R"json({"const": true})json",
+	 R"(`{ "undoData": true }`, `{ "redoData": true }`: undoes or redoes the last write step's records)", "steps"},
+    {"redoData", R"json({"const": true})json", "", "steps"},
+    {"importCsv", "",
+	 R"(`{ "importCsv": "songs", "file": "songs.csv", "columns": { "title": "Title" }, "into": "state.report" }`: )"
+	 R"(imports a CSV's rows as records (`file` in the screen's folder, or `text`); `result` is )"
+	 R"(`{imported, failed, failures}`)",
+	 "steps"},
+    {"where", "", "", ""},
+    {"fields", "", "", ""},
+    {"file", "", "", ""},
+    {"text", "", "", ""},
+    {"columns", "", "", ""},
+    {"separator", "", "", ""},
+    {"atomic", "", "", ""},
     {"from", "", "", ""},
     {"camera", "",
 	 R"(`{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, )"

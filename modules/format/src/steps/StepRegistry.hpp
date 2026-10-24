@@ -160,5 +160,8 @@ void registerImageSteps(StepRegistry& registry);
 /// @brief Registers the audio step: audio (audio/AudioSteps.cpp).
 /// @param registry The registry.
 void registerAudioSteps(StepRegistry& registry);
+/// @brief Registers the data steps: insert, update, delete, undoData, redoData, importCsv (data/DataSteps.cpp).
+/// @param registry The registry.
+void registerDataSteps(StepRegistry& registry);
 
 } // namespace affresco::format

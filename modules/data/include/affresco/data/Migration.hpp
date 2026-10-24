@@ -81,6 +81,18 @@ void applyStep(const MigrationStep& step, json& fields, const Evaluator& evaluat
 /// @return true if it drops a field.
 [[nodiscard]] bool dropsData(const Migration& migration) noexcept;
 
+/// @brief A seed record as it is stored: a model's seed is written for its first version (the first migration's
+/// "from", or its version if it has none) and migrated like stored records, so a migration never needs the seed
+/// rewritten. Fields the model doesn't declare are left out.
+/// @param model The model.
+/// @param record The seed record, as written.
+/// @param evaluate For the migrations' expressions.
+/// @param where Its place, for errors.
+/// @return Its fields, checked (an "id" kept as written).
+/// @throws DataError "invalid" if it doesn't fit; DocumentError if a migration is malformed.
+[[nodiscard]] json seedFields(const Model& model, const json& record, const Evaluator& evaluate,
+                              const std::string& where);
+
 /// @brief A step as a reviewer reads it: "renames artist to by".
 /// @param step The step.
 /// @return The line.

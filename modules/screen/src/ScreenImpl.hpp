@@ -8,6 +8,7 @@
 
 #include "affresco/channel/Session.hpp"
 #include "affresco/channel/Sockets.hpp"
+#include "affresco/data/Store.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
 #include "affresco/net/RemotePeers.hpp"
@@ -81,6 +82,7 @@ struct Screen::Impl {
 	std::unique_ptr<net::Client> network;                ///< See Screen::network(); outlives the runtime.
 	std::unique_ptr<net::SignIn> signIn;                 ///< The connections' "auth"; outlives the runtime.
 	std::shared_ptr<audio::Engine> audio;                ///< See Screen::audio(); posts to relay.
+	std::unique_ptr<data::Store> store;                  ///< The records' file (setDataFile()); outlives the runtime.
 	format::Rules rules;                                 ///< The format's rules.
 	vcs::Repository repository;                          ///< Document, state, history, review.
 	vcs::ChangeSetRepairs repairs{repository, "screen"}; ///< Installed change sets and their repairs.
