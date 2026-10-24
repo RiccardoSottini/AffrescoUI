@@ -80,7 +80,7 @@
 								"children": [
 									{
 										"id": "laneColumn",
-										"repeat": { "for": "column", "in": "state.columns", "index": "c" },
+										"repeat": { "for": "column", "in": "computed.columns", "index": "c" },
 										"grow": 1,
 										"anchors": { "top": 0, "bottom": 0 },
 										"radius": "@radius.chip",

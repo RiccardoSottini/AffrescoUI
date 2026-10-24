@@ -91,6 +91,13 @@ public:
 	/// @throws DocumentError With the rule.
 	void checkWrite(const std::string& collection, const std::string& where) const;
 
+	/// @brief Groups the writes of the event running into one step of the store's undo, until the event has been
+	/// delivered (a deferred task of the window ends the group). Without a window each write step is its own step.
+	void groupEvent();
+	/// @brief Ends the event's group: what follows is a step of undo of its own (an all-or-nothing write, which may
+	/// undo itself).
+	void endGroup() noexcept { eventBatch_.reset(); }
+
 	/// @brief Evaluates an expression for the store (migrations, imports, CSV conversions).
 	/// @param expression The expression.
 	/// @param variables Its variables.
@@ -118,6 +125,7 @@ private:
 	std::uint64_t builtState_ = 0;                            ///< The state version value_ was built at.
 	bool building_ = false;                                   ///< variable() is running.
 	std::map<std::string, json, std::less<>> queryArguments_; ///< Each query's evaluated declaration, last built.
+	std::unique_ptr<data::Store::Batch> eventBatch_; ///< The running event's writes (groupEvent()); goes first.
 };
 
 } // namespace affresco::format

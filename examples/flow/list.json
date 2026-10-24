@@ -15,7 +15,7 @@
 				"children": [
 					{
 						"id": "listGroup",
-						"repeat": { "for": "column", "in": "state.columns", "index": "c" },
+						"repeat": { "for": "column", "in": "computed.columns", "index": "c" },
 						"anchors": { "left": 0, "right": 0 },
 						"height": "{{36 + (contains(state.collapsedGroups, c) ? 0 : 36 * count(column.cards, contains(computed.visibleRefs, it.ref)))}}",
 						"color": "transparent",

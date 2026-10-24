@@ -106,6 +106,9 @@ json write(const Running& s, const std::string& kind) {
 	if(!named.is_string()) fail(s.where + "." + kind, "expected a collection's name");
 	const std::string collection = named.get<std::string>();
 	layer.checkWrite(collection, s.where);
+	const bool atomic = s.step.contains("values") || kind == "importCsv"; // a step of undo of their own
+	if(atomic) layer.endGroup();
+	else layer.groupEvent(); // the event's writes: one step of undo
 	if(kind == "insert") {
 		if(s.step.contains("values")) { // many records at once: one step of undo, all of them or none
 			const json values = s.value("values");

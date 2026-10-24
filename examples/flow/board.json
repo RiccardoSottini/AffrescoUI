@@ -40,7 +40,7 @@
 	},
 
 	"watch": {
-		"state.columns": "buildTimeline",
+		"computed.columns": "buildTimeline",
 		"state.members": "buildTimeline"
 	},
 
@@ -52,10 +52,10 @@
 
 	"actions": {
 		"remember": [
-			{ "note": "Keeps the columns before a change, for undoChange (the last 20)" },
-			{ "push": "state.undoStack", "value": "{{state.columns}}" },
-			{ "set": "state.toastUndo", "to": true },
-			{ "if": "{{length(state.undoStack) > 20}}", "then": [{ "remove": "state.undoStack", "at": 0 }] }
+			{"note": "Marks a change for undoChange (the last 20): the records' undo takes back the event's writes"},
+			{"push": "state.undoStack", "value": true},
+			{"set": "state.toastUndo", "to": true},
+			{"if": "{{length(state.undoStack) > 20}}", "then": [{"remove": "state.undoStack", "at": 0}]}
 		],
 		"logActivity": [
 			{ "note": "with: key, title, column. Newest first, the last 30" },
@@ -63,42 +63,25 @@
 		],
 		"checkLimit": [
 			{ "note": "with: c. A notice when the column is over its limit" },
-			{ "if": "{{settings.board.wipWarnings && state.columns[c].limit != null && length(state.columns[c].cards) > state.columns[c].limit}}",
-				"then": [{ "run": "notify", "with": { "message": "{{t('toast.wip', { column: state.columns[c].name, limit: state.columns[c].limit })}}" } }] }
+			{ "if": "{{settings.board.wipWarnings && computed.columns[c].limit != null && length(computed.columns[c].cards) > computed.columns[c].limit}}",
+				"then": [{ "run": "notify", "with": { "message": "{{t('toast.wip', { column: computed.columns[c].name, limit: computed.columns[c].limit })}}" } }] }
 		],
-		"undoChange": { "title": "Undo", "category": "Issue", "icon": "undo-2",
-			"do": [
-				{ "if": "{{length(state.undoStack) == 0}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.nothingToUndo')}}" } }, { "stop": true }] },
-				{ "set": "state.columns", "to": "{{state.undoStack[length(state.undoStack) - 1]}}" },
-				{ "remove": "state.undoStack", "at": "{{length(state.undoStack) - 1}}" },
-				{ "set": "state.selected", "to": null },
-				{ "run": "logActivity", "with": { "key": "undone", "title": "", "column": "" } },
-				{ "run": "notify", "with": { "message": "{{t('toast.undone')}}" } }
-			] },
+		"undoChange": {"title": "Undo", "category": "Issue", "icon": "undo-2", "do": [{"if": "{{length(state.undoStack) == 0}}", "then": [{"run": "notify", "with": {"message": "{{t('toast.nothingToUndo')}}"}}, {"stop": true}]}, {"undoData": true}, {"remove": "state.undoStack", "at": "{{length(state.undoStack) - 1}}"}, {"set": "state.selected", "to": null}, {"run": "logActivity", "with": {"key": "undone", "title": "", "column": ""}}, {"run": "notify", "with": {"message": "{{t('toast.undone')}}"}}]},
 		"reorderCard": [
-			{ "note": "with: c, i, by (-1 or 1): swaps the card with its neighbour in the column" },
-			{ "if": "{{i + by < 0 || i + by >= length(state.columns[c].cards)}}", "then": [{ "stop": true }] },
-			{ "run": "remember" },
-			{ "set": "state.columns[c].cards", "to": "{{map(state.columns[c].cards, index == i ? state.columns[c].cards[i + by] : index == i + by ? state.columns[c].cards[i] : it)}}" },
-			{ "set": "state.selected", "to": { "c": "{{c}}", "i": "{{i + by}}" } }
+			{"note": "with: c, i, by (-1 or 1): swaps the card with its neighbour in the column"},
+			{"if": "{{i + by < 0 || i + by >= length(computed.columns[c].cards)}}", "then": [{"stop": true}]},
+			{"run": "remember"},
+			{"forEach": "{{[{ id: computed.columns[c].cards[i].id, order: computed.columns[c].cards[i + by].order }, { id: computed.columns[c].cards[i + by].id, order: computed.columns[c].cards[i].order }]}}", "as": "swap", "do": [{"update": "issues", "id": "{{swap.id}}", "fields": {"order": "{{swap.order}}"}}]},
+			{"set": "state.selected", "to": {"c": "{{c}}", "i": "{{i + by}}"}}
 		],
 		"moveUp": { "title": "Move issue up", "category": "Issue", "icon": "arrow-up", "enablement": "{{computed.card != null && state.selected.i > 0}}",
 			"do": [{ "run": "reorderCard", "with": { "c": "{{state.selected.c}}", "i": "{{state.selected.i}}", "by": -1 } }] },
 		"moveDown": { "title": "Move issue down", "category": "Issue", "icon": "arrow-down",
-			"enablement": "{{computed.card != null && state.selected.i < length(state.columns[state.selected.c].cards) - 1}}",
+			"enablement": "{{computed.card != null && state.selected.i < length(computed.columns[state.selected.c].cards) - 1}}",
 			"do": [{ "run": "reorderCard", "with": { "c": "{{state.selected.c}}", "i": "{{state.selected.i}}", "by": 1 } }] },
 		"moveToLane": [
-			{ "note": "with: from, at, to, who: a card dropped in a swimlane takes that column and that owner" },
-			{ "if": "{{from != to}}",
-				"then": [
-					{ "run": "moveCard", "with": { "from": "{{from}}", "at": "{{at}}", "to": "{{to}}" } },
-					{ "set": "state.columns[to].cards[length(state.columns[to].cards) - 1].who", "to": "{{who}}" }
-				],
-				"else": [
-					{ "if": "{{state.columns[from].cards[at].who == who}}", "then": [{ "stop": true }] },
-					{ "run": "remember" },
-					{ "set": "state.columns[from].cards[at].who", "to": "{{who}}" }
-				] }
+			{"note": "with: from, at, to, who: a card dropped in a swimlane takes that column and that owner"},
+			{"if": "{{from != to}}", "then": [{"run": "moveCard", "with": {"from": "{{from}}", "at": "{{at}}", "to": "{{to}}"}}, {"update": "issues", "id": "{{computed.columns[to].cards[length(computed.columns[to].cards) - 1].id}}", "fields": {"who": "{{who}}"}}], "else": [{"if": "{{computed.columns[from].cards[at].who == who}}", "then": [{"stop": true}]}, {"run": "remember"}, {"update": "issues", "id": "{{computed.columns[from].cards[at].id}}", "fields": {"who": "{{who}}"}}]}
 		],
 		"buildTimeline": [
 			{ "note": "One track per member, a clip per card with a start and a due date; days are frames" },
@@ -107,7 +90,7 @@
 				{ "push": "state.timelineTracks", "value": {
 					"id": "{{m.who}}",
 					"label": "{{m.name}}",
-					"clips": "{{map(filter(computed.allCards, it.who == m.who && it.due != null), { id: it.c + '-' + it.at, label: it.title, start: max(0, daysBetween(state.sprintStart, it.start ?? it.due)), duration: max(1, daysBetween(it.start ?? it.due, it.due)), color: state.columns[it.c].color })}}"
+					"clips": "{{map(filter(computed.allCards, it.who == m.who && it.due != null), { id: it.c + '-' + it.at, label: it.title, start: max(0, daysBetween(state.sprintStart, it.start ?? it.due)), duration: max(1, daysBetween(it.start ?? it.due, it.due)), color: computed.columns[it.c].color })}}"
 				} }
 			] }
 		],
@@ -118,53 +101,50 @@
 				"start": "{{addDays(state.sprintStart, round(event.start))}}", "due": "{{addDays(state.sprintStart, round(event.start + event.duration))}}", "who": "{{event.track}}" } }
 		],
 		"setCardDates": [
-			{ "note": "with: c, i, start, due, who" },
-			{ "run": "remember" },
-			{ "set": "state.columns[c].cards[i].start", "to": "{{start}}" },
-			{ "set": "state.columns[c].cards[i].due", "to": "{{due}}" },
-			{ "set": "state.columns[c].cards[i].who", "to": "{{who}}" }
+			{"note": "with: c, i, start, due, who"},
+			{"run": "remember"},
+			{"update": "issues", "id": "{{computed.columns[c].cards[i].id}}", "fields": {"start": "{{start}}", "due": "{{due}}", "who": "{{who}}"}}
 		],
 		"setDue": [
-			{ "note": "with: date, or null to clear it" },
-			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
-			{ "run": "remember" },
-			{ "set": "state.columns[state.selected.c].cards[state.selected.i].due", "to": "{{date}}" },
-			{ "set": "state.dueOpen", "to": false }
+			{"note": "with: date, or null to clear it"},
+			{"if": "{{computed.card == null}}", "then": [{"stop": true}]},
+			{"run": "remember"},
+			{"update": "issues", "id": "{{computed.columns[state.selected.c].cards[state.selected.i].id}}", "fields": {"due": "{{date}}"}},
+			{"set": "state.dueOpen", "to": false}
 		],
 		"toggleListItem": [
-			{ "note": "with: field (labels or assignees), value: adds or removes it on the selected card" },
-			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
-			{ "run": "remember" },
-			{ "set": "state.columns[state.selected.c].cards[state.selected.i][field]",
-				"to": "{{contains(computed.card[field] ?? [], value) ? filter(computed.card[field], it != value) : concat(computed.card[field] ?? [], [value])}}" }
+			{"note": "with: field (labels or assignees), value: adds or removes it on the selected card"},
+			{"if": "{{computed.card == null}}", "then": [{"stop": true}]},
+			{"run": "remember"},
+			{"update": "issues", "id": "{{computed.columns[state.selected.c].cards[state.selected.i].id}}", "fields": "{{fromEntries([{key: field, value: contains(computed.card[field] ?? [], value) ? filter(computed.card[field], it != value) : concat(computed.card[field] ?? [], [value])}])}}"}
 		],
 		"addToCard": [
-			{ "note": "with: field (checklist, comments or attachments), value, input (the text typed: nothing is added while it is blank)" },
-			{ "if": "{{computed.card == null || length(trim(input ?? '')) == 0}}", "then": [{ "stop": true }] },
-			{ "run": "remember" },
-			{ "set": "state.columns[state.selected.c].cards[state.selected.i][field]", "to": "{{concat(computed.card[field] ?? [], [value])}}" },
-			{ "if": "{{field == 'comments'}}", "then": [{ "run": "logActivity", "with": { "key": "commented", "title": "{{computed.card.title}}", "column": "" } }] }
+			{"note": "with: field (checklist, comments or attachments), value, input (the text typed: nothing is added while it is blank)"},
+			{"if": "{{computed.card == null || length(trim(input ?? '')) == 0}}", "then": [{"stop": true}]},
+			{"run": "remember"},
+			{"update": "issues", "id": "{{computed.columns[state.selected.c].cards[state.selected.i].id}}", "fields": "{{fromEntries([{key: field, value: concat(computed.card[field] ?? [], [value])}])}}"},
+			{"if": "{{field == 'comments'}}", "then": [{"run": "logActivity", "with": {"key": "commented", "title": "{{computed.card.title}}", "column": ""}}]}
 		],
 		"removeFromCard": [
-			{ "note": "with: field, at" },
-			{ "run": "remember" },
-			{ "remove": "state.columns[state.selected.c].cards[state.selected.i][field]", "at": "{{at}}" }
+			{"note": "with: field, at"},
+			{"run": "remember"},
+			{"update": "issues", "id": "{{computed.columns[state.selected.c].cards[state.selected.i].id}}", "fields": "{{fromEntries([{key: field, value: concat(slice(computed.card[field] ?? [], 0, at), slice(computed.card[field] ?? [], at + 1))}])}}"}
 		],
 		"checkItem": [
-			{ "note": "with: at, value" },
-			{ "run": "remember" },
-			{ "set": "state.columns[state.selected.c].cards[state.selected.i].checklist[at].done", "to": "{{value}}" }
+			{"note": "with: at, value"},
+			{"run": "remember"},
+			{"update": "issues", "id": "{{computed.columns[state.selected.c].cards[state.selected.i].id}}", "fields": {"checklist": "{{map(computed.card.checklist, index == at ? merge(it, { done: value }) : it)}}"}}
 		],
 		"editNotes": [
 			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
 			{ "set": "state.draft", "to": { "editing": true, "notes": "{{computed.card.notes ?? ''}}" } }
 		],
 		"saveNotes": [
-			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
-			{ "run": "remember" },
-			{ "set": "state.columns[state.selected.c].cards[state.selected.i].notes", "to": "{{state.draft.notes}}" },
-			{ "set": "state.draft.editing", "to": false },
-			{ "run": "notify", "with": { "message": "{{t('toast.saved')}}" } }
+			{"if": "{{computed.card == null}}", "then": [{"stop": true}]},
+			{"run": "remember"},
+			{"update": "issues", "id": "{{computed.columns[state.selected.c].cards[state.selected.i].id}}", "fields": {"notes": "{{state.draft.notes}}"}},
+			{"set": "state.draft.editing", "to": false},
+			{"run": "notify", "with": {"message": "{{t('toast.saved')}}"}}
 		],
 		"cancelNotes": [{ "set": "state.draft.editing", "to": false }],
 		"announcePresence": [

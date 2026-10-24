@@ -181,6 +181,7 @@ std::string checkData(Screen& screen, const json& expect) {
 	const std::optional<std::vector<std::string>> segments = parseStatePath(path); // checked when the file was read
 	if(!segments) return "data " + path + " isn't a path";
 	const std::optional<json> value = follow(json::parse(screen.dataJson()), *segments);
+	if(!value && expect["is"].is_null()) return {}; // a record's field without a value: null, as `data` reads it
 	if(!value) return "data " + path + " doesn't exist, expected " + shown(expect["is"]);
 	if(*value == expect["is"]) return {};
 	return "data " + path + " is " + shown(*value) + ", expected " + shown(expect["is"]);

@@ -22,40 +22,32 @@
 			"do": [{ "set": "state.marked", "to": "{{map(computed.visible, it.ref)}}" }] },
 
 		"bulkPriority": [
-			{ "note": "with: p; sets every marked card's priority" },
-			{ "run": "remember" },
-			{ "set": "state.columns", "to": "{{map(state.columns, merge(it, { cards: map(it.cards, contains(state.marked, it.ref) ? merge(it, { priority: p }) : it) }))}}" },
-			{ "run": "notify", "with": { "message": "{{t('bulk.changed', { n: length(state.marked) })}}" } }
+			{"note": "with: p; sets every marked card's priority"},
+			{"run": "remember"},
+			{"update": "issues", "id": "{{state.marked}}", "fields": {"priority": "{{p}}"}},
+			{"run": "notify", "with": {"message": "{{t('bulk.changed', { n: length(state.marked) })}}"}}
 		],
 		"bulkAssignee": [
-			{ "note": "with: who; assigns every marked card" },
-			{ "run": "remember" },
-			{ "set": "state.columns", "to": "{{map(state.columns, merge(it, { cards: map(it.cards, contains(state.marked, it.ref) ? merge(it, { who: who }) : it) }))}}" },
-			{ "run": "notify", "with": { "message": "{{t('bulk.changed', { n: length(state.marked) })}}" } }
+			{"note": "with: who; assigns every marked card"},
+			{"run": "remember"},
+			{"update": "issues", "id": "{{state.marked}}", "fields": {"who": "{{who}}"}},
+			{"run": "notify", "with": {"message": "{{t('bulk.changed', { n: length(state.marked) })}}"}}
 		],
 		"bulkStatus": [
 			{ "note": "with: to; moves every marked card to the end of that column, in the order they were marked" },
 			{ "run": "remember" },
 			{ "forEach": "state.marked", "as": "ref", "do": [
-				{ "run": "moveMarked", "with": { "ref": "{{ref}}", "to": "{{to}}", "from": "{{indexOf(map(state.columns, some(it.cards, it.ref == ref)), true)}}" } }
+				{ "run": "moveMarked", "with": { "ref": "{{ref}}", "to": "{{to}}", "from": "{{indexOf(map(computed.columns, some(it.cards, it.ref == ref)), true)}}" } }
 			] },
 			{ "set": "state.selected", "to": null },
 			{ "run": "notify", "with": { "message": "{{t('bulk.changed', { n: length(state.marked) })}}" } }
 		],
 		"moveMarked": [
-			{ "note": "with: ref, from, to; one card of a bulk move, without its own undo step" },
-			{ "if": "{{from < 0 || from == to}}", "then": [{ "stop": true }] },
-			{ "push": "state.columns[to].cards", "value": "{{find(state.columns[from].cards, it.ref == ref)}}" },
-			{ "remove": "state.columns[from].cards", "at": "{{indexOf(map(state.columns[from].cards, it.ref), ref)}}" }
+			{"note": "with: ref, from, to; one card of a bulk move, without its own undo step"},
+			{"if": "{{from < 0 || from == to}}", "then": [{"stop": true}]},
+			{"update": "issues", "id": "{{ref}}", "fields": {"status": "{{to}}", "order": "{{max(concat([-1], map(computed.columns[to].cards, it.order))) + 1}}"}}
 		],
-		"bulkDelete": { "title": "Delete the selected issues", "category": "Issue", "icon": "trash-2", "enablement": "{{length(state.marked) > 0}}",
-			"do": [
-				{ "run": "remember" },
-				{ "run": "notify", "with": { "message": "{{t('bulk.deleted', { n: length(state.marked) })}}" } },
-				{ "set": "state.columns", "to": "{{map(state.columns, merge(it, { cards: filter(it.cards, !contains(state.marked, it.ref)) }))}}" },
-				{ "set": "state.marked", "to": [] },
-				{ "set": "state.selected", "to": null }
-			] }
+		"bulkDelete": {"title": "Delete the selected issues", "category": "Issue", "icon": "trash-2", "enablement": "{{length(state.marked) > 0}}", "do": [{"run": "remember"}, {"run": "notify", "with": {"message": "{{t('bulk.deleted', { n: length(state.marked) })}}"}}, {"delete": "issues", "id": "{{state.marked}}"}, {"set": "state.marked", "to": []}, {"set": "state.selected", "to": null}]}
 	},
 
 	"keys": {

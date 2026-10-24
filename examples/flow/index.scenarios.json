@@ -92,7 +92,7 @@
 				{ "click": "#newCard" },
 				{ "type": "Pick a label" },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[4].tag", "is": "design" } }
+				{ "expect": { "data": "lane0[4].tag", "is": "design" } }
 			]
 		},
 		{
@@ -160,7 +160,7 @@
 				{ "wait": 50 },
 				{ "type": "Reproduce on an empty board" },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[2].checklist[0].text", "is": "Reproduce on an empty board" } }
+				{ "expect": { "data": "lane0[2].checklist[0].text", "is": "Reproduce on an empty board" } }
 			]
 		},
 		{
@@ -202,10 +202,10 @@
 				{ "type": "For the launch" },
 				{ "click": "#composerMore" },
 				{ "click": "#composerCreate" },
-				{ "expect": { "state": "columns[0].cards[4].title", "is": "Write the release notes" } },
-				{ "expect": { "state": "columns[0].cards[4].priority", "is": 2 } },
-				{ "expect": { "state": "columns[0].cards[4].who", "is": "MK" } },
-				{ "expect": { "state": "columns[0].cards[4].notes", "is": "For the launch" } },
+				{ "expect": { "data": "lane0[4].title", "is": "Write the release notes" } },
+				{ "expect": { "data": "lane0[4].priority", "is": 2 } },
+				{ "expect": { "data": "lane0[4].who", "is": "MK" } },
+				{ "expect": { "data": "lane0[4].notes", "is": "For the launch" } },
 				{ "expect": { "state": "composer.open", "is": true } },
 				{ "expect": { "state": "composer.notes", "is": "" } }
 			]
@@ -246,7 +246,7 @@
 				{ "wait": 50 },
 				{ "expect": { "state": "propPick.index", "is": 3 } },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[0].priority", "is": 3 } }
+				{ "expect": { "data": "lane0[0].priority", "is": 3 } }
 			]
 		},
 		{
@@ -261,7 +261,7 @@
 				{ "wait": 50 },
 				{ "type": "Check the review queue" },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[2].cards[2].title", "is": "Check the review queue" } }
+				{ "expect": { "data": "lane2[2].title", "is": "Check the review queue" } }
 			]
 		},
 		{
@@ -276,7 +276,7 @@
 				{ "click": "#propLabelAdd" },
 				{ "wait": 50 },
 				{ "click": "#labelPick", "nth": 3 },
-				{ "expect": { "state": "columns[0].cards[2].labels[2]", "is": "docs" } }
+				{ "expect": { "data": "lane0[2].labels[2]", "is": "docs" } }
 			]
 		},
 		{
@@ -288,8 +288,8 @@
 				{ "type": "Write render tests" },
 				{ "expect": { "state": "newCard", "is": "Write render tests" } },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards.length", "is": 5 } },
-				{ "expect": { "state": "columns[0].cards[4].title", "is": "Write render tests" } },
+				{ "expect": { "data": "lane0.length", "is": 5 } },
+				{ "expect": { "data": "lane0[4].title", "is": "Write render tests" } },
 				{ "expect": { "state": "newCard", "is": "" } },
 				{ "expect": { "node": "#cardTitle", "nth": 4, "text": "Write render tests" } },
 				{ "expect": { "node": "#columnCount", "text": "5" } },
@@ -304,7 +304,7 @@
 				{ "wait": 50 },
 				{ "type": "   " },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
+				{ "expect": { "data": "lane0.length", "is": 4 } },
 				{ "expect": { "node": "#columnCount", "text": "4" } }
 			]
 		},
@@ -325,7 +325,7 @@
 				{ "wait": 50 },
 				{ "type": "Login loops forever" },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[4].tag", "is": "bug" } },
+				{ "expect": { "data": "lane0[4].tag", "is": "bug" } },
 				{ "wait": 50, "note": "the composer closes" },
 				{ "key": "escape" },
 				{ "expect": { "state": "filter", "is": "all" } },
@@ -338,14 +338,14 @@
 			"steps": [
 				{ "click": "#cardTitle", "note": "the first Backlog card" },
 				{ "key": "mod+right" },
-				{ "expect": { "state": "columns[0].cards.length", "is": 3 } },
-				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
-				{ "expect": { "state": "columns[1].cards[3].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "data": "lane0.length", "is": 3 } },
+				{ "expect": { "data": "lane1.length", "is": 4 } },
+				{ "expect": { "data": "lane1[3].title", "is": "Onboarding checklist for new teams" } },
 				{ "expect": { "node": "#columnCount", "nth": 1, "text": "4" } },
 				{ "expect": { "state": "selected.c", "is": 1 } },
 				{ "key": "mod+left", "note": "the moved card is still selected" },
-				{ "expect": { "state": "columns[0].cards[3].title", "is": "Onboarding checklist for new teams" } },
-				{ "expect": { "state": "columns[1].cards.length", "is": 3 } }
+				{ "expect": { "data": "lane0[3].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "data": "lane1.length", "is": 3 } }
 			]
 		},
 		{
@@ -353,9 +353,9 @@
 			"note": "Dragging the first Backlog card onto the Review column moves it there",
 			"steps": [
 				{ "drag": "#card", "to": "#column", "toNth": 2, "moves": 4, "note": "the first card onto the third column, Review" },
-				{ "expect": { "state": "columns[0].cards.length", "is": 3 } },
-				{ "expect": { "state": "columns[2].cards.length", "is": 3 } },
-				{ "expect": { "state": "columns[2].cards[2].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "data": "lane0.length", "is": 3 } },
+				{ "expect": { "data": "lane2.length", "is": 3 } },
+				{ "expect": { "data": "lane2[2].title", "is": "Onboarding checklist for new teams" } },
 				{ "expect": { "node": "#columnCount", "nth": 2, "text": "3" } }
 			]
 		},
@@ -385,7 +385,7 @@
 				{ "expect": { "node": "#newCard", "property": "focused", "is": true } },
 				{ "type": "From the keyboard" },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[4].title", "is": "From the keyboard" } }
+				{ "expect": { "data": "lane0[4].title", "is": "From the keyboard" } }
 			]
 		},
 		{
@@ -408,14 +408,14 @@
 			"steps": [
 				{ "click": "#cardTitle", "note": "the first Backlog card" },
 				{ "key": "mod+right", "note": "so the board has changed" },
-				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "expect": { "data": "lane1.length", "is": 4 } },
 				{ "click": "#navBoard", "nth": 1, "note": "the Website board" },
 				{ "expect": { "state": "boardId", "is": "website" } },
 				{ "expect": { "state": "board", "is": "Website" } },
 				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Pricing page comparison table" } },
 				{ "click": "#navBoard", "nth": 0, "note": "the Product launch board" },
 				{ "expect": { "state": "boardId", "is": "launch" } },
-				{ "expect": { "state": "columns[1].cards.length", "is": 4 } }
+				{ "expect": { "data": "lane1.length", "is": 4 } }
 			]
 		},
 		{
@@ -475,7 +475,7 @@
 				{ "expect": { "node": "#editTitle", "text": "Empty states for every page" } },
 				{ "type": ", even errors" },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[1].title", "is": "Empty states for every page, even errors" } },
+				{ "expect": { "data": "lane0[1].title", "is": "Empty states for every page, even errors" } },
 				{ "expect": { "state": "edit.open", "is": false } },
 				{ "expect": { "state": "toast.open", "is": true } },
 				{ "wait": 4100 },
@@ -495,9 +495,9 @@
 				{ "key": "down" },
 				{ "key": "enter", "note": "the next enabled item: Move card right (Move card left is disabled in the Backlog)" },
 				{ "expect": { "state": "cardMenu", "is": false } },
-				{ "expect": { "state": "columns[1].cards[3].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "data": "lane1[3].title", "is": "Onboarding checklist for new teams" } },
 				{ "key": "mod+left" },
-				{ "expect": { "state": "columns[0].cards[3].title", "is": "Onboarding checklist for new teams" } }
+				{ "expect": { "data": "lane0[3].title", "is": "Onboarding checklist for new teams" } }
 			]
 		},
 		{
@@ -544,14 +544,14 @@
 				{ "click": "#cardTitle" },
 				{ "expect": { "state": "selected.i", "is": 0 } },
 				{ "key": "mod+right" },
-				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "expect": { "data": "lane1.length", "is": 4 } },
 				{ "key": "mod+z" },
-				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
-				{ "expect": { "state": "columns[1].cards.length", "is": 3 } },
+				{ "expect": { "data": "lane0.length", "is": 4 } },
+				{ "expect": { "data": "lane1.length", "is": 3 } },
 				{ "expect": { "state": "undoStack.length", "is": 0 } },
 				{ "expect": { "state": "activity[0].key", "is": "undone" } },
 				{ "key": "mod+z" },
-				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
+				{ "expect": { "data": "lane0.length", "is": 4 } },
 				{ "expect": { "state": "toast.open", "is": true } }
 			]
 		},
@@ -563,7 +563,7 @@
 				{ "expect": { "state": "selected.i", "is": 0 } },
 				{ "key": "mod+right" },
 				{ "expect": { "state": "toast.open", "is": true } },
-				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "expect": { "data": "lane1.length", "is": 4 } },
 				{ "capture": "over-limit" }
 			]
 		},
@@ -575,14 +575,14 @@
 				{ "expect": { "state": "selected.i", "is": 0 } },
 				{ "key": "alt+down" },
 				{ "expect": { "state": "selected.i", "is": 1 } },
-				{ "expect": { "state": "columns[0].cards[1].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "data": "lane0[1].title", "is": "Onboarding checklist for new teams" } },
 				{ "key": "alt+up" },
 				{ "expect": { "state": "selected.i", "is": 0 } },
 				{ "key": "alt+right" },
 				{ "expect": { "state": "selected.c", "is": 1 } },
 				{ "key": "alt+left" },
 				{ "expect": { "state": "selected.c", "is": 0 } },
-				{ "expect": { "state": "columns[0].cards[3].title", "is": "Onboarding checklist for new teams" } }
+				{ "expect": { "data": "lane0[3].title", "is": "Onboarding checklist for new teams" } }
 			]
 		},
 		{
@@ -594,15 +594,15 @@
 				{ "key": "space", "note": "peeks at it in the side panel" },
 				{ "expect": { "state": "peek", "is": true } },
 				{ "click": "#checkBox", "nth": 1 },
-				{ "expect": { "state": "columns[0].cards[0].checklist[1].done", "is": true } },
+				{ "expect": { "data": "lane0[0].checklist[1].done", "is": true } },
 				{ "click": "#newItem" },
 				{ "type": "Review the copy" },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[0].checklist.length", "is": 4 } },
+				{ "expect": { "data": "lane0[0].checklist.length", "is": 4 } },
 				{ "expect": { "state": "newItem", "is": "" } },
 				{ "type": "  " },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[0].checklist.length", "is": 4 } }
+				{ "expect": { "data": "lane0[0].checklist.length", "is": 4 } }
 			]
 		},
 		{
@@ -619,10 +619,10 @@
 				{ "capture": "date-picker" },
 				{ "key": "right" },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[0].due", "is": "2026-03-21" } },
+				{ "expect": { "data": "lane0[0].due", "is": "2026-03-21" } },
 				{ "expect": { "state": "dueOpen", "is": false } },
 				{ "click": "#dueClear" },
-				{ "expect": { "state": "columns[0].cards[0].due", "is": null } }
+				{ "expect": { "data": "lane0[0].due", "is": null } }
 			]
 		},
 		{
@@ -636,18 +636,18 @@
 				{ "key": "space", "note": "peeks at it in the side panel" },
 				{ "expect": { "state": "peek", "is": true } },
 				{ "click": "#labelChip", "nth": 0 },
-				{ "expect": { "state": "columns[0].cards[0].labels.length", "is": 2 } },
+				{ "expect": { "data": "lane0[0].labels.length", "is": 2 } },
 				{ "click": "#labelChip", "nth": 0 },
-				{ "expect": { "state": "columns[0].cards[0].labels.length", "is": 1 } },
+				{ "expect": { "data": "lane0[0].labels.length", "is": 1 } },
 				{ "click": "#newComment" },
 				{ "type": "Looks good" },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[0].comments.length", "is": 2 } },
+				{ "expect": { "data": "lane0[0].comments.length", "is": 2 } },
 				{ "expect": { "state": "activity[0].key", "is": "commented" } },
 				{ "click": "#newAttachment" },
 				{ "type": "copy.txt" },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[0].attachments[1]", "is": "copy.txt" } }
+				{ "expect": { "data": "lane0[0].attachments[1]", "is": "copy.txt" } }
 			]
 		},
 		{
@@ -733,8 +733,8 @@
 				{ "press": "#card" },
 				{ "move": "#column", "nth": 1 },
 				{ "move": "#column", "nth": 2 },
-				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
-				{ "expect": { "state": "columns[2].cards.length", "is": 2 } }
+				{ "expect": { "data": "lane0.length", "is": 4 } },
+				{ "expect": { "data": "lane2.length", "is": 2 } }
 			]
 		},
 		{
@@ -748,10 +748,10 @@
 				{ "click": "#propPriorityValue" },
 				{ "click": "#priorityPick", "nth": 1 },
 				{ "expect": { "state": "issuePriorityOpen", "is": false } },
-				{ "expect": { "state": "columns[0].cards[2].priority", "is": 1 } },
+				{ "expect": { "data": "lane0[2].priority", "is": 1 } },
 				{ "click": "#propStatusValue" },
 				{ "click": "#statusPick", "nth": 1 },
-				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "expect": { "data": "lane1.length", "is": 4 } },
 				{ "key": "escape" },
 				{ "expect": { "state": "issueOpen", "is": false } },
 				{ "expect": { "node": "#issuePage", "exists": false } }
@@ -774,7 +774,7 @@
 				{ "wait": 50 },
 				{ "key": "enter" },
 				{ "expect": { "state": "propPick.open", "is": false } },
-				{ "expect": { "state": "columns[0].cards[1].priority", "is": 1 } },
+				{ "expect": { "data": "lane0[1].priority", "is": 1 } },
 				{ "wait": 50 },
 				{ "key": "a" },
 				{ "wait": 50 },
@@ -783,10 +783,10 @@
 				{ "type": "jon" },
 				{ "wait": 50 },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[1].who", "is": "JD" } },
+				{ "expect": { "data": "lane0[1].who", "is": "JD" } },
 				{ "wait": 50 },
 				{ "key": "i" },
-				{ "expect": { "state": "columns[0].cards[1].who", "is": "RS" } },
+				{ "expect": { "data": "lane0[1].who", "is": "RS" } },
 				{ "key": "s" },
 				{ "wait": 50 },
 				{ "type": "review" },
@@ -847,20 +847,20 @@
 				{ "type": "high" },
 				{ "wait": 50 },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[0].priority", "is": 2 } },
-				{ "expect": { "state": "columns[0].cards[1].priority", "is": 2 } },
+				{ "expect": { "data": "lane0[0].priority", "is": 2 } },
+				{ "expect": { "data": "lane0[1].priority", "is": 2 } },
 				{ "wait": 50 },
 				{ "key": "s" },
 				{ "wait": 50 },
 				{ "type": "done" },
 				{ "wait": 50 },
 				{ "key": "enter" },
-				{ "expect": { "state": "columns[0].cards[0].ref", "is": "FLO-3" } },
-				{ "expect": { "state": "columns[3].cards[3].ref", "is": "FLO-1" } },
-				{ "expect": { "state": "columns[3].cards[4].ref", "is": "FLO-2" } },
+				{ "expect": { "data": "lane0[0].ref", "is": "FLO-3" } },
+				{ "expect": { "data": "lane3[3].ref", "is": "FLO-1" } },
+				{ "expect": { "data": "lane3[4].ref", "is": "FLO-2" } },
 				{ "wait": 50 },
 				{ "key": "mod+z" },
-				{ "expect": { "state": "columns[0].cards[0].ref", "is": "FLO-1" } },
+				{ "expect": { "data": "lane0[0].ref", "is": "FLO-1" } },
 				{ "key": "escape" },
 				{ "expect": { "state": "marked", "is": [] } },
 				{ "expect": { "node": "#bulkBar", "exists": false } }

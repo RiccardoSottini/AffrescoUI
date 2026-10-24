@@ -82,6 +82,7 @@ void DataLayer::watch(data::Store& store) {
 }
 
 void DataLayer::setStore(data::Store* store, const json* oldState) {
+	eventBatch_.reset();
 	std::unique_ptr<data::Store> own = store ? nullptr : std::make_unique<data::Store>();
 	data::Store& next = store ? *store : *own;
 	next.setEvaluator(evaluate);
@@ -93,9 +94,16 @@ void DataLayer::setStore(data::Store* store, const json* oldState) {
 	++storeVersion_;
 }
 
+void DataLayer::groupEvent() {
+	if(eventBatch_ || !engine_.window) return;
+	eventBatch_ = std::make_unique<data::Store::Batch>(store());
+	engine_.scheduler.defer([this] { eventBatch_.reset(); });
+}
+
 data::Store& DataLayer::store() noexcept { return preview_ ? *preview_ : *store_; }
 
 void DataLayer::follow() {
+	eventBatch_.reset(); // a version lands between events
 	const json& models = sectionOf(engine_.versions.document(), "models");
 	if(engine_.versions.previewing()) {
 		if(!store_->differs(models)) { // the proposal leaves the models alone: the store itself
