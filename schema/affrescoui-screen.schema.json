@@ -4132,7 +4132,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, options, attachments), attach(+into, onDone, onError), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError), insert(+value, values, into, then, onError), update(+id, where, fields, into, then, onError), delete(+id, where, into, then, onError), undoData(+into, then, onError), redoData(+into, then, onError), importCsv(+file, text, columns, separator, atomic, into, then, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, options, attachments), cancelAsk, attach(+into, onDone, onError), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError), insert(+value, values, into, then, onError), update(+id, where, fields, into, then, onError), delete(+id, where, into, then, onError), undoData(+into, then, onError), redoData(+into, then, onError), importCsv(+file, text, columns, separator, atomic, into, then, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -4156,6 +4156,7 @@
 					"signIn": {},
 					"signOut": {},
 					"ask": {},
+					"cancelAsk": {},
 					"attach": {},
 					"chooseFolder": {},
 					"accept": {},

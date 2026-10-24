@@ -211,11 +211,23 @@ TEST_CASE("assistant add-on: Enter sends the draft, Shift+Enter starts a line, a
 
 		built.press(affresco::Key::Enter); // an empty draft sends nothing
 		CHECK(built.assistant()["messages"].size() == 2);
+
+		// The failed reply remembers what it answered: retry asks it again
+		CHECK(built.assistant()["messages"][1]["asked"] == "Bigger\ntitles");
+		CHECK(built.shown("assistantRetry1"));
+		CHECK(built.shown("assistantCopy1"));
+		built.click("assistantRetry1", "Retry");
+		const json retried = built.assistant();
+		REQUIRE(retried["messages"].size() == 4);
+		CHECK(retried["messages"][2]["text"] == "Bigger\ntitles");
+		CHECK(retried["messages"][2]["mine"] == true);
+		built.click("assistantCopy3", "Copy");
+		CHECK(built.assistant()["copied"] == 3);
 	}
 	Built again(data.path);
 	again.run("test.hide");
 	const json assistant = again.assistant();
-	REQUIRE(assistant["messages"].size() == 2);
+	REQUIRE(assistant["messages"].size() == 4);
 	CHECK(assistant["messages"][0]["text"] == "Bigger\ntitles");
 	CHECK(assistant["open"] == false);       // only the conversation is kept, not whether the panel was open
 	CHECK(again.shown("assistantLauncher")); // a conversation shows the launcher

@@ -90,6 +90,9 @@ class Server:
         """A person's request, relayed by the host: pushed to the agent if it listens to channel events, and kept for
         wait_for_request until it is answered. One without an id gets a number no other had: one counted from the
         requests kept would be taken again once one of them was answered, replacing a request not answered yet."""
+        if message.get("type") == "cancel":
+            self.on_cancel(message)
+            return
         # Only the screen itself says "screen": the host drops the field from what its peers relay
         request = {"request_id": str(message.get("id") or f"r{next(self.unnamed)}"),
                    "from": str(message.get("from") or "unknown"), "text": str(message.get("text", "")),
@@ -118,6 +121,22 @@ class Server:
             self.send({"jsonrpc": "2.0", "method": "notifications/claude/channel",
                        "params": {"content": content, "meta": meta}})
             self.working(request)
+
+    def on_cancel(self, message):
+        """The person cancelled a request from inside the app: wait_for_request no longer gives it out, the app drops
+        a reply to it, and an agent listening to channel events is told to stop working on it."""
+        request_id = message.get("request")
+        if not isinstance(request_id, str) or not request_id:
+            return
+        with self.arrived:
+            self.requests.pop(request_id, None)
+        log(f"request {request_id} cancelled by the person")
+        if self.ready:
+            self.send({"jsonrpc": "2.0", "method": "notifications/claude/channel",
+                       "params": {"content": f"The person cancelled request {request_id}: stop working on it and "
+                                             "don't reply to it.",
+                                  "meta": {"request_id": request_id, "sender": "user", "origin": "app",
+                                           "cancelled": "true"}}})
 
     def working(self, request):
         """Tells the app that a request asked from inside it reached the agent: its chat shows the agent working

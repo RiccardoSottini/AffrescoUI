@@ -54,7 +54,13 @@
 			"assistant.accepted": "مقبول",
 			"assistant.rejected": "مرفوض",
 			"assistant.closed": "مغلق",
-			"assistant.clear": "امسح المحادثة"
+			"assistant.clear": "امسح المحادثة",
+			"assistant.attach": "أرفق ملفات",
+			"assistant.stop": "إيقاف",
+			"assistant.stopped": "توقف.",
+			"assistant.copy": "انسخ",
+			"assistant.copied": "نُسخ",
+			"assistant.retry": "أعد المحاولة"
 		}
 	},
 
@@ -92,6 +98,22 @@
 				{ "id": "sonnet", "name": "Claude Sonnet 5.5" }, { "id": "opus", "name": "Claude Opus 5.5" },
 				{ "id": "fable", "name": "Claude Fable 5.1" }, { "id": "haiku", "name": "Claude Haiku 5.5" }] } } }],
 		"test.pick": [{ "run": "assistant.pickModel", "with": { "id": "{{event.id}}" } }],
+		"test.files": [
+			{ "set": "state.assistant.simulate", "to": { "online": true, "pending": [] } },
+			{ "set": "state.assistant.attachments", "to": [
+				{ "id": "att-1", "name": "Moonlight sketch.png", "type": "image/png", "size": 482133 },
+				{ "id": "att-2", "name": "notes.txt", "type": "text/plain", "size": 1820 } ] },
+			{ "set": "state.assistant.messages", "to": [
+				{ "kind": "files", "mine": true, "time": 1773500966000,
+				  "files": [{ "id": "att-0", "name": "Night drive.wav", "type": "audio/wav", "size": 5292044, "duration": 30 }] },
+				{ "mine": true, "from": "You", "text": "Play this file for the third song.", "time": 1773500966000, "error": false },
+				{ "mine": false, "from": "claude", "text": "I linked it to the song: accept it to hear it.", "time": 1773500970000,
+				  "error": false, "asked": "Play this file for the third song." },
+				{ "kind": "extras", "id": "p5", "time": 1773500970000,
+				  "assets": [{ "name": "night-drive.wav", "type": "audio/wav", "size": 5292044, "duration": 30 }],
+				  "run": [{ "update": "playlists", "id": "p1" }] }
+			] }
+		],
 		"test.dark": [{ "set": "state.theme", "to": "dark" }],
 		"test.arabic": [{ "set": "state.locale", "to": "ar" }]
 	},

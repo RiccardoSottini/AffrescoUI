@@ -29,7 +29,7 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 	 "navigate", "dismiss", "after",   "debounce",  "animate",   "copy",       "log",     "stop",
 	 "note",     "invoke",  "request", "subscribe", "respond",   "ask",        "signIn",  "signOut",
 	 "camera",   "transform", "image", "chooseFolder", "edit", "audio", "insert", "update", "delete", "undoData",
-	 "redoData", "importCsv", "attach"});
+	 "redoData", "importCsv", "attach", "cancelAsk"});
 
 /// The data layer's write steps (DataSteps.cpp): `then` sees `result`, `onError` sees `error` ({code, message}).
 constexpr auto dataSteps =

@@ -128,9 +128,9 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 		for(const StepType& step : group.steps)
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
-	CHECK(control == std::vector<std::string>{"accept", "ask", "attach", "call", "chooseFolder", "connect", "endPreview", "patch", "preview",
-	                                          "reject", "respond", "restore", "revert", "send", "signIn", "signOut",
-	                                          "undo"});
+	CHECK(control == std::vector<std::string>{"accept", "ask", "attach", "call", "cancelAsk", "chooseFolder",
+	                                          "connect", "endPreview", "patch", "preview", "reject", "respond",
+	                                          "restore", "revert", "send", "signIn", "signOut", "undo"});
 
 	REQUIRE(registry.find("set"));
 	CHECK(registry.find("set")->keys == std::vector<std::string>{"to"});

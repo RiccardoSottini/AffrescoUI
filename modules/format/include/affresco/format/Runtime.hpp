@@ -334,6 +334,7 @@ public:
 	Signal<const std::string&> onConnect;           ///< "connect" steps: a channel's name.
 	/// "ask" steps, after the event: `{"type": "request", "id", "text", "from": "user", "source": "screen",
 	/// "options"?}`, a request from the screen's own person for the peers. Answer it with receiveReply().
+	/// "cancelAsk" steps send `{"type": "cancel", "request", "from": "user", "source": "screen"}` the same way.
 	Signal<const json&> onAsk;
 	Signal<> onUpdated; ///< The panels were brought in line with the document and state.
 	Usage usage; ///< Usage summaries (VERSION_CONTROL.md, "Usage"): off until the host switches them on, with consent.

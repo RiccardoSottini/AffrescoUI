@@ -51,7 +51,12 @@
 			"assistant.attached": "Attached files",
 			"assistant.remove": "Remove {name}",
 			"assistant.opens": "Opens {name} as the new document",
-			"assistant.runs": "Runs once when accepted: {step}"
+			"assistant.runs": "Runs once when accepted: {step}",
+			"assistant.stop": "Stop",
+			"assistant.stopped": "Stopped.",
+			"assistant.copy": "Copy",
+			"assistant.copied": "Copied",
+			"assistant.retry": "Retry"
 		},
 		"es": {
 			"assistant.title": "Asistente",
@@ -85,7 +90,12 @@
 			"assistant.attached": "Archivos adjuntos",
 			"assistant.remove": "Quitar {name}",
 			"assistant.opens": "Abre {name} como el nuevo documento",
-			"assistant.runs": "Se ejecuta una vez al aceptar: {step}"
+			"assistant.runs": "Se ejecuta una vez al aceptar: {step}",
+			"assistant.stop": "Detener",
+			"assistant.stopped": "Detenido.",
+			"assistant.copy": "Copiar",
+			"assistant.copied": "Copiado",
+			"assistant.retry": "Reintentar"
 		},
 		"fr": {
 			"assistant.title": "Assistant",
@@ -119,13 +129,19 @@
 			"assistant.attached": "Fichiers joints",
 			"assistant.remove": "Retirer {name}",
 			"assistant.opens": "Ouvre {name} comme nouveau document",
-			"assistant.runs": "S'exécute une fois à l'acceptation : {step}"
+			"assistant.runs": "S'exécute une fois à l'acceptation : {step}",
+			"assistant.stop": "Arrêter",
+			"assistant.stopped": "Arrêté.",
+			"assistant.copy": "Copier",
+			"assistant.copied": "Copié",
+			"assistant.retry": "Réessayer"
 		}
 	},
 	"state": {
 		"assistant": { "show": true, "lift": 0, "open": false, "anim": 1, "draft": "", "messages": [], "unread": 0, "pending": "",
 		               "decided": {}, "phase": 0, "simulate": null,
-		               "model": "", "models": null, "modelMenu": false, "attachments": [], "picked": null }
+		               "model": "", "models": null, "modelMenu": false, "attachments": [], "picked": null,
+		               "copied": null }
 	},
 	"watch": {
 		"state.assistant.picked": [{ "if": "{{state.assistant.picked != null}}", "then": [{ "run": "assistant.attachPicked" }] }]
@@ -145,44 +161,57 @@
 			}
 		},
 		"assistantFile": {
-			"note": "A file as a chip: its name and its length (a sound) or size; removable from the files of the next message",
+			"note": "A file as a card, as chat apps show attachments: an icon of its kind (a picture, a sound, any other file), its name, and its length (a sound) or size; removable from the files of the next message",
 			"params": { "file": {}, "removable": false },
 			"node": {
-				"type": "row", "fitContent": true, "height": 26, "alignItems": "center", "gap": 2, "radius": 13,
-				"color": "@assistant.raised", "borderWidth": 1, "borderColor": "@assistant.border", "role": "listitem",
+				"type": "row", "fitContent": "width", "height": 44, "alignItems": "center", "gap": 8, "radius": 10,
+				"color": "@assistant.surface", "borderWidth": 1, "borderColor": "@assistant.border", "role": "listitem",
+				"label": "{{file.name}}",
+				"let": { "assistantKind": "{{slice(file.type ?? '', 0, 6)}}" },
 				"children": [
-					{ "type": "label", "textColor": "@assistant.text", "fitText": { "maxWidth": 220 }, "padding": 8,
-					  "text": "{{file.name}} · {{file.duration != null ? floor(file.duration / 60) + ':' + pad(floor(file.duration % 60), 2) : (file.size ?? 0) >= 1048576 ? formatNumber(file.size / 1048576, 0, 1) + ' MB' : (file.size ?? 0) >= 1024 ? formatNumber(floor(file.size / 1024)) + ' KB' : (file.size ?? 0) + ' B'}}" },
+					{ "width": 38, "height": 44, "color": "transparent", "children": [
+						{ "anchors": { "left": 6, "top": 6 }, "width": 32, "height": 32, "radius": 8, "color": "@assistant.raised",
+						  "children": [
+							{ "type": "path", "anchors": { "left": 8, "top": 8 }, "width": 16, "height": 16, "viewBox": "0 0 24 24",
+							  "d": "{{assistantKind == 'image/' ? 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM11 9a2 2 0 1 1-4 0a2 2 0 1 1 4 0M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21' : assistantKind == 'audio/' ? 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0M21 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0' : 'M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4'}}",
+							  "stroke": "@assistant.dim", "strokeWidth": 2, "strokeCap": "round", "strokeJoin": "round" }
+						  ] }
+					  ] },
+					{ "type": "column", "fitContent": true, "gap": 1, "children": [
+						{ "type": "label", "text": "{{file.name}}", "textColor": "@assistant.text", "fitText": { "maxWidth": 180 } },
+						{ "type": "label", "runs": [{ "text": "{{file.duration != null ? floor(file.duration / 60) + ':' + pad(floor(file.duration % 60), 2) : (file.size ?? 0) >= 1048576 ? formatNumber(file.size / 1048576, 0, 1) + ' MB' : (file.size ?? 0) >= 1024 ? formatNumber(floor(file.size / 1024)) + ' KB' : (file.size ?? 0) + ' B'}}", "size": 12 }],
+						  "textColor": "@assistant.dim", "fitText": { "maxWidth": 180 } }
+					  ] },
 					{ "when": "{{removable}}", "width": 22, "height": 22, "radius": 11, "color": "transparent",
 					  "role": "button", "focusable": true, "cursor": "hand",
 					  "label": "{{t('assistant.remove', {name: file.name})}}", "tooltip": "{{t('assistant.remove', {name: file.name})}}",
-					  "hover": { "color": "@assistant.border" }, "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+					  "hover": { "color": "@assistant.raised" }, "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
 					  "onClick": [{ "run": "assistant.unattach", "with": { "id": "{{file.id}}" } }],
 					  "children": [
-						{ "anchors": { "left": 5, "top": 10 }, "width": 12, "height": 2, "radius": 1, "rotate": 45, "color": "@assistant.dim" },
-						{ "anchors": { "left": 5, "top": 10 }, "width": 12, "height": 2, "radius": 1, "rotate": -45, "color": "@assistant.dim" }
-					  ] }
+						{ "type": "path", "anchors": { "left": 4, "top": 4 }, "width": 14, "height": 14, "viewBox": "0 0 24 24",
+						  "d": "M18 6 6 18M6 6l12 12", "stroke": "@assistant.dim", "strokeWidth": 2.5, "strokeCap": "round" }
+					  ] },
+					{ "width": 2, "height": 1, "color": "transparent" }
 				]
 			}
 		},
 		"assistantExtras": {
-			"note": "What a proposal adds beside its edits: its assets (a picture's thumbnail, a sound's name and length) and its run-once steps, a line each",
+			"note": "What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is previewed) and its run-once steps, a line each",
 			"params": { "id": 0, "assets": [], "run": [] },
 			"node": {
-				"type": "column", "fitContent": "height", "width": 300, "gap": 4, "radius": 8,
-				"color": "@assistant.raised", "role": "list",
+				"type": "column", "fitContent": "height", "width": 340, "gap": 6, "color": "transparent", "role": "list",
 				"children": [
 					{ "repeat": { "for": "asset", "in": "{{assets}}", "index": "a" }, "id": "assistantAsset{{a}}",
-					  "type": "row", "fitContent": "height", "alignSelf": "stretch", "gap": 8, "alignItems": "center", "role": "listitem",
+					  "type": "row", "fitContent": "height", "alignSelf": "stretch", "gap": 8, "alignItems": "center",
 					  "children": [
 						{ "when": "{{preview != null && preview.id == id && contains(['image/png', 'image/jpeg', 'image/svg+xml'], asset.type ?? '')}}", "type": "image",
-						  "file": "{{'asset:' + asset.name}}", "width": 40, "height": 40, "fit": "cover", "radius": 4,
-						  "color": "@assistant.surface" },
-						{ "type": "label", "textColor": "@assistant.text", "fitText": { "maxWidth": 236 }, "padding": 6,
-						  "text": "{{asset.name}} · {{asset.duration != null ? floor(asset.duration / 60) + ':' + pad(floor(asset.duration % 60), 2) : (asset.size ?? 0) >= 1048576 ? formatNumber(asset.size / 1048576, 0, 1) + ' MB' : (asset.size ?? 0) >= 1024 ? formatNumber(floor(asset.size / 1024)) + ' KB' : (asset.size ?? 0) + ' B'}}" }
+						  "file": "{{'asset:' + asset.name}}", "width": 44, "height": 44, "fit": "cover", "radius": 10,
+						  "color": "@assistant.raised" },
+						{ "use": "assistantFile", "with": { "file": "{{asset}}" } }
 					  ] },
 					{ "repeat": { "for": "step", "in": "{{run}}", "index": "r" }, "id": "assistantRun{{r}}", "type": "label",
-					  "textColor": "@assistant.dim", "wrap": true, "alignSelf": "stretch", "height": 28, "padding": 6, "role": "listitem",
+					  "textColor": "@assistant.dim", "wrap": true, "alignSelf": "stretch", "height": 32, "padding": 8, "radius": 8,
+					  "color": "@assistant.raised", "role": "listitem",
 					  "text": "{{step.note ?? (step.image == 'open' || step.image == 'openAsset' ? t('assistant.opens', {name: step.with.asset ?? step.asset ?? ''}) : t('assistant.runs', {step: slice((keys(step)[0] ?? '') + ' ' + text(values(step)[0] ?? ''), 0, 80)}))}}" }
 				]
 			}
@@ -252,7 +281,7 @@
 			{ "if": "{{length(event.text ?? '') == 0 && length(event.error ?? '') == 0 && length(event.proposals ?? []) == 0}}",
 			  "then": [{ "stop": true }] },
 			{ "push": "state.assistant.messages",
-			  "value": "{{ {mine: false, from: event.from, text: length(event.error ?? '') > 0 ? event.error : event.text ?? '', time: event.time, error: length(event.error ?? '') > 0} }}" },
+			  "value": "{{ {mine: false, from: event.from, text: length(event.error ?? '') > 0 ? event.error : event.text ?? '', time: event.time, error: length(event.error ?? '') > 0, asked: find(requests, it.id == event.request).text ?? ''} }}" },
 			{ "forEach": "{{filter(state.assistant.simulate.proposals ?? proposals, contains(event.proposals ?? [], it.id))}}",
 			  "as": "proposal", "do": [
 				{ "push": "state.assistant.messages", "value": "{{ {kind: 'card', id: proposal.id, time: event.time, title: proposal.message, summary: t('assistant.touches', {n: length(proposal.touches ?? [])}), lines: slice(proposal.changes ?? [], 0, 3)} }}" },
@@ -263,6 +292,26 @@
 			{ "run": "assistant.trim" },
 			{ "if": "{{!state.assistant.open}}", "then": [{ "increment": "state.assistant.unread" }] },
 			{ "scrollTo": "#assistantEnd" }
+		],
+		"assistant.stop": [
+			{ "note": "Stops the requests in progress (cancelAsk): the agents are told, and what they send after is dropped" },
+			{ "push": "state.assistant.messages",
+			  "value": "{{ {mine: false, from: t('assistant.title'), text: t('assistant.stopped'), time: now(), error: false, note: true, asked: find(requests, it.id == state.assistant.pending).text ?? ''} }}" },
+			{ "cancelAsk": "{{map(filter(requests, it.state == 'sent' || it.state == 'working'), it.id)}}" },
+			{ "if": "{{state.assistant.simulate != null}}", "then": [{ "set": "state.assistant.simulate.working", "to": false }] },
+			{ "run": "assistant.trim" },
+			{ "focus": "#assistantComposer" },
+			{ "scrollTo": "#assistantEnd" }
+		],
+		"assistant.retry": [
+			{ "note": "with: text, the request a reply answered (or a stopped one): asked again, as it was written" },
+			{ "run": "assistant.ask", "with": { "text": "{{text}}" } }
+		],
+		"assistant.copy": [
+			{ "note": "with: text and at, a message and its place: copied, and its button says so for a moment" },
+			{ "copy": "{{text}}" },
+			{ "set": "state.assistant.copied", "to": "{{at}}" },
+			{ "after": 1500, "do": [{ "set": "state.assistant.copied", "to": null }] }
 		],
 		"assistant.trim": [{ "if": "{{length(state.assistant.messages) > 200}}", "then": [
 			{ "set": "state.assistant.messages", "to": "{{slice(state.assistant.messages, length(state.assistant.messages) - 200)}}" }
@@ -346,27 +395,6 @@
 						{ "anchors": { "left": 7, "top": 15 }, "width": 18, "height": 2, "radius": 1, "rotate": -45,
 						  "color": "@assistant.dim" }
 					  ] },
-					{ "when": "{{length(assistantModels.models ?? []) > 0}}", "id": "assistantModelPicker",
-					  "anchors": { "right": 52, "top": 12 }, "width": 150, "height": 32, "radius": 6,
-					  "color": "transparent", "borderWidth": 1, "borderColor": "@assistant.border", "role": "button",
-					  "focusable": true, "cursor": "hand", "isOpen": "{{state.assistant.modelMenu}}",
-					  "label": "{{t('assistant.chooseModel', {provider: assistantModels.provider ?? ''})}}",
-					  "tooltip": "{{t('assistant.chooseModel', {provider: assistantModels.provider ?? ''})}}",
-					  "hover": { "color": "@assistant.raised" },
-					  "focused": { "borderColor": "@assistant.accent" },
-					  "onClick": [{ "toggle": "state.assistant.modelMenu" }],
-					  "children": [
-						{ "id": "assistantModelName", "type": "label", "anchors": { "left": 10, "top": 8 },
-						  "fitText": { "maxWidth": 108 }, "textColor": "@assistant.text",
-						  "text": "{{find(assistantModels.models, it.id == assistantModel).name ?? assistantModel}}" },
-						{ "id": "assistantModelChevron", "type": "label", "text": "", "icon": "chevron-down",
-						  "anchors": { "right": 8, "top": 8 }, "fitText": true, "textColor": "@assistant.dim" },
-						{ "id": "assistantModelMenu", "use": "menu", "with": {
-							"open": "state.assistant.modelMenu", "placement": "below-end", "width": 260,
-							"items": "{{map(assistantModels.models, {title: it.name, checked: it.id == assistantModel, keyLabel: it.id == assistantModels.default ? t('assistant.defaultModel') : '', run: 'assistant.pickModel', with: {id: it.id}})}}",
-							"color": "@assistant.raised", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
-							"highlight": "@assistant.border" } }
-					  ] },
 					{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@assistant.border" }
 				] },
 				{ "when": "{{!assistantOnline}}", "id": "assistantOffline", "alignSelf": "stretch", "height": 52,
@@ -392,13 +420,45 @@
 						  "cell": { "column": 1, "row": 4 }, "with": { "text": "{{t('assistant.chip3')}}" } },
 						{ "repeat": { "for": "message", "in": "state.assistant.messages", "index": "m" },
 						  "when": "{{(message.kind ?? 'message') == 'message'}}", "id": "assistantMessage{{m}}",
-						  "use": "chatBubble",
-						  "cell": { "column": 1, "row": "{{m + 1}}" }, "with": {
-							"text": "{{message.text}}", "mine": "{{message.mine}}", "from": "{{message.from}}",
-							"time": "{{formatTime(message.time, 'short')}}", "error": "{{message.error}}",
-							"color": "@assistant.raised", "textColor": "@assistant.text",
-							"mineColor": "@assistant.accent", "mineTextColor": "@assistant.onAccent",
-							"errorColor": "@assistant.danger" } },
+						  "type": "column", "fitContent": "height", "gap": 2, "justifySelf": "stretch", "color": "transparent",
+						  "cell": { "column": 1, "row": "{{m + 1}}" }, "children": [
+							{ "id": "assistantBubble{{m}}", "use": "chatBubble", "with": {
+								"text": "{{message.text}}", "mine": "{{message.mine}}", "from": "{{message.from}}",
+								"time": "{{formatTime(message.time, 'short')}}", "error": "{{message.error}}",
+								"maxWidth": "{{message.mine ? 280 : 340}}", "padding": "{{message.mine || message.error ? 10 : 2}}",
+								"radius": 14, "color": "transparent",
+								"textColor": "{{message.note == true ? '@assistant.dim' : '@assistant.text'}}",
+								"mineColor": "@assistant.raised", "mineTextColor": "@assistant.text",
+								"errorColor": "@assistant.danger" } },
+							{ "when": "{{!message.mine}}", "id": "assistantActions{{m}}", "type": "row", "fitContent": "width",
+							  "height": 26, "gap": 2, "alignSelf": "start", "color": "transparent", "role": "toolbar",
+							  "children": [
+								{ "when": "{{message.note != true}}", "id": "assistantCopy{{m}}", "width": 26, "height": 26, "radius": 6,
+								  "color": "transparent", "role": "button", "focusable": true, "cursor": "hand",
+								  "label": "{{t(state.assistant.copied == m ? 'assistant.copied' : 'assistant.copy')}}",
+								  "tooltip": "{{t(state.assistant.copied == m ? 'assistant.copied' : 'assistant.copy')}}",
+								  "hover": { "color": "@assistant.raised" },
+								  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+								  "onClick": [{ "run": "assistant.copy", "with": { "text": "{{message.text}}", "at": "{{m}}" } }],
+								  "children": [
+									{ "type": "path", "anchors": { "left": 6, "top": 6 }, "width": 14, "height": 14, "viewBox": "0 0 24 24",
+									  "d": "{{state.assistant.copied == m ? 'M20 6 9 17l-5-5' : 'M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2ZM4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2'}}",
+									  "stroke": "{{state.assistant.copied == m ? '@assistant.success' : '@assistant.dim'}}",
+									  "strokeWidth": 2, "strokeCap": "round", "strokeJoin": "round" }
+								  ] },
+								{ "when": "{{length(message.asked ?? '') > 0}}", "id": "assistantRetry{{m}}", "width": 26, "height": 26,
+								  "radius": 6, "color": "transparent", "role": "button", "focusable": true, "cursor": "hand",
+								  "label": "{{t('assistant.retry')}}", "tooltip": "{{t('assistant.retry')}}",
+								  "hover": { "color": "@assistant.raised" },
+								  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+								  "onClick": [{ "run": "assistant.retry", "with": { "text": "{{message.asked}}" } }],
+								  "children": [
+									{ "type": "path", "anchors": { "left": 6, "top": 6 }, "width": 14, "height": 14, "viewBox": "0 0 24 24",
+									  "d": "M3 12a9 9 0 1 0 9-9a9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5", "stroke": "@assistant.dim",
+									  "strokeWidth": 2, "strokeCap": "round", "strokeJoin": "round" }
+								  ] }
+							  ] }
+						  ] },
 						{ "repeat": { "for": "message", "in": "state.assistant.messages", "index": "m" },
 						  "when": "{{message.kind == 'files'}}", "id": "assistantFiles{{m}}", "type": "row", "wrap": true,
 						  "fitContent": "height", "gap": 6, "justify": "end", "cell": { "column": 1, "row": "{{m + 1}}" },
@@ -417,7 +477,7 @@
 							"title": "{{message.title}}", "summary": "{{message.summary}}", "lines": "{{message.lines ?? []}}",
 							"status": "{{preview != null && preview.id == message.id ? 'previewing' : contains(assistantPending, message.id) ? 'pending' : state.assistant.decided[message.id] ?? 'closed'}}",
 							"preview": "assistant.preview", "accept": "assistant.accept", "reject": "assistant.reject",
-							"with": { "id": "{{message.id}}" }, "width": 300,
+							"with": { "id": "{{message.id}}" }, "width": 340,
 							"labels": {
 								"preview": "{{t('assistant.preview')}}", "accept": "{{t('assistant.accept')}}",
 								"reject": "{{t('assistant.reject')}}", "accepted": "{{t('assistant.accepted')}}",
@@ -433,7 +493,7 @@
 							"lines": "{{slice(concat(map(proposal.assets ?? [], '+ ' + it.name), proposal.changes ?? []), 0, 3)}}",
 							"status": "{{preview != null && preview.id == proposal.id ? 'previewing' : 'pending'}}",
 							"preview": "assistant.preview", "accept": "assistant.accept", "reject": "assistant.reject",
-							"with": { "id": "{{proposal.id}}" }, "width": 300,
+							"with": { "id": "{{proposal.id}}" }, "width": 340,
 							"labels": {
 								"preview": "{{t('assistant.preview')}}", "accept": "{{t('assistant.accept')}}",
 								"reject": "{{t('assistant.reject')}}", "accepted": "{{t('assistant.accepted')}}",
@@ -447,41 +507,72 @@
 						  "use": "typingIndicator",
 						  "every": { "ms": 400, "do": [{ "increment": "state.assistant.phase" }] }, "with": {
 							"label": "{{t('assistant.typing')}}", "phase": "{{state.assistant.phase}}",
-							"color": "@assistant.raised", "dotColor": "@assistant.dot",
+							"color": "transparent", "dotColor": "@assistant.dot",
 							"activeColor": "@assistant.dim" } },
 						{ "id": "assistantEnd", "height": 1, "color": "transparent",
 						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + 2}}" } }
 					  ] }
 				] },
-				{ "when": "{{length(state.assistant.attachments) > 0}}", "id": "assistantAttachments", "alignSelf": "stretch",
-				  "height": 34, "color": "transparent", "children": [
-					{ "type": "row", "id": "assistantAttachedList", "scroll": "horizontal", "gap": 6, "alignItems": "center",
-					  "anchors": { "left": 12, "right": 12, "top": 4, "bottom": 0 },
-					  "role": "list", "label": "{{t('assistant.attached')}}", "children": [
-						{ "repeat": { "for": "file", "in": "state.assistant.attachments", "index": "f" },
-						  "id": "assistantAttached{{f}}", "use": "assistantFile", "with": { "file": "{{file}}", "removable": true } }
+				{ "id": "assistantInput", "alignSelf": "stretch", "color": "transparent",
+				  "height": "{{length(state.assistant.attachments) > 0 ? 166 : 112}}", "children": [
+					{ "id": "assistantInputCard", "type": "column", "anchors": { "left": 12, "right": 12, "top": 0, "bottom": 12 },
+					  "color": "@assistant.surface", "radius": 16, "borderWidth": 1, "borderColor": "@assistant.border",
+					  "shadow": { "x": 0, "y": 2, "blur": 8, "color": "#0000001a" }, "children": [
+						{ "when": "{{length(state.assistant.attachments) > 0}}", "id": "assistantAttachments", "alignSelf": "stretch",
+						  "height": 54, "color": "transparent", "children": [
+							{ "type": "row", "id": "assistantAttachedList", "scroll": "horizontal", "gap": 6, "alignItems": "center",
+							  "anchors": { "left": 10, "right": 10, "top": 10, "bottom": 0 },
+							  "role": "list", "label": "{{t('assistant.attached')}}", "children": [
+								{ "repeat": { "for": "file", "in": "state.assistant.attachments", "index": "f" },
+								  "id": "assistantAttached{{f}}", "use": "assistantFile", "with": { "file": "{{file}}", "removable": true } }
+							] }
+						] },
+						{ "alignSelf": "stretch", "height": 100, "color": "transparent", "children": [
+						{ "id": "assistantComposer", "use": "chatComposer", "anchors": { "left": 1, "right": 1, "top": 1, "bottom": 1 },
+						  "with": {
+							"bind": "state.assistant.draft", "value": "{{state.assistant.draft}}", "send": "assistant.send",
+							"autofocus": true, "close": "assistant.close", "label": "{{t('assistant.message')}}",
+							"placeholder": "{{t('assistant.placeholder')}}", "sendLabel": "{{t('assistant.send')}}",
+							"working": "{{assistantWorking}}", "stop": "assistant.stop", "stopLabel": "{{t('assistant.stop')}}",
+							"borderWidth": 0, "radius": 16,
+							"color": "@assistant.surface", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
+							"borderColor": "@assistant.border", "accent": "@assistant.accent",
+							"accentTextColor": "@assistant.onAccent" }, "children": [
+							{ "id": "assistantAttach", "width": 32, "height": 32, "radius": 8, "color": "transparent", "role": "button",
+							  "focusable": true, "cursor": "hand", "label": "{{t('assistant.attach')}}", "tooltip": "{{t('assistant.attach')}}",
+							  "hover": { "color": "@assistant.raised" },
+							  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+							  "onClick": [{ "run": "assistant.attach" }],
+							  "children": [
+								{ "type": "path", "anchors": { "left": 7, "top": 7 }, "width": 18, "height": 18, "viewBox": "0 0 24 24",
+								  "d": "M12 5v14M5 12h14", "stroke": "@assistant.dim", "strokeWidth": 2, "strokeCap": "round" }
+							  ] },
+							{ "when": "{{length(assistantModels.models ?? []) > 0}}", "id": "assistantModelPicker", "type": "row",
+							  "fitContent": "width", "height": 32, "gap": 4, "alignItems": "center", "radius": 8,
+							  "color": "transparent", "role": "button", "focusable": true, "cursor": "hand",
+							  "isOpen": "{{state.assistant.modelMenu}}",
+							  "label": "{{t('assistant.chooseModel', {provider: assistantModels.provider ?? ''})}}",
+							  "tooltip": "{{t('assistant.chooseModel', {provider: assistantModels.provider ?? ''})}}",
+							  "hover": { "color": "@assistant.raised" },
+							  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+							  "onClick": [{ "toggle": "state.assistant.modelMenu" }],
+							  "children": [
+								{ "width": 4, "height": 1, "color": "transparent" },
+								{ "id": "assistantModelName", "type": "label", "fitText": { "maxWidth": 150 }, "textColor": "@assistant.dim",
+								  "text": "{{find(assistantModels.models, it.id == assistantModel).name ?? assistantModel}}" },
+								{ "id": "assistantModelChevron", "type": "path", "width": 14, "height": 14, "viewBox": "0 0 24 24",
+								  "d": "m6 9 6 6 6-6", "stroke": "@assistant.dim", "strokeWidth": 2.25, "strokeCap": "round",
+								  "strokeJoin": "round" },
+								{ "width": 4, "height": 1, "color": "transparent" },
+								{ "id": "assistantModelMenu", "use": "menu", "with": {
+									"open": "state.assistant.modelMenu", "placement": "above", "width": 260,
+									"items": "{{map(assistantModels.models, {title: it.name, checked: it.id == assistantModel, keyLabel: it.id == assistantModels.default ? t('assistant.defaultModel') : '', run: 'assistant.pickModel', with: {id: it.id}})}}",
+									"color": "@assistant.raised", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
+									"highlight": "@assistant.border" } }
+							  ] }
+						] }
+						] }
 					] }
-				] },
-				{ "alignSelf": "stretch", "height": 92, "color": "transparent", "children": [
-					{ "id": "assistantAttach", "anchors": { "left": 8, "bottom": 14 }, "width": 36, "height": 36,
-					  "radius": 8, "color": "transparent", "role": "button", "focusable": true, "cursor": "hand",
-					  "label": "{{t('assistant.attach')}}", "tooltip": "{{t('assistant.attach')}}",
-					  "hover": { "color": "@assistant.raised" },
-					  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
-					  "onClick": [{ "run": "assistant.attach" }],
-					  "children": [
-						{ "type": "path", "anchors": { "left": 8, "top": 8 }, "width": 20, "height": 20, "viewBox": "0 0 24 24",
-						  "d": "m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551",
-						  "stroke": "@assistant.dim", "strokeWidth": 2, "strokeCap": "round", "strokeJoin": "round" }
-					  ] },
-					{ "id": "assistantComposer", "use": "chatComposer",
-					  "anchors": { "left": 48, "right": 8, "top": 8, "bottom": 8 }, "with": {
-						"bind": "state.assistant.draft", "value": "{{state.assistant.draft}}", "send": "assistant.send",
-						"autofocus": true, "close": "assistant.close", "label": "{{t('assistant.message')}}",
-						"placeholder": "{{t('assistant.placeholder')}}", "sendLabel": "{{t('assistant.send')}}",
-						"color": "@assistant.surface", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
-						"borderColor": "@assistant.border", "accent": "@assistant.accent",
-						"accentTextColor": "@assistant.onAccent" } }
 				] }
 			]
 		}

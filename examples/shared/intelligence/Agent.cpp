@@ -301,9 +301,11 @@ private:
 		return true;
 	}
 
-	/// @brief Whether the request ran out of time, or the agent is stopping.
+	/// @brief Whether the request ran out of time, the person cancelled it, or the agent is stopping.
 	/// @return Whether it did.
-	[[nodiscard]] bool overTime() const { return agent_.stopping() || std::chrono::steady_clock::now() > deadline_; }
+	[[nodiscard]] bool overTime() const {
+		return agent_.stopping() || agent_.cancelled() || std::chrono::steady_clock::now() > deadline_;
+	}
 
 	/// @brief The system prompt: the rules, the way of working, the format's introduction and its revisions.
 	/// @param tools Whether the model has tools.
@@ -397,6 +399,10 @@ private:
 	/// @param error Set if it was rejected.
 	/// @return What happened, for the model.
 	std::string submit(const json& input, bool& error) {
+		if(agent_.cancelled()) { // the person stopped the request: nothing more reaches the screen
+			error = true;
+			return "the person cancelled this request: stop";
+		}
 		if(revisions_ >= options_.maxRevisions) {
 			error = true;
 			return "too many revisions for one request: reply now";
@@ -488,7 +494,7 @@ private:
 		for(int round = 0; round < 4; ++round) {
 			const auto left =
 			    std::chrono::duration_cast<std::chrono::milliseconds>(deadline_ - std::chrono::steady_clock::now());
-			if(left.count() <= 0 || agent_.stopping()) return {"The request took too long, so it stopped.", true};
+			if(left.count() <= 0 || overTime()) return {"The request took too long, so it stopped.", true};
 			const ClaudeAnswer answer = options_.claude(endpoint_.model, system, input, [this] { return overTime(); });
 			if(!answer.ok) return {answer.text, true};
 			const json said = firstObject(answer.text);
@@ -623,6 +629,16 @@ void ProviderAgent::send(std::string_view message) {
 		wake_.notify_all();
 		return;
 	}
+	if(type == "cancel") {
+		if(in.value("source", "") != "screen" || in.value("from", "") != "user" || !in.contains("request") ||
+		   !in["request"].is_string())
+			return;
+		const std::string id = in["request"].get<std::string>();
+		const std::scoped_lock lock(mutex_);
+		std::erase_if(jobs_, [&id](const Job& job) { return job.id == id; });
+		if(current_ == id) cancelled_ = true; // the provider's call is stopped at its next check
+		return;
+	}
 	if(!in.contains("id") || !in["id"].is_string()) return;
 	{
 		const std::scoped_lock lock(mutex_);
@@ -642,6 +658,8 @@ void ProviderAgent::work() {
 			if(stop_) return;
 			job = std::move(jobs_.front());
 			jobs_.pop_front();
+			current_ = job.id;
+			cancelled_ = false;
 		}
 		answer(job);
 	}
@@ -655,7 +673,11 @@ void ProviderAgent::answer(const Job& job) {
 	} catch(const std::exception&) {
 		said = {"The assistant failed on this request.", true};
 	}
-	if(stopping()) return;
+	{
+		const std::scoped_lock lock(mutex_);
+		current_.clear();
+	}
+	if(stopping() || cancelled()) return; // the person cancelled it: the screen drops replies to it anyway
 	json reply = {{"type", "reply"}, {"request", job.id}, {"done", true}};
 	reply[said.second ? "error" : "text"] = cut(said.first, maxReply); // a long answer is cut
 	deliver(reply);

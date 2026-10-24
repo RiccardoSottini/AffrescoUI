@@ -918,12 +918,15 @@ The larger parts of a desktop app's window, built in the same way (see Built-in 
 
 ### Chat components
 The parts of a conversation with an assistant (see Asking the agents) are built-in components too. They run the actions they are given with
-  `with`: `chatBubble` (`text`, `from`, `mine`, `time`, `error`), `typingIndicator` (`label`; its active dot is
+  `with`: `chatBubble` (`text`, `from`, `mine`, `time`, `error`; `padding` and `radius`, so a `color` of
+  `transparent` draws a reply as plain text), `typingIndicator` (`label`; its active dot is
   `phase % 3`), `proposalCard` (`title`, `summary`, up to three `lines` such as a proposal's `changes`, in the font
   `lineFont`, a `status`, and `preview`, `accept`, `reject` buttons until the status is `accepted`, `rejected` or
-  `closed`), `chatComposer` (an editor bound to `bind`, showing `value`: Enter runs `send`
-  unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; it lays out left to right, as the editor
-  starts its lines at the left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
+  `closed`), `chatComposer` (a card: an editor bound to `bind`, showing `value`, above a bar with the use's `children`
+  at its start, such as an attach button or a model picker, and a round send button at its end. Enter runs `send`
+  unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; while `working` is true, a `stop`
+  action turns the send button into a stop button. It lays out left to right, as the editor starts its lines at the
+  left) and `chatLauncher` (a round button that toggles `open`, or runs `run`, with an `unread`
   badge).
 
 ### The kit's tokens
@@ -1257,6 +1260,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
 | `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: asks the agents in plain words, with `options` (an object) passed on to them; replies run `ask:reply`, never as the person's decision (Asking the agents). A control step |
+| `cancelAsk` | `{ "cancelAsk": "{{state.asked}}" }`: stops requests of `ask` still in progress (an id or a list): they become `cancelled`, the agents are told, and their later replies are dropped. A control step |
 | `attach` | `{ "attach": { "accept": ["audio/*"] }, "into": "state.files" }`: the person's files as attachments (Assets). A control step |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
@@ -1684,7 +1688,7 @@ line:
 | peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
-| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?) from the screen's own `ask` step; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
+| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?) from the screen's own `ask` step, and `cancel` (`request`, `from`, `source`) from its `cancelAsk`; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
 Requests may carry an `"id"`; answers repeat it.
 
@@ -1725,9 +1729,12 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
   progress note (an agent at work); one with no text only marks the request `working`, with no reply. `proposals`
   lists the ids of the proposals the replier (any author of the same channel: `agent/...`) opened or changed since the
   request, each once per head, so the screen can show them for review with `preview`, `accept` and `reject`.
+- `{ "cancelAsk": "{{state.asked}}" }` (an id or a list) stops requests still `sent` or `working`: they become
+  `cancelled`, the peers get `cancel` (`request`, `from`: `"user"`, `source`: `"screen"`), and later replies to them
+  are dropped. A control step.
 - `requests` lists the requests, oldest first (at most 64, the oldest finished one goes first):
   `{id, text, time, state, replies, proposals}`, with `time` in milliseconds since 1970, `state` `sent`, `working`,
-  `answered` or `failed`, and `replies` (at most 256 each) `{from, text, time, done, error}`. `peers` lists who is
+  `answered`, `failed` or `cancelled`, and `replies` (at most 256 each) `{from, text, time, done, error}`. `peers` lists who is
   connected (`author`, `role`).
 - **A reply is a reply, never a decision.** While `ask:reply` runs, `accept`, `reject`, `restore`, `revert` and
   `undo` are refused: only the person's own events review. An agent's changes keep their permissions: a proposal
