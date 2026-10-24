@@ -140,16 +140,14 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"version": {"type": "integer", "minimum": 1}, "fields": {"type": "object"}, "seed": {"type": "array"},
 		"migrations": {"type": "array"}, "importFrom": {}, "title": {"type": "string"},
 		"description": {"type": "string"}, "note": {}}, "additionalProperties": false}})json",
-	 "`collection → { \"version\", \"fields\", \"seed\", \"migrations\", \"importFrom\" }`: the models of the app's "
-	 "records, kept in a store of their own; read as `data.<collection>` (see Data: models and records).",
+	 "`collection → { \"version\", \"fields\", \"seed\", \"migrations\" }`: the records' models (see Data).",
 	 "sections"},
     {"queries", R"json({"type": "object", "maxProperties": 256,
 		"description": "Named queries of the records, read as data.<name>",
 		"additionalProperties": {"type": "object", "required": ["from"], "properties": {
 		"from": {"type": "string"}, "where": {}, "sort": {}, "limit": {}, "offset": {}, "count": {}, "note": {}},
 		"additionalProperties": false}})json",
-	 "`name → { \"from\", \"where\", \"sort\", \"limit\", \"offset\", \"count\" }`: records a screen reads as "
-	 "`data.<name>`, selected and sorted by the store (see Data: models and records).",
+	 "`name → { \"from\", \"where\", \"sort\", \"limit\" }`: records read as `data.<name>`.",
 	 "sections"},
     {"computed", R"json({"type": "object", "description": "Values derived from the state, read as computed.name"})json",
 	 "`name → expression`: values derived from the state, read as `computed.name` (see Values).", "sections"},

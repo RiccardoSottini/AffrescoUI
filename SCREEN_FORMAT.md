@@ -74,8 +74,8 @@ Every part of the format follows these, and so should every extension:
 | `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and isn't built while its `when` doesn't hold. |
 | `state` | The app's data, any JSON object. |
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
-| `models` | `collection → { "version", "fields", "seed", "migrations", "importFrom" }`: the models of the app's records, kept in a store of their own; read as `data.<collection>` (see Data: models and records). |
-| `queries` | `name → { "from", "where", "sort", "limit", "offset", "count" }`: records a screen reads as `data.<name>`, selected and sorted by the store (see Data: models and records). |
+| `models` | `collection → { "version", "fields", "seed", "migrations" }`: the records' models (see Data). |
+| `queries` | `name → { "from", "where", "sort", "limit" }`: records read as `data.<name>`. |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
 | `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels; or a command `{ "title", "category", "icon", "enablement", "description", "do" }`, listed by the `commands` variable (see Commands and keybindings). |

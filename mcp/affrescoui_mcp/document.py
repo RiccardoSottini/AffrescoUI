@@ -209,6 +209,23 @@ def state_types(document):
     return "state: " + "; ".join(f"{key}: {describe_type(kind)}" for key, kind in types.items())
 
 
+def data_models(document):
+    """The screen's models on one line, for the outline: "models: notes v2: title: text (required); done: boolean";
+    "" if it declares none. Never a record: those live in the store."""
+    models = document.get("models")
+    if not isinstance(models, dict) or not models:
+        return ""
+    said = []
+    for name, model in models.items():
+        fields = model.get("fields") if isinstance(model, dict) else None
+        if not isinstance(fields, dict):
+            continue
+        words = [f"{field}: {kind.get('type', '?')}" + (" (required)" if kind.get("required") else "")
+                 for field, kind in fields.items() if isinstance(kind, dict)]
+        said.append(f"{name} v{model.get('version', 1)}: " + ", ".join(words))
+    return "models: " + "; ".join(said) if said else ""
+
+
 def outline(document, at=None, depth=None):
     """The node tree, one line per node: its address, then summary(). `at` (a node's address or pointer, found with
     locate) starts it there; `depth` stops it that many levels down, and a node with more inside says how many
@@ -217,6 +234,8 @@ def outline(document, at=None, depth=None):
     starts = [locate(document, at)] if at else trees(document)
     styles = document.get("styles")
     lines = [[state_types(document), 0]] if not at and state_types(document) else []  # [text, nodes not shown]
+    if not at and data_models(document):
+        lines.append([data_models(document), 0])
     for pointer, start in starts:
         cut = None  # the last line at the deepest level shown: what is below it isn't
         for node, address, level, _ in walk_nodes(start, pointer):

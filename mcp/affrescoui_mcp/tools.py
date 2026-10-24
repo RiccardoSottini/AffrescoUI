@@ -65,6 +65,13 @@ TOOLS = [
      "description": "What this screen's format offers: node types and their properties, events, steps, expression "
                     "functions, variables, sections, and the app's registered custom types and native functions.",
      "inputSchema": object_schema()},
+    {"name": "get_models",
+     "description": "The data layer (get_format_guide topic \"Data: models and records\"): each collection's model "
+                    "(its version and typed fields) and how many records it holds, and the declared queries. Records "
+                    "live in a store apart from the screen and are never sent; a model change is a revision of "
+                    "/models, with a migration when records must change (rename, convert, fill, split, merge, drop).",
+     "inputSchema": object_schema(),
+     "annotations": {"readOnlyHint": True}},
     {"name": "get_contributions",
      "description": "What an app offers to features from other apps, and what it can install: its contribution "
                     "points (slot, the exports each receives), its typed exports (state, lists, actions, models, "
@@ -174,7 +181,8 @@ TOOLS = [
     {"name": "get_diff",
      "description": "What changed, as a JSON Patch: between two revisions (`from`, `to`: numbers, "
                     "commit ids, \"HEAD\", \"HEAD~1\"; default HEAD~1 to HEAD), or what accepting an open proposal "
-                    "would change now (`proposal`).",
+                    "would change now (`proposal`), then its impact per layer: view, logic, model (each change "
+                    "compatible, transforming or destructive) and data (\"none\", \"migrates N records\", ...).",
      "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "to": {"type": ["integer", "string"]},
                                    "proposal": {"type": "integer"}})},
     {"name": "get_blame",
