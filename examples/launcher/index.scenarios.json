@@ -88,6 +88,7 @@
 					{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 },
 					{ "id": "my-budget", "name": "My budget", "modified": 1759000000000 }
 				] } },
+				{ "wait": 0 },
 				{ "expect": { "node": "#mineName", "text": "Reading list" } },
 				{ "expect": { "node": "#mineName", "nth": 1, "text": "My budget" } },
 				{ "click": "#mineDelete" },
