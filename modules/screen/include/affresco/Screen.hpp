@@ -312,6 +312,9 @@ public:
 	/// @brief The store the screen's records live in: queries, writes, the journal, the archive.
 	/// @return It, owned by the Screen.
 	[[nodiscard]] data::Store& data() noexcept;
+	/// @brief What the screen's expressions read as `data` (each collection's records, each query's results).
+	/// @return It, as JSON text.
+	[[nodiscard]] std::string dataJson();
 	/// @brief Lets importCsv steps read CSV files in a folder besides the screen's own.
 	/// @param directory The folder.
 	void allowDataDirectory(const std::filesystem::path& directory);

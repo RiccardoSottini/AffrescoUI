@@ -65,7 +65,8 @@ enum class FieldType {
 	Enum,      ///< One of "values" (texts).
 	Reference, ///< The id of a record of the collection "to".
 	List,      ///< A list of "of" values: "minItems", "maxItems".
-	Object     ///< An object with typed "fields".
+	Object,    ///< An object with typed "fields".
+	Map        ///< An object of any keys (texts, at most 256 bytes), each value an "of": "maxItems" keys at most.
 };
 
 /// @brief One field of a model, or the type of a list's items.

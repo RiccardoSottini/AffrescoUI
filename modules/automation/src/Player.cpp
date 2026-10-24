@@ -161,8 +161,9 @@ void Player::expect(const json& expect, std::size_t number) {
 	// What the last event changed is shown once its deferred tasks have run, and positions once laid out
 	stage_.window.runDeferredTasks();
 	static_cast<void>(stage_.window.panelAt({}));
-	const std::string problem =
-	    expect.contains("state") ? checkState(stage_.screen, expect) : checkNode(stage_.window.root(), expect);
+	const std::string problem = expect.contains("state") ? checkState(stage_.screen, expect)
+	                            : expect.contains("data") ? checkData(stage_.screen, expect)
+	                                                      : checkNode(stage_.window.root(), expect);
 	if(!problem.empty()) result_.failures.push_back({number, problem});
 }
 

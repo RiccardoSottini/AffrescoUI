@@ -176,6 +176,16 @@ std::string checkState(const Screen& screen, const json& expect) {
 	return "state " + path + " is " + shown(*value) + ", expected " + shown(expect["is"]);
 }
 
+std::string checkData(Screen& screen, const json& expect) {
+	const std::string path = expect["data"].get<std::string>();
+	const std::optional<std::vector<std::string>> segments = parseStatePath(path); // checked when the file was read
+	if(!segments) return "data " + path + " isn't a path";
+	const std::optional<json> value = follow(json::parse(screen.dataJson()), *segments);
+	if(!value) return "data " + path + " doesn't exist, expected " + shown(expect["is"]);
+	if(*value == expect["is"]) return {};
+	return "data " + path + " is " + shown(*value) + ", expected " + shown(expect["is"]);
+}
+
 std::string checkNode(Panel& root, const json& expect) {
 	const long long nth = expect.value("nth", 0LL);
 	const Panel* panel = findTarget(root, expect["node"], nth, false);

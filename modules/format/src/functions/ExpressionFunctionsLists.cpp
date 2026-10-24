@@ -149,6 +149,25 @@ Value entries(const Call& call) {
 	return Value::fromList(std::move(result));
 }
 
+/// @brief `fromEntries(list)`: an object from `{key, value}` items, what entries() gives (later keys win), e.g. to
+/// set a key an expression names: `merge(notes, fromEntries([{key: day, value: text}]))`.
+/// @param call [list].
+/// @return The object.
+Value fromEntries(const Call& call) {
+	const Value& list = call[0];
+	if(!list.isList()) call.fail("expected a list of {key, value}");
+	std::vector<Value::Field> fields;
+	fields.reserve(list.size());
+	for(std::size_t i = 0; i < list.size(); ++i) {
+		const Value item = list.item(i);
+		const std::optional<Value> key = item.isObject() ? item.member("key") : std::nullopt;
+		if(!key || !(key->isText() || key->isNumber())) call.fail("expected items {key, value}, the key a text");
+		const std::optional<Value> value = item.member("value");
+		fields.push_back({key->isText() ? std::string(key->text()) : key->toText(), value.value_or(Value())});
+	}
+	return Value::fromObject(std::move(fields));
+}
+
 /// @brief `merge(a, b, ...)`: objects, later keys win; null is skipped.
 /// @param call The objects.
 /// @return The merged object.
@@ -243,6 +262,11 @@ constexpr auto table = std::to_array<Function>({
 	 .about = "The object's fields as {key, value} objects, to repeat over",
 	 .takes = Takes::One,
 	 .apply = entries},
+    {.name = "fromEntries",
+	 .arguments = "list",
+	 .about = "An object from {key, value} items, as entries() gives them; later keys win",
+	 .takes = Takes::One,
+	 .apply = fromEntries},
     {.name = "merge", .arguments = "a, b, ...", .about = "The objects merged; later keys win", .apply = merge},
     {.name = "reverse",
 	 .arguments = "list or text",

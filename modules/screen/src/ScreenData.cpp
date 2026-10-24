@@ -137,6 +137,8 @@ void Screen::setDataFile(const std::filesystem::path& file) {
 
 data::Store& Screen::data() noexcept { return impl_->runtime.dataStore(); }
 
+std::string Screen::dataJson() { return impl_->runtime.dataValue().dump(); }
+
 void Screen::allowDataDirectory(const std::filesystem::path& directory) {
 	impl_->runtime.allowDataDirectory(directory);
 }

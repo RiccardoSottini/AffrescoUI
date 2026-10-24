@@ -194,6 +194,11 @@ void Runtime::setDataStore(data::Store* store, const json* oldState) { impl_->da
 
 data::Store& Runtime::dataStore() noexcept { return impl_->data.mainStore(); }
 
+json Runtime::dataValue() {
+	const json* value = impl_->data.variable();
+	return value ? *value : json::object();
+}
+
 void Runtime::setDataAuthor(std::string author) { impl_->data.setAuthor(std::move(author)); }
 
 void Runtime::allowDataDirectory(const std::filesystem::path& directory) { impl_->data.allowDirectory(directory); }

@@ -26,7 +26,7 @@ void expectField(const Model& model, const std::string& field, const std::string
 	if(!model.fields.contains(field))
 		throw DataError("model", where + ": '" + model.name + "' has no field '" + field + "'");
 	const FieldType type = model.fields.at(field).type;
-	if(type == FieldType::Object) invalid(where, "an object field can't be compared");
+	if(type == FieldType::Object || type == FieldType::Map) invalid(where, "an object or map field can't be compared");
 }
 
 /// @brief Reads a filter.

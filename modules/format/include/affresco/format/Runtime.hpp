@@ -188,6 +188,9 @@ public:
 	/// @brief The store the screen's records live in: the host's, or the runtime's own in-memory one.
 	/// @return It (while a proposal is previewed, still main's: the preview writes a copy).
 	[[nodiscard]] data::Store& dataStore() noexcept;
+	/// @brief What expressions read as `data`: each collection's records and each declared query's results.
+	/// @return It (an object).
+	[[nodiscard]] json dataValue();
 	/// @brief Sets who the write steps (insert, update, delete, importCsv) write as: "app" (the person using the app)
 	/// by default. A host running steps for an agent (a reviewed run-once step) sets the agent's name around them, so
 	/// the journal names it and the screen's data rules (`/data/<collection>`) apply.

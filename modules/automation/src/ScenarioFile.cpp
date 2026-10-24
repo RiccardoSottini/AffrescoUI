@@ -121,9 +121,15 @@ void checkNodeExpectation(const json& expect, const std::string& place) {
 void checkExpectation(const json& expect, const std::string& place) {
 	if(!expect.is_object()) fail(place, R"(expected an object: {"state": ...}, {"node": ...} or {"image": ...})");
 	const int subjects = static_cast<int>(expect.contains("state")) + static_cast<int>(expect.contains("node")) +
-	                     static_cast<int>(expect.contains("image"));
-	if(subjects != 1) fail(place, R"(expected exactly one of "state", "node" or "image")");
-	if(expect.contains("node")) {
+	                     static_cast<int>(expect.contains("image")) + static_cast<int>(expect.contains("data"));
+	if(subjects != 1) fail(place, R"(expected exactly one of "state", "data", "node" or "image")");
+	if(expect.contains("data")) {
+		onlyKeys(expect, {"data", "is", "note"}, place);
+		const std::string path = expect["data"].is_string() ? expect["data"].get<std::string>() : "";
+		if(path.starts_with("data.") || !detail::parseStatePath(path))
+			fail(place + ".data", R"(expected a path into the records, without 'data.': "notes[0].title", "notes.length")");
+		if(!expect.contains("is")) fail(place, R"("data" needs "is": the value expected)");
+	} else if(expect.contains("node")) {
 		checkNodeExpectation(expect, place);
 	} else if(expect.contains("image")) {
 		onlyKeys(expect, {"image", "note"}, place);

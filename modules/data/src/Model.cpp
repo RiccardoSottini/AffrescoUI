@@ -22,7 +22,7 @@ constexpr auto modelKeys = std::to_array<std::string_view>(
     {"version", "fields", "seed", "migrations", "importFrom", "title", "description", "note"});
 
 /// The field types, by name.
-constexpr std::array<std::pair<std::string_view, FieldType>, 10> typeNames = {{{"string", FieldType::String},
+constexpr std::array<std::pair<std::string_view, FieldType>, 11> typeNames = {{{"string", FieldType::String},
                                                                                {"number", FieldType::Number},
                                                                                {"integer", FieldType::Integer},
                                                                                {"boolean", FieldType::Boolean},
@@ -31,7 +31,8 @@ constexpr std::array<std::pair<std::string_view, FieldType>, 10> typeNames = {{{
                                                                                {"enum", FieldType::Enum},
                                                                                {"reference", FieldType::Reference},
                                                                                {"list", FieldType::List},
-                                                                               {"object", FieldType::Object}}};
+                                                                               {"object", FieldType::Object},
+                                                                               {"map", FieldType::Map}}};
 
 /// @brief Fails with a document error at a place.
 /// @param where The place.
@@ -125,13 +126,14 @@ void parseTypeKeys(Field& field, const json& definition, const std::string& wher
 		field.onDelete = onDelete->get<std::string>();
 	}
 	if(const auto of = definition.find("of"); of != definition.end()) {
-		if(field.type != FieldType::List) malformed(where + ".of", "only a list has \"of\"");
+		if(field.type != FieldType::List && field.type != FieldType::Map)
+			malformed(where + ".of", "only a list or a map has \"of\"");
 		Field item = parseField(*of, where + ".of", depth + 1, count);
 		if(item.required || item.unique || item.defaultValue)
 			malformed(where + ".of", "a list's items take no "
 			                         "required, unique or default");
 		field.of = std::make_shared<const Field>(std::move(item));
-	} else if(field.type == FieldType::List) {
+	} else if(field.type == FieldType::List || field.type == FieldType::Map) {
 		malformed(where, "a list needs \"of\": its items' type");
 	}
 	if(const auto fields = definition.find("fields"); fields != definition.end()) {
@@ -166,7 +168,8 @@ void parseBounds(Field& field, const json& definition, const std::string& where)
 		}
 	for(const char* key : {"minItems", "maxItems"})
 		if(definition.contains(key)) {
-			if(field.type != FieldType::List) malformed(where + "." + key, "only a list has " + std::string(key));
+			if(field.type != FieldType::List && (field.type != FieldType::Map || key[1] == 'i'))
+				malformed(where + "." + key, "only a list has " + std::string(key) + " (a map has maxItems)");
 			(key[1] == 'i' ? field.minItems : field.maxItems) = countOf(definition[key], where + "." + key);
 		}
 	if(field.minimum && field.maximum && *field.minimum > *field.maximum) malformed(where, "minimum is above maximum");
@@ -226,7 +229,7 @@ Model parseModel(const std::string& name, const json& definition, const std::str
 			                                 "' can't name a field (letters, digits and _; not id, created "
 			                                 "or updated, which every record has)");
 		Field read = parseField(inner, where + ".fields." + field, 0, count);
-		if(read.unique && (read.type == FieldType::List || read.type == FieldType::Object))
+		if(read.unique && (read.type == FieldType::List || read.type == FieldType::Object || read.type == FieldType::Map))
 			malformed(where + ".fields." + field + ".unique", "only a single value can be unique");
 		model.fields.emplace(field, std::move(read));
 		model.order.push_back(field);
@@ -350,7 +353,7 @@ Field parseField(const json& definition, const std::string& where, int depth, st
 	if(named == typeNames.end())
 		malformed(where + ".type", "unknown type '" + type->get<std::string>() +
 		                               "' (string, number, integer, boolean, date, dateTime, enum, reference, list, "
-		                               "object)");
+		                               "object, map)");
 	field.type = named->second;
 	if(definition.contains("required")) field.required = expect::boolean(definition["required"], where + ".required");
 	if(definition.contains("unique")) field.unique = expect::boolean(definition["unique"], where + ".unique");
@@ -418,6 +421,17 @@ void validateValue(const Field& field, const json& value, const std::string& whe
 	case FieldType::Object:
 		validateObject(field, value, where);
 		return;
+	case FieldType::Map:
+		if(!value.is_object()) invalid(where, "expected an object (a map), got " + std::string(value.type_name()));
+		if(value.size() > field.maxItems.value_or(Limits::queryResults))
+			invalid(where, std::format("expected at most {} keys, got {}", field.maxItems.value_or(Limits::queryResults),
+			                           value.size()));
+		for(const auto& [key, inner] : value.items()) {
+			if(key.empty() || key.size() > 256) invalid(where, "a map's key is 1 to 256 bytes");
+			if(inner.is_null()) invalid(where + "." + key, "a map's value can't be null");
+			validateValue(*field.of, inner, where + "." + key);
+		}
+		return;
 	}
 }
 
@@ -468,6 +482,8 @@ json schemaOf(const Model& model) {
 			for(const std::string& name : field.order) properties[name] = self(self, field.fields.at(name));
 			return {{"type", "object"}, {"properties", properties}, {"additionalProperties", false}};
 		}
+		case FieldType::Map:
+			return {{"type", "object"}, {"additionalProperties", self(self, *field.of)}};
 		}
 		return json(true);
 	};
