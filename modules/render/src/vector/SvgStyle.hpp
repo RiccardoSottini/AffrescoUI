@@ -7,9 +7,11 @@
 #include "SvgXml.hpp"
 
 #include "affresco/render/Color.hpp"
+#include "affresco/render/Transform.hpp"
 #include "affresco/render/VectorPath.hpp"
 
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -24,7 +26,9 @@ struct SvgStyle {
 	float opacity = 1.0f;                                      ///< Opacity, multiplied down the tree.
 	float fillOpacity = 1.0f;                                  ///< The fill's opacity.
 	float strokeOpacity = 1.0f;                                ///< The stroke's opacity.
-	PathTransform transform;                                   ///< From the element's units to pixels.
+	Affine2 transform;                                         ///< From the element's units to pixels.
+	std::string fillGradient;   ///< The gradient the fill names ("url(#sky)" gives "sky"), or "" for a colour.
+	std::string strokeGradient; ///< The gradient the stroke names, or "".
 
 	/// @brief Applies an element's attributes: presentation attributes, then its style attribute, then its transform.
 	/// The opacity attribute multiplies into the inherited one.
@@ -46,18 +50,20 @@ struct SvgStyle {
 /// @return The numbers read up to the first that isn't one.
 [[nodiscard]] std::vector<float> svgNumbers(std::string_view text);
 
-/// @brief Reads a transform list: translate, scale and matrix (without rotation or skew) compose; the others are
-/// skipped.
-/// @param text The list, e.g. "translate(4 4) scale(2)".
+/// @brief Reads a transform list: translate, scale, rotate (with or without a centre), skewX, skewY and matrix, at
+/// most 64 functions; one that isn't read is skipped.
+/// @param text The list, e.g. "translate(4 4) rotate(30 10 10) scale(2)".
 /// @return The transform it makes.
-[[nodiscard]] PathTransform svgTransform(std::string_view text);
+[[nodiscard]] Affine2 svgTransform(std::string_view text);
 
-/// @brief Composes transforms.
-/// @param outer Applied last.
-/// @param inner Applied first.
-/// @return The composition.
-[[nodiscard]] constexpr PathTransform compose(const PathTransform& outer, const PathTransform& inner) noexcept {
-	return {{outer.scale.x * inner.scale.x, outer.scale.y * inner.scale.y}, outer.apply(inner.offset)};
-}
+/// @brief Reads a gradient a paint names: "url(#id)".
+/// @param text The paint.
+/// @return The id, or nullopt if it names none.
+[[nodiscard]] std::optional<std::string> svgPaintUrl(std::string_view text);
+
+/// @brief Reads a colour as SVG writes it: "#rgb", "#rrggbb", a few names, currentColor.
+/// @param text The value.
+/// @return The colour, or nullopt.
+[[nodiscard]] std::optional<Color> svgColor(std::string_view text);
 
 } // namespace affresco::vector

@@ -126,6 +126,9 @@ struct Context {
 	const NodeLookup* models = nullptr;   ///< A data model's row by its place, "/~m/files/3" (Models.hpp), or none.
 	const VariableLookup* variables = nullptr; ///< Variables built when read (none: only the others).
 	const Strings* strings = nullptr; ///< The translations `t()` reads, and the locale (none: English, no keys).
+	/// `computed.<name>` read in place, valid for the whole evaluation (none: copied from `computed`), so a large
+	/// computed list isn't copied by every value that reads one item of it.
+	const VariableLookup* computedValues = nullptr;
 };
 
 /// @brief Evaluates templates, expressions and operators, recursing into objects and arrays.

@@ -6,6 +6,7 @@
 #include "Checker.hpp"
 #include "Composition.hpp"
 #include "ContributionPoints.hpp"
+#include "DataRules.hpp"
 #include "SectionRegistry.hpp"
 #include "ServiceRules.hpp"
 #include "Limits.hpp"
@@ -164,6 +165,7 @@ void Rules::validate(const json& doc) const {
 		sections_->validate(composed);
 	}
 	const json& screen = composed.is_null() ? doc : composed;
+	checkDataDocument(screen); // queries read declared collections and fields
 	const std::vector<Mismatch> mismatches = stateMismatches(screen, stateOf(screen));
 	if(!mismatches.empty()) fail(mismatches.front().place, mismatches.front().problem + typeNote(mismatches.front()));
 }
@@ -245,6 +247,7 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 		if(rawBefore.value(section.name, json()) != rawAfter.value(section.name, json()))
 			fail("revision", "permission denied: revisions can't change \"" + section.name + "\"");
 	}
+	checkAudioChange(rawBefore, rawAfter); // sounds of the screen's files or its assets only; the person accepts them
 	json composedBefore, composedAfter;
 	const json& before = screenOf(rawBefore, composedBefore);
 	const json& after = screenOf(rawAfter, composedAfter);
@@ -263,6 +266,7 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 		     "native action or a computed one");
 
 	checkServiceUses(before, after, services_);
+	checkModelChange(before, after, data_); // a migration where the records must change, and records that fit
 
 	// What a revision refers to must exist, so a typo is rejected before a reviewer sees it. Findings that were there
 	// before don't block it: the revision didn't bring them. (Most screens have none: then one check is enough.)
@@ -299,7 +303,12 @@ std::vector<std::string> Rules::findings(const json& document, const json& state
 void Rules::addNativeAction(std::string name) { nativeActions_.insert(std::move(name)); }
 
 std::vector<std::string> Rules::reviewLines(const json& before, const json& after) const {
-	return serviceReviewLines(before, after, services_);
+	std::vector<std::string> lines = serviceReviewLines(before, after, services_);
+	std::vector<std::string> data = dataReviewLines(before, after, data_);
+	lines.insert(lines.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
+	return lines;
 }
+
+json Rules::impact(const json& before, const json& after) const { return dataImpact(before, after, data_); }
 
 } // namespace affresco::format

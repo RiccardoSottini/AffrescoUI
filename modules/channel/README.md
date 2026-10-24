@@ -22,7 +22,7 @@ Target: `affrescoui::channel` (uses `core` and nlohmann/json; Winsock on Windows
 - **A peer is who it was connected as.** Everything it sends is authored by the session's `author` (followed by the
   name it gives itself after a `/`), so a peer can't claim to be someone else. Review messages are honoured only for
   authors the document lets review.
-- **Untrusted input has limits:** a line longer than `maxMessageBytes` (64 MiB) closes the channel, on every
+- **Untrusted input has limits:** a line longer than `maxMessageBytes` (96 MiB) closes the channel, on every
   transport and system (they share `Lines.hpp`); every message is parsed with `parseUntrusted` (nesting 256, in time
   in proportion to its text); a malformed or refused message gets an `error` or `rejected` answer and never ends the
   session; `render` and `getEvidence` take a scale from 1 to `ScreenImages::maxScale` (2).
@@ -36,7 +36,7 @@ Target: `affrescoui::channel` (uses `core` and nlohmann/json; Winsock on Windows
   this user. Each connection is checked when it is accepted: a program of another user is refused, closed and
   logged (`SO_PEERCRED`, `getpeereid`, or on Windows the peer's process and its token). (The programs in
   `examples/` also check that the socket folder belongs to this user: `examples/shared/SocketDir.hpp`.)
-- **A peer is held to `PeerLimits`** (8 MiB a message, refused unparsed; 100 messages a second; 120 changes a
+- **A peer is held to `PeerLimits`** (88 MiB a message, room for a revision of 64 MiB of assets in base64, refused unparsed; 100 messages a second; 120 changes a
   minute, and as many pictures; see the rates above), and one that reads slower than the app writes to it is
   disconnected once 64 MiB wait for it.
 - **`repair` is relayed to the host only:** `onRelay` gives it to the screen, which answers the sender (see

@@ -39,6 +39,7 @@ target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${AFFRESCOUI_GLAD_INCLUDE_DIRS}) # gles.cpp: gl/Shader.hpp
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::automation affrescoui_vterm) # all modules; screen.cpp loads screens, no window
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::export) # pdf_export.cpp: PDF of a headless window's panels
+target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::data) # data_*.cpp: the record store and migrations
 set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}) # build/, where the docs and tools/quality run it
 target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})

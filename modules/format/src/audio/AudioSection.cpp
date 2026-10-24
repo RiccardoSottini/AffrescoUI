@@ -91,6 +91,6 @@ void checkAudio(const json& value, const std::string& name) {
 
 } // namespace
 
-SectionType audioSection() { return {.name = "audio", .validate = checkAudio, .capability = true}; }
+SectionType audioSection() { return {.name = "audio", .validate = checkAudio}; } // Rules::checkChange: checkAudioChange()
 
 } // namespace affresco::format

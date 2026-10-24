@@ -44,7 +44,7 @@
 					{ "id": "detailHead", "anchors": { "left": 12, "right": 12 }, "height": 24, "color": "transparent", "children": [
 						{ "id": "detailTag", "type": "label", "text": " {{t('tag.' + computed.card.tag)}}", "icon": "{{state.tagIcons[computed.card.tag]}}", "font": "small",
 							"anchors": { "left": 0, "top": 0 }, "padding": 4, "radius": 4, "fitText": true, "color": "@{{computed.card.tag}}Soft", "textColor": "@{{computed.card.tag}}" },
-						{ "id": "detailColumn", "style": "caption", "text": "{{state.columns[state.selected.c].name}} · {{t('card.points', { n: computed.card.points })}}", "anchors": { "right": 0, "top": 2 } }
+						{ "id": "detailColumn", "style": "caption", "text": "{{computed.columns[state.selected.c].name}} · {{t('card.points', { n: computed.card.points })}}", "anchors": { "right": 0, "top": 2 } }
 					] },
 					{ "id": "detailTitle", "type": "label", "font": "heading", "text": "{{computed.card.title}}", "textColor": "@color.text", "wrap": true, "anchors": { "left": 12, "right": 12 }, "height": 44 },
 					{ "id": "detailOwner", "style": "caption", "icon": "user", "text": " {{find(state.members, it.who == computed.card.who).name ?? computed.card.who}}", "anchors": { "left": 12 }, "height": 18 },

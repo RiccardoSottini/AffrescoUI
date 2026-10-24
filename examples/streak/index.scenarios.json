@@ -388,25 +388,25 @@
 				},
 				{
 					"expect": {
-						"state": "habits.length",
+						"data": "ordered.length",
 						"is": 9
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[8].name",
+						"data": "ordered[8].name",
 						"is": "Stretch"
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[8].color",
+						"data": "ordered[8].color",
 						"is": 3
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[8].kind",
+						"data": "ordered[8].kind",
 						"is": "yesNo"
 					}
 				},
@@ -445,7 +445,7 @@
 				},
 				{
 					"expect": {
-						"state": "habits.length",
+						"data": "ordered.length",
 						"is": 8
 					}
 				},
@@ -512,31 +512,31 @@
 				},
 				{
 					"expect": {
-						"state": "habits[8].kind",
+						"data": "ordered[8].kind",
 						"is": "measurable"
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[8].unit",
+						"data": "ordered[8].unit",
 						"is": "glasses"
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[8].target",
+						"data": "ordered[8].target",
 						"is": 8
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[8].targetType",
+						"data": "ordered[8].targetType",
 						"is": "atMost"
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[8].frequency.days",
+						"data": "ordered[8].frequency.days",
 						"is": 7
 					}
 				}
@@ -596,7 +596,7 @@
 				},
 				{
 					"expect": {
-						"state": "habits[0].name",
+						"data": "ordered[0].name",
 						"is": "Sit"
 					}
 				},
@@ -639,13 +639,13 @@
 				},
 				{
 					"expect": {
-						"state": "habits[0].frequency.days",
+						"data": "ordered[0].frequency.days",
 						"is": 3
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[0].frequency.times",
+						"data": "ordered[0].frequency.times",
 						"is": 1
 					}
 				}
@@ -697,13 +697,13 @@
 				},
 				{
 					"expect": {
-						"state": "habits[0].reminder.time",
+						"data": "ordered[0].reminder.time",
 						"is": "06:45"
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[0].reminder.days[0]",
+						"data": "ordered[0].reminder.days[0]",
 						"is": false
 					}
 				}
@@ -721,7 +721,7 @@
 				},
 				{
 					"expect": {
-						"state": "habits[0].archived",
+						"data": "ordered[0].archived",
 						"is": true
 					}
 				},
@@ -743,7 +743,7 @@
 				},
 				{
 					"expect": {
-						"state": "habits[0].archived",
+						"data": "ordered[0].archived",
 						"is": false
 					}
 				}
@@ -803,13 +803,13 @@
 				},
 				{
 					"expect": {
-						"state": "habits[2].archived",
+						"data": "ordered[2].archived",
 						"is": true
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[3].archived",
+						"data": "ordered[3].archived",
 						"is": true
 					}
 				},
@@ -830,13 +830,13 @@
 				},
 				{
 					"expect": {
-						"state": "habits[2].archived",
+						"data": "ordered[2].archived",
 						"is": false
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[3].archived",
+						"data": "ordered[3].archived",
 						"is": false
 					}
 				}
@@ -942,7 +942,7 @@
 				},
 				{
 					"expect": {
-						"state": "habits.length",
+						"data": "ordered.length",
 						"is": 6
 					}
 				},
@@ -991,7 +991,7 @@
 				},
 				{
 					"expect": {
-						"state": "habits[0].archived",
+						"data": "ordered[0].archived",
 						"is": false
 					}
 				}
@@ -1024,7 +1024,7 @@
 				},
 				{
 					"expect": {
-						"state": "habits.length",
+						"data": "ordered.length",
 						"is": 8
 					}
 				},
@@ -1045,7 +1045,7 @@
 				},
 				{
 					"expect": {
-						"state": "habits.length",
+						"data": "ordered.length",
 						"is": 7
 					}
 				},

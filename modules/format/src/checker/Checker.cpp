@@ -272,6 +272,7 @@ Checker::Checker(const json& document, const json& state, const std::set<std::st
 		for(const auto& [key, value] : state.items()) // as in shapeOfData()
 			state_.get_ref<Shape::object_t&>().emplace_back(key, shapeOfData(value));
 	learnTypes();
+	learnData();
 }
 
 std::optional<std::vector<Finding>> Checker::run() {

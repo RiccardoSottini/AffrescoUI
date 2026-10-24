@@ -14,6 +14,24 @@
 			]
 		},
 		{
+			"name": "intelligence-claude-code",
+			"screen": "intelligence-settings.screen.json",
+			"note": "Claude Code: its four models, each with when to use it, Sonnet recommended; only a listed model can be chosen",
+			"steps": [
+				{ "click": "#intelligenceProvider3" },
+				{ "wait": 50 },
+				{ "expect": { "state": "intelligence.selected", "is": "claude-code" } },
+				{ "expect": { "state": "intelligence.model", "is": "sonnet" } },
+				{ "expect": { "image": "models" } },
+				{ "click": "#intelligenceModel1" },
+				{ "expect": { "state": "intelligence.model", "is": "opus" } },
+				{ "click": "#intelligenceModelSearch" },
+				{ "type": "claude-opus-4" },
+				{ "key": "enter" },
+				{ "expect": { "state": "intelligence.model", "is": "opus" } }
+			]
+		},
+		{
 			"name": "intelligence-compatible",
 			"screen": "intelligence-settings.screen.json",
 			"note": "An OpenAI-compatible server: its base URL field, an optional key, and a model typed by hand",

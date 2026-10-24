@@ -1,15 +1,9 @@
 {
 	"change-colour": { "message": "Teal accent", "set": { "/colors/accent": "#0d9488" } },
 	"rename-label": { "message": "Call the app Cadence", "set": { "#logo/text": "Cadence" } },
-	"add-playlist": {
-		"message": "Add a Focus playlist",
-		"add": {
-			"/state/playlists/-": {
-				"name": "Focus", "cover": "images/cover-focus.svg", "description": "Calm tracks for deep work.",
-				"length": "4 min",
-				"tracks": [{ "title": "Quiet Loop", "artist": "Nora Vale", "album": "Redraw", "time": "4:00" }]
-			}
-		}
+	"add-field": {
+		"message": "A rating for every song: a new optional field of its model, checked on the 3,000 records",
+		"add": { "/models/songs/fields/rating": { "type": "integer", "minimum": 0, "maximum": 5 } }
 	},
 	"add-node": {
 		"message": "Say who made the playlist",

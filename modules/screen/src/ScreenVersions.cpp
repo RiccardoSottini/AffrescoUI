@@ -167,4 +167,18 @@ void Screen::setMode(Mode mode) { impl_->repository.setMode(mode); }
 
 void Screen::setModeForThisRun(Mode mode) { impl_->repository.setModeForThisRun(mode); }
 
+std::vector<AssetInfo> Screen::assets() const { return impl_->repository.assets(); }
+
+std::shared_ptr<const std::string> Screen::assetBytes(std::string_view name) const {
+	return impl_->repository.assetBytes(name);
+}
+
+Attached Screen::attach(std::string_view name, std::string bytes) {
+	const std::string_view type = assetTypeOf(name);
+	if(type.empty())
+		return {{}, "'" + std::string(name.substr(0, 100)) + "' isn't a kind of file an asset may be (PNG, JPEG, SVG, "
+		                                                      "WAV, MP3, FLAC, JSON or text)"};
+	return impl_->repository.attach(name, type, std::move(bytes), json::object());
+}
+
 } // namespace affresco

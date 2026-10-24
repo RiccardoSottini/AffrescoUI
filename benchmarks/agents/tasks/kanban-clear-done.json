@@ -9,7 +9,7 @@
 			"steps": [
 				{
 					"expect": {
-						"state": "columns[3].cards.length",
+						"data": "lane3.length",
 						"is": 3
 					}
 				},
@@ -18,13 +18,13 @@
 				},
 				{
 					"expect": {
-						"state": "columns[3].cards.length",
+						"data": "lane3.length",
 						"is": 0
 					}
 				},
 				{
 					"expect": {
-						"state": "columns[0].cards.length",
+						"data": "lane0.length",
 						"is": 4
 					}
 				},
@@ -54,8 +54,11 @@
 					"category": "Board",
 					"do": [
 						{
-							"set": "state.columns[3].cards",
-							"to": []
+							"delete": "issues",
+							"where": {
+								"board": "{{state.boardId}}",
+								"status": 3
+							}
 						}
 					]
 				}

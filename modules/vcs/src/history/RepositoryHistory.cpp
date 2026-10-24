@@ -129,8 +129,8 @@ std::string expiryOf(const json& value, const std::string& at) {
 	std::string time = expect::string(value, at);
 	constexpr std::string_view shape = "dddd-dd-ddTdd:dd:ddZ";
 	const bool matches = time.size() == shape.size() && std::ranges::equal(time, shape, [](char c, char expected) {
-		return expected == 'd' ? c >= '0' && c <= '9' : c == expected;
-	});
+		                     return expected == 'd' ? c >= '0' && c <= '9' : c == expected;
+	                     });
 	if(!matches) expect::fail(at, "a UTC time such as \"2026-10-22T08:30:00Z\"");
 	return time;
 }
@@ -217,6 +217,11 @@ Repository::OpenedHistory Repository::openHistory(const std::filesystem::path& d
 }
 
 bool Repository::loadHistory(detail::HistoryStore& store) {
+	loading_ = &store; // asset bytes are read from it while it loads
+	struct Loaded {
+		detail::HistoryStore*& loading; ///< Cleared when loading ends, however it ends.
+		~Loaded() { loading = nullptr; }
+	} loaded{loading_};
 	Refs refs = readRefs(store);
 	std::vector<std::string> heads{refs.main};
 	for(const Proposal& proposal : refs.proposals) heads.push_back(proposal.head);
@@ -246,10 +251,12 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 		rules_.validate(upgraded);
 		return rebuilt;
 	});
+	expectBlobs(store, document, store.objectFile(head.id)); // the assets it shows have their bytes
 	// A proposal's head is merged when main moves: checked now, as main's is, so a damaged one can't fail then
 	for(const Proposal& proposal : refs.proposals) {
 		const Commit& tip = objects.at(proposal.head);
-		static_cast<void>(reading(store.objectFile(tip.id), [&] { return rebuild(objects, tip); }));
+		const json rebuilt = reading(store.objectFile(tip.id), [&] { return rebuild(objects, tip); });
+		expectBlobs(store, rebuilt, store.objectFile(tip.id));
 	}
 
 	// All read and checked: put it in place, and back if the observer can't show it
@@ -379,6 +386,10 @@ Repository::Commit Repository::readObject(detail::HistoryStore& store, const std
 		commit.message = expect::string(object.at("message"), "message");
 		commit.patch = std::move(object.at("patch"));
 		commit.tree = commitId(object.at("tree"), "tree");
+		if(const auto run = object.find("run"); run != object.end()) { // only a commit that runs steps has it
+			if(!run->is_array() || run->empty()) expect::fail("run", "expected a list of steps");
+			commit.run = std::move(*run);
+		}
 		// Version 2: a delta, and the document only for a snapshot. Version 1: always the document
 		if(const auto delta = object.find("delta"); delta != object.end() && !commit.parents.empty()) {
 			if(!delta->is_array()) expect::fail("delta", "expected a list of operations");
@@ -457,23 +468,30 @@ void Repository::completeProposal(Proposal& proposal, const std::unordered_map<s
 	// What accept replays: every commit's operations, oldest first (as extend() built it)
 	proposal.commits = branch.size();
 	proposal.patch = json::array();
-	for(const Commit* commit : branch | std::views::reverse)
+	proposal.run = json::array();
+	for(const Commit* commit : branch | std::views::reverse) {
 		proposal.patch.insert(proposal.patch.end(), commit->patch.begin(), commit->patch.end());
+		if(commit->run.is_array()) proposal.run.insert(proposal.run.end(), commit->run.begin(), commit->run.end());
+	}
 }
 
 void Repository::recheckProposal(Proposal& proposal, const json& base) const {
 	const json state = base.contains("state") ? base["state"] : json::object();
 	try {
 		const Prepared next = prepare(proposal.patch, base, state);
-		const Verdict verdict = evaluate(next.before, next.after, proposal.author, true);
+		const Verdict verdict = evaluate(next.before, next.after, proposal.author, true, proposal.run);
 		proposal.remember = verdict.kind == Verdict::Kind::Deny
 		                        ? std::vector<std::string>()
 		                        : rememberedRules(proposal.author, next.touches, verdict.askedByRule);
 		proposal.touches = next.touches;
 		proposal.behaviour = rules_.behaviourLines(next.before, next.after);
+		proposal.impact = rules_.impact(next.before, next.after);
 		proposal.policy = reviewNeeds(next.before, next.after, {}).first;
+		proposal.person = personNeeds(next.before, next.after, proposal.run);
+		proposal.assets = assetChanges(next.before, next.after);
 	} catch(const DocumentError&) {
 		proposal.remember.clear(); // accept() replays it on main's head, and says if it no longer applies
+		proposal.person = {"can't be checked again (it doesn't apply as it was written)"}; // nobody else accepts it
 	}
 }
 
@@ -483,6 +501,7 @@ json Repository::objectOf(const Commit& commit) {
 	json object = {{"parents", commit.parents}, {"author", commit.author},     {"committer", commit.committer},
 	               {"time", commit.time},       {"proposal", commit.proposal}, {"message", commit.message},
 	               {"patch", commit.patch},     {"tree", commit.tree}};
+	if(!commit.run.is_null()) object["run"] = commit.run;
 	if(!commit.delta.is_null()) { // a commit loaded from version 1 has none, and its document is written
 		object["delta"] = commit.delta;
 		object["snapshot"] = commit.snapshot != nullptr;
@@ -550,6 +569,7 @@ void Repository::writeCommits() {
 void Repository::saveHistory() noexcept {
 	if(!history_ || !history_->writable()) return;
 	try {
+		writeBlobs(); // before the commits that name them
 		writeCommits();
 
 		// Enough loose objects: into a pack, which the refs name before the loose files go

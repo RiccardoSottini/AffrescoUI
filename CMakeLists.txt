@@ -89,6 +89,8 @@ endif()
 
 # Monocypher: the Ed25519 signatures of features and catalogues (RFC 0004, decision D12)
 include(cmake/AffrescoUISignatures.cmake)
+# SQLite: the record store of the data module (screens' "models" and their records)
+include(cmake/AffrescoUISqlite.cmake)
 # libvterm: the terminal emulator of Forge's terminal panel, which the examples, the tests and the benchmarks build
 if(AFFRESCOUI_BUILD_EXAMPLES OR AFFRESCOUI_BUILD_TESTS OR AFFRESCOUI_BUILD_BENCHMARKS)
 	include(cmake/AffrescoUITerminal.cmake)
@@ -126,8 +128,9 @@ include(cmake/AffrescoUISyntax.cmake)
 # modules/<name>/CMakeLists.txt, so a new file touches only its own module's list.
 #
 #   core     interfaces + Signal: Executor, Channel, VersionControl, DocumentRules   (header-only)
+#   data     records: typed models, SQLite, queries, the journal, migrations         core
 #   render   rendering engine: windows, panels, text, OpenGL                         core
-#   format   JSON screen format: rules, expressions, building panels, actions        core, render
+#   format   JSON screen format: rules, expressions, building panels, actions        core, render, data
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core
 #   net      network: HTTP(S), SSE and WebSocket over libcurl                        core
@@ -151,7 +154,7 @@ endfunction()
 if(AFFRESCOUI_AUDIO)
 	add_subdirectory(modules/audio) # before format and screen, which use it
 endif()
-foreach(module core render export format vcs channel net services screen automation)
+foreach(module core data render export format vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
 add_subdirectory(modules/scene3d) # general 3D: the scene, glTF, picking, gizmos, the PBR renderer

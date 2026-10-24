@@ -25,6 +25,7 @@
 #include "AsyncCalls.hpp"
 #include "Builder.hpp"
 #include "Connections.hpp"
+#include "DataLayer.hpp"
 #include "DocumentContext.hpp"
 #include "Events.hpp"
 #include "Models.hpp"
@@ -80,6 +81,9 @@ struct Engine : VersionObserver {
 	bool placeholderTypes = false;                                     ///< Unknown types become plain panels.
 	bool handlersSuspended = false;                                    ///< See Runtime::setHandlersSuspended().
 	json menuBar = json::array(); ///< The native menu bar last shown (showMenuBar()).
+	Panel unattached;             ///< The sender of steps run without a window (Runtime::runOnce()).
+	/// The files the OS last dropped on the window: what an "attach" step's "from" may name (AttachSteps.cpp).
+	std::vector<std::string> droppedFiles;
 
 	DocumentContext document;  ///< Colours, fonts, theme, globals, computed values, the screen shown.
 	Builder builder;           ///< Expands children.
@@ -95,6 +99,7 @@ struct Engine : VersionObserver {
 	AsyncCalls calls;          ///< Slow native calls (last: destroyed first, joining their workers).
 	Connection peersChanged = 0; ///< On versions.onReviewChanged: who is connected (the "peers" variable).
 	AudioPlayers audio{*this}; ///< The declared sounds, played by "audio" steps.
+	DataLayer data{*this};     ///< The records: the store following the "models", the `data` variable.
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.

@@ -54,7 +54,9 @@ json Repository::replay(Proposal& proposal, std::vector<Commit> commits) {
 	std::string parent = main_.back();
 	int number = mainHead().number;
 	std::vector<std::string> touches;
+	json run = json::array();
 	for(Commit& c : commits) {
+		if(c.run.is_array()) run.insert(run.end(), c.run.begin(), c.run.end());
 		Prepared next = prepare(c.patch, document, state);
 		for(std::string& area : next.touches)
 			if(std::ranges::find(touches, area) == touches.end()) touches.push_back(std::move(area));
@@ -68,7 +70,9 @@ json Repository::replay(Proposal& proposal, std::vector<Commit> commits) {
 	}
 
 	const json before = detail::view(mainDocument(), committedState()), after = detail::view(document, state);
-	const Verdict verdict = evaluate(before, after, proposal.author, true);
+	if(run.size() > 1000) fail("revision.run", "a proposal runs at most 1,000 steps");
+	if(!run.empty()) rules_.checkRun(after, run); // on the document it will run on
+	const Verdict verdict = evaluate(before, after, proposal.author, true, run);
 	if(verdict.kind == Verdict::Kind::Deny) fail("revision", verdict.reason);
 
 	proposal.base = main_.back();
@@ -80,18 +84,23 @@ json Repository::replay(Proposal& proposal, std::vector<Commit> commits) {
 	proposal.touches = std::move(touches);
 	proposal.conflicts = json::array();
 	proposal.behaviour = rules_.behaviourLines(before, after);
+	proposal.impact = rules_.impact(before, after);
 	proposal.policy = reviewNeeds(before, after, {}).first;
+	proposal.person = personNeeds(before, after, run);
+	proposal.assets = assetChanges(before, after);
+	proposal.run = std::move(run);
 	return document;
 }
 
 // Rebased on main's head, with the new commit last; what was approved before no longer is
-void Repository::extend(Proposal& proposal, const json& revision) {
+void Repository::extend(Proposal& proposal, const json& revision, json changes) {
 	std::vector<Commit> commits = branchOf(proposal);
 	Commit added;
 	added.author = added.committer = proposal.author;
 	added.message = detail::messageOf(revision);
 	added.time = detail::utcNow();
-	added.patch = detail::patchOf(revision);
+	added.patch = std::move(changes);
+	added.run = runOf(revision);
 	commits.push_back(std::move(added));
 	// accept() replays them all as one patch: refused now, not once a reviewer has looked at it
 	std::size_t operations = 0;
@@ -111,7 +120,7 @@ std::vector<std::string> Repository::rememberedRules(const std::string& author, 
 	return rules;
 }
 
-RevisionResult Repository::push(const json& revision, const std::string& author) {
+RevisionResult Repository::push(const json& revision, const std::string& author, const json& changes) {
 	const int id = expect::integer(revision["proposal"], "revision.proposal");
 	Proposal* proposal = findProposal(id);
 	if(!proposal) fail("revision.proposal", "no open proposal " + std::to_string(id));
@@ -121,7 +130,7 @@ RevisionResult Repository::push(const json& revision, const std::string& author)
 	checkParent(revision);
 
 	Proposal updated = *proposal;
-	extend(updated, revision);
+	extend(updated, revision, changes);
 	*proposal = std::move(updated);
 	saveHistory();
 	if(previewing_ == id) endPreview(); // what was shown is out of date
@@ -141,6 +150,10 @@ std::vector<ProposalInfo> Repository::proposals() const {
 		info.approvals = p.approvals;
 		info.policy = p.policy;
 		info.behaviour = p.behaviour;
+		info.assets = p.assets;
+		info.run = p.run;
+		info.person = p.person;
+		info.impact = p.impact;
 	}
 	return result;
 }
@@ -187,6 +200,7 @@ std::optional<std::string> Repository::accept(int proposal, const Approval& appr
 		if(const Verdict verdict = evaluate(next.before, next.after, taken.author, false);
 		   verdict.kind == Verdict::Kind::Deny)
 			fail("revision", verdict.reason);
+		if(!taken.run.empty()) rules_.checkRun(next.after, taken.run); // main may have moved: on what it runs on now
 
 		Commit merge;
 		merge.parents = {taken.head};
@@ -196,6 +210,7 @@ std::optional<std::string> Repository::accept(int proposal, const Approval& appr
 		merge.time = detail::utcNow();
 		merge.proposal = proposal;
 		merge.patch = taken.patch;
+		if(!taken.run.empty()) merge.run = taken.run; // run once, now, by the host (onCommit)
 		merged = land(std::move(merge), std::move(next.document), std::move(next.state)).id;
 
 		if(approval.dontAskAgain) {

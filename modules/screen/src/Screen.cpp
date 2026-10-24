@@ -233,6 +233,7 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(stateLocation(dataDirectory, path, ".history"));
 	screen.setStateFile(stateLocation(dataDirectory, path, ".state.json"));
+	screen.setDataFile(stateLocation(dataDirectory, path, ".data.sqlite")); // after the state: they may import it
 	screen.setUsageFile(stateLocation(dataDirectory, path, ".usage.json"));
 	return screen;
 }

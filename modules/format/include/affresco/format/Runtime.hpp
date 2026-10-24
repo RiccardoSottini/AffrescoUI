@@ -35,6 +35,10 @@ class Engine;
 class Source;
 } // namespace affresco::audio
 
+namespace affresco::data {
+class Store;
+} // namespace affresco::data
+
 namespace affresco::format {
 
 /// @brief What the last update of the panels cost: read with Runtime::lastUpdate(), for an inspector.
@@ -174,6 +178,28 @@ public:
 	/// @throws std::invalid_argument If the name isn't one.
 	void setModel(std::string name, std::shared_ptr<DataModel> model);
 
+	/// @brief Gives the screen the store its records live in (the document's "models"; SCREEN_FORMAT.md, "Data:
+	/// models and records"); it follows the models from now on. Until one is given, the runtime keeps its records in
+	/// memory.
+	/// @param store The store (outlives the runtime, or is replaced first), or nullptr for an in-memory one.
+	/// @param oldState A state an earlier version of the app kept on disk, for the models' "importFrom" (or nullptr).
+	/// @throws DocumentError If the store's records don't fit the models.
+	void setDataStore(data::Store* store, const json* oldState = nullptr);
+	/// @brief The store the screen's records live in: the host's, or the runtime's own in-memory one.
+	/// @return It (while a proposal is previewed, still main's: the preview writes a copy).
+	[[nodiscard]] data::Store& dataStore() noexcept;
+	/// @brief What expressions read as `data`: each collection's records and each declared query's results.
+	/// @return It (an object).
+	[[nodiscard]] json dataValue();
+	/// @brief Sets who the write steps (insert, update, delete, importCsv) write as: "app" (the person using the app)
+	/// by default. A host running steps for an agent (a reviewed run-once step) sets the agent's name around them, so
+	/// the journal names it and the screen's data rules (`/data/<collection>`) apply.
+	/// @param author The author ("" for "app").
+	void setDataAuthor(std::string author);
+	/// @brief Lets importCsv steps read files in a folder besides the screen's own.
+	/// @param directory The folder.
+	void allowDataDirectory(const std::filesystem::path& directory);
+
 	/// @brief Sets what happens with actions nobody handles (default: a message on stderr).
 	/// @param fallback The handler.
 	void onUnhandledAction(UnhandledAction fallback);
@@ -183,6 +209,13 @@ public:
 	/// @param sender The panel it comes from.
 	/// @param event Available to the action as "event".
 	void runAction(std::string_view name, Panel& sender, const json& event);
+
+	/// @brief Runs steps a commit carries ("run": VERSION_CONTROL.md, "Assets"), once, as the root panel's, after the
+	/// event or update in progress (at once without a window): the steps a revision runs when it lands. Errors are
+	/// reported, never thrown. They aren't the person's input: control steps, which the rules refuse in "run", fail.
+	/// @param steps The steps.
+	/// @param commit The commit, for errors and as `event.commit`.
+	void runOnce(const json& steps, const std::string& commit);
 
 	/// @brief Keeps the panels in line with the document without running what the document runs because they
 	/// changed: while suspended, no "onShow", "onHide" or "watch" handler is scheduled, "autofocus" takes no focus,
@@ -299,10 +332,10 @@ public:
 	Signal<const std::string&> onError; ///< Errors in handlers and deferred changes (also printed on stderr).
 	Signal<const std::string&, const json&> onSend; ///< "send" steps: a channel's name and the message.
 	Signal<const std::string&> onConnect;           ///< "connect" steps: a channel's name.
-	/// "ask" steps, after the event: `{"type": "request", "id", "text", "from": "user", "source": "screen"}`, a request
-	/// from the screen's own person for the peers. Answer it with receiveReply().
+	/// "ask" steps, after the event: `{"type": "request", "id", "text", "from": "user", "source": "screen",
+	/// "options"?}`, a request from the screen's own person for the peers. Answer it with receiveReply().
 	Signal<const json&> onAsk;
-	Signal<> onUpdated;                             ///< The panels were brought in line with the document and state.
+	Signal<> onUpdated; ///< The panels were brought in line with the document and state.
 	Usage usage; ///< Usage summaries (VERSION_CONTROL.md, "Usage"): off until the host switches them on, with consent.
 
 private:

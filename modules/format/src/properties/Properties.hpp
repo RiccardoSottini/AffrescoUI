@@ -63,6 +63,7 @@ public:
 	                                                      const std::string& at) const override;
 	[[nodiscard]] ImageCache& images() const override;
 	[[nodiscard]] std::filesystem::path imageFile(const json& value, const std::string& at) const override;
+	[[nodiscard]] std::string assetImage(const json& value, const std::string& at) const override;
 	[[nodiscard]] const LanguageCatalog* languages() const override;
 
 private:

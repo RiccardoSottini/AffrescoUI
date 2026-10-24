@@ -147,6 +147,9 @@ void registerAuthSteps(StepRegistry& registry);
 /// @param registry The registry.
 void registerAssistantSteps(StepRegistry& registry);
 
+/// @brief Registers the attach step: attach, the person's files as attachments (AttachSteps.cpp, in assistant/).
+/// @param registry The registry.
+void registerAttachSteps(StepRegistry& registry);
 /// @brief Registers the folder step: chooseFolder (FolderSteps.cpp).
 /// @param registry The registry.
 void registerFolderSteps(StepRegistry& registry);
@@ -160,5 +163,8 @@ void registerImageSteps(StepRegistry& registry);
 /// @brief Registers the audio step: audio (audio/AudioSteps.cpp).
 /// @param registry The registry.
 void registerAudioSteps(StepRegistry& registry);
+/// @brief Registers the data steps: insert, update, delete, undoData, redoData, importCsv (data/DataSteps.cpp).
+/// @param registry The registry.
+void registerDataSteps(StepRegistry& registry);
 
 } // namespace affresco::format

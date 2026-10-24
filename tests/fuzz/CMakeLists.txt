@@ -140,4 +140,8 @@ target_include_directories(affrescoui_fuzz_images PRIVATE $<TARGET_PROPERTY:affr
 if(AFFRESCOUI_AUDIO)
 	# The audio module's decoders on untrusted bytes (Fuzz.hpp reads JSON)
 	affrescoui_fuzzer(audio affrescoui::audio nlohmann_json::nlohmann_json)
+	# Sound descriptions an agent writes (audio/Sound.hpp), read and rendered
+	affrescoui_fuzzer(sound affrescoui::audio nlohmann_json::nlohmann_json)
 endif()
+# The data layer on untrusted documents: models, migrations, seeds, queries and CSV text (modules/data)
+affrescoui_fuzzer(data_models affrescoui::data)

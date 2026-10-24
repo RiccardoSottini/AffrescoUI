@@ -363,11 +363,96 @@
 					"state": {
 						"type": "object"
 					},
+					"assets": {
+						"type": "object",
+						"maxProperties": 1000,
+						"description": "The files revisions brought, kept with the history, read as asset:<name>",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"type",
+								"size",
+								"sha256"
+							],
+							"additionalProperties": false,
+							"properties": {
+								"type": {
+									"type": "string"
+								},
+								"size": {
+									"type": "integer",
+									"minimum": 0
+								},
+								"sha256": {
+									"type": "string",
+									"pattern": "^[0-9a-f]{64}$"
+								}
+							}
+						}
+					},
 					"stateTypes": {
 						"type": "object",
 						"description": "A type per state key, written as JSON Schema: type, enum, const, properties, required, additionalProperties, items, minimum, maximum, minLength, maxLength, minItems, maxItems",
 						"additionalProperties": {
 							"$ref": "#/$defs/v2/stateType"
+						}
+					},
+					"models": {
+						"type": "object",
+						"maxProperties": 256,
+						"description": "The records' collections: collection -> {version, fields, seed, migrations, importFrom}",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"fields"
+							],
+							"properties": {
+								"version": {
+									"type": "integer",
+									"minimum": 1
+								},
+								"fields": {
+									"type": "object"
+								},
+								"seed": {
+									"type": "array"
+								},
+								"migrations": {
+									"type": "array"
+								},
+								"importFrom": {},
+								"title": {
+									"type": "string"
+								},
+								"description": {
+									"type": "string"
+								},
+								"note": {}
+							},
+							"additionalProperties": false
+						}
+					},
+					"queries": {
+						"type": "object",
+						"maxProperties": 256,
+						"description": "Named queries of the records, read as data.<name>",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"from"
+							],
+							"properties": {
+								"from": {
+									"type": "string"
+								},
+								"where": {},
+								"sort": {},
+								"limit": {},
+								"offset": {},
+								"count": {},
+								"note": {}
+							},
+							"additionalProperties": false
 						}
 					},
 					"computed": {
@@ -929,7 +1014,7 @@
 					"audio": {
 						"type": "object",
 						"maxProperties": 32,
-						"description": "Sounds the audio step plays, each from one source. Revisions can't change it.",
+						"description": "Sounds the audio step plays, each from one source. Only the person accepts a change to it.",
 						"additionalProperties": {
 							"type": "object",
 							"additionalProperties": false,
@@ -1081,7 +1166,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, raster, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, code, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, raster, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -1116,8 +1201,7 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							},
 							{
@@ -3991,9 +4075,7 @@
 					},
 					"pickedTextColor": {
 						"$ref": "#/$defs/v2/color"
-					},
-					"syntax": {},
-					"buffer": {}
+					}
 				},
 				"if": {
 					"required": [
@@ -4034,8 +4116,7 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							}
 						}
@@ -4051,7 +4132,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, options, attachments), attach(+into, onDone, onError), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError), insert(+value, values, into, then, onError), update(+id, where, fields, into, then, onError), delete(+id, where, into, then, onError), undoData(+into, then, onError), redoData(+into, then, onError), importCsv(+file, text, columns, separator, atomic, into, then, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -4075,6 +4156,7 @@
 					"signIn": {},
 					"signOut": {},
 					"ask": {},
+					"attach": {},
 					"chooseFolder": {},
 					"accept": {},
 					"reject": {},
@@ -4125,6 +4207,16 @@
 							}
 						]
 					},
+					"insert": {},
+					"update": {},
+					"delete": {},
+					"undoData": {
+						"const": true
+					},
+					"redoData": {
+						"const": true
+					},
+					"importCsv": {},
 					"to": {},
 					"value": {},
 					"at": {},
@@ -4171,6 +4263,17 @@
 						"$ref": "#/$defs/v2/steps"
 					},
 					"error": {},
+					"options": {
+						"anyOf": [
+							{
+								"type": "object"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"attachments": {},
 					"title": {},
 					"head": {},
 					"reason": {},
@@ -4269,7 +4372,15 @@
 						]
 					},
 					"of": {},
-					"from": {}
+					"from": {},
+					"values": {},
+					"where": {},
+					"fields": {},
+					"file": {},
+					"text": {},
+					"columns": {},
+					"separator": {},
+					"atomic": {}
 				}
 			},
 			"expression": {
@@ -4344,6 +4455,7 @@
 						"$keys",
 						"$values",
 						"$entries",
+						"$fromEntries",
 						"$merge",
 						"$reverse",
 						"$range",

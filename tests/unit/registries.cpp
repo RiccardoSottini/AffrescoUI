@@ -119,15 +119,16 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	registerBuiltInSteps(registry);
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
-	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "auth", "assistant", "folder",
-	                                         "review", "navigation", "editor", "time", "other", "scene", "image", "audio"});
+	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "auth", "assistant", "attach", "folder",
+	                                         "review", "navigation", "editor", "time", "other", "scene", "image", "audio",
+	                                         "data"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())
 		for(const StepType& step : group.steps)
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
-	CHECK(control == std::vector<std::string>{"accept", "ask", "call", "chooseFolder", "connect", "endPreview", "patch", "preview",
+	CHECK(control == std::vector<std::string>{"accept", "ask", "attach", "call", "chooseFolder", "connect", "endPreview", "patch", "preview",
 	                                          "reject", "respond", "restore", "revert", "send", "signIn", "signOut",
 	                                          "undo"});
 
@@ -182,7 +183,7 @@ TEST_CASE("format: the capability sections are the ones a revision can't change"
 		if(section.capability) capabilities.push_back(section.name);
 	CHECK(capabilities ==
 	      std::vector<std::string>{"channels", "services", "connections", "persist", "permissions", "images",
-	                               "audio", "points"});
+	                               "points"}); // "audio" is the person's to change (VERSION_CONTROL.md, "Assets")
 
 	const Rules rules;
 	const json before = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}}}};

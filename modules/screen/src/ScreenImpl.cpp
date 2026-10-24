@@ -15,6 +15,10 @@ namespace affresco {
 
 Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
     : repository(rules, std::move(document)), runtime(repository, std::move(baseDirectory)) {
+	// A commit's "run" steps (a merged proposal's), once, on the live screen; a restore or a revert carries none
+	repository.onCommit.connect([this](const CommitInfo& commit) {
+		if(commit.run.is_array() && !commit.run.empty() && !images.rendering()) runtime.runOnce(commit.run, commit.id);
+	});
 	runtime.onEvent.connect([this](const json& event) {
 		if(images.rendering()) return; // from a proposal drawn for a picture: it didn't happen
 		broadcast(event);
@@ -44,6 +48,7 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 		for(const auto& peer : peers) sendRepairs(*peer, message);
 	});
 	rules.setServices(&services);
+	rules.setData(&runtime.dataStore()); // a change to the models dry-runs on a copy of the records first
 	runtime.setServices(&services);
 	services.add(detail::makeFeaturesProvider(features, repository, alive));
 
@@ -103,9 +108,18 @@ void Screen::Impl::load() {
 	} catch(const std::exception&) { // json::parse_error, or DocumentError if it nests too deeply
 		// Not a state file this screen wrote: the screen keeps its own state, as before
 	}
+	json rejected = json::object();
 	if(file.is_object())
-		for(const auto& pointer : persisted())
-			if(file.contains(pointer.to_string())) repository.state()[pointer] = file[pointer.to_string()];
+		for(const auto& pointer : persisted()) {
+			const std::string key = pointer.to_string();
+			if(!file.contains(key)) continue;
+			if(std::optional<std::string> problem = persistedMismatch(pointer, file[key])) {
+				rejected[key] = {{"value", file[key]}, {"problem", std::move(*problem)}};
+				continue; // the document's own value stays: the side file keeps this one
+			}
+			repository.state()[pointer] = file[key];
+		}
+	if(!rejected.empty()) keepRejected(rejected);
 	saved = persistedState();
 }
 

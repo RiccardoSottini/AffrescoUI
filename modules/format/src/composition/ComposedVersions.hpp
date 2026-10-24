@@ -38,6 +38,20 @@ public:
 	[[nodiscard]] const json& state() const override { return inner_.state(); }
 	/// @copydoc VersionControl::head
 	[[nodiscard]] CommitInfo head() const override { return inner_.head(); }
+	/// @copydoc VersionControl::assets
+	[[nodiscard]] std::vector<AssetInfo> assets() const override { return inner_.assets(); }
+	/// @copydoc VersionControl::assetBytes
+	[[nodiscard]] std::shared_ptr<const std::string> assetBytes(std::string_view name) const override {
+		return inner_.assetBytes(name);
+	}
+	/// @copydoc VersionControl::attach
+	Attached attach(std::string_view name, std::string_view type, std::string bytes, json details) override {
+		return inner_.attach(name, type, std::move(bytes), std::move(details));
+	}
+	/// @copydoc VersionControl::attachment
+	[[nodiscard]] std::optional<AttachmentInfo> attachment(std::string_view id) const override {
+		return inner_.attachment(id);
+	}
 	/// @copydoc VersionControl::submit
 	RevisionResult submit(const json& revision) override { return inner_.submit(revision); }
 	/// @copydoc VersionControl::commit

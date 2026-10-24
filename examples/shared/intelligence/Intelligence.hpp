@@ -32,9 +32,11 @@ struct CallsOptions {
 /// other screen (or a revision) adds can't change the provider, its base URL or its key.
 ///
 /// - `intelligence.providers` → `{ "current": { provider, model }, "keyStore", "persistent", "providers": [{ id,
-///   name, kind, needsKey, takesKey, hasKey, available, baseUrl, editableUrl, model, keyHelp, models }] }`; `hasKey`
-///   is a boolean, the key never leaves the keychain; `persistent` is false when the store keeps keys in memory only
-///   (no keychain); `models` is the fallback list.
+///   name, kind, needsKey, takesKey, hasKey, available, baseUrl, editableUrl, model, defaultModel, fixedModels,
+///   keyHelp, models }] }`; `hasKey` is a boolean, the key never leaves the keychain; `persistent` is false when the
+///   store keeps keys in memory only (no keychain); `models` is the fallback list (`[{ id, name, description? }]`),
+///   `defaultModel` the catalogue's default and `fixedModels` whether the list is the whole choice (save refuses
+///   another model).
 /// - `intelligence.models` `{ provider }` (slow, on a worker thread) → `[{ id, name }]`: the provider's live list with
 ///   its saved base URL and key, else the catalogue's fallback.
 /// - `intelligence.stageKey` `{ provider, key }` → `true`: keeps a key typed in the form in this process's memory
@@ -51,6 +53,20 @@ struct CallsOptions {
 /// @param options What they use.
 void registerCalls(affresco::Screen& screen, const std::filesystem::path& dataDir, CallsOptions options = {});
 
+/// @brief What `assistant.models` answers: the provider in use, the person's default model and the models a chat may
+/// ask for (the catalogue's, the default first if the catalogue doesn't list it). Nothing secret: no key, no URL.
+/// @param catalog The catalogue.
+/// @param settings The settings.
+/// @return `{ "provider": name, "default": model id, "models": [{ id, name }] }`; with no provider in use, "" and [].
+[[nodiscard]] affresco::json assistantModels(const Catalog& catalog, const Settings& settings);
+
+/// @brief Registers `assistant.models` on a screen: a native any screen may call that only reads the settings (see
+/// assistantModels()), so the assistant add-on's model picker knows what to offer. It changes nothing. The hosts that
+/// attach the agent register it (HostAssistant::attach()); without it the picker hides.
+/// @param screen The screen.
+/// @param dataDir The data folder of intelligence.json, read at each call.
+void registerAssistantModels(affresco::Screen& screen, const std::filesystem::path& dataDir);
+
 /// @brief The agent of a host: made and connected to its screen (author "agent") once a provider is set up.
 class HostAssistant {
 public:
@@ -60,7 +76,8 @@ public:
 	HostAssistant(affresco::Executor& executor, std::filesystem::path dataDir);
 
 	/// @brief Connects the agent to the screen if intelligence.json names a provider (once: later calls do nothing
-	/// once it is connected). Declare the HostAssistant before the screen: the channel must outlive it.
+	/// once it is connected), and registers `assistant.models` (registerAssistantModels()). Declare the HostAssistant
+	/// before the screen: the channel must outlive it.
 	/// @param screen The screen.
 	/// @return Whether the agent is connected.
 	bool attach(affresco::Screen& screen);

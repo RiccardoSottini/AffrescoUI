@@ -14,8 +14,9 @@ namespace affresco::channel {
 /// messages a second, a person's client a few more while they click), and stop one that floods the app.
 struct PeerLimits {
 	/// The largest message a peer may send. A larger one is refused without being parsed (the channel itself
-	/// closes past maxMessageBytes, 64 MiB). A whole screen is tens of KiB; 8 MiB leaves room for large revisions.
-	std::size_t maxMessageBytes = std::size_t{8} << 20;
+	/// closes past maxMessageBytes, 96 MiB). A whole screen is tens of KiB, but a revision may bring 64 MiB of assets
+	/// (maxRevisionAssetBytes), 86 MiB in base64: 88 MiB holds one, with its JSON (VERSION_CONTROL.md, "Assets").
+	std::size_t maxMessageBytes = std::size_t{88} << 20;
 	double messagesPerSecond = 100.0; ///< Messages of any kind, on average.
 	double messageBurst = 200.0;      ///< Messages at once, after a quiet time.
 	/// Changes (revision, restore, revert, undo), which rebuild the screen. Pictures ("render") have a rate of their

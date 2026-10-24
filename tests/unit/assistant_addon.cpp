@@ -5,6 +5,7 @@
 /// message sent is kept, and a request to a connected agent comes back as a proposal card the person accepts or
 /// rejects.
 
+#include "AudioWav.hpp"
 #include "Headless.hpp"
 #include "Helpers.hpp"
 
@@ -13,6 +14,7 @@
 #include <doctest/doctest.h>
 
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 
@@ -283,6 +285,75 @@ TEST_CASE("assistant add-on: a request to a connected agent comes back as a prop
 	CHECK(json::parse(chat.built.screen.documentJson())["root"]["children"][0]["text"] == "Tasks");
 	CHECK(chat.built.assistant()["decided"][id] == "accepted");
 	CHECK(chat.built.shown("assistantCard" + id)); // the card stays, saying it was accepted
+}
+
+TEST_CASE("assistant add-on: files attached show as chips, go with the request, and a proposal shows its assets") {
+	affresco::test::MemoryChannel agent;
+	const DataFolder data;
+	Built built(data.path);
+	built.screen.connect(agent, "agent");
+	const std::filesystem::path file = data.path / "Clip One.wav";
+	const std::vector<std::uint8_t> wav =
+	    affresco::test::wavFile(affresco::test::toneSamples(22050, 22050, 440), 22050, 1); // a second of a tone
+	std::ofstream(file, std::ios::binary)
+	    .write(reinterpret_cast<const char*>(wav.data()), static_cast<std::streamsize>(wav.size()));
+	int dialogs = 0;
+	built.window->setFileDialogHandler([&](const affresco::FileDialog& dialog) {
+		++dialogs;
+		CHECK(dialog.multiple);
+		return std::vector<std::string>{file.string()};
+	});
+	built.run("assistant.open");
+
+	built.click("assistantPanel", "Attach files"); // the paperclip: the dialog, then a chip
+	CHECK(dialogs == 1);
+	json assistant = built.assistant();
+	REQUIRE(assistant["attachments"].size() == 1);
+	CHECK(assistant["attachments"][0]["name"] == "clip-one.wav");
+	CHECK(assistant["attachments"][0]["duration"] == doctest::Approx(1.0));
+	CHECK(built.shown("assistantAttached0"));
+	built.click("assistantAttached0", "Remove clip-one.wav");
+	CHECK(built.assistant()["attachments"].empty());
+	CHECK_FALSE(built.shown("assistantAttachments"));
+
+	built.run("assistant.attach"); // again, and this time it goes with the message
+	built.type("Use this file");
+	built.press(affresco::Key::Enter);
+	assistant = built.assistant();
+	CHECK(assistant["attachments"].empty());
+	REQUIRE(assistant["messages"].size() == 2);
+	CHECK(assistant["messages"][0]["kind"] == "files");
+	CHECK(assistant["messages"][0]["files"][0]["name"] == "clip-one.wav");
+	CHECK(built.shown("assistantFiles0"));
+	std::vector<json> asked;
+	for(const json& message : agent.sent)
+		if(message.value("type", "") == "request") asked.push_back(message);
+	REQUIRE(asked.size() == 1);
+	REQUIRE(asked[0]["attachments"].size() == 1);
+	const json attached = asked[0]["attachments"][0];
+	CHECK(attached["name"] == "clip-one.wav");
+	CHECK(attached["type"] == "audio/wav");
+	CHECK(attached.dump().find(data.path.string()) == std::string::npos); // never where the file is
+
+	const json revision = {{"author", "agent/helper"},
+	                       {"message", "Keep the file"},
+	                       {"assets", {{{"name", "clip.wav"}, {"attachment", attached["id"]}}}},
+	                       {"run", {{{"set", "state.assistant.draft"}, {"to", "done"}}}}};
+	const affresco::RevisionResult proposed = built.screen.submitRevision(revision.dump());
+	REQUIRE_MESSAGE(proposed.status == affresco::RevisionStatus::Proposed, proposed.error);
+	agent.receive(json{{"type", "reply"}, {"request", asked[0]["id"]}, {"text", "It waits for you."}}.dump());
+	built.settle();
+	const json messages = built.assistant()["messages"];
+	REQUIRE(messages.size() == 5); // the files, the request, the reply, the card and what it brings
+	CHECK(messages[3]["kind"] == "card");
+	CHECK(messages[4]["kind"] == "extras");
+	CHECK(messages[4]["assets"][0]["name"] == "clip.wav");
+	CHECK(messages[4]["run"].size() == 1);
+	CHECK(built.shown("assistantAdds" + std::to_string(proposed.proposal)));
+
+	built.click("assistantCard" + std::to_string(proposed.proposal), "Accept");
+	CHECK(built.screen.proposals().empty());
+	CHECK(built.assistant()["draft"] == "done"); // its run step ran once, on accept
 }
 
 TEST_CASE("assistant add-on: the person rejects a proposal, and main stays as it was") {

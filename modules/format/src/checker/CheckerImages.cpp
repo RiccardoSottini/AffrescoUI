@@ -58,6 +58,8 @@ void Checker::walkImageStep(const json& step, const std::string& place) {
 	}
 	const auto with = step.find("with");
 	if(with == step.end() || !with->is_object()) return; // computed whole: its keys aren't known
+	if(const auto asset = with->find("asset"); asset != with->end() && literalText(*asset))
+		refer("asset", "assets", asset->get<std::string>(), "", place + ".with.asset");
 	for(const auto& [key, value] : with->items())
 		if(std::ranges::find(operation->with, key) == operation->with.end())
 			report(std::format("{}.with.{}", place, key), std::format("'{}' doesn't read '{}'", operation->name, key),

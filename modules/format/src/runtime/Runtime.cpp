@@ -190,12 +190,38 @@ void Runtime::setModel(std::string name, std::shared_ptr<DataModel> model) {
 	impl_->models.set(std::move(name), std::move(model));
 }
 
+void Runtime::setDataStore(data::Store* store, const json* oldState) { impl_->data.setStore(store, oldState); }
+
+data::Store& Runtime::dataStore() noexcept { return impl_->data.mainStore(); }
+
+json Runtime::dataValue() {
+	const json* value = impl_->data.variable();
+	return value ? *value : json::object();
+}
+
+void Runtime::setDataAuthor(std::string author) { impl_->data.setAuthor(std::move(author)); }
+
+void Runtime::allowDataDirectory(const std::filesystem::path& directory) { impl_->data.allowDirectory(directory); }
+
 void Runtime::onUnhandledAction(UnhandledAction fallback) { impl_->unhandled = std::move(fallback); }
 
 void Runtime::runAction(std::string_view name, Panel& sender, const json& event) {
 	const Record* record = impl_->reconciler.recordOf(&sender);
 	const SharedScope locals = record ? record->locals : noVariables();
 	impl_->runner.handle(json(std::string(name)), sender, event, *locals, "runAction");
+}
+
+void Runtime::runOnce(const json& steps, const std::string& commit) {
+	const std::string where = "commit " + commit.substr(0, 7) + ".run";
+	const json event = {{"type", "run"}, {"commit", commit}};
+	if(!impl_->window) {
+		impl_->runner.handle(steps, impl_->unattached, event, *noVariables(), where);
+		return;
+	}
+	impl_->scheduler.defer([engine = impl_.get(), alive = std::weak_ptr<bool>(impl_->alive), steps, event, where] {
+		if(!alive.lock() || !engine->window) return;
+		engine->runner.handle(steps, engine->window->root(), event, *noVariables(), where);
+	});
 }
 
 void Runtime::setHandlersSuspended(bool suspended) noexcept { impl_->handlersSuspended = suspended; }

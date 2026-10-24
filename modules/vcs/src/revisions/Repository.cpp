@@ -74,7 +74,9 @@ bool idPrefix(std::string_view name) {
 
 Repository::Repository(const DocumentRules& rules, json document) : rules_(rules) {
 	if(!rules_.upgrade(document).empty())
-		affresco::log(LogLevel::Info, "AffrescoUI history: the screen was written for an older format version, read as the current one");
+		affresco::log(
+		    LogLevel::Info,
+		    "AffrescoUI history: the screen was written for an older format version, read as the current one");
 	rules_.validate(document);
 	if(document.contains("state")) state_ = expect::object(document["state"], "state");
 
@@ -89,7 +91,7 @@ Repository::Repository(const DocumentRules& rules, json document) : rules_(rules
 /* Objects */
 
 CommitInfo Repository::info(const Commit& c) {
-	return {c.id, c.number, c.parents, c.author, c.committer, c.message, c.time, c.proposal};
+	return {c.id, c.number, c.parents, c.author, c.committer, c.message, c.time, c.proposal, c.run};
 }
 
 std::string Repository::describe(const Commit& c) {
@@ -103,6 +105,7 @@ std::string Repository::idOf(const Commit& commit) {
 	object += "author " + commit.author + "\ncommitter " + commit.committer + "\ntime " + commit.time + "\npatch " +
 	          detail::sha256(commit.patch.dump()) + "\n";
 	if(commit.proposal) object += "proposal " + std::to_string(commit.proposal) + "\n";
+	if(!commit.run.is_null()) object += "run " + detail::sha256(commit.run.dump()) + "\n"; // only when it runs any
 	object += "\n" + commit.message;
 	return detail::sha256(object);
 }
@@ -282,12 +285,20 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 		if(kind == "set")
 			static_cast<void>(expect::string(op.value("path", json()), at + ".path")); // normalise reads it
 		resolvePaths(op, kind, after, where, result.touches);
+		// A document without assets has an empty "assets" section, which the first one adds to
+		if(op.contains("path") && op["path"].is_string() && op["path"].get<std::string>().starts_with("/assets/") &&
+		   !after.contains("assets"))
+			after["assets"] = json::object();
 		result.patch.push_back(normalise(op, patch[i], after));
 		budget.spend(after, op, where);
 		apply(after, std::move(op), patch[i], where);
 	}
 	if(!after.is_object() || !after.contains("state") || !after["state"].is_object())
 		fail("revision.patch", "the state must stay an object");
+	if(const auto assets = after.find("assets");
+	   assets != after.end() && assets->is_object() && assets->empty() && !result.before.contains("assets"))
+		after.erase("assets");
+	checkManifest(result.before, after); // every asset names bytes the history holds, of its size and type
 
 	// The document keeps the "state" section it was loaded with; the live state is separate
 	result.state = after["state"];
@@ -352,7 +363,10 @@ std::optional<std::string> Repository::commit(const json& revision) {
 		expect::object(revision, "revision");
 		const std::string author = detail::authorOf(revision);
 		checkParent(revision);
-		Prepared next = prepare(detail::patchOf(revision), mainDocument(), committedState());
+		StagedBlobs staged(blobs_);
+		const json run = runOf(revision);
+		Prepared next = prepare(changesOf(revision, staged), mainDocument(), committedState());
+		if(!run.is_null()) rules_.checkRun(next.after, run);
 		if(const Verdict verdict = evaluate(next.before, next.after, author, false);
 		   verdict.kind == Verdict::Kind::Deny)
 			fail("revision", verdict.reason);
@@ -362,7 +376,9 @@ std::optional<std::string> Repository::commit(const json& revision) {
 		c.message = detail::messageOf(revision);
 		c.time = detail::utcNow();
 		c.patch = std::move(next.patch);
+		c.run = run;
 		land(std::move(c), std::move(next.document), std::move(next.state));
+		staged.keep();
 	} catch(const DocumentError& error) {
 		return error.what();
 	}
@@ -382,12 +398,20 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 		for(const char* key : {"evidence", "behaviour"})
 			if(revision.contains(key)) fail(std::string("revision.") + key, "the host gathers it itself");
 		const std::string author = detail::authorOf(revision);
-		checkReadable(detail::patchOf(revision), author);
-		if(revision.contains("proposal")) return push(revision, author);
+		StagedBlobs staged(blobs_); // what its assets bring: gone again unless it lands or is proposed
+		const json changes = changesOf(revision, staged);
+		checkReadable(changes, author);
+		if(revision.contains("proposal")) {
+			RevisionResult pushed = push(revision, author, changes);
+			staged.keep();
+			return pushed;
+		}
 
 		checkParent(revision);
-		Prepared next = prepare(detail::patchOf(revision), mainDocument(), committedState());
-		const Verdict verdict = evaluate(next.before, next.after, author, true);
+		const json run = runOf(revision);
+		Prepared next = prepare(changes, mainDocument(), committedState());
+		if(!run.is_null()) rules_.checkRun(next.after, run);
+		const Verdict verdict = evaluate(next.before, next.after, author, true, run);
 
 		if(verdict.kind == Verdict::Kind::Deny) fail("revision", verdict.reason);
 
@@ -409,9 +433,10 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 			proposal.message = detail::messageOf(revision);
 			proposal.time = detail::utcNow();
 			proposal.base = proposal.head = main_.back();
-			extend(proposal, revision);
+			extend(proposal, revision, changes);
 			++nextProposal_;
 			proposals_.push_back(std::move(proposal));
+			staged.keep();
 			saveHistory();
 			proposalsChanged();
 			return {RevisionStatus::Proposed, number, proposals_.back().head, proposals_.back().id, {}};
@@ -422,7 +447,9 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 		c.message = detail::messageOf(revision);
 		c.time = detail::utcNow();
 		c.patch = std::move(next.patch);
+		c.run = run;
 		const Commit& landed = land(std::move(c), std::move(next.document), std::move(next.state));
+		staged.keep();
 		return {RevisionStatus::Applied, landed.number, landed.id, 0, {}};
 	} catch(const DocumentError& error) {
 		return {RevisionStatus::Rejected, number, {}, 0, error.what()};
@@ -434,9 +461,13 @@ Repository::Judgement Repository::judge(const json& revision) const {
 	try {
 		expect::object(revision, "revision");
 		const std::string author = detail::authorOf(revision);
-		checkReadable(detail::patchOf(revision), author);
-		const Prepared next = prepare(detail::patchOf(revision), mainDocument(), committedState());
-		const Verdict verdict = evaluate(next.before, next.after, author, true);
+		StagedBlobs staged(blobs_); // a judgement keeps nothing
+		const json changes = changesOf(revision, staged);
+		checkReadable(changes, author);
+		const json run = runOf(revision);
+		const Prepared next = prepare(changes, mainDocument(), committedState());
+		if(!run.is_null()) rules_.checkRun(next.after, run);
+		const Verdict verdict = evaluate(next.before, next.after, author, true, run);
 		static constexpr std::array<const char*, 3> decisions = {"allow", "ask", "deny"};
 		return {decisions.at(static_cast<std::size_t>(verdict.kind)), verdict.reason};
 	} catch(const DocumentError& error) {

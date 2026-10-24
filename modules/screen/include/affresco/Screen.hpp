@@ -39,6 +39,10 @@ class Engine;
 class Source;
 } // namespace affresco::audio
 
+namespace affresco::data {
+class Store;
+} // namespace affresco::data
+
 namespace affresco {
 
 /// @brief A malformed screen file; what() names the place, e.g. "root.children[1].anchors: unknown edge 'lefft'".
@@ -297,6 +301,29 @@ public:
 	/// @param file The file.
 	void setStateFile(std::filesystem::path file);
 
+	/* Records (SCREEN_FORMAT.md, "Data: models and records") */
+	/// @brief Keeps the screen's records in a SQLite database file (WAL mode), which then follows the document's
+	/// "models" (default: `<data folder>/<screen file name>.data.sqlite`; a screen from fromString() keeps them in
+	/// memory). A model's "importFrom" brings the records an earlier version of the app kept in the state file, once,
+	/// after copying that file to `<state file>.before-data.json`. Call it after setStateFile().
+	/// @param file The database file; its folder is created if needed.
+	/// @throws ScreenError If it can't be opened, or its records don't fit the models.
+	void setDataFile(const std::filesystem::path& file);
+	/// @brief The store the screen's records live in: queries, writes, the journal, the archive.
+	/// @return It, owned by the Screen.
+	[[nodiscard]] data::Store& data() noexcept;
+	/// @brief What the screen's expressions read as `data` (each collection's records, each query's results).
+	/// @return It, as JSON text.
+	[[nodiscard]] std::string dataJson();
+	/// @brief Sets who the write steps write as: "app" (the person using the app) by default. Around steps the host
+	/// runs for an agent (its reviewed proposal), the agent's name: the journal names it, and the screen's data rules
+	/// (`/data/<collection>`) decide what it may write.
+	/// @param author The author ("" for "app").
+	void setDataAuthor(std::string author);
+	/// @brief Lets importCsv steps read CSV files in a folder besides the screen's own.
+	/// @param directory The folder.
+	void allowDataDirectory(const std::filesystem::path& directory);
+
 	/* Usage summaries (VERSION_CONTROL.md, "Usage"): off by default; only node ids, action names, counts and times */
 	/// @brief Sets the file the usage summaries and the person's consent are kept in, and loads it (default:
 	/// `<data folder>/<screen file name>.usage.json`, beside the "persist" state).
@@ -326,7 +353,9 @@ public:
 	/* Live document: revisions (see VERSION_CONTROL.md) */
 
 	/// @brief Applies, proposes or rejects a revision, following the file's "permissions". On error nothing changes.
-	/// @param revisionJson `{"author", "message", "parent"?, "proposal"?, "patch": [JSON Patch ops]}`.
+	/// @param revisionJson `{"author", "message", "parent"?, "proposal"?, "patch": [JSON Patch ops], "assets"?: [...],
+	/// "run"?: [steps]}`: assets and run steps make it a proposal only the person accepts (VERSION_CONTROL.md,
+	/// "Assets").
 	/// @return What happened.
 	RevisionResult submitRevision(std::string_view revisionJson);
 
@@ -441,7 +470,8 @@ public:
 	/// @param check The check, or an empty function (then a change set with a proof needs repair).
 	void setProofCheck(std::function<std::string(const std::string& documentJson, const std::string& proofJson)> check);
 	/// @brief Where the installed change sets stand.
-	/// @return `{"type": "repairs", "changeSets": [{name, status, reason, attempts, proposal, request, repairedFrom}]}`.
+	/// @return `{"type": "repairs", "changeSets": [{name, status, reason, attempts, proposal, request,
+	/// repairedFrom}]}`.
 	[[nodiscard]] std::string repairs() const;
 
 	/// @brief The current document, as JSON text.
@@ -586,6 +616,23 @@ public:
 	/// (and the folders inside it) is allowed.
 	/// @param directory The folder.
 	void allowAudioDirectory(const std::filesystem::path& directory);
+
+	/* Assets and attachments (VERSION_CONTROL.md, "Assets") */
+
+	/// @brief The assets of the version shown (main's head, or the proposal previewed), sorted by name.
+	[[nodiscard]] std::vector<AssetInfo> assets() const;
+	/// @brief An asset's bytes, as the version shown names it ("asset:<name>" in the document).
+	/// @param name The asset's name.
+	/// @return Its bytes, or nullptr if there is no such asset.
+	[[nodiscard]] std::shared_ptr<const std::string> assetBytes(std::string_view name) const;
+	/// @brief Keeps a file the person gave the host as an attachment, for agents to name in a revision's assets (what
+	/// an `attach` step does). Its type comes from its name, checked against its bytes; pictures and sounds are
+	/// measured
+	/// (`width`, `height`, `duration`).
+	/// @param name The file's own name, e.g. "Beat.mp3" (made a valid asset name: "beat.mp3").
+	/// @param bytes Its bytes, at most maxAssetBytes.
+	/// @return The attachment, or why it was refused.
+	Attached attach(std::string_view name, std::string bytes);
 
 private:
 	struct Impl;

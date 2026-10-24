@@ -407,6 +407,9 @@ private:
 	/* Typed state (CheckerTypes.cpp) */
 	/// @brief Reads "stateTypes": what the state may hold gains each declared key and property.
 	void learnTypes();
+	/// @brief Reads "models" and "queries": what `data.<name>` holds, a list of records with their model's fields
+	/// only, so a binding to a field the model doesn't have is found (CheckerData.cpp).
+	void learnData();
 	/// @brief The declared type at a state path.
 	/// @param keys The path's keys, "state" first.
 	/// @return The type, or nullptr if none is declared there.
@@ -464,6 +467,7 @@ private:
 	mutable std::map<std::string, Members, std::less<>> entries_;
 	const std::set<std::string, std::less<>>& nativeActions_; ///< Registered actions.
 	Shape state_;                                             ///< What the state may hold, learnt pass by pass.
+	Shape data_ = Shape::object();                            ///< What `data` holds (learnData()).
 	Learning learnt_ = Learning::nothing;                     ///< What this pass learnt about the state.
 	std::set<Finding> findings_;                              ///< This pass's findings.
 	std::set<std::string> walked_; ///< Actions and components checked, with their variables' names.

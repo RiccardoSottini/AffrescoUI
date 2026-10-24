@@ -307,4 +307,8 @@ json Repository::diff(const json& from, const json& to) const {
 	return json::diff(documentOf(find(from)), documentOf(find(to)));
 }
 
+json Repository::impact(const json& from, const json& to) const {
+	return rules_.impact(documentOf(find(from)), documentOf(find(to)));
+}
+
 } // namespace affresco::vcs

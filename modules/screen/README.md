@@ -11,8 +11,15 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 
 | Header | Offers |
 |---|---|
-| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, also as a second window sharing another's context, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`, `setSignInOptions`), change (`submit`, `commit`, proposals, history, change sets, `installChanges` and `repairs` for self-repairing ones), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); audio (`audio`, `setAudio`, `setAudioSource`, `allowAudioDirectory`); `defaultDataDirectory`, `defaultSocketDirectory` |
+| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, also as a second window sharing another's context, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`, `setSignInOptions`), records (`setDataFile`, `data`, `dataJson`, `allowDataDirectory`), change (`submit`, `commit`, proposals, history, change sets, `installChanges` and `repairs` for self-repairing ones), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); audio (`audio`, `setAudio`, `setAudioSource`, `allowAudioDirectory`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
+
+**Assets** (VERSION_CONTROL.md, "Assets"): `assets()` (the version shown, `{name, type, size, sha256}`),
+`assetBytes(name)` (nullptr if none), `attach(name, bytes)` (a file the host was given, as an `attach` step does:
+type from the name, checked against the bytes, measured; returns `Attached{attachment, error}`), and `submitRevision`
+takes `assets` and `run`. When a commit with `run` lands on main (a proposal merged), the screen runs its steps once,
+after the update, as an action of the root panel. `asset:<name>` reads an asset wherever a screen reads a file: an
+`image` node's `file`, a sound's `file`, an `image` step's `open` with `{"asset": name}`.
 
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
 without including nlohmann/json; `versions()` gives the `VersionControl` to code that needs more.
@@ -43,8 +50,11 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
   output, or none with `$AFFRESCOUI_AUDIO_OUTPUT=null`); until then the file's `audio` steps say the host plays
   no audio. Its sounds' files come only from the screen's folder and those `allowAudioDirectory` allows, its URLs
   only through `network()`. Built without the audio module (`AFFRESCOUI_AUDIO=OFF`), `audio()` returns nullptr.
-- **Data stays with the user:** the history and `persist` state live under `defaultDataDirectory()`
-  (`$AFFRESCOUI_DATA_DIR`, else `~/.affrescoui`), and sockets under `defaultSocketDirectory()`.
+- **Data stays with the user:** the history, the `persist` state and the records (`<name>.data.sqlite`) live under
+  `defaultDataDirectory()`
+  (`$AFFRESCOUI_DATA_DIR`, else `~/.affrescoui`), and sockets under `defaultSocketDirectory()`. Persisted values that
+  no longer fit the `stateTypes` open as the document's own, kept in `<name>.state.rejected.json`; a model's
+  `importFrom` brings an older version's records in from the state file once, after copying it.
 - **The window must outlive the `Screen`.** A screen destroyed first takes back its timers, deferred tasks, native menu bar and
   signal connections, so the window can go on receiving input (its panels stay, inert).
 
@@ -92,6 +102,7 @@ src/
   ScreenImpl.hpp / .cpp  Screen::Impl: the parts put together, the "persist" state file, the peers
   ScreenChannels.cpp     the channels a file declares, and the peers the screen connects or listens for
   ScreenVersions.cpp     revisions, proposals, history, change sets and modes, forwarded to the repository
+  ScreenData.cpp         the records' database file, importFrom, and persisted values that no longer fit
   ScratchFolder.hpp      a new folder only this user can open, removed with what is in it
   Png.hpp / .cpp         a small PNG encoder and a PPM reader
   pictures/              what peers see of the screen

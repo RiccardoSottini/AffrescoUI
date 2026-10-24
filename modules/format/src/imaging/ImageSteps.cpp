@@ -6,6 +6,8 @@
 #include "Engine.hpp"
 #include "ImageOperations.hpp"
 
+#include <algorithm>
+
 namespace affresco::format {
 
 namespace {
@@ -48,7 +50,17 @@ std::optional<bool> runImageStep(const Running& s) {
 	if(!with.is_object()) fail(where + ".with", "expected an object");
 	std::optional<std::string> problem;
 	try {
-		found->run(image, with, engine.window);
+		if(operation == "open" && with.contains("asset")) { // an asset of the version shown: no dialog
+			const std::string asset = string(with["asset"], where + ".with.asset");
+			const auto bytes = engine.versions.assetBytes(asset);
+			const auto assets = engine.versions.assets();
+			const auto info = std::ranges::find(assets, asset, &AssetInfo::name);
+			if(!bytes || info == assets.end()) throw DocumentError("No asset '" + asset.substr(0, 100) + "'");
+			if(!info->type.starts_with("image/")) throw DocumentError("'" + asset + "' isn't a picture");
+			editing::openAsset(image, info->type, *bytes);
+		} else {
+			found->run(image, with, engine.window);
+		}
 	} catch(const std::exception& error) {
 		problem = error.what();
 		image.message = *problem;

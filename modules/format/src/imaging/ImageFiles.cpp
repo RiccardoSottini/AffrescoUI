@@ -7,6 +7,7 @@
 #include "affresco/imaging/Codec.hpp"
 #include "affresco/imaging/Composite.hpp"
 #include "affresco/imaging/Project.hpp"
+#include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Window.hpp"
 
 #include <algorithm>
@@ -40,6 +41,21 @@ constexpr std::size_t maxExtensionLength = 16;
 	return bytes;
 }
 
+/// @brief A document of one layer, "Background", holding a decoded picture.
+/// @param decoded The picture.
+/// @param limits The document's bounds.
+/// @return The document, with no history.
+[[nodiscard]] std::unique_ptr<imaging::Document> documentOf(const imaging::DecodedImage& decoded,
+                                                           const imaging::Limits& limits) {
+	const imaging::Image& pixels = *decoded.image;
+	auto document = std::make_unique<imaging::Document>(pixels.width(), pixels.height(), limits, pixels.format());
+	const std::uint64_t blank = document->structure().active;
+	document->addImageLayer("Background", decoded.image);
+	document->deleteLayer(blank);
+	document->clearHistory();
+	return document;
+}
+
 /// @brief Opens a project, PNG or JPEG from its bytes as the document, with its working space.
 /// @param image The image.
 /// @param bytes The file.
@@ -55,12 +71,7 @@ void openBytes(ImageDocument& image, std::vector<std::uint8_t> bytes) {
 		image.message.clear();
 	} else {
 		imaging::DecodedImage decoded = imaging::decodeImageFile(*file, image.limits);
-		const imaging::Image& pixels = *decoded.image;
-		document = std::make_unique<imaging::Document>(pixels.width(), pixels.height(), image.limits, pixels.format());
-		const std::uint64_t blank = document->structure().active;
-		document->addImageLayer("Background", decoded.image);
-		document->deleteLayer(blank);
-		document->clearHistory();
+		document = documentOf(decoded, image.limits);
 		profile = std::move(decoded.profile);
 		image.message = decoded.warning;
 	}
@@ -201,11 +212,43 @@ void revert(ImageDocument& image, const json&, Window*) {
 
 } // namespace
 
+void openAsset(ImageDocument& image, std::string_view type, const std::string& bytes) {
+	settle(image);
+	const std::span<const std::uint8_t> file(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size());
+	if(type != "image/svg+xml") {
+		std::vector<std::uint8_t> copy(file.begin(), file.end());
+		image.saved = copy;
+		openBytes(image, std::move(copy));
+		return;
+	}
+	// An SVG is rasterised by the render module, then opened as the PNG of its pixels (which revert reads)
+	std::shared_ptr<const Bitmap> bitmap;
+	try {
+		bitmap = Bitmap::decode(file, {});
+	} catch(const std::exception& error) {
+		throw DocumentError(std::string("The SVG can't be drawn: ") + error.what());
+	}
+	std::vector<std::uint8_t> rgba(bitmap->pixels().begin(), bitmap->pixels().end());
+	for(std::size_t i = 0; i + 3 < rgba.size(); i += 4) // straight alpha, as imaging keeps it
+		if(const unsigned alpha = rgba[i + 3]; alpha != 0 && alpha != 255)
+			for(std::size_t c = 0; c < 3; ++c)
+				rgba[i + c] = static_cast<std::uint8_t>(std::min(255U, (rgba[i + c] * 255U + alpha / 2) / alpha));
+	imaging::DecodedImage decoded = imaging::imageFromRgba(bitmap->width(), bitmap->height(), rgba, image.limits);
+	image.saved = imaging::encodeImageFile(*decoded.image, imaging::ImageFileFormat::png, std::nullopt);
+	image.working = imaging::ColorProfile::srgb();
+	image.message.clear();
+	replaceDocument(image, documentOf(decoded, image.limits));
+	updateDisplay(image);
+}
+
 std::vector<ImageOperation> fileOperations() {
 	return {
 	    {"newImage", {"width", "height", "format", "background"}, "Replaces the image with a new one of one layer.",
 	     newImage},
-	    {"open", {"projectExtension"}, "Opens a project, PNG or JPEG file the person chooses.", openFile},
+	    {"open",
+	     {"projectExtension", "asset"},
+	     "Opens a project, PNG or JPEG file the person chooses, or an asset (PNG, JPEG or SVG) the screen has.",
+	     openFile},
 	    {"save", {"format", "extension"}, "Saves the image where the person chooses, and keeps it for revert.",
 	     saveFile},
 	    {"revert", {}, "Opens again what was last saved or opened.", revert},

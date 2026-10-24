@@ -6,6 +6,7 @@ affrescoui_module(vcs
 	src/revisions/RepositoryDocuments.cpp
 	src/revisions/Deltas.cpp
 	src/revisions/Budget.cpp
+	src/revisions/RepositoryAssets.cpp
 	# history: the history on disk (snapshots, refs, packs) and loading it back, the log and change sets
 	src/history/RepositoryHistory.cpp
 	src/history/RepositoryChanges.cpp

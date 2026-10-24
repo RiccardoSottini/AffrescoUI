@@ -18,7 +18,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 OUTPUT = os.path.join(HERE, "headers.cpp")
-MODULES = ["core", "render", "format", "vcs", "channel", "net", "services", "automation", "screen"]
+MODULES = ["core", "data", "render", "format", "vcs", "channel", "net", "services", "automation", "screen"]
 
 
 def headers():

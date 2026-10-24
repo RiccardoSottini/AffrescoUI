@@ -111,6 +111,7 @@ void Repository::squash(Proposal& proposal, const json& merged) {
 	commit.message = "Rebase onto " + describe(mainHead());
 	commit.time = detail::utcNow();
 	commit.patch = std::move(patch);
+	if(!proposal.run.empty()) commit.run = proposal.run; // the merge replaces the commits, not what they run
 	replay(proposal, {std::move(commit)});
 	proposal.approvals.clear(); // what it does now is the merge, which nobody reviewed
 	proposal.reviewedHeads.clear();
@@ -122,6 +123,19 @@ std::optional<std::string> Repository::checkApproval(const Proposal& proposal, c
 	const std::string name = "AffrescoUI screen: proposal #" + std::to_string(proposal.id);
 	if(detail::channelOf(approval.reviewer) == detail::channelOf(proposal.author))
 		return "AffrescoUI screen: permission denied: '" + approval.reviewer + "' may not accept its own proposal";
+	// What brings content in or makes something happen is the person's to accept, judged on main as it is now
+	if(detail::channelOf(approval.reviewer) != personChannel) {
+		std::vector<std::string> person = proposal.person;
+		try {
+			const Prepared next = prepare(proposal.patch, mainDocument(), committedState());
+			person = personNeeds(next.before, next.after, proposal.run);
+		} catch(const DocumentError&) { // it no longer applies: as it was described, then
+		}
+		if(!person.empty())
+			return "AffrescoUI screen: permission denied: only the person may accept proposal #" +
+			       std::to_string(proposal.id) + " (it " + person.front() + (person.size() > 1 ? ", and more" : "") +
+			       "): '" + approval.reviewer + "' may not";
+	}
 	// Every approval names what was reviewed: without it, a branch pushed to after the review would merge unseen
 	if(approval.head.size() < 7)
 		return "AffrescoUI screen: accepting proposal #" + std::to_string(proposal.id) +

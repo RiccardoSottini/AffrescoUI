@@ -44,7 +44,14 @@
 			"assistant.accepted": "Accepted",
 			"assistant.rejected": "Rejected",
 			"assistant.closed": "Closed",
-			"assistant.clear": "Clear the conversation"
+			"assistant.clear": "Clear the conversation",
+			"assistant.chooseModel": "Choose the model ({provider})",
+			"assistant.defaultModel": "default",
+			"assistant.attach": "Attach files",
+			"assistant.attached": "Attached files",
+			"assistant.remove": "Remove {name}",
+			"assistant.opens": "Opens {name} as the new document",
+			"assistant.runs": "Runs once when accepted: {step}"
 		},
 		"es": {
 			"assistant.title": "Asistente",
@@ -71,7 +78,14 @@
 			"assistant.accepted": "Aceptado",
 			"assistant.rejected": "Rechazado",
 			"assistant.closed": "Cerrado",
-			"assistant.clear": "Borrar la conversación"
+			"assistant.clear": "Borrar la conversación",
+			"assistant.chooseModel": "Elige el modelo ({provider})",
+			"assistant.defaultModel": "predeterminado",
+			"assistant.attach": "Adjuntar archivos",
+			"assistant.attached": "Archivos adjuntos",
+			"assistant.remove": "Quitar {name}",
+			"assistant.opens": "Abre {name} como el nuevo documento",
+			"assistant.runs": "Se ejecuta una vez al aceptar: {step}"
 		},
 		"fr": {
 			"assistant.title": "Assistant",
@@ -98,14 +112,25 @@
 			"assistant.accepted": "Accepté",
 			"assistant.rejected": "Refusé",
 			"assistant.closed": "Fermé",
-			"assistant.clear": "Effacer la conversation"
+			"assistant.clear": "Effacer la conversation",
+			"assistant.chooseModel": "Choisir le modèle ({provider})",
+			"assistant.defaultModel": "par défaut",
+			"assistant.attach": "Joindre des fichiers",
+			"assistant.attached": "Fichiers joints",
+			"assistant.remove": "Retirer {name}",
+			"assistant.opens": "Ouvre {name} comme nouveau document",
+			"assistant.runs": "S'exécute une fois à l'acceptation : {step}"
 		}
 	},
 	"state": {
 		"assistant": { "show": true, "lift": 0, "open": false, "anim": 1, "draft": "", "messages": [], "unread": 0, "pending": "",
-		               "decided": {}, "phase": 0, "simulate": null }
+		               "decided": {}, "phase": 0, "simulate": null,
+		               "model": "", "models": null, "modelMenu": false, "attachments": [], "picked": null }
 	},
-	"persist": ["state.assistant.messages", "state.assistant.decided"],
+	"watch": {
+		"state.assistant.picked": [{ "if": "{{state.assistant.picked != null}}", "then": [{ "run": "assistant.attachPicked" }] }]
+	},
+	"persist": ["state.assistant.messages", "state.assistant.decided", "state.assistant.model"],
 	"keys": { "mod+shift+a": "assistant.toggle" },
 	"components": {
 		"assistantChip": {
@@ -117,6 +142,49 @@
 				"focused": { "borderColor": "@assistant.accent" }, "role": "button", "focusable": true,
 				"cursor": "hand", "justifySelf": "start",
 				"onClick": [{ "run": "assistant.ask", "with": { "text": "{{text}}" } }]
+			}
+		},
+		"assistantFile": {
+			"note": "A file as a chip: its name and its length (a sound) or size; removable from the files of the next message",
+			"params": { "file": {}, "removable": false },
+			"node": {
+				"type": "row", "fitContent": true, "height": 26, "alignItems": "center", "gap": 2, "radius": 13,
+				"color": "@assistant.raised", "borderWidth": 1, "borderColor": "@assistant.border", "role": "listitem",
+				"children": [
+					{ "type": "label", "textColor": "@assistant.text", "fitText": { "maxWidth": 220 }, "padding": 8,
+					  "text": "{{file.name}} · {{file.duration != null ? floor(file.duration / 60) + ':' + pad(floor(file.duration % 60), 2) : (file.size ?? 0) >= 1048576 ? formatNumber(file.size / 1048576, 0, 1) + ' MB' : (file.size ?? 0) >= 1024 ? formatNumber(floor(file.size / 1024)) + ' KB' : (file.size ?? 0) + ' B'}}" },
+					{ "when": "{{removable}}", "width": 22, "height": 22, "radius": 11, "color": "transparent",
+					  "role": "button", "focusable": true, "cursor": "hand",
+					  "label": "{{t('assistant.remove', {name: file.name})}}", "tooltip": "{{t('assistant.remove', {name: file.name})}}",
+					  "hover": { "color": "@assistant.border" }, "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+					  "onClick": [{ "run": "assistant.unattach", "with": { "id": "{{file.id}}" } }],
+					  "children": [
+						{ "anchors": { "left": 5, "top": 10 }, "width": 12, "height": 2, "radius": 1, "rotate": 45, "color": "@assistant.dim" },
+						{ "anchors": { "left": 5, "top": 10 }, "width": 12, "height": 2, "radius": 1, "rotate": -45, "color": "@assistant.dim" }
+					  ] }
+				]
+			}
+		},
+		"assistantExtras": {
+			"note": "What a proposal adds beside its edits: its assets (a picture's thumbnail, a sound's name and length) and its run-once steps, a line each",
+			"params": { "id": 0, "assets": [], "run": [] },
+			"node": {
+				"type": "column", "fitContent": "height", "width": 300, "gap": 4, "radius": 8,
+				"color": "@assistant.raised", "role": "list",
+				"children": [
+					{ "repeat": { "for": "asset", "in": "{{assets}}", "index": "a" }, "id": "assistantAsset{{a}}",
+					  "type": "row", "fitContent": "height", "alignSelf": "stretch", "gap": 8, "alignItems": "center", "role": "listitem",
+					  "children": [
+						{ "when": "{{preview != null && preview.id == id && contains(['image/png', 'image/jpeg', 'image/svg+xml'], asset.type ?? '')}}", "type": "image",
+						  "file": "{{'asset:' + asset.name}}", "width": 40, "height": 40, "fit": "cover", "radius": 4,
+						  "color": "@assistant.surface" },
+						{ "type": "label", "textColor": "@assistant.text", "fitText": { "maxWidth": 236 }, "padding": 6,
+						  "text": "{{asset.name}} · {{asset.duration != null ? floor(asset.duration / 60) + ':' + pad(floor(asset.duration % 60), 2) : (asset.size ?? 0) >= 1048576 ? formatNumber(asset.size / 1048576, 0, 1) + ' MB' : (asset.size ?? 0) >= 1024 ? formatNumber(floor(asset.size / 1024)) + ' KB' : (asset.size ?? 0) + ' B'}}" }
+					  ] },
+					{ "repeat": { "for": "step", "in": "{{run}}", "index": "r" }, "id": "assistantRun{{r}}", "type": "label",
+					  "textColor": "@assistant.dim", "wrap": true, "alignSelf": "stretch", "height": 28, "padding": 6, "role": "listitem",
+					  "text": "{{step.note ?? (step.image == 'open' || step.image == 'openAsset' ? t('assistant.opens', {name: step.with.asset ?? step.asset ?? ''}) : t('assistant.runs', {step: slice((keys(step)[0] ?? '') + ' ' + text(values(step)[0] ?? ''), 0, 80)}))}}" }
+				]
 			}
 		}
 	},
@@ -142,11 +210,43 @@
 		],
 		"assistant.ask": [
 			{ "if": "{{length(text) == 0}}", "then": [{ "stop": true }] },
+			{ "if": "{{length(state.assistant.attachments) > 0}}", "then": [
+				{ "push": "state.assistant.messages",
+				  "value": "{{ {kind: 'files', mine: true, files: state.assistant.attachments, time: now()} }}" }
+			] },
 			{ "push": "state.assistant.messages",
 			  "value": "{{ {mine: true, from: t('assistant.you'), text: text, time: now(), error: false} }}" },
 			{ "run": "assistant.trim" },
-			{ "ask": "{{text}}", "into": "state.assistant.pending" },
+			{ "ask": "{{text}}", "attachments": "{{map(state.assistant.attachments, it.id)}}", "into": "state.assistant.pending",
+			  "options": "{{state.assistant.models != null && state.assistant.models.default != '' ? {model: some(state.assistant.models.models, it.id == state.assistant.model) ? state.assistant.model : state.assistant.models.default} : {}}}" },
+			{ "set": "state.assistant.attachments", "to": [] },
 			{ "scrollTo": "#assistantEnd" }
+		],
+		"assistant.attach": [
+			{ "note": "The file dialog: what the person picks lands in picked, and the watch adds it to the next message's files" },
+			{ "attach": { "multiple": true, "title": "{{t('assistant.attach')}}" }, "into": "state.assistant.picked", "onError": [{ "run": "assistant.attachFailed", "with": { "message": "{{merge({message: ''}, error).message}}" } }] }
+		],
+		"assistant.drop": [
+			{ "note": "with: files, dropped on the panel from the OS (onDrop's event.files): attached like picked ones" },
+			{ "if": "{{length(files ?? []) == 0}}", "then": [{ "stop": true }] },
+			{ "attach": { "from": "{{files}}", "multiple": true }, "into": "state.assistant.picked", "onError": [{ "run": "assistant.attachFailed", "with": { "message": "{{merge({message: ''}, error).message}}" } }] }
+		],
+		"assistant.attachFailed": [
+			{ "note": "with: message, why a file couldn't be attached (its type, its size): said in the conversation" },
+			{ "push": "state.assistant.messages",
+			  "value": "{{ {mine: false, from: t('assistant.title'), text: message, time: now(), error: true} }}" },
+			{ "run": "assistant.trim" },
+			{ "scrollTo": "#assistantEnd" }
+		],
+		"assistant.attachPicked": [
+			{ "set": "state.assistant.attachments",
+			  "to": "{{slice(concat(state.assistant.attachments, filter(state.assistant.picked ?? [], !contains(map(state.assistant.attachments, it.id), it.id))), 0, 8)}}" },
+			{ "set": "state.assistant.picked", "to": null },
+			{ "focus": "#assistantComposer" }
+		],
+		"assistant.unattach": [
+			{ "set": "state.assistant.attachments", "to": "{{filter(state.assistant.attachments, it.id != id)}}" },
+			{ "focus": "#assistantComposer" }
 		],
 		"ask:reply": [
 			{ "if": "{{length(event.text ?? '') == 0 && length(event.error ?? '') == 0 && length(event.proposals ?? []) == 0}}",
@@ -155,7 +255,10 @@
 			  "value": "{{ {mine: false, from: event.from, text: length(event.error ?? '') > 0 ? event.error : event.text ?? '', time: event.time, error: length(event.error ?? '') > 0} }}" },
 			{ "forEach": "{{filter(state.assistant.simulate.proposals ?? proposals, contains(event.proposals ?? [], it.id))}}",
 			  "as": "proposal", "do": [
-				{ "push": "state.assistant.messages", "value": "{{ {kind: 'card', id: proposal.id, time: event.time, title: proposal.message, summary: t('assistant.touches', {n: length(proposal.touches ?? [])}), lines: slice(proposal.changes ?? [], 0, 3)} }}" }
+				{ "push": "state.assistant.messages", "value": "{{ {kind: 'card', id: proposal.id, time: event.time, title: proposal.message, summary: t('assistant.touches', {n: length(proposal.touches ?? [])}), lines: slice(proposal.changes ?? [], 0, 3)} }}" },
+				{ "if": "{{length(proposal.assets ?? []) + length(proposal.run ?? []) > 0}}", "then": [
+					{ "push": "state.assistant.messages", "value": "{{ {kind: 'extras', id: proposal.id, time: event.time, assets: slice(proposal.assets ?? [], 0, 8), run: slice(proposal.run ?? [], 0, 8)} }}" }
+				] }
 			] },
 			{ "run": "assistant.trim" },
 			{ "if": "{{!state.assistant.open}}", "then": [{ "increment": "state.assistant.unread" }] },
@@ -173,6 +276,16 @@
 		"assistant.reject": [
 			{ "reject": "{{id}}" },
 			{ "set": "state.assistant.decided[id]", "to": "rejected" }
+		],
+		"assistant.loadModels": [
+			{ "note": "The host's read-only assistant.models: the provider in use, the person's default and the models to choose from. Only the hosts whose own agent is connected (the peer 'agent') have it; without it (MCP-only setups, other hosts, the rendering check) models stays null and the picker hides" },
+			{ "if": "{{!some(peers, it.author == 'agent')}}", "then": [{ "set": "state.assistant.models", "to": null }, { "stop": true }] },
+			{ "call": "assistant.models", "into": "state.assistant.models", "onError": [{ "set": "state.assistant.models", "to": null }] }
+		],
+		"assistant.pickModel": [
+			{ "note": "The person's default is kept as '': it follows a later change of the default in the Launcher's Settings" },
+			{ "set": "state.assistant.model", "to": "{{id == (state.assistant.simulate.models ?? state.assistant.models).default ? '' : id}}" },
+			{ "set": "state.assistant.modelMenu", "to": false }
 		],
 		"assistant.clear": [
 			{ "set": "state.assistant.messages", "to": [] },
@@ -201,14 +314,18 @@
 			"translate": "{{[0, (1 - state.assistant.anim) * 16]}}", "scale": "{{0.96 + 0.04 * state.assistant.anim}}",
 			"transformOrigin": "bottomRight", "role": "dialog", "label": "{{t('assistant.title')}}",
 			"keys": { "escape": "assistant.close" },
+			"onDrop": [{ "run": "assistant.drop", "with": { "files": "{{event.files ?? []}}" } }],
 			"let": {
 				"assistantOnline": "{{state.assistant.simulate.online ?? (length(peers) > 0)}}",
 				"assistantPending": "{{state.assistant.simulate.pending ?? map(proposals, it.id)}}",
 				"assistantWorking": "{{state.assistant.simulate.working ?? some(requests, it.state == 'sent' || it.state == 'working')}}",
-				"assistantCarded": "{{map(filter(state.assistant.messages, it.kind == 'card'), it.id)}}"
+				"assistantCarded": "{{map(filter(state.assistant.messages, it.kind == 'card'), it.id)}}",
+				"assistantModels": "{{state.assistant.simulate.models ?? state.assistant.models}}",
+				"assistantModel": "{{some(assistantModels.models ?? [], it.id == state.assistant.model) ? state.assistant.model : assistantModels.default ?? ''}}"
 			},
 			"children": [
-				{ "id": "assistantHeader", "height": 56, "alignSelf": "stretch", "color": "transparent", "children": [
+				{ "id": "assistantHeader", "height": 56, "alignSelf": "stretch", "color": "transparent",
+				  "onShow": [{ "run": "assistant.loadModels" }], "children": [
 					{ "type": "label", "runs": [{ "text": "{{t('assistant.title')}}", "bold": true, "size": 16 }],
 					  "textColor": "@assistant.text", "role": "heading", "anchors": { "left": 16, "top": 9 },
 					  "fitText": true },
@@ -228,6 +345,27 @@
 						  "color": "@assistant.dim" },
 						{ "anchors": { "left": 7, "top": 15 }, "width": 18, "height": 2, "radius": 1, "rotate": -45,
 						  "color": "@assistant.dim" }
+					  ] },
+					{ "when": "{{length(assistantModels.models ?? []) > 0}}", "id": "assistantModelPicker",
+					  "anchors": { "right": 52, "top": 12 }, "width": 150, "height": 32, "radius": 6,
+					  "color": "transparent", "borderWidth": 1, "borderColor": "@assistant.border", "role": "button",
+					  "focusable": true, "cursor": "hand", "isOpen": "{{state.assistant.modelMenu}}",
+					  "label": "{{t('assistant.chooseModel', {provider: assistantModels.provider ?? ''})}}",
+					  "tooltip": "{{t('assistant.chooseModel', {provider: assistantModels.provider ?? ''})}}",
+					  "hover": { "color": "@assistant.raised" },
+					  "focused": { "borderColor": "@assistant.accent" },
+					  "onClick": [{ "toggle": "state.assistant.modelMenu" }],
+					  "children": [
+						{ "id": "assistantModelName", "type": "label", "anchors": { "left": 10, "top": 8 },
+						  "fitText": { "maxWidth": 108 }, "textColor": "@assistant.text",
+						  "text": "{{find(assistantModels.models, it.id == assistantModel).name ?? assistantModel}}" },
+						{ "id": "assistantModelChevron", "type": "label", "text": "", "icon": "chevron-down",
+						  "anchors": { "right": 8, "top": 8 }, "fitText": true, "textColor": "@assistant.dim" },
+						{ "id": "assistantModelMenu", "use": "menu", "with": {
+							"open": "state.assistant.modelMenu", "placement": "below-end", "width": 260,
+							"items": "{{map(assistantModels.models, {title: it.name, checked: it.id == assistantModel, keyLabel: it.id == assistantModels.default ? t('assistant.defaultModel') : '', run: 'assistant.pickModel', with: {id: it.id}})}}",
+							"color": "@assistant.raised", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
+							"highlight": "@assistant.border" } }
 					  ] },
 					{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@assistant.border" }
 				] },
@@ -253,7 +391,7 @@
 						{ "when": "{{assistantCount == 0}}", "id": "assistantChip3", "use": "assistantChip",
 						  "cell": { "column": 1, "row": 4 }, "with": { "text": "{{t('assistant.chip3')}}" } },
 						{ "repeat": { "for": "message", "in": "state.assistant.messages", "index": "m" },
-						  "when": "{{(message.kind ?? 'message') != 'card'}}", "id": "assistantMessage{{m}}",
+						  "when": "{{(message.kind ?? 'message') == 'message'}}", "id": "assistantMessage{{m}}",
 						  "use": "chatBubble",
 						  "cell": { "column": 1, "row": "{{m + 1}}" }, "with": {
 							"text": "{{message.text}}", "mine": "{{message.mine}}", "from": "{{message.from}}",
@@ -261,6 +399,17 @@
 							"color": "@assistant.raised", "textColor": "@assistant.text",
 							"mineColor": "@assistant.accent", "mineTextColor": "@assistant.onAccent",
 							"errorColor": "@assistant.danger" } },
+						{ "repeat": { "for": "message", "in": "state.assistant.messages", "index": "m" },
+						  "when": "{{message.kind == 'files'}}", "id": "assistantFiles{{m}}", "type": "row", "wrap": true,
+						  "fitContent": "height", "gap": 6, "justify": "end", "cell": { "column": 1, "row": "{{m + 1}}" },
+						  "role": "list", "label": "{{t('assistant.attached')}}", "children": [
+							{ "repeat": { "for": "file", "in": "{{message.files}}", "index": "f" }, "id": "assistantSent{{m}}-{{f}}",
+							  "use": "assistantFile", "with": { "file": "{{file}}" } }
+						  ] },
+						{ "repeat": { "for": "message", "in": "state.assistant.messages", "index": "m" },
+						  "when": "{{message.kind == 'extras'}}", "id": "assistantAdds{{message.id}}", "use": "assistantExtras",
+						  "cell": { "column": 1, "row": "{{m + 1}}" }, "justifySelf": "start",
+						  "with": { "id": "{{message.id}}", "assets": "{{message.assets ?? []}}", "run": "{{message.run ?? []}}" } },
 						{ "repeat": { "for": "message", "in": "state.assistant.messages", "index": "m" },
 						  "when": "{{message.kind == 'card'}}", "id": "assistantCard{{message.id}}",
 						  "use": "proposalCard",
@@ -281,7 +430,7 @@
 						  "id": "assistantWaiting{{proposal.id}}", "use": "proposalCard",
 						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + l + 1}}" }, "with": {
 							"title": "{{proposal.message}}", "summary": "{{t('assistant.touches', {n: length(proposal.touches ?? [])})}}",
-							"lines": "{{slice(proposal.changes ?? [], 0, 3)}}",
+							"lines": "{{slice(concat(map(proposal.assets ?? [], '+ ' + it.name), proposal.changes ?? []), 0, 3)}}",
 							"status": "{{preview != null && preview.id == proposal.id ? 'previewing' : 'pending'}}",
 							"preview": "assistant.preview", "accept": "assistant.accept", "reject": "assistant.reject",
 							"with": { "id": "{{proposal.id}}" }, "width": 300,
@@ -304,9 +453,29 @@
 						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + 2}}" } }
 					  ] }
 				] },
+				{ "when": "{{length(state.assistant.attachments) > 0}}", "id": "assistantAttachments", "alignSelf": "stretch",
+				  "height": 34, "color": "transparent", "children": [
+					{ "type": "row", "id": "assistantAttachedList", "scroll": "horizontal", "gap": 6, "alignItems": "center",
+					  "anchors": { "left": 12, "right": 12, "top": 4, "bottom": 0 },
+					  "role": "list", "label": "{{t('assistant.attached')}}", "children": [
+						{ "repeat": { "for": "file", "in": "state.assistant.attachments", "index": "f" },
+						  "id": "assistantAttached{{f}}", "use": "assistantFile", "with": { "file": "{{file}}", "removable": true } }
+					] }
+				] },
 				{ "alignSelf": "stretch", "height": 92, "color": "transparent", "children": [
+					{ "id": "assistantAttach", "anchors": { "left": 8, "bottom": 14 }, "width": 36, "height": 36,
+					  "radius": 8, "color": "transparent", "role": "button", "focusable": true, "cursor": "hand",
+					  "label": "{{t('assistant.attach')}}", "tooltip": "{{t('assistant.attach')}}",
+					  "hover": { "color": "@assistant.raised" },
+					  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+					  "onClick": [{ "run": "assistant.attach" }],
+					  "children": [
+						{ "type": "path", "anchors": { "left": 8, "top": 8 }, "width": 20, "height": 20, "viewBox": "0 0 24 24",
+						  "d": "m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551",
+						  "stroke": "@assistant.dim", "strokeWidth": 2, "strokeCap": "round", "strokeJoin": "round" }
+					  ] },
 					{ "id": "assistantComposer", "use": "chatComposer",
-					  "anchors": { "left": 8, "right": 8, "top": 8, "bottom": 8 }, "with": {
+					  "anchors": { "left": 48, "right": 8, "top": 8, "bottom": 8 }, "with": {
 						"bind": "state.assistant.draft", "value": "{{state.assistant.draft}}", "send": "assistant.send",
 						"autofocus": true, "close": "assistant.close", "label": "{{t('assistant.message')}}",
 						"placeholder": "{{t('assistant.placeholder')}}", "sendLabel": "{{t('assistant.send')}}",

@@ -51,11 +51,15 @@ private:
 
 } // namespace
 
-std::string Asks::send(const std::string& text, const std::string& where) {
+std::string Asks::send(const std::string& text, const std::string& where, const json& options,
+                       const json& attachments) {
 	if(text.find_first_not_of(" \t\r\n") == std::string::npos) fail(where + ".ask", "a request needs some text");
 	if(text.size() > maxAsk)
 		fail(where + ".ask",
 		     "a request is at most " + std::to_string(maxAsk) + " bytes, not " + std::to_string(text.size()));
+	if(!options.is_null() && !options.is_object()) fail(where + ".options", "expected an object");
+	if(!options.is_null() && options.dump().size() > maxOptions)
+		fail(where + ".options", "a request's options are at most " + std::to_string(maxOptions) + " bytes");
 	makeRoom();
 	Request request;
 	request.time = millisecondsNow();
@@ -67,6 +71,8 @@ std::string Asks::send(const std::string& text, const std::string& where) {
 
 	json message = {
 	    {"type", "request"}, {"id", requests_.back().id}, {"text", text}, {"from", "user"}, {"source", "screen"}};
+	if(options.is_object() && !options.empty()) message["options"] = options; // for the agents, passed on as is
+	if(attachments.is_array() && !attachments.empty()) message["attachments"] = attachments;
 	if(!engine_.window) {
 		engine_.owner.onAsk(message);
 	} else {

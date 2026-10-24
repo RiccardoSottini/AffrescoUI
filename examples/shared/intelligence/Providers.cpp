@@ -178,7 +178,7 @@ std::vector<Model> parseModels(Kind kind, const std::string& body) {
 		const std::string name = entry.contains("display_name") && entry["display_name"].is_string()
 		                             ? entry["display_name"].get<std::string>()
 		                             : id;
-		models.push_back({id, name});
+		models.push_back({id, name, json()});
 		if(models.size() >= 500) break;
 	}
 	std::ranges::sort(models, {}, &Model::id);

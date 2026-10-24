@@ -37,7 +37,7 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 ## How it holds together
 
-- **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The theme, column sizes, view, swimlanes and settings persist; the cards are the document's.
+- **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The theme, column sizes, view, swimlanes and settings persist; the issues are records of the `issues` model (a status for the column, an order in it), seeded from the document, read through a query per column (`data.lane0`...).
 - **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
 - **Extension points:** boards and columns are entries of `state`; the board logic, the drawer and the other views are included files; a language is a table in `strings.json`.
 - **Assets:** no pictures of its own; the fonts' licences are with them in `../shared/fonts`.

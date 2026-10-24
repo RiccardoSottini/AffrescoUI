@@ -12,7 +12,8 @@ def object_schema(properties=None, required=None):
 TOOLS = [
     {"name": "wait_for_request",
      "description": "Wait for the next change request a person sends from inside the app (its chat) or from "
-                    "a client on studio.sock, and return it (request_id, from, text, origin: \"app\" or \"studio\"). "
+                    "a client on studio.sock, and return it (request_id, from, text, origin: \"app\" or \"studio\", and options when the "
+                    "app's chat sent some, e.g. {\"model\": \"sonnet\"}: the model the person chose). "
                     "Returns right away if some are already waiting; returns {\"request\": null} after the timeout. "
                     "Not needed when requests arrive as <channel> events.",
      "inputSchema": object_schema({"timeout_seconds": {"type": "integer", "description": "Default 120, at most 600"}})},
@@ -65,6 +66,13 @@ TOOLS = [
      "description": "What this screen's format offers: node types and their properties, events, steps, expression "
                     "functions, variables, sections, and the app's registered custom types and native functions.",
      "inputSchema": object_schema()},
+    {"name": "get_models",
+     "description": "The data layer (get_format_guide topic \"Data: models and records\"): each collection's model "
+                    "(its version and typed fields) and how many records it holds, and the declared queries. Records "
+                    "live in a store apart from the screen and are never sent; a model change is a revision of "
+                    "/models, with a migration when records must change (rename, convert, fill, split, merge, drop).",
+     "inputSchema": object_schema(),
+     "annotations": {"readOnlyHint": True}},
     {"name": "get_contributions",
      "description": "What an app offers to features from other apps, and what it can install: its contribution "
                     "points (slot, the exports each receives), its typed exports (state, lists, actions, models, "
@@ -119,7 +127,14 @@ TOOLS = [
                     "main); proposed (a branch a reviewer previews and merges or rejects, e.g. on its card in the app's chat: get_events "
                     "reports the decision); or rejected with an error saying why (fix it and retry). To refine an "
                     "open proposal of yours (e.g. after the person asks for more), pass its number as `proposal`: the "
-                    "commit is added to that branch instead of opening a new one.",
+                    "commit is added to that branch instead of opening a new one. To bring content in (a picture, a "
+                    "sound, a text), add `assets`: each {name, type, text} (SVG, JSON, text, or a sound description: "
+                    "type application/vnd.affrescoui.sound+json, name ending .sound.json), {name, type, data} (base64), "
+                    "or {name, attachment} (a file the person attached: its id from the request's attachments); the "
+                    "screen then reads it as \"asset:<name>\" (an image's or a sound's file, the image step's open "
+                    "with {\"asset\": name}). `run`: steps run once on the live screen when the proposal is accepted "
+                    "(e.g. [{\"image\": \"open\", \"with\": {\"asset\": \"moon.svg\"}}]). A revision with assets or "
+                    "run is always proposed, and only the person accepts it (get_format_guide topic \"Assets\").",
      "inputSchema": object_schema({
          "message": {"type": "string", "description": "One line, for the reviewer, saying what the change does"},
          "set": {"type": "object", "description": "path -> new value (replace, or add where nothing is)"},
@@ -132,6 +147,11 @@ TOOLS = [
                     "description": "The revision or commit id this is based on (optional; if the screen has moved "
                                    "on, it is rejected as a conflict)"},
          "proposal": {"type": "integer", "description": "Push onto this open proposal of yours (optional)"},
+         "assets": {"type": "array", "items": {"type": "object"},
+                    "description": "Files it brings: {name, type, text}, {name, type, data (base64)} or {name, "
+                                   "attachment} (optional; names like \"moon-sea.svg\", lowercase, no folders)"},
+         "run": {"type": "array", "items": {"type": "object"},
+                 "description": "Steps run once when it is accepted, like an action's (optional)"},
      }, ["message"])},
     {"name": "render_screen",
      "description": "A picture of the running screen (PNG), to check your work before a person reviews it: main as "
@@ -174,7 +194,8 @@ TOOLS = [
     {"name": "get_diff",
      "description": "What changed, as a JSON Patch: between two revisions (`from`, `to`: numbers, "
                     "commit ids, \"HEAD\", \"HEAD~1\"; default HEAD~1 to HEAD), or what accepting an open proposal "
-                    "would change now (`proposal`).",
+                    "would change now (`proposal`), then its impact per layer: view, logic, model (each change "
+                    "compatible, transforming or destructive) and data (\"none\", \"migrates N records\", ...).",
      "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "to": {"type": ["integer", "string"]},
                                    "proposal": {"type": "integer"}})},
     {"name": "get_blame",

@@ -93,4 +93,12 @@ private:
 /// @return Their names.
 [[nodiscard]] const std::vector<std::string>& audioOperations();
 
+/// @brief Tells whether a sound's bytes play, with the audio module's decoders (an asset, an attachment).
+/// @param bytes The bytes.
+/// @param type Their media type: audio/wav, audio/mpeg or audio/flac.
+/// @return Its length in seconds (0 if the decoder can't tell), or std::nullopt in a build without audio, where
+/// nothing is probed.
+/// @throws DocumentError If they don't decode.
+[[nodiscard]] std::optional<double> probeSound(const std::string& bytes, std::string_view type);
+
 } // namespace affresco::format

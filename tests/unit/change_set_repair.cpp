@@ -112,16 +112,16 @@ json blockedColumn() {
 	                      {"revisions",
 	                       {{{"message", "A Blocked column before Done"},
 	                         {"patch",
-	                          {{{"op", "test"}, {"path", "/state/columns/3/name"}, {"value", "Done"}},
+	                          {{{"op", "test"}, {"path", "/state/lanes/launch/3/name"}, {"value", "Done"}},
 	                           {{"op", "add"},
-	                            {"path", "/state/columns/3"},
-	                            {"value", {{"name", "Blocked"}, {"color", "#dc2626"}, {"cards", json::array()}}}}}}}}}};
+	                            {"path", "/state/lanes/launch/3"},
+	                            {"value", {{"name", "Blocked"}, {"color", "#dc2626"}}}}}}}}}};
 	const json proof = {
 	    {"scenarios",
 	     {{{"name", "blocked-column"},
 	       {"steps",
-	        {{{"expect", {{"state", "columns[3].name"}, {"is", "Blocked"}}}},
-	         {{"expect", {{"state", "columns.length"}, {"is", 5}}}}}}}}}};
+	        {{{"expect", {{"state", "lanes.launch[3].name"}, {"is", "Blocked"}}}},
+	         {{"expect", {{"state", "lanes.launch.length"}, {"is", 5}}}}}}}}}};
 	return ChangeSetRepairs::describe(changes, "Add a Blocked column before the last one",
 	                                  {{"name", "index.screen.json"}, {"commit", "original"}, {"tree", "original"}},
 	                                  proof);
@@ -155,7 +155,7 @@ json firstRepair(const affresco::Screen& screen) { return json::parse(screen.rep
 
 /// @brief The Kanban template with Done renamed: the Blocked column's patch no longer applies.
 /// @param document The template.
-void renameDone(json& document) { document["state"]["columns"][3]["name"] = "Shipped"; }
+void renameDone(json& document) { document["state"]["lanes"]["launch"][3]["name"] = "Shipped"; }
 
 /// @brief A repository on the changed template, with the proof check, for tests below the Screen.
 struct Repairs {
@@ -194,8 +194,8 @@ struct Repairs {
 /// @return Its patch.
 json blockedBeforeShipped() {
 	return {{{"op", "add"},
-	         {"path", "/state/columns/3"},
-	         {"value", {{"name", "Blocked"}, {"color", "#dc2626"}, {"cards", json::array()}}}}};
+	         {"path", "/state/lanes/launch/3"},
+	         {"value", {{"name", "Blocked"}, {"color", "#dc2626"}}}}};
 }
 
 } // namespace
@@ -204,7 +204,7 @@ TEST_CASE("change set repair: the Blocked column applies on the template it was 
 	affresco::Screen screen = affresco::Screen::fromString(kanban().dump(), screens());
 	screen.setProofCheck(playProof);
 	CHECK(screen.installChanges(blockedColumn().dump()) == "applied");
-	CHECK(screen.versions().state()["columns"][3]["name"] == "Blocked");
+	CHECK(screen.versions().state()["lanes"]["launch"][3]["name"] == "Blocked");
 	CHECK(screen.hasImported(blockedColumn().dump()));
 }
 
@@ -269,8 +269,8 @@ TEST_CASE("change set repair: the template changes, the fake agent repairs it, t
 	const json row = firstRepair(screen);
 	CHECK(row["status"] == "repaired");
 	CHECK(row["repairedFrom"]["proposal"] == proposal.id);
-	CHECK(screen.versions().state()["columns"][3]["name"] == "Blocked");
-	CHECK(screen.versions().state()["columns"][4]["name"] == "Shipped");
+	CHECK(screen.versions().state()["lanes"]["launch"][3]["name"] == "Blocked");
+	CHECK(screen.versions().state()["lanes"]["launch"][4]["name"] == "Shipped");
 	json view = screen.versions().document();
 	view["state"] = screen.versions().state();
 	CHECK(playProof(view.dump(), blockedColumn()["proof"].dump()).empty());
@@ -279,7 +279,7 @@ TEST_CASE("change set repair: the template changes, the fake agent repairs it, t
 TEST_CASE("change set repair: a change set whose scenarios fail is left off, with the reason") {
 	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository{rules, kanban([](json& document) {
-		document["state"]["columns"].push_back({{"name", "Archived"}, {"color", "#64748b"}, {"cards", json::array()}});
+		document["state"]["lanes"]["launch"].push_back({{"name", "Archived"}, {"color", "#64748b"}});
 	})};
 	ChangeSetRepairs repairs{repository, "index.screen.json"};
 	repairs.setProofCheck([](const json& document, const json& proof) -> std::optional<std::string> {

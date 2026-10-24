@@ -1,27 +1,30 @@
 {
 	"id": "kanban-move-card",
-	"level": "edit",
+	"level": "feature",
 	"screen": "examples/flow/index.screen.json",
-	"request": "Move the card \"Onboarding checklist for new teams\" from the Backlog to the end of In progress.",
+	"request": "Add a \"Start\" button with the id startFirst to the toolbar, left of the Board and Table switch, that moves the first card of the Backlog to the end of In progress.",
 	"scenarios": [
 		{
 			"name": "moved",
 			"steps": [
 				{
+					"click": "#startFirst"
+				},
+				{
 					"expect": {
-						"state": "columns[0].cards.length",
+						"data": "lane0.length",
 						"is": 3
 					}
 				},
 				{
 					"expect": {
-						"state": "columns[1].cards.length",
+						"data": "lane1.length",
 						"is": 4
 					}
 				},
 				{
 					"expect": {
-						"state": "columns[1].cards[3].title",
+						"data": "lane1[3].title",
 						"is": "Onboarding checklist for new teams"
 					}
 				},
@@ -44,15 +47,43 @@
 	],
 	"unchanged": [
 		"#topBar",
-		"#toolbar",
+		"#views",
+		"#newCard",
 		"#board",
 		"#statusBar"
 	],
 	"reference": [
 		{
-			"message": "Onboarding checklist in progress",
-			"move": {
-				"/state/columns/0/cards/0": "/state/columns/1/cards/-"
+			"message": "Start the first Backlog card",
+			"set": {
+				"/actions/startFirst": {
+					"title": "Start the first Backlog card",
+					"category": "Board",
+					"do": [
+						{
+							"update": "issues",
+							"id": "{{computed.columns[0].cards[0].id}}",
+							"fields": {
+								"status": 1,
+								"order": "{{max(concat([-1], map(computed.columns[1].cards, it.order))) + 1}}"
+							}
+						}
+					]
+				}
+			},
+			"add": {
+				"#toolbar/children/-": {
+					"id": "startFirst",
+					"style": "chip",
+					"width": 110,
+					"height": 32,
+					"text": "Start",
+					"anchors": {
+						"right": 548,
+						"top": 4
+					},
+					"onClick": "startFirst"
+				}
 			}
 		}
 	]

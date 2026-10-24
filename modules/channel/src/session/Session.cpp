@@ -178,6 +178,18 @@ json diffOf(const VersionControl& versions, const json& message) {
 			   : versions.diff(message.value("from", json("HEAD~1")), message.value("to", json("HEAD")));
 }
 
+/// @brief The impact of what a "diff" asks for (VersionControl::impact()): a proposal's, or between two commits.
+/// @param versions The document's version control.
+/// @param message The message.
+/// @return The impact, or null.
+json impactOf(const VersionControl& versions, const json& message) {
+	if(!message.contains("proposal"))
+		return versions.impact(message.value("from", json("HEAD~1")), message.value("to", json("HEAD")));
+	for(const ProposalInfo& p : versions.proposals())
+		if(json(p.id) == message["proposal"]) return p.impact;
+	return nullptr;
+}
+
 } // namespace
 
 Session::Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog,
@@ -247,7 +259,7 @@ json Session::reviewState() const {
 	// What a proposal changes can show values a peer's data rules hide from it
 	if(versions_.readable(author_))
 		for(json& p : proposals)
-			for(const char* key : {"changes", "touches", "conflicts", "behaviour"}) p.erase(key);
+			for(const char* key : {"changes", "touches", "conflicts", "behaviour", "impact"}) p.erase(key);
 	for(const Grant& g : versions_.grants()) grants.push_back(toJson(g));
 	const auto previewing = versions_.previewing();
 	return {{"type", "review"},
@@ -476,7 +488,9 @@ bool Session::handleQuery(const Incoming& in) {
 		send({{"type", "history"}, {"entries", entries}, {"revision", versions_.head().number}, {"id", in.id}});
 	} else if(in.type == "diff") {
 		const json patch = diffOf(versions_, m);
-		send({{"type", "diff"}, {"patch", patch}, {"revision", versions_.head().number}, {"id", in.id}});
+		json reply = {{"type", "diff"}, {"patch", patch}, {"revision", versions_.head().number}, {"id", in.id}};
+		if(!versions_.readable(author_)) reply["impact"] = impactOf(versions_, m); // the layers it touches
+		send(reply);
 	} else if(in.type == "exportChanges") {
 		send({{"type", "changes"},
 		      {"changes", versions_.exportChanges(m.value("from", json(0)), m.value("name", "changes"))},

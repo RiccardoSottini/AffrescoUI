@@ -236,6 +236,25 @@ std::shared_ptr<Source> Source::memory(std::vector<std::uint8_t> bytes, Encoding
 	return std::make_shared<MemorySource>(std::move(bytes), hint);
 }
 
+std::optional<double> probeSeconds(std::span<const std::uint8_t> bytes, Encoding hint, std::string& error) {
+	const Limits limits;
+	if(bytes.size() > limits.memoryBytes) {
+		error = "the sound is larger than " + std::to_string(limits.memoryBytes >> 20) + " MiB";
+		return std::nullopt;
+	}
+	constexpr Format format{48000, 2};
+	const auto shared = std::make_shared<const std::vector<std::uint8_t>>(bytes.begin(), bytes.end());
+	const std::unique_ptr<detail::Reader> reader = detail::openMemory(shared, hint, format, limits, error);
+	if(!reader) return std::nullopt;
+	std::array<float, 2 * 256> frames{}; // and its first frames decode
+	if(const detail::ReadResult read = reader->read(frames.data(), 256); read.frames == 0 && reader->failure()) {
+		error = reader->failure();
+		return std::nullopt;
+	}
+	const std::optional<std::uint64_t> length = reader->length();
+	return length ? static_cast<double>(*length) / format.sampleRate : 0.0;
+}
+
 std::shared_ptr<Source> Source::generator(Generator generate, std::optional<double> seconds, bool seekable) {
 	if(!generate || (seconds && !(*seconds >= 0))) return nullptr;
 	return std::make_shared<GeneratorSource>(std::move(generate), seconds, seekable);

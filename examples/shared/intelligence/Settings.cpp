@@ -9,6 +9,7 @@
 #include <affresco/net/SignIn.hpp>
 #include <affresco/net/Url.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdlib>
 #include <fstream>
@@ -70,9 +71,13 @@ Provider providerOf(const json& value) {
 	provider.keyHelp = text(value, "keyHelp");
 	provider.model = text(value, "model");
 	provider.shown = value.value("shown", true);
+	provider.fixedModels = value.value("fixedModels", false);
 	for(const json& model : value.value("models", json::array()))
-		if(model.is_object() && !text(model, "id").empty())
-			provider.models.push_back({text(model, "id"), text(model, "name", text(model, "id"))});
+		if(model.is_object() && !text(model, "id").empty()) {
+			const auto description = model.find("description");
+			provider.models.push_back({text(model, "id"), text(model, "name", text(model, "id")),
+			                           description != model.end() && description->is_object() ? *description : json()});
+		}
 	return provider;
 }
 
@@ -121,6 +126,14 @@ const Provider* Catalog::find(const std::string& id) const {
 	for(const Provider& provider : providers)
 		if(provider.id == id) return &provider;
 	return nullptr;
+}
+
+bool Provider::lists(const std::string& wanted) const {
+	return std::ranges::any_of(models, [&wanted](const Model& offered) { return offered.id == wanted; });
+}
+
+std::string Provider::modelFor(const std::string& requested, const std::string& otherwise) const {
+	return !requested.empty() && lists(requested) ? requested : otherwise;
 }
 
 Catalog Catalog::load(const std::filesystem::path& file) {
@@ -191,6 +204,8 @@ std::optional<Endpoint> endpointOf(const Catalog& catalog, const Settings& setti
 	if(id == settings.provider && !settings.model.empty()) endpoint.model = settings.model;
 	else if(choice != settings.providers.end() && !choice->second.model.empty()) endpoint.model = choice->second.model;
 	else endpoint.model = provider->model;
+	if(provider->fixedModels && !provider->lists(endpoint.model))
+		endpoint.model = provider->model; // e.g. a retired one
 	return endpoint;
 }
 
@@ -245,6 +260,14 @@ std::shared_ptr<affresco::SecretStore> systemKeys() {
 		return affresco::net::systemSecretStore("AffrescoUI");
 	}();
 	return store;
+}
+
+bool hiddenProvidersAllowed() {
+	static const bool allowed = [] {
+		const char* chosen = std::getenv("AFFRESCOUI_PROVIDERS"); // NOLINT(concurrency-mt-unsafe): read once
+		return chosen != nullptr && std::string_view(chosen) == "all";
+	}();
+	return allowed;
 }
 
 bool persistent(const affresco::SecretStore& keys) { return keys.name() != "memory"; }

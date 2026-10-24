@@ -48,7 +48,8 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"description": "Thickened outlines, for a file that has only a regular weight"}, "italic": {"type": "boolean",
 		"description": "Slanted outlines, for a file that has only an upright style"}}}})json",
 	 "`name → { \"file\", \"size\", \"fallback\", \"bold\", \"italic\" }`, paths relative to the screen file (TrueType "
-	 "or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script "
+	 "or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per "
+	 "script "
 	 "(kerning, ligatures, Arabic, Indic; right-to-left runs), colour emoji from COLR fonts. `\"fallback\": "
 	 "[\"symbols\"]` names other fonts asked in order for a character this one lacks; a character none has shows as "
 	 "`?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has). `\"bold\": true` and `\"italic\": true` "
@@ -130,10 +131,33 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "isn't built while its `when` doesn't hold.",
 	 "sections"},
     {"state", R"json({"type": "object"})json", "The app's data, any JSON object.", "sections"},
+    {"assets", R"json({"type": "object", "maxProperties": 1000,
+		"description": "The files revisions brought, kept with the history, read as asset:<name>",
+		"additionalProperties": {"type": "object", "required": ["type", "size", "sha256"], "additionalProperties": false,
+		"properties": {"type": {"type": "string"}, "size": {"type": "integer", "minimum": 0},
+		"sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}})json",
+	 "`name → {type, size, sha256}`: files revisions brought, kept with the history, read as `\"asset:<name>\"` "
+	 "(see Assets).",
+	 "sections"},
     {"stateTypes", R"json({"type": "object",
 		"description": "A type per state key, written as JSON Schema: type, enum, const, properties, required, additionalProperties, items, minimum, maximum, minLength, maxLength, minItems, maxItems",
 		"additionalProperties": {"$ref": "#/$defs/v2/stateType"}})json",
 	 "`key → type`: what each state key holds, written as JSON Schema (see Typed state).", "sections"},
+    {"models", R"json({"type": "object", "maxProperties": 256,
+		"description": "The records' collections: collection -> {version, fields, seed, migrations, importFrom}",
+		"additionalProperties": {"type": "object", "required": ["fields"], "properties": {
+		"version": {"type": "integer", "minimum": 1}, "fields": {"type": "object"}, "seed": {"type": "array"},
+		"migrations": {"type": "array"}, "importFrom": {}, "title": {"type": "string"},
+		"description": {"type": "string"}, "note": {}}, "additionalProperties": false}})json",
+	 "`collection → { \"version\", \"fields\", \"seed\", \"migrations\" }`: the records' models (see Data).",
+	 "sections"},
+    {"queries", R"json({"type": "object", "maxProperties": 256,
+		"description": "Named queries of the records, read as data.<name>",
+		"additionalProperties": {"type": "object", "required": ["from"], "properties": {
+		"from": {"type": "string"}, "where": {}, "sort": {}, "limit": {}, "offset": {}, "count": {}, "note": {}},
+		"additionalProperties": false}})json",
+	 "`name → { \"from\", \"where\", \"sort\", \"limit\" }`: records read as `data.<name>`.",
+	 "sections"},
     {"computed", R"json({"type": "object", "description": "Values derived from the state, read as computed.name"})json",
 	 "`name → expression`: values derived from the state, read as `computed.name` (see Values).", "sections"},
     {"watch", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/handler"},
@@ -275,7 +299,7 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "change it.",
 	 "capabilities"},
     {"audio", R"json({"type": "object", "maxProperties": 32,
-		"description": "Sounds the audio step plays, each from one source. Revisions can't change it.",
+		"description": "Sounds the audio step plays, each from one source. Only the person accepts a change to it.",
 		"additionalProperties": {"type": "object", "additionalProperties": false,
 		"properties": {"file": {"type": "string"}, "url": {"type": "string", "pattern": "^https?://"},
 		"source": {"type": "string"}, "tone": {"type": "object", "required": ["frequency", "seconds"],
@@ -292,7 +316,8 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "(`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position "
 	 "updates) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, "
 	 "loop, level, underruns, error}`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run "
-	 "(see Audio). A capability: revisions can't change it.",
+	 "(see Audio). A `file` may be `asset:<name>`, also a sound description. A revision may give a sound a `file` or a "
+	 "`tone` (never a `url` or a `source`), and only the person accepts it (Assets).",
 	 "capabilities"},
     {"points", R"json({"type": "object", "description": "Contribution points another app's features may fill",
 		"additionalProperties": {"type": "object", "required": ["slot"],
@@ -357,18 +382,22 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "steps"},
     {"signOut", "", R"(`{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step)", "steps"},
     {"chooseFolder", "",
-	 "`{ \"chooseFolder\": \"workspace\", \"title\": \"Open Folder\", \"onDone\": [...], \"onError\": [...] }`: "
-	 "after the event, asks the person for the folder a root names, in the OS's folder dialog (if the host lets them "
-	 "choose it). The services that use the root start again on it; `result` in `onDone` is `{name}`, the folder's "
-	 "own name (never where it is), `error` in `onError` is `{code, message}`; nothing runs if they cancel. A control "
+	 "`{ \"chooseFolder\": \"workspace\", \"onDone\": [...] }`: after the event, "
+	 "the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again "
+	 "on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control "
 	 "step",
 	 "steps"},
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
     {"ask", "",
-	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: asks the agents in plain words; replies "
-	 "run `ask:reply`, never as the person's decision (Asking the agents). A control step",
+	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: asks the agents in plain words, with "
+	 "`options` (an object) passed on to them; replies run `ask:reply`, never as the person's decision (Asking the "
+	 "agents). A control step",
+	 "steps"},
+    {"attach", "",
+	 "`{ \"attach\": { \"accept\": [\"audio/*\"] }, \"into\": \"state.files\" }`: the person's files as "
+	 "attachments (Assets). A control step",
 	 "steps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
@@ -377,9 +406,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 R"((after the update, waiting up to two frames for a node that is still being laid out))",
 	 "steps"},
     {"scrollTo", "", "", "steps"},
-    {"edit", "",
-	 "`{ \"edit\": \"sortLines\", \"in\": \"#code\" }`: a code editor's command (Editor steps)",
-	 "steps"},
+    {"edit", "", "`{ \"edit\": \"sortLines\", \"in\": \"#code\" }`: a code editor's command (Editor steps)", "steps"},
     {"in", "", "", ""},
     {"line", "", "", ""},
     {"column", "", "", ""},
@@ -416,16 +443,44 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"index", "", "", ""},
     {"with", "", "", ""},
     {"into", "", "", ""},
+    {"attachments", "", "", ""},
     {"loading", "", "", ""},
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
-    {"image", "",
-	 R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images))", "steps"},
+    {"options", R"json({"anyOf": [{"type": "object"}, {"$ref": "#/$defs/v2/dynamic"}]})json", "", ""},
+    {"image", "", R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images))", "steps"},
     {"of", "", "", ""},
     {"audio", R"json({"anyOf": [{"enum": ["play", "pause", "toggle", "stop", "seek", "volume", "pan", "rate", "loop",
 		"master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(`{ "audio": "play", "of": "song" }`: see Audio)",
 	 "steps"},
+    {"insert", "",
+	 R"(`{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, )"
+	 R"(checked against its model; `result` in `then` is the record, `error` in `onError` is `{code, message}` (see )"
+	 R"(Data: models and records))",
+	 "steps"},
+    {"update", "",
+	 R"(`{ "update": "songs", "id": "{{song.id}}", "fields": { "rating": 5 } }`: changes fields of records (an `id`, )"
+	 R"(a list of them, or a `where`))",
+	 "steps"},
+    {"delete", "", R"(`{ "delete": "songs", "id": "{{song.id}}" }`: deletes records (an `id`, a list, or a `where`))",
+	 "steps"},
+    {"undoData", R"json({"const": true})json",
+	 R"(`{ "undoData": true }`, `{ "redoData": true }`: undoes or redoes the last write step's records)", "steps"},
+    {"redoData", R"json({"const": true})json", "", "steps"},
+    {"importCsv", "",
+	 R"(`{ "importCsv": "songs", "file": "songs.csv", "columns": { "title": "Title" }, "into": "state.report" }`: )"
+	 R"(imports a CSV's rows as records (`file` in the screen's folder, or `text`); `result` is )"
+	 R"(`{imported, failed, failures}`)",
+	 "steps"},
+    {"where", "", "", ""},
+    {"fields", "", "", ""},
+    {"values", "", "", ""},
+    {"file", "", "", ""},
+    {"text", "", "", ""},
+    {"columns", "", "", ""},
+    {"separator", "", "", ""},
+    {"atomic", "", "", ""},
     {"from", "", "", ""},
     {"camera", "",
 	 R"(`{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, )"
