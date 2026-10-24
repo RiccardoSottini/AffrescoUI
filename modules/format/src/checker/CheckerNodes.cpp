@@ -515,10 +515,12 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 		if(steps == step.end()) continue;
 		Scope layer{&scope, nullptr, json(), {}, {}};
 		const bool service = step.contains("invoke") || step.contains("request") || step.contains("subscribe") ||
-		                     step.contains("signIn") || step.contains("chooseFolder"); // {code, message} too
+		                     step.contains("signIn") || step.contains("chooseFolder") ||
+		                     step.contains("attach"); // {code, message} too
 		if(key == "onError") layer.vars["error"] = service ? anything : single; // a call's error (a service's: code...)
 		if(key == "then" && step.contains("call")) layer.vars["result"] = anything;      // and its result
 		if(key == "onDone") layer.vars["result"] = anything;                             // a service call's result
+		if(key == "onDone" && step.contains("attach")) layer.vars["error"] = anything; // the files that failed
 		if(key == "onEvent" || (key == "do" && service)) layer.vars["event"] = anything; // what it streams
 		walkHandler(*steps, layer, place + "." + std::string(key));
 	}

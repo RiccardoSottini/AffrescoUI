@@ -1645,7 +1645,8 @@ song or a photo the person attached. They are **assets**, kept with the screen's
   `open` with `{"asset": name}` (a PNG, JPEG or SVG). The top-level `assets` section names them (`{type, size,
   sha256}`): version control writes it, and the checker reports an `asset:` the screen doesn't have.
 - `run`: steps like an action's, run once on the live screen when the proposal is merged, after the update; never in
-  its preview, never again on a restore or a revert. They may not be control steps.
+  its preview, never again on a restore or a revert. They may not be control steps, nor run an action that has one
+  (such as one calling the host's native functions): open an asset with the `image` step itself.
 - **Only the person accepts** a revision that brings, changes or removes assets, carries `run`, changes the `audio`
   section or makes a node show an asset: whatever the rules, the mode or "Always allow" say, it waits for review, and
   only the screen's own review steps (the person, `user`) may accept it; the proposal lists them (`assets`, `run`,

@@ -483,3 +483,16 @@ TEST_CASE("assets: attachments are bounded, the oldest going first") {
 	CHECK(repository.attach("x.png", "image/png", "not a png", {}).error.contains("aren't image/png"));
 	CHECK(repository.attach("x.gif", "image/gif", "GIF89a", {}).error.contains("isn't a type"));
 }
+
+TEST_CASE("assets: the checker knows what an attach step gives its handlers") {
+	json document = assetScreen();
+	document["state"]["files"] = nullptr;
+	document["state"]["problem"] = nullptr;
+	document["actions"] = {
+	    {"pick", json::array({{{"attach", json::object()},
+	                           {"onDone", json::array({{{"set", "state.files"}, {"to", "{{result}}"}},
+	                                                   {{"set", "state.problem"}, {"to", "{{error.message}}"}}})},
+	                           {"onError", json::array({{{"set", "state.problem"}, {"to", "{{error.code}}"}}})}}})}};
+	const affresco::format::Rules rules;
+	CHECK(rules.findings(document, document["state"]).empty());
+}
