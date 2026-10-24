@@ -6,7 +6,7 @@
         assets/<folder>/, assets/shared/                   the templates' folders (examples/templates.json) and their
                                                            fonts, as in examples/ without the C++ sources (the
                                                            programs look here when the source tree they were built
-                                                           from isn't there)
+                                                           from isn't there), and SCREEN_FORMAT.md for the host's agent
         LICENSE, NOTICE, THIRD_PARTY_NOTICES.md, README.txt
 
     python3 tools/release/package.py --build build --platform macos-universal [--out dist]
@@ -58,6 +58,8 @@ def copy_assets(assets):
     for each in folders + ["shared"]:
         shutil.copytree(os.path.join(ROOT, "examples", each), os.path.join(assets, each),
                         ignore=shutil.ignore_patterns("*.cpp", "*.hpp"))
+    # The host's own agent reads the format guide by topic (examples/shared/intelligence/ScreenQueries.hpp)
+    shutil.copyfile(os.path.join(ROOT, "SCREEN_FORMAT.md"), os.path.join(assets, "SCREEN_FORMAT.md"))
 
 
 def archive(stage, name, out, windows):

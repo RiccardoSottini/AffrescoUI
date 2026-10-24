@@ -36,7 +36,7 @@
 			"assistant.shortcut": "المساعد (Ctrl+Shift+A)",
 			"assistant.online": "{n, plural, one {متصل} other {# وكلاء متصلون}}",
 			"assistant.offline": "غير متصل",
-			"assistant.offlineNote": "لا يوجد وكيل متصل. صِل وكيلًا (خادم MCP أو الاستوديو) لتسأله.",
+			"assistant.offlineNote": "لا يوجد وكيل متصل. صِل وكيلًا (خادم MCP) لتسأله.",
 			"assistant.empty": "اطلب تغييرًا بكلمات بسيطة. يقترحه الوكيل وتراجعه هنا.",
 			"assistant.chip1": "ماذا يمكنك أن تغير هنا؟",
 			"assistant.chip2": "كبّر النص",
@@ -84,6 +84,9 @@
 		"test.proposal": [{ "set": "state.assistant.simulate", "to": { "online": true, "pending": ["p3"],
 		                   "proposals": [{ "id": "p3", "message": "Group the cards by owner", "touches": ["a", "b", "c"],
 		                   "changes": ["add at /state/groupBy: \"owner\"", "set /screens/board/children/1/groupBy to \"owner\""] }] } }],
+		"test.waiting": [{ "set": "state.assistant.simulate", "to": { "online": true, "pending": ["p4"],
+		                  "proposals": [{ "id": "p4", "message": "Rename the board to Q4 launch", "touches": ["a"],
+		                  "changes": ["set /state/board to \"Q4 launch\""] }] } }],
 		"test.dark": [{ "set": "state.theme", "to": "dark" }],
 		"test.arabic": [{ "set": "state.locale", "to": "ar" }]
 	},

@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "The assistant add-on: a chat with the agents connected to the app, to include. A launcher at the bottom right opens a panel where the person asks in plain words (the ask step), the agents answer (ask:reply), and the proposals they open come back as cards to preview, accept or reject. Everything here is named assistant..., so it merges into any screen; an app restyles it by overriding the assistant.* tokens. See README.md.",
+	"note": "The assistant add-on: a chat with the agents connected to the app, to include. A launcher at the bottom right opens a panel where the person asks in plain words (the ask step), the agents answer (ask:reply), and the proposals they open come back as cards to preview, accept or reject, as does every other proposal waiting for review: this is where the person reviews. Everything here is named assistant..., so it merges into any screen; an app restyles it by overriding the assistant.* tokens. See README.md.",
 	"tokens": {
 		"assistant.accent": { "light": "#0969da", "dark": "#4493f8" },
 		"assistant.accentHover": { "light": "#0550ae", "dark": "#2f81f7" },
@@ -26,7 +26,7 @@
 			"assistant.shortcut": "Assistant (Ctrl+Shift+A)",
 			"assistant.online": "{n, plural, one {Connected} other {# agents connected}}",
 			"assistant.offline": "Offline",
-			"assistant.offlineNote": "No agent is connected. Connect one (the MCP server or the Studio) to ask it.",
+			"assistant.offlineNote": "No agent is connected. Set up a provider in the AffrescoUI Launcher's Settings, or connect an agent over MCP.",
 			"assistant.empty": "Ask for a change in plain words. The agent proposes it, and you review it here.",
 			"assistant.chip1": "What can you change here?",
 			"assistant.chip2": "Make the text larger",
@@ -53,7 +53,7 @@
 			"assistant.shortcut": "Asistente (Ctrl+Shift+A)",
 			"assistant.online": "{n, plural, one {Conectado} other {# agentes conectados}}",
 			"assistant.offline": "Sin conexión",
-			"assistant.offlineNote": "No hay ningún agente conectado. Conecta uno (el servidor MCP o el Studio) para preguntarle.",
+			"assistant.offlineNote": "Ningún agente conectado. Elige un proveedor en los Ajustes de AffrescoUI Launcher, o conecta uno por MCP.",
 			"assistant.empty": "Pide un cambio con tus propias palabras. El agente lo propone y tú lo revisas aquí.",
 			"assistant.chip1": "¿Qué puedes cambiar aquí?",
 			"assistant.chip2": "Haz el texto más grande",
@@ -80,7 +80,7 @@
 			"assistant.shortcut": "Assistant (Ctrl+Maj+A)",
 			"assistant.online": "{n, plural, one {Connecté} other {# agents connectés}}",
 			"assistant.offline": "Hors ligne",
-			"assistant.offlineNote": "Aucun agent n'est connecté. Connectez-en un (le serveur MCP ou le Studio) pour lui poser vos questions.",
+			"assistant.offlineNote": "Aucun agent connecté. Choisissez un fournisseur dans les Réglages d'AffrescoUI Launcher, ou un agent par MCP.",
 			"assistant.empty": "Demandez une modification avec vos propres mots. L'agent la propose et vous la vérifiez ici.",
 			"assistant.chip1": "Que pouvez-vous modifier ici ?",
 			"assistant.chip2": "Agrandis le texte",
@@ -132,6 +132,10 @@
 			{ "scrollTo": "#assistantEnd" }
 		],
 		"assistant.close": [{ "set": "state.assistant.open", "to": false }, { "focus": "#assistantLauncher" }],
+		"assistant.start": [
+			{ "run": "assistant.open" },
+			{ "run": "assistant.ask", "with": { "text": "{{trim(event.text ?? '')}}" } }
+		],
 		"assistant.send": [
 			{ "run": "assistant.ask", "with": { "text": "{{trim(state.assistant.draft)}}" } },
 			{ "set": "state.assistant.draft", "to": "" }
@@ -200,7 +204,8 @@
 			"let": {
 				"assistantOnline": "{{state.assistant.simulate.online ?? (length(peers) > 0)}}",
 				"assistantPending": "{{state.assistant.simulate.pending ?? map(proposals, it.id)}}",
-				"assistantWorking": "{{state.assistant.simulate.working ?? some(requests, it.state == 'sent' || it.state == 'working')}}"
+				"assistantWorking": "{{state.assistant.simulate.working ?? some(requests, it.state == 'sent' || it.state == 'working')}}",
+				"assistantCarded": "{{map(filter(state.assistant.messages, it.kind == 'card'), it.id)}}"
 			},
 			"children": [
 				{ "id": "assistantHeader", "height": 56, "alignSelf": "stretch", "color": "transparent", "children": [
@@ -235,7 +240,8 @@
 					{ "id": "assistantMessages", "type": "grid", "columns": ["1fr", 8], "columnGap": 0, "rowGap": 8,
 					  "scroll": "vertical", "anchors": { "left": 12, "right": 12, "top": 12, "bottom": 0 },
 					  "role": "list", "label": "{{t('assistant.messages')}}",
-					  "let": { "assistantCount": "{{length(state.assistant.messages)}}" },
+					  "let": { "assistantCount": "{{length(state.assistant.messages)}}",
+					           "assistantLoose": "{{filter(state.assistant.simulate.proposals ?? proposals, !contains(assistantCarded, it.id))}}" },
 					  "children": [
 						{ "when": "{{assistantCount == 0}}", "id": "assistantEmpty", "type": "label",
 						  "cell": { "column": 1, "row": 1 }, "text": "{{t('assistant.empty')}}",
@@ -271,15 +277,31 @@
 							"color": "@assistant.surface", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
 							"borderColor": "@assistant.border", "accent": "@assistant.success",
 							"accentTextColor": "@assistant.onAccent", "buttonColor": "@assistant.raised" } },
+						{ "repeat": { "for": "proposal", "in": "{{assistantLoose}}", "index": "l" },
+						  "id": "assistantWaiting{{proposal.id}}", "use": "proposalCard",
+						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + l + 1}}" }, "with": {
+							"title": "{{proposal.message}}", "summary": "{{t('assistant.touches', {n: length(proposal.touches ?? [])})}}",
+							"lines": "{{slice(proposal.changes ?? [], 0, 3)}}",
+							"status": "{{preview != null && preview.id == proposal.id ? 'previewing' : 'pending'}}",
+							"preview": "assistant.preview", "accept": "assistant.accept", "reject": "assistant.reject",
+							"with": { "id": "{{proposal.id}}" }, "width": 300,
+							"labels": {
+								"preview": "{{t('assistant.preview')}}", "accept": "{{t('assistant.accept')}}",
+								"reject": "{{t('assistant.reject')}}", "accepted": "{{t('assistant.accepted')}}",
+								"rejected": "{{t('assistant.rejected')}}", "closed": "{{t('assistant.closed')}}"
+							},
+							"color": "@assistant.surface", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
+							"borderColor": "@assistant.border", "accent": "@assistant.success",
+							"accentTextColor": "@assistant.onAccent", "buttonColor": "@assistant.raised" } },
 						{ "when": "{{assistantWorking}}", "id": "assistantTyping",
-						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + 1}}" },
+						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + 1}}" },
 						  "use": "typingIndicator",
 						  "every": { "ms": 400, "do": [{ "increment": "state.assistant.phase" }] }, "with": {
 							"label": "{{t('assistant.typing')}}", "phase": "{{state.assistant.phase}}",
 							"color": "@assistant.raised", "dotColor": "@assistant.dot",
 							"activeColor": "@assistant.dim" } },
 						{ "id": "assistantEnd", "height": 1, "color": "transparent",
-						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + 2}}" } }
+						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + 2}}" } }
 					  ] }
 				] },
 				{ "alignSelf": "stretch", "height": 92, "color": "transparent", "children": [

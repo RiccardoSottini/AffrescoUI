@@ -54,6 +54,17 @@
 			]
 		},
 		{
+			"name": "assistant-waiting",
+			"screen": "assistant.screen.json",
+			"note": "A proposal no reply opened (an agent's, from a terminal over MCP) still gets a card to review",
+			"steps": [
+				{ "action": "test.waiting" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "card" } }
+			]
+		},
+		{
 			"name": "assistant-offline",
 			"screen": "assistant.screen.json",
 			"note": "No agent connected: the status says so and a banner explains how to connect one",

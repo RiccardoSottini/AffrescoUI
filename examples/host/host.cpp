@@ -2,12 +2,17 @@
 /// @brief affrescoui_host: shows a screen file and lets other programs change it while it runs.
 //
 //   affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
-//               [--plugin changes.json ...] [--usage] [--folder DIR] [--allow NAME[=PROGRAM ARG...] ...]
+//               [--plugin changes.json ...] [--usage] [--folder DIR] [--allow NAME[=PROGRAM ARG...] ...] [--ask TEXT]
 //
 // The window only renders: it has no idea where changes come from. Programs connect over two local sockets in DIR
 // (default $AFFRESCOUI_SOCKET_DIR, else /tmp/affrescoui-<uid>, or %LOCALAPPDATA%\affrescoui\sockets on Windows):
-//   studio.sock   the user's client (affrescoui_studio): author "studio", which the template lets review changes
+//   studio.sock   a reviewing client: author "studio", which the templates let review changes
 //   agent.sock    an AI agent's MCP server (mcp/affrescoui_mcp.py): author "agent", whose changes wait for review
+// The person reviews an agent's changes in the app's own assistant (examples/shared/addons/assistant). When the
+// AffrescoUI Launcher's Settings set up a provider of intelligence (<data DIR>/intelligence.json, the key in the
+// system's keychain), the host also runs an agent of its own, connected as author "agent" like an MCP one, that
+// answers the assistant with it (examples/shared/intelligence); the Launcher's host alone gets the settings' natives.
+// --ask TEXT opens the assistant and sends TEXT as the person's first request once the window is up.
 // What each author may do is up to the screen's "permissions"; --auto-accept is --mode acceptEdits, for this run only.
 // The screen's history and "persist" state are kept in --data DIR (default $AFFRESCOUI_DATA_DIR, else ~/.affrescoui),
 // and a plugin is applied once: the history remembers it.
@@ -19,6 +24,7 @@
 
 #include "Assets.hpp"
 #include "CodeEditor.hpp"
+#include "intelligence/Intelligence.hpp"
 #include "SocketDir.hpp"
 #include "tempo/Visualiser.hpp"
 
@@ -143,6 +149,7 @@ struct Options {
 	bool usage = false;               ///< Count usage summaries, with the person's consent (off by default).
 	std::filesystem::path folder;     ///< The folder "workspace", or empty until the person chooses one.
 	std::vector<std::string> allowed; ///< The programs granted (Grants.hpp's specs).
+	std::string ask;                  ///< The person's first request to the assistant, or "".
 };
 
 /// @brief Reads one argument of the command line.
@@ -169,6 +176,7 @@ int readArgument(Options& options, std::string_view arg, const char* value) {
 	else if(arg == "--plugin") options.plugins.emplace_back(value);
 	else if(arg == "--folder") options.folder = value;
 	else if(arg == "--allow") options.allowed.emplace_back(value);
+	else if(arg == "--ask") options.ask = value;
 	else if(arg == "--mode" && affresco::modeFromString(value)) options.mode = affresco::modeFromString(value);
 	else return 0;
 	return 2;
@@ -185,7 +193,7 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 		if(taken == 0) {
 			std::cerr << "usage: affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] "
 			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json] [--usage] "
-			             "[--folder DIR] [--allow NAME[=PROGRAM ARG...]]\n";
+			             "[--folder DIR] [--allow NAME[=PROGRAM ARG...]] [--ask TEXT]\n";
 			return std::nullopt;
 		}
 		i += taken;
@@ -213,12 +221,27 @@ void enableUsage(affresco::Screen& screen) {
 	if(!screen.usageConsented()) std::cerr << "affrescoui_host: usage summaries stay off: no consent\n";
 }
 
+/// @brief Gives the screen the assistant's agent, when a provider of intelligence is set up, and the Launcher (the
+/// screen opened without a file) the settings' natives; with --ask, the first request once the window is up.
+/// @param assistant The host's agent.
+/// @param app The application.
+/// @param screen The screen.
+/// @param window Its window.
+/// @param options The command line.
+void startAssistant(examples::intelligence::HostAssistant& assistant, affresco::Application& app,
+                    affresco::Screen& screen, affresco::Window& window, const Options& options) {
+	if(options.file.empty()) assistant.enableSettings(screen); // only the Launcher may change the provider
+	assistant.attach(screen);
+	if(!options.ask.empty()) examples::intelligence::askOnStart(app, screen, window, options.ask);
+}
+
 /// @brief Shows the screen and lets peers change it, until the window closes.
 /// @param options The command line.
 /// @return The exit status.
 /// @throws std::exception If the screen, a plugin or a socket can't be opened.
 int run(const Options& options) {
 	affresco::Application app;
+	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
 	// A plain screenshot run shows the file as it is, so it neither loads nor writes the screen's history
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
@@ -235,7 +258,8 @@ int run(const Options& options) {
 	if(options.mode) screen.setModeForThisRun(*options.mode);
 	if(options.usage && !screenshotOnly) enableUsage(screen);
 	if(!screenshotOnly) screen.setLocale(affresco::format::systemLocale()); // screenshots stay in the default locale
-	screen.createWindow(app);
+	affresco::Window& window = screen.createWindow(app);
+	if(!screenshotOnly) startAssistant(assistant, app, screen, window, options);
 	applyPlugins(screen, options.plugins);
 	checkScenariosForEvidence(screen, screenFile(options.file));
 
