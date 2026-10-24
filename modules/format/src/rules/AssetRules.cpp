@@ -92,7 +92,8 @@ void checkAudioChange(const json& before, const json& after) {
 			const auto assets = after.find("assets");
 			if(assets == after.end() || !assets->is_object() || !assets->contains(*asset))
 				fail(at + ".file", "no asset '" + *asset + "': bring it in the revision's \"assets\"");
-			if(!(*assets)[*asset].value("type", std::string()).starts_with("audio/"))
+			if(const std::string type = (*assets)[*asset].value("type", std::string());
+			   !type.starts_with("audio/") && type != soundType)
 				fail(at + ".file", "'" + *asset + "' isn't a sound");
 		}
 	}
@@ -147,7 +148,7 @@ json Rules::checkAsset(std::string_view name, std::string_view type, std::string
 			fail("asset '" + std::string(name) + "'", std::string("the picture doesn't decode: ") + error.what());
 		}
 	}
-	if(type.starts_with("audio/")) {
+	if(type.starts_with("audio/") || type == soundType) {
 		try {
 			if(const auto seconds = probeSound(std::string(bytes), type)) return {{"duration", *seconds}};
 		} catch(const DocumentError& error) {

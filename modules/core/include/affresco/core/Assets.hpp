@@ -49,6 +49,10 @@ struct AttachmentInfo {
 	json details = json::object(); ///< `duration` (seconds, audio), `width` and `height` (pictures), when known.
 };
 
+/// A sound described as text, which the audio module renders (audio/Sound.hpp): what an agent writes for a sound, as
+/// it writes an SVG for a picture. Its names end with ".sound.json".
+inline constexpr std::string_view soundType = "application/vnd.affrescoui.sound+json";
+
 /// @brief What a revision may bring, and the extensions each type's names end with.
 struct AssetType {
 	std::string_view type;                      ///< The media type.
@@ -57,15 +61,16 @@ struct AssetType {
 
 /// @brief The types an asset may have, with their extensions.
 /// @return image/png, image/jpeg, image/svg+xml, audio/wav, audio/mpeg, audio/flac, application/json, text/plain.
-[[nodiscard]] inline const std::array<AssetType, 8>& assetTypes() {
-	static constexpr std::array<AssetType, 8> types = {{{"image/png", {"png", ""}},
+[[nodiscard]] inline const std::array<AssetType, 9>& assetTypes() {
+	static constexpr std::array<AssetType, 9> types = {{{"image/png", {"png", ""}},
 	                                                    {"image/jpeg", {"jpg", "jpeg"}},
 	                                                    {"image/svg+xml", {"svg", ""}},
 	                                                    {"audio/wav", {"wav", ""}},
 	                                                    {"audio/mpeg", {"mp3", ""}},
 	                                                    {"audio/flac", {"flac", ""}},
 	                                                    {"application/json", {"json", ""}},
-	                                                    {"text/plain", {"txt", "md"}}}};
+	                                                    {"text/plain", {"txt", "md"}},
+	                                                    {soundType, {"sound.json", ""}}}};
 	return types;
 }
 
@@ -81,9 +86,11 @@ struct AssetType {
 /// @param name The name.
 /// @return The type, or "" if its extension is none of assetTypes().
 [[nodiscard]] inline std::string_view assetTypeOf(std::string_view name) {
-	std::string extension(assetExtension(name));
-	for(char& c : extension)
+	std::string lower(name);
+	for(char& c : lower)
 		if(c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+	if(lower.ends_with(".sound.json")) return soundType;
+	const std::string extension(assetExtension(lower));
 	if(extension.empty()) return {};
 	for(const AssetType& type : assetTypes())
 		for(const std::string_view known : type.extensions)
@@ -119,7 +126,7 @@ struct AssetType {
 	}
 	return "'" + std::string(type.substr(0, 60)) +
 	       "' isn't a type an asset may have (image/png, image/jpeg, image/svg+xml, audio/wav, audio/mpeg, "
-	       "audio/flac, application/json, text/plain)";
+	       "audio/flac, application/json, text/plain, application/vnd.affrescoui.sound+json)";
 }
 
 /// @brief Checks that bytes are what their type says, by their first bytes (magic numbers); text must be UTF-8 without
@@ -152,7 +159,8 @@ struct AssetType {
 	else if(type == "audio/mpeg")
 		fits = starts("ID3") || (bytes.size() >= 2 && static_cast<unsigned char>(bytes[0]) == 0xFF &&
 		                         (static_cast<unsigned char>(bytes[1]) & 0xE0) == 0xE0);
-	else if(type == "image/svg+xml" || type == "application/json" || type == "text/plain") fits = text();
+	else if(type == "image/svg+xml" || type == "application/json" || type == "text/plain" || type == soundType)
+		fits = text();
 	if(fits) return std::nullopt;
 	return "its bytes aren't " + std::string(type) +
 	       (type.starts_with("image/") || type.starts_with("audio/") ? " (they don't start as such a file does)"

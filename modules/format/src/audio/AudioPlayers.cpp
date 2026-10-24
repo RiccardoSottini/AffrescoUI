@@ -8,6 +8,9 @@
 #include "NodeKeys.hpp"
 
 #include <affresco/audio/Engine.hpp>
+#include <affresco/audio/Sound.hpp>
+
+#include <fstream>
 
 #include <algorithm>
 #include <cmath>
@@ -243,6 +246,7 @@ struct AudioPlayers::Impl {
 				error = "no asset '" + asset.substr(0, 100) + "'";
 				return nullptr;
 			}
+			if(assetTypeOf(asset) == soundType) return audio::soundSource(*bytes, error); // rendered as it plays
 			const auto* data = reinterpret_cast<const std::uint8_t*>(bytes->data());
 			return audio::Source::memory(std::vector<std::uint8_t>(data, data + bytes->size()),
 			                             audio::encodingOf(asset));
@@ -257,6 +261,13 @@ struct AudioPlayers::Impl {
 			error = "'" + std::filesystem::path(file).filename().string() +
 			        "' is outside the folders the host allows (the screen's own, Screen::allowAudioDirectory)";
 			return nullptr;
+		}
+		if(assetTypeOf(file) == soundType) { // a sound description of the screen's folder
+			std::ifstream in(path, std::ios::binary);
+			std::string text((std::istreambuf_iterator<char>(in)), {});
+			if(!in.eof() && !in) error = "'" + path.filename().string() + "' can't be read";
+			if(text.size() > audio::SoundLimits{}.bytes) error = "'" + path.filename().string() + "' is too long";
+			return error.empty() ? audio::soundSource(text, error) : nullptr;
 		}
 		return audio::Source::file(path, audio::encodingOf(file));
 	}
@@ -491,6 +502,12 @@ std::optional<std::string> AudioPlayers::run(const std::string& name, const std:
 }
 
 std::optional<double> probeSound(const std::string& bytes, std::string_view type) {
+	if(type == soundType) {
+		std::string error;
+		const auto score = audio::readSound(bytes, error);
+		if(!score) throw DocumentError("the sound description is wrong: " + error);
+		return score->seconds;
+	}
 	const audio::Encoding hint = type == "audio/wav"    ? audio::Encoding::Wav
 	                             : type == "audio/flac" ? audio::Encoding::Flac
 	                                                    : audio::Encoding::Mp3;
