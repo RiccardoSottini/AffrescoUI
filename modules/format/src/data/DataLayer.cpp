@@ -76,7 +76,7 @@ void DataLayer::watch(data::Store& store) {
 	watched_ = &store;
 	connection_ = store.onChange.connect([this](const std::string&) {
 		++storeVersion_;
-		engine_.document.bumpStateVersion(); // computed values that read `data` are stale too
+		engine_.document.bumpStateVersion();                        // computed values that read `data` are stale too
 		engine_.document.markPlaceChanged(std::string(dataPlaces)); // what reads `data` is evaluated again
 		engine_.reconciler.requestReconcile();
 	});
@@ -106,23 +106,18 @@ data::Store& DataLayer::store() noexcept { return preview_ ? *preview_ : *store_
 void DataLayer::follow() {
 	eventBatch_.reset(); // a version lands between events
 	const json& models = sectionOf(engine_.versions.document(), "models");
+	if(preview_) { // the last preview's copy goes: stop watching it first
+		watch(*store_);
+		preview_.reset();
+	}
 	if(engine_.versions.previewing()) {
-		if(!store_->differs(models)) { // the proposal leaves the models alone: the store itself
-			if(preview_) {
-				preview_.reset();
-				watch(*store_);
-			}
-			return;
-		}
-		preview_ = store_->copy();
-		preview_->setEvaluator(evaluate);
-		(void)preview_->follow(models, "preview");
+		if(!store_->differs(models)) return; // the proposal leaves the models alone: the store itself
+		std::unique_ptr<data::Store> copy = store_->copy();
+		copy->setEvaluator(evaluate);
+		(void)copy->follow(models, "preview"); // refused: the preview is, and the store is untouched
+		preview_ = std::move(copy);
 		watch(*preview_);
 		return;
-	}
-	if(preview_) {
-		preview_.reset();
-		watch(*store_);
 	}
 	if(store_->differs(models)) (void)store_->follow(models, engine_.versions.head().author);
 }
@@ -222,9 +217,10 @@ void DataLayer::checkWrite(const std::string& collection, const std::string& whe
 	for(const json& rule : rules) {
 		if(!rule.is_object() || !covers(rule.value("author", std::string("*")), author_)) continue;
 		if(anyCovers(rule.value("never", json()), collection))
-			fail(where, "data rule: '" + author_ + "' may never touch /data/" + collection);
+			throw data::DataError("denied",
+			                      where + ": data rule: '" + author_ + "' may never touch /data/" + collection);
 		if(rule.contains("write") && !anyCovers(rule["write"], collection))
-			fail(where, "data rule: '" + author_ + "' may not write /data/" + collection);
+			throw data::DataError("denied", where + ": data rule: '" + author_ + "' may not write /data/" + collection);
 	}
 }
 

@@ -315,6 +315,11 @@ public:
 	/// @brief What the screen's expressions read as `data` (each collection's records, each query's results).
 	/// @return It, as JSON text.
 	[[nodiscard]] std::string dataJson();
+	/// @brief Sets who the write steps write as: "app" (the person using the app) by default. Around steps the host
+	/// runs for an agent (its reviewed proposal), the agent's name: the journal names it, and the screen's data rules
+	/// (`/data/<collection>`) decide what it may write.
+	/// @param author The author ("" for "app").
+	void setDataAuthor(std::string author);
 	/// @brief Lets importCsv steps read CSV files in a folder besides the screen's own.
 	/// @param directory The folder.
 	void allowDataDirectory(const std::filesystem::path& directory);

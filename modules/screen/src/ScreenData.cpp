@@ -105,10 +105,11 @@ void Screen::Impl::keepRejected(const json& rejected) const {
 		affresco::log(LogLevel::Error, "AffrescoUI screen: could not write " + side.string());
 		return;
 	}
-	affresco::log(LogLevel::Warning, "AffrescoUI screen: " + std::to_string(rejected.size()) +
-	                                     " values kept in " + stateFile.string() +
-	                                     " no longer fit the screen's stateTypes: it opens with its own, and keeps "
-	                                     "them in " + side.string());
+	affresco::log(LogLevel::Warning, "AffrescoUI screen: values kept in " + stateFile.string() + " (" +
+	                                     std::to_string(rejected.size()) +
+	                                     ") no longer fit the screen's stateTypes: it opens with its own, and keeps "
+	                                     "the file's in " +
+	                                     side.string());
 }
 
 void Screen::setDataFile(const std::filesystem::path& file) {
@@ -138,6 +139,8 @@ void Screen::setDataFile(const std::filesystem::path& file) {
 data::Store& Screen::data() noexcept { return impl_->runtime.dataStore(); }
 
 std::string Screen::dataJson() { return impl_->runtime.dataValue().dump(); }
+
+void Screen::setDataAuthor(std::string author) { impl_->runtime.setDataAuthor(std::move(author)); }
 
 void Screen::allowDataDirectory(const std::filesystem::path& directory) {
 	impl_->runtime.allowDataDirectory(directory);

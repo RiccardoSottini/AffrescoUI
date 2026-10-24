@@ -21,7 +21,7 @@ namespace affresco::data {
 class DataError : public DocumentError {
 public:
 	/// @brief An error.
-	/// @param code "invalid", "notFound", "unique", "reference", "limit", "model", "migration", "readOnly" or "io".
+	/// @param code "invalid", "notFound", "unique", "reference", "limit", "model", "migration", "denied" or "io".
 	/// @param message The message, with its place.
 	DataError(std::string code, const std::string& message) : DocumentError(message), code_(std::move(code)) {}
 	/// @brief What kind of refusal it is.

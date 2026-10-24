@@ -1569,7 +1569,7 @@ scenarios) keeps its records in memory.
 | `{ "importCsv": "notes", "file": "notes.csv", "columns": { "title": "Title", "due": { "column": "Due", "with": "{{value}}" } } }` | Imports a CSV's rows (`file` in the screen's folder or one the host allows, or `text`): columns match fields by header, or by `columns`; cells convert to the field's type; `atomic` imports all or none; `result` is `{imported, failed, failures}` |
 
 A refused write runs `onError` with `error` (`{code, message}`: `invalid`, `unique`, `reference`, `notFound`,
-`model`, `limit`); without one, it is reported. The writes of one event are one step of the store's undo, journaled
+`model`, `limit`, `denied`); without one, it is reported. The writes of one event are one step of the store's undo, journaled
 with who and when, before and after. The steps aren't control steps, but a revision that adds or changes one is always
 reviewed, and an author other than the person (the host's `Runtime::setDataAuthor`, for an agent's reviewed step)
 writes only what `permissions.data` lets it write at `/data/<collection>`.

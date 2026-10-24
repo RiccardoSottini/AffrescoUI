@@ -127,7 +127,8 @@ void checkExpectation(const json& expect, const std::string& place) {
 		onlyKeys(expect, {"data", "is", "note"}, place);
 		const std::string path = expect["data"].is_string() ? expect["data"].get<std::string>() : "";
 		if(path.starts_with("data.") || !detail::parseStatePath(path))
-			fail(place + ".data", R"(expected a path into the records, without 'data.': "notes[0].title", "notes.length")");
+			fail(place + ".data",
+			     R"(expected a path into the records, without 'data.': "notes[0].title", "notes.length")");
 		if(!expect.contains("is")) fail(place, R"("data" needs "is": the value expected)");
 	} else if(expect.contains("node")) {
 		checkNodeExpectation(expect, place);

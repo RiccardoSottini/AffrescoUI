@@ -117,7 +117,8 @@ json write(const Running& s, const std::string& kind) {
 			const data::Store::Batch batch(store);
 			json results = json::array();
 			try {
-				for(const json& value : values) results.push_back(store.insert(collection, value, layer.author()).toJson());
+				for(const json& value : values)
+					results.push_back(store.insert(collection, value, layer.author()).toJson());
 			} catch(const data::DataError&) {
 				if(!results.empty()) store.undo(); // the batch's records go again
 				throw;

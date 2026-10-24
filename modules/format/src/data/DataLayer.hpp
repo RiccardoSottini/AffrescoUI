@@ -99,7 +99,7 @@ public:
 	/// @brief Refuses a write the screen's data rules don't let the author make (`/data/<collection>`).
 	/// @param collection The collection written.
 	/// @param where Its place, for errors.
-	/// @throws DocumentError With the rule.
+	/// @throws data::DataError "denied", with the rule.
 	void checkWrite(const std::string& collection, const std::string& where) const;
 
 	/// @brief Groups the writes of the event running into one step of the store's undo, until the event has been

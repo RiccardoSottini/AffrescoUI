@@ -229,7 +229,8 @@ Model parseModel(const std::string& name, const json& definition, const std::str
 			                                 "' can't name a field (letters, digits and _; not id, created "
 			                                 "or updated, which every record has)");
 		Field read = parseField(inner, where + ".fields." + field, 0, count);
-		if(read.unique && (read.type == FieldType::List || read.type == FieldType::Object || read.type == FieldType::Map))
+		if(read.unique &&
+		   (read.type == FieldType::List || read.type == FieldType::Object || read.type == FieldType::Map))
 			malformed(where + ".fields." + field + ".unique", "only a single value can be unique");
 		model.fields.emplace(field, std::move(read));
 		model.order.push_back(field);
@@ -424,8 +425,8 @@ void validateValue(const Field& field, const json& value, const std::string& whe
 	case FieldType::Map:
 		if(!value.is_object()) invalid(where, "expected an object (a map), got " + std::string(value.type_name()));
 		if(value.size() > field.maxItems.value_or(Limits::queryResults))
-			invalid(where, std::format("expected at most {} keys, got {}", field.maxItems.value_or(Limits::queryResults),
-			                           value.size()));
+			invalid(where, std::format("expected at most {} keys, got {}",
+			                           field.maxItems.value_or(Limits::queryResults), value.size()));
 		for(const auto& [key, inner] : value.items()) {
 			if(key.empty() || key.size() > 256) invalid(where, "a map's key is 1 to 256 bytes");
 			if(inner.is_null()) invalid(where + "." + key, "a map's value can't be null");

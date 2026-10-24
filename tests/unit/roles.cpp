@@ -72,7 +72,9 @@ json renameColumn(const std::string& name, int column) {
 	return {{"type", "revision"},
 	        {"author", name},
 	        {"patch",
-	         {{{"op", "replace"}, {"path", "/state/lanes/launch/" + std::to_string(column) + "/name"}, {"value", "Next"}}}}};
+	         {{{"op", "replace"},
+	           {"path", "/state/lanes/launch/" + std::to_string(column) + "/name"},
+	           {"value", "Next"}}}}};
 }
 
 } // namespace
@@ -88,7 +90,8 @@ TEST_CASE("roles: two agents on one template, one leases a column, the other is 
 	const json leased = ada.ask({{"type", "lease"}, {"author", "ada"}, {"target", "/state/lanes/launch/0"}});
 	REQUIRE(leased["type"] == "leased");
 	CHECK(repository.coordination()["leases"][0]["holder"] == "agent/ada");
-	CHECK(bob->ask({{"type", "lease"}, {"author", "bob"}, {"target", "/state/lanes/launch/0/color"}})["type"] == "rejected");
+	CHECK(bob->ask({{"type", "lease"}, {"author", "bob"}, {"target", "/state/lanes/launch/0/color"}})["type"] ==
+	      "rejected");
 
 	// Bob's change is refused, naming the holder; Ada's own goes on (proposed: agents ask on Kanban)
 	const json refused = bob->ask(renameColumn("bob", 0));
@@ -131,9 +134,8 @@ TEST_CASE("roles: an agent can't give itself a role, a lease beyond its rules, o
 	const json beyond = ada.ask({{"type", "lease"}, {"author", "ada"}, {"target", "#statusBar"}});
 	CHECK(beyond["type"] == "rejected");
 	CHECK(beyond["error"].get<std::string>().find("beyond") != std::string::npos);
-	CHECK(ada.ask(
-	          {{"type", "lease"}, {"author", "ada"}, {"target", "/state/lanes/launch/2"}, {"seconds", 99999}})["seconds"] ==
-	      3600);
+	CHECK(ada.ask({{"type", "lease"}, {"author", "ada"}, {"target", "/state/lanes/launch/2"}, {"seconds", 99999}})
+	          ["seconds"] == 3600);
 
 	// A reviewer sets an agent's role and ends a lease; nobody sets their own role
 	CHECK(studio.ask({{"type", "setRole"}, {"author", "agent/ada"}, {"role", "design"}})["type"] == "done");

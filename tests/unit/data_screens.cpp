@@ -207,6 +207,55 @@ TEST_CASE("data screens: a model's importFrom brings the old persist records in 
 	std::filesystem::remove_all(folder);
 }
 
+TEST_CASE("data screens: importCsv imports rows; an agent writes only what its data rules let it") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(480, 320, clock);
+	json document = notes;
+	document["actions"]["csv"] =
+	    json::parse(R"([{ "importCsv": "notes", "text": "{{event.text}}", "into": "state.report" }])");
+	document["permissions"] = {{"data", {{{"author", "agent"}, {"never", {"/data/notes"}}}}}};
+	affresco::Screen screen = affresco::Screen::fromString(document.dump());
+	screen.build(*window);
+	affresco::Panel& root = window->root();
+	screen.runAction("csv", root, json{{"text", "Title,Done\nFrom a file,yes\n,no\n"}}.dump());
+	window->render();
+	const json report = json::parse(screen.stateJson())["report"];
+	CHECK(report["imported"] == 1);
+	CHECK(report["failed"] == 1); // no title
+	CHECK(textOf(screen, "count") == "3 notes, 1 open");
+
+	screen.setDataAuthor("agent/test"); // the host runs an agent's reviewed step
+	screen.runAction("bad", root);      // onError gets the refusal
+	CHECK(json::parse(screen.stateJson())["error"] == "denied");
+	screen.setDataAuthor("");
+	screen.runAction("add", root);
+	window->render();
+	CHECK(textOf(screen, "count") == "4 notes, 2 open");
+}
+
+TEST_CASE("data screens: a previewed proposal that migrates shows its records on a copy; the store stays") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(480, 320, clock);
+	affresco::Screen screen = affresco::Screen::fromString(bareNotes().dump());
+	screen.build(*window);
+	const json renamed = {
+	    {"author", "agent"},
+	    {"set",
+		 {{"/models/notes/version", 2},
+		  {"/models/notes/fields/name", {{"type", "string"}, {"required", true}}},
+		  {"/models/notes/migrations",
+		   json::parse(R"([{ "from": 1, "to": 2, "steps": [{ "rename": "title", "to": "name" }] }])")}}},
+	    {"remove", {"/models/notes/fields/title"}}};
+	const affresco::RevisionResult proposed = screen.submitRevision(renamed.dump());
+	REQUIRE(proposed.status == affresco::RevisionStatus::Proposed); // a migration is always reviewed
+	CHECK(screen.proposals().front().impact["data"] == "migrates 2 records");
+	REQUIRE(screen.previewProposal(proposed.proposal));
+	CHECK(json::parse(screen.dataJson())["notes"][0]["name"] == "First"); // the preview reads a migrated copy
+	CHECK(screen.data().get("notes", "n1")->fields["title"] == "First");  // the store is as it was
+	screen.endPreview();
+	CHECK(json::parse(screen.dataJson())["notes"][0]["title"] == "First");
+}
+
 TEST_CASE("data screens: persisted values that no longer fit the stateTypes open as defaults, kept in a side file") {
 	const auto folder = std::filesystem::temp_directory_path() / "affrescoui-data-rejected-test";
 	std::filesystem::remove_all(folder);
