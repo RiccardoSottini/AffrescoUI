@@ -1,0 +1,56 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "intelligence-settings",
+			"screen": "intelligence-settings.screen.json",
+			"note": "The intelligence settings with the stand-in providers: none set up yet, the first one chosen, its key field and models",
+			"steps": [
+				{ "wait": 50 },
+				{ "expect": { "state": "intelligence.selected", "is": "anthropic" } },
+				{ "expect": { "image": "first-frame" } }
+			]
+		},
+		{
+			"name": "intelligence-compatible",
+			"screen": "intelligence-settings.screen.json",
+			"note": "An OpenAI-compatible server: its base URL field, an optional key, and a model typed by hand",
+			"steps": [
+				{ "click": "#intelligenceProvider2" },
+				{ "wait": 50 },
+				{ "expect": { "state": "intelligence.selected", "is": "openai-compatible" } },
+				{ "expect": { "state": "intelligence.baseUrl", "is": "http://127.0.0.1:11434/v1" } },
+				{ "click": "#intelligenceModelSearch" },
+				{ "type": "llama3.2" },
+				{ "expect": { "image": "typed-model" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "intelligence.model", "is": "llama3.2" } }
+			]
+		},
+		{
+			"name": "intelligence-connected",
+			"screen": "intelligence-settings.screen.json",
+			"note": "A provider in use with a saved key and a passed test, in the dark theme and in French",
+			"steps": [
+				{ "action": "test.connected" },
+				{ "action": "test.dark" },
+				{ "action": "test.french" },
+				{ "wait": 50 },
+				{ "expect": { "image": "dark-french" } }
+			]
+		},
+		{
+			"name": "intelligence-saving-elsewhere",
+			"screen": "intelligence-settings.screen.json",
+			"note": "Without the Launcher's natives, saving says where the settings are changed",
+			"steps": [
+				{ "click": "#intelligenceModel1" },
+				{ "expect": { "state": "intelligence.model", "is": "claude-sonnet-5-5" } },
+				{ "click": "#intelligenceSave" },
+				{ "expect": { "state": "intelligence.error", "is": "These settings can only be changed in the AffrescoUI Launcher." } }
+			]
+		}
+	]
+}

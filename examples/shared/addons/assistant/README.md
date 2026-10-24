@@ -20,16 +20,21 @@ screen without meeting the app's own names.
   or a conversation is kept. `Ctrl+Shift+A` (`Cmd+Shift+A` on
   macOS) opens and closes the panel from anywhere.
 - **The panel**, 380 by up to 560 pixels, which grows in from the launcher. Its header says how many agents are
-  connected, or that none is; with none, a note says how to connect one. An empty conversation shows three suggestions
+  connected, or that none is; with none, a note says to set up a provider of intelligence in the AffrescoUI
+  Launcher's Settings (the host then runs an agent of its own, `examples/shared/intelligence`), or to connect an agent
+  over MCP. An empty conversation shows three suggestions
   to ask with a click.
 - **The conversation**: the person's messages and the replies, a typing indicator while a request is being worked on,
-  and a card for every proposal a reply opened, with its first changes ("set /path to value"). A card's buttons show while the proposal waits for review; after, it
-  says *Accepted*, *Rejected*, or *Closed* (the proposal went another way, e.g. reviewed from the Studio).
+  and a card for every proposal a reply opened, with its first changes ("set /path to value"). Every other proposal
+  waiting for review (one an agent opened without a reply, e.g. from a terminal over MCP) has a card too, after the
+  conversation, so the app's assistant is where the person reviews every change. A card's buttons show while the
+  proposal waits for review; after, it says *Accepted*, *Rejected*, or *Closed* (the proposal went another way, e.g.
+  reviewed by another client).
 - **The composer**: Enter sends, Shift+Enter starts a new line, Escape closes the panel and gives the focus back to the
   launcher. The panel is modal: Tab cycles inside it.
 
 A chat request is a request, never an approval. The agent's change waits as a proposal, and only the person's
-*Accept* on the card (or the Studio's review) merges it; the reviewer is the person, not the agent.
+*Accept* on the card (or another reviewing client's) merges it; the reviewer is the person, not the agent.
 
 ## State and actions
 
@@ -53,6 +58,7 @@ All in `state.assistant`:
 |---|---|
 | `assistant.toggle`, `assistant.open`, `assistant.close` | Open and close the panel |
 | `assistant.ask` | Sends `text` (with `{ "text": … }`) as a request, as the suggestions do |
+| `assistant.start` | Opens the panel and sends `event.text` as a request: what the host's `--ask TEXT` runs once the window is up |
 | `assistant.send` | Sends the draft and empties it |
 | `assistant.preview`, `assistant.accept`, `assistant.reject` | Review the proposal `id` |
 | `assistant.clear` | Forgets the conversation |

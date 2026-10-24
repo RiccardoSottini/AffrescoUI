@@ -7,6 +7,7 @@
 #include "intelligence/Providers.hpp"
 #include "intelligence/ScreenQueries.hpp"
 
+#include <affresco/net/SignIn.hpp>
 #include <affresco/net/Url.hpp>
 
 #include <cctype>
@@ -90,6 +91,15 @@ bool available(const Shared& shared, const Provider& provider) {
 	return shared.options.claudeInstalled ? shared.options.claudeInstalled() : findClaude().has_value();
 }
 
+/// @brief A provider's fallback models.
+/// @param provider The provider.
+/// @return `[{ id, name }]`.
+json fallbackOf(const Provider& provider) {
+	json list = json::array();
+	for(const Model& model : provider.models) list.push_back({{"id", model.id}, {"name", model.name}});
+	return list;
+}
+
 /// @brief What intelligence.providers answers.
 /// @param shared The natives' parts.
 /// @return It.
@@ -110,7 +120,8 @@ json providersJson(const Shared& shared) {
 		                {"baseUrl", endpoint ? endpoint->baseUrl : provider.baseUrl},
 		                {"editableUrl", provider.kind == Kind::OpenAICompatible},
 		                {"model", endpoint ? endpoint->model : provider.model},
-		                {"keyHelp", provider.keyHelp}});
+		                {"keyHelp", provider.keyHelp},
+		                {"models", fallbackOf(provider)}});
 	}
 	const std::optional<Endpoint> current = endpointOf(shared.catalog, settings);
 	return {{"current", {{"provider", current ? current->provider->id : ""}, {"model", current ? current->model : ""}}},
@@ -163,11 +174,7 @@ json save(Shared& shared, const json& arguments) {
 /// @return `[{ id, name }]`.
 json models(const Shared& shared, const json& arguments, affresco::CallProgress& call) {
 	const Provider& provider = providerOf(shared, arguments);
-	const auto fallback = [&provider] {
-		json list = json::array();
-		for(const Model& model : provider.models) list.push_back({{"id", model.id}, {"name", model.name}});
-		return list;
-	};
+	const auto fallback = [&provider] { return fallbackOf(provider); };
 	if(provider.kind == Kind::ClaudeCode) return fallback();
 	std::optional<Endpoint> endpoint = endpointOf(shared.catalog, Settings::load(shared.dataDir), provider.id);
 	if(!endpoint) return fallback();
@@ -263,6 +270,13 @@ void registerCalls(affresco::Screen& screen, const std::filesystem::path& dataDi
 		}
 		if(shared->options.changed) shared->options.changed();
 		return providersJson(*shared).dump();
+	});
+	screen.onCall("intelligence.openKeyHelp", [shared](const std::string& argumentsJson) {
+		// Only the catalogue's own page of a provider: a screen can't make it open a URL of its choosing
+		const Provider& provider = providerOf(*shared, json::parse(argumentsJson, nullptr, false));
+		if(provider.keyHelp.starts_with("https://") && affresco::net::isSignInPage(provider.keyHelp))
+			affresco::net::openInBrowser(provider.keyHelp);
+		return std::string("true");
 	});
 	screen.onAsyncCall("intelligence.models", [shared](const std::string& argumentsJson, affresco::CallProgress& call) {
 		return models(*shared, json::parse(argumentsJson, nullptr, false), call).dump();
