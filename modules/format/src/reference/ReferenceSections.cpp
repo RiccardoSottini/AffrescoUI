@@ -274,6 +274,26 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "library's gestures with their settings, and `limits` only lowers the library's (see Images). Revisions can't "
 	 "change it.",
 	 "capabilities"},
+    {"audio", R"json({"type": "object", "maxProperties": 32,
+		"description": "Sounds the audio step plays, each from one source. Revisions can't change it.",
+		"additionalProperties": {"type": "object", "additionalProperties": false,
+		"properties": {"file": {"type": "string"}, "url": {"type": "string", "pattern": "^https?://"},
+		"source": {"type": "string"}, "tone": {"type": "object", "required": ["frequency", "seconds"],
+		"additionalProperties": false, "properties": {"frequency": {"type": "number", "minimum": 1, "maximum": 20000},
+		"seconds": {"type": "number", "minimum": 0.001, "maximum": 86400},
+		"amplitude": {"type": "number", "minimum": 0, "maximum": 1}}},
+		"into": {"type": "string", "pattern": "^state\\."}, "volume": {"type": "number", "minimum": 0, "maximum": 4},
+		"pan": {"type": "number", "minimum": -1, "maximum": 1}, "rate": {"type": "number", "minimum": 0.25, "maximum": 4},
+		"loop": {"type": "boolean"}, "updates": {"type": "number", "minimum": 50, "maximum": 5000},
+		"maxBytes": {"type": "integer", "minimum": 1024, "maximum": 67108864}, "note": {"type": "string"}}}})json",
+	 "`{\"song\": {\"file\": \"sounds/song.mp3\", \"into\": \"state.song\", \"loop\": true}}`: the sounds the `audio` "
+	 "step plays, each from one source: a `file` (WAV, FLAC or MP3) in the screen's folder or one the host allows, a "
+	 "`url` the host's network allows (streamed), a `source` the host names (`Screen::setAudioSource`), or a `tone` "
+	 "(`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position "
+	 "updates) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, "
+	 "loop, level, underruns, error}`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run "
+	 "(see Audio). A capability: revisions can't change it.",
+	 "capabilities"},
     {"points", R"json({"type": "object", "description": "Contribution points another app's features may fill",
 		"additionalProperties": {"type": "object", "required": ["slot"],
 		"properties": {"slot": {"enum": ["dock", "panel", "menu", "toolbar"]},
@@ -400,8 +420,13 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
     {"image", "",
-	 R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation and publishes the image (see Images))", "steps"},
+	 R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images))", "steps"},
     {"of", "", "", ""},
+    {"audio", R"json({"anyOf": [{"enum": ["play", "pause", "toggle", "stop", "seek", "volume", "pan", "rate", "loop",
+		"master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 R"(`{ "audio": "play", "of": "song" }`: see Audio)",
+	 "steps"},
+    {"from", "", "", ""},
     {"camera", "",
 	 R"(`{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, )"
 	 R"(`zoom`: see `scene`))",

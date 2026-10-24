@@ -157,5 +157,8 @@ void registerSceneSteps(StepRegistry& registry);
 /// @brief Registers the image step: image (imaging/ImageSteps.cpp).
 /// @param registry The registry.
 void registerImageSteps(StepRegistry& registry);
+/// @brief Registers the audio step: audio (audio/AudioSteps.cpp).
+/// @param registry The registry.
+void registerAudioSteps(StepRegistry& registry);
 
 } // namespace affresco::format

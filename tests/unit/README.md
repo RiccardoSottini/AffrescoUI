@@ -31,6 +31,8 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
 | `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review, the log, `render`; `SocketChannel` over a socket pair: lines, the length limit (POSIX); `ProcessChannel` with small shell commands: output lines, stdin, closing ends the child's programs, no inherited pipes |
 | `protocol.cpp` | The live protocol as a table: every message `SCREEN_FORMAT.md` lists, and its answer or error |
 | `peers.cpp` | Limits on peers: the token bucket, a `Session`'s size and rate limits, the user check on accepted sockets, a `SocketChannel`'s bounded send queue |
+| `audio_engine.cpp` | The audio module on engines the test pulls (`Output::Manual`) and on the null device: WAV made in the test decoded, resampled and seeked, tones, voices' gains, fades, balance and rate, PCM and encoded streams in chunks, underruns, events on the executor, the limits, NaN samples and a parser hang the fuzzer found |
+| `audio_format.cpp` | The format's `audio` section and step on a Manual engine: a sound's state and actions, files only from allowed folders, URLs only through the host's network, the host's own sources, and revisions that can't change the section |
 | `checker.cpp` | `format` checker: tables of screens and their findings, the revision policy, the templates (none) |
 | `painter.cpp` | What a `Panel` asks its `Painter` to draw (shadow, rounded fill, border), and a `Painter`'s fallbacks |
 | `png.cpp` | The PNG encoder behind `render` (`modules/screen/src/Png.hpp`): each image decoded again and compared |

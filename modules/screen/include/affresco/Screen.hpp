@@ -34,6 +34,11 @@
 #include <string_view>
 #include <vector>
 
+namespace affresco::audio {
+class Engine;
+class Source;
+} // namespace affresco::audio
+
 namespace affresco {
 
 /// @brief A malformed screen file; what() names the place, e.g. "root.children[1].anchors: unknown edge 'lefft'".
@@ -559,6 +564,28 @@ public:
 	void allowImageDirectory(const std::filesystem::path& directory);
 	/// @brief Waits until every image file asked for is decoded and shown (a picture of the screen does it itself).
 	void waitForImages();
+
+	/* Audio */
+
+	/// @brief The audio engine the file's "audio" section plays on (affresco/audio/Engine.hpp), made at the first
+	/// call: until then every "audio" step says "this host plays no audio". It plays to the system's output, or to no
+	/// hardware when $AFFRESCOUI_AUDIO_OUTPUT is "null" (CI, a host under test); its events go to the Screen's
+	/// executor. Calling it is the host's choice to let the screen make sound.
+	/// @return The engine, owned by the Screen; nullptr if the library was built without audio (AFFRESCOUI_AUDIO=OFF).
+	audio::Engine* audio();
+	/// @brief Sets the audio engine the screen plays on instead (e.g. one shared by several screens, or a Manual one
+	/// in a test); its events go to the executor it was made with.
+	/// @param engine The engine, or null for none.
+	void setAudio(std::shared_ptr<audio::Engine> engine);
+	/// @brief Names a source the host makes, for sounds that say `"source": name`: a live audio::PcmStream or
+	/// audio::EncodedStream the application feeds from its own thread, bytes it holds, a generator.
+	/// @param name The name.
+	/// @param source The source, or nullptr to remove it.
+	void setAudioSource(const std::string& name, std::shared_ptr<audio::Source> source);
+	/// @brief Allows the screen's sound files to come from a folder too. By default only the screen file's own folder
+	/// (and the folders inside it) is allowed.
+	/// @param directory The folder.
+	void allowAudioDirectory(const std::filesystem::path& directory);
 
 private:
 	struct Impl;

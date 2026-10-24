@@ -54,6 +54,7 @@ void Engine::documentChanged() {
 	document.readDerived();
 	document.bumpStateVersion(); // a revision may change the state too
 	serviceCalls.load();         // a restore may change the services or the connections
+	audio.documentChanged();     // and the sounds, through an include or a feature
 	reconciler.reconcile();
 }
 

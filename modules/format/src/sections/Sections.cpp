@@ -139,6 +139,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({.name = "include", .inDocument = false}); // merged when the file is read (Screen)
 	registry.add(permissionsSection());
 	registry.add(imagesSection());
+	registry.add(audioSection());
 	registry.add({"features", checkFeaturesSection}); // installed features, merged by Composition (FeatureManifest.hpp)
 	registry.add({"exports", checkExportsSection});   // what features read as app.<name>
 	registry.add({"imports", checkImportsSection});   // aliases for features' components

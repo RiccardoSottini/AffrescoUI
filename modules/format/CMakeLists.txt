@@ -51,6 +51,7 @@ target_sources(affrescoui_format PRIVATE
 	src/checker/Checker.cpp
 	src/checker/CheckerNodes.cpp
 	src/checker/CheckerImages.cpp
+	src/checker/CheckerAudio.cpp
 	src/checker/CheckerTypes.cpp
 	src/checker/CheckerValues.cpp
 	src/checker/StateTypes.cpp)
@@ -157,6 +158,14 @@ target_sources(affrescoui_format PRIVATE src/imaging/ImageDocuments.cpp src/imag
 	src/imaging/ImageSteps.cpp src/imaging/ImagePublishing.cpp src/imaging/RasterView.cpp
 	src/imaging/RasterOverlays.cpp src/imaging/RasterType.cpp)
 target_link_libraries(affrescoui_format PRIVATE affrescoui::imaging)
+# audio: the sounds a screen plays ("audio" section, "audio" step), on the audio module if it is built
+target_sources(affrescoui_format PRIVATE src/audio/AudioSection.cpp src/audio/AudioSteps.cpp)
+if(AFFRESCOUI_AUDIO)
+	target_sources(affrescoui_format PRIVATE src/audio/AudioPlayers.cpp)
+	target_link_libraries(affrescoui_format PRIVATE affrescoui::audio)
+else()
+	target_sources(affrescoui_format PRIVATE src/audio/AudioPlayersNone.cpp)
+endif()
 # properties: the properties node types share: look, layout, accessibility, transform, text fields, icons, runs
 target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/CommonProperties.cpp
 	src/properties/PropertyValues.cpp src/properties/LayoutProperties.cpp src/properties/AccessibilityProperties.cpp
@@ -184,4 +193,4 @@ target_sources(affrescoui_format PRIVATE src/adapters/Layout.cpp src/adapters/A2
 	src/adapters/AdaptiveCards.cpp src/adapters/AdaptiveCardActions.cpp src/adapters/Adapters.cpp
 	src/adapters/AdapterMapping.cpp)
 target_include_directories(affrescoui_format PRIVATE src/types src/controls src/components src/creative src/properties
-	src/reference src/sections src/connections src/features src/composition src/adapters src/imaging)
+	src/reference src/sections src/connections src/features src/composition src/adapters src/imaging src/audio)

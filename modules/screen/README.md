@@ -11,7 +11,7 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 
 | Header | Offers |
 |---|---|
-| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, also as a second window sharing another's context, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`, `setSignInOptions`), change (`submit`, `commit`, proposals, history, change sets, `installChanges` and `repairs` for self-repairing ones), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
+| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, also as a second window sharing another's context, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`, `setSignInOptions`), change (`submit`, `commit`, proposals, history, change sets, `installChanges` and `repairs` for self-repairing ones), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); audio (`audio`, `setAudio`, `setAudioSource`, `allowAudioDirectory`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
 
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
@@ -39,6 +39,10 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
 - **Origins are the host's grants too:** `network()` is the screen's `net::Client`, made at the first call. The
   file's `connections` reach only the origins the host allows (`network().allow("https://api.example.com")`); its
   results arrive through the screen's executor.
+- **Sound is the host's grant too:** `audio()` is the screen's `audio::Engine`, made at the first call (the system's
+  output, or none with `$AFFRESCOUI_AUDIO_OUTPUT=null`); until then the file's `audio` steps say the host plays
+  no audio. Its sounds' files come only from the screen's folder and those `allowAudioDirectory` allows, its URLs
+  only through `network()`. Built without the audio module (`AFFRESCOUI_AUDIO=OFF`), `audio()` returns nullptr.
 - **Data stays with the user:** the history and `persist` state live under `defaultDataDirectory()`
   (`$AFFRESCOUI_DATA_DIR`, else `~/.affrescoui`), and sockets under `defaultSocketDirectory()`.
 - **The window must outlive the `Screen`.** A screen destroyed first takes back its timers, deferred tasks, native menu bar and

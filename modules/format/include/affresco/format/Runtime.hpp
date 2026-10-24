@@ -30,6 +30,11 @@
 #include <string_view>
 #include <vector>
 
+namespace affresco::audio {
+class Engine;
+class Source;
+} // namespace affresco::audio
+
 namespace affresco::format {
 
 /// @brief What the last update of the panels cost: read with Runtime::lastUpdate(), for an inspector.
@@ -266,6 +271,23 @@ public:
 
 	/// @brief Waits until every image file asked for is decoded, and shows them: before a picture of the screen.
 	void waitForImages();
+
+	/* Audio */
+
+	/// @brief Sets the engine the "audio" section's sounds play on (affresco/audio/Engine.hpp). Without one, every
+	/// "audio" step says "this host plays no audio" in the sound's state. Sounds playing on another engine stop.
+	/// @param engine The engine, or null.
+	void setAudio(std::shared_ptr<audio::Engine> engine);
+	/// @brief The engine the sounds play on, or null.
+	[[nodiscard]] std::shared_ptr<audio::Engine> audio() const;
+	/// @brief Names a source the host makes (a live PcmStream or EncodedStream, bytes it decoded, a generator) for the
+	/// sounds that say `"source": name`.
+	/// @param name The name.
+	/// @param source The source, or null to remove it.
+	void setAudioSource(const std::string& name, std::shared_ptr<audio::Source> source);
+	/// @brief Allows sounds' files from a folder too: by default only the screen's own folder (and those inside it).
+	/// @param directory The folder.
+	void allowAudioDirectory(const std::filesystem::path& directory);
 
 	/// @brief Looks a font up in "fonts".
 	/// @param name The name.

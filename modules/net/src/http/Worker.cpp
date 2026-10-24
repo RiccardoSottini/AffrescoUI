@@ -30,10 +30,24 @@ std::string_view withoutLineEnding(std::string_view line) noexcept {
 	return line;
 }
 
+/// @brief Posts a chunk of a byte stream's body, in parts of at most its maxBodyBytes.
+/// @param job The job.
+/// @param chunk The bytes.
+/// @return false if too many events wait for the main thread.
+bool postBytes(Job& job, std::string_view chunk) {
+	const std::size_t part = std::max<std::size_t>(job.request.maxBodyBytes, 1);
+	for(std::size_t at = 0; at < chunk.size(); at += part) {
+		if(job.delivery->undelivered > job.maxUndelivered) return false;
+		postEvent(*job.executor, job.delivery, {"bytes", std::string(chunk.substr(at, part)), {}});
+	}
+	return true;
+}
+
 /// @brief Creates the parser of a stream once its response is a success.
 /// @param job The job.
 void startStream(Job& job) {
 	EventSink sink = [&job](network::StreamEvent event) { postEvent(*job.executor, job.delivery, std::move(event)); };
+	if(job.request.stream == network::Stream::Bytes) return; // the chunks go out as they are (postBytes)
 	if(job.request.stream == network::Stream::Events)
 		job.events = std::make_unique<EventStreamParser>(job.request.maxBodyBytes, std::move(sink));
 	else
@@ -85,6 +99,13 @@ std::size_t onBody(char* buffer, std::size_t size, std::size_t count, void* user
 	Job& job = *static_cast<Job*>(user);
 	const std::size_t length = size * count;
 	if(job.delivery->cancelled) return 0; // nobody listens any more
+	if(job.request.stream == network::Stream::Bytes && job.headersDone && job.status >= 200 && job.status < 300) {
+		if(!postBytes(job, {buffer, length})) {
+			job.tooLarge = true;
+			return 0;
+		}
+		return length;
+	}
 	if(job.streaming() && (job.events || job.lines)) {
 		const std::string_view chunk{buffer, length};
 		const bool fed = job.events ? job.events->feed(chunk) : job.lines->feed(chunk);

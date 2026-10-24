@@ -1,5 +1,6 @@
 # The AffrescoUI package (cmake/AffrescoUIInstall.cmake): find_package(AffrescoUI 0.1 CONFIG) defines the targets
-# affrescoui::affrescoui (everything) and affrescoui::core, ::render, ::format, ::vcs, ::channel, ::net and ::services (one module each).
+# affrescoui::affrescoui (everything) and affrescoui::core, ::render, ::format, ::vcs, ::channel, ::net, ::services
+# and, when built with it, ::audio (one module each).
 
 @PACKAGE_INIT@
 
@@ -16,6 +17,11 @@ if(@AFFRESCOUI_SYSTEM_CURL@)
 	find_dependency(CURL)
 else()
 	find_dependency(CURL @AFFRESCOUI_CURL_VERSION@ EXACT CONFIG HINTS "${PACKAGE_PREFIX_DIR}")
+endif()
+
+# The audio module's threads (Linux and other Unix systems: miniaudio links them)
+if(@AFFRESCOUI_AUDIO@ AND UNIX AND NOT APPLE)
+	find_dependency(Threads)
 endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/AffrescoUITargets.cmake")

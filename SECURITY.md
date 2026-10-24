@@ -326,6 +326,18 @@ opens. Every message that arrives
 there runs the screen's `<name>:<type>` action, if it has one, with the message as its event, so the program at the
 other end can run those actions with any data. Revisions can't change `channels` or add `send` and `connect` steps.
 
+### Sounds a screen declares
+A screen's `audio` section names the sounds it plays (SCREEN_FORMAT.md, "Audio"). It is a capability: a revision
+can't add, change or remove a sound, so it can't make the screen play a file or a URL nobody reviewed. A revision may
+add `audio` steps (play, pause, seek, volume) for the sounds declared: they aren't control steps, since they reach
+nothing new, and an agent could make the app loud or play in a loop, which a reviewer sees in the step. A screen makes
+no sound until the host gives it an engine (`Screen::audio()`; the stock host does for a screen whose file declares
+sounds); the rendering check, scenarios and pictures of a proposal get none. A sound's `file` plays only from inside
+the screen's folder or one the host allows (`Screen::allowAudioDirectory`), resolved with symbolic links followed,
+like an image; its `url` goes through the host's network and its allowlist (`network.allow`), streamed with the same
+checks as a connection's request; its `source` is only what the host named (`Screen::setAudioSource`). A file that
+can't play is reported by its name, never its folder.
+
 ### Requests relayed between peers
 `request` and `reply` messages aren't interpreted. The host passes them to every other peer, with `from` set to the
 sender's author. A request is how a person asks an agent for a change, so an agent should treat it as instructions
@@ -545,6 +557,14 @@ Input from peers, revisions and change sets is limited so that one message can't
 | An image file (`image` nodes; regular files only, inside the screen's folder or one the host allows) | 64 MiB |
 | A decoded image (from its header, before any pixel is decoded) | 8,192 pixels a side, 4,096 × 4,096 pixels in all |
 | What a PNG inflates to while it is decoded (from its header) | Twice its compressed bytes, plus twice its rows at 16 bits and 4 channels, plus 1 MiB; stb_image's buffers can't grow past it, so a small file can't inflate to gigabytes |
+| A sound's file (`audio` section; regular files only, inside the screen's folder or one the host allows) | 1 GiB (`audio::Limits`) |
+| Encoded bytes in memory a voice plays | 256 MiB |
+| How long a file or bytes in memory play | A day: a sound whose length is longer is refused, one whose length isn't known ends there |
+| Voices of one audio engine | 64 |
+| A URL's stream, buffered and not yet decoded (`maxBytes`) | 8 MiB by default, 64 MiB at most; past it the download stops and the sound plays what it holds |
+| A stream's buffers (`PcmStream`, `EncodedStream`) | 2^23 frames; 256 MiB of encoded bytes; a push that doesn't fit is refused whole |
+| Sounds a screen declares | 32 |
+| A sound's events | A position update every 50 ms at most (250 ms by default); past 1,024 events waiting for the main thread, position updates are dropped |
 | A font's GSUB and GPOS lookups, read by the plain-text fast path | A million rules, subtables, lookup records and glyphs; past it, a lookup is treated as unbounded and its text is shaped by HarfBuzz |
 | Image files waiting to be decoded | 256; more show nothing |
 | Decoded image files kept that nothing shows (least recently used dropped first) | 256 MiB |
@@ -789,6 +809,13 @@ removes the gap from this list.
   libvterm inside Forge's terminal widget. The `pty` provider bounds it (the limits above) and the widget acts on few
   sequences, but no fuzz target covers the parser yet (`tests/fuzz/README.md`, "Inventory of untrusted inputs"): run
   in a terminal only programs you would run in your own. Tracking: G-24.
+- **Sound files are decoded by miniaudio's decoders** (dr_wav, dr_flac and dr_mp3, single-header C). A file in an
+  allowed folder or a URL the host allows can hold anything, and it is decoded on the audio thread or a stream's
+  own. The input is bounded (the limits above), read through the module's own bounded file system, compiled with
+  `-fwrapv`, made finite before it is mixed, and fuzzed (`audio`), which found a parser hang, a signed overflow and NaN
+  samples, all handled; but these decoders are not as hardened as the system's. Ogg Vorbis isn't built in for this
+  reason (stb_vorbis has had memory-safety bugs on crafted files). As with images, a sound file is checked by path,
+  then opened. Tracking: G-26.
 - **Dependencies aren't scanned for known vulnerabilities.** Every third-party component is pinned by version and
   SHA-256 and listed in the SBOM each release carries (`cmake/dependencies.json`), and Dependabot proposes updates to
   the workflows' actions; but no job matches the pinned versions against vulnerability databases, so a known flaw is

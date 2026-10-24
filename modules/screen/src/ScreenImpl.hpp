@@ -80,6 +80,7 @@ struct Screen::Impl {
 	detail::RelayExecutor relay;                         ///< The network's executor.
 	std::unique_ptr<net::Client> network;                ///< See Screen::network(); outlives the runtime.
 	std::unique_ptr<net::SignIn> signIn;                 ///< The connections' "auth"; outlives the runtime.
+	std::shared_ptr<audio::Engine> audio;                ///< See Screen::audio(); posts to relay.
 	format::Rules rules;                                 ///< The format's rules.
 	vcs::Repository repository;                          ///< Document, state, history, review.
 	vcs::ChangeSetRepairs repairs{repository, "screen"}; ///< Installed change sets and their repairs.
