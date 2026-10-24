@@ -107,7 +107,21 @@ json write(const Running& s, const std::string& kind) {
 	const std::string collection = named.get<std::string>();
 	layer.checkWrite(collection, s.where);
 	if(kind == "insert") {
-		if(!s.step.contains("value")) fail(s.where, "expected \"value\": the record's fields");
+		if(s.step.contains("values")) { // many records at once: one step of undo, all of them or none
+			const json values = s.value("values");
+			if(!values.is_array() || values.size() > data::Limits::seedRecords)
+				fail(s.where + ".values", "expected a list of at most 10000 records");
+			const data::Store::Batch batch(store);
+			json results = json::array();
+			try {
+				for(const json& value : values) results.push_back(store.insert(collection, value, layer.author()).toJson());
+			} catch(const data::DataError&) {
+				if(!results.empty()) store.undo(); // the batch's records go again
+				throw;
+			}
+			return results;
+		}
+		if(!s.step.contains("value")) fail(s.where, "expected \"value\" (the record's fields) or \"values\"");
 		return store.insert(collection, s.value("value"), layer.author()).toJson();
 	}
 	if(kind == "importCsv") {
@@ -163,7 +177,7 @@ std::optional<bool> runDataStep(const Running& s) {
 
 void registerDataSteps(StepRegistry& registry) {
 	registry.add({"data",
-	              {{"insert", {"value", "into", "then", "onError"}},
+	              {{"insert", {"value", "values", "into", "then", "onError"}},
 	               {"update", {"id", "where", "fields", "into", "then", "onError"}},
 	               {"delete", {"id", "where", "into", "then", "onError"}},
 	               {"undoData", {"into", "then", "onError"}},

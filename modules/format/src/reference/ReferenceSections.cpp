@@ -462,6 +462,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "steps"},
     {"where", "", "", ""},
     {"fields", "", "", ""},
+    {"values", "", "", ""},
     {"file", "", "", ""},
     {"text", "", "", ""},
     {"columns", "", "", ""},

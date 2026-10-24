@@ -110,7 +110,7 @@
 			"steps": [
 				{ "click": "#label-menu", "nth": 0 },
 				{ "expect": { "state": "page", "is": "library" } },
-				{ "expect": { "state": "library[2999].cells[0]", "is": 3000 } },
+				{ "expect": { "data": "songs[2999].number", "is": 3000 } },
 				{ "expect": { "node": "#libraryCount", "text": "3,000 songs  ·  find one with Cmd+P" } },
 				{ "click": [400, 237], "note": "the third row" },
 				{ "expect": { "state": "libraryPick", "is": "2" } },
