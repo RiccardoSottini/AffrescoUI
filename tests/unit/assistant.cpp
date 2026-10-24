@@ -226,3 +226,23 @@ TEST_CASE("assistant: requests and replies are bounded") {
 		CHECK(asking.state()["seen"].size() == 64);
 	}
 }
+
+TEST_CASE("assistant: a request's options go to the agents as they are, an object of at most 4 KiB") {
+	std::string text = askingScreen;
+	const std::string send = R"("send": [{ "ask": "{{state.draft}}", "into": "state.asked" }],)";
+	text.replace(text.find(send), send.size(),
+	             R"("send": [{ "ask": "{{state.draft}}", "into": "state.asked", "options": "{{ {model: 'opus'} }}" }],
+		"plain": [{ "ask": "{{state.draft}}", "options": {} }],
+		"text": [{ "ask": "{{state.draft}}", "options": "opus" }],
+		"huge": [{ "ask": "{{state.draft}}", "options": "{{ {model: pad('', 5000)} }}" }],)");
+	Asking asking(text.c_str());
+	asking.screen.connect(asking.agent, "agent");
+	asking.run("send");
+	asking.run("plain");
+	REQUIRE(asking.requests().size() == 2);
+	CHECK(asking.requests()[0]["options"] == json{{"model", "opus"}});
+	CHECK_FALSE(asking.requests()[1].contains("options")); // empty: nothing to say
+	asking.run("text");
+	asking.run("huge");
+	CHECK(asking.requests().size() == 2); // refused: not an object, or too large
+}

@@ -29,6 +29,8 @@ enum class Kind {
 struct Model {
 	std::string id;   ///< What the API is sent, e.g. "claude-sonnet-5-5".
 	std::string name; ///< For people, e.g. "Claude Sonnet 5.5".
+	/// When to use it, one line per language (`{"en": ..., "es": ...}`), or null.
+	affresco::json description;
 };
 
 /// @brief One provider of the catalogue (providers.json).
@@ -42,6 +44,17 @@ struct Provider {
 	std::string model;         ///< The model chosen when the person hasn't chosen one.
 	std::vector<Model> models; ///< The fallback list, when the live one can't be read.
 	bool shown = true;         ///< Whether the settings offer it ("shown" in providers.json); a hidden one isn't used.
+	bool fixedModels = false;  ///< Whether models is the whole choice ("fixedModels"): no live list, no other model.
+
+	/// @brief Whether the catalogue lists a model of this provider.
+	/// @param wanted The model.
+	/// @return Whether models has it.
+	[[nodiscard]] bool lists(const std::string& wanted) const;
+	/// @brief The model a request uses: the one it asks for if the catalogue lists it, else the default given.
+	/// @param requested The model the request asks for, or "".
+	/// @param otherwise The person's default (Endpoint::model).
+	/// @return It.
+	[[nodiscard]] std::string modelFor(const std::string& requested, const std::string& otherwise) const;
 };
 
 /// @brief The catalogue of providers.
@@ -105,7 +118,8 @@ struct Endpoint {
 	std::string key;                    ///< The key, read from the keychain at the moment it is needed; may be "".
 };
 
-/// @brief The provider the settings name, with its base URL and model (no key).
+/// @brief The provider the settings name, with its base URL and model (no key). A provider with fixedModels gives
+/// its default model in place of a saved one it doesn't list.
 /// @param catalog The catalogue.
 /// @param settings The settings.
 /// @param providerId A provider to use instead of the settings' one, or "".

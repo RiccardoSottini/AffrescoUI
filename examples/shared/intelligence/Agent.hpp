@@ -59,7 +59,8 @@ struct AgentOptions {
 /// Requests from the screen's own chat (`request` messages with `"source": "screen"`) are queued and worked on one at
 /// a time on a thread of its own, so the window never waits: it reads the screen and submits revisions through the
 /// live protocol (posted to the main thread), and calls the provider (an HTTP client allowing its origin only, or
-/// the claude command line with no tools). Errors come back as the reply's `error`, without secrets.
+/// the claude command line with no tools). A request's `options.model` is used when the provider in use lists it, else
+/// the person's default. Errors come back as the reply's `error`, without secrets.
 class ProviderAgent final : public affresco::Channel {
 public:
 	/// @brief Starts the thread.
@@ -86,8 +87,9 @@ public:
 private:
 	/// @brief A request from the chat.
 	struct Job {
-		std::string id;   ///< The request's id, which the reply names.
-		std::string text; ///< What the person asked.
+		std::string id;    ///< The request's id, which the reply names.
+		std::string text;  ///< What the person asked.
+		std::string model; ///< The model it asks for (`options.model`), or "" for the person's default.
 	};
 
 	/// @brief The thread: works on the jobs, one at a time.

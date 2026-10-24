@@ -12,7 +12,8 @@ def object_schema(properties=None, required=None):
 TOOLS = [
     {"name": "wait_for_request",
      "description": "Wait for the next change request a person sends from inside the app (its chat) or from "
-                    "a client on studio.sock, and return it (request_id, from, text, origin: \"app\" or \"studio\"). "
+                    "a client on studio.sock, and return it (request_id, from, text, origin: \"app\" or \"studio\", and options when the "
+                    "app's chat sent some, e.g. {\"model\": \"sonnet\"}: the model the person chose). "
                     "Returns right away if some are already waiting; returns {\"request\": null} after the timeout. "
                     "Not needed when requests arrive as <channel> events.",
      "inputSchema": object_schema({"timeout_seconds": {"type": "integer", "description": "Default 120, at most 600"}})},

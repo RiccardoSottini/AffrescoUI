@@ -572,3 +572,79 @@ TEST_CASE("intelligence: the settings offer only the providers the catalogue sho
 	chosen.save(data.path);
 	CHECK(settings.run("providers")["current"]["provider"] == "");
 }
+
+TEST_CASE("intelligence: Claude Code offers its four models, Sonnet by default, and nothing else") {
+	const intelligence::Catalog catalog = intelligence::Catalog::standard();
+	const intelligence::Provider& claude = *catalog.find("claude-code");
+	CHECK(claude.model == "sonnet");
+	CHECK(claude.fixedModels);
+	REQUIRE(claude.models.size() == 4);
+	for(const char* id : {"sonnet", "opus", "fable", "haiku"}) CHECK(claude.lists(id));
+	for(const intelligence::Model& model : claude.models) {
+		CHECK(model.name.starts_with("Claude "));
+		for(const char* language : {"en", "es", "fr"}) CHECK(model.description.value(language, "") != "");
+	}
+	// A request's model is used when the provider lists it, else the person's default
+	CHECK(claude.modelFor("opus", "sonnet") == "opus");
+	CHECK(claude.modelFor("gpt-5", "sonnet") == "sonnet");
+	CHECK(claude.modelFor("", "haiku") == "haiku");
+	// A saved model it doesn't list (retired, or written by hand) gives the default
+	intelligence::Settings settings;
+	settings.provider = "claude-code";
+	settings.model = "--dangerous";
+	CHECK(intelligence::endpointOf(catalog, settings)->model == "sonnet");
+	settings.model = "fable";
+	CHECK(intelligence::endpointOf(catalog, settings)->model == "fable");
+
+	const DataFolder data;
+	SettingsScreen screen(data.path);
+	const json answer = screen.run("save", {{"provider", "claude-code"}, {"model", "claude-opus-4"}});
+	CHECK(screen.error().find("choose one of Claude Code's models") != std::string::npos);
+	CHECK(answer.is_null());
+	const json saved = screen.run("save", {{"provider", "claude-code"}, {"model", "haiku"}});
+	CHECK(saved["current"]["model"] == "haiku");
+	CHECK(providerIn(saved, "claude-code")["defaultModel"] == "sonnet");
+	CHECK(providerIn(saved, "claude-code")["fixedModels"] == true);
+	CHECK(providerIn(saved, "claude-code")["models"][0]["description"]["fr"].is_string());
+}
+
+TEST_CASE("intelligence: assistant.models only reads: the provider in use, the default and the models") {
+	const DataFolder data;
+	affresco::detail::ManualClock clock;
+	const std::unique_ptr<affresco::Window> window = affresco::detail::createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"({"format": "affrescoui-screen", "version": 2,
+		"state": {"out": null, "error": ""},
+		"actions": {
+			"models": [{"call": "assistant.models", "with": {"provider": "openai", "model": "x"}, "into": "state.out"}],
+			"save": [{"call": "intelligence.save", "with": {"provider": "openai"}, "into": "state.out",
+			          "onError": [{"set": "state.error", "to": "{{error}}"}]}]
+		},
+		"root": {"id": "page"}})");
+	intelligence::registerAssistantModels(screen, data.path);
+	screen.build(*window);
+	const auto run = [&](const char* name) {
+		screen.runAction(name, window->root(), "{}");
+		window->render();
+		return json::parse(screen.stateJson());
+	};
+
+	json state = run("models");
+	CHECK(state["out"] == json{{"provider", ""}, {"default", ""}, {"models", json::array()}}); // none chosen yet
+
+	intelligence::Settings settings;
+	settings.provider = "claude-code";
+	settings.model = "opus";
+	settings.save(data.path);
+	const std::string before = readFile(intelligence::Settings::file(data.path));
+	state = run("models");
+	CHECK(state["out"]["provider"] == "Claude Code");
+	CHECK(state["out"]["default"] == "opus");
+	REQUIRE(state["out"]["models"].size() == 4);
+	CHECK(state["out"]["models"][0] == json{{"id", "sonnet"}, {"name", "Claude Sonnet 5.5"}});
+	CHECK(state["out"].dump().find("baseUrl") == std::string::npos);
+	CHECK(readFile(intelligence::Settings::file(data.path)) == before); // its arguments change nothing
+
+	state = run("save"); // the settings' natives aren't there: a screen can't change the provider
+	CHECK(state["out"]["default"] == "opus");
+	CHECK(readFile(intelligence::Settings::file(data.path)) == before);
+}

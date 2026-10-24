@@ -30,6 +30,7 @@ public:
 	static constexpr std::size_t maxRequests = 64;          ///< Requests kept; the oldest finished one goes first.
 	static constexpr std::size_t maxReplies = 256;          ///< Replies kept per request; the oldest goes first.
 	static constexpr std::size_t maxAsk = 16384;            ///< The longest request, in bytes.
+	static constexpr std::size_t maxOptions = 4096;         ///< The most bytes of a request's options, as JSON.
 	static constexpr std::size_t maxText = 65536;           ///< A reply's text and error are cut to this many bytes.
 	static constexpr std::size_t maxFrom = 256;             ///< A replier's name is cut to this many bytes.
 	static constexpr std::string_view action = "ask:reply"; ///< The action a reply runs, if the screen has it.
@@ -47,9 +48,11 @@ public:
 	/// @brief Records a request and sends it to the peers after the event (Runtime::onAsk).
 	/// @param text What the person asks.
 	/// @param where The step, for errors.
+	/// @param options What the agents are told with it (`options`: e.g. the model to use), an object or null.
 	/// @return The request's id, unique across runs ("ask-<milliseconds>-<n>").
-	/// @throws DocumentError If the text is empty or longer than maxAsk.
-	std::string send(const std::string& text, const std::string& where);
+	/// @throws DocumentError If the text is empty or longer than maxAsk, or the options aren't an object of at most
+	/// maxOptions bytes.
+	std::string send(const std::string& text, const std::string& where, const json& options = json());
 
 	/// @brief Takes a reply to one of the screen's requests: records it, finds the proposals its replier made since
 	/// the request, and runs "ask:reply" with `{"request", "from", "text", "done", "error", "proposals", "time"}`.

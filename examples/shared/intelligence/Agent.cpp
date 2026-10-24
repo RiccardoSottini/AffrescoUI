@@ -125,6 +125,18 @@ json firstObject(const std::string& text) {
 	return json::parse(text.substr(open, close - open + 1), nullptr, false);
 }
 
+/// @brief The model a request asks for: its `options.model`, if it is a short text.
+/// @param request The request.
+/// @return It, or "" (any other value is ignored; the run checks the provider lists it).
+std::string requestedModel(const json& request) {
+	const auto options = request.find("options");
+	if(options == request.end() || !options->is_object()) return "";
+	const auto model = options->find("model");
+	return model != options->end() && model->is_string() && model->get_ref<const std::string&>().size() <= 200
+	           ? model->get<std::string>()
+			   : "";
+}
+
 } // namespace
 
 /// @brief One request's work, on the agent's thread.
@@ -133,8 +145,9 @@ public:
 	/// @brief Prepares it.
 	/// @param agent The agent.
 	/// @param text The request.
-	AgentRun(ProviderAgent& agent, std::string text)
-	    : agent_(agent), options_(agent.options_), text_(std::move(text)),
+	/// @param model The model it asks for, or "" for the person's default.
+	AgentRun(ProviderAgent& agent, std::string text, std::string model = {})
+	    : agent_(agent), options_(agent.options_), text_(std::move(text)), model_(std::move(model)),
 	      deadline_(std::chrono::steady_clock::now() + agent.options_.budget) {}
 
 	/// @brief Works on it.
@@ -148,6 +161,7 @@ public:
 			        true};
 		endpoint_ = *chosen;
 		const Provider& provider = *endpoint_.provider;
+		endpoint_.model = provider.modelFor(model_, endpoint_.model); // the chat's choice, if the provider lists it
 		if(provider.kind != Kind::ClaudeCode) {
 			if(const std::optional<std::string> refused = checkBaseUrl(endpoint_)) return {*refused, true};
 			endpoint_.key = options_.keys ? readKey(*options_.keys, endpoint_) : "";
@@ -400,6 +414,7 @@ private:
 	ProviderAgent& agent_;                           ///< The agent.
 	const AgentOptions& options_;                    ///< Its options.
 	std::string text_;                               ///< The request.
+	std::string model_;                              ///< The model it asks for, or "".
 	std::chrono::steady_clock::time_point deadline_; ///< When it must end.
 	Endpoint endpoint_;                              ///< The provider, with its key.
 	json document_;                                  ///< The screen, as last read.
@@ -442,6 +457,7 @@ void ProviderAgent::send(std::string_view message) {
 			return;
 		const std::string id = in["id"].get<std::string>();
 		const std::string text = in.contains("text") && in["text"].is_string() ? in["text"].get<std::string>() : "";
+		const std::string model = requestedModel(in);
 		const auto now = std::chrono::steady_clock::now();
 		while(!taken_.empty() && now - taken_.front() >= std::chrono::minutes(1)) taken_.pop_front();
 		if(taken_.size() >= options_.requestsPerMinute) {
@@ -454,7 +470,7 @@ void ProviderAgent::send(std::string_view message) {
 		{
 			const std::scoped_lock lock(mutex_);
 			busy = jobs_.size() >= maxQueued;
-			if(!busy) jobs_.push_back({id, text});
+			if(!busy) jobs_.push_back({id, text, model});
 		}
 		if(busy) {
 			deliver({{"type", "reply"}, {"request", id}, {"error", "The assistant is busy: ask again in a moment."}});
@@ -492,7 +508,7 @@ void ProviderAgent::answer(const Job& job) {
 	deliver({{"type", "reply"}, {"request", job.id}, {"done", false}}); // marks it "working": the typing dots
 	std::pair<std::string, bool> said;
 	try {
-		said = AgentRun(*this, job.text).run();
+		said = AgentRun(*this, job.text, job.model).run();
 	} catch(const std::exception&) {
 		said = {"The assistant failed on this request.", true};
 	}

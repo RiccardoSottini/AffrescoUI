@@ -299,10 +299,10 @@ public:
 	Signal<const std::string&> onError; ///< Errors in handlers and deferred changes (also printed on stderr).
 	Signal<const std::string&, const json&> onSend; ///< "send" steps: a channel's name and the message.
 	Signal<const std::string&> onConnect;           ///< "connect" steps: a channel's name.
-	/// "ask" steps, after the event: `{"type": "request", "id", "text", "from": "user", "source": "screen"}`, a request
-	/// from the screen's own person for the peers. Answer it with receiveReply().
+	/// "ask" steps, after the event: `{"type": "request", "id", "text", "from": "user", "source": "screen",
+	/// "options"?}`, a request from the screen's own person for the peers. Answer it with receiveReply().
 	Signal<const json&> onAsk;
-	Signal<> onUpdated;                             ///< The panels were brought in line with the document and state.
+	Signal<> onUpdated; ///< The panels were brought in line with the document and state.
 	Usage usage; ///< Usage summaries (VERSION_CONTROL.md, "Usage"): off until the host switches them on, with consent.
 
 private:

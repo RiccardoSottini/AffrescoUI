@@ -77,6 +77,26 @@
 			]
 		},
 		{
+			"name": "assistant-models",
+			"screen": "assistant.screen.json",
+			"note": "The model picker in the header: the person's default, the provider's models with the default marked, and a choice kept for the app (the default itself kept as '')",
+			"steps": [
+				{ "action": "test.models" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "picker" } },
+				{ "click": "#assistantModelPicker" },
+				{ "expect": { "state": "assistant.modelMenu", "is": true } },
+				{ "expect": { "image": "menu" } },
+				{ "action": "test.pick", "event": { "id": "opus" } },
+				{ "expect": { "state": "assistant.model", "is": "opus" } },
+				{ "expect": { "state": "assistant.modelMenu", "is": false } },
+				{ "expect": { "image": "picked" } },
+				{ "action": "test.pick", "event": { "id": "sonnet" } },
+				{ "expect": { "state": "assistant.model", "is": "" } }
+			]
+		},
+		{
 			"name": "assistant-dark",
 			"screen": "assistant.screen.json",
 			"note": "The conversation in the dark theme: every colour is a token",

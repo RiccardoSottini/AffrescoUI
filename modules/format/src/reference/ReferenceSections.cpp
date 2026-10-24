@@ -367,8 +367,9 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
     {"ask", "",
-	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: asks the agents in plain words; replies "
-	 "run `ask:reply`, never as the person's decision (Asking the agents). A control step",
+	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: asks the agents in plain words, with "
+	 "`options` (an object) passed on to them; replies run `ask:reply`, never as the person's decision (Asking the "
+	 "agents). A control step",
 	 "steps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
@@ -419,6 +420,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"loading", "", "", ""},
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
+    {"options", R"json({"anyOf": [{"type": "object"}, {"$ref": "#/$defs/v2/dynamic"}]})json", "", ""},
     {"image", "",
 	 R"(`{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images))", "steps"},
     {"of", "", "", ""},

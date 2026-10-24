@@ -44,7 +44,9 @@
 			"assistant.accepted": "Accepted",
 			"assistant.rejected": "Rejected",
 			"assistant.closed": "Closed",
-			"assistant.clear": "Clear the conversation"
+			"assistant.clear": "Clear the conversation",
+			"assistant.chooseModel": "Choose the model ({provider})",
+			"assistant.defaultModel": "default"
 		},
 		"es": {
 			"assistant.title": "Asistente",
@@ -71,7 +73,9 @@
 			"assistant.accepted": "Aceptado",
 			"assistant.rejected": "Rechazado",
 			"assistant.closed": "Cerrado",
-			"assistant.clear": "Borrar la conversación"
+			"assistant.clear": "Borrar la conversación",
+			"assistant.chooseModel": "Elige el modelo ({provider})",
+			"assistant.defaultModel": "predeterminado"
 		},
 		"fr": {
 			"assistant.title": "Assistant",
@@ -98,14 +102,17 @@
 			"assistant.accepted": "Accepté",
 			"assistant.rejected": "Refusé",
 			"assistant.closed": "Fermé",
-			"assistant.clear": "Effacer la conversation"
+			"assistant.clear": "Effacer la conversation",
+			"assistant.chooseModel": "Choisir le modèle ({provider})",
+			"assistant.defaultModel": "par défaut"
 		}
 	},
 	"state": {
 		"assistant": { "show": true, "lift": 0, "open": false, "anim": 1, "draft": "", "messages": [], "unread": 0, "pending": "",
-		               "decided": {}, "phase": 0, "simulate": null }
+		               "decided": {}, "phase": 0, "simulate": null,
+		               "model": "", "models": null, "modelMenu": false }
 	},
-	"persist": ["state.assistant.messages", "state.assistant.decided"],
+	"persist": ["state.assistant.messages", "state.assistant.decided", "state.assistant.model"],
 	"keys": { "mod+shift+a": "assistant.toggle" },
 	"components": {
 		"assistantChip": {
@@ -145,7 +152,8 @@
 			{ "push": "state.assistant.messages",
 			  "value": "{{ {mine: true, from: t('assistant.you'), text: text, time: now(), error: false} }}" },
 			{ "run": "assistant.trim" },
-			{ "ask": "{{text}}", "into": "state.assistant.pending" },
+			{ "ask": "{{text}}", "into": "state.assistant.pending",
+			  "options": "{{state.assistant.models != null && state.assistant.models.default != '' ? {model: some(state.assistant.models.models, it.id == state.assistant.model) ? state.assistant.model : state.assistant.models.default} : {}}}" },
 			{ "scrollTo": "#assistantEnd" }
 		],
 		"ask:reply": [
@@ -173,6 +181,16 @@
 		"assistant.reject": [
 			{ "reject": "{{id}}" },
 			{ "set": "state.assistant.decided[id]", "to": "rejected" }
+		],
+		"assistant.loadModels": [
+			{ "note": "The host's read-only assistant.models: the provider in use, the person's default and the models to choose from. Only the hosts whose own agent is connected (the peer 'agent') have it; without it (MCP-only setups, other hosts, the rendering check) models stays null and the picker hides" },
+			{ "if": "{{!some(peers, it.author == 'agent')}}", "then": [{ "set": "state.assistant.models", "to": null }, { "stop": true }] },
+			{ "call": "assistant.models", "into": "state.assistant.models", "onError": [{ "set": "state.assistant.models", "to": null }] }
+		],
+		"assistant.pickModel": [
+			{ "note": "The person's default is kept as '': it follows a later change of the default in the Launcher's Settings" },
+			{ "set": "state.assistant.model", "to": "{{id == (state.assistant.simulate.models ?? state.assistant.models).default ? '' : id}}" },
+			{ "set": "state.assistant.modelMenu", "to": false }
 		],
 		"assistant.clear": [
 			{ "set": "state.assistant.messages", "to": [] },
@@ -205,10 +223,13 @@
 				"assistantOnline": "{{state.assistant.simulate.online ?? (length(peers) > 0)}}",
 				"assistantPending": "{{state.assistant.simulate.pending ?? map(proposals, it.id)}}",
 				"assistantWorking": "{{state.assistant.simulate.working ?? some(requests, it.state == 'sent' || it.state == 'working')}}",
-				"assistantCarded": "{{map(filter(state.assistant.messages, it.kind == 'card'), it.id)}}"
+				"assistantCarded": "{{map(filter(state.assistant.messages, it.kind == 'card'), it.id)}}",
+				"assistantModels": "{{state.assistant.simulate.models ?? state.assistant.models}}",
+				"assistantModel": "{{some(assistantModels.models ?? [], it.id == state.assistant.model) ? state.assistant.model : assistantModels.default ?? ''}}"
 			},
 			"children": [
-				{ "id": "assistantHeader", "height": 56, "alignSelf": "stretch", "color": "transparent", "children": [
+				{ "id": "assistantHeader", "height": 56, "alignSelf": "stretch", "color": "transparent",
+				  "onShow": [{ "run": "assistant.loadModels" }], "children": [
 					{ "type": "label", "runs": [{ "text": "{{t('assistant.title')}}", "bold": true, "size": 16 }],
 					  "textColor": "@assistant.text", "role": "heading", "anchors": { "left": 16, "top": 9 },
 					  "fitText": true },
@@ -228,6 +249,27 @@
 						  "color": "@assistant.dim" },
 						{ "anchors": { "left": 7, "top": 15 }, "width": 18, "height": 2, "radius": 1, "rotate": -45,
 						  "color": "@assistant.dim" }
+					  ] },
+					{ "when": "{{length(assistantModels.models ?? []) > 0}}", "id": "assistantModelPicker",
+					  "anchors": { "right": 52, "top": 12 }, "width": 150, "height": 32, "radius": 6,
+					  "color": "transparent", "borderWidth": 1, "borderColor": "@assistant.border", "role": "button",
+					  "focusable": true, "cursor": "hand", "isOpen": "{{state.assistant.modelMenu}}",
+					  "label": "{{t('assistant.chooseModel', {provider: assistantModels.provider ?? ''})}}",
+					  "tooltip": "{{t('assistant.chooseModel', {provider: assistantModels.provider ?? ''})}}",
+					  "hover": { "color": "@assistant.raised" },
+					  "focused": { "borderColor": "@assistant.accent" },
+					  "onClick": [{ "toggle": "state.assistant.modelMenu" }],
+					  "children": [
+						{ "id": "assistantModelName", "type": "label", "anchors": { "left": 10, "top": 8 },
+						  "fitText": { "maxWidth": 108 }, "textColor": "@assistant.text",
+						  "text": "{{find(assistantModels.models, it.id == assistantModel).name ?? assistantModel}}" },
+						{ "id": "assistantModelChevron", "type": "label", "text": "", "icon": "chevron-down",
+						  "anchors": { "right": 8, "top": 8 }, "fitText": true, "textColor": "@assistant.dim" },
+						{ "id": "assistantModelMenu", "use": "menu", "with": {
+							"open": "state.assistant.modelMenu", "placement": "below-end", "width": 260,
+							"items": "{{map(assistantModels.models, {title: it.name, checked: it.id == assistantModel, keyLabel: it.id == assistantModels.default ? t('assistant.defaultModel') : '', run: 'assistant.pickModel', with: {id: it.id}})}}",
+							"color": "@assistant.raised", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
+							"highlight": "@assistant.border" } }
 					  ] },
 					{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@assistant.border" }
 				] },

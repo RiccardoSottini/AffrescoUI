@@ -34,6 +34,14 @@ Completions), an OpenAI-compatible server (Ollama, LM Studio, OpenRouter: a base
 this computer) and Claude Code (the person's own `claude` command line and sign-in, run with no tools). The models come
 live from the provider (`GET /v1/models`) when it can be reached with the saved key, else from the list there.
 
+Claude Code's models are its command line's aliases, which follow the latest model: Claude Sonnet 5.5 (`sonnet`, the
+default: fast enough for a chat and strong at editing screens), Claude Opus 5.5 (`opus`, for harder, longer asks),
+Claude Fable 5.1 (`fable`, the most capable) and Claude Haiku 5.5 (`haiku`, the fastest, for small changes). Each has a
+line on when to use it in English, Spanish and French (`description`), and the catalogue's default is marked
+*Recommended*. Its list is the whole choice (`fixedModels`): saving another model is refused, and a saved one it no
+longer lists gives the default. The person's model is the default of every app's assistant, whose picker can choose
+another one per app (`../assistant/README.md`).
+
 ## State, actions and strings
 
 All in `state.intelligence`: `data` (what `intelligence.providers` answered, or the stand-in), `selected`, `baseUrl`,

@@ -84,6 +84,8 @@ class Server:
         request = {"request_id": str(message.get("id") or f"r{next(self.unnamed)}"),
                    "from": str(message.get("from") or "unknown"), "text": str(message.get("text", "")),
                    "origin": "app" if message.get("source") == "screen" else "studio"}
+        if isinstance(message.get("options"), dict):  # what the chat asks with it, e.g. {"model": "sonnet"}
+            request["options"] = message["options"]
         if message.get("kind") == "repair":  # a change set whose template changed: answer with answer_repair
             request["kind"], request["repair"] = "repair", message.get("repair")
         with self.arrived:
@@ -94,7 +96,9 @@ class Server:
             self.send({"jsonrpc": "2.0", "method": "notifications/claude/channel",
                        "params": {"content": request["text"],
                                   "meta": {"request_id": request["request_id"], "sender": request["from"],
-                                           "origin": request["origin"]}}})
+                                           "origin": request["origin"],
+                                           **({"model": request["options"]["model"]}
+                                              if isinstance(request.get("options", {}).get("model"), str) else {})}}})
             self.working(request)
 
     def working(self, request):

@@ -92,10 +92,14 @@ bool available(const Shared& shared, const Provider& provider) {
 
 /// @brief A provider's fallback models.
 /// @param provider The provider.
-/// @return `[{ id, name }]`.
+/// @return `[{ id, name, description? }]`.
 json fallbackOf(const Provider& provider) {
 	json list = json::array();
-	for(const Model& model : provider.models) list.push_back({{"id", model.id}, {"name", model.name}});
+	for(const Model& model : provider.models) {
+		json entry = {{"id", model.id}, {"name", model.name}};
+		if(model.description.is_object()) entry["description"] = model.description;
+		list.push_back(std::move(entry));
+	}
 	return list;
 }
 
@@ -119,6 +123,8 @@ json providersJson(const Shared& shared) {
 		                {"baseUrl", endpoint ? endpoint->baseUrl : provider.baseUrl},
 		                {"editableUrl", provider.kind == Kind::OpenAICompatible},
 		                {"model", endpoint ? endpoint->model : provider.model},
+		                {"defaultModel", provider.model},
+		                {"fixedModels", provider.fixedModels},
 		                {"keyHelp", provider.keyHelp},
 		                {"models", fallbackOf(provider)}});
 	}
@@ -154,6 +160,8 @@ json save(Shared& shared, const json& arguments) {
 	}
 	const std::string model = argument(arguments, "model");
 	if(model.size() > 200) throw std::runtime_error("the model's name is too long");
+	if(!model.empty() && provider.fixedModels && !provider.lists(model))
+		throw std::runtime_error("choose one of " + provider.name + "'s models");
 	if(!model.empty()) choice.model = model;
 	std::string key = argument(arguments, "key");
 	{
@@ -183,7 +191,7 @@ json save(Shared& shared, const json& arguments) {
 json models(const Shared& shared, const json& arguments, affresco::CallProgress& call) {
 	const Provider& provider = providerOf(shared, arguments);
 	const auto fallback = [&provider] { return fallbackOf(provider); };
-	if(provider.kind == Kind::ClaudeCode) return fallback();
+	if(provider.kind == Kind::ClaudeCode || provider.fixedModels) return fallback();
 	std::optional<Endpoint> endpoint = endpointOf(shared.catalog, Settings::load(shared.dataDir), provider.id);
 	if(!endpoint || checkBaseUrl(*endpoint)) return fallback();
 	endpoint->key = readKey(*shared.options.keys, *endpoint);
@@ -210,7 +218,8 @@ json models(const Shared& shared, const json& arguments, affresco::CallProgress&
 /// @return `{ ok, message }`.
 json test(const Shared& shared, affresco::CallProgress& call) {
 	std::optional<Endpoint> endpoint = endpointOf(shared.catalog, Settings::load(shared.dataDir));
-	if(!endpoint || !offered(shared, *endpoint->provider)) return {{"ok", false}, {"message", "No provider is chosen yet."}};
+	if(!endpoint || !offered(shared, *endpoint->provider))
+		return {{"ok", false}, {"message", "No provider is chosen yet."}};
 	const Provider& provider = *endpoint->provider;
 	if(provider.kind == Kind::ClaudeCode) {
 		const std::optional<std::filesystem::path> program = findClaude();
@@ -250,6 +259,23 @@ json test(const Shared& shared, affresco::CallProgress& call) {
 }
 
 } // namespace
+
+json assistantModels(const Catalog& catalog, const Settings& settings) {
+	const std::optional<Endpoint> current = endpointOf(catalog, settings);
+	if(!current || !current->provider->shown) return {{"provider", ""}, {"default", ""}, {"models", json::array()}};
+	json models = json::array();
+	for(const Model& model : current->provider->models) models.push_back({{"id", model.id}, {"name", model.name}});
+	if(!current->model.empty() && !current->provider->lists(current->model)) // the person's own, e.g. a live one
+		models.insert(models.begin(), json{{"id", current->model}, {"name", current->model}});
+	return {{"provider", current->provider->name}, {"default", current->model}, {"models", std::move(models)}};
+}
+
+void registerAssistantModels(affresco::Screen& screen, const std::filesystem::path& dataDir) {
+	auto catalog = std::make_shared<const Catalog>(Catalog::standard());
+	screen.onCall("assistant.models", [catalog, dataDir](const std::string&) {
+		return assistantModels(*catalog, Settings::load(dataDir)).dump(); // reads only: it changes nothing
+	});
+}
 
 void registerCalls(affresco::Screen& screen, const std::filesystem::path& dataDir, CallsOptions options) {
 	auto shared = std::make_shared<Shared>();
@@ -316,6 +342,7 @@ bool HostAssistant::attach(affresco::Screen& screen) {
 		return false;
 	}
 	screen.connect(*agent_, "agent");
+	registerAssistantModels(screen, dataDir_);
 	return true;
 }
 

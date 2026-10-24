@@ -30,6 +30,12 @@ screen without meeting the app's own names.
   conversation, so the app's assistant is where the person reviews every change. A card's buttons show while the
   proposal waits for review; after, it says *Accepted*, *Rejected*, or *Closed* (the proposal went another way, e.g.
   reviewed by another client).
+- **The model picker**, in the header: the model the requests use, at first the person's default from the
+  Launcher's Settings, and a menu of the provider's models (the default marked). The choice is the app's own (kept
+  with `persist`) and goes with every request as the `ask` step's `options` (`{ "model": "opus" }`). It shows only
+  when the host's own agent is connected (the peer `agent`) and answers the read-only native `assistant.models`
+  (`{ provider, default, models: [{ id, name }] }`, `examples/shared/intelligence/Intelligence.hpp`), which reveals
+  nothing secret and changes nothing; elsewhere (MCP-only setups, other hosts) it hides.
 - **The composer**: Enter sends, Shift+Enter starts a new line, Escape closes the panel and gives the focus back to the
   launcher. The panel is modal: Tab cycles inside it.
 
@@ -50,9 +56,12 @@ All in `state.assistant`:
 | `decided` | `proposal id → "accepted" or "rejected"`, as the person decided on the card |
 | `unread` | The replies since the panel was last open |
 | `pending` | The id of the last request sent |
+| `model` | The model the person chose in the picker, or `""` for their default (persisted) |
+| `models` | What `assistant.models` answered, or `null` (the picker hides) |
+| `modelMenu` | Whether the picker's menu is open |
 | `simulate` | For tests only: see below |
 
-`messages` and `decided` are persisted (`persist`); whether the panel is open is not.
+`messages`, `decided` and `model` are persisted (`persist`); whether the panel is open is not.
 
 | Action | What it does |
 |---|---|
@@ -61,6 +70,8 @@ All in `state.assistant`:
 | `assistant.start` | Opens the panel and sends `event.text` as a request: what the host's `--ask TEXT` runs once the window is up |
 | `assistant.send` | Sends the draft and empties it |
 | `assistant.preview`, `assistant.accept`, `assistant.reject` | Review the proposal `id` |
+| `assistant.loadModels` | Asks the host for the models (run when the panel shows) |
+| `assistant.pickModel` | Uses the model `id` for the next requests (the default is kept as `""`) |
 | `assistant.clear` | Forgets the conversation |
 
 An app can run them from its own menus or buttons, e.g. `{ "run": "assistant.open" }`.
@@ -79,8 +90,8 @@ The strings are the `assistant.*` keys in English, Spanish and French; the panel
 ## Tests
 
 The rendering check draws the add-on through `tests/render/screens/assistant.screen.json`, whose runner has no agents:
-`state.assistant.simulate` stands in for them, with `online`, `pending` (the ids waiting for review), `working`, and
-`proposals` (as the `proposals` variable lists them). An app leaves it `null`, and the add-on reads `peers`,
+`state.assistant.simulate` stands in for them, with `online`, `pending` (the ids waiting for review), `working`,
+`proposals` (as the `proposals` variable lists them) and `models` (as `assistant.models` answers). An app leaves it `null`, and the add-on reads `peers`,
 `requests` and `proposals`.
 
 `tests/unit/assistant_addon.cpp` drives the same screen in a headless window: the keys, the focus, the persisted

@@ -1252,7 +1252,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
-| `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: asks the agents in plain words; replies run `ask:reply`, never as the person's decision (Asking the agents). A control step |
+| `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: asks the agents in plain words, with `options` (an object) passed on to them; replies run `ask:reply`, never as the person's decision (Asking the agents). A control step |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out) |
@@ -1545,7 +1545,7 @@ line:
 | peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
-| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`) from the screen's own `ask` step; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
+| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?) from the screen's own `ask` step; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
 Requests may carry an `"id"`; answers repeat it.
 
@@ -1577,6 +1577,9 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
 - `ask` sends the request to every peer after the event, from the author `user` (`request` in the table above), and
   writes its id (`ask-<milliseconds>-<n>`) `into` a state path. It is a control step. With no peer connected it
   fails at once: `ask:reply` runs with the error `no agent is connected`.
+- `options` (an object, at most 4 KiB as JSON) goes with the request as it is, for the agents to read, e.g.
+  `{ "ask": "{{text}}", "options": { "model": "{{state.model}}" } }`: the model the person chose. The screen gives it
+  no meaning; an agent ignores what it doesn't know (the examples' agent uses `model` if its provider lists it).
 - Each reply runs `ask:reply` with `event` `{request, from, text, done, error, proposals, time}`. `done: false` is a
   progress note (an agent at work); one with no text only marks the request `working`, with no reply. `proposals`
   lists the ids of the proposals the replier (any author of the same channel: `agent/...`) opened or changed since the

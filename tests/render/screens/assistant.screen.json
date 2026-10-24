@@ -87,6 +87,11 @@
 		"test.waiting": [{ "set": "state.assistant.simulate", "to": { "online": true, "pending": ["p4"],
 		                  "proposals": [{ "id": "p4", "message": "Rename the board to Q4 launch", "touches": ["a"],
 		                  "changes": ["set /state/board to \"Q4 launch\""] }] } }],
+		"test.models": [{ "set": "state.assistant.simulate", "to": { "online": true, "models": {
+			"provider": "Claude Code", "default": "sonnet", "models": [
+				{ "id": "sonnet", "name": "Claude Sonnet 5.5" }, { "id": "opus", "name": "Claude Opus 5.5" },
+				{ "id": "fable", "name": "Claude Fable 5.1" }, { "id": "haiku", "name": "Claude Haiku 5.5" }] } } }],
+		"test.pick": [{ "run": "assistant.pickModel", "with": { "id": "{{event.id}}" } }],
 		"test.dark": [{ "set": "state.theme", "to": "dark" }],
 		"test.arabic": [{ "set": "state.locale", "to": "ar" }]
 	},
