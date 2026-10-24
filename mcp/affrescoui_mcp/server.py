@@ -371,7 +371,13 @@ class Server:
         reply = self.host.request({"type": "diff", **{k: args[k] for k in ("from", "to", "proposal") if k in args}})
         if reply.get("type") != "diff":
             return f"error: {reply.get('error')}", True
-        return compact(reply.get("patch")), False
+        impact = reply.get("impact")  # the layers it touches: view, logic, model, data
+        return compact(reply.get("patch")) + (f"\nimpact: {compact(impact)}" if impact else ""), False
+
+    def get_models(self, args):
+        """The get_models tool: the data layer's models and how many records each collection holds, never a record."""
+        catalog = self.host.request({"type": "getCatalog"}).get("catalog") or {}
+        return compact(catalog.get("data") or {"collections": {}, "queries": []}), False
 
     def change_main(self, kind, args):
         """The restore_revision and revert_revision tools: main brought back to a revision, or one revision undone."""
@@ -395,6 +401,7 @@ class Server:
         "answer_repair": answer_repair,
         "get_screen": get_screen,
         "get_catalog": get_catalog,
+        "get_models": get_models,
         "find_nodes": search_nodes,
         "get_contributions": get_contributions,
         "check_composition": lambda self, args: self.compose(args, False),

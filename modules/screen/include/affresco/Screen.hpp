@@ -39,6 +39,10 @@ class Engine;
 class Source;
 } // namespace affresco::audio
 
+namespace affresco::data {
+class Store;
+} // namespace affresco::data
+
 namespace affresco {
 
 /// @brief A malformed screen file; what() names the place, e.g. "root.children[1].anchors: unknown edge 'lefft'".
@@ -296,6 +300,29 @@ public:
 	/// `<data folder>/<screen file name>.state.json`, see defaultDataDirectory()).
 	/// @param file The file.
 	void setStateFile(std::filesystem::path file);
+
+	/* Records (SCREEN_FORMAT.md, "Data: models and records") */
+	/// @brief Keeps the screen's records in a SQLite database file (WAL mode), which then follows the document's
+	/// "models" (default: `<data folder>/<screen file name>.data.sqlite`; a screen from fromString() keeps them in
+	/// memory). A model's "importFrom" brings the records an earlier version of the app kept in the state file, once,
+	/// after copying that file to `<state file>.before-data.json`. Call it after setStateFile().
+	/// @param file The database file; its folder is created if needed.
+	/// @throws ScreenError If it can't be opened, or its records don't fit the models.
+	void setDataFile(const std::filesystem::path& file);
+	/// @brief The store the screen's records live in: queries, writes, the journal, the archive.
+	/// @return It, owned by the Screen.
+	[[nodiscard]] data::Store& data() noexcept;
+	/// @brief What the screen's expressions read as `data` (each collection's records, each query's results).
+	/// @return It, as JSON text.
+	[[nodiscard]] std::string dataJson();
+	/// @brief Sets who the write steps write as: "app" (the person using the app) by default. Around steps the host
+	/// runs for an agent (its reviewed proposal), the agent's name: the journal names it, and the screen's data rules
+	/// (`/data/<collection>`) decide what it may write.
+	/// @param author The author ("" for "app").
+	void setDataAuthor(std::string author);
+	/// @brief Lets importCsv steps read CSV files in a folder besides the screen's own.
+	/// @param directory The folder.
+	void allowDataDirectory(const std::filesystem::path& directory);
 
 	/* Usage summaries (VERSION_CONTROL.md, "Usage"): off by default; only node ids, action names, counts and times */
 	/// @brief Sets the file the usage summaries and the person's consent are kept in, and loads it (default:

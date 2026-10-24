@@ -5,9 +5,9 @@ project(AffrescoUITestPackage LANGUAGES CXX)
 
 find_package(AffrescoUI CONFIG REQUIRED)
 
-foreach(target affrescoui::affrescoui affrescoui::core affrescoui::render affrescoui::format affrescoui::vcs
-	affrescoui::channel affrescoui::net affrescoui::services affrescoui::automation affrescoui::harfbuzz
-	affrescoui::regex)
+foreach(target affrescoui::affrescoui affrescoui::core affrescoui::data affrescoui::render affrescoui::format
+	affrescoui::vcs affrescoui::channel affrescoui::net affrescoui::services affrescoui::automation
+	affrescoui::harfbuzz affrescoui::regex)
 	if(NOT TARGET ${target})
 		message(FATAL_ERROR "find_package(AffrescoUI) defined no ${target}")
 	endif()

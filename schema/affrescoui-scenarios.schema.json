@@ -99,6 +99,9 @@
 				{ "type": "object", "required": ["state", "is"], "additionalProperties": false, "properties": {
 					"state": { "type": "string", "description": "A path into the live state, without 'state.': \"cards[0].title\", \"cards.length\"." },
 					"is": true, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["data", "is"], "additionalProperties": false, "properties": {
+					"data": { "type": "string", "description": "A path into the screen's records, as `data.` reads them, without 'data.': \"notes[0].title\", \"notes.length\", a query's name." },
+					"is": true, "note": { "type": "string" } } },
 				{ "type": "object", "required": ["node"], "additionalProperties": false,
 				  "properties": {
 					"node": { "oneOf": [{ "type": "string", "pattern": "^#.+" }, { "$ref": "#/$defs/byRole" }] }, "nth": { "$ref": "#/$defs/nth" },

@@ -198,7 +198,7 @@
 										"align": { "horizontal": "start", "vertical": "center" }, "text": "{{computed.notification.text ?? ''}}" }
 								] },
 							{ "id": "inboxProps", "type": "row", "gap": 6, "anchors": { "left": 40, "right": 40, "top": 102 }, "height": 24, "alignItems": "center",
-								"let": { "card": "{{computed.notificationCard}}", "col": "{{state.columns[computed.notificationCard.c]}}" }, "children": [
+								"let": { "card": "{{computed.notificationCard}}", "col": "{{computed.columns[computed.notificationCard.c]}}" }, "children": [
 								{ "id": "inboxStatus", "style": "cardChip", "textColor": "@color.text", "runs": [{ "icon": "{{state.statusIcons[card.c] ?? 'circle'}}", "color": "{{col.color}}" }, "\u00a0{{col.name}}"] },
 								{ "id": "inboxPriority", "style": "cardChip", "textColor": "@color.text",
 									"runs": [{ "icon": "{{state.priorities[card.priority ?? 0]}}", "color": "{{card.priority == 1 ? '@bug' : '@color.muted'}}" }, "\u00a0{{t('priority.' + (card.priority ?? 0))}}"] },
@@ -280,7 +280,7 @@
 										"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "align": "center" },
 									{ "id": "cycleIssueRef", "style": "caption", "text": "{{card.ref}}", "width": 56, "fitText": false, "anchors": { "left": 36, "top": 0, "bottom": 0 },
 										"align": { "horizontal": "start", "vertical": "center" } },
-									{ "id": "cycleIssueStatus", "type": "label", "icon": "{{state.statusIcons[card.c] ?? 'circle'}}", "text": "", "fitText": true, "textColor": "{{state.columns[card.c].color}}",
+									{ "id": "cycleIssueStatus", "type": "label", "icon": "{{state.statusIcons[card.c] ?? 'circle'}}", "text": "", "fitText": true, "textColor": "{{computed.columns[card.c].color}}",
 										"anchors": { "left": 100, "top": 0, "bottom": 0 }, "align": "center" },
 									{ "id": "cycleIssueTitle", "type": "label", "font": "small", "text": "{{card.title}}", "textColor": "@color.text", "anchors": { "left": 124, "right": 120, "top": 0, "bottom": 0 },
 										"align": { "horizontal": "start", "vertical": "center" } },

@@ -217,6 +217,35 @@ class Evidence(unittest.TestCase):
         self.assertEqual(server.call_tool("get_evidence", {"proposal": 9}), ("error: no proposal 9", True))
 
 
+class Models(unittest.TestCase):
+    """The data layer: the models in the outline and from get_models, the impact of a diff; never a record."""
+
+    def test_the_models_follow_the_state_types(self):
+        modelled = {**SCREEN, "models": {"notes": {"version": 2, "fields": {
+            "title": {"type": "string", "required": True}, "done": {"type": "boolean"}}}}}
+        self.assertEqual(mcp.outline(modelled, depth=0).split("\n")[0],
+                         "models: notes v2: title: string (required), done: boolean")
+
+    def test_get_models_gives_the_outline_of_the_store(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        data = {"collections": {"notes": {"version": 2, "count": 12, "fields": {"title": {"type": "string"}}}},
+                "queries": ["open"]}
+        server.host = Evidence.FakeHost({"type": "catalog", "catalog": {"steps": {}, "data": data}})
+        text, failed = server.call_tool("get_models", {})
+        self.assertFalse(failed)
+        self.assertEqual(server.host.asked, [{"type": "getCatalog"}])
+        self.assertEqual(json.loads(text if isinstance(text, str) else text[0]["text"]), data)
+
+    def test_a_diff_says_its_impact(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        impact = {"view": 1, "logic": 0, "model": [], "data": "none"}
+        server.host = Evidence.FakeHost({"type": "diff", "patch": [], "impact": impact})
+        text, failed = server.call_tool("get_diff", {})
+        self.assertFalse(failed)
+        said = text if isinstance(text, str) else text[0]["text"]
+        self.assertIn('impact: {"view":1,"logic":0,"model":[],"data":"none"}', said)
+
+
 class Composition(unittest.TestCase):
     """check_composition and install_feature return the proof's reasons, never the document, and install only what a
     passed proof made."""

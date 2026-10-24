@@ -331,6 +331,9 @@ Value Machine::walk(Root root, std::string_view name, std::span<const PathKey> k
 	// computed.<name>: evaluated now; nodes.<id>: a built panel's geometry
 	if(keys.empty() || keys.front().kind != PathKey::Kind::Name)
 		fail(place, "expected " + std::string(name) + ".<name>");
+	if(root == Root::Computed && context_.computedValues) // in place: no copy of the whole value
+		if(const json* value = (*context_.computedValues)(keys.front().name))
+			return follow(Value::fromJson(*value), keys.subspan(1));
 	const NodeLookup& read = *(root == Root::Computed ? context_.computed : context_.nodes);
 	return follow(Value::ownJson(read(keys.front().name)), keys.subspan(1));
 }

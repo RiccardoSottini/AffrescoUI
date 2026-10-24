@@ -19,8 +19,8 @@ else()
 	find_dependency(CURL @AFFRESCOUI_CURL_VERSION@ EXACT CONFIG HINTS "${PACKAGE_PREFIX_DIR}")
 endif()
 
-# The audio module's threads (Linux and other Unix systems: miniaudio links them)
-if(@AFFRESCOUI_AUDIO@ AND UNIX AND NOT APPLE)
+# The threads of the audio module (miniaudio) and the data module (SQLite), on Linux and other Unix systems
+if(UNIX AND NOT APPLE)
 	find_dependency(Threads)
 endif()
 

@@ -75,6 +75,8 @@ Every part of the format follows these, and so should every extension:
 | `state` | The app's data, any JSON object. |
 | `assets` | `name → {type, size, sha256}`: files revisions brought, kept with the history, read as `"asset:<name>"` (see Assets). |
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
+| `models` | `collection → { "version", "fields", "seed", "migrations" }`: the records' models (see Data). |
+| `queries` | `name → { "from", "where", "sort", "limit" }`: records read as `data.<name>`. |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
 | `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels; or a command `{ "title", "category", "icon", "enablement", "description", "do" }`, listed by the `commands` variable (see Commands and keybindings). |
@@ -986,7 +988,7 @@ Wherever a value is expected it can be computed:
   `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
   `length(value)`, `concat(a, b, ...)`, `flat(list)`, `join(list, separator)`, `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
-  `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
+  `entries(object)`, `fromEntries(list)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
   `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
   `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`, `keyframeValue(track, time)`, `t('key', {params})`,
   `formatNumber(n, fewest?, most?)`, `formatPercent(ratio, decimals?)`, `formatCurrency(amount, 'EUR')`,
@@ -1051,7 +1053,8 @@ caused it. A revision may have 100,000 operations and 16 MiB; a document may hav
 - **The screen's own `state`** must match: a mismatch is an error when the screen is read
   (`state.volume: expected at most 100, got 120 (stateTypes.volume)`).
 - **A revision** may not bring a state value that doesn't match, nor a type the state doesn't match; mismatches that
-  were there before don't block it. A state kept on disk that no longer matches opens with a warning.
+  were there before don't block it. A value kept on disk (`persist`) that no longer matches opens as the document's
+  own, and the file's is kept in `<file name>.state.rejected.json`, beside it.
 - **The checker** reports a `set` whose value can't match (a value written as it is is matched in full, enums and
   limits too; an expression by the kind of value it gives), a `toggle` of something that isn't a boolean, an
   `increment` or `animate` of something that isn't a number, a `push` onto something that isn't a list or of an item
@@ -1268,6 +1271,11 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
 | `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images) |
 | `audio` | `{ "audio": "play", "of": "song" }`: see Audio |
+| `insert` | `{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, checked against its model; `result` in `then` is the record, `error` in `onError` is `{code, message}` (see Data: models and records) |
+| `update` | `{ "update": "songs", "id": "{{song.id}}", "fields": { "rating": 5 } }`: changes fields of records (an `id`, a list of them, or a `where`) |
+| `delete` | `{ "delete": "songs", "id": "{{song.id}}" }`: deletes records (an `id`, a list, or a `where`) |
+| `undoData`, `redoData` | `{ "undoData": true }`, `{ "redoData": true }`: undoes or redoes the last write step's records |
+| `importCsv` | `{ "importCsv": "songs", "file": "songs.csv", "columns": { "title": "Title" }, "into": "state.report" }`: imports a CSV's rows as records (`file` in the screen's folder, or `text`); `result` is `{imported, failed, failures}` |
 | `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
 | `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
 <!-- end generated -->
@@ -1510,7 +1518,8 @@ without one, the server refuses the connection and `name:closed` runs. In a brow
 `%APPDATA%\affrescoui\<file name>.state.json`), loaded at start and written when they change. A folder's
 `index.screen.json` is named after its folder (`flow/index.screen.json` keeps `flow.state.json`). A screen opened from
 a file keeps its version-control history in the same folder, in `<file name>.history/` (VERSION_CONTROL.md,
-"History on disk"). `AFFRESCOUI_DATA_DIR` (or the host's `--data`) puts both
+"History on disk"), and its records in `<file name>.data.sqlite` (Data: models and records). `AFFRESCOUI_DATA_DIR`
+(or the host's `--data`) puts them all
 in another folder.
 
 `"services"` reach the folders and programs the host grants ([`modules/services/README.md`](modules/services/README.md)
@@ -1520,6 +1529,105 @@ writes, lists and copies under the folder `apps`, and copies from the folder `ex
 `merge` to bring a folder up to date); a folder the host grants read-only takes only `"readOnly": true`. A `process`
 service runs the program its grant names, with the arguments the host's rule allows; one the host grants detached is
 started and left running, its result `{pid}` (the Launcher opens apps so).
+
+## Data: models and records
+
+An app is four layers, kept apart so that a change of one says what it does to the others (the idea of MVVM over a
+database with migrations, as Rails and Django keep their schema):
+
+| Layer | In a screen | Changed by | Lives in |
+|---|---|---|---|
+| **View** | the layout: nodes, styles, `{{…}}` bindings | revisions | the document |
+| **Logic** (the view-model) | actions, `computed`, `queries`, rules, the short-lived `state` (a selection, a panel open) | revisions | the document |
+| **Model** (the schema) | `models`: collections, typed fields, references, a `version` | revisions, with a **migration** when the records must change | the document |
+| **Data** (the records) | each collection's records | the app's write steps (or a reviewed step an agent proposes), never a view or logic revision | a store of its own: SQLite, `<data folder>/<screen name>.data.sqlite`, with a journal |
+
+So a new view never erases what was stored: a revision can't write records at all, a field the model stops declaring
+keeps its values in the store (unread), and reverting a commit leaves the records alone, except that a commit that
+migrated them is undone with them (VERSION_CONTROL.md, "Impact per layer"). A screen from text (the rendering check,
+scenarios) keeps its records in memory.
+
+### Models
+```json
+"models": {
+  "notes": {
+    "version": 2,
+    "fields": {
+      "title": { "type": "string", "required": true, "maxLength": 200 },
+      "kind": { "type": "enum", "values": ["idea", "task"], "default": "idea" },
+      "folder": { "type": "reference", "to": "folders", "onDelete": "nullify" },
+      "tags": { "type": "list", "of": { "type": "string" }, "maxItems": 16 },
+      "due": { "type": "date" }, "done": { "type": "boolean", "default": false }
+    },
+    "seed": [{ "id": "n1", "title": "First note" }],
+    "importFrom": "state.notes",
+    "migrations": [{ "from": 1, "to": 2, "steps": [{ "rename": "text", "to": "title" }] }]
+  }
+}
+```
+- **Types:** `string` (`minLength`, `maxLength` in characters), `number` and `integer` (`minimum`, `maximum`),
+  `boolean`, `date` (`"YYYY-MM-DD"`, as Dates), `dateTime` (ms since 1970, as `now()`), `enum` (`values`),
+  `reference` (`to` a collection: a record's id; `onDelete` `restrict`, the default, refuses to delete what is
+  referred to, `nullify` clears the field), `list` (`of` a type; `minItems`, `maxItems`), `object` (`fields`), `map`
+  (any keys, each value `of` a type; `maxItems`). Any field takes `required`, `default`, `title`, `description`;
+  a top-level single value may be `unique`. Every record also has `id` (given, or `"1"`, `"2"`, ...), `created` and
+  `updated` (ms).
+- **Every write is checked** against the model: a record with a missing required field, a value of another type, an
+  unknown field, a dangling reference or a duplicate unique value never gets in, and the write's `onError` gets why.
+- **`seed`**: the records a collection starts with, once, when the store first creates it. A seed is written for the
+  model's first version and migrated like stored records, so a migration never needs it rewritten.
+- **`importFrom`**: a state path (or `{"path", "with": "{{merge(it, {position: index})}}"}`): when the store first
+  creates the collection and the screen's old `persist` file holds that path, its items come in as records once
+  (instead of the seed), after the file is copied to `<state file>.before-data.json`; items that don't fit stay there.
+- **`queries`**: named reads of a collection, run by the store: `{"open": {"from": "notes", "where": {"done": false,
+  "due": {"<=": "{{state.today}}"}}, "sort": ["due", {"field": "title", "descending": true}], "limit": 50}}`.
+  `where` compares fields with `==` (the default), `!=`, `<`, `<=`, `>`, `>=`, `in` (a list), `contains` (a text, or a
+  list field's item) and `startsWith`; `"any": [{...}, {...}]` holds when one does; `"count": true` gives a number.
+  Values may be bindings, so a query follows the state.
+- **Reading:** `data.<collection>` is a collection's records in the order they were stored, `data.<query>` a query's
+  results; at most 10,000 records each. A list or table shows only the rows in view. `data` changes after every write,
+  and only what reads it is evaluated again.
+
+### Write steps
+| Step | Does |
+|---|---|
+| `{ "insert": "notes", "value": {...}, "into": "state.added" }` | Stores a record (`values`: a list of them, all or none); `result` in `then` is the record |
+| `{ "update": "notes", "id": "{{note.id}}", "fields": { "done": true } }` | Changes fields (null clears one); `id` may be a list, or `where` a filter |
+| `{ "delete": "notes", "id": "{{note.id}}" }` | Deletes records (an `id`, a list, or a `where`) |
+| `{ "undoData": true }`, `{ "redoData": true }` | Undoes or redoes the last event's writes (the person's only) |
+| `{ "importCsv": "notes", "file": "notes.csv", "columns": { "title": "Title", "due": { "column": "Due", "with": "{{value}}" } } }` | Imports a CSV's rows (`file` in the screen's folder or one the host allows, or `text`): columns match fields by header, or by `columns`; cells convert to the field's type; `atomic` imports all or none; `result` is `{imported, failed, failures}` |
+
+A refused write runs `onError` with `error` (`{code, message}`: `invalid`, `unique`, `reference`, `notFound`,
+`model`, `limit`, `denied`); without one, it is reported. The writes of one event are one step of the store's undo, journaled
+with who and when, before and after. The steps aren't control steps, but a revision that adds or changes one is always
+reviewed, and an author other than the person (the host's `Runtime::setDataAuthor`, for an agent's reviewed step)
+writes only what `permissions.data` lets it write at `/data/<collection>`.
+
+### Migrations
+A change to a model is **compatible** (a new optional field or one with a default, a new collection, a widened enum,
+bound or type), **transforming** (a rename, a new type, a newly required field: the records must change) or
+**destructive** (a field or a collection removed, a type narrowed, a drop). A transforming change needs the model's
+`version` raised and a migration from the old version to the new one in its `migrations`, in the same revision:
+```json
+{ "from": 3, "to": 4, "steps": [
+  { "rename": "artist", "to": "by" },
+  { "convert": "duration", "with": "{{value * 1000}}", "inverse": "{{value / 1000}}" },
+  { "fill": "rating", "with": 0 },
+  { "split": "name", "into": ["first", "last"], "with": ["{{split(value, ' ')[0]}}", "{{split(value, ' ')[1]}}"],
+    "inverse": "{{record.first + ' ' + record.last}}" },
+  { "merge": ["street", "city"], "into": "address", "with": "{{record.street + ', ' + record.city}}" },
+  { "drop": "legacy" } ] }
+```
+Expressions see `value` (the field's) and `record`. Before a change is accepted it dry-runs on a copy of the store,
+and the review says what it does ("notes: 312 of 312 records migrate (3 to 4)"); if a record doesn't fit, the change
+is refused, naming it ("id 17: notes[17].duration: expected an integer"). On accept the store archives every record
+the migration changes (its values before, restorable), migrates them in one transaction, checks each against the new
+model, and commits, or changes nothing. A destructive change is always reviewed: accepting it confirms it. Migrations
+already applied are history: a revision can't change or remove them. Reverting a commit that migrated runs the
+inverse of its steps (a rename back, the `inverse` expressions, a drop's values from the archive); without an inverse
+it puts the archived records back and archives what was written since that the older model can't hold.
+
+`get_models` (the MCP server) gives each collection's model and count, never a record. Limits: SECURITY.md, "Limits".
 
 ## Live screens: revisions and the channel
 
@@ -1733,6 +1841,7 @@ see `role` and `label`), as a person or a screen reader finds it, or `[x, y]` in
 | Expectation | Holds when |
 |---|---|
 | `{ "state": "cards[0].title", "is": "Plan" }` | The live state has that value there (a path as expressions write it, without `state.`; `.length` counts a list or a text) |
+| `{ "data": "notes[0].title", "is": "Plan" }` | The records have that value there, as `data.` reads them (a collection or a declared query; a field without a value is null) |
 | `{ "node": "#menu", "exists": false }` | A node with that id was built (or not), shown or not |
 | `{ "node": "#title", "text": "Done" }` | Its text: a label's, a text area's or an editor's |
 | `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description` (positions and sizes in window units, within 0.01; `name` is the accessible name) |

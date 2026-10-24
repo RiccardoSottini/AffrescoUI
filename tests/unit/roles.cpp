@@ -72,7 +72,9 @@ json renameColumn(const std::string& name, int column) {
 	return {{"type", "revision"},
 	        {"author", name},
 	        {"patch",
-	         {{{"op", "replace"}, {"path", "/state/columns/" + std::to_string(column) + "/name"}, {"value", "Next"}}}}};
+	         {{{"op", "replace"},
+	           {"path", "/state/lanes/launch/" + std::to_string(column) + "/name"},
+	           {"value", "Next"}}}}};
 }
 
 } // namespace
@@ -85,24 +87,25 @@ TEST_CASE("roles: two agents on one template, one leases a column, the other is 
 	auto bob = std::make_unique<Peer>(repository, "agent");
 	CHECK(repository.coordination()["peers"].size() == 3);
 
-	const json leased = ada.ask({{"type", "lease"}, {"author", "ada"}, {"target", "/state/columns/0"}});
+	const json leased = ada.ask({{"type", "lease"}, {"author", "ada"}, {"target", "/state/lanes/launch/0"}});
 	REQUIRE(leased["type"] == "leased");
 	CHECK(repository.coordination()["leases"][0]["holder"] == "agent/ada");
-	CHECK(bob->ask({{"type", "lease"}, {"author", "bob"}, {"target", "/state/columns/0/cards"}})["type"] == "rejected");
+	CHECK(bob->ask({{"type", "lease"}, {"author", "bob"}, {"target", "/state/lanes/launch/0/color"}})["type"] ==
+	      "rejected");
 
 	// Bob's change is refused, naming the holder; Ada's own goes on (proposed: agents ask on Kanban)
 	const json refused = bob->ask(renameColumn("bob", 0));
 	CHECK(refused["type"] == "rejected");
-	CHECK(refused["error"].get<std::string>().find("'agent/ada' holds a lease on /state/columns/0") !=
+	CHECK(refused["error"].get<std::string>().find("'agent/ada' holds a lease on /state/lanes/launch/0") !=
 	      std::string::npos);
 	CHECK(bob->ask(renameColumn("bob", 1))["type"] != "rejected");
 	CHECK(ada.ask(renameColumn("ada", 0))["type"] != "rejected");
 	// Bob can't take Ada's name, on another connection, to pass
-	CHECK(bob->ask({{"type", "lease"}, {"author", "ada"}, {"target", "/state/columns/2"}})["type"] == "rejected");
+	CHECK(bob->ask({{"type", "lease"}, {"author", "ada"}, {"target", "/state/lanes/launch/2"}})["type"] == "rejected");
 
 	// Released, then the lease ends with the connection
-	CHECK(ada.ask({{"type", "release"}, {"target", "/state/columns/0"}})["type"] == "released");
-	REQUIRE(bob->ask({{"type", "lease"}, {"author", "bob"}, {"target", "/state/columns/0"}})["type"] == "leased");
+	CHECK(ada.ask({{"type", "release"}, {"target", "/state/lanes/launch/0"}})["type"] == "released");
+	REQUIRE(bob->ask({{"type", "lease"}, {"author", "bob"}, {"target", "/state/lanes/launch/0"}})["type"] == "leased");
 	CHECK(ada.ask(renameColumn("ada", 0))["type"] == "rejected");
 	bob.reset();
 	CHECK(repository.coordination()["leases"].empty());
@@ -124,23 +127,22 @@ TEST_CASE("roles: an agent can't give itself a role, a lease beyond its rules, o
 	CHECK(ada.ask({{"type", "setRole"}, {"author", "agent/ada"}, {"role", "design"}})["type"] == "rejected");
 	CHECK(ada.ask({{"type", "setRole"}, {"author", "agent/bob"}, {"role", "design"}})["type"] == "rejected");
 	CHECK(repository.roles().of("agent/ada").empty());
-	REQUIRE(bob.ask({{"type", "lease"}, {"author", "bob"}, {"target", "/state/columns/1"}})["type"] == "leased");
-	CHECK(ada.ask({{"type", "endLease"}, {"target", "/state/columns/1"}})["type"] == "rejected");
+	REQUIRE(bob.ask({{"type", "lease"}, {"author", "bob"}, {"target", "/state/lanes/launch/1"}})["type"] == "leased");
+	CHECK(ada.ask({{"type", "endLease"}, {"target", "/state/lanes/launch/1"}})["type"] == "rejected");
 	CHECK(repository.coordination()["leases"].size() == 1);
 	// A lease on a part its rules deny it is refused: the status bar is denied to everyone
 	const json beyond = ada.ask({{"type", "lease"}, {"author", "ada"}, {"target", "#statusBar"}});
 	CHECK(beyond["type"] == "rejected");
 	CHECK(beyond["error"].get<std::string>().find("beyond") != std::string::npos);
-	CHECK(ada.ask(
-	          {{"type", "lease"}, {"author", "ada"}, {"target", "/state/columns/2"}, {"seconds", 99999}})["seconds"] ==
-	      3600);
+	CHECK(ada.ask({{"type", "lease"}, {"author", "ada"}, {"target", "/state/lanes/launch/2"}, {"seconds", 99999}})
+	          ["seconds"] == 3600);
 
 	// A reviewer sets an agent's role and ends a lease; nobody sets their own role
 	CHECK(studio.ask({{"type", "setRole"}, {"author", "agent/ada"}, {"role", "design"}})["type"] == "done");
 	CHECK(repository.roles().of("agent/ada") == "design");
 	CHECK(repository.setRole("studio/ann", "admin", "studio/ann"));
 	CHECK(repository.setRole("agent/ada", "admin", "agent/bob"));
-	CHECK(studio.ask({{"type", "endLease"}, {"target", "/state/columns/1"}})["type"] == "done");
+	CHECK(studio.ask({{"type", "endLease"}, {"target", "/state/lanes/launch/1"}})["type"] == "done");
 	CHECK(repository.coordination()["leases"].size() == 1); // Ada's, on column 2
 	// A revision can't carry a lease: a "lease" key is not one
 	CHECK(bob.ask({{"type", "revision"}, {"author", "bob"}, {"lease", "#board"}, {"set", {{"/state/x", 1}}}})["type"] !=

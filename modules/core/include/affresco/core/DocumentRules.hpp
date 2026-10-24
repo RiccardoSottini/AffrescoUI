@@ -156,6 +156,16 @@ public:
 		return {};
 	}
 
+	/// @brief The layers a change touches, for a reviewer: e.g. `{"view": 2, "logic": 0, "model": [], "data":
+	/// "none"}` (VERSION_CONTROL.md, "Impact per layer"). Proposals carry it. The default has none (null).
+	/// @param before The document now, with the live state as its "state".
+	/// @param after The document after the change, with the live state after it.
+	/// @return The impact, or null.
+	// NOLINTNEXTLINE(readability-convert-member-functions-to-static): a default that implementations override
+	[[nodiscard]] virtual json impact([[maybe_unused]] const json& before, [[maybe_unused]] const json& after) const {
+		return nullptr;
+	}
+
 	/// @brief Gives ids to the nodes a revision puts somewhere without one, before the change is applied, so that the
 	/// commit, the history and every diff show them. The default gives none (a format without nodes).
 	/// @param document The document as it is before the operation, with the live state as its "state".

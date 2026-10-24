@@ -37,6 +37,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `frames` | What a service process writes (`services/src/rpc/Framing.hpp`), cut into pieces: Content-Length frames or lines; the first byte picks the framing and the piece size | Every body is within the 64-byte limit, a line holds no line feed, and a refused stream stays refused with no body after |
 | `dap` | A message body a debug adapter writes, to the `dap` service's reader (`services/src/dap/DapProtocol.hpp`), and the same bytes as a request's arguments | A message is read or refused with a reason; what a screen gets is UTF-8, its lists within their limits, and every source it names says whether it is inside the folder |
 | `syntax` | Text in a language the first byte picks, then edits of five bytes each, to the syntax engine (`services/Syntax.hpp`, tree-sitter and its grammars) | It parses within its limits; runs stay on their lines, folds go downwards, bracket pairs read back as pairs; an edited document highlights as a fresh parse of the same text does |
+| `data_models` | `{"models", "next", "query"}` (models with migrations and seeds, the next version of them, a query) or, if it isn't JSON, a CSV text, to the data module's store (`modules/data`) | Refused with `DocumentError` only; a plan changes nothing and agrees with what follow then does; a refused change leaves every record as it was; CSV rows stay within their limits |
 | `migrate` | A version 1 document or patch, to `migrate` and `migratePatch` (`format/Migrate.hpp`), each twice | Refused with `json::parse_error`; otherwise migrated, a changed document declares version 2, and the second migration changes nothing |
 | `feature_manifest` | A feature's manifest (RFC 0004), to `checkManifest` (`format/src/features/FeatureManifest.hpp`), and if it passes, its record composed into the Kanban template | Refused with `json::parse_error` or `DocumentError`; a manifest that passes composes into a screen or problems |
 | `catalog_index` | A catalogue's index, signed at start-up by a trusted key made then, to `readCatalog` (`format/src/features/FeatureCatalog.hpp`) | An index or a `DocumentError`; releases newest first and once each, keys well formed, URLs inside the folder |
@@ -68,6 +69,7 @@ of these and what limits them.
 | URLs a connection, a sign-in provider or a peer names | Screens, peers, providers | `url` |
 | Sign-in answers (token, device code, error, redirect, id token) | The provider, or whoever answers in its place | `oauth` |
 | Image files a revision names (PNG, JPEG, SVG) | Peers, within the allowed folders | `image`, `path` |
+| A screen's models, migrations, seeds and queries; CSV files an importCsv step reads | Peers (revisions), the person (a file) | `data_models` |
 | glTF models a scene node names | Peers, within the allowed folders | `gltf`, `scene` |
 | A scene node's scene and animations (state) | Agents and peers, by revisions | `scene` |
 | The images a screen edits (its `images` section) and the `image` steps that change them | Agents and peers, by revisions | `images` |

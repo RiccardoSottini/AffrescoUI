@@ -84,6 +84,7 @@ json Repository::replay(Proposal& proposal, std::vector<Commit> commits) {
 	proposal.touches = std::move(touches);
 	proposal.conflicts = json::array();
 	proposal.behaviour = rules_.behaviourLines(before, after);
+	proposal.impact = rules_.impact(before, after);
 	proposal.policy = reviewNeeds(before, after, {}).first;
 	proposal.person = personNeeds(before, after, run);
 	proposal.assets = assetChanges(before, after);
@@ -152,6 +153,7 @@ std::vector<ProposalInfo> Repository::proposals() const {
 		info.assets = p.assets;
 		info.run = p.run;
 		info.person = p.person;
+		info.impact = p.impact;
 	}
 	return result;
 }

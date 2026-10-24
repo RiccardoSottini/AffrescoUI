@@ -12,6 +12,10 @@
 #include <string>
 #include <vector>
 
+namespace affresco::data {
+class Store;
+}
+
 namespace affresco::format {
 
 class SectionRegistry;
@@ -139,10 +143,23 @@ public:
 	/// @return The lines, e.g. "changes the action 'save'", "adds onClick to #addCard".
 	[[nodiscard]] std::vector<std::string> behaviourLines(const json& before, const json& after) const override;
 
+	/// @brief Sets the screen's record store, so a change to the models dry-runs on a copy of it before it is accepted
+	/// and its review says how many records it changes (src/data/DataRules.hpp).
+	/// @param store The store (outlives the rules, or is replaced first), or nullptr: then models are checked alone.
+	void setData(const data::Store* store) noexcept { data_ = store; }
+
+	/// @brief The layers a change touches, computed from what it changes: `{"view": n, "logic": n, "model": [changes
+	/// with their class], "data": "none" | "migrates N records" | "destructive: ..."}` (VERSION_CONTROL.md).
+	/// @param before The document now.
+	/// @param after The document after the change.
+	/// @return The impact.
+	[[nodiscard]] json impact(const json& before, const json& after) const override;
+
 private:
 	std::set<std::string, std::less<>> nativeActions_; ///< From addNativeAction().
 	std::shared_ptr<const SectionRegistry> sections_;  ///< The sections; shared by copies, never changed.
 	const services::Services* services_ = nullptr;     ///< See setServices().
+	const data::Store* data_ = nullptr;                ///< See setData().
 };
 
 } // namespace affresco::format

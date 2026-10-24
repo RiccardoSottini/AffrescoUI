@@ -104,15 +104,20 @@ json screenDocument(const json& document, const std::filesystem::path& directory
 
 json kanbanWithCards(const std::filesystem::path& directory, int cards) {
 	json document = json::parse(readFile(directory / "index.screen.json"));
-	json& columns = document["state"]["columns"];
+	json& seed = document["models"]["issues"]["seed"]; // the issues are records: the board shows the launch's
 	std::vector<json> originals;
-	for(const json& column : columns)
-		for(const json& card : column["cards"]) originals.push_back(card);
+	for(const json& card : seed)
+		if(card["board"] == "launch") originals.push_back(card);
 
 	const auto total = static_cast<std::size_t>(cards);
 	if(total < originals.size()) throw std::invalid_argument("the Kanban template has more cards than asked for");
-	for(std::size_t count = originals.size(); count < total; ++count) // one card per column in turn
-		columns[count % columns.size()]["cards"].push_back(originals[count % originals.size()]);
+	for(std::size_t count = originals.size(); count < total; ++count) { // one card per column in turn
+		json card = originals[count % originals.size()];
+		card["id"] = card["ref"] = "FLO-P" + std::to_string(count); // unique, as a ref must be
+		card["status"] = count % 4;
+		card["order"] = count;
+		seed.push_back(std::move(card));
+	}
 	return document;
 }
 

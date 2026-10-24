@@ -83,6 +83,7 @@ struct ProposalInfo {
 	/// Why only the person may accept it (assets, "run", the audio section, a source made an asset), as lines; empty
 	/// if any reviewer may (VERSION_CONTROL.md, "Assets").
 	std::vector<std::string> person = {};
+	json impact = nullptr; ///< The layers it touches (DocumentRules::impact()): view, logic, model, data; or null.
 };
 
 /// @brief What VersionControl::attach did: the attachment, or why it was refused.
@@ -231,6 +232,16 @@ public:
 	/// @return A JSON Patch from one to the other.
 	/// @throws DocumentError If either commit is unknown.
 	[[nodiscard]] virtual json diff(const json& from, const json& to) const = 0;
+	/// @brief The layers the change from one commit to another touches (DocumentRules::impact()): view, logic, model
+	/// and data. The default has none.
+	/// @param from The older commit.
+	/// @param to The newer commit.
+	/// @return The impact, or null.
+	/// @throws DocumentError If either commit is unknown.
+	// NOLINTNEXTLINE(readability-convert-member-functions-to-static): a default that implementations override
+	[[nodiscard]] virtual json impact([[maybe_unused]] const json& from, [[maybe_unused]] const json& to) const {
+		return nullptr;
+	}
 
 	/// @brief Finds the commit on main that last changed a node or a value, like `git blame`.
 	/// @param target A node ("#board", or "#board/text" inside it) or a path ("/colors/accent"); "/state/..." paths
@@ -422,7 +433,7 @@ inline json toJson(const CommitInfo& c) {
 /// @param p The proposal.
 /// @return `{"id", "branch", "author", "message", "base", "head", "short", "commits", "operations", "touches",
 /// "remember", "changes", "reason", "time", "conflicts", "approvals", "policy", "behaviour", "assets", "run",
-/// "person"}`.
+/// "person", "impact"}`.
 inline json toJson(const ProposalInfo& p) {
 	return {{"id", p.id},
 	        {"branch", p.branch},
@@ -444,7 +455,8 @@ inline json toJson(const ProposalInfo& p) {
 	        {"behaviour", p.behaviour},
 	        {"assets", p.assets},
 	        {"run", p.run},
-	        {"person", p.person}};
+	        {"person", p.person},
+	        {"impact", p.impact}};
 }
 
 /// @brief Converts a grant to its live-protocol JSON.

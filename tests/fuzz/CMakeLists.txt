@@ -143,3 +143,5 @@ if(AFFRESCOUI_AUDIO)
 	# Sound descriptions an agent writes (audio/Sound.hpp), read and rendered
 	affrescoui_fuzzer(sound affrescoui::audio nlohmann_json::nlohmann_json)
 endif()
+# The data layer on untrusted documents: models, migrations, seeds, queries and CSV text (modules/data)
+affrescoui_fuzzer(data_models affrescoui::data)

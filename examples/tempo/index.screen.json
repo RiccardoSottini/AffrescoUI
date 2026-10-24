@@ -108,58 +108,6 @@
 			{ "id": "nowPlaying", "icon": "radio" },
 			{ "id": "sound", "icon": "sliders-horizontal" }
 		],
-		"playlists": [
-			{
-				"name": "Late Night Code",
-				"cover": "images/cover-late-night.svg",
-				"description": "Low-key beats for long sessions. Updated every Friday.",
-				"length": "38 min",
-				"tracks": [
-					{ "title": "Vertex Buffers", "artist": "The Shaders", "album": "Core Profile", "time": "3:42" },
-					{ "title": "Dirty Flags", "artist": "Nora Vale", "album": "Redraw", "time": "4:05" },
-					{ "title": "One Draw Call", "artist": "The Shaders", "album": "Core Profile", "time": "3:18" },
-					{ "title": "Glyph Atlas", "artist": "Kerning Club", "album": "Baseline", "time": "5:01" },
-					{ "title": "Sixteen Bytes", "artist": "Nora Vale", "album": "Redraw", "time": "2:57" },
-					{ "title": "Wait Events", "artist": "Idle Loop", "album": "Zero Percent", "time": "4:33" },
-					{ "title": "Reconcile", "artist": "Kerning Club", "album": "Baseline", "time": "3:50" },
-					{ "title": "Hot Path", "artist": "Idle Loop", "album": "Zero Percent", "time": "3:24" },
-					{ "title": "Retina", "artist": "The Shaders", "album": "Core Profile", "time": "4:12" }
-				]
-			},
-			{
-				"name": "Morning Run",
-				"cover": "images/cover-morning-run.svg",
-				"description": "Fast, bright and loud. 160 bpm and up.",
-				"length": "24 min",
-				"tracks": [
-					{ "title": "First Light", "artist": "Halfway", "album": "Pace", "time": "3:05" },
-					{ "title": "Uphill", "artist": "Mira Sol", "album": "Stride", "time": "2:48" },
-					{ "title": "Second Wind", "artist": "Halfway", "album": "Pace", "time": "3:31" },
-					{ "title": "Finish Line", "artist": "Mira Sol", "album": "Stride", "time": "4:02" }
-				]
-			},
-			{
-				"name": "Sunday Jazz",
-				"cover": "images/cover-sunday-jazz.svg",
-				"description": "Slow standards and new takes on old tunes.",
-				"length": "51 min",
-				"tracks": [
-					{ "title": "Blue Hour", "artist": "Ada Quartet", "album": "Standards", "time": "6:12" },
-					{ "title": "Rainy Avenue", "artist": "Leo Marsh Trio", "album": "Avenue", "time": "5:40" },
-					{ "title": "Slow Burn", "artist": "Ada Quartet", "album": "Standards", "time": "7:03" }
-				]
-			},
-			{
-				"name": "Focus",
-				"cover": "images/cover-focus.svg",
-				"description": "Ambient textures without words.",
-				"length": "1 h 12 min",
-				"tracks": [
-					{ "title": "Deep Work", "artist": "Quiet Rooms", "album": "Hours", "time": "8:20" },
-					{ "title": "Flow State", "artist": "Quiet Rooms", "album": "Hours", "time": "9:45" }
-				]
-			}
-		],
 		"words": {
 			"adjectives": ["Silver", "Quiet", "Electric", "Paper", "Golden", "Hollow", "Velvet", "Neon", "Distant", "Broken", "Gentle", "Midnight", "Crystal", "Wild", "Slow", "Bright"],
 			"nouns": ["Rivers", "Signals", "Gardens", "Engines", "Harbours", "Lanterns", "Mirrors", "Satellites", "Islands", "Letters", "Horizons", "Echoes", "Windows", "Machines", "Shadows", "Bridges", "Comets", "Forests", "Parades", "Tides"],
@@ -167,7 +115,6 @@
 			"albums": ["Core Profile", "Redraw", "Baseline", "Zero Percent", "Pace", "Stride", "Standards", "Avenue", "Hours", "Night Shift", "Vectors", "Long Weekend", "Blueprints", "Static", "Open Air", "Afterglow", "Field Notes", "Overture"],
 			"versions": ["Live", "Remix", "Demo", "Edit", "Acoustic", "Reprise", "Mono", "Dub", "Take 2"]
 		},
-		"library": [],
 		"libraryInfo": { "name": "All songs", "cover": "images/cover-library.svg" },
 		"librarySort": null,
 		"libraryPick": null,
@@ -194,26 +141,248 @@
 		"mini": {"type": "boolean"},
 		"sizes": {"type": "array", "items": {"type": "number"}},
 		"menu": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "icon": {"type": "string"}}}},
-		"playlists": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "cover": {"type": "string"}, "description": {"type": "string"}, "length": {"type": "string"}, "tracks": {"type": "array", "items": {"type": "object", "properties": {"title": {"type": "string"}, "artist": {"type": "string"}, "album": {"type": "string"}, "time": {"type": "string"}}}}}}},
 		"words": {"type": "object"},
-		"library": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "cells": {"type": "array"}, "sound": {"type": "string"}}}},
 		"libraryInfo": {"type": "object", "properties": {"name": {"type": "string"}, "cover": {"type": "string"}}},
 		"librarySort": {"type": ["object", "null"]},
 		"libraryPick": {"type": ["string", "null"]},
 		"quickPick": {"type": "object", "properties": {"open": {"type": "boolean"}, "query": {"type": "string"}}}
 	},
 
+	"models": {
+		"songs": {
+			"version": 1,
+			"title": "Songs",
+			"note": "The library, made once from the word lists when the app first starts (buildLibrary)",
+			"fields": {
+				"number": {
+					"type": "integer",
+					"minimum": 1,
+					"required": true
+				},
+				"title": {
+					"type": "string",
+					"required": true
+				},
+				"artist": {
+					"type": "string"
+				},
+				"album": {
+					"type": "string"
+				},
+				"time": {
+					"type": "string",
+					"maxLength": 8
+				},
+				"sound": {
+					"type": "string",
+					"maxLength": 120,
+					"note": "The name of a declared audio sound that plays for it (e.g. one whose file is an asset:); none: the beat"
+				}
+			}
+		},
+		"playlists": {
+			"version": 1,
+			"title": "Playlists",
+			"fields": {
+				"name": {
+					"type": "string",
+					"required": true
+				},
+				"cover": {
+					"type": "string"
+				},
+				"description": {
+					"type": "string"
+				},
+				"length": {
+					"type": "string"
+				},
+				"tracks": {
+					"type": "list",
+					"of": {
+						"type": "object",
+						"fields": {
+							"title": {
+								"type": "string"
+							},
+							"artist": {
+								"type": "string"
+							},
+							"album": {
+								"type": "string"
+							},
+							"time": {
+								"type": "string"
+							},
+							"sound": {
+								"type": "string"
+							}
+						}
+					},
+					"maxItems": 1000
+				}
+			},
+			"seed": [
+				{
+					"id": "p1",
+					"name": "Late Night Code",
+					"cover": "images/cover-late-night.svg",
+					"description": "Low-key beats for long sessions. Updated every Friday.",
+					"length": "38 min",
+					"tracks": [
+						{
+							"title": "Vertex Buffers",
+							"artist": "The Shaders",
+							"album": "Core Profile",
+							"time": "3:42"
+						},
+						{
+							"title": "Dirty Flags",
+							"artist": "Nora Vale",
+							"album": "Redraw",
+							"time": "4:05"
+						},
+						{
+							"title": "One Draw Call",
+							"artist": "The Shaders",
+							"album": "Core Profile",
+							"time": "3:18"
+						},
+						{
+							"title": "Glyph Atlas",
+							"artist": "Kerning Club",
+							"album": "Baseline",
+							"time": "5:01"
+						},
+						{
+							"title": "Sixteen Bytes",
+							"artist": "Nora Vale",
+							"album": "Redraw",
+							"time": "2:57"
+						},
+						{
+							"title": "Wait Events",
+							"artist": "Idle Loop",
+							"album": "Zero Percent",
+							"time": "4:33"
+						},
+						{
+							"title": "Reconcile",
+							"artist": "Kerning Club",
+							"album": "Baseline",
+							"time": "3:50"
+						},
+						{
+							"title": "Hot Path",
+							"artist": "Idle Loop",
+							"album": "Zero Percent",
+							"time": "3:24"
+						},
+						{
+							"title": "Retina",
+							"artist": "The Shaders",
+							"album": "Core Profile",
+							"time": "4:12"
+						}
+					]
+				},
+				{
+					"id": "p2",
+					"name": "Morning Run",
+					"cover": "images/cover-morning-run.svg",
+					"description": "Fast, bright and loud. 160 bpm and up.",
+					"length": "24 min",
+					"tracks": [
+						{
+							"title": "First Light",
+							"artist": "Halfway",
+							"album": "Pace",
+							"time": "3:05"
+						},
+						{
+							"title": "Uphill",
+							"artist": "Mira Sol",
+							"album": "Stride",
+							"time": "2:48"
+						},
+						{
+							"title": "Second Wind",
+							"artist": "Halfway",
+							"album": "Pace",
+							"time": "3:31"
+						},
+						{
+							"title": "Finish Line",
+							"artist": "Mira Sol",
+							"album": "Stride",
+							"time": "4:02"
+						}
+					]
+				},
+				{
+					"id": "p3",
+					"name": "Sunday Jazz",
+					"cover": "images/cover-sunday-jazz.svg",
+					"description": "Slow standards and new takes on old tunes.",
+					"length": "51 min",
+					"tracks": [
+						{
+							"title": "Blue Hour",
+							"artist": "Ada Quartet",
+							"album": "Standards",
+							"time": "6:12"
+						},
+						{
+							"title": "Rainy Avenue",
+							"artist": "Leo Marsh Trio",
+							"album": "Avenue",
+							"time": "5:40"
+						},
+						{
+							"title": "Slow Burn",
+							"artist": "Ada Quartet",
+							"album": "Standards",
+							"time": "7:03"
+						}
+					]
+				},
+				{
+					"id": "p4",
+					"name": "Focus",
+					"cover": "images/cover-focus.svg",
+					"description": "Ambient textures without words.",
+					"length": "1 h 12 min",
+					"tracks": [
+						{
+							"title": "Deep Work",
+							"artist": "Quiet Rooms",
+							"album": "Hours",
+							"time": "8:20"
+						},
+						{
+							"title": "Flow State",
+							"artist": "Quiet Rooms",
+							"album": "Hours",
+							"time": "9:45"
+						}
+					]
+				}
+			]
+		}
+	},
+
 	"computed": {
-		"list": "{{state.playlists[state.current]}}",
-		"playing": "{{state.playingList < 0 ? state.libraryInfo : state.playlists[state.playingList]}}",
-		"track": "{{state.playingList < 0 ? { title: state.library[state.playingTrack].cells[1], artist: state.library[state.playingTrack].cells[2], album: state.library[state.playingTrack].cells[3], time: state.library[state.playingTrack].cells[4], sound: state.library[state.playingTrack].sound } : computed.playing.tracks[state.playingTrack]}}",
+		"library": "{{map(data.songs, { id: it.id, cells: [it.number, it.title, it.artist, it.album, it.time], sound: it.sound })}}",
+		"list": "{{data.playlists[state.current]}}",
+		"playing": "{{state.playingList < 0 ? state.libraryInfo : data.playlists[state.playingList]}}",
+		"track": "{{state.playingList < 0 ? { title: computed.library[state.playingTrack].cells[1], artist: computed.library[state.playingTrack].cells[2], album: computed.library[state.playingTrack].cells[3], time: computed.library[state.playingTrack].cells[4], sound: computed.library[state.playingTrack].sound } : computed.playing.tracks[state.playingTrack]}}",
 		"sound": "{{computed.track.sound ?? 'beat'}}",
 		"playingName": "{{state.playingList >= 0 ? computed.playing.name : state.source != '' ? state.source : t('library.all')}}",
 		"duration": "{{number(split(computed.track.time, ':')[0]) * 60 + number(split(computed.track.time, ':')[1])}}",
 		"elapsedText": "{{floor(state.elapsed / 60)}}:{{pad(floor(state.elapsed % 60), 2)}}",
-		"upNext": "{{map(state.queue, { id: text(it), label: state.playingList < 0 ? state.library[it].cells[1] + '  ·  ' + state.library[it].cells[2] : computed.playing.tracks[it].title + '  ·  ' + computed.playing.tracks[it].artist })}}",
+		"upNext": "{{map(state.queue, { id: text(it), label: state.playingList < 0 ? computed.library[it].cells[1] + '  ·  ' + computed.library[it].cells[2] : computed.playing.tracks[it].title + '  ·  ' + computed.playing.tracks[it].artist })}}",
 		"queueAt": "{{state.queuePick == null ? -1 : indexOf(state.queue, number(state.queuePick))}}",
-		"picks": "{{state.quickPick.open ? map(state.library, { title: it.cells[1], detail: it.cells[2] + ' · ' + it.cells[3], track: index }) : []}}",
+		"picks": "{{state.quickPick.open ? map(computed.library, { title: it.cells[1], detail: it.cells[2] + ' · ' + it.cells[3], track: index }) : []}}",
 		"palette": "{{map(filter(commands, it.enabled), { title: it.title, detail: it.key ? join(map(split(it.key, '+'), it == 'mod' ? 'Cmd' : upper(slice(it, 0, 1)) + slice(it, 1)), '+') : it.category, run: it.name })}}",
 		"wave": "{{map(range(64), 3 + (index * index * (length(computed.track.title) + state.playingTrack) + index * 7) % 21)}}",
 		"played": "{{clamp(floor(64 * state.elapsed / max(computed.duration, 1)), 0, 64)}}",
@@ -294,7 +463,7 @@
 					"list": "{{list}}",
 					"track": "{{track}}",
 					"source": "",
-					"rest": "{{map(range(max(min((list < 0 ? length(state.library) : length(state.playlists[list].tracks)) - track - 1, 50), 0)), track + 1 + index)}}"
+					"rest": "{{map(range(max(min((list < 0 ? length(computed.library) : length(data.playlists[list].tracks)) - track - 1, 50), 0)), track + 1 + index)}}"
 				}
 			}
 		],
@@ -329,7 +498,7 @@
 			{ "note": "with: song, at: moves a song of the queue to that place" },
 			{ "set": "state.queue", "to": "{{filter(state.queue, it != song)}}" },
 			{ "set": "state.queue", "to": "{{concat(slice(state.queue, 0, at), [song], slice(state.queue, at))}}" },
-			{ "set": "state.queueNote", "to": "{{t('queue.moved', { title: state.playingList < 0 ? state.library[song].cells[1] : computed.playing.tracks[song].title, n: at + 1 })}}" }
+			{ "set": "state.queueNote", "to": "{{t('queue.moved', { title: state.playingList < 0 ? computed.library[song].cells[1] : computed.playing.tracks[song].title, n: at + 1 })}}" }
 		],
 		"moveQueued": [
 			{ "note": "with: by, -1 or 1: moves the song picked in the queue up or down" },
@@ -362,11 +531,10 @@
 			{ "set": "state.page", "to": "playlist" }
 		],
 		"buildLibrary": [
-			{ "note": "Makes the library's 3,000 songs once, from the word lists, as table rows" },
-			{
-				"set": "state.library",
-				"to": "{{map(range(3000), { id: text(index), cells: [index + 1, state.words.adjectives[index % 16] + ' ' + state.words.nouns[floor(index / 16) % 20] + (index < 320 ? '' : ' (' + state.words.versions[floor(index / 320) - 1] + ')'), state.words.artists[(index * 7) % 12], state.words.albums[floor(index / 5) % 18], floor((150 + (index * 37) % 210) / 60) + ':' + pad((150 + (index * 37) % 210) % 60, 2)] })}}"
-			}
+			{ "note": "Makes the library's 3,000 songs once, from the word lists: the first time the app starts" },
+			{ "if": "{{length(data.songs) == 0}}", "then": [
+				{ "insert": "songs", "values": "{{map(range(3000), { id: text(index), number: index + 1, title: state.words.adjectives[index % 16] + ' ' + state.words.nouns[floor(index / 16) % 20] + (index < 320 ? '' : ' (' + state.words.versions[floor(index / 320) - 1] + ')'), artist: state.words.artists[(index * 7) % 12], album: state.words.albums[floor(index / 5) % 18], time: floor((150 + (index * 37) % 210) / 60) + ':' + pad((150 + (index * 37) % 210) % 60, 2) })}}" }
+			] }
 		],
 		"playPause": { "title": "Play or pause", "category": "Playback", "icon": "play", "do": [
 			{ "note": "Tempo opens playing, silently: the first press starts the song's sound; without sound (a host that gives none) it pauses" },
@@ -516,7 +684,7 @@
 						"children": [
 							{
 								"id": "playlist",
-								"repeat": { "for": "list", "in": "state.playlists" },
+								"repeat": { "for": "list", "in": "data.playlists" },
 								"let": { "open": "{{state.page == 'playlist' && index == state.current}}" },
 								"anchors": { "left": 0, "right": 0 },
 								"height": 56,
@@ -668,7 +836,7 @@
 											{ "id": "libraryCover", "type": "image", "file": "{{state.libraryInfo.cover}}", "fit": "cover", "radius": 6, "anchors": { "left": 32, "top": 24 }, "width": 84, "height": 84 },
 											{ "id": "label-library", "style": "caption", "text": "{{t('library.caption')}}", "anchors": { "left": 140, "top": 28 } },
 											{ "id": "libraryName", "type": "label", "text": "{{t('library.all')}}", "font": "large", "textColor": "@text", "anchors": { "left": 138, "top": 44 }, "fitText": true },
-											{ "id": "libraryCount", "style": "caption", "text": "{{t('library.count', { n: length(state.library) })}}", "anchors": { "left": 140, "top": 88 } },
+											{ "id": "libraryCount", "style": "caption", "text": "{{t('library.count', { n: length(computed.library) })}}", "anchors": { "left": 140, "top": 88 } },
 											{
 												"id": "playLibraryButton",
 												"style": "playButton",
@@ -685,7 +853,7 @@
 										"anchors": { "left": 24, "right": 24, "top": 148, "bottom": 8 },
 										"color": "transparent",
 										"rowHeight": 30,
-										"items": "{{state.library}}",
+										"items": "{{computed.library}}",
 										"columns": [
 											{ "id": "number", "title": "{{t('column.number')}}", "width": 60 },
 											{ "id": "title", "title": "{{t('column.title')}}", "width": 230 },

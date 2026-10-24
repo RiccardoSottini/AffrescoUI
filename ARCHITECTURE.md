@@ -12,7 +12,7 @@ recipes.
 
 ## The layers
 
-Seven modules, one CMake target each. They depend on each other only as the arrows show, and anything else crossing a
+Eight modules, one CMake target each. They depend on each other only as the arrows show, and anything else crossing a
 module boundary goes through an interface in `core`. `automation`, on top, plays a screen's scenarios through the
 public API (plus the render module's headless window, which isn't public yet).
 
@@ -22,6 +22,7 @@ flowchart TB
     automation["<b>automation</b> · scenarios<br/>a screen's own checks, played headless"]
     screen["<b>screen</b> · affresco::Screen<br/>puts the modules together"]
     format["<b>format</b> · Rules, Checker, Runtime<br/>the screen format"]
+    data["<b>data</b> · Store<br/>models, records, migrations (SQLite)"]
     vcs["<b>vcs</b> · Repository<br/>commits, proposals, permissions"]
     channel["<b>channel</b> · sockets, processes, Session<br/>peers and the live protocol"]
     render["<b>render</b> · Application, Window, Panel<br/>layout, text, input, OpenGL"]
@@ -29,8 +30,8 @@ flowchart TB
 
     automation --> screen
     screen --> format & vcs & channel
-    format --> render
-    format & vcs & channel & render --> core
+    format --> render & data
+    format & vcs & channel & render & data --> core
 
     classDef root fill:#EEF2FF,stroke:#6366F1,stroke-width:1.5px,color:#1E1B4B
     classDef c_channel fill:#E0F2FE,stroke:#0284C7,stroke-width:1.5px,color:#0C4A6E
@@ -43,6 +44,7 @@ flowchart TB
     class channel c_channel
     class vcs c_vcs
     class format c_format
+    class data c_format
     class render c_render
     class core c_core
 ```
@@ -51,7 +53,8 @@ flowchart TB
 |---|---|---|---|---|
 | [`core`](modules/core/README.md) | `affrescoui::core` | The interfaces between modules (headers only) | | |
 | [`render`](modules/render/README.md) | `affrescoui::render` | Windows, the panel tree, layout, text, input, OpenGL | `Executor` (`Application`) | |
-| [`format`](modules/format/README.md) | `affrescoui::format` | The screen format: validation, the checker, expressions, the runtime | `DocumentRules` (`Rules`), `VersionObserver` (the runtime) | `VersionControl`, `render` |
+| [`format`](modules/format/README.md) | `affrescoui::format` | The screen format: validation, the checker, expressions, the runtime | `DocumentRules` (`Rules`), `VersionObserver` (the runtime) | `VersionControl`, `render`, `data` |
+| [`data`](modules/data/README.md) | `affrescoui::data` | The records: typed models, a SQLite store per app, queries, the journal, migrations, CSV import | | |
 | [`vcs`](modules/vcs/README.md) | `affrescoui::vcs` | Version control of any JSON document | `VersionControl` (`Repository`) | `DocumentRules` |
 | [`channel`](modules/channel/README.md) | `affrescoui::channel` | Transports and the live protocol | `Channel` | `Executor`, `VersionControl`, `ScreenImages` |
 | [`screen`](modules/screen/README.md) | `affrescoui::affrescoui` | The composition root, `affresco::Screen` | `ScreenImages` | every module |
@@ -72,6 +75,17 @@ Rules that hold across the layers:
   must live ("must outlive the session"). Callbacks that capture `this` are cancelled when their owner goes away.
 - **Errors name the place.** Document errors are `DocumentError`s like `root.children[1].anchors: unknown edge
   'lefft'`; refused changes come back as results with a reason, never as a crash.
+
+## View, logic, model and data
+
+An app is four layers (SCREEN_FORMAT.md, "Data: models and records"): the **view** (nodes, styles, bindings) and the
+**logic** (actions, `computed`, `queries`, the short-lived state) are the document; the **model** (`models`:
+collections, typed fields, a version) is the document too, changed with a migration when the records must change; the
+**data** (the records) is a store of its own (`data::Store`, SQLite, one file per app), changed by write steps,
+never by a revision. The runtime keeps the store in step with the document as versions land (`format/src/data/`,
+`DataLayer`): a version whose models the records don't fit is refused and rolled back, like one that can't be built.
+`format::Rules` classifies every change by the layers it touches (`impact`: view, logic, model, data), requires a
+migration for a transforming model change, and dry-runs it on a copy of the store; a proposal carries its impact.
 
 ## The path of a revision
 
@@ -165,6 +179,7 @@ code. The **host grants them, and a revision never widens them.**
 |---|---|---|
 | Connecting to programs | the screen file's `channels`; `Screen::listen` and `connect` in the host | `channels` can't be changed by a revision |
 | Writing state to disk | the screen file's `persist`; the data folder | `persist` can't be changed by a revision |
+| Keeping records | the screen file's `models`; the store the host opens (`Screen::setDataFile`, the data folder) | no revision writes records; a write step, or a model change that transforms or drops records, is always reviewed; a transforming one needs its migration and dry-runs on a copy of the store |
 | Who may change what, and who reviews | the screen file's `permissions`; the host's mode | `permissions` can't be changed by a revision; `deny` holds even in `acceptEdits` |
 | Native code | the application's `onCall`, `onAction` and `registerType` | a revision can't add, change or move a `call`, `send`, `connect` or `patch` step, nor a way to run one |
 | Deciding on proposals, history | review steps in the screen file; reviewer peers | a revision can't add review or history steps (`accept`, `reject`, `preview`, `restore`, `revert`, `undo`, ...); an author can't approve itself |

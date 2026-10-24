@@ -101,6 +101,12 @@ private:
 /// @return The problem, or an empty string if it holds.
 [[nodiscard]] std::string checkState(const Screen& screen, const json& expect);
 
+/// @brief Checks a value of the screen's records, as the `data` variable gives them (Expectations.cpp).
+/// @param screen The screen.
+/// @param expect `{"data": "notes[0].title", "is": "Plan"}`.
+/// @return "" if it holds, else what is wrong.
+[[nodiscard]] std::string checkData(Screen& screen, const json& expect);
+
 /// @brief Checks a node expectation: whether it exists, its text, or a property.
 /// @param root Where to look: the window's root panel.
 /// @param expect {"node": "#id" or { "role", "name"? }, "nth", "exists" | "text" | "property" + "is"}.

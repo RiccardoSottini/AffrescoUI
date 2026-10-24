@@ -485,6 +485,7 @@ void Repository::recheckProposal(Proposal& proposal, const json& base) const {
 		                        : rememberedRules(proposal.author, next.touches, verdict.askedByRule);
 		proposal.touches = next.touches;
 		proposal.behaviour = rules_.behaviourLines(next.before, next.after);
+		proposal.impact = rules_.impact(next.before, next.after);
 		proposal.policy = reviewNeeds(next.before, next.after, {}).first;
 		proposal.person = personNeeds(next.before, next.after, proposal.run);
 		proposal.assets = assetChanges(next.before, next.after);

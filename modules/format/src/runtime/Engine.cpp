@@ -50,6 +50,7 @@ Engine::~Engine() {
 }
 
 void Engine::documentChanged() {
+	data.documentChanged();  // the records follow its models first: records that don't fit refuse the version
 	builder.forgetVersion(); // what was compiled belongs to the version before
 	document.readDerived();
 	document.bumpStateVersion(); // a revision may change the state too

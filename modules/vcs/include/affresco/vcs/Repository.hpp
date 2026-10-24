@@ -122,6 +122,7 @@ public:
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;
 	[[nodiscard]] json revertRevision(const json& revision, std::string_view author) const override;
 	[[nodiscard]] json diff(const json& from, const json& to) const override;
+	[[nodiscard]] json impact(const json& from, const json& to) const override;
 	[[nodiscard]] CommitInfo blame(std::string_view target) const override;
 
 	/* Review */
@@ -241,6 +242,7 @@ private:
 		/// Heads it had before rebases that replayed its commits unchanged: an approval of one of them still holds.
 		std::vector<std::string> reviewedHeads;
 		std::vector<std::string> behaviour; ///< What it changes in behaviour (DocumentRules::behaviourLines()).
+		json impact;                        ///< The layers it touches (DocumentRules::impact()).
 		std::string policy;                 ///< What the review policy asks of it, for reviewers.
 		json run = json::array();           ///< Its commits' "run" steps, in order: what the merge commit runs.
 		json assets = json::array();        ///< The assets it brings, changes or removes (ProposalInfo::assets).

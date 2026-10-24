@@ -1,6 +1,6 @@
 # Streak, a habit tracker
 
-Habits to check day by day, with scores, charts, a calendar and notes, kept on disk with `persist`. The `habit-tracker` template: a screen document with no C++ of its own, which the stock host runs.
+Habits to check day by day, with scores, charts, a calendar and notes, kept as records of a `habits` model (SCREEN_FORMAT.md, "Data: models and records"). The `habit-tracker` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
 ./build/affrescoui_launcher examples/streak/index.screen.json
@@ -41,7 +41,7 @@ Laid out for the desktop: the list and the selected habit's detail side by side
 
 ## How it holds together
 
-- **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the app bar. The habits, the list's order and filters, and the settings persist. The `streakServer` connection syncs the habits with a document server at a local address, signed in with a placeholder provider; its policy shows that no one may move where the habits sync.
+- **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the app bar. The habits are records in the app's store (an older version's habits come in once from its state file, `importFrom`); the list's order and filters, and the settings persist. The `streakServer` connection syncs the habits with a document server at a local address, signed in with a placeholder provider; its policy shows that no one may move where the habits sync.
 - **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
-- **Extension points:** a habit is an entry of `state.habits` (its days in one `entries` string); a language is a table of `strings`; `ring`, `switch`, `periodButton`, `prefRow`, `toggleRow` and `stat` are its local components.
+- **Extension points:** a habit is a record of the `habits` model (its days in one `entries` string, its notes a map by day), read in order through the `ordered` query and written with update steps; a language is a table of `strings`; `ring`, `switch`, `periodButton`, `prefRow`, `toggleRow` and `stat` are its local components.
 - **Assets:** no pictures of its own; the fonts' licences are with them in `../shared/fonts`.
