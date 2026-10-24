@@ -74,16 +74,22 @@ void setLine(StrokeStyle& line, std::string_view key, std::string_view value) {
 /// @param transform The transform so far.
 /// @param name The function's name.
 /// @param arguments Its arguments.
-void composeFunction(PathTransform& transform, std::string_view name, const std::vector<float>& arguments) {
-	PathTransform local;
-	if(name == "translate" && !arguments.empty())
-		local.offset = {arguments[0], arguments.size() > 1 ? arguments[1] : 0.0f};
-	else if(name == "scale" && !arguments.empty())
-		local.scale = {arguments[0], arguments.size() > 1 ? arguments[1] : arguments[0]};
-	else if(name == "matrix" && arguments.size() == 6 && arguments[1] == 0.0f && arguments[2] == 0.0f)
-		local = {{arguments[0], arguments[3]}, {arguments[4], arguments[5]}};
-	else return; // rotations and skews aren't drawn
-	transform = compose(transform, local);
+void composeFunction(Affine2& transform, std::string_view name, const std::vector<float>& arguments) {
+	Affine2 local;
+	const std::size_t n = arguments.size();
+	if(name == "translate" && n >= 1) local = Affine2::translation({arguments[0], n > 1 ? arguments[1] : 0.0f});
+	else if(name == "scale" && n >= 1) local = Affine2::scaling({arguments[0], n > 1 ? arguments[1] : arguments[0]});
+	else if(name == "rotate" && (n == 1 || n == 3)) {
+		local = Affine2::rotation(arguments[0]);
+		if(n == 3) local = local.about({arguments[1], arguments[2]});
+	} else if(name == "skewX" && n == 1) local = Affine2::skewing({arguments[0], 0.0f});
+	else if(name == "skewY" && n == 1) local = Affine2::skewing({0.0f, arguments[0]});
+	else if(name == "matrix" && n == 6)
+		local = {arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5]};
+	else return; // not read: skipped
+	for(const float value : {local.a, local.b, local.c, local.d, local.tx, local.ty})
+		if(!std::isfinite(value) || std::abs(value) > magnitudeLimit) return; // skewX(90): nothing to draw
+	transform = transform * local;
 }
 
 } // namespace
@@ -115,8 +121,8 @@ std::vector<float> svgNumbers(std::string_view text) {
 	return result;
 }
 
-PathTransform svgTransform(std::string_view text) {
-	PathTransform transform;
+Affine2 svgTransform(std::string_view text) {
+	Affine2 transform;
 	for(std::size_t functions = 0; functions < listLimit; ++functions) {
 		const std::size_t open = text.find('('), close = text.find(')');
 		if(open == std::string_view::npos || close == std::string_view::npos || close < open) break;
@@ -130,9 +136,13 @@ PathTransform svgTransform(std::string_view text) {
 
 void SvgStyle::set(std::string_view key, std::string_view value) {
 	value = trim(value);
-	if(key == "fill") fill = paint(value);
-	else if(key == "stroke") stroke = paint(value);
-	else if(key == "fill-rule") fillRule = value == "evenodd" ? FillRule::evenOdd : FillRule::nonZero;
+	if(key == "fill") {
+		fillGradient = svgPaintUrl(value).value_or("");
+		fill = fillGradient.empty() ? paint(value) : Color{0.0f, 0.0f, 0.0f, 1.0f};
+	} else if(key == "stroke") {
+		strokeGradient = svgPaintUrl(value).value_or("");
+		stroke = strokeGradient.empty() ? paint(value) : Color{0.0f, 0.0f, 0.0f, 1.0f};
+	} else if(key == "fill-rule") fillRule = value == "evenodd" ? FillRule::evenOdd : FillRule::nonZero;
 	else if(key == "fill-opacity") fillOpacity = opacityOf(value, fillOpacity);
 	else if(key == "stroke-opacity") strokeOpacity = opacityOf(value, strokeOpacity);
 	else if(key == "opacity") opacity *= opacityOf(value, 1.0f);
@@ -152,7 +162,18 @@ void SvgStyle::apply(const XmlTag& tag) {
 			rest.remove_prefix(std::min(end + 1, rest.size()));
 		}
 	}
-	if(const auto local = tag.attribute("transform")) transform = compose(transform, svgTransform(*local));
+	if(const auto local = tag.attribute("transform")) transform = transform * svgTransform(*local);
 }
+
+std::optional<std::string> svgPaintUrl(std::string_view text) {
+	text = trim(text);
+	if(!text.starts_with("url(") || !text.ends_with(')')) return std::nullopt;
+	text = trim(text.substr(4, text.size() - 5));
+	if(text.size() >= 2 && (text.front() == '\'' || text.front() == '"')) text = text.substr(1, text.size() - 2);
+	if(!text.starts_with('#') || text.size() < 2 || text.size() > 128) return std::nullopt;
+	return std::string(text.substr(1));
+}
+
+std::optional<Color> svgColor(std::string_view text) { return paint(text); }
 
 } // namespace affresco::vector

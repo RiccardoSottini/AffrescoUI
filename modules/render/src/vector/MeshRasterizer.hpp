@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <span>
 #include <vector>
 
@@ -31,6 +32,10 @@ public:
 	/// @param quads Its quads, 4 vertices each, in pixel units.
 	/// @param color Its colour (not premultiplied).
 	void fill(std::span<const MeshVertex> quads, Color color);
+	/// @brief Draws a mesh with a colour for each pixel (a gradient).
+	/// @param quads Its quads, 4 vertices each, in pixel units.
+	/// @param paint The colour (not premultiplied) at a pixel's centre.
+	void fill(std::span<const MeshVertex> quads, const std::function<Color(Vec2)>& paint);
 
 	/// @brief Its pixels, not premultiplied: red, green, blue, alpha, top row first.
 	[[nodiscard]] std::vector<std::uint8_t> straightPixels() const;
@@ -44,7 +49,9 @@ private:
 	/// @brief Draws a triangle.
 	/// @param corners Its corners.
 	/// @param color Its colour, premultiplied, in [0, 1].
-	void triangle(const std::array<MeshVertex, 3>& corners, const std::array<float, 4>& color);
+	/// @param paint The colour at each pixel instead, or nullptr.
+	void triangle(const std::array<MeshVertex, 3>& corners, const std::array<float, 4>& color,
+	              const std::function<Color(Vec2)>* paint = nullptr);
 	/// @brief Blends a colour into a pixel.
 	/// @param index The pixel's first byte.
 	/// @param color The colour, premultiplied, in [0, 1].
