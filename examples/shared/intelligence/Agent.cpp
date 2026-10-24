@@ -41,7 +41,10 @@ constexpr const char* toolRules =
     "nodes you change) or find_nodes; look up the parts of the format you need with get_format_guide (a topic such "
     "as \"Revisions\", \"label\", \"Events\", \"Actions\"); change it with submit_revision (if it is rejected, read "
     "the "
-    "error, fix the revision and submit again); then finish with reply, saying what you changed.";
+    "error, fix the revision and submit again); then finish with reply, saying what you changed. The app's records "
+    "(get_models: each collection's model and count, never a record) live apart from the screen: change a model with "
+    "a revision of /models/<collection>, and when its records must change (a field renamed, retyped or newly "
+    "required) raise its version and add a migration to its migrations (get_format_guide topic \"Data\").";
 
 /// How claude-code answers, without tools.
 constexpr const char* jsonRules =
@@ -93,6 +96,12 @@ std::vector<ToolSpec> agentTools() {
 		               {"property", text},
 		               {"value", json::object()},
 		               {"limit", {{"type", "integer"}}}})},
+	    {"get_models",
+		 "The app's records' models: each collection's version, typed fields and count of records (never a record), "
+		 "and the declared queries. A model change is a revision of /models/<collection>: when its records must "
+		 "change, raise its version and add a migration ({\"from\", \"to\", \"steps\": [{\"rename\": \"a\", \"to\": "
+		 "\"b\"}, {\"convert\": \"f\", \"with\": \"{{value * 1000}}\", \"inverse\": \"{{value / 1000}}\"}]}).",
+		 objectSchema(json::object())},
 	    {"submit_revision",
 		 "Change the running screen with compact edits: set (path -> value: replaces, or adds where nothing is), add "
 		 "(path -> value: inserts; \"/-\" appends to a list), remove (paths), move (from -> to); or a JSON Patch in "
@@ -226,6 +235,10 @@ private:
 				    findNodes(document_, call.input.value("type", std::string()),
 					          call.input.value("text", std::string()), call.input.value("property", std::string()),
 					          call.input.value("value", json()), call.input.value("limit", 20));
+			} else if(call.name == "get_models") {
+				const std::optional<json> answer = agent_.ask({{"type", "getCatalog"}});
+				if(!answer) throw std::runtime_error("the app didn't answer");
+				result.content = compact(answer->value("catalog", json::object()).value("data", json::object()));
 			} else if(call.name == "submit_revision") {
 				result.content = submit(call.input, result.error);
 			} else {
