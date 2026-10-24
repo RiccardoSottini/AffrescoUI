@@ -2,13 +2,18 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser on a GPU surface and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language. Playback is simulated: no sound plays.",
+	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser on a GPU surface and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language. The songs are simulated; what plays is one beatbox loop (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound.",
 
 	"include": ["strings.json", "pages.json", "../shared/addons/assistant/assistant.json"],
 
 	"window": { "title": "Tempo: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
 	"persist": ["state.theme", "state.settings", "state.eq", "state.eqOn", "state.volume"],
+
+	"audio": {
+		"beat": { "file": "audio/beatbox.wav", "loop": true, "volume": 0.7, "into": "state.beat",
+		          "note": "The sound of whatever song plays: a beatbox loop made for Tempo (audio/make_beat.py)" }
+	},
 
 	"fonts": {
 		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
@@ -83,6 +88,7 @@
 		"playingList": 0,
 		"playingTrack": 2,
 		"isPlaying": true,
+		"beat": { "status": "stopped", "playing": false },
 		"elapsed": 84,
 		"volume": 70,
 		"queueOpen": true,
@@ -173,6 +179,7 @@
 		"playingList": {"type": "number"},
 		"playingTrack": {"type": "number"},
 		"isPlaying": {"type": "boolean"},
+		"beat": {"type": "object", "properties": {"status": {"type": "string"}, "playing": {"type": "boolean"}}},
 		"elapsed": {"type": "number"},
 		"volume": {"type": "number", "minimum": 0, "maximum": 100},
 		"queueOpen": {"type": "boolean"},
@@ -356,7 +363,11 @@
 				"to": "{{map(range(3000), { id: text(index), cells: [index + 1, state.words.adjectives[index % 16] + ' ' + state.words.nouns[floor(index / 16) % 20] + (index < 320 ? '' : ' (' + state.words.versions[floor(index / 320) - 1] + ')'), state.words.artists[(index * 7) % 12], state.words.albums[floor(index / 5) % 18], floor((150 + (index * 37) % 210) / 60) + ':' + pad((150 + (index * 37) % 210) % 60, 2)] })}}"
 			}
 		],
-		"playPause": { "title": "Play or pause", "category": "Playback", "icon": "play", "do": [{ "toggle": "state.isPlaying" }] },
+		"playPause": { "title": "Play or pause", "category": "Playback", "icon": "play", "do": [
+			{ "note": "Tempo opens playing, silently: the first press starts the beat; without sound (a host that gives none) it pauses" },
+			{ "if": "{{state.isPlaying && !state.beat.playing}}",
+			  "then": [{ "audio": "play", "of": "beat", "onError": [{ "toggle": "state.isPlaying" }] }],
+			  "else": [{ "toggle": "state.isPlaying" }] }] },
 		"nextCommand": { "title": "Next song", "category": "Playback", "icon": "skip-forward", "do": [{ "run": "next" }] },
 		"previousCommand": { "title": "Previous song", "category": "Playback", "icon": "skip-back", "do": [{ "run": "previous" }] },
 		"volumeUp": { "title": "Volume up", "category": "Playback", "icon": "volume-2", "enablement": "{{state.volume < 100}}",
@@ -401,6 +412,13 @@
 		"mod+m": "toggleMini",
 		"mod+t": "toggleTheme",
 		"mod+shift+l": "switchLanguage"
+	},
+
+	"watch": {
+		"note": "The beat follows the player: play and pause, a new song starts it again, the volume slider sets it. A host without sound fails these quietly",
+		"state.isPlaying": [{ "audio": "{{state.isPlaying ? 'play' : 'pause'}}", "of": "beat", "onError": [] }],
+		"state.playingTrack": [{ "if": "{{state.beat.playing}}", "then": [{ "audio": "seek", "of": "beat", "to": 0, "onError": [] }] }],
+		"state.volume": [{ "audio": "volume", "of": "beat", "to": "{{state.volume / 100}}", "ms": 80, "onError": [] }]
 	},
 
 	"onLoad": "buildLibrary",

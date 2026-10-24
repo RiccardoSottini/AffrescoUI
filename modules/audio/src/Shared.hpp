@@ -52,6 +52,15 @@ struct PanGains {
 	return value >= low ? (value <= high ? value : high) : low;
 }
 
+/// The largest magnitude a source's sample keeps: a decoder may give anything a file holds (IEEE float WAV can hold
+/// infinities and NaN), and the mix must stay finite.
+inline constexpr float maxSample = 16;
+
+/// @brief A source's sample made safe to mix: NaN is silence, and anything past maxSample is clamped to it.
+/// @param sample The sample.
+/// @return It, finite.
+[[nodiscard]] float finiteSample(float sample) noexcept;
+
 /// @brief Adds a block's levels: the peak and the root mean square of its first two channels.
 /// @param frames Interleaved samples.
 /// @param count Frames.

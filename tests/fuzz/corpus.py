@@ -28,6 +28,8 @@
 - gltf:       a small .gltf (a triangle, its material, a clip) with its buffer as data:, a .glb of it, broken copies;
 - scene:      a scene node's scene, animations and time, with primitives, lights, clips and that model placed in it.
 - images:     the "images" sections of the docs and the rendering check's screens, with the "image" steps they run.
+- audio:      small WAV files made here (8-bit, 16-bit, float, stereo, cut short), each after a mode byte for every
+              way they arrive (bytes in memory or a stream, the chunk size, the encoding hinted).
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -396,6 +398,28 @@ def png_seeds():
             png(1, 1, [0], level=1)]
 
 
+def wav(channels, rate, bits, frames, float_samples=False, cut=0):
+    """A WAV file of a ramp: PCM (8 or 16 bits) or IEEE float (32 bits), less its last `cut` bytes."""
+    width = bits // 8
+    if float_samples:
+        data = b"".join(struct.pack("<f", (i % 50) / 50.0) for i in range(frames * channels))
+    elif bits == 8:
+        data = bytes((i * 3) % 256 for i in range(frames * channels))
+    else:
+        data = b"".join(struct.pack("<h", (i * 97) % 32000) for i in range(frames * channels))
+    header = struct.pack("<4sI4s4sIHHIIHH4sI", b"RIFF", 36 + len(data), b"WAVE", b"fmt ", 16, 3 if float_samples else 1,
+                         channels, rate, rate * channels * width, channels * width, bits, b"data", len(data))
+    whole = header + data
+    return whole[:len(whole) - cut] if cut else whole
+
+
+def audio_seeds():
+    """WAV files after a mode byte: bit 0 a stream (else bytes in memory), bits 1-3 the chunk size, bits 4-5 the hint."""
+    files = [wav(1, 8000, 16, 64), wav(2, 44100, 16, 32), wav(1, 22050, 8, 48), wav(2, 48000, 32, 16, True),
+             wav(1, 16000, 16, 64, cut=30), b"RIFF\x00\x00\x00\x00WAVE", b"fLaC\x00\x00\x00\x22", b"ID3\x04\x00"]
+    return [bytes([mode]) + file for file in files for mode in (0x00, 0x13, 0x01, 0x1f)]
+
+
 def http_response_seeds():
     """Response heads: statuses, headers, a WebSocket handshake, Retry-After values."""
     return ["HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n",
@@ -715,6 +739,8 @@ def dictionaries():
                                                  "\"column\"", "1e38"],
             "lookups": [chr(0) + chr(value) for value in range(10)],  # big-endian 0..9
             "path": list("MmLlHhVvCcSsQqTtAaZz") + [" ", ",", "-", ".", "e-", "1e6", "0 0 1 1"],
+            "audio": ["RIFF", "WAVE", "fmt ", "data", "LIST", "fact", "fLaC", "ID3", "Xing", "Info", "\x01\x00",
+                      "\x03\x00", "\x10\x00", "\x00\x00"],  # ASCII: the dictionary is written UTF-8
             "image": ["<svg", "viewBox=", "<path d=", "fill=", "stroke=", "transform=", "<g>", "</g>", "IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
             "scenarios": scenarios, "png": pngs,
             "ask_reply": tokens + [f'"{word}"' for word in ["request", "text", "from", "done", "error", "type",
@@ -804,6 +830,7 @@ def main():
     write(out, "search_glob", search_glob_seeds(), words["search_glob"])
     write(out, "scenarios", scenario_seeds(), words["scenarios"])
     write(out, "png", png_seeds(), words["png"])
+    write(out, "audio", audio_seeds(), words["audio"])
     write(out, "http_response", http_response_seeds(), words["http_response"])
     write(out, "sse", sse_seeds(), words["sse"])
     write(out, "websocket", websocket_seeds(), words["websocket"])

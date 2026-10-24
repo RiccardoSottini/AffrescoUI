@@ -12,6 +12,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <thread>
 #include <vector>
 
@@ -414,6 +415,42 @@ TEST_CASE("audio: the null device plays in real time, without hardware") {
 	CHECK(recorder.count(EventType::Started) == 1);
 	CHECK(recorder.count(EventType::Ended) == 1);
 	CHECK(voice->position() == doctest::Approx(0.1));
+}
+
+TEST_CASE("audio: a source's NaN and infinite samples never reach the mix") {
+	Engine engine(manual());
+	std::string error;
+	const auto voice = engine.play(constantSource(std::numeric_limits<float>::quiet_NaN()), {}, error);
+	REQUIRE(voice);
+	CHECK(pull(engine, 4)[0] == 0);
+	voice->stop();
+	VoiceOptions loud;
+	loud.volume = 4;
+	static_cast<void>(engine.play(constantSource(std::numeric_limits<float>::infinity()), loud, error));
+	CHECK(pull(engine, 4)[0] == doctest::Approx(64.0)); // clamped to 16, then the gain: finite
+}
+
+TEST_CASE("audio: a WAV chunk whose size underflows is refused at once, in memory and as a file") {
+	// Found by tests/fuzz/audio.cpp (regressions/audio/): a "fact" chunk of size 0 made miniaudio's parser seek
+	// 2^64 bytes forward, 2 GiB at a time, because its own readers clamp a seek past the end and report success
+	std::vector<std::uint8_t> bytes = {'R', 'I', 'F', 'F', 0xa4, 0, 0, 0, 'W', 'A', 'V', 'E', 'f', 'm', 't', ' ',
+	                                   0x01, 0, 0, 0, 0x10, 0, 0x02, 0, 0xfa, 0x15, 0x5b, 0x16, 0xbc, 0x16, 0x1d,
+	                                   0x17, 0x7e, 0x17, 0xdf, 0x17};
+	bytes.resize(0x55, 0);
+	for(const char c : std::string("fact")) bytes.push_back(static_cast<std::uint8_t>(c));
+	bytes.resize(0x75, 0);
+	Engine engine(manual());
+	std::string error;
+	const auto started = std::chrono::steady_clock::now();
+	const auto voice = engine.play(Source::memory(bytes), {}, error);
+	if(voice) static_cast<void>(pull(engine, 4800));
+	const std::filesystem::path file = std::filesystem::temp_directory_path() / "affrescoui-audio-underflow.wav";
+	std::ofstream(file, std::ios::binary).write(reinterpret_cast<const char*>(bytes.data()),
+	                                             static_cast<std::streamsize>(bytes.size()));
+	const auto fromFile = engine.play(Source::file(file), {}, error);
+	if(fromFile) static_cast<void>(pull(engine, 4800));
+	std::filesystem::remove(file);
+	CHECK(std::chrono::steady_clock::now() - started < std::chrono::seconds{2});
 }
 
 TEST_CASE("audio: encodings are guessed from names") {

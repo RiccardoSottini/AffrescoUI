@@ -11,6 +11,11 @@ namespace affresco::audio {
 
 namespace detail {
 
+float finiteSample(float sample) noexcept {
+	if(std::isnan(sample)) return 0;
+	return std::clamp(sample, -maxSample, maxSample);
+}
+
 Levels measure(const float* frames, std::size_t count, std::uint32_t channels) noexcept {
 	Levels levels;
 	if(count == 0 || channels == 0) return levels;
@@ -64,7 +69,8 @@ ReadStatus VoiceCore::fetch() {
 		inputCount = result.frames;
 		inputPosition = 0;
 	}
-	std::copy_n(input.begin() + static_cast<std::ptrdiff_t>(inputPosition * channels), channels, fetched.begin());
+	const float* frame = input.data() + (inputPosition * channels);
+	for(std::uint32_t c = 0; c < channels; ++c) fetched[c] = finiteSample(frame[c]); // a file may hold NaN
 	++inputPosition;
 	++readIndex;
 	return ReadStatus::Ok;

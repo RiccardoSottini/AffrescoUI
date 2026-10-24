@@ -41,7 +41,8 @@ std::optional<bool> runAudioStep(const Running& s) {
 	if(!step.contains("audio")) return std::nullopt;
 	const std::string& where = s.where;
 	Engine& engine = s.steps.engine();
-	const std::string operation = string(step["audio"], where + ".audio");
+	// The operation may be computed: "{{on ? 'play' : 'pause'}}"
+	const std::string operation = string(s.value("audio"), where + ".audio");
 	if(!std::ranges::contains(audioOperations(), operation))
 		fail(where + ".audio", "unknown audio operation \"" + operation +
 		                           "\" (expected play, pause, toggle, stop, seek, volume, pan, rate, loop or master)");
