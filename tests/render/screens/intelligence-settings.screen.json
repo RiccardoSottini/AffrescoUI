@@ -1,0 +1,39 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The intelligence settings add-on (examples/shared/addons/intelligence), for the rendering check: a page with the container the AffrescoUI Launcher gives it. The check's runner has none of the host's intelligence.* natives, so it shows the add-on's stand-in providers; test actions stand in for a saved provider and a test's answer.",
+	"include": ["../../../examples/shared/addons/intelligence/settings.json"],
+
+	"window": { "title": "Intelligence", "width": 800, "height": 900 },
+
+	"fonts": {
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 }
+	},
+
+	"tokens": {
+		"page": { "light": "#eef1f4", "dark": "#0d1117" }
+	},
+
+	"state": { "theme": "light", "locale": "en" },
+	"theme": "{{state.theme}}",
+	"strings": { "locale": "{{state.locale}}" },
+
+	"actions": {
+		"test.connected": [
+			{ "set": "state.intelligence.data.current", "to": { "provider": "anthropic", "model": "claude-sonnet-5-5" } },
+			{ "set": "state.intelligence.data.providers[0].hasKey", "to": true },
+			{ "set": "state.intelligence.test", "to": { "ok": true, "message": "Connected: claude-sonnet-5-5 answered." } }
+		],
+		"test.dark": [{ "set": "state.theme", "to": "dark" }],
+		"test.french": [{ "set": "state.locale", "to": "fr" }]
+	},
+
+	"root": {
+		"color": "@page",
+		"children": [
+			{ "id": "settingsIntelligence", "fill": true, "color": "transparent",
+			  "children": [{ "use": "intelligenceSettings", "id": "intelligenceSettingsUse" }] }
+		]
+	}
+}

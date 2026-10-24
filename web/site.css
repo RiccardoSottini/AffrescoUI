@@ -1,4 +1,4 @@
-/* The site's pages (web/README.md): the template picker, a page per template and the Studio's. */
+/* The site's pages (web/README.md): the template picker and a page per template. */
 :root {
 	--background: #f6f4ef;
 	--text: #22201c;
@@ -82,15 +82,4 @@ main.picker li a {
 	border-radius: 8px;
 	background: var(--panel);
 	text-decoration: none;
-}
-form#connect {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	align-items: center;
-}
-form#connect input {
-	min-width: 0;
-	padding: 4px 8px;
-	font: inherit;
 }

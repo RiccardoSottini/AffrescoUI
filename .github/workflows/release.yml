@@ -1,4 +1,4 @@
-# Builds the downloads: the host, the Studio and the affrescoui tool for macOS (one universal binary for arm64 and
+# Builds the downloads: the host (which opens the Launcher) and the affrescoui tool for macOS (one universal binary for arm64 and
 # x86_64), Linux (x86_64) and Windows (x86_64), plus the MCP server's Python package; then checks each
 # archive on a clean machine of its system, with no source tree there.
 #
@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           cmake -S . -B build ${{ matrix.configure }} -DCMAKE_BUILD_TYPE=Release -DAFFRESCOUI_BUILD_TESTS=OFF
-          cmake --build build --config Release --target affrescoui_host affrescoui_studio affrescoui_cli
+          cmake --build build --config Release --target affrescoui_host affrescoui_cli
       - name: Pack
         shell: bash
         env:
@@ -157,7 +157,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           cd affrescoui-*/
-          for program in affrescoui affrescoui_host affrescoui_studio; do lipo "$program" -verify_arch arm64 x86_64; done
+          for program in affrescoui affrescoui_host; do lipo "$program" -verify_arch arm64 x86_64; done
       - name: The host draws a frame from its own assets (Linux, under Xvfb)
         if: runner.os == 'Linux'
         env:
@@ -167,7 +167,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends xvfb xauth libgl1-mesa-dri
           cd affrescoui-*/
-          AFFRESCOUI_SCREENSHOT=kanban.ppm xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui_host
+          AFFRESCOUI_SCREENSHOT=kanban.ppm xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui_host assets/flow/index.screen.json
           xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui render assets/flow/index.screen.json -o kanban.png
           test -s kanban.ppm && test -s kanban.png
 

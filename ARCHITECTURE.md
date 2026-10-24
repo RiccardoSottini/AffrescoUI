@@ -57,9 +57,9 @@ flowchart TB
 | [`screen`](modules/screen/README.md) | `affrescoui::affrescoui` | The composition root, `affresco::Screen` | `ScreenImages` | every module |
 | [`automation`](modules/automation/README.md) | `affrescoui::automation` | Scenarios: the checks a screen ships with, played headless, pictures against golden images | | `screen` |
 
-Outside the library: `examples/` (the host, the Studio, an application type), `mcp/` (an MCP server that is a peer
-like any other), `tools/` (the `affrescoui` command-line tool), and `tests/` (`unit`, `render`, `fuzz`, `perf`,
-`package`). The rendering check (`tests/render`) is scenarios whose expectations are pictures.
+Outside the library: `examples/` (the host, the Launcher and the apps it opens, an application type), `mcp/` (an MCP
+server that is a peer like any other), `tools/` (the `affrescoui` command-line tool), and `tests/` (`unit`, `render`,
+`fuzz`, `perf`, `package`). The rendering check (`tests/render`) is scenarios whose expectations are pictures.
 
 Rules that hold across the layers:
 - **No public header exposes OpenGL or GLFW.** Every OpenGL call is in `modules/render/src/gl/`, and every GLFW call
@@ -75,7 +75,8 @@ Rules that hold across the layers:
 ## The path of a revision
 
 A revision is a change to the document or its live state, written as compact edits or JSON Patch, from a peer (the
-Studio, an agent through `mcp/`, any socket client), from a `patch` step, or from the application (`Screen::commit`).
+person's client, an agent through `mcp/`, any socket client), from a `patch` step, or from the application
+(`Screen::commit`).
 This is the path of one from a peer:
 
 ```mermaid

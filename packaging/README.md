@@ -7,9 +7,9 @@ Release, for you to use locally.
 
 | Folder | What it makes | Built from |
 |---|---|---|
-| `homebrew/` | A formula: the library (static, with its CMake package), the host, the Studio and `affrescoui` | the source tarball |
-| `winget/` | Manifests (1.6.0) for a portable install of `affrescoui`, `affrescoui_host` and `affrescoui_studio` | the Windows zip |
-| `appimage/` | `AffrescoUI-<version>-x86_64.AppImage`: the host (the default), the Studio (`studio`) and the CLI (`affrescoui`) | the Linux archive |
+| `homebrew/` | A formula: the library (static, with its CMake package), the host (which opens the Launcher) and `affrescoui` | the source tarball |
+| `winget/` | Manifests (1.6.0) for a portable install of `affrescoui` and `affrescoui_host` | the Windows zip |
+| `appimage/` | `AffrescoUI-<version>-x86_64.AppImage`: the host (the default: the Launcher) and the CLI (`affrescoui`) | the Linux archive |
 | `vcpkg/` | A port (`portfile.cmake`, `vcpkg.json`, `usage`), static libraries only | the source tarball |
 | `conan/` | A Conan 2 recipe and a `test_package` that finds every target with `find_package(AffrescoUI)` | the source tarball |
 

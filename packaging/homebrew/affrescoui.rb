@@ -3,7 +3,7 @@
 # Homebrew formula for AffrescoUI, built from the release's source tarball. A template: tools/release/packaging.py
 # fills in the version and the hash (packaging/README.md). Try it from a local tap: brew install --build-from-source.
 class Affrescoui < Formula
-  desc "GUI library whose UIs are JSON screen documents, with a host, a Studio and a CLI"
+  desc "GUI library whose UIs are JSON screen documents, with a host, a Launcher and a CLI"
   homepage "https://github.com/RiccardoSottini/AffrescoUI"
   url "https://github.com/RiccardoSottini/AffrescoUI/releases/download/v@VERSION@/affrescoui-@VERSION@-source.tar.gz"
   sha256 "@SOURCE_SHA256@"
@@ -32,13 +32,13 @@ class Affrescoui < Formula
     system "cmake", "-S", ".", "-B", "build", "-G", "Ninja", "-DAFFRESCOUI_BUILD_TESTS=OFF", *std_cmake_args
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
-    # The host and the Studio find their templates and fonts in "assets" next to themselves, as in a release archive
-    libexec.install "build/affrescoui_host", "build/affrescoui_studio"
+    # The host finds its templates (the Launcher too) and fonts in "assets" next to itself, as in a release archive
+    libexec.install "build/affrescoui_host"
     # (the templates' folders, examples/templates.json, and examples/shared, without the C++ sources)
     folders = JSON.parse(File.read("examples/templates.json"))["templates"].values.uniq
     (libexec/"assets").install "examples/shared", *folders.map { |folder| "examples/#{folder}" }
     rm Dir[libexec/"assets/**/*.{cpp,hpp}"]
-    bin.write_exec_script libexec/"affrescoui_host", libexec/"affrescoui_studio"
+    bin.write_exec_script libexec/"affrescoui_host"
   end
 
   test do

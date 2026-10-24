@@ -264,7 +264,7 @@ public:
 	/// @brief Connects a declared channel somewhere else for this run, closing its connection first: a socket (as in
 	/// "channels"), or a remote peer's `wss://` address (`ws://` on the loopback) with the token its server's verifier
 	/// accepts. The token stays in memory, sent once as the connection's credentials: never in the document, the state
-	/// or a log. In a browser this is how the Studio page's connect form reaches a host (web/README.md).
+	/// or a log. In a browser this is how a page's program reaches a remote peer (web/README.md).
 	/// @param name The channel's name in "channels" (after startChannels()).
 	/// @param address The socket or the peer address.
 	/// @param token The token for a peer address ("" for a socket).

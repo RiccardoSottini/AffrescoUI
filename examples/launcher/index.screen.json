@@ -1,0 +1,796 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The AffrescoUI Launcher: the home of the example apps and of the person's own. Apps (the examples as cards; search and categories; a click or Enter opens one), My apps (open, duplicate, show in the folder, delete after a confirm), Create (a name, a starting point, a description for the assistant, features from other apps) and Settings. It is a screen like any other, with no C++ of its own: affrescoui_host opens it when started without a file and grants it the folders it reads and writes (the services examples and apps) and the programs that open the apps (the service launch). Where nothing is granted (the rendering check), the services are refused and it shows the examples from apps.json and an empty My apps.",
+
+	"window": { "title": "AffrescoUI", "width": 1200, "height": 780, "minWidth": 800, "minHeight": 600,
+		"focusRing": { "color": "@c.accent", "width": 2, "offset": 2 } },
+
+	"include": ["apps.json", "launcher-strings.json", "../shared/addons/intelligence/settings.json"],
+
+	"theme": "{{state.theme == 'system' ? window.colorScheme : state.theme}}",
+	"persist": ["state.theme", "state.locale"],
+	"onLoad": { "run": "launcher.refresh" },
+
+	"permissions": {
+		"allow": ["studio"],
+		"ask": ["agent"],
+		"reviewers": ["studio"],
+		"budgets": [{ "author": "agent", "added": 20, "removed": 5, "changed": 50 }]
+	},
+
+	"services": {
+		"examples": { "provider": "fs", "root": "examples", "readOnly": true },
+		"apps": { "provider": "fs", "root": "apps", "copyFrom": ["examples"] },
+		"launch": { "provider": "process", "process": "affresco" }
+	},
+
+	"fonts": {
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons", "symbols"] },
+		"symbols": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 12 },
+		"strong": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "bold": true, "fallback": ["icons"] },
+		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 17, "bold": true, "fallback": ["icons"] },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 28, "bold": true },
+		"brand": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 17, "bold": true },
+		"initial": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 20, "bold": true },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 14 },
+		"bigIcons": { "file": "../shared/fonts/Lucide.ttf", "size": 20 },
+		"heroIcons": { "file": "../shared/fonts/Lucide.ttf", "size": 44 }
+	},
+
+	"tokens": {
+		"c.bg": { "light": "#f5f4fa", "dark": "#101017" },
+		"c.side": { "light": "#ffffff", "dark": "#16161e" },
+		"c.surface": { "light": "#ffffff", "dark": "#1c1c26" },
+		"c.raised": { "light": "#f0eff7", "dark": "#252532" },
+		"c.hover": { "light": "#e9e7f5", "dark": "#2c2c3b" },
+		"c.border": { "light": "#e3e1ee", "dark": "#2b2b39" },
+		"c.text": { "light": "#1b1a28", "dark": "#ececf4" },
+		"c.muted": { "light": "#5d5b72", "dark": "#a4a2b9" },
+		"c.dim": { "light": "#8d8ba2", "dark": "#6e6c84" },
+		"c.accent": { "light": "#5b4fe0", "dark": "#8b80ff" },
+		"c.accentHover": { "light": "#4a3fcc", "dark": "#a097ff" },
+		"c.accentSoft": { "light": "#ecebff", "dark": "#28244d" },
+		"c.onAccent": "#ffffff",
+		"c.pink": { "light": "#e0569a", "dark": "#ff7ab8" },
+		"c.danger": { "light": "#cf3446", "dark": "#ff6b7a" },
+		"c.dangerSoft": { "light": "#fdecee", "dark": "#3a1d24" },
+		"c.success": { "light": "#1f9d62", "dark": "#4ad08f" },
+		"c.shadow": { "light": "#2a1f7a1f", "dark": "#00000066" },
+		"kit.background": "@c.bg",
+		"kit.surface": "@c.surface",
+		"kit.bar": "@c.raised",
+		"kit.barHover": "@c.hover",
+		"kit.field": "@c.surface",
+		"kit.text": "@c.text",
+		"kit.dim": "@c.dim",
+		"kit.body": "@c.muted",
+		"kit.selection": "@c.accentSoft",
+		"kit.border": "@c.border",
+		"kit.primary": "@c.accent",
+		"kit.onPrimary": "#ffffff",
+		"kit.secondary": "@c.raised",
+		"kit.onSecondary": "@c.text",
+		"kit.accent": "@c.accent",
+		"kit.focus": "@c.accent",
+		"intelligence.accent": "@c.accent", "intelligence.accentHover": "@c.accentHover", "intelligence.onAccent": "@c.onAccent", "intelligence.surface": "@c.surface", "intelligence.raised": "@c.raised", "intelligence.selected": "@c.accentSoft", "intelligence.border": "@c.border", "intelligence.text": "@c.text", "intelligence.dim": "@c.muted", "intelligence.success": "@c.success", "intelligence.danger": "@c.danger",
+		"kit.radius": 8,
+		"kit.cardRadius": 14
+	},
+
+	"state": {
+		"page": "apps",
+		"query": "",
+		"category": "all",
+		"theme": "system",
+		"locale": "system",
+		"mine": [],
+		"mineScan": [],
+		"mineNext": [],
+		"mineLoaded": false,
+		"mineError": "",
+		"create": { "name": "", "from": "blank", "describe": "", "features": [], "tried": false, "busy": false, "error": "" },
+		"confirmOpen": false,
+		"confirm": { "id": "", "name": "" },
+		"toasts": [],
+		"tileColors": ["#5b4fe0", "#e0569a", "#1f9d62", "#e08a1e", "#2a86d6", "#9b4fd6"],
+		"featureChoices": [
+			{ "id": "board", "from": "Flow", "ask": "a Kanban board with columns, cards and drag and drop, like Flow's (examples/flow)" },
+			{ "id": "palette", "from": "Flow", "ask": "a command palette (Cmd+K) listing the app's actions, like Flow's" },
+			{ "id": "charts", "from": "Haven", "ask": "charts from ../shared/components/charts.json, like Haven's energy page" },
+			{ "id": "heatmap", "from": "Streak", "ask": "a year heatmap of daily entries, like Streak's" },
+			{ "id": "settings", "from": "Arcadia", "ask": "a settings page with declared settings, like Arcadia's" },
+			{ "id": "signIn", "from": "Sign in", "ask": "sign-in and create-account screens with checked fields, like the Sign in app's" },
+			{ "id": "slideSorter", "from": "Sinopia", "ask": "Sinopia's slide sorter (the installable part slideSorter of app:sinopia), bound with an adapter" }
+		]
+	},
+
+	"stateTypes": {
+		"page": { "enum": ["apps", "mine", "create", "settings"] },
+		"category": { "enum": ["all", "work", "create", "code", "life"] },
+		"theme": { "enum": ["system", "light", "dark"] },
+		"locale": { "enum": ["system", "en", "es", "fr"] }
+	},
+
+	"computed": {
+		"wide": "{{window.width >= 960}}",
+		"sideWidth": "{{computed.wide ? 232 : 72}}",
+		"columns": "{{max(1, floor((window.width - computed.sideWidth - 52) / 290))}}",
+		"shown": "{{filter(state.examples, (state.category == 'all' || it.category == state.category) && (trim(state.query) == '' || contains(lower(it.name + ' ' + t('tagline.' + it.id)), lower(trim(state.query)))))}}",
+		"starters": "{{filter(state.examples, it.program == 'host')}}",
+		"reserved": "{{concat(map(state.examples, it.folder), ['shared', 'launcher'])}}",
+		"myIds": "{{map(state.mine, it.id)}}",
+		"slug": "{{slice(join(filter(split(join(map(split(lower(trim(state.create.name)), ''), contains('abcdefghijklmnopqrstuvwxyz0123456789', it) ? it : ' '), ''), ' '), it != ''), '-'), 0, 40)}}",
+		"askText": "{{trim(trim(state.create.describe) + (length(state.create.features) > 0 ? '\n\nAlso add these features from other apps: ' + join(map(filter(state.featureChoices, contains(state.create.features, it.id)), it.ask), '; ') + '.' : ''))}}",
+		"createError": "{{trim(state.create.name) == '' ? 'create.error.empty' : length(trim(state.create.name)) > 80 ? 'create.error.long' : computed.slug == '' ? 'create.error.letters' : contains(computed.reserved, computed.slug) ? 'create.error.reserved' : contains(computed.myIds, computed.slug) ? 'create.error.exists' : length(computed.askText) > 4000 ? 'create.error.describe' : ''}}",
+		"fromName": "{{state.create.from == 'blank' ? t('create.blank') : (find(state.examples, it.id == state.create.from).name ?? '')}}",
+		"excluded": "{{['*.cpp', '*.hpp', '*.h', '*.c', '*.cc', '*.mm', '*.cmake', 'CMakeLists.txt', '.*']}}"
+	},
+
+	"actions": {
+		"go": [{ "note": "with: page" }, { "set": "state.page", "to": "{{page}}" }],
+		"toast": [
+			{ "note": "with: message, error" },
+			{ "push": "state.toasts", "value": { "message": "{{message}}", "color": "{{error ? '@c.danger' : '@c.accent'}}" } },
+			{ "debounce": 4000, "do": [{ "set": "state.toasts", "to": [] }] }
+		],
+
+		"launcher.refresh": [
+			{ "invoke": "apps.list", "with": { "path": "." },
+			  "onDone": [
+				{ "set": "state.mineScan", "to": "{{filter(result.entries, it.kind == 'folder' && it.name != 'shared' && slice(it.name, 0, 1) != '.')}}" },
+				{ "set": "state.mineNext", "to": [] },
+				{ "set": "state.mineError", "to": "" },
+				{ "run": "loadMine", "with": { "i": 0 } }
+			  ],
+			  "onError": [{ "set": "state.mineError", "to": "{{error.message}}" }, { "set": "state.mineLoaded", "to": true }] }
+		],
+		"launcher.show": [
+			{ "note": "Shows a list of the person's apps as the folder gave it (event.mine: [{id, name, modified}]): scenarios play the folder's answer with it" },
+			{ "set": "state.mine", "to": "{{event.mine ?? []}}" },
+			{ "set": "state.mineError", "to": "" },
+			{ "set": "state.mineLoaded", "to": true }
+		],
+		"loadMine": [
+			{ "note": "with: i. Reads the apps one after another (an fs service runs 16 calls at once): each folder's screen's modified time and window title" },
+			{ "if": "{{i >= length(state.mineScan)}}", "then": [
+				{ "set": "state.mine", "to": "{{sort(state.mineNext, 'modified', 'desc')}}" },
+				{ "set": "state.mineLoaded", "to": true },
+				{ "stop": true }
+			] },
+			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/index.screen.json'}}" },
+			  "onDone": [
+				{ "if": "{{result.exists != true || result.kind != 'file'}}", "then": [{ "run": "loadMine", "with": { "i": "{{i + 1}}" } }, { "stop": true }] },
+				{ "run": "readMine", "with": { "i": "{{i}}", "modified": "{{result.modified ?? 0}}" } }
+			  ],
+			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}" } }] }
+		],
+
+		"readMine": [
+			{ "note": "with: i, modified" },
+			{ "invoke": "apps.read", "with": { "path": "{{state.mineScan[i].name + '/index.screen.json'}}" },
+			  "onDone": [
+				{ "push": "state.mineNext", "value": { "id": "{{state.mineScan[i].name}}", "name": "{{(parseJson(result.text) ?? {}).window.title ?? state.mineScan[i].name}}", "modified": "{{modified}}" } },
+				{ "run": "loadMine", "with": { "i": "{{i + 1}}" } }
+			  ],
+			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}" } }] }
+		],
+		"openExample": [
+			{ "note": "with: app" },
+			{ "invoke": "launch.run",
+			  "with": { "arguments": "{{app.program == 'host' ? ['affrescoui_host', 'examples:' + app.folder + '/index.screen.json'] : [app.program]}}" },
+			  "onDone": [{ "run": "toast", "with": { "message": "{{t('toast.opening', {name: app.name})}}", "error": false } }],
+			  "onError": [{ "run": "toast", "with": { "message": "{{t('toast.openFailed', {name: app.name, why: error.message})}}", "error": true } }] }
+		],
+		"openMine": [
+			{ "note": "with: id, name, ask (empty for none)" },
+			{ "invoke": "launch.run",
+			  "with": { "arguments": "{{concat(['affrescoui_host', 'apps:' + id + '/index.screen.json'], ask != '' ? ['--ask', ask] : [])}}" },
+			  "onDone": [{ "run": "toast", "with": { "message": "{{t('toast.opening', {name: name})}}", "error": false } }],
+			  "onError": [{ "run": "toast", "with": { "message": "{{t('toast.openFailed', {name: name, why: error.message})}}", "error": true } }] }
+		],
+		"revealMine": [
+			{ "note": "with: id ('' for the apps folder itself)" },
+			{ "invoke": "launch.run", "with": { "arguments": ["reveal", "{{'apps:' + id}}"] },
+			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "error": true } }] }
+		],
+		"askDelete": [
+			{ "note": "with: id, name" },
+			{ "set": "state.confirm", "to": { "id": "{{id}}", "name": "{{name}}" } },
+			{ "set": "state.confirmOpen", "to": true }
+		],
+		"deleteMine": [
+			{ "invoke": "apps.delete", "with": { "path": "{{state.confirm.id}}" },
+			  "onDone": [
+				{ "run": "toast", "with": { "message": "{{t('toast.deleted', {name: state.confirm.name})}}", "error": false } },
+				{ "run": "launcher.refresh" }
+			  ],
+			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "error": true } }] }
+		],
+		"duplicateMine": [
+			{ "note": "with: id, name. The copy's folder is the first free <id>-copy, <id>-copy-2, ..." },
+			{ "run": "copyMine", "with": { "id": "{{id}}", "name": "{{name}}",
+				"to": "{{find(map(range(50), index == 0 ? id + '-copy' : id + '-copy-' + (index + 1)), !contains(computed.myIds, it))}}" } }
+		],
+		"copyMine": [
+			{ "note": "with: id, name, to" },
+			{ "invoke": "apps.copy", "with": { "path": "{{id}}", "to": "{{to}}" },
+			  "onDone": [{ "run": "retitle", "with": { "id": "{{to}}", "title": "{{t('mine.copyName', {name: name})}}", "ask": "", "then": "copied" } }],
+			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "error": true } }] }
+		],
+		"copied": [
+			{ "run": "toast", "with": { "message": "{{t('toast.duplicated', {name: title})}}", "error": false } },
+			{ "run": "launcher.refresh" }
+		],
+		"retitle": [
+			{ "note": "with: id, title, then (an action, run with the same variables). Sets the window title of <id>/index.screen.json, as text, so the file keeps its layout" },
+			{ "invoke": "apps.read", "with": { "path": "{{id + '/index.screen.json'}}" },
+			  "onDone": [
+				{ "invoke": "apps.write",
+				  "with": { "path": "{{id + '/index.screen.json'}}",
+				            "text": "{{(parseJson(result.text) ?? {}).window.title == null ? result.text : join(split(result.text, json((parseJson(result.text) ?? {}).window.title)), json(title))}}" },
+				  "onDone": [{ "run": "{{then}}", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}" } }],
+				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
+			  ],
+			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
+		],
+
+		"startFrom": [
+			{ "note": "with: id" },
+			{ "set": "state.create.from", "to": "{{id}}" },
+			{ "set": "state.page", "to": "create" },
+			{ "focus": "#createName" }
+		],
+		"toggleFeature": [
+			{ "note": "with: id" },
+			{ "set": "state.create.features", "to": "{{contains(state.create.features, id) ? filter(state.create.features, it != id) : concat(state.create.features, [id])}}" }
+		],
+		"resetCreate": [
+			{ "set": "state.create", "to": { "name": "", "from": "blank", "describe": "", "features": [], "tried": false, "busy": false, "error": "" } }
+		],
+		"createApp": [
+			{ "set": "state.create.tried", "to": true },
+			{ "set": "state.create.error", "to": "" },
+			{ "if": "{{computed.createError != '' || state.create.busy}}", "then": [{ "focus": "#createName" }, { "stop": true }] },
+			{ "set": "state.create.busy", "to": true },
+			{ "run": "{{state.create.from == 'blank' ? 'createBlank' : 'createCopy'}}",
+			  "with": { "id": "{{computed.slug}}", "title": "{{trim(state.create.name)}}", "ask": "{{computed.askText}}",
+			            "folder": "{{(find(state.examples, it.id == state.create.from) ?? {}).folder ?? ''}}", "then": "createShared" } }
+		],
+		"createBlank": [
+			{ "note": "with: id, title, ask, then. A folder, and the blank starter in it" },
+			{ "invoke": "apps.mkdir", "with": { "path": "{{id}}" },
+			  "onDone": [
+				{ "invoke": "apps.copy", "with": { "from": "examples", "path": "launcher/starters/blank.screen.json", "to": "{{id + '/index.screen.json'}}" },
+				  "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
+				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
+			  ],
+			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": true } }] }
+		],
+		"createCopy": [
+			{ "note": "with: id, title, ask, folder, then. A copy of an example's folder, without its C++" },
+			{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{folder}}", "to": "{{id}}", "exclude": "{{computed.excluded}}" },
+			  "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
+			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": true } }] }
+		],
+		"createShared": [
+			{ "note": "with: id, title, ask. The fonts, add-ons and components the apps name as ../shared, brought up to date beside them" },
+			{ "invoke": "apps.copy", "with": { "from": "examples", "path": "shared", "to": "shared", "merge": true, "exclude": "{{computed.excluded}}" },
+			  "onDone": [
+				{ "run": "openMine", "with": { "id": "{{id}}", "name": "{{title}}", "ask": "{{ask}}" } },
+				{ "run": "resetCreate" },
+				{ "set": "state.page", "to": "mine" },
+				{ "run": "launcher.refresh" }
+			  ],
+			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
+		],
+		"createFailed": [
+			{ "note": "with: id, why, keep (the folder isn't the new app's: it was there, or never made)" },
+			{ "set": "state.create.busy", "to": false },
+			{ "set": "state.create.error", "to": "{{t('create.failed', {why: why})}}" },
+			{ "if": "{{keep != true && id != ''}}", "then": [{ "invoke": "apps.delete", "with": { "path": "{{id}}" }, "onError": [] }] }
+		],
+
+		"showApps": { "title": "{{t('nav.apps')}}", "category": "view", "icon": "layout-grid", "do": [{ "run": "go", "with": { "page": "apps" } }] },
+		"showMine": { "title": "{{t('nav.mine')}}", "category": "view", "icon": "folder-heart", "do": [{ "run": "go", "with": { "page": "mine" } }] },
+		"showCreate": { "title": "{{t('nav.create')}}", "category": "view", "icon": "circle-plus", "do": [{ "run": "go", "with": { "page": "create" } }, { "focus": "#createName" }] },
+		"showSettings": { "title": "{{t('nav.settings')}}", "category": "view", "icon": "settings", "do": [{ "run": "go", "with": { "page": "settings" } }] },
+		"findApp": { "title": "{{t('apps.search')}}", "category": "view", "icon": "search", "do": [{ "run": "go", "with": { "page": "apps" } }, { "focus": "#appSearch" }] }
+	},
+
+	"keys": {
+		"mod+1": "showApps",
+		"mod+2": "showMine",
+		"mod+3": "showCreate",
+		"mod+n": "showCreate",
+		"mod+comma": "showSettings",
+		"mod+4": "showSettings",
+		"mod+f": "findApp",
+		"mod+r": "launcher.refresh"
+	},
+
+	"styles": {
+		"pageTitle": { "type": "label", "font": "title", "textColor": "@c.text", "anchors": { "left": 36, "top": 30 }, "fitText": true },
+		"pageSub": { "type": "label", "textColor": "@c.muted", "anchors": { "left": 36, "right": 36, "top": 72 }, "height": 20 },
+		"sectionTitle": { "type": "label", "font": "heading", "textColor": "@c.text", "height": 24 },
+		"hint": { "type": "label", "font": "small", "textColor": "@c.muted", "height": 18 },
+		"primary": { "type": "label", "align": "center", "radius": 10, "color": "@c.accent", "textColor": "@c.onAccent", "font": "strong",
+			"cursor": "hand", "focusable": true, "role": "button", "hover": { "color": "@c.accentHover" }, "transition": { "color": 120 } },
+		"secondary": { "type": "label", "align": "center", "radius": 10, "color": "@c.raised", "textColor": "@c.text", "cursor": "hand",
+			"focusable": true, "role": "button", "hover": { "color": "@c.hover" }, "transition": { "color": 120 } },
+		"iconButton": { "type": "label", "align": "center", "radius": 8, "color": "transparent", "textColor": "@c.muted", "font": "bigIcons",
+			"width": 34, "height": 34, "cursor": "hand", "focusable": true, "role": "button",
+			"hover": { "color": "@c.hover", "textColor": "@c.text" }, "focused": { "color": "@c.hover", "textColor": "@c.text" } },
+		"card": { "radius": 16, "color": "@c.surface", "borderWidth": 1, "borderColor": "@c.border",
+			"shadow": { "y": 2, "blur": 10, "color": "@c.shadow" } },
+		"field": { "type": "textarea", "radius": 10, "color": "@c.surface", "borderWidth": 1, "borderColor": "@c.border", "padding": 10,
+			"textColor": "@c.text", "placeholderColor": "@c.dim", "focused": { "borderColor": "@c.accent" } }
+	},
+
+	"components": {
+		"navItem": {
+			"params": { "id": "", "icon": "", "title": "", "keyLabel": "" },
+			"node": {
+				"id": "navItemPanel",
+				"height": 42, "radius": 10, "anchors": { "left": 0, "right": 0 }, "focusable": true, "role": "tab", "cursor": "hand",
+				"selected": "{{state.page == id}}", "label": "{{title}}", "tooltip": "{{computed.wide ? '' : title}}",
+				"color": "{{state.page == id ? '@c.accentSoft' : 'transparent'}}",
+				"hover": { "color": "{{state.page == id ? '@c.accentSoft' : '@c.hover'}}" },
+				"onClick": { "run": "go", "with": { "page": "{{id}}" } },
+				"children": [
+					{ "id": "navIcon", "type": "label", "icon": "{{icon}}", "font": "bigIcons", "align": "center",
+					  "textColor": "{{state.page == id ? '@c.accent' : '@c.muted'}}", "anchors": { "left": "{{computed.wide ? 8 : 0}}", "top": 0, "bottom": 0 },
+					  "width": "{{computed.wide ? 32 : 48}}" },
+					{ "id": "navTitle", "when": "{{computed.wide}}", "type": "label", "text": "{{title}}",
+					  "font": "{{state.page == id ? 'strong' : 'default'}}", "textColor": "{{state.page == id ? '@c.accent' : '@c.text'}}",
+					  "anchors": { "left": 48, "top": 0, "bottom": 0, "right": 48 }, "align": "start center" },
+					{ "id": "navKey", "when": "{{computed.wide}}", "type": "label", "text": "{{keyLabel}}", "font": "small", "textColor": "@c.dim",
+					  "anchors": { "right": 12, "top": 0, "bottom": 0 }, "width": 40, "align": "end center" }
+				]
+			}
+		},
+
+		"appCard": {
+			"params": { "app": {} },
+			"node": {
+				"id": "appCardPanel",
+				"style": "card", "height": 244, "focusable": true, "role": "button", "cursor": "hand",
+				"label": "{{t('apps.openLabel', {name: app.name, tagline: t('tagline.' + app.id)})}}",
+				"hover": { "borderColor": "@c.accent", "shadow": { "y": 8, "blur": 22, "color": "@c.shadow" } },
+				"focused": { "borderColor": "@c.accent", "borderWidth": 2 },
+				"onClick": { "run": "openExample", "with": { "app": "{{app}}" } },
+				"children": [
+					{ "id": "cardCoverFrame", "anchors": { "left": 10, "right": 10, "top": 10 }, "height": 156, "radius": 10, "color": "@c.raised",
+					  "children": [{ "id": "cardCover", "type": "image", "file": "{{app.cover}}", "fit": "cover", "fill": true, "label": "{{app.name}}" }] },
+					{ "id": "cardName", "type": "label", "text": "{{app.name}}", "font": "strong", "textColor": "@c.text",
+					  "anchors": { "left": 16, "right": 52, "top": 178 }, "height": 22 },
+					{ "id": "cardTagline", "type": "label", "text": "{{t('tagline.' + app.id)}}", "font": "small", "textColor": "@c.muted", "wrap": true,
+					  "anchors": { "left": 16, "right": 16, "top": 202 }, "height": 32 },
+					{ "id": "cardKind", "type": "label", "font": "small",
+					  "text": "{{app.program == 'host' ? t('category.' + app.category) : t('apps.ownProgram')}}",
+					  "textColor": "#ffffff",
+					  "color": "{{app.program == 'host' ? '#16142acc' : '@c.accent'}}", "radius": 999, "padding": 5,
+					  "anchors": { "left": 18, "top": 18 }, "fitText": true, "height": 22 },
+					{ "id": "cardStart", "when": "{{app.program == 'host'}}", "style": "iconButton", "icon": "copy-plus",
+					  "anchors": { "right": 10, "top": 172 },
+					  "tooltip": "{{t('apps.startFrom', {name: app.name})}}", "label": "{{t('apps.startFrom', {name: app.name})}}",
+					  "onClick": { "run": "startFrom", "with": { "id": "{{app.id}}" } } }
+				]
+			}
+		},
+
+		"mineRow": {
+			"params": { "app": {}, "index": 0 },
+			"node": {
+				"id": "mineRowPanel",
+				"style": "card", "height": 76, "anchors": { "left": 0, "right": 0 }, "focusable": true, "role": "button", "cursor": "hand",
+				"label": "{{t('mine.openLabel', {name: app.name})}}",
+				"hover": { "borderColor": "@c.accent" }, "focused": { "borderColor": "@c.accent", "borderWidth": 2 },
+				"onClick": { "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "ask": "" } },
+				"keys": { "delete": { "run": "askDelete", "with": { "id": "{{app.id}}", "name": "{{app.name}}" } } },
+				"children": [
+					{ "id": "mineInitial", "type": "label", "text": "{{upper(slice(app.name, 0, 1))}}", "font": "initial", "align": "center",
+					  "textColor": "#ffffff", "color": "{{state.tileColors[index % 6]}}", "radius": 12,
+					  "anchors": { "left": 16, "top": 16 }, "width": 44, "height": 44 },
+					{ "id": "mineName", "type": "label", "text": "{{app.name}}", "font": "strong", "textColor": "@c.text",
+					  "anchors": { "left": 76, "right": 220, "top": 17 }, "height": 22 },
+					{ "id": "mineInfo", "type": "label", "font": "small", "textColor": "@c.muted",
+					  "text": "{{app.modified > 0 ? t('mine.info', {folder: app.id, date: formatDate(app.modified, 'medium')}) : app.id}}",
+					  "anchors": { "left": 76, "right": 220, "top": 41 }, "height": 18 },
+					{ "id": "mineActions", "type": "row", "gap": 4, "anchors": { "right": 14, "top": 21 }, "height": 34, "width": 210, "justify": "end",
+					  "children": [
+						{ "id": "mineOpen", "style": "primary", "text": "{{t('mine.open')}}", "width": 74, "height": 34,
+						  "onClick": { "run": "openMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}", "ask": "" } } },
+						{ "id": "mineDuplicate", "style": "iconButton", "icon": "copy", "tooltip": "{{t('mine.duplicate')}}", "label": "{{t('mine.duplicateLabel', {name: app.name})}}",
+						  "onClick": { "run": "duplicateMine", "with": { "id": "{{app.id}}", "name": "{{app.name}}" } } },
+						{ "id": "mineReveal", "style": "iconButton", "icon": "folder-open", "tooltip": "{{t('mine.reveal')}}", "label": "{{t('mine.revealLabel', {name: app.name})}}",
+						  "onClick": { "run": "revealMine", "with": { "id": "{{app.id}}" } } },
+						{ "id": "mineDelete", "style": "iconButton", "icon": "trash-2", "tooltip": "{{t('mine.delete')}}", "label": "{{t('mine.deleteLabel', {name: app.name})}}",
+						  "hover": { "color": "@c.dangerSoft", "textColor": "@c.danger" }, "focused": { "color": "@c.dangerSoft", "textColor": "@c.danger" },
+						  "onClick": { "run": "askDelete", "with": { "id": "{{app.id}}", "name": "{{app.name}}" } } }
+					  ] }
+				]
+			}
+		},
+
+		"startTile": {
+			"params": { "id": "blank", "name": "", "cover": "" },
+			"node": {
+				"id": "startTilePanel",
+				"height": 118, "radius": 12, "role": "radio", "focusable": true, "cursor": "hand", "label": "{{name}}",
+				"selected": "{{state.create.from == id}}",
+				"color": "{{state.create.from == id ? '@c.accentSoft' : '@c.surface'}}",
+				"borderWidth": "{{state.create.from == id ? 2 : 1}}", "borderColor": "{{state.create.from == id ? '@c.accent' : '@c.border'}}",
+				"hover": { "borderColor": "@c.accent" },
+				"onClick": { "set": "state.create.from", "to": "{{id}}" },
+				"children": [
+					{ "id": "startPicture", "anchors": { "left": 8, "right": 8, "top": 8 }, "height": 72, "radius": 8, "color": "@c.raised",
+					  "children": [
+						{ "id": "startCover", "when": "{{cover != ''}}", "type": "image", "file": "{{cover}}", "fit": "cover", "fill": true },
+						{ "id": "startBlank", "when": "{{cover == ''}}", "type": "label", "icon": "file-plus", "font": "heroIcons", "align": "center",
+						  "textColor": "@c.accent", "fill": true }
+					  ] },
+					{ "id": "startName", "type": "label", "text": "{{name}}", "font": "{{state.create.from == id ? 'strong' : 'default'}}",
+					  "textColor": "@c.text", "align": "center", "anchors": { "left": 4, "right": 4, "top": 86 }, "height": 22 }
+				]
+			}
+		},
+
+		"settingsCard": {
+			"params": { "title": "", "icon": "", "height": 120 },
+			"node": {
+				"id": "settingsCardPanel",
+				"style": "card", "height": "{{height}}", "anchors": { "left": 0, "right": 0 },
+				"children": [
+					{ "id": "settingsCardIcon", "type": "label", "icon": "{{icon}}", "font": "bigIcons", "textColor": "@c.accent",
+					  "anchors": { "left": 20, "top": 18 }, "width": 24, "height": 24 },
+					{ "id": "settingsCardTitle", "style": "sectionTitle", "text": "{{title}}", "anchors": { "left": 54, "right": 20, "top": 18 } },
+					{ "slot": true }
+				]
+			}
+		}
+	},
+
+	"root": {
+		"id": "launcher",
+		"color": "@c.bg",
+		"children": [
+			{
+				"id": "sidebar",
+				"anchors": { "left": 0, "top": 0, "bottom": 0 },
+				"width": "{{computed.sideWidth}}",
+				"color": "@c.side",
+				"dir": "auto",
+				"role": "navigation",
+				"label": "{{t('nav.label')}}",
+				"children": [
+					{ "id": "sidebarEdge", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": 1, "color": "@c.border" },
+					{ "id": "brandMark", "type": "label", "icon": "palette", "font": "bigIcons", "align": "center", "textColor": "#ffffff",
+					  "radius": 11, "gradient": { "kind": "linear", "angle": 135, "stops": ["@c.accent", "@c.pink"] },
+					  "anchors": { "left": "{{computed.wide ? 20 : 16}}", "top": 22 }, "width": 40, "height": 40, "label": "AffrescoUI" },
+					{ "id": "brandName", "when": "{{computed.wide}}", "type": "label", "text": "AffrescoUI", "font": "brand", "textColor": "@c.text",
+					  "anchors": { "left": 72, "top": 22 }, "height": 22, "fitText": true },
+					{ "id": "brandSub", "when": "{{computed.wide}}", "type": "label", "text": "{{t('brand.sub')}}", "font": "small", "textColor": "@c.muted",
+					  "anchors": { "left": 72, "top": 44 }, "height": 18, "fitText": true },
+					{
+						"id": "nav",
+						"type": "column",
+						"anchors": { "left": 12, "right": 12, "top": 90 },
+						"height": 186,
+						"gap": 6,
+						"arrows": "vertical",
+						"role": "tablist",
+						"label": "{{t('nav.label')}}",
+						"children": [
+							{ "id": "navApps", "use": "navItem", "with": { "id": "apps", "icon": "layout-grid", "title": "{{t('nav.apps')}}", "keyLabel": "{{context.platform == 'mac' ? '⌘1' : 'Ctrl+1'}}" } },
+							{ "id": "navMine", "use": "navItem", "with": { "id": "mine", "icon": "folder-heart", "title": "{{t('nav.mine')}}", "keyLabel": "{{context.platform == 'mac' ? '⌘2' : 'Ctrl+2'}}" } },
+							{ "id": "navCreate", "use": "navItem", "with": { "id": "create", "icon": "circle-plus", "title": "{{t('nav.create')}}", "keyLabel": "{{context.platform == 'mac' ? '⌘N' : 'Ctrl+N'}}" } },
+							{ "id": "navSettings", "use": "navItem", "with": { "id": "settings", "icon": "settings", "title": "{{t('nav.settings')}}", "keyLabel": "{{context.platform == 'mac' ? '⌘,' : 'Ctrl+,'}}" } }
+						]
+					},
+					{ "id": "sideNew", "style": "primary", "icon": "plus", "text": "{{computed.wide ? t('nav.newApp') : ''}}", "font": "{{computed.wide ? 'strong' : 'bigIcons'}}",
+					  "label": "{{t('nav.newApp')}}", "tooltip": "{{computed.wide ? '' : t('nav.newApp')}}",
+					  "anchors": { "left": 12, "right": 12, "bottom": 20 }, "height": 42,
+					  "onClick": "showCreate" },
+					{ "id": "sideNote", "when": "{{computed.wide}}", "type": "label", "font": "small", "textColor": "@c.dim", "wrap": true,
+					  "text": "{{t('brand.note')}}", "anchors": { "left": 20, "right": 16, "bottom": 74 }, "height": 52 }
+				]
+			},
+			{
+				"id": "main",
+				"anchors": { "left": "#sidebar.right", "right": 0, "top": 0, "bottom": 0 },
+				"color": "transparent",
+				"dir": "auto",
+				"children": [
+					{
+						"id": "appsPage",
+						"when": "{{state.page == 'apps'}}",
+						"fill": true,
+						"color": "transparent",
+						"role": "tabpanel",
+						"label": "{{t('nav.apps')}}",
+						"children": [
+							{ "id": "appsTitle", "style": "pageTitle", "text": "{{t('apps.title')}}", "role": "heading" },
+							{ "id": "appsSub", "style": "pageSub", "text": "{{t('apps.sub')}}", "anchors": { "left": 36, "right": 320, "top": 72 } },
+							{ "id": "appSearch", "use": "searchField",
+							  "with": { "name": "query", "placeholder": "{{t('apps.search')}}", "label": "{{t('apps.search')}}", "clearLabel": "{{t('apps.clear')}}",
+							            "width": "{{min(280, window.width - computed.sideWidth - 420)}}", "height": 38, "color": "@c.surface" },
+							  "anchors": { "right": 36, "top": 36 } },
+							{ "id": "appsCategories", "use": "segmentedControl",
+							  "with": { "name": "category", "label": "{{t('apps.categories')}}", "height": 34, "color": "@c.raised", "selectedColor": "@c.surface",
+							            "highlight": "@c.hover",
+							            "items": [{ "id": "all", "title": "{{t('category.all')}}", "width": 76 }, { "id": "work", "title": "{{t('category.work')}}", "icon": "briefcase", "width": 112 },
+							                      { "id": "create", "title": "{{t('category.create')}}", "icon": "brush", "width": 112 }, { "id": "code", "title": "{{t('category.code')}}", "icon": "code", "width": 92 },
+							                      { "id": "life", "title": "{{t('category.life')}}", "icon": "gamepad-2", "width": 120 }] },
+							  "anchors": { "left": 36, "top": 106 } },
+							{ "id": "appsCount", "when": "{{window.width - computed.sideWidth > 860}}", "type": "label", "font": "small", "textColor": "@c.dim", "align": "end center",
+							  "text": "{{t('apps.count', {n: length(computed.shown)})}}", "anchors": { "right": 36, "top": 106 }, "height": 34, "width": 160 },
+							{
+								"id": "appsGrid",
+								"type": "grid",
+								"anchors": { "left": 24, "right": 24, "top": 156, "bottom": 0 },
+								"columns": "{{computed.columns}}",
+								"gap": 20,
+								"scroll": "vertical",
+								"role": "list",
+								"label": "{{t('nav.apps')}}",
+								"children": [
+									{ "id": "appCard", "repeat": { "for": "app", "in": "computed.shown", "key": "{{app.id}}" }, "use": "appCard", "with": { "app": "{{app}}" } }
+								]
+							},
+							{ "id": "appsNone", "when": "{{length(computed.shown) == 0}}", "type": "label", "textColor": "@c.muted", "align": "center", "wrap": true,
+							  "text": "{{t('apps.none', {query: trim(state.query)})}}", "anchors": { "left": 36, "right": 36, "top": 220 }, "height": 48, "live": "polite" }
+						]
+					},
+
+					{
+						"id": "minePage",
+						"when": "{{state.page == 'mine'}}",
+						"fill": true,
+						"color": "transparent",
+						"role": "tabpanel",
+						"label": "{{t('nav.mine')}}",
+						"children": [
+							{ "id": "mineTitle", "style": "pageTitle", "text": "{{t('mine.title')}}", "role": "heading" },
+							{ "id": "mineSub", "style": "pageSub", "text": "{{t('mine.sub')}}", "anchors": { "left": 36, "right": 360, "top": 72 } },
+							{ "id": "mineButtons", "type": "row", "gap": 8, "anchors": { "right": 36, "top": 38 }, "height": 38, "width": 330, "justify": "end",
+							  "children": [
+								{ "id": "mineFolder", "style": "secondary", "icon": "folder-open", "text": "{{t('mine.showFolder')}}", "width": 150, "height": 38,
+								  "onClick": { "run": "revealMine", "with": { "id": "" } } },
+								{ "id": "mineNew", "style": "primary", "icon": "plus", "text": "{{t('nav.newApp')}}", "width": 130, "height": 38, "onClick": "showCreate" }
+							  ] },
+							{ "id": "mineUnavailable", "when": "{{state.mineError != ''}}", "type": "label", "font": "small", "wrap": true,
+							  "text": "{{t('mine.unavailable')}}", "textColor": "@c.muted", "color": "@c.raised", "radius": 10, "padding": 10,
+							  "anchors": { "left": 36, "right": 36, "top": 108 }, "height": 40, "role": "status" },
+							{
+								"id": "mineList",
+								"when": "{{length(state.mine) > 0}}",
+								"type": "column",
+								"anchors": { "left": 36, "right": 36, "top": "{{state.mineError != '' ? 160 : 116}}", "bottom": 0 },
+								"gap": 10,
+								"scroll": "vertical",
+								"role": "list",
+								"label": "{{t('nav.mine')}}",
+								"arrows": "vertical",
+								"children": [
+									{ "id": "mineRow", "repeat": { "for": "app", "in": "state.mine", "index": "i", "key": "{{app.id}}" }, "use": "mineRow", "with": { "app": "{{app}}", "index": "{{i}}" } },
+									{ "id": "mineListEnd", "height": 12, "color": "transparent", "anchors": { "left": 0, "right": 0 } }
+								]
+							},
+							{
+								"id": "mineEmpty",
+								"when": "{{length(state.mine) == 0}}",
+								"anchors": { "top": "{{state.mineError != '' ? 168 : 124}}" },
+								"x": "{{max(36, (window.width - computed.sideWidth - 460) / 2)}}",
+								"width": 460,
+								"height": 300,
+								"color": "transparent",
+								"children": [
+									{ "id": "mineEmptyArt", "type": "label", "icon": "sparkles", "font": "heroIcons", "align": "center", "textColor": "@c.accent",
+									  "color": "@c.accentSoft", "radius": 999, "anchors": { "top": 20 }, "x": 190, "width": 80, "height": 80 },
+									{ "id": "mineEmptyTitle", "type": "label", "font": "heading", "text": "{{t('mine.emptyTitle')}}", "textColor": "@c.text", "align": "center",
+									  "anchors": { "left": 0, "right": 0, "top": 120 }, "height": 26 },
+									{ "id": "mineEmptyText", "type": "label", "text": "{{t('mine.emptyText')}}", "textColor": "@c.muted", "align": "center", "wrap": true,
+									  "anchors": { "left": 0, "right": 0, "top": 152 }, "height": 44 },
+									{ "id": "mineEmptyCreate", "style": "primary", "icon": "plus", "text": "{{t('mine.emptyButton')}}", "anchors": { "top": 212 }, "x": 120, "width": 220, "height": 42,
+									  "onClick": "showCreate" }
+								]
+							}
+						]
+					},
+
+					{
+						"id": "createPage",
+						"when": "{{state.page == 'create'}}",
+						"fill": true,
+						"color": "transparent",
+						"role": "tabpanel",
+						"label": "{{t('nav.create')}}",
+						"children": [
+							{
+								"id": "createScroll",
+								"type": "column",
+								"anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 },
+								"scroll": "vertical",
+								"gap": 0,
+								"children": [
+									{
+										"id": "createForm",
+										"anchors": { "left": 36 },
+										"width": "{{min(820, window.width - computed.sideWidth - 72)}}",
+										"height": 980,
+										"color": "transparent",
+										"keys": { "mod+enter": "createApp" },
+										"children": [
+											{ "id": "createTitle", "type": "label", "font": "title", "text": "{{t('create.title')}}", "textColor": "@c.text", "anchors": { "left": 0, "top": 30 }, "fitText": true, "role": "heading" },
+											{ "id": "createSub", "type": "label", "text": "{{t('create.sub')}}", "textColor": "@c.muted", "anchors": { "left": 0, "right": 0, "top": 72 }, "height": 20 },
+
+											{ "id": "createNameLabel", "style": "sectionTitle", "text": "{{t('create.name')}}", "anchors": { "left": 0, "right": 0, "top": 118 } },
+											{ "id": "createName", "style": "field", "bind": "state.create.name", "maxLength": 80, "placeholder": "{{t('create.namePlaceholder')}}",
+											  "label": "{{t('create.name')}}", "description": "{{state.create.tried && computed.createError != '' ? t(computed.createError) : ''}}",
+											  "borderColor": "{{state.create.tried && computed.createError != '' ? '@c.danger' : '@c.border'}}",
+											  "anchors": { "left": 0, "right": 0, "top": 148 }, "height": 42, "onSubmit": "createApp" },
+											{ "id": "createNameHint", "type": "label", "font": "small", "anchors": { "left": 2, "right": 0, "top": 196 }, "height": 18,
+											  "live": "polite",
+											  "textColor": "{{state.create.tried && computed.createError != '' ? '@c.danger' : '@c.muted'}}",
+											  "text": "{{state.create.tried && computed.createError != '' ? t(computed.createError) : computed.slug != '' ? t('create.folder', {folder: computed.slug}) : t('create.nameHint')}}" },
+
+											{ "id": "createFromLabel", "style": "sectionTitle", "text": "{{t('create.from')}}", "anchors": { "left": 0, "right": 0, "top": 236 } },
+											{ "id": "createFromHint", "style": "hint", "text": "{{t('create.fromHint')}}", "anchors": { "left": 0, "right": 0, "top": 262 } },
+											{
+												"id": "createFrom",
+												"type": "grid",
+												"anchors": { "left": 0, "right": 0, "top": 290 },
+												"height": 252,
+												"columns": "{{max(2, min(5, floor((min(820, window.width - computed.sideWidth - 72) + 12) / 150)))}}",
+												"gap": 12,
+												"scroll": "vertical",
+												"role": "radiogroup",
+												"label": "{{t('create.from')}}",
+												"arrows": "horizontal",
+												"children": [
+													{ "id": "startBlankTile", "use": "startTile", "with": { "id": "blank", "name": "{{t('create.blank')}}", "cover": "" } },
+													{ "id": "startTile", "repeat": { "for": "app", "in": "computed.starters", "key": "{{app.id}}" }, "use": "startTile",
+													  "with": { "id": "{{app.id}}", "name": "{{app.name}}", "cover": "{{app.cover}}" } }
+												]
+											},
+
+											{ "id": "createDescribeLabel", "style": "sectionTitle", "text": "{{t('create.describe')}}", "anchors": { "left": 0, "right": 0, "top": 566 } },
+											{ "id": "createDescribeHint", "style": "hint", "text": "{{t('create.describeHint')}}", "anchors": { "left": 0, "right": 0, "top": 592 } },
+											{ "id": "createDescribe", "type": "editor", "bind": "state.create.describe", "wrap": true, "label": "{{t('create.describe')}}",
+											  "color": "@c.surface", "radius": 10, "borderWidth": 1, "borderColor": "@c.border", "focused": { "borderColor": "@c.accent" },
+											  "textColor": "@c.text", "caretColor": "@c.accent", "lineColor": "transparent", "selectionColor": "@c.accentSoft",
+											  "anchors": { "left": 0, "right": 0, "top": 618 }, "height": 96 },
+											{ "id": "createDescribePlaceholder", "when": "{{state.create.describe == ''}}", "type": "label", "text": "{{t('create.describePlaceholder')}}",
+											  "textColor": "@c.dim", "anchors": { "left": 12, "right": 12, "top": 626 }, "height": 20, "disabled": true },
+
+											{ "id": "createFeaturesLabel", "style": "sectionTitle", "text": "{{t('create.features')}}", "anchors": { "left": 0, "right": 0, "top": 738 } },
+											{ "id": "createFeaturesHint", "style": "hint", "text": "{{t('create.featuresHint')}}", "anchors": { "left": 0, "right": 0, "top": 764 } },
+											{
+												"id": "createFeatures",
+												"type": "row",
+												"wrap": true,
+												"gap": 8,
+												"anchors": { "left": 0, "right": 0, "top": 792 },
+												"height": 80,
+												"role": "group",
+												"label": "{{t('create.features')}}",
+												"children": [
+													{ "id": "featureChip", "repeat": { "for": "f", "in": "state.featureChoices", "key": "{{f.id}}" },
+													  "type": "label", "icon": "{{contains(state.create.features, f.id) ? 'check' : 'plus'}}",
+													  "text": "{{t('feature.' + f.id) + ' · ' + f.from}}", "font": "small", "fitText": true, "height": 32, "padding": 10,
+													  "radius": 999, "focusable": true, "role": "checkbox", "checked": "{{contains(state.create.features, f.id)}}", "cursor": "hand",
+													  "label": "{{t('feature.label', {feature: t('feature.' + f.id), app: f.from})}}",
+													  "color": "{{contains(state.create.features, f.id) ? '@c.accentSoft' : '@c.surface'}}",
+													  "textColor": "{{contains(state.create.features, f.id) ? '@c.accent' : '@c.text'}}",
+													  "borderWidth": 1, "borderColor": "{{contains(state.create.features, f.id) ? '@c.accent' : '@c.border'}}",
+													  "hover": { "borderColor": "@c.accent" },
+													  "onClick": { "run": "toggleFeature", "with": { "id": "{{f.id}}" } } }
+												]
+											},
+
+											{ "id": "createSummary", "type": "label", "font": "small", "textColor": "@c.muted", "wrap": true,
+											  "text": "{{t('create.summary', {name: trim(state.create.name) == '' ? '…' : trim(state.create.name), from: computed.fromName})}}",
+											  "anchors": { "left": 0, "right": 240, "top": 900 }, "height": 36 },
+											{ "id": "createSubmit", "style": "primary", "icon": "{{state.create.busy ? 'refresh-cw' : 'rocket'}}",
+											  "text": "{{state.create.busy ? t('create.busy') : t('create.submit')}}", "disabled": "{{state.create.busy}}",
+											  "anchors": { "right": 0, "top": 894 }, "width": 200, "height": 44, "onClick": "createApp" },
+											{ "id": "createProblem", "when": "{{state.create.error != ''}}", "type": "label", "font": "small", "wrap": true, "role": "alert", "live": "assertive",
+											  "text": "{{state.create.error}}", "textColor": "@c.danger", "color": "@c.dangerSoft", "radius": 8, "padding": 8,
+											  "anchors": { "left": 0, "right": 0, "top": 946 }, "height": 32 }
+										]
+									}
+								]
+							}
+						]
+					},
+
+					{
+						"id": "settingsPage",
+						"when": "{{state.page == 'settings'}}",
+						"fill": true,
+						"color": "transparent",
+						"role": "tabpanel",
+						"label": "{{t('nav.settings')}}",
+						"children": [
+							{ "id": "settingsTitle", "style": "pageTitle", "text": "{{t('settings.title')}}", "role": "heading" },
+							{ "id": "settingsSub", "style": "pageSub", "text": "{{t('settings.sub')}}" },
+							{
+								"id": "settingsList",
+								"type": "column",
+								"anchors": { "left": 36, "top": 112, "bottom": 0 },
+								"width": "{{min(760, window.width - computed.sideWidth - 72)}}",
+								"gap": 16,
+								"scroll": "vertical",
+								"children": [
+									{ "id": "settingsAppearance", "use": "settingsCard", "with": { "title": "{{t('settings.appearance')}}", "icon": "sun", "height": 150 },
+									  "children": [
+										{ "id": "themeLabel", "type": "label", "text": "{{t('settings.theme')}}", "textColor": "@c.muted", "anchors": { "left": 54, "top": 62 }, "width": 110, "height": 32, "align": "start center" },
+										{ "id": "themeChoice", "use": "segmentedControl", "anchors": { "left": 170, "top": 62 },
+										  "with": { "name": "theme", "label": "{{t('settings.theme')}}", "height": 32, "color": "@c.raised", "selectedColor": "@c.surface", "highlight": "@c.hover",
+										            "items": [{ "id": "system", "title": "{{t('settings.system')}}", "icon": "monitor", "width": 116 },
+										                      { "id": "light", "title": "{{t('settings.light')}}", "icon": "sun", "width": 100 },
+										                      { "id": "dark", "title": "{{t('settings.dark')}}", "icon": "moon", "width": 100 }] } },
+										{ "id": "languageLabel", "type": "label", "text": "{{t('settings.language')}}", "textColor": "@c.muted", "anchors": { "left": 54, "top": 102 }, "width": 110, "height": 32, "align": "start center" },
+										{ "id": "languageChoice", "use": "segmentedControl", "anchors": { "left": 170, "top": 102 },
+										  "with": { "name": "locale", "label": "{{t('settings.language')}}", "height": 32, "color": "@c.raised", "selectedColor": "@c.surface", "highlight": "@c.hover",
+										            "items": [{ "id": "system", "title": "{{t('settings.system')}}", "width": 96 }, { "id": "en", "title": "English", "width": 80 },
+										                      { "id": "es", "title": "Español", "width": 80 }, { "id": "fr", "title": "Français", "width": 84 }] } }
+									  ] },
+									{ "id": "settingsFolder", "use": "settingsCard", "with": { "title": "{{t('settings.folder')}}", "icon": "folder-heart", "height": 128 },
+									  "children": [
+										{ "id": "folderText", "type": "label", "wrap": true, "textColor": "@c.muted",
+										  "text": "{{t('settings.folderText', {folder: services.apps.folder ?? 'AffrescoUI'})}}",
+										  "anchors": { "left": 54, "right": 200, "top": 56 }, "height": 52 },
+										{ "id": "folderReveal", "style": "secondary", "icon": "folder-open", "text": "{{t('mine.showFolder')}}",
+										  "anchors": { "right": 20, "top": 62 }, "width": 160, "height": 38, "onClick": { "run": "revealMine", "with": { "id": "" } } }
+									  ] },
+									{ "id": "settingsIntelligence", "anchors": { "left": 0, "right": 0 }, "height": 960, "color": "transparent",
+									  "children": [{ "use": "intelligenceSettings" }] },
+									{ "id": "settingsKeys", "use": "settingsCard", "with": { "title": "{{t('settings.keys')}}", "icon": "keyboard", "height": 208 },
+									  "children": [
+										{ "id": "keysList", "type": "column", "anchors": { "left": 54, "right": 20, "top": 56 }, "height": 134, "gap": 4,
+										  "children": [
+											{ "id": "keyRow", "repeat": { "for": "k", "in": "{{[['⌘1 · ⌘2 · ⌘4', 'settings.keyPages'], ['⌘N', 'settings.keyNew'], ['⌘F', 'settings.keySearch'], ['⌘R', 'settings.keyRefresh'], ['Delete', 'settings.keyDelete']]}}" },
+											  "type": "row", "height": 22, "anchors": { "left": 0, "right": 0 }, "gap": 12,
+											  "children": [
+												{ "id": "keyCombo", "type": "label", "font": "small", "text": "{{context.platform == 'mac' ? k[0] : join(split(k[0], '⌘'), 'Ctrl+')}}", "textColor": "@c.text",
+												  "color": "@c.raised", "radius": 6, "width": 150, "height": 22, "align": "center" },
+												{ "id": "keyWhat", "type": "label", "font": "small", "text": "{{t(k[1])}}", "textColor": "@c.muted", "grow": 1, "height": 22, "align": "start center" }
+											  ] }
+										  ] }
+									  ] },
+									{ "id": "settingsAbout", "use": "settingsCard", "with": { "title": "{{t('settings.about')}}", "icon": "info", "height": 112 },
+									  "children": [
+										{ "id": "aboutText", "type": "label", "wrap": true, "textColor": "@c.muted", "text": "{{t('settings.aboutText')}}",
+										  "anchors": { "left": 54, "right": 20, "top": 54 }, "height": 44 }
+									  ] },
+									{ "id": "settingsEnd", "height": 12, "color": "transparent", "anchors": { "left": 0, "right": 0 } }
+								]
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+
+	"overlays": {
+		"confirmDelete": {
+			"id": "confirmDeleteDialog",
+			"use": "dialog",
+			"with": {
+				"open": "state.confirmOpen",
+				"title": "{{t('delete.title', {name: state.confirm.name})}}",
+				"message": "{{t('delete.message', {folder: state.confirm.id})}}",
+				"width": 460,
+				"height": 180,
+				"highlight": "@c.accent",
+				"buttons": [{ "title": "{{t('delete.confirm')}}", "run": "deleteMine" }, { "title": "{{t('delete.cancel')}}", "default": true }]
+			}
+		},
+		"launcherToasts": { "id": "launcherToastList", "use": "toasts", "with": { "name": "toasts" } }
+	}
+}

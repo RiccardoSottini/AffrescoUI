@@ -4,6 +4,7 @@
 /// @brief ChildProcess: a program started from an argument vector, with no shell, in its own process group (a job
 /// object on Windows), and pipes for its stdin and stdout.
 
+#include <chrono>
 #include <cstddef>
 #include <filesystem>
 #include <memory>
@@ -21,6 +22,16 @@ struct Launch {
 	std::filesystem::path directory;                     ///< The working directory, or empty for the host's.
 	std::optional<std::vector<std::string>> environment; ///< "NAME=value" entries, or std::nullopt for the host's.
 };
+
+/// @brief Starts a program that outlives this one (ProcessGrant::detach): in a session of its own on POSIX (not in a
+/// job object, breaking away from the host's if it may, on Windows). On POSIX its stdin is empty and its stdout and
+/// stderr are this process's, no other descriptor inherited; on Windows it inherits no handle. It inherits the host's
+/// environment unless @p launch gives one. Nothing waits on it but one thread, shared by every detached child, that
+/// collects their exits (POSIX), so none stays a zombie; at most 64 run at once (POSIX), past which it refuses.
+/// @param launch What to start.
+/// @return Its process id.
+/// @throws std::runtime_error If it can't be started (the message names the program, never its environment).
+[[nodiscard]] long startDetached(const Launch& launch);
 
 /// @brief A running child. Reads and writes block, so each belongs on a thread of its own; end() may be called from
 /// any thread and makes a blocked read return.
@@ -48,6 +59,12 @@ public:
 	/// @param size Its size.
 	/// @return The count read; 0 once the child closed its stdout (or ended); -1 on an error.
 	[[nodiscard]] std::ptrdiff_t read(char* buffer, std::size_t size);
+	/// @brief Waits until read() wouldn't block: bytes, the end of the child's stdout, or an error. A program the
+	/// child started that left its group may hold its stdout open after end(): a reader that waits with this, checking
+	/// its own deadline between waits, never blocks behind it.
+	/// @param wait The longest to wait.
+	/// @return Whether read() would return at once.
+	[[nodiscard]] bool readable(std::chrono::milliseconds wait);
 	/// @brief Closes the child's stdin, so it reads the end of its input.
 	void closeInput() noexcept;
 	/// @brief Ends the child and everything it started, and waits for it. Once only; later calls do nothing.

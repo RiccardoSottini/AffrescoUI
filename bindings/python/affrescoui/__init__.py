@@ -431,7 +431,7 @@ class Screen:
         _check(_native.library().afr_screen_scroll(self._handle(), x, y, dx, dy))
 
     def listen(self, name: str, author: str) -> None:
-        """Opens a channel for peers (the MCP server, the Studio), their revisions authored as `author`.
+        """Opens a channel for peers (the MCP server, a person's client), their revisions authored as `author`.
 
         @param name The socket's name, inside the socket folder.
         @param author Who they are, for the document's rules.

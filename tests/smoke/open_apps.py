@@ -11,7 +11,7 @@ older version of the screen (a history the screen no longer matches, and one tha
 `AFFRESCOUI_SCREENSHOT_AFTER` (5 s) and must then exit 0 by itself, print no error, and leave a frame that is drawn
 (at least MIN_COLOURS colours). A service without a window (`affrescoui_server`) must still be running after that long,
 a command without one (`affrescoui_bottega`) must have exited 0.
-The Studio is started against a host that is running. A program that isn't built (an option turned off) is skipped
+A program that isn't built (an option turned off) is skipped
 with a note. On Linux it runs under Xvfb (.github/workflows/ci.yml). Only the Python standard library is needed.
 """
 
@@ -215,31 +215,6 @@ def ways(program):
     return found
 
 
-def studio_with_host(build, seconds):
-    """The Studio connected to a running host, both on one socket folder; returns problems."""
-    studio, host = os.path.join(build, "affrescoui_studio"), os.path.join(build, "affrescoui_host")
-    if not os.path.exists(studio):
-        print("skipped studio: affrescoui_studio isn't built")
-        return None
-    home = tempfile.mkdtemp(prefix="open-apps-")
-    socket = tempfile.mkdtemp(prefix="ao", dir="/tmp")
-    environment = environment_for(home)
-    running = subprocess.Popen([host, "--socket", socket], cwd=ROOT, env=environment, stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL)
-    try:
-        time.sleep(1)  # the host listens once its window is up
-        frame = os.path.join(home, "frame.ppm")
-        studio_environment = dict(environment, AFFRESCOUI_SCREENSHOT=frame,
-                                  AFFRESCOUI_SCREENSHOT_AFTER=str(seconds * 1000))
-        problems = watch([studio, "--socket", socket], ROOT, studio_environment, WINDOW, seconds)
-        return problems or look(frame, "studio", "with a host", None)
-    finally:
-        running.terminate()
-        running.wait(timeout=10)
-        shutil.rmtree(home, ignore_errors=True)
-        shutil.rmtree(socket, ignore_errors=True)
-
-
 def main():
     """Opens every program every way; exits with 1 if one didn't open."""
     args, build, only, seconds, keep = sys.argv[1:], "build", None, 5, None
@@ -266,10 +241,6 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         results = list(pool.map(lambda r: run(r[0], build, r[1], seconds, keep), [r for r in runs if r not in shared]))
     results += [run(p, build, w, seconds, keep) for p, w in shared]
-    if not only or only in "studio":
-        problems = studio_with_host(build, seconds)
-        if problems is not None:
-            results.append(("studio", "with a host", problems))
     for name, way, problems in results:
         failed += bool(problems)
         print(("FAILED  " if problems else "opened  ") + f"{name}, {way}" +

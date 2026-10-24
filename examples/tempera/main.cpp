@@ -3,8 +3,8 @@
 //
 //   affrescoui_tempera [--socket DIR] [--data DIR]
 //
-// Opens a generated sample image. Like affrescoui_host, it listens for the Studio and an agent in DIR (studio.sock,
-// agent.sock), so they can change the workspace while it runs; the theme and the panels' sizes are kept in --data DIR.
+// Opens a generated sample image. Like affrescoui_host, it listens for the person's client and an agent in DIR
+// (studio.sock, agent.sock), so they can change the workspace while it runs; the theme and the panels' sizes are kept in --data DIR.
 
 #include "SocketDir.hpp"
 #include "tempera/Tempera.hpp"

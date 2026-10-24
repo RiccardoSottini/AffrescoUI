@@ -1413,18 +1413,26 @@ A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_
 `%LOCALAPPDATA%\affrescoui\sockets` on Windows).
 Each message of type `T` runs the action `name:T` with the message as `event`; `name:open`, `name:closed` and
 `name:error` (a `send` while disconnected) run when that happens. `reconnect` (or `true`: 2 s) tries again after a
-disconnect. The AffrescoUI Studio is built this way: its file is the whole client.
+disconnect.
 A `"socket"` that starts with `ws://` or `wss://` is a remote peer instead (a `PeerServer`, `modules/net/README.md`):
 `wss://` anywhere, `ws://` on the loopback only. The token is never in the file: the program that shows the screen
-gives it (`Screen::connectChannel()`, e.g. from the Studio's connect form in a browser tab, `web/README.md`), and
+gives it (`Screen::connectChannel()`), and
 without one, the server refuses the connection and `name:closed` runs. In a browser this is the only kind of channel.
 
 `"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json` (on Windows,
 `%APPDATA%\affrescoui\<file name>.state.json`), loaded at start and written when they change. A folder's
 `index.screen.json` is named after its folder (`flow/index.screen.json` keeps `flow.state.json`). A screen opened from
 a file keeps its version-control history in the same folder, in `<file name>.history/` (VERSION_CONTROL.md,
-"History on disk"). `AFFRESCOUI_DATA_DIR` (or the host's and the Studio's `--data`) puts both
+"History on disk"). `AFFRESCOUI_DATA_DIR` (or the host's `--data`) puts both
 in another folder.
+
+`"services"` reach the folders and programs the host grants ([`modules/services/README.md`](modules/services/README.md)
+has each provider's methods): `{"apps": {"provider": "fs", "root": "apps", "copyFrom": ["examples"]}}` reads,
+writes, lists and copies under the folder `apps`, and copies from the folder `examples` too
+(`{"invoke": "apps.copy", "with": {"from": "examples", "path": "flow", "to": "board", "exclude": ["*.cpp"]}}`, with
+`merge` to bring a folder up to date); a folder the host grants read-only takes only `"readOnly": true`. A `process`
+service runs the program its grant names, with the arguments the host's rule allows; one the host grants detached is
+started and left running, its result `{pid}` (the Launcher opens apps so).
 
 ## Live screens: revisions and the channel
 
@@ -1779,11 +1787,13 @@ its values, the theme, the colours, the fonts, or a new version of the document.
 panel directly (`screen.find("logo")->setColor(...)`) stays until one of those changes, then the document's values
 replace it. To keep a change, make it in the document (state, or a revision), or in a registered type's apply function.
 
-See the templates, a folder each in `examples/` ([`examples/README.md`](examples/README.md)): `kanban` (the one
-`affrescoui_host` opens: rows, components, drag and drop, a popover), `smart-home` (themes, computed values, switches
+See the templates, a folder each in `examples/` ([`examples/README.md`](examples/README.md)): `launcher` (the one
+`affrescoui_host` opens without a file: the apps as cards, `fs` services on the folders the host grants, a copy
+from one root into another, apps started through the host's app-programs grant), `kanban` (rows, components, drag
+and drop, a popover), `smart-home` (themes, computed values, switches
 and sliders, animations), `music-player` (a playback timer, seeking), `code-editor` (an application type built on
-`editor`, tabs, a terminal, a Cmd+P palette), `habit-tracker` (validation-free forms, `watch`, `persist`), `sign-in`
-(screens, navigation, `check`), and `studio` (the Studio client: its whole UI, behaviour and connection).
+`editor`, tabs, a terminal, a Cmd+P palette), `habit-tracker` (validation-free forms, `watch`, `persist`) and
+`sign-in` (screens, navigation, `check`).
 
 **Inside the host's OpenGL.** A host that has its own window and context (a game, a 3D tool) embeds the screen
 instead of giving it a window: `affresco::Embedding embedding(loader, clock, "Title", 800, 600)` in the current

@@ -11,7 +11,7 @@
 namespace affresco::channel {
 
 /// @brief The limits a Session holds a peer to. The defaults leave room for any real client (an agent sends a few
-/// messages a second, the Studio a few more while a person clicks), and stop one that floods the app.
+/// messages a second, a person's client a few more while they click), and stop one that floods the app.
 struct PeerLimits {
 	/// The largest message a peer may send. A larger one is refused without being parsed (the channel itself
 	/// closes past maxMessageBytes, 64 MiB). A whole screen is tens of KiB; 8 MiB leaves room for large revisions.

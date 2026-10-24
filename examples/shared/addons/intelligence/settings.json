@@ -1,0 +1,408 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The intelligence settings, to include: which provider of intelligence (Anthropic, OpenAI, an OpenAI-compatible server, Claude Code) and which model every app's assistant uses. Put { \"use\": \"intelligenceSettings\" } in a container (the AffrescoUI Launcher's settingsIntelligence). It calls the host's intelligence.* natives (examples/shared/intelligence/Intelligence.hpp), which only the Launcher's host registers; without them it shows stand-in data and can't save. The API key field isn't bound to the state: what is typed goes to the host's memory (intelligence.stageKey), then to the system's keychain on save, and the field is emptied. Everything here is named intelligence..., state under state.intelligence. See README.md.",
+	"tokens": {
+		"intelligence.accent": { "light": "#0969da", "dark": "#4493f8" },
+		"intelligence.accentHover": { "light": "#0550ae", "dark": "#2f81f7" },
+		"intelligence.onAccent": { "light": "#ffffff", "dark": "#ffffff" },
+		"intelligence.surface": { "light": "#ffffff", "dark": "#161b22" },
+		"intelligence.raised": { "light": "#f6f8fa", "dark": "#21262d" },
+		"intelligence.selected": { "light": "#ddf4ff", "dark": "#0c2d6b" },
+		"intelligence.border": { "light": "#d0d7de", "dark": "#30363d" },
+		"intelligence.text": { "light": "#1f2328", "dark": "#e6edf3" },
+		"intelligence.dim": { "light": "#57606a", "dark": "#8d96a0" },
+		"intelligence.success": { "light": "#1a7f37", "dark": "#3fb950" },
+		"intelligence.warning": { "light": "#9a6700", "dark": "#d29922" },
+		"intelligence.danger": { "light": "#cf222e", "dark": "#f85149" }
+	},
+	"strings": {
+		"default": "en",
+		"en": {
+			"intelligence.title": "AI assistant",
+			"intelligence.intro": "Choose the provider of intelligence the assistant of every app uses. Keys are kept in the system's keychain, never in a file.",
+			"intelligence.inUse": "In use: {provider} · {model}",
+			"intelligence.none": "No provider is set up yet: choose one below.",
+			"intelligence.providers": "Providers",
+			"intelligence.status.inUse": "In use",
+			"intelligence.status.ready": "Ready",
+			"intelligence.status.keySaved": "Key saved",
+			"intelligence.status.needsKey": "Needs a key",
+			"intelligence.status.notInstalled": "Not installed",
+			"intelligence.key": "API key",
+			"intelligence.keyOptional": "API key (optional)",
+			"intelligence.keyPlaceholder": "Paste the key",
+			"intelligence.keySaved": "A key is saved in {store}.",
+			"intelligence.notKept": "This system has no keychain: a key is kept only until AffrescoUI closes.",
+			"intelligence.getKey": "Get a key",
+			"intelligence.install": "Install it",
+			"intelligence.removeKey": "Remove the key",
+			"intelligence.baseUrl": "Base URL",
+			"intelligence.baseUrlHelp": "https://, or http:// on this computer (Ollama, LM Studio)",
+			"intelligence.claudeCode": "Uses your own Claude Code and its sign-in, with no tools: it can't run commands or change files.",
+			"intelligence.model": "Model",
+			"intelligence.modelChosen": "Model: {model}",
+			"intelligence.searchModels": "Search the models…",
+			"intelligence.useModel": "Use “{model}”",
+			"intelligence.noModels": "No model matches.",
+			"intelligence.loadingModels": "Loading the models…",
+			"intelligence.refresh": "Refresh models",
+			"intelligence.save": "Save and use",
+			"intelligence.test": "Test connection",
+			"intelligence.testing": "Testing…",
+			"intelligence.saved": "Saved: every app's assistant uses it now.",
+			"intelligence.launcherOnly": "These settings can only be changed in the AffrescoUI Launcher."
+		},
+		"es": {
+			"intelligence.title": "Asistente de IA",
+			"intelligence.intro": "Elige el proveedor de inteligencia que usa el asistente de cada aplicación. Las claves se guardan en el llavero del sistema, nunca en un archivo.",
+			"intelligence.inUse": "En uso: {provider} · {model}",
+			"intelligence.none": "Aún no hay ningún proveedor: elige uno abajo.",
+			"intelligence.providers": "Proveedores",
+			"intelligence.status.inUse": "En uso",
+			"intelligence.status.ready": "Listo",
+			"intelligence.status.keySaved": "Clave guardada",
+			"intelligence.status.needsKey": "Necesita una clave",
+			"intelligence.status.notInstalled": "No instalado",
+			"intelligence.key": "Clave de API",
+			"intelligence.keyOptional": "Clave de API (opcional)",
+			"intelligence.keyPlaceholder": "Pega la clave",
+			"intelligence.keySaved": "Hay una clave guardada en {store}.",
+			"intelligence.notKept": "Este sistema no tiene llavero: una clave solo se guarda hasta que se cierra AffrescoUI.",
+			"intelligence.getKey": "Obtener una clave",
+			"intelligence.install": "Instalarlo",
+			"intelligence.removeKey": "Borrar la clave",
+			"intelligence.baseUrl": "URL base",
+			"intelligence.baseUrlHelp": "https://, o http:// en este equipo (Ollama, LM Studio)",
+			"intelligence.claudeCode": "Usa tu propio Claude Code y su sesión, sin herramientas: no puede ejecutar órdenes ni cambiar archivos.",
+			"intelligence.model": "Modelo",
+			"intelligence.modelChosen": "Modelo: {model}",
+			"intelligence.searchModels": "Busca los modelos…",
+			"intelligence.useModel": "Usar «{model}»",
+			"intelligence.noModels": "Ningún modelo coincide.",
+			"intelligence.loadingModels": "Cargando los modelos…",
+			"intelligence.refresh": "Actualizar modelos",
+			"intelligence.save": "Guardar y usar",
+			"intelligence.test": "Probar la conexión",
+			"intelligence.testing": "Probando…",
+			"intelligence.saved": "Guardado: el asistente de cada aplicación lo usa ya.",
+			"intelligence.launcherOnly": "Estos ajustes solo se cambian en AffrescoUI Launcher."
+		},
+		"fr": {
+			"intelligence.title": "Assistant IA",
+			"intelligence.intro": "Choisissez le fournisseur d'intelligence qu'utilise l'assistant de chaque application. Les clés sont gardées dans le trousseau du système, jamais dans un fichier.",
+			"intelligence.inUse": "Utilisé : {provider} · {model}",
+			"intelligence.none": "Aucun fournisseur pour l'instant : choisissez-en un ci-dessous.",
+			"intelligence.providers": "Fournisseurs",
+			"intelligence.status.inUse": "Utilisé",
+			"intelligence.status.ready": "Prêt",
+			"intelligence.status.keySaved": "Clé enregistrée",
+			"intelligence.status.needsKey": "Clé nécessaire",
+			"intelligence.status.notInstalled": "Pas installé",
+			"intelligence.key": "Clé d'API",
+			"intelligence.keyOptional": "Clé d'API (facultative)",
+			"intelligence.keyPlaceholder": "Collez la clé",
+			"intelligence.keySaved": "Une clé est enregistrée dans {store}.",
+			"intelligence.notKept": "Ce système n'a pas de trousseau : une clé n'est gardée que jusqu'à la fermeture d'AffrescoUI.",
+			"intelligence.getKey": "Obtenir une clé",
+			"intelligence.install": "L'installer",
+			"intelligence.removeKey": "Supprimer la clé",
+			"intelligence.baseUrl": "URL de base",
+			"intelligence.baseUrlHelp": "https://, ou http:// sur cet ordinateur (Ollama, LM Studio)",
+			"intelligence.claudeCode": "Utilise votre propre Claude Code et sa connexion, sans outils : il ne peut ni lancer de commandes ni modifier de fichiers.",
+			"intelligence.model": "Modèle",
+			"intelligence.modelChosen": "Modèle : {model}",
+			"intelligence.searchModels": "Cherchez un modèle…",
+			"intelligence.useModel": "Utiliser « {model} »",
+			"intelligence.noModels": "Aucun modèle ne correspond.",
+			"intelligence.loadingModels": "Chargement des modèles…",
+			"intelligence.refresh": "Actualiser les modèles",
+			"intelligence.save": "Enregistrer et utiliser",
+			"intelligence.test": "Tester la connexion",
+			"intelligence.testing": "Test en cours…",
+			"intelligence.saved": "Enregistré : l'assistant de chaque application l'utilise maintenant.",
+			"intelligence.launcherOnly": "Ces réglages ne se changent que dans AffrescoUI Launcher."
+		}
+	},
+	"state": {
+		"intelligence": {
+			"native": false, "loaded": false, "selected": "", "baseUrl": "", "model": "", "query": "", "models": [],
+			"loadingModels": false, "testing": false, "test": null, "notice": "", "error": "", "keyShown": true,
+			"data": {
+				"current": { "provider": "", "model": "" },
+				"keyStore": "Keychain",
+				"persistent": true,
+				"providers": [
+					{ "id": "anthropic", "name": "Anthropic (Claude)", "kind": "anthropic", "needsKey": true, "takesKey": true,
+					  "hasKey": false, "available": true, "baseUrl": "https://api.anthropic.com", "editableUrl": false,
+					  "model": "claude-sonnet-5-5", "keyHelp": "https://console.anthropic.com/settings/keys",
+					  "models": [{ "id": "claude-opus-5-5", "name": "Claude Opus 5.5" }, { "id": "claude-sonnet-5-5", "name": "Claude Sonnet 5.5" },
+					             { "id": "claude-haiku-5-5", "name": "Claude Haiku 5.5" }, { "id": "claude-fable-5-1", "name": "Claude Fable 5.1" }] },
+					{ "id": "openai", "name": "OpenAI", "kind": "openai", "needsKey": true, "takesKey": true, "hasKey": false,
+					  "available": true, "baseUrl": "https://api.openai.com/v1", "editableUrl": false, "model": "gpt-5",
+					  "keyHelp": "https://platform.openai.com/api-keys",
+					  "models": [{ "id": "gpt-5", "name": "GPT-5" }, { "id": "gpt-5-mini", "name": "GPT-5 mini" }] },
+					{ "id": "openai-compatible", "name": "OpenAI-compatible server", "kind": "openai-compatible", "needsKey": false,
+					  "takesKey": true, "hasKey": false, "available": true, "baseUrl": "http://127.0.0.1:11434/v1",
+					  "editableUrl": true, "model": "", "keyHelp": "https://ollama.com/download", "models": [] },
+					{ "id": "claude-code", "name": "Claude Code", "kind": "claude-code", "needsKey": false, "takesKey": false,
+					  "hasKey": false, "available": true, "baseUrl": "", "editableUrl": false, "model": "sonnet",
+					  "keyHelp": "https://claude.com/claude-code",
+					  "models": [{ "id": "sonnet", "name": "Sonnet" }, { "id": "opus", "name": "Opus" }, { "id": "haiku", "name": "Haiku" }] }
+				]
+			}
+		}
+	},
+	"components": {
+		"intelligenceButton": {
+			"params": { "text": "", "run": "", "primary": false, "enabled": true, "width": 150 },
+			"node": {
+				"id": "label-text",
+				"type": "label", "text": "{{text}}", "width": "{{width}}", "height": 32, "radius": 6, "align": "center",
+				"color": "{{primary ? '@intelligence.accent' : '@intelligence.raised'}}",
+				"textColor": "{{primary ? '@intelligence.onAccent' : '@intelligence.text'}}",
+				"borderWidth": "{{primary ? 0 : 1}}", "borderColor": "@intelligence.border",
+				"hover": { "color": "{{primary ? '@intelligence.accentHover' : '@intelligence.border'}}" },
+				"focused": { "borderWidth": 2, "borderColor": "@intelligence.accentHover" },
+				"role": "button", "focusable": true, "cursor": "hand", "disabled": "{{!enabled}}",
+				"onClick": [{ "run": "{{run}}" }]
+			}
+		},
+		"intelligenceSettings": {
+			"params": {},
+			"node": {
+				"id": "intelligenceSettings", "fill": true, "color": "transparent", "scroll": "vertical", "dir": "auto",
+				"onShow": [{ "run": "intelligence.load" }],
+				"let": {
+					"iData": "{{state.intelligence.data}}",
+					"iProvider": "{{find(state.intelligence.data.providers, it.id == state.intelligence.selected) ?? state.intelligence.data.providers[0]}}"
+				},
+				"children": [{
+					"id": "intelligenceColumn", "type": "column", "gap": 14, "alignItems": "stretch", "fitContent": "height",
+					"anchors": { "left": 24, "right": 24, "top": 24 }, "maxWidth": 720,
+					"children": [
+						{ "id": "intelligenceTitle", "type": "label", "role": "heading", "height": 28, "textColor": "@intelligence.text",
+						  "runs": [{ "text": "{{t('intelligence.title')}}", "bold": true, "size": 20 }] },
+						{ "id": "intelligenceIntro", "type": "label", "wrap": true, "height": 40, "textColor": "@intelligence.dim",
+						  "text": "{{t('intelligence.intro')}}" },
+						{ "id": "intelligenceCurrent", "type": "label", "role": "status", "live": "polite", "height": 22,
+						  "textColor": "{{iData.current.provider != '' ? '@intelligence.success' : '@intelligence.warning'}}",
+						  "text": "{{iData.current.provider != '' ? t('intelligence.inUse', {provider: find(iData.providers, it.id == iData.current.provider).name ?? iData.current.provider, model: iData.current.model}) : t('intelligence.none')}}" },
+						{ "id": "intelligenceProvidersTitle", "type": "label", "height": 20, "textColor": "@intelligence.text",
+						  "runs": [{ "text": "{{t('intelligence.providers')}}", "bold": true }] },
+						{ "id": "intelligenceProviders", "type": "column", "gap": 8, "alignItems": "stretch", "fitContent": "height",
+						  "role": "radiogroup", "label": "{{t('intelligence.providers')}}",
+						  "children": [
+							{ "repeat": { "for": "provider", "in": "{{iData.providers}}", "index": "p" },
+							  "id": "intelligenceProvider{{p}}", "height": 56, "radius": 8, "borderWidth": 1,
+							  "color": "{{provider.id == iProvider.id ? '@intelligence.selected' : '@intelligence.surface'}}",
+							  "borderColor": "{{provider.id == iProvider.id ? '@intelligence.accent' : '@intelligence.border'}}",
+							  "hover": { "borderColor": "@intelligence.accent" }, "focused": { "borderColor": "@intelligence.accentHover", "borderWidth": 2 },
+							  "role": "radio", "checked": "{{provider.id == iProvider.id}}", "focusable": true, "cursor": "hand",
+							  "label": "{{provider.name}}",
+							  "let": { "iStatus": "{{provider.id == iData.current.provider ? 'inUse' : !provider.available ? 'notInstalled' : provider.needsKey && !provider.hasKey ? 'needsKey' : provider.hasKey ? 'keySaved' : 'ready'}}" },
+							  "onClick": [{ "run": "intelligence.pick", "with": { "id": "{{provider.id}}" } }],
+							  "keys": { "space": [{ "run": "intelligence.pick", "with": { "id": "{{provider.id}}" } }] },
+							  "children": [
+								{ "id": "label-intelligence-provider-p", "type": "label", "anchors": { "left": 16, "top": 9 }, "fitText": true, "textColor": "@intelligence.text",
+								  "runs": [{ "text": "{{provider.name}}", "bold": true }] },
+								{ "id": "label-provider-kind-claude", "type": "label", "anchors": { "left": 16, "top": 31 }, "fitText": true, "textColor": "@intelligence.dim",
+								  "text": "{{provider.kind == 'claude-code' ? 'claude' : provider.baseUrl}}" },
+								{ "id": "row-intelligence-provider-p", "anchors": { "right": 16, "top": 17 }, "height": 22, "fitContent": "width", "type": "row", "gap": 6,
+								  "alignItems": "center", "children": [
+									{ "id": "panel-intelligence-provider", "width": 8, "height": 8, "radius": 4,
+									  "color": "{{iStatus == 'inUse' || iStatus == 'keySaved' || iStatus == 'ready' ? '@intelligence.success' : iStatus == 'needsKey' ? '@intelligence.warning' : '@intelligence.dim'}}" },
+									{ "id": "label-t-intelligence-status", "type": "label", "fitText": true, "textColor": "@intelligence.dim",
+									  "text": "{{t('intelligence.status.' + iStatus)}}" }
+								  ] }
+							  ] }
+						  ] },
+						{ "id": "intelligenceForm", "type": "column", "gap": 10, "fitContent": "height",
+						  "color": "@intelligence.surface", "radius": 8, "borderWidth": 1, "borderColor": "@intelligence.border",
+						  "children": [
+							{ "id": "intelligenceFormTitle", "type": "label", "height": 40, "anchors": { "left": 14, "right": 14 },
+							  "align": "start center", "textColor": "@intelligence.text",
+							  "runs": [{ "text": "{{iProvider.name}}", "bold": true, "size": 16 }] },
+							{ "when": "{{!iProvider.takesKey}}", "id": "intelligenceClaudeNote", "type": "label", "wrap": true, "height": 40,
+							  "anchors": { "left": 14, "right": 14 }, "textColor": "@intelligence.dim", "text": "{{t('intelligence.claudeCode')}}" },
+							{ "when": "{{!iProvider.available}}", "id": "intelligenceInstall", "use": "intelligenceButton",
+							  "anchors": { "left": 14 }, "with": { "text": "{{t('intelligence.install')}}", "run": "intelligence.getKey", "width": 150 } },
+							{ "when": "{{iProvider.takesKey}}", "id": "intelligenceKeyLabel", "type": "label", "height": 18,
+							  "anchors": { "left": 14, "right": 14 }, "textColor": "@intelligence.text",
+							  "text": "{{t(iProvider.needsKey ? 'intelligence.key' : 'intelligence.keyOptional')}}" },
+							{ "when": "{{iProvider.takesKey}}", "id": "intelligenceKeyRow", "type": "row", "height": 32, "gap": 8,
+							  "anchors": { "left": 14, "right": 14 },
+							  "children": [
+								{ "when": "{{state.intelligence.keyShown}}", "id": "intelligenceKey", "type": "textarea", "secret": true,
+								  "grow": 1, "height": 32, "padding": 8, "radius": 6, "borderWidth": 1,
+								  "color": "@intelligence.raised", "borderColor": "@intelligence.border",
+								  "focused": { "borderColor": "@intelligence.accent" }, "textColor": "@intelligence.text",
+								  "placeholder": "{{t('intelligence.keyPlaceholder')}}", "placeholderColor": "@intelligence.dim",
+								  "label": "{{t(iProvider.needsKey ? 'intelligence.key' : 'intelligence.keyOptional')}}",
+								  "maxLength": 4096,
+								  "onChange": [{ "call": "intelligence.stageKey", "with": { "provider": "{{iProvider.id}}", "key": "{{event.value}}" },
+								                 "onError": [] }],
+								  "onSubmit": [{ "run": "intelligence.apply" }] },
+								{ "when": "{{indexOf(iProvider.keyHelp, 'https://') == 0}}", "use": "intelligenceButton", "id": "intelligenceGetKey",
+								  "with": { "text": "{{t('intelligence.getKey')}}", "run": "intelligence.getKey", "width": 130 } }
+							  ] },
+							{ "when": "{{iProvider.takesKey && iProvider.hasKey}}", "id": "intelligenceKeySaved", "type": "row", "height": 32, "gap": 8,
+							  "anchors": { "left": 14, "right": 14 }, "alignItems": "center", "children": [
+								{ "id": "label-t-intelligence-key", "type": "label", "grow": 1, "height": 32, "align": "start center", "textColor": "@intelligence.success",
+								  "text": "{{t('intelligence.keySaved', {store: iData.keyStore})}}" },
+								{ "use": "intelligenceButton", "id": "intelligenceRemoveKey",
+								  "with": { "text": "{{t('intelligence.removeKey')}}", "run": "intelligence.removeKey", "width": 140 } }
+							  ] },
+							{ "when": "{{iProvider.takesKey && !iData.persistent}}", "id": "intelligenceNotKept", "type": "label",
+							  "height": 32, "anchors": { "left": 14, "right": 14 }, "align": "start center", "wrap": true,
+							  "textColor": "@intelligence.danger", "text": "{{t('intelligence.notKept')}}" },
+							{ "when": "{{iProvider.editableUrl}}", "id": "intelligenceBaseUrlLabel", "type": "label", "height": 18,
+							  "anchors": { "left": 14, "right": 14 }, "textColor": "@intelligence.text", "text": "{{t('intelligence.baseUrl')}}" },
+							{ "when": "{{iProvider.editableUrl}}", "id": "intelligenceBaseUrl", "type": "textarea", "height": 32, "padding": 8,
+							  "radius": 6, "anchors": { "left": 14, "right": 14 },
+							  "borderWidth": 1, "color": "@intelligence.raised", "borderColor": "@intelligence.border",
+							  "focused": { "borderColor": "@intelligence.accent" }, "textColor": "@intelligence.text",
+							  "bind": "state.intelligence.baseUrl", "maxLength": 512, "label": "{{t('intelligence.baseUrl')}}",
+							  "placeholder": "{{t('intelligence.baseUrlHelp')}}", "placeholderColor": "@intelligence.dim" },
+							{ "id": "intelligenceModelLabel", "type": "label", "height": 18, "anchors": { "left": 14, "right": 14 },
+							  "textColor": "@intelligence.text",
+							  "text": "{{state.intelligence.model != '' ? t('intelligence.modelChosen', {model: state.intelligence.model}) : t('intelligence.model')}}" },
+							{ "id": "intelligenceModelSearch", "type": "textarea", "height": 32, "padding": 8, "radius": 6,
+							  "anchors": { "left": 14, "right": 14 },
+							  "borderWidth": 1, "color": "@intelligence.raised", "borderColor": "@intelligence.border",
+							  "focused": { "borderColor": "@intelligence.accent" }, "textColor": "@intelligence.text",
+							  "bind": "state.intelligence.query", "maxLength": 200, "label": "{{t('intelligence.searchModels')}}",
+							  "placeholder": "{{t('intelligence.searchModels')}}", "placeholderColor": "@intelligence.dim",
+							  "onSubmit": [{ "if": "{{length(trim(state.intelligence.query)) > 0}}",
+							                 "then": [{ "run": "intelligence.pickModel", "with": { "id": "{{trim(state.intelligence.query)}}" } }] }] },
+							{ "id": "intelligenceModels", "type": "column", "gap": 2, "alignItems": "stretch", "fitContent": "height",
+							  "anchors": { "left": 14, "right": 14 }, "role": "listbox", "label": "{{t('intelligence.model')}}",
+							  "let": {
+								"iMatches": "{{map(fuzzySort(length(state.intelligence.models) > 0 ? state.intelligence.models : iProvider.models ?? [], trim(state.intelligence.query), 'name', 6), it.item)}}"
+							  },
+							  "children": [
+								{ "when": "{{state.intelligence.loadingModels}}", "id": "intelligenceModelsLoading", "type": "label", "height": 28,
+								  "align": "start center", "textColor": "@intelligence.dim", "text": "{{t('intelligence.loadingModels')}}" },
+								{ "when": "{{!state.intelligence.loadingModels && length(iMatches) == 0 && length(trim(state.intelligence.query)) == 0}}",
+								  "id": "intelligenceNoModels", "type": "label", "height": 28, "align": "start center",
+								  "textColor": "@intelligence.dim", "text": "{{t('intelligence.noModels')}}" },
+								{ "repeat": { "for": "model", "in": "{{iMatches}}", "index": "m" },
+								  "id": "intelligenceModel{{m}}", "height": 30, "radius": 6,
+								  "color": "{{model.id == state.intelligence.model ? '@intelligence.selected' : 'transparent'}}",
+								  "hover": { "borderColor": "@intelligence.accent", "borderWidth": 1 }, "role": "option",
+								  "checked": "{{model.id == state.intelligence.model}}",
+								  "focusable": true, "cursor": "hand", "label": "{{model.name}}",
+								  "onClick": [{ "run": "intelligence.pickModel", "with": { "id": "{{model.id}}" } }],
+								  "keys": { "space": [{ "run": "intelligence.pickModel", "with": { "id": "{{model.id}}" } }] },
+								  "children": [
+									{ "id": "label-model-name", "type": "label", "anchors": { "left": 8, "top": 7 }, "fitText": true, "textColor": "@intelligence.text",
+									  "text": "{{model.name}}" },
+									{ "id": "label-model-id", "when": "{{model.name != model.id}}", "type": "label", "anchors": { "right": 8, "top": 7 }, "fitText": true,
+									  "textColor": "@intelligence.dim", "text": "{{model.id}}" }
+								  ] },
+								{ "when": "{{length(trim(state.intelligence.query)) > 0 && !some(iMatches, it.id == trim(state.intelligence.query))}}",
+								  "id": "intelligenceUseModel", "height": 30, "radius": 6, "color": "transparent",
+								  "hover": { "borderColor": "@intelligence.accent", "borderWidth": 1 },
+								  "role": "option", "focusable": true, "cursor": "hand",
+								  "label": "{{t('intelligence.useModel', {model: trim(state.intelligence.query)})}}",
+								  "onClick": [{ "run": "intelligence.pickModel", "with": { "id": "{{trim(state.intelligence.query)}}" } }],
+								  "children": [{ "id": "label-t-intelligence-use", "type": "label", "anchors": { "left": 8, "top": 7 }, "fitText": true,
+								                 "textColor": "@intelligence.accent",
+								                 "text": "{{t('intelligence.useModel', {model: trim(state.intelligence.query)})}}" }] }
+							  ] },
+							{ "id": "intelligenceActions", "type": "row", "height": 32, "gap": 8, "anchors": { "left": 14, "right": 14 },
+							  "children": [
+								{ "use": "intelligenceButton", "id": "intelligenceSave",
+								  "with": { "text": "{{t('intelligence.save')}}", "run": "intelligence.apply", "primary": true,
+								            "enabled": "{{state.intelligence.model != '' && iProvider.available}}", "width": 170 } },
+								{ "use": "intelligenceButton", "id": "intelligenceTest",
+								  "with": { "text": "{{t(state.intelligence.testing ? 'intelligence.testing' : 'intelligence.test')}}",
+								            "run": "intelligence.check", "enabled": "{{iData.current.provider != '' && !state.intelligence.testing}}",
+								            "width": 170 } },
+								{ "when": "{{iProvider.kind != 'claude-code'}}", "use": "intelligenceButton", "id": "intelligenceRefresh",
+								  "with": { "text": "{{t('intelligence.refresh')}}", "run": "intelligence.refresh", "width": 170 } }
+							] },
+							{ "id": "intelligenceFeedback", "type": "label", "role": "status", "live": "polite", "wrap": true, "height": 40,
+							  "anchors": { "left": 14, "right": 14 },
+							  "textColor": "{{state.intelligence.error != '' || (state.intelligence.test != null && !state.intelligence.test.ok) ? '@intelligence.danger' : '@intelligence.success'}}",
+							  "text": "{{state.intelligence.error != '' ? state.intelligence.error : state.intelligence.test != null ? state.intelligence.test.message : state.intelligence.notice}}" }
+						  ] },
+						{ "id": "panel-intelligence-column", "height": 24, "color": "transparent" }
+					]
+				}]
+			}
+		}
+	},
+	"actions": {
+		"intelligence.load": [
+			{ "note": "The first provider until the host says which is in use; without the natives (the rendering check) the call fails and the stand-in data stays" },
+			{ "if": "{{state.intelligence.selected == ''}}", "then": [
+				{ "run": "intelligence.choose", "with": { "id": "{{state.intelligence.data.providers[0].id}}" } }
+			] },
+			{ "call": "intelligence.providers", "into": "state.intelligence.data", "onError": [],
+			  "then": [
+				{ "set": "state.intelligence.native", "to": true },
+				{ "if": "{{!state.intelligence.loaded}}", "then": [
+					{ "set": "state.intelligence.loaded", "to": true },
+					{ "run": "intelligence.choose",
+					  "with": { "id": "{{state.intelligence.data.current.provider != '' ? state.intelligence.data.current.provider : state.intelligence.selected}}" } }
+				] }
+			  ] }
+		],
+		"intelligence.pick": [{ "run": "intelligence.choose", "with": { "id": "{{id}}" } }, { "run": "intelligence.resetKey" }],
+		"intelligence.choose": [
+			{ "set": "state.intelligence.selected", "to": "{{id}}" },
+			{ "set": "state.intelligence.baseUrl", "to": "{{find(state.intelligence.data.providers, it.id == id).baseUrl ?? ''}}" },
+			{ "set": "state.intelligence.model", "to": "{{find(state.intelligence.data.providers, it.id == id).model ?? ''}}" },
+			{ "set": "state.intelligence.query", "to": "" },
+			{ "set": "state.intelligence.models", "to": [] },
+			{ "set": "state.intelligence.test", "to": null },
+			{ "set": "state.intelligence.error", "to": "" },
+			{ "set": "state.intelligence.notice", "to": "" },
+			{ "run": "intelligence.refresh" }
+		],
+		"intelligence.refresh": [
+			{ "if": "{{!state.intelligence.native}}", "then": [{ "stop": true }] },
+			{ "call": "intelligence.models", "with": { "provider": "{{state.intelligence.selected}}" },
+			  "into": "state.intelligence.models", "loading": "state.intelligence.loadingModels", "timeout": 20000,
+			  "onError": [{ "set": "state.intelligence.models", "to": [] }] }
+		],
+		"intelligence.pickModel": [
+			{ "set": "state.intelligence.model", "to": "{{id}}" },
+			{ "set": "state.intelligence.query", "to": "" }
+		],
+		"intelligence.apply": [
+			{ "set": "state.intelligence.error", "to": "" },
+			{ "set": "state.intelligence.test", "to": null },
+			{ "if": "{{!state.intelligence.native}}", "then": [
+				{ "set": "state.intelligence.error", "to": "{{t('intelligence.launcherOnly')}}" }, { "stop": true }
+			] },
+			{ "call": "intelligence.save", "into": "state.intelligence.data",
+			  "with": { "provider": "{{state.intelligence.selected}}", "model": "{{state.intelligence.model}}",
+			            "baseUrl": "{{state.intelligence.baseUrl}}" },
+			  "then": [{ "set": "state.intelligence.notice", "to": "{{t('intelligence.saved')}}" },
+			           { "run": "intelligence.resetKey" }, { "run": "intelligence.refresh" }],
+			  "onError": [{ "set": "state.intelligence.error", "to": "{{error}}" }] }
+		],
+		"intelligence.check": [
+			{ "set": "state.intelligence.error", "to": "" },
+			{ "call": "intelligence.test", "into": "state.intelligence.test", "loading": "state.intelligence.testing",
+			  "timeout": 100000,
+			  "onError": [{ "set": "state.intelligence.test", "to": "{{ {ok: false, message: state.intelligence.native ? error : t('intelligence.launcherOnly')} }}" }] }
+		],
+		"intelligence.removeKey": [
+			{ "call": "intelligence.forget", "with": { "provider": "{{state.intelligence.selected}}" },
+			  "into": "state.intelligence.data", "onError": [{ "set": "state.intelligence.error", "to": "{{error}}" }] },
+			{ "run": "intelligence.resetKey" }
+		],
+		"intelligence.getKey": [
+			{ "call": "intelligence.openKeyHelp", "with": { "provider": "{{state.intelligence.selected}}" }, "onError": [] }
+		],
+		"intelligence.resetKey": [
+			{ "note": "The key field isn't bound to the state: building it again empties it" },
+			{ "set": "state.intelligence.keyShown", "to": false },
+			{ "after": 0, "do": [{ "set": "state.intelligence.keyShown", "to": true }] }
+		]
+	}
+}

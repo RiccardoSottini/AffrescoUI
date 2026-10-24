@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 
 namespace affresco::services {
 
@@ -214,6 +215,17 @@ std::ptrdiff_t ChildProcess::read(char* buffer, std::size_t size) {
 	return static_cast<std::ptrdiff_t>(count);
 }
 
+bool ChildProcess::readable(std::chrono::milliseconds wait) {
+	const auto deadline = std::chrono::steady_clock::now() + wait;
+	while(true) {
+		DWORD available = 0;
+		if(!PeekNamedPipe(platform_->fromChild, nullptr, 0, nullptr, &available, nullptr) || available > 0)
+			return true; // bytes, or a broken pipe that read() reports
+		if(std::chrono::steady_clock::now() >= deadline) return false;
+		Sleep(10);
+	}
+}
+
 void ChildProcess::closeInput() noexcept { closeHandle(platform_->toChild); }
 
 int ChildProcess::end() noexcept {
@@ -227,6 +239,28 @@ int ChildProcess::wait() noexcept {
 	return GetExitCodeProcess(platform_->process, &code) ? static_cast<int>(code) : -1;
 }
 
+long startDetached(const Launch& launch) {
+	std::wstring line = commandLine(launch);
+	std::wstring environment = launch.environment ? environmentBlock(*launch.environment) : std::wstring{};
+	const std::wstring directory = launch.directory.wstring();
+	const std::wstring program = launch.program.wstring();
+	STARTUPINFOW startup{};
+	startup.cb = sizeof(startup);
+	PROCESS_INFORMATION started{};
+	DWORD flags = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_UNICODE_ENVIRONMENT | CREATE_BREAKAWAY_FROM_JOB;
+	for(int attempt = 0; attempt < 2; ++attempt) {
+		if(CreateProcessW(program.c_str(), line.data(), nullptr, nullptr, FALSE, flags,
+		                  launch.environment ? environment.data() : nullptr,
+		                  directory.empty() ? nullptr : directory.c_str(), &startup, &started)) {
+			closeHandle(started.hThread);
+			closeHandle(started.hProcess);
+			return static_cast<long>(started.dwProcessId);
+		}
+		flags &= ~static_cast<DWORD>(CREATE_BREAKAWAY_FROM_JOB); // a job that forbids breaking away: start inside it
+	}
+	throw std::runtime_error("could not start '" + launch.program.filename().string() + "'");
+}
+
 } // namespace affresco::services
 
 #else
@@ -236,10 +270,12 @@ int ChildProcess::wait() noexcept {
 #include <chrono>
 #include <csignal>
 #include <fcntl.h>
+#include <poll.h>
 #include <spawn.h>
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
+#include <vector>
 
 // The environment that posix_spawn passes on: POSIX's own variable, which not every C library's unistd.h declares
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,readability-redundant-declaration)
@@ -264,6 +300,67 @@ void closeDescriptor(int& fd) noexcept {
 	if(fd >= 0) close(fd);
 	fd = -1;
 }
+
+/// @brief The detached children not yet reaped: one thread polls them all (never a thread per run) and ends once none
+/// is left, so a child never stays a zombie while the host runs.
+class Reaper {
+public:
+	/// The most detached children running at once: past it, startDetached() refuses.
+	static constexpr std::size_t mostChildren = 64;
+
+	/// @brief The process's reaper. Never destroyed: its thread may still run while the statics are.
+	/// @return It.
+	static Reaper& instance() {
+		// NOLINTNEXTLINE(cppcoreguidelines-owning-memory): it lives as long as the process
+		static Reaper* const reaper = new Reaper();
+		return *reaper;
+	}
+
+	/// @brief Whether another child may start.
+	/// @return Whether fewer than mostChildren are running.
+	bool roomForOne() {
+		const std::scoped_lock lock(mutex_);
+		reap();
+		return children_.size() < mostChildren;
+	}
+
+	/// @brief Watches a child, starting the thread if it isn't running.
+	/// @param pid The child.
+	void add(pid_t pid) {
+		const std::scoped_lock lock(mutex_);
+		children_.push_back(pid);
+		if(running_) return;
+		running_ = true;
+		std::thread([this] { run(); }).detach();
+	}
+
+private:
+	/// @brief Collects the children that ended. The mutex is held.
+	void reap() {
+		std::erase_if(children_, [](pid_t pid) {
+			int status = 0;
+			const pid_t reaped = waitpid(pid, &status, WNOHANG);
+			return reaped == pid || (reaped < 0 && errno == ECHILD);
+		});
+	}
+
+	/// @brief The thread: reaps four times a second until no child is left.
+	void run() {
+		while(true) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(250));
+			const std::scoped_lock lock(mutex_);
+			reap();
+			if(children_.empty()) {
+				running_ = false;
+				return;
+			}
+		}
+	}
+
+	std::mutex mutex_;              ///< Guards children_ and running_.
+	std::vector<pid_t> children_{}; ///< Not reaped yet.
+	bool running_ = false;          ///< Whether the thread runs.
+};
 
 /// @brief Sets the child's working directory. posix_spawn_file_actions_addchdir is POSIX 2024's name; macOS has it
 /// (and deprecates the _np one), glibc has the _np one since 2.29.
@@ -386,6 +483,12 @@ std::ptrdiff_t ChildProcess::read(char* buffer, std::size_t size) {
 	}
 }
 
+bool ChildProcess::readable(std::chrono::milliseconds wait) {
+	pollfd watched{platform_->fromChild, POLLIN, 0};
+	const int ready = ::poll(&watched, 1, static_cast<int>(wait.count()));
+	return ready > 0; // POLLIN, POLLHUP or POLLERR: read() returns at once
+}
+
 void ChildProcess::closeInput() noexcept { closeDescriptor(platform_->toChild); }
 
 int ChildProcess::end() noexcept {
@@ -398,6 +501,51 @@ int ChildProcess::end() noexcept {
 	platform_->reaped = true;
 	platform_->code = exitCode(status);
 	return platform_->code;
+}
+
+long startDetached(const Launch& launch) {
+	Reaper& reaper = Reaper::instance();
+	if(!reaper.roomForOne())
+		throw std::runtime_error("could not start '" + launch.program.filename().string() +
+		                         "': " + std::to_string(Reaper::mostChildren) + " programs started are still running");
+	posix_spawn_file_actions_t actions;
+	posix_spawn_file_actions_init(&actions);
+	int problem = posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0);
+	const std::string directory = launch.directory.string();
+	if(problem == 0 && !directory.empty()) problem = changeDirectory(actions, directory.c_str());
+#ifdef POSIX_SPAWN_SETSID
+	short flags = POSIX_SPAWN_SETSID; // a session of its own: the host's terminal closing doesn't end it
+#else
+	short flags = POSIX_SPAWN_SETPGROUP;
+#endif
+	if(problem == 0) problem = closeTheRest(actions, flags);
+#ifdef __APPLE__
+	if(problem == 0) problem = posix_spawn_file_actions_addinherit_np(&actions, STDOUT_FILENO); // as stderr
+#endif
+	posix_spawnattr_t attributes;
+	posix_spawnattr_init(&attributes);
+	posix_spawnattr_setflags(&attributes, flags);
+	posix_spawnattr_setpgroup(&attributes, 0);
+
+	const std::string program = launch.program.string();
+	std::vector<std::string> words{program};
+	words.insert(words.end(), launch.arguments.begin(), launch.arguments.end());
+	std::vector<char*> argv, environment;
+	for(std::string& word : words) argv.push_back(word.data());
+	argv.push_back(nullptr);
+	std::vector<std::string> entries = launch.environment.value_or(std::vector<std::string>{});
+	for(std::string& entry : entries) environment.push_back(entry.data());
+	environment.push_back(nullptr);
+
+	pid_t pid = -1;
+	if(problem == 0)
+		problem = posix_spawn(&pid, program.c_str(), &actions, &attributes, argv.data(),
+		                      launch.environment ? environment.data() : environ);
+	posix_spawnattr_destroy(&attributes);
+	posix_spawn_file_actions_destroy(&actions);
+	if(problem != 0) throw std::runtime_error("could not start '" + launch.program.filename().string() + "'");
+	reaper.add(pid); // collects its exit, so it doesn't stay a zombie while the host runs
+	return static_cast<long>(pid);
 }
 
 int ChildProcess::wait() noexcept {

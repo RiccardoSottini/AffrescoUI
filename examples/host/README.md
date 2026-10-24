@@ -1,7 +1,8 @@
 # The host
 
-`affrescoui_host`, the stock host: it opens a screen document, keeps its history and state, and listens for the Studio
-and agents on local sockets. With no screen, it opens the Kanban template ([`../flow`](../flow/README.md)).
+`affrescoui_host`, the stock host: it opens a screen document, keeps its history and state, and listens for the
+person's client and agents on local sockets. With no screen, it opens the Kanban template
+([`../flow`](../flow/README.md)).
 
 ```sh
 ./build/affrescoui_host [screen.json] [--socket DIR] [--data DIR]

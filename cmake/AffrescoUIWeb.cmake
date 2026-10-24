@@ -58,8 +58,8 @@ function(affrescoui_web_program target environment)
 		-sENVIRONMENT=${environment} -sEXPORTED_RUNTIME_METHODS=ccall,callMain)
 endfunction()
 
-# Makes the programs the site and the checks use, once the root CMakeLists.txt has defined them: the host and the
-# Studio for the page (the templates' folders and examples/shared preloaded under /assets, without their C++ sources,
+# Makes the programs the site and the checks use, once the root CMakeLists.txt has defined them: the host for the
+# page (the templates' folders and examples/shared preloaded under /assets, without their C++ sources,
 # so no path of the machine that built them is in the site), and the command-line tool for Node, on the machine's own
 # files (NODERAWFS), to play the scenarios. Forge and the document server need processes, a terminal and a listening
 # socket: they aren't built for a browser.
@@ -67,7 +67,7 @@ function(affrescoui_web_programs)
 	if(TARGET affrescoui_host)
 		affrescoui_template_folders(folders)
 		list(REMOVE_DUPLICATES folders)
-		foreach(program affrescoui_host affrescoui_studio)
+		foreach(program affrescoui_host)
 			affrescoui_web_program(${program} web)
 			get_target_property(definitions ${program} COMPILE_DEFINITIONS)
 			list(FILTER definitions EXCLUDE REGEX "^AFFRESCOUI_EXAMPLES_ASSETS=")

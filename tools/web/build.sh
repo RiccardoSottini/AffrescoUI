@@ -1,6 +1,6 @@
 #!/bin/sh
-# Builds the browser site (web/README.md) into build-web/site/: the host with every template, the Studio, and the
-# pages that start them. Run it with emsdk active (source emsdk_env.sh); it prints each program's size, gzipped.
+# Builds the browser site (web/README.md) into build-web/site/: the host with every template, and the pages that
+# start them. Run it with emsdk active (source emsdk_env.sh); it prints the program's size, gzipped.
 #
 #   tools/web/build.sh
 #
@@ -23,22 +23,19 @@ fi
 # Without warnings as errors: the desktop builds hold the library to them, and a few of its files warn on wasm32 (a
 # 32-bit long) or with emsdk's newer clang, which is theirs to fix (web/README.md)
 emcmake cmake -S "$root" -B "$build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
-cmake --build "$build" --target affrescoui_host affrescoui_studio affrescoui_cli
+cmake --build "$build" --target affrescoui_host affrescoui_cli
 
 rm -rf "$site"
 mkdir -p "$site"
-cp "$root/web/index.html" "$root/web/studio.html" "$root/web/site.css" "$root/web/site.js" "$site/"
-for program in affrescoui_host affrescoui_studio; do
-	cp "$build/$program.js" "$build/$program.wasm" "$build/$program.data" "$site/"
-done
+cp "$root/web/index.html" "$root/web/site.css" "$root/web/site.js" "$site/"
+cp "$build/affrescoui_host.js" "$build/affrescoui_host.wasm" "$build/affrescoui_host.data" "$site/"
 
-# A page per template, and its link in the picker; the Studio's own screen isn't a template
+# A page per template, and its link in the picker
 links="$build/site-links.html"
 : >"$links"
 python3 -I -c 'import json, sys; [print(name, folder) for name, folder in json.load(open(sys.argv[1]))["templates"].items()]' \
 	"$root/examples/templates.json" | while read -r name folder; do
-	file="$root/examples/$folder/$name.screen.json"
-	[ "$name" = studio ] && continue
+	file="$root/examples/$folder/index.screen.json"
 	title=$(python3 -I -c 'import html, json, sys; print(html.escape(json.load(open(sys.argv[1])).get("window", {}).get("title", sys.argv[2]).split(":")[0]))' "$file" "$name")
 	replacement=$(printf '%s' "$title" | sed 's/[&|\\]/\\&/g') # sed's own characters, escaped
 	sed -e "s|@FOLDER@|$folder|g" -e "s|@SCREEN@|$name|g" -e "s|@TITLE@|$replacement|g" "$root/web/template.html" >"$site/$name.html"
@@ -49,7 +46,5 @@ awk -v links="$links" '/<!-- templates -->/ { while ((getline line < links) > 0)
 rm "$links"
 
 echo "Site: $site"
-for program in affrescoui_host affrescoui_studio; do
-	echo "$program.wasm: $(wc -c <"$site/$program.wasm" | tr -d ' ') bytes, $(gzip -9 -c "$site/$program.wasm" | wc -c | tr -d ' ') gzipped"
-done
-echo "assets (each program's .data): $(wc -c <"$site/affrescoui_host.data" | tr -d ' ') bytes, $(gzip -9 -c "$site/affrescoui_host.data" | wc -c | tr -d ' ') gzipped"
+echo "affrescoui_host.wasm: $(wc -c <"$site/affrescoui_host.wasm" | tr -d ' ') bytes, $(gzip -9 -c "$site/affrescoui_host.wasm" | wc -c | tr -d ' ') gzipped"
+echo "assets (affrescoui_host.data): $(wc -c <"$site/affrescoui_host.data" | tr -d ' ') bytes, $(gzip -9 -c "$site/affrescoui_host.data" | wc -c | tr -d ' ') gzipped"

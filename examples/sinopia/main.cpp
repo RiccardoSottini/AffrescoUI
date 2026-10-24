@@ -5,8 +5,8 @@
 //   affrescoui_sinopia [--socket DIR] [--data DIR]
 //   affrescoui_sinopia --check index.scenarios.json [--out DIR]
 //
-// Opens the sample deck in decks/. Like affrescoui_host, it listens for the Studio and an agent in DIR (studio.sock,
-// agent.sock). --check plays the scenarios headless, with the natives registered, and prints the report; with --out,
+// Opens the sample deck in decks/. Like affrescoui_host, it listens for the person's client and an agent in DIR
+// (studio.sock, agent.sock). --check plays the scenarios headless, with the natives registered, and prints the report; with --out,
 // their pictures are drawn and captures are saved in DIR (tools/media/capture.py).
 
 #include "Sinopia.hpp"

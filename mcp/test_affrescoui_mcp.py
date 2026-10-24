@@ -372,7 +372,7 @@ class Requests(unittest.TestCase):
             server.on_request({"type": "request", "id": "s-2", "from": "studio", "text": "c"})
             origins = [server.wait_for_request(1)["origin"] for _ in range(3)]
         self.assertEqual(origins, ["app", "studio", "studio"])
-        # The app's chat learns the agent has its request; the Studio shows its own requests' progress
+        # The app's chat learns the agent has its request; a client on studio.sock shows its own requests' progress
         self.assertEqual(server.host.sent, [{"type": "reply", "request": "ask-1", "done": False}])
 
     def test_the_channel_says_where_a_request_comes_from(self):
@@ -398,7 +398,7 @@ class Requests(unittest.TestCase):
         self.assertEqual((note[0], kept, answer[0]), ("sent to the app", True, "sent to the app"))
         self.assertNotIn("ask-1", server.requests)
         self.assertEqual([message["done"] for message in server.host.sent], [False, True])
-        self.assertEqual(server.reply({"request_id": "gone", "text": "x"})[0], "sent to the Studio")
+        self.assertEqual(server.reply({"request_id": "gone", "text": "x"})[0], "sent to the client")
 
 
 class Events(unittest.TestCase):

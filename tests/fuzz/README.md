@@ -60,7 +60,7 @@ of these and what limits them.
 
 | Where bytes come in | Who controls them | Target, or why none |
 |---|---|---|
-| A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, Studio, a remote peer | `session`, `json`, `revision`, `expression`, `actions`, `delta`, `layout`, `policy` |
+| A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, a person's client, a remote peer | `session`, `json`, `revision`, `expression`, `actions`, `delta`, `layout`, `policy` |
 | A peer's replies to the screen's own requests (`ask`) | Any peer | `ask_reply` |
 | A remote peer's opening (upgrade request, first message) | Anyone who reaches the document server | `peer_handshake`, `http_response` |
 | WebSocket frames, server-sent events, HTTP response heads | The server a connection opens, or a peer | `websocket`, `sse`, `http_response` |

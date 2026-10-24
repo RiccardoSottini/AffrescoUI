@@ -2,7 +2,7 @@
 """End-to-end agent loop for the game launcher example.
 
 Starts the host on the launcher screen, drives it the way an agent would through the MCP server (read the screen,
-propose a change), approves the proposal as the Studio does, and checks the picture the agent gets back. Then it plays
+propose a change), approves the proposal as a `studio` peer, and checks the picture the agent gets back. Then it plays
 the launcher's own scenarios headless.
 
 Usage: e2e_test.py BUILD_DIR
@@ -107,7 +107,7 @@ def main():
         assert text.startswith("proposed as proposal "), text
         proposal = int(text.split()[3])
 
-        # The Studio is told of it, with the head it will approve
+        # The studio peer is told of it, with the head it will approve
         studio.settimeout(20)
         head = None
         while head is None:
@@ -121,7 +121,7 @@ def main():
         png = base64.b64decode(picture["data"])
         assert picture["type"] == "image" and png.startswith(b"\x89PNG"), picture.get("type")
 
-        # 4. The person approves it in the Studio
+        # 4. The person approves it, as a studio peer
         studio_stream.write((json.dumps({"type": "accept", "proposal": proposal,
                                          "head": head}) + "\n").encode())
         studio_stream.flush()

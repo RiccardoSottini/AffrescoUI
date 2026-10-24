@@ -33,8 +33,8 @@ it through the `pointer` action, in document pixels.
 
 ## Agents
 
-The screen allows the Studio and asks the agent: an agent's revision waits as a proposal until the Studio or the user
-accepts it. A revision may not call natives. So the filter panel the agent adds only runs `showFilter`, which sets
+The screen allows `studio` peers and asks the agent: an agent's revision waits as a proposal until a `studio` peer or
+the user accepts it. A revision may not call natives. So the filter panel the agent adds only runs `showFilter`, which sets
 `state.filter`; the screen's own watches on `state.filter` preview, apply and discard the filter.
 
 ## Keys

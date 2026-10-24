@@ -99,7 +99,7 @@ class Server:
 
     def working(self, request):
         """Tells the app that a request asked from inside it reached the agent: its chat shows the agent working
-        until the reply. The Studio shows its requests' progress itself, so nothing is sent for those."""
+        until the reply. A client on studio.sock shows its requests' progress itself, so nothing is sent for those."""
         if request["origin"] != "app":
             return
         try:
@@ -292,7 +292,7 @@ class Server:
             self.delivered.discard(request_id)
 
     def reply(self, args):
-        """The reply tool: the agent's answer to a request, shown where it was asked (the Studio or the app's chat).
+        """The reply tool: the agent's answer to a request, shown where it was asked (the app's chat or the client).
         One with done=false is a progress note: the request stays open for the answer that follows."""
         request_id = str(args.get("request_id", ""))
         done = args.get("done") is not False
@@ -301,7 +301,7 @@ class Server:
         self.host.send({"type": "reply", "request": request_id, "text": str(args.get("text", "")), "done": done})
         if done:
             self.forget(request_id)
-        return f"sent to {'the app' if asked.get('origin') == 'app' else 'the Studio'}", False
+        return f"sent to {'the app' if asked.get('origin') == 'app' else 'the client'}", False
 
     def answer_repair(self, args):
         """The answer_repair tool: the repaired change set, proposed for review in answer to a repair request."""

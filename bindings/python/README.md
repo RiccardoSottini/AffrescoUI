@@ -38,7 +38,7 @@ with Screen.from_file("app.screen.json", native_actions=["save"]) as screen:  # 
 | `post`, `run`, `quit`, `step` | Tasks from any thread; the window's loop; headless time |
 | `mouse`, `click`, `key`, `type_text`, `scroll` | Input, in window units |
 | `render_rgba`, `render_png` | Pictures, from scratch |
-| `listen` | A channel for peers (the MCP server, the Studio), authored as the name given |
+| `listen` | A channel for peers (the MCP server, a person's client), authored as the name given |
 
 Errors raise `AffrescoError` with the C API's `status` and `message`. A screen is used from the thread that created it;
 window and headless screens from the main thread, one at a time.
