@@ -390,3 +390,49 @@ TEST_CASE("intelligence agent: no key, a refused key, a rejected revision and a 
 		CHECK(harness.claudeRuns == 0);
 	}
 }
+
+TEST_CASE("intelligence agent: at most six requests a minute are taken, the rest answered \"too many requests\"") {
+	Harness harness("claude-code", "haiku");
+	harness.claudeAnswers.assign(6, R"({"reply": "OK"})");
+	for(int i = 1; i <= 7; ++i)
+		harness.agent->send(json{{"type", "request"},
+		                         {"id", "r" + std::to_string(i)},
+		                         {"text", "Hi"},
+		                         {"from", "user"},
+		                         {"source", "screen"}}
+		                        .dump());
+	const auto finals = [&harness] {
+		int count = 0;
+		for(const json& message : harness.sent)
+			if(message.value("type", "") == "reply" && message.value("done", false)) ++count;
+		return count;
+	};
+	REQUIRE(harness.executor.runUntil([&] { return finals() == 6; }));
+	harness.executor.runUntil([] { return false; }, std::chrono::milliseconds(100));
+	CHECK(harness.claudeRuns == 6); // the seventh never reached the provider
+	int refused = 0;
+	for(const json& message : harness.sent)
+		if(message.value("request", "") == "r7") {
+			CHECK(message["error"].get<std::string>().find("Too many requests") != std::string::npos);
+			++refused;
+		}
+	CHECK(refused == 1);
+}
+
+TEST_CASE("intelligence agent: a screen that ends disconnects from it, so no message reaches a screen that is gone") {
+	ThreadExecutor executor;
+	intelligence::AgentOptions options;
+	options.catalog = intelligence::Catalog::standard();
+	options.keys = std::make_shared<affresco::MemorySecretStore>();
+	intelligence::ProviderAgent agent(executor, std::move(options));
+	REQUIRE(agent.onMessage.empty());
+	{
+		affresco::Screen screen =
+		    affresco::Screen::fromString(R"({"format": "affrescoui-screen", "version": 2, "root": {"id": "page"}})");
+		screen.connect(agent, "agent");
+		CHECK_FALSE(agent.onMessage.empty());
+	}
+	CHECK(agent.onMessage.empty()); // what the agent delivers after this finds no one
+	agent.onMessage(R"({"type": "getDocument", "id": "late"})");
+	executor.runUntil([] { return false; }, std::chrono::milliseconds(50));
+}

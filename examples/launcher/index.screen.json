@@ -13,6 +13,13 @@
 	"persist": ["state.theme", "state.locale"],
 	"onLoad": { "run": "launcher.refresh" },
 
+	"permissions": {
+		"allow": ["studio"],
+		"ask": ["agent"],
+		"reviewers": ["studio"],
+		"budgets": [{ "author": "agent", "added": 20, "removed": 5, "changed": 50 }]
+	},
+
 	"services": {
 		"examples": { "provider": "fs", "root": "examples", "readOnly": true },
 		"apps": { "provider": "fs", "root": "apps", "copyFrom": ["examples"] },

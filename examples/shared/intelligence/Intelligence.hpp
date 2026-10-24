@@ -62,7 +62,8 @@ public:
 	/// @return Whether the agent is connected.
 	bool attach(affresco::Screen& screen);
 
-	/// @brief Registers the settings' natives (registerCalls()); saving a provider attaches the agent if it wasn't.
+	/// @brief Registers the settings' natives (registerCalls()). The agent isn't attached to this screen, then or
+	/// when a provider is saved: the screen that changes the provider has no agent.
 	/// @param screen The screen (the Launcher).
 	void enableSettings(affresco::Screen& screen);
 

@@ -438,15 +438,26 @@ void ProviderAgent::send(std::string_view message) {
 			return;
 		const std::string id = in["id"].get<std::string>();
 		const std::string text = in.contains("text") && in["text"].is_string() ? in["text"].get<std::string>() : "";
+		const auto now = std::chrono::steady_clock::now();
+		while(!taken_.empty() && now - taken_.front() >= std::chrono::minutes(1)) taken_.pop_front();
+		if(taken_.size() >= options_.requestsPerMinute) {
+			deliver({{"type", "reply"},
+			         {"request", id},
+			         {"error", "Too many requests to the assistant: ask again in a minute."}});
+			return;
+		}
 		bool busy = false;
 		{
 			const std::scoped_lock lock(mutex_);
 			busy = jobs_.size() >= maxQueued;
 			if(!busy) jobs_.push_back({id, text});
 		}
-		if(busy)
+		if(busy) {
 			deliver({{"type", "reply"}, {"request", id}, {"error", "The assistant is busy: ask again in a moment."}});
-		else wake_.notify_all();
+			return;
+		}
+		taken_.push_back(now);
+		wake_.notify_all();
 		return;
 	}
 	if(!in.contains("id") || !in["id"].is_string()) return;

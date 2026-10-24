@@ -8,6 +8,7 @@
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/services/Grants.hpp>
+#include <affresco/services/ServiceRegistry.hpp>
 
 #include <doctest/doctest.h>
 
@@ -104,6 +105,11 @@ TEST_CASE(
 	writeFile(source / "app" / "covers" / "a.png", std::string("\x89PNG\0\x01\x02", 7)); // binary, a NUL inside
 	writeFile(source / "shared" / "font.ttf", "new font");
 	writeFile(source / "shared" / "same.txt", "kept");
+	writeFile(source / "app" / "run.sh", "#!/bin/sh\n");
+	fs::permissions(source / "app" / "run.sh", fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all);
+#ifndef _WIN32
+	fs::create_symlink("/bin/sh", source / "app" / "shell");
+#endif
 	writeFile(folder.path() / "outside.txt", "secret");
 	writeFile(target / "shared" / "font.ttf", "old font");
 	writeFile(target / "shared" / "mine.txt", "mine");
@@ -131,6 +137,15 @@ TEST_CASE(
 	CHECK(readFile(target / "app" / "covers" / "a.png") == std::string("\x89PNG\0\x01\x02", 7));
 	CHECK_FALSE(fs::exists(target / "app" / "Native.cpp"));
 	CHECK_FALSE(fs::exists(target / "app" / ".DS_Store"));
+	CHECK(readFile(target / "app" / "run.sh") == "#!/bin/sh\n");
+#ifndef _WIN32
+	// Nothing copied from another root can be run: no execute bit, no write for the others, and no link
+	const fs::perms runnable = fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec |
+	                           fs::perms::group_write | fs::perms::others_write;
+	CHECK((fs::status(target / "app" / "run.sh").permissions() & runnable) == fs::perms::none);
+	CHECK((fs::status(target / "app" / "index.screen.json").permissions() & runnable) == fs::perms::none);
+	CHECK_FALSE(fs::exists(fs::symlink_status(target / "app" / "shell")));
+#endif
 	CHECK(readFile(target / "shared" / "font.ttf") == "new font");   // older there: replaced
 	CHECK(readFile(target / "shared" / "same.txt") == "newer here"); // newer there: kept
 	CHECK(readFile(target / "shared" / "mine.txt") == "mine");       // only there: kept
@@ -190,8 +205,65 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 	const auto reveal = shaped({"reveal", "examples:flow"});
 	REQUIRE(reveal);
 	CHECK(reveal->program == "/usr/bin/open");
-	CHECK(reveal->arguments == std::vector<std::string>{(fs::canonical(examples) / "flow").string()});
+	CHECK(reveal->arguments == std::vector<std::string>{"-R", (fs::canonical(examples) / "flow").string()});
+	fs::create_directories(examples / "Bundle" / "Contents");
+	writeFile(examples / "Bundle" / "Contents" / "Info.plist", "");
+	CHECK_FALSE(shaped({"reveal", "examples:Bundle"})); // a bundle without an extension is opened, never shown
 #endif
+	fs::create_directories(examples / "Tool.app");
+	CHECK_FALSE(shaped({"reveal", "examples:Tool.app"})); // a name with an extension: a package, perhaps
+#ifndef _WIN32
+	fs::create_directory_symlink(examples / "flow", examples / "link");
+	CHECK_FALSE(shaped({"reveal", "examples:link"}));         // a link, though to a folder inside
+	CHECK_FALSE(shaped({"reveal", "examples:link/../flow"})); // nor through one
+#endif
+}
+
+TEST_CASE("launcher: the app-programs grant refuses roots that overlap, resolved") {
+	const TemporaryFolder folder;
+	const fs::path examples = folder.path() / "examples", apps = folder.path() / "apps";
+	fs::create_directories(examples / "inner");
+	fs::create_directories(apps);
+	CHECK(services::rootsOverlap(examples, examples / "inner"));
+	CHECK(services::rootsOverlap(examples / "inner", examples));
+	CHECK(services::rootsOverlap(examples / "inner" / "..", examples));
+	CHECK_FALSE(services::rootsOverlap(examples, apps));
+	CHECK_FALSE(services::rootsOverlap(folder.path() / "ex", examples)); // a common prefix isn't a parent
+#ifndef _WIN32
+	fs::create_directory_symlink(examples / "inner", folder.path() / "alias");
+	CHECK(services::rootsOverlap(folder.path() / "alias", examples)); // through a link
+#endif
+	services::ServiceRegistry registry;
+	services::AppPrograms programs;
+	programs.folder = folder.path();
+	programs.dataDirectory = folder.path() / "data";
+	programs.socketDirectory = folder.path() / "sockets";
+	programs.roots = {{"examples", examples}, {"apps", examples / "inner"}};
+	const std::optional<std::string> refused = services::grantAppPrograms(registry, "affresco", programs);
+	REQUIRE(refused);
+	CHECK(refused->find("overlap") != std::string::npos);
+	programs.roots = {{"examples", examples}, {"apps", apps}};
+	CHECK_FALSE(services::grantAppPrograms(registry, "affresco", programs));
+}
+
+TEST_CASE("launcher: a read-only root is refused to the providers that run programs in it") {
+	const TemporaryFolder folder;
+	services::ServiceRegistry registry;
+	registry.addRoot("examples", folder.path(), true);
+	registry.allowProcess("true", "/usr/bin/true");
+	const std::vector<std::string> refused =
+	    registry.load({{"files", {{"provider", "fs"}, {"root", "examples"}, {"readOnly", true}}},
+		               {"writes", {{"provider", "fs"}, {"root", "examples"}}},
+		               {"search", {{"provider", "search"}, {"root", "examples"}}},
+		               {"run", {{"provider", "process"}, {"process", "true"}, {"root", "examples"}}}});
+	const json status = registry.status();
+	INFO(status.dump());
+	CHECK(refused.size() == 2);
+	CHECK(status["files"]["state"] != "refused");
+	CHECK(status["search"]["state"] != "refused");
+	CHECK(status["writes"]["state"] == "refused");
+	CHECK(status["run"]["state"] == "refused");
+	CHECK(status["run"].dump().find("only fs, watch and search may use it") != std::string::npos);
 }
 
 #ifndef _WIN32

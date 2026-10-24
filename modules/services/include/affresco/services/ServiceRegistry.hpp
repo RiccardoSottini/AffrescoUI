@@ -36,8 +36,9 @@ public:
 	/// @brief Names a folder declarations may use (`"root": "workspace"`).
 	/// @param name The name.
 	/// @param folder The folder; it must exist.
-	/// @param readOnly true to grant it for reading only: an `fs` declaration on it must say `"readOnly": true`, and
-	/// one whose `copyFrom` names it only copies from it.
+	/// @param readOnly true to grant it for reading only: an `fs` declaration on it must say `"readOnly": true`, one
+	/// whose `copyFrom` names it only copies from it, `watch` and `search` may use it, and the providers that run a
+	/// program there (`process`, `pty`, `jsonrpc`, `dap`) are refused it.
 	/// @throws std::runtime_error If it doesn't.
 	void addRoot(std::string name, const std::filesystem::path& folder, bool readOnly = false);
 	/// @brief Lets the person choose the folder a root names, in a folder dialog the document opens (`chooseFolder`):

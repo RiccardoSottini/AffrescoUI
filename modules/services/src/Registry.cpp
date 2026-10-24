@@ -330,7 +330,13 @@ std::unique_ptr<ServiceRegistry::Entry> ServiceRegistry::declare(const std::stri
 		return refuse(place + ".root: no folder chosen yet");
 	}
 	if(auto problem = resolve(name, entry->configuration, entry->grant)) return refuse(*problem);
-	if(entry->grant.rootReadOnly && entry->provider->name() == "fs" && !entry->configuration.value("readOnly", false))
+	// A read-only root binds the providers that only read it; the others (process, pty, jsonrpc, dap) run programs
+	// there, which could write, so they can't use it
+	const std::string_view provider = entry->provider->name();
+	if(entry->grant.rootReadOnly && provider != "fs" && provider != "watch" && provider != "search")
+		return refuse(place + ".root: the host grants '" + entry->grant.rootName +
+		              "' for reading only: only fs, watch and search may use it");
+	if(entry->grant.rootReadOnly && provider == "fs" && !entry->configuration.value("readOnly", false))
 		return refuse(place + ".root: the host grants '" + entry->grant.rootName +
 		              "' for reading only: declare \"readOnly\": true");
 	return entry;

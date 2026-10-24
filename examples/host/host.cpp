@@ -12,7 +12,8 @@
 // The person reviews an agent's changes in the app's own assistant (examples/shared/addons/assistant). When the
 // AffrescoUI Launcher's Settings set up a provider of intelligence (<data DIR>/intelligence.json, the key in the
 // system's keychain), the host also runs an agent of its own, connected as author "agent" like an MCP one, that
-// answers the assistant with it (examples/shared/intelligence); the Launcher's host alone gets the settings' natives.
+// answers the assistant with it (examples/shared/intelligence); the Launcher's host alone gets the settings' natives,
+// and no agent.
 // --ask TEXT opens the assistant and sends TEXT as the person's first request once the window is up.
 // What each author may do is up to the screen's "permissions"; --auto-accept is --mode acceptEdits, for this run only.
 // The screen's history and "persist" state are kept in --data DIR (default $AFFRESCOUI_DATA_DIR, else ~/.affrescoui),
@@ -227,8 +228,9 @@ void enableUsage(affresco::Screen& screen) {
 	if(!screen.usageConsented()) std::cerr << "affrescoui_host: usage summaries stay off: no consent\n";
 }
 
-/// @brief Gives the screen the assistant's agent, when a provider of intelligence is set up, and the Launcher (the
-/// screen opened without a file) the settings' natives; with --ask, the first request once the window is up.
+/// @brief Gives the screen the assistant's agent, when a provider of intelligence is set up, and with --ask the first
+/// request once the window is up; the Launcher (the screen opened without a file) gets the settings' natives instead,
+/// never the agent: the screen that holds the provider, its key and the grants to the person's folders has no agent.
 /// @param assistant The host's agent.
 /// @param app The application.
 /// @param screen The screen.
@@ -236,7 +238,10 @@ void enableUsage(affresco::Screen& screen) {
 /// @param options The command line.
 void startAssistant(examples::intelligence::HostAssistant& assistant, affresco::Application& app,
                     affresco::Screen& screen, affresco::Window& window, const Options& options) {
-	if(options.file.empty()) assistant.enableSettings(screen); // only the Launcher may change the provider
+	if(options.file.empty()) {
+		assistant.enableSettings(screen); // only the Launcher may change the provider
+		return;
+	}
 	assistant.attach(screen);
 	if(!options.ask.empty()) examples::intelligence::askOnStart(app, screen, window, options.ask);
 }
@@ -275,6 +280,9 @@ void grantLauncher(affresco::Screen& screen, const Options& options) {
 	const std::filesystem::path apps = appsFolder(options);
 	if(apps.empty()) throw std::runtime_error("no home folder for the apps: pass --apps DIR");
 	std::filesystem::create_directories(apps);
+	if(services::rootsOverlap(apps, examples)) // the apps folder is written: never the examples, nor above them
+		throw std::runtime_error("the apps folder (" + apps.string() + ") and the examples (" + examples.string() +
+		                         ") overlap: pass --apps DIR, a folder outside the examples that doesn't hold them");
 	screen.services().addRoot("apps", apps);
 	services::AppPrograms programs;
 	programs.folder = programFile().parent_path();

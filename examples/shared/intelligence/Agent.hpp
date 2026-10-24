@@ -49,6 +49,9 @@ struct AgentOptions {
 	std::chrono::milliseconds budget{240000};       ///< The longest a request may take.
 	std::chrono::milliseconds screenTimeout{30000}; ///< The longest the screen may take to answer the agent.
 	std::size_t inlineDocument = 32 * 1024;         ///< A screen this large or smaller is sent whole, else its outline.
+	/// The most requests taken in any minute; the rest are answered "too many requests", so a step the screen runs
+	/// on a timer can't keep the provider busy.
+	std::size_t requestsPerMinute = 6;
 };
 
 /// @brief The agent: a Channel whose other end is the screen (Screen::connect(agent, "agent")).
@@ -71,8 +74,9 @@ public:
 	ProviderAgent(ProviderAgent&&) = delete;
 	ProviderAgent& operator=(ProviderAgent&&) = delete;
 
-	/// @brief A message from the screen: a request is queued (at most 8 wait; more are answered "busy"), an answer to
-	/// the agent's own question is handed to it, anything else is ignored. Main thread.
+	/// @brief A message from the screen: a request is queued (at most 8 wait, and at most
+	/// AgentOptions::requestsPerMinute are taken in a minute; the others are answered "busy" or "too many requests"),
+	/// an answer to the agent's own question is handed to it, anything else is ignored. Main thread.
 	/// @param message One JSON object.
 	void send(std::string_view message) override;
 
@@ -109,6 +113,7 @@ private:
 	std::deque<Job> jobs_;                                       ///< Waiting.
 	std::map<std::string, affresco::json> answers_;              ///< The screen's answers, by id.
 	std::map<std::string, bool> waiting_;                        ///< The ids the worker waits for.
+	std::deque<std::chrono::steady_clock::time_point> taken_;    ///< This minute's requests (main thread).
 	std::atomic<bool> stop_ = false;                             ///< Set by the destructor.
 	std::atomic<unsigned long> asked_ = 0;                       ///< Numbers the questions.
 	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards deliveries queued after destruction.

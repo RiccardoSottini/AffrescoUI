@@ -93,11 +93,18 @@ struct AppPrograms {
 /// @return The shaper.
 [[nodiscard]] ProcessShaper appProgramsShaper(AppPrograms programs);
 
+/// @brief Whether two folders overlap: one is the other or inside it, once both are resolved (links, `..`).
+/// @param first A folder.
+/// @param second Another.
+/// @return Whether they do; true too if either can't be resolved.
+[[nodiscard]] bool rootsOverlap(const std::filesystem::path& first, const std::filesystem::path& second);
+
 /// @brief Grants the host's sibling programs under a name, detached (ProcessGrant::detach: each run is started and
 /// outlives the host, its result `{pid}`), under appProgramsShaper().
 /// @param services The registry.
 /// @param name The grant's name, e.g. "affresco".
-/// @param programs What it may start; its roots must be folders.
+/// @param programs What it may start; its roots must be folders, none inside another. A started program inherits the
+/// host's environment.
 /// @return Why it can't, or std::nullopt.
 [[nodiscard]] std::optional<std::string> grantAppPrograms(ServiceRegistry& services, std::string name,
                                                           AppPrograms programs);

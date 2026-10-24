@@ -180,7 +180,8 @@ public:
 			to = entryUnderRoot(root_, target);
 			if(!to) return "with.to: must be a path inside the root '" + shortened(target) + "'";
 		}
-		const bool started = tasks_.run([root = root_, name, path = *path, to, call](const std::stop_token&) {
+		const bool plain = from != root_; // from another root: no link, no execute bit
+		const bool started = tasks_.run([root = root_, name, path = *path, to, plain, call](const std::stop_token&) {
 			const json& arguments = call->arguments();
 			if(name == "read") readFile(path, *call);
 			else if(name == "write") writeFile(path, arguments.value("text", std::string()), *call);
@@ -191,7 +192,7 @@ public:
 			else if(name == "copy")
 				copyEntry(root, path, *to,
 				          {arguments.value("free", false), arguments.value("merge", false),
-				           arguments.value("exclude", std::vector<std::string>{})},
+				           arguments.value("exclude", std::vector<std::string>{}), plain},
 				          {}, call->stopToken(), *call);
 			else describeEntry(path, *call);
 		});
@@ -268,9 +269,9 @@ public:
 		                           {"from", {{"type", "string"}, {"maxLength", 64}}}},
 		                          {"path", "to"}),
 		                   "copies a file or folder (at most 10,000 entries, 256 MiB) to a path under the root, from "
-		                   "the root or from a root of copyFrom (from); with free, a taken path becomes \"<name> "
-		                   "copy<ext>\"; with merge, a folder merges into the one there (what is missing or older is "
-		                   "copied); exclude: name globs left out: {path}"});
+		                   "the root or from a root of copyFrom (from: its links left out, no file copied executable); "
+		                   "with free, a taken path becomes \"<name> copy<ext>\"; with merge, a folder merges into the "
+		                   "one there (what is missing or older is copied); exclude: name globs left out: {path}"});
 		return methods;
 	}
 	std::unique_ptr<Service> create(const json& configuration, ServiceContext context) override {

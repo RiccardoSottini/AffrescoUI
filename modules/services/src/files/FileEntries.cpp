@@ -156,15 +156,18 @@ bool excluded(const CopyOptions& options, const fs::path& path) {
 
 /// @brief Copies one entry that isn't a folder: a link as a link, a file's bytes. What is at @p to already is an error,
 /// unless merging: then a file there that is as new is kept, and anything else but a folder is replaced (a link
-/// removed first, never written through).
+/// removed first, never written through). A plain copy (CopyOptions::plain) leaves a link out and gives a file only
+/// read and write for its owner and read for the others.
 /// @param from The entry.
 /// @param to Its copy's path.
 /// @param status The entry's own status (not following a link).
-/// @param merge Whether the copy merges.
+/// @param options The copy's options (merge, plain).
 /// @param error Receives why it failed.
-/// @return Whether it was copied (or kept).
-bool copyOne(const fs::path& from, const fs::path& to, const fs::file_status& status, bool merge,
+/// @return Whether it was copied (or kept, or left out).
+bool copyOne(const fs::path& from, const fs::path& to, const fs::file_status& status, const CopyOptions& options,
              std::error_code& error) {
+	if(options.plain && fs::is_symlink(status)) return true; // a link from another root could point anywhere
+	const bool merge = options.merge;
 	std::error_code ignored;
 	const fs::file_status there = fs::symlink_status(to, ignored);
 	if(fs::exists(there)) {
@@ -179,6 +182,10 @@ bool copyOne(const fs::path& from, const fs::path& to, const fs::file_status& st
 	}
 	if(fs::is_symlink(status)) fs::copy_symlink(from, to, error);
 	else fs::copy_file(from, to, error);
+	if(!error && options.plain) // nothing copied from another root is runnable
+		fs::permissions(to,
+		                fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read | fs::perms::others_read,
+		                fs::perm_options::replace, error);
 	return !error;
 }
 
@@ -209,7 +216,7 @@ bool copyFolder(const fs::path& from, const fs::path& to, const CopyOptions& opt
 			if(fs::exists(there) && (!options.merge || !fs::remove(target, error))) return false;
 			if(!fs::create_directory(target, error)) return false;
 		} else if(fs::is_regular_file(status) || fs::is_symlink(status)) {
-			if(!copyOne(entry->path(), target, status, options.merge, error)) return false;
+			if(!copyOne(entry->path(), target, status, options, error)) return false;
 		} // sockets, devices and pipes are left out
 	}
 	return !error;
@@ -241,8 +248,7 @@ void copyEntry(const fs::path& root, const fs::path& from, fs::path to, const Co
 	if(*count > limits.entries || bytes > limits.bytes)
 		return call.fail("tooLarge", "it holds over " + std::to_string(limits.entries) + " entries or " +
 		                                 std::to_string(limits.bytes >> 20) + " MiB");
-	const bool copied =
-	    folder ? copyFolder(from, to, options, stop, error) : copyOne(from, to, status, options.merge, error);
+	const bool copied = folder ? copyFolder(from, to, options, stop, error) : copyOne(from, to, status, options, error);
 	if(!copied) {
 		std::error_code ignored;
 		if(!merging) fs::remove_all(to, ignored); // no half copy is left (a merge keeps what it brought up to date)

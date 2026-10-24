@@ -84,6 +84,14 @@ std::string cleanBaseUrl(std::string url) {
 	return url;
 }
 
+/// @brief A URL without the "/" it ends with.
+/// @param url The URL.
+/// @return It.
+std::string withoutSlash(std::string url) {
+	while(url.ends_with('/')) url.pop_back();
+	return url;
+}
+
 /// @brief Whether a provider can run here: claude-code only if its command line is installed.
 /// @param shared The natives' parts.
 /// @param provider The provider.
@@ -139,13 +147,19 @@ json save(Shared& shared, const json& arguments) {
 	const Provider& provider = providerOf(shared, arguments);
 	Settings settings = Settings::load(shared.dataDir);
 	ProviderChoice& choice = settings.providers[provider.id];
-	const std::optional<Endpoint> before = endpointOf(shared.catalog, settings, provider.id);
 	const std::string url = argument(arguments, "baseUrl");
 	if(!url.empty() && provider.kind == Kind::OpenAICompatible) {
 		const std::string cleaned = cleanBaseUrl(url);
-		// A key saved for one server never goes to another: a new base URL erases it
-		if(before && cleaned != before->baseUrl) shared.options.keys->erase(keyName(provider.id));
-		choice.baseUrl = cleaned == provider.baseUrl ? "" : cleaned;
+		const std::string defaultUrl = withoutSlash(provider.baseUrl);
+		// A key saved for one server never goes to another: a new base URL (the saved one, else the catalogue's)
+		// erases it, before anything else is saved
+		if(cleaned != (choice.baseUrl.empty() ? defaultUrl : withoutSlash(choice.baseUrl))) {
+			shared.options.keys->erase(keyName(provider.id));
+			if(shared.options.keys->read(keyName(provider.id)).has_value())
+				throw std::runtime_error("the key for the old base URL couldn't be erased from " +
+				                         shared.options.keys->name());
+		}
+		choice.baseUrl = cleaned == defaultUrl ? "" : cleaned;
 	}
 	const std::string model = argument(arguments, "model");
 	if(model.size() > 200) throw std::runtime_error("the model's name is too long");
@@ -310,11 +324,7 @@ bool HostAssistant::attach(affresco::Screen& screen) {
 	return true;
 }
 
-void HostAssistant::enableSettings(affresco::Screen& screen) {
-	CallsOptions options;
-	options.changed = [this, &screen] { attach(screen); };
-	registerCalls(screen, dataDir_, std::move(options));
-}
+void HostAssistant::enableSettings(affresco::Screen& screen) { registerCalls(screen, dataDir_); }
 
 void askOnStart(affresco::Executor& executor, affresco::Screen& screen, affresco::Window& window, std::string text) {
 	executor.post([&screen, &window, text = std::move(text)] {

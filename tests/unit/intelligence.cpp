@@ -392,6 +392,46 @@ TEST_CASE("intelligence natives: a base URL is https or the loopback, and a new 
 	CHECK(settings.error().find("the key has characters a key can't have") != std::string::npos);
 }
 
+TEST_CASE("intelligence natives: whenever the base URL in use changes, the saved key is erased") {
+	const DataFolder data;
+	SettingsScreen settings(data.path);
+	const std::string name = "intelligence/openai-compatible";
+	const auto keep = [&settings](const char* key, const char* url) {
+		settings.run("save",
+		             {{"provider", "openai-compatible"}, {"model", "llama3.2"}, {"key", key}, {"baseUrl", url}});
+	};
+
+	// The catalogue's own URL, given again (with a "/"), is no change: the key stays
+	keep("key-local", "http://127.0.0.1:11434/v1");
+	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "http://127.0.0.1:11434/v1/"}});
+	CHECK(settings.keys->read(name).value_or("") == "key-local");
+
+	// From the catalogue's URL (none saved) to another one
+	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "https://one.example.com/v1"}});
+	CHECK_FALSE(settings.keys->read(name).has_value());
+
+	// From a saved URL back to the catalogue's
+	keep("key-one", "https://one.example.com/v1");
+	CHECK(settings.keys->read(name).value_or("") == "key-one");
+	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "http://127.0.0.1:11434/v1"}});
+	CHECK_FALSE(settings.keys->read(name).has_value());
+
+	// A URL saved by hand in intelligence.json counts as the one in use
+	intelligence::Settings file = intelligence::Settings::load(data.path);
+	file.providers["openai-compatible"].baseUrl = "https://two.example.com/v1/";
+	file.save(data.path);
+	settings.keys->write(name, "key-two");
+	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "https://two.example.com/v1"}});
+	CHECK(settings.keys->read(name).value_or("") == "key-two");
+	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "https://three.example.com/v1"}});
+	CHECK_FALSE(settings.keys->read(name).has_value());
+
+	// A key given with a new URL is the new server's
+	keep("key-four", "https://four.example.com/v1");
+	CHECK(settings.keys->read(name).value_or("") == "key-four");
+	CHECK(settings.error().empty());
+}
+
 TEST_CASE("intelligence: claude-code runs with no tools, no customisations and nothing kept, and its answer is read") {
 	const std::vector<std::string> arguments = intelligence::claudeArguments("haiku", "the rules");
 	const auto after = [&arguments](const std::string& option) {

@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdlib>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -79,7 +80,29 @@ fs::path fileManager() {
 #endif
 }
 
-/// @brief Shapes `reveal ROOT:FOLDER`.
+/// @brief Whether a folder is one a file manager shows and never opens as something else: an existing directory
+/// reached through no link (the path as given is its own resolved path), absolute, whose name has no extension (an
+/// `.app` or another package or bundle is opened, not shown) and, on macOS, that isn't a bundle
+/// (`Contents/Info.plist`).
+/// @param root The root it is in (canonical).
+/// @param relative Its path in the root, as the call gave it ("" for the root).
+/// @param folder It, resolved (inRoot()).
+/// @return Whether it is.
+bool plainFolder(const fs::path& root, std::string_view relative, const fs::path& folder) {
+	std::error_code error;
+	const fs::path given = relative.empty() ? root : (root / fs::path(std::u8string(relative.begin(), relative.end())));
+	fs::path normal = given.lexically_normal();
+	if(!normal.has_filename()) normal = normal.parent_path();   // "folder/"
+	if(!folder.is_absolute() || normal != folder) return false; // a link on the way
+	if(!fs::is_directory(fs::symlink_status(folder, error)) || folder.filename().has_extension()) return false;
+#ifdef __APPLE__
+	if(fs::exists(fs::symlink_status(folder / "Contents" / "Info.plist", error))) return false;
+#endif
+	return true;
+}
+
+/// @brief Shapes `reveal ROOT:FOLDER`: the folder shown in the desktop's file manager (macOS: `open -R`, selected
+/// in Finder, never launched), passed as an absolute path, so it can't be read as an option.
 /// @param programs The grant.
 /// @param run The run.
 /// @return Why it is refused, or std::nullopt.
@@ -87,13 +110,20 @@ std::optional<std::string> shapeReveal(const AppPrograms& programs, ProcessRun& 
 	if(!programs.reveal) return "this grant doesn't show folders";
 	if(run.arguments.size() != 2) return "reveal takes one folder, ROOT:FOLDER";
 	std::string rootName;
-	const std::optional<fs::path> folder = inRoot(programs, run.arguments[1], rootName);
-	std::error_code error;
-	if(!folder || !fs::is_directory(*folder, error)) return "reveal: not a folder inside a granted root";
+	const std::string& reference = run.arguments[1];
+	const std::optional<fs::path> folder = inRoot(programs, reference, rootName);
+	if(!folder) return "reveal: not a folder inside a granted root";
+	const std::string_view relative = std::string_view(reference).substr(reference.find(':') + 1);
+	if(!plainFolder(programs.roots.find(rootName)->second, relative, *folder))
+		return "reveal: only a plain folder (no link, no extension, no bundle) inside a granted root";
 	fs::path manager = fileManager();
 	if(manager.empty()) return "no file manager to show the folder with (xdg-open)";
 	run.program = std::move(manager);
+#ifdef __APPLE__
+	run.arguments = {"-R", utf8(*folder)};
+#else
 	run.arguments = {utf8(*folder)};
+#endif
 	run.directory.clear();
 	return std::nullopt;
 }
@@ -164,6 +194,19 @@ fs::path findAppProgram(const fs::path& folder, std::string_view name) {
 	return {};
 }
 
+bool rootsOverlap(const fs::path& first, const fs::path& second) {
+	std::error_code error;
+	const fs::path one = fs::weakly_canonical(fs::absolute(first, error), error);
+	if(error) return true;
+	const fs::path other = fs::weakly_canonical(fs::absolute(second, error), error);
+	if(error) return true;
+	const auto inside = [](const fs::path& folder, const fs::path& parent) {
+		const fs::path relative = folder.lexically_relative(parent);
+		return !relative.empty() && *relative.begin() != "..";
+	};
+	return inside(one, other) || inside(other, one);
+}
+
 ProcessShaper appProgramsShaper(AppPrograms programs) {
 	return [programs = std::move(programs)](ProcessRun& run) -> std::optional<std::string> {
 		if(run.arguments.empty()) return "no program named";
@@ -180,6 +223,11 @@ std::optional<std::string> grantAppPrograms(ServiceRegistry& services, std::stri
 		if(error || !fs::is_directory(canonical, error)) return "the folder '" + root + "' isn't a folder";
 		folder = std::move(canonical);
 	}
+	for(auto first = programs.roots.begin(); first != programs.roots.end(); ++first)
+		for(auto second = std::next(first); second != programs.roots.end(); ++second)
+			if(rootsOverlap(first->second, second->second))
+				return "the folders '" + first->first + "' and '" + second->first +
+				       "' overlap: one is inside the other";
 	if(!programs.folder.is_absolute() || !programs.dataDirectory.is_absolute() ||
 	   !programs.socketDirectory.is_absolute())
 		return "the programs', data and socket folders must be absolute paths";

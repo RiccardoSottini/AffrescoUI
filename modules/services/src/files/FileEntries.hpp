@@ -61,6 +61,8 @@ struct CopyOptions {
 	bool merge = false;               ///< A folder copied over a folder adds what is missing there and replaces the
 	                                  ///< files that are older there; nothing else there changes.
 	std::vector<std::string> exclude; ///< Name globs (`*`, `?`) of the files and folders inside left out.
+	bool plain = false; ///< From another root: links are left out, and each file copied is given only read and write
+	                    ///< for its owner and read for the others, never an execute bit.
 };
 
 /// @brief Whether a name matches a glob of `*` (any run of characters) and `?` (one character).

@@ -262,6 +262,7 @@ long startDetached(const Launch& launch) {
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
+#include <vector>
 
 // The environment that posix_spawn passes on: POSIX's own variable, which not every C library's unistd.h declares
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,readability-redundant-declaration)
@@ -286,6 +287,67 @@ void closeDescriptor(int& fd) noexcept {
 	if(fd >= 0) close(fd);
 	fd = -1;
 }
+
+/// @brief The detached children not yet reaped: one thread polls them all (never a thread per run) and ends once none
+/// is left, so a child never stays a zombie while the host runs.
+class Reaper {
+public:
+	/// The most detached children running at once: past it, startDetached() refuses.
+	static constexpr std::size_t mostChildren = 64;
+
+	/// @brief The process's reaper. Never destroyed: its thread may still run while the statics are.
+	/// @return It.
+	static Reaper& instance() {
+		// NOLINTNEXTLINE(cppcoreguidelines-owning-memory): it lives as long as the process
+		static Reaper* const reaper = new Reaper();
+		return *reaper;
+	}
+
+	/// @brief Whether another child may start.
+	/// @return Whether fewer than mostChildren are running.
+	bool roomForOne() {
+		const std::scoped_lock lock(mutex_);
+		reap();
+		return children_.size() < mostChildren;
+	}
+
+	/// @brief Watches a child, starting the thread if it isn't running.
+	/// @param pid The child.
+	void add(pid_t pid) {
+		const std::scoped_lock lock(mutex_);
+		children_.push_back(pid);
+		if(running_) return;
+		running_ = true;
+		std::thread([this] { run(); }).detach();
+	}
+
+private:
+	/// @brief Collects the children that ended. The mutex is held.
+	void reap() {
+		std::erase_if(children_, [](pid_t pid) {
+			int status = 0;
+			const pid_t reaped = waitpid(pid, &status, WNOHANG);
+			return reaped == pid || (reaped < 0 && errno == ECHILD);
+		});
+	}
+
+	/// @brief The thread: reaps four times a second until no child is left.
+	void run() {
+		while(true) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(250));
+			const std::scoped_lock lock(mutex_);
+			reap();
+			if(children_.empty()) {
+				running_ = false;
+				return;
+			}
+		}
+	}
+
+	std::mutex mutex_;              ///< Guards children_ and running_.
+	std::vector<pid_t> children_{}; ///< Not reaped yet.
+	bool running_ = false;          ///< Whether the thread runs.
+};
 
 /// @brief Sets the child's working directory. posix_spawn_file_actions_addchdir is POSIX 2024's name; macOS has it
 /// (and deprecates the _np one), glibc has the _np one since 2.29.
@@ -423,6 +485,10 @@ int ChildProcess::end() noexcept {
 }
 
 long startDetached(const Launch& launch) {
+	Reaper& reaper = Reaper::instance();
+	if(!reaper.roomForOne())
+		throw std::runtime_error("could not start '" + launch.program.filename().string() +
+		                         "': " + std::to_string(Reaper::mostChildren) + " programs started are still running");
 	posix_spawn_file_actions_t actions;
 	posix_spawn_file_actions_init(&actions);
 	int problem = posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0);
@@ -459,12 +525,7 @@ long startDetached(const Launch& launch) {
 	posix_spawnattr_destroy(&attributes);
 	posix_spawn_file_actions_destroy(&actions);
 	if(problem != 0) throw std::runtime_error("could not start '" + launch.program.filename().string() + "'");
-	std::thread([pid] { // collects its exit, so it doesn't stay a zombie while the host runs
-		int status = 0;
-		while(waitpid(pid, &status, 0) < 0 && errno == EINTR) {
-		}
-	})
-	    .detach();
+	reaper.add(pid); // collects its exit, so it doesn't stay a zombie while the host runs
 	return static_cast<long>(pid);
 }
 
