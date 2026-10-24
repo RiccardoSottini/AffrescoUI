@@ -31,8 +31,15 @@ struct ClaudeAnswer {
 /// @return The arguments.
 [[nodiscard]] std::vector<std::string> claudeArguments(const std::string& model, const std::string& system);
 
+/// @brief The environment a run gets: only what the command line needs from the host's (the home and user, PATH,
+/// the temporary folder, the locale, CLAUDE_CONFIG_DIR; on Windows the profile folders and SystemRoot), never the
+/// rest (no ANTHROPIC_API_KEY or ANTHROPIC_BASE_URL, no AFFRESCOUI_ variables); with its updater off and no claude.ai
+/// MCP servers.
+/// @return "NAME=value" entries.
+[[nodiscard]] std::vector<std::string> claudeEnvironment();
+
 /// @brief Runs the command line once: @p input goes to its stdin (so the screen's content never shows in the list
-/// of processes), its JSON answer is read from its stdout (at most 4 MiB).
+/// of processes), its JSON answer is read from its stdout (at most 4 MiB), with claudeEnvironment().
 /// @param program The command line (findClaude()).
 /// @param model The model.
 /// @param system The system prompt.

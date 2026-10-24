@@ -100,7 +100,8 @@ void addResults(Kind kind, Conversation& conversation, const std::vector<ToolRes
 /// @return The message.
 [[nodiscard]] std::string describeFailure(const affresco::network::Failure& failure, const std::string& providerName,
                                           const std::string& key);
-/// @brief Takes out of a text anything that looks like an API key (sk-..., a long run of key characters) and the key.
+/// @brief Takes out of a text anything that looks like an API key (sk-..., any run of 16 or more key characters, so
+/// an encoded key too), the key, and any word holding its first 8 characters (all of a shorter key).
 /// @param text The text.
 /// @param key The key, or "".
 /// @return The text, with "[hidden]" in their place.

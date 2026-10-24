@@ -4,13 +4,17 @@
 #include "intelligence/Settings.hpp"
 
 #include "Assets.hpp"
+#include "intelligence/Http.hpp"
 
 #include <affresco/net/SignIn.hpp>
+#include <affresco/net/Url.hpp>
 
 #include <atomic>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 #include <system_error>
 
 #ifdef _WIN32
@@ -141,12 +145,10 @@ Settings Settings::load(const std::filesystem::path& dataDir) {
 
 void Settings::save(const std::filesystem::path& dataDir) const {
 	std::error_code error;
-	if(!std::filesystem::exists(dataDir, error)) {
-		std::filesystem::create_directories(dataDir, error);
+	if(!std::filesystem::exists(dataDir, error)) std::filesystem::create_directories(dataDir, error);
 #ifndef _WIN32
-		::chmod(dataDir.c_str(), 0700); // the data folder is this user's: history, state and these settings
+	::chmod(dataDir.c_str(), 0700); // the data folder is this user's: history, state and these settings, every save
 #endif
-	}
 	writeAtomically(file(dataDir), toJson().dump(1, '\t') + "\n");
 }
 
@@ -180,8 +182,10 @@ std::optional<Endpoint> endpointOf(const Catalog& catalog, const Settings& setti
 	Endpoint endpoint;
 	endpoint.provider = provider;
 	const auto choice = settings.providers.find(id);
-	endpoint.baseUrl = choice != settings.providers.end() && !choice->second.baseUrl.empty() ? choice->second.baseUrl
-	                                                                                         : provider->baseUrl;
+	// Only a compatible server's base URL is the person's: the API providers' keys go to the catalogue's URL alone
+	const bool own = provider->kind == Kind::OpenAICompatible && choice != settings.providers.end() &&
+	                 !choice->second.baseUrl.empty();
+	endpoint.baseUrl = own ? choice->second.baseUrl : provider->baseUrl;
 	while(endpoint.baseUrl.ends_with('/')) endpoint.baseUrl.pop_back();
 	if(id == settings.provider && !settings.model.empty()) endpoint.model = settings.model;
 	else if(choice != settings.providers.end() && !choice->second.model.empty()) endpoint.model = choice->second.model;
@@ -189,12 +193,60 @@ std::optional<Endpoint> endpointOf(const Catalog& catalog, const Settings& setti
 	return endpoint;
 }
 
+std::string cleanBaseUrl(std::string url) {
+	while(url.ends_with('/')) url.pop_back();
+	const std::optional<affresco::net::Url> parsed = affresco::net::parseUrl(url);
+	if(url.size() > 512 || !parsed || (parsed->scheme != "https" && parsed->scheme != "http"))
+		throw std::runtime_error("the base URL must be an https:// URL, or http:// on this computer");
+	if(parsed->scheme == "http" && !affresco::net::isLoopback(parsed->host))
+		throw std::runtime_error(
+		    "http:// is only for a server on this computer (127.0.0.1 or localhost): use https://");
+	if(url.find_first_of("?#") != std::string::npos) throw std::runtime_error("the base URL can't have a query");
+	return url;
+}
+
+std::optional<std::string> checkBaseUrl(const Endpoint& endpoint) {
+	try {
+		(void)cleanBaseUrl(endpoint.baseUrl);
+		return std::nullopt;
+	} catch(const std::exception& error) {
+		return endpoint.provider->name + ": " + error.what() + " (check it in the AffrescoUI Launcher's Settings)";
+	}
+}
+
 std::string keyName(const std::string& providerId) { return "intelligence/" + providerId; }
 
+std::string readKey(affresco::SecretStore& keys, const Endpoint& endpoint) {
+	if(endpoint.provider == nullptr || endpoint.provider->kind == Kind::ClaudeCode) return "";
+	const std::string stored = keys.read(keyName(endpoint.provider->id)).value_or("");
+	if(endpoint.provider->kind != Kind::OpenAICompatible) return stored;
+	// A compatible server's key is kept with the origin it was given for, and goes to that origin only
+	const json bound = json::parse(stored, nullptr, false);
+	const std::optional<std::string> origin = originOf(endpoint.baseUrl);
+	if(!bound.is_object() || !origin || text(bound, "origin") != *origin) return "";
+	return text(bound, "key");
+}
+
+bool writeKey(affresco::SecretStore& keys, const Endpoint& endpoint, const std::string& key) {
+	if(endpoint.provider == nullptr || endpoint.provider->kind == Kind::ClaudeCode) return false;
+	const std::string name = keyName(endpoint.provider->id);
+	if(endpoint.provider->kind != Kind::OpenAICompatible) return keys.write(name, key);
+	const std::optional<std::string> origin = originOf(endpoint.baseUrl);
+	return origin && keys.write(name, json{{"origin", *origin}, {"key", key}}.dump());
+}
+
 std::shared_ptr<affresco::SecretStore> systemKeys() {
-	static const std::shared_ptr<affresco::SecretStore> store = affresco::net::systemSecretStore("AffrescoUI");
+	static const std::shared_ptr<affresco::SecretStore> store = []() -> std::shared_ptr<affresco::SecretStore> {
+		// For tests only: AFFRESCOUI_KEYS=memory keeps every key in this process's memory, never in the keychain
+		const char* chosen = std::getenv("AFFRESCOUI_KEYS"); // NOLINT(concurrency-mt-unsafe): read once, at first use
+		if(chosen != nullptr && std::string_view(chosen) == "memory")
+			return std::make_shared<affresco::MemorySecretStore>();
+		return affresco::net::systemSecretStore("AffrescoUI");
+	}();
 	return store;
 }
+
+bool persistent(const affresco::SecretStore& keys) { return keys.name() != "memory"; }
 
 std::string kindName(Kind kind) {
 	switch(kind) {

@@ -56,7 +56,11 @@ struct EmptyFolder {
 			const std::filesystem::path candidate =
 			    std::filesystem::temp_directory_path(error) /
 			    ("affrescoui-claude-" + std::to_string(random()) + std::to_string(random()));
-			if(!error && std::filesystem::create_directory(candidate, error) && !error) path = candidate;
+			if(!error && std::filesystem::create_directory(candidate, error) && !error) {
+				std::filesystem::permissions(candidate, std::filesystem::perms::owner_all,
+				                             std::filesystem::perm_options::replace, error); // this user's only
+				path = candidate;
+			}
 		}
 	}
 	EmptyFolder(const EmptyFolder&) = delete;
@@ -71,6 +75,24 @@ struct EmptyFolder {
 };
 
 } // namespace
+
+std::vector<std::string> claudeEnvironment() {
+	static constexpr std::array names{
+#ifdef _WIN32
+	    "PATH", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "SystemRoot", "TEMP", "TMP", "CLAUDE_CONFIG_DIR",
+#else
+	    "HOME",   "PATH",     "USER",        "LOGNAME",    "TMPDIR",     "CLAUDE_CONFIG_DIR", "LANG",
+	    "LC_ALL", "LC_CTYPE", "LC_MESSAGES", "LC_COLLATE", "LC_NUMERIC", "LC_TIME",           "LC_MONETARY",
+#endif
+	};
+	std::vector<std::string> entries;
+	for(const char* name : names)
+		if(const std::string value = environment(name); !value.empty())
+			entries.push_back(std::string(name) + "=" + value);
+	entries.emplace_back("DISABLE_AUTOUPDATER=1");
+	entries.emplace_back("ENABLE_CLAUDEAI_MCP_SERVERS=false");
+	return entries;
+}
 
 std::optional<std::filesystem::path> findClaude() {
 	std::filesystem::path found = affresco::services::findProgram("claude");
@@ -116,8 +138,11 @@ ClaudeAnswer parseClaudeOutput(const std::string& output) {
 	}
 	const std::string result =
 	    parsed.contains("result") && parsed["result"].is_string() ? parsed["result"].get<std::string>() : "";
-	if(parsed.value("is_error", false)) {
-		std::string said = result.empty() ? parsed.value("subtype", std::string("an error")) : result;
+	const bool failed =
+	    parsed.contains("is_error") && parsed["is_error"].is_boolean() && parsed["is_error"].get<bool>();
+	if(failed) {
+		const bool subtype = parsed.contains("subtype") && parsed["subtype"].is_string();
+		std::string said = !result.empty() ? result : subtype ? parsed["subtype"].get<std::string>() : "an error";
 		if(said.size() > 300) said = said.substr(0, 300) + "…";
 		return {false, "Claude Code failed: " + said};
 	}
@@ -133,6 +158,7 @@ ClaudeAnswer runClaude(const std::filesystem::path& program, const std::string& 
 	launch.program = program;
 	launch.arguments = claudeArguments(model, system);
 	launch.directory = folder.path;
+	launch.environment = claudeEnvironment(); // what it needs, never the host's keys or AffrescoUI's settings
 	std::unique_ptr<affresco::services::ChildProcess> child;
 	try {
 		child = affresco::services::ChildProcess::start(launch);
@@ -164,7 +190,10 @@ ClaudeAnswer runClaude(const std::filesystem::path& program, const std::string& 
 	std::string output;
 	std::array<char, 65536> buffer{};
 	bool tooLarge = false;
-	while(written) {
+	// A program it started that left its group may keep its stdout open after it ended: the read never waits for
+	// more than 100 ms, so the watchdog's end is always seen
+	while(written && !ended) {
+		if(!child->readable(std::chrono::milliseconds(100))) continue;
 		const std::ptrdiff_t count = child->read(buffer.data(), buffer.size());
 		if(count <= 0) break;
 		if(output.size() + static_cast<std::size_t>(count) > maxOutput) {

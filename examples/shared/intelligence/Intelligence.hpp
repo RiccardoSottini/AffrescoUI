@@ -30,16 +30,18 @@ struct CallsOptions {
 /// @brief Registers the settings' natives on a screen. Only the AffrescoUI Launcher's host does: a call step any
 /// other screen (or a revision) adds can't change the provider, its base URL or its key.
 ///
-/// - `intelligence.providers` → `{ "current": { provider, model }, "keyStore", "providers": [{ id, name, kind,
-///   needsKey, takesKey, hasKey, available, baseUrl, editableUrl, model, keyHelp, models }] }`; `hasKey` is a
-///   boolean, the key never leaves the keychain; `models` is the fallback list.
+/// - `intelligence.providers` → `{ "current": { provider, model }, "keyStore", "persistent", "providers": [{ id,
+///   name, kind, needsKey, takesKey, hasKey, available, baseUrl, editableUrl, model, keyHelp, models }] }`; `hasKey`
+///   is a boolean, the key never leaves the keychain; `persistent` is false when the store keeps keys in memory only
+///   (no keychain); `models` is the fallback list.
 /// - `intelligence.models` `{ provider }` (slow, on a worker thread) → `[{ id, name }]`: the provider's live list with
 ///   its saved base URL and key, else the catalogue's fallback.
 /// - `intelligence.stageKey` `{ provider, key }` → `true`: keeps a key typed in the form in this process's memory
 ///   only (the field isn't bound to the state), for the next save of that provider; "" forgets it.
 /// - `intelligence.save` `{ provider, model?, baseUrl?, key? }` → as `intelligence.providers`: makes it the provider
 ///   in use; a key given (or staged) goes to the keychain and is forgotten; a base URL that changes erases the key
-///   saved for the old one (a key never goes to a server it wasn't given for).
+///   saved for the old one, and a compatible server's key is kept with its origin and sent to that origin only
+///   (a key never goes to a server it wasn't given for).
 /// - `intelligence.forget` `{ provider }` → as `intelligence.providers`: erases its key.
 /// - `intelligence.openKeyHelp` `{ provider }` → `true`: opens the catalogue's page for getting that provider's key.
 /// - `intelligence.test` (slow) → `{ ok, message }`: one tiny request to the provider in use, with its model.

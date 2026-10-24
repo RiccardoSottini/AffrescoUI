@@ -18,6 +18,9 @@ using affresco::json;
 
 namespace {
 
+/// The most bytes of a reply the chat is sent.
+constexpr std::size_t maxReply = 4000;
+
 /// The most characters of a tool's result the model is sent.
 constexpr std::size_t maxToolResult = 24 * 1024;
 
@@ -146,7 +149,8 @@ public:
 		endpoint_ = *chosen;
 		const Provider& provider = *endpoint_.provider;
 		if(provider.kind != Kind::ClaudeCode) {
-			endpoint_.key = options_.keys ? options_.keys->read(keyName(provider.id)).value_or("") : "";
+			if(const std::optional<std::string> refused = checkBaseUrl(endpoint_)) return {*refused, true};
+			endpoint_.key = options_.keys ? readKey(*options_.keys, endpoint_) : "";
 			if(provider.needsKey && endpoint_.key.empty())
 				return {provider.name + " needs an API key: add it in the AffrescoUI Launcher's Settings.", true};
 			if(endpoint_.model.empty())
@@ -494,7 +498,7 @@ void ProviderAgent::answer(const Job& job) {
 	}
 	if(stopping()) return;
 	json reply = {{"type", "reply"}, {"request", job.id}, {"done", true}};
-	reply[said.second ? "error" : "text"] = said.first;
+	reply[said.second ? "error" : "text"] = cut(said.first, maxReply); // a long answer is cut
 	deliver(reply);
 }
 

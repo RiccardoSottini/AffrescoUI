@@ -4,6 +4,7 @@
 /// @brief ChildProcess: a program started from an argument vector, with no shell, in its own process group (a job
 /// object on Windows), and pipes for its stdin and stdout.
 
+#include <chrono>
 #include <cstddef>
 #include <filesystem>
 #include <memory>
@@ -58,6 +59,12 @@ public:
 	/// @param size Its size.
 	/// @return The count read; 0 once the child closed its stdout (or ended); -1 on an error.
 	[[nodiscard]] std::ptrdiff_t read(char* buffer, std::size_t size);
+	/// @brief Waits until read() wouldn't block: bytes, the end of the child's stdout, or an error. A program the
+	/// child started that left its group may hold its stdout open after end(): a reader that waits with this, checking
+	/// its own deadline between waits, never blocks behind it.
+	/// @param wait The longest to wait.
+	/// @return Whether read() would return at once.
+	[[nodiscard]] bool readable(std::chrono::milliseconds wait);
 	/// @brief Closes the child's stdin, so it reads the end of its input.
 	void closeInput() noexcept;
 	/// @brief Ends the child and everything it started, and waits for it. Once only; later calls do nothing.

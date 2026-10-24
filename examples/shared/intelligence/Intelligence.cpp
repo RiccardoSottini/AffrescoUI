@@ -8,7 +8,6 @@
 #include "intelligence/ScreenQueries.hpp"
 
 #include <affresco/net/SignIn.hpp>
-#include <affresco/net/Url.hpp>
 
 #include <cctype>
 #include <iostream>
@@ -68,22 +67,6 @@ std::string cleanKey(std::string key) {
 	return key;
 }
 
-/// @brief A base URL the person gives: https, or http on the loopback; no more than 512 characters.
-/// @param url The URL.
-/// @return It, without a trailing "/".
-/// @throws std::runtime_error If it isn't one.
-std::string cleanBaseUrl(std::string url) {
-	while(url.ends_with('/')) url.pop_back();
-	const std::optional<affresco::net::Url> parsed = affresco::net::parseUrl(url);
-	if(url.size() > 512 || !parsed || (parsed->scheme != "https" && parsed->scheme != "http"))
-		throw std::runtime_error("the base URL must be an https:// URL, or http:// on this computer");
-	if(parsed->scheme == "http" && !affresco::net::isLoopback(parsed->host))
-		throw std::runtime_error(
-		    "http:// is only for a server on this computer (127.0.0.1 or localhost): use https://");
-	if(url.find_first_of("?#") != std::string::npos) throw std::runtime_error("the base URL can't have a query");
-	return url;
-}
-
 /// @brief A URL without the "/" it ends with.
 /// @param url The URL.
 /// @return It.
@@ -118,8 +101,7 @@ json providersJson(const Shared& shared) {
 	json list = json::array();
 	for(const Provider& provider : shared.catalog.providers) {
 		const std::optional<Endpoint> endpoint = endpointOf(shared.catalog, settings, provider.id);
-		const bool hasKey =
-		    provider.kind != Kind::ClaudeCode && !shared.options.keys->read(keyName(provider.id)).value_or("").empty();
+		const bool hasKey = endpoint && !readKey(*shared.options.keys, *endpoint).empty();
 		list.push_back({{"id", provider.id},
 		                {"name", provider.name},
 		                {"kind", kindName(provider.kind)},
@@ -136,6 +118,7 @@ json providersJson(const Shared& shared) {
 	const std::optional<Endpoint> current = endpointOf(shared.catalog, settings);
 	return {{"current", {{"provider", current ? current->provider->id : ""}, {"model", current ? current->model : ""}}},
 	        {"keyStore", shared.options.keys->name()},
+	        {"persistent", persistent(*shared.options.keys)},
 	        {"providers", list}};
 }
 
@@ -173,7 +156,8 @@ json save(Shared& shared, const json& arguments) {
 	}
 	if(!key.empty() && provider.kind != Kind::ClaudeCode) {
 		key = cleanKey(std::move(key));
-		if(!key.empty() && !shared.options.keys->write(keyName(provider.id), key))
+		const std::optional<Endpoint> after = endpointOf(shared.catalog, settings, provider.id);
+		if(!key.empty() && (!after || !writeKey(*shared.options.keys, *after, key)))
 			throw std::runtime_error("the key couldn't be kept in " + shared.options.keys->name());
 	}
 	settings.provider = provider.id;
@@ -193,8 +177,8 @@ json models(const Shared& shared, const json& arguments, affresco::CallProgress&
 	const auto fallback = [&provider] { return fallbackOf(provider); };
 	if(provider.kind == Kind::ClaudeCode) return fallback();
 	std::optional<Endpoint> endpoint = endpointOf(shared.catalog, Settings::load(shared.dataDir), provider.id);
-	if(!endpoint) return fallback();
-	endpoint->key = shared.options.keys->read(keyName(provider.id)).value_or("");
+	if(!endpoint || checkBaseUrl(*endpoint)) return fallback();
+	endpoint->key = readKey(*shared.options.keys, *endpoint);
 	if(provider.needsKey && endpoint->key.empty()) return fallback();
 	const std::optional<std::string> origin = originOf(endpoint->baseUrl);
 	if(!origin) return fallback();
@@ -233,7 +217,9 @@ json test(const Shared& shared, affresco::CallProgress& call) {
 		return {{"ok", answer.ok},
 		        {"message", answer.ok ? "Connected: Claude Code answered with " + endpoint->model + "." : answer.text}};
 	}
-	endpoint->key = shared.options.keys->read(keyName(provider.id)).value_or("");
+	if(const std::optional<std::string> refused = checkBaseUrl(*endpoint))
+		return {{"ok", false}, {"message", *refused}};
+	endpoint->key = readKey(*shared.options.keys, *endpoint);
 	if(provider.needsKey && endpoint->key.empty())
 		return {{"ok", false}, {"message", provider.name + " needs an API key."}};
 	if(endpoint->model.empty()) return {{"ok", false}, {"message", "Choose a model first."}};

@@ -34,6 +34,7 @@
 			"intelligence.keyOptional": "API key (optional)",
 			"intelligence.keyPlaceholder": "Paste the key",
 			"intelligence.keySaved": "A key is saved in {store}.",
+			"intelligence.notKept": "This system has no keychain: a key is kept only until AffrescoUI closes.",
 			"intelligence.getKey": "Get a key",
 			"intelligence.install": "Install it",
 			"intelligence.removeKey": "Remove the key",
@@ -68,6 +69,7 @@
 			"intelligence.keyOptional": "Clave de API (opcional)",
 			"intelligence.keyPlaceholder": "Pega la clave",
 			"intelligence.keySaved": "Hay una clave guardada en {store}.",
+			"intelligence.notKept": "Este sistema no tiene llavero: una clave solo se guarda hasta que se cierra AffrescoUI.",
 			"intelligence.getKey": "Obtener una clave",
 			"intelligence.install": "Instalarlo",
 			"intelligence.removeKey": "Borrar la clave",
@@ -102,6 +104,7 @@
 			"intelligence.keyOptional": "Clé d'API (facultative)",
 			"intelligence.keyPlaceholder": "Collez la clé",
 			"intelligence.keySaved": "Une clé est enregistrée dans {store}.",
+			"intelligence.notKept": "Ce système n'a pas de trousseau : une clé n'est gardée que jusqu'à la fermeture d'AffrescoUI.",
 			"intelligence.getKey": "Obtenir une clé",
 			"intelligence.install": "L'installer",
 			"intelligence.removeKey": "Supprimer la clé",
@@ -129,6 +132,7 @@
 			"data": {
 				"current": { "provider": "", "model": "" },
 				"keyStore": "Keychain",
+				"persistent": true,
 				"providers": [
 					{ "id": "anthropic", "name": "Anthropic (Claude)", "kind": "anthropic", "needsKey": true, "takesKey": true,
 					  "hasKey": false, "available": true, "baseUrl": "https://api.anthropic.com", "editableUrl": false,
@@ -250,6 +254,9 @@
 								{ "use": "intelligenceButton", "id": "intelligenceRemoveKey",
 								  "with": { "text": "{{t('intelligence.removeKey')}}", "run": "intelligence.removeKey", "width": 140 } }
 							  ] },
+							{ "when": "{{iProvider.takesKey && !iData.persistent}}", "id": "intelligenceNotKept", "type": "label",
+							  "height": 32, "anchors": { "left": 14, "right": 14 }, "align": "start center", "wrap": true,
+							  "textColor": "@intelligence.danger", "text": "{{t('intelligence.notKept')}}" },
 							{ "when": "{{iProvider.editableUrl}}", "id": "intelligenceBaseUrlLabel", "type": "label", "height": 18,
 							  "anchors": { "left": 14, "right": 14 }, "textColor": "@intelligence.text", "text": "{{t('intelligence.baseUrl')}}" },
 							{ "when": "{{iProvider.editableUrl}}", "id": "intelligenceBaseUrl", "type": "textarea", "height": 32, "padding": 8,

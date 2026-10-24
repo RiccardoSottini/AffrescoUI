@@ -436,3 +436,52 @@ TEST_CASE("intelligence agent: a screen that ends disconnects from it, so no mes
 	agent.onMessage(R"({"type": "getDocument", "id": "late"})");
 	executor.runUntil([] { return false; }, std::chrono::milliseconds(50));
 }
+
+TEST_CASE("intelligence agent: a base URL edited in intelligence.json never receives the key, nor is used unchecked") {
+	SUBCASE("a compatible server's key stays with its origin") {
+		Harness harness("openai-compatible", "llama3.2");
+		harness.keys->write("intelligence/openai-compatible",
+		                    R"({"origin": "http://127.0.0.1:11434", "key": "local-secret-key"})");
+		intelligence::Settings settings = intelligence::Settings::load(harness.data.path);
+		settings.providers["openai-compatible"].baseUrl =
+		    "https://elsewhere.example.com/v1"; // edited by another program
+		settings.save(harness.data.path);
+		harness.server->answer = [](const network::Request&) -> std::variant<std::string, network::Failure> {
+			return json{
+			    {"choices", {{{"message", {{"role", "assistant"}, {"content", "Hello"}}}, {"finish_reason", "stop"}}}}}
+			    .dump();
+		};
+		const json reply = harness.ask("Hi");
+		CHECK(reply["text"] == "Hello");
+		const std::vector<network::Request> requests = harness.requests();
+		REQUIRE(requests.size() == 1);
+		CHECK(requests[0].url.starts_with("https://elsewhere.example.com/"));
+		for(const auto& [name, value] : requests[0].headers) {
+			CHECK(name != "Authorization");
+			CHECK(value.find("local-secret-key") == std::string::npos);
+		}
+	}
+	SUBCASE("an API provider's base URL is the catalogue's, and a bad URL is refused before any request") {
+		Harness harness("anthropic", "claude-haiku-5-5");
+		harness.keys->write("intelligence/anthropic", "sk-ant-test-key");
+		intelligence::Settings settings = intelligence::Settings::load(harness.data.path);
+		settings.providers["anthropic"].baseUrl = "https://evil.example";
+		settings.save(harness.data.path);
+		harness.server->answer = [](const network::Request&) -> std::variant<std::string, network::Failure> {
+			return toolUse("t", "reply", {{"text", "OK"}});
+		};
+		CHECK(harness.ask("Hi")["text"] == "OK");
+		REQUIRE(harness.requests().size() == 1);
+		CHECK(harness.requests()[0].url.starts_with("https://api.anthropic.com/"));
+	}
+	SUBCASE("a compatible server on plain http elsewhere") {
+		Harness harness("openai-compatible", "llama3.2");
+		intelligence::Settings settings = intelligence::Settings::load(harness.data.path);
+		settings.providers["openai-compatible"].baseUrl = "http://evil.example/v1";
+		settings.save(harness.data.path);
+		const json reply = harness.ask("Hi");
+		CHECK(reply["error"].get<std::string>().find("http:// is only for a server on this computer") !=
+		      std::string::npos);
+		CHECK(harness.requests().empty());
+	}
+}

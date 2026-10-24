@@ -11,10 +11,13 @@
 #include "intelligence/ScreenQueries.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/services/Grants.hpp>
 
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -324,6 +327,14 @@ struct SettingsScreen {
 	[[nodiscard]] std::string error() const { return json::parse(screen.stateJson())["error"].get<std::string>(); }
 };
 
+/// @brief The key a compatible server's entry in the store holds, whatever origin it is bound to.
+/// @param keys The store.
+/// @return It, or "" if there is none.
+std::string compatibleKey(affresco::SecretStore& keys) {
+	const json bound = json::parse(keys.read("intelligence/openai-compatible").value_or(""), nullptr, false);
+	return bound.is_object() ? bound.value("key", "") : "";
+}
+
 /// @brief A provider of an intelligence.providers answer.
 /// @param answer The answer.
 /// @param id The provider.
@@ -370,12 +381,11 @@ TEST_CASE("intelligence natives: a base URL is https or the loopback, and a new 
 	const DataFolder data;
 	SettingsScreen settings(data.path);
 	settings.run("save", {{"provider", "openai-compatible"}, {"model", "llama3.2"}, {"key", "local-key-1"}});
-	CHECK(settings.keys->read("intelligence/openai-compatible").value_or("") == "local-key-1");
+	CHECK(compatibleKey(*settings.keys) == "local-key-1");
 
 	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "http://example.com/v1"}});
 	CHECK(settings.error().find("http:// is only for a server on this computer") != std::string::npos);
-	CHECK(settings.keys->read("intelligence/openai-compatible").value_or("") ==
-	      "local-key-1"); // a refused save changes nothing
+	CHECK(compatibleKey(*settings.keys) == "local-key-1"); // a refused save changes nothing
 
 	json answer =
 	    settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "https://openrouter.ai/api/v1/"}});
@@ -404,7 +414,7 @@ TEST_CASE("intelligence natives: whenever the base URL in use changes, the saved
 	// The catalogue's own URL, given again (with a "/"), is no change: the key stays
 	keep("key-local", "http://127.0.0.1:11434/v1");
 	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "http://127.0.0.1:11434/v1/"}});
-	CHECK(settings.keys->read(name).value_or("") == "key-local");
+	CHECK(compatibleKey(*settings.keys) == "key-local");
 
 	// From the catalogue's URL (none saved) to another one
 	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "https://one.example.com/v1"}});
@@ -412,7 +422,7 @@ TEST_CASE("intelligence natives: whenever the base URL in use changes, the saved
 
 	// From a saved URL back to the catalogue's
 	keep("key-one", "https://one.example.com/v1");
-	CHECK(settings.keys->read(name).value_or("") == "key-one");
+	CHECK(compatibleKey(*settings.keys) == "key-one");
 	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "http://127.0.0.1:11434/v1"}});
 	CHECK_FALSE(settings.keys->read(name).has_value());
 
@@ -420,16 +430,61 @@ TEST_CASE("intelligence natives: whenever the base URL in use changes, the saved
 	intelligence::Settings file = intelligence::Settings::load(data.path);
 	file.providers["openai-compatible"].baseUrl = "https://two.example.com/v1/";
 	file.save(data.path);
-	settings.keys->write(name, "key-two");
+	settings.keys->write(name, R"({"origin": "https://two.example.com", "key": "key-two"})");
 	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "https://two.example.com/v1"}});
-	CHECK(settings.keys->read(name).value_or("") == "key-two");
+	CHECK(compatibleKey(*settings.keys) == "key-two");
 	settings.run("save", {{"provider", "openai-compatible"}, {"baseUrl", "https://three.example.com/v1"}});
 	CHECK_FALSE(settings.keys->read(name).has_value());
 
 	// A key given with a new URL is the new server's
 	keep("key-four", "https://four.example.com/v1");
-	CHECK(settings.keys->read(name).value_or("") == "key-four");
+	CHECK(compatibleKey(*settings.keys) == "key-four");
 	CHECK(settings.error().empty());
+}
+
+TEST_CASE(
+    "intelligence: a base URL in intelligence.json binds only a compatible server, and its key keeps its origin") {
+	const intelligence::Catalog catalog = intelligence::Catalog::standard();
+	// Another program edits intelligence.json: the API providers keep the catalogue's URL, whatever it says
+	const intelligence::Settings edited = intelligence::Settings::fromJson(json::parse(R"({
+		"provider": "anthropic",
+		"providers": {
+			"anthropic": {"baseUrl": "https://evil.example"},
+			"openai": {"baseUrl": "https://evil.example/v1"},
+			"openai-compatible": {"baseUrl": "https://mine.example.com/v1/"}
+		}})"));
+	CHECK(intelligence::endpointOf(catalog, edited)->baseUrl == "https://api.anthropic.com");
+	CHECK(intelligence::endpointOf(catalog, edited, "openai")->baseUrl == "https://api.openai.com/v1");
+	intelligence::Endpoint compatible = *intelligence::endpointOf(catalog, edited, "openai-compatible");
+	CHECK(compatible.baseUrl == "https://mine.example.com/v1");
+
+	// A compatible server's key goes to the origin it was given for, and no other
+	affresco::MemorySecretStore keys;
+	REQUIRE(intelligence::writeKey(keys, compatible, "key-mine"));
+	CHECK(intelligence::readKey(keys, compatible) == "key-mine");
+	compatible.baseUrl = "https://mine.example.com/other/v1"; // the same origin
+	CHECK(intelligence::readKey(keys, compatible) == "key-mine");
+	compatible.baseUrl = "https://elsewhere.example.com/v1";
+	CHECK(intelligence::readKey(keys, compatible).empty());
+	keys.write("intelligence/openai-compatible", "plain-old-key"); // a key not bound to an origin is never sent
+	compatible.baseUrl = "https://mine.example.com/v1";
+	CHECK(intelligence::readKey(keys, compatible).empty());
+
+	// At the moment of a request, the URL is checked again
+	compatible.baseUrl = "http://evil.example/v1";
+	REQUIRE(intelligence::checkBaseUrl(compatible));
+	CHECK(intelligence::checkBaseUrl(compatible)->find("http:// is only for a server on this computer") !=
+	      std::string::npos);
+	compatible.baseUrl = "http://127.0.0.1:11434/v1";
+	CHECK_FALSE(intelligence::checkBaseUrl(compatible));
+	CHECK(intelligence::persistent(keys) == false);
+}
+
+TEST_CASE("intelligence: redact hides keys, their echoed parts and long runs of key characters") {
+	CHECK(intelligence::redact("bad key abc", "abc") == "bad key [hidden]");                   // a short key
+	CHECK(intelligence::redact("got sk9Xa1b2c3...", "sk9Xa1b2c3d4e5f6") == "got [hidden]..."); // its first 8
+	CHECK(intelligence::redact("echo c2stcHJvai1zZWNyZXQ= end", "") == "echo [hidden]= end");  // encoded
+	CHECK(intelligence::redact("model gpt-5 not found", "") == "model gpt-5 not found");
 }
 
 TEST_CASE("intelligence: claude-code runs with no tools, no customisations and nothing kept, and its answer is read") {
@@ -452,4 +507,51 @@ TEST_CASE("intelligence: claude-code runs with no tools, no customisations and n
 	CHECK(ok.text == R"({"reply": "hi"})");
 	CHECK_FALSE(intelligence::parseClaudeOutput(R"({"is_error": true, "result": "overloaded"})").ok);
 	CHECK(intelligence::parseClaudeOutput("Please run /login").text.find("signed in") != std::string::npos);
+	// Fields of the wrong type are read as missing, never thrown on
+	CHECK(intelligence::parseClaudeOutput(R"({"is_error": "yes", "result": 3})").ok);
+	const intelligence::ClaudeAnswer typed = intelligence::parseClaudeOutput(R"({"is_error": true, "subtype": 7})");
+	CHECK_FALSE(typed.ok);
+	CHECK(typed.text == "Claude Code failed: an error");
+
+#ifndef _WIN32
+	// It gets what it needs from the environment, never the keys or AffrescoUI's own variables
+	::setenv("ANTHROPIC_API_KEY", "sk-ant-from-the-environment", 1);
+	::setenv("ANTHROPIC_BASE_URL", "https://evil.example", 1);
+	::setenv("AFFRESCOUI_TEST_SECRET", "x", 1);
+	const std::vector<std::string> environment = intelligence::claudeEnvironment();
+	::unsetenv("ANTHROPIC_API_KEY");
+	::unsetenv("ANTHROPIC_BASE_URL");
+	::unsetenv("AFFRESCOUI_TEST_SECRET");
+	for(const std::string& entry : environment) {
+		CHECK_FALSE(entry.starts_with("ANTHROPIC_"));
+		CHECK_FALSE(entry.starts_with("AFFRESCOUI_"));
+	}
+	CHECK(std::ranges::find(environment, "DISABLE_AUTOUPDATER=1") != environment.end());
+	CHECK(std::ranges::find(environment, "ENABLE_CLAUDEAI_MCP_SERVERS=false") != environment.end());
+	CHECK(std::ranges::any_of(environment, [](const std::string& entry) { return entry.starts_with("PATH="); }));
+#endif
 }
+
+#ifndef _WIN32
+TEST_CASE("intelligence: claude-code past its time ends even when a program it started holds its output open") {
+	const std::filesystem::path python = affresco::services::findProgram("python3");
+	if(python.empty()) return; // the stand-in needs python3
+	const DataFolder data;
+	const std::filesystem::path program = data.path / "claude";
+	{
+		// The stand-in starts a program in a session of its own that keeps stdout open, then never answers
+		std::ofstream script(program);
+		script << "#!/bin/sh\n"
+		       << python.string()
+		       << " -c 'import os, time\nif os.fork() == 0:\n    os.setsid()\n    time.sleep(4)\n' &\nsleep 4\n";
+	}
+	std::filesystem::permissions(program, std::filesystem::perms::owner_all);
+	const auto start = std::chrono::steady_clock::now();
+	const intelligence::ClaudeAnswer answer =
+	    intelligence::runClaude(program, "haiku", "rules", "input", std::chrono::milliseconds(300), {});
+	const auto took = std::chrono::steady_clock::now() - start;
+	CHECK_FALSE(answer.ok);
+	CHECK(answer.text.find("didn't answer in time") != std::string::npos);
+	CHECK(took < std::chrono::seconds(3)); // not behind the program that left its group
+}
+#endif

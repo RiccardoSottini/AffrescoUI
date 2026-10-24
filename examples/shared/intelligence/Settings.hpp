@@ -112,14 +112,48 @@ struct Endpoint {
 [[nodiscard]] std::optional<Endpoint> endpointOf(const Catalog& catalog, const Settings& settings,
                                                  const std::string& providerId = {});
 
+/// @brief A base URL the person gives: https, or http on the loopback; no more than 512 characters; no query.
+/// @param url The URL.
+/// @return It, without a trailing "/".
+/// @throws std::runtime_error If it isn't one.
+[[nodiscard]] std::string cleanBaseUrl(std::string url);
+
+/// @brief Checks an endpoint's base URL at the moment of a request, as cleanBaseUrl() would (intelligence.json may
+/// have been edited by hand).
+/// @param endpoint The endpoint.
+/// @return Why it can't be used, for people, or nullopt.
+[[nodiscard]] std::optional<std::string> checkBaseUrl(const Endpoint& endpoint);
+
 /// @brief The keychain entry of a provider's key.
 /// @param providerId The provider.
 /// @return E.g. "intelligence/anthropic".
 [[nodiscard]] std::string keyName(const std::string& providerId);
 
-/// @brief The examples' secret store: the system's keychain, under the service "AffrescoUI".
+/// @brief The key to send to an endpoint. An API provider's key is kept as it is (it only goes to the catalogue's
+/// URL); a compatible server's is kept with the origin it was given for (`{"origin", "key"}`) and given only for
+/// that origin, so a base URL changed outside the settings (intelligence.json edited) never receives it.
+/// @param keys The store.
+/// @param endpoint The endpoint, with the base URL in use.
+/// @return The key, or "" if there is none for it.
+[[nodiscard]] std::string readKey(affresco::SecretStore& keys, const Endpoint& endpoint);
+
+/// @brief Keeps a key for an endpoint, as readKey() reads it.
+/// @param keys The store.
+/// @param endpoint The endpoint, with the base URL the key is given for.
+/// @param key The key.
+/// @return Whether it was kept.
+bool writeKey(affresco::SecretStore& keys, const Endpoint& endpoint, const std::string& key);
+
+/// @brief The examples' secret store: the system's keychain, under the service "AffrescoUI". For tests only, the
+/// environment variable `AFFRESCOUI_KEYS=memory` makes it a store in this process's memory.
 /// @return It (one per process).
 [[nodiscard]] std::shared_ptr<affresco::SecretStore> systemKeys();
+
+/// @brief Whether a store keeps keys after the process ends (the system's keychain), not in memory only (e.g. Linux
+/// without a Secret Service).
+/// @param keys The store.
+/// @return Whether it does.
+[[nodiscard]] bool persistent(const affresco::SecretStore& keys);
 
 /// @brief A kind's name in providers.json.
 /// @param kind The kind.

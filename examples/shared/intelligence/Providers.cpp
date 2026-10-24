@@ -244,17 +244,18 @@ Turn parseTurn(Kind kind, const std::string& body) {
 }
 
 std::string redact(std::string text, const std::string& key) {
-	if(key.size() >= 4)
+	if(!key.empty())
 		for(std::size_t at = text.find(key); at != std::string::npos; at = text.find(key, at))
 			text.replace(at, key.size(), "[hidden]");
+	// A part of the key echoed back (its first 8 characters, or all of a shorter one) hides the word it is in
+	const std::string prefix = key.substr(0, std::min<std::size_t>(key.size(), 8));
 	std::string out;
 	for(std::size_t i = 0; i < text.size();) {
 		std::size_t end = i;
 		while(end < text.size() && keyCharacter(text[end])) ++end;
 		const std::string_view word(text.data() + i, end - i);
-		const bool digit =
-		    std::ranges::any_of(word, [](char c) { return std::isdigit(static_cast<unsigned char>(c)); });
-		const bool looksLikeKey = word.starts_with("sk-") || word.starts_with("sk_") || (word.size() >= 32 && digit);
+		const bool looksLikeKey = word.starts_with("sk-") || word.starts_with("sk_") || word.size() >= 16 ||
+		                          (!prefix.empty() && word.find(prefix) != std::string_view::npos);
 		if(end > i) {
 			out += looksLikeKey ? "[hidden]" : std::string(word);
 			i = end;

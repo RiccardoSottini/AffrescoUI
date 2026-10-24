@@ -5,7 +5,8 @@ Chat Completions server on the loopback, and the assistant add-on's test page.
 The data folder's intelligence.json names the provider; the host starts with --ask, so the assistant opens and sends
 the request. The fake server answers the agent's first call with a submit_revision tool call, the second with a reply.
 The page's kept conversation then holds the person's message, the reply and the proposal's card (it waits for the
-person's review: nothing was accepted), and the server saw the tools, the request and no key.
+person's review: nothing was accepted), and the server saw the tools, the request and no key. The host keeps its keys
+in memory (AFFRESCOUI_KEYS=memory), never touching the system's keychain.
 
 Usage: e2e_test.py BUILD_DIR
 """
@@ -32,7 +33,9 @@ class Provider(http.server.BaseHTTPRequestHandler):
     def do_POST(self):  # noqa: N802 (the handler's name is http.server's)
         """Answers /v1/chat/completions, keeping what it was sent."""
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
-        Provider.seen.append({"path": self.path, "authorization": self.headers.get("Authorization"), "body": body})
+        # Only whether a key came, never the header itself: a test's output must not hold a key
+        Provider.seen.append({"path": self.path, "authorized": self.headers.get("Authorization") is not None,
+                              "body": body})
         if len(Provider.seen) == 1:
             call = {"name": "submit_revision",
                     "arguments": json.dumps({"message": "Rename the page", "set": {"#pageTitle/text": "Launch plan"}})}
@@ -75,7 +78,8 @@ def main():
         with open(os.path.join(data, "intelligence.json"), "w", encoding="utf-8") as file:
             json.dump({"provider": "openai-compatible", "model": "fake-model",
                        "providers": {"openai-compatible": {"baseUrl": f"http://127.0.0.1:{port}/v1"}}}, file)
-        env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets, AFFRESCOUI_SCREENSHOT=os.path.join(folder, "shot.ppm"),
+        # AFFRESCOUI_KEYS=memory: the host's keys stay in its memory, so the system's keychain is never read
+        env = dict(os.environ, AFFRESCOUI_KEYS="memory", AFFRESCOUI_SOCKET_DIR=sockets, AFFRESCOUI_SCREENSHOT=os.path.join(folder, "shot.ppm"),
                    AFFRESCOUI_SCREENSHOT_AFTER="6000")
         run = subprocess.run([host, SCREEN, "--socket", sockets, "--data", data, "--ask", REQUEST], env=env,
                              capture_output=True, text=True, timeout=120)
@@ -99,8 +103,8 @@ def main():
         if len(Provider.seen) != 2:
             fail(f"expected two requests to the provider, got {len(Provider.seen)}")
         first = Provider.seen[0]
-        if first["path"] != "/v1/chat/completions" or first["authorization"] is not None:
-            fail(f"unexpected first request: {first['path']}, authorization {first['authorization']!r}")
+        if first["path"] != "/v1/chat/completions" or first["authorized"]:
+            fail(f"unexpected first request: {first['path']}, with a key: {first['authorized']}")
         names = [tool["function"]["name"] for tool in first["body"].get("tools", [])]
         if "submit_revision" not in names or "reply" not in names:
             fail(f"the tools weren't offered: {names}")

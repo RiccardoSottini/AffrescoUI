@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 
 namespace affresco::services {
 
@@ -214,6 +215,17 @@ std::ptrdiff_t ChildProcess::read(char* buffer, std::size_t size) {
 	return static_cast<std::ptrdiff_t>(count);
 }
 
+bool ChildProcess::readable(std::chrono::milliseconds wait) {
+	const auto deadline = std::chrono::steady_clock::now() + wait;
+	while(true) {
+		DWORD available = 0;
+		if(!PeekNamedPipe(platform_->fromChild, nullptr, 0, nullptr, &available, nullptr) || available > 0)
+			return true; // bytes, or a broken pipe that read() reports
+		if(std::chrono::steady_clock::now() >= deadline) return false;
+		Sleep(10);
+	}
+}
+
 void ChildProcess::closeInput() noexcept { closeHandle(platform_->toChild); }
 
 int ChildProcess::end() noexcept {
@@ -258,6 +270,7 @@ long startDetached(const Launch& launch) {
 #include <chrono>
 #include <csignal>
 #include <fcntl.h>
+#include <poll.h>
 #include <spawn.h>
 #include <sys/wait.h>
 #include <thread>
@@ -468,6 +481,12 @@ std::ptrdiff_t ChildProcess::read(char* buffer, std::size_t size) {
 		if(count < 0 && errno == EINTR) continue;
 		return count;
 	}
+}
+
+bool ChildProcess::readable(std::chrono::milliseconds wait) {
+	pollfd watched{platform_->fromChild, POLLIN, 0};
+	const int ready = ::poll(&watched, 1, static_cast<int>(wait.count()));
+	return ready > 0; // POLLIN, POLLHUP or POLLERR: read() returns at once
 }
 
 void ChildProcess::closeInput() noexcept { closeDescriptor(platform_->toChild); }
