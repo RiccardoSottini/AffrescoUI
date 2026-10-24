@@ -1,0 +1,76 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "A new, blank app, made by the Launcher: it copies this file to <apps folder>/<name>/index.screen.json and writes the app's name over each \"New app\" in it. Its paths name ../shared, the copy of examples/shared beside the apps. The assistant opens at once, to build the app with the person.",
+
+	"window": { "title": "New app", "width": 1100, "height": 720, "minWidth": 640, "minHeight": 480 },
+
+	"include": ["../shared/addons/assistant/assistant.json"],
+
+	"theme": "{{window.colorScheme}}",
+	"onLoad": { "run": "assistant.open" },
+
+	"fonts": {
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 34, "bold": true },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 15 },
+		"heroIcons": { "file": "../shared/fonts/Lucide.ttf", "size": 40 }
+	},
+
+	"tokens": {
+		"app.background": { "light": "#f6f5fb", "dark": "#111118" },
+		"app.surface": { "light": "#ffffff", "dark": "#1c1c26" },
+		"app.border": { "light": "#e3e1ee", "dark": "#2b2b39" },
+		"app.text": { "light": "#1b1a28", "dark": "#ececf4" },
+		"app.muted": { "light": "#5d5b72", "dark": "#a4a2b9" },
+		"app.accent": { "light": "#5b4fe0", "dark": "#8b80ff" },
+		"app.accentSoft": { "light": "#ecebff", "dark": "#28244d" },
+		"assistant.accent": "@app.accent"
+	},
+
+	"strings": {
+		"default": "en",
+		"en": {
+			"blank.hint": "This app is empty, for now. Tell the assistant what it should be, in your own words: it proposes each change, and you accept or undo it.",
+			"blank.example": "For example: “A reading list with a title, an author and a rating for each book.”"
+		},
+		"es": {
+			"blank.hint": "Esta app está vacía, de momento. Dile al asistente qué debe ser, con tus palabras: propone cada cambio, y tú lo aceptas o lo deshaces.",
+			"blank.example": "Por ejemplo: «Una lista de lecturas con el título, el autor y una nota para cada libro»."
+		},
+		"fr": {
+			"blank.hint": "Cette app est vide, pour l'instant. Dites à l'assistant ce qu'elle doit être, avec vos mots : il propose chaque changement, que vous acceptez ou annulez.",
+			"blank.example": "Par exemple : « Une liste de lectures avec le titre, l'auteur et une note pour chaque livre. »"
+		}
+	},
+
+	"root": {
+		"id": "app",
+		"color": "@app.background",
+		"dir": "auto",
+		"children": [
+			{
+				"id": "welcome",
+				"anchors": { "top": 80 },
+				"x": "{{max(24, (window.width - 560) / 2 - 190)}}",
+				"width": 560,
+				"height": 320,
+				"color": "@app.surface",
+				"radius": 18,
+				"borderWidth": 1,
+				"borderColor": "@app.border",
+				"children": [
+					{ "id": "welcomeIcon", "type": "label", "icon": "sparkles", "font": "heroIcons", "align": "center", "textColor": "@app.accent",
+					  "color": "@app.accentSoft", "radius": 999, "anchors": { "left": 32, "top": 32 }, "width": 72, "height": 72 },
+					{ "id": "welcomeTitle", "type": "label", "text": "New app", "font": "title", "textColor": "@app.text", "role": "heading",
+					  "anchors": { "left": 32, "right": 32, "top": 124 }, "height": 44 },
+					{ "id": "welcomeHint", "type": "label", "text": "{{t('blank.hint')}}", "textColor": "@app.muted", "wrap": true,
+					  "anchors": { "left": 32, "right": 32, "top": 180 }, "height": 66 },
+					{ "id": "welcomeExample", "type": "label", "text": "{{t('blank.example')}}", "textColor": "@app.accent", "wrap": true,
+					  "anchors": { "left": 32, "right": 32, "top": 254 }, "height": 44 }
+				]
+			}
+		]
+	}
+}

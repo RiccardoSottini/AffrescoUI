@@ -227,6 +227,28 @@ int ChildProcess::wait() noexcept {
 	return GetExitCodeProcess(platform_->process, &code) ? static_cast<int>(code) : -1;
 }
 
+long startDetached(const Launch& launch) {
+	std::wstring line = commandLine(launch);
+	std::wstring environment = launch.environment ? environmentBlock(*launch.environment) : std::wstring{};
+	const std::wstring directory = launch.directory.wstring();
+	const std::wstring program = launch.program.wstring();
+	STARTUPINFOW startup{};
+	startup.cb = sizeof(startup);
+	PROCESS_INFORMATION started{};
+	DWORD flags = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_UNICODE_ENVIRONMENT | CREATE_BREAKAWAY_FROM_JOB;
+	for(int attempt = 0; attempt < 2; ++attempt) {
+		if(CreateProcessW(program.c_str(), line.data(), nullptr, nullptr, FALSE, flags,
+		                  launch.environment ? environment.data() : nullptr,
+		                  directory.empty() ? nullptr : directory.c_str(), &startup, &started)) {
+			closeHandle(started.hThread);
+			closeHandle(started.hProcess);
+			return static_cast<long>(started.dwProcessId);
+		}
+		flags &= ~static_cast<DWORD>(CREATE_BREAKAWAY_FROM_JOB); // a job that forbids breaking away: start inside it
+	}
+	throw std::runtime_error("could not start '" + launch.program.filename().string() + "'");
+}
+
 } // namespace affresco::services
 
 #else
@@ -398,6 +420,52 @@ int ChildProcess::end() noexcept {
 	platform_->reaped = true;
 	platform_->code = exitCode(status);
 	return platform_->code;
+}
+
+long startDetached(const Launch& launch) {
+	posix_spawn_file_actions_t actions;
+	posix_spawn_file_actions_init(&actions);
+	int problem = posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0);
+	const std::string directory = launch.directory.string();
+	if(problem == 0 && !directory.empty()) problem = changeDirectory(actions, directory.c_str());
+#ifdef POSIX_SPAWN_SETSID
+	short flags = POSIX_SPAWN_SETSID; // a session of its own: the host's terminal closing doesn't end it
+#else
+	short flags = POSIX_SPAWN_SETPGROUP;
+#endif
+	if(problem == 0) problem = closeTheRest(actions, flags);
+#ifdef __APPLE__
+	if(problem == 0) problem = posix_spawn_file_actions_addinherit_np(&actions, STDOUT_FILENO); // as stderr
+#endif
+	posix_spawnattr_t attributes;
+	posix_spawnattr_init(&attributes);
+	posix_spawnattr_setflags(&attributes, flags);
+	posix_spawnattr_setpgroup(&attributes, 0);
+
+	const std::string program = launch.program.string();
+	std::vector<std::string> words{program};
+	words.insert(words.end(), launch.arguments.begin(), launch.arguments.end());
+	std::vector<char*> argv, environment;
+	for(std::string& word : words) argv.push_back(word.data());
+	argv.push_back(nullptr);
+	std::vector<std::string> entries = launch.environment.value_or(std::vector<std::string>{});
+	for(std::string& entry : entries) environment.push_back(entry.data());
+	environment.push_back(nullptr);
+
+	pid_t pid = -1;
+	if(problem == 0)
+		problem = posix_spawn(&pid, program.c_str(), &actions, &attributes, argv.data(),
+		                      launch.environment ? environment.data() : environ);
+	posix_spawnattr_destroy(&attributes);
+	posix_spawn_file_actions_destroy(&actions);
+	if(problem != 0) throw std::runtime_error("could not start '" + launch.program.filename().string() + "'");
+	std::thread([pid] { // collects its exit, so it doesn't stay a zombie while the host runs
+		int status = 0;
+		while(waitpid(pid, &status, 0) < 0 && errno == EINTR) {
+		}
+	})
+	    .detach();
+	return static_cast<long>(pid);
 }
 
 int ChildProcess::wait() noexcept {

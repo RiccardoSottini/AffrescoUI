@@ -22,6 +22,15 @@ struct Launch {
 	std::optional<std::vector<std::string>> environment; ///< "NAME=value" entries, or std::nullopt for the host's.
 };
 
+/// @brief Starts a program that outlives this one (ProcessGrant::detach): in a session of its own on POSIX (not in a
+/// job object, breaking away from the host's if it may, on Windows). On POSIX its stdin is empty and its stdout and
+/// stderr are this process's, nothing else inherited; on Windows it inherits no handle. Nothing waits on it but a
+/// thread that collects its exit (POSIX), so it never stays a zombie.
+/// @param launch What to start.
+/// @return Its process id.
+/// @throws std::runtime_error If it can't be started (the message names the program, never its environment).
+[[nodiscard]] long startDetached(const Launch& launch);
+
 /// @brief A running child. Reads and writes block, so each belongs on a thread of its own; end() may be called from
 /// any thread and makes a blocked read return.
 class ChildProcess {

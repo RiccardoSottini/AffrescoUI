@@ -93,7 +93,7 @@ jobs:
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R "cli|mcp" --output-on-failure
       - name: The scenarios # affrescoui test, headless: what each template does, and where the rendering check's screens put each node
         run: >
-          build/affrescoui test examples/{code-editor,flow,haven,sign-in,streak,tempo}/*.scenarios.json
+          build/affrescoui test examples/{code-editor,flow,haven,launcher,sign-in,streak,tempo}/*.scenarios.json
           tests/render/screens/*.scenarios.json
       - name: Every application's first frame # tests/smoke/first_frames.py: each screen in tools/media/gallery.json loads, checks and draws
         run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests/smoke/first_frames.py

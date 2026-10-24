@@ -151,18 +151,28 @@ public:
 	/// @param root The root (canonical).
 	/// @param readOnly Whether writing is refused.
 	/// @param now Whether each call's work runs before invoke() returns (ServiceContext::now).
-	FileService(std::filesystem::path root, bool readOnly, bool now)
-	    : root_(std::move(root)), readOnly_(readOnly), tasks_(mostAtOnce, now) {}
+	/// @param sources The other roots it copies from, by name (canonical).
+	FileService(std::filesystem::path root, bool readOnly,
+	            std::map<std::string, std::filesystem::path, std::less<>> sources, bool now)
+	    : root_(std::move(root)), readOnly_(readOnly), sources_(std::move(sources)), tasks_(mostAtOnce, now) {}
 
 	std::optional<std::string> invoke(const MethodSpec& method, std::shared_ptr<Call> call) override {
 		const json& with = call->arguments();
 		const std::string& name = method.name;
 		if(readOnly_ && name != "read" && name != "list" && name != "stat") return "the service is read-only";
+		// A copy from another root reads its path there; that root is only ever read
+		std::filesystem::path from = root_;
+		if(const std::string source = with.is_object() ? with.value("from", std::string()) : ""; !source.empty()) {
+			const auto granted = sources_.find(source);
+			if(name != "copy" || granted == sources_.end())
+				return "with.from: '" + shortened(source) + "' isn't a folder this service copies from (copyFrom)";
+			from = granted->second;
+		}
 		// An entry's own path (a link is moved, deleted or copied as a link); a text's path follows links
 		const bool entry = name == "rename" || name == "delete" || name == "copy";
 		const std::string relative = with.is_object() ? with.value("path", std::string(".")) : ".";
 		const std::optional<std::filesystem::path> path =
-		    entry ? entryUnderRoot(root_, relative) : underRoot(root_, relative);
+		    entry ? entryUnderRoot(from, relative) : underRoot(root_, relative);
 		if(!path) return "with.path: must be a path inside the root '" + shortened(relative) + "'";
 		std::optional<std::filesystem::path> to;
 		if(name == "rename" || name == "copy") {
@@ -179,16 +189,20 @@ public:
 			else if(name == "rename") moveEntry(root, path, *to, *call);
 			else if(name == "delete") removeEntry(path, {}, call->stopToken(), *call);
 			else if(name == "copy")
-				copyEntry(root, path, *to, arguments.value("free", false), {}, call->stopToken(), *call);
+				copyEntry(root, path, *to,
+				          {arguments.value("free", false), arguments.value("merge", false),
+				           arguments.value("exclude", std::vector<std::string>{})},
+				          {}, call->stopToken(), *call);
 			else describeEntry(path, *call);
 		});
 		return started ? std::nullopt : std::optional<std::string>("the service is busy (16 calls at once)");
 	}
 
 private:
-	std::filesystem::path root_; ///< See the constructor.
-	bool readOnly_;              ///< See the constructor.
-	Tasks tasks_;                ///< The calls running (last, so they end first).
+	std::filesystem::path root_;                                        ///< See the constructor.
+	bool readOnly_;                                                     ///< See the constructor.
+	std::map<std::string, std::filesystem::path, std::less<>> sources_; ///< See the constructor.
+	Tasks tasks_; ///< The calls running (last, so they end first).
 };
 
 /// @brief The `fs` provider.
@@ -200,7 +214,10 @@ public:
 		return {{"type", "object"},
 		        {"required", {"root"}},
 		        {"additionalProperties", false},
-		        {"properties", {{"root", {{"type", "string"}}}, {"readOnly", {{"type", "boolean"}}}}}};
+		        {"properties",
+		         {{"root", {{"type", "string"}}},
+		          {"readOnly", {{"type", "boolean"}}},
+		          {"copyFrom", {{"type", "array"}, {"maxItems", 16}, {"items", {{"type", "string"}}}}}}}};
 	}
 	std::vector<MethodSpec> methods(const json& configuration) const override {
 		const json path = {{"type", "string"}, {"maxLength", 4096}};
@@ -241,14 +258,25 @@ public:
 			 "moves or renames a file or folder under the root (fails if the new path is taken): {path}"});
 		methods.push_back({"delete", Effect::Write, true, false, object({{"path", path}}, {"path"}),
 		                   "deletes a file, or a folder with all it holds (at most 10,000 entries): {removed}"});
+		const json exclude = {{"type", "array"}, {"maxItems", 64}, {"items", {{"type", "string"}, {"maxLength", 256}}}};
 		methods.push_back({"copy", Effect::Write, true, false,
-		                   object({{"path", path}, {"to", path}, {"free", {{"type", "boolean"}}}}, {"path", "to"}),
-		                   "copies a file or folder under the root (at most 10,000 entries, 256 MiB); with free, a "
-		                   "taken path becomes \"<name> copy<ext>\": {path}"});
+		                   object({{"path", path},
+		                           {"to", path},
+		                           {"free", {{"type", "boolean"}}},
+		                           {"merge", {{"type", "boolean"}}},
+		                           {"exclude", exclude},
+		                           {"from", {{"type", "string"}, {"maxLength", 64}}}},
+		                          {"path", "to"}),
+		                   "copies a file or folder (at most 10,000 entries, 256 MiB) to a path under the root, from "
+		                   "the root or from a root of copyFrom (from); with free, a taken path becomes \"<name> "
+		                   "copy<ext>\"; with merge, a folder merges into the one there (what is missing or older is "
+		                   "copied); exclude: name globs left out: {path}"});
 		return methods;
 	}
 	std::unique_ptr<Service> create(const json& configuration, ServiceContext context) override {
-		return std::make_unique<FileService>(context.grant.root, configuration.value("readOnly", false), context.now);
+		return std::make_unique<FileService>(context.grant.root,
+		                                     configuration.value("readOnly", false) || context.grant.rootReadOnly,
+		                                     context.grant.sources, context.now);
 	}
 };
 

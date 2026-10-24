@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=AffrescoUI
-GenericName=Screen host
+GenericName=App launcher
 Comment=Run and change UIs described by JSON screen documents
 Exec=affrescoui_host
 Icon=affrescoui

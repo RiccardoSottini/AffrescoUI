@@ -7,6 +7,8 @@
 #include <affresco/services/Provider.hpp>
 
 #include <filesystem>
+#include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -54,6 +56,51 @@ class ServiceRegistry;
 /// above it).
 /// @return The shaper.
 [[nodiscard]] ProcessShaper gitShaper();
+
+/// @brief One of the host's sibling programs an app-programs grant may start (appProgramsShaper()).
+struct AppProgram {
+	std::string name;    ///< Its file's name, e.g. "affrescoui_host" (".exe" is added on Windows).
+	bool screen = false; ///< It takes a screen file to open, its first argument.
+	bool ask = false;    ///< It takes `--ask TEXT`, a first request for the app's assistant.
+};
+
+/// @brief What an app-programs grant starts: programs of the host's own, next to it, each opening an app from a
+/// granted folder, with the host's data folder and a socket folder per app (a launcher).
+struct AppPrograms {
+	std::filesystem::path folder;     ///< Where the programs are: the host's own folder.
+	std::vector<AppProgram> programs; ///< The programs, by name.
+	/// @brief The folders screens are opened from, by the names a call uses (`"examples"`): canonical, like roots.
+	std::map<std::string, std::filesystem::path, std::less<>> roots;
+	std::filesystem::path dataDirectory;   ///< Each program gets `--data` this.
+	std::filesystem::path socketDirectory; ///< Each app gets `--socket` a folder in this one, of its own.
+	bool reveal = false;                   ///< Also `reveal ROOT:FOLDER`: shows a folder in the desktop's file manager.
+};
+
+/// @brief Finds one of the host's sibling programs: next to the host, in a build tree's folder for its example
+/// (`examples/<name without affrescoui_>/`), or, from a macOS app bundle, next to the bundle or in a bundle of its own.
+/// @param folder The host's folder.
+/// @param name The program's name.
+/// @return Its file, or empty if it isn't there.
+[[nodiscard]] std::filesystem::path findAppProgram(const std::filesystem::path& folder, std::string_view name);
+
+/// @brief The app-programs grant's rule. A call's arguments are `[PROGRAM, SCREEN?, "--ask", TEXT?]`: PROGRAM one of
+/// @p programs' names; SCREEN, for a program that takes one (and required), `ROOT:PATH`, a `.screen.json` file inside
+/// that root (links resolved, no `..`, no absolute path); `--ask TEXT` only for a program that takes it (TEXT at most
+/// 4 KiB, no NUL). With `reveal`, `["reveal", "ROOT:FOLDER"]` shows a folder inside a root (`"ROOT:"` the root itself).
+/// The rule picks the program file and adds, itself, `--data <dataDirectory>` and `--socket <socketDirectory>/<app>`
+/// (`<app>` is `<root>-<the screen's folder>`, or the program's name without `affrescoui_`), which the program creates.
+/// @param programs What it may start.
+/// @return The shaper.
+[[nodiscard]] ProcessShaper appProgramsShaper(AppPrograms programs);
+
+/// @brief Grants the host's sibling programs under a name, detached (ProcessGrant::detach: each run is started and
+/// outlives the host, its result `{pid}`), under appProgramsShaper().
+/// @param services The registry.
+/// @param name The grant's name, e.g. "affresco".
+/// @param programs What it may start; its roots must be folders.
+/// @return Why it can't, or std::nullopt.
+[[nodiscard]] std::optional<std::string> grantAppPrograms(ServiceRegistry& services, std::string name,
+                                                          AppPrograms programs);
 
 /// @brief Grants a program from a command-line spec: `NAME=PROGRAM ARGUMENT...` (the program found on the PATH
 /// unless absolute, the arguments split at spaces); or `NAME` alone: `shell` is the login shell (`-l`), `git` is git

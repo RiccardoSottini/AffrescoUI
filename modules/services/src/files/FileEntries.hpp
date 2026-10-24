@@ -11,7 +11,9 @@
 #include <filesystem>
 #include <optional>
 #include <stop_token>
+#include <string>
 #include <string_view>
+#include <vector>
 
 namespace affresco::services {
 
@@ -53,18 +55,33 @@ void moveEntry(const std::filesystem::path& root, const std::filesystem::path& f
 /// @param call Where the result goes.
 void removeEntry(const std::filesystem::path& from, const EntryLimits& limits, const std::stop_token& stop, Call& call);
 
-/// @brief Copies a file, a link (as a link) or a folder with all it holds: {path}. With @p free, a path that is
-/// taken becomes the first free "<name> copy<ext>", "<name> copy 2<ext>"... beside it; without, it fails with
-/// "exists". Fails with "tooLarge", copying nothing, past the limits.
-/// @param root The root (canonical).
-/// @param from The entry (entryUnderRoot()).
+/// @brief How a copy goes, beyond its paths.
+struct CopyOptions {
+	bool free = false;                ///< A taken path picks a free name ("<name> copy<ext>", ...).
+	bool merge = false;               ///< A folder copied over a folder adds what is missing there and replaces the
+	                                  ///< files that are older there; nothing else there changes.
+	std::vector<std::string> exclude; ///< Name globs (`*`, `?`) of the files and folders inside left out.
+};
+
+/// @brief Whether a name matches a glob of `*` (any run of characters) and `?` (one character).
+/// @param glob The glob.
+/// @param name The name.
+/// @return Whether it matches.
+[[nodiscard]] bool matchesName(std::string_view glob, std::string_view name) noexcept;
+
+/// @brief Copies a file, a link (as a link) or a folder with all it holds: {path}. With `free`, a path that is
+/// taken becomes the first free "<name> copy<ext>", "<name> copy 2<ext>"... beside it; with `merge`, a folder is
+/// merged into the folder there; else it fails with "exists". Fails with "tooLarge", copying nothing, past the limits.
+/// A link already at a path the copy writes is replaced, never written through.
+/// @param root The root the copy is in (canonical).
+/// @param from The entry (entryUnderRoot(), of this root or of another the service copies from).
 /// @param to The copy's path (entryUnderRoot()); its folder must exist.
-/// @param free Whether a taken path picks a free name.
+/// @param options See CopyOptions.
 /// @param limits The bounds.
 /// @param stop Says to give up.
 /// @param call Where the result goes.
 void copyEntry(const std::filesystem::path& root, const std::filesystem::path& from, std::filesystem::path to,
-               bool free, const EntryLimits& limits, const std::stop_token& stop, Call& call);
+               const CopyOptions& options, const EntryLimits& limits, const std::stop_token& stop, Call& call);
 
 /// @brief Describes what is at a path: {exists, kind, size, modified}, kind "file", "folder" or "other", size for a
 /// file, modified in milliseconds since 1970.

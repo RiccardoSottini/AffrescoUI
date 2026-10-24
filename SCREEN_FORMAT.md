@@ -1426,6 +1426,14 @@ a file keeps its version-control history in the same folder, in `<file name>.his
 "History on disk"). `AFFRESCOUI_DATA_DIR` (or the host's `--data`) puts both
 in another folder.
 
+`"services"` reach the folders and programs the host grants ([`modules/services/README.md`](modules/services/README.md)
+has each provider's methods): `{"apps": {"provider": "fs", "root": "apps", "copyFrom": ["examples"]}}` reads,
+writes, lists and copies under the folder `apps`, and copies from the folder `examples` too
+(`{"invoke": "apps.copy", "with": {"from": "examples", "path": "flow", "to": "board", "exclude": ["*.cpp"]}}`, with
+`merge` to bring a folder up to date); a folder the host grants read-only takes only `"readOnly": true`. A `process`
+service runs the program its grant names, with the arguments the host's rule allows; one the host grants detached is
+started and left running, its result `{pid}` (the Launcher opens apps so).
+
 ## Live screens: revisions and the channel
 
 ### Revisions
@@ -1779,8 +1787,10 @@ its values, the theme, the colours, the fonts, or a new version of the document.
 panel directly (`screen.find("logo")->setColor(...)`) stays until one of those changes, then the document's values
 replace it. To keep a change, make it in the document (state, or a revision), or in a registered type's apply function.
 
-See the templates, a folder each in `examples/` ([`examples/README.md`](examples/README.md)): `kanban` (the one
-`affrescoui_host` opens: rows, components, drag and drop, a popover), `smart-home` (themes, computed values, switches
+See the templates, a folder each in `examples/` ([`examples/README.md`](examples/README.md)): `launcher` (the one
+`affrescoui_host` opens without a file: the apps as cards, `fs` services on the folders the host grants, a copy
+from one root into another, apps started through the host's app-programs grant), `kanban` (rows, components, drag
+and drop, a popover), `smart-home` (themes, computed values, switches
 and sliders, animations), `music-player` (a playback timer, seeking), `code-editor` (an application type built on
 `editor`, tabs, a terminal, a Cmd+P palette), `habit-tracker` (validation-free forms, `watch`, `persist`) and
 `sign-in` (screens, navigation, `check`).

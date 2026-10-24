@@ -118,7 +118,7 @@ json screenTemplate(const std::string& name) {
 
 /// The templates (examples/templates.json).
 constexpr auto templates = std::to_array<const char*>(
-    {"kanban", "smart-home", "music-player", "code-editor", "habit-tracker", "sign-in"});
+    {"kanban", "smart-home", "music-player", "code-editor", "habit-tracker", "sign-in", "launcher"});
 
 } // namespace
 

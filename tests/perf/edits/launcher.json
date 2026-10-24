@@ -1,0 +1,8 @@
+{
+	"change-colour": { "message": "Teal accent", "set": { "/tokens/c.accent": { "light": "#0f9488", "dark": "#2dd4bf" } } },
+	"rename-label": { "message": "Say Your apps", "set": { "#mineTitle/text": "Your apps" } },
+	"add-node": {
+		"message": "Add a tip under the apps' title",
+		"add": { "#appsPage/children/-": { "type": "label", "text": "Tip: Enter opens the focused app.", "anchors": { "left": 36, "bottom": 12 }, "height": 18 } }
+	}
+}

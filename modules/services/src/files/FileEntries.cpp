@@ -3,6 +3,7 @@
 
 #include "FileEntries.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <limits>
 #include <string>
@@ -121,18 +122,117 @@ void removeEntry(const fs::path& from, const EntryLimits& limits, const std::sto
 	call.finish({{"removed", removed}});
 }
 
-void copyEntry(const fs::path& root, const fs::path& from, fs::path to, bool free, const EntryLimits& limits,
-               const std::stop_token& stop, Call& call) {
+bool matchesName(std::string_view glob, std::string_view name) noexcept {
+	std::size_t at = 0, in = 0, star = std::string_view::npos, resume = 0;
+	while(in < name.size()) {
+		if(at < glob.size() && (glob[at] == '?' || glob[at] == name[in])) {
+			++at;
+			++in;
+		} else if(at < glob.size() && glob[at] == '*') {
+			star = at++;
+			resume = in;
+		} else if(star != std::string_view::npos) { // the last star takes one more character
+			at = star + 1;
+			in = ++resume;
+		} else {
+			return false;
+		}
+	}
+	while(at < glob.size() && glob[at] == '*') ++at;
+	return at == glob.size();
+}
+
+namespace {
+
+/// @brief Whether a copy leaves an entry out.
+/// @param options The copy's options.
+/// @param path The entry.
+/// @return Whether its name matches one of the excluded globs.
+bool excluded(const CopyOptions& options, const fs::path& path) {
+	const std::u8string name = path.filename().u8string();
+	const std::string_view text(reinterpret_cast<const char*>(name.data()), name.size());
+	return std::ranges::any_of(options.exclude, [text](const std::string& glob) { return matchesName(glob, text); });
+}
+
+/// @brief Copies one entry that isn't a folder: a link as a link, a file's bytes. What is at @p to already is an error,
+/// unless merging: then a file there that is as new is kept, and anything else but a folder is replaced (a link
+/// removed first, never written through).
+/// @param from The entry.
+/// @param to Its copy's path.
+/// @param status The entry's own status (not following a link).
+/// @param merge Whether the copy merges.
+/// @param error Receives why it failed.
+/// @return Whether it was copied (or kept).
+bool copyOne(const fs::path& from, const fs::path& to, const fs::file_status& status, bool merge,
+             std::error_code& error) {
+	std::error_code ignored;
+	const fs::file_status there = fs::symlink_status(to, ignored);
+	if(fs::exists(there)) {
+		if(!merge || fs::is_directory(there)) {
+			error = std::make_error_code(std::errc::file_exists);
+			return false;
+		}
+		if(fs::is_regular_file(there) && fs::is_regular_file(status) &&
+		   fs::last_write_time(to, ignored) >= fs::last_write_time(from, ignored))
+			return true; // as new as the original
+		if(!fs::remove(to, error)) return false;
+	}
+	if(fs::is_symlink(status)) fs::copy_symlink(from, to, error);
+	else fs::copy_file(from, to, error);
+	return !error;
+}
+
+/// @brief Copies a folder and what it holds, without following links, leaving out the excluded names.
+/// @param from The folder.
+/// @param to Its copy's path: nothing there, or a folder to merge into.
+/// @param options The copy's options.
+/// @param stop Says to give up.
+/// @param error Receives why it failed.
+/// @return Whether all of it was copied.
+bool copyFolder(const fs::path& from, const fs::path& to, const CopyOptions& options, const std::stop_token& stop,
+                std::error_code& error) {
+	std::error_code ignored;
+	if(!fs::is_directory(fs::symlink_status(to, ignored)) && !fs::create_directory(to, error)) return false;
+	fs::recursive_directory_iterator entry(from, fs::directory_options::none, error);
+	for(; !error && entry != fs::recursive_directory_iterator(); entry.increment(error)) {
+		if(stop.stop_requested()) return false;
+		const fs::file_status status = entry->symlink_status(error);
+		if(error) return false;
+		if(excluded(options, entry->path())) {
+			if(fs::is_directory(status)) entry.disable_recursion_pending();
+			continue;
+		}
+		const fs::path target = to / entry->path().lexically_relative(from);
+		if(fs::is_directory(status)) {
+			const fs::file_status there = fs::symlink_status(target, ignored);
+			if(fs::is_directory(there)) continue; // merging into a folder there
+			if(fs::exists(there) && (!options.merge || !fs::remove(target, error))) return false;
+			if(!fs::create_directory(target, error)) return false;
+		} else if(fs::is_regular_file(status) || fs::is_symlink(status)) {
+			if(!copyOne(entry->path(), target, status, options.merge, error)) return false;
+		} // sockets, devices and pipes are left out
+	}
+	return !error;
+}
+
+} // namespace
+
+void copyEntry(const fs::path& root, const fs::path& from, fs::path to, const CopyOptions& options,
+               const EntryLimits& limits, const std::stop_token& stop, Call& call) {
 	std::error_code error;
-	if(!fs::exists(fs::symlink_status(from, error))) return call.fail("notFound", "nothing is there");
-	if(fs::exists(fs::symlink_status(to, error))) {
-		if(!free) return call.fail("exists", "the copy's path is taken");
+	const fs::file_status status = fs::symlink_status(from, error);
+	if(!fs::exists(status)) return call.fail("notFound", "nothing is there");
+	const bool folder = fs::is_directory(status);
+	const fs::file_status there = fs::symlink_status(to, error);
+	const bool merging = options.merge && fs::exists(there);
+	if(merging && folder != fs::is_directory(there)) return call.fail("exists", "a folder and a file can't be merged");
+	if(fs::exists(there) && !merging) {
+		if(!options.free) return call.fail("exists", "the copy's path is taken");
 		const std::optional<fs::path> name = freeName(to, limits);
 		if(!name) return call.fail("exists", "no free name for the copy");
 		to = *name;
 	}
-	if(fs::is_directory(fs::symlink_status(from, error)) && isWithin(from, to))
-		return call.fail("failed", "a folder can't be copied into itself");
+	if(folder && isWithin(from, to)) return call.fail("failed", "a folder can't be copied into itself");
 	if(!fs::is_directory(to.parent_path(), error)) return call.fail("notFound", "the copy's folder doesn't exist");
 	std::uintmax_t bytes = 0;
 	const std::optional<std::size_t> count = countEntries(from, limits, stop, bytes);
@@ -141,10 +241,12 @@ void copyEntry(const fs::path& root, const fs::path& from, fs::path to, bool fre
 	if(*count > limits.entries || bytes > limits.bytes)
 		return call.fail("tooLarge", "it holds over " + std::to_string(limits.entries) + " entries or " +
 		                                 std::to_string(limits.bytes >> 20) + " MiB");
-	fs::copy(from, to, fs::copy_options::recursive | fs::copy_options::copy_symlinks, error);
-	if(error) {
+	const bool copied =
+	    folder ? copyFolder(from, to, options, stop, error) : copyOne(from, to, status, options.merge, error);
+	if(!copied) {
 		std::error_code ignored;
-		fs::remove_all(to, ignored); // no half copy is left
+		if(!merging) fs::remove_all(to, ignored); // no half copy is left (a merge keeps what it brought up to date)
+		if(stop.stop_requested()) return;
 		return call.fail("failed", "it couldn't be copied");
 	}
 	call.finish({{"path", relativeName(root, to)}});

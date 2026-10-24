@@ -19,6 +19,7 @@
 		}
 	},
 	"apps": [
+		{ "app": "Launcher", "screen": "launcher/index.screen.json", "scenarios": "launcher/index.scenarios.json", "scene": "my-apps", "output": "launcher", "runner": "render" },
 		{ "app": "Flow", "screen": "flow/index.screen.json", "scenarios": "flow/index.scenarios.json", "scene": "a-card-mid-drag", "output": "kanban", "runner": "render" },
 		{ "app": "Haven", "screen": "haven/index.screen.json", "scenarios": "haven/index.scenarios.json", "scene": "energy-by-device", "output": "smart-home", "runner": "render" },
 		{ "app": "Tempo", "screen": "tempo/index.screen.json", "scenarios": "tempo/index.scenarios.json", "scene": "now-playing-visualiser-and-lyrics", "output": "music-player", "runner": "render" },
