@@ -104,9 +104,18 @@ void Screen::Impl::load() {
 	} catch(const std::exception&) { // json::parse_error, or DocumentError if it nests too deeply
 		// Not a state file this screen wrote: the screen keeps its own state, as before
 	}
+	json rejected = json::object();
 	if(file.is_object())
-		for(const auto& pointer : persisted())
-			if(file.contains(pointer.to_string())) repository.state()[pointer] = file[pointer.to_string()];
+		for(const auto& pointer : persisted()) {
+			const std::string key = pointer.to_string();
+			if(!file.contains(key)) continue;
+			if(std::optional<std::string> problem = persistedMismatch(pointer, file[key])) {
+				rejected[key] = {{"value", file[key]}, {"problem", std::move(*problem)}};
+				continue; // the document's own value stays: the side file keeps this one
+			}
+			repository.state()[pointer] = file[key];
+		}
+	if(!rejected.empty()) keepRejected(rejected);
 	saved = persistedState();
 }
 

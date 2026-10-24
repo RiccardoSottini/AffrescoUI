@@ -206,3 +206,29 @@ TEST_CASE("data screens: a model's importFrom brings the old persist records in 
 	}
 	std::filesystem::remove_all(folder);
 }
+
+TEST_CASE("data screens: persisted values that no longer fit the stateTypes open as defaults, kept in a side file") {
+	const auto folder = std::filesystem::temp_directory_path() / "affrescoui-data-rejected-test";
+	std::filesystem::remove_all(folder);
+	std::filesystem::create_directories(folder);
+	const json document = {{"format", "affrescoui-screen"},
+	                       {"version", 2},
+	                       {"state", {{"volume", 50}, {"name", "a"}}},
+	                       {"stateTypes", {{"volume", {{"type", "number"}, {"maximum", 100}}}}},
+	                       {"persist", {"state.volume", "state.name"}},
+	                       {"root", {{"type", "label"}, {"id", "v"}, {"text", "{{state.volume}}"}}}};
+	std::ofstream(folder / "player.screen.json") << document.dump();
+	std::ofstream(folder / "player.state.json") << R"({"/volume": "loud", "/name": "kept"})";
+	{
+		affresco::Screen screen = affresco::Screen::fromFile(folder / "player.screen.json", folder);
+		const json state = json::parse(screen.stateJson());
+		CHECK(state["volume"] == 50);   // the default: "loud" isn't a number
+		CHECK(state["name"] == "kept"); // what fits is loaded
+	}
+	std::ifstream side(folder / "player.state.rejected.json");
+	REQUIRE(side);
+	const json rejected = json::parse(side);
+	CHECK(rejected["/volume"]["value"] == "loud");
+	CHECK(rejected["/volume"]["problem"].get<std::string>().contains("state.volume"));
+	std::filesystem::remove_all(folder);
+}

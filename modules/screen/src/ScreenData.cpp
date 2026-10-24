@@ -3,6 +3,8 @@
 /// records an earlier version of the app kept in its "persist" state file (a model's "importFrom").
 
 #include "ScreenImpl.hpp"
+#include "StateFile.hpp"
+#include "StateTypes.hpp"
 
 #include "affresco/core/Log.hpp"
 #include "affresco/data/Model.hpp"
@@ -63,6 +65,51 @@ bool importsFrom(const json& document, const data::Store& store, const json& sta
 }
 
 } // namespace
+
+std::optional<std::string> Screen::Impl::persistedMismatch(const json::json_pointer& pointer, const json& value) const {
+	const json& document = repository.document();
+	const auto types = document.find("stateTypes");
+	if(types == document.end() || !types->is_object()) return std::nullopt;
+	const std::string place = pointer.to_string(); // "/habits/list"
+	const json* type = nullptr;
+	std::string path = "state";
+	for(std::size_t start = 1; start <= place.size();) {
+		const std::size_t slash = std::min(place.find('/', start), place.size());
+		const std::string key = place.substr(start, slash - start);
+		type = type ? format::typeInside(*type, &key) : (types->contains(key) ? &(*types)[key] : nullptr);
+		if(!type) return std::nullopt; // no declared type there: anything fits
+		path += "." + key;
+		start = slash + 1;
+	}
+	const std::optional<format::Mismatch> mismatch = format::typeMismatch(value, *type, path);
+	if(!mismatch) return std::nullopt;
+	return mismatch->text();
+}
+
+void Screen::Impl::keepRejected(const json& rejected) const {
+	std::string name = stateFile.filename().string();
+	if(name.ends_with(".state.json")) name.resize(name.size() - std::string_view(".state.json").size());
+	const std::filesystem::path side = stateFile.parent_path() / (name + ".state.rejected.json");
+	json kept = json::object();
+	if(std::ifstream in(side); in) { // what an earlier start set aside stays, unless the same place is set aside again
+		std::stringstream text;
+		text << in.rdbuf();
+		try {
+			kept = parseUntrusted(text.str());
+		} catch(const std::exception&) { // NOLINT(bugprone-empty-catch): not ours: replaced below
+		}
+		if(!kept.is_object()) kept = json::object();
+	}
+	for(const auto& [key, entry] : rejected.items()) kept[key] = entry;
+	if(!detail::writeStateFile(side, kept.dump(2) + '\n')) {
+		affresco::log(LogLevel::Error, "AffrescoUI screen: could not write " + side.string());
+		return;
+	}
+	affresco::log(LogLevel::Warning, "AffrescoUI screen: " + std::to_string(rejected.size()) +
+	                                     " values kept in " + stateFile.string() +
+	                                     " no longer fit the screen's stateTypes: it opens with its own, and keeps "
+	                                     "them in " + side.string());
+}
 
 void Screen::setDataFile(const std::filesystem::path& file) {
 	Impl& impl = *impl_;

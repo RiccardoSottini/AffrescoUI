@@ -164,6 +164,18 @@ struct Screen::Impl {
 	/// @brief Writes the persisted part of the state if it changed since it was loaded or last written.
 	void save();
 
+	/// @brief Why a value kept on disk no longer fits the document's "stateTypes" (ScreenData.cpp).
+	/// @param pointer Its place in the state.
+	/// @param value The value.
+	/// @return The problem, or std::nullopt if it fits (or has no declared type).
+	[[nodiscard]] std::optional<std::string> persistedMismatch(const json::json_pointer& pointer,
+	                                                           const json& value) const;
+
+	/// @brief Keeps the values kept on disk that no longer fit in `<name>.state.rejected.json`, beside the state
+	/// file, so none is lost: the screen opens with its defaults for them (ScreenData.cpp).
+	/// @param rejected `{pointer: {"value", "problem"}}`.
+	void keepRejected(const json& rejected) const;
+
 	/* Peers */
 
 	/// @brief Sends a message to every peer.
