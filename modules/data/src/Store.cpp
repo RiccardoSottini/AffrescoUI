@@ -111,6 +111,14 @@ void bindAll(sql::Statement& statement, const std::string& collection, const jso
 
 } // namespace
 
+json stored(std::string_view text) {
+	try {
+		return parseUntrusted(text); // the file is the user's: it may have been changed or damaged since
+	} catch(const std::exception&) {
+		throw DataError("io", "data: the store holds a damaged value (its file was changed outside the app)");
+	}
+}
+
 std::int64_t systemNow() {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
 	    .count();
@@ -152,7 +160,7 @@ Store::Impl::Impl(std::filesystem::path path) : db(path), file(std::move(path)),
 
 void Store::Impl::loadModels() {
 	sql::Statement read(db, "SELECT value FROM meta WHERE key = 'models'");
-	section = read.step() ? json::parse(read.text(0)) : json::object();
+	section = read.step() ? stored(read.text(0)) : json::object();
 	read.reset();
 	models = parseModels(section);
 }
@@ -174,7 +182,7 @@ std::optional<Row> Store::Impl::row(const std::string& collection, const std::st
 	sql::Statement read(db, "SELECT seq, id, created, updated, body FROM records WHERE collection = ?1 AND id = ?2");
 	read.bind(1, collection).bind(2, id);
 	if(!read.step()) return std::nullopt;
-	return Row{read.integer(0), read.text(1), read.integer(2), read.integer(3), json::parse(read.text(4))};
+	return Row{read.integer(0), read.text(1), read.integer(2), read.integer(3), stored(read.text(4))};
 }
 
 std::vector<Row> Store::Impl::rows(const std::string& collection, std::int64_t after, std::size_t count) {
@@ -183,7 +191,7 @@ std::vector<Row> Store::Impl::rows(const std::string& collection, std::int64_t a
 	read.bind(1, collection).bind(2, after).bind(3, static_cast<std::int64_t>(count));
 	std::vector<Row> result;
 	while(read.step())
-		result.push_back({read.integer(0), read.text(1), read.integer(2), read.integer(3), json::parse(read.text(4))});
+		result.push_back({read.integer(0), read.text(1), read.integer(2), read.integer(3), stored(read.text(4))});
 	return result;
 }
 
@@ -409,7 +417,7 @@ std::vector<Record> Store::query(const Query& query) const {
 	std::vector<Record> records;
 	while(read.step())
 		records.push_back(Impl::recordOf(
-		    model, {read.integer(0), read.text(1), read.integer(2), read.integer(3), json::parse(read.text(4))}));
+		    model, {read.integer(0), read.text(1), read.integer(2), read.integer(3), stored(read.text(4))}));
 	return records;
 }
 

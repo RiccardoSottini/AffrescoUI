@@ -14,7 +14,7 @@ namespace {
 /// @param column The column.
 /// @return The value.
 json jsonColumn(const sql::Statement& statement, int column) {
-	return statement.isNull(column) ? json() : json::parse(statement.text(column));
+	return statement.isNull(column) ? json() : stored(statement.text(column));
 }
 
 /// @brief One journal entry of the current row of a statement over the journal.
@@ -168,7 +168,7 @@ std::vector<ArchivedRecord> Store::archived(const std::string& collection, std::
 	std::vector<ArchivedRecord> records;
 	while(read.step())
 		records.push_back({read.integer(0),
-		                   {read.text(1), read.integer(2), read.integer(3), json::parse(read.text(4))},
+		                   {read.text(1), read.integer(2), read.integer(3), stored(read.text(4))},
 		                   read.text(5)});
 	return records;
 }
@@ -180,7 +180,7 @@ Record Store::restoreArchived(const std::string& collection, std::int64_t migrat
 	if(!read.step())
 		throw DataError("notFound",
 		                std::format("{}: no record '{}' archived by migration {}", collection, id, migration));
-	json fields = json::parse(read.text(0));
+	json fields = stored(read.text(0));
 	read.reset();
 	const Model& model = impl_->modelOf(collection, collection);
 	json declared = json::object();

@@ -27,7 +27,9 @@ namespace {
 } // namespace
 
 Database::Database(const std::filesystem::path& file) {
-	const std::string name = file.empty() ? std::string(":memory:") : file.string();
+	// SQLite takes UTF-8 file names everywhere (on Windows too, where path::string() is the ANSI code page's)
+	const std::u8string utf8 = file.u8string();
+	const std::string name = file.empty() ? std::string(":memory:") : std::string(utf8.begin(), utf8.end());
 	const int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_EXRESCODE;
 	if(sqlite3_open_v2(name.c_str(), &db_, flags, nullptr) != SQLITE_OK) {
 		const std::string message = db_ ? sqlite3_errmsg(db_) : "out of memory";

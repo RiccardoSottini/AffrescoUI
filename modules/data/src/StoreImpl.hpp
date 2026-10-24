@@ -134,6 +134,13 @@ struct Store::Impl {
 /// @return The row.
 [[nodiscard]] Row rowFrom(const json& value, std::int64_t sequence);
 
+/// @brief Reads JSON the store wrote (a record's body, a model, a journal entry): a file damaged since is refused
+/// like any other failure of the store, never with an exception callers don't expect.
+/// @param text The text.
+/// @return Its value.
+/// @throws DataError "io" if it isn't JSON, or nests too deeply.
+[[nodiscard]] json stored(std::string_view text);
+
 /// @brief The time now, from the system clock.
 /// @return ms since 1970, UTC.
 [[nodiscard]] std::int64_t systemNow();

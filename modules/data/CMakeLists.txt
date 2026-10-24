@@ -13,7 +13,7 @@ affrescoui_module(data
 target_link_libraries(affrescoui_data PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_data SYSTEM PRIVATE ${AFFRESCOUI_SQLITE_DIR})
 target_compile_definitions(affrescoui_data PRIVATE ${AFFRESCOUI_SQLITE_DEFINITIONS})
-if(NOT WIN32 AND NOT EMSCRIPTEN)
+if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN) # SQLite's threads and dlopen (macOS has them in libSystem)
 	find_package(Threads REQUIRED)
 	target_link_libraries(affrescoui_data PRIVATE Threads::Threads ${CMAKE_DL_LIBS} m)
 endif()

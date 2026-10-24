@@ -69,7 +69,7 @@ struct Follower {
 	std::optional<Model> storedModel(const std::string& name) {
 		sql::Statement read(impl.db, "SELECT name, model FROM collections");
 		json known = json::object();
-		while(read.step()) known[read.text(0)] = json::parse(read.text(1));
+		while(read.step()) known[read.text(0)] = stored(read.text(1));
 		read.reset();
 		if(!known.contains(name)) return std::nullopt;
 		try {
@@ -136,7 +136,7 @@ struct Follower {
 		sql::Statement read(impl.db, "SELECT body FROM archive WHERE migration = ?1 AND id = ?2 LIMIT 1");
 		read.bind(1, migration).bind(2, id);
 		if(!read.step()) return std::nullopt;
-		return json::parse(read.text(0));
+		return stored(read.text(0));
 	}
 
 	/// @brief A row's body made to fit a model: the declared fields checked (defaults added), the others kept unread.
@@ -260,7 +260,7 @@ struct Follower {
 		                             "DESC");
 		read.bind(1, model.name).bind(2, std::int64_t{model.version}).bind(3, std::int64_t{from});
 		std::vector<std::pair<std::int64_t, json>> undone;
-		while(read.step()) undone.emplace_back(read.integer(0), json::parse(read.text(1)));
+		while(read.step()) undone.emplace_back(read.integer(0), stored(read.text(1)));
 		read.reset();
 		const std::int64_t revertSeq =
 		    recordMigration(model.name, from, model.version, "revert", json::array(), model.written);
