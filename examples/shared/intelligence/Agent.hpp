@@ -77,7 +77,8 @@ public:
 
 	/// @brief A message from the screen: a request is queued (at most 8 wait, and at most
 	/// AgentOptions::requestsPerMinute are taken in a minute; the others are answered "busy" or "too many requests"),
-	/// an answer to the agent's own question is handed to it, anything else is ignored. Main thread.
+	/// a cancel drops a waiting request or stops the one in progress (its reply isn't sent), an answer to the agent's
+	/// own question is handed to it, anything else is ignored. Main thread.
 	/// @param message One JSON object.
 	void send(std::string_view message) override;
 
@@ -111,6 +112,9 @@ private:
 	/// @brief Whether the agent is stopping. Any thread.
 	/// @return Whether it is.
 	[[nodiscard]] bool stopping() const noexcept { return stop_; }
+	/// @brief Whether the person cancelled the request in progress. Any thread.
+	/// @return Whether they did.
+	[[nodiscard]] bool cancelled() const noexcept { return cancelled_; }
 
 	affresco::Executor& executor_;                               ///< The main thread.
 	AgentOptions options_;                                       ///< See the constructor.
@@ -122,6 +126,8 @@ private:
 	std::deque<std::chrono::steady_clock::time_point> taken_;    ///< This minute's requests (main thread).
 	affresco::json attachedBefore_ = affresco::json::array();    ///< Earlier requests' attachments (main thread).
 	std::atomic<bool> stop_ = false;                             ///< Set by the destructor.
+	std::string current_;                                        ///< The request in progress (guarded by mutex_).
+	std::atomic<bool> cancelled_ = false;                        ///< See cancelled().
 	std::atomic<unsigned long> asked_ = 0;                       ///< Numbers the questions.
 	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards deliveries queued after destruction.
 	std::thread worker_;                                         ///< Works on the jobs.

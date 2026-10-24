@@ -30,6 +30,7 @@ constexpr const char* askingScreen = R"json({
 	"permissions": { "allow": ["studio"], "reviewers": ["studio"] },
 	"actions": {
 		"send": [{ "ask": "{{state.draft}}", "into": "state.asked" }],
+		"stop": [{ "cancelAsk": "{{state.asked}}" }],
 		"ask:reply": [{ "push": "state.replies", "value": "{{event}}" }],
 		"look": [{ "set": "state.seen", "to": "{{requests}}" }, { "set": "state.peers", "to": "{{peers}}" }],
 		"approve": [{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }]
@@ -130,6 +131,33 @@ TEST_CASE("assistant: the person's request reaches the agents, and the reply bri
 	asking.run("approve");
 	CHECK(asking.screen.proposals().empty());
 	CHECK(asking.screen.revision() == 1);
+}
+
+TEST_CASE("assistant: the person cancels a request: the agents are told, and its later replies are dropped") {
+	Asking asking;
+	asking.screen.connect(asking.agent, "agent");
+	asking.run("send");
+	const std::vector<json> requests = asking.requests();
+	REQUIRE(requests.size() == 1);
+	asking.reply({{"request", requests[0]["id"]}, {"done", false}}); // working
+	asking.run("stop");
+
+	const auto cancel = std::ranges::find_if(asking.agent.sent,
+	                                         [](const json& message) { return message.value("type", "") == "cancel"; });
+	REQUIRE(cancel != asking.agent.sent.end());
+	CHECK((*cancel)["request"] == requests[0]["id"]);
+	CHECK((*cancel)["from"] == "user");
+	CHECK((*cancel)["source"] == "screen");
+
+	asking.reply({{"request", requests[0]["id"]}, {"text", "Too late"}});
+	CHECK(asking.state()["replies"].empty());
+	asking.run("look");
+	CHECK(asking.state()["seen"][0]["state"] == "cancelled");
+	CHECK(asking.state()["seen"][0]["replies"].empty());
+
+	const std::size_t sent = asking.agent.sent.size();
+	asking.run("stop"); // already cancelled: nothing more is sent
+	CHECK(asking.agent.sent.size() == sent);
 }
 
 TEST_CASE("assistant: a reply is never the person's decision") {

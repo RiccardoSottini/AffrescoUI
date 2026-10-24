@@ -24,19 +24,27 @@ screen without meeting the app's own names.
   Launcher's Settings (the host then runs an agent of its own, `examples/shared/intelligence`), or to connect an agent
   over MCP. An empty conversation shows three suggestions
   to ask with a click.
-- **The conversation**: the person's messages and the replies, a typing indicator while a request is being worked on,
+- **The conversation**, as Claude Code and Codex show one: the person's messages in soft bubbles, the replies as plain
+  text, each with *Copy* (to the clipboard) and *Retry* (asks the request it answered again), a typing indicator
+  while a request is being worked on,
   and a card for every proposal a reply opened, with its first changes ("set /path to value"). Every other proposal
   waiting for review (one an agent opened without a reply, e.g. from a terminal over MCP) has a card too, after the
   conversation, so the app's assistant is where the person reviews every change. A card's buttons show while the
   proposal waits for review; after, it says *Accepted*, *Rejected*, or *Closed* (the proposal went another way, e.g.
   reviewed by another client).
-- **The model picker**, in the header: the model the requests use, at first the person's default from the
+- **Files**, as cards with an icon of their kind (a picture, a sound, any other file), their name and their size or
+  length: the files attached to the next message inside the composer (each removable), the files sent with a message,
+  and a proposal's assets with its run-once steps.
+- **The model picker**, in the composer's bar next to *Attach* (`+`): the model the requests use, at first the person's default from the
   Launcher's Settings, and a menu of the provider's models (the default marked). The choice is the app's own (kept
   with `persist`) and goes with every request as the `ask` step's `options` (`{ "model": "opus" }`). It shows only
   when the host's own agent is connected (the peer `agent`) and answers the read-only native `assistant.models`
   (`{ provider, default, models: [{ id, name }] }`, `examples/shared/intelligence/Intelligence.hpp`), which reveals
   nothing secret and changes nothing; elsewhere (MCP-only setups, other hosts) it hides.
-- **The composer**: Enter sends, Shift+Enter starts a new line, Escape closes the panel and gives the focus back to the
+- **The composer**, a card with the text above and a bar below: *Attach* (`+`, or drop files on the panel) and the
+  model picker at its start, a round send button at its end. While an agent works on a request, the send button is a
+  *Stop* button: it cancels the requests in progress (`cancelAsk`), the agents are told, and what they send after is
+  dropped. Enter sends, Shift+Enter starts a new line, Escape closes the panel and gives the focus back to the
   launcher. The panel is modal: Tab cycles inside it.
 
 A chat request is a request, never an approval. The agent's change waits as a proposal, and only the person's
@@ -52,13 +60,15 @@ All in `state.assistant`:
 | `lift` | Pixels to raise the launcher and the panel by, over a panel of the app's own at the bottom right (`0` by default), e.g. `{ "watch": { "state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }] } }` |
 | `show` | Whether the launcher shows when no agent is connected and no conversation is kept (`true` by default) |
 | `draft` | The composer's text |
-| `messages` | The conversation: `{ mine, from, text, time, error }`, and `{ kind: "card", id, title, summary, lines, time }` for a proposal, `lines` being its first three `changes` (at most 200, the oldest dropped) |
+| `messages` | The conversation: `{ mine, from, text, time, error }` (a reply also has `asked`, the request it answers, for *Retry*; *Stop* adds one with `note: true`), `{ kind: "files", files }` for files sent, and `{ kind: "card", id, title, summary, lines, time }` for a proposal, `lines` being its first three `changes` (at most 200, the oldest dropped) |
 | `decided` | `proposal id → "accepted" or "rejected"`, as the person decided on the card |
 | `unread` | The replies since the panel was last open |
 | `pending` | The id of the last request sent |
 | `model` | The model the person chose in the picker, or `""` for their default (persisted) |
 | `models` | What `assistant.models` answered, or `null` (the picker hides) |
 | `modelMenu` | Whether the picker's menu is open |
+| `attachments` | The files attached to the next message |
+| `copied` | The place of the message just copied, for a moment, or `null` |
 | `simulate` | For tests only: see below |
 
 `messages`, `decided` and `model` are persisted (`persist`); whether the panel is open is not.
@@ -72,6 +82,10 @@ All in `state.assistant`:
 | `assistant.preview`, `assistant.accept`, `assistant.reject` | Review the proposal `id` |
 | `assistant.loadModels` | Asks the host for the models (run when the panel shows) |
 | `assistant.pickModel` | Uses the model `id` for the next requests (the default is kept as `""`) |
+| `assistant.stop` | Cancels the requests in progress and says so in the conversation |
+| `assistant.retry` | Asks `text` again (a reply's `asked`) |
+| `assistant.copy` | Copies `text` to the clipboard; `at`, its place, shows *Copied* for a moment |
+| `assistant.attach`, `assistant.drop`, `assistant.unattach` | Attach files from the OS dialog or a drop, or remove the file `id` |
 | `assistant.clear` | Forgets the conversation |
 
 An app can run them from its own menus or buttons, e.g. `{ "run": "assistant.open" }`.

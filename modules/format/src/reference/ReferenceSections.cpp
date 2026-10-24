@@ -395,6 +395,10 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "`options` (an object) passed on to them; replies run `ask:reply`, never as the person's decision (Asking the "
 	 "agents). A control step",
 	 "steps"},
+    {"cancelAsk", "",
+	 "`{ \"cancelAsk\": \"{{state.asked}}\" }`: stops requests of `ask` still in progress (an id or a list): they "
+	 "become `cancelled`, the agents are told, and their later replies are dropped. A control step",
+	 "steps"},
     {"attach", "",
 	 "`{ \"attach\": { \"accept\": [\"audio/*\"] }, \"into\": \"state.files\" }`: the person's files as "
 	 "attachments (Assets). A control step",

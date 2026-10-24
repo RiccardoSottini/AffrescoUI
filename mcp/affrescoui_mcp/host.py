@@ -140,7 +140,7 @@ class Host:
                 pending[1] = message
                 pending[0].set()
                 return
-        if kind == "request":
+        if kind in ("request", "cancel"):  # a person's request, or their cancelling one
             self.on_request(message)
             return
         event = self.news(kind, message)

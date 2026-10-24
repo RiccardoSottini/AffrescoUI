@@ -38,6 +38,10 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 	runtime.onUpdated.connect([this] { save(); });
 	runtime.onAsk.connect([this](const json& request) { // the person asks the agents, from inside the app
 		if(images.rendering()) return;
+		if(request.value("type", "") != "request") { // a cancel: for whoever is connected
+			broadcast(request);
+			return;
+		}
 		if(peers.empty()) {
 			(void)runtime.receiveReply({{"request", request["id"]}, {"error", "no agent is connected"}});
 			return;

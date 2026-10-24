@@ -429,6 +429,20 @@ class Requests(unittest.TestCase):
         self.assertEqual([message["done"] for message in server.host.sent], [False, True])
         self.assertEqual(server.reply({"request_id": "gone", "text": "x"})[0], "sent to the client")
 
+    def test_a_cancelled_request_is_no_longer_given_out_and_the_agent_is_told(self):
+        server = self.serving()
+        server.ready = True
+        pushed = io.StringIO()
+        with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(pushed):
+            server.on_request({"type": "request", "id": "ask-1", "from": "user", "text": "a", "source": "screen"})
+            server.on_request({"type": "cancel", "request": "ask-1", "from": "user", "source": "screen"})
+            server.on_request({"type": "cancel", "request": 7})  # malformed: ignored
+        self.assertNotIn("ask-1", server.requests)
+        told = [json.loads(line)["params"] for line in pushed.getvalue().splitlines()]
+        self.assertEqual(len(told), 2)  # the request, then its cancel
+        self.assertEqual(told[1]["meta"], {"request_id": "ask-1", "sender": "user", "origin": "app",
+                                           "cancelled": "true"})
+
 
 class Events(unittest.TestCase):
     def test_news_nobody_takes_is_bounded(self):

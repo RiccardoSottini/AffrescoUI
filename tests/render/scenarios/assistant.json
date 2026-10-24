@@ -97,6 +97,37 @@
 			]
 		},
 		{
+			"name": "assistant-files",
+			"note": "Files: two attached to the next message, as cards in the composer; one sent, and a proposal's asset and run-once step",
+			"screen": "assistant.screen.json",
+			"steps": [
+				{ "action": "test.files" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "files" } }
+			]
+		},
+		{
+			"name": "assistant-actions",
+			"screen": "assistant.screen.json",
+			"note": "A reply's copy and retry: copy says so for a moment; retry asks the request again. While the agent works, the send button is a stop button: it cancels the request and says so",
+			"steps": [
+				{ "action": "test.conversation" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "working" } },
+				{ "click": "#assistantCopy4" },
+				{ "expect": { "state": "assistant.copied", "is": 4 } },
+				{ "expect": { "image": "copied" } },
+				{ "wait": 1600 },
+				{ "expect": { "state": "assistant.copied", "is": null } },
+				{ "action": "assistant.stop" },
+				{ "expect": { "state": "assistant.simulate.working", "is": false } },
+				{ "wait": 200 },
+				{ "expect": { "image": "stopped" } }
+			]
+		},
+		{
 			"name": "assistant-dark",
 			"screen": "assistant.screen.json",
 			"note": "The conversation in the dark theme: every colour is a token",

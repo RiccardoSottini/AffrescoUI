@@ -73,18 +73,33 @@ std::string Asks::send(const std::string& text, const std::string& where, const 
 	    {"type", "request"}, {"id", requests_.back().id}, {"text", text}, {"from", "user"}, {"source", "screen"}};
 	if(options.is_object() && !options.empty()) message["options"] = options; // for the agents, passed on as is
 	if(attachments.is_array() && !attachments.empty()) message["attachments"] = attachments;
+	const std::string id = requests_.back().id;
+	relay(std::move(message));
+	return id;
+}
+
+bool Asks::cancel(const std::string& id) {
+	const auto request = std::ranges::find(requests_, id, &Request::id);
+	if(request == requests_.end() || (request->state != "sent" && request->state != "working")) return false;
+	request->state = "cancelled";
+	engine_.document.globalsChanged();
+	relay({{"type", "cancel"}, {"request", id}, {"from", "user"}, {"source", "screen"}});
+	return true;
+}
+
+void Asks::relay(json message) {
 	if(!engine_.window) {
 		engine_.owner.onAsk(message);
 	} else {
 		engine_.scheduler.defer([&engine = engine_, message = std::move(message)] { engine.owner.onAsk(message); });
 	}
-	return requests_.back().id;
 }
 
 bool Asks::receive(const json& reply) {
 	if(!reply.is_object() || !reply.contains("request") || !reply["request"].is_string()) return false;
 	const auto request = std::ranges::find(requests_, reply["request"].get<std::string>(), &Request::id);
 	if(request == requests_.end()) return false;
+	if(request->state == "cancelled") return true; // the person stopped it: what comes after is dropped
 
 	const std::string from = bounded(reply.value("from", json()), maxFrom);
 	const bool done = !reply.contains("done") || !reply["done"].is_boolean() || reply["done"].get<bool>();
@@ -148,8 +163,9 @@ json Asks::newProposals(Request& request, std::string_view from) const {
 
 void Asks::makeRoom() {
 	if(requests_.size() < maxRequests) return;
-	const auto finished = std::ranges::find_if(
-	    requests_, [](const Request& request) { return request.state == "answered" || request.state == "failed"; });
+	const auto finished = std::ranges::find_if(requests_, [](const Request& request) {
+		return request.state == "answered" || request.state == "failed" || request.state == "cancelled";
+	});
 	requests_.erase(finished != requests_.end() ? finished : requests_.begin());
 }
 

@@ -1,5 +1,6 @@
 /// @file
-/// @brief The "ask" step: a request in plain words from the screen's own person to the agents connected to it.
+/// @brief The "ask" step: a request in plain words from the screen's own person to the agents connected to it; and
+/// "cancelAsk", which stops one.
 
 #include "Engine.hpp"
 
@@ -38,10 +39,31 @@ std::optional<bool> runAskStep(const Running& s) {
 	return true;
 }
 
+/// @brief Runs a "cancelAsk" step: cancels the requests it names that are still in progress (Asks::cancel()).
+/// @param s The step.
+/// @return std::nullopt if it isn't one, else true.
+std::optional<bool> runCancelAskStep(const Running& s) {
+	if(!s.step.contains("cancelAsk")) return std::nullopt;
+	s.steps.checkControl(s.where); // a revision can't speak for the person
+	const json given = s.value("cancelAsk");
+	if(!given.is_string() && !given.is_array())
+		fail(s.where + ".cancelAsk", "expected a request's id, or a list of them");
+	for(const json& id : given.is_array() ? given : json::array({given})) {
+		if(!id.is_string()) fail(s.where + ".cancelAsk", "expected request ids");
+		(void)s.steps.engine().asks.cancel(id.get<std::string>()); // one already finished stays as it is
+	}
+	return true;
+}
+
 } // namespace
 
 void registerAssistantSteps(StepRegistry& registry) {
-	registry.add({"assistant", {{"ask", {"into", "options", "attachments"}, true}}, runAskStep});
+	registry.add({"assistant",
+	              {{"ask", {"into", "options", "attachments"}, true}, {"cancelAsk", {}, true}},
+	              [](const Running& s) {
+		              const std::optional<bool> asked = runAskStep(s);
+		              return asked ? asked : runCancelAskStep(s);
+	              }});
 }
 
 } // namespace affresco::format

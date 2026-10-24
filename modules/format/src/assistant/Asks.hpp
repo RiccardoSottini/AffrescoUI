@@ -57,15 +57,24 @@ public:
 	std::string send(const std::string& text, const std::string& where, const json& options = json(),
 	                 const json& attachments = json::array());
 
+	/// @brief Cancels a request still in progress ("sent" or "working"): it becomes "cancelled", the peers are told
+	/// after the event (`{"type": "cancel", "request", "from": "user", "source": "screen"}`), and its later replies
+	/// are dropped.
+	/// @param id The request.
+	/// @return Whether it was one of the screen's requests in progress.
+	bool cancel(const std::string& id);
+
 	/// @brief Takes a reply to one of the screen's requests: records it, finds the proposals its replier made since
 	/// the request, and runs "ask:reply" with `{"request", "from", "text", "done", "error", "proposals", "time"}`.
 	/// @param reply `{"request": id, "from"?, "text"?, "done"? (true), "error"?}`; fields of the wrong type are
 	/// ignored. One not done, with no text and no error, only marks the request "working".
-	/// @return false if it answers no request of the screen's (it is for another peer).
+	/// @return false if it answers no request of the screen's (it is for another peer). A reply to a cancelled request
+	/// is the screen's, and dropped.
 	bool receive(const json& reply);
 
 	/// @brief The requests, oldest first: `[{"id", "text", "time", "state", "replies", "proposals"}]`. "state" is
-	/// "sent", "working" (a reply that isn't done), "answered" or "failed"; times are milliseconds since 1970.
+	/// "sent", "working" (a reply that isn't done), "answered", "failed" or "cancelled"; times are milliseconds since
+	/// 1970.
 	/// @return The "requests" variable.
 	[[nodiscard]] json list() const;
 
@@ -94,6 +103,10 @@ private:
 
 	/// @brief Makes room for one more request: drops the oldest finished one, or the oldest.
 	void makeRoom();
+
+	/// @brief Sends a message to the peers after the event (Runtime::onAsk), or at once without a window.
+	/// @param message The message.
+	void relay(json message);
 
 	Engine& engine_;               ///< The runtime.
 	std::deque<Request> requests_; ///< See list().
