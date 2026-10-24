@@ -326,7 +326,9 @@ public:
 	/* Live document: revisions (see VERSION_CONTROL.md) */
 
 	/// @brief Applies, proposes or rejects a revision, following the file's "permissions". On error nothing changes.
-	/// @param revisionJson `{"author", "message", "parent"?, "proposal"?, "patch": [JSON Patch ops]}`.
+	/// @param revisionJson `{"author", "message", "parent"?, "proposal"?, "patch": [JSON Patch ops], "assets"?: [...],
+	/// "run"?: [steps]}`: assets and run steps make it a proposal only the person accepts (VERSION_CONTROL.md,
+	/// "Assets").
 	/// @return What happened.
 	RevisionResult submitRevision(std::string_view revisionJson);
 
@@ -441,7 +443,8 @@ public:
 	/// @param check The check, or an empty function (then a change set with a proof needs repair).
 	void setProofCheck(std::function<std::string(const std::string& documentJson, const std::string& proofJson)> check);
 	/// @brief Where the installed change sets stand.
-	/// @return `{"type": "repairs", "changeSets": [{name, status, reason, attempts, proposal, request, repairedFrom}]}`.
+	/// @return `{"type": "repairs", "changeSets": [{name, status, reason, attempts, proposal, request,
+	/// repairedFrom}]}`.
 	[[nodiscard]] std::string repairs() const;
 
 	/// @brief The current document, as JSON text.
@@ -586,6 +589,23 @@ public:
 	/// (and the folders inside it) is allowed.
 	/// @param directory The folder.
 	void allowAudioDirectory(const std::filesystem::path& directory);
+
+	/* Assets and attachments (VERSION_CONTROL.md, "Assets") */
+
+	/// @brief The assets of the version shown (main's head, or the proposal previewed), sorted by name.
+	[[nodiscard]] std::vector<AssetInfo> assets() const;
+	/// @brief An asset's bytes, as the version shown names it ("asset:<name>" in the document).
+	/// @param name The asset's name.
+	/// @return Its bytes, or nullptr if there is no such asset.
+	[[nodiscard]] std::shared_ptr<const std::string> assetBytes(std::string_view name) const;
+	/// @brief Keeps a file the person gave the host as an attachment, for agents to name in a revision's assets (what
+	/// an `attach` step does). Its type comes from its name, checked against its bytes; pictures and sounds are
+	/// measured
+	/// (`width`, `height`, `duration`).
+	/// @param name The file's own name, e.g. "Beat.mp3" (made a valid asset name: "beat.mp3").
+	/// @param bytes Its bytes, at most maxAssetBytes.
+	/// @return The attachment, or why it was refused.
+	Attached attach(std::string_view name, std::string bytes);
 
 private:
 	struct Impl;

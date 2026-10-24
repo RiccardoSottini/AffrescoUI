@@ -278,6 +278,19 @@ DecodedImage decodeImageFile(std::span<const std::uint8_t> file, const Limits& l
 	return result;
 }
 
+DecodedImage imageFromRgba(int width, int height, std::span<const std::uint8_t> rgba, const Limits& limits) {
+	checkSize({width, height, false}, limits);
+	if(rgba.size() != static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4)
+		throw DocumentError("imaging: the pixels don't match the image's size");
+	const stb::Decoded decoded{width, height, {rgba.begin(), rgba.end()}, {}};
+	DecodedImage result{std::make_shared<Image>(width, height, PixelFormat::rgba8, limits), std::nullopt, {}};
+	for(int row = 0; row < result.image->rows(); ++row)
+		for(int column = 0; column < result.image->columns(); ++column)
+			if(auto tile = tileOf(decoded, PixelFormat::rgba8, column, row))
+				result.image->setTile(column, row, std::move(tile));
+	return result;
+}
+
 std::vector<std::uint8_t> encodeImageFile(const Image& image, ImageFileFormat format,
                                           const std::optional<ColorProfile>& profile, int quality) {
 	// Before the pixels are gathered, so a size stb can't write costs nothing

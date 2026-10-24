@@ -8,6 +8,9 @@
 #include "NodeKeys.hpp"
 
 #include <affresco/audio/Engine.hpp>
+#include <affresco/audio/Sound.hpp>
+
+#include <fstream>
 
 #include <algorithm>
 #include <cmath>
@@ -236,6 +239,18 @@ struct AudioPlayers::Impl {
 	/// @param error Receives why not.
 	/// @return The source, or null.
 	std::shared_ptr<audio::Source> fileSource(const std::string& file, std::string& error) const {
+		if(file.starts_with(assetScheme)) { // an asset of the version shown, its bytes kept with the history
+			const std::string asset = file.substr(assetScheme.size());
+			const std::shared_ptr<const std::string> bytes = runtime.versions.assetBytes(asset);
+			if(!bytes) {
+				error = "no asset '" + asset.substr(0, 100) + "'";
+				return nullptr;
+			}
+			if(assetTypeOf(asset) == soundType) return audio::soundSource(*bytes, error); // rendered as it plays
+			const auto* data = reinterpret_cast<const std::uint8_t*>(bytes->data());
+			return audio::Source::memory(std::vector<std::uint8_t>(data, data + bytes->size()),
+			                             audio::encodingOf(asset));
+		}
 		const std::filesystem::path& base = runtime.document.baseDirectory();
 		std::filesystem::path path(file);
 		if(path.is_relative()) path = base / path;
@@ -246,6 +261,13 @@ struct AudioPlayers::Impl {
 			error = "'" + std::filesystem::path(file).filename().string() +
 			        "' is outside the folders the host allows (the screen's own, Screen::allowAudioDirectory)";
 			return nullptr;
+		}
+		if(assetTypeOf(file) == soundType) { // a sound description of the screen's folder
+			std::ifstream in(path, std::ios::binary);
+			std::string text((std::istreambuf_iterator<char>(in)), {});
+			if(!in.eof() && !in) error = "'" + path.filename().string() + "' can't be read";
+			if(text.size() > audio::SoundLimits{}.bytes) error = "'" + path.filename().string() + "' is too long";
+			return error.empty() ? audio::soundSource(text, error) : nullptr;
 		}
 		return audio::Source::file(path, audio::encodingOf(file));
 	}
@@ -477,6 +499,23 @@ std::optional<std::string> AudioPlayers::run(const std::string& name, const std:
 		return std::nullopt;
 	}
 	return impl_->operate(name, operation, step, where);
+}
+
+std::optional<double> probeSound(const std::string& bytes, std::string_view type) {
+	if(type == soundType) {
+		std::string error;
+		const auto score = audio::readSound(bytes, error);
+		if(!score) throw DocumentError("the sound description is wrong: " + error);
+		return score->seconds;
+	}
+	const audio::Encoding hint = type == "audio/wav"    ? audio::Encoding::Wav
+	                             : type == "audio/flac" ? audio::Encoding::Flac
+	                                                    : audio::Encoding::Mp3;
+	std::string error;
+	const auto seconds = audio::probeSeconds(
+	    std::span(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size()), hint, error);
+	if(!seconds) throw DocumentError("the sound doesn't play (" + error + ")");
+	return seconds;
 }
 
 } // namespace affresco::format

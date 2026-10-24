@@ -5,6 +5,7 @@
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"
 
+#include "affresco/core/Assets.hpp"
 #include "affresco/render/ImageView.hpp"
 
 #include <array>
@@ -38,6 +39,8 @@ void applyImage(Panel& panel, const json& values, const PropertyReader& reader, 
 	if(!view) return;
 	view->setFit(values.contains("fit") ? fitOf(values["fit"], path + ".fit") : ImageFit::contain);
 	if(values.contains("source")) view->showNamed(reader.images(), string(values["source"], path + ".source"));
+	else if(values.contains("file") && assetReference(values["file"])) // an asset: decoded once, by its bytes
+		view->showNamed(reader.images(), reader.assetImage(values["file"], path + ".file"));
 	else if(values.contains("file")) view->showFile(reader.images(), reader.imageFile(values["file"], path + ".file"));
 	else view->setBitmap(nullptr);
 }

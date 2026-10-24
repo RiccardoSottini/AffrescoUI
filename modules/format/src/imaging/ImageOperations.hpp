@@ -40,6 +40,13 @@ struct ImageOperation {
 /// @brief newImage, open, save, revert (ImageFiles.cpp).
 /// @return The operations.
 [[nodiscard]] std::vector<ImageOperation> fileOperations();
+/// @brief open with an asset: opens a PNG, JPEG or SVG the screen has as the document (`{"asset": name}`, which
+/// the image step resolves; ImageFiles.cpp). Revert opens it again (an SVG as the PNG of its pixels).
+/// @param image The image.
+/// @param type The asset's type.
+/// @param bytes Its bytes.
+/// @throws DocumentError When it isn't a picture within the limits.
+void openAsset(ImageDocument& image, std::string_view type, const std::string& bytes);
 /// @brief undo, redo, history, clearHistory and the layer operations (ImageLayers.cpp).
 /// @return The operations.
 [[nodiscard]] std::vector<ImageOperation> layerOperations();

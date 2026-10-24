@@ -227,7 +227,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders "
 	 "inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is "
 	 "refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or "
-	 "decoded shows nothing (and is logged).",
+	 "decoded shows nothing (and is logged). `\"asset:<name>\"` shows an asset of the screen instead (Assets), which "
+	 "only the person accepts.",
 	 "image"},
     {"source", R"json({"type": "string",
 		"description": "image: a named image (a node's snapshot, or Screen::setImage), instead of a file"})json",

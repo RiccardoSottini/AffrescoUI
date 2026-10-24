@@ -363,6 +363,33 @@
 					"state": {
 						"type": "object"
 					},
+					"assets": {
+						"type": "object",
+						"maxProperties": 1000,
+						"description": "The files revisions brought, kept with the history, read as asset:<name>",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"type",
+								"size",
+								"sha256"
+							],
+							"additionalProperties": false,
+							"properties": {
+								"type": {
+									"type": "string"
+								},
+								"size": {
+									"type": "integer",
+									"minimum": 0
+								},
+								"sha256": {
+									"type": "string",
+									"pattern": "^[0-9a-f]{64}$"
+								}
+							}
+						}
+					},
 					"stateTypes": {
 						"type": "object",
 						"description": "A type per state key, written as JSON Schema: type, enum, const, properties, required, additionalProperties, items, minimum, maximum, minLength, maxLength, minItems, maxItems",
@@ -929,7 +956,7 @@
 					"audio": {
 						"type": "object",
 						"maxProperties": 32,
-						"description": "Sounds the audio step plays, each from one source. Revisions can't change it.",
+						"description": "Sounds the audio step plays, each from one source. Only the person accepts a change to it.",
 						"additionalProperties": {
 							"type": "object",
 							"additionalProperties": false,
@@ -4051,7 +4078,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, options), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, attachments), attach(+into, onDone, onError), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -4075,6 +4102,7 @@
 					"signIn": {},
 					"signOut": {},
 					"ask": {},
+					"attach": {},
 					"chooseFolder": {},
 					"accept": {},
 					"reject": {},
@@ -4181,6 +4209,7 @@
 							}
 						]
 					},
+					"attachments": {},
 					"title": {},
 					"head": {},
 					"reason": {},

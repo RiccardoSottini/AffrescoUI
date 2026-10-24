@@ -123,6 +123,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"overlays", checkObject});     // laid over the window, above the root (Reconciler::childrenOf())
 	registry.add({"languages", checkLanguages}); // code languages for editors (Language.hpp)
 	registry.add({"state"});
+	registry.add(assetsSection()); // the assets revisions brought (AssetRules.cpp)
 	registry.add({"stateTypes", checkStateTypes}); // a type per state key (StateTypes.hpp)
 	registry.add({"computed", checkObject});
 	registry.add({"watch", checkObject});

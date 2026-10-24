@@ -90,6 +90,15 @@ public:
 	/// @throws DocumentError If it isn't text or is outside those folders.
 	[[nodiscard]] virtual std::filesystem::path imageFile(const json& value, const std::string& at) const = 0;
 
+	/// @brief Reads an image's asset ("asset:<name>"), decoding it into images() once by its bytes.
+	/// @param value The reference.
+	/// @param at Its place, for errors.
+	/// @return The name images() knows it by ("asset:<sha256>").
+	/// @throws DocumentError If the version shown has no such picture, or it doesn't decode. The default has none.
+	[[nodiscard]] virtual std::string assetImage([[maybe_unused]] const json& value, const std::string& at) const {
+		throw DocumentError("AffrescoUI screen: " + at + ": this screen has no assets");
+	}
+
 	/// @brief The languages the document declares ("languages"), for code editors.
 	/// @return Them, or nullptr for none.
 	[[nodiscard]] virtual const LanguageCatalog* languages() const { return nullptr; }

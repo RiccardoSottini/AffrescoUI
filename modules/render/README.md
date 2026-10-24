@@ -160,7 +160,9 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 - **Vector bounds:** a path flattens to at most 65,536 points, and a fill or stroke makes at most 65,536 quads and
   16 Mi edge visits (`VectorPath.hpp`); a dashed stroke ends after 1 Mi dashes and gaps. An SVG icon is at most 1 MiB,
   4,096 elements nested 32 deep and 2,048 pixels a side, and its fills together visit at most 64 Mi edges. Past a
-  bound a path is drawn in part, never slowly.
+  bound a path is drawn in part, never slowly. It draws shapes with colours, linear and radial gradients (at most 256,
+  64 stops each, pad spread, `href` for their stops; one is used after it is defined) and every `transform` (translate,
+  scale, rotate, skewX, skewY, matrix); text, patterns, filters, masks and clip paths are skipped.
 - **Large texts:** a `TextModel` copies a file once into buffers that are only appended to, and keeps pieces of them
   in a treap with the bytes and line feeds under each node, so an edit or finding a line costs O(log n). A 50 MB
   text opens in under a second, an edit takes under 50 µs, and memory stays under 1.5 times the text

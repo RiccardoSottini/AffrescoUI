@@ -120,7 +120,14 @@ TOOLS = [
                     "main); proposed (a branch a reviewer previews and merges or rejects, e.g. on its card in the app's chat: get_events "
                     "reports the decision); or rejected with an error saying why (fix it and retry). To refine an "
                     "open proposal of yours (e.g. after the person asks for more), pass its number as `proposal`: the "
-                    "commit is added to that branch instead of opening a new one.",
+                    "commit is added to that branch instead of opening a new one. To bring content in (a picture, a "
+                    "sound, a text), add `assets`: each {name, type, text} (SVG, JSON, text, or a sound description: "
+                    "type application/vnd.affrescoui.sound+json, name ending .sound.json), {name, type, data} (base64), "
+                    "or {name, attachment} (a file the person attached: its id from the request's attachments); the "
+                    "screen then reads it as \"asset:<name>\" (an image's or a sound's file, the image step's open "
+                    "with {\"asset\": name}). `run`: steps run once on the live screen when the proposal is accepted "
+                    "(e.g. [{\"image\": \"open\", \"with\": {\"asset\": \"moon.svg\"}}]). A revision with assets or "
+                    "run is always proposed, and only the person accepts it (get_format_guide topic \"Assets\").",
      "inputSchema": object_schema({
          "message": {"type": "string", "description": "One line, for the reviewer, saying what the change does"},
          "set": {"type": "object", "description": "path -> new value (replace, or add where nothing is)"},
@@ -133,6 +140,11 @@ TOOLS = [
                     "description": "The revision or commit id this is based on (optional; if the screen has moved "
                                    "on, it is rejected as a conflict)"},
          "proposal": {"type": "integer", "description": "Push onto this open proposal of yours (optional)"},
+         "assets": {"type": "array", "items": {"type": "object"},
+                    "description": "Files it brings: {name, type, text}, {name, type, data (base64)} or {name, "
+                                   "attachment} (optional; names like \"moon-sea.svg\", lowercase, no folders)"},
+         "run": {"type": "array", "items": {"type": "object"},
+                 "description": "Steps run once when it is accepted, like an action's (optional)"},
      }, ["message"])},
     {"name": "render_screen",
      "description": "A picture of the running screen (PNG), to check your work before a person reviews it: main as "

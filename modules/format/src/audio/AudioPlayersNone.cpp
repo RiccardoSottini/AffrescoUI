@@ -50,4 +50,9 @@ std::optional<std::string> AudioPlayers::run(const std::string& name, const std:
 	return problem;
 }
 
+std::optional<double> probeSound(const std::string& bytes, std::string_view type) {
+	static_cast<void>(bytes), static_cast<void>(type);
+	return std::nullopt; // nothing decodes sound in this build: the first bytes were checked already
+}
+
 } // namespace affresco::format

@@ -135,6 +135,32 @@ public:
 	/// @throws HistoryError If it can't be written.
 	void writeObject(const std::string& id, std::string_view text);
 
+	/// @brief The file of a blob: an asset's bytes, never packed.
+	/// @param id The bytes' SHA-256 (64 lowercase hex digits).
+	/// @return In blobs/, a folder named by its first two digits, holding a file named by the other 62.
+	[[nodiscard]] std::filesystem::path blobFile(std::string_view id) const;
+	/// @brief The size of a blob on disk.
+	/// @param id The bytes' SHA-256.
+	/// @return Its size, or std::nullopt if it isn't there (or is no regular file).
+	[[nodiscard]] std::optional<std::uintmax_t> blobSize(const std::string& id) const;
+	/// @brief Reads a blob (the caller checks it against its SHA-256).
+	/// @param id The bytes' SHA-256.
+	/// @return Its bytes.
+	/// @throws HistoryError If it can't be read or is larger than maxFileSize.
+	[[nodiscard]] std::string readBlob(const std::string& id);
+	/// @brief Writes a blob, unless this store wrote it already.
+	/// @param id The bytes' SHA-256.
+	/// @param bytes The bytes.
+	/// @throws HistoryError If it can't be written.
+	void writeBlob(const std::string& id, std::string_view bytes);
+	/// @brief Tells whether this store wrote or found a blob.
+	/// @param id The bytes' SHA-256.
+	/// @return true if it is known to be on disk.
+	[[nodiscard]] bool hasBlob(const std::string& id) const { return blobs_.contains(id); }
+	/// @brief Remembers that a blob is on disk (found by blobSize()).
+	/// @param id The bytes' SHA-256.
+	void knowBlob(const std::string& id) { blobs_.insert(id); }
+
 	/// @brief The file of a pack.
 	/// @param name The pack's name: the SHA-256 of its text.
 	/// @return The file named @p name in packs/.
@@ -188,6 +214,7 @@ private:
 	std::string problem_;                                 ///< Why there is no lock.
 	bool usable_ = true;                                  ///< false for a symbolic link or another user's folder.
 	std::unordered_set<std::string> objects_;             ///< Objects known to be on disk.
+	std::unordered_set<std::string> blobs_;               ///< Blobs known to be on disk.
 	std::string refs_;                                    ///< What the refs file was last written or read with.
 	std::vector<std::string> packs_;                      ///< The packs, oldest first.
 	std::unordered_map<std::string, std::string> packed_; ///< Objects of the packs read, by id, until read.

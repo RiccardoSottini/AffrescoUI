@@ -75,8 +75,16 @@ void Canvas::fill(std::span<const MeshVertex> quads, Color color) {
 	}
 }
 
+void Canvas::fill(std::span<const MeshVertex> quads, const std::function<Color(Vec2)>& paint) {
+	for(std::size_t first = 0; first + 4 <= quads.size(); first += 4) {
+		triangle({quads[first], quads[first + 1], quads[first + 2]}, {}, &paint);
+		triangle({quads[first + 2], quads[first + 3], quads[first]}, {}, &paint);
+	}
+}
+
 // Pixel centres inside by edge functions; the coverage is interpolated with the same barycentric weights
-void Canvas::triangle(const std::array<MeshVertex, 3>& corners, const std::array<float, 4>& color) {
+void Canvas::triangle(const std::array<MeshVertex, 3>& corners, const std::array<float, 4>& color,
+                      const std::function<Color(Vec2)>* paint) {
 	std::array<Vec2, 3> p{corners[0].position, corners[1].position, corners[2].position};
 	std::array<float, 3> coverage{corners[0].coverage, corners[1].coverage, corners[2].coverage};
 	float area = edgeAt(p[0], p[1], p[2]);
@@ -102,8 +110,14 @@ void Canvas::triangle(const std::array<MeshVertex, 3>& corners, const std::array
 			                                  edgeAt(p[0], p[1], centre)};
 			if(!covers(weight, owns)) continue;
 			const float amount = (weight[0] * coverage[0] + weight[1] * coverage[1] + weight[2] * coverage[2]) / area;
+			std::array<float, 4> here = color;
+			if(paint) {
+				const Color c = (*paint)(centre);
+				const float a = std::clamp(c.a, 0.0f, 1.0f);
+				here = {c.r * a, c.g * a, c.b * a, a};
+			}
 			blend((static_cast<std::size_t>(y) * static_cast<std::size_t>(width_) + static_cast<std::size_t>(x)) * 4,
-			      color, amount);
+			      here, amount);
 		}
 }
 

@@ -15,6 +15,10 @@ namespace affresco {
 
 Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
     : repository(rules, std::move(document)), runtime(repository, std::move(baseDirectory)) {
+	// A commit's "run" steps (a merged proposal's), once, on the live screen; a restore or a revert carries none
+	repository.onCommit.connect([this](const CommitInfo& commit) {
+		if(commit.run.is_array() && !commit.run.empty() && !images.rendering()) runtime.runOnce(commit.run, commit.id);
+	});
 	runtime.onEvent.connect([this](const json& event) {
 		if(images.rendering()) return; // from a proposal drawn for a picture: it didn't happen
 		broadcast(event);

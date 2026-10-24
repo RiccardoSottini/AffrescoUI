@@ -65,7 +65,8 @@ target_sources(affrescoui_format PRIVATE
 	src/rules/NodeIds.cpp
 	src/rules/Limits.cpp
 	src/rules/Migrate.cpp
-	src/rules/ServiceRules.cpp)
+	src/rules/ServiceRules.cpp
+	src/rules/AssetRules.cpp)
 target_include_directories(affrescoui_format PRIVATE src/rules)
 # src/runtime/: the engine, its document context, settings, scheduler and usage
 target_sources(affrescoui_format PRIVATE
@@ -120,7 +121,7 @@ target_sources(affrescoui_format PRIVATE
 	src/calls/ServiceCalls.cpp)
 target_include_directories(affrescoui_format PRIVATE src/calls)
 # src/assistant/: the requests the screen's own person sends its agents ("ask"), and their replies
-target_sources(affrescoui_format PRIVATE src/assistant/Asks.cpp src/assistant/AskSteps.cpp)
+target_sources(affrescoui_format PRIVATE src/assistant/Asks.cpp src/assistant/AskSteps.cpp src/assistant/AttachSteps.cpp)
 target_include_directories(affrescoui_format PRIVATE src/assistant)
 # widgets: the node types and their properties, the reference, sections, connections, features, composition
 # and adapters, a folder each (src/<folder>/README.md)

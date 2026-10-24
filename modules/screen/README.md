@@ -14,6 +14,13 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 | `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, also as a second window sharing another's context, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`, `setSignInOptions`), change (`submit`, `commit`, proposals, history, change sets, `installChanges` and `repairs` for self-repairing ones), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); audio (`audio`, `setAudio`, `setAudioSource`, `allowAudioDirectory`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
 
+**Assets** (VERSION_CONTROL.md, "Assets"): `assets()` (the version shown, `{name, type, size, sha256}`),
+`assetBytes(name)` (nullptr if none), `attach(name, bytes)` (a file the host was given, as an `attach` step does:
+type from the name, checked against the bytes, measured; returns `Attached{attachment, error}`), and `submitRevision`
+takes `assets` and `run`. When a commit with `run` lands on main (a proposal merged), the screen runs its steps once,
+after the update, as an action of the root panel. `asset:<name>` reads an asset wherever a screen reads a file: an
+`image` node's `file`, a sound's `file`, an `image` step's `open` with `{"asset": name}`.
+
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
 without including nlohmann/json; `versions()` gives the `VersionControl` to code that needs more.
 

@@ -49,10 +49,13 @@ public:
 	/// @param text What the person asks.
 	/// @param where The step, for errors.
 	/// @param options What the agents are told with it (`options`: e.g. the model to use), an object or null.
+	/// @param attachments What the person attached for it: the attachments' metadata (VersionControl::attachment()),
+	/// sent as the request's "attachments"; never their bytes.
 	/// @return The request's id, unique across runs ("ask-<milliseconds>-<n>").
 	/// @throws DocumentError If the text is empty or longer than maxAsk, or the options aren't an object of at most
 	/// maxOptions bytes.
-	std::string send(const std::string& text, const std::string& where, const json& options = json());
+	std::string send(const std::string& text, const std::string& where, const json& options = json(),
+	                 const json& attachments = json::array());
 
 	/// @brief Takes a reply to one of the screen's requests: records it, finds the proposals its replier made since
 	/// the request, and runs "ask:reply" with `{"request", "from", "text", "done", "error", "proposals", "time"}`.

@@ -115,6 +115,36 @@ public:
 		return {};
 	}
 
+	/// @brief What a change does that only the person may accept, whoever makes it and whatever the rules, mode or
+	/// grants allow (e.g. a change of the sounds a screen plays): version control makes it a proposal no other
+	/// reviewer can accept. Assets and "run" steps always are, without this. The default has none.
+	/// @param before The document now, with the live state as its "state".
+	/// @param after The document after the change, with the live state after it.
+	/// @return One line for each, e.g. "changes the audio section".
+	[[nodiscard]] virtual std::vector<std::string> personLines([[maybe_unused]] const json& before,
+	                                                           [[maybe_unused]] const json& after) const {
+		return {};
+	}
+	/// @brief Checks the steps a revision runs once when it lands ("run"): what an action may hold, none that
+	/// controls changes or reaches outside, nothing the document doesn't define.
+	/// @param document The document they run on (after the revision), with the live state as its "state".
+	/// @param steps The steps.
+	/// @throws DocumentError If they may not run; the default refuses every one.
+	virtual void checkRun([[maybe_unused]] const json& document, [[maybe_unused]] const json& steps) const {
+		throw DocumentError("AffrescoUI screen: revision.run: this document runs no steps");
+	}
+	/// @brief Checks an asset's bytes beyond their first bytes (assetBytesProblem() passed): a picture decodes, a
+	/// sound is one the decoders play. The default checks nothing more.
+	/// @param name The asset's name.
+	/// @param type Its media type.
+	/// @param bytes Its bytes.
+	/// @return Details for people and agents (`duration`, `width`, `height`), or an empty object.
+	/// @throws DocumentError If they aren't what the type says.
+	[[nodiscard]] virtual json checkAsset([[maybe_unused]] std::string_view name,
+	                                      [[maybe_unused]] std::string_view type,
+	                                      [[maybe_unused]] std::string_view bytes) const {
+		return json::object();
+	}
 	/// @brief What a change does to behaviour, as lines for a reviewer: actions, steps, events and bindings added,
 	/// removed or changed. A review policy may ask more approvals for these (ReviewPolicy::behaviourApprovals), and a
 	/// proposal's evidence shows them. The default has none.

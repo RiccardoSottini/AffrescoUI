@@ -100,6 +100,24 @@ std::filesystem::path DocumentContext::imageFile(const json& value, const std::s
 	return file;
 }
 
+std::string DocumentContext::assetImage(const json& value, const std::string& path) {
+	const std::string name = string(value, path).substr(assetScheme.size());
+	const std::vector<AssetInfo> assets = engine_.versions.assets();
+	const auto asset = std::ranges::find(assets, name, &AssetInfo::name);
+	if(asset == assets.end()) fail(path, "no asset '" + name.substr(0, 100) + "'");
+	if(!asset->type.starts_with("image/")) fail(path, "the asset '" + name + "' isn't a picture");
+	std::string key = std::string(assetScheme) + asset->sha256;
+	if(images_.named(key)) return key;
+	const std::shared_ptr<const std::string> bytes = engine_.versions.assetBytes(name);
+	if(!bytes) fail(path, "the asset '" + name + "' can't be read");
+	try {
+		images_.setNamed(key, Bitmap::decode({reinterpret_cast<const std::uint8_t*>(bytes->data()), bytes->size()}, {}));
+	} catch(const std::exception& error) {
+		fail(path, "the asset '" + name + "' doesn't decode: " + error.what());
+	}
+	return key;
+}
+
 std::map<std::string, DocumentContext::NamedColor, std::less<>> DocumentContext::readColors(const json& doc) {
 	std::map<std::string, NamedColor, std::less<>> result;
 	if(!doc.contains("colors")) return result;
