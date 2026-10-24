@@ -5,6 +5,7 @@
 #include "paint/GeometryCache.hpp"
 #include "paint/PaintRecorder.hpp"
 
+#include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
 
 #include <cstddef>
@@ -43,8 +44,10 @@ Rect screenReachOf(const PanelGeometry& geometry) noexcept {
 	return geometry.world.isIdentity() ? reach : geometry.world.boundingBox(reach);
 }
 
-Refreshed GeometryCache::refresh(const Frame& frame) {
-	all_ = frame.paintGeneration != generation_;
+Refreshed GeometryCache::refresh(const Frame& frame, float pixelScale) {
+	const float scale = Font::rasterScaleFor(pixelScale);
+	all_ = frame.paintGeneration != generation_ || scale != scale_;
+	scale_ = scale;
 	frameGeneration_ = frame.paintGeneration;
 	damage_.reset();
 
@@ -130,8 +133,9 @@ void GeometryCache::refreshChild(const Panel& parent, Panel& child, const Affine
 }
 
 void GeometryCache::refreshPanel(Panel& panel, const Rect& outerClip, PanelGeometry& geometry, const Affine2& world) {
-	const PaintKey key{panel.frame_,      panel.bounds_,     outerClip,        panel.scroll_,
-	                   panel.contentMin_, panel.contentMax_, frameGeneration_, !world.isAxisAligned()};
+	const PaintKey key{panel.frame_,     panel.bounds_,          outerClip,
+	                   panel.scroll_,    panel.contentMin_,      panel.contentMax_,
+	                   frameGeneration_, !world.isAxisAligned(), scale_};
 	if(panel.shown_ && geometry.recorded && !panel.paintStale_ && geometry.key == key) {
 		if(geometry.world == world) return; // nothing changed
 		// Only its place on screen changed: the same drawing, moved
@@ -149,7 +153,7 @@ void GeometryCache::refreshPanel(Panel& panel, const Rect& outerClip, PanelGeome
 	geometry.world = world;
 	if(!panel.shown_) return;
 
-	PaintRecorder recorder(geometry.record, panel.bounds_, outerClip);
+	PaintRecorder recorder(geometry.record, panel.bounds_, outerClip, scale_);
 	if(key.smooth) recorder.smoothEdges(panel.frame_);
 	panel.paint(recorder);
 	geometry.record.overStart = geometry.record.ops.size();

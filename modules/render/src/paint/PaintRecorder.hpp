@@ -12,7 +12,8 @@ namespace affresco::detail {
 
 /// @brief Records what a panel draws: quads clipped to the panel (shadows to what clips the panel), their colours and
 /// texture coordinates, and the batch steps between them. No OpenGL: glyphs are looked up (and rasterised into their
-/// font's atlas), not uploaded.
+/// font's atlas), not uploaded. Text is laid out by its font and drawn from the font's raster at the record's scale
+/// (Font::rasterAt()), so a record is for frames of that many pixels per unit.
 ///
 /// Transparent quads and quads clipped to nothing are dropped, but the steps around them are kept, so replaying the
 /// record changes the frame's batches exactly as drawing directly did.
@@ -22,8 +23,9 @@ public:
 	/// @param record The record; it must outlive the recorder.
 	/// @param clip The panel's bounds: what clips its drawing.
 	/// @param outerClip What clips the panel: where its shadow may fall.
-	PaintRecorder(PaintRecord& record, const Rect& clip, const Rect& outerClip) noexcept
-	    : record_(record), clip_(clip), outerClip_(outerClip), shapeClip_(clip) {}
+	/// @param scale The framebuffer pixels per window unit of the frames it is for: what its text is rasterised at.
+	PaintRecorder(PaintRecord& record, const Rect& clip, const Rect& outerClip, float scale = 1.0f) noexcept
+	    : record_(record), clip_(clip), outerClip_(outerClip), shapeClip_(clip), scale_(scale) {}
 
 	/// @brief Keeps edges smooth for a panel drawn turned or skewed: rectangles become shapes (anti-aliased by
 	/// distance, which a transform keeps), and shapes may reach a unit past the panel's own edges for their outer ramp
@@ -105,6 +107,7 @@ private:
 	Rect clip_;           ///< The panel's bounds.
 	Rect outerClip_;      ///< What clips the panel.
 	Rect shapeClip_;      ///< What clips its shapes: its bounds, or a unit more where smoothEdges() allows.
+	float scale_ = 1.0f;  ///< Framebuffer pixels per window unit: see the constructor.
 	bool smooth_ = false; ///< smoothEdges() was called: rectangles are drawn as shapes.
 };
 
