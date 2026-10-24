@@ -76,7 +76,7 @@ void DataLayer::watch(data::Store& store) {
 	watched_ = &store;
 	connection_ = store.onChange.connect([this](const std::string&) {
 		++storeVersion_;
-		engine_.document.requestUpdate();
+		engine_.document.markStateChanged(); // computed values that read `data` are stale too, and watches compare
 		engine_.reconciler.requestReconcile();
 	});
 }
