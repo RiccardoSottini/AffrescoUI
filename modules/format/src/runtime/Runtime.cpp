@@ -102,6 +102,16 @@ void Runtime::allowImageDirectory(const std::filesystem::path& directory) {
 	impl_->document.images().allowDirectory(directory);
 }
 
+void Runtime::setAudio(std::shared_ptr<audio::Engine> engine) { impl_->audio.setEngine(std::move(engine)); }
+
+std::shared_ptr<audio::Engine> Runtime::audio() const { return impl_->audio.engine(); }
+
+void Runtime::setAudioSource(const std::string& name, std::shared_ptr<audio::Source> source) {
+	impl_->audio.setSource(name, std::move(source));
+}
+
+void Runtime::allowAudioDirectory(const std::filesystem::path& directory) { impl_->audio.allowDirectory(directory); }
+
 void Runtime::waitForImages() { impl_->document.images().finishPending(); }
 
 void Runtime::build(Window& window) {
@@ -151,6 +161,7 @@ void Runtime::setServices(services::Services* services) {
 
 void Runtime::setNetwork(network::Network* network) {
 	impl_->connections.setNetwork(network);
+	impl_->audio.setNetwork(network); // the sounds' URLs
 	impl_->document.globalsChanged(); // the "connections" variable
 	impl_->reconciler.requestReconcile();
 }

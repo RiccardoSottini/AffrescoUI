@@ -159,6 +159,34 @@ TEST_CASE("net client: server-sent events arrive one by one, then the end") {
 	CHECK(outcome.events[1].type == "tick");
 }
 
+TEST_CASE("net client: a byte stream delivers its body's bytes as they arrive, binary and in bounded parts") {
+	std::string sent;
+	for(int i = 0; i < 300; ++i) sent += static_cast<char>(i % 256); // with NUL bytes
+	LocalServer server([&sent](tcp::Connection& connection) {
+		static_cast<void>(readRequest(connection));
+		const std::string head = "HTTP/1.1 200 OK\r\nContent-Type: audio/wav\r\nConnection: close\r\n\r\n";
+		CHECK(connection.send(head + sent.substr(0, 100), std::chrono::seconds{5}));
+		std::this_thread::sleep_for(std::chrono::milliseconds{20});
+		CHECK(connection.send(sent.substr(100), std::chrono::seconds{5}));
+	});
+	ThreadExecutor executor;
+	auto client = clientFor(executor, server);
+	Outcome outcome;
+	auto transfer = client->start(
+	    {.url = server.origin() + "/sound.wav", .stream = network::Stream::Bytes, .maxBodyBytes = 64},
+	    recordInto(outcome));
+	REQUIRE(executor.runUntil([&] { return outcome.ended(); }));
+	REQUIRE(outcome.response);
+	CHECK(outcome.response->body.empty());
+	std::string received;
+	for(const network::StreamEvent& event : outcome.events) {
+		CHECK(event.type == "bytes");
+		CHECK(event.data.size() <= 64);
+		received += event.data;
+	}
+	CHECK(received == sent);
+}
+
 TEST_CASE("net client: destroying a transfer cancels it, and a slow answer times out") {
 	LocalServer server([](tcp::Connection& connection) {
 		static_cast<void>(readRequest(connection));

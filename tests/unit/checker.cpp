@@ -234,6 +234,27 @@ TEST_CASE("checker: the images a screen edits, the image step and the raster nod
 	});
 }
 
+TEST_CASE("checker: the sounds a screen plays and the audio step") {
+	const std::string sounds = R"("audio": {"song": {"file": "song.mp3", "into": "state.song"},
+	        "beep": {"tone": {"frequency": 880, "seconds": 0.2}}}, )";
+	checkAll({
+	    {"a sound's state may be read at its into path",
+	     R"("audio": {"song": {"file": "song.mp3", "into": "state.song"}},
+	        "root": {"text": "{{state.song.position}} {{state.sng}}"})",
+	     {"root.text: 'state.sng' doesn't exist (did you mean 'state.song'?)"}},
+	    {"a step's operation and the sound it names",
+	     (sounds + R"("actions": {"go": [{"audio": "play", "of": "song"}, {"audio": "paly", "of": "song"},
+	        {"audio": "stop", "of": "sng"}, {"audio": "pause"}, {"audio": "master", "to": 0.5}]}, "root": {})")
+	         .c_str(),
+	     {"actions.go[1].audio: unknown audio operation 'paly' (did you mean 'play'?)",
+	      "actions.go[2].of: unknown sound 'sng' (did you mean 'song'?)",
+	      "actions.go[3]: \"of\" names the sound when a screen declares more than one"}},
+	    {"a step needs an audio section",
+	     R"("actions": {"go": [{"audio": "play"}]}, "root": {})",
+	     {"actions.go[0]: an \"audio\" step needs an \"audio\" section"}},
+	});
+}
+
 TEST_CASE("checker: paths nested past the expression limit are findings, not a crash") {
 	std::string deep;
 	for(int i = 0; i < 20000; ++i) deep += "state.items[";

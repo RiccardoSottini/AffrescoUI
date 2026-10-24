@@ -28,6 +28,9 @@ enum class Stream {
 	None,   ///< Read whole, then delivered once to Handlers::done.
 	Events, ///< Server-sent events (text/event-stream): each event to Handlers::event.
 	Lines,  ///< One event per line (e.g. newline-delimited JSON): each line to Handlers::event, as its data.
+	/// The body's bytes as they arrive, for a stream of binary data (audio): each chunk of a success to
+	/// Handlers::event, as an event of type "bytes" with the chunk as its data (at most maxBodyBytes each).
+	Bytes,
 };
 
 /// @brief One HTTP request.

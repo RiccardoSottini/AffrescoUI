@@ -219,7 +219,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void affresco_fetch_headers_done(std::uint32_t h
 	Job* job = affresco::net::jobOf(handle);
 	if(!job) return;
 	job->headersDone = true;
-	if(!job->streaming()) return;
+	if(!job->streaming() || job->request.stream == affresco::network::Stream::Bytes) return;
 	affresco::net::EventSink sink = [job](affresco::network::StreamEvent event) {
 		affresco::net::postEvent(*job->executor, job->delivery, std::move(event));
 	};
@@ -236,6 +236,19 @@ extern "C" EMSCRIPTEN_KEEPALIVE void affresco_fetch_headers_done(std::uint32_t h
 extern "C" EMSCRIPTEN_KEEPALIVE int affresco_fetch_body(std::uint32_t handle, const char* bytes, std::size_t length) {
 	Job* job = affresco::net::jobOf(handle);
 	if(!job || job->delivery->cancelled) return 0;
+	if(job->request.stream == affresco::network::Stream::Bytes && job->headersDone && job->status >= 200 &&
+	   job->status < 300) { // a byte stream's chunks go out as they are, in parts of at most maxBodyBytes
+		const std::size_t part = std::max<std::size_t>(job->request.maxBodyBytes, 1);
+		for(std::size_t at = 0; at < length; at += part) {
+			if(job->delivery->undelivered > job->maxUndelivered) {
+				job->tooLarge = true;
+				return 0;
+			}
+			affresco::net::postEvent(*job->executor, job->delivery,
+			                         {"bytes", std::string(bytes + at, std::min(part, length - at)), {}});
+		}
+		return 1;
+	}
 	if(job->streaming() && (job->events || job->lines)) {
 		const std::string_view chunk{bytes, length};
 		const bool fed = job->events ? job->events->feed(chunk) : job->lines->feed(chunk);

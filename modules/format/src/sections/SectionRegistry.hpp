@@ -84,5 +84,8 @@ void registerBuiltInSections(SectionRegistry& registry);
 /// @brief "images": the images the screen edits, their tools and lowered limits; a capability (ImagesSection.cpp).
 /// @return The section.
 [[nodiscard]] SectionType imagesSection();
+/// @brief "audio": the sounds the screen plays and their sources; a capability (audio/AudioSection.cpp).
+/// @return The section.
+[[nodiscard]] SectionType audioSection();
 
 } // namespace affresco::format
