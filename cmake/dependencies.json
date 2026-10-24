@@ -266,6 +266,22 @@
       "scope": "runtime"
     },
     {
+      "name": "SQLite",
+      "version": "3.54.1",
+      "purpose": "the record store of the data module (screens' models and records)",
+      "kind": "downloaded",
+      "url": "https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip",
+      "sha256": "0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9",
+      "pinnedIn": "cmake/AffrescoUISqlite.cmake",
+      "license": "blessing",
+      "licenseReview": "SQLite is in the public domain (its blessing asks nothing): no condition on use or distribution",
+      "licenseNote": "Public domain (the SQLite blessing, at the top of `sqlite3.c`); the amalgamation's sqlite3.c compiled into the data module",
+      "usedBy": [
+        "affrescoui::data"
+      ],
+      "scope": "runtime"
+    },
+    {
       "name": "libvterm",
       "version": "0.3.3",
       "purpose": "terminal emulator, Forge's terminal only",
