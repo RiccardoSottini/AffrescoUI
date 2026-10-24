@@ -1,11 +1,10 @@
 # AffrescoUI in a browser tab
 
 A static site that runs AffrescoUI compiled to WebAssembly with Emscripten, drawing with WebGL2 (the library's
-OpenGL ES 3.0 backend). It has three kinds of page:
+OpenGL ES 3.0 backend). It has two kinds of page:
 
 - `index.html`: the template picker, a link per template;
-- `<template>.html`: one template in the host, the same program as `affrescoui_host` on a desktop;
-- `studio.html`: the Studio, with a form that connects it to a running host or document server.
+- `<template>.html`: one template in the host, the same program as `affrescoui_host` on a desktop.
 
 The files here are the site's sources; `tools/web/build.sh` builds the programs and writes the site.
 
@@ -20,14 +19,14 @@ emsdk/emsdk install 6.0.10 && emsdk/emsdk activate 6.0.10 && source emsdk/emsdk_
 tools/web/build.sh          # the build in build-web/, the site in build-web/site/
 ```
 
-The build is Release. It makes `affrescoui_host` and `affrescoui_studio` for the browser, and the command-line tool
+The build is Release. It makes `affrescoui_host` for the browser, and the command-line tool
 `affrescoui` for Node, which plays the templates' scenarios on the same WebAssembly:
 
 ```sh
 node build-web/affrescoui.js test examples/flow/index.scenarios.json
 ```
 
-The templates' folders (`examples/templates.json`) and `examples/shared` are preloaded into each program under `/assets`
+The templates' folders (`examples/templates.json`) and `examples/shared` are preloaded into the host under `/assets`
 (`/assets/flow`, `/assets/shared`, ..., without their C++ sources), in the `.data` file next to its `.wasm`.
 
 Measured with emsdk 6.0.10 (Release, `gzip -9`):
@@ -35,8 +34,7 @@ Measured with emsdk 6.0.10 (Release, `gzip -9`):
 | File | Size | Gzipped |
 |---|---|---|
 | `affrescoui_host.wasm` | 6.5 MB | 2.18 MB |
-| `affrescoui_studio.wasm` | 6.3 MB | 2.12 MB |
-| `affrescoui_host.data`, `affrescoui_studio.data` (the assets, each) | 2.06 MB | 0.88 MB |
+| `affrescoui_host.data` (the assets) | 2.06 MB | 0.88 MB |
 
 ## Getting the build
 
@@ -55,10 +53,12 @@ Nothing from the page's address. Which program a page starts and which template 
 (`data-program`, `data-screen`), written by the build, and `site.js` checks both against fixed lists before loading
 anything. A query string or fragment is never read.
 
-## The Studio
+## Remote peers
 
-A browser tab can't open the local sockets the desktop Studio uses, so the Studio in a tab connects to a remote-peer
-server (`affresco::net::PeerServer`, `modules/net/README.md`), such as the document server:
+A browser tab can't open local sockets, so a screen in a tab reaches a host only through a remote-peer server
+(`affresco::net::PeerServer`, `modules/net/README.md`), such as the document server. A screen whose `"channels"` entry
+has a `ws://` or `wss://` address (SCREEN_FORMAT.md, "Channels and persistence") connects to it, natively through the
+net module's client and in a tab through the browser's WebSocket:
 
 ```sh
 affrescoui_server --folder screens --listen 127.0.0.1:7420 --origin https://your-site.example
@@ -68,13 +68,10 @@ affrescoui_server --folder screens --listen 127.0.0.1:7420 --origin https://your
   so the page connects with `wss://`. `ws://` is accepted on the loopback only, by the page's policy and by the
   library.
 - `--origin` names the site's origin: the server refuses an upgrade from any other page.
-- The token goes in the form's password field. It stays in the Studio's memory and leaves it only as the connection's
-  first message (a browser's WebSocket can't send an `Authorization` header). It is never put in a URL, the page's
-  storage or a log, and the form clears the field after connecting.
+- The token is never in the screen or the page's address: the program gives it (`Screen::connectChannel()`), and it
+  leaves its memory only as the connection's first message (a browser's WebSocket can't send an `Authorization`
+  header).
 - Every message is bounded by the client's limits, as on a desktop.
-
-A screen whose `"channels"` entry has a `ws://` or `wss://` address (SCREEN_FORMAT.md, "Channels and persistence")
-connects the same way, natively through the net module's client and in a tab through the browser's WebSocket.
 
 ## What a browser can't do
 

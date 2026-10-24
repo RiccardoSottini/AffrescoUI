@@ -48,7 +48,7 @@ on the same runner. A fuzz input that fails is uploaded under its target's name 
 | Check | Command |
 |---|---|
 | Build, unit, window, CLI, MCP, scenarios, rendering | `cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON && cmake --build build && ctest --test-dir build` |
-| The templates' scenarios | `build/affrescoui test examples/{code-editor,flow,haven,sign-in,streak,studio,tempo}/*.scenarios.json` |
+| The templates' scenarios | `build/affrescoui test examples/{code-editor,flow,haven,sign-in,streak,tempo}/*.scenarios.json` |
 | Rendering check | `python3 tests/render/check.py` (never `--update` unless the pictures should change) |
 | Package check | `python3 tests/package/check.py` |
 | API reference | `doxygen Doxyfile` |
