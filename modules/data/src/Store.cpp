@@ -109,6 +109,68 @@ void bindAll(sql::Statement& statement, const std::string& collection, const jso
 	for(std::size_t i = 0; i < parameters.size(); ++i) statement.bindValue(static_cast<int>(i + 2), parameters[i]);
 }
 
+/// @brief A field of a collection that may refer to records.
+struct ReferringField {
+	const std::string& collection; ///< The collection it is in.
+	const std::string& name;       ///< The field.
+	const Field& field;            ///< Its definition.
+};
+
+/// @brief The records whose field refers to a record.
+/// @param impl The store.
+/// @param referring The field.
+/// @param id The record referred to.
+/// @return Their ids (at most 1,000).
+std::vector<std::string> referrers(Store::Impl& impl, const ReferringField& referring, const std::string& id) {
+	const bool list = referring.field.type == FieldType::List;
+	sql::Statement read(
+	    impl.db, list ? "SELECT id FROM records WHERE collection = ?1 AND EXISTS (SELECT 1 FROM json_each(body, "
+	                    "?2) WHERE value = ?3) LIMIT 1000"
+		              : "SELECT id FROM records WHERE collection = ?1 AND json_extract(body, ?2) = ?3 LIMIT 1000");
+	read.bind(1, referring.collection).bind(2, "$." + referring.name).bind(3, id);
+	std::vector<std::string> ids;
+	while(read.step()) ids.push_back(read.text(0));
+	return ids;
+}
+
+/// @brief Lets the records whose field refers to a record about to be deleted let go of it: a list drops the id, a
+/// single reference is cleared, if the field's "onDelete" is "nullify"; else the delete is refused.
+/// @param impl The store.
+/// @param referring The field.
+/// @param collection The collection of the record deleted.
+/// @param id The record deleted.
+/// @param author Who deletes it.
+/// @param where Its place, for errors.
+/// @return Whether a record changed.
+/// @throws DataError "reference" if one refers to it and may not let go.
+bool releaseReference(Store::Impl& impl, const ReferringField& referring, const std::string& collection,
+                      const std::string& id, const std::string& author, const std::string& where) {
+	const bool list = referring.field.type == FieldType::List;
+	const Field& target = list ? *referring.field.of : referring.field;
+	if(target.type != FieldType::Reference || target.to != collection) return false;
+	const std::vector<std::string> ids = referrers(impl, referring, id);
+	if(ids.empty()) return false;
+	const std::string& name = referring.collection;
+	if(target.onDelete != "nullify" || (referring.field.required && !list))
+		throw DataError("reference",
+		                where + ": '" + name + "' record '" + ids.front() + "' refers to it (" + referring.name + ")");
+	for(const std::string& referrer : ids) {
+		std::optional<Row> other = impl.row(name, referrer);
+		const json before = rowJson(*other);
+		if(!list) other->body.erase(referring.name);
+		else {
+			json kept = json::array();
+			for(const json& item : other->body[referring.name])
+				if(item != id) kept.push_back(item);
+			other->body[referring.name] = std::move(kept);
+		}
+		other->updated = impl.clock();
+		impl.writeBody(name, *other);
+		impl.journal(author, "update", name, referrer, other->sequence, before, rowJson(*other));
+	}
+	return true;
+}
+
 } // namespace
 
 json stored(std::string_view text) {
@@ -351,43 +413,9 @@ void Store::remove(const std::string& collection, const std::string& id, const s
 	if(!row) notFound(collection, id);
 	sql::Transaction transaction(impl.db);
 	std::set<std::string> touched = {collection};
-	for(const auto& [name, model] : impl.models) // what refers to it
-		for(const auto& [fieldName, field] : model.fields) {
-			const bool list = field.type == FieldType::List;
-			const Field& target = list ? *field.of : field;
-			if(target.type != FieldType::Reference || target.to != collection) continue;
-			sql::Statement referring(
-			    impl.db,
-			    list ? "SELECT id FROM records WHERE collection = ?1 AND EXISTS (SELECT 1 FROM "
-			           "json_each(body, ?2) WHERE value = ?3) LIMIT 1000"
-				     : "SELECT id FROM records WHERE collection = ?1 AND json_extract(body, ?2) = ?3 LIMIT 1000");
-			referring.bind(1, name).bind(2, "$." + fieldName).bind(3, id);
-			std::vector<std::string> ids;
-			while(referring.step()) ids.push_back(referring.text(0));
-			referring.reset();
-			if(ids.empty()) continue;
-			if(field.onDelete != "nullify" && target.onDelete != "nullify")
-				throw DataError("reference", where + ": '" + name + "' record '" + ids.front() + "' refers to it (" +
-				                                 fieldName + ")");
-			for(const std::string& referrer : ids) {
-				std::optional<Row> other = impl.row(name, referrer);
-				const json otherBefore = rowJson(*other);
-				if(list) {
-					json kept = json::array();
-					for(const json& item : other->body[fieldName])
-						if(item != id) kept.push_back(item);
-					other->body[fieldName] = kept;
-				} else {
-					other->body.erase(fieldName);
-				}
-				if(field.required && !list)
-					throw DataError("reference", where + ": '" + name + "' record '" + referrer + "' requires it");
-				other->updated = impl.clock();
-				impl.writeBody(name, *other);
-				impl.journal(author, "update", name, referrer, other->sequence, otherBefore, rowJson(*other));
-				touched.insert(name);
-			}
-		}
+	for(const auto& [name, model] : impl.models) // what refers to it lets go of it, or refuses
+		for(const auto& [fieldName, field] : model.fields)
+			if(releaseReference(impl, {name, fieldName, field}, collection, id, author, where)) touched.insert(name);
 	impl.deleteRow(collection, id);
 	impl.journal(author, "delete", collection, id, row->sequence, rowJson(*row), nullptr);
 	transaction.commit();

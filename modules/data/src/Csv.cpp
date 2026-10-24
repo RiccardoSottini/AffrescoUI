@@ -25,6 +25,47 @@ std::string folded(std::string_view text) {
 	return result;
 }
 
+/// @brief A cell read as a number of a field: a whole one for an integer or a time.
+/// @param field The field.
+/// @param cell The cell's text.
+/// @return The number, or the text itself if it isn't one.
+json numberOf(const Field& field, const std::string& cell) {
+	double number = 0;
+	const auto [end, error] = std::from_chars(cell.data(), cell.data() + cell.size(), number);
+	if(error != std::errc() || end != cell.data() + cell.size() || !std::isfinite(number)) return cell;
+	const bool whole = field.type != FieldType::Number && std::trunc(number) == number && std::abs(number) < 9.0e15;
+	return whole ? json(static_cast<std::int64_t>(number)) : json(number);
+}
+
+/// @brief A cell read as true or false: true, yes or 1, false, no or 0, in any case.
+/// @param cell The cell's text.
+/// @return The boolean, or the text itself if it isn't one.
+json booleanOf(const std::string& cell) {
+	const std::string word = folded(cell);
+	if(word == "true" || word == "yes" || word == "1") return true;
+	if(word == "false" || word == "no" || word == "0") return false;
+	return cell;
+}
+
+json converted(const Field& field, const std::string& cell);
+
+/// @brief A cell read as a list: items separated by ';', spaces around them trimmed, empty ones left out.
+/// @param field The list field.
+/// @param cell The cell's text.
+/// @return The list.
+json listOf(const Field& field, const std::string& cell) {
+	json items = json::array();
+	for(std::size_t start = 0; start <= cell.size();) {
+		const std::size_t end = std::min(cell.find(';', start), cell.size());
+		const std::size_t first = cell.find_first_not_of(' ', start);
+		const std::size_t last = cell.find_last_not_of(' ', end == 0 ? 0 : end - 1);
+		if(first < end && last != std::string::npos && last >= first)
+			items.push_back(converted(*field.of, cell.substr(first, last - first + 1)));
+		start = end + 1;
+	}
+	return items;
+}
+
 /// @brief A cell converted to a field's type, when the mapping gives no expression.
 /// @param field The field.
 /// @param cell The cell's text (not empty).
@@ -33,33 +74,12 @@ json converted(const Field& field, const std::string& cell) {
 	switch(field.type) {
 	case FieldType::Number:
 	case FieldType::Integer:
-	case FieldType::DateTime: {
-		double number = 0;
-		const auto [end, error] = std::from_chars(cell.data(), cell.data() + cell.size(), number);
-		if(error != std::errc() || end != cell.data() + cell.size() || !std::isfinite(number)) return cell;
-		if(field.type != FieldType::Number && std::trunc(number) == number && std::abs(number) < 9.0e15)
-			return static_cast<std::int64_t>(number);
-		return number;
-	}
-	case FieldType::Boolean: {
-		const std::string word = folded(cell);
-		if(word == "true" || word == "yes" || word == "1") return true;
-		if(word == "false" || word == "no" || word == "0") return false;
-		return cell;
-	}
-	case FieldType::List: {
-		json items = json::array();
-		std::size_t start = 0;
-		while(start <= cell.size()) {
-			const std::size_t end = std::min(cell.find(';', start), cell.size());
-			std::string item = cell.substr(start, end - start);
-			while(!item.empty() && item.front() == ' ') item.erase(item.begin());
-			while(!item.empty() && item.back() == ' ') item.pop_back();
-			if(!item.empty()) items.push_back(converted(*field.of, item));
-			start = end + 1;
-		}
-		return items;
-	}
+	case FieldType::DateTime:
+		return numberOf(field, cell);
+	case FieldType::Boolean:
+		return booleanOf(cell);
+	case FieldType::List:
+		return listOf(field, cell);
 	default:
 		return cell;
 	}
@@ -71,6 +91,32 @@ struct ColumnRule {
 	std::string expression; ///< A conversion, or "".
 };
 
+/// @brief The rules when no mapping is given: each column whose header names a field (case, spaces, '_' and '-'
+/// aside) fills it.
+/// @param header The header row.
+/// @param model The model.
+/// @return field -> rule.
+std::map<std::string, ColumnRule> rulesByHeader(const std::vector<std::string>& header, const Model& model) {
+	std::map<std::string, ColumnRule> rules;
+	for(std::size_t i = 0; i < header.size(); ++i)
+		for(const std::string& field : model.order)
+			if(folded(field) == folded(header[i])) rules[field] = {i, ""};
+	if(rules.empty())
+		throw DataError("invalid", "importCsv: no column of the CSV names a field of '" + model.name + "'");
+	return rules;
+}
+
+/// @brief The column a mapping names.
+/// @param header The header row.
+/// @param name The column's header as the mapping writes it.
+/// @param where The mapping's place.
+/// @return Its position.
+std::size_t columnOf(const std::vector<std::string>& header, const std::string& name, const std::string& where) {
+	for(std::size_t i = 0; i < header.size(); ++i)
+		if(header[i] == name || folded(header[i]) == folded(name)) return i;
+	throw DataError("invalid", where + ": the CSV has no column '" + name + "'");
+}
+
 /// @brief The rules of a mapping, checked against the header and the model.
 /// @param options The import.
 /// @param header The header row.
@@ -78,34 +124,107 @@ struct ColumnRule {
 /// @return field -> rule.
 std::map<std::string, ColumnRule> rulesOf(const CsvImport& options, const std::vector<std::string>& header,
                                           const Model& model) {
-	const auto columnOf = [&](const std::string& name, const std::string& where) {
-		for(std::size_t i = 0; i < header.size(); ++i)
-			if(header[i] == name || folded(header[i]) == folded(name)) return i;
-		throw DataError("invalid", where + ": the CSV has no column '" + name + "'");
-	};
-	std::map<std::string, ColumnRule> rules;
-	if(options.columns.is_null()) {
-		for(std::size_t i = 0; i < header.size(); ++i)
-			for(const std::string& field : model.order)
-				if(folded(field) == folded(header[i])) rules[field] = {i, ""};
-		if(rules.empty())
-			throw DataError("invalid", "importCsv: no column of the CSV names a field of '" + model.name + "'");
-		return rules;
-	}
+	if(options.columns.is_null()) return rulesByHeader(header, model);
 	if(!options.columns.is_object()) throw DataError("invalid", "importCsv.columns: expected field -> column");
+	std::map<std::string, ColumnRule> rules;
 	for(const auto& [field, rule] : options.columns.items()) {
 		const std::string where = "importCsv.columns." + field;
 		if(!model.fields.contains(field)) throw DataError("model", where + ": '" + model.name + "' has no such field");
-		if(rule.is_string()) {
-			rules[field] = {columnOf(rule.get<std::string>(), where), ""};
-		} else if(rule.is_object() && rule.contains("column") && rule["column"].is_string()) {
-			rules[field] = {columnOf(rule["column"].get<std::string>(), where),
-			                rule.contains("with") && rule["with"].is_string() ? rule["with"].get<std::string>() : ""};
-		} else {
+		const json& column = rule.is_object() ? rule.value("column", json()) : rule;
+		if(!column.is_string())
 			throw DataError("invalid", where + ": expected a column's header, or {\"column\", \"with\"}");
-		}
+		const json with = rule.is_object() ? rule.value("with", json()) : json();
+		rules[field] = {columnOf(header, column.get<std::string>(), where),
+		                with.is_string() ? with.get<std::string>() : ""};
 	}
 	return rules;
+}
+
+/// @brief Reads CSV text a character at a time.
+class CsvReader {
+public:
+	/// @brief A reader.
+	/// @param separator The separator.
+	explicit CsvReader(char separator) : separator_(separator) {}
+
+	/// @brief Reads the whole text.
+	/// @param text The text, its byte order mark taken off.
+	/// @return The rows.
+	std::vector<std::vector<std::string>> read(std::string_view text) {
+		for(std::size_t i = 0; i < text.size(); ++i) {
+			const char c = text[i];
+			const bool next = i + 1 < text.size();
+			if(quoted_) quotedCharacter(c, next && text[i + 1] == '"', i);
+			else if(c == '"' && cell_.empty()) quoted_ = true;
+			else if(c == separator_) endCell();
+			else if(c == '\n' || c == '\r') {
+				if(c == '\r' && next && text[i + 1] == '\n') ++i;
+				endRow();
+			} else cell_.push_back(c);
+		}
+		if(quoted_) throw DataError("invalid", "the CSV has a quote that never closes");
+		if(!cell_.empty() || !row_.empty()) endRow();
+		return std::move(rows_);
+	}
+
+private:
+	/// @brief A character inside quotes: "" is a quote, a lone quote ends them.
+	/// @param c The character.
+	/// @param quoteNext Whether a quote follows it.
+	/// @param i Its position, moved past a doubled quote.
+	void quotedCharacter(char c, bool quoteNext, std::size_t& i) {
+		if(c != '"') cell_.push_back(c);
+		else if(quoteNext) {
+			cell_.push_back('"');
+			++i;
+		} else quoted_ = false;
+	}
+	/// @brief Ends a cell.
+	void endCell() {
+		if(row_.size() >= Limits::csvColumns)
+			throw DataError("limit", std::format("a CSV row has at most {} columns", Limits::csvColumns));
+		row_.push_back(std::move(cell_));
+		cell_.clear();
+	}
+	/// @brief Ends a row; a blank line is none.
+	void endRow() {
+		endCell();
+		if(!(row_.size() == 1 && row_[0].empty())) rows_.push_back(std::move(row_));
+		row_.clear();
+		if(rows_.size() > Limits::csvRows + 1)
+			throw DataError("limit", std::format("a CSV file has at most {} rows", Limits::csvRows));
+	}
+
+	char separator_;                             ///< The separator.
+	std::vector<std::vector<std::string>> rows_; ///< The rows so far.
+	std::vector<std::string> row_;               ///< The row being read.
+	std::string cell_;                           ///< The cell being read.
+	bool quoted_ = false;                        ///< Inside quotes.
+};
+
+/// @brief A row's fields, by the rules.
+/// @param row The row.
+/// @param header The header.
+/// @param rules The rules.
+/// @param model The model.
+/// @param evaluate For the rules' conversions.
+/// @return The fields.
+json rowFields(const std::vector<std::string>& row, const std::vector<std::string>& header,
+               const std::map<std::string, ColumnRule>& rules, const Model& model, const Evaluator& evaluate) {
+	json byHeader = json::object();
+	for(std::size_t i = 0; i < header.size() && i < row.size(); ++i) byHeader[header[i]] = row[i];
+	json fields = json::object();
+	for(const auto& [field, rule] : rules) {
+		const std::string cell = rule.column < row.size() ? row[rule.column] : std::string();
+		if(rule.expression.empty()) {
+			if(!cell.empty()) fields[field] = converted(model.fields.at(field), cell);
+			continue;
+		}
+		if(!evaluate) throw DataError("invalid", "a conversion needs the screen format's expressions");
+		json value = evaluate(rule.expression, {{"value", cell}, {"row", byHeader}});
+		if(!value.is_null()) fields[field] = std::move(value);
+	}
+	return fields;
 }
 
 } // namespace
@@ -113,44 +232,7 @@ std::map<std::string, ColumnRule> rulesOf(const CsvImport& options, const std::v
 std::vector<std::vector<std::string>> parseCsv(std::string_view text, char separator) {
 	if(text.size() > Limits::csvBytes) throw DataError("limit", "a CSV file is at most 16 MiB");
 	if(text.starts_with("\xEF\xBB\xBF")) text.remove_prefix(3);
-	std::vector<std::vector<std::string>> rows;
-	std::vector<std::string> row;
-	std::string cell;
-	bool quoted = false, any = false;
-	const auto endCell = [&] {
-		if(row.size() >= Limits::csvColumns)
-			throw DataError("limit", std::format("a CSV row has at most {} columns", Limits::csvColumns));
-		row.push_back(std::move(cell));
-		cell.clear();
-	};
-	const auto endRow = [&] {
-		endCell();
-		if(!(row.size() == 1 && row[0].empty())) rows.push_back(std::move(row)); // blank lines
-		row.clear();
-		if(rows.size() > Limits::csvRows + 1)
-			throw DataError("limit", std::format("a CSV file has at most {} rows", Limits::csvRows));
-	};
-	for(std::size_t i = 0; i < text.size(); ++i) {
-		const char c = text[i];
-		any = true;
-		if(quoted) {
-			if(c != '"') cell.push_back(c);
-			else if(i + 1 < text.size() && text[i + 1] == '"') cell.push_back(text[++i]);
-			else quoted = false;
-		} else if(c == '"' && cell.empty()) {
-			quoted = true;
-		} else if(c == separator) {
-			endCell();
-		} else if(c == '\n' || c == '\r') {
-			if(c == '\r' && i + 1 < text.size() && text[i + 1] == '\n') ++i;
-			endRow();
-		} else {
-			cell.push_back(c);
-		}
-	}
-	if(quoted) throw DataError("invalid", "the CSV has a quote that never closes");
-	if(any && (!cell.empty() || !row.empty())) endRow();
-	return rows;
+	return CsvReader(separator).read(text);
 }
 
 json importCsv(Store& store, std::string_view text, const CsvImport& options, const Evaluator& evaluate) {
@@ -160,40 +242,26 @@ json importCsv(Store& store, std::string_view text, const CsvImport& options, co
 	const std::vector<std::vector<std::string>> rows = parseCsv(text, options.separator);
 	json report = {{"imported", 0}, {"failed", 0}, {"failures", json::array()}, {"ids", json::array()}};
 	if(rows.empty()) return report;
-	const std::vector<std::string>& header = rows.front();
-	const std::map<std::string, ColumnRule> rules = rulesOf(options, header, model->second);
+	const std::map<std::string, ColumnRule> rules = rulesOf(options, rows.front(), model->second);
+	std::size_t imported = 0, failed = 0;
 	{
 		const Store::Batch batch(store); // one step of undo
-		for(std::size_t r = 1; r < rows.size(); ++r) {
-			const std::vector<std::string>& row = rows[r];
-			try {
-				json byHeader = json::object();
-				for(std::size_t i = 0; i < header.size() && i < row.size(); ++i) byHeader[header[i]] = row[i];
-				json fields = json::object();
-				for(const auto& [field, rule] : rules) {
-					const std::string cell = rule.column < row.size() ? row[rule.column] : std::string();
-					if(!rule.expression.empty()) {
-						if(!evaluate) throw DataError("invalid", "a conversion needs the screen format's expressions");
-						json value = evaluate(rule.expression, {{"value", cell}, {"row", byHeader}});
-						if(!value.is_null()) fields[field] = std::move(value);
-					} else if(!cell.empty()) {
-						fields[field] = converted(model->second.fields.at(field), cell);
-					}
-				}
+		for(std::size_t r = 1; r < rows.size(); ++r) try {
+				const json fields = rowFields(rows[r], rows.front(), rules, model->second, evaluate);
 				report["ids"].push_back(store.insert(options.collection, fields, options.author).id);
-				report["imported"] = report["imported"].get<std::size_t>() + 1;
+				++imported;
 			} catch(const DocumentError& error) {
-				report["failed"] = report["failed"].get<std::size_t>() + 1;
-				if(report["failures"].size() < Limits::failuresReported)
+				if(++failed <= Limits::failuresReported)
 					report["failures"].push_back({{"row", r + 1}, {"error", error.what()}});
 			}
-		}
 	}
-	if(options.atomic && report["failed"].get<std::size_t>() > 0 && report["imported"].get<std::size_t>() > 0) {
+	if(options.atomic && failed > 0 && imported > 0) {
 		store.undo(); // the batch's group: every row it imported
-		report["imported"] = 0;
+		imported = 0;
 		report["ids"] = json::array();
 	}
+	report["imported"] = imported;
+	report["failed"] = failed;
 	return report;
 }
 

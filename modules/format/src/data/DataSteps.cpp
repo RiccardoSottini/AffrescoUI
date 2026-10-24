@@ -90,13 +90,79 @@ std::string csvText(const Running& s, const DataLayer& layer) {
 	return text.str();
 }
 
+/// @brief An insert step: one record ("value"), or many ("values", all of them or none).
+/// @param s The step.
+/// @param store The store.
+/// @param collection The collection.
+/// @param author Who.
+/// @return The record, or the records.
+json insertStep(const Running& s, data::Store& store, const std::string& collection, const std::string& author) {
+	if(!s.step.contains("values")) {
+		if(!s.step.contains("value")) fail(s.where, "expected \"value\" (the record's fields) or \"values\"");
+		return store.insert(collection, s.value("value"), author).toJson();
+	}
+	const json values = s.value("values");
+	if(!values.is_array() || values.size() > data::Limits::seedRecords)
+		fail(s.where + ".values", "expected a list of at most 10000 records");
+	const data::Store::Batch batch(store);
+	json results = json::array();
+	try {
+		for(const json& value : values) results.push_back(store.insert(collection, value, author).toJson());
+	} catch(const data::DataError&) {
+		if(!results.empty()) store.undo(); // the batch's records go again
+		throw;
+	}
+	return results;
+}
+
+/// @brief An importCsv step.
+/// @param s The step.
+/// @param layer The data layer.
+/// @param collection The collection.
+/// @return The report.
+json importStep(const Running& s, DataLayer& layer, const std::string& collection) {
+	data::CsvImport options;
+	options.collection = collection;
+	options.author = layer.author();
+	if(s.step.contains("columns")) options.columns = s.step["columns"]; // their "with" run per row, not now
+	if(s.step.contains("atomic")) options.atomic = boolean(s.value("atomic"), s.where + ".atomic");
+	if(s.step.contains("separator")) {
+		const json separator = s.value("separator");
+		if(separator != "," && separator != ";" && separator != "\t")
+			fail(s.where + ".separator", "expected \",\", \";\" or a tab");
+		options.separator = separator.get<std::string>()[0];
+	}
+	return data::importCsv(layer.store(), csvText(s, layer), options, DataLayer::evaluate);
+}
+
+/// @brief An update or a delete step, of the records an "id" (or a list of them) or a "where" names.
+/// @param s The step.
+/// @param store The store.
+/// @param collection The collection.
+/// @param author Who.
+/// @param update An update (else a delete).
+/// @return The record (one id), the records, or how many were deleted.
+json changeStep(const Running& s, data::Store& store, const std::string& collection, const std::string& author,
+                bool update) {
+	const std::vector<std::string> ids = idsOf(s, store, collection);
+	const data::Store::Batch batch(store); // one step of undo
+	if(!update) {
+		for(const std::string& id : ids) store.remove(collection, id, author);
+		return static_cast<std::int64_t>(ids.size());
+	}
+	if(!s.step.contains("fields")) fail(s.where, "expected \"fields\": the fields to change");
+	const json changes = s.value("fields");
+	json results = json::array();
+	for(const std::string& id : ids) results.push_back(store.update(collection, id, changes, author).toJson());
+	return s.step.contains("where") || s.value("id").is_array() ? results : results.at(0);
+}
+
 /// @brief Runs one write on the store.
 /// @param s The step.
 /// @param kind "insert", "update", "delete", "undoData", "redoData" or "importCsv".
 /// @return The result.
 json write(const Running& s, const std::string& kind) {
-	Engine& engine = s.steps.engine();
-	DataLayer& layer = engine.data;
+	DataLayer& layer = s.steps.engine().data;
 	data::Store& store = layer.store();
 	if(kind == "undoData" || kind == "redoData") {
 		if(layer.author() != "app") fail(s.where, "only the person undoes and redoes the records");
@@ -106,55 +172,11 @@ json write(const Running& s, const std::string& kind) {
 	if(!named.is_string()) fail(s.where + "." + kind, "expected a collection's name");
 	const std::string collection = named.get<std::string>();
 	layer.checkWrite(collection, s.where);
-	const bool atomic = s.step.contains("values") || kind == "importCsv"; // a step of undo of their own
-	if(atomic) layer.endGroup();
-	else layer.groupEvent(); // the event's writes: one step of undo
-	if(kind == "insert") {
-		if(s.step.contains("values")) { // many records at once: one step of undo, all of them or none
-			const json values = s.value("values");
-			if(!values.is_array() || values.size() > data::Limits::seedRecords)
-				fail(s.where + ".values", "expected a list of at most 10000 records");
-			const data::Store::Batch batch(store);
-			json results = json::array();
-			try {
-				for(const json& value : values)
-					results.push_back(store.insert(collection, value, layer.author()).toJson());
-			} catch(const data::DataError&) {
-				if(!results.empty()) store.undo(); // the batch's records go again
-				throw;
-			}
-			return results;
-		}
-		if(!s.step.contains("value")) fail(s.where, "expected \"value\" (the record's fields) or \"values\"");
-		return store.insert(collection, s.value("value"), layer.author()).toJson();
-	}
-	if(kind == "importCsv") {
-		data::CsvImport options;
-		options.collection = collection;
-		options.author = layer.author();
-		if(s.step.contains("columns")) options.columns = s.step["columns"]; // their "with" run per row, not now
-		if(s.step.contains("atomic")) options.atomic = boolean(s.value("atomic"), s.where + ".atomic");
-		if(s.step.contains("separator")) {
-			const json separator = s.value("separator");
-			if(separator != "," && separator != ";" && separator != "\t")
-				fail(s.where + ".separator", "expected \",\", \";\" or a tab");
-			options.separator = separator.get<std::string>()[0];
-		}
-		return data::importCsv(store, csvText(s, layer), options, DataLayer::evaluate);
-	}
-	const std::vector<std::string> ids = idsOf(s, store, collection);
-	const data::Store::Batch batch(store); // one step of undo
-	json results = json::array();
-	if(kind == "update") {
-		if(!s.step.contains("fields")) fail(s.where, "expected \"fields\": the fields to change");
-		const json changes = s.value("fields");
-		for(const std::string& id : ids)
-			results.push_back(store.update(collection, id, changes, layer.author()).toJson());
-	} else {
-		for(const std::string& id : ids) store.remove(collection, id, layer.author());
-		return static_cast<std::int64_t>(ids.size());
-	}
-	return s.step.contains("where") || s.value("id").is_array() ? results : results.at(0);
+	if(s.step.contains("values") || kind == "importCsv") layer.endGroup(); // all or none: a step of undo of its own
+	else layer.groupEvent();                                               // the event's writes: one step of undo
+	if(kind == "insert") return insertStep(s, store, collection, layer.author());
+	if(kind == "importCsv") return importStep(s, layer, collection);
+	return changeStep(s, store, collection, layer.author(), kind == "update");
 }
 
 /// @brief Runs a write step.

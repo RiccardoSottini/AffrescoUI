@@ -66,18 +66,11 @@ void compareFields(const std::map<std::string, Field>& before, const std::map<st
 			                  ChangeClass::Destructive}});
 }
 
-/// @brief Compares two definitions of one field.
+/// @brief Compares what a field requires of its values: required, unique and its bounds.
 /// @param before It before.
 /// @param after It after.
 /// @param found Where changes go.
-void compareField(const Field& before, const Field& after, std::vector<Found>& found) {
-	if(before.type != after.type) {
-		const bool widens = before.type == FieldType::Integer && after.type == FieldType::Number;
-		found.push_back({std::format("{} from {} to {}", widens ? "widens" : "changes type", typeName(before.type),
-		                             typeName(after.type)),
-		                 widens ? ChangeClass::Compatible : ChangeClass::Transforming});
-		return;
-	}
+void compareConstraints(const Field& before, const Field& after, std::vector<Found>& found) {
 	if(before.required != after.required)
 		found.push_back({after.required ? "becomes required" : "becomes optional",
 		                 !after.required || after.defaultValue ? ChangeClass::Compatible : ChangeClass::Transforming});
@@ -90,6 +83,13 @@ void compareField(const Field& before, const Field& after, std::vector<Found>& f
 	compareBound("maxLength", before.maxLength, after.maxLength, false, found);
 	compareBound("minItems", before.minItems, after.minItems, true, found);
 	compareBound("maxItems", before.maxItems, after.maxItems, false, found);
+}
+
+/// @brief Compares the values a field takes: an enum's, a reference's target and what deleting it does, a default.
+/// @param before It before.
+/// @param after It after.
+/// @param found Where changes go.
+void compareValues(const Field& before, const Field& after, std::vector<Found>& found) {
 	if(before.values != after.values) {
 		const bool kept = std::ranges::all_of(
 		    before.values, [&](const std::string& value) { return std::ranges::contains(after.values, value); });
@@ -100,6 +100,22 @@ void compareField(const Field& before, const Field& after, std::vector<Found>& f
 		found.push_back({"refers to '" + after.to + "' instead of '" + before.to + "'", ChangeClass::Transforming});
 	if(before.onDelete != after.onDelete) found.push_back({"on delete: " + after.onDelete, ChangeClass::Compatible});
 	if(before.defaultValue != after.defaultValue) found.push_back({"changes its default", ChangeClass::Compatible});
+}
+
+/// @brief Compares two definitions of one field.
+/// @param before It before.
+/// @param after It after.
+/// @param found Where changes go.
+void compareField(const Field& before, const Field& after, std::vector<Found>& found) {
+	if(before.type != after.type) {
+		const bool widens = before.type == FieldType::Integer && after.type == FieldType::Number;
+		found.push_back({std::format("{} from {} to {}", widens ? "widens" : "changes type", typeName(before.type),
+		                             typeName(after.type)),
+		                 widens ? ChangeClass::Compatible : ChangeClass::Transforming});
+		return;
+	}
+	compareConstraints(before, after, found);
+	compareValues(before, after, found);
 	if(before.of && after.of) {
 		std::vector<Found> items;
 		compareField(*before.of, *after.of, items);

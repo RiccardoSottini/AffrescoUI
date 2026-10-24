@@ -204,6 +204,45 @@ struct Follower {
 		}
 	}
 
+	/// @brief The id a first record keeps: its own, if it is one and free, else the next generated one.
+	/// @param model The model.
+	/// @param fields The record's fields.
+	/// @return The id.
+	std::string firstId(const Model& model, const json& fields) {
+		const json given = fields.value("id", json());
+		std::string id = given.is_string()           ? given.get<std::string>()
+		                 : given.is_number_integer() ? std::to_string(given.get<std::int64_t>())
+		                                             : std::string();
+		if(!isRecordId(id) || impl.row(model.name, id)) id = impl.nextId(model.name);
+		return id;
+	}
+
+	/// @brief One of a new collection's first records, stored: an item of an old state mapped by importFrom's
+	/// expression, or a seed record (written for the first version, migrated).
+	/// @param model The model.
+	/// @param item The item.
+	/// @param index Its position.
+	/// @param importing Whether it comes from an old state.
+	/// @param where Its place.
+	/// @param unique The unique values seen so far.
+	void storeFirst(const Model& model, const json& item, std::size_t index, bool importing, const std::string& where,
+	                std::map<std::string, std::map<std::string, std::string>>& unique) {
+		json fields = item;
+		if(importing && !model.importFrom->expression.empty()) {
+			if(!impl.evaluate) throw DataError("migration", "importFrom needs the screen format's expressions");
+			fields = impl.evaluate(model.importFrom->expression, {{"it", item}, {"index", index}});
+		}
+		if(!importing) fields = seedFields(model, fields, impl.evaluate, where); // written for version 1
+		if(!fields.is_object()) throw DataError("invalid", where + ": expected a record");
+		const std::string id = firstId(model, fields);
+		json body = fitted(model, fields, where, unique, id);
+		for(const auto& [name, value] : fields.items()) // only declared fields come in
+			if(!model.fields.contains(name)) body.erase(name);
+		const std::int64_t now = impl.clock();
+		Row row{0, id, now, now, std::move(body)};
+		impl.insertRow(model.name, row);
+	}
+
 	/// @brief Brings a new collection's first records: its importFrom ones from an old state, else its seed.
 	/// @param model The model.
 	/// @param oldState The old state, or nullptr.
@@ -213,39 +252,15 @@ struct Follower {
 		const bool importing = imported && imported->is_array();
 		const json& source = importing ? *imported : model.seed;
 		std::map<std::string, std::map<std::string, std::string>> unique;
-		for(std::size_t i = 0; i < source.size() && i < Limits::seedRecords; ++i) {
-			const std::string where = std::format("{}.{}[{}]", model.name, importing ? "importFrom" : "seed", i);
-			try {
-				json fields = source[i];
-				if(importing && !model.importFrom->expression.empty()) {
-					if(!impl.evaluate) throw DataError("migration", "importFrom needs the screen format's expressions");
-					fields = impl.evaluate(model.importFrom->expression, {{"it", source[i]}, {"index", i}});
-				}
-				if(!importing) fields = seedFields(model, fields, impl.evaluate, where); // written for version 1
-				if(!fields.is_object()) throw DataError("invalid", where + ": expected a record");
-				std::string id;
-				if(fields.contains("id") && fields["id"].is_string() && isRecordId(fields["id"].get<std::string>()) &&
-				   !impl.row(model.name, fields["id"].get<std::string>()))
-					id = fields["id"].get<std::string>();
-				else if(fields.contains("id") && fields["id"].is_number_integer())
-					id = std::to_string(fields["id"].get<std::int64_t>());
-				if(id.empty() || impl.row(model.name, id)) id = impl.nextId(model.name);
-				json body = fitted(model, fields.is_object() ? fields : json::object(), where, unique, id);
-				for(const auto& [name, value] : fields.items()) // only declared fields come in
-					if(!model.fields.contains(name)) body.erase(name);
-				const std::int64_t now = impl.clock();
-				Row row{0, id, now, now, std::move(body)};
-				impl.insertRow(model.name, row);
+		for(std::size_t i = 0; i < source.size() && i < Limits::seedRecords; ++i) try {
+				storeFirst(model, source[i], i, importing,
+				           std::format("{}.{}[{}]", model.name, importing ? "importFrom" : "seed", i), unique);
 				++report.seeded;
 			} catch(const DocumentError& error) {
-				if(importing) { // an old file's item that doesn't fit stays in its backup; the others come in
-					if(report.failures.size() < Limits::failuresReported)
-						report.failures.push_back("not imported: " + messageOf(error));
-				} else {
-					failure(report, std::to_string(i), messageOf(error));
-				}
+				if(!importing) failure(report, std::to_string(i), messageOf(error));
+				else if(report.failures.size() < Limits::failuresReported) // it stays in the old file's copy
+					report.failures.push_back("not imported: " + messageOf(error));
 			}
-		}
 		if(importing) report.action = "import";
 	}
 
