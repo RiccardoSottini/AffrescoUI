@@ -83,13 +83,17 @@ public:
 
 	/// @brief The most requests that wait.
 	static constexpr std::size_t maxQueued = 8;
+	/// @brief The most attachments a request lists, and the most the agent remembers from earlier requests.
+	static constexpr std::size_t maxAttachments = 16;
 
 private:
 	/// @brief A request from the chat.
 	struct Job {
-		std::string id;    ///< The request's id, which the reply names.
-		std::string text;  ///< What the person asked.
-		std::string model; ///< The model it asks for (`options.model`), or "" for the person's default.
+		std::string id;          ///< The request's id, which the reply names.
+		std::string text;        ///< What the person asked.
+		std::string model;       ///< The model it asks for (`options.model`), or "" for the person's default.
+		affresco::json attached; ///< What the person attached to it: [{ id, name, type, size, ... }].
+		affresco::json earlier;  ///< What was attached to the conversation's earlier requests, the same way.
 	};
 
 	/// @brief The thread: works on the jobs, one at a time.
@@ -116,6 +120,7 @@ private:
 	std::map<std::string, affresco::json> answers_;              ///< The screen's answers, by id.
 	std::map<std::string, bool> waiting_;                        ///< The ids the worker waits for.
 	std::deque<std::chrono::steady_clock::time_point> taken_;    ///< This minute's requests (main thread).
+	affresco::json attachedBefore_ = affresco::json::array();    ///< Earlier requests' attachments (main thread).
 	std::atomic<bool> stop_ = false;                             ///< Set by the destructor.
 	std::atomic<unsigned long> asked_ = 0;                       ///< Numbers the questions.
 	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards deliveries queued after destruction.

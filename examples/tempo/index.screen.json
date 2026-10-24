@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser on a GPU surface and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language. The songs are simulated; what plays is one beatbox loop (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound.",
+	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser on a GPU surface and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language. The songs are simulated; what plays is one beatbox loop (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound. A song may have a sound of its own: its \"sound\" (a track's in state.playlists[i].tracks[j], a library row's in state.library[i]) names a sound of the audio section, e.g. { \"file\": \"asset:song.mp3\", \"into\": \"state.sounds.own\" } for an asset the person attached, and playing that song plays it instead of the beat. The equaliser and the crossfade are visual only: they don't change the sound.",
 
 	"include": ["strings.json", "pages.json", "../shared/addons/assistant/assistant.json"],
 
@@ -12,7 +12,7 @@
 
 	"audio": {
 		"beat": { "file": "audio/beatbox.wav", "loop": true, "volume": 0.7, "into": "state.beat",
-		          "note": "The sound of whatever song plays: a beatbox loop made for Tempo (audio/make_beat.py)" }
+		          "note": "The sound of a song without a sound of its own: a beatbox loop made for Tempo (audio/make_beat.py)" }
 	},
 
 	"fonts": {
@@ -89,6 +89,8 @@
 		"playingTrack": 2,
 		"isPlaying": true,
 		"beat": { "status": "stopped", "playing": false },
+		"sounds": {},
+		"soundOn": "",
 		"elapsed": 84,
 		"volume": 70,
 		"queueOpen": true,
@@ -180,6 +182,8 @@
 		"playingTrack": {"type": "number"},
 		"isPlaying": {"type": "boolean"},
 		"beat": {"type": "object", "properties": {"status": {"type": "string"}, "playing": {"type": "boolean"}}},
+		"sounds": {"type": "object"},
+		"soundOn": {"type": "string"},
 		"elapsed": {"type": "number"},
 		"volume": {"type": "number", "minimum": 0, "maximum": 100},
 		"queueOpen": {"type": "boolean"},
@@ -192,7 +196,7 @@
 		"menu": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "icon": {"type": "string"}}}},
 		"playlists": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "cover": {"type": "string"}, "description": {"type": "string"}, "length": {"type": "string"}, "tracks": {"type": "array", "items": {"type": "object", "properties": {"title": {"type": "string"}, "artist": {"type": "string"}, "album": {"type": "string"}, "time": {"type": "string"}}}}}}},
 		"words": {"type": "object"},
-		"library": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "cells": {"type": "array"}}}},
+		"library": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "cells": {"type": "array"}, "sound": {"type": "string"}}}},
 		"libraryInfo": {"type": "object", "properties": {"name": {"type": "string"}, "cover": {"type": "string"}}},
 		"librarySort": {"type": ["object", "null"]},
 		"libraryPick": {"type": ["string", "null"]},
@@ -202,7 +206,8 @@
 	"computed": {
 		"list": "{{state.playlists[state.current]}}",
 		"playing": "{{state.playingList < 0 ? state.libraryInfo : state.playlists[state.playingList]}}",
-		"track": "{{state.playingList < 0 ? { title: state.library[state.playingTrack].cells[1], artist: state.library[state.playingTrack].cells[2], album: state.library[state.playingTrack].cells[3], time: state.library[state.playingTrack].cells[4] } : computed.playing.tracks[state.playingTrack]}}",
+		"track": "{{state.playingList < 0 ? { title: state.library[state.playingTrack].cells[1], artist: state.library[state.playingTrack].cells[2], album: state.library[state.playingTrack].cells[3], time: state.library[state.playingTrack].cells[4], sound: state.library[state.playingTrack].sound } : computed.playing.tracks[state.playingTrack]}}",
+		"sound": "{{computed.track.sound ?? 'beat'}}",
 		"playingName": "{{state.playingList >= 0 ? computed.playing.name : state.source != '' ? state.source : t('library.all')}}",
 		"duration": "{{number(split(computed.track.time, ':')[0]) * 60 + number(split(computed.track.time, ':')[1])}}",
 		"elapsedText": "{{floor(state.elapsed / 60)}}:{{pad(floor(state.elapsed % 60), 2)}}",
@@ -364,10 +369,26 @@
 			}
 		],
 		"playPause": { "title": "Play or pause", "category": "Playback", "icon": "play", "do": [
-			{ "note": "Tempo opens playing, silently: the first press starts the beat; without sound (a host that gives none) it pauses" },
-			{ "if": "{{state.isPlaying && !state.beat.playing}}",
-			  "then": [{ "audio": "play", "of": "beat", "onError": [{ "toggle": "state.isPlaying" }] }],
+			{ "note": "Tempo opens playing, silently: the first press starts the song's sound; without sound (a host that gives none) it pauses" },
+			{ "if": "{{state.isPlaying && state.soundOn == ''}}",
+			  "then": [{ "run": "startSound" }, { "if": "{{state.soundOn == ''}}", "then": [{ "toggle": "state.isPlaying" }] }],
 			  "else": [{ "toggle": "state.isPlaying" }] }] },
+		"startSound": [
+			{ "note": "Plays the sound of the song playing (computed.sound: its own, else the beat), stopping the one before; state.soundOn names the one started, empty when none could" },
+			{ "if": "{{state.soundOn != '' && state.soundOn != computed.sound}}",
+			  "then": [{ "audio": "stop", "of": "{{state.soundOn}}", "onError": [] }] },
+			{ "set": "state.soundOn", "to": "{{computed.sound}}" },
+			{ "audio": "volume", "of": "{{computed.sound}}", "to": "{{state.volume / 100}}", "onError": [] },
+			{ "audio": "play", "of": "{{computed.sound}}", "onError": [{ "set": "state.soundOn", "to": "" }] }
+		],
+		"songChanged": [
+			{ "note": "A new song: its sound from the start while playing (the same sound again, or another one)" },
+			{ "if": "{{state.isPlaying && state.soundOn != ''}}", "then": [
+				{ "if": "{{state.soundOn == computed.sound}}",
+				  "then": [{ "audio": "seek", "of": "{{state.soundOn}}", "to": 0, "onError": [] }],
+				  "else": [{ "run": "startSound" }] }
+			] }
+		],
 		"nextCommand": { "title": "Next song", "category": "Playback", "icon": "skip-forward", "do": [{ "run": "next" }] },
 		"previousCommand": { "title": "Previous song", "category": "Playback", "icon": "skip-back", "do": [{ "run": "previous" }] },
 		"volumeUp": { "title": "Volume up", "category": "Playback", "icon": "volume-2", "enablement": "{{state.volume < 100}}",
@@ -415,10 +436,13 @@
 	},
 
 	"watch": {
-		"state.isPlaying": [{ "note": "The beat follows the player: play and pause, a new song starts it again, the volume slider sets it. A host without sound fails these quietly" },
-			{ "audio": "{{state.isPlaying ? 'play' : 'pause'}}", "of": "beat", "onError": [] }],
-		"state.playingTrack": [{ "if": "{{state.beat.playing}}", "then": [{ "audio": "seek", "of": "beat", "to": 0, "onError": [] }] }],
-		"state.volume": [{ "audio": "volume", "of": "beat", "to": "{{state.volume / 100}}", "ms": 80, "onError": [] }]
+		"state.isPlaying": [{ "note": "The song's sound follows the player: play and pause, a new song starts it again, the volume slider sets it. A host without sound fails these quietly" },
+			{ "if": "{{state.isPlaying}}", "then": [{ "run": "startSound" }],
+			  "else": [{ "if": "{{state.soundOn != ''}}", "then": [{ "audio": "pause", "of": "{{state.soundOn}}", "onError": [] }] }] }],
+		"state.playingTrack": [{ "run": "songChanged" }],
+		"state.playingList": [{ "run": "songChanged" }],
+		"state.volume": [{ "if": "{{state.soundOn != ''}}",
+			"then": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": "{{state.volume / 100}}", "ms": 80, "onError": [] }] }]
 	},
 
 	"onLoad": "buildLibrary",
