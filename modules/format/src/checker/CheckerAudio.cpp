@@ -24,9 +24,14 @@ namespace {
 void Checker::walkAudio() {
 	const json* sounds = section("audio");
 	if(sounds == nullptr) return;
-	for(const auto& [name, sound] : sounds->items())
+	for(const auto& [name, sound] : sounds->items()) {
 		if(sound.is_object() && sound.contains("into") && literalText(sound["into"]))
 			write(sound["into"], anything, Change::set, Scope(), std::format("audio.{}.into", name));
+		if(sound.is_object() && sound.contains("file") && literalText(sound["file"]) &&
+		   sound["file"].get_ref<const std::string&>().starts_with("asset:")) // a sound a revision brought
+			refer("asset", "assets", sound["file"].get<std::string>().substr(6), "asset:",
+			      std::format("audio.{}.file", name));
+	}
 }
 
 void Checker::walkAudioStep(const json& step, const std::string& place) {

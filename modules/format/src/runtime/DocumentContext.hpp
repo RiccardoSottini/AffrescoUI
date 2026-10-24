@@ -257,6 +257,13 @@ public:
 	/// @return The file.
 	/// @throws DocumentError If it isn't text, or is outside the allowed folders.
 	[[nodiscard]] std::filesystem::path imageFile(const json& value, const std::string& path) const;
+	/// @brief Reads an image's asset ("asset:<name>") of the version shown, and decodes its bytes into images() the
+	/// first time (a named image, "asset:<sha256>": the same bytes decode once, whatever their name).
+	/// @param value The reference.
+	/// @param path Its place, for errors.
+	/// @return The named image's name.
+	/// @throws DocumentError If there is no such asset, it isn't a picture, or it doesn't decode.
+	[[nodiscard]] std::string assetImage(const json& value, const std::string& path);
 
 	/* The screen an outlet shows */
 

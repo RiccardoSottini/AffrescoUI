@@ -245,6 +245,7 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 		if(rawBefore.value(section.name, json()) != rawAfter.value(section.name, json()))
 			fail("revision", "permission denied: revisions can't change \"" + section.name + "\"");
 	}
+	checkAudioChange(rawBefore, rawAfter); // sounds of the screen's files or its assets only; the person accepts them
 	json composedBefore, composedAfter;
 	const json& before = screenOf(rawBefore, composedBefore);
 	const json& after = screenOf(rawAfter, composedAfter);

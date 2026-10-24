@@ -70,6 +70,15 @@ enum class Encoding : std::uint8_t {
 /// @return The encoding, or Unknown.
 [[nodiscard]] Encoding encodingOf(std::string_view name) noexcept;
 
+/// @brief Opens encoded bytes with the decoders, as a voice would, to tell whether they play and how long they last
+/// (e.g. a file the person attached, before it is kept). Nothing is played.
+/// @param bytes The bytes (WAV, FLAC or MP3), at most Limits::memoryBytes.
+/// @param hint Their encoding.
+/// @param error Receives why they don't decode.
+/// @return Their length in seconds, or std::nullopt if they don't decode; a length the decoder can't tell is 0.
+[[nodiscard]] std::optional<double> probeSeconds(std::span<const std::uint8_t> bytes, Encoding hint,
+                                                 std::string& error);
+
 /// @brief Fills frames for a generator source (synthesis): interleaved floats in the engine's Format.
 ///
 /// Called on the audio thread, so it must not block, allocate much or throw. @p first is the index of the first frame

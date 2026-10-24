@@ -65,7 +65,8 @@ target_sources(affrescoui_format PRIVATE
 	src/rules/NodeIds.cpp
 	src/rules/Limits.cpp
 	src/rules/Migrate.cpp
-	src/rules/ServiceRules.cpp)
+	src/rules/ServiceRules.cpp
+	src/rules/AssetRules.cpp)
 target_include_directories(affrescoui_format PRIVATE src/rules)
 # src/runtime/: the engine, its document context, settings, scheduler and usage
 target_sources(affrescoui_format PRIVATE

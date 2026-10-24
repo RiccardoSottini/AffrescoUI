@@ -236,6 +236,17 @@ struct AudioPlayers::Impl {
 	/// @param error Receives why not.
 	/// @return The source, or null.
 	std::shared_ptr<audio::Source> fileSource(const std::string& file, std::string& error) const {
+		if(file.starts_with(assetScheme)) { // an asset of the version shown, its bytes kept with the history
+			const std::string asset = file.substr(assetScheme.size());
+			const std::shared_ptr<const std::string> bytes = runtime.versions.assetBytes(asset);
+			if(!bytes) {
+				error = "no asset '" + asset.substr(0, 100) + "'";
+				return nullptr;
+			}
+			const auto* data = reinterpret_cast<const std::uint8_t*>(bytes->data());
+			return audio::Source::memory(std::vector<std::uint8_t>(data, data + bytes->size()),
+			                             audio::encodingOf(asset));
+		}
 		const std::filesystem::path& base = runtime.document.baseDirectory();
 		std::filesystem::path path(file);
 		if(path.is_relative()) path = base / path;
@@ -477,6 +488,17 @@ std::optional<std::string> AudioPlayers::run(const std::string& name, const std:
 		return std::nullopt;
 	}
 	return impl_->operate(name, operation, step, where);
+}
+
+std::optional<double> probeSound(const std::string& bytes, std::string_view type) {
+	const audio::Encoding hint = type == "audio/wav"    ? audio::Encoding::Wav
+	                             : type == "audio/flac" ? audio::Encoding::Flac
+	                                                    : audio::Encoding::Mp3;
+	std::string error;
+	const auto seconds = audio::probeSeconds(
+	    std::span(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size()), hint, error);
+	if(!seconds) throw DocumentError("the sound doesn't play (" + error + ")");
+	return seconds;
 }
 
 } // namespace affresco::format

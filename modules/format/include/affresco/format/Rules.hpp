@@ -112,6 +112,26 @@ public:
 	/// @return The lines, e.g. "uses files.write (writes: ...)".
 	[[nodiscard]] std::vector<std::string> reviewLines(const json& before, const json& after) const override;
 
+	/// @brief What only the person accepts (VERSION_CONTROL.md, "Assets"): a sound added, changed or removed in the
+	/// "audio" section, and a node made to show an asset (`"file": "asset:<name>"`) (AssetRules.cpp).
+	/// @param before The document now.
+	/// @param after The document after the change.
+	/// @return The lines, e.g. "changes the sound 'song' (asset:beat.mp3)", "shows the asset 'moon.svg' in #cover".
+	[[nodiscard]] std::vector<std::string> personLines(const json& before, const json& after) const override;
+	/// @brief Checks a revision's "run" steps as an action the document gained: no control step and no way to run one
+	/// (checkChange()), nothing it doesn't define, at most 1 MiB written as JSON.
+	/// @param document The document they run on, with the live state as its "state".
+	/// @param steps The steps.
+	/// @throws DocumentError If they may not run.
+	void checkRun(const json& document, const json& steps) const override;
+	/// @brief Checks an asset's bytes with the decoders that will read them: a picture decodes (Bitmap::decode, as
+	/// image nodes and the image step read it), a sound decodes (the audio module, when it is built), JSON parses.
+	/// @param name The asset's name.
+	/// @param type Its type.
+	/// @param bytes Its bytes.
+	/// @return `{"width", "height"}` of a picture, `{"duration"}` of a sound (seconds), or an empty object.
+	/// @throws DocumentError If they don't.
+	[[nodiscard]] json checkAsset(std::string_view name, std::string_view type, std::string_view bytes) const override;
 	/// @brief One line for each part of the screen's behaviour the change adds, removes or changes: actions, shortcuts,
 	/// watches, onLoad, computed values, and each node's handlers, steps and bindings (BehaviourLines.cpp).
 	/// @param before The document now.

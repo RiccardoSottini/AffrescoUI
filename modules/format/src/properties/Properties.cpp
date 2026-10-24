@@ -95,6 +95,10 @@ std::filesystem::path Properties::imageFile(const json& value, const std::string
 	return engine_.document.imageFile(value, at);
 }
 
+std::string Properties::assetImage(const json& value, const std::string& at) const {
+	return engine_.document.assetImage(value, at);
+}
+
 const LanguageCatalog* Properties::languages() const { return engine_.document.languages(); }
 
 /* Applying a node */

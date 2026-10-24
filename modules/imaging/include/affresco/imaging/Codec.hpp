@@ -41,6 +41,16 @@ struct DecodedImage {
 /// @throws DocumentError when it is too big, not a PNG or JPEG, or broken.
 [[nodiscard]] DecodedImage decodeImageFile(std::span<const std::uint8_t> file, const Limits& limits);
 
+/// @brief Makes an rgba8 image of pixels decoded elsewhere (e.g. an SVG the render module rasterised).
+/// @param width Its width.
+/// @param height Its height.
+/// @param rgba Red, green, blue and alpha, straight alpha, top row first: width * height * 4 bytes.
+/// @param limits side and pixels bound it.
+/// @return The image (sRGB).
+/// @throws DocumentError When it is beyond the limits or the bytes don't match the size.
+[[nodiscard]] DecodedImage imageFromRgba(int width, int height, std::span<const std::uint8_t> rgba,
+                                         const Limits& limits);
+
 /// @brief Encodes an image at 8 bits a channel, rounding rgba16f.
 /// @param image The image (rgba8 or rgba16f).
 /// @param format PNG, or JPEG (alpha dropped: composite on a background first).

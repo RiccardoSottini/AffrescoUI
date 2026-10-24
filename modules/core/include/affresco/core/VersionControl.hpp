@@ -3,10 +3,12 @@
 /// @file
 /// @brief The VersionControl and VersionObserver interfaces: a live document under version control.
 
+#include "affresco/core/Assets.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -47,6 +49,9 @@ struct CommitInfo {
 	std::string message;              ///< Why.
 	std::string time;                 ///< When (UTC, ISO 8601).
 	int proposal = 0;                 ///< The proposal it merged, if any.
+	/// The steps it ran once on the live screen when it landed (a revision's "run"; a merge carries its branch's), or
+	/// null. Never run again: a restore or a revert is a commit of its own, without them.
+	json run = nullptr;
 };
 
 /// @brief An open proposal: a branch waiting for review, like a pull request.
@@ -72,6 +77,18 @@ struct ProposalInfo {
 	std::string policy = {}; ///< What it needs to merge, e.g. "2 approvals, one from an owner of #board".
 	std::vector<std::string> behaviour =
 	    {}; ///< What it changes in behaviour (actions, steps, events, bindings), as lines.
+	/// The assets it brings or changes, `[{"name", "type", "size"}]`, and those it removes (`"removed": true`).
+	json assets = json::array();
+	json run = json::array(); ///< The steps it runs once when it is accepted (never while it is previewed).
+	/// Why only the person may accept it (assets, "run", the audio section, a source made an asset), as lines; empty
+	/// if any reviewer may (VERSION_CONTROL.md, "Assets").
+	std::vector<std::string> person = {};
+};
+
+/// @brief What VersionControl::attach did: the attachment, or why it was refused.
+struct Attached {
+	AttachmentInfo attachment; ///< When attached.
+	std::string error;         ///< Why not; empty when attached.
 };
 
 /// @brief A reviewer's "don't ask again": an allow rule that lasts until a reviewer revokes it. It is kept with the
@@ -123,7 +140,9 @@ public:
 /// Revisions are `{"author", "message", "parent"?, "proposal"?, "patch": [ops]}`: patch paths may start with "#id"
 /// (a node) or "/state" (the live state rather than the document); "proposal" pushes onto the author's own open
 /// proposal. Revisions are named by a number on main, a commit id or a unique prefix of one, "main", "HEAD",
-/// "HEAD~n" or "proposal/<id>". Implemented by vcs::Repository.
+/// "HEAD~n" or "proposal/<id>". A revision may also carry "assets" (files it brings, kept with the history) and "run"
+/// (steps run once when it lands on main); either makes it a proposal only the person accepts (VERSION_CONTROL.md,
+/// "Assets"). Implemented by vcs::Repository.
 class VersionControl {
 public:
 	virtual ~VersionControl() = default;
@@ -142,6 +161,37 @@ public:
 	[[nodiscard]] virtual const json& state() const = 0;
 	/// @brief main's head.
 	[[nodiscard]] virtual CommitInfo head() const = 0;
+
+	/* Assets (VERSION_CONTROL.md, "Assets"): files revisions bring, kept with the history. By default there are none.
+	 */
+
+	/// @brief The working copy's assets (the proposal's while one is previewed).
+	/// @return Them, sorted by name.
+	[[nodiscard]] virtual std::vector<AssetInfo> assets() const { return {}; }
+	/// @brief An asset's bytes, as the working copy names it.
+	/// @param name The asset's name (without "asset:").
+	/// @return Its bytes (checked against their SHA-256), or nullptr if the working copy has no such asset or its
+	/// bytes can't be read.
+	[[nodiscard]] virtual std::shared_ptr<const std::string> assetBytes([[maybe_unused]] std::string_view name) const {
+		return nullptr;
+	}
+	/// @brief Keeps a file the person gave the app as an attachment, which a revision may then name. Only the person's
+	/// own input (an `attach` step, a drop, the host) calls it: never a revision or a peer.
+	/// @param name The file's own name (made a valid asset name).
+	/// @param type Its media type, one of assetTypes().
+	/// @param bytes Its bytes, at most maxAssetBytes.
+	/// @param details What the host measured: `duration`, `width`, `height`.
+	/// @return The attachment, or why it was refused.
+	virtual Attached attach([[maybe_unused]] std::string_view name, [[maybe_unused]] std::string_view type,
+	                        [[maybe_unused]] std::string bytes, [[maybe_unused]] json details) {
+		return {{}, "this document keeps no attachments"};
+	}
+	/// @brief An attachment still waiting.
+	/// @param id Its id.
+	/// @return It, or std::nullopt if there is none (it expired, or never was).
+	[[nodiscard]] virtual std::optional<AttachmentInfo> attachment([[maybe_unused]] std::string_view id) const {
+		return std::nullopt;
+	}
 
 	/* Changes */
 
@@ -352,23 +402,27 @@ inline std::optional<Mode> modeFromString(std::string_view name) {
 
 /// @brief Converts a commit to its live-protocol JSON.
 /// @param c The commit.
-/// @return `{"id", "short", "number", "parents", "author", "committer", "message", "time", "proposal"}`.
+/// @return `{"id", "short", "number", "parents", "author", "committer", "message", "time", "proposal"}`, and "run"
+/// when it ran steps.
 inline json toJson(const CommitInfo& c) {
-	return {{"id", c.id},
-	        {"short", c.id.substr(0, 7)},
-	        {"number", c.number},
-	        {"parents", c.parents},
-	        {"author", c.author},
-	        {"committer", c.committer},
-	        {"message", c.message},
-	        {"time", c.time},
-	        {"proposal", c.proposal ? json(c.proposal) : json()}};
+	json commit = {{"id", c.id},
+	               {"short", c.id.substr(0, 7)},
+	               {"number", c.number},
+	               {"parents", c.parents},
+	               {"author", c.author},
+	               {"committer", c.committer},
+	               {"message", c.message},
+	               {"time", c.time},
+	               {"proposal", c.proposal ? json(c.proposal) : json()}};
+	if(!c.run.is_null()) commit["run"] = c.run;
+	return commit;
 }
 
 /// @brief Converts a proposal to its live-protocol JSON.
 /// @param p The proposal.
 /// @return `{"id", "branch", "author", "message", "base", "head", "short", "commits", "operations", "touches",
-/// "remember", "changes", "reason", "time", "conflicts", "approvals", "policy", "behaviour"}`.
+/// "remember", "changes", "reason", "time", "conflicts", "approvals", "policy", "behaviour", "assets", "run",
+/// "person"}`.
 inline json toJson(const ProposalInfo& p) {
 	return {{"id", p.id},
 	        {"branch", p.branch},
@@ -387,7 +441,10 @@ inline json toJson(const ProposalInfo& p) {
 	        {"conflicts", p.conflicts},
 	        {"approvals", p.approvals},
 	        {"policy", p.policy},
-	        {"behaviour", p.behaviour}};
+	        {"behaviour", p.behaviour},
+	        {"assets", p.assets},
+	        {"run", p.run},
+	        {"person", p.person}};
 }
 
 /// @brief Converts a grant to its live-protocol JSON.

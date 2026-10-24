@@ -84,8 +84,19 @@ void registerBuiltInSections(SectionRegistry& registry);
 /// @brief "images": the images the screen edits, their tools and lowered limits; a capability (ImagesSection.cpp).
 /// @return The section.
 [[nodiscard]] SectionType imagesSection();
-/// @brief "audio": the sounds the screen plays and their sources; a capability (audio/AudioSection.cpp).
+/// @brief "audio": the sounds the screen plays and their sources (audio/AudioSection.cpp). Not a capability: a
+/// revision may change it, within checkAudioChange(), and only the person accepts that (Rules::personLines()).
 /// @return The section.
 [[nodiscard]] SectionType audioSection();
+/// @brief "assets": the assets revisions brought, `name → {"type", "size", "sha256"}` (rules/AssetRules.cpp).
+/// @return The section.
+[[nodiscard]] SectionType assetsSection();
+/// @brief Refuses a change to the "audio" section beyond what a revision may do: a sound it adds or changes plays a
+/// "file" (the screen's own, or an "asset:<name>" the document has, of a sound) or a "tone", never a "url" or a
+/// host's "source" (rules/AssetRules.cpp).
+/// @param before The document before.
+/// @param after The document after.
+/// @throws DocumentError If it goes beyond.
+void checkAudioChange(const json& before, const json& after);
 
 } // namespace affresco::format

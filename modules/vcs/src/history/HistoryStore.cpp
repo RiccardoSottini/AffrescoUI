@@ -253,6 +253,36 @@ void HistoryStore::writeObject(const std::string& id, std::string_view text) {
 	if(objects_.insert(id).second) loose_.emplace_back(id, std::string(text));
 }
 
+/* Blobs */
+
+std::filesystem::path HistoryStore::blobFile(std::string_view id) const {
+	if(!isObjectId(id)) throw HistoryError(directory_, "'" + std::string(id.substr(0, 80)) + "' is not a blob's id");
+	return directory_ / "blobs" / std::string(id.substr(0, 2)) / std::string(id.substr(2));
+}
+
+std::optional<std::uintmax_t> HistoryStore::blobSize(const std::string& id) const {
+	if(!usable_) return std::nullopt;
+	std::error_code error;
+	const std::filesystem::path file = blobFile(id);
+	if(!std::filesystem::is_regular_file(std::filesystem::symlink_status(file, error))) return std::nullopt;
+	const std::uintmax_t size = std::filesystem::file_size(file, error);
+	if(error) return std::nullopt;
+	return size;
+}
+
+std::string HistoryStore::readBlob(const std::string& id) {
+	if(!usable_) throw HistoryError(directory_, "isn't read");
+	return read(blobFile(id));
+}
+
+void HistoryStore::writeBlob(const std::string& id, std::string_view bytes) {
+	if(blobs_.contains(id)) return;
+	const std::filesystem::path file = blobFile(id);
+	createFolder(file.parent_path());
+	write(file, bytes, Sync::ThisFile);
+	blobs_.insert(id);
+}
+
 /* Packs */
 
 std::filesystem::path HistoryStore::packFile(std::string_view name) const {

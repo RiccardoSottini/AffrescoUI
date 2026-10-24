@@ -69,6 +69,52 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   and one program at a time writes a history folder (a lock the system releases if the program dies). Version 1
   histories still load.
 
+## Assets, run steps and attachments
+
+Files a revision brings (a picture an agent drew, a song the person attached), steps it runs once when it lands, and
+files the person gives the app for agents to use (VERSION_CONTROL.md, "Assets"). The names, types and bounds are in
+`core/Assets.hpp`; the API:
+
+```cpp
+// A revision, through submit(), propose(), commit(), judge(), or pushed onto a proposal
+{ "author": "agent", "message": "A night sea to paint on",
+  "assets": [ { "name": "moon-sea.svg", "type": "image/svg+xml", "text": "<svg ...>" },   // text: SVG, JSON, text
+              { "name": "beat.mp3", "type": "audio/mpeg", "data": "<base64>" },            // bytes, in base64
+              { "name": "beat.mp3", "attachment": "att-1-3f9c21aa0b4e" } ],                 // what the person attached
+  "run": [ { "image": "open", "of": "canvas", "with": { "asset": "moon-sea.svg" } } ],   // once, on the live screen
+  "set": { "#cover/file": "asset:moon-sea.svg" } }                                       // compact edits, as ever
+
+// The working copy's assets (the proposal's while it is previewed): VersionControl, implemented by Repository
+std::vector<affresco::AssetInfo> assets() const;                          // {name, type, size, sha256}, by name
+std::shared_ptr<const std::string> assetBytes(std::string_view name) const; // nullptr: no such asset
+// The person's files (an attach step, a drop, Screen::attach): never a revision or a peer
+affresco::Attached attach(std::string_view name, std::string_view type, std::string bytes, json details);
+std::optional<affresco::AttachmentInfo> attachment(std::string_view id) const; // {id, name, type, size, details}
+static constexpr std::string_view Repository::personChannel = "user";      // the only reviewer of such proposals
+// CommitInfo::run: the steps a commit ran (null if none); ProposalInfo::assets, ::run, ::person: what review shows
+// DocumentRules hooks the format implements: personLines(before, after), checkRun(document, steps),
+// checkAsset(name, type, bytes) -> details
+```
+
+- **The manifest is part of the document**: `"assets": {"moon-sea.svg": {"type", "size", "sha256"}}` at the top level.
+  A revision's `assets` become `add /assets/<name>` operations first in its stored patch, so commits, diffs, reverts,
+  restores, proposals, previews, rebases and blame cover them as any other change; the commit id covers the manifest,
+  so it covers every asset's SHA-256. A patch may also remove an asset or put back an entry (a revert, a restore),
+  whose bytes the history already holds; an entry naming bytes it doesn't hold, or the wrong size or type, is refused.
+- **Bytes are content-addressed blobs** (SHA-256 of the bytes), checked against their type when a revision brings them
+  (`assetBytesProblem`, then `DocumentRules::checkAsset`), kept in memory, and on disk under `blobs/<ab>/<cd…>`, never
+  packed. Read back, a blob is hashed again and refused if it doesn't match.
+- **`run`** is kept in the commit (its id covers it), a proposal's `run` is its commits' in order, and the merge commit
+  carries it: `onCommit` gives it (`CommitInfo::run`) to the host, which runs it once (the Screen does). A restore, a
+  revert, a preview or loading the history never runs it.
+- **Only the person accepts** a change that brings, removes or changes assets, carries `run`, or has
+  `DocumentRules::personLines`: it is always a proposal (no allow rule, grant, `acceptEdits` or `plan` lets it
+  through, and "don't ask again" can't remember it), and only a reviewer of the channel `personChannel` ("user": the
+  screen's own review steps, `Screen::acceptProposal`) may accept it, never its own author. The app's own commits
+  (`commit()`) and the person's own revisions aren't asked.
+- **Attachments** wait in memory for this run only, at most `maxAttachments` and `maxAttachmentBytes` (the oldest go
+  first); an asset naming one copies its bytes into the history. Nothing else keeps them.
+
 ## Threads and ownership
 
 Main thread only. The repository has no threads of its own; peers reach it through `channel::Session`, which runs on

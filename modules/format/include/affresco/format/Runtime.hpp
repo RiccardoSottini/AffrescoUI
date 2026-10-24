@@ -184,6 +184,13 @@ public:
 	/// @param event Available to the action as "event".
 	void runAction(std::string_view name, Panel& sender, const json& event);
 
+	/// @brief Runs steps a commit carries ("run": VERSION_CONTROL.md, "Assets"), once, as the root panel's, after the
+	/// event or update in progress (at once without a window): the steps a revision runs when it lands. Errors are
+	/// reported, never thrown. They aren't the person's input: control steps, which the rules refuse in "run", fail.
+	/// @param steps The steps.
+	/// @param commit The commit, for errors and as `event.commit`.
+	void runOnce(const json& steps, const std::string& commit);
+
 	/// @brief Keeps the panels in line with the document without running what the document runs because they
 	/// changed: while suspended, no "onShow", "onHide" or "watch" handler is scheduled, "autofocus" takes no focus,
 	/// and colours change without their transitions. For a document shown only for a moment, e.g. a proposal drawn

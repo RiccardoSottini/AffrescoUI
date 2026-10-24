@@ -106,7 +106,7 @@ std::optional<json> Repository::readable(std::string_view author) const {
 
 // Deny beats ask beats allow; what no rule allows asks. Rules are judged by the change's effect.
 Repository::Verdict Repository::evaluate(const json& before, const json& after, const std::string& author,
-                                         bool reviewed) const {
+                                         bool reviewed, const json& run) const {
 	using Kind = Verdict::Kind;
 	const Permissions permissions = rules_.permissions(mainDocument());
 	const detail::Policy policy = detail::policyOf(mainDocument());
@@ -115,6 +115,13 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 	if(auto refused = refusal(change, permissions.deny, policy)) return {Kind::Deny, std::move(*refused)};
 	if(!reviewed) return {Kind::Allow, {}};
 	if(const auto leased = leaseDenial(before, after, author)) return {Kind::Deny, "permission denied: " + *leased};
+	// Before every rule, grant and mode: what brings content in or makes something happen is the person's to accept
+	if(detail::channelOf(author) != personChannel)
+		if(const std::vector<std::string> person = personNeeds(before, after, run); !person.empty()) {
+			std::string reason = "only the person accepts this:";
+			for(std::size_t i = 0; i < person.size(); ++i) reason += (i ? "; " : " ") + person[i];
+			return {Kind::Ask, std::move(reason), true};
+		}
 	if(auto demand = reviewDemand(change, policy))
 		return {demand->deny ? Kind::Deny : Kind::Ask, std::move(demand->reason), true};
 	if(!permissions.configured) return {Kind::Allow, {}};

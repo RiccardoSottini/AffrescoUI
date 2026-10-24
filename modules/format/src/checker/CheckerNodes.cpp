@@ -100,6 +100,7 @@ std::optional<Reference> referenceOf(std::string_view key) {
 	if(key == "font") return Reference{"font", "fonts", ""};
 	if(key == "style") return Reference{"style", "styles", ""};
 	if(key == "image") return Reference{"image", "images", ""}; // a raster node's
+	if(key == "file") return Reference{"asset", "assets", "asset:"}; // an image node's "asset:<name>"
 	return std::nullopt;
 }
 

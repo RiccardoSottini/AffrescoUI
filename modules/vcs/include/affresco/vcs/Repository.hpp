@@ -81,6 +81,34 @@ public:
 	[[nodiscard]] const json& state() const override { return state_; }
 	[[nodiscard]] CommitInfo head() const override { return info(mainHead()); }
 
+	/* Assets (VERSION_CONTROL.md, "Assets"; RepositoryAssets.cpp) */
+
+	/// The channel of the person: the only reviewer who may accept a change that brings assets or runs steps (the
+	/// screen's own review steps and Screen::acceptProposal accept as "user").
+	static constexpr std::string_view personChannel = "user";
+
+	/// @brief The working copy's assets: its "assets" section (the proposal's while one is previewed).
+	/// @return Them, sorted by name.
+	[[nodiscard]] std::vector<AssetInfo> assets() const override;
+	/// @brief An asset's bytes, as the working copy names it: from memory, or read from the history folder and checked
+	/// against its SHA-256.
+	/// @param name The asset's name.
+	/// @return Its bytes, or nullptr if there is no such asset or its bytes can't be read (logged).
+	[[nodiscard]] std::shared_ptr<const std::string> assetBytes(std::string_view name) const override;
+	/// @brief Keeps a file the person gave the app, for this run, until a revision's asset names it. Checked as an
+	/// asset is (type, first bytes, DocumentRules::checkAsset); beyond maxAttachments or maxAttachmentBytes the oldest
+	/// go first.
+	/// @param name The file's own name, made a valid asset name.
+	/// @param type Its media type.
+	/// @param bytes Its bytes.
+	/// @param details What the host measured, merged with what checkAsset() says.
+	/// @return The attachment, or why it was refused.
+	Attached attach(std::string_view name, std::string_view type, std::string bytes, json details) override;
+	/// @brief An attachment still waiting.
+	/// @param id Its id.
+	/// @return It, or std::nullopt.
+	[[nodiscard]] std::optional<AttachmentInfo> attachment(std::string_view id) const override;
+
 	/* Changes */
 	RevisionResult submit(const json& revision) override;
 	/// @brief Submits a revision that only a reviewer may land: it opens a proposal even where the rules would apply it
@@ -196,6 +224,7 @@ private:
 		/// The parts of the live state it changed, as it left them: `[{"path", "value"?}]`, no value for a part it
 		/// removed. A revert needs them as they are, as it needs the parts of the document.
 		json stateAfter;
+		json run; ///< The steps it runs once when it lands on main (the revision's "run"), or null; the id covers it.
 	};
 
 	/// @brief An open proposal: a branch from `base` to `head`.
@@ -213,6 +242,44 @@ private:
 		std::vector<std::string> reviewedHeads;
 		std::vector<std::string> behaviour; ///< What it changes in behaviour (DocumentRules::behaviourLines()).
 		std::string policy;                 ///< What the review policy asks of it, for reviewers.
+		json run = json::array();           ///< Its commits' "run" steps, in order: what the merge commit runs.
+		json assets = json::array();        ///< The assets it brings, changes or removes (ProposalInfo::assets).
+		std::vector<std::string> person;    ///< Why only the person may accept it (personNeeds()); empty if not.
+	};
+
+	/// @brief Asset bytes a revision brings, kept in blobs_ only while it is checked: unless keep() is called, they
+	/// go again when this goes (a refused revision leaves nothing behind).
+	class StagedBlobs {
+	public:
+		/// @brief Stages into a repository's blobs.
+		/// @param blobs The repository's blobs.
+		explicit StagedBlobs(std::unordered_map<std::string, std::shared_ptr<const std::string>>& blobs)
+		    : blobs_(blobs) {}
+		StagedBlobs(const StagedBlobs&) = delete;
+		StagedBlobs& operator=(const StagedBlobs&) = delete;
+		/// @brief Takes back what wasn't kept.
+		~StagedBlobs() {
+			for(const std::string& id : added_) blobs_.erase(id);
+		}
+		/// @brief Adds bytes, unless the repository has them already.
+		/// @param id Their SHA-256.
+		/// @param bytes The bytes.
+		void add(const std::string& id, std::shared_ptr<const std::string> bytes) {
+			if(blobs_.emplace(id, std::move(bytes)).second) added_.push_back(id);
+		}
+		/// @brief Keeps them: the revision landed or became a proposal.
+		void keep() noexcept { added_.clear(); }
+
+	private:
+		std::unordered_map<std::string, std::shared_ptr<const std::string>>& blobs_; ///< The repository's blobs.
+		std::vector<std::string> added_;                                             ///< What this added, by SHA-256.
+	};
+
+	/// @brief An attachment waiting for a revision to name it.
+	struct PendingAttachment {
+		AttachmentInfo info;                      ///< What agents see.
+		std::string sha256;                       ///< Its bytes' SHA-256.
+		std::shared_ptr<const std::string> bytes; ///< Its bytes.
 	};
 
 	/// @brief A revision applied to a copy, not yet committed.
@@ -371,9 +438,10 @@ private:
 	/// @param after The view after.
 	/// @param author Who makes it.
 	/// @param reviewed false for changes that are never reviewed (the app's own, merges): only deny rules apply.
+	/// @param run Its "run" steps, or null: with them, or with assets (personNeeds()), only the person accepts it.
 	/// @return The verdict.
-	[[nodiscard]] Verdict evaluate(const json& before, const json& after, const std::string& author,
-	                               bool reviewed) const;
+	[[nodiscard]] Verdict evaluate(const json& before, const json& after, const std::string& author, bool reviewed,
+	                               const json& run = json()) const;
 	/// @brief Refuses a patch that names a path its author may not read (a "test" or "copy" would tell its value).
 	/// @param patch The operations, as submitted.
 	/// @param author Who sends it.
@@ -415,9 +483,10 @@ private:
 	json replay(Proposal& proposal, std::vector<Commit> commits);
 	/// @brief Builds a proposal's branch again on main's head, with one more commit, and describes it.
 	/// @param proposal The proposal.
-	/// @param revision The new commit's revision.
+	/// @param revision The new commit's revision (its message and "run").
+	/// @param changes Its operations, as changesOf() gave them.
 	/// @throws DocumentError If its commits no longer apply, or a deny rule refuses them.
-	void extend(Proposal& proposal, const json& revision);
+	void extend(Proposal& proposal, const json& revision, json changes);
 	/// @brief The "don't ask again" rules a proposal offers: one per part it touches, for its author's channel, unless
 	/// an "ask" rule matched or a part is broader than one node or area.
 	/// @param author The proposal's author.
@@ -429,9 +498,10 @@ private:
 	/// @brief Pushes a revision onto its author's open proposal ("proposal" in the revision).
 	/// @param revision The revision.
 	/// @param author Its author.
+	/// @param changes Its operations, as changesOf() gave them.
 	/// @return What happened.
 	/// @throws DocumentError If there is no such proposal, it isn't the author's, or the result is refused.
-	RevisionResult push(const json& revision, const std::string& author);
+	RevisionResult push(const json& revision, const std::string& author, const json& changes);
 	/* Review at scale (RepositoryReview.cpp) */
 
 	/// @brief Rebases the open proposals that main left behind (VERSION_CONTROL.md, "Rebasing"); one that conflicts
@@ -584,8 +654,68 @@ private:
 	/// tries again: the change itself stays.
 	void saveHistory() noexcept;
 
+	/* Assets (RepositoryAssets.cpp) */
+	/// @brief A revision's changes as it is stored: an "add /assets/<name>" for each of its assets, then its patch and
+	/// compact edits. The assets' bytes are checked (type, first bytes, DocumentRules::checkAsset) and staged.
+	/// @param revision The revision.
+	/// @param staged Gets the bytes it brings.
+	/// @return The operations.
+	/// @throws DocumentError If an asset is malformed, too large or not what its type says, or there are no changes.
+	[[nodiscard]] json changesOf(const json& revision, StagedBlobs& staged) const;
+	/// @brief A revision's "run" steps.
+	/// @param revision The revision.
+	/// @return The steps (a list of at most 1,000 objects), or null without them.
+	/// @throws DocumentError If it isn't such a list.
+	[[nodiscard]] static json runOf(const json& revision);
+	/// @brief Checks the assets a change leaves: each entry that changed names bytes the history has, of its size, of
+	/// a type its bytes are; at most maxAssets.
+	/// @param before The view before.
+	/// @param after The view after.
+	/// @throws DocumentError If one doesn't.
+	void checkManifest(const json& before, const json& after) const;
+	/// @brief Why only the person may accept a change: the assets it brings, changes or removes, its "run" steps,
+	/// and the format's DocumentRules::personLines().
+	/// @param before The view before.
+	/// @param after The view after.
+	/// @param run Its steps, or null.
+	/// @return The lines; empty if any reviewer may.
+	[[nodiscard]] std::vector<std::string> personNeeds(const json& before, const json& after, const json& run) const;
+	/// @brief The assets a change brings, changes or removes, for review.
+	/// @param before The view before.
+	/// @param after The view after.
+	/// @return `[{"name", "type", "size"}]`, with `"removed": true` for those it removes.
+	[[nodiscard]] static json assetChanges(const json& before, const json& after);
+	/// @brief Bytes by their SHA-256: in memory, else read from the history folder and checked.
+	/// @param id The SHA-256.
+	/// @return The bytes, or nullptr if there are none.
+	[[nodiscard]] std::shared_ptr<const std::string> blob(const std::string& id) const;
+	/// @brief Checks bytes are of a type (first bytes, then DocumentRules::checkAsset), once per bytes and type.
+	/// @param name The asset's name, for errors.
+	/// @param type The type.
+	/// @param id The bytes' SHA-256.
+	/// @param bytes The bytes.
+	/// @return What checkAsset() measured.
+	/// @throws DocumentError If they aren't.
+	json checkBytes(const std::string& name, const std::string& type, const std::string& id,
+	                const std::string& bytes) const;
+	/// @brief Writes the bytes in memory the history folder doesn't have yet.
+	/// @throws DocumentError If they can't be written.
+	void writeBlobs();
+	/// @brief Checks that the history folder has the bytes a document's assets name, of their size.
+	/// @param store The folder.
+	/// @param document The document.
+	/// @param where Its commit's file, for errors.
+	/// @throws DocumentError If some are missing.
+	static void expectBlobs(detail::HistoryStore& store, const json& document, const std::filesystem::path& where);
+
 	const DocumentRules& rules_;          ///< What is valid and who may change what.
 	VersionObserver* observer_ = nullptr; ///< The renderer.
+	/// Asset bytes by SHA-256: those revisions brought, and those read from the history folder.
+	mutable std::unordered_map<std::string, std::shared_ptr<const std::string>> blobs_;
+	mutable std::unordered_map<std::string, json> checkedBlobs_; ///< "<sha256> <type>" checked, and its details.
+	detail::HistoryStore* loading_ = nullptr;    ///< The folder being loaded (openHistory()), before it is history_.
+	std::vector<PendingAttachment> attachments_; ///< The person's files, oldest first.
+	int nextAttachment_ = 1;                     ///< The next attachment's number.
 
 	std::unordered_map<std::string, Commit> objects_; ///< Every commit, by id.
 	std::vector<std::string> main_;                   ///< main's commits, oldest first: main_[n] is revision n.

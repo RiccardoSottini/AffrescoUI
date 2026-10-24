@@ -198,6 +198,19 @@ void Runtime::runAction(std::string_view name, Panel& sender, const json& event)
 	impl_->runner.handle(json(std::string(name)), sender, event, *locals, "runAction");
 }
 
+void Runtime::runOnce(const json& steps, const std::string& commit) {
+	const std::string where = "commit " + commit.substr(0, 7) + ".run";
+	const json event = {{"type", "run"}, {"commit", commit}};
+	if(!impl_->window) {
+		impl_->runner.handle(steps, impl_->unattached, event, *noVariables(), where);
+		return;
+	}
+	impl_->scheduler.defer([engine = impl_.get(), alive = std::weak_ptr<bool>(impl_->alive), steps, event, where] {
+		if(!alive.lock() || !engine->window) return;
+		engine->runner.handle(steps, engine->window->root(), event, *noVariables(), where);
+	});
+}
+
 void Runtime::setHandlersSuspended(bool suspended) noexcept { impl_->handlersSuspended = suspended; }
 
 bool Runtime::hasAction(std::string_view name) const {
