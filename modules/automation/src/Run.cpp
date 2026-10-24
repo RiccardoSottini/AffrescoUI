@@ -88,7 +88,7 @@ void play(const Scenario& scenario, const std::string& document, const Options& 
 	window->setMinSize(sizeIn(settings, "minWidth", 0), sizeIn(settings, "minHeight", 0));
 
 	Screen screen = unconnectedScreen(document, scenario.screen.parent_path(), scratch / "no-host");
-	screen.setPlaceholderTypes(true); // as affrescoui_host does
+	screen.setPlaceholderTypes(true); // as affrescoui_launcher does
 	screen.services().setInline(true);  // a service's results arrive before its call returns: the same every run
 	if(options.prepare) options.prepare(screen);
 	screen.build(*window);

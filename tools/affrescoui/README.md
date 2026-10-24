@@ -17,7 +17,7 @@ affrescoui help                         # every command; affrescoui <command> --
 
 | Command | What it does |
 |---|---|
-| `run <file> [--socket DIR] [--data DIR] [--mode default\|acceptEdits\|plan] [--plugin changes.json]...` | Shows a screen and lets peers change it, as `affrescoui_host` does: `studio.sock` and `agent.sock` in the socket folder, the history and `persist` state in the data folder, `--plugin` change sets applied once. `--mode` holds for this run only. |
+| `run <file> [--socket DIR] [--data DIR] [--mode default\|acceptEdits\|plan] [--plugin changes.json]...` | Shows a screen and lets peers change it, as `affrescoui_launcher` does: `studio.sock` and `agent.sock` in the socket folder, the history and `persist` state in the data folder, `--plugin` change sets applied once. `--mode` holds for this run only. |
 | `check <file> [--json]` | Checks a screen without opening a window: the JSON, the schema (`schema/affrescoui-screen.schema.json`, built into the tool), the format's rules as the library loads it, and the checker (an `id` two nodes have, and what the screen refers to but doesn't define). One line per problem, or with `--json` one object: `{"file", "ok", "problems": [{"source", "place", "message"}]}`, `source` being `json`, `schema`, `format` or `checker`. |
 | `render <file> -o out.png [--scale 1\|2] [--size WIDTHxHEIGHT]` | Draws the screen's first frame offscreen, as the rendering check does (a hidden window, the file as it is, no saved history or state, channels finding nobody), and writes a PNG. `--size` resizes the window first; a frame over 16,384 pixels a side (size times scale) is refused. Even a channel at an absolute path finds nobody. Needs OpenGL: a display, or Xvfb. |
 | `test <scenarios.json>... [--json] [--only NAME] [--goldens DIR] [--update] [--out DIR] [--document FILE]` | Plays a screen's scenarios (SCREEN_FORMAT.md, "Scenarios"; `modules/automation`), headless unless one expects a picture, and reports compactly: `index.scenarios.json: 7 passed, 0 failed`, then `FAILED <scenario>, step <n>: <what>` per failure; with `--json` one line per file, `{"file", "passed", "failed", "failures": [{"scenario", "step", "problem"}]}`. `--goldens` is where the golden images of `expect image` are, `--update` records them all from this run, `--out` receives captures and frames that differ with their diffs. `--document` plays on that document instead of the scenarios' screen file (the running screen's, a proposal applied), its fonts and includes still found next to the screen file. Exits with 1 if a scenario failed or the file is malformed. The library's log is quiet unless `--verbose`. |
@@ -34,7 +34,7 @@ The history on disk is the one the host keeps: `<data folder>/<file name>.histor
 else `$AFFRESCOUI_DATA_DIR`, else `~/.affrescoui` (`%APPDATA%\affrescoui` on Windows). See
 [VERSION_CONTROL.md](../../VERSION_CONTROL.md), "History on disk" and "Change sets".
 
-When the tool is built with the examples (the default), it knows their application types, as `affrescoui_host` does
+When the tool is built with the examples (the default), it knows their application types, as `affrescoui_launcher` does
 (the Forge template's `code`); other unknown types show as plain panels.
 
 ## Exit codes

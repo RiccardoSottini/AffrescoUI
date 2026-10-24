@@ -113,6 +113,9 @@ endif()
 # PCRE2 and affresco::TextPattern: the regular expressions of the editor's find and the search service
 include(cmake/AffrescoUIRegex.cmake)
 
+# miniaudio: the audio module's devices and decoders (AFFRESCOUI_AUDIO, on by default)
+include(cmake/AffrescoUIAudio.cmake)
+
 # AccessKit: the accessibility tree of each window, for screen readers (decision D8)
 include(cmake/AffrescoUIAccessibility.cmake)
 # tree-sitter and its grammars: the syntax service and the editor's highlighting, folds and brackets
@@ -129,6 +132,7 @@ include(cmake/AffrescoUISyntax.cmake)
 #   channel  communication: process/stdio channels, the live protocol                core
 #   net      network: HTTP(S), SSE and WebSocket over libcurl                        core
 #   services services: folders, programs and JSON-RPC servers a screen calls         core
+#   audio    audio: an output that mixes files, bytes, streams and generators       core   (AFFRESCOUI_AUDIO)
 #   affrescoui  affresco::Screen, which puts them together                         all of the above
 #   automation  scenarios: scripted checks a screen ships with, played headless     affrescoui
 #
@@ -144,6 +148,9 @@ function(affrescoui_module name)
 	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 endfunction()
 
+if(AFFRESCOUI_AUDIO)
+	add_subdirectory(modules/audio) # before format and screen, which use it
+endif()
 foreach(module core render export format vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
@@ -181,30 +188,29 @@ set(AFFRESCOUI_INTELLIGENCE_SOURCES examples/shared/intelligence/Settings.cpp ex
 	examples/shared/intelligence/ClaudeCode.cpp examples/shared/intelligence/Agent.cpp
 	examples/shared/intelligence/Intelligence.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)
-	# affrescoui_host renders a screen and accepts peers
-	foreach(example host)
-		add_executable(affrescoui_${example} examples/${example}/${example}.cpp)
-		target_include_directories(affrescoui_${example} PRIVATE examples/shared)
-		if(example STREQUAL "host")
-			target_sources(affrescoui_host PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
-			target_sources(affrescoui_host PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
-			target_sources(affrescoui_host PRIVATE ${AFFRESCOUI_INTELLIGENCE_SOURCES}) # the assistant's providers
-			target_include_directories(affrescoui_host PRIVATE modules/services/src) # intelligence/ClaudeCode.cpp
-			target_include_directories(affrescoui_host PRIVATE examples)
-			target_include_directories(affrescoui_host SYSTEM PRIVATE external/glad/include)
-			# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice
-			# makes the linker warn about a duplicate library)
-			target_link_libraries(affrescoui_host PRIVATE affrescoui::automation)
-		else()
-			target_link_libraries(affrescoui_${example} PRIVATE affrescoui)
-		endif()
-		target_compile_options(affrescoui_${example} PRIVATE ${AFFRESCOUI_WARNINGS})
-		target_compile_definitions(affrescoui_${example} PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
-	endforeach()
+	# The assistant's providers (examples/shared/intelligence), built once for every program that runs an app
+	add_library(affrescoui_intelligence OBJECT ${AFFRESCOUI_INTELLIGENCE_SOURCES})
+	target_include_directories(affrescoui_intelligence PRIVATE examples/shared examples)
+	target_include_directories(affrescoui_intelligence PRIVATE modules/services/src) # intelligence/ClaudeCode.cpp
+	target_link_libraries(affrescoui_intelligence PRIVATE affrescoui)
+	target_compile_options(affrescoui_intelligence PRIVATE ${AFFRESCOUI_WARNINGS})
+	target_compile_definitions(affrescoui_intelligence PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
+	# affrescoui_launcher, the stock host: renders any screen and accepts peers; without a file it opens the Launcher
+	add_executable(affrescoui_launcher examples/host/host.cpp)
+	target_sources(affrescoui_launcher PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
+	target_sources(affrescoui_launcher PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
+	target_link_libraries(affrescoui_launcher PRIVATE affrescoui_intelligence) # the assistant's providers
+	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples)
+	target_include_directories(affrescoui_launcher SYSTEM PRIVATE external/glad/include)
+	# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice makes the
+	# linker warn about a duplicate library)
+	target_link_libraries(affrescoui_launcher PRIVATE affrescoui::automation)
+	target_compile_options(affrescoui_launcher PRIVATE ${AFFRESCOUI_WARNINGS})
+	target_compile_definitions(affrescoui_launcher PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# Forge, a demo IDE: its workbench is examples/forge/index.screen.json, with a few natives (examples/forge/README.md)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/shared/CodeEditor.cpp)
 	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge)
-	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm)
+	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm affrescoui_intelligence)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# Sinopia, slides and vector documents: its workspace is examples/sinopia/index.screen.json (examples/sinopia/README.md)
@@ -215,7 +221,7 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		# drawing/: slides and transitions turned into pixels
 		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/Transition.cpp)
 	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared modules/screen/src)
-	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export)
+	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export affrescoui_intelligence)
 	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_sinopia PRIVATE AFFRESCOUI_SINOPIA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia")
 	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (tests/render/surfaces)
@@ -272,7 +278,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# The host's own agent end to end, no MCP: an openai-compatible fake server on the loopback, --ask, a proposal
 		add_test(NAME intelligence_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/intelligence/e2e_test.py ${CMAKE_BINARY_DIR})
-		# Orrery end to end, JSON only on affrescoui_host: MCP server, a revision, an approval, a picture (examples/orrery)
+		# Orrery end to end, JSON only on affrescoui_launcher: MCP server, a revision, an approval, a picture (examples/orrery)
 		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/e2e_test.py ${CMAKE_BINARY_DIR})
 	endif()

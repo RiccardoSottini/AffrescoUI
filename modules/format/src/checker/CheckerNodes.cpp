@@ -28,7 +28,7 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 	 "reject",   "preview", "restore", "revert",    "undo",      "endPreview", "focus",   "scrollTo",
 	 "navigate", "dismiss", "after",   "debounce",  "animate",   "copy",       "log",     "stop",
 	 "note",     "invoke",  "request", "subscribe", "respond",   "ask",        "signIn",  "signOut",
-	 "camera",   "transform", "image", "chooseFolder", "edit"});
+	 "camera",   "transform", "image", "chooseFolder", "edit", "audio"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -486,7 +486,7 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
 		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, "
 		       "reject, "
-		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut or chooseFolder");
+		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, chooseFolder or audio");
 		return;
 	}
 	if(*kind == "run") return walkRun(step, scope, place);
@@ -505,6 +505,7 @@ void Checker::walkStepValues(std::string_view kind, const json& step, const Scop
 		for(const std::string& name : candidateNames(step["navigate"]))
 			if(name != "back") refer("screen", "screens", name, "", place + ".navigate");
 	if(kind == "image") walkImageStep(step, place);
+	if(kind == "audio") walkAudioStep(step, place);
 }
 
 void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::string& place) {

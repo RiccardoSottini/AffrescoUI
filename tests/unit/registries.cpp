@@ -120,7 +120,7 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
 	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "auth", "assistant", "folder",
-	                                         "review", "navigation", "editor", "time", "other", "scene", "image"});
+	                                         "review", "navigation", "editor", "time", "other", "scene", "image", "audio"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())
@@ -182,7 +182,7 @@ TEST_CASE("format: the capability sections are the ones a revision can't change"
 		if(section.capability) capabilities.push_back(section.name);
 	CHECK(capabilities ==
 	      std::vector<std::string>{"channels", "services", "connections", "persist", "permissions", "images",
-	                               "points"});
+	                               "audio", "points"});
 
 	const Rules rules;
 	const json before = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}}}};

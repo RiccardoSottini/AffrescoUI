@@ -105,7 +105,9 @@ private:
 	/// @param frame The frame.
 	/// @param size The target's size, in pixels.
 	void render(Target& target, const detail::Frame& frame, platform::PixelSize size) {
-		const detail::Refreshed refreshed = quads_.refresh(frame);
+		// The text's raster scale is the target's: a screenshot at another scale than the display records again
+		const float pixelScale = static_cast<float>(size.width) / static_cast<float>(std::max(frame.width, 1));
+		const detail::Refreshed refreshed = quads_.refresh(frame, pixelScale);
 		addDamage(screen_, frame, refreshed);
 		addDamage(offscreen_, frame, refreshed);
 

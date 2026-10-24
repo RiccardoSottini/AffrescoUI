@@ -200,7 +200,7 @@ Several agents at once claim the parts they work on, so one doesn't undo another
 
 ### Usage
 Usage summaries say which controls people use, so whoever improves a screen can see what runs, what fails and what
-nobody touches. They are **off by default**: `affrescoui_host --usage` switches them on, and the host asks the person
+nobody touches. They are **off by default**: `affrescoui_launcher --usage` switches them on, and the host asks the person
 once, on the terminal, whether to count (without a terminal or a "yes", nothing is counted; the answer is kept).
 
 - Counted per node id and action (`onClick`, `onClick:addCard`): runs and errors, the first and last time; the screens
@@ -214,7 +214,7 @@ once, on the terminal, whether to count (without a terminal or a "yes", nothing 
   server has `get_usage`.
 
 ## Modes
-A reviewer sets how much they are asked with a mode (`affrescoui_host --mode`, or `setMode` over the live
+A reviewer sets how much they are asked with a mode (`affrescoui_launcher --mode`, or `setMode` over the live
 protocol):
 
 | Mode | What happens |
@@ -224,7 +224,7 @@ protocol):
 | `plan` | Authors who aren't reviewers can only propose: their `allow` rules and grants are suspended. |
 
 Proposals already waiting stay until someone decides on them. The mode a reviewer sets is kept with the history, and
-the next start uses it. `affrescoui_host`'s `--mode` and `--auto-accept` apply to that run only
+the next start uses it. `affrescoui_launcher`'s `--mode` and `--auto-accept` apply to that run only
 (`Screen::setModeForThisRun`), so a one-off `--auto-accept` never sticks.
 
 ## Review: proposals are branches
@@ -390,14 +390,14 @@ drawn for a peer. The host answers `done`, or `rejected` with no window or no in
   aren't commits). What no commit changed gives revision 0.
 
 ## History on disk
-A screen opened from a file (`Screen::fromFile`, which `affrescoui_host` uses) keeps its history in
+A screen opened from a file (`Screen::fromFile`, which `affrescoui_launcher` uses) keeps its history in
 `~/.affrescoui/<file name>.history/`, next to its `persist` state file. Restarting the app brings back `main`, the
 open proposals, the grants and the mode. A screen loaded from a string (`fromString`) keeps its history in memory
 only, as before, unless `Screen::setHistoryDirectory` (or `vcs::Repository::openHistory`) gives it a folder. Either
 is called once, before the first change, so a screen from `fromFile` keeps the folder it was given.
 
 The data folder is `~/.affrescoui` unless `AFFRESCOUI_DATA_DIR` names another (`Screen::defaultDataDirectory`), and
-`affrescoui_host` takes `--data DIR`. Parallel sessions should each use a folder of their
+`affrescoui_launcher` takes `--data DIR`. Parallel sessions should each use a folder of their
 own, as they do for sockets: one history per file name lives there, so two copies of a template that differ would
 keep moving each other's history aside. `fromFile(path, dataDirectory, Screen::History::InMemory)` keeps the
 history in memory only. The host does that for a plain screenshot run (`AFFRESCOUI_SCREENSHOT` without
@@ -503,7 +503,7 @@ The commits on `main` after a point can be exported as a **change set**:
 Change sets are portable to other copies of the same screen (id-based paths make them robust to layout differences).
 Importing one is all or nothing, still checked against the deny rules, and recorded as `plugin:<name>`. The history
 also keeps the id of each change set it applied (the SHA-256 of its JSON; `hasImported`), so
-`affrescoui_host --plugin x.json` applies a plugin once: on a later start it says so and skips it. This is the
+`affrescoui_launcher --plugin x.json` applies a plugin once: on a later start it says so and skips it. This is the
 building block for the application-layer vision: start from a rich template, customise it by talking to it, and
 share the result as a plugin others can install.
 

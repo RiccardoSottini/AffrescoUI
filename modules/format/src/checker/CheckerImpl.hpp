@@ -239,6 +239,16 @@ private:
 	/// @param step The step's object.
 	/// @param place Where it is.
 	void walkImageStep(const json& step, const std::string& place);
+
+	/* Audio (CheckerAudio.cpp) */
+
+	/// @brief Records what the "audio" section publishes: each sound's state at its "into" path.
+	void walkAudio();
+	/// @brief Checks an "audio" step: the audio section it needs, the sound it names ("of", or the only one) and its
+	/// operation.
+	/// @param step The step's object.
+	/// @param place Where it is.
+	void walkAudioStep(const json& step, const std::string& place);
 	/// @brief Records what a state step (set, push, toggle, increment, animate, remove, call into) writes.
 	/// @param kind The step.
 	/// @param step The step's object.

@@ -136,7 +136,10 @@ void QuadRenderer::drawFromScratch(const detail::Frame& frame) {
 void QuadRenderer::draw(Panel& root, std::span<Panel* const> overlays, Panel* tooltip, int width, int height) {
 	// A generation of its own, so every panel is recorded again: this renderer may not be the window's
 	const detail::Frame frame{root, overlays, tooltip, width, height, 0, ++ownGeneration_, std::nullopt, true};
-	const detail::Refreshed refreshed = refresh(frame);
+	std::array<GLint, 4> viewport{}; // the framebuffer's pixels: what the text is rasterised for
+	glGetIntegerv(GL_VIEWPORT, viewport.data());
+	const detail::Refreshed refreshed =
+	    refresh(frame, width > 0 ? static_cast<float>(viewport[2]) / static_cast<float>(width) : 1.0f);
 	draw(frame, std::nullopt, refreshed.shapes, refreshed.color);
 }
 
@@ -226,7 +229,7 @@ void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::s
 	detail::PaintRecord& record = scratch_[depth];
 	record.clear();
 	const Affine2 world = panel.isTransformed() ? parentWorld * panel.localTransform() : parentWorld;
-	detail::PaintRecorder recorder(record, panel.bounds(), outerClip);
+	detail::PaintRecorder recorder(record, panel.bounds(), outerClip, Font::rasterScaleFor(pixelScale_));
 	if(!world.isAxisAligned()) recorder.smoothEdges(panel.frame());
 	panel.paint(recorder);
 	record.overStart = record.ops.size();

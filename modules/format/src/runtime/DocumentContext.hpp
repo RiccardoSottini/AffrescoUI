@@ -44,6 +44,8 @@ public:
 	/// @param engine The runtime; outlives this object.
 	/// @param baseDirectory Where font paths are resolved from.
 	DocumentContext(Engine& engine, std::filesystem::path baseDirectory);
+	/// @brief Where relative paths are resolved from: the screen's folder (empty for a screen from text without one).
+	[[nodiscard]] const std::filesystem::path& baseDirectory() const noexcept { return baseDirectory_; }
 
 	DocumentContext(const DocumentContext&) = delete;
 	DocumentContext& operator=(const DocumentContext&) = delete;

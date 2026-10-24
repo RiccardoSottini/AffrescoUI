@@ -60,7 +60,7 @@ a fixed list, a `ROOT:PATH` screen inside a granted root and `--ask TEXT` where 
 },
 "actions": {
   "copyFlow": [{ "invoke": "apps.copy", "with": { "from": "examples", "path": "flow", "to": "my-board", "exclude": ["*.cpp", "*.hpp"] },
-                 "onDone": [{ "invoke": "launch.run", "with": { "arguments": ["affrescoui_host", "apps:my-board/index.screen.json"] } }] }]
+                 "onDone": [{ "invoke": "launch.run", "with": { "arguments": ["affrescoui_launcher", "apps:my-board/index.screen.json"] } }] }]
 }
 ```
 

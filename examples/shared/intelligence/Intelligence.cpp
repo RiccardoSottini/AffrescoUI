@@ -41,6 +41,12 @@ std::string argument(const json& arguments, const char* key) {
 			   : "";
 }
 
+/// @brief Whether the settings offer a provider: providers.json shows it, or the options show hidden ones too.
+/// @param shared The natives' parts.
+/// @param provider The provider.
+/// @return true if they do.
+bool offered(const Shared& shared, const Provider& provider) { return provider.shown || shared.options.hidden; }
+
 /// @brief A provider named in the arguments.
 /// @param shared The natives' parts.
 /// @param arguments The arguments.
@@ -48,7 +54,7 @@ std::string argument(const json& arguments, const char* key) {
 /// @throws std::runtime_error If there is no such provider.
 const Provider& providerOf(const Shared& shared, const json& arguments) {
 	const Provider* provider = shared.catalog.find(argument(arguments, "provider"));
-	if(provider == nullptr) throw std::runtime_error("no such provider");
+	if(provider == nullptr || !offered(shared, *provider)) throw std::runtime_error("no such provider");
 	return *provider;
 }
 
@@ -100,6 +106,7 @@ json providersJson(const Shared& shared) {
 	const Settings settings = Settings::load(shared.dataDir);
 	json list = json::array();
 	for(const Provider& provider : shared.catalog.providers) {
+		if(!offered(shared, provider)) continue;
 		const std::optional<Endpoint> endpoint = endpointOf(shared.catalog, settings, provider.id);
 		const bool hasKey = endpoint && !readKey(*shared.options.keys, *endpoint).empty();
 		list.push_back({{"id", provider.id},
@@ -115,7 +122,8 @@ json providersJson(const Shared& shared) {
 		                {"keyHelp", provider.keyHelp},
 		                {"models", fallbackOf(provider)}});
 	}
-	const std::optional<Endpoint> current = endpointOf(shared.catalog, settings);
+	std::optional<Endpoint> current = endpointOf(shared.catalog, settings);
+	if(current && !offered(shared, *current->provider)) current.reset(); // a hidden provider isn't in use
 	return {{"current", {{"provider", current ? current->provider->id : ""}, {"model", current ? current->model : ""}}},
 	        {"keyStore", shared.options.keys->name()},
 	        {"persistent", persistent(*shared.options.keys)},
@@ -202,7 +210,7 @@ json models(const Shared& shared, const json& arguments, affresco::CallProgress&
 /// @return `{ ok, message }`.
 json test(const Shared& shared, affresco::CallProgress& call) {
 	std::optional<Endpoint> endpoint = endpointOf(shared.catalog, Settings::load(shared.dataDir));
-	if(!endpoint) return {{"ok", false}, {"message", "No provider is chosen yet."}};
+	if(!endpoint || !offered(shared, *endpoint->provider)) return {{"ok", false}, {"message", "No provider is chosen yet."}};
 	const Provider& provider = *endpoint->provider;
 	if(provider.kind == Kind::ClaudeCode) {
 		const std::optional<std::filesystem::path> program = findClaude();
@@ -298,12 +306,13 @@ bool HostAssistant::attach(affresco::Screen& screen) {
 		AgentOptions options;
 		options.dataDir = dataDir_;
 		options.catalog = Catalog::standard();
-		if(!endpointOf(options.catalog, Settings::load(dataDir_))) return false;
+		const std::optional<Endpoint> chosen = endpointOf(options.catalog, Settings::load(dataDir_));
+		if(!chosen || !chosen->provider->shown) return false; // none chosen, or one the settings no longer offer
 		options.guide = readFormatGuide();
 		options.keys = systemKeys();
 		agent_ = std::make_unique<ProviderAgent>(executor_, std::move(options));
 	} catch(const std::exception& error) {
-		std::cerr << "affrescoui_host: the assistant's agent can't start: " << error.what() << '\n';
+		std::cerr << "affrescoui_launcher: the assistant's agent can't start: " << error.what() << '\n';
 		return false;
 	}
 	screen.connect(*agent_, "agent");

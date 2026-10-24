@@ -41,6 +41,7 @@ struct Provider {
 	std::string keyHelp;       ///< Where to get a key (or the program), for people.
 	std::string model;         ///< The model chosen when the person hasn't chosen one.
 	std::vector<Model> models; ///< The fallback list, when the live one can't be read.
+	bool shown = true;         ///< Whether the settings offer it ("shown" in providers.json); a hidden one isn't used.
 };
 
 /// @brief The catalogue of providers.

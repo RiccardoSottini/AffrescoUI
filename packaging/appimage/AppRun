@@ -4,11 +4,11 @@
 # starts that program. The programs find their templates and fonts in usr/bin/assets, next to themselves.
 here="$(dirname "$(readlink -f "$0")")"
 case "$(basename "${ARGV0:-$0}")" in
-	affrescoui_host*) exec "$here/usr/bin/affrescoui_host" "$@" ;;
+	affrescoui_launcher*) exec "$here/usr/bin/affrescoui_launcher" "$@" ;;
 	affrescoui) exec "$here/usr/bin/affrescoui" "$@" ;;
 esac
 case "$1" in
 	affrescoui | cli) shift; exec "$here/usr/bin/affrescoui" "$@" ;;
 	host) shift ;;
 esac
-exec "$here/usr/bin/affrescoui_host" "$@"
+exec "$here/usr/bin/affrescoui_launcher" "$@"

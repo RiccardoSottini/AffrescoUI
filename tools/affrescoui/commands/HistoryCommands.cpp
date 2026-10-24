@@ -1,6 +1,6 @@
 /// @file
 /// @brief `affrescoui export` and `affrescoui import`: change sets ("plugins") against a screen's history on disk,
-/// the one affrescoui_host keeps (VERSION_CONTROL.md, "History on disk"), without opening a window.
+/// the one affrescoui_launcher keeps (VERSION_CONTROL.md, "History on disk"), without opening a window.
 
 #include "Cli.hpp"
 

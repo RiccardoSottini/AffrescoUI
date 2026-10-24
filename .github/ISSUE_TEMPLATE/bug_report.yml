@@ -20,7 +20,7 @@ body:
       label: Steps to reproduce
       description: The commands you ran and what you did in the app, one step per line.
       placeholder: |
-        1. ./build/affrescoui_host examples/flow/index.screen.json
+        1. ./build/affrescoui_launcher examples/flow/index.screen.json
         2. Drag the first card to Done
         3. ...
     validations:

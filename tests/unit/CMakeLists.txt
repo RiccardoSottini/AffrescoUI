@@ -9,6 +9,10 @@ FetchContent_MakeAvailable(doctest)
 file(GLOB affrescoui_unit_test_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 # second_window.cpp draws (images of panels, second windows): it is a window test, below
 list(REMOVE_ITEM affrescoui_unit_test_files ${CMAKE_CURRENT_SOURCE_DIR}/second_window.cpp)
+# audio_*.cpp test the audio module, which AFFRESCOUI_AUDIO=OFF leaves out
+if(NOT AFFRESCOUI_AUDIO)
+	list(FILTER affrescoui_unit_test_files EXCLUDE REGEX "/audio_[^/]*\\.cpp$")
+endif()
 # forge.cpp tests the demo IDE's plain C++ (examples/forge), which needs no window
 set(affrescoui_forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
 add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp
@@ -49,6 +53,9 @@ target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/apps/server/D
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/apps/server)
 # scene3d*.cpp test the 3D module on Modello's sample models (examples/modello/samples)
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::scene3d)
+if(AFFRESCOUI_AUDIO)
+	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::audio)
+endif()
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_MODELLO_SAMPLES="${PROJECT_SOURCE_DIR}/examples/modello/samples")
 # sinopia_*.cpp test the slides app's deck model, edits, arranging and shapes (examples/sinopia), which need no window

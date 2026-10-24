@@ -3,7 +3,7 @@
 
 #include "Cli.hpp"
 
-#include "SocketDir.hpp" // from examples/shared: the socket folder's checks, shared with affrescoui_host
+#include "SocketDir.hpp" // from examples/shared: the socket folder's checks, shared with affrescoui_launcher
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp> // unconnectedScreen()
@@ -50,7 +50,7 @@ Mode modeOf(const std::string& text) {
 	return *mode;
 }
 
-/// @brief Applies change sets the screen's history doesn't have yet, like affrescoui_host --plugin.
+/// @brief Applies change sets the screen's history doesn't have yet, like affrescoui_launcher --plugin.
 /// @param screen The screen.
 /// @param plugins The change set files.
 /// @throws std::runtime_error If one can't be read or applied.

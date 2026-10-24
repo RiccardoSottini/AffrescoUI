@@ -1,7 +1,7 @@
 # The rendering check (README.md): affrescoui_render_runner plays the scenarios in scenarios/*.json with the automation
 # module and compares every picture with its golden image; check.py runs it. The runner is built next to the other
 # programs, where check.py looks.
-# It registers what affrescoui_host and affrescoui_forge register: the code editor and Forge's natives, which see
+# It registers what affrescoui_launcher and affrescoui_forge register: the code editor and Forge's natives, which see
 # forge/folder (a small fixed folder) open.
 set(forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
 add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/examples/shared/CodeEditor.cpp ${forge_dir}/Forge.cpp

@@ -20,7 +20,7 @@ using affresco::detail::ManualClock;
 
 namespace {
 
-/// @brief Loads a shipped template, as affrescoui_host does but without its data folder (no history or state file).
+/// @brief Loads a shipped template, as affrescoui_launcher does but without its data folder (no history or state file).
 /// @param name The template, e.g. "kanban".
 /// @return The screen.
 affresco::Screen loadTemplate(const std::string& name) {
@@ -165,7 +165,7 @@ TEST_CASE("format: Escape closes the open overlays when nothing has the focus") 
 	CHECK(json::parse(screen.stateJson())["open"] == false);
 }
 
-// Modello's screens name a surface its own program registers: in another host (affrescoui_host, the tools) the
+// Modello's screens name a surface its own program registers: in another host (affrescoui_launcher, the tools) the
 // screen still opens, the surface empty
 TEST_CASE("format: a surface no program registered here shows empty, and the screen opens") {
 	const ManualClock clock;

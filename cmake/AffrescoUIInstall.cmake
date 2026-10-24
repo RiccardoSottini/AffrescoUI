@@ -43,6 +43,12 @@ install(TARGETS affrescoui_core affrescoui_render affrescoui_scene3d affrescoui_
 	EXPORT AffrescoUITargets
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+if(TARGET affrescoui_audio) # the audio module (AFFRESCOUI_AUDIO): affrescoui::audio, affresco/audio/
+	set_target_properties(affrescoui_audio PROPERTIES EXPORT_NAME audio)
+	install(DIRECTORY modules/audio/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+	install(TARGETS affrescoui_audio EXPORT AffrescoUITargets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+endif()
 if(TARGET affrescoui_capi) # the C API: affrescoui::capi, affresco/affresco.h
 	set_target_properties(affrescoui_capi PROPERTIES EXPORT_NAME capi)
 	install(DIRECTORY modules/capi/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

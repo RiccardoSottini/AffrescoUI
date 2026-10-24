@@ -21,6 +21,7 @@
 #include "affresco/format/Runtime.hpp"
 
 #include "Asks.hpp"
+#include "AudioPlayers.hpp"
 #include "AsyncCalls.hpp"
 #include "Builder.hpp"
 #include "Connections.hpp"
@@ -93,6 +94,7 @@ struct Engine : VersionObserver {
 	Asks asks;                 ///< The person's requests to the agents ("ask") and their replies.
 	AsyncCalls calls;          ///< Slow native calls (last: destroyed first, joining their workers).
 	Connection peersChanged = 0; ///< On versions.onReviewChanged: who is connected (the "peers" variable).
+	AudioPlayers audio{*this}; ///< The declared sounds, played by "audio" steps.
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.

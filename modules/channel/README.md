@@ -107,6 +107,6 @@ CMakeLists.txt              the affrescoui_channel target and its sources
 4. Add unit tests to `tests/unit/channel.cpp` (the `MemoryChannel` in `tests/unit/Helpers.hpp` needs no socket), and
    seeds for the `session` fuzz target (`tests/fuzz/corpus.py`).
 
-**Talk to the app from another program.** Connect to the host's socket (`affrescoui_host --socket <folder>`), send
+**Talk to the app from another program.** Connect to the host's socket (`affrescoui_launcher --socket <folder>`), send
 one JSON object per line, and read the answers: `hello` first, then `committed`, `review` and `event` messages as
 they happen. `mcp/affrescoui_mcp.py` is a complete peer in Python.

@@ -29,7 +29,7 @@ struct Workload {
 	std::function<void(json&)> report{}; ///< Adds fields to the result after the runs, e.g. a percentile or memory.
 };
 
-/// @brief A screen loaded the way affrescoui_host loads one, and its window. Both live as long as the Context.
+/// @brief A screen loaded the way affrescoui_launcher loads one, and its window. Both live as long as the Context.
 struct LoadedScreen {
 	Screen& screen; ///< The screen.
 	Window& window; ///< Its window.
@@ -58,7 +58,7 @@ public:
 	/// @return The application.
 	Application& application();
 
-	/// @brief Loads a screen into a new hidden window, as affrescoui_host does, without a state file or a host.
+	/// @brief Loads a screen into a new hidden window, as affrescoui_launcher does, without a state file or a host.
 	/// @param document The screen document.
 	/// @param baseDirectory Where its relative paths (fonts) are resolved from.
 	/// @return The screen, kept until the Context goes.
@@ -85,7 +85,7 @@ public:
 	Window& openWindow(const json& document);
 
 private:
-	/// @brief Sets a screen up as affrescoui_host does: placeholder types, the "code" type, no host to talk to.
+	/// @brief Sets a screen up as affrescoui_launcher does: placeholder types, the "code" type, no host to talk to.
 	/// @param screen The screen, not yet built.
 	static void configure(Screen& screen);
 

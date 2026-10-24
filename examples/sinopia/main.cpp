@@ -5,12 +5,13 @@
 //   affrescoui_sinopia [--socket DIR] [--data DIR]
 //   affrescoui_sinopia --check index.scenarios.json [--out DIR]
 //
-// Opens the sample deck in decks/. Like affrescoui_host, it listens for the person's client and an agent in DIR
+// Opens the sample deck in decks/. Like affrescoui_launcher, it listens for the person's client and an agent in DIR
 // (studio.sock, agent.sock). --check plays the scenarios headless, with the natives registered, and prints the report; with --out,
 // their pictures are drawn and captures are saved in DIR (tools/media/capture.py).
 
 #include "Sinopia.hpp"
 #include "SocketDir.hpp"
+#include "intelligence/Intelligence.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
@@ -92,6 +93,7 @@ int check(const std::filesystem::path& file, const std::filesystem::path& out) {
 int run(const Options& options) {
 	const std::filesystem::path folder = AFFRESCOUI_SINOPIA_DIR;
 	affresco::Application app;
+	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
 	affresco::Screen screen = affresco::Screen::fromFile(folder / "index.screen.json", options.dataDir);
 	const auto session = std::make_shared<sinopia::Session>();
 	session->folder = folder;
@@ -99,6 +101,7 @@ int run(const Options& options) {
 	session->app = &app;
 	prepare(screen, session);
 	session->window = &screen.createWindow(app);
+	assistant.attach(screen); // the provider chosen in the Launcher's Settings answers the assistant
 	createSocketDir(options.socketDir);
 	screen.listen(app, options.socketDir / "studio.sock", "studio");
 	screen.listen(app, options.socketDir / "agent.sock", "agent");

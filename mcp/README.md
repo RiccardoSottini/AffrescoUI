@@ -4,9 +4,9 @@ Connects an AI agent (Claude Code, or any [Model Context Protocol](https://model
 running AffrescoUI host, **in both directions**:
 
 ```
-requests   the app's chat ──"request"──▶ affrescoui_host ──agent.sock──▶ affrescoui_mcp.py ──channel event──▶ AI agent
+requests   the app's chat ──"request"──▶ affrescoui_launcher ──agent.sock──▶ affrescoui_mcp.py ──channel event──▶ AI agent
                                                                                 (or wait_for_request)
-changes    AI agent ──tools──▶ affrescoui_mcp.py ──agent.sock──▶ affrescoui_host ──revision──▶ rendering engine
+changes    AI agent ──tools──▶ affrescoui_mcp.py ──agent.sock──▶ affrescoui_launcher ──revision──▶ rendering engine
                                                                        └──review, reply──▶ the app's chat
 ```
 
@@ -31,7 +31,7 @@ Python standard library (3.9+). The socket directory is found the way the host f
 1. Build and start the host on an app (with no file it opens the Launcher, which lists every app):
    ```sh
    cmake -S . -B build && cmake --build build
-   ./build/affrescoui_host examples/flow/index.screen.json &   # the Kanban board; its assistant chat asks and reviews
+   ./build/affrescoui_launcher examples/flow/index.screen.json &   # the Kanban board; its assistant chat asks and reviews
    ```
 2. Register the server with Claude Code:
    ```sh
@@ -51,8 +51,8 @@ Python standard library (3.9+). The socket directory is found the way the host f
 Without channels (or with another MCP client), ask the agent to use the `serve_studio` prompt, or just tell it to
 "wait for requests from the AffrescoUI app and handle them": it loops on `wait_for_request`.
 
-Options: `--socket DIR` if the host listens elsewhere (`affrescoui_host --socket DIR`), and `--launch "command"` to start
-the host if none is running, e.g. `--launch "/path/to/build/affrescoui_host"`.
+Options: `--socket DIR` if the host listens elsewhere (`affrescoui_launcher --socket DIR`), and `--launch "command"` to start
+the host if none is running, e.g. `--launch "/path/to/build/affrescoui_launcher"`.
 
 Other clients (JSON configuration):
 ```json
@@ -74,7 +74,7 @@ The setup, once the host builds on Windows (work in progress) and Python can con
    ```powershell
    cmake -S . -B build
    cmake --build build --config Release
-   Start-Process .\build\Release\affrescoui_host.exe
+   Start-Process .\build\Release\affrescoui_launcher.exe
    ```
 2. Register the server with Claude Code. Use `py` (the Python launcher) or `python`, since `python3` is often missing
    on Windows:
@@ -83,7 +83,7 @@ The setup, once the host builds on Windows (work in progress) and Python can con
    ```
    In a JSON configuration, double the backslashes: `"args": ["C:\\path\\to\\AffrescoUI\\mcp\\affrescoui_mcp.py"]`.
 3. `--socket DIR` and `AFFRESCOUI_SOCKET_DIR` work as on the other platforms. `--launch` takes a Windows command line
-   as it is, e.g. `--launch "C:\path\to\build\Release\affrescoui_host.exe"`.
+   as it is, e.g. `--launch "C:\path\to\build\Release\affrescoui_launcher.exe"`.
 
 ## Tools
 

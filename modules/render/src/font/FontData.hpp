@@ -12,10 +12,12 @@
 #include "text/ShapedTextCache.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace affresco {
@@ -54,6 +56,11 @@ struct Font::Data {
 	static constexpr std::size_t namedGlyphsKept = 1024;   ///< Names of glyphs remembered; more empties the map.
 	const Glyph* question = nullptr; ///< '?': what a missing character, or one past the atlas limit, draws.
 	float spaceAdvance = 0.0f;       ///< How wide a space is, between words.
+	/// @brief Texels per pixel of its glyphs: 1 for a font, more for a raster of one (Font::rasterAt()).
+	float rasterScale = 1.0f;
+	/// @brief A font's rasters at other scales, by scale, made on first use; nullptr for a scale it couldn't be made at
+	/// (so it isn't tried again). Kept as long as the font: what panels recorded points at them.
+	std::vector<std::pair<float, std::shared_ptr<const Font>>> rasters;
 
 	detail::ShapedTextCache words{8192, 65536};  ///< Words: what new lines are made of (64 Ki code points).
 	detail::ShapedTextCache lines{4096, 131072}; ///< Whole texts: what each frame draws again (128 Ki code points).

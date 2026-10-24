@@ -3,7 +3,7 @@
 //
 //   affrescoui_forge [folder] [--socket DIR] [--data DIR]
 //
-// Opens the folder if one is given (else a welcome page, with Open Folder). Like affrescoui_host, it listens for the
+// Opens the folder if one is given (else a welcome page, with Open Folder). Like affrescoui_launcher, it listens for the
 // person's client and an agent in DIR (studio.sock, agent.sock), so they can change the workbench while it runs; the
 // layout, theme and settings are kept in --data DIR ("persist").
 
@@ -11,6 +11,7 @@
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "features/editor/Editor.hpp"
+#include "intelligence/Intelligence.hpp"
 #include "features/lsp/Lsp.hpp"
 #include "features/search/Search.hpp"
 #include "SocketDir.hpp"
@@ -83,6 +84,7 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 /// @throws std::exception If the screen or a socket can't be opened.
 int run(const Options& options) {
 	affresco::Application app;
+	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
 	affresco::Screen screen =
@@ -107,6 +109,7 @@ int run(const Options& options) {
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {
+		assistant.attach(screen); // the provider chosen in the Launcher's Settings answers the assistant
 		createSocketDir(options.socketDir);
 		screen.listen(app, options.socketDir / "studio.sock", "studio");
 		screen.listen(app, options.socketDir / "agent.sock", "agent");

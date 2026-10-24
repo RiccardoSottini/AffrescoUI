@@ -66,7 +66,7 @@ def fail(message):
 
 def main():
     build = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "build")
-    host = os.path.join(build, "affrescoui_host.exe" if os.name == "nt" else "affrescoui_host")
+    host = os.path.join(build, "affrescoui_launcher.exe" if os.name == "nt" else "affrescoui_launcher")
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Provider)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     port = server.server_address[1]

@@ -7,7 +7,7 @@
 "use strict";
 
 /** The programs a page may start, and the screens and folders the host may show (the site preloads them in /assets). */
-const affrescoPrograms = new Set(["affrescoui_host"]);
+const affrescoPrograms = new Set(["affrescoui_launcher"]);
 const affrescoScreenName = /^[a-z][a-z0-9-]{0,63}$/;
 
 /**

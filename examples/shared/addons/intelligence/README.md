@@ -12,7 +12,7 @@ Launcher shows it in its Settings:
 ```
 
 It holds no code: it calls the host's `intelligence.*` natives (`examples/shared/intelligence/Intelligence.hpp`), which
-`affrescoui_host` registers only for the Launcher (started without a screen file), so no other screen, and no revision,
+`affrescoui_launcher` registers only for the Launcher (started without a screen file), so no other screen, and no revision,
 can change the provider, its base URL or its key. Without them (any other host, the rendering check) it shows stand-in
 providers, and saving says the settings are changed in the Launcher.
 

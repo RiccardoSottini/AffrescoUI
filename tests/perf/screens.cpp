@@ -1,6 +1,6 @@
 /// @file
 /// @brief The workloads that need a window: load, update, revision, layout and frame. They load the templates the way
-/// affrescoui_host does, into hidden windows that only get the events a workload sends.
+/// affrescoui_launcher does, into hidden windows that only get the events a workload sends.
 
 #include "Bench.hpp"
 #include "CodeEditor.hpp"
@@ -39,7 +39,7 @@ Application& Context::application() {
 }
 
 void Context::configure(Screen& screen) {
-	screen.setPlaceholderTypes(true);     // as affrescoui_host does
+	screen.setPlaceholderTypes(true);     // as affrescoui_launcher does
 	examples::registerCodeEditor(screen); // and its application-layer "code" type
 	// Channels find nobody, so no workload waits on a host
 	screen.setSocketDirectory(std::filesystem::temp_directory_path() / "affrescoui-bench-no-host");

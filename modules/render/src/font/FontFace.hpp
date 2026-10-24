@@ -70,7 +70,8 @@ private:
 /// @brief One font file opened at one pixel height: what a Font asks for its glyphs and shapes runs of text with.
 ///
 /// Glyphs are rasterised unhinted, so their shapes and advances follow the outlines exactly (as HarfBuzz positions
-/// them) at any size.
+/// them) at any size. A face can rasterise denser than its size (its raster scale, for a HiDPI framebuffer): its
+/// bitmaps then have that many texels per pixel, while its metrics and advances stay those of its size.
 class FontFace {
 public:
 	/// @brief A rendered glyph: FreeType's bitmap, valid until the face renders another one.
@@ -103,9 +104,17 @@ public:
 	/// @param size The size.
 	/// @param path Its path, for errors.
 	/// @param style Bold or italic, synthesised from its outlines (not its colour glyphs).
-	/// @throws std::runtime_error If it isn't a usable scalable font, or the size is out of range.
+	/// @param rasterScale Texels per pixel of its bitmaps: 1, or more for a denser framebuffer.
+	/// @throws std::runtime_error If it isn't a usable scalable font, or the size (times @p rasterScale) is out of
+	/// range.
 	FontFace(FT_Library library, std::shared_ptr<const FontFile> file, Size size, const std::filesystem::path& path,
-	         FontStyle style = {});
+	         FontStyle style = {}, float rasterScale = 1.0f);
+	/// @brief Opens another face's file again, at its size and style, rasterising at another scale.
+	/// @param library The FreeType library; it outlives the face.
+	/// @param other The face: it shares its file's bytes.
+	/// @param rasterScale Texels per pixel of its bitmaps.
+	/// @throws std::runtime_error As the constructor above.
+	FontFace(FT_Library library, const FontFace& other, float rasterScale);
 
 	/// @brief Its glyph for a character.
 	/// @param codepoint The character.
@@ -132,9 +141,12 @@ public:
 	[[nodiscard]] float advance(unsigned glyph) const noexcept;
 	/// @brief The HarfBuzz font to shape with: positions come in font units (multiply by scale()).
 	[[nodiscard]] hb_font_t* shaper() const noexcept { return shaper_.get(); }
+	/// @brief Texels per pixel of its bitmaps.
+	[[nodiscard]] float rasterScale() const noexcept { return rasterScale_; }
 	/// @brief Renders a glyph.
 	/// @param glyph The glyph's index.
-	/// @return Its bitmap, or nothing if it can't be rendered (a broken outline, out of memory).
+	/// @return Its bitmap, in texels (rasterScale() per pixel), or nothing if it can't be rendered (a broken outline,
+	/// out of memory).
 	[[nodiscard]] std::optional<Bitmap> render(unsigned glyph) const noexcept;
 
 private:
@@ -143,11 +155,10 @@ private:
 	/// @param path The file's path, for errors.
 	/// @throws std::runtime_error If FreeType can't read it, or it has no outlines.
 	void openOutlines(FT_Library library, const std::filesystem::path& path);
-	/// @brief Sets face_'s size, scale_ and color_.
-	/// @param size The size.
+	/// @brief Sets face_'s size (size_ times rasterScale_), scale_ and color_.
 	/// @param path The file's path, for errors.
 	/// @throws std::runtime_error If the face has no height or the size is out of range.
-	void setSize(Size size, const std::filesystem::path& path);
+	void setSize(const std::filesystem::path& path);
 	/// @brief Opens the file with HarfBuzz, into shaper_, styled as style_ asks.
 	/// @param path The file's path, for errors.
 	/// @throws std::runtime_error If HarfBuzz finds no glyphs in it.
@@ -159,6 +170,9 @@ private:
 	std::shared_ptr<const FontFile> file_; ///< Declared first, so the face and the font are freed before it.
 	std::unique_ptr<FT_FaceRec_, TextLibraryDeleter> face_; ///< FreeType's face, pointing into file_.
 	std::unique_ptr<hb_font_t, TextLibraryDeleter> shaper_; ///< HarfBuzz's font, pointing into file_.
+	std::filesystem::path path_;                            ///< Its file's path, for errors.
+	Size size_;                                             ///< The size it was opened at.
+	float rasterScale_ = 1.0f;                              ///< See rasterScale().
 	float scale_ = 0.0f;                                    ///< See scale().
 	bool color_ = false;                                    ///< See hasColor().
 	FontStyle style_;                                       ///< Synthesised when a glyph is rendered.

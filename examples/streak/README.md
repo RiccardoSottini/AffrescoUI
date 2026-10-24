@@ -3,7 +3,7 @@
 Habits to check day by day, with scores, charts, a calendar and notes, kept on disk with `persist`. The `habit-tracker` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_host examples/streak/index.screen.json
+./build/affrescoui_launcher examples/streak/index.screen.json
 ./build/affrescoui test examples/streak/index.scenarios.json
 ```
 

@@ -3,10 +3,11 @@
 //
 //   affrescoui_tempera [--socket DIR] [--data DIR]
 //
-// Opens a generated sample image. Like affrescoui_host, it listens for the person's client and an agent in DIR
+// Opens a generated sample image. Like affrescoui_launcher, it listens for the person's client and an agent in DIR
 // (studio.sock, agent.sock), so they can change the workspace while it runs; the theme and the panels' sizes are kept in --data DIR.
 
 #include "SocketDir.hpp"
+#include "intelligence/Intelligence.hpp"
 #include "tempera/Tempera.hpp"
 
 #include <affresco/affresco.hpp>
@@ -70,6 +71,7 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 /// @throws std::exception If the screen or a socket can't be opened.
 int run(const Options& options) {
 	affresco::Application app;
+	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
 	affresco::Screen screen =
@@ -81,6 +83,7 @@ int run(const Options& options) {
 	session->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {
+		assistant.attach(screen); // the provider chosen in the Launcher's Settings answers the assistant
 		createSocketDir(options.socketDir);
 		screen.listen(app, options.socketDir / "studio.sock", "studio");
 		screen.listen(app, options.socketDir / "agent.sock", "agent");

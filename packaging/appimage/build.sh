@@ -15,7 +15,7 @@ version=$(sed -n 's/^X-AppImage-Version=//p' "$here/affrescoui.desktop")
 appdir="$(mktemp -d)/AffrescoUI.AppDir"
 mkdir -p "$appdir/usr/bin" "$appdir/usr/share/doc/affrescoui" "$appdir/usr/share/applications" \
 	"$appdir/usr/share/icons/hicolor/scalable/apps"
-for program in affrescoui affrescoui_host; do
+for program in affrescoui affrescoui_launcher; do
 	install -m 755 "$archive/$program" "$appdir/usr/bin/$program"
 done
 cp -R "$archive/assets" "$appdir/usr/bin/assets"

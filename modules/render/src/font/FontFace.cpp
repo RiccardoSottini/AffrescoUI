@@ -81,12 +81,15 @@ std::size_t FontFiles::bytes() const noexcept {
 }
 
 FontFace::FontFace(FT_Library library, std::shared_ptr<const FontFile> file, Size size,
-                   const std::filesystem::path& path, FontStyle style)
-    : file_(std::move(file)), style_(style) {
+                   const std::filesystem::path& path, FontStyle style, float rasterScale)
+    : file_(std::move(file)), path_(path), size_(size), rasterScale_(rasterScale), style_(style) {
 	openOutlines(library, path);
-	setSize(size, path);
+	setSize(path);
 	openShaper(path);
 }
+
+FontFace::FontFace(FT_Library library, const FontFace& other, float rasterScale)
+    : FontFace(library, other.file_, other.size_, other.path_, other.style_, rasterScale) {}
 
 void FontFace::openOutlines(FT_Library library, const std::filesystem::path& path) {
 	const std::vector<unsigned char>& bytes = file_->bytes;
@@ -98,17 +101,20 @@ void FontFace::openOutlines(FT_Library library, const std::filesystem::path& pat
 		throw unusable(path, "no outlines; bitmap colour fonts such as CBDT emoji aren't supported yet");
 }
 
-void FontFace::setSize(Size size, const std::filesystem::path& path) {
+void FontFace::setSize(const std::filesystem::path& path) {
 	// A font's height spans its ascender to its descender, as stb_truetype's did, so sizes stay what they were
 	FT_Face face = face_.get();
+	const Size size = size_;
 	const auto units =
 	    static_cast<float>(size.of == SizeOf::em ? face->units_per_EM : face->ascender - face->descender);
 	if(!(units > 0.0f) || !(size.pixels > 0.0f) || !std::isfinite(size.pixels)) throw unusable(path, "no height");
-	if(size.pixels > largestSize) // checked before any conversion to an integer: 1e30 doesn't fit one
+	// The bitmaps' size is checked before any conversion to an integer: 1e30 doesn't fit one
+	const float texels = size.pixels * rasterScale_;
+	if(!(rasterScale_ > 0.0f) || !(texels <= largestSize))
 		throw unusable(path, "larger than " + std::to_string(static_cast<int>(largestSize)) + " pixels");
-	scale_ = size.pixels / units;
+	scale_ = size.pixels / units; // metrics and advances stay in pixels, whatever the raster scale
 	FT_Size_RequestRec request{size.of == SizeOf::em ? FT_SIZE_REQUEST_TYPE_NOMINAL : FT_SIZE_REQUEST_TYPE_REAL_DIM, 0,
-	                           std::lround(size.pixels * 64.0f), 0, 0};
+	                           std::lround(texels * 64.0f), 0, 0};
 	if(FT_Request_Size(face, &request) != 0) throw unusable(path, "it has no size " + std::to_string(size.pixels));
 	color_ = FT_HAS_COLOR(face);
 }
@@ -175,7 +181,8 @@ void FontFace::synthesize(FT_Outline& outline) const noexcept {
 		const FT_Matrix slant{0x10000, static_cast<FT_Fixed>(std::lround(italicSlant * 65536.0f)), 0, 0x10000};
 		FT_Outline_Transform(&outline, &slant);
 	}
-	if(style_.bold) FT_Outline_Embolden(&outline, static_cast<FT_Pos>(std::lround(emPixels() * boldShare * 64.0f)));
+	if(style_.bold) // the outline is in texels: thickened as much at any raster scale
+		FT_Outline_Embolden(&outline, static_cast<FT_Pos>(std::lround(emPixels() * rasterScale_ * boldShare * 64.0f)));
 }
 
 } // namespace affresco::detail

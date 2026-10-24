@@ -63,8 +63,11 @@ public:
 
 	/// @brief Brings the geometry of a frame's panels up to date (detail::GeometryCache::refresh()).
 	/// @param frame The frame, laid out.
+	/// @param pixelScale Framebuffer pixels per window unit of what the frame is drawn into: its text's raster scale.
 	/// @return The damage found, and the shaders the frame needs.
-	[[nodiscard]] detail::Refreshed refresh(const detail::Frame& frame) { return cache_.refresh(frame); }
+	[[nodiscard]] detail::Refreshed refresh(const detail::Frame& frame, float pixelScale = 1.0f) {
+		return cache_.refresh(frame, pixelScale);
+	}
 
 	/// @brief Draws a refreshed frame into the current framebuffer, whose viewport, blending and clearing are set.
 	/// @param frame The frame.

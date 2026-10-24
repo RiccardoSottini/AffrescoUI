@@ -59,7 +59,7 @@ class ServiceRegistry;
 
 /// @brief One of the host's sibling programs an app-programs grant may start (appProgramsShaper()).
 struct AppProgram {
-	std::string name;    ///< Its file's name, e.g. "affrescoui_host" (".exe" is added on Windows).
+	std::string name;    ///< Its file's name, e.g. "affrescoui_launcher" (".exe" is added on Windows).
 	bool screen = false; ///< It takes a screen file to open, its first argument.
 	bool ask = false;    ///< It takes `--ask TEXT`, a first request for the app's assistant.
 };

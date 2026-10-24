@@ -733,6 +733,21 @@
       "scope": "runtime"
     },
     {
+      "name": "miniaudio",
+      "version": "0.11.25",
+      "purpose": "audio output devices, the WAV, FLAC and MP3 decoders and the data converter",
+      "kind": "downloaded",
+      "url": "https://raw.githubusercontent.com/mackron/miniaudio/9634bedb5b5a2ca38c1ee7108a9358a4e233f14d/miniaudio.h",
+      "sha256": "ac7af4de748b7e26b777f37e01cee313a308a7296a3eb080e2906b320cc55c89",
+      "pinnedIn": "cmake/AffrescoUIAudio.cmake",
+      "license": "Unlicense OR MIT-0",
+      "licenseNote": "Public domain (Unlicense) or MIT No Attribution, at your choice (end of `miniaudio.h`, © 2026 David Reid), its dr_wav, dr_flac and dr_mp3 decoders included; one header compiled into the audio module",
+      "usedBy": [
+        "affrescoui::audio"
+      ],
+      "scope": "runtime"
+    },
+    {
       "name": "glTF sample: BoxAnimated",
       "version": "glTF-Sample-Assets",
       "purpose": "sample model, Modello's samples and the scene3d tests",

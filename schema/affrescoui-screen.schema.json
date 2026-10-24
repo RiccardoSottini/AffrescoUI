@@ -926,6 +926,87 @@
 							}
 						}
 					},
+					"audio": {
+						"type": "object",
+						"maxProperties": 32,
+						"description": "Sounds the audio step plays, each from one source. Revisions can't change it.",
+						"additionalProperties": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"file": {
+									"type": "string"
+								},
+								"url": {
+									"type": "string",
+									"pattern": "^https?://"
+								},
+								"source": {
+									"type": "string"
+								},
+								"tone": {
+									"type": "object",
+									"required": [
+										"frequency",
+										"seconds"
+									],
+									"additionalProperties": false,
+									"properties": {
+										"frequency": {
+											"type": "number",
+											"minimum": 1,
+											"maximum": 20000
+										},
+										"seconds": {
+											"type": "number",
+											"minimum": 0.001,
+											"maximum": 86400
+										},
+										"amplitude": {
+											"type": "number",
+											"minimum": 0,
+											"maximum": 1
+										}
+									}
+								},
+								"into": {
+									"type": "string",
+									"pattern": "^state\\."
+								},
+								"volume": {
+									"type": "number",
+									"minimum": 0,
+									"maximum": 4
+								},
+								"pan": {
+									"type": "number",
+									"minimum": -1,
+									"maximum": 1
+								},
+								"rate": {
+									"type": "number",
+									"minimum": 0.25,
+									"maximum": 4
+								},
+								"loop": {
+									"type": "boolean"
+								},
+								"updates": {
+									"type": "number",
+									"minimum": 50,
+									"maximum": 5000
+								},
+								"maxBytes": {
+									"type": "integer",
+									"minimum": 1024,
+									"maximum": 67108864
+								},
+								"note": {
+									"type": "string"
+								}
+							}
+						}
+					},
 					"features": {
 						"type": "object",
 						"description": "Installed features, one record each (rfcs/0004-features.md)",
@@ -3970,7 +4051,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -4023,6 +4104,27 @@
 					"camera": {},
 					"transform": {},
 					"image": {},
+					"audio": {
+						"anyOf": [
+							{
+								"enum": [
+									"play",
+									"pause",
+									"toggle",
+									"stop",
+									"seek",
+									"volume",
+									"pan",
+									"rate",
+									"loop",
+									"master"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"to": {},
 					"value": {},
 					"at": {},
@@ -4166,7 +4268,8 @@
 							}
 						]
 					},
-					"of": {}
+					"of": {},
+					"from": {}
 				}
 			},
 			"expression": {

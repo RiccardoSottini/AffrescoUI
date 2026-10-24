@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
 	try {
 		automation::Options options;
 		options.policy = automation::Goldens::RecordMissing;
-		// As affrescoui_host and affrescoui_forge; Forge's scenarios see forge/folder open as the workspace, its
+		// As affrescoui_launcher and affrescoui_forge; Forge's scenarios see forge/folder open as the workspace, its
 		// example catalogue, and no file dialog
 		options.prepare = [](affresco::Screen& screen) {
 			examples::registerCodeEditor(screen);

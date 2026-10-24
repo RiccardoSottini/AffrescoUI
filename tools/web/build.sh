@@ -23,12 +23,12 @@ fi
 # Without warnings as errors: the desktop builds hold the library to them, and a few of its files warn on wasm32 (a
 # 32-bit long) or with emsdk's newer clang, which is theirs to fix (web/README.md)
 emcmake cmake -S "$root" -B "$build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
-cmake --build "$build" --target affrescoui_host affrescoui_cli
+cmake --build "$build" --target affrescoui_launcher affrescoui_cli
 
 rm -rf "$site"
 mkdir -p "$site"
 cp "$root/web/index.html" "$root/web/site.css" "$root/web/site.js" "$site/"
-cp "$build/affrescoui_host.js" "$build/affrescoui_host.wasm" "$build/affrescoui_host.data" "$site/"
+cp "$build/affrescoui_launcher.js" "$build/affrescoui_launcher.wasm" "$build/affrescoui_launcher.data" "$site/"
 
 # A page per template, and its link in the picker
 links="$build/site-links.html"
@@ -46,5 +46,5 @@ awk -v links="$links" '/<!-- templates -->/ { while ((getline line < links) > 0)
 rm "$links"
 
 echo "Site: $site"
-echo "affrescoui_host.wasm: $(wc -c <"$site/affrescoui_host.wasm" | tr -d ' ') bytes, $(gzip -9 -c "$site/affrescoui_host.wasm" | wc -c | tr -d ' ') gzipped"
-echo "assets (affrescoui_host.data): $(wc -c <"$site/affrescoui_host.data" | tr -d ' ') bytes, $(gzip -9 -c "$site/affrescoui_host.data" | wc -c | tr -d ' ') gzipped"
+echo "affrescoui_launcher.wasm: $(wc -c <"$site/affrescoui_launcher.wasm" | tr -d ' ') bytes, $(gzip -9 -c "$site/affrescoui_launcher.wasm" | wc -c | tr -d ' ') gzipped"
+echo "assets (affrescoui_launcher.data): $(wc -c <"$site/affrescoui_launcher.data" | tr -d ' ') bytes, $(gzip -9 -c "$site/affrescoui_launcher.data" | wc -c | tr -d ' ') gzipped"

@@ -40,7 +40,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `TableView.hpp` | `TableView`: a `ListView` of rows of cells under a header; a header click sorts (numbers before text, stable, again to reverse: `onSortChanged`), a header edge drag resizes a column (`onColumnResized`); the order and widths given replace the user's only when they change |
 | `GraphView.hpp` | `GraphView`: a node editor over a `GraphModel` (nodes with typed ports, links); the link rules (`checkLink`: kinds, `links` per port, duplicates, cycles), a small camera (`GraphCamera`, zoom and pan, to move onto Camera2D), Bézier links coloured by kind, a minimap, off-screen nodes culled; drags, a marquee and the keyboard emit `GraphEvent`s (`onEdit`) and change nothing themselves |
 | `TimelineView.hpp` | `TimelineView`: tracks of keyframes and clips under a time ruler over a `TimelineModel` (nested groups, mute and lock, markers, a play range); ticks that follow the zoom in frames, seconds or timecode (`rulerTicks`, `formatTime`), snapping (`snapTime`), step, linear and Bézier easing (`keyframeValueAt`); only the rows in view laid out and drawn; scrubbing, keyframe drags, clip moves and trims, a marquee and the keyboard emit `TimelineEvent`s (`onEdit`) |
-| `Font.hpp` | `Font`: a font and its fallbacks at one size, in a style (`FontStyle`: bold, italic, synthesised from the outlines); `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages |
+| `Font.hpp` | `Font`: a font and its fallbacks at one size, in a style (`FontStyle`: bold, italic, synthesised from the outlines); `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages; `rasterAt` (its glyphs rasterised for a HiDPI framebuffer, laid out the same) |
 | `FontCache.hpp` | `FontCache`: fonts by file, size and fallbacks, within a bound (32 fonts, 128 MiB), the least recently used that nothing holds dropped first; the system's fallback fonts when the host asks |
 | `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text, images, meshes of anti-aliased quads with `fillMesh`, gradients with `fillGradient`); `CornerRadii`, `Shadow`, `MeshVertex` |
 | `Bitmap.hpp` | `Bitmap`: an image's premultiplied RGBA pixels, immutable and shared; `load` and `decode` (PNG and JPEG with stb_image, SVG icons rasterised at twice their size) and `fromPixels`, within `Bitmap::Limits` |
@@ -119,6 +119,16 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   each character and each pair alone the first time it is met. Everything else (ligatures such as Roboto's `fi`,
   contextual forms, marks, other scripts, fallback faces) is shaped as before. `tests/unit/plain_text.cpp` checks
   that both give the same glyphs, advances, carets and widths, to the last bit.
+- **Text is sharp on any display, and lays out the same on all of them.** Sizes, shaping, measuring, wrapping,
+  line heights, carets and hit testing are in window units. A frame with more framebuffer pixels per unit (a Retina
+  display: 2; also `saveScreenshot` and `renderToImage` at a scale) draws its text from `Font::rasterAt(scale)`: the
+  font's faces again, rasterising the same glyphs that many times denser into atlas pages of their own, on demand,
+  each glyph's quad its bitmap's rectangle divided by the scale, the baseline on a pixel row. Scales round to a
+  quarter from 1 to 4; at 1 (and below, for thumbnails) the font's own glyphs are drawn, as before. A font keeps one
+  raster per scale it was drawn at, for as long as it lives, so windows on displays of different scales share it and
+  moving a window back and forth rasterises nothing twice. A frame at another scale than the last records every panel
+  again (`PaintKey::scale`). A raster's pages have a font's 64 MiB bound and count in its `memoryBytes()`; a font too
+  large to rasterise at the scale (past 4,096 pixels) draws unscaled.
 - **Colour glyphs share the text's batch.** Colour emoji (COLR fonts) go to RGBA atlas pages, which the renderer binds
   on a second texture unit next to the coverage page. A frame without colour glyphs (or without shapes) uses a shader
   without that code, so its pixels don't depend on it. A font's GPU pages are freed the first frame after it is gone.
@@ -141,8 +151,9 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   or icon; `TextLayout` breaks them into lines at spaces across runs, each line as tall as its tallest font, and is
   made again only when the runs, the font or the width change. A press on a link emits `onLink`; a selectable label
   selects with the mouse and Cmd/Ctrl+A and copies with Cmd/Ctrl+C.
-- **Limits:** a glyph atlas page is at most 4,096 × 4,096, and a font's pages hold at most 64 MiB in all (colour pages
-  count four bytes a texel), so text naming many characters can't exhaust memory; past that, characters draw as `?`.
+- **Limits:** a glyph atlas page is at most 4,096 × 4,096, and a font's pages (and each of its rasters') hold at most
+  64 MiB in all (colour pages count four bytes a texel), so text naming many characters can't exhaust memory; past
+  that, characters draw as `?`.
   A font file is a regular file of at most 256 MiB, and a font's size at most 4,096 pixels. `FontCache` keeps at most
   32 fonts and 128 MiB that nothing uses. A `TextModel` (a `TextEditor`'s text) keeps 500 undo steps, and at most
   256 MiB of removed text in them; invalid UTF-8 becomes U+FFFD as it comes in.
@@ -187,7 +198,7 @@ Chromium-based browser of the same architecture. Then point the build at the fol
 ```
 cmake -S . -B build-angle -G Ninja -DAFFRESCOUI_GL_BACKEND=gles3 -DAFFRESCOUI_ANGLE_DIR=/path/to/angle/out/Release
 cmake --build build-angle
-AFFRESCOUI_SCREENSHOT=out.ppm ./build-angle/affrescoui_host
+AFFRESCOUI_SCREENSHOT=out.ppm ./build-angle/affrescoui_launcher
 ```
 
 macOS needs `libEGL.dylib` and `libGLESv2.dylib`; Windows needs `libEGL.dll` and `libGLESv2.dll`. GLFW opens them by
@@ -270,7 +281,8 @@ src/
   gl/surfaces/             GPU surfaces: SurfaceView.cpp (the panel), SurfaceState.hpp (what it shares with the
                            renderer), Surfaces (their framebuffers and passes, and drawing into them), SurfaceGuard
                            (the GL state saved and restored around a surface), SurfacePrelude.cpp (the GLSL prelude)
-  font/                    Font.cpp (loading, Latin-1 at load, glyphs, measuring and wrapping, the atlas),
+  font/                    Font.cpp (loading, Latin-1 at load, glyphs, measuring and wrapping, the atlas, rasters at
+                           a display's scale),
                            FontCache.cpp (the bounded cache, the system's fallback fonts), FontFace (one file at one
                            size, in FreeType and HarfBuzz), FontData.hpp (what a Font holds), GlyphAtlas (coverage and
                            colour pages), LookupSpans (how far GSUB and GPOS lookups reach, read with every offset

@@ -9,8 +9,8 @@ NestedInstallerType: portable
 NestedInstallerFiles:
   - RelativeFilePath: affrescoui-@VERSION@-windows-x86_64\affrescoui.exe
     PortableCommandAlias: affrescoui
-  - RelativeFilePath: affrescoui-@VERSION@-windows-x86_64\affrescoui_host.exe
-    PortableCommandAlias: affrescoui_host
+  - RelativeFilePath: affrescoui-@VERSION@-windows-x86_64\affrescoui_launcher.exe
+    PortableCommandAlias: affrescoui_launcher
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/RiccardoSottini/AffrescoUI/releases/download/v@VERSION@/affrescoui-@VERSION@-windows-x86_64.zip

@@ -199,7 +199,7 @@ TOOLS = [
      "inputSchema": object_schema()},
     {"name": "export_changes",
      "description": "The revisions after `from` as a change set: a portable \"plugin\" file another copy of the "
-                    "same screen can import (affrescoui_host --plugin).",
+                    "same screen can import (affrescoui_launcher --plugin).",
      "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "name": {"type": "string"}})},
 ]
 

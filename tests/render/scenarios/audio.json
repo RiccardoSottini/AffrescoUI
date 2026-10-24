@@ -1,0 +1,22 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "audio",
+			"screen": "audio.screen.json",
+			"note": "A player on a sound's state: stopped; pressed on a runner that gives no audio engine (its state says so: the error, and no duration known); then a revision stands in for the sound playing at 3 seconds of 8",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": "#play" },
+				{ "expect": { "state": "song.error", "is": "this host plays no audio" } },
+				{ "expect": { "state": "song.status", "is": "error" } },
+				{ "expect": { "image": "no-output" } },
+				{ "revision": { "message": "Stand in for a playing sound", "set": { "/state/song": {
+					"status": "playing", "playing": true, "position": 3, "duration": 8, "progress": 0.375, "error": null } } } },
+				{ "expect": { "image": "playing" } }
+			]
+		}
+	]
+}

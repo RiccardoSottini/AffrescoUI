@@ -296,6 +296,7 @@ void Checker::pass() {
 	hints_ = 0;
 
 	walkImages();
+	walkAudio();
 	walkNodes();
 	walkHandlers();
 	walkUnreached();

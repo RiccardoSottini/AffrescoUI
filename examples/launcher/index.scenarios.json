@@ -15,7 +15,7 @@
 			]
 		},
 		{
-			"name": "search-and-categories",
+			"name": "search-and-tags",
 			"steps": [
 				{ "click": "#appSearch" },
 				{ "type": "tem" },
@@ -23,9 +23,15 @@
 				{ "expect": { "node": "#appsCount", "text": "2 apps" } },
 				{ "key": "escape" },
 				{ "expect": { "state": "query", "is": "" } },
-				{ "click": { "role": "radio", "name": "Code" } },
-				{ "expect": { "state": "category", "is": "code" } },
-				{ "expect": { "node": "#appsCount", "text": "2 apps" } },
+				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Example" } },
+				{ "action": "launcher.show", "event": { "mine": [{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 }] } },
+				{ "expect": { "node": "#cardKind", "nth": 0, "text": "Yours" } },
+				{ "expect": { "node": "#cardName", "nth": 0, "text": "Reading list" } },
+				{ "expect": { "node": "#cardKind", "nth": 1, "text": "Example" } },
+				{ "click": "#appSearch" },
+				{ "type": "reading" },
+				{ "expect": { "node": "#appsCount", "text": "1 app" } },
+				{ "key": "escape" },
 				{ "click": "#appSearch" },
 				{ "type": "zzzz" },
 				{ "expect": { "node": "#appsNone", "text": "No app matches “zzzz”." } }
@@ -82,6 +88,7 @@
 					{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 },
 					{ "id": "my-budget", "name": "My budget", "modified": 1759000000000 }
 				] } },
+				{ "wait": 0 },
 				{ "expect": { "node": "#mineName", "text": "Reading list" } },
 				{ "expect": { "node": "#mineName", "nth": 1, "text": "My budget" } },
 				{ "click": "#mineDelete" },

@@ -2,7 +2,7 @@
 	"note": "The providers of intelligence the examples' assistant can use (Intelligence.hpp): data, not code. kind says how one is spoken to: anthropic (the Messages API), openai (Chat Completions), openai-compatible (Chat Completions at a base URL the person gives) or claude-code (the person's own Claude Code command line, run with no tools). models are the fallback when the live list can't be read. No key is ever kept here or in intelligence.json: keys go to the system's keychain.",
 	"providers": [
 		{
-			"id": "anthropic",
+			"id": "anthropic", "shown": false,
 			"name": "Anthropic (Claude)",
 			"kind": "anthropic",
 			"baseUrl": "https://api.anthropic.com",
@@ -17,7 +17,7 @@
 			]
 		},
 		{
-			"id": "openai",
+			"id": "openai", "shown": false,
 			"name": "OpenAI",
 			"kind": "openai",
 			"baseUrl": "https://api.openai.com/v1",
@@ -30,7 +30,7 @@
 			]
 		},
 		{
-			"id": "openai-compatible",
+			"id": "openai-compatible", "shown": false,
 			"name": "OpenAI-compatible server",
 			"kind": "openai-compatible",
 			"baseUrl": "http://127.0.0.1:11434/v1",
