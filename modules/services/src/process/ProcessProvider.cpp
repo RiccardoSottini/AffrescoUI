@@ -140,11 +140,24 @@ void runOnce(const Launch& launch, const std::stop_token& stop, Call& call) {
 		return launch;
 	}
 	ProcessRun run{adds ? with.at("arguments").get<std::vector<std::string>>() : std::vector<std::string>{},
-	               launch.directory};
+	               launch.directory, launch.program};
 	if(std::optional<std::string> refused = grant.shape(run)) return std::move(*refused);
+	if(!run.program.is_absolute()) return std::string("the host's rule picked a program without an absolute path");
 	launch.arguments.insert(launch.arguments.end(), run.arguments.begin(), run.arguments.end());
 	launch.directory = std::move(run.directory);
+	launch.program = std::move(run.program);
 	return launch;
+}
+
+/// @brief Starts a detached run (ProcessGrant::detach): no input, no output, nothing waited for.
+/// @param launch What to run.
+/// @param call The call: its result {pid}.
+void runDetached(const Launch& launch, Call& call) {
+	try {
+		call.finish({{"pid", startDetached(launch)}});
+	} catch(const std::runtime_error& error) {
+		call.fail("failed", error.what());
+	}
 }
 
 /// @brief One `process` service: a program and its runs.
@@ -158,9 +171,15 @@ public:
 	std::optional<std::string> invoke(const MethodSpec& /*method*/, std::shared_ptr<Call> call) override {
 		std::variant<Launch, std::string> shaped = shapeRun(grant_, launch_, call->arguments());
 		if(const std::string* refused = std::get_if<std::string>(&shaped)) return *refused;
-		const bool started = tasks_.run([launch = std::get<Launch>(std::move(shaped)), call](const std::stop_token& stop) {
-			runOnce(launch, stop, *call);
-		});
+		if(grant_.detach) {
+			const json& with = call->arguments();
+			if(with.is_object() && (!with.value("input", std::string()).empty() || with.value("collect", false)))
+				return "a detached program takes no input and its output isn't collected";
+			runDetached(std::get<Launch>(shaped), *call); // starting takes no time: on the main thread
+			return std::nullopt;
+		}
+		const bool started = tasks_.run([launch = std::get<Launch>(std::move(shaped)),
+		                                 call](const std::stop_token& stop) { runOnce(launch, stop, *call); });
 		return started ? std::nullopt : std::optional<std::string>("the service is busy (16 runs at once)");
 	}
 
@@ -182,18 +201,23 @@ public:
 		        {"properties", {{"process", {{"type", "string"}}}, {"root", {{"type", "string"}}}}}};
 	}
 	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
-		return {{"run", Effect::Run, true, false,
-		         {{"type", "object"},
-		          {"properties",
-		           {{"input", {{"type", "string"}, {"maxLength", largestInput}}},
-		            {"arguments",
-		             {{"type", "array"},
-		              {"maxItems", mostArguments},
-		              {"items", {{"type", "string"}, {"maxLength", longestArgument}}}}},
-		            {"collect", {{"type", "boolean"}}}}},
-		          {"additionalProperties", false}},
-		         "runs the program (in the root, if one is named) with an input, and the arguments the host's rule allows: "
-		         "each output line is an event {line}; {code}, or {code, output} with collect (8 MiB of UTF-8 at most)"}};
+		return {
+		    {"run",
+			 Effect::Run,
+			 true,
+			 false,
+			 {{"type", "object"},
+			  {"properties",
+			   {{"input", {{"type", "string"}, {"maxLength", largestInput}}},
+			    {"arguments",
+			     {{"type", "array"},
+			      {"maxItems", mostArguments},
+			      {"items", {{"type", "string"}, {"maxLength", longestArgument}}}}},
+			    {"collect", {{"type", "boolean"}}}}},
+			  {"additionalProperties", false}},
+			 "runs the program (in the root, if one is named) with an input, and the arguments the host's rule allows: "
+			 "each output line is an event {line}; {code}, or {code, output} with collect (8 MiB of UTF-8 at most); a "
+			 "program the host grants detached is only started: {pid}"}};
 	}
 	std::unique_ptr<Service> create(const json& /*configuration*/, ServiceContext context) override {
 		// NOLINTNEXTLINE(bugprone-unchecked-optional-access): its configuration schema requires a process

@@ -10,6 +10,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -45,6 +46,9 @@ enum class ServiceState {
 struct ProcessRun {
 	std::vector<std::string> arguments; ///< Appended after the grant's own; the call's `with.arguments` at first.
 	std::filesystem::path directory;    ///< Where it runs: the declaration's root at first, or empty for the host's.
+	/// @brief The program run: the grant's at first. A shaper may pick another, an absolute path of the host's choosing
+	/// (one of a fixed list of programs), never a path the call names.
+	std::filesystem::path program{};
 };
 
 /// @brief The host's rule for a program's per-call arguments: it checks the call's `with.arguments` (already in
@@ -60,6 +64,11 @@ struct ProcessGrant {
 	std::optional<std::vector<std::string>> environment;
 	/// @brief Checks each run's own arguments; without one, a call that passes `with.arguments` is refused.
 	ProcessShaper shape;
+	/// @brief Whether each run is detached: started in a session of its own (no job object on Windows) with no input
+	/// or output captured, it outlives the call, the service and the host, and the call's result is `{pid}` once it
+	/// started. For a host that starts other applications, such as a launcher; a call then passes neither `input` nor
+	/// `collect`.
+	bool detach = false;
 };
 
 /// @brief What the host granted one service: the declaration names these (`"root": "workspace"`), never paths.
@@ -68,6 +77,10 @@ struct Grant {
 	std::string rootName;                ///< The name the declaration used for it, for messages.
 	std::optional<ProcessGrant> process; ///< The program it may start, if it named one.
 	std::string processName;             ///< The name the declaration used for it.
+	bool rootReadOnly = false;           ///< Whether the host granted the root for reading only.
+	/// @brief The other granted roots the declaration's `copyFrom` names, by name (canonical): an `fs` service copies
+	/// from them into its own root, and only reads them.
+	std::map<std::string, std::filesystem::path, std::less<>> sources{};
 };
 
 /// @brief What a service is given to work with.

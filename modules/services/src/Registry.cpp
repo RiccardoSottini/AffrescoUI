@@ -222,20 +222,26 @@ void ServiceRegistry::add(std::unique_ptr<Provider> provider) {
 	providers_.insert_or_assign(std::move(name), std::move(provider));
 }
 
-void ServiceRegistry::addRoot(std::string name, const std::filesystem::path& folder) {
+void ServiceRegistry::addRoot(std::string name, const std::filesystem::path& folder, bool readOnly) {
 	std::error_code error;
 	std::filesystem::path canonical = std::filesystem::canonical(folder, error);
 	if(error || !std::filesystem::is_directory(canonical, error))
 		throw std::runtime_error("the root '" + name + "' isn't a folder");
+	if(readOnly) readOnlyRoots_.insert(name);
+	else readOnlyRoots_.erase(name);
 	roots_.insert_or_assign(std::move(name), std::move(canonical));
 }
 
 void ServiceRegistry::allowProcess(std::string name, const std::filesystem::path& program,
                                    std::vector<std::string> arguments,
                                    std::optional<std::vector<std::string>> environment, ProcessShaper shape) {
-	if(!program.is_absolute()) throw std::runtime_error("the program '" + name + "' needs an absolute path");
-	processes_.insert_or_assign(std::move(name), ProcessGrant{program, std::move(arguments), std::move(environment),
-	                                                          std::move(shape)});
+	allowProcess(std::move(name),
+	             ProcessGrant{program, std::move(arguments), std::move(environment), std::move(shape)});
+}
+
+void ServiceRegistry::allowProcess(std::string name, ProcessGrant grant) {
+	if(!grant.program.is_absolute()) throw std::runtime_error("the program '" + name + "' needs an absolute path");
+	processes_.insert_or_assign(std::move(name), std::move(grant));
 }
 
 void ServiceRegistry::allowAttach(std::uint16_t port) { attachPorts_.insert(port); }
@@ -324,6 +330,9 @@ std::unique_ptr<ServiceRegistry::Entry> ServiceRegistry::declare(const std::stri
 		return refuse(place + ".root: no folder chosen yet");
 	}
 	if(auto problem = resolve(name, entry->configuration, entry->grant)) return refuse(*problem);
+	if(entry->grant.rootReadOnly && entry->provider->name() == "fs" && !entry->configuration.value("readOnly", false))
+		return refuse(place + ".root: the host grants '" + entry->grant.rootName +
+		              "' for reading only: declare \"readOnly\": true");
 	return entry;
 }
 
@@ -337,6 +346,16 @@ std::optional<std::string> ServiceRegistry::resolve(const std::string& name, con
 			       listNames(roots_) + ")";
 		grant.root = granted->second;
 		grant.rootName = granted->first;
+		grant.rootReadOnly = readOnlyRoots_.contains(granted->first);
+	}
+	if(const auto sources = configuration.find("copyFrom"); sources != configuration.end() && sources->is_array()) {
+		for(const json& source : *sources) {
+			const auto granted = source.is_string() ? roots_.find(source.get<std::string>()) : roots_.end();
+			if(granted == roots_.end())
+				return place + ".copyFrom: " + source.dump() +
+				       " isn't a folder the host allows (it allows: " + listNames(roots_) + ")";
+			grant.sources.insert_or_assign(granted->first, granted->second);
+		}
 	}
 	if(const auto process = configuration.find("process"); process != configuration.end()) {
 		const auto granted = process->is_string() ? processes_.find(process->get<std::string>()) : processes_.end();

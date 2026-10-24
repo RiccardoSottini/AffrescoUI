@@ -36,8 +36,10 @@ public:
 	/// @brief Names a folder declarations may use (`"root": "workspace"`).
 	/// @param name The name.
 	/// @param folder The folder; it must exist.
+	/// @param readOnly true to grant it for reading only: an `fs` declaration on it must say `"readOnly": true`, and
+	/// one whose `copyFrom` names it only copies from it.
 	/// @throws std::runtime_error If it doesn't.
-	void addRoot(std::string name, const std::filesystem::path& folder);
+	void addRoot(std::string name, const std::filesystem::path& folder, bool readOnly = false);
 	/// @brief Lets the person choose the folder a root names, in a folder dialog the document opens (`chooseFolder`):
 	/// until they do, a declaration that uses it is refused. The person's choice is the grant; the document never
 	/// names the folder.
@@ -48,11 +50,16 @@ public:
 	/// @param program The program, an absolute path.
 	/// @param arguments Its arguments.
 	/// @param environment Its whole environment, or std::nullopt for the host's.
-	/// @param shape Checks the arguments a call adds (`with.arguments`) and may set the folder each run starts in; empty
-	/// to refuse every call that adds arguments.
+	/// @param shape Checks the arguments a call adds (`with.arguments`) and may set the folder each run starts in;
+	/// empty to refuse every call that adds arguments.
 	/// @throws std::runtime_error If the path isn't absolute.
 	void allowProcess(std::string name, const std::filesystem::path& program, std::vector<std::string> arguments = {},
 	                  std::optional<std::vector<std::string>> environment = std::nullopt, ProcessShaper shape = {});
+	/// @brief Names a program declarations may start, with every part of its grant (e.g. ProcessGrant::detach).
+	/// @param name The name.
+	/// @param grant The grant; its program an absolute path.
+	/// @throws std::runtime_error If the path isn't absolute.
+	void allowProcess(std::string name, ProcessGrant grant);
 	/// @brief Names a loopback port a `dap` service may attach to (`"attach": {"port": 5678}`): whatever listens there
 	/// is spoken to as a debug adapter, which can run code.
 	/// @param port The port.
@@ -110,6 +117,7 @@ private:
 
 	std::map<std::string, std::unique_ptr<Provider>, std::less<>> providers_; ///< By name.
 	std::map<std::string, std::filesystem::path, std::less<>> roots_;         ///< Granted folders, canonical.
+	std::set<std::string, std::less<>> readOnlyRoots_;                        ///< Those granted for reading only.
 	std::map<std::string, ProcessGrant, std::less<>> processes_;              ///< Granted programs.
 	std::set<std::uint16_t> attachPorts_;                                     ///< Granted loopback ports.
 	std::set<std::string, std::less<>> choosableRoots_;                       ///< Roots the person may choose.
