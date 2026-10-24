@@ -47,9 +47,11 @@ public:
 	/// @brief Records a request and sends it to the peers after the event (Runtime::onAsk).
 	/// @param text What the person asks.
 	/// @param where The step, for errors.
+	/// @param attachments What the person attached for it: the attachments' metadata (VersionControl::attachment()),
+	/// sent as the request's "attachments"; never their bytes.
 	/// @return The request's id, unique across runs ("ask-<milliseconds>-<n>").
 	/// @throws DocumentError If the text is empty or longer than maxAsk.
-	std::string send(const std::string& text, const std::string& where);
+	std::string send(const std::string& text, const std::string& where, const json& attachments = json::array());
 
 	/// @brief Takes a reply to one of the screen's requests: records it, finds the proposals its replier made since
 	/// the request, and runs "ask:reply" with `{"request", "from", "text", "done", "error", "proposals", "time"}`.

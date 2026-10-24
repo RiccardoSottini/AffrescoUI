@@ -13,7 +13,7 @@ namespace affresco {
 
 /// The longest message a channel receives: the other end can't make the app hold more for one line. A line that
 /// grows past it closes the channel (onClosed), as if the other end had gone away.
-inline constexpr std::size_t maxMessageBytes = std::size_t{64} << 20;
+inline constexpr std::size_t maxMessageBytes = std::size_t{96} << 20; // a revision of 64 MiB of assets, in base64
 
 /// @brief A two-way stream of text messages (one JSON object per line) between the app and another program.
 ///

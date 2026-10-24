@@ -51,7 +51,7 @@ private:
 
 } // namespace
 
-std::string Asks::send(const std::string& text, const std::string& where) {
+std::string Asks::send(const std::string& text, const std::string& where, const json& attachments) {
 	if(text.find_first_not_of(" \t\r\n") == std::string::npos) fail(where + ".ask", "a request needs some text");
 	if(text.size() > maxAsk)
 		fail(where + ".ask",
@@ -67,6 +67,7 @@ std::string Asks::send(const std::string& text, const std::string& where) {
 
 	json message = {
 	    {"type", "request"}, {"id", requests_.back().id}, {"text", text}, {"from", "user"}, {"source", "screen"}};
+	if(attachments.is_array() && !attachments.empty()) message["attachments"] = attachments;
 	if(!engine_.window) {
 		engine_.owner.onAsk(message);
 	} else {

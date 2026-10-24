@@ -28,7 +28,7 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 	 "reject",   "preview", "restore", "revert",    "undo",      "endPreview", "focus",   "scrollTo",
 	 "navigate", "dismiss", "after",   "debounce",  "animate",   "copy",       "log",     "stop",
 	 "note",     "invoke",  "request", "subscribe", "respond",   "ask",        "signIn",  "signOut",
-	 "camera",   "transform", "image", "chooseFolder", "edit", "audio"});
+	 "camera",   "transform", "image", "chooseFolder", "edit", "audio", "attach"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -123,7 +123,7 @@ bool writtenKey(std::string_view kind, std::string_view key) {
 	return (among(stateSteps, kind) && key == kind) || (kind == "set" && key == "to") ||
 	       (kind == "push" && key == "value") ||
 	       (kind == "call" && (key == "into" || key == "loading" || key == "progress")) ||
-	       (kind == "ask" && key == "into");
+	       ((kind == "ask" || kind == "attach") && key == "into");
 }
 
 /// @brief Tells whether a component's node has a `{"slot": true}` for the use's children, as the runtime looks for
@@ -487,7 +487,7 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
 		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, "
 		       "reject, "
-		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, chooseFolder or audio");
+		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, chooseFolder, audio or attach");
 		return;
 	}
 	if(*kind == "run") return walkRun(step, scope, place);

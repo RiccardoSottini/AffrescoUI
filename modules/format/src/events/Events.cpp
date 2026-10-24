@@ -64,6 +64,7 @@ void Events::connect(Window& window) {
 	// Files dropped from the OS: the node under the pointer with "onDrop" (or an ancestor) gets their paths
 	windowHooks_.drop = window.onDrop.connect([this](const DropEvent& event) {
 		if(!engine_.window) return;
+		engine_.droppedFiles = event.paths; // the person's own: what an "attach" step's "from" may name
 		Panel* over = engine_.window->panelAt(event.position);
 		if(over) bubble(*over, "onDrop", {{"type", "drop"}, {"files", event.paths}}, &event.position);
 	});

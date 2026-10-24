@@ -46,6 +46,7 @@ void registerBuiltInSteps(StepRegistry& registry) {
 	registerServiceSteps(registry);
 	registerAuthSteps(registry);
 	registerAssistantSteps(registry);
+	registerAttachSteps(registry);
 	registerFolderSteps(registry);
 	registerReviewSteps(registry);
 	registerNavigationSteps(registry);

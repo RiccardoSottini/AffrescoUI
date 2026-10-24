@@ -33,8 +33,7 @@ constexpr std::size_t maxRunBytes = std::size_t{1} << 20;
 /// @param value The value.
 /// @param name "assets".
 void checkAssets(const json& value, const std::string& name) {
-	if(expect::object(value, name).size() > maxAssets)
-		fail(name, "at most " + std::to_string(maxAssets) + " assets");
+	if(expect::object(value, name).size() > maxAssets) fail(name, "at most " + std::to_string(maxAssets) + " assets");
 	for(const auto& [asset, entry] : value.items()) {
 		const std::string at = name + "." + asset;
 		if(const auto problem = assetNameProblem(asset)) fail(at, *problem);
@@ -108,7 +107,7 @@ std::vector<std::string> Rules::personLines(const json& before, const json& afte
 			lines.push_back((same == oldSounds.end() ? "adds the sound '" : "changes the sound '") + name + "'" +
 			                (sound.contains("file") && sound["file"].is_string()
 			                     ? " (" + sound["file"].get<std::string>().substr(0, 120) + ")"
-			                     : std::string()));
+								 : std::string()));
 	for(const auto& [name, sound] : oldSounds.items())
 		if(!newSounds.contains(name)) lines.push_back("removes the sound '" + name + "'");
 	const auto shownBefore = shownAssets(before);
