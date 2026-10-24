@@ -262,6 +262,14 @@ std::shared_ptr<affresco::SecretStore> systemKeys() {
 	return store;
 }
 
+bool hiddenProvidersAllowed() {
+	static const bool allowed = [] {
+		const char* chosen = std::getenv("AFFRESCOUI_PROVIDERS"); // NOLINT(concurrency-mt-unsafe): read once
+		return chosen != nullptr && std::string_view(chosen) == "all";
+	}();
+	return allowed;
+}
+
 bool persistent(const affresco::SecretStore& keys) { return keys.name() != "memory"; }
 
 std::string kindName(Kind kind) {

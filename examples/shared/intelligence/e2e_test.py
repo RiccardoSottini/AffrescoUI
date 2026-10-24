@@ -78,8 +78,9 @@ def main():
         with open(os.path.join(data, "intelligence.json"), "w", encoding="utf-8") as file:
             json.dump({"provider": "openai-compatible", "model": "fake-model",
                        "providers": {"openai-compatible": {"baseUrl": f"http://127.0.0.1:{port}/v1"}}}, file)
-        # AFFRESCOUI_KEYS=memory: the host's keys stay in its memory, so the system's keychain is never read
-        env = dict(os.environ, AFFRESCOUI_KEYS="memory", AFFRESCOUI_SOCKET_DIR=sockets, AFFRESCOUI_SCREENSHOT=os.path.join(folder, "shot.ppm"),
+        # AFFRESCOUI_KEYS=memory: the host's keys stay in its memory, so the system's keychain is never read;
+        # AFFRESCOUI_PROVIDERS=all: the hidden OpenAI-compatible provider may answer, for this test only
+        env = dict(os.environ, AFFRESCOUI_KEYS="memory", AFFRESCOUI_PROVIDERS="all", AFFRESCOUI_SOCKET_DIR=sockets, AFFRESCOUI_SCREENSHOT=os.path.join(folder, "shot.ppm"),
                    AFFRESCOUI_SCREENSHOT_AFTER="6000")
         run = subprocess.run([host, SCREEN, "--socket", sockets, "--data", data, "--ask", REQUEST], env=env,
                              capture_output=True, text=True, timeout=120)

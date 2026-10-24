@@ -333,7 +333,8 @@ bool HostAssistant::attach(affresco::Screen& screen) {
 		options.dataDir = dataDir_;
 		options.catalog = Catalog::standard();
 		const std::optional<Endpoint> chosen = endpointOf(options.catalog, Settings::load(dataDir_));
-		if(!chosen || !chosen->provider->shown) return false; // none chosen, or one the settings no longer offer
+		if(!chosen || (!chosen->provider->shown && !hiddenProvidersAllowed()))
+			return false; // none chosen, or one the settings no longer offer
 		options.guide = readFormatGuide();
 		options.keys = systemKeys();
 		agent_ = std::make_unique<ProviderAgent>(executor_, std::move(options));

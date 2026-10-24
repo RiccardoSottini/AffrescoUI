@@ -164,6 +164,11 @@ bool writeKey(affresco::SecretStore& keys, const Endpoint& endpoint, const std::
 /// @return It (one per process).
 [[nodiscard]] std::shared_ptr<affresco::SecretStore> systemKeys();
 
+/// @brief Whether the providers providers.json hides may be used: for tests only, when the environment variable
+/// `AFFRESCOUI_PROVIDERS=all` is set (e.g. the end-to-end test's OpenAI-compatible stand-in server).
+/// @return Whether they may.
+[[nodiscard]] bool hiddenProvidersAllowed();
+
 /// @brief Whether a store keeps keys after the process ends (the system's keychain), not in memory only (e.g. Linux
 /// without a Secret Service).
 /// @param keys The store.

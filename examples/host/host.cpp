@@ -14,7 +14,8 @@
 // system's keychain), the host also runs an agent of its own, connected as author "agent" like an MCP one, that
 // answers the assistant with it (examples/shared/intelligence); the Launcher's host alone gets the settings' natives,
 // and no agent.
-// For tests only, AFFRESCOUI_KEYS=memory keeps the keys in the host's memory instead of the system's keychain.
+// For tests only, AFFRESCOUI_KEYS=memory keeps the keys in the host's memory instead of the system's keychain, and
+// AFFRESCOUI_PROVIDERS=all lets the agent use the providers the Launcher's Settings hide.
 // --ask TEXT opens the assistant and sends TEXT as the person's first request once the window is up.
 // What each author may do is up to the screen's "permissions"; --auto-accept is --mode acceptEdits, for this run only.
 // The screen's history and "persist" state are kept in --data DIR (default $AFFRESCOUI_DATA_DIR, else ~/.affrescoui),
