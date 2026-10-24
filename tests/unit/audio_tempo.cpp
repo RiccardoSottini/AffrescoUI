@@ -1,7 +1,8 @@
 /// @file
 /// @brief Tempo (examples/tempo) on a Manual audio engine: a song that names a sound of its own plays it instead of
 /// the beat, and the next song without one goes back to the beat. The song's sound is a tone here, standing in for
-/// the `asset:` file a reviewed proposal links (the asset store is the library's, tested with it).
+/// the `asset:` file a reviewed proposal links (the asset store is the library's, tested with it). Songs are records
+/// of the data layer (the `playlists` model), so a song's sound is a field the proposal's run-once `update` writes.
 
 #include "AudioWav.hpp"
 #include "Headless.hpp"
@@ -38,7 +39,7 @@ TEST_CASE("tempo: a song with a sound of its own plays it, a song without one pl
 	const std::filesystem::path folder = std::filesystem::path(AFFRESCOUI_EXAMPLES_ASSETS) / "tempo";
 	json document = json::parse(std::ifstream(folder / "index.screen.json"));
 	document["audio"]["own"] = {{"tone", {{"frequency", 330}, {"seconds", 30}}}, {"into", "state.sounds.own"}};
-	document["state"]["playlists"][0]["tracks"][2]["sound"] = "own"; // the song Tempo opens on
+	document["models"]["playlists"]["seed"][0]["tracks"][2]["sound"] = "own"; // the song Tempo opens on
 
 	ThreadExecutor executor;
 	const ManualClock clock;
@@ -104,13 +105,21 @@ TEST_CASE("tempo: a file the person attaches becomes a song's sound in one propo
 	const json revision = {{"author", "agent"},
 	                       {"message", "Play the attached file for this song"},
 	                       {"assets", {{{"name", "my-song.wav"}, {"attachment", attached.attachment.id}}}},
-	                       {"set",
-	                        {{"/audio/own", {{"file", "asset:my-song.wav"}, {"into", "state.sounds.own"}}},
-	                         {"/state/playlists/0/tracks/2/sound", "own"}}}};
+	                       {"set", {{"/audio/own", {{"file", "asset:my-song.wav"}, {"into", "state.sounds.own"}}}}},
+	                       // The song is a record: the view's revision can't write it, a run-once step does on accept
+	                       {"run",
+	                        {{{"update", "playlists"},
+	                          {"id", "p1"},
+	                          {"fields",
+	                           {{"tracks", "{{map(data.playlists[0].tracks, index == 2 ? merge(it, {sound: 'own'}) : it)}}"}}}}}}};
 	const affresco::RevisionResult result = screen.submitRevision(revision.dump());
 	REQUIRE_MESSAGE(result.status == affresco::RevisionStatus::Proposed, result.error);
 	window->render();
-	CHECK(stateAt(screen, "/playlists/0/tracks/2/sound").is_null()); // nothing until the person accepts
+	screen.runAction("playPause", window->root()); // nothing changes until the person accepts: the beat plays
+	window->render();
+	CHECK(stateAt(screen, "/soundOn") == "beat");
+	screen.runAction("playPause", window->root());
+	window->render();
 	std::string error;
 	REQUIRE_MESSAGE(screen.acceptProposal(result.proposal, result.commit, &error), error);
 	window->render();
