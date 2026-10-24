@@ -21,6 +21,16 @@ from .tools import INSTRUCTIONS, PROMPTS, SERVE_PROMPT, TOOLS
 PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
 
 
+def attachments_of(value):
+    """The attachments a request carries, as the host sent them (metadata, never bytes): at most 32, each with only
+    the fields an attachment has, so a request can't smuggle anything else to the agent."""
+    if not isinstance(value, list):
+        return []
+    keys = ("id", "name", "type", "size", "duration", "width", "height")
+    return [{key: item[key] for key in keys if key in item and isinstance(item[key], (str, int, float))}
+            for item in value[:32] if isinstance(item, dict) and isinstance(item.get("id"), str)]
+
+
 class UnknownTool(Exception):
     """A tools/call names no tool: the client gets an "unknown tool" error rather than a tool's answer."""
 
@@ -84,6 +94,9 @@ class Server:
         request = {"request_id": str(message.get("id") or f"r{next(self.unnamed)}"),
                    "from": str(message.get("from") or "unknown"), "text": str(message.get("text", "")),
                    "origin": "app" if message.get("source") == "screen" else "studio"}
+        attachments = attachments_of(message.get("attachments"))
+        if attachments:  # files the person attached: metadata only; name one in submit_revision's assets
+            request["attachments"] = attachments
         if message.get("kind") == "repair":  # a change set whose template changed: answer with answer_repair
             request["kind"], request["repair"] = "repair", message.get("repair")
         with self.arrived:
@@ -91,10 +104,15 @@ class Server:
             self.arrived.notify_all()
         log(f"request {request['request_id']} from {request['from']} ({request['origin']}): {request['text']}")
         if self.ready:  # the channel tag has a "source" of its own: the server's name
+            meta = {"request_id": request["request_id"], "sender": request["from"], "origin": request["origin"]}
+            content = request["text"]
+            if attachments:
+                meta["attachments"] = json.dumps(attachments, separators=(",", ":"))
+                content += "\n\nAttached: " + "; ".join(
+                    f"{a.get('name')} ({a.get('type')}, {a.get('size')} bytes, attachment {a.get('id')})"
+                    for a in attachments)
             self.send({"jsonrpc": "2.0", "method": "notifications/claude/channel",
-                       "params": {"content": request["text"],
-                                  "meta": {"request_id": request["request_id"], "sender": request["from"],
-                                           "origin": request["origin"]}}})
+                       "params": {"content": content, "meta": meta}})
             self.working(request)
 
     def working(self, request):
@@ -334,7 +352,7 @@ class Server:
     def submit_revision(self, args):
         """The submit_revision tool: a change, authored by this connection, applied or proposed as the rules say."""
         revision = {"type": "revision", "author": self.client, "message": args.get("message", "")}
-        for key in ("patch", "set", "add", "remove", "move", "parent", "proposal"):
+        for key in ("patch", "set", "add", "remove", "move", "parent", "proposal", "assets", "run"):
             if key in args:
                 revision[key] = args[key]
         return describe(self.host.request(revision))

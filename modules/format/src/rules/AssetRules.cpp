@@ -12,6 +12,8 @@
 #include "affresco/core/Assets.hpp"
 #include "affresco/render/Bitmap.hpp"
 
+#include <algorithm>
+#include <filesystem>
 #include <format>
 #include <map>
 #include <set>
@@ -88,6 +90,16 @@ void checkAudioChange(const json& before, const json& after) {
 		if(sound.contains("url") || sound.contains("source"))
 			fail(at, "permission denied: a revision may give a sound a \"file\" (one of the screen's, or "
 			         "\"asset:<name>\") or a \"tone\", never a \"url\" or a host's \"source\"");
+		if(sound.contains("file") && sound["file"].is_string() && !assetReference(sound["file"])) {
+			// A file of the screen's own folder: relative, never above it (the player checks it again when it plays)
+			const std::string& file = sound["file"].get_ref<const std::string&>();
+			const std::filesystem::path path(file);
+			if(path.is_absolute() || path.has_root_name() || file.starts_with('/') || file.starts_with('\\') ||
+			   std::ranges::any_of(path, [](const std::filesystem::path& part) { return part == ".."; }))
+				fail(at + ".file", "permission denied: a revision may name a sound file of the screen's own folder "
+				                   "(relative, no \"..\") or an asset, not '" +
+				                       file.substr(0, 120) + "'");
+		}
 		if(const auto asset = sound.contains("file") ? assetReference(sound["file"]) : std::nullopt) {
 			const auto assets = after.find("assets");
 			if(assets == after.end() || !assets->is_object() || !assets->contains(*asset))

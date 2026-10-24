@@ -209,14 +209,26 @@ def state_types(document):
     return "state: " + "; ".join(f"{key}: {describe_type(kind)}" for key, kind in types.items())
 
 
+def assets_line(document):
+    """The screen's assets on one line, for the outline: "assets: moon-sea.svg (image/svg+xml, 412 bytes); ...", or
+    "" without any."""
+    assets = document.get("assets")
+    if not isinstance(assets, dict) or not assets:
+        return ""
+    return "assets: " + "; ".join(f"{name} ({entry.get('type')}, {entry.get('size')} bytes)"
+                                  for name, entry in sorted(assets.items()) if isinstance(entry, dict))
+
+
 def outline(document, at=None, depth=None):
     """The node tree, one line per node: its address, then summary(). `at` (a node's address or pointer, found with
     locate) starts it there; `depth` stops it that many levels down, and a node with more inside says how many
     ("+12"). Enough to choose where to edit, without the styling. The whole outline starts with the state's types,
-    when the screen declares them."""
+    when the screen declares them, and its assets (the files revisions brought, read as "asset:<name>")."""
     starts = [locate(document, at)] if at else trees(document)
     styles = document.get("styles")
     lines = [[state_types(document), 0]] if not at and state_types(document) else []  # [text, nodes not shown]
+    if not at and assets_line(document):
+        lines.append([assets_line(document), 0])
     for pointer, start in starts:
         cut = None  # the last line at the deepest level shown: what is below it isn't
         for node, address, level, _ in walk_nodes(start, pointer):

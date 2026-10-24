@@ -259,7 +259,7 @@ TEST_CASE("audio format: a URL streams only through the host's network and its a
 	CHECK(stateAt(screen, "/song/error").is_null());
 }
 
-TEST_CASE("audio format: the section is checked, and revisions can't change it, but may play what it declares") {
+TEST_CASE("audio format: the section is checked, and revisions change it only for the person, and may play what it declares") {
 	const affresco::format::Rules rules;
 	const auto check = [&rules](const json& sounds) { rules.validate(audioScreen(sounds)); };
 	CHECK_NOTHROW(check({{"song", {{"file", "a.mp3"}, {"loop", true}, {"volume", 0.5}}}}));
@@ -285,7 +285,10 @@ TEST_CASE("audio format: the section is checked, and revisions can't change it, 
 	};
 	CHECK(submit({{"set", {{"/audio/song/file", "/Users/someone/private.wav"}}}}) == RevisionStatus::Rejected);
 	CHECK(submit({{"add", {{"/audio/spy", {{"url", "https://example.com/a.mp3"}}}}}}) == RevisionStatus::Rejected);
-	CHECK(submit({{"remove", json::array({"/audio/song"})}}) == RevisionStatus::Rejected);
+	CHECK(submit({{"remove", json::array({"/audio/song"})}}) == RevisionStatus::Rejected); // its actions play it
+	CHECK(submit({{"set", {{"/audio/song/file", "../../private.wav"}}}}) == RevisionStatus::Rejected);
+	// Giving a sound a file of the screen's folder waits for the person (VERSION_CONTROL.md, "Assets")
+	CHECK(submit({{"set", {{"/audio/song/file", "sounds/other.wav"}}}}) == RevisionStatus::Proposed);
 	const affresco::RevisionResult played = repository.submit(
 	    {{"author", "agent"}, {"add", {{"/actions/again", json::array({{{"audio", "play"}, {"of", "song"}}})}}}});
 	CHECK_MESSAGE(played.status == RevisionStatus::Applied, played.error);

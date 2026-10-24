@@ -73,6 +73,7 @@ Every part of the format follows these, and so should every extension:
 | `templates` | `name → node`, built by code on demand (`Screen::instantiate`). |
 | `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and isn't built while its `when` doesn't hold. |
 | `state` | The app's data, any JSON object. |
+| `assets` | `name → {type, size, sha256}`: files revisions brought, kept with the history, read as `"asset:<name>"` (see Assets). |
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
@@ -100,7 +101,7 @@ The sections the host grants and revisions can't widen, and the installed featur
 | `exports` | `{"editor.text": {"type": "string", "value": "{{state.text}}"}}`: values features read as `app.editor.text`. |
 | `imports` | `{"ui": "workbench@^1.0.0"}`: `"use": "ui.panel"` builds the feature's `workbench.panel`, if its release is in the range. |
 | `images` | `{"canvas": {"width": 800, "height": 600, "into": "state.canvas", "tools": {"brush": {"gesture": "paint", "size": 12}}}}`: the images the `image` step edits; `tools` names the library's gestures with their settings, and `limits` only lowers the library's (see Images). Revisions can't change it. |
-| `audio` | `{"song": {"file": "sounds/song.mp3", "into": "state.song", "loop": true}}`: the sounds the `audio` step plays, each from one source: a `file` (WAV, FLAC or MP3) in the screen's folder or one the host allows, a `url` the host's network allows (streamed), a `source` the host names (`Screen::setAudioSource`), or a `tone` (`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position updates) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, loop, level, underruns, error}`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run (see Audio). A capability: revisions can't change it. |
+| `audio` | `{"song": {"file": "sounds/song.mp3", "into": "state.song", "loop": true}}`: the sounds the `audio` step plays, each from one source: a `file` (WAV, FLAC or MP3) in the screen's folder or one the host allows, a `url` the host's network allows (streamed), a `source` the host names (`Screen::setAudioSource`), or a `tone` (`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position updates) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, loop, level, underruns, error}`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run (see Audio). A `file` may be `asset:<name>`, also a sound description. A revision may give a sound a `file` or a `tone` (never a `url` or a `source`), and only the person accepts it (Assets). |
 | `points` | `{"panels.dock": {"slot": "dock", "receives": ["doc.layers", "layers.move"]}}`: where a feature from another app may put its views (the node whose `point` has the name) and the exports it receives; the action exports a point receives are the host actions such features may run. Revisions can't change it. |
 <!-- end generated -->
 
@@ -402,7 +403,7 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 <!-- generated: image -->
 | Key | Meaning |
 |---|---|
-| `file` | A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). |
+| `file` | A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). `"asset:<name>"` shows an asset of the screen instead (Assets), which only the person accepts. |
 | `source` | Instead of `file`: a named image, which a node draws (its `snapshot`: a thumbnail of it) or the host sets (`Screen::setImage("chart", …)`, e.g. a picture it made); the node shows each new one. |
 | `fit` | `"contain"` (the default: all of it, as large as fits, centred), `"cover"` (the whole node, the image's edges cut off) or `"fill"` (stretched), like CSS `object-fit`. |
 <!-- end generated -->
@@ -1248,11 +1249,12 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `respond` | `{ "respond": "{{state.answer}}" }` or `{ "respond": null, "error": "no" }`: answers the service request that ran the action `service:method` (its `request`); a control step |
 | `signIn` | `{ "signIn": "api", "onDone": [...], "onError": [...] }`: signs in to the provider a connection's `auth` declares (OAuth 2: the browser with PKCE, or a device code), then its requests carry the token. The token never reaches the document or the state: the `auth` variable shows `{state, account, expires}`, and `error` in `onError` is `{code, message}`. A control step |
 | `signOut` | `{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step |
-| `chooseFolder` | `{ "chooseFolder": "workspace", "title": "Open Folder", "onDone": [...], "onError": [...] }`: after the event, asks the person for the folder a root names, in the OS's folder dialog (if the host lets them choose it). The services that use the root start again on it; `result` in `onDone` is `{name}`, the folder's own name (never where it is), `error` in `onError` is `{code, message}`; nothing runs if they cancel. A control step |
+| `chooseFolder` | `{ "chooseFolder": "workspace", "onDone": [...] }`: after the event, the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
 | `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: asks the agents in plain words; replies run `ask:reply`, never as the person's decision (Asking the agents). A control step |
+| `attach` | `{ "attach": { "accept": ["audio/*"] }, "into": "state.files" }`: the person's files as attachments (Assets). A control step |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out) |
@@ -1319,7 +1321,7 @@ The operations, and the keys of `with` each reads:
 | Operation | Reads from `with` | What it does |
 |---|---|---|
 | `newImage` | `width`, `height`, `format`, `background` | Replaces the image with a new one of one layer. |
-| `open` | `projectExtension` | Opens a project, PNG or JPEG file the person chooses. |
+| `open` | `projectExtension`, `asset` | Opens a project, PNG or JPEG file the person chooses, or an asset (PNG, JPEG or SVG) the screen has. |
 | `save` | `format`, `extension` | Saves the image where the person chooses, and keeps it for revert. |
 | `revert` | — | Opens again what was last saved or opened. |
 | `undo` | — | Takes back the last step. |
@@ -1405,12 +1407,13 @@ A whiteboard with a marker, an eraser and undo:
 
 A screen can play sound: music, effects, a podcast, speech, a stream from a server. The `audio` section declares the
 sounds, each from one source; `audio` steps play and change them; each sound's state is written to its `into` path,
-and what happens to it runs actions. The section is a capability: revisions can't change it, so an agent can play,
-pause or seek what the screen declares, never another file or URL.
+and what happens to it runs actions. An agent can play, pause or seek what the screen declares. A revision may also
+give a sound a `file` (one of the screen's, or an asset: `"asset:beat.wav"`) or a `tone`, never a `url` or a host's
+`source`, and only the person accepts that change (Assets).
 
 | Key of a sound | Meaning |
 |---|---|
-| `file` | A WAV, FLAC or MP3 file, relative to the screen's folder: inside it, or inside a folder the host allows (`Screen::allowAudioDirectory`). Decoded as it plays, never read whole. |
+| `file` | A WAV, FLAC or MP3 file, relative to the screen's folder: inside it, or inside a folder the host allows (`Screen::allowAudioDirectory`). Decoded as it plays, never read whole. A sound description (`.sound.json`, below) too, and `"asset:<name>"`: an asset of the screen. |
 | `url` | An `https://` URL (`http://` to the loopback only) the host's network allows (`network.allow`), streamed as it downloads; `maxBytes` (1 KiB to 64 MiB, 8 MiB by default) bounds what is buffered. |
 | `source` | A source the host gives by name (`Screen::setAudioSource`): a stream the application feeds (speech, a call, its own decoder), or anything else it makes. |
 | `tone` | `{ "frequency": 440, "seconds": 1, "amplitude": 0.5 }`: a sine, with short ramps at its ends. |
@@ -1456,6 +1459,32 @@ A music player's controls:
   { "type": "slider", "max": "{{state.song.duration ?? 0}}", "value": "{{state.song.position}}",
     "onChange": [{ "audio": "seek", "of": "song", "to": "{{event.value}}" }] } ] }
 ```
+
+### Sound descriptions
+An agent can't write a recording's bytes, but it can write text: a **sound description** is to a sound what SVG is to a
+picture. It is JSON (`application/vnd.affrescoui.sound+json`, a name ending `.sound.json`), an asset or a file of the
+screen's folder, and the audio module renders it as it plays, the same samples every time:
+
+```json
+{ "tempo": 96, "tracks": [
+  { "instrument": "kick",  "steps": "x...x...x...x..." },
+  { "instrument": "hat",   "steps": "..x...x...x...x.", "volume": 0.5, "pan": 0.3 },
+  { "instrument": "snare", "steps": "....x.......x..." },
+  { "instrument": "triangle", "release": 0.3, "notes": [
+    { "at": 0, "note": "C4", "length": 2 }, { "at": 2, "note": "E4", "length": 2 }, { "at": 4, "note": 67 } ] } ] }
+```
+
+- Times are in beats of `tempo` (20 to 300 a minute; 120 by default). `length` (beats) is how long it lasts; by
+  default, until its last event has faded. A sound's `loop` plays it again.
+- `instrument`: `sine`, `square`, `saw`, `triangle` and `noise`, shaped by an envelope (`attack`, `decay`, `release`
+  in seconds, 0 to 5; `sustain` 0 to 1), or the drums `kick`, `snare`, `hat` and `clap`. `volume` (0 to 1, 0.8) and
+  `pan` (-1 to 1) per track.
+- `notes`: `{ "at", "note", "length", "velocity" }`: `at` and `length` in beats (`length` 1 by default), `note` a name
+  (`"C4"`, `"F#3"`, `"Bb2"`) or a MIDI number (0 to 127), `velocity` 0 to 1. `steps`: a pattern, one character a step
+  (`x` a hit, `X` an accented one, `.` or `-` a rest), each `step` beats long (0.25 by default), from `at`; `note`
+  gives its pitch.
+- Bounds: 1 MiB of text, 16 tracks, 4,096 notes and hits, 32 sounding at once, 10 minutes. One beyond them, or
+  malformed, is refused when a revision brings it, with its place (`tracks[1].notes[3].note: ...`).
 
 ## Channels and persistence
 
@@ -1520,6 +1549,8 @@ A revision is a version-controlled change to a running screen. Write it as **com
   node that replaces another keeps that one's id.
 - `parent` (optional): a revision number or commit id; if main has moved on, the revision is rejected as a conflict.
   `proposal` (optional) pushes onto the author's own open proposal.
+- `assets` (optional) brings files, and `run` (optional) steps run once when it is accepted; only the person accepts
+  a revision with either (Assets).
 - Every applied revision is a **commit** on `main` (SHA-256, numbered from `0`, the file). Compact edits are stored as
   plain JSON Patch, so history, diffs, reverts and change sets have one form.
 - **Permissions** decide whether a revision is applied, proposed for review or rejected; see
@@ -1541,11 +1572,11 @@ line:
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
 | → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `done` |
-| peer → | `revision` (compact edits or `patch`, `proposal`?), `revert` / `restore` (`revision`), `undo` |
+| peer → | `revision` (compact edits or `patch`, `proposal`?, `assets`?, `run`?), `revert` / `restore` (`revision`), `undo` |
 | peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
-| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`) from the screen's own `ask` step; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
+| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `attachments`?) from the screen's own `ask` step; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
 Requests may carry an `"id"`; answers repeat it.
 
@@ -1554,7 +1585,7 @@ refusal in a row is logged:
 
 | Limit | Default | Answer |
 |---|---|---|
-| One message | 8 MiB | `error` "message too large", without `id` (it isn't read) |
+| One message | 88 MiB (a revision of 64 MiB of assets in base64) | `error` "message too large", without `id` (it isn't read) |
 | Messages of any kind | 100 a second, 200 at once | `error` "too many messages", without `id` |
 | Changes (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once | `rejected` "too many changes", with `id` |
 | Pictures (`render`), apart from the changes | 120 a minute, 30 at once | `rejected` "too many pictures", with `id` |
@@ -1576,7 +1607,9 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
 
 - `ask` sends the request to every peer after the event, from the author `user` (`request` in the table above), and
   writes its id (`ask-<milliseconds>-<n>`) `into` a state path. It is a control step. With no peer connected it
-  fails at once: `ask:reply` runs with the error `no agent is connected`.
+  fails at once: `ask:reply` runs with the error `no agent is connected`. `"attachments": "{{state.attached}}"` sends
+  what the person attached (an `attach` step's list, or ids) as `[{id, name, type, size, duration?, width?,
+  height?}]`, never the bytes.
 - Each reply runs `ask:reply` with `event` `{request, from, text, done, error, proposals, time}`. `done: false` is a
   progress note (an agent at work); one with no text only marks the request `working`, with no reply. `proposals`
   lists the ids of the proposals the replier (any author of the same channel: `agent/...`) opened or changed since the
@@ -1590,6 +1623,38 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
   waits for review as any other.
 - Limits: a request is at most 16 KiB; a reply's `text` and `error` are cut to 64 KiB, `from` to 256 bytes; a reply
   to an id the screen didn't send is for the other peers, and fields of the wrong type are ignored.
+
+### Assets
+A revision can bring files: a picture an agent drew (an SVG it writes), a sound it described (a `.sound.json`), or a
+song or a photo the person attached. They are **assets**, kept with the screen's history, never in its folder:
+
+```json
+{ "type": "revision", "message": "A night sea to paint on",
+  "assets": [{ "name": "moon-sea.svg", "type": "image/svg+xml", "text": "<svg ...>" },
+             { "name": "intro.mp3", "attachment": "att-3-5e1f0c2ab97d" }],
+  "set": { "#cover/file": "asset:moon-sea.svg", "/audio/intro": { "file": "asset:intro.mp3", "into": "state.intro" } },
+  "run": [{ "image": "open", "of": "canvas", "with": { "asset": "moon-sea.svg" } }] }
+```
+
+- Each asset is `{name, type, text}` (SVG, JSON, text, a sound description), `{name, type, data}` (base64) or
+  `{name, attachment}`. Names: `[a-z0-9][a-z0-9._-]{0,99}`, no folders, the extension of the type. Types: `image/png`,
+  `image/jpeg`, `image/svg+xml`, `audio/wav`, `audio/mpeg`, `audio/flac`, `application/json`, `text/plain`,
+  `application/vnd.affrescoui.sound+json`. At most 32 MiB each, 64 MiB a revision, 1,000 a screen. The bytes must be
+  what the type says (pictures decode, sounds decode, JSON parses), or the revision is refused before review.
+- The screen reads one as `"asset:<name>"`: an `image` node's `file`, a sound's `file`, and the `image` step's
+  `open` with `{"asset": name}` (a PNG, JPEG or SVG). The top-level `assets` section names them (`{type, size,
+  sha256}`): version control writes it, and the checker reports an `asset:` the screen doesn't have.
+- `run`: steps like an action's, run once on the live screen when the proposal is merged, after the update; never in
+  its preview, never again on a restore or a revert. They may not be control steps.
+- **Only the person accepts** a revision that brings, changes or removes assets, carries `run`, changes the `audio`
+  section or makes a node show an asset: whatever the rules, the mode or "Always allow" say, it waits for review, and
+  only the screen's own review steps (the person, `user`) may accept it; the proposal lists them (`assets`, `run`,
+  `person`).
+- **Attachments**: `{ "attach": { "accept": ["audio/*"], "multiple": true }, "into": "state.attached" }` asks the
+  person for files in the OS's file dialog (`"from": "{{event.files}}"` in an `onDrop` takes the files they dropped);
+  each becomes an attachment, `{id, name, type, size, duration?, width?, height?}`, which `ask` sends to the agents
+  (`attachments`) and a revision names. A control step: only the person's input attaches. Attachments wait for this
+  run only (32 and 128 MiB at most, the oldest going first).
 
 ### Pictures
 `render` (MCP: `render_screen`) lets a peer see its work before a person reviews it. Any peer may ask: it is a read.

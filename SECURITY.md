@@ -159,6 +159,26 @@ screens, actions, and the live state.
 A revision also can't add an `include` (the section only exists while the file is loaded) or a new section the format
 doesn't know.
 
+**What only the person accepts**: a revision that brings, changes or removes **assets** (files kept with the
+history), carries **`run`** steps (run once when it is merged), changes the **`audio`** section, or makes a node show
+an asset. It is always a proposal: no allow rule, grant ("Always allow" can't remember it), mode (`acceptEdits`,
+`plan`) or reviewer other than the person lets it through. Only a reviewer of the channel `user` (the screen's own
+review steps, `Screen::acceptProposal`) accepts it, and never its own author's channel; a peer on `studio.sock` can't.
+The app's own commits (`commit()`, a screen's `patch` step) and the person's own revisions aren't asked. Assets are
+checked before anyone reviews them: a name with no folder (`[a-z0-9][a-z0-9._-]{0,99}`, the extension of its type),
+one of nine types, bytes that are what the type says (first bytes, then decoded: pictures by the image decoder,
+sounds by the audio module's decoders, sound descriptions by their reader, JSON parsed). They are kept by their SHA-256
+(VERSION_CONTROL.md, "Assets"), so a patch can only name bytes the history already has, of their size and type. `run`
+steps are checked as an action the screen gained: no control step, no way to run one, nothing the screen doesn't
+define. A sound a revision gives the screen plays a `file` (one of the screen's folder, or an asset) or a `tone`, never
+a `url` or a host's `source`.
+
+**Attachments** are files the person gives the app: an `attach` step (a control step: the OS's file dialog, or the
+files the person just dropped on the window: a `from` naming any other path is refused) or the host
+(`Screen::attach`). Agents see their metadata (`id`, `name`, `type`, `size`, `duration`, `width`, `height`), never
+their bytes or where they were, and may name one in a revision's assets, which the person then reviews. No revision
+or peer can open the dialog or read the disk.
+
 **The permission rules** (`permissions`: `allow`, `ask`, `deny`) are judged by the change's effect, by comparing the
 screen before and after, not by how the patch is written:
 - a matching `deny` refuses it, for everyone, including reviewers and the app itself; deny rules are checked again
@@ -327,8 +347,10 @@ there runs the screen's `<name>:<type>` action, if it has one, with the message 
 other end can run those actions with any data. Revisions can't change `channels` or add `send` and `connect` steps.
 
 ### Sounds a screen declares
-A screen's `audio` section names the sounds it plays (SCREEN_FORMAT.md, "Audio"). It is a capability: a revision
-can't add, change or remove a sound, so it can't make the screen play a file or a URL nobody reviewed. A revision may
+A screen's `audio` section names the sounds it plays (SCREEN_FORMAT.md, "Audio"). A revision may change it only so
+that a sound plays a file of the screen's folder, an asset or a tone, never a URL or a host's source, and only the
+person accepts that change ("What only the person accepts", above), so the screen never plays a file or a URL nobody
+reviewed. A revision may
 add `audio` steps (play, pause, seek, volume) for the sounds declared: they aren't control steps, since they reach
 nothing new, and an agent could make the app loud or play in a loop, which a reviewer sees in the step. A screen makes
 no sound until the host gives it an engine (`Screen::audio()`; the stock host does for a screen whose file declares
@@ -522,8 +544,14 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A number in that JSON (some C libraries' `strtod` stops the program on certain numbers hundreds of digits long) | 40 characters |
 | The document, with its live state one level inside it, as revisions build it (a trusted screen file may be deeper; then a revision may not make it deeper still) | 200 levels |
 | The live state, as steps build it: the place a `set`, `push` or `call` `into` writes, and the value written there | 200 levels |
-| One message on a channel (one line) | 64 MiB; a longer line closes the channel |
-| One message from a peer (`PeerLimits::maxMessageBytes`) | 8 MiB; a larger one gets an error, unread |
+| One message on a channel (one line) | 96 MiB; a longer line closes the channel |
+| One message from a peer (`PeerLimits::maxMessageBytes`) | 88 MiB (a revision of 64 MiB of assets, in base64); a larger one gets an error, unread. A remote peer (`net::PeerServerOptions::maxMessageBytes`) stays at 8 MiB unless its host raises it |
+| One asset (`maxAssetBytes`, `core/Assets.hpp`) | 32 MiB |
+| New assets one revision brings (`maxRevisionAssetBytes`) | 64 MiB |
+| Assets of one screen (`maxAssets`) | 1,000 |
+| Attachments waiting (`maxAttachments`, `maxAttachmentBytes`) | 32 and 128 MiB, the oldest dropped first; kept for the run only |
+| A revision's `run` steps | 1,000 steps, 1 MiB as JSON |
+| A sound description (`audio::SoundLimits`) | 1 MiB of text, 16 tracks, 4,096 notes and hits, 32 sounding at once, 10 minutes |
 | Messages from one peer, of any kind | 100 a second, 200 at once |
 | Changes from one peer (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once |
 | Pictures for one peer (`render`): each draws the whole screen, and builds a proposal's and then main's again | 120 a minute, 30 at once, apart from the changes |
