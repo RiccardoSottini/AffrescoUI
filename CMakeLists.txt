@@ -173,6 +173,13 @@ list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/terminal/TerminalSe
 # The lsp feature (examples/forge/features/lsp)
 list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/lsp/Lsp.cpp examples/forge/features/lsp/LspCall.cpp
 	examples/forge/features/lsp/LspEdits.cpp examples/forge/features/lsp/LspProtocol.cpp examples/forge/features/lsp/LspText.cpp)
+# The examples' intelligence (examples/shared/intelligence): the providers, their settings and the agent inside the
+# host that every app's assistant talks to; built into the host and the unit tests. It uses the services module's
+# ChildProcess (its src folder) to run the claude command line with no shell.
+set(AFFRESCOUI_INTELLIGENCE_SOURCES examples/shared/intelligence/Settings.cpp examples/shared/intelligence/Http.cpp
+	examples/shared/intelligence/Providers.cpp examples/shared/intelligence/ScreenQueries.cpp
+	examples/shared/intelligence/ClaudeCode.cpp examples/shared/intelligence/Agent.cpp
+	examples/shared/intelligence/Intelligence.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_host renders a screen and accepts peers; affrescoui_studio is a client for it (itself an AffrescoUI screen)
 	foreach(example host studio)
@@ -181,6 +188,8 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		if(example STREQUAL "host")
 			target_sources(affrescoui_host PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
 			target_sources(affrescoui_host PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
+			target_sources(affrescoui_host PRIVATE ${AFFRESCOUI_INTELLIGENCE_SOURCES}) # the assistant's providers
+			target_include_directories(affrescoui_host PRIVATE modules/services/src) # intelligence/ClaudeCode.cpp
 			target_include_directories(affrescoui_host PRIVATE examples)
 			target_include_directories(affrescoui_host SYSTEM PRIVATE external/glad/include)
 			# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice

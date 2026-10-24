@@ -1,0 +1,57 @@
+{
+	"note": "The providers of intelligence the examples' assistant can use (Intelligence.hpp): data, not code. kind says how one is spoken to: anthropic (the Messages API), openai (Chat Completions), openai-compatible (Chat Completions at a base URL the person gives) or claude-code (the person's own Claude Code command line, run with no tools). models are the fallback when the live list can't be read. No key is ever kept here or in intelligence.json: keys go to the system's keychain.",
+	"providers": [
+		{
+			"id": "anthropic",
+			"name": "Anthropic (Claude)",
+			"kind": "anthropic",
+			"baseUrl": "https://api.anthropic.com",
+			"needsKey": true,
+			"keyHelp": "https://console.anthropic.com/settings/keys",
+			"model": "claude-sonnet-5-5",
+			"models": [
+				{ "id": "claude-opus-5-5", "name": "Claude Opus 5.5" },
+				{ "id": "claude-sonnet-5-5", "name": "Claude Sonnet 5.5" },
+				{ "id": "claude-haiku-5-5", "name": "Claude Haiku 5.5" },
+				{ "id": "claude-fable-5-1", "name": "Claude Fable 5.1" }
+			]
+		},
+		{
+			"id": "openai",
+			"name": "OpenAI",
+			"kind": "openai",
+			"baseUrl": "https://api.openai.com/v1",
+			"needsKey": true,
+			"keyHelp": "https://platform.openai.com/api-keys",
+			"model": "gpt-5",
+			"models": [
+				{ "id": "gpt-5", "name": "GPT-5" },
+				{ "id": "gpt-5-mini", "name": "GPT-5 mini" }
+			]
+		},
+		{
+			"id": "openai-compatible",
+			"name": "OpenAI-compatible server",
+			"kind": "openai-compatible",
+			"baseUrl": "http://127.0.0.1:11434/v1",
+			"needsKey": false,
+			"keyHelp": "https://ollama.com/download",
+			"model": "",
+			"models": []
+		},
+		{
+			"id": "claude-code",
+			"name": "Claude Code",
+			"kind": "claude-code",
+			"baseUrl": "",
+			"needsKey": false,
+			"keyHelp": "https://claude.com/claude-code",
+			"model": "sonnet",
+			"models": [
+				{ "id": "sonnet", "name": "Sonnet" },
+				{ "id": "opus", "name": "Opus" },
+				{ "id": "haiku", "name": "Haiku" }
+			]
+		}
+	]
+}
