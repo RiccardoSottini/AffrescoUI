@@ -20,7 +20,7 @@ namespace {
 /// @throws std::runtime_error If the document or the output folder can't be read or made.
 automation::Options optionsOf(const Arguments& arguments) {
 	automation::Options options;
-	options.prepare = registerApplicationTypes; // as affrescoui_host: the example apps' types, other types as panels
+	options.prepare = registerApplicationTypes; // as affrescoui_launcher: the example apps' types, other types as panels
 	if(const std::optional<std::string> goldens = arguments.value("--goldens")) options.goldens = *goldens;
 	if(arguments.flag("--update")) options.policy = automation::Goldens::Update;
 	if(const std::optional<std::string> only = arguments.value("--only")) options.only.push_back(*only);

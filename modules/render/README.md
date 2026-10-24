@@ -187,7 +187,7 @@ Chromium-based browser of the same architecture. Then point the build at the fol
 ```
 cmake -S . -B build-angle -G Ninja -DAFFRESCOUI_GL_BACKEND=gles3 -DAFFRESCOUI_ANGLE_DIR=/path/to/angle/out/Release
 cmake --build build-angle
-AFFRESCOUI_SCREENSHOT=out.ppm ./build-angle/affrescoui_host
+AFFRESCOUI_SCREENSHOT=out.ppm ./build-angle/affrescoui_launcher
 ```
 
 macOS needs `libEGL.dylib` and `libGLESv2.dylib`; Windows needs `libEGL.dll` and `libGLESv2.dll`. GLFW opens them by

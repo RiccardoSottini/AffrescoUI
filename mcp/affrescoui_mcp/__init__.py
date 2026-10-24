@@ -1,8 +1,8 @@
 """AffrescoUI MCP server: connects an AI agent to a running AffrescoUI host, in both directions.
 
-    requests   the app's chat ──"request"──▶ affrescoui_host ──agent.sock──▶ this server ──channel event──▶ AI agent
+    requests   the app's chat ──"request"──▶ affrescoui_launcher ──agent.sock──▶ this server ──channel event──▶ AI agent
                                                                                  (or wait_for_request)
-    changes    AI agent ──tools (submit_revision, reply, ...)──▶ this server ──agent.sock──▶ affrescoui_host ──▶ screen
+    changes    AI agent ──tools (submit_revision, reply, ...)──▶ this server ──agent.sock──▶ affrescoui_launcher ──▶ screen
 
 The host (examples/host/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
 plain words in the app's chat (or from any client on studio.sock); the request reaches the agent through this server;

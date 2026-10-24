@@ -156,7 +156,7 @@ TEST_CASE(
 TEST_CASE("launcher: the app-programs grant starts only its programs, on screens inside its roots") {
 	const TemporaryFolder folder;
 	const fs::path programs = folder.path() / "bin", examples = folder.path() / "examples";
-	writeFile(programs / "affrescoui_host", "");
+	writeFile(programs / "affrescoui_launcher", "");
 	writeFile(programs / "examples" / "forge" / "affrescoui_forge", ""); // a build tree's place for it
 	writeFile(examples / "flow" / "index.screen.json", "{}");
 	writeFile(examples / "flow" / "notes.txt", "");
@@ -164,7 +164,7 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 	services::AppPrograms grant;
 	grant.folder = programs;
 	grant.programs = {
-	    {"affrescoui_host", true, true}, {"affrescoui_forge", false, false}, {"affrescoui_gone", false, false}};
+	    {"affrescoui_launcher", true, true}, {"affrescoui_forge", false, false}, {"affrescoui_gone", false, false}};
 	grant.roots = {{"examples", fs::canonical(examples)}};
 	grant.dataDirectory = folder.path() / "data";
 	grant.socketDirectory = folder.path() / "sockets";
@@ -176,9 +176,9 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 		return refused ? std::optional<services::ProcessRun>() : std::optional<services::ProcessRun>(run);
 	};
 
-	const auto host = shaped({"affrescoui_host", "examples:flow/index.screen.json", "--ask", "Make it blue"});
+	const auto host = shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--ask", "Make it blue"});
 	REQUIRE(host);
-	CHECK(host->program == programs / "affrescoui_host");
+	CHECK(host->program == programs / "affrescoui_launcher");
 	const std::string screen = (fs::canonical(examples) / "flow" / "index.screen.json").string();
 	CHECK(host->arguments == std::vector<std::string>{screen, "--ask", "Make it blue", "--data",
 	                                                  (folder.path() / "data").string(), "--socket",
@@ -191,14 +191,14 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 	CHECK_FALSE(shaped({}));
 	CHECK_FALSE(shaped({"sh", "-c", "true"}));                                   // not one of its programs
 	CHECK_FALSE(shaped({"affrescoui_gone"}));                                    // not there
-	CHECK_FALSE(shaped({"affrescoui_host"}));                                    // no screen
-	CHECK_FALSE(shaped({"affrescoui_host", "examples:../outside.screen.json"})); // outside the root
-	CHECK_FALSE(shaped({"affrescoui_host", "/etc/passwd"}));                     // no root named
-	CHECK_FALSE(shaped({"affrescoui_host", "nowhere:flow/index.screen.json"}));  // not one of its roots
-	CHECK_FALSE(shaped({"affrescoui_host", "examples:flow/notes.txt"}));         // not a screen
-	CHECK_FALSE(shaped({"affrescoui_host", "examples:flow/index.screen.json", "--data", "/tmp"})); // its own flags only
+	CHECK_FALSE(shaped({"affrescoui_launcher"}));                                    // no screen
+	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:../outside.screen.json"})); // outside the root
+	CHECK_FALSE(shaped({"affrescoui_launcher", "/etc/passwd"}));                     // no root named
+	CHECK_FALSE(shaped({"affrescoui_launcher", "nowhere:flow/index.screen.json"}));  // not one of its roots
+	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/notes.txt"}));         // not a screen
+	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--data", "/tmp"})); // its own flags only
 	CHECK_FALSE(shaped({"affrescoui_forge", "--ask", "hello"})); // it takes no first request
-	CHECK_FALSE(shaped({"affrescoui_host", "examples:flow/index.screen.json", "--ask", std::string(5000, 'a')}));
+	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--ask", std::string(5000, 'a')}));
 	CHECK_FALSE(shaped({"reveal", "examples:flow/index.screen.json"})); // a folder only
 	CHECK_FALSE(shaped({"reveal", "examples:.."}));
 #ifdef __APPLE__
@@ -306,7 +306,7 @@ TEST_CASE("launcher: an app is created blank and from an example, listed, duplic
 		screen.services().addRoot("apps", apps);
 		services::AppPrograms programs; // none there: opening fails, and the app is made all the same
 		programs.folder = folder.path() / "no-programs";
-		programs.programs = {{"affrescoui_host", true, true}};
+		programs.programs = {{"affrescoui_launcher", true, true}};
 		programs.roots = {{"examples", examples}, {"apps", apps}};
 		programs.dataDirectory = folder.path() / "data";
 		programs.socketDirectory = folder.path() / "sockets";
@@ -351,4 +351,11 @@ TEST_CASE("launcher: an app is created blank and from an example, listed, duplic
 	CHECK_FALSE(fs::exists(apps / "shared" / "Assets.hpp"));
 	// The new app loads where it is: its includes and fonts are found in the shared folder beside it
 	CHECK_NOTHROW((void)affresco::Screen::fromString(blank, apps / "garden-planner"));
+	// ...and builds in a window, where the properties are checked (a root with "dir" failed only there)
+	const json opened = json::parse(R"json([{ "name": "open", "steps": [
+		{ "expect": { "node": "#welcomeTitle", "text": "Garden planner" } }
+	] }])json");
+	const automation::Report built = play(opened, apps / "garden-planner" / "index.screen.json", "", nullptr);
+	INFO(built.text());
+	CHECK(built.failed() == 0);
 }

@@ -56,12 +56,12 @@ def connect_unix(path):
         sock.connect(path)
     except OSError:
         sock.close()
-        raise RuntimeError(f"no AffrescoUI host is listening at {path}. Start one: ./build/affrescoui_host")
+        raise RuntimeError(f"no AffrescoUI host is listening at {path}. Start one: ./build/affrescoui_launcher")
     return sock
 
 
 class Host:
-    """The running affrescoui_host, at the other end of agent.sock. Connects (again) when needed."""
+    """The running affrescoui_launcher, at the other end of agent.sock. Connects (again) when needed."""
 
     def __init__(self, socket_dir, launch, on_request):
         """A host listening in `socket_dir`; `launch` (a command, or None) starts one; `on_request` gets each person's

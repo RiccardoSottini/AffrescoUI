@@ -4,7 +4,7 @@ A static site that runs AffrescoUI compiled to WebAssembly with Emscripten, draw
 OpenGL ES 3.0 backend). It has two kinds of page:
 
 - `index.html`: the template picker, a link per template;
-- `<template>.html`: one template in the host, the same program as `affrescoui_host` on a desktop.
+- `<template>.html`: one template in the host, the same program as `affrescoui_launcher` on a desktop.
 
 The files here are the site's sources; `tools/web/build.sh` builds the programs and writes the site.
 
@@ -19,7 +19,7 @@ emsdk/emsdk install 6.0.10 && emsdk/emsdk activate 6.0.10 && source emsdk/emsdk_
 tools/web/build.sh          # the build in build-web/, the site in build-web/site/
 ```
 
-The build is Release. It makes `affrescoui_host` for the browser, and the command-line tool
+The build is Release. It makes `affrescoui_launcher` for the browser, and the command-line tool
 `affrescoui` for Node, which plays the templates' scenarios on the same WebAssembly:
 
 ```sh
@@ -33,8 +33,8 @@ Measured with emsdk 6.0.10 (Release, `gzip -9`):
 
 | File | Size | Gzipped |
 |---|---|---|
-| `affrescoui_host.wasm` | 6.5 MB | 2.18 MB |
-| `affrescoui_host.data` (the assets) | 2.06 MB | 0.88 MB |
+| `affrescoui_launcher.wasm` | 6.5 MB | 2.18 MB |
+| `affrescoui_launcher.data` (the assets) | 2.06 MB | 0.88 MB |
 
 ## Getting the build
 

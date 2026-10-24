@@ -33,12 +33,12 @@ class Affrescoui < Formula
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
     # The host finds its templates (the Launcher too) and fonts in "assets" next to itself, as in a release archive
-    libexec.install "build/affrescoui_host"
+    libexec.install "build/affrescoui_launcher"
     # (the templates' folders, examples/templates.json, and examples/shared, without the C++ sources)
     folders = JSON.parse(File.read("examples/templates.json"))["templates"].values.uniq
     (libexec/"assets").install "examples/shared", *folders.map { |folder| "examples/#{folder}" }
     rm Dir[libexec/"assets/**/*.{cpp,hpp}"]
-    bin.write_exec_script libexec/"affrescoui_host"
+    bin.write_exec_script libexec/"affrescoui_launcher"
   end
 
   test do

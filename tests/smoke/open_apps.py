@@ -40,7 +40,7 @@ SAVED = re.compile(r"screenshot saved|\b0 failed\b")  # the frame saved, a summa
 # window, does its work and exits 0). The host also opens every examples/*/*.screen.json (added in programs()).
 WINDOW, SERVICE, COMMAND = "window", "service", "command"
 PROGRAMS = [
-    ("host", "affrescoui_host", [], WINDOW),
+    ("host", "affrescoui_launcher", [], WINDOW),
     ("forge", "affrescoui_forge", [], WINDOW),
     ("tempera", "affrescoui_tempera", [], WINDOW),
     ("sinopia", "affrescoui_sinopia", [], WINDOW),
@@ -63,7 +63,7 @@ def programs(build):
             found.append((name, path, arguments, kind))
         else:
             print(f"skipped {name}: {executable} isn't built")
-    host = os.path.join(build, "affrescoui_host")
+    host = os.path.join(build, "affrescoui_launcher")
     for screen in sorted(glob.glob(os.path.join(ROOT, "examples", "*", "*.screen.json"))):
         name = "host " + os.path.relpath(screen, os.path.join(ROOT, "examples"))
         found.append((name, host, [os.path.relpath(screen, ROOT)], WINDOW))
@@ -98,7 +98,7 @@ def stale_history(home, build, screen):
     environment["AFFRESCOUI_SCREENSHOT_AFTER"] = "500"
     socket = tempfile.mkdtemp(prefix="ao", dir="/tmp")
     try:
-        subprocess.run([os.path.join(build, "affrescoui_host"), copy, "--socket", socket], env=environment, cwd=older,
+        subprocess.run([os.path.join(build, "affrescoui_launcher"), copy, "--socket", socket], env=environment, cwd=older,
                        capture_output=True, timeout=GRACE_SECONDS, check=False)
     finally:
         shutil.rmtree(socket, ignore_errors=True)
@@ -231,8 +231,8 @@ def main():
         else:
             keep = os.path.abspath(value)
     build = os.path.abspath(build)
-    if not os.path.exists(os.path.join(build, "affrescoui_host")):
-        sys.exit(f"{os.path.join(build, 'affrescoui_host')} not found: build first (cmake --build {build})")
+    if not os.path.exists(os.path.join(build, "affrescoui_launcher")):
+        sys.exit(f"{os.path.join(build, 'affrescoui_launcher')} not found: build first (cmake --build {build})")
 
     started, failed = time.monotonic(), 0
     runs = [(p, w) for p in programs(build) if not only or only in p[0] for w in ways(p)]

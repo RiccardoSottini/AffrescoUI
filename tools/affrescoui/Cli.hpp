@@ -88,7 +88,7 @@ private:
 void writeFile(const std::filesystem::path& path, std::string_view content);
 
 /// @brief Registers the application types of the example apps (the Forge template's "code"), when the tool is built
-/// with the examples, and makes other unknown types plain panels, as affrescoui_host does.
+/// with the examples, and makes other unknown types plain panels, as affrescoui_launcher does.
 /// @param screen The screen.
 void registerApplicationTypes(Screen& screen);
 
@@ -104,7 +104,7 @@ struct Command {
 /// @return Them.
 [[nodiscard]] std::span<const Command> commands();
 
-/// @brief `run`: shows a screen and lets peers change it, like affrescoui_host.
+/// @brief `run`: shows a screen and lets peers change it, like affrescoui_launcher.
 /// @param args The arguments.
 /// @return How it ended.
 Exit runScreen(std::span<const std::string_view> args);

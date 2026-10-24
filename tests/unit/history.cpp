@@ -154,7 +154,7 @@ TEST_CASE("vcs: a mode set for this run only isn't kept, and a reviewer's mode i
 	const TemporaryFolder folder;
 	const std::filesystem::path history = folder.path() / "board.history";
 	{
-		Repository first(rules, permissionsScreen()); // e.g. affrescoui_host --auto-accept
+		Repository first(rules, permissionsScreen()); // e.g. affrescoui_launcher --auto-accept
 		first.openHistory(history);
 		first.setModeForThisRun(affresco::Mode::AcceptEdits);
 		CHECK(affresco::toString(first.mode()) == "acceptEdits");

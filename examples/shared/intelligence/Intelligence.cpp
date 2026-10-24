@@ -303,7 +303,7 @@ bool HostAssistant::attach(affresco::Screen& screen) {
 		options.keys = systemKeys();
 		agent_ = std::make_unique<ProviderAgent>(executor_, std::move(options));
 	} catch(const std::exception& error) {
-		std::cerr << "affrescoui_host: the assistant's agent can't start: " << error.what() << '\n';
+		std::cerr << "affrescoui_launcher: the assistant's agent can't start: " << error.what() << '\n';
 		return false;
 	}
 	screen.connect(*agent_, "agent");

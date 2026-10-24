@@ -9,7 +9,7 @@ the library.
 ```
 
 With a folder, Forge opens it; without one, it shows the welcome page and its Open Folder button. Like
-`affrescoui_host`, it listens for a client and an agent in `DIR`. The layout, the theme and the settings are kept in
+`affrescoui_launcher`, it listens for a client and an agent in `DIR`. The layout, the theme and the settings are kept in
 `--data DIR`.
 
 ## How it is built

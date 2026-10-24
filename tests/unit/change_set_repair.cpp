@@ -127,7 +127,7 @@ json blockedColumn() {
 	                                  proof);
 }
 
-/// @brief Plays a proof's scenarios on a document, headless, as affrescoui_host does.
+/// @brief Plays a proof's scenarios on a document, headless, as affrescoui_launcher does.
 /// @param document The document with its state, as JSON text.
 /// @param proof The proof, as JSON text.
 /// @return The failures, or "".

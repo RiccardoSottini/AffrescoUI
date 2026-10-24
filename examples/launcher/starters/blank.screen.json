@@ -48,10 +48,10 @@
 	"root": {
 		"id": "app",
 		"color": "@app.background",
-		"dir": "auto",
 		"children": [
 			{
 				"id": "welcome",
+				"dir": "auto",
 				"anchors": { "top": 80 },
 				"x": "{{max(24, (window.width - 560) / 2 - 190)}}",
 				"width": 560,

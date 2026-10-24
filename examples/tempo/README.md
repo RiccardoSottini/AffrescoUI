@@ -3,7 +3,7 @@
 Playlists, a library of 3,000 songs in a table, albums and artists in grids, search, a queue you reorder, now playing with a visualiser and lyrics, an equaliser, crossfade and a mini player. Playback is simulated: a timer, no audio. The `music-player` template: a screen document whose one piece of C++, the visualiser surface, the stock host registers.
 
 ```sh
-./build/affrescoui_host examples/tempo/index.screen.json
+./build/affrescoui_launcher examples/tempo/index.screen.json
 ./build/affrescoui test examples/tempo/index.scenarios.json
 ```
 

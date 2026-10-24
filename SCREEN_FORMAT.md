@@ -14,7 +14,7 @@ loads: it is migrated in memory, with one notice ("Migrating from version 1").
 
 - File extension: `.screen.json`. JSON Schema (editor completion and validation):
   [`schema/affrescoui-screen.schema.json`](schema/affrescoui-screen.schema.json), referenced with `"$schema"`.
-- Try any file without writing code: `./build/affrescoui_host path/to/file.screen.json`
+- Try any file without writing code: `./build/affrescoui_launcher path/to/file.screen.json`
 
 ```json
 {
@@ -1788,7 +1788,7 @@ panel directly (`screen.find("logo")->setColor(...)`) stays until one of those c
 replace it. To keep a change, make it in the document (state, or a revision), or in a registered type's apply function.
 
 See the templates, a folder each in `examples/` ([`examples/README.md`](examples/README.md)): `launcher` (the one
-`affrescoui_host` opens without a file: the apps as cards, `fs` services on the folders the host grants, a copy
+`affrescoui_launcher` opens without a file: the apps as cards, `fs` services on the folders the host grants, a copy
 from one root into another, apps started through the host's app-programs grant), `kanban` (rows, components, drag
 and drop, a popover), `smart-home` (themes, computed values, switches
 and sliders, animations), `music-player` (a playback timer, seeking), `code-editor` (an application type built on

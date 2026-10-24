@@ -22,7 +22,7 @@ namespace affresco::cli {
 std::span<const Command> commands() {
 	static constexpr std::array<Command, 13> list = {{
 	    {"run", "<file> [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
-		 "Show a screen and let peers change it, like affrescoui_host", runScreen},
+		 "Show a screen and let peers change it, like affrescoui_launcher", runScreen},
 	    {"check",
 	     "<file> [--json] | --compose <screen> <feature> [--adapter FILE] [--base COMMIT] [--scenarios FILE|none] "
 	     "[--document FILE] [--revision out.json] [--json]",

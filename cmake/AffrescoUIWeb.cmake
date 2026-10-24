@@ -64,10 +64,10 @@ endfunction()
 # files (NODERAWFS), to play the scenarios. Forge and the document server need processes, a terminal and a listening
 # socket: they aren't built for a browser.
 function(affrescoui_web_programs)
-	if(TARGET affrescoui_host)
+	if(TARGET affrescoui_launcher)
 		affrescoui_template_folders(folders)
 		list(REMOVE_DUPLICATES folders)
-		foreach(program affrescoui_host)
+		foreach(program affrescoui_launcher)
 			affrescoui_web_program(${program} web)
 			get_target_property(definitions ${program} COMPILE_DEFINITIONS)
 			list(FILTER definitions EXCLUDE REGEX "^AFFRESCOUI_EXAMPLES_ASSETS=")

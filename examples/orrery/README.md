@@ -9,7 +9,7 @@ It was built by an outsider to the library, as a test of the public documentatio
 `affrescoui` tool and `mcp/`. It is an example, not part of the library.
 
 ```
-./build/affrescoui_host examples/orrery/index.screen.json [--socket DIR] [--data DIR]
+./build/affrescoui_launcher examples/orrery/index.screen.json [--socket DIR] [--data DIR]
 ```
 
 The host listens for the person's client and an agent in `DIR` (`studio.sock`, `agent.sock`). Its permissions
@@ -82,7 +82,7 @@ python3 examples/orrery/e2e_test.py build    # or: ctest --test-dir build -R mcp
 
 `e2e_test.py` tests the whole agent loop:
 
-1. It starts `affrescoui_host` on a copy of the screen without the strip, in a private socket folder.
+1. It starts `affrescoui_launcher` on a copy of the screen without the strip, in a private socket folder.
 2. The agent reads the screen and its contributions, proves the slide sorter fits through the adapter, and installs
    it. In this screen an agent's revision is only proposed.
 3. The agent gets a picture of the proposal and plays the strip's scenarios on it.

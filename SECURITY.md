@@ -39,7 +39,7 @@ approved. It does not stop a hostile program that runs as you from attacking you
 The program that embeds AffrescoUI (the host) is trusted, and so is everything it loads on its own authority:
 - the screen file and the files it `include`s;
 - the state file that `persist` writes (in `~/.affrescoui/`);
-- change sets passed to `affrescoui_host --plugin` (these still go through the deny rules and the protected sections
+- change sets passed to `affrescoui_launcher --plugin` (these still go through the deny rules and the protected sections
   below, but they are not reviewed);
 - the native code it registers (`registerType`, `onAction`, `onCall`).
 
@@ -379,7 +379,7 @@ The command-line tool (`tools/affrescoui`) reads screen files people, agents and
 - `test` plays a scenarios file the same way: every channel the screen declares, by an absolute path or from an
   `include` too, is pointed at a folder that is never created, so a played screen never reaches a running host.
 - `run`, `import` and `export` treat the file as a host does: the screen file is trusted, and a change set given to
-  `import` or `run --plugin` is trusted like one given to `affrescoui_host --plugin`. `import` refuses a history
+  `import` or `run --plugin` is trusted like one given to `affrescoui_launcher --plugin`. `import` refuses a history
   another program is writing.
 
 The MCP server (`mcp/affrescoui_mcp.py`) is started by the agent's client and talks to the host over `agent.sock`, so
@@ -609,7 +609,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Headers a connection or an operation declares | Names that are HTTP tokens of 64 bytes at most; never `Authorization`, `Proxy-Authorization`, `Cookie`, `Host`, `Content-Length` or `Transfer-Encoding` (credentials come from sign-in, never from the document) |
 | Passes of one GPU surface (`SurfaceFrame::pass`) | 8; a pass and the surface itself at most 4,096 pixels a side; the surface's framebuffer (counted twice, for colour and depth) and its passes 256 MiB in all. Over a limit, the surface is disabled with one logged error |
 | Pointer events a GPU surface holds between two renders | 256; older ones are dropped |
-| Usage summaries (`affrescoui_host --usage`, VERSION_CONTROL.md "Usage"): privacy | Off by default; on only with the host's setting and the person's one-time consent, asked on the terminal (no terminal, no consent). Node ids, action names, screen names, counts and times only: never text, values, the state or pictures. Ids as the document writes them, never evaluated |
+| Usage summaries (`affrescoui_launcher --usage`, VERSION_CONTROL.md "Usage"): privacy | Off by default; on only with the host's setting and the person's one-time consent, asked on the terminal (no terminal, no consent). Node ids, action names, screen names, counts and times only: never text, values, the state or pictures. Ids as the document writes them, never evaluated |
 | Usage summaries: where they are kept and who reads them | On the device only, in `<data folder>/<screen>.usage.json` beside the "persist" state, readable by its owner only (`0600`); nothing is sent anywhere. Only a peer that may review reads (`getUsage`, MCP `get_usage`) or clears (`clearUsage`) them, and only while they are on: an agent can't grant itself that |
 | Usage summaries: bounds | 1,024 node and action pairs, 64 screens, 1,024 controls listed as never used; names of 1 to 64 printable bytes (others aren't counted); counts stop at 10^9; counts not made for 30 days are dropped; a file over 1 MiB isn't read |
 | A `search` service | 4 calls at once; 2,000 results by default, 20,000 at most; folders 64 deep; a file replaced in 8 MiB, a replaced text 64 MiB |

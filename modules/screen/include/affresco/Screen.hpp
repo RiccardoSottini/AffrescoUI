@@ -362,7 +362,7 @@ public:
 	[[nodiscard]] std::optional<int> previewedProposal() const noexcept;
 	/// @brief Sets how a proposal's evidence ("getEvidence", VERSION_CONTROL.md) plays the screen's scenarios: given
 	/// the proposal's document as JSON text, returns `[{"name", "passed", "message"}]` as JSON text. Without one, the
-	/// evidence has no scenarios. affrescoui_host plays the screen's `.scenarios.json` (modules/automation).
+	/// evidence has no scenarios. affrescoui_launcher plays the screen's `.scenarios.json` (modules/automation).
 	/// @param check The check, or an empty function.
 	void setScenarioCheck(std::function<std::string(const std::string& documentJson)> check);
 	/// @brief Turns the inspector on or off: an overlay showing the node, bounds, bindings as written and last commit
@@ -432,7 +432,7 @@ public:
 	/// @return "applied", "needsRepair", "repairing", "repaired" or "gaveUp"; empty on an error.
 	std::string installChanges(std::string_view changesJson, std::string* error = nullptr);
 	/// @brief Sets how installChanges() checks a change set's proof: given the document it makes (with its state) and
-	/// the proof, as JSON text, returns why it fails, or "". affrescoui_host plays the proof's scenarios.
+	/// the proof, as JSON text, returns why it fails, or "". affrescoui_launcher plays the proof's scenarios.
 	/// @param check The check, or an empty function (then a change set with a proof needs repair).
 	void setProofCheck(std::function<std::string(const std::string& documentJson, const std::string& proofJson)> check);
 	/// @brief Where the installed change sets stand.

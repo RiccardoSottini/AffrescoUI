@@ -1,7 +1,7 @@
 /// @file
-/// @brief affrescoui_host: shows a screen file and lets other programs change it while it runs.
+/// @brief affrescoui_launcher: shows a screen file and lets other programs change it while it runs.
 //
-//   affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
+//   affrescoui_launcher [file.screen.json] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
 //               [--plugin changes.json ...] [--usage] [--folder DIR] [--allow NAME[=PROGRAM ARG...] ...] [--ask TEXT]
 //               [--apps DIR]
 //
@@ -199,7 +199,7 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 	for(int i = 1; i < argc;) {
 		const int taken = readArgument(options, argv[i], i + 1 < argc ? argv[i + 1] : nullptr);
 		if(taken == 0) {
-			std::cerr << "usage: affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] "
+			std::cerr << "usage: affrescoui_launcher [file.screen.json] [--socket DIR] [--data DIR] "
 			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json] [--usage] "
 			             "[--folder DIR] [--allow NAME[=PROGRAM ARG...]] [--ask TEXT] [--apps DIR]\n";
 			return std::nullopt;
@@ -219,14 +219,14 @@ void enableUsage(affresco::Screen& screen) {
 	const bool terminal = isatty(STDIN_FILENO) != 0;
 #endif
 	if(!screen.usageConsented() && terminal) {
-		std::cerr << "affrescoui_host: count how this screen is used (which controls run and fail, which screens are "
+		std::cerr << "affrescoui_launcher: count how this screen is used (which controls run and fail, which screens are "
 		             "visited; ids, counts and times only, kept on this device for 30 days)? [y/N] ";
 		std::string answer;
 		std::getline(std::cin, answer);
 		if(answer == "y" || answer == "yes") screen.giveUsageConsent();
 	}
 	screen.setUsageEnabled(true);
-	if(!screen.usageConsented()) std::cerr << "affrescoui_host: usage summaries stay off: no consent\n";
+	if(!screen.usageConsented()) std::cerr << "affrescoui_launcher: usage summaries stay off: no consent\n";
 }
 
 /// @brief Gives the screen the assistant's agent, when a provider of intelligence is set up, and with --ask the first
@@ -287,7 +287,7 @@ void grantLauncher(affresco::Screen& screen, const Options& options) {
 	screen.services().addRoot("apps", apps);
 	services::AppPrograms programs;
 	programs.folder = programFile().parent_path();
-	programs.programs = {{"affrescoui_host", true, true},
+	programs.programs = {{"affrescoui_launcher", true, true},
 	                     {"affrescoui_forge", false, false},
 	                     {"affrescoui_tempera", false, false},
 	                     {"affrescoui_sinopia", false, false}};
@@ -335,7 +335,7 @@ int run(const Options& options) {
 		createSocketDir(options.socketDir);
 		screen.listen(app, options.socketDir / "studio.sock", "studio");
 		screen.listen(app, options.socketDir / "agent.sock", "agent");
-		std::cerr << "affrescoui_host: listening in " << options.socketDir.string() << " (studio.sock, agent.sock)"
+		std::cerr << "affrescoui_launcher: listening in " << options.socketDir.string() << " (studio.sock, agent.sock)"
 		          << ", mode " << affresco::toString(screen.versions().mode()) << '\n';
 	}
 #endif
@@ -349,7 +349,7 @@ int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own 
 		const std::optional<Options> options = parseArguments(argc, argv);
 		return options ? run(*options) : 2;
 	} catch(const std::exception& error) {
-		std::cerr << "affrescoui_host: " << error.what() << '\n';
+		std::cerr << "affrescoui_launcher: " << error.what() << '\n';
 		return 1;
 	}
 }

@@ -3,7 +3,7 @@
 Modello is a 3D modeller written only as screen documents: no C++ of its own. The stock host runs it:
 
 ```
-./build/affrescoui_host examples/modello/index.screen.json [--socket DIR]
+./build/affrescoui_launcher examples/modello/index.screen.json [--socket DIR]
 ```
 
 Its layout and keys follow the conventions of desktop 3D modellers, so a daily user of such a modeller finds what they expect where they

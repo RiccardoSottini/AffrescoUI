@@ -5,10 +5,10 @@ version control (started 2017 as sGLGUI). Overview and architecture: `README.md`
 Version control and permissions: `VERSION_CONTROL.md`.
 
 Build & check: `cmake -S . -B build -G Ninja && cmake --build build`, then
-`AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_host` renders the first frame of the Launcher to `out.ppm`
-(the Kanban template: `AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_host examples/flow/index.screen.json`).
+`AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_launcher` renders the first frame of the Launcher to `out.ppm`
+(the Kanban template: `AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_launcher examples/flow/index.screen.json`).
 `AFFRESCOUI_SCREENSHOT_AFTER=<ms>` captures after running that long (e.g. while peers change it).
-MCP server (two-way): `mcp/affrescoui_mcp.py`. The Launcher: `./build/affrescoui_host` (no file).
+MCP server (two-way): `mcp/affrescoui_mcp.py`. The Launcher: `./build/affrescoui_launcher` (no file).
 After any change, `python3 tests/render/check.py` must pass: every template, scripted, pixel for pixel. Update the
 golden images (`--update`) only for an intended visual change.
 

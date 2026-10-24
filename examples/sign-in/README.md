@@ -3,7 +3,7 @@
 Sign in, create an account, two-step verification, a password reset, provider sign-in with a made-up provider (Example ID), session expiry and an account page, in English, Spanish and French, light and dark. The `sign-in` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_host examples/sign-in/index.screen.json
+./build/affrescoui_launcher examples/sign-in/index.screen.json
 ./build/affrescoui test examples/sign-in/index.scenarios.json
 ```
 

@@ -3,7 +3,7 @@
 //
 //   affrescoui_forge [folder] [--socket DIR] [--data DIR]
 //
-// Opens the folder if one is given (else a welcome page, with Open Folder). Like affrescoui_host, it listens for the
+// Opens the folder if one is given (else a welcome page, with Open Folder). Like affrescoui_launcher, it listens for the
 // person's client and an agent in DIR (studio.sock, agent.sock), so they can change the workbench while it runs; the
 // layout, theme and settings are kept in --data DIR ("persist").
 

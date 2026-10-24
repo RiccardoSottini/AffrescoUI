@@ -16,10 +16,10 @@
 
 <br/>
 
-<img src=".github/media/kanban.png" width="860" alt="Flow, a Kanban board with a sidebar of teams and projects and four columns of issues, rendered natively by AffrescoUI from one live document, with the assistant's button in the bottom right corner">
+<img src=".github/media/launcher.png" width="860" alt="The AffrescoUI Launcher: a sidebar with Apps, My apps, Create and Settings, and a grid of application cards with their pictures, rendered natively by AffrescoUI from one live document">
 
-<sub>Flow, a Kanban board rendered natively from one live document. The round button opens its assistant: ask for a
-change in plain words, an AI agent proposes it, and you approve it while the app keeps running.</sub>
+<sub>The AffrescoUI Launcher, itself one live document: every application one click away, your own apps, a new app
+made blank, from an example or from a description, and the AI provider every app's assistant uses.</sub>
 
 </div>
 
@@ -112,8 +112,8 @@ corner: ask for a change in plain words, then review the proposal it becomes.
 </tr>
 </table>
 
-Run any of them with `./build/affrescoui_host <file>`. Forge, Tempera and Sinopia have their own programs for their
-native parts (files, a terminal, pixels). Flow, Haven, Tempo, Streak, Arcadia and Sign in speak English, Spanish and
+Open them from the **Launcher** (`./build/affrescoui_launcher`), or run one with `./build/affrescoui_launcher <file>`.
+Forge, Tempera and Sinopia have their own programs for their native parts (files, a terminal, pixels). Flow, Haven, Tempo, Streak, Arcadia and Sign in speak English, Spanish and
 French.
 
 ## Architecture
@@ -124,7 +124,7 @@ engine knows nothing else about it. A change travels down a stack of layers, eac
 ```mermaid
 %%{init: {"theme": "base", "flowchart": {"nodeSpacing": 30, "rankSpacing": 34, "padding": 14, "wrappingWidth": 400}, "themeVariables": {"fontFamily": "Helvetica, Arial, sans-serif", "fontSize": "14px", "lineColor": "#94A3B8", "primaryTextColor": "#0F172A", "edgeLabelBackground": "#FFFFFF"}}}%%
 flowchart TB
-    studio(["<b>You</b> · the app's assistant, the Studio or a script"])
+    studio(["<b>You</b> · the app's assistant or a script"])
     agent(["<b>AI agent</b> · Claude Code"])
 
     mcp["🤖 <b>MCP server</b> · mcp/<br/>connects AI agents, both ways"]
@@ -184,7 +184,7 @@ modules/export/      panel trees as vector PDF
 modules/capi/        the C API, affresco/affresco.h
 mcp/                 the MCP server for AI agents
 apps/server/         the document server: shared, persistent documents over WebSocket
-examples/            the applications, the host, the Studio, the assistant add-on
+examples/            the applications, the host and its Launcher, the assistant add-on
 web/                 the WebAssembly build
 ```
 
@@ -220,7 +220,7 @@ rules and change budgets. An AI can change your app but **can never approve its 
 <td valign="top">
 
 ### 🤖 Agent-ready
-A **two-way MCP server**: requests from the app or the Studio reach the agent, and its revisions and replies come
+A **two-way MCP server**: requests from the app reach the agent, and its revisions and replies come
 back. Works with Claude Code out of the box.
 
 </td>
@@ -248,7 +248,7 @@ review and install.
 flowchart LR
     subgraph P["Who changes it"]
         direction TB
-        you["<b>You</b><br/>the app's assistant · Studio"]
+        you["<b>You</b><br/>the app's assistant"]
         ai["<b>AI agent</b><br/>Claude Code · MCP"]
         any["<b>Scripts & apps</b><br/>any socket client"]
     end
@@ -299,11 +299,11 @@ flowchart LR
     linkStyle 7,8,9 stroke:#6366F1,stroke-width:2px
 ```
 
-1. **Anyone can propose a change.** The host (`affrescoui_host`) renders a screen and listens for peers on local
-   sockets. You ask through the app's assistant or the **AffrescoUI Studio**; an AI agent connects through the MCP
-   server, which works both ways; any script can connect too. Every change is a **revision** of compact edits.
+1. **Anyone can propose a change.** The host (`affrescoui_launcher`) renders a screen and listens for peers on local
+   sockets. You ask through the app's assistant; the AI answers through the provider chosen in the
+   Launcher, or an agent connects through the MCP server, which works both ways; any script can connect too. Every change is a **revision** of compact edits.
 2. **The permission rules decide:** `deny` refuses, `ask` sends the change to review, `allow` applies it. Rules judge
-   what a change *does*, not how it is written. Flow's rules, for example, let the Studio change anything, ask before
+   what a change *does*, not how it is written. Flow's rules, for example, let the person's own client change anything, ask before
    an agent changes behaviour, and protect the status bar from everyone.
 3. **You review proposals.** A proposal is a branch, like a pull request: the agent can refine it while you preview it
    live. Then **Accept**, **Always allow** (don't ask again for that part of the screen) or **Reject** with a reason.
@@ -312,35 +312,32 @@ flowchart LR
    the running app in place, keeping focus and typing, and any commit can be reverted or restored
    ([VERSION_CONTROL.md](VERSION_CONTROL.md)).
 
-<p align="center">
-<img src=".github/media/studio.png" width="640" alt="The AffrescoUI Studio, connected to a host: ask the AI, direct changes, and the Review, History and Rules tabs in a resizable split"><br/>
-<sub>The <b>AffrescoUI Studio</b>, a client whose interface is itself an AffrescoUI screen: ask the AI, edit directly, review each proposal, browse the history (revert, restore) and set the rules. Dark by default, Cmd+J for light.</sub>
-</p>
 
 ## Quick start
 
 ```sh
 cmake -S . -B build && cmake --build build
 
-./build/affrescoui_host                  # Flow, listening for peers in /tmp/affrescoui-<uid>
-./build/affrescoui_studio                # the client: ask the AI, edit, review
+./build/affrescoui_launcher                  # the Launcher: every app, your own apps, the AI settings
 ```
 
-Connect an AI agent through MCP ([mcp/README.md](mcp/README.md)):
+In the Launcher's **Settings**, choose the AI the assistants use: Anthropic, OpenAI, an OpenAI-compatible server
+(such as Ollama) or your Claude Code login, and a model. Keys stay in the system's keychain. Every app you open then
+has a working assistant, with no MCP. To connect an AI agent through MCP instead ([mcp/README.md](mcp/README.md)):
 
 ```sh
 claude mcp add affrescoui -- python3 /path/to/AffrescoUI/mcp/affrescoui_mcp.py
 claude --dangerously-load-development-channels server:affrescoui   # requests are pushed into the session
 ```
 
-Ask *"add a Blocked column between In progress and In review"* in the board's assistant or in the Studio. Claude
+Open Flow and ask *"add a Blocked column between In progress and In review"* in the board's assistant. Claude
 changes the running board and the change comes back as a proposal: **Accept** it and the app updates in place, or
 **Always allow** to stop being asked about that part of the screen.
 
 ```sh
-./build/affrescoui_host --mode acceptEdits                              # agent changes apply unless a rule asks
-./build/affrescoui_host examples/haven/index.screen.json            # any application, no C++
-./build/affrescoui_host --plugin my-changes.json                         # start with a change set applied
+./build/affrescoui_launcher examples/haven/index.screen.json                # any application, no C++
+./build/affrescoui_launcher examples/flow/index.screen.json --mode acceptEdits # agent changes apply unless a rule asks
+./build/affrescoui_launcher examples/flow/index.screen.json --plugin my.json   # start with a change set applied
 ```
 
 Requires CMake 3.25 or later and a C++23 compiler; CMake fetches the pinned dependencies
