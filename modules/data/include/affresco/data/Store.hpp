@@ -265,9 +265,18 @@ public:
 
 	Signal<const std::string&> onChange; ///< A collection's records changed (its name).
 
+	/// @brief Counts the store's changes (writes, undo, redo, models followed), so what is worked out from it can be
+	/// kept until it changes.
+	/// @return The count.
+	[[nodiscard]] std::uint64_t changes() const noexcept;
+
 	struct Impl; ///< The connection and statements (StoreImpl.hpp).
 
 private:
+	/// @brief Counts a change and tells onChange.
+	/// @param collection The collection that changed.
+	void notify(const std::string& collection);
+
 	std::unique_ptr<Impl> impl_; ///< See Impl.
 };
 

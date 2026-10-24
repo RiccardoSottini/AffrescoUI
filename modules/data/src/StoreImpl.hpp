@@ -35,6 +35,7 @@ struct Store::Impl {
 	std::int64_t group = 0;              ///< The batch's group of writes, while one is open.
 	int batches = 0;                     ///< Batches open.
 	std::set<std::string> changed;       ///< Collections changed by the running follow().
+	std::uint64_t changes = 0;           ///< See Store::changes().
 
 	/// @brief Reads the models kept in the database (after opening, or after a copy).
 	void loadModels();

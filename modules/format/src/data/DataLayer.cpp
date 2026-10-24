@@ -76,7 +76,8 @@ void DataLayer::watch(data::Store& store) {
 	watched_ = &store;
 	connection_ = store.onChange.connect([this](const std::string&) {
 		++storeVersion_;
-		engine_.document.markStateChanged(); // computed values that read `data` are stale too, and watches compare
+		engine_.document.bumpStateVersion(); // computed values that read `data` are stale too
+		engine_.document.markPlaceChanged(std::string(dataPlaces)); // what reads `data` is evaluated again
 		engine_.reconciler.requestReconcile();
 	});
 }
@@ -155,12 +156,14 @@ const json* DataLayer::variable() {
 	}
 	builtStore_ = storeVersion_;
 	builtState_ = state;
+	queryReads_.clear();
 	const json& queries = sectionOf(engine_.versions.document(), "queries");
 	if(!queries.is_object()) return &value_;
 	for(const auto& [name, declaration] : queries.items()) {
 		if(store.models().contains(name)) continue; // a collection's name: refused by the rules
 		json arguments;
 		try {
+			const DocumentContext::ReadScope reads(engine_.document, &queryReads_); // what the queries read
 			arguments = engine_.document.evaluate(declaration, Scope{}, json::object(), "queries." + name);
 		} catch(const DocumentError& error) {
 			engine_.report(error.what());

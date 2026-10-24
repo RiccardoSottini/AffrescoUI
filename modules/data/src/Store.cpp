@@ -270,6 +270,13 @@ void Store::setClock(std::function<std::int64_t()> clock) { impl_->clock = clock
 
 const Models& Store::models() const noexcept { return impl_->models; }
 
+std::uint64_t Store::changes() const noexcept { return impl_->changes; }
+
+void Store::notify(const std::string& collection) {
+	++impl_->changes;
+	onChange.emit(collection);
+}
+
 bool Store::differs(const json& section) const {
 	return (section.is_null() ? json::object() : section) != impl_->section;
 }
@@ -296,7 +303,7 @@ Record Store::insert(const std::string& collection, const json& fields, const st
 	impl.insertRow(collection, row);
 	impl.journal(author, "insert", collection, id, row.sequence, nullptr, rowJson(row));
 	transaction.commit();
-	onChange.emit(collection);
+	notify(collection);
 	return Impl::recordOf(model, row);
 }
 
@@ -324,7 +331,7 @@ Record Store::update(const std::string& collection, const std::string& id, const
 	impl.writeBody(collection, *row);
 	impl.journal(author, "update", collection, id, row->sequence, before, rowJson(*row));
 	transaction.commit();
-	onChange.emit(collection);
+	notify(collection);
 	return Impl::recordOf(model, *row);
 }
 
@@ -376,7 +383,7 @@ void Store::remove(const std::string& collection, const std::string& id, const s
 	impl.deleteRow(collection, id);
 	impl.journal(author, "delete", collection, id, row->sequence, rowJson(*row), nullptr);
 	transaction.commit();
-	for(const std::string& name : touched) onChange.emit(name);
+	for(const std::string& name : touched) notify(name);
 }
 
 std::optional<Record> Store::get(const std::string& collection, const std::string& id) const {

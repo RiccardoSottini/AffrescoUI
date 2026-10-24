@@ -120,7 +120,7 @@ bool Store::undo() {
 	sql::Statement mark(impl.db, "UPDATE journal SET state = 1 WHERE grp = ?1");
 	mark.bind(1, *group).run();
 	transaction.commit();
-	for(const std::string& collection : touched) onChange.emit(collection);
+	for(const std::string& collection : touched) notify(collection);
 	return true;
 }
 
@@ -148,7 +148,7 @@ bool Store::redo() {
 	sql::Statement mark(impl.db, "UPDATE journal SET state = 0 WHERE grp = ?1");
 	mark.bind(1, *group).run();
 	transaction.commit();
-	for(const std::string& collection : touched) onChange.emit(collection);
+	for(const std::string& collection : touched) notify(collection);
 	return true;
 }
 

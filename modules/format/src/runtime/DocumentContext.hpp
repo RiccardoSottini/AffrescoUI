@@ -291,6 +291,10 @@ private:
 	/// @param name The computed value.
 	/// @return Its value.
 	json computed(std::string_view name) const;
+	/// @brief `computed.<name>` in place: as computed(), without a copy.
+	/// @param name The computed value.
+	/// @return Its value, valid until the state next changes and the evaluation reading it has ended.
+	const json& computedValue(std::string_view name) const;
 	/// @brief The `nodes` variable: a built panel's geometry by id.
 	/// @param id The id.
 	/// @return {x, y, width, height, visible}, or null.
@@ -331,7 +335,8 @@ private:
 	mutable ReadSet* reads_ = nullptr;              ///< Where the running ReadScope collects, if any.
 	std::uint64_t stateVersion_ = 0;                ///< Counts state changes (computed values are cached per version).
 	mutable std::optional<Globals> globalsCache_;   ///< See globals().
-	mutable json computedValues_ = json::object();  ///< "computed" values read since the state last changed.
+	/// "computed" values read since the state last changed: a map, so a value read in place keeps its address
+	mutable std::map<std::string, json, std::less<>> computedValues_;
 	mutable std::uint64_t computedVersion_ = ~0ull; ///< The state version computedValues_ belong to.
 	mutable std::map<std::string, ReadSet, std::less<>> computedReads_; ///< What each computed value read.
 	mutable std::vector<std::string> computing_; ///< Computed values being evaluated (finds circles).
@@ -339,6 +344,7 @@ private:
 	NodeLookup nodeLookup_;                      ///< node(), for expressions.
 	NodeLookup modelLookup_;                     ///< Models::at(), for expressions.
 	VariableLookup variableLookup_;              ///< variable(), for expressions.
+	VariableLookup computedValueLookup_;         ///< computedValue(), for expressions to read in place.
 	std::map<std::string, std::function<json()>, std::less<>> builders_; ///< See addVariable().
 	mutable std::map<std::string, json, std::less<>> built_;             ///< Variables built since they were stale.
 	mutable std::vector<std::string> building_;                          ///< Variables being built (finds circles).

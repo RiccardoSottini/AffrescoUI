@@ -9,6 +9,8 @@
 #include "affresco/core/Signal.hpp"
 #include "affresco/data/Store.hpp"
 
+#include "Reads.hpp"
+
 #include <cstdint>
 #include <filesystem>
 #include <map>
@@ -20,6 +22,10 @@
 namespace affresco::format {
 
 struct Engine;
+
+/// Where the records lie among the places values read (Reads.hpp): a change of the store marks "/~d", so an update
+/// evaluates again only what reads `data`. "~d" is no key of a JSON Pointer, so it is never a place of the state.
+inline constexpr std::string_view dataPlaces = "/~d";
 
 /// @brief The runtime's data layer.
 ///
@@ -60,6 +66,11 @@ public:
 	/// @brief The `data` variable: `{collection: [records], query: [records] or count}`.
 	/// @return It, built if the state or the store changed since.
 	[[nodiscard]] const json* variable();
+
+	/// @brief The places of the state the declared queries read (their "where", "limit", ...): what reads `data`
+	/// reads them too, so it is evaluated again when a query's results may change.
+	/// @return They, as of the last variable().
+	[[nodiscard]] const ReadSet& queryReads() const noexcept { return queryReads_; }
 
 	/// @brief What agents see: each collection's version, fields and count, and the declared queries.
 	/// @return `{"collections": {...}, "queries": [...]}`.
@@ -124,6 +135,7 @@ private:
 	std::uint64_t builtStore_ = 0;                            ///< The store version value_ was built at.
 	std::uint64_t builtState_ = 0;                            ///< The state version value_ was built at.
 	bool building_ = false;                                   ///< variable() is running.
+	ReadSet queryReads_;                                      ///< See queryReads().
 	std::map<std::string, json, std::less<>> queryArguments_; ///< Each query's evaluated declaration, last built.
 	std::unique_ptr<data::Store::Batch> eventBatch_; ///< The running event's writes (groupEvent()); goes first.
 };

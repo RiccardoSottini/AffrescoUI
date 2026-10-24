@@ -88,7 +88,8 @@ DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirec
       computedLookup_([this](std::string_view name) { return computed(name); }),
       nodeLookup_([this](std::string_view id) { return node(id); }),
       modelLookup_([this](std::string_view place) { return engine_.models.at(place); }),
-      variableLookup_([this](std::string_view name) { return variable(name); }) {
+      variableLookup_([this](std::string_view name) { return variable(name); }),
+      computedValueLookup_([this](std::string_view name) { return &computedValue(name); }) {
 	if(!baseDirectory_.empty()) images_.allowDirectory(baseDirectory_);
 }
 
@@ -213,7 +214,8 @@ Context DocumentContext::context(const Scope& locals, const json& event) const {
 	const Globals& g = globals();
 	return Context{
 	    engine_.versions.state(), g.window, g.revision, event,         locals,           g.other,  &nodeLookup_,
-	    &computedLookup_,         budget_,  reads_,     &modelLookup_, &variableLookup_, &strings_};
+	    &computedLookup_,         budget_,  reads_,     &modelLookup_, &variableLookup_, &strings_,
+	    &computedValueLookup_};
 }
 
 void DocumentContext::addVariable(std::string name, std::function<json()> build) {
@@ -222,9 +224,13 @@ void DocumentContext::addVariable(std::string name, std::function<json()> build)
 }
 
 const json* DocumentContext::variable(std::string_view name) const {
-	if(name == "data") { // the records (DataLayer): read again after any state or store change
-		if(reads_) reads_->always = true;
-		return engine_.data.variable();
+	if(name == "data") { // the records (DataLayer): read again when the store or what the queries read changes
+		const json* value = engine_.data.variable();
+		if(reads_) {
+			reads_->addPath(dataPlaces);
+			reads_->add(engine_.data.queryReads());
+		}
+		return value;
 	}
 	const auto builder = builders_.find(name);
 	if(builder == builders_.end()) return nullptr;
@@ -284,19 +290,21 @@ json DocumentContext::evaluate(const json& value, const Scope& locals, const jso
 	return format::evaluate(value, context(locals, event), where);
 }
 
-json DocumentContext::computed(std::string_view name) const {
+json DocumentContext::computed(std::string_view name) const { return computedValue(name); }
+
+const json& DocumentContext::computedValue(std::string_view name) const {
 	const json& document = engine_.versions.document();
 	const std::string key(name);
 	if(!document.contains("computed") || !document["computed"].contains(key))
 		fail("computed", "no computed value '" + key + "'");
-	if(computedVersion_ != stateVersion_) {
-		computedValues_ = json::object();
+	if(computedVersion_ != stateVersion_ && computing_.empty()) { // only between evaluations: values read stay
+		computedValues_.clear();
 		computedReads_.clear();
 		computedVersion_ = stateVersion_;
 	}
-	if(computedValues_.contains(key)) {
+	if(const auto cached = computedValues_.find(key); cached != computedValues_.end()) {
 		if(reads_) reads_->add(computedReads_[key]); // what reads it reads what it read
-		return computedValues_[key];
+		return cached->second;
 	}
 	if(std::ranges::find(computing_, key) != computing_.end())
 		fail("computed." + key, "computed values refer to each other in a circle");
@@ -315,9 +323,8 @@ json DocumentContext::computed(std::string_view name) const {
 	}
 	computing_.pop_back();
 	if(reads_) reads_->add(read);
-	computedValues_[key] = value;
 	computedReads_[key] = std::move(read);
-	return value;
+	return computedValues_.insert_or_assign(key, std::move(value)).first->second; // a map: its address stays
 }
 
 json DocumentContext::node(std::string_view id) const {

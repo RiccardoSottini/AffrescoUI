@@ -144,6 +144,26 @@ std::map<std::string, NodeParts> nodePartsOf(const json& document) {
 	return nodes;
 }
 
+/// @brief A dry run of a version of the models on a copy of the store, kept while neither changes: one change is
+/// judged, reviewed and described by a few calls (checkChange, reviewLines, impact), which share one dry run.
+/// @param store The store.
+/// @param models The models.
+/// @return The report.
+const data::FollowReport& planOf(const data::Store& store, const json& models) {
+	struct Last {
+		const data::Store* store = nullptr; ///< Of this store.
+		std::uint64_t changes = 0;          ///< At this count of its changes.
+		json models;                        ///< For these models.
+		data::FollowReport report;          ///< The dry run.
+	};
+	static Last last; // the main thread's: rules are used there only
+	if(last.store != &store || last.changes != store.changes() || last.models != models) {
+		data::FollowReport report = store.plan(models); // may throw: nothing is kept then
+		last = {&store, store.changes(), models, std::move(report)};
+	}
+	return last.report;
+}
+
 /// @brief What a model change does to the records, from a dry run if there is a store.
 /// @param diff The model changes.
 /// @param after The document after.
@@ -153,7 +173,7 @@ std::string dataEffect(const data::ModelDiff& diff, const json& after, const dat
 	if(diff.changes.empty()) return "none";
 	std::optional<data::FollowReport> plan;
 	if(store) try {
-			plan = store->plan(sectionOf(after, "models"));
+			plan = planOf(*store, sectionOf(after, "models"));
 		} catch(const DocumentError& error) {
 			return std::string("refused: ") + error.what();
 		}
@@ -259,7 +279,7 @@ void checkModelChange(const json& before, const json& after, const data::Store* 
 			                         from, model.version));
 	}
 	if(!store) return;
-	const data::FollowReport plan = store->plan(now);
+	const data::FollowReport plan = planOf(*store, now);
 	if(!plan.ok()) expect::fail("models", "the records don't fit the new models (a dry run): " + plan.text());
 }
 

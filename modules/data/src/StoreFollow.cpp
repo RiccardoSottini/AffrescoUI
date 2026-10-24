@@ -422,7 +422,8 @@ FollowReport Store::follow(const json& section, const std::string& author, const
 		}
 		transaction.commit();
 	}
-	for(const std::string& collection : std::exchange(impl.changed, {})) onChange.emit(collection);
+	++impl.changes; // even when no record changed: the models did
+	for(const std::string& collection : std::exchange(impl.changed, {})) notify(collection);
 	return report;
 }
 
