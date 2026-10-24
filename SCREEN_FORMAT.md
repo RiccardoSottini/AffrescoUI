@@ -1264,8 +1264,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
-| `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation and publishes the image (see Images) |
-| `audio` | `{ "audio": "play", "of": "song" }`: plays, pauses or changes a sound of the `audio` section (`toggle`, `stop`, `seek` `to` seconds, `volume` `to` 0 to 4 over `ms`, `pan`, `rate`, `loop`, `master`; see Audio) |
+| `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images) |
+| `audio` | `{ "audio": "play", "of": "song" }`: see Audio |
 | `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
 | `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
 <!-- end generated -->

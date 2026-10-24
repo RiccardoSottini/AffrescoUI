@@ -90,11 +90,11 @@ struct Engine : VersionObserver {
 	Steps runner;              ///< Actions.
 	Models models;             ///< The application's data models (their changes reach the others).
 	Connections connections;   ///< The declared connections (RFC 0003), started by "request" and "subscribe".
-	AudioPlayers audio;        ///< The declared sounds, played by "audio" steps.
 	ServiceCalls serviceCalls; ///< Service calls and subscriptions (RFC 0002).
 	Asks asks;                 ///< The person's requests to the agents ("ask") and their replies.
 	AsyncCalls calls;          ///< Slow native calls (last: destroyed first, joining their workers).
 	Connection peersChanged = 0; ///< On versions.onReviewChanged: who is connected (the "peers" variable).
+	AudioPlayers audio{*this}; ///< The declared sounds, played by "audio" steps.
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.
