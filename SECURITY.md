@@ -338,6 +338,19 @@ like an image; its `url` goes through the host's network and its allowlist (`net
 checks as a connection's request; its `source` is only what the host named (`Screen::setAudioSource`). A file that
 can't play is reported by its name, never its folder.
 
+### Records a screen keeps
+A screen's records (its `models`, SCREEN_FORMAT.md, "Data: models and records") live in a SQLite database of their
+own in the data folder (`<name>.data.sqlite`, readable by the user's own account like the history), never in the
+document. No revision writes them: peers change the document and the state, and records change only by the app's
+write steps, which the person's input runs, or by an agent's reviewed step within its data rules
+(`/data/<collection>`). A revision that adds or changes a write step, or changes a model in a way that transforms or
+drops records, is always reviewed. Nothing from a document becomes SQL: every statement is a constant of the data
+module, and collection names, field paths and values are bound parameters into a fixed schema; extension loading is
+compiled out, and triggers, views and attached databases are off (`SQLITE_DBCONFIG_DEFENSIVE`). A model change
+dry-runs on an in-memory copy before it is accepted, archives what it changes, and applies atomically or not at all.
+The records are the user's data: `get_models` and the catalog give agents each collection's model and count, never a
+record. A CSV import reads only a file in the screen's folder or one the host allows, or text the screen already has.
+
 ### Requests relayed between peers
 `request` and `reply` messages aren't interpreted. The host passes them to every other peer, with `from` set to the
 sender's author. A request is how a person asks an agent for a change, so an agent should treat it as instructions
@@ -351,7 +364,7 @@ proposal, so a repair never skips review or the permission rules; only a reviewe
 A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
 a process (the `ProcessChannel` and `StdioChannel` classes are only opened by host code), open a network connection,
 or write files, apart from the parts of the state its `persist` section lists, which go to the state file the host
-chose. A `surface` node only names a GPU surface the host registered (`Screen::registerSurface`) and gives it
+chose, and its records, which go to the data store the host chose (`Screen::setDataFile`). A `surface` node only names a GPU surface the host registered (`Screen::registerSurface`) and gives it
 parameters: a document never supplies shader source or GPU code.
 
 ### Features and catalogues
@@ -648,6 +661,9 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Tempera's filters, feathers, brushes, fills and lassos (`imaging::Limits`) | A radius of 250 pixels, a brush of 5,000, 64 Mi pixels visited by a fill or magic wand, 100,000 points in a lasso |
 | A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down, checked from the header before decoding |
 | A Tempera project file (`tests/fuzz/tempera_project.cpp`) | 4 GiB, a manifest of 16 MiB under the JSON nesting limit; each tile inflated only to its exact size when first used, a damaged one read as transparent |
+| A screen's models (`data::Limits`, `tests/fuzz/data_models.cpp`) | 256 collections, 256 fields a model (nested ones included), 8 levels, 1,024 enum values, names of 64 bytes, 256 migrations of 64 steps, 10,000 seed or imported records |
+| A screen's records (`data::Limits`) | A record of 1 MiB, 1,000,000 a collection, a database of 1 GiB; a query gives at most 10,000 records, with 64 conditions, 4 levels of `any`, 1,000 values `in`, 8 sort keys; 100,000 journal entries (the oldest go); a write step at most 10,000 records |
+| A CSV import (`data::Limits`) | 16 MiB, 100,000 rows, 256 columns |
 | An ICC profile (lcms2, `tests/fuzz/icc.cpp`) | 4 MiB; only a device or colour-space profile of RGB, grey or CMYK over XYZ or Lab is kept, and a conversion that can't be built is refused |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above

@@ -142,6 +142,9 @@ revision, and in one proposal, which is judged whole when it merges.
   (array elements read as `null`, so positions stay). It can't ask for a diff, export, render, evidence or blame of
   the whole screen, and proposals it sees list no changes. A revision that names an unreadable path (a `test` or a
   `copy` from it would tell its value) is refused.
+- **Records:** a screen's records (its `models`, SCREEN_FORMAT.md, "Data: models and records") are never in a
+  revision; an author other than the person writes them only through reviewed write steps, and only where its data
+  rules let it write `/data/<collection>` (`/data` or `/data/*` for all; `never` refuses them).
 - At most 64 data rules, each with at most 64 paths of at most 256 bytes.
 
 ### Policy tests
@@ -349,6 +352,42 @@ by node, keys such as Enter or Escape (never a typed character), sends by channe
 decisions. It is off by default, a peer that may not review can't turn it on, and the overlay is never in a picture
 drawn for a peer. The host answers `done`, or `rejected` with no window or no inspector. In C++:
 `Screen::setInspector()` and `Screen::inspectorTrace()`.
+
+## Impact per layer
+
+A screen is four layers: the view (nodes, styles, bindings), the logic (actions, `computed`, `queries`, the
+short-lived state), the model (`models`) and the data (the records, in a store of their own; SCREEN_FORMAT.md, "Data:
+models and records"). Every change is classified by the layers it touches, computed from what it changes, and every
+proposal carries it, as do diffs (`get_diff`) and the MCP server's proposals:
+
+```json
+"impact": { "view": 2, "logic": 1, "model": [{ "collection": "songs", "field": "artist",
+  "change": "songs: moves the field 'artist' (a migration)", "class": "transforming" }], "data": "migrates 312 records" }
+```
+
+- `view`: the nodes added, removed or changed in their look, and the entries of styles, components, colours, tokens,
+  fonts, strings changed. `logic`: the nodes whose handlers, `bind`, `repeat` or `when` changed, and the entries of
+  actions, computed values, watches, keys, menus, settings, queries, state types and state.
+- `model`: each change to the models, **compatible** (a new optional field, a new collection, a widened enum),
+  **transforming** (the records must change: a rename, a new type, a newly required field) or **destructive** (a
+  field or collection removed, a type narrowed, a drop).
+- `data`: `"none"`, or what a dry run on a copy of the store says: `"migrates 312 records"`, `"destructive: 12
+  records change, 12 archived (restorable)"`, or why it is refused.
+
+**Migrations.** A transforming change is refused unless the same revision raises the model's `version` and adds a
+migration from the old version to the new (`"migrations": [{"from": 3, "to": 4, "steps": [...]}]`), and every change
+to the models is refused if a record wouldn't fit (the dry run names it: `id 17: songs[17].duration: expected an
+integer`). A migration already applied is history: no revision changes or removes it. A transforming or destructive
+change, and a new or changed write step (`insert`, `update`, `delete`, `importCsv`), is always reviewed, whoever
+makes it: for a destructive one the person's acceptance is the confirmation it needs. When the version lands, the
+store archives the records the migration changes, migrates them in one transaction and checks each, or the version
+is refused and rolled back.
+
+**Revert and restore never touch the records**, except to undo a migration: a commit that migrated is reverted by
+the inverse of its steps (a rename back, the `inverse` expressions, a drop's values from the archive), or, without
+an inverse, by putting back the records archived before it (those written since that the older model can't hold are
+archived, restorable). A field a revert takes out of a model keeps its values, unread, so a later commit that brings
+it back finds them.
 
 ## What keeps it safe
 - **Nobody approves their own change.** Agents aren't reviewers, the MCP server has no accept tool, revisions can't

@@ -12,7 +12,6 @@
 #include <affresco/data/Changes.hpp>
 #include <affresco/data/Csv.hpp>
 #include <affresco/data/Store.hpp>
-#include <affresco/format/Evaluate.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -21,12 +20,14 @@ using affresco::json;
 
 namespace {
 
-/// @brief Evaluates a migration's or an import's expression with the screen format, as screens do.
+/// @brief Stands in for the screen format's expressions (fuzzed on their own, `expression`): an expression gives the
+/// value it converts, or fails when it says "fail", so migrations take both paths.
 /// @param expression The expression.
 /// @param variables Its variables.
 /// @return Its value.
 json evaluate(const std::string& expression, const json& variables) {
-	return affresco::format::evaluateExpression(json(expression), variables, "fuzz");
+	if(expression.contains("fail")) throw affresco::DocumentError("fuzz: an expression that fails");
+	return variables.value("value", variables.value("it", json()));
 }
 
 /// @brief Every record of every collection, for comparing before and after.

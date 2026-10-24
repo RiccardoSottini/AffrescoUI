@@ -44,6 +44,7 @@ Each subsystem's header says its role, its invariants and its callers:
 | `Events` | pointer, keys (one walk resolves bindings and chords, `resolve`), focus (tab order, focus scopes, arrows, mnemonics), drag and drop, bubbling, overlays closed by a click outside, widgets' values |
 | `Steps` | handlers and actions; each step runs in the group of the step registry that recognises it |
 | `Scheduler` | `every`, `after`, `debounce`, `animate`, transitions and deferred tasks, on the window's clock |
+| `DataLayer` | the records (`modules/data`): the store following the `models` as versions land (a preview writes a copy), the `data` variable (collections and `queries`), who write steps write as, one undo step per event |
 | catalog | `Catalog.cpp`: what the format offers, built from the registries |
 
 | Registry | Registers | From |
@@ -129,6 +130,17 @@ theme, and a name can't be both a colour and a token.
   `models` gives agents each model's count, the shape of a row and one sample row, never every row; the checker
   accepts any `models.<name>` (models exist only while the application runs), and building fails, naming the models
   there are, when the name is none of them (`tests/unit/models.cpp`).
+- **Records** (`src/data/`, SCREEN_FORMAT.md, "Data: models and records"). The `models` and `queries` sections are
+  checked by `DataRules.cpp` (and `data::parseModels`); `Rules::checkChange` refuses a transforming model change
+  without its migration, a rewritten migration, and a change whose records don't fit (a dry run on a copy of the
+  store set with `Rules::setData`); `reviewLines` asks review for a migration, a destructive model change and a new
+  write step; `impact` gives the layers a change touches (`DocumentRules::impact`, carried by proposals and diffs).
+  `DataLayer` makes the store follow each version (`Engine::documentChanged`, first: records that don't fit refuse
+  the version); `data.<name>` reads in place, at the place `/~d` plus what the queries read, so only its readers are
+  evaluated again after a write. The write steps (`DataSteps.cpp`) are no control steps; an author other than "app"
+  (`Runtime::setDataAuthor`) writes only where `permissions.data` lets it (`/data/<collection>`). The checker reads
+  `data` as lists of records with their model's fields (`CheckerData.cpp`). `computed.<name>` is read in place
+  (`Context::computedValues`): a large computed list is never copied by a value that reads one item of it.
 - **Async calls** (4.7). `onAsyncCall(name, call)` registers a slow native function: a `call` step runs it on a
   worker pool (2 to 4 threads, started on first use), so no frame waits for it (`src/calls/AsyncCalls.*`). The step's
   `loading` place is true while it runs, `progress` goes from 0 to 1, partial results stream into `into`, `timeout`
