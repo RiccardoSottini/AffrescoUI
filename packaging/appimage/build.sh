@@ -1,5 +1,5 @@
 #!/bin/sh
-# Makes AffrescoUI-<version>-x86_64.AppImage from the release's Linux archive, unpacked: its three programs, their
+# Makes AffrescoUI-<version>-x86_64.AppImage from the release's Linux archive, unpacked: its two programs, their
 # assets and the notices, with this folder's AppRun, desktop file and icon. Run it on the filled copy that
 # tools/release/packaging.py writes (packaging/README.md), on Linux x86_64:
 #
@@ -15,7 +15,7 @@ version=$(sed -n 's/^X-AppImage-Version=//p' "$here/affrescoui.desktop")
 appdir="$(mktemp -d)/AffrescoUI.AppDir"
 mkdir -p "$appdir/usr/bin" "$appdir/usr/share/doc/affrescoui" "$appdir/usr/share/applications" \
 	"$appdir/usr/share/icons/hicolor/scalable/apps"
-for program in affrescoui affrescoui_host affrescoui_studio; do
+for program in affrescoui affrescoui_host; do
 	install -m 755 "$archive/$program" "$appdir/usr/bin/$program"
 done
 cp -R "$archive/assets" "$appdir/usr/bin/assets"

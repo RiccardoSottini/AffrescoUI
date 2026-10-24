@@ -10,11 +10,11 @@ PackageName: AffrescoUI
 PackageUrl: https://github.com/RiccardoSottini/AffrescoUI
 License: Apache-2.0
 LicenseUrl: https://github.com/RiccardoSottini/AffrescoUI/blob/v@VERSION@/LICENSE
-ShortDescription: A GUI library whose UIs are JSON screen documents, with a host, a Studio and a command-line tool.
+ShortDescription: A GUI library whose UIs are JSON screen documents, with a host, a Launcher and a command-line tool.
 Description: |-
   AffrescoUI draws user interfaces described by JSON screen documents, which people and AI agents change live, under
-  version control. This package installs the host (affrescoui_host), the Studio (affrescoui_studio) and the
-  command-line tool (affrescoui).
+  version control. This package installs the host (affrescoui_host, which opens the Launcher when started without a
+  file) and the command-line tool (affrescoui).
 Moniker: affrescoui
 Tags:
   - gui
