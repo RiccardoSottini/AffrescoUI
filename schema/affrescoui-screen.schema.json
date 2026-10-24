@@ -1139,7 +1139,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, raster, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, raster, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, scene, outlet, code, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -1174,7 +1174,8 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet"
+									"outlet",
+									"code"
 								]
 							},
 							{
@@ -4048,7 +4049,9 @@
 					},
 					"pickedTextColor": {
 						"$ref": "#/$defs/v2/color"
-					}
+					},
+					"syntax": {},
+					"buffer": {}
 				},
 				"if": {
 					"required": [
@@ -4089,7 +4092,8 @@
 									"codeInput",
 									"carousel",
 									"scene",
-									"outlet"
+									"outlet",
+									"code"
 								]
 							}
 						}
