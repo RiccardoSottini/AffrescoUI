@@ -17,7 +17,8 @@ using affresco::data::Store;
 namespace {
 
 /// @brief Generated test models: notes with tags and a folder they refer to.
-const json models = json::parse(R"json({
+const json& models() {
+	static const json value = json::parse(R"json({
 	"folders": { "version": 1, "fields": { "name": { "type": "string", "required": true, "unique": true } },
 		"seed": [{ "id": "inbox", "name": "Inbox" }, { "id": "work", "name": "Work" }] },
 	"notes": { "version": 1, "fields": {
@@ -31,13 +32,15 @@ const json models = json::parse(R"json({
 		"meta": { "type": "object", "fields": { "color": { "type": "string" } } }
 	} }
 })json");
+	return value;
+}
 
 /// @brief A store following the test models, in memory, on a clock that counts.
 /// @param store The store.
 void follow(Store& store) {
 	static std::int64_t now = 1000;
 	store.setClock([] { return now += 10; });
-	(void)store.follow(models, "test");
+	(void)store.follow(models(), "test");
 }
 
 /// @brief The error code of what a call throws.
@@ -58,8 +61,8 @@ TEST_CASE("data: a new collection starts with its seed, once") {
 	Store store;
 	follow(store);
 	CHECK(store.size("folders") == 2);
-	CHECK(store.get("folders", "inbox")->fields["name"] == "Inbox");
-	(void)store.follow(models, "test"); // the same models again: nothing new
+	CHECK(store.get("folders", "inbox").value().fields["name"] == "Inbox");
+	(void)store.follow(models(), "test"); // the same models again: nothing new
 	CHECK(store.size("folders") == 2);
 }
 
@@ -82,7 +85,7 @@ TEST_CASE("data: validation refuses bad records, and nothing gets in") {
 	const auto note = store.insert("notes", {{"title", "Plan"}, {"folder", "work"}, {"tags", {"a", "b"}}}, "app");
 	CHECK(note.fields["stars"] == 0); // the default
 	CHECK(codeOf([&] { (void)store.update("notes", note.id, {{"stars", 6}}, "app"); }) == "invalid");
-	CHECK(store.get("notes", note.id)->fields["stars"] == 0);
+	CHECK(store.get("notes", note.id).value().fields["stars"] == 0);
 	CHECK(codeOf([&] { store.remove("folders", "work", "app"); }) == "reference"); // a note refers to it
 	CHECK(store.size("folders") == 2);
 }
@@ -106,16 +109,16 @@ TEST_CASE("data: the journal undoes and redoes, one batch at a time") {
 
 	CHECK(store.undo()); // the batch, both writes
 	CHECK(store.size("notes") == 1);
-	CHECK(store.get("notes", a.id)->fields["title"] == "A");
+	CHECK(store.get("notes", a.id).value().fields["title"] == "A");
 	CHECK(store.canRedo());
 	CHECK(store.redo());
 	CHECK(store.size("notes") == 2);
-	CHECK(store.get("notes", a.id)->fields["title"] == "A2");
+	CHECK(store.get("notes", a.id).value().fields["title"] == "A2");
 
 	store.remove("notes", a.id, "app");
 	CHECK_FALSE(store.get("notes", a.id));
 	CHECK(store.undo());
-	CHECK(store.get("notes", a.id)->fields["title"] == "A2");
+	CHECK(store.get("notes", a.id).value().fields["title"] == "A2");
 	(void)store.insert("notes", {{"title", "C"}}, "app"); // a new write: nothing to redo
 	CHECK_FALSE(store.canRedo());
 }
@@ -182,7 +185,7 @@ TEST_CASE("data: the store keeps its records on disk, in WAL mode") {
 		Store store(file);
 		CHECK(store.size("notes") == 1);
 		CHECK(store.models().contains("notes"));
-		(void)store.follow(models, "test");
+		(void)store.follow(models(), "test");
 		CHECK(store.size("folders") == 2); // not seeded twice
 	}
 	for(const char* suffix : {"", "-wal", "-shm"}) std::filesystem::remove(file.string() + suffix);

@@ -2,6 +2,7 @@
 /// @brief Reading queries (Query.hpp).
 
 #include "affresco/data/Query.hpp"
+#include "Places.hpp"
 
 #include <algorithm>
 #include <format>
@@ -42,10 +43,10 @@ Condition conditionOf(const Model& model, const std::string& field, std::string 
 		invalid(place, "unknown comparison '" + op + "' (==, !=, <, <=, >, >=, in, contains, startsWith)");
 	const bool in = op == "in";
 	if(compared.is_structured() && !in) invalid(place, "expected a single value");
-	if(in && (!compared.is_array() || compared.size() > 1000)) invalid(place, "\"in\" takes a list of at most 1000");
+	if(in && (!compared.is_array() || compared.size() > 1000)) invalid(place, R"("in" takes a list of at most 1000)");
 	const bool list = model.fields.contains(field) && model.fields.at(field).type == FieldType::List;
 	const bool textual = op == "startsWith" || (op == "contains" && !list);
-	if(textual && !compared.is_string()) invalid(place, "\"" + op + "\" takes a text");
+	if(textual && !compared.is_string()) invalid(place, R"(")" + op + R"(" takes a text)");
 	return {field, std::move(op), std::move(compared)};
 }
 
@@ -62,6 +63,7 @@ std::vector<Filter> parseAny(const json& value, const Model& model, const std::s
                              int depth) {
 	if(!value.is_array() || value.empty()) invalid(place, "expected a list of filters");
 	std::vector<Filter> group;
+	group.reserve(value.size());
 	for(std::size_t i = 0; i < value.size(); ++i)
 		group.push_back(parseFilter(value[i], model, std::format("{}[{}]", place, i), count, depth + 1));
 	return group;
@@ -75,19 +77,19 @@ std::vector<Filter> parseAny(const json& value, const Model& model, const std::s
 /// @param depth Filters inside filters so far.
 /// @return The filter.
 Filter parseFilter(const json& where, const Model& model, const std::string& place, std::size_t& count, int depth) {
-	if(depth > 4) invalid(place, "\"any\" nests at most 4 deep");
-	if(!where.is_object()) invalid(place, "expected an object: field -> value, or field -> {\"op\": value}");
+	if(depth > 4) invalid(place, R"("any" nests at most 4 deep)");
+	if(!where.is_object()) invalid(place, R"(expected an object: field -> value, or field -> {"op": value})");
 	Filter filter;
 	for(const auto& [field, value] : where.items()) {
 		if(field == "any") {
-			filter.any.push_back(parseAny(value, model, place + ".any", count, depth));
+			filter.any.push_back(parseAny(value, model, placeOf(place, "any"), count, depth));
 			continue;
 		}
-		expectField(model, field, place + "." + field);
+		expectField(model, field, placeOf(place, field));
 		const json comparisons = value.is_object() && !value.empty() ? value : json{{"==", value}};
 		for(const auto& [op, compared] : comparisons.items()) {
 			if(++count > Limits::conditions) invalid(place, std::format("at most {} conditions", Limits::conditions));
-			filter.all.push_back(conditionOf(model, field, op, compared, place + "." + field));
+			filter.all.push_back(conditionOf(model, field, op, compared, placeOf(place, field)));
 		}
 	}
 	return filter;
@@ -111,9 +113,10 @@ SortKey parseSortKey(const json& key, const Model& model, const std::string& whe
 		sort.field = key.get<std::string>();
 	} else if(key.is_object() && key.contains("field") && key["field"].is_string()) {
 		sort.field = key["field"].get<std::string>();
-		if(key.contains("descending")) sort.descending = expect::boolean(key["descending"], where + ".descending");
+		if(key.contains("descending"))
+			sort.descending = expect::boolean(key["descending"], placeOf(where, "descending"));
 	} else {
-		invalid(where, "expected a field's name, or {\"field\", \"descending\"}");
+		invalid(where, R"(expected a field's name, or {"field", "descending"})");
 	}
 	expectField(model, sort.field, where);
 	return sort;
@@ -123,6 +126,7 @@ std::vector<SortKey> parseSort(const json& sort, const Model& model, const std::
 	const json keys = sort.is_array() ? sort : json::array({sort});
 	if(keys.size() > 8) invalid(where, "at most 8 sort keys");
 	std::vector<SortKey> read;
+	read.reserve(keys.size());
 	for(std::size_t i = 0; i < keys.size(); ++i)
 		read.push_back(parseSortKey(keys[i], model, std::format("{}[{}]", where, i)));
 	return read;
@@ -149,25 +153,25 @@ const std::vector<std::string>& conditionOperators() {
 Query parseQuery(const json& query, const Models& models, const std::string& where) {
 	static constexpr std::array<std::string_view, 7> keys = {"from",   "where", "sort", "limit",
 	                                                         "offset", "count", "note"};
-	if(!query.is_object()) invalid(where, "expected {\"from\", \"where\", \"sort\", \"limit\", \"offset\", \"count\"}");
+	if(!query.is_object()) invalid(where, R"(expected {"from", "where", "sort", "limit", "offset", "count"})");
 	for(const auto& [key, value] : query.items())
-		if(!std::ranges::contains(keys, key)) invalid(where + "." + key, "unknown key");
+		if(!std::ranges::contains(keys, key)) invalid(placeOf(where, key), "unknown key");
 	Query read;
 	const json from = query.value("from", json());
-	if(!from.is_string()) invalid(where + ".from", "expected a collection's name");
+	if(!from.is_string()) invalid(placeOf(where, "from"), "expected a collection's name");
 	read.from = from.get<std::string>();
 	const auto model = models.find(read.from);
 	if(model == models.end())
-		throw DataError("model", where + ".from: no collection '" + read.from + "' in \"models\"");
+		throw DataError("model", where + ".from: no collection '" + read.from + R"(' in "models")");
 	std::size_t count = 0;
 	if(const json filter = query.value("where", json()); !filter.is_null())
-		read.where = parseFilter(filter, model->second, where + ".where", count, 0);
+		read.where = parseFilter(filter, model->second, placeOf(where, "where"), count, 0);
 	if(const json sort = query.value("sort", json()); !sort.is_null())
-		read.sort = parseSort(sort, model->second, where + ".sort");
-	read.limit =
-	    std::min(countOr(query.value("limit", json()), Limits::queryResults, where + ".limit"), Limits::queryResults);
-	read.offset = countOr(query.value("offset", json()), 0, where + ".offset");
-	if(query.contains("count")) read.count = expect::boolean(query["count"], where + ".count");
+		read.sort = parseSort(sort, model->second, placeOf(where, "sort"));
+	read.limit = std::min(countOr(query.value("limit", json()), Limits::queryResults, placeOf(where, "limit")),
+	                      Limits::queryResults);
+	read.offset = countOr(query.value("offset", json()), 0, placeOf(where, "offset"));
+	if(query.contains("count")) read.count = expect::boolean(query["count"], placeOf(where, "count"));
 	return read;
 }
 

@@ -116,11 +116,11 @@ struct Store::Impl {
 	[[nodiscard]] std::string nextId(const std::string& collection);
 
 	/// @brief Applies every record of the models' changes: what follow() and plan() share.
-	/// @param section The models.
+	/// @param next The models.
 	/// @param author Who.
 	/// @param oldState For importFrom.
 	/// @return The report; throws nothing for records that don't fit (the report says so).
-	FollowReport apply(const json& section, const std::string& author, const json* oldState);
+	FollowReport apply(const json& next, const std::string& author, const json* oldState);
 };
 
 /// @brief A row's body and times as a record's JSON with its sequence, for the journal and the archive.

@@ -68,7 +68,7 @@ int Database::changes() const noexcept { return sqlite3_changes(db_); }
 
 std::string Database::error() const { return sqlite3_errmsg(db_); }
 
-void copy(Database& from, Database& to) {
+void copy(const Database& from, const Database& to) {
 	sqlite3_backup* backup = sqlite3_backup_init(to.handle(), "main", from.handle(), "main");
 	if(!backup) failed(to.handle(), "copy");
 	const int result = sqlite3_backup_step(backup, -1);

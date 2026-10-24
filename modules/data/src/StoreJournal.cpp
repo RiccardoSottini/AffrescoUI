@@ -4,6 +4,7 @@
 #include "StoreImpl.hpp"
 
 #include <format>
+#include <ranges>
 
 namespace affresco::data {
 
@@ -100,20 +101,20 @@ bool Store::undo() {
 	Impl& impl = *impl_;
 	const std::optional<std::int64_t> group = nextGroup(impl.db, true);
 	if(!group) return false;
-	std::vector<GroupEntry> entries = groupEntries(impl.db, *group);
+	const std::vector<GroupEntry> entries = groupEntries(impl.db, *group);
 	std::set<std::string> touched;
 	sql::Transaction transaction(impl.db);
-	for(auto it = entries.rbegin(); it != entries.rend(); ++it) {
-		const JournalEntry& entry = it->entry;
+	for(const GroupEntry& it : std::views::reverse(entries)) {
+		const JournalEntry& entry = it.entry;
 		const auto model = impl.models.find(entry.collection);
-		if(model == impl.models.end() || model->second.version != it->version)
+		if(model == impl.models.end() || model->second.version != it.version)
 			throw DataError("model", entry.collection + ": its model changed since this write: it can't be undone");
 		if(entry.action == "insert") impl.deleteRow(entry.collection, entry.id);
 		else if(entry.action == "delete") {
-			Row row = rowFrom(entry.before, it->sequence);
+			Row row = rowFrom(entry.before, it.sequence);
 			impl.insertRow(entry.collection, row);
 		} else {
-			impl.writeBody(entry.collection, rowFrom(entry.before, it->sequence));
+			impl.writeBody(entry.collection, rowFrom(entry.before, it.sequence));
 		}
 		touched.insert(entry.collection);
 	}
@@ -167,9 +168,8 @@ std::vector<ArchivedRecord> Store::archived(const std::string& collection, std::
 	read.bind(1, collection).bind(2, static_cast<std::int64_t>(std::min<std::size_t>(limit, Limits::queryResults)));
 	std::vector<ArchivedRecord> records;
 	while(read.step())
-		records.push_back({read.integer(0),
-		                   {read.text(1), read.integer(2), read.integer(3), stored(read.text(4))},
-		                   read.text(5)});
+		records.push_back(
+		    {read.integer(0), {read.text(1), read.integer(2), read.integer(3), stored(read.text(4))}, read.text(5)});
 	return records;
 }
 

@@ -25,7 +25,8 @@ using affresco::detail::ManualClock;
 namespace {
 
 /// @brief A notes screen: generated test data only.
-const json notes = json::parse(R"json({
+const json& notesScreen() {
+	static const json value = json::parse(R"json({
 	"format": "affrescoui-screen", "version": 2,
 	"models": { "notes": { "version": 1, "fields": {
 		"title": { "type": "string", "required": true },
@@ -45,6 +46,8 @@ const json notes = json::parse(R"json({
 			{ "type": "label", "repeat": { "for": "note", "in": "data.notes" }, "text": "{{note.title}}" }] }
 	] }
 })json");
+	return value;
+}
 
 /// @brief A label's text.
 /// @param screen The screen.
@@ -59,7 +62,7 @@ std::string textOf(affresco::Screen& screen, std::string_view id) {
 /// @brief A screen with a notes model and no binding to its fields, for revisions of the models.
 /// @return The document.
 json bareNotes() {
-	json document = notes;
+	json document = notesScreen();
 	document.erase("queries");
 	document["root"] = {{"type", "label"}, {"id", "count"}, {"text", "{{length(data.notes)}}"}};
 	document["actions"] = json::object();
@@ -76,7 +79,7 @@ std::string text(const json& revision) { return revision.dump(); }
 TEST_CASE("data screens: bindings read collections and queries, and write steps change them") {
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(480, 320, clock);
-	affresco::Screen screen = affresco::Screen::fromString(notes.dump());
+	affresco::Screen screen = affresco::Screen::fromString(notesScreen().dump());
 	screen.build(*window);
 	window->render();
 	CHECK(textOf(screen, "count") == "2 notes, 1 open");
@@ -101,14 +104,14 @@ TEST_CASE("data screens: bindings read collections and queries, and write steps 
 }
 
 TEST_CASE("data screens: the checker finds a binding to a field the model doesn't have") {
-	affresco::format::Rules rules;
-	json document = notes;
+	const affresco::format::Rules rules;
+	json document = notesScreen();
 	document["root"]["children"][1]["children"][0]["text"] = "{{note.colour}}";
 	const auto findings = rules.findings(document, document["state"]);
 	REQUIRE_FALSE(findings.empty());
 	CHECK(findings.front().contains("colour"));
-	CHECK(rules.findings(notes, notes["state"]).empty());
-	json query = notes; // a query of a field that isn't there
+	CHECK(rules.findings(notesScreen(), notesScreen()["state"]).empty());
+	json query = notesScreen(); // a query of a field that isn't there
 	query["queries"]["open"]["where"] = {{"finished", false}};
 	CHECK_THROWS_WITH_AS(rules.validate(query), doctest::Contains("finished"), affresco::DocumentError);
 }
@@ -123,7 +126,7 @@ TEST_CASE("data screens: a view-only revision has no data impact and never touch
 	CHECK(screen.data().run({{"from", "notes"}}, "q") == before);
 	CHECK(screen.data().journal(100).size() == journal);
 
-	affresco::format::Rules rules;
+	const affresco::format::Rules rules;
 	json after = bareNotes();
 	after["root"]["textColor"] = "#ff0000";
 	const json impact = rules.impact(bareNotes(), after);
@@ -210,7 +213,7 @@ TEST_CASE("data screens: a model's importFrom brings the old persist records in 
 TEST_CASE("data screens: importCsv imports rows; an agent writes only what its data rules let it") {
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(480, 320, clock);
-	json document = notes;
+	json document = notesScreen();
 	document["actions"]["csv"] =
 	    json::parse(R"([{ "importCsv": "notes", "text": "{{event.text}}", "into": "state.report" }])");
 	document["permissions"] = {{"data", {{{"author", "agent"}, {"never", {"/data/notes"}}}}}};
@@ -250,8 +253,8 @@ TEST_CASE("data screens: a previewed proposal that migrates shows its records on
 	REQUIRE(proposed.status == affresco::RevisionStatus::Proposed); // a migration is always reviewed
 	CHECK(screen.proposals().front().impact["data"] == "migrates 2 records");
 	REQUIRE(screen.previewProposal(proposed.proposal));
-	CHECK(json::parse(screen.dataJson())["notes"][0]["name"] == "First"); // the preview reads a migrated copy
-	CHECK(screen.data().get("notes", "n1")->fields["title"] == "First");  // the store is as it was
+	CHECK(json::parse(screen.dataJson())["notes"][0]["name"] == "First");       // the preview reads a migrated copy
+	CHECK(screen.data().get("notes", "n1").value().fields["title"] == "First"); // the store is as it was
 	screen.endPreview();
 	CHECK(json::parse(screen.dataJson())["notes"][0]["title"] == "First");
 }
@@ -269,7 +272,7 @@ TEST_CASE("data screens: persisted values that no longer fit the stateTypes open
 	std::ofstream(folder / "player.screen.json") << document.dump();
 	std::ofstream(folder / "player.state.json") << R"({"/volume": "loud", "/name": "kept"})";
 	{
-		affresco::Screen screen = affresco::Screen::fromFile(folder / "player.screen.json", folder);
+		const affresco::Screen screen = affresco::Screen::fromFile(folder / "player.screen.json", folder);
 		const json state = json::parse(screen.stateJson());
 		CHECK(state["volume"] == 50);   // the default: "loud" isn't a number
 		CHECK(state["name"] == "kept"); // what fits is loaded

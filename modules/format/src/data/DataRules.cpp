@@ -199,7 +199,7 @@ std::string dataEffect(const data::ModelDiff& diff, const json& after, const dat
 void checkModelsSection(const json& value, const std::string& name) {
 	const data::Models models = data::parseModels(value, name);
 	for(const auto& [collection, model] : models) {
-		const std::string where = name + "." + collection;
+		const std::string where = std::format("{}.{}", name, collection);
 		(void)data::migrationsOf(model, where);
 		for(std::size_t i = 0; i < model.seed.size(); ++i) {
 			const std::string at = std::format("{}.seed[{}]", where, i);
@@ -216,19 +216,19 @@ void checkModelsSection(const json& value, const std::string& name) {
 }
 
 void checkQueriesSection(const json& value, const std::string& name) {
-	if(!value.is_object()) expect::fail(name, "expected an object: name -> {\"from\", \"where\", \"sort\", ...}");
+	if(!value.is_object()) expect::fail(name, R"(expected an object: name -> {"from", "where", "sort", ...})");
 	if(value.size() > 256) expect::fail(name, "at most 256 queries");
 	for(const auto& [query, declaration] : value.items()) {
 		if(!data::isName(query))
-			expect::fail(name + "." + query, "can't name a query (a letter, then letters, digits, _)");
+			expect::fail(std::format("{}.{}", name, query), "can't name a query (a letter, then letters, digits, _)");
 		if(!declaration.is_object() || !declaration.contains("from") || !declaration["from"].is_string())
-			expect::fail(name + "." + query, "expected {\"from\": a collection, ...}");
+			expect::fail(std::format("{}.{}", name, query), R"(expected {"from": a collection, ...})");
 	}
 }
 
 void checkDataDocument(const json& document) {
 	if(document.contains("data"))
-		expect::fail("data", "records live in the store, not in the document: give a model a \"seed\", or write them "
+		expect::fail("data", R"(records live in the store, not in the document: give a model a "seed", or write them )"
 		                     "with insert steps");
 	const json& queries = sectionOf(document, "queries");
 	if(!queries.is_object()) return;

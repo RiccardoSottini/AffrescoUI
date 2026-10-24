@@ -132,7 +132,7 @@ std::map<std::string, ColumnRule> rulesOf(const CsvImport& options, const std::v
 		if(!model.fields.contains(field)) throw DataError("model", where + ": '" + model.name + "' has no such field");
 		const json& column = rule.is_object() ? rule.value("column", json()) : rule;
 		if(!column.is_string())
-			throw DataError("invalid", where + ": expected a column's header, or {\"column\", \"with\"}");
+			throw DataError("invalid", where + R"(: expected a column's header, or {"column", "with"})");
 		const json with = rule.is_object() ? rule.value("with", json()) : json();
 		rules[field] = {columnOf(header, column.get<std::string>(), where),
 		                with.is_string() ? with.get<std::string>() : ""};
@@ -189,7 +189,7 @@ private:
 	/// @brief Ends a row; a blank line is none.
 	void endRow() {
 		endCell();
-		if(!(row_.size() == 1 && row_[0].empty())) rows_.push_back(std::move(row_));
+		if(row_.size() != 1 || !row_[0].empty()) rows_.push_back(std::move(row_));
 		row_.clear();
 		if(rows_.size() > Limits::csvRows + 1)
 			throw DataError("limit", std::format("a CSV file has at most {} rows", Limits::csvRows));
@@ -238,7 +238,7 @@ std::vector<std::vector<std::string>> parseCsv(std::string_view text, char separ
 json importCsv(Store& store, std::string_view text, const CsvImport& options, const Evaluator& evaluate) {
 	const auto model = store.models().find(options.collection);
 	if(model == store.models().end())
-		throw DataError("model", "importCsv: no collection '" + options.collection + "' in \"models\"");
+		throw DataError("model", "importCsv: no collection '" + options.collection + R"(' in "models")");
 	const std::vector<std::vector<std::string>> rows = parseCsv(text, options.separator);
 	json report = {{"imported", 0}, {"failed", 0}, {"failures", json::array()}, {"ids", json::array()}};
 	if(rows.empty()) return report;

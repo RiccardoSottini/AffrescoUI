@@ -35,6 +35,24 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 constexpr auto dataSteps =
     std::to_array<std::string_view>({"insert", "update", "delete", "undoData", "redoData", "importCsv"});
 
+/// Steps whose `onError` sees an `error` of the services' kind, {code, message}.
+constexpr auto codedErrorSteps =
+    std::to_array<std::string_view>({"invoke", "request", "subscribe", "signIn", "chooseFolder"});
+
+/// @brief Whether a step writes records (DataSteps.cpp).
+/// @param step The step.
+/// @return true if it does.
+bool writesData(const json& step) {
+	return std::ranges::any_of(dataSteps, [&](std::string_view name) { return step.contains(name); });
+}
+
+/// @brief Whether a step's `onError` sees `{code, message}`: a service's, a connection's, a sign-in's, a folder's.
+/// @param step The step.
+/// @return true if it does.
+bool givesCodedErrors(const json& step) {
+	return std::ranges::any_of(codedErrorSteps, [&](std::string_view name) { return step.contains(name); });
+}
+
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
     std::to_array<std::string_view>({"set", "push", "remove", "toggle", "increment", "animate"});
@@ -518,9 +536,8 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 		const auto steps = step.find(key);
 		if(steps == step.end()) continue;
 		Scope layer{&scope, nullptr, json(), {}, {}};
-		const bool writes = std::ranges::any_of(dataSteps, [&](std::string_view name) { return step.contains(name); });
-		const bool service = step.contains("invoke") || step.contains("request") || step.contains("subscribe") ||
-		                     step.contains("signIn") || step.contains("chooseFolder") || writes; // {code, message}
+		const bool writes = writesData(step);
+		const bool service = givesCodedErrors(step) || writes; // {code, message}
 		if(key == "onError") layer.vars["error"] = service ? anything : single; // a call's error (a service's: code...)
 		if(key == "then" && (step.contains("call") || writes)) layer.vars["result"] = anything; // and its result
 		if(key == "onDone") layer.vars["result"] = anything;                             // a service call's result

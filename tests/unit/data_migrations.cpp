@@ -33,15 +33,19 @@ json evaluate(const std::string& expression, const json& variables) {
 }
 
 /// @brief Version 1 of a generated songs model: seconds and an artist.
-const json version1 = json::parse(R"json({ "songs": { "version": 1, "fields": {
+const json& version1() {
+	static const json value = json::parse(R"json({ "songs": { "version": 1, "fields": {
 	"title": { "type": "string", "required": true },
 	"artist": { "type": "string" },
 	"duration": { "type": "integer", "minimum": 0 },
 	"legacy": { "type": "string" }
 } } })json");
+	return value;
+}
 
 /// @brief Version 2: "artist" renamed "by", "duration" in milliseconds, with its inverse.
-const json version2 = json::parse(R"json({ "songs": { "version": 2, "fields": {
+const json& version2() {
+	static const json value = json::parse(R"json({ "songs": { "version": 2, "fields": {
 	"title": { "type": "string", "required": true },
 	"by": { "type": "string" },
 	"duration": { "type": "integer", "minimum": 0 },
@@ -50,6 +54,8 @@ const json version2 = json::parse(R"json({ "songs": { "version": 2, "fields": {
 	{ "rename": "artist", "to": "by" },
 	{ "convert": "duration", "with": "{{value * 1000}}", "inverse": "{{value / 1000}}" }
 ] }] } })json");
+	return value;
+}
 
 /// @brief A store at version 1 with random records.
 /// @param store The store.
@@ -57,7 +63,7 @@ const json version2 = json::parse(R"json({ "songs": { "version": 2, "fields": {
 /// @return The records as stored.
 json randomSongs(Store& store, unsigned seed) {
 	store.setEvaluator(evaluate);
-	(void)store.follow(version1, "test");
+	(void)store.follow(version1(), "test");
 	std::mt19937 random(seed);
 	std::uniform_int_distribution<int> pick(0, 1000);
 	for(int i = 0; i < 50; ++i) {
@@ -87,10 +93,10 @@ TEST_CASE("migrations: random records migrate and the inverse round-trips them")
 	for(unsigned seed = 1; seed <= 8; ++seed) {
 		Store store;
 		const json before = randomSongs(store, seed);
-		const auto planned = store.plan(version2);
+		const auto planned = store.plan(version2());
 		CHECK(planned.ok());
 		CHECK(store.run({{"from", "songs"}}, "q") == before); // the plan changed nothing here
-		const auto report = store.follow(version2, "agent/test");
+		const auto report = store.follow(version2(), "agent/test");
 		REQUIRE(report.collections.size() == 1);
 		CHECK(report.collections[0].changed == planned.collections[0].changed);
 		for(const json& song : store.run({{"from", "songs"}}, "q")) {
@@ -100,7 +106,7 @@ TEST_CASE("migrations: random records migrate and the inverse round-trips them")
 			if(old->contains("artist")) CHECK(song["by"] == (*old)["artist"]);
 			if(old->contains("duration")) CHECK(song["duration"] == (*old)["duration"].get<int>() * 1000);
 		}
-		(void)store.follow(version1, "person"); // the revert: the inverse runs
+		(void)store.follow(version1(), "person"); // the revert: the inverse runs
 		CHECK(withoutTimes(store.run({{"from", "songs"}}, "q")) == withoutTimes(before));
 	}
 }
@@ -109,7 +115,7 @@ TEST_CASE("migrations: a record that fails leaves the store untouched") {
 	Store store;
 	const json before = randomSongs(store, 3);
 	(void)store.insert("songs", {{"title", "huge"}, {"duration", 9007199254740}}, "app");
-	json narrow = version2; // a maximum the huge one breaks once converted
+	json narrow = version2(); // a maximum the huge one breaks once converted
 	narrow["songs"]["fields"]["duration"]["maximum"] = 1000000000;
 	const auto planned = store.plan(narrow);
 	CHECK_FALSE(planned.ok());
@@ -122,7 +128,7 @@ TEST_CASE("migrations: a record that fails leaves the store untouched") {
 	CHECK(store.models().at("songs").version == 1);
 	(void)store.insert("songs", {{"title", "still at 1"}, {"artist", "a"}}, "app"); // the old model still holds
 
-	json broken = version2; // an expression that fails
+	json broken = version2(); // an expression that fails
 	broken["songs"]["migrations"][0]["steps"][1]["with"] = "{{fail}}";
 	CHECK_THROWS_AS((void)store.follow(broken, "agent/test"), DataError);
 	CHECK(store.models().at("songs").version == 1);
@@ -131,12 +137,12 @@ TEST_CASE("migrations: a record that fails leaves the store untouched") {
 TEST_CASE("migrations: a drop archives the values, and the revert brings them back") {
 	Store store;
 	const json before = randomSongs(store, 5);
-	json dropped = version1;
+	json dropped = version1();
 	dropped["songs"]["version"] = 2;
 	dropped["songs"]["fields"].erase("legacy");
 	dropped["songs"]["migrations"] = json::parse(R"([{ "from": 1, "to": 2, "steps": [{ "drop": "legacy" }] }])");
 	const auto diff =
-	    affresco::data::compareModels(affresco::data::parseModels(version1), affresco::data::parseModels(dropped));
+	    affresco::data::compareModels(affresco::data::parseModels(version1()), affresco::data::parseModels(dropped));
 	CHECK(diff.worst() == ChangeClass::Destructive);
 	const auto report = store.follow(dropped, "person");
 	CHECK(report.collections[0].destructive);
@@ -145,21 +151,21 @@ TEST_CASE("migrations: a drop archives the values, and the revert brings them ba
 	CHECK(report.collections[0].archived == holding);
 	CHECK(store.archived("songs").size() == holding);
 	for(const json& song : store.run({{"from", "songs"}}, "q")) CHECK_FALSE(song.contains("legacy"));
-	(void)store.follow(version1, "person");
+	(void)store.follow(version1(), "person");
 	CHECK(withoutTimes(store.run({{"from", "songs"}}, "q")) == withoutTimes(before));
 }
 
 TEST_CASE("migrations: without an inverse, the revert restores the archive") {
 	Store store;
 	const json before = randomSongs(store, 7);
-	json textual = version1; // durations become texts, with no way back written
+	json textual = version1(); // durations become texts, with no way back written
 	textual["songs"]["version"] = 2;
 	textual["songs"]["fields"]["duration"] = {{"type", "string"}};
 	textual["songs"]["migrations"] =
 	    json::parse(R"([{ "from": 1, "to": 2, "steps": [{ "convert": "duration", "with": "{{text(value)}}" }] }])");
 	(void)store.follow(textual, "person");
 	(void)store.insert("songs", {{"title", "added since"}, {"duration", "12"}}, "app"); // fits only the new model
-	const auto report = store.follow(version1, "person");
+	const auto report = store.follow(version1(), "person");
 	CHECK(report.collections[0].restoredArchive);
 	CHECK(report.collections[0].archived == 1); // the one added since: kept in the archive, restorable
 	CHECK(withoutTimes(store.run({{"from", "songs"}}, "q")) == withoutTimes(before));
@@ -169,12 +175,12 @@ TEST_CASE("migrations: without an inverse, the revert restores the archive") {
 TEST_CASE("migrations: a field the models stop declaring keeps its values") {
 	Store store;
 	const json before = randomSongs(store, 9);
-	json hidden = version1;
+	json hidden = version1();
 	hidden["songs"]["fields"].erase("legacy");
 	(void)store.follow(hidden, "person");
 	for(const json& song : store.run({{"from", "songs"}}, "q")) CHECK_FALSE(song.contains("legacy"));
 	CHECK_THROWS_AS((void)store.insert("songs", {{"title", "t"}, {"legacy", "y"}}, "app"), DataError);
-	(void)store.follow(version1, "person");
+	(void)store.follow(version1(), "person");
 	CHECK(withoutTimes(store.run({{"from", "songs"}}, "q")) == withoutTimes(before));
 }
 
@@ -183,26 +189,26 @@ TEST_CASE("migrations: changes are classified compatible, transforming or destru
 	const auto classOf = [](const json& before, const json& after) {
 		return affresco::data::compareModels(parseModels(before), parseModels(after)).worst();
 	};
-	json added = version1;
+	json added = version1();
 	added["songs"]["fields"]["year"] = {{"type", "integer"}};
-	CHECK(classOf(version1, added) == ChangeClass::Compatible);
+	CHECK(classOf(version1(), added) == ChangeClass::Compatible);
 	added["songs"]["fields"]["year"]["required"] = true;
-	CHECK(classOf(version1, added) == ChangeClass::Transforming);
+	CHECK(classOf(version1(), added) == ChangeClass::Transforming);
 	added["songs"]["fields"]["year"]["default"] = 2000;
-	CHECK(classOf(version1, added) == ChangeClass::Compatible);
-	json retyped = version1;
+	CHECK(classOf(version1(), added) == ChangeClass::Compatible);
+	json retyped = version1();
 	retyped["songs"]["fields"]["duration"] = {{"type", "number"}};
-	CHECK(classOf(version1, retyped) == ChangeClass::Compatible); // integer to number widens
+	CHECK(classOf(version1(), retyped) == ChangeClass::Compatible); // integer to number widens
 	retyped["songs"]["fields"]["duration"] = {{"type", "string"}};
-	CHECK(classOf(version1, retyped) == ChangeClass::Transforming);
-	json narrowed = version1;
+	CHECK(classOf(version1(), retyped) == ChangeClass::Transforming);
+	json narrowed = version1();
 	narrowed["songs"]["fields"]["duration"]["maximum"] = 10;
-	CHECK(classOf(version1, narrowed) == ChangeClass::Destructive);
-	CHECK(classOf(version1, version2) == ChangeClass::Transforming); // the rename is explained by its migration
-	json gone = version1;
+	CHECK(classOf(version1(), narrowed) == ChangeClass::Destructive);
+	CHECK(classOf(version1(), version2()) == ChangeClass::Transforming); // the rename is explained by its migration
+	json gone = version1();
 	gone.erase("songs");
 	gone["albums"] = {{"fields", {{"name", {{"type", "string"}}}}}};
-	CHECK(classOf(version1, gone) == ChangeClass::Destructive);
+	CHECK(classOf(version1(), gone) == ChangeClass::Destructive);
 }
 
 TEST_CASE("migrations: malformed models and migrations are refused with their place") {
@@ -214,7 +220,7 @@ TEST_CASE("migrations: malformed models and migrations are refused with their pl
 	CHECK_THROWS_AS((void)parseModels(json::parse(R"({"a": {"fields": {"r": {"type": "reference", "to": "b"}}}})")),
 	                affresco::DocumentError);
 	Store store;
-	json bad = version2;
+	json bad = version2();
 	bad["songs"]["migrations"][0]["steps"][0] = {{"rename", "artist"}}; // no "to"
 	CHECK_THROWS_AS((void)store.follow(bad, "test"), affresco::DocumentError);
 }

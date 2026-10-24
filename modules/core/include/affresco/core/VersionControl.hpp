@@ -188,6 +188,7 @@ public:
 	/// @param to The newer commit.
 	/// @return The impact, or null.
 	/// @throws DocumentError If either commit is unknown.
+	// NOLINTNEXTLINE(readability-convert-member-functions-to-static): a default that implementations override
 	[[nodiscard]] virtual json impact([[maybe_unused]] const json& from, [[maybe_unused]] const json& to) const {
 		return nullptr;
 	}

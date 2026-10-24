@@ -75,7 +75,7 @@ void runStore(const json& input) {
 
 /// @brief Keeps the log quiet.
 /// @return 0.
-extern "C" int LLVMFuzzerInitialize(int*, char***) {
+extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/) {
 	affresco::fuzz::silenceLog();
 	return 0;
 }

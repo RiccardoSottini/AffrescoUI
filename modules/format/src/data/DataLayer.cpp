@@ -10,6 +10,7 @@
 #include "affresco/format/Evaluate.hpp"
 
 #include <algorithm>
+#include <format>
 
 namespace affresco::format {
 
@@ -54,10 +55,26 @@ bool anyCovers(const json& patterns, const std::string& collection) {
 	return std::ranges::any_of(patterns, [&](const json& p) { return p.is_string() && coversRecords(p, collection); });
 }
 
+/// @brief Raises a flag while it lives (a variable being built).
+class Raised {
+public:
+	/// @brief Raises it.
+	/// @param flag The flag; outlives this.
+	explicit Raised(bool& flag) noexcept : flag_(flag) { flag_ = true; }
+	/// @brief Lowers it.
+	~Raised() { flag_ = false; }
+	Raised(const Raised&) = delete;
+	Raised& operator=(const Raised&) = delete;
+	Raised(Raised&&) = delete;
+	Raised& operator=(Raised&&) = delete;
+
+private:
+	bool& flag_; ///< The flag.
+};
+
 } // namespace
 
-DataLayer::DataLayer(Engine& engine) : engine_(engine), own_(std::make_unique<data::Store>()) {
-	store_ = own_.get();
+DataLayer::DataLayer(Engine& engine) : engine_(engine), own_(std::make_unique<data::Store>()), store_(own_.get()) {
 	store_->setEvaluator(evaluate);
 	watch(*store_);
 	follow();
@@ -131,12 +148,8 @@ const json* DataLayer::variable() {
 	const std::uint64_t state = engine_.document.stateVersion();
 	if(builtStore_ == storeVersion_ && builtState_ == state) return &value_;
 	if(building_) return nullptr; // a query's declaration reads `data` itself
-	building_ = true;
-	struct Done {
-		bool& flag; ///< The flag to clear.
-		~Done() { flag = false; }
-	} done{building_};
-	data::Store& store = this->store();
+	const Raised building(building_);
+	const data::Store& store = this->store();
 	if(builtStore_ != storeVersion_) { // every collection's records read again, every query run again
 		value_ = json::object();
 		queryArguments_.clear();
@@ -203,7 +216,7 @@ std::filesystem::path DataLayer::allowedFile(const std::string& file, const std:
 		if(error) continue;
 		const std::filesystem::path path = std::filesystem::weakly_canonical(base / written, error);
 		if(error) continue;
-		const auto [end, inside] = std::mismatch(base.begin(), base.end(), path.begin(), path.end());
+		const auto [end, inside] = std::ranges::mismatch(base, path);
 		if(end == base.end() && std::filesystem::exists(path, error)) return path;
 	}
 	fail(where, "'" + file + "' isn't a file in the screen's folder or one the host allows");
@@ -217,10 +230,11 @@ void DataLayer::checkWrite(const std::string& collection, const std::string& whe
 	for(const json& rule : rules) {
 		if(!rule.is_object() || !covers(rule.value("author", std::string("*")), author_)) continue;
 		if(anyCovers(rule.value("never", json()), collection))
-			throw data::DataError("denied",
-			                      where + ": data rule: '" + author_ + "' may never touch /data/" + collection);
+			throw data::DataError(
+			    "denied", std::format("{}: data rule: '{}' may never touch /data/{}", where, author_, collection));
 		if(rule.contains("write") && !anyCovers(rule["write"], collection))
-			throw data::DataError("denied", where + ": data rule: '" + author_ + "' may not write /data/" + collection);
+			throw data::DataError(
+			    "denied", std::format("{}: data rule: '{}' may not write /data/{}", where, author_, collection));
 	}
 }
 

@@ -131,6 +131,7 @@ public:
 	/// @param before The document now, with the live state as its "state".
 	/// @param after The document after the change, with the live state after it.
 	/// @return The impact, or null.
+	// NOLINTNEXTLINE(readability-convert-member-functions-to-static): a default that implementations override
 	[[nodiscard]] virtual json impact([[maybe_unused]] const json& before, [[maybe_unused]] const json& after) const {
 		return nullptr;
 	}

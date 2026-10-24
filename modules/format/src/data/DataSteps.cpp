@@ -58,7 +58,7 @@ std::vector<std::string> idsOf(const Running& s, const data::Store& store, const
 			ids.push_back(record["id"].get<std::string>());
 		return ids;
 	}
-	if(!s.step.contains("id")) fail(s.where, "expected \"id\" (one or a list) or \"where\"");
+	if(!s.step.contains("id")) fail(s.where, R"(expected "id" (one or a list) or "where")");
 	const json id = s.value("id");
 	for(const json& one : id.is_array() ? id : json::array({id})) {
 		if(!one.is_string() && !one.is_number_integer()) fail(s.where + ".id", "expected a record's id");
@@ -79,7 +79,7 @@ std::string csvText(const Running& s, const DataLayer& layer) {
 		return text.get<std::string>();
 	}
 	const json file = s.value("file");
-	if(!file.is_string()) fail(s.where, "expected \"file\" (in the screen's folder) or \"text\"");
+	if(!file.is_string()) fail(s.where, R"(expected "file" (in the screen's folder) or "text")");
 	const std::filesystem::path path = layer.allowedFile(file.get<std::string>(), s.where + ".file");
 	std::error_code error;
 	if(std::filesystem::file_size(path, error) > data::Limits::csvBytes || error)
@@ -98,7 +98,7 @@ std::string csvText(const Running& s, const DataLayer& layer) {
 /// @return The record, or the records.
 json insertStep(const Running& s, data::Store& store, const std::string& collection, const std::string& author) {
 	if(!s.step.contains("values")) {
-		if(!s.step.contains("value")) fail(s.where, "expected \"value\" (the record's fields) or \"values\"");
+		if(!s.step.contains("value")) fail(s.where, R"(expected "value" (the record's fields) or "values")");
 		return store.insert(collection, s.value("value"), author).toJson();
 	}
 	const json values = s.value("values");
@@ -129,7 +129,7 @@ json importStep(const Running& s, DataLayer& layer, const std::string& collectio
 	if(s.step.contains("separator")) {
 		const json separator = s.value("separator");
 		if(separator != "," && separator != ";" && separator != "\t")
-			fail(s.where + ".separator", "expected \",\", \";\" or a tab");
+			fail(s.where + ".separator", R"(expected ",", ";" or a tab)");
 		options.separator = separator.get<std::string>()[0];
 	}
 	return data::importCsv(layer.store(), csvText(s, layer), options, DataLayer::evaluate);
@@ -150,7 +150,7 @@ json changeStep(const Running& s, data::Store& store, const std::string& collect
 		for(const std::string& id : ids) store.remove(collection, id, author);
 		return static_cast<std::int64_t>(ids.size());
 	}
-	if(!s.step.contains("fields")) fail(s.where, "expected \"fields\": the fields to change");
+	if(!s.step.contains("fields")) fail(s.where, R"(expected "fields": the fields to change)");
 	const json changes = s.value("fields");
 	json results = json::array();
 	for(const std::string& id : ids) results.push_back(store.update(collection, id, changes, author).toJson());
@@ -185,7 +185,7 @@ json write(const Running& s, const std::string& kind) {
 std::optional<bool> runDataStep(const Running& s) {
 	static constexpr std::array<const char*, 6> kinds = {"insert",   "update",   "delete",
 	                                                     "undoData", "redoData", "importCsv"};
-	const auto kind = std::ranges::find_if(kinds, [&](const char* k) { return s.step.contains(k); });
+	const auto* const kind = std::ranges::find_if(kinds, [&](const char* k) { return s.step.contains(k); });
 	if(kind == kinds.end()) return std::nullopt;
 	json result;
 	try {

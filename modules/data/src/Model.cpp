@@ -2,6 +2,7 @@
 /// @brief Reading models and checking records against them (Model.hpp).
 
 #include "affresco/data/Model.hpp"
+#include "Places.hpp"
 
 #include <algorithm>
 #include <array>
@@ -100,7 +101,7 @@ bool isDate(std::string_view text) noexcept {
 /// @param where The field's place.
 /// @param needs What to say when it is missing.
 void expectKey(bool has, bool belongs, bool needed, const char* key, const std::string& where, const char* needs) {
-	if(has && !belongs) malformed(where + "." + key, std::string("this type takes no \"") + key + "\"");
+	if(has && !belongs) malformed(placeOf(where, key), std::string(R"(this type takes no ")") + key + R"(")");
 	if(!has && needed) malformed(where, needs);
 }
 
@@ -110,11 +111,11 @@ void expectKey(bool has, bool belongs, bool needed, const char* key, const std::
 /// @param where Its place.
 void parseValues(Field& field, const json& values, const std::string& where) {
 	if(!values.is_array() || values.empty() || values.size() > Limits::enumValues)
-		malformed(where + ".values", std::format("expected a list of 1 to {} texts", Limits::enumValues));
+		malformed(placeOf(where, "values"), std::format("expected a list of 1 to {} texts", Limits::enumValues));
 	for(const json& value : values) {
-		if(!value.is_string()) malformed(where + ".values", "expected texts");
+		if(!value.is_string()) malformed(placeOf(where, "values"), "expected texts");
 		if(std::ranges::find(field.values, value.get<std::string>()) != field.values.end())
-			malformed(where + ".values", "'" + value.get<std::string>() + "' is there twice");
+			malformed(placeOf(where, "values"), "'" + value.get<std::string>() + "' is there twice");
 		field.values.push_back(value.get<std::string>());
 	}
 }
@@ -125,11 +126,12 @@ void parseValues(Field& field, const json& values, const std::string& where) {
 /// @param where Its place.
 void parseReference(Field& field, const json& definition, const std::string& where) {
 	const json& to = definition["to"];
-	if(!to.is_string() || !isName(to.get<std::string>())) malformed(where + ".to", "expected a collection's name");
+	if(!to.is_string() || !isName(to.get<std::string>()))
+		malformed(placeOf(where, "to"), "expected a collection's name");
 	field.to = to.get<std::string>();
 	if(const auto onDelete = definition.find("onDelete"); onDelete != definition.end()) {
 		if(*onDelete != "restrict" && *onDelete != "nullify")
-			malformed(where + ".onDelete", "expected \"restrict\" or \"nullify\"");
+			malformed(placeOf(where, "onDelete"), R"(expected "restrict" or "nullify")");
 		field.onDelete = onDelete->get<std::string>();
 	}
 }
@@ -141,10 +143,11 @@ void parseReference(Field& field, const json& definition, const std::string& whe
 /// @param depth Objects and lists it is inside.
 /// @param count Fields read so far.
 void parseObjectFields(Field& field, const json& fields, const std::string& where, int depth, std::size_t& count) {
-	if(!fields.is_object()) malformed(where + ".fields", "expected an object: name -> field");
+	if(!fields.is_object()) malformed(placeOf(where, "fields"), "expected an object: name -> field");
 	for(const auto& [name, inner] : fields.items()) {
-		if(!isName(name) || isSystemField(name)) malformed(where + ".fields", "'" + name + "' can't name a field");
-		field.fields.emplace(name, parseField(inner, where + ".fields." + name, depth + 1, count));
+		if(!isName(name) || isSystemField(name))
+			malformed(placeOf(where, "fields"), "'" + name + "' can't name a field");
+		field.fields.emplace(name, parseField(inner, placeOf(where, {"fields", name}), depth + 1, count));
 		field.order.push_back(name);
 	}
 }
@@ -160,20 +163,20 @@ void parseTypeKeys(Field& field, const json& definition, const std::string& wher
 	const FieldType type = field.type;
 	const bool items = type == FieldType::List || type == FieldType::Map;
 	expectKey(definition.contains("values"), type == FieldType::Enum, type == FieldType::Enum, "values", where,
-	          "an enum needs \"values\"");
+	          R"(an enum needs "values")");
 	expectKey(definition.contains("to"), type == FieldType::Reference, type == FieldType::Reference, "to", where,
-	          "a reference needs \"to\": the collection it refers to");
+	          R"(a reference needs "to": the collection it refers to)");
 	expectKey(definition.contains("onDelete"), type == FieldType::Reference, false, "onDelete", where, "");
-	expectKey(definition.contains("of"), items, items, "of", where, "a list or a map needs \"of\": its items' type");
+	expectKey(definition.contains("of"), items, items, "of", where, R"(a list or a map needs "of": its items' type)");
 	expectKey(definition.contains("fields"), type == FieldType::Object, type == FieldType::Object, "fields", where,
-	          "an object needs \"fields\"");
+	          R"(an object needs "fields")");
 	if(type == FieldType::Enum) parseValues(field, definition["values"], where);
 	if(type == FieldType::Reference) parseReference(field, definition, where);
 	if(type == FieldType::Object) parseObjectFields(field, definition["fields"], where, depth, count);
 	if(!items) return;
-	Field item = parseField(definition["of"], where + ".of", depth + 1, count);
+	Field item = parseField(definition["of"], placeOf(where, "of"), depth + 1, count);
 	if(item.required || item.unique || item.defaultValue)
-		malformed(where + ".of", "items take no required, unique or default");
+		malformed(placeOf(where, "of"), "items take no required, unique or default");
 	field.of = std::make_shared<const Field>(std::move(item));
 }
 
@@ -190,8 +193,8 @@ void parsePair(const json& definition, std::array<const char*, 2> keys, std::arr
                const std::string& where, Read read, std::optional<T>& lower, std::optional<T>& upper) {
 	for(std::size_t i = 0; i < 2; ++i) {
 		if(!definition.contains(keys[i])) continue;
-		if(!takes[i]) malformed(where + "." + keys[i], std::string("this type takes no \"") + keys[i] + "\"");
-		(i == 0 ? lower : upper) = read(definition[keys[i]], where + "." + keys[i]);
+		if(!takes[i]) malformed(placeOf(where, keys[i]), std::string(R"(this type takes no ")") + keys[i] + R"(")");
+		(i == 0 ? lower : upper) = read(definition[keys[i]], placeOf(where, keys[i]));
 	}
 	if(lower && upper && *lower > *upper) malformed(where, std::string(keys[0]) + " is above " + keys[1]);
 }
@@ -220,13 +223,13 @@ Import parseImport(const json& value, const std::string& where) {
 	Import import;
 	const json& path = value.is_object() ? value.value("path", json()) : value;
 	if(!path.is_string() || !path.get<std::string>().starts_with("state.") || path.get<std::string>().size() < 7)
-		malformed(where, "expected a state path, \"state.habits\", or {\"path\", \"with\"}");
+		malformed(where, R"(expected a state path, "state.habits", or {"path", "with"})");
 	import.path = path.get<std::string>();
 	if(value.is_object()) {
 		for(const auto& [key, inner] : value.items())
-			if(key != "path" && key != "with" && key != "note") malformed(where + "." + key, "unknown key");
+			if(key != "path" && key != "with" && key != "note") malformed(placeOf(where, key), "unknown key");
 		if(value.contains("with")) {
-			if(!value["with"].is_string()) malformed(where + ".with", "expected an expression, \"{{...}}\"");
+			if(!value["with"].is_string()) malformed(placeOf(where, "with"), R"(expected an expression, "{{...}}")");
 			import.expression = value["with"].get<std::string>();
 		}
 	}
@@ -238,18 +241,18 @@ Import parseImport(const json& value, const std::string& where) {
 /// @param fields Their definitions.
 /// @param where The model's place.
 void parseModelFields(Model& model, const json& fields, const std::string& where) {
-	if(!fields.is_object()) malformed(where, "expected \"fields\": name -> field");
+	if(!fields.is_object()) malformed(where, R"(expected "fields": name -> field)");
 	std::size_t count = 0;
 	for(const auto& [field, inner] : fields.items()) {
 		if(!isName(field) || isSystemField(field))
-			malformed(where + ".fields", "'" + field +
-			                                 "' can't name a field (letters, digits and _; not id, created "
-			                                 "or updated, which every record has)");
-		Field read = parseField(inner, where + ".fields." + field, 0, count);
+			malformed(placeOf(where, "fields"), "'" + field +
+			                                        "' can't name a field (letters, digits and _; not id, created "
+			                                        "or updated, which every record has)");
+		Field read = parseField(inner, placeOf(where, {"fields", field}), 0, count);
 		const bool single =
 		    read.type != FieldType::List && read.type != FieldType::Object && read.type != FieldType::Map;
 		if(read.unique && !single)
-			malformed(where + ".fields." + field + ".unique", "only a single value can be unique");
+			malformed(placeOf(where, {"fields", field, "unique"}), "only a single value can be unique");
 		model.fields.emplace(field, std::move(read));
 		model.order.push_back(field);
 	}
@@ -273,28 +276,29 @@ json listOf(const json& value, std::size_t most, const std::string& where, const
 /// @param where Its place.
 /// @return The model.
 Model parseModel(const std::string& name, const json& definition, const std::string& where) {
-	if(!definition.is_object()) malformed(where, "expected an object: {\"version\", \"fields\", ...}");
+	if(!definition.is_object()) malformed(where, R"(expected an object: {"version", "fields", ...})");
 	for(const auto& [key, value] : definition.items())
 		if(std::ranges::find(modelKeys, key) == modelKeys.end())
-			malformed(where + "." + key, "unknown key (a model has version, fields, seed, migrations, importFrom, "
-			                             "title, description, note)");
+			malformed(placeOf(where, key), "unknown key (a model has version, fields, seed, migrations, importFrom, "
+			                               "title, description, note)");
 	Model model;
 	model.name = name;
 	model.written = definition;
 	if(const auto version = definition.find("version"); version != definition.end()) {
 		if(!version->is_number_integer() || version->get<std::int64_t>() < 1 || version->get<std::int64_t>() > 1000000)
-			malformed(where + ".version", "expected a whole number from 1");
+			malformed(placeOf(where, "version"), "expected a whole number from 1");
 		model.version = version->get<int>();
 	}
 	parseModelFields(model, definition.value("fields", json()), where);
 	if(definition.contains("seed"))
-		model.seed = listOf(definition["seed"], Limits::seedRecords, where + ".seed", "records");
+		model.seed = listOf(definition["seed"], Limits::seedRecords, placeOf(where, "seed"), "records");
 	for(std::size_t i = 0; i < model.seed.size(); ++i)
 		if(!model.seed[i].is_object()) malformed(std::format("{}.seed[{}]", where, i), "expected a record");
 	if(definition.contains("migrations"))
-		model.migrations = listOf(definition["migrations"], Limits::migrations, where + ".migrations", "migrations");
+		model.migrations =
+		    listOf(definition["migrations"], Limits::migrations, placeOf(where, "migrations"), "migrations");
 	if(definition.contains("importFrom"))
-		model.importFrom = parseImport(definition["importFrom"], where + ".importFrom");
+		model.importFrom = parseImport(definition["importFrom"], placeOf(where, "importFrom"));
 	return model;
 }
 
@@ -319,7 +323,7 @@ void validateWord(const Field& field, const json& value, const std::string& wher
 	if(field.type == FieldType::Boolean && !value.is_boolean())
 		invalid(where, "expected true or false, got " + value.dump());
 	if(field.type == FieldType::Date && !(text && isDate(value.get_ref<const std::string&>())))
-		invalid(where, "expected a date, \"YYYY-MM-DD\", got " + value.dump());
+		invalid(where, R"(expected a date, "YYYY-MM-DD", got )" + value.dump());
 	if(field.type == FieldType::Enum && !(text && std::ranges::contains(field.values, value.get<std::string>())))
 		invalid(where, "expected one of the enum's values, got " + value.dump());
 	if(field.type == FieldType::Reference && !(text && isRecordId(value.get_ref<const std::string&>())))
@@ -336,8 +340,8 @@ void validateMap(const Field& field, const json& value, const std::string& where
 	if(value.size() > most) invalid(where, std::format("expected at most {} keys, got {}", most, value.size()));
 	for(const auto& [key, inner] : value.items()) {
 		if(key.empty() || key.size() > 256) invalid(where, "a map's key is 1 to 256 bytes");
-		if(inner.is_null()) invalid(where + "." + key, "a map's value can't be null");
-		validateValue(*field.of, inner, where + "." + key);
+		if(inner.is_null()) invalid(placeOf(where, key), "a map's value can't be null");
+		validateValue(*field.of, inner, placeOf(where, key));
 	}
 }
 
@@ -364,14 +368,14 @@ void validateList(const Field& field, const json& value, const std::string& wher
 void validateObject(const Field& field, const json& value, const std::string& where) {
 	if(!value.is_object()) invalid(where, "expected an object, got " + std::string(value.type_name()));
 	for(const auto& [name, inner] : value.items())
-		if(!field.fields.contains(name)) invalid(where + "." + name, "no such field");
+		if(!field.fields.contains(name)) invalid(placeOf(where, name), "no such field");
 	for(const auto& [name, inner] : field.fields) {
 		const auto it = value.find(name);
 		if(it == value.end() || it->is_null()) {
-			if(inner.required) invalid(where + "." + name, "required");
+			if(inner.required) invalid(placeOf(where, name), "required");
 			continue;
 		}
-		validateValue(inner, *it, where + "." + name);
+		validateValue(inner, *it, placeOf(where, name));
 	}
 }
 
@@ -397,9 +401,9 @@ void validateNumber(const Field& field, const json& value, const std::string& wh
 void checkDefault(const Field& field, const std::string& where) {
 	if(!field.defaultValue) return;
 	try {
-		validateValue(field, *field.defaultValue, where + ".default");
+		validateValue(field, *field.defaultValue, placeOf(where, "default"));
 	} catch(const DataError& error) {
-		malformed(where + ".default", std::string("doesn't fit the field (") + error.what() + ")");
+		malformed(placeOf(where, "default"), std::string("doesn't fit the field (") + error.what() + ")");
 	}
 }
 
@@ -430,22 +434,24 @@ std::string_view typeName(FieldType type) noexcept {
 Field parseField(const json& definition, const std::string& where, int depth, std::size_t& count) {
 	if(depth > Limits::depth) malformed(where, std::format("fields nest at most {} deep", Limits::depth));
 	if(++count > Limits::fields) malformed(where, std::format("a model has at most {} fields", Limits::fields));
-	if(!definition.is_object()) malformed(where, "expected a field: {\"type\": \"string\", ...}");
+	if(!definition.is_object()) malformed(where, R"(expected a field: {"type": "string", ...})");
 	for(const auto& [key, value] : definition.items())
-		if(std::ranges::find(fieldKeys, key) == fieldKeys.end()) malformed(where + "." + key, "unknown key");
+		if(std::ranges::find(fieldKeys, key) == fieldKeys.end()) malformed(placeOf(where, key), "unknown key");
 	Field field;
 	field.written = definition;
 	const auto type = definition.find("type");
-	if(type == definition.end() || !type->is_string()) malformed(where, "expected \"type\"");
-	const auto named =
+	if(type == definition.end() || !type->is_string()) malformed(where, R"(expected "type")");
+	const auto* const named =
 	    std::ranges::find(typeNames, type->get<std::string>(), &std::pair<std::string_view, FieldType>::first);
 	if(named == typeNames.end())
-		malformed(where + ".type", "unknown type '" + type->get<std::string>() +
-		                               "' (string, number, integer, boolean, date, dateTime, enum, reference, list, "
-		                               "object, map)");
+		malformed(placeOf(where, "type"),
+		          "unknown type '" + type->get<std::string>() +
+		              "' (string, number, integer, boolean, date, dateTime, enum, reference, list, "
+		              "object, map)");
 	field.type = named->second;
-	if(definition.contains("required")) field.required = expect::boolean(definition["required"], where + ".required");
-	if(definition.contains("unique")) field.unique = expect::boolean(definition["unique"], where + ".unique");
+	if(definition.contains("required"))
+		field.required = expect::boolean(definition["required"], placeOf(where, "required"));
+	if(definition.contains("unique")) field.unique = expect::boolean(definition["unique"], placeOf(where, "unique"));
 	parseTypeKeys(field, definition, where, depth, count);
 	parseBounds(field, definition, where);
 	if(definition.contains("default") && !definition["default"].is_null()) field.defaultValue = definition["default"];
@@ -461,16 +467,16 @@ Models parseModels(const json& section, const std::string& where) {
 		malformed(where, std::format("at most {} collections", Limits::collections));
 	for(const auto& [name, definition] : section.items()) {
 		if(!isName(name))
-			malformed(where + "." + name, "can't name a collection (a letter, then letters, digits and _)");
-		models.emplace(name, parseModel(name, definition, where + "." + name));
+			malformed(placeOf(where, name), "can't name a collection (a letter, then letters, digits and _)");
+		models.emplace(name, parseModel(name, definition, placeOf(where, name)));
 	}
 	for(const auto& [name, model] : models) // references reach declared collections
 		for(const auto& [field, definition] : model.fields) {
 			const Field* reference = &definition;
 			while(reference->type == FieldType::List) reference = reference->of.get();
 			if(reference->type == FieldType::Reference && !models.contains(reference->to))
-				malformed(where + "." + name + ".fields." + field + ".to",
-				          "no collection '" + reference->to + "' in \"models\"");
+				malformed(placeOf(where, {name, "fields", field, "to"}),
+				          "no collection '" + reference->to + R"(' in "models")");
 		}
 	return models;
 }
@@ -503,7 +509,7 @@ json validateRecord(const Model& model, const json& fields, const std::string& w
 	for(const auto& [name, value] : fields.items()) {
 		if(isSystemField(name)) continue; // the store's to give
 		if(!model.fields.contains(name))
-			invalid(where + "." + name, "'" + model.name + "' has no field '" + name + "'");
+			invalid(placeOf(where, name), "'" + model.name + "' has no field '" + name + "'");
 	}
 	for(const std::string& name : model.order) {
 		const Field& field = model.fields.at(name);
@@ -511,10 +517,10 @@ json validateRecord(const Model& model, const json& fields, const std::string& w
 		const json* value = it == fields.end() || it->is_null() ? nullptr : &*it;
 		if(!value && field.defaultValue) value = &*field.defaultValue;
 		if(!value) {
-			if(field.required) invalid(where + "." + name, "required");
+			if(field.required) invalid(placeOf(where, name), "required");
 			continue;
 		}
-		validateValue(field, *value, where + "." + name);
+		validateValue(field, *value, placeOf(where, name));
 		stored[name] = *value;
 	}
 	if(stored.dump().size() > Limits::recordBytes) throw DataError("limit", where + ": a record holds at most 1 MiB");

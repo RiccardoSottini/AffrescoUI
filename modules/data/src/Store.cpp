@@ -2,6 +2,7 @@
 /// @brief data::Store: opening the database, records, queries and what agents see (Store.hpp).
 
 #include "StoreImpl.hpp"
+#include "Places.hpp"
 
 #include <chrono>
 #include <format>
@@ -155,18 +156,18 @@ bool releaseReference(Store::Impl& impl, const ReferringField& referring, const 
 		throw DataError("reference",
 		                where + ": '" + name + "' record '" + ids.front() + "' refers to it (" + referring.name + ")");
 	for(const std::string& referrer : ids) {
-		std::optional<Row> other = impl.row(name, referrer);
-		const json before = rowJson(*other);
-		if(!list) other->body.erase(referring.name);
+		Row other = impl.row(name, referrer).value(); // found by the query above, in this transaction
+		const json before = rowJson(other);
+		if(!list) other.body.erase(referring.name);
 		else {
 			json kept = json::array();
-			for(const json& item : other->body[referring.name])
+			for(const json& item : other.body[referring.name])
 				if(item != id) kept.push_back(item);
-			other->body[referring.name] = std::move(kept);
+			other.body[referring.name] = std::move(kept);
 		}
-		other->updated = impl.clock();
-		impl.writeBody(name, *other);
-		impl.journal(author, "update", name, referrer, other->sequence, before, rowJson(*other));
+		other.updated = impl.clock();
+		impl.writeBody(name, other);
+		impl.journal(author, "update", name, referrer, other.sequence, before, rowJson(other));
 	}
 	return true;
 }
@@ -229,7 +230,7 @@ void Store::Impl::loadModels() {
 
 const Model& Store::Impl::modelOf(const std::string& collection, const std::string& where) const {
 	const auto it = models.find(collection);
-	if(it == models.end()) throw DataError("model", where + ": no collection '" + collection + "' in \"models\"");
+	if(it == models.end()) throw DataError("model", where + ": no collection '" + collection + R"(' in "models")");
 	return it->second;
 }
 
@@ -302,15 +303,16 @@ void Store::Impl::checkLinks(const Model& model, const json& fields, const std::
 			const json ids = list ? *value : json::array({*value});
 			for(const json& referred : ids)
 				if(!row(target->to, referred.get<std::string>()))
-					throw DataError("reference", where + "." + name + ": no record '" + referred.get<std::string>() +
-					                                 "' in '" + target->to + "'");
+					throw DataError("reference", std::format("{}: no record '{}' in '{}'", placeOf(where, name),
+					                                         referred.get<std::string>(), target->to));
 		}
 		if(field.unique) {
 			sql::Statement same(db, "SELECT id FROM records WHERE collection = ?1 AND json_extract(body, ?2) = ?3 AND "
 			                        "id != ?4 LIMIT 1");
 			same.bind(1, model.name).bind(2, "$." + name).bindValue(3, *value).bind(4, id);
 			if(same.step())
-				throw DataError("unique", where + "." + name + ": '" + same.text(0) + "' already has " + value->dump());
+				throw DataError("unique", std::format("{}: '{}' already has {}", placeOf(where, name), same.text(0),
+				                                      value->dump()));
 		}
 	}
 }
@@ -388,7 +390,7 @@ Record Store::update(const std::string& collection, const std::string& id, const
 	const json before = rowJson(*row);
 	json merged = Impl::recordOf(model, *row).fields;
 	for(const auto& [name, value] : changes.items()) {
-		if(isSystemField(name)) throw DataError("invalid", where + "." + name + ": the store gives it");
+		if(isSystemField(name)) throw DataError("invalid", std::format("{}: the store gives it", placeOf(where, name)));
 		if(value.is_null()) merged.erase(name);
 		else merged[name] = value;
 	}

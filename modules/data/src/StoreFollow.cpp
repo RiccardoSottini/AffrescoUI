@@ -5,6 +5,7 @@
 #include "StoreImpl.hpp"
 
 #include "affresco/data/Changes.hpp"
+#include "Places.hpp"
 
 #include <format>
 #include <map>
@@ -55,8 +56,6 @@ const json* atStatePath(const json& state, const std::string& path) {
 	}
 	return at;
 }
-
-} // namespace
 
 /// @brief What following needs while it runs: the connection's impl, the report and the unique values seen.
 struct Follower {
@@ -156,7 +155,8 @@ struct Follower {
 		for(const auto& [name, field] : model.fields)
 			if(field.unique && checked.contains(name)) {
 				const auto [seen, fresh] = unique[name].emplace(checked[name].dump(), id);
-				if(!fresh) throw DataError("unique", where + "." + name + ": '" + seen->second + "' has it too");
+				if(!fresh)
+					throw DataError("unique", std::format("{}: '{}' has it too", placeOf(where, name), seen->second));
 			}
 		json result = body;
 		for(const std::string& name : model.order) result.erase(name);
@@ -228,9 +228,10 @@ struct Follower {
 	void storeFirst(const Model& model, const json& item, std::size_t index, bool importing, const std::string& where,
 	                std::map<std::string, std::map<std::string, std::string>>& unique) {
 		json fields = item;
-		if(importing && !model.importFrom->expression.empty()) {
+		const std::string mapping = importing && model.importFrom ? model.importFrom->expression : std::string();
+		if(!mapping.empty()) {
 			if(!impl.evaluate) throw DataError("migration", "importFrom needs the screen format's expressions");
-			fields = impl.evaluate(model.importFrom->expression, {{"it", item}, {"index", index}});
+			fields = impl.evaluate(mapping, {{"it", item}, {"index", index}});
 		}
 		if(!importing) fields = seedFields(model, fields, impl.evaluate, where); // written for version 1
 		if(!fields.is_object()) throw DataError("invalid", where + ": expected a record");
@@ -288,8 +289,8 @@ struct Follower {
 		std::vector<std::pair<std::int64_t, std::vector<MigrationStep>>> inverses;
 		for(const auto& [sequence, definition] : undone) {
 			Migration chain;
-			for(std::size_t i = 0; i < definition.size(); ++i) {
-				const Migration one = parseMigration(definition[i], model.name, "migrations");
+			for(const json& written : definition) {
+				const Migration one = parseMigration(written, model.name, "migrations");
 				chain.steps.insert(chain.steps.end(), one.steps.begin(), one.steps.end());
 			}
 			std::optional<std::vector<MigrationStep>> inverse = inverseOf(chain);
@@ -388,6 +389,8 @@ struct Follower {
 	}
 };
 
+} // namespace
+
 FollowReport Store::Impl::apply(const json& next, const std::string& author, const json* oldState) {
 	const json written = next.is_null() ? json::object() : next;
 	const Models parsed = parseModels(written);
@@ -453,7 +456,7 @@ std::unique_ptr<Store> Store::copy() const {
 
 FollowReport Store::plan(const json& section, const json* oldState) const {
 	const std::unique_ptr<Store> copied = copy();
-	sql::Transaction transaction(copied->impl_->db); // never committed: the copy is dropped anyway
+	const sql::Transaction transaction(copied->impl_->db); // never committed: the copy is dropped anyway
 	return copied->impl_->apply(section, "plan", oldState);
 }
 

@@ -59,7 +59,7 @@ private:
 /// @param from The database copied.
 /// @param to The copy.
 /// @throws DataError "io" on failure.
-void copy(Database& from, Database& to);
+void copy(const Database& from, const Database& to);
 
 /// @brief A prepared statement, reset after each use.
 class Statement {

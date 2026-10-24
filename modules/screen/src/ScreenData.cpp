@@ -58,7 +58,7 @@ bool importsFrom(const json& document, const data::Store& store, const json& sta
 	for(const auto& [name, model] : models) {
 		if(!model.importFrom || store.models().contains(name)) continue;
 		std::string pointer;
-		for(char c : model.importFrom->path.substr(6)) pointer += c == '.' ? '/' : c;
+		for(const char c : model.importFrom->path.substr(6)) pointer += c == '.' ? '/' : c;
 		if(state.contains(json::json_pointer("/" + pointer))) return true;
 	}
 	return false;
@@ -91,7 +91,8 @@ void Screen::Impl::keepRejected(const json& rejected) const {
 	if(name.ends_with(".state.json")) name.resize(name.size() - std::string_view(".state.json").size());
 	const std::filesystem::path side = stateFile.parent_path() / (name + ".state.rejected.json");
 	json kept = json::object();
-	if(std::ifstream in(side); in) { // what an earlier start set aside stays, unless the same place is set aside again
+	if(const std::ifstream in(side);
+	   in) { // what an earlier start set aside stays, unless the same place is set aside again
 		std::stringstream text;
 		text << in.rdbuf();
 		try {

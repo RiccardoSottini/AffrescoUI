@@ -2,6 +2,7 @@
 /// @brief Migrations: reading them, applying their steps to records, and their inverses (Migration.hpp).
 
 #include "affresco/data/Migration.hpp"
+#include "Places.hpp"
 
 #include <algorithm>
 #include <format>
@@ -33,6 +34,7 @@ std::string fieldName(const json& value, const std::string& where) {
 std::vector<std::string> fieldNames(const json& value, const std::string& where) {
 	if(!value.is_array() || value.size() < 2 || value.size() > 16) malformed(where, "expected 2 to 16 fields' names");
 	std::vector<std::string> names;
+	names.reserve(value.size());
 	for(std::size_t i = 0; i < value.size(); ++i) names.push_back(fieldName(value[i], std::format("{}[{}]", where, i)));
 	return names;
 }
@@ -43,7 +45,7 @@ std::vector<std::string> fieldNames(const json& value, const std::string& where)
 /// @param where Its place.
 void onlyKeys(const json& step, std::initializer_list<std::string_view> keys, const std::string& where) {
 	for(const auto& [key, value] : step.items())
-		if(key != "note" && std::ranges::find(keys, key) == keys.end()) malformed(where + "." + key, "unknown key");
+		if(key != "note" && std::ranges::find(keys, key) == keys.end()) malformed(placeOf(where, key), "unknown key");
 }
 
 /// @brief Reads a list of values or expressions, one per field.
@@ -65,42 +67,42 @@ MigrationStep parseStep(const json& step, const std::string& where) {
 	if(step.contains("rename")) {
 		onlyKeys(step, {"rename", "to"}, where);
 		read.kind = MigrationStep::Kind::Rename;
-		read.fields = {fieldName(step["rename"], where + ".rename")};
-		read.into = {fieldName(step.value("to", json()), where + ".to")};
+		read.fields = {fieldName(step["rename"], placeOf(where, "rename"))};
+		read.into = {fieldName(step.value("to", json()), placeOf(where, "to"))};
 	} else if(step.contains("convert")) {
 		onlyKeys(step, {"convert", "with", "inverse"}, where);
 		read.kind = MigrationStep::Kind::Convert;
-		read.fields = read.into = {fieldName(step["convert"], where + ".convert")};
-		if(!step.contains("with")) malformed(where, "a convert needs \"with\": the new value, \"{{value * 1000}}\"");
+		read.fields = read.into = {fieldName(step["convert"], placeOf(where, "convert"))};
+		if(!step.contains("with")) malformed(where, R"(a convert needs "with": the new value, "{{value * 1000}}")");
 		read.with = step["with"];
 		read.inverse = step.value("inverse", json());
 	} else if(step.contains("fill")) {
 		onlyKeys(step, {"fill", "with"}, where);
 		read.kind = MigrationStep::Kind::Fill;
-		read.into = {fieldName(step["fill"], where + ".fill")};
-		if(!step.contains("with")) malformed(where, "a fill needs \"with\": the value");
+		read.into = {fieldName(step["fill"], placeOf(where, "fill"))};
+		if(!step.contains("with")) malformed(where, R"(a fill needs "with": the value)");
 		read.with = step["with"];
 	} else if(step.contains("drop")) {
 		onlyKeys(step, {"drop"}, where);
 		read.kind = MigrationStep::Kind::Drop;
-		read.fields = {fieldName(step["drop"], where + ".drop")};
+		read.fields = {fieldName(step["drop"], placeOf(where, "drop"))};
 	} else if(step.contains("split")) {
 		onlyKeys(step, {"split", "into", "with", "inverse"}, where);
 		read.kind = MigrationStep::Kind::Split;
-		read.fields = {fieldName(step["split"], where + ".split")};
-		read.into = fieldNames(step.value("into", json()), where + ".into");
+		read.fields = {fieldName(step["split"], placeOf(where, "split"))};
+		read.into = fieldNames(step.value("into", json()), placeOf(where, "into"));
 		read.with = step.value("with", json());
-		expectList(read.with, read.into.size(), where + ".with");
+		expectList(read.with, read.into.size(), placeOf(where, "with"));
 		read.inverse = step.value("inverse", json());
 	} else if(step.contains("merge")) {
 		onlyKeys(step, {"merge", "into", "with", "inverse"}, where);
 		read.kind = MigrationStep::Kind::Merge;
-		read.fields = fieldNames(step["merge"], where + ".merge");
-		read.into = {fieldName(step.value("into", json()), where + ".into")};
-		if(!step.contains("with")) malformed(where, "a merge needs \"with\": the merged value");
+		read.fields = fieldNames(step["merge"], placeOf(where, "merge"));
+		read.into = {fieldName(step.value("into", json()), placeOf(where, "into"))};
+		if(!step.contains("with")) malformed(where, R"(a merge needs "with": the merged value)");
 		read.with = step["with"];
 		read.inverse = step.value("inverse", json());
-		if(!read.inverse.is_null()) expectList(read.inverse, read.fields.size(), where + ".inverse");
+		if(!read.inverse.is_null()) expectList(read.inverse, read.fields.size(), placeOf(where, "inverse"));
 	} else {
 		malformed(where, "unknown step (rename, convert, fill, drop, split, merge)");
 	}
@@ -145,7 +147,7 @@ void put(json& fields, const std::string& name, json value) {
 } // namespace
 
 Migration parseMigration(const json& definition, const std::string& collection, const std::string& where) {
-	if(!definition.is_object()) malformed(where, "expected {\"from\", \"to\", \"steps\"}");
+	if(!definition.is_object()) malformed(where, R"(expected {"from", "to", "steps"})");
 	onlyKeys(definition, {"from", "to", "steps"}, where);
 	Migration migration;
 	migration.collection = collection;
@@ -153,13 +155,13 @@ Migration parseMigration(const json& definition, const std::string& collection, 
 	for(const char* key : {"from", "to"})
 		if(!definition.contains(key) || !definition[key].is_number_integer() ||
 		   definition[key].get<std::int64_t>() < 1 || definition[key].get<std::int64_t>() > 1000000)
-			malformed(where + "." + key, "expected a model version, a whole number from 1");
+			malformed(placeOf(where, key), "expected a model version, a whole number from 1");
 	migration.from = definition["from"].get<int>();
 	migration.to = definition["to"].get<int>();
-	if(migration.to <= migration.from) malformed(where + ".to", "expected a version above \"from\"");
+	if(migration.to <= migration.from) malformed(placeOf(where, "to"), R"(expected a version above "from")");
 	const auto steps = definition.find("steps");
 	if(steps == definition.end() || !steps->is_array() || steps->size() > Limits::steps)
-		malformed(where + ".steps", std::format("expected a list of at most {} steps", Limits::steps));
+		malformed(placeOf(where, "steps"), std::format("expected a list of at most {} steps", Limits::steps));
 	for(std::size_t i = 0; i < steps->size(); ++i)
 		migration.steps.push_back(parseStep((*steps)[i], std::format("{}.steps[{}]", where, i)));
 	return migration;
@@ -171,10 +173,10 @@ std::vector<Migration> migrationsOf(const Model& model, const std::string& where
 		const std::string at = std::format("{}.migrations[{}]", where, i);
 		Migration migration = parseMigration(model.migrations[i], model.name, at);
 		if(!migrations.empty() && migration.from < migrations.back().to)
-			malformed(at + ".from",
+			malformed(placeOf(at, "from"),
 			          std::format("starts before the migration before it ends (at {})", migrations.back().to));
 		if(migration.to > model.version)
-			malformed(at + ".to", std::format("ends past the model's version ({})", model.version));
+			malformed(placeOf(at, "to"), std::format("ends past the model's version ({})", model.version));
 		migrations.push_back(std::move(migration));
 	}
 	return migrations;

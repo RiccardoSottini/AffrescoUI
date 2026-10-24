@@ -47,23 +47,22 @@ void compareFields(const std::map<std::string, Field>& before, const std::map<st
 		if(old == before.end()) {
 			const bool fits = !field.required || field.defaultValue;
 			found.push_back({prefix + name,
-			                 {std::string("adds the ") + (field.required ? "required" : "optional") + " field '" +
-			                      prefix + name + "'" + (field.required && field.defaultValue ? " with a default" : ""),
+			                 {std::format("adds the {} field '{}{}'{}", field.required ? "required" : "optional",
+			                              prefix, name, field.required && field.defaultValue ? " with a default" : ""),
 			                  fits ? ChangeClass::Compatible : ChangeClass::Transforming}});
 			continue;
 		}
 		std::vector<Found> inner;
 		compareField(old->second, field, inner);
-		for(Found& change : inner)
-			found.push_back({prefix + name, {"'" + prefix + name + "' " + change.text, change.kind}});
+		for(const Found& change : inner)
+			found.push_back({prefix + name, {std::format("'{}{}' {}", prefix, name, change.text), change.kind}});
 	}
 	for(const auto& [name, field] : before)
 		if(!after.contains(name))
-			found.push_back({prefix + name,
-			                 {"removes the field '" + prefix + name +
-			                      "' (its values stay in the store, "
-			                      "unread)",
-			                  ChangeClass::Destructive}});
+			found.push_back(
+			    {prefix + name,
+				 {std::format("removes the field '{}{}' (its values stay in the store, unread)", prefix, name),
+				  ChangeClass::Destructive}});
 }
 
 /// @brief Compares what a field requires of its values: required, unique and its bounds.
@@ -119,12 +118,12 @@ void compareField(const Field& before, const Field& after, std::vector<Found>& f
 	if(before.of && after.of) {
 		std::vector<Found> items;
 		compareField(*before.of, *after.of, items);
-		for(Found& change : items) found.push_back({"items: " + change.text, change.kind});
+		for(const Found& change : items) found.push_back({"items: " + change.text, change.kind});
 	}
 	if(before.type == FieldType::Object) {
 		std::vector<std::pair<std::string, Found>> inner;
 		compareFields(before.fields, after.fields, "", inner);
-		for(auto& [name, change] : inner) found.push_back({"field " + change.text, change.kind});
+		for(const auto& [name, change] : inner) found.push_back({"field " + change.text, change.kind});
 	}
 }
 
