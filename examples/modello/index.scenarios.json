@@ -585,6 +585,24 @@
 				{ "expect": { "state": "maximized", "is": null } },
 				{ "expect": { "node": "#outliner-search", "exists": true } }
 			]
+		},
+		{
+			"name": "modello-adjust-rotate",
+			"note": "After R, Z, 30, Enter the Adjust Last Operation panel shows Rotation [0, 0, 30]°; its Z field stepped turns the cube again",
+			"steps": [
+				{ "key": "r" },
+				{ "key": "z" },
+				{ "key": "3" },
+				{ "key": "0" },
+				{ "key": "enter" },
+				{ "wait": 20 },
+				{ "expect": { "state": "lastOp.values", "is": [0, 0, 30] } },
+				{ "click": "#redo-panel" },
+				{ "click": "#field-redo-2" },
+				{ "key": "right" },
+				{ "expect": { "state": "scene.nodes[1].rotationDegrees", "is": [0, 0, 35] } },
+				{ "expect": { "state": "lastOp.values", "is": [0, 0, 35] } }
+			]
 		}
 	]
 }

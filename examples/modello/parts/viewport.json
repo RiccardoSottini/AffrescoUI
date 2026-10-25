@@ -123,9 +123,10 @@
 					  ] },
 					{ "when": "{{state.redoOpen && state.lastOp.values != null}}", "anchors": { "left": 4, "right": 0, "top": 26 }, "height": 62,
 					  "color": "transparent", "children": [
-						{ "use": "vectorField", "with": { "title": "{{state.lastOp.label ?? (state.lastOp.kind == 'scale' ? 'Scale' : 'Move')}}",
-						  "values": "{{state.lastOp.values}}", "key": "redo", "unit": "{{state.lastOp.kind == 'scale' ? '' : ' m'}}",
-						  "step": "{{state.lastOp.kind == 'scale' ? 0.005 : 0.01}}", "digits": 3, "fixed": "{{state.lastOp.kind == 'scale'}}" } }
+						{ "use": "vectorField", "with": { "title": "{{state.lastOp.label ?? (state.lastOp.kind == 'scale' ? 'Scale' : state.lastOp.kind == 'rotate' ? 'Rotation' : 'Move')}}",
+						  "values": "{{state.lastOp.values}}", "key": "redo", "unit": "{{state.lastOp.kind == 'scale' ? '' : state.lastOp.kind == 'rotate' ? '°' : ' m'}}",
+						  "step": "{{state.lastOp.kind == 'scale' ? 0.005 : state.lastOp.kind == 'rotate' ? 0.5 : 0.01}}", "digits": "{{state.lastOp.kind == 'rotate' ? 1 : 3}}",
+						  "fixed": "{{state.lastOp.kind == 'scale'}}" } }
 					  ] }
 				]
 			}

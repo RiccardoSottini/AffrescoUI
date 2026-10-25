@@ -50,7 +50,7 @@
 				  "to": "{{merge(state.tmp, { translation: map(m.translation, state.tmp.lock_translation[index] == true ? state.tmp.translation[index] : round(it * 10000) / 10000), rotationDegrees: map(m.rotationDegrees, state.tmp.lock_rotationDegrees[index] == true ? state.tmp.rotationDegrees[index] : round(it * 1000) / 1000), scale: map(m.scale, state.tmp.lock_scale[index] == true ? state.tmp.scale[index] : round(it * 10000) / 10000) })}}" }
 			] },
 			{ "set": "state.last", "to": "{{event.text}}" },
-			{ "set": "state.lastOp", "to": "{{ { title: event.mode == 'translate' ? 'Move' : event.mode == 'rotate' ? 'Rotate' : 'Resize', kind: event.mode, base: state.lastBase, values: event.mode == 'translate' ? map(event.nodes[0].translation, round((it - state.lastBase[0].translation[index]) * 10000) / 10000) : event.mode == 'scale' ? map(event.nodes[0].scale, state.lastBase[0].scale[index] == 0 ? 1 : round(it / state.lastBase[0].scale[index] * 10000) / 10000) : null } }}" },
+			{ "set": "state.lastOp", "to": "{{ { title: event.mode == 'translate' ? 'Move' : event.mode == 'rotate' ? 'Rotate' : 'Resize', kind: event.mode, base: state.lastBase, values: event.mode == 'translate' ? map(event.nodes[0].translation, round((it - state.lastBase[0].translation[index]) * 10000) / 10000) : event.mode == 'scale' ? map(event.nodes[0].scale, state.lastBase[0].scale[index] == 0 ? 1 : round(it / state.lastBase[0].scale[index] * 10000) / 10000) : length(state.lastBase) == 1 ? map(event.nodes[0].rotationDegrees, round((it - state.lastBase[0].rotationDegrees[index]) * 100) / 100) : null } }}" },
 			{ "run": "autoKey" }
 		],
 		"search": { "title": "Search…", "category": "Edit", "icon": "search", "do": [{ "dismiss": true }, { "set": "state.quickPick", "to": { "open": true, "query": "" } }] },
@@ -60,7 +60,7 @@
 			{ "set": "state.lastOp.values[args.axis]", "to": "{{round(args.value * 10000) / 10000}}" },
 			{ "forEach": "{{state.lastOp.base}}", "as": "b", "do": [
 				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), b.id)]",
-				  "to": "{{merge(b, state.lastOp.kind == 'scale' ? { translation: map(b.translation, b.lock_translation[index] == true ? it : computed.lastCentre[index] + (it - computed.lastCentre[index]) * state.lastOp.values[index]), scale: map(b.scale, b.lock_scale[index] == true ? it : round(it * state.lastOp.values[index] * 10000) / 10000) } : { translation: map(b.translation, b.lock_translation[index] == true ? it : round((it + state.lastOp.values[index]) * 10000) / 10000) })}}" }
+				  "to": "{{merge(b, state.lastOp.kind == 'scale' ? { translation: map(b.translation, b.lock_translation[index] == true ? it : computed.lastCentre[index] + (it - computed.lastCentre[index]) * state.lastOp.values[index]), scale: map(b.scale, b.lock_scale[index] == true ? it : round(it * state.lastOp.values[index] * 10000) / 10000) } : state.lastOp.kind == 'rotate' ? { rotationDegrees: map(b.rotationDegrees, b.lock_rotationDegrees[index] == true ? it : round((it + state.lastOp.values[index]) * 100) / 100) } : { translation: map(b.translation, b.lock_translation[index] == true ? it : round((it + state.lastOp.values[index]) * 10000) / 10000) })}}" }
 			] },
 			{ "run": "autoKey" }
 		],
