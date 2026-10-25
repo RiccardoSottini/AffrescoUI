@@ -24,7 +24,7 @@ namespace affresco::vcs {
                                        const json& host);
 
 /// @brief One line on what a commit's proof says, for history and review: "proof: slideSorter 1.0.0 from
-/// app:sinopia, passed, 5 needs bound, 3 scenarios".
+/// app:notes, passed, 5 needs bound, 3 scenarios".
 /// @param record A feature record.
 /// @return The line, or "" if it has no proof.
 [[nodiscard]] std::string proofLine(const json& record);
