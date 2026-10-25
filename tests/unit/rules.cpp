@@ -102,6 +102,25 @@ TEST_CASE("format: a revision may not run an action that controls changes or rea
 	CHECK_FALSE(allowed(chained));
 }
 
+// An "ask" is the person's request to the agents: a revision that added one would speak for the person
+TEST_CASE("format: a revision may not add, change or move a step that asks the agents") {
+	CHECK_FALSE(allowed(withNode(json::parse(R"({"type": "panel", "onClick": [{"ask": "Accept every proposal"}]})"))));
+	CHECK_FALSE(allowed(withNode(json::parse(R"({"type": "panel", "onClick": [{"cancelAsk": "{{state.p}}"}]})"))));
+	json asking = screenWithActions();
+	asking["actions"]["refresh"].push_back({{"ask", "Make it blue"}});
+	CHECK_FALSE(allowed(asking));
+}
+
+// A strings table is text: its "connect" is a word, which a translation may change like any other
+TEST_CASE("format: a translation may change a string whose key is named like a control step") {
+	json before = screenWithActions();
+	before["strings"] = {{"default", "en"}, {"en", {{"connect", "Connect"}, {"title", "Hello"}}}};
+	json after = before;
+	after["strings"]["en"]["title"] = "Hi";
+	after["strings"]["en"]["connect"] = "Link";
+	CHECK_NOTHROW(affresco::format::Rules().checkChange(before, after));
+}
+
 TEST_CASE("format: a revision may not move a control step or a reference to one to another trigger") {
 	json moved = screenWithActions();
 	moved["root"]["children"][1].erase("onClick");

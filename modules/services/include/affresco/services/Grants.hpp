@@ -60,7 +60,7 @@ class ServiceRegistry;
 /// @brief One of the host's sibling programs an app-programs grant may start (appProgramsShaper()).
 struct AppProgram {
 	std::string name;    ///< Its file's name, e.g. "affrescoui_launcher" (".exe" is added on Windows).
-	bool screen = false; ///< It takes a screen file to open, its first argument.
+	bool screen = false; ///< It takes an app to open (a folder, an app.json or a screen file), its first argument.
 	bool ask = false;    ///< It takes `--ask TEXT`, a first request for the app's assistant.
 };
 
@@ -84,11 +84,11 @@ struct AppPrograms {
 [[nodiscard]] std::filesystem::path findAppProgram(const std::filesystem::path& folder, std::string_view name);
 
 /// @brief The app-programs grant's rule. A call's arguments are `[PROGRAM, SCREEN?, "--ask", TEXT?]`: PROGRAM one of
-/// @p programs' names; SCREEN, for a program that takes one (and required), `ROOT:PATH`, a `.screen.json` file inside
-/// that root (links resolved, no `..`, no absolute path); `--ask TEXT` only for a program that takes it (TEXT at most
+/// @p programs' names; SCREEN, for a program that takes one (and required), `ROOT:PATH` inside that root (links
+/// resolved, no `..`, no absolute path): an app's folder (one with an `app.json`), an `app.json` or a `.screen.json`; `--ask TEXT` only for a program that takes it (TEXT at most
 /// 4 KiB, no NUL). With `reveal`, `["reveal", "ROOT:FOLDER"]` shows a folder inside a root (`"ROOT:"` the root itself).
 /// The rule picks the program file and adds, itself, `--data <dataDirectory>` and `--socket <socketDirectory>/<app>`
-/// (`<app>` is `<root>-<the screen's folder>`, or the program's name without `affrescoui_`), which the program creates.
+/// (`<app>` is `<root>-<the app's folder>`, or the program's name without `affrescoui_`), which the program creates.
 /// @param programs What it may start.
 /// @return The shaper.
 [[nodiscard]] ProcessShaper appProgramsShaper(AppPrograms programs);

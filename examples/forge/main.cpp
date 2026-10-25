@@ -11,7 +11,6 @@
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "features/editor/Editor.hpp"
-#include "intelligence/Intelligence.hpp"
 #include "features/lsp/Lsp.hpp"
 #include "features/search/Search.hpp"
 #include "SocketDir.hpp"
@@ -21,6 +20,7 @@
 #include "features/debug/Debug.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/intelligence/Intelligence.hpp>
 
 #include <cstdlib>
 #include <filesystem>
@@ -84,7 +84,8 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 /// @throws std::exception If the screen or a socket can't be opened.
 int run(const Options& options) {
 	affresco::Application app;
-	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
+	// A peer: it outlives the screen
+	affresco::intelligence::HostAssistant assistant(app, options.dataDir, assetsDirectory());
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
 	affresco::Screen screen =

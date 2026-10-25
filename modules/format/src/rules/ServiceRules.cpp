@@ -14,7 +14,8 @@ namespace affresco::format {
 namespace {
 
 /// @brief Collects the "invoke", "request" and "subscribe" steps in a value, as "<step> <name>" (e.g. "request
-/// api.save"); a name that isn't text counts as "{{computed}}".
+/// api.save"), then a line with the step's "with" if it has one: a use whose arguments change is a new use (a write to
+/// another path). A name that isn't text counts as "{{computed}}".
 /// @param value The value.
 /// @param found Receives the uses.
 void collectUses(const json& value, std::vector<std::string>& found) {
@@ -23,7 +24,8 @@ void collectUses(const json& value, std::vector<std::string>& found) {
 			if(!value.contains(key)) continue;
 			const json& name = value[key];
 			found.push_back(std::string(key) + " " +
-			                (name.is_string() ? name.get<std::string>() : std::string("{{computed}}")));
+			                (name.is_string() ? name.get<std::string>() : std::string("{{computed}}")) +
+			                (value.contains("with") ? "\n" + value["with"].dump() : std::string()));
 		}
 		for(const auto& [key, item] : value.items()) collectUses(item, found);
 	} else if(value.is_array()) {
@@ -43,7 +45,8 @@ std::vector<std::string> usesIn(const json& document) {
 	return found;
 }
 
-/// @brief The uses a revision adds: those after it that weren't before, counted (a second copy is added too).
+/// @brief The uses a revision adds: those after it that weren't before, counted (a second copy is added too), a use
+/// whose arguments changed among them.
 /// @param before The document before.
 /// @param after The document after.
 /// @return The names, sorted.
@@ -66,12 +69,13 @@ ConnectionMap connectionsIn(const json& document) {
 	}
 }
 
-/// @brief Splits a use into its step and its name.
-/// @param use "<step> <name>".
+/// @brief Splits a use into its step and its name, leaving out its arguments.
+/// @param use "<step> <name>", then perhaps a line with its arguments.
 /// @return The step and the name.
 std::pair<std::string, std::string> split(const std::string& use) {
 	const std::size_t space = use.find(' ');
-	return {use.substr(0, space), use.substr(space + 1)};
+	const std::size_t line = use.find('\n', space);
+	return {use.substr(0, space), use.substr(space + 1, line == std::string::npos ? line : line - space - 1)};
 }
 
 /// @brief Refuses a use of a connection's operation the connection doesn't declare: revisions use operations, never
@@ -116,7 +120,7 @@ void checkMethod(const json& declared, const services::Services* services, const
 	const services::MethodSpec* spec = services->method(service, method);
 	if(!spec) throw DocumentError("revision: the service \"" + service + "\" has no method \"" + method + "\"");
 	if(!spec->revisable)
-		throw DocumentError("revision: permission denied: revisions can't add uses of \"" + name + "\"");
+		throw DocumentError("revision: permission denied: revisions can't add or change uses of \"" + name + "\"");
 }
 
 } // namespace

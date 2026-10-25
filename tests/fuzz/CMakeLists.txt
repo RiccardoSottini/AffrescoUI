@@ -24,6 +24,9 @@ affrescoui_fuzzer(json affrescoui::core nlohmann_json::nlohmann_json)
 affrescoui_fuzzer(expression affrescoui::format)
 target_include_directories(affrescoui_fuzz_expression PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
+affrescoui_fuzzer(diff_functions affrescoui::format) # diffLines, atPointer, applyPatch, formatJson
+target_include_directories(affrescoui_fuzz_diff_functions PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
 affrescoui_fuzzer(revision affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(migrate affrescoui::format) # version 1 files (SCREEN_FORMAT.md, "Migrating from version 1")
 affrescoui_fuzzer(session affrescoui::format affrescoui::vcs affrescoui::channel)
@@ -54,6 +57,7 @@ affrescoui_fuzzer(ask_reply affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(lookups affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_lookups PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # LookupSpans.hpp
 affrescoui_fuzzer(image affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+affrescoui_fuzzer(data_uri affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(path affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(text_model affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(find_pattern affrescoui::regex affrescoui::core nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
@@ -82,6 +86,8 @@ target_include_directories(affrescoui_fuzz_dap PRIVATE ${PROJECT_SOURCE_DIR}/mod
 affrescoui_fuzzer(feature_manifest affrescoui::format)
 target_include_directories(affrescoui_fuzz_feature_manifest PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
+# Apps' manifests (app.json, format/App.hpp), and the capabilities a screen uses
+affrescoui_fuzzer(app_manifest affrescoui::format)
 affrescoui_fuzzer(catalog_index affrescoui::format)
 target_include_directories(affrescoui_fuzz_catalog_index PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
@@ -90,6 +96,9 @@ target_include_directories(affrescoui_fuzz_signature PRIVATE $<TARGET_PROPERTY:a
 # Composition across apps: a feature's needs, its adapter and the host's points (CompositionProof.hpp)
 affrescoui_fuzzer(composition affrescoui::format)
 target_include_directories(affrescoui_fuzz_composition PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
+# The qrCode expression function's encoder and path data (QrCode.hpp)
+affrescoui_fuzzer(qr_code affrescoui::format)
+target_include_directories(affrescoui_fuzz_qr_code PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
 # The 1.0 security audit (SECURITY.md, README.md "Inventory of untrusted inputs"): URLs, sign-in responses, the token
 # file, what git prints, imported colour themes and history files on disk
 affrescoui_fuzzer(url affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON

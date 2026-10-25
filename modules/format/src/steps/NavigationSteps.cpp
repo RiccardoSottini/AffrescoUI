@@ -10,32 +10,32 @@ namespace {
 /// @brief Scrolls a panel by id into view once it has its place: deferred tasks run before the frame's layout, so a
 /// panel the update just made, or one in an overlay just opened, waits for the layouts that place it.
 /// @param engine The engine.
-/// @param id The panel's id.
+/// @param path The panel's id, or a path of ids (Events::findByPath()).
 /// @param frames The frames it may still wait.
-void scrollLater(Engine& engine, const std::string& id, int frames) {
-	engine.scheduler.once(0.0, [&engine, id, frames] {
+void scrollLater(Engine& engine, const std::string& path, int frames) {
+	engine.scheduler.once(0.0, [&engine, path, frames] {
 		if(!engine.window) return;
-		Panel* panel = engine.window->root().findById(id);
+		Panel* panel = Events::findByPath(engine.window->root(), path);
 		if(!panel) return;
-		if(!panel->isShown() && panel->isVisible() && frames > 0) scrollLater(engine, id, frames - 1);
+		if(!panel->isShown() && panel->isVisible() && frames > 0) scrollLater(engine, path, frames - 1);
 		else panel->scrollIntoView();
 	});
 }
 
-/// @brief "focus" or "scrollTo": a panel by id, after the update and its layout, so it exists and has its place. A
-/// panel that takes no focus passes it to its first focusable node.
+/// @brief "focus" or "scrollTo": a panel by id, or by a path of ids ("#form #input": the input inside form), after
+/// the update and its layout, so it exists and has its place. A panel that takes no focus passes it to its first
+/// focusable node.
 /// @param s The step.
 void focusOrScroll(const Running& s) {
 	const bool focus = s.step.contains("focus");
-	std::string id = text(s.value(s.step[focus ? "focus" : "scrollTo"], s.where));
-	if(id.starts_with('#')) id.erase(0, 1);
+	std::string path = text(s.value(s.step[focus ? "focus" : "scrollTo"], s.where));
 	Engine& engine = s.steps.engine();
 	if(!engine.window) return;
 	if(!focus) {
-		scrollLater(engine, id, 2);
+		scrollLater(engine, path, 2);
 		return;
 	}
-	engine.events.focusStep(std::move(id));
+	engine.events.focusStep(std::move(path));
 }
 
 /// @brief "navigate": shows a screen of "screens" in the outlets, or "back".

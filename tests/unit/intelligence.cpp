@@ -1,14 +1,14 @@
 /// @file
-/// @brief The examples' intelligence (examples/shared/intelligence): the settings file never holds a key and is its
+/// @brief The intelligence module (modules/intelligence): the settings file never holds a key and is its
 /// user's only, the providers' requests and answers have their APIs' shapes, failures say no secret, the screen
 /// queries find what an agent needs, and the settings' natives keep keys in the secret store.
 
 #include "Headless.hpp"
 
-#include "intelligence/ClaudeCode.hpp"
-#include "intelligence/Intelligence.hpp"
-#include "intelligence/Providers.hpp"
-#include "intelligence/ScreenQueries.hpp"
+#include <affresco/intelligence/ClaudeCode.hpp>
+#include <affresco/intelligence/Intelligence.hpp>
+#include <affresco/intelligence/Providers.hpp>
+#include <affresco/intelligence/ScreenQueries.hpp>
 
 #include <affresco/affresco.hpp>
 #include <affresco/services/Grants.hpp>
@@ -32,7 +32,7 @@
 #endif
 
 using affresco::json;
-namespace intelligence = examples::intelligence;
+namespace intelligence = affresco::intelligence;
 namespace network = affresco::network;
 
 namespace {
@@ -277,7 +277,7 @@ TEST_CASE("intelligence: the screen queries give the outline, a node, a search a
 	      std::string::npos);
 	CHECK(intelligence::formatGuide(guide, "revisions")->find("Edits.") != std::string::npos);
 	CHECK_FALSE(intelligence::formatGuide(guide, "nothing").has_value());
-	CHECK(intelligence::readFormatGuide().find("## Live screens") != std::string::npos);
+	CHECK(intelligence::readFormatGuide(AFFRESCOUI_EXAMPLES_ASSETS).find("## Live screens") != std::string::npos);
 }
 
 namespace {

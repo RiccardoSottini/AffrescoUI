@@ -138,6 +138,14 @@ struct Report {
 /// @return How each went.
 [[nodiscard]] Report run(const ScenarioFile& file, const Options& options);
 
+/// @brief The document of a screen file as the host opens it: an app's entry screen (an app.json beside it names it:
+/// Screen::appOf()) with its app's themes, models and seed records merged in (Screen::fromApp(), keeping nothing on
+/// disk); any other screen as written. Scenarios play it, and `affrescoui render` draws it.
+/// @param screen The screen file.
+/// @return Its document, as JSON text.
+/// @throws std::runtime_error If it can't be read; ScreenError if its app's files can't be read or aren't valid.
+[[nodiscard]] std::string screenDocument(const std::filesystem::path& screen);
+
 /// @brief Loads a screen connected to nobody: its channels, its includes' too, are pointed at one socket in a folder
 /// that is never created. A channel's own path can be absolute, and would then reach a running host's socket (its
 /// studio.sock, a reviewer's) and send it whatever the screen's `open` handler says. Scenarios play on such a screen,

@@ -32,6 +32,12 @@ struct Followers {
 /// @return Them.
 [[nodiscard]] Followers followersOf(const Running& s);
 
+/// @brief Whether the host refuses the screen the open and save dialogs (Runtime::allowFileDialogs()): if so, says
+/// so as information and runs the step's "onError" with error {code "notAllowed", message}.
+/// @param s The step.
+/// @return true if it does.
+[[nodiscard]] bool dialogRefused(const Running& s);
+
 /// @brief A name the save dialog may suggest: the document's text without separators, control characters or the
 /// characters file systems refuse, at most 120 bytes.
 /// @param text The document's name for it.

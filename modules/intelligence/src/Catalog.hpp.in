@@ -1,0 +1,17 @@
+#pragma once
+
+/// @file
+/// @brief The catalogue of providers built into the library (made from providers.json by CMakeLists.txt: edit that,
+/// not this).
+
+#include <string_view>
+
+namespace affresco::intelligence {
+
+/// @brief providers.json's text.
+/// @return It.
+constexpr std::string_view standardCatalog() noexcept {
+	return R"catalog(@AFFRESCOUI_PROVIDERS_JSON@)catalog";
+}
+
+} // namespace affresco::intelligence

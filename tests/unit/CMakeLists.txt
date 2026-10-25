@@ -31,7 +31,7 @@ target_include_directories(affrescoui_unit_tests PRIVATE $<TARGET_PROPERTY:affre
 	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src
 	${PROJECT_SOURCE_DIR}/modules/automation/src ${PROJECT_SOURCE_DIR}/modules/net/src
 	${PROJECT_SOURCE_DIR}/modules/services/src ${affrescoui_forge_dir}
-	${PROJECT_SOURCE_DIR}/examples/shared) # Templates.hpp
+	${PROJECT_SOURCE_DIR}/apps/shared) # Templates.hpp
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/shared/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
@@ -60,9 +60,8 @@ endif()
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_MODELLO_SAMPLES="${PROJECT_SOURCE_DIR}/examples/modello/samples")
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/examples/shared)
-# intelligence*.cpp test the examples' providers, settings and agent (examples/shared/intelligence)
-list(TRANSFORM AFFRESCOUI_INTELLIGENCE_SOURCES PREPEND ${PROJECT_SOURCE_DIR}/ OUTPUT_VARIABLE affrescoui_intelligence)
-target_sources(affrescoui_unit_tests PRIVATE ${affrescoui_intelligence})
+# intelligence*.cpp test the providers, settings and agent (modules/intelligence)
+target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::intelligence)
 target_compile_definitions(affrescoui_unit_tests PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${PROJECT_SOURCE_DIR}/examples")
 add_test(NAME unit COMMAND affrescoui_unit_tests WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 

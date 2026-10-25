@@ -194,10 +194,6 @@
 			{ "name": "Good night", "key": "night", "action": "sceneNight", "icon": "moon" }
 		],
 		"energyView": "day",
-		"energy": [
-			{ "day": "Mon", "kwh": 62 }, { "day": "Tue", "kwh": 55 }, { "day": "Wed", "kwh": 71 }, { "day": "Thu", "kwh": 48 },
-			{ "day": "Fri", "kwh": 66 }, { "day": "Sat", "kwh": 83 }, { "day": "Sun", "kwh": 58 }
-		],
 		"deviceEnergy": [
 			{ "id": "heating", "kwh": 180 }, { "id": "kitchen", "kwh": 92 }, { "id": "lights", "kwh": 46 },
 			{ "id": "media", "kwh": 31 }, { "id": "vacuum", "kwh": 9 }, { "id": "other", "kwh": 85 }
@@ -228,9 +224,9 @@
 		"themeNow": "{{state.theme == 'auto' ? window.colorScheme : state.theme}}",
 		"room": "{{state.rooms[state.room]}}",
 		"lightsOn": "{{count(computed.room.lights, it.on)}}",
-		"energyTotal": "{{sum(state.energy, it.kwh)}}",
-		"peakDay": "{{sort(state.energy, it.kwh, 'desc')[0].day}}",
-		"weekValues": "{{map(state.energy, it.kwh)}}",
+		"energyTotal": "{{sum(data.energy, it.kwh)}}",
+		"peakDay": "{{sort(data.energy, it.kwh, 'desc')[0].day}}",
+		"weekValues": "{{map(data.energy, it.kwh)}}",
 		"deviceValues": "{{map(state.deviceEnergy, it.kwh)}}",
 		"today": "{{fixed(sum(state.hourly), 1)}}",
 		"peakHour": "{{indexOf(state.hourly, max(state.hourly))}}",

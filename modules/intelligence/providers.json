@@ -1,0 +1,71 @@
+{
+	"note": "The providers of intelligence a host's assistant can use (Intelligence.hpp), built into the library: data, not code. kind says how one is spoken to: anthropic (the Messages API), openai (Chat Completions), openai-compatible (Chat Completions at a base URL the person gives) or claude-code (the person's own Claude Code command line, run with no tools). models are the fallback when the live list can't be read (description: one line per language on when to use it); with fixedModels the list is the whole choice (a model saved that isn't in it gives model, the default). No key is ever kept here or in intelligence.json: keys go to the system's keychain.",
+	"providers": [
+		{
+			"id": "anthropic", "shown": false,
+			"name": "Anthropic (Claude)",
+			"kind": "anthropic",
+			"baseUrl": "https://api.anthropic.com",
+			"needsKey": true,
+			"keyHelp": "https://console.anthropic.com/settings/keys",
+			"model": "claude-sonnet-5-5",
+			"models": [
+				{ "id": "claude-opus-5-5", "name": "Claude Opus 5.5" },
+				{ "id": "claude-sonnet-5-5", "name": "Claude Sonnet 5.5" },
+				{ "id": "claude-haiku-5-5", "name": "Claude Haiku 5.5" },
+				{ "id": "claude-fable-5-1", "name": "Claude Fable 5.1" }
+			]
+		},
+		{
+			"id": "openai", "shown": false,
+			"name": "OpenAI",
+			"kind": "openai",
+			"baseUrl": "https://api.openai.com/v1",
+			"needsKey": true,
+			"keyHelp": "https://platform.openai.com/api-keys",
+			"model": "gpt-5",
+			"models": [
+				{ "id": "gpt-5", "name": "GPT-5" },
+				{ "id": "gpt-5-mini", "name": "GPT-5 mini" }
+			]
+		},
+		{
+			"id": "openai-compatible", "shown": false,
+			"name": "OpenAI-compatible server",
+			"kind": "openai-compatible",
+			"baseUrl": "http://127.0.0.1:11434/v1",
+			"needsKey": false,
+			"keyHelp": "https://ollama.com/download",
+			"model": "",
+			"models": []
+		},
+		{
+			"id": "claude-code",
+			"name": "Claude Code",
+			"kind": "claude-code",
+			"baseUrl": "",
+			"needsKey": false,
+			"keyHelp": "https://claude.com/claude-code",
+			"model": "sonnet",
+			"fixedModels": true,
+			"models": [
+				{ "id": "sonnet", "name": "Claude Sonnet 5.5", "description": {
+					"en": "Fast and strong at editing screens: the best for most asks.",
+					"es": "Rápido y bueno editando pantallas: el mejor para casi todo.",
+					"fr": "Rapide et doué pour modifier les écrans : le meilleur pour presque tout." } },
+				{ "id": "opus", "name": "Claude Opus 5.5", "description": {
+					"en": "Deeper reasoning, for harder and longer changes.",
+					"es": "Razona más a fondo, para cambios difíciles y largos.",
+					"fr": "Raisonne plus en profondeur, pour les changements longs et difficiles." } },
+				{ "id": "fable", "name": "Claude Fable 5.1", "description": {
+					"en": "The most capable, for the hardest asks; the slowest.",
+					"es": "El más capaz, para lo más difícil; el más lento.",
+					"fr": "Le plus capable, pour le plus difficile ; le plus lent." } },
+				{ "id": "haiku", "name": "Claude Haiku 5.5", "description": {
+					"en": "The fastest, for quick small changes.",
+					"es": "El más rápido, para cambios pequeños y rápidos.",
+					"fr": "Le plus rapide, pour les petits changements rapides." } }
+			]
+		}
+	]
+}

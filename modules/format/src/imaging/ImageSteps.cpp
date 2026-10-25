@@ -58,6 +58,8 @@ std::optional<bool> runImageStep(const Running& s) {
 			if(!bytes || info == assets.end()) throw DocumentError("No asset '" + asset.substr(0, 100) + "'");
 			if(!info->type.starts_with("image/")) throw DocumentError("'" + asset + "' isn't a picture");
 			editing::openAsset(image, info->type, *bytes);
+		} else if((operation == "open" || operation == "save") && !engine.fileDialogsAllowed) {
+			throw DocumentError("the host doesn't let this screen show file dialogs (its app's \"files\" capability)");
 		} else {
 			found->run(image, with, engine.window);
 		}

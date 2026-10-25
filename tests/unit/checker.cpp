@@ -7,6 +7,7 @@
 #include "Helpers.hpp"
 #include "Templates.hpp"
 
+#include <affresco/Screen.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
 
@@ -112,6 +113,13 @@ json screenTemplate(const std::string& name) {
 							document[section].push_back(entry);
 		}
 		document.erase("include");
+	}
+	// An app's models and queries (its app.json's "data") are merged when the host opens it, as Screen::fromApp does
+	if(const std::filesystem::path app = directory / "app.json"; std::filesystem::exists(app)) {
+		const json opened =
+		    json::parse(affresco::Screen::fromApp(app, {}, affresco::Screen::History::InMemory).documentJson());
+		for(const char* section : {"models", "queries"})
+			if(opened.contains(section)) document[section] = opened[section];
 	}
 	return document;
 }
