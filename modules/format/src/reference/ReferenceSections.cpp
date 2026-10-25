@@ -75,17 +75,8 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"decrease": {"type": "string"}}}, "wordPattern": {"type": "string"},
 		"patterns": {"type": "array", "items": {"type": "object"}},
 		"repository": {"type": "object", "additionalProperties": {"type": "object"}}}}})json",
-	 "`name → language`: the code languages an editor's `language` names (by name, alias or file name). Each has "
-	 "`title`, `aliases`, `files` (`[\"*.py\", \"CMakeLists.txt\"]`), `comments` (`{ \"line\": \"//\", \"block\": "
-	 "[\"/*\", \"*/\"] }`), `brackets` and `pairs` (`[[\"(\", \")\"], ...]`: Enter between brackets indents, typing "
-	 "an opener of a pair adds its closer), `indent` (`{ \"increase\": regex, \"decrease\": regex }`), "
-	 "`wordPattern` (regex), and TextMate-style `patterns` with a `repository`: `{ \"match\": regex, \"scope\": "
-	 "\"keyword\" }`, `{ \"begin\": regex, \"end\": regex, \"scope\", \"contentScope\", \"patterns\" }` (an `end` may "
-	 "use the begin's groups, `\\1`), `captures` / `beginCaptures` / `endCaptures` (`{ \"1\": { \"scope\": "
-	 "\"type\" } }`) and `{ \"include\": \"#name\" }` or `\"$self\"`. A scope is coloured by `@syntax.<scope>`, or "
-	 "its parent's (`keyword.control` by `@syntax.keyword`). Regular expressions are PCRE2, each find limited in "
-	 "steps and each line in time; a language has at most 2,048 rules. Ready-made languages are data files to "
-	 "`include` (`examples/shared/languages/`).",
+	 "`name → language`: the code languages an editor's `language` names (by name, alias or file name): their "
+	 "patterns, scopes and editing rules (see Code languages).",
 	 "sections"},
     {"colors", R"json({"type": "object",
 		"description": "Named colors (\"@name\"), or per theme: {\"light\": ..., \"dark\": ...}",
@@ -377,88 +368,89 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "worker thread: "
 	 "`\"loading\": \"state.busy\"` is true while it runs, `\"progress\": \"state.done\"` goes from 0 to 1, partial "
 	 "results stream into `into`, `\"timeout\": 5000` ends it with the error `timeout`, `then` runs with `result`",
-	 "steps"},
+	 "outsideSteps"},
     {"cancel", "", R"(`{ "cancel": "search" }`: stop the running slow calls of a function; they change nothing more)",
-	 "steps"},
+	 "outsideSteps"},
     {"invoke", "",
 	 "`{ \"invoke\": \"files.read\", \"with\": {\"path\": \"a.txt\"}, \"into\": \"state.text\" }`: a method of "
 	 "a declared service, answered later; `loading`, `progress`, `timeout` (ms, default 30000), `id` (a new call with "
 	 "the same id cancels it), `onDone` with `result`, `onError` with `error` (`{code, message, data}`); a stream's "
 	 "events go to `append` (the last `keep`) or run `onEvent` once per event, with it as `event`",
-	 "steps"},
+	 "outsideSteps"},
     {"request", "",
 	 "`{ \"request\": \"api.getProject\", \"with\": {\"id\": \"{{state.id}}\"}, \"into\": \"state.project\", "
 	 "\"loading\": \"state.busy\" }`: an operation (or a WebSocket message) of a declared connection, built from its "
 	 "declaration; the keys of `invoke`, with `error` as `{code, message, status, body}`. In a preview only a read "
 	 "without a `mock` reaches the server: the others answer with their mock, or fail with `preview`",
-	 "steps"},
+	 "outsideSteps"},
     {"subscribe", "",
 	 "`{ \"subscribe\": \"build.output\", \"append\": \"state.log\", \"keep\": 500, \"id\": \"build\" }`: a "
 	 "stream of a declared service or connection until `cancel` or its node goes; `do` runs once per event, with it "
 	 "as `event`",
-	 "steps"},
+	 "outsideSteps"},
     {"respond", "",
 	 "`{ \"respond\": \"{{state.answer}}\" }` or `{ \"respond\": null, \"error\": \"no\" }`: answers the "
 	 "service request that ran the action `service:method` (its `request`); a control step",
-	 "steps"},
+	 "outsideSteps"},
     {"signIn", "",
 	 "`{ \"signIn\": \"api\", \"onDone\": [...], \"onError\": [...] }`: signs in to the provider a connection's "
 	 "`auth` declares (OAuth 2: the browser with PKCE, or a device code), then its requests carry the token. The "
 	 "token never reaches the document or the state: the `auth` variable shows `{state, account, expires}`, and "
 	 "`error` in `onError` is `{code, message}`. A control step",
-	 "steps"},
-    {"signOut", "", R"(`{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step)", "steps"},
+	 "outsideSteps"},
+    {"signOut", "", R"(`{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step)",
+	 "outsideSteps"},
     {"chooseFolder", "",
 	 "`{ \"chooseFolder\": \"workspace\", \"onDone\": [...] }`: after the event, "
 	 "the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again "
 	 "on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control "
 	 "step",
-	 "steps"},
+	 "outsideSteps"},
     {"saveFile", "",
 	 "`{ \"saveFile\": \"{{state.deck}}\", \"name\": \"{{state.deck.title}}.json\", \"onDone\": [...] }`: after the "
 	 "event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. "
 	 "`result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control "
 	 "step",
-	 "steps"},
+	 "outsideSteps"},
     {"openFile", "",
 	 "`{ \"openFile\": \"state.deck\", \"extensions\": [\"json\"], \"onDone\": [...] }`: after the event, "
 	 "reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is "
 	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `\"comments\": "
 	 "true` it also reads the comments and trailing commas settings and theme files have. A control step",
-	 "steps"},
+	 "outsideSteps"},
     {"export", "",
 	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
 	 "draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, "
 	 "else each node's own), or `\"png\"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good "
 	 "pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step",
-	 "steps"},
+	 "outsideSteps"},
     {"runInTerminal", "",
 	 "`{ \"runInTerminal\": \"t1\", \"text\": \"make\" }`: types the line (at most 64 KiB) and a newline into the "
 	 "session of a `terminal` node, once a node first shows it if none has yet. A control step",
-	 "steps"},
+	 "outsideSteps"},
     {"clearTerminal", "",
 	 "`{ \"clearTerminal\": \"t1\" }`: clears a terminal session's scrollback and asks its program to redraw. A "
 	 "control step",
-	 "steps"},
+	 "outsideSteps"},
     {"closeTerminal", "",
 	 R"(`{ "closeTerminal": "t1" }`: ends a terminal session's program and forgets the session. A control step)",
-	 "steps"},
-    {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
-    {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
-    {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
+	 "outsideSteps"},
+    {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "outsideSteps"},
+    {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "outsideSteps"},
+    {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "outsideSteps"},
     {"ask", "",
 	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: asks the agents in plain words, with "
 	 "`options` (an object) passed on to them; replies run `ask:reply`, never as the person's decision (Asking the "
 	 "agents). A control step",
-	 "steps"},
+	 "outsideSteps"},
     {"cancelAsk", "",
 	 "`{ \"cancelAsk\": \"{{state.asked}}\" }`: stops requests of `ask` still in progress (an id or a list): they "
 	 "become `cancelled`, the agents are told, and their later replies are dropped. A control step",
-	 "steps"},
+	 "outsideSteps"},
     {"attach", "",
 	 "`{ \"attach\": { \"accept\": [\"audio/*\"] }, \"into\": \"state.files\" }`: the person's files as "
 	 "attachments (Assets). A control step",
-	 "steps"},
+	 "outsideSteps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
     {"focus", "",
