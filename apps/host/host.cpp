@@ -1,9 +1,20 @@
 /// @file
-/// @brief affrescoui_launcher: shows a screen file and lets other programs change it while it runs.
+/// @brief affrescoui_launcher: runs an app, a folder of files with an app.json, and lets other programs change it
+/// while it runs.
 //
-//   affrescoui_launcher [file.screen.json] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
+//   affrescoui_launcher [APP] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
 //               [--plugin changes.json ...] [--usage] [--folder DIR] [--allow NAME[=PROGRAM ARG...] ...] [--ask TEXT]
-//               [--apps DIR]
+//               [--apps DIR] [--grant KEY ...]
+//   affrescoui_launcher --permissions APP
+//
+// APP is an app's folder, its app.json, or a screen file (SCREEN_FORMAT.md, "Apps: app.json"): a screen that is the
+// entry of the app in its folder opens that app; any other is opened bare, and its manifest declares what it uses.
+// The app's history, state and data are kept by its id in --data DIR (default $AFFRESCOUI_DATA_DIR, else
+// ~/.affrescoui): <DIR>/apps/<id>. It may use nothing its app.json declares (connections' origins, folders,
+// programs, sound) until the person allows it: the host asks in a window of its own the first time, for this app only,
+// and remembers the answer (<DIR>/apps/<id>/grants.json); --permissions APP forgets it. --grant KEY allows one for
+// this run ("network:https://api.example.com", "folder:workspace:write", "program:git", "audio"); a screenshot asks
+// nothing, and allows only those. What the screen uses and the manifest doesn't declare is never allowed.
 //
 // The window only renders: it has no idea where changes come from. Programs connect over two local sockets in DIR
 // (default $AFFRESCOUI_SOCKET_DIR, else /tmp/affrescoui-<uid>, or %LOCALAPPDATA%\affrescoui\sockets on Windows):
@@ -18,13 +29,12 @@
 // AFFRESCOUI_PROVIDERS=all lets the agent use the providers the Launcher's Settings hide.
 // --ask TEXT opens the assistant and sends TEXT as the person's first request once the window is up.
 // What each author may do is up to the screen's "permissions"; --auto-accept is --mode acceptEdits, for this run only.
-// The screen's history and "persist" state are kept in --data DIR (default $AFFRESCOUI_DATA_DIR, else ~/.affrescoui),
-// and a plugin is applied once: the history remembers it.
+// A plugin is applied once: the history remembers it.
 // --usage counts how the screen is used (VERSION_CONTROL.md, "Usage"), on this device and only once the person agreed,
-// asked once on the terminal. A screen's services may use the folder "workspace": --folder DIR, or the one the person
-// chooses in its folder dialog (the chooseFolder step); --allow grants them a program: a name on the PATH, "shell" (the
-// login shell) or "git" (the source control commands only), or NAME=PROGRAM ARG...
-// Without a file, the host opens the Launcher (examples/launcher), which lists the apps and opens them, and grants it
+// asked once on the terminal. --folder DIR gives the services the folder "workspace" without asking; --allow grants
+// them a program: a name on the PATH, "shell" (the login shell) or "git" (the source control commands only), or
+// NAME=PROGRAM ARG...
+// Without an app, the host opens the Launcher (examples/launcher), which lists the apps and opens them, and grants it
 // what it needs (grantLauncher()): the examples folder to read, the person's apps folder ("apps": --apps DIR, else
 // AffrescoUI in the home folder) and the sibling programs, each app opened with --data DIR and a socket folder of its
 // own in DIR. Every template has a folder in examples (examples/README.md): the Kanban board is examples/flow.
@@ -32,14 +42,17 @@
 #include "Assets.hpp"
 #include "CodeEditor.hpp"
 #include "intelligence/Intelligence.hpp"
+#include "Permissions.hpp"
 #include "SocketDir.hpp"
 #include "tempo/Visualiser.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
+#include <affresco/format/App.hpp>
 #include <affresco/format/Locale.hpp>
 #include <affresco/services/Grants.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 #include <format>
 #include <fstream>
@@ -131,11 +144,86 @@ void applyPlugins(affresco::Screen& screen, const std::vector<std::string>& plug
 	}
 }
 
-/// @brief The screen file to show.
-/// @param given The file on the command line, or "".
-/// @return It, or the Launcher.
-std::filesystem::path screenFile(const std::string& given) {
-	return given.empty() ? assetsDirectory() / "launcher" / "index.screen.json" : std::filesystem::path(given);
+/// @brief What the host opens.
+struct Opened {
+	std::filesystem::path location;         ///< The app's folder, or a bare screen file.
+	bool app = false;                       ///< An app, with its app.json: opened with Screen::fromApp().
+	affresco::format::AppManifest manifest; ///< Its manifest; a bare screen's is manifestOf() its file.
+	std::filesystem::path entry;            ///< Its screen file.
+	std::vector<std::string> undeclared;    ///< The capabilities its screen uses that its manifest doesn't declare.
+};
+
+/// @brief Whether a screen file is the entry of the app in its folder (an app.json there that names it), so opening
+/// the file opens the app. A damaged app.json counts, so that opening it says what is wrong.
+/// @param file The file.
+/// @return Whether it is.
+bool isAppEntry(const std::filesystem::path& file) {
+	const std::filesystem::path manifest = file.parent_path() / "app.json";
+	std::error_code error;
+	if(!std::filesystem::is_regular_file(manifest, error)) return false;
+	try {
+		if(std::filesystem::file_size(manifest) > affresco::format::maxAppManifestBytes) return true;
+		const affresco::format::AppManifest app =
+		    affresco::format::parseApp(affresco::json::parse(std::ifstream(manifest)));
+		return std::filesystem::equivalent(file.parent_path() / app.entry, file, error);
+	} catch(const std::exception&) {
+		return true;
+	}
+}
+
+/// @brief The name a bare screen file is known by: its name without ".screen.json", or its folder's for an index.
+/// @param file The file.
+/// @return The name.
+std::string screenName(const std::filesystem::path& file) {
+	std::string name = file.filename().string();
+	if(name.ends_with(".screen.json")) name.resize(name.size() - std::string_view(".screen.json").size());
+	else if(name.ends_with(".json")) name.resize(name.size() - std::string_view(".json").size());
+	return name == "index" ? std::filesystem::absolute(file).parent_path().filename().string() : name;
+}
+
+/// @brief Reads a bare screen file as fromString() does, keeping nothing on disk.
+/// @param file The file.
+/// @return The screen.
+/// @throws affresco::ScreenError If it can't be read, or isn't a screen.
+affresco::Screen bareScreen(const std::filesystem::path& file) {
+	std::ifstream in(file, std::ios::binary);
+	if(!in)
+		throw affresco::ScreenError("AffrescoUI screen: could not open " + std::filesystem::absolute(file).string());
+	const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+	return affresco::Screen::fromString(text, file.parent_path());
+}
+
+/// @brief Finds what to open and reads what it asks for, keeping nothing on disk: an app's folder or its app.json, a
+/// screen that is its folder's app's entry (both opened as the app), or a bare screen, whose manifest declares what it
+/// uses. With nothing given, the Launcher.
+/// @param given The command line's file, or "".
+/// @return What to open.
+/// @throws affresco::ScreenError If it can't be read.
+Opened locate(const std::string& given) {
+	namespace fs = std::filesystem;
+	fs::path path = given.empty() ? assetsDirectory() / "launcher" : fs::path(given);
+	if(path.filename() == "app.json") path = path.parent_path();
+	Opened opened;
+	std::error_code error;
+	opened.app = fs::is_directory(path, error) || isAppEntry(path);
+	opened.location = opened.app && !fs::is_directory(path, error) ? path.parent_path() : path;
+	affresco::setLogSink([](affresco::LogLevel, std::string_view) {}); // the screen's findings show when it opens
+	try {
+		const affresco::Screen check =
+		    opened.app ? affresco::Screen::fromApp(opened.location, {}) : bareScreen(path); // nothing kept on disk
+		affresco::setLogSink({});
+		const affresco::json document = affresco::json::parse(check.documentJson());
+		const std::string name = screenName(path);
+		opened.manifest = opened.app ? *check.app()
+		                             : affresco::format::manifestOf(affresco::format::appId(name), name,
+		                                                            path.filename().string(), document);
+		opened.undeclared = affresco::format::undeclaredCapabilities(opened.manifest, document);
+	} catch(...) {
+		affresco::setLogSink({});
+		throw;
+	}
+	opened.entry = opened.app ? opened.location / opened.manifest.entry : path;
+	return opened;
 }
 
 /// @brief Whether this is a plain screenshot run (AFFRESCOUI_SCREENSHOT without AFFRESCOUI_SCREENSHOT_AFTER), which
@@ -158,6 +246,8 @@ struct Options {
 	std::vector<std::string> allowed; ///< The programs granted (Grants.hpp's specs).
 	std::string ask;                  ///< The person's first request to the assistant, or "".
 	std::filesystem::path apps;       ///< The Launcher's apps folder; empty for AffrescoUI in the home folder.
+	std::vector<std::string> grants;  ///< Capabilities allowed for this run, by key (--grant).
+	std::string forget;               ///< The app whose decisions to forget (--permissions), or "".
 };
 
 /// @brief Reads one argument of the command line.
@@ -186,6 +276,8 @@ int readArgument(Options& options, std::string_view arg, const char* value) {
 	else if(arg == "--allow") options.allowed.emplace_back(value);
 	else if(arg == "--ask") options.ask = value;
 	else if(arg == "--apps") options.apps = value;
+	else if(arg == "--grant") options.grants.emplace_back(value);
+	else if(arg == "--permissions") options.forget = value;
 	else if(arg == "--mode" && affresco::modeFromString(value)) options.mode = affresco::modeFromString(value);
 	else return 0;
 	return 2;
@@ -202,7 +294,8 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 		if(taken == 0) {
 			std::cerr << "usage: affrescoui_launcher [file.screen.json] [--socket DIR] [--data DIR] "
 			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json] [--usage] "
-			             "[--folder DIR] [--allow NAME[=PROGRAM ARG...]] [--ask TEXT] [--apps DIR]\n";
+			             "[--folder DIR] [--allow NAME[=PROGRAM ARG...]] [--ask TEXT] [--apps DIR] [--grant KEY]\n"
+			             "       affrescoui_launcher --permissions APP\n";
 			return std::nullopt;
 		}
 		i += taken;
@@ -300,14 +393,69 @@ void grantLauncher(affresco::Screen& screen, const Options& options) {
 		throw std::runtime_error("the Launcher's programs: " + *refused);
 }
 
-/// @brief Lets a screen that declares sounds (its "audio" section, which revisions can't add) play them on the system's
-/// output; other screens open no audio device. A screenshot plays nothing ($AFFRESCOUI_AUDIO_OUTPUT=null plays to no
-/// hardware, for tests).
-/// @param screen The screen.
-/// @param screenshotOnly Whether this run only takes a picture.
-void enableAudio(affresco::Screen& screen, bool screenshotOnly) {
-	if(screenshotOnly || !screen.versions().document().contains("audio")) return;
-	static_cast<void>(screen.audio()); // nullptr in a build without audio: its steps then say so
+/// @brief Decides what the app may use: what the person decided before, and, when @p ask, what the person answers
+/// now about the rest (asked in a window, remembered), and --grant for this run. A capability its manifest doesn't
+/// declare is never allowed, and said so.
+/// @param opened The app.
+/// @param options The command line.
+/// @param ask Whether the person can be asked (not in a screenshot).
+/// @return The keys allowed.
+/// @throws std::runtime_error If --grant names a capability the app doesn't declare, or the decisions can't be kept.
+host::Allowed decide(const Opened& opened, const Options& options, bool ask) {
+	const affresco::format::AppManifest& app = opened.manifest;
+	for(const std::string& key : opened.undeclared)
+		std::cerr << "affrescoui_launcher: " << app.id << " uses " << key << ", which its app.json doesn't declare: it "
+		          << "isn't allowed\n";
+	const auto declared = [&](std::string_view key) {
+		return std::ranges::any_of(app.capabilities, [&](const auto& capability) { return capability.key() == key; });
+	};
+	for(const std::string& key : options.grants)
+		if(!declared(key)) throw std::runtime_error("--grant " + key + ": not a capability " + app.id + " declares");
+	const std::filesystem::path file = host::grantsFile(options.dataDir, app.id);
+	host::Decisions decisions = host::loadDecisions(file);
+	std::vector<affresco::format::AppCapability> asked;
+	for(const affresco::format::AppCapability& capability : app.capabilities)
+		if(!decisions.contains(capability.key()) &&
+		   std::ranges::find(options.grants, capability.key()) == options.grants.end())
+			asked.push_back(capability);
+	if(ask && !asked.empty()) {
+		host::Decisions answered =
+		    host::askPerson(app, asked, assetsDirectory() / "shared" / "host" / "permissions.screen.json");
+		if(!answered.empty()) {
+			decisions.merge(answered);
+			host::saveDecisions(file, decisions);
+		}
+	}
+	host::Allowed allowed(options.grants.begin(), options.grants.end());
+	for(const auto& [key, yes] : decisions)
+		if(yes && declared(key)) allowed.insert(key);
+	return allowed;
+}
+
+/// @brief Forgets what the person decided about an app (--permissions): it asks again the next time it opens.
+/// @param options The command line.
+/// @return The exit status.
+/// @throws std::exception If the app can't be read.
+int forgetPermissions(const Options& options) {
+	const Opened opened = locate(options.forget);
+	std::filesystem::remove(host::grantsFile(options.dataDir, opened.manifest.id));
+	std::cout << "affrescoui_launcher: " << opened.manifest.name << " asks again for what it uses when it opens\n";
+	return EXIT_SUCCESS;
+}
+
+/// @brief Opens the app's screen, with its history, state and data in the data folder.
+/// @param opened The app.
+/// @param options The command line.
+/// @param history Where its history is kept.
+/// @return The screen.
+/// @throws affresco::ScreenError If it can't be opened.
+affresco::Screen openScreen(const Opened& opened, const Options& options, affresco::Screen::History history) {
+	affresco::Screen screen = opened.app ? affresco::Screen::fromApp(opened.location, options.dataDir, history)
+	                                     : affresco::Screen::fromFile(opened.location, options.dataDir, history);
+	screen.setPlaceholderTypes(true);            // custom types of other apps show as plain panels
+	examples::registerCodeEditor(screen);        // the Forge template's "code" type (application layer)
+	examples::tempo::registerVisualiser(screen); // the Tempo template's visualiser surface
+	return screen;
 }
 
 /// @brief Shows the screen and lets peers change it, until the window closes.
@@ -315,17 +463,18 @@ void enableAudio(affresco::Screen& screen, bool screenshotOnly) {
 /// @return The exit status.
 /// @throws std::exception If the screen, a plugin or a socket can't be opened.
 int run(const Options& options) {
-	affresco::Application app;
-	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
 	// A plain screenshot run shows the file as it is, so it neither loads nor writes the screen's history
 	const bool screenshotOnly = firstFrameOnly();
+	const Opened opened = locate(options.file);
+	// The Launcher is the host's own: it gets what it uses (grantLauncher()); an app what the person allows, asked
+	// before its window opens, and never in a screenshot
+	const host::Allowed allowed =
+	    options.file.empty() ? host::Allowed() : decide(opened, options, !environmentHas("AFFRESCOUI_SCREENSHOT"));
+	affresco::Application app;
+	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
 	using History = affresco::Screen::History;
-	affresco::Screen screen = affresco::Screen::fromFile(screenFile(options.file), options.dataDir,
-	                                                     screenshotOnly ? History::InMemory : History::OnDisk);
-	screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
-	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
-	examples::tempo::registerVisualiser(screen); // the Tempo template's visualiser surface
-	screen.services().allowChosenRoot("workspace");
+	affresco::Screen screen = openScreen(opened, options, screenshotOnly ? History::InMemory : History::OnDisk);
+	host::applyGrants(screen, opened.manifest, allowed, screenshotOnly);
 	if(!options.folder.empty()) screen.services().addRoot("workspace", options.folder);
 	for(const std::string& spec : options.allowed)
 		if(const auto refused = affresco::services::grantProgram(screen.services(), spec))
@@ -336,11 +485,10 @@ int run(const Options& options) {
 	if(options.mode) screen.setModeForThisRun(*options.mode);
 	if(options.usage && !screenshotOnly) enableUsage(screen);
 	if(!screenshotOnly) screen.setLocale(affresco::format::systemLocale()); // screenshots stay in the default locale
-	enableAudio(screen, screenshotOnly);
 	affresco::Window& window = screen.createWindow(app);
 	if(!screenshotOnly) startAssistant(assistant, app, screen, window, options);
 	applyPlugins(screen, options.plugins);
-	checkScenariosForEvidence(screen, screenFile(options.file));
+	checkScenariosForEvidence(screen, opened.entry);
 
 #ifndef __EMSCRIPTEN__ // a browser tab has no local sockets to listen on (web/README.md)
 	if(!screenshotOnly) {
@@ -359,7 +507,8 @@ int run(const Options& options) {
 int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own signature
 	try {
 		const std::optional<Options> options = parseArguments(argc, argv);
-		return options ? run(*options) : 2;
+		if(!options) return 2;
+		return options->forget.empty() ? run(*options) : forgetPermissions(*options);
 	} catch(const std::exception& error) {
 		std::cerr << "affrescoui_launcher: " << error.what() << '\n';
 		return 1;

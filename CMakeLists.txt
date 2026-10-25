@@ -200,7 +200,7 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_options(affrescoui_intelligence PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_intelligence PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# affrescoui_launcher, the stock host: renders any screen and accepts peers; without a file it opens the Launcher
-	add_executable(affrescoui_launcher apps/host/host.cpp)
+	add_executable(affrescoui_launcher apps/host/host.cpp apps/host/Permissions.cpp)
 	target_sources(affrescoui_launcher PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
 	target_sources(affrescoui_launcher PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
 	target_link_libraries(affrescoui_launcher PRIVATE affrescoui_intelligence) # the assistant's providers

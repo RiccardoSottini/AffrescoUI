@@ -1,0 +1,9 @@
+{
+	"$schema": "../../schema/affrescoui-app.schema.json",
+	"format": "affrescoui-app",
+	"version": 1,
+	"id": "flow",
+	"name": "Flow",
+	"description": "A Kanban board: boards, swimlanes, a table and a timeline of every card.",
+	"entry": "index.screen.json"
+}

@@ -3,8 +3,8 @@
 
     affrescoui-<version>-<platform>/
         affrescoui, affrescoui_launcher                        (.exe on Windows)
-        assets/<folder>/, assets/shared/                   the templates' folders (examples/templates.json) and their
-                                                           fonts, as in examples/ without the C++ sources (the
+        assets/<folder>/, assets/shared/                   every app's folder (an examples/ folder with an app.json)
+                                                           and their fonts, as in examples/ without sources (the
                                                            programs look here when the source tree they were built
                                                            from isn't there), and SCREEN_FORMAT.md for the host's agent
         LICENSE, NOTICE, THIRD_PARTY_NOTICES.md, README.txt
@@ -16,7 +16,6 @@ version is the library's (check_version.py). Only the standard library is needed
 """
 
 import argparse
-import json
 import os
 import shutil
 import subprocess
@@ -52,12 +51,13 @@ def program(build, name, windows):
 
 
 def copy_assets(assets):
-    """The templates' folders and examples/shared, as the programs find them in examples/, without the C++ sources."""
-    with open(os.path.join(ROOT, "examples", "templates.json"), encoding="utf-8") as file:
-        folders = sorted(set(json.load(file)["templates"].values()))
+    """Every app's folder (an app.json in it: each opens in the stock host) and examples/shared, as the programs find
+    them in examples/, without the C++ sources and the tests' scripts."""
+    examples = os.path.join(ROOT, "examples")
+    folders = sorted(each for each in os.listdir(examples) if os.path.isfile(os.path.join(examples, each, "app.json")))
     for each in folders + ["shared"]:
-        shutil.copytree(os.path.join(ROOT, "examples", each), os.path.join(assets, each),
-                        ignore=shutil.ignore_patterns("*.cpp", "*.hpp"))
+        shutil.copytree(os.path.join(examples, each), os.path.join(assets, each),
+                        ignore=shutil.ignore_patterns("*.cpp", "*.hpp", "*.py"))
     # The host's own agent reads the format guide by topic (examples/shared/intelligence/ScreenQueries.hpp)
     shutil.copyfile(os.path.join(ROOT, "SCREEN_FORMAT.md"), os.path.join(assets, "SCREEN_FORMAT.md"))
 

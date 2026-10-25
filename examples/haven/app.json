@@ -1,0 +1,12 @@
+{
+	"$schema": "../../schema/affrescoui-app.schema.json",
+	"format": "affrescoui-app",
+	"version": 1,
+	"id": "haven",
+	"name": "Haven",
+	"description": "A smart-home dashboard: rooms, lights, climate, automations and energy.",
+	"entry": "index.screen.json",
+	"assets": [
+		"images"
+	]
+}

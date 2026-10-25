@@ -1,0 +1,13 @@
+{
+	"$schema": "../../schema/affrescoui-app.schema.json",
+	"format": "affrescoui-app",
+	"version": 1,
+	"id": "arcadia",
+	"name": "Arcadia",
+	"description": "A game launcher: a library of games, their pages, friends and news.",
+	"entry": "index.screen.json",
+	"assets": [
+		"art",
+		"covers"
+	]
+}
