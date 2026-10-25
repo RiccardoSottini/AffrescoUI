@@ -42,8 +42,8 @@
 			{ "run": "showPlay" }
 		],
 		"showPlay": [
-			{ "if": "{{max(map(filter(computed.showTimings, it.step == state.show.step), it.end)) > 0}}",
-			  "then": [{ "animate": "state.show.clock", "to": "{{max(map(filter(computed.showTimings, it.step == state.show.step), it.end))}}", "ms": "{{max(map(filter(computed.showTimings, it.step == state.show.step), it.end))}}", "easing": "linear" }],
+			{ "if": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end))) > 0}}",
+			  "then": [{ "animate": "state.show.clock", "to": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end)))}}", "ms": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end)))}}", "easing": "linear" }],
 			  "else": [{ "set": "state.show.clock", "to": 0 }] }
 		],
 		"showNext": [
