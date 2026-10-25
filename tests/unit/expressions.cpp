@@ -480,6 +480,18 @@ const std::vector<Case> cases = {
     {"{{hexColor('#12345')}}", nullptr, {}},
     {"{{hexColor('#gggggg')}}", nullptr, {}},
     {"{{hexColor(null)}}", nullptr, {}},
+    {"{{hexColor([0.8, 0.8, 0.8, 1])}}", "#ccccccff", {}},
+    {"{{hexColor([1, 0, 0.5])}}", "#ff0080", {}},
+    {"{{hexColor([2, -1, 0])}}", "#ff0000", {}},
+    {"{{hexColor([1, 0])}}", nullptr, {}},
+    {"{{hexColor([1, 'a', 0])}}", nullptr, {}},
+    {"{{colorList('#ccccccff')}}", J("[0.8, 0.8, 0.8, 1.0]"), {}},
+    {"{{colorList('#f00')}}", J("[1.0, 0.0, 0.0, 1]"), {}},
+    {"{{colorList('#12345680')}}", J("[0.0706, 0.2039, 0.3373, 0.502]"), {}},
+    {"{{hexColor(colorList('#12345680'))}}", "#12345680", {}},
+    {"{{colorList([0.8, 0.8, 0.8, 1])}}", J("[0.8, 0.8, 0.8, 1.0]"), {}},
+    {"{{colorList('red')}}", nullptr, {}},
+    {"{{colorList(null)}}", nullptr, {}},
     // Changes: a line diff's hunks without context, as a gutter marks them, and git's output read (its records end in
     // NULs; malformed output is null)
     {"{{map(diffLines('a\\nb\\nc\\nd\\n', 'a\\nB\\nc\\nd\\ne\\n', { context: 0 }).hunks, [it.oldStart, it.oldLines, "
