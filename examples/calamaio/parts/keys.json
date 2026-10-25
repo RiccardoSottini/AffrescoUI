@@ -1,5 +1,5 @@
 {
-	"note": "Calamaio's keys, written as the editor it follows binds them: C- is ctrl, M- is alt. The echo area shows them in that notation (window.keyLabels).",
+	"note": "Calamaio's keys: C- is ctrl, M- is alt. The echo area shows them in that letters notation (window.keyLabels).",
 	"keys": {
 		"ctrl+f": "forward-char",
 		"ctrl+b": "backward-char",
@@ -54,6 +54,25 @@
 		"ctrl+r": "isearch-backward",
 		"alt+shift+5": "query-replace",
 		"ctrl+x ctrl+w": "write-file",
-		"ctrl+x i": "insert-file"
+		"ctrl+x i": "insert-file",
+		"ctrl+k": "kill-line",
+		"alt+d": "kill-word",
+		"alt+backspace": "backward-kill-word",
+		"ctrl+shift+backspace": "kill-whole-line",
+		"ctrl+w": "kill-region",
+		"alt+w": "kill-ring-save",
+		"ctrl+y": "yank",
+		"alt+y": "yank-pop",
+		"ctrl+x h": "mark-whole-buffer",
+		"ctrl+x ctrl+x": "exchange-point-and-mark",
+		"ctrl+x ctrl+u": "upcase-region",
+		"ctrl+x ctrl+l": "downcase-region",
+		"alt+semicolon": "comment-line",
+		"ctrl+t": "transpose-chars",
+		"ctrl+o": "open-line",
+		"ctrl+x u": "undo",
+		"ctrl+x ctrl+b": "list-buffers",
+		"ctrl+x d": "dired",
+		"ctrl+c a": "assistant.toggle"
 	}
 }

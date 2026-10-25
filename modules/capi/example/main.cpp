@@ -245,10 +245,18 @@ void forwardInput(GLFWwindow* window) {
 	});
 }
 
+/// @brief Whether AFFRESCOUI_HIDDEN asks for hidden windows, read as affresco::hiddenWindowsRequested() reads it.
+/// @return true unless it is unset, empty or "0".
+bool hiddenRequested() {
+	const char* value = std::getenv("AFFRESCOUI_HIDDEN");
+	return value != nullptr && *value != '\0' && std::strcmp(value, "0") != 0;
+}
+
 /// @brief Opens the host's window with an OpenGL 4.1 core context, and loads its functions.
 /// @param hidden Whether to keep it hidden (a screenshot run).
 /// @return The window.
 GLFWwindow* openWindow(bool hidden) {
+	glfwInitHint(GLFW_COCOA_MENUBAR, hidden ? GLFW_FALSE : GLFW_TRUE); // hidden: no regular app, so not in the Dock
 	if(glfwInit() == GLFW_FALSE) {
 		std::fprintf(stderr, "embed: GLFW could not start\n");
 		std::exit(1);
@@ -321,7 +329,7 @@ int main(int count, char** arguments) { // NOLINT(misc-const-correctness): main'
 		Host host;
 		host.texture = count > 1 && std::strcmp(arguments[1], "--texture") == 0;
 		const char* screenshot = std::getenv("AFFRESCOUI_SCREENSHOT");
-		host.window = openWindow(screenshot != nullptr);
+		host.window = openWindow(screenshot != nullptr || hiddenRequested());
 		glfwSetWindowUserPointer(host.window, &host);
 		makeScene(host);
 		openScreen(host);

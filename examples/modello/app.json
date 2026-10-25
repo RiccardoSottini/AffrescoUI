@@ -7,6 +7,7 @@
 	"description": "A 3D modeller written only as screen documents.",
 	"entry": "index.screen.json",
 	"capabilities": {
+		"files": "Saves your scenes and opens them again, where you choose.",
 		"assistant": "Answers your questions about your models, with the assistant you set up in Settings."
 	},
 	"assets": [

@@ -270,6 +270,19 @@ TEST_CASE("tabs: a strip too narrow scrolls, and keeps the active tab in view") 
 	CHECK(fixture.tabs->scrollPosition() == 0.0f);
 }
 
+TEST_CASE("tabs: a gap before each tab moves them along, and the shape keys are clamped") {
+	TabsFixture fixture({"a", "b"});
+	fixture.tabs->setTabShape(6.0f, 10.0f, 4.0f);
+	fixture.window->render();
+	CHECK(fixture.tabs->tabAt({5.0f, 16.0f}) == 2); // the gap before the first tab
+	CHECK(fixture.tabs->tabAt({15.0f, 16.0f}) == 0);
+	CHECK(fixture.tabs->tabAt({10.0f + tabWidth + 5.0f, 16.0f}) == 2);
+	CHECK(fixture.tabs->tabAt({20.0f + tabWidth + 5.0f, 16.0f}) == 1);
+	fixture.tabs->setTabShape(-1.0f, -1.0f, -1.0f);
+	fixture.window->render();
+	CHECK(fixture.tabs->tabAt({5.0f, 16.0f}) == 0);
+}
+
 TEST_CASE("split and tabs nodes: sizes and the active tab bound to state, close and move events, bad keys refused") {
 	ManualClock clock;
 	const auto window = createHeadlessWindow(300, 200, clock);
@@ -326,11 +339,37 @@ TEST_CASE("split and tabs nodes: sizes and the active tab bound to state, close 
 	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/accentEdge": "left"}})", &error));
 	CHECK(error.find("accentEdge") != std::string::npos);
 	REQUIRE(screen.applyRevision(R"({"set": {"#strip/accentEdge": "top"}})", &error));
+	REQUIRE(screen.applyRevision(R"({"set": {"#strip/tabRadius": 6, "#strip/tabGap": 4, "#strip/tabInset": 3}})", &error));
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/tabGap": "wide"}})", &error));
 	window->render();
 	CHECK(tabs->accentOnTop());
 	REQUIRE(screen.applyRevision(R"({"set": {"#panes/direction": "column"}})", &error));
 	window->render();
 	CHECK(split->direction() == Split::Direction::Column);
+}
+
+TEST_CASE("tabs node: a right click on a tab names it in the context menu event, and off the tabs nothing") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(300, 100, clock);
+	auto screen = affresco::Screen::fromString(R"({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "open": ["a", "b"], "menu": null },
+		"root": { "id": "root", "children": [
+			{ "type": "tabs", "id": "strip", "width": 300, "height": 32, "tabs": "{{state.open}}",
+			  "onContextMenu": [{ "set": "state.menu", "to": "{{event.data ?? 'none'}}" }] }
+		] }
+	})");
+	screen.build(*window);
+	window->render();
+	const auto state = [&screen] { return json::parse(screen.stateJson()); };
+	window->routeMouseButton({MouseButton::Right, Action::Press, {}, {tabWidth + 10.0f, 16.0f}});
+	window->routeMouseButton({MouseButton::Right, Action::Release, {}, {tabWidth + 10.0f, 16.0f}});
+	window->render();
+	CHECK(state()["menu"] == json{{"id", "b"}, {"index", 1}});
+	window->routeMouseButton({MouseButton::Right, Action::Press, {}, {250.0f, 16.0f}});
+	window->routeMouseButton({MouseButton::Right, Action::Release, {}, {250.0f, 16.0f}});
+	window->render();
+	CHECK(state()["menu"] == "none");
 }
 
 TEST_CASE("tabs node: a marker's colour, and a tab keeping its marker still closes from its close button") {

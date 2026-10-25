@@ -330,7 +330,7 @@ private:
 	/// @param dx World units across.
 	/// @param dy World units down.
 	void nudge(float dx, float dy);
-	/// @brief Whether the window's focus is on the canvas or one of its children.
+	/// @brief Whether the window's focus is on the canvas or a panel inside it, at any depth, that doesn't take typing.
 	[[nodiscard]] bool focusWithin() const noexcept;
 
 	std::shared_ptr<const CanvasItemModel> model_{};                         ///< See model().

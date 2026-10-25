@@ -60,6 +60,20 @@ json::json_pointer increment(const Running& s, json& state) {
 	return pointer;
 }
 
+/// @brief The default of the setting a state place holds, so a toggle of a setting still at its default flips that.
+/// @param document The document; its "settings" are read.
+/// @param pointer The place, /settings/<key> for a setting.
+/// @return The default, or nullptr if the place isn't a setting's.
+const json* settingDefault(const json& document, const json::json_pointer& pointer) {
+	if(pointer.empty() || pointer.parent_pointer() != json::json_pointer("/settings")) return nullptr;
+	const auto settings = document.find("settings");
+	if(settings == document.end() || !settings->is_object()) return nullptr;
+	const auto type = settings->find(pointer.back());
+	if(type == settings->end() || !type->is_object()) return nullptr;
+	const auto value = type->find("default");
+	return value != type->end() ? &*value : nullptr;
+}
+
 /// @brief Checks the settings a step changed (a "settings.x" write lands in state.settings), and puts them back if
 /// one doesn't match its type.
 /// @param engine The runtime.
@@ -114,6 +128,7 @@ std::optional<bool> runStateStep(const Running& s) {
 	} else if(step.contains("toggle")) {
 		pointer = s.target("toggle");
 		const json* found = findInState(state, pointer);
+		if(!found) found = settingDefault(engine.versions.document(), pointer);
 		const bool on = found && format::truthy(*found);
 		statePlace(state, pointer, where) = !on;
 	} else if(step.contains("increment")) {

@@ -29,8 +29,8 @@ constexpr std::array<std::pair<std::string_view, std::string_view>, 15> wordLabe
                                                                                        {"numpadminus", "Numpad -"},
                                                                                        {"numpadmultiply", "Numpad *"}}};
 
-/// Emacs's names of the keys whose names are words; other words are written "<name>".
-constexpr std::array<std::pair<std::string_view, std::string_view>, 18> emacsLabels = {{{"enter", "RET"},
+/// The letters notation's names of the keys whose names are words; other words are written "<name>".
+constexpr std::array<std::pair<std::string_view, std::string_view>, 18> letterLabels = {{{"enter", "RET"},
                                                                                         {"tab", "TAB"},
                                                                                         {"escape", "ESC"},
                                                                                         {"backspace", "DEL"},
@@ -85,11 +85,11 @@ std::string platformLabel(const Press& press, bool mac) {
 	       (press.cmd ? "Super+" : "") + key;
 }
 
-/// @brief A press in Emacs's notation: "C-x", "M-<", "C-M-S-<f3>", "s-s"; Shift on a key that types a character is
+/// @brief A press in the letters notation: "C-x", "M-<", "C-M-S-<f3>", "s-s"; Shift on a key that types a character is
 /// that character ("A", "%"), and "S-" otherwise.
 /// @param press The press.
 /// @return Its label.
-std::string emacsLabel(const Press& press) {
+std::string lettersLabel(const Press& press) {
 	std::string key = press.key;
 	bool shift = press.shift;
 	const std::size_t typed = key.size() == 1 ? plainKeys.find(key[0]) : std::string_view::npos;
@@ -102,7 +102,7 @@ std::string emacsLabel(const Press& press) {
 		shift = false;
 	} else if(key.size() > 1) {
 		bool named = false;
-		for(const auto& [name, label] : emacsLabels)
+		for(const auto& [name, label] : letterLabels)
 			if(key == name) {
 				key = label;
 				named = true;
@@ -118,10 +118,16 @@ std::string emacsLabel(const Press& press) {
 	       (press.cmd ? "s-" : "") + key;
 }
 
+/// @brief Tells whether a notation writes modifiers as letters ("C-x").
+/// @param notation The notation: "letters", or "emacs", its older name kept for the documents that use it.
+/// @return true if it does.
+bool lettersNotation(std::string_view notation) noexcept { return notation == "letters" || notation == "emacs"; }
+
 } // namespace
 
 bool knownKeyNotation(std::string_view notation) noexcept {
-	return notation == "platform" || notation == "mac" || notation == "pc" || notation == "emacs";
+	return notation == "platform" || notation == "mac" || notation == "pc" || notation == "letters" ||
+	       notation == "emacs";
 }
 
 std::string keyLabel(std::string_view chord, std::string_view notation) {
@@ -134,7 +140,7 @@ std::string keyLabel(std::string_view chord, std::string_view notation) {
 	for(std::size_t at = 0; at <= chord.size();) {
 		const std::size_t end = std::min(chord.find(' ', at), chord.size());
 		const Press press = parse(chord.substr(at, end - at));
-		label += (label.empty() ? "" : " ") + (notation == "emacs" ? emacsLabel(press) : platformLabel(press, mac));
+		label += (label.empty() ? "" : " ") + (lettersNotation(notation) ? lettersLabel(press) : platformLabel(press, mac));
 		at = end + 1;
 	}
 	return label;

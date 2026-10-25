@@ -123,6 +123,25 @@ void openChosen(Engine& engine, const std::string& path, const json::json_pointe
 	followers.succeeded();
 }
 
+/// @brief An "openFile" step's "extensions": 1 to 16 of them, each 1 to 16 characters without a dot or a slash.
+/// @param s The step.
+/// @return Its extensions, or "json" if it gives none.
+/// @throws DocumentError If they aren't such a list.
+std::vector<std::string> extensionsOf(const Running& s) {
+	if(!s.step.contains("extensions")) return {"json"};
+	std::vector<std::string> extensions;
+	const json given = s.value("extensions");
+	if(!given.is_array() || given.empty() || given.size() > 16)
+		fail(s.where + ".extensions", "must be a list of 1 to 16 extensions");
+	for(const json& extension : given) {
+		std::string text = string(extension, s.where + ".extensions");
+		if(text.empty() || text.size() > 16 || text.find_first_of("./\\") != std::string::npos)
+			fail(s.where + ".extensions", "an extension is 1 to 16 characters, without a dot or a slash");
+		extensions.push_back(std::move(text));
+	}
+	return extensions;
+}
+
 /// @brief "openFile": a JSON file the person chooses (of the "extensions" given, "json" by default), into a state
 /// path; with "comments": true, its comments and trailing commas are read too.
 /// @param s The step.
@@ -131,19 +150,7 @@ bool openFile(const Running& s) {
 	s.steps.checkControl(s.where);
 	const json::json_pointer into = s.target("openFile");
 	std::string title = titleOf(s, "Open");
-	std::vector<std::string> extensions{"json"};
-	if(s.step.contains("extensions")) {
-		extensions.clear();
-		const json given = s.value("extensions");
-		if(!given.is_array() || given.empty() || given.size() > 16)
-			fail(s.where + ".extensions", "must be a list of 1 to 16 extensions");
-		for(const json& extension : given) {
-			std::string text = string(extension, s.where + ".extensions");
-			if(text.empty() || text.size() > 16 || text.find_first_of("./\\") != std::string::npos)
-				fail(s.where + ".extensions", "an extension is 1 to 16 characters, without a dot or a slash");
-			extensions.push_back(std::move(text));
-		}
-	}
+	std::vector<std::string> extensions = extensionsOf(s);
 	bool comments = false;
 	if(s.step.contains("comments")) {
 		const json given = s.value("comments");
@@ -200,7 +207,7 @@ std::string suggestedFileName(std::string_view text, std::string_view fallback) 
 	std::string name;
 	for(const char c : text) {
 		const auto byte = static_cast<unsigned char>(c);
-		if(byte < 0x20 || byte == 0x7f || std::string_view("/\\:*?\"<>|").find(c) != std::string_view::npos) continue;
+		if(byte < 0x20 || byte == 0x7f || std::string_view("/\\:*?\"<>|").contains(c)) continue;
 		name.push_back(c);
 	}
 	while(!name.empty() && (name.front() == '.' || name.front() == ' ')) name.erase(name.begin());

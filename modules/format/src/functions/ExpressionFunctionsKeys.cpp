@@ -10,13 +10,13 @@
 namespace affresco::format::detail {
 namespace {
 
-/// @brief `keyLabel(chord, notation?)`: "ctrl+x ctrl+f" as "⌃X ⌃F", or "C-x C-f" in the "emacs" notation.
+/// @brief `keyLabel(chord, notation?)`: "ctrl+x ctrl+f" as "⌃X ⌃F", or "C-x C-f" in the "letters" notation.
 /// @param call [chord, notation?].
 /// @return The label, "" for no chord (null).
 Value keyLabelOf(const Call& call) {
 	if(call[0].isNull()) return Value::fromText("");
 	const std::string notation = call.size() > 1 ? call[1].toText() : "platform";
-	if(!knownKeyNotation(notation)) call.fail(R"(expected the notation "platform", "mac", "pc" or "emacs")");
+	if(!knownKeyNotation(notation)) call.fail(R"(expected the notation "platform", "mac", "pc" or "letters")");
 	return Value::fromText(keyLabel(normalizeChord(call[0].toText()), notation));
 }
 

@@ -213,6 +213,17 @@ char32_t lowerCase(char32_t character) noexcept {
 	return character < 0x100 ? character + 0x20 : character + 1;
 }
 
+/// @brief Uppercases a Latin letter (U+0000 to U+017F).
+/// @param character The character.
+/// @return Its capital; itself for the others.
+char32_t upperCase(char32_t character) noexcept {
+	if(character >= 'a' && character <= 'z') return character - 0x20;
+	if(character >= 0xE0 && character <= 0xFE) return character == 0xF7 ? character : character - 0x20;
+	if(character == 0xFF) return 0x178; // ÿ, whose capital is in Latin Extended-A
+	if(character > 0x100 && character < 0x180 && isUpper(character - 1)) return character - 1;
+	return character;
+}
+
 /// @brief Compares two texts at one strength.
 /// @param a A text.
 /// @param b Another.
@@ -283,6 +294,25 @@ int compareText(std::string_view a, std::string_view b) noexcept {
 	if(const int primary = compareBy(a, b, baseLetter); primary != 0) return primary;
 	if(const int secondary = compareBy(a, b, lowerCase); secondary != 0) return secondary;
 	return compareBy(a, b, isUpper); // lowercase first (false before true)
+}
+
+std::string changeCase(std::string_view text, bool upper) {
+	std::string result;
+	result.reserve(text.size());
+	for(std::size_t at = 0; at < text.size();) {
+		const std::size_t start = at;
+		const char32_t character = nextCharacter(text, at);
+		char32_t changed = character;
+		if(character != 0x130 && character != 0x131) // the Turkish i's, which depend on the language
+			changed = upper ? upperCase(character) : character == 0x178 ? 0xFF : lowerCase(character);
+		if(changed == character) result.append(text.substr(start, at - start));
+		else if(changed < 0x80) result += static_cast<char>(changed);
+		else { // every Latin letter is two bytes in UTF-8
+			result += static_cast<char>(0xC0 | (changed >> 6));
+			result += static_cast<char>(0x80 | (changed & 0x3F));
+		}
+	}
+	return result;
 }
 
 } // namespace affresco::format::detail

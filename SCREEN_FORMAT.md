@@ -60,7 +60,7 @@ Every part of the format follows these, and so should every extension:
 | `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it. |
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
-| `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS, Windows; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the node the keyboard focused: a colour, `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a PNG, JPEG or SVG file under the rules of an image's `file`; `keyLabels`: the notation of `keyLabel`s, `"platform"` (the default), `"mac"`, `"pc"` or `"emacs"` (`C-x`, `M-<`). |
+| `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS, Windows; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the node the keyboard focused: a colour, `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a PNG, JPEG or SVG file under the rules of an image's `file`; `keyLabels`: the notation of `keyLabel`s, `"platform"` (the default), `"mac"`, `"pc"` or `"letters"` (`C-x`, `M-<`; `"emacs"` is its older name). |
 | `fonts` | `name → { "file", "size", "fallback", "bold", "italic" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script (kerning, ligatures, Arabic, Indic; right-to-left runs), colour emoji from COLR fonts. `"fallback": ["symbols"]` names other fonts asked in order for a character this one lacks; a character none has shows as `?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has). `"bold": true` and `"italic": true` thicken or slant the outlines, for headings from a file with one weight: `"heading": { "file": "Roboto-Regular.ttf", "size": 20, "bold": true }`; a label's `runs` keep its font's style unless they set their own. |
 | `languages` | `name → language`: the code languages an editor's `language` names (by name, alias or file name). Each has `title`, `aliases`, `files` (`["*.py", "CMakeLists.txt"]`), `comments` (`{ "line": "//", "block": ["/*", "*/"] }`), `brackets` and `pairs` (`[["(", ")"], ...]`: Enter between brackets indents, typing an opener of a pair adds its closer), `indent` (`{ "increase": regex, "decrease": regex }`), `wordPattern` (regex), and TextMate-style `patterns` with a `repository`: `{ "match": regex, "scope": "keyword" }`, `{ "begin": regex, "end": regex, "scope", "contentScope", "patterns" }` (an `end` may use the begin's groups, `\1`), `captures` / `beginCaptures` / `endCaptures` (`{ "1": { "scope": "type" } }`) and `{ "include": "#name" }` or `"$self"`. A scope is coloured by `@syntax.<scope>`, or its parent's (`keyword.control` by `@syntax.keyword`). Regular expressions are PCRE2, each find limited in steps and each line in time; a language has at most 2,048 rules. Ready-made languages are data files to `include` (`examples/shared/languages/`). |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
@@ -268,6 +268,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
 | `minimapStyle` | How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each character a pixel in its syntax colour. |
+| `minimapWidth` | The minimap's width in pixels, 20 to 240 (default 60). |
 | `minimapViewport` | When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it. |
 | `scrollMarks` | `true` marks the scroll bar where the whole text has decorations, find's matches and the caret, each in its colour, so they can be found again. |
 | `matchStyle` | How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`. |
@@ -515,6 +516,9 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
 | `accentEdge` | The edge of the active tab its accent line is on: `bottom` (default) or `top`. |
 | `markerColor` | The markers' colour (default `accentColor`). |
 | `keepMarker` | A marked tab keeps its marker while active, and shows its close button only while hovered (default false). |
+| `tabRadius` | The active tab's top corner radius, in pixels (default 0, square), e.g. a card that joins the content below. |
+| `tabGap` | Pixels before each tab (default 0: the tabs touch). |
+| `tabInset` | Pixels between the strip's top and the active tab's (default 0: the full height), so it rises from the strip. |
 <!-- end generated -->
 
 ```json
@@ -527,7 +531,8 @@ Rows of items, one or more of them selected, drawn only where they are in view: 
 and selects as fast as one of ten. The items come from the node (`items`, usually bound to state) and the selection
 goes back to it (`value`, `bind`, `onChange`). A click selects a row, Shift a range, Cmd or Ctrl one more; the arrow
 keys, Page Up and Page Down, Home and End move the selection, and typing a row's first letters finds it. Enter or a
-double click runs `onOpen`. A `tree` nests its items' `children` with indent guides: a click on the chevron, or Right
+double click runs `onOpen`. A right click on a row not selected selects it first, so the node's `onContextMenu` acts on
+the row under the pointer (or on all the selected rows, when it is one of them). A `tree` nests its items' `children` with indent guides: a click on the chevron, or Right
 and Left, open and close a node (`onExpand`), and Left goes to the parent. With `"drag": {}` on the node, rows drag
 (`event.data` is `{ "id", "ids" }`: the row, and every selected one if it is selected) and drop onto any `list` or
 `tree`, whose `onDrop` gets the row and the place (a line between rows, or an outline around a tree's node). With
@@ -1144,7 +1149,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 <!-- generated: events -->
 | Handler | When |
 |---|---|
-| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node). |
+| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node; `event.data` is the item under the pointer that a drag would carry, as a tab's `{ "id", "index" }` or a list row's `{ "id", "ids" }`, when there is one). |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
 | `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |
@@ -1268,7 +1273,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `set` | `{ "set": "state.current", "to": "{{index}}" }` |
 | `push` | `{ "push": "state.columns[c].cards", "value": "{{state.draft}}" }` |
 | `remove` | `{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key of an object |
-| `toggle` | `{ "toggle": "state.dark" }` |
+| `toggle` | `{ "toggle": "state.dark" }`; a setting not set yet flips from its default |
 | `increment` | `{ "increment": "state.clicks", "by": 1 }` |
 | `if` | `{ "if": "{{length(state.draft) == 0}}", "then": [...], "else": [...] }` |
 | `forEach` | `{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }` |

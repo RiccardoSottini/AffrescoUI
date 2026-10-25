@@ -7,7 +7,9 @@
 	"state": {
 		"undo": [],
 		"redo": [],
-		"clip": []
+		"clip": [],
+		"arrangeMenu": { "open": false, "x": 0, "y": 0 },
+		"effectsMenu": { "open": false, "x": 0, "y": 0 }
 	},
 
 	"computed": {
@@ -21,6 +23,13 @@
 		"allOn": "{{ {bold: every(computed.selected, it.bold ?? false), italic: every(computed.selected, it.italic ?? false), underline: every(computed.selected, it.underline ?? false), strike: every(computed.selected, it.strike ?? false), shadow: every(computed.selected, it.shadow ?? false), bullets: every(computed.selected, it.bullets ?? false)} }}",
 		"animation": "{{find(computed.slide.animations ?? [], contains(state.board.selection, it.target))}}",
 		"locked": "{{length(computed.selected) > 0 && every(computed.selected, it.locked ?? false)}}",
+		"phNames": "{{map(computed.layout.ph ?? [], it.ph)}}",
+		"boxes": "{{map(computed.selected, merge({ x: 0, y: 0, w: 100, h: 100 }, contains(computed.phNames, it.ph) ? computed.layout.ph[indexOf(computed.phNames, it.ph)] : {}, it))}}",
+		"slideBounds": { "left": 0, "top": 0, "right": 960, "bottom": 540 },
+		"selectionBounds": "{{length(computed.boxes) == 0 ? computed.slideBounds : { left: min(map(computed.boxes, it.x)), top: min(map(computed.boxes, it.y)), right: max(map(computed.boxes, it.x + it.w)), bottom: max(map(computed.boxes, it.y + it.h)) } }}",
+		"selectedAt": "{{filter(range(length(computed.objects)), contains(state.board.selection, computed.objects[it].id))}}",
+		"arrangeItems": "{{concat(map([['Bring to Front', 'front'], ['Bring Forward', 'forward'], ['Send Backward', 'backward'], ['Send to Back', 'back']], { title: it[0], run: 'order', with: { how: it[1] }, enabled: length(computed.selected) > 0 }), [{ separator: true }], map([['Align Left', 'left'], ['Align Center', 'center'], ['Align Right', 'right'], ['Align Top', 'top'], ['Align Middle', 'middle'], ['Align Bottom', 'bottom']], { title: it[0], run: 'align', with: { how: it[1] }, enabled: length(computed.selected) > 0 }), [{ separator: true }], map([['Distribute Horizontally', 'x'], ['Distribute Vertically', 'y']], { title: it[0], run: 'distribute', with: { axis: it[1] }, enabled: length(computed.selected) > 1 }))}}",
+		"effectItems": "{{map([['No Effect', null], ['Shadow', 'shadow'], ['Glow', 'glow']], { title: it[0], run: 'setObjects', with: { props: { effect: it[1] } }, enabled: length(computed.selected) > 0 })}}",
 		"canUndo": "{{length(state.undo) > 0}}",
 		"canRedo": "{{length(state.redo) > 0}}"
 	},
@@ -165,10 +174,48 @@
 			{ "run": "insertObject", "with": { "object": { "kind": "text", "x": 330, "y": 240, "w": 300, "h": 40, "text": "Text", "size": 18 } } }
 		],
 		"order": [
+			{ "note": "with: how, front, forward, backward or back: the selected objects move in the slide's drawing order, together" },
 			{ "if": "{{length(computed.selected) > 0}}", "then": [
-				{ "run": "commit" },
-				{ "set": "state.deck.slides[state.current].objects", "to": "{{how == 'front' ? concat(filter(computed.objects, !contains(state.board.selection, it.id)), computed.selected) : concat(computed.selected, filter(computed.objects, !contains(state.board.selection, it.id)))}}" }
+				{ "run": "orderAround", "with": { "how": "{{how}}", "rest": "{{filter(computed.objects, !contains(state.board.selection, it.id))}}",
+					"next": "{{computed.objects[max(computed.selectedAt) + 1].id ?? null}}", "previous": "{{min(computed.selectedAt) > 0 ? computed.objects[min(computed.selectedAt) - 1].id : null}}" } }
 			] }
+		],
+		"orderAround": [
+			{ "note": "with: how, rest (the objects not selected), next and previous (the ids of the objects just above and below the selection)" },
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].objects", "to": "{{how == 'front' ? concat(rest, computed.selected) : how == 'back' ? concat(computed.selected, rest) : how == 'forward' ? (next == null ? computed.objects : concat(slice(rest, 0, indexOf(map(rest, it.id), next) + 1), computed.selected, slice(rest, indexOf(map(rest, it.id), next) + 1))) : (previous == null ? computed.objects : concat(slice(rest, 0, indexOf(map(rest, it.id), previous)), computed.selected, slice(rest, indexOf(map(rest, it.id), previous))))}}" }
+		],
+		"align": [
+			{ "note": "with: how, left, center, right, top, middle or bottom: one object aligns to the slide, several to the box around them" },
+			{ "if": "{{length(computed.boxes) > 0}}", "then": [
+				{ "run": "alignBoxes", "with": { "how": "{{how}}", "boxes": "{{computed.boxes}}", "ids": "{{map(computed.boxes, it.id)}}",
+					"b": "{{length(computed.boxes) == 1 ? computed.slideBounds : computed.selectionBounds}}" } }
+			] }
+		],
+		"alignBoxes": [
+			{ "note": "with: how, boxes (where the selected objects are), ids (theirs) and b (the bounds they align to); locked objects stay" },
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, !contains(ids, it.id) || (it.locked ?? false) ? it : merge(it, how == 'left' ? { x: b.left } : how == 'center' ? { x: round(((b.left + b.right) / 2 - boxes[indexOf(ids, it.id)].w / 2) * 10) / 10 } : how == 'right' ? { x: b.right - boxes[indexOf(ids, it.id)].w } : how == 'top' ? { y: b.top } : how == 'middle' ? { y: round(((b.top + b.bottom) / 2 - boxes[indexOf(ids, it.id)].h / 2) * 10) / 10 } : { y: b.bottom - boxes[indexOf(ids, it.id)].h }))}}" }
+		],
+		"distribute": [
+			{ "note": "with: axis, x or y: equal gaps between the selected objects, from the first to the last (two objects spread across the slide)" },
+			{ "if": "{{length(computed.boxes) > 1}}", "then": [
+				{ "run": "distributeBoxes", "with": { "axis": "{{axis}}", "ids": "{{map(sort(computed.boxes, axis), it.id)}}",
+					"sizes": "{{map(sort(computed.boxes, axis), axis == 'x' ? it.w : it.h)}}",
+					"start": "{{axis == 'x' ? (length(computed.boxes) == 2 ? 0 : computed.selectionBounds.left) : (length(computed.boxes) == 2 ? 0 : computed.selectionBounds.top)}}",
+					"span": "{{length(computed.boxes) == 2 ? (axis == 'x' ? 960 : 540) : axis == 'x' ? computed.selectionBounds.right - computed.selectionBounds.left : computed.selectionBounds.bottom - computed.selectionBounds.top}}" } }
+			] }
+		],
+		"distributeBoxes": [
+			{ "note": "with: axis, ids (the selected objects in order along the axis), sizes (theirs along it), start and span (the space they spread over)" },
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, !contains(ids, it.id) || (it.locked ?? false) ? it : merge(it, parseJson('{' + json(axis) + ':' + json(round((start + sum(slice(sizes, 0, indexOf(ids, it.id))) + indexOf(ids, it.id) * (span - sum(sizes)) / (length(ids) - 1)) * 10) / 10) + '}')))}}" }
+		],
+		"openArrangeMenu": [
+			{ "set": "state.arrangeMenu", "to": { "open": true, "x": "{{min(event.x ?? 520, window.width - 228)}}", "y": 136 } }
+		],
+		"openEffectsMenu": [
+			{ "set": "state.effectsMenu", "to": { "open": true, "x": "{{min(event.x ?? 970, window.width - 168)}}", "y": 148 } }
 		],
 
 		"setTheme": [
@@ -207,5 +254,12 @@
 				{ "set": "state.deck.slides[state.current].notes", "to": "{{text}}" }
 			] }
 		]
+	},
+
+	"overlays": {
+		"zArrangeMenu": { "use": "contextMenu", "with": { "open": "state.arrangeMenu.open", "items": "{{computed.arrangeItems}}", "x": "{{state.arrangeMenu.x}}",
+			"y": "{{state.arrangeMenu.y}}", "width": 220, "color": "@rb", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } },
+		"zEffectsMenu": { "use": "contextMenu", "with": { "open": "state.effectsMenu.open", "items": "{{computed.effectItems}}", "x": "{{state.effectsMenu.x}}",
+			"y": "{{state.effectsMenu.y}}", "width": 160, "color": "@rb", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } }
 	}
 }

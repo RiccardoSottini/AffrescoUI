@@ -14,7 +14,7 @@ changes (the person's client) and send an agent's to review, which only a `studi
 
 | Part | What it does |
 |---|---|
-| Ribbon | File (open, save, export PDF and PNG), Home (slides, font, paragraph, shapes, arrange), Insert, Design (themes and variants), Transitions, Motion (builds), Present, View (views, panes, dark mode) |
+| Ribbon | File (open, save, export PDF and PNG), Home (slides, font, paragraph, shapes; Arrange: order, align, distribute), Insert, Design (themes and variants), Transitions, Motion (builds), Present, View (views, panes, dark mode) |
 | Slide list | Each slide's picture (a snapshot of its page), its number and its section, a star when it has a transition or builds, dimmed when hidden; the arrows move through it |
 | Canvas | The slide on a `canvas`: select, move, resize, with the zoom and fit of the status bar |
 | Format pane | With objects selected: fill and line from the theme's slots, line width, size, place, rotation and lock. With none: the slide's background |
@@ -24,7 +24,7 @@ changes (the person's client) and send an agent's to review, which only a `studi
 
 Keys while editing: `mod+s` save, `mod+o` open, `mod+z` and `mod+y` undo and redo, `mod+m` new slide, `mod+d`
 duplicate, `mod+c`, `mod+x` and `mod+v`, `mod+a` select all, `mod+b`, `mod+i` and `mod+u`, `mod+l`, `mod+e`, `mod+r`
-and `mod+j` align, Delete removes (a locked object stays), F5 presents from the start and Shift+F5 from this slide.
+and `mod+j` align the text, the arrow keys nudge (Shift: 10), Delete removes (a locked object stays), F5 presents from the start and Shift+F5 from this slide.
 While presenting: Right, Down, Space, Enter and N go on, Left, Up and P go back, Home and End jump, B and W blank the
 screen black or white, and Escape ends.
 
