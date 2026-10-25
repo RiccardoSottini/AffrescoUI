@@ -162,8 +162,8 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 	        "actions.moveCard[1].if: unknown variable 'too' (did you mean 'to'?)",
 	        drawer + "[0].children[1].style: unknown style 'captoin' (did you mean 'caption'?)",
 	        drawer + "[12].children[0].label: 'member.nmae' doesn't exist (did you mean 'member.name'?)",
-	        drawer + "[6].children[2].when: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
-	        "components.sidebar.node.children[3].children[0].with.icno: unknown parameter 'icno' of component "
+	        drawer + "[6].children[3].when: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
+	        "components.sidebar.node.children[4].children[0].with.icno: unknown parameter 'icno' of component "
 	        "'navItem' (did you mean 'icon'?)",
 	        "components.swimlanes.node.children[0].children[3].children[0].children[1].children[0].dragging.color: "
 	        "unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
