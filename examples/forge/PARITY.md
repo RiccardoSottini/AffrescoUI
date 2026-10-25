@@ -40,7 +40,7 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Settings editor | partial | No table of contents; large checkboxes |
 | Themes | done | |
 | Split editors | done | |
-| Agent view | partial | The body is empty without an agent |
+| Agent view | done | |
 | Assistant chat | missing | Waits for the shared chat add-on |
 
 ## Not planned

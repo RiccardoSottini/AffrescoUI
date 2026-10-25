@@ -212,6 +212,23 @@
 				{ "wait": 50 },
 				{ "expect": { "node": "#editor", "property": "focused", "is": true } }
 			]
+		},
+		{
+			"name": "forge-controls-agent-empty",
+			"note": "The agent view says how an agent joins until there is a conversation, and shows its status, the Ask button and the empty review in full",
+			"steps": [
+				{ "action": "showAgent" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#agent-empty-title", "text": "No conversation yet" } },
+				{ "expect": { "node": "#agent-log", "exists": false } },
+				{ "expect": { "node": "#agent-status", "property": "height", "is": 36 } },
+				{ "expect": { "node": "#agent-ask", "property": "visible", "is": true } },
+				{ "expect": { "node": "#agent-review-empty", "property": "height", "is": 44 } },
+				{ "revision": { "set": { "/state/agent/log": [{ "kind": "you", "text": "Rename the file" }] } } },
+				{ "wait": 50 },
+				{ "expect": { "node": "#agent-empty", "exists": false } },
+				{ "expect": { "node": "#agent-log", "exists": true } }
+			]
 		}
 	]
 }

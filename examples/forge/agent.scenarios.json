@@ -40,7 +40,7 @@
 		},
 		{
 			"name": "forge-agent-key",
-			"note": "mod+Alt+I shows the agent pane",
+			"note": "mod+Alt+I shows the agent pane, which says how an agent joins until there is a conversation",
 			"steps": [
 				{
 					"key": "mod+alt+i"
@@ -53,7 +53,7 @@
 				},
 				{
 					"expect": {
-						"node": "#agent-log",
+						"node": "#agent-empty",
 						"exists": true
 					}
 				}
