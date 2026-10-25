@@ -26,6 +26,8 @@ import sys
 import tempfile
 import time
 
+os.environ.setdefault("AFFRESCOUI_HIDDEN", "1")  # its programs never show a window (CONTRIBUTING.md); =0 shows them
+
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MIN_COLOURS = 16  # a drawn window has text and controls: a blank or single-colour frame has far fewer
 GRACE_SECONDS = 60  # beyond its run, how long a program may take to start, save its frame and exit
@@ -113,8 +115,9 @@ def damaged_history(home):
 
 
 def environment_for(home):
-    """The environment a person's shell gives a program, with `home` as its home and no data folder of our own."""
-    environment = {k: v for k, v in os.environ.items() if not k.startswith("AFFRESCOUI_")}
+    """The environment a person's shell gives a program, with `home` as its home and no data folder of our own (but
+    AFFRESCOUI_HIDDEN, which keeps its windows off screen)."""
+    environment = {k: v for k, v in os.environ.items() if not k.startswith("AFFRESCOUI_") or k == "AFFRESCOUI_HIDDEN"}
     environment["HOME"] = home
     return environment
 

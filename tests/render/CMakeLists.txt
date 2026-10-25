@@ -3,6 +3,7 @@
 # programs, where check.py looks.
 # It grants Forge's workspace (examples/forge/app.json) with forge/folder (a small fixed folder) open, a shell and git,
 # and trusts the example catalogue's publisher.
+cmake_language(DEFER CALL affrescoui_hide_test_windows) # AFFRESCOUI_HIDDEN=1 for its tests
 set(forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
 add_executable(affrescoui_render_runner runner.cpp ${CMAKE_CURRENT_SOURCE_DIR}/surfaces/Surfaces.cpp)
 # surfaces/Surfaces.hpp here

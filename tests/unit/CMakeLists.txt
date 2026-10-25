@@ -1,6 +1,7 @@
 # Unit tests (README.md). Every .cpp here is a unit test file and every .cpp in window/ a window test file: the globs
 # pick a new one up when the build next runs, with no edit to this file. doctest is one header, used without its CMake
 # project (SOURCE_SUBDIR has none); its main is in main.cpp, which both programs share.
+cmake_language(DEFER CALL affrescoui_hide_test_windows) # AFFRESCOUI_HIDDEN=1 for its tests
 FetchContent_Declare(doctest URL https://github.com/doctest/doctest/archive/refs/tags/v2.4.12.tar.gz
 	URL_HASH SHA256=73381c7aa4dee704bd935609668cf41880ea7f19fa0504a200e13b74999c2d70 SOURCE_SUBDIR doctest)
 FetchContent_MakeAvailable(doctest)

@@ -24,6 +24,8 @@ sys.path.insert(0, os.path.join(ROOT, "tools", "media"))
 import capture  # noqa: E402 (tools/media/)
 import pngfile  # noqa: E402 (tools/media/)
 
+os.environ.setdefault("AFFRESCOUI_HIDDEN", "1")  # its programs never show a window (CONTRIBUTING.md); =0 shows them
+
 MIN_COLOURS = 16  # a screen's first frame has text and controls: a blank or single-colour frame has far fewer
 FAILING = {"json", "format", "checker"}  # "schema" is a note: the loader, not the schema, decides what loads
 

@@ -21,6 +21,8 @@ import sys
 import tempfile
 import time
 
+os.environ.setdefault("AFFRESCOUI_HIDDEN", "1")  # its programs never show a window (CONTRIBUTING.md); =0 shows them
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SCREEN = os.path.join(HERE, "index.screen.json")
