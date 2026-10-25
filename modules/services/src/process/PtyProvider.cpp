@@ -10,10 +10,13 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <filesystem>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 
 namespace affresco::services {
@@ -83,6 +86,27 @@ namespace {
 		return static_cast<std::uint16_t>(std::clamp(with.value(name, fallback), 1, largestSide));
 	};
 	return {side("cols", 80), side("rows", 24)};
+}
+
+/// @brief The folder an `open` call asks its terminal to start in: inside the root, given from it or absolute.
+/// @param root The service's root (canonical), or empty.
+/// @param folder The folder asked for.
+/// @return Its canonical path, or std::nullopt if there is no root, or it leaves the root or isn't a folder.
+[[nodiscard]] std::optional<std::filesystem::path> folderUnder(const std::filesystem::path& root,
+                                                               std::string_view folder) {
+	if(root.empty()) return std::nullopt;
+	const std::filesystem::path given{std::u8string(folder.begin(), folder.end())};
+	std::optional<std::filesystem::path> inside;
+	if(!given.is_absolute()) inside = underRoot(root, folder);
+	else {
+		std::error_code error;
+		const std::filesystem::path resolved = std::filesystem::weakly_canonical(given, error);
+		const std::filesystem::path relative = resolved.lexically_relative(root);
+		if(!error && !relative.empty() && *relative.begin() != "..") inside = resolved;
+	}
+	std::error_code error;
+	if(!inside || !std::filesystem::is_directory(*inside, error)) return std::nullopt;
+	return inside;
 }
 
 /// @brief One open terminal: its program, the call it streams to, and the threads that read it and write to it.
@@ -206,9 +230,15 @@ private:
 	std::optional<std::string> open(std::shared_ptr<Call> call) {
 		std::erase_if(sessions_, [](const auto& entry) { return entry.second->done(); });
 		if(sessions_.size() == mostSessions) return "the service is busy (8 terminals at once)";
+		Launch launch = launch_;
+		if(const std::string folder = call->arguments().value("folder", std::string()); !folder.empty()) {
+			const std::optional<std::filesystem::path> inside = folderUnder(launch_.directory, folder);
+			if(!inside) return "with.folder: not a folder inside the service's root";
+			launch.directory = *inside;
+		}
 		std::unique_ptr<PseudoTerminal> terminal;
 		try {
-			terminal = PseudoTerminal::start(launch_, sizeOf(call->arguments()));
+			terminal = PseudoTerminal::start(launch, sizeOf(call->arguments()));
 		} catch(const std::runtime_error& error) {
 			call->fail("failed", error.what());
 			return std::nullopt;
@@ -259,9 +289,11 @@ public:
 		const json side = {{"type", "integer"}, {"minimum", 1}, {"maximum", largestSide}};
 		const json session = {{"type", "integer"}, {"minimum", 1}};
 		const json names = {{"enum", {"interrupt", "terminate", "hangup", "kill"}}};
-		return {{"open", Effect::Run, true, false, argumentsOf({{"cols", side}, {"rows", side}}),
-		         "starts the program on a terminal (in the root, if one is named): a first event {session}, then its "
-		         "output as events {data}; {code}"},
+		json open = argumentsOf({{"cols", side}, {"rows", side}});
+		open["properties"]["folder"] = {{"type", "string"}, {"maxLength", 4096}};
+		return {{"open", Effect::Run, true, false, std::move(open),
+		         "starts the program on a terminal (in the root, if one is named, or in its `folder`, a folder inside "
+		         "it given from it or absolute): a first event {session}, then its output as events {data}; {code}"},
 		        {"write", Effect::Run, true, false,
 		         argumentsOf({{"session", session}, {"data", {{"type", "string"}, {"maxLength", largestWrite}}}}),
 		         "types into an open terminal: {}"},

@@ -74,6 +74,74 @@ Value parseJson(const Call& call) {
 	}
 }
 
+/// @brief `parseJsonc(text)`.
+/// @param call [text].
+/// @return The value, comments and trailing commas allowed, or null if it isn't JSON (or nests too deeply).
+Value parseJsonc(const Call& call) {
+	try {
+		return Value::ownJson(parseUntrusted(plainJson(call[0].toText())));
+	} catch(const std::exception&) {
+		return {};
+	}
+}
+
+constexpr std::size_t longestShellWord = 4096;  ///< A word of shellLine(), at most 4096 bytes.
+constexpr std::size_t mostShellWords = 1000;    ///< Words, and variables, of shellLine(), at most 1000 of each.
+constexpr std::size_t longestShellLine = 60000; ///< shellLine()'s line: under a terminal's 64 KiB write.
+
+/// @brief A word quoted for a POSIX shell: in single quotes, a quote as `'\''`.
+/// @param word The word.
+/// @param out The line, to add it to.
+/// @return Whether it could be: text of at most longestShellWord bytes, with no control character.
+bool appendShellWord(std::string_view word, std::string& out) {
+	if(word.size() > longestShellWord ||
+	   std::ranges::any_of(word, [](char c) { return static_cast<unsigned char>(c) < 0x20 || c == 0x7f; }))
+		return false;
+	if(!out.empty()) out += ' ';
+	out += '\'';
+	for(const char c : word) {
+		if(c == '\'') out += "'\\''";
+		else out += c;
+	}
+	out += '\'';
+	return true;
+}
+
+/// @brief Whether a text is a name an environment variable may have: a letter or `_`, then letters, digits or `_`.
+/// @param name The text.
+/// @return Whether it is (at most 200 bytes).
+bool variableName(std::string_view name) {
+	const auto word = [](char c) { return c == '_' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'); };
+	return !name.empty() && name.size() <= 200 && word(name.front()) &&
+	       std::ranges::all_of(name, [&word](char c) { return word(c) || (c >= '0' && c <= '9'); });
+}
+
+/// @brief `shellLine(words, variables?)`.
+/// @param call [words, variables?].
+/// @return The words as a POSIX shell's line, each in single quotes, after `env 'NAME=value'` for each variable that
+/// isn't null; or null if a word or value isn't plain text, a name isn't a variable's, or the line is too long.
+Value shellLine(const Call& call) {
+	const Value& words = call[0];
+	if(!words.isList() || words.size() > mostShellWords) return {};
+	std::string line;
+	if(call.size() > 1 && !call[1].isNull()) {
+		const Value& variables = call[1];
+		if(!variables.isObject() || variables.size() > mostShellWords) return {};
+		for(const Value::Field& variable : variables.fields()) {
+			if(variable.value.isNull()) continue;
+			if(!variableName(variable.key) || !variable.value.isText()) return {};
+			if(line.empty()) line = "env";
+			if(!appendShellWord(variable.key + "=" + std::string(variable.value.text()), line)) return {};
+		}
+	}
+	for(std::size_t i = 0; i < words.size(); ++i) {
+		const Value word = words.item(i);
+		if(!word.isText() || !appendShellWord(word.text(), line)) return {};
+	}
+	if(line.size() > longestShellLine) return {};
+	return Value::fromText(std::move(line));
+}
+
 /// @brief `fixed(number, digits)`.
 /// @param call [number, digits].
 /// @return The number with that many digits after the point (0 to 12).
@@ -257,6 +325,21 @@ constexpr auto table = std::to_array<Function>({
 	 .about = "The JSON text as a value, or null if it isn't JSON",
 	 .takes = Takes::One,
 	 .apply = parseJson},
+    {.name = "parseJsonc",
+	 .arguments = "text",
+	 .about = "The JSON text as a value, as settings files write it (with comments and trailing commas), or null if it "
+	          "isn't JSON",
+	 .takes = Takes::One,
+	 .apply = parseJsonc},
+    {.name = "shellLine",
+	 .arguments = "words, variables?",
+	 .about = "The words as a line for a POSIX shell, each in single quotes, after `env 'NAME=value'` for each "
+	          "variable of the object that isn't null; null if a word or value isn't text without control characters, "
+	          "or a name isn't a variable's",
+	 .fewest = 1,
+	 .most = 2,
+	 .apply = shellLine,
+	 .remark = "up to 1000 words and 1000 variables of 4096 bytes, a line up to 60000"},
     {.name = "json", .arguments = "value", .about = "The value as JSON text", .takes = Takes::One, .apply = toJsonText},
     {.name = "applyEdits",
 	 .arguments = "text, edits",

@@ -333,9 +333,10 @@ written. A source the adapter names is placed against the granted folder: a path
 other `inside: false`, and Forge opens a frame outside the folder only after a confirm, read-only, through the
 adapter's `source` request. A relative path in a request that leaves the folder is refused. If the adapter crashes or
 exits, every waiting request ends and the session ends with one message. The only reverse requests are
-`runInTerminal` and `startDebugging`; Forge answers `runInTerminal` with a command line it builds itself
-(`forge.debug.commandLine`): every word single-quoted, the working folder inside the open one, no control characters,
-and it runs in the terminal's shell under that shell's grant. Forge grants `lldb-dap` and `python3 -m
+`runInTerminal` and `startDebugging`; Forge answers `runInTerminal` with a command line it builds with
+`shellLine()`: every word single-quoted, no control characters, at most 60000 bytes; the terminal opens in the
+request's `cwd` only if the pty service's root holds it, and the line runs in the terminal's shell under that shell's
+grant. Forge grants `lldb-dap` and `python3 -m
 debugpy.adapter` when they are on PATH; a launch configuration only names one of them.
 
 ### Channels a screen declares

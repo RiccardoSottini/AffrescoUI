@@ -1,5 +1,6 @@
 /// @file
-/// @brief Fuzzes parseUntrusted (core/Json.hpp), which reads every message, revision and change set from outside.
+/// @brief Fuzzes parseUntrusted (core/Json.hpp), which reads every message, revision and change set from outside, and
+/// plainJson, which makes settings files' comments and trailing commas plain JSON.
 ///
 /// Any text either parses or throws json::parse_error or DocumentError. What parses nests at most maxNesting levels,
 /// so the recursive work the app does on a value (copying, comparing, writing it out) can't overflow the stack.
@@ -9,6 +10,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -34,7 +36,7 @@ int depthOf(const json& value) {
 
 } // namespace
 
-/// @brief libFuzzer's entry point: parses the input with and without comments.
+/// @brief libFuzzer's entry point: parses the input with and without comments, and made plain.
 /// @param data The input.
 /// @param size Its size.
 /// @return 0.
@@ -49,6 +51,21 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		} catch(const json::parse_error&) {
 		} catch(const affresco::DocumentError&) {
 		}
+	}
+	// plainJson() keeps the length, and what reads as plain JSON reads the same once made plain
+	const std::string text(affresco::fuzz::text(data, size));
+	const std::string plain = affresco::plainJson(text);
+	if(plain.size() != text.size()) affresco::fuzz::broken("plainJson keeps the text's length");
+	try {
+		const json value = affresco::parseUntrusted(text);
+		if(affresco::parseUntrusted(plain) != value) affresco::fuzz::broken("plainJson leaves plain JSON's value");
+	} catch(const json::parse_error&) {
+	} catch(const affresco::DocumentError&) {
+	}
+	try {
+		static_cast<void>(affresco::parseUntrusted(plain));
+	} catch(const json::parse_error&) {
+	} catch(const affresco::DocumentError&) {
 	}
 	return 0;
 }

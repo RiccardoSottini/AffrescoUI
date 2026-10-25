@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <filesystem>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -115,9 +116,11 @@ struct ShellService {
 
 	/// @brief Creates it.
 	/// @param script What the shell runs.
-	explicit ShellService(const std::string& script) {
-		const affresco::services::Grant grant{
-		    {}, "", affresco::services::ProcessGrant{"/bin/sh", {"-c", script}, {}, {}}, "sh"};
+	/// @param root The service's root (canonical), or empty.
+	explicit ShellService(const std::string& script, const std::filesystem::path& root = {}) {
+		const affresco::services::Grant grant{root, root.empty() ? "" : "root",
+		                                      affresco::services::ProcessGrant{"/bin/sh", {"-c", script}, {}, {}},
+		                                      "sh"};
 		service = provider->create({{"process", "sh"}}, {executor, grant, {}, {}});
 	}
 	/// @brief Invokes a method.
@@ -189,6 +192,31 @@ TEST_CASE("pty: a resize reaches the program, and an interrupt reaches its foreg
 	    shell.invoke("signal", std::make_shared<TerminalCall>(json{{"session", session}, {"name", "interrupt"}})));
 	CHECK(open->waitForOutput("caught"));
 	CHECK(open->waitForEnd() == 3);
+}
+
+TEST_CASE("pty: a terminal opens in a folder inside the service's root, and nowhere else") {
+	const std::filesystem::path root = std::filesystem::canonical(std::filesystem::temp_directory_path()) /
+	                                   ("affresco-pty-" + std::to_string(::getpid()));
+	std::filesystem::create_directories(root / "sub");
+	std::filesystem::create_directories(root.parent_path() / (root.filename().string() + "-other"));
+	ShellService shell("pwd", root);
+	const auto inside = std::make_shared<TerminalCall>(json{{"cols", 80}, {"rows", 24}, {"folder", "sub"}});
+	REQUIRE_FALSE(shell.invoke("open", inside));
+	CHECK(inside->waitForOutput((root / "sub").string()));
+	const auto absolute =
+	    std::make_shared<TerminalCall>(json{{"cols", 80}, {"rows", 24}, {"folder", (root / "sub").string()}});
+	REQUIRE_FALSE(shell.invoke("open", absolute));
+	CHECK(absolute->waitForOutput((root / "sub").string()));
+	for(const std::string& folder : std::vector<std::string>{"..", "../" + root.filename().string() + "-other", "/",
+	                                                         "missing", root.string() + "-other"})
+		CHECK(
+		    shell.invoke("open", std::make_shared<TerminalCall>(json{{"cols", 80}, {"rows", 24}, {"folder", folder}})));
+	CHECK(ShellService("pwd").invoke(
+	    "open", std::make_shared<TerminalCall>(json{{"cols", 80}, {"rows", 24}, {"folder", "sub"}})));
+	CHECK(inside->waitForEnd() == 0);
+	CHECK(absolute->waitForEnd() == 0);
+	std::filesystem::remove_all(root);
+	std::filesystem::remove_all(root.string() + "-other");
 }
 
 TEST_CASE("pty: a service ends its terminals when it ends, and opens at most 8 at once") {

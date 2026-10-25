@@ -102,7 +102,7 @@ int run(const Options& options) {
 	forge::grantLanguageServers(screen);
 	forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace), &app);
 	forge::registerSearch(screen, workspace);
-	forge::registerDebug(screen, workspace);
+	forge::registerDebug(screen);
 	screen.setSocketDirectory(options.socketDir); // the agent pane's channel reaches Forge's own studio.sock
 	workspace->window = &screen.createWindow(app);
 

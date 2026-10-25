@@ -7,7 +7,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 
 | Target | Input | Checks, besides not crashing |
 |---|---|---|
-| `json` | Any text, to `parseUntrusted` (`core/Json.hpp`) | Throws only `json::parse_error` or `DocumentError`; what parses nests at most `maxNesting` levels |
+| `json` | Any text, to `parseUntrusted` (`core/Json.hpp`), and to `plainJson` | Throws only `json::parse_error` or `DocumentError`; what parses nests at most `maxNesting` levels; `plainJson` keeps the length, and plain JSON's value |
 | `expression` | A JSON value (templates, `$` operators) or, if it isn't JSON, the inside of a `{{ }}` | Evaluating gives a value or a `DocumentError`, the only error the runtime catches |
 | `revision` | A revision's JSON, submitted to a `vcs::Repository` holding the Kanban template | A revision that isn't applied changes nothing; reverting one that is (directly or after review) restores the document and the state |
 | `policy` | A JSON object: the Kanban template's `permissions` with budgets and data rules (VERSION_CONTROL.md, "Budgets" and "Data rules"), and a `revision` judged as an agent's | Judging changes nothing and gives the same decision twice; what an agent reads never holds a path a data rule says it may never touch |

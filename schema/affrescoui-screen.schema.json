@@ -4499,6 +4499,8 @@
 						"$pad",
 						"$plural",
 						"$parseJson",
+						"$parseJsonc",
+						"$shellLine",
 						"$json",
 						"$applyEdits",
 						"$length",

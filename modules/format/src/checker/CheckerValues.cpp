@@ -140,7 +140,7 @@ std::optional<Shape> fixedResult(std::string_view name) {
 	if(among(listOperators, name)) return Shape::array({single});
 	if(name == "$values") return Shape::array({anything});
 	if(name == "$entries") return Shape::array({{{"key", single}, {"value", anything}}});
-	if(name == "$parseJson") return anything;
+	if(name == "$parseJson" || name == "$parseJsonc") return anything;
 	if(name == "$diffLines") // ExpressionFunctionsDiff.cpp
 		return Shape{{"rows", Shape::array({{{"kind", true}, {"original", true}, {"modified", true}, {"text", true}}})},
 		             {"hunks", Shape::array({{{"original", true},

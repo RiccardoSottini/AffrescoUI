@@ -59,7 +59,7 @@ LoadedScreen buildForge(Context& context, const std::string& text, Window& windo
 	forge::registerExplorer(screen, workspace, nullptr);
 	forge::grantTerminal(screen, AFFRESCOUI_FORGE_FOLDER);
 	forge::registerTerminal(screen, nullptr);
-	forge::registerDebug(screen, workspace, false);
+	forge::registerDebug(screen, false);
 	screen.build(window); // its onLoad indexes the folder
 	static_cast<void>(window.panelAt({}));
 	return {screen, window};
