@@ -122,35 +122,35 @@
 						{ "use": "rbBig", "id": "b-ins-new-slide", "with": { "icon": "layout-panel-top", "title": "New\nSlide", "menu": true, "width": 50 }, "onClick": { "run": "newSlide", "with": { "layout": "content" } } }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-tables", "with": { "title": "Tables" }, "children": [
-						{ "use": "rbBig", "id": "b-ins-table", "with": { "icon": "table", "title": "Table", "menu": true, "width": 46 } }
+						{ "use": "rbBig", "id": "b-ins-table", "with": { "icon": "table", "title": "Table", "width": 46, "enabled": false }, "tooltip": "Inserting a table isn't available yet" }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-images", "with": { "title": "Images" }, "children": [
-						{ "use": "rbBig", "id": "b-ins-pictures", "with": { "icon": "image", "title": "Pictures", "menu": true, "width": 52 } },
-						{ "use": "rbBig", "id": "b-ins-album", "with": { "icon": "images", "title": "Photo\nAlbum", "menu": true, "width": 50 } }
+						{ "use": "rbBig", "id": "b-ins-pictures", "with": { "icon": "image", "title": "Pictures", "width": 52, "enabled": false }, "tooltip": "Inserting pictures isn't available yet" },
+						{ "use": "rbBig", "id": "b-ins-album", "with": { "icon": "images", "title": "Photo\nAlbum", "width": 50, "enabled": false }, "tooltip": "A photo album isn't available yet" }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-illustrations", "with": { "title": "Illustrations" }, "children": [
-						{ "use": "rbBig", "id": "b-ins-shapes", "with": { "icon": "shapes", "title": "Shapes", "menu": true, "width": 48 } },
-						{ "use": "rbBig", "id": "b-ins-icons", "with": { "icon": "face-slightly-smiling", "title": "Icons", "width": 44 } },
-						{ "use": "rbBig", "id": "b-ins-chart", "with": { "icon": "chart-column-stacked", "title": "Chart", "width": 44 } }
+						{ "use": "rbBig", "id": "b-ins-shapes", "with": { "icon": "shapes", "title": "Shapes", "menu": true, "width": 48 }, "onClick": { "run": "openDrop", "with": { "id": "b-ins-shapes" } } },
+						{ "use": "rbBig", "id": "b-ins-icons", "with": { "icon": "face-slightly-smiling", "title": "Icons", "menu": true, "width": 44 }, "onClick": { "run": "openDrop", "with": { "id": "b-ins-icons" } } },
+						{ "use": "rbBig", "id": "b-ins-chart", "with": { "icon": "chart-column-stacked", "title": "Chart", "width": 44, "enabled": false }, "tooltip": "Inserting a chart isn't available yet" }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-links", "with": { "title": "Links" }, "children": [
-						{ "use": "rbBig", "id": "b-ins-link", "with": { "icon": "link", "title": "Link", "menu": true, "width": 44 } }
+						{ "use": "rbBig", "id": "b-ins-link", "with": { "icon": "link", "title": "Link", "width": 44, "enabled": false }, "tooltip": "Linking text isn't available yet" }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-comments", "with": { "title": "Comments" }, "children": [
-						{ "use": "rbBig", "id": "b-ins-comment", "with": { "icon": "message-square-plus", "title": "Comment", "width": 56 } }
+						{ "use": "rbBig", "id": "b-ins-comment", "with": { "icon": "message-square-plus", "title": "Comment", "width": 56, "enabled": false }, "tooltip": "Commenting isn't available yet" }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-text", "with": { "title": "Text" }, "children": [
 						{ "use": "rbBig", "id": "b-ins-textbox", "with": { "icon": "text-cursor-input", "title": "Text\nBox", "width": 44 }, "onClick": "insertTextBox" },
-						{ "use": "rbBig", "id": "b-ins-header", "with": { "icon": "panel-top", "title": "Header\n& Footer", "width": 52 } },
-						{ "use": "rbBig", "id": "b-ins-art-text", "with": { "icon": "type", "title": "Art\nText", "menu": true, "width": 44 } }
+						{ "use": "rbBig", "id": "b-ins-header", "with": { "icon": "panel-top", "title": "Header\n& Footer", "menu": true, "width": 52 }, "onClick": { "run": "openDrop", "with": { "id": "b-ins-header" } } },
+						{ "use": "rbBig", "id": "b-ins-art-text", "with": { "icon": "type", "title": "Art\nText", "menu": true, "width": 44 }, "onClick": { "run": "openDrop", "with": { "id": "b-ins-art-text" } } }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-symbols", "with": { "title": "Symbols" }, "children": [
-						{ "use": "rbBig", "id": "b-ins-equation", "with": { "icon": "sigma", "title": "Equation", "menu": true, "width": 56 } },
-						{ "use": "rbBig", "id": "b-ins-symbol", "with": { "icon": "omega", "title": "Symbol", "width": 48 } }
+						{ "use": "rbBig", "id": "b-ins-equation", "with": { "icon": "sigma", "title": "Equation", "width": 56, "enabled": false }, "tooltip": "Inserting an equation isn't available yet" },
+						{ "use": "rbBig", "id": "b-ins-symbol", "with": { "icon": "omega", "title": "Symbol", "menu": true, "width": 48 }, "onClick": { "run": "openDrop", "with": { "id": "b-ins-symbol" } } }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-media", "with": { "title": "Media" }, "children": [
-						{ "use": "rbBig", "id": "b-ins-video", "with": { "icon": "film", "title": "Video", "menu": true, "width": 44 } },
-						{ "use": "rbBig", "id": "b-ins-audio", "with": { "icon": "music", "title": "Audio", "menu": true, "width": 44 } }
+						{ "use": "rbBig", "id": "b-ins-video", "with": { "icon": "film", "title": "Video", "width": 44, "enabled": false }, "tooltip": "Inserting video isn't available yet" },
+						{ "use": "rbBig", "id": "b-ins-audio", "with": { "icon": "music", "title": "Audio", "width": 44, "enabled": false }, "tooltip": "Inserting audio isn't available yet" }
 					] }
 				]
 			}
@@ -192,8 +192,8 @@
 						] }
 					] },
 					{ "use": "rbGroup", "id": "g-customize", "with": { "title": "Customize" }, "children": [
-						{ "use": "rbBig", "id": "b-slide-size", "with": { "icon": "rectangle-horizontal", "title": "Slide\nSize", "menu": true, "width": 46 } },
-						{ "use": "rbBig", "id": "b-format-bg", "with": { "icon": "paint-bucket", "title": "Format\nBackground", "width": 70 } }
+						{ "use": "rbBig", "id": "b-slide-size", "with": { "icon": "rectangle-horizontal", "title": "Slide\nSize", "width": 46, "enabled": false }, "tooltip": "Changing the slide size isn't available yet" },
+						{ "use": "rbBig", "id": "b-format-bg", "with": { "icon": "paint-bucket", "title": "Format\nBackground", "width": 70 }, "onClick": [{ "set": "state.board.selection", "to": [] }, { "run": "openFormatPane" }] }
 					] }
 				]
 			}
@@ -247,8 +247,8 @@
 						{ "use": "rbBig", "id": "b-normal", "with": { "icon": "panel-left", "title": "Normal", "on": "{{state.view == 'normal'}}", "width": 46 }, "onClick": [{ "set": "state.view", "to": "normal" }] },
 						{ "use": "rbBig", "id": "b-outline-view", "with": { "icon": "list-tree", "title": "Outline\nView", "on": "{{state.view == 'outline'}}", "width": 48 }, "onClick": [{ "set": "state.view", "to": "outline" }] },
 						{ "use": "rbBig", "id": "b-sorter", "with": { "icon": "layout-grid", "title": "Slide\nSorter", "on": "{{state.view == 'sorter'}}", "width": 46 }, "onClick": [{ "set": "state.view", "to": "sorter" }] },
-						{ "use": "rbBig", "id": "b-notes-page", "with": { "icon": "notebook-text", "title": "Notes\nPage", "width": 46 } },
-						{ "use": "rbBig", "id": "b-reading", "with": { "icon": "book-open", "title": "Reading\nView", "width": 50 } }
+						{ "use": "rbBig", "id": "b-notes-page", "with": { "icon": "notebook-text", "title": "Notes\nPage", "width": 46, "enabled": false }, "tooltip": "The notes page view isn't available yet" },
+						{ "use": "rbBig", "id": "b-reading", "with": { "icon": "book-open", "title": "Reading\nView", "width": 50 }, "onClick": { "run": "readingView", "with": { "from": "{{state.current}}" } } }
 					] },
 					{ "use": "rbGroup", "id": "g-show", "with": { "title": "Show", "launcher": true }, "children": [
 						{ "type": "column", "id": "show-col", "width": 90, "height": 72, "gap": 2, "alignItems": "stretch", "color": "transparent", "children": [

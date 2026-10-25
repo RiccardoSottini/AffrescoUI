@@ -835,6 +835,61 @@
 			]
 		},
 		{
+			"name": "sinopia-insert-tab",
+			"note": "Insert drops shapes, icons, styled text and symbols on the slide, turns on the footer and slide numbers, and its other buttons say they aren't available yet",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#tab-insert-label" },
+				{ "expect": { "node": "#b-ins-table", "property": "tooltip", "is": "Inserting a table isn't available yet" } },
+				{ "click": "#b-ins-shapes" },
+				{ "click": { "role": "menuitem", "name": "Oval" } },
+				{ "expect": { "state": "deck.slides[2].objects.length", "is": 4 } },
+				{ "expect": { "state": "deck.slides[2].objects[3].shape", "is": "ellipse" } },
+				{ "click": "#b-ins-icons" },
+				{ "click": { "role": "menuitem", "name": "Lightbulb" } },
+				{ "expect": { "state": "deck.slides[2].objects[4].icon", "is": "lightbulb" } },
+				{ "click": "#b-ins-art-text" },
+				{ "click": { "role": "menuitem", "name": "Light on Accent" } },
+				{ "expect": { "state": "deck.slides[2].objects[5].fill", "is": "accent1" } },
+				{ "click": "#b-ins-symbol" },
+				{ "click": { "role": "menuitem", "name": "€" } },
+				{ "expect": { "state": "deck.slides[2].objects[5].text", "is": "Your text here€" } },
+				{ "click": "#b-ins-header" },
+				{ "click": { "role": "menuitem", "name": "Slide Numbers" } },
+				{ "expect": { "state": "deck.slideNumbers", "is": true } },
+				{ "expect": { "node": "#e-number", "text": "3" } },
+				{ "click": "#thumb-s1-row" },
+				{ "expect": { "node": "#e-number", "exists": false } },
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#b-ins-header" },
+				{ "click": { "role": "menuitem", "name": "Footer Text…" } },
+				{ "wait": 0 },
+				{ "type": "Harbour Festival" },
+				{ "click": "#find-rename" },
+				{ "expect": { "state": "deck.footer", "is": "Harbour Festival" } },
+				{ "expect": { "node": "#e-footer", "text": "Harbour Festival" } }
+			]
+		},
+		{
+			"name": "sinopia-background-and-reading-view",
+			"note": "Format Background opens the pane for the slide; Reading View plays the show in the window, and Escape ends it",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o5" },
+				{ "click": "#tab-design-label" },
+				{ "expect": { "node": "#b-slide-size", "property": "tooltip", "is": "Changing the slide size isn't available yet" } },
+				{ "click": "#b-format-bg" },
+				{ "expect": { "state": "formatPane", "is": true } },
+				{ "expect": { "state": "board.selection", "is": [] } },
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-reading" },
+				{ "expect": { "state": "show.on", "is": true } },
+				{ "expect": { "state": "show.index", "is": 2 } },
+				{ "key": "escape" },
+				{ "expect": { "state": "show.on", "is": false } }
+			]
+		},
+		{
 			"name": "sinopia-launchers-and-gallery",
 			"note": "A group's launcher opens the format pane; the gallery's last arrow lists its shapes",
 			"steps": [

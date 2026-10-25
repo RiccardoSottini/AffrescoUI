@@ -7,14 +7,14 @@ changes (the person's client) and send an agent's to review, which only a `studi
 
 ```sh
 ./build/affrescoui_launcher examples/sinopia/index.screen.json --socket out/s   # the workspace, with the sample deck
-./build/affrescoui test examples/sinopia/index.scenarios.json                   # the 41 scenarios (ctest: scenarios)
+./build/affrescoui test examples/sinopia/index.scenarios.json                   # the 43 scenarios (ctest: scenarios)
 ```
 
 ## The workspace
 
 | Part | What it does |
 |---|---|
-| Ribbon | File (open, save, export PDF and PNG), Home (paste and copy menus, Copy Style, slides, layouts and sections; font, size, case, colour and highlight grids; bullets, numbering, list levels, line spacing, columns, text direction and anchor; shapes, quick styles, fill and outline grids, effects; Arrange: order, align, distribute; Find, Replace, Select), Insert, Design (themes and variants), Transitions, Motion (builds), Present, View (views, panes, dark mode) |
+| Ribbon | File (open, save, export PDF and PNG), Home (paste and copy menus, Copy Style, slides, layouts and sections; font, size, case, colour and highlight grids; bullets, numbering, list levels, line spacing, columns, text direction and anchor; shapes, quick styles, fill and outline grids, effects; Arrange: order, align, distribute; Find, Replace, Select), Insert (text box, shapes, icons, styled text, symbols, footer and slide numbers), Design (themes, variants, Format Background), Transitions, Motion (builds), Present, View (views, Reading View, panes, dark mode). A command that isn't there yet is shown disabled, and its tooltip says so |
 | Slide list | Each slide's picture (a snapshot of its page), its number and its section, a star when it has a transition or builds, dimmed when hidden; the arrows move through it |
 | Canvas | The slide on a `canvas`: select, move, resize, with the zoom and fit of the status bar |
 | Format pane | With objects selected: fill and line from the theme's slots, line width, size, place, rotation and lock. With none: the slide's background |

@@ -8,6 +8,13 @@
 
 	"theme": "{{state.theme}}",
 
+	"tokens": {
+		"assistant.accent": "@brand", "assistant.accentHover": "@brandHover", "assistant.onAccent": "@onBrand",
+		"assistant.surface": "@rbFieldBg", "assistant.raised": "@rb", "assistant.border": "@rbLine", "assistant.text": "@rbInk",
+		"assistant.dim": "@rbMuted", "assistant.dot": "@rbDisabled", "assistant.warningBackground": "@work",
+		"kit.border": "@rbFieldLine"
+	},
+
 	"window": { "title": "Sinopia", "width": 1280, "height": 800, "minWidth": 960, "minHeight": 600 },
 
 	"fonts": {

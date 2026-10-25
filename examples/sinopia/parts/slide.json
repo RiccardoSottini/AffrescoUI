@@ -13,7 +13,11 @@
 				"children": [
 					{ "repeat": { "for": "d", "in": "{{slide.layout == 'title' || slide.layout == 'section' ? computed.theme.titleDecor : computed.theme.decor}}", "key": "{{d.id}}" },
 					  "id": "{{prefix + 'decor-' + d.id}}", "color": "transparent", "x": "{{d.x}}", "y": "{{d.y}}", "width": "{{d.w}}", "height": "{{d.h}}", "overflow": "visible",
-					  "children": [{ "use": "shapePath", "with": { "o": "{{merge({ line: 'none', flipH: false, flipV: false, gradient: null, lineWidth: 0, dash: null, effect: null }, d)}}", "name": "{{prefix + 'decor-' + d.id}}" } }] }
+					  "children": [{ "use": "shapePath", "with": { "o": "{{merge({ line: 'none', flipH: false, flipV: false, gradient: null, lineWidth: 0, dash: null, effect: null }, d)}}", "name": "{{prefix + 'decor-' + d.id}}" } }] },
+					{ "type": "label", "id": "{{prefix + 'footer'}}", "when": "{{(state.deck.footer ?? null) != null && slide.layout != 'title'}}", "x": 40, "y": 506, "width": 640, "height": 22,
+					  "textColor": "{{computed.palette.dark2 ?? computed.palette.dark1}}", "runs": [{ "text": "{{state.deck.footer ?? ''}}", "size": 12 }] },
+					{ "type": "label", "id": "{{prefix + 'number'}}", "when": "{{(state.deck.slideNumbers ?? false) && slide.layout != 'title'}}", "x": 820, "y": 506, "width": 100, "height": 22, "align": { "horizontal": "end", "vertical": "center" },
+					  "textColor": "{{computed.palette.dark2 ?? computed.palette.dark1}}", "runs": [{ "text": "{{text(indexOf(map(state.deck.slides, it.id), slide.id) + 1)}}", "size": 12 }] }
 				]
 			}
 		},
@@ -41,6 +45,8 @@
 				"color": "transparent", "x": "{{box.x}}", "y": "{{box.y}}", "width": "{{box.w}}", "height": "{{box.h}}", "rotate": "{{o.rotate ?? 0}}", "overflow": "visible",
 				"children": [
 					{ "use": "shapePath", "when": "{{shape}}", "with": { "o": "{{merge({ shape: o.kind == 'text' ? 'rect' : 'rect', fill: o.kind == 'shape' ? 'accent1' : 'none', line: o.kind == 'text' ? 'none' : null, lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null, effect: null }, merge(o, box))}}", "name": "{{prefix + o.id}}" } },
+					{ "type": "label", "id": "{{prefix + o.id + '-icon'}}", "when": "{{o.kind == 'icon'}}", "x": 0, "y": 0, "width": "{{box.w}}", "height": "{{box.h}}", "align": "center",
+					  "textColor": "{{ink}}", "runs": [{ "icon": "{{o.icon ?? 'star'}}", "size": "{{min(box.w, box.h) * 0.9}}" }] },
 					{ "use": "shapePath", "when": "{{prompt}}",
 					  "with": { "o": "{{merge(box, { shape: 'rect', fill: 'none', line: '#8c8c8c', lineWidth: 0.75, flipH: false, flipV: false, gradient: null, dash: 'dash', effect: null })}}", "name": "{{outline}}" } },
 					{
@@ -48,9 +54,11 @@
 						"let": {
 							"turned": "{{(o.textRotate ?? 0) != 0}}",
 							"cols": "{{prompt ? 1 : min(o.columns ?? 1, max(length(lines), 1))}}",
-							"per": "{{ceil(length(lines) / cols)}}",
 							"numbering": "{{prompt ? null : o.numbering ?? null}}",
-							"levels": "{{map(lines, min(floor(indexOf(it, trim(it)) / 4), 8))}}"
+							"levels": "{{map(lines, min(floor(indexOf(it, trim(it)) / 4), 8))}}",
+							"colWidth": "{{((turned ? frame.h : frame.w) - size * (cols - 1)) / cols}}",
+							"heights": "{{map(lines, ceil(max(length(trim(it)), 1) * 0.5 * max(bullets ? size - 4 * min(levels[index], 2) : size, 6) / max(colWidth - (bullets ? 36 * levels[index] + 18 : 0), 20)) * 1.2 * max(bullets ? size - 4 * min(levels[index], 2) : size, 6) + (bullets ? size * 0.35 : 0) + size * ((prompt ? 1 : o.spacing ?? 1) - 1))}}",
+							"column": "{{map(heights, cols == 1 ? 0 : min(floor((sum(slice(heights, 0, index)) + it * 0.999) / (turned ? frame.w : frame.h)), cols - 1))}}"
 						},
 						"x": "{{turned ? frame.x + (frame.w - frame.h) / 2 : frame.x}}", "y": "{{turned ? frame.y + (frame.h - frame.w) / 2 : frame.y}}",
 						"width": "{{turned ? frame.h : frame.w}}", "height": "{{turned ? frame.w : frame.h}}", "rotate": "{{o.textRotate ?? 0}}",
@@ -58,21 +66,21 @@
 							{
 								"repeat": { "for": "k", "in": "{{range(cols)}}" },
 								"type": "column", "id": "{{prefix + o.id + '-text-c' + k}}", "overflow": "visible",
-								"width": "{{((turned ? frame.h : frame.w) - size * (cols - 1)) / cols}}", "height": "{{turned ? frame.w : frame.h}}",
+								"width": "{{colWidth}}", "height": "{{turned ? frame.w : frame.h}}",
 								"justify": "{{anchor == 'bottom' ? 'end' : anchor == 'middle' ? 'center' : 'start'}}",
 								"alignItems": "{{align == 'center' ? 'center' : align == 'right' ? 'end' : 'start'}}",
 								"gap": "{{(bullets ? size * 0.35 : 0) + size * ((prompt ? 1 : o.spacing ?? 1) - 1)}}",
 								"children": [
 									{
-										"repeat": { "for": "line", "in": "{{slice(lines, k * per, k * per + per)}}", "index": "m" },
-										"type": "row", "id": "{{prefix + o.id + '-p' + (k * per + m)}}", "fitContent": true, "overflow": "visible",
+										"repeat": { "for": "n", "in": "{{filter(range(length(lines)), column[it] == k)}}" },
+										"type": "row", "id": "{{prefix + o.id + '-p' + n}}", "fitContent": true, "overflow": "visible",
 										"let": {
-											"n": "{{k * per + m}}",
-											"level": "{{levels[k * per + m]}}",
-											"pt": "{{max(bullets ? size - 4 * min(levels[k * per + m], 2) : size, 6)}}",
-											"lead": "{{bullets ? 36 * levels[k * per + m] : 0}}",
+											"line": "{{lines[n]}}",
+											"level": "{{levels[n]}}",
+											"pt": "{{max(bullets ? size - 4 * min(levels[n], 2) : size, 6)}}",
+											"lead": "{{bullets ? 36 * levels[n] : 0}}",
 											"mark": "{{numbering == null ? 18 : max(size * 1.5, 18)}}",
-											"ordinal": "{{count(slice(levels, 0, k * per + m + 1), it == levels[k * per + m])}}"
+											"ordinal": "{{count(slice(levels, max(concat([-1], filter(range(n), levels[it] < levels[n]))) + 1, n + 1), it == levels[n])}}"
 										},
 										"children": [
 											{ "id": "{{prefix + o.id + '-p' + n + '-in'}}", "color": "transparent", "width": "{{lead}}", "height": 1, "when": "{{lead > 0}}" },

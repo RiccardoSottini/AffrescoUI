@@ -29,9 +29,13 @@
 
 	"actions": {
 		"present": [
+			{ "run": "showStart", "with": { "from": "{{from}}" } },
+			{ "if": "{{state.presenterView}}", "then": [{ "openWindow": "audience" }], "else": [{ "fullscreen": true }] }
+		],
+		"readingView": [{ "run": "showStart", "with": { "from": "{{from}}" } }],
+		"showStart": [
 			{ "set": "state.show", "to": "{{merge(state.show, { on: true, from: -1, black: false, white: false, ended: false, seconds: 0, paused: false })}}" },
 			{ "run": "showEnter", "with": { "index": "{{find(computed.showOrder, it >= from) ?? computed.showOrder[0] ?? 0}}", "previous": -1 } },
-			{ "if": "{{state.presenterView}}", "then": [{ "openWindow": "audience" }], "else": [{ "fullscreen": true }] },
 			{ "focus": "#show-view" }
 		],
 		"showEnter": [

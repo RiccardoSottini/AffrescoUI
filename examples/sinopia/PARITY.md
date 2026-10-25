@@ -33,7 +33,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Status bar | Slide x of y | missing | done | slide-4 |
 | Status bar | Language | missing | done | first-frame |
 | Status bar | Notes and comments toggles | missing | partial | speaker-notes, notes-hidden |
-| Status bar | Views (normal, sorter, reading, slide show) | partial | partial | sorter-view, outline-view, present-from-current, first-frame |
+| Status bar | Views (normal, sorter, reading, slide show) | partial | done | sorter-view, outline-view, present-from-current, background-and-reading-view |
 | Status bar | Zoom slider, percentage and fit | missing | done | first-frame |
 | Text | Font, size, grow and shrink | missing | done | font-size-and-case (the two fonts the app ships) |
 | Text | Bold, italic, underline, strikethrough, shadow | missing | done | copy-style |
@@ -70,8 +70,8 @@ with its slide show, presenter view, audience window and files on library capabi
 | Content | Tables | missing | missing | |
 | Content | Table styles | missing | missing | |
 | Content | Charts (column, bar, line, pie) | missing | missing | |
-| Content | Icons | missing | missing | |
-| Content | Text box and styled text effects | partial | partial | add-a-text-box |
+| Content | Icons | missing | done | insert-tab |
+| Content | Text box and styled text effects | partial | done | add-a-text-box, insert-tab |
 | Design | Layouts (title, title and content, section header, two content, comparison, title only, blank) | missing | done | slide-menus |
 | Design | Slide master view | missing | missing | |
 | Design | Themes | missing | partial | design-tab |
@@ -79,7 +79,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Design | Theme colours | missing | missing | |
 | Design | Theme fonts | missing | missing | |
 | Design | Slide size (16:9, 4:3) | partial | missing | |
-| Design | Format background | missing | partial |  |
+| Design | Format background | missing | done | background-and-reading-view |
 | Tools | Format painter | missing | done | copy-style |
 | Tools | Find | missing | done | find-and-replace |
 | Tools | Replace | missing | done | find-and-replace |
@@ -127,4 +127,4 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 45 | 34 | 32 | 111 |
+| Now | 49 | 31 | 31 | 111 |

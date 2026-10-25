@@ -9,7 +9,7 @@
 		"colors": { "open": false, "id": "" },
 		"lastColor": { "b-color": "#c00000", "b-highlight": "#ffff00", "b-fill": "accent1", "b-outline": "dark1" },
 		"painter": null,
-		"find": { "open": false, "replace": false, "text": "", "with": "", "status": "" }
+		"find": { "open": false, "replace": false, "text": "", "with": "", "status": "", "ask": "" }
 	},
 
 	"computed": {
@@ -23,6 +23,10 @@
 		"menu-b-copy": "{{[{ title: 'Copy', icon: 'copy', keyLabel: 'Ctrl+C', run: 'copyObjects', enabled: computed.anyText }, { title: 'Duplicate', icon: 'copy-plus', keyLabel: 'Ctrl+D', run: 'duplicateObjects', enabled: computed.anyText }]}}",
 		"menu-b-new-slide": "{{concat(map(computed.layouts, { title: it.name, icon: 'layout-panel-top', run: 'newSlide', with: { layout: it.id } }), [{ separator: true }, { title: 'Duplicate Slide', icon: 'copy', run: 'duplicateSlide' }])}}",
 		"menu-b-ins-new-slide": "{{computed['menu-b-new-slide']}}",
+		"menu-b-ins-icons": "{{map([['Star', 'star'], ['Heart', 'heart'], ['Lightbulb', 'lightbulb'], ['Flag', 'flag'], ['Calendar', 'calendar'], ['Clock', 'clock'], ['Map Pin', 'map-pin'], ['People', 'users'], ['Chat', 'message-circle'], ['Check', 'circle-check'], ['Warning', 'triangle-alert'], ['Music', 'music']], { title: it[0], icon: it[1], run: 'insertObject', with: { object: { kind: 'icon', icon: it[1], x: 420, y: 210, w: 120, h: 120, color: 'accent1' } } })}}",
+		"menu-b-ins-art-text": "{{map([['Accent, Bold', 'accent1', null, false], ['Accent, Bold, Shadow', 'accent1', null, true], ['Dark, Bold, Shadow', 'dark1', null, true], ['Light on Accent', 'light1', 'accent1', false], ['Accent 2 on Light', 'accent2', 'light2', false]], { title: it[0], icon: 'type', run: 'insertObject', with: { object: { kind: 'text', x: 180, y: 210, w: 600, h: 120, text: 'Your text here', size: 54, bold: true, align: 'center', anchor: 'middle', color: it[1], fill: it[2] ?? 'none', shadow: it[3] } } })}}",
+		"menu-b-ins-symbol": "{{map(['©', '®', '™', '€', '£', '¥', '°', '±', '×', '÷', '≈', '≠', '≤', '≥', '→', '←', '↑', '↓', '•', '…', '§', '¶', 'π', 'Ω'], { title: it, run: 'insertSymbol', with: { symbol: it } })}}",
+		"menu-b-ins-header": "{{[{ title: 'Slide Numbers', icon: 'hash', checked: state.deck.slideNumbers ?? false, run: 'toggleSlideNumbers' }, { title: (state.deck.footer ?? null) == null ? 'Footer Text…' : 'Footer: ' + state.deck.footer, icon: 'panel-bottom', run: 'askFooter' }]}}",
 		"menu-b-layout": "{{map(computed.layouts, { title: it.name, checked: computed.slide.layout == it.id, run: 'setLayout', with: { layout: it.id } })}}",
 		"menu-b-section": "{{[{ title: 'Add Section', icon: 'list-plus', run: 'addSection' }, { title: 'Rename Section', icon: 'pencil', run: 'askSectionName', enabled: computed.sectionHere != null }, { title: 'Remove Section', icon: 'list-minus', run: 'removeSection', enabled: computed.sectionHere != null }, { separator: true }, { title: 'Remove All Sections', icon: 'list-x', run: 'removeSections', enabled: length(state.deck.sections ?? []) > 0 }]}}",
 		"menu-f-font": "{{map(computed.fontNames, { title: it[1], checked: (computed.first.font ?? 'default') == it[0], enabled: computed.anyText, run: 'setObjects', with: { props: { font: it[0] == 'default' ? null : it[0] } } })}}",
@@ -103,18 +107,36 @@
 		],
 		"removeSections": [{ "run": "commit" }, { "set": "state.deck.sections", "to": [] }],
 		"askSectionName": [
-			{ "set": "state.find", "to": { "open": true, "replace": false, "text": "", "with": "", "status": "", "rename": true } }
+			{ "set": "state.find", "to": { "open": true, "replace": false, "text": "", "with": "", "status": "", "ask": "section" } }
+		],
+		"answer": [{ "if": "{{state.find.ask == 'section'}}", "then": [{ "run": "renameSection" }], "else": [{ "run": "setFooter" }] }],
+		"askFooter": [
+			{ "set": "state.find", "to": { "open": true, "replace": false, "text": "", "with": "", "status": "", "ask": "footer" } }
+		],
+		"setFooter": [
+			{ "run": "commit" },
+			{ "set": "state.deck.footer", "to": "{{trim(state.find.text) == '' ? null : trim(state.find.text)}}" },
+			{ "set": "state.find", "to": { "open": false, "replace": false, "text": "", "with": "", "status": "", "ask": "" } }
+		],
+		"toggleSlideNumbers": [{ "run": "commit" }, { "set": "state.deck.slideNumbers", "to": "{{!(state.deck.slideNumbers ?? false)}}" }],
+		"insertSymbol": [
+			{ "if": "{{computed.anyText}}",
+			  "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, contains(state.board.selection, it.id) && it.kind != 'line' ? merge(it, { text: (it.text ?? '') + symbol }) : it)}}" }
+			  ],
+			  "else": [{ "run": "insertObject", "with": { "object": { "kind": "text", "x": 430, "y": 230, "w": 100, "h": 80, "text": "{{symbol}}", "size": 48, "align": "center" } } }] }
 		],
 		"renameSection": [
 			{ "if": "{{computed.sectionHere != null && trim(state.find.text) != ''}}", "then": [
 				{ "run": "commit" },
 				{ "set": "state.deck.sections", "to": "{{map(state.deck.sections, it.id == computed.sectionHere.id ? merge(it, { name: trim(state.find.text) }) : it)}}" }
 			] },
-			{ "set": "state.find", "to": { "open": false, "replace": false, "text": "", "with": "", "status": "" } }
+			{ "set": "state.find", "to": { "open": false, "replace": false, "text": "", "with": "", "status": "", "ask": "" } }
 		],
 
 		"openFind": [
-			{ "set": "state.find", "to": { "open": true, "replace": "{{replace}}", "text": "{{state.find.rename ?? false ? '' : state.find.text}}", "with": "{{state.find.with}}", "status": "" } }
+			{ "set": "state.find", "to": { "open": true, "replace": "{{replace}}", "text": "{{(state.find.ask ?? '') != '' ? '' : state.find.text}}", "with": "{{state.find.with}}", "status": "", "ask": "" } }
 		],
 		"findNext": [
 			{ "if": "{{computed.hitCount == 0}}",
@@ -197,29 +219,29 @@
 			"params": {},
 			"note": "Find, Replace and the section's new name: a field (and the replacement), its buttons and a line of status, below the button that opened it.",
 			"node": {
-				"type": "column", "id": "find-box", "width": 300, "height": "{{94 + (state.find.replace && !(state.find.rename ?? false) ? 32 : 0) + (state.find.status != '' ? 24 : 0)}}", "gap": 6, "radius": 10, "color": "@card",
+				"type": "column", "id": "find-box", "width": 300, "height": "{{94 + (state.find.replace && (state.find.ask ?? '') == '' ? 32 : 0) + (state.find.status != '' ? 24 : 0)}}", "gap": 6, "radius": 10, "color": "@card",
 				"borderWidth": 1, "borderColor": "@rbLine", "shadow": { "y": 4, "blur": 14, "color": "#00000033" }, "role": "dialog",
-				"label": "{{state.find.rename ?? false ? 'Rename Section' : state.find.replace ? 'Replace' : 'Find'}}",
-				"overlay": { "anchor": "{{state.find.rename ?? false ? '#b-section' : state.find.replace ? '#b-replace' : '#b-find'}}", "placement": "below", "open": "state.find.open", "dismiss": "outside", "modal": true },
+				"label": "{{state.find.ask == 'section' ? 'Rename Section' : state.find.ask == 'footer' ? 'Footer' : state.find.replace ? 'Replace' : 'Find'}}",
+				"overlay": { "anchor": "{{state.find.ask == 'section' ? '#b-section' : state.find.ask == 'footer' ? '#b-ins-header' : state.find.replace ? '#b-replace' : '#b-find'}}", "placement": "below", "open": "state.find.open", "dismiss": "outside", "modal": true },
 				"keys": { "escape": [{ "set": "state.find.open", "to": false }] },
 				"children": [
 					{ "id": "find-top", "height": 4, "color": "transparent" },
 					{ "type": "label", "id": "find-title", "anchors": { "left": 10, "right": 10 }, "height": 18, "textColor": "@rbInk",
-					  "runs": [{ "text": "{{state.find.rename ?? false ? 'Section name' : state.find.replace ? 'Replace' : 'Find what'}}", "size": 12, "bold": true }] },
+					  "runs": [{ "text": "{{state.find.ask == 'section' ? 'Section name' : state.find.ask == 'footer' ? 'Footer text (empty: none)' : state.find.replace ? 'Replace' : 'Find what'}}", "size": 12, "bold": true }] },
 					{ "type": "textarea", "id": "find-text", "anchors": { "left": 10, "right": 10 }, "height": 26, "padding": 6, "radius": 6, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
-					  "textColor": "@rbInk", "bind": "state.find.text", "autofocus": true, "placeholder": "{{state.find.rename ?? false ? computed.sectionHere.name ?? 'Untitled Section' : 'Text in the slides'}}", "placeholderColor": "@rbMuted",
-					  "onSubmit": [{ "if": "{{state.find.rename ?? false}}", "then": [{ "run": "renameSection" }], "else": [{ "run": "findNext" }] }] },
-					{ "type": "textarea", "id": "find-with", "anchors": { "left": 10, "right": 10 }, "when": "{{state.find.replace && !(state.find.rename ?? false)}}", "height": 26, "padding": 6, "radius": 6,
+					  "textColor": "@rbInk", "bind": "state.find.text", "autofocus": true, "placeholder": "{{state.find.ask == 'section' ? computed.sectionHere.name ?? 'Untitled Section' : state.find.ask == 'footer' ? state.deck.footer ?? 'Footer' : 'Text in the slides'}}", "placeholderColor": "@rbMuted",
+					  "onSubmit": [{ "if": "{{(state.find.ask ?? '') != ''}}", "then": [{ "run": "answer" }], "else": [{ "run": "findNext" }] }] },
+					{ "type": "textarea", "id": "find-with", "anchors": { "left": 10, "right": 10 }, "when": "{{state.find.replace && (state.find.ask ?? '') == ''}}", "height": 26, "padding": 6, "radius": 6,
 					  "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine", "textColor": "@rbInk", "bind": "state.find.with",
 					  "placeholder": "Replace with", "placeholderColor": "@rbMuted", "onSubmit": "replaceOne" },
 					{ "type": "row", "id": "find-buttons", "anchors": { "left": 10, "right": 10 }, "height": 26, "gap": 4, "color": "transparent", "justify": "end", "children": [
-						{ "type": "label", "id": "find-rename", "when": "{{state.find.rename ?? false}}", "style": "rbButtonOn", "height": 26, "fitText": true, "padding": 10,
-						  "runs": [{ "text": "Rename", "size": 12 }], "onClick": "renameSection" },
-						{ "type": "label", "id": "find-next", "when": "{{!(state.find.rename ?? false)}}", "style": "rbButton", "height": 26, "fitText": true, "padding": 8,
+						{ "type": "label", "id": "find-rename", "when": "{{(state.find.ask ?? '') != ''}}", "style": "rbButtonOn", "height": 26, "fitText": true, "padding": 10,
+						  "runs": [{ "text": "{{state.find.ask == 'section' ? 'Rename' : 'Apply'}}", "size": 12 }], "onClick": "answer" },
+						{ "type": "label", "id": "find-next", "when": "{{(state.find.ask ?? '') == ''}}", "style": "rbButton", "height": 26, "fitText": true, "padding": 8,
 						  "runs": [{ "text": "Find Next", "size": 12 }], "onClick": "findNext" },
-						{ "type": "label", "id": "find-replace", "when": "{{state.find.replace && !(state.find.rename ?? false)}}", "style": "rbButton", "height": 26, "fitText": true, "padding": 8,
+						{ "type": "label", "id": "find-replace", "when": "{{state.find.replace && (state.find.ask ?? '') == ''}}", "style": "rbButton", "height": 26, "fitText": true, "padding": 8,
 						  "runs": [{ "text": "Replace", "size": 12 }], "onClick": "replaceOne" },
-						{ "type": "label", "id": "find-replace-all", "when": "{{state.find.replace && !(state.find.rename ?? false)}}", "style": "rbButtonOn", "height": 26, "fitText": true, "padding": 10,
+						{ "type": "label", "id": "find-replace-all", "when": "{{state.find.replace && (state.find.ask ?? '') == ''}}", "style": "rbButtonOn", "height": 26, "fitText": true, "padding": 10,
 						  "runs": [{ "text": "Replace All", "size": 12 }], "onClick": "replaceAll" }
 					] },
 					{ "type": "label", "id": "find-status", "anchors": { "left": 10, "right": 10 }, "when": "{{state.find.status != ''}}", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "{{state.find.status}}", "size": 11 }] },
@@ -230,8 +252,9 @@
 	},
 
 	"overlays": {
-		"zDrop": { "use": "contextMenu", "with": { "open": "state.drop.open", "items": "{{computed.dropItems}}", "anchor": "{{'#' + state.drop.id}}", "placement": "below",
-			"width": 220, "icons": true, "color": "@card", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } },
+		"zDrop": { "use": "contextMenu", "shadow": { "x": 0, "y": 4, "blur": 14, "color": "#0000003a" },
+			"with": { "open": "state.drop.open", "items": "{{computed.dropItems}}", "anchor": "{{'#' + state.drop.id}}", "placement": "below",
+			"width": 220, "icons": "{{length(filter(computed.dropItems, it.icon != null || it.checked != null)) > 0}}", "color": "@card", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } },
 		"zColors": { "use": "colorGrid" },
 		"zFind": { "use": "findBox", "when": "{{state.find.open}}" }
 	}

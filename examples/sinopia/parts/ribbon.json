@@ -95,7 +95,9 @@
 			"node": {
 				"type": "row", "width": "{{width}}", "height": 70, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine", "radius": 10,
 				"children": [
-					{ "type": "row", "grow": 1, "height": 68, "gap": 2, "color": "transparent", "alignItems": "center", "children": [{ "slot": true }] },
+					{ "width": 4, "height": 68, "color": "transparent" },
+					{ "type": "row", "grow": 1, "height": 68, "gap": 2, "color": "transparent", "alignItems": "center", "overflow": "clip", "children": [{ "slot": true }] },
+					{ "width": 2, "height": 68, "color": "transparent" },
 					{ "type": "column", "width": 16, "height": 68, "color": "transparent", "children": [
 						{ "type": "label", "width": 16, "height": 22, "style": "rbButtonOff", "align": "center", "tooltip": "Every item is shown", "runs": [{ "icon": "chevron-up", "size": 10 }] },
 						{ "type": "label", "width": 16, "height": 22, "style": "rbButtonOff", "align": "center", "tooltip": "Every item is shown", "runs": [{ "icon": "chevron-down", "size": 10 }] },
