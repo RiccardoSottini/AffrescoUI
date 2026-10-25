@@ -3,6 +3,7 @@
 /// the program asks to show it.
 
 #include <affresco/affresco.hpp>
+#include <affresco/core/Portable.hpp>
 
 #include <doctest/doctest.h>
 
@@ -20,7 +21,7 @@ public:
 	/// @param name The variable.
 	/// @param value Its value for now.
 	ScopedEnvironment(const char* name, const char* value) : name_(name) {
-		if(const char* old = std::getenv(name)) old_ = old;
+		old_ = affresco::environmentVariable(name);
 		set(value);
 	}
 	/// @brief Puts the old value back, or unsets it.
