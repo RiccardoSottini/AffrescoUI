@@ -1,8 +1,8 @@
 # Calamaio's parity
 
-Calamaio is modelled on GNU Emacs, the graphical frame. This is the list of what a daily user reaches for, and how far
-Calamaio goes: **done** (it behaves the same), **partial** (it is there, with the difference in the note) or **missing**.
-The words, the sample texts and the pictures are Calamaio's own.
+Calamaio follows the reference app, a classic extensible text editor in its graphical frame. This is the list of what
+a daily user reaches for, and how far Calamaio goes: **done** (it behaves the same), **partial** (it is there, with
+the difference in the note) or **missing**. The words, the sample texts and the pictures are Calamaio's own.
 
 | Area | Feature | Status | Note |
 |---|---|---|---|
@@ -15,7 +15,8 @@ The words, the sample texts and the pictures are Calamaio's own.
 | Buffers | `*Messages*` | done | Every echo is appended |
 | Buffers | `*Help*` | done | Shown in the other window; split if there is one |
 | Buffers | `*Completions*` | done | In columns, the typed part dimmed, a click chooses |
-| Buffers | `*Buffer List*` | missing | |
+| Buffers | `*Buffer List*` | done | `C-x C-b`; RET shows the line's buffer, `g` lists again, `q` leaves |
+| Editing | Region case, `M-;`, `C-t`, `C-o`, sort lines | done | |
 | Windows | `C-x 2`, `C-x 3` | done | Each window keeps its own point |
 | Windows | `C-x 0`, `C-x 1`, `C-x o` | done | |
 | Mode line | Flags, name, position, line, mode | done | `**` modified, `%%` read-only, All/Top/Bot/percent |
@@ -26,11 +27,11 @@ The words, the sample texts and the pictures are Calamaio's own.
 | Minibuffer | `C-g` | done | |
 | Motion | `C-f C-b C-n C-p M-f M-b C-a C-e M-< M-> C-v M-v` | done | |
 | Motion | `C-l` | missing | |
-| Mark | `C-SPC`, region | partial | The mark is set; the region isn't drawn yet |
-| Kill ring | `C-k C-w M-w C-y M-y` | missing | |
+| Mark | `C-SPC`, region, `C-x h`, `C-x C-x` | done | |
+| Kill ring | `C-k M-d M-DEL C-w M-w C-y M-y` | done | Successive kills join; also on the clipboard |
 | Undo | `C-/`, `C-_`, `C-M-_` | done | Redo is the editor's own |
-| Search | isearch with lazy highlight | missing | |
-| Search | `M-%` | missing | |
+| Search | isearch with lazy highlight | done | `C-s`, `C-r`, RET, `C-g` |
+| Search | `M-%` | done | Asks at each match |
 | Arguments | `C-u`, `M-<digit>` | partial | Counts motions and deletions; typed characters aren't repeated yet |
 | Macros | `F3`, `F4` | missing | |
 | Rectangles | `C-x r k`, `C-x r y`, `C-x r t` | missing | |
@@ -38,11 +39,11 @@ The words, the sample texts and the pictures are Calamaio's own.
 | Help | `C-h k`, `C-h f`, `C-h v`, `C-h b`, `C-h m`, `C-h e` | done | From the document's commands, keys and settings |
 | Files | `C-x b`, `C-x C-f`, `C-x C-s`, `C-x k` | partial | Files are a sample folder in the document |
 | Files | `C-x C-c` with a save prompt | partial | Asks, but the frame stays |
-| Major modes | Fundamental, Text, Emacs Lisp, Python, C, Markdown, Org | partial | Names in the mode line; colours where the host has a grammar |
-| Minor modes | Line numbers, visual line, auto-fill, whitespace, show-paren, electric pair | missing | |
-| Dired | Marks, `d`, `x`, `+`, `R`, `C`, `g` | missing | |
-| Shell | eshell | missing | |
-| Customize | Buffers with SET/SAVED, Apply/Save | missing | |
+| Major modes | Fundamental, Text, Lisp, Python, C, Markdown, Org | partial | Names in the mode line; colours where the host has a grammar |
+| Minor modes | Line numbers, visual line, show-paren, menu bar, tool bar | partial | From Options and `M-x`; auto-fill, whitespace and electric pair not yet |
+| Dired | Listing, RET, `g`, `q` | partial | `C-x d`; marks, `d`, `x`, `+`, `R`, `C` not yet |
+| Shell | A shell buffer | missing | |
+| Customize | A buffer of the variables, set and reset | partial | Changes apply at once and are kept for the next session; no SET/SAVED states |
 | Themes | `M-x load-theme` | done | default, inchiostro, pergamena |
-| Tutorial | `C-h t` | missing | |
+| Tutorial | `C-h t` | done | Calamaio's own text, a buffer to practise in |
 | Assistant | A binding changed through a reviewed revision | missing | |

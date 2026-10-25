@@ -156,6 +156,7 @@
 									"platform",
 									"mac",
 									"pc",
+									"letters",
 									"emacs"
 								],
 								"description": "How keys are labelled in menus, commands and keybindings"
