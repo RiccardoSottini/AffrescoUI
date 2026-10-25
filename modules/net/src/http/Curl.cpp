@@ -22,6 +22,9 @@ void applyCommonOptions(CURL* handle, const ClientOptions& options) noexcept {
 	curl_easy_setopt(handle, CURLOPT_USERAGENT, "AffrescoUI");
 	if(!options.caFile.empty()) curl_easy_setopt(handle, CURLOPT_CAINFO, options.caFile.c_str());
 	if(options.proxy) curl_easy_setopt(handle, CURLOPT_PROXY, options.proxy->c_str()); // "" turns the environment's off
+	// Never through a proxy to this machine: the local services and test providers stay local whatever the
+	// environment's proxy says (NO_PROXY, if set, adds to these).
+	curl_easy_setopt(handle, CURLOPT_NOPROXY, "localhost,127.0.0.1,::1");
 }
 
 bool appendHeader(List& list, const std::string& line) {

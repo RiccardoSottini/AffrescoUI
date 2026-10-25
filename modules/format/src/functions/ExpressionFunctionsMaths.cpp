@@ -80,12 +80,10 @@ Value angleOf(const Call& call) {
 	return Value::fromNumber(std::atan2(y, call.number(1)));
 }
 
-/// @brief `sqrt(x)`: integers in, integers out when the root is whole (`sqrt(9)` is 3).
+/// @brief `sqrt(x)`: a root is rarely whole, so it is always a number with a fraction (`sqrt(9)` is 3.0).
 /// @param call [x].
 /// @return The square root.
-Value squareRoot(const Call& call) {
-	return numeric(finite(call, "sqrt", std::sqrt(call.number(0))), call.allIntegers());
-}
+Value squareRoot(const Call& call) { return Value::fromNumber(finite(call, "sqrt", std::sqrt(call.number(0)))); }
 
 /// @brief `pow(base, exponent)`: integers in, integers out when the result is whole (`pow(2, 10)` is 1024).
 /// @param call [base, exponent].

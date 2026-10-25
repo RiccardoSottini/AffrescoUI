@@ -8,9 +8,6 @@
 			"name": "output",
 			"steps": [
 				{
-					"click": "#panel-close"
-				},
-				{
 					"expect": {
 						"state": "layout.panel",
 						"is": false
@@ -30,6 +27,13 @@
 						"state": "panelTab",
 						"is": "output"
 					}
+				},
+				{
+					"expect": {
+						"node": "#panel-clear-output",
+						"property": "shown",
+						"is": true
+					}
 				}
 			]
 		}
@@ -44,15 +48,14 @@
 		{
 			"message": "Output in the status bar",
 			"add": {
-				"#status-bar/children/-": {
-					"type": "label",
+				"#status-bar/children/5": {
+					"use": "forgeStatusItem",
 					"id": "status-output",
-					"icon": "terminal",
-					"text": "Output",
-					"padding": 6,
-					"fitText": true,
-					"cursor": "hand",
-					"textColor": "@color.statusText",
+					"with": {
+						"icon": "terminal",
+						"text": "Output",
+						"tip": "Show Output"
+					},
 					"onClick": [
 						{
 							"set": "state.layout.panel",

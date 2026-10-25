@@ -15,12 +15,12 @@ advisory. A fix is released, and the advisory published, once users can update.
 
 ## Supported versions
 
-AffrescoUI is at 0.x. Only the latest 0.x release gets security fixes. Older releases don't. Fixes are made on
+AffrescoUI is at 1.x. Only the latest 1.x release gets security fixes. Older releases don't. Fixes are made on
 `master` and ship in the next release.
 
 | Version | Supported |
 |---|---|
-| Latest 0.x release | Yes |
+| Latest 1.x release | Yes |
 | Earlier releases | No |
 
 ## What AffrescoUI protects
@@ -139,9 +139,10 @@ screens, actions, and the live state.
 - `persist`, what the screen writes to disk;
 - `services`, the local programs and folders the screen uses (and the host has granted);
 - **control steps**: `accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo` and `patch` (which
-  control changes), and `call`, `send` and `connect` (which reach outside the screen). A revision can't add, remove,
-  alter or move one to another trigger (a handler, a timer, a key, a `watch`, `onLoad`). Otherwise an agent could
-  hide an "accept" inside a button and approve itself, or give the screen new access to the outside world.
+  control changes), `call`, `send` and `connect` (which reach outside the screen), and `fullscreen`, a step's or an
+  `openWindow`'s (which fills the display). A revision can't add, remove, alter or move one to another trigger (a
+  handler, a timer, a key, a `watch`, `onLoad`). Otherwise an agent could hide an "accept" inside a button and approve
+  itself, give the screen new access to the outside world, or cover the display with what looks like the system.
 - **ways to run a control step**: a revision can't add a `run`, a handler or a `do` that names an action holding
   control steps (found through the actions it runs in turn), an action the document doesn't define (the
   application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`. Nor can it add a
@@ -154,14 +155,19 @@ screens, actions, and the live state.
 - **service steps out of bounds**: `respond` is a control step. An `invoke` or `subscribe` a revision adds must name
   a declared service and a method of it the provider lets revisions use, by a fixed name; and when the method writes
   or runs something it is always reviewed: the change becomes a proposal whatever the allow rules, grants or mode
-  say, and a person must approve it.
+  say, and only the person accepts it (below), no other reviewer. A `terminal` node counts as a use of its service's
+  `open` (its program runs, or it shows a running session), so adding one or changing its `service` or `session` is
+  reviewed the same way. So does new state for a use the screen already has: a revision that changes the state a
+  write or run use's arguments name (`"data": "{{state.command}}"`) is a proposal for the person too. Only state the
+  arguments name directly is followed; state an action copies first into other state isn't, so a screen keeps the
+  arguments of a run use in the state it names there.
 
 A revision also can't add an `include` (the section only exists while the file is loaded) or a new section the format
 doesn't know.
 
 **What only the person accepts**: a revision that brings, changes or removes **assets** (files kept with the
-history), carries **`run`** steps (run once when it is merged), changes the **`audio`** section, or makes a node show
-an asset. It is always a proposal: no allow rule, grant ("Always allow" can't remember it), mode (`acceptEdits`,
+history), carries **`run`** steps (run once when it is merged), changes the **`audio`** section, makes a node show
+an asset, or adds a service step that writes or runs (above). It is always a proposal: no allow rule, grant ("Always allow" can't remember it), mode (`acceptEdits`,
 `plan`) or reviewer other than the person lets it through. Only a reviewer of the channel `user` (the screen's own
 review steps, `Screen::acceptProposal`) accepts it, and never its own author's channel; a peer on `studio.sock` can't.
 The app's own commits (`commit()`, a screen's `patch` step) and the person's own revisions aren't asked. Assets are
@@ -280,7 +286,9 @@ ever in a document or in this repository), or names another connection's. The ho
 port, matched exactly and closed after one answer; or the device flow. The `state` and the OpenID `nonce` are
 checked, and compared in constant time; every answer from the provider is bounded in size and time. The tokens stay
 in the host's `SignIn` object, and the refresh token in its `SecretStore` (the Keychain, the Credential Manager or the
-Secret Service when the application passes `net::systemSecretStore`; in memory by default). The host adds the
+Secret Service when the application passes `net::systemSecretStore`; in memory by default). A kept sign-in is bound
+to its provider's whole declaration (flow, endpoints, client, scopes, issuer and the connection's URL its tokens go
+to): a screen that declares it another way signs in again, and so does one kept before this binding. The host adds the
 `Authorization` header to each request of a connection that signs in, after the document's headers, which can't
 carry one. What a document sees is `auth.<name>`: a state, an account and an expiry, never a token, so a token
 reaches no document, state, history, log or screenshot (`tests/unit/auth.cpp` signs in through a mock provider and
@@ -298,8 +306,10 @@ otherwise, and is meant to sit behind a proxy that terminates TLS (apps/server/d
 of every revision, so the document's permissions apply per person; a person's own documents (`~name`) are found by
 that name, never by a path the peer sends. A lease is a deny rule for everyone but its holder, checked with the
 document's own rules; it grants its holder nothing more. Presence is what a peer says about itself: shown, bounded,
-never used to decide anything. Leases, presence entries and the server's messages are all bounded (apps/server). With `--userinfo` it also admits OAuth access
-tokens: each is checked at the provider's https userinfo endpoint, and only the subjects of the people file the
+never used to decide anything. Leases, presence entries and the server's messages are all bounded (apps/server). With `--introspect` or `--userinfo` it also admits OAuth access
+tokens: each is checked at the provider's https introspection endpoint (RFC 7662, with the server's own client, and
+only a token issued to that client), or at its userinfo endpoint (which admits a token any app of that provider got:
+the server warns), and only the subjects of the people file the
 operator writes get in, by the name that file gives them; a token that worked is remembered by its hash for five
 minutes (a revoked token keeps working that long at most), a refused one isn't, and each question is bounded in time
 and size. The server never keeps, logs or forwards a token anywhere but to that endpoint.
@@ -316,11 +326,12 @@ a shell runs only if the host allows a shell as the program. The terminal's outp
 it is bounded: 8 terminals per service, 64 KiB a write and 1 MiB waiting, 16 KiB an event and 4 MiB a second. Escape
 sequences in that text are the terminal widget's to interpret; the provider acts on none of them.
 
-Forge's terminal widget (`examples/forge/features/terminal`, on libvterm) keeps every escape sequence inside itself:
-a program can't set the window title unless the node's `allowTitle` is true (and then only the session's, at most
-256 bytes), clipboard writes (OSC 52) and the bell are dropped, and its replies to queries go back to the program
-only. Its scrollback is bounded (10,000 lines at most). Forge grants the user's login shell, started in the open
-folder; the screen document only names the service.
+The `terminal` node (`modules/format/src/terminal`, on libvterm) keeps every escape sequence inside itself: a program
+can't set the window title unless the node's `allowTitle` is true (and then only the session's, at most 256 bytes),
+clipboard writes (OSC 52) and the bell are dropped, and its replies to queries go back to the program only. Its
+scrollback is bounded (10,000 lines at most), a screen keeps at most 16 terminals, and `runInTerminal` types at most
+64 KiB a line; the terminal steps are control steps, so a revision can't add one. The host grants the program (Forge
+grants the user's login shell, started in the open folder); the screen document only names the service.
 
 ### Debug adapters
 
@@ -333,16 +344,38 @@ written. A source the adapter names is placed against the granted folder: a path
 other `inside: false`, and Forge opens a frame outside the folder only after a confirm, read-only, through the
 adapter's `source` request. A relative path in a request that leaves the folder is refused. If the adapter crashes or
 exits, every waiting request ends and the session ends with one message. The only reverse requests are
-`runInTerminal` and `startDebugging`; Forge answers `runInTerminal` with a command line it builds itself
-(`forge.debug.commandLine`): every word single-quoted, the working folder inside the open one, no control characters,
-and it runs in the terminal's shell under that shell's grant. Forge grants `lldb-dap` and `python3 -m
+`runInTerminal` and `startDebugging`; Forge answers `runInTerminal` with a command line it builds with
+`shellLine()`: every word single-quoted, no control characters, at most 60000 bytes; the terminal opens in the
+request's `cwd` only if the pty service's root holds it, and the line is typed into `sh`, a POSIX shell of its own
+grant, never the person's login shell: single quotes protect a word in sh, bash, zsh, dash and ksh, but not in fish,
+csh or cmd.exe, and a line break or carriage return in a word is refused. Forge grants `lldb-dap` and `python3 -m
 debugpy.adapter` when they are on PATH; a launch configuration only names one of them.
+
+### An app's data and the person's permissions
+The stock host asks the person for an app's capabilities and remembers the answer in the app's data folder,
+`<data folder>/apps/<id>/`, beside its history and state. An id is the app's own choice, so it is bound to the folder
+that first opened it (`Screen::appDataDirectory()`, recorded in the folder's `location`, absolute with links
+followed): another app with the same id, a copy elsewhere, gets `apps/<id>~<hash of its folder>/`, so it never opens
+with the first app's data and the person is asked again. A screen opened on its own is bound to its file the same
+way. Data kept before names were bound has no record, and the first place to open it after the upgrade takes it.
+
+The window that asks shows each capability with the app's reason, quoted as the app's own words. Only sound, the file
+dialogs, other windows and a folder read start checked (`AppCapability::startsAllowed()`); a program, a folder written,
+a network origin, the assistant and the channels start unchecked, so the person allows each one with a click. A shell
+or an interpreter (`sh`, `bash`, `python3`, `node`, `cmd`, `pwsh`, ...: `AppCapability::runsAnyCommand()`) is named
+for what it gives, any command run as the person, not as one program.
 
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
-`AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it
-is, so a screen file can name any socket, a running host's `studio.sock` too, and connects to it as soon as its window
-opens. Every message that arrives
+`AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; for a screen the library
+embeds, an absolute path is used as it is. The stock host (the Launcher and every app it opens) and `affrescoui run`
+confine them (`Screen::confineChannels()`): a socket is a relative path with no `..`, inside the host's own socket
+folder (`--socket`) once links are followed, or it is refused and the screen's `<name>:closed` runs with why. Each app
+the Launcher opens has a folder of its own, so a screen reaches its own host's `studio.sock` and `agent.sock` only,
+never the Launcher's nor another app's; and an app's channels connect only if its `app.json` declares the `channels`
+capability and the person allowed it (`Screen::allowChannels()`). A screen on its own host's `studio.sock` is a
+reviewer of its own screen, as a channel there always is: it can't accept what only the person accepts (above), and
+"Known gaps" says what a per-run secret would add (G-27). Every message that arrives
 there runs the screen's `<name>:<type>` action, if it has one, with the message as its event, so the program at the
 other end can run those actions with any data. Revisions can't change `channels` or add `send` and `connect` steps.
 
@@ -382,6 +415,17 @@ A `repair` message is the exception: the host interprets it (see VERSION_CONTROL
 The agent's revision is authored by its channel, checked against the change set's proof, and always opened as a
 proposal, so a repair never skips review or the permission rules; only a reviewer retries a change set that gave up.
 
+### Filling the display
+
+A screen that fills the display could draw what looks like the system's own password or permission dialog. So a
+window starts filling the display only while the person's own press is delivered (a click, a key, a typed character
+or a menu choice, to the screen's window or one of its others), or while the application's own code runs an action
+(`Screen::runAction`). From `onLoad`, a timer, a `watch`, a channel's message or a key a `press` step sends, the
+`fullscreen` step is refused and reported, and an `openWindow` opens its window without filling the display. Leaving
+full screen is always allowed. When a window starts filling the display it shows, for four seconds and above
+everything the screen draws, a hint it draws itself, "Press Esc to leave full screen"; Esc always leaves, and still
+reaches the screen.
+
 ### What documents can't do
 A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
 a process (the `ProcessChannel` and `StdioChannel` classes are only opened by host code), open a network connection,
@@ -417,9 +461,9 @@ never the document.
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
 - `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that
   keeps to the same limit, and schema patterns matched only on texts up to the limit below (the `cli` fuzz target).
-  `check` also loads the screen as the library does, `include`s included, and an `include` may name any file (an
-  absolute path too): checking a file reads every JSON object file it names, and the checker's messages can quote
-  parts of them. Check a file from someone you don't trust where that is fine, such as a CI runner.
+  `check` also loads the screen as the library does, `include`s included, and a bare screen's `include` may name any
+  plain file (an absolute path too; an app's stay in its folder and the `shared` folder beside it): checking a file
+  reads every JSON object file it names, and the checker's messages can quote parts of them. Check a file from someone you don't trust where that is fine, such as a CI runner.
 - `render` draws the first frame offscreen without the history or saved state, and connects to nobody: every channel
   the screen declares, by an absolute path too, is pointed at a folder that is never created. A frame over 16,384
   pixels a side is refused before anything is drawn.
@@ -435,8 +479,10 @@ it has no tool to approve, or to write files, and reads only the format guide an
 reads only files named `*.scenarios.json`, and runs the `affrescoui` tool (`test --json`) as a list of arguments,
 with a timeout of 300 s. `get_contributions` (`contributions`, 60 s) and `check_composition` and `install_feature`
 (`check --compose`, 300 s) run the same tool the same way on a `*.screen.json` file and the feature file the agent
-names, which the tool reads as `check` does. It runs no other program but `--launch`, a command on its own command
-line. A message from either side that it can't use gets an error and
+names, which the tool reads as `check` does. Every file a tool names must be inside the repository, the working
+folder or a `--root` folder once its links are resolved. It runs no other program but `--launch`, a program and the
+`--launch-arg` arguments on its own command line, as an argument vector. It refuses a socket folder that isn't the
+user's own or that other users may enter (`0077` bits set). A message from either side that it can't use gets an error and
 costs only that message, and its log escapes what isn't printable, as the host's does. What it hands the agent (a person's request, the document, events) was written by peers
 and people: an agent should treat it as data, and a request as instructions from the channel it came from (see
 "Requests relayed between peers").
@@ -463,8 +509,8 @@ grammar from outside; the `syntax` fuzz target covers them.
 | Who attacks | A peer or a revision that calls a service; a program that misbehaves or was swapped (a language server, a debug adapter, a shell's child); whoever made the folder being searched or watched (file names, `.gitignore` files, contents) |
 | Entry points | `invoke`, `subscribe` and `respond` from the document; what a program writes (frames, lines, terminal output); file names, links and contents in a granted folder |
 | Limits | "Limits" below: the `process`, `fs`, `pty`, `search` and JSON-RPC rows, and the watch bounds in "Watched folders and terminals" |
-| Mitigations | A service is a capability: only the host declares it, a revision can't add one, and a program runs only if the host allowed it (`allowProcess`), from an argument vector, never through a shell unless the shell is the program allowed. A program started (a terminal's shell among them) gets only its standard input, output and error: none of the host's other descriptors, its peers' sockets among them. `fs`, `watch` and `search` keep paths inside their folder and never follow links out of it. Framing, globs and patterns are fuzzed (`frames`, `search_glob`, `find_pattern`); PCRE2's match limits end catastrophic backtracking |
-| Known gaps | Programs aren't sandboxed (G-02); the terminal's escape-sequence parser isn't fuzzed yet (G-24) |
+| Mitigations | A service is a capability: only the host declares it, a revision can't add one, and a program runs only if the host allowed it (`allowProcess`), from an argument vector, never through a shell unless the shell is the program allowed. A program started (a terminal's shell among them) gets only its standard input, output and error: none of the host's other descriptors, its peers' sockets among them. `fs`, `watch` and `search` keep paths inside their folder and never follow links out of it. Framing, globs, patterns and terminal output are fuzzed (`frames`, `search_glob`, `find_pattern`, `terminal`); PCRE2's match limits end catastrophic backtracking |
+| Known gaps | Programs aren't sandboxed (G-02) |
 
 ### The network
 
@@ -478,7 +524,7 @@ TLS, WebSocket, sign-in (OAuth 2 and OpenID Connect), remote peers, the document
 | Entry points | Response heads and bodies, server-sent events, WebSocket frames, sign-in answers and redirects, a remote peer's upgrade request and first message, URLs a document or a provider names, the token file |
 | Limits | "Limits" below: the `net` module, remote peer and connection rows, and the token file's |
 | Mitigations | TLS 1.2 or later with the certificate and host always verified; only origins the host allowed, plain http and ws to the loopback only; PKCE (S256), `state` and `nonce` compared in constant time; a token never reaches a document, state, history, log or screenshot (`tests/unit/auth.cpp`); the document server and remote peers admit no one without a token; server tokens kept as SHA-256 only. Every parser here is fuzzed (`http_response`, `sse`, `websocket`, `peer_handshake`, `url`, `oauth`, `token_file`) |
-| Known gaps | A token is as safe as the process, and the sign-in listener can be raced (G-01); the queue to the main thread isn't bounded (G-05); keys chosen to collide (G-19) |
+| Known gaps | A token is as safe as the process, and the sign-in listener can be raced (G-01); what waits for the main thread is bounded per connection, not in all (G-05); keys chosen to collide (G-19) |
 
 ### Features, signatures and the catalogue
 
@@ -528,8 +574,9 @@ images. A2UI updates become revisions applied at load, so they pass the same che
 
 Forge (examples/forge) works on a folder the person opens, which may come from anywhere. Its search walks only that
 folder, follows no symbolic link out of it, and skips binary files; a replacement is written only to a regular file
-inside it, through a new file renamed over the old one, so a link planted in the folder is replaced, never written
-through. A pattern is at most 4 KiB, a replacement text 64 KiB, and what one replacement expands to 64 MiB; PCRE2
+inside it, through a new file renamed over the old one. A link planted in the folder is resolved first: the file
+it leads to must itself be a regular file inside the folder, or the replacement is refused, so nothing outside the
+folder is ever written. A `.gitignore` that is a link is not read. A pattern is at most 4 KiB, a replacement text 64 KiB, and what one replacement expands to 64 MiB; PCRE2
 runs with match and depth limits. Its source control runs the `git` the host allows (`allowProcess`) with a fixed
 argument vector per command (`status`, `add`, `restore`, `commit -F -`, `switch`, `show --no-textconv`, ...): paths
 are literal pathspecs after `--`, never options, and a commit message goes on standard input. git runs with the
@@ -558,6 +605,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | The document, with its live state one level inside it, as revisions build it (a trusted screen file may be deeper; then a revision may not make it deeper still) | 200 levels |
 | The live state, as steps build it: the place a `set`, `push` or `call` `into` writes, and the value written there | 200 levels |
 | One message on a channel (one line) | 96 MiB; a longer line closes the channel |
+| Lines a channel read and the main thread hasn't handled yet (`Delivery::maxWaitingBytes`) | 96 MiB; the channel isn't read meanwhile |
 | One message from a peer (`PeerLimits::maxMessageBytes`) | 88 MiB (a revision of 64 MiB of assets, in base64); a larger one gets an error, unread. A remote peer (`net::PeerServerOptions::maxMessageBytes`) stays at 8 MiB unless its host raises it |
 | One asset (`maxAssetBytes`, `core/Assets.hpp`) | 32 MiB |
 | New assets one revision brings (`maxRevisionAssetBytes`) | 64 MiB |
@@ -583,6 +631,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
 | Files including files (`include`, at load time) | 9 levels below the screen file |
+| An included file (`include`; plain files only: no devices or pipes) | 16 MiB; an app's are in its folder or the `shared` folder beside it, once links are resolved |
 | Open proposals per channel | 16 |
 | Operations in one revision (its compact edits and its JSON Patch), or in one proposal with all its commits; counted before any is applied | 10,000 |
 | Values the `copy` operations of one revision copy, in all (a copy of a list into itself doubles it) | 100,000 |
@@ -676,18 +725,18 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A `search` service | 4 calls at once; 2,000 results by default, 20,000 at most; folders 64 deep; a file replaced in 8 MiB, a replaced text 64 MiB |
 | Globs a `search` call or a `.gitignore` gives (`SearchGlob`) | 256 bytes a glob, 64 globs a list; 64 KiB of a `.gitignore` read, 10,000 rules kept |
 | A `pty` service | 8 terminals; 64 KiB a write and 1 MiB waiting; 16 KiB an event and 4 MiB a second |
-| Forge's terminal widget | A title of 256 bytes, only with `allowTitle`; 10,000 lines of scrollback |
+| The `terminal` node | A title of 256 bytes, only with `allowTitle`; 10,000 lines of scrollback; 16 terminals a screen; 64 KiB a `runInTerminal` line |
 | What git prints for Forge (`GitLimits`) | 8 MiB of output, 10,000 files or branches, 4 KiB a path |
 | A colour theme Forge imports | An id of 40 characters; only `#rrggbb` and `#rrggbbaa` colours are kept |
 | The document server's token file (`TokenFile`) | 4,096 tokens |
-| A Sinopia deck (`sinopia::DeckLimits`) | A file of 8 MiB; 500 slides, 1,000 objects a slide, master or layout (groups' included), 32 masters and 32 layouts, 200 sections, 64 theme tokens; text of 20,000 bytes and 256 runs an object, notes of 50,000 bytes a slide, pen paths of 64 KiB, ids of 64 bytes; images of 32 MiB and 4,096 pixels a side; numbers clamped, ids made unique. A peer's edit is read again, so the same limits hold |
-| A PDF export (`PdfLimits`) | 2,000 pages, a file of 256 MiB, 64 MiB of embedded fonts and of a page's drawing, 2^26 image pixels in all; Sinopia exports at most 500 pages, and as PNG at most 500 files |
-| Sinopia's audience window | Its keys run only the workspace's `nextStep`, `previousStep`, `toggleBlack` and `stopPresenting` |
+| The `saveFile` and `openFile` steps | Only after an event and only through the OS's file dialog: the screen names no path and learns only the chosen file's name. JSON of 16 MB written or read; `openFile` takes 1 to 16 extensions and puts the parsed value in state, where the checks of any state value hold |
+| The `export` step (`PdfLimits`) | Only after an event, through the OS's save dialog; 2,000 pages, a file of 256 MiB, 64 MiB of embedded fonts and of a page's drawing, 2^26 image pixels in all; a PNG is one node |
+| A screen's other windows (`windows`) | 4 windows, each only one the screen's `windows` section declares, showing a node of that screen; they close with the screen |
 | An image of `modules/imaging` (`imaging::Limits`) | 32,768 pixels across and down, and a gigapixel; 256 layers and groups, groups 2 deep |
 | Memory of an image's tiles (`imaging::Limits`) | 512 MiB of loaded tiles and mips per image on the CPU (the least recently used go), 256 MiB of resident tiles per view on the GPU |
 | Tempera's undo history (`imaging::Limits`) | 200 steps and 512 MiB of changed tiles; the oldest steps go first |
 | Tempera's filters, feathers, brushes, fills and lassos (`imaging::Limits`) | A radius of 250 pixels, a brush of 5,000, 64 Mi pixels visited by a fill or magic wand, 100,000 points in a lasso |
-| A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down, checked from the header before decoding |
+| A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down and 256 megapixels in all (`imageFilePixels`: a file of half a megabyte can hold a gigapixel of one colour, so only a host raises it), checked from the header before decoding; the pixels are tiled from the decoder's own buffer, never copied |
 | A Tempera project file (`tests/fuzz/tempera_project.cpp`) | 4 GiB, a manifest of 16 MiB under the JSON nesting limit; each tile inflated only to its exact size when first used, a damaged one read as transparent |
 | A screen's models (`data::Limits`, `tests/fuzz/data_models.cpp`) | 256 collections, 256 fields a model (nested ones included), 8 levels, 1,024 enum values, names of 64 bytes, 256 migrations of 64 steps, 10,000 seed or imported records |
 | A screen's records (`data::Limits`) | A record of 1 MiB, 1,000,000 a collection, a database of 1 GiB; a query gives at most 10,000 records, with 64 conditions, 4 levels of `any`, 1,000 values `in`, 8 sort keys; 100,000 journal entries (the oldest go); a write step at most 10,000 records |
@@ -750,19 +799,26 @@ removes the gap from this list.
 - **Who is at the other end of a declared channel isn't checked.** The user check applies to connections a host
   accepts (`listen`, `SocketServer`). A screen's `channels` connect out to a socket, and the library doesn't check
   who listens there, nor the directory of that socket or of one an embedding application passes to `listen`. Tracking: G-03.
+- **An app's channel to its own host is a reviewer of its own screen.** The stock host confines a screen's channels
+  to its own socket folder (above), and a channel on `studio.sock` has the author `studio`, a reviewer: a screen
+  allowed the `channels` capability can accept its own proposals, though never what only the person accepts. A
+  per-run secret that only the host's own peers hold, or a lower author for a connection from the host's own
+  process, would close it. Tracking: G-27.
 - **The user check on Windows goes by process id.** The peer's process could exit and its id be reused between the
   connection and the check, a narrow race. A process of the same user that runs elevated may not be inspectable from
   a non-elevated host, and is then refused. Tracking: G-04.
-- **The rate limits are per peer, and the queue to the main thread isn't bounded.** Over local sockets nothing
-  limits how many peers connect, and each new connection gets fresh limits (remote peers over WebSocket are capped in
-  number and in connection rate, "Limits" above). A socket's reader thread hands every line to the main thread
-  as it arrives, so a peer that sends faster than the main thread refuses its messages still makes that queue grow;
-  refusing is cheap (no parsing), so the main thread keeps up in practice. The open-proposal limit caps waiting
+- **The rate limits are per peer.** Over local sockets nothing limits how many peers connect, and each new
+  connection gets fresh limits (remote peers over WebSocket are capped in number and in connection rate, "Limits"
+  above). A channel's reader thread hands each line to the main thread, but stops reading while 96 MiB of its lines
+  wait there, so a peer that sends faster than the main thread handles them is held back by its own connection: the
+  host holds at most about twice that for it, and a thousand connections can still hold a thousand times as much. The
+  rate and size checks themselves run on the main thread. The open-proposal limit caps waiting
   proposals, and the change rate caps how often they are pushed. Each connection also takes a file descriptor and two
   threads: a peer that opens enough connections to use up the descriptors makes the server's accepting thread retry
   without pause until one is closed, and one that uses up the threads stops the app (a thread that can't be started
   ends the process). Tracking: G-05.
-- **Large revisions.** A message can be up to 8 MiB, so a revision can still be large, and so can the lists it puts
+- **Large revisions.** A message can be up to 88 MiB from a local peer (8 MiB from a remote one), so a revision can
+  still be large, and so can the lists it puts
   in the state, which the screen may render as one panel per item. A long text costs in proportion to its length,
   but a line longer than a font keeps shaped (128 Ki code points) is shaped again every time it is drawn or measured:
   a label of a million characters on one line takes a fraction of a second each time. The limits above bound what
@@ -849,10 +905,6 @@ removes the gap from this list.
   yet answered stay in its memory until the agent reads or answers them. The host's limits slow how fast peers can
   add to them, not how much piles up over a long session with an agent that never asks. Tracking: G-23.
 
-- **The terminal's escape-sequence parser isn't fuzzed yet.** What a program writes to a terminal is parsed by
-  libvterm inside Forge's terminal widget. The `pty` provider bounds it (the limits above) and the widget acts on few
-  sequences, but no fuzz target covers the parser yet (`tests/fuzz/README.md`, "Inventory of untrusted inputs"): run
-  in a terminal only programs you would run in your own. Tracking: G-24.
 - **Sound files are decoded by miniaudio's decoders** (dr_wav, dr_flac and dr_mp3, single-header C). A file in an
   allowed folder or a URL the host allows can hold anything, and it is decoded on the audio thread or a stream's
   own. The input is bounded (the limits above), read through the module's own bounded file system, compiled with

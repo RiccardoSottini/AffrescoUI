@@ -4,6 +4,7 @@
 #include "PropertyValues.hpp"
 #include "LayoutProperties.hpp"
 #include "NodeKeys.hpp"
+#include "affresco/core/Numbers.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -35,7 +36,7 @@ Length length(const json& value, const std::string& path) {
 
 		try {
 			std::size_t used = 0;
-			const float amount = std::stof(t, &used);
+			const float amount = numberLengthFits(t) ? std::stof(t, &used) : HUGE_VALF;
 			if(used == t.size() && std::isfinite(amount)) return {amount, unit};
 			// NOLINTNEXTLINE(bugprone-empty-catch): not a number, reported below like any other malformed length
 		} catch(const std::exception&) {
@@ -98,6 +99,7 @@ void anchor(Panel& panel, const std::string& name, const json& offset, const std
 	if(!rest.empty()) {
 		try {
 			std::size_t used = 0;
+			if(!numberLengthFits(rest)) throw std::invalid_argument(rest);
 			delta = std::stof(rest, &used);
 			if(used != rest.size() || (rest[0] != '+' && rest[0] != '-')) throw std::invalid_argument(rest);
 		} catch(const std::exception&) {
@@ -208,7 +210,7 @@ bool layoutProperty(Panel& panel, std::string_view key, const json& value, const
 			}
 			const std::string offset = word.substr(colon + 1);
 			char* end = nullptr;
-			const double pixels = std::strtod(offset.c_str(), &end);
+			const double pixels = readNumber(offset.c_str(), &end);
 			const json written = !offset.empty() && *end == '\0' && std::isfinite(pixels) ? json(pixels) : json(offset);
 			panel.setAnchor(edge(word.substr(0, colon), at), length(written, concatenate(at, ".", word)));
 		}

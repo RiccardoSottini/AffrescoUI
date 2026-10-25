@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stages the documentation site's sources into website/build/docs: the hand-written pages of website/docs, the
+"""Stages the documentation site's sources into website/build/docs: the hand-written pages of website/pages, the
 recipes (for pymdownx.snippets), and the references generated from the repository, so nothing is copied by hand.
 
 Usage: generate.py --cli PATH [--api DIR]
@@ -33,6 +33,7 @@ INCLUDED = {
     "tools/affrescoui/README.md": "reference/cli.md",
     "schema/affrescoui-screen.schema.json": "reference/schemas.md",
     "schema/affrescoui-scenarios.schema.json": "reference/schemas.md",
+    "schema/affrescoui-app.schema.json": "reference/schemas.md",
 }
 
 FENCE = re.compile(r"^(```|~~~)")
@@ -290,7 +291,7 @@ def main():
 
     shutil.rmtree(DOCS, ignore_errors=True)
     shutil.rmtree(SNIPPETS, ignore_errors=True)
-    shutil.copytree(WEBSITE / "docs", DOCS)
+    shutil.copytree(WEBSITE / "pages", DOCS)
     shutil.copytree(WEBSITE / "recipes", SNIPPETS / "recipes")
     (DOCS / "assets").mkdir(exist_ok=True)
     for name in ("affrescoui-mark.svg", "favicon.svg"):  # the theme's logo and favicon

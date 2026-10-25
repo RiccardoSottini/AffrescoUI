@@ -103,6 +103,16 @@ public:
 	/// @brief Makes unknown types plain panels instead of an error.
 	/// @param enabled true to allow them.
 	void setPlaceholderTypes(bool enabled);
+	/// @brief Lets the screen show the open and save dialogs (`saveFile`, `openFile`, `export`, an image's open and
+	/// save), or not: a step refused runs its "onError" with the code "notAllowed". On by default; a host that asks
+	/// the person (the stock host's "files" capability) turns it off until they allow it.
+	/// @param allowed Whether it may.
+	void allowFileDialogs(bool allowed);
+	/// @brief Lets the screen open the windows of its "windows" section, or not: an `openWindow` refused opens nothing
+	/// and says so. On by default; a host that asks the person (the stock host's "windows" capability) turns it off
+	/// until they allow it.
+	/// @param allowed Whether it may.
+	void allowOtherWindows(bool allowed);
 
 	/* Building */
 
@@ -209,6 +219,12 @@ public:
 	/// @param sender The panel it comes from.
 	/// @param event Available to the action as "event".
 	void runAction(std::string_view name, Panel& sender, const json& event);
+	/// @brief Runs an action for the application's own code (Screen::runAction()): what it starts counts as the
+	/// person's, as their press does, so a step only the person may start (filling the display) runs from it.
+	/// @param name The action (from the document, else native).
+	/// @param sender The panel it comes from.
+	/// @param event Available to the action as "event".
+	void runHostAction(std::string_view name, Panel& sender, const json& event);
 
 	/// @brief Runs steps a commit carries ("run": VERSION_CONTROL.md, "Assets"), once, as the root panel's, after the
 	/// event or update in progress (at once without a window): the steps a revision runs when it lands. Errors are

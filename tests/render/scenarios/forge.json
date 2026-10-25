@@ -79,6 +79,7 @@
 				{ "wait": 50 },
 				{ "expect": { "image": "settings" } },
 				{ "key": "mod+shift+p" },
+				{ "wait": 50, "note": "the palette opens and its field takes the focus" },
 				{ "type": "color theme" },
 				{ "wait": 50 },
 				{ "key": "enter" },

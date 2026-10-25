@@ -220,7 +220,7 @@ void LanguageEditor::newLine() {
 
 	const std::size_t indent = std::min(indentOf(from.line), from.column);
 	beginEdit(Edit::Other);
-	replaceSelection(U"\n" + std::u32string(indent + tabSize, U' '));
+	replaceSelection(U"\n" + std::u32string(indent + tabSize(), U' '));
 	const Position inside = caret();
 	if(between) {
 		// Between a pair of brackets: the closing one goes on its own line, the caret stays on the indented one
@@ -233,20 +233,20 @@ void LanguageEditor::newLine() {
 void LanguageEditor::outdentIfDecreasing() {
 	const Position at = caret();
 	const std::size_t indent = indentOf(at.line);
-	if(hasSelection() || indent < tabSize || !lineMatches(language_->indentDecrease, at.line, at.column)) return;
+	if(hasSelection() || indent < tabSize() || !lineMatches(language_->indentDecrease, at.line, at.column)) return;
 	// It goes back to a level less than the line before it implies: that line's, or one deeper after an increase
 	std::size_t expected = 0;
 	for(std::size_t line = at.line, looked = 0; line > 0 && looked < maxLookBack; ++looked) {
 		--line;
 		const std::size_t before = indentOf(line);
 		if(before == lines()[line].size()) continue; // blank
-		expected = lineMatches(language_->indentIncrease, line, lines()[line].size()) ? before + tabSize : before;
+		expected = lineMatches(language_->indentIncrease, line, lines()[line].size()) ? before + tabSize() : before;
 		break;
 	}
 	if(indent < expected) return; // already back
 	beginEdit(Edit::Typing);
-	erase({at.line, 0}, {at.line, tabSize});
-	const Position moved{at.line, at.column >= tabSize ? at.column - tabSize : 0};
+	erase({at.line, 0}, {at.line, tabSize()});
+	const Position moved{at.line, at.column >= tabSize() ? at.column - tabSize() : 0};
 	setSelection(moved, moved);
 	endEdit();
 }

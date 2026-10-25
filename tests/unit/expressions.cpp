@@ -37,11 +37,14 @@ std::string parentheses(int depth) {
 	return std::string(n, '(') + "1" + std::string(n, ')');
 }
 
-/// @brief An expression whose value is infinity: two large numbers multiplied (literals have no exponents).
+/// @brief An expression whose value is infinity: large numbers multiplied (literals have no exponents, and are at most
+/// 40 characters long): nine times 1e37.
 /// @return It.
 std::string infinity() {
-	const std::string large = "1" + std::string(300, '0') + ".0";
-	return "(" + large + " * " + large + ")";
+	const std::string large = "1" + std::string(37, '0') + ".0";
+	std::string product = large;
+	for(int factor = 1; factor < 9; ++factor) product += " * " + large;
+	return "(" + product + ")";
 }
 
 /// @brief Paths nested inside the brackets of paths, as paths were written before expressions.
@@ -111,6 +114,7 @@ const std::vector<Case> cases = {
     {"{{0 - 9223372036854775807 - 1}}", INT64_MIN, {}}, // the smallest 64-bit integer stays an integer
     {"{{9223372036854775808 + 1}}", {}, "number '9223372036854775808' is too large"},
     {"{{1 + " + std::string(400, '9') + ".5}}", {}, "is too large (at column 407)"},
+    {"{{0." + std::string(500, '1') + "}}", {}, "is too large"}, // longer than any number strtod() is given
     {"{{state.items[99999999999999999999]}}", {}, "index '99999999999999999999' is too large"},
     // Whole results beyond 64 bits: found by fuzzing, they were cast to an integer (undefined behaviour)
     {"{{3000000000000 * 3000000000000}}", 9e24, {}},
@@ -166,11 +170,11 @@ const std::vector<Case> cases = {
     {"{{pow(2, 10)}}", 1024, {}},
     {"{{pow(0.5, 1)}}", J(R"(0.5)"), {}},
     {"{{pow(2, -1)}}", J(R"(0.5)"), {}},
-    {"{{pow(-1, 0.5)}}", {}, "not a finite number"},
-    {"{{pow(0, -1)}}", {}, "not a finite number"},
+    {"{{pow(-1, 0.5)}}", {}, "pow has no finite result here"},
+    {"{{pow(0, -1)}}", {}, "pow has no finite result here"},
     {"{{pow(2)}}", {}, "test.$pow: expected 2 arguments"},
     {"{{sqrt(9)}}", J(R"(3.0)"), {}},
-    {"{{sqrt(-1)}}", {}, "negative number"},
+    {"{{sqrt(-1)}}", {}, "sqrt has no finite result here"},
     {"{{sin(0)}}", J(R"(0.0)"), {}},
     {"{{cos(0)}}", J(R"(1.0)"), {}},
     {"{{round(sin(3.141592653589793 / 2) * 1000)}}", 1000, {}},
@@ -307,7 +311,7 @@ const std::vector<Case> cases = {
     {"{{round(tan(pi() / 4) * 1000)}}", 1000, {}},
     {"{{round(degrees(acos(0)))}}", 90, {}},
     {"{{round(degrees(atan(1)))}}", 45, {}},
-    {"{{sqrt(9)}}", 3, {}},
+    {"{{sqrt(9)}}", J(R"(3.0)"), {}}, // a root has a fraction even when whole
     {"{{sqrt(2.25)}}", J(R"(1.5)"), {}},
     {"{{pow(2, 10)}}", 1024, {}},
     {"{{pow(2, -1)}}", J(R"(0.5)"), {}},
@@ -334,12 +338,12 @@ const std::vector<Case> cases = {
     {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, 2.7))}}", 2, {}},
     {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, -1))}}", 0, {}},
     {"{{clamp(1.5, 0, 1)}}", J(R"(1.0)"), {}},
-    // Geometry, in degrees
-    {"{{round(sin(30) * 1000)}}", 500, {}},
-    {"{{round(cos(180))}}", -1, {}},
-    {"{{atan2(1, 0)}}", J(R"(90.0)"), {}},
+    // Geometry: angles are radians, radians() and degrees() convert
+    {"{{round(sin(radians(30)) * 1000)}}", 500, {}},
+    {"{{round(cos(radians(180)))}}", -1, {}},
+    {"{{degrees(atan2(1, 0))}}", J(R"(90.0)"), {}},
     {"{{sqrt(9)}}", J(R"(3.0)"), {}},
-    {"{{sqrt(-1)}}", {}, "test.$sqrt: expected a number of zero or more"},
+    {"{{sqrt(-1)}}", {}, "test.$sqrt: sqrt has no finite result here"},
     // Dates, "YYYY-MM-DD": tests/unit/date_civil.cpp has the calendar arithmetic
     {"{{isDate(today())}}", true, {}},
     {"{{addDays('2024-02-28', 2)}}", "2024-03-01", {}},
@@ -361,6 +365,12 @@ const std::vector<Case> cases = {
     {"{{passwordStrength('').score}}", 0, {}},
     {"{{isEmail('ada@example.com')}}", true, {}},
     {"{{isEmail('ada@example')}}", false, {}},
+    // Diffs and JSON documents: tests/unit/diff_functions.cpp has the hunks, the pointers and the patches
+    {"{{diffLines('a\\nb', 'a\\nc').added}}", 1, {}},
+    {"{{atPointer({ a: [1, 2] }, '/a/1')}}", 2, {}},
+    {"{{applyPatch({ a: 1 }, [{ op: 'replace', path: '/a', value: 2 }]).a}}", 2, {}},
+    {"{{formatJson({ a: 1 })}}", "{\n  \"a\": 1\n}", {}},
+    {"{{qrCode('Affresca').viewBox}}", "-4 -4 29 29", {}}, // tests/unit/qr_code.cpp has the codes
     {"{{pathTree(['src/b.c', 'src/a.c', 'README', {path: 'docs', expandable: true}])}}",
 	 J(R"([{"id": "docs", "label": "docs", "path": "docs", "expandable": true},
            {"id": "src", "label": "src", "children": [{"id": "src/a.c", "label": "a.c"},
@@ -372,6 +382,9 @@ const std::vector<Case> cases = {
 	 {}},
     {"{{pathTree(null)}}", J("[]"), {}},
     {"{{pathTree('a')}}", {}, "expected a list"},
+    // Keys: tests/unit/key_notation.cpp has the notations
+    {"{{keyLabel('ctrl+x ctrl+f', 'emacs')}}", "C-x C-f", {}},
+    {"{{keyLabel('ctrl+x', 'vi')}}", {}, R"(test.$keyLabel: expected the notation "platform", "mac", "pc" or "letters")"},
     // Timelines and the locale's: tests/unit/timeline.cpp and tests/unit/i18n.cpp have their values
     {"{{keyframeValue([{ time: 0, value: 0 }, { time: 2, value: 10 }], 0.5)}}", 2.5, {}},
     {"{{keyframeValue(1)}}", {}, "test.$keyframeValue: expected 2 arguments"},
@@ -396,8 +409,10 @@ const std::vector<Case> cases = {
     {"{{state.big}}", J(R"(18446744073709551615)"), {}},
     {"{{state.big + 1}}", J(R"(1.8446744073709552e+19)"), {}},
     // Texts and conversions; texts are UTF-8, and len, indexOf and slice count bytes
-    {"{{upper('héllo')}}", "HéLLO", {}},
-    {"{{lower('ÀB')}}", "Àb", {}},
+    {"{{upper('héllo')}}", "HÉLLO", {}},
+    {"{{lower('ÀB')}}", "àb", {}},
+    {"{{upper('ÿ ł ň ß ı 中')}}", "Ÿ Ł Ň ß ı 中", {}},
+    {"{{lower('Ÿ Ł Ň İ Ø×')}}", "ÿ ł ň İ ø×", {}},
     {"{{trim('  a b  ')}}", "a b", {}},
     {"{{text(null)}}", "", {}},
     {"{{text(2.0)}}", "2", {}},
@@ -421,10 +436,80 @@ const std::vector<Case> cases = {
     {"{{split('aé✓', '')}}", J(R"(["a","é","✓"])"), {}},
     {"{{split('', ',')}}", J(R"([""])"), {}},
     {"{{split('a')}}", {}, "test.$split: expected 2 arguments"},
+    {"{{applyEdits('int count = 0;', [{line: 0, column: 4, endLine: 0, endColumn: 9, text: 'total'}])}}",
+     "int total = 0;", {}},
+    {"{{applyEdits('ab\\ncd', [{line: 1, column: 2, endLine: 1, endColumn: 2, text: '!'}, "
+     "{line: 0, column: 0, endLine: 0, endColumn: 0, text: '> '}])}}",
+     "> ab\ncd!", {}},
+    {"{{applyEdits('ab\\ncd', [{line: 0, column: 1, endLine: 1, endColumn: 1}])}}", "ad", {}},
+    {"{{applyEdits('é✓x', [{line: 0, column: 1, endLine: 0, endColumn: 2, text: 'v'}])}}", "évx", {}},
+    {"{{applyEdits('ab', [])}}", "ab", {}},
+    {"{{applyEdits('ab', [{line: 0, column: 3, endLine: 0, endColumn: 3, text: 'x'}])}}", nullptr, {}},
+    {"{{applyEdits('ab\\ncd', [{line: 2, column: 0, endLine: 2, endColumn: 0, text: 'x'}])}}", nullptr, {}},
+    {"{{applyEdits('abcd', [{line: 0, column: 0, endLine: 0, endColumn: 2}, "
+     "{line: 0, column: 1, endLine: 0, endColumn: 3}])}}",
+     nullptr, {}},
+    {"{{applyEdits('ab', [{line: 0, column: 1, endLine: 0, endColumn: 0}])}}", nullptr, {}},
+    {"{{applyEdits('ab', [{line: -1, column: 0, endLine: 0, endColumn: 0}])}}", nullptr, {}},
+    {"{{applyEdits('ab', [{line: 0.5, column: 0, endLine: 0, endColumn: 0}])}}", nullptr, {}},
+    {"{{applyEdits('ab', [{line: 0, column: 0}])}}", nullptr, {}},
+    {"{{applyEdits('ab', ['x'])}}", nullptr, {}},
+    {"{{applyEdits('ab', 'x')}}", nullptr, {}},
+    {"{{applyEdits('ab')}}", {}, "test.$applyEdits: expected 2 arguments"},
     {"{{json({b: 1, a: [true, null]})}}", R"({"b":1,"a":[true,null]})", {}},
     {R"({{parseJson('{"z": 1, "a": 2}')}})", J(R"({"z":1,"a":2})"), {}},
     {"{{parseJson('nope')}}", nullptr, {}},
     {"{{parseJson(state.name)}}", nullptr, {}},
+    {"{{parseJsonc('{\"a\": [1, 2,], /* b */ \"c\": \"x // y\", // z\\n}')}}", J(R"({"a":[1,2],"c":"x // y"})"), {}},
+    {"{{parseJsonc('[1,,]')}}", nullptr, {}},
+    {"{{parseJsonc('1/**/2')}}", nullptr, {}},
+    {"{{shellLine(['ls', 'a b', \"it's\"])}}", "'ls' 'a b' 'it'\\''s'", {}},
+    {"{{shellLine(['run'], {HOME: '/h', SKIP: null})}}", "env 'HOME=/h' 'run'", {}},
+    {"{{shellLine([])}}", "", {}},
+    {"{{shellLine(['a\\nb'])}}", nullptr, {}},
+    {"{{shellLine(['a', 1])}}", nullptr, {}},
+    {"{{shellLine(['a'], {'X=Y': 'z'})}}", nullptr, {}},
+    {"{{shellLine(['a'], {'-u': 'z'})}}", nullptr, {}},
+    {"{{shellLine('a')}}", nullptr, {}},
+    {"{{slug('Solarized Dark')}}", "solarized-dark", {}},
+    {"{{slug('  One  Dark Pro!! ')}}", "one-dark-pro", {}},
+    {"{{slug('***')}}", "", {}},
+    {"{{slug('Café Noir')}}", "caf-noir", {}},
+    {"{{length(slug('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 40))}}", 40, {}},
+    {"{{slug('a b', 0)}}", "a", {}},
+    {"{{slug(12)}}", "12", {}},
+    {"{{hexColor('#011627')}}", "#011627", {}},
+    {"{{hexColor('#AbC')}}", "#aabbcc", {}},
+    {"{{hexColor('#abcd')}}", "#aabbccdd", {}},
+    {"{{hexColor('#011627AA')}}", "#011627aa", {}},
+    {"{{hexColor('not a colour')}}", nullptr, {}},
+    {"{{hexColor('#12345')}}", nullptr, {}},
+    {"{{hexColor('#gggggg')}}", nullptr, {}},
+    {"{{hexColor(null)}}", nullptr, {}},
+    {"{{hexColor([0.8, 0.8, 0.8, 1])}}", "#ccccccff", {}},
+    {"{{hexColor([1, 0, 0.5])}}", "#ff0080", {}},
+    {"{{hexColor([2, -1, 0])}}", "#ff0000", {}},
+    {"{{hexColor([1, 0])}}", nullptr, {}},
+    {"{{hexColor([1, 'a', 0])}}", nullptr, {}},
+    {"{{colorList('#ccccccff')}}", J("[0.8, 0.8, 0.8, 1.0]"), {}},
+    {"{{colorList('#f00')}}", J("[1.0, 0.0, 0.0, 1]"), {}},
+    {"{{colorList('#12345680')}}", J("[0.0706, 0.2039, 0.3373, 0.502]"), {}},
+    {"{{hexColor(colorList('#12345680'))}}", "#12345680", {}},
+    {"{{colorList([0.8, 0.8, 0.8, 1])}}", J("[0.8, 0.8, 0.8, 1.0]"), {}},
+    {"{{colorList('red')}}", nullptr, {}},
+    {"{{colorList(null)}}", nullptr, {}},
+    // Changes: a line diff's hunks without context, as a gutter marks them, and git's output read (its records end in
+    // NULs; malformed output is null)
+    {"{{map(diffLines('a\\nb\\nc\\nd\\n', 'a\\nB\\nc\\nd\\ne\\n', { context: 0 }).hunks, [it.oldStart, it.oldLines, "
+     "it.newStart, it.newLines])}}",
+     J("[[2, 1, 2, 1], [4, 0, 5, 1]]"), {}},
+    {"{{map(diffLines('a\\nb', 'a', { context: 0 }).hunks, [it.oldStart, it.oldLines, it.newStart, it.newLines])}}",
+     J("[[2, 1, 1, 0]]"), {}},
+    {"{{gitStatus('')}}",
+     J(R"({"branch":{"head":"","oid":"","upstream":"","ahead":0,"behind":0},"files":[]})"), {}},
+    {"{{gitStatus('? unended')}}", nullptr, {}},
+    {"{{gitBranches('')}}", J(R"({"current":"","branches":[]})"), {}},
+    {"{{gitBranches('main\\n')}}", nullptr, {}},
     // Lists and objects; objects keep the order of their keys, as the documents' JSON does
     {"{{length('é')}}", 2, {}},
     {"{{length(state.name)}}", 15, {}},

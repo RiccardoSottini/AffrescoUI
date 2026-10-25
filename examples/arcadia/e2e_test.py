@@ -21,7 +21,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SCREEN = os.path.join(HERE, "index.screen.json")
-SCENARIOS = os.path.join(HERE, "index.scenarios.json")
+SCENARIOS = [os.path.join(HERE, "index.scenarios.json"), os.path.join(HERE, "controls.scenarios.json")]
 
 
 def connect(path, timeout=20.0):
@@ -91,7 +91,8 @@ def main():
     work = tempfile.mkdtemp(prefix="afr-gl-")  # short: socket paths are limited to about 100 bytes
     sockets, data = os.path.join(work, "s"), os.path.join(work, "data")
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets)
-    host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), SCREEN, "--socket", sockets, "--data", data],
+    host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), SCREEN, "--socket", sockets, "--data", data,
+                             "--grant", "assistant", "--grant", "files"],
                             env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         studio, studio_stream = connect(os.path.join(sockets, "studio.sock"))
@@ -140,9 +141,9 @@ def main():
         host.terminate()
         host.wait(timeout=10)
 
-    # 6. The launcher's own scenarios, headless
+    # 6. The launcher's own scenarios and the scenarios of its controls, headless
     shots = os.path.join(work, "shots")
-    run = subprocess.run([os.path.join(build, "affrescoui"), "test", SCENARIOS, "--out", shots],
+    run = subprocess.run([os.path.join(build, "affrescoui"), "test", *SCENARIOS, "--out", shots],
                          capture_output=True, text=True)
     if run.returncode != 0:
         sys.exit(run.stdout + run.stderr)

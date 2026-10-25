@@ -4,6 +4,8 @@
 #include "affresco/services/Grants.hpp"
 #include "affresco/services/ServiceRegistry.hpp"
 
+#include "affresco/core/Portable.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdlib>
@@ -63,8 +65,8 @@ std::filesystem::path findProgram(std::string_view name) {
 	const std::string file(name);
 #endif
 	if(file.empty() || file.contains('/') || file.contains('\\')) return {};
-	const char* path = std::getenv("PATH"); // NOLINT(concurrency-mt-unsafe): read at launch, on the main thread
-	for(std::string_view folders = path ? path : ""; !folders.empty();) {
+	const std::string path = environmentVariable("PATH").value_or("");
+	for(std::string_view folders = path; !folders.empty();) {
 		const std::size_t end = std::min(folders.find(separator), folders.size());
 		const std::filesystem::path folder(folders.substr(0, end));
 		folders.remove_prefix(std::min(end + 1, folders.size()));
@@ -76,8 +78,8 @@ std::filesystem::path findProgram(std::string_view name) {
 
 std::filesystem::path loginShell() {
 #ifdef _WIN32
-	const char* shell = std::getenv("COMSPEC"); // NOLINT(concurrency-mt-unsafe): read at launch
-	if(shell && std::filesystem::path(shell).is_absolute()) return shell;
+	const std::string shell = environmentVariable("COMSPEC").value_or("");
+	if(std::filesystem::path(shell).is_absolute()) return shell;
 	return "C:\\Windows\\System32\\cmd.exe";
 #else
 	const char* shell = std::getenv("SHELL"); // NOLINT(concurrency-mt-unsafe): read at launch

@@ -6,6 +6,7 @@ affrescoui_module(capi ${affrescoui_capi_sources})
 target_link_libraries(affrescoui_capi PUBLIC affrescoui::affrescoui)
 target_include_directories(affrescoui_capi PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src)
 target_include_directories(affrescoui_capi SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
+target_compile_definitions(affrescoui_capi PRIVATE GLFW_INCLUDE_NONE) # GLFW's header only, no system GL headers
 
 # The shared library ctypes and other foreign function interfaces load: libaffresco, the whole library in one file,
 # exporting the afr_ functions only. The static libraries it holds need position-independent code
@@ -16,7 +17,7 @@ if(AFFRESCOUI_BUILD_CAPI_SHARED)
 	target_include_directories(affrescoui_capi_shared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 		PRIVATE src ${PROJECT_SOURCE_DIR}/modules/render/src)
 	target_include_directories(affrescoui_capi_shared SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
-	target_compile_definitions(affrescoui_capi_shared PUBLIC AFR_SHARED PRIVATE AFR_BUILDING)
+	target_compile_definitions(affrescoui_capi_shared PUBLIC AFR_SHARED PRIVATE AFR_BUILDING GLFW_INCLUDE_NONE)
 	target_link_libraries(affrescoui_capi_shared PRIVATE affrescoui::affrescoui)
 	target_compile_options(affrescoui_capi_shared PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 	set_target_properties(affrescoui_capi_shared PROPERTIES OUTPUT_NAME affresco CXX_EXTENSIONS OFF

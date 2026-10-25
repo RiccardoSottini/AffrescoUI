@@ -48,9 +48,9 @@ bool chooseFolder(const Running& s) {
 		if(!alive.lock() || !engine.window) return;
 		const std::vector<std::string> chosen = engine.window->chooseFiles({FileDialogKind::Folder, title});
 		if(!alive.lock() || chosen.empty()) return; // cancelled, or the screen went away meanwhile
-		services::Services* services = engine.serviceCalls.services();
+		services::Services* current = engine.serviceCalls.services(); // the host's, now that the dialog closed
 		const std::optional<std::string> error =
-		    services ? services->chooseRoot(root, chosen.front()) : std::optional<std::string>("no services");
+		    current ? current->chooseRoot(root, chosen.front()) : std::optional<std::string>("no services");
 		if(error) {
 			engine.report("AffrescoUI screen: chooseFolder '" + root + "': " + *error);
 			outcome->vars = json{{"error", {{"code", "chooseFolder"}, {"message", *error}}}};

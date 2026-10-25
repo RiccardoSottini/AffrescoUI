@@ -72,10 +72,13 @@ public:
 	/// @brief Makes a list.
 	/// @param items Its items.
 	/// @return The value.
+	/// @throws DocumentError If it would nest more than maxNesting levels deep (a list or object counts one level, JSON
+	/// it holds one).
 	[[nodiscard]] static Value fromList(std::vector<Value> items);
 	/// @brief Makes an object.
 	/// @param fields Its fields, in order; a key given twice keeps its first place and its last value, as JSON does.
 	/// @return The value.
+	/// @throws DocumentError If it would nest more than maxNesting levels deep, as fromList().
 	[[nodiscard]] static Value fromObject(std::vector<Field> fields);
 	/// @brief Refers to a JSON value without copying it: numbers, booleans and null are copied, the rest is read in
 	/// place.
@@ -172,6 +175,16 @@ private:
 	/// @param right Another.
 	/// @return true if they are equal.
 	[[nodiscard]] static bool sameNumber(const Value& left, const Value& right);
+	/// @brief How deeply the value nests, as a list or object made of it counts it: its own depth for a list or object
+	/// made here, 1 for JSON it refers to (the document's or the state's, bounded by maxDocumentNesting), else 0.
+	/// Values an expression builds can't nest unboundedly, so destroying or converting one can't overflow the stack.
+	/// @return The depth.
+	[[nodiscard]] int nesting() const noexcept;
+	/// @brief The depth of a list or object whose deepest item nests that deep.
+	/// @param deepest The deepest item's nesting().
+	/// @return One more.
+	/// @throws DocumentError If it is more than maxNesting.
+	[[nodiscard]] static int nestingOf(int deepest);
 
 	std::shared_ptr<const Storage> storage_; ///< Long texts, lists, objects and owned JSON.
 	/// @brief The value itself, when it is small enough to hold without storage_.

@@ -15,6 +15,7 @@
 		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 28 },
 		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 13 },
 		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 22 },
+		"iconsRail": { "file": "../shared/fonts/Lucide.ttf", "size": 19 },
 		"code": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 13, "fallback": ["icons"] }
 	},
 
@@ -24,7 +25,8 @@
 	            "features/scm/scm.json", "features/agent/agent.json", "features/lsp/lsp.json",
 	            "features/debug/debug.json", "features/debug/debugViews.json",
 	            "features/editing/editing.json", "features/workbench/workbench.json",
-	            "../shared/addons/assistant/assistant.json"],
+	            "features/merge/merge.json",
+	            "../shared/languages/languages.json", "../shared/addons/assistant/assistant.json"],
 
 	"tokens": {
 		"assistant.accent": "@color.accent", "assistant.accentHover": "@color.selection", "assistant.onAccent": "#ffffff",

@@ -64,12 +64,30 @@ public:
 	/// @param panel The panel.
 	void focus(Panel& panel);
 	/// @brief The "focus" step: focuses a panel by id (focus()) after the update and its layout, so it exists and
-	/// has its place. It wins over a focus scheduled before it, and gives way to a later step, to a node that took
-	/// the focus after it, and to a focus scheduled after it outside its node (a dialog a later key opened).
-	/// @param id The panel's id.
-	void focusStep(std::string id);
+	/// has its place. It wins over a focus scheduled before it, and gives way to a later step whose node exists, to a
+	/// node that took the focus after it, and to a focus scheduled after it outside its node (a dialog a later key
+	/// opened).
+	/// @param path The panel's id, or a path of ids (findByPath()).
+	void focusStep(std::string path);
+	/// @brief The panel a path of ids names: "#a #b" is the "b" inside "a", as in CSS, so that a component's inner node
+	/// can be told apart between its uses.
+	/// @param root Where the search starts.
+	/// @param path Ids separated by spaces, each with or without its "#".
+	/// @return The panel, or nullptr when one of the ids isn't found.
+	[[nodiscard]] static Panel* findByPath(Panel& root, std::string_view path);
 	/// @brief Closes every open overlay that closes on a click outside it (the "dismiss" step, Escape).
 	void dismissAll() { dismissOverlays(nullptr); }
+	/// @brief Presses a key on one panel for the "press" step: the panel handles it as its own (an editor moves or
+	/// types), but no shortcut, "keys" binding or "onKey" runs for it and the focus doesn't move. A press made while
+	/// one is being delivered is dropped, so a press can't send itself again.
+	/// @param panel The panel.
+	/// @param event The key and its modifiers.
+	/// @param typed The character it types, or 0 for none.
+	void press(Panel& panel, const KeyEvent& event, char32_t typed);
+	/// @brief A key press in another of the screen's windows (SecondWindows): it runs the screen's "keys", as if
+	/// nothing had the focus.
+	/// @param event The event.
+	void keyFromAnotherWindow(const KeyEvent& event) { static_cast<void>(resolve(nullptr, event)); }
 
 private:
 	/// @brief A press that may become a click, a double click or a drag.
@@ -95,6 +113,10 @@ private:
 	/// @param panel The panel, a TextEditor.
 	/// @return The connection, or 0 if it isn't one.
 	Connection hookCaret(Panel& panel);
+	/// @brief Connects a text editor's view, which it writes to the state path of its "viewport".
+	/// @param panel The panel, a TextEditor.
+	/// @return The connection, or 0 if it isn't one.
+	Connection hookView(Panel& panel);
 	/// @brief Connects a label's links to its "onLink".
 	/// @param panel The panel, a Label.
 	/// @return The connection, or 0 if it isn't one.
@@ -254,6 +276,7 @@ private:
 	Click lastClick_;          ///< For double clicks.
 	std::string chord_;        ///< The chord in progress (chord()).
 	bool keyResolved_ = false; ///< The focused panel resolved the press the window is about to get.
+	bool pressing_ = false;    ///< A key of press() is being delivered: no binding runs for it.
 	/// @brief An open modal overlay, and who had the focus before it.
 	struct Modal {
 		Panel* overlay = nullptr;  ///< The overlay.
@@ -267,9 +290,11 @@ private:
 		bool pending = false;   ///< Scheduled.
 		bool cancelled = false; ///< A target was destroyed meanwhile.
 	};
-	FocusLater focusLater_;           ///< The focus change scheduled by focusLater().
+	FocusLater focusLater_;            ///< The focus change scheduled by focusLater().
 	std::uint64_t focusSteps_ = 0;     ///< focusStep() calls so far.
+	std::string focusPath_;            ///< The path of the latest focusStep().
 	std::uint64_t focusSchedules_ = 0; ///< focusLater() calls so far.
+	bool capsLock_ = false;            ///< Whether caps lock was on at the latest key event: bindings update on a change.
 	/// @brief The connections connect() made to the window's signals (0: none).
 	struct WindowHooks {
 		Connection resized = 0; ///< onResize.

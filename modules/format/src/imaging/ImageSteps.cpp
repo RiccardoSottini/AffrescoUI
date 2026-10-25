@@ -28,6 +28,34 @@ namespace {
 	return name;
 }
 
+/// @brief Runs an image operation: "open" with an asset of the version shown opens it with no dialog; "open" and "save"
+/// need the host's leave to show file dialogs and, as the other control steps, run only from the person's input
+/// while a proposal is previewed (a revision can't add them: RulesControl.cpp).
+/// @param s The step.
+/// @param operation Its name.
+/// @param found The operation.
+/// @param image The image it works on.
+/// @param with Its arguments.
+/// @throw std::exception if it fails.
+void runOperation(const Running& s, std::string_view operation, const editing::ImageOperation& found,
+                  editing::ImageDocument& image, const json& with) {
+	const Engine& engine = s.steps.engine();
+	if(operation == "open" && with.contains("asset")) {
+		const std::string asset = string(with["asset"], s.where + ".with.asset");
+		const auto bytes = engine.versions.assetBytes(asset);
+		const auto assets = engine.versions.assets();
+		const auto info = std::ranges::find(assets, asset, &AssetInfo::name);
+		if(!bytes || info == assets.end()) throw DocumentError("No asset '" + asset.substr(0, 100) + "'");
+		if(!info->type.starts_with("image/")) throw DocumentError("'" + asset + "' isn't a picture");
+		editing::openAsset(image, info->type, *bytes);
+	} else if((operation == "open" || operation == "save") && !engine.fileDialogsAllowed) {
+		throw DocumentError("the host doesn't let this screen show file dialogs (its app's \"files\" capability)");
+	} else {
+		if(operation == "open" || operation == "save") s.steps.checkControl(s.where); // a dialog, as openFile shows
+		found.run(image, with, engine.window);
+	}
+}
+
 /// @brief Runs an "image" step.
 /// @param s The step.
 /// @return std::nullopt if it isn't one, else whether to keep going.
@@ -44,23 +72,12 @@ std::optional<bool> runImageStep(const Running& s) {
 	if(images == document.end() || !images->is_object() || images->empty())
 		fail(where, "an \"image\" step needs an \"images\" section");
 	const std::string name = imageNameOf(s, *images);
-	editing::ImageDocument& image =
-	    engine.types.imageDocuments()->image(name, (*images)[name], "images." + name);
+	editing::ImageDocument& image = engine.types.imageDocuments()->image(name, (*images)[name], "images." + name);
 	const json with = step.contains("with") ? s.value("with") : json::object();
 	if(!with.is_object()) fail(where + ".with", "expected an object");
 	std::optional<std::string> problem;
 	try {
-		if(operation == "open" && with.contains("asset")) { // an asset of the version shown: no dialog
-			const std::string asset = string(with["asset"], where + ".with.asset");
-			const auto bytes = engine.versions.assetBytes(asset);
-			const auto assets = engine.versions.assets();
-			const auto info = std::ranges::find(assets, asset, &AssetInfo::name);
-			if(!bytes || info == assets.end()) throw DocumentError("No asset '" + asset.substr(0, 100) + "'");
-			if(!info->type.starts_with("image/")) throw DocumentError("'" + asset + "' isn't a picture");
-			editing::openAsset(image, info->type, *bytes);
-		} else {
-			found->run(image, with, engine.window);
-		}
+		runOperation(s, operation, *found, image, with);
 	} catch(const std::exception& error) {
 		problem = error.what();
 		image.message = *problem;

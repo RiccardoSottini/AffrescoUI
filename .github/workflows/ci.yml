@@ -53,6 +53,10 @@ jobs:
         run: |
           python3 tools/release/sbom.py --check
           python3 -m unittest discover -s tools/release -p "test_sbom.py"
+      - name: Image metadata # tools/release/image_metadata.py: no picture says which tool or machine made it
+        run: |
+          python3 tools/release/image_metadata.py
+          python3 -m unittest discover -s tools/release -p "test_image_metadata.py"
 
   linux:
     name: Linux
@@ -74,6 +78,8 @@ jobs:
         with:
           packages: xvfb xauth libgl1-mesa-dri doxygen clang-18 clang-tidy-18 llvm-18 python3-venv at-spi2-core libatspi2.0-dev
           cache: linux-gcc
+      - name: Generalism gate # tools/quality/README.md: apps are folders of JSON, the engine holds mechanisms
+        run: tools/quality/run.sh generalism
       - name: Build
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
@@ -91,9 +97,11 @@ jobs:
           AFFRESCOUI_ATSPI=1 build/affrescoui_window_tests -tc="accessibility*"'
       - name: Command-line tool and MCP queries # tools/affrescoui/check.py, mcp/test_affrescoui_mcp.py
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R "cli|mcp" --output-on-failure
-      - name: The scenarios # affrescoui test, headless: what each template does, and where the rendering check's screens put each node
+      - name: The scenarios # affrescoui test: what each template does (their image steps write to --out), and where the rendering check's screens put each node
         run: >
-          build/affrescoui test examples/{code-editor,flow,haven,launcher,sign-in,streak,tempo}/*.scenarios.json
+          xvfb-run -a -s "-screen 0 1920x1080x24"
+          build/affrescoui test --out "$RUNNER_TEMP/scenario-frames"
+          examples/{code-editor,flow,haven,launcher,sign-in,streak,tempo}/*.scenarios.json
           tests/render/screens/*.scenarios.json
       - name: Every application's first frame # tests/smoke/first_frames.py: each screen in tools/media/gallery.json loads, checks and draws
         run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests/smoke/first_frames.py

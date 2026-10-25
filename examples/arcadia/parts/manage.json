@@ -1,0 +1,876 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Arcadia's game management: a game's menu from the library (right click, Shift+F10) or the game page's gear, its properties (launch options, overlay, cloud saves, updates, installed files) kept on the game's record, and uninstalling with a question first.",
+	"state": {
+		"manage": null,
+		"gameMenu": {
+			"open": false,
+			"x": 0,
+			"y": 0
+		},
+		"properties": {
+			"open": false,
+			"tab": "general",
+			"verify": ""
+		},
+		"uninstall": {
+			"open": false
+		}
+	},
+	"computed": {
+		"manageGame": "{{find(data.games, it.id == state.manage)}}",
+		"gameMenuItems": "{{computed.manageGame == null ? [] : [ { title: t(computed.manageGame.status == 'ready' ? 'menu.game.play' : computed.manageGame.status == 'running' ? 'menu.game.stop' : computed.manageGame.status == 'update' ? 'menu.game.update' : computed.manageGame.status == 'downloading' ? 'menu.game.downloading' : 'menu.game.install'), enabled: computed.manageGame.status != 'downloading', run: 'primary', with: { game: computed.manageGame } }, { separator: true }, { title: t(computed.manageGame.favourite ? 'menu.game.unfavourite' : 'menu.game.favourite'), run: 'toggleFavourite', with: { id: computed.manageGame.id } }, { title: t('menu.game.page'), run: 'openGame', with: { id: computed.manageGame.id } }, { title: t('menu.game.properties'), run: 'openProperties', with: { id: computed.manageGame.id, tab: 'general' } }, { separator: true }, { title: t('menu.game.uninstall'), enabled: computed.manageGame.installed && computed.manageGame.status != 'running', run: 'askUninstall', with: { id: computed.manageGame.id } } ]}}"
+	},
+	"actions": {
+		"openGameMenu": {
+			"title": "A game's menu",
+			"category": "Game",
+			"description": "Opens the menu of the game with this id at the pointer (or the focused item).",
+			"do": [
+				{
+					"set": "state.manage",
+					"to": "{{id}}"
+				},
+				{
+					"set": "state.gameMenu",
+					"to": {
+						"open": true,
+						"x": "{{event.x}}",
+						"y": "{{event.y}}"
+					}
+				}
+			]
+		},
+		"openProperties": {
+			"title": "Properties",
+			"category": "Game",
+			"icon": "settings",
+			"do": [
+				{
+					"set": "state.manage",
+					"to": "{{id}}"
+				},
+				{
+					"set": "state.properties",
+					"to": {
+						"open": true,
+						"tab": "{{tab ?? 'general'}}",
+						"verify": ""
+					}
+				}
+			]
+		},
+		"askUninstall": {
+			"title": "Uninstall",
+			"category": "Game",
+			"icon": "trash-2",
+			"do": [
+				{
+					"set": "state.manage",
+					"to": "{{id}}"
+				},
+				{
+					"set": "state.uninstall.open",
+					"to": true
+				}
+			]
+		},
+		"uninstall": {
+			"title": "Uninstall",
+			"category": "Game",
+			"description": "Removes the game's files; it stays in the library, ready to install again.",
+			"do": [
+				{
+					"if": "{{find(data.games, it.id == id).status != 'running'}}",
+					"then": [
+						{
+							"update": "games",
+							"id": "{{id}}",
+							"fields": {
+								"installed": false,
+								"status": "none"
+							}
+						},
+						{
+							"set": "state.uninstall.open",
+							"to": false
+						}
+					]
+				}
+			]
+		}
+	},
+	"components": {
+		"gameMenu": {
+			"note": "A game's menu (right click, Shift+F10 or the gear): play or install, favourite, properties, uninstall.",
+			"params": {},
+			"node": {
+				"id": "game-menu",
+				"use": "contextMenu",
+				"with": {
+					"open": "state.gameMenu.open",
+					"width": 230,
+					"x": "{{min(state.gameMenu.x, window.width - 238)}}",
+					"y": "{{min(state.gameMenu.y, window.height - 190)}}",
+					"color": "@color.raised",
+					"textColor": "@color.text",
+					"dimColor": "@color.dim",
+					"highlight": "@color.hover",
+					"items": "{{computed.gameMenuItems}}"
+				}
+			}
+		},
+		"propertiesDialog": {
+			"note": "A game's properties: launch options and in-game settings, updates, installed files, extra content.",
+			"params": {},
+			"node": {
+				"use": "dialog",
+				"with": {
+					"open": "state.properties.open",
+					"width": 640,
+					"height": 400,
+					"title": "{{t('properties.title', { game: computed.manageGame.title ?? '' })}}",
+					"color": "@color.panel",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.accent",
+					"buttons": [
+						{
+							"title": "{{t('dialog.close')}}",
+							"default": true
+						}
+					]
+				},
+				"children": [
+					{
+						"id": "properties-body",
+						"type": "row",
+						"anchors": {
+							"left": 20,
+							"right": 20,
+							"top": 52,
+							"bottom": 60
+						},
+						"gap": 20,
+						"children": [
+							{
+								"id": "properties-tabs",
+								"type": "column",
+								"width": 150,
+								"alignSelf": "stretch",
+								"gap": 2,
+								"role": "tablist",
+								"arrows": "vertical",
+								"children": [
+									{
+										"repeat": {
+											"for": "tab",
+											"in": ["general", "updates", "files", "dlc"]
+										},
+										"id": "{{'properties-tab-' + tab}}",
+										"type": "label",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 30,
+										"padding": 10,
+										"radius": 3,
+										"role": "tab",
+										"focusable": true,
+										"cursor": "hand",
+										"selected": "{{state.properties.tab == tab}}",
+										"text": "{{t('properties.tab.' + tab)}}",
+										"color": "{{state.properties.tab == tab ? '@color.select' : 'transparent'}}",
+										"textColor": "{{state.properties.tab == tab ? '@color.bright' : '@color.muted'}}",
+										"hover": {
+											"textColor": "@color.bright"
+										},
+										"onClick": {
+											"set": "state.properties.tab",
+											"to": "{{tab}}"
+										}
+									}
+								]
+							},
+							{
+								"type": "panel",
+								"width": 1,
+								"alignSelf": "stretch",
+								"color": "@color.border"
+							},
+							{
+								"id": "properties-page",
+								"grow": 1,
+								"alignSelf": "stretch",
+								"color": "transparent",
+								"children": [
+									{
+										"when": "{{state.properties.tab == 'general'}}",
+										"fill": true,
+										"color": "transparent",
+										"children": [
+											{
+												"type": "label",
+												"font": "caps",
+												"text": "{{upper(t('properties.launch'))}}",
+												"textColor": "@color.muted",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 0
+												},
+												"height": 18
+											},
+											{
+												"id": "properties-launch",
+												"type": "textarea",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 24
+												},
+												"height": 32,
+												"padding": 8,
+												"radius": 3,
+												"borderWidth": 1,
+												"borderColor": "@color.border",
+												"focused": {
+													"borderColor": "@color.accent"
+												},
+												"color": "@color.field",
+												"textColor": "@color.text",
+												"placeholderColor": "@color.dim",
+												"font": "small",
+												"maxLength": 200,
+												"placeholder": "{{t('properties.launchHint')}}",
+												"label": "{{t('properties.launch')}}",
+												"text": "{{computed.manageGame.launchOptions ?? ''}}",
+												"onChange": {
+													"update": "games",
+													"id": "{{computed.manageGame.id}}",
+													"fields": {
+														"launchOptions": "{{event.value}}"
+													}
+												}
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{t('properties.launchNote')}}",
+												"textColor": "@color.dim",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 62
+												},
+												"height": 18
+											},
+											{
+												"type": "label",
+												"font": "caps",
+												"text": "{{upper(t('properties.inGame'))}}",
+												"textColor": "@color.muted",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 100
+												},
+												"height": 18
+											},
+											{
+												"id": "properties-overlay",
+												"type": "row",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 124
+												},
+												"height": 30,
+												"alignItems": "center",
+												"children": [
+													{
+														"type": "label",
+														"grow": 1,
+														"height": 22,
+														"text": "{{t('properties.overlay')}}",
+														"textColor": "@color.text"
+													},
+													{
+														"id": "properties-overlay-toggle",
+														"type": "toggle",
+														"width": 40,
+														"height": 22,
+														"label": "{{t('properties.overlay')}}",
+														"checked": "{{computed.manageGame.overlay != false}}",
+														"activeColor": "@color.accent",
+														"onChange": {
+															"update": "games",
+															"id": "{{computed.manageGame.id}}",
+															"fields": {
+																"overlay": "{{event.value}}"
+															}
+														}
+													}
+												]
+											},
+											{
+												"id": "properties-cloud",
+												"type": "row",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 156
+												},
+												"height": 30,
+												"alignItems": "center",
+												"children": [
+													{
+														"type": "label",
+														"grow": 1,
+														"height": 22,
+														"text": "{{t('properties.cloud')}}",
+														"textColor": "@color.text"
+													},
+													{
+														"id": "properties-cloud-toggle",
+														"type": "toggle",
+														"width": 40,
+														"height": 22,
+														"label": "{{t('properties.cloud')}}",
+														"checked": "{{computed.manageGame.cloud != false}}",
+														"activeColor": "@color.accent",
+														"onChange": {
+															"update": "games",
+															"id": "{{computed.manageGame.id}}",
+															"fields": {
+																"cloud": "{{event.value}}"
+															}
+														}
+													}
+												]
+											}
+										]
+									},
+									{
+										"when": "{{state.properties.tab == 'updates'}}",
+										"fill": true,
+										"color": "transparent",
+										"children": [
+											{
+												"type": "label",
+												"font": "caps",
+												"text": "{{upper(t('properties.automatic'))}}",
+												"textColor": "@color.muted",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 0
+												},
+												"height": 18
+											},
+											{
+												"id": "properties-updates-auto",
+												"type": "row",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 24
+												},
+												"height": 28,
+												"gap": 10,
+												"alignItems": "center",
+												"focusable": true,
+												"role": "radio",
+												"selected": "{{(computed.manageGame.updates ?? 'auto') == 'auto'}}",
+												"cursor": "hand",
+												"label": "{{t('properties.updates.auto')}}",
+												"radius": 3,
+												"hover": {
+													"color": "@color.hover"
+												},
+												"onClick": {
+													"update": "games",
+													"id": "{{computed.manageGame.id}}",
+													"fields": {
+														"updates": "auto"
+													}
+												},
+												"children": [
+													{
+														"type": "panel",
+														"color": "transparent",
+														"width": 2,
+														"height": 1
+													},
+													{
+														"type": "panel",
+														"width": 14,
+														"height": 14,
+														"radius": 7,
+														"borderWidth": 2,
+														"borderColor": "{{(computed.manageGame.updates ?? 'auto') == 'auto' ? '@color.accent' : '@color.dim'}}",
+														"color": "transparent",
+														"children": [
+															{
+																"when": "{{(computed.manageGame.updates ?? 'auto') == 'auto'}}",
+																"anchors": {
+																	"left": 3,
+																	"top": 3
+																},
+																"width": 4,
+																"height": 4,
+																"radius": 2,
+																"color": "@color.accent"
+															}
+														]
+													},
+													{
+														"type": "label",
+														"grow": 1,
+														"height": 22,
+														"text": "{{t('properties.updates.auto')}}",
+														"textColor": "@color.text"
+													}
+												]
+											},
+											{
+												"id": "properties-updates-launch",
+												"type": "row",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 56
+												},
+												"height": 28,
+												"gap": 10,
+												"alignItems": "center",
+												"focusable": true,
+												"role": "radio",
+												"selected": "{{(computed.manageGame.updates ?? 'auto') == 'launch'}}",
+												"cursor": "hand",
+												"label": "{{t('properties.updates.launch')}}",
+												"radius": 3,
+												"hover": {
+													"color": "@color.hover"
+												},
+												"onClick": {
+													"update": "games",
+													"id": "{{computed.manageGame.id}}",
+													"fields": {
+														"updates": "launch"
+													}
+												},
+												"children": [
+													{
+														"type": "panel",
+														"color": "transparent",
+														"width": 2,
+														"height": 1
+													},
+													{
+														"type": "panel",
+														"width": 14,
+														"height": 14,
+														"radius": 7,
+														"borderWidth": 2,
+														"borderColor": "{{(computed.manageGame.updates ?? 'auto') == 'launch' ? '@color.accent' : '@color.dim'}}",
+														"color": "transparent",
+														"children": [
+															{
+																"when": "{{(computed.manageGame.updates ?? 'auto') == 'launch'}}",
+																"anchors": {
+																	"left": 3,
+																	"top": 3
+																},
+																"width": 4,
+																"height": 4,
+																"radius": 2,
+																"color": "@color.accent"
+															}
+														]
+													},
+													{
+														"type": "label",
+														"grow": 1,
+														"height": 22,
+														"text": "{{t('properties.updates.launch')}}",
+														"textColor": "@color.text"
+													}
+												]
+											},
+											{
+												"id": "properties-updates-high",
+												"type": "row",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 88
+												},
+												"height": 28,
+												"gap": 10,
+												"alignItems": "center",
+												"focusable": true,
+												"role": "radio",
+												"selected": "{{(computed.manageGame.updates ?? 'auto') == 'high'}}",
+												"cursor": "hand",
+												"label": "{{t('properties.updates.high')}}",
+												"radius": 3,
+												"hover": {
+													"color": "@color.hover"
+												},
+												"onClick": {
+													"update": "games",
+													"id": "{{computed.manageGame.id}}",
+													"fields": {
+														"updates": "high"
+													}
+												},
+												"children": [
+													{
+														"type": "panel",
+														"color": "transparent",
+														"width": 2,
+														"height": 1
+													},
+													{
+														"type": "panel",
+														"width": 14,
+														"height": 14,
+														"radius": 7,
+														"borderWidth": 2,
+														"borderColor": "{{(computed.manageGame.updates ?? 'auto') == 'high' ? '@color.accent' : '@color.dim'}}",
+														"color": "transparent",
+														"children": [
+															{
+																"when": "{{(computed.manageGame.updates ?? 'auto') == 'high'}}",
+																"anchors": {
+																	"left": 3,
+																	"top": 3
+																},
+																"width": 4,
+																"height": 4,
+																"radius": 2,
+																"color": "@color.accent"
+															}
+														]
+													},
+													{
+														"type": "label",
+														"grow": 1,
+														"height": 22,
+														"text": "{{t('properties.updates.high')}}",
+														"textColor": "@color.text"
+													}
+												]
+											},
+											{
+												"type": "label",
+												"font": "small",
+												"text": "{{t('properties.updatesNote')}}",
+												"textColor": "@color.dim",
+												"wrap": true,
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 128
+												},
+												"height": 40
+											}
+										]
+									},
+									{
+										"when": "{{state.properties.tab == 'files'}}",
+										"fill": true,
+										"color": "transparent",
+										"children": [
+											{
+												"type": "label",
+												"font": "caps",
+												"text": "{{upper(t('properties.size'))}}",
+												"textColor": "@color.muted",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 0
+												},
+												"height": 18
+											},
+											{
+												"id": "properties-size",
+												"type": "label",
+												"text": "{{t('properties.sizeValue', { size: formatNumber(computed.manageGame.sizeGb ?? 0) })}}",
+												"textColor": "@color.text",
+												"font": "default",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 24
+												},
+												"height": 22
+											},
+											{
+												"type": "label",
+												"font": "caps",
+												"text": "{{upper(t('properties.folder'))}}",
+												"textColor": "@color.muted",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 60
+												},
+												"height": 18
+											},
+											{
+												"id": "properties-folder",
+												"type": "label",
+												"text": "{{'Arcadia/games/' + computed.manageGame.title}}",
+												"textColor": "@color.text",
+												"font": "small",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 84
+												},
+												"height": 22
+											},
+											{
+												"id": "properties-verify",
+												"use": "quietButton",
+												"anchors": {
+													"left": 0,
+													"top": 128
+												},
+												"height": 32,
+												"with": {
+													"title": "{{t('properties.verify')}}",
+													"icon": "shield-check"
+												},
+												"disabled": "{{state.properties.verify == 'running'}}",
+												"onClick": [
+													{
+														"set": "state.properties.verify",
+														"to": "running"
+													},
+													{
+														"after": 1500,
+														"do": [
+															{
+																"set": "state.properties.verify",
+																"to": "done"
+															}
+														]
+													}
+												]
+											},
+											{
+												"id": "properties-verify-result",
+												"type": "label",
+												"live": "polite",
+												"font": "small",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 168
+												},
+												"height": 20,
+												"text": "{{state.properties.verify == 'running' ? t('properties.verifying') : state.properties.verify == 'done' ? t('properties.verified') : ''}}",
+												"textColor": "{{state.properties.verify == 'done' ? '@color.play' : '@color.muted'}}"
+											}
+										]
+									},
+									{
+										"when": "{{state.properties.tab == 'dlc'}}",
+										"fill": true,
+										"color": "transparent",
+										"children": [
+											{
+												"type": "label",
+												"font": "caps",
+												"text": "{{upper(t('properties.dlcTitle'))}}",
+												"textColor": "@color.muted",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 0
+												},
+												"height": 18
+											},
+											{
+												"id": "properties-dlc-empty",
+												"type": "label",
+												"text": "{{t('properties.dlcNone')}}",
+												"textColor": "@color.muted",
+												"anchors": {
+													"left": 0,
+													"right": 0,
+													"top": 24
+												},
+												"height": 22
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		"uninstallDialog": {
+			"note": "The question before a game's files are removed; the game stays in the library.",
+			"params": {},
+			"node": {
+				"use": "dialog",
+				"with": {
+					"open": "state.uninstall.open",
+					"width": 440,
+					"height": 170,
+					"title": "{{t('uninstall.title', { game: computed.manageGame.title ?? '' })}}",
+					"message": "{{t('uninstall.message', { game: computed.manageGame.title ?? '', size: formatNumber(computed.manageGame.sizeGb ?? 0) })}}",
+					"color": "@color.panel",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.accent",
+					"buttons": [
+						{
+							"title": "{{t('uninstall.confirm')}}",
+							"run": "uninstall",
+							"with": {
+								"id": "{{state.manage}}"
+							},
+							"default": true
+						},
+						{
+							"title": "{{t('dialog.cancel')}}"
+						}
+					]
+				}
+			}
+		}
+	},
+	"strings": {
+		"en": {
+			"menu.game.play": "Play",
+			"menu.game.stop": "Stop",
+			"menu.game.install": "Install",
+			"menu.game.update": "Update",
+			"menu.game.downloading": "Downloading…",
+			"menu.game.favourite": "Add to Favourites",
+			"menu.game.unfavourite": "Remove from Favourites",
+			"menu.game.page": "Open game page",
+			"menu.game.properties": "Properties…",
+			"menu.game.uninstall": "Uninstall…",
+			"dialog.close": "Close",
+			"properties.title": "{game}: Properties",
+			"properties.tab.general": "General",
+			"properties.tab.updates": "Updates",
+			"properties.tab.files": "Installed files",
+			"properties.tab.dlc": "Extra content",
+			"properties.launch": "Launch options",
+			"properties.launchHint": "For example -windowed -fps 60",
+			"properties.launchNote": "Passed to the game when it starts.",
+			"properties.inGame": "In game",
+			"properties.overlay": "Show the Arcadia overlay while playing",
+			"properties.cloud": "Keep saves in the cloud",
+			"properties.automatic": "Automatic updates",
+			"properties.updates.auto": "Always keep this game updated",
+			"properties.updates.launch": "Only update when I launch it",
+			"properties.updates.high": "Update before other downloads",
+			"properties.updatesNote": "Updates download in the order of the queue on the Downloads page.",
+			"properties.size": "Size on disk",
+			"properties.sizeValue": "{size} GB",
+			"properties.folder": "Folder",
+			"properties.verify": "Verify the game's files",
+			"properties.verifying": "Checking the files…",
+			"properties.verified": "All files are complete.",
+			"properties.dlcTitle": "Extra content",
+			"properties.dlcNone": "You have no extra content for this game.",
+			"uninstall.title": "Uninstall {game}",
+			"uninstall.message": "Remove {game} from this computer ({size} GB)? It stays in your library.",
+			"uninstall.confirm": "Uninstall"
+		},
+		"es": {
+			"menu.game.play": "Jugar",
+			"menu.game.stop": "Detener",
+			"menu.game.install": "Instalar",
+			"menu.game.update": "Actualizar",
+			"menu.game.downloading": "Descargando…",
+			"menu.game.favourite": "Añadir a favoritos",
+			"menu.game.unfavourite": "Quitar de favoritos",
+			"menu.game.page": "Abrir la página del juego",
+			"menu.game.properties": "Propiedades…",
+			"menu.game.uninstall": "Desinstalar…",
+			"dialog.close": "Cerrar",
+			"properties.title": "{game}: Propiedades",
+			"properties.tab.general": "General",
+			"properties.tab.updates": "Actualizaciones",
+			"properties.tab.files": "Archivos instalados",
+			"properties.tab.dlc": "Contenido extra",
+			"properties.launch": "Opciones de inicio",
+			"properties.launchHint": "Por ejemplo -windowed -fps 60",
+			"properties.launchNote": "Se pasan al juego al iniciarlo.",
+			"properties.inGame": "En el juego",
+			"properties.overlay": "Mostrar la capa de Arcadia al jugar",
+			"properties.cloud": "Guardar las partidas en la nube",
+			"properties.automatic": "Actualizaciones automáticas",
+			"properties.updates.auto": "Mantener siempre actualizado",
+			"properties.updates.launch": "Actualizar solo al iniciarlo",
+			"properties.updates.high": "Actualizar antes que otras descargas",
+			"properties.updatesNote": "Las actualizaciones siguen el orden de la cola en Descargas.",
+			"properties.size": "Tamaño en disco",
+			"properties.sizeValue": "{size} GB",
+			"properties.folder": "Carpeta",
+			"properties.verify": "Verificar los archivos",
+			"properties.verifying": "Comprobando los archivos…",
+			"properties.verified": "Todos los archivos están completos.",
+			"properties.dlcTitle": "Contenido extra",
+			"properties.dlcNone": "No tienes contenido extra para este juego.",
+			"uninstall.title": "Desinstalar {game}",
+			"uninstall.message": "¿Quitar {game} de este equipo ({size} GB)? Seguirá en tu biblioteca.",
+			"uninstall.confirm": "Desinstalar"
+		},
+		"fr": {
+			"menu.game.play": "Jouer",
+			"menu.game.stop": "Arrêter",
+			"menu.game.install": "Installer",
+			"menu.game.update": "Mettre à jour",
+			"menu.game.downloading": "Téléchargement…",
+			"menu.game.favourite": "Ajouter aux favoris",
+			"menu.game.unfavourite": "Retirer des favoris",
+			"menu.game.page": "Ouvrir la page du jeu",
+			"menu.game.properties": "Propriétés…",
+			"menu.game.uninstall": "Désinstaller…",
+			"dialog.close": "Fermer",
+			"properties.title": "{game} : propriétés",
+			"properties.tab.general": "Général",
+			"properties.tab.updates": "Mises à jour",
+			"properties.tab.files": "Fichiers installés",
+			"properties.tab.dlc": "Contenu additionnel",
+			"properties.launch": "Options de lancement",
+			"properties.launchHint": "Par exemple -windowed -fps 60",
+			"properties.launchNote": "Transmises au jeu à son lancement.",
+			"properties.inGame": "En jeu",
+			"properties.overlay": "Afficher la surcouche Arcadia en jeu",
+			"properties.cloud": "Garder les sauvegardes dans le cloud",
+			"properties.automatic": "Mises à jour automatiques",
+			"properties.updates.auto": "Toujours garder ce jeu à jour",
+			"properties.updates.launch": "Mettre à jour seulement au lancement",
+			"properties.updates.high": "Mettre à jour avant les autres téléchargements",
+			"properties.updatesNote": "Les mises à jour suivent l'ordre de la file des téléchargements.",
+			"properties.size": "Taille sur le disque",
+			"properties.sizeValue": "{size} Go",
+			"properties.folder": "Dossier",
+			"properties.verify": "Vérifier les fichiers du jeu",
+			"properties.verifying": "Vérification des fichiers…",
+			"properties.verified": "Tous les fichiers sont complets.",
+			"properties.dlcTitle": "Contenu additionnel",
+			"properties.dlcNone": "Vous n'avez aucun contenu additionnel pour ce jeu.",
+			"uninstall.title": "Désinstaller {game}",
+			"uninstall.message": "Retirer {game} de cet ordinateur ({size} Go) ? Il reste dans votre bibliothèque.",
+			"uninstall.confirm": "Désinstaller"
+		}
+	}
+}

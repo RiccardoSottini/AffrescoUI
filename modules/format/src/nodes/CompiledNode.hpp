@@ -74,6 +74,7 @@ enum class Slot : std::uint8_t {
 	Handler, ///< "onClick" and the other handlers.
 	Bind,    ///< "bind".
 	Caret,   ///< "caret".
+	View,    ///< "viewport".
 	Keys,    ///< "keys".
 	Drag,    ///< "drag".
 	Context, ///< "context".
@@ -138,7 +139,7 @@ struct CompiledNode {
 	bool hasId = false;                       ///< It has an "id".
 	bool hasStateBlocks = false;              ///< It has "hover", "pressed", ...
 	/// Applying it reads more than its values, so it is applied on every update: an overlay's "open" written as a
-	/// state path, a "bind" or "caret" computed from variables, or an "every" whose period is computed.
+	/// state path, a "bind", "caret" or "viewport" computed from variables, or an "every" whose period is computed.
 	bool alwaysApply = false;
 
 	std::vector<CompiledVariable> with;   ///< "with", in order.

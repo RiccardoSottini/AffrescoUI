@@ -11,25 +11,19 @@
 /// With AFFRESCOUI_NO_OPENGL=1 in the environment (CI's macOS and Windows runners, which have no OpenGL 4.1), the
 /// scenarios that draw (capture, expect image) are left out, each one named; the others play headless.
 
-#include "CodeEditor.hpp"
-#include "Forge.hpp"
-#include "features/explorer/Explorer.hpp"
-#include "features/terminal/Terminal.hpp"
-#include "features/debug/Debug.hpp"
-#include "features/editor/Editor.hpp"
-#include "features/lsp/Lsp.hpp"
-#include "features/search/Search.hpp"
 #include "surfaces/Surfaces.hpp"
-#include "tempo/Visualiser.hpp"
 
 #include <glad/glad.h>
 
 #include <affresco/Screen.hpp>
 #include <affresco/automation/Scenarios.hpp>
+#include <affresco/services/Grants.hpp>
 
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <memory>
+#include <random>
 #include <set>
 #include <string>
 #include <string_view>
@@ -38,6 +32,10 @@
 namespace {
 
 namespace automation = affresco::automation;
+
+/// The public key of Forge's example catalogue's publisher (examples/forge/catalog, its README). Its private half was
+/// discarded once the catalogue was signed, so nothing more can be signed with it.
+constexpr std::string_view examplePublisher = "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc";
 
 /// @brief A surface that fails: it raises a GL error (surfaces.json shows that nothing else changes).
 class BrokenSurface : public affresco::GpuSurface {
@@ -48,6 +46,39 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT);
 		glEnable(GL_RGBA);
 	}
+};
+
+/// @brief A fresh copy of forge/folder for each scenario, so that one which creates, moves or deletes files changes
+/// neither the next one's folder nor the source tree. The copies are removed when the runner ends.
+class FolderCopies {
+public:
+	/// @brief Makes the folder that holds the copies.
+	FolderCopies()
+	    : base_(std::filesystem::temp_directory_path() /
+		        ("affrescoui-runner-" + std::to_string(std::random_device{}()))) {
+		std::filesystem::create_directories(base_);
+	}
+	/// @brief Removes the copies.
+	~FolderCopies() {
+		std::error_code ignored;
+		std::filesystem::remove_all(base_, ignored);
+	}
+	FolderCopies(const FolderCopies&) = delete;
+	FolderCopies& operator=(const FolderCopies&) = delete;
+	FolderCopies(FolderCopies&&) = delete;
+	FolderCopies& operator=(FolderCopies&&) = delete;
+	/// @brief Copies the folder once more.
+	/// @return The copy, named "folder" like the original.
+	[[nodiscard]] std::filesystem::path next() {
+		const std::filesystem::path copy = base_ / std::to_string(++count_) / "folder";
+		std::filesystem::create_directories(copy);
+		std::filesystem::copy(AFFRESCOUI_FORGE_FOLDER, copy, std::filesystem::copy_options::recursive);
+		return copy;
+	}
+
+private:
+	std::filesystem::path base_; ///< Where the copies are.
+	std::size_t count_ = 0;      ///< How many there are.
 };
 
 /// @brief Prints a report the way check.py always has: "same", "golden" or "FAILED" per picture, and the failures of
@@ -108,16 +139,19 @@ std::size_t leaveOutPictures(automation::ScenarioFile& scenarios) {
 /// @param files The scenario files.
 /// @param options How.
 /// @return How many failures there were.
-/// @throws affresco::DocumentError If a file is malformed, or two have a scenario of the same name.
+/// @throws affresco::DocumentError If a file is malformed.
 std::size_t playAll(const std::vector<std::string>& files, const automation::Options& options) {
 	std::size_t frames = 0, failed = 0, skipped = 0;
 	std::set<std::string, std::less<>> names; // a name is the prefix of its golden images: unique across the files
 	for(const std::string& file : files) {
 		automation::ScenarioFile scenarios = automation::ScenarioFile::load(file);
-		for(const automation::Scenario& scenario : scenarios.scenarios)
-			if(!names.insert(scenario.name).second)
-				throw affresco::DocumentError("scenario '" + scenario.name + "' is in two files; the second is " +
-				                              file);
+		// A second scenario of a name is one failure, and isn't played: the others still are
+		std::erase_if(scenarios.scenarios, [&](const automation::Scenario& scenario) {
+			if(names.insert(scenario.name).second) return false;
+			std::cout << "FAILED  scenario '" << scenario.name << "' is in two files; the second is " << file << '\n';
+			++failed;
+			return true;
+		});
 		if(!options.pictures) skipped += leaveOutPictures(scenarios);
 		failed += print(automation::run(scenarios, options), frames);
 	}
@@ -132,24 +166,20 @@ int main(int argc, char** argv) {
 	try {
 		automation::Options options;
 		options.policy = automation::Goldens::RecordMissing;
-		// As affrescoui_launcher and affrescoui_forge; Forge's scenarios see forge/folder open as the workspace, its
-		// example catalogue, and no file dialog
-		options.prepare = [](affresco::Screen& screen) {
-			examples::registerCodeEditor(screen);
+		// As the host grants Forge (examples/forge/app.json): its scenarios see forge/folder open as the workspace, a
+		// shell, sh and git, its example catalogue, and no file dialog. No language server or debug adapter is granted:
+		// the scenarios mirror their answers.
+		const auto copies = std::make_shared<FolderCopies>();
+		options.prepare = [copies](affresco::Screen& screen) {
+			const std::filesystem::path folder = copies->next();
 			screen.services().allowChosenRoot("workspace");
-			screen.services().addRoot("workspace", AFFRESCOUI_FORGE_FOLDER);
-			const auto workspace = std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER);
-			forge::registerNatives(screen, workspace);
-			forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace),
-			                   nullptr); // no server starts
-			forge::registerSearch(screen, workspace);
-			forge::grantTerminal(screen, AFFRESCOUI_FORGE_FOLDER);
-			forge::registerTerminal(screen, nullptr);       // no executor: no shell starts
-			forge::registerDebug(screen, workspace, false); // no adapter: the scenarios mirror one's answers
-			forge::addExampleCatalog(screen, AFFRESCOUI_FORGE_DIRECTORY);
+			screen.services().addRoot("workspace", folder);
+			for(const char* program : {"shell", "sh", "git"}) // a machine without one runs its scenarios without it
+				static_cast<void>(affresco::services::grantProgram(screen.services(), program));
+			screen.features().trustPublisher(examplePublisher);
+			screen.features().addCatalog(std::filesystem::path(AFFRESCOUI_FORGE_DIRECTORY) / "catalog" / "index.json");
 			// The example surfaces at a fixed time, and one that fails (surfaces.json)
 			examples::registerSurfaces(screen, 1.25);
-			examples::tempo::registerVisualiser(screen);
 			screen.registerSurface("broken", [] { return std::make_unique<BrokenSurface>(); });
 			// The inspector's overlay (inspector.json), without its times so that each picture is the same
 			screen.onAction("inspector:on", [&screen](affresco::Panel&) { screen.setInspector(true, false); });

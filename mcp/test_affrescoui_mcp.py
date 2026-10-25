@@ -144,6 +144,19 @@ class Guide(unittest.TestCase):
         self.assertEqual(mcp.format_guide(guide, "nodes"), "## Nodes\nAbout nodes.\n\nMore in the topics: label, image.")
         self.assertEqual(mcp.format_guide(guide, "image"), "### image\nPictures.")
 
+    def test_a_topic_too_long_comes_in_pages(self):
+        rows = "".join(f"| `key{n}` | {'x' * 90} |\n" for n in range(100))
+        guide = "# Format\n\n### table\nAbout it.\n\n| Key | Meaning |\n|---|---|\n" + rows + "\n### code\n```\n" + \
+            "line\n" * 2000 + "```\nAfter."
+        sections = dict(mcp.guide_sections(guide))
+        self.assertIn('Continued in the topic "table (2)".', sections["table"])
+        self.assertTrue(sections["table (2)"].startswith("| Key | Meaning |\n|---|---|\n| `key"))
+        self.assertTrue(sections["code (2)"].startswith("```\nline"))
+        self.assertTrue(sections["code"].endswith('```\n\nContinued in the topic "code (2)".'))
+        for title, part in sections.items():
+            self.assertLessEqual(len(part), mcp.GUIDE_TOPIC, title)
+        self.assertEqual("".join(sections[t] for t in sections if t.startswith("table")).count("`key"), 100)
+
 
 class Scenarios(unittest.TestCase):
     def test_a_proposals_patch_applies_to_a_copy(self):
@@ -172,13 +185,30 @@ class Scenarios(unittest.TestCase):
             "FAILED broken: could not start: no such file"]))
 
     def test_only_a_scenarios_file_is_read(self):
-        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
         with tempfile.TemporaryDirectory() as folder:
+            server = mcp.Server(os.path.join(HERE, "no-such-folder"), None, [folder])
             other = os.path.join(folder, "settings.json")  # any other file the agent names, JSON or not
             with open(other, "w", encoding="utf-8") as file:
                 json.dump({"token": "not for the agent"}, file)
             self.assertEqual(server.run_scenarios({"file": other}),
                              ("error: file: expected a *.scenarios.json file", True))
+
+    def test_only_files_within_reach_are_read(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        with tempfile.TemporaryDirectory() as folder:
+            outside = os.path.join(os.path.realpath(folder), "x.scenarios.json")  # outside every root
+            with open(outside, "w", encoding="utf-8") as file:
+                json.dump({"token": "not for the agent"}, file)
+            refused = (mcp.OUTSIDE.format("file"), True)
+            self.assertEqual(server.run_scenarios({"file": outside}), refused)
+            self.assertEqual(server.get_contributions({"file": outside.replace("scenarios", "screen")}), refused)
+            self.assertEqual(server.compose({"screen": outside, "feature": "f"}, False),
+                             (mcp.OUTSIDE.format("screen"), True))
+            if hasattr(os, "symlink"):  # a link inside the repository leads out of it: refused, too
+                with tempfile.TemporaryDirectory(dir=mcp.ROOT) as inside:
+                    link = os.path.join(inside, "y.scenarios.json")
+                    os.symlink(outside, link)
+                    self.assertEqual(server.run_scenarios({"file": link}), refused)
 
 
 class Evidence(unittest.TestCase):
@@ -342,9 +372,32 @@ class Malformed(unittest.TestCase):
 
     @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "the host is reached through AF_UNIX")
     def test_a_launch_command_that_cant_start(self):
-        host = mcp.Host(os.path.join(HERE, "no-such-folder"), os.path.join(HERE, "no-such-program"), None)
+        host = mcp.Host(os.path.join(HERE, "no-such-folder"), [os.path.join(HERE, "no-such-program")], None)
         with self.assertRaisesRegex(RuntimeError, "couldn't start"):
             host.ensure()
+
+    @unittest.skipIf(os.name == "nt", "Windows keeps the folder private by its ACL")
+    def test_a_socket_folder_others_may_enter_is_refused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            os.chmod(folder, 0o700)
+            mcp.check_socket_dir(folder)
+            os.chmod(folder, 0o777)
+            with self.assertRaisesRegex(RuntimeError, "open to other users"):
+                mcp.check_socket_dir(folder)
+
+    def test_the_launch_program_and_its_arguments_are_never_split(self):
+        server_module = sys.modules[mcp.main.__module__]
+        argv = ["affrescoui_mcp.py", "--socket", "s", "--launch", "/opt/my host", "--launch-arg", "a b; touch x"]
+        with unittest.mock.patch.object(sys, "argv", argv), \
+                unittest.mock.patch.object(server_module, "Server") as server, \
+                unittest.mock.patch.object(sys, "stdin", io.TextIOWrapper(io.BytesIO())), \
+                unittest.mock.patch.object(sys, "stdout", io.TextIOWrapper(io.BytesIO())), \
+                contextlib.redirect_stderr(io.StringIO()):
+            mcp.main()
+        server.assert_called_once_with("s", ["/opt/my host", "a b; touch x"], [])
+        with unittest.mock.patch.object(sys, "argv", ["affrescoui_mcp.py", "--launch-arg", "x"]), \
+                contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            mcp.main()  # an argument needs a program first
 
     def test_the_log_escapes_what_a_request_can_hold(self):
         written = io.StringIO()

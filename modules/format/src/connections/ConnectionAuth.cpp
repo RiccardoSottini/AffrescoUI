@@ -120,7 +120,11 @@ void linkSignIns(ConnectionMap& connections, const json& section, const std::str
 std::vector<std::pair<std::string, identity::Provider>> declaredProviders(const ConnectionMap& connections) {
 	std::vector<std::pair<std::string, identity::Provider>> providers;
 	for(const auto& [name, connection] : connections)
-		if(connection.provider) providers.emplace_back(name, *connection.provider);
+		if(connection.provider) {
+			identity::Provider provider = *connection.provider;
+			provider.sentTo = connection.url; // a kept sign-in is restored only for the same place (SignIn::declare())
+			providers.emplace_back(name, std::move(provider));
+		}
 	return providers;
 }
 

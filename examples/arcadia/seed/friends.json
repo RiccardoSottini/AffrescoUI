@@ -1,0 +1,13 @@
+[
+	{"id": "f1", "name": "MossyGolem", "avatar": "frog", "presence": "ingame", "game": "neon", "since": 0},
+	{"id": "f2", "name": "NightDrifter", "avatar": "owl", "presence": "online", "since": 0},
+	{"id": "f3", "name": "StarFinch", "avatar": "bird", "presence": "away", "since": 0},
+	{"id": "f4", "name": "KeepBurner", "avatar": "knight", "presence": "ingame", "game": "ironhollow", "since": 0},
+	{"id": "f5", "name": "TideReader", "avatar": "cat", "presence": "offline", "since": 2},
+	{"id": "f6", "name": "OrbitKeeper", "avatar": "astronaut", "presence": "online", "since": 0},
+	{"id": "f7", "name": "LanternFox", "avatar": "ghost", "presence": "offline", "since": 9},
+	{"id": "f8", "name": "QuietComet", "avatar": "alien", "presence": "away", "since": 0},
+	{"id": "f9", "name": "IronMole", "avatar": "bear", "presence": "ingame", "game": "starfall", "since": 0},
+	{"id": "f10", "name": "Slimetime", "avatar": "slime", "presence": "offline", "since": 31},
+	{"id": "f11", "name": "BoltBot", "avatar": "robot", "presence": "offline", "since": 4}
+]

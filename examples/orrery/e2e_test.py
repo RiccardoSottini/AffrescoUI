@@ -21,12 +21,15 @@ import sys
 import tempfile
 import time
 
+os.environ.setdefault("AFFRESCOUI_HIDDEN", "1")  # its programs never show a window (CONTRIBUTING.md); =0 shows them
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SCREEN = os.path.join(HERE, "index.screen.json")
 ADAPTER = os.path.join(HERE, "orrery-sorter.adapter.json")
 FEATURE = os.path.join(ROOT, "examples", "sinopia", "features", "slide-sorter")
-SCENARIOS = [os.path.join(HERE, "index.scenarios.json"), os.path.join(HERE, "bodies-strip.scenarios.json")]
+SCENARIOS = [os.path.join(HERE, name) for name in
+             ("index.scenarios.json", "controls.scenarios.json", "bodies-strip.scenarios.json")]
 
 
 def connect(path, timeout=20.0):
@@ -49,10 +52,11 @@ def connect(path, timeout=20.0):
 class Mcp:
     """The MCP server over stdio, as Claude Code runs it."""
 
-    def __init__(self, socket_dir, cli):
-        """Starts it on `socket_dir`, with `cli` as its affrescoui tool: the build's under test, not one on the PATH."""
+    def __init__(self, socket_dir, cli, root):
+        """Starts it on `socket_dir`, with `cli` as its affrescoui tool (the build's under test, not one on the PATH)
+        and `root` within its reach, as the folder of a screen outside the repository must be."""
         self.proc = subprocess.Popen([sys.executable, os.path.join(ROOT, "mcp", "affrescoui_mcp.py"),
-                                      "--socket", socket_dir], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                      "--socket", socket_dir, "--root", root], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
                                      env=dict(os.environ, AFFRESCOUI_CLI=cli))
         self.next_id = 0
@@ -135,13 +139,14 @@ def main():
     work = tempfile.mkdtemp(prefix="afr-or-")  # short: socket paths are limited to about 100 bytes
     sockets, data = os.path.join(work, "s"), os.path.join(work, "data")
     screen = copy_without_strip(work)
-    strip = os.path.join(os.path.dirname(screen), os.path.basename(SCENARIOS[1]))
+    strip = os.path.join(os.path.dirname(screen), os.path.basename(SCENARIOS[-1]))
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets)
-    host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), screen, "--socket", sockets, "--data", data],
+    host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), screen, "--socket", sockets, "--data", data,
+                             "--grant", "assistant"],
                             env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         studio, studio_stream = connect(os.path.join(sockets, "studio.sock"))
-        mcp = Mcp(sockets, os.path.join(build, "affrescoui"))
+        mcp = Mcp(sockets, os.path.join(build, "affrescoui"), work)
 
         # 1. The agent reads the screen: the dock the strip goes in, empty
         text = mcp.tool("get_screen", {"at": "#dock"})[0]["text"]

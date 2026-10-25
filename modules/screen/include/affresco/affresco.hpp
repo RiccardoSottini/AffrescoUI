@@ -34,6 +34,7 @@
 #include "affresco/channel/Sockets.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
+#include "affresco/themes/Themes.hpp"
 #include "affresco/vcs/Repository.hpp"
 
 #include "affresco/Screen.hpp"

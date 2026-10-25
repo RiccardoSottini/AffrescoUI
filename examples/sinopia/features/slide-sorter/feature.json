@@ -6,7 +6,7 @@
 	"title": "Slide sorter",
 	"description": "Sinopia's slide sorter as a part other apps install: thumbnails of an ordered list of pages, drag to reorder, click to select, and a button that duplicates the selected page.",
 	"license": "Apache-2.0",
-	"note": "It names what it needs, not where it comes from: an app binds each need to its exports (directly, or through an adapter: Tempera's top-level layers are its pages, examples/bottega/tempera-sorter.adapter.json), and a composition proof checks the binding before the install revision is submitted.",
+	"note": "It names what it needs, not where it comes from: an app binds each need to its exports (directly, or through an adapter: Tempera's top-level layers are its pages, examples/tempera/sorter/sorter.adapter.json), and a composition proof checks the binding before the install revision is submitted.",
 	"requires": { "format": 2 },
 	"needs": {
 		"pages": { "kind": "list", "item": { "id": "string", "name": "string", "image": "image" },

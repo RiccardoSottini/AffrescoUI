@@ -185,7 +185,7 @@ json write(const Running& s, const std::string& kind) {
 std::optional<bool> runDataStep(const Running& s) {
 	static constexpr std::array<const char*, 6> kinds = {"insert",   "update",   "delete",
 	                                                     "undoData", "redoData", "importCsv"};
-	const auto* const kind = std::ranges::find_if(kinds, [&](const char* k) { return s.step.contains(k); });
+	const auto kind = std::ranges::find_if(kinds, [&](const char* k) { return s.step.contains(k); });
 	if(kind == kinds.end()) return std::nullopt;
 	json result;
 	try {

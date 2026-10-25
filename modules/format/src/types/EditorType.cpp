@@ -1,7 +1,8 @@
 /// @file
 /// @brief The "editor" node type: a TextEditor, its font, line numbers and colours, its text, and its view: wrapping,
 /// folds, decorations, the find highlight, brackets, indentation guides and read-only. An application's TextEditor
-/// subclass has these properties too. Its "caret" is the runtime's (Events.cpp), as it writes the state.
+/// subclass has these properties too. Its "caret" and "viewport" are the runtime's (Events.cpp), as it writes the
+/// state.
 
 #include "ExpressionFunctions.hpp"
 #include "LanguageHighlighter.hpp"
@@ -13,6 +14,7 @@
 #include "affresco/render/TextEditor.hpp"
 
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <map>
 #include <string>
@@ -62,8 +64,10 @@ EditorDecoration readDecoration(const json& value, const PropertyReader& reader,
 	if(value.contains("endColumn")) d.endColumn = lineNumber(value["endColumn"], path + ".endColumn");
 	const std::string kind = value.contains("kind") ? string(value["kind"], path + ".kind") : "background";
 	using Kind = EditorDecoration::Kind;
-	static constexpr std::array<std::pair<const char*, Kind>, 4> kinds = {
-	    {{"background", Kind::Background}, {"squiggle", Kind::Squiggle}, {"gutter", Kind::Gutter}, {"inline", Kind::Inline}}};
+	static constexpr std::array<std::pair<const char*, Kind>, 4> kinds = {{{"background", Kind::Background},
+	                                                                       {"squiggle", Kind::Squiggle},
+	                                                                       {"gutter", Kind::Gutter},
+	                                                                       {"inline", Kind::Inline}}};
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	const auto found = std::ranges::find_if(kinds, [&kind](const auto& k) { return kind == k.first; });
 	if(found == kinds.end()) fail(path + ".kind", "expected background, squiggle, gutter or inline");
@@ -103,9 +107,11 @@ std::vector<Item> readList(const json& values, const char* key, const std::strin
 void applyFindStep(TextEditor& editor, const json& find, const std::string& at) {
 	if(!find.contains("step") || !find.contains("request")) return;
 	using Step = TextEditor::FindStep;
-	static const std::array<std::pair<std::string_view, Step>, 5> steps = {
-	    {{"first", Step::First}, {"next", Step::Next}, {"previous", Step::Previous}, {"replace", Step::Replace},
-	     {"replaceAll", Step::ReplaceAll}}};
+	static const std::array<std::pair<std::string_view, Step>, 5> steps = {{{"first", Step::First},
+	                                                                        {"next", Step::Next},
+	                                                                        {"previous", Step::Previous},
+	                                                                        {"replace", Step::Replace},
+	                                                                        {"replaceAll", Step::ReplaceAll}}};
 	const std::string name = string(find["step"], at + ".step");
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	const auto found = std::ranges::find(steps, std::string_view(name), &std::pair<std::string_view, Step>::first);
@@ -130,8 +136,8 @@ void applyFind(TextEditor& editor, const json& values, const std::string& path) 
 	const std::string at = path + ".find";
 	object(find, at);
 	const auto flag = [&](const char* key) { return find.contains(key) && boolean(find[key], at + "." + key); };
-	const PatternOptions options{.regex = flag("regex"), .wholeWord = flag("wholeWord"),
-	                             .caseSensitive = flag("caseSensitive")};
+	const PatternOptions options{
+	    .regex = flag("regex"), .wholeWord = flag("wholeWord"), .caseSensitive = flag("caseSensitive")};
 	// A pattern that doesn't compile highlights nothing: the user may be typing it
 	static_cast<void>(editor.setFind(find.contains("text") ? text(find["text"]) : std::string(), options));
 	editor.setFindInSelection(flag("inSelection"));
@@ -197,8 +203,8 @@ void applyGrammar(TextEditor& editor, const json& values, const PropertyReader& 
 }
 
 /// @brief Sets an editor's language: the editing rules of the language "language" names (by name, alias or file
-/// name, in the document's "languages"), and its colours unless "grammar" is given: each scope in "@syntax.<scope>" or
-/// its parent scope's. Only a highlighter this key installed is replaced or removed.
+/// name, in the document's "languages"), and its colours unless a "grammar" is given: each scope in "@syntax.<scope>"
+/// or its parent scope's. Only a highlighter this key installed is replaced or removed.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours and the languages.
@@ -211,7 +217,9 @@ void applyLanguage(TextEditor& editor, const json& values, const PropertyReader&
 	if(values.contains("language") && reader.languages())
 		language = reader.languages()->find(string(values["language"], path + ".language"));
 	if(auto* code = dynamic_cast<LanguageEditor*>(&editor)) code->setLanguage(language);
-	if(!language || values.contains("grammar")) {
+	// An empty grammar is none, as a binding may give
+	const bool grammar = values.contains("grammar") && !string(values["grammar"], path + ".grammar").empty();
+	if(!language || grammar) {
 		if(ours) editor.setHighlighter(nullptr);
 		return;
 	}
@@ -231,7 +239,8 @@ void applyLanguage(TextEditor& editor, const json& values, const PropertyReader&
 }
 
 /// @brief Sets an editor's view: wrap, folds, decorations, find and matchStyle, brackets and bracketStyle,
-/// indentGuides, rulers, minimap with minimapStyle and minimapViewport, composition and readOnly.
+/// indentGuides, tabSize, rulers, minimap with minimapStyle, minimapWidth and minimapViewport, scrollMarks,
+/// composition, caretStyle and readOnly.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours.
@@ -246,8 +255,19 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 		fail(path + ".bracketStyle", R"(expected "fill" or "underline")");
 	editor.setBracketUnderline(bracketStyle == "underline");
 	editor.setIndentGuides(flag("indentGuides"));
+	if(values.contains("tabSize")) {
+		const float spaces = number(values["tabSize"], path + ".tabSize");
+		if(!(spaces >= 1.0f && spaces <= static_cast<float>(TextEditor::maxTabSize)) || spaces != std::floor(spaces))
+			fail(path + ".tabSize", "expected a whole number of spaces, from 1 to 16");
+		editor.setTabSize(static_cast<std::size_t>(spaces));
+	} else {
+		editor.setTabSize(4);
+	}
 	editor.setRulers(readList<std::size_t>(values, "rulers", path, lineNumber));
 	editor.setMinimap(flag("minimap"));
+	editor.setScrollMarks(flag("scrollMarks"));
+	editor.setMinimapSize(values.contains("minimapWidth") ? number(values["minimapWidth"], path + ".minimapWidth")
+	                                                      : TextEditor::minimapSize);
 	const auto choice = [&](const char* key, const char* first, const char* second) {
 		const std::string chosen = values.contains(key) ? string(values[key], path + "." + key) : first;
 		if(chosen != first && chosen != second)
@@ -259,6 +279,11 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 	editor.setMatchOutline(choice("matchStyle", "fill", "outline"));
 	editor.setComposition(std::string_view(values.contains("composition") ? text(values["composition"]) : std::string()));
 	editor.setReadOnly(flag("readOnly"));
+	const std::string caret = values.contains("caretStyle") ? text(values["caretStyle"]) : std::string("line");
+	if(caret == "line") editor.setCaretStyle(TextEditor::CaretStyle::Line);
+	else if(caret == "block") editor.setCaretStyle(TextEditor::CaretStyle::Block);
+	else if(caret == "underline") editor.setCaretStyle(TextEditor::CaretStyle::Underline);
+	else fail(path + ".caretStyle", "expected line, block or underline");
 	// Folds the user made stay until the document gives others
 	if(values.contains("folds"))
 		editor.offerFolds(readList<FoldRange>(values, "folds", path, [](const json& value, const std::string& at) {
@@ -266,10 +291,10 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 			const std::size_t line = value.contains("line") ? lineNumber(value["line"], at + ".line") : 0;
 			return FoldRange{line, value.contains("endLine") ? lineNumber(value["endLine"], at + ".endLine") : line};
 		}));
-	editor.setDecorations(readList<EditorDecoration>(values, "decorations", path,
-	                                                 [&reader](const json& value, const std::string& at) {
-		                                                 return readDecoration(value, reader, at);
-	                                                 }));
+	editor.setDecorations(
+	    readList<EditorDecoration>(values, "decorations", path, [&reader](const json& value, const std::string& at) {
+		    return readDecoration(value, reader, at);
+	    }));
 	applyFind(editor, values, path);
 }
 
@@ -391,6 +416,7 @@ void registerEditorType(TypeRegistry& registry) {
 	set->properties = {{"bind", ValueKind::StatePath},
 	                   {"text", ValueKind::Text},
 	                   {"caret", ValueKind::StatePath},
+	                   {"viewport", ValueKind::StatePath},
 	                   {"font", ValueKind::Font},
 	                   {"textColor", ValueKind::Color},
 	                   {"lineNumbers", ValueKind::Boolean},
@@ -406,12 +432,14 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"find", ValueKind::Any},
 	                   {"brackets", ValueKind::Boolean},
 	                   {"indentGuides", ValueKind::Boolean},
+	                   {"tabSize", ValueKind::Number},
 	                   {"readOnly", ValueKind::Boolean},
 	                   {"guideColor", ValueKind::Color},
 	                   {"matchColor", ValueKind::Color},
 	                   {"bracketColor", ValueKind::Color},
 	                   {"grammar", ValueKind::Text},
 	                   {"minimap", ValueKind::Boolean},
+	                   {"scrollMarks", ValueKind::Boolean},
 	                   {"composition", ValueKind::Text},
 	                   {"language", ValueKind::Text},
 	                   {"commands", ValueKind::Any},
@@ -422,8 +450,10 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"rulers", ValueKind::Any},
 	                   {"bracketStyle", ValueKind::Text},
 	                   {"minimapStyle", ValueKind::Text},
+	                   {"minimapWidth", ValueKind::Number},
 	                   {"minimapViewport", ValueKind::Text},
-	                   {"matchStyle", ValueKind::Text}};
+	                   {"matchStyle", ValueKind::Text},
+	                   {"caretStyle", ValueKind::Text}};
 	set->apply = applyEditor;
 	set->everyUpdate = true; // colours follow the theme
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TextEditor*>(&panel) != nullptr; };

@@ -180,6 +180,27 @@ TEST_CASE("assistant: a reply is never the person's decision") {
 	}));
 }
 
+// The host's own agent and an MCP server the person started would both answer: only the last agent connected does
+TEST_CASE("assistant: one agent answers, the last connected; a client still sees the request, and every cancel") {
+	affresco::test::MemoryChannel hostAgent; // connected first, as the host attaches its own
+	affresco::test::MemoryChannel client;
+	Asking asking;
+	asking.screen.connect(hostAgent, "agent");
+	asking.screen.connect(client, "studio");
+	asking.screen.connect(asking.agent, "agent"); // the one the person started
+	const auto requests = [](const affresco::test::MemoryChannel& channel, const char* type) {
+		return std::ranges::count_if(channel.sent,
+		                             [type](const json& message) { return message.value("type", "") == type; });
+	};
+	asking.run("send");
+	CHECK(asking.requests().size() == 1);
+	CHECK(requests(hostAgent, "request") == 0);
+	CHECK(requests(client, "request") == 1);
+	asking.run("stop");
+	CHECK(requests(asking.agent, "cancel") == 1);
+	CHECK(requests(hostAgent, "cancel") == 1);
+}
+
 TEST_CASE("assistant: with no agent connected, the request fails at once") {
 	Asking asking;
 	asking.run("send");

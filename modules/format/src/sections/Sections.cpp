@@ -10,6 +10,7 @@
 #include "Settings.hpp"
 #include "StateTypes.hpp"
 #include "Strings.hpp"
+#include "SecondWindows.hpp"
 
 #include <algorithm>
 #include <array>
@@ -58,7 +59,8 @@ void checkLanguages(const json& value, const std::string& name) {
 	lastValid = value;
 }
 
-/// @brief "components": named components, each with a "node" and optional "params".
+/// @brief "components": named components, each with a "node" and optional "params", "runsActions" (the parameter
+/// naming the actions it runs, or true) and "note".
 /// @param value The value.
 /// @param name "components".
 void checkComponents(const json& value, const std::string& name) {
@@ -67,8 +69,12 @@ void checkComponents(const json& value, const std::string& name) {
 		expect::object(definition, at);
 		if(!definition.contains("node")) expect::fail(at, "a component needs a \"node\"");
 		for(const auto& [key, item] : definition.items())
-			if(key != "node" && key != "params" && key != "note")
-				expect::fail(std::format("{}.{}", at, key), "unknown property (expected node, params or note)");
+			if(key != "node" && key != "params" && key != "note" && key != "runsActions")
+				expect::fail(std::format("{}.{}", at, key),
+				             "unknown property (expected node, params, runsActions or note)");
+		if(const auto runs = definition.find("runsActions");
+		   runs != definition.end() && !runs->is_string() && !runs->is_boolean())
+			expect::fail(at + ".runsActions", "expected the name of a parameter, or true");
 	}
 }
 
@@ -144,6 +150,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add(permissionsSection());
 	registry.add(imagesSection());
 	registry.add(audioSection());
+	registry.add({.name = "windows", .validate = checkWindowsSection, .capability = true}); // SecondWindows.hpp
 	registry.add({"features", checkFeaturesSection}); // installed features, merged by Composition (FeatureManifest.hpp)
 	registry.add({"exports", checkExportsSection});   // what features read as app.<name>
 	registry.add({"imports", checkImportsSection});   // aliases for features' components

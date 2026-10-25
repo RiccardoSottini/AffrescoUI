@@ -314,7 +314,9 @@ constexpr auto commonTable = std::to_array<KeyReference>({
 	 "behaviour"},
     {"keys", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/keyHandler"},
 		"description": "Shortcuts while focused: \"mod+k\" -> handler"})json",
-	 "Shortcuts while the node or a child has the focus: `\"enter\" → handler`.", "behaviour"},
+	 "Shortcuts while the node or a child has the focus: `\"enter\" → handler`; `\"*\"` takes any other press "
+	 "(`event.key`).",
+	 "behaviour"},
     {"locked", R"json({"type": "boolean"})json",
 	 "`true`: no revision may change this node or anything inside it. Needs an `id`.", "behaviour"},
     {"note", R"json({"type": "string", "description": "A comment"})json", "A comment.", "behaviour"},
@@ -353,14 +355,21 @@ constexpr auto commonTable = std::to_array<KeyReference>({
     {"runs", R"json({"type": "array", "maxItems": 256, "items": {"oneOf": [{"type": ["string", "number", "boolean"]},
 		{"type": "object", "additionalProperties": false, "properties": {"text": {}, "icon": {"type": "string"},
 		"font": {"type": "string"}, "size": {"$ref": "#/$defs/v2/pixels"}, "bold": {"$ref": "#/$defs/v2/flag"},
-		"italic": {"$ref": "#/$defs/v2/flag"}, "color": {"$ref": "#/$defs/v2/color"}, "link": {"type": "string",
+		"italic": {"$ref": "#/$defs/v2/flag"}, "color": {"$ref": "#/$defs/v2/color"},
+		"underline": {"$ref": "#/$defs/v2/flag"}, "strike": {"$ref": "#/$defs/v2/flag"},
+		"background": {"oneOf": [{"$ref": "#/$defs/v2/color"}, {"type": "null"}]},
+		"shadow": {"oneOf": [{"$ref": "#/$defs/v2/color"}, {"type": "null"}]}, "link": {"type": "string",
 		"maxLength": 2048}}}]},
-		"description": "label: rich text, parts with their own font, size, bold, italic, colour, link or icon"})json",
+		"description": "label: rich text, parts with their own font, size, bold, italic, colour, underline, strike, background, shadow, link or icon"})json",
 	 "Rich text instead of `text`: a list of parts, each text or `{ \"text\", \"bold\", \"italic\", \"size\", "
-	 "\"font\", \"color\", \"link\", \"icon\" }`. `font` names a font of `fonts` (default: the label's); `bold`, "
-	 "`italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). A part with `link` is "
-	 "underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at "
-	 "spaces across parts. At most 256 parts and 65,536 characters. Not on text areas.",
+	 "\"font\", \"color\", \"underline\", \"strike\", \"background\", \"shadow\", \"link\", \"icon\" }`. `font` names "
+	 "a "
+	 "font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at "
+	 "most 32 per document). `underline` draws a line under the part, `strike` one through it, and `background` a "
+	 "highlight behind it as tall as its line, `shadow` a copy of it in that colour moved down and right by a "
+	 "sixteenth of its size (null: none). A part with `link` is underlined and a press on it runs "
+	 "`onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 "
+	 "parts and 65,536 characters. Not on text areas.",
 	 "label"},
     {"selectable", "flag",
 	 "The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons "

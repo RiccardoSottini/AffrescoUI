@@ -197,15 +197,15 @@ struct BoundedVfs {
 		};
 		callbacks.onWrite = [](ma_vfs*, ma_vfs_file, const void*, size_t, size_t*) { return MA_ACCESS_DENIED; };
 		callbacks.onSeek = [](ma_vfs*, ma_vfs_file file, ma_int64 offset, ma_seek_origin origin) {
-			ByteSource& bytes = of(file);
+			ByteSource& stream = of(file);
 			std::int64_t from = 0;
-			if(origin == ma_seek_origin_current) from = static_cast<std::int64_t>(bytes.tell());
+			if(origin == ma_seek_origin_current) from = static_cast<std::int64_t>(stream.tell());
 			else if(origin == ma_seek_origin_end) {
-				if(bytes.size() == 0) return MA_BAD_SEEK; // a stream's end isn't known yet
-				from = static_cast<std::int64_t>(bytes.size());
+				if(stream.size() == 0) return MA_BAD_SEEK; // a stream's end isn't known yet
+				from = static_cast<std::int64_t>(stream.size());
 			}
 			if((offset > 0 && from > INT64_MAX - offset) || from + offset < 0) return MA_BAD_SEEK;
-			return bytes.seek(static_cast<std::uint64_t>(from + offset)) ? MA_SUCCESS : MA_BAD_SEEK;
+			return stream.seek(static_cast<std::uint64_t>(from + offset)) ? MA_SUCCESS : MA_BAD_SEEK;
 		};
 		callbacks.onTell = [](ma_vfs*, ma_vfs_file file, ma_int64* cursor) {
 			*cursor = static_cast<ma_int64>(of(file).tell());

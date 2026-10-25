@@ -49,6 +49,9 @@ public:
 	[[nodiscard]] bool isVisible() const override { return true; }
 	void setVisible(bool visible) override { static_cast<void>(visible); }
 	[[nodiscard]] bool shouldClose() const override { return false; }
+	void setShouldClose(bool close) override { static_cast<void>(close); }
+	[[nodiscard]] bool isFullscreen() const override { return false; }
+	void setFullscreen(bool fullscreen) override { static_cast<void>(fullscreen); }
 	[[nodiscard]] std::string clipboardText() const override { return clipboard_; }
 	void setClipboardText(const std::string& utf8) override { clipboard_ = utf8; }
 	void setCursor(Cursor cursor) override { static_cast<void>(cursor); }

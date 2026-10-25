@@ -165,7 +165,7 @@ TEST_CASE("usage: bounded names, entries and counts, also when read from a damag
 }
 
 #ifndef _WIN32
-// Found in the security review of wave 13: the file was made with the process's default mode (0644 with the usual
+// Found in a security review: the file was made with the process's default mode (0644 with the usual
 // umask), so other users of the device could read how the app is used, though the history and the state are private
 TEST_CASE("usage: the file is readable by its owner only") {
 	const std::filesystem::path file = freshFile("private");

@@ -137,7 +137,7 @@ json readDisplay(const json& values, const PropertyReader& reader, const std::st
 		if(!scene3d::shadingNamed(shading)) fail(path + ".shading", R"(expected "material", "solid" or "wireframe")");
 		display["shading"] = shading;
 	}
-	for(const char* key : {"grid", "axes", "glyphs"})
+	for(const char* key : {"grid", "axes", "glyphs", "extras"})
 		if(values.contains(key)) display[key] = boolean(values[key], path + "." + key);
 	const auto color = [&](const char* key, const char* as) {
 		if(!values.contains(key)) return;
@@ -148,6 +148,12 @@ json readDisplay(const json& values, const PropertyReader& reader, const std::st
 	color("gridColor", "gridColor");
 	color("outlineColor", "outline");
 	if(values.contains("exposure")) display["exposure"] = within(values["exposure"], path + ".exposure", 0.0f, 64.0f);
+	if(values.contains("xray")) display["xray"] = within(values["xray"], path + ".xray", 0.0f, 1.0f);
+	if(values.contains("lighting")) {
+		const std::string lighting = string(values["lighting"], path + ".lighting");
+		if(lighting != "scene" && lighting != "studio") fail(path + ".lighting", R"(expected "scene" or "studio")");
+		display["lighting"] = lighting;
+	}
 	if(values.contains("gizmo")) display["gizmo"] = readGizmo(values["gizmo"], path + ".gizmo"); // else none
 	if(values.contains("up")) {
 		const std::string up = string(values["up"], path + ".up");
@@ -285,25 +291,25 @@ json transformEvent(const scene3d::SceneTransform& transform) {
 EventConnections listenToSceneEvents(Panel& panel, EventSink sink) {
 	auto* scene = dynamic_cast<SceneView*>(&panel);
 	if(!scene) return {};
-	const Connection pick = scene->onPick.connect([scene, sink](const scene3d::ScenePick& pick) {
+	const Connection pick = scene->onPick.connect([scene, sink](const scene3d::ScenePick& event) {
 		sink("onSelect", json{{"type", "pick"},
-		                      {"id", pick.node.empty() ? json() : json(pick.node)},
-		                      {"button", buttonName(pick.button)},
-		                      {"shift", pick.shift},
-		                      {"x", pick.at[0]},
-		                      {"y", pick.at[1]},
-		                      {"point", pick.point ? rounded(*pick.point) : json()},
+		                      {"id", event.node.empty() ? json() : json(event.node)},
+		                      {"button", buttonName(event.button)},
+		                      {"shift", event.shift},
+		                      {"x", event.at[0]},
+		                      {"y", event.at[1]},
+		                      {"point", event.point ? rounded(*event.point) : json()},
 		                      {"selection", scene->selection()}});
 	});
-	const Connection box = scene->onBoxSelect.connect([scene, sink](const scene3d::SceneBoxSelect& box) {
+	const Connection box = scene->onBoxSelect.connect([scene, sink](const scene3d::SceneBoxSelect& event) {
 		sink("onSelect", json{{"type", "boxSelect"},
-		                      {"ids", box.nodes},
-		                      {"shift", box.shift},
-		                      {"box", box.box},
+		                      {"ids", event.nodes},
+		                      {"shift", event.shift},
+		                      {"box", event.box},
 		                      {"selection", scene->selection()}});
 	});
 	const Connection transform = scene->onTransform.connect(
-	    [sink](const scene3d::SceneTransform& transform) { sink("onTransform", transformEvent(transform)); });
+	    [sink](const scene3d::SceneTransform& event) { sink("onTransform", transformEvent(event)); });
 	return {pick, box, transform, 0};
 }
 
@@ -328,7 +334,9 @@ void registerSceneType(TypeRegistry& registry) {
 	                   {"gridColor", ValueKind::Color},      {"outlineColor", ValueKind::Color},
 	                   {"exposure", ValueKind::Number},      {"gizmo", ValueKind::Any},
 	                   {"controls", ValueKind::Any},         {"up", ValueKind::Text},
-	                   {"cursor3d", ValueKind::Any},         {"glyphs", ValueKind::Boolean}};
+	                   {"cursor3d", ValueKind::Any},         {"glyphs", ValueKind::Boolean},
+	                   {"xray", ValueKind::Number},          {"lighting", ValueKind::Text},
+	                   {"extras", ValueKind::Boolean}};
 	set->apply = applyScene;
 	set->everyUpdate = false; // a scene of thousands of nodes: read again only when the values change
 	set->keepsClicks = true;

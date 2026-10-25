@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <variant>
@@ -17,6 +18,7 @@ namespace affresco::format {
 /// made.
 struct Value::Storage {
 	std::variant<std::string, std::vector<Value>, std::vector<Field>, json> data; ///< The content.
+	int depth = 0; ///< How deeply a list or object nests (nesting()), at most maxNesting.
 };
 
 namespace {
@@ -27,6 +29,19 @@ constexpr std::size_t inlineCapacity = 16;
 constexpr std::size_t indexedFields = 16;
 
 } // namespace
+
+int Value::nesting() const noexcept {
+	if(holding_ == Holding::List || holding_ == Holding::Object) return storage_->depth;
+	// JSON a list or object holds is the document's or the state's: maxDocumentNesting at most already
+	return holding_ == Holding::Json && inline_.data->is_structured() ? 1 : 0;
+}
+
+int Value::nestingOf(int deepest) {
+	if(deepest + 1 > maxNesting)
+		throw DocumentError("AffrescoUI screen: a value nested more than " + std::to_string(maxNesting) +
+		                    " levels deep");
+	return deepest + 1;
+}
 
 Value Value::fromBoolean(bool value) noexcept {
 	Value result;
@@ -67,9 +82,12 @@ Value Value::fromText(std::string&& text) {
 }
 
 Value Value::fromList(std::vector<Value> items) {
+	int deepest = 0;
+	for(const Value& item : items) deepest = std::max(deepest, item.nesting());
+	const int depth = nestingOf(deepest);
 	Value result;
 	result.holding_ = Holding::List;
-	result.storage_ = std::make_shared<const Storage>(Storage{std::move(items)});
+	result.storage_ = std::make_shared<const Storage>(Storage{std::move(items), depth});
 	return result;
 }
 
@@ -91,9 +109,12 @@ Value Value::fromObject(std::vector<Field> fields) {
 		unique.push_back(std::move(field));
 		if(indexed) at.emplace(unique.back().key, unique.size() - 1);
 	}
+	int deepest = 0;
+	for(const Field& field : unique) deepest = std::max(deepest, field.value.nesting());
+	const int depth = nestingOf(deepest);
 	Value result;
 	result.holding_ = Holding::Object;
-	result.storage_ = std::make_shared<const Storage>(Storage{std::move(unique)});
+	result.storage_ = std::make_shared<const Storage>(Storage{std::move(unique), depth});
 	return result;
 }
 

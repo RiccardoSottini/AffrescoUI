@@ -45,7 +45,8 @@ public:
 	/// until they do, a declaration that uses it is refused. The person's choice is the grant; the document never
 	/// names the folder.
 	/// @param name The root's name.
-	void allowChosenRoot(std::string name);
+	/// @param readOnly true to let the person choose it for reading only, as addRoot() grants one.
+	void allowChosenRoot(std::string name, bool readOnly = false);
 	/// @brief Names a program declarations may start (`"process": "clangd"`). It runs with the user's rights.
 	/// @param name The name.
 	/// @param program The program, an absolute path.

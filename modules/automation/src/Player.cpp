@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 namespace affresco::automation::detail {
 
@@ -32,14 +33,31 @@ std::string kindOf(const json& step) {
 
 } // namespace
 
+Player::~Player() {
+	if(answering_) stage_.window.setFileDialogHandler({});
+}
+
 void Player::play() {
 	const std::vector<json>& steps = stage_.scenario.steps;
+	// An error in a handler stops its action without a word to the person: a scenario fails at the step it came in,
+	// unless the step says it raises it ("error")
+	const auto errors = std::make_shared<std::vector<std::string>>(); // shared: the screen may outlive the player
+	stage_.screen.onError([errors](const std::string& message) { errors->push_back(message); });
 	for(std::size_t i = 0; i < steps.size(); ++i) {
 		try {
 			// Time moves only on `wait`: what a handler leaves for the next frame (a focus step, a timer of 0 ms) runs
 			// at the next wait, `{"wait": 0}` included. Running a frame after every step instead would change what
 			// the rendering check's golden images recorded (the code editor's palette), so it is the maintainer's call
 			playStep(steps[i], i + 1);
+			const std::string expected = steps[i].value("error", "");
+			const auto raised = std::ranges::find_if(
+			    *errors, [&expected](const std::string& message) { return message.contains(expected); });
+			if(!expected.empty() && raised == errors->end()) {
+				const std::string came = errors->empty() ? "no error" : "the error " + errors->front();
+				throw StepError(came + ", expected one with \"" + expected + "\"");
+			}
+			if(!expected.empty()) errors->erase(raised);
+			if(!errors->empty()) throw StepError(errors->front());
 		} catch(const std::exception& error) { // StepError, or what the screen threw (a DocumentError)
 			result_.failures.push_back({i + 1, kindOf(steps[i]) + ": " + error.what()});
 			return;
@@ -59,12 +77,17 @@ void Player::playStep(const json& step, std::size_t number) {
 	} else if(step.contains("revision")) {
 		std::string error;
 		if(!screen.applyRevision(step["revision"].dump(), &error)) throw StepError("refused: " + error);
+	} else if(step.contains("propose")) {
+		const RevisionResult result = screen.submitRevision(step["propose"].dump());
+		if(result.status == RevisionStatus::Rejected) throw StepError("refused: " + result.error);
 	} else if(step.contains("action")) {
 		screen.runAction(step["action"].get<std::string>(), window.root(), step.value("event", json::object()).dump());
 	} else if(step.contains("resize")) {
 		window.setSize(step["resize"][0].get<int>(), step["resize"][1].get<int>());
 	} else if(step.contains("wait")) {
 		wait(step["wait"].get<double>());
+	} else if(step.contains("choose")) {
+		choose(step["choose"]);
 	} else if(step.contains("capture")) {
 		picture(step["capture"].get<std::string>(), true, number);
 	} else if(step.contains("expect")) {
@@ -72,20 +95,32 @@ void Player::playStep(const json& step, std::size_t number) {
 	} // else a step that is only a "note"
 }
 
+void Player::choose(const json& file) {
+	chosen_ = file.is_string() ? (stage_.scratch / file.get<std::string>()).string() : std::string();
+	if(answering_) return;
+	answering_ = true;
+	stage_.window.setFileDialogHandler([this](const FileDialog&) {
+		return chosen_.empty() ? std::vector<std::string>() : std::vector<std::string>{chosen_};
+	});
+}
+
 bool Player::playPointer(const json& step) {
 	using affresco::Action;
 	Window& window = stage_.window;
 	const int nth = step.value("nth", 0);
-	const auto button = [&](const json& target, Action action) {
+	const auto button = [&](const json& target, Action action, MouseButton which = MouseButton::Left) {
 		const Vec2 at = pointOf(target, nth);
 		window.routeMouseMove(at);
-		window.routeMouseButton({MouseButton::Left, action, {}, at});
+		window.routeMouseButton({which, action, {}, at});
 	};
 	if(step.contains("move")) {
 		window.routeMouseMove(pointOf(step["move"], nth));
 	} else if(step.contains("click")) {
 		button(step["click"], Action::Press);
 		button(step["click"], Action::Release);
+	} else if(step.contains("rightClick")) {
+		button(step["rightClick"], Action::Press, MouseButton::Right);
+		button(step["rightClick"], Action::Release, MouseButton::Right);
 	} else if(step.contains("press")) {
 		button(step["press"], Action::Press);
 	} else if(step.contains("release")) {

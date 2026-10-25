@@ -5,6 +5,7 @@
 #include "Helpers.hpp"
 #include "HistoryFiles.hpp"
 
+#include <affresco/core/Portable.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
 
@@ -39,8 +40,7 @@ json policyScreen(const json& review) {
 /// @return ISO 8601.
 std::string utcIn(long long seconds) {
 	const std::time_t then = std::time(nullptr) + static_cast<std::time_t>(seconds);
-	std::tm parts{};
-	gmtime_r(&then, &parts);
+	const std::tm parts = affresco::utcTime(then); // Windows has no gmtime_r
 	std::array<char, 32> text{};
 	std::strftime(text.data(), text.size(), "%Y-%m-%dT%H:%M:%SZ", &parts);
 	return text.data();

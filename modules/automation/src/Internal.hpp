@@ -58,7 +58,7 @@ struct KeyPress {
 /// @brief Tells whether `expect` can read a node property of that name.
 /// @param name The property.
 /// @return true for text, textColor, color, borderColor, borderWidth, shown, visible, focused, hovered, tooltip,
-/// checked, value, x, y, width, height, scrollX and scrollY.
+/// checked, value, x, y, width, height, scrollX, scrollY, role, name, description and scrollMarks.
 [[nodiscard]] bool isReadableProperty(std::string_view name);
 
 /// @brief The property names isReadableProperty() accepts, for error messages.

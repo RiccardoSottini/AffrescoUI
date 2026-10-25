@@ -34,7 +34,8 @@ constexpr std::string_view counterScreen = R"json({
 	"state": { "clicks": 0, "items": [], "draft": "", "message": "" },
 	"root": { "id": "root", "children": [
 		{ "type": "label", "id": "count", "text": "{{state.clicks}} clicks", "width": 200, "height": 40,
-		  "onClick": [{ "increment": "state.clicks" }, { "after": 500, "do": [{ "set": "state.message", "to": "later" }] }] },
+		  "onClick": [{ "increment": "state.clicks" }, { "after": 500, "do": [{ "set": "state.message", "to": "later" }] }],
+		  "onContextMenu": [{ "set": "state.message", "to": "menu" }] },
 		{ "type": "textarea", "id": "field", "bind": "state.draft", "anchors": { "top": 50 }, "width": 200, "height": 30,
 		  "onSubmit": [{ "push": "state.items", "value": "{{event.text}}" }, { "set": "state.draft", "to": "" }] },
 		{ "type": "label", "id": "item", "text": "{{item}}", "repeat": { "for": "item", "in": "state.items" },
@@ -58,6 +59,10 @@ public:
 		                                           std::string(scenarios) + "}",
 		                                       folder_.path() / "counter.scenarios.json");
 	}
+
+	/// @brief The folder the screen is in.
+	/// @return It.
+	[[nodiscard]] const std::filesystem::path& folder() const { return folder_.path(); }
 
 private:
 	affresco::test::TemporaryFolder folder_; ///< Holds the screen.
@@ -117,12 +122,57 @@ TEST_CASE("automation: a scenarios file that is wrong says where") {
 	CHECK(errorOf(oneStep(R"({"expect": {"node": "#a", "text": "x", "exists": true}})")).contains("expected one of"));
 	CHECK(errorOf(oneStep(R"({"expect": {"image": "../escape"}})")).contains("expect.image: expected a name"));
 	CHECK(errorOf(oneStep(R"({"drag": "#a"})")).contains("\"drag\" needs \"to\""));
+	CHECK(errorOf(oneStep(R"({"choose": "../deck.json"})")).contains("steps[0].choose: expected a file name"));
+	CHECK(errorOf(oneStep(R"({"choose": 3})")).contains("steps[0].choose: expected a file name"));
+	CHECK(errorOf(oneStep(R"({"choose": null})")).empty());
+	CHECK(errorOf(oneStep(R"({"propose": "x"})")).contains("steps[0].propose: expected a revision"));
 	CHECK(errorOf(R"({"version": 2, "screen": "a.json", "scenarios": [{"name": "a", "steps": []}, {"name": "a", "steps": []}]})")
 	          .contains("scenarios[1].name: 'a' is the name of another scenario"));
 	CHECK(errorOf(R"({"scenarios": [{"name": "a", "screen": "a.json"}]})").contains("version: expected 1"));
 	CHECK(errorOf(R"({"version": 2, "scenarios": [{"name": "a"}]})").contains("scenarios[0]: no \"screen\""));
 	CHECK(errorOf("{").contains("place.scenarios.json"));
 	CHECK(errorOf(oneStep(R"({"note": "only a comment"}, {"click": [1, 2], "note": "and a click"})")).empty());
+	CHECK(errorOf(oneStep(R"({"click": "#a", "error": ""})")).contains("steps[0].error: expected a part of the error"));
+	CHECK(errorOf(oneStep(R"({"expect": {"state": "a", "is": 1}, "error": "x"})")).contains("not 'expect'"));
+	CHECK(errorOf(oneStep(R"({"note": "a comment", "error": "x"})")).contains("a comment raises no error"));
+	CHECK(errorOf(oneStep(R"({"action": "go", "error": "no sign-in"})")).empty());
+}
+
+TEST_CASE("automation: an error in a handler fails its step, unless the step names it or the handler handles it") {
+	const Fixture fixture;
+	automation::Options options;
+	options.document = R"json({
+		"format": "affrescoui-screen", "version": 2, "window": { "width": 200, "height": 100 },
+		"state": { "a": 0, "b": 0 },
+		"actions": {
+			"inner": [{ "set": "state.a", "to": "{{x}}" }],
+			"outer": [{ "run": "inner", "with": { "x": "{{nope}}" } }, { "set": "state.b", "to": 1 }],
+			"fine": [{ "set": "state.b", "to": 2 }],
+			"absent": [{ "call": "nothing", "onError": [{ "set": "state.b", "to": "{{error}}" }] }]
+		},
+		"root": { "type": "panel" }
+	})json";
+	const automation::Report report = automation::run(fixture.scenarios(R"([
+		{ "name": "unknown", "steps": [{ "action": "outer" }, { "expect": { "state": "b", "is": 0 } }] },
+		{ "name": "named", "steps": [{ "action": "outer", "error": "unknown variable 'nope'" },
+			{ "expect": { "state": "b", "is": 0 } }] },
+		{ "name": "another", "steps": [{ "action": "outer", "error": "no sign-in" }] },
+		{ "name": "none", "steps": [{ "action": "fine", "error": "no sign-in" }] },
+		{ "name": "handled", "steps": [{ "action": "absent" },
+			{ "expect": { "state": "b", "is": "no native action 'nothing' registered" } }] }
+	])"),
+	                                                  options);
+	REQUIRE(report.scenarios.size() == 5);
+	// The action stopped: the step says why, and nothing after it runs
+	REQUIRE(report.scenarios[0].failures.size() == 1);
+	CHECK(report.scenarios[0].failures[0].step == 1);
+	CHECK(report.scenarios[0].failures[0].problem.contains("actions.outer[0].with.x: unknown variable 'nope'"));
+	CHECK(report.scenarios[1].passed());
+	REQUIRE(report.scenarios[2].failures.size() == 1);
+	CHECK(report.scenarios[2].failures[0].problem.contains("expected one with \"no sign-in\""));
+	REQUIRE(report.scenarios[3].failures.size() == 1);
+	CHECK(report.scenarios[3].failures[0].problem == "action: no error, expected one with \"no sign-in\"");
+	CHECK(report.scenarios[4].passed()); // a host without a function is an error its "onError" handles
 }
 
 TEST_CASE("automation: keys, state paths and file names") {
@@ -273,6 +323,24 @@ TEST_CASE("automation: scenarios play headless, on a clock that moves only when 
 	CHECK(summary["failures"][0] == json{{"scenario", "fails"}, {"step", 1}, {"problem", "state clicks is 0, expected 5"}});
 }
 
+TEST_CASE("automation: a right click opens the context menu, and counts no click") {
+	const Fixture fixture;
+	automation::Options options;
+	options.pictures = false;
+	const automation::Report report = automation::run(fixture.scenarios(R"([
+		{ "name": "right", "steps": [
+			{ "rightClick": "#count" },
+			{ "expect": { "state": "message", "is": "menu" } },
+			{ "expect": { "state": "clicks", "is": 0 } }
+		] }
+	])"),
+	                                                  options);
+	REQUIRE(report.scenarios.size() == 1);
+	for(const automation::Failure& failure : report.scenarios[0].failures) INFO(failure.problem);
+	CHECK(report.scenarios[0].passed());
+	CHECK(errorOf(oneStep(R"({"rightClick": "#a", "click": "#a"})")).contains("one step does one thing"));
+}
+
 // index.scenarios.json's checks of the keys that take the platform's modifier, which each platform writes its own way
 TEST_CASE("automation: the sign-in template writes its keys as the platform does") {
 #ifdef __APPLE__
@@ -327,6 +395,59 @@ TEST_CASE("automation: only the scenarios asked for, and on another document") {
 	CHECK(report.scenarios[0].passed());
 }
 
+TEST_CASE("automation: choose answers the file dialogs with a file in the run's own folder, or cancels them") {
+	const Fixture fixture;
+	automation::Options options;
+	options.document = R"json({
+		"format": "affrescoui-screen", "version": 2, "window": { "width": 200, "height": 100 },
+		"state": { "deck": { "title": "Plan" }, "opened": null, "saved": "" },
+		"actions": {
+			"save": [{ "saveFile": "{{state.deck}}", "onDone": [{ "set": "state.saved", "to": "{{result.name}}" }] }],
+			"open": [{ "openFile": "state.opened" }]
+		},
+		"root": { "type": "panel" }
+	})json";
+	const automation::Report report = automation::run(fixture.scenarios(R"([
+		{ "name": "round-trip", "steps": [
+			{ "choose": null }, { "action": "save" }, { "wait": 0 }, { "expect": { "state": "saved", "is": "" } },
+			{ "choose": "deck.json" }, { "action": "save" }, { "wait": 0 },
+			{ "expect": { "state": "saved", "is": "deck.json" } },
+			{ "action": "open" }, { "wait": 0 }, { "expect": { "state": "opened.title", "is": "Plan" } }
+		] }
+	])"),
+	                                                  options);
+	REQUIRE(report.scenarios.size() == 1);
+	CHECK(report.scenarios[0].passed());
+}
+
+TEST_CASE("automation: propose submits a revision through the screen's permissions, so an agent's waits for review") {
+	const Fixture fixture;
+	automation::Options options;
+	options.pictures = false;
+	options.document = R"json({
+		"format": "affrescoui-screen", "version": 2, "window": { "width": 200, "height": 100 },
+		"permissions": { "allow": ["studio"], "ask": ["agent"], "reviewers": ["studio"], "deny": ["stranger"] },
+		"state": { "title": "Plan" },
+		"root": { "type": "panel" }
+	})json";
+	const automation::Report report = automation::run(fixture.scenarios(R"([
+		{ "name": "reviewed", "steps": [
+			{ "propose": { "author": "agent", "message": "Rename", "set": { "/state/title": "Agent's" } } },
+			{ "expect": { "state": "title", "is": "Plan" } },
+			{ "propose": { "author": "studio", "message": "Rename", "set": { "/state/title": "Studio's" } } },
+			{ "expect": { "state": "title", "is": "Studio's" } }
+		] },
+		{ "name": "refused", "steps": [
+			{ "propose": { "author": "stranger", "message": "Rename", "set": { "/state/title": "Theirs" } } }
+		] }
+	])"),
+	                                                  options);
+	REQUIRE(report.scenarios.size() == 2);
+	CHECK(report.scenarios[0].passed());
+	REQUIRE(report.scenarios[1].failures.size() == 1);
+	CHECK(report.scenarios[1].failures[0].problem.starts_with("propose: refused"));
+}
+
 TEST_CASE("automation: a scenario's channels reach no host, by an absolute path either") {
 	// A document played (an agent's proposal, with run_scenarios) can name a running host's socket by its full path:
 	// were it to connect, its "open" handler could send that host what a reviewer would
@@ -352,4 +473,33 @@ TEST_CASE("automation: a scenario's channels reach no host, by an absolute path 
 	}
 	std::error_code ignored;
 	std::filesystem::remove(socket, ignored);
+}
+
+TEST_CASE("automation: an app's entry screen plays with its app's models and seed records, as the host opens it") {
+	const Fixture fixture;
+	std::ofstream(fixture.folder() / "models.json")
+	    << R"({"models": {"notes": {"fields": {"title": {"type": "string", "required": true}}}}})";
+	std::ofstream(fixture.folder() / "notes.json") << R"([{"id": "n1", "title": "From the seed"}])";
+	const auto manifest = [&](std::string_view entry) {
+		std::ofstream(fixture.folder() / "app.json")
+		    << R"({"format": "affrescoui-app", "version": 1, "id": "counter", "name": "Counter", "entry": ")" << entry
+		    << R"(", "data": {"models": "models.json", "seed": {"notes": "notes.json"}}})";
+	};
+	const auto played = [&](std::string_view expect) {
+		automation::Options options;
+		options.pictures = false;
+		const automation::Report report = automation::run(
+		    fixture.scenarios(std::string(R"([{ "name": "seeded", "steps": [{ "expect": )") + std::string(expect) +
+		                      " }] }]"),
+		    options);
+		REQUIRE(report.scenarios.size() == 1);
+		for(const automation::Failure& failure : report.scenarios[0].failures) INFO(failure.problem);
+		return report.scenarios[0].passed();
+	};
+	manifest("counter.screen.json");
+	CHECK(played(R"({ "data": "notes[0].title", "is": "From the seed" })"));
+	CHECK(played(R"({ "state": "clicks", "is": 0 })"));
+	manifest("other.screen.json"); // the counter isn't the app's entry: it plays as written, with no models
+	CHECK_FALSE(played(R"({ "data": "notes[0].title", "is": "From the seed" })"));
+	CHECK(played(R"({ "state": "clicks", "is": 0 })"));
 }

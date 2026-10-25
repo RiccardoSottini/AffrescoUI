@@ -6,6 +6,8 @@ affrescoui_module(services
 	src/Schema.cpp
 	# grants/: what a host grants from its command line (programs on the PATH, the login shell, git's policy)
 	src/grants/AppPrograms.cpp # the host's sibling programs, for a launcher
+	src/grants/GitConfig.cpp # the repository's own config, which may name programs
+	src/grants/GitOutput.cpp # reading git's status and branch list
 	src/grants/GitPolicy.cpp
 	src/grants/Grants.cpp
 	# dap/: the debug adapter service (Debug Adapter Protocol)
@@ -18,11 +20,16 @@ affrescoui_module(services
 	src/files/FileProvider.cpp
 	src/files/WatchProvider.cpp
 	src/files/Watcher.cpp
+	# lsp/: the language server service (Language Server Protocol, over jsonrpc)
+	src/lsp/Lsp.cpp
+	src/lsp/LspProtocol.cpp
+	src/lsp/LspText.cpp
 	# process/: programs, run once or kept, and terminals
 	src/process/Process.cpp
 	src/process/ProcessProvider.cpp
 	src/process/Pty.cpp
 	src/process/PtyProvider.cpp
+	src/process/RunProgram.cpp
 	# rpc/: JSON-RPC servers (LSP and the like) and the framing of what they write
 	src/rpc/Framing.cpp
 	src/rpc/JsonRpc.cpp

@@ -279,6 +279,29 @@ TEST_CASE("auth: a kept refresh token signs in again at the next run, with no br
 	CHECK(identity.grants() == 2); // the device grant, then the refresh
 }
 
+// Before, a kept sign-in was restored for any screen naming the same token endpoint and client, wherever it sent the
+// tokens and whatever scopes it asked
+TEST_CASE(
+    "auth: a kept sign-in isn't restored for a declaration that sends its tokens elsewhere or asks other scopes") {
+	MockIdentity identity;
+	const auto store = std::make_shared<affresco::MemorySecretStore>();
+	{
+		Shown first(identity, authScreen(identity, "device"), store);
+		identity.approve();
+		REQUIRE(first.run("login", "/me"));
+	}
+	json elsewhere = authScreen(identity, "device");
+	elsewhere["connections"]["api"]["url"] = identity.origin() + "/elsewhere";
+	json wider = authScreen(identity, "device");
+	wider["connections"]["api"]["auth"]["scopes"].push_back("admin");
+	for(const json& document : {elsewhere, wider}) {
+		Shown other(identity, document, store);
+		other.executor.runFor(std::chrono::milliseconds(200));
+		CHECK(other.auth()["state"] == "signedOut");
+	}
+	CHECK(identity.grants() == 1); // only the first sign-in's grant: no refresh for the others
+}
+
 TEST_CASE("auth: revisions can't add a sign-in, nor change a provider") {
 	MockIdentity identity;
 	const affresco::format::Rules rules;
@@ -339,6 +362,18 @@ TEST_CASE("auth: a provider's lifetimes and intervals are clamped, however large
 	REQUIRE(std::holds_alternative<oauth::DeviceCodes>(codes));
 	CHECK(std::get<oauth::DeviceCodes>(codes).interval == std::chrono::seconds(60));
 	CHECK(std::get<oauth::DeviceCodes>(codes).lifetime == std::chrono::seconds(10));
+}
+
+TEST_CASE("auth: a device flow's verification page is https, or on this machine") {
+	namespace oauth = affresco::net::oauth;
+	const auto plain = oauth::readDeviceCodes(
+	    R"({"device_code":"d","user_code":"U","verification_uri":"http://example.test/device"})");
+	REQUIRE(std::holds_alternative<std::string>(plain));
+	CHECK(std::get<std::string>(plain).find("https") != std::string::npos);
+	CHECK(std::holds_alternative<oauth::DeviceCodes>(oauth::readDeviceCodes(
+	    R"({"device_code":"d","user_code":"U","verification_uri":"http://127.0.0.1:8080/device"})")));
+	CHECK(std::holds_alternative<oauth::DeviceCodes>(oauth::readDeviceCodes(
+	    R"({"device_code":"d","user_code":"U","verification_uri":"https://example.test/device"})")));
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)

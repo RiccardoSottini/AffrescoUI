@@ -23,16 +23,16 @@
 					"scope": "comment.line"
 				},
 				{
-					"begin": "\\b[rRbBuUfF]{0,2}(\\\"\\\"\\\"|''')",
+					"begin": "(?<!\\w)[rRbBuUfF]{0,2}(\\\"\\\"\\\"|''')",
 					"end": "\\1",
 					"scope": "string.quoted.triple"
 				},
 				{
-					"match": "\\b[rRbBuUfF]{0,2}\"(?:[^\"\\\\]|\\\\.)*\"?",
+					"match": "(?<!\\w)[rRbBuUfF]{0,2}\"(?:[^\"\\\\]|\\\\.)*\"?",
 					"scope": "string.quoted.double"
 				},
 				{
-					"match": "\\b[rRbBuUfF]{0,2}'(?:[^'\\\\]|\\\\.)*'?",
+					"match": "(?<!\\w)[rRbBuUfF]{0,2}'(?:[^'\\\\]|\\\\.)*'?",
 					"scope": "string.quoted.single"
 				},
 				{

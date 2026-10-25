@@ -60,7 +60,7 @@ std::string keyName(Key key) {
 	                                              {Key::PageDown, "PageDown"},
 	                                              {Key::Home, "Home"},
 	                                              {Key::End, "End"}}};
-	const auto* const found = std::ranges::find(names, key, &Named::first);
+	const auto found = std::ranges::find(names, key, &Named::first);
 	return std::string(found == names.end() ? "a key" : found->second);
 }
 

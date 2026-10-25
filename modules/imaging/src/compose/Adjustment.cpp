@@ -127,7 +127,7 @@ const std::array<std::string_view, adjustmentKindCount>& adjustmentKindNames() n
 
 std::optional<AdjustmentKind> adjustmentKindOf(std::string_view name) noexcept {
 	const auto& names = adjustmentKindNames();
-	const auto* const found = std::ranges::find(names, name);
+	const auto found = std::ranges::find(names, name);
 	if(found == names.end()) return std::nullopt;
 	return static_cast<AdjustmentKind>(found - names.begin());
 }

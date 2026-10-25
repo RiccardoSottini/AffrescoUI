@@ -6,7 +6,7 @@
 
 	"state": {
 		"layout": { "sidebar": true, "panel": false, "panelMax": false, "zen": false, "secondary": false, "sizes": [240], "panelSizes": [480], "groupSizes": [] },
-		"folder": { "root": "", "files": [],
+		"folder": { "root": "", "files": [], "truncated": false,
 			"skip": "**/node_modules/**,**/build/**,**/out/**,**/dist/**,**/target/**,**/__pycache__/**,**/.*/**,**/.*" },
 		"explorer": { "expanded": [], "selected": null },
 		"docs": [],
@@ -19,14 +19,16 @@
 		"nav": { "back": [], "forward": [], "moving": false },
 		"notificationCentre": false,
 		"languages": { "c": "C++", "cc": "C++", "cpp": "C++", "h": "C++", "hpp": "C++", "json": "JSON", "md": "Markdown",
-			"cmake": "CMake" }
+			"cmake": "CMake", "py": "Python", "js": "JavaScript", "mjs": "JavaScript", "ts": "TypeScript", "tsx": "TypeScript",
+			"sh": "Shell", "bash": "Shell", "zsh": "Shell" }
 	},
 
 	"computed": {
 		"docIds": "{{map(state.docs, it.id)}}",
 		"dirtyIds": "{{map(filter(state.docs, it.dirty), it.id)}}",
 		"activeDoc": "{{find(state.docs, it.id == state.groups[state.activeGroup].active)}}",
-		"folderName": "{{empty(state.folder.root) ? 'No Folder Opened' : reverse(split(state.folder.root, '/'))[0]}}"
+		"folderName": "{{empty(state.folder.root) ? 'No Folder Opened' : reverse(split(state.folder.root, '/'))[0]}}",
+		"welcomeRecent": "{{empty(state.folder.root) ? [] : slice(filter(state.quickPick.recent ?? [], contains(map(state.folder.files ?? [], it.id), it.id)), 0, 5)}}"
 	},
 
 	"actions": {
@@ -75,16 +77,21 @@
 		"indexFolder": [
 			{ "note": "Lists the folder's files for Go to File" },
 			{ "invoke": "search.files", "with": { "exclude": "{{state.folder.skip}}" },
-			  "onDone": [{ "run": "indexed", "with": { "files": "{{result.files}}" } }], "onError": [{ "set": "state.folder.files", "to": [] }] }
+			  "onDone": [{ "run": "indexed", "with": { "files": "{{result.files}}" } }, { "set": "state.folder.truncated", "to": "{{result.truncated}}" }],
+			  "onError": [{ "set": "state.folder.files", "to": [] }] }
 		],
 		"indexed": [{ "set": "state.folder.files", "to": "{{map(files, {id: it, title: reverse(split(it, '/'))[0], detail: join(slice(split(it, '/'), 0, -1), '/')})}}" }],
 		"openExplorerItem": [
 			{ "if": "{{!empty(event.id) && (find(state.explorerTree.entries, it.path == event.id) ?? {}).kind != 'folder'}}",
 			  "then": [{ "run": "openPath", "with": { "path": "{{event.id}}", "label": "{{reverse(split(event.id, '/'))[0]}}" } }] }
 		],
-		"showTab": [
+		"forgeRecordNav": [
+			{ "note": "id: the tab about to be shown. The tab shown now goes into the history Go Back walks (the last 50), unless Go Back or Go Forward is moving" },
 			{ "if": "{{!state.nav.moving && !empty(state.groups[state.activeGroup].active) && state.groups[state.activeGroup].active != id}}",
-			  "then": [{ "set": "state.nav", "to": "{{ {back: slice(concat(state.nav.back, filter(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active)), max(0, length(state.nav.back) - 49)), forward: [], moving: false} }}" }] },
+			  "then": [{ "set": "state.nav", "to": "{{ {back: slice(concat(state.nav.back, filter(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active)), max(0, length(state.nav.back) - 49)), forward: [], moving: false} }}" }] }
+		],
+		"showTab": [
+			{ "run": "forgeRecordNav", "with": { "id": "{{id}}" } },
 			{ "if": "{{!some(state.groups[state.activeGroup].tabs, it.id == id)}}",
 			  "then": [{ "push": "state.groups[state.activeGroup].tabs", "value": "{{ {id: id, label: label} }}" }] },
 			{ "set": "state.groups[state.activeGroup].active", "to": "{{id}}" }
@@ -143,8 +150,7 @@
 	"components": {
 		"forgeTitleBar": {
 			"node": {
-				"type": "row", "id": "title-bar", "role": "banner", "label": "Title Bar", "width": "100%", "height": 36, "color": "@color.titleBar", "alignItems": "center",
-				"borderWidth": 1, "borderColor": "@color.border",
+				"type": "row", "id": "title-bar", "role": "banner", "label": "Title Bar", "width": "100%", "height": 38, "color": "@color.titleBar", "alignItems": "center",
 				"children": [
 					{ "when": "{{!window.nativeMenuBar}}", "use": "menuBar", "id": "menu-bar", "width": 330,
 					  "with": { "open": "state.menuBar", "menus": "{{[{name: 'file', title: 'File', items: menus.file}, {name: 'view', title: 'View', items: menus.view}, {name: 'go', title: 'Go', items: menus.go}, {name: 'preferences', title: 'Preferences', items: menus.preferences}, {name: 'help', title: 'Help', items: menus.help}]}}" } },
@@ -154,7 +160,7 @@
 					{ "use": "forgeTitleButton", "id": "title-forward", "with": { "icon": "arrow-right", "tip": "Go Forward (Ctrl+Shift+-)", "on": "{{length(state.nav.forward) > 0}}" },
 					  "onClick": { "run": "navigateForward" } },
 					{ "id": "title-centre-gap", "width": 4 },
-					{ "type": "row", "id": "command-centre", "role": "button", "label": "Search Files", "width": 400, "height": 24, "color": "@color.input", "radius": 12,
+					{ "type": "row", "id": "command-centre", "role": "button", "label": "Search Files", "width": 380, "height": 26, "color": "@color.input", "radius": 7,
 					  "borderWidth": 1, "borderColor": "@color.border", "alignItems": "center", "gap": 6,
 					  "cursor": "hand", "tooltip": "Search files (> for commands, : for a line)", "hover": { "color": "@color.hover" },
 					  "onClick": { "run": "quickOpen" },
@@ -164,7 +170,9 @@
 						{ "type": "label", "id": "command-centre-text", "text": "{{'Search ' + computed.folderName}}", "textColor": "@color.muted",
 						  "fitText": true, "height": 20 },
 						{ "id": "command-centre-end", "grow": 1 },
-						{ "type": "label", "id": "command-centre-hint", "text": "Cmd+P", "textColor": "@color.muted", "fitText": true, "padding": 8 }
+						{ "type": "label", "id": "command-centre-hint", "text": "Cmd+P", "textColor": "@color.muted", "fitText": true, "height": 18, "padding": 6,
+						  "radius": 4, "borderWidth": 1, "borderColor": "@color.border" },
+						{ "id": "command-centre-hint-end", "width": 4 }
 					  ] },
 					{ "id": "title-right", "grow": 1 },
 					{ "use": "forgeTitleButton", "id": "title-sidebar", "with": { "icon": "panel-left", "tip": "Toggle Left Side Bar (Cmd+B)", "on": "{{state.layout.sidebar}}" },
@@ -179,30 +187,32 @@
 		},
 		"forgeTitleButton": {
 			"params": { "icon": "", "tip": "", "on": false },
-			"node": { "type": "label", "role": "button", "label": "{{tip}}", "icon": "{{icon}}", "font": "icons", "width": 26, "height": 24, "align": "center",
-			          "radius": 5, "cursor": "hand", "textColor": "{{on ? '@color.text' : '@color.muted'}}", "tooltip": "{{tip}}",
+			"node": { "type": "label", "role": "button", "label": "{{tip}}", "icon": "{{icon}}", "font": "icons", "width": 28, "height": 26, "align": "center",
+			          "radius": 7, "cursor": "hand", "textColor": "{{on ? '@color.text' : '@color.muted'}}", "tooltip": "{{tip}}",
 			          "hover": { "color": "@color.hover" } }
 		},
 		"forgeActivityItem": {
 			"params": { "view": "", "icon": "", "label": "", "tip": "", "badge": 0 },
 			"node": {
 				"id": "activity-{{view}}", "role": "tab", "label": "{{label}}", "selected": "{{state.layout.sidebar && state.sideView == view}}",
-				"width": 48, "height": 48, "color": "@color.activityBar", "cursor": "hand", "tooltip": "{{tip}}",
+				"width": 44, "height": 42, "color": "@color.activityBar", "cursor": "hand", "tooltip": "{{tip}}",
 				"children": [
-					{ "id": "activity-{{view}}-indicator", "anchors": { "left": 0, "top": 12, "bottom": 12 }, "width": 3, "radius": 2,
-					  "color": "{{state.layout.sidebar && state.sideView == view ? '@color.accent' : '@color.activityBar'}}" },
-					{ "type": "label", "icon": "{{icon}}", "font": "iconsLarge", "anchors": { "left": 0, "top": 0, "right": 0, "bottom": 0 }, "align": "center",
-					  "textColor": "{{state.layout.sidebar && state.sideView == view ? '@color.text' : '@color.muted'}}", "hover": { "textColor": "@color.text" } },
+					{ "id": "activity-{{view}}-indicator", "anchors": { "left": 5, "top": 4, "right": 5, "bottom": 4 }, "radius": 8,
+					  "color": "{{state.layout.sidebar && state.sideView == view ? '@color.selection' : '@color.activityBar'}}" },
+					{ "type": "label", "icon": "{{icon}}", "font": "iconsRail", "anchors": { "left": 5, "top": 4, "right": 5, "bottom": 4 }, "align": "center", "radius": 8,
+					  "textColor": "{{state.layout.sidebar && state.sideView == view ? '@color.accent' : '@color.muted'}}",
+					  "hover": { "textColor": "{{state.layout.sidebar && state.sideView == view ? '@color.accent' : '@color.text'}}", "borderWidth": 1, "borderColor": "@color.border" } },
 					{ "type": "label", "id": "activity-{{view}}-badge", "when": "{{badge > 0}}", "text": "{{badge > 99 ? '99+' : text(badge)}}",
-					  "anchors": { "right": 6, "bottom": 7 }, "height": 16, "padding": 4, "fitText": true, "radius": 8, "align": "center",
+					  "anchors": { "right": 2, "top": 1 }, "height": 15, "padding": 4, "fitText": true, "radius": 8, "align": "center",
 					  "color": "@color.accent", "textColor": "#ffffff" }
 				]
 			}
 		},
 		"forgeActivityBar": {
 			"node": {
-				"type": "column", "id": "activity-bar", "role": "tablist", "label": "View Rail", "width": 48, "height": "100%", "color": "@color.activityBar",
+				"type": "column", "id": "activity-bar", "role": "tablist", "label": "View Rail", "width": 44, "height": "100%", "color": "@color.activityBar",
 				"children": [
+					{ "id": "activity-top", "height": 4 },
 					{ "use": "forgeActivityItem", "with": { "view": "explorer", "icon": "folder-tree", "label": "Explorer", "tip": "Explorer (Cmd+Shift+E)" },
 					  "onClick": { "run": "showExplorer" } },
 					{ "use": "forgeActivityItem", "with": { "view": "search", "icon": "text-search", "label": "Search", "tip": "Search (Cmd+Shift+F)" },
@@ -218,9 +228,10 @@
 					  "onClick": { "run": "showAgent" } },
 					{ "id": "activity-gap", "grow": 1 },
 					{ "use": "forgeAccountsStatus" },
-					{ "type": "label", "id": "activity-settings", "role": "button", "label": "Settings", "icon": "settings", "font": "iconsLarge", "width": 48, "height": 48,
+					{ "type": "label", "id": "activity-settings", "role": "button", "label": "Settings", "icon": "settings", "font": "iconsRail", "width": 44, "height": 42,
 					  "align": "center", "cursor": "hand", "tooltip": "Settings (Cmd+,)", "textColor": "@color.muted",
-					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "openSettings" } }
+					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "openSettings" } },
+					{ "id": "activity-bottom", "height": 4 }
 				]
 			}
 		},
@@ -237,7 +248,7 @@
 					{ "when": "{{state.sideView == 'agent'}}", "use": "forgeAgentView" },
 					{ "when": "{{state.sideView == 'features'}}", "use": "forgeFeaturesView" },
 					{ "when": "{{state.sideView == 'search'}}", "use": "forgeSearchPage" },
-					{ "when": "{{state.sideView == 'explorer'}}", "use": "forgeViewTitle", "with": { "text": "Files" }, "id": "side-bar-title" },
+					{ "when": "{{state.sideView == 'explorer'}}", "use": "forgeExplorerTitle" },
 					{ "type": "label", "id": "side-bar-folder", "when": "{{state.sideView == 'explorer' && !empty(state.folder.root)}}", "icon": "chevron-down",
 					  "text": "{{upper(computed.folderName)}}", "textColor": "@color.text", "width": "100%", "height": 22,
 					  "padding": 6 },
@@ -248,7 +259,7 @@
 						{ "type": "label", "id": "side-bar-empty-text", "text": "You have not yet opened a folder.",
 						  "textColor": "@color.text", "width": "100%", "padding": 12, "wrap": true },
 						{ "type": "label", "id": "side-bar-open", "text": "Open Folder", "width": 200, "height": 28,
-						  "align": "center", "color": "@color.accent", "textColor": "#ffffff", "radius": 2, "cursor": "hand",
+						  "align": "center", "color": "@color.accent", "textColor": "#ffffff", "radius": 6, "cursor": "hand",
 						  "focusable": true, "onClick": { "run": "openFolder" } }
 					  ] }
 				]
@@ -258,40 +269,60 @@
 			"node": {
 				"type": "row", "id": "welcome", "width": "100%", "grow": 1, "color": "@color.editor",
 				"children": [
-					{ "id": "welcome-margin", "width": 48 },
-					{ "type": "column", "id": "welcome-body", "grow": 1, "height": "100%", "gap": 10, "children": [
-					{ "id": "welcome-top", "height": 38 },
+					{ "id": "welcome-margin", "grow": 1 },
+					{ "type": "column", "id": "welcome-body", "width": 400, "height": "100%", "gap": 8, "children": [
+					{ "id": "welcome-top", "height": 96 },
+					{ "id": "welcome-mark", "width": 36, "height": 4, "radius": 2, "color": "@color.accent" },
 					{ "type": "label", "id": "welcome-title", "text": "Forge", "font": "title", "textColor": "@color.text", "fitText": true },
 					{ "type": "label", "id": "welcome-subtitle", "text": "A workbench written in JSON, changed live.",
 					  "textColor": "@color.muted", "fitText": true },
-					{ "type": "label", "id": "welcome-start", "text": "Quick actions", "textColor": "@color.text", "fitText": true, "padding": 4 },
-					{ "type": "label", "id": "welcome-open", "icon": "folder-open", "text": "Open Folder...", "textColor": "@color.info",
-					  "fitText": true, "cursor": "hand", "onClick": { "run": "openFolder" } },
-					{ "type": "label", "id": "welcome-files", "icon": "file-search", "text": "Find a File...", "textColor": "@color.info",
-					  "fitText": true, "cursor": "hand", "onClick": { "run": "quickOpen" } },
-					{ "type": "label", "id": "welcome-commands", "icon": "command", "text": "Run a Command...",
-					  "textColor": "@color.info", "fitText": true, "cursor": "hand", "onClick": { "run": "showCommands" } },
-					{ "type": "label", "id": "welcome-theme", "icon": "palette", "text": "Color Theme", "textColor": "@color.info",
-					  "fitText": true, "cursor": "hand", "onClick": { "run": "pickTheme" } },
-					{ "type": "label", "id": "welcome-settings", "icon": "settings", "text": "Settings", "textColor": "@color.info",
-					  "fitText": true, "cursor": "hand", "onClick": { "run": "openSettings" } }
-					] }
+					{ "id": "welcome-gap", "height": 12 },
+					{ "type": "label", "id": "welcome-start", "text": "Quick actions", "textColor": "@color.muted", "fitText": true },
+					{ "type": "label", "id": "welcome-open", "role": "button", "label": "Open Folder...", "icon": "folder-open", "text": "Open Folder...", "width": "100%", "height": 38,
+					  "padding": 12, "radius": 9, "color": "@color.widget", "borderWidth": 1, "borderColor": "@color.border", "textColor": "@color.text",
+					  "focusable": true, "cursor": "hand", "tooltip": "Open a folder to work in", "hover": { "color": "@color.hover", "borderColor": "@color.accent" },
+					  "focused": { "borderColor": "@color.accent" }, "onClick": { "run": "openFolder" } },
+					{ "type": "label", "id": "welcome-files", "role": "button", "label": "Find a File...", "icon": "file-search", "text": "Find a File...", "width": "100%", "height": 38,
+					  "padding": 12, "radius": 9, "color": "@color.widget", "borderWidth": 1, "borderColor": "@color.border", "textColor": "@color.text",
+					  "focusable": true, "cursor": "hand", "tooltip": "Cmd+P", "hover": { "color": "@color.hover", "borderColor": "@color.accent" },
+					  "focused": { "borderColor": "@color.accent" }, "onClick": { "run": "quickOpen" } },
+					{ "type": "label", "id": "welcome-commands", "role": "button", "label": "Run a Command...", "icon": "command", "text": "Run a Command...", "width": "100%", "height": 38,
+					  "padding": 12, "radius": 9, "color": "@color.widget", "borderWidth": 1, "borderColor": "@color.border", "textColor": "@color.text",
+					  "focusable": true, "cursor": "hand", "tooltip": "Cmd+Shift+P", "hover": { "color": "@color.hover", "borderColor": "@color.accent" },
+					  "focused": { "borderColor": "@color.accent" }, "onClick": { "run": "showCommands" } },
+					{ "type": "label", "id": "welcome-theme", "role": "button", "label": "Color Theme", "icon": "palette", "text": "Color Theme", "width": "100%", "height": 38,
+					  "padding": 12, "radius": 9, "color": "@color.widget", "borderWidth": 1, "borderColor": "@color.border", "textColor": "@color.text",
+					  "focusable": true, "cursor": "hand", "tooltip": "Choose a colour theme", "hover": { "color": "@color.hover", "borderColor": "@color.accent" },
+					  "focused": { "borderColor": "@color.accent" }, "onClick": { "run": "pickTheme" } },
+					{ "type": "label", "id": "welcome-settings", "role": "button", "label": "Settings", "icon": "settings", "text": "Settings", "width": "100%", "height": 38,
+					  "padding": 12, "radius": 9, "color": "@color.widget", "borderWidth": 1, "borderColor": "@color.border", "textColor": "@color.text",
+					  "focusable": true, "cursor": "hand", "tooltip": "Cmd+,", "hover": { "color": "@color.hover", "borderColor": "@color.accent" },
+					  "focused": { "borderColor": "@color.accent" }, "onClick": { "run": "openSettings" } },
+					{ "id": "welcome-recent-gap", "when": "{{!empty(computed.welcomeRecent)}}", "height": 12 },
+					{ "type": "label", "id": "welcome-recent", "when": "{{!empty(computed.welcomeRecent)}}", "text": "Recent files", "textColor": "@color.muted",
+					  "fitText": true },
+					{ "type": "label", "repeat": { "for": "file", "in": "{{computed.welcomeRecent}}", "index": "fi", "key": "{{file.id}}" },
+					  "id": "{{'welcome-recent-' + fi}}", "role": "link", "label": "{{'Open ' + file.id}}", "icon": "file", "text": "{{file.title}}",
+					  "width": "100%", "height": 26, "padding": 6, "radius": 6, "textColor": "@color.accent", "focusable": true, "cursor": "hand",
+					  "tooltip": "{{file.id}}", "hover": { "color": "@color.hover" }, "focused": { "color": "@color.hover" },
+					  "onClick": { "run": "openPath", "with": { "path": "{{file.id}}", "label": "{{file.title}}" } } }
+					] },
+					{ "id": "welcome-end", "grow": 1 }
 				]
 			}
 		},
 		"forgeStatusItem": {
 			"params": { "text": "", "icon": "", "tip": "" },
-			"node": { "type": "label", "role": "button", "label": "{{tip}}", "text": "{{text}}", "icon": "{{icon}}", "padding": 6, "height": 24, "fitText": true,
+			"node": { "type": "label", "role": "button", "label": "{{tip}}", "text": "{{text}}", "icon": "{{icon}}", "padding": 7, "height": 20, "fitText": true, "radius": 5,
 			          "cursor": "hand", "textColor": "@color.statusText", "tooltip": "{{tip}}", "hover": { "color": "@color.hover" } }
 		},
 		"forgeStatusBar": {
 			"node": {
-				"type": "row", "id": "status-bar", "role": "status", "label": "Status Bar", "point": "statusBar.right", "width": "100%", "height": 24, "color": "@color.statusBar", "alignItems": "center",
-				"borderWidth": 1, "borderColor": "@color.border", "gap": 2,
+				"type": "row", "id": "status-bar", "role": "status", "label": "Status Bar", "point": "statusBar.right", "width": "100%", "height": 28, "color": "@color.statusBar", "alignItems": "center", "gap": 2,
 				"children": [
-					{ "id": "status-start", "width": 4 },
-					{ "type": "label", "id": "status-remote", "role": "button", "label": "Document Server", "icon": "cloud", "width": 30, "height": 18, "radius": 9,
-					  "align": "center", "cursor": "hand", "color": "@color.accent", "textColor": "#ffffff", "tooltip": "Document Server: sign in to share and sync",
+					{ "id": "status-start", "width": 6 },
+					{ "type": "label", "id": "status-remote", "role": "button", "label": "Document Server", "icon": "cloud", "width": 28, "height": 20, "radius": 5,
+					  "align": "center", "cursor": "hand", "textColor": "@color.accent", "hover": { "color": "@color.hover" }, "tooltip": "Document Server: sign in to share and sync",
 					  "onClick": { "run": "accountsMenu" } },
 					{ "use": "forgeStatusItem", "id": "status-branch", "when": "{{!empty(state.scm.status.branch.head)}}",
 					  "with": { "icon": "git-branch", "text": "{{computed.scmBranchText}}", "tip": "Show Branches" }, "onClick": { "run": "scmBranches" } },
@@ -299,32 +330,32 @@
 					  "with": { "icon": "refresh-cw", "tip": "Refresh Source Control" }, "onClick": { "run": "scmRefresh" } },
 					{ "type": "label", "id": "status-problems", "role": "button", "label": "{{plural(computed.errors, 'error') + ', ' + plural(computed.warnings, 'warning')}}",
 					  "runs": ["{{' '}}", { "icon": "circle-x" }, "{{' ' + text(computed.errors) + '  '}}", { "icon": "alert-triangle" }, "{{' ' + text(computed.warnings)}}"],
-					  "padding": 6, "height": 24, "fitText": true, "cursor": "hand", "textColor": "@color.statusText", "tooltip": "Problems (Cmd+Shift+M)",
+					  "padding": 7, "height": 20, "fitText": true, "radius": 5, "cursor": "hand", "textColor": "@color.statusText", "tooltip": "Problems (Cmd+Shift+M)",
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "showProblems" } },
 					{ "id": "status-gap", "grow": 1 },
 					{ "use": "forgeStatusItem", "id": "status-position", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
 					  "with": { "tip": "Go to Line", "text": "{{'Ln ' + text(state.caret.line) + ', Col ' + text(state.caret.column) + (state.caret.selected > 0 ? ' (' + text(state.caret.selected) + ' selected)' : '')}}" },
 					  "onClick": { "run": "goToLinePick" } },
 					{ "use": "forgeStatusItem", "id": "status-indent", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
-					  "with": { "text": "Spaces: 4", "tip": "Indentation: four spaces" } },
+					  "with": { "text": "{{'Spaces: ' + text(settings.editor.tabSize ?? 4)}}", "tip": "Select Indentation" }, "onClick": { "run": "changeIndentation" } },
 					{ "use": "forgeStatusItem", "id": "status-encoding", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
-					  "with": { "text": "UTF-8", "tip": "Encoding" } },
+					  "with": { "text": "UTF-8", "tip": "Encoding: UTF-8. Other encodings aren't available yet" }, "disabled": true, "cursor": "arrow", "textColor": "@color.muted" },
 					{ "use": "forgeStatusItem", "id": "status-eol", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
-					  "with": { "text": "LF", "tip": "Line endings" } },
+					  "with": { "text": "{{computed.activeDoc.eol ?? 'LF'}}", "tip": "Select End of Line Sequence" }, "onClick": { "run": "changeEndOfLine" } },
 					{ "use": "forgeStatusItem", "id": "status-language-status", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
 					  "with": { "icon": "braces", "tip": "Language Status" }, "onClick": { "run": "showOutput" } },
 					{ "use": "forgeStatusItem", "id": "status-language", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
-					  "with": { "text": "{{computed.activeDoc.language || 'Plain Text'}}", "tip": "Language" } },
+					  "with": { "text": "{{computed.activeDoc.language || 'Plain Text'}}", "tip": "Select Language Mode" }, "onClick": { "run": "changeLanguageMode" } },
 					{ "use": "forgeStatusItem", "id": "status-notifications", "with": { "icon": "{{length(state.notifications) > 0 ? 'bell-dot' : 'bell'}}", "tip": "Notifications" },
 					  "onClick": { "run": "showNotifications" } },
-					{ "id": "status-end", "width": 4 }
+					{ "id": "status-end", "width": 6 }
 				]
 			}
 		},
 		"forgeNotificationCentre": {
 			"node": {
 				"type": "column", "id": "notification-centre", "role": "dialog", "label": "Notifications", "width": 450,
-				"height": "{{40 + max(1, min(6, length(state.notifications))) * 28}}", "color": "@color.widget", "borderWidth": 1, "borderColor": "@color.border", "radius": 4,
+				"height": "{{40 + max(1, min(6, length(state.notifications))) * 28}}", "color": "@color.widget", "borderWidth": 1, "borderColor": "@color.border", "radius": 8,
 				"overlay": { "anchor": "#status-notifications", "placement": "above-end", "open": "state.notificationCentre", "dismiss": "outside" },
 				"children": [
 					{ "type": "row", "id": "notification-centre-head", "width": "100%", "height": 34, "alignItems": "center",

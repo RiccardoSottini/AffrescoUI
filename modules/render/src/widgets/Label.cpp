@@ -280,8 +280,25 @@ void Label::paintRuns(Painter& painter, Vec2 origin) const {
 			const TextRun& run = runs_[piece.run];
 			const Color color = run.color.value_or(textColor_);
 			const float left = std::round(origin.x + piece.x);
-			painter.drawText(*piece.font, text.substr(piece.begin, piece.end - piece.begin), {left, baseline}, color);
-			if(!run.link.empty()) painter.fillRect({left, baseline + 1.0f, left + piece.width, baseline + 2.0f}, color);
+			const float right = left + piece.width;
+			if(run.background)
+				painter.fillRect(
+				    {left, std::round(origin.y + line.top), right, std::round(origin.y + line.top + line.height)},
+				    *run.background);
+			const std::u32string_view part = text.substr(piece.begin, piece.end - piece.begin);
+			if(run.shadow) {
+				// Moved by a sixteenth of the size, at least a pixel, so it shows at every size
+				const float by = std::max(1.0f, std::round(piece.font->pixelHeight() / 16.0f));
+				painter.drawText(*piece.font, part, {left + by, baseline + by}, *run.shadow);
+			}
+			painter.drawText(*piece.font, part, {left, baseline}, color);
+			if(run.underline || !run.link.empty())
+				painter.fillRect({left, baseline + 1.0f, right, baseline + 2.0f}, color);
+			if(run.strike) {
+				// Through the middle of the lower-case letters, about a third of the ascent up
+				const float through = std::round(baseline - piece.font->ascent() * 0.3f);
+				painter.fillRect({left, through, right, through + 1.0f}, color);
+			}
 		}
 	}
 }

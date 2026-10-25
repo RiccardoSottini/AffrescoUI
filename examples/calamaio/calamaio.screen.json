@@ -1,0 +1,221 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Calamaio: a keyboard-first text editor made of one document. Its keys are in keys, its menus in menus, its looks in colors and tokens, so changing how it works is a revision of this file. The parts: look (themes), state (buffers, windows, minibuffer), files (the sample home folder), frame (windows, mode lines, start screen, tool bar, echo area), commands, the kill ring, editing, listings (folders, buffers), guides (tutorial, tour), keys and menus.",
+	"window": {
+		"title": "Calamaio",
+		"width": 960,
+		"height": 720,
+		"minWidth": 640,
+		"minHeight": 420,
+		"keyLabels": "letters",
+		"focusRing": false
+	},
+	"fonts": {
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "code"] },
+		"code": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 14, "fallback": ["icons"] },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 20 },
+		"logo": { "file": "../shared/fonts/Lucide.ttf", "size": 64 }
+	},
+	"theme": "{{settings['custom-enabled-themes']}}",
+	"persist": ["state.settings"],
+	"onLoad": [
+		{ "set": "state.assistant.lift", "to": 44 },
+		{ "if": "{{settings['inhibit-startup-screen']}}", "then": [{ "run": "splash-close" }] }
+	],
+	"permissions": {
+		"allow": ["studio"],
+		"ask": ["agent(/actions)", "agent(/keys)", "agent(/menus)"],
+		"deny": ["*(#echoArea)"],
+		"reviewers": ["studio"],
+		"budgets": [{ "author": "agent", "added": 20, "removed": 5, "changed": 50 }]
+	},
+	"include": [
+		"parts/look.json",
+		"parts/state.json",
+		"parts/settings.json",
+		"parts/languages.json",
+		"parts/files.json",
+		"parts/frame.json",
+		"parts/commands.json",
+		"parts/killring.json",
+		"parts/editing.json",
+		"parts/listings.json",
+		"parts/guides.json",
+		"parts/keys.json",
+		"parts/menus.json",
+		"../shared/addons/assistant/assistant.json"
+	],
+	"computed": {
+		"splashLinks": [
+			{
+				"title": "Tutorial",
+				"run": "help-with-tutorial",
+				"key": "ctrl+h t",
+				"about": "Learn the basic keys, one at a time"
+			},
+			{ "title": "Guided Tour", "run": "show-tour", "about": "See what Calamaio can do" },
+			{
+				"title": "All the Commands",
+				"run": "execute-extended-command",
+				"key": "alt+x",
+				"about": "Run any command by its name"
+			},
+			{
+				"title": "Messages",
+				"run": "show-messages",
+				"key": "ctrl+h e",
+				"about": "What Calamaio has told you so far"
+			}
+		],
+		"splashActions": [
+			{ "title": "Open a File", "icon": "folder-open", "run": "find-file" },
+			{ "title": "Home Folder", "icon": "folder", "run": "dired-home" },
+			{ "title": "Startup Options", "icon": "settings", "run": "customize-startup" }
+		],
+		"toolItems": [
+			{ "icon": "folder-open", "tip": "Open a file (C-x C-f)", "run": "find-file" },
+			{ "icon": "folder", "tip": "List the home folder (C-x d)", "run": "dired-home" },
+			{ "icon": "x", "tip": "Close a buffer (C-x k)", "run": "kill-buffer" },
+			{ "icon": "save", "tip": "Save this buffer (C-x C-s)", "run": "save-buffer" },
+			{ "tip": "" },
+			{ "icon": "undo-2", "tip": "Undo the last change (C-/)", "run": "undo" },
+			{ "tip": "" },
+			{ "icon": "scissors", "tip": "Cut the region (C-w)", "run": "kill-region" },
+			{ "icon": "copy", "tip": "Copy the region (M-w)", "run": "kill-ring-save" },
+			{ "icon": "clipboard-paste", "tip": "Paste the last cut (C-y)", "run": "yank" },
+			{ "tip": "" },
+			{ "icon": "search", "tip": "Search as you type (C-s)", "run": "isearch-forward" }
+		],
+		"modeMenu": "{{state.modes[computed.buf.mode].menu}}",
+		"modeTitle": "{{ {lisp: 'Lisp-Interaction', text: 'Text', python: 'Python', c: 'C', outline: 'Outline'}[computed.modeMenu] ?? state.modes[computed.buf.mode].title }}",
+		"buffersMenu": "{{map(state.order, {title: state.bufs[it].name, run: 'show', with: {b: it} })}}",
+		"menuList": "{{concat([{name: 'file', title: 'File', items: menus.file}, {name: 'edit', title: 'Edit', items: menus.edit}, {name: 'options', title: 'Options', items: menus.options}, {name: 'buffers', title: 'Buffers', items: computed.buffersMenu}, {name: 'tools', title: 'Tools', items: menus.tools}], computed.modeMenu != null && menus[computed.modeMenu] != null ? [{name: 'mode', title: computed.modeTitle, items: menus[computed.modeMenu]}] : [], [{name: 'help', title: 'Help', items: menus.help}])}}",
+		"menuBar": "{{map(computed.menuList, merge(it, {width: round(length(it.title) * 7.2) + 14}))}}"
+	},
+	"actions": {
+		"show-messages": {
+			"title": "Messages",
+			"category": "Help",
+			"description": "Shows the messages buffer: everything the echo area said.",
+			"do": { "run": "show", "with": { "b": "b2" } }
+		},
+		"show-splash": {
+			"title": "Start Screen",
+			"category": "Help",
+			"description": "Shows the start screen again.",
+			"do": [
+				{
+					"if": "{{state.bufs.b0 == null}}",
+					"then": [
+						{
+							"set": "state.bufs.b0",
+							"to": {
+								"name": "*Calamaio*",
+								"mode": "fundamental",
+								"kind": "splash",
+								"text": "",
+								"readOnly": true
+							}
+						}
+					]
+				},
+				{ "run": "show", "with": { "b": "b0" } }
+			]
+		}
+	},
+	"root": {
+		"id": "root",
+		"color": "@bar",
+		"children": [
+			{
+				"id": "column-root",
+				"type": "column",
+				"dir": "{{state.dir}}",
+				"anchors": { "left": 6, "right": 6, "top": 0, "bottom": 0 },
+				"children": [
+					{
+						"id": "topBar",
+						"type": "row",
+						"height": 40,
+						"alignSelf": "stretch",
+						"alignItems": "center",
+						"color": "@bar",
+						"children": [
+							{
+								"id": "menuBar",
+								"when": "{{settings['menu-bar-mode'] || some(values(state.menuBar ?? {}), it == true)}}",
+								"use": "frameMenuBar"
+							},
+							{ "id": "topBarGap", "grow": 1, "height": 1, "color": "transparent" },
+							{ "id": "tool-bar-root", "when": "{{settings['tool-bar-mode']}}", "use": "toolBar" },
+							{ "id": "topBarEnd", "width": 6, "height": 1, "color": "transparent" }
+						]
+					},
+					{
+						"id": "column-root-2",
+						"when": "{{state.layout.dir == 'column'}}",
+						"type": "column",
+						"grow": 1,
+						"gap": 6,
+						"alignSelf": "stretch",
+						"children": [
+							{
+								"id": "row-g",
+								"repeat": { "for": "g", "in": "{{state.layout.groups}}", "key": "{{join(g, ',')}}" },
+								"type": "row",
+								"grow": 1,
+								"basis": 0,
+								"gap": 6,
+								"alignSelf": "stretch",
+								"children": [
+									{
+										"id": "window-w",
+										"repeat": { "for": "w", "in": "{{g}}", "key": "{{w}}" },
+										"use": "window",
+										"with": { "w": "{{w}}" }
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "row-root",
+						"when": "{{state.layout.dir == 'row'}}",
+						"type": "row",
+						"grow": 1,
+						"gap": 6,
+						"alignSelf": "stretch",
+						"children": [
+							{
+								"id": "column-g",
+								"repeat": { "for": "g", "in": "{{state.layout.groups}}", "key": "{{join(g, ',')}}" },
+								"type": "column",
+								"grow": 1,
+								"basis": 0,
+								"gap": 6,
+								"alignSelf": "stretch",
+								"children": [
+									{
+										"id": "window-w-2",
+										"repeat": { "for": "w", "in": "{{g}}", "key": "{{w}}" },
+										"use": "window",
+										"with": { "w": "{{w}}" }
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "completions-root",
+						"when": "{{state.mb.open && state.mb.comp != null}}",
+						"use": "completions",
+						"alignSelf": "stretch"
+					},
+					{ "id": "echoArea", "use": "echoArea", "alignSelf": "stretch" }
+				]
+			}
+		]
+	}
+}

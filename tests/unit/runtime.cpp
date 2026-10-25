@@ -20,18 +20,36 @@ using affresco::detail::ManualClock;
 
 namespace {
 
-/// @brief Loads a shipped template, as affrescoui_launcher does but without its data folder (no history or state file).
+/// @brief Loads a shipped template, as affrescoui_launcher does but without its data folder (no history or state file):
+/// an app (an app.json beside it) with its themes, models and seed records.
 /// @param name The template, e.g. "kanban".
 /// @return The screen.
 affresco::Screen loadTemplate(const std::string& name) {
 	const std::filesystem::path directory = templateDirectory(AFFRESCOUI_EXAMPLES_DIRECTORY, name);
-	const std::ifstream file(directory / "index.screen.json");
-	REQUIRE(file);
-	std::stringstream text;
-	text << file.rdbuf();
-	affresco::Screen screen = affresco::Screen::fromString(text.str(), directory);
+	affresco::Screen screen = [&] {
+		if(std::filesystem::exists(directory / "app.json"))
+			return affresco::Screen::fromApp(directory / "app.json", {}, affresco::Screen::History::InMemory);
+		const std::ifstream file(directory / "index.screen.json");
+		REQUIRE(file);
+		std::stringstream text;
+		text << file.rdbuf();
+		return affresco::Screen::fromString(text.str(), directory);
+	}();
 	screen.setPlaceholderTypes(true); // as the host does: its own types aren't registered here
 	return screen;
+}
+
+/// @brief A node of a document, found by its id.
+/// @param node Where to look: a node, its children and theirs.
+/// @param id The id.
+/// @return The node, or null if there is none.
+json nodeWithId(const json& node, const std::string& id) {
+	if(!node.is_object()) return nullptr;
+	if(node.value("id", "") == id) return node;
+	if(node.contains("children") && node["children"].is_array())
+		for(const json& child : node["children"])
+			if(json found = nodeWithId(child, id); !found.is_null()) return found;
+	return nullptr;
 }
 
 /// @brief Clicks the middle of a panel, as the user would.
@@ -58,7 +76,9 @@ TEST_CASE("format: the Kanban template builds on a headless window, and a click 
 	REQUIRE(members);
 	REQUIRE(menu);
 	CHECK(members->isShown());
-	CHECK(members->frame().width() == 140.0f);
+	const json declared = nodeWithId(json::parse(screen.documentJson())["root"], "members"); // the template's to change
+	REQUIRE(declared.contains("width"));
+	CHECK(members->frame().width() == declared["width"].get<float>());
 	CHECK_FALSE(menu->isShown());
 
 	clickOn(*window, *members);
@@ -101,9 +121,9 @@ TEST_CASE("format: a screen destroyed while its window lives on takes back every
 	CHECK_FALSE(window->secondsToNextTimer());
 }
 
-// The code editor is left out: its "code" type is the host's (examples/shared/CodeEditor.cpp)
 TEST_CASE("format: the shipped templates build on a headless window") {
-	for(const std::string name : {"kanban", "smart-home", "music-player", "habit-tracker", "sign-in", "launcher"}) {
+	for(const std::string name :
+	    {"kanban", "smart-home", "music-player", "habit-tracker", "sign-in", "launcher", "code-editor"}) {
 		CAPTURE(name);
 		ManualClock clock;
 		const auto window = createHeadlessWindow(1280, 800, clock);

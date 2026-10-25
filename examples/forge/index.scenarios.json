@@ -7,15 +7,12 @@
 	"scenarios": [
 		{
 			"name": "forge-index-the-folder",
-			"note": "On load, the open folder is indexed: hidden entries and node_modules are skipped, folders come first in the tree, and the icon theme dresses the items",
+			"note": "On load, the open folder is indexed for Go to File: hidden entries and node_modules are skipped (the explorer's tree, folders first and dressed by the icon theme, is checked in explorer.scenarios.json)",
 			"steps": [
 				{ "expect": { "state": "folder.files.length", "is": 2 } },
 				{ "expect": { "state": "folder.files[0].id", "is": "README.md" } },
 				{ "expect": { "state": "folder.files[1].id", "is": "src/main.cpp" } },
 				{ "expect": { "state": "folder.truncated", "is": false } },
-				{ "expect": { "state": "folder.tree[0].id", "is": "src/" } },
-				{ "expect": { "state": "folder.tree[0].icon", "is": "folder" } },
-				{ "expect": { "state": "folder.tree[0].children[0].icon", "is": "file-code" } },
 				{ "expect": { "node": "#explorer", "exists": true } }
 			]
 		},
@@ -86,6 +83,41 @@
 				{ "action": "openKeybindings" },
 				{ "expect": { "state": "groups[0].tabs.length", "is": 2 } },
 				{ "expect": { "state": "docs[1].kind", "is": "keybindings" } }
+			]
+		},
+		{
+			"name": "forge-settings-table-of-contents",
+			"note": "The settings editor's table of contents lists each group of settings and shows only that group's",
+			"steps": [
+				{ "action": "openSettings" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#settings-toc-item", "nth": 4, "property": "name", "is": "Text Editor" } },
+				{ "click": "#settings-toc-item", "nth": 4 },
+				{ "expect": { "state": "settingsQuery", "is": "editor." } },
+				{ "click": "#settings-toc-item", "nth": 0 },
+				{ "expect": { "state": "settingsQuery", "is": "" } }
+			]
+		},
+		{
+			"name": "forge-settings-rows",
+			"note": "Each setting shows its description and a control for its type: a choice of its values, a checkbox; a changed one can be reset",
+			"steps": [
+				{ "action": "openSettings" },
+				{ "wait": 50 },
+				{ "click": "#settings-search" },
+				{ "type": "startup" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#setting-description", "property": "text", "is": "What the editor area shows when no file is open." } },
+				{ "expect": { "node": "#setting-choice", "nth": 1, "property": "name", "is": "none" } },
+				{ "click": "#setting-choice", "nth": 1 },
+				{ "expect": { "state": "settings", "is": { "workbench.startupEditor": "none" } } },
+				{ "click": "#setting-reset" },
+				{ "expect": { "state": "settings", "is": {} } },
+				{ "click": "#settings-search" },
+				{ "key": "mod+a" },
+				{ "type": "zzz" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#settings-none", "exists": true } }
 			]
 		},
 		{

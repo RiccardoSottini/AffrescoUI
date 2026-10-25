@@ -2,13 +2,17 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Tempera, checked headless against the sample document (1200 × 800: Sky, Sun, Hills). The canvas is driven through the pointer action in document pixels. affrescoui_tempera_scenarios index.scenarios.json",
+	"note": "Tempera, checked headless against the sample document (1200 × 800: Sky, Sun, Hills). The canvas is driven through the pointer action in document pixels. affrescoui test index.scenarios.json",
 	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "tempera-opens-the-sample",
 			"note": "The sample opens with three layers, Hills active and a clean history",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"expect": {
 						"state": "doc.width",
@@ -63,6 +67,10 @@
 			"name": "tempera-tool-keys",
 			"note": "The single-letter keys choose the tools",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "v"
 				},
@@ -168,6 +176,10 @@
 			"name": "tempera-brush-paints",
 			"note": "A brush stroke paints the foreground, which the eyedropper then reads back",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -290,6 +302,10 @@
 			"note": "mod+Z undoes a step and mod+shift+Z redoes it",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "addLayer",
@@ -341,6 +357,10 @@
 			"note": "Choosing an older step in History goes back to it, and the later steps stay to redo",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "mod+shift+n"
 				},
 				{
@@ -386,6 +406,10 @@
 			"note": "New layer, group, duplicate and delete change the layer list",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "mod+j"
 				},
 				{
@@ -428,6 +452,10 @@
 			"note": "The eye hides a layer",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"wait": 50
 				},
 				{
@@ -451,6 +479,10 @@
 			"name": "tempera-opacity-and-blend",
 			"note": "Opacity and blend mode of the active layer",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -494,6 +526,10 @@
 			"note": "mod+down and mod+up move the active layer through the stack, and dragging a layer takes another's place",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "mod+down"
 				},
 				{
@@ -533,6 +569,10 @@
 			"name": "tempera-locks",
 			"note": "Locking pixels keeps a brush from painting",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -604,6 +644,10 @@
 			"note": "An adjustment layer goes above the active layer",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "addLayer",
@@ -630,6 +674,10 @@
 			"name": "tempera-mask-and-clipping",
 			"note": "A layer mask and a clipping mask",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "addLayerMask"
 				},
@@ -672,6 +720,10 @@
 			"name": "tempera-rectangle-and-ellipse",
 			"note": "Rectangle and ellipse selections, added and subtracted",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -777,6 +829,10 @@
 			"note": "A polygon selection intersected with a rectangle",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "select",
@@ -855,6 +911,10 @@
 			"name": "tempera-wand-and-colour-range",
 			"note": "The magic wand and colour range",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -949,6 +1009,10 @@
 			"note": "Feather and inverse change the selection",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "mod+a"
 				},
 				{
@@ -1013,6 +1077,10 @@
 			"note": "Q toggles the quick mask",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "q"
 				},
 				{
@@ -1036,6 +1104,10 @@
 			"name": "tempera-fill",
 			"note": "alt+Backspace fills the selection with the foreground",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "mod+shift+n"
 				},
@@ -1123,6 +1195,10 @@
 			"name": "tempera-gradient",
 			"note": "A gradient drag fills the layer",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "mod+shift+n"
 				},
@@ -1241,6 +1317,10 @@
 			"note": "A filter previews live; discarding leaves the pixels and the history alone",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "showFilter",
@@ -1295,6 +1375,10 @@
 			"note": "Applying a filter adds a history step",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "showFilter",
@@ -1324,6 +1408,10 @@
 			"name": "tempera-zoom",
 			"note": "Zoom keys and the status bar",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "mod+1"
 				},
@@ -1360,6 +1448,10 @@
 			"name": "tempera-rulers-and-guides",
 			"note": "Rulers toggle, and guides are added and cleared",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "mod+r"
 				},
@@ -1418,6 +1510,10 @@
 			"note": "The theme switches between dark and light",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "toggleTheme"
 				},
 				{
@@ -1441,6 +1537,10 @@
 			"name": "tempera-profiles",
 			"note": "Working space and soft proofing show in the status bar",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -1494,8 +1594,12 @@
 		},
 		{
 			"name": "tempera-new-document",
-			"note": "The New dialog creates a blank document",
+			"note": "The New dialog creates a blank document of the size typed",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "mod+n"
 				},
@@ -1512,7 +1616,28 @@
 					}
 				},
 				{
-					"action": "createDocument"
+					"click": "#new-width"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "640"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
 				},
 				{
 					"expect": {
@@ -1523,7 +1648,7 @@
 				{
 					"expect": {
 						"state": "doc.width",
-						"is": 1200
+						"is": 640
 					}
 				},
 				{
@@ -1538,6 +1663,10 @@
 			"name": "tempera-crop",
 			"note": "Crop to selection resizes the document",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -1582,6 +1711,10 @@
 			"name": "tempera-colours",
 			"note": "D resets and X swaps the colours",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -1631,7 +1764,97 @@
 			"note": "An agent proposes a Filters panel; it waits for review, and once accepted its buttons open the filter dialog",
 			"steps": [
 				{
-					"action": "agentProposesFilterPanel"
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"propose": {
+						"author": "agent",
+						"message": "Add a Filters panel: one button per filter, above the Layers panel",
+						"add": {
+							"#panels/children/3": {
+								"type": "column",
+								"id": "filter-panel",
+								"role": "region",
+								"label": "Filters",
+								"width": "100%",
+								"height": 92,
+								"color": "@panel",
+								"gap": 6,
+								"children": [
+									{
+										"type": "label",
+										"id": "filter-panel-title",
+										"text": "Filters",
+										"textColor": "@muted",
+										"width": 120,
+										"height": 22,
+										"align": {
+											"horizontal": "start",
+											"vertical": "center"
+										},
+										"anchors": {
+											"left": 10
+										}
+									},
+									{
+										"type": "row",
+										"id": "filter-panel-buttons",
+										"width": "100%",
+										"height": 60,
+										"gap": 6,
+										"wrap": true,
+										"children": [
+											{
+												"id": "filter-panel-start",
+												"color": "transparent",
+												"width": 4,
+												"height": 26
+											},
+											{
+												"type": "label",
+												"id": "filter-panel-{{f.id}}",
+												"repeat": {
+													"for": "f",
+													"in": "state.filters",
+													"key": "{{f.id}}"
+												},
+												"role": "button",
+												"text": "{{f.title}}",
+												"textColor": "@text",
+												"padding": 6,
+												"height": 26,
+												"fitText": true,
+												"radius": 4,
+												"color": "@input",
+												"borderWidth": 1,
+												"borderColor": "@border",
+												"cursor": "hand",
+												"tooltip": "{{f.title}}...",
+												"hover": {
+													"color": "@hover"
+												},
+												"onClick": {
+													"run": "showFilter",
+													"with": {
+														"args": {
+															"kind": "{{f.id}}"
+														}
+													}
+												}
+											}
+										]
+									}
+								]
+							},
+							"#panels/children/4": {
+								"id": "filter-panel-split",
+								"width": "100%",
+								"height": 1,
+								"color": "@border"
+							}
+						}
+					}
 				},
 				{
 					"expect": {
@@ -1676,6 +1899,10 @@
 			"note": "The sample's layers with a blur previewing on the canvas, its dialog open (the gallery's scene, tools/media/gallery.json)",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "showFilter",
@@ -1706,13 +1933,17 @@
 			"note": "Numbers far past what a native takes are clamped to the nearest it can use: the view, the options, the wand, the history, the layer order and the crop",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "zoom",
 						"args": {
-							"by": 1e300,
-							"x": 1e300,
-							"y": -1e300
+							"by": 1e+300,
+							"x": 1e+300,
+							"y": -1e+300
 						}
 					}
 				},
@@ -1739,7 +1970,7 @@
 					"event": {
 						"run": "zoom",
 						"args": {
-							"by": -1e300
+							"by": -1e+300
 						}
 					}
 				},
@@ -1754,7 +1985,7 @@
 					"event": {
 						"run": "setOptions",
 						"args": {
-							"tolerance": 1e300
+							"tolerance": 1e+300
 						}
 					}
 				},
@@ -1781,14 +2012,14 @@
 							"points": [
 								{
 									"kind": "press",
-									"x": 1e300,
-									"y": -1e300,
-									"pressure": 1e300
+									"x": 1e+300,
+									"y": -1e+300,
+									"pressure": 1e+300
 								},
 								{
 									"kind": "release",
-									"x": 1e300,
-									"y": -1e300
+									"x": 1e+300,
+									"y": -1e+300
 								}
 							]
 						}
@@ -1800,8 +2031,8 @@
 						"run": "select",
 						"args": {
 							"kind": "wand",
-							"x": -1e300,
-							"y": 1e300
+							"x": -1e+300,
+							"y": 1e+300
 						}
 					}
 				},
@@ -1816,7 +2047,7 @@
 					"event": {
 						"run": "goToHistory",
 						"args": {
-							"position": 1e300
+							"position": 1e+300
 						}
 					}
 				},
@@ -1831,7 +2062,7 @@
 					"event": {
 						"run": "moveLayer",
 						"args": {
-							"by": -1e300
+							"by": -1e+300
 						}
 					}
 				},
@@ -1846,7 +2077,7 @@
 					"event": {
 						"run": "moveLayer",
 						"args": {
-							"by": 1e300
+							"by": 1e+300
 						}
 					}
 				},
@@ -1861,10 +2092,10 @@
 					"event": {
 						"run": "crop",
 						"args": {
-							"x": -1e300,
-							"y": -1e300,
-							"width": 1e300,
-							"height": 1e300
+							"x": -1e+300,
+							"y": -1e+300,
+							"width": 1e+300,
+							"height": 1e+300
 						}
 					}
 				},
@@ -1886,6 +2117,10 @@
 			"name": "tempera-tool-flyout",
 			"note": "A right click (here Shift+F10) on a grouped tool opens its other tools; the one chosen takes the group's place",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"click": "#tool-marquee"
 				},
@@ -1926,6 +2161,10 @@
 			"name": "tempera-zoom-field",
 			"note": "The status bar's zoom field takes a percentage",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"click": "#status-zoom"
 				},
@@ -1981,6 +2220,10 @@
 			"note": "The icon strip beside the dock opens History and the Navigator, one at a time",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"click": "#history-button"
 				},
 				{
@@ -2015,6 +2258,2412 @@
 					"expect": {
 						"state": "popout.navigator",
 						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-opens-an-agents-picture",
+			"note": "An agent proposes a picture it drew (an SVG asset) and opening it: only the person accepts a revision with assets, and then it opens as a new image, the SVG drawn at twice its size (#63)",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"propose": {
+						"author": "agent",
+						"message": "A night sea to paint on",
+						"assets": [
+							{
+								"name": "night-sea.svg",
+								"type": "image/svg+xml",
+								"text": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"400\" viewBox=\"0 0 640 400\"><rect width=\"640\" height=\"400\" fill=\"#1d2a4a\"/><circle cx=\"470\" cy=\"110\" r=\"46\" fill=\"#f2ecd0\"/><path d=\"M0 260 Q160 230 320 260 T640 260 V400 H0 Z\" fill=\"#24557a\"/></svg>"
+							}
+						],
+						"run": [
+							{
+								"image": "open",
+								"of": "doc",
+								"with": {
+									"asset": "night-sea.svg"
+								}
+							}
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				},
+				{
+					"expect": {
+						"node": "#layer-name-7",
+						"exists": true
+					}
+				},
+				{
+					"action": "acceptAgentProposal"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1280
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 800
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-clipboard",
+			"note": "Copy, Paste, Cut, Copy Merged and Clear from the Edit menu and their keys",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "doc.clipboard",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"click": "#menu-edit"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Copy"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.clipboard",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+v"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Pasted"
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"key": "mod+x"
+				},
+				{
+					"expect": {
+						"state": "doc.history[3].label",
+						"is": "Cut"
+					}
+				},
+				{
+					"key": "mod+shift+c"
+				},
+				{
+					"key": "mod+v"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Pasted"
+					}
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"key": "delete"
+				},
+				{
+					"expect": {
+						"state": "doc.history[6].label",
+						"is": "Clear"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-free-transform",
+			"note": "Free Transform's dialog moves and turns the active layer as one step; Edit > Transform flips it",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+t"
+				},
+				{
+					"expect": {
+						"state": "transform.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#transform-dialog",
+						"exists": true
+					}
+				},
+				{
+					"click": "#transform-x-field"
+				},
+				{
+					"type": "40"
+				},
+				{
+					"click": "#transform-angle-field"
+				},
+				{
+					"type": "5"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "OK"
+					}
+				},
+				{
+					"expect": {
+						"state": "transform.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Free Transform"
+					}
+				},
+				{
+					"click": "#menu-edit"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Transform"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Flip Horizontal"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 3
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-image-size",
+			"note": "Image Size resamples the picture, its height following the width",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+alt+i"
+				},
+				{
+					"expect": {
+						"state": "resize.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "resize.width",
+						"is": 1200
+					}
+				},
+				{
+					"click": "#resize-width-field"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "600"
+				},
+				{
+					"expect": {
+						"node": "#image-size-dialog",
+						"exists": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "OK"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 600
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 400
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"click": "#menu-image"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Image Size..."
+					}
+				},
+				{
+					"click": "#image-size-linked"
+				},
+				{
+					"expect": {
+						"state": "resize.linked",
+						"is": false
+					}
+				},
+				{
+					"click": "#resize-height-field"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "100"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "OK"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 600
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 100
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-canvas-size",
+			"note": "Canvas Size adds room around the picture by its anchor",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+alt+c"
+				},
+				{
+					"expect": {
+						"state": "canvasSize.open",
+						"is": true
+					}
+				},
+				{
+					"click": "#canvasSize-width-field"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "1300"
+				},
+				{
+					"click": "#anchor-left"
+				},
+				{
+					"expect": {
+						"state": "canvasSize.anchor",
+						"is": "left"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "OK"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1300
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 800
+					}
+				},
+				{
+					"expect": {
+						"state": "canvasSize.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-image-rotation",
+			"note": "Image Rotation turns and mirrors the whole picture",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-image"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Image Rotation"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "90° Clockwise"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 800
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 1200
+					}
+				},
+				{
+					"action": "flipCanvasHorizontal"
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": true
+					}
+				},
+				{
+					"action": "rotateCanvas180"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 3
+					}
+				},
+				{
+					"action": "rotateCanvasLeft"
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-merge-and-flatten",
+			"note": "Merge Down, Delete Hidden Layers, Merge Visible and Flatten Image",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+e"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Sun"
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#layer-eye-5"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].visible",
+						"is": false
+					}
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Delete"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Hidden Layers"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 2
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"key": "mod+shift+e"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Merged"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Sun"
+					}
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Flatten Image"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Background"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-rename-layer",
+			"note": "Rename Layer's dialog names the active layer; Enter applies it",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Rename Layer..."
+					}
+				},
+				{
+					"expect": {
+						"state": "rename.name",
+						"is": "Hills"
+					}
+				},
+				{
+					"click": "#rename-name"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "Ridge"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "rename.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Ridge"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-not-available-yet",
+			"note": "A command Tempera can't do yet is shown disabled, and says so",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-file"
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "menuitem",
+							"name": "Print..."
+						},
+						"property": "tooltip",
+						"is": "Not available yet"
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "menuitem",
+							"name": "Save As..."
+						},
+						"property": "tooltip",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-align",
+			"note": "The Properties panel's Align icons and Layer > Align line the active layer up with the image, then with the selection",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "selectLayer",
+						"args": {
+							"id": "5"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.active",
+						"is": "5"
+					}
+				},
+				{
+					"note": "with a feature at the foot of the panels, the Properties panel is shorter: its Align row needs a scroll",
+					"scroll": "#properties",
+					"dy": -20
+				},
+				{
+					"click": "#align-left"
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Align Layer"
+					}
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Align"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Bottom Edges"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Align Layer"
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-properties-transform",
+			"note": "The Properties panel's flips, X and W move, mirror and scale the active layer",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#flip-horizontal"
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Free Transform"
+					}
+				},
+				{
+					"click": "#flip-vertical"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 3
+					}
+				},
+				{
+					"click": {
+						"role": "textbox",
+						"name": "X"
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "25"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 4
+					}
+				},
+				{
+					"click": {
+						"role": "textbox",
+						"name": "W"
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "600"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 5
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-layer-via-copy",
+			"note": "Layer > New > Layer via Copy and Layer via Cut put the selection's pixels on a layer of their own",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "New"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Layer via Copy"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills copy"
+					}
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "New"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Layer via Cut"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 5
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills copy cut"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-close",
+			"note": "Close leaves a blank document in the picture's place, asking first when there are changes",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"key": "mod+w"
+				},
+				{
+					"expect": {
+						"state": "closeAsk",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#close-dialog",
+						"exists": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Cancel"
+					}
+				},
+				{
+					"expect": {
+						"state": "closeAsk",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"click": "#menu-file"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Close"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Close"
+					}
+				},
+				{
+					"expect": {
+						"state": "closeAsk",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "docName",
+						"is": "Untitled"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+w"
+				},
+				{
+					"expect": {
+						"state": "closeAsk",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-new-document-preset",
+			"note": "A preset in the New dialog fills in its size, which Create uses",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+n"
+				},
+				{
+					"expect": {
+						"node": "#new-preset",
+						"property": "text",
+						"is": "Default, 1200 × 800"
+					}
+				},
+				{
+					"click": "#new-preset"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "HD, 1920 × 1080"
+					}
+				},
+				{
+					"expect": {
+						"state": "newDoc.width",
+						"is": 1920
+					}
+				},
+				{
+					"expect": {
+						"node": "#new-preset",
+						"property": "text",
+						"is": "HD, 1920 × 1080"
+					}
+				},
+				{
+					"expect": {
+						"state": "newPresetMenu",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "newDoc.open",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1920
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 1080
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-black-and-white",
+			"note": "Black & White adds a Hue/Saturation layer with no saturation, which greys the image",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "New Adjustment Layer"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Black & White..."
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Black & White"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.kind",
+						"is": "hue-saturation"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.saturation",
+						"is": -1
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-pencil",
+			"note": "The pencil paints hard edges, and the brush gets its own hardness back",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"hardness": 40
+						}
+					}
+				},
+				{
+					"key": "shift+b"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "pencil"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.hardness",
+						"is": 100
+					}
+				},
+				{
+					"expect": {
+						"node": "#options-tool-name",
+						"property": "text",
+						"is": "Pencil"
+					}
+				},
+				{
+					"key": "b"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "brush"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.hardness",
+						"is": 40
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-fill-dialog",
+			"note": "Edit > Fill asks what fills the selection: the background colour, black, grey or white as well as the foreground",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"from": {
+								"x": 0,
+								"y": 0
+							},
+							"to": {
+								"x": 100,
+								"y": 100
+							}
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"background": "#3366cc"
+						}
+					}
+				},
+				{
+					"key": "shift+backspace"
+				},
+				{
+					"expect": {
+						"node": "#fill-contents",
+						"property": "text",
+						"is": "Foreground Colour"
+					}
+				},
+				{
+					"click": "#fill-contents"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Background Colour"
+					}
+				},
+				{
+					"expect": {
+						"state": "fill.open",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "OK"
+					}
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"foreground": "#000000"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "eyedropper"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 50,
+									"y": 50,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 50,
+									"y": 50,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.foreground",
+						"is": "#3366cc"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-crop-ratio",
+			"note": "The crop tool's ratios keep the largest centred part of that shape",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "c"
+				},
+				{
+					"click": "#option-crop"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "16 : 9"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 675
+					}
+				},
+				{
+					"click": "#option-crop"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Square, 1 : 1"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 675
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 675
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-bracket-keys",
+			"note": "[ and ] make the brush smaller and larger",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "b"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"size": 20
+						}
+					}
+				},
+				{
+					"key": "rightbracket"
+				},
+				{
+					"expect": {
+						"state": "doc.options.size",
+						"is": 26
+					}
+				},
+				{
+					"key": "leftbracket"
+				},
+				{
+					"expect": {
+						"state": "doc.options.size",
+						"is": 21
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-fold-group",
+			"note": "Group Layers puts the active layer in a group, whose chevron folds and opens it; Ungroup takes its layers out again",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Layer 7"
+					}
+				},
+				{
+					"key": "mod+g"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "group"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Layer 7"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].depth",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Group 1"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Close Group 1"
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "listitem",
+							"name": "Layer 7"
+						},
+						"exists": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Open Group 1"
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "listitem",
+							"name": "Layer 7"
+						},
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Layer 7"
+					}
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Layer 10"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].depth",
+						"is": 1
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Group 1"
+					}
+				},
+				{
+					"key": "mod+shift+g"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Layer 10"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].depth",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Layer 7"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].depth",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-adjustment-keys",
+			"note": "mod+L, mod+M, mod+U, mod+B, mod+I and mod+alt+shift+B add Levels, Curves, Hue/Saturation, Colour Balance, Invert and Black & White layers",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+l"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Levels"
+					}
+				},
+				{
+					"key": "mod+m"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Curves"
+					}
+				},
+				{
+					"key": "mod+u"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hue/Saturation"
+					}
+				},
+				{
+					"key": "mod+b"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Colour Balance"
+					}
+				},
+				{
+					"key": "mod+i"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Invert"
+					}
+				},
+				{
+					"key": "mod+alt+shift+b"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Black & White"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-fill-background",
+			"note": "mod+Backspace fills the selection with the background colour",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"from": {
+								"x": 0,
+								"y": 0
+							},
+							"to": {
+								"x": 100,
+								"y": 100
+							}
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"background": "#3366cc"
+						}
+					}
+				},
+				{
+					"key": "mod+backspace"
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"foreground": "#000000"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "eyedropper"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 50,
+									"y": 50,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 50,
+									"y": 50,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.foreground",
+						"is": "#3366cc"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-layer-via-cut-key",
+			"note": "mod+shift+J cuts the selection to a new layer",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"from": {
+								"x": 0,
+								"y": 0
+							},
+							"to": {
+								"x": 100,
+								"y": 100
+							}
+						}
+					}
+				},
+				{
+					"key": "mod+shift+j"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills cut"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-marquee-modifiers",
+			"note": "Shift held at the marquee's press adds to the selection, Alt subtracts, both intersect",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "m"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 0,
+									"y": 0
+								},
+								{
+									"kind": "move",
+									"x": 100,
+									"y": 100
+								},
+								{
+									"kind": "release",
+									"x": 100,
+									"y": 100
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							0,
+							0,
+							100,
+							100
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 0,
+									"modifiers": [
+										"shift"
+									]
+								},
+								{
+									"kind": "move",
+									"x": 300,
+									"y": 100,
+									"modifiers": [
+										"shift"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 100,
+									"modifiers": [
+										"shift"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							0,
+							0,
+							300,
+							100
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 0,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "move",
+									"x": 300,
+									"y": 100,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 100,
+									"modifiers": [
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							0,
+							0,
+							100,
+							100
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 50,
+									"y": 0,
+									"modifiers": [
+										"shift",
+										"alt"
+									]
+								},
+								{
+									"kind": "move",
+									"x": 150,
+									"y": 100,
+									"modifiers": [
+										"shift",
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 150,
+									"y": 100,
+									"modifiers": [
+										"shift",
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							50,
+							0,
+							50,
+							100
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.mode",
+						"is": "replace"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-move-auto-select",
+			"note": "With Auto-Select on, a move press makes the topmost layer painted under it the active one",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "addLayer",
+						"args": {
+							"kind": "pixel"
+						}
+					}
+				},
+				{
+					"key": "m"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 0,
+									"y": 0
+								},
+								{
+									"kind": "move",
+									"x": 100,
+									"y": 100
+								},
+								{
+									"kind": "release",
+									"x": 100,
+									"y": 100
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "fillSelection",
+						"args": {
+							"color": "#c03020"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "none"
+						}
+					}
+				},
+				{
+					"key": "v"
+				},
+				{
+					"click": {
+						"role": "checkbox",
+						"name": "Auto-Select"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.autoSelect",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 600,
+									"y": 400
+								},
+								{
+									"kind": "release",
+									"x": 600,
+									"y": 400
+								}
+							]
+						}
+					}
+				},
+				{
+					"note": "the sample's layer is painted there",
+					"expect": {
+						"state": "doc.active",
+						"is": "3"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 50,
+									"y": 50
+								},
+								{
+									"kind": "release",
+									"x": 50,
+									"y": 50
+								}
+							]
+						}
+					}
+				},
+				{
+					"note": "the new layer's square is above it",
+					"expect": {
+						"state": "doc.active",
+						"is": "9"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-marquee-square-and-centre",
+			"note": "Shift pressed during a marquee's drag keeps a square, Alt draws it from the centre",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "m"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100
+								},
+								{
+									"kind": "move",
+									"x": 300,
+									"y": 160,
+									"modifiers": [
+										"shift"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 160,
+									"modifiers": [
+										"shift"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							100,
+							100,
+							200,
+							200
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 400,
+									"y": 300
+								},
+								{
+									"kind": "move",
+									"x": 450,
+									"y": 320,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 450,
+									"y": 320,
+									"modifiers": [
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							350,
+							280,
+							100,
+							40
+						]
+					}
+				},
+				{
+					"key": "shift+m"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 400,
+									"y": 300
+								},
+								{
+									"kind": "move",
+									"x": 450,
+									"y": 320,
+									"modifiers": [
+										"shift",
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 450,
+									"y": 320,
+									"modifiers": [
+										"shift",
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							350,
+							250,
+							100,
+							100
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-crop-square-and-centre",
+			"note": "Shift pressed during a crop's drag keeps a square, Alt draws it from the centre",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "c"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100
+								},
+								{
+									"kind": "move",
+									"x": 300,
+									"y": 160,
+									"modifiers": [
+										"shift"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 160,
+									"modifiers": [
+										"shift"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 200
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 200
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100
+								},
+								{
+									"kind": "move",
+									"x": 150,
+									"y": 120,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 150,
+									"y": 120,
+									"modifiers": [
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 100
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 40
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-levels-histogram",
+			"note": "A Levels layer shows the image's tones, measured again when the image changes; Curves draws them behind its curve",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "doc.histogram",
+						"is": []
+					}
+				},
+				{
+					"key": "mod+l"
+				},
+				{
+					"expect": {
+						"node": "#adjust-tones",
+						"exists": true
+					}
+				},
+				{
+					"note": "the sample's tones lie in the middle",
+					"expect": {
+						"state": "doc.histogram[26]",
+						"is": 77085
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.histogram[0]",
+						"is": 0
+					}
+				},
+				{
+					"note": "a black point at the middle makes the darker half black, and the tones are measured again",
+					"action": "perform",
+					"event": {
+						"run": "setAdjustment",
+						"args": {
+							"inputBlack": 0.5
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.histogram[0]",
+						"is": 77160
+					}
+				},
+				{
+					"note": "Curves draws the tones as shown behind its curve",
+					"key": "mod+m"
+				},
+				{
+					"expect": {
+						"node": "#adjust-curve",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.histogram[0]",
+						"is": 77160
 					}
 				}
 			]

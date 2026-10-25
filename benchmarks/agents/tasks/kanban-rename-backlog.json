@@ -33,7 +33,7 @@
 	"unchanged": [
 		"#topBar",
 		"#views",
-		"#filters",
+		"#filterBar",
 		"#board",
 		"#statusBar"
 	],

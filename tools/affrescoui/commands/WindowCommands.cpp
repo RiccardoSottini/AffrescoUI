@@ -3,13 +3,10 @@
 
 #include "Cli.hpp"
 
-#include "SocketDir.hpp" // from examples/shared: the socket folder's checks, shared with affrescoui_launcher
+#include "SocketDir.hpp" // from apps/shared: the socket folder's checks, shared with affrescoui_launcher
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp> // unconnectedScreen()
-
-#define GLFW_INCLUDE_NONE // window hints only: no OpenGL header
-#include <GLFW/glfw3.h>
 
 #include "Png.hpp" // the library's PNG encoder (modules/screen/src)
 
@@ -106,6 +103,8 @@ Exit runScreen(std::span<const std::string_view> args) {
 	Screen screen = Screen::fromFile(options.file, options.data);
 	registerApplicationTypes(screen);
 	if(options.mode) screen.setModeForThisRun(*options.mode);
+	screen.setSocketDirectory(options.socketDirectory); // its channels reach this program's sockets only
+	screen.confineChannels(true);
 	screen.createWindow(app);
 	applyPlugins(screen, options.plugins);
 	createSocketDir(options.socketDirectory);
@@ -127,10 +126,9 @@ Exit renderScreen(std::span<const std::string_view> args) {
 	const int scale = wholeNumber(arguments.value("--scale").value_or("1"), "--scale");
 	if(scale > ScreenImages::maxScale) throw UsageError("--scale: at most " + std::to_string(ScreenImages::maxScale));
 
-	Application app;
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // never on screen
+	Application app(ApplicationOptions{nullptr, true}); // never on screen
 	const std::filesystem::path frame = std::filesystem::path(*out).concat(".ppm");
-	Screen screen = automation::unconnectedScreen(readFile(file), file.parent_path(),
+	Screen screen = automation::unconnectedScreen(automation::screenDocument(file), file.parent_path(),
 	                                              frame.parent_path() / "affrescoui-render-no-host");
 	registerApplicationTypes(screen);
 	Window& window = screen.createWindow(app);

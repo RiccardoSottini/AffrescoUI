@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Writes the seed corpora and dictionaries of the fuzz targets (README.md), from the sources they stand for.
 
-- json:       the templates (examples/templates.json), the JSON examples in the docs, nesting at the limit;
+- json:       the templates (examples/templates.json), the JSON examples in the docs, nesting at the limit, settings
+              and colour theme files with comments and trailing commas;
 - expression: every {{...}} and every "$" operator in the templates and in SCREEN_FORMAT.md;
 - revision:   the revisions in the docs, and edits of every kind to the Kanban template's nodes and state;
 - delta:      the Kanban template and changed copies of it (keys reordered, a node added), with deltas to apply;
@@ -12,24 +13,27 @@
 - actions:    every action and handler of the templates, and steps that spend a whole work budget.
 - lookups:    the GSUB and GPOS tables of the examples' fonts and the rendering check's (binary seeds);
 - image:      the rendering check's PNG, JPEG and SVG files (binary seeds);
+- data_uri:   the same PNG and JPEG files as data: URIs;
 - path:       every path data of the templates, the rendering check's screens and the charts, with drawing bytes;
 - scenarios:  every scenarios file, the templates' and the rendering check's;
 - png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data);
 - frames:     Content-Length frames and lines, as a service process writes them;
 - peer_handshake: a remote peer's upgrade requests, well formed and not, and first "auth" messages.
 - feature_manifest, catalog_index, signature: Forge's feature manifests and its catalogue (examples/forge).
-- composition: Sinopia's slide sorter with Bottega's adapters, good and broken, and Tempera's points and exports.
+- app_manifest: every app's app.json, and the templates as screens whose capabilities are read.
+- composition: Sinopia's slide sorter with Tempera's adapters, good and broken, and Tempera's points and exports.
 - url:        an allowlist entry, a line feed, then a URL: remote peers', sign-in's and a document server's;
 - oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
 - token_file: a document server's token file, with comments and blank lines;
+- git_policy: a git run's arguments, separated by zero bytes, and a repository's own config (the same input read twice);
 - git_output: `git status --porcelain=v2 -z --branch`, `git for-each-ref` and two texts to diff (the first byte picks);
-- color_theme: Colour themes, dark and light, with comments and trailing commas;
 - history:    refs.json (even first byte) or a commit object (odd first byte) of a history on disk.
 - gltf:       a small .gltf (a triangle, its material, a clip) with its buffer as data:, a .glb of it, broken copies;
 - scene:      a scene node's scene, animations and time, with primitives, lights, clips and that model placed in it.
 - images:     the "images" sections of the docs and the rendering check's screens, with the "image" steps they run.
 - audio:      small WAV files made here (8-bit, 16-bit, float, stereo, cut short), each after a mode byte for every
               way they arrive (bytes in memory or a stream, the chunk size, the encoding hinted).
+- key_press:  key chords, as the "keys" of a screen and the "press" step write them.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -101,6 +105,17 @@ def json_seeds():
     seeds.append("[" * (MAX_NESTING + 1) + "]" * (MAX_NESTING + 1))  # one too deep
     seeds.append('{"a": /* comment */ [1, 2.5e3, -0, "\\u00e9\\ud83d\\ude00", true, null]} // end')
     return seeds
+
+
+def diff_seeds():
+    """The diff_functions target's seeds: an options byte, then an original and a modified text cut at a zero byte."""
+    pairs = [("a\nb\nc\n", "a\nB\nc\nd\n"), ("", "one\n"), ("  x\n", "x  \n"),
+             ('{"a": [1, 2], "b": {"c": 3}}', '[{"op": "add", "path": "/a/-", "value": 4}, {"op": "copy", '
+              '"from": "/b", "path": "/d"}, {"op": "move", "from": "/a/0", "path": "/e"}]'),
+             ('{"a~b": {"c/d": 1}}', '[{"op": "test", "path": "/a~0b/c~1d", "value": 1}, {"op": "remove", '
+              '"path": "/a~0b"}]')]
+    return [bytes([options]) + original.encode() + b"\0" + modified.encode()
+            for options in (0, 1, 6, 255) for original, modified in pairs]
 
 
 def expression_seeds():
@@ -321,6 +336,17 @@ def lookups_seeds():
     return seeds
 
 
+def data_uri_seeds():
+    """The rendering check's PNG and JPEG images as the data: URIs an image node's source takes, the small ones."""
+    folder = ROOT / "tests/render/screens/images"
+    seeds = []
+    for kind, pattern in (("png", "*.png"), ("jpeg", "*.jpg")):
+        for path in sorted(folder.glob(pattern)):
+            if path.stat().st_size <= 48 << 10:
+                seeds.append(f"data:image/{kind};base64,".encode() + base64.b64encode(path.read_bytes()))
+    return seeds
+
+
 def image_seeds():
     """The images of the rendering check's screens."""
     folder = ROOT / "tests/render/screens/images"
@@ -353,6 +379,17 @@ def text_model_seeds():
             lines + insert(0, 3, b"\xff\xc3(\xed\xa0\x80") + insert(9, 99, "\n\n", 4) + b"\x02",
             b"".join(insert(index % 3, index, "ab\n") for index in range(40)) + bytes([1, 3, 0, 30, 5]) + b"\x02" * 8]
 
+
+def terminal_seeds():
+    """Program output after the size bytes (rows, columns) and the flags byte (bit 0 allows the title, bits 1-3 the
+    piece size, bits 4-7 the scrollback): text, colours, cursor moves, the alternate screen, a title, queries."""
+    def seed(rows, columns, flags, output):
+        return bytes([rows, columns, flags]) + (output.encode("utf-8") if isinstance(output, str) else output)
+    return [seed(4, 20, 0x10, "hello\r\n\x1b[31mred\x1b[0m \x1b[1;4mbold\x1b[0m\r\n"),
+            seed(3, 10, 0x21, "\x1b]2;title\x07\x1b]0;\u00e9\u4e2d\x1b\\\x1b]52;c;aGk=\x07\x07"),
+            seed(5, 30, 0x52, "\x1b[?1049h\x1b[2J\x1b[10;5Hx\x1b[?25l\x1b[?1049l\x1b[6n\x1b[c"),
+            seed(2, 8, 0xf4, "".join(f"line {n}\r\n" for n in range(40)) + "\x1b[38;2;1;2;3m\x1b[48;5;200mx"),
+            seed(6, 12, 0x0e, b"\xe4\xb8\xad\xff\xc3(\xed\xa0\x80\x1b[999;999H\x1b[r\x1b[2;3r\x1bM\x1bD")]
 
 def find_pattern_seeds():
     """Options byte (1 regex, 2 whole word, 4 case-sensitive), pattern, zero, replacement, zero, subject."""
@@ -468,13 +505,20 @@ def feature_seeds():
             + sorted(forge.glob("catalog/**/*.json"))]
 
 
+def app_seeds():
+    """Every app's manifest (app.json), and the templates, which read as screens using capabilities."""
+    manifests = sorted(ROOT.glob("examples/*/app.json")) + sorted(ROOT.glob("apps/*/app.json"))
+    return [path.read_text(encoding="utf-8") for path in manifests] + [path.read_text(encoding="utf-8")
+                                                                       for path in templates("*.screen.json")]
+
+
 def composition_seeds():
-    """The slide sorter's manifest with each of Bottega's adapters, and Tempera's points and exports (examples/bottega)."""
+    """The slide sorter's manifest with each of Tempera's adapters, and Tempera's points and exports (examples/tempera/sorter)."""
     examples = ROOT / "examples"
     manifest = json.loads((examples / "sinopia" / "features" / "slide-sorter" / "feature.json").read_text(encoding="utf-8"))
     tempera = json.loads((examples / "tempera" / "index.screen.json").read_text(encoding="utf-8"))
     host = {part: tempera[part] for part in ("points", "exports") if part in tempera}
-    adapters = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((examples / "bottega").glob("*.adapter.json"))]
+    adapters = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((examples / "tempera" / "sorter").glob("*.adapter.json"))]
     return [compact({"manifest": manifest, "adapter": adapter, **host}) for adapter in [None] + adapters]
 
 
@@ -515,7 +559,7 @@ def token_file_seeds():
 
 
 def git_output_seeds():
-    """git's output as Forge asks for it (examples/forge/features/scm/GitStatus.hpp), and texts to diff."""
+    """git's output as the git grant asks for it (services' GitOutput.hpp), and texts to diff."""
     status = ["# branch.oid 0123456789abcdef0123456789abcdef01234567", "# branch.head main",
               "# branch.upstream origin/main", "# branch.ab +2 -1",
               "1 .M N... 100644 100644 100644 0123456789abcdef0123456789abcdef01234567 "
@@ -530,8 +574,21 @@ def git_output_seeds():
             "\x02one\ntwo\nthree\n\0one\n2\nthree\nfour", "\x02\0added\n", "\x02a\r\nb\0a\nb\n"]
 
 
-def color_theme_seeds():
-    """Colour themes, which allow comments and trailing commas."""
+def git_policy_seeds():
+    """Git runs the git grant takes and refuses, and repositories' own configs (services' GitPolicy.cpp, GitConfig.cpp)."""
+    runs = [["status", "--porcelain=v2", "-z", "--branch", "--untracked-files=all"], ["add", "--", "src/a.cpp"],
+            ["restore", "--staged", "--", "a", "b"], ["switch", "-c", "feature/x"], ["show", "--no-textconv", "HEAD:a"],
+            ["log", "--format=%H%x00%an%x00%at%x00%s", "-n", "50", "--", "src"], ["commit", "-F", "-"], ["init"],
+            ["add", "--", "../x"], ["-c", "core.pager=sh", "status"], ["push"]]
+    configs = ["[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n"
+               "[remote \"origin\"]\n\turl = https://example.com/x.git\n[branch \"main\"]\n\tremote = origin\n",
+               "[filter \"x\"]\n\tclean = cat\n", "[filter.x] clean = cat\n", "[core]\n\tbare = \\\n[diff \"x\"]\n",
+               "\ufeff[user]\r\n\tname = A ; B\r\n", "[include]\n\tpath = other\n"]
+    return ["\0".join(run) for run in runs] + configs
+
+
+def settings_file_seeds():
+    """Settings and colour theme files, which allow comments and trailing commas (plainJson; openFile's "comments")."""
     dark = {"name": "Fuzz Dark", "type": "dark", "colors": {"editor.background": "#1e1e1e",
             "editor.foreground": "#d4d4d4", "focusBorder": "#007fd4", "statusBar.background": "#007acc80",
             "list.hoverBackground": "#2a2d2e", "errorForeground": "#f48771"},
@@ -579,6 +636,29 @@ def dap_seeds():
                      "args": ["./a.out", "--flag"]}}),
             compact({"seq": 6, "type": "response", "request_seq": 3, "success": True, "command": "variables",
                      "body": {"variables": [{"name": "x", "value": "1", "variablesReference": 0}]}})]
+
+
+def lsp_seeds():
+    """What a language server sends (modules/services/src/lsp/LspProtocol.hpp), each after the byte that picks what it
+    answers in tests/fuzz/lsp.cpp: results with locations inside and outside the fuzz target's folder (/folder)."""
+    def place(path, line, character):
+        return {"uri": "file://" + path, "range": {"start": {"line": line, "character": character},
+                                                   "end": {"line": line, "character": character + 4}}}
+    inside, outside = place("/folder/src/a.cpp", 1, 2), place("/elsewhere/b.cpp", 0, 0)
+    edit = {"range": inside["range"], "newText": "start"}
+    results = [
+        (0, {"contents": {"kind": "markdown", "value": "```cpp\nint main()\n```"}}),
+        (1, {"isIncomplete": False, "items": [{"label": "puts", "insertTextFormat": 2, "insertText": "puts(${1:s})"}]}),
+        (2, {"signatures": [{"label": "int puts(const char* s)", "parameters": [{"label": [9, 22]}]}]}),
+        (3, inside), (4, [inside, outside]),
+        (5, {"changes": {inside["uri"]: [edit]}}), (5, {"changes": {outside["uri"]: [edit]}}),
+        (6, [edit]),
+        (7, [{"name": "main", "kind": 12, "range": inside["range"], "selectionRange": inside["range"],
+              "children": [{"name": "x", "kind": 13, "range": inside["range"], "selectionRange": inside["range"]}]}]),
+        (8, [{"name": "main", "kind": 12, "location": inside}]),
+        (9, {"data": [0, 0, 3, 0, 0, 1, 2, 4, 1, 0], "legend": {"tokenTypes": ["type", "function"]}}),
+        (10, {"uri": inside["uri"], "diagnostics": [{"range": inside["range"], "severity": 1, "message": "bad"}]})]
+    return [chr(kind) + compact(result) for kind, result in results]
 
 
 def syntax_seeds():
@@ -661,6 +741,41 @@ def images_seeds():
         for phase, x in [("press", 4), ("move", 30), ("release", 60)]]
     seeds.append(compact({"images": board, "steps": pointer + [{"image": "undo"}, {"image": "redo"}]}))
     seeds.append(compact({"images": board, "steps": [{"image": name, "with": {}} for name in operations]}))
+    box = [{"image": "select", "with": {"kind": "rectangle", "from": {"x": 4, "y": 4}, "to": {"x": 30, "y": 20}}}]
+    geometry = [{"image": "addLayer", "with": {"name": "Ink"}}, *box, {"image": "fillSelection", "with": {"color": "#204080"}},
+                {"image": "copy", "with": {"merged": True}}, {"image": "cut"}, {"image": "paste"},
+                {"image": "transformLayer", "with": {"x": 7, "scaleX": -150, "scaleY": 80, "angle": 33}},
+                {"image": "alignLayer", "with": {"edge": "middle"}},
+                {"image": "rotateCanvas", "with": {"angle": 90}}, {"image": "flipCanvas", "with": {"direction": "vertical"}},
+                {"image": "canvasSize", "with": {"width": 80, "height": 40, "anchor": "bottom-right"}},
+                {"image": "imageSize", "with": {"width": 20}}, {"image": "mergeDown"}, {"image": "mergeVisible"},
+                {"image": "deleteHidden"}, {"image": "flatten", "with": {"background": "#ffffff"}}, {"image": "clear"},
+                {"image": "undo"}, {"image": "redo"}]
+    seeds.append(compact({"images": board, "steps": geometry}))
+    groups = [{"image": "addLayer", "with": {"name": "Ink"}}, {"image": "addLayer", "with": {"kind": "group"}},
+              {"image": "moveLayer", "with": {"id": "2", "into": "3"}}, {"image": "moveLayer", "with": {"id": "3", "into": "3"}},
+              {"image": "moveLayer", "with": {"id": "2", "onto": "3"}}, {"image": "undo"}]
+    seeds.append(compact({"images": board, "steps": groups}))
+    held = [{"image": "setTool", "with": {"tool": tool}} if i == 0 else
+            {"image": "pointer", "with": {"phase": phase, "x": x, "y": x, "modifiers": mods}}
+            for tool in ["select-rectangle", "polygon-lasso", "magic-wand"]
+            for i, (phase, x, mods) in enumerate([(None, 0, None), ("press", 4, ["shift"]), ("move", 30, ["alt"]),
+                                                  ("release", 30, ["shift", "alt"]), ("press", 4, ["alt"]),
+                                                  ("release", 4, [])])]
+    seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": held}))
+    # move with autoSelect: presses on paint, in a group, off the image and on nothing
+    picked = [{"image": "setTool", "with": {"tool": "move"}}, {"image": "setOptions", "with": {"autoSelect": True}},
+              {"image": "addLayer", "with": {"kind": "group"}}, {"image": "addLayer", "with": {"name": "Ink"}},
+              {"image": "select", "with": {"kind": "rectangle", "from": {"x": 8, "y": 8}, "to": {"x": 20, "y": 20}}},
+              {"image": "fillSelection", "with": {"color": "#204080"}}, {"image": "select", "with": {"kind": "none"}}]
+    picked += [{"image": "pointer", "with": {"phase": phase, "x": x, "y": x}}
+               for x in [10, -10, 1000, 40] for phase in ["press", "release"]]
+    seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": picked}))
+    # histogram: bins in and out of range, with a hidden layer, and on a large image measured at a mip level
+    measured = [{"image": "histogram", "with": {"bins": bins}} for bins in [64, 1, 300, -5, "x"]]
+    measured += [{"image": "setLayer", "with": {"visible": False}}, {"image": "histogram"}]
+    seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": measured}))
+    seeds.append(compact({"images": {"board": {"width": 1500, "height": 900}}, "steps": measured[:1]}))
     return seeds
 
 
@@ -698,6 +813,20 @@ def ask_reply_seeds():
     return [json.dumps(reply) for reply in replies + lists] + ["null", '"text"', "{"]
 
 
+def key_press_seeds():
+    """Chords for the key names (tests/fuzz/key_press.cpp): the templates' "keys", and some written loosely."""
+    chords = set()
+    for path in sorted((ROOT / "examples").rglob("*.screen.json")):
+        try:
+            screen = json.loads(path.read_text(encoding="utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            continue
+        if isinstance(screen, dict) and isinstance(screen.get("keys"), dict):
+            chords.update(screen["keys"])
+    return sorted(chords) + ["ctrl+x ctrl+s", "Shift + K", "mod+enter", "alt+shift+5", "esc", "ctrl+ +", "f12",
+                             "  ctrl +x   s ", "cmd+option+period", "shift+space"]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -726,9 +855,9 @@ def dictionaries():
     # The steps and keys of scenarios files (SCREEN_FORMAT.md, "Scenarios"), and the Kanban template's ids
     scenarios = tokens + ["version", "screen", "scenarios", "name", "steps", "note", "nth", "toNth", "moves", "dx",
                           "dy", "event", "capture", "move", "click", "press", "release", "drag", "to", "scroll", "type",
-                          "key", "revision", "action", "resize", "wait", "expect", "state", "node", "image", "is",
-                          "exists", "text", "property", "shown", "focused", "cmd+", "mod+", "shift+", "enter", "escape",
-                          ".length", "[0]"]
+                          "key", "revision", "action", "resize", "wait", "choose", "expect", "state", "node", "image",
+                          "is", "exists", "text", "property", "shown", "focused", "cmd+", "mod+", "shift+", "enter",
+                          "escape", ".length", "[0]"]
     scenarios += [f"#{node}" for node in kanban_ids()]
     pngs = ["PNG", "IHDR", "IDAT", "IEND", "x\x01", "x^", "\x00\x00\x00\x0d"]  # ASCII: the dictionary is written UTF-8
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
@@ -741,6 +870,7 @@ def dictionaries():
             "path": list("MmLlHhVvCcSsQqTtAaZz") + [" ", ",", "-", ".", "e-", "1e6", "0 0 1 1"],
             "audio": ["RIFF", "WAVE", "fmt ", "data", "LIST", "fact", "fLaC", "ID3", "Xing", "Info", "\x01\x00",
                       "\x03\x00", "\x10\x00", "\x00\x00"],  # ASCII: the dictionary is written UTF-8
+            "data_uri": ["data:image/png;base64,", "data:image/jpeg;base64,", "iVBORw0KGgo", "/9j/", "=", "=="],
             "image": ["<svg", "viewBox=", "<path d=", "fill=", "stroke=", "transform=", "<g>", "</g>", "IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
             "scenarios": scenarios, "png": pngs,
             "ask_reply": tokens + [f'"{word}"' for word in ["request", "text", "from", "done", "error", "type",
@@ -757,6 +887,8 @@ def dictionaries():
                              "[^", "]", "|", "$1", "${", "}", "$$", "\\p{L}", "(?i)", "(?s)", "\u00e9"],
             "search_glob": ["\x00", "\n", ",", "*", "**", "**/", "/", "?", "[", "]", "[!", "[^", "-", "\\", "!", "#",
                             ".gitignore", "src/", "build"],
+            "terminal": ["\x1b[", "\x1b]", "\x07", "\x1b\\", "m", "H", "J", "K", "r", "?1049h", "?25l", "6n", ";", "38;2;",
+                         "\r\n", "\u4e2d", "\x1bP", "\x9b"],
             "text_model": ["\x00", "\x01", "\x02", "\x03", "\x04", "\x08", "\n", "\u00e9", "\u20ac", "\U0001F600"],
             "url": ["https://", "http://", "wss://", "ws://", "\n", "localhost", "127.0.0.1", "[::1]", ":443", ":0",
                     "*.", "/", "?", "#", "%2e", "%2F", "@", ".."],
@@ -765,12 +897,16 @@ def dictionaries():
                                '"verification_uri"', '"iss"', '"aud"', '"nonce"', '"exp"', '"sub"', ".", "=", "&",
                                "-", "_"],
             "token_file": ["#", "\n", "\r\n", " ", "\t", "0123456789abcdef"],
+            "git_policy": ["\x00", "--", "-c", "status", "add", "restore", "switch", "log", "show", "commit", "HEAD:",
+                           "[", "]", "\"", "\\", "\n", "=", "#", ";", ".", "core", "filter", "remote", "branch",
+                           "include", "clean", "url", "bare"],
             "git_output": ["\x00", "\n", "# branch.oid ", "# branch.head ", "# branch.upstream ", "# branch.ab ",
                            "1 ", "2 ", "u ", "? ", "! ", ".M", "M.", "R.", "D.", "A.", "UU", "N...", "100644 ",
                            "R100 ", "*"],
-            "color_theme": tokens + ['"name"', '"type"', '"dark"', '"light"', '"colors"', '"tokenColors"',
-                                      '"editor.background"', '"editor.foreground"', '"focusBorder"', '"#"',
-                                      '"#ffffff"', '"#00000080"', ",}"],
+            "key_press": ["+", " ", "mod", "cmd", "command", "super", "meta", "ctrl", "control", "alt", "option",
+                          "shift", "enter", "return", "escape", "esc", "tab", "backspace", "delete", "space", "up",
+                          "down", "left", "right", "home", "end", "pageup", "pagedown", "minus", "equal", "comma",
+                          "period", "slash", "f1", "f25"],
             "history": tokens + [f'"{word}"' for word in ["version", "main", "proposals", "nextProposal", "grants",
                                                           "mode", "packs", "checksum", "parents", "author",
                                                           "committer", "time", "message", "patch", "tree", "delta",
@@ -810,8 +946,12 @@ def main():
     parser.add_argument("--out", type=Path, default=ROOT / "build" / "fuzz-corpus", help="where to write them")
     out = parser.parse_args().out
     words = dictionaries()
-    write(out, "json", json_seeds(), words["json"])
-    write(out, "expression", expression_seeds(), words["expression"])
+    write(out, "json", json_seeds() + settings_file_seeds(), words["json"])
+    write(out, "expression", expression_seeds() + ["hexColor('#AbC')", "hexColor(state.colors['editor.background'])",
+          "slug('Solarized Dark', 40) || 'imported'",
+          "map(state.keys, find(map(it.keys, hexColor(colors[it])), it != null) ?? it['dark'])"], words["expression"])
+    write(out, "diff_functions", diff_seeds(), ["{", "}", "[", "]", '"op"', '"path"', '"value"', '"from"', "add",
+                                                "remove", "replace", "move", "copy", "test", "/", "~0", "~1", "\n"])
     write(out, "revision", revisions(), words["revision"])
     write(out, "session", session_seeds(), words["session"])
     write(out, "delta", delta_seeds(), words["delta"])
@@ -824,8 +964,10 @@ def main():
     write(out, "layout", layout_seeds(), words["layout"])
     write(out, "lookups", lookups_seeds(), words["lookups"])
     write(out, "image", image_seeds(), words["image"])
+    write(out, "data_uri", data_uri_seeds(), words["data_uri"])
     write(out, "path", path_seeds(), words["path"])
     write(out, "text_model", text_model_seeds(), words["text_model"])
+    write(out, "terminal", terminal_seeds(), words["terminal"])
     write(out, "find_pattern", find_pattern_seeds(), words["find_pattern"])
     write(out, "search_glob", search_glob_seeds(), words["search_glob"])
     write(out, "scenarios", scenario_seeds(), words["scenarios"])
@@ -839,6 +981,8 @@ def main():
     features = ["affrescoui-feature", "affrescoui-catalog", "requires", "provides", "points", "exports", "signature",
                 "publisher", "releases", "release", "digest", "url", "size", "ed25519:", "sha512:", "1.0.0", "^1.0.0"]
     write(out, "feature_manifest", feature_seeds(), words["json"] + features)
+    write(out, "app_manifest", app_seeds(), words["json"] + ["affrescoui-app", "capabilities", "network", "folders",
+          "programs", "audio", "access", "write", "why", "seed", "models", "https://*.", "ws://127.0.0.1:", "../"])
     migrations = [path.read_text(encoding="utf-8") for path in sorted((ROOT / "tests" / "migrate").glob("*/*.json"))]
     write(out, "migrate", migrations, words["json"] + ["from", "justify", "align", "len(", "length(", "requires"])
     write(out, "catalog_index", feature_seeds(), words["json"] + features)
@@ -846,13 +990,14 @@ def main():
     write(out, "composition", composition_seeds(), words["json"] + features + ["needs", "bindings", "adapter", "dock",
           "affrescoui-adapter", "affrescoui-proof", "list", "action", "image", "{{", "}}"])
     for target, seeds in [("url", url_seeds()), ("oauth", oauth_seeds()), ("token_file", token_file_seeds()),
-                          ("git_output", git_output_seeds()), ("color_theme", color_theme_seeds()),
-                          ("history", history_seeds())]:
+                          ("git_policy", git_policy_seeds()), ("git_output", git_output_seeds()), ("history", history_seeds()), ("key_press", key_press_seeds())]:
         write(out, target, seeds, words[target])
     write(out, "adapters", adapters_seeds(), words["json"] + ["surfaceUpdate", "beginRendering", "dataModelUpdate",
           "literalString", "explicitList", "AdaptiveCard", "TextBlock", "Input.Text", "Action.Submit", "${"])
     write(out, "dap", dap_seeds(), words["json"] + ["response", "event", "request", "request_seq", "success",
           "command", "body", "source", "path", "/work/", "../", "stackFrames", "variables", "runInTerminal"])
+    write(out, "lsp", lsp_seeds(), words["json"] + ["uri", "range", "start", "end", "line", "character", "file:///folder/",
+          "file:///elsewhere/", "changes", "documentChanges", "newText", "items", "label", "data", "legend", "children"])
     write(out, "gltf", gltf_seeds(), words["json"] + ["asset", "scenes", "nodes", "meshes", "primitives", "attributes",
           "POSITION", "NORMAL", "TEXCOORD_0", "accessors", "bufferViews", "buffers", "byteOffset", "byteLength",
           "componentType", "count", "VEC3", "SCALAR", "animations", "channels", "samplers", "data:", ";base64,", "glTF"])
@@ -865,6 +1010,9 @@ def main():
     operations = image_operations()
     write(out, "images", images_seeds(), words["json"] + ["images", "steps", "image", "of", "with", "limits"]
           + list(operations) + sorted({key for keys in operations.values() for key in keys}))
+    # qr_code: the first byte picks the level (& 3) and the mask (>> 2 & 15, 8 and above meaning automatic)
+    write(out, "qr_code", ["\x00Affresca", "\x20https://id.example/enroll?secret=EXAMPLE", "\x03", "\x1f" + "q" * 300],
+          ["otpauth://", "id.example", "secret=", "\x00", "\xff"])
     write(out, "syntax", syntax_seeds(), ["(", ")", "{", "}", "[", "]", "\"", "'", "`", "/*", "*/", "//", "#", "\n"])
 
 

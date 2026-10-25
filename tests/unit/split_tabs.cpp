@@ -101,7 +101,7 @@ struct TabsFixture {
 		tabs = &window->root().add<Tabs>();
 		tabs->setSize(px(width), px(32));
 		std::vector<Tab> list;
-		for(const std::string& id : ids) list.push_back(Tab{id, id});
+		for(const std::string& id : ids) list.push_back(Tab{.id = id, .label = id});
 		tabs->setTabs(list);
 		tabs->setActive("a");
 		tabs->onActivated.connect([this](const std::string& id) { activated.push_back(id); });
@@ -221,7 +221,8 @@ TEST_CASE("tabs: a click picks a tab, its close button asks to close it, and key
 	CHECK(fixture.closed == std::vector<std::string>{"c", "c"});
 
 	// A tab that can't close has no close button
-	fixture.tabs->setTabs({Tab{"a", "a"}, Tab{"b", "b", false, false}});
+	fixture.tabs->setTabs(
+	    {Tab{.id = "a", .label = "a"}, Tab{.id = "b", .label = "b", .marker = false, .closable = false}});
 	fixture.window->render();
 	CHECK(fixture.tabs->tabAt(TabsFixture::label(1)) == 1);
 	CHECK(fixture.tabs->tabAt({300.0f, 16.0f}) == 2);
@@ -267,6 +268,19 @@ TEST_CASE("tabs: a strip too narrow scrolls, and keeps the active tab in view") 
 	CHECK(fixture.tabs->tabAt({1.0f, 16.0f}) == 0);
 	fixture.window->routeScroll({{0.0f, 100.0f}, {50.0f, 16.0f}}); // already at the start
 	CHECK(fixture.tabs->scrollPosition() == 0.0f);
+}
+
+TEST_CASE("tabs: a gap before each tab moves them along, and the shape keys are clamped") {
+	TabsFixture fixture({"a", "b"});
+	fixture.tabs->setTabShape(6.0f, 10.0f, 4.0f);
+	fixture.window->render();
+	CHECK(fixture.tabs->tabAt({5.0f, 16.0f}) == 2); // the gap before the first tab
+	CHECK(fixture.tabs->tabAt({15.0f, 16.0f}) == 0);
+	CHECK(fixture.tabs->tabAt({10.0f + tabWidth + 5.0f, 16.0f}) == 2);
+	CHECK(fixture.tabs->tabAt({20.0f + tabWidth + 5.0f, 16.0f}) == 1);
+	fixture.tabs->setTabShape(-1.0f, -1.0f, -1.0f);
+	fixture.window->render();
+	CHECK(fixture.tabs->tabAt({5.0f, 16.0f}) == 0);
 }
 
 TEST_CASE("split and tabs nodes: sizes and the active tab bound to state, close and move events, bad keys refused") {
@@ -325,11 +339,37 @@ TEST_CASE("split and tabs nodes: sizes and the active tab bound to state, close 
 	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/accentEdge": "left"}})", &error));
 	CHECK(error.find("accentEdge") != std::string::npos);
 	REQUIRE(screen.applyRevision(R"({"set": {"#strip/accentEdge": "top"}})", &error));
+	REQUIRE(screen.applyRevision(R"({"set": {"#strip/tabRadius": 6, "#strip/tabGap": 4, "#strip/tabInset": 3}})", &error));
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/tabGap": "wide"}})", &error));
 	window->render();
 	CHECK(tabs->accentOnTop());
 	REQUIRE(screen.applyRevision(R"({"set": {"#panes/direction": "column"}})", &error));
 	window->render();
 	CHECK(split->direction() == Split::Direction::Column);
+}
+
+TEST_CASE("tabs node: a right click on a tab names it in the context menu event, and off the tabs nothing") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(300, 100, clock);
+	auto screen = affresco::Screen::fromString(R"({
+		"format": "affrescoui-screen", "version": 2,
+		"state": { "open": ["a", "b"], "menu": null },
+		"root": { "id": "root", "children": [
+			{ "type": "tabs", "id": "strip", "width": 300, "height": 32, "tabs": "{{state.open}}",
+			  "onContextMenu": [{ "set": "state.menu", "to": "{{event.data ?? 'none'}}" }] }
+		] }
+	})");
+	screen.build(*window);
+	window->render();
+	const auto state = [&screen] { return json::parse(screen.stateJson()); };
+	window->routeMouseButton({MouseButton::Right, Action::Press, {}, {tabWidth + 10.0f, 16.0f}});
+	window->routeMouseButton({MouseButton::Right, Action::Release, {}, {tabWidth + 10.0f, 16.0f}});
+	window->render();
+	CHECK(state()["menu"] == json{{"id", "b"}, {"index", 1}});
+	window->routeMouseButton({MouseButton::Right, Action::Press, {}, {250.0f, 16.0f}});
+	window->routeMouseButton({MouseButton::Right, Action::Release, {}, {250.0f, 16.0f}});
+	window->render();
+	CHECK(state()["menu"] == "none");
 }
 
 TEST_CASE("tabs node: a marker's colour, and a tab keeping its marker still closes from its close button") {
@@ -357,4 +397,30 @@ TEST_CASE("tabs node: a marker's colour, and a tab keeping its marker still clos
 	CHECK(error.find("markerColor") != std::string::npos);
 	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/keepMarker": 1}})", &error));
 	CHECK(error.find("keepMarker") != std::string::npos);
+}
+
+TEST_CASE("tabs node: a tab's icon and its colour, and a colour that isn't one refused") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(300, 200, clock);
+	auto screen = affresco::Screen::fromString(R"({
+		"format": "affrescoui-screen", "version": 2,
+		"root": { "id": "root", "children": [
+			{ "type": "tabs", "id": "strip", "width": 300, "height": 32, "value": "a",
+			  "tabs": [{ "id": "a", "icon": "file-code", "iconColor": "#5ea7cf" }, { "id": "b", "icon": null }, "c"] }
+		] }
+	})");
+	screen.build(*window);
+	window->render();
+	const auto* strip = dynamic_cast<affresco::Tabs*>(screen.find("strip"));
+	REQUIRE(strip != nullptr);
+	REQUIRE(strip->tabs().size() == 3);
+	CHECK(strip->tabs()[0].icon == "file-code");
+	CHECK(strip->tabs()[0].iconColor == affresco::Color::parseHex("#5ea7cf"));
+	CHECK(strip->tabs()[1].icon.empty());
+	CHECK_FALSE(strip->tabs()[2].iconColor.has_value());
+	CHECK(strip->tabAt({tabWidth + 1.0f, 16.0f}) == 1); // no font: an icon it can't draw takes no room
+
+	std::string error;
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/tabs": [{ "id": "a", "iconColor": "teal" }]}})", &error));
+	CHECK(error.find("iconColor") != std::string::npos);
 }

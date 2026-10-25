@@ -2,13 +2,14 @@
 /// @brief affrescoui_server: the document server, headless (apps/server/README.md).
 ///
 ///   affrescoui_server --folder DIR [--listen 127.0.0.1:7420] [--allow-remote] [--origin URL]...
-///                     [--userinfo URL --people FILE]
+///                     [--introspect URL --client FILE --people FILE | --userinfo URL --people FILE]
 ///   affrescoui_server --folder DIR --add-token NAME
 
 #include "DocumentServer.hpp"
 #include "UserInfoVerifier.hpp"
 
 #include <affresco/core/Executor.hpp>
+#include <affresco/themes/Themes.hpp>
 
 #include <algorithm>
 #include <condition_variable>
@@ -79,6 +80,8 @@ struct Options {
 	std::string listen = "127.0.0.1:7420";     ///< --listen.
 	std::string addToken;                      ///< --add-token.
 	std::string userinfo;                      ///< --userinfo: OAuth access tokens are checked there.
+	std::string introspect;                    ///< --introspect: OAuth access tokens are introspected there.
+	std::filesystem::path client;              ///< --client: the server's client id and secret, for --introspect.
 	std::filesystem::path people;              ///< --people: who, by OAuth subject, may connect.
 	affresco::net::PeerServerOptions server;   ///< --allow-remote, --origin.
 };
@@ -93,6 +96,8 @@ bool setValue(Options& options, const std::string& flag, const std::string& valu
 	else if(flag == "--listen") options.listen = value;
 	else if(flag == "--add-token") options.addToken = value;
 	else if(flag == "--userinfo") options.userinfo = value;
+	else if(flag == "--introspect") options.introspect = value;
+	else if(flag == "--client") options.client = value;
 	else if(flag == "--people") options.people = value;
 	else if(flag == "--origin") options.server.allowedOrigins.push_back(value);
 	else return false;
@@ -112,10 +117,14 @@ std::optional<Options> parse(const std::vector<std::string>& arguments) {
 			break;
 		}
 	}
-	if(!options.folder.empty() && options.userinfo.empty() == options.people.empty()) return options;
-	std::cerr << "usage: affrescoui_server --folder DIR [--listen 127.0.0.1:7420] [--allow-remote] [--origin URL]...\n"
-	             "                         [--userinfo URL --people FILE]\n"
-	             "       affrescoui_server --folder DIR --add-token NAME\n";
+	const int providers = int(!options.userinfo.empty()) + int(!options.introspect.empty());
+	if(!options.folder.empty() && providers <= 1 && (providers == 1) != options.people.empty() &&
+	   options.introspect.empty() == options.client.empty())
+		return options;
+	std::cerr
+	    << "usage: affrescoui_server --folder DIR [--listen 127.0.0.1:7420] [--allow-remote] [--origin URL]...\n"
+	       "                         [--introspect URL --client FILE --people FILE | --userinfo URL --people FILE]\n"
+	       "       affrescoui_server --folder DIR --add-token NAME\n";
 	return std::nullopt;
 }
 
@@ -126,11 +135,18 @@ int serve(const Options& options) {
 	MainLoop loop;
 	using namespace affresco::server;
 	const std::filesystem::path tokenPath = options.folder / "tokens";
-	const auto tokens = options.userinfo.empty() || std::filesystem::exists(tokenPath)
-	                  ? std::make_shared<TokenFile>(tokenPath)
-	                  : nullptr;
-	const auto userinfo = options.userinfo.empty() ? nullptr
-	                                         : std::make_shared<UserInfoVerifier>(options.userinfo, options.people);
+	const bool signsIn = !options.userinfo.empty() || !options.introspect.empty();
+	const auto tokens =
+	    !signsIn || std::filesystem::exists(tokenPath) ? std::make_shared<TokenFile>(tokenPath) : nullptr;
+	if(!options.userinfo.empty())
+		std::cerr << "affrescoui_server: --userinfo admits a token any app of that provider got for a person in the "
+		             "people file; --introspect with the server's own client admits only tokens issued to it\n";
+	const auto userinfo =
+	    !options.introspect.empty()
+	        ? std::make_shared<UserInfoVerifier>(options.introspect, options.people, affresco::net::ClientOptions{},
+	                                             readIntrospectionClient(options.client))
+	    : signsIn ? std::make_shared<UserInfoVerifier>(options.userinfo, options.people)
+	              : nullptr;
 	std::vector<std::shared_ptr<affresco::net::TokenVerifier>> verifiers;
 	if(tokens) verifiers.push_back(tokens);
 	if(userinfo) verifiers.push_back(userinfo);
@@ -166,6 +182,7 @@ int serve(const Options& options) {
 /// @param argv The arguments.
 /// @return The exit status.
 int main(int argc, char** argv) {
+	affresco::themes::install(); // the kits' components and tokens, which the revisions it accepts are checked with
 #ifndef _WIN32
 	sigset_t signals; // blocked in every thread, so sigwait() receives them
 	sigemptyset(&signals);

@@ -107,7 +107,8 @@ constexpr int navigatorSide = 160;
 	        {"allLayers", settings.sample.allLayers},
 	        {"fillOpacity", percent(settings.opacity)},
 	        {"shape", imaging::gradientShapeNames()[static_cast<std::size_t>(settings.shape)]},
-	        {"quickMask", settings.quickMask}};
+	        {"quickMask", settings.quickMask},
+	        {"autoSelect", settings.autoSelect}};
 }
 
 /// @brief A hex digit pair's value.
@@ -323,7 +324,9 @@ json snapshot(const ImageDocument& image) {
 	        {"options", optionsJson(settings)},
 	        {"view", {{"zoom", image.view.zoom}, {"x", image.view.x}, {"y", image.view.y}}},
 	        {"message", image.message},
-	        {"previewing", image.preview != nullptr}};
+	        {"previewing", image.preview != nullptr},
+	        {"clipboard", image.clipboard != nullptr},
+	        {"histogram", image.histogram}};
 }
 
 // NOLINTNEXTLINE(bugprone-exception-escape): get() is only reached for a number, which it always reads

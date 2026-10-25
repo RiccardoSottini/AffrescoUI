@@ -104,13 +104,15 @@ public:
 	/// @param width In window units.
 	/// @param height In window units.
 	/// @param sharing A window whose context shares its objects with this one's, or nullptr.
+	/// @param hidden Whether it stays hidden for its whole life: setVisible(true) leaves it off screen.
 	/// @throws std::runtime_error If the window or its context can't be created.
-	GlfwWindow(const std::string& title, int width, int height, GLFWwindow* sharing = nullptr)
-	    : handle_(glfwCreateWindow(width, height, title.c_str(), nullptr, sharing)) {
+	GlfwWindow(const std::string& title, int width, int height, GLFWwindow* sharing, bool hidden)
+	    : handle_(glfwCreateWindow(width, height, title.c_str(), nullptr, sharing)), hidden_(hidden) {
 		if(!handle_)
 			throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
 		glfwMakeContextCurrent(handle_);
 		glfwSwapInterval(1); // vsync: never render faster than the display
+		glfwSetInputMode(handle_, GLFW_LOCK_KEY_MODS, GLFW_TRUE); // key events tell whether caps lock is on
 #ifdef __EMSCRIPTEN__
 		// The canvas follows its container on the page (web/), at the page's devicePixelRatio (GLFW's port scales the
 		// framebuffer by default); a page without one keeps the window's size
@@ -142,10 +144,13 @@ public:
 	}
 	[[nodiscard]] bool isVisible() const override { return glfwGetWindowAttrib(handle_, GLFW_VISIBLE) == GLFW_TRUE; }
 	void setVisible(bool visible) override {
-		if(visible) glfwShowWindow(handle_);
-		else glfwHideWindow(handle_);
+		if(visible && !hidden_) glfwShowWindow(handle_); // hidden windows never come on screen, nor take the focus
+		else if(!visible) glfwHideWindow(handle_);
 	}
 	[[nodiscard]] bool shouldClose() const override { return glfwWindowShouldClose(handle_) == GLFW_TRUE; }
+	void setShouldClose(bool close) override { glfwSetWindowShouldClose(handle_, close ? GLFW_TRUE : GLFW_FALSE); }
+	[[nodiscard]] bool isFullscreen() const override { return glfwGetWindowMonitor(handle_) != nullptr; }
+	void setFullscreen(bool fullscreen) override;
 
 	[[nodiscard]] std::string clipboardText() const override {
 		const char* text = glfwGetClipboardString(handle_);
@@ -186,11 +191,54 @@ private:
 	static Window& owner(GLFWwindow* window) { return *static_cast<Window*>(glfwGetWindowUserPointer(window)); }
 
 	GLFWwindow* handle_;                        ///< The window and its context; destroyed with this object.
+	bool hidden_;                               ///< It never comes on screen (see the constructor).
 	Window* window_ = nullptr;                  ///< The Window it was connected to.
 	std::unique_ptr<desktop::MenuBar> menuBar_; ///< Its native menu bar, created on first use.
 	bool noMenuBar_ = false;                    ///< Native menus aren't supported here.
 	std::array<GLFWcursor*, 5> cursors_{};      ///< Standard cursors, created on first use (indexed by Cursor).
+	std::array<int, 4> windowed_{};             ///< Where it was before it filled a display: x, y, width, height.
 };
+
+/// @brief The display that holds the most of a window, or the primary one.
+/// @param window The window.
+/// @return The display, or nullptr if there is none.
+GLFWmonitor* displayOf(GLFWwindow* window) {
+	int x = 0, y = 0, width = 0, height = 0;
+	glfwGetWindowPos(window, &x, &y);
+	glfwGetWindowSize(window, &width, &height);
+	int count = 0;
+	GLFWmonitor** monitors = glfwGetMonitors(&count);
+	GLFWmonitor* best = glfwGetPrimaryMonitor();
+	long long most = 0;
+	for(int i = 0; i < count; ++i) {
+		int mx = 0, my = 0;
+		glfwGetMonitorPos(monitors[i], &mx, &my);
+		const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+		if(!mode) continue;
+		const long long across = std::max(0, std::min(x + width, mx + mode->width) - std::max(x, mx));
+		const long long down = std::max(0, std::min(y + height, my + mode->height) - std::max(y, my));
+		if(across * down > most) {
+			most = across * down;
+			best = monitors[i];
+		}
+	}
+	return best;
+}
+
+// The display's own mode, so nothing changes its resolution; back in a window, it returns where it was
+void GlfwWindow::setFullscreen(bool fullscreen) {
+	if(fullscreen == isFullscreen()) return;
+	if(!fullscreen) {
+		glfwSetWindowMonitor(handle_, nullptr, windowed_[0], windowed_[1], windowed_[2], windowed_[3], GLFW_DONT_CARE);
+		return;
+	}
+	GLFWmonitor* display = displayOf(handle_);
+	const GLFWvidmode* mode = display ? glfwGetVideoMode(display) : nullptr;
+	if(!mode) return; // no display to fill
+	glfwGetWindowPos(handle_, &windowed_[0], &windowed_[1]);
+	glfwGetWindowSize(handle_, &windowed_[2], &windowed_[3]);
+	glfwSetWindowMonitor(handle_, display, 0, 0, mode->width, mode->height, mode->refreshRate);
+}
 
 // GLFW's callbacks are converted to typed events and routed immediately
 void GlfwWindow::connect(Window& window) {
@@ -299,7 +347,12 @@ public:
 			log(LogLevel::Error, "AffrescoUI: GLFW error " + std::to_string(code) + ": " + description);
 		});
 		hintAngle();
+#ifdef GLFW_COCOA_MENUBAR
+		// Hidden, the app is no regular macOS app: GLFW neither builds its menu nor puts it in the Dock
+		glfwInitHint(GLFW_COCOA_MENUBAR, hiddenWindows ? GLFW_FALSE : GLFW_TRUE);
+#endif
 		if(!glfwInit()) throw std::runtime_error("AffrescoUI: could not initialise GLFW");
+		if(hiddenWindows) desktop::keepOutOfSwitcher();
 		desktop::watchColorScheme();
 	}
 	/// @brief Stops GLFW; every window must be gone.
@@ -312,15 +365,15 @@ public:
 
 	[[nodiscard]] std::unique_ptr<NativeWindow> createWindow(const std::string& title, int width, int height) override {
 		hintContext(); // other hints (e.g. GLFW_VISIBLE, set by tests) stay
-		if(hiddenWindows_) glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		return std::make_unique<GlfwWindow>(title, width, height);
+		hintVisibility();
+		return std::make_unique<GlfwWindow>(title, width, height, nullptr, hiddenWindows_);
 	}
 
 	[[nodiscard]] std::unique_ptr<NativeWindow> createSharedWindow(const std::string& title, int width, int height,
 	                                                               void* sharing) override {
 		hintContext();
-		if(hiddenWindows_) glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		return std::make_unique<GlfwWindow>(title, width, height, static_cast<GLFWwindow*>(sharing));
+		hintVisibility();
+		return std::make_unique<GlfwWindow>(title, width, height, static_cast<GLFWwindow*>(sharing), hiddenWindows_);
 	}
 
 	void waitEvents(std::optional<double> timeoutSeconds) override {
@@ -334,7 +387,15 @@ public:
 	[[nodiscard]] bool reducedMotion() const override { return desktop::reducedMotion(); }
 
 private:
-	bool hiddenWindows_; ///< Windows open hidden (ApplicationOptions::hiddenWindows).
+	/// @brief Keeps the next window off screen and unfocused when windows open hidden.
+	void hintVisibility() const {
+		if(!hiddenWindows_) return;
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_FOCUSED, GLFW_FALSE);
+		glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
+	}
+
+	bool hiddenWindows_; ///< Windows open hidden (ApplicationOptions::hiddenWindows or AFFRESCOUI_HIDDEN).
 };
 
 } // namespace

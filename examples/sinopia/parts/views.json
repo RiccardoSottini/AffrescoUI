@@ -1,0 +1,223 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The views beside Normal: the sorter (every slide's image in a grid, dragged to reorder) and the outline (the slides' titles and text); the format pane at the right (the selected objects, else the slide); and the deck as a file: saved and opened as JSON through the system's dialogs, exported as a PDF of the slides shown or a PNG of one.",
+
+	"state": {
+		"formatPane": false,
+		"fileStatus": "",
+		"opened": null
+	},
+
+	"computed": {
+		"directions": ["left", "up", "right", "down"],
+		"directionIcons": { "left": "arrow-left", "up": "arrow-up", "right": "arrow-right", "down": "arrow-down" },
+		"fillSlots": ["none", "light1", "dark1", "light2", "dark2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6"],
+		"deckName": "{{(state.deck.title ?? '') == '' ? 'Untitled deck' : state.deck.title}}",
+		"outlineText": "{{map(state.deck.slides, join(filter(map(it.objects ?? [], trim(it.text ?? '')), it != ''), '\n'))}}"
+	},
+
+	"actions": {
+		"saveDeck": [
+			{ "saveFile": "{{state.deck}}", "name": "{{computed.deckName + '.json'}}", "title": "Save the deck",
+			  "onDone": [{ "set": "state.fileStatus", "to": "{{'Saved ' + result.name + '.'}}" }],
+			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not saved: ' + error.message}}" }] }
+		],
+		"openDeck": [
+			{ "openFile": "state.opened", "extensions": ["json"], "title": "Open a deck",
+			  "onDone": [{ "run": "deckOpened", "with": { "name": "{{result.name}}" } }],
+			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not opened: ' + error.message}}" }] }
+		],
+		"deckOpened": [
+			{ "if": "{{type(state.opened.slides) == 'list' && length(state.opened.slides) > 0 && type(state.opened.next) == 'number'}}",
+			  "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck", "to": "{{state.opened}}" },
+				{ "set": "state.current", "to": 0 },
+				{ "set": "state.board.selection", "to": [] },
+				{ "set": "state.fileStatus", "to": "{{'Opened ' + name + '.'}}" }
+			  ],
+			  "else": [{ "set": "state.fileStatus", "to": "{{'Not opened: ' + name + ' is not a deck.'}}" }] },
+			{ "set": "state.opened", "to": null }
+		],
+		"exportPdf": [
+			{ "export": "pdf", "pages": "{{map(computed.showOrder, 'page-' + state.deck.slides[it].id)}}", "size": [720, 405], "title": "{{computed.deckName}}",
+			  "onDone": [{ "set": "state.fileStatus", "to": "{{'Exported ' + result.name + ', ' + result.pages + ' pages.'}}" }],
+			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not exported: ' + error.message}}" }] }
+		],
+		"exportPng": [
+			{ "export": "png", "pages": "{{['page-' + computed.slide.id]}}", "scale": 2, "name": "{{computed.deckName + ' ' + (state.current + 1)}}",
+			  "onDone": [{ "set": "state.fileStatus", "to": "{{'Exported ' + result.name + '.'}}" }],
+			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not exported: ' + error.message}}" }] }
+		],
+		"toggleTheme": [{ "set": "state.theme", "to": "{{state.theme == 'dark' ? 'light' : 'dark'}}" }],
+		"setBackground": [
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].background", "to": "{{slot}}" }
+		]
+	},
+
+	"keys": {
+		"mod+s": [{ "when": "{{!state.show.on}}", "do": "saveDeck" }],
+		"mod+o": [{ "when": "{{!state.show.on}}", "do": "openDeck" }]
+	},
+
+	"components": {
+		"swatches": {
+			"params": { "prefix": "", "chosen": "", "run": "", "key": "" },
+			"note": "The theme's colours and none, as a row of swatches; a click runs setObjects with { key: slot }, or setBackground.",
+			"node": {
+				"type": "row", "id": "{{prefix + '-swatches'}}", "height": 22, "gap": 3, "color": "transparent",
+				"children": [
+					{ "repeat": { "for": "slot", "in": "{{key == 'background' ? slice(computed.fillSlots, 1) : computed.fillSlots}}" },
+					  "id": "{{prefix + '-' + slot}}", "width": 18, "height": 18, "radius": 3, "cursor": "hand",
+					  "color": "{{slot == 'none' ? '@rbFieldBg' : computed.palette[slot]}}",
+					  "borderWidth": "{{slot == chosen ? 2 : 1}}", "borderColor": "{{slot == chosen ? '@brandLine' : '@rbFieldLine'}}",
+					  "tooltip": "{{slot == 'none' ? 'None' : computed.slotTitles[slot]}}", "role": "button", "label": "{{slot}}",
+					  "onClick": [{ "if": "{{run == 'setBackground'}}", "then": [{ "run": "setBackground", "with": { "slot": "{{slot}}" } }],
+					               "else": [{ "run": "setObjects", "with": { "props": "{{parseJson('{' + json(key) + ':' + json(slot) + '}')}}" } }] }],
+					  "children": [{ "type": "label", "when": "{{slot == 'none'}}", "fill": 0, "align": "center", "textColor": "@rbMuted", "runs": [{ "icon": "ban", "size": 12 }] }] }
+				]
+			}
+		},
+
+		"paneStepper": {
+			"params": { "title": "", "value": 0, "unit": "", "key": "", "step": 1, "low": 0, "high": 1000, "prefix": "" },
+			"node": {
+				"type": "row", "id": "{{prefix}}", "height": 24, "gap": 2, "alignItems": "center", "color": "transparent",
+				"children": [
+					{ "type": "label", "id": "{{prefix + '-title'}}", "width": 84, "height": 22, "textColor": "@rbInk", "runs": [{ "text": "{{title}}", "size": 12 }] },
+					{ "type": "label", "id": "{{prefix + '-value'}}", "width": 64, "height": 22, "align": "end", "padding": 4, "textColor": "@rbInk",
+					  "runs": [{ "text": "{{fixed(value, 1) + unit}}", "size": 12 }] },
+					{ "use": "rbSmall", "id": "{{prefix + '-less'}}", "with": { "icon": "minus" }, "tooltip": "Less",
+					  "onClick": { "run": "setObjects", "with": { "props": "{{parseJson('{' + json(key) + ':' + json(clamp(value - step, low, high)) + '}')}}" } } },
+					{ "use": "rbSmall", "id": "{{prefix + '-more'}}", "with": { "icon": "plus" }, "tooltip": "More",
+					  "onClick": { "run": "setObjects", "with": { "props": "{{parseJson('{' + json(key) + ':' + json(clamp(value + step, low, high)) + '}')}}" } } }
+				]
+			}
+		},
+
+		"formatPane": {
+			"params": {},
+			"note": "The selected objects' fill, line, size, place and rotation, their lock and the first one's alt text; with nothing selected, the slide's background.",
+			"node": {
+				"type": "column", "id": "format-pane", "width": 260, "color": "@rb", "borderWidth": 1, "borderColor": "@rbLine", "gap": 6,
+				"alignItems": "center", "scroll": "vertical", "role": "region", "label": "Format",
+				"let": { "o": "{{computed.first}}", "box": "{{computed.first == null ? {} : merge(computed.firstPlaceholder, computed.first)}}" },
+				"children": [
+					{ "id": "format-top", "width": 1, "height": 4, "color": "transparent" },
+					{ "type": "row", "id": "format-head", "width": 236, "height": 24, "alignItems": "center", "color": "transparent", "children": [
+						{ "type": "label", "id": "format-title", "grow": 1, "height": 22, "textColor": "@rbInk",
+						  "runs": [{ "text": "{{o == null ? 'Format Background' : 'Format Shape'}}", "size": 14, "bold": true }] },
+						{ "use": "rbSmall", "id": "format-close", "with": { "icon": "x" }, "tooltip": "Close", "onClick": [{ "set": "state.formatPane", "to": false }] }
+					] },
+					{ "type": "column", "id": "format-slide", "when": "{{o == null}}", "width": 236, "fitContent": "height", "alignItems": "stretch", "gap": 6, "color": "transparent", "children": [
+						{ "type": "label", "id": "format-background-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Fill", "size": 12 }] },
+						{ "use": "swatches", "with": { "prefix": "format-background", "chosen": "{{computed.slide.background ?? computed.theme.background}}", "run": "setBackground", "key": "background" } },
+						{ "type": "label", "id": "format-background-reset", "style": "rbButton", "height": 24, "fitText": true, "padding": 4,
+						  "runs": [{ "icon": "rotate-ccw", "size": 13 }, { "text": " The theme's background", "size": 12 }],
+						  "onClick": { "run": "setBackground", "with": { "slot": null } } }
+					] },
+					{ "type": "column", "id": "format-object", "when": "{{o != null}}", "width": 236, "fitContent": "height", "alignItems": "stretch", "gap": 6, "color": "transparent", "children": [
+						{ "type": "label", "id": "format-fill-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Fill", "size": 12 }] },
+						{ "use": "swatches", "with": { "prefix": "format-fill", "chosen": "{{o.fill ?? 'none'}}", "run": "setObjects", "key": "fill" } },
+						{ "type": "label", "id": "format-line-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Line", "size": 12 }] },
+						{ "use": "swatches", "with": { "prefix": "format-line", "chosen": "{{o.line ?? 'none'}}", "run": "setObjects", "key": "line" } },
+						{ "use": "paneStepper", "with": { "prefix": "format-line-width", "title": "Width", "value": "{{o.lineWidth ?? 1}}", "unit": " pt", "key": "lineWidth", "step": 0.5, "low": 0, "high": 50 } },
+						{ "type": "label", "id": "format-effects-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Effects", "size": 12 }] },
+						{ "type": "row", "id": "format-effects", "width": 236, "height": 26, "gap": 4, "color": "transparent", "children": [
+							{ "repeat": { "for": "fx", "in": [["none", "No effect"], ["shadow", "Shadow"], ["glow", "Glow"]], "key": "{{fx[0]}}" },
+							  "type": "label", "id": "{{'format-effect-' + fx[0]}}", "style": "{{(o.effect ?? 'none') == fx[0] ? 'rbButtonOn' : 'rbButton'}}", "height": 26,
+							  "fitText": true, "padding": 6, "runs": [{ "text": "{{fx[1]}}", "size": 12 }],
+							  "onClick": { "run": "setObjects", "with": { "props": { "effect": "{{fx[0] == 'none' ? null : fx[0]}}" } } } }
+						] },
+						{ "type": "label", "id": "format-size-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Size and place", "size": 12 }] },
+						{ "use": "paneStepper", "with": { "prefix": "format-w", "title": "Width", "value": "{{box.w ?? 100}}", "key": "w", "step": 10, "low": 1, "high": 4000 } },
+						{ "use": "paneStepper", "with": { "prefix": "format-h", "title": "Height", "value": "{{box.h ?? 100}}", "key": "h", "step": 10, "low": 0, "high": 4000 } },
+						{ "use": "paneStepper", "with": { "prefix": "format-x", "title": "Left", "value": "{{box.x ?? 0}}", "key": "x", "step": 10, "low": -2000, "high": 4000 } },
+						{ "use": "paneStepper", "with": { "prefix": "format-y", "title": "Top", "value": "{{box.y ?? 0}}", "key": "y", "step": 10, "low": -2000, "high": 4000 } },
+						{ "use": "paneStepper", "with": { "prefix": "format-rotate", "title": "Rotation", "value": "{{o.rotate ?? 0}}", "unit": "°", "key": "rotate", "step": 15, "low": -360, "high": 360 } },
+						{ "type": "label", "id": "format-lock", "style": "{{computed.locked ? 'rbButtonOn' : 'rbButton'}}", "height": 26, "fitText": true, "padding": 6,
+						  "runs": [{ "icon": "{{computed.locked ? 'lock' : 'lock-open'}}", "size": 14 }, { "text": "{{computed.locked ? ' Locked' : ' Lock'}}", "size": 12 }],
+						  "tooltip": "A locked object stays where it is and isn't deleted", "onClick": "toggleLock" },
+						{ "type": "label", "id": "format-alt-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Alt Text", "size": 12 }] },
+						{ "type": "editor", "id": "format-alt", "height": 54, "wrap": true, "color": "@rbFieldBg", "lineColor": "transparent", "textColor": "@rbInk",
+						  "label": "Alt text: what a screen reader says for this object",
+						  "bind": "{{'state.deck.slides[' + state.current + '].objects[' + indexOf(map(computed.objects, it.id), o.id) + '].alt'}}" }
+					] }
+				]
+			}
+		},
+
+		"sorterView": {
+			"params": {},
+			"note": "Every slide's image in a grid; a click picks it, a double-click opens it in Normal, a drag onto another moves it there.",
+			"node": {
+				"type": "column", "id": "sorter", "grow": 1, "color": "@work", "alignItems": "stretch", "children": [
+				{ "id": "sorter-top", "height": 20, "color": "transparent" },
+				{
+				"type": "grid", "id": "sorter-grid", "grow": 1, "color": "@work", "scroll": "vertical", "columns": "{{max(floor((window.width - 40) / 236), 1)}}",
+				"gap": 16, "justifyItems": "center", "focusable": true, "role": "list", "label": "Slides",
+				"keys": {
+					"left": { "run": "pickSlide", "with": { "index": "{{state.current - 1}}" } },
+					"right": { "run": "pickSlide", "with": { "index": "{{state.current + 1}}" } },
+					"enter": [{ "set": "state.view", "to": "normal" }],
+					"delete": "deleteSlide"
+				},
+				"children": [
+					{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "index": "i", "key": "{{s.id}}" },
+					  "type": "column", "id": "{{'sorter-' + s.id}}", "width": 220, "height": 148, "gap": 4, "alignItems": "stretch", "color": "transparent", "cursor": "hand", "role": "listitem",
+					  "selected": "{{i == state.current}}", "label": "{{'Slide ' + (i + 1)}}",
+					  "drag": { "data": { "slide": "{{i}}" } },
+					  "onDrop": { "run": "moveSlide", "with": { "from": "{{event.data.slide ?? -1}}", "to": "{{i}}" } },
+					  "onClick": [{ "run": "pickSlide", "with": { "index": "{{i}}" } }, { "focus": "#sorter-grid" }],
+					  "onDoubleClick": [{ "run": "pickSlide", "with": { "index": "{{i}}" } }, { "set": "state.view", "to": "normal" }],
+					  "children": [
+						{ "id": "{{'sorter-' + s.id + '-frame'}}", "width": 220, "height": 128, "radius": 6, "color": "{{i == state.current ? '@brandLine' : 'transparent'}}",
+						  "hover": { "color": "{{i == state.current ? '@brandLine' : '@thumbHover'}}" }, "dragOver": { "color": "@brandLine" },
+						  "children": [
+							{ "type": "image", "id": "{{'sorter-' + s.id + '-image'}}", "x": 3, "y": 3, "width": 214, "height": 122, "source": "{{'slide-' + s.id}}", "fit": "fill" },
+							{ "id": "{{'sorter-' + s.id + '-veil'}}", "when": "{{s.hidden ?? false}}", "x": 3, "y": 3, "width": 214, "height": 122, "color": "#ffffff99" }
+						  ] },
+						{ "type": "row", "id": "{{'sorter-' + s.id + '-caption'}}", "height": 16, "gap": 4, "color": "transparent", "children": [
+							{ "type": "label", "id": "{{'sorter-' + s.id + '-number'}}", "fitText": true, "height": 16, "textColor": "@rbInk",
+							  "runs": [{ "text": "{{text(i + 1)}}", "size": 12, "bold": "{{i == state.current}}" }] },
+							{ "type": "label", "id": "{{'sorter-' + s.id + '-hidden'}}", "when": "{{s.hidden ?? false}}", "fitText": true, "height": 16, "textColor": "@rbMuted",
+							  "runs": [{ "icon": "eye-off", "size": 11 }], "tooltip": "Hidden in the show" },
+							{ "type": "label", "id": "{{'sorter-' + s.id + '-star'}}", "when": "{{(s.transition.kind ?? 'none') != 'none' || length(s.animations ?? []) > 0}}",
+							  "fitText": true, "height": 16, "textColor": "@rbMuted", "runs": [{ "icon": "star", "size": 10 }], "tooltip": "Has a transition or animations" }
+						] }
+					  ] }
+				]
+				}
+				] }
+		},
+
+		"outlineView": {
+			"params": {},
+			"note": "The slides' text in place of the thumbnails: each slide's number and its lines; a click picks the slide.",
+			"node": {
+				"type": "column", "id": "outline", "width": 300, "color": "@rbFieldBg", "scroll": "vertical", "gap": 8, "alignItems": "center", "focusable": true, "role": "list", "label": "Outline",
+				"keys": {
+					"up": { "run": "pickSlide", "with": { "index": "{{state.current - 1}}" } },
+					"down": { "run": "pickSlide", "with": { "index": "{{state.current + 1}}" } }
+				},
+				"children": [
+					{ "id": "outline-top", "width": 1, "height": 4, "color": "transparent" },
+					{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "index": "i", "key": "{{s.id}}" },
+					  "type": "row", "id": "{{'outline-' + s.id}}", "fitContent": "height", "width": 276, "gap": 6, "cursor": "hand", "radius": 4, "role": "listitem",
+					  "selected": "{{i == state.current}}", "label": "{{'Slide ' + (i + 1)}}",
+					  "color": "{{i == state.current ? '@rbChecked' : 'transparent'}}", "hover": { "color": "{{i == state.current ? '@rbChecked' : '@rbHover'}}" },
+					  "onClick": [{ "run": "pickSlide", "with": { "index": "{{i}}" } }, { "focus": "#outline" }],
+					  "children": [
+						{ "type": "label", "id": "{{'outline-' + s.id + '-number'}}", "width": 34, "height": 18, "padding": 2, "textColor": "@rbMuted",
+						  "runs": [{ "text": "{{text(i + 1)}}", "size": 12 }, { "icon": "presentation", "size": 11 }] },
+						{ "type": "label", "id": "{{'outline-' + s.id + '-text'}}", "width": 230, "wrap": true, "fitText": { "maxWidth": 230 }, "padding": 2, "textColor": "@rbInk",
+						  "runs": [{ "text": "{{computed.outlineText[i] == '' ? '(No text)' : computed.outlineText[i]}}", "size": 12 }] }
+					  ] }
+				]
+			}
+		}
+	}
+}

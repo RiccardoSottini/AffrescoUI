@@ -8,6 +8,7 @@ clean-ups can pick their files.
 |---|---|---|
 | **Gate: clang-tidy** | No finding of [`.clang-tidy`](../../.clang-tidy) in a line the change adds or modifies | `Linux` fails (its "Quality gate" step) |
 | **Gate: function size** | No function the change touches is over 80 lines or complexity 15, unless it was already over and didn't grow | `Linux` fails (its "Quality gate" step) |
+| **Gate: generalism** | Apps are folders of JSON and the engine holds mechanisms: the rules below, with the leftovers in [`generalism-allow.json`](generalism-allow.json) | `Linux` fails (its "Generalism gate" step) |
 | **Report: coverage** | Line, function and branch coverage of the unit tests, per module | Job summary, `coverage` artifact |
 | **Floor: coverage** | The line coverage of `core`, `vcs`, `channel`, `format/Rules.cpp` and `format/RulesControl.cpp` stays at or above [`coverage-baseline.json`](coverage-baseline.json) | `Quality report` fails |
 | **Report: whole repository** | The 20 longest and 20 most complex functions, tidy findings per module, check and file | Job summary, `quality-report` artifact |
@@ -50,6 +51,20 @@ whole signature.
 The limits are in [`thresholds.json`](thresholds.json): `function` is enforced, `aim` (60 lines, complexity 12, from
 the project's aims) is reported. Thresholds tighten over time, when the maintainer decides: lower the numbers in
 `thresholds.json` in a pull request of their own.
+
+**Generalism.** `run.sh generalism` (`generalism.py`, the standard library only) looks at the whole tree, not only at
+what changed:
+- no C++ under `examples/`: an app is a folder of JSON that the stock host runs;
+- the stock host (`affrescoui_launcher`) compiles nothing from `examples/`, and `apps/host` registers no node type;
+- no app's name (each `examples/*/app.json`'s id and name, but for ordinary words such as "flow") in `modules/` or
+  `apps/host`, comments included, Markdown aside;
+- no component definition or colour value in `modules/` outside `modules/themes` (the format's reference,
+  `modules/format/src/reference/`, aside: its colours are the text of its documentation's examples);
+- no module but `screen` links `themes`; the entry points, outside `modules/`, may.
+
+What is left over is in [`generalism-allow.json`](generalism-allow.json), each place with its reason: a path prefix,
+or `"path prefix: text"` for the findings there with that text. An entry that matches nothing fails the gate, so the
+list only shrinks: remove an entry in the change that moves its leftover out.
 
 ## The reports
 

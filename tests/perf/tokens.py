@@ -126,23 +126,31 @@ def with_includes(document, folder, depth=0):
 
 
 def template_files(root):
-    """The templates' screen files, in name order: from examples/templates.json, or, in a root from before it, the
-    one folder that held them."""
+    """The templates' (name, screen file), in name order: from examples/templates.json, or, in a root from before it,
+    the one folder that held them."""
     listing = os.path.join(root, "examples", "templates.json")
     if not os.path.exists(listing):
-        return sorted(glob.glob(os.path.join(root, "examples", "assets", "screens", "*" + SUFFIX)))
+        paths = sorted(glob.glob(os.path.join(root, "examples", "assets", "screens", "*" + SUFFIX)))
+        return [(os.path.basename(path)[:-len(SUFFIX)], path) for path in paths]
     with open(listing, encoding="utf-8") as file:
         templates = json.load(file)["templates"]
-    return [os.path.join(root, "examples", templates[name], name + SUFFIX) for name in sorted(templates)]
+    paths = []
+    for name in sorted(templates):  # each folder's index.screen.json, or, in a root from before it, <name>.screen.json
+        folder = os.path.join(root, "examples", templates[name])
+        index = os.path.join(folder, "index" + SUFFIX)
+        paths.append((name, index if os.path.exists(index) else os.path.join(folder, name + SUFFIX)))
+    return paths
 
 
 def screens(root):
     """The documents agents read, as the host loads them (its includes merged in), as (name, document): every
     template, then Forge with its features."""
-    for path in template_files(root):
+    for name, path in template_files(root):
         with open(path, encoding="utf-8") as screen:
-            yield os.path.basename(path)[:-len(SUFFIX)], with_includes(json.load(screen), os.path.dirname(path))
-    forge = os.path.join(root, "examples", "forge", "forge" + SUFFIX)
+            yield name, with_includes(json.load(screen), os.path.dirname(path))
+    forge = os.path.join(root, "examples", "forge", "index" + SUFFIX)
+    if not os.path.exists(forge):  # a root from before index.screen.json
+        forge = os.path.join(root, "examples", "forge", "forge" + SUFFIX)
     if os.path.exists(forge):  # a root from before Forge has none
         with open(forge, encoding="utf-8") as screen:
             yield "forge", with_includes(json.load(screen), os.path.dirname(forge))

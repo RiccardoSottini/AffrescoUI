@@ -44,6 +44,8 @@ TEST_CASE("net: URLs are parsed, and only allowed origins are reached") {
 	CHECK_FALSE(allowlist.allow("https://*.cdn.example.com"));
 	CHECK(allowlist.allow("https://example.com/path"));
 	CHECK_FALSE(allowlist.allow("http://example.com"));
+	CHECK(allowlist.allow("https://*.com"));       // a whole top-level domain
+	CHECK(allowlist.allow("https://*.localhost")); // a single label
 	CHECK_FALSE(allowlist.check("https://api.example.com/x"));
 	CHECK_FALSE(allowlist.check("wss://api.example.com/socket"));
 	CHECK_FALSE(allowlist.check("https://eu.cdn.example.com/x"));

@@ -2,6 +2,7 @@
 /// @brief Key names and shortcuts.
 
 #include "Shortcuts.hpp"
+#include "KeyNotation.hpp"
 
 #include <algorithm>
 #include <array>
@@ -15,7 +16,7 @@ namespace affresco::format {
 namespace {
 
 /// The names of the keys that aren't letters, digits or function keys.
-constexpr std::array<std::pair<Key, std::string_view>, 41> namedKeys = {{{Key::Enter, "enter"},
+constexpr std::array<std::pair<Key, std::string_view>, 40> namedKeys = {{{Key::Enter, "enter"},
                                                                          {Key::KeypadEnter, "enter"},
                                                                          {Key::Escape, "escape"},
                                                                          {Key::Tab, "tab"},
@@ -54,8 +55,7 @@ constexpr std::array<std::pair<Key, std::string_view>, 41> namedKeys = {{{Key::E
                                                                          {Key::KeypadDecimal, "numpadperiod"},
                                                                          {Key::KeypadAdd, "numpadplus"},
                                                                          {Key::KeypadSubtract, "numpadminus"},
-                                                                         {Key::KeypadMultiply, "numpadmultiply"},
-                                                                         {Key::GraveAccent, "backquote"}}};
+                                                                         {Key::KeypadMultiply, "numpadmultiply"}}};
 
 /// The modifier keys, in the order a shortcut writes them.
 enum Modifier { Command, Control, Alt, Shift }; // NOLINT(cppcoreguidelines-use-enum-class): it indexes held[]
@@ -80,8 +80,20 @@ constexpr std::array<std::pair<std::string_view, Modifier>, 10> modifierNames = 
                                                                                   {"shift", Shift}}};
 
 /// Other names documents give keys.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 2> keyAliases = {
-    {{"return", "enter"}, {"esc", "escape"}}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 14> keyAliases = {{{"return", "enter"},
+                                                                                       {"esc", "escape"},
+                                                                                       {"backquote", "grave"},
+                                                                                       {"`", "grave"},
+                                                                                       {"-", "minus"},
+                                                                                       {"=", "equal"},
+                                                                                       {",", "comma"},
+                                                                                       {".", "period"},
+                                                                                       {"/", "slash"},
+                                                                                       {"\\", "backslash"},
+                                                                                       {";", "semicolon"},
+                                                                                       {"'", "apostrophe"},
+                                                                                       {"[", "leftbracket"},
+                                                                                       {"]", "rightbracket"}}};
 
 /// @brief The parts of a shortcut as written, in lower case and without spaces: "Shift + K" is "shift", "k".
 /// @param text The shortcut.
@@ -102,34 +114,6 @@ std::optional<Modifier> modifierNamed(std::string_view name) {
 	for(const auto& [named, modifier] : modifierNames)
 		if(name == named) return modifier;
 	return std::nullopt;
-}
-
-/// The labels of the keys whose names are words, for keyLabel().
-constexpr std::array<std::pair<std::string_view, std::string_view>, 16> keyLabels = {
-    {{"minus", "-"},          {"equal", "="},          {"comma", ","},          {"period", "."},
-     {"slash", "/"},          {"backslash", "\\"},     {"semicolon", ";"},      {"apostrophe", "'"},
-     {"leftbracket", "["},    {"rightbracket", "]"},   {"grave", "`"},          {"numpadperiod", "Numpad ."},
-     {"numpadplus", "Numpad +"}, {"numpadminus", "Numpad -"}, {"numpadmultiply", "Numpad *"}, {"backquote", "`"}}};
-
-/// @brief The label of one normalised press: "⌘⇧K" on macOS, "Ctrl+Shift+K" elsewhere.
-/// @param press The press, "cmd+shift+k".
-/// @return Its label.
-std::string pressLabel(std::string_view press) {
-	const std::size_t last = press.rfind('+');
-	const std::string_view mods = last == std::string_view::npos ? "" : press.substr(0, last + 1);
-	std::string key(last == std::string_view::npos ? press : press.substr(last + 1));
-	for(const auto& [name, label] : keyLabels)
-		if(key == name) key = label;
-	if(key.size() == 7 && key.starts_with("numpad")) key = "Numpad " + key.substr(6); // "numpad7" is "Numpad 7"
-	if(!key.empty()) key[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(key[0])));
-	const auto has = [&](std::string_view name) { return mods.contains(name); };
-#ifdef __APPLE__
-	return std::string(has("ctrl+") ? "⌃" : "") + (has("alt+") ? "⌥" : "") + (has("shift+") ? "⇧" : "") +
-	       (has("cmd+") ? "⌘" : "") + key;
-#else
-	return std::string(has("ctrl+") ? "Ctrl+" : "") + (has("alt+") ? "Alt+" : "") + (has("shift+") ? "Shift+" : "") +
-	       (has("cmd+") ? "Super+" : "") + key;
-#endif
 }
 
 } // namespace
@@ -172,9 +156,39 @@ std::string normalizeShortcut(std::string_view text) {
 	       (held[Shift] ? "shift+" : "") + key;
 }
 
+std::optional<KeyEvent> keyPress(std::string_view text) {
+	const std::string press = normalizeShortcut(text);
+	const std::size_t last = press.rfind('+');
+	const std::string_view name =
+	    last == std::string::npos ? std::string_view(press) : std::string_view(press).substr(last + 1);
+	if(name.empty()) return std::nullopt;
+	const std::string_view mods = std::string_view(press).substr(0, press.size() - name.size());
+	for(int code = static_cast<int>(Key::Space); code <= static_cast<int>(Key::Menu); ++code) {
+		if(keyName(static_cast<Key>(code)) != name) continue;
+		KeyEvent event;
+		event.key = static_cast<Key>(code);
+		event.mods.bits = (mods.contains("shift+") ? 0x1 : 0) | (mods.contains("ctrl+") ? 0x2 : 0) |
+		                  (mods.contains("alt+") ? 0x4 : 0) | (mods.contains("cmd+") ? 0x8 : 0);
+		return event;
+	}
+	return std::nullopt;
+}
+
+char32_t typedBy(const KeyEvent& event) noexcept {
+	if(event.mods.control() || event.mods.alt() || event.mods.super()) return 0;
+	const int code = static_cast<int>(event.key);
+	if(code < static_cast<int>(Key::Space) || code > static_cast<int>(Key::GraveAccent)) return 0; // not printable
+	const bool shift = event.mods.shift();
+	if(event.key >= Key::A && event.key <= Key::Z) return static_cast<char32_t>(shift ? code : code - 'A' + 'a');
+	constexpr std::string_view plain = "`1234567890-=[]\\;',./", shifted = "~!@#$%^&*()_+{}|:\"<>?";
+	const std::size_t at = plain.find(static_cast<char>(code));
+	if(at == std::string_view::npos) return code == ' ' ? U' ' : 0;
+	return static_cast<char32_t>(shift ? shifted[at] : plain[at]);
+}
+
 std::string normalizeChord(std::string_view text) {
 	std::vector<std::string> presses;
-	bool join = false; // the next word belongs to the last press: one of them is next to a '+'
+	bool join = false; // the next word belongs to the last press: one is next to a '+', or the press has no key yet
 	for(std::size_t at = 0; at < text.size();) {
 		if(text[at] == ' ') {
 			++at;
@@ -182,24 +196,23 @@ std::string normalizeChord(std::string_view text) {
 		}
 		const std::size_t end = std::min(text.find(' ', at), text.size());
 		const std::string_view word = text.substr(at, end - at);
-		if(join || (word.front() == '+' && !presses.empty())) presses.back() += word;
-		else presses.emplace_back(word);
-		join = word.back() == '+';
+		if(join || (word.front() == '+' && !presses.empty())) {
+			if(!presses.back().ends_with('+') && word.front() != '+') presses.back() += '+';
+			presses.back() += word;
+		} else {
+			presses.emplace_back(word);
+		}
+		join = word.back() == '+' || normalizeShortcut(presses.back()).ends_with('+'); // "ctrl s" is "ctrl+s"
 		at = end;
 	}
 	std::string chord;
-	for(const std::string& press : presses) chord += (chord.empty() ? "" : " ") + normalizeShortcut(press);
+	for(const std::string& press : presses) {
+		const std::string normal = normalizeShortcut(press);
+		if(!normal.empty()) chord += (chord.empty() ? "" : " ") + normal; // "x+" names no key: nothing to press
+	}
 	return chord;
 }
 
-std::string keyLabel(std::string_view chord) {
-	std::string label;
-	for(std::size_t at = 0; at <= chord.size();) {
-		const std::size_t end = std::min(chord.find(' ', at), chord.size());
-		label += (label.empty() ? "" : " ") + pressLabel(chord.substr(at, end - at));
-		at = end + 1;
-	}
-	return label;
-}
+std::string keyLabel(std::string_view chord) { return keyLabel(normalizeChord(chord), "platform"); }
 
 } // namespace affresco::format

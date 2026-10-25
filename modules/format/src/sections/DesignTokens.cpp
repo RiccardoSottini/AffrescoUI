@@ -3,7 +3,7 @@
 /// change for every theme.
 
 #include "DesignTokens.hpp"
-#include "KitTokens.hpp"
+#include "Library.hpp"
 #include "PropertyValues.hpp"
 
 #include <cmath>
@@ -114,8 +114,8 @@ NumberTable readTokens(const json& document, ColorTable& colors) {
 	NumberTable numbers;
 	json tokens = document.contains("tokens") ? object(document["tokens"], "tokens") : json::object();
 	if(tokens.size() > tokenLimit) fail("tokens", "at most " + std::to_string(tokenLimit) + " tokens");
-	// The kit's defaults, under the document's own tokens and colours
-	for(const auto& [name, value] : kitTokens(followsKitThemes(document)).items())
+	// The library's defaults (the kit's tokens), under the document's own tokens and colours
+	for(const auto& [name, value] : libraryTokens(followsLibraryThemes(document)).items())
 		if(!tokens.contains(name) && !colors.contains(name)) tokens[name] = value;
 	const TokenResolver resolver(tokens, colors);
 	const auto themes = resolver.themes();

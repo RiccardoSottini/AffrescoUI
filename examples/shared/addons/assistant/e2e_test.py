@@ -16,6 +16,8 @@ import sys
 import tempfile
 import time
 
+os.environ.setdefault("AFFRESCOUI_HIDDEN", "1")  # its programs never show a window (CONTRIBUTING.md); =0 shows them
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(HERE))))
 SCREEN = os.path.join(HERE, "e2e.screen.json")
@@ -109,6 +111,11 @@ def main():
     work = tempfile.mkdtemp(prefix="afr-as-")  # short: socket paths are limited to about 100 bytes
     sockets, data = os.path.join(work, "s"), os.path.join(work, "data")
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets)
+    # The page asks the agents, so the host would ask the person first: they said no before (apps/host's grants.json),
+    # so the host attaches no agent of its own, and this one, over MCP, needs no grant
+    os.makedirs(os.path.join(data, "apps", "e2e"))
+    with open(os.path.join(data, "apps", "e2e", "grants.json"), "w", encoding="utf-8") as grants:
+        json.dump({"format": "affrescoui-grants", "version": 1, "decisions": {"assistant": False}}, grants)
     host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), SCREEN, "--socket", sockets, "--data", data],
                             env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:

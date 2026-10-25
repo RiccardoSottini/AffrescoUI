@@ -14,7 +14,9 @@ namespace {
 
 /// The keys, in the order of the tables.
 constexpr auto eventTable = std::to_array<KeyReference>({
-    {"onClick", "handler", "Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node).", "events"},
+    {"onClick", "handler", "Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node; "
+     "`event.data` is the item under the pointer that a drag would carry, as a tab's `{ \"id\", \"index\" }` or a "
+     "list row's `{ \"id\", \"ids\" }`, when there is one).", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
     {"onPress", "handler", "Left button down, up.", "events"},
@@ -30,7 +32,7 @@ constexpr auto eventTable = std::to_array<KeyReference>({
     {"onFocus", "handler", "Keyboard focus.", "events"},
     {"onBlur", "handler", "", "events"},
     {"onScroll", "handler", "`event.dx`, `event.dy`.", "events"},
-    {"onKey", "handler", "A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`.",
+    {"onKey", "handler", "A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`, `capsLock`.",
 	 "events"},
     {"onChange", "",
 	 "A bound or value control changed: `event.value`; a timeline's track muted or locked: `event.type` `\"track\"`, "

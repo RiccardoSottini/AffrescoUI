@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <vector>
@@ -14,17 +15,19 @@ namespace affresco::imaging::stb {
 
 /// @brief What a PNG or JPEG header says.
 struct Header {
-	int width = 0;          ///< Its width.
-	int height = 0;         ///< Its height.
+	int width = 0;           ///< Its width.
+	int height = 0;          ///< Its height.
 	bool sixteenBit = false; ///< Whether it has 16 bits a channel (PNG only).
 };
 
-/// @brief Decoded pixels: RGBA, straight alpha, top row first.
+/// @brief Decoded pixels: RGBA, straight alpha, top row first, in stb_image's own buffer (never copied: the image
+/// may be hundreds of megabytes).
 struct Decoded {
-	int width = 0;                    ///< Their width.
-	int height = 0;                   ///< Their height.
-	std::vector<std::uint8_t> bytes8; ///< 8 bits a channel, when not sixteenBit.
-	std::vector<std::uint16_t> bytes16; ///< 16 bits a channel, when the file has them.
+	int width = 0;                          ///< Their width.
+	int height = 0;                         ///< Their height.
+	std::span<const std::uint8_t> bytes8;   ///< 8 bits a channel, when not sixteenBit.
+	std::span<const std::uint16_t> bytes16; ///< 16 bits a channel, when the file has them.
+	std::shared_ptr<const void> buffer;     ///< What holds them: stb_image's buffer, freed with it, or null.
 };
 
 /// @brief Reads a header without decoding.

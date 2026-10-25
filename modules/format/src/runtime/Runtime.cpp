@@ -4,6 +4,7 @@
 #include "Catalog.hpp"
 #include "ComposedVersions.hpp"
 #include "Engine.hpp"
+#include "KeyNotation.hpp"
 #include "Reference.hpp"
 
 namespace affresco::format {
@@ -70,15 +71,22 @@ void Runtime::registerSurface(std::string name, SurfaceFactory factory, SurfaceO
 
 void Runtime::setPlaceholderTypes(bool enabled) { impl_->placeholderTypes = enabled; }
 
+void Runtime::allowFileDialogs(bool allowed) { impl_->fileDialogsAllowed = allowed; }
+
+void Runtime::allowOtherWindows(bool allowed) { impl_->otherWindowsAllowed = allowed; }
+
 Window& Runtime::createWindow(Application& app) {
 	const json& document = impl_->versions.document();
 	const json settings = document.contains("window") ? object(document["window"], "window") : json::object();
 
 	for(const auto& [key, value] : settings.items()) {
 		if(key != "title" && key != "width" && key != "height" && key != "minWidth" && key != "minHeight" &&
-		   key != "menuBar" && key != "focusRing" && key != "icon")
+		   key != "menuBar" && key != "focusRing" && key != "icon" &&
+		   key != "keyLabels")
 			fail("window." + key, "unknown property");
 	}
+	if(settings.contains("keyLabels") && !knownKeyNotation(string(settings["keyLabels"], "window.keyLabels")))
+		fail("window.keyLabels", "expected \"platform\", \"mac\", \"pc\" or \"letters\"");
 
 	Window& window =
 	    app.createWindow(settings.contains("title") ? string(settings["title"], "window.title") : "AffrescoUI",
@@ -90,6 +98,7 @@ Window& Runtime::createWindow(Application& app) {
 	impl_->document.images().setExecutor(&app); // decoded files arrive through the event loop from now on
 	impl_->calls.setExecutor(&app);             // and so do the results of slow calls
 	impl_->serviceCalls.setExecutor(&app);      // and of services
+	impl_->otherWindows.setApplication(&app);   // the "windows" section opens its windows in it
 	build(window);
 	return window;
 }
@@ -209,6 +218,17 @@ void Runtime::runAction(std::string_view name, Panel& sender, const json& event)
 	const Record* record = impl_->reconciler.recordOf(&sender);
 	const SharedScope locals = record ? record->locals : noVariables();
 	impl_->runner.handle(json(std::string(name)), sender, event, *locals, "runAction");
+}
+
+void Runtime::runHostAction(std::string_view name, Panel& sender, const json& event) {
+	++impl_->hostRunning;
+	try {
+		runAction(name, sender, event);
+	} catch(...) {
+		--impl_->hostRunning;
+		throw;
+	}
+	--impl_->hostRunning;
 }
 
 void Runtime::runOnce(const json& steps, const std::string& commit) {

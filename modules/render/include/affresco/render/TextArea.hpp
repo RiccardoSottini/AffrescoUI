@@ -58,6 +58,15 @@ public:
 	/// @param codepoint The character.
 	/// @return True if setAccept() lets it in.
 	[[nodiscard]] bool accepts(char32_t codepoint) const noexcept;
+	/// @brief Adds text at the end as typing would (keeping the characters accepted and within the most), firing
+	/// onTextChanged if it changed: what a script types.
+	/// @param utf8 UTF-8 text.
+	/// @return Whether the text changed.
+	bool insertText(std::string_view utf8);
+	/// @brief Removes the last characters, firing onTextChanged if it changed.
+	/// @param count How many (at most all of them).
+	/// @return The text removed, as UTF-8.
+	std::string removeLast(std::size_t count);
 
 	Signal<const std::string&> onTextChanged; ///< The user edited the text (not setText() or clear()); UTF-8.
 

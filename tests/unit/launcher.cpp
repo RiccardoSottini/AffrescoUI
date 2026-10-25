@@ -28,6 +28,9 @@ namespace automation = affresco::automation;
 namespace services = affresco::services;
 namespace fs = std::filesystem;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief Writes a file, making its folder.
@@ -157,14 +160,14 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 	const TemporaryFolder folder;
 	const fs::path programs = folder.path() / "bin", examples = folder.path() / "examples";
 	writeFile(programs / "affrescoui_launcher", "");
-	writeFile(programs / "examples" / "forge" / "affrescoui_forge", ""); // a build tree's place for it
+	writeFile(programs / "examples" / "tool" / "affrescoui_tool", ""); // a build tree's place for it
 	writeFile(examples / "flow" / "index.screen.json", "{}");
 	writeFile(examples / "flow" / "notes.txt", "");
 	writeFile(folder.path() / "outside.screen.json", "{}");
 	services::AppPrograms grant;
 	grant.folder = programs;
 	grant.programs = {
-	    {"affrescoui_launcher", true, true}, {"affrescoui_forge", false, false}, {"affrescoui_gone", false, false}};
+	    {"affrescoui_launcher", true, true}, {"affrescoui_tool", false, false}, {"affrescoui_gone", false, false}};
 	grant.roots = {{"examples", fs::canonical(examples)}};
 	grant.dataDirectory = folder.path() / "data";
 	grant.socketDirectory = folder.path() / "sockets";
@@ -183,10 +186,10 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 	CHECK(host->arguments == std::vector<std::string>{screen, "--ask", "Make it blue", "--data",
 	                                                  (folder.path() / "data").string(), "--socket",
 	                                                  (folder.path() / "sockets" / "examples-flow").string()});
-	const auto forge = shaped({"affrescoui_forge"});
-	REQUIRE(forge);
-	CHECK(forge->program == programs / "examples" / "forge" / "affrescoui_forge");
-	CHECK(forge->arguments.back() == (folder.path() / "sockets" / "forge").string());
+	const auto tool = shaped({"affrescoui_tool"});
+	REQUIRE(tool);
+	CHECK(tool->program == programs / "examples" / "tool" / "affrescoui_tool");
+	CHECK(tool->arguments.back() == (folder.path() / "sockets" / "tool").string());
 
 	CHECK_FALSE(shaped({}));
 	CHECK_FALSE(shaped({"sh", "-c", "true"}));                                   // not one of its programs
@@ -196,8 +199,17 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 	CHECK_FALSE(shaped({"affrescoui_launcher", "/etc/passwd"}));                     // no root named
 	CHECK_FALSE(shaped({"affrescoui_launcher", "nowhere:flow/index.screen.json"}));  // not one of its roots
 	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/notes.txt"}));         // not a screen
+	writeFile(examples / "flow" / "app.json", "{}");
+	const auto app = shaped({"affrescoui_launcher", "examples:flow"}); // an app's folder
+	REQUIRE(app);
+	CHECK(app->arguments.front() == (fs::canonical(examples) / "flow").string());
+	CHECK(app->arguments.back() == (folder.path() / "sockets" / "examples-flow").string());
+	CHECK(shaped({"affrescoui_launcher", "examples:flow/app.json"}));
+	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:."})); // a folder without an app.json
+	fs::remove(examples / "flow" / "app.json");
+	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow"}));
 	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--data", "/tmp"})); // its own flags only
-	CHECK_FALSE(shaped({"affrescoui_forge", "--ask", "hello"})); // it takes no first request
+	CHECK_FALSE(shaped({"affrescoui_tool", "--ask", "hello"})); // it takes no first request
 	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--ask", std::string(5000, 'a')}));
 	CHECK_FALSE(shaped({"reveal", "examples:flow/index.screen.json"})); // a folder only
 	CHECK_FALSE(shaped({"reveal", "examples:.."}));
@@ -359,3 +371,5 @@ TEST_CASE("launcher: an app is created blank and from an example, listed, duplic
 	INFO(built.text());
 	CHECK(built.failed() == 0);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

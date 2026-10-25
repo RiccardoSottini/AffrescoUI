@@ -170,6 +170,39 @@ TEST_CASE("audio format: a tone plays, its state follows, and its end runs the s
 	CHECK(stateAt(screen, "/song/position") == 0.0);
 }
 
+TEST_CASE("audio format: a sound with bands has a spectrum in its state while it plays, and zeros after") {
+	ThreadExecutor executor;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen =
+	    affresco::Screen::fromString(audioScreen({{"song",
+		                                           {{"tone", {{"frequency", 1000}, {"seconds", 0.5}}},
+		                                            {"into", "state.song"},
+		                                            {"bands", 8},
+		                                            {"updates", 50}}}})
+		                                 .dump());
+	const auto engine = manualEngine(executor);
+	screen.setAudio(engine);
+	screen.setExecutor(&executor);
+	screen.build(*window);
+	screen.runAction("play", window->root());
+	CHECK(stateAt(screen, "/song/spectrum") == json::array({0, 0, 0, 0, 0, 0, 0, 0}));
+	const auto loudest = [&] {
+		const json bands = stateAt(screen, "/song/spectrum");
+		return bands.is_array() && bands.size() == 8 && bands[4].get<double>() > 0.5; // 1 kHz is in the fifth of 8
+	};
+	REQUIRE(playUntil(*engine, executor, loudest));
+	CHECK(stateAt(screen, "/song/spectrum")[0].get<double>() < 0.3);
+	REQUIRE(playUntil(*engine, executor, [&] { return stateAt(screen, "/ended") == 1; }));
+	CHECK(stateAt(screen, "/song/spectrum") == json::array({0, 0, 0, 0, 0, 0, 0, 0}));
+
+	const affresco::format::Rules rules;
+	const auto check = [&rules](const json& sounds) { rules.validate(audioScreen(sounds)); };
+	CHECK_THROWS(check({{"song", {{"file", "a.wav"}, {"bands", 65}}}}));
+	CHECK_THROWS(check({{"song", {{"file", "a.wav"}, {"bands", 0}}}}));
+	CHECK_THROWS_WITH(check({{"song", {{"file", "a.wav"}, {"bands", 2.5}}}}), doctest::Contains("whole number"));
+}
+
 TEST_CASE("audio format: a file plays only from the screen's folder or one the host allows") {
 	const SoundFolder screenFolder("audio-screen");
 	const SoundFolder other("audio-other");

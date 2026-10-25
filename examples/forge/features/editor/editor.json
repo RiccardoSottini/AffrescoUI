@@ -55,7 +55,7 @@
 						"onDone": [
 							{
 								"push": "state.docs",
-								"value": "{{ {id: path, label: label, kind: 'file', text: result.text, saved: result.text, dirty: false, language: label == 'CMakeLists.txt' ? 'CMake' : state.languages[lower(reverse(split(label, '.'))[0])] ?? ''} }}"
+								"value": "{{ {id: path, label: label, kind: 'file', text: join(split(join(split(result.text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), saved: join(split(join(split(result.text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), eol: contains(result.text, '\r\n') ? 'CRLF' : 'LF', savedEol: contains(result.text, '\r\n') ? 'CRLF' : 'LF', dirty: false, language: label == 'CMakeLists.txt' ? 'CMake' : state.languages[lower(reverse(split(label, '.'))[0])] ?? ''} }}"
 							},
 							{
 								"run": "showFileTab",
@@ -71,6 +71,12 @@
 			}
 		],
 		"showFileTab": [
+			{
+				"run": "forgeRecordNav",
+				"with": {
+					"id": "{{id}}"
+				}
+			},
 			{
 				"if": "{{some(state.groups[state.activeGroup].tabs, it.id == id)}}",
 				"then": [
@@ -145,6 +151,12 @@
 					{
 						"set": "state.docs",
 						"to": "{{filter(state.docs, it.id != id)}}"
+					},
+					{
+						"run": "lspClosed",
+						"with": {
+							"id": "{{id}}"
+						}
 					}
 				]
 			}
@@ -323,29 +335,35 @@
 				"as": "doc",
 				"do": [
 					{
-						"if": "{{(event.value != doc.saved) != doc.dirty}}",
+						"if": "{{(event.value != doc.saved || doc.eol != doc.savedEol) != doc.dirty}}",
 						"then": [
 							{
 								"run": "markDirty",
 								"with": {
 									"id": "{{id}}",
-									"dirty": "{{event.value != doc.saved}}"
+									"dirty": "{{event.value != doc.saved || doc.eol != doc.savedEol}}"
 								}
 							}
 						]
 					}
 				]
+			},
+			{
+				"run": "lspChanged",
+				"with": {
+					"id": "{{id}}"
+				}
 			}
 		],
 		"saveFile": [
 			{
-				"note": "doc: an open file. Writes its text and marks it saved"
+				"note": "doc: an open file. Writes its text, with its line endings, and marks it saved"
 			},
 			{
 				"invoke": "files.write",
 				"with": {
 					"path": "{{doc.id}}",
-					"text": "{{doc.text}}"
+					"text": "{{doc.eol == 'CRLF' ? join(split(doc.text, '\n'), '\r\n') : doc.text}}"
 				},
 				"onError": [
 					{
@@ -359,18 +377,18 @@
 				"onDone": [
 					{
 						"set": "state.docs",
-						"to": "{{map(state.docs, it.id == doc.id ? merge(it, {saved: doc.text, dirty: it.text != doc.text}) : it)}}"
+						"to": "{{map(state.docs, it.id == doc.id ? merge(it, {saved: doc.text, savedEol: doc.eol, dirty: it.text != doc.text || it.eol != doc.eol}) : it)}}"
 					}
 				]
 			}
 		],
 		"reloaded": [
 			{
-				"note": "id: an open file; text: what it now holds on disk"
+				"note": "id: an open file; text: what it now holds on disk. Kept as the editor shows it (tabs as the tab size's spaces, no carriage returns), its line endings noted, so undoing back to it is clean"
 			},
 			{
 				"set": "state.docs",
-				"to": "{{map(state.docs, it.id == id ? merge(it, {text: text, saved: text, dirty: false}) : it)}}"
+				"to": "{{map(state.docs, it.id == id ? merge(it, {text: join(split(join(split(text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), saved: join(split(join(split(text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), eol: contains(text, '\r\n') ? 'CRLF' : 'LF', savedEol: contains(text, '\r\n') ? 'CRLF' : 'LF', dirty: false}) : it)}}"
 			}
 		]
 	},
@@ -450,7 +468,7 @@
 								"activeBackground": "@color.tabActive",
 								"accentEdge": "bottom",
 								"accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
-								"tabs": "{{map(g.tabs, merge(it, {label: it.preview ? it.label + ' (preview)' : it.label, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky}))}}",
+								"tabs": "{{map(g.tabs, merge(it, {italic: it.preview == true, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky, icon: (settings.workbench.fileIcons && contains(it.label, '.') ? state.iconTheme.names[it.label] ?? state.iconTheme.extensions[lower(reverse(split(it.label, '.'))[0])] ?? state.iconTheme.file : null).icon, iconColor: (settings.workbench.fileIcons && contains(it.label, '.') ? state.iconTheme.names[it.label] ?? state.iconTheme.extensions[lower(reverse(split(it.label, '.'))[0])] ?? state.iconTheme.file : null).color}))}}",
 								"onClose": {
 									"run": "closeTab",
 									"with": {
@@ -504,29 +522,37 @@
 									},
 									{
 										"when": "{{state.docs[d].kind == 'file'}}",
+										"use": "forgeConflictBar",
+										"visible": "{{gi == state.activeGroup && !empty(computed.conflictBlocks)}}"
+									},
+									{
+										"when": "{{state.docs[d].kind == 'file'}}",
 										"id": "editor",
-										"type": "code",
+										"type": "editor",
 										"font": "code",
 										"width": "100%",
 										"grow": 1,
 										"bind": "state.docs[d].text",
 										"onChange": { "run": "textChanged", "with": { "id": "{{state.docs[d].id}}" } },
 										"language": "{{state.docs[d].language}}",
+										"grammar": "{{state.docs[d].label}}",
 										"lineNumbers": "{{settings.editor.lineNumbers}}",
-										"goTo": "{{gi == state.activeGroup ? {line: state.goTo.line, column: state.goTo.column ?? 1, request: state.goTo.request} : null}}",
+										"goTo": "{{gi == state.activeGroup && state.goTo.request > 0 ? {line: max(state.goTo.line - 1, 0), column: max((state.goTo.column ?? 1) - 1, 0), request: state.goTo.request} : null}}",
 										"caret": "state.caret",
 										"wrap": "{{settings.editor.wordWrap}}",
 										"minimap": "{{settings.editor.minimap.enabled}}",
+										"scrollMarks": true,
 										"brackets": "{{settings.editor.bracketMatching}}",
 										"indentGuides": "{{settings.editor.guides.indentation}}",
+										"tabSize": "{{settings.editor.tabSize ?? 4}}",
 										"find": "{{gi == state.activeGroup ? computed.findQuery : null}}",
-										"decorations": "{{concat((find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? [], map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark))}}",
+										"decorations": "{{concat((find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? [], map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark), gi == state.activeGroup ? computed.conflictDecorations : [])}}",
 										"tokens": "{{(find(state.lsp.files, it.id == state.docs[d].id) ?? {}).tokens ?? []}}",
-										"onHover": "lspHoverAt",
+										"onTextHover": "lspHoverAt",
 										"onType": "lspTyped",
 										"popup": "{{gi == state.activeGroup && state.lsp.completion.open}}",
 										"onPopupKey": "lspPopupKey",
-										"insert": "{{gi == state.activeGroup ? state.lsp.insert : null}}",
+										"insert": "{{gi == state.activeGroup && state.lsp.insert.request > 0 ? state.lsp.insert : null}}",
 										"color": "@color.editor",
 										"textColor": "@color.editorText",
 										"lineNumberColor": "@color.muted",
@@ -556,13 +582,15 @@
 											"f11": "debugStepInto",
 											"shift+f11": "debugStepOut"
 										},
-										"syntax": {
-											"keyword": "@syntax.keyword",
-											"type": "@syntax.type",
-											"string": "@syntax.string",
-											"number": "@syntax.number",
-											"comment": "@syntax.comment",
-											"heading": "@syntax.heading"
+										"commands": {
+											"mod+/": "toggleComment",
+											"alt+up": "moveLinesUp",
+											"alt+down": "moveLinesDown",
+											"mod+shift+k": "deleteLines",
+											"mod+[": "outdentLines",
+											"mod+]": "indentLines",
+											"mod+c": "copyLine",
+											"mod+x": "cutLine"
 										}
 									},
 									{
@@ -572,6 +600,10 @@
 									{
 										"when": "{{state.docs[d].kind == 'keybindings'}}",
 										"use": "forgeKeybindingsPage"
+									},
+									{
+										"when": "{{state.docs[d].kind == 'searchResults'}}",
+										"use": "forgeSearchEditor"
 									},
 									{
 										"when": "{{state.docs[d].kind == 'settingsJson'}}",

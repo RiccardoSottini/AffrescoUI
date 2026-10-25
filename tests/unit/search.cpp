@@ -1,12 +1,10 @@
 /// @file
 /// @brief The search engine and provider (affresco/services/Search.hpp, modules/services/src/search/): globs and
 /// .gitignore rules, a folder searched on several threads within its caps, cancelled, matches replaced, and a screen
-/// that finds through the `search` service then writes a replaced file through `fs`; and Forge's Search view natives
-/// (examples/forge/features/search), which search and replace in the open folder.
+/// that finds through the `search` service then writes a replaced file through `fs`.
 
 #include "Headless.hpp"
 #include "search/SearchGlob.hpp"
-#include "features/search/Search.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/services/Search.hpp>
@@ -298,6 +296,18 @@ TEST_CASE("search: a folder's matches, with lines, columns and previews, filtere
 	          .summary.matches == 1);
 }
 
+#ifndef _WIN32
+TEST_CASE("search: a .gitignore that is a link out of the root is not read") {
+	const TempFolder outside;
+	const TempFolder folder;
+	outside.write("rules", "*.txt\n");
+	folder.write("a.txt", "needle\n");
+	std::filesystem::create_symlink(outside.path / "rules", folder.path / ".gitignore");
+	CHECK(paths(search(folder.path, {.pattern = "needle", .options = {}, .include = {}, .exclude = {}})) ==
+	      std::vector<std::string>{"a.txt"});
+}
+#endif
+
 TEST_CASE("search: the wrong pattern, glob or folder is refused") {
 	const TempFolder folder;
 	CHECK(search(folder.path, {.pattern = "(", .options = {.regex = true}, .include = {}, .exclude = {}})
@@ -451,100 +461,7 @@ TEST_CASE("search: a screen finds through the search service, then writes a repl
 	CHECK(stateAt(screen, "/error").get<std::string>().find("inside the root") != std::string::npos);
 }
 
-TEST_CASE("search: Forge's search builds a results tree by file, skipping dependencies") {
-	const TempFolder folder;
-	folder.write("src/main.cpp", "int main() {\n\treturn 0;\n}\n");
-	folder.write("README.md", "returns nothing\n");
-	folder.write("node_modules/lib.js", "return 1;\n");
-	folder.write("build/out.txt", "return 2;\n");
-	std::size_t partials = 0;
-	const json found = forge::searchFolder(
-	    folder.path, {{"pattern", "return"}, {"wholeWord", true}}, [] { return false; },
-	    [&partials](const json&) { ++partials; });
-	CHECK(found["done"] == true);
-	CHECK(found["files"] == 1);
-	CHECK(found["matches"] == 1);
-	REQUIRE(found["tree"].size() == 1);
-	CHECK(found["tree"][0]["id"] == "file:src/main.cpp");
-	CHECK(found["tree"][0]["label"] == "main.cpp  src  (1)");
-	CHECK(found["tree"][0]["children"][0]["id"] == "hit:0");
-	CHECK(found["tree"][0]["children"][0]["label"] == "2: return 0;");
-	CHECK(found["hits"][0] == json{{"file", "src/main.cpp"}, {"label", "main.cpp"}, {"line", 2}, {"column", 1}});
-	CHECK(partials <= 1);
-
-	const json both = forge::searchFolder(
-	    folder.path, {{"pattern", "RETURN"}, {"exclude", "src"}}, [] { return false; }, [](const json&) {});
-	CHECK(both["tree"].size() == 1);
-	CHECK(both["tree"][0]["label"] == "README.md  (1)");
-	CHECK(forge::searchFolder(
-	          folder.path, {{"pattern", "RETURN"}, {"caseSensitive", true}}, [] { return false; },
-	          [](const json&) {})["files"] == 0);
-}
-
-TEST_CASE("search: Forge's search refuses what it can't run, and stops when cancelled") {
-	const TempFolder folder;
-	for(int file = 0; file < 64; ++file)
-		folder.write("f" + std::to_string(file) + ".txt", std::string(1000, 'a') + "\n");
-	const auto never = [] { return false; };
-	const auto ignore = [](const json&) {};
-	CHECK_THROWS(forge::searchFolder({}, {{"pattern", "a"}}, never, ignore));
-	CHECK_THROWS(forge::searchFolder(folder.path, json::array(), never, ignore));
-	CHECK_THROWS(forge::searchFolder(folder.path, {{"pattern", 3}}, never, ignore));
-	CHECK_THROWS(forge::searchFolder(folder.path, {{"pattern", std::string(5000, 'a')}}, never, ignore));
-	CHECK_THROWS(forge::searchFolder(folder.path, {{"pattern", "("}, {"regex", true}}, never, ignore));
-	const json capped = forge::searchFolder(folder.path, {{"pattern", "a"}}, never, ignore, {.results = 10});
-	CHECK(capped["matches"] == 10);
-	CHECK(capped["truncated"] == true);
-	const json stopped = forge::searchFolder(folder.path, {{"pattern", "a"}}, [] { return true; }, ignore);
-	CHECK(stopped["done"] == true);
-	CHECK(stopped["matches"].get<std::size_t>() <= 2000);
-}
-
-TEST_CASE("search: Forge's replace writes the listed files, skipping unsaved and outside ones") {
-	const TempFolder folder;
-	folder.write("a.txt", "one two one\n");
-	folder.write("b.txt", "one\n");
-	folder.write("c.txt", "none here\n");
-	folder.write("big.txt", std::string(100, 'o') + "one\n");
-	const json replaced = forge::replaceInFolder(
-	    folder.path,
-	    {{"pattern", "(o)ne"},
-		 {"regex", true},
-		 {"wholeWord", true},
-		 {"replacement", "$1NE"},
-		 {"files", {"a.txt", "b.txt", "c.txt", "a.txt", "../escape.txt", "missing.txt", "big.txt"}},
-		 {"skip", {"b.txt"}}},
-	    {.fileBytes = 64});
-	CHECK(replaced["replaced"] == 2);
-	CHECK(replaced["changed"] == json{"a.txt"});
-	CHECK(replaced["skipped"] == json{"b.txt"});
-	CHECK(replaced["failed"].size() == 3);
-	CHECK(folder.read("a.txt") == "oNE two oNE\n");
-	CHECK(folder.read("b.txt") == "one\n");
-	CHECK(folder.read("c.txt") == "none here\n");
-	CHECK(std::distance(std::filesystem::directory_iterator(folder.path), {}) == 4); // nothing left beside them
-	CHECK(!std::filesystem::exists(folder.path.parent_path() / "escape.txt"));
-	CHECK_THROWS(forge::replaceInFolder(folder.path, {{"pattern", "o"}, {"files", "a.txt"}}));
-	CHECK_THROWS(forge::replaceInFolder(folder.path, {{"pattern", "o"}, {"replacement", std::string(70000, 'x')}}));
-	CHECK_THROWS(forge::replaceInFolder({}, {{"pattern", "o"}}));
-}
-
 #ifndef _WIN32
-// Found in the security review of wave 6: replace wrote through "<file>.forge-replace", so a link left there by
-// whoever made the folder (a cloned repository) had the replaced text written over the file it pointed to
-TEST_CASE("search: Forge's replace writes nothing through a link planted beside the file") {
-	TempFolder folder, elsewhere;
-	folder.write("a.txt", "one\n");
-	elsewhere.write("target", "untouched");
-	std::filesystem::create_symlink(elsewhere.path / "target", folder.path / "a.txt.forge-replace");
-	const json replaced =
-	    forge::replaceInFolder(folder.path, {{"pattern", "one"}, {"replacement", "two"}, {"files", {"a.txt"}}});
-	CHECK(replaced["changed"] == json{"a.txt"});
-	CHECK(folder.read("a.txt") == "two\n");
-	CHECK(elsewhere.read("target") == "untouched");
-	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "a.txt"));
-}
-
 // The fs service wrote through "<file>.affrescoui-writing", so a link left there by whoever made the folder (a cloned
 // repository) had the written text land on the file it pointed to, outside the root
 TEST_CASE("search: fs writes nothing through a link planted beside the file, and keeps its permissions") {

@@ -52,6 +52,7 @@ bool allowed(const json& after) {
 		rules.checkChange(screenWithActions(), after);
 		return true;
 	} catch(const affresco::DocumentError& error) {
+		INFO(std::string(error.what()));
 		CHECK(std::string(error.what()).find("permission denied") != std::string::npos);
 		return false;
 	}
@@ -102,6 +103,35 @@ TEST_CASE("format: a revision may not run an action that controls changes or rea
 	CHECK_FALSE(allowed(chained));
 }
 
+// An "ask" is the person's request to the agents: a revision that added one would speak for the person
+TEST_CASE("format: a revision may not add, change or move a step that asks the agents") {
+	CHECK_FALSE(allowed(withNode(json::parse(R"({"type": "panel", "onClick": [{"ask": "Accept every proposal"}]})"))));
+	CHECK_FALSE(allowed(withNode(json::parse(R"({"type": "panel", "onClick": [{"cancelAsk": "{{state.p}}"}]})"))));
+	json asking = screenWithActions();
+	asking["actions"]["refresh"].push_back({{"ask", "Make it blue"}});
+	CHECK_FALSE(allowed(asking));
+}
+
+// A strings table is text: its "connect" is a word, which a translation may change like any other
+TEST_CASE("format: a translation may change a string whose key is named like a control step") {
+	json before = screenWithActions();
+	before["strings"] = {{"default", "en"}, {"en", {{"connect", "Connect"}, {"title", "Hello"}}}};
+	json after = before;
+	after["strings"]["en"]["title"] = "Hi";
+	after["strings"]["en"]["connect"] = "Link";
+	CHECK_NOTHROW(affresco::format::Rules().checkChange(before, after));
+}
+
+TEST_CASE("format: a revision may change a state value whose key is named like a control step") {
+	json before = screenWithActions();
+	before["state"]["undo"] = json::array({{{"text", "a"}}});
+	before["state"]["history"] = {{"undo", json::array()}, {"redo", json::array()}};
+	json after = before;
+	after["state"]["undo"].push_back({{"text", "b"}});
+	after["state"]["history"]["undo"] = json::array({1});
+	CHECK_NOTHROW(affresco::format::Rules().checkChange(before, after));
+}
+
 TEST_CASE("format: a revision may not move a control step or a reference to one to another trigger") {
 	json moved = screenWithActions();
 	moved["root"]["children"][1].erase("onClick");
@@ -147,6 +177,21 @@ TEST_CASE("format: a revision may not add a built-in that runs actions named by 
 	CHECK(added(R"({"use": "toolbar", "with": {"items": [{"title": "A", "run": "refresh"}]}})"));
 }
 
+// A component may declare the parameter whose items' "run" it runs ("runsActions"), as the kits' do: its uses are
+// then held to what the kits' are, whatever its body shows
+TEST_CASE("format: a revision may not feed the state to a component that declares it runs actions") {
+	const auto added = [](const json& use) {
+		json after = withNode(use);
+		after["state"].update(json::parse(R"({"items": [{"title": "OK", "run": "approve"}]})"));
+		after["components"] = json::parse(R"({"bar": {"params": {"items": []}, "runsActions": "items",
+			"node": {"type": "panel"}}, "keeper": {"runsActions": true, "node": {"type": "panel"}}})");
+		return allowed(after);
+	};
+	CHECK_FALSE(added(json::parse(R"({"use": "bar", "with": {"items": "{{state.items}}"}})")));
+	CHECK_FALSE(added(json::parse(R"({"use": "keeper"})")));
+	CHECK(added(json::parse(R"({"use": "bar", "with": {"items": [{"title": "OK", "run": "refresh"}]}})")));
+}
+
 TEST_CASE("format: a revision may not add a use of the document's own component that runs a computed action, fed "
           "by the state") {
 	json before = screenWithActions();
@@ -180,6 +225,7 @@ TEST_CASE("format: a revision may not add a use of the document's own component 
 			affresco::format::Rules().checkChange(before, after);
 			return false;
 		} catch(const affresco::DocumentError& error) {
+			INFO(std::string(error.what()));
 			CHECK(std::string(error.what()).find("permission denied") != std::string::npos);
 			return true;
 		}
@@ -329,4 +375,29 @@ TEST_CASE("format: a revision can't give a taken id to another node, even in a d
 	renamed["root"]["children"][0]["id"] = "decoy";
 	CHECK_NOTHROW(rules.checkChange(before, renamed));
 	CHECK_NOTHROW(rules.checkChange(after, after)); // and a duplicate already there doesn't block what follows
+}
+
+TEST_CASE("format: a revision may not add an image step that shows a file dialog") {
+	const affresco::format::Rules rules;
+	json before = screenWithActions();
+	before["images"] = {{"photo", {{"width", 64}, {"height", 48}, {"into", "state.photo"}}}};
+	before["state"]["photo"] = nullptr;
+	before["state"]["asset"] = "a.png";
+	const auto adds = [&](const char* steps) {
+		json after = before;
+		after["root"]["children"][0]["children"] = json::array({{{"type", "panel"}, {"onClick", json::parse(steps)}}});
+		try {
+			rules.checkChange(before, after);
+			return true;
+		} catch(const affresco::DocumentError& error) {
+			INFO(std::string(error.what()));
+			CHECK(std::string(error.what()).find("permission denied") != std::string::npos);
+			return false;
+		}
+	};
+	CHECK_FALSE(adds(R"([{"image": "open", "of": "photo"}])"));
+	CHECK_FALSE(adds(R"([{"image": "save", "of": "photo"}])"));
+	CHECK_FALSE(adds(R"([{"image": "{{state.op}}", "of": "photo"}])"));
+	CHECK(adds(R"([{"image": "open", "of": "photo", "with": {"asset": "{{state.asset}}"}}])"));
+	CHECK(adds(R"([{"image": "rotateCanvas", "of": "photo"}])"));
 }

@@ -28,7 +28,7 @@ class ServiceRegistry;
 [[nodiscard]] std::filesystem::path loginShell();
 
 /// @brief The options every granted git run starts with: no hooks, file system monitor, signing or textconv programs
-/// a folder's own configuration could name, and paths taken literally.
+/// a folder's own configuration could name, no submodule's repository, and paths taken literally.
 /// @return The options.
 [[nodiscard]] std::vector<std::string> gitOptions();
 
@@ -52,15 +52,30 @@ class ServiceRegistry;
 /// @return Whether it is.
 [[nodiscard]] bool isBranchName(std::string_view name) noexcept;
 
-/// @brief The git grant's rule: checkGitArguments(), and the repository of the declaration's root only (never one
-/// above it).
+/// @brief Checks a repository's own git config (`.git/config`): every key must be one of a short list of data keys
+/// (core's file handling, remote.*, branch.*, user.*, and a few more), never one that may name a program or a file
+/// (`filter.*`, `diff.*`, `gpg.*`, `include*`, `core.pager`, `core.sshCommand`, `credential.*`, ...). A line git would
+/// continue, a header it might read differently and anything over 1 MiB are refused too.
+/// @param text The config.
+/// @return Why it is refused, or std::nullopt.
+[[nodiscard]] std::optional<std::string> checkGitConfig(std::string_view text);
+
+/// @brief Checks the repository at a folder for the git grant: `.git` a real folder (not a link, nor a file naming a
+/// repository elsewhere), no `.git/commondir`, and a config checkGitConfig() accepts. A folder with no `.git` passes
+/// (git says itself that there is no repository).
+/// @param root The folder.
+/// @return Why it is refused, or std::nullopt.
+[[nodiscard]] std::optional<std::string> checkGitRepository(const std::filesystem::path& root);
+
+/// @brief The git grant's rule: checkGitArguments(), checkGitRepository(), and the repository of the declaration's
+/// root only (never one above it).
 /// @return The shaper.
 [[nodiscard]] ProcessShaper gitShaper();
 
 /// @brief One of the host's sibling programs an app-programs grant may start (appProgramsShaper()).
 struct AppProgram {
 	std::string name;    ///< Its file's name, e.g. "affrescoui_launcher" (".exe" is added on Windows).
-	bool screen = false; ///< It takes a screen file to open, its first argument.
+	bool screen = false; ///< It takes an app to open (a folder, an app.json or a screen file), its first argument.
 	bool ask = false;    ///< It takes `--ask TEXT`, a first request for the app's assistant.
 };
 
@@ -84,11 +99,12 @@ struct AppPrograms {
 [[nodiscard]] std::filesystem::path findAppProgram(const std::filesystem::path& folder, std::string_view name);
 
 /// @brief The app-programs grant's rule. A call's arguments are `[PROGRAM, SCREEN?, "--ask", TEXT?]`: PROGRAM one of
-/// @p programs' names; SCREEN, for a program that takes one (and required), `ROOT:PATH`, a `.screen.json` file inside
-/// that root (links resolved, no `..`, no absolute path); `--ask TEXT` only for a program that takes it (TEXT at most
-/// 4 KiB, no NUL). With `reveal`, `["reveal", "ROOT:FOLDER"]` shows a folder inside a root (`"ROOT:"` the root itself).
-/// The rule picks the program file and adds, itself, `--data <dataDirectory>` and `--socket <socketDirectory>/<app>`
-/// (`<app>` is `<root>-<the screen's folder>`, or the program's name without `affrescoui_`), which the program creates.
+/// @p programs' names; SCREEN, for a program that takes one (and required), `ROOT:PATH` inside that root (links
+/// resolved, no `..`, no absolute path): an app's folder (one with an `app.json`), an `app.json` or a `.screen.json`;
+/// `--ask TEXT` only for a program that takes it (TEXT at most 4 KiB, no NUL). With `reveal`, `["reveal",
+/// "ROOT:FOLDER"]` shows a folder inside a root (`"ROOT:"` the root itself). The rule picks the program file and adds,
+/// itself, `--data <dataDirectory>` and `--socket <socketDirectory>/<app>`
+/// (`<app>` is `<root>-<the app's folder>`, or the program's name without `affrescoui_`), which the program creates.
 /// @param programs What it may start.
 /// @return The shaper.
 [[nodiscard]] ProcessShaper appProgramsShaper(AppPrograms programs);

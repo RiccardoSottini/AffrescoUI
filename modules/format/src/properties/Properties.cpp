@@ -26,8 +26,9 @@ constexpr std::array<std::string_view, 3> valueKeys = {"text", "checked", "value
 /// @param key Its key ("autofocus" and "locked" share Slot::Value with keys it doesn't read).
 /// @return true if it reads it.
 bool behaviourSlot(Slot slot, std::string_view key) noexcept {
-	return slot == Slot::Handler || slot == Slot::Bind || slot == Slot::Caret || slot == Slot::Keys ||
-	       slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context || key == "autofocus" || key == "locked";
+	return slot == Slot::Handler || slot == Slot::Bind || slot == Slot::Caret || slot == Slot::View ||
+	       slot == Slot::Keys || slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context ||
+	       key == "autofocus" || key == "locked";
 }
 
 /// @brief Tells whether a panel's type takes a key as its own property, which then isn't an event even if it is
@@ -101,6 +102,8 @@ std::string Properties::assetImage(const json& value, const std::string& at) con
 
 const LanguageCatalog* Properties::languages() const { return engine_.document.languages(); }
 
+std::shared_ptr<TerminalSessions> Properties::terminals() const { return engine_.terminals; }
+
 /* Applying a node */
 
 // Cost follows the change: a node whose compiled form, values and colours are those applied last is left as it is
@@ -141,6 +144,7 @@ Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record) co
 	record.context = nullptr;
 	record.bind.reset();
 	record.caret.reset();
+	record.view.reset();
 	Behaviour behaviour;
 	const CompiledNode& node = *record.node;
 	std::string at;
@@ -185,6 +189,9 @@ void Properties::readBehaviourKey(const Panel& panel, Record& record, std::strin
 	} else if(slot == Slot::Caret) {
 		if(!dynamic_cast<const TextEditor*>(&panel)) fail(at, "only text editors have \"caret\"");
 		record.caret = statePath(record, value, at);
+	} else if(slot == Slot::View) {
+		if(!dynamic_cast<const TextEditor*>(&panel)) fail(at, "only text editors have \"viewport\"");
+		record.view = statePath(record, value, at);
 	} else if(slot == Slot::Keys) {
 		record.keys = json::object();
 		for(const auto& [name, handler] : object(value, at).items()) record.keys[normalizeChord(name)] = handler;
@@ -443,8 +450,13 @@ void Properties::applySets(Panel& panel, Record& record, const Look& look) const
 
 void Properties::transitionLook(Panel& panel, Record& record, const Look& look, const std::array<Color, 3>& shown) {
 	Scheduler& scheduler = engine_.scheduler;
-	if(look.background) scheduler.transitionColor(panel, record, "color", shown[0], *look.background);
-	if(look.label && look.foreground) scheduler.transitionColor(panel, record, "textColor", shown[1], *look.foreground);
+	// Without a colour of its own, a running transition still ends where it is (the colour it has now): a panel that
+	// shows another node now, or that a state left, mustn't go on to an earlier node's or state's colour
+	scheduler.transitionColor(panel, record, "color", look.background ? shown[0] : panel.color(),
+	                          look.background.value_or(panel.color()));
+	if(look.label)
+		scheduler.transitionColor(panel, record, "textColor", look.foreground ? shown[1] : look.label->textColor(),
+		                          look.foreground.value_or(look.label->textColor()));
 	// Always, so a border colour that goes away (a state ends, a revision removes it) also ends a running transition
 	scheduler.transitionColor(panel, record, "borderColor", shown[2], look.border.value_or(colors::black));
 }

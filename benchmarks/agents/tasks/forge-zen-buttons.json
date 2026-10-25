@@ -22,6 +22,9 @@
 			"name": "panel",
 			"steps": [
 				{
+					"click": "#title-panel"
+				},
+				{
 					"click": "#panel-zen"
 				},
 				{
@@ -43,33 +46,23 @@
 		{
 			"message": "Zen Mode buttons",
 			"add": {
-				"#title-bar/children/6": {
-					"type": "label",
+				"#title-bar/children/9": {
+					"use": "forgeTitleButton",
 					"id": "title-zen",
-					"icon": "maximize",
-					"padding": 6,
-					"fitText": true,
-					"cursor": "hand",
-					"textColor": "@color.muted",
-					"tooltip": "Toggle Zen Mode",
-					"hover": {
-						"color": "@color.hover"
+					"with": {
+						"icon": "maximize",
+						"tip": "Toggle Zen Mode"
 					},
 					"onClick": {
 						"run": "toggleZen"
 					}
 				},
-				"#panel-head/children/2": {
-					"type": "label",
+				"#panel-head/children/5": {
+					"use": "forgeTitleButton",
 					"id": "panel-zen",
-					"icon": "maximize",
-					"textColor": "@color.muted",
-					"padding": 8,
-					"fitText": true,
-					"cursor": "hand",
-					"tooltip": "Toggle Zen Mode",
-					"hover": {
-						"color": "@color.hover"
+					"with": {
+						"icon": "maximize",
+						"tip": "Toggle Zen Mode"
 					},
 					"onClick": {
 						"run": "toggleZen"

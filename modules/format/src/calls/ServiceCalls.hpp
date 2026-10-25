@@ -56,6 +56,9 @@ public:
 	/// @param executor The executor, which must outlive the runtime; without one, only what a service reports before
 	/// its invoke() returns is delivered.
 	void setExecutor(Executor* executor) noexcept { executor_ = executor; }
+	/// @brief Where results are posted.
+	/// @return The executor, or nullptr.
+	[[nodiscard]] Executor* executor() const noexcept { return executor_; }
 	/// @brief Sets the screen's services, and takes their status changes and requests.
 	/// @param services The services, which must outlive the runtime (or be replaced first); nullptr for none.
 	void setServices(services::Services* services);
@@ -148,7 +151,7 @@ private:
 	/// @param call The call's number.
 	/// @param error {code, message, data}.
 	void failCall(std::uint64_t call, const json& error);
-	/// @brief Runs an ended call's "onError", or reports its error.
+	/// @brief Runs an ended call's "onError", or reports its error unless it was cancelled on purpose.
 	/// @param call The call.
 	/// @param error {code, message, data}.
 	void failed(const Pending& call, const json& error);
@@ -164,7 +167,7 @@ private:
 	/// @brief Runs a call's steps with one more variable, from its panel (or the root, for the document's calls).
 	/// @param call The call.
 	/// @param steps The steps.
-	/// @param variable The variable's name.
+	/// @param variable The variable's name; "event" is a stream's event, which the steps see as their `event`.
 	/// @param value Its value.
 	/// @param where Their place.
 	void runSteps(const Pending& call, const json& steps, const char* variable, json value, const std::string& where);

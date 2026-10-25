@@ -3,7 +3,7 @@
 /// version of the document.
 
 #include "Builder.hpp"
-#include "BuiltInComponents.hpp"
+#include "Library.hpp"
 #include "Engine.hpp"
 
 #include <algorithm>
@@ -216,7 +216,7 @@ json Builder::instantiateComponent(const json& use, const std::string& path) con
 	const std::string name = string(use["use"], path + ".use");
 	const json& document = engine_.versions.document();
 	const bool own = document.contains("components") && document["components"].contains(name);
-	const json* builtIn = own ? nullptr : builtInComponent(name); // the document's own win
+	const json* builtIn = own ? nullptr : libraryComponent(name); // the document's own win
 	if(!own && !builtIn) fail(path + ".use", "unknown component '" + name + "'");
 	const json& component = builtIn ? *builtIn : object(document["components"][name], "components." + name);
 	if(!component.contains("node")) fail("components." + name, "a component needs a \"node\"");

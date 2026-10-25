@@ -3,7 +3,6 @@
 /// affrescoui_launcher does, into hidden windows that only get the events a workload sends.
 
 #include "Bench.hpp"
-#include "CodeEditor.hpp"
 #include "Headless.hpp"
 #include "Templates.hpp"
 
@@ -39,8 +38,7 @@ Application& Context::application() {
 }
 
 void Context::configure(Screen& screen) {
-	screen.setPlaceholderTypes(true);     // as affrescoui_launcher does
-	examples::registerCodeEditor(screen); // and its application-layer "code" type
+	screen.setPlaceholderTypes(true); // as affrescoui_launcher does
 	// Channels find nobody, so no workload waits on a host
 	screen.setSocketDirectory(std::filesystem::temp_directory_path() / "affrescoui-bench-no-host");
 }
@@ -88,8 +86,19 @@ std::string readFile(const std::filesystem::path& path) {
 	return text.str();
 }
 
+json appDocument(const std::filesystem::path& folder) {
+	if(!std::filesystem::exists(folder / "app.json")) { // its index.screen.json, or one named after its folder
+		const std::filesystem::path index = folder / "index.screen.json";
+		return json::parse(
+		    readFile(std::filesystem::exists(index) ? index : folder / (folder.filename().string() + ".screen.json")));
+	}
+	return json::parse(Screen::fromApp(folder, {}, Screen::History::InMemory).documentJson()); // nothing kept
+}
+
 json screenDocument(const std::filesystem::path& file) {
-	const Screen screen = Screen::fromString(readFile(file), file.parent_path());
+	const std::filesystem::path app = Screen::appOf(file);
+	const Screen screen = app.empty() ? Screen::fromString(readFile(file), file.parent_path())
+	                                  : Screen::fromApp(app, {}, Screen::History::InMemory);
 	json document = json::parse(screen.documentJson());
 	document["state"] = json::parse(screen.stateJson());
 	return document;
@@ -103,11 +112,12 @@ json screenDocument(const json& document, const std::filesystem::path& directory
 }
 
 json kanbanWithCards(const std::filesystem::path& directory, int cards) {
-	json document = json::parse(readFile(directory / "index.screen.json"));
+	json document = appDocument(directory);
 	json& seed = document["models"]["issues"]["seed"]; // the issues are records: the board shows the launch's
 	std::vector<json> originals;
 	for(const json& card : seed)
 		if(card["board"] == "launch") originals.push_back(card);
+	if(originals.empty()) throw std::invalid_argument("the Kanban template's issues have no seed records to copy");
 
 	const auto total = static_cast<std::size_t>(cards);
 	if(total < originals.size()) throw std::invalid_argument("the Kanban template has more cards than asked for");
@@ -143,8 +153,8 @@ std::vector<Workload> loadWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	for(const std::string& name : templateNames(context.examples())) {
 		const std::filesystem::path folder = context.templateFolder(name);
-		const auto text = std::make_shared<const std::string>(readFile(folder / "index.screen.json"));
-		const auto document = std::make_shared<const json>(json::parse(*text));
+		const auto document = std::make_shared<const json>(appDocument(folder));
+		const auto text = std::make_shared<const std::string>(document->dump());
 		const auto window = std::make_shared<Window*>(nullptr);
 		Workload workload{.name = "load/" + name, .unit = "ms", .runs = 5};
 		workload.prepare = [&context, document, window] { *window = &context.openWindow(*document); };
@@ -162,8 +172,8 @@ std::vector<Workload> buildWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	for(const std::string& name : templateNames(context.examples())) {
 		const std::filesystem::path folder = context.templateFolder(name);
-		const auto text = std::make_shared<const std::string>(readFile(folder / "index.screen.json"));
-		const auto document = std::make_shared<const json>(json::parse(*text));
+		const auto document = std::make_shared<const json>(appDocument(folder));
+		const auto text = std::make_shared<const std::string>(document->dump());
 		const auto window = std::make_shared<Window*>(nullptr);
 		const auto screen = std::make_shared<Screen*>(nullptr);
 		Workload workload{.name = "build/" + name, .unit = "ms", .runs = 5};
@@ -307,7 +317,7 @@ std::vector<Workload> revisionWorkloads(Context& context) {
 		const std::filesystem::path file = context.edits() / (name + ".json");
 		if(!std::filesystem::exists(file)) continue;
 		const std::filesystem::path folder = context.templateFolder(name);
-		const json document = json::parse(readFile(folder / "index.screen.json"));
+		const json document = appDocument(folder);
 		const json edits = json::parse(readFile(file)); // named: items() refers to it during the loop
 		for(const auto& [editName, edit] : edits.items()) {
 			const LoadedScreen loaded = context.load(document, folder);

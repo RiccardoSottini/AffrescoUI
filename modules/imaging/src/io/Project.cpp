@@ -184,8 +184,9 @@ public:
 	[[nodiscard]] Blob blob(const json& value) const {
 		const std::size_t room = file_->size() - base_;
 		if(!value.is_array() || value.size() != 2) malformed("has a blob that is not [offset, length]");
-		const Blob found{whole(value[0], room, "blob offset"), 0};
-		return {found.offset, whole(value[1], room - found.offset, "blob length")};
+		// Both are at most room, a std::size_t, so they fit where std::size_t is 32 bits (wasm32) too
+		const Blob found{static_cast<std::size_t>(whole(value[0], room, "blob offset")), 0};
+		return {found.offset, static_cast<std::size_t>(whole(value[1], room - found.offset, "blob length"))};
 	}
 
 	/// @brief A blob's bytes.

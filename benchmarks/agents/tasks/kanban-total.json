@@ -2,7 +2,7 @@
 	"id": "kanban-total",
 	"level": "feature",
 	"screen": "examples/flow/index.screen.json",
-	"request": "Show how many cards the board has in total in the top bar, right of the app's name, as \"12 cards\", in a label with the id totalCards that counts as cards are added.",
+	"request": "Show how many cards the board has in total in the top bar, right of the scope tabs (scopeTabs), as \"12 cards\", in a label with the id totalCards that counts as cards are added.",
 	"scenarios": [
 		{
 			"name": "total",
@@ -14,7 +14,10 @@
 					}
 				},
 				{
-					"click": "#newCard"
+					"key": "mod+n"
+				},
+				{
+					"wait": 50
 				},
 				{
 					"type": "One more"
@@ -33,7 +36,7 @@
 	],
 	"unchanged": [
 		"#logo",
-		"#boardTabs",
+		"#scopeTabs",
 		"#toolbar",
 		"#board",
 		"#statusBar"
@@ -45,10 +48,10 @@
 				"#topBar/children/-": {
 					"id": "totalCards",
 					"type": "label",
-					"text": "{{sum(computed.columns, length(it.cards))}} cards",
+					"text": "{{sum(computed.counts)}} cards",
 					"textColor": "@color.topText",
 					"anchors": {
-						"left": 132,
+						"left": 600,
 						"top": 0,
 						"bottom": 0
 					},

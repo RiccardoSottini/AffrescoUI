@@ -9,6 +9,11 @@
 		"query": "",
 		"readyOnly": false,
 		"recentFirst": false,
+		"favOnly": false,
+		"filterOpen": false,
+		"newsOpen": false,
+		"showNews": true,
+		"note": { "open": false, "id": null, "text": "" },
 		"collapsed": {},
 		"running": null,
 		"playOpen": false,
@@ -22,7 +27,7 @@
 	},
 
 	"computed": {
-		"libList": "{{sort(filter(computed.owned, (!state.readyOnly || it.installed) && (empty(state.query) || fuzzy(state.query, it.title) != null)), state.recentFirst ? it.lastPlayed ?? 0 : lower(it.title), state.recentFirst ? 'desc' : 'asc')}}",
+		"libList": "{{sort(filter(computed.owned, (!state.readyOnly || it.installed) && (!state.favOnly || it.favourite) && (empty(state.query) || fuzzy(state.query, it.title) != null)), state.recentFirst ? it.lastPlayed ?? 0 : lower(it.title), state.recentFirst ? 'desc' : 'asc')}}",
 		"collected": "{{split(join(map(state.collections, join(it.games, ',')), ','), ',')}}",
 		"sections": "{{concat([{ id: 'favourites', title: t('lib.favourites'), ids: map(filter(computed.owned, it.favourite), it.id) }], state.collections, [{ id: 'uncategorised', title: t('lib.uncategorised'), ids: map(filter(computed.owned, !it.favourite && !contains(computed.collected, it.id)), it.id) }])}}",
 		"recent": "{{slice(sort(filter(computed.owned, it.lastPlayed != null), it.lastPlayed, 'desc'), 0, 10)}}",
@@ -32,6 +37,42 @@
 	},
 
 	"actions": {
+		"toggleCollections": {
+			"title": "Collapse or expand every collection",
+			"category": "Library",
+			"do": [
+				{
+					"set": "state.collapsed",
+					"to": "{{some(computed.sections, !(state.collapsed[it.id] ?? false)) ? fromEntries(map(computed.sections, { key: it.id, value: true })) : {}}}"
+				}
+			]
+		},
+		"toggleFilter": {
+			"title": "Turn a library filter on or off",
+			"category": "Library",
+			"description": "key is readyOnly, favOnly, recentFirst or showNews.",
+			"do": [{ "toggle": "{{'state.' + key}}" }]
+		},
+		"clearFilters": {
+			"title": "Clear the library filters",
+			"category": "Library",
+			"do": [
+				{ "set": "state.readyOnly", "to": false },
+				{ "set": "state.recentFirst", "to": false },
+				{ "set": "state.favOnly", "to": false },
+				{ "set": "state.query", "to": "" }
+			]
+		},
+		"editNote": {
+			"title": "Write a note about a game",
+			"category": "Game",
+			"do": [{ "set": "state.note", "to": { "open": true, "id": "{{id}}", "text": "{{find(data.games, it.id == id).note ?? ''}}" } }]
+		},
+		"saveNote": {
+			"title": "Save the note",
+			"category": "Game",
+			"do": [{ "update": "games", "id": "{{state.note.id}}", "fields": { "note": "{{trim(state.note.text)}}" } }]
+		},
 		"openGame": {
 			"title": "Open the game's page",
 			"category": "Game",
@@ -52,18 +93,9 @@
 			"icon": "play",
 			"do": [
 				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
-						{
-							"if": "{{g.id == id}}",
-							"then": [
-								{ "set": "state.games[i].status", "to": "running" },
-								{ "set": "state.games[i].lastPlayed", "to": "{{state.today}}" }
-							]
-						}
-					]
+					"update": "games",
+					"id": "{{id}}",
+					"fields": { "status": "running", "lastPlayed": "{{state.today}}" }
 				},
 				{ "set": "state.running", "to": "{{id}}" }
 			]
@@ -74,18 +106,9 @@
 			"icon": "square",
 			"do": [
 				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
-						{
-							"if": "{{g.id == id}}",
-							"then": [
-								{ "set": "state.games[i].status", "to": "ready" },
-								{ "increment": "state.games[i].hours", "by": 0.5 }
-							]
-						}
-					]
+					"update": "games",
+					"id": "{{id}}",
+					"fields": { "status": "ready", "hours": "{{find(data.games, it.id == id).hours + 0.5}}" }
 				},
 				{ "set": "state.running", "to": null }
 			]
@@ -97,20 +120,13 @@
 			"description": "Queues the game, or its update: it downloads at once if nothing else is.",
 			"do": [
 				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
+					"if": "{{find(data.games, it.id == id) != null && find(state.downloads, it.id == id && it.status != 'done') == null}}",
+					"then": [
 						{
-							"if": "{{g.id == id && find(state.downloads, it.id == id && it.status != 'done') == null}}",
-							"then": [
-								{
-									"push": "state.downloads",
-									"value": "{{{ id: id, sizeGb: g.status == 'update' ? 1.2 : g.sizeGb, doneGb: 0, status: computed.download ? 'queued' : 'downloading', kind: g.status == 'update' ? 'update' : 'install' }}}"
-								},
-								{ "set": "state.games[i].status", "to": "downloading" }
-							]
-						}
+							"push": "state.downloads",
+							"value": "{{{ id: id, sizeGb: find(data.games, it.id == id).status == 'update' ? 1.2 : find(data.games, it.id == id).sizeGb, doneGb: 0, status: computed.download ? 'queued' : 'downloading', kind: find(data.games, it.id == id).status == 'update' ? 'update' : 'install' }}}"
+						},
+						{ "update": "games", "id": "{{id}}", "fields": { "status": "downloading" } }
 					]
 				}
 			]
@@ -121,15 +137,9 @@
 			"icon": "star",
 			"do": [
 				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
-						{
-							"if": "{{g.id == id}}",
-							"then": [{ "set": "state.games[i].favourite", "to": "{{!g.favourite}}" }]
-						}
-					]
+					"update": "games",
+					"id": "{{id}}",
+					"fields": { "favourite": "{{!find(data.games, it.id == id).favourite}}" }
 				}
 			]
 		},
@@ -187,10 +197,48 @@
 			"textColor": "@color.text",
 			"hover": { "textColor": "@color.bright" }
 		},
-		"card": { "color": "@color.panel", "radius": 8 }
+		"card": { "color": "@color.panel", "radius": 12 }
 	},
 
 	"components": {
+		"noteDialog": {
+			"note": "A note about a game, kept with it in the library.",
+			"params": {},
+			"node": {
+				"use": "dialog",
+				"with": {
+					"open": "state.note.open",
+					"width": 460,
+					"height": 240,
+					"title": "{{t('note.title')}}",
+					"message": "{{t('note.help')}}",
+					"buttons": [
+						{ "title": "{{t('dialog.save')}}", "run": "saveNote", "default": true },
+						{ "title": "{{t('dialog.cancel')}}" }
+					]
+				},
+				"children": [
+					{
+						"id": "note-text",
+						"type": "textarea",
+						"wrap": true,
+						"anchors": { "left": 20, "right": 20, "top": 76 },
+						"height": 96,
+						"padding": 8,
+						"borderWidth": 1,
+						"borderColor": "@color.border",
+						"focused": { "borderColor": "@color.accent" },
+						"bind": "state.note.text",
+						"maxLength": 500,
+						"radius": 3,
+						"color": "@color.field",
+						"textColor": "@color.text",
+						"label": "{{t('note.title')}}",
+						"autofocus": true
+					}
+				]
+			}
+		},
 		"libraryPage": {
 			"note": "The library: the game list on the left, the home or a game's page on the right.",
 			"params": {},
@@ -210,6 +258,11 @@
 								"when": "{{computed.here.page == 'game' && computed.game != null}}",
 								"use": "gamePage",
 								"id": "game-page"
+							},
+							{
+								"when": "{{computed.here.page == 'hub' && computed.game != null}}",
+								"use": "hubPage",
+								"id": "hub-page"
 							}
 						]
 					}
@@ -252,8 +305,9 @@
 							{
 								"id": "library-collections",
 								"style": "iconButton",
-								"icon": "list",
-								"tooltip": "{{t('lib.collections')}}"
+								"icon": "{{some(computed.sections, !(state.collapsed[it.id] ?? false)) ? 'list-collapse' : 'list'}}",
+								"tooltip": "{{t(some(computed.sections, !(state.collapsed[it.id] ?? false)) ? 'lib.collapseAll' : 'lib.expandAll')}}",
+								"onClick": "toggleCollections"
 							}
 						]
 					},
@@ -331,7 +385,26 @@
 								"id": "library-filter",
 								"style": "iconButton",
 								"icon": "sliders-horizontal",
-								"tooltip": "{{t('lib.advanced')}}"
+								"tooltip": "{{t('lib.advanced')}}",
+								"textColor": "{{state.readyOnly || state.recentFirst || state.favOnly ? '@color.accent' : '@color.muted'}}",
+								"isOpen": "{{state.filterOpen}}",
+								"onClick": { "toggle": "state.filterOpen" },
+								"children": [
+									{
+										"use": "menu",
+										"with": {
+											"open": "state.filterOpen",
+											"width": 230,
+											"items": [
+												{ "title": "{{t('lib.readyOnly')}}", "checked": "{{state.readyOnly}}", "run": "toggleFilter", "with": { "key": "readyOnly" } },
+												{ "title": "{{t('lib.favOnly')}}", "checked": "{{state.favOnly}}", "run": "toggleFilter", "with": { "key": "favOnly" } },
+												{ "title": "{{t('lib.recentFirst')}}", "checked": "{{state.recentFirst}}", "run": "toggleFilter", "with": { "key": "recentFirst" } },
+												{ "separator": true },
+												{ "title": "{{t('lib.clearFilters')}}", "run": "clearFilters" }
+											]
+										}
+									}
+								]
 							},
 							{ "type": "panel", "width": 6, "height": 1, "color": "transparent" }
 						]
@@ -407,11 +480,12 @@
 				"hover": { "color": "@color.hover" },
 				"onClick": { "run": "openGame", "with": { "id": "{{game.id}}" } },
 				"onDoubleClick": { "run": "primary", "with": { "game": "{{game}}" } },
+				"onContextMenu": { "run": "openGameMenu", "with": { "id": "{{game.id}}" } },
 				"children": [
 					{ "type": "panel", "width": 18, "height": 1, "color": "transparent" },
 					{
 						"type": "image",
-						"file": "{{'art/' + game.id + '/cover.svg'}}",
+						"file": "{{'art/' + (game.art ?? game.id) + '/cover.svg'}}",
 						"width": 18,
 						"height": 18,
 						"fit": "cover",
@@ -439,7 +513,7 @@
 			"node": {
 				"width": "{{width}}",
 				"height": "{{width * 1.5}}",
-				"radius": 8,
+				"radius": 12,
 				"color": "@color.raised",
 				"focusable": true,
 				"role": "button",
@@ -450,15 +524,16 @@
 				"hover": { "scale": 1.04, "shadow": { "y": 6, "blur": 18, "color": "#f5a52455" } },
 				"focused": { "scale": 1.04, "shadow": { "y": 6, "blur": 18, "color": "#f5a52455" } },
 				"onClick": { "run": "openGame", "with": { "id": "{{game.id}}" } },
+				"onContextMenu": { "run": "openGameMenu", "with": { "id": "{{game.id}}" } },
 				"children": [
 					{
 						"type": "image",
-						"file": "{{'art/' + game.id + '/cover.svg'}}",
+						"file": "{{'art/' + (game.art ?? game.id) + '/cover.svg'}}",
 						"fill": true,
 						"fit": "cover",
-						"radius": 8
+						"radius": 12
 					},
-					{ "when": "{{!game.installed}}", "fill": true, "color": "#100c1480", "radius": 8 }
+					{ "when": "{{!game.installed}}", "fill": true, "color": "#100c1480", "radius": 12 }
 				]
 			}
 		},
@@ -517,12 +592,26 @@
 										"style": "iconButton",
 										"icon": "settings",
 										"id": "news-settings",
-										"tooltip": "{{t('lib.whatsNewSettings')}}"
+										"tooltip": "{{t('lib.whatsNewSettings')}}",
+										"isOpen": "{{state.newsOpen}}",
+										"onClick": { "toggle": "state.newsOpen" },
+										"children": [
+											{
+												"use": "menu",
+												"with": {
+													"open": "state.newsOpen",
+													"width": 220,
+													"placement": "below-end",
+													"items": [{ "title": "{{t('lib.showNews')}}", "checked": "{{state.showNews}}", "run": "toggleFilter", "with": { "key": "showNews" } }]
+												}
+											}
+										]
 									}
 								]
 							},
 							{
 								"id": "news-shelf",
+								"when": "{{state.showNews}}",
 								"type": "row",
 								"height": 222,
 								"anchors": { "left": 0, "right": 0 },
@@ -531,8 +620,8 @@
 								"arrows": "horizontal",
 								"children": [
 									{
-										"repeat": { "for": "n", "in": "{{state.news}}", "index": "i" },
-										"let": { "g": "{{find(state.games, it.id == n.game)}}" },
+										"repeat": { "for": "n", "in": "{{data.news}}", "index": "i" },
+										"let": { "g": "{{find(data.games, it.id == n.game)}}" },
 										"id": "{{'news-' + i}}",
 										"type": "column",
 										"width": 232,
@@ -778,7 +867,7 @@
 			"node": {
 				"width": 345,
 				"height": 225,
-				"radius": 8,
+				"radius": 12,
 				"color": "@color.raised",
 				"focusable": true,
 				"role": "button",
@@ -790,14 +879,14 @@
 				"children": [
 					{
 						"type": "image",
-						"file": "{{'art/' + game.id + '/hero.svg'}}",
+						"file": "{{'art/' + (game.art ?? game.id) + '/hero.svg'}}",
 						"fill": true,
 						"fit": "cover",
-						"radius": 8
+						"radius": 12
 					},
 					{
 						"fill": true,
-						"radius": 8,
+						"radius": 12,
 						"color": "transparent",
 						"gradient": {
 							"kind": "linear",
@@ -854,7 +943,7 @@
 							{
 								"id": "hero-image",
 								"type": "image",
-								"file": "{{'art/' + g.id + '/hero.svg'}}",
+								"file": "{{'art/' + (g.art ?? g.id) + '/hero.svg'}}",
 								"fill": true,
 								"fit": "cover"
 							},
@@ -901,7 +990,7 @@
 								"type": "row",
 								"height": 48,
 								"width": "{{g.status == 'ready' ? 196 : 210}}",
-								"radius": 3,
+								"radius": 24,
 								"children": [
 									{
 										"id": "play-button",
@@ -911,24 +1000,14 @@
 										"font": "button",
 										"align": "center",
 										"icon": "{{g.status == 'ready' ? 'play' : g.status == 'running' ? 'square' : g.status == 'downloading' ? 'pause' : 'download'}}",
-										"text": "{{upper(t('status.button.' + g.status))}}",
-										"textColor": "#ffffff",
+										"text": "{{t('status.button.' + g.status)}}",
+										"textColor": "@color.onAccent",
 										"focusable": true,
 										"role": "button",
 										"cursor": "hand",
-										"radius": { "topLeft": 3, "bottomLeft": 3 },
-										"gradient": {
-											"kind": "linear",
-											"angle": 90,
-											"stops": "{{g.status == 'ready' ? ['@color.play', '@color.playEnd'] : ['@color.warm', '@color.warmEnd']}}"
-										},
-										"hover": {
-											"gradient": {
-												"kind": "linear",
-												"angle": 90,
-												"stops": "{{g.status == 'ready' ? ['#4fdcb6', '@color.play'] : ['#ffd27a', '@color.warm']}}"
-											}
-										},
+										"radius": { "topLeft": 24, "bottomLeft": 24 },
+										"color": "{{g.status == 'ready' ? '@color.play' : '@color.warm'}}",
+										"hover": { "color": "{{g.status == 'ready' ? '@color.playEnd' : '@color.warmEnd'}}" },
 										"onClick": { "run": "primary", "with": { "game": "{{g}}" } }
 									},
 									{
@@ -939,15 +1018,16 @@
 										"icon": "chevron-down",
 										"text": "",
 										"align": "center",
-										"textColor": "#ffffff",
+										"textColor": "@color.onAccent",
 										"focusable": true,
 										"role": "button",
 										"label": "{{t('game.launchOptions')}}",
 										"cursor": "hand",
-										"color": "{{g.status == 'ready' ? '@color.playEnd' : '@color.warmEnd'}}",
-										"radius": { "topRight": 3, "bottomRight": 3 },
+										"color": "{{g.status == 'ready' ? '@color.play' : '@color.warm'}}",
+										"hover": { "color": "{{g.status == 'ready' ? '@color.playEnd' : '@color.warmEnd'}}" },
+										"radius": { "topRight": 24, "bottomRight": 24 },
 										"borderWidth": 1,
-										"borderColor": "#00000030",
+										"borderColor": "@color.shade",
 										"isOpen": "{{state.playOpen}}",
 										"onClick": { "toggle": "state.playOpen" },
 										"children": [
@@ -965,10 +1045,12 @@
 														},
 														{
 															"title": "{{t('game.playSafe')}}",
-															"enabled": "{{g.status == 'ready'}}"
+															"enabled": "{{g.status == 'ready'}}",
+															"run": "play",
+															"with": { "id": "{{g.id}}", "safe": true }
 														},
 														{ "separator": true },
-														{ "title": "{{t('game.launchOptions')}}" }
+														{ "title": "{{t('game.launchOptions')}}", "run": "openProperties", "with": { "id": "{{g.id}}", "tab": "general" } }
 													]
 												}
 											}
@@ -1028,7 +1110,7 @@
 													{
 														"anchors": { "left": 0, "top": 0, "bottom": 0 },
 														"radius": 3,
-														"width": "{{text(floor(100 * g.achievements[0] / max(1, g.achievements[1]))) + '%'}}",
+														"width": "{{text(floor(100 * (g.achievements[0] ?? 0) / max(1, g.achievements[1] ?? 0))) + '%'}}",
 														"gradient": {
 															"kind": "linear",
 															"angle": 90,
@@ -1056,7 +1138,9 @@
 								"style": "iconButton",
 								"font": "heading",
 								"icon": "settings",
-								"tooltip": "{{t('game.manage')}}"
+								"tooltip": "{{t('game.manage')}}",
+								"label": "{{t('game.manage')}}",
+								"onClick": { "run": "openGameMenu", "with": { "id": "{{g.id}}" } }
 							},
 							{
 								"id": "game-info",
@@ -1154,12 +1238,30 @@
 							{
 								"repeat": {
 									"for": "s",
-									"in": "{{['store', 'dlc', 'hub', 'discussions', 'guides', 'support']}}"
+									"in": "{{g.local ? ['support'] : ['store', 'dlc', 'hub', 'discussions', 'guides', 'support']}}"
 								},
 								"id": "{{'section-link-' + s}}",
 								"style": "sectionLink",
 								"text": "{{t('game.section.' + s)}}",
-								"onClick": [{ "if": "{{s == 'store'}}", "then": [{ "run": "openStore", "with": { "id": "{{g.id}}" } }] }]
+								"onClick": [
+									{
+										"if": "{{s == 'store'}}",
+										"then": [{ "run": "openStore", "with": { "id": "{{g.id}}" } }],
+										"else": [
+											{
+												"if": "{{s == 'dlc'}}",
+												"then": [{ "run": "openProperties", "with": { "id": "{{g.id}}", "tab": "dlc" } }],
+												"else": [
+													{
+														"if": "{{s == 'support'}}",
+														"then": [{ "run": "showInfo", "with": { "kind": "support" } }],
+														"else": [{ "run": "openHub", "with": { "id": "{{g.id}}", "section": "{{s}}" } }]
+													}
+												]
+											}
+										]
+									}
+								]
 							}
 						]
 					},
@@ -1169,7 +1271,7 @@
 						"type": "row",
 						"anchors": { "left": 32, "right": 32 },
 						"gap": 24,
-						"height": "{{max(700, 150 + length(filter(state.activity, it.game == g.id)) * 96 + length(filter(state.news, it.game == g.id)) * 120)}}",
+						"height": "{{max(700, 150 + length(filter(data.activity, it.game == g.id)) * 96 + length(filter(data.news, it.game == g.id)) * 120)}}",
 						"children": [
 							{
 								"id": "activity",
@@ -1204,7 +1306,7 @@
 									{
 										"repeat": {
 											"for": "n",
-											"in": "{{filter(state.news, it.game == g.id)}}",
+											"in": "{{filter(data.news, it.game == g.id)}}",
 											"index": "i"
 										},
 										"type": "row",
@@ -1216,7 +1318,7 @@
 										"children": [
 											{
 												"type": "image",
-												"file": "{{'art/' + g.id + '/hero.svg'}}",
+												"file": "{{'art/' + (g.art ?? g.id) + '/hero.svg'}}",
 												"width": 180,
 												"height": 108,
 												"fit": "cover",
@@ -1268,10 +1370,10 @@
 									{
 										"repeat": {
 											"for": "a",
-											"in": "{{filter(state.activity, it.game == g.id)}}",
+											"in": "{{filter(data.activity, it.game == g.id)}}",
 											"index": "i"
 										},
-										"let": { "f": "{{find(state.friends, it.id == a.who)}}" },
+										"let": { "f": "{{find(data.friends, it.id == a.who)}}" },
 										"type": "row",
 										"height": "{{a.kind == 'screenshot' ? 168 : 84}}",
 										"anchors": { "left": 0, "right": 0 },
@@ -1323,7 +1425,7 @@
 													{
 														"when": "{{a.kind == 'screenshot'}}",
 														"type": "image",
-														"file": "{{'art/' + g.id + '/shot' + a.shot + '.svg'}}",
+														"file": "{{'art/' + (g.art ?? g.id) + '/shot' + a.shot + '.svg'}}",
 														"width": 160,
 														"height": 90,
 														"fit": "cover",
@@ -1342,7 +1444,7 @@
 										]
 									},
 									{
-										"when": "{{length(filter(state.activity, it.game == g.id)) + length(filter(state.news, it.game == g.id)) == 0}}",
+										"when": "{{length(filter(data.activity, it.game == g.id)) + length(filter(data.news, it.game == g.id)) == 0}}",
 										"type": "label",
 										"text": "{{t('game.noActivity')}}",
 										"textColor": "@color.muted",
@@ -1365,7 +1467,7 @@
 										"children": [
 											{
 												"let": {
-													"who": "{{filter(state.friends, it.game == g.id || g.hours > 40 && (it.presence == 'online' || it.avatar == 'owl'))}}"
+													"who": "{{filter(data.friends, it.game == g.id || g.hours > 40 && (it.presence == 'online' || it.avatar == 'owl'))}}"
 												},
 												"type": "column",
 												"anchors": { "left": 14, "right": 14, "top": 40 },
@@ -1433,7 +1535,7 @@
 															{
 																"anchors": { "left": 0, "top": 0, "bottom": 0 },
 																"radius": 3,
-																"width": "{{text(floor(100 * g.achievements[0] / max(1, g.achievements[1]))) + '%'}}",
+																"width": "{{text(floor(100 * (g.achievements[0] ?? 0) / max(1, g.achievements[1] ?? 0))) + '%'}}",
 																"gradient": {
 																	"kind": "linear",
 																	"angle": 90,
@@ -1499,7 +1601,7 @@
 													{
 														"repeat": { "for": "k", "in": "{{[1, 2, 3]}}" },
 														"type": "image",
-														"file": "{{'art/' + g.id + '/shot' + k + '.svg'}}",
+														"file": "{{'art/' + (g.art ?? g.id) + '/shot' + k + '.svg'}}",
 														"grow": 1,
 														"height": 80,
 														"fit": "cover",
@@ -1531,8 +1633,10 @@
 										"children": [
 											{
 												"type": "label",
+												"id": "write-note",
 												"icon": "pencil",
-												"text": "{{t('game.writeNote')}}",
+												"text": "{{empty(g.note) ? t('game.writeNote') : g.note}}",
+												"onClick": { "run": "editNote", "with": { "id": "{{g.id}}" } },
 												"textColor": "@color.link",
 												"cursor": "hand",
 												"focusable": true,
@@ -1671,6 +1775,14 @@
 			"game.controller": "Controller",
 			"game.notes": "Notes",
 			"game.writeNote": "Write a note",
+			"lib.collapseAll": "Collapse every collection",
+			"lib.expandAll": "Expand every collection",
+			"lib.favOnly": "Favourites only",
+			"lib.clearFilters": "Clear filters",
+			"lib.showNews": "Show the latest news",
+			"note.title": "Your note",
+			"dialog.save": "Save",
+			"note.help": "Notes only you see, about this game.",
 			"controller.full": "Full controller support",
 			"controller.partial": "Partial controller support",
 			"controller.none": "Keyboard and mouse",
@@ -1749,6 +1861,14 @@
 			"game.controller": "Mando",
 			"game.notes": "Notas",
 			"game.writeNote": "Escribir una nota",
+			"lib.collapseAll": "Contraer todas las colecciones",
+			"lib.expandAll": "Desplegar todas las colecciones",
+			"lib.favOnly": "Solo favoritos",
+			"lib.clearFilters": "Quitar filtros",
+			"lib.showNews": "Mostrar las últimas noticias",
+			"note.title": "Tu nota",
+			"dialog.save": "Guardar",
+			"note.help": "Notas sobre este juego que solo ves tú.",
 			"controller.full": "Compatibilidad total con mando",
 			"controller.partial": "Compatibilidad parcial con mando",
 			"controller.none": "Teclado y ratón",
@@ -1827,6 +1947,14 @@
 			"game.controller": "Manette",
 			"game.notes": "Notes",
 			"game.writeNote": "Écrire une note",
+			"lib.collapseAll": "Replier toutes les collections",
+			"lib.expandAll": "Déplier toutes les collections",
+			"lib.favOnly": "Favoris uniquement",
+			"lib.clearFilters": "Effacer les filtres",
+			"lib.showNews": "Afficher les dernières nouvelles",
+			"note.title": "Votre note",
+			"dialog.save": "Enregistrer",
+			"note.help": "Des notes sur ce jeu, visibles par vous seul.",
 			"controller.full": "Prise en charge complète de la manette",
 			"controller.partial": "Prise en charge partielle de la manette",
 			"controller.none": "Clavier et souris",

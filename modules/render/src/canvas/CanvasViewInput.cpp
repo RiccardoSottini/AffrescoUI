@@ -4,6 +4,8 @@
 
 #include "canvas/CanvasViewInternals.hpp"
 
+#include "affresco/render/TextArea.hpp"
+#include "affresco/render/TextEditor.hpp"
 #include "affresco/render/Window.hpp"
 
 #include <algorithm>
@@ -275,7 +277,11 @@ void CanvasView::stopListening() noexcept {
 
 bool CanvasView::focusWithin() const noexcept {
 	const Panel* focused = window() ? window()->focusedPanel() : nullptr;
-	return focused && (focused == this || focused->parent() == this);
+	if(dynamic_cast<const TextArea*>(focused) || dynamic_cast<const TextEditor*>(focused))
+		return false; // the keys type there
+	for(const Panel* panel = focused; panel; panel = panel->parent())
+		if(panel == this) return true;
+	return false;
 }
 
 void CanvasView::pressed(const MouseButtonEvent& event) {

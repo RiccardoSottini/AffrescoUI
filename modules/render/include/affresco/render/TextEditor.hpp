@@ -86,7 +86,7 @@ class TextEditor : public Panel {
 public:
 	using Position = TextPosition; ///< A place in the text: a line and a code point within it, both from 0.
 
-	static constexpr std::size_t tabSize = 4; ///< Spaces per indentation level.
+	static constexpr std::size_t maxTabSize = 16; ///< Spaces per indentation level, at most.
 
 	static constexpr std::size_t maxDecorations = 10'000;    ///< Decorations kept, at most; the rest are dropped.
 	static constexpr std::size_t maxDecorationsPerLine = 8;  ///< Decorations starting on one line, at most.
@@ -179,6 +179,12 @@ public:
 	void setBracketUnderline(bool underline);
 	/// @brief Whether the matching brackets are underlined.
 	[[nodiscard]] bool bracketUnderline() const noexcept { return bracketUnderline_; }
+	/// @brief Sets the spaces per indentation level: what Tab inserts up to, Shift+Tab removes, a tab in the text
+	/// becomes and the indentation guides step by. Text already shown keeps its spaces.
+	/// @param spaces The spaces, from 1 to maxTabSize (clamped; 4 by default).
+	void setTabSize(std::size_t spaces);
+	/// @brief The spaces per indentation level.
+	[[nodiscard]] std::size_t tabSize() const noexcept { return tabSize_; }
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
@@ -198,16 +204,52 @@ public:
 	void setMinimapText(bool text);
 	/// @brief Whether the minimap draws its rows as their text.
 	[[nodiscard]] bool minimapText() const noexcept { return minimapText_; }
+	static constexpr float minimapSize = 60.0f; ///< Default width of the minimap, in pixels.
+	static constexpr std::pair<float, float> minimapWidths = {20.0f, 240.0f}; ///< The narrowest and widest minimap.
+	/// @brief Sets the minimap's width.
+	/// @param width In pixels, clamped to minimapWidths (the default is minimapSize).
+	void setMinimapSize(float width);
+	/// @brief The minimap's width, in pixels, when shown.
+	[[nodiscard]] float minimapPreferredWidth() const noexcept { return minimapSize_; }
 	/// @brief Marks the visible rows in the minimap only while the pointer is over it.
-	/// @param onHover true for only then, false for always.
-	void setMinimapViewportOnHover(bool onHover);
+	/// @param enabled true for only then, false for always.
+	void setMinimapViewportOnHover(bool enabled);
 	/// @brief Whether the minimap marks the visible rows only while the pointer is over it.
 	[[nodiscard]] bool minimapViewportOnHover() const noexcept { return minimapViewportOnHover_; }
+	/// @brief A mark on the scroll bar: a row that has something to find again.
+	struct ScrollMark {
+		std::size_t row = 0; ///< The row, from 0.
+		Color color;         ///< Its colour.
+
+		/// @brief Whether two marks are the same.
+		bool operator==(const ScrollMark&) const = default;
+	};
+	/// @brief Marks the scroll bar at the rows of the decorations (squiggles, gutter marks, backgrounds), of find's
+	/// matches and of the caret, each where its row is in the whole text, in its colour.
+	/// @param shown true to mark them.
+	void setScrollMarks(bool shown);
+	/// @brief Whether the scroll bar has marks.
+	[[nodiscard]] bool scrollMarks() const noexcept { return scrollMarks_; }
+	/// @brief The scroll bar's marks, by row (none unless setScrollMarks()): the decorations' in theirs, find's
+	/// matches in the match colour, then the caret's in the caret colour; at most one per row and colour.
+	[[nodiscard]] std::vector<ScrollMark> scrollMarkList() const;
 	/// @brief Outlines find's matches instead of filling their background.
 	/// @param outline true to outline them (in the match colour, 1 pixel thick).
 	void setMatchOutline(bool outline);
 	/// @brief Whether find's matches are outlined.
 	[[nodiscard]] bool matchOutline() const noexcept { return matchOutline_; }
+	/// @brief How the caret is drawn.
+	enum class CaretStyle {
+		Line,     ///< A thin bar before the character.
+		Block,    ///< A box over the character, which shows through in the background colour.
+		Underline ///< A bar under the character.
+	};
+	/// @brief Sets how the caret (and each extra one) is drawn.
+	/// @param style The style.
+	void setCaretStyle(CaretStyle style);
+	/// @brief How the caret is drawn.
+	/// @return See setCaretStyle().
+	[[nodiscard]] CaretStyle caretStyle() const noexcept { return caretStyle_; }
 
 	/* Decorations and cursors: TextEditorCursors.cpp */
 
@@ -229,7 +271,8 @@ public:
 	/* Commands: TextEditorCommands.cpp */
 
 	/// @brief The commands runCommand() knows, by name: selections (goTo is selectRange()), line operations, case
-	/// conversion, transpose and toggleComment.
+	/// conversion, transpose, toggleComment, and the edit commands (undo, redo, cut, copy, paste, selectAll,
+	/// indentLines, outdentLines, unfoldAll).
 	[[nodiscard]] static const std::vector<std::string_view>& commandNames();
 	/// @brief Runs a command, as one undo step (ignored when it edits and the text is read-only).
 	/// @param name One of commandNames().
@@ -337,9 +380,24 @@ public:
 	/// @brief The text, one element per line (at least one), decoded when read.
 	[[nodiscard]] const TextLines& lines() const noexcept { return lines_; }
 
+	/// @brief What the editor shows: the lines of its first and last visible rows, counted from 1, how many rows
+	/// fit, and how many lines there are.
+	struct View {
+		std::size_t first = 0; ///< The line of the first visible row, from 1.
+		std::size_t last = 0;  ///< The line of the last visible row, from 1.
+		std::size_t rows = 0;  ///< How many whole rows fit.
+		std::size_t lines = 0; ///< How many lines the text has.
+		/// @brief Whether two views are the same.
+		bool operator==(const View&) const = default;
+	};
+	/// @brief What the editor shows now.
+	/// @return See View.
+	[[nodiscard]] View view() const;
+
 	Signal<const std::string&> onTextChanged; ///< The user edited the text (not setText()); UTF-8.
 	Signal<Position> onCaretMoved;            ///< The caret or the selection changed, by the user or by an edit.
 	Signal<Vec2> onScrolled;                  ///< The scroll offset changed (by the wheel, the caret or setScroll()).
+	Signal<View> onViewChanged;               ///< What view() returns changed: a scroll, an edit or a new size.
 	/// A left press on the gutter (line numbers, gutter decorations) that didn't unfold a line: the line, the keys
 	/// held. Only fired, and the press only kept from moving the caret, while something listens.
 	Signal<std::size_t, Mods> onGutterClicked;
@@ -359,6 +417,30 @@ public:
 	[[nodiscard]] std::optional<Rect> rectAt(Position at) const;
 	/// @brief The caret's box: rectAt(caret()).
 	[[nodiscard]] std::optional<Rect> caretRect() const { return rectAt(caret_); }
+
+	/* Editing as a script does it: each call is one undo step and fires the signals, like the user's own edit */
+
+	/// @brief Puts text in place of the selection (or at the caret), the caret after it, as a paste does: brackets
+	/// aren't closed and the indentation isn't changed.
+	/// @param utf8 UTF-8 text, lines separated by "\n".
+	/// @return Whether the text changed (not while read only).
+	bool insertText(std::string_view utf8);
+	/// @brief Removes the text between two positions; the caret goes to where it was.
+	/// @param from One end (clamped to the text).
+	/// @param to The other end (clamped to the text).
+	/// @return The text removed, as UTF-8 (empty while read only).
+	std::string removeText(Position from, Position to);
+	/// @brief The text between two positions, as removeText() would remove it.
+	/// @param from One end (clamped to the text).
+	/// @param to The other end (clamped to the text).
+	/// @return It, as UTF-8.
+	[[nodiscard]] std::string textBetween(Position from, Position to) const;
+	/// @brief The position one code point or one word on from another, crossing line breaks as the arrows do.
+	/// @param from The position (clamped to the text).
+	/// @param forward true for on, false for back.
+	/// @param word true to go a word.
+	/// @return It; from itself at the text's ends.
+	[[nodiscard]] Position nextPosition(Position from, bool forward, bool word) const;
 
 protected:
 	/// @brief What an edit was, so consecutive typing can be undone in one step.
@@ -459,7 +541,6 @@ protected:
 private:
 	static constexpr float textPadding = 6.0f;      ///< Space above the first line, in pixels.
 	static constexpr float scrollBarWidth = 4.0f;   ///< Thickness of the scroll bar, in pixels.
-	static constexpr float minimapSize = 60.0f;     ///< Width of the minimap, in pixels.
 	static constexpr std::size_t exactWidth = 4096; ///< Up to this many lines, the widest is measured, not estimated.
 
 	/// @brief One row on screen: a line, or the part of a wrapped line between two columns.
@@ -498,6 +579,8 @@ private:
 	[[nodiscard]] std::size_t visibleLines() const noexcept;
 	/// @brief Keeps the scroll offset inside the content.
 	void clampScroll();
+	/// @brief Fires onViewChanged if view() changed since it last did.
+	void noteView();
 	/// @brief Scrolls so the caret is visible.
 	void revealCaret();
 	/// @brief The position one code point, or one word, to the left or right.
@@ -647,6 +730,11 @@ private:
 	/// @param name The command.
 	/// @return Whether the name is one.
 	bool textCommand(std::string_view name);
+	/// @brief Runs an edit command that keys also reach: undo, redo, cut, copy, paste, selectAll, indentLines,
+	/// outdentLines and unfoldAll (TextEditorEditCommands.cpp).
+	/// @param name The command.
+	/// @return Whether the name is one.
+	bool editCommand(std::string_view name);
 	/// @brief Cmd+Alt+Up/Down: adds a cursor on the row above or below the outermost one.
 	/// @param down true for below.
 	void addCursorRow(bool down);
@@ -760,6 +848,12 @@ private:
 	/// @param painter The painter.
 	/// @param layout The frame's layout.
 	void paintMinimap(Painter& painter, const Layout& layout) const;
+	/* The scroll bar's marks: TextEditorScrollMarks.cpp */
+	/// @brief Draws the scroll bar's marks, if shown.
+	/// @param painter The painter.
+	void paintScrollMarks(Painter& painter) const;
+	/// @brief The lines with a find match (at most maxMatches), found again only when the text or the query changes.
+	[[nodiscard]] const std::vector<std::size_t>& matchLines() const;
 	/// @brief Colours some lines, as drawn: by the highlighter, or else from the colouring state each line starts with.
 	/// @param first The first line.
 	/// @param last One past the last.
@@ -804,6 +898,14 @@ private:
 	/// @param font The font.
 	/// @param layout The frame's layout.
 	void paintCarets(Painter& painter, const Font& font, const Layout& layout) const;
+	/// @brief Draws one caret in the caret style.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param layout The frame's layout.
+	/// @param at Where it is.
+	/// @param x Its left, on its row.
+	/// @param top Its row's top.
+	void paintCaret(Painter& painter, const Font& font, const Layout& layout, Position at, float x, float top) const;
 	/// @brief Calls a function for each row drawn that a range of lines shows.
 	/// @param layout The frame's layout.
 	/// @param from The first line.
@@ -820,6 +922,7 @@ private:
 	Position anchor_;                   ///< The selection's other end (== caret_: none).
 	float preferredX_ = -1.0f;          ///< The x vertical moves aim for (< 0: the caret's).
 	Vec2 scroll_;                       ///< Pixels scrolled right and down.
+	bool revealPending_ = false;        ///< The caret was revealed before the editor had a height: arrange() does it.
 	bool dragging_ = false;             ///< A button press is selecting text.
 	Position hoveredWord_{SIZE_MAX, 0}; ///< Where the word under the pointer starts, for onWordHovered.
 	double lastClickTime_ = -1.0;       ///< When the last press happened, for double clicks.
@@ -885,14 +988,22 @@ private:
 	bool brackets_ = false;           ///< See setBracketMatching().
 	bool bracketUnderline_ = false;   ///< See setBracketUnderline().
 	bool guides_ = false;             ///< See setIndentGuides().
+	std::size_t tabSize_ = 4;         ///< See setTabSize().
 	std::vector<std::size_t> rulers_; ///< See setRulers().
 	std::u32string composition_;      ///< See setComposition().
 	bool minimap_ = false;            ///< See setMinimap().
 	bool minimapDragging_ = false;    ///< A press on the minimap is scrolling.
 	bool minimapText_ = false;        ///< See setMinimapText().
+	float minimapSize_ = minimapSize; ///< See setMinimapSize().
 	bool minimapViewportOnHover_ = false; ///< See setMinimapViewportOnHover().
 	bool minimapHovered_ = false;     ///< The pointer is over the minimap.
+	bool scrollMarks_ = false;        ///< See setScrollMarks().
+	mutable std::vector<std::size_t> matchLines_;     ///< See matchLines().
+	mutable std::array<std::uint64_t, 2> matchLinesKey_{}; ///< What matchLines_ was found for: the version, findGeneration_.
+	mutable bool matchLinesFound_ = false;            ///< matchLines_ was found at least once.
 	bool matchOutline_ = false;       ///< See setMatchOutline().
+	CaretStyle caretStyle_ = CaretStyle::Line; ///< See setCaretStyle().
+	View lastView_;                            ///< What onViewChanged last told.
 
 	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.
 	bool lineNumbers_ = false;            ///< See setLineNumbers().

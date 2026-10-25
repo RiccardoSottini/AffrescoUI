@@ -1,7 +1,7 @@
 # Arcadia: parity matrix
 
-Arcadia is a game launcher modelled on the layout and workflows of popular desktop game-store clients. Every game,
-studio, price, friend and picture in it is invented; the covers and screenshots are drawn by `art/make_art.py`.
+Arcadia is a game launcher with the features and workflows of the reference app (a desktop game store and
+launcher) in a look of its own. Every game, studio, price, friend and picture in it is invented; the covers and screenshots are drawn by `art/make_art.py`.
 
 Each row is a feature a daily user of such a client expects, with its state in Arcadia: `done` (works as expected,
 looks the part), `partial` (there, but simpler or different) or `missing`. The **Start** column is the launcher as it
@@ -9,12 +9,12 @@ was at the start of this work; **Now** is the current state.
 
 | Area | Feature | Start | Now |
 |---|---|---|---|
-| Chrome | Menu row: Arcadia, View, Friends, Games, Help, with their items | partial | partial |
-| Chrome | Navigation pills: Discover, My games, Friends, profile name, with the active one lit | partial | done |
+| Chrome | Menu row: Arcadia, View, Friends, Games, Help, with their items | partial | done |
+| Chrome | Navigation: Discover, My games, Friends, profile name, with the active one lit | partial | done |
 | Chrome | Back and forward through the pages visited | partial | done |
 | Chrome | Account menu with the wallet balance; notifications bell with a count | missing | done |
-| Chrome | Bottom bar: Add a Game, download progress (Manage), Friends & Chat | missing | partial |
-| Chrome | The look: its own aubergine and charcoal with an amber accent, rounded 2:3 cover tiles, hover glow, mint call to action | missing | done |
+| Chrome | Bottom bar: Add a Game, download progress (Manage), Friends & Chat | missing | done |
+| Chrome | The look: its own aubergine and charcoal with an amber accent, a centred segmented navigation, flat pill bars, rounded 2:3 cover tiles, hover glow, a round mint play button | missing | done |
 | Library | Left game list: home button, search, installed/ready-to-play filter | partial | done |
 | Library | Left list grouped by collection (favourites, uncategorised) with counts | partial | done |
 | Library | Play-state colours: installed white, not installed grey, running lime, updating amber | missing | done |
@@ -23,17 +23,17 @@ was at the start of this work; **Now** is the current state.
 | Library | Home: collections shown as shelves of cover tiles | partial | done |
 | Library | Home: All Games grid with sort (alphabetical, hours played, last played) | partial | done |
 | Library | Collections: manual and dynamic (filtered) ones, create a collection | partial | partial |
-| Library | Right-click a game: Play/Install, Add to Favourites, Manage, Properties, Uninstall | partial | missing |
+| Library | Right-click a game: Play/Install, Add to Favourites, Manage, Properties, Uninstall | partial | done |
 | Game page | Hero art with the game's logo over it | missing | done |
 | Game page | PLAY (mint) / INSTALL (amber) / UPDATE / RUNNING button with a drop-down | partial | done |
 | Game page | Last played, play time, achievements progress, cloud status | partial | done |
-| Game page | Gear (properties), info and favourite buttons | missing | partial |
-| Game page | Section tabs: Store Page, DLC, Player hub, Discussions, Guides, Support | missing | partial |
+| Game page | Gear (properties), info and favourite buttons | missing | done |
+| Game page | Section tabs: Store Page, DLC, Player hub, Discussions, Guides, Support | missing | done |
 | Game page | Activity feed with a "say something" box and friend posts | partial | done |
 | Game page | Friends who play, achievements panel, screenshots, notes, DLC, controller info | partial | partial |
-| Game page | Properties dialog: general/launch options, compatibility, updates, installed files, verify, DLC | missing | missing |
-| Game page | Uninstall with a confirmation | done | missing |
-| Store | Store sub-navigation (For you, Fresh, Categories, Rewards, News, Experiments) and search | missing | done |
+| Game page | Properties dialog: general/launch options, compatibility, updates, installed files, verify, DLC | missing | partial |
+| Game page | Uninstall with a confirmation | done | done |
+| Store | Store sub-navigation (For you, Fresh, Categories, Rewards, News, Experiments) and search | missing | partial |
 | Store | Spotlight carousel: big tile, screenshots that change on hover, price, tags | partial | done |
 | Store | Special offers with discount badges and old/new prices | missing | done |
 | Store | Browse by category tiles | missing | done |
@@ -43,22 +43,45 @@ was at the start of this work; **Now** is the current state.
 | Store | Store page: system requirements with platform tabs (minimum / recommended) | missing | done |
 | Store | Cart: items, total, remove, purchase for myself | missing | done |
 | Store | Wishlist with sort (rank, name, price, discount) | missing | done |
-| Downloads | Current download with banner, speed, progress and pause | partial | missing |
-| Downloads | Network and disk usage graph | missing | missing |
-| Downloads | Up next queue with reorder, unscheduled, completed lists | partial | missing |
-| Friends | Friends list: own status, in-game / online / offline groups with presence colours | partial | missing |
-| Friends | Chat: message bubbles, timestamps, game invites, typing | missing | missing |
-| Settings | Settings window with a category list | partial | missing |
-| Settings | Interface: language, start page, theme-like options | partial | missing |
-| Settings | Downloads: region, bandwidth limit, schedule, clear cache | partial | missing |
-| Settings | Storage manager: drives with usage bars by game, move and uninstall | missing | missing |
-| Community | Community hub page: activity, screenshots, discussions | missing | missing |
-| Profile | Profile page: avatar, level, showcase, recent activity | missing | missing |
-| TV mode | Big-screen mode entry and its home | missing | missing |
+| Downloads | Current download with banner, speed, progress and pause | partial | done |
+| Downloads | Network and disk usage graph | missing | done |
+| Downloads | Up next queue with reorder, unscheduled, completed lists | partial | done |
+| Friends | Friends list: own status, in-game / online / offline groups with presence colours, search, add a friend | partial | done |
+| Friends | Chat: message bubbles, timestamps, game invites, typing | missing | done |
+| Settings | Settings window with a category list | partial | done |
+| Settings | Interface: language, start page, theme-like options | partial | done |
+| Settings | Downloads: region, bandwidth limit, schedule, clear cache | partial | partial |
+| Settings | Storage manager: drives with usage bars by game, move and uninstall | missing | partial |
+| Community | Community hub page: activity, screenshots, discussions | missing | partial |
+| Profile | Profile page: avatar, level, showcase, recent activity | missing | done |
+| TV mode | Big-screen mode entry and its home | missing | partial |
 | Keyboard | Every action reachable by keyboard, focus visible, shortcuts | partial | partial |
 | Locales | English, Spanish and French | done | done |
-| Assistant | The shared assistant chat (bottom-right bubble) | missing | missing |
+| Assistant | The shared assistant chat (bottom-right bubble) | missing | done |
 
 Counts at the start: done 2, partial 21, missing 26 (49 features). Tokens at the start (merged, compact): 24,559.
 Counts after round 1 (library and game page): done 16, partial 7, missing 26. Tokens (merged, compact): 19,469.
 Counts after round 2 (store): done 26, partial 7, missing 16. Tokens (merged, compact): 36,493 (the store adds about 17,000).
+Counts after round 3 (downloads, friends and chat, profile, a game's menu, properties and uninstall, the assistant):
+done 37, partial 6, missing 6. Tokens (merged, compact): 66,961. Properties has no compatibility tab: the games are
+invented and never run, so there is no compatibility layer to choose.
+Counts after round 4 (a look of its own, and every client control works): done 40, partial 9, missing 0. Tokens
+(merged, compact): about 80,000, estimated from the compact document's size (282,485 bytes, against 236,426 before
+this round; the client's controls, the player hub and their strings in three languages).
+
+## Left for later
+
+Each partial row and each disabled control, with what it needs and a priority: P1 daily, P2 occasional, P3 rare.
+
+| What | Needs | Priority |
+| --- | --- | --- |
+| Collections: creating one, and dynamic (filtered) ones | JSON only: a collections model, a "New collection" dialog and a filter per collection | P2 |
+| Downloads settings: download region and a schedule | JSON only: two settings and the queue honouring the schedule window | P2 |
+| Community hub: opening a post and replying | JSON only: a post page and a replies model | P2 |
+| Keyboard: gamepad buttons in couch mode and the library | General library feature: gamepad button names in `keys` | P2 |
+| Game page panels: own screenshots and full controller info | JSON only: a screenshots model and a controller panel | P3 |
+| Properties: browsing installed files; a compatibility tab | JSON only for the files list; compatibility has nothing to choose with invented games | P3 |
+| Storage: a second drive and moving a game to it | JSON only: drives in the data and a move action | P3 |
+| TV mode: the store, friends and settings inside couch mode | JSON only: more couch pages | P3 |
+| Store bar: Rewards and Experiments (disabled, with a tooltip) | JSON only: a points shop and an experiments page | P3 |
+| Arcadia menu: Exit (disabled) | General library feature: an action that asks the host to quit; menu items also need a tooltip (kit) | P3 |

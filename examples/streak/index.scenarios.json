@@ -1190,10 +1190,10 @@
 					"wait": 50
 				},
 				{
-					"click": [
-						830,
-						548
-					]
+					"click": {
+						"role": "menuitem",
+						"name": "Français"
+					}
 				},
 				{
 					"wait": 50
@@ -1326,6 +1326,203 @@
 					"expect": {
 						"state": "toasts.length",
 						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "backup-and-restore",
+			"note": "Settings saves every habit to a backup file and restores a deleted one from it; another app's file, a damaged entry and a cancelled dialog change nothing",
+			"steps": [
+				{
+					"choose": "habits.json"
+				},
+				{
+					"key": "mod+comma"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Back up to a file"
+					}
+				},
+				{
+					"wait": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toasts.length",
+						"is": 1
+					}
+				},
+				{
+					"click": "#settingsBack"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "mod+backspace"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Delete"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 7
+					}
+				},
+				{
+					"key": "mod+comma"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"scroll": "#settingsList",
+					"dy": -10
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Restore from a file"
+					}
+				},
+				{
+					"wait": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 8
+					}
+				},
+				{
+					"expect": {
+						"state": "restoredCount",
+						"is": 8
+					}
+				},
+				{
+					"expect": {
+						"state": "backupFile",
+						"is": null
+					}
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Another app's file",
+						"set": {
+							"/state/backupFile": {
+								"format": "other",
+								"habits": [
+									{
+										"id": "x",
+										"name": "X",
+										"kind": "yesNo"
+									}
+								]
+							}
+						}
+					}
+				},
+				{
+					"action": "restoreHabits"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 8
+					}
+				},
+				{
+					"expect": {
+						"state": "backupFile",
+						"is": null
+					}
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "A damaged backup",
+						"set": {
+							"/state/backupFile": {
+								"format": "streak-backup",
+								"version": 1,
+								"habits": [
+									{
+										"id": "nameless",
+										"kind": "yesNo"
+									},
+									5
+								]
+							}
+						}
+					}
+				},
+				{
+					"action": "restoreHabits"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "skippedCount",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 8
+					}
+				},
+				{
+					"choose": null
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Restore from a file"
+					}
+				},
+				{
+					"wait": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 8
 					}
 				}
 			]

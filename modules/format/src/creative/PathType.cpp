@@ -5,6 +5,7 @@
 #include "TypeRegistry.hpp"
 
 #include "affresco/render/PathView.hpp"
+#include "affresco/core/Numbers.hpp"
 
 #include <array>
 #include <cmath>
@@ -48,7 +49,7 @@ Rect viewBoxOf(const json& value, const std::string& at) {
 	while(read < numbers.size()) {
 		while(*cursor == ' ' || *cursor == ',') ++cursor;
 		char* end = nullptr;
-		const float number = std::strtof(cursor, &end);
+		const auto number = static_cast<float>(readNumber(cursor, &end));
 		if(end == cursor || !std::isfinite(number)) break;
 		numbers[read++] = number;
 		cursor = end;

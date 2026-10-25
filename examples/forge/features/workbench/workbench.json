@@ -2,17 +2,18 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's workbench extras: the secondary side bar with the Outline (the active file's headings, or its lines that open a block), moving tabs between editor groups (by dragging, or Move Editor into Next or Previous Group), the breadcrumbs over the editor, the recently opened files (first in Go to File, kept by persist), the minimap setting, and the settings and keyboard shortcuts as JSON. The editor groups (features/editor) use forgeBreadcrumbs and the pages; the shell (features/shell) has state.layout.secondary.",
+	"note": "Forge's workbench extras: the secondary side bar with the Outline (the active file's symbols from the language server, else its headings or the lines that open a block), moving tabs between editor groups (by dragging, or Move Editor into Next or Previous Group), the breadcrumbs over the editor, the recently opened files (first in Go to File, kept by persist), the minimap setting, and the settings and keyboard shortcuts as JSON. The editor groups (features/editor) use forgeBreadcrumbs and the pages; the shell (features/shell) has state.layout.secondary.",
 
 	"state": {
 		"outline": [],
+		"outlineSymbols": "",
 		"settingsJson": "",
 		"settingsJsonError": ""
 	},
 
 	"computed": {
-		"outlineItems": "{{map(state.outline, {id: text(it.line), label: (it.depth > 0 ? '    ' : '') + it.label, icon: it.depth > 0 ? 'chevron-right' : 'box'})}}",
-		"symbolAtCaret": "{{find(reverse(state.outline), it.line <= state.caret.line)}}",
+		"outlineItems": "{{map(state.outline, {id: text(it.line) + ':' + index, label: slice('                ', 0, 4 * min(it.depth, 4)) + it.label, icon: it.kind == null ? (it.depth > 0 ? 'chevron-right' : 'box') : contains(['function', 'method', 'constructor'], it.kind) ? 'parentheses' : contains(['class', 'struct', 'interface'], it.kind) ? 'component' : contains(['namespace', 'module', 'package'], it.kind) ? 'braces' : contains(['variable', 'field', 'property', 'constant'], it.kind) ? 'variable' : contains(['enum', 'enumMember'], it.kind) ? 'list-tree' : 'hash'})}}",
+		"symbolTrail": "{{filter(reduce(filter(state.outline, it.line <= state.caret.line), concat(slice(concat(acc, [null, null, null, null, null, null, null, null]), 0, min(it.depth, 7)), [it]), []), it != null)}}",
 		"keybindingsJson": "{{json(map(keybindings, {key: it.key, command: it.command, when: it.when ?? ''}))}}"
 	},
 
@@ -31,14 +32,16 @@
 			"do": [{ "toggle": "state.layout.secondary" }, { "run": "refreshOutline" }] },
 		"refreshOutline": { "title": "Refresh Outline", "category": "Outline", "icon": "refresh-cw",
 			"do": [{ "if": "{{computed.activeDoc.kind == 'file'}}",
-			         "then": [{ "run": "outlineOf", "with": { "rows": "{{computed.activeDoc.language == 'Markdown' ? [] : map(slice(split(computed.activeDoc.text, '\\n'), 0, 20000), {line: index + 1, row: it, code: trim(it)})}}",
-			           "headings": "{{computed.activeDoc.language == 'Markdown' ? filter(map(slice(split(computed.activeDoc.text, '\\n'), 0, 20000), {line: index + 1, row: it}), indexOf(it.row, '#') == 0) : []}}" } }],
-			         "else": [{ "set": "state.outline", "to": [] }] }] },
+			         "then": [{ "if": "{{computed.lspLanguage != null}}", "then": [{ "run": "lspAsk", "with": { "kind": "outline", "query": "", "newName": "", "line": null, "column": null } }] },
+			                  { "if": "{{state.outlineSymbols != computed.activeDoc.id}}", "then": [{ "run": "outlineOf", "with": { "rows": "{{computed.activeDoc.language == 'Markdown' ? [] : map(slice(split(computed.activeDoc.text, '\\n'), 0, 20000), {line: index + 1, row: it, code: trim(it)})}}",
+			           "headings": "{{computed.activeDoc.language == 'Markdown' ? filter(map(slice(split(computed.activeDoc.text, '\\n'), 0, 20000), {line: index + 1, row: it}), indexOf(it.row, '#') == 0) : []}}",
+			           "python": "{{computed.activeDoc.language == 'Python'}}" } }] }],
+			         "else": [{ "set": "state.outline", "to": [] }, { "set": "state.outlineSymbols", "to": "" }] }] },
 		"outlineOf": [
-			{ "note": "rows: a file's lines (line, row, code: the row trimmed); headings: a Markdown file's lines that start with #. The outline: the headings, or the lines of code that open a block, at the first or second level" },
-			{ "set": "state.outline", "to": "{{slice(concat(map(filter(headings, contains(['# ', '## ', '### ', '#### '], slice(it.row, 0, indexOf(it.row, ' ') + 1))), {line: it.line, depth: indexOf(it.row, ' ') - 1, label: slice(trim(slice(it.row, indexOf(it.row, ' '))), 0, 120)}), map(filter(map(filter(rows, slice(it.code, -1) == '{' && !contains(['}', '/', '#'], slice(it.code, 0, 1))), {line: it.line, indent: indexOf(it.row, it.code), tab: slice(it.row, 0, 1) == '\t', label: slice(trim(slice(it.code, 0, -1)), 0, 120)}), !empty(it.label) && (it.indent == 0 || (it.tab ? it.indent == 1 : it.indent <= 4))), {line: it.line, depth: it.indent == 0 ? 0 : 1, label: it.label})), 0, 2000)}}" }
+			{ "note": "rows: a file's lines (line, row, code: the row trimmed); headings: a Markdown file's lines that start with #; python: whether rows are Python's. The outline: the headings, Python's classes and functions by their indentation, or the lines of code that open a block, at the first or second level" },
+			{ "set": "state.outline", "to": "{{slice(concat(map(filter(headings, contains(['# ', '## ', '### ', '#### '], slice(it.row, 0, indexOf(it.row, ' ') + 1))), {line: it.line, depth: indexOf(it.row, ' ') - 1, label: slice(trim(slice(it.row, indexOf(it.row, ' '))), 0, 120)}), map(map(filter(rows, python && (slice(it.code, 0, 4) == 'def ' || slice(it.code, 0, 6) == 'class ' || slice(it.code, 0, 10) == 'async def ')), {line: it.line, indent: indexOf(it.row, it.code), tab: slice(it.row, 0, 1) == '\t', kind: slice(it.code, 0, 6) == 'class ' ? 'class' : 'function', rest: trim(slice(it.code, slice(it.code, 0, 10) == 'async def ' ? 10 : slice(it.code, 0, 4) == 'def ' ? 4 : 6))}), {line: it.line, depth: min(it.tab ? it.indent : it.indent >= 12 ? 3 : it.indent >= 8 ? 2 : it.indent >= 1 ? 1 : 0, 3), kind: it.kind, label: slice(slice(it.rest, 0, indexOf(it.rest, '(') > 0 ? indexOf(it.rest, '(') : indexOf(it.rest, ':') > 0 ? indexOf(it.rest, ':') : length(it.rest)), 0, 120)}), map(filter(map(filter(rows, !python && slice(it.code, -1) == '{' && !contains(['}', '/', '#'], slice(it.code, 0, 1))), {line: it.line, indent: indexOf(it.row, it.code), tab: slice(it.row, 0, 1) == '\t', label: slice(trim(slice(it.code, 0, -1)), 0, 120)}), !empty(it.label) && (it.indent == 0 || (it.tab ? it.indent == 1 : it.indent <= 4))), {line: it.line, depth: it.indent == 0 ? 0 : 1, label: it.label, kind: contains(['class ', 'struct', 'interf'], slice(it.label, 0, 6)) ? 'class' : slice(it.label, 0, 10) == 'namespace ' ? 'namespace' : contains(it.label, '(') && !contains(['if ', 'if(', 'for', 'whi', 'swi'], slice(it.label, 0, 3)) ? 'function' : null})), 0, 2000)}}" }
 		],
-		"outlinePicked": [{ "if": "{{number(event.value) > 0}}", "then": [{ "run": "goToLine", "with": { "line": "{{number(event.value)}}" } }] }],
+		"outlinePicked": [{ "if": "{{number(split(event.value, ':')[0]) > 0}}", "then": [{ "run": "goToLine", "with": { "line": "{{number(split(event.value, ':')[0])}}" } }] }],
 		"toggleMinimap": { "title": "Toggle Minimap", "category": "View", "icon": "map",
 			"do": [{ "set": "settings.editor.minimap.enabled", "to": "{{!settings.editor.minimap.enabled}}" }] },
 		"toggleDiffInline": { "title": "Toggle Inline View", "category": "Compare", "icon": "columns",
@@ -48,7 +51,9 @@
 		"revealFolder": [
 			{ "note": "path: a folder's path. Opens the explorer with that folder and its parents open" },
 			{ "run": "explorerShow", "with": { "id": "{{path}}" } },
-			{ "run": "explorerExpand", "with": { "event": "{{ {id: path, expanded: !contains(state.explorer.expanded, path)} }}" } },
+			{ "if": "{{!contains(state.explorer.expanded, path)}}",
+			  "then": [{ "set": "state.explorer.expanded", "to": "{{concat(state.explorer.expanded, [path])}}" },
+			           { "run": "explorerList", "with": { "folder": "{{path}}" } }] },
 			{ "set": "state.sideView", "to": "explorer" },
 			{ "set": "state.layout.sidebar", "to": true }
 		],
@@ -168,7 +173,7 @@
 				"children": [
 					{ "type": "row", "id": "outline-head", "width": "100%", "height": 32, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "outline-title", "text": "Outline", "textColor": "@color.muted", "grow": 1, "padding": 12 },
+						{ "type": "label", "id": "outline-title", "text": "Outline", "textColor": "@color.muted", "grow": 1, "height": 32, "padding": 12 },
 						{ "type": "label", "id": "outline-refresh", "role": "button", "label": "Refresh Outline", "icon": "refresh-cw",
 						  "padding": 6, "fitText": true, "cursor": "hand", "textColor": "@color.muted", "tooltip": "Refresh Outline",
 						  "hover": { "color": "@color.hover" }, "onClick": { "run": "refreshOutline" } },
@@ -197,8 +202,8 @@
 					  "onClick": [{ "if": "{{si < length(split(path, '/')) - 1}}",
 					               "then": [{ "run": "revealFolder", "with": { "path": "{{join(slice(split(path, '/'), 0, si + 1), '/')}}" } }],
 					               "else": [{ "run": "goToSymbol" }] }] },
-					{ "type": "label", "id": "breadcrumb-symbol", "when": "{{computed.symbolAtCaret != null}}", "role": "button",
-					  "label": "{{trim(computed.symbolAtCaret.label ?? '')}}", "text": "{{trim(computed.symbolAtCaret.label ?? '')}}",
+					{ "type": "label", "id": "breadcrumb-symbol", "repeat": { "for": "symbol", "in": "{{computed.symbolTrail}}" }, "role": "button",
+					  "label": "{{trim(symbol.label)}}", "text": "{{trim(symbol.label)}}",
 					  "icon": "chevron-right", "fitText": true, "padding": 2, "cursor": "hand", "textColor": "@color.muted",
 					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "goToSymbol" } }
 				]

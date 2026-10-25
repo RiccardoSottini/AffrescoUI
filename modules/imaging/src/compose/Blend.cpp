@@ -100,7 +100,7 @@ std::string_view blendModeName(BlendMode mode) noexcept { return blendModeNames(
 
 std::optional<BlendMode> blendModeOf(std::string_view name) noexcept {
 	const auto& names = blendModeNames();
-	const auto* const found = std::ranges::find(names, name);
+	const auto found = std::ranges::find(names, name);
 	if(found == names.end()) return std::nullopt;
 	return static_cast<BlendMode>(found - names.begin());
 }

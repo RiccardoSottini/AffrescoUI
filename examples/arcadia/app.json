@@ -1,0 +1,27 @@
+{
+	"$schema": "../../schema/affrescoui-app.schema.json",
+	"format": "affrescoui-app",
+	"version": 1,
+	"id": "arcadia",
+	"name": "Arcadia",
+	"description": "A game launcher: a library of games, their pages, friends and news.",
+	"entry": "index.screen.json",
+	"capabilities": {
+		"assistant": "Answers your questions in the chat, with the assistant you set up in Settings.",
+		"files": "Backs up your games' settings to a file you choose, and restores them from one."
+	},
+	"data": {
+		"models": "models.json",
+		"seed": {
+			"games": "seed/games.json",
+			"friends": "seed/friends.json",
+			"news": "seed/news.json",
+			"activity": "seed/activity.json",
+			"messages": "seed/messages.json"
+		}
+	},
+	"assets": [
+		"art",
+		"covers"
+	]
+}

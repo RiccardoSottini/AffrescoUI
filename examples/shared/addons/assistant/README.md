@@ -21,8 +21,8 @@ screen without meeting the app's own names.
   macOS) opens and closes the panel from anywhere.
 - **The panel**, 380 by up to 560 pixels, which grows in from the launcher. Its header says how many agents are
   connected, or that none is; with none, a note says to set up a provider of intelligence in the AffrescoUI
-  Launcher's Settings (the host then runs an agent of its own, `examples/shared/intelligence`), or to connect an agent
-  over MCP. An empty conversation shows three suggestions
+  Launcher's Settings (the host then runs an agent of its own, `modules/intelligence`, for an app whose `app.json`
+  declares the `assistant` capability and that the person allowed it), or to connect an agent over MCP. An empty conversation shows three suggestions
   to ask with a click.
 - **The conversation**, as Claude Code and Codex show one: the person's messages in soft bubbles, the replies as plain
   text, each with *Copy* (to the clipboard) and *Retry* (asks the request it answered again), a typing indicator
@@ -39,8 +39,8 @@ screen without meeting the app's own names.
   Launcher's Settings, and a menu of the provider's models (the default marked). The choice is the app's own (kept
   with `persist`) and goes with every request as the `ask` step's `options` (`{ "model": "opus" }`). It shows only
   when the host's own agent is connected (the peer `agent`) and answers the read-only native `assistant.models`
-  (`{ provider, default, models: [{ id, name }] }`, `examples/shared/intelligence/Intelligence.hpp`), which reveals
-  nothing secret and changes nothing; elsewhere (MCP-only setups, other hosts) it hides.
+  (`{ provider, default, models: [{ id, name }] }`, `Intelligence.hpp` in `modules/intelligence`), which reveals nothing
+  secret and changes nothing; elsewhere (MCP-only setups, other hosts) it hides.
 - **The composer**, a card with the text above and a bar below: *Attach* (`+`, or drop files on the panel) and the
   model picker at its start, a round send button at its end. While an agent works on a request, the send button is a
   *Stop* button: it cancels the requests in progress (`cancelAsk`), the agents are told, and what they send after is

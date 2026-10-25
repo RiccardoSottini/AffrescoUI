@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Forge's Search view (features/search), checked headless with tests/render/forge/folder open; nothing is replaced (each Replace All dialog is cancelled), so the folder stays as it is: affrescoui_render_runner search.scenarios.json",
+	"note": "Forge's Search view (features/search, on the search service), checked headless with a copy of tests/render/forge/folder open for each scenario, so a replace changes only the copy: affrescoui_render_runner search.scenarios.json",
 	"screen": "index.screen.json",
 	"scenarios": [
 		{
@@ -36,6 +36,32 @@
 				{ "expect": { "state": "search.result.hits[0].line", "is": 4 } },
 				{ "expect": { "state": "search.busy", "is": false } },
 				{ "expect": { "node": "#search-results", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-search-editor",
+			"note": "Open Results in Editor shows the results as text in an editor tab; Enter on a match's line opens the file there",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-query" },
+				{ "type": "hello" },
+				{ "key": "enter" },
+				{ "expect": { "state": "search.result.done", "is": true } },
+				{ "click": "#search-open-editor" },
+				{ "expect": { "state": "groups[0].active", "is": "forge:search-results" } },
+				{ "expect": { "node": "#search-editor", "property": "text", "is": "1 result in 1 file for hello\n\nsrc/main.cpp\n  4: std::cout << \"hello\\n\";\n" } },
+				{ "click": "#search-editor" },
+				{ "key": "mod+up" },
+				{ "key": "down" },
+				{ "key": "down" },
+				{ "key": "down" },
+				{ "expect": { "state": "searchEditor.caret.line", "is": 4 } },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "groups[0].active", "is": "src/main.cpp" } },
+				{ "expect": { "state": "goTo.line", "is": 4 } },
+				{ "expect": { "state": "goTo.request", "is": 1 } }
 			]
 		},
 		{
@@ -191,6 +217,34 @@
 				{ "expect": { "state": "search.confirm", "is": false } },
 				{ "action": "runSearch" },
 				{ "expect": { "state": "search.result.matches", "is": 1 } }
+			]
+		},
+		{
+			"name": "forge-search-replaces-every-match",
+			"note": "Replace All writes each file found (search.replace, then files.write), says how many matches changed, and searches again: the old text is gone, the new one found",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-query" },
+				{ "type": "hello" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.matches", "is": 1 } },
+				{ "click": "#search-replace" },
+				{ "type": "world" },
+				{ "action": "replaceAll" },
+				{ "expect": { "state": "search.replacing", "is": null } },
+				{ "expect": { "state": "notifications[0].message", "is": "Replaced 1 match in 1 file" } },
+				{ "expect": { "state": "search.result.matches", "is": 0 } },
+				{ "click": "#search-query" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "type": "world" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.matches", "is": 1 } },
+				{ "expect": { "state": "search.result.hits[0].file", "is": "src/main.cpp" } }
 			]
 		}
 	]

@@ -7,7 +7,9 @@ keeps them in line with every new version and state, and runs events, actions an
 parsed into JSON operator trees (what the checker reads), lowered once into typed nodes, and run by a small machine
 on `Value`s, which read the state in place: JSON appears only at the edges. The format is general: it describes any
 application's UI, and what one application needs that the format can't express comes in through an extension point,
-not a feature.
+not a feature. It holds mechanisms only: the components and design tokens a document uses without defining them (a
+kit's toolbar, a theme's `@kit.surface`) come from the installed `ComponentLibrary` (core), which a program fills from
+`modules/themes`; the format never links that module (`src/components/README.md`).
 Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 
 ## Public headers (`include/affresco/format/`)
@@ -239,7 +241,7 @@ which outlive it or are replaced first.
 - **Application types:** `registerType(name, factory, properties, apply)`, through the type registry. The type has
   the properties of the built-in widget its panel derives from, plus its own, applied by `apply` whenever they change.
   A name the format already has replaces that type. `resolveColor` and
-  `font` read colours and fonts as the document writes them. `examples/shared/CodeEditor.*` registers `code` this way.
+  `font` read colours and fonts as the document writes them. `tests/unit/registries.cpp` registers one this way.
 - **Native actions and functions:** `onAction(name, action)` for `"onClick": "name"`, and `onCall(name, call)` for
   `{"call": name, "with": ..., "into": "state.x"}` steps. Tell `Rules::addNativeAction` about the actions, so the
   checker accepts them.
@@ -345,11 +347,9 @@ src/
   sections/                top-level sections
     SectionRegistry.hpp    sections; Sections.cpp, CapabilitySections.cpp register them
     DesignTokens.*         the "tokens" section: aliases, per-theme values, colour and number tables
-  components/              the built-in components
-    BuiltInComponents.*    menus, the menu bar, dialogs, toasts, hover cards, the settings page and the quick
-                           pick, written in the format; BuiltInFormComponents.cpp comboBox and passwordMeter;
-                           BuiltInChatComponents.cpp the chat bubble, typing indicator, proposal card, composer
-                           and launcher
+  components/              the components and tokens a document uses without defining them
+    Library.*              the installed ComponentLibrary's (core; modules/themes in a stock program), for the
+                           builder, the checker, the design tokens, the reference and the control scan
   properties/              node properties
     Properties.*           a node's values on its panel; CommonProperties.cpp those every panel has and the core
                            types'; PropertyValues.* reads lengths, anchors, radii;
@@ -413,4 +413,4 @@ a section that grants a capability goes in `CapabilitySections.cpp` with `capabi
 then guards.
 
 **Add a node type for one application.** Don't add it here: register it from the application with
-`Screen::registerType` (or `Runtime::registerType`), as `examples/shared/CodeEditor.cpp` does.
+`Screen::registerType` (or `Runtime::registerType`), as `tests/unit/registries.cpp` does.

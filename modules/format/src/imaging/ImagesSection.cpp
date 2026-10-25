@@ -36,7 +36,7 @@ template <auto Member> [[nodiscard]] constexpr LimitKey limitKey(std::string_vie
 }
 
 /// @brief The limits a document may lower, by their keys.
-constexpr std::array<LimitKey, 17> limitKeys{
+constexpr std::array<LimitKey, 18> limitKeys{
     limitKey<&imaging::Limits::side>("side"),
     limitKey<&imaging::Limits::pixels>("pixels"),
     limitKey<&imaging::Limits::layers>("layers"),
@@ -49,6 +49,7 @@ constexpr std::array<LimitKey, 17> limitKeys{
     limitKey<&imaging::Limits::brushSize>("brushSize"),
     limitKey<&imaging::Limits::imageFileBytes>("imageFileBytes"),
     limitKey<&imaging::Limits::imageFileSide>("imageFileSide"),
+    limitKey<&imaging::Limits::imageFilePixels>("imageFilePixels"),
     limitKey<&imaging::Limits::projectFileBytes>("projectFileBytes"),
     limitKey<&imaging::Limits::manifestBytes>("manifestBytes"),
     limitKey<&imaging::Limits::profileBytes>("profileBytes"),

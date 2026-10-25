@@ -7,9 +7,7 @@
 #include <affresco/services/DirectoryModel.hpp>
 
 #include <chrono>
-#include <condition_variable>
 #include <fstream>
-#include <mutex>
 #include <stdexcept>
 
 namespace affresco::bench {
@@ -17,39 +15,6 @@ namespace {
 
 constexpr int folderCount = 100;     ///< Folders in the tree.
 constexpr int filesPerFolder = 1000; ///< Files in each, so 100,000 in all.
-
-/// @brief An executor the workload pumps by hand, on the main thread.
-class PumpedExecutor final : public Executor {
-public:
-	/// @brief Queues a task.
-	/// @param task The task.
-	void post(std::function<void()> task) override {
-		const std::scoped_lock lock(mutex_);
-		tasks_.push_back(std::move(task));
-		posted_.notify_all();
-	}
-	/// @brief Runs posted tasks until a condition holds.
-	/// @param done The condition.
-	/// @throws std::runtime_error If it doesn't hold within 60 seconds (times slowdown()).
-	void pumpUntil(const std::function<bool()>& done) {
-		const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(60) * slowdown();
-		while(!done()) {
-			std::vector<std::function<void()>> tasks;
-			{
-				std::unique_lock lock(mutex_);
-				if(!posted_.wait_until(lock, end, [this] { return !tasks_.empty(); }))
-					throw std::runtime_error("watch: the model didn't answer in time");
-				tasks.swap(tasks_);
-			}
-			for(const auto& task : tasks) task();
-		}
-	}
-
-private:
-	std::mutex mutex_;                         ///< Guards tasks_.
-	std::condition_variable posted_;           ///< Signalled at each post.
-	std::vector<std::function<void()>> tasks_; ///< Waiting to run.
-};
 
 /// @brief The tree of 100,000 files, under the system's temporary folder, removed at the end.
 struct ManyFiles {
@@ -85,13 +50,13 @@ std::vector<Workload> watchWorkloads(Context& /*context*/) {
 	std::vector<Workload> workloads;
 	workloads.push_back({.name = "watch/100000", .unit = "ms", .runs = 5, .step = [files] {
 		                     const auto model = services::DirectoryModel::open(files->executor, files->root);
-		                     files->executor.pumpUntil([&model] { return model->ready(); });
+		                     files->executor.pumpUntil([&model] { return model->ready(); }, "watch: the model");
 		                     if(model->size() != std::size_t{folderCount} * (filesPerFolder + 1) || !model->watching())
 			                     throw std::runtime_error("watch: the listing is incomplete");
 	                     }});
 	const auto model = services::DirectoryModel::open(files->executor, files->root,
 	                                                  {.ignore = {}, .debounce = std::chrono::milliseconds(20)});
-	files->executor.pumpUntil([model] { return model->ready(); });
+	files->executor.pumpUntil([model] { return model->ready(); }, "watch: the model");
 	const auto changed = std::make_shared<bool>(false);
 	(void)model->onChange.connect(
 	    [changed](const ModelChange& change) { *changed = change.kind == ModelChange::Kind::Changed; });
@@ -100,7 +65,7 @@ std::vector<Workload> watchWorkloads(Context& /*context*/) {
 		                     *changed = false;
 		                     std::ofstream(files->root / "folder7" / "file7.txt")
 		                         << std::string(static_cast<std::size_t>(++*size), 'x');
-		                     files->executor.pumpUntil([changed] { return *changed; });
+		                     files->executor.pumpUntil([changed] { return *changed; }, "watch: the model");
 	                     }});
 	return workloads;
 }

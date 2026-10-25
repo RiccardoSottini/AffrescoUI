@@ -21,6 +21,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"caret", R"json({"type": "string",
 		"description": "editor: a state path the editor writes its caret to, as { line, column, selected } (from 1)"})json",
 	 R"(A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1.)", "editor"},
+    {"viewport", R"json({"type": "string",
+		"description": "editor: a state path the editor writes what it shows to, as { first, last, rows, lines } (lines from 1)"})json",
+	 R"(A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines" }`: the lines of its first and last visible rows (from 1), how many rows fit, and how many lines there are. For "Top", "Bot" and "42%" indicators.)",
+	 "editor"},
     {"font", "", "Font and text colour.", "editor"},
     {"textColor", "", "", "editor"},
     {"lineNumbers", R"json({"type": "boolean", "description": "editor: show line numbers in a gutter"})json",
@@ -35,7 +39,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"onChange", "handler", "", "editor"},
     {"wrap", "", "`true` wraps lines at the width (at spaces, else anywhere); the gutter numbers each line once.",
 	 "editor"},
-    {"folds", R"json({"type": "array", "maxItems": 100000, "description": "editor: folded line ranges, { line, endLine } from 0",
+    {"folds",
+	 R"json({"type": "array", "maxItems": 100000, "description": "editor: folded line ranges, { line, endLine } from 0",
 		"items": {"type": "object", "properties": {"line": {"type": "number", "minimum": 0},
 		"endLine": {"type": "number", "minimum": 0}}}})json",
 	 R"(Folded ranges, `[{ "line", "endLine" }]` from 0: the lines after `line` up to `endLine` are hidden behind it. )"
@@ -54,7 +59,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most "
 	 "10,000 and 8 on a line; inline text is cut at 256 characters.",
 	 "editor"},
-    {"find", R"json({"anyOf": [{"type": ["object", "null"], "properties": {"text": {"type": "string"}, "regex": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
+    {"find",
+	 R"json({"anyOf": [{"type": ["object", "null"], "properties": {"text": {"type": "string"}, "regex": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
 		"caseSensitive": {"type": "boolean"}, "inSelection": {"type": "boolean"}, "replace": {"type": "string"},
 		"step": {"enum": ["first", "next", "previous", "replace", "replaceAll"]}, "request": {"type": "number"}}}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous"})json",
@@ -70,7 +76,13 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`.",
 	 "editor"},
     {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
-    {"rulers", R"json({"anyOf": [{"type": "array", "items": {"type": "number", "minimum": 0}}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+    {"tabSize",
+	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 16}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the "
+	 "text becomes and the indentation guides step by.",
+	 "editor"},
+    {"rulers",
+	 R"json({"anyOf": [{"type": "array", "items": {"type": "number", "minimum": 0}}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`).", "editor"},
     {"minimap", "flag",
 	 "`true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or "
@@ -80,22 +92,32 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each "
 	 "character a pixel in its syntax colour.",
 	 "editor"},
+    {"minimapWidth", R"json({"anyOf": [{"type": "number", "minimum": 20, "maximum": 240}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "The minimap's width in pixels, 20 to 240 (default 60).", "editor"},
     {"minimapViewport", R"json({"anyOf": [{"enum": ["always", "hover"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it.",
+	 "editor"},
+    {"scrollMarks", "flag",
+	 "`true` marks the scroll bar where the whole text has decorations, find's matches and the caret, each in its "
+	 "colour, so they can be found again.",
 	 "editor"},
     {"matchStyle", R"json({"anyOf": [{"enum": ["fill", "outline"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`.", "editor"},
     {"composition", R"json({"description": "Text, or a {{binding}}"})json",
 	 "Text an input method is composing, shown underlined at the caret without editing (empty: none).", "editor"},
+    {"caretStyle", R"json({"anyOf": [{"enum": ["line", "block", "underline"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "The caret: `line` (the default) a bar before the character, `block` a box over it, `underline` a bar under it.",
+	 "editor"},
     {"readOnly", "flag", "`true`: the user can select, find and fold, but not edit.", "editor"},
     {"guideColor", "color", "The indentation guides, find's matches and the paired brackets.", "editor"},
     {"matchColor", "color", "", "editor"},
     {"bracketColor", "color", "", "editor"},
-    {"grammar", R"json({"type": "string", "description": "editor: the language that colours, folds and pairs brackets (e.g. cpp, or a file name)"})json",
+    {"grammar",
+	 R"json({"type": "string", "description": "editor: the language that colours, folds and pairs brackets (e.g. cpp, or a file name)"})json",
 	 "The language parsed for syntax colours, folds and bracket pairs: `c`, `cpp`, `json`, `python`, `javascript`, "
 	 "`typescript`, `markdown` or an alias (`c++`, `js`, `ts`, `py`, `md`), or a file name whose extension says it. "
 	 "Each capture is coloured by the theme's `@syntax.<capture>` token (e.g. `@syntax.keyword`; `keyword.return` "
-	 "falls back to `@syntax.keyword`). Left out, plain text.",
+	 "falls back to `@syntax.keyword`). Left out or empty, plain text.",
 	 "editor"},
     {"original", R"json({"type": "string", "description": "diff: the text compared from"})json",
 	 "The text compared from (lines split at `\\n`, a `\\r` before it dropped).", "diff"},
@@ -106,11 +128,12 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`split` (default): the original on the left, the modified text on the right, rows aligned with blank rows and "
 	 "scrolled together; `inline`: one editor, the deleted lines above the lines inserted for them.",
 	 "diff"},
-    {"language", R"json({"type": "string", "description": "diff: a language id for the application's editors (e.g. cpp); editor: a language of the languages section, by name, alias or file name"})json",
+    {"language",
+	 R"json({"type": "string", "description": "diff: a language id for the application's editors (e.g. cpp); editor: a language of the languages section, by name, alias or file name"})json",
 	 "A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. "
 	 "On an `editor`: a language of the `languages` section, by name, alias or file name (`main.py`). It colours the "
-	 "text unless `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, or "
-	 "wrapping the selection), Backspace between an empty pair deletes both, Enter between `brackets` or after an "
+	 "text unless a `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, "
+	 "or wrapping the selection), Backspace between an empty pair deletes both, Enter between `brackets` or after an "
 	 "`indent.increase` line indents a level, and a line that comes to match `indent.decrease` goes back one. Unknown, "
 	 "plain text.",
 	 "diff"},
@@ -138,7 +161,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`{ \"text\", \"before\", \"request\" }`: replaces the selection and the `before` characters just before it "
 	 "with `text` (a completion), once per `request` number; one undo step.",
 	 "editor"},
-    {"tokens", R"json({"anyOf": [{"type": "array", "maxItems": 100000, "items": {"type": "object", "required": ["style"],
+    {"tokens",
+	 R"json({"anyOf": [{"type": "array", "maxItems": 100000, "items": {"type": "object", "required": ["style"],
 		"properties": {"line": {"type": "number", "minimum": 0}, "column": {"type": "number", "minimum": 0},
 		"length": {"type": "number", "minimum": 0}, "style": {"type": "string"}}}}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "editor: runs coloured over the language's colours (e.g. a language server's)"})json",
@@ -178,8 +202,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 R"json({"description": "row, column, stack: take the width, the height or both (true) from the children",
 		"anyOf": [{"type": "boolean"}, {"enum": ["width", "height"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "`true`, `\"width\"` or `\"height\"`: that size comes from the children instead of `width` and `height` (within "
-	 "the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, even "
-	 "when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with its "
+	 "the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, "
+	 "even "
+	 "when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with "
+	 "its "
 	 "text. A child that grows or is stretched by its anchors adds only its own size.",
 	 "stack"},
     {"direction", R"json({"anyOf": [{"enum": ["row", "column"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
@@ -240,6 +266,14 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`\"contain\"` (the default: all of it, as large as fits, centred), `\"cover\"` (the whole node, the image's "
 	 "edges cut off) or `\"fill\"` (stretched), like CSS `object-fit`.",
 	 "image"},
+    {"highlight", R"json({"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "number"}, "minItems": 4,
+		"maxItems": 4}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "image: null, or a region [x, y, width, height] in the image's pixels to outline"})json",
+	 "`null` (the default) or `[x, y, width, height]` in the image's pixels: a region outlined over the image, e.g. a "
+	 "picture's changed part. A source starting `data:image/png;base64,` or `data:image/jpeg;base64,` is decoded "
+	 "inline, within the same limits as a file.",
+	 "image"},
+    {"highlightColor", "color", "The outline's colour.", "image"},
     {"surface", R"json({"anyOf": [{"type": "string"}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "surface: the name of a GPU surface the host registered (Screen::registerSurface)"})json",
 	 "The name of a GPU surface the host registered (`Screen::registerSurface(\"cube\", …)`). A document can only "
@@ -289,11 +323,15 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"sashActiveColor", "color", "", "split"},
     {"tabs", R"json({"anyOf": [{"type": "array", "maxItems": 10000, "items": {"anyOf": [{"type": "string"},
 		{"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}, "label": {"type": "string"},
-		"marker": {"type": "boolean"}, "closable": {"type": "boolean"}}}]}}, {"$ref": "#/$defs/v2/dynamic"}],
-		"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable }"})json",
+		"marker": {"type": "boolean"}, "closable": {"type": "boolean"}, "icon": {"type": ["string", "null"]},
+		"iconColor": {"type": ["string", "null"]}, "italic": {"type": "boolean"}}}]}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable, icon, iconColor, italic }"})json",
 	 "The tabs, in order (or a binding such as `\"{{state.open}}\"`): a string (its id and label), or `{ \"id\", "
-	 "\"label\", \"marker\", \"closable\" }`. "
-	 "`marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most "
+	 "\"label\", \"marker\", \"closable\", \"icon\", \"iconColor\", \"italic\" }`. "
+	 "`marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true; `icon` "
+	 "names a glyph of the strip's font or its fallbacks, drawn before the label in `iconColor` (a hex colour; "
+	 "default the label's), as a list item's; `italic` slants the label, e.g. a preview tab that the next file opened "
+	 "replaces. At most "
 	 "10,000; the strip scrolls sideways when they don't fit.",
 	 "tabs"},
     {"value", "", "The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`.", "tabs"},
@@ -307,6 +345,14 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"markerColor", "color", "The markers' colour (default `accentColor`).", "tabs"},
     {"keepMarker", R"json({"type": "boolean"})json",
 	 "A marked tab keeps its marker while active, and shows its close button only while hovered (default false).",
+	 "tabs"},
+    {"tabRadius", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 64}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "The active tab's top corner radius, in pixels (default 0, square), e.g. a card that joins the content below.",
+	 "tabs"},
+    {"tabGap", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 64}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "Pixels before each tab (default 0: the tabs touch).", "tabs"},
+    {"tabInset", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 64}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "Pixels between the strip's top and the active tab's (default 0: the full height), so it rises from the strip.",
 	 "tabs"},
     {"items", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"anyOf": [{"type": "string"},
 		{"type": "number"}, {"type": "object", "required": ["id"], "properties": {"id": {"type": ["string", "number"]},
@@ -402,8 +448,7 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"strokeDash", R"json({"anyOf": [{"type": "array", "maxItems": 64, "items": {"type": "number", "minimum": 0}},
 		{"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Dash and gap lengths, repeated, e.g. `[6, 3]` (at most 64); without it the outline is solid.", "path"},
-    {"value", "",
-	 "The colour, `\"#rrggbbaa\"` (`bind` keeps it in a state path); picking one runs `onChange` with it.",
+    {"value", "", "The colour, `\"#rrggbbaa\"` (`bind` keeps it in a state path); picking one runs `onChange` with it.",
 	 "colorPicker"},
     {"mode", "",
 	 R"(`"square"` (the default: saturation across, value down, a hue strip) or `"wheel"` (hue around, saturation )"
@@ -494,17 +539,21 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "The links, `{ from, output, to, input }`: a node's output to a node's input (at most 50,000). The graph changes "
 	 "nothing itself: its handlers change the state.",
 	 "graph"},
-    {"cycles", "flag", "Whether a link may close a cycle (a node linked to itself included); `false`, the default, "
+    {"cycles", "flag",
+	 "Whether a link may close a cycle (a node linked to itself included); `false`, the default, "
 	 "refuses it.",
 	 "graph"},
-    {"kindColors", R"json({"anyOf": [{"type": "object", "maxProperties": 64, "additionalProperties": {"$ref": "#/$defs/v2/color"}},
+    {"kindColors",
+	 R"json({"anyOf": [{"type": "object", "maxProperties": 64, "additionalProperties": {"$ref": "#/$defs/v2/color"}},
 		{"$ref": "#/$defs/v2/dynamic"}], "description": "graph: each port kind's colour"})json",
 	 R"(Each kind's colour, `{ "float": "#a3e635" }` (at most 64): its ports and the links from them.)", "graph"},
-    {"nodeColor", "color", "The nodes' box and header; their text and the selection's colours are `textColor` and "
+    {"nodeColor", "color",
+	 "The nodes' box and header; their text and the selection's colours are `textColor` and "
 	 "`accentColor`.",
 	 "graph"},
     {"headerColor", "color", "", "graph"},
-    {"minimap", "flag", "Whether the minimap shows, at the bottom right (the default): a press or a drag there moves "
+    {"minimap", "flag",
+	 "Whether the minimap shows, at the bottom right (the default): a press or a drag there moves "
 	 "the view.",
 	 "graph"},
     {"zoom", R"json({"anyOf": [{"type": "number", "minimum": 0.1, "maximum": 4}, {"$ref": "#/$defs/v2/dynamic"}],
@@ -532,7 +581,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "with `repeat`, are the headers: child i is the i-th track (a group's tracks following it), placed in its row and "
 	 "hidden while the row is scrolled away or closed.",
 	 "timeline"},
-    {"duration", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 1000000}, {"$ref": "#/$defs/v2/dynamic"}],
+    {"duration",
+	 R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 1000000}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "timeline: its length in seconds"})json",
 	 "Its length, in seconds (default 10), and its frames per second (`fps`, 1 to 1000, default 30): times snap to "
 	 "frames.",
@@ -545,21 +595,23 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "Left and Right (a frame; a second with Shift), Comma and Period (the previous or next keyframe, clip edge or "
 	 "marker), Home and End (the play range's ends) move it and run `onScrub`.",
 	 "timeline"},
-    {"timeFormat", R"json({"anyOf": [{"enum": ["frames", "seconds", "timecode"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+    {"timeFormat",
+	 R"json({"anyOf": [{"enum": ["frames", "seconds", "timecode"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "The ruler's labels: `\"frames\"` (the default), `\"seconds\"` or `\"timecode\"` (`HH:MM:SS:FF`). Its ticks "
 	 "follow the zoom.",
 	 "timeline"},
-    {"playRange", R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "minimum": 0}},
+    {"playRange",
+	 R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "minimum": 0}},
 		{"$ref": "#/$defs/v2/dynamic"}]})json",
-	 "`[start, end]`, shaded on the ruler, the rest of the lanes dimmed (without it, the whole duration).",
-	 "timeline"},
+	 "`[start, end]`, shaded on the ruler, the rest of the lanes dimmed (without it, the whole duration).", "timeline"},
     {"markers", R"json({"anyOf": [{"type": "array", "maxItems": 1000}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Times, or `{ time, label }`, marked on the ruler and across the lanes (at most 1,000).", "timeline"},
     {"snap", "flag",
 	 "Whether drags snap (the default): to frames, and within a few pixels to keyframes, clip edges, markers, the "
 	 "play range and the playhead. Alt held at the press leaves it off for that drag.",
 	 "timeline"},
-    {"pixelsPerSecond", R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 10000}, {"$ref": "#/$defs/v2/dynamic"}],
+    {"pixelsPerSecond",
+	 R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 10000}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "timeline: window units per second, 1 to 10000 (default 100)"})json",
 	 "The camera: window units per second (1 to 10,000, the default 100) and the time at the lanes' left edge, "
 	 "`offset`. They are applied when they change, so the user's own zoom (+ and -) and scroll (the wheel sideways, "
@@ -572,16 +624,35 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "it and runs `onSelect`; dragging the selection (or Alt and the arrows) runs `onKeyframeMove` and "
 	 "`onClipChange` for each item.",
 	 "timeline"},
-    {"headerWidth", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 2000}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+    {"headerWidth",
+	 R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 2000}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "The headers' column (default 160) and a row's height (`trackHeight`, 12 to 400, default 28).", "timeline"},
-    {"trackHeight", R"json({"anyOf": [{"type": "number", "minimum": 12, "maximum": 400}, {"$ref": "#/$defs/v2/dynamic"}]})json",
-	 "", "timeline"},
+    {"trackHeight",
+	 R"json({"anyOf": [{"type": "number", "minimum": 12, "maximum": 400}, {"$ref": "#/$defs/v2/dynamic"}]})json", "",
+	 "timeline"},
     {"headerColor", "", "The ruler and headers, the clips (a clip's own `color` first), the text and the selection.",
 	 "timeline"},
     {"clipColor", "color", "", "timeline"},
     {"textColor", "", "", "timeline"},
     {"accentColor", "", "", "timeline"},
     {"font", "", "", "timeline"},
+    {"session", R"json({"type": "string", "description": "terminal: the session it shows (1 to 256 bytes)"})json",
+	 "The session it shows, an id of 1 to 256 bytes the terminal steps name. Its program starts when a node first "
+	 "shows it, and runs on when no node shows it, until `closeTerminal`. A screen keeps at most 16.",
+	 "terminal"},
+    {"service",
+	 R"json({"type": "string", "description": "terminal: the pty service its program runs on (default terminal)"})json",
+	 R"(The declared service of the `pty` provider its program runs on (default `"terminal"`): the host grants the )"
+	 "program, the document only names the service.",
+	 "terminal"},
+    {"font", "", "Its font (default the window's) and colours: the text's default and the cursor's.", "terminal"},
+    {"textColor", "", "", "terminal"},
+    {"cursorColor", "color", "", "terminal"},
+    {"scrollback", R"json({"anyOf": [{"type": "number", "minimum": 0}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "The lines kept above the screen (default 1,000, at most 10,000).", "terminal"},
+    {"allowTitle", "flag",
+	 "Whether the program may set the session's title (at most 256 bytes); never the window's. Default false.",
+	 "terminal"},
 });
 
 } // namespace

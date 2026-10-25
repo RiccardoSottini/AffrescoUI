@@ -47,6 +47,7 @@ affrescoui_module(render
 	src/layout/Grid.cpp
 	# image/: image decoding and caching, colours and colour spaces
 	src/image/Bitmap.cpp
+	src/image/DataUri.cpp
 	src/image/ImageCache.cpp
 	src/image/Color.cpp
 	src/image/ColorSpaces.cpp
@@ -112,8 +113,8 @@ target_sources(affrescoui_render PRIVATE src/lists/ListView.cpp src/lists/RowWin
 	src/lists/TreeView.cpp)
 # The code editor, its text model and the diff view
 target_sources(affrescoui_render PRIVATE src/editor/DiffView.cpp src/editor/TextEditor.cpp
-	src/editor/TextEditorCommands.cpp src/editor/TextEditorCursors.cpp src/editor/TextEditorFind.cpp src/editor/TextEditorInput.cpp
-	src/editor/TextEditorMinimap.cpp src/editor/TextEditorPaint.cpp src/editor/TextEditorPaintView.cpp
+	src/editor/TextEditorCommands.cpp src/editor/TextEditorEditCommands.cpp src/editor/TextEditorCursors.cpp src/editor/TextEditorFind.cpp src/editor/TextEditorInput.cpp
+	src/editor/TextEditorCaret.cpp src/editor/TextEditorViewSpan.cpp src/editor/TextEditorMinimap.cpp src/editor/TextEditorScrollMarks.cpp src/editor/TextEditorPaint.cpp src/editor/TextEditorPaintView.cpp src/editor/TextEditorScript.cpp
 	src/editor/TextEditorView.cpp src/editor/TextModel.cpp)
 # The colour picker, the curves and the gradient editors
 target_sources(affrescoui_render PRIVATE src/creative/ColorPicker.cpp src/creative/ColorPickerPaint.cpp

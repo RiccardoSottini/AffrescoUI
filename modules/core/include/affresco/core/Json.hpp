@@ -211,6 +211,40 @@ inline json parseUntrusted(std::string_view text, bool allowComments = false) {
 	}
 }
 
+/// @brief JSON as settings files write it, with comments (`//` and `/* */`) and trailing commas, made plain JSON:
+/// each comment and each trailing comma becomes spaces, strings stay as they are. The result is as long as the text, so
+/// a parse error's offset is still the text's; what else isn't JSON stays so.
+/// @param text The text.
+/// @return Plain JSON text (if the rest of it is JSON).
+inline std::string plainJson(std::string_view text) {
+	constexpr std::size_t none = std::string::npos;
+	std::string out(text);
+	std::size_t pendingComma = none; // where a comma waits until the next token says if it trails
+	for(std::size_t i = 0; i < out.size(); ++i) {
+		const char c = out[i];
+		if(c == '"') {
+			for(++i; i < out.size() && out[i] != '"'; ++i)
+				if(out[i] == '\\') ++i;
+			pendingComma = none;
+		} else if(c == '/' && i + 1 < out.size() && (out[i + 1] == '/' || out[i + 1] == '*')) {
+			const bool line = out[i + 1] == '/';
+			const std::size_t end = line ? out.find('\n', i) : out.find("*/", i + 2);
+			const std::size_t past = end == none ? out.size() : line ? end : end + 2;
+			std::fill(out.begin() + static_cast<std::ptrdiff_t>(i), out.begin() + static_cast<std::ptrdiff_t>(past),
+			          ' ');
+			i = past - 1;
+		} else if((c == '}' || c == ']') && pendingComma != none) {
+			out[pendingComma] = ' ';
+			pendingComma = none;
+		} else if(c == ',') {
+			pendingComma = i;
+		} else if(c != ' ' && c != '\t' && c != '\n' && c != '\r') {
+			pendingComma = none;
+		}
+	}
+	return out;
+}
+
 /// Deepest a screen's document, or its live state, may become through revisions and steps. maxNesting holds for each
 /// message, not for what messages build: a revision can add a value inside one an earlier revision added, and a step
 /// can wrap a value in itself. This limit stays below maxNesting so that the few levels a message, a history file or

@@ -1,6 +1,7 @@
 /// @file
-/// @brief Expression functions: arithmetic (`+ - * / %`), rounding, min, max, clamp, powers, square roots,
-/// sines and cosines. Integers in, integers out, so indices and counters stay integers; `+` with a text joins texts.
+/// @brief Expression functions: arithmetic (`+ - * / %`), rounding, min, max and clamp (powers, roots and angles are
+/// ExpressionFunctionsMaths.cpp's). Integers in, integers out, so indices and counters stay integers; `+` with a text
+/// joins texts.
 
 #include "ExpressionFunctions.hpp"
 
@@ -113,36 +114,6 @@ Value ceilNumber(const Call& call) { return numeric(std::ceil(call.number(0)), t
 /// @return Its size.
 Value absolute(const Call& call) { return numeric(std::abs(call.number(0)), call[0].isInteger()); }
 
-/// @brief `pow(base, exponent)`.
-/// @param call [base, exponent].
-/// @return base raised to exponent; an integer when both are and the result is whole.
-/// @throws DocumentError If the result is not a finite number (`pow(-1, 0.5)`, `pow(0, -1)`).
-Value power(const Call& call) {
-	const double result = std::pow(call.number(0), call.number(1));
-	if(!std::isfinite(result)) call.fail("not a finite number");
-	return numeric(result, call.allIntegers() && call.number(1) >= 0);
-}
-
-/// @brief `sqrt(x)`.
-/// @param call [x].
-/// @return Its square root, always a double.
-/// @throws DocumentError If x is negative.
-Value squareRoot(const Call& call) {
-	const double x = call.number(0);
-	if(x < 0) call.fail("negative number");
-	return Value::fromNumber(std::sqrt(x));
-}
-
-/// @brief `sin(radians)`.
-/// @param call [radians].
-/// @return Its sine, always a double.
-Value sine(const Call& call) { return Value::fromNumber(std::sin(call.number(0))); }
-
-/// @brief `cos(radians)`.
-/// @param call [radians].
-/// @return Its cosine, always a double.
-Value cosine(const Call& call) { return Value::fromNumber(std::cos(call.number(0))); }
-
 /// The table.
 constexpr auto table = std::to_array<Function>({
     {.name = "add",
@@ -218,27 +189,6 @@ constexpr auto table = std::to_array<Function>({
 	 .fewest = 3,
 	 .most = 3,
 	 .apply = clamp},
-    {.name = "pow",
-	 .arguments = "base, exponent",
-	 .about = "base raised to exponent",
-	 .fewest = 2,
-	 .most = 2,
-	 .apply = power},
-    {.name = "sqrt",
-	 .arguments = "number",
-	 .about = "The square root (of a number at or above 0)",
-	 .takes = Takes::One,
-	 .apply = squareRoot},
-    {.name = "sin",
-	 .arguments = "radians",
-	 .about = "The sine of an angle in radians",
-	 .takes = Takes::One,
-	 .apply = sine},
-    {.name = "cos",
-	 .arguments = "radians",
-	 .about = "The cosine of an angle in radians",
-	 .takes = Takes::One,
-	 .apply = cosine},
 });
 
 } // namespace

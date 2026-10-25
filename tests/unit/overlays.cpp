@@ -1,6 +1,6 @@
 /// @file
-/// @brief Overlays and focus (src/Events.cpp, src/BuiltInComponents.cpp): the tab order, modal overlays that trap
-/// the focus, arrow keys and mnemonics, the dismiss step, and the built-in menu, dialog and toast components.
+/// @brief Overlays and focus (src/Events.cpp, modules/themes/components/core.json): the tab order, modal overlays that
+/// trap the focus, arrow keys and mnemonics, the dismiss step, and the built-in menu, dialog and toast components.
 
 #include "Checker.hpp"
 #include "Headless.hpp"
@@ -246,6 +246,46 @@ TEST_CASE("format: a modal overlay keeps the focus a step gives inside it") {
 	press(*window, affresco::Key::Enter);
 	settle(*window, clock, screen);
 	CHECK(focusedId(*window) == "two"); // the step's, not the modal's first
+}
+
+TEST_CASE("format: a dialog opened from a closing one takes the focus, and gives it back to the first one's opener") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	// "second" comes first, so it opens before "first" closes, in the same update
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2, "state": { "first": false, "second": false },
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "opener", "height": 20, "focusable": true, "onClick": { "set": "state.first", "to": true } },
+			{ "id": "second", "width": 200, "height": 80, "type": "column",
+			  "overlay": { "placement": "center", "open": "state.second", "modal": true },
+			  "children": [
+				{ "id": "one", "height": 20, "focusable": true },
+				{ "id": "two", "height": 20, "focusable": true, "onClick": { "set": "state.second", "to": false } }
+			  ] },
+			{ "id": "first", "width": 200, "height": 80, "type": "column",
+			  "overlay": { "placement": "center", "open": "state.first", "modal": true },
+			  "children": [
+				{ "id": "go", "height": 20, "focusable": true, "onClick": [{ "set": "state.first", "to": false },
+				  { "set": "state.second", "to": true }, { "focus": "#two" }] }
+			  ] }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	press(*window, affresco::Key::Tab);
+	REQUIRE(focusedId(*window) == "opener");
+	press(*window, affresco::Key::Enter);
+	settle(*window, clock, screen);
+	REQUIRE(focusedId(*window) == "go");
+	press(*window, affresco::Key::Enter);
+	settle(*window, clock, screen);
+	CHECK(state(screen)["first"] == false);
+	CHECK(focusedId(*window) == "two"); // not the first dialog's opener, which it would give the focus back to
+	press(*window, affresco::Key::Enter);
+	settle(*window, clock, screen);
+	CHECK(state(screen)["second"] == false);
+	CHECK(focusedId(*window) == "opener"); // where the first would have given it back
 }
 
 TEST_CASE("format: a focus step gives way to a focus a key or a dialog takes after it in the same frame") {

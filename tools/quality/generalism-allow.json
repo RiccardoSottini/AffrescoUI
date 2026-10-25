@@ -1,0 +1,13 @@
+{
+	"note": "What the generalism gate (generalism.py) still allows, each place with its reason: leftovers that a later change moves out, never a new exception. A place is a path prefix, or \"path prefix: text\" for the findings there whose text has it. An entry that matches nothing fails the gate: remove it.",
+	"ordinaryWords": ["flow", "streak", "tempo", "sign in", "sign-in", "launcher", "affrescoui"],
+	"allowed": {
+		"sources-in-examples": {
+		},
+		"host-sources": {
+		},
+		"theme-outside-themes": {
+			"modules/format/src/adapters/Layout.cpp": "the palette of the screens the adapters convert, to become a token set in modules/themes"
+		}
+	}
+}

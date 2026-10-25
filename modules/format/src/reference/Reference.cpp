@@ -27,15 +27,24 @@ json schemaOf(std::string_view text) {
 	return {{"$ref", concatenate("#/$defs/v2/", text, "")}};
 }
 
-/// @brief The schemas of a list of keys: each from its first entry in the reference, {} for one it lacks.
+/// @brief The schemas of a list of keys: each from its entries in the reference, {} for one it lacks. Two node types
+/// can give one key different meanings (an editor's rulers are columns, a canvas's a flag): the key then takes any of
+/// them, since the flat schema doesn't know the node's type.
 /// @param names The keys, in order.
 /// @param reference The reference.
 /// @return {key: schema}.
 json schemasOf(const std::vector<std::string>& names, std::span<const KeyReference> reference) {
 	json properties = json::object();
 	for(const std::string& name : names) {
-		const auto entry = std::ranges::find(reference, std::string_view(name), &KeyReference::name);
-		properties[name] = entry == reference.end() ? json::object() : schemaOf(entry->schema);
+		json schemas = json::array();
+		for(const KeyReference& entry : reference)
+			if(entry.name == name)
+				if(json schema = schemaOf(entry.schema); // an entry without one says nothing about the key's values
+				   !schema.empty() && std::ranges::find(schemas, schema) == schemas.end())
+					schemas.push_back(std::move(schema));
+		if(schemas.empty()) properties[name] = json::object();
+		else if(schemas.size() == 1) properties[name] = std::move(schemas[0]);
+		else properties[name] = {{"anyOf", std::move(schemas)}};
 	}
 	return properties;
 }

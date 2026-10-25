@@ -21,6 +21,7 @@
 #include "affresco/render/GpuSurface.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Window.hpp"
+#include "affresco/format/App.hpp"
 #include "affresco/format/Features.hpp"
 #include "affresco/services/ServiceRegistry.hpp"
 
@@ -86,13 +87,14 @@ public:
 	[[nodiscard]] static std::filesystem::path defaultDataDirectory();
 
 	/// @brief Loads a screen file, with its history and "persist" state from defaultDataDirectory()
-	/// (setHistoryDirectory(), setStateFile()).
+	/// (setHistoryDirectory(), setStateFile()). The entry screen of an app is loaded as the app (appOf()).
 	/// @param path The file; relative font and "include" paths are resolved from its directory.
 	/// @return The screen, not yet built.
 	/// @throws ScreenError If the file can't be read, is not a valid screen, or its history on disk is damaged.
 	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path);
 
-	/// @brief Loads a screen file, with its data in a folder of the caller's choice.
+	/// @brief Loads a screen file, with its data in a folder of the caller's choice. The entry screen of an app (an
+	/// app.json beside it names it: appOf()) is loaded as the app, with fromApp(), as the host opens it.
 	/// @param path The file; relative font and "include" paths are resolved from its directory.
 	/// @param dataDirectory Where "<file name>.history/" and "<file name>.state.json" are kept.
 	/// @param history Whether the history is kept there or in memory only; the "persist" state is kept there either
@@ -101,6 +103,49 @@ public:
 	/// @throws ScreenError If the file can't be read, is not a valid screen, or its history on disk is damaged.
 	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path, const std::filesystem::path& dataDirectory,
 	                                     History history = History::OnDisk);
+
+	/// @brief Loads an app (SCREEN_FORMAT.md, "Apps: app.json"): a folder with an app.json, or that file. Its entry
+	/// screen is read with the app's own kits and themes and its data models merged in (the screen's own entries win),
+	/// each seed file given to its model, and its data kept in appDataDirectory() (moved there, the first time, from
+	/// where fromFile() kept the entry screen's).
+	/// @param location The app's folder, or its app.json.
+	/// @param dataDirectory The data folder: the app's own is made in it. Empty to keep nothing on disk, as
+	/// fromString() does (a check).
+	/// @param history Whether the history is kept there or in memory only.
+	/// @return The screen, not yet built; app() is its manifest.
+	/// @throws ScreenError If the manifest or a file it names can't be read or isn't valid, a file it names is
+	/// outside its folder, or the entry screen can't be loaded.
+	[[nodiscard]] static Screen fromApp(const std::filesystem::path& location,
+	                                    const std::filesystem::path& dataDirectory, History history = History::OnDisk);
+
+	/// @brief The app a screen file is the entry of: the app.json in its folder, if that names it as its entry.
+	/// @param screenFile The screen file.
+	/// @return The app.json, or an empty path if there is none or it names another entry.
+	/// @throws ScreenError If the app.json beside it can't be read or isn't valid.
+	[[nodiscard]] static std::filesystem::path appOf(const std::filesystem::path& screenFile);
+
+	/// @brief The folder an app keeps the person's data in: its history, "persist" state, records and usage.
+	/// @param dataDirectory The data folder.
+	/// @param id The app's id (format::AppManifest::id).
+	/// @return `<dataDirectory>/apps/<id>`.
+	[[nodiscard]] static std::filesystem::path appDataDirectory(const std::filesystem::path& dataDirectory,
+	                                                            std::string_view id);
+
+	/// @brief The folder the app at a place keeps the person's data in, and its host the person's decisions: an id is
+	/// the app's own choice, so it is bound to the first place that opens it (recorded in the folder's "location"),
+	/// and an app elsewhere with the same id gets a folder of its own, never the other's data or permissions.
+	/// @param dataDirectory The data folder.
+	/// @param id The app's id (format::AppManifest::id).
+	/// @param location The app's folder (or a bare screen file a host names by id).
+	/// @return `<dataDirectory>/apps/<id>` if it is this place's, else `<dataDirectory>/apps/<id>~<hash of the place>`.
+	/// @throws ScreenError If neither can be this place's.
+	[[nodiscard]] static std::filesystem::path appDataDirectory(const std::filesystem::path& dataDirectory,
+	                                                            std::string_view id,
+	                                                            const std::filesystem::path& location);
+
+	/// @brief The manifest of the app the screen was loaded from (fromApp()).
+	/// @return It, or nullptr for a screen loaded otherwise.
+	[[nodiscard]] const format::AppManifest* app() const noexcept;
 
 	/// @brief Loads a screen from JSON text.
 	/// @param content The document.
@@ -143,6 +188,16 @@ public:
 	/// @brief Makes unknown types plain panels instead of an error.
 	/// @param enabled true to allow them.
 	void setPlaceholderTypes(bool enabled);
+	/// @brief Lets the screen show the open and save dialogs (`saveFile`, `openFile`, `export`, an image's open and
+	/// save), or not: a step refused runs its "onError" with the code "notAllowed". On by default; a host that asks
+	/// the person (the stock host's "files" capability) turns it off until they allow it.
+	/// @param allowed Whether it may.
+	void allowFileDialogs(bool allowed);
+	/// @brief Lets the screen open the windows of its "windows" section, or not: an `openWindow` refused opens nothing
+	/// and says so. On by default; a host that asks the person (the stock host's "windows" capability) turns it off
+	/// until they allow it.
+	/// @param allowed Whether it may.
+	void allowOtherWindows(bool allowed);
 	/// @brief Sets the computer's locale (format::systemLocale()), for screens whose "strings" name no "locale".
 	/// @param tag "fr-CA"; "" for the screen's default.
 	void setLocale(std::string tag);
@@ -270,6 +325,21 @@ public:
 	/// @param directory The directory.
 	void setSocketDirectory(std::filesystem::path directory);
 
+	/// @brief Lets the file's "channels" connect, or not: a channel refused doesn't connect, and runs "C:closed" with
+	/// why. On by default; a host that asks the person (the stock host's "channels" capability) turns it off until
+	/// they allow it. Call it before startChannels().
+	/// @param allowed Whether they may.
+	void allowChannels(bool allowed);
+
+	/// @brief Keeps the file's "channels" sockets inside the socket directory (setSocketDirectory()), or not: a
+	/// confined socket path is relative, with no "..", "\\" or ":", and still inside the directory once links are
+	/// followed; any other is refused, as allowChannels() refuses. Off by default (a library screen is its embedder's
+	/// own); the stock host confines every screen it opens to its own socket folder, so that a screen reaches its own
+	/// host only, never another app's. Peer addresses (`wss://`) and connectChannel() aren't affected. Call it before
+	/// startChannels().
+	/// @param confined Whether they are.
+	void confineChannels(bool confined);
+
 	/// @brief Connects a declared channel somewhere else for this run, closing its connection first: a socket (as in
 	/// "channels"), or a remote peer's `wss://` address (`ws://` on the loopback) with the token its server's verifier
 	/// accepts. The token stays in memory, sent once as the connection's credentials: never in the document, the state
@@ -344,7 +414,8 @@ public:
 	/// @brief Forgets the usage counts (the consent stays).
 	void clearUsage();
 
-	/// @brief Runs an action as if a panel triggered it.
+	/// @brief Runs an action as if a panel triggered it, for the application's own code: what it starts counts as the
+	/// person's, as their press does (filling the display is one of them).
 	/// @param name The action (from the file, else native).
 	/// @param sender The panel it comes from.
 	/// @param eventJson Available to the action as "event".
@@ -483,6 +554,11 @@ public:
 	/// @param listener Receives each event, as JSON text.
 	/// @return The connection.
 	Connection onEvent(std::function<void(const std::string& eventJson)> listener);
+	/// @brief Listens to the errors of handlers and deferred changes: a step that failed, which stops its action (they
+	/// are also logged).
+	/// @param listener Receives each error's message.
+	/// @return The connection.
+	Connection onError(std::function<void(const std::string& message)> listener);
 
 	/* Peers: programs that read and change the screen over the live protocol (SCREEN_FORMAT.md, "Live screens").
 	   A peer's changes are authored by the name it was connected with, whatever name it gives itself. Every peer hears

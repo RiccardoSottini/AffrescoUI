@@ -10,6 +10,7 @@
 #include <cmath>
 #include <functional>
 #include <map>
+#include <ranges>
 
 namespace affresco::format::editing {
 
@@ -105,19 +106,48 @@ bool startStroke(ImageDocument& image, Point at) {
 	return false;
 }
 
+/// @brief The selection mode of a press: Shift held adds, Alt subtracts, both intersect.
+/// @param mods The keys held.
+/// @param tool The tool's mode, when neither is held.
+/// @return The mode.
+[[nodiscard]] imaging::SelectionMode gestureMode(affresco::Mods mods, imaging::SelectionMode tool) noexcept {
+	if(mods.shift() && mods.alt()) return imaging::SelectionMode::intersect;
+	if(mods.shift()) return imaging::SelectionMode::add;
+	if(mods.alt()) return imaging::SelectionMode::subtract;
+	return tool;
+}
+
+/// @brief Sets a marquee's corners from the press to a point: a square while Shift is held, from the press as the
+/// centre while Alt is (a key held since the press only chose the selection mode).
+/// @param press The press.
+/// @param mods The keys held now.
+/// @param at Where the pointer is.
+void stretchBox(Press& press, affresco::Mods mods, Point at) noexcept {
+	float dx = at.x - press.start.x, dy = at.y - press.start.y;
+	if(mods.shift() && !press.shiftHeld) {
+		const float side = std::max(std::abs(dx), std::abs(dy));
+		dx = std::copysign(side, dx);
+		dy = std::copysign(side, dy);
+	}
+	const bool centred = mods.alt() && !press.altHeld;
+	press.boxFrom = centred ? Point{press.start.x - dx, press.start.y - dy} : press.start;
+	press.boxTo = {press.start.x + dx, press.start.y + dy};
+}
+
 /// @brief Adds a point to the lasso or polygon, or closes the polygon at its first corner.
 /// @param image The image.
 /// @param at Where.
 /// @return Whether the screen should hear of it.
 bool addCorner(ImageDocument& image, Point at) {
 	std::vector<Point>& path = image.path;
+	if(path.empty()) image.pathMode = image.press.mode;
 	if(image.settings.gesture == Gesture::polygonLasso && path.size() >= 3) {
 		const double distance = std::hypot(at.x - path.front().x, at.y - path.front().y) * image.view.zoom;
 		if(distance <= closeDistance) {
 			imaging::Document& document = image.canvas->document();
 			imaging::select(document, "Polygonal Lasso",
 			                imaging::polygonCoverage(document.width(), document.height(), path, image.limits),
-			                image.settings.mode);
+			                image.pathMode);
 			path.clear();
 			return true;
 		}
@@ -143,13 +173,14 @@ bool pickColour(ImageDocument& image, Point at) {
 
 /// @brief Selects with the magic wand from the pixel clicked.
 /// @param document The document.
-/// @param settings The tool settings: the sampling and the selection mode.
+/// @param settings The tool settings: the sampling.
+/// @param mode The selection mode.
 /// @param at Where, in document pixels.
 /// @return Whether it was on the document, so the selection changed.
-bool clickWand(imaging::Document& document, const ToolSettings& settings, Point at) {
+bool clickWand(imaging::Document& document, const ToolSettings& settings, imaging::SelectionMode mode, Point at) {
 	const int x = static_cast<int>(std::floor(at.x)), y = static_cast<int>(std::floor(at.y));
 	if(x < 0 || y < 0 || x >= document.width() || y >= document.height()) return false;
-	imaging::select(document, "Magic Wand", imaging::wandCoverage(document, x, y, settings.sample), settings.mode);
+	imaging::select(document, "Magic Wand", imaging::wandCoverage(document, x, y, settings.sample), mode);
 	return true;
 }
 
@@ -162,6 +193,37 @@ void clickFill(ImageDocument& image, Point at) {
 	const ToolSettings& settings = image.settings;
 	imaging::fillAt(image.canvas->document(), *target, static_cast<int>(std::floor(at.x)),
 	                static_cast<int>(std::floor(at.y)), settings.foreground, settings.sample, settings.opacity);
+}
+
+/// @brief The topmost visible pixel layer with paint at a place, among some layers and the groups' layers.
+/// @param document The document.
+/// @param layers The layers, the bottom one first.
+/// @param x The place's column.
+/// @param y Its row.
+/// @return The layer's id, or 0 for none.
+[[nodiscard]] std::uint64_t paintedLayerAt(const imaging::Document& document, const std::vector<std::uint64_t>& layers,
+                                           int x, int y) {
+	for(const std::uint64_t id : std::views::reverse(layers)) {
+		const imaging::Layer& layer = document.structure().layers.at(id);
+		if(!layer.visible) continue;
+		if(layer.kind == imaging::LayerKind::group) {
+			if(const std::uint64_t found = paintedLayerAt(document, layer.children, x, y)) return found;
+		} else if(layer.kind == imaging::LayerKind::pixel && document.image(layer.pixels)->pixel(x, y).alpha > 0.0f)
+			return id;
+	}
+	return 0;
+}
+
+/// @brief move with autoSelect: makes the topmost layer painted under the press the active one.
+/// @param document The document.
+/// @param at Where, in document pixels.
+/// @return Whether the active layer changed.
+bool pickLayer(imaging::Document& document, Point at) {
+	const std::uint64_t found = paintedLayerAt(document, document.structure().root, static_cast<int>(std::floor(at.x)),
+	                                           static_cast<int>(std::floor(at.y)));
+	if(found == 0 || found == document.structure().active) return false;
+	document.setActive(found);
+	return true;
 }
 
 /// @brief Pans the view by how far the pointer moved since the press.
@@ -187,7 +249,9 @@ bool pressTool(ImageDocument& image, Point at) {
 	case Gesture::polygonLasso:
 		return addCorner(image, at);
 	case Gesture::magicWand:
-		return clickWand(image.canvas->document(), image.settings, at);
+		return clickWand(image.canvas->document(), image.settings, image.press.mode, at);
+	case Gesture::move:
+		return image.settings.autoSelect && pickLayer(image.canvas->document(), at);
 	case Gesture::fill:
 		clickFill(image, at);
 		return true;
@@ -228,20 +292,22 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 
 /// @brief A marquee's selection, or none for a click without a drag.
 /// @param document The document.
-/// @param settings The tool settings: the marquee's shape and the selection mode.
-/// @param from Where the button went down.
-/// @param at Where it went up.
-void selectShape(imaging::Document& document, const ToolSettings& settings, Point from, Point at) {
+/// @param settings The tool settings: the marquee's shape.
+/// @param mode The selection mode.
+/// @param from One corner of the box.
+/// @param at The opposite corner.
+void selectShape(imaging::Document& document, const ToolSettings& settings, imaging::SelectionMode mode, Point from,
+                 Point at) {
 	if(std::abs(at.x - from.x) < 1.0f && std::abs(at.y - from.y) < 1.0f) {
-		if(settings.mode == imaging::SelectionMode::replace) imaging::deselect(document);
+		if(mode == imaging::SelectionMode::replace) imaging::deselect(document);
 		return;
 	}
 	if(settings.gesture == Gesture::selectRectangle)
 		imaging::select(document, "Rectangular Marquee",
-		                imaging::rectangleCoverage(document.width(), document.height(), from, at), settings.mode);
+		                imaging::rectangleCoverage(document.width(), document.height(), from, at), mode);
 	else
 		imaging::select(document, "Elliptical Marquee",
-		                imaging::ellipseCoverage(document.width(), document.height(), from, at), settings.mode);
+		                imaging::ellipseCoverage(document.width(), document.height(), from, at), mode);
 }
 
 /// @brief Draws the gradient from the press to a point.
@@ -265,15 +331,14 @@ void closeLasso(ImageDocument& image) {
 	if(image.path.size() >= 3)
 		imaging::select(document, "Lasso",
 		                imaging::polygonCoverage(document.width(), document.height(), image.path, image.limits),
-		                image.settings.mode);
+		                image.press.mode);
 	image.path.clear();
 }
 
-/// @brief Crops to the rectangle dragged from the press to a point.
+/// @brief Crops to the box dragged, as a marquee's: a square while Shift is held, from the centre while Alt is.
 /// @param image The image.
-/// @param at Where the button went up.
-void cropToDrag(ImageDocument& image, Point at) {
-	const Point from = image.press.start;
+void cropToDrag(ImageDocument& image) {
+	const Point from = image.press.boxFrom, at = image.press.boxTo;
 	const float left = std::min(from.x, at.x), top = std::min(from.y, at.y);
 	crop(image, static_cast<int>(std::lround(left)), static_cast<int>(std::lround(top)),
 	     static_cast<int>(std::lround(std::max(from.x, at.x) - left)),
@@ -296,7 +361,8 @@ bool releaseTool(ImageDocument& image, Point at) {
 		return true;
 	case Gesture::selectRectangle:
 	case Gesture::selectEllipse:
-		selectShape(image.canvas->document(), image.settings, from, at);
+		selectShape(image.canvas->document(), image.settings, image.press.mode, image.press.boxFrom,
+		            image.press.boxTo);
 		return true;
 	case Gesture::lasso:
 		closeLasso(image);
@@ -309,7 +375,7 @@ bool releaseTool(ImageDocument& image, Point at) {
 		                static_cast<int>(std::lround(at.y - from.y)));
 		return true;
 	case Gesture::crop:
-		cropToDrag(image, at);
+		cropToDrag(image);
 		return true;
 	default:
 		return false;
@@ -417,18 +483,25 @@ bool applyPointer(ImageDocument& image, const imaging::CanvasPointer& event) {
 			         static_cast<double>(event.pointer.position.x),
 			         static_cast<double>(event.pointer.position.y),
 			         image.view,
-			         image.spaceHeld};
+			         image.spaceHeld,
+			         gestureMode(event.pointer.mods, image.settings.mode),
+			         event.pointer.mods.shift(),
+			         event.pointer.mods.alt(),
+			         at,
+			         at};
 			image.message.clear();
 			return !press.pan && pressTool(image, at);
 		case affresco::PointerKind::move:
 			if(!press.down) return false;
 			press.last = at;
+			stretchBox(press, event.pointer.mods, at);
 			if(!press.pan) return dragTool(image, event);
 			panView(image, event);
 			return true;
 		case affresco::PointerKind::release:
 			if(!press.down) return false;
 			press.down = false;
+			stretchBox(press, event.pointer.mods, at);
 			return press.pan || releaseTool(image, at);
 		}
 	} catch(const DocumentError& error) {

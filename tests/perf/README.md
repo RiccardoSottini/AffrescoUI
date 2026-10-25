@@ -86,7 +86,7 @@ as the OpenGL driver's, aren't counted.
 | `views/table-scroll-100k` | That table scrolled to a new place, then a frame |
 | `editor/type-1k`, `editor/type-100k` | A key typed (a letter, then a backspace, in turn) in the middle of a file of 1,000 or 100,000 lines, then a frame drawn without presenting it, in a hidden window: 200 operations per run, each timed. With `AFFRESCOUI_PERF_BUDGETS` set, a run whose 99th percentile is over 8 ms fails (roadmap item 8.4b) |
 | `editor/scroll-10k`, `editor/scroll-1m` | A file of 10,000 or 1,000,000 lines scrolled to a new place, then a frame drawn without presenting it. With `AFFRESCOUI_PERF_BUDGETS` set, a run whose 99th percentile is over a 120 Hz frame (8.3 ms) fails |
-| `forge/open` | Forge (`examples/forge`), the demo IDE, parsed with its features, built with its natives, its folder (`tests/render/forge/folder`) indexed, and laid out (`forge.cpp`) |
+| `forge/open` | Forge (`examples/forge`), the demo IDE, parsed with its features, its folder (`tests/render/forge/folder`) granted as its workspace and indexed, and laid out (`forge.cpp`) |
 | `forge/type`, `forge/switch-tab` | In Forge with two files open, a character typed into the first one, or the other tab shown; the update and the layout |
 | `forge/search`, `forge/palette` | Forge's quick open filtered by a file name; its command palette opened, then filtered |
 | `canvas/pan-100k` | A canvas of 100,000 items panned to a new place, then a frame recorded (all but OpenGL): only the items in view are drawn. A frame at 120 Hz has 8.3 ms |
@@ -145,7 +145,7 @@ The `budgets` group measures what no other workload does:
 
 - `budgets/idle`: one second of the Kanban template's event loop with nothing happening. `processMs` is the CPU time
   of every thread in that second.
-- `budgets/open-50mb`: a 50 MiB file opened in Forge's buffers.
+- `budgets/open-50mb`: a 50 MiB file read into the library's text editor.
 - `budgets/forge-cold-start`: Forge from its document to its first frame.
 - `budgets/forge-10-tabs`: Forge with 10 files open in tabs and a terminal that starts no shell. Each run switches tab
   and draws.

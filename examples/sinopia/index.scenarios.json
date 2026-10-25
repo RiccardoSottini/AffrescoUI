@@ -2,1314 +2,1302 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Sinopia checked headless, with its natives: affrescoui_sinopia --check index.scenarios.json. Headless there is no window, so thumbnails, PNG exports and the audience window are drawn only when it runs; the PDF export is written to a temporary folder.",
+	"note": "Sinopia's checks: affrescoui test index.scenarios.json. The presenter's clock reads the wall clock, so its frames are checked by their nodes and state, not by pictures.",
 	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "sinopia-load-the-sample",
-			"note": "The sample deck loads, renders its five slides on the stage and lists them with their sections",
+			"note": "The sample deck loads: seven slides in two sections, the first picked, its thumbnails listed",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.title",
-						"is": "Sinopia tour"
-					}
-				},
-				{
-					"expect": {
-						"state": "render.slides.length",
-						"is": 5
-					}
-				},
-				{
-					"expect": {
-						"state": "render.width",
-						"is": 800
-					}
-				},
-				{
-					"expect": {
-						"state": "render.height",
-						"is": 450
-					}
-				},
-				{
-					"expect": {
-						"node": "#slide-s1",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#slide-s5",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#list-s1",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#list-section-s1",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#list-section-s3",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#list-section-s2",
-						"exists": false
-					}
-				}
+				{ "wait": 0},
+				{ "expect": { "state": "deck.title", "is": "Harbour Lights" } },
+				{ "expect": { "state": "deck.slides.length", "is": 7} },
+				{ "expect": { "state": "deck.sections.length", "is": 2} },
+				{ "expect": { "state": "current", "is": 0} },
+				{ "expect": { "node": "#thumb-s1-row", "exists": true} },
+				{ "expect": { "node": "#thumb-s7-row", "exists": true} },
+				{ "expect": { "node": "#o1", "exists": true} },
+				{ "expect": { "node": "#status-slide", "text": "Slide 1 of 7" } }
 			]
 		},
 		{
 			"name": "sinopia-pick-a-slide",
-			"note": "Clicking a thumbnail in the list shows that slide on the canvas and its notes",
+			"note": "A thumbnail click picks its slide; the arrows move through the list from there",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#list-s3"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "current",
-						"is": 2
-					}
-				},
-				{
-					"expect": {
-						"node": "#o:card",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#o:star",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#o:title",
-						"exists": false
-					}
-				}
+				{ "click": "#thumb-s4-row" },
+				{ "expect": { "state": "current", "is": 3} },
+				{ "expect": { "node": "#status-slide", "text": "Slide 4 of 7" } },
+				{ "expect": { "node": "#o9", "exists": true} },
+				{ "wait": 0},
+				{ "key": "down" },
+				{ "expect": { "state": "current", "is": 4} },
+				{ "key": "up" },
+				{ "key": "up" },
+				{ "expect": { "state": "current", "is": 2} },
+				{ "key": "pageup" },
+				{ "key": "pageup" },
+				{ "key": "pageup" },
+				{ "expect": { "state": "current", "is": 0} }
 			]
 		},
 		{
-			"name": "sinopia-add-a-rectangle",
-			"note": "The toolbar's rectangle adds one to the slide, selected, and the inspector shows its fill",
+			"name": "sinopia-add-a-shape",
+			"note": "A shape from the gallery lands in the middle of the slide, selected, and undo takes it away",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-rect"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects.length",
-						"is": 3
-					}
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].kind",
-						"is": "rect"
-					}
-				},
-				{
-					"expect": {
-						"state": "board.selection.length",
-						"is": 1
-					}
-				},
-				{
-					"expect": {
-						"node": "#inspector-object",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#inspector-slide",
-						"exists": false
-					}
-				}
+				{ "click": "#gal-shape-ellipse" },
+				{ "expect": { "state": "deck.slides[0].objects.length", "is": 3} },
+				{ "expect": { "state": "deck.slides[0].objects[2].kind", "is": "shape" } },
+				{ "expect": { "state": "deck.slides[0].objects[2].shape", "is": "ellipse" } },
+				{ "expect": { "state": "board.selection[0]", "is": "o40" } },
+				{ "expect": { "state": "deck.next", "is": 41} },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[0].objects.length", "is": 2} }
 			]
 		},
 		{
-			"name": "sinopia-add-every-kind",
-			"note": "Each kind on the toolbar adds an object of that kind",
+			"name": "sinopia-add-a-text-box",
+			"note": "Insert, Text Box: a text object saying Text, selected",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-text"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-ellipse"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-polygon"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-star"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-line"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-arrow"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-path"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects.length",
-						"is": 9
-					}
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[8].kind",
-						"is": "path"
-					}
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[5].kind",
-						"is": "star"
-					}
-				}
+				{ "click": "#tab-insert-label" },
+				{ "click": "#b-ins-textbox" },
+				{ "expect": { "state": "deck.slides[0].objects.length", "is": 3} },
+				{ "expect": { "state": "deck.slides[0].objects[2].kind", "is": "text" } },
+				{ "expect": { "state": "deck.slides[0].objects[2].text", "is": "Text" } },
+				{ "expect": { "state": "board.selection[0]", "is": "o40" } }
 			]
 		},
 		{
-			"name": "sinopia-fill-and-stroke",
-			"note": "The inspector's swatches set the fill, and a stroke with a width of at least 2",
+			"name": "sinopia-format-fill-and-line",
+			"note": "The format pane paints the selected shape's fill and line from the theme and thickens the line",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-rect"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#swatch-fill-1"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].fill",
-						"is": "#f59e0b"
-					}
-				},
-				{
-					"click": "#swatch-stroke-0"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].stroke",
-						"is": "#7c3aed"
-					}
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].strokeWidth",
-						"is": 2
-					}
-				}
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "expect": { "state": "board.selection[0]", "is": "o9" } },
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-format-pane" },
+				{ "expect": { "state": "formatPane", "is": true} },
+				{ "expect": { "node": "#format-title", "text": "Format Shape" } },
+				{ "click": "#format-fill-accent3" },
+				{ "expect": { "state": "deck.slides[3].objects[1].fill", "is": "accent3" } },
+				{ "click": "#format-line-dark1" },
+				{ "expect": { "state": "deck.slides[3].objects[1].line", "is": "dark1" } },
+				{ "click": "#format-line-width-more" },
+				{ "expect": { "state": "deck.slides[3].objects[1].lineWidth", "is": 1.5} },
+				{ "click": "#format-fill-none" },
+				{ "expect": { "state": "deck.slides[3].objects[1].fill", "is": "none" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[3].objects[1].fill", "is": "accent3" } }
 			]
 		},
 		{
-			"name": "sinopia-gradient-and-shadow",
-			"note": "The gradient and shadow toggles add and remove them",
+			"name": "sinopia-format-size-and-rotation",
+			"note": "The format pane's steppers size, place and turn the selected shape",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-ellipse"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#inspector-gradient"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].gradient.angle",
-						"is": 90
-					}
-				},
-				{
-					"click": "#inspector-shadow"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].shadow.blur",
-						"is": 8
-					}
-				},
-				{
-					"click": "#inspector-shadow"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].shadow",
-						"is": null
-					}
-				}
-			]
-		},
-		{
-			"name": "sinopia-steppers",
-			"note": "The steppers change the corner radius and the rotation",
-			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-rect"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#stepper-radius-plus"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#stepper-radius-plus"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].radius",
-						"is": 8
-					}
-				},
-				{
-					"click": "#stepper-rotate-plus"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].rotate",
-						"is": 15
-					}
-				},
-				{
-					"click": "#stepper-rotate-minus"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#stepper-rotate-minus"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].rotate",
-						"is": -15
-					}
-				}
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "expect": { "state": "board.selection[0]", "is": "o9" } },
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-format-pane" },
+				{ "expect": { "node": "#format-w-value", "text": "210.0" } },
+				{ "click": "#format-w-more" },
+				{ "expect": { "state": "deck.slides[3].objects[1].w", "is": 220} },
+				{ "click": "#format-h-less" },
+				{ "expect": { "state": "deck.slides[3].objects[1].h", "is": 80} },
+				{ "click": "#format-x-more" },
+				{ "expect": { "state": "deck.slides[3].objects[1].x", "is": 76} },
+				{ "click": "#format-rotate-more" },
+				{ "click": "#format-rotate-more" },
+				{ "expect": { "state": "deck.slides[3].objects[1].rotate", "is": 30} },
+				{ "expect": { "node": "#format-rotate-value", "text": "30.0°" } }
 			]
 		},
 		{
 			"name": "sinopia-delete-and-undo",
-			"note": "Backspace deletes the selection; undo brings it back",
+			"note": "Delete removes the selected shape and its build; undo brings both back, redo removes them again",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-star"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects.length",
-						"is": 3
-					}
-				},
-				{
-					"key": "backspace"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects.length",
-						"is": 2
-					}
-				},
-				{
-					"click": "#tool-undo"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects.length",
-						"is": 3
-					}
-				}
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "expect": { "state": "board.selection[0]", "is": "o9" } },
+				{ "key": "delete" },
+				{ "expect": { "state": "deck.slides[3].objects.length", "is": 6} },
+				{ "expect": { "state": "deck.slides[3].animations.length", "is": 3} },
+				{ "expect": { "node": "#o9", "exists": false} },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[3].objects.length", "is": 7} },
+				{ "expect": { "state": "deck.slides[3].animations.length", "is": 4} },
+				{ "expect": { "node": "#o9", "exists": true} },
+				{ "key": "mod+y" },
+				{ "expect": { "state": "deck.slides[3].objects.length", "is": 6} }
 			]
 		},
 		{
 			"name": "sinopia-duplicate-an-object",
-			"note": "mod+D duplicates the selection, which then selects the copy",
+			"note": "Ctrl+D copies the selection a little down and right and selects the copy; copy and paste do too",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-rect"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"key": "mod+d"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects.length",
-						"is": 4
-					}
-				},
-				{
-					"expect": {
-						"state": "board.selection.length",
-						"is": 1
-					}
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[3].kind",
-						"is": "rect"
-					}
-				}
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "expect": { "state": "board.selection[0]", "is": "o9" } },
+				{ "key": "mod+d" },
+				{ "expect": { "state": "deck.slides[3].objects.length", "is": 8} },
+				{ "expect": { "state": "deck.slides[3].objects[7].x", "is": 84} },
+				{ "expect": { "state": "deck.slides[3].objects[7].y", "is": 218} },
+				{ "expect": { "state": "deck.slides[3].objects[7].fill", "is": "accent1" } },
+				{ "expect": { "state": "board.selection[0]", "is": "o40" } },
+				{ "key": "mod+c" },
+				{ "key": "mod+v" },
+				{ "expect": { "state": "deck.slides[3].objects.length", "is": 9} },
+				{ "expect": { "state": "deck.slides[3].objects[8].x", "is": 102} }
 			]
 		},
 		{
-			"name": "sinopia-arrange-align-and-order",
-			"note": "Align left puts a lone object on the slide's left edge; Back sends it behind the others",
+			"name": "sinopia-arrange-order",
+			"note": "Arrange's menu moves the selected shape in the drawing order: to the front, one back, to the back, one forward",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-rect"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#choice-align-left"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].x",
-						"is": 0
-					}
-				},
-				{
-					"click": "#choice-order-back"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[0].kind",
-						"is": "rect"
-					}
-				}
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "expect": { "state": "board.selection[0]", "is": "o9" } },
+				{ "expect": { "state": "deck.slides[3].objects[6].id", "is": "o14" } },
+				{ "click": "#b-arrange" },
+				{ "expect": { "state": "drop", "is": { "open": true, "id": "b-arrange" } } },
+				{ "click": { "role": "menuitem", "name": "Bring to Front" } },
+				{ "expect": { "state": "deck.slides[3].objects[6].id", "is": "o9" } },
+				{ "expect": { "state": "deck.slides[3].objects[1].id", "is": "o10" } },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Send Backward" } },
+				{ "expect": { "state": "deck.slides[3].objects[5].id", "is": "o9" } },
+				{ "expect": { "state": "deck.slides[3].objects[6].id", "is": "o14" } },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Send to Back" } },
+				{ "expect": { "state": "deck.slides[3].objects[0].id", "is": "o9" } },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Bring Forward" } },
+				{ "expect": { "state": "deck.slides[3].objects[0].id", "is": "o8" } },
+				{ "expect": { "state": "deck.slides[3].objects[1].id", "is": "o9" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[3].objects[0].id", "is": "o9" } }
+			]
+		},
+		{
+			"name": "sinopia-shape-effects",
+			"note": "Shape Effects gives the selected shape a shadow or a glow, like the format pane's Effects; each one undoes",
+			"screen": "index.screen.json",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o10" },
+				{ "click": "#b-effects" },
+				{ "click": { "role": "menuitem", "name": "Shadow" } },
+				{ "expect": { "state": "deck.slides[3].objects[2].effect", "is": "shadow" } },
+				{ "expect": { "node": "#o10-effect", "exists": true } },
+				{ "capture": "shadow" },
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-format-pane" },
+				{ "click": "#format-effect-glow" },
+				{ "expect": { "state": "deck.slides[3].objects[2].effect", "is": "glow" } },
+				{ "capture": "glow" },
+				{ "click": "#format-effect-none" },
+				{ "expect": { "state": "deck.slides[3].objects[2].effect", "is": null } },
+				{ "expect": { "node": "#o10-effect", "exists": false } },
+				{ "key": "mod+z" },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[3].objects[2].effect", "is": "shadow" } }
+			]
+		},
+		{
+			"name": "sinopia-align-and-distribute",
+			"note": "One shape aligns to the slide, several to the box around them; distribute leaves equal gaps; the arrow keys nudge",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Align Right" } },
+				{ "expect": { "state": "deck.slides[3].objects[1].x", "is": 750 } },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Align Center" } },
+				{ "expect": { "state": "deck.slides[3].objects[1].x", "is": 375 } },
+				{ "key": "mod+z" },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[3].objects[1].x", "is": 66 } },
+				{ "click": "#o9" },
+				{ "key": "right" },
+				{ "expect": { "state": "deck.slides[3].objects[1].x", "is": 67 } },
+				{ "key": "shift+down" },
+				{ "expect": { "state": "deck.slides[3].objects[1].y", "is": 210 } },
+				{ "key": "mod+z" },
+				{ "key": "mod+z" },
+				{ "key": "mod+a" },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Align Bottom" } },
+				{ "expect": { "state": "deck.slides[3].objects[1].y", "is": 346 } },
+				{ "expect": { "state": "deck.slides[3].objects[0].y", "is": 331 } },
+				{ "expect": { "state": "deck.slides[3].objects[5].y", "is": 352 } },
+				{ "key": "mod+z" },
+				{ "click": "#o10" },
+				{ "key": "shift+right" },
+				{ "key": "shift+right" },
+				{ "key": "shift+right" },
+				{ "expect": { "state": "deck.slides[3].objects[2].x", "is": 300 } },
+				{ "click": "#o13" },
+				{ "key": "delete" },
+				{ "click": "#o14" },
+				{ "key": "delete" },
+				{ "click": "#o8" },
+				{ "key": "delete" },
+				{ "expect": { "state": "deck.slides.length", "is": 7 } },
+				{ "expect": { "state": "deck.slides[3].objects.length", "is": 4 } },
+				{ "key": "mod+a" },
+				{ "click": "#b-arrange" },
+				{ "click": { "role": "menuitem", "name": "Distribute Horizontally" } },
+				{ "expect": { "state": "deck.slides[3].objects[0].x", "is": 66 } },
+				{ "expect": { "state": "deck.slides[3].objects[1].x", "is": 270 } },
+				{ "expect": { "state": "deck.slides[3].objects[3].x", "is": 678 } }
 			]
 		},
 		{
 			"name": "sinopia-lock-an-object",
-			"note": "mod+L locks the selected object, and the lock button shows it",
+			"note": "A locked shape survives Delete and keeps its place; unlocked, it goes",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-rect"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"key": "mod+l"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].objects[2].locked",
-						"is": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#inspector-lock",
-						"property": "tooltip",
-						"is": "Lock"
-					}
-				}
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "expect": { "state": "board.selection[0]", "is": "o9" } },
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-format-pane" },
+				{ "click": "#format-lock" },
+				{ "expect": { "state": "deck.slides[3].objects[1].locked", "is": true} },
+				{ "expect": { "node": "#format-lock", "text": " Locked" } },
+				{ "key": "delete" },
+				{ "expect": { "state": "deck.slides[3].objects.length", "is": 7} },
+				{ "expect": { "state": "board.selection[0]", "is": "o9" } },
+				{ "click": "#format-lock" },
+				{ "expect": { "state": "deck.slides[3].objects[1].locked", "is": false} },
+				{ "key": "delete" },
+				{ "expect": { "state": "deck.slides[3].objects.length", "is": 6} }
 			]
 		},
 		{
-			"name": "sinopia-set-a-build",
-			"note": "A build on an object gets the next step on its slide",
+			"name": "sinopia-add-an-animation",
+			"note": "Motion gives the selected subtitle a fade on a click, then starts it with the previous and lengthens it",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#list-s2"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-add-rect"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#choice-build-fade"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[1].objects[4].build.kind",
-						"is": "fade"
-					}
-				},
-				{
-					"expect": {
-						"state": "deck.slides[1].objects[4].build.order",
-						"is": 4
-					}
-				},
-				{
-					"click": "#choice-build-none"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[1].objects[4].build.order",
-						"is": 0
-					}
-				}
+				{ "click": "#o2" },
+				{ "click": "#tab-animations-label" },
+				{ "click": "#fx-fade" },
+				{ "expect": { "state": "deck.slides[0].animations.length", "is": 1} },
+				{ "expect": { "state": "deck.slides[0].animations[0].target", "is": "o2" } },
+				{ "expect": { "state": "deck.slides[0].animations[0].effect", "is": "fade" } },
+				{ "expect": { "state": "deck.slides[0].animations[0].start", "is": "click" } },
+				{ "expect": { "node": "#motion-count", "text": "1 on this slide, 1 on a click" } },
+				{ "click": "#motion-start-with" },
+				{ "expect": { "state": "deck.slides[0].animations[0].start", "is": "with" } },
+				{ "click": "#motion-longer" },
+				{ "expect": { "state": "deck.slides[0].animations[0].ms", "is": 750} },
+				{ "click": "#b-exit" },
+				{ "expect": { "state": "deck.slides[0].animations[0].kind", "is": "exit" } },
+				{ "click": "#fx-none" },
+				{ "expect": { "state": "deck.slides[0].animations.length", "is": 0} }
 			]
 		},
 		{
 			"name": "sinopia-new-duplicate-delete-slide",
-			"note": "New slide adds one after the current slide; duplicate copies it; delete removes it",
+			"note": "New Slide adds one after the current, a duplicate copies it with new ids, Delete removes it",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-new-slide"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides.length",
-						"is": 6
-					}
-				},
-				{
-					"expect": {
-						"state": "current",
-						"is": 1
-					}
-				},
-				{
-					"expect": {
-						"state": "render.slides.length",
-						"is": 6
-					}
-				},
-				{
-					"click": "#tool-duplicate-slide"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides.length",
-						"is": 7
-					}
-				},
-				{
-					"expect": {
-						"state": "current",
-						"is": 2
-					}
-				},
-				{
-					"click": "#tool-delete-slide"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides.length",
-						"is": 6
-					}
-				}
+				{ "click": "#b-new-slide" },
+				{ "expect": { "state": "deck.slides.length", "is": 8} },
+				{ "expect": { "state": "current", "is": 1} },
+				{ "expect": { "state": "deck.slides[1].layout", "is": "content" } },
+				{ "expect": { "state": "deck.slides[1].id", "is": "s40" } },
+				{ "key": "mod+m" },
+				{ "expect": { "state": "deck.slides.length", "is": 9} },
+				{ "expect": { "state": "current", "is": 2} },
+				{ "note": "The rail scrolls to the slides further down", "scroll": [100, 600], "dy": -6 },
+				{ "click": "#thumb-s4-row" },
+				{ "action": "duplicateSlide" },
+				{ "expect": { "state": "deck.slides.length", "is": 10} },
+				{ "expect": { "state": "current", "is": 6} },
+				{ "expect": { "state": "deck.slides[6].objects.length", "is": 7} },
+				{ "expect": { "state": "deck.slides[6].layout", "is": "titleOnly" } },
+				{ "action": "deleteSlide" },
+				{ "expect": { "state": "deck.slides.length", "is": 9} },
+				{ "expect": { "state": "current", "is": 6} },
+				{ "expect": { "state": "deck.slides[5].id", "is": "s4" } },
+				{ "expect": { "state": "deck.slides[6].id", "is": "s5" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides.length", "is": 10} }
 			]
 		},
 		{
 			"name": "sinopia-slide-transition",
-			"note": "The slide inspector sets the transition and its duration",
+			"note": "Transitions sets the slide's kind, its duration and direction, and applies it to every slide",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#choice-transition-push"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].transition.kind",
-						"is": "push"
-					}
-				},
-				{
-					"click": "#stepper-transitionMs-plus"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].transition.ms",
-						"is": 500
-					}
-				}
+				{ "click": "#tab-transitions-label" },
+				{ "click": "#tr-wipe" },
+				{ "expect": { "state": "deck.slides[0].transition.kind", "is": "wipe" } },
+				{ "click": "#timing-longer" },
+				{ "expect": { "state": "deck.slides[0].transition.ms", "is": 950} },
+				{ "expect": { "node": "#timing-duration", "text": " Duration: 0.95" } },
+				{ "click": "#b-effect-options" },
+				{ "expect": { "state": "deck.slides[0].transition.direction", "is": "up" } },
+				{ "click": "#timing-apply" },
+				{ "expect": { "state": "deck.slides[3].transition.kind", "is": "wipe" } },
+				{ "expect": { "state": "deck.slides[6].transition.ms", "is": 950} },
+				{ "click": "#tr-none" },
+				{ "expect": { "state": "deck.slides[0].transition.kind", "is": "none" } }
 			]
 		},
 		{
-			"name": "sinopia-skip-a-slide",
-			"note": "Skip slide marks the slide skipped, and its thumbnail says so",
+			"name": "sinopia-hide-a-slide",
+			"note": "Hide Slide leaves a slide out of the show and veils its thumbnail; again brings it back",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#inspector-skip"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].skip",
-						"is": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#list-s1-skip",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#list-s1-number",
-						"property": "text",
-						"is": "1  skipped"
-					}
-				}
-			]
-		},
-		{
-			"name": "sinopia-deck-size",
-			"note": "The deck size 4:3 renders 800 by 600, and A4 a portrait-free page of its own size",
-			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#choice-size-4:3"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.size",
-						"is": "4:3"
-					}
-				},
-				{
-					"expect": {
-						"state": "render.height",
-						"is": 600
-					}
-				},
-				{
-					"expect": {
-						"node": "#slide-s1",
-						"property": "height",
-						"is": 600
-					}
-				}
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#tab-slideShow-label" },
+				{ "click": "#b-hide-slide" },
+				{ "expect": { "state": "deck.slides[1].hidden", "is": true} },
+				{ "expect": { "node": "#thumb-s2-veil", "exists": true} },
+				{ "click": "#b-hide-slide" },
+				{ "expect": { "state": "deck.slides[1].hidden", "is": false} },
+				{ "expect": { "node": "#thumb-s2-veil", "exists": false} }
 			]
 		},
 		{
 			"name": "sinopia-speaker-notes",
-			"note": "Notes typed under the canvas are saved into the slide after a pause",
+			"note": "The notes under the slide are the slide's: typed into, hidden and shown",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#notes"
-				},
-				{
-					"type": "Say hello"
-				},
-				{
-					"wait": 800
-				},
-				{
-					"expect": {
-						"state": "notesDraft",
-						"is": "Say hello"
-					}
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].notes",
-						"is": "Say hello"
-					}
-				}
+				{ "note": "The rail scrolls to the slides further down", "scroll": [100, 600], "dy": -6 },
+				{ "click": "#thumb-s6-row" },
+				{ "expect": { "node": "#notes-placeholder", "text": "Click to add notes" } },
+				{ "click": "#notes" },
+				{ "wait": 0},
+				{ "type": "Thank the volunteers." },
+				{ "expect": { "state": "deck.slides[5].notes", "is": "Thank the volunteers." } },
+				{ "expect": { "node": "#notes-placeholder", "text": "" } },
+				{ "click": "#status-notes" },
+				{ "expect": { "state": "notes", "is": false} },
+				{ "expect": { "node": "#notes", "exists": false} },
+				{ "click": "#status-notes" },
+				{ "expect": { "node": "#notes", "exists": true} }
 			]
 		},
 		{
-			"name": "sinopia-outline",
-			"note": "The outline tab lists the slides' titles; clicking one picks it",
+			"name": "sinopia-outline-view",
+			"note": "Outline View lists the slides' text in place of the thumbnails; a click picks a slide",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#side-outline"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"node": "#outline-s1",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#list-s1",
-						"exists": false
-					}
-				},
-				{
-					"click": "#outline-s5"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "current",
-						"is": 4
-					}
-				}
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-outline-view" },
+				{ "expect": { "state": "view", "is": "outline" } },
+				{ "expect": { "node": "#thumbnails", "exists": false} },
+				{ "expect": { "node": "#outline-s1-text", "text": "Harbour Lights\nA winter festival on the waterfront\nPlanning review · Spring" } },
+				{ "click": "#outline-s4" },
+				{ "expect": { "state": "current", "is": 3} },
+				{ "expect": { "node": "#status-slide", "text": "Slide 4 of 7" } },
+				{ "wait": 0},
+				{ "key": "down" },
+				{ "expect": { "state": "current", "is": 4} },
+				{ "click": "#b-normal" },
+				{ "expect": { "node": "#thumbnails", "exists": true} }
 			]
 		},
 		{
 			"name": "sinopia-sorter-view",
-			"note": "The sorter shows every slide in a grid in place of the canvas, and toggles back",
+			"note": "Slide Sorter shows every slide in a grid; a click picks one, Enter opens it",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-sorter"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "view",
-						"is": "sorter"
-					}
-				},
-				{
-					"expect": {
-						"node": "#sorter-grid",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#sorter-s4-skip",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#board",
-						"exists": false
-					}
-				},
-				{
-					"click": "#tool-sorter"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"node": "#board",
-						"exists": true
-					}
-				}
+				{ "click": "#status-sorter" },
+				{ "expect": { "state": "view", "is": "sorter" } },
+				{ "expect": { "node": "#board", "exists": false} },
+				{ "expect": { "node": "#sorter-s7-hidden", "exists": true} },
+				{ "click": "#sorter-s5" },
+				{ "expect": { "state": "current", "is": 4} },
+				{ "wait": 0},
+				{ "key": "right" },
+				{ "expect": { "state": "current", "is": 5} },
+				{ "key": "enter" },
+				{ "expect": { "state": "view", "is": "normal" } },
+				{ "expect": { "node": "#board", "exists": true} }
 			]
 		},
 		{
 			"name": "sinopia-sorter-drag-to-reorder",
-			"note": "Dragging a thumbnail onto another moves its slide there",
+			"note": "In the sorter a slide dragged onto another moves there",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"drag": "#list-s2",
-					"to": "#list-s1"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "deck.slides[0].id",
-						"is": "s2"
-					}
-				},
-				{
-					"expect": {
-						"state": "deck.slides[1].id",
-						"is": "s1"
-					}
-				}
+				{ "click": "#status-sorter" },
+				{ "drag": "#sorter-s1", "to": "#sorter-s3" },
+				{ "expect": { "state": "deck.slides[2].id", "is": "s1" } },
+				{ "expect": { "state": "deck.slides[0].id", "is": "s2" } },
+				{ "expect": { "state": "current", "is": 2} },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[0].id", "is": "s1" } }
 			]
 		},
 		{
-			"name": "sinopia-dark-theme",
-			"note": "The theme button switches to dark and back",
+			"name": "sinopia-dark-mode",
+			"note": "Dark Mode turns the window dark and leaves the slides as they are",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-theme"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "theme",
-						"is": "dark"
-					}
-				},
-				{
-					"click": "#tool-theme"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "theme",
-						"is": "light"
-					}
-				}
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-dark" },
+				{ "expect": { "state": "theme", "is": "dark" } },
+				{ "expect": { "node": "#main", "property": "color", "is": "#131716" } },
+				{ "click": "#b-dark" },
+				{ "expect": { "state": "theme", "is": "light" } },
+				{ "expect": { "node": "#main", "property": "color", "is": "#e2e7e5" } }
 			]
 		},
 		{
 			"name": "sinopia-export-pdf",
-			"note": "Export writes a PDF with a page per slide that isn't skipped",
+			"note": "File, PDF writes a page for every slide in the show (the hidden one left out)",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-pdf"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "exported.pages",
-						"is": 4
-					}
-				}
+				{ "click": "#tab-file-label" },
+				{ "choose": "deck.pdf" },
+				{ "click": "#b-export-pdf" },
+				{ "wait": 0},
+				{ "expect": { "state": "fileStatus", "is": "Exported deck.pdf, 6 pages." } },
+				{ "choose": null},
+				{ "click": "#b-export-pdf" },
+				{ "wait": 0},
+				{ "expect": { "state": "fileStatus", "is": "Exported deck.pdf, 6 pages." } }
 			]
 		},
 		{
-			"name": "sinopia-save",
-			"note": "Save writes the deck to a file named after its title",
+			"name": "sinopia-save-and-open",
+			"note": "The deck saves as JSON and opens again, as an undoable change; a file that isn't a deck is refused",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"key": "mod+s"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "saved.file",
-						"is": "Sinopia-tour.sinopia.json"
-					}
-				}
+				{ "choose": "deck.json" },
+				{ "key": "mod+s" },
+				{ "wait": 0},
+				{ "expect": { "state": "fileStatus", "is": "Saved deck.json." } },
+				{ "action": "deleteSlide" },
+				{ "expect": { "state": "deck.slides.length", "is": 6} },
+				{ "click": "#tab-file-label" },
+				{ "click": "#b-open" },
+				{ "wait": 0},
+				{ "expect": { "state": "deck.slides.length", "is": 7} },
+				{ "expect": { "state": "fileStatus", "is": "Opened deck.json." } },
+				{ "expect": { "state": "current", "is": 0} },
+				{ "expect": { "state": "opened", "is": null} },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides.length", "is": 6} }
 			]
 		},
 		{
 			"name": "sinopia-present-and-step",
-			"note": "Present opens the presenter view; the arrows step through slides and builds; Escape ends on the shown slide",
+			"note": "The show starts from the first slide; a click or an arrow plays the slide's builds, then the next slide",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"key": "mod+alt+p"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.on",
-						"is": true
-					}
-				},
-				{
-					"expect": {
-						"state": "show.index",
-						"is": 0
-					}
-				},
-				{
-					"expect": {
-						"node": "#presenter",
-						"exists": true
-					}
-				},
-				{
-					"expect": {
-						"node": "#presenter",
-						"property": "focused",
-						"is": true
-					}
-				},
-				{
-					"key": "right"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.index",
-						"is": 1
-					}
-				},
-				{
-					"expect": {
-						"state": "show.step",
-						"is": 0
-					}
-				},
-				{
-					"key": "space"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.step",
-						"is": 1
-					}
-				},
-				{
-					"key": "down"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.step",
-						"is": 2
-					}
-				},
-				{
-					"key": "left"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.step",
-						"is": 1
-					}
-				},
-				{
-					"key": "escape"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.on",
-						"is": false
-					}
-				},
-				{
-					"expect": {
-						"state": "current",
-						"is": 1
-					}
-				},
-				{
-					"expect": {
-						"node": "#presenter",
-						"property": "visible",
-						"is": false
-					}
-				}
+				{ "click": "#present-button" },
+				{ "expect": { "state": "show.on", "is": true} },
+				{ "expect": { "state": "show.index", "is": 0} },
+				{ "expect": { "node": "#show-view", "exists": true} },
+				{ "wait": 800},
+				{ "expect": { "state": "show.t", "is": 1} },
+				{ "key": "right" },
+				{ "expect": { "state": "show.index", "is": 1} },
+				{ "wait": 700},
+				{ "key": "space" },
+				{ "expect": { "state": "show.index", "is": 1} },
+				{ "expect": { "state": "show.step", "is": 1} },
+				{ "key": "right" },
+				{ "expect": { "state": "show.index", "is": 2} },
+				{ "key": "left" },
+				{ "expect": { "state": "show.index", "is": 1} },
+				{ "key": "escape" },
+				{ "expect": { "state": "show.on", "is": false} },
+				{ "expect": { "state": "current", "is": 1} }
 			]
 		},
 		{
 			"name": "sinopia-present-skips-and-blacks",
-			"note": "Presenting passes over a skipped slide, B blacks the screen, the timer counts",
+			"note": "The show skips a hidden slide; B and W blank the screen black or white and back",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#list-s3"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-present"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.index",
-						"is": 2
-					}
-				},
-				{
-					"key": "right"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.index",
-						"is": 4
-					}
-				},
-				{
-					"key": "left"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.index",
-						"is": 2
-					}
-				},
-				{
-					"key": "b"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.black",
-						"is": true
-					}
-				},
-				{
-					"wait": 1100
-				},
-				{
-					"expect": {
-						"state": "show.seconds",
-						"is": 1
-					}
-				},
-				{
-					"click": "#presenter-reset"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.seconds",
-						"is": 0
-					}
-				},
-				{
-					"click": "#presenter-end"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.on",
-						"is": false
-					}
-				}
+				{ "note": "The rail scrolls to the slides further down", "scroll": [100, 600], "dy": -6 },
+				{ "click": "#thumb-s6-row" },
+				{ "key": "shift+f5" },
+				{ "expect": { "state": "show.index", "is": 5} },
+				{ "key": "right" },
+				{ "expect": { "state": "show.ended", "is": true} },
+				{ "expect": { "node": "#show-ended", "exists": true} },
+				{ "key": "b" },
+				{ "expect": { "state": "show.black", "is": true} },
+				{ "key": "b" },
+				{ "expect": { "state": "show.black", "is": false} },
+				{ "key": "w" },
+				{ "expect": { "state": "show.white", "is": true} },
+				{ "key": "period" },
+				{ "expect": { "state": "show.white", "is": false} },
+				{ "expect": { "state": "show.black", "is": true} },
+				{ "key": "right" },
+				{ "expect": { "state": "show.on", "is": false} }
 			]
 		},
 		{
 			"name": "sinopia-present-ends-at-the-end",
-			"note": "On the last slide Next stays there, and the side says it is the end",
+			"note": "End jumps to the last slide built; one more step ends the show on the last slide",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"click": "#list-s5"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#tool-present"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"click": "#presenter-forward"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.index",
-						"is": 4
-					}
-				},
-				{
-					"expect": {
-						"node": "#presenter-next-title",
-						"property": "text",
-						"is": "End of the deck"
-					}
-				},
-				{
-					"click": "#presenter-previous"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.index",
-						"is": 2
-					}
-				}
+				{ "key": "f5" },
+				{ "key": "end" },
+				{ "expect": { "state": "show.index", "is": 5} },
+				{ "expect": { "state": "show.step", "is": 0} },
+				{ "key": "right" },
+				{ "expect": { "state": "show.ended", "is": true} },
+				{ "key": "right" },
+				{ "expect": { "state": "show.on", "is": false} },
+				{ "expect": { "state": "current", "is": 5} },
+				{ "expect": { "node": "#show-view", "exists": false} }
 			]
 		},
 		{
 			"name": "sinopia-presenting-keys-off-when-editing",
-			"note": "Without presenting, the arrows and B do nothing to the show",
+			"note": "With the show off, its keys don't play: the arrows and B leave the deck alone",
 			"steps": [
-				{
-					"wait": 0
-				},
-				{
-					"key": "right"
-				},
-				{
-					"key": "b"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "show.on",
-						"is": false
-					}
-				},
-				{
-					"expect": {
-						"state": "show.black",
-						"is": false
-					}
-				},
-				{
-					"expect": {
-						"state": "show.index",
-						"is": 0
-					}
-				}
+				{ "click": "#o2" },
+				{ "key": "n" },
+				{ "key": "b" },
+				{ "key": "w" },
+				{ "expect": { "state": "show.on", "is": false} },
+				{ "expect": { "state": "show.black", "is": false} },
+				{ "expect": { "state": "current", "is": 0} },
+				{ "key": "f5" },
+				{ "expect": { "state": "show.on", "is": true} },
+				{ "key": "escape" },
+				{ "expect": { "state": "show.on", "is": false} }
+			]
+		},
+		{
+			"name": "sinopia-presenter-view",
+			"note": "With Presenter View on, the show opens in a window of its own and this one shows the notes, the next slide and a timer; See All Slides jumps to any slide",
+			"steps": [
+				{ "click": "#tab-slideShow-label" },
+				{ "click": "#cb-presenter-caption" },
+				{ "expect": { "state": "presenterView", "is": true} },
+				{ "click": "#b-from-start" },
+				{ "expect": { "state": "show.on", "is": true} },
+				{ "expect": { "node": "#presenter-current", "exists": true} },
+				{ "expect": { "node": "#presenter-notes-box", "exists": true} },
+				{ "expect": { "node": "#presenter-notes", "text": "Welcome everyone. Two minutes on why we are doing this, then the plan." } },
+				{ "click": "#presenter-forward" },
+				{ "expect": { "state": "show.index", "is": 1} },
+				{ "click": "#presenter-all" },
+				{ "expect": { "node": "#presenter-navigator", "exists": true } },
+				{ "click": "#navigator-s4" },
+				{ "expect": { "state": "show.index", "is": 3 } },
+				{ "expect": { "node": "#presenter-navigator", "exists": false } },
+				{ "click": "#presenter-previous" },
+				{ "click": "#presenter-previous" },
+				{ "expect": { "state": "show.index", "is": 1 } },
+				{ "click": "#presenter-notes-larger" },
+				{ "expect": { "state": "show.notesSize", "is": 20} },
+				{ "click": "#presenter-end" },
+				{ "expect": { "state": "show.on", "is": false} },
+				{ "expect": { "node": "#presenter-current", "exists": false} }
+			]
+		},
+		{
+			"name": "sinopia-present-from-current",
+			"note": "Start and the status bar's button present from the slide being edited",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#status-show" },
+				{ "expect": { "state": "show.on", "is": true} },
+				{ "expect": { "state": "show.index", "is": 2} },
+				{ "key": "escape" },
+				{ "click": "#thumb-s5-row" },
+				{ "click": "#qat-present" },
+				{ "expect": { "state": "show.index", "is": 0} },
+				{ "key": "escape" },
+				{ "expect": { "state": "current", "is": 0} }
 			]
 		},
 		{
 			"name": "sinopia-the-sorter",
 			"note": "The sample deck in the sorter, every slide in a grid in place of the canvas (the gallery's scene, tools/media/gallery.json)",
 			"steps": [
-				{
-					"wait": 400,
-					"note": "past the thumbnails' debounce"
-				},
-				{
-					"click": "#tool-sorter"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"expect": {
-						"state": "view",
-						"is": "sorter"
-					}
-				},
-				{
-					"expect": {
-						"node": "#sorter-grid",
-						"exists": true
-					}
-				}
+				{ "wait": 400},
+				{ "click": "#status-sorter" },
+				{ "wait": 0},
+				{ "expect": { "state": "view", "is": "sorter" } },
+				{ "expect": { "node": "#sorter-grid", "exists": true} }
+			]
+		},
+		{
+			"name": "sinopia-paste-menu",
+			"note": "The paste and copy arrows open their menus: Keep Text Only pastes plain text boxes, Duplicate copies the selection in place",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o6" },
+				{ "key": "mod+c" },
+				{ "click": "#b-paste-more" },
+				{ "expect": { "state": "drop", "is": { "open": true, "id": "b-paste" } } },
+				{ "click": { "role": "menuitem", "name": "Keep Text Only" } },
+				{ "expect": { "state": "deck.slides[2].objects.length", "is": 4} },
+				{ "expect": { "state": "deck.slides[2].objects[3].text", "is": "Light trail\n    Twelve installations along the quay\n    Lantern boats on Friday\nFood market in the warehouses" } },
+				{ "expect": { "state": "deck.slides[2].objects[3].size", "is": 18} },
+				{ "click": "#b-copy-arrow" },
+				{ "click": { "role": "menuitem", "name": "Duplicate" } },
+				{ "expect": { "state": "deck.slides[2].objects.length", "is": 5} }
+			]
+		},
+		{
+			"name": "sinopia-font-size-and-case",
+			"note": "The font and size fields open their lists; Change Case opens its five cases",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o5" },
+				{ "click": "#f-font" },
+				{ "click": { "role": "menuitem", "name": "JetBrains Mono" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].font", "is": "mono" } },
+				{ "click": "#f-size" },
+				{ "click": { "role": "menuitem", "name": "40" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].size", "is": 40} },
+				{ "click": "#b-case" },
+				{ "click": { "role": "menuitem", "name": "UPPERCASE" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].text", "is": "PROGRAMME" } },
+				{ "click": "#b-case" },
+				{ "click": { "role": "menuitem", "name": "tOGGLE cASE" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].text", "is": "programme" } },
+				{ "click": "#b-case" },
+				{ "click": { "role": "menuitem", "name": "Capitalize Each Word" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].text", "is": "Programme" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[2].objects[0].text", "is": "programme" } },
+				{ "click": "#o5" },
+				{ "click": "#f-font" },
+				{ "click": { "role": "menuitem", "name": "Roboto" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].font", "is": null} }
+			]
+		},
+		{
+			"name": "sinopia-colour-grids",
+			"note": "The colour arrows open a grid of theme, standard and highlight colours; the button itself gives the last colour picked",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o5" },
+				{ "click": "#b-color-arrow" },
+				{ "expect": { "state": "colors", "is": { "open": true, "id": "b-color" } } },
+				{ "click": "#colors-s1-1" },
+				{ "expect": { "state": "deck.slides[2].objects[0].color", "is": "#ff0000" } },
+				{ "expect": { "state": "colors.open", "is": false} },
+				{ "click": "#o6" },
+				{ "click": "#b-color" },
+				{ "expect": { "state": "deck.slides[2].objects[1].color", "is": "#ff0000" } },
+				{ "click": "#b-highlight-arrow" },
+				{ "click": "#colors-s0-1" },
+				{ "expect": { "state": "deck.slides[2].objects[1].highlight", "is": "#00ff00" } },
+				{ "click": "#b-highlight-arrow" },
+				{ "click": "#colors-none" },
+				{ "expect": { "state": "deck.slides[2].objects[1].highlight", "is": null} },
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o10" },
+				{ "click": "#b-fill-arrow" },
+				{ "click": "#colors-s0-15" },
+				{ "expect": { "state": "deck.slides[3].objects[2].fill", "is": "accent2.1" } },
+				{ "click": "#b-outline-arrow" },
+				{ "click": "#colors-none" },
+				{ "expect": { "state": "deck.slides[3].objects[2].line", "is": null} },
+				{ "click": "#b-quick-styles" },
+				{ "click": "#colors-s2-0" },
+				{ "expect": { "state": "deck.slides[3].objects[2].fill", "is": "light1" } },
+				{ "expect": { "state": "deck.slides[3].objects[2].line", "is": "accent1" } }
+			]
+		},
+		{
+			"name": "sinopia-bullets-numbering-and-levels",
+			"note": "Bullets and numbering pick their marks from their menus; the list level buttons move every line four spaces",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o6" },
+				{ "click": "#b-bullets-arrow" },
+				{ "click": { "role": "menuitem", "name": "Arrow" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].bulletIcon", "is": "chevron-right" } },
+				{ "expect": { "node": "#o6-p0-b", "exists": true} },
+				{ "click": "#b-numbering" },
+				{ "expect": { "state": "deck.slides[2].objects[1].numbering", "is": "1." } },
+				{ "expect": { "node": "#o6-p3-b", "text": "2." } },
+				{ "click": "#b-numbering-arrow" },
+				{ "click": { "role": "menuitem", "name": "I. II. III." } },
+				{ "expect": { "node": "#o6-p3-b", "text": "II." } },
+				{ "click": "#b-indent" },
+				{ "expect": { "state": "deck.slides[2].objects[1].text", "is": "    Light trail\n        Twelve installations along the quay\n        Lantern boats on Friday\n    Food market in the warehouses" } },
+				{ "click": "#b-outdent" },
+				{ "click": "#b-outdent" },
+				{ "expect": { "state": "deck.slides[2].objects[1].text", "is": "Light trail\nTwelve installations along the quay\nLantern boats on Friday\nFood market in the warehouses" } },
+				{ "click": "#b-bullets-arrow" },
+				{ "click": { "role": "menuitem", "name": "None" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].bullets", "is": false} },
+				{ "expect": { "node": "#o6-p0-b", "exists": false} }
+			]
+		},
+		{
+			"name": "sinopia-paragraph-menus",
+			"note": "Line spacing, columns, text direction and the vertical alignment each open a menu",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o6" },
+				{ "click": "#b-line-spacing" },
+				{ "click": { "role": "menuitem", "name": "2.0" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].spacing", "is": 2} },
+				{ "click": "#b-columns" },
+				{ "click": { "role": "menuitem", "name": "Two Columns" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].columns", "is": 2} },
+				{ "expect": { "node": "#o6-text-c1", "exists": true} },
+				{ "click": "#b-direction" },
+				{ "click": { "role": "menuitem", "name": "Rotate All Text 90°" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].textRotate", "is": 90} },
+				{ "click": "#b-anchor" },
+				{ "click": { "role": "menuitem", "name": "Bottom" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].anchor", "is": "bottom" } },
+				{ "click": "#b-direction" },
+				{ "click": { "role": "menuitem", "name": "Horizontal" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].textRotate", "is": null} }
+			]
+		},
+		{
+			"name": "sinopia-select-menu",
+			"note": "Select picks every object, the text boxes, the shapes or nothing",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Select Shapes" } },
+				{ "expect": { "state": "board.selection.length", "is": 6} },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Select Text" } },
+				{ "expect": { "state": "board.selection", "is": ["o8"]} },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Select None" } },
+				{ "expect": { "state": "board.selection.length", "is": 0} },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Select All" } },
+				{ "expect": { "state": "board.selection.length", "is": 7} }
+			]
+		},
+		{
+			"name": "sinopia-section-menu",
+			"note": "Section adds, renames and removes the section the current slide is in",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#b-section" },
+				{ "click": { "role": "menuitem", "name": "Rename Section" } },
+				{ "wait": 0},
+				{ "expect": { "node": "#find-text", "exists": true} },
+				{ "type": "Schedule" },
+				{ "key": "enter" },
+				{ "expect": { "state": "deck.sections[1].name", "is": "Schedule" } },
+				{ "expect": { "state": "find.open", "is": false} },
+				{ "click": "#b-section" },
+				{ "click": { "role": "menuitem", "name": "Remove Section" } },
+				{ "expect": { "state": "deck.sections.length", "is": 1} },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.sections.length", "is": 2} },
+				{ "click": "#b-section" },
+				{ "click": { "role": "menuitem", "name": "Remove All Sections" } },
+				{ "expect": { "state": "deck.sections.length", "is": 0} }
+			]
+		},
+		{
+			"name": "sinopia-copy-style",
+			"note": "Copy Style keeps the selected object's look and gives it to the next object selected",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o5" },
+				{ "key": "mod+i" },
+				{ "expect": { "state": "deck.slides[2].objects[0].italic", "is": true} },
+				{ "click": "#b-painter" },
+				{ "expect": { "state": "painter.italic", "is": true} },
+				{ "click": "#o6" },
+				{ "expect": { "state": "deck.slides[2].objects[1].italic", "is": true} },
+				{ "expect": { "state": "painter", "is": null} }
+			]
+		},
+		{
+			"name": "sinopia-find-and-replace",
+			"note": "Find goes to the next object holding the text, on any slide; Replace All changes it everywhere at once, and undo takes it back",
+			"steps": [
+				{ "key": "mod+f" },
+				{ "expect": { "state": "find.open", "is": true} },
+				{ "expect": { "state": "find.replace", "is": false} },
+				{ "wait": 0},
+				{ "type": "Lantern" },
+				{ "key": "enter" },
+				{ "expect": { "state": "current", "is": 2} },
+				{ "expect": { "state": "board.selection", "is": ["o6"]} },
+				{ "expect": { "node": "#find-status", "text": "1 match in the deck." } },
+				{ "key": "escape" },
+				{ "expect": { "state": "find.open", "is": false} },
+				{ "key": "mod+h" },
+				{ "wait": 0},
+				{ "expect": { "state": "find.text", "is": "Lantern" } },
+				{ "click": "#find-with" },
+				{ "type": "Paper" },
+				{ "click": "#find-replace-all" },
+				{ "expect": { "state": "deck.slides[2].objects[1].text", "is": "Light trail\n    Twelve installations along the quay\n    Paper boats on Friday\nFood market in the warehouses" } },
+				{ "expect": { "node": "#find-status", "text": "Replaced 1 object." } },
+				{ "key": "escape" },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[2].objects[1].text", "is": "Light trail\n    Twelve installations along the quay\n    Lantern boats on Friday\nFood market in the warehouses" } }
+			]
+		},
+		{
+			"name": "sinopia-slide-menus",
+			"note": "The New Slide arrow and Layout list the layouts",
+			"steps": [
+				{ "click": "#b-new-slide-more" },
+				{ "click": { "role": "menuitem", "name": "Section Header" } },
+				{ "expect": { "state": "deck.slides.length", "is": 8} },
+				{ "expect": { "state": "deck.slides[1].layout", "is": "section" } },
+				{ "click": "#b-layout" },
+				{ "click": { "role": "menuitem", "name": "Title Only" } },
+				{ "expect": { "state": "deck.slides[1].layout", "is": "titleOnly" } }
+			]
+		},
+		{
+			"name": "sinopia-insert-tab",
+			"note": "Insert drops shapes, icons, styled text and symbols on the slide, turns on the footer and slide numbers, and its other buttons say they aren't available yet",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#tab-insert-label" },
+				{ "expect": { "node": "#b-ins-table", "property": "tooltip", "is": "Inserting a table isn't available yet" } },
+				{ "click": "#b-ins-shapes" },
+				{ "click": { "role": "menuitem", "name": "Oval" } },
+				{ "expect": { "state": "deck.slides[2].objects.length", "is": 4 } },
+				{ "expect": { "state": "deck.slides[2].objects[3].shape", "is": "ellipse" } },
+				{ "click": "#b-ins-icons" },
+				{ "click": { "role": "menuitem", "name": "Lightbulb" } },
+				{ "expect": { "state": "deck.slides[2].objects[4].icon", "is": "lightbulb" } },
+				{ "click": "#b-ins-art-text" },
+				{ "click": { "role": "menuitem", "name": "Light on Accent" } },
+				{ "expect": { "state": "deck.slides[2].objects[5].fill", "is": "accent1" } },
+				{ "click": "#b-ins-symbol" },
+				{ "click": { "role": "menuitem", "name": "€" } },
+				{ "expect": { "state": "deck.slides[2].objects[5].text", "is": "Your text here€" } },
+				{ "click": "#b-ins-header" },
+				{ "click": { "role": "menuitem", "name": "Slide Numbers" } },
+				{ "expect": { "state": "deck.slideNumbers", "is": true } },
+				{ "expect": { "node": "#e-number", "text": "3" } },
+				{ "click": "#thumb-s1-row" },
+				{ "expect": { "node": "#e-number", "exists": false } },
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#b-ins-header" },
+				{ "click": { "role": "menuitem", "name": "Footer Text…" } },
+				{ "wait": 0 },
+				{ "type": "Harbour Festival" },
+				{ "click": "#find-rename" },
+				{ "expect": { "state": "deck.footer", "is": "Harbour Festival" } },
+				{ "expect": { "node": "#e-footer", "text": "Harbour Festival" } }
+			]
+		},
+		{
+			"name": "sinopia-edit-text-in-place",
+			"note": "A double click or F2 edits a text box's or shape's text on the slide; Escape or a click elsewhere ends it, and one Undo takes the whole edit back",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o6" },
+				{ "click": "#o6" },
+				{ "expect": { "state": "editing", "is": "o6" } },
+				{ "expect": { "node": "#edit-o6", "property": "focused", "is": true } },
+				{ "expect": { "node": "#o6-text", "exists": false } },
+				{ "key": "mod+end" },
+				{ "key": "enter" },
+				{ "type": "Boat parade" },
+				{ "key": "home" },
+				{ "key": "tab" },
+				{ "key": "escape" },
+				{ "expect": { "state": "editing", "is": null } },
+				{ "expect": { "state": "deck.slides[2].objects[1].text", "is": "Light trail\n    Twelve installations along the quay\n    Lantern boats on Friday\nFood market in the warehouses\n    Boat parade" } },
+				{ "expect": { "state": "board.selection", "is": ["o6"] } },
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o9" },
+				{ "key": "f2" },
+				{ "expect": { "state": "editing", "is": "o9" } },
+				{ "key": "mod+a" },
+				{ "type": "Plan" },
+				{ "click": "#o10" },
+				{ "expect": { "state": "editing", "is": null } },
+				{ "expect": { "state": "deck.slides[3].objects[1].text", "is": "Plan" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[3].objects[1].text", "is": "Plan\nJan – Feb" } },
+				{ "key": "mod+m" },
+				{ "click": "#o41" },
+				{ "click": "#o41" },
+				{ "wait": 20, "note": "a frame, so the editor is built" },
+				{ "type": "Next" },
+				{ "wait": 20 },
+				{ "type": " steps" },
+				{ "key": "escape" },
+				{ "expect": { "state": "deck.slides[4].objects[0].text", "is": "Next steps" } },
+				{ "expect": { "node": "#o41-p0-t", "text": "Next steps" } }
+			]
+		},
+		{
+			"name": "sinopia-context-menus",
+			"note": "A right click opens the slide menu on the rail, the shape menu on a shape and the slide's own menu on the canvas; Shift+F10 opens them from the keyboard",
+			"steps": [
+				{ "rightClick": "#thumb-s3-row" },
+				{ "expect": { "state": "current", "is": 2 } },
+				{ "expect": { "state": "ctx.open", "is": true } },
+				{ "click": { "role": "menuitem", "name": "Duplicate Slide" } },
+				{ "expect": { "state": "ctx.open", "is": false } },
+				{ "expect": { "state": "deck.slides.length", "is": 8 } },
+				{ "expect": { "state": "current", "is": 3 } },
+				{ "click": "#thumb-s4-row" },
+				{ "rightClick": "#o9" },
+				{ "expect": { "state": "board.selection", "is": ["o9"] } },
+				{ "click": { "role": "menuitem", "name": "Send to Back" } },
+				{ "expect": { "state": "deck.slides[4].objects[0].id", "is": "o9" } },
+				{ "rightClick": "#o9" },
+				{ "click": { "role": "menuitem", "name": "Copy" } },
+				{ "rightClick": [1100, 630] },
+				{ "expect": { "state": "board.selection", "is": [] } },
+				{ "expect": { "node": { "role": "menuitem", "name": "Format Background…" }, "exists": true } },
+				{ "click": { "role": "menuitem", "name": "Paste" } },
+				{ "expect": { "state": "board.selection.length", "is": 1 } },
+				{ "click": "#o9" },
+				{ "key": "shift+f10" },
+				{ "expect": { "node": { "role": "menuitem", "name": "Format Shape…" }, "exists": true } },
+				{ "key": "escape" },
+				{ "click": "#thumb-s2-row" },
+				{ "key": "shift+f10" },
+				{ "expect": { "node": { "role": "menuitem", "name": "Hide Slide" }, "exists": true } },
+				{ "click": { "role": "menuitem", "name": "Hide Slide" } },
+				{ "expect": { "state": "deck.slides[1].hidden", "is": true } }
+			]
+		},
+		{
+			"name": "sinopia-background-and-reading-view",
+			"note": "Format Background opens the pane for the slide; Reading View plays the show in the window, and Escape ends it",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o5" },
+				{ "click": "#tab-design-label" },
+				{ "expect": { "node": "#b-slide-size", "property": "tooltip", "is": "Changing the slide size isn't available yet" } },
+				{ "click": "#b-format-bg" },
+				{ "expect": { "state": "formatPane", "is": true } },
+				{ "expect": { "state": "board.selection", "is": [] } },
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-reading" },
+				{ "expect": { "state": "show.on", "is": true } },
+				{ "expect": { "state": "show.index", "is": 2 } },
+				{ "key": "escape" },
+				{ "expect": { "state": "show.on", "is": false } }
+			]
+		},
+		{
+			"name": "sinopia-launchers-and-gallery",
+			"note": "A group's launcher opens the format pane; a gallery's last arrow lists all its items (the shapes, the eight themes)",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#launch-font" },
+				{ "expect": { "state": "formatPane", "is": true} },
+				{ "click": "#gal-shapes-all" },
+				{ "expect": { "state": "drop", "is": { "open": true, "id": "gal-shapes" } } },
+				{ "click": { "role": "menuitem", "name": "Heart" } },
+				{ "expect": { "state": "deck.slides[2].objects.length", "is": 4} },
+				{ "expect": { "state": "deck.slides[2].objects[3].shape", "is": "heart" } },
+				{ "click": "#tab-design-label" },
+				{ "click": "#gal-themes-all" },
+				{ "click": { "role": "menuitem", "name": "Ink" } },
+				{ "expect": { "state": "deck.theme", "is": "ink" } }
+			]
+		},
+		{
+			"name": "sinopia-ink",
+			"note": "The Ink tab: a pen stroke and a highlighter stroke become ink objects (the highlighter's behind the text), the eraser takes the stroke under it, Clear Ink the rest, and Escape goes back to selecting",
+			"steps": [
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#tab-draw-label" },
+				{ "click": "#b-ink-pen" },
+				{ "click": "#ink-color-red" },
+				{ "click": "#ink-width-thick" },
+				{ "drag": [640, 560], "to": [900, 600], "moves": 12 },
+				{ "expect": { "state": "deck.slides[1].objects.length", "is": 3 } },
+				{ "expect": { "state": "deck.slides[1].objects[2].kind", "is": "ink" } },
+				{ "expect": { "state": "deck.slides[1].objects[2].color", "is": "#e03131" } },
+				{ "expect": { "state": "deck.slides[1].objects[2].width", "is": 6 } },
+				{ "click": "#b-ink-highlighter" },
+				{ "press": [560, 540] }, { "move": [620, 580] }, { "move": [700, 560] }, { "release": [760, 600] },
+				{ "expect": { "state": "deck.slides[1].objects.length", "is": 4 } },
+				{ "expect": { "state": "deck.slides[1].objects[0].kind", "is": "ink" } },
+				{ "expect": { "state": "deck.slides[1].objects[0].color", "is": "#ffe680" } },
+				{ "click": "#b-ink-eraser" },
+				{ "click": [770, 580] },
+				{ "expect": { "state": "deck.slides[1].objects.length", "is": 3 } },
+				{ "click": "#b-ink-clear" },
+				{ "expect": { "state": "deck.slides[1].objects.length", "is": 2 } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[1].objects.length", "is": 3 } },
+				{ "key": "escape" },
+				{ "expect": { "state": "inkTool", "is": null } },
+				{ "expect": { "node": "#ink-layer", "exists": false } }
+			]
+		},
+		{
+			"name": "sinopia-rehearse-timings",
+			"note": "Record > Rehearse Timings keeps how long each slide is shown; the show then moves on by itself; Clear Timings forgets them",
+			"steps": [
+				{ "click": "#tab-record-label" },
+				{ "click": "#b-rehearse" },
+				{ "expect": { "state": "show.rehearsing", "is": true } },
+				{ "wait": 3100 },
+				{ "expect": { "node": "#rehearsal-slide", "text": "0:03" } },
+				{ "click": "#rehearsal-next" },
+				{ "wait": 2100 },
+				{ "key": "escape" },
+				{ "expect": { "state": "show.on", "is": false } },
+				{ "expect": { "state": "deck.slides[0].advanceAfter", "is": 3 } },
+				{ "expect": { "state": "deck.slides[1].advanceAfter", "is": 2 } },
+				{ "expect": { "state": "deck.useTimings", "is": true } },
+				{ "expect": { "node": "#timings-count", "text": "2 slides timed" } },
+				{ "key": "f5" },
+				{ "wait": 3100 },
+				{ "expect": { "state": "show.index", "is": 1 } },
+				{ "key": "escape" },
+				{ "click": "#cb-use-timings" },
+				{ "expect": { "state": "deck.useTimings", "is": false } },
+				{ "click": "#b-clear-timings" },
+				{ "expect": { "state": "deck.slides[0].advanceAfter", "is": null } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[0].advanceAfter", "is": 3 } }
+			]
+		},
+		{
+			"name": "sinopia-check-and-comments",
+			"note": "Check > Accessibility lists a new slide's empty placeholders and goes to one; comments are added, written, resolved, found from another slide and deleted; Help shows the shortcuts",
+			"steps": [
+				{ "key": "mod+m" },
+				{ "click": "#tab-review-label" },
+				{ "click": "#b-access" },
+				{ "expect": { "state": "sidePane", "is": "access" } },
+				{ "expect": { "node": "#access-s40-title", "exists": true } },
+				{ "click": "#access-o42" },
+				{ "expect": { "state": "board.selection", "is": ["o42"] } },
+				{ "click": "#b-new-comment" },
+				{ "wait": 20 },
+				{ "type": "Check the visitor numbers" },
+				{ "expect": { "state": "sidePane", "is": "comments" } },
+				{ "expect": { "state": "deck.slides[1].comments[0].text", "is": "Check the visitor numbers" } },
+				{ "click": "#comment-c60-resolve" },
+				{ "expect": { "state": "deck.slides[1].comments[0].done", "is": true } },
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#b-comment-next" },
+				{ "expect": { "state": "current", "is": 1 } },
+				{ "expect": { "node": "#status-comments", "text": " Comments (1)" } },
+				{ "click": "#status-comments" },
+				{ "expect": { "state": "sidePane", "is": null } },
+				{ "click": "#status-comments" },
+				{ "expect": { "state": "sidePane", "is": "comments" } },
+				{ "click": "#b-delete-comment" },
+				{ "click": { "role": "menuitem", "name": "Delete All Comments in This Deck" } },
+				{ "expect": { "state": "deck.slides[1].comments", "is": [] } },
+				{ "expect": { "node": "#comments-none", "exists": true } },
+				{ "click": "#tab-help-label" },
+				{ "click": "#b-shortcuts" },
+				{ "expect": { "state": "sidePane", "is": "keys" } },
+				{ "expect": { "node": "#shortcut-0-keys", "text": "F5" } },
+				{ "click": "#side-close" },
+				{ "expect": { "state": "sidePane", "is": null } }
+			]
+		},
+		{
+			"name": "sinopia-sections-and-ribbon",
+			"note": "A section's title in the slide list folds its slides away (it then says how many) and back; Ctrl+F1 and the bar's button hide the ribbon, and a tab shows it again",
+			"steps": [
+				{ "click": "#thumb-s3-section" },
+				{ "expect": { "state": "foldedSections", "is": ["b"] } },
+				{ "expect": { "node": "#thumb-s3-row", "exists": false } },
+				{ "expect": { "node": "#thumb-s7-row", "exists": false } },
+				{ "expect": { "node": "#thumb-s3-section", "text": " THE PLAN  5 slides" } },
+				{ "expect": { "node": "#thumb-s2-row", "exists": true } },
+				{ "click": "#thumb-s3-section" },
+				{ "expect": { "node": "#thumb-s5-row", "exists": true } },
+				{ "key": "mod+f1" },
+				{ "expect": { "node": "#ribbon", "exists": false } },
+				{ "click": "#tab-insert-label" },
+				{ "expect": { "node": "#ribbon", "exists": true } },
+				{ "click": "#ribbon-collapse" },
+				{ "expect": { "state": "ribbon", "is": false } },
+				{ "click": "#ribbon-collapse" },
+				{ "expect": { "state": "ribbon", "is": true } }
+			]
+		},
+		{
+			"name": "sinopia-align-text",
+			"note": "The paragraph buttons and Ctrl+L, E, R, J align the selected text box's text",
+			"steps": [
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#o3" },
+				{ "click": "#b-align-center" },
+				{ "expect": { "state": "deck.slides[1].objects[0].align", "is": "center" } },
+				{ "key": "mod+r" },
+				{ "expect": { "state": "deck.slides[1].objects[0].align", "is": "right" } },
+				{ "key": "mod+l" },
+				{ "expect": { "state": "deck.slides[1].objects[0].align", "is": "left" } }
+			]
+		},
+		{
+			"name": "sinopia-present-go-to-number",
+			"note": "While presenting, a slide's number and Enter go to it (a number past the end goes to the last slide)",
+			"steps": [
+				{ "key": "f5" },
+				{ "key": "4" }, { "key": "enter" },
+				{ "expect": { "state": "show.index", "is": 3 } },
+				{ "expect": { "state": "show.typed", "is": "" } },
+				{ "key": "1" }, { "key": "2" }, { "key": "enter" },
+				{ "expect": { "state": "show.index", "is": 6 } },
+				{ "key": "escape" },
+				{ "expect": { "state": "show.on", "is": false } }
+			]
+		},
+		{
+			"name": "sinopia-selection-pane",
+			"note": "The Selection Pane names the slide's objects, front first: a click selects one, the eye hides it (undo shows it again), and Show All and Hide All do every one",
+			"steps": [
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Selection Pane" } },
+				{ "expect": { "node": "#side-title", "text": "Selection" } },
+				{ "expect": { "node": "#selection-o3-name", "text": "  Title 1" } },
+				{ "expect": { "node": "#selection-o4-name", "text": "  Content 2" } },
+				{ "click": "#selection-o4-name" },
+				{ "expect": { "state": "board.selection", "is": ["o4"] } },
+				{ "click": "#selection-o4-eye" },
+				{ "expect": { "state": "deck.slides[1].objects[1].hidden", "is": true } },
+				{ "expect": { "state": "board.selection", "is": [] } },
+				{ "expect": { "node": "#o4", "property": "visible", "is": false } },
+				{ "expect": { "node": "#selection-o4-eye", "property": "tooltip", "is": "Show it" } },
+				{ "key": "mod+z" },
+				{ "expect": { "node": "#o4", "property": "visible", "is": true } },
+				{ "click": "#selection-hide-all" },
+				{ "expect": { "node": "#o3", "property": "visible", "is": false } },
+				{ "expect": { "node": "#o4", "property": "visible", "is": false } },
+				{ "click": "#selection-show-all" },
+				{ "expect": { "node": "#o3", "property": "visible", "is": true } },
+				{ "expect": { "node": "#o4", "property": "visible", "is": true } },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Selection Pane" } },
+				{ "expect": { "node": "#side-pane", "exists": false } }
+			]
+		},
+		{
+			"name": "sinopia-link-to-a-slide",
+			"note": "Insert > Link links the selected text to a slide of the deck: a click on it in the show goes there, a click elsewhere moves on, and Remove Link takes it off",
+			"steps": [
+				{ "click": "#tab-insert-label" },
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#o4" },
+				{ "click": "#b-ins-link" },
+				{ "click": { "role": "menuitem", "name": "Slide 5: Two ways to run it" } },
+				{ "expect": { "state": "deck.slides[1].objects[1].link", "is": "s5" } },
+				{ "key": "shift+f5" },
+				{ "expect": { "state": "show.index", "is": 1 } },
+				{ "click": [640, 400] },
+				{ "expect": { "state": "show.index", "is": 1 } },
+				{ "expect": { "state": "show.step", "is": 1 } },
+				{ "click": [640, 400] },
+				{ "expect": { "state": "show.index", "is": 4 } },
+				{ "key": "home" },
+				{ "key": "right" },
+				{ "expect": { "state": "show.index", "is": 1 } },
+				{ "key": "right" },
+				{ "click": [640, 100] },
+				{ "expect": { "state": "show.index", "is": 2 } },
+				{ "key": "escape" },
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#o4" },
+				{ "click": "#b-ins-link" },
+				{ "click": { "role": "menuitem", "name": "Remove Link" } },
+				{ "expect": { "state": "deck.slides[1].objects[1].link", "is": null } }
+			]
+		},
+		{
+			"name": "sinopia-preview",
+			"note": "Preview plays the slide in the window: its transition from the slide before, each build once the one before has played, then editing again on the same slide",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#tab-transitions-label" },
+				{ "click": "#b-preview" },
+				{ "expect": { "state": "show.on", "is": true } },
+				{ "expect": { "state": "show.preview", "is": true } },
+				{ "expect": { "state": "show.index", "is": 3 } },
+				{ "expect": { "state": "show.from", "is": 2 } },
+				{ "expect": { "node": "#show-image", "exists": true } },
+				{ "wait": 1100 },
+				{ "expect": { "state": "show.step", "is": 1 } },
+				{ "wait": 1000 },
+				{ "expect": { "state": "show.on", "is": true } },
+				{ "wait": 3000 },
+				{ "expect": { "state": "show.on", "is": false } },
+				{ "expect": { "state": "show.preview", "is": false } },
+				{ "expect": { "state": "current", "is": 3 } },
+				{ "click": "#tab-animations-label" },
+				{ "click": "#b-motion-preview" },
+				{ "expect": { "state": "show.preview", "is": true } },
+				{ "key": "escape" },
+				{ "expect": { "state": "show.on", "is": false } }
+			]
+		},
+		{
+			"name": "sinopia-animation-pane",
+			"note": "The Animation Pane lists the slide's builds in their order: a click selects one's object, the arrows reorder them (undoable), the cross takes one off",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#tab-animations-label" },
+				{ "click": "#b-motion-pane" },
+				{ "expect": { "state": "sidePane", "is": "motion" } },
+				{ "expect": { "node": "#side-title", "text": "Animation Pane" } },
+				{ "expect": { "node": "#motion-a2-step", "text": "1" } },
+				{ "expect": { "node": "#motion-a3-step", "text": "" } },
+				{ "click": "#motion-a3-name" },
+				{ "expect": { "state": "board.selection", "is": ["o10"] } },
+				{ "click": "#motion-a3-up" },
+				{ "expect": { "state": "deck.slides[3].animations[0].id", "is": "a3" } },
+				{ "expect": { "state": "deck.slides[3].animations[1].id", "is": "a2" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[3].animations[0].id", "is": "a2" } },
+				{ "click": "#motion-a5-remove" },
+				{ "expect": { "state": "deck.slides[3].animations[2].id", "is": "a4" } },
+				{ "expect": { "node": "#motion-a5", "exists": false } },
+				{ "click": "#thumb-s3-row" },
+				{ "expect": { "node": "#motion-empty", "exists": true } }
+			]
+		},
+		{
+			"name": "sinopia-theme-colors-and-fonts",
+			"note": "Design > Colors gives the deck another theme's colours, and Fonts the titles' and the text's fonts; each is undoable, and a theme chosen after puts the colours back",
+			"steps": [
+				{ "click": "#tab-design-label" },
+				{ "click": "#b-colors" },
+				{ "click": { "role": "menuitem", "name": "Default" } },
+				{ "expect": { "state": "deck.colors", "is": "default" } },
+				{ "expect": { "state": "deck.theme", "is": "tide" } },
+				{ "click": "#b-fonts" },
+				{ "click": { "role": "menuitem", "name": "JetBrains Mono and Roboto" } },
+				{ "expect": { "state": "deck.fonts.heading", "is": "mono" } },
+				{ "expect": { "state": "deck.fonts.body", "is": "default" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.colors", "is": "default" } },
+				{ "click": "#b-colors" },
+				{ "click": { "role": "menuitem", "name": "From the Theme" } },
+				{ "expect": { "state": "deck.colors", "is": null } },
+				{ "click": "#b-colors" },
+				{ "click": { "role": "menuitem", "name": "Ember" } },
+				{ "click": "#theme-grove" },
+				{ "expect": { "state": "deck.colors", "is": null } }
+			]
+		},
+		{
+			"name": "sinopia-search-commands",
+			"note": "The title bar's search (Alt+Q) lists the commands whose names hold what is typed, and Enter shows them: one runs on a click; the last item finds the text in the slides",
+			"steps": [
+				{ "key": "alt+q" },
+				{ "wait": 50 },
+				{ "type": "pane" },
+				{ "expect": { "state": "search", "is": "pane" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "drop.id", "is": "search" } },
+				{ "expect": { "node": { "role": "menuitem", "name": "Selection Pane" }, "exists": true } },
+				{ "click": { "role": "menuitem", "name": "Animation Pane" } },
+				{ "expect": { "state": "sidePane", "is": "motion" } },
+				{ "expect": { "state": "search", "is": "" } },
+				{ "key": "alt+q" },
+				{ "wait": 50 },
+				{ "type": "harbour" },
+				{ "expect": { "state": "search", "is": "harbour" } },
+				{ "key": "enter" },
+				{ "click": { "role": "menuitem", "name": "Find “harbour” in the slides" } },
+				{ "expect": { "state": "find.open", "is": true } },
+				{ "expect": { "state": "find.text", "is": "harbour" } }
 			]
 		}
 	]

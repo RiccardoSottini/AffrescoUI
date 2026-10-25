@@ -35,7 +35,7 @@
 				{ "expect": { "node": "#projectName", "text": "Sharper text" } },
 				{ "expect": { "node": "#projectRow", "nth": 1, "exists": false } },
 				{ "click": "#newProject" },
-				{ "expect": { "state": "projects[5].name", "is": "Project 6" } },
+				{ "expect": { "data": "projects[5].name", "is": "Project 6" } },
 				{ "expect": { "state": "projectScope", "is": "all" } }
 			]
 		},
@@ -806,11 +806,11 @@
 				{ "expect": { "state": "page", "is": "inbox" } },
 				{ "key": "j" },
 				{ "expect": { "state": "inboxAt", "is": 1 } },
-				{ "expect": { "state": "inbox[1].read", "is": true } },
+				{ "expect": { "data": "inbox[1].read", "is": true } },
 				{ "key": "u" },
-				{ "expect": { "state": "inbox[1].read", "is": false } },
+				{ "expect": { "data": "inbox[1].read", "is": false } },
 				{ "key": "h" },
-				{ "expect": { "state": "inbox[1].snoozed", "is": true } },
+				{ "expect": { "data": "inbox[1].snoozed", "is": true } },
 				{ "expect": { "node": "#navCount", "text": "2" } },
 				{ "key": "k" },
 				{ "key": "enter" },
@@ -864,6 +864,79 @@
 				{ "key": "escape" },
 				{ "expect": { "state": "marked", "is": [] } },
 				{ "expect": { "node": "#bulkBar", "exists": false } }
+			]
+		},
+		{
+			"name": "issue-page-estimate-and-type",
+			"note": "The issue page's estimate and main type open pickers that change them; the project follows the type and is not a button",
+			"steps": [
+				{ "click": "#cardTitle", "nth": 2 },
+				{ "key": "mod+enter" },
+				{ "click": "#propEstimateValue" },
+				{ "click": "#estimatePick", "nth": 4 },
+				{ "expect": { "state": "issueEstimateOpen", "is": false } },
+				{ "expect": { "data": "lane0[2].points", "is": 5 } },
+				{ "click": "#propTag" },
+				{ "click": "#tagPick", "nth": 2 },
+				{ "expect": { "state": "issueTagOpen", "is": false } },
+				{ "expect": { "data": "lane0[2].tag", "is": "design" } },
+				{ "expect": { "node": "#propProjectValue", "property": "role", "is": "text" } },
+				{ "key": "mod+z" },
+				{ "expect": { "data": "lane0[2].tag", "is": "bug" } }
+			]
+		},
+		{
+			"name": "a-project-shows-its-issues",
+			"note": "A project row opens the issues behind a Project filter; the chip's x removes it",
+			"steps": [
+				{ "key": "g" },
+				{ "key": "p" },
+				{ "click": "#projectRow", "nth": 1 },
+				{ "expect": { "state": "page", "is": "issues" } },
+				{ "expect": { "state": "fProject", "is": 1 } },
+				{ "expect": { "node": "#filterChip", "exists": true } },
+				{ "click": "#filterChipClear" },
+				{ "expect": { "state": "fProject", "is": -1 } }
+			]
+		},
+		{
+			"name": "controls-that-half-worked",
+			"note": "Go to issue leaves the inbox, the snooze toast closes, Escape clears the scope tab, F starts at the property list, the sidebar's Issues goes back to the team's board, the drawer moves a card left, Shift+F10 opens the card menu where the card is",
+			"steps": [
+				{ "key": "g" },
+				{ "key": "i" },
+				{ "key": "h" },
+				{ "expect": { "state": "toast.open", "is": true } },
+				{ "wait": 4100 },
+				{ "expect": { "state": "toast.open", "is": false } },
+				{ "key": "mod+p" },
+				{ "wait": 50 },
+				{ "type": "crash" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "page", "is": "issues" } },
+				{ "expect": { "state": "selected", "is": { "c": 0, "i": 2 } } },
+				{ "click": "#scopeTab", "nth": 1 },
+				{ "expect": { "state": "scope", "is": "active" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "scope", "is": "all" } },
+				{ "key": "f" },
+				{ "click": "#filterProp", "nth": 0 },
+				{ "key": "f" },
+				{ "key": "f" },
+				{ "expect": { "state": "filterProp", "is": "" } },
+				{ "key": "f" },
+				{ "click": "#navBoard", "nth": 1 },
+				{ "click": "#navIssues" },
+				{ "expect": { "state": "boardId", "is": "launch" } },
+				{ "click": "#cardTitle", "nth": 4 },
+				{ "key": "space" },
+				{ "click": "#detailLeft" },
+				{ "expect": { "data": "lane0.length", "is": 5 } },
+				{ "click": "#cardTitle", "nth": 0 },
+				{ "key": "shift+f10" },
+				{ "expect": { "state": "cardMenu", "is": true } },
+				{ "expect": { "state": "menuAt.x", "is": 242 } }
 			]
 		}
 	

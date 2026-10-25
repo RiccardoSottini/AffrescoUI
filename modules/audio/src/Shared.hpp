@@ -6,9 +6,11 @@
 
 #include "Reader.hpp"
 
+#include "affresco/audio/Spectrum.hpp"
 #include "affresco/audio/Voice.hpp"
 #include "affresco/core/Executor.hpp"
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -142,6 +144,8 @@ struct VoiceCore {
 	std::optional<std::string> failure; ///< Why it failed.
 	bool failureReported = false; ///< Error was reported.
 	Levels levels;                ///< See Voice::levels().
+	std::array<float, spectrumSamples> recent{}; ///< The last samples mixed, mono, a ring (see Voice::spectrum()).
+	std::size_t recentNext = 0;                  ///< Where the next sample goes in recent.
 	std::shared_ptr<const EventHandler> onEvent; ///< Its handler, or null.
 	std::chrono::milliseconds positionInterval;  ///< See VoiceOptions.
 	std::chrono::steady_clock::time_point lastPosition{}; ///< When Position was last reported.

@@ -22,6 +22,9 @@ struct Tab {
 	std::string label;    ///< Its text, UTF-8.
 	bool marker = false;  ///< Shows a dot (e.g. unsaved changes) where the close button goes, until hovered.
 	bool closable = true; ///< Has a close button.
+	std::string icon{}; ///< A glyph named in the strip's font or its fallbacks, drawn before the label; empty for none.
+	std::optional<Color> iconColor{}; ///< The icon's colour, or std::nullopt for the label's.
+	bool italic = false;            ///< Its label in setItalicFont()'s font, e.g. a preview tab the next file replaces.
 
 	/// @brief Equal when every field is.
 	bool operator==(const Tab&) const = default;
@@ -61,6 +64,11 @@ public:
 	/// @brief Sets the font of the labels.
 	/// @param font The font, or nullptr for the window's default.
 	void setFont(std::shared_ptr<const Font> font);
+	/// @brief Sets the font of the labels of the tabs marked italic.
+	/// @param font The font, or nullptr for the other labels' (the tabs then look like the others).
+	void setItalicFont(std::shared_ptr<const Font> font);
+	/// @brief The font of the labels of the tabs marked italic, or nullptr for the other labels'.
+	[[nodiscard]] const Font* italicFont() const noexcept { return italicFont_.get(); }
 	/// @brief Sets the colours.
 	/// @param text The labels.
 	/// @param activeText The active tab's label.
@@ -73,6 +81,11 @@ public:
 	/// @brief Whether the accent line is on the active tab's top edge.
 	/// @return True for the top edge, false for the bottom one.
 	bool accentOnTop() const { return accentOnTop_; }
+	/// @brief Sets the tabs' shape: rounded top corners and a lowered top on the active tab, and room between tabs.
+	/// @param radius The active tab's top corner radius, in pixels (0, the default: square).
+	/// @param gap Pixels before each tab (0, the default: tabs touch).
+	/// @param inset Pixels between the strip's top and the active tab's (0, the default: the full height).
+	void setTabShape(float radius, float gap, float inset);
 	/// @brief Sets the markers' colour.
 	/// @param color The colour, or std::nullopt for the accent's.
 	void setMarkerColor(std::optional<Color> color);
@@ -111,6 +124,8 @@ private:
 	/// @brief Where a tab sits in the strip, unscrolled.
 	struct Place {
 		std::u32string text; ///< Its label, decoded.
+		char32_t icon = 0;   ///< Its icon's code point, or 0 for none (or a name the font doesn't have).
+		float iconWidth = 0; ///< The icon and the space after it, or 0.
 		float left = 0.0f;   ///< From the strip's left edge.
 		float width = 0.0f;  ///< Its width.
 	};
@@ -140,11 +155,15 @@ private:
 	std::vector<Place> places_;                ///< Where each tab sits, from the last layout pass.
 	std::string active_;                       ///< See active().
 	std::shared_ptr<const Font> font_;         ///< See setFont().
+	std::shared_ptr<const Font> italicFont_;   ///< See setItalicFont().
 	Color text_ = colors::muted;               ///< See setColors().
 	Color activeText_ = colors::black;         ///< See setColors().
 	Color activeBackground_ = colors::white;   ///< See setColors().
 	Color accent_ = colors::accent;            ///< See setColors().
 	bool accentOnTop_ = false;                 ///< See setAccentOnTop().
+	float tabRadius_ = 0.0f;                   ///< See setTabShape().
+	float tabGap_ = 0.0f;                      ///< See setTabShape().
+	float tabInset_ = 0.0f;                    ///< See setTabShape().
 	std::optional<Color> markerColor_;         ///< See setMarkerColor().
 	bool keepMarker_ = false;                  ///< See setKeepMarker().
 	float scroll_ = 0.0f;                      ///< See scrollPosition().

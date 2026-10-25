@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(POLICY CMP0156) # libraries de-duplicated where the linker resolves in any order (Apple ld warns on repeats)
 	cmake_policy(SET CMP0156 NEW)
 endif()
-project(AffrescoUI VERSION 0.1.0 LANGUAGES C CXX)
+project(AffrescoUI VERSION 1.0.0 LANGUAGES C CXX)
 if(APPLE)
 	enable_language(OBJC OBJCXX) # the render module's native menus and colour scheme (Cocoa); OBJC first, for GLFW's .m files
 endif()
@@ -24,6 +24,15 @@ option(AFFRESCOUI_BUILD_CAPI_SHARED "Also build the C API as one shared library,
 if(AFFRESCOUI_BUILD_TESTS)
 	enable_testing() # before any add_subdirectory: a subdirectory added earlier keeps its tests from ctest
 endif()
+# Every test runs with AFFRESCOUI_HIDDEN=1: its windows never come on screen, in the Dock or in the app switcher
+# (CONTRIBUTING.md). Each directory that adds tests defers a call to its end, when they all exist
+function(affrescoui_hide_test_windows)
+	get_property(tests DIRECTORY PROPERTY TESTS)
+	if(tests)
+		set_property(TEST ${tests} APPEND PROPERTY ENVIRONMENT AFFRESCOUI_HIDDEN=1)
+	endif()
+endfunction()
+cmake_language(DEFER CALL affrescoui_hide_test_windows)
 if(AFFRESCOUI_BUILD_CAPI_SHARED)
 	set(AFFRESCOUI_BUILD_CAPI ON CACHE BOOL "" FORCE)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON) # before the dependencies: the static libraries go into the shared one
@@ -91,10 +100,8 @@ endif()
 include(cmake/AffrescoUISignatures.cmake)
 # SQLite: the record store of the data module (screens' "models" and their records)
 include(cmake/AffrescoUISqlite.cmake)
-# libvterm: the terminal emulator of Forge's terminal panel, which the examples, the tests and the benchmarks build
-if(AFFRESCOUI_BUILD_EXAMPLES OR AFFRESCOUI_BUILD_TESTS OR AFFRESCOUI_BUILD_BENCHMARKS)
-	include(cmake/AffrescoUITerminal.cmake)
-endif()
+# libvterm: the VT terminal emulator of the format's `terminal` node
+include(cmake/AffrescoUITerminal.cmake)
 
 # The Lucide icon font the templates and the rendering check use (decision D11), vendored and pinned by its hash: lucide.ttf
 # of lucide-static 1.48.0 (examples/shared/fonts/README.md)
@@ -131,6 +138,7 @@ include(cmake/AffrescoUISyntax.cmake)
 #   data     records: typed models, SQLite, queries, the journal, migrations         core
 #   render   rendering engine: windows, panels, text, OpenGL                         core
 #   format   JSON screen format: rules, expressions, building panels, actions        core, render, data
+#   themes   kits' components and themes' tokens, as JSON files built in            core
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core
 #   net      network: HTTP(S), SSE and WebSocket over libcurl                        core
@@ -138,6 +146,7 @@ include(cmake/AffrescoUISyntax.cmake)
 #   audio    audio: an output that mixes files, bytes, streams and generators       core   (AFFRESCOUI_AUDIO)
 #   affrescoui  affresco::Screen, which puts them together                         all of the above
 #   automation  scenarios: scripted checks a screen ships with, played headless     affrescoui
+#   intelligence  providers of intelligence and the agent an app's assistant talks to  affrescoui
 #
 # affrescoui_module(<name> <sources...>) makes the target affrescoui_<name> with the alias affrescoui::<name>, its
 # public headers in modules/<name>/include, its private ones in modules/<name>/src, and the strict warnings.
@@ -154,7 +163,7 @@ endfunction()
 if(AFFRESCOUI_AUDIO)
 	add_subdirectory(modules/audio) # before format and screen, which use it
 endif()
-foreach(module core data render export format vcs channel net services screen automation)
+foreach(module core data render export format themes vcs channel net services screen automation intelligence)
 	add_subdirectory(modules/${module})
 endforeach()
 add_subdirectory(modules/scene3d) # general 3D: the scene, glTF, picking, gizmos, the PBR renderer
@@ -168,42 +177,11 @@ if(AFFRESCOUI_INSTALL)
 	include(cmake/AffrescoUIInstall.cmake)
 endif()
 
-# Forge's natives, which the benchmark builds too (without the examples)
-set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
-	examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
-	examples/forge/features/scm/Scm.cpp examples/forge/features/scm/GitStatus.cpp
-	examples/forge/features/scm/GitArguments.cpp examples/forge/features/scm/LineDiff.cpp
-	examples/forge/features/accounts/Accounts.cpp examples/forge/features/editor/Buffers.cpp
-	examples/forge/features/editor/Editor.cpp examples/forge/features/search/Search.cpp
-	examples/forge/features/explorer/Explorer.cpp examples/forge/features/terminal/Terminal.cpp
-	examples/forge/features/terminal/TerminalModel.cpp examples/forge/features/debug/Debug.cpp)
-# The terminal's sessions and widget (examples/forge/features/terminal)
-list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/terminal/TerminalSessions.cpp
-	examples/forge/features/terminal/TerminalView.cpp)
-# The lsp feature (examples/forge/features/lsp)
-list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/lsp/Lsp.cpp examples/forge/features/lsp/LspCall.cpp
-	examples/forge/features/lsp/LspEdits.cpp examples/forge/features/lsp/LspProtocol.cpp examples/forge/features/lsp/LspText.cpp)
-# The examples' intelligence (examples/shared/intelligence): the providers, their settings and the agent inside the
-# host that every app's assistant talks to; built into the host and the unit tests. It uses the services module's
-# ChildProcess (its src folder) to run the claude command line with no shell.
-set(AFFRESCOUI_INTELLIGENCE_SOURCES examples/shared/intelligence/Settings.cpp examples/shared/intelligence/Http.cpp
-	examples/shared/intelligence/Providers.cpp examples/shared/intelligence/ScreenQueries.cpp
-	examples/shared/intelligence/ClaudeCode.cpp examples/shared/intelligence/Agent.cpp
-	examples/shared/intelligence/Intelligence.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)
-	# The assistant's providers (examples/shared/intelligence), built once for every program that runs an app
-	add_library(affrescoui_intelligence OBJECT ${AFFRESCOUI_INTELLIGENCE_SOURCES})
-	target_include_directories(affrescoui_intelligence PRIVATE examples/shared examples)
-	target_include_directories(affrescoui_intelligence PRIVATE modules/services/src) # intelligence/ClaudeCode.cpp
-	target_link_libraries(affrescoui_intelligence PRIVATE affrescoui)
-	target_compile_options(affrescoui_intelligence PRIVATE ${AFFRESCOUI_WARNINGS})
-	target_compile_definitions(affrescoui_intelligence PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# affrescoui_launcher, the stock host: renders any screen and accepts peers; without a file it opens the Launcher
-	add_executable(affrescoui_launcher examples/host/host.cpp)
-	target_sources(affrescoui_launcher PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
-	target_sources(affrescoui_launcher PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
-	target_link_libraries(affrescoui_launcher PRIVATE affrescoui_intelligence) # the assistant's providers
-	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples)
+	add_executable(affrescoui_launcher apps/host/host.cpp apps/host/Permissions.cpp)
+	target_link_libraries(affrescoui_launcher PRIVATE affrescoui::intelligence) # the assistant's providers
+	target_include_directories(affrescoui_launcher PRIVATE apps/shared)
 	target_include_directories(affrescoui_launcher SYSTEM PRIVATE external/glad/include)
 	# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice makes the
 	# linker warn about a duplicate library)
@@ -215,23 +193,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 			CONTENT "1 ICON \"${CMAKE_CURRENT_SOURCE_DIR}/brand/affrescoui.ico\"\n")
 		target_sources(affrescoui_launcher PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/affrescoui_launcher.rc")
 	endif()
-	# Forge, a demo IDE: its workbench is examples/forge/index.screen.json, with a few natives (examples/forge/README.md)
-	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/shared/CodeEditor.cpp)
-	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge)
-	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm affrescoui_intelligence)
-	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
-	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
-	# Sinopia, slides and vector documents: its workspace is examples/sinopia/index.screen.json (examples/sinopia/README.md)
-	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp
-		# deck/: the deck model, read, checked, edited and arranged without a window
-		examples/sinopia/deck/Deck.cpp examples/sinopia/deck/Write.cpp examples/sinopia/deck/Edit.cpp
-		examples/sinopia/deck/Arrange.cpp
-		# drawing/: slides and transitions turned into pixels
-		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/Transition.cpp)
-	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared modules/screen/src)
-	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export affrescoui_intelligence)
-	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})
-	target_compile_definitions(affrescoui_sinopia PRIVATE AFFRESCOUI_SINOPIA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia")
 	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (tests/render/surfaces)
 	add_executable(affrescoui_surfaces tests/render/surfaces/main.cpp tests/render/surfaces/Surfaces.cpp)
 	target_include_directories(affrescoui_surfaces SYSTEM PRIVATE external/glad/include)
@@ -239,15 +200,12 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_options(affrescoui_surfaces PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_surfaces PRIVATE
 		AFFRESCOUI_SURFACES_SCREEN="${CMAKE_CURRENT_SOURCE_DIR}/tests/render/surfaces/surfaces.screen.json")
-	# Tempera, an image editor on the imaging module (examples/tempera/README.md)
-	add_subdirectory(examples/tempera)
-	# Bottega, Sinopia's slide sorter installed into Tempera with an adapter and a proof (examples/bottega/)
-	add_subdirectory(examples/bottega)
 	# The document server, headless: documents and their history on disk, shared with people (apps/server/README.md)
 	set(AFFRESCOUI_SERVER_SOURCES apps/server/DocumentServer.cpp apps/server/TokenFile.cpp
 	    apps/server/UserInfoVerifier.cpp)
 	add_executable(affrescoui_server apps/server/main.cpp ${AFFRESCOUI_SERVER_SOURCES})
-	target_link_libraries(affrescoui_server PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel affrescoui::net)
+	target_link_libraries(affrescoui_server PRIVATE affrescoui::format affrescoui::themes affrescoui::vcs affrescoui::channel
+		affrescoui::net)
 	target_compile_options(affrescoui_server PRIVATE ${AFFRESCOUI_WARNINGS})
 	# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (modules/capi/example/README.md). Its
 	# scene is OpenGL 4.1 core, with that backend's glad: not built with gles3, whose render module has the other loader
@@ -277,23 +235,18 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
 		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/e2e_test.py ${CMAKE_BINARY_DIR})
-		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/bottega)
-		add_test(NAME bottega_e2e COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/bottega/e2e_test.py ${CMAKE_BINARY_DIR})
+		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/tempera/sorter)
+		add_test(NAME tempera_sorter_e2e COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/tempera/sorter/e2e_test.py ${CMAKE_BINARY_DIR})
 		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
 		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
 		# The host's own agent end to end, no MCP: an openai-compatible fake server on the loopback, --ask, a proposal
 		add_test(NAME intelligence_e2e COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/intelligence/e2e_test.py ${CMAKE_BINARY_DIR})
+			${CMAKE_CURRENT_SOURCE_DIR}/tests/intelligence/e2e_test.py ${CMAKE_BINARY_DIR})
 		# Orrery end to end, JSON only on affrescoui_launcher: MCP server, a revision, an approval, a picture (examples/orrery)
 		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/e2e_test.py ${CMAKE_BINARY_DIR})
-	endif()
-	if(AFFRESCOUI_BUILD_EXAMPLES)
-		# Sinopia's scenarios, headless: editing, the sorter, exporting and presenting (examples/sinopia/README.md)
-		add_test(NAME sinopia COMMAND affrescoui_sinopia --check
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia/index.scenarios.json)
 	endif()
 endif()
 
@@ -313,15 +266,15 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	# using valgrind's header when it is installed
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
-		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/shared/CodeEditor.cpp tests/perf/buffers.cpp
-		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp ${AFFRESCOUI_FORGE_SOURCES}
+		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp
+		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp
 		tests/perf/syntax.cpp
 		tests/perf/tempera.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
-	target_include_directories(affrescoui_bench PRIVATE examples/shared examples/forge
+	target_include_directories(affrescoui_bench PRIVATE examples/shared apps/shared
 		$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
-	target_link_libraries(affrescoui_bench PRIVATE affrescoui affrescoui_vterm)
+	target_link_libraries(affrescoui_bench PRIVATE affrescoui)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui::imaging)
 	target_compile_definitions(affrescoui_bench PRIVATE
 		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples"

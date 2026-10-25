@@ -25,6 +25,7 @@ struct Provider {
 	std::string clientId;             ///< The public client's id (never a secret: no client secret is ever used).
 	std::vector<std::string> scopes;  ///< E.g. {"openid", "profile"}.
 	std::string issuer;               ///< The id token's expected "iss", or empty to take the account from the response.
+	std::string sentTo;               ///< Where its tokens go: the URL of the connection that declares it.
 
 	/// @brief Whether two providers are the same.
 	[[nodiscard]] bool operator==(const Provider&) const = default;

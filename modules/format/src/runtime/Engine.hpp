@@ -33,7 +33,9 @@
 #include "Reconciler.hpp"
 #include "Scheduler.hpp"
 #include "SectionRegistry.hpp"
+#include "SecondWindows.hpp"
 #include "ServiceCalls.hpp"
+#include "TerminalSessions.hpp"
 #include "StepRegistry.hpp"
 #include "Steps.hpp"
 #include "TypeRegistry.hpp"
@@ -60,7 +62,8 @@ struct Engine : VersionObserver {
 	Engine& operator=(const Engine&) = delete;
 	Engine(Engine&&) = delete;
 	Engine& operator=(Engine&&) = delete;
-	/// @brief Stops listening to the version control, which outlives the engine, and detaches its image documents.
+	/// @brief Stops listening to the version control, which outlives the engine, detaches its image documents and ends
+	/// its terminals' programs.
 	~Engine() override;
 
 	Runtime& owner;                         ///< For onEvent, onError, onSend, onConnect and onUpdated.
@@ -80,6 +83,9 @@ struct Engine : VersionObserver {
 	Runtime::UnhandledAction unhandled;                                ///< Actions nobody handles.
 	bool placeholderTypes = false;                                     ///< Unknown types become plain panels.
 	bool handlersSuspended = false;                                    ///< See Runtime::setHandlersSuspended().
+	bool fileDialogsAllowed = true;                                    ///< See Runtime::allowFileDialogs().
+	bool otherWindowsAllowed = true;                                   ///< See Runtime::allowOtherWindows().
+	int hostRunning = 0;                                               ///< Depth of Runtime::runHostAction().
 	json menuBar = json::array(); ///< The native menu bar last shown (showMenuBar()).
 	json icon;                    ///< The "window.icon" last shown (showIcon() in Reconciler.cpp), or null.
 	ImageCache::Request iconFile; ///< Its file, while it is decoded.
@@ -97,11 +103,15 @@ struct Engine : VersionObserver {
 	Models models;             ///< The application's data models (their changes reach the others).
 	Connections connections;   ///< The declared connections (RFC 0003), started by "request" and "subscribe".
 	ServiceCalls serviceCalls; ///< Service calls and subscriptions (RFC 0002).
+	/// The terminals `terminal` nodes show and the terminal steps run lines in; shared with the views, which may outlive
+	/// the engine (its destructor stops their programs and their calls).
+	std::shared_ptr<TerminalSessions> terminals = std::make_shared<TerminalSessions>(serviceCalls);
 	Asks asks;                 ///< The person's requests to the agents ("ask") and their replies.
 	AsyncCalls calls;          ///< Slow native calls (last: destroyed first, joining their workers).
 	Connection peersChanged = 0; ///< On versions.onReviewChanged: who is connected (the "peers" variable).
 	AudioPlayers audio{*this}; ///< The declared sounds, played by "audio" steps.
 	DataLayer data{*this};     ///< The records: the store following the "models", the `data` variable.
+	SecondWindows otherWindows{*this}; ///< The "windows" section's windows, and the `windows` variable.
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.

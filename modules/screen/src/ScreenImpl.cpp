@@ -36,18 +36,7 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 		}
 	});
 	runtime.onUpdated.connect([this] { save(); });
-	runtime.onAsk.connect([this](const json& request) { // the person asks the agents, from inside the app
-		if(images.rendering()) return;
-		if(request.value("type", "") != "request") { // a cancel: for whoever is connected
-			broadcast(request);
-			return;
-		}
-		if(peers.empty()) {
-			(void)runtime.receiveReply({{"request", request["id"]}, {"error", "no agent is connected"}});
-			return;
-		}
-		broadcast(request);
-	});
+	runtime.onAsk.connect([this](const json& request) { askAgents(request); });
 	repairs.onMessage.connect([this](const json& message) {
 		for(const auto& peer : peers) sendRepairs(*peer, message);
 	});
@@ -57,6 +46,24 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 	services.add(detail::makeFeaturesProvider(features, repository, alive));
 
 	socketDirectory = Screen::defaultSocketDirectory();
+}
+
+void Screen::Impl::askAgents(const json& request) {
+	if(images.rendering()) return;
+	if(request.value("type", "") != "request") { // a cancel: for whoever is connected
+		broadcast(request);
+		return;
+	}
+	if(peers.empty()) {
+		(void)runtime.receiveReply({{"request", request["id"]}, {"error", "no agent is connected"}});
+		return;
+	}
+	// One agent answers: the last connected (an MCP server the person started wins over the host's own); every other
+	// peer, a client, still sees it
+	const auto agent = std::ranges::find_if(peers.rbegin(), peers.rend(),
+	                                        [](const auto& peer) { return peer->session->author() == "agent"; });
+	for(const auto& peer : peers)
+		if(agent == peers.rend() || peer->session->author() != "agent" || peer == *agent) peer->session->send(request);
 }
 
 Screen::Impl::~Impl() {
@@ -110,7 +117,7 @@ void Screen::Impl::load() {
 		file = parseUntrusted(text.str());
 		// NOLINTNEXTLINE(bugprone-empty-catch): the screen keeps its own state, as the comment below says
 	} catch(const std::exception&) { // json::parse_error, or DocumentError if it nests too deeply
-		// Not a state file this screen wrote: the screen keeps its own state, as before
+		                             // Not a state file this screen wrote: the screen keeps its own state, as before
 	}
 	json rejected = json::object();
 	if(file.is_object())

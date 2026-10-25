@@ -2,14 +2,14 @@
 	"id": "habit-rename-app",
 	"level": "edit",
 	"screen": "examples/streak/index.screen.json",
-	"request": "Rename the app from Streak to Daily (the name at the top left).",
+	"request": "Rename the app from Streak to Daily (the name at the top left, #label-t-app).",
 	"scenarios": [
 		{
 			"name": "name",
 			"steps": [
 				{
 					"expect": {
-						"node": "#logo",
+						"node": "#label-t-app",
 						"text": "Daily"
 					}
 				}
@@ -17,16 +17,15 @@
 		}
 	],
 	"unchanged": [
-		"#tabs",
-		"#today",
-		"#stats",
-		"#statusBar"
+		"#appActions",
+		"#habitList",
+		"#detailPane"
 	],
 	"reference": [
 		{
 			"message": "Streak is now Daily",
 			"set": {
-				"#logo/text": "Daily"
+				"/strings/en/app": "Daily"
 			}
 		}
 	]

@@ -20,9 +20,9 @@
 
 namespace affresco::format {
 
-inline constexpr std::size_t maxManifestBytes = 1u << 20;   ///< A manifest, as JSON: 1 MiB (RFC 0004, "The catalogue").
-inline constexpr std::size_t maxCatalogBytes = 8u << 20;    ///< A catalogue's index, as JSON: 8 MiB.
-inline constexpr std::size_t maxCatalogFeatures = 10000;    ///< Features in one index.
+inline constexpr std::size_t maxManifestBytes = 1u << 20; ///< A manifest, as JSON: 1 MiB (RFC 0004, "The catalogue").
+inline constexpr std::size_t maxCatalogBytes = 8u << 20;  ///< A catalogue's index, as JSON: 8 MiB.
+inline constexpr std::size_t maxCatalogFeatures = 10000;  ///< Features in one index.
 inline constexpr std::string_view manifestFormat = "affrescoui-feature"; ///< A manifest's "format".
 
 /// The sections only a host grants: a feature that provides one is refused (RFC 0004, "Who may install what").
@@ -30,9 +30,11 @@ inline constexpr std::array<std::string_view, 5> capabilitySections = {"services
                                                                        "permissions"};
 
 /// The steps that reach outside the screen or review it: a feature installed by revision can't contain them.
-inline constexpr std::array<std::string_view, 17> controlSteps = {
-    "call",    "send",       "connect", "patch",  "respond", "accept", "reject", "preview",
-    "endPreview", "restore", "revert", "undo",    "signIn", "signOut", "ask", "cancelAsk", "chooseFolder"};
+inline constexpr std::array<std::string_view, 25> controlSteps = {
+    "call",         "send",    "connect",  "patch",    "respond", "accept",        "reject",        "preview",
+    "endPreview",   "restore", "revert",   "undo",     "signIn",  "signOut",       "ask",           "cancelAsk",
+    "chooseFolder", "attach",  "saveFile", "openFile", "export",  "runInTerminal", "clearTerminal", "closeTerminal",
+    "fullscreen"};
 
 /// @brief A feature's release: semver's three numbers (no pre-release or build part in v1).
 struct Release {

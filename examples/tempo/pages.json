@@ -8,7 +8,7 @@
 		"searchPick": null,
 		"eq": { "points": [[0, 0.5], [0.25, 0.5], [0.5, 0.5], [0.75, 0.5], [1, 0.5]] },
 		"eqOn": true,
-		"tileColors": ["#ff7f7a", "#f59e0b", "#22d3ee", "#a78bfa", "#34d399", "#60a5fa", "#f472b6", "#facc15"],
+		"tileColors": ["#f2b544", "#7dd3fc", "#c4b5fd", "#fda4af", "#5eead4", "#fdba74", "#a5b4fc", "#f0abfc"],
 		"bands": [{ "label": "60 Hz", "at": 0 }, { "label": "250 Hz", "at": 0.25 }, { "label": "1 kHz", "at": 0.5 }, { "label": "4 kHz", "at": 0.75 }, { "label": "16 kHz", "at": 1 }],
 		"presets": {
 			"flat": [[0, 0.5], [0.25, 0.5], [0.5, 0.5], [0.75, 0.5], [1, 0.5]],
@@ -31,19 +31,23 @@
 	},
 
 	"computed": {
-		"contentWidth": "{{state.queueOpen ? clamp(state.sizes[0], 480, window.width - 484) : window.width - 240}}",
+		"contentWidth": "{{state.queueOpen ? clamp(state.sizes[0], 480, window.width - 492) : window.width - 248}}",
 		"browseItems": "{{state.page == 'artists' ? map(state.words.artists, { name: it, kind: 'artist', count: 250, hue: index }) : map(state.words.albums, { name: it, kind: 'album', count: (33 + (index < 6 ? 1 : 0)) * 5, hue: index })}}",
 		"browseColumns": "{{clamp(floor((computed.contentWidth - 48) / 176), 2, 8)}}",
 		"collectionRows": "{{state.page != 'collection' ? [] : filter(computed.library, state.collection.kind == 'album' ? it.cells[3] == state.collection.name : it.cells[2] == state.collection.name)}}",
 		"collectionHue": "{{state.collection.kind == 'album' ? indexOf(state.words.albums, state.collection.name) : indexOf(state.words.artists, state.collection.name)}}",
+		"likedSongs": "{{filter(map(state.liked, { id: it, list: number(split(it, ':')[0]), track: number(split(it, ':')[1]) }), it.list < 0 ? it.track < length(computed.library) : it.track < (computed.listSizes[it.list] ?? 0))}}",
+		"likedRows": "{{map(computed.likedSongs, merge(it, { cells: it.list < 0 ? slice(computed.library[it.track].cells, 1) : [data.playlists[it.list].tracks[it.track].title, data.playlists[it.list].tracks[it.track].artist, data.playlists[it.list].tracks[it.track].album, data.playlists[it.list].tracks[it.track].time] }))}}",
 		"searchRows": "{{state.page != 'search' || trim(state.search) == '' ? [] : filter(computed.library, fuzzy(trim(state.search), it.cells[1] + ' ' + it.cells[2]) != null)}}",
 		"fade": "{{settings.playback.crossfade > 0 && length(state.queue) > 0 ? clamp((computed.duration - state.elapsed) / settings.playback.crossfade, 0, 1) : 1}}",
 		"crossfading": "{{state.isPlaying && computed.fade < 1}}",
-		"nextTitle": "{{length(state.queue) == 0 ? '' : state.playingList < 0 ? computed.library[state.queue[0]].cells[1] : computed.playing.tracks[state.queue[0]].title}}",
+		"nextTitle": "{{computed.queueSongs[0].title ?? ''}}",
 		"lyricLine": "{{(floor(state.elapsed / 12) + state.playingTrack) % 10}}",
 		"lyricWindow": "{{map(range(5), { text: state.lyrics[(computed.lyricLine + index + 8) % 10], current: index == 2 })}}",
-		"visualiserColor": "{{state.theme == 'dark' ? [0.98, 0.44, 0.52] : [0.88, 0.11, 0.28]}}",
-		"visualiserBackground": "{{state.theme == 'dark' ? [0.09, 0.075, 0.12] : [1, 1, 1]}}"
+		"spectrum": "{{(state.soundOn == 'beat' ? state.beat.spectrum : state.sounds[state.soundOn].spectrum) ?? []}}",
+		"barHeights": "{{map(range(32), clamp(0.04 + (computed.spectrum[index] ?? 0) * computed.fade * (state.eqOn ? curve(state.eq, index / 31) * 2 : 1), 0.04, 1))}}",
+		"bars": "{{join(map(computed.barHeights, 'M ' + (index * 10 + 2) + ' ' + (84 - it * 80) + ' h 6 V 84 h -6 Z'), ' ')}}",
+		"barReflections": "{{join(map(computed.barHeights, 'M ' + (index * 10 + 2) + ' 86 h 6 V ' + (86 + it * 28) + ' h -6 Z'), ' ')}}"
 	},
 
 	"actions": {
@@ -62,14 +66,14 @@
 					"list": -1,
 					"track": "{{number(event.id ?? event.value)}}",
 					"source": "{{state.collection.name}}",
-					"rest": "{{map(slice(computed.collectionRows, indexOf(map(computed.collectionRows, it.id), event.id ?? event.value) + 1, indexOf(map(computed.collectionRows, it.id), event.id ?? event.value) + 51), number(it.id))}}"
+					"rest": "{{map(slice(computed.collectionRows, indexOf(map(computed.collectionRows, it.id), event.id ?? event.value) + 1, indexOf(map(computed.collectionRows, it.id), event.id ?? event.value) + 51), '-1:' + it.id)}}"
 				}
 			}
 		],
 		"playCollection": [
 			{ "if": "{{length(computed.collectionRows) == 0}}", "then": [{ "stop": true }] },
 			{ "run": "startList", "with": { "list": -1, "track": "{{number(computed.collectionRows[0].id)}}", "source": "{{state.collection.name}}",
-				"rest": "{{map(slice(computed.collectionRows, 1, 51), number(it.id))}}" } }
+				"rest": "{{map(slice(computed.collectionRows, 1, 51), '-1:' + it.id)}}" } }
 		],
 		"playFromSearch": [
 			{ "note": "A search result opened: the results after it come next" },
@@ -79,9 +83,19 @@
 					"list": -1,
 					"track": "{{number(event.id ?? event.value)}}",
 					"source": "",
-					"rest": "{{map(slice(computed.searchRows, indexOf(map(computed.searchRows, it.id), event.id ?? event.value) + 1, indexOf(map(computed.searchRows, it.id), event.id ?? event.value) + 51), number(it.id))}}"
+					"rest": "{{map(slice(computed.searchRows, indexOf(map(computed.searchRows, it.id), event.id ?? event.value) + 1, indexOf(map(computed.searchRows, it.id), event.id ?? event.value) + 51), '-1:' + it.id)}}"
 				}
 			}
+		],
+		"playLiked": [
+			{ "note": "with: key, a liked song: it plays, and the liked songs after it come next" },
+			{ "run": "playLikedAt", "with": { "at": "{{indexOf(map(computed.likedSongs, it.id), key)}}" } }
+		],
+		"playLikedAt": [
+			{ "note": "with: at, the liked song's place in computed.likedSongs (-1: none)" },
+			{ "if": "{{at < 0}}", "then": [{ "stop": true }] },
+			{ "run": "startList", "with": { "list": "{{computed.likedSongs[at].list}}", "track": "{{computed.likedSongs[at].track}}", "source": "{{t('liked.title')}}",
+				"rest": "{{map(slice(computed.likedSongs, at + 1, at + 51), it.id)}}" } }
 		],
 		"setPreset": [
 			{ "note": "with: preset, a key of state.presets" },
@@ -115,7 +129,7 @@
 								"id": "tile",
 								"repeat": { "for": "item", "in": "computed.browseItems", "key": "{{item.name}}" },
 								"height": 204,
-								"radius": 8,
+								"radius": 16,
 								"color": "transparent",
 								"hover": { "color": "@rowHover" },
 								"focused": { "color": "@rowHover" },
@@ -125,11 +139,11 @@
 								"label": "{{t('browse.label', { name: item.name, songs: t('songs', { n: item.count }) })}}",
 								"onClick": { "run": "openCollection", "with": { "kind": "{{item.kind}}", "name": "{{item.name}}" } },
 								"children": [
-									{ "id": "tileArt", "type": "label", "text": "{{slice(item.name, 0, 1)}}", "font": "large", "align": "center", "textColor": "#1a0b10",
-										"anchors": { "left": 8, "right": 8, "top": 8 }, "height": 140, "radius": "{{item.kind == 'artist' ? 70 : 6}}",
+									{ "id": "tileArt", "type": "label", "text": "{{slice(item.name, 0, 1)}}", "font": "large", "align": "center", "textColor": "#141826",
+										"anchors": { "left": 8, "right": 8, "top": 8 }, "height": 140, "radius": "{{item.kind == 'artist' ? 40 : 14}}",
 										"color": "{{state.tileColors[item.hue % 8]}}" },
-									{ "id": "tileName", "type": "label", "text": "{{item.name}}", "textColor": "@text", "anchors": { "left": 8, "right": 8, "top": 156 }, "height": 20 },
-									{ "id": "tileCount", "style": "caption", "text": "{{t('songs', { n: item.count })}}", "anchors": { "left": 8, "top": 180 } }
+									{ "id": "tileName", "type": "label", "text": "{{item.name}}", "textColor": "@text", "align": "center", "anchors": { "left": 8, "right": 8, "top": 156 }, "height": 20 },
+									{ "id": "tileCount", "style": "caption", "text": "{{t('songs', { n: item.count })}}", "align": "center", "fitText": false, "anchors": { "left": 8, "right": 8, "top": 180 }, "height": 16 }
 								]
 							}
 						]
@@ -154,8 +168,8 @@
 							{ "id": "collectionBack", "style": "control", "icon": "arrow-left", "mirror": true, "anchors": { "left": 12, "top": 12 }, "width": 32,
 								"color": "@surface", "focusable": true, "role": "button", "label": "{{t('collection.back')}}", "tooltip": "{{t('collection.back')}}",
 								"onClick": { "set": "state.page", "to": "{{state.collection.kind == 'artist' ? 'artists' : 'albums'}}" } },
-							{ "id": "collectionArt", "type": "label", "text": "{{slice(state.collection.name, 0, 1)}}", "font": "large", "align": "center", "textColor": "#1a0b10",
-								"anchors": { "left": 56, "top": 24 }, "width": 84, "height": 84, "radius": "{{state.collection.kind == 'artist' ? 42 : 6}}",
+							{ "id": "collectionArt", "type": "label", "text": "{{slice(state.collection.name, 0, 1)}}", "font": "large", "align": "center", "textColor": "#141826",
+								"anchors": { "left": 56, "top": 24 }, "width": 84, "height": 84, "radius": "{{state.collection.kind == 'artist' ? 24 : 12}}",
 								"color": "{{state.tileColors[max(computed.collectionHue, 0) % 8]}}" },
 							{ "id": "collectionKind", "style": "caption", "text": "{{t(state.collection.kind == 'artist' ? 'collection.artist' : 'collection.album')}}", "anchors": { "left": 164, "top": 28 } },
 							{ "id": "collectionName", "type": "label", "text": "{{state.collection.name}}", "font": "large", "textColor": "@text", "anchors": { "left": 162, "top": 44 }, "fitText": true },
@@ -185,7 +199,60 @@
 						"selectedBackground": "@accentSoft",
 						"accentColor": "@accent",
 						"onOpen": "playFromCollection",
+						"onContextMenu": { "run": "openPickMenu", "with": { "pick": "{{state.collectionPick}}" } },
 						"keys": { "escape": { "set": "state.page", "to": "{{state.collection.kind == 'artist' ? 'artists' : 'albums'}}" } }
+					}
+				]
+			}
+		},
+
+		"likedPage": {
+			"note": "The songs liked (the heart in the player, or a song's context menu), from the library and the mixes, in a table",
+			"params": {},
+			"node": {
+				"dir": "auto",
+				"color": "transparent",
+				"children": [
+					{
+						"id": "likedHeader",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 132,
+						"color": "@surface",
+						"children": [
+							{ "id": "likedArt", "type": "label", "icon": "heart", "text": "", "font": "iconsLarge", "align": "center", "textColor": "@onAccent",
+								"anchors": { "left": 32, "top": 24 }, "width": 84, "height": 84, "radius": 6, "color": "@accent" },
+							{ "id": "likedCaption", "style": "caption", "text": "{{t('liked.caption')}}", "anchors": { "left": 140, "top": 28 } },
+							{ "id": "likedName", "type": "label", "text": "{{t('liked.title')}}", "font": "large", "textColor": "@text", "anchors": { "left": 138, "top": 44 }, "fitText": true },
+							{ "id": "likedCount", "style": "caption", "text": "{{t('songs', { n: length(computed.likedRows) })}}", "anchors": { "left": 140, "top": 88 } },
+							{ "id": "playLikedButton", "style": "playButton", "text": "{{t('play')}}", "anchors": { "right": 32, "top": 50 }, "when": "{{length(computed.likedRows) > 0}}",
+								"label": "{{t('play.label', { name: t('liked.title') })}}", "onClick": { "run": "playLiked", "with": { "key": "{{computed.likedRows[0].id}}" } } }
+						]
+					},
+					{ "id": "likedEmpty", "style": "caption", "when": "{{length(computed.likedRows) == 0}}", "text": "{{t('liked.empty')}}",
+						"anchors": { "left": 32, "right": 32, "top": 164 }, "wrap": true },
+					{
+						"id": "likedTable",
+						"type": "table",
+						"when": "{{length(computed.likedRows) > 0}}",
+						"anchors": { "left": 24, "right": 24, "top": 148, "bottom": 8 },
+						"color": "transparent",
+						"rowHeight": 30,
+						"items": "{{computed.likedRows}}",
+						"columns": [
+							{ "id": "title", "title": "{{t('column.title')}}", "width": 260 },
+							{ "id": "artist", "title": "{{t('column.artist')}}", "width": 170 },
+							{ "id": "album", "title": "{{t('column.album')}}", "width": 170 },
+							{ "id": "time", "title": "{{t('column.time')}}", "width": 64 }
+						],
+						"bind": "state.likedPick",
+						"label": "{{t('liked.title')}}",
+						"textColor": "@text",
+						"selectedTextColor": "@text",
+						"selectedBackground": "@accentSoft",
+						"accentColor": "@accent",
+						"onOpen": { "run": "playLiked", "with": { "key": "{{event.id ?? event.value}}" } },
+						"onContextMenu": { "if": "{{state.likedPick != null}}", "then": [{ "run": "openSongMenu", "with": {
+							"list": "{{number(split(state.likedPick, ':')[0])}}", "track": "{{number(split(state.likedPick, ':')[1])}}" } }] }
 					}
 				]
 			}
@@ -240,14 +307,15 @@
 						"selectedTextColor": "@text",
 						"selectedBackground": "@accentSoft",
 						"accentColor": "@accent",
-						"onOpen": "playFromSearch"
+						"onOpen": "playFromSearch",
+						"onContextMenu": { "run": "openPickMenu", "with": { "pick": "{{state.searchPick}}" } }
 					}
 				]
 			}
 		},
 
 		"nowPlayingPage": {
-			"note": "The song playing: its cover, the visualiser (a GPU surface the host registers) and the lyrics, line by line",
+			"note": "The song playing: its cover, the visualiser (the spectrum of what plays, as bars) and the lyrics, line by line",
 			"params": {},
 			"node": {
 				"dir": "auto",
@@ -262,20 +330,20 @@
 						"text": "{{t('now.crossfading', { title: computed.nextTitle })}}" },
 					{
 						"id": "visualiser",
-						"type": "surface",
-						"surface": "tempo.visualiser",
+						"note": "32 bars from the spectrum of the sound playing (its \"bands\"), and their faint reflection; low and flat when nothing plays, or the host gives no sound",
+						"color": "@surface",
 						"anchors": { "left": 32, "right": 32, "top": 216 },
 						"height": 120,
 						"radius": 8,
 						"role": "img",
 						"label": "{{t('now.visualiser')}}",
-						"params": {
-							"time": "{{state.elapsed}}",
-							"level": "{{state.isPlaying ? state.volume / 100 * computed.fade : 0}}",
-							"bars": 32,
-							"color": "{{computed.visualiserColor}}",
-							"background": "{{computed.visualiserBackground}}"
-						}
+						"children": [
+							{ "id": "visualiserBars", "type": "path", "d": "{{computed.bars}}", "viewBox": "0 0 320 120", "fit": "fill",
+								"anchors": { "left": 8, "right": 8, "top": 0, "bottom": 0 },
+								"fillGradient": { "kind": "linear", "angle": 90, "stops": [{ "at": 0, "color": "@accentHover" }, { "at": 1, "color": "@accent" }] } },
+							{ "id": "visualiserReflections", "type": "path", "d": "{{computed.barReflections}}", "viewBox": "0 0 320 120", "fit": "fill",
+								"anchors": { "left": 8, "right": 8, "top": 0, "bottom": 0 }, "fillColor": "@accentSoft" }
+						]
 					},
 					{ "id": "lyricsCaption", "style": "caption", "text": "{{t('now.lyrics')}}", "anchors": { "left": 32, "top": 356 } },
 					{
@@ -297,7 +365,12 @@
 								"textColor": "{{line.current ? '@text' : '@muted'}}",
 								"anchors": { "left": 0, "right": 0 },
 								"height": 26,
-								"align": { "horizontal": "start", "vertical": "center" }
+								"align": { "horizontal": "start", "vertical": "center" },
+								"cursor": "hand",
+								"focusable": true,
+								"hover": { "textColor": "@text" },
+								"tooltip": "{{t('now.seekLyric')}}",
+								"onClick": { "run": "seekLyric", "with": { "offset": "{{index - 2}}" } }
 							}
 						]
 					}
@@ -315,6 +388,7 @@
 				"children": [
 					{ "id": "soundTitle", "style": "pageTitle", "text": "{{t('menu.sound')}}" },
 					{ "id": "equaliserCaption", "style": "caption", "text": "{{t('sound.equaliser')}}", "anchors": { "left": 32, "top": 80 } },
+					{ "id": "equaliserNote", "type": "label", "text": "{{t('sound.equaliserNote')}}", "font": "small", "textColor": "@muted", "anchors": { "left": 140, "top": 80 }, "fitText": true },
 					{ "id": "equaliserOnLabel", "type": "label", "text": "{{t('sound.equaliserOn')}}", "font": "small", "textColor": "@muted", "anchors": { "right": 84, "top": 78 }, "fitText": true },
 					{ "id": "equaliserOn", "type": "toggle", "role": "switch", "label": "{{t('sound.equaliserOn')}}", "focusable": true, "anchors": { "right": 32, "top": 76 }, "width": 40, "height": 22,
 						"checked": "{{state.eqOn}}", "trackColor": "@faint", "activeColor": "@accent", "onChange": { "set": "state.eqOn", "to": "{{event.value}}" } },
@@ -325,6 +399,7 @@
 						"height": 168,
 						"focusable": true,
 						"label": "{{t('sound.curve')}}",
+						"tooltip": "{{t('sound.equaliserNote')}}",
 						"bind": "state.eq",
 						"color": "@surface",
 						"radius": 8,

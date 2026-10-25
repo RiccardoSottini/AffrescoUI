@@ -38,24 +38,32 @@ void TextEditor::setMinimap(bool shown) {
 	invalidate();
 }
 
+void TextEditor::setMinimapSize(float width) {
+	width = std::clamp(width, minimapWidths.first, minimapWidths.second);
+	if(width == minimapSize_) return;
+	minimapSize_ = width;
+	if(minimap_ && wrap_) rebuildRows();
+	invalidate();
+}
+
 void TextEditor::setMinimapText(bool text) {
 	if(text == minimapText_) return;
 	minimapText_ = text;
 	invalidatePaint();
 }
 
-void TextEditor::setMinimapViewportOnHover(bool onHover) {
-	if(onHover == minimapViewportOnHover_) return;
-	minimapViewportOnHover_ = onHover;
+void TextEditor::setMinimapViewportOnHover(bool enabled) {
+	if(enabled == minimapViewportOnHover_) return;
+	minimapViewportOnHover_ = enabled;
 	invalidatePaint();
 }
 
-float TextEditor::minimapWidth() const noexcept { return minimap_ ? minimapSize + 4.0f : 0.0f; }
+float TextEditor::minimapWidth() const noexcept { return minimap_ ? minimapSize_ + 4.0f : 0.0f; }
 
 Rect TextEditor::minimapFrame() const noexcept {
 	const Rect& box = frame();
 	const float right = box.right - scrollBarWidth - 4.0f;
-	return {right - minimapSize, box.top, right, box.bottom};
+	return {right - minimapSize_, box.top, right, box.bottom};
 }
 
 float TextEditor::minimapOffset() const noexcept {

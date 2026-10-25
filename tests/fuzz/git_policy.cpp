@@ -3,7 +3,8 @@
 /// every argument of a git run, and the policy is all that stands between them and git's options that run programs.
 ///
 /// The input is arguments separated by zero bytes. What the policy accepts names no option after `--`, a path inside
-/// the folder only, and no option the policy doesn't list; the shaper runs it on the root's own repository.
+/// the folder only, and no option the policy doesn't list; the shaper runs it on the root's own repository. The same
+/// input is read as a repository's own config (checkGitConfig()), which a folder that arrives with its `.git` chooses.
 
 #include "Fuzz.hpp"
 
@@ -69,5 +70,6 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	}
 	if(!affresco::services::checkGitArguments(arguments)) checkAccepted(arguments);
 	for(const std::string& argument : arguments) static_cast<void>(affresco::services::isBranchName(argument));
+	static_cast<void>(affresco::services::checkGitConfig(text)); // the input as a repository's config, too
 	return 0;
 }

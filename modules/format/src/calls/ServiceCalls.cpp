@@ -362,9 +362,9 @@ void ServiceCalls::deliverEvents(std::uint64_t call, std::vector<json> events) {
 		try {
 			json& list = statePlace(engine_.versions.state(), *running.append, running.where + ".append");
 			if(!list.is_array()) list = json::array();
-			for(json& event : events) {
+			for(const json& event : events) { // copied: `into` and `do` get them too
 				expect::shallowEnough(event, pointerDepth(*running.append) + 1, running.where + ".append");
-				list.push_back(std::move(event));
+				list.push_back(event);
 			}
 			if(list.size() > running.keep)
 				list.erase(list.begin(), list.begin() + static_cast<std::ptrdiff_t>(list.size() - running.keep));
@@ -399,6 +399,7 @@ void ServiceCalls::failed(const Pending& call, const json& error) {
 		        {"body", error["data"].value("body", json())}};
 	const json& shown = flat.is_null() ? error : flat;
 	if(call.onError.is_null()) {
+		if(shown["code"] == "cancelled") return; // cancelled on purpose (a "cancel" step, a new call with its id)
 		const std::string& message = shown["message"].get_ref<const std::string&>();
 		engine_.report(call.where + ": " + call.name + ": " + message);
 	} else {
@@ -432,9 +433,12 @@ void ServiceCalls::runSteps(const Pending& call, const json& steps, const char* 
 	Panel* sender = engine_.reconciler.recordOf(call.sender) ? call.sender : nullptr;
 	if(!sender && window) sender = &window->root();
 	if(!sender) return; // nothing built: no panel to run them from
-	// Copies on purpose: the steps may end the call they come from, and with it these
-	const json handler = steps, event = call.event; // NOLINT(performance-unnecessary-copy-initialization)
-	const std::string place = where;                // NOLINT(performance-unnecessary-copy-initialization)
+	// Copies on purpose: the steps may end the call they come from, and with it these. A stream's event is the steps'
+	// `event` (the name always means the event, never a local); the other steps see the event that started the call.
+	const bool streamed = std::strcmp(variable, "event") == 0;
+	const json handler = steps;      // NOLINT(performance-unnecessary-copy-initialization)
+	const std::string place = where; // NOLINT(performance-unnecessary-copy-initialization)
+	const json event = streamed ? value : call.event;
 	const auto scope = std::make_shared<const Scope>(
 	    Scope{call.locals.get(), call.locals, json{{variable, std::move(value)}}, {}, {}});
 	engine_.runner.handle(handler, *sender, event, *scope, place);

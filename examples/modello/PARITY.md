@@ -9,23 +9,25 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_launcher example
 
 | What | Status | Note |
 |---|---|---|
-| Top bar: File, Edit, Render, Window, Help menus | partial | the menus hold a few commands each |
-| Workspace tabs (Layout, Model, ... Script) | partial | drawn; only Layout is a workspace |
-| Scene and view layer pickers | partial | drawn, one scene |
+| Top bar: File, Edit, Render, Window, Help menus | done | new, open, save, export glTF; undo, redo, copy, paste; render; workspaces, theme, assistant |
+| Workspace tabs (Layout, Model, ... Script) | partial | 5 of 11 work (Layout, Model, Materials, Animate, Render), Ctrl+Page Up and Page Down step through them; the rest are disabled with a reason |
+| Scene and view layer pickers | partial | the names can be edited; one scene and one layer |
 | 3D viewport header: editor type, mode, View, Select, Add, Object | done | |
 | Header: orientation, pivot, snapping, proportional editing | done | proportional is a toggle only |
-| Header: visibility, gizmos, overlays, X-ray, four shading modes | partial | X-ray and look development show as solid |
+| Header: visibility, gizmos, overlays, X-ray, four shading modes | done | X-ray sees through; look development lights with a studio light or the scene's |
 | Navigation gizmo (drag to orbit, click an axis) | done | |
 | Zoom, pan, camera and orthographic buttons | done | |
 | Left toolbar | done | Select, Cursor, Move, Rotate, Scale, Transform, Annotate, Measure, Add Cube |
-| N sidebar: Item, Tool, View | partial | Item shows the transform; Tool and View are short |
+| N sidebar: Item, Tool, View | done | fields, locks, the tool's settings, the view's lens and clipping |
 | View name and the active object's collection | done | |
-| Outliner: collections, objects, data icons | done | |
+| Outliner: collections, objects, data icons | done | several collections: New Collection, rename, delete, M moves objects between them, each with its own toggles |
 | Outliner: selectable, eye and camera toggles | done | |
 | Properties editor: tab strip | done | |
-| Properties: Object tab panels (Transform, Transform Offset, ...) | partial | only Transform has content |
+| Properties: Object tab panels (Transform, Transform Offset, ...) | partial | Transform and Visibility edit; the others are disabled with a reason |
+| Properties: Material, World, Data, Render, Output, Scene, Collection, Tool tabs | done | browse, add and unlink materials; base colour, metallic, roughness; the world colour; a light's or a camera's settings; exposure; the frame range; search |
 | Timeline: play controls, frame, start, end | done | |
 | Timeline: keyframe diamonds | done | |
+| Keyframes animate (playback, next and previous key, dragging keys) | done | translation, rotation and scale, in frame order |
 | Status bar: mouse hints, counts, version | done | |
 | Light and dark themes | done | Window › Toggle Light and Dark Theme |
 | Camera and light glyphs in the viewport | done | a frustum with its up triangle; a lamp with a line to the floor |
@@ -51,18 +53,23 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_launcher example
 | Snapping | done | |
 | Ctrl+Z, Ctrl+Shift+Z | done | |
 | F3 search | done | over every command, with its key |
-| Adjust Last Operation panel, F9 | partial | Move, Resize and Add adjust; Rotate shows its name only; F9 opens it in place |
-| Z and ~ pie menus | partial | Z opens a shading popup, not a pie |
+| Adjust Last Operation panel, F9 | done | Move, Rotate, Resize and Add adjust; F9 opens it in place |
+| Z and ~ pie menus | done | Z: shading and X-ray; ~: the views |
 | Right click object context menu | done | |
-| Editor-type switcher | partial | the menu is drawn; editors don't switch yet |
+| Editor-type switcher | done | an editor swaps with the area that shows it; those Modello lacks are disabled with a reason |
 | Area split and join | missing | the areas resize |
 | I inserts a keyframe, Space plays | done | |
+| Ctrl+C and Ctrl+V copy and paste objects | done | |
+| Alt+G, Alt+R, Alt+S clear; Shift+S snap menu | done | |
+| Ctrl+Space maximizes an area | done | |
+| M moves to a collection | done | to an existing one or a new one |
+| Parenting (Ctrl+P, Alt+P) | missing | |
 
 ## Edit mode
 
 | What | Status | Note |
 |---|---|---|
-| Tab into edit mode | partial | the mode switches; mesh editing isn't there |
+| Tab into edit mode | missing | Edit Mode is in the mode menu, disabled with a reason |
 | 1/2/3 vertex, edge, face select | missing | |
 | E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | missing | |
 
@@ -70,13 +77,53 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_launcher example
 
 | What | Status | Note |
 |---|---|---|
-| Shading workspace: node editor, material slots | missing | |
-| Import and export glTF | missing | |
-| Save and open | missing | |
-| Render window | missing | |
+| Shading workspace: node editor, material slots | done | the Shader Editor adds, links, sets and deletes nodes of the material's graph, undoable |
+| Import and export glTF | partial | export only (File › Export glTF, with the keyframes as an animation; no textures yet) |
+| Save and open | done | Ctrl+S and Ctrl+O, and the File menu: the scene as JSON in a file the person picks, checked when it opens, undoable |
+| Render window | done | F12: the camera's view, lit, without markers; Save As Image |
 | Chat add-on | done | Window › Assistant, Ctrl+Shift+A |
 | Keyboard access and accessibility names | partial | names on every control; Tab order not tuned |
 
 ## Counts
 
 Round 1: 31 done, 10 partial, 11 missing.
+
+Round 2 (a folder of files): 35 done, 11 partial, 6 missing (34, 11 and 7 before it). Save and open.
+
+Round 3 (every control works): 49 done, 5 partial, 5 missing (35, 11 and 6 before it, over 52 rows; 7 rows added). Keyframes animate, the properties tabs, the Shader Editor, the render window, collections, pie menus, glTF export.
+
+## Left for later
+
+Every row above that is partial or missing, and every control Modello shows disabled with a tooltip. "JSON" means
+Modello's files alone can do it; otherwise the general library feature it needs. P1: a daily user meets it; P2:
+occasionally; P3: rarely.
+
+| What | Priority | Needs |
+|---|---|---|
+| Edit mode: Tab, 1/2/3 vertex, edge, face select, Edit Mode in the mode menu | P1 | library: editable meshes in `scene` (element picking, selection drawing, mesh data written back to the document) |
+| E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | P1 | library: mesh operators on that editable mesh, as steps |
+| Parenting: Ctrl+P, Alt+P, the Object tab's Relations panel | P1 | JSON for the commands and the outliner's nesting (scene nodes already take `parent`); library: an expression or step giving a node's world transform, so parenting keeps it and the gizmo, G/R/S and picking work on children |
+| Proportional editing (header toggle) | P2 | library: editable meshes (it moves vertices) |
+| Area split and join | P2 | JSON if the areas become a split tree in state; simpler with a library docking layout |
+| glTF import | P2 | library: an open-file step that hands a picked .gltf to `scene` assets under the file-read permission |
+| Textures (Texture tab, textures in the glTF export) | P2 | library: image textures on scene materials from picked files, and the export embedding them |
+| Pivot: Individual Origins | P2 | JSON: rotate and scale each selected object about its own origin in the transform commands |
+| Output › Format: resolution and frame rate | P2 | JSON: render size and fps in state, used by F12 and the timeline (24 is fixed today) |
+| Modifiers tab | P2 | library: mesh modifiers (array, mirror, subdivision) in `scene` |
+| Object › Viewport Display (bounds, wire) | P2 | library: per-node display as bounds or wire in `scene` |
+| Material › Settings: blend and shadow | P2 | library: blend modes and shadow casting on scene materials |
+| Light › Shadow, Camera › Depth of Field, Mesh › Normals panels | P2 | library: shadows, depth of field and smooth or flat normals in the scene renderer |
+| Keyboard access: Tab order | P2 | JSON: focus order through the areas (header, toolbar, outliner, properties, timeline) |
+| Workspaces Sculpt, UV, Paint | P3 | library: sculpting, UV unwrapping and texture painting on editable meshes |
+| Workspaces Compose, Nodes, Script | P3 | library: a compositor, geometry nodes, a script console (the last may never fit a JSON-only app) |
+| Editor types Image Editor, Text Editor | P3 | JSON: the image viewer can show the last render; the text editor can use the `editor` node |
+| Scene and view layer pickers, View Layer tab, outliner Scenes mode | P3 | JSON: a list of scenes and layers in state, each with its own nodes and toggles |
+| Outliner Orphan Data mode | P3 | JSON: materials and meshes no object uses, listed from state |
+| Orientation: Gimbal, View | P3 | JSON: axes from the object's Euler rotation, or from the view's rotation |
+| Rotation mode (quaternion, axis angle) | P3 | JSON: other rotation fields converted to rotationDegrees |
+| Properties pin | P3 | JSON: a pinned object id the panels read instead of the active one |
+| Object › Collections (link to several) | P3 | JSON: a list of collections per object instead of one |
+| Object › Transform Offset, Custom Properties | P3 | JSON: delta transforms added in the displayed scene; free key-value fields per object |
+| Object › Instancing, Motion Paths, Line Drawing | P3 | library: instancing, path lines through keyframe positions, line-art rendering in `scene` |
+| Particles, Physics, Object Constraints tabs | P3 | library: particles and a physics step; constraints may be JSON (track-to as an expression) |
+| Render › Sampling, Scene › Units, Tool › Workspace | P3 | library: a sampled renderer; JSON: unit labels on the fields; JSON: workspace settings |

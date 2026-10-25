@@ -138,13 +138,14 @@ public:
 	/// @brief Whether the person may choose the folder a root names, in a folder dialog (the `chooseFolder` step).
 	/// @param root The root's name.
 	/// @return true if the host allows it.
-	[[nodiscard]] virtual bool choosable(std::string_view /*root*/) const { return false; }
+	[[nodiscard]] virtual bool choosable([[maybe_unused]] std::string_view root) const { return false; }
 	/// @brief Points a root the person may choose at the folder they chose, and starts the services that use it
 	/// afresh (their calls are cancelled).
 	/// @param root The root's name.
 	/// @param folder The folder (UTF-8), as the folder dialog gave it.
 	/// @return Why it can't, or std::nullopt.
-	[[nodiscard]] virtual std::optional<std::string> chooseRoot(std::string_view root, std::string_view /*folder*/) {
+	[[nodiscard]] virtual std::optional<std::string> chooseRoot(std::string_view root,
+	                                                            [[maybe_unused]] std::string_view folder) {
 		return "the folder '" + std::string(root) + "' can't be chosen";
 	}
 };

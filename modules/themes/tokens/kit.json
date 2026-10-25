@@ -1,0 +1,29 @@
+{
+	"note": "The kit's design tokens: the colours and sizes every built-in component takes by default, which a document changes by defining tokens of the same names. A colour has a dark value (the base) and a light one; the light ones apply once a document names a token of the kit itself, chosen by its theme.",
+	"tokens": {
+		"kit.background": {"dark": "#1e1e1e", "light": "#ffffff", "about": "Pages and the settings page."},
+		"kit.surface": {"dark": "#252526", "light": "#ffffff", "about": "Menus, dialogs, toasts, cards and popovers."},
+		"kit.bar": {"dark": "#3c3c3c", "light": "#f3f4f6", "about": "Menu bars, toolbars and status bars."},
+		"kit.barHover": {"dark": "#505050", "light": "#e5e7eb", "about": "A bar's item under the pointer, focused or open."},
+		"kit.field": {"dark": "#3c3c3c", "light": "#ffffff", "about": "Text fields."},
+		"kit.text": {"dark": "#cccccc", "light": "#1f2328", "about": "Text."},
+		"kit.dim": {"dark": "#8b8b8b", "light": "#6e7781", "about": "Secondary text: shortcuts, hints, disabled items."},
+		"kit.body": {"dark": "#a0a0a0", "light": "#57606a", "about": "A dialog's message and a card's text."},
+		"kit.selection": {"dark": "#04395e", "light": "#ddf4ff", "about": "The highlighted item of a menu or a list."},
+		"kit.border": {"dark": "#454545", "light": "#d0d7de", "about": "Borders and separators."},
+		"kit.primary": {"dark": "#0e639c", "light": "#0969da", "about": "The main button and progress."},
+		"kit.onPrimary": {"dark": "#ffffff", "light": "#ffffff", "about": "Text on `kit.primary`."},
+		"kit.secondary": {"dark": "#3a3d41", "light": "#eaeef2", "about": "Other buttons, tracks, a pressed or checked item."},
+		"kit.onSecondary": {"dark": "#ffffff", "light": "#1f2328", "about": "Text on `kit.secondary`."},
+		"kit.accent": {"dark": "#2aaaff", "light": "#0969da", "about": "Matched letters, links and the focused item's mark."},
+		"kit.focus": {"dark": "#ffffff", "light": "#0969da", "about": "The ring of the focused button."},
+		"kit.backdrop": {"dark": "#00000088", "light": "#00000040", "about": "Behind a modal dialog."},
+		"kit.info": {"dark": "#3794ff", "light": "#0969da", "about": "Information."},
+		"kit.warning": {"dark": "#cca700", "light": "#9a6700", "about": "Warnings."},
+		"kit.error": {"dark": "#f14c4c", "light": "#cf222e", "about": "Errors."},
+		"kit.success": {"dark": "#89d185", "light": "#1a7f37", "about": "Success."},
+		"kit.radius": {"value": 4, "about": "The corners of menus, buttons and fields."},
+		"kit.cardRadius": {"value": 6, "about": "The corners of dialogs, toasts, cards and popovers."},
+		"kit.borderWidth": {"value": 1, "about": "Borders."}
+	}
+}

@@ -6,12 +6,12 @@
 # linked
 function(affrescoui_fuzzer name)
 	if(AFFRESCOUI_BUILD_FUZZERS)
-		add_executable(affrescoui_fuzz_${name} ${name}.cpp)
+		add_executable(affrescoui_fuzz_${name} ${name}.cpp Themes.cpp)
 		target_link_options(affrescoui_fuzz_${name} PRIVATE -fsanitize=fuzzer)
 	else()
-		add_library(affrescoui_fuzz_${name} OBJECT ${name}.cpp)
+		add_library(affrescoui_fuzz_${name} OBJECT ${name}.cpp Themes.cpp)
 	endif()
-	target_link_libraries(affrescoui_fuzz_${name} PRIVATE ${ARGN})
+	target_link_libraries(affrescoui_fuzz_${name} PRIVATE ${ARGN} affrescoui::themes) # installed by Themes.cpp
 	target_compile_features(affrescoui_fuzz_${name} PRIVATE cxx_std_23)
 	set_target_properties(affrescoui_fuzz_${name} PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_fuzz_${name} PRIVATE ${AFFRESCOUI_WARNINGS})
@@ -23,6 +23,9 @@ endfunction()
 affrescoui_fuzzer(json affrescoui::core nlohmann_json::nlohmann_json)
 affrescoui_fuzzer(expression affrescoui::format)
 target_include_directories(affrescoui_fuzz_expression PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
+affrescoui_fuzzer(diff_functions affrescoui::format) # diffLines, atPointer, applyPatch, formatJson
+target_include_directories(affrescoui_fuzz_diff_functions PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
 affrescoui_fuzzer(revision affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(migrate affrescoui::format) # version 1 files (SCREEN_FORMAT.md, "Migrating from version 1")
@@ -54,8 +57,12 @@ affrescoui_fuzzer(ask_reply affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(lookups affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_lookups PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # LookupSpans.hpp
 affrescoui_fuzzer(image affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+affrescoui_fuzzer(data_uri affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(path affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(text_model affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+affrescoui_fuzzer(terminal affrescoui::format) # what a terminal's program writes
+target_include_directories(affrescoui_fuzz_terminal PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # TerminalModel.hpp
 affrescoui_fuzzer(find_pattern affrescoui::regex affrescoui::core nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(search_glob affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_search_glob PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # SearchGlob.hpp
@@ -64,6 +71,7 @@ affrescoui_fuzzer(path_tree affrescoui::format) # a folder's names, nested for a
 target_include_directories(affrescoui_fuzz_path_tree PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
 affrescoui_fuzzer(git_policy affrescoui::services) # the git grant's commands, as a screen asks for them
+affrescoui_fuzzer(git_output affrescoui::services) # what the git grant's commands print, and a line diff
 affrescoui_fuzzer(png affrescoui::automation)
 target_include_directories(affrescoui_fuzz_png PRIVATE ${PROJECT_SOURCE_DIR}/modules/automation/src) # PngReader.hpp
 affrescoui_fuzzer(http_response affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
@@ -78,10 +86,14 @@ affrescoui_fuzzer(frames affrescoui::services nlohmann_json::nlohmann_json) # Fu
 target_include_directories(affrescoui_fuzz_frames PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # Framing.hpp
 affrescoui_fuzzer(dap affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_dap PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # DapProtocol.hpp
+affrescoui_fuzzer(lsp affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+target_include_directories(affrescoui_fuzz_lsp PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # LspProtocol.hpp
 # Feature packages and catalogues (RFC 0004): FeatureManifest.hpp, FeatureCatalog.hpp and FeatureSignatures.hpp
 affrescoui_fuzzer(feature_manifest affrescoui::format)
 target_include_directories(affrescoui_fuzz_feature_manifest PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
+# Apps' manifests (app.json, format/App.hpp), and the capabilities a screen uses
+affrescoui_fuzzer(app_manifest affrescoui::format)
 affrescoui_fuzzer(catalog_index affrescoui::format)
 target_include_directories(affrescoui_fuzz_catalog_index PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
@@ -90,32 +102,21 @@ target_include_directories(affrescoui_fuzz_signature PRIVATE $<TARGET_PROPERTY:a
 # Composition across apps: a feature's needs, its adapter and the host's points (CompositionProof.hpp)
 affrescoui_fuzzer(composition affrescoui::format)
 target_include_directories(affrescoui_fuzz_composition PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
+# The qrCode expression function's encoder and path data (QrCode.hpp)
+affrescoui_fuzzer(qr_code affrescoui::format)
+target_include_directories(affrescoui_fuzz_qr_code PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
 # The 1.0 security audit (SECURITY.md, README.md "Inventory of untrusted inputs"): URLs, sign-in responses, the token
 # file, what git prints, imported colour themes and history files on disk
 affrescoui_fuzzer(url affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(oauth affrescoui::net nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_oauth PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # OAuth.hpp
 affrescoui_fuzzer(history affrescoui::format affrescoui::vcs)
-# The apps' readers (apps/server, examples/forge): their own sources, linked only into the fuzzer (the apps' targets
+# The apps' readers (apps/server): their own sources, linked only into the fuzzer (the apps' targets
 # compile them otherwise)
 affrescoui_fuzzer(token_file affrescoui::net nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/apps/server) # TokenFile.hpp
-affrescoui_fuzzer(git_output affrescoui::core nlohmann_json::nlohmann_json)
-target_include_directories(affrescoui_fuzz_git_output PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge)
-affrescoui_fuzzer(color_theme affrescoui::core nlohmann_json::nlohmann_json)
-target_include_directories(affrescoui_fuzz_color_theme PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge)
 if(AFFRESCOUI_BUILD_FUZZERS)
 	target_sources(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/apps/server/TokenFile.cpp)
-	target_sources(affrescoui_fuzz_git_output PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge/features/scm/GitStatus.cpp
-		${PROJECT_SOURCE_DIR}/examples/forge/features/scm/LineDiff.cpp)
-	target_sources(affrescoui_fuzz_color_theme PRIVATE
-		${PROJECT_SOURCE_DIR}/examples/forge/features/themes/ThemeImport.cpp)
-endif()
-affrescoui_fuzzer(sinopia_deck affrescoui::render nlohmann_json::nlohmann_json)
-target_include_directories(affrescoui_fuzz_sinopia_deck PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia) # deck/Deck.hpp
-if(AFFRESCOUI_BUILD_FUZZERS)
-	target_sources(affrescoui_fuzz_sinopia_deck PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Deck.cpp
-		${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Write.cpp)
 endif()
 # Other formats (SCREEN_FORMAT.md): the A2UI and Adaptive Cards adapters
 affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)
@@ -134,6 +135,8 @@ affrescoui_fuzzer(scene affrescoui::scene3d nlohmann_json::nlohmann_json)
 # The image editor's inputs (examples/tempera): ICC profiles and project files
 affrescoui_fuzzer(icc affrescoui::imaging)
 affrescoui_fuzzer(tempera_project affrescoui::imaging)
+# The PNG and JPEG files the image editor and the "image" step open
+affrescoui_fuzzer(image_file affrescoui::imaging)
 # The images a screen edits: the "images" section's entries and the "image" step (format/src/imaging)
 affrescoui_fuzzer(images affrescoui::format)
 target_include_directories(affrescoui_fuzz_images PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
@@ -145,3 +148,5 @@ if(AFFRESCOUI_AUDIO)
 endif()
 # The data layer on untrusted documents: models, migrations, seeds, queries and CSV text (modules/data)
 affrescoui_fuzzer(data_models affrescoui::data)
+affrescoui_fuzzer(key_press affrescoui::format)
+target_include_directories(affrescoui_fuzz_key_press PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src/events) # Shortcuts.hpp

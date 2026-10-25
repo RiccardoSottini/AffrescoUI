@@ -8,6 +8,7 @@
 #include "Cli.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/themes/Themes.hpp>
 
 #include <array>
 #include <iostream>
@@ -26,8 +27,8 @@ std::span<const Command> commands() {
 	    {"check",
 	     "<file> [--json] | --compose <screen> <feature> [--adapter FILE] [--base COMMIT] [--scenarios FILE|none] "
 	     "[--document FILE] [--revision out.json] [--json]",
-	     "Check a screen: the schema, the format's rules and the checker; --compose proves a feature from another app "
-	     "fits it",
+	     "Check a screen or an app (its folder or app.json): the schema, the format's rules and the checker; --compose "
+	     "proves a feature from another app fits it",
 	     checkScreen},
 	    {"contributions", "<file> [--json] [--document FILE]",
 	     "List a screen's contribution points, typed exports and installable parts, compactly", listContributions},
@@ -122,6 +123,7 @@ affresco::cli::Exit runTool(const std::vector<std::string_view>& args) {
 
 int main(int argc, char** argv) {
 	try {
+		affresco::themes::install(); // the kits' components and tokens, for the commands that check documents
 		return static_cast<int>(runTool(std::vector<std::string_view>(argv + 1, argv + argc)));
 	} catch(...) { // run() reports what commands throw; only running out of memory gets here
 		return static_cast<int>(affresco::cli::Exit::Failure);

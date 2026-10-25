@@ -187,10 +187,24 @@ struct Function {
 /// @brief The table of the form functions, `passwordStrength` and `isEmail` (ExpressionFunctionsForm.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> formFunctions();
+/// @brief The table of the QR code function, `qrCode` (ExpressionFunctionsQr.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> qrFunctions();
 
 /// @brief The table of the path function, `pathTree` (ExpressionFunctionsPaths.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> pathFunctions();
+/// @brief The table of the key function, `keyLabel` (ExpressionFunctionsKeys.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> keyFunctions();
+/// @brief The table of the source control functions, `gitStatus` and `gitBranches` (ExpressionFunctionsGit.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> gitFunctions();
+
+/// @brief The table of the diff and JSON functions: `diffLines`, `atPointer`, `applyPatch` and `formatJson`
+/// (ExpressionFunctionsDiff.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> diffFunctions();
 
 /* Helpers the tables share */
 

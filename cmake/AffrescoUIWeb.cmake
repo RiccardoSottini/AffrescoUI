@@ -51,18 +51,20 @@ function(affrescoui_web_net target)
 endfunction()
 
 # Links a program for the browser (or Node, which plays the scenarios): its memory grows, exceptions work (the
-# library reports errors with them), and the main loop gives way to the browser between frames.
+# library reports errors with them), and the main loop gives way to the browser between frames. wasm-opt skips its
+# constraint-analysis pass: in this emsdk's Binaryen it fails an assertion (constraints.provesEverything()) on the
+# library's code and aborts the link; drop the skip when AFFRESCOUI_EMSDK_VERSION moves to a release that fixed it.
 # target: the executable. environment: where it runs (web, or node).
 function(affrescoui_web_program target environment)
 	target_link_options(${target} PRIVATE -fexceptions -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=1MB
-		-sENVIRONMENT=${environment} -sEXPORTED_RUNTIME_METHODS=ccall,callMain)
+		-sENVIRONMENT=${environment} -sEXPORTED_RUNTIME_METHODS=ccall,callMain
+		-sBINARYEN_EXTRA_PASSES=--skip-pass=constraint-analysis)
 endfunction()
 
 # Makes the programs the site and the checks use, once the root CMakeLists.txt has defined them: the host for the
 # page (the templates' folders and examples/shared preloaded under /assets, without their C++ sources,
 # so no path of the machine that built them is in the site), and the command-line tool for Node, on the machine's own
-# files (NODERAWFS), to play the scenarios. Forge and the document server need processes, a terminal and a listening
-# socket: they aren't built for a browser.
+# files (NODERAWFS), to play the scenarios. The document server needs a listening socket: it isn't built for a browser.
 function(affrescoui_web_programs)
 	if(TARGET affrescoui_launcher)
 		affrescoui_template_folders(folders)
@@ -79,7 +81,7 @@ function(affrescoui_web_programs)
 			endforeach()
 			target_link_options(${program} PRIVATE "SHELL:--exclude-file *.cpp" "SHELL:--exclude-file *.hpp")
 		endforeach()
-		set_target_properties(affrescoui_forge affrescoui_server PROPERTIES EXCLUDE_FROM_ALL ON)
+		set_target_properties(affrescoui_server PROPERTIES EXCLUDE_FROM_ALL ON)
 	endif()
 	if(TARGET affrescoui_cli)
 		affrescoui_web_program(affrescoui_cli node)

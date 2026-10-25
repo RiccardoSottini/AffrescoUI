@@ -2,6 +2,7 @@
 /// @brief The format's registries: node types (TypeRegistry), steps (StepRegistry) and document sections
 /// (SectionRegistry), and what the runtime builds from them: the catalog, and an application's types.
 
+#include "FeatureManifest.hpp"
 #include "Headless.hpp"
 #include "SectionRegistry.hpp"
 #include "StepRegistry.hpp"
@@ -64,7 +65,7 @@ TEST_CASE("format: the built-in node types register in catalog order, each with 
 	                                                      "row", "column", "grid", "toggle", "checkbox", "slider",
 	                                                      "image", "surface", "raster", "split", "tabs", "list", "tree", "table", "path",
 	                                                      "colorPicker", "gradient", "curves", "canvas", "graph", "timeline", "calendar",
-	                                                      "codeInput", "carousel", "scene", "outlet"});
+	                                                      "codeInput", "carousel", "scene", "terminal", "outlet"});
 	for(const NodeType* type : registry.inOrder()) {
 		CAPTURE(type->name);
 		CHECK(type->create());
@@ -90,7 +91,7 @@ TEST_CASE("format: a type's property sets: its own, then the built-in widgets it
 	REQUIRE(sets[0] == own);
 	REQUIRE(sets[1]);
 	CHECK(sets[1]->find("lineNumbers")); // the editor's
-	CHECK(sets[2]); // then the sets that apply to every node, such as the transform properties
+	CHECK(sets[2]);                      // then the sets that apply to every node, such as the transform properties
 
 	const affresco::Panel panel;
 	const PropertySets none = registry.setsFor(registry.find("panel"), panel);
@@ -119,18 +120,23 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	registerBuiltInSteps(registry);
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
-	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "auth", "assistant", "attach", "folder",
-	                                         "review", "navigation", "editor", "time", "other", "scene", "image", "audio",
-	                                         "data"});
+	CHECK(groups == std::vector<std::string>{"state",     "flow",       "outside", "services", "auth",
+	                                         "assistant", "attach",     "folder",  "file",     "export",
+	                                         "review",    "navigation", "editor",  "keys",     "time",
+	                                         "other",     "scene",      "image",   "audio",    "terminal",
+	                                         "data",      "windows"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())
 		for(const StepType& step : group.steps)
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
-	CHECK(control == std::vector<std::string>{"accept", "ask", "attach", "call", "cancelAsk", "chooseFolder",
-	                                          "connect", "endPreview", "patch", "preview", "reject", "respond",
-	                                          "restore", "revert", "send", "signIn", "signOut", "undo"});
+	CHECK(control ==
+	      std::vector<std::string>{"accept",       "ask",           "attach",        "call",    "cancelAsk",
+	                               "chooseFolder", "clearTerminal", "closeTerminal", "connect", "endPreview",
+	                               "export",       "fullscreen",    "openFile",      "patch",   "preview",
+	                               "reject",       "respond",       "restore",       "revert",  "runInTerminal",
+	                               "saveFile",     "send",          "signIn",        "signOut", "undo"});
 
 	REQUIRE(registry.find("set"));
 	CHECK(registry.find("set")->keys == std::vector<std::string>{"to"});
@@ -183,7 +189,7 @@ TEST_CASE("format: the capability sections are the ones a revision can't change"
 		if(section.capability) capabilities.push_back(section.name);
 	CHECK(capabilities ==
 	      std::vector<std::string>{"channels", "services", "connections", "persist", "permissions", "images",
-	                               "points"}); // "audio" is the person's to change (VERSION_CONTROL.md, "Assets")
+	                               "windows", "points"}); // "audio" is the person's to change (VERSION_CONTROL.md, "Assets")
 
 	const Rules rules;
 	const json before = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}}}};
@@ -211,7 +217,12 @@ TEST_CASE("format: the catalog is built from the registries, and lists an applic
 	CHECK(catalog["common"] == catalog["types"]["panel"]["properties"]);
 	CHECK(std::ranges::find(catalog["steps"], json("set")) != catalog["steps"].end());
 	CHECK(std::ranges::find(catalog["steps"], json("accept")) == catalog["steps"].end());
-	CHECK(catalog["controlSteps"].size() == 15);
+	CHECK(catalog["controlSteps"].size() == 25);
+	for(const json& step : catalog["controlSteps"]) { // a feature installed by revision can't contain any of them
+		INFO("a control step features may contain: ", step);
+		CHECK(std::ranges::find(affresco::format::controlSteps, step.get<std::string>()) !=
+		      affresco::format::controlSteps.end());
+	}
 	CHECK(catalog["sections"].front() == "window");
 	CHECK(catalog["sections"].back() == "root");
 	CHECK(std::ranges::find(catalog["sections"], json("include")) != catalog["sections"].end());
@@ -294,9 +305,9 @@ TEST_CASE("format: an application's type gets the events it lists as its own") {
 
 	affresco::Screen unknown = affresco::Screen::fromString(R"json({
 		"format": "affrescoui-screen", "version": 1,
-		"root": { "type": "panel", "children": [{ "type": "notes", "onPopupKey": "typed" }] }
+		"root": { "type": "panel", "children": [{ "type": "notes", "onWobble": "typed" }] }
 	})json");
 	unknown.registerType(
 	    "notes", [] { return std::make_unique<NotesEditor>(); }, {"onType"}, [](auto&, const auto&) {});
-	CHECK_THROWS_WITH(unknown.build(*window), doctest::Contains("onPopupKey: unknown event"));
+	CHECK_THROWS_WITH(unknown.build(*window), doctest::Contains("onWobble: unknown event"));
 }

@@ -32,13 +32,17 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"anyOf": [{"type": "string"}, {"const": false}, {"type": "object", "additionalProperties": false,
 		"properties": {"color": {"type": "string"}, "width": {"type": "number", "minimum": 0},
 		"offset": {"type": "number", "minimum": 0}}}]}, "icon": {"type": "string",
-		"description": "The window's icon (the app's in the macOS Dock): a PNG, JPEG or SVG file, as an image's file"}}})json",
+		"description": "The window's icon (the app's in the macOS Dock): a PNG, JPEG or SVG file, as an image's file"},
+		"keyLabels": {"enum": ["platform", "mac", "pc", "letters", "emacs"],
+		"description": "How keys are labelled in menus, commands and keybindings"}}})json",
 	 "`title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of "
 	 "`{ \"menu\": \"file\", \"title\": \"File\" }` naming menus of the `menus` section (macOS, Windows; elsewhere "
 	 "none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the "
 	 "node the keyboard focused: a colour, `{ \"color\": \"#2563EB\", \"width\": 2, \"offset\": 2 }` (the "
 	 "defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a "
-	 "PNG, JPEG or SVG file under the rules of an image's `file`.",
+	 "PNG, JPEG or SVG file under the rules of an image's `file`; "
+	 "`keyLabels`: the notation of `keyLabel`s, `\"platform\"` (the default), `\"mac\"`, `\"pc\"` or "
+	 "`\"letters\"` (`C-x`, `M-<`; `\"emacs\"` is its older name).",
 	 "sections"},
     {"fonts", R"json({"type": "object",
 		"description": "Fonts by name; \"default\" is used by text without a \"font\"",
@@ -71,17 +75,8 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"decrease": {"type": "string"}}}, "wordPattern": {"type": "string"},
 		"patterns": {"type": "array", "items": {"type": "object"}},
 		"repository": {"type": "object", "additionalProperties": {"type": "object"}}}}})json",
-	 "`name → language`: the code languages an editor's `language` names (by name, alias or file name). Each has "
-	 "`title`, `aliases`, `files` (`[\"*.py\", \"CMakeLists.txt\"]`), `comments` (`{ \"line\": \"//\", \"block\": "
-	 "[\"/*\", \"*/\"] }`), `brackets` and `pairs` (`[[\"(\", \")\"], ...]`: Enter between brackets indents, typing "
-	 "an opener of a pair adds its closer), `indent` (`{ \"increase\": regex, \"decrease\": regex }`), "
-	 "`wordPattern` (regex), and TextMate-style `patterns` with a `repository`: `{ \"match\": regex, \"scope\": "
-	 "\"keyword\" }`, `{ \"begin\": regex, \"end\": regex, \"scope\", \"contentScope\", \"patterns\" }` (an `end` may "
-	 "use the begin's groups, `\\1`), `captures` / `beginCaptures` / `endCaptures` (`{ \"1\": { \"scope\": "
-	 "\"type\" } }`) and `{ \"include\": \"#name\" }` or `\"$self\"`. A scope is coloured by `@syntax.<scope>`, or "
-	 "its parent's (`keyword.control` by `@syntax.keyword`). Regular expressions are PCRE2, each find limited in "
-	 "steps and each line in time; a language has at most 2,048 rules. Ready-made languages are data files to "
-	 "`include` (`examples/shared/languages/`).",
+	 "`name → language`: the code languages an editor's `language` names (by name, alias or file name): their "
+	 "patterns, scopes and editing rules (see Code languages).",
 	 "sections"},
     {"colors", R"json({"type": "object",
 		"description": "Named colors (\"@name\"), or per theme: {\"light\": ..., \"dark\": ...}",
@@ -118,8 +113,10 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "sections"},
     {"components", R"json({"type": "object", "additionalProperties": {"type": "object", "required": ["node"],
 		"additionalProperties": false, "properties": {"params": {"type": "object"},
-		"node": {"$ref": "#/$defs/v2/node"}, "note": {"type": "string"}}}})json",
-	 "`name → { \"params\": {defaults}, \"node\": node }`: reusable nodes with parameters (see Components).",
+		"node": {"$ref": "#/$defs/v2/node"}, "runsActions": {"type": ["string", "boolean"]},
+		"note": {"type": "string"}}}})json",
+	 "`name → { \"params\": {defaults}, \"node\": node }`: reusable nodes with parameters; `runsActions` names the "
+	 "parameter whose items' `run` it runs (see Components).",
 	 "sections"},
     {"screens", R"json({"type": "object", "description": "Screens an \"outlet\" shows; {\"navigate\": name} switches",
 		"additionalProperties": {"$ref": "#/$defs/v2/node"}})json",
@@ -158,8 +155,7 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"additionalProperties": {"type": "object", "required": ["from"], "properties": {
 		"from": {"type": "string"}, "where": {}, "sort": {}, "limit": {}, "offset": {}, "count": {}, "note": {}},
 		"additionalProperties": false}})json",
-	 "`name → { \"from\", \"where\", \"sort\", \"limit\" }`: records read as `data.<name>`.",
-	 "sections"},
+	 "`name → { \"from\", \"where\", \"sort\", \"limit\" }`: records read as `data.<name>`.", "sections"},
     {"computed", R"json({"type": "object", "description": "Values derived from the state, read as computed.name"})json",
 	 "`name → expression`: values derived from the state, read as `computed.name` (see Values).", "sections"},
     {"watch", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/handler"},
@@ -311,15 +307,34 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"into": {"type": "string", "pattern": "^state\\."}, "volume": {"type": "number", "minimum": 0, "maximum": 4},
 		"pan": {"type": "number", "minimum": -1, "maximum": 1}, "rate": {"type": "number", "minimum": 0.25, "maximum": 4},
 		"loop": {"type": "boolean"}, "updates": {"type": "number", "minimum": 50, "maximum": 5000},
+		"bands": {"type": "integer", "minimum": 1, "maximum": 64},
 		"maxBytes": {"type": "integer", "minimum": 1024, "maximum": 67108864}, "note": {"type": "string"}}}})json",
 	 "`{\"song\": {\"file\": \"sounds/song.mp3\", \"into\": \"state.song\", \"loop\": true}}`: the sounds the `audio` "
 	 "step plays, each from one source: a `file` (WAV, FLAC or MP3) in the screen's folder or one the host allows, a "
 	 "`url` the host's network allows (streamed), a `source` the host names (`Screen::setAudioSource`), or a `tone` "
 	 "(`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position "
-	 "updates) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, "
-	 "loop, level, underruns, error}`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run "
+	 "updates), `bands` (a spectrum of 1 to 64 bands) and a URL's `maxBytes`. `into` gets `{status, playing, position, "
+	 "duration, progress, volume, pan, rate, loop, level, underruns, error}`, and `spectrum` with `bands`; the actions "
+	 "`name:started`, `name:ended`, `name:underrun` and `name:error` run "
 	 "(see Audio). A `file` may be `asset:<name>`, also a sound description. A revision may give a sound a `file` or a "
 	 "`tone` (never a `url` or a `source`), and only the person accepts it (Assets).",
+	 "capabilities"},
+    {"windows", R"json({"type": "object", "maxProperties": 4,
+		"description": "The screen's other windows, each showing a named image. Revisions can't change it.",
+		"propertyNames": {"pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,63}$", "not": {"const": "main"}},
+		"additionalProperties": {"type": "object", "required": ["image"], "additionalProperties": false,
+		"properties": {"title": {"type": "string", "maxLength": 200},
+		"width": {"type": "integer", "minimum": 100, "maximum": 8192},
+		"height": {"type": "integer", "minimum": 100, "maximum": 8192},
+		"image": {"type": "string", "maxLength": 200}, "background": {"type": "string", "maxLength": 200},
+		"fullscreen": {"type": "boolean"}, "keys": {"type": "boolean"},
+		"onClick": {"$ref": "#/$defs/v2/handler"}, "onClose": {"$ref": "#/$defs/v2/handler"}}}})json",
+	 "`{\"audience\": {\"title\": \"Slide show\", \"image\": \"slide\", \"background\": \"#000000\"}}`: up to four "
+	 "more windows, each showing a named image fitted on its `background` (a node's `snapshot`, so a slide show or a "
+	 "mirror is part of the screen drawn again), opened by `openWindow` (see Windows). Its key presses run the "
+	 "screen's `keys` (unless `keys` is false), a press of the mouse runs `onClick`, and closing it runs `onClose`; it "
+	 "closes with the screen. The `windows` variable is `{main: {fullscreen}, <name>: {open, fullscreen}}`. Revisions "
+	 "can't change it.",
 	 "capabilities"},
     {"points", R"json({"type": "object", "description": "Contribution points another app's features may fill",
 		"additionalProperties": {"type": "object", "required": ["slot"],
@@ -338,7 +353,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"set", "", R"(`{ "set": "state.current", "to": "{{index}}" }`)", "steps"},
     {"push", "", R"(`{ "push": "state.columns[c].cards", "value": "{{state.draft}}" }`)", "steps"},
     {"remove", "", R"(`{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key of an object)", "steps"},
-    {"toggle", "", R"(`{ "toggle": "state.dark" }`)", "steps"},
+    {"toggle", "", R"(`{ "toggle": "state.dark" }`; a setting not set yet flips from its default)", "steps"},
     {"increment", "", R"(`{ "increment": "state.clicks", "by": 1 }`)", "steps"},
     {"if", "", R"(`{ "if": "{{length(state.draft) == 0}}", "then": [...], "else": [...] }`)", "steps"},
     {"forEach", "", R"(`{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }`)", "steps"},
@@ -353,72 +368,112 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "worker thread: "
 	 "`\"loading\": \"state.busy\"` is true while it runs, `\"progress\": \"state.done\"` goes from 0 to 1, partial "
 	 "results stream into `into`, `\"timeout\": 5000` ends it with the error `timeout`, `then` runs with `result`",
-	 "steps"},
+	 "outsideSteps"},
     {"cancel", "", R"(`{ "cancel": "search" }`: stop the running slow calls of a function; they change nothing more)",
-	 "steps"},
+	 "outsideSteps"},
     {"invoke", "",
 	 "`{ \"invoke\": \"files.read\", \"with\": {\"path\": \"a.txt\"}, \"into\": \"state.text\" }`: a method of "
 	 "a declared service, answered later; `loading`, `progress`, `timeout` (ms, default 30000), `id` (a new call with "
 	 "the same id cancels it), `onDone` with `result`, `onError` with `error` (`{code, message, data}`); a stream's "
-	 "events go to `append` (the last `keep`) or run `onEvent` with `events`",
-	 "steps"},
+	 "events go to `append` (the last `keep`) or run `onEvent` once per event, with it as `event`",
+	 "outsideSteps"},
     {"request", "",
 	 "`{ \"request\": \"api.getProject\", \"with\": {\"id\": \"{{state.id}}\"}, \"into\": \"state.project\", "
 	 "\"loading\": \"state.busy\" }`: an operation (or a WebSocket message) of a declared connection, built from its "
 	 "declaration; the keys of `invoke`, with `error` as `{code, message, status, body}`. In a preview only a read "
 	 "without a `mock` reaches the server: the others answer with their mock, or fail with `preview`",
-	 "steps"},
+	 "outsideSteps"},
     {"subscribe", "",
 	 "`{ \"subscribe\": \"build.output\", \"append\": \"state.log\", \"keep\": 500, \"id\": \"build\" }`: a "
-	 "stream of a declared service or connection until `cancel` or its node goes; `do` runs with `events`",
-	 "steps"},
+	 "stream of a declared service or connection until `cancel` or its node goes; `do` runs once per event, with it "
+	 "as `event`",
+	 "outsideSteps"},
     {"respond", "",
 	 "`{ \"respond\": \"{{state.answer}}\" }` or `{ \"respond\": null, \"error\": \"no\" }`: answers the "
 	 "service request that ran the action `service:method` (its `request`); a control step",
-	 "steps"},
+	 "outsideSteps"},
     {"signIn", "",
 	 "`{ \"signIn\": \"api\", \"onDone\": [...], \"onError\": [...] }`: signs in to the provider a connection's "
 	 "`auth` declares (OAuth 2: the browser with PKCE, or a device code), then its requests carry the token. The "
 	 "token never reaches the document or the state: the `auth` variable shows `{state, account, expires}`, and "
 	 "`error` in `onError` is `{code, message}`. A control step",
-	 "steps"},
-    {"signOut", "", R"(`{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step)", "steps"},
+	 "outsideSteps"},
+    {"signOut", "", R"(`{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step)",
+	 "outsideSteps"},
     {"chooseFolder", "",
 	 "`{ \"chooseFolder\": \"workspace\", \"onDone\": [...] }`: after the event, "
 	 "the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again "
 	 "on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control "
 	 "step",
-	 "steps"},
-    {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
-    {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
-    {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
+	 "outsideSteps"},
+    {"saveFile", "",
+	 "`{ \"saveFile\": \"{{state.deck}}\", \"name\": \"{{state.deck.title}}.json\", \"onDone\": [...] }`: after the "
+	 "event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. "
+	 "`result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control "
+	 "step",
+	 "outsideSteps"},
+    {"openFile", "",
+	 "`{ \"openFile\": \"state.deck\", \"extensions\": [\"json\"], \"onDone\": [...] }`: after the event, "
+	 "reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is "
+	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `\"comments\": "
+	 "true` it also reads the comments and trailing commas settings and theme files have. A control step",
+	 "outsideSteps"},
+    {"export", "",
+	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
+	 "draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, "
+	 "else each node's own), `\"png\"` of one node (`scale` pixels a unit, 2 by default), or `\"gltf\"` of one `scene` "
+	 "node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures "
+	 "aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, "
+	 "bytes}`, `error` `{code, message}`. A control step",
+	 "outsideSteps"},
+    {"runInTerminal", "",
+	 "`{ \"runInTerminal\": \"t1\", \"text\": \"make\" }`: types the line (at most 64 KiB) and a newline into the "
+	 "session of a `terminal` node, once a node first shows it if none has yet. A control step",
+	 "outsideSteps"},
+    {"clearTerminal", "",
+	 "`{ \"clearTerminal\": \"t1\" }`: clears a terminal session's scrollback and asks its program to redraw. A "
+	 "control step",
+	 "outsideSteps"},
+    {"closeTerminal", "",
+	 R"(`{ "closeTerminal": "t1" }`: ends a terminal session's program and forgets the session. A control step)",
+	 "outsideSteps"},
+    {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "outsideSteps"},
+    {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "outsideSteps"},
+    {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "outsideSteps"},
     {"ask", "",
 	 "`{ \"ask\": \"{{state.draft}}\", \"into\": \"state.asked\" }`: asks the agents in plain words, with "
 	 "`options` (an object) passed on to them; replies run `ask:reply`, never as the person's decision (Asking the "
 	 "agents). A control step",
-	 "steps"},
+	 "outsideSteps"},
     {"cancelAsk", "",
 	 "`{ \"cancelAsk\": \"{{state.asked}}\" }`: stops requests of `ask` still in progress (an id or a list): they "
 	 "become `cancelled`, the agents are told, and their later replies are dropped. A control step",
-	 "steps"},
+	 "outsideSteps"},
     {"attach", "",
 	 "`{ \"attach\": { \"accept\": [\"audio/*\"] }, \"into\": \"state.files\" }`: the person's files as "
 	 "attachments (Assets). A control step",
-	 "steps"},
+	 "outsideSteps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
     {"focus", "",
 	 R"(`{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` )"
-	 R"((after the update, waiting up to two frames for a node that is still being laid out))",
+	 R"((after the update, waiting up to two frames for a node that is still being laid out); `"#form #input"`: the )"
+	 R"(`input` inside `form`, for a component's node)",
 	 "steps"},
     {"scrollTo", "", "", "steps"},
-    {"edit", "", "`{ \"edit\": \"sortLines\", \"in\": \"#code\" }`: a code editor's command (Editor steps)", "steps"},
+    {"edit", "",
+	 R"(`{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", )"
+	 R"("into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", )"
+	 R"("word", "selection" or "line")",
+	 "steps"},
     {"in", "", "", ""},
     {"line", "", "", ""},
     {"column", "", "", ""},
     {"toLine", "", "", ""},
     {"toColumn", "", "", ""},
     {"prefix", "", "", ""},
+    {"span", "", "", ""},
+    {"press", "", R"(`{ "press": "ctrl+x ctrl+s", "in": "#ed" }`: keys as typed, unheard by bindings)", "steps"},
     {"dismiss", R"json({"const": true})json",
 	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},
     {"after", "", R"(`{ "after": 2000, "do": [...] }`: later)", "steps"},
@@ -458,8 +513,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"of", "", "", ""},
     {"audio", R"json({"anyOf": [{"enum": ["play", "pause", "toggle", "stop", "seek", "volume", "pan", "rate", "loop",
 		"master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
-	 R"(`{ "audio": "play", "of": "song" }`: see Audio)",
-	 "steps"},
+	 R"(`{ "audio": "play", "of": "song" }`: see Audio)", "steps"},
     {"insert", "",
 	 R"(`{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, )"
 	 R"(checked against its model; `result` in `then` is the record, `error` in `onError` is `{code, message}` (see )"
@@ -488,6 +542,16 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"separator", "", "", ""},
     {"atomic", "", "", ""},
     {"from", "", "", ""},
+    {"openWindow", "",
+	 R"(`{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; )"
+	 R"(`{ "closeWindow": "audience" }` closes it)",
+	 "steps"},
+    {"closeWindow", "", "", "steps"},
+    {"fullscreen", R"json({"anyOf": [{"type": "boolean"}, {"const": "toggle"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 R"(`{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or )"
+	 R"(`"toggle"`); with `of`, a window of the `windows` section. It starts filling the display only from the )"
+	 R"(person's own click or key, and Esc always leaves. A control step)",
+	 "steps"},
     {"camera", "",
 	 R"(`{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, )"
 	 R"(`zoom`: see `scene`))",
@@ -513,12 +577,21 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 ""},
     {"end", R"json({"anyOf": [{"enum": ["confirm", "cancel"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "", ""},
     {"append", "", "", ""},
-    {"keep", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "string"}]})json", "", ""},
+    {"keep",
+	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "boolean"}, {"type": "string"}]})json",
+	 "", ""},
+    {"times", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 1000}, {"type": "string"}]})json", "", ""},
     {"id", "", "", ""},
     {"error", "", "", ""},
     {"data", "", "", ""},
     {"message", "", "", ""},
     {"title", "", "", ""},
+    {"name", "", "", ""},
+    {"extensions", "", "", ""},
+    {"comments", R"json({"type": "boolean"})json", "", ""},
+    {"pages", "", "", ""},
+    {"size", "", "", ""},
+    {"scale", "", "", ""},
     {"ms", "", "", ""},
     {"easing", R"json({"enum": ["linear", "in", "out", "inOut"]})json", "", ""},
     {"head", "", "", ""},

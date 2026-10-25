@@ -1,15 +1,16 @@
 /// @file
-/// @brief Fuzzes how Forge reads git's output (examples/forge/features/scm): `git status --porcelain=v2 -z`,
-/// `git for-each-ref`, and the line diff of two texts git shows. A repository's file names and contents are untrusted:
-/// whoever made the repository chose them.
+/// @brief Fuzzes how the git grant's output is read (services' GitOutput.hpp, the `gitStatus` and `gitBranches`
+/// expression functions): `git status --porcelain=v2 -z`, `git for-each-ref`, and the line diff of two texts git shows
+/// (core's diffLines(), under the `diffLines` function). A repository's file names and contents are untrusted: whoever
+/// made the repository chose them.
 ///
 /// The first byte picks the reader; small limits let inputs reach them. What reads is within the limits, every file has
-/// a known kind, at most one branch is current, and a diff's rows account for every line of both texts.
+/// a known kind, at most one branch is current, and a diff's runs account for every line of both texts.
 
 #include "Fuzz.hpp"
 
-#include "features/scm/GitStatus.hpp"
-#include "features/scm/LineDiff.hpp"
+#include <affresco/core/TextDiff.hpp>
+#include <affresco/services/GitOutput.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -17,18 +18,19 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
 
 /// @brief The limits the readers are fuzzed with, small so inputs reach them.
-constexpr forge::GitLimits limits{.bytes = 4096, .entries = 16, .path = 64};
+constexpr affresco::services::GitOutputLimits limits{.bytes = 4096, .entries = 16, .path = 64};
 
 /// @brief Reads a status and checks it.
 /// @param output git's output.
 void readStatus(std::string_view output) {
 	static const std::set<std::string> kinds = {"modified", "added", "deleted", "renamed", "copied", "typechange",
 	                                            "unmerged", "untracked", "ignored"};
-	const affresco::json status = forge::parseStatus(output, limits);
+	const affresco::json status = affresco::services::readGitStatus(output, limits);
 	if(status.at("files").size() > limits.entries) affresco::fuzz::broken("at most the entries limit of files");
 	for(const affresco::json& file : status.at("files")) {
 		if(!kinds.contains(file.at("kind").get<std::string>())) affresco::fuzz::broken("a file's kind is known");
@@ -40,37 +42,31 @@ void readStatus(std::string_view output) {
 /// @brief Reads branches and checks them.
 /// @param output git's output.
 void readBranches(std::string_view output) {
-	const affresco::json branches = forge::parseBranches(output, limits);
+	const affresco::json branches = affresco::services::readGitBranches(output, limits);
 	if(branches.at("branches").size() > limits.entries) affresco::fuzz::broken("at most the entries limit of branches");
 	int current = 0;
 	for(const affresco::json& branch : branches.at("branches")) current += branch.at("current").get<bool>() ? 1 : 0;
 	if(current > 1) affresco::fuzz::broken("at most one branch is current");
 }
 
-/// @brief Counts the lines of a text as the diff does: each line feed ends one, and a last line without one counts.
-/// @param text The text.
-/// @return How many.
-std::size_t lineCount(std::string_view text) {
-	std::size_t lines = 0;
-	for(const char character : text) lines += character == '\n' ? 1 : 0;
-	return lines + (!text.empty() && !text.ends_with('\n') ? 1 : 0);
-}
-
-/// @brief Diffs the two texts on either side of the first NUL and checks the rows.
+/// @brief Diffs the lines on either side of the first NUL, within small limits, and checks the runs.
 /// @param input The texts.
 void diff(std::string_view input) {
 	const std::size_t nul = input.find('\0');
 	const std::string_view original = input.substr(0, nul);
 	const std::string_view modified = nul == std::string_view::npos ? std::string_view() : input.substr(nul + 1);
-	const affresco::json result = forge::diffLines(original, modified, {.matched = 32, .rows = 256});
-	if(result.at("rows").size() > 256) affresco::fuzz::broken("a diff returns at most its rows limit");
-	if(result.at("truncated").get<bool>()) return;
-	std::size_t same = 0;
-	for(const affresco::json& row : result.at("rows")) same += row.at("kind") == "same" ? 1 : 0;
-	if(same + result.at("removed").get<std::size_t>() != lineCount(original) ||
-	   same + result.at("added").get<std::size_t>() != lineCount(modified))
-		affresco::fuzz::broken("a diff's rows account for every line of both texts");
-	static_cast<void>(forge::gutterMarks(result));
+	const std::vector<std::string_view> before = affresco::splitLines(original), after = affresco::splitLines(modified);
+	std::size_t kept = 0, deleted = 0, inserted = 0;
+	for(const affresco::DiffEdit& edit : affresco::diffLines(before, after, {.maxCost = 4096, .maxDistance = 64})) {
+		if(edit.kind == affresco::DiffEdit::Kind::Equal) {
+			for(std::size_t k = 0; k < edit.count; ++k)
+				if(before.at(edit.original + k) != after.at(edit.modified + k))
+					affresco::fuzz::broken("a kept line is the same in both texts");
+			kept += edit.count;
+		} else (edit.kind == affresco::DiffEdit::Kind::Delete ? deleted : inserted) += edit.count;
+	}
+	if(kept + deleted != before.size() || kept + inserted != after.size())
+		affresco::fuzz::broken("a diff's runs account for every line of both texts");
 }
 
 } // namespace

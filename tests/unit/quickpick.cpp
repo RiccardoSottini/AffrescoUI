@@ -1,6 +1,6 @@
 /// @file
-/// @brief The quick pick (src/ExpressionFunctionsFuzzy.cpp, src/BuiltInComponents.cpp): fuzzy matching with its
-/// highlight ranges, fuzzySort's order, key and limit, and the quickPick component's providers, recent items, arrow
+/// @brief The quick pick (src/ExpressionFunctionsFuzzy.cpp, modules/themes/components/core.json): fuzzy matching with
+/// its highlight ranges, fuzzySort's order, key and limit, and the quickPick component's providers, recent items, arrow
 /// keys and Enter.
 
 #include "Expression.hpp"

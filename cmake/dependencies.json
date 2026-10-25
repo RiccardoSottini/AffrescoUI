@@ -78,6 +78,26 @@
       "scope": "runtime"
     },
     {
+      "name": "Noto Sans Arabic",
+      "version": "subset",
+      "purpose": "font: Arabic text in the Sign-in template",
+      "kind": "vendored",
+      "url": "https://github.com/google/fonts",
+      "files": [
+        {
+          "path": "examples/shared/fonts/NotoSansArabic-Subset.ttf",
+          "sha256": "9259978a61f1c84d5b2f0b140de06038f5c39c9291240e7b9ebacaae91fd48f1"
+        }
+      ],
+      "license": "OFL-1.1",
+      "licenseNote": "SIL Open Font License 1.1 (`examples/shared/fonts/LICENSE-NotoSansArabic.txt`)",
+      "usedBy": [
+        "the templates",
+        "the release archives"
+      ],
+      "scope": "runtime"
+    },
+    {
       "name": "Lucide",
       "version": "1.48.0",
       "purpose": "icon font, `lucide-static`",
@@ -284,7 +304,7 @@
     {
       "name": "libvterm",
       "version": "0.3.3",
-      "purpose": "terminal emulator, Forge's terminal only",
+      "purpose": "terminal emulator, the terminal node",
       "kind": "downloaded",
       "url": "https://launchpad.net/libvterm/trunk/v0.3/+download/libvterm-0.3.3.tar.gz",
       "sha256": "09156f43dd2128bd347cbeebe50d9a571d32c64e0cf18d211197946aff7226e0",
@@ -292,7 +312,7 @@
       "license": "MIT",
       "licenseNote": "MIT, Copyright (c) 2008 Paul Evans (`LICENSE` in its archive)",
       "usedBy": [
-        "examples/forge"
+        "affrescoui::format"
       ],
       "scope": "runtime"
     },

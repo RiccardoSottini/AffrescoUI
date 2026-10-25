@@ -84,11 +84,11 @@ corner: ask for a change in plain words, then review the proposal it becomes.
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src=".github/media/forge.png" alt="Forge, an IDE with an explorer, editor tabs, source control and a terminal"><br/><b>Forge</b> · an IDE<br/><sub>Explorer, editor tabs and split editors, find and replace, quick open and a command palette, problems, output and a terminal, source control, a debugger and language servers, in dark, light and high-contrast themes. <code>./build/affrescoui_forge [folder]</code></sub></td>
-<td width="50%" valign="top"><img src=".github/media/tempera.png" alt="Tempera, an image editor with tools, a canvas, colour, properties and layers panels"><br/><b>Tempera</b> · an image editor<br/><sub>Tools with flyouts and a context options bar, layers with masks, groups and adjustment layers, brushes, selections, history and a navigator, on a tiled image engine. Agents may only propose: every change is reviewed. <code>./build/affrescoui_tempera</code></sub></td>
+<td width="50%" valign="top"><img src=".github/media/forge.png" alt="Forge, an IDE with an explorer, editor tabs, source control and a terminal"><br/><b>Forge</b> · an IDE<br/><sub>Explorer, editor tabs and split editors, find and replace, quick open and a command palette, problems, output and a terminal, source control, a debugger and language servers, in dark, light and high-contrast themes. <code>examples/forge/index.screen.json</code>, with <code>--folder DIR</code> to open a folder</sub></td>
+<td width="50%" valign="top"><img src=".github/media/tempera.png" alt="Tempera, an image editor with tools, a canvas, colour, properties and layers panels"><br/><b>Tempera</b> · an image editor<br/><sub>Tools with flyouts and a context options bar, layers with masks, groups and adjustment layers, brushes, selections, history and a navigator, on a tiled image engine. Agents may only propose: every change is reviewed. <code>examples/tempera/index.screen.json</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/sinopia.png" alt="Sinopia, a presentation editor with a ribbon, slide thumbnails and a slide canvas"><br/><b>Sinopia</b> · a presentation editor<br/><sub>A ribbon with tabs and galleries, slide thumbnails in sections, a canvas with shapes, zoom and fit, speaker notes and undo. Its slide sorter is a part that other applications install. <code>./build/affrescoui_sinopia</code></sub></td>
+<td valign="top"><img src=".github/media/sinopia.png" alt="Sinopia, a presentation editor with a ribbon, slide thumbnails and a slide canvas"><br/><b>Sinopia</b> · a presentation editor<br/><sub>A ribbon with tabs and galleries, slide thumbnails in sections, a canvas with shapes, zoom and fit, speaker notes and undo. Its slide sorter is a part that other applications install. <code>examples/sinopia/index.screen.json</code></sub></td>
 <td valign="top"><img src=".github/media/modello.png" alt="Modello, a 3D modeller with a viewport, an outliner, properties and a timeline"><br/><b>Modello</b> · a 3D modeller<br/><sub>A lit 3D viewport with gizmos, an outliner, a properties editor, a timeline, search over every command and glTF import. Every scene edit is a revision, reviewed and undoable. No C++ of its own. <code>examples/modello/index.screen.json</code></sub></td>
 </tr>
 <tr>
@@ -115,13 +115,22 @@ corner: ask for a change in plain words, then review the proposal it becomes.
 </table>
 
 Open them from the **Launcher** (`./build/affrescoui_launcher`), or run one with `./build/affrescoui_launcher <file>`.
-Forge, Tempera and Sinopia have their own programs for their native parts (files, a terminal, pixels). Flow, Haven, Tempo, Streak, Arcadia and Sign in speak English, Spanish and
-French.
+None has a program of its own: files, the terminal and pixels are the library's. Flow, Haven, Tempo, Streak, Arcadia
+and Sign in speak English, Spanish and French.
 
 ## Architecture
 
-AffrescoUI renders what it is told to: an application is a screen document plus any native code it registers, and the
-engine knows nothing else about it. A change travels down a stack of layers, each with one job.
+AffrescoUI renders what it is told to: an application is a folder of documents (and, in a program that embeds the
+library, any native code it registers), and the engine knows nothing else about it. It is built in three layers, each
+made only of the one below:
+
+- **Apps**: folders of files (screen documents, data, assets) that the Launcher opens, with nothing compiled for them.
+- **Themes** (`modules/themes`): the kits' components (toolbars, menus, docks, dialogs) and the themes' design
+  tokens, as JSON files built into the library.
+- **Engine** (every other module): mechanisms only. It looks a component or token a document doesn't define up in the
+  installed kits and themes, and knows none of them by name; a document's own components win over the kits'.
+
+A change travels down a stack of layers, each with one job.
 
 ```mermaid
 %%{init: {"theme": "base", "flowchart": {"nodeSpacing": 30, "rankSpacing": 34, "padding": 14, "wrappingWidth": 400}, "themeVariables": {"fontFamily": "Helvetica, Arial, sans-serif", "fontSize": "14px", "lineColor": "#94A3B8", "primaryTextColor": "#0F172A", "edgeLabelBackground": "#FFFFFF"}}}%%
@@ -134,6 +143,7 @@ flowchart TB
     vcs["🛡️ <b>Version control</b> · modules/vcs<br/>allow / ask / deny · proposals · commits · history"]
     format["📄 <b>Screen format</b> · modules/format<br/>checks the document · evaluates it · reconciles in place"]
     render["🎨 <b>Renderer</b> · modules/render<br/>layout · shaped text · input · accessibility · OpenGL"]
+    themes["🧩 <b>Kits and themes</b> · modules/themes<br/>components · design tokens · JSON"]
 
     agent --> mcp
     mcp --> channel
@@ -141,6 +151,7 @@ flowchart TB
     channel -- "revision" --> vcs
     vcs -- "accepted commit" --> format
     format -- "panels" --> render
+    themes -. "components, tokens" .-> format
 
     classDef peer fill:#FFFFFF,stroke:#CBD5E1,color:#0F172A
     classDef c_mcp fill:#F3E8FF,stroke:#9333EA,stroke-width:1.5px,color:#3B0764
@@ -153,6 +164,7 @@ flowchart TB
     class channel c_channel
     class vcs c_vcs
     class format c_format
+    class themes c_format
     class render c_render
 ```
 
@@ -174,10 +186,12 @@ flowchart TB
 modules/core/        the interfaces between modules: Executor, Channel, VersionControl, Services, Network
 modules/render/      windows, panels, layout, shaped text, input, accessibility; OpenGL 4.1 core or ES 3.0
 modules/format/      the screen format: rules, checker, {{expressions}}, the runtime that reconciles in place
+modules/themes/      the kits' components and the themes' design tokens, as JSON built into the library
 modules/vcs/         version control: commits, proposals, permissions, history
 modules/channel/     peers and the live protocol over local sockets and processes
 modules/net/         HTTP(S), server-sent events, WebSocket, remote peers
 modules/services/    language servers, local programs and folders the host grants
+modules/intelligence/ the providers an app's assistant asks (APIs or a command line), behind the assistant capability
 modules/screen/      affresco::Screen, the composition root, and the umbrella header affresco/affresco.hpp
 modules/automation/  scenarios: scripted input, expectations, golden images
 modules/imaging/     layered images on copy-on-write tiles
@@ -186,7 +200,8 @@ modules/export/      panel trees as vector PDF
 modules/capi/        the C API, affresco/affresco.h
 mcp/                 the MCP server for AI agents
 apps/server/         the document server: shared, persistent documents over WebSocket
-examples/            the applications, the host and its Launcher, the assistant add-on
+apps/host/           the stock host, affrescoui_launcher: it opens an app's folder and asks for what the app uses
+examples/            the apps (each a folder with an app.json), the Launcher among them, the assistant add-on
 web/                 the WebAssembly build
 ```
 

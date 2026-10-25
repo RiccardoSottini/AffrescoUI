@@ -50,8 +50,8 @@ struct FrameRing {
 /// decoder is set up it keeps every byte, so that its probes may seek back to the start; then it drops what it read.
 struct ByteQueue {
 	/// @brief An empty queue.
-	/// @param capacity The most bytes held.
-	explicit ByteQueue(std::size_t capacity) : capacity(capacity) {}
+	/// @param most The most bytes held.
+	explicit ByteQueue(std::size_t most) : capacity(most) {}
 
 	/// @brief Adds bytes, all or none. Any thread; never blocks.
 	/// @param data The bytes.

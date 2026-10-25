@@ -5,7 +5,7 @@
 # installs the module libraries, their public headers (affresco/...), the license files and the package
 # <prefix>/lib/cmake/AffrescoUI, so an application can write
 #
-#   find_package(AffrescoUI 0.1 CONFIG REQUIRED)
+#   find_package(AffrescoUI 1.0 CONFIG REQUIRED)
 #   target_link_libraries(app PRIVATE affrescoui::affrescoui)   # or one module: affrescoui::vcs, ...
 #
 # The dependencies are installed into the same prefix: the exact nlohmann/json, GLFW and FreeType this build pinned. The public
@@ -30,7 +30,7 @@ include(CMakePackageConfigHelpers)
 set(AFFRESCOUI_PACKAGE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/AffrescoUI)
 
 # Exported as affrescoui::<module>, the same names as the aliases add_subdirectory users link to
-foreach(module core data render scene3d imaging format vcs channel net services automation)
+foreach(module core data render export scene3d imaging format themes vcs channel net services automation intelligence)
 	set_target_properties(affrescoui_${module} PROPERTIES EXPORT_NAME ${module})
 	install(DIRECTORY modules/${module}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endforeach()
@@ -38,8 +38,8 @@ install(DIRECTORY modules/screen/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR
 
 # HarfBuzz is built here as one static library (cmake/AffrescoUIText.cmake), so it is installed as one of ours,
 # affrescoui::harfbuzz; FreeType installs its own package, found by AffrescoUIConfig.cmake
-install(TARGETS affrescoui_core affrescoui_data affrescoui_render affrescoui_scene3d affrescoui_imaging affrescoui_format affrescoui_vcs affrescoui_channel affrescoui_net affrescoui_services affrescoui
-	affrescoui_automation affrescoui_harfbuzz affrescoui_regex affrescoui_syntax
+install(TARGETS affrescoui_core affrescoui_data affrescoui_render affrescoui_export affrescoui_scene3d affrescoui_imaging affrescoui_format affrescoui_themes affrescoui_vcs affrescoui_channel affrescoui_net affrescoui_services affrescoui
+	affrescoui_automation affrescoui_intelligence affrescoui_harfbuzz affrescoui_harfbuzz_subset affrescoui_regex affrescoui_syntax
 	EXPORT AffrescoUITargets
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
@@ -59,9 +59,9 @@ install(EXPORT AffrescoUITargets NAMESPACE affrescoui:: DESTINATION ${AFFRESCOUI
 
 configure_package_config_file(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIConfig.cmake.in
 	${PROJECT_BINARY_DIR}/AffrescoUIConfig.cmake INSTALL_DESTINATION ${AFFRESCOUI_PACKAGE_DIR})
-# 0.x: a minor version may break the API, so find_package(AffrescoUI 0.1) accepts 0.1.* only
+# Semantic Versioning: only a major version may break the API, so find_package(AffrescoUI 1.0) accepts 1.* only
 write_basic_package_version_file(${PROJECT_BINARY_DIR}/AffrescoUIConfigVersion.cmake
-	COMPATIBILITY SameMinorVersion)
+	COMPATIBILITY SameMajorVersion)
 install(FILES ${PROJECT_BINARY_DIR}/AffrescoUIConfig.cmake ${PROJECT_BINARY_DIR}/AffrescoUIConfigVersion.cmake
 	DESTINATION ${AFFRESCOUI_PACKAGE_DIR})
 

@@ -3,9 +3,8 @@
 
 #include "Checker.hpp"
 
-#include "BuiltInComponents.hpp"
+#include "Library.hpp"
 #include "CheckerImpl.hpp"
-#include "KitTokens.hpp"
 
 #include "affresco/format/NodeIds.hpp"
 
@@ -352,14 +351,18 @@ void Checker::walkUnreached() {
 void Checker::report(const std::string& place, std::string problem, std::string hint) {
 	if(place.starts_with("components.")) { // a built-in's own body is the library's, tested there
 		const std::string name = place.substr(11, place.find_first_of(".[", 11) - 11);
-		if(!definition("components", name) && builtInComponent(name)) return;
+		if(!definition("components", name) && libraryComponent(name)) {
+			if(!hint.empty()) --hints_; // a finding not reported leaves its hint to the document's own
+			return;
+		}
 	}
 	Finding finding{place, std::move(problem), std::move(hint)};
 	if(finding.hint.empty() && hints_ >= maxHints) { // the same finding may have been reported with its hint
 		const auto same = findings_.lower_bound(finding);
 		if(same != findings_.end() && same->place == finding.place && same->problem == finding.problem) return;
 	}
-	findings_.insert(std::move(finding));
+	const bool hinted = !finding.hint.empty();
+	if(!findings_.insert(std::move(finding)).second && hinted) --hints_; // reported again: one hint, as one finding
 }
 
 bool Checker::visit() {
@@ -387,8 +390,8 @@ std::vector<std::string> Checker::definedNames(const char* sectionName) const {
 void Checker::refer(std::string_view kind, const char* sectionName, const std::string& name, std::string_view prefix,
                     const std::string& place) {
 	if(definition(sectionName, name)) return;
-	if(std::string_view(sectionName) == "colors" && (definition("tokens", name) || isKitToken(name)))
-		return; // a colour token, the document's or the kit's
+	if(std::string_view(sectionName) == "colors" && (definition("tokens", name) || isLibraryToken(name)))
+		return; // a colour token, the document's or the library's
 	report(place, "unknown " + std::string(kind) + " '" + std::string(prefix) + name + "'", hint([&] {
 		       std::vector<std::string> names = definedNames(sectionName);
 		       if(std::string_view(sectionName) == "colors") // the colour tokens are named too

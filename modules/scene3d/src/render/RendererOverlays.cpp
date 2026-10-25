@@ -155,9 +155,11 @@ void addLightGlyph(Lines& lines, const FrameView& view, const Light& light, Vec3
 	}
 }
 
-/// @brief Adds a marker for each light and camera: a cross, or a glyph (ViewportSettings::glyphs).
+/// @brief Adds a marker for each light and camera: a cross, or a glyph (ViewportSettings::glyphs); none without
+/// ViewportSettings::extras.
 /// @param lines The list. @param view The frame.
 void addMarkers(Lines& lines, const FrameView& view) {
+	if(!view.settings.extras) return;
 	const float height = static_cast<float>(view.height) / view.scale;
 	for(const Node& node : view.scene.nodes) {
 		if(!node.light && !node.camera) continue;

@@ -2,10 +2,10 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's source control: the open folder's git status (staged changes and changes), staging, the diff of a change against HEAD, commits and branches, and the gutter marks of each compared file (state.scm.gutters). git runs through the process service the host granted (Scm.cpp): only Forge's own commands, as arrays, in the open folder's repository, and its output is read strictly in C++ (forge.scm.parseStatus, forge.scm.parseBranches, forge.scm.diff). A commit message goes to git's input, never its arguments. The actions that take what git wrote as an event (scmApplyStatus, scmApplyBranches, scmCompare) let a scenario or an agent show a status or a diff without a repository.",
+	"note": "Forge's source control: the open folder's git status (staged changes and changes), staging, the diff of a change against HEAD, commits and branches, and the gutter marks of each compared file (state.scm.gutters). git runs through the process service the host granted: only the git grant's commands, as arrays, in the open folder's repository. Its output is read strictly by gitStatus() and gitBranches(), and diffLines() compares a file with HEAD (its hunks make the gutter marks). A commit message goes to git's input, never its arguments. The actions that take what git wrote as an event (scmApplyStatus, scmApplyBranches, scmCompare) let a scenario or an agent show a status or a diff without a repository.",
 
 	"services": {
-		"git": { "provider": "process", "process": "git" }
+		"git": { "provider": "process", "process": "git", "root": "workspace" }
 	},
 
 	"state": {
@@ -13,7 +13,8 @@
 			"status": { "branch": { "head": "", "upstream": "", "ahead": 0, "behind": 0 }, "files": [], "staged": [],
 				"changes": [], "count": 0 },
 			"branches": { "current": "", "branches": [] },
-			"message": "", "branchName": "", "error": "", "busy": false, "showBranches": false,
+			"message": "", "branchName": "", "stashes": 0, "error": "", "busy": false, "showBranches": false,
+			"showHistory": false, "log": [], "selectedCommit": null, "commit": { "hash": "", "files": [], "before": "" }, "selectedCommitFile": null,
 			"selectedStaged": null, "selectedChange": null, "selectedBranch": null,
 			"compare": { "path": "", "original": "", "modified": "" },
 			"gutters": []
@@ -24,6 +25,9 @@
 		"scmStagedRows": "{{map(state.scm.status.staged, {id: it.id, label: it.label + (empty(it.detail) ? '' : '  ' + it.detail) + '  ' + it.badge, icon: it.kind == 'added' || it.kind == 'untracked' ? 'file-plus' : it.kind == 'deleted' ? 'file-minus' : it.kind == 'unmerged' ? 'alert-triangle' : it.kind == 'renamed' || it.kind == 'copied' ? 'file-symlink' : 'file-diff', iconColor: it.kind == 'added' || it.kind == 'untracked' ? '#2ea043' : it.kind == 'deleted' || it.kind == 'unmerged' ? '#f85149' : '#d4a63a'})}}",
 		"scmChangeRows": "{{map(state.scm.status.changes, {id: it.id, label: it.label + (empty(it.detail) ? '' : '  ' + it.detail) + '  ' + it.badge, icon: it.kind == 'added' || it.kind == 'untracked' ? 'file-plus' : it.kind == 'deleted' ? 'file-minus' : it.kind == 'unmerged' ? 'alert-triangle' : it.kind == 'renamed' || it.kind == 'copied' ? 'file-symlink' : 'file-diff', iconColor: it.kind == 'added' || it.kind == 'untracked' ? '#2ea043' : it.kind == 'deleted' || it.kind == 'unmerged' ? '#f85149' : '#d4a63a'})}}",
 		"scmHasRepo": "{{!empty(state.scm.status.branch.head)}}",
+		"scmCanPush": "{{!empty(state.scm.status.branch.head) && state.scm.status.branch.head != '(detached)'}}",
+		"scmCommitRows": "{{map(state.scm.log, empty(it.hash) ? {id: '-' + index, label: it.graph} : {id: it.hash, label: it.graph + (empty(it.graph) ? '' : ' ') + (empty(it.refs) ? '' : '(' + it.refs + ') ') + it.subject + '  ' + it.author + ', ' + it.when, icon: empty(it.graph) ? 'git-commit' : ''})}}",
+		"scmCommitFileRows": "{{map(state.scm.commit.files, {id: it.path, label: reverse(split(it.path, '/'))[0] + '  ' + join(slice(split(it.path, '/'), 0, -1), '/') + '  ' + it.status, icon: it.status == 'A' ? 'file-plus' : it.status == 'D' ? 'file-minus' : 'file-diff'})}}",
 		"scmBranchRows": "{{map(state.scm.branches.branches, {id: it.id, label: it.label, icon: it.current ? 'check' : 'git-branch'})}}",
 		"scmBranchText": "{{(empty(state.scm.status.branch.head) ? 'No repository' : state.scm.status.branch.head) + (state.scm.status.branch.ahead > 0 ? '  ↑' + state.scm.status.branch.ahead : '') + (state.scm.status.branch.behind > 0 ? '  ↓' + state.scm.status.branch.behind : '')}}"
 	},
@@ -43,18 +47,47 @@
 					  "then": [{ "set": "state.scm.error", "to": "" },
 					           { "set": "state.scm.status", "to": { "branch": { "head": "", "upstream": "", "ahead": 0, "behind": 0 },
 						           "files": [], "staged": [], "changes": [], "count": 0 } }],
-					  "else": [{ "call": "forge.scm.parseStatus", "with": { "output": "{{result.output}}" }, "into": "state.scm.status",
-						"onError": [{ "set": "state.scm.error", "to": "{{error}}" }],
-						"then": [{ "set": "state.scm.error", "to": "" }] }] }
+					  "else": [{ "run": "scmStatusRead", "with": { "read": "{{gitStatus(result.output)}}" } }, { "run": "scmStashCount" },
+					           { "if": "{{state.scm.showHistory}}", "then": [{ "run": "scmLog" }] }] }
 				] }] },
+		"scmStashCount": [{ "invoke": "git.run", "id": "scm-stashes",
+			"with": { "arguments": ["stash", "list", "--format=%gd"], "collect": true },
+			"onDone": [{ "set": "state.scm.stashes", "to": "{{result.code == 0 ? length(filter(split(result.output, '\n'), !empty(trim(it)))) : 0}}" }] }],
+		"scmFetch": { "title": "Fetch", "category": "Source Control", "icon": "refresh-ccw-dot",
+			"description": "Fetch the remotes' branches (git fetch --prune); what is behind shows on the branch row.",
+			"enablement": "{{computed.scmHasRepo}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": ["fetch", "--prune"], "input": "" } }] },
+		"scmPull": { "title": "Pull", "category": "Source Control", "icon": "arrow-down-to-line",
+			"description": "Bring the branch up to its upstream, only where that needs no merge (git pull --ff-only).",
+			"enablement": "{{computed.scmHasRepo && !empty(state.scm.status.branch.upstream)}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": ["pull", "--ff-only"], "input": "" } }] },
+		"scmPush": { "title": "Push", "category": "Source Control", "icon": "arrow-up-from-line",
+			"description": "Send the branch's commits to its upstream, or publish it to origin when it has none.",
+			"enablement": "{{computed.scmCanPush}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": "{{empty(state.scm.status.branch.upstream) ? ['push', '-u', 'origin', 'HEAD'] : ['push']}}", "input": "" } }] },
+		"scmStash": { "title": "Stash Changes", "category": "Source Control", "icon": "archive",
+			"description": "Put every change aside, new files too (git stash push --include-untracked).",
+			"enablement": "{{state.scm.status.count > 0}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": ["stash", "push", "--include-untracked"], "input": "" } }] },
+		"scmStashPop": { "title": "Pop Latest Stash", "category": "Source Control", "icon": "archive-restore",
+			"description": "Bring back the changes put aside last, and drop them from the stashes (git stash pop).",
+			"enablement": "{{state.scm.stashes > 0}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": ["stash", "pop"], "input": "" } }] },
 		"scmInit": { "title": "Create Repository", "category": "Source Control", "icon": "git-branch-plus",
 			"description": "Make the open folder a git repository (git init), to track its changes.",
 			"enablement": "{{!empty(state.folder.root) && !computed.scmHasRepo}}",
 			"do": [{ "run": "scmGit", "with": { "arguments": ["init"], "input": "" } }] },
-		"scmApplyStatus": [
-			{ "call": "forge.scm.parseStatus", "with": { "output": "{{event.output}}" }, "into": "state.scm.status",
-			  "onError": [{ "set": "state.scm.error", "to": "{{error}}" }],
-			  "then": [{ "set": "state.scm.error", "to": "" }] }
+		"scmApplyStatus": [{ "run": "scmStatusRead", "with": { "read": "{{gitStatus(event.output)}}" } }],
+		"scmStatusRead": [
+			{ "if": "{{read == null}}",
+			  "then": [{ "set": "state.scm.error", "to": "git's status could not be read: it is not the output this view asks for." }],
+			  "else": [
+				{ "set": "state.scm.error", "to": "" },
+				{ "set": "state.scm.status", "to": "{{merge(read, {items: map(filter(read.files, it.kind != 'ignored'), {id: it.path, label: reverse(split(it.path, '/'))[0], detail: join(slice(split(it.path, '/'), 0, length(split(it.path, '/')) - 1), '/'), badge: it.kind == 'added' ? 'A' : it.kind == 'deleted' ? 'D' : it.kind == 'renamed' ? 'R' : it.kind == 'copied' ? 'C' : it.kind == 'unmerged' ? '!' : it.kind == 'untracked' ? 'U' : 'M', kind: it.kind, staged: it.staged, unstaged: it.unstaged})})}}" },
+				{ "set": "state.scm.status.staged", "to": "{{filter(state.scm.status.items, it.staged)}}" },
+				{ "set": "state.scm.status.changes", "to": "{{filter(state.scm.status.items, it.unstaged)}}" },
+				{ "set": "state.scm.status.count", "to": "{{length(state.scm.status.staged) + length(state.scm.status.changes)}}" }
+			  ] }
 		],
 		"scmGit": [
 			{ "invoke": "git.run", "loading": "state.scm.busy",
@@ -65,7 +98,9 @@
 				  "then": [{ "run": "notify", "with": { "severity": "error",
 					"message": "{{'git ' + arguments[0] + ' failed' + (empty(trim(result.output)) ? '' : ': ' + slice(trim(result.output), 0, 300))}}" } }],
 				  "else": [{ "if": "{{arguments[0] == 'commit'}}", "then": [{ "set": "state.scm.message", "to": "" },
-					{ "run": "log", "with": { "text": "{{'Committed: ' + slice(trim(result.output), 0, 200)}}" } }] }] },
+					{ "run": "log", "with": { "text": "{{'Committed: ' + slice(trim(result.output), 0, 200)}}" } }] },
+					{ "if": "{{contains(['fetch', 'pull', 'push', 'stash'], arguments[0])}}",
+					  "then": [{ "run": "log", "with": { "text": "{{'git ' + join(arguments, ' ') + (empty(trim(result.output)) ? '' : ': ' + slice(trim(result.output), 0, 200))}}" } }] }] },
 				{ "run": "scmRefresh" },
 				{ "if": "{{arguments[0] == 'switch'}}", "then": [{ "run": "scmBranches" }] }
 			  ] }
@@ -101,13 +136,64 @@
 				  "with": { "arguments": ["for-each-ref", "--format=%(HEAD)%00%(refname:short)", "refs/heads/"], "collect": true },
 				  "onError": [{ "set": "state.scm.error", "to": "{{'git did not run: ' + error.message}}" }],
 				  "onDone": [{ "if": "{{result.code == 0}}",
-					"then": [{ "call": "forge.scm.parseBranches", "with": { "output": "{{result.output}}" }, "into": "state.scm.branches",
-						"onError": [{ "set": "state.scm.error", "to": "{{error}}" }] }] }] }
+					"then": [{ "run": "scmBranchesRead", "with": { "read": "{{gitBranches(result.output)}}" } }] }] }
 			] },
+		"scmHistory": { "title": "Show Commits", "category": "Source Control", "icon": "history",
+			"description": "List the branch's last hundred commits; pick one to see the files it changed, and open a file to compare it with the commit before.",
+			"enablement": "{{!empty(state.folder.root)}}",
+			"do": [{ "set": "state.scm.showHistory", "to": true }, { "run": "scmLog" }] },
+		"scmLog": [{ "invoke": "git.run", "id": "scm-log",
+			"with": { "arguments": ["log", "--graph", "-n", "100", "--format=%x1e%D%x1e%h%x1f%H%x1f%an%x1f%ar%x1f%s"], "collect": true },
+			"onError": [{ "set": "state.scm.error", "to": "{{'git did not run: ' + error.message}}" }],
+			"onDone": [{ "set": "state.scm.log", "to": [] },
+			           { "if": "{{result.code == 0}}", "then": [{ "run": "scmLogRead", "with": { "output": "{{result.output}}" } }] }] }],
+		"scmApplyLog": [{ "set": "state.scm.showHistory", "to": true }, { "run": "scmLogRead", "with": { "output": "{{event.output}}" } }],
+		"scmLogRead": [
+			{ "note": "output: git log --graph's lines, each the graph, the refs and then the short hash, hash, author, when and subject split by the unit separator (the graph and refs before record separators, and optional); a line of the graph alone joins two commits. Other lines are left out" },
+			{ "set": "state.scm.log", "to": "{{slice(map(filter(map(split(output, '\n'), {graph: length(split(it, '\u001e')) == 3 ? slice(split(it, '\u001e')[0], 0, 60) : contains(it, '\u001f') ? '' : slice(it, 0, 60), refs: length(split(it, '\u001e')) == 3 ? slice(split(it, '\u001e')[1], 0, 120) : '', f: contains(reverse(split(it, '\u001e'))[0], '\u001f') ? split(reverse(split(it, '\u001e'))[0], '\u001f') : []}), (length(it.f) >= 5 && length(it.f[1]) == 40) || (length(it.f) == 0 && !empty(trim(it.graph)) && every(split(it.graph, ''), contains('|/\\\\_*. -', it)))), length(it.f) == 0 ? {short: '', hash: '', author: '', when: '', subject: '', refs: '', graph: it.graph} : {short: slice(it.f[0], 0, 12), hash: it.f[1], author: slice(it.f[2], 0, 80), when: slice(it.f[3], 0, 40), subject: slice(join(slice(it.f, 4), ' '), 0, 200), refs: it.refs, graph: it.graph}), 0, 300)}}" }
+		],
+		"scmPickCommit": [
+			{ "forEach": "{{filter([event.value ?? state.scm.selectedCommit], length(it ?? '') == 40 && slice(it, 0, 1) != '-')}}", "as": "hash", "do": [
+				{ "set": "state.scm.commit", "to": "{{ {hash: hash, files: [], before: ''} }}" },
+				{ "invoke": "git.run", "id": "scm-commit-files",
+				  "with": { "arguments": "{{['-c', 'core.quotePath=false', 'show', '--name-status', '--format=', '-M', hash]}}", "collect": true },
+				  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'git did not run: ' + error.message}}" } }],
+				  "onDone": [{ "if": "{{result.code == 0}}", "then": [{ "run": "scmCommitFilesRead", "with": { "hash": "{{hash}}", "output": "{{result.output}}" } }] }] }
+			] }
+		],
+		"scmApplyCommitFiles": [{ "run": "scmCommitFilesRead", "with": { "hash": "{{event.hash}}", "output": "{{event.output}}" } }],
+		"scmCommitFilesRead": [
+			{ "note": "output: git show --name-status's lines (a status letter, a tab, the path; a rename or copy has the old path first). Kept while the commit is still the one picked" },
+			{ "if": "{{hash == state.scm.commit.hash}}",
+			  "then": [{ "set": "state.scm.commit.files", "to": "{{slice(map(filter(map(split(output, '\n'), split(it, '\t')), length(it) >= 2 && !empty(it[1])), {status: slice(it[0], 0, 1), from: it[1], path: reverse(it)[0]}), 0, 500)}}" }] }
+		],
+		"scmOpenCommitFile": [
+			{ "forEach": "{{filter(state.scm.commit.files, it.path == (event.id ?? state.scm.selectedCommitFile))}}", "as": "file", "do": [
+				{ "invoke": "git.run", "id": "scm-commit-before",
+				  "with": { "arguments": "{{['show', '--no-textconv', state.scm.commit.hash + '^:' + file.from]}}", "collect": true },
+				  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'git did not run: ' + error.message}}" } }],
+				  "onDone": [{ "set": "state.scm.commit.before", "to": "{{result.code == 0 ? result.output : ''}}" },
+					{ "invoke": "git.run", "id": "scm-commit-after", "with": { "arguments": "{{['show', '--no-textconv', state.scm.commit.hash + ':' + file.path]}}", "collect": true },
+					"onDone": [{ "run": "scmCommitCompare", "with": { "event": "{{ {hash: state.scm.commit.hash, path: file.path, original: state.scm.commit.before, modified: result.code == 0 ? result.output : ''} }}" } }] }] }
+			] }
+		],
+		"scmCommitCompare": [
+			{ "note": "event: { hash, path, original, modified }: a file before and after a commit, in a diff tab" },
+			{ "forEach": "{{[ {id: 'commit:' + slice(event.hash, 0, 12) + ':' + event.path, label: reverse(split(event.path, '/'))[0] + ' (' + slice(event.hash, 0, 7) + ')', diff: merge(diffLines(event.original ?? '', event.modified ?? '', {context: -1}), {path: event.path, original: event.original ?? '', modified: event.modified ?? ''})} ]}}",
+			  "as": "page", "do": [
+				{ "set": "state.docs", "to": "{{filter(state.docs, it.id != page.id)}}" },
+				{ "push": "state.docs", "value": "{{ {id: page.id, label: page.label, kind: 'diff', text: '', dirty: false, language: '', diff: page.diff} }}" },
+				{ "run": "showTab", "with": { "id": "{{page.id}}", "label": "{{page.label}}" } }
+			  ] }
+		],
 		"scmApplyBranches": [
 			{ "set": "state.scm.showBranches", "to": true },
-			{ "call": "forge.scm.parseBranches", "with": { "output": "{{event.output}}" }, "into": "state.scm.branches",
-			  "onError": [{ "set": "state.scm.error", "to": "{{error}}" }] }
+			{ "run": "scmBranchesRead", "with": { "read": "{{gitBranches(event.output)}}" } }
+		],
+		"scmBranchesRead": [
+			{ "if": "{{read == null}}",
+			  "then": [{ "set": "state.scm.error", "to": "git's branch list could not be read: it is not the output this view asks for." }],
+			  "else": [{ "set": "state.scm.branches", "to": "{{read}}" }] }
 		],
 		"scmSwitch": { "title": "Switch Branch", "category": "Source Control", "icon": "git-branch",
 			"enablement": "{{!empty(event.id ?? state.scm.selectedBranch)}}",
@@ -137,17 +223,14 @@
 			{ "set": "state.scm.compare", "to": "{{ {path: event.path, original: event.original ?? '', modified: event.modified ?? ''} }}" },
 			{ "run": "scmShowDiff" }
 		],
-		"scmShowDiff": [
-			{ "call": "forge.scm.diff", "with": { "original": "{{state.scm.compare.original}}", "modified": "{{state.scm.compare.modified}}" },
-			  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot compare ' + state.scm.compare.path + ': ' + error}}" } }],
-			  "then": [
-				{ "set": "state.scm.gutters", "to": "{{concat(filter(state.scm.gutters, it.path != state.scm.compare.path), [{path: state.scm.compare.path, marks: result.gutter}])}}" },
-				{ "forEach": "{{[ {id: 'diff:' + state.scm.compare.path, label: reverse(split(state.scm.compare.path, '/'))[0] + ' (Working Tree)', diff: merge(result, {path: state.scm.compare.path, original: state.scm.compare.original, modified: state.scm.compare.modified, items: map(result.rows, {id: text(index), label: (it.kind == 'added' ? '+ ' : it.kind == 'removed' ? '- ' : '  ') + it.text, icon: it.kind == 'added' ? 'plus' : it.kind == 'removed' ? 'minus' : '', iconColor: it.kind == 'added' ? '#2ea043' : '#f85149'})})} ]}}",
-				  "as": "page", "do": [
-					{ "set": "state.docs", "to": "{{filter(state.docs, it.id != page.id)}}" },
-					{ "push": "state.docs", "value": "{{ {id: page.id, label: page.label, kind: 'diff', text: '', dirty: false, language: '', diff: page.diff} }}" },
-					{ "run": "showTab", "with": { "id": "{{page.id}}", "label": "{{page.label}}" } }
-				  ] }
+		"scmShowDiff": [{ "run": "scmDiffShow", "with": { "diff": "{{diffLines(state.scm.compare.original, state.scm.compare.modified, {context: -1})}}", "changes": "{{diffLines(state.scm.compare.original, state.scm.compare.modified, {context: 0}).hunks}}" } }],
+		"scmDiffShow": [
+			{ "set": "state.scm.gutters", "to": "{{concat(filter(state.scm.gutters, it.path != state.scm.compare.path), [{path: state.scm.compare.path, marks: map(changes, {line: max(it.newStart, 1), endLine: it.newLines == 0 ? max(it.newStart, 1) : it.newStart + it.newLines - 1, kind: 'gutter', color: it.oldLines == 0 ? '#2ea043' : it.newLines == 0 ? '#f85149' : '#0078d4', text: it.oldLines == 0 ? 'added' : it.newLines == 0 ? 'deleted' : 'modified'})}])}}" },
+			{ "forEach": "{{[ {id: 'diff:' + state.scm.compare.path, label: reverse(split(state.scm.compare.path, '/'))[0] + ' (Working Tree)', diff: merge(diff, {path: state.scm.compare.path, original: state.scm.compare.original, modified: state.scm.compare.modified, items: map(diff.hunks[0].lines ?? [], {id: text(index), label: (it.kind == 'insert' ? '+ ' : it.kind == 'delete' ? '- ' : '  ') + it.text, icon: it.kind == 'insert' ? 'plus' : it.kind == 'delete' ? 'minus' : '', iconColor: it.kind == 'insert' ? '#2ea043' : '#f85149'})})} ]}}",
+			  "as": "page", "do": [
+				{ "set": "state.docs", "to": "{{filter(state.docs, it.id != page.id)}}" },
+				{ "push": "state.docs", "value": "{{ {id: page.id, label: page.label, kind: 'diff', text: '', dirty: false, language: '', diff: page.diff} }}" },
+				{ "run": "showTab", "with": { "id": "{{page.id}}", "label": "{{page.label}}" } }
 			  ] }
 		]
 	},
@@ -163,6 +246,14 @@
 	},
 
 	"components": {
+		"forgeScmTool": {
+			"params": { "icon": "", "tip": "", "action": "", "on": true },
+			"node": {
+				"type": "label", "icon": "{{icon}}", "padding": 6, "fitText": true, "role": "button", "label": "{{tip}}",
+				"tooltip": "{{tip}}", "cursor": "{{on ? 'hand' : 'arrow'}}", "textColor": "{{on ? '@color.muted' : '@color.border'}}",
+				"hover": { "textColor": "{{on ? '@color.text' : '@color.border'}}" }, "onClick": { "run": "{{action}}" }
+			}
+		},
 		"forgeScmView": {
 			"node": {
 				"type": "column", "id": "scm-view", "width": "100%", "grow": 1, "color": "@color.sideBar", "gap": 4,
@@ -176,7 +267,17 @@
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "scmRefresh" } },
 						{ "type": "label", "id": "scm-branches-toggle", "icon": "git-branch", "padding": 6, "fitText": true,
 						  "cursor": "hand", "textColor": "@color.muted", "tooltip": "Branches",
-						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "scmBranches" } }
+						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "scmBranches" } },
+						{ "when": "{{computed.scmHasRepo}}", "use": "forgeScmTool", "id": "scm-fetch", "with": { "icon": "refresh-ccw-dot", "tip": "Fetch", "action": "scmFetch",
+							"on": "{{computed.scmHasRepo}}" } },
+						{ "when": "{{computed.scmHasRepo}}", "use": "forgeScmTool", "id": "scm-pull", "with": { "icon": "arrow-down-to-line", "action": "scmPull",
+							"tip": "{{empty(state.scm.status.branch.upstream) ? 'Pull (the branch has no upstream)' : 'Pull from ' + state.scm.status.branch.upstream}}",
+							"on": "{{computed.scmHasRepo && !empty(state.scm.status.branch.upstream)}}" } },
+						{ "when": "{{computed.scmHasRepo}}", "use": "forgeScmTool", "id": "scm-push", "with": { "icon": "{{empty(state.scm.status.branch.upstream) ? 'cloud-upload' : 'arrow-up-from-line'}}",
+							"tip": "{{empty(state.scm.status.branch.upstream) ? 'Publish Branch to origin' : 'Push to ' + state.scm.status.branch.upstream}}",
+							"action": "scmPush", "on": "{{computed.scmCanPush}}" } },
+						{ "when": "{{computed.scmHasRepo}}", "use": "forgeScmTool", "id": "scm-history-toggle", "with": { "icon": "history", "tip": "Commits",
+							"action": "scmHistory", "on": true } }
 					  ] },
 					{ "type": "label", "id": "scm-empty", "when": "{{empty(state.folder.root)}}", "wrap": true, "width": "100%",
 					  "padding": 12, "textColor": "@color.text",
@@ -231,6 +332,11 @@
 						{ "type": "label", "id": "scm-stage", "icon": "plus", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Stage the selected change", "hover": { "textColor": "@color.text" },
 						  "onClick": { "run": "scmStage" } },
+						{ "use": "forgeScmTool", "id": "scm-stash", "with": { "icon": "archive", "tip": "Stash Changes", "action": "scmStash",
+							"on": "{{state.scm.status.count > 0}}" } },
+						{ "use": "forgeScmTool", "id": "scm-stash-pop", "with": { "icon": "archive-restore", "action": "scmStashPop",
+							"tip": "{{state.scm.stashes > 0 ? 'Pop Latest Stash (' + state.scm.stashes + ' stashed)' : 'No stashed changes'}}",
+							"on": "{{state.scm.stashes > 0}}" } },
 						{ "type": "label", "id": "scm-stage-all", "icon": "list-plus", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Stage All Changes", "hover": { "textColor": "@color.text" },
 						  "onClick": { "run": "scmStageAll" } }
@@ -257,6 +363,26 @@
 						  "color": "@color.input", "textColor": "@color.text", "placeholderColor": "@color.muted",
 						  "bind": "state.scm.branchName", "placeholder": "New branch name (Enter to create and switch)",
 						  "onSubmit": { "run": "scmCreateBranch" } }
+					  ] },
+					{ "type": "column", "id": "scm-history", "when": "{{state.scm.showHistory}}", "width": "100%", "grow": 2,
+					  "children": [
+						{ "type": "row", "id": "scm-history-head", "width": "100%", "height": 22, "alignItems": "center",
+						  "children": [
+							{ "type": "label", "id": "scm-history-title", "text": "{{'COMMITS  ' + count(state.scm.log, !empty(it.hash))}}", "textColor": "@color.muted",
+							  "grow": 1, "padding": 8, "height": 22 },
+							{ "type": "label", "id": "scm-history-close", "icon": "x", "padding": 4, "fitText": true,
+							  "cursor": "hand", "textColor": "@color.muted", "tooltip": "Hide Commits",
+							  "hover": { "textColor": "@color.text" }, "onClick": { "set": "state.scm.showHistory", "to": false } }
+						  ] },
+						{ "type": "list", "id": "scm-commits", "label": "Commits", "font": "code", "width": "100%", "grow": 1, "items": "{{computed.scmCommitRows}}",
+						  "bind": "state.scm.selectedCommit", "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text",
+						  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection",
+						  "accentColor": "@color.accent", "onChange": { "run": "scmPickCommit" } },
+						{ "type": "list", "id": "scm-commit-files", "label": "Files of the commit", "when": "{{!empty(state.scm.commit.files)}}",
+						  "width": "100%", "grow": 1, "items": "{{computed.scmCommitFileRows}}",
+						  "bind": "state.scm.selectedCommitFile", "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text",
+						  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection",
+						  "accentColor": "@color.accent", "onOpen": { "run": "scmOpenCommitFile" } }
 					  ] }
 				]
 			}
@@ -265,7 +391,7 @@
 			"params": { "d": 0 },
 			"node": {
 				"type": "column", "id": "diff-editor", "width": "100%", "grow": 1, "color": "@color.editor",
-				"note": "The working tree against HEAD: a diff node, side by side or inline (diffEditor.renderSideBySide); forge.scm.diff counts the rows.",
+				"note": "The working tree against HEAD: a diff node, side by side or inline (diffEditor.renderSideBySide); diffLines() counts the lines.",
 				"children": [
 					{ "type": "row", "id": "diff-head", "width": "100%", "height": 28, "alignItems": "center", "gap": 8,
 					  "children": [

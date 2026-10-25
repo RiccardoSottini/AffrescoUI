@@ -4,7 +4,7 @@
                                                                                  (or wait_for_request)
     changes    AI agent ──tools (submit_revision, reply, ...)──▶ this server ──agent.sock──▶ affrescoui_launcher ──▶ screen
 
-The host (examples/host/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
+The host (apps/host/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
 plain words in the app's chat (or from any client on studio.sock); the request reaches the agent through this server;
 the agent reads the screen, sends revisions (JSON Patch), and replies. Revisions follow the screen's permission rules
 (allow / ask / deny): in the example templates the agent's changes become proposals the person reviews on their card
@@ -17,11 +17,11 @@ Requests reach the agent two ways:
   - pulled, with the wait_for_request tool, which works with any MCP client.
 
 Usage:
-    python3 mcp/affrescoui_mcp.py [--socket DIR] [--launch "command"]
+    python3 mcp/affrescoui_mcp.py [--socket DIR] [--root DIR]... [--launch PROGRAM [--launch-arg ARG]...]
     claude mcp add affrescoui -- python3 /path/to/AffrescoUI/mcp/affrescoui_mcp.py
 
 DIR is where the host listens: --socket, else $AFFRESCOUI_SOCKET_DIR, else /tmp/affrescoui-<uid> on macOS and Linux
-and %LOCALAPPDATA%\\affrescoui\\sockets on Windows. With --launch, the command is started if no host is running. Only
+and %LOCALAPPDATA%\\affrescoui\\sockets on Windows. With --launch, the program is started (with its --launch-arg arguments) if no host is running. Only
 the Python standard library is needed (3.9+). The host is reached through a Unix domain socket (AF_UNIX), which no
 released CPython offers on Windows yet: there the server starts, but its tools say why they can't reach the host.
 """
@@ -35,8 +35,8 @@ from .document import (
 from .guide import GUIDE_TOPIC, guide_sections, format_guide
 from .host import TIMEOUT, MAX_EVENTS, NO_UNIX_SOCKETS, log, default_socket_dir, check_socket_dir, connect_unix, Host
 from .replies import scenarios_report, DENIALS, explain_denial, describe, screen_info, malformed, client_name
-from .repository import ROOT, guide_path, find_cli, repository_path
-from .server import PROTOCOLS, UnknownTool, coordination_tool, Server, main
+from .repository import ROOT, guide_path, find_cli, repository_path, confined_path
+from .server import OUTSIDE, USAGE, PROTOCOLS, UnknownTool, coordination_tool, Server, main
 from .tools import object_schema, TOOLS, COORDINATION_TOOLS, PROMPTS, SERVE_PROMPT, INSTRUCTIONS
 
 __all__ = [
@@ -45,6 +45,6 @@ __all__ = [
     "apply_patch", "GUIDE_TOPIC", "guide_sections", "format_guide", "TIMEOUT", "MAX_EVENTS", "NO_UNIX_SOCKETS", "log",
     "default_socket_dir", "check_socket_dir", "connect_unix", "Host", "scenarios_report", "DENIALS", "explain_denial",
     "describe", "screen_info", "malformed", "client_name", "ROOT", "guide_path", "find_cli", "repository_path",
-    "PROTOCOLS", "UnknownTool", "coordination_tool", "Server", "main", "object_schema", "TOOLS", "COORDINATION_TOOLS",
+    "confined_path", "OUTSIDE", "USAGE", "PROTOCOLS", "UnknownTool", "coordination_tool", "Server", "main", "object_schema", "TOOLS", "COORDINATION_TOOLS",
     "PROMPTS", "SERVE_PROMPT", "INSTRUCTIONS",
 ]

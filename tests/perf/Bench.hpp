@@ -5,11 +5,15 @@
 
 #include <affresco/affresco.hpp>
 
+#include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -85,7 +89,7 @@ public:
 	Window& openWindow(const json& document);
 
 private:
-	/// @brief Sets a screen up as affrescoui_launcher does: placeholder types, the "code" type, no host to talk to.
+	/// @brief Sets a screen up as affrescoui_launcher does: placeholder types, no host to talk to.
 	/// @param screen The screen, not yet built.
 	static void configure(Screen& screen);
 
@@ -108,6 +112,41 @@ private:
 	return workloads;
 }
 
+/// @brief An executor a workload pumps by hand, on the main thread: where a model's or a screen's services post their
+/// results (watch.cpp, forge.cpp, budgets.cpp).
+class PumpedExecutor final : public Executor {
+public:
+	/// @brief Queues a task.
+	/// @param task The task.
+	void post(std::function<void()> task) override {
+		const std::scoped_lock lock(mutex_);
+		tasks_.push_back(std::move(task));
+		posted_.notify_all();
+	}
+	/// @brief Runs posted tasks until a condition holds.
+	/// @param done The condition.
+	/// @param what Who should answer, for the error: "watch: the model".
+	/// @throws std::runtime_error If it doesn't hold within 60 seconds (times slowdown()).
+	void pumpUntil(const std::function<bool()>& done, std::string_view what) {
+		const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(60) * slowdown();
+		while(!done()) {
+			std::vector<std::function<void()>> tasks;
+			{
+				std::unique_lock lock(mutex_);
+				if(!posted_.wait_until(lock, end, [this] { return !tasks_.empty(); }))
+					throw std::runtime_error(std::string(what) + " didn't answer in time");
+				tasks.swap(tasks_);
+			}
+			for(const auto& task : tasks) task();
+		}
+	}
+
+private:
+	std::mutex mutex_;                         ///< Guards tasks_.
+	std::condition_variable posted_;           ///< Signalled at each post.
+	std::vector<std::function<void()>> tasks_; ///< Waiting to run.
+};
+
 /// @brief Creates a group's workloads.
 using GroupFactory = std::function<std::vector<Workload>(Context&)>;
 
@@ -123,7 +162,7 @@ struct Group {
 [[nodiscard]] std::vector<Group> screenGroups();
 
 /// @brief The groups that need no window: expressions, commits, text (engine.cpp), history (history.cpp),
-/// views (views.cpp, headless windows), buffers (buffers.cpp) and search (search.cpp).
+/// views (views.cpp, headless windows) and search (search.cpp).
 /// @return The groups.
 [[nodiscard]] std::vector<Group> engineGroups();
 
@@ -147,11 +186,6 @@ struct Group {
 /// and one file's change seen by it.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> watchWorkloads(Context&);
-
-/// @brief The "buffers" group's workloads (buffers.cpp): Forge's file buffers with 10,000 and 1,000,000 lines opened,
-/// edited and undone with the dirty check, and saved.
-/// @return The workloads.
-[[nodiscard]] std::vector<Workload> bufferWorkloads(Context&);
 
 /// @brief The "search" group's workloads (search.cpp): the services' search engine over 2,000 generated files, a word
 /// with one thread and with eight, an expression, and a capped search.
@@ -235,7 +269,8 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @throws std::runtime_error If it can't be read.
 [[nodiscard]] std::string readFile(const std::filesystem::path& path);
 
-/// @brief A screen file as a history holds it: its "include" files merged in, and its state.
+/// @brief A screen file as a history holds it: its "include" files merged in (an app's entry screen also its models
+/// and their seed records), and its state.
 /// @param file The screen file.
 /// @return The document.
 /// @throws std::exception If it can't be read or isn't a valid screen.
@@ -248,10 +283,19 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @throws std::exception If it isn't a valid screen or an include can't be read.
 [[nodiscard]] json screenDocument(const json& document, const std::filesystem::path& directory);
 
+/// @brief A template's document as the host reads it: an app's entry screen with its includes, its models and their
+/// seed records (app.json's "data") merged in; without an app.json, its index.screen.json (or the screen named after
+/// the folder) as written.
+/// @param folder The template's folder.
+/// @return The document.
+/// @throws std::exception If the app or the screen can't be read.
+[[nodiscard]] json appDocument(const std::filesystem::path& folder);
+
 /// @brief The Kanban template with its four columns filled to a number of cards, by copying its own cards in turn.
 /// @param directory The Kanban template's folder.
 /// @param cards The cards in total; the template's own count, 12, leaves it as it is.
-/// @return The document.
+/// @return The document, its includes and seed records merged in.
+/// @throws std::exception If the app can't be read, or its issues have no seed records.
 [[nodiscard]] json kanbanWithCards(const std::filesystem::path& directory, int cards);
 
 /* Allocation counting (allocations.cpp): every operator new in the process is counted */

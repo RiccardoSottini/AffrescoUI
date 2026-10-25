@@ -79,10 +79,14 @@
 				  "onDone": [{ "run": "explorerMoved", "with": { "from": "{{edit.id}}", "to": "{{to}}" } }] }],
 				"else": [{ "invoke": "files.stat", "with": { "path": "{{to}}" }, "onDone": [{ "if": "{{result.exists}}",
 				  "then": [{ "run": "notify", "with": { "severity": "error", "message": "{{'A file or folder ' + edit.name + ' already exists at this location'}}" } }],
-				  "else": [{ "invoke": "{{edit.mode == 'newFolder' ? 'files.mkdir' : 'files.write'}}", "with": "{{edit.mode == 'newFolder' ? {path: to} : {path: to, text: ''}}}",
-					"onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot create: ' + error.message}}" } }],
-					"onDone": [{ "run": "explorerShow", "with": { "id": "{{to}}" } },
-					           { "if": "{{edit.mode == 'newFile'}}", "then": [{ "run": "openPath", "with": { "path": "{{to}}", "label": "{{reverse(split(to, '/'))[0]}}" } }] }] }] }] }] }] }
+				  "else": [{ "if": "{{edit.mode == 'newFolder'}}",
+				    "then": [{ "invoke": "files.mkdir", "with": { "path": "{{to}}" },
+				               "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot create: ' + error.message}}" } }],
+				               "onDone": [{ "run": "explorerShow", "with": { "id": "{{to}}" } }] }],
+				    "else": [{ "invoke": "files.write", "with": { "path": "{{to}}", "text": "" },
+				               "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot create: ' + error.message}}" } }],
+				               "onDone": [{ "run": "explorerShow", "with": { "id": "{{to}}" } },
+				                          { "run": "openPath", "with": { "path": "{{to}}", "label": "{{reverse(split(to, '/'))[0]}}" } }] }] }] }] }] }] }
 		],
 		"explorerMoved": [
 			{ "note": "from, to: a file or folder moved. Tabs follow it; the explorer shows it" },
@@ -131,6 +135,9 @@
 				  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot move: ' + error.message}}" } }],
 				  "onDone": [{ "run": "explorerMoved", "with": { "from": "{{from}}", "to": "{{result.path}}" } }] }] }] }
 		],
+		"explorerCollapseAll": { "title": "Collapse Folders in Explorer", "category": "Files", "icon": "copy-minus",
+			"enablement": "{{!empty(state.explorer.expanded)}}",
+			"do": [{ "set": "state.explorer.expanded", "to": [] }] },
 		"explorerReveal": { "title": "Reveal Active File in Explorer", "category": "Files", "icon": "locate",
 			"enablement": "{{computed.activeDoc != null && computed.activeDoc.kind == 'file'}}",
 			"do": [{ "set": "state.layout.sidebar", "to": true }, { "set": "state.sideView", "to": "explorer" },
@@ -155,6 +162,31 @@
 	},
 
 	"components": {
+		"forgeExplorerAction": {
+			"params": { "icon": "", "tip": "", "run": "", "enabled": true },
+			"node": { "type": "label", "role": "button", "label": "{{tip}}", "icon": "{{icon}}", "width": 26, "height": 26, "align": "center",
+			          "radius": 6, "focusable": "{{enabled}}", "disabled": "{{!enabled}}", "cursor": "{{enabled ? 'hand' : 'arrow'}}", "tooltip": "{{tip}}",
+			          "textColor": "{{enabled ? '@color.muted' : '@color.border'}}", "hover": { "textColor": "@color.text", "color": "@color.hover" },
+			          "onClick": { "run": "{{run}}" } }
+		},
+		"forgeExplorerTitle": {
+			"node": {
+				"type": "row", "id": "side-bar-title", "width": "100%", "height": 35, "alignItems": "center", "gap": 2,
+				"children": [
+					{ "type": "label", "id": "side-bar-title-text", "text": "Files", "textColor": "@color.muted", "grow": 1, "height": 35, "padding": 12 },
+					{ "when": "{{!empty(state.folder.root)}}", "use": "forgeExplorerAction", "id": "explorer-new-file",
+					  "with": { "icon": "file-plus", "tip": "New File...", "run": "explorerNewFile" } },
+					{ "when": "{{!empty(state.folder.root)}}", "use": "forgeExplorerAction", "id": "explorer-new-folder",
+					  "with": { "icon": "folder-plus", "tip": "New Folder...", "run": "explorerNewFolder" } },
+					{ "when": "{{!empty(state.folder.root)}}", "use": "forgeExplorerAction", "id": "explorer-refresh",
+					  "with": { "icon": "refresh-cw", "tip": "Refresh Explorer", "run": "explorerRefresh" } },
+					{ "when": "{{!empty(state.folder.root)}}", "use": "forgeExplorerAction", "id": "explorer-collapse",
+					  "with": { "icon": "copy-minus", "tip": "Collapse Folders in Explorer", "run": "explorerCollapseAll",
+					            "enabled": "{{!empty(state.explorer.expanded)}}" } },
+					{ "id": "side-bar-title-end", "width": 6 }
+				]
+			}
+		},
 		"forgeExplorer": {
 			"node": {
 				"type": "column", "id": "explorer-view", "width": "100%", "grow": 1,

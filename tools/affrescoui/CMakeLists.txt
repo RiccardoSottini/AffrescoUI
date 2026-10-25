@@ -1,5 +1,6 @@
 # affrescoui: the command-line tool for screen files (README.md here). The target is affrescoui_cli, the program
 # affrescoui (the library already has the target name affrescoui).
+cmake_language(DEFER CALL affrescoui_hide_test_windows) # AFFRESCOUI_HIDDEN=1 for its tests
 
 # The screen format's schema, built into the tool so that `check` works wherever it is installed
 set(AFFRESCOUI_CLI_SCHEMA ${PROJECT_SOURCE_DIR}/schema/affrescoui-screen.schema.json)
@@ -10,8 +11,7 @@ add_custom_command(OUTPUT ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
 	DEPENDS ${AFFRESCOUI_CLI_SCHEMA} ${CMAKE_CURRENT_SOURCE_DIR}/Embed.cmake
 	COMMENT "Embedding the screen schema in affrescoui")
 
-# The entry point, the commands' shared helpers (Cli.hpp), JSON text and the schema checker; ComposeCommand.cpp stays
-# here beside Cli.cpp because affrescoui_bottega builds both from this folder
+# The entry point, the commands' shared helpers (Cli.hpp), the composition commands, JSON text and the schema checker
 add_executable(affrescoui_cli main.cpp Cli.cpp ComposeCommand.cpp JsonText.cpp Schema.cpp ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
 	${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp) # the library's PNG encoder, which it keeps private
 # commands/: one file per command, or per family of commands (main.cpp lists them)
@@ -24,15 +24,13 @@ set_target_properties(affrescoui_cli PROPERTIES OUTPUT_NAME affrescoui CXX_EXTEN
 target_link_libraries(affrescoui_cli PRIVATE affrescoui::automation) # and through it, the whole library
 # SocketDir.hpp (the socket folder's checks) is shared with affrescoui_launcher; Png.hpp and FeatureSignatures.hpp are the
 # library's
-target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared ${PROJECT_SOURCE_DIR}/modules/screen/src
+target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared ${PROJECT_SOURCE_DIR}/apps/shared ${PROJECT_SOURCE_DIR}/modules/screen/src
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> ${PROJECT_SOURCE_DIR}/modules/vcs/src)
 target_include_directories(affrescoui_cli SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 target_compile_options(affrescoui_cli PRIVATE ${AFFRESCOUI_WARNINGS})
 target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_VERSION="${PROJECT_VERSION}")
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# The example apps' own types, as affrescoui_launcher has them, so their templates run and render the same
-	target_sources(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared/CodeEditor.cpp)
-	target_sources(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/tempo/Visualiser.cpp) # Tempo's visualiser surface
 	target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples)
 	target_include_directories(affrescoui_cli SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include)
 	target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_CLI_EXAMPLE_TYPES)
@@ -58,4 +56,14 @@ if(AFFRESCOUI_BUILD_TESTS)
 	# The schema and SCREEN_FORMAT.md's tables are generated from the registries: fails if they are out of date
 	add_test(NAME cli-reference COMMAND affrescoui_cli schema -o schema/affrescoui-screen.schema.json --types examples
 		--doc SCREEN_FORMAT.md --check WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+	# Sinopia's slide sorter into Tempera (examples/tempera/sorter): proven with its adapter, playing Tempera's
+	# scenarios; not proven without one, nor with the broken one
+	set(sorter examples/tempera/index.screen.json examples/sinopia/features/slide-sorter)
+	add_test(NAME tempera_sorter_proof COMMAND affrescoui_cli check --compose ${sorter}
+		--adapter examples/tempera/sorter/sorter.adapter.json WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+	add_test(NAME tempera_sorter_unadapted COMMAND affrescoui_cli check --compose ${sorter}
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+	add_test(NAME tempera_sorter_broken COMMAND affrescoui_cli check --compose ${sorter}
+		--adapter examples/tempera/sorter/broken.adapter.json WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+	set_tests_properties(tempera_sorter_unadapted tempera_sorter_broken PROPERTIES WILL_FAIL TRUE)
 endif()

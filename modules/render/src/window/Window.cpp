@@ -29,6 +29,7 @@ namespace affresco {
 namespace {
 
 constexpr std::size_t maxClipboard = std::size_t{64} << 20U; ///< The most bytes a paste reads from the clipboard.
+constexpr double fullscreenHintMs = 4000.0;                  ///< How long the hint that Esc leaves full screen stays.
 
 /// @brief Cuts clipboard text to maxClipboard bytes, at the start of a character so none is split.
 /// @param text The clipboard's text.
@@ -219,7 +220,43 @@ void Window::setVisible(bool visible) {
 	else visible_ = visible;
 }
 
-bool Window::shouldClose() const { return native_ && native_->shouldClose(); }
+bool Window::shouldClose() const { return native_ ? native_->shouldClose() : closing_; }
+
+void Window::setShouldClose(bool close) {
+	if(native_) native_->setShouldClose(close);
+	else closing_ = close;
+}
+
+bool Window::isFullscreen() const { return native_ ? native_->isFullscreen() : fullscreen_; }
+
+void Window::setFullscreen(bool fullscreen) {
+	const bool was = isFullscreen();
+	if(native_) native_->setFullscreen(fullscreen);
+	else fullscreen_ = fullscreen;
+	if(fullscreen != was) showFullscreenHint(fullscreen);
+}
+
+// A screen can draw anything over the whole display, a system dialog's look too: the way out is told by the window
+void Window::showFullscreenHint(bool shown) {
+	cancelTimer(std::exchange(fullscreenHintTimer_, 0));
+	if(shown) {
+		if(!fullscreenHint_) {
+			fullscreenHint_ = std::make_unique<Label>();
+			fullscreenHint_->attachTo(this);
+			fullscreenHint_->setColor(Color::hex(0x111827));
+			fullscreenHint_->setTextColor(colors::white);
+			fullscreenHint_->setPadding(10.0f);
+			fullscreenHint_->setFitToText(true, 480.0f);
+			fullscreenHint_->setText("Press Esc to leave full screen");
+		}
+		fullscreenHintTimer_ = setTimer(fullscreenHintMs, [this] {
+			fullscreenHintTimer_ = 0;
+			showFullscreenHint(false);
+		});
+	}
+	fullscreenHintShown_ = shown;
+	invalidate();
+}
 
 /* Desktop */
 
@@ -322,6 +359,12 @@ void Window::updateLayout() {
 		tooltip_->layout(Rect{left, top, left + size.x, top + size.y}, area, Vec2{width, height}, true);
 	}
 	layoutFocusRing();
+	if(fullscreenHintShown_ && fullscreenHint_) { // above the overlays, at the top's centre
+		const Vec2 size{fullscreenHint_->measuredWidth(width), fullscreenHint_->measuredHeight(height)};
+		const float left = std::round(std::max((width - size.x) / 2.0f, 0.0f));
+		fullscreenHint_->layout(Rect{left, 24.0f, left + size.x, 24.0f + size.y}, area, Vec2{width, height}, true);
+		drawn_.push_back(fullscreenHint_.get());
+	}
 	layoutInspection();
 	layingOut_ = false;
 

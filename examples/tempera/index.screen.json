@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempera, an image editor. The pixels live in the host (Session.cpp, the canvas model of modules/imaging); the state holds only state.doc, a snapshot the natives (tempera.*) return after each change, and what the workspace itself keeps (the theme, the guides, the dialogs). This file names the window, the fonts, the colours and the parts: parts/commands.json (actions, keys, menus, watches), parts/workspace.json (menu bar, options bar, tools bar, document tab, canvas, status bar) and parts/panels.json (the panels and dialogs).",
+	"note": "Tempera, an image editor. The pixels live in the library's image doc (the images section, modules/imaging), which the raster node shows and the image step changes; the state holds only state.doc, the snapshot the library puts there after each change, and what the workspace itself keeps (the theme, the guides, the dialogs). This file names the window, the fonts, the colours and the parts: parts/commands.json (actions, keys, menus, watches), parts/workspace.json (menu bar, options bar, tools bar, document tab, canvas, status bar) and parts/panels.json (the panels and dialogs).",
 
 	"window": { "title": "Tempera", "width": 1280, "height": 800, "minWidth": 900, "minHeight": 600 },
 
@@ -14,30 +14,31 @@
 		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 17 }
 	},
 
-	"include": ["parts/commands.json", "parts/workspace.json", "parts/panels.json", "../shared/addons/assistant/assistant.json"],
+	"include": ["parts/commands.json", "parts/workspace.json", "parts/panels.json", "parts/dialogs.json", "../shared/addons/assistant/assistant.json", "../shared/components/charts.json"],
 
 	"theme": "{{state.theme}}",
 
 	"tokens": {
-		"background": { "light": "#b9b3ad", "dark": "#1d1b19" },
-		"panel": { "light": "#f1eeea", "dark": "#322e2b" },
-		"header": { "light": "#dbd5cf", "dark": "#282522" },
-		"canvasBack": { "light": "#c7c1ba", "dark": "#252220" },
-		"border": { "light": "#c9c2bb", "dark": "#4a4541" },
-		"text": { "light": "#221e1b", "dark": "#ddd8d2" },
-		"muted": { "light": "#6e6660", "dark": "#9b948d" },
-		"accent": { "light": "#c9552e", "dark": "#c9552e" },
-		"selected": { "light": "#ddd3c9", "dark": "#4d4642" },
-		"hover": { "light": "#e6e0d9", "dark": "#3e3935" },
-		"input": { "light": "#fdfbf8", "dark": "#262320" },
-		"ruler": { "light": "#e7e1da", "dark": "#2c2926" },
-		"guide": { "light": "#22d3ee", "dark": "#22d3ee" },
-		"menuHover": { "light": "#f2cdb9", "dark": "#7a3a22" },
+		"background": { "light": "#aab4a6", "dark": "#141815" },
+		"panel": { "light": "#eef1ea", "dark": "#242a25" },
+		"header": { "light": "#dfe5da", "dark": "#1c211d" },
+		"canvasBack": { "light": "#c4ccc0", "dark": "#1a1f1b" },
+		"border": { "light": "#c3ccbf", "dark": "#38423a" },
+		"text": { "light": "#1c231d", "dark": "#dfe5dc" },
+		"muted": { "light": "#5e6a5d", "dark": "#8e9a8c" },
+		"accent": { "light": "#9a6a0e", "dark": "#d39b2a" },
+		"accentSoft": { "light": "#efdfb6", "dark": "#4a3b19" },
+		"selected": { "light": "#d8e1d2", "dark": "#364238" },
+		"hover": { "light": "#e2e8dd", "dark": "#2e362f" },
+		"input": { "light": "#fbfcf8", "dark": "#191e1a" },
+		"ruler": { "light": "#e4e9df", "dark": "#1f2520" },
+		"guide": { "light": "#9333ea", "dark": "#c084fc" },
+		"menuHover": { "light": "#efdfb6", "dark": "#4a3b19" },
 		"kit.background": "@panel", "kit.surface": "@panel", "kit.bar": "@panel", "kit.barHover": "@hover", "kit.field": "@input",
 		"kit.text": "@text", "kit.dim": "@muted", "kit.body": "@muted", "kit.selection": "@accent", "kit.border": "@border",
 		"kit.primary": "@accent", "kit.secondary": "@selected", "kit.onSecondary": "@text", "kit.focus": "@text",
-		"kit.radius": 5, "kit.cardRadius": 6,
-		"assistant.accent": "@accent", "assistant.accentHover": "@menuHover", "assistant.onAccent": "#ffffff",
+		"kit.radius": 6, "kit.cardRadius": 10,
+		"assistant.accent": "@accent", "assistant.accentHover": "@menuHover", "assistant.onAccent": "#1c1608",
 		"assistant.surface": "@panel", "assistant.raised": "@header", "assistant.border": "@border", "assistant.text": "@text",
 		"assistant.dim": "@muted", "assistant.warningBackground": "@selected"
 	},
@@ -61,6 +62,20 @@
 			"description": "The foot of the panels column, under the Layers group." }
 	},
 
+	"images": {
+		"doc": {
+			"width": 1200, "height": 800, "into": "state.doc", "tool": "brush",
+			"tools": {
+				"move": { "gesture": "move" }, "marquee": { "gesture": "select-rectangle" },
+				"ellipse": { "gesture": "select-ellipse" }, "lasso": { "gesture": "lasso" },
+				"polygon": { "gesture": "polygon-lasso" }, "wand": { "gesture": "magic-wand" }, "crop": { "gesture": "crop" },
+				"brush": { "gesture": "paint" }, "pencil": { "gesture": "paint", "hardness": 100 }, "eraser": { "gesture": "erase" }, "clone": { "gesture": "clone" },
+				"gradient": { "gesture": "gradient" }, "fill": { "gesture": "fill" }, "eyedropper": { "gesture": "sample" },
+				"hand": { "gesture": "pan" }, "zoom": { "gesture": "zoom" }
+			}
+		}
+	},
+
 	"state": {
 		"theme": "dark",
 		"doc": {
@@ -69,8 +84,8 @@
 			"memory": 0, "selection": false, "bounds": [0, 0, 0, 0], "foreground": "#000000", "background": "#ffffff", "tool": "brush",
 			"options": { "size": 20, "hardness": 80, "spacing": 25, "opacity": 100, "flow": 100, "mode": "replace",
 			             "tolerance": 32, "contiguous": true, "allLayers": false, "fillOpacity": 100, "shape": "linear",
-			             "quickMask": false },
-			"view": { "zoom": 1, "x": 0, "y": 0 }, "message": "", "previewing": false
+			             "quickMask": false, "autoSelect": false },
+			"view": { "zoom": 1, "x": 0, "y": 0 }, "message": "", "previewing": false, "clipboard": false
 		},
 		"tools": [
 			[{ "id": "move", "icon": "move", "title": "Move Tool", "key": "V" }],
@@ -82,7 +97,7 @@
 			[],
 			[{ "id": "eyedropper", "icon": "pipette", "title": "Eyedropper Tool", "key": "I" }],
 			[{ "icon": "bandage", "title": "Healing Tool" }],
-			[{ "id": "brush", "icon": "paintbrush", "title": "Brush Tool", "key": "B" }, { "icon": "pencil", "title": "Pencil Tool" }],
+			[{ "id": "brush", "icon": "paintbrush", "title": "Brush Tool", "key": "B" }, { "id": "pencil", "icon": "pencil", "title": "Pencil Tool", "key": "Shift+B" }],
 			[{ "id": "clone", "icon": "copy-plus", "title": "Clone Tool", "key": "S" }],
 			[{ "icon": "undo-dot", "title": "Restore Brush Tool" }],
 			[{ "id": "eraser", "icon": "eraser", "title": "Eraser Tool", "key": "E" }],
@@ -98,6 +113,7 @@
 			[{ "id": "hand", "icon": "hand", "title": "Hand Tool", "key": "H" }],
 			[{ "id": "zoom", "icon": "zoom-in", "title": "Zoom Tool", "key": "Z" }]
 		],
+		"brushHardness": 80,
 		"brushes": ["Hard Round 5", "Hard Round 20", "Soft Round 30", "Soft Round 100", "Airbrush 60", "Pencil 1", "Chalk 40"],
 		"gradients": ["Black, White", "Spectrum", "Copper", "Black, Transparent"],
 		"blends": ["normal", "-", "darken", "multiply", "-", "lighten", "screen", "-", "overlay", "soft-light", "-", "difference", "-",
@@ -128,6 +144,19 @@
 		"filter": { "open": false, "kind": "gaussian-blur", "radius": 4, "amount": 100, "threshold": 0, "angle": 0,
 		            "distance": 12, "live": true, "apply": 0, "cancel": 0 },
 		"newDoc": { "open": false, "width": 1200, "height": 800, "format": "rgba8" },
+		"newPresetMenu": false,
+		"newPresets": [
+			{ "title": "Default, 1200 × 800", "width": 1200, "height": 800 }, { "title": "Square, 1080 × 1080", "width": 1080, "height": 1080 },
+			{ "title": "HD, 1920 × 1080", "width": 1920, "height": 1080 }, { "title": "4K UHD, 3840 × 2160", "width": 3840, "height": 2160 },
+			{ "title": "A4 at 300 ppi, 2480 × 3508", "width": 2480, "height": 3508 }, { "title": "Icon, 512 × 512", "width": 512, "height": 512 }
+		],
+		"transform": { "open": false, "x": 0, "y": 0, "scaleX": 100, "scaleY": 100, "angle": 0 },
+		"resize": { "open": false, "width": 0, "height": 0, "linked": true },
+		"canvasSize": { "open": false, "width": 0, "height": 0, "anchor": "center" },
+		"rename": { "open": false, "name": "" },
+		"closeAsk": false,
+		"fill": { "open": false, "menu": false, "contents": "foreground" },
+		"cropSize": [0, 0],
 		"menuBar": {},
 		"adjustMenu": false,
 		"blendMenu": false,
@@ -145,6 +174,8 @@
 		"colourTarget": "foreground",
 		"screenMode": "standard",
 		"layerFilter": { "on": false, "kinds": [] },
+		"foldedGroups": [],
+		"grouping": "",
 		"props": { "transform": true, "align": true, "actions": true },
 		"quickPick": { "open": false, "query": "", "index": 0, "top": 0, "recent": [] },
 		"cropMenu": false,
@@ -154,23 +185,30 @@
 
 	"persist": ["state.theme", "state.view"],
 
-	"onLoad": [{ "call": "tempera.snapshot", "into": "state.doc" }],
+	"onLoad": [{ "run": "drawSample" }],
 
 	"root": {
 		"id": "root", "color": "@background",
 		"children": [
-			{ "type": "column", "id": "workspace", "fill": true, "gap": 1, "children": [
+			{ "type": "column", "id": "workspace", "fill": true, "gap": 6, "children": [
 				{ "use": "temperaMenuBar" },
 				{ "use": "temperaOptionsBar" },
-				{ "type": "row", "id": "main", "width": "100%", "grow": 1, "gap": 1, "children": [
+				{ "type": "row", "id": "main", "anchors": { "left": 6, "right": 6 }, "grow": 1, "gap": 6, "children": [
 					{ "use": "temperaToolBar" },
 					{ "use": "temperaCanvasArea" },
 					{ "use": "temperaPanels", "when": "{{state.screenMode == 'standard'}}" }
-				] }
+				] },
+				{ "id": "workspace-foot", "style": "clear", "width": 1, "height": 0 }
 			] },
 			{ "use": "quickPick", "with": { "width": 520, "providers": "{{[{placeholder: 'Search the commands', items: computed.searchItems}]}}" } },
 			{ "use": "temperaFilterDialog" },
 			{ "use": "temperaNewDialog" },
+			{ "use": "temperaTransformDialog" },
+			{ "use": "temperaImageSizeDialog" },
+			{ "use": "temperaCanvasSizeDialog" },
+			{ "use": "temperaRenameDialog" },
+			{ "use": "temperaFillDialog" },
+			{ "use": "temperaCloseDialog" },
 			{ "use": "dialog", "id": "about-dialog", "with": { "open": "state.about", "title": "Tempera",
 				"message": "An image editor built with AffrescoUI: layers, masks, brushes, filters and colour management over sparse tiles.",
 				"buttons": [{ "title": "OK" }] } }

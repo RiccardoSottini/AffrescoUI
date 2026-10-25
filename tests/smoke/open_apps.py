@@ -10,7 +10,7 @@ default socket and with `--socket DIR`, with a fresh data folder (`HOME` an empt
 older version of the screen (a history the screen no longer matches, and one that is damaged). Each run lasts
 `AFFRESCOUI_SCREENSHOT_AFTER` (5 s) and must then exit 0 by itself, print no error, and leave a frame that is drawn
 (at least MIN_COLOURS colours). A service without a window (`affrescoui_server`) must still be running after that long,
-a command without one (`affrescoui_bottega`) must have exited 0.
+a command without one must have exited 0.
 A program that isn't built (an option turned off) is skipped
 with a note. On Linux it runs under Xvfb (.github/workflows/ci.yml). Only the Python standard library is needed.
 """
@@ -26,6 +26,8 @@ import sys
 import tempfile
 import time
 
+os.environ.setdefault("AFFRESCOUI_HIDDEN", "1")  # its programs never show a window (CONTRIBUTING.md); =0 shows them
+
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MIN_COLOURS = 16  # a drawn window has text and controls: a blank or single-colour frame has far fewer
 GRACE_SECONDS = 60  # beyond its run, how long a program may take to start, save its frame and exit
@@ -37,14 +39,11 @@ SAVED = re.compile(r"screenshot saved|\b0 failed\b")  # the frame saved, a summa
 
 # Each program as its README starts it: its name, its arguments (paths relative to the repository root) and its kind:
 # WINDOW (draws a frame and exits after the run), SERVICE (no window, still running after the run) or COMMAND (no
-# window, does its work and exits 0). The host also opens every examples/*/*.screen.json (added in programs()).
+# window, does its work and exits 0). The host also opens every examples/*/*.screen.json and every app, by its
+# app.json (added in programs()).
 WINDOW, SERVICE, COMMAND = "window", "service", "command"
 PROGRAMS = [
     ("host", "affrescoui_launcher", [], WINDOW),
-    ("forge", "affrescoui_forge", [], WINDOW),
-    ("tempera", "affrescoui_tempera", [], WINDOW),
-    ("sinopia", "affrescoui_sinopia", [], WINDOW),
-    ("bottega", "affrescoui_bottega", [], COMMAND),  # plays Bottega's scenarios headless
     ("surfaces", "affrescoui_surfaces", [], WINDOW),
     ("embed", "affrescoui_embed", [], WINDOW),
     ("embed-texture", "affrescoui_embed", ["--texture"], WINDOW),
@@ -55,7 +54,8 @@ FIRST = {"server": ["--folder", "{data}", "--add-token", "ada"]}
 
 
 def programs(build):
-    """Every program to open, (name, executable, arguments, kind), with the host once per example screen."""
+    """Every program to open, (name, executable, arguments, kind), with the host once per example screen and once per
+    app."""
     found = []
     for name, executable, arguments, kind in PROGRAMS:
         path = os.path.join(build, executable)
@@ -67,6 +67,9 @@ def programs(build):
     for screen in sorted(glob.glob(os.path.join(ROOT, "examples", "*", "*.screen.json"))):
         name = "host " + os.path.relpath(screen, os.path.join(ROOT, "examples"))
         found.append((name, host, [os.path.relpath(screen, ROOT)], WINDOW))
+    for app in sorted(glob.glob(os.path.join(ROOT, "examples", "*", "app.json"))):
+        name = "host " + os.path.relpath(app, os.path.join(ROOT, "examples"))
+        found.append((name, host, [os.path.relpath(app, ROOT)], WINDOW))
     return found
 
 
@@ -112,8 +115,9 @@ def damaged_history(home):
 
 
 def environment_for(home):
-    """The environment a person's shell gives a program, with `home` as its home and no data folder of our own."""
-    environment = {k: v for k, v in os.environ.items() if not k.startswith("AFFRESCOUI_")}
+    """The environment a person's shell gives a program, with `home` as its home and no data folder of our own (but
+    AFFRESCOUI_HIDDEN, which keeps its windows off screen)."""
+    environment = {k: v for k, v in os.environ.items() if not k.startswith("AFFRESCOUI_") or k == "AFFRESCOUI_HIDDEN"}
     environment["HOME"] = home
     return environment
 
@@ -139,7 +143,7 @@ def run(program, build, way, seconds, keep):
         if name in FIRST:
             subprocess.run([executable] + placed(FIRST[name]), cwd=cwd, env=environment_for(home), capture_output=True,
                            timeout=GRACE_SECONDS, check=False)
-        if way != "default socket" and executable.endswith(("host", "forge", "modello", "tempera", "sinopia")):
+        if way != "default socket" and executable.endswith(("launcher", "modello")):
             absolute += ["--socket", socket]
         if way != "default socket" and executable.endswith("server"):
             absolute += ["--listen", f"127.0.0.1:{free_port()}"]  # runs side by side; the default way keeps 7420

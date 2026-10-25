@@ -8,6 +8,10 @@ if(APPLE)
 endif()
 target_link_libraries(affrescoui_format PRIVATE affrescoui::services)
 target_include_directories(affrescoui_format SYSTEM PRIVATE ${AFFRESCOUI_MONOCYPHER_DIR} ${AFFRESCOUI_MONOCYPHER_DIR}/optional)
+# Monocypher's warnings are not ours to fix. Source properties are per directory, so they are set here, where the
+# target is (cmake/AffrescoUISignatures.cmake runs in the top directory, where they wouldn't reach this target)
+set_source_files_properties(${AFFRESCOUI_MONOCYPHER_SOURCES} PROPERTIES COMPILE_OPTIONS $<IF:$<C_COMPILER_ID:MSVC>,/w,-w>
+	SKIP_LINTING ON)
 
 # src/expression/: the expression language: parser, lowering to typed nodes, the machine, and its values
 target_sources(affrescoui_format PRIVATE
@@ -22,19 +26,24 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctions.cpp
 	src/functions/ExpressionFunctionsColor.cpp
 	src/functions/ExpressionFunctionsDates.cpp
+	src/functions/ExpressionFunctionsDiff.cpp
 	src/functions/ExpressionFunctionsForm.cpp
 	src/functions/ExpressionFunctionsPaths.cpp
 	src/functions/ExpressionFunctionsFuzzy.cpp
+	src/functions/ExpressionFunctionsGit.cpp
 	src/functions/ExpressionFunctionsItems.cpp
 	src/functions/ExpressionFunctionsFold.cpp
+	src/functions/ExpressionFunctionsKeys.cpp
 	src/functions/ExpressionFunctionsKeyframes.cpp
 	src/functions/ExpressionFunctionsLists.cpp
 	src/functions/ExpressionFunctionsLocale.cpp
 	src/functions/ExpressionFunctionsLogic.cpp
 	src/functions/ExpressionFunctionsMaths.cpp
 	src/functions/ExpressionFunctionsNumbers.cpp
+	src/functions/ExpressionFunctionsQr.cpp
 	src/functions/ExpressionFunctionsText.cpp
-	src/functions/ExpressionFunctionsTime.cpp)
+	src/functions/ExpressionFunctionsTime.cpp
+	src/functions/QrCode.cpp)
 target_include_directories(affrescoui_format PRIVATE src/functions)
 # src/locale/: locale data (CLDR subset), number, date and plural formatting, and the strings tables
 target_sources(affrescoui_format PRIVATE
@@ -98,7 +107,8 @@ target_sources(affrescoui_format PRIVATE
 	src/events/EventsPointer.cpp
 	src/events/EventsKeys.cpp
 	src/events/EventsFocus.cpp
-	src/events/Shortcuts.cpp)
+	src/events/Shortcuts.cpp
+	src/events/KeyNotation.cpp)
 target_include_directories(affrescoui_format PRIVATE src/events)
 # src/steps/: the registry and the step groups
 target_sources(affrescoui_format PRIVATE
@@ -110,11 +120,15 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/ReviewSteps.cpp
 	src/steps/EditorSteps.cpp
 	src/steps/NavigationSteps.cpp
+	src/steps/KeySteps.cpp
 	src/steps/TimeSteps.cpp
 	src/steps/OtherSteps.cpp
 	src/steps/ServiceSteps.cpp
 	src/steps/SceneSteps.cpp
-	src/steps/FolderSteps.cpp)
+	src/steps/FolderSteps.cpp
+	src/steps/FileSteps.cpp
+	src/steps/ExportSteps.cpp)
+target_link_libraries(affrescoui_format PRIVATE affrescoui::export) # the export step's PDF
 target_include_directories(affrescoui_format PRIVATE src/steps)
 # src/calls/: asynchronous and service calls
 target_sources(affrescoui_format PRIVATE
@@ -138,26 +152,31 @@ target_include_directories(affrescoui_format PRIVATE src/languages)
 # controls: the form controls: toggle, slider, calendar, code input, carousel
 target_sources(affrescoui_format PRIVATE src/controls/ToggleType.cpp src/controls/SliderType.cpp
 	src/controls/CalendarType.cpp src/controls/CodeInputType.cpp src/controls/CarouselType.cpp)
-# components: the built-in components, made of other nodes
-target_sources(affrescoui_format PRIVATE src/components/BuiltInComponents.cpp src/components/BuiltInFormComponents.cpp
-	src/components/KitTokens.cpp src/components/KitBars.cpp
-	src/components/KitOverlays.cpp
-	src/components/KitControls.cpp
-	src/components/KitDock.cpp
-	src/components/KitPanels.cpp
-	src/components/BuiltInChatComponents.cpp)
+# components: the lookup of the components and tokens a document uses without defining them, in the installed
+# ComponentLibrary (core); the kits and themes themselves are modules/themes, which the format never links
+target_sources(affrescoui_format PRIVATE src/components/Library.cpp)
 # creative: the creative types (colour picker, gradient, curves, canvas, graph, timeline, path) and their values
 target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/creative/GradientType.cpp
 	src/creative/CurvesType.cpp src/creative/CreativeValues.cpp src/creative/CanvasType.cpp src/creative/GraphType.cpp
 	src/creative/TimelineType.cpp src/creative/PathType.cpp src/creative/SceneType.cpp)
+# terminal: the `terminal` node and steps: VT terminals (libvterm, compiled in, two of its sources fixed:
+# cmake/AffrescoUITerminal.cmake) whose programs run on a pty service
+target_sources(affrescoui_format PRIVATE src/terminal/TerminalModel.cpp src/terminal/TerminalSessions.cpp
+	src/terminal/TerminalView.cpp src/terminal/TerminalType.cpp src/terminal/TerminalSteps.cpp
+	${AFFRESCOUI_VTERM_SOURCES})
+target_include_directories(affrescoui_format PRIVATE src/terminal)
+target_include_directories(affrescoui_format SYSTEM PRIVATE ${AFFRESCOUI_VTERM_DIR}/include)
+# libvterm's warnings are not ours to fix; the fixed copies include its internal header
+set_source_files_properties(${AFFRESCOUI_VTERM_SOURCES} PROPERTIES COMPILE_OPTIONS $<IF:$<C_COMPILER_ID:MSVC>,/w,-w>
+	SKIP_LINTING ON INCLUDE_DIRECTORIES ${AFFRESCOUI_VTERM_DIR}/src)
 # scene: the 3D scene node and its camera step
 target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
 # imaging: the images a screen edits ("images" section, "image" step, "raster" node): the store, the tools, the
 # operations, the publisher and the view
 target_sources(affrescoui_format PRIVATE src/imaging/ImageDocuments.cpp src/imaging/ImageOptions.cpp
 	src/imaging/ImagesSection.cpp src/imaging/ImageGestures.cpp src/imaging/ImageOperations.cpp
-	src/imaging/ImageFiles.cpp src/imaging/ImageLayers.cpp src/imaging/ImageEdits.cpp src/imaging/ImageView.cpp
-	src/imaging/ImageSteps.cpp src/imaging/ImagePublishing.cpp src/imaging/RasterView.cpp
+	src/imaging/ImageFiles.cpp src/imaging/ImageLayers.cpp src/imaging/ImageEdits.cpp src/imaging/ImageTransforms.cpp
+	src/imaging/ImageView.cpp src/imaging/ImageSteps.cpp src/imaging/ImagePublishing.cpp src/imaging/RasterView.cpp
 	src/imaging/RasterOverlays.cpp src/imaging/RasterType.cpp)
 target_link_libraries(affrescoui_format PRIVATE affrescoui::imaging)
 # audio: the sounds a screen plays ("audio" section, "audio" step), on the audio module if it is built
@@ -173,6 +192,8 @@ if(AFFRESCOUI_AUDIO)
 else()
 	target_sources(affrescoui_format PRIVATE src/audio/AudioPlayersNone.cpp)
 endif()
+# windows: the screen's other windows (the "windows" section) and the steps that open, close and fill them
+target_sources(affrescoui_format PRIVATE src/windows/SecondWindows.cpp src/windows/WindowSteps.cpp)
 # properties: the properties node types share: look, layout, accessibility, transform, text fields, icons, runs
 target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/CommonProperties.cpp
 	src/properties/PropertyValues.cpp src/properties/LayoutProperties.cpp src/properties/AccessibilityProperties.cpp
@@ -189,6 +210,8 @@ target_sources(affrescoui_format PRIVATE src/sections/Sections.cpp src/sections/
 # connections: connections (RFC 0003): their specs, their HTTP and socket calls, signing in and its steps
 target_sources(affrescoui_format PRIVATE src/connections/ConnectionSpec.cpp src/connections/Connections.cpp
 	src/connections/ConnectionAuth.cpp src/connections/AuthSteps.cpp)
+# app: apps' manifests (app.json) and the capabilities a screen uses
+target_sources(affrescoui_format PRIVATE src/app/App.cpp)
 # features: features (RFC 0004): manifests, catalogues, signatures, trusted publishers
 target_sources(affrescoui_format PRIVATE src/features/FeatureManifest.cpp src/features/FeatureCatalog.cpp
 	src/features/FeatureSignatures.cpp src/features/Features.cpp)
@@ -200,4 +223,5 @@ target_sources(affrescoui_format PRIVATE src/adapters/Layout.cpp src/adapters/A2
 	src/adapters/AdaptiveCards.cpp src/adapters/AdaptiveCardActions.cpp src/adapters/Adapters.cpp
 	src/adapters/AdapterMapping.cpp)
 target_include_directories(affrescoui_format PRIVATE src/types src/controls src/components src/creative src/properties
-	src/reference src/sections src/connections src/features src/composition src/adapters src/imaging src/audio)
+	src/reference src/sections src/connections src/features src/composition src/adapters src/imaging src/audio
+	src/windows)

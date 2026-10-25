@@ -34,7 +34,7 @@ function affrescoStart() {
 	}
 	window.Module = {
 		canvas: document.getElementById("canvas"),
-		arguments: screen === "" ? [] : ["/assets/" + folder + "/index.screen.json"],
+		arguments: screen === "" ? [] : ["/assets/" + folder], // the app's folder: the launcher opens its app.json
 		print: (text) => console.log(text),
 		printErr: (text) => console.warn(text),
 		setStatus: (text) => affrescoStatus(text || "Running."),

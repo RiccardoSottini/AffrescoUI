@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iterator>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -173,6 +174,30 @@ TEST_CASE("services: a call that ends, or fails, before its timeout leaves no ti
 	CHECK_FALSE(window->secondsToNextTimer());
 }
 
+TEST_CASE("services: a call replaced by a new one with its id ends without an error") {
+	const TemporaryFolder folder;
+	writeText(folder.path / "work" / "note.txt", "inside");
+	PumpedExecutor executor;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({"format": "affrescoui-screen", "version": 2,
+		"services": { "files": { "provider": "fs", "root": "work", "readOnly": true } },
+		"state": { "local": "" },
+		"actions": { "read": [{ "invoke": "files.read", "with": { "path": "note.txt" }, "id": "note",
+		                        "onDone": [{ "set": "state.local", "to": "{{result.text}}" }] }] },
+		"root": { "type": "label", "text": "" }})json");
+	std::vector<std::string> errors;
+	screen.onError([&errors](const std::string& message) { errors.push_back(message); });
+	screen.services().addRoot("work", folder.path / "work");
+	screen.setExecutor(&executor);
+	screen.build(*window);
+
+	screen.runAction("read", window->root());
+	screen.runAction("read", window->root()); // before the first one's answer: it cancels it
+	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/local") == "inside"; }));
+	CHECK(errors.empty());
+}
+
 TEST_CASE("services: inline, a call's result arrives before the action returns, as in a scripted run") {
 	const TemporaryFolder folder;
 	writeText(folder.path / "work" / "note.txt", "inside");
@@ -259,6 +284,34 @@ TEST_CASE("services: fs makes, moves, copies, describes and deletes entries, ins
 	CHECK(std::filesystem::exists(folder.path / "work" / "note.txt"));
 	CHECK(std::filesystem::exists(folder.path / "outside.txt"));
 }
+
+#ifndef _WIN32
+TEST_CASE("services: fs.write keeps a file's permissions but never its set-user or set-group bit") {
+	const TemporaryFolder folder;
+	const std::filesystem::path file = folder.path / "work" / "tool";
+	std::filesystem::create_directories(file.parent_path());
+	writeText(file, "old");
+	namespace fs = std::filesystem;
+	fs::permissions(file, fs::perms::owner_all | fs::perms::group_read | fs::perms::set_uid | fs::perms::set_gid);
+	PumpedExecutor executor;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"services": { "files": { "provider": "fs", "root": "work" } },
+		"actions": { "run": [{ "invoke": "files.write", "with": { "path": "tool", "text": "new" } }] },
+		"root": { "type": "label", "text": "" }
+	})json");
+	screen.services().addRoot("work", file.parent_path());
+	screen.services().setExecutor(&executor);
+	screen.services().setInline(true);
+	screen.build(*window);
+	screen.runAction("run", window->root());
+	std::ifstream in(file);
+	CHECK(std::string(std::istreambuf_iterator<char>(in), {}) == "new");
+	CHECK(fs::status(file).permissions() == (fs::perms::owner_all | fs::perms::group_read));
+}
+#endif
 
 TEST_CASE("services: Content-Length frames are read in pieces, and bounded") {
 	using affresco::services::FrameReader;
@@ -382,6 +435,17 @@ TEST_CASE("services: revisions use declared, revisable methods only; writes are 
 	CHECK(add(json::array({{{"invoke", "files.nothing"}}})).status == RevisionStatus::Rejected);
 	CHECK(add(json::array({{{"invoke", "{{state.text}}"}}})).status == RevisionStatus::Rejected);
 	CHECK(add(json::array({{{"respond", "yes"}}})).status == RevisionStatus::Rejected);
+
+	// A write the screen already has, its arguments changed (another path) or moved to another action: reviewed too
+	REQUIRE_FALSE(repository.accept(write.proposal, {"user", write.commit}));
+	const affresco::RevisionResult elsewhere =
+	    repository.submit({{"author", "agent"}, {"set", {{"/actions/go/0/with/path", "../other"}}}});
+	CHECK(elsewhere.status == RevisionStatus::Proposed);
+	CHECK(repository.submit({{"author", "agent"}, {"set", {{"/actions/go/0/into", "state.text"}}}}).status ==
+	      RevisionStatus::Applied); // where the result goes is the screen's own
+	const json go = repository.document()["actions"]["go"];
+	CHECK(repository.submit({{"author", "agent"}, {"add", {{"/actions/again", go}}}}).status ==
+	      RevisionStatus::Proposed);
 	CHECK(repository.submit({{"author", "agent"}, {"set", {{"/services/files/root", "elsewhere"}}}}).status ==
 	      RevisionStatus::Rejected);
 }

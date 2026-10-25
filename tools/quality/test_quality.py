@@ -11,6 +11,7 @@ import unittest
 import changes
 import coverage
 import functions
+import generalism
 import quality
 import tidy
 
@@ -281,6 +282,49 @@ class RulesFromTheBaseTest(ScratchRepository):
         self.write("tools/quality/coverage-baseline.json", "{}")
         self.assertEqual(quality.rule_file(self.root, "HEAD", "tools/quality/coverage-baseline.json"), "{}")
         self.assertIsNone(quality.rule_file(self.root, "HEAD", "tools/quality/missing.json"))
+
+
+class GeneralismTest(ScratchRepository):
+    """generalism.check on a scratch repository with one app, Atlas."""
+
+    ALLOW = {"ordinaryWords": ["notes"], "allowed": {}}
+
+    def findings(self, allow=None):
+        """The rules of the findings left, and the stale entries."""
+        left, stale = generalism.check(self.root, generalism.tracked(self.root), allow or self.ALLOW)
+        return sorted(finding[0] for finding in left), stale
+
+    def setUp(self):
+        super().setUp()
+        self.write("examples/atlas/app.json", '{"id": "atlas", "name": "Atlas"}')
+        self.write("examples/notes/app.json", '{"id": "notes", "name": "Notes"}')
+
+    def test_a_general_tree_has_no_finding(self):
+        self.write("modules/format/c.cpp", "// \"#ffffff\" in a comment; atlases and atlas-like are other words\n")
+        self.write("modules/themes/components/k.json", '{"components": {"card": {"node": {}}}}')
+        self.write("modules/screen/CMakeLists.txt", "target_link_libraries(s PUBLIC affrescoui::themes)\n")
+        self.write("modules/format/notes.cpp", "int notes = 0; // an ordinary word\n")
+        self.write("modules/format/README.md", "Atlas uses this module.\n")
+        self.write("modules/format/src/reference/Reference.cpp", "R\"({\"color\": \"#336699\"})\" // an example\n")
+        self.assertEqual(self.findings(), ([], []))
+
+    def test_each_rule_finds_its_place(self):
+        self.write("examples/atlas/Atlas.cpp", "")
+        self.write("CMakeLists.txt", "target_sources(affrescoui_launcher PRIVATE examples/atlas/Atlas.cpp)\n")
+        self.write("apps/host/host.cpp", "types.registerType(\"map\", make);\n")
+        self.write("modules/format/d.cpp", "if(app == \"atlas\") {}\nconst char* c = \"#ff0000\";\n")
+        self.write("modules/format/e.json", '{"components": {"card": {"node": {}}}}')
+        self.write("modules/net/CMakeLists.txt", "target_link_libraries(n PRIVATE affrescoui_themes)\n")
+        self.assertEqual(self.findings()[0], ["app-name", "host-registers-types", "host-sources", "links-themes",
+                                              "sources-in-examples", "theme-outside-themes", "theme-outside-themes"])
+
+    def test_the_allow_list_covers_a_place_and_fails_when_stale(self):
+        self.write("CMakeLists.txt", "target_sources(affrescoui_launcher PRIVATE examples/atlas/a.cpp)\n")
+        allow = {"allowed": {"host-sources": {"CMakeLists.txt: examples/atlas/a.cpp": "a leftover"},
+                             "app-name": {"modules/gone/": "moved out"}}}
+        self.assertEqual(self.findings(allow), ([], ["app-name: modules/gone/"]))
+        allow["allowed"]["host-sources"] = {"CMakeLists.txt: examples/other": "another"}
+        self.assertEqual(self.findings(allow)[0], ["host-sources"])
 
 
 if __name__ == "__main__":

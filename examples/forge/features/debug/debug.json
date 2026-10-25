@@ -2,12 +2,12 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's debugger: launch configurations from .forge/launch.json (forge.debug.launchConfigurations, a subset), a session with lldb-dap or debugpy through the dap service the host granted (Debug.cpp), breakpoints in the editor's gutter, the call stack, variables, watches and the debug console. Every request goes through debugRequest, which names the service by state.debug.type and runs the answer action with `body` and `context`; the adapter's events go to debugEvent. The actions that take the adapter's messages as events (debugApplySession, debugApplyEvent, debugApplyResponse) let a scenario or an agent drive the views without an adapter. What an adapter sends is bounded in the dap service; here the console keeps 2000 lines, the history 100 entries and the variables 5000 rows. The views are in debugViews.json.",
+	"note": "Forge's debugger: launch configurations read from .forge/launch.json through the files service (comments allowed: parseJsonc), the subset Forge runs made in debugReadConfigurations, a session with lldb-dap or debugpy through the dap service the host granted (Debug.cpp), breakpoints in the editor's gutter, the call stack, variables, watches and the debug console. Every request goes through debugRequest, which names the service by state.debug.type and runs the answer action with `body` and `context`; the adapter's events go to debugEvent. The actions that take the adapter's messages as events (debugApplySession, debugApplyEvent, debugApplyResponse) let a scenario or an agent drive the views without an adapter. What an adapter sends is bounded in the dap service; here the console keeps 2000 lines, the history 100 entries and the variables 5000 rows. The views are in debugViews.json.",
 
 	"services": {
 		"debugLldb": { "provider": "dap", "process": "lldb-dap", "root": "workspace", "restart": { "after": 0, "times": 100 } },
-		"debugPython": { "provider": "dap", "process": "debugpy", "root": "workspace", "restart": { "after": 0, "times": 100 } },
-		"debugTerminal": { "provider": "pty", "process": "shell", "root": "workspace" }
+		"debugPython": { "provider": "dap", "process": "debugpy-adapter", "root": "workspace", "restart": { "after": 0, "times": 100 } },
+		"debugTerminal": { "provider": "pty", "process": "sh", "root": "workspace" }
 	},
 
 	"state": {
@@ -19,7 +19,7 @@
 			"variables": [], "selectedVariable": null,
 			"watches": [], "watchNext": 1, "watchDraft": "", "selectedWatch": null,
 			"console": [], "consoleNext": 1, "input": "", "history": [], "historyAt": 0, "completions": [],
-			"breakpoints": [], "breakpointNext": 1, "selectedBreakpoint": null,
+			"breakpoints": [], "breakpointNext": 1, "selectedBreakpoint": null, "collapsed": [],
 			"edit": { "open": false, "id": "", "condition": "", "hitCondition": "", "logMessage": "" },
 			"setValue": { "open": false, "path": "", "name": "", "value": "" },
 			"outside": { "open": false, "frame": null },
@@ -45,16 +45,32 @@
 			       { "if": "{{state.sideView == 'debug' && state.debug.status == 'inactive'}}", "then": [{ "run": "debugLoadConfigurations" }] }] },
 		"debugLoadConfigurations": { "title": "Reload Launch Configurations", "category": "Debug", "icon": "refresh-cw",
 			"description": "Read the open folder's .forge/launch.json again.",
-			"do": [{ "call": "forge.debug.launchConfigurations",
-				"onError": [{ "set": "state.debug.error", "to": "{{'Cannot read .forge/launch.json: ' + error}}" }],
-				"then": [{ "run": "debugApplyConfigurations", "with": { "found": "{{result}}" } }] }] },
+			"do": [{ "if": "{{empty(state.folder.root)}}",
+				"then": [{ "run": "debugApplyConfigurations", "with": { "found": { "configurations": [], "skipped": 0 } } }],
+				"else": [{ "invoke": "files.read", "with": { "path": ".forge/launch.json" },
+					"onError": [{ "if": "{{error.code == 'notFound'}}",
+						"then": [{ "run": "debugApplyConfigurations", "with": { "found": { "configurations": [], "skipped": 0 } } }],
+						"else": [{ "set": "state.debug.error", "to": "{{'Cannot read .forge/launch.json: ' + error.message}}" }] }],
+					"onDone": [{ "run": "debugReadLaunchFile", "with": { "launch": "{{parseJsonc(result.text)}}" } }] }] }] },
+		"debugReadLaunchFile": [
+			{ "if": "{{launch == null}}",
+			  "then": [{ "set": "state.debug.error", "to": "Cannot read .forge/launch.json: it isn't JSON" }],
+			  "else": [{ "run": "debugReadConfigurations", "with": { "listed": "{{type(launch) == 'object' && type(launch.configurations) == 'list' ? launch.configurations : []}}" } }] }
+		],
+		"debugReadConfigurations": [{ "note": "The configurations Forge runs: type lldb (or lldb-dap) or python (or debugpy), request launch (with a program) or attach (debugpy to a local port, lldb to a process id); of the rest only program, cwd, stopOnEntry, args, env and console are passed on, each checked and bounded. The first 100 are kept, the others counted as skipped." },
+			{ "run": "debugMakeConfigurations", "with": { "total": "{{length(listed)}}",
+				"known": "{{filter(map(filter(listed, type(it) == 'object'), {c: it, request: it.request, adapter: it.type == 'lldb' || it.type == 'lldb-dap' ? 'lldb' : it.type == 'python' || it.type == 'debugpy' ? 'python' : null, port: it.port ?? (type(it.connect) == 'object' ? it.connect.port : null), terminal: it.console == 'integratedTerminal' || it.console == 'externalTerminal'}), it.adapter != null && (it.request == 'launch' || it.request == 'attach'))}}" } }],
+		"debugMakeConfigurations": [{ "run": "debugKeepConfigurations", "with": { "total": "{{total}}",
+			"kept": "{{filter(map(known, (it.request == 'launch' ? type(it.c.program) == 'string' && length(it.c.program) <= 4096 : it.adapter == 'python' ? type(it.port) == 'number' && round(it.port) == it.port && it.port >= 1 && it.port <= 65535 : type(it.c.pid) == 'number' && round(it.c.pid) == it.c.pid && it.c.pid > 0) ? {name: type(it.c.name) == 'string' && it.c.name != '' && length(it.c.name) <= 200 ? it.c.name : it.adapter + ' ' + it.request, type: it.adapter, request: it.request, arguments: merge(type(it.c.program) == 'string' && length(it.c.program) <= 4096 ? {program: it.c.program} : {}, type(it.c.cwd) == 'string' && length(it.c.cwd) <= 4096 ? {cwd: it.c.cwd} : {}, type(it.c.stopOnEntry) == 'boolean' ? {stopOnEntry: it.c.stopOnEntry} : {}, type(it.c.args) == 'list' ? {args: slice(filter(it.c.args, type(it) == 'string' && length(it) <= 4096), 0, 1000)} : {}, type(it.c.env) == 'object' ? {env: fromEntries(slice(filter(entries(it.c.env), type(it.value) == 'string' && length(it.value) <= 4096), 0, 1000))} : {}, type(it.c.console) != 'string' ? {} : it.adapter == 'python' ? {console: it.terminal ? 'integratedTerminal' : 'internalConsole'} : it.terminal ? {runInTerminal: true} : {}, it.request != 'attach' ? {} : it.adapter == 'python' ? {connect: {host: '127.0.0.1', port: it.port}} : {pid: it.c.pid})} : null), it != null)}}" } }],
+		"debugKeepConfigurations": [{ "run": "debugApplyConfigurations", "with": {
+			"found": "{{ {configurations: slice(kept, 0, 100), skipped: total - min(length(kept), 100)} }}" } }],
 		"debugApplyConfigurations": [
 			{ "set": "state.debug.configurations", "to": "{{found.configurations ?? []}}" },
 			{ "set": "state.debug.skipped", "to": "{{found.skipped ?? 0}}" },
 			{ "set": "state.debug.error", "to": "" },
 			{ "if": "{{number(state.debug.selected) >= length(state.debug.configurations)}}", "then": [{ "set": "state.debug.selected", "to": "0" }] }
 		],
-		"debugApplyLaunchFile": [{ "run": "debugApplyConfigurations", "with": { "found": "{{event}}" } }],
+		"debugApplyLaunchFile": [{ "run": "debugReadLaunchFile", "with": { "launch": "{{event}}" } }],
 
 		"debugContinueOrStart": { "title": "Start Debugging or Continue", "category": "Debug", "icon": "play",
 			"do": [{ "if": "{{state.debug.status == 'stopped'}}", "then": [{ "run": "debugContinue" }],
@@ -395,6 +411,10 @@
 				{ "run": "debugRefreshWatches" }
 			  ] }
 		],
+		"debugToggleSection": [
+			{ "note": "section: variables, watch, stack or breakpoints. Collapses it, or expands it again" },
+			{ "set": "state.debug.collapsed", "to": "{{contains(state.debug.collapsed, section) ? filter(state.debug.collapsed, it != section) : concat(state.debug.collapsed, [section])}}" }
+		],
 		"debugRemoveWatch": [
 			{ "set": "state.debug.watches", "to": "{{filter(state.debug.watches, it.id != state.debug.selectedWatch)}}" }
 		],
@@ -548,22 +568,27 @@
 
 		"debugLldb:runInTerminal": [{ "run": "debugRunInTerminal" }],
 		"debugPython:runInTerminal": [{ "run": "debugRunInTerminal" }],
-		"debugRunInTerminal": [
-			{ "call": "forge.debug.commandLine", "with": { "cwd": "{{event.cwd ?? ''}}", "args": "{{event.args ?? []}}", "env": "{{event.env ?? {} }}" },
-			  "onError": [{ "respond": null, "error": "{{error}}" }],
-			  "then": [
+		"debugRunInTerminal": [{ "note": "The adapter's runInTerminal: its program runs on the debug terminal, started in its cwd (the pty service keeps it inside the folder), as `exec` and the line shellLine() quotes (null if a word isn't plain text or the line is too long), typed into the POSIX shell `sh`, never the person's login shell, which may be one (fish, csh, cmd.exe) where single quotes don't protect a word." },
+			{ "run": "debugRunLine", "with": {
+				"named": "{{type(event.args) == 'list' && !empty(event.args)}}",
+				"line": "{{type(event.args) == 'list' ? shellLine(event.args, type(event.env) == 'object' ? event.env : null) : null}}",
+				"folder": "{{type(event.cwd) == 'string' ? event.cwd : ''}}" } }],
+		"debugRunLine": [
+			{ "if": "{{!named}}", "then": [{ "respond": null, "error": "the adapter named no program to run" }],
+			  "else": [{ "if": "{{line == null}}", "then": [{ "respond": null, "error": "the adapter's command line is not plain text, or is too long" }],
+			  "else": [
 				{ "set": "state.debug.terminalSent", "to": false },
-				{ "invoke": "debugTerminal.open", "id": "debug-terminal", "timeout": 600000, "with": { "cols": 120, "rows": 30 },
+				{ "invoke": "debugTerminal.open", "id": "debug-terminal", "timeout": 600000, "with": { "cols": 120, "rows": 30, "folder": "{{folder}}" },
 				  "onEvent": [
 					{ "if": "{{event.session != null && !state.debug.terminalSent}}",
 					  "then": [{ "set": "state.debug.terminalSent", "to": true },
-					           { "invoke": "debugTerminal.write", "with": { "session": "{{event.session}}", "data": "{{result.line + '\n'}}" },
+					           { "invoke": "debugTerminal.write", "with": { "session": "{{event.session}}", "data": "{{'exec ' + line + '\n'}}" },
 					             "onError": [{ "respond": null, "error": "{{error.message}}" }],
 					             "onDone": [{ "respond": {} }] }] },
 					{ "if": "{{event.data != null}}", "then": [{ "run": "debugOutput", "with": { "body": "{{ {category: 'stdout', output: event.data} }}" } }] }
 				  ],
 				  "onError": [{ "if": "{{!state.debug.terminalSent}}", "then": [{ "respond": null, "error": "{{error.message}}" }] }] }
-			  ] }
+			  ] }] }
 		]
 	},
 

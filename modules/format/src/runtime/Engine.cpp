@@ -41,12 +41,14 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		const json coordination = versions.coordination();
 		return coordination.contains("peers") ? coordination["peers"] : json::array();
 	});
+	document.addVariable("windows", [this] { return otherWindows.status(); }); // {main: {fullscreen}, name: {open, ..}}
 	peersChanged = versions.onReviewChanged.connect([this] { proposalsChanged(); });
 }
 
 Engine::~Engine() {
 	versions.onReviewChanged.disconnect(peersChanged);
 	detachImageDocuments(*this);
+	terminals->forget();
 }
 
 void Engine::documentChanged() {
@@ -56,6 +58,7 @@ void Engine::documentChanged() {
 	document.bumpStateVersion(); // a revision may change the state too
 	serviceCalls.load();         // a restore may change the services or the connections
 	audio.documentChanged();     // and the sounds, through an include or a feature
+	otherWindows.documentChanged(); // and the other windows
 	reconciler.reconcile();
 }
 
@@ -70,8 +73,9 @@ void Engine::report(const std::string& message) {
 }
 
 void Engine::reportRefused(const std::string& message) {
-	static constexpr std::array<std::string_view, 3> chosenByTheHost{
-	    "the host allows", "the host gives this screen no network", "isn't a host this app may connect to"};
+	static constexpr std::array<std::string_view, 4> chosenByTheHost{
+	    "the host allows", "the host gives this screen no network", "isn't a host this app may connect to",
+	    "the host doesn't let this screen"};
 	if(std::ranges::any_of(chosenByTheHost, [&](std::string_view part) { return message.contains(part); }))
 		log(LogLevel::Info, message);
 	else report(message);

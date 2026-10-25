@@ -47,11 +47,47 @@ void allowEndpoint(net::Client& client, std::string_view userinfo) {
 	if(const auto refused = client.check(userinfo)) throw std::runtime_error("--userinfo: " + *refused);
 }
 
+/// @brief The subject of an introspection answer (RFC 7662), if the token is active and was issued to the client.
+/// @param answer The answer.
+/// @param client The server's client id.
+/// @return The subject ("sub"), or std::nullopt.
+std::optional<std::string> introspectedSubject(const json& answer, const std::string& client) {
+	if(!answer.is_object() || answer.value("active", json()) != json(true)) return std::nullopt;
+	const json audience = answer.value("aud", json());
+	const bool forUs = answer.value("client_id", json()) == json(client) || audience == json(client) ||
+	                   (audience.is_array() && std::ranges::find(audience, json(client)) != audience.end());
+	const json subject = answer.value("sub", json());
+	return forUs && subject.is_string() ? std::optional<std::string>(subject.get<std::string>()) : std::nullopt;
+}
+
 } // namespace
 
+IntrospectionClient readIntrospectionClient(const std::filesystem::path& file) {
+	namespace fs = std::filesystem;
+	std::error_code error;
+	[[maybe_unused]] const fs::perms permissions = fs::status(file, error).permissions();
+	if(error) throw std::runtime_error("can't read the client file " + file.string());
+#ifndef _WIN32
+	if((permissions & (fs::perms::group_all | fs::perms::others_all)) != fs::perms::none)
+		throw std::runtime_error("the client file " + file.string() +
+		                         " holds a secret: make it readable by its owner "
+		                         "only (chmod 600)");
+#endif
+	std::ifstream in(file);
+	std::string line;
+	std::getline(in, line);
+	if(line.ends_with('\r')) line.pop_back();
+	const std::size_t space = line.find(' ');
+	IntrospectionClient client;
+	if(space != std::string::npos) client = {line.substr(0, space), line.substr(space + 1)};
+	if(!validSubject(client.id) || !validSubject(client.secret))
+		throw std::runtime_error("the client file " + file.string() + " isn't one line \"<client id> <secret>\"");
+	return client;
+}
+
 UserInfoVerifier::UserInfoVerifier(std::string_view userinfo, const std::filesystem::path& people,
-                                   net::ClientOptions options)
-    : userinfo_(userinfo), executor_(std::make_unique<Inline>()),
+                                   net::ClientOptions options, std::optional<IntrospectionClient> introspection)
+    : userinfo_(userinfo), introspection_(std::move(introspection)), executor_(std::make_unique<Inline>()),
       client_(std::make_unique<net::Client>(*executor_, std::move(options))) {
 	allowEndpoint(*client_, userinfo);
 	std::ifstream file(people);
@@ -94,11 +130,20 @@ std::optional<std::string> UserInfoVerifier::ask(std::string_view token) {
 	network::Request request;
 	request.url = userinfo_;
 	request.headers = {{"Authorization", "Bearer " + std::string(token)}, {"Accept", "application/json"}};
+	if(introspection_) {
+		request.method = "POST";
+		request.headers = {{"Content-Type", "application/x-www-form-urlencoded"}, {"Accept", "application/json"}};
+		request.body = "token=" + net::encodeQueryPart(token) +
+		               "&token_type_hint=access_token&client_id=" + net::encodeQueryPart(introspection_->id) +
+		               "&client_secret=" + net::encodeQueryPart(introspection_->secret);
+	}
 	request.timeout = timeout;
 	request.maxBodyBytes = maxAnswerBytes;
 	network::Handlers handlers;
-	handlers.done = [answer](const network::Response& response) {
+	handlers.done = [answer, client = introspection_ ? std::optional(introspection_->id)
+	                                                 : std::nullopt](const network::Response& response) {
 		const json body = json::parse(response.body, nullptr, false);
+		if(client) return answer->set_value(introspectedSubject(body, *client));
 		const auto subject = body.is_object() ? body.find("sub") : body.end();
 		answer->set_value(body.is_object() && subject != body.end() && subject->is_string()
 		                      ? std::optional<std::string>(subject->get<std::string>())

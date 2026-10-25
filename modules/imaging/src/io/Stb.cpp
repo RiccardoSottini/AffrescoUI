@@ -93,21 +93,16 @@ std::optional<Decoded> decode(std::span<const std::uint8_t> file, const Header& 
 	growthLimit = (pixels + static_cast<std::size_t>(header.height)) * 8 + (std::size_t{1} << 20);
 	Decoded decoded;
 	int channels = 0;
-	if(header.sixteenBit) {
-		stbi_us* data =
-		    stbi_load_16_from_memory(file.data(), *length, &decoded.width, &decoded.height, &channels, STBI_rgb_alpha);
-		const bool same = data != nullptr && decoded.width == header.width && decoded.height == header.height;
-		if(same) decoded.bytes16.assign(data, data + pixels * 4); // only as many pixels as were decoded
-		stbi_image_free(data);
-		if(!same) return std::nullopt;
-	} else {
-		stbi_uc* data =
-		    stbi_load_from_memory(file.data(), *length, &decoded.width, &decoded.height, &channels, STBI_rgb_alpha);
-		const bool same = data != nullptr && decoded.width == header.width && decoded.height == header.height;
-		if(same) decoded.bytes8.assign(data, data + pixels * 4);
-		stbi_image_free(data);
-		if(!same) return std::nullopt;
-	}
+	void* data = header.sixteenBit ? static_cast<void*>(stbi_load_16_from_memory(file.data(), *length, &decoded.width,
+	                                                                             &decoded.height, &channels, 4))
+	                               : static_cast<void*>(stbi_load_from_memory(file.data(), *length, &decoded.width,
+	                                                                          &decoded.height, &channels, 4));
+	growthLimit = 0;
+	decoded.buffer = std::shared_ptr<const void>(data, [](void* buffer) { stbi_image_free(buffer); });
+	if(data == nullptr || decoded.width != header.width || decoded.height != header.height) return std::nullopt;
+	if(header.sixteenBit) // only as many pixels as were decoded
+		decoded.bytes16 = {static_cast<const std::uint16_t*>(data), pixels * 4};
+	else decoded.bytes8 = {static_cast<const std::uint8_t*>(data), pixels * 4};
 	return decoded;
 }
 

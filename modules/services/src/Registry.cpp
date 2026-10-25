@@ -209,6 +209,7 @@ ServiceRegistry::ServiceRegistry() {
 	add(makeJsonRpcProvider());
 	add(makeWatchProvider());
 	add(makePtyProvider());
+	add(makeLspProvider());
 #endif
 	add(makeSearchProvider());
 	add(makeDapProvider());
@@ -246,7 +247,11 @@ void ServiceRegistry::allowProcess(std::string name, ProcessGrant grant) {
 
 void ServiceRegistry::allowAttach(std::uint16_t port) { attachPorts_.insert(port); }
 
-void ServiceRegistry::allowChosenRoot(std::string name) { choosableRoots_.insert(std::move(name)); }
+void ServiceRegistry::allowChosenRoot(std::string name, bool readOnly) {
+	if(readOnly) readOnlyRoots_.insert(name);
+	else readOnlyRoots_.erase(name);
+	choosableRoots_.insert(std::move(name));
+}
 
 bool ServiceRegistry::choosable(std::string_view root) const { return choosableRoots_.contains(root); }
 
@@ -330,7 +335,7 @@ std::unique_ptr<ServiceRegistry::Entry> ServiceRegistry::declare(const std::stri
 		return refuse(place + ".root: no folder chosen yet");
 	}
 	if(auto problem = resolve(name, entry->configuration, entry->grant)) return refuse(*problem);
-	// A read-only root binds the providers that only read it; the others (process, pty, jsonrpc, dap) run programs
+	// A read-only root binds the providers that only read it; the others (process, pty, jsonrpc, dap, lsp) run programs
 	// there, which could write, so they can't use it
 	const std::string_view provider = entry->provider->name();
 	if(entry->grant.rootReadOnly && provider != "fs" && provider != "watch" && provider != "search")
