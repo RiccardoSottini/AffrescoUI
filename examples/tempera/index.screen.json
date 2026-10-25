@@ -174,6 +174,8 @@
 		"colourTarget": "foreground",
 		"screenMode": "standard",
 		"layerFilter": { "on": false, "kinds": [] },
+		"foldedGroups": [],
+		"grouping": "",
 		"props": { "transform": true, "align": true, "actions": true },
 		"quickPick": { "open": false, "query": "", "index": 0, "top": 0, "recent": [] },
 		"cropMenu": false,

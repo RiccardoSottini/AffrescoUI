@@ -7,7 +7,9 @@
 	"computed": {
 		"adjustment": "{{computed.activeLayer.adjustment}}",
 		"box": "{{state.doc.selection ? state.doc.bounds : [0, 0, state.doc.width, state.doc.height]}}",
-		"layerRows": "{{state.layerFilter.on && !empty(state.layerFilter.kinds) ? filter(state.doc.layers, contains(state.layerFilter.kinds, it.kind)) : state.doc.layers}}",
+		"layerFolded": "{{map(scan(state.doc.layers, acc.cut < it.depth ? {cut: acc.cut, hide: true} : {cut: it.kind == 'group' && contains(state.foldedGroups, it.id) ? it.depth : 999, hide: false}, {cut: 999, hide: false}), it.hide)}}",
+		"layerShown": "{{filter(state.doc.layers, !computed.layerFolded[index])}}",
+		"layerRows": "{{state.layerFilter.on && !empty(state.layerFilter.kinds) ? filter(computed.layerShown, contains(state.layerFilter.kinds, it.kind)) : computed.layerShown}}",
 		"adjustmentKind": "{{computed.activeLayer.adjustment.kind ?? ''}}",
 		"filterTitle": "{{find(state.filters, it.id == state.filter.kind).title ?? 'Filter'}}",
 		"blendTitle": "{{join(map(split(computed.activeLayer.blend ?? 'normal', '-'), upper(slice(it, 0, 1)) + slice(it, 1)), ' ')}}"
@@ -389,7 +391,10 @@
 							  "icon": "{{layer.visible ? 'eye' : ''}}", "width": 28, "height": 36, "align": "center", "cursor": "hand", "textColor": "@text",
 							  "onClick": { "run": "setLayer", "with": { "args": { "id": "{{layer.id}}", "visible": "{{!layer.visible}}" } } } },
 							{ "style": "clear", "width": "{{layer.depth * 14}}", "height": 1 },
-							{ "type": "label", "when": "{{layer.kind == 'group'}}", "icon": "chevron-down", "textColor": "@muted", "width": 12 },
+							{ "type": "label", "id": "layer-fold-{{layer.id}}", "when": "{{layer.kind == 'group'}}", "role": "button", "focusable": true,
+							  "label": "{{contains(state.foldedGroups, layer.id) ? 'Open' : 'Close'}} {{layer.name}}", "isOpen": "{{!contains(state.foldedGroups, layer.id)}}",
+							  "icon": "{{contains(state.foldedGroups, layer.id) ? 'chevron-right' : 'chevron-down'}}", "textColor": "@muted", "width": 12, "height": 36,
+							  "cursor": "hand", "onClick": { "run": "foldGroup", "with": { "args": { "id": "{{layer.id}}" } } } },
 							{ "type": "label", "id": "layer-clip-{{layer.id}}", "when": "{{layer.clipped}}", "icon": "corner-left-down", "textColor": "@muted",
 							  "width": 14, "tooltip": "Clipped to the layer below" },
 							{ "type": "image", "id": "layer-thumb-{{layer.id}}", "when": "{{!empty(layer.thumbnail)}}", "source": "{{layer.thumbnail}}",

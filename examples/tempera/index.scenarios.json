@@ -3700,6 +3700,137 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-fold-group",
+			"note": "Group Layers puts the active layer in a group, whose chevron folds and opens it; Ungroup takes its layers out again",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Layer 7"
+					}
+				},
+				{
+					"key": "mod+g"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "group"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Layer 7"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].depth",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Group 1"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Close Group 1"
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "listitem",
+							"name": "Layer 7"
+						},
+						"exists": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Open Group 1"
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "listitem",
+							"name": "Layer 7"
+						},
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Layer 7"
+					}
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Layer 10"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].depth",
+						"is": 1
+					}
+				},
+				{
+					"click": {
+						"role": "listitem",
+						"name": "Group 1"
+					}
+				},
+				{
+					"key": "mod+shift+g"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Layer 10"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].depth",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Layer 7"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].depth",
+						"is": 0
+					}
+				}
+			]
 		}
 	]
 }

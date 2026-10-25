@@ -37,7 +37,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | --- | --- | --- |
 | Layers: thumbnails, eye, locks, blend mode, opacity and fill | partial | Fill shown, not editable; transparency and artboard locks disabled; the bottom layer isn't a locked Background |
 | Layers: filter by kind | partial | Pixel, adjustment and group filters; type and shape layers don't exist yet |
-| Layers: groups with disclosure, masks with link, adjustment layers, fx | partial | Disclosure isn't clickable; no fx |
+| Layers: groups with disclosure, masks with link, adjustment layers, fx | partial | Group Layers (Cmd+G) and Ungroup (Shift+Cmd+G); the chevron folds a group; no fx |
 | Layers: bottom buttons link, fx, mask, adjustment, group, new, delete | partial | Link and fx disabled |
 | Properties (context-sensitive) | partial | Transform (W, H, X, Y, angle, flips) and Align edit the active pixel layer; Quick Actions; adjustment controls; no Distribute |
 | Adjustments (icon grid) | done | |
