@@ -64,6 +64,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `language_tokenizer` | Text in one of the languages in `examples/shared/languages` (the first byte picks it), tokenized line by line (`format/src/languages/LanguageTokenizer.hpp`) | Within the limits, each token inside its line and in its language's scopes; a line tokenized again from the same start gives the same tokens |
 | `icc` | An ICC profile's bytes (`affresco/imaging/Color.hpp`), as any PNG, JPEG or project opened may embed | A usable profile that converts a few pixels and a table to sRGB (proofed when CMYK), or a `DocumentError`; never a read past its bytes |
 | `tempera_project` | An image editor project file's bytes (`affresco/imaging/Project.hpp`) | A `DocumentError`, or a document whose every tile reads and which saves and loads again within the limits |
+| `image_file` | A PNG or JPEG file's bytes, as the image editor and the `image` step open them (`affresco/imaging/Codec.hpp`), within small limits (512 KiB, 512 on a side, 65,536 pixels): a revision can bring any file as an asset | A decoded image within the limits, or a `DocumentError` |
 
 ## Inventory of untrusted inputs
 
