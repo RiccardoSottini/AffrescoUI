@@ -18,6 +18,7 @@
 #include <fstream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <sstream>
 #include <string_view>
 
@@ -59,18 +60,29 @@ std::filesystem::path platformDataDirectory() {
 #endif
 }
 
+constexpr std::uintmax_t maxIncludeBytes = 16U << 20; ///< An included file, at most 16 MiB.
+
 /// @brief Reads an included file.
 /// @param path The file.
 /// @return Its JSON object.
-/// @throws ScreenError If it can't be read, isn't a JSON object, or nests too deeply.
+/// @throws ScreenError If it can't be read, isn't a plain file of at most 16 MiB, isn't a JSON object, or nests too
+/// deeply.
 json readInclude(const std::filesystem::path& path) {
-	const std::ifstream file(path);
+	std::error_code error;
+	if(!std::filesystem::is_regular_file(path, error)) // a device or a pipe would read without end
+		throw ScreenError("AffrescoUI screen: include: " + path.string() + " is not a file");
+	if(std::filesystem::file_size(path, error) > maxIncludeBytes || error)
+		throw ScreenError("AffrescoUI screen: include: " + path.string() + " is over 16 MiB");
+	std::ifstream file(path, std::ios::binary);
 	if(!file) throw ScreenError("AffrescoUI screen: include: could not open " + path.string());
-	std::stringstream text;
-	text << file.rdbuf();
+	std::string text(maxIncludeBytes + 1, '\0'); // one more, so a file that grew is refused too
+	file.read(text.data(), static_cast<std::streamsize>(text.size()));
+	text.resize(static_cast<std::size_t>(file.gcount()));
+	if(text.size() > maxIncludeBytes)
+		throw ScreenError("AffrescoUI screen: include: " + path.string() + " is over 16 MiB");
 	json part;
 	try {
-		part = parseUntrusted(text.str());
+		part = parseUntrusted(text);
 	} catch(const json::parse_error&) { // NOLINT(bugprone-empty-catch): reported below, as not a JSON object
 	} catch(const DocumentError& deep) {
 		throw ScreenError("AffrescoUI screen: include: " + path.string() + ": " + deep.what());
@@ -130,6 +142,22 @@ void mergeInclude(json& document, const json& part) {
 	}
 }
 
+/// @brief Checks that an include is inside one of the folders allowed, once links are resolved.
+/// @param path The include.
+/// @param roots The folders, canonical; none for anywhere.
+/// @throws ScreenError If it is outside them.
+void checkInside(const std::filesystem::path& path, std::span<const std::filesystem::path> roots) {
+	if(roots.empty()) return;
+	std::error_code error;
+	const std::filesystem::path file = std::filesystem::canonical(path, error);
+	const auto within = [&](const std::filesystem::path& root) {
+		return !error && std::ranges::mismatch(root, file).in1 == root.end();
+	};
+	if(std::ranges::none_of(roots, within))
+		throw ScreenError("AffrescoUI screen: include: " + path.string() +
+		                  " is outside the app's folder and the shared folder beside it");
+}
+
 } // namespace
 
 namespace detail {
@@ -141,7 +169,8 @@ namespace detail {
 /// @param migrated Set if one of them was written for version 1, and migrated (Migrate.hpp).
 /// @param depth Includes inside includes so far.
 /// @throws ScreenError If an include can't be read.
-void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated, int depth) {
+void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated,
+                     std::span<const std::filesystem::path> roots, int depth) {
 	if(!document.is_object() || !document.contains("include")) return;
 	if(depth > 8) throw ScreenError("AffrescoUI screen: include: nested too deeply (a file includes itself?)");
 	const json includes = document["include"].is_string() ? json::array({document["include"]}) : document["include"];
@@ -151,9 +180,10 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 	for(const json& name : includes) {
 		if(!name.is_string()) throw ScreenError("AffrescoUI screen: include: expected file names");
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
+		checkInside(path, roots);
 		json part = readInclude(path);
 		if(!format::migrate(part).empty()) migrated = true;
-		resolveIncludes(part, path.parent_path(), migrated, depth + 1);
+		resolveIncludes(part, path.parent_path(), migrated, roots, depth + 1);
 		mergeInclude(document, part);
 	}
 }
@@ -182,12 +212,16 @@ namespace detail {
 /// @param suffix What is kept: ".state.json" or ".history".
 /// @return In the data folder, the file's name without ".screen.json", then @p suffix: "habits.screen.json" gives
 /// "habits.history". A folder's index screen is named after its folder: "flow/index.screen.json" gives "flow.history".
+/// The name is the file's own while no other file has it (boundDataName(), recorded in "habits.location").
 std::filesystem::path stateLocation(const std::filesystem::path& dataDirectory, const std::filesystem::path& screenFile,
                                     std::string_view suffix) {
 	std::string name = screenFile.filename().string();
 	for(const char* extension : {".json", ".screen"})
 		if(name.ends_with(extension)) name.resize(name.size() - std::string_view(extension).size());
 	if(name == "index") name = folderName(screenFile).value_or(name);
+	if(!dataDirectory.empty())
+		name = boundDataName([&](const std::string& bound) { return dataDirectory / (bound + ".location"); }, name,
+		                     screenFile);
 	return dataDirectory / (name + std::string(suffix));
 }
 
@@ -212,7 +246,8 @@ namespace {
 /// @param baseDirectory Where its files are.
 /// @return The screen.
 Screen fromConverted(const format::adapters::Converted& converted, std::filesystem::path baseDirectory) {
-	for(const std::string& warning : converted.warnings) affresco::log(LogLevel::Warning, "AffrescoUI screen: " + warning);
+	for(const std::string& warning : converted.warnings)
+		affresco::log(LogLevel::Warning, "AffrescoUI screen: " + warning);
 	Screen screen = Screen::fromString(converted.screen.dump(), std::move(baseDirectory));
 	for(const json& revision : converted.revisions) {
 		std::string error;
@@ -253,7 +288,8 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(detail::stateLocation(dataDirectory, path, ".history"));
 	screen.setStateFile(detail::stateLocation(dataDirectory, path, ".state.json"));
-	screen.setDataFile(detail::stateLocation(dataDirectory, path, ".data.sqlite")); // after the state: they may import it
+	screen.setDataFile(
+	    detail::stateLocation(dataDirectory, path, ".data.sqlite")); // after the state: they may import it
 	screen.setUsageFile(detail::stateLocation(dataDirectory, path, ".usage.json"));
 	return screen;
 }
@@ -274,8 +310,9 @@ Screen Screen::fromString(std::string_view content, std::filesystem::path baseDi
 	bool migrated = !format::migrate(document).empty();
 	detail::resolveIncludes(document, baseDirectory, migrated);
 	if(migrated) // one notice for the screen and its parts: they work as they are, in memory
-		affresco::log(LogLevel::Info, "AffrescoUI screen: written for format version 1, read as version 2 (`affrescoui migrate "
-		                    "--write <files>` rewrites the files)");
+		affresco::log(LogLevel::Info,
+		              "AffrescoUI screen: written for format version 1, read as version 2 (`affrescoui migrate "
+		              "--write <files>` rewrites the files)");
 	return Screen(std::make_unique<Impl>(std::move(document), std::move(baseDirectory)));
 }
 
@@ -427,7 +464,7 @@ void Screen::runAction(std::string_view name, Panel& sender, std::string_view ev
 	} catch(const json::parse_error& error) {
 		throw ScreenError(std::string("AffrescoUI screen: runAction: invalid event JSON: ") + error.what());
 	}
-	impl_->runtime.runAction(name, sender, event);
+	impl_->runtime.runHostAction(name, sender, event);
 }
 
 Panel* Screen::find(std::string_view id) noexcept { return impl_->runtime.find(id); }

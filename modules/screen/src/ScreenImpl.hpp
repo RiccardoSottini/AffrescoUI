@@ -74,6 +74,7 @@ struct Screen::Impl {
 		std::string url;                 ///< A remote peer's ws:// or wss:// address instead of the socket, or "".
 		std::string token;               ///< The token for url, from the host (never from the document).
 		std::unique_ptr<Channel> remote; ///< While connected to url.
+		std::string refused;             ///< Why the socket may not be connected (confineChannels()), or "".
 	};
 
 	format::Features features;                           ///< Catalogues and publishers (RFC 0004); outlives the rest.
@@ -97,6 +98,8 @@ struct Screen::Impl {
 
 	Executor* executor = nullptr;                    ///< For channels (set by startChannels()).
 	std::filesystem::path socketDirectory;           ///< Where relative channel sockets are.
+	bool channelsAllowed = true;                     ///< Screen::allowChannels().
+	bool channelsConfined = false;                   ///< Screen::confineChannels().
 	std::map<std::string, DeclaredChannel> channels; ///< From "channels".
 	std::filesystem::path stateFile;                 ///< Where "persist" paths are kept.
 	json saved;                                      ///< What was last loaded or written there.
@@ -126,9 +129,16 @@ struct Screen::Impl {
 	/// @param event Its event.
 	void run(const std::string& action, const json& event);
 
-	/// @brief Connects a declared channel; on failure runs "<name>:closed" and tries again later if it should.
+	/// @brief Connects a declared channel; on failure runs "<name>:closed" and tries again later if it should (never
+	/// when it is refused).
 	/// @param channel The channel.
 	void open(DeclaredChannel& channel);
+
+	/// @brief Sets where a channel the file declares connects: its peer address, or its socket in the socket directory,
+	/// or why it is refused (Screen::allowChannels(), Screen::confineChannels()).
+	/// @param channel The channel.
+	/// @param address Its "socket".
+	void place(DeclaredChannel& channel, const std::string& address) const;
 
 	/// @brief Connects a declared channel to its socket or remote peer; on failure runs "<name>:closed".
 	/// @param channel The channel, with no connection.

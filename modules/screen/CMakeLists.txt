@@ -8,6 +8,7 @@ add_library(affrescoui
 	src/ScreenVersions.cpp
 	src/ScreenData.cpp
 	src/ScreenApp.cpp
+	src/DataBinding.cpp # whose data a name in the data folder is
 	src/Png.cpp
 	# pictures: drawing off screen, the evidence a proposal carries, and the inspector's picture of a screen
 	src/pictures/OffscreenImages.cpp

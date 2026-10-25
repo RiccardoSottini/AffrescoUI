@@ -115,8 +115,8 @@ public:
 	/// @return The screen, not yet built; app() is its manifest.
 	/// @throws ScreenError If the manifest or a file it names can't be read or isn't valid, a file it names is
 	/// outside its folder, or the entry screen can't be loaded.
-	[[nodiscard]] static Screen fromApp(const std::filesystem::path& location, const std::filesystem::path& dataDirectory,
-	                                    History history = History::OnDisk);
+	[[nodiscard]] static Screen fromApp(const std::filesystem::path& location,
+	                                    const std::filesystem::path& dataDirectory, History history = History::OnDisk);
 
 	/// @brief The app a screen file is the entry of: the app.json in its folder, if that names it as its entry.
 	/// @param screenFile The screen file.
@@ -130,6 +130,18 @@ public:
 	/// @return `<dataDirectory>/apps/<id>`.
 	[[nodiscard]] static std::filesystem::path appDataDirectory(const std::filesystem::path& dataDirectory,
 	                                                            std::string_view id);
+
+	/// @brief The folder the app at a place keeps the person's data in, and its host the person's decisions: an id is
+	/// the app's own choice, so it is bound to the first place that opens it (recorded in the folder's "location"),
+	/// and an app elsewhere with the same id gets a folder of its own, never the other's data or permissions.
+	/// @param dataDirectory The data folder.
+	/// @param id The app's id (format::AppManifest::id).
+	/// @param location The app's folder (or a bare screen file a host names by id).
+	/// @return `<dataDirectory>/apps/<id>` if it is this place's, else `<dataDirectory>/apps/<id>~<hash of the place>`.
+	/// @throws ScreenError If neither can be this place's.
+	[[nodiscard]] static std::filesystem::path appDataDirectory(const std::filesystem::path& dataDirectory,
+	                                                            std::string_view id,
+	                                                            const std::filesystem::path& location);
 
 	/// @brief The manifest of the app the screen was loaded from (fromApp()).
 	/// @return It, or nullptr for a screen loaded otherwise.
@@ -313,6 +325,21 @@ public:
 	/// @param directory The directory.
 	void setSocketDirectory(std::filesystem::path directory);
 
+	/// @brief Lets the file's "channels" connect, or not: a channel refused doesn't connect, and runs "C:closed" with
+	/// why. On by default; a host that asks the person (the stock host's "channels" capability) turns it off until
+	/// they allow it. Call it before startChannels().
+	/// @param allowed Whether they may.
+	void allowChannels(bool allowed);
+
+	/// @brief Keeps the file's "channels" sockets inside the socket directory (setSocketDirectory()), or not: a
+	/// confined socket path is relative, with no "..", "\\" or ":", and still inside the directory once links are
+	/// followed; any other is refused, as allowChannels() refuses. Off by default (a library screen is its embedder's
+	/// own); the stock host confines every screen it opens to its own socket folder, so that a screen reaches its own
+	/// host only, never another app's. Peer addresses (`wss://`) and connectChannel() aren't affected. Call it before
+	/// startChannels().
+	/// @param confined Whether they are.
+	void confineChannels(bool confined);
+
 	/// @brief Connects a declared channel somewhere else for this run, closing its connection first: a socket (as in
 	/// "channels"), or a remote peer's `wss://` address (`ws://` on the loopback) with the token its server's verifier
 	/// accepts. The token stays in memory, sent once as the connection's credentials: never in the document, the state
@@ -387,7 +414,8 @@ public:
 	/// @brief Forgets the usage counts (the consent stays).
 	void clearUsage();
 
-	/// @brief Runs an action as if a panel triggered it.
+	/// @brief Runs an action as if a panel triggered it, for the application's own code: what it starts counts as the
+	/// person's, as their press does (filling the display is one of them).
 	/// @param name The action (from the file, else native).
 	/// @param sender The panel it comes from.
 	/// @param eventJson Available to the action as "event".

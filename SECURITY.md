@@ -139,9 +139,10 @@ screens, actions, and the live state.
 - `persist`, what the screen writes to disk;
 - `services`, the local programs and folders the screen uses (and the host has granted);
 - **control steps**: `accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo` and `patch` (which
-  control changes), and `call`, `send` and `connect` (which reach outside the screen). A revision can't add, remove,
-  alter or move one to another trigger (a handler, a timer, a key, a `watch`, `onLoad`). Otherwise an agent could
-  hide an "accept" inside a button and approve itself, or give the screen new access to the outside world.
+  control changes), `call`, `send` and `connect` (which reach outside the screen), and `fullscreen`, a step's or an
+  `openWindow`'s (which fills the display). A revision can't add, remove, alter or move one to another trigger (a
+  handler, a timer, a key, a `watch`, `onLoad`). Otherwise an agent could hide an "accept" inside a button and approve
+  itself, give the screen new access to the outside world, or cover the display with what looks like the system.
 - **ways to run a control step**: a revision can't add a `run`, a handler or a `do` that names an action holding
   control steps (found through the actions it runs in turn), an action the document doesn't define (the
   application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`. Nor can it add a
@@ -154,14 +155,19 @@ screens, actions, and the live state.
 - **service steps out of bounds**: `respond` is a control step. An `invoke` or `subscribe` a revision adds must name
   a declared service and a method of it the provider lets revisions use, by a fixed name; and when the method writes
   or runs something it is always reviewed: the change becomes a proposal whatever the allow rules, grants or mode
-  say, and a person must approve it.
+  say, and only the person accepts it (below), no other reviewer. A `terminal` node counts as a use of its service's
+  `open` (its program runs, or it shows a running session), so adding one or changing its `service` or `session` is
+  reviewed the same way. So does new state for a use the screen already has: a revision that changes the state a
+  write or run use's arguments name (`"data": "{{state.command}}"`) is a proposal for the person too. Only state the
+  arguments name directly is followed; state an action copies first into other state isn't, so a screen keeps the
+  arguments of a run use in the state it names there.
 
 A revision also can't add an `include` (the section only exists while the file is loaded) or a new section the format
 doesn't know.
 
 **What only the person accepts**: a revision that brings, changes or removes **assets** (files kept with the
-history), carries **`run`** steps (run once when it is merged), changes the **`audio`** section, or makes a node show
-an asset. It is always a proposal: no allow rule, grant ("Always allow" can't remember it), mode (`acceptEdits`,
+history), carries **`run`** steps (run once when it is merged), changes the **`audio`** section, makes a node show
+an asset, or adds a service step that writes or runs (above). It is always a proposal: no allow rule, grant ("Always allow" can't remember it), mode (`acceptEdits`,
 `plan`) or reviewer other than the person lets it through. Only a reviewer of the channel `user` (the screen's own
 review steps, `Screen::acceptProposal`) accepts it, and never its own author's channel; a peer on `studio.sock` can't.
 The app's own commits (`commit()`, a screen's `patch` step) and the person's own revisions aren't asked. Assets are
@@ -340,11 +346,25 @@ request's `cwd` only if the pty service's root holds it, and the line runs in th
 grant. Forge grants `lldb-dap` and `python3 -m
 debugpy.adapter` when they are on PATH; a launch configuration only names one of them.
 
+### An app's data and the person's permissions
+The stock host asks the person for an app's capabilities and remembers the answer in the app's data folder,
+`<data folder>/apps/<id>/`, beside its history and state. An id is the app's own choice, so it is bound to the folder
+that first opened it (`Screen::appDataDirectory()`, recorded in the folder's `location`, absolute with links
+followed): another app with the same id, a copy elsewhere, gets `apps/<id>~<hash of its folder>/`, so it never opens
+with the first app's data and the person is asked again. A screen opened on its own is bound to its file the same
+way. Data kept before names were bound has no record, and the first place to open it after the upgrade takes it.
+
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
-`AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it
-is, so a screen file can name any socket, a running host's `studio.sock` too, and connects to it as soon as its window
-opens. Every message that arrives
+`AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; for a screen the library
+embeds, an absolute path is used as it is. The stock host (the Launcher and every app it opens) and `affrescoui run`
+confine them (`Screen::confineChannels()`): a socket is a relative path with no `..`, inside the host's own socket
+folder (`--socket`) once links are followed, or it is refused and the screen's `<name>:closed` runs with why. Each app
+the Launcher opens has a folder of its own, so a screen reaches its own host's `studio.sock` and `agent.sock` only,
+never the Launcher's nor another app's; and an app's channels connect only if its `app.json` declares the `channels`
+capability and the person allowed it (`Screen::allowChannels()`). A screen on its own host's `studio.sock` is a
+reviewer of its own screen, as a channel there always is: it can't accept what only the person accepts (above), and
+"Known gaps" says what a per-run secret would add (G-27). Every message that arrives
 there runs the screen's `<name>:<type>` action, if it has one, with the message as its event, so the program at the
 other end can run those actions with any data. Revisions can't change `channels` or add `send` and `connect` steps.
 
@@ -384,6 +404,17 @@ A `repair` message is the exception: the host interprets it (see VERSION_CONTROL
 The agent's revision is authored by its channel, checked against the change set's proof, and always opened as a
 proposal, so a repair never skips review or the permission rules; only a reviewer retries a change set that gave up.
 
+### Filling the display
+
+A screen that fills the display could draw what looks like the system's own password or permission dialog. So a
+window starts filling the display only while the person's own press is delivered (a click, a key, a typed character
+or a menu choice, to the screen's window or one of its others), or while the application's own code runs an action
+(`Screen::runAction`). From `onLoad`, a timer, a `watch`, a channel's message or a key a `press` step sends, the
+`fullscreen` step is refused and reported, and an `openWindow` opens its window without filling the display. Leaving
+full screen is always allowed. When a window starts filling the display it shows, for four seconds and above
+everything the screen draws, a hint it draws itself, "Press Esc to leave full screen"; Esc always leaves, and still
+reaches the screen.
+
 ### What documents can't do
 A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
 a process (the `ProcessChannel` and `StdioChannel` classes are only opened by host code), open a network connection,
@@ -419,9 +450,9 @@ never the document.
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
 - `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that
   keeps to the same limit, and schema patterns matched only on texts up to the limit below (the `cli` fuzz target).
-  `check` also loads the screen as the library does, `include`s included, and an `include` may name any file (an
-  absolute path too): checking a file reads every JSON object file it names, and the checker's messages can quote
-  parts of them. Check a file from someone you don't trust where that is fine, such as a CI runner.
+  `check` also loads the screen as the library does, `include`s included, and a bare screen's `include` may name any
+  plain file (an absolute path too; an app's stay in its folder and the `shared` folder beside it): checking a file
+  reads every JSON object file it names, and the checker's messages can quote parts of them. Check a file from someone you don't trust where that is fine, such as a CI runner.
 - `render` draws the first frame offscreen without the history or saved state, and connects to nobody: every channel
   the screen declares, by an absolute path too, is pointed at a folder that is never created. A frame over 16,384
   pixels a side is refused before anything is drawn.
@@ -585,6 +616,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
 | Files including files (`include`, at load time) | 9 levels below the screen file |
+| An included file (`include`; plain files only: no devices or pipes) | 16 MiB; an app's are in its folder or the `shared` folder beside it, once links are resolved |
 | Open proposals per channel | 16 |
 | Operations in one revision (its compact edits and its JSON Patch), or in one proposal with all its commits; counted before any is applied | 10,000 |
 | Values the `copy` operations of one revision copy, in all (a copy of a list into itself doubles it) | 100,000 |
@@ -689,7 +721,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Memory of an image's tiles (`imaging::Limits`) | 512 MiB of loaded tiles and mips per image on the CPU (the least recently used go), 256 MiB of resident tiles per view on the GPU |
 | Tempera's undo history (`imaging::Limits`) | 200 steps and 512 MiB of changed tiles; the oldest steps go first |
 | Tempera's filters, feathers, brushes, fills and lassos (`imaging::Limits`) | A radius of 250 pixels, a brush of 5,000, 64 Mi pixels visited by a fill or magic wand, 100,000 points in a lasso |
-| A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down, checked from the header before decoding |
+| A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down and 256 megapixels in all (`imageFilePixels`: a file of half a megabyte can hold a gigapixel of one colour, so only a host raises it), checked from the header before decoding; the pixels are tiled from the decoder's own buffer, never copied |
 | A Tempera project file (`tests/fuzz/tempera_project.cpp`) | 4 GiB, a manifest of 16 MiB under the JSON nesting limit; each tile inflated only to its exact size when first used, a damaged one read as transparent |
 | A screen's models (`data::Limits`, `tests/fuzz/data_models.cpp`) | 256 collections, 256 fields a model (nested ones included), 8 levels, 1,024 enum values, names of 64 bytes, 256 migrations of 64 steps, 10,000 seed or imported records |
 | A screen's records (`data::Limits`) | A record of 1 MiB, 1,000,000 a collection, a database of 1 GiB; a query gives at most 10,000 records, with 64 conditions, 4 levels of `any`, 1,000 values `in`, 8 sort keys; 100,000 journal entries (the oldest go); a write step at most 10,000 records |
@@ -752,6 +784,11 @@ removes the gap from this list.
 - **Who is at the other end of a declared channel isn't checked.** The user check applies to connections a host
   accepts (`listen`, `SocketServer`). A screen's `channels` connect out to a socket, and the library doesn't check
   who listens there, nor the directory of that socket or of one an embedding application passes to `listen`. Tracking: G-03.
+- **An app's channel to its own host is a reviewer of its own screen.** The stock host confines a screen's channels
+  to its own socket folder (above), and a channel on `studio.sock` has the author `studio`, a reviewer: a screen
+  allowed the `channels` capability can accept its own proposals, though never what only the person accepts. A
+  per-run secret that only the host's own peers hold, or a lower author for a connection from the host's own
+  process, would close it. Tracking: G-27.
 - **The user check on Windows goes by process id.** The peer's process could exit and its id be reused between the
   connection and the check, a narrow race. A process of the same user that runs elevated may not be inspectable from
   a non-elevated host, and is then refused. Tracking: G-04.

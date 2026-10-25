@@ -1,0 +1,1 @@
+"{{reduce(range(10000), reduce(range(10000), [acc], acc), [])}}"

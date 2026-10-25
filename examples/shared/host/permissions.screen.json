@@ -39,7 +39,8 @@
 			"permissions.audio": "Play sound",
 			"permissions.assistant": "Ask the assistant you set up in Settings",
 			"permissions.files": "Open and save files you choose",
-			"permissions.windows": "Open more windows"
+			"permissions.windows": "Open more windows",
+			"permissions.channels": "Talk to programs connected to this app"
 		},
 		"es": {
 			"permissions.asks": "{name} pide usar",
@@ -53,7 +54,8 @@
 			"permissions.audio": "Reproducir sonido",
 			"permissions.assistant": "Preguntar al asistente que configuraste en Ajustes",
 			"permissions.files": "Abrir y guardar archivos que elijas",
-			"permissions.windows": "Abrir más ventanas"
+			"permissions.windows": "Abrir más ventanas",
+			"permissions.channels": "Hablar con programas conectados a esta app"
 		},
 		"fr": {
 			"permissions.asks": "{name} demande à utiliser",
@@ -67,7 +69,8 @@
 			"permissions.audio": "Jouer du son",
 			"permissions.assistant": "Interroger l'assistant configuré dans les Réglages",
 			"permissions.files": "Ouvrir et enregistrer des fichiers que vous choisissez",
-			"permissions.windows": "Ouvrir d'autres fenêtres"
+			"permissions.windows": "Ouvrir d'autres fenêtres",
+			"permissions.channels": "Communiquer avec les programmes connectés à cette app"
 		}
 	},
 

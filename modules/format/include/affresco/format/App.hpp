@@ -22,22 +22,23 @@ inline constexpr std::size_t maxAppManifestBytes = std::size_t{256} * 1024;
 struct AppCapability {
 	/// @brief What it reaches.
 	enum class Kind {
-		Network, ///< Servers at an origin ("https://api.example.com"): the screen's `connections`.
-		Folder,  ///< A folder of the person's, by the root name the screen's `services` use ("workspace").
-		Program, ///< A program the screen's `process` services run: a name on the PATH, "shell" or "git".
+		Network,   ///< Servers at an origin ("https://api.example.com"): the screen's `connections`.
+		Folder,    ///< A folder of the person's, by the root name the screen's `services` use ("workspace").
+		Program,   ///< A program the screen's `process` services run: a name on the PATH, "shell" or "git".
 		Audio,     ///< Sound on the system's output: the screen's `audio`.
 		Assistant, ///< The host's own agent, which answers its `ask` steps with the provider the person set up.
 		Files,     ///< The open and save dialogs: `saveFile`, `openFile`, `export` and an image's open and save.
-		Windows    ///< The screen's other windows: its `windows` section, opened by `openWindow`.
+		Windows,   ///< The screen's other windows: its `windows` section, opened by `openWindow`.
+		Channels   ///< The screen's `channels`: programs it talks to, in its own host's socket folder, or peers.
 	};
 	Kind kind = Kind::Network; ///< What.
-	std::string name;          ///< The origin, root or program; "audio", "assistant", "files" or "windows".
+	std::string name;          ///< The origin, root or program; "audio", "assistant", "files", "windows" or "channels".
 	std::string why;           ///< What the app does with it, shown to the person when it asks.
 	bool write = false;        ///< For a folder: written, not only read.
 
 	/// @brief The name the person's decision is remembered by: "network:https://api.example.com", "folder:workspace",
-	/// "program:git", "audio", "assistant", "files" or "windows". A folder written is another capability than the
-	/// same folder read.
+	/// "program:git", "audio", "assistant", "files", "windows" or "channels". A folder written is another capability
+	/// than the same folder read.
 	/// @return The key.
 	[[nodiscard]] std::string key() const;
 };
@@ -66,7 +67,8 @@ struct AppManifest {
 
 /// @brief The capabilities a screen uses: its `connections`' origins (their sign-in's too), its `services`' roots and
 /// `process` programs, its `audio`, the assistant if a step anywhere is an `ask`, files if one shows a file dialog
-/// (`saveFile`, `openFile`, `export`, an image's open or save), and its other `windows`. Each has no reason.
+/// (`saveFile`, `openFile`, `export`, an image's open or save), its other `windows`, and its `channels`. Each has no
+/// reason.
 /// @param document The screen, its includes merged.
 /// @return Them, each once, in that order.
 [[nodiscard]] std::vector<AppCapability> usedCapabilities(const json& document);

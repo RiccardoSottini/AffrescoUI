@@ -30,10 +30,11 @@ inline constexpr std::array<std::string_view, 5> capabilitySections = {"services
                                                                        "permissions"};
 
 /// The steps that reach outside the screen or review it: a feature installed by revision can't contain them.
-inline constexpr std::array<std::string_view, 24> controlSteps = {
+inline constexpr std::array<std::string_view, 25> controlSteps = {
     "call",         "send",    "connect",  "patch",    "respond", "accept",        "reject",        "preview",
     "endPreview",   "restore", "revert",   "undo",     "signIn",  "signOut",       "ask",           "cancelAsk",
-    "chooseFolder", "attach",  "saveFile", "openFile", "export",  "runInTerminal", "clearTerminal", "closeTerminal"};
+    "chooseFolder", "attach",  "saveFile", "openFile", "export",  "runInTerminal", "clearTerminal", "closeTerminal",
+    "fullscreen"};
 
 /// @brief A feature's release: semver's three numbers (no pre-release or build part in v1).
 struct Release {

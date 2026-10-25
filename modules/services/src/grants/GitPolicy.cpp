@@ -147,13 +147,20 @@ std::optional<std::string> checkGitArguments(const std::vector<std::string>& arg
 }
 
 std::vector<std::string> gitOptions() {
-	// A folder may come from anywhere: its .git/config and .git/hooks can name programs for git to run
+	// A folder may come from anywhere: its .git/config and .git/hooks can name programs for git to run (the shaper
+	// checks the config too, checkGitRepository()), and so can a submodule's own repository
 	return {"-c",
 	        "core.fsmonitor=false",
 	        "-c",
 	        "core.hooksPath=/dev/null",
 	        "-c",
 	        "commit.gpgSign=false",
+	        "-c",
+	        "log.showSignature=false",
+	        "-c",
+	        "diff.ignoreSubmodules=all",
+	        "-c",
+	        "submodule.recurse=false",
 	        "-c",
 	        "core.quotePath=false",
 	        "--no-optional-locks",
@@ -164,6 +171,7 @@ ProcessShaper gitShaper() {
 	return [](ProcessRun& run) -> std::optional<std::string> {
 		if(run.directory.empty()) return "git runs on a declaration's root only";
 		if(std::optional<std::string> refused = checkGitArguments(run.arguments)) return refused;
+		if(std::optional<std::string> refused = checkGitRepository(run.directory)) return refused;
 		if(run.arguments.front() == "init") return std::nullopt; // makes the folder's own repository
 		const std::filesystem::path& root = run.directory;
 		// before the command: its own repository, never one above the folder

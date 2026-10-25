@@ -27,8 +27,11 @@ using Allowed = std::set<std::string, std::less<>>;
 /// @brief Where an app's decisions are kept.
 /// @param dataDirectory The data folder.
 /// @param id The app's id.
-/// @return `<data folder>/apps/<id>/grants.json`.
-[[nodiscard]] std::filesystem::path grantsFile(const std::filesystem::path& dataDirectory, std::string_view id);
+/// @param location The app's folder, or its bare screen file: an id is bound to the place that first used it
+/// (Screen::appDataDirectory()), so another app that names itself the same is asked again.
+/// @return `<data folder>/apps/<id>/grants.json`, or that of the place's own folder.
+[[nodiscard]] std::filesystem::path grantsFile(const std::filesystem::path& dataDirectory, std::string_view id,
+                                               const std::filesystem::path& location);
 
 /// @brief Reads an app's decisions.
 /// @param file Its grants file.
@@ -52,9 +55,9 @@ void saveDecisions(const std::filesystem::path& file, const Decisions& decisions
                                   const std::filesystem::path& prompt);
 
 /// @brief Lets the app's screen use the capabilities allowed: their origins on its network, their folders for the
-/// person to choose (for reading only if declared so), their programs, its sound, the file dialogs and its other
-/// windows. Never one its manifest doesn't declare. One that can't be given (a program not on the PATH) is reported,
-/// and the app opens without it.
+/// person to choose (for reading only if declared so), their programs, its sound, the file dialogs, its other
+/// windows and its channels. Never one its manifest doesn't declare. One that can't be given (a program not on the
+/// PATH) is reported, and the app opens without it.
 /// @param screen The app's screen.
 /// @param app Its manifest.
 /// @param allowed The keys allowed.

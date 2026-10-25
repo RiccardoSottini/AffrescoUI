@@ -137,15 +137,17 @@ struct ProfileParts {
 	return parts.joined();
 }
 
-/// @brief Checks a header against the limits.
+/// @brief Checks a header against the limits, before any pixel is decoded.
 /// @param header The header.
 /// @param limits The limits.
+/// @throws DocumentError If it is beyond them.
 void checkSize(const stb::Header& header, const Limits& limits) {
 	const int side = std::min(limits.imageFileSide, limits.side);
 	if(header.width < 1 || header.height < 1 || header.width > side || header.height > side)
 		throw DocumentError("imaging: the image is " + std::to_string(header.width) + " by " +
 		                    std::to_string(header.height) + " pixels, beyond " + std::to_string(side) + " a side");
-	if(static_cast<std::size_t>(header.width) * static_cast<std::size_t>(header.height) > limits.pixels)
+	if(static_cast<std::size_t>(header.width) * static_cast<std::size_t>(header.height) >
+	   std::min(limits.pixels, limits.imageFilePixels))
 		throw DocumentError("imaging: the image has more pixels than the limit");
 }
 
@@ -282,7 +284,7 @@ DecodedImage imageFromRgba(int width, int height, std::span<const std::uint8_t> 
 	checkSize({width, height, false}, limits);
 	if(rgba.size() != static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4)
 		throw DocumentError("imaging: the pixels don't match the image's size");
-	const stb::Decoded decoded{width, height, {rgba.begin(), rgba.end()}, {}};
+	const stb::Decoded decoded{width, height, rgba, {}, nullptr};
 	DecodedImage result{std::make_shared<Image>(width, height, PixelFormat::rgba8, limits), std::nullopt, {}};
 	for(int row = 0; row < result.image->rows(); ++row)
 		for(int column = 0; column < result.image->columns(); ++column)

@@ -15,11 +15,11 @@ namespace {
 /// The keys a manifest may have.
 constexpr auto manifestKeys =
     std::to_array<std::string_view>({"$schema", "format", "version", "note", "id", "name", "description", "icon",
-                                     "entry", "themes", "capabilities", "data", "assets"});
+	                                 "entry", "themes", "capabilities", "data", "assets"});
 
 /// The kinds of capability, as "capabilities" names them.
-constexpr auto capabilityKeys =
-    std::to_array<std::string_view>({"network", "folders", "programs", "audio", "assistant", "files", "windows"});
+constexpr auto capabilityKeys = std::to_array<std::string_view>(
+    {"network", "folders", "programs", "audio", "assistant", "files", "windows", "channels"});
 
 constexpr std::size_t maxNameLength = 100;   ///< The longest name.
 constexpr std::size_t maxTextLength = 300;   ///< The longest description or reason.
@@ -186,8 +186,9 @@ std::vector<AppCapability> readCapabilities(const json& section) {
 			    {Kind::Program, program, text(why, "capabilities.programs." + program, maxTextLength), false});
 		}
 	// The kinds with no names: the reason alone
-	for(const auto& [kind, key] : {std::pair{Kind::Audio, "audio"}, std::pair{Kind::Assistant, "assistant"},
-	                               std::pair{Kind::Files, "files"}, std::pair{Kind::Windows, "windows"}})
+	for(const auto& [kind, key] :
+	    {std::pair{Kind::Audio, "audio"}, std::pair{Kind::Assistant, "assistant"}, std::pair{Kind::Files, "files"},
+	     std::pair{Kind::Windows, "windows"}, std::pair{Kind::Channels, "channels"}})
 		if(const auto why = section.find(key); why != section.end())
 			read.push_back({kind, key, text(*why, std::string("capabilities.") + key, maxTextLength), false});
 	return read;
@@ -357,6 +358,8 @@ std::string AppCapability::key() const {
 		return "files";
 	case Kind::Windows:
 		return "windows";
+	case Kind::Channels:
+		return "channels";
 	}
 	return "";
 }
@@ -384,6 +387,8 @@ std::vector<AppCapability> usedCapabilities(const json& document) {
 	if(hasStep(document, showsFileDialog)) addCapability(used, {Kind::Files, "files", "", false});
 	if(const auto windows = document.find("windows"); windows != document.end() && !windows->empty())
 		addCapability(used, {Kind::Windows, "windows", "", false});
+	if(const auto channels = document.find("channels"); channels != document.end() && !channels->empty())
+		addCapability(used, {Kind::Channels, "channels", "", false});
 	return used;
 }
 
