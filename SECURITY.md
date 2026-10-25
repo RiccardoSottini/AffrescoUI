@@ -700,7 +700,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Memory of an image's tiles (`imaging::Limits`) | 512 MiB of loaded tiles and mips per image on the CPU (the least recently used go), 256 MiB of resident tiles per view on the GPU |
 | Tempera's undo history (`imaging::Limits`) | 200 steps and 512 MiB of changed tiles; the oldest steps go first |
 | Tempera's filters, feathers, brushes, fills and lassos (`imaging::Limits`) | A radius of 250 pixels, a brush of 5,000, 64 Mi pixels visited by a fill or magic wand, 100,000 points in a lasso |
-| A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down, checked from the header before decoding |
+| A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down and 256 megapixels in all (`imageFilePixels`: a file of half a megabyte can hold a gigapixel of one colour, so only a host raises it), checked from the header before decoding; the pixels are tiled from the decoder's own buffer, never copied |
 | A Tempera project file (`tests/fuzz/tempera_project.cpp`) | 4 GiB, a manifest of 16 MiB under the JSON nesting limit; each tile inflated only to its exact size when first used, a damaged one read as transparent |
 | A screen's models (`data::Limits`, `tests/fuzz/data_models.cpp`) | 256 collections, 256 fields a model (nested ones included), 8 levels, 1,024 enum values, names of 64 bytes, 256 migrations of 64 steps, 10,000 seed or imported records |
 | A screen's records (`data::Limits`) | A record of 1 MiB, 1,000,000 a collection, a database of 1 GiB; a query gives at most 10,000 records, with 64 conditions, 4 levels of `any`, 1,000 values `in`, 8 sort keys; 100,000 journal entries (the oldest go); a write step at most 10,000 records |
