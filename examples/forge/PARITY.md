@@ -10,15 +10,15 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Title bar, search box | done | |
 | Back and forward navigation | done | |
 | View rail | done | |
-| Side bar views, title rows | partial | No view actions (new file, refresh, collapse) in the title rows |
-| Editor tabs | partial | No file-type icons; no preview (italic) tabs |
-| Breadcrumbs | partial | Shows the path; no symbol segments |
+| Side bar views, title rows | done | |
+| Editor tabs | partial | No preview (italic) tabs |
+| Breadcrumbs | partial | One symbol segment, the outline entry above the caret; no nested symbols |
 | Minimap and overview ruler | missing | No minimap; no scrollbar markers |
 | Panel (Problems, Output, Debug Console, Terminal) | done | |
-| Status bar | partial | Indentation, encoding and line endings are fixed texts, not pickers |
+| Status bar | partial | Files are read and written as UTF-8 only; the encoding item is disabled and says so |
 | Notifications centre | done | |
 | Sashes | done | |
-| Welcome page | partial | Few start links, no recent folders |
+| Welcome page | partial | No recent folders: the host's folder picker gives a document a name, never a path to reopen |
 
 ## Workflows
 
@@ -30,13 +30,13 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Toggle side bar, panel, layout | done | |
 | Explorer: open, create, rename, delete, move, reveal | done | |
 | Editing, find and replace in a file | done | |
-| Search across files, replace all | partial | Search lives in the side bar |
+| Search across files, replace all | partial | No search editor (results open in the side bar only) |
 | Source control: stage, commit, branches | partial | Git runs through the process service; no stash or remotes |
-| Run and debug | partial | Sections don't collapse |
+| Run and debug | done | |
 | Terminal | partial | The cursor is an outlined box |
 | Problems and language features | partial | Through the `lsp` service, one language server (clangd) |
 | Outline | partial | Headings and the lines that open a block, not a language's symbols |
-| Features (extensions) view | partial | Single-line items; no header |
+| Features (extensions) view | done | |
 | Settings editor | partial | No table of contents; large checkboxes |
 | Themes | done | |
 | Split editors | done | |
