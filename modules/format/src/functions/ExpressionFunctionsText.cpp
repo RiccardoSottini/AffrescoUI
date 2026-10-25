@@ -2,33 +2,25 @@
 /// @brief Expression functions: texts and conversions (upper, trim, split, pad, plural, number, json, ...).
 
 #include "ExpressionFunctions.hpp"
+#include "Locale.hpp"
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <cstdio>
 #include <exception>
 
 namespace affresco::format::detail {
 namespace {
 
-/// @brief `upper(text)`: ASCII letters in capitals (other characters stay).
+/// @brief `upper(text)`: Latin letters, accented ones too, in capitals (changeCase()).
 /// @param call [text].
 /// @return The text.
-Value upper(const Call& call) {
-	std::string text = call[0].toText();
-	for(char& c : text) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-	return Value::fromText(std::move(text));
-}
+Value upper(const Call& call) { return Value::fromText(changeCase(call[0].toText(), true)); }
 
-/// @brief `lower(text)`: ASCII letters in small letters.
+/// @brief `lower(text)`: Latin letters, accented ones too, in small letters (changeCase()).
 /// @param call [text].
 /// @return The text.
-Value lower(const Call& call) {
-	std::string text = call[0].toText();
-	for(char& c : text) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-	return Value::fromText(std::move(text));
-}
+Value lower(const Call& call) { return Value::fromText(changeCase(call[0].toText(), false)); }
 
 /// @brief `trim(text)`.
 /// @param call [text].

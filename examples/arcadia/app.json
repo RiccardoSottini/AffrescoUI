@@ -15,7 +15,8 @@
 			"games": "seed/games.json",
 			"friends": "seed/friends.json",
 			"news": "seed/news.json",
-			"activity": "seed/activity.json"
+			"activity": "seed/activity.json",
+			"messages": "seed/messages.json"
 		}
 	},
 	"assets": [

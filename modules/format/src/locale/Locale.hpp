@@ -150,4 +150,11 @@ extern const std::array<int, currencyCount> currencyDigits;
 /// @return Negative, zero or positive.
 [[nodiscard]] int compareText(std::string_view a, std::string_view b) noexcept;
 
+/// @brief Changes the case of a text's Latin letters (U+0000 to U+017F, accented ones too: "é" and "É"); other
+/// characters, and the letters whose other case is another length or depends on the language ("ß", "ı", "İ"), stay.
+/// @param text The text, UTF-8.
+/// @param upper Capitals if true, small letters if false.
+/// @return The text.
+[[nodiscard]] std::string changeCase(std::string_view text, bool upper);
+
 } // namespace affresco::format::detail

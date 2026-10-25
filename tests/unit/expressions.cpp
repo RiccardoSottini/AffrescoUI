@@ -402,8 +402,10 @@ const std::vector<Case> cases = {
     {"{{state.big}}", J(R"(18446744073709551615)"), {}},
     {"{{state.big + 1}}", J(R"(1.8446744073709552e+19)"), {}},
     // Texts and conversions; texts are UTF-8, and len, indexOf and slice count bytes
-    {"{{upper('héllo')}}", "HéLLO", {}},
-    {"{{lower('ÀB')}}", "Àb", {}},
+    {"{{upper('héllo')}}", "HÉLLO", {}},
+    {"{{lower('ÀB')}}", "àb", {}},
+    {"{{upper('ÿ ł ň ß ı 中')}}", "Ÿ Ł Ň ß ı 中", {}},
+    {"{{lower('Ÿ Ł Ň İ Ø×')}}", "ÿ ł ň İ ø×", {}},
     {"{{trim('  a b  ')}}", "a b", {}},
     {"{{text(null)}}", "", {}},
     {"{{text(2.0)}}", "2", {}},
