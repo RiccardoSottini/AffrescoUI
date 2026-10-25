@@ -147,6 +147,8 @@
 		"redoOpen": true,
 		"quickPick": { "open": false, "query": "" },
 		"fileStatus": "",
+		"copied": [],
+		"rendering": false,
 		"opened": null,
 		"openedName": null,
 		"sizes": { "main": [1102], "left": [720], "right": [262] },
@@ -193,6 +195,16 @@
 		{ "use": "dialog", "id": "about-dialog", "with": { "open": "state.about", "title": "Modello 1.0", "width": 360, "height": 170,
 		  "message": "A 3D modeller written only as AffrescoUI screen documents: the stock host runs it.",
 		  "buttons": [{ "title": "Close" }] } },
+		{ "use": "dialog", "id": "render-window", "with": { "open": "state.rendering", "title": "Render", "width": 760, "height": 518,
+		  "buttons": [{ "title": "Close" }, { "title": "Save As Image…", "run": "saveRender", "keepOpen": true }] },
+		  "children": [{
+			"type": "scene", "id": "render-image", "anchors": { "left": 20, "right": 20, "top": 44, "bottom": 56 },
+			"scene": "{{merge(state.scene, { nodes: map(state.scene.nodes, it.render == false || state.collection.render == false ? merge(it, { visible: false }) : it) })}}",
+			"view": "{{ { camera: computed.cameraView, selection: [] } }}", "up": "z", "extras": false,
+			"shading": "material", "lighting": "scene", "exposure": "{{state.render.exposure}}", "grid": false, "axes": false,
+			"background": "{{state.world.color}}",
+			"controls": { "orbit": "none", "pan": "none", "select": "none", "zoom": false, "selects": false },
+			"label": "{{'Render of ' + (computed.cameraNode.name ?? 'the camera')}}", "role": "img" }] },
 		{ "when": "{{state.quickPick.open}}", "use": "quickPick", "id": "search", "with": { "width": 460, "rows": 12, "rowHeight": 22,
 		  "providers": [{ "items": "{{computed.searchItems}}", "placeholder": "Search for a command" }] } }]
 	}

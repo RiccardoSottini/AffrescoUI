@@ -9,6 +9,7 @@
 		"lastCentre": "{{state.lastOp == null || length(state.lastOp.base) == 0 ? [0, 0, 0] : map([sum(map(state.lastOp.base, it.translation[0])), sum(map(state.lastOp.base, it.translation[1])), sum(map(state.lastOp.base, it.translation[2]))], it / length(state.lastOp.base))}}",
 		"searchItems": "{{map(filter(commands, it.enabled && it.name != 'search'), { title: it.title, detail: it.keyLabel ?? it.category, icon: it.icon, run: it.name })}}",
 		"cameraNode": "{{find(state.scene.nodes, it.kind == 'camera')}}",
+		"cameraView": "{{computed.cameraNode == null ? null : { target: [computed.cameraNode.translation[0] - sin(radians(computed.cameraNode.rotationDegrees[0])) * sin(radians(computed.cameraNode.rotationDegrees[2])) * 10, computed.cameraNode.translation[1] + sin(radians(computed.cameraNode.rotationDegrees[0])) * cos(radians(computed.cameraNode.rotationDegrees[2])) * 10, computed.cameraNode.translation[2] - cos(radians(computed.cameraNode.rotationDegrees[0])) * 10], yaw: radians(computed.cameraNode.rotationDegrees[2]), pitch: pi() / 2 - radians(computed.cameraNode.rotationDegrees[0]), distance: 10, fieldOfView: computed.cameraNode.camera.fieldOfView ?? 0.69, orthographic: false } }}",
 		"modalName": "{{state.modal ? (state.modal.mode == 'translate' ? 'Move' : state.modal.mode == 'rotate' ? 'Rotate' : 'Resize') : ''}}"
 	},
 	"actions": {
@@ -294,7 +295,7 @@
 			"title": "Camera", "category": "View", "icon": "video", "enablement": "{{computed.cameraNode != null}}",
 			"do": [
 				{ "if": "{{state.inCamera}}", "then": [{ "set": "state.inCamera", "to": false }, { "stop": true }] },
-				{ "set": "state.view.camera", "to": "{{ { target: [computed.cameraNode.translation[0] - sin(radians(computed.cameraNode.rotationDegrees[0])) * sin(radians(computed.cameraNode.rotationDegrees[2])) * 10, computed.cameraNode.translation[1] + sin(radians(computed.cameraNode.rotationDegrees[0])) * cos(radians(computed.cameraNode.rotationDegrees[2])) * 10, computed.cameraNode.translation[2] - cos(radians(computed.cameraNode.rotationDegrees[0])) * 10], yaw: radians(computed.cameraNode.rotationDegrees[2]), pitch: pi() / 2 - radians(computed.cameraNode.rotationDegrees[0]), distance: 10, fieldOfView: computed.cameraNode.camera.fieldOfView ?? 0.69, orthographic: false } }}" },
+				{ "set": "state.view.camera", "to": "{{computed.cameraView}}" },
 				{ "set": "state.inCamera", "to": true }
 			]
 		},
@@ -453,6 +454,44 @@
 			"title": "Toggle Maximize Area", "category": "View",
 			"do": [{ "dismiss": true }, { "set": "state.maximized", "to": "{{state.maximized != null ? null : state.hoverSlot ?? 'a'}}" }]
 		},
+		"copyObjects": {
+			"title": "Copy Objects", "category": "Edit", "icon": "copy", "enablement": "{{length(state.view.selection) > 0}}",
+			"do": [
+				{ "if": "{{length(state.view.selection) == 0}}", "then": [{ "stop": true }] },
+				{ "set": "state.copied", "to": "{{computed.selectedNodes}}" },
+				{ "set": "state.last", "to": "{{'Copied ' + plural(length(state.copied), 'selected object', 'selected objects')}}" }
+			]
+		},
+		"pasteObjects": {
+			"title": "Paste Objects", "category": "Edit", "icon": "clipboard-paste", "enablement": "{{length(state.copied) > 0}}",
+			"do": [
+				{ "dismiss": true },
+				{ "if": "{{length(state.copied) == 0}}", "then": [{ "stop": true }] },
+				{ "run": "snapshot" },
+				{ "set": "state.dupes", "to": [] },
+				{ "forEach": "{{state.copied}}", "as": "m", "do": [
+					{ "increment": "state.added", "by": 1 },
+					{ "run": "uniqueName", "with": { "args": { "name": "{{split(m.name, '.')[0]}}" } } },
+					{ "push": "state.scene.nodes", "value": "{{merge(m, { id: split(m.id, '-')[0] + '-' + state.added, name: state.tmp.name })}}" },
+					{ "push": "state.dupes", "value": "{{split(m.id, '-')[0] + '-' + state.added}}" }
+				] },
+				{ "set": "state.view.selection", "to": "{{state.dupes}}" },
+				{ "set": "state.active", "to": "{{state.dupes[length(state.dupes) - 1]}}" },
+				{ "set": "state.last", "to": "Paste Objects" }
+			]
+		},
+		"renderImage": {
+			"title": "Render Image", "category": "Render", "icon": "image", "enablement": "{{computed.cameraNode != null}}",
+			"do": [{ "dismiss": true }, { "if": "{{computed.cameraNode != null && state.modal == null}}", "then": [{ "set": "state.rendering", "to": true }] }]
+		},
+		"saveRender": {
+			"title": "Save Render As…", "category": "Render", "icon": "save", "enablement": "{{state.rendering}}",
+			"do": [
+				{ "export": "png", "pages": ["render-image"], "title": "Save the render", "name": "render.png",
+				  "onDone": [{ "set": "state.fileStatus", "to": "{{'Saved ' + result.name}}" }],
+				  "onError": [{ "set": "state.fileStatus", "to": "{{'Not saved: ' + error.message}}" }] }
+			]
+		},
 		"about": { "title": "About Modello", "category": "Help", "icon": "info", "do": [{ "dismiss": true }, { "set": "state.about", "to": true }] },
 		"newScene": {
 			"title": "New", "category": "File", "icon": "file-plus",
@@ -549,6 +588,9 @@
 		"numpadplus": { "do": "zoomView", "with": { "args": { "steps": 1 } } },
 		"numpadminus": { "do": "zoomView", "with": { "args": { "steps": -1 } } },
 		"mod+z": { "do": "undo" },
+		"mod+c": { "when": "{{!context.textInputFocus}}", "do": "copyObjects" },
+		"mod+v": { "when": "{{!context.textInputFocus && state.modal == null}}", "do": "pasteObjects" },
+		"f12": { "do": "renderImage" },
 		"mod+shift+z": { "do": "redo" },
 		"n": { "do": "toggleSidebar" },
 		"f3": { "do": "search" },
@@ -584,11 +626,14 @@
 		"edit": {
 			"undo": { "run": "undo", "group": "1_history", "order": 1 },
 			"redo": { "run": "redo", "group": "1_history", "order": 2 },
-			"adjust": { "run": "adjustLastPanel", "group": "2_last" },
+			"adjust": { "run": "adjustLastPanel", "group": "1_history", "order": 3 },
+			"copy": { "run": "copyObjects", "group": "2_clipboard", "order": 1 },
+			"paste": { "run": "pasteObjects", "group": "2_clipboard", "order": 2 },
 			"search": { "run": "search", "group": "3_search" }
 		},
 		"render": {
-			"camera": { "run": "viewCamera", "title": "View Camera", "group": "1_view" }
+			"image": { "run": "renderImage", "group": "1_render" },
+			"camera": { "run": "viewCamera", "title": "View Camera", "group": "2_view" }
 		},
 		"window": {
 			"theme": { "run": "toggleTheme", "group": "1_theme" },

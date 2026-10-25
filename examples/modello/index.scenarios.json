@@ -603,6 +603,29 @@
 				{ "expect": { "state": "scene.nodes[1].rotationDegrees", "is": [0, 0, 35] } },
 				{ "expect": { "state": "lastOp.values", "is": [0, 0, 35] } }
 			]
+		},
+		{
+			"name": "modello-copy-paste-render",
+			"note": "Ctrl+C copies the cube and Ctrl+V pastes it as Cube.001, one undo step; F12 opens the render window: the camera's view, lit, without markers; Save As Image writes a PNG; Close shuts it",
+			"steps": [
+				{ "key": "mod+c" },
+				{ "expect": { "state": "last", "is": "Copied 1 selected object" } },
+				{ "key": "mod+v" },
+				{ "expect": { "state": "scene.nodes[3].name", "is": "Cube.001" } },
+				{ "expect": { "state": "view.selection", "is": ["cube-1"] } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "view.selection", "is": [] } },
+				{ "key": "f12" },
+				{ "wait": 30 },
+				{ "expect": { "node": "#render-image", "exists": true } },
+				{ "capture": "render" },
+				{ "choose": "render.png" },
+				{ "click": { "role": "button", "name": "Save As Image…" } },
+				{ "wait": 0 },
+				{ "expect": { "state": "fileStatus", "is": "Saved render.png" } },
+				{ "click": { "role": "button", "name": "Close" } },
+				{ "expect": { "state": "rendering", "is": false } }
+			]
 		}
 	]
 }
