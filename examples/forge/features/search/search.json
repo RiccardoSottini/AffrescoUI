@@ -39,7 +39,7 @@
 			"title": "Find in Files",
 			"category": "Search",
 			"icon": "search",
-			"do": [{ "set": "state.sideView", "to": "search" }, { "set": "state.layout.sidebar", "to": true }, { "focus": "#search-query" }]
+			"do": [{ "set": "state.sideView", "to": "search" }, { "set": "state.layout.sidebar", "to": true }, { "after": 0, "do": [{ "focus": "#search-query" }] }]
 		},
 		"runSearch": [
 			{ "cancel": "forge-search" },

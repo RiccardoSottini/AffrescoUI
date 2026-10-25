@@ -45,7 +45,7 @@
 			       { "focus": "#find-text" }] },
 		"closeFind": { "title": "Close Find", "category": "Edit", "enablement": "{{state.findBar.open}}",
 			"do": [{ "set": "state.findBar.open", "to": false }, { "set": "state.findBar.inSelection", "to": false },
-			       { "focus": "#editor" }] },
+			       { "after": 0, "do": [{ "focus": "#editor" }] }] },
 		"findStep": [{ "set": "state.findBar.step", "to": "{{step}}" }, { "increment": "state.findBar.request", "by": 1 }],
 		"findNext": { "title": "Find Next", "category": "Edit", "enablement": "{{state.findBar.open}}",
 			"do": [{ "run": "findStep", "with": { "step": "next" } }] },

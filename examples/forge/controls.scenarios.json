@@ -195,6 +195,23 @@
 				{ "expect": { "state": "search.result.matches", "is": 8 } },
 				{ "expect": { "state": "search.selected", "is": null } }
 			]
+		},
+		{
+			"name": "forge-controls-focus-follows",
+			"note": "Find in Files puts the caret in the search box, and closing the find bar gives the keys back to the editor: the focus waits for the node the same action shows",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#search-query", "property": "focused", "is": true } },
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "wait": 50 },
+				{ "action": "openFind" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#find-text", "property": "focused", "is": true } },
+				{ "action": "closeFind" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#editor", "property": "focused", "is": true } }
+			]
 		}
 	]
 }
