@@ -86,7 +86,7 @@ Window& Runtime::createWindow(Application& app) {
 			fail("window." + key, "unknown property");
 	}
 	if(settings.contains("keyLabels") && !knownKeyNotation(string(settings["keyLabels"], "window.keyLabels")))
-		fail("window.keyLabels", "expected \"platform\", \"mac\", \"pc\" or \"emacs\"");
+		fail("window.keyLabels", "expected \"platform\", \"mac\", \"pc\" or \"letters\"");
 
 	Window& window =
 	    app.createWindow(settings.contains("title") ? string(settings["title"], "window.title") : "AffrescoUI",

@@ -128,6 +128,46 @@ std::optional<std::string> shapeReveal(const AppPrograms& programs, ProcessRun& 
 	return std::nullopt;
 }
 
+/// @brief Reads an app program's ROOT:PATH: a folder with an app.json, an app.json or a .screen.json, inside a granted
+/// root.
+/// @param programs The grant.
+/// @param reference The argument, or nullptr if there is none.
+/// @param app Set to the app's name for its socket: the root's, then the folder's.
+/// @return The path, or std::nullopt if it isn't one.
+std::optional<fs::path> appScreen(const AppPrograms& programs, const std::string* reference, std::string& app) {
+	if(reference == nullptr) return std::nullopt;
+	std::string rootName;
+	std::optional<fs::path> screen = inRoot(programs, *reference, rootName);
+	if(!screen) return std::nullopt;
+	std::error_code error;
+	const bool folder = fs::is_directory(*screen, error) && fs::is_regular_file(*screen / "app.json", error);
+	const std::string file = utf8(screen->filename());
+	if(!folder && (!(file.ends_with(".screen.json") || file == "app.json") || !fs::is_regular_file(*screen, error)))
+		return std::nullopt;
+	app = rootName + "-" + utf8(folder ? screen->filename() : screen->parent_path().filename());
+	return screen;
+}
+
+/// @brief Reads an app program's last arguments: `--ask TEXT` once, if the program takes it.
+/// @param program The program.
+/// @param given The arguments, the program's name first.
+/// @param at Where they start.
+/// @param arguments Where they go.
+/// @return Why they are refused, or std::nullopt.
+std::optional<std::string> readAsk(const AppProgram& program, const std::vector<std::string>& given, std::size_t at,
+                                   std::vector<std::string>& arguments) {
+	bool asked = false;
+	for(; at < given.size(); at += 2) {
+		if(given[at] != "--ask" || !program.ask || asked || at + 1 >= given.size())
+			return "'" + given[at].substr(0, 64) + "' isn't an argument " + given.front() + " takes here";
+		const std::string& text = given[at + 1];
+		if(text.size() > longestAsk || text.contains('\0')) return "--ask takes at most 4 KiB of text";
+		arguments.insert(arguments.end(), {"--ask", text});
+		asked = true;
+	}
+	return std::nullopt;
+}
+
 /// @brief Shapes `PROGRAM [ROOT:SCREEN] [--ask TEXT]`.
 /// @param programs The grant.
 /// @param run The run.
@@ -140,30 +180,15 @@ std::optional<std::string> shapeApp(const AppPrograms& programs, ProcessRun& run
 	std::string app = name.starts_with(ownPrefix) ? name.substr(ownPrefix.size()) : name;
 	std::size_t at = 1;
 	if(program->screen) {
-		std::string rootName;
 		const std::optional<fs::path> screen =
-		    run.arguments.size() > 1 ? inRoot(programs, run.arguments[1], rootName) : std::nullopt;
-		std::error_code error;
-		const bool folder =
-		    screen && fs::is_directory(*screen, error) && fs::is_regular_file(*screen / "app.json", error);
-		const std::string file = screen ? utf8(screen->filename()) : "";
-		if(!folder && (!screen || !(file.ends_with(".screen.json") || file == "app.json") ||
-		               !fs::is_regular_file(*screen, error)))
+		    appScreen(programs, run.arguments.size() > 1 ? &run.arguments[1] : nullptr, app);
+		if(!screen)
 			return name + " needs an app, ROOT:PATH, a folder with an app.json, an app.json or a .screen.json inside "
 			              "a granted root";
 		arguments.push_back(utf8(*screen));
-		app = rootName + "-" + utf8(folder ? screen->filename() : screen->parent_path().filename());
 		at = 2;
 	}
-	bool asked = false;
-	for(; at < run.arguments.size(); at += 2) {
-		if(run.arguments[at] != "--ask" || !program->ask || asked || at + 1 >= run.arguments.size())
-			return "'" + run.arguments[at].substr(0, 64) + "' isn't an argument " + name + " takes here";
-		const std::string& text = run.arguments[at + 1];
-		if(text.size() > longestAsk || text.contains('\0')) return "--ask takes at most 4 KiB of text";
-		arguments.insert(arguments.end(), {"--ask", text});
-		asked = true;
-	}
+	if(std::optional<std::string> refused = readAsk(*program, run.arguments, at, arguments)) return refused;
 	fs::path file = findAppProgram(programs.folder, name);
 	if(file.empty()) return name + " isn't there next to the host";
 	arguments.insert(arguments.end(), {"--data", utf8(programs.dataDirectory), "--socket",

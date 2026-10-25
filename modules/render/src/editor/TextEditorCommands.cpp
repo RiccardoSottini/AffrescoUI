@@ -71,7 +71,10 @@ const std::vector<std::string_view>& TextEditor::commandNames() {
 	                                                    "moveLinesDown",  "joinLines",        "sortLines",
 	                                                    "reverseLines",   "uniqueLines",      "upperCase",
 	                                                    "lowerCase",      "titleCase",        "swapCase",
-	                                                    "transpose",      "toggleComment"};
+	                                                    "transpose",      "toggleComment",    "undo",
+	                                                    "redo",           "cut",              "copy",
+	                                                    "paste",          "selectAll",        "indentLines",
+	                                                    "outdentLines",   "unfoldAll"};
 	return names;
 }
 
@@ -116,7 +119,7 @@ bool TextEditor::runCommand(std::string_view name) {
 		}
 		endEdit();
 	} else if(name == "toggleComment") toggleComment("//");
-	else return lineCommand(name) || textCommand(name);
+	else return lineCommand(name) || textCommand(name) || editCommand(name);
 	return true;
 }
 

@@ -79,10 +79,12 @@ flowchart TB
 | [`screen`](modules/screen/README.md) | `affrescoui::affrescoui` | The composition root, `affresco::Screen` | `ScreenImages` | every module |
 | [`audio`](modules/audio/README.md) | `affrescoui::audio` | Sound: an output that mixes voices of files, bytes, streams and generators (miniaudio); optional (`AFFRESCOUI_AUDIO`) | | `Executor` |
 | [`automation`](modules/automation/README.md) | `affrescoui::automation` | Scenarios: the checks a screen ships with, played headless, pictures against golden images | | `screen` |
+| [`intelligence`](modules/intelligence/README.md) | `affrescoui::intelligence` | The providers an app's assistant asks (APIs, or a command line the person has), configured by JSON, behind the `assistant` capability | | `screen`, `net`, `services` |
 
-Outside the library: `examples/` (the host, the Launcher and the apps it opens, an application type), `mcp/` (an MCP
-server that is a peer like any other), `tools/` (the `affrescoui` command-line tool), and `tests/` (`unit`, `render`,
-`fuzz`, `perf`, `package`). The rendering check (`tests/render`) is scenarios whose expectations are pictures.
+Outside the library: `apps/host` (the stock host, which opens an app's folder), `examples/` (the apps, each a folder
+with an `app.json`, the Launcher among them, and an application type), `mcp/` (an MCP server that is a peer like any
+other), `tools/` (the `affrescoui` command-line tool), and `tests/` (`unit`, `render`, `fuzz`, `perf`, `package`). The
+rendering check (`tests/render`) is scenarios whose expectations are pictures.
 
 Rules that hold across the layers:
 - **No public header exposes OpenGL or GLFW.** Every OpenGL call is in `modules/render/src/gl/`, and every GLFW call

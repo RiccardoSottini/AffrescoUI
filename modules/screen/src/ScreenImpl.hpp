@@ -184,6 +184,11 @@ struct Screen::Impl {
 	/// @param except A peer to skip (may be nullptr).
 	void broadcast(const json& message, const Peer* except = nullptr);
 
+	/// @brief Passes on what the person asks the agents from inside the app ("ask" steps): one agent answers, the last
+	/// connected; a cancel goes to everyone.
+	/// @param request The request or the cancel.
+	void askAgents(const json& request);
+
 	/// @brief Sends a peer a message about change set repairs. One whose data rules let it read only some paths gets it
 	/// without the revisions, proof and failures, which can show the values hidden from it.
 	/// @param peer The peer.

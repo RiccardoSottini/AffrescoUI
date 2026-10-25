@@ -17,6 +17,9 @@
 using affresco::json;
 using affresco::format::AppCapability;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief A manifest that declares one of each: generated test data only.
@@ -147,6 +150,7 @@ TEST_CASE("app manifest: the capabilities a screen uses, and the ones its app do
 })json");
 	const std::vector<AppCapability> used = affresco::format::usedCapabilities(screen);
 	std::vector<std::string> keys;
+	keys.reserve(used.size());
 	for(const AppCapability& capability : used) keys.push_back(capability.key());
 	CHECK(keys == std::vector<std::string>{"network:wss://live.example.com", "network:https://id.example.org",
 	                                       "network:ws://127.0.0.1:7420", "folder:workspace:write", "program:git",
@@ -280,7 +284,7 @@ TEST_CASE("app manifest: an app's entry screen opened on its own is the app; ano
 TEST_CASE("app manifest: fromApp refuses what isn't an app, a bad part, and a file outside the folder") {
 	const auto folder = std::filesystem::temp_directory_path() / "affrescoui-app-refused-test";
 	const auto app = folder / "notes";
-	const auto refused = [&]() {
+	const auto refused = [&] {
 		try {
 			static_cast<void>(affresco::Screen::fromApp(app, folder / "data", affresco::Screen::History::InMemory));
 		} catch(const affresco::ScreenError& error) {
@@ -310,3 +314,5 @@ TEST_CASE("app manifest: fromApp refuses what isn't an app, a bad part, and a fi
 	CHECK(refused().contains("no model \"notes\""));
 	std::filesystem::remove_all(folder);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

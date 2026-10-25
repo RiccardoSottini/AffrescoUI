@@ -95,6 +95,12 @@ void Tabs::setColors(Color text, Color activeText, Color activeBackground, Color
 
 void Tabs::setAccentOnTop(bool top) { setLook(accentOnTop_, top); }
 
+void Tabs::setTabShape(float radius, float gap, float inset) {
+	setLook(tabRadius_, std::max(radius, 0.0f));
+	setProperty(tabGap_, std::max(gap, 0.0f));
+	setLook(tabInset_, std::max(inset, 0.0f));
+}
+
 void Tabs::setMarkerColor(std::optional<Color> color) { setLook(markerColor_, color); }
 
 void Tabs::setKeepMarker(bool keep) { setLook(keepMarker_, keep); }
@@ -112,11 +118,11 @@ void Tabs::arrange() {
 		Place& place = places_[i];
 		place.text = detail::fromUtf8(tabs_[i].label);
 		const float text = labels ? std::ceil(labels->measure(place.text)) : 0.0f;
-		place.left = left;
+		place.left = left + tabGap_;
 		place.width = padding + text + (hasButton(tabs_[i]) ? closeGap + closeSize : 0.0f) + padding;
-		left += place.width;
+		left = place.left + place.width;
 	}
-	contentWidth_ = left;
+	contentWidth_ = left + (tabs_.empty() ? 0.0f : tabGap_);
 	scroll_ = std::clamp(scroll_, 0.0f, std::max(contentWidth_ - resolvedSize().x, 0.0f));
 	if(keepActiveInView_) {
 		keepActiveInView_ = false;
@@ -259,17 +265,21 @@ void Tabs::paintTab(Painter& painter, const Font& font, std::size_t index) const
 	const Tab& tab = tabs_[index];
 	const bool active = tab.id == active_, hovered = index == hovered_;
 	const float left = std::round(f.left + place.left - scroll_);
-	const Rect area{left, f.top, left + place.width, f.bottom};
+	const Rect area{left, std::min(f.top + tabInset_, f.bottom), left + place.width, f.bottom};
 	if(active) {
-		painter.fillRect(area, activeBackground_);
+		// The radius rounds the top corners only, so the active tab joins what is under the strip
+		const float radius = std::min({tabRadius_, area.width() / 2.0f, area.height()});
+		if(radius > 0.0f) painter.fillRoundedRect(area, {radius, radius, 0.0f, 0.0f}, activeBackground_);
+		else painter.fillRect(area, activeBackground_);
 		const float lineTop = accentOnTop_ ? area.top : area.bottom - underline;
-		painter.fillRect({area.left, lineTop, area.right, lineTop + underline}, accent_);
+		const float lineInset = accentOnTop_ ? radius : 0.0f;
+		painter.fillRect({area.left + lineInset, lineTop, area.right - lineInset, lineTop + underline}, accent_);
 	}
-	const float baseline = std::round(f.top + (f.height() - font.lineHeight()) / 2.0f + font.ascent());
+	const float baseline = std::round(area.top + (area.height() - font.lineHeight()) / 2.0f + font.ascent());
 	painter.drawText(font, place.text, {left + padding, baseline}, active ? activeText_ : text_);
 
 	// The close button when it can be used now, else the marker (kept on the active tab too, if asked)
-	const float buttonLeft = area.right - padding - closeSize, middle = f.top + f.height() / 2.0f;
+	const float buttonLeft = area.right - padding - closeSize, middle = area.top + area.height() / 2.0f;
 	if(tab.closable && (hovered || (active && !(keepMarker_ && tab.marker)))) {
 		const std::u32string_view mark(&closeMark, 1);
 		const float x = std::round(buttonLeft + (closeSize - font.measure(mark)) / 2.0f);

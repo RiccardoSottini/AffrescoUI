@@ -244,6 +244,26 @@ struct Options {
 	std::string forget;               ///< The app whose decisions to forget (--permissions), or "".
 };
 
+/// @brief Reads one option of the command line that takes a value.
+/// @param options Where it goes.
+/// @param arg The option.
+/// @param value Its value.
+/// @return Whether it is one.
+bool readOption(Options& options, std::string_view arg, const char* value) {
+	if(arg == "--socket") options.socketDir = value;
+	else if(arg == "--data") options.dataDir = value;
+	else if(arg == "--plugin") options.plugins.emplace_back(value);
+	else if(arg == "--folder") options.folder = value;
+	else if(arg == "--allow") options.allowed.emplace_back(value);
+	else if(arg == "--ask") options.ask = value;
+	else if(arg == "--apps") options.apps = value;
+	else if(arg == "--grant") options.grants.emplace_back(value);
+	else if(arg == "--permissions") options.forget = value;
+	else if(arg == "--mode" && affresco::modeFromString(value)) options.mode = affresco::modeFromString(value);
+	else return false;
+	return true;
+}
+
 /// @brief Reads one argument of the command line.
 /// @param options Where it goes.
 /// @param arg The argument.
@@ -262,19 +282,7 @@ int readArgument(Options& options, std::string_view arg, const char* value) {
 		options.file = arg;
 		return 1;
 	}
-	if(!value) return 0; // every other option takes a value
-	if(arg == "--socket") options.socketDir = value;
-	else if(arg == "--data") options.dataDir = value;
-	else if(arg == "--plugin") options.plugins.emplace_back(value);
-	else if(arg == "--folder") options.folder = value;
-	else if(arg == "--allow") options.allowed.emplace_back(value);
-	else if(arg == "--ask") options.ask = value;
-	else if(arg == "--apps") options.apps = value;
-	else if(arg == "--grant") options.grants.emplace_back(value);
-	else if(arg == "--permissions") options.forget = value;
-	else if(arg == "--mode" && affresco::modeFromString(value)) options.mode = affresco::modeFromString(value);
-	else return 0;
-	return 2;
+	return value && readOption(options, arg, value) ? 2 : 0; // every other option takes a value
 }
 
 /// @brief Reads the command line.
@@ -307,8 +315,9 @@ void enableUsage(affresco::Screen& screen) {
 	const bool terminal = isatty(STDIN_FILENO) != 0;
 #endif
 	if(!screen.usageConsented() && terminal) {
-		std::cerr << "affrescoui_launcher: count how this screen is used (which controls run and fail, which screens are "
-		             "visited; ids, counts and times only, kept on this device for 30 days)? [y/N] ";
+		std::cerr
+		    << "affrescoui_launcher: count how this screen is used (which controls run and fail, which screens are "
+		       "visited; ids, counts and times only, kept on this device for 30 days)? [y/N] ";
 		std::string answer;
 		std::getline(std::cin, answer);
 		if(answer == "y" || answer == "yes") screen.giveUsageConsent();

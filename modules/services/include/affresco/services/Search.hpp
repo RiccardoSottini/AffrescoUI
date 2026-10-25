@@ -1,8 +1,8 @@
 #pragma once
 
 /// @file
-/// @brief The search engine behind the `search` provider, for natives that search a folder themselves (Forge's
-/// Search view): a folder's text files matched against a TextPattern on several threads, filtered by globs and
+/// @brief The search engine behind the `search` provider, for natives that search a folder themselves (an
+/// editor's Search view): a folder's text files matched against a TextPattern on several threads, filtered by globs and
 /// `.gitignore`, streamed one file at a time, cancellable and capped; and the replacement of every match in a text.
 
 #include <affresco/core/TextPattern.hpp>

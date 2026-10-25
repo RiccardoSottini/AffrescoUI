@@ -12,7 +12,7 @@
 
 namespace affresco {
 
-/// @brief Keeps secrets by key, e.g. "affrescoui/forge/documentServer".
+/// @brief Keeps secrets by key, e.g. "affrescoui/editor/documentServer".
 ///
 /// Every member may be called from any thread. A secret never leaves the store but through read().
 class SecretStore {

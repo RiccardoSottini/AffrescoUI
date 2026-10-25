@@ -16,7 +16,7 @@
 namespace affresco::format {
 
 /// The longest app.json read, in bytes.
-inline constexpr std::size_t maxAppManifestBytes = 256 * 1024;
+inline constexpr std::size_t maxAppManifestBytes = std::size_t{256} * 1024;
 
 /// @brief One thing an app asks the person to allow.
 struct AppCapability {

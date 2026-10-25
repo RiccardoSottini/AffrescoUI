@@ -194,7 +194,7 @@ public:
 		screen_.erase("exports");
 		screen_.erase("imports");
 		screen_.erase("points");
-		// Points may sit in components too: an app's status bar is often one (Forge's is).
+		// Points may sit in components too: an app's status bar is often one.
 		for(const auto& [pointer, tree] : nodeTrees(screen_)) pointsIn(*tree, pointer, points_, problems_);
 		// Composition runs before the document is checked (the checker reads the composed screen), so it reads only
 		// the parts that pass their own checks: a revision can't stop the app with a malformed feature.
