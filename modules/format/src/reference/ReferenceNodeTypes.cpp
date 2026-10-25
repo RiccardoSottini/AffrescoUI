@@ -75,6 +75,9 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`.",
 	 "editor"},
     {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
+    {"tabSize", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 16}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the "
+	 "text becomes and the indentation guides step by.", "editor"},
     {"rulers", R"json({"anyOf": [{"type": "array", "items": {"type": "number", "minimum": 0}}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`).", "editor"},
     {"minimap", "flag",

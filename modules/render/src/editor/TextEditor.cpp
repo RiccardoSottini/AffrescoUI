@@ -91,7 +91,7 @@ void TextEditor::setText(std::string_view utf8) {
 	if(utf8.find_first_of("\t\r") != std::string_view::npos) {
 		normalised.reserve(utf8.size());
 		for(const char c : utf8) {
-			if(c == '\t') normalised.append(tabSize, ' ');
+			if(c == '\t') normalised.append(tabSize_, ' ');
 			else if(c != '\r') normalised.push_back(c);
 		}
 		utf8 = normalised;
@@ -269,7 +269,7 @@ TextEditor::Position TextEditor::insert(Position at, std::u32string_view text) {
 	std::string utf8;
 	utf8.reserve(text.size());
 	for(const char32_t c : text) {
-		if(c == U'\t') utf8.append(tabSize, ' ');
+		if(c == U'\t') utf8.append(tabSize_, ' ');
 		else if(c != U'\r') detail::appendUtf8(utf8, c);
 	}
 	return model_->insert(at, utf8);
@@ -409,12 +409,12 @@ void TextEditor::indentLines(bool outdent) {
 	const auto [first, last] = selectedLines();
 	beginEdit(Edit::Other);
 	for(std::size_t line = first; line <= last; ++line) {
-		const std::size_t removed = outdent ? std::min(indentOf(line), tabSize) : 0;
+		const std::size_t removed = outdent ? std::min(indentOf(line), tabSize_) : 0;
 		if(outdent && removed == 0) continue;
 		if(!outdent && lines_[line].empty()) continue;
 		if(outdent) model_->erase({line, 0}, {line, removed});
-		else model_->insert({line, 0}, std::string(tabSize, ' '));
-		const long change = outdent ? -static_cast<long>(removed) : static_cast<long>(tabSize);
+		else model_->insert({line, 0}, std::string(tabSize_, ' '));
+		const long change = outdent ? -static_cast<long>(removed) : static_cast<long>(tabSize_);
 		for(Position* p : {&caret_, &anchor_})
 			if(p->line == line)
 				p->column = static_cast<std::size_t>(std::max(0L, static_cast<long>(p->column) + change));

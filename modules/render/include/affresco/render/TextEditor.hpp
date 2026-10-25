@@ -86,7 +86,7 @@ class TextEditor : public Panel {
 public:
 	using Position = TextPosition; ///< A place in the text: a line and a code point within it, both from 0.
 
-	static constexpr std::size_t tabSize = 4; ///< Spaces per indentation level.
+	static constexpr std::size_t maxTabSize = 16; ///< Spaces per indentation level, at most.
 
 	static constexpr std::size_t maxDecorations = 10'000;    ///< Decorations kept, at most; the rest are dropped.
 	static constexpr std::size_t maxDecorationsPerLine = 8;  ///< Decorations starting on one line, at most.
@@ -179,6 +179,12 @@ public:
 	void setBracketUnderline(bool underline);
 	/// @brief Whether the matching brackets are underlined.
 	[[nodiscard]] bool bracketUnderline() const noexcept { return bracketUnderline_; }
+	/// @brief Sets the spaces per indentation level: what Tab inserts up to, Shift+Tab removes, a tab in the text
+	/// becomes and the indentation guides step by. Text already shown keeps its spaces.
+	/// @param spaces The spaces, from 1 to maxTabSize (clamped; 4 by default).
+	void setTabSize(std::size_t spaces);
+	/// @brief The spaces per indentation level.
+	[[nodiscard]] std::size_t tabSize() const noexcept { return tabSize_; }
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
@@ -947,6 +953,7 @@ private:
 	bool brackets_ = false;           ///< See setBracketMatching().
 	bool bracketUnderline_ = false;   ///< See setBracketUnderline().
 	bool guides_ = false;             ///< See setIndentGuides().
+	std::size_t tabSize_ = 4;         ///< See setTabSize().
 	std::vector<std::size_t> rulers_; ///< See setRulers().
 	std::u32string composition_;      ///< See setComposition().
 	bool minimap_ = false;            ///< See setMinimap().
