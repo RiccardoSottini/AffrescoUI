@@ -8,6 +8,7 @@
 		"centre": "{{ { x: nodes.viewport.x + nodes.viewport.width / 2 - 100, y: nodes.viewport.y + nodes.viewport.height / 2 - 60 } }}",
 		"lastCentre": "{{state.lastOp == null || length(state.lastOp.base) == 0 ? [0, 0, 0] : map([sum(map(state.lastOp.base, it.translation[0])), sum(map(state.lastOp.base, it.translation[1])), sum(map(state.lastOp.base, it.translation[2]))], it / length(state.lastOp.base))}}",
 		"searchItems": "{{map(filter(commands, it.enabled && it.name != 'search'), { title: it.title, detail: it.keyLabel ?? it.category, icon: it.icon, run: it.name })}}",
+		"pieItems": "{{state.pie.menu == 'shading' ? [{ title: 'Wireframe', icon: 'globe', run: 'setOption', with: { args: { key: 'shading', value: 'wireframe' } }, checked: state.shading == 'wireframe' }, { title: 'Rendered', icon: 'sun', run: 'setOption', with: { args: { key: 'shading', value: 'rendered' } }, checked: state.shading == 'rendered' }, { title: 'Solid', icon: 'circle', run: 'setOption', with: { args: { key: 'shading', value: 'solid' } }, checked: state.shading == 'solid' }, { title: 'Material Preview', icon: 'circle-dot', run: 'setOption', with: { args: { key: 'shading', value: 'material' } }, checked: state.shading == 'material' }, { title: 'Toggle X-Ray', icon: 'square-dashed-bottom', run: 'toggleXray', checked: state.xray }] : state.pie.menu == 'view' ? [{ title: 'Left', run: 'viewLeft' }, { title: 'Right', run: 'viewRight' }, { title: 'Bottom', run: 'viewBottom' }, { title: 'Top', run: 'viewTop' }, { title: 'Front', run: 'viewFront' }, { title: 'Back', run: 'viewBack' }, { title: 'Camera', icon: 'video', run: 'viewCamera', enabled: computed.cameraNode != null }, { title: 'View Selected', icon: 'scan', run: 'frameSelected', enabled: length(state.view.selection) > 0 }] : []}}",
 		"cameraNode": "{{find(state.scene.nodes, it.kind == 'camera')}}",
 		"cameraView": "{{computed.cameraNode == null ? null : { target: [computed.cameraNode.translation[0] - sin(radians(computed.cameraNode.rotationDegrees[0])) * sin(radians(computed.cameraNode.rotationDegrees[2])) * 10, computed.cameraNode.translation[1] + sin(radians(computed.cameraNode.rotationDegrees[0])) * cos(radians(computed.cameraNode.rotationDegrees[2])) * 10, computed.cameraNode.translation[2] - cos(radians(computed.cameraNode.rotationDegrees[0])) * 10], yaw: radians(computed.cameraNode.rotationDegrees[2]), pitch: pi() / 2 - radians(computed.cameraNode.rotationDegrees[0]), distance: 10, fieldOfView: computed.cameraNode.camera.fieldOfView ?? 0.69, orthographic: false } }}",
 		"modalName": "{{state.modal ? (state.modal.mode == 'translate' ? 'Move' : state.modal.mode == 'rotate' ? 'Rotate' : 'Resize') : ''}}"
@@ -110,6 +111,10 @@
 		"cancelTransform": [{ "transform": "#viewport", "end": "cancel" }, { "set": "state.modal", "to": null }],
 		"openPopup": [
 			{ "set": "state.ctx", "to": { "open": true, "menu": "{{args.menu}}", "x": "{{args.x ?? computed.centre.x}}", "y": "{{args.y ?? computed.centre.y}}" } }
+		],
+		"openPie": [
+			{ "if": "{{state.modal != null || state.areas[state.hoverSlot ?? 'a'] != 'viewport'}}", "then": [{ "stop": true }] },
+			{ "set": "state.pie", "to": { "open": true, "menu": "{{args.menu}}", "x": "{{nodes.viewport.x + nodes.viewport.width / 2}}", "y": "{{nodes.viewport.y + nodes.viewport.height / 2}}" } }
 		],
 		"addMenu": { "title": "Add", "category": "Object", "icon": "plus", "do": [{ "run": "openPopup", "with": { "args": { "menu": "{{state.areas[state.hoverSlot] == 'shader' ? 'shaderAdd' : 'add'}}", "x": null, "y": null } } }] },
 		"deleteMenu": { "title": "Delete…", "category": "Object", "do": [{ "if": "{{length(state.view.selection) > 0}}", "then": [{ "run": "openPopup", "with": { "args": { "menu": "delete", "x": null, "y": null } } }] }] },
@@ -543,7 +548,8 @@
 		"s": { "do": "resize" },
 		"x": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "x" } } }, { "do": "deleteMenu" }],
 		"y": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "y" } } }],
-		"z": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "z" } } }, { "do": "openPopup", "with": { "args": { "menu": "shading", "x": null, "y": null } } }],
+		"z": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "z" } } }, { "do": "openPie", "with": { "args": { "menu": "shading" } } }],
+		"grave": { "when": "{{state.modal == null}}", "do": "openPie", "with": { "args": { "menu": "view" } } },
 		"shift+x": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "yz" } } },
 		"shift+y": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "zx" } } },
 		"shift+z": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "xy" } } },

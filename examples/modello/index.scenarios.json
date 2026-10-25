@@ -661,6 +661,35 @@
 				{ "expect": { "state": "scene.materials[0].graph.nodes[1].id", "is": "checker-1" } },
 				{ "expect": { "state": "scene.materials[0].graph.links[0].from", "is": "checker-1" } }
 			]
+		},
+		{
+			"name": "modello-pie-menus",
+			"note": "Z opens the shading pie around the viewport's centre: Wireframe left, Rendered right, Solid below, Material Preview above, X-ray at the top left, the current one highlighted; a click picks one and closes it. ~ opens the view pie: Left, Right, Bottom, Top, Front, Back, Camera and View Selected; Escape closes it.",
+			"steps": [
+				{ "move": [500, 250] },
+				{ "key": "z" },
+				{ "expect": { "state": "pie.open", "is": true } },
+				{ "wait": 50 },
+				{ "capture": "shading" },
+				{ "click": "#pie-0" },
+				{ "expect": { "state": "shading", "is": "wireframe" } },
+				{ "expect": { "state": "pie.open", "is": false } },
+				{ "key": "z" },
+				{ "wait": 50 },
+				{ "click": "#pie-4" },
+				{ "expect": { "state": "xray", "is": true } },
+				{ "key": "grave" },
+				{ "expect": { "state": "pie.menu", "is": "view" } },
+				{ "wait": 50 },
+				{ "click": "#pie-3" },
+				{ "wait": 20 },
+				{ "expect": { "node": "#view-name", "text": "Top Perspective" } },
+				{ "key": "grave" },
+				{ "wait": 20 },
+				{ "key": "escape" },
+				{ "wait": 20 },
+				{ "expect": { "state": "pie.open", "is": false } }
+			]
 		}
 	]
 }

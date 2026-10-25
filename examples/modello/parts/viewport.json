@@ -57,6 +57,33 @@
 				]
 			}
 		},
+		"pieMenu": {
+			"runsActions": "items",
+			"params": { "items": [], "open": "state.pie.open", "x": 0, "y": 0, "title": "" },
+			"node": {
+				"width": 360, "height": 240, "color": "transparent", "role": "menu", "label": "{{title}}", "arrows": "vertical",
+				"overlay": { "placement": "window", "open": "{{open}}", "dismiss": "outside", "modal": true }, "x": "{{x - 180}}", "y": "{{y - 120}}",
+				"children": [
+					{ "anchors": { "left": 168, "top": 108 }, "width": 24, "height": 24, "radius": 12, "color": "@toolGroup", "borderWidth": 1, "borderColor": "@faint" },
+					{ "type": "label", "text": "{{title}}", "textColor": "@dim", "anchors": { "left": 0, "right": 0, "top": 138 }, "height": 16, "align": "center" },
+					{
+						"repeat": { "for": "item", "in": "{{items}}", "index": "i" },
+						"id": "pie-{{i}}", "role": "menuitem", "label": "{{item.title}}", "focusable": true, "disabled": "{{item.enabled == false}}",
+						"selected": "{{item.checked == null ? null : item.checked == true}}",
+						"anchors": { "left": "{{115 + [-115, 115, 0, 0, -100, 100, -100, 100][i]}}", "top": "{{107 + [0, 0, 80, -80, -50, -50, 50, 50][i]}}" },
+						"width": 130, "height": 26, "radius": 13, "color": "{{item.checked == true ? '@sel' : '@toolGroup'}}",
+						"hover": { "color": "{{item.enabled == false ? '@toolGroup' : '@widgetHover'}}" }, "focused": { "color": "@widgetHover" },
+						"onClick": [{ "dismiss": true }, { "run": "{{item.run}}", "with": "{{item.with}}" }],
+						"children": [
+							{ "when": "{{item.icon != null}}", "type": "label", "text": "", "icon": "{{item.icon}}", "anchors": { "left": 10, "top": 5 }, "fitText": true,
+							  "textColor": "{{item.enabled == false ? '@faint' : '@text'}}" },
+							{ "type": "label", "text": "{{item.title}}", "anchors": { "left": "{{item.icon != null ? 32 : 14}}", "top": 5 }, "fitText": true,
+							  "textColor": "{{item.enabled == false ? '@faint' : '@text'}}" }
+						]
+					}
+				]
+			}
+		},
 		"gap": {
 			"params": { "width": 4 },
 			"node": { "width": "{{width}}", "height": 1, "color": "transparent" }
