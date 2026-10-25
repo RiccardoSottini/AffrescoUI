@@ -33,10 +33,11 @@
 	"styles": {
 		"navTab": {
 			"type": "label",
-			"font": "nav",
+			"font": "strong",
 			"fitText": true,
-			"padding": 9,
-			"radius": 16,
+			"padding": 16,
+			"height": 30,
+			"radius": 15,
 			"cursor": "hand",
 			"focusable": true,
 			"role": "tab",
@@ -82,21 +83,21 @@
 									"name": "app",
 									"title": "{{t('menu.app')}}",
 									"items": [
-										{ "title": "{{t('menu.changeAccount')}}" },
-										{ "title": "{{t('menu.offline')}}" },
+										{ "title": "{{t('menu.changeAccount')}}", "run": "signOut" },
+										{ "title": "{{t('menu.offline')}}", "run": "toggleOffline", "checked": "{{state.session.offline}}" },
 										{ "separator": true },
-										{ "title": "{{t('menu.updates')}}" },
-										{ "title": "{{t('menu.backup')}}" },
-										{ "title": "{{t('menu.settings')}}", "keyLabel": "⌘," },
+										{ "title": "{{t('menu.updates')}}", "run": "checkUpdates" },
+										{ "title": "{{t('menu.backup')}}", "run": "openBackup" },
+										{ "title": "{{t('menu.settings')}}", "run": "openSettings", "with": { "page": "interface" }, "keyLabel": "⌘," },
 										{ "separator": true },
-										{ "title": "{{t('menu.exit')}}" }
+										{ "title": "{{t('menu.exit')}}", "enabled": false }
 									]
 								},
 								{
 									"name": "view",
 									"title": "{{t('menu.view')}}",
 									"items": [
-										{ "title": "{{t('menu.tv')}}" },
+										{ "title": "{{t('menu.tv')}}", "run": "enterCouch" },
 										{ "separator": true },
 										{ "title": "{{t('nav.store')}}", "run": "showStore", "keyLabel": "⌘1" },
 										{ "title": "{{t('nav.library')}}", "run": "showLibrary", "keyLabel": "⌘2" },
@@ -149,20 +150,20 @@
 									"title": "{{t('menu.games')}}",
 									"items": [
 										{ "title": "{{t('menu.viewLibrary')}}", "run": "showLibrary" },
-										{ "title": "{{t('menu.activate')}}" },
-										{ "title": "{{t('menu.redeem')}}" },
-										{ "title": "{{t('menu.addOther')}}" }
+										{ "title": "{{t('menu.activate')}}", "run": "openCode", "with": { "kind": "activate" } },
+										{ "title": "{{t('menu.redeem')}}", "run": "openCode", "with": { "kind": "redeem" } },
+										{ "title": "{{t('menu.addOther')}}", "run": "openAddGame" }
 									]
 								},
 								{
 									"name": "help",
 									"title": "{{t('menu.help')}}",
 									"items": [
-										{ "title": "{{t('menu.support')}}" },
-										{ "title": "{{t('menu.privacy')}}" },
-										{ "title": "{{t('menu.system')}}" },
+										{ "title": "{{t('menu.support')}}", "run": "showInfo", "with": { "kind": "support" } },
+										{ "title": "{{t('menu.privacy')}}", "run": "showInfo", "with": { "kind": "privacy" } },
+										{ "title": "{{t('menu.system')}}", "run": "showInfo", "with": { "kind": "system" } },
 										{ "separator": true },
-										{ "title": "{{t('menu.about')}}" }
+										{ "title": "{{t('menu.about')}}", "run": "showInfo", "with": { "kind": "about" } }
 									]
 								}
 							]
@@ -174,7 +175,8 @@
 						"icon": "sofa",
 						"text": "",
 						"tooltip": "{{t('menu.tv')}}",
-						"label": "{{t('menu.tv')}}"
+						"label": "{{t('menu.tv')}}",
+						"onClick": "enterCouch"
 					},
 					{
 						"id": "bell",
@@ -194,7 +196,7 @@
 									"width": 330,
 									"icons": true,
 									"placement": "below-end",
-									"items": "{{map(state.notifications, { title: t(it.text, { game: it.game ?? '', who: it.who ?? '', n: it.n ?? 0 }), icon: it.icon })}}"
+									"items": "{{map(state.notifications, { title: t(it.text, { game: it.game ?? '', who: it.who ?? '', n: it.n ?? 0 }), icon: it.icon, run: 'openNotice', with: { i: index } })}}"
 								}
 							}
 						]
@@ -258,13 +260,15 @@
 									"placement": "below-end",
 									"items": [
 										{ "title": "{{t('account.profile')}}", "run": "showProfile" },
-										{ "title": "{{t('account.details')}}" },
+										{ "title": "{{t('account.details')}}", "run": "openSettings", "with": { "page": "account" } },
 										{
-											"title": "{{t('account.wallet', { amount: formatCurrency(state.user.wallet, 'EUR') })}}"
+											"title": "{{t('account.wallet', { amount: formatCurrency(state.user.wallet, 'EUR') })}}",
+											"run": "openCode",
+											"with": { "kind": "redeem" }
 										},
 										{ "title": "{{t('account.language')}}", "run": "nextLanguage" },
 										{ "separator": true },
-										{ "title": "{{t('account.signOut')}}" }
+										{ "title": "{{t('account.signOut')}}", "run": "signOut" }
 									]
 								}
 							}
@@ -274,16 +278,14 @@
 			}
 		},
 		"navRow": {
-			"note": "The navigation: back and forward, then discover, my games, friends and the profile as pills, the current one lit.",
+			"note": "The navigation: back and forward on the left, then discover, my games, friends and the profile as one segmented group in the middle, the current one lit.",
 			"params": {},
 			"node": {
 				"type": "row",
-				"height": 56,
+				"height": 50,
 				"anchors": { "left": 0, "right": 0 },
 				"color": "@color.top",
 				"alignItems": "center",
-				"arrows": "horizontal",
-				"role": "tablist",
 				"children": [
 					{ "type": "panel", "width": 12, "height": 1, "color": "transparent" },
 					{
@@ -322,17 +324,36 @@
 						"onClick": "forward",
 						"hover": { "textColor": "@color.bright" }
 					},
-					{ "type": "panel", "width": 18, "height": 1, "color": "transparent" },
+					{ "type": "panel", "grow": 1, "height": 1, "color": "transparent" },
 					{
-						"repeat": { "for": "tab", "in": "{{['store', 'library', 'community', 'profile']}}" },
-						"id": "{{'nav-' + tab}}",
-						"style": "navTab",
-						"text": "{{tab == 'profile' ? state.user.name : t('nav.' + tab)}}",
-						"textColor": "{{computed.here.tab == tab ? '@color.accent' : '@color.text'}}",
-						"color": "{{computed.here.tab == tab ? '@color.select' : 'transparent'}}",
-						"selected": "{{computed.here.tab == tab}}",
-						"onClick": { "run": "go", "with": { "tab": "{{tab}}", "page": "home", "id": null } }
-					}
+						"id": "nav-tabs",
+						"type": "row",
+						"height": 38,
+						"fitContent": "width",
+						"gap": 2,
+						"radius": 19,
+						"alignItems": "center",
+						"color": "@color.side",
+						"arrows": "horizontal",
+						"role": "tablist",
+						"children": [
+							{ "type": "panel", "width": 2, "height": 1, "color": "transparent" },
+							{
+								"repeat": { "for": "tab", "in": "{{['store', 'library', 'community', 'profile']}}" },
+								"id": "{{'nav-' + tab}}",
+								"style": "navTab",
+								"text": "{{tab == 'profile' ? state.user.name : t('nav.' + tab)}}",
+								"textColor": "{{computed.here.tab == tab ? '@color.onAccent' : '@color.text'}}",
+								"color": "{{computed.here.tab == tab ? '@color.accent' : 'transparent'}}",
+								"hover": { "textColor": "{{computed.here.tab == tab ? '@color.onAccent' : '@color.bright'}}", "color": "{{computed.here.tab == tab ? '@color.accent' : '@color.raised'}}" },
+								"selected": "{{computed.here.tab == tab}}",
+								"onClick": { "run": "go", "with": { "tab": "{{tab}}", "page": "home", "id": null } }
+							},
+							{ "type": "panel", "width": 2, "height": 1, "color": "transparent" }
+						]
+					},
+					{ "type": "panel", "grow": 1, "height": 1, "color": "transparent" },
+					{ "type": "panel", "width": 80, "height": 1, "color": "transparent" }
 				]
 			}
 		},
@@ -364,8 +385,8 @@
 									"width": 260,
 									"placement": "above",
 									"items": [
-										{ "title": "{{t('menu.addOther')}}" },
-										{ "title": "{{t('menu.activate')}}" },
+										{ "title": "{{t('menu.addOther')}}", "run": "openAddGame" },
+										{ "title": "{{t('menu.activate')}}", "run": "openCode", "with": { "kind": "activate" } },
 										{ "title": "{{t('bottom.browse')}}", "run": "showStore" }
 									]
 								}
@@ -476,7 +497,7 @@
 			"menu.games": "Games",
 			"menu.help": "Help",
 			"menu.changeAccount": "Change Account…",
-			"menu.offline": "Go Offline…",
+			"menu.offline": "Offline Mode",
 			"menu.updates": "Check for Client Updates…",
 			"menu.backup": "Back Up and Restore Games…",
 			"menu.settings": "Settings",
@@ -528,7 +549,7 @@
 			"menu.games": "Juegos",
 			"menu.help": "Ayuda",
 			"menu.changeAccount": "Cambiar de cuenta…",
-			"menu.offline": "Pasar al modo sin conexión…",
+			"menu.offline": "Modo sin conexión",
 			"menu.updates": "Buscar actualizaciones del cliente…",
 			"menu.backup": "Copia de seguridad y restauración de juegos…",
 			"menu.settings": "Ajustes",
@@ -580,7 +601,7 @@
 			"menu.games": "Jeux",
 			"menu.help": "Aide",
 			"menu.changeAccount": "Changer de compte…",
-			"menu.offline": "Passer hors ligne…",
+			"menu.offline": "Mode hors ligne",
 			"menu.updates": "Rechercher les mises à jour du client…",
 			"menu.backup": "Sauvegarder et restaurer les jeux…",
 			"menu.settings": "Paramètres",
