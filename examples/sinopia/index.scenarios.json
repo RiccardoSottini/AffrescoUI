@@ -1226,6 +1226,31 @@
 				{ "key": "escape" },
 				{ "expect": { "state": "show.on", "is": false } }
 			]
+		},
+		{
+			"name": "sinopia-animation-pane",
+			"note": "The Animation Pane lists the slide's builds in their order: a click selects one's object, the arrows reorder them (undoable), the cross takes one off",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#tab-animations-label" },
+				{ "click": "#b-motion-pane" },
+				{ "expect": { "state": "sidePane", "is": "motion" } },
+				{ "expect": { "node": "#side-title", "text": "Animation Pane" } },
+				{ "expect": { "node": "#motion-a2-step", "text": "1" } },
+				{ "expect": { "node": "#motion-a3-step", "text": "" } },
+				{ "click": "#motion-a3-name" },
+				{ "expect": { "state": "board.selection", "is": ["o10"] } },
+				{ "click": "#motion-a3-up" },
+				{ "expect": { "state": "deck.slides[3].animations[0].id", "is": "a3" } },
+				{ "expect": { "state": "deck.slides[3].animations[1].id", "is": "a2" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[3].animations[0].id", "is": "a2" } },
+				{ "click": "#motion-a5-remove" },
+				{ "expect": { "state": "deck.slides[3].animations[2].id", "is": "a4" } },
+				{ "expect": { "node": "#motion-a5", "exists": false } },
+				{ "click": "#thumb-s3-row" },
+				{ "expect": { "node": "#motion-empty", "exists": true } }
+			]
 		}
 	]
 }

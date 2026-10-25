@@ -337,6 +337,10 @@
 							{ "type": "label", "id": "motion-count", "height": 22, "textColor": "@rbMuted",
 							  "runs": [{ "text": "{{length(computed.slide.animations ?? []) + ' on this slide, ' + count(computed.slide.animations ?? [], it.start == 'click') + ' on a click'}}", "size": 12 }] }
 						] }
+					] },
+					{ "use": "rbGroup", "id": "g-motion-advanced", "with": { "title": "Advanced" }, "children": [
+						{ "use": "rbBig", "id": "b-motion-pane", "with": { "icon": "list-ordered", "title": "Animation\nPane", "on": "{{state.sidePane == 'motion' && !state.formatPane}}", "width": 64 },
+						  "tooltip": "The slide's builds in the order they play", "onClick": { "run": "openSidePane", "with": { "pane": "motion" } } }
 					] }
 				]
 			}

@@ -25,6 +25,8 @@
 		"liveStroke": "{{'M ' + join(map(state.stroke, fixed((it[0] - computed.view.camera.x) * computed.view.camera.zoom, 1) + ' ' + fixed((it[1] - computed.view.camera.y) * computed.view.camera.zoom, 1)), ' L ')}}",
 		"slideInk": "{{count(computed.objects, it.kind == 'ink')}}",
 		"timed": "{{count(state.deck.slides, it.advanceAfter != null)}}",
+		"objectNames": "{{map(computed.objects, it.name ?? ((contains(['title', 'ctrTitle'], it.ph ?? '') ? 'Title' : it.ph == 'subTitle' ? 'Subtitle' : it.ph != null ? 'Content' : it.kind == 'shape' ? 'Shape' : it.kind == 'line' ? 'Line' : it.kind == 'icon' ? 'Icon' : it.kind == 'ink' ? 'Ink' : 'Text Box') + ' ' + (index + 1)))}}",
+		"motionRows": "{{map(scan(computed.slide.animations ?? [], merge(it, { step: acc.step + (it.start == 'click' ? 1 : 0) }), { step: 0 }), merge(it, { name: computed.objectNames[indexOf(map(computed.objects, it.id), it.target)] ?? '' }))}}",
 		"comments": "{{computed.slide.comments ?? []}}",
 		"commented": "{{filter(range(length(state.deck.slides)), length(state.deck.slides[it].comments ?? []) > 0)}}",
 		"untitled": "{{count(state.deck.slides, !some(it.objects ?? [], contains(['title', 'ctrTitle'], it.ph ?? '') && trim(it.text ?? '') != ''))}}",
@@ -112,6 +114,23 @@
 			{ "note": "with: pane, comments, access, keys or about; the same pane again closes it" },
 			{ "set": "state.sidePane", "to": "{{state.sidePane == pane && !state.formatPane ? null : pane}}" },
 			{ "set": "state.formatPane", "to": false }
+		],
+		"moveAnimation": [
+			{ "note": "with: id, a build of this slide, and by, -1 to play it earlier or 1 later" },
+			{ "run": "swapAnimations", "with": { "i": "{{indexOf(map(computed.slide.animations ?? [], it.id), id)}}", "by": "{{by}}" } }
+		],
+		"swapAnimations": [
+			{ "note": "with: i, a build's place, and by: swaps it with its neighbour" },
+			{ "if": "{{i >= 0 && i + by >= 0 && i + by < length(computed.slide.animations ?? [])}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides[state.current].animations",
+				  "to": "{{map(computed.slide.animations, index == i ? computed.slide.animations[i + by] : index == i + by ? computed.slide.animations[i] : it)}}" }
+			] }
+		],
+		"removeAnimation": [
+			{ "note": "with: id, the build to take off this slide" },
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].animations", "to": "{{filter(computed.slide.animations ?? [], it.id != id)}}" }
 		],
 		"hideObjects": [
 			{ "note": "with: ids, the objects to show or hide, and hidden" },
@@ -286,17 +305,18 @@
 				"type": "column", "id": "side-pane", "width": 260, "color": "@rb", "borderWidth": 1, "borderColor": "@rbLine", "gap": 6,
 				"alignItems": "center", "scroll": "vertical", "role": "region",
 				"let": { "pane": "{{state.sidePane}}" },
-				"label": "{{pane == 'comments' ? 'Comments' : pane == 'access' ? 'Accessibility' : pane == 'select' ? 'Selection' : pane == 'keys' ? 'Keyboard Shortcuts' : 'About'}}",
+				"label": "{{pane == 'comments' ? 'Comments' : pane == 'access' ? 'Accessibility' : pane == 'select' ? 'Selection' : pane == 'motion' ? 'Animation Pane' : pane == 'keys' ? 'Keyboard Shortcuts' : 'About'}}",
 				"children": [
 					{ "id": "side-top", "width": 1, "height": 4, "color": "transparent" },
 					{ "type": "row", "id": "side-head", "width": 236, "height": 24, "alignItems": "center", "color": "transparent", "children": [
 						{ "type": "label", "id": "side-title", "grow": 1, "height": 22, "textColor": "@rbInk",
-						  "runs": [{ "text": "{{pane == 'comments' ? 'Comments' : pane == 'access' ? 'Accessibility' : pane == 'select' ? 'Selection' : pane == 'keys' ? 'Keyboard Shortcuts' : 'About Sinopia'}}", "size": 14, "bold": true }] },
+						  "runs": [{ "text": "{{pane == 'comments' ? 'Comments' : pane == 'access' ? 'Accessibility' : pane == 'select' ? 'Selection' : pane == 'motion' ? 'Animation Pane' : pane == 'keys' ? 'Keyboard Shortcuts' : 'About Sinopia'}}", "size": 14, "bold": true }] },
 						{ "use": "rbSmall", "id": "side-close", "with": { "icon": "x" }, "tooltip": "Close", "onClick": [{ "set": "state.sidePane", "to": null }] }
 					] },
 					{ "use": "commentsList", "when": "{{pane == 'comments'}}" },
 					{ "use": "accessList", "when": "{{pane == 'access'}}" },
 					{ "use": "selectionList", "when": "{{pane == 'select'}}" },
+					{ "use": "motionList", "when": "{{pane == 'motion'}}" },
 					{ "type": "column", "id": "shortcuts", "when": "{{pane == 'keys'}}", "width": 236, "fitContent": "height", "gap": 2, "alignItems": "stretch", "color": "transparent", "children": [
 						{ "repeat": { "for": "k", "in": "{{computed.shortcuts}}", "index": "n" },
 						  "type": "row", "id": "{{'shortcut-' + n}}", "height": 34, "gap": 8, "alignItems": "center", "color": "transparent", "children": [
@@ -364,6 +384,39 @@
 						{ "use": "rbSmall", "id": "{{'selection-' + o.id + '-eye'}}", "with": { "icon": "{{o.hidden ?? false ? 'eye-off' : 'eye'}}" },
 						  "tooltip": "{{o.hidden ?? false ? 'Show it' : 'Hide it'}}",
 						  "onClick": { "run": "hideObjects", "with": { "ids": "{{[o.id]}}", "hidden": "{{!(o.hidden ?? false)}}" } } }
+					  ] }
+				]
+			}
+		},
+
+		"motionList": {
+			"params": {},
+			"note": "The slide's builds in the order they play, each with its click (a number where a click starts it): a click selects its object, the arrows play it earlier or later, the cross takes it off.",
+			"node": {
+				"type": "column", "id": "motion-list", "width": 236, "fitContent": "height", "gap": 2, "alignItems": "stretch", "color": "transparent",
+				"children": [
+					{ "type": "row", "id": "motion-all", "height": 26, "gap": 6, "color": "transparent", "children": [
+						{ "type": "label", "id": "motion-play", "style": "rbButton", "height": 24, "fitText": true, "padding": 4, "disabled": "{{length(computed.motionRows) == 0}}",
+						  "runs": [{ "icon": "play", "size": 12 }, { "text": " Play All", "size": 12 }], "onClick": "previewSlide" }
+					] },
+					{ "type": "label", "id": "motion-empty", "when": "{{length(computed.motionRows) == 0}}", "width": 236, "height": 36, "wrap": true, "textColor": "@rbMuted",
+					  "runs": [{ "text": "No builds on this slide. Select an object and pick an effect on the Motion tab.", "size": 12 }] },
+					{ "repeat": { "for": "a", "in": "{{computed.motionRows}}", "key": "{{a.id}}", "index": "n" },
+					  "type": "row", "id": "{{'motion-' + a.id}}", "height": 26, "gap": 2, "alignItems": "center",
+					  "color": "{{contains(state.board.selection, a.target) ? '@rbChecked' : 'transparent'}}",
+					  "children": [
+						{ "type": "label", "id": "{{'motion-' + a.id + '-step'}}", "width": 20, "height": 24, "align": "center", "textColor": "@rbMuted",
+						  "runs": [{ "text": "{{a.start == 'click' ? '' + a.step : ''}}", "size": 11 }] },
+						{ "type": "label", "id": "{{'motion-' + a.id + '-name'}}", "grow": 1, "height": 24, "align": "start center", "cursor": "hand", "role": "button",
+						  "textColor": "@rbInk", "label": "{{a.name + ', ' + a.effect + (a.kind == 'exit' ? ' exit' : '') + ', ' + a.start}}",
+						  "runs": "{{[{ icon: a.kind == 'exit' ? 'log-out' : 'log-in', size: 13 }, { text: ' ' + a.name, size: 12 }, { text: '  ' + a.effect + (a.start == 'click' ? '' : ', ' + a.start), size: 11, color: '@rbMuted' }]}}",
+						  "onClick": [{ "set": "state.board.selection", "to": "{{[a.target]}}" }] },
+						{ "use": "rbSmall", "id": "{{'motion-' + a.id + '-up'}}", "with": { "icon": "chevron-up", "enabled": "{{n > 0}}" }, "tooltip": "Play it earlier",
+						  "onClick": { "run": "moveAnimation", "with": { "id": "{{a.id}}", "by": -1 } } },
+						{ "use": "rbSmall", "id": "{{'motion-' + a.id + '-down'}}", "with": { "icon": "chevron-down", "enabled": "{{n < length(computed.motionRows) - 1}}" }, "tooltip": "Play it later",
+						  "onClick": { "run": "moveAnimation", "with": { "id": "{{a.id}}", "by": 1 } } },
+						{ "use": "rbSmall", "id": "{{'motion-' + a.id + '-remove'}}", "with": { "icon": "x" }, "tooltip": "Remove it",
+						  "onClick": { "run": "removeAnimation", "with": { "id": "{{a.id}}" } } }
 					  ] }
 				]
 			}

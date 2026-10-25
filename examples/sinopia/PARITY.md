@@ -103,7 +103,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Animations | Emphasis effects | missing | missing | |
 | Animations | Exit effects | missing | partial | add-an-animation |
 | Animations | Motion paths | missing | missing | |
-| Animations | Animation pane | missing | missing | |
+| Animations | Animation pane | missing | done | animation-pane (the order, reorder, remove, select) |
 | Animations | Timing (on click, with, after; duration, delay) | missing | partial | add-an-animation |
 | Animations | Preview | missing | done | preview (each build once the one before has played) |
 | Slide show | Full screen | missing | done | present-and-step |
@@ -137,6 +137,6 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 67 | 28 | 26 | 121 |
+| Now | 68 | 28 | 25 | 121 |
 
 The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, and Insert > Link one (all missing at the start), so *Now* counts 121 rows.
