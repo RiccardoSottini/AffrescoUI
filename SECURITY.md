@@ -342,8 +342,9 @@ adapter's `source` request. A relative path in a request that leaves the folder 
 exits, every waiting request ends and the session ends with one message. The only reverse requests are
 `runInTerminal` and `startDebugging`; Forge answers `runInTerminal` with a command line it builds with
 `shellLine()`: every word single-quoted, no control characters, at most 60000 bytes; the terminal opens in the
-request's `cwd` only if the pty service's root holds it, and the line runs in the terminal's shell under that shell's
-grant. Forge grants `lldb-dap` and `python3 -m
+request's `cwd` only if the pty service's root holds it, and the line is typed into `sh`, a POSIX shell of its own
+grant, never the person's login shell: single quotes protect a word in sh, bash, zsh, dash and ksh, but not in fish,
+csh or cmd.exe, and a line break or carriage return in a word is refused. Forge grants `lldb-dap` and `python3 -m
 debugpy.adapter` when they are on PATH; a launch configuration only names one of them.
 
 ### An app's data and the person's permissions

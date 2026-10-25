@@ -164,14 +164,14 @@ int main(int argc, char** argv) {
 		automation::Options options;
 		options.policy = automation::Goldens::RecordMissing;
 		// As the host grants Forge (examples/forge/app.json): its scenarios see forge/folder open as the workspace, a
-		// shell and git, its example catalogue, and no file dialog. No language server or debug adapter is granted:
+		// shell, sh and git, its example catalogue, and no file dialog. No language server or debug adapter is granted:
 		// the scenarios mirror their answers.
 		const auto copies = std::make_shared<FolderCopies>();
 		options.prepare = [copies](affresco::Screen& screen) {
 			const std::filesystem::path folder = copies->next();
 			screen.services().allowChosenRoot("workspace");
 			screen.services().addRoot("workspace", folder);
-			for(const char* program : {"shell", "git"}) // a machine without one runs its scenarios without it
+			for(const char* program : {"shell", "sh", "git"}) // a machine without one runs its scenarios without it
 				static_cast<void>(affresco::services::grantProgram(screen.services(), program));
 			screen.features().trustPublisher(examplePublisher);
 			screen.features().addCatalog(std::filesystem::path(AFFRESCOUI_FORGE_DIRECTORY) / "catalog" / "index.json");

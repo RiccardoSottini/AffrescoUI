@@ -1006,7 +1006,8 @@ Wherever a value is expected it can be computed:
   `fixed(number, digits)`,
   `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`,
   `parseJsonc(text)` (comments and trailing commas too, or null), `json(value)`,
-  `shellLine(words, variables?)` (single-quoted for a POSIX shell, or null if a word isn't plain text),
+  `shellLine(words, variables?)` (single-quoted for a POSIX shell, so typed into a program grant `sh` rather than a login
+  shell that may be fish, csh or cmd.exe; null if a word isn't plain text),
   `applyEdits(text, edits)`, `length(value)`, `concat(a, b, ...)`, `flat(list)`, `join(list, separator)`,
   `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
