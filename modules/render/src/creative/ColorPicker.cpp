@@ -5,6 +5,7 @@
 #include "affresco/render/Window.hpp"
 
 #include "image/CreativePixels.hpp"
+#include "affresco/core/Numbers.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -58,7 +59,7 @@ struct Numbers {
 			continue;
 		}
 		char* end = nullptr;
-		const double value = std::strtod(at, &end);
+		const double value = readNumber(at, &end);
 		if(end == at || !std::isfinite(value)) return {{}, 5};
 		if(out.count == out.values.size()) return {{}, 5};
 		out.values[out.count++] = value;

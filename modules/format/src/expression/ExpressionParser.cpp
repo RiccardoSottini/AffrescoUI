@@ -5,6 +5,7 @@
 
 #include "ExpressionFunctions.hpp"
 #include "affresco/format/Migrate.hpp"
+#include "affresco/core/Numbers.hpp"
 
 #include <cctype>
 #include <charconv>
@@ -254,7 +255,8 @@ private:
 		const std::string digits(text_.substr(start, position_ - start));
 		if(!fraction) {
 			if(const std::optional<std::int64_t> value = wholeNumber(digits)) return *value;
-		} else if(const double value = std::strtod(digits.c_str(), nullptr); std::isfinite(value)) {
+		} else if(const double value = numberLengthFits(digits) ? std::strtod(digits.c_str(), nullptr) : HUGE_VAL;
+		          std::isfinite(value)) {
 			return value; // std::stod would throw out_of_range, past evaluate()'s callers
 		}
 		error("number '" + digits + "' is too large");
