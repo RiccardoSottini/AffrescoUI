@@ -54,7 +54,7 @@ std::shared_ptr<const Gradient> Properties::gradient(const json& value, const st
 	for(std::size_t index = 0; index < stops->size(); ++index) {
 		const json& stop = (*stops)[index];
 		const std::string place = std::format("{}[{}]", stopsAt, index);
-		GradientStop read{.at = last > 0.0 ? static_cast<double>(index) / last : 0.0};
+		GradientStop read{.at = last > 0.0 ? static_cast<double>(index) / last : 0.0, .color = {}};
 		if(stop.is_object()) {
 			for(const auto& [key, item] : stop.items())
 				if(key != "at" && key != "color") fail(place + "." + key, "unknown property (expected at or color)");
