@@ -9,10 +9,6 @@
 			"note": "Tempera's scenarios runner, with its natives and the sample document",
 			"command": ["{build}/affrescoui_tempera_scenarios", "--out", "{out}", "{file}"]
 		},
-		"sinopia": {
-			"note": "Sinopia, playing scenarios headless with its natives and the sample deck",
-			"command": ["{build}/affrescoui_sinopia", "--check", "{file}", "--out", "{out}"]
-		},
 		"bottega": {
 			"note": "Bottega's own runner, when it is on this base",
 			"command": ["{build}/affrescoui_bottega", "--check", "{file}", "--out", "{out}"]
@@ -29,7 +25,7 @@
 		{ "app": "Forge", "screen": "forge/index.screen.json", "scenarios": "forge/scm.scenarios.json", "scene": "forge-scm-diff-and-terminal", "output": "forge", "runner": "render", "size": [1280, 810] },
 		{ "app": "Arcadia", "screen": "arcadia/index.screen.json", "scenarios": "arcadia/index.scenarios.json", "scene": "game-page", "output": "arcadia", "runner": "render" },
 		{ "app": "Tempera", "screen": "tempera/index.screen.json", "scenarios": "tempera/index.scenarios.json", "scene": "tempera-a-filter-previewing", "output": "tempera", "runner": "tempera" },
-		{ "app": "Sinopia", "screen": "sinopia/index.screen.json", "scenarios": "sinopia/index.scenarios.json", "scene": "sinopia-load-the-sample", "output": "sinopia", "runner": "sinopia", "settle": 400 },
+		{ "app": "Sinopia", "screen": "sinopia/index.screen.json", "scenarios": "sinopia/index.scenarios.json", "scene": "sinopia-load-the-sample", "output": "sinopia", "runner": "render", "settle": 400 },
 		{ "app": "Modello", "screen": "modello/index.screen.json", "scenarios": "modello/index.scenarios.json", "scene": "modello-assistant-open", "output": "modello", "runner": "render" },
 		{ "app": "Orrery", "screen": "orrery/index.screen.json", "scenarios": "orrery/index.scenarios.json", "scene": "an-eclipse-seen-from-the-ground", "output": "orrery", "runner": "render" },
 		{ "app": "Bottega", "screen": "bottega/bottega.screen.json", "scenarios": "bottega/bottega.scenarios.json", "scene": "bottega-sorter", "output": "bottega", "runner": "bottega" }
