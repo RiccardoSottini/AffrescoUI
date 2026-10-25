@@ -85,7 +85,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | --- | --- | --- |
 | Levels with histogram | done | An adjustment layer; Properties draws the image's tones above its sliders, measured again as the image changes |
 | Curves | partial | The tones show behind the curve; one curve for all channels |
-| Hue/Saturation, Brightness/Contrast | partial | |
+| Hue/Saturation, Brightness/Contrast | partial | Both as adjustment layers; no Colorize or colour ranges |
 | Color Balance, Black & White, Invert, Threshold | done | As adjustment layers; Black & White is a Hue/Saturation layer at no saturation |
 | Gaussian Blur, Unsharp Mask, Add Noise, Motion Blur with live preview | partial | Preview exists; not every filter |
 
@@ -104,3 +104,51 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Rename, align and arrange layers | done | Rename from a dialog; align to the selection or the image |
 | Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6, `[` `]`, the adjustments (Cmd+L, M, U, B, I) and fills; not every menu command has its key |
 | Assistant chat add-on (shared) | done | The shared add-on, in Tempera's colours |
+
+## Left for later
+
+Every row above still partial or missing, and every control still disabled, with what it needs.
+Priority: P1 a daily user meets it, P2 occasional, P3 rare. "JSON" means Tempera's files alone; "Library" names the
+general feature the image step or a node needs first.
+
+| Item | Pri | Needs |
+| --- | --- | --- |
+| Type tool, editable type layers (and the toolbar's Text Tool) | P1 | Library: a text layer kind, laid out and drawn into the composite, editable in place |
+| Free transform: on-canvas handles, skew | P1 | Library: transform handles in the raster overlay that preview and commit `transformBox`, and a skew term |
+| Document tabs: several documents open | P1 | Library: a raster node that switches the image it shows by name; then JSON tabs over `images` |
+| Keyboard shortcuts: the remaining menu commands | P2 | JSON: a `keys` entry per command still without one |
+| Rulers: drag a guide out of a ruler | P2 | Library: a drag from the ruler that publishes a guide position (the raster node's rulers); then JSON |
+| Panels: drag, resize, collapse groups | P2 | Library: dockable panel groups in the kit (general, every app with panels) |
+| Search beyond the commands; saved workspaces | P3 | JSON: search layers and help too; keep panel layouts in state |
+| Light and dark interface, locales, focus, names | P2 | JSON: a light token set, and keep each new control named and focusable |
+| Layers: editable Fill, lock transparency, a locked Background | P2 | Library: a per-layer fill opacity and a transparency lock that painting honours; the locked Background is JSON |
+| Layers: fx; Layer Style menu rows (Blending Options, Bevel & Emboss, Stroke, Inner Shadow, Outer Glow, Drop Shadow); the fx button | P2 | Library: layer effects in the compositor, kept on the layer and edited from a dialog |
+| Layers: link button | P3 | Library: linked layers that move and transform together |
+| Layers: filter by type and shape | P3 | Type and shape layers (above and below) |
+| Properties: Distribute | P3 | Library: several selected layers at once (multi-select in the image step) |
+| History snapshots | P2 | Library: named snapshots kept in the image's history |
+| Colour: patterns; New Fill Layer (Solid Colour, Gradient, Pattern) | P2 | Library: fill layers as a layer kind (solid, gradient, tiled image), re-rendered at any size |
+| Brushes panel; the options bar's Brush settings button | P3 | JSON: a panel over the existing presets and options |
+| Channels: show one channel, hide a channel | P2 | Library: a channel view mask in the canvas display |
+| Info panel (pointer position, colour under it) | P2 | Library: the raster node publishing the pointer's document position and the composite colour there |
+| Paths panel; Pen and Path Selection tools; Type > Create Work Path | P2 | Library: vector paths on the document (pen editing, stroke and fill, to a selection) |
+| Shapes as vector layers (the Rectangle Tool); Layer > Rasterize | P2 | Library: shape layers built on the vector paths |
+| Character and Paragraph; Type > Panels, Rasterize Type Layer | P3 | Type layers |
+| Quick selection | P2 | Library: an edge-aware brush selection |
+| Transform Selection; Select > Reselect | P2 | Library: `transformBox` on the selection mask, and keeping the last selection |
+| Crop ratios that hold a drag to their shape | P2 | Library: a ratio option on the crop drag, next to the Shift square in `stretchBox` |
+| Gradient: Reverse, Dither, Transparency checks | P2 | Library: those three flags on the gradient fill |
+| Healing brush and patch (Healing Tool) | P2 | Library: a texture-matching brush and patch |
+| Blur, sharpen, smudge (Blur Tool) | P2 | Library: brush modes that filter or drag pixels under the tip |
+| History brush (Restore Brush Tool) | P3 | Library: painting from a history state (needs snapshots) |
+| Dodge, burn, sponge (Dodge Tool) | P3 | Library: brush modes that lighten, darken or desaturate |
+| Brush: pressure for size and opacity, smoothing, angle, airbrush | P2 | Library: brush options mapping pressure to size and opacity, stroke smoothing, a tip angle and build-up |
+| Anti-alias checks (marquee, fill) | P3 | Library: an anti-alias flag on selection edges and fills (always on now) |
+| Curves per channel | P2 | Library: per-channel curves in the adjustment (the curves node already shows channels); then JSON |
+| Hue/Saturation: Colorize and colour ranges | P3 | Library: a colorize mode and per-range hue in the adjustment |
+| Filters: more kinds | P2 | Library: further filter kinds (high pass, median, lens blur); each then a JSON dialog |
+| Edit > Stroke | P2 | Library: stroking the selection's outline |
+| Image > Mode | P2 | Library: converting the document's format (8/16 bit, greyscale) |
+| Image > Trim | P3 | Library: the bounds of the non-transparent pixels, then a crop (JSON) |
+| File > Print | P3 | The host: printing isn't offered to screens |
+| Edit the toolbar (the tools bar's … button) | P3 | JSON: a dialog that reorders `state.tools` |
