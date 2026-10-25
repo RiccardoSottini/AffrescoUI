@@ -11,7 +11,7 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Back and forward navigation | done | |
 | View rail | done | |
 | Side bar views, title rows | done | |
-| Editor tabs | partial | No preview (italic) tabs |
+| Editor tabs | done | |
 | Breadcrumbs | partial | One symbol segment, the outline entry above the caret; no nested symbols |
 | Minimap and overview ruler | missing | No minimap; no scrollbar markers |
 | Panel (Problems, Output, Debug Console, Terminal) | done | |
