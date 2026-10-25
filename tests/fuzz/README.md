@@ -30,6 +30,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `ask_reply` | A JSON value: a reply, or a list of replies (at most 300), to the request a screen's `ask` step just sent (`Runtime::receiveReply`, `format/src/assistant/Asks.hpp`); one without `request` answers it | The request stays listed in `requests`; a reply's text and replier are cut to their size at a character boundary, so the state still writes as UTF-8 |
 | `audio` | A sound's bytes after a mode byte: played from memory, or pushed in chunks into an encoded stream decoded on its own thread, with an encoding hinted (miniaudio's WAV, FLAC and MP3 decoders), on an engine the target pulls within small limits (512 KiB, two seconds) | Refused with a reason, or every sample finite and nothing played longer than the limit; a stream within its capacity takes every chunk |
 | `image` | A file's bytes, decoded by `Bitmap::decode` (stb_image for PNG and JPEG, the SVG subset rasterised with vector paths) within small limits: a revision can name any file in an allowed folder | What decodes is within the limits, four bytes a pixel, premultiplied (no channel above its alpha); anything else is a `std::runtime_error` |
+| `data_uri` | An image node's inline `source`, decoded by `Bitmap::fromDataUri` (base64, then PNG or JPEG) within small limits: a document, a channel's message or a peer can send any text | What decodes is within the limits, four bytes a pixel; anything else is a `std::runtime_error` |
 | `lookups` | A font's GSUB or GPOS table (the first byte: odd for GPOS), read by `font/LookupSpans` for the fast path of plain text: a revision can name any font file | Every span is at most `unbounded`, and the same when read again |
 | `http_response` | A response head, to the network module's parsers (`net/src/http/Http.hpp`): status lines, header lines and blocks (the WebSocket handshake), Retry-After | A status is 100..999, header names are lower-case tokens, a block holds at most 256 headers and no value spans lines, a retry delay is within an hour |
 | `sse` | A streamed body cut into chunks (the first byte picks their size), to the server-sent events and line stream parsers (`net/src/http/Streams.hpp`), with a 64-byte limit | Every event and line is within the limit, a line is one line and not blank, and a parser over its limit stops |
@@ -72,6 +73,7 @@ of these and what limits them.
 | URLs a connection, a sign-in provider or a peer names | Screens, peers, providers | `url` |
 | Sign-in answers (token, device code, error, redirect, id token) | The provider, or whoever answers in its place | `oauth` |
 | Image files a revision names (PNG, JPEG, SVG) | Peers, within the allowed folders | `image`, `path` |
+| Inline images (`data:` sources) | Documents, channels, peers | `data_uri` |
 | A screen's models, migrations, seeds and queries; CSV files an importCsv step reads | Peers (revisions), the person (a file) | `data_models` |
 | glTF models a scene node names | Peers, within the allowed folders | `gltf`, `scene` |
 | A scene node's scene and animations (state) | Agents and peers, by revisions | `scene` |
@@ -113,7 +115,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `diff_functions`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `app_manifest`, `catalog_index`, `signature`, `composition`, `qr_code`, `url`, `oauth`, `history`, `token_file`, `git_output`, `git_policy`, `path_tree`, `color_theme`, `gltf`, `scene` or `images` in place of
+Use `json`, `expression`, `diff_functions`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `data_uri`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `app_manifest`, `catalog_index`, `signature`, `composition`, `qr_code`, `url`, `oauth`, `history`, `token_file`, `git_output`, `git_policy`, `path_tree`, `color_theme`, `gltf`, `scene` or `images` in place of
 `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.
@@ -168,7 +170,7 @@ artifact, in a folder named after its target.
 
 | File | What it is |
 |---|---|
-| `json.cpp`, `expression.cpp`, `diff_functions.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `path_tree.cpp`, `git_policy.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp`, `url.cpp`, `oauth.cpp`, `history.cpp`, `token_file.cpp`, `git_output.cpp`, `color_theme.cpp`, `gltf.cpp`, `scene.cpp` and the others named above | The targets |
+| `json.cpp`, `expression.cpp`, `diff_functions.cpp`, `data_uri.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `path_tree.cpp`, `git_policy.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp`, `url.cpp`, `oauth.cpp`, `history.cpp`, `token_file.cpp`, `git_output.cpp`, `color_theme.cpp`, `gltf.cpp`, `scene.cpp` and the others named above | The targets |
 | `Fuzz.hpp` | What they share: the input as text, the Kanban template, `broken()` |
 | `corpus.py` | Writes the seeds and dictionaries: from the templates (`examples/templates.json`), the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
 | `CMakeLists.txt` | The targets, added when `AFFRESCOUI_BUILD_FUZZERS` is on |

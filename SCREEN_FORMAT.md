@@ -409,6 +409,8 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 | `file` | A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). `"asset:<name>"` shows an asset of the screen instead (Assets), which only the person accepts. |
 | `source` | Instead of `file`: a named image, which a node draws (its `snapshot`: a thumbnail of it) or the host sets (`Screen::setImage("chart", …)`, e.g. a picture it made); the node shows each new one. |
 | `fit` | `"contain"` (the default: all of it, as large as fits, centred), `"cover"` (the whole node, the image's edges cut off) or `"fill"` (stretched), like CSS `object-fit`. |
+| `highlight` | `null` (the default) or `[x, y, width, height]` in the image's pixels: a region outlined over the image, e.g. a picture's changed part. A source starting `data:image/png;base64,` or `data:image/jpeg;base64,` is decoded inline, within the same limits as a file. |
+| `highlightColor` | The outline's colour. |
 <!-- end generated -->
 
 ```json

@@ -12,6 +12,7 @@
 - actions:    every action and handler of the templates, and steps that spend a whole work budget.
 - lookups:    the GSUB and GPOS tables of the examples' fonts and the rendering check's (binary seeds);
 - image:      the rendering check's PNG, JPEG and SVG files (binary seeds);
+- data_uri:   the same PNG and JPEG files as data: URIs;
 - path:       every path data of the templates, the rendering check's screens and the charts, with drawing bytes;
 - scenarios:  every scenarios file, the templates' and the rendering check's;
 - png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data);
@@ -330,6 +331,17 @@ def lookups_seeds():
         for tag, kind in (("GSUB", b"\x00"), ("GPOS", b"\x01")):
             if tag in tables:
                 seeds.append(kind + tables[tag])
+    return seeds
+
+
+def data_uri_seeds():
+    """The rendering check's PNG and JPEG images as the data: URIs an image node's source takes, the small ones."""
+    folder = ROOT / "tests/render/screens/images"
+    seeds = []
+    for kind, pattern in (("png", "*.png"), ("jpeg", "*.jpg")):
+        for path in sorted(folder.glob(pattern)):
+            if path.stat().st_size <= 48 << 10:
+                seeds.append(f"data:image/{kind};base64,".encode() + base64.b64encode(path.read_bytes()))
     return seeds
 
 
@@ -760,6 +772,7 @@ def dictionaries():
             "path": list("MmLlHhVvCcSsQqTtAaZz") + [" ", ",", "-", ".", "e-", "1e6", "0 0 1 1"],
             "audio": ["RIFF", "WAVE", "fmt ", "data", "LIST", "fact", "fLaC", "ID3", "Xing", "Info", "\x01\x00",
                       "\x03\x00", "\x10\x00", "\x00\x00"],  # ASCII: the dictionary is written UTF-8
+            "data_uri": ["data:image/png;base64,", "data:image/jpeg;base64,", "iVBORw0KGgo", "/9j/", "=", "=="],
             "image": ["<svg", "viewBox=", "<path d=", "fill=", "stroke=", "transform=", "<g>", "</g>", "IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
             "scenarios": scenarios, "png": pngs,
             "ask_reply": tokens + [f'"{word}"' for word in ["request", "text", "from", "done", "error", "type",
@@ -845,6 +858,7 @@ def main():
     write(out, "layout", layout_seeds(), words["layout"])
     write(out, "lookups", lookups_seeds(), words["lookups"])
     write(out, "image", image_seeds(), words["image"])
+    write(out, "data_uri", data_uri_seeds(), words["data_uri"])
     write(out, "path", path_seeds(), words["path"])
     write(out, "text_model", text_model_seeds(), words["text_model"])
     write(out, "find_pattern", find_pattern_seeds(), words["find_pattern"])
