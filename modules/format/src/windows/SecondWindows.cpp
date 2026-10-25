@@ -183,8 +183,10 @@ void SecondWindows::make(const std::string& name, Shown& shown, const json& decl
 
 void SecondWindows::apply(Shown& shown, const json& declared) const {
 	shown.window->setTitle(declared.value("title", std::string("AffrescoUI")));
-	const json background = declared.value("background", json("#000000"));
-	shown.window->root().setColor(engine_.document.color(background, "windows.background"));
+	// A window whose screen names no background is black, like an unlit display: the engine assumes no theme colour
+	const auto background = declared.find("background");
+	shown.window->root().setColor(
+	    background == declared.end() ? colors::black : engine_.document.color(*background, "windows.background"));
 	shown.view->showNamed(engine_.document.images(), declared.value("image", std::string()));
 }
 

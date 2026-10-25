@@ -58,7 +58,8 @@ what changed:
 - the stock host (`affrescoui_launcher`) compiles nothing from `examples/`, and `apps/host` registers no node type;
 - no app's name (each `examples/*/app.json`'s id and name, but for ordinary words such as "flow") in `modules/` or
   `apps/host`, comments included, Markdown aside;
-- no component definition or colour value in `modules/` outside `modules/themes`;
+- no component definition or colour value in `modules/` outside `modules/themes` (the format's reference,
+  `modules/format/src/reference/`, aside: its colours are the text of its documentation's examples);
 - no module but `screen` links `themes`; the entry points, outside `modules/`, may.
 
 What is left over is in [`generalism-allow.json`](generalism-allow.json), each place with its reason: a path prefix,

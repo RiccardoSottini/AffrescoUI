@@ -5,7 +5,8 @@ Its rules, each a finding per place:
 - host-sources: the stock host (affrescoui_launcher) compiles nothing from examples/;
 - host-registers-types: apps/host registers no node type;
 - app-name: no app's name (an examples/*/app.json's id or name) in modules/ or apps/host, Markdown aside;
-- theme-outside-themes: no component definition or colour value in modules/ outside modules/themes;
+- theme-outside-themes: no component definition or colour value in modules/ outside modules/themes (the format's
+  reference aside: its colours are the text of its documentation's examples);
 - links-themes: no module but screen links themes (the entry points, outside modules/, may).
 
 What is left over is in generalism-allow.json, each place with its reason. An entry that matches nothing fails too,
@@ -26,6 +27,7 @@ CODE = CPP + (".json", ".txt", ".cmake", ".in", ".py")
 COLOUR = re.compile(r'"#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?"')
 COMPONENTS = re.compile(r'"components"\s*:\s*\{|\{\s*"components"\s*,\s*\{')
 THEMES = re.compile(r"affrescoui(?:::|_)themes\b")
+REFERENCE = "modules/format/src/reference/"  # the format's documentation: its examples' text, never a theme
 
 
 def tracked(root):
@@ -99,7 +101,7 @@ def check_themes(root, paths):
     for path in paths:
         if not path.startswith("modules/") or path.startswith("modules/themes/"):
             continue
-        if path.endswith(CPP):
+        if path.endswith(CPP) and not path.startswith(REFERENCE):
             for number, line in enumerate(read(root, path), 1):
                 text = code_of(line)
                 if COLOUR.search(text) or COMPONENTS.search(text):
