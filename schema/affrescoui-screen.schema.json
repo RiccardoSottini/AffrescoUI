@@ -2359,6 +2359,9 @@
 							}
 						]
 					},
+					"scrollMarks": {
+						"$ref": "#/$defs/v2/flag"
+					},
 					"matchStyle": {
 						"anyOf": [
 							{

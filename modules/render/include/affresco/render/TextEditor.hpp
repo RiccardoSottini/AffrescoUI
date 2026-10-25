@@ -209,6 +209,23 @@ public:
 	void setMinimapViewportOnHover(bool onHover);
 	/// @brief Whether the minimap marks the visible rows only while the pointer is over it.
 	[[nodiscard]] bool minimapViewportOnHover() const noexcept { return minimapViewportOnHover_; }
+	/// @brief A mark on the scroll bar: a row that has something to find again.
+	struct ScrollMark {
+		std::size_t row = 0; ///< The row, from 0.
+		Color color;         ///< Its colour.
+
+		/// @brief Whether two marks are the same.
+		bool operator==(const ScrollMark&) const = default;
+	};
+	/// @brief Marks the scroll bar at the rows of the decorations (squiggles, gutter marks, backgrounds), of find's
+	/// matches and of the caret, each where its row is in the whole text, in its colour.
+	/// @param shown true to mark them.
+	void setScrollMarks(bool shown);
+	/// @brief Whether the scroll bar has marks.
+	[[nodiscard]] bool scrollMarks() const noexcept { return scrollMarks_; }
+	/// @brief The scroll bar's marks, by row (none unless setScrollMarks()): the decorations' in theirs, find's
+	/// matches in the match colour, then the caret's in the caret colour; at most one per row and colour.
+	[[nodiscard]] std::vector<ScrollMark> scrollMarkList() const;
 	/// @brief Outlines find's matches instead of filling their background.
 	/// @param outline true to outline them (in the match colour, 1 pixel thick).
 	void setMatchOutline(bool outline);
@@ -819,6 +836,12 @@ private:
 	/// @param painter The painter.
 	/// @param layout The frame's layout.
 	void paintMinimap(Painter& painter, const Layout& layout) const;
+	/* The scroll bar's marks: TextEditorScrollMarks.cpp */
+	/// @brief Draws the scroll bar's marks, if shown.
+	/// @param painter The painter.
+	void paintScrollMarks(Painter& painter) const;
+	/// @brief The lines with a find match (at most maxMatches), found again only when the text or the query changes.
+	[[nodiscard]] const std::vector<std::size_t>& matchLines() const;
 	/// @brief Colours some lines, as drawn: by the highlighter, or else from the colouring state each line starts with.
 	/// @param first The first line.
 	/// @param last One past the last.
@@ -961,6 +984,10 @@ private:
 	bool minimapText_ = false;        ///< See setMinimapText().
 	bool minimapViewportOnHover_ = false; ///< See setMinimapViewportOnHover().
 	bool minimapHovered_ = false;     ///< The pointer is over the minimap.
+	bool scrollMarks_ = false;        ///< See setScrollMarks().
+	mutable std::vector<std::size_t> matchLines_;     ///< See matchLines().
+	mutable std::array<std::uint64_t, 2> matchLinesKey_{}; ///< What matchLines_ was found for: the version, findGeneration_.
+	mutable bool matchLinesFound_ = false;            ///< matchLines_ was found at least once.
 	bool matchOutline_ = false;       ///< See setMatchOutline().
 	CaretStyle caretStyle_ = CaretStyle::Line; ///< See setCaretStyle().
 	View lastView_;                            ///< What onViewChanged last told.

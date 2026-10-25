@@ -95,6 +95,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"minimapViewport", R"json({"anyOf": [{"enum": ["always", "hover"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it.",
 	 "editor"},
+    {"scrollMarks", "flag",
+	 "`true` marks the scroll bar where the whole text has decorations, find's matches and the caret, each in its "
+	 "colour, so they can be found again.",
+	 "editor"},
     {"matchStyle", R"json({"anyOf": [{"enum": ["fill", "outline"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`.", "editor"},
     {"composition", R"json({"description": "Text, or a {{binding}}"})json",

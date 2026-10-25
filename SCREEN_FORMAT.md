@@ -269,6 +269,7 @@ Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code edit
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
 | `minimapStyle` | How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each character a pixel in its syntax colour. |
 | `minimapViewport` | When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it. |
+| `scrollMarks` | `true` marks the scroll bar where the whole text has decorations, find's matches and the caret, each in its colour, so they can be found again. |
 | `matchStyle` | How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
 | `caretStyle` | The caret: `line` (the default) a bar before the character, `block` a box over it, `underline` a bar under it. |
