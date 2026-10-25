@@ -32,7 +32,7 @@
 				{ "click": "#createName" },
 				{ "type": "Garden planner" },
 				{ "click": { "role": "radio", "name": "Haven" } },
-				{ "scroll": "#createScroll", "dy": -12 },
+				{ "scroll": [250, 650], "dy": -12 },
 				{ "click": { "role": "checkbox", "name": "Charts, from Haven" } },
 				{ "expect": { "image": "create-filled" } },
 				{ "key": "mod+comma" },
