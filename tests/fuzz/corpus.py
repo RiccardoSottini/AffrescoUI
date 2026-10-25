@@ -582,6 +582,29 @@ def dap_seeds():
                      "body": {"variables": [{"name": "x", "value": "1", "variablesReference": 0}]}})]
 
 
+def lsp_seeds():
+    """What a language server sends (modules/services/src/lsp/LspProtocol.hpp), each after the byte that picks what it
+    answers in tests/fuzz/lsp.cpp: results with locations inside and outside the fuzz target's folder (/folder)."""
+    def place(path, line, character):
+        return {"uri": "file://" + path, "range": {"start": {"line": line, "character": character},
+                                                   "end": {"line": line, "character": character + 4}}}
+    inside, outside = place("/folder/src/a.cpp", 1, 2), place("/elsewhere/b.cpp", 0, 0)
+    edit = {"range": inside["range"], "newText": "start"}
+    results = [
+        (0, {"contents": {"kind": "markdown", "value": "```cpp\nint main()\n```"}}),
+        (1, {"isIncomplete": False, "items": [{"label": "puts", "insertTextFormat": 2, "insertText": "puts(${1:s})"}]}),
+        (2, {"signatures": [{"label": "int puts(const char* s)", "parameters": [{"label": [9, 22]}]}]}),
+        (3, inside), (4, [inside, outside]),
+        (5, {"changes": {inside["uri"]: [edit]}}), (5, {"changes": {outside["uri"]: [edit]}}),
+        (6, [edit]),
+        (7, [{"name": "main", "kind": 12, "range": inside["range"], "selectionRange": inside["range"],
+              "children": [{"name": "x", "kind": 13, "range": inside["range"], "selectionRange": inside["range"]}]}]),
+        (8, [{"name": "main", "kind": 12, "location": inside}]),
+        (9, {"data": [0, 0, 3, 0, 0, 1, 2, 4, 1, 0], "legend": {"tokenTypes": ["type", "function"]}}),
+        (10, {"uri": inside["uri"], "diagnostics": [{"range": inside["range"], "severity": 1, "message": "bad"}]})]
+    return [chr(kind) + compact(result) for kind, result in results]
+
+
 def syntax_seeds():
     """Texts for the syntax engine (tests/fuzz/syntax.cpp): the first byte picks the language, then the text, a zero
     byte and edits of five bytes each."""
@@ -872,6 +895,8 @@ def main():
           "literalString", "explicitList", "AdaptiveCard", "TextBlock", "Input.Text", "Action.Submit", "${"])
     write(out, "dap", dap_seeds(), words["json"] + ["response", "event", "request", "request_seq", "success",
           "command", "body", "source", "path", "/work/", "../", "stackFrames", "variables", "runInTerminal"])
+    write(out, "lsp", lsp_seeds(), words["json"] + ["uri", "range", "start", "end", "line", "character", "file:///folder/",
+          "file:///elsewhere/", "changes", "documentChanges", "newText", "items", "label", "data", "legend", "children"])
     write(out, "gltf", gltf_seeds(), words["json"] + ["asset", "scenes", "nodes", "meshes", "primitives", "attributes",
           "POSITION", "NORMAL", "TEXCOORD_0", "accessors", "bufferViews", "buffers", "byteOffset", "byteLength",
           "componentType", "count", "VEC3", "SCALAR", "animations", "channels", "samplers", "data:", ";base64,", "glTF"])

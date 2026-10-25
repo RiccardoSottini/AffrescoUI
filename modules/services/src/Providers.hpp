@@ -33,6 +33,9 @@ namespace affresco::services {
 /// @brief The `dap` provider: a granted debug adapter (a program, or a loopback port), spoken to in the Debug Adapter
 /// Protocol.
 [[nodiscard]] std::unique_ptr<Provider> makeDapProvider();
+/// @brief The `lsp` provider: a granted language server, spoken to in the Language Server Protocol through `jsonrpc`;
+/// its results normalised and bounded, its diagnostics a stream.
+[[nodiscard]] std::unique_ptr<Provider> makeLspProvider();
 
 /// @brief The `syntax` provider: text parsed with tree-sitter, its highlights and folds (no grant).
 [[nodiscard]] std::unique_ptr<Provider> makeSyntaxProvider();

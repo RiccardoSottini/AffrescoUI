@@ -47,7 +47,8 @@ target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_EXAMPLES_DIRECTORY="${PROJECT_SOURCE_DIR}/examples"
 	AFFRESCOUI_PROTOTYPES_DIR="${PROJECT_SOURCE_DIR}/rfcs/prototypes" # services.cpp starts the JSON-RPC prototype
-	AFFRESCOUI_FAKE_ADAPTER="${PROJECT_SOURCE_DIR}/tests/dap/fake_adapter.py") # dap.cpp starts the fake debug adapter
+	AFFRESCOUI_FAKE_ADAPTER="${PROJECT_SOURCE_DIR}/tests/dap/fake_adapter.py" # dap.cpp starts the fake debug adapter
+	AFFRESCOUI_FAKE_LANGUAGE_SERVER="${PROJECT_SOURCE_DIR}/tests/lsp/fake_server.py") # lsp_service.cpp, the fake server
 # document_server.cpp tests the document server (apps/server), which needs no window
 target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/apps/server/DocumentServer.cpp
 	${PROJECT_SOURCE_DIR}/apps/server/TokenFile.cpp ${PROJECT_SOURCE_DIR}/apps/server/UserInfoVerifier.cpp)

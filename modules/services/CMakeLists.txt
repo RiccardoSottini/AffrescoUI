@@ -18,6 +18,10 @@ affrescoui_module(services
 	src/files/FileProvider.cpp
 	src/files/WatchProvider.cpp
 	src/files/Watcher.cpp
+	# lsp/: the language server service (Language Server Protocol, over jsonrpc)
+	src/lsp/Lsp.cpp
+	src/lsp/LspProtocol.cpp
+	src/lsp/LspText.cpp
 	# process/: programs, run once or kept, and terminals
 	src/process/Process.cpp
 	src/process/ProcessProvider.cpp

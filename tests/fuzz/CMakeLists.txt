@@ -78,6 +78,8 @@ affrescoui_fuzzer(frames affrescoui::services nlohmann_json::nlohmann_json) # Fu
 target_include_directories(affrescoui_fuzz_frames PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # Framing.hpp
 affrescoui_fuzzer(dap affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_dap PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # DapProtocol.hpp
+affrescoui_fuzzer(lsp affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+target_include_directories(affrescoui_fuzz_lsp PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # LspProtocol.hpp
 # Feature packages and catalogues (RFC 0004): FeatureManifest.hpp, FeatureCatalog.hpp and FeatureSignatures.hpp
 affrescoui_fuzzer(feature_manifest affrescoui::format)
 target_include_directories(affrescoui_fuzz_feature_manifest PRIVATE
