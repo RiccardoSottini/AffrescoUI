@@ -82,7 +82,7 @@ void RasterView::paintCrop(Painter& painter, const editing::ImageDocument& image
 	const Rect& all = frame();
 	const editing::Press& press = image.press;
 	const Rect kept =
-	    between(toWindow(image, press.start.x, press.start.y), toWindow(image, press.last.x, press.last.y));
+	    between(toWindow(image, press.boxFrom.x, press.boxFrom.y), toWindow(image, press.boxTo.x, press.boxTo.y));
 	painter.fillRect({all.left, all.top, all.right, kept.top}, look_.shade);
 	painter.fillRect({all.left, kept.bottom, all.right, all.bottom}, look_.shade);
 	painter.fillRect({all.left, kept.top, kept.left, kept.bottom}, look_.shade);
@@ -104,7 +104,7 @@ void RasterView::paintOutline(Painter& painter, const editing::ImageDocument& im
 	VectorPath::Contour contour;
 	if(press.down && !press.pan && (gesture == Gesture::selectRectangle || gesture == Gesture::selectEllipse)) {
 		const Rect box =
-		    between(toWindow(image, press.start.x, press.start.y), toWindow(image, press.last.x, press.last.y));
+		    between(toWindow(image, press.boxFrom.x, press.boxFrom.y), toWindow(image, press.boxTo.x, press.boxTo.y));
 		contour.closed = true;
 		if(gesture == Gesture::selectRectangle) {
 			for(const Vec2 corner : {Vec2{box.left, box.top}, Vec2{box.right, box.top}, Vec2{box.right, box.bottom},

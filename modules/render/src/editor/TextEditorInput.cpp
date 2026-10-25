@@ -126,7 +126,7 @@ bool TextEditor::editingKey(const KeyEvent& event) {
 			return true;
 		}
 		beginEdit(Edit::Typing);
-		replaceSelection(std::u32string(tabSize - caret_.column % tabSize, U' '));
+		replaceSelection(std::u32string(tabSize_ - caret_.column % tabSize_, U' '));
 		endEdit();
 		return true;
 	case Key::Backspace:

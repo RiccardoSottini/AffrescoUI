@@ -110,6 +110,7 @@ struct ToolSettings {
 	std::optional<imaging::Gradient> gradient; ///< gradient: its stops; none: foreground to background.
 	float opacity = 1.0f;                      ///< fill, gradient: 0 to 1.
 	bool quickMask = false;                    ///< The paint gestures paint the selection.
+	bool autoSelect = false;                   ///< move: a press picks the topmost layer painted under it.
 	std::optional<imaging::Point> cloneSource; ///< clone: the point copied from.
 };
 
@@ -123,6 +124,14 @@ struct Press {
 	double surfaceY = 0.0;    ///< Where it began on the surface.
 	imaging::CanvasView view; ///< The view when it began.
 	bool pan = false;         ///< Whether it pans the view whatever the tool (the space bar was held).
+	/// The selection mode of what it selects: Shift held adds, Alt subtracts, both intersect, else the tool's.
+	imaging::SelectionMode mode = imaging::SelectionMode::replace;
+	bool shiftHeld = false; ///< Whether Shift was held at the press.
+	bool altHeld = false;   ///< Whether Alt was held at the press.
+	/// A marquee's or crop's corners: from the press to the pointer, a square while Shift is held (not since the
+	/// press), from the press as the centre while Alt is.
+	imaging::Point boxFrom;
+	imaging::Point boxTo; ///< @copydoc boxFrom
 };
 
 /// @brief One image being edited: its document on a canvas model, and everything the operations share. Main thread
@@ -160,8 +169,11 @@ struct ImageDocument {
 	float pressure = 1.0f;                                 ///< The pen's pressure of the event played (a mouse's is 1).
 	bool spaceHeld = false;                                ///< The space bar is held: a press pans the view.
 	std::vector<imaging::Point> path;                      ///< lasso, polygon-lasso: the points so far.
+	imaging::SelectionMode pathMode{};                     ///< polygon-lasso: the mode of the press that began it.
 	std::vector<std::uint8_t> saved;                       ///< The bytes last saved or opened (revert reads them).
 	std::string message;                                   ///< What the last operation has to say (a status line).
+	std::shared_ptr<const imaging::Image> clipboard;       ///< What copy and cut kept, the image's size then.
+	std::vector<int> histogram;                            ///< What histogram last counted, by brightness.
 	std::uint64_t thumbnailRevision = ~std::uint64_t{0};   ///< The document revision the thumbnails show.
 	std::uint64_t thumbnailGeneration = ~std::uint64_t{0}; ///< The document the thumbnails show.
 };

@@ -57,7 +57,7 @@
 				"hover": { "borderColor": "@accent", "color": "@editVeil" }, "cursor": "hand", "focusable": true, "role": "button",
 				"label": "{{t('edit.card', { name: name })}}", "tooltip": "{{t('edit.card', { name: name })}}",
 				"onClick": { "run": "editCard", "with": { "card": "{{card}}" } },
-				"children": [{ "type": "label", "icon": "pencil", "font": "iconsSmall", "text": "", "textColor": "#ffffff", "color": "@accent",
+				"children": [{ "type": "label", "icon": "pencil", "font": "iconsSmall", "text": "", "textColor": "@onAccent", "color": "@accent",
 					"anchors": { "right": 8, "top": 4 }, "width": 28, "height": 28, "radius": 14, "align": "center" }]
 			}
 		},
@@ -132,7 +132,7 @@
 										{ "when": "{{state.cardEdit.id == 'climate' && state.cardEdit.draft.modes == true}}", "type": "row", "anchors": { "left": 0, "right": 0, "bottom": 16 }, "height": 44, "gap": 12,
 											"justify": "center", "children": [{
 											"repeat": { "for": "mode", "in": "state.modes" }, "type": "label", "icon": "{{mode == 'Heat' ? 'flame' : (mode == 'Cool' ? 'snowflake' : 'sun-snow')}}", "text": "",
-											"color": "{{mode == state.mode ? computed.modeColor + '33' : '@raised'}}", "textColor": "{{mode == state.mode ? computed.modeColor : '@muted'}}",
+											"color": "{{mode == state.mode ? computed.modeSoft : '@raised'}}", "textColor": "{{mode == state.mode ? computed.modeColor : '@muted'}}",
 											"width": 44, "height": 44, "radius": 22, "align": "center" }] },
 										{ "when": "{{state.cardEdit.draft.actions == true}}", "type": "row", "anchors": { "left": 16, "right": 16, "bottom": 16 }, "height": 40, "gap": 8, "children": [{
 											"repeat": { "for": "d", "in": "{{state.devices}}" }, "type": "label", "font": "small", "text": "{{d.name}}", "textColor": "@text",
@@ -143,7 +143,7 @@
 					{ "id": "cardCodeSwitch", "style": "button", "color": "transparent", "hover": { "color": "transparent" }, "textColor": "@accent", "padding": 12, "fitText": true,
 						"text": "{{t(state.cardEdit.code ? 'edit.showForm' : 'edit.showCode')}}", "anchors": { "left": 16, "bottom": 14 }, "height": 36,
 						"onClick": { "if": "{{state.cardEdit.code}}", "then": [{ "run": "showCardForm" }], "else": [{ "run": "showCardCode" }] } },
-					{ "id": "cardSave", "style": "button", "color": "@accent", "hover": { "color": "@accent" }, "textColor": "#ffffff", "text": "{{t('edit.save')}}",
+					{ "id": "cardSave", "style": "button", "color": "@accent", "hover": { "color": "@accent" }, "textColor": "@onAccent", "text": "{{t('edit.save')}}",
 						"anchors": { "right": 16, "bottom": 14 }, "width": 88, "height": 36, "radius": 18, "onClick": "saveCard" },
 					{ "id": "cardCancel", "style": "button", "color": "transparent", "hover": { "color": "@accentSoft" }, "textColor": "@accent", "text": "{{t('edit.cancel')}}",
 						"anchors": { "right": 112, "bottom": 14 }, "width": 88, "height": 36, "radius": 18, "onClick": { "set": "state.cardEdit.open", "to": false } }

@@ -276,9 +276,9 @@ void checkValueStep(const json& step, std::string_view kind, const std::string& 
 }
 
 /// @brief The step kinds: the key that says what a step does. Every step has exactly one, or is only a "note".
-constexpr std::array<std::string_view, 16> stepKinds = {"capture", "move", "click",  "press",    "release", "drag",
-                                                        "scroll",  "type", "key",    "revision", "propose", "action",
-                                                        "resize",  "wait", "choose", "expect"};
+constexpr std::array<std::string_view, 17> stepKinds = {
+    "capture", "move",     "click",   "rightClick", "press",  "release", "drag",   "scroll", "type",
+    "key",     "revision", "propose", "action",     "resize", "wait",    "choose", "expect"};
 
 /// @brief Finds what a step does: the one key of stepKinds it has.
 /// @param step The step.
@@ -293,7 +293,8 @@ std::optional<std::string_view> kindOf(const json& step, const std::string& plac
 	if(kinds.empty()) {
 		if(step.size() == 1 && step.contains("note")) return std::nullopt;
 		fail(place, "unknown step " + toText(step).substr(0, 80) +
-		                ": expected one of capture, move, click, press, release, drag, scroll, type, key, revision, "
+		                ": expected one of capture, move, click, rightClick, press, release, drag, scroll, type, key, "
+		                "revision, "
 		                "propose, action, resize, wait, choose, expect");
 	}
 	if(kinds.size() > 1)
@@ -323,7 +324,8 @@ bool checkStep(const json& written, const std::string& place) {
 	if(step.size() != written.size() && (kind == "expect" || kind == "capture"))
 		fail(place + ".error", "only a step that runs handlers raises an error, not '" + std::string(kind) + "'");
 	checkNth(step, place);
-	if(kind == "move" || kind == "click" || kind == "press" || kind == "release") checkPointer(step, kind, place);
+	if(kind == "move" || kind == "click" || kind == "rightClick" || kind == "press" || kind == "release")
+		checkPointer(step, kind, place);
 	else if(kind == "drag") checkDrag(step, place);
 	else if(kind == "scroll") checkScroll(step, place);
 	else if(kind == "action") checkAction(step, place);

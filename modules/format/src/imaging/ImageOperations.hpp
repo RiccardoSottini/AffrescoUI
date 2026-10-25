@@ -57,6 +57,11 @@ void openAsset(ImageDocument& image, std::string_view type, const std::string& b
 /// @return The operations.
 [[nodiscard]] std::vector<ImageOperation> viewOperations();
 
+/// @brief canvasSize, imageSize, rotateCanvas, flipCanvas, transformLayer, mergeDown, mergeVisible, flatten,
+/// deleteHidden, copy, cut, paste, clear (ImageTransforms.cpp).
+/// @return The operations.
+[[nodiscard]] std::vector<ImageOperation> transformOperations();
+
 /// @brief The longest layer name or file name an operation takes.
 inline constexpr std::size_t maxNameLength = 256;
 

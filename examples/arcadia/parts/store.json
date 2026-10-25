@@ -57,6 +57,7 @@
 		"cartAdded": null,
 		"cartDialog": false,
 		"receipt": [],
+		"votes": {},
 		"reviews": [
 			{
 				"author": "MossyGolem",
@@ -93,12 +94,13 @@
 	"computed": {
 		"storeView": "{{state.storeQuery != '' ? 'results' : computed.here.page}}",
 		"price": "{{map(data.games, round(it.price * (100 - it.discount)) / 100)}}",
+		"storeGames": "{{filter(data.games, !it.local)}}",
 		"featured": "{{filter(data.games, contains(['aurora', 'glasswing', 'clockwork', 'rivermill', 'volt'], it.id))}}",
 		"feature": "{{computed.featured[state.storeFeature]}}",
-		"offers": "{{slice(sort(filter(data.games, it.discount > 0), it.discount, 'desc'), 0, 6)}}",
-		"storeRows": "{{state.storeList == 'top' ? slice(sort(data.games, it.reviewCount, 'desc'), 0, 8) : state.storeList == 'specials' ? slice(sort(filter(data.games, it.discount > 0), it.discount, 'desc'), 0, 8) : slice(reverse(data.games), 0, 8)}}",
+		"offers": "{{slice(sort(filter(computed.storeGames, it.discount > 0), it.discount, 'desc'), 0, 6)}}",
+		"storeRows": "{{state.storeList == 'top' ? slice(sort(computed.storeGames, it.reviewCount, 'desc'), 0, 8) : state.storeList == 'specials' ? slice(sort(filter(computed.storeGames, it.discount > 0), it.discount, 'desc'), 0, 8) : slice(reverse(computed.storeGames), 0, 8)}}",
 		"storePreview": "{{find(computed.storeRows, it.id == state.storeHover) ?? computed.storeRows[0]}}",
-		"results": "{{filter(data.games, contains(lower(it.title), lower(state.storeQuery)) || lower(it.genre) == lower(state.storeQuery) || some(it.tags, lower(it) == lower(state.storeQuery)))}}",
+		"results": "{{filter(computed.storeGames, contains(lower(it.title), lower(state.storeQuery)) || lower(it.genre) == lower(state.storeQuery) || some(it.tags, lower(it) == lower(state.storeQuery)))}}",
 		"cartGames": "{{filter(data.games, contains(state.cart, it.id))}}",
 		"cartTotal": "{{round(sum(computed.cartGames, it.price * (100 - it.discount))) / 100}}",
 		"wishGames": "{{filter(data.games, contains(state.wishlist, it.id) && (state.wishQuery == '' || contains(lower(it.title), lower(state.wishQuery)) || some(it.tags, contains(lower(it), lower(state.wishQuery)))))}}",
@@ -420,45 +422,53 @@
 					{
 						"id": "store-bar",
 						"type": "row",
-						"height": 36,
+						"height": 40,
 						"anchors": { "left": 0, "right": 0 },
 						"alignItems": "center",
-						"radius": 3,
-						"color": "transparent",
+						"gap": 4,
+						"radius": 20,
+						"color": "@color.side",
 						"arrows": "horizontal",
-						"shadow": { "y": 0, "blur": 3, "color": "#00000060" },
-						"gradient": {
-							"kind": "linear",
-							"angle": 90,
-							"stops": [
-								{ "at": 0.1, "color": "@store.navA" },
-								{ "at": 0.25, "color": "@store.navB" },
-								{ "at": 1, "color": "@store.navC" }
-							]
-						},
 						"children": [
+							{ "type": "panel", "width": 1, "height": 1, "color": "transparent" },
 							{
 								"repeat": {
 									"for": "item",
 									"in": "{{['yours', 'noteworthy', 'categories', 'points', 'news', 'labs']}}"
 								},
+								"let": { "later": "{{contains(['points', 'labs'], item)}}" },
 								"id": "{{'store-bar-' + item}}",
 								"type": "label",
 								"fitText": true,
 								"padding": 13,
-								"height": 36,
+								"height": 30,
+								"radius": 15,
 								"text": "{{t('store.bar.' + item)}}",
-								"textColor": "#e5e5e5",
+								"textColor": "{{later ? '@color.dim' : '@color.text'}}",
+								"disabled": "{{later}}",
+								"tooltip": "{{later ? t('store.later') : ''}}",
 								"focusable": true,
 								"role": "button",
 								"cursor": "hand",
-								"hover": { "color": "#ffffff1f", "textColor": "#ffffff" },
+								"hover": { "color": "@color.hover", "textColor": "@color.bright" },
 								"isOpen": "{{item == 'categories' && state.storeCatsOpen}}",
 								"onClick": [
 									{
 										"if": "{{item == 'categories'}}",
 										"then": [{ "toggle": "state.storeCatsOpen" }],
-										"else": [{ "run": "storeHome" }]
+										"else": [
+											{
+												"if": "{{item == 'news'}}",
+												"then": [{ "run": "libraryHome" }, { "after": 50, "do": [{ "scrollTo": "#news-header" }] }],
+												"else": [
+													{ "run": "storeHome" },
+													{
+														"if": "{{item == 'noteworthy'}}",
+														"then": [{ "set": "state.storeList", "to": "new" }, { "after": 50, "do": [{ "scrollTo": "#store-tabs" }] }]
+													}
+												]
+											}
+										]
 									}
 								],
 								"children": [
@@ -482,14 +492,14 @@
 								"padding": 30,
 								"bind": "state.storeQuery",
 								"placeholder": "{{t('store.search')}}",
-								"placeholderColor": "#c7b3d4",
-								"textColor": "#ffffff",
-								"color": "@store.field",
-								"radius": 3,
+								"placeholderColor": "@color.dim",
+								"textColor": "@color.text",
+								"color": "@color.field",
+								"radius": 13,
 								"label": "{{t('store.search')}}",
 								"borderWidth": 1,
-								"borderColor": "#00000055",
-								"focused": { "borderColor": "#ffc46b" },
+								"borderColor": "@color.border",
+								"focused": { "borderColor": "@color.accent" },
 								"children": [
 									{
 										"type": "label",
@@ -498,15 +508,15 @@
 										"width": 24,
 										"height": 22,
 										"align": "center",
-										"radius": 2,
-										"textColor": "#ffffff",
+										"radius": 11,
+										"textColor": "@color.muted",
 										"anchors": { "right": 2, "top": 2 },
-										"color": "transparent",
-										"gradient": { "kind": "linear", "angle": 135, "stops": ["#ffc46b", "#c9701a"] }
+										"color": "transparent"
 									}
 								]
 							},
-							{ "type": "panel", "color": "transparent", "width": 6, "height": 1 }
+							{ "type": "panel", "color": "transparent", "width": 6, "height": 1 },
+							{ "type": "panel", "width": 1, "height": 1, "color": "transparent" }
 						]
 					},
 					{ "type": "panel", "color": "transparent", "height": 10, "width": 1 }
@@ -2115,18 +2125,22 @@
 													},
 													{
 														"repeat": { "for": "b", "in": "{{['yes', 'no', 'funny']}}" },
+														"let": { "on": "{{state.votes[slug(r.author)] == b}}" },
+														"id": "{{'vote-' + slug(r.author) + '-' + b}}",
 														"type": "label",
 														"font": "small",
 														"text": "{{t('store.vote.' + b)}}",
 														"fitText": true,
 														"padding": 8,
 														"radius": 2,
-														"color": "@store.chip",
-														"textColor": "@store.chipText",
+														"color": "{{on ? '@color.select' : '@store.chip'}}",
+														"textColor": "{{on ? '@color.bright' : '@store.chipText'}}",
 														"focusable": true,
 														"role": "button",
+														"selected": "{{on}}",
 														"cursor": "hand",
-														"hover": { "textColor": "#ffffff" }
+														"hover": { "textColor": "@color.bright" },
+														"onClick": { "set": "{{'state.votes.' + slug(r.author)}}", "to": "{{on ? null : b}}" }
 													}
 												]
 											}
@@ -2878,6 +2892,7 @@
 			"store.bar.points": "Rewards",
 			"store.bar.news": "News",
 			"store.bar.labs": "Experiments",
+			"store.later": "Coming in a later version",
 			"store.search": "search",
 			"store.featured": "Spotlight",
 			"store.nowAvailable": "Now Available",
@@ -3030,6 +3045,7 @@
 			"store.bar.points": "Recompensas",
 			"store.bar.news": "Noticias",
 			"store.bar.labs": "Experimentos",
+			"store.later": "Llegará en una versión posterior",
 			"store.search": "buscar",
 			"store.featured": "En el foco",
 			"store.nowAvailable": "Ya disponible",
@@ -3182,6 +3198,7 @@
 			"store.bar.points": "Récompenses",
 			"store.bar.news": "Actualités",
 			"store.bar.labs": "Expériences",
+			"store.later": "Dans une prochaine version",
 			"store.search": "rechercher",
 			"store.featured": "En vedette",
 			"store.nowAvailable": "Disponible maintenant",

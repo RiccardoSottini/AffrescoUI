@@ -19,7 +19,7 @@
 			"variables": [], "selectedVariable": null,
 			"watches": [], "watchNext": 1, "watchDraft": "", "selectedWatch": null,
 			"console": [], "consoleNext": 1, "input": "", "history": [], "historyAt": 0, "completions": [],
-			"breakpoints": [], "breakpointNext": 1, "selectedBreakpoint": null,
+			"breakpoints": [], "breakpointNext": 1, "selectedBreakpoint": null, "collapsed": [],
 			"edit": { "open": false, "id": "", "condition": "", "hitCondition": "", "logMessage": "" },
 			"setValue": { "open": false, "path": "", "name": "", "value": "" },
 			"outside": { "open": false, "frame": null },
@@ -410,6 +410,10 @@
 				{ "set": "state.debug.watchDraft", "to": "" },
 				{ "run": "debugRefreshWatches" }
 			  ] }
+		],
+		"debugToggleSection": [
+			{ "note": "section: variables, watch, stack or breakpoints. Collapses it, or expands it again" },
+			{ "set": "state.debug.collapsed", "to": "{{contains(state.debug.collapsed, section) ? filter(state.debug.collapsed, it != section) : concat(state.debug.collapsed, [section])}}" }
 		],
 		"debugRemoveWatch": [
 			{ "set": "state.debug.watches", "to": "{{filter(state.debug.watches, it.id != state.debug.selectedWatch)}}" }

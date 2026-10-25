@@ -192,6 +192,121 @@ TEST_CASE("format: the pointer paints through the current tool, and undo and red
 	CHECK_THROWS(run(image, "pointer", {{"points", json(4097, json::object())}}));
 }
 
+TEST_CASE("format: Shift held at a press adds to the selection, Alt subtracts and both intersect") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = store.image("photo", {{"width", 64}, {"height", 32}}, "images.photo");
+	const auto drag = [&](int fromX, int toX, json modifiers) {
+		run(image, "pointer",
+		    {{"points",
+		      {{{"phase", "press"}, {"x", fromX}, {"y", 0}, {"modifiers", modifiers}},
+		       {{"phase", "move"}, {"x", toX}, {"y", 32}, {"modifiers", modifiers}},
+		       {{"phase", "release"}, {"x", toX}, {"y", 32}, {"modifiers", modifiers}}}}});
+		return editing::snapshot(image)["bounds"];
+	};
+	run(image, "setTool", {{"tool", "select-rectangle"}});
+	CHECK(drag(0, 10, json::array()) == json({0, 0, 10, 32}));
+	CHECK(drag(30, 40, {"shift"}) == json({0, 0, 40, 32}));
+	CHECK(drag(30, 40, {"alt"}) == json({0, 0, 10, 32}));
+	CHECK(drag(5, 20, {"shift", "alt"}) == json({5, 0, 5, 32}));
+	CHECK(drag(20, 30, json::array()) == json({20, 0, 10, 32}));
+	CHECK(editing::snapshot(image)["options"]["mode"] == "replace");
+
+	// The polygon keeps the mode of the press that began it
+	run(image, "setTool", {{"tool", "polygon-lasso"}});
+	const auto corner = [&](int x, int y, json modifiers) {
+		for(const char* phase : {"press", "release"})
+			run(image, "pointer", {{"phase", phase}, {"x", x}, {"y", y}, {"modifiers", modifiers}});
+	};
+	corner(50, 0, {"shift"});
+	corner(60, 0, json::array());
+	corner(60, 32, json::array());
+	corner(50, 0, json::array());
+	CHECK(editing::snapshot(image)["bounds"] == json({20, 0, 40, 32}));
+}
+
+TEST_CASE("format: Shift pressed during a marquee's or crop's drag keeps a square, and Alt draws it from the centre") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = store.image("photo", {{"width", 64}, {"height", 32}}, "images.photo");
+	const auto drag = [&](int fromX, int fromY, int toX, int toY, json modifiers) {
+		run(image, "pointer",
+		    {{"points",
+		      {{{"phase", "press"}, {"x", fromX}, {"y", fromY}},
+		       {{"phase", "move"}, {"x", toX}, {"y", toY}, {"modifiers", modifiers}},
+		       {{"phase", "release"}, {"x", toX}, {"y", toY}, {"modifiers", modifiers}}}}});
+		return editing::snapshot(image)["bounds"];
+	};
+	run(image, "setTool", {{"tool", "select-rectangle"}});
+	CHECK(drag(10, 10, 30, 20, json::array()) == json({10, 10, 20, 10}));
+	CHECK(drag(10, 10, 30, 20, {"shift"}) == json({10, 10, 20, 20}));
+	CHECK(drag(40, 16, 48, 20, {"alt"}) == json({32, 12, 16, 8}));
+	CHECK(drag(20, 16, 24, 18, {"shift", "alt"}) == json({16, 12, 8, 8}));
+	run(image, "setTool", {{"tool", "select-ellipse"}});
+	CHECK(drag(32, 16, 40, 18, {"shift", "alt"}) == json({24, 8, 16, 16}));
+
+	// A crop's drag too
+	run(image, "setTool", {{"tool", "crop"}});
+	drag(40, 16, 44, 18, {"shift", "alt"});
+	CHECK(editing::snapshot(image)["width"] == 8);
+	CHECK(editing::snapshot(image)["height"] == 8);
+}
+
+TEST_CASE("format: move with autoSelect makes the topmost layer painted under a press the active one") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = store.image("photo", {{"width", 32}, {"height", 16}}, "images.photo");
+	const auto active = [&] { return editing::snapshot(image)["active"].get<std::string>(); };
+	const auto paint = [&](int left, int right) {
+		run(image, "select", {{"kind", "rectangle"}, {"from", {{"x", left}, {"y", 0}}}, {"to", {{"x", right}, {"y", 16}}}});
+		run(image, "fillSelection", {{"color", "#000000"}});
+	};
+	const auto click = [&](int x) {
+		for(const char* phase : {"press", "release"}) run(image, "pointer", {{"phase", phase}, {"x", x}, {"y", 8}});
+	};
+	const std::string bottom = active();
+	run(image, "addLayer", {{"name", "Top"}});
+	const std::string top = active();
+	paint(8, 24);
+	run(image, "select", {{"kind", "none"}});
+	run(image, "setTool", {{"tool", "move"}});
+	click(2);
+	CHECK(active() == top);
+	run(image, "setOptions", {{"autoSelect", true}});
+	CHECK(editing::snapshot(image)["options"]["autoSelect"] == true);
+	click(2);
+	CHECK(active() == bottom);
+	click(10);
+	CHECK(active() == top);
+	click(28);
+	CHECK(active() == bottom); // The background is painted everywhere
+	click(10);
+	run(image, "setLayer", {{"id", bottom}, {"visible", false}});
+	click(28);
+	CHECK(active() == top); // Nothing visible is painted there
+	run(image, "setLayer", {{"id", bottom}, {"visible", true}});
+	run(image, "setLayer", {{"id", top}, {"visible", false}});
+	click(10);
+	CHECK(active() == bottom);
+}
+
+TEST_CASE("format: histogram counts the pixels shown by brightness, leaving transparent ones out") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = store.image("photo", {{"width", 32}, {"height", 16}}, "images.photo");
+	const auto counts = [&] { return editing::snapshot(image)["histogram"]; };
+	CHECK(counts() == json::array());
+	run(image, "histogram", {});
+	CHECK(counts().size() == 64);
+	run(image, "histogram", {{"bins", 4}});
+	CHECK(counts() == json::array({0, 0, 0, 512})); // The background is white
+	const std::string bottom = editing::snapshot(image)["active"].get<std::string>();
+	run(image, "addLayer", {{"name", "Top"}});
+	run(image, "select", {{"kind", "rectangle"}, {"from", {{"x", 8}, {"y", 0}}}, {"to", {{"x", 24}, {"y", 16}}}});
+	run(image, "fillSelection", {{"color", "#808080"}});
+	run(image, "histogram", {{"bins", 4}});
+	CHECK(counts() == json::array({0, 0, 256, 256}));
+	run(image, "setLayer", {{"id", bottom}, {"visible", false}});
+	run(image, "histogram", {{"bins", 1}});
+	CHECK(counts() == json::array({0, 256})); // At least 2 bins; transparent pixels aren't counted
+}
+
 TEST_CASE("format: the layer operations add and change and move and mask and delete layers") {
 	editing::ImageDocuments store;
 	editing::ImageDocument& image = store.image("photo", {{"width", 16}, {"height", 16}}, "images.photo");
@@ -209,6 +324,17 @@ TEST_CASE("format: the layer operations add and change and move and mask and del
 	CHECK(changed["visible"] == false);
 	CHECK(changed["blend"] == "multiply");
 	CHECK_THROWS(run(image, "setLayer", {{"id", ink}, {"blend", "sparkle"}}));
+	run(image, "moveLayer", {{"id", ink}, {"by", 1}});
+	CHECK(layers()[1]["id"] == ink);
+	const std::string group = layers()[2]["id"];
+	run(image, "moveLayer", {{"id", ink}, {"into", group}}); // in at the group's top, listed just under it
+	CHECK(layers()[1]["id"] == group);
+	CHECK(layers()[2]["id"] == ink);
+	CHECK(layers()[2]["depth"] == 1);
+	CHECK_THROWS(run(image, "moveLayer", {{"id", group}, {"into", group}}));
+	CHECK_THROWS(run(image, "moveLayer", {{"id", group}, {"into", layers()[0]["id"]}})); // not a group
+	run(image, "moveLayer", {{"id", ink}, {"onto", group}}); // out again, onto the group's place
+	CHECK(layers()[2]["depth"] == 0);
 	run(image, "moveLayer", {{"id", ink}, {"by", 1}});
 	CHECK(layers()[1]["id"] == ink);
 	run(image, "duplicateLayer", {{"id", ink}});

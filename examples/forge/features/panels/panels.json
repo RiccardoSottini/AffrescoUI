@@ -80,11 +80,11 @@
 	"components": {
 		"forgePanel": {
 			"node": {
-				"type": "column", "id": "panel", "role": "region", "label": "Panel", "color": "@color.panel", "borderWidth": 1, "borderColor": "@color.border",
+				"type": "column", "id": "panel", "role": "region", "label": "Panel", "color": "@color.panel",
 				"children": [
 					{ "type": "row", "id": "panel-head", "width": "100%", "height": 32, "alignItems": "center",
 					  "children": [
-						{ "type": "tabs", "id": "panel-tabs", "role": "tablist", "label": "Panel Views", "width": 420, "height": 35, "bind": "state.panelTab",
+						{ "type": "tabs", "id": "panel-tabs", "role": "tablist", "label": "Panel Views", "width": 420, "height": 32, "bind": "state.panelTab",
 						  "color": "@color.panel", "textColor": "@color.muted", "activeTextColor": "@color.text",
 						  "activeBackground": "@color.panel", "accentColor": "@color.accent",
 						  "tabs": "{{[{id: 'problems', label: 'Problems' + (length(state.problems) > 0 ? ' ' + length(state.problems) : ''), closable: false}, {id: 'output', label: 'Output', closable: false}, {id: 'debugConsole', label: 'Debug Console', closable: false}, {id: 'terminal', label: 'Terminal', closable: false}]}}" },

@@ -236,7 +236,7 @@ only for the elements that changed.
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
 | `mirror` | Right to left (`dir`), draw the icon mirrored: `left` and `right` swap in its name (`"chevron-left"` draws `"chevron-right"`), when the font has that one. For arrows and chevrons that point the reading way. |
-| `runs` | Rich text instead of `text`: a list of parts, each text or `{ "text", "bold", "italic", "size", "font", "color", "link", "icon" }`. `font` names a font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). A part with `link` is underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 parts and 65,536 characters. Not on text areas. |
+| `runs` | Rich text instead of `text`: a list of parts, each text or `{ "text", "bold", "italic", "size", "font", "color", "underline", "strike", "background", "shadow", "link", "icon" }`. `font` names a font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). `underline` draws a line under the part, `strike` one through it, and `background` a highlight behind it as tall as its line, `shadow` a copy of it in that colour moved down and right by a sixteenth of its size (null: none). A part with `link` is underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 parts and 65,536 characters. Not on text areas. |
 | `selectable` | The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons are left out of the copy. |
 | `selectionColor` | The selection's colour (default `#b4d5fe`). |
 <!-- end generated -->
@@ -256,7 +256,7 @@ Everything `label` has, plus `placeholder`, `placeholderColor`, `bind` (a state 
 A multi-line text editor (Cmd on macOS, Ctrl elsewhere): click, drag, double and triple click select; arrows,
 Home/End, Page Up/Down, Alt+arrows (words), Cmd+arrows (line and document ends), Shift to extend; Enter keeps the
 indentation; Tab/Shift+Tab indent; Cmd+A/C/X/V/Z, Cmd+Shift+Z. The caret's line is highlighted; the wheel scrolls.
-Tabs become 4 spaces. With a `language` it is a code editor; its events, `onType`, `onTextHover` and
+Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code editor; its events, `onType`, `onTextHover` and
 `onPopupKey`, are in Events.
 
 <!-- generated: editor -->
@@ -277,11 +277,13 @@ Tabs become 4 spaces. With a `language` it is a code editor; its events, `onType
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
 | `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `tabSize` | Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the text becomes and the indentation guides step by. |
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
 | `minimapStyle` | How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each character a pixel in its syntax colour. |
 | `minimapWidth` | The minimap's width in pixels, 20 to 240 (default 60). |
 | `minimapViewport` | When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it. |
+| `scrollMarks` | `true` marks the scroll bar where the whole text has decorations, find's matches and the caret, each in its colour, so they can be found again. |
 | `matchStyle` | How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
 | `caretStyle` | The caret: `line` (the default) a bar before the character, `block` a box over it, `underline` a bar under it. |
@@ -521,7 +523,7 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
 <!-- generated: tabs -->
 | Key | Meaning |
 |---|---|
-| `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most 10,000; the strip scrolls sideways when they don't fit. |
+| `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable", "icon", "iconColor", "italic" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true; `icon` names a glyph of the strip's font or its fallbacks, drawn before the label in `iconColor` (a hex colour; default the label's), as a list item's; `italic` slants the label, e.g. a preview tab that the next file opened replaces. At most 10,000; the strip scrolls sideways when they don't fit. |
 | `value` | The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`. |
 | `textColor`, `activeTextColor`, `activeBackground`, `accentColor` | The labels' colour (default muted), the active tab's, its background and its line. |
 | `accentEdge` | The edge of the active tab its accent line is on: `bottom` (default) or `top`. |
@@ -750,12 +752,15 @@ to load is left out and named in the log.
 | `grid` | A ground grid (default true). |
 | `axes` | The X (red) and Z (blue) axes on the floor (default true); with `"up": "z"`, X and Y (green). |
 | `glyphs` | Lights and cameras drawn as a modeller draws them (default false: a small cross): a camera's frustum with its up triangle, a light's circle with a line down to the floor (a sun's rays, a spot's cone); the selected ones in `outlineColor`. |
+| `extras` | Lights and cameras drawn at all, as crosses or `glyphs` (default true); false leaves them out, as a rendered image does, while the lights still light. |
 | `up` | Which way is up in the scene's frame: `"y"` (the default, as glTF) or `"z"` (as CAD and modelling tools): then the nodes' transforms, the world gizmo's axes, the picked `point`, the `cursor3d` and the pivot are Z up, and the floor is the XY plane. |
 | `cursor3d` | A 3D cursor drawn at `[x, y, z]` (none without it): a ring of red and white dashes facing the eye; e.g. set from a pick's `point`, and used as the gizmo's `pivot` or where new nodes go. |
 | `background` | Behind the scene (default the theme's). |
 | `gridColor` | The grid's lines. |
 | `outlineColor` | The selection's outline (default orange). |
 | `exposure` | The light's multiplier, before tone mapping (default 1). |
+| `xray` | How see-through the surfaces are, so that what is behind them shows (an X-ray): 0 (the default) opaque, up to 1 (kept at 0.95, so they still show). |
+| `lighting` | `"scene"` (the default: the scene's lights, a soft studio light if it has none) or `"studio"` (the studio light only, the scene's lights left out: a material preview). |
 | `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local", "pixels" (its size), "pivot": [x, y, z] (where it turns and scales about, if not the selection's centre), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
 | `controls` | The pointer's gestures: `{ "orbit": "middle", "pan": "shift+middle", "select": "left", "zoom": true, "selects": true, "minimumDistance", "maximumDistance" }` (these are the defaults); a binding is `"left"`, `"middle"` or `"right"` after any of `"shift+"`, `"control+"` and `"alt+"`, or `"none"`. A click picks, a drag on nothing draws a box; `selects` false leaves the selection to the handlers. |
 | `onSelect` | A click (`event.type` `"pick"`: `id`, or null on nothing, `button`, `shift`, `x`, `y`, the world `point`) or a box (`"boxSelect"`: `ids`, `shift`, `box`), with the `selection` after it. |
@@ -1330,7 +1335,7 @@ Native functions, services and servers, sign-in, files, terminals, peers, the ag
 | `chooseFolder` | `{ "chooseFolder": "workspace", "onDone": [...] }`: after the event, the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `saveFile` | `{ "saveFile": "{{state.deck}}", "name": "{{state.deck.title}}.json", "onDone": [...] }`: after the event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. `result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `"comments": true` it also reads the comments and trailing commas settings and theme files have. A control step |
-| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), or `"png"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
+| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), `"png"` of one node (`scale` pixels a unit, 2 by default), or `"gltf"` of one `scene` node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
 | `runInTerminal` | `{ "runInTerminal": "t1", "text": "make" }`: types the line (at most 64 KiB) and a newline into the session of a `terminal` node, once a node first shows it if none has yet. A control step |
 | `clearTerminal` | `{ "clearTerminal": "t1" }`: clears a terminal session's scrollback and asks its program to redraw. A control step |
 | `closeTerminal` | `{ "closeTerminal": "t1" }`: ends a terminal session's program and forgets the session. A control step |
@@ -1406,7 +1411,7 @@ The operations, and the keys of `with` each reads:
 | `selectLayer` | `id` | Makes a layer the active one. |
 | `addMask` | `id` | Adds a mask to a layer. |
 | `deleteMask` | `id` | Deletes a layer's mask. |
-| `moveLayer` | `id`, `onto`, `by` | Moves a layer onto another's place, or a step up or down. |
+| `moveLayer` | `id`, `into`, `onto`, `by` | Moves a layer into a group, onto another's place, or a step up or down. |
 | `setLayer` | `id`, `name`, `visible`, `opacity`, `blend`, `lockPixels`, `lockPosition`, `lockAll`, `clipped`, `maskEnabled`, `adjustment` | Changes a layer's settings. |
 | `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
 | `feather` | `radius` | Softens the selection's edge. |
@@ -1415,24 +1420,43 @@ The operations, and the keys of `with` each reads:
 | `previewFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Previews a filter on the active layer until it is applied or cancelled. |
 | `applyFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Applies the filter previewed, or the one given, as one step. |
 | `cancelFilter` | — | Drops the filter's preview. |
+| `canvasSize` | `width`, `height`, `anchor` | Makes the canvas larger or smaller around the image, and forgets the history. |
+| `imageSize` | `width`, `height` | Resamples the image to a size, and forgets the history. |
+| `rotateCanvas` | `angle` | Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history). |
+| `flipCanvas` | `direction` | Mirrors the image horizontally or vertically. |
+| `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
+| `alignLayer` | `id`, `edge` | Lines a pixel layer up with an edge or the middle of the selection, or of the image. |
+| `mergeDown` | `id` | Merges a layer into the pixel layer below it. |
+| `mergeVisible` | — | Merges the visible layers into one. |
+| `flatten` | `background` | Merges every visible layer into one and discards the hidden ones. |
+| `deleteHidden` | — | Deletes the hidden layers. |
+| `copy` | `merged` | Keeps the selection's pixels of the active layer, or of every layer, for paste. |
+| `cut` | — | Copies the selection's pixels of the active layer and clears them. |
+| `paste` | `name` | Adds what was copied as a new layer above the active one. |
+| `clear` | — | Clears the selection's pixels of the active layer. |
 | `snapshot` | — | Changes nothing; publishes the image's snapshot. |
+| `histogram` | `bins` | Counts the image's pixels as shown by brightness, for the snapshot's histogram. |
 | `fit` | — | Zooms and centres the view on the whole image. |
 | `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
 | `setTool` | `tool` | Chooses one of the document's tools, with its options. |
-| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource` | Sets the tools' options and the colours. |
+| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect` | Sets the tools' options and the colours. |
 | `setProfile` | `working`, `display`, `proof` | Sets the working, display or proof colour profile. |
 | `pointer` | `phase`, `x`, `y`, `button`, `pressure`, `scroll`, `modifiers`, `points` | Plays pointer events (document pixels) through the current tool. |
 <!-- end generated -->
 
 Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `invert`, `rectangle`
 and `ellipse` from `from` to `to`, `polygon` through `points`, `wand` at `x`, `y`, `colorRange` of `color` within
-`fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` onto the place of `onto`,
-or `by` places up (positive) or down. Filters and `fillSelection` change the active layer's pixels, or its mask with
-`"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
+`fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` into the group `into` (at
+its top), onto the place of `onto`, or `by` places up (positive) or down. Filters and `fillSelection` change the active
+layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
 `srgb`, `displayP3`, `wideRgb` or `gray`. `pointer` takes one event (`phase`: `press`, `move`, `release` or `scroll`;
 `x`, `y`; `button`: `left` or `right`; `pressure` from 0 to 1; `scroll`; `modifiers`: a list of `shift`, `control`,
-`alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. `open`, `save`
-and `revert` go through the file dialogs the person sees: a document never names a file.
+`alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. A selecting
+tool's press with `shift` held adds to the selection, with `alt` subtracts, with both intersects, whatever the tool's
+`mode` (a polygon keeps the mode of its first corner). During a marquee's or crop's drag, `shift` keeps a square and
+`alt` draws from the press as the centre (a key held since the press only chose the mode). With the `autoSelect` option,
+a `move` press first makes the topmost visible pixel layer painted under it the active one. `open`, `save` and `revert`
+go through the file dialogs the person sees: a document never names a file.
 
 ### Image values and the snapshot
 
@@ -1451,10 +1475,12 @@ The names the operations and tool options take, and the library's limits:
 
 The snapshot has `width`, `height`, `format`, `profile`, `display`, `proof`, `revision`, `active` (the active layer's
 id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opacity`, `blend`, `lockPixels`,
-`lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as
-`"board/layer/3"` that an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`,
-`canRedo`, `memory`, `selection`, `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view`
-(`zoom`, `x`, `y`), `message` and `previewing`; `"<image>/navigator"` is a thumbnail of the whole image.
+`lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as `"board/layer/3"` that
+an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`, `canRedo`, `memory`, `selection`,
+`bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view` (`zoom`, `x`, `y`), `message`, `previewing`,
+`clipboard` (whether copy or cut has kept pixels to paste) and `histogram` (what the `histogram` operation last counted:
+pixels by brightness, darkest first, transparent ones left out; a large image is measured at a smaller size, so give
+`curves` the counts, not totals); `"<image>/navigator"` is a thumbnail of the whole image.
 
 ### An image example
 
@@ -1977,7 +2003,7 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 
 | Step | Does |
 |---|---|
-| `{ "click": target }` | Moves the pointer there, presses and releases the left button. `move`, `press`, `release` do one part |
+| `{ "click": target }` | Moves the pointer there, presses and releases the left button (`rightClick`: the right one, which opens a context menu). `move`, `press`, `release` do one part |
 | `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
 | `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
 | `{ "type": "text" }` | Types into the focused node, a character at a time |
@@ -2001,7 +2027,7 @@ see `role` and `label`), as a person or a screen reader finds it, or `[x, y]` in
 | `{ "data": "notes[0].title", "is": "Plan" }` | The records have that value there, as `data.` reads them (a collection or a declared query; a field without a value is null) |
 | `{ "node": "#menu", "exists": false }` | A node with that id was built (or not), shown or not |
 | `{ "node": "#title", "text": "Done" }` | Its text: a label's, a text area's or an editor's |
-| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description` (positions and sizes in window units, within 0.01; `name` is the accessible name) |
+| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has) |
 | `{ "node": { "role": "checkbox", "name": "Dark mode" }, "property": "checked", "is": true }` | The same, for the first shown node with that role and name |
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
 

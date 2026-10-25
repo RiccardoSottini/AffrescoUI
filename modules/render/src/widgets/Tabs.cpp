@@ -86,6 +86,8 @@ void Tabs::setActive(std::string id) {
 
 void Tabs::setFont(std::shared_ptr<const Font> font) { setProperty(font_, std::move(font)); }
 
+void Tabs::setItalicFont(std::shared_ptr<const Font> font) { setProperty(italicFont_, std::move(font)); }
+
 void Tabs::setColors(Color text, Color activeText, Color activeBackground, Color accent) {
 	setLook(text_, text);
 	setLook(activeText_, activeText);
@@ -117,9 +119,14 @@ void Tabs::arrange() {
 	for(std::size_t i = 0; i < tabs_.size(); ++i) {
 		Place& place = places_[i];
 		place.text = detail::fromUtf8(tabs_[i].label);
-		const float text = labels ? std::ceil(labels->measure(place.text)) : 0.0f;
+		const Font* face = tabs_[i].italic && italicFont_ ? italicFont_.get() : labels;
+		const float text = face ? std::ceil(face->measure(place.text)) : 0.0f;
+		place.icon = labels && !tabs_[i].icon.empty() ? labels->codepointNamed(tabs_[i].icon) : 0;
+		place.iconWidth = place.icon != 0
+		                      ? std::round(labels->measure(std::u32string_view(&place.icon, 1)) + labels->measure(U" "))
+		                      : 0.0f;
 		place.left = left + tabGap_;
-		place.width = padding + text + (hasButton(tabs_[i]) ? closeGap + closeSize : 0.0f) + padding;
+		place.width = padding + place.iconWidth + text + (hasButton(tabs_[i]) ? closeGap + closeSize : 0.0f) + padding;
 		left = place.left + place.width;
 	}
 	contentWidth_ = left + (tabs_.empty() ? 0.0f : tabGap_);
@@ -276,7 +283,12 @@ void Tabs::paintTab(Painter& painter, const Font& font, std::size_t index) const
 		painter.fillRect({area.left + lineInset, lineTop, area.right - lineInset, lineTop + underline}, accent_);
 	}
 	const float baseline = std::round(area.top + (area.height() - font.lineHeight()) / 2.0f + font.ascent());
-	painter.drawText(font, place.text, {left + padding, baseline}, active ? activeText_ : text_);
+	const Color label = active ? activeText_ : text_;
+	if(place.icon != 0)
+		painter.drawText(font, std::u32string_view(&place.icon, 1), {left + padding, baseline},
+		                 tab.iconColor.value_or(label));
+	painter.drawText(tab.italic && italicFont_ ? *italicFont_ : font, place.text,
+	                 {left + padding + place.iconWidth, baseline}, label);
 
 	// The close button when it can be used now, else the marker (kept on the active tab too, if asked)
 	const float buttonLeft = area.right - padding - closeSize, middle = area.top + area.height() / 2.0f;

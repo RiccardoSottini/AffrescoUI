@@ -34,7 +34,8 @@ constexpr std::string_view counterScreen = R"json({
 	"state": { "clicks": 0, "items": [], "draft": "", "message": "" },
 	"root": { "id": "root", "children": [
 		{ "type": "label", "id": "count", "text": "{{state.clicks}} clicks", "width": 200, "height": 40,
-		  "onClick": [{ "increment": "state.clicks" }, { "after": 500, "do": [{ "set": "state.message", "to": "later" }] }] },
+		  "onClick": [{ "increment": "state.clicks" }, { "after": 500, "do": [{ "set": "state.message", "to": "later" }] }],
+		  "onContextMenu": [{ "set": "state.message", "to": "menu" }] },
 		{ "type": "textarea", "id": "field", "bind": "state.draft", "anchors": { "top": 50 }, "width": 200, "height": 30,
 		  "onSubmit": [{ "push": "state.items", "value": "{{event.text}}" }, { "set": "state.draft", "to": "" }] },
 		{ "type": "label", "id": "item", "text": "{{item}}", "repeat": { "for": "item", "in": "state.items" },
@@ -320,6 +321,24 @@ TEST_CASE("automation: scenarios play headless, on a clock that moves only when 
 	CHECK(summary["passed"] == 2);
 	CHECK(summary["failures"].size() == 5);
 	CHECK(summary["failures"][0] == json{{"scenario", "fails"}, {"step", 1}, {"problem", "state clicks is 0, expected 5"}});
+}
+
+TEST_CASE("automation: a right click opens the context menu, and counts no click") {
+	const Fixture fixture;
+	automation::Options options;
+	options.pictures = false;
+	const automation::Report report = automation::run(fixture.scenarios(R"([
+		{ "name": "right", "steps": [
+			{ "rightClick": "#count" },
+			{ "expect": { "state": "message", "is": "menu" } },
+			{ "expect": { "state": "clicks", "is": 0 } }
+		] }
+	])"),
+	                                                  options);
+	REQUIRE(report.scenarios.size() == 1);
+	for(const automation::Failure& failure : report.scenarios[0].failures) INFO(failure.problem);
+	CHECK(report.scenarios[0].passed());
+	CHECK(errorOf(oneStep(R"({"rightClick": "#a", "click": "#a"})")).contains("one step does one thing"));
 }
 
 // index.scenarios.json's checks of the keys that take the platform's modifier, which each platform writes its own way

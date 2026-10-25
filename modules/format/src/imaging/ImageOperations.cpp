@@ -11,7 +11,8 @@ namespace affresco::format::editing {
 std::span<const ImageOperation> imageOperations() {
 	static const std::vector<ImageOperation> operations = [] {
 		std::vector<ImageOperation> all;
-		for(auto group : {fileOperations(), layerOperations(), editOperations(), viewOperations()})
+		for(auto group :
+		    {fileOperations(), layerOperations(), editOperations(), transformOperations(), viewOperations()})
 			std::ranges::move(group, std::back_inserter(all));
 		return all;
 	}();

@@ -421,8 +421,10 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"export", "",
 	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
 	 "draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, "
-	 "else each node's own), or `\"png\"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good "
-	 "pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step",
+	 "else each node's own), `\"png\"` of one node (`scale` pixels a unit, 2 by default), or `\"gltf\"` of one `scene` "
+	 "node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures "
+	 "aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, "
+	 "bytes}`, `error` `{code, message}`. A control step",
 	 "outsideSteps"},
     {"runInTerminal", "",
 	 "`{ \"runInTerminal\": \"t1\", \"text\": \"make\" }`: types the line (at most 64 KiB) and a newline into the "

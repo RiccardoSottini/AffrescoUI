@@ -1,8 +1,10 @@
 /// @file
-/// @brief format::editing: the "image" step's view and tool operations: snapshot, fit, zoom, setTool, setOptions,
-/// setProfile, and pointer, which plays pointer events through the current tool as a view's canvas would.
+/// @brief format::editing: the "image" step's view and tool operations: snapshot, histogram, fit, zoom, setTool,
+/// setOptions, setProfile, and pointer, which plays pointer events through the current tool as a view's canvas would.
 
 #include "ImageOperations.hpp"
+
+#include "affresco/imaging/Composite.hpp"
 
 #include <algorithm>
 #include <array>
@@ -18,6 +20,32 @@ constexpr double leastZoom = 1.0 / 64.0, mostZoom = 64.0;
 
 /// @brief snapshot: changes nothing; the step publishes the snapshot after every operation.
 void publishOnly(ImageDocument&, const json&, Window*) {}
+
+/// @brief The most pixels histogram measures: it reads the smallest mip level with at most this many.
+constexpr long long histogramPixels = 512LL * 512LL;
+
+/// @brief histogram: counts the image's pixels as shown by brightness, for the snapshot's histogram. Transparent
+/// pixels aren't counted; a large image is measured at a mip level.
+/// @param image The image.
+/// @param with bins (2 to 256, default 64).
+void histogram(ImageDocument& image, const json& with, Window*) {
+	const imaging::Document& document = image.canvas->document();
+	const int bins = std::clamp(wholeOf(with, "bins", 64), 2, 256);
+	int level = 0;
+	const int levels = document.selection().levels();
+	while(level + 1 < levels &&
+	      static_cast<long long>(document.width() >> level) * (document.height() >> level) > histogramPixels)
+		++level;
+	const int width = std::max(1, document.width() >> level), height = std::max(1, document.height() >> level);
+	const std::vector<std::uint8_t> pixels = imaging::flatten(document, level, 0, 0, width, height);
+	std::vector<int> counts(static_cast<std::size_t>(bins), 0);
+	for(std::size_t at = 0; at + 3 < pixels.size(); at += 4) {
+		if(pixels[at + 3] == 0) continue;
+		const double brightness = 0.2126 * pixels[at] + 0.7152 * pixels[at + 1] + 0.0722 * pixels[at + 2];
+		++counts[std::min(static_cast<std::size_t>(brightness * bins / 256.0), counts.size() - 1)];
+	}
+	image.histogram = std::move(counts);
+}
 
 /// @brief fit: zooms and centres the view on the whole image.
 /// @param image The image.
@@ -145,13 +173,15 @@ void pointer(ImageDocument& image, const json& with, Window*) {
 std::vector<ImageOperation> viewOperations() {
 	return {
 	    {"snapshot", {}, "Changes nothing; publishes the image's snapshot.", publishOnly},
+	    {"histogram", {"bins"}, "Counts the image's pixels as shown by brightness, for the snapshot's histogram.",
+	     histogram},
 	    {"fit", {}, "Zooms and centres the view on the whole image.", fit},
 	    {"zoom", {"by", "to", "x", "y"}, "Multiplies or sets the zoom, and centres the view on a point.", zoom},
 	    {"setTool", {"tool"}, "Chooses one of the document's tools, with its options.", setTool},
 	    {"setOptions",
 	     {"preset", "size", "sizeStep", "hardness", "spacing", "opacity", "flow", "mode", "tolerance", "contiguous",
 	      "allLayers", "fillOpacity", "shape", "gradientPreset", "gradient", "foreground", "background", "swap", "reset",
-	      "quickMask", "cloneSource"},
+	      "quickMask", "cloneSource", "autoSelect"},
 	     "Sets the tools' options and the colours.",
 	     setToolOptions},
 	    {"setProfile", {"working", "display", "proof"}, "Sets the working, display or proof colour profile.",

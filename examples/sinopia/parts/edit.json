@@ -8,8 +8,7 @@
 		"undo": [],
 		"redo": [],
 		"clip": [],
-		"arrangeMenu": { "open": false, "x": 0, "y": 0 },
-		"effectsMenu": { "open": false, "x": 0, "y": 0 }
+		"editing": null
 	},
 
 	"computed": {
@@ -28,13 +27,22 @@
 		"slideBounds": { "left": 0, "top": 0, "right": 960, "bottom": 540 },
 		"selectionBounds": "{{length(computed.boxes) == 0 ? computed.slideBounds : { left: min(map(computed.boxes, it.x)), top: min(map(computed.boxes, it.y)), right: max(map(computed.boxes, it.x + it.w)), bottom: max(map(computed.boxes, it.y + it.h)) } }}",
 		"selectedAt": "{{filter(range(length(computed.objects)), contains(state.board.selection, computed.objects[it].id))}}",
-		"arrangeItems": "{{concat(map([['Bring to Front', 'front'], ['Bring Forward', 'forward'], ['Send Backward', 'backward'], ['Send to Back', 'back']], { title: it[0], run: 'order', with: { how: it[1] }, enabled: length(computed.selected) > 0 }), [{ separator: true }], map([['Align Left', 'left'], ['Align Center', 'center'], ['Align Right', 'right'], ['Align Top', 'top'], ['Align Middle', 'middle'], ['Align Bottom', 'bottom']], { title: it[0], run: 'align', with: { how: it[1] }, enabled: length(computed.selected) > 0 }), [{ separator: true }], map([['Distribute Horizontally', 'x'], ['Distribute Vertically', 'y']], { title: it[0], run: 'distribute', with: { axis: it[1] }, enabled: length(computed.selected) > 1 }))}}",
+		"arrangeItems": "{{concat(map([['Bring to Front', 'front', 'bring-to-front'], ['Bring Forward', 'forward', 'arrow-up'], ['Send Backward', 'backward', 'arrow-down'], ['Send to Back', 'back', 'send-to-back']], { title: it[0], icon: it[2], run: 'order', with: { how: it[1] }, enabled: length(computed.selected) > 0 }), [{ separator: true }], map([['Align Left', 'left', 'align-start-vertical'], ['Align Center', 'center', 'align-center-vertical'], ['Align Right', 'right', 'align-end-vertical'], ['Align Top', 'top', 'align-start-horizontal'], ['Align Middle', 'middle', 'align-center-horizontal'], ['Align Bottom', 'bottom', 'align-end-horizontal']], { title: it[0], icon: it[2], run: 'align', with: { how: it[1] }, enabled: length(computed.selected) > 0 }), [{ separator: true }], map([['Distribute Horizontally', 'x', 'align-horizontal-distribute-center'], ['Distribute Vertically', 'y', 'align-vertical-distribute-center']], { title: it[0], icon: it[2], run: 'distribute', with: { axis: it[1] }, enabled: length(computed.selected) > 1 }))}}",
 		"effectItems": "{{map([['No Effect', null], ['Shadow', 'shadow'], ['Glow', 'glow']], { title: it[0], run: 'setObjects', with: { props: { effect: it[1] } }, enabled: length(computed.selected) > 0 })}}",
 		"canUndo": "{{length(state.undo) > 0}}",
 		"canRedo": "{{length(state.redo) > 0}}"
 	},
 
 	"actions": {
+		"editText": [
+			{ "note": "with: id, the text box or shape whose text is edited on the slide, in an editor over it, until Escape or a click elsewhere" },
+			{ "if": "{{contains(['text', 'shape'], find(computed.objects, it.id == id).kind ?? '')}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.board.selection", "to": ["{{id}}"] },
+				{ "set": "state.editing", "to": "{{id}}" }
+			] }
+		],
+		"stopEditing": [{ "set": "state.editing", "to": null }, { "focus": "#board" }],
 		"commit": [
 			{ "push": "state.undo", "value": "{{ {deck: state.deck, current: state.current} }}" },
 			{ "if": "{{length(state.undo) > 50}}", "then": [{ "remove": "state.undo", "at": 0 }] },
@@ -61,7 +69,8 @@
 
 		"pickSlide": [
 			{ "set": "state.current", "to": "{{clamp(index, 0, length(state.deck.slides) - 1)}}" },
-			{ "set": "state.board.selection", "to": [] }
+			{ "set": "state.board.selection", "to": [] },
+			{ "set": "state.editing", "to": null }
 		],
 		"newSlide": [
 			{ "run": "commit" },
@@ -122,12 +131,12 @@
 			{ "run": "setObjects", "with": { "props": "{{ {size: by > 0 ? find(computed.sizes, it > computed.textSize) ?? computed.textSize + 8 : find(reverse(computed.sizes), it < computed.textSize) ?? max(computed.textSize - 1, 1)} }}" } }
 		],
 		"clearFormatting": [
-			{ "run": "setObjects", "with": { "props": { "bold": null, "italic": null, "underline": null, "strike": null, "shadow": null, "size": null, "color": null, "highlight": null } } }
+			{ "run": "setObjects", "with": { "props": { "bold": null, "italic": null, "underline": null, "strike": null, "shadow": null, "size": null, "color": null, "highlight": null, "font": null } } }
 		],
 		"changeCase": [
 			{ "if": "{{length(computed.selected) > 0}}", "then": [
 				{ "run": "commit" },
-				{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, contains(state.board.selection, it.id) ? merge(it, { text: how == 'upper' ? upper(it.text ?? '') : how == 'lower' ? lower(it.text ?? '') : it.text }) : it)}}" }
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, contains(state.board.selection, it.id) ? merge(it, { text: how == 'upper' ? upper(it.text ?? '') : how == 'lower' ? lower(it.text ?? '') : how == 'toggle' ? join(map(split(it.text ?? '', ''), upper(it) == it ? lower(it) : upper(it)), '') : how == 'sentence' ? join(map(split(it.text ?? '', '\n'), upper(join(slice(split(it, ''), 0, indexOf(it, trim(it)) + 1), '')) + lower(join(slice(split(it, ''), indexOf(it, trim(it)) + 1), ''))), '\n') : how == 'words' ? join(map(split(it.text ?? '', '\n'), join(map(split(it, ' '), upper(join(slice(split(it, ''), 0, 1), '')) + lower(join(slice(split(it, ''), 1), ''))), ' ')), '\n') : it.text }) : it)}}" }
 			] }
 		],
 		"placeObjects": [
@@ -211,19 +220,24 @@
 			{ "run": "commit" },
 			{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, !contains(ids, it.id) || (it.locked ?? false) ? it : merge(it, parseJson('{' + json(axis) + ':' + json(round((start + sum(slice(sizes, 0, indexOf(ids, it.id))) + indexOf(ids, it.id) * (span - sum(sizes)) / (length(ids) - 1)) * 10) / 10) + '}')))}}" }
 		],
-		"openArrangeMenu": [
-			{ "set": "state.arrangeMenu", "to": { "open": true, "x": "{{min(event.x ?? 520, window.width - 228)}}", "y": 136 } }
-		],
-		"openEffectsMenu": [
-			{ "set": "state.effectsMenu", "to": { "open": true, "x": "{{min(event.x ?? 970, window.width - 168)}}", "y": 148 } }
-		],
 
 		"setTheme": [
 			{ "run": "commit" },
 			{ "set": "state.deck.theme", "to": "{{theme}}" },
-			{ "set": "state.deck.variant", "to": 0 }
+			{ "set": "state.deck.variant", "to": 0 },
+			{ "set": "state.deck.colors", "to": null }
 		],
-		"setVariant": [{ "run": "commit" }, { "set": "state.deck.variant", "to": "{{variant}}" }],
+		"setVariant": [{ "run": "commit" }, { "set": "state.deck.variant", "to": "{{variant}}" }, { "set": "state.deck.colors", "to": null }],
+		"setColorSet": [
+			{ "note": "with: id, the theme whose colours the deck takes in place of its own (null: the theme's own); a theme or variant chosen after puts them back" },
+			{ "run": "commit" },
+			{ "set": "state.deck.colors", "to": "{{id}}" }
+		],
+		"setFonts": [
+			{ "note": "with: heading and body, the fonts of titles and of the other text (a text's own font wins)" },
+			{ "run": "commit" },
+			{ "set": "state.deck.fonts", "to": "{{ {heading: heading, body: body} }}" }
+		],
 		"setTransition": [
 			{ "run": "commit" },
 			{ "set": "state.deck.slides[state.current].transition", "to": "{{merge(computed.slide.transition ?? { kind: 'none', ms: 500 }, props)}}" }
@@ -254,12 +268,5 @@
 				{ "set": "state.deck.slides[state.current].notes", "to": "{{text}}" }
 			] }
 		]
-	},
-
-	"overlays": {
-		"zArrangeMenu": { "use": "contextMenu", "with": { "open": "state.arrangeMenu.open", "items": "{{computed.arrangeItems}}", "x": "{{state.arrangeMenu.x}}",
-			"y": "{{state.arrangeMenu.y}}", "width": 220, "color": "@rb", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } },
-		"zEffectsMenu": { "use": "contextMenu", "with": { "open": "state.effectsMenu.open", "items": "{{computed.effectItems}}", "x": "{{state.effectsMenu.x}}",
-			"y": "{{state.effectsMenu.y}}", "width": 160, "color": "@rb", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } }
 	}
 }

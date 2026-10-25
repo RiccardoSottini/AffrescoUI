@@ -252,7 +252,7 @@ bool TextEditor::cursorsEditKey(const KeyEvent& event) {
 		return true;
 	case Key::Tab:
 		forEachCursor(Edit::Typing,
-		              [this] { replaceSelection(std::u32string(tabSize - caret_.column % tabSize, U' ')); });
+		              [this] { replaceSelection(std::u32string(tabSize_ - caret_.column % tabSize_, U' ')); });
 		return true;
 	case Key::Backspace:
 	case Key::Delete: {
