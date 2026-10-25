@@ -137,7 +137,7 @@ TEST_CASE("automation: a scenarios file that is wrong says where") {
 	CHECK(errorOf(oneStep(R"({"action": "go", "error": "no sign-in"})")).empty());
 }
 
-TEST_CASE("automation: an error in a handler fails its step, unless the step names it") {
+TEST_CASE("automation: an error in a handler fails its step, unless the step names it or the handler handles it") {
 	const Fixture fixture;
 	automation::Options options;
 	options.document = R"json({
@@ -146,7 +146,8 @@ TEST_CASE("automation: an error in a handler fails its step, unless the step nam
 		"actions": {
 			"inner": [{ "set": "state.a", "to": "{{x}}" }],
 			"outer": [{ "run": "inner", "with": { "x": "{{nope}}" } }, { "set": "state.b", "to": 1 }],
-			"fine": [{ "set": "state.b", "to": 2 }]
+			"fine": [{ "set": "state.b", "to": 2 }],
+			"absent": [{ "call": "nothing", "onError": [{ "set": "state.b", "to": "{{error}}" }] }]
 		},
 		"root": { "type": "panel" }
 	})json";
@@ -155,10 +156,12 @@ TEST_CASE("automation: an error in a handler fails its step, unless the step nam
 		{ "name": "named", "steps": [{ "action": "outer", "error": "unknown variable 'nope'" },
 			{ "expect": { "state": "b", "is": 0 } }] },
 		{ "name": "another", "steps": [{ "action": "outer", "error": "no sign-in" }] },
-		{ "name": "none", "steps": [{ "action": "fine", "error": "no sign-in" }] }
+		{ "name": "none", "steps": [{ "action": "fine", "error": "no sign-in" }] },
+		{ "name": "handled", "steps": [{ "action": "absent" },
+			{ "expect": { "state": "b", "is": "no native action 'nothing' registered" } }] }
 	])"),
 	                                                  options);
-	REQUIRE(report.scenarios.size() == 4);
+	REQUIRE(report.scenarios.size() == 5);
 	// The action stopped: the step says why, and nothing after it runs
 	REQUIRE(report.scenarios[0].failures.size() == 1);
 	CHECK(report.scenarios[0].failures[0].step == 1);
@@ -168,6 +171,7 @@ TEST_CASE("automation: an error in a handler fails its step, unless the step nam
 	CHECK(report.scenarios[2].failures[0].problem.contains("expected one with \"no sign-in\""));
 	REQUIRE(report.scenarios[3].failures.size() == 1);
 	CHECK(report.scenarios[3].failures[0].problem == "action: no error, expected one with \"no sign-in\"");
+	CHECK(report.scenarios[4].passed()); // a host without a function is an error its "onError" handles
 }
 
 TEST_CASE("automation: keys, state paths and file names") {

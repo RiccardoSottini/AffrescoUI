@@ -103,7 +103,7 @@
 		{
 			"name": "settings",
 			"steps": [
-				{ "key": "mod+comma", "error": "no native action 'intelligence.providers' registered" },
+				{ "key": "mod+comma" },
 				{ "expect": { "state": "page", "is": "settings" } },
 				{ "expect": { "node": "#settingsIntelligence", "exists": true } },
 				{ "click": { "role": "radio", "name": "Dark" } },
