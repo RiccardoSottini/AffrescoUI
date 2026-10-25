@@ -558,7 +558,7 @@
 		},
 		{
 			"name": "sinopia-presenter-view",
-			"note": "With Presenter View on, the show opens in a window of its own and this one shows the notes, the next slide and a timer",
+			"note": "With Presenter View on, the show opens in a window of its own and this one shows the notes, the next slide and a timer; See All Slides jumps to any slide",
 			"steps": [
 				{ "click": "#tab-slideShow-label" },
 				{ "click": "#cb-presenter-caption" },
@@ -570,6 +570,14 @@
 				{ "expect": { "node": "#presenter-notes", "text": "Welcome everyone. Two minutes on why we are doing this, then the plan." } },
 				{ "click": "#presenter-forward" },
 				{ "expect": { "state": "show.index", "is": 1} },
+				{ "click": "#presenter-all" },
+				{ "expect": { "node": "#presenter-navigator", "exists": true } },
+				{ "click": "#navigator-s4" },
+				{ "expect": { "state": "show.index", "is": 3 } },
+				{ "expect": { "node": "#presenter-navigator", "exists": false } },
+				{ "click": "#presenter-previous" },
+				{ "click": "#presenter-previous" },
+				{ "expect": { "state": "show.index", "is": 1 } },
 				{ "click": "#presenter-notes-larger" },
 				{ "expect": { "state": "show.notesSize", "is": 20} },
 				{ "click": "#presenter-end" },
@@ -1079,6 +1087,56 @@
 				{ "expect": { "node": "#shortcut-0-keys", "text": "F5" } },
 				{ "click": "#side-close" },
 				{ "expect": { "state": "sidePane", "is": null } }
+			]
+		},
+		{
+			"name": "sinopia-sections-and-ribbon",
+			"note": "A section's title in the slide list folds its slides away (it then says how many) and back; Ctrl+F1 and the bar's button hide the ribbon, and a tab shows it again",
+			"steps": [
+				{ "click": "#thumb-s3-section" },
+				{ "expect": { "state": "foldedSections", "is": ["b"] } },
+				{ "expect": { "node": "#thumb-s3-row", "exists": false } },
+				{ "expect": { "node": "#thumb-s7-row", "exists": false } },
+				{ "expect": { "node": "#thumb-s3-section", "text": " THE PLAN  5 slides" } },
+				{ "expect": { "node": "#thumb-s2-row", "exists": true } },
+				{ "click": "#thumb-s3-section" },
+				{ "expect": { "node": "#thumb-s5-row", "exists": true } },
+				{ "key": "mod+f1" },
+				{ "expect": { "node": "#ribbon", "exists": false } },
+				{ "click": "#tab-insert-label" },
+				{ "expect": { "node": "#ribbon", "exists": true } },
+				{ "click": "#ribbon-collapse" },
+				{ "expect": { "state": "ribbon", "is": false } },
+				{ "click": "#ribbon-collapse" },
+				{ "expect": { "state": "ribbon", "is": true } }
+			]
+		},
+		{
+			"name": "sinopia-align-text",
+			"note": "The paragraph buttons and Ctrl+L, E, R, J align the selected text box's text",
+			"steps": [
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#o3" },
+				{ "click": "#b-align-center" },
+				{ "expect": { "state": "deck.slides[1].objects[0].align", "is": "center" } },
+				{ "key": "mod+r" },
+				{ "expect": { "state": "deck.slides[1].objects[0].align", "is": "right" } },
+				{ "key": "mod+l" },
+				{ "expect": { "state": "deck.slides[1].objects[0].align", "is": "left" } }
+			]
+		},
+		{
+			"name": "sinopia-present-go-to-number",
+			"note": "While presenting, a slide's number and Enter go to it (a number past the end goes to the last slide)",
+			"steps": [
+				{ "key": "f5" },
+				{ "key": "4" }, { "key": "enter" },
+				{ "expect": { "state": "show.index", "is": 3 } },
+				{ "expect": { "state": "show.typed", "is": "" } },
+				{ "key": "1" }, { "key": "2" }, { "key": "enter" },
+				{ "expect": { "state": "show.index", "is": 6 } },
+				{ "key": "escape" },
+				{ "expect": { "state": "show.on", "is": false } }
 			]
 		}
 	]

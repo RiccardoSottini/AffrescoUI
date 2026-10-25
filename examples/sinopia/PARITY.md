@@ -7,12 +7,12 @@ with its slide show, presenter view, audience window and files on library capabi
 `saveFile`, `openFile`, `export`, snapshots). Evidence names a scenario of [`index.scenarios.json`](index.scenarios.json)
 (without its `sinopia-` prefix), or a frame of `tests/render/scenarios/sinopia.json`, that shows it.
 
-| Area | Feature | Start | Now | 62 | 27 | 31 | 120 |
+| Area | Feature | Start | Now | 65 | 26 | 29 | 120 |
 |---|---|---|---|---|
 | Shell | Ribbon with tabs (Home, Insert, Ink, Design, Transitions, Motion, Present, Record, Check, View, Help) | missing | done | first-frame, insert-tab, design-tab, ink, rehearse-timings, check-and-comments |
 | Shell | Ribbon groups with titles, large and small buttons | missing | done | first-frame |
 | Shell | Ribbon galleries (shapes, styles, themes, transitions, animations) | missing | partial | first-frame (shapes), design-tab (themes), launchers-and-gallery (the whole list) |
-| Shell | Collapse and pin the ribbon | missing | missing | |
+| Shell | Collapse and pin the ribbon | missing | partial | sections-and-ribbon (Ctrl+F1 and the bar's button; a tab brings it back pinned, not over the slide) |
 | Shell | A contextual tab for the selected shape | missing | missing | |
 | Shell | Quick access toolbar (save, undo, redo, start from beginning) | missing | done | save-and-open, present-from-current, first-frame |
 | Shell | Title bar with the file name | partial | done | first-frame |
@@ -22,7 +22,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Slides | Thumbnails pane with slide numbers | partial | done | first-frame, slide-4 |
 | Slides | New slide with a layout, duplicate, delete | done | done | new-duplicate-delete-slide |
 | Slides | Drag to reorder | partial | done | sorter-drag-to-reorder |
-| Slides | Sections (add, rename, collapse) | partial | partial | first-frame, section-menu (add, rename, remove; no collapse) |
+| Slides | Sections (add, rename, collapse) | partial | done | first-frame, section-menu, sections-and-ribbon |
 | Slides | Hide slide (dimmed, crossed number, skipped in the show) | partial | partial | hide-a-slide, present-skips-and-blacks |
 | Slides | Slide context menu | missing | done | context-menus (on the rail, a shape and the canvas; Shift+F10) |
 | Canvas | Slide centred on grey | partial | done | first-frame, resized |
@@ -39,7 +39,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Text | Bold, italic, underline, strikethrough, shadow | missing | done | copy-style |
 | Text | Font colour and highlight | missing | done | colour-grids |
 | Text | Change case and clear formatting | missing | done | font-size-and-case |
-| Text | Paragraph alignment (left, centre, right, justify) | missing | partial | |
+| Text | Paragraph alignment (left, centre, right, justify) | missing | partial | align-text (a text box's text as a whole; justified text draws flush left) |
 | Text | Line spacing and columns | missing | done | paragraph-menus |
 | Text | Bullets and numbering | missing | done | bullets-numbering-and-levels |
 | Text | List levels with Tab and Shift+Tab | missing | done | bullets-numbering-and-levels, edit-text-in-place |
@@ -106,7 +106,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Animations | Timing (on click, with, after; duration, delay) | missing | partial | add-an-animation |
 | Animations | Preview | missing | missing | |
 | Slide show | Full screen | missing | done | present-and-step |
-| Slide show | Advance by click and keys; back; go to slide by number | done | partial | present-and-step |
+| Slide show | Advance by click and keys; back; go to slide by number | done | done | present-and-step, present-go-to-number |
 | Slide show | From the beginning and from the current slide | partial | done | present-from-current |
 | Slide show | Black and white screen (B, W) | done | done | present-skips-and-blacks |
 | Slide show | End show (Esc) | done | done | present-and-step, present-ends-at-the-end |
@@ -116,7 +116,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Presenter view | Next slide | done | done | presenter-view |
 | Presenter view | Notes | partial | done | presenter-view |
 | Presenter view | Timer (pause, reset) and clock | partial | done | presenter-view |
-| Presenter view | Slide navigator | missing | missing | |
+| Presenter view | Slide navigator | missing | done | presenter-view (See All Slides) |
 | Presenter view | Pen | missing | missing | |
 | Presenter view | Laser pointer | missing | missing | |
 | Presenter view | Audience window | partial | done | presenter-view |

@@ -10,7 +10,7 @@
 
 	"state": {
 		"presenterView": false,
-		"show": { "on": false, "index": 0, "from": -1, "step": 0, "clock": 0, "t": 1, "black": false, "white": false, "ended": false, "seconds": 0, "paused": false, "notesSize": 18, "onSlide": 0, "elapsed": 0, "rehearsing": false }
+		"show": { "on": false, "index": 0, "from": -1, "step": 0, "clock": 0, "t": 1, "black": false, "white": false, "ended": false, "seconds": 0, "paused": false, "notesSize": 18, "onSlide": 0, "elapsed": 0, "rehearsing": false, "navigator": false, "typed": "" }
 	},
 
 	"computed": {
@@ -67,7 +67,7 @@
 			                        "then": [{ "run": "showGo", "with": { "index": "{{computed.showPrevious}}", "built": true } }] }] }] }
 		],
 		"showGo": [
-			{ "set": "state.show", "to": "{{merge(state.show, { index: clamp(index, 0, length(state.deck.slides) - 1), from: -1, t: 1, clock: 1000000, ended: false, black: false, white: false })}}" },
+			{ "set": "state.show", "to": "{{merge(state.show, { index: clamp(index, 0, length(state.deck.slides) - 1), from: -1, t: 1, clock: 1000000, ended: false, black: false, white: false, typed: '' })}}" },
 			{ "set": "state.show.step", "to": "{{built ? computed.showSteps : 0}}" }
 		],
 		"showBlack": [{ "set": "state.show.white", "to": false }, { "toggle": "state.show.black" }],
@@ -97,6 +97,10 @@
 				  "then": [{ "run": "showNext" }] }
 			] }
 		],
+		"showTyped": [
+			{ "run": "showGo", "with": { "index": "{{number(state.show.typed) - 1}}", "built": false } },
+			{ "set": "state.show.typed", "to": "" }
+		],
 		"showTick": [{ "if": "{{!state.show.paused}}", "then": [{ "increment": "state.show.seconds" }] }]
 	},
 
@@ -105,7 +109,7 @@
 		"down": [{ "when": "{{state.show.on}}", "do": "showNext" }],
 		"pagedown": [{ "when": "{{state.show.on}}", "do": "showNext" }],
 		"space": [{ "when": "{{state.show.on}}", "do": "showNext" }],
-		"enter": [{ "when": "{{state.show.on}}", "do": "showNext" }],
+		"enter": [{ "when": "{{state.show.on && state.show.typed != ''}}", "do": "showTyped" }, { "when": "{{state.show.on}}", "do": "showNext" }],
 		"n": [{ "when": "{{state.show.on}}", "do": "showNext" }],
 		"left": [{ "when": "{{state.show.on}}", "do": "showPrevious" }],
 		"up": [{ "when": "{{state.show.on}}", "do": "showPrevious" }],
@@ -113,6 +117,16 @@
 		"p": [{ "when": "{{state.show.on}}", "do": "showPrevious" }],
 		"home": [{ "when": "{{state.show.on}}", "do": "showGo", "with": { "index": "{{computed.showOrder[0] ?? 0}}", "built": false } }],
 		"end": [{ "when": "{{state.show.on}}", "do": "showGo", "with": { "index": "{{computed.showOrder[length(computed.showOrder) - 1] ?? 0}}", "built": true } }],
+		"0": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '0'}}" }] }],
+		"1": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '1'}}" }] }],
+		"2": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '2'}}" }] }],
+		"3": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '3'}}" }] }],
+		"4": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '4'}}" }] }],
+		"5": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '5'}}" }] }],
+		"6": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '6'}}" }] }],
+		"7": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '7'}}" }] }],
+		"8": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '8'}}" }] }],
+		"9": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '9'}}" }] }],
 		"b": [{ "when": "{{state.show.on}}", "do": "showBlack" }],
 		"period": [{ "when": "{{state.show.on}}", "do": "showBlack" }],
 		"w": [{ "when": "{{state.show.on}}", "do": "showWhite" }],
@@ -267,6 +281,22 @@
 					  ] },
 					{ "id": "presenter-current", "anchors": { "left": 24, "top": 60, "right": 384, "bottom": 76 }, "color": "#000000", "radius": 4,
 					  "children": [{ "type": "image", "id": "presenter-current-image", "fill": 0, "source": "audience", "fit": "contain" }] },
+					{ "type": "grid", "id": "presenter-navigator", "when": "{{state.show.navigator}}", "anchors": { "left": 24, "top": 60, "right": 384, "bottom": 76 },
+					  "columns": 4, "gap": 12, "scroll": "vertical", "color": "#141a19", "role": "list", "label": "All slides",
+					  "children": [
+						{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "index": "i", "key": "{{s.id}}" },
+						  "type": "column", "id": "{{'navigator-' + s.id}}", "width": 200, "height": 136, "gap": 4, "alignItems": "center", "color": "transparent",
+						  "cursor": "hand", "role": "listitem", "label": "{{'Slide ' + (i + 1)}}",
+						  "onClick": [{ "run": "showGo", "with": { "index": "{{i}}", "built": false } }, { "set": "state.show.navigator", "to": false }],
+						  "children": [
+							{ "id": "{{'navigator-' + s.id + '-frame'}}", "width": 200, "height": 112, "radius": 4, "color": "#000000", "borderWidth": 2,
+							  "borderColor": "{{i == state.show.index ? '#5fd3bc' : 'transparent'}}", "hover": { "borderColor": "#a3b1ac" },
+							  "children": [{ "type": "image", "id": "{{'navigator-' + s.id + '-image'}}", "x": 2, "y": 2, "width": 196, "height": 108,
+							                 "source": "{{'slide-' + s.id}}", "fit": "fill" }] },
+							{ "type": "label", "id": "{{'navigator-' + s.id + '-number'}}", "width": 200, "height": 18, "align": "center", "textColor": "#a3b1ac",
+							  "runs": [{ "text": "{{text(i + 1) + ((s.hidden ?? false) ? ' (hidden)' : '')}}", "size": 12 }] }
+						  ] }
+					  ] },
 					{ "type": "column", "id": "presenter-side", "width": 336, "anchors": { "right": 24, "top": 60, "bottom": 76 }, "gap": 8, "color": "transparent", "alignItems": "stretch",
 					  "children": [
 						{ "type": "label", "id": "presenter-next-title", "height": 20, "textColor": "#a3b1ac",
@@ -295,6 +325,8 @@
 						{ "type": "label", "id": "presenter-forward", "style": "presenterButton", "runs": [{ "icon": "chevron-right", "size": 16 }], "tooltip": "Next (Right)", "onClick": "showNext" },
 						{ "type": "label", "id": "presenter-black", "style": "{{state.show.black ? 'presenterButtonOn' : 'presenterButton'}}",
 						  "runs": [{ "icon": "square", "size": 14 }, { "text": " Black (B)", "size": 13 }], "onClick": "showBlack" },
+						{ "type": "label", "id": "presenter-all", "style": "{{state.show.navigator ? 'presenterButtonOn' : 'presenterButton'}}",
+						  "runs": [{ "icon": "layout-grid", "size": 14 }, { "text": " See All Slides", "size": 13 }], "onClick": [{ "toggle": "state.show.navigator" }] },
 						{ "id": "presenter-gap", "grow": 1, "height": 1, "color": "transparent" },
 						{ "type": "label", "id": "presenter-end", "style": "presenterButton", "runs": [{ "text": "End Slide Show", "size": 13 }], "onClick": "showEnd" }
 					  ] }
