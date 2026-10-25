@@ -207,7 +207,7 @@
 		"area": {
 			"params": { "slot": "a" },
 			"node": {
-				"id": "area-{{slot}}", "color": "transparent",
+				"id": "area-{{slot}}", "color": "transparent", "onHover": { "set": "state.hoverSlot", "to": "{{slot}}" },
 				"children": [
 					{ "when": "{{state.areas[slot] == 'viewport'}}", "use": "viewportArea", "fill": true },
 					{ "when": "{{state.areas[slot] == 'timeline'}}", "use": "timelineArea", "fill": true },

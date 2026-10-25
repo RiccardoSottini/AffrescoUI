@@ -129,6 +129,8 @@
 		"end": 250,
 		"playing": false,
 		"autoKey": false,
+		"maximized": null,
+		"hoverSlot": null,
 		"previewRange": null,
 		"markers": [],
 		"timelineOffset": -0.4,
@@ -165,6 +167,7 @@
 			"children": [
 				{ "use": "topBar" },
 				{
+					"when": "{{state.maximized == null}}",
 					"type": "split", "id": "areas", "width": "100%", "grow": 1, "bind": "state.sizes.main", "minSize": 240,
 					"sashSize": 4, "defaultSizes": [1102],
 					"children": [
@@ -180,6 +183,7 @@
 						}
 					]
 				},
+				{ "when": "{{state.maximized != null}}", "use": "area", "with": { "slot": "{{state.maximized}}" }, "width": "100%", "grow": 1 },
 				{ "use": "modelloStatusBar" }
 			]
 		},

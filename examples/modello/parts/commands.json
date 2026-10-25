@@ -408,6 +408,51 @@
 			"do": [{ "dismiss": true }, { "if": "{{some(state.markers, it.frame > state.frame)}}", "then": [{ "run": "setFrame", "with": { "args": { "value": "{{min(map(filter(state.markers, it.frame > state.frame), it.frame))}}" } } }] }]
 		},
 		"frameCurrent": { "title": "Go to Current Frame", "category": "View", "do": [{ "dismiss": true }, { "set": "state.timelineOffset", "to": "{{round(((state.frame - 1) / 24 - 4) * 1000) / 1000}}" }] },
+		"clearLocation": { "title": "Clear Location", "category": "Object", "enablement": "{{length(state.view.selection) > 0}}", "do": [{ "run": "clearTransform", "with": { "args": { "key": "translation", "value": 0, "title": "Clear Location" } } }] },
+		"clearRotation": { "title": "Clear Rotation", "category": "Object", "enablement": "{{length(state.view.selection) > 0}}", "do": [{ "run": "clearTransform", "with": { "args": { "key": "rotationDegrees", "value": 0, "title": "Clear Rotation" } } }] },
+		"clearScale": { "title": "Clear Scale", "category": "Object", "enablement": "{{length(state.view.selection) > 0}}", "do": [{ "run": "clearTransform", "with": { "args": { "key": "scale", "value": 1, "title": "Clear Scale" } } }] },
+		"clearTransform": [
+			{ "dismiss": true },
+			{ "if": "{{state.modal != null || length(state.view.selection) == 0}}", "then": [{ "stop": true }] },
+			{ "run": "snapshot" },
+			{ "forEach": "{{filter(state.scene.nodes, contains(state.view.selection, it.id))}}", "as": "n", "do": [
+				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), n.id)][args.key]", "to": "{{map(n[args.key], n['lock_' + args.key][index] == true ? it : args.value)}}" }
+			] },
+			{ "set": "state.last", "to": "{{args.title}}" },
+			{ "run": "autoKey" }
+		],
+		"snapMenu": { "title": "Snap", "category": "Object", "do": [{ "if": "{{state.modal == null}}", "then": [{ "run": "openPopup", "with": { "args": { "menu": "snap", "x": null, "y": null } } }] }] },
+		"selectionToCursor": {
+			"title": "Selection to Cursor", "category": "Object", "enablement": "{{length(state.view.selection) > 0}}",
+			"do": [
+				{ "dismiss": true },
+				{ "if": "{{length(state.view.selection) == 0}}", "then": [{ "stop": true }] },
+				{ "run": "snapshot" },
+				{ "forEach": "{{filter(state.scene.nodes, contains(state.view.selection, it.id))}}", "as": "n", "do": [
+					{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), n.id)].translation", "to": "{{map(state.cursor, n.lock_translation[index] == true ? n.translation[index] : it)}}" }
+				] },
+				{ "set": "state.last", "to": "Selection to Cursor" },
+				{ "run": "autoKey" }
+			]
+		},
+		"cursorToSelected": {
+			"title": "Cursor to Selected", "category": "Object", "enablement": "{{length(state.view.selection) > 0}}",
+			"do": [
+				{ "dismiss": true },
+				{ "set": "state.tmp", "to": "{{filter(state.scene.nodes, contains(state.view.selection, it.id))}}" },
+				{ "if": "{{length(state.tmp) == 0}}", "then": [{ "stop": true }] },
+				{ "set": "state.cursor", "to": "{{[round(sum(state.tmp, it.translation[0]) / length(state.tmp) * 10000) / 10000, round(sum(state.tmp, it.translation[1]) / length(state.tmp) * 10000) / 10000, round(sum(state.tmp, it.translation[2]) / length(state.tmp) * 10000) / 10000]}}" }
+			]
+		},
+		"cursorToActive": {
+			"title": "Cursor to Active", "category": "Object", "enablement": "{{computed.activeNode != null}}",
+			"do": [{ "dismiss": true }, { "if": "{{computed.activeNode != null}}", "then": [{ "set": "state.cursor", "to": "{{computed.activeNode.translation}}" }] }]
+		},
+		"cursorToOrigin": { "title": "Cursor to World Origin", "category": "Object", "do": [{ "dismiss": true }, { "set": "state.cursor", "to": [0, 0, 0] }] },
+		"toggleMaximize": {
+			"title": "Toggle Maximize Area", "category": "View",
+			"do": [{ "dismiss": true }, { "set": "state.maximized", "to": "{{state.maximized != null ? null : state.hoverSlot ?? 'a'}}" }]
+		},
 		"about": { "title": "About Modello", "category": "Help", "icon": "info", "do": [{ "dismiss": true }, { "set": "state.about", "to": true }] },
 		"newScene": {
 			"title": "New", "category": "File", "icon": "file-plus",
@@ -512,6 +557,11 @@
 		"alt+z": { "do": "toggleXray" },
 		"shift+alt+z": { "do": "toggleOverlays" },
 		"shift+tab": { "when": "{{!context.textInputFocus}}", "do": "toggleSnap" },
+		"alt+g": { "when": "{{state.modal == null}}", "do": "clearLocation" },
+		"alt+r": { "when": "{{state.modal == null}}", "do": "clearRotation" },
+		"alt+s": { "when": "{{state.modal == null}}", "do": "clearScale" },
+		"shift+s": { "do": "snapMenu" },
+		"ctrl+space": { "when": "{{!context.textInputFocus}}", "do": "toggleMaximize" },
 		"i": { "do": "insertKeyframe" },
 		"alt+i": { "do": "deleteKeyframe" },
 		"shift+alt+i": { "do": "clearKeyframes" },
@@ -556,7 +606,8 @@
 			"projection": { "run": "toggleProjection", "group": "2_frame", "order": 2 },
 			"frameSelected": { "run": "frameSelected", "group": "3_frame", "order": 1 },
 			"frameAll": { "run": "frameAll", "group": "3_frame", "order": 2 },
-			"viewpoint": { "submenu": "viewpoint", "title": "Viewpoint", "group": "4_view" }
+			"viewpoint": { "submenu": "viewpoint", "title": "Viewpoint", "group": "4_view" },
+			"maximize": { "run": "toggleMaximize", "group": "5_area" }
 		},
 		"viewpoint": {
 			"top": { "run": "viewTop", "group": "1", "order": 1 },
@@ -591,7 +642,8 @@
 			"spot": { "run": "addObject", "with": { "args": { "kind": "light", "name": "Spot", "light": { "type": "spot", "intensity": 60 } } }, "title": "Spot", "icon": "cone", "order": 3 }
 		},
 		"object": {
-			"transform": { "submenu": "objectTransform", "title": "Transform", "group": "1_transform" },
+			"transform": { "submenu": "objectTransform", "title": "Transform", "group": "1_transform", "order": 1 },
+			"snap": { "submenu": "snap", "title": "Snap", "group": "1_transform", "order": 2 },
 			"duplicate": { "run": "duplicate", "group": "2_edit", "order": 1 },
 			"delete": { "run": "deleteSelected", "group": "2_edit", "order": 2 },
 			"keyframe": { "run": "insertKeyframe", "group": "3_anim" },
@@ -600,7 +652,16 @@
 		"objectTransform": {
 			"move": { "run": "grab", "order": 1 },
 			"rotate": { "run": "rotate", "order": 2 },
-			"scale": { "run": "resize", "order": 3 }
+			"scale": { "run": "resize", "order": 3 },
+			"clearLocation": { "run": "clearLocation", "group": "2_clear", "order": 1 },
+			"clearRotation": { "run": "clearRotation", "group": "2_clear", "order": 2 },
+			"clearScale": { "run": "clearScale", "group": "2_clear", "order": 3 }
+		},
+		"snap": {
+			"selectionToCursor": { "run": "selectionToCursor", "group": "1_selection" },
+			"cursorToSelected": { "run": "cursorToSelected", "group": "2_cursor", "order": 1 },
+			"cursorToActive": { "run": "cursorToActive", "group": "2_cursor", "order": 2 },
+			"cursorToOrigin": { "run": "cursorToOrigin", "group": "2_cursor", "order": 3 }
 		},
 		"objectShowHide": {
 			"reveal": { "run": "revealHidden", "order": 1 },
