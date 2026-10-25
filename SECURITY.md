@@ -355,6 +355,12 @@ followed): another app with the same id, a copy elsewhere, gets `apps/<id>~<hash
 with the first app's data and the person is asked again. A screen opened on its own is bound to its file the same
 way. Data kept before names were bound has no record, and the first place to open it after the upgrade takes it.
 
+The window that asks shows each capability with the app's reason, quoted as the app's own words. Only sound, the file
+dialogs, other windows and a folder read start checked (`AppCapability::startsAllowed()`); a program, a folder written,
+a network origin, the assistant and the channels start unchecked, so the person allows each one with a click. A shell
+or an interpreter (`sh`, `bash`, `python3`, `node`, `cmd`, `pwsh`, ...: `AppCapability::runsAnyCommand()`) is named
+for what it gives, any command run as the person, not as one program.
+
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
 `AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; for a screen the library
