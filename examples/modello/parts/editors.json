@@ -8,8 +8,13 @@
 		"kindIcons": "{{ { mesh: 'triangle', camera: 'video', light: 'lightbulb', empty: 'axis-3-d' } }}",
 		"editorTypes": "{{map([['viewport', '3D Viewport', 'axis-3-d'], ['image', 'Image Editor', 'image'], ['shader', 'Shader Editor', 'git-fork'], ['timeline', 'Timeline', 'clock-3'], ['outliner', 'Outliner', 'list-tree'], ['properties', 'Properties', 'sliders-horizontal'], ['text', 'Text Editor', 'file-text']], { id: it[0], title: it[1], icon: it[2], enabled: contains(['viewport', 'shader', 'timeline', 'outliner', 'properties'], it[0]), keyLabel: contains(['viewport', 'shader', 'timeline', 'outliner', 'properties'], it[0]) ? '' : 'Not yet' })}}",
 		"workspaces": "{{[{ id: 'layout', title: 'Layout' }, { id: 'modeling', title: 'Model' }, { id: 'sculpting', title: 'Sculpt', needs: 'sculpting a mesh' }, { id: 'uv editing', title: 'UV', needs: 'unwrapping a mesh' }, { id: 'texture paint', title: 'Paint', needs: 'painting textures' }, { id: 'shading', title: 'Materials' }, { id: 'animation', title: 'Animate' }, { id: 'rendering', title: 'Render' }, { id: 'compositing', title: 'Compose', needs: 'a compositor' }, { id: 'geometry nodes', title: 'Nodes', needs: 'geometry nodes' }, { id: 'scripting', title: 'Script', needs: 'a script console' }]}}",
-		"objectRows": "{{sort(state.scene.nodes, 'name')}}",
-		"outlinerRows": "{{state.outlinerMode != 'list' && (state.outlinerOpen.root != true || state.outlinerOpen.collection != true) ? [] : filter(computed.objectRows, (state.outlinerFilter == null || state.outlinerFilter == '' || contains(lower(it.name), lower(state.outlinerFilter))) && !contains(state.outlinerHide, it.kind) && (!state.outlinerSelectedOnly || contains(state.view.selection, it.id)))}}",
+		"objectRows": "{{sort(state.scene.nodes, it.name)}}",
+		"collections": "{{state.scene.collections ?? [{ id: 'collection', name: 'Collection' }]}}",
+		"collectionIds": "{{map(computed.collections, it.id)}}",
+		"activeCollectionData": "{{find(computed.collections, it.id == state.activeCollection) ?? computed.collections[0]}}",
+		"collectionsOff": "{{ { visible: map(filter(computed.collections, it.visible == false), it.id), selectable: map(filter(computed.collections, it.selectable == false), it.id), render: map(filter(computed.collections, it.render == false), it.id) } }}",
+		"outlinerItems": "{{state.outlinerMode == 'list' ? map(computed.outlinerRows, { node: it, k: index }) : state.outlinerOpen.root != true ? [] : sort(concat(map(computed.collections, { coll: it, k: index * 100000 - 1 }), map(filter(computed.outlinerRows, state.outlinerOpen[it.collection ?? 'collection'] == true), { node: it, k: indexOf(computed.collectionIds, it.collection ?? 'collection') * 100000 + index })), it.k)}}",
+		"outlinerRows": "{{filter(computed.objectRows, (state.outlinerFilter == null || state.outlinerFilter == '' || contains(lower(it.name), lower(state.outlinerFilter))) && !contains(state.outlinerHide, it.kind) && (!state.outlinerSelectedOnly || contains(state.view.selection, it.id)))}}",
 		"outlinerDepth": "{{state.outlinerMode == 'list' ? 0 : 2}}",
 		"outlinerDisplayItems": "{{[{ title: 'View Layer', icon: 'layers-2', checked: state.outlinerMode != 'list', run: 'setOption', with: { args: { key: 'outlinerMode', value: 'layer' } } }, { title: 'Object List', icon: 'list', checked: state.outlinerMode == 'list', run: 'setOption', with: { args: { key: 'outlinerMode', value: 'list' } } }, { separator: true }, { title: 'Scenes', icon: 'shapes', enabled: false, keyLabel: 'Not yet' }, { title: 'Orphan Data', icon: 'trash-2', enabled: false, keyLabel: 'Not yet' }]}}",
 		"outlinerFilterItems": "{{concat(map([['mesh', 'Meshes'], ['light', 'Lights'], ['camera', 'Cameras'], ['empty', 'Empties']], { title: it[1], checked: !contains(state.outlinerHide, it[0]), run: 'toggleKind', with: { args: { list: 'outlinerHide', kind: it[0] } } }), [{ separator: true }, { title: 'Only Selected', checked: state.outlinerSelectedOnly == true, run: 'toggleOption', with: { args: { key: 'outlinerSelectedOnly' } } }])}}",
@@ -264,15 +269,16 @@
 			}
 		},
 		"outlinerRow": {
-			"params": { "depth": 0, "name": "", "icon": "", "iconColor": "@text", "data": "", "node": null, "stripe": false, "key": "",
+			"params": { "depth": 0, "name": "", "icon": "", "iconColor": "@text", "data": "", "node": null, "coll": null, "stripe": false, "key": "",
 			            "expand": "", "onSelect": null },
 			"node": {
 				"id": "outliner-{{node ? node.id : key}}", "width": "100%", "height": 20,
-				"color": "{{node && node.id == state.active && contains(state.view.selection, node.id) ? '@sel' : node && contains(state.view.selection, node.id) ? '@selRow' : stripe ? '@rowAlt' : 'transparent'}}",
+				"color": "{{node && node.id == state.active && contains(state.view.selection, node.id) ? '@sel' : node && contains(state.view.selection, node.id) || coll && coll.id == computed.activeCollectionData.id ? '@selRow' : stripe ? '@rowAlt' : 'transparent'}}",
 				"hover": { "color": "{{node && contains(state.view.selection, node.id) ? '@sel' : '@widget'}}" },
 				"role": "treeitem", "focusable": true, "label": "{{name}}", "selected": "{{node ? contains(state.view.selection, node.id) : null}}",
 				"let": { "open": "{{state.outlinerOpen[expand] == true}}" },
 				"onClick": [{ "if": "{{node != null}}", "then": [{ "run": "selectNode", "with": { "args": { "id": "{{node.id}}", "shift": "{{event.shift}}" } } }] },
+				            { "if": "{{coll != null}}", "then": [{ "set": "state.activeCollection", "to": "{{coll.id}}" }] },
 				            { "if": "{{onSelect != null}}", "then": [{ "set": "state.propTab", "to": "{{onSelect}}" }] }],
 				"onDoubleClick": { "if": "{{node != null && data != ''}}", "then": [{ "set": "state.renaming", "to": "{{node.id}}" }, { "focus": "#outliner-rename" }] },
 				"onContextMenu": { "if": "{{node != null}}", "then": [
@@ -298,15 +304,15 @@
 					  "onSubmit": [{ "run": "rename", "with": { "args": { "id": "{{node.id}}", "name": "{{event.text}}" } } }, { "set": "state.renaming", "to": null }] },
 					{ "when": "{{data != '' && (node == null || state.renaming != node.id)}}", "type": "label", "font": "iconsSmall", "icon": "{{data}}", "text": "", "textColor": "@data",
 					  "x": "{{depth * 18 + 46 + length(name) * 7}}", "width": 16, "anchors": { "top": 0, "bottom": 0 }, "align": "center" },
-					{ "when": "{{data != '' || key == 'collection'}}", "type": "row", "anchors": { "right": 4, "top": 0, "bottom": 0 },
+					{ "when": "{{data != '' || coll != null}}", "type": "row", "anchors": { "right": 4, "top": 0, "bottom": 0 },
 					  "width": 66, "gap": 4, "alignItems": "center", "color": "transparent", "children": [
 						{ "repeat": { "for": "t", "in": "{{[{ key: 'selectable', on: 'mouse-pointer-2', off: 'mouse-pointer-2', title: 'Disable Selection' }, { key: 'visible', on: 'eye', off: 'eye-off', title: 'Hide in Viewport' }, { key: 'render', on: 'camera', off: 'camera-off', title: 'Disable in Renders' }]}}" },
-						  "let": { "on": "{{node ? node[t.key] != false : state.collection[t.key] != false}}" },
-						  "id": "outliner-{{node ? node.id : 'collection'}}-{{t.key}}", "width": 18, "height": 18, "radius": 3,
+						  "let": { "on": "{{node ? node[t.key] != false : coll[t.key] != false}}" },
+						  "id": "outliner-{{node ? node.id : coll.id}}-{{t.key}}", "width": 18, "height": 18, "radius": 3,
 						  "color": "transparent", "hover": { "color": "@widgetHover" }, "role": "checkbox", "focusable": true,
 						  "label": "{{t.title}}", "tooltip": "{{t.title}}", "selected": "{{on}}",
 						  "onClick": { "if": "{{node != null}}", "then": [{ "run": "toggleFlag", "with": { "args": { "id": "{{node.id}}", "key": "{{t.key}}" } } }],
-						               "else": [{ "run": "toggleCollection", "with": { "args": { "key": "{{t.key}}" } } }] },
+						               "else": [{ "run": "toggleCollection", "with": { "args": { "id": "{{coll.id}}", "key": "{{t.key}}" } } }] },
 						  "children": [{ "type": "label", "font": "iconsSmall", "icon": "{{on ? t.on : t.off}}", "text": "",
 						                 "textColor": "{{on ? '@text' : '@faint'}}", "align": "center", "fill": true }] }
 					  ] }
@@ -327,8 +333,7 @@
 						{ "use": "searchField", "id": "outliner-search", "with": { "bind": "state.outlinerFilter", "label": "Filter the outliner" } },
 						{ "use": "hButton", "id": "outliner-filter", "with": { "icon": "filter", "chevron": true, "width": 38, "tooltip": "Filter",
 						  "on": "{{length(state.outlinerHide) > 0 || state.outlinerSelectedOnly}}", "open": "state.open.outlinerFilter", "items": "{{computed.outlinerFilterItems}}" } },
-						{ "use": "hButton", "id": "outliner-new", "with": { "icon": "folder-plus", "width": 24, "disabled": true,
-						  "tooltip": "Modello keeps one collection: more collections aren't available yet" } },
+						{ "use": "hButton", "id": "outliner-new", "with": { "icon": "folder-plus", "width": 24, "tooltip": "New Collection", "run": "newCollection", "with": { "args": { "move": false } } } },
 						{ "use": "gap" }
 					  ] },
 					{ "type": "column", "id": "outliner-rows", "anchors": { "left": 0, "right": 0, "top": 28, "bottom": 0 }, "gap": 0,
@@ -336,16 +341,16 @@
 					  "children": [
 						{ "when": "{{state.outlinerMode != 'list'}}", "use": "outlinerRow", "with": { "depth": 0, "name": "Scene Root", "key": "root",
 						  "icon": "folder-tree", "iconColor": "@text", "expand": "root" } },
-						{ "when": "{{state.outlinerMode != 'list' && state.outlinerOpen.root == true}}", "use": "outlinerRow", "with": { "depth": 1, "name": "Collection",
-						  "key": "collection", "icon": "package-open", "iconColor": "@text", "stripe": true,
-						  "expand": "collection" } },
-						{ "repeat": { "for": "n", "in": "{{computed.outlinerRows}}", "index": "i", "key": "{{n.id}}" },
-						  "type": "column", "width": "100%", "height": "{{state.outlinerOpen[n.id] == true ? 20 * (n.material ? 3 : 2) : 20}}", "gap": 0, "color": "transparent",
+						{ "repeat": { "for": "item", "in": "{{computed.outlinerItems}}", "index": "i", "key": "{{item.node ? item.node.id : 'c:' + item.coll.id}}" },
+						  "let": { "n": "{{item.node ?? { id: '' } }}" },
+						  "type": "column", "width": "100%", "height": "{{item.node && state.outlinerOpen[n.id] == true ? 20 * (n.material ? 3 : 2) : 20}}", "gap": 0, "color": "transparent",
 						  "children": [
-							{ "use": "outlinerRow", "with": { "depth": "{{computed.outlinerDepth}}", "name": "{{n.name}}", "icon": "{{computed.kindIcons[n.kind]}}",
+							{ "when": "{{item.coll != null}}", "use": "outlinerRow", "with": { "depth": 1, "name": "{{item.coll.name}}", "key": "{{item.coll.id}}", "coll": "{{item.coll}}",
+							  "icon": "package-open", "iconColor": "@text", "stripe": "{{i % 2 == 0}}", "expand": "{{item.coll.id}}", "onSelect": "collection" } },
+							{ "when": "{{item.node != null}}", "use": "outlinerRow", "with": { "depth": "{{computed.outlinerDepth}}", "name": "{{n.name}}", "icon": "{{computed.kindIcons[n.kind]}}",
 							                                  "iconColor": "@object", "data": "{{computed.kindIcons[n.kind]}}", "node": "{{n}}",
-							                                  "stripe": "{{i % 2 == 1}}", "expand": "{{n.mesh ? n.id : ''}}" } },
-							{ "when": "{{state.outlinerOpen[n.id] == true}}", "use": "outlinerRow", "with": { "depth": "{{computed.outlinerDepth + 1}}", "key": "{{n.id + '-data'}}",
+							                                  "stripe": "{{(state.outlinerMode == 'list' ? i + 1 : i) % 2 == 0}}", "expand": "{{n.mesh ? n.id : ''}}" } },
+							{ "when": "{{item.node != null && state.outlinerOpen[n.id] == true}}", "use": "outlinerRow", "with": { "depth": "{{computed.outlinerDepth + 1}}", "key": "{{n.id + '-data'}}",
 							  "name": "{{upper(slice(n.mesh ?? '', 0, 1)) + slice(n.mesh ?? '', 1)}}", "icon": "triangle", "iconColor": "@data", "onSelect": "data" } },
 							{ "when": "{{state.outlinerOpen[n.id] == true && n.material != null}}", "use": "outlinerRow", "with": { "depth": "{{computed.outlinerDepth + 1}}",
 							  "key": "{{n.id + '-material'}}", "name": "{{find(state.scene.materials, it.id == n.material).name ?? n.material}}", "icon": "circle", "iconColor": "@data",
@@ -441,12 +446,12 @@
 							{ "use": "colorRow", "with": { "label": "Color", "value": "{{state.world.color}}", "target": "world", "key": "pickWorld" } }
 						] },
 						{ "when": "{{contains(computed.propShown, 'restrictions')}}", "use": "propPanel", "with": { "key": "restrictions", "body": 80 }, "children": [
-							{ "use": "checkRow", "with": { "id": "prop-collection-selectable", "label": "Selectable", "checked": "{{state.collection.selectable != false}}",
-							  "run": "toggleCollection", "with": { "args": { "key": "selectable" } } } },
-							{ "use": "checkRow", "with": { "id": "prop-collection-visible", "label": "Show in Viewports", "checked": "{{state.collection.visible != false}}",
-							  "run": "toggleCollection", "with": { "args": { "key": "visible" } } } },
-							{ "use": "checkRow", "with": { "id": "prop-collection-render", "label": "Show in Renders", "checked": "{{state.collection.render != false}}",
-							  "run": "toggleCollection", "with": { "args": { "key": "render" } } } }
+							{ "use": "checkRow", "with": { "id": "prop-collection-selectable", "label": "Selectable", "checked": "{{computed.activeCollectionData.selectable != false}}",
+							  "run": "toggleCollection", "with": { "args": { "id": "{{computed.activeCollectionData.id}}", "key": "selectable" } } } },
+							{ "use": "checkRow", "with": { "id": "prop-collection-visible", "label": "Show in Viewports", "checked": "{{computed.activeCollectionData.visible != false}}",
+							  "run": "toggleCollection", "with": { "args": { "id": "{{computed.activeCollectionData.id}}", "key": "visible" } } } },
+							{ "use": "checkRow", "with": { "id": "prop-collection-render", "label": "Show in Renders", "checked": "{{computed.activeCollectionData.render != false}}",
+							  "run": "toggleCollection", "with": { "args": { "id": "{{computed.activeCollectionData.id}}", "key": "render" } } } }
 						] },
 						{ "when": "{{contains(computed.propShown, 'dataPanel')}}", "use": "propPanel", "with": { "key": "dataPanel",
 						  "body": "{{computed.activeNode.kind == 'light' ? (state.panels.pickLight ? 264 : 80) : 32}}" }, "children": [

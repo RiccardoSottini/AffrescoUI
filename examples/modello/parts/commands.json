@@ -110,7 +110,7 @@
 		"confirmTransform": [{ "transform": "#viewport", "end": "confirm" }],
 		"cancelTransform": [{ "transform": "#viewport", "end": "cancel" }, { "set": "state.modal", "to": null }],
 		"openPopup": [
-			{ "set": "state.ctx", "to": { "open": true, "menu": "{{args.menu}}", "x": "{{args.x ?? computed.centre.x}}", "y": "{{args.y ?? computed.centre.y}}" } }
+			{ "set": "state.ctx", "to": { "open": true, "menu": "{{args.menu}}", "items": null, "x": "{{args.x ?? computed.centre.x}}", "y": "{{args.y ?? computed.centre.y}}" } }
 		],
 		"openPie": [
 			{ "if": "{{state.modal != null || state.areas[state.hoverSlot ?? 'a'] != 'viewport'}}", "then": [{ "stop": true }] },
@@ -133,6 +133,7 @@
 			{ "run": "uniqueName", "with": { "args": { "name": "{{args.name}}" } } },
 			{ "push": "state.scene.nodes", "value": {
 				"id": "{{lower(args.kind)}}-{{state.added}}", "name": "{{state.tmp.name}}", "kind": "{{args.kind}}",
+				"collection": "{{state.activeCollection != 'collection' && contains(map(computed.collections, it.id), state.activeCollection) ? state.activeCollection : null}}",
 				"mesh": "{{args.mesh ?? null}}", "material": "{{args.kind == 'mesh' ? 'material' : null}}",
 				"light": "{{args.light ?? null}}", "camera": "{{args.kind == 'camera' ? { fieldOfView: 0.69 } : null}}",
 				"translation": "{{args.at ?? state.cursor}}", "rotationDegrees": [0, 0, 0], "scale": [1, 1, 1] } },
@@ -250,9 +251,46 @@
 			{ "after": 0, "do": [{ "focus": "#outliner-rename" }] }
 		] },
 		"toggleCollection": [
-			{ "set": "state.collection[args.key]", "to": "{{state.collection[args.key] == false}}" },
-			{ "if": "{{args.key != 'render' && state.collection[args.key] == false}}", "then": [{ "set": "state.view.selection", "to": [] }] }
+			{ "if": "{{state.scene.collections == null}}", "then": [{ "set": "state.scene.collections", "to": "{{computed.collections}}" }] },
+			{ "set": "state.tmp", "to": "{{indexOf(map(state.scene.collections, it.id), args.id)}}" },
+			{ "if": "{{state.tmp < 0}}", "then": [{ "stop": true }] },
+			{ "set": "state.scene.collections[state.tmp][args.key]", "to": "{{state.scene.collections[state.tmp][args.key] == false}}" },
+			{ "if": "{{args.key != 'render' && state.scene.collections[state.tmp][args.key] == false}}", "then": [
+				{ "set": "state.view.selection", "to": "{{map(filter(state.scene.nodes, contains(state.view.selection, it.id) && (it.collection ?? 'collection') != args.id), it.id)}}" }
+			] }
 		],
+		"newCollection": {
+			"title": "New Collection", "category": "Collection", "icon": "folder-plus",
+			"do": [
+				{ "dismiss": true },
+				{ "run": "snapshot" },
+				{ "if": "{{state.scene.collections == null}}", "then": [{ "set": "state.scene.collections", "to": "{{computed.collections}}" }] },
+				{ "increment": "state.added", "by": 1 },
+				{ "set": "state.tmp", "to": "{{ { n: 1, name: 'Collection 1', id: 'collection-' + state.added } }}" },
+				{ "while": "{{some(state.scene.collections, it.name == state.tmp.name)}}", "do": [
+					{ "increment": "state.tmp.n", "by": 1 },
+					{ "set": "state.tmp.name", "to": "{{'Collection ' + state.tmp.n}}" }
+				] },
+				{ "push": "state.scene.collections", "value": "{{ { id: state.tmp.id, name: state.tmp.name } }}" },
+				{ "set": "state.outlinerOpen[state.tmp.id]", "to": true },
+				{ "if": "{{args.move == true}}",
+				  "then": [{ "run": "moveToCollection", "with": { "args": { "id": "{{state.tmp.id}}", "snapshot": false } } }],
+				  "else": [{ "set": "state.activeCollection", "to": "{{state.tmp.id}}" }] }
+			]
+		},
+		"moveToCollection": [
+			{ "dismiss": true },
+			{ "if": "{{length(state.view.selection) == 0}}", "then": [{ "stop": true }] },
+			{ "if": "{{args.snapshot == true}}", "then": [{ "run": "snapshot" }] },
+			{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, contains(state.view.selection, it.id) ? merge(it, { collection: args.id }) : it)}}" },
+			{ "set": "state.outlinerOpen[args.id]", "to": true },
+			{ "set": "state.last", "to": "Move to Collection" }
+		],
+		"moveToCollectionMenu": {
+			"title": "Move to Collection", "category": "Object", "icon": "package", "enablement": "{{length(state.view.selection) > 0}}",
+			"do": [{ "if": "{{length(state.view.selection) > 0 && state.modal == null}}", "then": [{ "set": "state.ctx", "to": { "open": true, "menu": "moveTo", "x": "{{computed.centre.x}}", "y": "{{computed.centre.y}}",
+				"items": "{{concat(map(computed.collections, { title: it.name, icon: 'package', run: 'moveToCollection', with: { args: { id: it.id, snapshot: true } } }), [{ separator: true }, { title: 'New Collection', icon: 'plus', run: 'newCollection', with: { args: { move: true } } }])}}" } }] }]
+		},
 		"setMode": { "title": "Set Mode", "category": "Object", "do": [{ "dismiss": true }, { "set": "state.mode", "to": "{{args.mode}}" }] },
 		"setOption": [{ "dismiss": true }, { "set": "state[args.key]", "to": "{{args.value}}" }],
 		"toggleOption": [{ "toggle": "state[args.key]" }],
@@ -582,6 +620,7 @@
 		"delete": [{ "when": "{{state.areas[state.hoverSlot] == 'shader'}}", "do": "deleteShaderNodes" }, { "do": "deleteSelected" }],
 		"shift+d": { "do": "duplicate" },
 		"h": { "do": "hideSelected" },
+		"m": { "do": "moveToCollectionMenu" },
 		"f2": { "do": "startRename" },
 		"shift+h": { "do": "hideUnselected" },
 		"alt+h": { "do": "revealHidden" },
@@ -754,6 +793,7 @@
 			"cursor": { "run": "frameSelected", "group": "2_view" },
 			"duplicate": { "run": "duplicate", "group": "3_edit", "order": 1 },
 			"hide": { "run": "hideSelected", "group": "3_edit", "order": 2 },
+			"collection": { "run": "moveToCollectionMenu", "group": "3_edit", "order": 3 },
 			"keyframe": { "run": "insertKeyframe", "group": "4_anim" },
 			"delete": { "run": "deleteSelected", "group": "5_delete" }
 		},
