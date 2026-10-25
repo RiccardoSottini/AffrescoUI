@@ -403,8 +403,10 @@
 					  "gap": 2, "color": "transparent", "scroll": "vertical", "children": [
 						{ "type": "row", "id": "properties-context", "width": "100%", "height": 22, "alignItems": "center", "gap": 4,
 						  "color": "transparent", "children": [
-							{ "type": "label", "font": "iconsSmall", "icon": "square", "text": "", "textColor": "@object", "width": 16, "height": 20, "align": "center" },
-							{ "type": "label", "text": "{{computed.activeNode ? computed.activeNode.name : ''}}", "textColor": "@text", "fitText": true, "height": 20 }
+							{ "type": "label", "font": "iconsSmall", "icon": "{{state.propTab == 'collection' ? 'package-open' : 'square'}}", "text": "",
+							  "textColor": "{{state.propTab == 'collection' ? '@text' : '@object'}}", "width": 16, "height": 20, "align": "center" },
+							{ "type": "label", "id": "properties-context-name", "text": "{{state.propTab == 'collection' ? computed.activeCollectionData.name : computed.activeNode ? computed.activeNode.name : ''}}",
+							  "textColor": "@text", "fitText": true, "height": 20 }
 						  ] },
 						{ "when": "{{state.propTab == 'object' && computed.activeNode != null}}", "id": "object-name", "width": "100%",
 						  "height": 24, "color": "@field", "radius": 4, "children": [

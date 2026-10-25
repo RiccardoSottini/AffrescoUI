@@ -868,6 +868,7 @@
 				{ "wait": 500 },
 				{ "click": "#outliner-collection-1" },
 				{ "key": "shift+f10" },
+				{ "expect": { "node": "#properties-context-name", "property": "text", "is": "Collection 1" } },
 				{ "expect": { "state": "ctx.menu", "is": "collectionContext" } },
 				{ "wait": 30 },
 				{ "capture": "context" },
