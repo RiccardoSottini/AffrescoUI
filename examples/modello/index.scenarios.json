@@ -626,6 +626,41 @@
 				{ "click": { "role": "button", "name": "Close" } },
 				{ "expect": { "state": "rendering", "is": false } }
 			]
+		},
+		{
+			"name": "modello-shader-editor",
+			"note": "The Materials workspace puts the Shader Editor under the viewport: the cube's material shows its output node; Add > Checker Texture and Add > Color add nodes; dragging from a node's output to an input links them, the picker in the sidebar sets the colour, and the viewport draws the cube red; Delete removes the hovered editor's selected node with its link, and Ctrl+Z puts both back",
+			"steps": [
+				{ "click": "#outliner-cube" },
+				{ "click": "#workspace-shading" },
+				{ "expect": { "state": "areas.b", "is": "shader" } },
+				{ "expect": { "node": "#shader-graph", "exists": true } },
+				{ "click": "#shader-add" },
+				{ "click": { "role": "menuitem", "name": "Checker Texture" } },
+				{ "expect": { "state": "scene.materials[0].graph.nodes[1].op", "is": "checker" } },
+				{ "drag": [220, 582], "to": [320, 642], "moves": 8 },
+				{ "expect": { "state": "scene.materials[0].graph.links", "is": [{ "from": "checker-1", "output": "out", "to": "output", "input": "roughness" }] } },
+				{ "click": "#shader-add" },
+				{ "click": { "role": "menuitem", "name": "Color" } },
+				{ "expect": { "state": "shaderSelected", "is": ["color-2"] } },
+				{ "expect": { "node": "#shader-color", "exists": true } },
+				{ "wait": 50 },
+				{ "click": [1080, 580] },
+				{ "wait": 50 },
+				{ "expect": { "state": "scene.materials[0].graph.nodes[2].value", "is": [0.8745, 0.0627, 0.0627] } },
+				{ "drag": [250, 652], "to": [320, 602], "moves": 8 },
+				{ "expect": { "state": "scene.materials[0].graph.links[1]", "is": { "from": "color-2", "output": "out", "to": "output", "input": "baseColor" } } },
+				{ "wait": 30 },
+				{ "capture": "linked" },
+				{ "click": [110, 560] },
+				{ "expect": { "state": "shaderSelected", "is": ["checker-1"] } },
+				{ "key": "delete" },
+				{ "expect": { "state": "scene.materials[0].graph.links", "is": [{ "from": "color-2", "output": "out", "to": "output", "input": "baseColor" }] } },
+				{ "expect": { "state": "scene.nodes[1].name", "is": "Cube" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.materials[0].graph.nodes[1].id", "is": "checker-1" } },
+				{ "expect": { "state": "scene.materials[0].graph.links[0].from", "is": "checker-1" } }
+			]
 		}
 	]
 }

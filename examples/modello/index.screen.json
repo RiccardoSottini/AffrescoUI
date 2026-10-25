@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Modello, a 3D modeller, written only in the format: the stock host runs it. This file names the window, the fonts, the colours, the state and the areas; parts/commands.json holds the actions, keys and menus, parts/viewport.json the 3D viewport and its header, parts/editors.json the other editors (outliner, properties, timeline) and the bars.",
+	"note": "Modello, a 3D modeller, written only in the format: the stock host runs it. This file names the window, the fonts, the colours, the state and the areas; parts/commands.json holds the actions, keys and menus, parts/viewport.json the 3D viewport and its header, parts/editors.json the other editors (outliner, properties, timeline) and the bars, parts/shader.json the Shader Editor.",
 	"window": { "title": "Modello", "width": 1440, "height": 900, "minWidth": 1000, "minHeight": 640 },
 	"fonts": {
 		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },
@@ -10,7 +10,7 @@
 		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 14 },
 		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 12 }
 	},
-	"include": ["parts/commands.json", "parts/viewport.json", "parts/editors.json", "../shared/addons/assistant/assistant.json"],
+	"include": ["parts/commands.json", "parts/viewport.json", "parts/editors.json", "parts/shader.json", "../shared/addons/assistant/assistant.json"],
 	"theme": "{{state.theme}}",
 	"tokens": {
 		"gap": { "dark": "#0e1116", "light": "#9aa3ae" },
@@ -39,7 +39,7 @@
 		"navBall": { "dark": "#ffffff12", "light": "#ffffff40" },
 		"object": { "dark": "#c3ccd8", "light": "#3a4350" },
 		"data": { "dark": "#7d8a9b", "light": "#66717e" },
-		"axisX": "#e8604c",
+		"socketColor": "#d1c33f", "socketFloat": "#a0a8b3", "axisX": "#e8604c",
 		"axisY": "#4cbf7a",
 		"axisZ": "#5b74f0",
 		"kit.background": { "dark": "#222833", "light": "#d6dce3" },
@@ -148,6 +148,7 @@
 		"quickPick": { "open": false, "query": "" },
 		"fileStatus": "",
 		"copied": [],
+		"shaderSelected": [],
 		"rendering": false,
 		"opened": null,
 		"openedName": null,

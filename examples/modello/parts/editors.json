@@ -6,7 +6,7 @@
 	"computed": {
 		"activeIndex": "{{indexOf(map(state.scene.nodes, it.id), state.active)}}",
 		"kindIcons": "{{ { mesh: 'triangle', camera: 'video', light: 'lightbulb', empty: 'axis-3-d' } }}",
-		"editorTypes": "{{map([['viewport', '3D Viewport', 'axis-3-d'], ['image', 'Image Editor', 'image'], ['shader', 'Shader Editor', 'git-fork'], ['timeline', 'Timeline', 'clock-3'], ['outliner', 'Outliner', 'list-tree'], ['properties', 'Properties', 'sliders-horizontal'], ['text', 'Text Editor', 'file-text']], { id: it[0], title: it[1], icon: it[2], enabled: contains(['viewport', 'timeline', 'outliner', 'properties'], it[0]), keyLabel: contains(['viewport', 'timeline', 'outliner', 'properties'], it[0]) ? '' : 'Not yet' })}}",
+		"editorTypes": "{{map([['viewport', '3D Viewport', 'axis-3-d'], ['image', 'Image Editor', 'image'], ['shader', 'Shader Editor', 'git-fork'], ['timeline', 'Timeline', 'clock-3'], ['outliner', 'Outliner', 'list-tree'], ['properties', 'Properties', 'sliders-horizontal'], ['text', 'Text Editor', 'file-text']], { id: it[0], title: it[1], icon: it[2], enabled: contains(['viewport', 'shader', 'timeline', 'outliner', 'properties'], it[0]), keyLabel: contains(['viewport', 'shader', 'timeline', 'outliner', 'properties'], it[0]) ? '' : 'Not yet' })}}",
 		"workspaces": "{{[{ id: 'layout', title: 'Layout' }, { id: 'modeling', title: 'Model' }, { id: 'sculpting', title: 'Sculpt', needs: 'sculpting a mesh' }, { id: 'uv editing', title: 'UV', needs: 'unwrapping a mesh' }, { id: 'texture paint', title: 'Paint', needs: 'painting textures' }, { id: 'shading', title: 'Materials' }, { id: 'animation', title: 'Animate' }, { id: 'rendering', title: 'Render' }, { id: 'compositing', title: 'Compose', needs: 'a compositor' }, { id: 'geometry nodes', title: 'Nodes', needs: 'geometry nodes' }, { id: 'scripting', title: 'Script', needs: 'a script console' }]}}",
 		"objectRows": "{{sort(state.scene.nodes, 'name')}}",
 		"outlinerRows": "{{state.outlinerMode != 'list' && (state.outlinerOpen.root != true || state.outlinerOpen.collection != true) ? [] : filter(computed.objectRows, (state.outlinerFilter == null || state.outlinerFilter == '' || contains(lower(it.name), lower(state.outlinerFilter))) && !contains(state.outlinerHide, it.kind) && (!state.outlinerSelectedOnly || contains(state.view.selection, it.id)))}}",
@@ -212,7 +212,8 @@
 					{ "when": "{{state.areas[slot] == 'viewport'}}", "use": "viewportArea", "fill": true },
 					{ "when": "{{state.areas[slot] == 'timeline'}}", "use": "timelineArea", "fill": true },
 					{ "when": "{{state.areas[slot] == 'outliner'}}", "use": "outlinerArea", "fill": true },
-					{ "when": "{{state.areas[slot] == 'properties'}}", "use": "propertiesArea", "fill": true }
+					{ "when": "{{state.areas[slot] == 'properties'}}", "use": "propertiesArea", "fill": true },
+					{ "when": "{{state.areas[slot] == 'shader'}}", "use": "shaderArea", "fill": true }
 				]
 			}
 		},

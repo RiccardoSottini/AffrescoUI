@@ -111,7 +111,7 @@
 		"openPopup": [
 			{ "set": "state.ctx", "to": { "open": true, "menu": "{{args.menu}}", "x": "{{args.x ?? computed.centre.x}}", "y": "{{args.y ?? computed.centre.y}}" } }
 		],
-		"addMenu": { "title": "Add", "category": "Object", "icon": "plus", "do": [{ "run": "openPopup", "with": { "args": { "menu": "add", "x": null, "y": null } } }] },
+		"addMenu": { "title": "Add", "category": "Object", "icon": "plus", "do": [{ "run": "openPopup", "with": { "args": { "menu": "{{state.areas[state.hoverSlot] == 'shader' ? 'shaderAdd' : 'add'}}", "x": null, "y": null } } }] },
 		"deleteMenu": { "title": "Delete…", "category": "Object", "do": [{ "if": "{{length(state.view.selection) > 0}}", "then": [{ "run": "openPopup", "with": { "args": { "menu": "delete", "x": null, "y": null } } }] }] },
 		"uniqueName": [
 			{ "set": "state.tmp", "to": { "n": 0, "name": "{{args.name}}" } },
@@ -254,15 +254,16 @@
 		"swapEditor": [
 			{ "dismiss": true },
 			{ "set": "state.tmp", "to": "{{ { from: find(keys(state.areas), state.areas[it] == args.from), to: find(keys(state.areas), state.areas[it] == args.to) } }}" },
-			{ "if": "{{state.tmp.from == null || state.tmp.to == null}}", "then": [{ "stop": true }] },
+			{ "if": "{{state.tmp.from == null}}", "then": [{ "stop": true }] },
+			{ "if": "{{state.tmp.to == null}}", "then": [{ "set": "state.areas[state.tmp.from]", "to": "{{args.to}}" }, { "stop": true }] },
 			{ "set": "state.areas[state.tmp.from]", "to": "{{args.to}}" },
 			{ "set": "state.areas[state.tmp.to]", "to": "{{args.from}}" }
 		],
 		"setWorkspace": [
 			{ "dismiss": true },
 			{ "set": "state.workspace", "to": "{{args.title}}" },
-			{ "set": "state.areas", "to": { "a": "viewport", "b": "timeline", "c": "outliner", "d": "properties" } },
-			{ "set": "state.sizes.left", "to": "{{[args.id == 'animation' ? 520 : args.id == 'modeling' ? 790 : 720]}}" },
+			{ "set": "state.areas", "to": { "a": "viewport", "b": "{{args.id == 'shading' ? 'shader' : 'timeline'}}", "c": "outliner", "d": "properties" } },
+			{ "set": "state.sizes.left", "to": "{{[args.id == 'animation' ? 520 : args.id == 'shading' ? 470 : args.id == 'modeling' ? 790 : 720]}}" },
 			{ "set": "state.shading", "to": "{{args.id == 'shading' ? 'material' : args.id == 'rendering' ? 'rendered' : 'solid'}}" },
 			{ "set": "state.xray", "to": false },
 			{ "set": "state.overlays", "to": "{{args.id != 'rendering'}}" },
@@ -562,7 +563,7 @@
 		"enter": [{ "when": "{{state.modal != null}}", "do": "confirmTransform" }],
 		"escape": [{ "when": "{{state.modal != null}}", "do": "cancelTransform" }],
 		"shift+a": { "do": "addMenu" },
-		"delete": { "do": "deleteSelected" },
+		"delete": [{ "when": "{{state.areas[state.hoverSlot] == 'shader'}}", "do": "deleteShaderNodes" }, { "do": "deleteSelected" }],
 		"shift+d": { "do": "duplicate" },
 		"h": { "do": "hideSelected" },
 		"f2": { "do": "startRename" },
@@ -672,6 +673,19 @@
 			"light": { "submenu": "addLight", "title": "Light", "icon": "lightbulb", "group": "2_add", "order": 1 },
 			"camera": { "run": "addObject", "with": { "args": { "kind": "camera", "name": "Camera" } }, "title": "Camera", "icon": "video", "group": "2_add", "order": 2 },
 			"empty": { "run": "addObject", "with": { "args": { "kind": "empty", "name": "Empty" } }, "title": "Empty", "icon": "axis-3-d", "group": "2_add", "order": 3 }
+		},
+		"shaderAdd": {
+			"color": { "run": "addShaderNode", "with": { "args": { "op": "color" } }, "title": "Color", "icon": "palette", "group": "1_input", "order": 1 },
+			"number": { "run": "addShaderNode", "with": { "args": { "op": "number" } }, "title": "Value", "icon": "hash", "group": "1_input", "order": 2 },
+			"fresnel": { "run": "addShaderNode", "with": { "args": { "op": "fresnel" } }, "title": "Fresnel", "icon": "aperture", "group": "1_input", "order": 3 },
+			"height": { "run": "addShaderNode", "with": { "args": { "op": "height" } }, "title": "Height", "icon": "arrow-up-down", "group": "1_input", "order": 4 },
+			"checker": { "run": "addShaderNode", "with": { "args": { "op": "checker" } }, "title": "Checker Texture", "icon": "grid-3x3", "group": "2_texture", "order": 1 },
+			"noise": { "run": "addShaderNode", "with": { "args": { "op": "noise" } }, "title": "Noise Texture", "icon": "waves", "group": "2_texture", "order": 2 },
+			"mix": { "run": "addShaderNode", "with": { "args": { "op": "mix" } }, "title": "Mix", "icon": "blend", "group": "3_color", "order": 1 },
+			"multiply": { "run": "addShaderNode", "with": { "args": { "op": "multiply" } }, "title": "Multiply", "icon": "x", "group": "3_color", "order": 2 },
+			"add": { "run": "addShaderNode", "with": { "args": { "op": "add" } }, "title": "Add", "icon": "plus", "group": "3_color", "order": 3 },
+			"scale": { "run": "addShaderNode", "with": { "args": { "op": "scale" } }, "title": "Scale", "icon": "scaling", "group": "3_color", "order": 4 },
+			"invert": { "run": "addShaderNode", "with": { "args": { "op": "invert" } }, "title": "Invert", "icon": "contrast", "group": "4_converter", "order": 1 }
 		},
 		"addMesh": {
 			"plane": { "run": "addObject", "with": { "args": { "kind": "mesh", "mesh": "plane", "name": "Plane" } }, "title": "Plane", "icon": "square", "order": 1 },
