@@ -9,6 +9,7 @@
 		"viewName": "{{state.inCamera ? 'Camera Perspective' : (abs(abs(state.view.camera.pitch) - pi() / 2) < 0.001 ? (state.view.camera.pitch > 0 ? 'Top' : 'Bottom') : abs(state.view.camera.pitch) > 0.001 ? 'User' : abs(state.view.camera.yaw) < 0.001 ? 'Front' : abs(state.view.camera.yaw - pi() / 2) < 0.001 ? 'Right' : abs(state.view.camera.yaw + pi() / 2) < 0.001 ? 'Left' : abs(abs(state.view.camera.yaw) - pi()) < 0.001 ? 'Back' : 'User') + (state.view.camera.orthographic ? ' Orthographic' : ' Perspective')}}",
 		"tools": "{{[[{ id: 'select', icon: 'mouse-pointer-2', title: 'Select Box', key: 'W' }], [{ id: 'cursor', icon: 'crosshair', title: 'Cursor', key: '' }], [{ id: 'move', icon: 'move', title: 'Move', key: 'G' }, { id: 'rotate', icon: 'rotate-cw', title: 'Rotate', key: 'R' }, { id: 'scale', icon: 'scale-3-d', title: 'Scale', key: 'S' }, { id: 'transform', icon: 'move-3-d', title: 'Transform', key: '', disabled: true }], [{ id: 'annotate', icon: 'pencil', title: 'Annotate', key: '', disabled: true }, { id: 'measure', icon: 'ruler', title: 'Measure', key: '' }], [{ id: 'add', icon: 'box', title: 'Add Cube', key: '' }]]}}",
 		"toolName": "{{find(flat(computed.tools), it.id == state.tool).title}}",
+		"lens": "{{18 / tan(state.view.camera.fieldOfView / 2)}}",
 		"modeItems": "{{[{ title: 'Object Mode', icon: 'box', checked: state.mode == 'object', run: 'setMode', with: { args: { mode: 'object' } } }, { title: 'Edit Mode', icon: 'pen-tool', enabled: false, keyLabel: 'Not yet' }]}}",
 		"orientationItems": "{{map(['Global', 'Local', 'Normal', 'Gimbal', 'View', 'Cursor'], contains(['Gimbal', 'View'], it) ? { title: it, enabled: false, keyLabel: 'Not yet' } : { title: it, checked: state.orientation == lower(it), run: 'setOption', with: { args: { key: 'orientation', value: lower(it) } } })}}",
 		"pivotItems": "{{map([['bounds', 'Bounding Box Center'], ['cursor', '3D Cursor'], ['individual', 'Individual Origins'], ['median', 'Median Point'], ['active', 'Active Element']], it[0] == 'individual' ? { title: it[1], enabled: false, keyLabel: 'Not yet' } : { title: it[1], checked: state.pivot == it[0], run: 'setOption', with: { args: { key: 'pivot', value: it[0] } } })}}",
@@ -315,8 +316,35 @@
 					  "children": [
 						{ "when": "{{state.sidebarTab == 'Item'}}", "use": "transformPanel", "with": { "narrow": true } },
 						{ "when": "{{state.sidebarTab == 'Tool'}}", "use": "panelHeader", "with": { "title": "Active Tool", "key": "activeTool" } },
+						{ "when": "{{state.sidebarTab == 'Tool' && state.panels.activeTool}}", "id": "tool-panel", "width": "100%", "height": 96,
+						  "color": "@panel", "radius": { "bottomLeft": 4, "bottomRight": 4 }, "children": [{
+						  "type": "column", "fill": 6, "gap": 2, "color": "transparent", "children": [
+							{ "type": "label", "id": "tool-panel-name", "text": "{{computed.toolName}}", "textColor": "@text", "height": 20, "width": "100%",
+							  "align": { "horizontal": "start", "vertical": "center" } },
+							{ "use": "checkRow", "with": { "id": "tool-snap", "label": "Snap", "path": "state.snap", "checked": "{{state.snap}}" } },
+							{ "use": "checkRow", "with": { "id": "tool-gizmos", "label": "Tool gizmos", "path": "state.toolGizmos", "checked": "{{state.toolGizmos != false}}" } },
+							{ "type": "label", "text": "{{'Orientation: ' + state.orientation + '   Pivot: ' + state.pivot}}", "textColor": "@dim", "height": 20,
+							  "width": "100%", "align": { "horizontal": "start", "vertical": "center" } }
+						  ] }] },
 						{ "when": "{{state.sidebarTab == 'View'}}", "use": "panelHeader", "with": { "title": "View", "key": "viewPanel" } },
-						{ "when": "{{state.sidebarTab == 'View'}}", "use": "panelHeader", "with": { "title": "3D Cursor", "key": "cursorPanel" } }
+						{ "when": "{{state.sidebarTab == 'View' && state.panels.viewPanel}}", "id": "view-panel", "width": "100%", "height": 56,
+						  "color": "@panel", "radius": { "bottomLeft": 4, "bottomRight": 4 }, "children": [{
+						  "type": "column", "fill": 6, "gap": 4, "color": "transparent", "children": [
+							{ "use": "numberField", "with": { "label": "Focal Length", "key": "lens", "value": "{{computed.lens}}", "step": 0.5,
+							  "text": "{{fixed(computed.lens, 0) + ' mm'}}", "first": true, "last": true } },
+							{ "use": "checkRow", "with": { "id": "view-ortho", "label": "Orthographic", "path": "state.view.camera.orthographic",
+							  "checked": "{{state.view.camera.orthographic == true}}" } }
+						  ] }] },
+						{ "when": "{{state.sidebarTab == 'View'}}", "use": "panelHeader", "with": { "title": "3D Cursor", "key": "cursorPanel" } },
+						{ "when": "{{state.sidebarTab == 'View' && state.panels.cursorPanel}}", "id": "cursor-panel", "width": "100%", "height": 102,
+						  "color": "@panel", "radius": { "bottomLeft": 4, "bottomRight": 4 }, "children": [{
+						  "type": "column", "fill": 6, "gap": 6, "color": "transparent", "children": [
+							{ "use": "vectorField", "with": { "title": "Location", "values": "{{state.cursor}}", "key": "cursor", "unit": " m", "step": 0.01 } },
+							{ "id": "cursor-reset", "height": 20, "width": "100%", "color": "@widget", "hover": { "color": "@widgetHover" }, "radius": 4,
+							  "role": "button", "focusable": true, "label": "Reset the 3D cursor", "tooltip": "Put the 3D cursor back at the origin",
+							  "onClick": { "set": "state.cursor", "to": "{{[0, 0, 0]}}" },
+							  "children": [{ "type": "label", "text": "Reset to World Origin", "textColor": "@text", "align": "center", "fill": true }] }
+						  ] }] }
 					  ] }
 				]
 			}

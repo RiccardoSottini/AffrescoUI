@@ -121,7 +121,7 @@
 		"end": 250,
 		"playing": false,
 		"propTab": "object",
-		"panels": { "transform": true },
+		"panels": { "transform": true, "activeTool": true, "viewPanel": true, "cursorPanel": true },
 		"sidebar": false,
 		"sidebarTab": "Item",
 		"ctx": { "open": false, "menu": "", "x": 0, "y": 0 },

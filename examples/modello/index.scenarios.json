@@ -247,6 +247,44 @@
 				{ "drag": [150, 200], "to": [1000, 700] },
 				{ "expect": { "state": "view.selection", "is": ["cube", "mesh-1"] } }
 			]
+		},
+		{
+			"name": "modello-sidebar-fields",
+			"note": "The sidebar: a lock keeps an axis still under G; the Tool tab toggles snapping; the View tab sets the focal length and orthographic view; the 3D Cursor fields move the cursor and Reset puts it back; the rotation mode is disabled; undo keeps the selection",
+			"steps": [
+				{ "click": [550, 340] },
+				{ "key": "n" },
+				{ "click": "#lock-translation-0" },
+				{ "expect": { "state": "scene.nodes[1].lock_translation", "is": [true, false, false] } },
+				{ "expect": { "node": "#lock-translation-0", "property": "tooltip", "is": "Locked: moving with the gizmo or G, R and S leaves it" } },
+				{ "key": "g" },
+				{ "key": "x" },
+				{ "key": "2" },
+				{ "key": "enter" },
+				{ "wait": 20 },
+				{ "expect": { "state": "scene.nodes[1].translation[0]", "is": 0 } },
+				{ "click": "#field-translation-1" },
+				{ "key": "right" },
+				{ "expect": { "state": "scene.nodes[1].translation[1]", "is": 0.1 } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.nodes[1].translation[1]", "is": 0 } },
+				{ "expect": { "state": "view.selection", "is": ["cube"] } },
+				{ "expect": { "node": "#rotation-mode", "property": "tooltip", "is": "Other rotation modes (quaternion, axis angle) aren't available yet" } },
+				{ "click": { "role": "tab", "name": "Tool" } },
+				{ "click": "#tool-snap" },
+				{ "expect": { "state": "snap", "is": true } },
+				{ "click": { "role": "tab", "name": "View" } },
+				{ "click": "#field-lens-0" },
+				{ "key": "right" },
+				{ "expect": { "state": "view.camera.fieldOfView", "is": 0.622 } },
+				{ "click": "#view-ortho" },
+				{ "expect": { "state": "view.camera.orthographic", "is": true } },
+				{ "click": "#field-cursor-0" },
+				{ "key": "right" },
+				{ "expect": { "state": "cursor", "is": [0.1, 0, 0] } },
+				{ "click": "#cursor-reset" },
+				{ "expect": { "state": "cursor", "is": [0, 0, 0] } }
+			]
 		}
 	]
 }

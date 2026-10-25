@@ -45,8 +45,9 @@
 			{ "set": "state.lastBase", "to": [] },
 			{ "forEach": "{{event.nodes}}", "as": "m", "do": [
 				{ "push": "state.lastBase", "value": "{{find(state.undoStack[length(state.undoStack) - 1].nodes, it.id == m.id)}}" },
+				{ "set": "state.tmp", "to": "{{state.scene.nodes[indexOf(map(state.scene.nodes, it.id), m.id)]}}" },
 				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), m.id)]",
-				  "to": "{{merge(state.scene.nodes[indexOf(map(state.scene.nodes, it.id), m.id)], { translation: map(m.translation, round(it * 10000) / 10000), rotationDegrees: map(m.rotationDegrees, round(it * 1000) / 1000), scale: map(m.scale, round(it * 10000) / 10000) })}}" }
+				  "to": "{{merge(state.tmp, { translation: map(m.translation, state.tmp.lock_translation[index] == true ? state.tmp.translation[index] : round(it * 10000) / 10000), rotationDegrees: map(m.rotationDegrees, state.tmp.lock_rotationDegrees[index] == true ? state.tmp.rotationDegrees[index] : round(it * 1000) / 1000), scale: map(m.scale, state.tmp.lock_scale[index] == true ? state.tmp.scale[index] : round(it * 10000) / 10000) })}}" }
 			] },
 			{ "set": "state.last", "to": "{{event.text}}" },
 			{ "set": "state.lastOp", "to": "{{ { title: event.mode == 'translate' ? 'Move' : event.mode == 'rotate' ? 'Rotate' : 'Resize', kind: event.mode, base: state.lastBase, values: event.mode == 'translate' ? map(event.nodes[0].translation, round((it - state.lastBase[0].translation[index]) * 10000) / 10000) : event.mode == 'scale' ? map(event.nodes[0].scale, state.lastBase[0].scale[index] == 0 ? 1 : round(it / state.lastBase[0].scale[index] * 10000) / 10000) : null } }}" }
@@ -58,7 +59,7 @@
 			{ "set": "state.lastOp.values[args.axis]", "to": "{{round(args.value * 10000) / 10000}}" },
 			{ "forEach": "{{state.lastOp.base}}", "as": "b", "do": [
 				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), b.id)]",
-				  "to": "{{merge(b, state.lastOp.kind == 'scale' ? { translation: map(b.translation, computed.lastCentre[index] + (it - computed.lastCentre[index]) * state.lastOp.values[index]), scale: map(b.scale, round(it * state.lastOp.values[index] * 10000) / 10000) } : { translation: map(b.translation, round((it + state.lastOp.values[index]) * 10000) / 10000) })}}" }
+				  "to": "{{merge(b, state.lastOp.kind == 'scale' ? { translation: map(b.translation, b.lock_translation[index] == true ? it : computed.lastCentre[index] + (it - computed.lastCentre[index]) * state.lastOp.values[index]), scale: map(b.scale, b.lock_scale[index] == true ? it : round(it * state.lastOp.values[index] * 10000) / 10000) } : { translation: map(b.translation, b.lock_translation[index] == true ? it : round((it + state.lastOp.values[index]) * 10000) / 10000) })}}" }
 			] }
 		],
 		"snapshot": [
@@ -74,7 +75,7 @@
 				{ "push": "state.redoStack", "value": "{{state.scene}}" },
 				{ "set": "state.scene", "to": "{{state.undoStack[length(state.undoStack) - 1]}}" },
 				{ "remove": "state.undoStack", "at": "{{length(state.undoStack) - 1}}" },
-				{ "set": "state.view.selection", "to": "{{filter(state.view.selection, some(state.scene.nodes, it.id == state.view.selection[index]))}}" }
+				{ "set": "state.view.selection", "to": "{{filter(state.view.selection, contains(map(state.scene.nodes, it.id), it))}}" }
 			]
 		},
 		"redo": {
@@ -194,8 +195,16 @@
 		],
 		"setField": [
 			{ "if": "{{args.key == 'redo'}}", "then": [{ "run": "adjustLast", "with": { "args": { "axis": "{{args.axis}}", "value": "{{args.value}}" } } }, { "stop": true }] },
+			{ "if": "{{args.path != ''}}", "then": [{ "set": "{{'state.' + args.path}}", "to": "{{round(clamp(args.value, args.min, args.max) * 10000) / 10000}}" }, { "stop": true }] },
+			{ "if": "{{args.key == 'lens'}}", "then": [{ "set": "state.view.camera.fieldOfView", "to": "{{round(2 * atan(18 / clamp(round(args.value), 2, 250)) * 10000) / 10000}}" }, { "stop": true }] },
+			{ "if": "{{args.key == 'cursor'}}", "then": [{ "set": "state.cursor[args.axis]", "to": "{{round(args.value * 10000) / 10000}}" }, { "stop": true }] },
 			{ "if": "{{computed.activeIndex < 0}}", "then": [{ "stop": true }] },
 			{ "set": "state.scene.nodes[computed.activeIndex][args.key][args.axis]", "to": "{{round(args.value * 10000) / 10000}}" }
+		],
+		"toggleLock": [
+			{ "if": "{{computed.activeIndex < 0}}", "then": [{ "stop": true }] },
+			{ "set": "state.scene.nodes[computed.activeIndex]['lock_' + args.key]",
+			  "to": "{{map(range(3), index == args.axis ? computed.activeNode['lock_' + args.key][index] != true : computed.activeNode['lock_' + args.key][index] == true)}}" }
 		],
 		"rename": [
 			{ "if": "{{trim(args.name) == '' || computed.activeIndex < 0}}", "then": [{ "stop": true }] },

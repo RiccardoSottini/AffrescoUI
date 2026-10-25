@@ -42,34 +42,61 @@
 			}
 		},
 		"numberField": {
-			"params": { "label": "", "value": 0, "text": "", "key": "", "axis": 0, "step": 0.01, "first": false, "last": false },
+			"params": { "label": "", "value": 0, "text": "", "key": "", "axis": 0, "step": 0.01, "first": false, "last": false,
+			            "path": "", "min": -1000000, "max": 1000000, "lockable": false },
 			"node": {
 				"height": 20, "width": "100%", "color": "transparent",
 				"children": [
 					{ "type": "label", "text": "{{label}}", "textColor": "@dim", "align": { "horizontal": "end", "vertical": "center" },
 					  "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "38%" },
-					{ "id": "field-{{key}}-{{axis}}", "anchors": { "left": "41%", "right": 22, "top": 0, "bottom": 0 },
+					{ "id": "field-{{path != '' ? slug(path) : key + '-' + axis}}", "anchors": { "left": "41%", "right": 22, "top": 0, "bottom": 0 },
 					  "color": "@widget", "hover": { "color": "@widgetHover" }, "cursor": "resize-horizontal",
 					  "radius": "{{first && last ? 4 : first ? { topLeft: 4, topRight: 4 } : last ? { bottomLeft: 4, bottomRight: 4 } : 0}}",
 					  "role": "slider", "focusable": true, "label": "{{label}}", "tooltip": "Drag to change; arrows step it",
-					  "onPress": { "set": "state.dragStart", "to": "{{value}}" },
-					  "onDrag": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "value": "{{state.dragStart + event.dx * step}}" } } },
-					  "keys": { "right": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "value": "{{value + step * 10}}" } } },
-					            "left": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "value": "{{value - step * 10}}" } } } },
+					  "onPress": [{ "set": "state.dragStart", "to": "{{value}}" },
+					              { "if": "{{key == '' ? slice(path, 0, 6) == 'scene.' : !contains(['redo', 'lens', 'cursor'], key)}}", "then": [{ "run": "snapshot" }] }],
+					  "onDrag": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "path": "{{path}}", "min": "{{min}}", "max": "{{max}}", "value": "{{state.dragStart + event.dx * step}}" } } },
+					  "keys": { "right": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "path": "{{path}}", "min": "{{min}}", "max": "{{max}}", "value": "{{value + step * 10}}" } } },
+					            "left": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "path": "{{path}}", "min": "{{min}}", "max": "{{max}}", "value": "{{value - step * 10}}" } } } },
 					  "children": [{ "type": "label", "text": "{{text}}", "textColor": "@text", "align": "center", "fill": true }] },
-					{ "type": "label", "font": "iconsSmall", "icon": "lock-open", "text": "", "textColor": "@faint", "align": "center",
-					  "anchors": { "right": 2, "top": 0, "bottom": 0 }, "width": 16 }
+					{ "when": "{{lockable}}", "id": "lock-{{key}}-{{axis}}", "anchors": { "right": 2, "top": 0, "bottom": 0 }, "width": 16,
+					  "color": "transparent", "role": "button", "focusable": true, "label": "Lock {{label}}",
+					  "selected": "{{computed.activeNode['lock_' + key][axis] == true}}",
+					  "tooltip": "{{computed.activeNode['lock_' + key][axis] == true ? 'Locked: moving with the gizmo or G, R and S leaves it' : 'Lock it against the gizmo and G, R and S'}}",
+					  "onClick": { "run": "toggleLock", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}" } } },
+					  "children": [{ "type": "label", "font": "iconsSmall", "text": "", "align": "center", "fill": true,
+					                 "icon": "{{computed.activeNode['lock_' + key][axis] == true ? 'lock' : 'lock-open'}}",
+					                 "textColor": "{{computed.activeNode['lock_' + key][axis] == true ? '@text' : '@faint'}}" }] }
 				]
 			}
 		},
+		"checkRow": {
+			"params": { "label": "", "path": "", "checked": false, "id": "" },
+			"node": {
+				"id": "{{id}}", "height": 20, "width": "100%", "color": "transparent", "radius": 4, "hover": { "color": "@widgetHover" },
+				"role": "checkbox", "focusable": true, "label": "{{label}}", "selected": "{{checked == true}}",
+				"onClick": { "toggle": "{{path}}" },
+				"children": [{
+					"anchors": { "left": "41%", "top": 0, "bottom": 0, "right": 4 }, "color": "transparent", "children": [
+						{ "x": 0, "y": 3, "width": 14, "height": 14, "radius": 3, "color": "{{checked ? '@kit.accent' : '@widget'}}", "children": [
+							{ "when": "{{checked == true}}", "type": "label", "font": "iconsSmall", "icon": "check", "text": "", "textColor": "@text",
+							  "align": "center", "fill": true }
+						] },
+						{ "type": "label", "text": "{{label}}", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" },
+						  "anchors": { "left": 20, "top": 0, "bottom": 0, "right": 0 } }
+					]
+				}]
+			}
+		},
 		"vectorField": {
-			"params": { "title": "", "values": [0, 0, 0], "key": "", "unit": "", "step": 0.01, "digits": 4, "fixed": false },
+			"params": { "title": "", "values": [0, 0, 0], "key": "", "unit": "", "step": 0.01, "digits": 4, "fixed": false,
+			            "lockable": false },
 			"node": {
 				"type": "column", "width": "100%", "height": 62, "gap": 1, "color": "transparent",
 				"children": [{
 					"repeat": { "for": "v", "in": "{{values}}", "index": "a" }, "use": "numberField",
 					"with": { "label": "{{a == 0 ? title + ' X' : a == 1 ? 'Y' : 'Z'}}", "value": "{{v}}", "key": "{{key}}",
-					          "axis": "{{a}}", "step": "{{step}}", "first": "{{a == 0}}", "last": "{{a == 2}}",
+					          "axis": "{{a}}", "step": "{{step}}", "first": "{{a == 0}}", "last": "{{a == 2}}", "lockable": "{{lockable}}",
 					          "text": "{{(fixed ? fixed(v, digits) : formatNumber(v, 0, digits)) + unit}}" }
 				}]
 			}
@@ -84,18 +111,19 @@
 					  "color": "@panel", "radius": { "bottomLeft": 4, "bottomRight": 4 }, "children": [{
 					  "type": "column", "fill": 6, "gap": 6, "color": "transparent",
 					  "children": [
-						{ "use": "vectorField", "with": { "title": "Location", "values": "{{computed.activeNode.translation}}", "key": "translation", "unit": " m", "step": 0.01 } },
-						{ "use": "vectorField", "with": { "title": "Rotation", "values": "{{computed.activeNode.rotationDegrees}}", "key": "rotationDegrees", "unit": "°", "step": 0.5, "digits": 1 } },
+						{ "use": "vectorField", "with": { "title": "Location", "values": "{{computed.activeNode.translation}}", "key": "translation", "unit": " m", "step": 0.01, "lockable": true } },
+						{ "use": "vectorField", "with": { "title": "Rotation", "values": "{{computed.activeNode.rotationDegrees}}", "key": "rotationDegrees", "unit": "°", "step": 0.5, "digits": 1, "lockable": true } },
 						{ "height": 20, "width": "100%", "color": "transparent", "children": [
 							{ "type": "label", "text": "Mode", "textColor": "@dim", "align": { "horizontal": "end", "vertical": "center" },
 							  "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "38%" },
-							{ "anchors": { "left": "41%", "right": 22, "top": 0, "bottom": 0 }, "color": "@menuWidget", "radius": 4,
-							  "role": "button", "label": "Rotation mode: XYZ Euler", "children": [
-								{ "type": "label", "text": "XYZ Euler", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 7, "top": 0, "bottom": 0, "right": 14 } },
+							{ "id": "rotation-mode", "anchors": { "left": "41%", "right": 22, "top": 0, "bottom": 0 }, "color": "@menuWidget", "radius": 4,
+							  "role": "button", "label": "Rotation mode: XYZ Euler", "disabled": true,
+							  "tooltip": "Other rotation modes (quaternion, axis angle) aren't available yet", "children": [
+								{ "type": "label", "text": "XYZ Euler", "textColor": "@dim", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 7, "top": 0, "bottom": 0, "right": 14 } },
 								{ "type": "label", "font": "iconsSmall", "icon": "chevron-down", "text": "", "textColor": "@dim", "anchors": { "right": 2, "top": 0, "bottom": 0 }, "width": 12 }
 							] }
 						] },
-						{ "use": "vectorField", "with": { "title": "Scale", "values": "{{computed.activeNode.scale}}", "key": "scale", "unit": "", "step": 0.005, "digits": 3, "fixed": true } }
+						{ "use": "vectorField", "with": { "title": "Scale", "values": "{{computed.activeNode.scale}}", "key": "scale", "unit": "", "step": 0.005, "digits": 3, "fixed": true, "lockable": true } }
 					  ] } ] }
 				]
 			}
