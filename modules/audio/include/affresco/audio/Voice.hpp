@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace affresco::audio {
 
@@ -122,6 +123,10 @@ public:
 	[[nodiscard]] float rate() const;
 	/// @brief Its levels over the last block mixed, after its gain.
 	[[nodiscard]] Levels levels() const;
+	/// @brief How loud each band of frequencies was in the last samples it played, after its gain (see spectrum()).
+	/// @param bands How many bands, 1 to maxSpectrumBands.
+	/// @return Each band from 0 to 1; all 0 unless it is playing.
+	[[nodiscard]] std::vector<float> spectrum(std::size_t bands) const;
 	/// @brief How many times a stream has run dry.
 	[[nodiscard]] std::size_t underruns() const;
 	/// @brief Why it stopped, if it failed.

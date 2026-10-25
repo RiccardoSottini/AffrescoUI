@@ -1091,6 +1091,11 @@
 									"minimum": 50,
 									"maximum": 5000
 								},
+								"bands": {
+									"type": "integer",
+									"minimum": 1,
+									"maximum": 64
+								},
 								"maxBytes": {
 									"type": "integer",
 									"minimum": 1024,

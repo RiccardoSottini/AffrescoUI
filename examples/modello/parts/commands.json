@@ -4,6 +4,7 @@
 	"version": 2,
 	"note": "Modello's actions, keys and menus: G, R and S move, turn and scale the selection after the pointer (X, Y and Z lock an axis, Shift a plane, digits type the amount, Enter or a click confirms, Escape or a right click cancels); Shift+A adds, X and Delete delete, Shift+D duplicates, H hides; the numpad turns the view; Ctrl+Z undoes. Every change of the scene goes through an action that keeps an undo snapshot first.",
 	"computed": {
+		"openedIsScene": "{{type(state.opened) == 'object' ? state.opened.format == 'modello-scene' && type(state.opened.added) == 'number' && (type(state.opened.scene) == 'object' ? type(state.opened.scene.materials) == 'list' && (type(state.opened.scene.nodes) == 'list' ? length(state.opened.scene.nodes) <= 500 && every(state.opened.scene.nodes, (type(it) == 'object' ? type(it.id) == 'string' && type(it.name) == 'string' && (it.kind == 'mesh' || it.kind == 'light' || it.kind == 'camera') && (type(it.translation) == 'list' ? length(it.translation) == 3 && every(it.translation, type(it) == 'number') : false) && (type(it.rotationDegrees) == 'list' ? length(it.rotationDegrees) == 3 && every(it.rotationDegrees, type(it) == 'number') : false) && (type(it.scale) == 'list' ? length(it.scale) == 3 && every(it.scale, type(it) == 'number') : false) : false)) : false) : false) : false}}",
 		"centre": "{{ { x: nodes.viewport.x + nodes.viewport.width / 2 - 100, y: nodes.viewport.y + nodes.viewport.height / 2 - 60 } }}",
 		"lastCentre": "{{state.lastOp == null || length(state.lastOp.base) == 0 ? [0, 0, 0] : map([sum(map(state.lastOp.base, it.translation[0])), sum(map(state.lastOp.base, it.translation[1])), sum(map(state.lastOp.base, it.translation[2]))], it / length(state.lastOp.base))}}",
 		"searchItems": "{{map(filter(commands, it.enabled && it.name != 'search'), { title: it.title, detail: it.keyLabel ?? it.category, icon: it.icon, run: it.name })}}",
@@ -25,7 +26,7 @@
 			{ "run": "snapshot" },
 			{ "set": "state.lastBase", "to": [] },
 			{ "forEach": "{{event.nodes}}", "as": "m", "do": [
-				{ "push": "state.lastBase", "value": "{{find(state.undo[length(state.undo) - 1].nodes, it.id == m.id)}}" },
+				{ "push": "state.lastBase", "value": "{{find(state.undoStack[length(state.undoStack) - 1].nodes, it.id == m.id)}}" },
 				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), m.id)]",
 				  "to": "{{merge(state.scene.nodes[indexOf(map(state.scene.nodes, it.id), m.id)], { translation: map(m.translation, round(it * 10000) / 10000), rotationDegrees: map(m.rotationDegrees, round(it * 1000) / 1000), scale: map(m.scale, round(it * 10000) / 10000) })}}" }
 			] },
@@ -44,26 +45,26 @@
 		],
 		"snapshot": [
 			{ "set": "state.lastOp", "to": null },
-			{ "push": "state.undo", "value": "{{state.scene}}" },
-			{ "if": "{{length(state.undo) > 32}}", "then": [{ "remove": "state.undo", "at": 0 }] },
-			{ "set": "state.redo", "to": [] }
+			{ "push": "state.undoStack", "value": "{{state.scene}}" },
+			{ "if": "{{length(state.undoStack) > 32}}", "then": [{ "remove": "state.undoStack", "at": 0 }] },
+			{ "set": "state.redoStack", "to": [] }
 		],
 		"undo": {
-			"title": "Undo", "category": "Edit", "icon": "undo-2", "enablement": "{{length(state.undo) > 0}}",
+			"title": "Undo", "category": "Edit", "icon": "undo-2", "enablement": "{{length(state.undoStack) > 0}}",
 			"do": [
 				{ "set": "state.lastOp", "to": null },
-				{ "push": "state.redo", "value": "{{state.scene}}" },
-				{ "set": "state.scene", "to": "{{state.undo[length(state.undo) - 1]}}" },
-				{ "remove": "state.undo", "at": "{{length(state.undo) - 1}}" },
+				{ "push": "state.redoStack", "value": "{{state.scene}}" },
+				{ "set": "state.scene", "to": "{{state.undoStack[length(state.undoStack) - 1]}}" },
+				{ "remove": "state.undoStack", "at": "{{length(state.undoStack) - 1}}" },
 				{ "set": "state.view.selection", "to": "{{filter(state.view.selection, some(state.scene.nodes, it.id == state.view.selection[index]))}}" }
 			]
 		},
 		"redo": {
-			"title": "Redo", "category": "Edit", "icon": "redo-2", "enablement": "{{length(state.redo) > 0}}",
+			"title": "Redo", "category": "Edit", "icon": "redo-2", "enablement": "{{length(state.redoStack) > 0}}",
 			"do": [
-				{ "push": "state.undo", "value": "{{state.scene}}" },
-				{ "set": "state.scene", "to": "{{state.redo[length(state.redo) - 1]}}" },
-				{ "remove": "state.redo", "at": "{{length(state.redo) - 1}}" }
+				{ "push": "state.undoStack", "value": "{{state.scene}}" },
+				{ "set": "state.scene", "to": "{{state.redoStack[length(state.redoStack) - 1]}}" },
+				{ "remove": "state.redoStack", "at": "{{length(state.redoStack) - 1}}" }
 			]
 		},
 		"startTransform": [
@@ -241,7 +242,41 @@
 				{ "run": "snapshot" },
 				{ "set": "state.scene.nodes", "to": "{{state.startScene.nodes}}" }
 			]
-		}
+		},
+		"saveScene": {
+			"title": "Save", "category": "File", "icon": "save",
+			"do": [
+				{ "dismiss": true },
+				{ "saveFile": "{{ { format: 'modello-scene', version: 1, scene: state.scene, added: state.added } }}", "name": "scene.json",
+				  "title": "Save the scene",
+				  "onDone": [{ "set": "state.fileStatus", "to": "{{'Saved ' + result.name}}" }],
+				  "onError": [{ "set": "state.fileStatus", "to": "{{'Not saved: ' + error.message}}" }] }
+			]
+		},
+		"openScene": {
+			"title": "Open…", "category": "File", "icon": "folder-open",
+			"do": [
+				{ "dismiss": true },
+				{ "openFile": "state.opened", "extensions": ["json"], "title": "Open a scene",
+				  "onDone": [{ "set": "state.openedName", "to": "{{result.name}}" }, { "run": "sceneOpened" }],
+				  "onError": [{ "set": "state.fileStatus", "to": "{{'Not opened: ' + error.message}}" }] }
+			]
+		},
+		"sceneOpened": [
+			{ "if": "{{computed.openedIsScene}}",
+			  "then": [
+				{ "if": "{{state.mode != 'object'}}", "then": [{ "set": "state.mode", "to": "object" }] },
+				{ "run": "snapshot" },
+				{ "set": "state.scene", "to": "{{state.opened.scene}}" },
+				{ "set": "state.added", "to": "{{max(state.added, state.opened.added)}}" },
+				{ "set": "state.view.selection", "to": [] },
+				{ "set": "state.active", "to": null },
+				{ "set": "state.fileStatus", "to": "{{'Opened ' + state.openedName}}" }
+			  ],
+			  "else": [{ "set": "state.fileStatus", "to": "{{'Not opened: ' + (state.openedName ?? 'the file') + ' is not a Modello scene'}}" }] },
+			{ "set": "state.opened", "to": null },
+			{ "set": "state.openedName", "to": null }
+		]
 	},
 	"keys": {
 		"g": { "do": "grab" },
@@ -304,11 +339,15 @@
 		"space": { "when": "{{!context.textInputFocus}}", "do": "play" },
 		"shift+left": { "do": "jumpStart" },
 		"shift+right": { "do": "jumpEnd" },
-		"mod+n": { "do": "newScene" }
+		"mod+n": { "do": "newScene" },
+		"mod+s": { "do": "saveScene" },
+		"mod+o": { "do": "openScene" }
 	},
 	"menus": {
 		"file": {
-			"new": { "run": "newScene", "group": "1_new" }
+			"new": { "run": "newScene", "group": "1_new", "order": 1 },
+			"open": { "run": "openScene", "group": "1_new", "order": 2 },
+			"save": { "run": "saveScene", "group": "2_save" }
 		},
 		"edit": {
 			"undo": { "run": "undo", "group": "1_history", "order": 1 },

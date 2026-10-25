@@ -123,6 +123,46 @@
 				{ "key": "n" },
 				{ "expect": { "state": "sidebar", "is": true } }
 			]
+		},
+		{
+			"name": "modello-save-and-open",
+			"note": "Ctrl+S saves the scene as JSON and Ctrl+O opens it again, as an undoable change; a cancelled dialog changes nothing",
+			"steps": [
+				{ "choose": "scene.json" },
+				{ "key": "mod+s" },
+				{ "wait": 0 },
+				{ "expect": { "state": "fileStatus", "is": "Saved scene.json" } },
+				{ "action": "deleteSelected" },
+				{ "expect": { "state": "scene.nodes.length", "is": 2 } },
+				{ "key": "mod+o" },
+				{ "wait": 0 },
+				{ "expect": { "state": "scene.nodes.length", "is": 3 } },
+				{ "expect": { "state": "scene.nodes[1].id", "is": "cube" } },
+				{ "expect": { "state": "fileStatus", "is": "Opened scene.json" } },
+				{ "expect": { "state": "opened", "is": null } },
+				{ "expect": { "state": "view.selection", "is": [] } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.nodes.length", "is": 2 } },
+				{ "choose": null },
+				{ "key": "mod+o" },
+				{ "wait": 0 },
+				{ "expect": { "state": "scene.nodes.length", "is": 2 } },
+				{ "expect": { "state": "fileStatus", "is": "Opened scene.json" } }
+			]
+		},
+		{
+			"name": "modello-open-refuses-other-files",
+			"note": "A file that isn't a Modello scene (or one whose objects lack a place) is refused and the scene stays as it was",
+			"steps": [
+				{ "revision": { "type": "revision", "message": "Another app's file", "set": {
+					"/state/opened": { "format": "modello-scene", "version": 1, "added": 0, "scene": { "materials": [], "nodes": [{ "id": "a", "name": "A", "kind": "mesh" }] } } } } },
+				{ "action": "sceneOpened" },
+				{ "wait": 0 },
+				{ "expect": { "state": "fileStatus", "is": "Not opened: the file is not a Modello scene" } },
+				{ "expect": { "state": "scene.nodes.length", "is": 3 } },
+				{ "expect": { "state": "opened", "is": null } },
+				{ "expect": { "state": "undoStack.length", "is": 0 } }
+			]
 		}
 	]
 }

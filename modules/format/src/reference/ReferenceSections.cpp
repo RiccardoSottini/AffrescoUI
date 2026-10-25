@@ -312,13 +312,15 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"into": {"type": "string", "pattern": "^state\\."}, "volume": {"type": "number", "minimum": 0, "maximum": 4},
 		"pan": {"type": "number", "minimum": -1, "maximum": 1}, "rate": {"type": "number", "minimum": 0.25, "maximum": 4},
 		"loop": {"type": "boolean"}, "updates": {"type": "number", "minimum": 50, "maximum": 5000},
+		"bands": {"type": "integer", "minimum": 1, "maximum": 64},
 		"maxBytes": {"type": "integer", "minimum": 1024, "maximum": 67108864}, "note": {"type": "string"}}}})json",
 	 "`{\"song\": {\"file\": \"sounds/song.mp3\", \"into\": \"state.song\", \"loop\": true}}`: the sounds the `audio` "
 	 "step plays, each from one source: a `file` (WAV, FLAC or MP3) in the screen's folder or one the host allows, a "
 	 "`url` the host's network allows (streamed), a `source` the host names (`Screen::setAudioSource`), or a `tone` "
 	 "(`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position "
-	 "updates) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, "
-	 "loop, level, underruns, error}`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run "
+	 "updates), `bands` (a spectrum of 1 to 64 bands) and a URL's `maxBytes`. `into` gets `{status, playing, position, "
+	 "duration, progress, volume, pan, rate, loop, level, underruns, error}`, and `spectrum` with `bands`; the actions "
+	 "`name:started`, `name:ended`, `name:underrun` and `name:error` run "
 	 "(see Audio). A `file` may be `asset:<name>`, also a sound description. A revision may give a sound a `file` or a "
 	 "`tone` (never a `url` or a `source`), and only the person accepts it (Assets).",
 	 "capabilities"},
