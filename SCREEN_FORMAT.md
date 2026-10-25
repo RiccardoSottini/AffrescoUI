@@ -1266,7 +1266,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `set` | `{ "set": "state.current", "to": "{{index}}" }` |
 | `push` | `{ "push": "state.columns[c].cards", "value": "{{state.draft}}" }` |
 | `remove` | `{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key of an object |
-| `toggle` | `{ "toggle": "state.dark" }` |
+| `toggle` | `{ "toggle": "state.dark" }`; a setting not set yet flips from its default |
 | `increment` | `{ "increment": "state.clicks", "by": 1 }` |
 | `if` | `{ "if": "{{length(state.draft) == 0}}", "then": [...], "else": [...] }` |
 | `forEach` | `{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }` |

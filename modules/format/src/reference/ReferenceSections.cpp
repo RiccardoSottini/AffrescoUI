@@ -362,7 +362,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"set", "", R"(`{ "set": "state.current", "to": "{{index}}" }`)", "steps"},
     {"push", "", R"(`{ "push": "state.columns[c].cards", "value": "{{state.draft}}" }`)", "steps"},
     {"remove", "", R"(`{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key of an object)", "steps"},
-    {"toggle", "", R"(`{ "toggle": "state.dark" }`)", "steps"},
+    {"toggle", "", R"(`{ "toggle": "state.dark" }`; a setting not set yet flips from its default)", "steps"},
     {"increment", "", R"(`{ "increment": "state.clicks", "by": 1 }`)", "steps"},
     {"if", "", R"(`{ "if": "{{length(state.draft) == 0}}", "then": [...], "else": [...] }`)", "steps"},
     {"forEach", "", R"(`{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }`)", "steps"},
