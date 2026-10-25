@@ -782,6 +782,26 @@
 				{ "key": "mod+z" },
 				{ "expect": { "state": "scene.collections", "is": [{ "id": "collection", "name": "Collection" }, { "id": "collection-1", "name": "Collection 1", "visible": true, "selectable": true }] } }
 			]
+		},
+		{
+			"name": "modello-keys-in-order",
+			"note": "A keyframe inserted before the others takes its place in time order, so playback and the dope sheet's next and previous keys follow the frames",
+			"steps": [
+				{ "move": [550, 450] },
+				{ "key": "i" },
+				{ "key": "shift+right" },
+				{ "move": [550, 450] },
+				{ "key": "i" },
+				{ "click": "#frame-current" },
+				{ "key": "shift+left" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "escape" },
+				{ "move": [550, 450] },
+				{ "key": "i" },
+				{ "expect": { "state": "scene.nodes[1].keyframes.length", "is": 3 } },
+				{ "expect": { "state": "scene.nodes[1].keyframes[1].frame", "is": 3 } }
+			]
 		}
 	]
 }

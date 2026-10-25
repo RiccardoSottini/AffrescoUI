@@ -364,7 +364,7 @@
 			{ "forEach": "{{state.view.selection}}", "as": "id", "do": [
 				{ "set": "state.tmp", "to": "{{indexOf(map(state.scene.nodes, it.id), id)}}" },
 				{ "if": "{{state.tmp >= 0}}", "then": [
-					{ "set": "state.scene.nodes[state.tmp].keyframes", "to": "{{sort(concat(filter(state.scene.nodes[state.tmp].keyframes ?? [], it.frame != state.frame), [{ frame: state.frame, translation: state.scene.nodes[state.tmp].translation, rotationDegrees: state.scene.nodes[state.tmp].rotationDegrees, scale: state.scene.nodes[state.tmp].scale }]), 'frame')}}" }] }
+					{ "set": "state.scene.nodes[state.tmp].keyframes", "to": "{{sort(concat(filter(state.scene.nodes[state.tmp].keyframes ?? [], it.frame != state.frame), [{ frame: state.frame, translation: state.scene.nodes[state.tmp].translation, rotationDegrees: state.scene.nodes[state.tmp].rotationDegrees, scale: state.scene.nodes[state.tmp].scale }]), it.frame)}}" }] }
 			] }
 		],
 		"autoKey": [{ "if": "{{state.autoKey == true}}", "then": [{ "run": "keySelected" }] }],
@@ -393,7 +393,7 @@
 			{ "if": "{{state.tmp.from == state.tmp.to || contains(computed.keyFrames, state.tmp.to) || !contains(computed.keyFrames, state.tmp.from)}}", "then": [{ "stop": true }] },
 			{ "if": "{{state.keyDragAt != state.tmp.from}}", "then": [{ "run": "snapshot" }] },
 			{ "set": "state.keyDragAt", "to": "{{state.tmp.to}}" },
-			{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, contains(state.view.selection, it.id) && it.keyframes != null ? merge(it, { keyframes: sort(map(it.keyframes, it.frame == state.tmp.from ? merge(it, { frame: state.tmp.to }) : it), 'frame') }) : it)}}" },
+			{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, contains(state.view.selection, it.id) && it.keyframes != null ? merge(it, { keyframes: sort(map(it.keyframes, it.frame == state.tmp.from ? merge(it, { frame: state.tmp.to }) : it), it.frame) }) : it)}}" },
 			{ "run": "poseFrame" }
 		],
 		"poseFrame": [
@@ -437,7 +437,7 @@
 			"do": [
 				{ "dismiss": true },
 				{ "if": "{{some(state.markers, it.frame == state.frame)}}", "then": [{ "stop": true }] },
-				{ "set": "state.markers", "to": "{{sort(concat(state.markers, [{ frame: state.frame, label: 'F_' + pad(state.frame, 2, '0') }]), 'frame')}}" }
+				{ "set": "state.markers", "to": "{{sort(concat(state.markers, [{ frame: state.frame, label: 'F_' + pad(state.frame, 2, '0') }]), it.frame)}}" }
 			]
 		},
 		"deleteMarker": {
