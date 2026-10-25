@@ -3,8 +3,8 @@
 /// fitted view composited from the tiles it inflates), panned at 100% (a 1280 by 800 view composited at a new place),
 /// and painted (a brush stroke across it, committed as a step). CPU only: the GPU compositor draws the same tiles.
 /// The same stroke is also played as a screen plays it, on a 4,000 by 4,000 image of an "images" section: through the
-/// image store and the "image" step's "pointer" operation, then the snapshot the screen's state receives. On that image,
-/// a painted layer is also turned and scaled by the "transformLayer" operation, then the step undone.
+/// image store and the "image" step's "pointer" operation, then the snapshot the screen's state receives. On that
+/// image, a painted layer is also turned and scaled by the "transformLayer" operation, then the step undone.
 ///
 /// With AFFRESCOUI_PERF_BUDGETS set, a run over its budget fails: open 8 s, a pan 60 ms, a stroke 20 ms, a stroke
 /// through the store 20 ms, a transform 2 s (measured on macOS: 1.1 s, 15 ms, 1 ms, 1.2 ms and 0.66 s).
