@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(POLICY CMP0156) # libraries de-duplicated where the linker resolves in any order (Apple ld warns on repeats)
 	cmake_policy(SET CMP0156 NEW)
 endif()
-project(AffrescoUI VERSION 0.1.0 LANGUAGES C CXX)
+project(AffrescoUI VERSION 1.0.0 LANGUAGES C CXX)
 if(APPLE)
 	enable_language(OBJC OBJCXX) # the render module's native menus and colour scheme (Cocoa); OBJC first, for GLFW's .m files
 endif()

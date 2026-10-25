@@ -5,7 +5,7 @@
 # class, function and member has its Doxygen comment, and every @param names a real parameter.
 
 PROJECT_NAME           = AffrescoUI
-PROJECT_NUMBER         = 0.1.0
+PROJECT_NUMBER         = 1.0.0
 PROJECT_BRIEF          = "Native UIs that people and AI agents change live, under version control"
 OUTPUT_DIRECTORY       = build/api-reference
 

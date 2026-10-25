@@ -5,7 +5,7 @@
 # installs the module libraries, their public headers (affresco/...), the license files and the package
 # <prefix>/lib/cmake/AffrescoUI, so an application can write
 #
-#   find_package(AffrescoUI 0.1 CONFIG REQUIRED)
+#   find_package(AffrescoUI 1.0 CONFIG REQUIRED)
 #   target_link_libraries(app PRIVATE affrescoui::affrescoui)   # or one module: affrescoui::vcs, ...
 #
 # The dependencies are installed into the same prefix: the exact nlohmann/json, GLFW and FreeType this build pinned. The public
@@ -59,9 +59,9 @@ install(EXPORT AffrescoUITargets NAMESPACE affrescoui:: DESTINATION ${AFFRESCOUI
 
 configure_package_config_file(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIConfig.cmake.in
 	${PROJECT_BINARY_DIR}/AffrescoUIConfig.cmake INSTALL_DESTINATION ${AFFRESCOUI_PACKAGE_DIR})
-# 0.x: a minor version may break the API, so find_package(AffrescoUI 0.1) accepts 0.1.* only
+# Semantic Versioning: only a major version may break the API, so find_package(AffrescoUI 1.0) accepts 1.* only
 write_basic_package_version_file(${PROJECT_BINARY_DIR}/AffrescoUIConfigVersion.cmake
-	COMPATIBILITY SameMinorVersion)
+	COMPATIBILITY SameMajorVersion)
 install(FILES ${PROJECT_BINARY_DIR}/AffrescoUIConfig.cmake ${PROJECT_BINARY_DIR}/AffrescoUIConfigVersion.cmake
 	DESTINATION ${AFFRESCOUI_PACKAGE_DIR})
 

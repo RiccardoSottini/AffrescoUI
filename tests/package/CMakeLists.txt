@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(AffrescoUIPackageTest LANGUAGES CXX)
 
-set(AFFRESCOUI_VERSION 0.1 CACHE STRING "The AffrescoUI version find_package asks for")
+set(AFFRESCOUI_VERSION 1.0 CACHE STRING "The AffrescoUI version find_package asks for")
 find_package(AffrescoUI ${AFFRESCOUI_VERSION} CONFIG REQUIRED)
 
 # The whole library, GLFW included (the static render library leaves it to this link)

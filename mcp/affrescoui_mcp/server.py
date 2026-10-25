@@ -500,7 +500,7 @@ class Server:
             self.result(rid, {"protocolVersion": requested if requested in PROTOCOLS else PROTOCOLS[0],
                               "capabilities": {"tools": {"listChanged": False}, "prompts": {"listChanged": False},
                                                "experimental": {"claude/channel": {}}},
-                              "serverInfo": {"name": "affrescoui", "version": "0.1.0"},
+                              "serverInfo": {"name": "affrescoui", "version": "1.0.0"},
                               "instructions": INSTRUCTIONS})
         elif method == "ping":
             self.result(rid, {})

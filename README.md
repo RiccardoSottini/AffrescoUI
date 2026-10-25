@@ -84,11 +84,11 @@ corner: ask for a change in plain words, then review the proposal it becomes.
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src=".github/media/forge.png" alt="Forge, an IDE with an explorer, editor tabs, source control and a terminal"><br/><b>Forge</b> · an IDE<br/><sub>Explorer, editor tabs and split editors, find and replace, quick open and a command palette, problems, output and a terminal, source control, a debugger and language servers, in dark, light and high-contrast themes. <code>./build/affrescoui_forge [folder]</code></sub></td>
-<td width="50%" valign="top"><img src=".github/media/tempera.png" alt="Tempera, an image editor with tools, a canvas, colour, properties and layers panels"><br/><b>Tempera</b> · an image editor<br/><sub>Tools with flyouts and a context options bar, layers with masks, groups and adjustment layers, brushes, selections, history and a navigator, on a tiled image engine. Agents may only propose: every change is reviewed. <code>./build/affrescoui_tempera</code></sub></td>
+<td width="50%" valign="top"><img src=".github/media/forge.png" alt="Forge, an IDE with an explorer, editor tabs, source control and a terminal"><br/><b>Forge</b> · an IDE<br/><sub>Explorer, editor tabs and split editors, find and replace, quick open and a command palette, problems, output and a terminal, source control, a debugger and language servers, in dark, light and high-contrast themes. <code>examples/forge/index.screen.json</code>, with <code>--folder DIR</code> to open a folder</sub></td>
+<td width="50%" valign="top"><img src=".github/media/tempera.png" alt="Tempera, an image editor with tools, a canvas, colour, properties and layers panels"><br/><b>Tempera</b> · an image editor<br/><sub>Tools with flyouts and a context options bar, layers with masks, groups and adjustment layers, brushes, selections, history and a navigator, on a tiled image engine. Agents may only propose: every change is reviewed. <code>examples/tempera/index.screen.json</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/sinopia.png" alt="Sinopia, a presentation editor with a ribbon, slide thumbnails and a slide canvas"><br/><b>Sinopia</b> · a presentation editor<br/><sub>A ribbon with tabs and galleries, slide thumbnails in sections, a canvas with shapes, zoom and fit, speaker notes and undo. Its slide sorter is a part that other applications install. <code>./build/affrescoui_sinopia</code></sub></td>
+<td valign="top"><img src=".github/media/sinopia.png" alt="Sinopia, a presentation editor with a ribbon, slide thumbnails and a slide canvas"><br/><b>Sinopia</b> · a presentation editor<br/><sub>A ribbon with tabs and galleries, slide thumbnails in sections, a canvas with shapes, zoom and fit, speaker notes and undo. Its slide sorter is a part that other applications install. <code>examples/sinopia/index.screen.json</code></sub></td>
 <td valign="top"><img src=".github/media/modello.png" alt="Modello, a 3D modeller with a viewport, an outliner, properties and a timeline"><br/><b>Modello</b> · a 3D modeller<br/><sub>A lit 3D viewport with gizmos, an outliner, a properties editor, a timeline, search over every command and glTF import. Every scene edit is a revision, reviewed and undoable. No C++ of its own. <code>examples/modello/index.screen.json</code></sub></td>
 </tr>
 <tr>
@@ -115,13 +115,14 @@ corner: ask for a change in plain words, then review the proposal it becomes.
 </table>
 
 Open them from the **Launcher** (`./build/affrescoui_launcher`), or run one with `./build/affrescoui_launcher <file>`.
-Forge, Tempera and Sinopia have their own programs for their native parts (files, a terminal, pixels). Flow, Haven, Tempo, Streak, Arcadia and Sign in speak English, Spanish and
-French.
+None has a program of its own: files, the terminal and pixels are the library's. Flow, Haven, Tempo, Streak, Arcadia
+and Sign in speak English, Spanish and French.
 
 ## Architecture
 
-AffrescoUI renders what it is told to: an application is a screen document plus any native code it registers, and the
-engine knows nothing else about it. It is built in three layers, each made only of the one below:
+AffrescoUI renders what it is told to: an application is a folder of documents (and, in a program that embeds the
+library, any native code it registers), and the engine knows nothing else about it. It is built in three layers, each
+made only of the one below:
 
 - **Apps**: folders of files (screen documents, data, assets) that the Launcher opens, with nothing compiled for them.
 - **Themes** (`modules/themes`): the kits' components (toolbars, menus, docks, dialogs) and the themes' design
