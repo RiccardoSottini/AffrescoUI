@@ -118,6 +118,21 @@ Open them from the **Launcher** (`./build/affrescoui_launcher`), or run one with
 None has a program of its own: files, the terminal and pixels are the library's. Flow, Haven, Tempo, Streak, Arcadia
 and Sign in speak English, Spanish and French.
 
+## Change a running app by asking
+
+> *"Colour the board by status and show how much of it is done"*, typed in Flow's assistant.
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src=".github/media/before-after/flow-before.png" alt="Flow as shipped, with the request in the assistant's chat and the agent's proposal card ringed: three edits, with Preview, Accept and Reject"><br/><b>Before</b> · the request and the proposal<br/><sub>The board as shipped. The agent's answer is a revision on a card, not yet applied.</sub></td>
+<td width="50%" valign="top"><img src=".github/media/before-after/flow-after.png" alt="Flow after accepting: columns tinted by status, a status stripe on every card, and a ringed progress meter reading 3 of 12 done"><br/><b>After</b> · accepted<br/><sub>Columns tinted by status, a stripe on every card and a live progress meter, while the app kept running.</sub></td>
+</tr>
+</table>
+
+The assistant proposed a revision, the person accepted it, and undo takes it back in one step. To replay it, use
+[`examples/flow/demos/status-colours.revision.json`](examples/flow/demos/status-colours.revision.json), or redraw both
+pictures with `python3 tools/media/before_after.py`.
+
 ## Architecture
 
 AffrescoUI renders what it is told to: an application is a folder of documents (and, in a program that embeds the
