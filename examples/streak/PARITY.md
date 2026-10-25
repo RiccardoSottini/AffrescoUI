@@ -58,7 +58,7 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 | Reminder with a time and weekday chips | done | the time is a text field, not a clock picker |
 | Archive, delete (asks first), export CSV | done | CSV goes to the clipboard: a document can't write files |
 | A name is required | done | |
-| Cmd+A in a field | partial | the library's text field has no select-all or caret movement yet |
+| Cmd+A in a field | partial | P2: library — select-all and caret movement in the text field (general, every app gains) |
 
 ## Settings
 
@@ -71,7 +71,7 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 | Export all as CSV | done | |
 | Sync (optional, a placeholder sign-in) | done | |
 | A full backup to a JSON file, and restoring one (adds or replaces habits, skips damaged entries) | done | |
-| Widgets | missing | a desktop document has no home-screen widgets |
+| Widgets | missing | P3: library — a desktop surface such as a tray or menu-bar item a document can declare; or drop the row |
 
 ## Desktop extras
 
