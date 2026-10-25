@@ -22,6 +22,11 @@ namespace affresco::services {
 /// stderr are this process's, no other descriptor inherited; on Windows it inherits no handle. It inherits the host's
 /// environment unless @p launch gives one. Nothing waits on it but one thread, shared by every detached child, that
 /// collects their exits (POSIX), so none stays a zombie; at most 64 run at once (POSIX), past which it refuses.
+///
+/// Why a session of its own: the Launcher opens apps that must stay open when it, or the terminal it was started
+/// from, closes. Only a grant with "detach" (which the host gives, never a revision) starts one. On Windows the flags
+/// (DETACHED_PROCESS, CREATE_BREAKAWAY_FROM_JOB) do the same for a console launcher; they can go once the launcher is
+/// a GUI program.
 /// @param launch What to start.
 /// @return Its process id.
 /// @throws std::runtime_error If it can't be started (the message names the program, never its environment).

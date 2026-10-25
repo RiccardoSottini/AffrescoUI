@@ -20,6 +20,10 @@ namespace affresco::channel {
 /// stderr is inherited, so it can log. The child and everything it starts form one group (a process group on POSIX,
 /// a job object on Windows), so closing the channel ends all of them. Owned by the main thread; a thread of its own
 /// reads the child's output and hands each line to the Executor.
+///
+/// Host-only: a command line is the host's to write (tests and tools start their fake agents with it). Nothing a
+/// screen declares reaches it: a screen's "channels" are sockets (ScreenChannels.cpp), and its programs are argument
+/// vectors started through ChildProcess under a grant, never a shell.
 class ProcessChannel final : public Channel {
 public:
 	/// @brief Starts the child process and a thread reading its output.
