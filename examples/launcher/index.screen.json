@@ -118,7 +118,7 @@
 		"columns": "{{max(1, floor((window.width - computed.sideWidth - 52) / 290))}}",
 		"everyApp": "{{concat(map(state.mine, {id: it.id, name: it.name, modified: it.modified, mine: true}), state.examples)}}",
 		"shown": "{{filter(computed.everyApp, trim(state.query) == '' || contains(lower(it.name + ' ' + (it.mine ? it.id : t('tagline.' + it.id))), lower(trim(state.query))))}}",
-		"starters": "{{filter(state.examples, it.program == 'host')}}",
+		"starters": "{{filter(state.examples, it.program == 'host' && it.starter != false)}}",
 		"reserved": "{{concat(map(state.examples, it.folder), ['shared', 'launcher'])}}",
 		"myIds": "{{map(state.mine, it.id)}}",
 		"slug": "{{slice(join(filter(split(join(map(split(lower(trim(state.create.name)), ''), contains('abcdefghijklmnopqrstuvwxyz0123456789', it) ? it : ' '), ''), ' '), it != ''), '-'), 0, 40)}}",
@@ -390,7 +390,7 @@
 					  "textColor": "#ffffff",
 					  "color": "{{app.mine ? '@c.accent' : '#16142acc'}}", "radius": 999, "padding": 5,
 					  "anchors": { "left": 18, "top": 18 }, "fitText": true, "height": 22 },
-					{ "id": "cardStart", "when": "{{!app.mine && app.program == 'host'}}", "style": "iconButton", "icon": "copy-plus",
+					{ "id": "cardStart", "when": "{{!app.mine && app.program == 'host' && app.starter != false}}", "style": "iconButton", "icon": "copy-plus",
 					  "anchors": { "right": 10, "top": 172 },
 					  "tooltip": "{{t('apps.startFrom', {name: app.name})}}", "label": "{{t('apps.startFrom', {name: app.name})}}",
 					  "onClick": { "run": "startFrom", "with": { "id": "{{app.id}}" } } }

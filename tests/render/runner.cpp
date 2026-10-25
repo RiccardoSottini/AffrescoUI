@@ -11,19 +11,13 @@
 /// With AFFRESCOUI_NO_OPENGL=1 in the environment (CI's macOS and Windows runners, which have no OpenGL 4.1), the
 /// scenarios that draw (capture, expect image) are left out, each one named; the others play headless.
 
-#include "Forge.hpp"
-#include "features/explorer/Explorer.hpp"
-#include "features/terminal/Terminal.hpp"
-#include "features/debug/Debug.hpp"
-#include "features/editor/Editor.hpp"
-#include "features/lsp/Lsp.hpp"
-#include "features/search/Search.hpp"
 #include "surfaces/Surfaces.hpp"
 
 #include <glad/glad.h>
 
 #include <affresco/Screen.hpp>
 #include <affresco/automation/Scenarios.hpp>
+#include <affresco/services/Grants.hpp>
 
 #include <cstdlib>
 #include <filesystem>
@@ -38,6 +32,10 @@
 namespace {
 
 namespace automation = affresco::automation;
+
+/// The public key of Forge's example catalogue's publisher (examples/forge/catalog, its README). Its private half was
+/// discarded once the catalogue was signed, so nothing more can be signed with it.
+constexpr std::string_view examplePublisher = "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc";
 
 /// @brief A surface that fails: it raises a GL error (surfaces.json shows that nothing else changes).
 class BrokenSurface : public affresco::GpuSurface {
@@ -165,21 +163,18 @@ int main(int argc, char** argv) {
 	try {
 		automation::Options options;
 		options.policy = automation::Goldens::RecordMissing;
-		// As affrescoui_launcher and affrescoui_forge; Forge's scenarios see forge/folder open as the workspace, its
-		// example catalogue, and no file dialog
+		// As the host grants Forge (examples/forge/app.json): its scenarios see forge/folder open as the workspace, a
+		// shell and git, its example catalogue, and no file dialog. No language server or debug adapter is granted:
+		// the scenarios mirror their answers.
 		const auto copies = std::make_shared<FolderCopies>();
 		options.prepare = [copies](affresco::Screen& screen) {
 			const std::filesystem::path folder = copies->next();
 			screen.services().allowChosenRoot("workspace");
 			screen.services().addRoot("workspace", folder);
-			const auto workspace = std::make_shared<forge::Workspace>(folder);
-			forge::registerNatives(screen, workspace);
-			forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace),
-			                   nullptr); // no server starts
-			forge::registerSearch(screen, workspace);
-			forge::grantTerminal(screen, folder);
-			forge::registerDebug(screen, false); // no adapter: the scenarios mirror one's answers
-			forge::addExampleCatalog(screen, AFFRESCOUI_FORGE_DIRECTORY);
+			for(const char* program : {"shell", "git"}) // a machine without one runs its scenarios without it
+				static_cast<void>(affresco::services::grantProgram(screen.services(), program));
+			screen.features().trustPublisher(examplePublisher);
+			screen.features().addCatalog(std::filesystem::path(AFFRESCOUI_FORGE_DIRECTORY) / "catalog" / "index.json");
 			// The example surfaces at a fixed time, and one that fails (surfaces.json)
 			examples::registerSurfaces(screen, 1.25);
 			screen.registerSurface("broken", [] { return std::make_unique<BrokenSurface>(); });

@@ -153,6 +153,23 @@ std::optional<Shape> fixedResult(std::string_view name) {
 		                                      {"unstaged", true}}})}};
 	if(name == "$gitBranches")
 		return Shape{{"current", true}, {"branches", Shape::array({{{"id", true}, {"label", true}, {"current", true}}})}};
+	if(name == "$diffLines") { // ExpressionFunctionsDiff.cpp; "rows" with the split option
+		const Shape side{{"n", true}, {"text", true}, {"kind", true}};
+		const Shape line{{"kind", true}, {"old", true}, {"new", true}, {"text", true}};
+		return Shape{{"hunks", Shape::array({{{"header", true},
+		                                      {"oldStart", true},
+		                                      {"oldLines", true},
+		                                      {"newStart", true},
+		                                      {"newLines", true},
+		                                      {"hiddenBefore", true},
+		                                      {"lines", Shape::array({line})},
+		                                      {"rows", Shape::array({{{"left", side}, {"right", side}}})}}})},
+		             {"added", true},
+		             {"removed", true},
+		             {"same", true},
+		             {"hiddenAfter", true},
+		             {"truncated", true}};
+	}
 	return std::nullopt;
 }
 

@@ -7,7 +7,7 @@
 	"scenarios": [
 		{
 			"name": "forge-editor-buffer-not-state",
-			"note": "An open file's text is a native buffer shown by \"buffer\": the document only lists the file",
+			"note": "An open file's text is kept by the editor node, not the state: the document only lists the file",
 			"steps": [
 				{
 					"action": "openExplorerItem",

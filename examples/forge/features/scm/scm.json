@@ -5,7 +5,7 @@
 	"note": "Forge's source control: the open folder's git status (staged changes and changes), staging, the diff of a change against HEAD, commits and branches, and the gutter marks of each compared file (state.scm.gutters). git runs through the process service the host granted: only the git grant's commands, as arrays, in the open folder's repository. Its output is read strictly by gitStatus() and gitBranches(), and diffLines() compares a file with HEAD (its hunks make the gutter marks). A commit message goes to git's input, never its arguments. The actions that take what git wrote as an event (scmApplyStatus, scmApplyBranches, scmCompare) let a scenario or an agent show a status or a diff without a repository.",
 
 	"services": {
-		"git": { "provider": "process", "process": "git" }
+		"git": { "provider": "process", "process": "git", "root": "workspace" }
 	},
 
 	"state": {

@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "forge-layout-outline-of-code",
-			"note": "The Outline lists a C++ file's functions, from forge.outline",
+			"note": "The Outline lists a C++ file's functions",
 			"steps": [
 				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
 				{ "action": "toggleSecondarySidebar" },

@@ -30,11 +30,11 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Toggle side bar, panel, layout | done | |
 | Explorer: open, create, rename, delete, move, reveal | done | |
 | Editing, find and replace in a file | done | |
-| Search across files, replace all | partial | Search lives in the side bar; the results come from native code |
-| Source control: stage, commit, branches | partial | Native code; moves to git through the process service |
-| Run and debug | partial | Sections don't collapse; the debugger glue is native code |
+| Search across files, replace all | partial | Search lives in the side bar |
+| Source control: stage, commit, branches | partial | Git runs through the process service; no stash or remotes |
+| Run and debug | partial | Sections don't collapse |
 | Terminal | partial | The cursor is an outlined box |
-| Problems and language features | partial | Native code; moves to the RPC service |
+| Problems and language features | partial | Through the `lsp` service, one language server (clangd) |
 | Outline | partial | Headings and the lines that open a block, not a language's symbols |
 | Features (extensions) view | partial | Single-line items; no header |
 | Settings editor | partial | No table of contents; large checkboxes |

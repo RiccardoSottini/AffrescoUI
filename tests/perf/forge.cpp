@@ -1,16 +1,10 @@
 /// @file
-/// @brief The "forge" group: Forge (examples/forge), the demo IDE, loaded as affrescoui_forge loads it, with its
-/// natives and tests/render/forge/folder open. It measures opening the project, typing, switching tabs, searching for a
-/// file, the command palette, the find bar, the secondary side bar and the minimap, each with its update and layout.
+/// @brief The "forge" group: Forge (examples/forge), the demo IDE, loaded as the host loads it, with the folder it
+/// writes granted and tests/render/forge/folder open. It measures opening the project, typing, switching tabs,
+/// searching for a file, the command palette, the find bar, the secondary side bar and the minimap, each with its
+/// update and layout.
 
 #include "Bench.hpp"
-#include "Forge.hpp"
-#include "features/debug/Debug.hpp"
-#include "features/editor/Editor.hpp"
-#include "features/explorer/Explorer.hpp"
-#include "features/lsp/Lsp.hpp"
-#include "features/search/Search.hpp"
-#include "features/terminal/Terminal.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -29,13 +23,20 @@ namespace {
 /// @return examples/forge.
 std::filesystem::path forgeDirectory(const Context& context) { return context.examples() / "forge"; }
 
+/// @brief Where Forge's services post their results: the workloads pump it until a file they open is read.
+/// @return The executor, which outlives every screen (the Context goes first).
+PumpedExecutor& forgeExecutor() {
+	static PumpedExecutor executor;
+	return executor;
+}
+
 /// @brief Forge's screen document, with four bench actions merged in for what a person does through a binding (typing
 /// into the editor, typing into the quick pick or the find bar) and that no action of Forge's takes from an event.
 /// @param context The context.
 /// @return The document, as text.
 std::string forgeDocument(const Context& context) {
 	json document = json::parse(readFile(forgeDirectory(context) / "index.screen.json"));
-	document["actions"]["benchType"] = json::parse(R"([{"set": "state.docs[0].text", "to": "{{event.text}}"}])");
+	document["actions"]["benchType"] = json::parse(R"([{"edit": "type", "in": "#editor", "text": "{{event.text}}"}])");
 	document["actions"]["benchQuery"] = json::parse(
 	    R"([{"set": "state.quickPick.query", "to": "{{event.query}}"}, {"set": "state.quickPick.open", "to": true}])");
 	document["actions"]["benchClose"] = json::parse(R"([{"set": "state.quickPick.open", "to": false}])");
@@ -44,21 +45,17 @@ std::string forgeDocument(const Context& context) {
 	return document.dump();
 }
 
-/// @brief Builds Forge into a window, with its natives as the scenarios have them (no executor: no server, shell or
-/// adapter starts) and the fixed folder open, and lays it out.
+/// @brief Builds Forge into a window, with the fixed folder as its workspace and no program granted (no server, shell
+/// or adapter starts), and lays it out.
 /// @param context The context.
 /// @param text The document (forgeDocument()).
 /// @param window An empty window.
 /// @return The screen and its window.
 LoadedScreen buildForge(Context& context, const std::string& text, Window& window) {
 	Screen& screen = context.create(text, forgeDirectory(context));
-	const auto workspace = std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER, &window);
-	forge::registerNatives(screen, workspace);
-	forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace), nullptr);
-	forge::registerSearch(screen, workspace);
-	forge::registerExplorer(screen, workspace, nullptr);
-	forge::grantTerminal(screen, AFFRESCOUI_FORGE_FOLDER);
-	forge::registerDebug(screen, false);
+	screen.setExecutor(&forgeExecutor());
+	screen.services().allowChosenRoot("workspace");
+	screen.services().addRoot("workspace", AFFRESCOUI_FORGE_FOLDER);
 	screen.build(window); // its onLoad indexes the folder
 	static_cast<void>(window.panelAt({}));
 	return {screen, window};
@@ -72,6 +69,22 @@ void runAndLayOut(const LoadedScreen& loaded, const char* action, const json& ev
 	loaded.screen.runAction(action, loaded.window.root(), event.dump());
 	loaded.window.routeKey({Key::Unknown, 0, Action::Release, {}}); // the queued updates
 	static_cast<void>(loaded.window.panelAt({}));                   // the layout
+}
+
+/// @brief Opens a file of the folder in a tab, and waits until Forge has read it.
+/// @param loaded Forge.
+/// @param path The file, relative to the folder.
+/// @throws std::runtime_error If it isn't read within a minute.
+void openFile(const LoadedScreen& loaded, const std::string& path) {
+	runAndLayOut(loaded, "openExplorerItem", {{"id", path}});
+	forgeExecutor().pumpUntil(
+	    [&loaded, &path] {
+		    const json state = json::parse(loaded.screen.stateJson());
+		    return std::ranges::any_of(state.at("docs"),
+			                           [&path](const json& doc) { return doc.value("id", "") == path; });
+	    },
+	    "forge: the file " + path);
+	static_cast<void>(loaded.window.panelAt({})); // the layout, with the text
 }
 
 /// @brief "forge/open": parsing Forge with its includes, building it, indexing the folder and the first layout.
@@ -116,15 +129,14 @@ std::vector<Workload> workbenchWorkloads(const LoadedScreen& loaded, const std::
 /// @return The workloads.
 std::vector<Workload> sessionWorkloads(Context& context, const std::string& text) {
 	const LoadedScreen loaded = buildForge(context, text, context.openWindow(json::parse(text)));
-	runAndLayOut(loaded, "openExplorerItem", {{"id", "README.md"}});
-	runAndLayOut(loaded, "openExplorerItem", {{"id", "src/main.cpp"}});
+	openFile(loaded, "README.md");
+	openFile(loaded, "src/main.cpp");
 	const auto run = std::make_shared<int>(0);
 	std::vector<Workload> workloads;
 
-	Workload type{.name = "forge/type", .runs = 15}; // one more character in the first file
-	type.step = [loaded, run, text = std::make_shared<std::string>("# Forge\n")] {
-		*text += static_cast<char>('a' + (++*run % 26));
-		runAndLayOut(loaded, "benchType", {{"text", *text}});
+	Workload type{.name = "forge/type", .runs = 15}; // one more character in the file shown
+	type.step = [loaded, run] {
+		runAndLayOut(loaded, "benchType", {{"text", std::string(1, static_cast<char>('a' + (++*run % 26)))}});
 	};
 	workloads.push_back(std::move(type));
 

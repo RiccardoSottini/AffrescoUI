@@ -6,7 +6,7 @@
 
 	"services": {
 		"debugLldb": { "provider": "dap", "process": "lldb-dap", "root": "workspace", "restart": { "after": 0, "times": 100 } },
-		"debugPython": { "provider": "dap", "process": "debugpy", "root": "workspace", "restart": { "after": 0, "times": 100 } },
+		"debugPython": { "provider": "dap", "process": "debugpy-adapter", "root": "workspace", "restart": { "after": 0, "times": 100 } },
 		"debugTerminal": { "provider": "pty", "process": "shell", "root": "workspace" }
 	},
 

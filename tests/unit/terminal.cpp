@@ -158,6 +158,49 @@ TEST_CASE("terminal: a C1 control written in UTF-8 takes a column, and never mov
 	}
 }
 
+TEST_CASE("terminal: repeating a glyph of no width ends") {
+	// libvterm's REP stepped the last glyph's width until the column it was given, forever when that width was 0
+	// (found by the terminal fuzzer)
+	TerminalModel model(4, 20);
+	model.write("\x1b[5b"); // before any glyph
+	CHECK(model.cursor().column == 0);
+	model.write("\u200B\x1b[5bx");
+	CHECK(model.cursor().row == 0);
+	CHECK(model.cursor().column <= 1);
+	model.write("y\x1b[3b");
+	CHECK(model.lineText(0).ends_with(U"yyyy"));
+	// A wide glyph repeated up to the row's end stops where it no longer fits (libvterm wrote its second half past
+	// the row)
+	TerminalModel narrow(2, 4);
+	narrow.write("a\u4E00\x1b[1b");
+	CHECK(narrow.lineText(0) == U"a\u4E00");
+	CHECK(narrow.cell(0, 3).character == 0);
+}
+
+TEST_CASE("terminal: a status request of bytes past 0x7F gets the invalid reply") {
+	// libvterm shifted those bytes as negative chars (found by the terminal fuzzer)
+	TerminalModel model(4, 20);
+	model.write("\x1bP$qm\xA0\x1b\\");
+	CHECK(model.takeOutput() == "\x1bP0$r\x1b\\");
+}
+
+TEST_CASE("terminal: a cursor restored after the terminal shrank is on the screen") {
+	// libvterm put it back where it was saved, past the screen (found by the terminal fuzzer)
+	TerminalModel model(6, 20);
+	model.write("\x1b[5;12H\0337"); // ESC 7, saving it
+	model.resize(2, 4);
+	model.write("\0338"); // ESC 8, restoring it
+	CHECK(model.cursor().row == 1);
+	CHECK(model.cursor().column == 3);
+	// leaving the alternate screen restores it too
+	model.resize(6, 20);
+	model.write("\x1b[5;12H\x1b[?1049h");
+	model.resize(2, 4);
+	model.write("\x1b[?1049l");
+	CHECK(model.cursor().row == 1);
+	CHECK(model.cursor().column == 3);
+}
+
 TEST_CASE("terminal: a long number in an escape sequence counts as a large one, and too many are dropped") {
 	// libvterm's numbers overflowed (found by the terminal fuzzer): one past 5 digits takes no more
 	TerminalModel model(4, 20);

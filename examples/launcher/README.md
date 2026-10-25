@@ -19,7 +19,7 @@ opens it when it is started without a file.
   duplicate, show in its folder, and delete after a confirm dialog (Delete on a focused row asks too).
 - **Create:** a name (checked as it is typed: its folder's name, the names the examples keep, the apps there already),
   a starting point (a blank app, [`starters/blank.screen.json`](starters/blank.screen.json), or a copy of a host-run
-  example, without its C++), an optional description and features from other apps, which become the first request
+  example, without its C++, except those `apps.json` marks `"starter": false`), an optional description and features from other apps, which become the first request
   to the new app's assistant (`--ask`). The app opens at once.
 - **Settings:** theme and language (kept with `persist`), the apps folder, the keyboard shortcuts, and the container
   `settingsIntelligence` for the intelligence settings.
@@ -31,7 +31,7 @@ opens it when it is started without a file.
 - **What the host grants** (`grantLauncher` in [`host.cpp`](../../apps/host/host.cpp)), and only when it opens the Launcher:
   the examples folder, read-only (the service `examples`); the apps folder (`apps`, which may copy from `examples`);
   and the app-programs grant `affresco` (the service `launch`), which starts `affrescoui_launcher` on a `.screen.json`
-  inside one of those two folders (with `--ask TEXT`), or `affrescoui_forge`, found next to the host, each detached,
+  inside one of those two folders (with `--ask TEXT`), found next to the host, each detached,
   with the host's `--data` and a socket folder of its own (`<socket folder>/<root>-<app>`), so several apps run at once. The screen names roots and programs, never a path.
 - **The apps folder** holds one folder per app and `shared/`, a copy of `examples/shared` without its C++ (fonts,
   add-ons, components, languages), brought up to date at each create, so the apps' `../shared/...` paths hold as in

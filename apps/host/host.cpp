@@ -378,8 +378,7 @@ void grantLauncher(affresco::Screen& screen, const Options& options) {
 	screen.services().addRoot("apps", apps);
 	services::AppPrograms programs;
 	programs.folder = programFile().parent_path();
-	programs.programs = {{"affrescoui_launcher", true, true},
-	                     {"affrescoui_forge", false, false}};
+	programs.programs = {{"affrescoui_launcher", true, true}};
 	programs.roots = {{"examples", examples}, {"apps", apps}};
 	programs.dataDirectory = std::filesystem::absolute(options.dataDir);
 	programs.socketDirectory = std::filesystem::absolute(options.socketDir);

@@ -85,6 +85,25 @@ affrescoui_fix_vterm(state.c [=[
     state->scrollregion_right = -1;
   }
 ]=])
+# REP repeated the last glyph by stepping its width: a glyph of no width (before any glyph, or a zero-width space)
+# never reached the column, and the loop never ended; a wide glyph was put in the row's last column, its second half
+# past the row. A glyph of no width isn't repeated, and a repeat ends where the glyph no longer fits.
+affrescoui_fix_vterm(state.c [=[
+    while (state->pos.col < col) {]=] [=[
+    while (state->combine_width > 0 && state->pos.col < col && // AffrescoUI: it ends, within the row
+           state->pos.col + state->combine_width <= row_width) {]=])
+# A status request (DECRQSS) of bytes past 0x7F shifted negative chars (undefined behaviour): its bytes are read as
+# unsigned.
+affrescoui_fix_vterm(state.c [=[
+  switch(tmp[0] | tmp[1]<<8 | tmp[2]<<16) {]=] [=[
+  switch((unsigned char)tmp[0] | (unsigned char)tmp[1]<<8 | (unsigned char)tmp[2]<<16) { // AffrescoUI: no sign]=])
+# Restoring the cursor (DECRC, or leaving the alternate screen) put it where it was saved, past the screen when the
+# terminal had become smaller since: it is kept on the screen.
+affrescoui_fix_vterm(state.c [=[
+    state->pos = state->saved.pos;]=] [=[
+    state->pos = state->saved.pos; // AffrescoUI: on the screen, which may have shrunk since
+    if(state->pos.row >= state->rows) state->pos.row = state->rows - 1;
+    if(state->pos.col >= state->cols) state->pos.col = state->cols - 1;]=])
 
 # The fixed copies, in the build folder, are compiled instead (they include the originals' headers:
 # modules/format/CMakeLists.txt), each written only when it changes, so that it isn't compiled again each time
