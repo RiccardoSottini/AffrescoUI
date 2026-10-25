@@ -68,7 +68,7 @@ Every part of the format follows these, and so should every extension:
 | `theme` | Which variant of the colors and tokens is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
 | `strings` | `locale → { key → message }`, with `"default"` (the locale a key falls back to) and `"locale"` (the locale shown, usually bound: `"{{state.locale}}"`; else the host's, from the system). `t("key", {params})` looks a key up in the locale, then its parents (`fr-CA`, then `fr`), then the default; a key found nowhere shows as itself. See Strings and locales. |
 | `styles` | `name → properties`, applied with `"style": "name"` or `["a", "b"]`. A style may itself have a `style`. |
-| `components` | `name → { "params": {defaults}, "node": node }`: reusable nodes with parameters (see Components). |
+| `components` | `name → { "params": {defaults}, "node": node }`: reusable nodes with parameters; `runsActions` names the parameter whose items' `run` it runs (see Components). |
 | `screens` | `name → node`: the screens an `outlet` shows; `{"navigate": "name"}` switches. The first is shown first. |
 | `templates` | `name → node`, built by code on demand (`Screen::instantiate`). |
 | `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and isn't built while its `when` doesn't hold. |
@@ -772,9 +772,15 @@ variables of the node and its children. A child `{ "slot": true }` in the compon
 `repeat` shows them once per item). Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
+A component that runs the actions its parameters name (a menu running its items' `run`) says which parameter with
+`"runsActions"`: `"runsActions": "items"`, or `true` when it also runs actions it keeps in the state. A revision may
+then not feed that parameter from the state or other computed values, as for the built-in components below
+(VERSION_CONTROL.md, Protected controls). Declaring it can only make review stricter.
+
 ### Built-in components
-These need no definition (a screen's own component of the same name wins). They are written in the
-format, take their colours and sizes as parameters whose defaults are the kit's tokens (see The kit's tokens), and
+These need no definition (a screen's own component of the same name wins). They are the kits AffrescoUI ships
+(`modules/themes`), defined in JSON exactly as a screen's own components are and offered to every screen; a program
+can offer others instead. They are written in the format, take their colours and sizes as parameters whose defaults are the kit's tokens (see The kit's tokens), and
 keep their open state where `open` says (a state path):
 - `menu` (below its parent), `submenu` (to its right) and `contextMenu` (where `x`, `y` say): `items` of
   `{ "title", "keyLabel", "mnemonic", "enabled", "checked", "icon", "separator", "submenu", "run", "with" }`. The

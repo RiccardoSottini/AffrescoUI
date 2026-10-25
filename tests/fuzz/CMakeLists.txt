@@ -6,12 +6,12 @@
 # linked
 function(affrescoui_fuzzer name)
 	if(AFFRESCOUI_BUILD_FUZZERS)
-		add_executable(affrescoui_fuzz_${name} ${name}.cpp)
+		add_executable(affrescoui_fuzz_${name} ${name}.cpp Themes.cpp)
 		target_link_options(affrescoui_fuzz_${name} PRIVATE -fsanitize=fuzzer)
 	else()
-		add_library(affrescoui_fuzz_${name} OBJECT ${name}.cpp)
+		add_library(affrescoui_fuzz_${name} OBJECT ${name}.cpp Themes.cpp)
 	endif()
-	target_link_libraries(affrescoui_fuzz_${name} PRIVATE ${ARGN})
+	target_link_libraries(affrescoui_fuzz_${name} PRIVATE ${ARGN} affrescoui::themes) # installed by Themes.cpp
 	target_compile_features(affrescoui_fuzz_${name} PRIVATE cxx_std_23)
 	set_target_properties(affrescoui_fuzz_${name} PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_fuzz_${name} PRIVATE ${AFFRESCOUI_WARNINGS})

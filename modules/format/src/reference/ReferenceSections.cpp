@@ -122,8 +122,10 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "sections"},
     {"components", R"json({"type": "object", "additionalProperties": {"type": "object", "required": ["node"],
 		"additionalProperties": false, "properties": {"params": {"type": "object"},
-		"node": {"$ref": "#/$defs/v2/node"}, "note": {"type": "string"}}}})json",
-	 "`name → { \"params\": {defaults}, \"node\": node }`: reusable nodes with parameters (see Components).",
+		"node": {"$ref": "#/$defs/v2/node"}, "runsActions": {"type": ["string", "boolean"]},
+		"note": {"type": "string"}}}})json",
+	 "`name → { \"params\": {defaults}, \"node\": node }`: reusable nodes with parameters; `runsActions` names the "
+	 "parameter whose items' `run` it runs (see Components).",
 	 "sections"},
     {"screens", R"json({"type": "object", "description": "Screens an \"outlet\" shows; {\"navigate\": name} switches",
 		"additionalProperties": {"$ref": "#/$defs/v2/node"}})json",

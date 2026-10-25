@@ -1,8 +1,9 @@
 /// @file
-/// @brief The desktop kit (src/components/Kit*.cpp): a toolbar's buttons, toggles and separators, the "more" menu
-/// its items that don't fit move into, a status bar whose items with a "run" are buttons, overlays that flip, a
-/// popover's arrow facing its anchor, a context menu, a dialog's buttons and focus trap, a stack of toasts, a
-/// segmented control, breadcrumbs, a search field, and a tab strip that closes, reorders and lists what doesn't fit.
+/// @brief The desktop kit (modules/themes/components: bars, overlays, controls): a toolbar's buttons, toggles and
+/// separators, the "more" menu its items that don't fit move into, a status bar whose items with a "run" are buttons,
+/// overlays that flip, a popover's arrow facing its anchor, a context menu, a dialog's buttons and focus trap, a stack
+/// of toasts, a segmented control, breadcrumbs, a search field, and a tab strip that closes, reorders and lists what
+/// doesn't fit.
 
 #include "Checker.hpp"
 #include "Headless.hpp"

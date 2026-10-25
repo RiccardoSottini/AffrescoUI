@@ -1,6 +1,6 @@
 /// @file
-/// @brief The built-in chat components (format's BuiltInChatComponents): the composer's keys, the launcher's name and
-/// badge, the proposal card's buttons, and the bubble's and the typing indicator's names.
+/// @brief The built-in chat components (modules/themes/components/chat.json): the composer's keys, the launcher's name
+/// and badge, the proposal card's buttons, and the bubble's and the typing indicator's names.
 
 #include "Headless.hpp"
 

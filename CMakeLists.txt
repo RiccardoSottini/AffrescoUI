@@ -131,6 +131,7 @@ include(cmake/AffrescoUISyntax.cmake)
 #   data     records: typed models, SQLite, queries, the journal, migrations         core
 #   render   rendering engine: windows, panels, text, OpenGL                         core
 #   format   JSON screen format: rules, expressions, building panels, actions        core, render, data
+#   themes   kits' components and themes' tokens, as JSON files built in            core
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core
 #   net      network: HTTP(S), SSE and WebSocket over libcurl                        core
@@ -154,7 +155,7 @@ endfunction()
 if(AFFRESCOUI_AUDIO)
 	add_subdirectory(modules/audio) # before format and screen, which use it
 endif()
-foreach(module core data render export format vcs channel net services screen automation)
+foreach(module core data render export format themes vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
 add_subdirectory(modules/scene3d) # general 3D: the scene, glTF, picking, gizmos, the PBR renderer
@@ -247,7 +248,8 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	set(AFFRESCOUI_SERVER_SOURCES apps/server/DocumentServer.cpp apps/server/TokenFile.cpp
 	    apps/server/UserInfoVerifier.cpp)
 	add_executable(affrescoui_server apps/server/main.cpp ${AFFRESCOUI_SERVER_SOURCES})
-	target_link_libraries(affrescoui_server PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel affrescoui::net)
+	target_link_libraries(affrescoui_server PRIVATE affrescoui::format affrescoui::themes affrescoui::vcs affrescoui::channel
+		affrescoui::net)
 	target_compile_options(affrescoui_server PRIVATE ${AFFRESCOUI_WARNINGS})
 	# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (modules/capi/example/README.md). Its
 	# scene is OpenGL 4.1 core, with that backend's glad: not built with gles3, whose render module has the other loader

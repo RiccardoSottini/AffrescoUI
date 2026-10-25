@@ -1,16 +1,14 @@
-# components: the built-in components
+# components: the lookup of the components and tokens a document doesn't define
 
-Components the format ships, written in the format itself as JSON text: `menu`, `menuBar`, `contextMenu`, `dialog`,
-`toast`, `hoverCard`, `settingsPage` and `quickPick` (`BuiltInComponents.cpp`), the desktop kit's `toolbar` and
-`statusBar` (`KitBars.cpp`), `popover` and `toasts` (`KitOverlays.cpp`), `segmentedControl`, `searchField`,
-`breadcrumbs` and `tabStrip` (`KitControls.cpp`), `dock` (`KitDock.cpp`), `inspector` and `ribbon`
-(`KitPanels.cpp`), the form components `comboBox` and `passwordMeter` (`BuiltInFormComponents.cpp`), and the chat
-components `chatBubble`, `typingIndicator`, `proposalCard`, `chatComposer` and `chatLauncher`
-(`BuiltInChatComponents.cpp`). A document's `"use"` finds one with `builtInComponent()` when its own `components`
-doesn't define that name, so a document can always replace a built-in one.
+The format holds no component and no theme of its own. When a document's `"use"` names a component its own
+`components` doesn't define, or its colours name a token its `tokens` doesn't, the format asks the installed
+`ComponentLibrary` (`affresco/core/ComponentLibrary.hpp`): in a stock program, the kits and themes of
+`modules/themes`, which `affresco::Screen` and the other entry points install. `Library.hpp` is that lookup, for the
+builder (`nodes/Builder.cpp`), the checker (`checker/Checker.cpp`, `checker/CheckerNodes.cpp`), the design tokens
+(`sections/DesignTokens.cpp`), the reference (`reference/ReferenceTables.cpp`, the `kitTokens` table) and the
+control scan (`rules/RulesControl.cpp`, through each component's `runsActions`).
 
-They use only what a document may write, with no service, connection or native call. Their pictures are in the
-render check's golden images, so a change to one is a visual change.
+A document's own component always wins over the library's of its name. Without a library installed, a document has
+only its own components and tokens.
 
-Tests: `tests/unit/overlays.cpp`, `quickpick.cpp`, `form_inputs.cpp`, `kit.cpp`, `kit_dock.cpp`, `kit_panels.cpp`,
-`chat_components.cpp`.
+Tests: `tests/unit/themes.cpp`; the kits' own are listed in `modules/themes/README.md`.

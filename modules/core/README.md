@@ -20,6 +20,7 @@ match text (render, services) link privately.
 | `Channel.hpp` | `Channel`: a two-way stream of one-line messages; `onMessage`, `onClosed`; `maxMessageBytes` (64 MiB) |
 | `Json.hpp` | `json`, `DocumentError`, `parseUntrusted` (nesting limit `maxNesting` = 256), `toText`, the `expect::` readers |
 | `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `nameNodes`, ids for the nodes a revision adds, `pathHint`, a hint for a path that finds nothing, and `checkRevision`, a revision's size checked before it is applied, `reviewLines`, what a change does that always needs a reviewer, and `behaviourLines`, what it does to behaviour), `PermissionRule`, `Permissions`, `ReviewPolicy` |
+| `ComponentLibrary.hpp` | `ComponentLibrary`: the components and design tokens every document may use without defining them (the kits and themes, `modules/themes`); `installComponentLibrary` and `componentLibrary`, the one a program installs (written once at start-up, read by the format) |
 | `VersionControl.hpp` | `VersionControl` and `VersionObserver`; `RevisionResult`, `CommitInfo`, `ProposalInfo`, `Grant`, `Approval`, `Decision`, `Mode`; their protocol JSON |
 | `ScreenImages.hpp` | `ScreenImages::render`: a picture of the screen or of a proposal (`ImageRequest`, `Image`); `ScreenImages::evidence`: a proposal's evidence (`Evidence`); `ScreenImages::inspect`: the host's inspector on or off |
 | `Network.hpp` | `network::Network` (`allow`, `check`, `start`, `connect`): what the `net` module offers to the others; `Request`, `Response`, `Failure`, `StreamEvent`, `Handlers`, `Transfer`, `WebSocket`, `SocketHandlers`; `Stream` (none, server-sent events, lines, or raw bytes as they arrive) |
@@ -49,10 +50,13 @@ match text (render, services) link privately.
 
 ## Threads and ownership
 
-Everything here is used on the main thread, except two entry points:
+Everything here is used on the main thread, except three entry points:
 - `Executor::post` may be called from any thread. It is how other threads hand work to the main thread.
 - `log` may be called from any thread; the sink must cope with that. `setLogSink` is not synchronised: call it before
   the application starts.
+- `componentLibrary` may be called from any thread (an acquire load). `installComponentLibrary` is called once at
+  start-up, before the first document is read (`affresco::Screen` and the other entry points do it); the library it
+  installs is immutable and outlives every document.
 
 Ownership: an implementation of an interface (a `Channel`, a `VersionControl`) is owned by whoever made it, and
 what is handed one by reference only borrows it, so the owner destroys the borrower first. A `Connection` is only an
@@ -74,6 +78,8 @@ goes first.
 - **Another version-control backend or document format:** implement `VersionControl` or `DocumentRules`.
   `format::Runtime` and `channel::Session` only see the interfaces.
 - **The log:** `setLogSink` sends the library's messages to the application's log.
+- **Kits and themes:** implement `ComponentLibrary` and install it to give documents other components and tokens
+  than `modules/themes`' (or none: then a document has only its own).
 - **Registries:** those for node types, steps and document sections live in `format` (`modules/format/README.md`),
   not here.
 
@@ -84,6 +90,7 @@ include/affresco/core/
   Channel.hpp         the Channel interface and the message size limit
   DataModel.hpp       DataModel, ModelChange and ListModel: rows a document shows
   DocumentRules.hpp   what version control needs to know about a document format
+  ComponentLibrary.hpp  the kits' components and the themes' tokens a program installs for every document
   Executor.hpp        run work on the main thread
   CallProgress.hpp    a slow call's cancellation, progress and partial results
   Json.hpp            json, DocumentError, parseUntrusted, toText, expect::
