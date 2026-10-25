@@ -10,6 +10,7 @@ if(NOT MSVC)
 endif()
 target_link_libraries(affrescoui_capi_test PRIVATE affrescoui::capi) # GLFW comes with it, for the embedded mode
 target_include_directories(affrescoui_capi_test SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
+target_compile_definitions(affrescoui_capi_test PRIVATE GLFW_INCLUDE_NONE) # GLFW's header only: no system GL headers
 # Its scratch folder: the screen file, its sockets. A socket's path has a length limit (104 bytes on macOS), which a
 # build folder deep in a worktree passes, so on POSIX it is a short folder in /tmp, one per build folder
 set(affrescoui_capi_scratch ${CMAKE_CURRENT_BINARY_DIR}/s)
