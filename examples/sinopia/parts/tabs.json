@@ -134,7 +134,8 @@
 						{ "use": "rbBig", "id": "b-ins-chart", "with": { "icon": "chart-column-stacked", "title": "Chart", "width": 44, "enabled": false }, "tooltip": "Inserting a chart isn't available yet" }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-links", "with": { "title": "Links" }, "children": [
-						{ "use": "rbBig", "id": "b-ins-link", "with": { "icon": "link", "title": "Link", "width": 44, "enabled": false }, "tooltip": "Linking text isn't available yet" }
+						{ "use": "rbBig", "id": "b-ins-link", "with": { "icon": "link", "title": "Link", "menu": true, "width": 44, "enabled": "{{some(computed.selected, contains(['text', 'shape'], it.kind ?? 'text'))}}" },
+						  "tooltip": "Link the selected text to a slide of this deck, which a click in the show goes to", "onClick": { "run": "openDrop", "with": { "id": "b-ins-link" } } }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-comments", "with": { "title": "Comments" }, "children": [
 						{ "use": "rbBig", "id": "b-ins-comment", "with": { "icon": "message-square-plus", "title": "Comment", "width": 56 }, "tooltip": "Comment on this slide", "onClick": "newComment" }

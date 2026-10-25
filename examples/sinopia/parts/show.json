@@ -16,6 +16,10 @@
 	"computed": {
 		"showOrder": "{{filter(range(length(state.deck.slides)), !(state.deck.slides[it].hidden ?? false))}}",
 		"showSlide": "{{state.deck.slides[state.show.index] ?? state.deck.slides[0]}}",
+		"showPh": "{{(find(computed.layouts, it.id == computed.showSlide.layout) ?? computed.layouts[1]).ph ?? []}}",
+		"showPhIds": "{{map(computed.showPh, it.ph)}}",
+		"showUnbuilt": "{{map(filter(computed.showTimings, it.kind == 'exit' ? it.step < state.show.step : it.step > state.show.step), it.target)}}",
+		"showLinks": "{{map(filter(computed.showSlide.objects ?? [], it.link != null && !(it.hidden ?? false) && !contains(computed.showUnbuilt, it.id)), { link: it.link, x: it.x ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).x ?? 0, y: it.y ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).y ?? 0, w: it.w ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).w ?? 100, h: it.h ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).h ?? 100 })}}",
 		"showFrom": "{{state.show.from >= 0 ? state.deck.slides[state.show.from] : null}}",
 		"showKind": "{{state.show.t >= 1 ? 'none' : computed.showSlide.transition.kind ?? 'none'}}",
 		"showFades": "{{computed.showKind == 'fade' || computed.showKind == 'glide'}}",
@@ -50,6 +54,12 @@
 			{ "if": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end))) > 0}}",
 			  "then": [{ "animate": "state.show.clock", "to": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end)))}}", "ms": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end)))}}", "easing": "linear" }],
 			  "else": [{ "set": "state.show.clock", "to": 0 }] }
+		],
+		"showClick": [
+			{ "note": "with: x, y, the click on the 960 by 540 slide: on linked text it goes to that slide, elsewhere it moves on" },
+			{ "if": "{{some(computed.showLinks, x >= it.x && x <= it.x + it.w && y >= it.y && y <= it.y + it.h)}}",
+			  "then": [{ "run": "showGo", "with": { "index": "{{indexOf(map(state.deck.slides, it.id), find(reverse(computed.showLinks), x >= it.x && x <= it.x + it.w && y >= it.y && y <= it.y + it.h).link)}}", "built": false } }],
+			  "else": [{ "run": "showNext" }] }
 		],
 		"showNext": [
 			{ "if": "{{state.show.ended}}", "then": [{ "run": "showEnd" }],
@@ -239,7 +249,9 @@
 			"node": {
 				"id": "show-view", "color": "#000000", "focusable": true, "role": "dialog", "label": "Slide show",
 				"every": { "ms": 1000, "do": "showSecond" },
-				"onClick": [{ "if": "{{!state.presenterView}}", "then": [{ "run": "showNext" }] }],
+				"onClick": [{ "if": "{{!state.presenterView}}", "then": [{ "run": "showClick", "with": {
+					"x": "{{(event.left - (event.width - 960 * min(event.width / 960, event.height / 540)) / 2) / min(event.width / 960, event.height / 540)}}",
+					"y": "{{(event.top - (event.height - 540 * min(event.width / 960, event.height / 540)) / 2) / min(event.width / 960, event.height / 540)}}" } }] }],
 				"children": [
 					{ "type": "image", "id": "show-image", "when": "{{!state.presenterView}}", "fill": 0, "source": "audience", "fit": "contain" },
 					{ "use": "presenter", "when": "{{state.presenterView}}" },

@@ -1168,6 +1168,37 @@
 				{ "click": { "role": "menuitem", "name": "Selection Pane" } },
 				{ "expect": { "node": "#side-pane", "exists": false } }
 			]
+		},
+		{
+			"name": "sinopia-link-to-a-slide",
+			"note": "Insert > Link links the selected text to a slide of the deck: a click on it in the show goes there, a click elsewhere moves on, and Remove Link takes it off",
+			"steps": [
+				{ "click": "#tab-insert-label" },
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#o4" },
+				{ "click": "#b-ins-link" },
+				{ "click": { "role": "menuitem", "name": "Slide 5: Two ways to run it" } },
+				{ "expect": { "state": "deck.slides[1].objects[1].link", "is": "s5" } },
+				{ "key": "shift+f5" },
+				{ "expect": { "state": "show.index", "is": 1 } },
+				{ "click": [640, 400] },
+				{ "expect": { "state": "show.index", "is": 1 } },
+				{ "expect": { "state": "show.step", "is": 1 } },
+				{ "click": [640, 400] },
+				{ "expect": { "state": "show.index", "is": 4 } },
+				{ "key": "home" },
+				{ "key": "right" },
+				{ "expect": { "state": "show.index", "is": 1 } },
+				{ "key": "right" },
+				{ "click": [640, 100] },
+				{ "expect": { "state": "show.index", "is": 2 } },
+				{ "key": "escape" },
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#o4" },
+				{ "click": "#b-ins-link" },
+				{ "click": { "role": "menuitem", "name": "Remove Link" } },
+				{ "expect": { "state": "deck.slides[1].objects[1].link", "is": null } }
+			]
 		}
 	]
 }

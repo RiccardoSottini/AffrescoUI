@@ -71,6 +71,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Content | Table styles | missing | missing | |
 | Content | Charts (column, bar, line, pie) | missing | missing | |
 | Content | Icons | missing | done | insert-tab |
+| Content | Links (to a slide of the deck, to a web address) | missing | partial | link-to-a-slide (to a slide, followed by a click in the show; no web addresses) |
 | Content | Text box and styled text effects | partial | done | add-a-text-box, insert-tab |
 | Design | Layouts (title, title and content, section header, two content, comparison, title only, blank) | missing | done | slide-menus |
 | Design | Slide master view | missing | missing | |
@@ -136,6 +137,6 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 65 | 27 | 28 | 120 |
+| Now | 65 | 28 | 28 | 121 |
 
-The Ink, Record, Check and Help tabs added nine rows that the first list didn't have (all missing at the start), so *Now* counts 120 rows.
+The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, and Insert > Link one (all missing at the start), so *Now* counts 121 rows.

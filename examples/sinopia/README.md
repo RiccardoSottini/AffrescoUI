@@ -7,14 +7,14 @@ changes (the person's client) and send an agent's to review, which only a `studi
 
 ```sh
 ./build/affrescoui_launcher examples/sinopia/index.screen.json --socket out/s   # the workspace, with the sample deck
-./build/affrescoui test examples/sinopia/index.scenarios.json                   # the 52 scenarios (ctest: scenarios)
+./build/affrescoui test examples/sinopia/index.scenarios.json                   # the 53 scenarios (ctest: scenarios)
 ```
 
 ## The workspace
 
 | Part | What it does |
 |---|---|
-| Ribbon | File (open, save, export PDF and PNG), Home (paste and copy menus, Copy Style, slides, layouts and sections; font, size, case, colour and highlight grids; bullets, numbering, list levels, line spacing, columns, text direction and anchor; shapes, quick styles, fill and outline grids, effects; Arrange: order, align, distribute; Find, Replace, Select and the Selection Pane), Insert (text box, shapes, icons, styled text, symbols, footer and slide numbers), Design (themes, variants, Format Background), Transitions, Motion (builds), Present, Ink (pen, highlighter, colours, widths, eraser, Clear Ink), Record (Rehearse Timings, Use Timings, Clear Timings), Check (accessibility, comments), View (views, Reading View, panes, dark mode), Help (shortcuts, about). A command that isn't there yet is shown disabled, and its tooltip says so |
+| Ribbon | File (open, save, export PDF and PNG), Home (paste and copy menus, Copy Style, slides, layouts and sections; font, size, case, colour and highlight grids; bullets, numbering, list levels, line spacing, columns, text direction and anchor; shapes, quick styles, fill and outline grids, effects; Arrange: order, align, distribute; Find, Replace, Select and the Selection Pane), Insert (text box, shapes, icons, styled text, symbols, a link to a slide, footer and slide numbers), Design (themes, variants, Format Background), Transitions, Motion (builds), Present, Ink (pen, highlighter, colours, widths, eraser, Clear Ink), Record (Rehearse Timings, Use Timings, Clear Timings), Check (accessibility, comments), View (views, Reading View, panes, dark mode), Help (shortcuts, about). A command that isn't there yet is shown disabled, and its tooltip says so |
 | Slide list | Each slide's picture (a snapshot of its page), its number and its section, a star when it has a transition or builds, dimmed when hidden; the arrows move through it, and a right click (or Shift+F10) opens the slide menu; a section's title folds its slides away and back |
 | Canvas | The slide on a `canvas`: select, move, resize, with the zoom and fit of the status bar. A double click or F2 edits a text box's or shape's text in place (Tab and Shift+Tab change the list level; Escape or a click elsewhere ends it); a right click opens the shape's menu, or the slide's on an empty part |
 | Format pane | With objects selected: fill and line from the theme's slots, line width, size, place, rotation and lock. With none: the slide's background |
@@ -26,7 +26,7 @@ changes (the person's client) and send an agent's to review, which only a `studi
 Keys while editing: `mod+f` find, `mod+h` replace, `mod+s` save, `mod+o` open, `mod+z` and `mod+y` undo and redo, `mod+m` new slide, `mod+d`
 duplicate, `mod+c`, `mod+x` and `mod+v`, `mod+a` select all, `mod+b`, `mod+i` and `mod+u`, `mod+l`, `mod+e`, `mod+r`
 and `mod+j` align the text, the arrow keys nudge (Shift: 10), Delete removes (a locked object stays), F5 presents from the start and Shift+F5 from this slide.
-While presenting: Right, Down, Space, Enter and N go on, Left, Up and P go back, Home and End jump, B and W blank the
+While presenting: a click on linked text goes to its slide; Right, Down, Space, Enter and N go on, Left, Up and P go back, Home and End jump, B and W blank the
 screen black or white, a slide's number and Enter go to it, and Escape ends.
 
 ## The deck

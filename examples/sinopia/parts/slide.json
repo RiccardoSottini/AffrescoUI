@@ -109,7 +109,7 @@
 											  "align": { "horizontal": "{{align == 'center' ? 'center' : align == 'right' ? 'end' : 'start'}}" },
 											  "runs": [{ "text": "{{trim(line) == '' ? ' ' : trim(line)}}", "size": "{{pt}}", "bold": "{{o.bold ?? p.bold ?? false}}", "font": "{{o.font ?? 'default'}}",
 											             "italic": "{{o.italic ?? false}}", "color": "{{prompt ? computed.palette['dark1.2'] : ink}}",
-											             "underline": "{{!prompt && (o.underline ?? false)}}", "strike": "{{!prompt && (o.strike ?? false)}}",
+											             "underline": "{{!prompt && ((o.underline ?? false) || o.link != null)}}", "strike": "{{!prompt && (o.strike ?? false)}}",
 											             "background": "{{prompt ? null : o.highlight ?? null}}", "shadow": "{{!prompt && (o.shadow ?? false) ? '#00000059' : null}}" }] }
 										]
 									}
