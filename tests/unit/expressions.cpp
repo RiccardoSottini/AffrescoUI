@@ -361,6 +361,7 @@ const std::vector<Case> cases = {
     {"{{passwordStrength('').score}}", 0, {}},
     {"{{isEmail('ada@example.com')}}", true, {}},
     {"{{isEmail('ada@example')}}", false, {}},
+    {"{{qrCode('Affresca').viewBox}}", "-4 -4 29 29", {}}, // tests/unit/qr_code.cpp has the codes
     {"{{pathTree(['src/b.c', 'src/a.c', 'README', {path: 'docs', expandable: true}])}}",
 	 J(R"([{"id": "docs", "label": "docs", "path": "docs", "expandable": true},
            {"id": "src", "label": "src", "children": [{"id": "src/a.c", "label": "a.c"},

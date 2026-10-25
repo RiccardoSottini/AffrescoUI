@@ -341,6 +341,7 @@ std::vector<std::string> controlsIn(const json& doc, const std::set<std::string,
 	const ControlScan scan(doc.contains("actions") ? doc["actions"] : none, control, runners,
 	                       doc.contains("components") ? doc["components"] : none);
 	for(const auto& [key, value] : doc.items()) {
+		if(key == "strings") continue; // texts, never run: a key named like a step ("connect") is a word
 		if(key == "actions" && value.is_object()) {
 			for(const auto& [name, steps] : value.items()) scan.walk(steps, "actions." + name, Part::Steps, found);
 		} else {

@@ -61,6 +61,7 @@ void Window::routeKey(const KeyEvent& event) {
 	++routing_;
 	keyInput_ = true;
 	keyTaken_ = false; // a new press or a release: what a binding took before is over
+	capsLock_ = event.mods.capsLock();
 	if(focused_ && focused_->isShown()) focused_->keyEvent(event);
 	onKey(event);
 

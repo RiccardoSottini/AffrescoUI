@@ -187,6 +187,9 @@ struct Function {
 /// @brief The table of the form functions, `passwordStrength` and `isEmail` (ExpressionFunctionsForm.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> formFunctions();
+/// @brief The table of the QR code function, `qrCode` (ExpressionFunctionsQr.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> qrFunctions();
 
 /// @brief The table of the path function, `pathTree` (ExpressionFunctionsPaths.cpp).
 /// @return Its rows.

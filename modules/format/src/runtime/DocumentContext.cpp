@@ -206,7 +206,8 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 		                         {"colorScheme", window->colorScheme() == ColorScheme::Dark ? "dark" : "light"},
 		                         {"nativeMenuBar", window->nativeMenuBar()},
 		                         {"reducedMotion", window->reducedMotion()},
-		                         {"menuBar", menuBarOf(versions.document())}}
+		                         {"menuBar", menuBarOf(versions.document())},
+		                         {"capsLock", window->capsLock()}}
 		                  : json::object();
 		g.revision = toJson(versions.head());
 

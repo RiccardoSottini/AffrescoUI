@@ -875,6 +875,9 @@ def main():
     operations = image_operations()
     write(out, "images", images_seeds(), words["json"] + ["images", "steps", "image", "of", "with", "limits"]
           + list(operations) + sorted({key for keys in operations.values() for key in keys}))
+    # qr_code: the first byte picks the level (& 3) and the mask (>> 2 & 15, 8 and above meaning automatic)
+    write(out, "qr_code", ["\x00Affresca", "\x20https://id.example/enroll?secret=EXAMPLE", "\x03", "\x1f" + "q" * 300],
+          ["otpauth://", "id.example", "secret=", "\x00", "\xff"])
     write(out, "syntax", syntax_seeds(), ["(", ")", "{", "}", "[", "]", "\"", "'", "`", "/*", "*/", "//", "#", "\n"])
 
 

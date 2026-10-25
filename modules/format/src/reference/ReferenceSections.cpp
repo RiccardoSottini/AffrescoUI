@@ -411,7 +411,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
     {"focus", "",
 	 R"(`{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` )"
-	 R"((after the update, waiting up to two frames for a node that is still being laid out))",
+	 R"((after the update, waiting up to two frames for a node that is still being laid out); `"#form #input"`: the )"
+	 R"(`input` inside `form`, for a component's node)",
 	 "steps"},
     {"scrollTo", "", "", "steps"},
     {"edit", "", "`{ \"edit\": \"sortLines\", \"in\": \"#code\" }`: a code editor's command (Editor steps)", "steps"},

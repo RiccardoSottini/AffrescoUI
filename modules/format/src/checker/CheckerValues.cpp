@@ -141,6 +141,7 @@ std::optional<Shape> fixedResult(std::string_view name) {
 	if(name == "$values") return Shape::array({anything});
 	if(name == "$entries") return Shape::array({{{"key", single}, {"value", anything}}});
 	if(name == "$parseJson") return anything;
+	if(name == "$qrCode") return Shape{{"size", single}, {"version", single}, {"d", single}, {"viewBox", single}};
 	return std::nullopt;
 }
 

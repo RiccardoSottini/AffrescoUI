@@ -192,13 +192,30 @@ void Events::focus(Panel& panel) {
 	}
 }
 
-void Events::focusStep(std::string id) {
+Panel* Events::findByPath(Panel& root, std::string_view path) {
+	Panel* panel = &root;
+	for(std::size_t at = 0; panel && at < path.size();) {
+		const std::size_t start = path.find_first_not_of(' ', at);
+		if(start == std::string_view::npos) break;
+		const std::size_t end = std::min(path.find(' ', start), path.size());
+		std::string_view id = path.substr(start, end - start);
+		if(id.starts_with('#')) id.remove_prefix(1);
+		panel = panel->findById(id);
+		at = end;
+	}
+	return panel == &root ? nullptr : panel;
+}
+
+void Events::focusStep(std::string path) {
 	if(!engine_.window) return;
 	const std::uint64_t step = ++focusSteps_, scheduled = focusSchedules_;
 	const Panel* focused = engine_.window->focusedPanel();
-	engine_.scheduler.once(0.0, [this, id = std::move(id), step, scheduled, focused] {
-		if(!engine_.window || step != focusSteps_) return; // a later step wins
-		Panel* panel = engine_.window->root().findById(id);
+	focusPath_ = path;
+	engine_.scheduler.once(0.0, [this, path = std::move(path), step, scheduled, focused] {
+		if(!engine_.window) return;
+		// A later step wins, unless its node is gone (a delayed step for a field the update removed)
+		if(step != focusSteps_ && findByPath(engine_.window->root(), focusPath_)) return;
+		Panel* panel = findByPath(engine_.window->root(), path);
 		const Panel* now = engine_.window->focusedPanel();
 		if(!panel || (now && now != focused)) return; // a node took the focus after it: it keeps it
 		if(focusLater_.pending && !focusLater_.cancelled) {
