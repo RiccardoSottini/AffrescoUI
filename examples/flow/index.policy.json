@@ -26,7 +26,9 @@
 			"name": "no one changes the status bar",
 			"revision": {
 				"author": "studio",
-				"remove": "#statusBar"
+				"set": {
+					"#statusBar/color": "#000000"
+				}
 			},
 			"expect": "deny",
 			"reason": "#statusBar"

@@ -2,7 +2,7 @@
 
 Sinopia is a presentation editor. This matrix lists what a daily user of such an editor
 expects, and how far Sinopia goes: **done** (works as expected), **partial** (there, with less) or **missing**.
-*Start* is Sinopia before wave 14 (a C++ app); *Now* is Sinopia as a folder of JSON that the stock host runs,
+*Start* is Sinopia as a C++ app; *Now* is Sinopia as a folder of JSON that the stock host runs,
 with its slide show, presenter view, audience window and files on library capabilities (the `windows` section,
 `saveFile`, `openFile`, `export`, snapshots). Evidence names a scenario of [`index.scenarios.json`](index.scenarios.json)
 (without its `sinopia-` prefix), or a frame of `tests/render/scenarios/sinopia.json`, that shows it.
@@ -156,7 +156,7 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
 | P1 | Text: paragraph alignment per paragraph, and justified text | JSON: alignment per paragraph; library: justified wrapping in labels |
 | P1 | Slides: hide slide (the crossed-out number) | JSON: a strike through the number in the slide list |
-| P2 | Shell: a contextual Shape Format tab | JSON: a tab shown while a shape is selected, from the Home tab's drawing and arrange groups |
+| P2 | Shell: a contextual shape tab | JSON: a tab shown while a shape is selected, from the Home tab's drawing and arrange groups |
 | P2 | Shell: File view (new deck, recent decks) | JSON: New from the themes; library: a list of recently opened files |
 | P2 | Canvas: rulers, gridlines and guides | JSON: rulers along the canvas, a drawn grid, guides dragged from the rulers that objects snap to |
 | P2 | Text: autofit (shrink text on overflow) | Library: the measured height of a text in expressions; then JSON |

@@ -7,9 +7,7 @@
 		"host-sources": {
 		},
 		"theme-outside-themes": {
-			"modules/format/src/adapters/Layout.cpp": "the palette of the screens the adapters convert, to become a token set in modules/themes",
-			"modules/format/src/reference/": "the format's reference: colours in its examples' text",
-			"modules/format/src/windows/SecondWindows.cpp: \"#000000\"": "an extra window's background when its screen gives none"
+			"modules/format/src/adapters/Layout.cpp": "the palette of the screens the adapters convert, to become a token set in modules/themes"
 		}
 	}
 }

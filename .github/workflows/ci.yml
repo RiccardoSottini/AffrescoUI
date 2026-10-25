@@ -53,6 +53,10 @@ jobs:
         run: |
           python3 tools/release/sbom.py --check
           python3 -m unittest discover -s tools/release -p "test_sbom.py"
+      - name: Image metadata # tools/release/image_metadata.py: no picture says which tool or machine made it
+        run: |
+          python3 tools/release/image_metadata.py
+          python3 -m unittest discover -s tools/release -p "test_image_metadata.py"
 
   linux:
     name: Linux

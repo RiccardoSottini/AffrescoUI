@@ -305,6 +305,7 @@ class GeneralismTest(ScratchRepository):
         self.write("modules/screen/CMakeLists.txt", "target_link_libraries(s PUBLIC affrescoui::themes)\n")
         self.write("modules/format/notes.cpp", "int notes = 0; // an ordinary word\n")
         self.write("modules/format/README.md", "Atlas uses this module.\n")
+        self.write("modules/format/src/reference/Reference.cpp", "R\"({\"color\": \"#336699\"})\" // an example\n")
         self.assertEqual(self.findings(), ([], []))
 
     def test_each_rule_finds_its_place(self):

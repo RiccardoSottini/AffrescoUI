@@ -456,7 +456,7 @@
 				"style": "clear", "width": 0, "height": 0, "children": [{
 				"use": "dialog", "id": "filter-dialog",
 				"with": { "open": "state.filter.open", "title": "{{computed.filterTitle}}", "message": "", "width": 380, "height": 250,
-				          "buttons": [{ "title": "Cancel", "run": "discardFilter" }, { "title": "OK", "run": "commitFilter" }] },
+				          "buttons": [{ "title": "Cancel", "run": "discardFilter" }, { "title": "OK", "run": "commitFilter", "default": true }] },
 				"children": [
 					{ "type": "column", "id": "filter-fields", "anchors": { "left": 20, "right": 20, "top": 44, "bottom": 52 }, "gap": 2,
 					  "children": [
@@ -487,7 +487,7 @@
 				"style": "clear", "width": 0, "height": 0, "children": [{
 				"use": "dialog", "id": "new-dialog",
 				"with": { "open": "state.newDoc.open", "title": "New Document", "message": "", "width": 360, "height": 264,
-				          "buttons": [{ "title": "Cancel" }, { "title": "Create", "run": "createDocument" }] },
+				          "buttons": [{ "title": "Cancel" }, { "title": "Create", "run": "createDocument", "default": true }] },
 				"children": [
 					{ "type": "column", "id": "new-fields", "anchors": { "left": 20, "right": 20, "top": 44, "bottom": 52 }, "gap": 6,
 					  "children": [
