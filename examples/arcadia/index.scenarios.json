@@ -85,7 +85,7 @@
 				{
 					"expect": {
 						"node": "#play-button",
-						"text": "STOP"
+						"text": "Stop"
 					}
 				},
 				{
@@ -108,7 +108,7 @@
 				{
 					"expect": {
 						"node": "#play-button",
-						"text": "INSTALL"
+						"text": "Install"
 					}
 				},
 				{
