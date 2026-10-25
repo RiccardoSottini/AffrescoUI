@@ -345,6 +345,14 @@ request's `cwd` only if the pty service's root holds it, and the line runs in th
 grant. Forge grants `lldb-dap` and `python3 -m
 debugpy.adapter` when they are on PATH; a launch configuration only names one of them.
 
+### An app's data and the person's permissions
+The stock host asks the person for an app's capabilities and remembers the answer in the app's data folder,
+`<data folder>/apps/<id>/`, beside its history and state. An id is the app's own choice, so it is bound to the folder
+that first opened it (`Screen::appDataDirectory()`, recorded in the folder's `location`, absolute with links
+followed): another app with the same id, a copy elsewhere, gets `apps/<id>~<hash of its folder>/`, so it never opens
+with the first app's data and the person is asked again. A screen opened on its own is bound to its file the same
+way. Data kept before names were bound has no record, and the first place to open it after the upgrade takes it.
+
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
 `AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; for a screen the library
@@ -430,9 +438,9 @@ never the document.
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
 - `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that
   keeps to the same limit, and schema patterns matched only on texts up to the limit below (the `cli` fuzz target).
-  `check` also loads the screen as the library does, `include`s included, and an `include` may name any file (an
-  absolute path too): checking a file reads every JSON object file it names, and the checker's messages can quote
-  parts of them. Check a file from someone you don't trust where that is fine, such as a CI runner.
+  `check` also loads the screen as the library does, `include`s included, and a bare screen's `include` may name any
+  plain file (an absolute path too; an app's stay in its folder and the `shared` folder beside it): checking a file
+  reads every JSON object file it names, and the checker's messages can quote parts of them. Check a file from someone you don't trust where that is fine, such as a CI runner.
 - `render` draws the first frame offscreen without the history or saved state, and connects to nobody: every channel
   the screen declares, by an absolute path too, is pointed at a folder that is never created. A frame over 16,384
   pixels a side is refused before anything is drawn.
@@ -596,6 +604,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
 | Files including files (`include`, at load time) | 9 levels below the screen file |
+| An included file (`include`; plain files only: no devices or pipes) | 16 MiB; an app's are in its folder or the `shared` folder beside it, once links are resolved |
 | Open proposals per channel | 16 |
 | Operations in one revision (its compact edits and its JSON Patch), or in one proposal with all its commits; counted before any is applied | 10,000 |
 | Values the `copy` operations of one revision copy, in all (a copy of a list into itself doubles it) | 100,000 |

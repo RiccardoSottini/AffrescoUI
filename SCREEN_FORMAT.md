@@ -84,7 +84,7 @@ Every part of the format follows these, and so should every extension:
 | `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
 | `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
-| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu; `persist` lists join). |
+| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu; `persist` lists join). Each is a plain file of at most 16 MiB; an app's are in its folder or the `shared` folder beside it ("Apps: app.json"). |
 <!-- end generated -->
 
 ### Capabilities and features
@@ -1736,9 +1736,14 @@ seed data; another screen in the folder is read as written. A generated example:
 ```
 - **`id`**: lower-case letters, digits and `-`. The person's data is kept by it, in `<data folder>/apps/<id>/`: the
   history, the `persist` state (`state.json`), the records (`data.sqlite`) and the usage. Data an earlier version
-  kept for the entry screen (`<data folder>/<screen name>.*`) is moved there the first time the app opens.
+  kept for the entry screen (`<data folder>/<screen name>.*`) is moved there the first time the app opens. An id is
+  the app's own choice, so it is bound to the folder that first opens it (recorded in the folder's `location`): an
+  app elsewhere with the same id keeps its data, and the host the person's permissions, in `apps/<id>~<hash>/`, its
+  own. A screen opened on its own is bound to its file the same way (`<data folder>/<screen name>.location`).
 - **`entry`** (default `index.screen.json`): the screen it opens. Every path in the manifest is relative, inside the
-  folder (no `..`, no link leading out), and is refused otherwise.
+  folder (no `..`, no link leading out), and is refused otherwise. The entry screen's `include`s, and theirs, are
+  files in the folder or in the `shared` folder beside it (where the apps of a folder keep the kits they share, as a
+  release lays them out; a folder, not a link), once links are resolved.
 - **`themes`**: files of `components`, `styles`, `tokens`, `colors` and `fonts`, merged into the entry screen after
   its own `include` files, so the screen's own entries win. A theme can't hold actions or nodes.
 - **`data.models`**: a file of `models` and `queries`, merged the same way. **`data.seed`**: a collection's first

@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -18,9 +19,11 @@ namespace affresco::detail {
 /// @param document The screen.
 /// @param baseDirectory Where its include paths are resolved from.
 /// @param migrated Set if one of them was written for version 1, and migrated (Migrate.hpp).
+/// @param roots The folders every include must be in once links are resolved (an app's), or none for anywhere.
 /// @param depth Includes inside includes so far.
-/// @throws ScreenError If an include can't be read.
-void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated, int depth = 0);
+/// @throws ScreenError If an include can't be read, isn't a plain file of at most 16 MiB, or is outside @p roots.
+void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated,
+                     std::span<const std::filesystem::path> roots = {}, int depth = 0);
 
 /// @brief The name of a place's data in the data folder: a name the place chose (an app's id, a screen file's name),
 /// bound to the first place that uses it, so that another place with the same name never gets its data or the

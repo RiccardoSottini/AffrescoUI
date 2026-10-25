@@ -17,7 +17,9 @@
 #include <array>
 #include <cctype>
 #include <fstream>
+#include <span>
 #include <sstream>
+#include <vector>
 
 namespace affresco {
 
@@ -77,6 +79,19 @@ std::filesystem::path inside(const AppFolder& app, const std::string& relative, 
 	const auto [end, unused] = std::ranges::mismatch(app.folder, file);
 	if(end != app.folder.end()) fail(place, "'" + relative + "' leads out of the app's folder");
 	return file;
+}
+
+/// @brief The folders an app's includes may be in: its own, and the "shared" folder beside it, where the apps of a
+/// folder keep the kits they share (as a release lays them out), if it is a folder and not a link.
+/// @param app The app.
+/// @return The folders, canonical.
+std::vector<std::filesystem::path> includeRoots(const AppFolder& app) {
+	std::vector<std::filesystem::path> roots{app.folder};
+	const std::filesystem::path shared = app.folder.parent_path() / "shared";
+	std::error_code error;
+	if(std::filesystem::symlink_status(shared, error).type() == std::filesystem::file_type::directory)
+		roots.push_back(shared);
+	return roots;
 }
 
 /// @brief Reads an app's folder and its manifest.
@@ -258,7 +273,7 @@ Screen Screen::fromApp(const std::filesystem::path& location, const std::filesys
 		fail(entry.string(), R"(an app's entry is a screen ("format": "affrescoui-screen"))");
 	bool migrated = !format::migrate(document).empty();
 	includeParts(document, app, entry.parent_path());
-	detail::resolveIncludes(document, entry.parent_path(), migrated);
+	detail::resolveIncludes(document, entry.parent_path(), migrated, includeRoots(app));
 	giveSeeds(document, app);
 	if(migrated)
 		affresco::log(LogLevel::Info, "AffrescoUI screen: written for format version 1, read as version 2 "

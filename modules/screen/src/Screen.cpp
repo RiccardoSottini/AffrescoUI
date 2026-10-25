@@ -18,6 +18,7 @@
 #include <fstream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <sstream>
 #include <string_view>
 
@@ -59,18 +60,29 @@ std::filesystem::path platformDataDirectory() {
 #endif
 }
 
+constexpr std::uintmax_t maxIncludeBytes = 16U << 20; ///< An included file, at most 16 MiB.
+
 /// @brief Reads an included file.
 /// @param path The file.
 /// @return Its JSON object.
-/// @throws ScreenError If it can't be read, isn't a JSON object, or nests too deeply.
+/// @throws ScreenError If it can't be read, isn't a plain file of at most 16 MiB, isn't a JSON object, or nests too
+/// deeply.
 json readInclude(const std::filesystem::path& path) {
-	const std::ifstream file(path);
+	std::error_code error;
+	if(!std::filesystem::is_regular_file(path, error)) // a device or a pipe would read without end
+		throw ScreenError("AffrescoUI screen: include: " + path.string() + " is not a file");
+	if(std::filesystem::file_size(path, error) > maxIncludeBytes || error)
+		throw ScreenError("AffrescoUI screen: include: " + path.string() + " is over 16 MiB");
+	std::ifstream file(path, std::ios::binary);
 	if(!file) throw ScreenError("AffrescoUI screen: include: could not open " + path.string());
-	std::stringstream text;
-	text << file.rdbuf();
+	std::string text(maxIncludeBytes + 1, '\0'); // one more, so a file that grew is refused too
+	file.read(text.data(), static_cast<std::streamsize>(text.size()));
+	text.resize(static_cast<std::size_t>(file.gcount()));
+	if(text.size() > maxIncludeBytes)
+		throw ScreenError("AffrescoUI screen: include: " + path.string() + " is over 16 MiB");
 	json part;
 	try {
-		part = parseUntrusted(text.str());
+		part = parseUntrusted(text);
 	} catch(const json::parse_error&) { // NOLINT(bugprone-empty-catch): reported below, as not a JSON object
 	} catch(const DocumentError& deep) {
 		throw ScreenError("AffrescoUI screen: include: " + path.string() + ": " + deep.what());
@@ -130,6 +142,22 @@ void mergeInclude(json& document, const json& part) {
 	}
 }
 
+/// @brief Checks that an include is inside one of the folders allowed, once links are resolved.
+/// @param path The include.
+/// @param roots The folders, canonical; none for anywhere.
+/// @throws ScreenError If it is outside them.
+void checkInside(const std::filesystem::path& path, std::span<const std::filesystem::path> roots) {
+	if(roots.empty()) return;
+	std::error_code error;
+	const std::filesystem::path file = std::filesystem::canonical(path, error);
+	const auto within = [&](const std::filesystem::path& root) {
+		return !error && std::ranges::mismatch(root, file).in1 == root.end();
+	};
+	if(std::ranges::none_of(roots, within))
+		throw ScreenError("AffrescoUI screen: include: " + path.string() +
+		                  " is outside the app's folder and the shared folder beside it");
+}
+
 } // namespace
 
 namespace detail {
@@ -141,7 +169,8 @@ namespace detail {
 /// @param migrated Set if one of them was written for version 1, and migrated (Migrate.hpp).
 /// @param depth Includes inside includes so far.
 /// @throws ScreenError If an include can't be read.
-void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated, int depth) {
+void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated,
+                     std::span<const std::filesystem::path> roots, int depth) {
 	if(!document.is_object() || !document.contains("include")) return;
 	if(depth > 8) throw ScreenError("AffrescoUI screen: include: nested too deeply (a file includes itself?)");
 	const json includes = document["include"].is_string() ? json::array({document["include"]}) : document["include"];
@@ -151,9 +180,10 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 	for(const json& name : includes) {
 		if(!name.is_string()) throw ScreenError("AffrescoUI screen: include: expected file names");
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
+		checkInside(path, roots);
 		json part = readInclude(path);
 		if(!format::migrate(part).empty()) migrated = true;
-		resolveIncludes(part, path.parent_path(), migrated, depth + 1);
+		resolveIncludes(part, path.parent_path(), migrated, roots, depth + 1);
 		mergeInclude(document, part);
 	}
 }
