@@ -16,7 +16,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Shell | A contextual tab for the selected shape | missing | missing | |
 | Shell | Quick access toolbar (save, undo, redo, start from beginning) | missing | done | save-and-open, present-from-current, first-frame |
 | Shell | Title bar with the file name | partial | done | first-frame |
-| Shell | Search ("tell me what you want to do") that runs commands | missing | missing | |
+| Shell | Search ("tell me what you want to do") that runs commands | missing | partial | search-commands (33 commands by name, and the text in the slides) |
 | Shell | File view (new, open, save, export) | missing | partial | save-and-open, export-pdf |
 | Shell | Key hints (Alt shows a key on every command) | missing | missing | |
 | Slides | Thumbnails pane with slide numbers | partial | done | first-frame, slide-4 |
@@ -137,6 +137,6 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 68 | 30 | 23 | 121 |
+| Now | 68 | 31 | 22 | 121 |
 
 The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, and Insert > Link one (all missing at the start), so *Now* counts 121 rows.

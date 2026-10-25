@@ -1275,6 +1275,30 @@
 				{ "click": "#theme-grove" },
 				{ "expect": { "state": "deck.colors", "is": null } }
 			]
+		},
+		{
+			"name": "sinopia-search-commands",
+			"note": "The title bar's search (Alt+Q) lists the commands whose names hold what is typed, and Enter shows them: one runs on a click; the last item finds the text in the slides",
+			"steps": [
+				{ "key": "alt+q" },
+				{ "wait": 50 },
+				{ "type": "pane" },
+				{ "expect": { "state": "search", "is": "pane" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "drop.id", "is": "search" } },
+				{ "expect": { "node": { "role": "menuitem", "name": "Selection Pane" }, "exists": true } },
+				{ "click": { "role": "menuitem", "name": "Animation Pane" } },
+				{ "expect": { "state": "sidePane", "is": "motion" } },
+				{ "expect": { "state": "search", "is": "" } },
+				{ "key": "alt+q" },
+				{ "wait": 50 },
+				{ "type": "harbour" },
+				{ "expect": { "state": "search", "is": "harbour" } },
+				{ "key": "enter" },
+				{ "click": { "role": "menuitem", "name": "Find “harbour” in the slides" } },
+				{ "expect": { "state": "find.open", "is": true } },
+				{ "expect": { "state": "find.text", "is": "harbour" } }
+			]
 		}
 	]
 }

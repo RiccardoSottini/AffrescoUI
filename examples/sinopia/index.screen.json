@@ -82,6 +82,7 @@
 	},
 
 	"keys": {
+		"alt+q": [{ "when": "{{!state.show.on}}", "do": [{ "focus": "#search" }] }],
 		"mod+f1": [{ "when": "{{!state.show.on}}", "do": [{ "toggle": "state.ribbon" }] }],
 		"mod+z": [{ "when": "{{!context.textInputFocus}}", "do": "undo" }],
 		"mod+y": [{ "when": "{{!context.textInputFocus}}", "do": "redo" }],
@@ -130,6 +131,10 @@
 					  "runs": [{ "text": "{{t.title}}", "size": 12 }],
 					  "onClick": [{ "set": "state.tab", "to": "{{t.id}}" }, { "set": "state.ribbon", "to": true }] },
 					{ "id": "command-gap", "grow": 1, "height": 1, "color": "transparent" },
+					{ "type": "textarea", "id": "search", "width": 200, "height": 28, "padding": 6, "radius": 14, "color": "@rbFieldBg", "borderWidth": 1, "borderColor": "@rbFieldLine",
+					  "textColor": "@rbInk", "bind": "state.search", "placeholder": "Search commands (Alt+Q)", "placeholderColor": "@rbMuted", "label": "Search commands",
+					  "tooltip": "Type what you want to do, then Enter", "onSubmit": { "run": "openDrop", "with": { "id": "search" } } },
+					{ "id": "command-gap-2", "width": 8, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "qat-undo", "style": "barIcon", "runs": [{ "icon": "undo-2", "size": 16 }],
 					  "textColor": "{{computed.canUndo ? '@rbInk' : '@inkFaded'}}", "tooltip": "Undo (Ctrl+Z)", "onClick": "undo" },
 					{ "type": "label", "id": "qat-redo", "style": "barIcon", "runs": [{ "icon": "redo-2", "size": 16 }],
