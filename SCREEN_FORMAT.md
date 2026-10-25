@@ -737,12 +737,15 @@ to load is left out and named in the log.
 | `grid` | A ground grid (default true). |
 | `axes` | The X (red) and Z (blue) axes on the floor (default true); with `"up": "z"`, X and Y (green). |
 | `glyphs` | Lights and cameras drawn as a modeller draws them (default false: a small cross): a camera's frustum with its up triangle, a light's circle with a line down to the floor (a sun's rays, a spot's cone); the selected ones in `outlineColor`. |
+| `extras` | Lights and cameras drawn at all, as crosses or `glyphs` (default true); false leaves them out, as a rendered image does, while the lights still light. |
 | `up` | Which way is up in the scene's frame: `"y"` (the default, as glTF) or `"z"` (as CAD and modelling tools): then the nodes' transforms, the world gizmo's axes, the picked `point`, the `cursor3d` and the pivot are Z up, and the floor is the XY plane. |
 | `cursor3d` | A 3D cursor drawn at `[x, y, z]` (none without it): a ring of red and white dashes facing the eye; e.g. set from a pick's `point`, and used as the gizmo's `pivot` or where new nodes go. |
 | `background` | Behind the scene (default the theme's). |
 | `gridColor` | The grid's lines. |
 | `outlineColor` | The selection's outline (default orange). |
 | `exposure` | The light's multiplier, before tone mapping (default 1). |
+| `xray` | How see-through the surfaces are, so that what is behind them shows (an X-ray): 0 (the default) opaque, up to 1 (kept at 0.95, so they still show). |
+| `lighting` | `"scene"` (the default: the scene's lights, a soft studio light if it has none) or `"studio"` (the studio light only, the scene's lights left out: a material preview). |
 | `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local", "pixels" (its size), "pivot": [x, y, z] (where it turns and scales about, if not the selection's centre), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
 | `controls` | The pointer's gestures: `{ "orbit": "middle", "pan": "shift+middle", "select": "left", "zoom": true, "selects": true, "minimumDistance", "maximumDistance" }` (these are the defaults); a binding is `"left"`, `"middle"` or `"right"` after any of `"shift+"`, `"control+"` and `"alt+"`, or `"none"`. A click picks, a drag on nothing draws a box; `selects` false leaves the selection to the handlers. |
 | `onSelect` | A click (`event.type` `"pick"`: `id`, or null on nothing, `button`, `shift`, `x`, `y`, the world `point`) or a box (`"boxSelect"`: `ids`, `shift`, `box`), with the `selection` after it. |
@@ -1008,7 +1011,8 @@ Wherever a value is expected it can be computed:
   `entries(object)`, `fromEntries(list)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
   `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
   `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`,
-  `hexColor(value)` ('#rrggbb' or '#rrggbbaa', or null), `keyframeValue(track, time)`, `t('key', {params})`,
+  `hexColor(value)` ('#rrggbb' or '#rrggbbaa' from hex or a list of 3 or 4 numbers 0 to 1, or null),
+  `colorList(value)` ([r, g, b, a] from 0 to 1, or null), `keyframeValue(track, time)`, `t('key', {params})`,
   `formatNumber(n, fewest?, most?)`, `formatPercent(ratio, decimals?)`, `formatCurrency(amount, 'EUR')`,
   `formatDate(milliseconds, style?, zone?)`, `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`,
   `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`,
@@ -1288,7 +1292,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `chooseFolder` | `{ "chooseFolder": "workspace", "onDone": [...] }`: after the event, the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `saveFile` | `{ "saveFile": "{{state.deck}}", "name": "{{state.deck.title}}.json", "onDone": [...] }`: after the event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. `result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `"comments": true` it also reads the comments and trailing commas settings and theme files have. A control step |
-| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), or `"png"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
+| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), `"png"` of one node (`scale` pixels a unit, 2 by default), or `"gltf"` of one `scene` node: what it shows, as a `.gltf` file with its buffer embedded, and the clips given as `animations` (textures aren't written: `result.warnings` names them). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
 | `runInTerminal` | `{ "runInTerminal": "t1", "text": "make" }`: types the line (at most 64 KiB) and a newline into the session of a `terminal` node, once a node first shows it if none has yet. A control step |
 | `clearTerminal` | `{ "clearTerminal": "t1" }`: clears a terminal session's scrollback and asks its program to redraw. A control step |
 | `closeTerminal` | `{ "closeTerminal": "t1" }`: ends a terminal session's program and forgets the session. A control step |

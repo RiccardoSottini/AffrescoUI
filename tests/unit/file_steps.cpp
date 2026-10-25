@@ -229,6 +229,61 @@ TEST_CASE("export step: a PDF of one page per node, saved where the person choos
 	CHECK(asked.size() == 1);
 }
 
+TEST_CASE("export step: the glTF of a scene node, with its clips; another node is refused") {
+	const affresco::test::TemporaryFolder folder;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(300, 200, clock);
+	json document = fileScreen();
+	document["state"]["clips"] = json::array(
+	    {{{"name", "Spin"},
+	      {"tracks", json::array({{{"node", "cube"},
+	                               {"path", "translation"},
+	                               {"times", json::array({0, 1})},
+	                               {"values", json::array({0, 0, 0, 0, 0, 2})}}})}}});
+	document["actions"]["gltf"] = json::array({{{"export", "gltf"},
+	                                            {"pages", json::array({"view"})},
+	                                            {"animations", "{{state.clips}}"},
+	                                            {"name", "scene"},
+	                                            {"onDone", json::array({{{"set", "state.exported"}, {"to", "{{result}}"}}})},
+	                                            {"onError", json::array({{{"set", "state.error"}, {"to", "{{error.message}}"}}})}}});
+	document["actions"]["notScene"] = json::array({{{"export", "gltf"},
+	                                                {"pages", json::array({"page-1"})},
+	                                                {"onError", json::array({{{"set", "state.error"}, {"to", "{{error.message}}"}}})}}});
+	document["root"]["children"].push_back(
+	    {{"type", "scene"},
+	     {"id", "view"},
+	     {"width", 96},
+	     {"height", 54},
+	     {"scene", {{"nodes", json::array({{{"id", "cube"}, {"name", "Cube"}, {"kind", "mesh"}, {"mesh", "cube"}}})}}}});
+	affresco::Screen screen = affresco::Screen::fromString(document.dump());
+	screen.build(*window);
+	std::vector<affresco::FileDialog> asked;
+	window->setFileDialogHandler([&](const affresco::FileDialog& dialog) {
+		asked.push_back(dialog);
+		return std::vector<std::string>{(folder.path() / "scene.gltf").string()};
+	});
+
+	screen.runAction("gltf", window->root());
+	window->runDeferredTasks();
+	REQUIRE(asked.size() == 1);
+	CHECK(asked[0].name == "scene.gltf");
+	CHECK(asked[0].filters.at(0).extensions == std::vector<std::string>{"gltf"});
+	const json gltf = json::parse(textOf(folder.path() / "scene.gltf"));
+	CHECK(gltf["asset"]["version"] == "2.0");
+	CHECK(gltf["nodes"].at(0)["name"] == "Cube");
+	CHECK(gltf["meshes"].size() == 1);
+	CHECK(gltf["animations"].size() == 1);
+	json state = json::parse(screen.stateJson());
+	CHECK(state["exported"]["name"] == "scene.gltf");
+	CHECK(state["exported"]["warnings"] == json::array());
+
+	screen.runAction("notScene", window->root());
+	window->runDeferredTasks();
+	state = json::parse(screen.stateJson());
+	CHECK(state["error"] == "a glTF file is of a scene node");
+	CHECK(asked.size() == 1);
+}
+
 TEST_CASE("file steps: a revision can add none of them, and they are listed among the control steps") {
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(300, 200, clock);

@@ -3840,6 +3840,9 @@
 					"glyphs": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"extras": {
+						"$ref": "#/$defs/v2/flag"
+					},
 					"up": {
 						"anyOf": [
 							{
@@ -3887,6 +3890,31 @@
 								"type": "number",
 								"minimum": 0,
 								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"xray": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 1
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"lighting": {
+						"anyOf": [
+							{
+								"enum": [
+									"scene",
+									"studio"
+								]
 							},
 							{
 								"$ref": "#/$defs/v2/dynamic"
@@ -4721,6 +4749,7 @@
 						"$curve",
 						"$gradientColor",
 						"$hexColor",
+						"$colorList",
 						"$keyframeValue",
 						"$t",
 						"$formatNumber",

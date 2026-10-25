@@ -158,11 +158,14 @@ ViewportSettings viewportSettingsFromJson(const json& params) noexcept {
 	settings.grid = flagOr(params, "grid", true);
 	settings.axes = flagOr(params, "axes", true);
 	settings.glyphs = flagOr(params, "glyphs", false);
+	settings.extras = flagOr(params, "extras", true);
 	const auto member = [&params](const char* key) { return params.contains(key) ? params[key] : json(); };
 	settings.background = colorFromJson(member("background"), settings.background);
 	settings.gridColor = colorFromJson(member("gridColor"), settings.gridColor);
 	settings.outline = colorFromJson(member("outline"), settings.outline);
 	settings.exposure = std::clamp(numberOr(params, "exposure", 1.0f), 0.0f, 64.0f);
+	settings.xray = std::clamp(numberOr(params, "xray", 0.0f), 0.0f, 0.95f);
+	settings.studio = textOf(params, "lighting") == "studio";
 	settings.time = std::max(numberOr(params, "time", 0.0f), 0.0f);
 	if(const auto box = params.find("box"); box != params.end()) settings.box = boxFromJson(*box);
 	settings.zUp = textOf(params, "up") == "z";

@@ -31,7 +31,7 @@
 				{ "key": "escape" },
 				{ "click": [230, 14] },
 				{ "wait": 50 },
-				{ "click": [280, 38] },
+				{ "click": { "role": "menuitem", "name": "Toggle Light and Dark Theme" } },
 				{ "wait": 50 },
 				{ "expect": { "image": "light" } }
 			]
