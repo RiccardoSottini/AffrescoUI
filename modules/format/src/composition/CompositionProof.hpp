@@ -39,7 +39,7 @@ struct ProofInputs {
 	json host;             ///< The host document, as stored (raw).
 	json manifest;         ///< The feature's manifest, unchecked.
 	json adapter;          ///< The adapter, unchecked, or null.
-	std::string source;    ///< Where the feature came from: "app:sinopia".
+	std::string source;    ///< Where the feature came from: "app:notes".
 	std::string hostName;  ///< The host app's name.
 	std::string base;      ///< The commit the host document is at.
 	std::string digest;    ///< The manifest's digest, or empty.

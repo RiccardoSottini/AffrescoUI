@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "The intelligence settings, to include: which provider of intelligence (Anthropic, OpenAI, an OpenAI-compatible server, Claude Code) and which model every app's assistant uses. Put { \"use\": \"intelligenceSettings\" } in a container (the AffrescoUI Launcher's settingsIntelligence). It calls the host's intelligence.* natives (examples/shared/intelligence/Intelligence.hpp), which only the Launcher's host registers; without them it shows stand-in data and can't save. The API key field isn't bound to the state: what is typed goes to the host's memory (intelligence.stageKey), then to the system's keychain on save, and the field is emptied. Everything here is named intelligence..., state under state.intelligence. See README.md.",
+	"note": "The intelligence settings, to include: which provider of intelligence (Anthropic, OpenAI, an OpenAI-compatible server, Claude Code) and which model every app's assistant uses. Put { \"use\": \"intelligenceSettings\" } in a container (the AffrescoUI Launcher's settingsIntelligence). It calls the host's intelligence.* natives (modules/intelligence/include/affresco/intelligence/Intelligence.hpp), which only the Launcher's host registers; without them it shows stand-in data and can't save. The API key field isn't bound to the state: what is typed goes to the host's memory (intelligence.stageKey), then to the system's keychain on save, and the field is emptied. Everything here is named intelligence..., state under state.intelligence. See README.md.",
 	"tokens": {
 		"intelligence.accent": { "light": "#0969da", "dark": "#4493f8" },
 		"intelligence.accentHover": { "light": "#0550ae", "dark": "#2f81f7" },

@@ -26,7 +26,7 @@
 
 	"computed": {
 		"download": "{{find(state.downloads, it.status == 'downloading')}}",
-		"downloadGame": "{{find(state.games, it.id == computed.download.id)}}",
+		"downloadGame": "{{find(data.games, it.id == computed.download.id)}}",
 		"unread": "{{count(state.notifications, it.unread)}}"
 	},
 

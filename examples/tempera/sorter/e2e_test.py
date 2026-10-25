@@ -123,7 +123,8 @@ def main():
     work = tempfile.mkdtemp(prefix="afr-ts-")  # short: socket paths are limited to about 100 bytes
     sockets = os.path.join(work, "s")
     host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), os.path.join(TEMPERA, "index.screen.json"),
-                             "--socket", sockets, "--data", os.path.join(work, "data")],
+                             "--socket", sockets, "--data", os.path.join(work, "data"),
+                             "--grant", "files", "--grant", "assistant"],  # what Tempera's app.json asks, unasked
                             env=dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets),
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:

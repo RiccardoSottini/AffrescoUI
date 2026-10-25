@@ -37,7 +37,8 @@ SAVED = re.compile(r"screenshot saved|\b0 failed\b")  # the frame saved, a summa
 
 # Each program as its README starts it: its name, its arguments (paths relative to the repository root) and its kind:
 # WINDOW (draws a frame and exits after the run), SERVICE (no window, still running after the run) or COMMAND (no
-# window, does its work and exits 0). The host also opens every examples/*/*.screen.json (added in programs()).
+# window, does its work and exits 0). The host also opens every examples/*/*.screen.json and every app, by its
+# app.json (added in programs()).
 WINDOW, SERVICE, COMMAND = "window", "service", "command"
 PROGRAMS = [
     ("host", "affrescoui_launcher", [], WINDOW),
@@ -52,7 +53,8 @@ FIRST = {"server": ["--folder", "{data}", "--add-token", "ada"]}
 
 
 def programs(build):
-    """Every program to open, (name, executable, arguments, kind), with the host once per example screen."""
+    """Every program to open, (name, executable, arguments, kind), with the host once per example screen and once per
+    app."""
     found = []
     for name, executable, arguments, kind in PROGRAMS:
         path = os.path.join(build, executable)
@@ -64,6 +66,9 @@ def programs(build):
     for screen in sorted(glob.glob(os.path.join(ROOT, "examples", "*", "*.screen.json"))):
         name = "host " + os.path.relpath(screen, os.path.join(ROOT, "examples"))
         found.append((name, host, [os.path.relpath(screen, ROOT)], WINDOW))
+    for app in sorted(glob.glob(os.path.join(ROOT, "examples", "*", "app.json"))):
+        name = "host " + os.path.relpath(app, os.path.join(ROOT, "examples"))
+        found.append((name, host, [os.path.relpath(app, ROOT)], WINDOW))
     return found
 
 
@@ -136,7 +141,7 @@ def run(program, build, way, seconds, keep):
         if name in FIRST:
             subprocess.run([executable] + placed(FIRST[name]), cwd=cwd, env=environment_for(home), capture_output=True,
                            timeout=GRACE_SECONDS, check=False)
-        if way != "default socket" and executable.endswith(("host", "forge", "modello")):
+        if way != "default socket" and executable.endswith(("launcher", "forge", "modello")):
             absolute += ["--socket", socket]
         if way != "default socket" and executable.endswith("server"):
             absolute += ["--listen", f"127.0.0.1:{free_port()}"]  # runs side by side; the default way keeps 7420

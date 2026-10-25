@@ -64,10 +64,17 @@ public:
 	/// @param panel The panel.
 	void focus(Panel& panel);
 	/// @brief The "focus" step: focuses a panel by id (focus()) after the update and its layout, so it exists and
-	/// has its place. It wins over a focus scheduled before it, and gives way to a later step, to a node that took
-	/// the focus after it, and to a focus scheduled after it outside its node (a dialog a later key opened).
-	/// @param id The panel's id.
-	void focusStep(std::string id);
+	/// has its place. It wins over a focus scheduled before it, and gives way to a later step whose node exists, to a
+	/// node that took the focus after it, and to a focus scheduled after it outside its node (a dialog a later key
+	/// opened).
+	/// @param path The panel's id, or a path of ids (findByPath()).
+	void focusStep(std::string path);
+	/// @brief The panel a path of ids names: "#a #b" is the "b" inside "a", as in CSS, so that a component's inner node
+	/// can be told apart between its uses.
+	/// @param root Where the search starts.
+	/// @param path Ids separated by spaces, each with or without its "#".
+	/// @return The panel, or nullptr when one of the ids isn't found.
+	[[nodiscard]] static Panel* findByPath(Panel& root, std::string_view path);
 	/// @brief Closes every open overlay that closes on a click outside it (the "dismiss" step, Escape).
 	void dismissAll() { dismissOverlays(nullptr); }
 	/// @brief A key press in another of the screen's windows (SecondWindows): it runs the screen's "keys", as if
@@ -271,9 +278,11 @@ private:
 		bool pending = false;   ///< Scheduled.
 		bool cancelled = false; ///< A target was destroyed meanwhile.
 	};
-	FocusLater focusLater_;           ///< The focus change scheduled by focusLater().
+	FocusLater focusLater_;            ///< The focus change scheduled by focusLater().
 	std::uint64_t focusSteps_ = 0;     ///< focusStep() calls so far.
+	std::string focusPath_;            ///< The path of the latest focusStep().
 	std::uint64_t focusSchedules_ = 0; ///< focusLater() calls so far.
+	bool capsLock_ = false;            ///< Whether caps lock was on at the latest key event: bindings update on a change.
 	/// @brief The connections connect() made to the window's signals (0: none).
 	struct WindowHooks {
 		Connection resized = 0; ///< onResize.

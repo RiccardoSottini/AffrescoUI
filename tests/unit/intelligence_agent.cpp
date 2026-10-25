@@ -1,11 +1,11 @@
 /// @file
-/// @brief The examples' in-process agent (examples/shared/intelligence/Agent.hpp), with a fake network and a stand-in
-/// screen: the tool loop reads, revises and replies within its bounds, only the provider's origin is allowed, a
+/// @brief The intelligence module's in-process agent (affresco/intelligence/Agent.hpp), with a fake network and a
+/// stand-in screen: the tool loop reads, revises and replies within its bounds, only the provider's origin is allowed, a
 /// missing key or a refused one is a reply without the key, claude-code retries a rejected revision once, and only
 /// the screen's own requests are taken. No real API is called.
 
-#include "intelligence/Agent.hpp"
-#include "intelligence/Intelligence.hpp"
+#include <affresco/intelligence/Agent.hpp>
+#include <affresco/intelligence/Intelligence.hpp>
 
 #include <affresco/affresco.hpp>
 
@@ -31,7 +31,7 @@
 #endif
 
 using affresco::json;
-namespace intelligence = examples::intelligence;
+namespace intelligence = affresco::intelligence;
 namespace network = affresco::network;
 
 namespace {

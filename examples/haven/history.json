@@ -2,24 +2,7 @@
 	"note": "Haven's logbook and history pages, included by index.screen.json: the logbook lists today's and yesterday's events with a search; history draws a day of on and off states per device and the living room's temperature. The events are invented.",
 
 	"state": {
-		"logQuery": "",
-		"logbook": [
-			{ "id": "e1", "day": "today", "time": "21:42", "icon": "lamp-floor", "name": "Floor lamp", "rule": "", "what": "on" },
-			{ "id": "e2", "day": "today", "time": "21:40", "icon": "door-open", "name": "Front door", "rule": "", "what": "opened" },
-			{ "id": "e3", "day": "today", "time": "21:40", "icon": "workflow", "name": "", "rule": "welcome", "what": "triggered" },
-			{ "id": "e4", "day": "today", "time": "19:05", "icon": "bot", "name": "Vacuum", "rule": "", "what": "docked" },
-			{ "id": "e5", "day": "today", "time": "07:00", "icon": "blinds", "name": "Bedroom blinds", "rule": "", "what": "opened" },
-			{ "id": "e6", "day": "yesterday", "time": "23:00", "icon": "workflow", "name": "", "rule": "goodNight", "what": "triggered" },
-			{ "id": "e7", "day": "yesterday", "time": "23:00", "icon": "lock", "name": "Front door", "rule": "", "what": "locked" },
-			{ "id": "e8", "day": "yesterday", "time": "22:58", "icon": "lightbulb", "name": "Ceiling", "rule": "", "what": "off" },
-			{ "id": "e9", "day": "yesterday", "time": "18:12", "icon": "speaker", "name": "Speaker", "rule": "", "what": "playing" }
-		],
-		"timeline": [
-			{ "id": "door", "name": "Front door", "k": "device.door", "segs": [{ "on": true, "h": 8 }, { "on": false, "h": 1 }, { "on": true, "h": 9 }, { "on": false, "h": 1 }, { "on": true, "h": 5 }] },
-			{ "id": "lamp", "name": "Floor lamp", "k": "hist", "segs": [{ "on": false, "h": 7 }, { "on": true, "h": 1 }, { "on": false, "h": 10 }, { "on": true, "h": 6 }] },
-			{ "id": "vacuum", "name": "Vacuum", "k": "device.vacuum", "segs": [{ "on": false, "h": 10 }, { "on": true, "h": 2 }, { "on": false, "h": 5 }, { "on": true, "h": 2 }, { "on": false, "h": 5 }] },
-			{ "id": "speaker", "name": "Speaker", "k": "device.speaker", "segs": [{ "on": false, "h": 18 }, { "on": true, "h": 4 }, { "on": false, "h": 2 }] }
-		]
+		"logQuery": ""
 	},
 
 	"stateTypes": {
@@ -27,7 +10,7 @@
 	},
 
 	"computed": {
-		"logShown": "{{filter(state.logbook, state.logQuery == '' || contains(lower(it.rule != '' ? t('rule.' + it.rule) : it.name), lower(trim(state.logQuery))))}}"
+		"logShown": "{{filter(data.logbook, state.logQuery == '' || contains(lower(it.rule != '' ? t('rule.' + it.rule) : it.name), lower(trim(state.logQuery))))}}"
 	},
 
 	"components": {
@@ -160,7 +143,7 @@
 						"id": "histTimeline",
 						"style": "card",
 						"anchors": { "left": 24, "right": 24, "top": 136 },
-						"height": "{{76 + length(state.timeline) * 40 + 28}}",
+						"height": "{{76 + length(data.timeline) * 40 + 28}}",
 						"role": "group",
 						"label": "{{t('hist.timeline')}}",
 						"children": [
@@ -168,12 +151,12 @@
 							{
 								"type": "column",
 								"anchors": { "left": 24, "right": 24, "top": 60 },
-								"height": "{{length(state.timeline) * 40}}",
+								"height": "{{length(data.timeline) * 40}}",
 								"role": "list",
 								"children": [
 									{
 										"id": "histEntity",
-										"repeat": { "for": "ent", "in": "state.timeline", "key": "{{ent.id}}" },
+										"repeat": { "for": "ent", "in": "data.timeline", "key": "{{ent.id}}" },
 										"anchors": { "left": 0, "right": 0 },
 										"height": 40,
 										"color": "transparent",
@@ -216,7 +199,7 @@
 					{
 						"id": "histTemp",
 						"style": "card",
-						"anchors": { "left": 24, "right": 24, "top": "{{136 + 104 + length(state.timeline) * 40 + 16}}", "bottom": 24 },
+						"anchors": { "left": 24, "right": 24, "top": "{{136 + 104 + length(data.timeline) * 40 + 16}}", "bottom": 24 },
 						"role": "group",
 						"label": "{{t('hist.temp', { name: state.rooms[0].name })}}",
 						"children": [

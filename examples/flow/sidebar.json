@@ -6,6 +6,7 @@
 			"note": "One row of the sidebar: an icon, a name and a count; the use gives its onClick",
 			"params": { "icon": "circle", "text": "", "active": false, "count": "" },
 			"node": {
+				"id": "label-text",
 				"type": "label",
 				"font": "small",
 				"height": 28,
@@ -31,7 +32,7 @@
 		"navHeading": {
 			"note": "A small heading over a group of sidebar rows",
 			"params": { "text": "" },
-			"node": { "type": "label", "font": "small", "text": "{{text}}", "textColor": "@color.muted", "height": 28, "padding": 8,
+			"node": { "id": "label-text-2", "type": "label", "font": "small", "text": "{{text}}", "textColor": "@color.muted", "height": 28, "padding": 8,
 				"anchors": { "left": 0, "right": 0 }, "align": { "horizontal": "start", "vertical": "end" } }
 		},
 		"sidebar": {

@@ -28,7 +28,7 @@ opens it when it is started without a file.
 
 ## How it holds together
 
-- **What the host grants** (`grantLauncher` in [`host.cpp`](../host/host.cpp)), and only when it opens the Launcher:
+- **What the host grants** (`grantLauncher` in [`host.cpp`](../../apps/host/host.cpp)), and only when it opens the Launcher:
   the examples folder, read-only (the service `examples`); the apps folder (`apps`, which may copy from `examples`);
   and the app-programs grant `affresco` (the service `launch`), which starts `affrescoui_launcher` on a `.screen.json`
   inside one of those two folders (with `--ask TEXT`), or `affrescoui_forge`, found next to the host, each detached,

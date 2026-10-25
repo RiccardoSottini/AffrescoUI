@@ -141,13 +141,12 @@
 			"icon": "x",
 			"do": [
 				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
+					"if": "{{find(data.games, it.id == id).status == 'downloading'}}",
+					"then": [
 						{
-							"if": "{{g.id == id && g.status == 'downloading'}}",
-							"then": [{ "set": "state.games[i].status", "to": "{{g.installed ? 'update' : 'none'}}" }]
+							"update": "games",
+							"id": "{{id}}",
+							"fields": { "status": "{{find(data.games, it.id == id).installed ? 'update' : 'none'}}" }
 						}
 					]
 				},
@@ -175,26 +174,13 @@
 								{ "set": "state.downloads[i].status", "to": "done" },
 								{
 									"set": "state.downloads[i].doneGb",
-									"to": "{{d.sizeGb ?? find(state.games, it.id == id).sizeGb}}"
+									"to": "{{d.sizeGb ?? find(data.games, it.id == id).sizeGb}}"
 								}
 							]
 						}
 					]
 				},
-				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
-						{
-							"if": "{{g.id == id}}",
-							"then": [
-								{ "set": "state.games[i].status", "to": "ready" },
-								{ "set": "state.games[i].installed", "to": true }
-							]
-						}
-					]
-				},
+				{ "update": "games", "id": "{{id}}", "fields": { "status": "ready", "installed": true } },
 				{
 					"if": "{{find(state.downloads, it.status == 'queued') != null}}",
 					"then": [
@@ -605,7 +591,7 @@
 															{
 																"type": "label",
 																"font": "strong",
-																"text": "{{find(state.games, it.id == q.d.id).title}}",
+																"text": "{{find(data.games, it.id == q.d.id).title}}",
 																"height": 24,
 																"anchors": { "left": 0, "right": 0 },
 																"textColor": "@color.bright",
@@ -618,7 +604,7 @@
 															{
 																"type": "label",
 																"font": "small",
-																"text": "{{formatNumber(q.d.doneGb, 1, 1)}} GB / {{formatNumber(q.d.sizeGb ?? find(state.games, it.id == q.d.id).sizeGb, 1, 1)}} GB",
+																"text": "{{formatNumber(q.d.doneGb, 1, 1)}} GB / {{formatNumber(q.d.sizeGb ?? find(data.games, it.id == q.d.id).sizeGb, 1, 1)}} GB",
 																"height": 18,
 																"anchors": { "left": 0, "right": 0 },
 																"textColor": "@color.muted"
@@ -847,7 +833,7 @@
 															{
 																"type": "label",
 																"font": "strong",
-																"text": "{{find(state.games, it.id == d.id).title}}",
+																"text": "{{find(data.games, it.id == d.id).title}}",
 																"height": 24,
 																"anchors": { "left": 0, "right": 0 },
 																"textColor": "@color.bright",
@@ -860,7 +846,7 @@
 															{
 																"type": "label",
 																"font": "small",
-																"text": "{{formatNumber(d.doneGb, 1, 1)}} GB / {{formatNumber((d.sizeGb ?? find(state.games, it.id == d.id).sizeGb), 1, 1)}} GB",
+																"text": "{{formatNumber(d.doneGb, 1, 1)}} GB / {{formatNumber((d.sizeGb ?? find(data.games, it.id == d.id).sizeGb), 1, 1)}} GB",
 																"height": 18,
 																"anchors": { "left": 0, "right": 0 },
 																"textColor": "@color.muted"
@@ -1013,7 +999,7 @@
 															{
 																"type": "label",
 																"font": "strong",
-																"text": "{{find(state.games, it.id == d.id).title}}",
+																"text": "{{find(data.games, it.id == d.id).title}}",
 																"height": 24,
 																"anchors": { "left": 0, "right": 0 },
 																"textColor": "@color.bright",
@@ -1026,7 +1012,7 @@
 															{
 																"type": "label",
 																"font": "small",
-																"text": "{{t('dl.doneSize', { n: formatNumber((d.sizeGb ?? find(state.games, it.id == d.id).sizeGb), 1, 1) })}}",
+																"text": "{{t('dl.doneSize', { n: formatNumber((d.sizeGb ?? find(data.games, it.id == d.id).sizeGb), 1, 1) })}}",
 																"height": 18,
 																"anchors": { "left": 0, "right": 0 },
 																"textColor": "@color.muted"

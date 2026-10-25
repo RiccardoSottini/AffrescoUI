@@ -40,7 +40,7 @@ A screen's relative paths (its `include`s, fonts, images) are read from its own 
 fonts `../shared/fonts/...`. A new template gets a folder and a line in `templates.json`, which the scenarios test,
 the tools, the web build and the release archive read (CI's scenarios step names the folders too).
 
-The programs find this folder through `Assets.hpp`: in a build, `examples/` in the source tree; in a release
+The programs find this folder through `apps/shared/Assets.hpp`: in a build, `examples/` in the source tree; in a release
 (`tools/release`), `assets/` next to the program, which has the template folders and `shared/` laid out the same way,
 without the C++ sources.
 

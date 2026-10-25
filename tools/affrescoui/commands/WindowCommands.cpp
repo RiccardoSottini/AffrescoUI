@@ -3,7 +3,7 @@
 
 #include "Cli.hpp"
 
-#include "SocketDir.hpp" // from examples/shared: the socket folder's checks, shared with affrescoui_launcher
+#include "SocketDir.hpp" // from apps/shared: the socket folder's checks, shared with affrescoui_launcher
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp> // unconnectedScreen()
@@ -130,7 +130,7 @@ Exit renderScreen(std::span<const std::string_view> args) {
 	Application app;
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // never on screen
 	const std::filesystem::path frame = std::filesystem::path(*out).concat(".ppm");
-	Screen screen = automation::unconnectedScreen(readFile(file), file.parent_path(),
+	Screen screen = automation::unconnectedScreen(automation::screenDocument(file), file.parent_path(),
 	                                              frame.parent_path() / "affrescoui-render-no-host");
 	registerApplicationTypes(screen);
 	Window& window = screen.createWindow(app);

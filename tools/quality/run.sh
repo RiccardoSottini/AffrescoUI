@@ -12,6 +12,8 @@
 #                                     module, and the coverage if `coverage` ran before
 #   tools/quality/run.sh all [BASE]   gate, coverage and report
 #   tools/quality/run.sh test         the unit tests of these tools (test_quality.py)
+#   tools/quality/run.sh generalism   the generalism gate (generalism.py): apps are JSON, the engine mechanisms; needs
+#                                     neither LLVM nor a build
 #
 # Environment:
 #   LLVM_BIN       the folder with clang++, llvm-profdata and llvm-cov (found if unset: Xcode's on macOS, the newest
@@ -123,9 +125,12 @@ report() {
 
 command="${1:-}"
 case "$command" in
-gate | coverage | report | all | test) ;;
-*) fail "usage: tools/quality/run.sh gate [BASE] | coverage | report | all | test" ;;
+gate | coverage | report | all | test | generalism) ;;
+*) fail "usage: tools/quality/run.sh gate [BASE] | coverage | report | all | test | generalism" ;;
 esac
+if [ "$command" = generalism ]; then # the standard library only
+	exec python3 "$here/generalism.py" --root "$root"
+fi
 
 mkdir -p "$build"
 setup_python

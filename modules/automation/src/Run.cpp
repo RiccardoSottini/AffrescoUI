@@ -104,7 +104,7 @@ void play(const Scenario& scenario, const std::string& document, const Options& 
 ScenarioResult runScenario(const Scenario& scenario, const Options& options, const std::filesystem::path& scratch) {
 	ScenarioResult result{scenario.name, {}, {}, 0};
 	try {
-		play(scenario, options.document ? *options.document : readText(scenario.screen), options, scratch, result);
+		play(scenario, options.document ? *options.document : screenDocument(scenario.screen), options, scratch, result);
 	} catch(const std::exception& error) { // the screen didn't load or build: step 0
 		result.failures.push_back({0, std::string("could not start: ") + error.what()});
 	}
@@ -159,6 +159,12 @@ json Report::toJson() const {
 /// @param directory Where its relative paths ("include", fonts) are found.
 /// @param nowhere The folder that is never created.
 /// @return The screen.
+std::string screenDocument(const std::filesystem::path& screen) {
+	const std::filesystem::path manifest = Screen::appOf(screen);
+	if(manifest.empty()) return readText(screen);
+	return Screen::fromApp(manifest, {}, Screen::History::InMemory).documentJson();
+}
+
 Screen unconnectedScreen(const std::string& document, const std::filesystem::path& directory,
                          const std::filesystem::path& nowhere) {
 	Screen screen = Screen::fromString(document, directory);

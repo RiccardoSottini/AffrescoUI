@@ -19,10 +19,11 @@ namespace affresco::format {
 namespace {
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
-constexpr std::array<std::string_view, 20> controlSteps{"accept",       "reject",  "preview",  "endPreview", "restore",
-                                                        "revert",       "undo",    "patch",    "call",       "send",
-                                                        "connect",      "respond", "signIn",   "signOut",    "ask",
-                                                        "chooseFolder", "attach",  "saveFile", "openFile",   "export"};
+/// "ask" and "cancelAsk" reach the agents: the person's request, which an agent may act on, is never a revision's.
+constexpr std::array<std::string_view, 21> controlSteps{
+    "accept",  "reject",  "preview", "endPreview", "restore", "revert",    "undo",         "patch",  "call",
+    "send",    "connect", "respond", "signIn",     "signOut", "ask",       "cancelAsk",    "chooseFolder", "attach",
+    "saveFile", "openFile", "export"};
 
 /// The most uses of the document's own components one use is expanded through to be scanned; past them, it may run a
 /// control step.
@@ -341,6 +342,7 @@ std::vector<std::string> controlsIn(const json& doc, const std::set<std::string,
 	const ControlScan scan(doc.contains("actions") ? doc["actions"] : none, control, runners,
 	                       doc.contains("components") ? doc["components"] : none);
 	for(const auto& [key, value] : doc.items()) {
+		if(key == "strings") continue; // texts, never run: a key named like a step ("connect") is a word
 		if(key == "actions" && value.is_object()) {
 			for(const auto& [name, steps] : value.items()) scan.walk(steps, "actions." + name, Part::Steps, found);
 		} else {

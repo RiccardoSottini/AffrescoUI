@@ -190,4 +190,27 @@ TEST_CASE("format: a double click is two clicks closer than 0.4 s on the window'
 	CHECK(s.state("doubles") == 1);
 }
 
+// The reconciler reuses a panel in place for the next node of its type, here when the node before goes: the colour
+// transition the panel was running mustn't go on to colour a node with no colour of its own
+TEST_CASE("format: a reused panel ends the colour transition of the node it showed before") {
+	Scheduled s(R"json({"format": "affrescoui-screen", "version": 2, "state": { "on": false, "first": true },
+		"root": { "type": "panel", "children": [
+			{ "id": "first", "when": "{{state.first}}" },
+			{ "id": "lamp", "color": "{{state.on ? '#ffffff' : '#000000'}}", "transition": { "color": 100 } },
+			{ "id": "plain" }
+		] } })json");
+	const affresco::Color unset = s.screen.find("plain")->color();
+	REQUIRE(s.screen.applyRevision(R"({"set": {"/state/on": true}})"));
+	s.window->render();
+	s.advance(50.0); // the lamp is halfway to white
+	REQUIRE(s.screen.applyRevision(R"({"set": {"/state/first": false}})"));
+	s.window->render();
+	s.advance(100.0);
+
+	const affresco::Panel* plain = s.screen.find("plain");
+	REQUIRE(plain);
+	CHECK(plain->color() == unset);
+	CHECK_FALSE(s.window->secondsToNextTimer());
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

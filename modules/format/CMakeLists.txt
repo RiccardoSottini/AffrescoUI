@@ -24,6 +24,7 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsDates.cpp
 	src/functions/ExpressionFunctionsForm.cpp
 	src/functions/ExpressionFunctionsPaths.cpp
+	src/functions/ExpressionFunctionsDiff.cpp
 	src/functions/ExpressionFunctionsFuzzy.cpp
 	src/functions/ExpressionFunctionsItems.cpp
 	src/functions/ExpressionFunctionsFold.cpp
@@ -33,8 +34,10 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsLogic.cpp
 	src/functions/ExpressionFunctionsMaths.cpp
 	src/functions/ExpressionFunctionsNumbers.cpp
+	src/functions/ExpressionFunctionsQr.cpp
 	src/functions/ExpressionFunctionsText.cpp
-	src/functions/ExpressionFunctionsTime.cpp)
+	src/functions/ExpressionFunctionsTime.cpp
+	src/functions/QrCode.cpp)
 target_include_directories(affrescoui_format PRIVATE src/functions)
 # src/locale/: locale data (CLDR subset), number, date and plural formatting, and the strings tables
 target_sources(affrescoui_format PRIVATE
@@ -189,6 +192,8 @@ target_sources(affrescoui_format PRIVATE src/sections/Sections.cpp src/sections/
 # connections: connections (RFC 0003): their specs, their HTTP and socket calls, signing in and its steps
 target_sources(affrescoui_format PRIVATE src/connections/ConnectionSpec.cpp src/connections/Connections.cpp
 	src/connections/ConnectionAuth.cpp src/connections/AuthSteps.cpp)
+# app: apps' manifests (app.json) and the capabilities a screen uses
+target_sources(affrescoui_format PRIVATE src/app/App.cpp)
 # features: features (RFC 0004): manifests, catalogues, signatures, trusted publishers
 target_sources(affrescoui_format PRIVATE src/features/FeatureManifest.cpp src/features/FeatureCatalog.cpp
 	src/features/FeatureSignatures.cpp src/features/Features.cpp)

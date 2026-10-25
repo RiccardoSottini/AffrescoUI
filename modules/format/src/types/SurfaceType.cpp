@@ -22,7 +22,7 @@ namespace {
 /// @param values Its surface, params and continuous, if given.
 /// @param path The node's place, for errors.
 /// @throws DocumentError If it names no surface. One that isn't registered shows empty, with a note: the screen opens
-/// in a host without the program that draws it (e.g. Modello's screen in affrescoui_launcher).
+/// in a host without the program that draws it (e.g. a screen whose app draws with a program of its own).
 void applySurface(const SurfaceRegistry& surfaces, Panel& panel, const json& values, const std::string& path) {
 	auto* view = dynamic_cast<SurfaceView*>(&panel);
 	if(!view) return;

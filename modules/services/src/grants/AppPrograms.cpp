@@ -144,10 +144,15 @@ std::optional<std::string> shapeApp(const AppPrograms& programs, ProcessRun& run
 		const std::optional<fs::path> screen =
 		    run.arguments.size() > 1 ? inRoot(programs, run.arguments[1], rootName) : std::nullopt;
 		std::error_code error;
-		if(!screen || !utf8(screen->filename()).ends_with(".screen.json") || !fs::is_regular_file(*screen, error))
-			return name + " needs a screen file, ROOT:PATH, a .screen.json inside a granted root";
+		const bool folder =
+		    screen && fs::is_directory(*screen, error) && fs::is_regular_file(*screen / "app.json", error);
+		const std::string file = screen ? utf8(screen->filename()) : "";
+		if(!folder && (!screen || !(file.ends_with(".screen.json") || file == "app.json") ||
+		               !fs::is_regular_file(*screen, error)))
+			return name + " needs an app, ROOT:PATH, a folder with an app.json, an app.json or a .screen.json inside "
+			              "a granted root";
 		arguments.push_back(utf8(*screen));
-		app = rootName + "-" + utf8(screen->parent_path().filename());
+		app = rootName + "-" + utf8(folder ? screen->filename() : screen->parent_path().filename());
 		at = 2;
 	}
 	bool asked = false;
