@@ -85,7 +85,7 @@
 								  ] }
 							] }
 						] },
-						{ "use": "rbBig", "id": "b-arrange", "with": { "icon": "layers-2", "title": "Arrange", "menu": true, "width": 52 }, "tooltip": "Arrange", "onClick": { "run": "order", "with": { "how": "front" } } },
+						{ "use": "rbBig", "id": "b-arrange", "with": { "icon": "layers-2", "title": "Arrange", "menu": true, "width": 52 }, "tooltip": "Arrange", "onClick": { "run": "openArrangeMenu" } },
 						{ "use": "rbBig", "id": "b-quick-styles", "with": { "icon": "swatch-book", "title": "Shape\nStyles", "menu": true, "width": 52 }, "tooltip": "Shape Styles" },
 						{ "use": "rbStack", "id": "s-drawing", "children": [
 							{ "use": "rbSmall", "id": "b-fill", "with": { "icon": "paint-bucket", "title": "Shape Fill", "menu": true }, "tooltip": "Shape Fill" },

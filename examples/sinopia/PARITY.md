@@ -58,13 +58,13 @@ with its slide show, presenter view, audience window and files on library capabi
 | Arrange | Move and resize with handles | done | partial | selected |
 | Arrange | Smart guides (centres and edges) | missing | partial | |
 | Arrange | Distance indicators (equal gaps) | missing | missing | |
-| Arrange | Align (left, centre, right, top, middle, bottom) | done | missing | |
-| Arrange | Distribute horizontally and vertically | partial | missing | |
+| Arrange | Align (left, centre, right, top, middle, bottom) | done | done | align-and-distribute |
+| Arrange | Distribute horizontally and vertically | partial | done | align-and-distribute |
 | Arrange | Group and ungroup | missing | missing | |
-| Arrange | Order (front, back, forward, backward) | done | partial | arrange-order |
+| Arrange | Order (front, back, forward, backward) | done | done | arrange-order |
 | Arrange | Rotate (handle, 90 degrees) and flip | partial | partial | format-size-and-rotation |
 | Arrange | Selection pane (names, show and hide) | missing | missing | |
-| Arrange | Nudge with arrow keys | partial | missing | |
+| Arrange | Nudge with arrow keys | partial | done | align-and-distribute |
 | Content | Insert picture | partial | missing | |
 | Content | Crop a picture | missing | missing | |
 | Content | Tables | missing | missing | |
@@ -126,4 +126,4 @@ with its slide show, presenter view, audience window and files on library capabi
 | | Done | Partial | Missing | Total |
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
-| Now | 30 | 36 | 45 | 111 |
+| Now | 34 | 35 | 42 | 111 |
