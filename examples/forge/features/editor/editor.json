@@ -145,6 +145,12 @@
 					{
 						"set": "state.docs",
 						"to": "{{filter(state.docs, it.id != id)}}"
+					},
+					{
+						"run": "lspClosed",
+						"with": {
+							"id": "{{id}}"
+						}
 					}
 				]
 			}
@@ -335,6 +341,12 @@
 						]
 					}
 				]
+			},
+			{
+				"run": "lspChanged",
+				"with": {
+					"id": "{{id}}"
+				}
 			}
 		],
 		"saveFile": [

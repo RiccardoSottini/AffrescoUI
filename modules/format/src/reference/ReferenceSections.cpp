@@ -366,7 +366,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "`{ \"invoke\": \"files.read\", \"with\": {\"path\": \"a.txt\"}, \"into\": \"state.text\" }`: a method of "
 	 "a declared service, answered later; `loading`, `progress`, `timeout` (ms, default 30000), `id` (a new call with "
 	 "the same id cancels it), `onDone` with `result`, `onError` with `error` (`{code, message, data}`); a stream's "
-	 "events go to `append` (the last `keep`) or run `onEvent` with `events`",
+	 "events go to `append` (the last `keep`) or run `onEvent` once per event, with it as `event`",
 	 "steps"},
     {"request", "",
 	 "`{ \"request\": \"api.getProject\", \"with\": {\"id\": \"{{state.id}}\"}, \"into\": \"state.project\", "
@@ -376,7 +376,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "steps"},
     {"subscribe", "",
 	 "`{ \"subscribe\": \"build.output\", \"append\": \"state.log\", \"keep\": 500, \"id\": \"build\" }`: a "
-	 "stream of a declared service or connection until `cancel` or its node goes; `do` runs with `events`",
+	 "stream of a declared service or connection until `cancel` or its node goes; `do` runs once per event, with it "
+	 "as `event`",
 	 "steps"},
     {"respond", "",
 	 "`{ \"respond\": \"{{state.answer}}\" }` or `{ \"respond\": null, \"error\": \"no\" }`: answers the "

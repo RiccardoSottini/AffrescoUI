@@ -164,7 +164,7 @@ private:
 	/// @brief Runs a call's steps with one more variable, from its panel (or the root, for the document's calls).
 	/// @param call The call.
 	/// @param steps The steps.
-	/// @param variable The variable's name.
+	/// @param variable The variable's name; "event" is a stream's event, which the steps see as their `event`.
 	/// @param value Its value.
 	/// @param where Their place.
 	void runSteps(const Pending& call, const json& steps, const char* variable, json value, const std::string& where);

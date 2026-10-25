@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Forge's language servers (features/lsp), checked headless: the answers tests/lsp/fake_server.py gives (python3 tests/lsp/fake_server.py --print hover) are played through lspPlay, which normalizes them as the client does, so no server runs; tests/unit/lsp.cpp checks the protocol. affrescoui_render_runner lsp.scenarios.json",
+	"note": "Forge's language server (features/lsp), checked headless: the answers the lsp service gives (its shapes, positions from 0) are played through lspPlay, so no server runs; tests/unit/lsp_service.cpp checks the service against tests/lsp/fake_server.py. affrescoui_render_runner lsp.scenarios.json",
 	"screen": "index.screen.json",
 	"scenarios": [
 		{
@@ -20,26 +20,21 @@
 					"event": {
 						"kind": "diagnostics",
 						"result": {
-							"uri": "file:///folder/src/main.cpp",
+							"path": "src/main.cpp",
 							"diagnostics": [
 								{
-									"range": {
-										"start": {
-											"line": 2,
-											"character": 16
-										},
-										"end": {
-											"line": 2,
-											"character": 21
-										}
-									},
-									"severity": 1,
+									"severity": "error",
+									"message": "FIXME left in the code",
 									"source": "fake",
-									"message": "FIXME left in the code"
+									"code": "",
+									"line": 2,
+									"column": 16,
+									"endLine": 2,
+									"endColumn": 21
 								}
-							]
-						},
-						"root": "/folder"
+							],
+							"truncated": false
+						}
 					}
 				},
 				{
@@ -95,26 +90,21 @@
 					"event": {
 						"kind": "diagnostics",
 						"result": {
-							"uri": "file:///folder/src/main.cpp",
+							"path": "src/main.cpp",
 							"diagnostics": [
 								{
-									"range": {
-										"start": {
-											"line": 2,
-											"character": 16
-										},
-										"end": {
-											"line": 2,
-											"character": 21
-										}
-									},
-									"severity": 1,
+									"severity": "error",
+									"message": "FIXME left in the code",
 									"source": "fake",
-									"message": "FIXME left in the code"
+									"code": "",
+									"line": 2,
+									"column": 16,
+									"endLine": 2,
+									"endColumn": 21
 								}
-							]
-						},
-						"root": "/folder"
+							],
+							"truncated": false
+						}
 					}
 				},
 				{
@@ -122,10 +112,10 @@
 					"event": {
 						"kind": "diagnostics",
 						"result": {
-							"uri": "file:///folder/src/main.cpp",
-							"diagnostics": []
-						},
-						"root": "/folder"
+							"path": "src/main.cpp",
+							"diagnostics": [],
+							"truncated": false
+						}
 					}
 				},
 				{
@@ -137,51 +127,6 @@
 				{
 					"expect": {
 						"state": "lsp.files[0].decorations.length",
-						"is": 0
-					}
-				}
-			]
-		},
-		{
-			"name": "forge-lsp-diagnostics-outside-the-folder",
-			"note": "Diagnostics for a file outside the open folder are dropped: an untrusted server names only the folder's files",
-			"steps": [
-				{
-					"action": "openExplorerItem",
-					"event": {
-						"id": "src/main.cpp"
-					}
-				},
-				{
-					"action": "lspPlay",
-					"event": {
-						"kind": "diagnostics",
-						"result": {
-							"uri": "file:///elsewhere/secret.cpp",
-							"diagnostics": [
-								{
-									"range": {
-										"start": {
-											"line": 0,
-											"character": 0
-										},
-										"end": {
-											"line": 0,
-											"character": 5
-										}
-									},
-									"severity": 1,
-									"source": "fake",
-									"message": "FIXME left in the code"
-								}
-							]
-						},
-						"root": "/folder"
-					}
-				},
-				{
-					"expect": {
-						"state": "lsp.files.length",
 						"is": 0
 					}
 				}
@@ -202,12 +147,8 @@
 					"event": {
 						"kind": "hover",
 						"result": {
-							"contents": {
-								"kind": "markdown",
-								"value": "```cpp\nint main()\n```\nThe program starts here."
-							}
-						},
-						"root": "/folder"
+							"text": "```cpp\nint main()\n```\nThe program starts here."
+						}
 					}
 				},
 				{
@@ -245,12 +186,8 @@
 					"event": {
 						"kind": "hover",
 						"result": {
-							"contents": {
-								"kind": "markdown",
-								"value": "```cpp\nint main()\n```\nThe program starts here."
-							}
+							"text": "```cpp\nint main()\n```\nThe program starts here."
 						},
-						"root": "/folder",
 						"request": 7
 					}
 				},
@@ -277,29 +214,32 @@
 					"event": {
 						"kind": "completion",
 						"result": {
-							"isIncomplete": false,
 							"items": [
 								{
 									"label": "printf",
-									"kind": 3,
 									"detail": "int printf(const char*, ...)",
-									"insertText": "printf"
+									"insert": "printf",
+									"filter": "printf",
+									"kind": "function"
 								},
 								{
 									"label": "puts",
-									"kind": 3,
 									"detail": "int puts(const char*)",
-									"insertTextFormat": 2,
-									"insertText": "puts(${1:text})"
+									"insert": "puts(text)",
+									"filter": "puts",
+									"kind": "function"
 								},
 								{
 									"label": "putchar",
-									"kind": 3,
-									"detail": "int putchar(int)"
+									"detail": "int putchar(int)",
+									"insert": "putchar",
+									"filter": "putchar",
+									"kind": "function"
 								}
-							]
-						},
-						"root": "/folder"
+							],
+							"incomplete": false,
+							"truncated": false
+						}
 					}
 				},
 				{
@@ -373,21 +313,12 @@
 					"event": {
 						"kind": "signature",
 						"result": {
-							"signatures": [
-								{
-									"label": "int puts(const char* text)",
-									"documentation": "Writes a line.",
-									"parameters": [
-										{
-											"label": [9, 25]
-										}
-									]
-								}
-							],
-							"activeSignature": 0,
-							"activeParameter": 0
-						},
-						"root": "/folder"
+							"label": "int puts(const char* text)",
+							"documentation": "Writes a line.",
+							"parameter": "const char* text",
+							"active": 0,
+							"count": 1
+						}
 					}
 				},
 				{
@@ -425,19 +356,17 @@
 					"event": {
 						"kind": "definition",
 						"result": {
-							"uri": "file:///folder/src/main.cpp",
-							"range": {
-								"start": {
+							"locations": [
+								{
+									"path": "src/main.cpp",
 									"line": 0,
-									"character": 4
-								},
-								"end": {
-									"line": 0,
-									"character": 8
+									"column": 4,
+									"endLine": 0,
+									"endColumn": 8
 								}
-							}
-						},
-						"root": "/folder"
+							],
+							"truncated": false
+						}
 					}
 				},
 				{
@@ -468,7 +397,7 @@
 		},
 		{
 			"name": "forge-lsp-references-peek",
-			"note": "References open the peek list, without the one outside the folder; choosing a row goes there",
+			"note": "References open the peek list; choosing a row goes there (shown and gone to from 1)",
 			"steps": [
 				{
 					"action": "openExplorerItem",
@@ -480,35 +409,18 @@
 					"action": "lspPlay",
 					"event": {
 						"kind": "references",
-						"result": [
-							{
-								"uri": "file:///folder/src/main.cpp",
-								"range": {
-									"start": {
-										"line": 0,
-										"character": 4
-									},
-									"end": {
-										"line": 0,
-										"character": 8
-									}
+						"result": {
+							"locations": [
+								{
+									"path": "src/main.cpp",
+									"line": 0,
+									"column": 4,
+									"endLine": 0,
+									"endColumn": 8
 								}
-							},
-							{
-								"uri": "file:///elsewhere/secret.cpp",
-								"range": {
-									"start": {
-										"line": 2,
-										"character": 8
-									},
-									"end": {
-										"line": 2,
-										"character": 12
-									}
-								}
-							}
-						],
-						"root": "/folder"
+							],
+							"truncated": false
+						}
 					}
 				},
 				{
@@ -526,7 +438,7 @@
 				{
 					"expect": {
 						"state": "lsp.peek.items[0].line",
-						"is": 1
+						"is": 0
 					}
 				},
 				{
@@ -557,7 +469,7 @@
 		},
 		{
 			"name": "forge-lsp-rename-outside-refused",
-			"note": "A rename that edits a file outside the folder is refused whole: nothing to review",
+			"note": "A rename the service refuses (one of its edits leaves the folder) is reported, with nothing to review",
 			"steps": [
 				{
 					"action": "openExplorerItem",
@@ -569,47 +481,29 @@
 					"action": "lspPlay",
 					"event": {
 						"kind": "rename",
-						"result": {
-							"changes": {
-								"file:///folder/src/main.cpp": [
-									{
-										"range": {
-											"start": {
-												"line": 0,
-												"character": 4
-											},
-											"end": {
-												"line": 0,
-												"character": 8
-											}
-										},
-										"newText": "start"
-									}
-								],
-								"file:///elsewhere/secret.cpp": [
-									{
-										"range": {
-											"start": {
-												"line": 2,
-												"character": 8
-											},
-											"end": {
-												"line": 2,
-												"character": 12
-											}
-										},
-										"newText": "start"
-									}
-								]
-							}
-						},
-						"root": "/folder"
+						"path": "src/main.cpp",
+						"error": {
+							"code": "refused",
+							"message": "an edit is outside the folder"
+						}
 					}
 				},
 				{
 					"expect": {
 						"state": "lsp.review.open",
 						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "notifications.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "notifications[0].message",
+						"is": "Not applied: an edit is outside the folder"
 					}
 				}
 			]
@@ -628,23 +522,21 @@
 					"action": "lspPlay",
 					"event": {
 						"kind": "format",
-						"result": [
-							{
-								"range": {
-									"start": {
-										"line": 0,
-										"character": 0
-									},
-									"end": {
-										"line": 0,
-										"character": 0
-									}
-								},
-								"newText": "// formatted\n"
-							}
-						],
-						"root": "/folder",
-						"id": "src/main.cpp"
+						"path": "src/main.cpp",
+						"result": {
+							"edits": [
+								{
+									"path": "src/main.cpp",
+									"text": "// formatted\n",
+									"line": 0,
+									"column": 0,
+									"endLine": 0,
+									"endColumn": 0
+								}
+							],
+							"files": 1,
+							"truncated": false
+						}
 					}
 				},
 				{
@@ -726,61 +618,30 @@
 					"action": "lspPlay",
 					"event": {
 						"kind": "symbols",
-						"result": [
-							{
-								"name": "main",
-								"detail": "int ()",
-								"kind": 12,
-								"range": {
-									"start": {
-										"line": 0,
-										"character": 0
-									},
-									"end": {
-										"line": 0,
-										"character": 10
-									}
+						"path": "src/main.cpp",
+						"result": {
+							"symbols": [
+								{
+									"name": "main",
+									"detail": "int ()",
+									"kind": "function",
+									"path": "src/main.cpp",
+									"line": 0,
+									"column": 4,
+									"depth": 0
 								},
-								"selectionRange": {
-									"start": {
-										"line": 0,
-										"character": 4
-									},
-									"end": {
-										"line": 0,
-										"character": 8
-									}
-								},
-								"children": [
-									{
-										"name": "count",
-										"kind": 13,
-										"range": {
-											"start": {
-												"line": 1,
-												"character": 1
-											},
-											"end": {
-												"line": 1,
-												"character": 10
-											}
-										},
-										"selectionRange": {
-											"start": {
-												"line": 1,
-												"character": 5
-											},
-											"end": {
-												"line": 1,
-												"character": 10
-											}
-										}
-									}
-								]
-							}
-						],
-						"root": "/folder",
-						"id": "src/main.cpp"
+								{
+									"name": "count",
+									"detail": "",
+									"kind": "variable",
+									"path": "src/main.cpp",
+									"line": 1,
+									"column": 5,
+									"depth": 1
+								}
+							],
+							"truncated": false
+						}
 					}
 				},
 				{
@@ -811,27 +672,21 @@
 					"action": "lspPlay",
 					"event": {
 						"kind": "rename",
+						"path": "src/main.cpp",
 						"result": {
-							"changes": {
-								"file:///folder/README.md": [
-									{
-										"range": {
-											"start": {
-												"line": 0,
-												"character": 2
-											},
-											"end": {
-												"line": 0,
-												"character": 3
-											}
-										},
-										"newText": "One"
-									}
-								]
-							}
-						},
-						"root": "/folder",
-						"id": "src/main.cpp"
+							"edits": [
+								{
+									"path": "README.md",
+									"text": "One",
+									"line": 0,
+									"column": 2,
+									"endLine": 0,
+									"endColumn": 3
+								}
+							],
+							"files": 1,
+							"truncated": false
+						}
 					}
 				},
 				{
