@@ -1,13 +1,16 @@
 /// @file
 /// @brief The export step: export, which draws nodes of the screen as a file the person saves: a vector PDF of one page
-/// per node (the export module), or a PNG of one node. Snapshot nodes make good pages: they are laid out at their own
-/// size and never shown in the window.
+/// per node (the export module), a PNG of one node, or the glTF of one scene node (scene3d). Snapshot nodes make good
+/// pages: they are laid out at their own size and never shown in the window.
 
 #include "Engine.hpp"
 #include "FileSteps.hpp"
 
 #include "affresco/export/PdfDocument.hpp"
 #include "affresco/imaging/Codec.hpp"
+#include "affresco/scene3d/Gltf.hpp"
+#include "affresco/scene3d/SceneJson.hpp"
+#include "affresco/scene3d/SceneView.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -87,6 +90,19 @@ std::vector<std::uint8_t> pngOf(const Running& s, Engine& engine, Panel& page) {
 	return imaging::encodeImageFile(*image.image, imaging::ImageFileFormat::png, std::nullopt);
 }
 
+/// @brief The glTF of one scene node: what it shows, with the "animations" given (clips' JSON) if any.
+/// @param s The step.
+/// @param view The scene node.
+/// @param warnings Receives what the file leaves out (textures).
+/// @return The file's bytes.
+/// @throws std::exception If the clips are malformed.
+std::vector<std::uint8_t> gltfOf(const Running& s, const scene3d::SceneView& view, std::vector<std::string>& warnings) {
+	const std::vector<scene3d::AnimationClip> clips =
+	    s.step.contains("animations") ? scene3d::clipsFromJson(s.value("animations")) : std::vector<scene3d::AnimationClip>{};
+	const std::string text = scene3d::exportGltf(view.scene(), view.assets(), clips, &warnings);
+	return {text.begin(), text.end()};
+}
+
 /// @brief Runs onError at once, with error {code "export", message}.
 /// @param s The step.
 /// @param message What went wrong.
@@ -97,24 +113,32 @@ void exportFailed(const Running& s, const std::string& message) {
 	followers.failed();
 }
 
-/// @brief "export": "pdf" or "png" of the "pages", saved where the person chooses, named after "name" (or "title"),
-/// then onDone with result {name, pages, bytes}.
+/// @brief "export": "pdf", "png" or "gltf" of the "pages", saved where the person chooses, named after "name" (or
+/// "title"), then onDone with result {name, pages, bytes} (and the glTF's warnings).
 /// @param s The step.
 /// @return true.
 bool exportFile(const Running& s) {
 	s.steps.checkControl(s.where);
 	const std::string kind = string(s.value("export"), s.where + ".export");
-	if(kind != "pdf" && kind != "png") fail(s.where + ".export", "must be \"pdf\" or \"png\"");
+	if(kind != "pdf" && kind != "png" && kind != "gltf") fail(s.where + ".export", "must be \"pdf\", \"png\" or \"gltf\"");
 	const std::string title = s.step.contains("title") ? string(s.value("title"), s.where + ".title") : "Untitled";
 	if(title.size() > 1000) fail(s.where + ".title", "is longer than 1000 bytes");
 	std::string name = s.step.contains("name") ? string(s.value("name"), s.where + ".name") : title;
 	Engine& engine = s.steps.engine();
 	if(!engine.window || dialogRefused(s)) return true; // a check or a preview: nothing to draw
 	const std::vector<Panel*> pages = pagesOf(s, engine);
-	if(kind == "png" && pages.size() != 1) fail(s.where + ".pages", "a PNG draws one node");
+	if(kind != "pdf" && pages.size() != 1) fail(s.where + ".pages", kind == "png" ? "a PNG draws one node" : "a glTF file is of one node");
+	const auto* view = dynamic_cast<const scene3d::SceneView*>(pages.front());
+	if(kind == "gltf" && view == nullptr) {
+		exportFailed(s, "a glTF file is of a scene node");
+		return true;
+	}
 	std::vector<std::uint8_t> bytes;
+	std::vector<std::string> warnings;
 	try {
-		bytes = kind == "pdf" ? pdfOf(s, pages, title) : pngOf(s, engine, *pages.front());
+		bytes = kind == "pdf"   ? pdfOf(s, pages, title)
+		        : kind == "png" ? pngOf(s, engine, *pages.front())
+		                        : gltfOf(s, *view, warnings);
 	} catch(const std::exception& error) {
 		exportFailed(s, error.what());
 		return true;
@@ -125,8 +149,10 @@ bool exportFile(const Running& s) {
 	}
 	if(!name.ends_with("." + kind)) name += "." + kind;
 	const std::size_t size = bytes.size();
+	json result = {{"pages", pages.size()}, {"bytes", size}};
+	if(kind == "gltf") result["warnings"] = warnings;
 	saveAfterEvent(s, std::move(bytes), suggestedFileName(name, "Untitled." + kind),
-	               {kind == "pdf" ? "PDF" : "PNG", {kind}}, {{"pages", pages.size()}, {"bytes", size}});
+	               {kind == "pdf" ? "PDF" : kind == "png" ? "PNG" : "glTF", {kind}}, std::move(result));
 	return true;
 }
 
