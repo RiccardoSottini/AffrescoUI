@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempera's dialogs for the commands that take numbers: Free Transform, Image Size, Canvas Size and Rename Layer, and the question Close asks. Each edits its own part of the state (state.transform, state.resize, state.canvasSize, state.rename) and its OK runs the command's apply action.",
+	"note": "Tempera's dialogs for the commands that take numbers: Free Transform, Image Size, Canvas Size, Rename Layer and Fill, and the question Close asks. Each edits its own part of the state (state.transform, state.resize, state.canvasSize, state.rename, state.fill) and its OK runs the command's apply action.",
 
 	"components": {
 		"tNumberRow": {
@@ -102,6 +102,25 @@
 						{ "type": "textarea", "id": "rename-name", "label": "Layer name", "grow": 1, "height": 24, "padding": 4, "color": "@input",
 						  "textColor": "@text", "borderWidth": 1, "borderColor": "@border", "radius": "@kit.radius", "bind": "state.rename.name",
 						  "autofocus": true, "keys": { "enter": [{ "set": "state.rename.open", "to": false }, { "run": "applyRename" }] } }
+					  ] }
+				]
+				}]
+			}
+		},
+
+		"temperaFillDialog": {
+			"node": {
+				"style": "clear", "width": 0, "height": 0, "children": [{
+				"use": "dialog", "id": "fill-dialog",
+				"with": { "open": "state.fill.open", "title": "Fill", "message": "", "width": 340, "height": 150,
+				          "buttons": [{ "title": "Cancel" }, { "title": "OK", "run": "applyFill", "default": true }] },
+				"children": [
+					{ "type": "row", "id": "fill-fields", "anchors": { "left": 20, "right": 20, "top": 48 }, "height": 28, "gap": 8, "alignItems": "center",
+					  "children": [
+						{ "style": "dim", "fitText": false, "text": "Contents", "width": 70, "height": 20 },
+						{ "use": "tPicker", "id": "fill-contents", "with": { "title": "{{find(computed.fillContents, it.id == state.fill.contents).title}}", "tip": "What fills the selection",
+						  "width": 200, "open": "state.fill.menu", "inDialog": true,
+						  "items": "{{map(computed.fillContents, {title: it.title, checked: it.id == state.fill.contents, run: 'setFillContents', with: {args: {id: it.id}}})}}" } }
 					  ] }
 				]
 				}]

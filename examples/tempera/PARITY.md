@@ -13,6 +13,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | 2 | 15 | 28 | 17 |
 | 3 (a folder of files) | 18 | 27 | 17 |
 | 4 (every control works) | 25 | 28 | 11 |
+| 5 (tools and fill) | 28 | 26 | 10 |
 
 ## Workspace
 
@@ -53,18 +54,18 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 
 | Tool or workflow | Status | Gap |
 | --- | --- | --- |
-| Brush: size, hardness, opacity, flow, round outline cursor, `[` `]` | partial | Keys are `,` `.`: the format's shortcuts don't name the bracket keys yet; no outline cursor |
+| Brush: size, hardness, opacity, flow, round outline cursor, `[` `]` | done | `[` `]` (and `,` `.`) step the size; the raster draws the brush's outline under the pointer |
 | Eraser | done | |
-| Pencil | missing | Shown disabled in the brush group |
+| Pencil | done | A hard painting tool (Shift+B); the brush keeps its own hardness |
 | Marquee rectangle and ellipse, Shift/Alt add/subtract/intersect, marching ants | partial | Modifier combinations incomplete |
 | Lasso and polygonal lasso | done | |
 | Magic wand with tolerance, quick selection | partial | No quick selection |
 | Select all, deselect, inverse, feather, transform selection | partial | No transform selection |
 | Move with auto-select | partial | No auto-select |
 | Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | A dialog: move, scale (flip with a negative), any angle, OK and Cancel; no on-canvas handles, no skew |
-| Crop with overlay grid and aspect presets | partial | No presets, no rule-of-thirds grid |
+| Crop with overlay grid and aspect presets | partial | Thirds while dragging; the ratios crop the largest centred part, but don't hold a drag to that shape |
 | Gradient tool with editor | partial | Inline editor and presets; reverse, dither and modes disabled |
-| Paint bucket and fill dialog | partial | No fill dialog |
+| Paint bucket and fill dialog | done | Edit > Fill (Shift+Backspace): foreground, background, black, grey or white |
 | Eyedropper | done | |
 | Clone stamp (Alt-click source) | done | |
 | Healing brush and patch | missing | |
@@ -99,5 +100,5 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Undo/redo with the History panel | done | |
 | Copy, cut, paste, clear; layer via copy and via cut | done | Through the image's clipboard; paste centres a new layer |
 | Rename, align and arrange layers | done | Rename from a dialog; align to the selection or the image |
-| Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6; no bracket keys |
+| Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6, `[` `]`; not every menu command has its key |
 | Assistant chat add-on (shared) | done | The shared add-on, in Tempera's colours |

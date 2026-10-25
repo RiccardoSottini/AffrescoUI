@@ -3430,6 +3430,276 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-pencil",
+			"note": "The pencil paints hard edges, and the brush gets its own hardness back",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"hardness": 40
+						}
+					}
+				},
+				{
+					"key": "shift+b"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "pencil"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.hardness",
+						"is": 100
+					}
+				},
+				{
+					"expect": {
+						"node": "#options-tool-name",
+						"property": "text",
+						"is": "Pencil"
+					}
+				},
+				{
+					"key": "b"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "brush"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.hardness",
+						"is": 40
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-fill-dialog",
+			"note": "Edit > Fill asks what fills the selection: the background colour, black, grey or white as well as the foreground",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"from": {
+								"x": 0,
+								"y": 0
+							},
+							"to": {
+								"x": 100,
+								"y": 100
+							}
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"background": "#3366cc"
+						}
+					}
+				},
+				{
+					"key": "shift+backspace"
+				},
+				{
+					"expect": {
+						"node": "#fill-contents",
+						"property": "text",
+						"is": "Foreground Colour"
+					}
+				},
+				{
+					"click": "#fill-contents"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Background Colour"
+					}
+				},
+				{
+					"expect": {
+						"state": "fill.open",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "OK"
+					}
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"foreground": "#000000"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "eyedropper"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 50,
+									"y": 50,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 50,
+									"y": 50,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.foreground",
+						"is": "#3366cc"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-crop-ratio",
+			"note": "The crop tool's ratios keep the largest centred part of that shape",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "c"
+				},
+				{
+					"click": "#option-crop"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "16 : 9"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 675
+					}
+				},
+				{
+					"click": "#option-crop"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Square, 1 : 1"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 675
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 675
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-bracket-keys",
+			"note": "[ and ] make the brush smaller and larger",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "b"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"size": 20
+						}
+					}
+				},
+				{
+					"key": "rightbracket"
+				},
+				{
+					"expect": {
+						"state": "doc.options.size",
+						"is": 26
+					}
+				},
+				{
+					"key": "leftbracket"
+				},
+				{
+					"expect": {
+						"state": "doc.options.size",
+						"is": 21
+					}
+				}
+			]
 		}
 	]
 }

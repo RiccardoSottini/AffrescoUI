@@ -69,7 +69,7 @@
 				"move": { "gesture": "move" }, "marquee": { "gesture": "select-rectangle" },
 				"ellipse": { "gesture": "select-ellipse" }, "lasso": { "gesture": "lasso" },
 				"polygon": { "gesture": "polygon-lasso" }, "wand": { "gesture": "magic-wand" }, "crop": { "gesture": "crop" },
-				"brush": { "gesture": "paint" }, "eraser": { "gesture": "erase" }, "clone": { "gesture": "clone" },
+				"brush": { "gesture": "paint" }, "pencil": { "gesture": "paint", "hardness": 100 }, "eraser": { "gesture": "erase" }, "clone": { "gesture": "clone" },
 				"gradient": { "gesture": "gradient" }, "fill": { "gesture": "fill" }, "eyedropper": { "gesture": "sample" },
 				"hand": { "gesture": "pan" }, "zoom": { "gesture": "zoom" }
 			}
@@ -97,7 +97,7 @@
 			[],
 			[{ "id": "eyedropper", "icon": "pipette", "title": "Eyedropper Tool", "key": "I" }],
 			[{ "icon": "bandage", "title": "Healing Tool" }],
-			[{ "id": "brush", "icon": "paintbrush", "title": "Brush Tool", "key": "B" }, { "icon": "pencil", "title": "Pencil Tool" }],
+			[{ "id": "brush", "icon": "paintbrush", "title": "Brush Tool", "key": "B" }, { "id": "pencil", "icon": "pencil", "title": "Pencil Tool", "key": "Shift+B" }],
 			[{ "id": "clone", "icon": "copy-plus", "title": "Clone Tool", "key": "S" }],
 			[{ "icon": "undo-dot", "title": "Restore Brush Tool" }],
 			[{ "id": "eraser", "icon": "eraser", "title": "Eraser Tool", "key": "E" }],
@@ -113,6 +113,7 @@
 			[{ "id": "hand", "icon": "hand", "title": "Hand Tool", "key": "H" }],
 			[{ "id": "zoom", "icon": "zoom-in", "title": "Zoom Tool", "key": "Z" }]
 		],
+		"brushHardness": 80,
 		"brushes": ["Hard Round 5", "Hard Round 20", "Soft Round 30", "Soft Round 100", "Airbrush 60", "Pencil 1", "Chalk 40"],
 		"gradients": ["Black, White", "Spectrum", "Copper", "Black, Transparent"],
 		"blends": ["normal", "-", "darken", "multiply", "-", "lighten", "screen", "-", "overlay", "soft-light", "-", "difference", "-",
@@ -154,6 +155,8 @@
 		"canvasSize": { "open": false, "width": 0, "height": 0, "anchor": "center" },
 		"rename": { "open": false, "name": "" },
 		"closeAsk": false,
+		"fill": { "open": false, "menu": false, "contents": "foreground" },
+		"cropSize": [0, 0],
 		"menuBar": {},
 		"adjustMenu": false,
 		"blendMenu": false,
@@ -202,6 +205,7 @@
 			{ "use": "temperaImageSizeDialog" },
 			{ "use": "temperaCanvasSizeDialog" },
 			{ "use": "temperaRenameDialog" },
+			{ "use": "temperaFillDialog" },
 			{ "use": "temperaCloseDialog" },
 			{ "use": "dialog", "id": "about-dialog", "with": { "open": "state.about", "title": "Tempera",
 				"message": "An image editor built with AffrescoUI: layers, masks, brushes, filters and colour management over sparse tiles.",
