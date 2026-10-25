@@ -3,9 +3,11 @@
 
 #include "affresco/data/Csv.hpp"
 
+#include "affresco/core/Numbers.hpp"
+
 #include <algorithm>
 #include <cctype>
-#include <charconv>
+#include <cerrno>
 #include <cmath>
 #include <format>
 #include <map>
@@ -30,9 +32,17 @@ std::string folded(std::string_view text) {
 /// @param cell The cell's text.
 /// @return The number, or the text itself if it isn't one.
 json numberOf(const Field& field, const std::string& cell) {
-	double number = 0;
-	const auto [end, error] = std::from_chars(cell.data(), cell.data() + cell.size(), number);
-	if(error != std::errc() || end != cell.data() + cell.size() || !std::isfinite(number)) return cell;
+	// strtod, not std::from_chars: the release's oldest macOS has no floating-point from_chars. The library never
+	// sets a locale, so strtod reads the C locale's decimal point; it is held to from_chars' grammar here (no leading
+	// space or '+', no hexadecimal), and a number too small or too large to hold is text, as from_chars has it.
+	const char first = cell.empty() ? '\0' : cell.front();
+	const bool decimal = (std::isdigit(static_cast<unsigned char>(first)) != 0 || first == '-' || first == '.') &&
+	                     cell.find_first_of("xX") == std::string::npos;
+	if(!decimal) return cell;
+	char* end = nullptr;
+	errno = 0;
+	const double number = readNumber(cell.c_str(), &end);
+	if(errno == ERANGE || end != cell.data() + cell.size() || !std::isfinite(number)) return cell;
 	const bool whole = field.type != FieldType::Number && std::trunc(number) == number && std::abs(number) < 9.0e15;
 	return whole ? json(static_cast<std::int64_t>(number)) : json(number);
 }

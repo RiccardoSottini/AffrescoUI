@@ -109,6 +109,45 @@ COORD coordinates(TerminalSize size) noexcept {
 	return {static_cast<SHORT>(size.columns), static_cast<SHORT>(size.rows)};
 }
 
+/// @brief Starts the program on a pseudo console, suspended until it is in the job.
+/// @param launch What to start.
+/// @param console The pseudo console it runs on.
+/// @param job The job it is put in before it runs.
+/// @return The program's process, or nullptr if it didn't start.
+HANDLE startOnConsole(const Launch& launch, HPCON console, HANDLE job) {
+	std::wstring line = quote(launch.program.wstring());
+	for(const std::string& argument : launch.arguments) line += L" " + quote(widen(argument));
+	std::wstring environment = environmentBlock(launch);
+	const std::wstring directory = launch.directory.wstring();
+	SIZE_T size = 0;
+	InitializeProcThreadAttributeList(nullptr, 1, 0, &size);
+	std::vector<std::byte> storage(size);
+	const auto attributes = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(storage.data());
+	if(!InitializeProcThreadAttributeList(attributes, 1, 0, &size)) return nullptr;
+	const bool listed = UpdateProcThreadAttribute(attributes, 0, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE, console,
+	                                              sizeof(console), nullptr, nullptr) != 0;
+	STARTUPINFOEXW startup{};
+	startup.StartupInfo.cb = sizeof(startup);
+	startup.lpAttributeList = attributes;
+	const DWORD flags = CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT;
+	PROCESS_INFORMATION started{};
+	const bool created =
+	    listed && CreateProcessW(launch.program.wstring().c_str(), line.data(), nullptr, nullptr, FALSE, flags,
+		                         environment.data(), directory.empty() ? nullptr : directory.c_str(),
+		                         &startup.StartupInfo, &started) != 0;
+	DeleteProcThreadAttributeList(attributes);
+	if(!created) return nullptr;
+	if(!AssignProcessToJobObject(job, started.hProcess)) {
+		TerminateProcess(started.hProcess, 1);
+		WaitForSingleObject(started.hProcess, INFINITE);
+		closeHandle(started.hProcess);
+	} else {
+		ResumeThread(started.hThread);
+	}
+	closeHandle(started.hThread);
+	return started.hProcess;
+}
+
 } // namespace
 
 /// @brief The program, the job holding it, the pseudo console and the parent's ends of its pipes.
@@ -131,16 +170,6 @@ struct PseudoTerminal::Platform {
 	std::once_flag ended;         ///< end() runs once.
 };
 
-namespace {
-
-/// @brief Starts the program on a pseudo console, suspended until it is in the job.
-/// @param launch What to start.
-/// @param platform The console and the job; receives the process.
-/// @return Whether it started.
-bool startOnConsole(const Launch& launch, PseudoTerminal::Platform& platform);
-
-} // namespace
-
 std::unique_ptr<PseudoTerminal> PseudoTerminal::start(const Launch& launch, TerminalSize size) {
 	auto platform = std::make_unique<Platform>();
 	HANDLE consoleReads = nullptr, consoleWrites = nullptr;
@@ -160,50 +189,13 @@ std::unique_ptr<PseudoTerminal> PseudoTerminal::start(const Launch& launch, Term
 	if(!platform->job ||
 	   !SetInformationJobObject(platform->job, JobObjectExtendedLimitInformation, &limits, sizeof(limits)))
 		throw fail("could not create a job object");
-	if(!startOnConsole(launch, *platform)) throw fail("could not start '" + launch.program.filename().string() + "'");
+	platform->process = startOnConsole(launch, platform->console, platform->job);
+	if(!platform->process) throw fail("could not start '" + launch.program.filename().string() + "'");
 	closeHandle(consoleReads);
 	closeHandle(consoleWrites);
 	return std::unique_ptr<PseudoTerminal>(new PseudoTerminal(std::move(platform)));
 }
 
-namespace {
-
-bool startOnConsole(const Launch& launch, PseudoTerminal::Platform& platform) {
-	std::wstring line = quote(launch.program.wstring());
-	for(const std::string& argument : launch.arguments) line += L" " + quote(widen(argument));
-	std::wstring environment = environmentBlock(launch);
-	const std::wstring directory = launch.directory.wstring();
-	SIZE_T size = 0;
-	InitializeProcThreadAttributeList(nullptr, 1, 0, &size);
-	std::vector<std::byte> storage(size);
-	const auto attributes = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(storage.data());
-	if(!InitializeProcThreadAttributeList(attributes, 1, 0, &size)) return false;
-	const bool listed = UpdateProcThreadAttribute(attributes, 0, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE, platform.console,
-	                                              sizeof(platform.console), nullptr, nullptr) != 0;
-	STARTUPINFOEXW startup{};
-	startup.StartupInfo.cb = sizeof(startup);
-	startup.lpAttributeList = attributes;
-	const DWORD flags = CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT;
-	PROCESS_INFORMATION started{};
-	const bool created =
-	    listed && CreateProcessW(launch.program.wstring().c_str(), line.data(), nullptr, nullptr, FALSE, flags,
-		                         environment.data(), directory.empty() ? nullptr : directory.c_str(),
-		                         &startup.StartupInfo, &started) != 0;
-	DeleteProcThreadAttributeList(attributes);
-	if(!created) return false;
-	if(!AssignProcessToJobObject(platform.job, started.hProcess)) {
-		TerminateProcess(started.hProcess, 1);
-		WaitForSingleObject(started.hProcess, INFINITE);
-		closeHandle(started.hProcess);
-	} else {
-		ResumeThread(started.hThread);
-	}
-	closeHandle(started.hThread);
-	platform.process = started.hProcess;
-	return platform.process != nullptr;
-}
-
-} // namespace
 
 bool PseudoTerminal::write(std::string_view bytes) {
 	for(std::size_t written = 0; written < bytes.size();) {

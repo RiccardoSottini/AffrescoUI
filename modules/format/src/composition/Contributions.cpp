@@ -31,7 +31,7 @@ bool commandKey(std::string_view key) { return std::ranges::find(commandKeys, ke
 std::string_view platform() {
 #ifdef __APPLE__
 	return "mac";
-#elifdef _WIN32
+#elif defined(_WIN32) // NOLINT(readability-use-concise-preprocessor-directives): #elifdef is C++23
 	return "windows";
 #else
 	return "linux";

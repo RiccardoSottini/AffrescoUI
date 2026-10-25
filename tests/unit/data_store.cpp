@@ -231,3 +231,17 @@ TEST_CASE("data: CSV rows import into a collection, the failing ones reported") 
 	CHECK_THROWS_AS((void)affresco::data::importCsv(store, "Name\nx\n", options, nullptr), DataError); // no column
 	CHECK_THROWS_AS((void)affresco::data::parseCsv("a,\"b\n"), DataError);                             // unclosed
 }
+
+TEST_CASE("data: a CSV number is read in one notation: decimal, signed with '-' only, and holdable") {
+	Store store;
+	follow(store);
+	const std::string csv = "Title,Stars\nwhole,3.0\nexponent,4e0\nplus,+3\nhex,0x3\ntiny,1e-400\nhuge,1e400\n";
+	const affresco::data::CsvImport options{"notes", nullptr, ',', false, "app"};
+	const json report = affresco::data::importCsv(store, csv, options, nullptr);
+	CHECK(report["imported"] == 2); // the others stay text, which an integer field refuses
+	CHECK(report["failed"] == 4);
+	const json whole = store.run({{"from", "notes"}, {"where", {{"title", "whole"}}}}, "q");
+	REQUIRE(whole.size() == 1);
+	CHECK(whole[0]["stars"] == 3);
+	CHECK(store.run({{"from", "notes"}, {"where", {{"stars", 4}}}, {"count", true}}, "q") == 1);
+}
