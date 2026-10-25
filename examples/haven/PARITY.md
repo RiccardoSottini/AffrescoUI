@@ -94,3 +94,22 @@ of such a dashboard notices; the status is `done`, `partial` or `missing`, and t
 | Chat assistant panel | done | the shared assistant add-on in Haven's colours, opened from a chat button in the top bar; requests come back as proposals to accept or reject |
 | Overflow menus | done | raised and rounded, with a shadow, an icon and a title per item, on the app bars, the dialogs, each automation and each step |
 | Shared kit components | done | the kit menu and dropdowns, themed through `kit.*` colours; the search is Haven's own |
+
+## Left for later
+The controls that stay visible but disabled, with a tooltip saying why, and the partial row; each with what it needs and a priority (P1 daily, P2 occasional, P3 rare). Rows with two ids cover two controls, 15 in all.
+
+| Item | Needs | Priority |
+| --- | --- | --- |
+| Energy: previous day, next day (`energyPrev`, `energyNext`) | JSON only: per-day energy seed rows in the models, and the page reading the chosen day | P1 |
+| Energy: pick a day (`energyPick`) | JSON only, the same per-day seed, plus the kit's date field in a popover | P2 |
+| Activity log: range (`logRange`) | JSON only: seed a week of log entries and filter them by date | P2 |
+| Activity log: period (`logPeriod`) | JSON only: a period menu (today, yesterday, 7 days) over the same entries | P2 |
+| History: range (`histRange`), partial row "History: period and target pickers" | JSON only: multi-day history seed and a date filter | P2 |
+| History: period (`histPeriod`) | JSON only: a period menu over the same seed | P2 |
+| Devices: filters (`devFilters`) | JSON only: a filter menu (area, connection) applied to the table's rows | P2 |
+| Edit mode: add card (`editAddCard`) | JSON only: a card picker listing the card kinds, and cards that can be hidden and added again | P2 |
+| Devices: add device or control (`devAdd`) | JSON plus the data layer: an add dialog that inserts a record into the devices model | P3 |
+| Rooms: add area (`areasAdd`) | JSON only: draw the floors, the plan and energy by room from the rooms model instead of four fixed rooms | P3 |
+| Media: previous, next (`skip-back`, `skip-forward` in the media dialog) | JSON only: a play queue in the media device's state | P3 |
+| Profile: log out (`profileLogout`) | General library feature: an account or sign-in service in the host that a screen can call | P3 |
+| About: links (`aboutLink`) | General library feature: an `openUrl` step behind a capability prompt (security-sensitive) | P3 |
