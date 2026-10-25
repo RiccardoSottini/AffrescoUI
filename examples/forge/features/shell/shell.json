@@ -19,7 +19,8 @@
 		"nav": { "back": [], "forward": [], "moving": false },
 		"notificationCentre": false,
 		"languages": { "c": "C++", "cc": "C++", "cpp": "C++", "h": "C++", "hpp": "C++", "json": "JSON", "md": "Markdown",
-			"cmake": "CMake" }
+			"cmake": "CMake", "py": "Python", "js": "JavaScript", "mjs": "JavaScript", "ts": "TypeScript", "tsx": "TypeScript",
+			"sh": "Shell", "bash": "Shell", "zsh": "Shell" }
 	},
 
 	"computed": {
