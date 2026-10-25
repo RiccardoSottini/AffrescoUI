@@ -151,7 +151,7 @@ private:
 	/// @param call The call's number.
 	/// @param error {code, message, data}.
 	void failCall(std::uint64_t call, const json& error);
-	/// @brief Runs an ended call's "onError", or reports its error.
+	/// @brief Runs an ended call's "onError", or reports its error unless it was cancelled on purpose.
 	/// @param call The call.
 	/// @param error {code, message, data}.
 	void failed(const Pending& call, const json& error);

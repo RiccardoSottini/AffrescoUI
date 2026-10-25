@@ -121,6 +121,16 @@ TEST_CASE("format: a translation may change a string whose key is named like a c
 	CHECK_NOTHROW(affresco::format::Rules().checkChange(before, after));
 }
 
+TEST_CASE("format: a revision may change a state value whose key is named like a control step") {
+	json before = screenWithActions();
+	before["state"]["undo"] = json::array({{{"text", "a"}}});
+	before["state"]["history"] = {{"undo", json::array()}, {"redo", json::array()}};
+	json after = before;
+	after["state"]["undo"].push_back({{"text", "b"}});
+	after["state"]["history"]["undo"] = json::array({1});
+	CHECK_NOTHROW(affresco::format::Rules().checkChange(before, after));
+}
+
 TEST_CASE("format: a revision may not move a control step or a reference to one to another trigger") {
 	json moved = screenWithActions();
 	moved["root"]["children"][1].erase("onClick");

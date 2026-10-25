@@ -53,42 +53,47 @@
 				{ "$ref": "#/$defs/pointer" },
 				{ "type": "object", "required": ["drag", "to"], "additionalProperties": false, "properties": {
 					"drag": { "$ref": "#/$defs/target" }, "to": { "$ref": "#/$defs/target" }, "nth": { "$ref": "#/$defs/nth" },
-					"toNth": { "$ref": "#/$defs/nth" }, "moves": { "type": "integer", "minimum": 1, "maximum": 100 }, "note": { "type": "string" } } },
+					"toNth": { "$ref": "#/$defs/nth" }, "moves": { "type": "integer", "minimum": 1, "maximum": 100 }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["scroll"], "additionalProperties": false, "properties": {
 					"scroll": { "$ref": "#/$defs/target" }, "dx": { "type": "number" }, "dy": { "type": "number" },
-					"nth": { "$ref": "#/$defs/nth" }, "note": { "type": "string" } } },
+					"nth": { "$ref": "#/$defs/nth" }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["type"], "additionalProperties": false, "properties": {
-					"type": { "type": "string", "maxLength": 100000 }, "note": { "type": "string" } } },
+					"type": { "type": "string", "maxLength": 100000 }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["key"], "additionalProperties": false, "properties": {
 					"key": { "type": "string", "pattern": "^((shift|ctrl|alt|cmd|mod)\\+)*([a-z0-9]|f([1-9]|1[0-2])|enter|escape|tab|backspace|delete|insert|space|left|right|up|down|home|end|pageup|pagedown|slash|backslash|minus|equal|comma|period|semicolon|apostrophe|leftbracket|rightbracket)$" },
-					"note": { "type": "string" } } },
+					"note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["wait"], "additionalProperties": false, "properties": {
 					"wait": { "type": "number", "minimum": 0, "maximum": 600000, "description": "Milliseconds of the scenario's clock." },
-					"note": { "type": "string" } } },
+					"note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["revision"], "additionalProperties": false, "properties": {
-					"revision": { "type": "object" }, "note": { "type": "string" } } },
+					"revision": { "type": "object" }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["propose"], "additionalProperties": false, "properties": {
 					"propose": { "type": "object", "description": "A revision submitted as its author's peer would: the screen's permissions apply it, send it to review or refuse it." },
-					"note": { "type": "string" } } },
+					"note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["action"], "additionalProperties": false, "properties": {
-					"action": { "type": "string", "minLength": 1 }, "event": { "type": "object" }, "note": { "type": "string" } } },
+					"action": { "type": "string", "minLength": 1 }, "event": { "type": "object" }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["resize"], "additionalProperties": false, "properties": {
 					"resize": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 16384 }, "minItems": 2, "maxItems": 2 },
-					"note": { "type": "string" } } },
+					"note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["capture"], "additionalProperties": false, "properties": {
 					"capture": { "$ref": "#/$defs/name" }, "note": { "type": "string" } } },
 				{ "type": "object", "required": ["choose"], "additionalProperties": false, "properties": {
 					"choose": { "oneOf": [{ "$ref": "#/$defs/name" }, { "type": "null" }], "description": "Answers the file dialogs that follow with this file in the run's own folder, as the person would choose it; null cancels them." },
-					"note": { "type": "string" } } },
+					"note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["expect"], "additionalProperties": false, "properties": {
 					"expect": { "$ref": "#/$defs/expectation" }, "note": { "type": "string" } } }
 			]
+		},
+		"stepError": {
+			"type": "string",
+			"minLength": 1,
+			"description": "The step's handlers fail, with a message holding this (a host without the sign-in or the native function a screen asks for); any other error fails the scenario at its step."
 		},
 		"pointer": {
 			"description": "move, click, rightClick, press or release: one of them, with a target.",
 			"type": "object",
 			"minProperties": 1,
-			"maxProperties": 3,
+			"maxProperties": 4,
 			"additionalProperties": false,
 			"properties": {
 				"move": { "$ref": "#/$defs/target" },
@@ -97,7 +102,8 @@
 				"press": { "$ref": "#/$defs/target" },
 				"release": { "$ref": "#/$defs/target" },
 				"nth": { "$ref": "#/$defs/nth" },
-				"note": { "type": "string" }
+				"note": { "type": "string" },
+				"error": { "$ref": "#/$defs/stepError" }
 			},
 			"oneOf": [{ "required": ["move"] }, { "required": ["click"] }, { "required": ["rightClick"] }, { "required": ["press"] }, { "required": ["release"] }]
 		},

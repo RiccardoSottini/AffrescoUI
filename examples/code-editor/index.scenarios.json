@@ -356,7 +356,7 @@
 			]
 		},
 		{
-			"name": "the-assistant-opens",
+			"name": "the-assistant-panel-opens",
 			"note": "Tools > Assistant (or Cmd+Shift+A) opens the chat add-on's panel; Escape closes it",
 			"steps": [
 				{ "key": "mod+shift+p" },

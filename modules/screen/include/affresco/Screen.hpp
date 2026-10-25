@@ -526,6 +526,11 @@ public:
 	/// @param listener Receives each event, as JSON text.
 	/// @return The connection.
 	Connection onEvent(std::function<void(const std::string& eventJson)> listener);
+	/// @brief Listens to the errors of handlers and deferred changes: a step that failed, which stops its action (they
+	/// are also logged).
+	/// @param listener Receives each error's message.
+	/// @return The connection.
+	Connection onError(std::function<void(const std::string& message)> listener);
 
 	/* Peers: programs that read and change the screen over the live protocol (SCREEN_FORMAT.md, "Live screens").
 	   A peer's changes are authored by the name it was connected with, whatever name it gives itself. Every peer hears

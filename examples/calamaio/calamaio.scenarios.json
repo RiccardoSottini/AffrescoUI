@@ -429,7 +429,7 @@
 			]
 		},
 		{
-			"name": "assistant",
+			"name": "assistant-in-its-colours",
 			"note": "The assistant add-on in Calamaio's colours: it opens from its launcher, and Escape collapses it.",
 			"steps": [
 				{ "action": "assistant.open" },

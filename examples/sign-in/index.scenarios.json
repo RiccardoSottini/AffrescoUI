@@ -3096,7 +3096,8 @@
 			"note": "Continue with Example ID waits for the fake provider; its answer, played as an event, signs in",
 			"steps": [
 				{
-					"click": "#provider"
+					"click": "#provider",
+					"error": "this host has no sign-in"
 				},
 				{
 					"expect": {
@@ -3169,7 +3170,8 @@
 			"note": "A failed answer is shown as an alert; once cancelled, a late answer is ignored",
 			"steps": [
 				{
-					"click": "#provider"
+					"click": "#provider",
+					"error": "this host has no sign-in"
 				},
 				{
 					"action": "providerFailed",
@@ -3197,7 +3199,8 @@
 					}
 				},
 				{
-					"click": "#provider"
+					"click": "#provider",
+					"error": "this host has no sign-in"
 				},
 				{
 					"click": "#cancelProvider"

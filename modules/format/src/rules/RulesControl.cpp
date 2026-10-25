@@ -141,9 +141,12 @@ public:
 		if(value.is_object()) {
 			bool control = false; // one look at each key, not one search of them per control step
 			bool uses = false;
-			for(const auto& entry : value.items()) {
-				control = control || std::ranges::find(controlSteps, entry.key()) != std::ranges::end(controlSteps);
-				uses = uses || entry.key() == "use";
+			// Values never run: a state key named after a step ("undo": a stack) is data, not that step
+			if(part != Part::Values) {
+				for(const auto& entry : value.items()) {
+					control = control || std::ranges::find(controlSteps, entry.key()) != std::ranges::end(controlSteps);
+					uses = uses || entry.key() == "use";
+				}
 			}
 			// One text per outermost control step: the ones inside it are in its text, so theirs would only repeat
 			// it, once per level (a document of a few MiB, nested, would make GiBs)

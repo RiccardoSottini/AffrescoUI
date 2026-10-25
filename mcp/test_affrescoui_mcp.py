@@ -144,6 +144,19 @@ class Guide(unittest.TestCase):
         self.assertEqual(mcp.format_guide(guide, "nodes"), "## Nodes\nAbout nodes.\n\nMore in the topics: label, image.")
         self.assertEqual(mcp.format_guide(guide, "image"), "### image\nPictures.")
 
+    def test_a_topic_too_long_comes_in_pages(self):
+        rows = "".join(f"| `key{n}` | {'x' * 90} |\n" for n in range(100))
+        guide = "# Format\n\n### table\nAbout it.\n\n| Key | Meaning |\n|---|---|\n" + rows + "\n### code\n```\n" + \
+            "line\n" * 2000 + "```\nAfter."
+        sections = dict(mcp.guide_sections(guide))
+        self.assertIn('Continued in the topic "table (2)".', sections["table"])
+        self.assertTrue(sections["table (2)"].startswith("| Key | Meaning |\n|---|---|\n| `key"))
+        self.assertTrue(sections["code (2)"].startswith("```\nline"))
+        self.assertTrue(sections["code"].endswith('```\n\nContinued in the topic "code (2)".'))
+        for title, part in sections.items():
+            self.assertLessEqual(len(part), mcp.GUIDE_TOPIC, title)
+        self.assertEqual("".join(sections[t] for t in sections if t.startswith("table")).count("`key"), 100)
+
 
 class Scenarios(unittest.TestCase):
     def test_a_proposals_patch_applies_to_a_copy(self):

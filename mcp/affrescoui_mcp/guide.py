@@ -32,12 +32,38 @@ def section(lines, starts, n):
     return part
 
 
+def pages(title, part):
+    """A topic as (title, text) pages of at most GUIDE_TOPIC characters, split between lines: the first keeps the
+    title, the next ones are "title (2)" and on, each but the last naming the next; a page that starts inside a table
+    repeats its header, and one inside a code block opens it again."""
+    if len(part) <= GUIDE_TOPIC:
+        return [(title, part)]
+    result, page, header, fence = [], [], [], False
+    room = GUIDE_TOPIC - 80  # for the line naming the next page, and a code block closed
+    for line in part.split("\n"):
+        if page and len("\n".join(page + [line])) > room:
+            result.append(page + ["```"] if fence else page)
+            page = ["```"] if fence else list(header) if line.startswith("|") else []
+        page.append(line)
+        fence = fence != line.startswith("```")
+        if line.startswith("|---"):
+            header = page[-2:]
+        elif not line.startswith("|"):
+            header = []
+    result.append(page)
+    names = [title] + [f"{title} ({n})" for n in range(2, len(result) + 1)]
+    return [(names[n], "\n".join(lines) + (f"\n\nContinued in the topic \"{names[n + 1]}\"."
+                                            if n + 1 < len(result) else "")) for n, lines in enumerate(result)]
+
+
 def guide_sections(text):
     """SCREEN_FORMAT.md as its sections: (title, text) for the introduction ("introduction") and each "##" and "###"
-    heading; a "##" section includes its "###" ones, or names them if they would make it longer than GUIDE_TOPIC."""
+    heading; a "##" section includes its "###" ones, or names them if they would make it longer than GUIDE_TOPIC, and
+    a section still longer comes in pages (pages())."""
     lines = text.split("\n")
     starts = headings(lines)
-    return [(title.replace("`", ""), section(lines, starts, n)) for n, (_, _, title) in enumerate(starts)]
+    return [page for n, (_, _, title) in enumerate(starts)
+            for page in pages(title.replace("`", ""), section(lines, starts, n))]
 
 
 def format_guide(text, topic=None):

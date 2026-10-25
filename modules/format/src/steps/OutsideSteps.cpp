@@ -45,7 +45,11 @@ bool call(const Running& s) {
 	} else if(const auto it = engine.nativeActions.find(name); it != engine.nativeActions.end()) {
 		it->second(s.sender);
 	} else {
-		fail(where + ".call", "no native action '" + name + "' registered");
+		const std::string error = "no native action '" + name + "' registered";
+		// A host without it is an error the step handles, as one the function throws (a screen that runs elsewhere)
+		if(!step.contains("onError")) fail(where + ".call", error);
+		const Scope scope{&s.locals, nullptr, {{"error", error}}, {}, {}};
+		return s.run(step["onError"], scope, where + ".onError");
 	}
 	return true;
 }

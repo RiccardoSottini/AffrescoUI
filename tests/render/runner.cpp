@@ -139,16 +139,19 @@ std::size_t leaveOutPictures(automation::ScenarioFile& scenarios) {
 /// @param files The scenario files.
 /// @param options How.
 /// @return How many failures there were.
-/// @throws affresco::DocumentError If a file is malformed, or two have a scenario of the same name.
+/// @throws affresco::DocumentError If a file is malformed.
 std::size_t playAll(const std::vector<std::string>& files, const automation::Options& options) {
 	std::size_t frames = 0, failed = 0, skipped = 0;
 	std::set<std::string, std::less<>> names; // a name is the prefix of its golden images: unique across the files
 	for(const std::string& file : files) {
 		automation::ScenarioFile scenarios = automation::ScenarioFile::load(file);
-		for(const automation::Scenario& scenario : scenarios.scenarios)
-			if(!names.insert(scenario.name).second)
-				throw affresco::DocumentError("scenario '" + scenario.name + "' is in two files; the second is " +
-				                              file);
+		// A second scenario of a name is one failure, and isn't played: the others still are
+		std::erase_if(scenarios.scenarios, [&](const automation::Scenario& scenario) {
+			if(names.insert(scenario.name).second) return false;
+			std::cout << "FAILED  scenario '" << scenario.name << "' is in two files; the second is " << file << '\n';
+			++failed;
+			return true;
+		});
 		if(!options.pictures) skipped += leaveOutPictures(scenarios);
 		failed += print(automation::run(scenarios, options), frames);
 	}

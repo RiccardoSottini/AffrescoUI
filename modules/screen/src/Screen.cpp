@@ -458,4 +458,8 @@ Connection Screen::onEvent(std::function<void(const std::string&)> listener) {
 	return impl_->events.connect(std::move(listener));
 }
 
+Connection Screen::onError(std::function<void(const std::string&)> listener) {
+	return impl_->runtime.onError.connect(std::move(listener));
+}
+
 } // namespace affresco

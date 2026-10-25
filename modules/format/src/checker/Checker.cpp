@@ -351,14 +351,18 @@ void Checker::walkUnreached() {
 void Checker::report(const std::string& place, std::string problem, std::string hint) {
 	if(place.starts_with("components.")) { // a built-in's own body is the library's, tested there
 		const std::string name = place.substr(11, place.find_first_of(".[", 11) - 11);
-		if(!definition("components", name) && libraryComponent(name)) return;
+		if(!definition("components", name) && libraryComponent(name)) {
+			if(!hint.empty()) --hints_; // a finding not reported leaves its hint to the document's own
+			return;
+		}
 	}
 	Finding finding{place, std::move(problem), std::move(hint)};
 	if(finding.hint.empty() && hints_ >= maxHints) { // the same finding may have been reported with its hint
 		const auto same = findings_.lower_bound(finding);
 		if(same != findings_.end() && same->place == finding.place && same->problem == finding.problem) return;
 	}
-	findings_.insert(std::move(finding));
+	const bool hinted = !finding.hint.empty();
+	if(!findings_.insert(std::move(finding)).second && hinted) --hints_; // reported again: one hint, as one finding
 }
 
 bool Checker::visit() {

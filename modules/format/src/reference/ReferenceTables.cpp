@@ -12,12 +12,17 @@ namespace affresco::format {
 
 namespace {
 
+/// @brief Whether a table lists steps: "steps", and "outsideSteps" (those that reach outside the screen).
+/// @param table Its name.
+/// @return Whether it does.
+bool listsSteps(std::string_view table) { return table == "steps" || table == "outsideSteps"; }
+
 /// @brief The header of a table.
 /// @param table Its name.
 /// @return Its first two lines.
 std::string_view header(std::string_view table) {
 	if(table == "events") return "| Handler | When |\n|---|---|\n";
-	if(table == "steps") return "| Step | Example |\n|---|---|\n";
+	if(listsSteps(table)) return "| Step | Example |\n|---|---|\n";
 	return "| Key | Meaning |\n|---|---|\n";
 }
 
@@ -28,7 +33,7 @@ std::string_view header(std::string_view table) {
 std::pair<std::span<const KeyReference>, std::vector<std::string>> keysOf(const Engine& engine,
                                                                           std::string_view table) {
 	if(table == "sections" || table == "capabilities") return {sectionKeys(), sectionNames(engine)};
-	if(table == "steps") return {stepKeys(), stepKeyNames(engine)};
+	if(listsSteps(table)) return {stepKeys(), stepKeyNames(engine)};
 	return {nodeKeys(), nodeKeyNames(engine)};
 }
 
