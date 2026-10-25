@@ -36,7 +36,10 @@ links="$build/site-links.html"
 : >"$links"
 python3 -I -c 'import json, sys; [print(name, folder) for name, folder in json.load(open(sys.argv[1]))["templates"].items()]' \
 	"$root/examples/templates.json" | while read -r name folder; do
-	file="$root/examples/$folder/index.screen.json"
+	# The app's entry screen, named by its app.json (index.screen.json in a folder without one), gives the title
+	entry=$(python3 -I -c 'import json, pathlib, sys; app = pathlib.Path(sys.argv[1], "app.json"); print(json.loads(app.read_text()).get("entry", "index.screen.json") if app.exists() else "index.screen.json")' \
+		"$root/examples/$folder")
+	file="$root/examples/$folder/$entry"
 	title=$(python3 -I -c 'import html, json, sys; print(html.escape(json.load(open(sys.argv[1])).get("window", {}).get("title", sys.argv[2]).split(":")[0]))' "$file" "$name")
 	replacement=$(printf '%s' "$title" | sed 's/[&|\\]/\\&/g') # sed's own characters, escaped
 	sed -e "s|@FOLDER@|$folder|g" -e "s|@SCREEN@|$name|g" -e "s|@TITLE@|$replacement|g" "$root/web/template.html" >"$site/$name.html"

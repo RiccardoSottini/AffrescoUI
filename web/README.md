@@ -20,7 +20,8 @@ tools/web/build.sh          # the build in build-web/, the site in build-web/sit
 ```
 
 The build is Release. It makes `affrescoui_launcher` for the browser, and the command-line tool
-`affrescoui` for Node, which plays the templates' scenarios on the same WebAssembly:
+`affrescoui` for Node, which plays the templates' scenarios on the same WebAssembly (those that draw pictures are
+left out, and counted: Node has no OpenGL):
 
 ```sh
 node build-web/affrescoui.js test examples/flow/index.scenarios.json
