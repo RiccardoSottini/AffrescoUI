@@ -12,7 +12,7 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | View rail | done | |
 | Side bar views, title rows | done | |
 | Editor tabs | done | |
-| Breadcrumbs | partial | One symbol segment, the outline entry above the caret; no nested symbols |
+| Breadcrumbs | done | |
 | Minimap and overview ruler | missing | No minimap; no scrollbar markers |
 | Panel (Problems, Output, Debug Console, Terminal) | done | |
 | Status bar | partial | Files are read and written as UTF-8 only; the encoding item is disabled and says so |
@@ -35,7 +35,7 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Run and debug | done | |
 | Terminal | done | |
 | Problems and language features | partial | Through the `lsp` service, one language server (clangd) |
-| Outline | partial | Headings and the lines that open a block, not a language's symbols |
+| Outline | partial | A language's symbols only where the language server runs (C and C++); other files list headings or the lines that open a block |
 | Features (extensions) view | done | |
 | Settings editor | partial | No table of contents; large checkboxes |
 | Themes | done | |

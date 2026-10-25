@@ -173,6 +173,28 @@
 			]
 		},
 		{
+			"name": "forge-layout-outline-of-symbols",
+			"note": "The language server's symbols replace the Outline of block lines, nested and kept as the caret moves; the breadcrumbs show the symbols that hold the caret",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "toggleSecondarySidebar" },
+				{ "action": "lspPlay", "event": { "kind": "outline", "path": "src/main.cpp", "result": { "truncated": false, "symbols": [
+					{ "name": "main", "detail": "int ()", "kind": "function", "path": "src/main.cpp", "line": 2, "column": 4, "depth": 0 },
+					{ "name": "count", "detail": "", "kind": "variable", "path": "src/main.cpp", "line": 3, "column": 8, "depth": 1 } ] } } },
+				{ "expect": { "state": "outline.length", "is": 2 } },
+				{ "expect": { "state": "outline[1].label", "is": "count" } },
+				{ "expect": { "state": "outline[1].line", "is": 4 } },
+				{ "revision": { "set": { "/state/caret/line": 5 } } },
+				{ "wait": 400 },
+				{ "expect": { "state": "outline[0].label", "is": "main" } },
+				{ "expect": { "node": { "role": "button", "name": "main" }, "exists": true } },
+				{ "expect": { "node": { "role": "button", "name": "count" }, "exists": true } },
+				{ "revision": { "set": { "/state/caret/line": 1 } } },
+				{ "wait": 50 },
+				{ "expect": { "node": { "role": "button", "name": "main" }, "exists": false } }
+			]
+		},
+		{
 			"name": "forge-layout-breadcrumbs-toggle",
 			"note": "Toggle Breadcrumbs hides them; pages other than files never have them",
 			"steps": [
