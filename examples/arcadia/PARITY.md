@@ -65,3 +65,23 @@ Counts after round 2 (store): done 26, partial 7, missing 16. Tokens (merged, co
 Counts after round 3 (downloads, friends and chat, profile, a game's menu, properties and uninstall, the assistant):
 done 37, partial 6, missing 6. Tokens (merged, compact): 66,961. Properties has no compatibility tab: the games are
 invented and never run, so there is no compatibility layer to choose.
+Counts after round 4 (a look of its own, and every client control works): done 40, partial 9, missing 0. Tokens
+(merged, compact): about 80,000, estimated from the compact document's size (282,485 bytes, against 236,426 before
+this round; the client's controls, the player hub and their strings in three languages).
+
+## Left for later
+
+Each partial row and each disabled control, with what it needs and a priority: P1 daily, P2 occasional, P3 rare.
+
+| What | Needs | Priority |
+| --- | --- | --- |
+| Collections: creating one, and dynamic (filtered) ones | JSON only: a collections model, a "New collection" dialog and a filter per collection | P2 |
+| Downloads settings: download region and a schedule | JSON only: two settings and the queue honouring the schedule window | P2 |
+| Community hub: opening a post and replying | JSON only: a post page and a replies model | P2 |
+| Keyboard: gamepad buttons in couch mode and the library | General library feature: gamepad button names in `keys` | P2 |
+| Game page panels: own screenshots and full controller info | JSON only: a screenshots model and a controller panel | P3 |
+| Properties: browsing installed files; a compatibility tab | JSON only for the files list; compatibility has nothing to choose with invented games | P3 |
+| Storage: a second drive and moving a game to it | JSON only: drives in the data and a move action | P3 |
+| TV mode: the store, friends and settings inside couch mode | JSON only: more couch pages | P3 |
+| Store bar: Rewards and Experiments (disabled, with a tooltip) | JSON only: a points shop and an experiments page | P3 |
+| Arcadia menu: Exit (disabled) | General library feature: an action that asks the host to quit; menu items also need a tooltip (kit) | P3 |
