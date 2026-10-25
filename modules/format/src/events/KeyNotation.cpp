@@ -13,32 +13,41 @@ namespace affresco::format {
 namespace {
 
 /// The labels of the keys whose names are words, for the mac and pc notations.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 15> wordLabels = {
-    {{"minus", "-"},          {"equal", "="},          {"comma", ","},          {"period", "."},
-     {"slash", "/"},          {"backslash", "\\"},     {"semicolon", ";"},      {"apostrophe", "'"},
-     {"leftbracket", "["},    {"rightbracket", "]"},   {"grave", "`"},          {"numpadperiod", "Numpad ."},
-     {"numpadplus", "Numpad +"}, {"numpadminus", "Numpad -"}, {"numpadmultiply", "Numpad *"}}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 15> wordLabels = {{{"minus", "-"},
+                                                                                       {"equal", "="},
+                                                                                       {"comma", ","},
+                                                                                       {"period", "."},
+                                                                                       {"slash", "/"},
+                                                                                       {"backslash", "\\"},
+                                                                                       {"semicolon", ";"},
+                                                                                       {"apostrophe", "'"},
+                                                                                       {"leftbracket", "["},
+                                                                                       {"rightbracket", "]"},
+                                                                                       {"grave", "`"},
+                                                                                       {"numpadperiod", "Numpad ."},
+                                                                                       {"numpadplus", "Numpad +"},
+                                                                                       {"numpadminus", "Numpad -"},
+                                                                                       {"numpadmultiply", "Numpad *"}}};
 
 /// Emacs's names of the keys whose names are words; other words are written "<name>".
-constexpr std::array<std::pair<std::string_view, std::string_view>, 18> emacsLabels = {
-    {{"enter", "RET"},
-     {"tab", "TAB"},
-     {"escape", "ESC"},
-     {"backspace", "DEL"},
-     {"space", "SPC"},
-     {"pageup", "<prior>"},
-     {"pagedown", "<next>"},
-     {"minus", "-"},
-     {"equal", "="},
-     {"comma", ","},
-     {"period", "."},
-     {"slash", "/"},
-     {"grave", "`"},
-     {"leftbracket", "["},
-     {"rightbracket", "]"},
-     {"semicolon", ";"},
-     {"apostrophe", "'"},
-     {"backslash", "\\"}}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 18> emacsLabels = {{{"enter", "RET"},
+                                                                                        {"tab", "TAB"},
+                                                                                        {"escape", "ESC"},
+                                                                                        {"backspace", "DEL"},
+                                                                                        {"space", "SPC"},
+                                                                                        {"pageup", "<prior>"},
+                                                                                        {"pagedown", "<next>"},
+                                                                                        {"minus", "-"},
+                                                                                        {"equal", "="},
+                                                                                        {"comma", ","},
+                                                                                        {"period", "."},
+                                                                                        {"slash", "/"},
+                                                                                        {"grave", "`"},
+                                                                                        {"leftbracket", "["},
+                                                                                        {"rightbracket", "]"},
+                                                                                        {"semicolon", ";"},
+                                                                                        {"apostrophe", "'"},
+                                                                                        {"backslash", "\\"}}};
 
 /// The characters Shift makes of the keys that type one, for the Emacs notation: "M-<" is Alt+Shift+Comma.
 constexpr std::string_view plainKeys = "`1234567890-=[]\\;',./", shiftedKeys = "~!@#$%^&*()_+{}|:\"<>?";

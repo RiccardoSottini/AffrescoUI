@@ -118,8 +118,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"language", R"json({"type": "string", "description": "diff: a language id for the application's editors (e.g. cpp); editor: a language of the languages section, by name, alias or file name"})json",
 	 "A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. "
 	 "On an `editor`: a language of the `languages` section, by name, alias or file name (`main.py`). It colours the "
-	 "text unless a `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, or "
-	 "wrapping the selection), Backspace between an empty pair deletes both, Enter between `brackets` or after an "
+	 "text unless a `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, "
+	 "or wrapping the selection), Backspace between an empty pair deletes both, Enter between `brackets` or after an "
 	 "`indent.increase` line indents a level, and a line that comes to match `indent.decrease` goes back one. Unknown, "
 	 "plain text.",
 	 "diff"},

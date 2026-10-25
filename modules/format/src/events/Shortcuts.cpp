@@ -80,10 +80,20 @@ constexpr std::array<std::pair<std::string_view, Modifier>, 10> modifierNames = 
                                                                                   {"shift", Shift}}};
 
 /// Other names documents give keys.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 14> keyAliases = {
-    {{"return", "enter"}, {"esc", "escape"}, {"backquote", "grave"}, {"`", "grave"}, {"-", "minus"}, {"=", "equal"},
-     {",", "comma"}, {".", "period"}, {"/", "slash"}, {"\\", "backslash"}, {";", "semicolon"}, {"'", "apostrophe"},
-     {"[", "leftbracket"}, {"]", "rightbracket"}}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 14> keyAliases = {{{"return", "enter"},
+                                                                                       {"esc", "escape"},
+                                                                                       {"backquote", "grave"},
+                                                                                       {"`", "grave"},
+                                                                                       {"-", "minus"},
+                                                                                       {"=", "equal"},
+                                                                                       {",", "comma"},
+                                                                                       {".", "period"},
+                                                                                       {"/", "slash"},
+                                                                                       {"\\", "backslash"},
+                                                                                       {";", "semicolon"},
+                                                                                       {"'", "apostrophe"},
+                                                                                       {"[", "leftbracket"},
+                                                                                       {"]", "rightbracket"}}};
 
 /// @brief The parts of a shortcut as written, in lower case and without spaces: "Shift + K" is "shift", "k".
 /// @param text The shortcut.

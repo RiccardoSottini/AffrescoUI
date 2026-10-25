@@ -202,8 +202,8 @@ void applyGrammar(TextEditor& editor, const json& values, const PropertyReader& 
 }
 
 /// @brief Sets an editor's language: the editing rules of the language "language" names (by name, alias or file
-/// name, in the document's "languages"), and its colours unless a "grammar" is given: each scope in "@syntax.<scope>" or
-/// its parent scope's. Only a highlighter this key installed is replaced or removed.
+/// name, in the document's "languages"), and its colours unless a "grammar" is given: each scope in "@syntax.<scope>"
+/// or its parent scope's. Only a highlighter this key installed is replaced or removed.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours and the languages.
