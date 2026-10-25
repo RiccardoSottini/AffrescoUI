@@ -286,7 +286,9 @@ ever in a document or in this repository), or names another connection's. The ho
 port, matched exactly and closed after one answer; or the device flow. The `state` and the OpenID `nonce` are
 checked, and compared in constant time; every answer from the provider is bounded in size and time. The tokens stay
 in the host's `SignIn` object, and the refresh token in its `SecretStore` (the Keychain, the Credential Manager or the
-Secret Service when the application passes `net::systemSecretStore`; in memory by default). The host adds the
+Secret Service when the application passes `net::systemSecretStore`; in memory by default). A kept sign-in is bound
+to its provider's whole declaration (flow, endpoints, client, scopes, issuer and the connection's URL its tokens go
+to): a screen that declares it another way signs in again, and so does one kept before this binding. The host adds the
 `Authorization` header to each request of a connection that signs in, after the document's headers, which can't
 carry one. What a document sees is `auth.<name>`: a state, an account and an expiry, never a token, so a token
 reaches no document, state, history, log or screenshot (`tests/unit/auth.cpp` signs in through a mock provider and
