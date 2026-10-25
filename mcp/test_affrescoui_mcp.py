@@ -372,6 +372,20 @@ class Malformed(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "open to other users"):
                 mcp.check_socket_dir(folder)
 
+    def test_the_launch_program_and_its_arguments_are_never_split(self):
+        server_module = sys.modules[mcp.main.__module__]
+        argv = ["affrescoui_mcp.py", "--socket", "s", "--launch", "/opt/my host", "--launch-arg", "a b; touch x"]
+        with unittest.mock.patch.object(sys, "argv", argv), \
+                unittest.mock.patch.object(server_module, "Server") as server, \
+                unittest.mock.patch.object(sys, "stdin", io.TextIOWrapper(io.BytesIO())), \
+                unittest.mock.patch.object(sys, "stdout", io.TextIOWrapper(io.BytesIO())), \
+                contextlib.redirect_stderr(io.StringIO()):
+            mcp.main()
+        server.assert_called_once_with("s", ["/opt/my host", "a b; touch x"], [])
+        with unittest.mock.patch.object(sys, "argv", ["affrescoui_mcp.py", "--launch-arg", "x"]), \
+                contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            mcp.main()  # an argument needs a program first
+
     def test_the_log_escapes_what_a_request_can_hold(self):
         written = io.StringIO()
         with contextlib.redirect_stderr(written):
