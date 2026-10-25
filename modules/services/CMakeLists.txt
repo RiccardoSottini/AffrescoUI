@@ -6,6 +6,7 @@ affrescoui_module(services
 	src/Schema.cpp
 	# grants/: what a host grants from its command line (programs on the PATH, the login shell, git's policy)
 	src/grants/AppPrograms.cpp # the host's sibling programs, for a launcher
+	src/grants/GitOutput.cpp # reading git's status and branch list
 	src/grants/GitPolicy.cpp
 	src/grants/Grants.cpp
 	# dap/: the debug adapter service (Debug Adapter Protocol)

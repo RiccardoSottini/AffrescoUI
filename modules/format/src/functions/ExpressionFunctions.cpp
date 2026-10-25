@@ -19,7 +19,7 @@ std::span<const Function> functions() {
 		for(const std::span<const Function> group :
 		    {logicFunctions(), numberFunctions(), mathsFunctions(), textFunctions(), listFunctions(), itemFunctions(), foldFunctions(),
 		     timeFunctions(), fuzzyFunctions(), colorFunctions(), keyframeFunctions(), localeFunctions(),
-		     dateFunctions(), formFunctions(), pathFunctions(), keyFunctions()})
+		     dateFunctions(), formFunctions(), pathFunctions(), keyFunctions(), diffFunctions()})
 			rows.insert(rows.end(), group.begin(), group.end());
 		return rows;
 	}();

@@ -172,8 +172,7 @@ endif()
 # Forge's natives, which the benchmark builds too (without the examples)
 set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
 	examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
-	examples/forge/features/scm/Scm.cpp examples/forge/features/scm/GitStatus.cpp
-	examples/forge/features/scm/GitArguments.cpp examples/forge/features/scm/LineDiff.cpp
+	examples/forge/features/scm/Scm.cpp examples/forge/features/scm/GitArguments.cpp
 	examples/forge/features/accounts/Accounts.cpp examples/forge/features/editor/Buffers.cpp
 	examples/forge/features/editor/Editor.cpp examples/forge/features/search/Search.cpp
 	examples/forge/features/explorer/Explorer.cpp examples/forge/features/terminal/Terminal.cpp

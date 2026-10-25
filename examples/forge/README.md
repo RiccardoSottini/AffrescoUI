@@ -50,7 +50,7 @@ Source control runs git through the `process` service, not a native (`features/s
 program and Forge's own commands only (`GitArguments.*`): status, add and restore with paths after `--`, `commit -F -`
 (the message goes to git's input), the branch list, `switch` to a checked branch name, and `show HEAD:<path>`. Each run
 is given as an array, without a shell, against the open folder's repository (`--git-dir`, `--work-tree`). Its output is
-bounded and parsed by `forge.scm.parseStatus`, `forge.scm.parseBranches` and `forge.scm.diff`.
+read strictly by the `gitStatus` and `gitBranches` expression functions, and `diffLines` compares a file with HEAD.
 
 The debugger (`features/debug/Debug.*`) grants `lldb-dap` and `debugpy` (`python3 -m debugpy.adapter`) when they are on
 PATH, so either one works without a setting:

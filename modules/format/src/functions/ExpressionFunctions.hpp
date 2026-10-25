@@ -194,6 +194,9 @@ struct Function {
 /// @brief The table of the key function, `keyLabel` (ExpressionFunctionsKeys.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> keyFunctions();
+/// @brief The table of the change functions, `diffLines`, `gitStatus` and `gitBranches` (ExpressionFunctionsDiff.cpp).
+/// @return Its rows.
+[[nodiscard]] std::span<const Function> diffFunctions();
 
 /* Helpers the tables share */
 

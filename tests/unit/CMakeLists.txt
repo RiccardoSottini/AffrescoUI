@@ -19,8 +19,7 @@ add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOU
 	${affrescoui_forge_dir}/features/palette/FileIndex.cpp ${affrescoui_forge_dir}/features/themes/ThemeImport.cpp
 	${affrescoui_forge_dir}/features/themes/IconTheme.cpp ${affrescoui_forge_dir}/features/terminal/TerminalModel.cpp
 	${affrescoui_forge_dir}/features/editor/Buffers.cpp ${affrescoui_forge_dir}/features/search/Search.cpp
-	${affrescoui_forge_dir}/features/scm/GitStatus.cpp ${affrescoui_forge_dir}/features/scm/GitArguments.cpp
-	${affrescoui_forge_dir}/features/scm/LineDiff.cpp ${affrescoui_forge_dir}/features/scm/Scm.cpp)
+	${affrescoui_forge_dir}/features/scm/GitArguments.cpp ${affrescoui_forge_dir}/features/scm/Scm.cpp)
 # lsp.cpp tests the lsp feature's protocol functions, lsp_edits.cpp its edits applied to the folder
 target_sources(affrescoui_unit_tests PRIVATE ${affrescoui_forge_dir}/features/lsp/LspProtocol.cpp
 	${affrescoui_forge_dir}/features/lsp/LspText.cpp ${affrescoui_forge_dir}/features/lsp/LspCall.cpp

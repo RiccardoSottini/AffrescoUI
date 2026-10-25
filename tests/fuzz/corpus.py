@@ -516,7 +516,7 @@ def token_file_seeds():
 
 
 def git_output_seeds():
-    """git's output as Forge asks for it (examples/forge/features/scm/GitStatus.hpp), and texts to diff."""
+    """git's output as the git grant asks for it (services' GitOutput.hpp), and texts to diff."""
     status = ["# branch.oid 0123456789abcdef0123456789abcdef01234567", "# branch.head main",
               "# branch.upstream origin/main", "# branch.ab +2 -1",
               "1 .M N... 100644 100644 100644 0123456789abcdef0123456789abcdef01234567 "

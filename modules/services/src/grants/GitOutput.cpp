@@ -1,7 +1,7 @@
 /// @file
-/// @brief Forge's source control: git's status and branch list, read strictly (GitStatus.hpp).
+/// @brief git's status and branch list, read strictly (GitOutput.hpp).
 
-#include "GitStatus.hpp"
+#include "affresco/services/GitOutput.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -10,11 +10,9 @@
 #include <string_view>
 #include <vector>
 
-namespace forge {
+namespace affresco::services {
 
 namespace {
-
-using affresco::json;
 
 /// @brief Fails a read.
 /// @param what What is wrong.
@@ -87,7 +85,7 @@ constexpr std::string_view states = ".MTADRCU";              ///< git's X and Y 
 /// @param limits The limits.
 /// @return It.
 /// @throws std::runtime_error If it isn't one.
-std::string checkedPath(std::string_view path, const GitLimits& limits) {
+std::string checkedPath(std::string_view path, const GitOutputLimits& limits) {
 	if(path.empty() || path.size() > limits.path || path.front() == '/') malformed("a bad path");
 	return std::string(path);
 }
@@ -95,7 +93,7 @@ std::string checkedPath(std::string_view path, const GitLimits& limits) {
 /// @brief What an entry's two letters say happened to it.
 /// @param index The X letter (the index against HEAD).
 /// @param worktree The Y letter (the working tree against the index).
-/// @return The kind (GitStatus.hpp).
+/// @return The kind (GitOutput.hpp).
 std::string_view kindOf(char index, char worktree) {
 	const char letter = index != '.' ? index : worktree;
 	switch(letter) {
@@ -134,7 +132,7 @@ json fileEntry(std::string path, std::string original, std::string_view letters,
 /// @param limits The limits.
 /// @return The entry.
 /// @throws std::runtime_error If it is malformed.
-json changedEntry(std::string_view record, bool renamed, std::string_view original, const GitLimits& limits) {
+json changedEntry(std::string_view record, bool renamed, std::string_view original, const GitOutputLimits& limits) {
 	const std::vector<std::string_view> parts = fields(record, renamed ? 8 : 7);
 	expect(parts[0], {2}, states, "status");
 	expect(parts[1], {4}, "NSCMU.", "submodule state");
@@ -156,7 +154,7 @@ json changedEntry(std::string_view record, bool renamed, std::string_view origin
 /// @param limits The limits.
 /// @return The entry.
 /// @throws std::runtime_error If it is malformed.
-json unmergedEntry(std::string_view record, const GitLimits& limits) {
+json unmergedEntry(std::string_view record, const GitOutputLimits& limits) {
 	const std::vector<std::string_view> parts = fields(record, 9);
 	expect(parts[0], {2}, "ADU", "status");
 	expect(parts[1], {4}, "NSCMU.", "submodule state");
@@ -201,7 +199,7 @@ void readHeader(std::string_view header, json& branch) {
 
 } // namespace
 
-json parseStatus(std::string_view output, const GitLimits& limits) {
+json readGitStatus(std::string_view output, const GitOutputLimits& limits) {
 	if(output.size() > limits.bytes) throw std::runtime_error("git's output is too large");
 	const std::vector<std::string_view> pieces = records(output, '\0', limits.entries * 2 + 8);
 	json branch = {{"head", ""}, {"oid", ""}, {"upstream", ""}, {"ahead", 0}, {"behind", 0}};
@@ -228,7 +226,7 @@ json parseStatus(std::string_view output, const GitLimits& limits) {
 	return {{"branch", std::move(branch)}, {"files", std::move(files)}};
 }
 
-json parseBranches(std::string_view output, const GitLimits& limits) {
+json readGitBranches(std::string_view output, const GitOutputLimits& limits) {
 	if(output.size() > limits.bytes) throw std::runtime_error("git's output is too large");
 	json branches = json::array();
 	std::string current;
@@ -244,4 +242,4 @@ json parseBranches(std::string_view output, const GitLimits& limits) {
 	return {{"current", std::move(current)}, {"branches", std::move(branches)}};
 }
 
-} // namespace forge
+} // namespace affresco::services

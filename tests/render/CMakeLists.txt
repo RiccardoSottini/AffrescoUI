@@ -10,8 +10,7 @@ add_executable(affrescoui_render_runner runner.cpp ${forge_dir}/Forge.cpp
 	${forge_dir}/features/terminal/Terminal.cpp ${forge_dir}/features/terminal/TerminalModel.cpp
 	${forge_dir}/features/editor/Buffers.cpp ${forge_dir}/features/editor/Editor.cpp
 	${forge_dir}/features/search/Search.cpp
-	${forge_dir}/features/scm/Scm.cpp ${forge_dir}/features/scm/GitStatus.cpp
-	${forge_dir}/features/scm/GitArguments.cpp ${forge_dir}/features/scm/LineDiff.cpp
+	${forge_dir}/features/scm/Scm.cpp ${forge_dir}/features/scm/GitArguments.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/surfaces/Surfaces.cpp
 	${PROJECT_SOURCE_DIR}/examples/tempo/Visualiser.cpp
 	${forge_dir}/features/debug/Debug.cpp)
