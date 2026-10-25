@@ -43,10 +43,10 @@ constexpr std::array<std::pair<std::string_view, int>, 6> modifiers = {{
 }};
 
 /// @brief The properties `expect` reads from a node.
-constexpr std::array<std::string_view, 21> properties = {
+constexpr std::array<std::string_view, 22> properties = {
     "text",  "textColor", "color",   "borderColor", "borderWidth", "shown", "visible", "focused", "hovered",
     "tooltip", "checked", "value", "x",           "y",           "width", "height", "scrollX", "scrollY",
-    "role",  "name",      "description"};
+    "role",  "name",      "description", "scrollMarks"};
 
 /// @brief Reads a function key.
 /// @param name "f1" to "f12".
