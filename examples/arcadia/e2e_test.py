@@ -92,7 +92,7 @@ def main():
     sockets, data = os.path.join(work, "s"), os.path.join(work, "data")
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets)
     host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), SCREEN, "--socket", sockets, "--data", data,
-                             "--grant", "assistant"],
+                             "--grant", "assistant", "--grant", "files"],
                             env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         studio, studio_stream = connect(os.path.join(sockets, "studio.sock"))
