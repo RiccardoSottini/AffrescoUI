@@ -13,6 +13,9 @@
 
 	"computed": {
 		"commandItems": "{{map(filter(commands, it.enabled), {title: (it.category ? it.category + ': ' : '') + it.title, detail: it.keyLabel ?? '', run: it.name})}}",
+		"indentItems": "{{map([2, 4, 8], {title: 'Spaces: ' + text(it), detail: it == (settings.editor.tabSize ?? 4) ? 'Current' : '', run: 'setTabSize', with: {spaces: it}})}}",
+		"eolItems": "{{map(['LF', 'CRLF'], {title: it, detail: it == (computed.activeDoc.eol ?? 'LF') ? 'Current' : '', run: 'setEol', with: {eol: it}})}}",
+		"languageItems": "{{map(concat(filter(values(state.languages), indexOf(values(state.languages), it) == index), ['Plain Text']), {title: it, detail: (it == 'Plain Text' ? '' : it) == (computed.activeDoc.language ?? '') ? 'Current' : '', run: 'setLanguage', with: {language: it == 'Plain Text' ? '' : it}})}}",
 		"lineItems": "{{(number(slice(state.quickPick.query ?? '', 1)) ?? 0) > 0 ? [{title: 'Go to line ' + trim(slice(state.quickPick.query, 1)), line: number(slice(state.quickPick.query, 1))}] : []}}",
 		"keyRows": "{{map(filter(keybindings, empty(state.keysQuery) || contains(lower((it.title ?? it.command ?? '') + ' ' + it.keyLabel), lower(state.keysQuery))), {id: index, cells: [it.title ?? it.command ?? '', it.keyLabel, it.when ?? '', it.scope]})}}"
 	},
@@ -35,6 +38,23 @@
 			"do": [{ "set": "state.quickPick.query", "to": ">" }, { "set": "state.quickPick.open", "to": true }] },
 		"goToLinePick": { "title": "Go to Line...", "category": "Go", "icon": "hash",
 			"do": [{ "set": "state.quickPick.query", "to": ":" }, { "set": "state.quickPick.open", "to": true }] },
+		"changeIndentation": { "title": "Change Indentation", "category": "View", "icon": "indent-increase",
+			"enablement": "{{computed.activeDoc.kind == 'file'}}",
+			"do": [{ "set": "state.quickPick.query", "to": "indent " }, { "set": "state.quickPick.open", "to": true }] },
+		"changeEndOfLine": { "title": "Change End of Line Sequence", "category": "View", "icon": "corner-down-left",
+			"enablement": "{{computed.activeDoc.kind == 'file'}}",
+			"do": [{ "set": "state.quickPick.query", "to": "eol " }, { "set": "state.quickPick.open", "to": true }] },
+		"changeLanguageMode": { "title": "Change Language Mode", "category": "View", "icon": "braces",
+			"enablement": "{{computed.activeDoc.kind == 'file'}}",
+			"do": [{ "set": "state.quickPick.query", "to": "language " }, { "set": "state.quickPick.open", "to": true }] },
+		"setTabSize": [{ "note": "spaces: per indentation level, for every editor (a file's text keeps the spaces it has)" },
+			{ "set": "settings.editor.tabSize", "to": "{{spaces}}" }],
+		"setEol": [{ "note": "eol: 'LF' or 'CRLF', the line endings the active file is saved with. A change to save, like an edit" },
+			{ "forEach": "{{filter(state.docs, it.id == computed.activeDoc.id)}}", "as": "doc", "do": [
+				{ "run": "markDirty", "with": { "id": "{{doc.id}}", "dirty": "{{doc.text != doc.saved || eol != doc.savedEol}}" } },
+				{ "set": "state.docs", "to": "{{map(state.docs, it.id == doc.id ? merge(it, {eol: eol}) : it)}}" }] }],
+		"setLanguage": [{ "note": "language: the active file's, as state.languages names them ('' is plain text)" },
+			{ "set": "state.docs", "to": "{{map(state.docs, it.id == computed.activeDoc.id ? merge(it, {language: language}) : it)}}" }],
 		"openPicked": [{ "run": "openPath", "with": { "path": "{{item.id}}", "label": "{{item.title}}" } }],
 		"goToPicked": [{ "run": "goToLine", "with": { "line": "{{item.line}}" } }],
 		"goToLine": [{ "set": "state.goTo.line", "to": "{{line}}" }, { "increment": "state.goTo.request", "by": 1 }],
@@ -80,7 +100,10 @@
 					{ "prefix": "theme ", "items": "{{state.themes}}", "key": "name", "run": "setTheme",
 					  "placeholder": "Choose a colour theme" },
 					{ "prefix": "task ", "items": "{{state.tasks.items}}", "run": "taskStart",
-					  "placeholder": "Choose a task to run" }
+					  "placeholder": "Choose a task to run" },
+					{ "prefix": "indent ", "items": "{{computed.indentItems}}", "placeholder": "Select the spaces per indentation level" },
+					{ "prefix": "eol ", "items": "{{computed.eolItems}}", "placeholder": "Select the end of line sequence" },
+					{ "prefix": "language ", "items": "{{computed.languageItems}}", "placeholder": "Select a language mode" }
 				] } }
 		},
 		"forgeSettingsPage": {

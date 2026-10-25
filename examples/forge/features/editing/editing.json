@@ -26,6 +26,8 @@
 	},
 
 	"settings": {
+		"editor.tabSize": { "type": "integer", "minimum": 1, "maximum": 16, "default": 4, "title": "Tab size",
+			"description": "Spaces per indentation level: what Tab inserts and an opened file's tabs become." },
 		"editor.wordWrap": { "type": "boolean", "default": false, "title": "Word wrap",
 			"description": "Wrap lines that don't fit the editor's width." },
 		"editor.bracketMatching": { "type": "boolean", "default": true, "title": "Bracket matching",

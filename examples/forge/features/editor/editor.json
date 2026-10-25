@@ -55,7 +55,7 @@
 						"onDone": [
 							{
 								"push": "state.docs",
-								"value": "{{ {id: path, label: label, kind: 'file', text: join(split(join(split(result.text, '\r'), ''), '\\t'), '    '), saved: join(split(join(split(result.text, '\r'), ''), '\\t'), '    '), dirty: false, language: label == 'CMakeLists.txt' ? 'CMake' : state.languages[lower(reverse(split(label, '.'))[0])] ?? ''} }}"
+								"value": "{{ {id: path, label: label, kind: 'file', text: join(split(join(split(result.text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), saved: join(split(join(split(result.text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), eol: contains(result.text, '\r\n') ? 'CRLF' : 'LF', savedEol: contains(result.text, '\r\n') ? 'CRLF' : 'LF', dirty: false, language: label == 'CMakeLists.txt' ? 'CMake' : state.languages[lower(reverse(split(label, '.'))[0])] ?? ''} }}"
 							},
 							{
 								"run": "showFileTab",
@@ -329,13 +329,13 @@
 				"as": "doc",
 				"do": [
 					{
-						"if": "{{(event.value != doc.saved) != doc.dirty}}",
+						"if": "{{(event.value != doc.saved || doc.eol != doc.savedEol) != doc.dirty}}",
 						"then": [
 							{
 								"run": "markDirty",
 								"with": {
 									"id": "{{id}}",
-									"dirty": "{{event.value != doc.saved}}"
+									"dirty": "{{event.value != doc.saved || doc.eol != doc.savedEol}}"
 								}
 							}
 						]
@@ -351,13 +351,13 @@
 		],
 		"saveFile": [
 			{
-				"note": "doc: an open file. Writes its text and marks it saved"
+				"note": "doc: an open file. Writes its text, with its line endings, and marks it saved"
 			},
 			{
 				"invoke": "files.write",
 				"with": {
 					"path": "{{doc.id}}",
-					"text": "{{doc.text}}"
+					"text": "{{doc.eol == 'CRLF' ? join(split(doc.text, '\n'), '\r\n') : doc.text}}"
 				},
 				"onError": [
 					{
@@ -371,18 +371,18 @@
 				"onDone": [
 					{
 						"set": "state.docs",
-						"to": "{{map(state.docs, it.id == doc.id ? merge(it, {saved: doc.text, dirty: it.text != doc.text}) : it)}}"
+						"to": "{{map(state.docs, it.id == doc.id ? merge(it, {saved: doc.text, savedEol: doc.eol, dirty: it.text != doc.text || it.eol != doc.eol}) : it)}}"
 					}
 				]
 			}
 		],
 		"reloaded": [
 			{
-				"note": "id: an open file; text: what it now holds on disk. Kept as the editor shows it (tabs as four spaces, no carriage returns), so undoing back to it is clean"
+				"note": "id: an open file; text: what it now holds on disk. Kept as the editor shows it (tabs as the tab size's spaces, no carriage returns), its line endings noted, so undoing back to it is clean"
 			},
 			{
 				"set": "state.docs",
-				"to": "{{map(state.docs, it.id == id ? merge(it, {text: join(split(join(split(text, '\r'), ''), '\\t'), '    '), saved: join(split(join(split(text, '\r'), ''), '\\t'), '    '), dirty: false}) : it)}}"
+				"to": "{{map(state.docs, it.id == id ? merge(it, {text: join(split(join(split(text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), saved: join(split(join(split(text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), eol: contains(text, '\r\n') ? 'CRLF' : 'LF', savedEol: contains(text, '\r\n') ? 'CRLF' : 'LF', dirty: false}) : it)}}"
 			}
 		]
 	},
@@ -532,6 +532,7 @@
 										"minimap": "{{settings.editor.minimap.enabled}}",
 										"brackets": "{{settings.editor.bracketMatching}}",
 										"indentGuides": "{{settings.editor.guides.indentation}}",
+										"tabSize": "{{settings.editor.tabSize ?? 4}}",
 										"find": "{{gi == state.activeGroup ? computed.findQuery : null}}",
 										"decorations": "{{concat((find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? [], map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark))}}",
 										"tokens": "{{(find(state.lsp.files, it.id == state.docs[d].id) ?? {}).tokens ?? []}}",
