@@ -174,8 +174,8 @@
 		"daylight": "{{state.skyLayers.atmosphere && computed.skySun ? pow(clamp((computed.skySun.up + 0.21) / 0.31, 0, 1), 1.6) * (1 - 0.92 * computed.eclipseCover) : 0}}",
 		"skyLimit": "{{state.limitMag - 9 * computed.daylight}}",
 		"skyColor": "{{gradientColor({kind: 'linear', stops: [{at: 0, color: '#04060cff'}, {at: 0.4, color: '#1b2a4cff'}, {at: 1, color: '#5b8ed4ff'}]}, computed.daylight)}}",
-		"groundColor": "{{gradientColor({kind: 'linear', stops: [{at: 0, color: '#0c120eff'}, {at: 1, color: '#62804dff'}]}, computed.daylight)}}",
-		"figureColor": "{{gradientColor({kind: 'linear', stops: [{at: 0, color: '#3d6fb0ff'}, {at: 1, color: '#3d6fb050'}]}, computed.daylight)}}",
+		"groundColor": "{{gradientColor({kind: 'linear', stops: [{at: 0, color: '#14110cff'}, {at: 1, color: '#7d6c49ff'}]}, computed.daylight)}}",
+		"figureColor": "{{gradientColor({kind: 'linear', stops: [{at: 0, color: '#8f78b8ff'}, {at: 1, color: '#8f78b850'}]}, computed.daylight)}}",
 		"horizonY": "{{computed.skyCamera.cy + computed.skyCamera.f * tan(computed.skyView.altitude)}}",
 		"skyFigurePath": "{{state.skyLayers.lines && length(computed.skyPlaced) > 1200 ? join(map(filter(state.constellationLines, computed.skyPlaced[it[0]].ahead && computed.skyPlaced[it[1]].ahead), 'M' + fixed(computed.skyPlaced[it[0]].x, 1) + ' ' + fixed(computed.skyPlaced[it[0]].y, 1) + 'L' + fixed(computed.skyPlaced[it[1]].x, 1) + ' ' + fixed(computed.skyPlaced[it[1]].y, 1)), '') : ''}}",
 		"skyGridPoints": "{{filter(computed.skyPlaced, it.kind == 'grid')}}",
@@ -321,7 +321,7 @@
 						"id": "sky-grid",
 						"fill": true,
 						"d": "{{computed.skyGridPath}}",
-						"stroke": "#3f6a5a",
+						"stroke": "#5c5240",
 						"strokeWidth": 1
 					},
 					{
@@ -338,7 +338,7 @@
 						"fitText": true,
 						"font": "small",
 						"text": "{{g.text}}",
-						"textColor": "#5f9a84"
+						"textColor": "#a8976e"
 					},
 					{
 						"type": "path",
@@ -384,7 +384,7 @@
 						"align": "center",
 						"font": "small",
 						"text": "{{c.name}}",
-						"textColor": "#5f8fcf"
+						"textColor": "#b49fd8"
 					},
 					{
 						"type": "path",
@@ -393,7 +393,7 @@
 						"fill": true,
 						"d": "{{computed.skyLandPath}}",
 						"fillColor": "{{computed.groundColor}}",
-						"stroke": "#56694c",
+						"stroke": "#6e6347",
 						"strokeWidth": 1
 					},
 					{
@@ -431,7 +431,7 @@
 							}
 						],
 						"borderWidth": "{{b.id == state.selected ? 1.5 : 0}}",
-						"borderColor": "#ff8a5c"
+						"borderColor": "#2dd4bf"
 					},
 					{
 						"repeat": {
@@ -447,7 +447,7 @@
 						"fitText": true,
 						"font": "small",
 						"text": "{{b.name}}",
-						"textColor": "{{b.id == state.selected ? '@accent' : '#d8c27a'}}"
+						"textColor": "{{b.id == state.selected ? '@accent' : '#e9d9b0'}}"
 					},
 					{
 						"repeat": {
@@ -464,24 +464,24 @@
 						"align": "center",
 						"font": "title",
 						"text": "{{p.id}}",
-						"textColor": "#ef7448"
+						"textColor": "#5eead4"
 					},
 					{
 						"use": "toolbar",
 						"id": "sky-bar",
 						"anchors": {
-							"left": 8,
+							"right": 8,
 							"bottom": 6
 						},
 						"with": {
 							"items": "{{computed.skyBar}}",
 							"width": 272,
 							"label": "Sky layers",
-							"color": "#0b0f18d0",
+							"color": "#0b1514d8",
 							"textColor": "@onSky",
 							"dimColor": "@onSkyMuted",
-							"highlight": "#2a3142",
-							"checkedColor": "#3a4358"
+							"highlight": "#1f3331",
+							"checkedColor": "#24514b"
 						}
 					},
 					{
