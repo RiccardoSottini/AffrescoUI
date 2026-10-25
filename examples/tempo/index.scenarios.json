@@ -243,8 +243,22 @@
 			]
 		},
 		{
+			"name": "now-playing-visualiser-follows-the-spectrum",
+			"note": "The visualiser's bars are the spectrum the beat's sound writes in its state (its \"bands\"), as a host with sound would",
+			"steps": [
+				{ "key": "mod+5" },
+				{ "revision": { "type": "revision", "message": "The beat plays, loud in the bass", "set": {
+					"/state/soundOn": "beat",
+					"/state/beat": { "status": "playing", "playing": true, "spectrum": [0.9, 0.972, 0.973, 0.885, 0.759, 0.673, 0.675, 0.748, 0.819, 0.818, 0.729, 0.603, 0.518, 0.523, 0.596, 0.666, 0.664, 0.574, 0.447, 0.364, 0.37, 0.444, 0.514, 0.509, 0.418, 0.292, 0.21, 0.217, 0.292, 0.361, 0.355, 0.262] } } } },
+				{ "wait": 0 },
+				{ "expect": { "state": "beat.spectrum.length", "is": 32 } },
+				{ "expect": { "node": "#visualiserBars", "exists": true } },
+				{ "capture": "spectrum" }
+			]
+		},
+		{
 			"name": "now-playing-visualiser-and-lyrics",
-			"note": "Cmd+5 shows the song large, a visualiser drawn on the GPU and the lyrics, which follow the time",
+			"note": "Cmd+5 shows the song large, the visualiser (low and flat: nothing plays headless) and the lyrics, which follow the time",
 			"steps": [
 				{ "key": "mod+5" },
 				{ "expect": { "state": "page", "is": "nowPlaying" } },

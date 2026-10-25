@@ -202,7 +202,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_launcher, the stock host: renders any screen and accepts peers; without a file it opens the Launcher
 	add_executable(affrescoui_launcher examples/host/host.cpp)
 	target_sources(affrescoui_launcher PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
-	target_sources(affrescoui_launcher PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
 	target_link_libraries(affrescoui_launcher PRIVATE affrescoui_intelligence) # the assistant's providers
 	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples)
 	target_include_directories(affrescoui_launcher SYSTEM PRIVATE external/glad/include)
