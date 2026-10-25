@@ -1,13 +1,14 @@
 #pragma once
 
 /// @file
-/// @brief The examples' intelligence, for a host: the natives of the settings UI (the `intelligence.*` calls the
-/// AffrescoUI Launcher's Settings use, examples/shared/addons/intelligence) and the agent every app's assistant
-/// talks to (ProviderAgent), attached when a provider is set up. Application layer: nothing here is in the library.
+/// @brief Intelligence for a host: the natives of a settings screen (the `intelligence.*` calls, e.g. the
+/// AffrescoUI Launcher's Settings, examples/shared/addons/intelligence) and the agent an app's assistant talks to
+/// (ProviderAgent), which answers with the provider the person set up. A host attaches it only to an app the person
+/// allowed the `assistant` capability (SCREEN_FORMAT.md, "Apps: app.json").
 
-#include "intelligence/Agent.hpp"
-#include "intelligence/Http.hpp"
-#include "intelligence/Settings.hpp"
+#include "affresco/intelligence/Agent.hpp"
+#include "affresco/intelligence/Http.hpp"
+#include "affresco/intelligence/Settings.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -16,7 +17,7 @@
 #include <memory>
 #include <string>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 /// @brief What the settings' natives use; the defaults are the system's.
 struct CallsOptions {
@@ -73,13 +74,15 @@ public:
 	/// @brief Nothing is attached yet.
 	/// @param executor The main thread (the Application); outlives this.
 	/// @param dataDir The data folder of intelligence.json.
-	HostAssistant(affresco::Executor& executor, std::filesystem::path dataDir);
+	/// @param guideFolder Where the format guide is (readFormatGuide()), read when the agent is attached.
+	HostAssistant(affresco::Executor& executor, std::filesystem::path dataDir, std::filesystem::path guideFolder);
 
-	/// @brief Connects the agent to the screen if intelligence.json names a provider (once: later calls do nothing
-	/// once it is connected), and registers `assistant.models` (registerAssistantModels()). Declare the HostAssistant
+	/// @brief Connects the agent to the screen (once: later calls do nothing), and registers `assistant.models`
+	/// (registerAssistantModels()). The agent reads intelligence.json at each request, so a provider set up later, in
+	/// another process, answers without a restart; until then it says none is set up. Declare the HostAssistant
 	/// before the screen: the channel must outlive it.
 	/// @param screen The screen.
-	/// @return Whether the agent is connected.
+	/// @return Whether the agent is connected (false only if it couldn't start).
 	bool attach(affresco::Screen& screen);
 
 	/// @brief Registers the settings' natives (registerCalls()). The agent isn't attached to this screen, then or
@@ -90,6 +93,7 @@ public:
 private:
 	affresco::Executor& executor_;         ///< The main thread.
 	std::filesystem::path dataDir_;        ///< See the constructor.
+	std::filesystem::path guideFolder_;    ///< See the constructor.
 	std::unique_ptr<ProviderAgent> agent_; ///< The agent, once connected.
 };
 
@@ -101,4 +105,4 @@ private:
 /// @param text The request.
 void askOnStart(affresco::Executor& executor, affresco::Screen& screen, affresco::Window& window, std::string text);
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

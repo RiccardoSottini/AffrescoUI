@@ -36,7 +36,8 @@
 			"permissions.folderRead": "Read a folder you choose ({name})",
 			"permissions.folderWrite": "Read and change a folder you choose ({name})",
 			"permissions.program": "Run the program {name}",
-			"permissions.audio": "Play sound"
+			"permissions.audio": "Play sound",
+			"permissions.assistant": "Ask the assistant you set up in Settings"
 		},
 		"es": {
 			"permissions.asks": "{name} pide usar",
@@ -47,7 +48,8 @@
 			"permissions.folderRead": "Leer una carpeta que elijas ({name})",
 			"permissions.folderWrite": "Leer y cambiar una carpeta que elijas ({name})",
 			"permissions.program": "Ejecutar el programa {name}",
-			"permissions.audio": "Reproducir sonido"
+			"permissions.audio": "Reproducir sonido",
+			"permissions.assistant": "Preguntar al asistente que configuraste en Ajustes"
 		},
 		"fr": {
 			"permissions.asks": "{name} demande à utiliser",
@@ -58,7 +60,8 @@
 			"permissions.folderRead": "Lire un dossier que vous choisissez ({name})",
 			"permissions.folderWrite": "Lire et modifier un dossier que vous choisissez ({name})",
 			"permissions.program": "Lancer le programme {name}",
-			"permissions.audio": "Jouer du son"
+			"permissions.audio": "Jouer du son",
+			"permissions.assistant": "Interroger l'assistant configuré dans les Réglages"
 		}
 	},
 

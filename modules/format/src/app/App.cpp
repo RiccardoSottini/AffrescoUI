@@ -18,7 +18,8 @@ constexpr auto manifestKeys =
 	                                 "entry", "themes", "capabilities", "data", "assets"});
 
 /// The kinds of capability, as "capabilities" names them.
-constexpr auto capabilityKeys = std::to_array<std::string_view>({"network", "folders", "programs", "audio"});
+constexpr auto capabilityKeys =
+    std::to_array<std::string_view>({"network", "folders", "programs", "audio", "assistant"});
 
 constexpr std::size_t maxNameLength = 100;   ///< The longest name.
 constexpr std::size_t maxTextLength = 300;   ///< The longest description or reason.
@@ -170,6 +171,9 @@ std::vector<AppCapability> readCapabilities(const json& section) {
 		}
 	if(const auto audio = section.find("audio"); audio != section.end())
 		read.push_back({Kind::Audio, "audio", text(*audio, "capabilities.audio", maxTextLength), false});
+	if(const auto assistant = section.find("assistant"); assistant != section.end())
+		read.push_back(
+		    {Kind::Assistant, "assistant", text(*assistant, "capabilities.assistant", maxTextLength), false});
 	return read;
 }
 
@@ -222,6 +226,24 @@ void readHeader(const json& manifest, AppManifest& read) {
 	if(manifest.contains("note")) static_cast<void>(text(manifest["note"], "note", 4096, true));
 }
 
+/// @brief Whether a step anywhere in a screen is an `ask` (an object with an "ask" text), outside its data: its
+/// state, strings, tokens and models.
+/// @param value The screen, or a part of it.
+/// @param depth How deep this part is, so a deep document can't exhaust the stack.
+/// @return true if one is.
+bool asksAgents(const json& value, int depth = 0) {
+	if(depth > 256) return false;
+	if(value.is_array())
+		return std::ranges::any_of(value, [depth](const json& item) { return asksAgents(item, depth + 1); });
+	if(!value.is_object()) return false;
+	if(const auto ask = value.find("ask"); ask != value.end() && ask->is_string()) return true;
+	for(const auto& [key, item] : value.items()) {
+		if(depth == 0 && (key == "state" || key == "strings" || key == "tokens" || key == "models")) continue;
+		if(asksAgents(item, depth + 1)) return true;
+	}
+	return false;
+}
+
 } // namespace
 
 std::string AppCapability::key() const {
@@ -234,6 +256,8 @@ std::string AppCapability::key() const {
 		return "program:" + name;
 	case Kind::Audio:
 		return "audio";
+	case Kind::Assistant:
+		return "assistant";
 	}
 	return "";
 }
@@ -284,6 +308,7 @@ std::vector<AppCapability> usedCapabilities(const json& document) {
 				add({Kind::Program, program.get<std::string>(), "", false});
 		}
 	if(document.contains("audio")) add({Kind::Audio, "audio", "", false});
+	if(asksAgents(document)) add({Kind::Assistant, "assistant", "", false});
 	return used;
 }
 

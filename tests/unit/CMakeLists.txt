@@ -64,9 +64,8 @@ target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/sino
 	${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Write.cpp
 	${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Arrange.cpp ${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Edit.cpp)
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/examples/shared)
-# intelligence*.cpp test the examples' providers, settings and agent (examples/shared/intelligence)
-list(TRANSFORM AFFRESCOUI_INTELLIGENCE_SOURCES PREPEND ${PROJECT_SOURCE_DIR}/ OUTPUT_VARIABLE affrescoui_intelligence)
-target_sources(affrescoui_unit_tests PRIVATE ${affrescoui_intelligence})
+# intelligence*.cpp test the providers, settings and agent (modules/intelligence)
+target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::intelligence)
 target_compile_definitions(affrescoui_unit_tests PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${PROJECT_SOURCE_DIR}/examples")
 add_test(NAME unit COMMAND affrescoui_unit_tests WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 

@@ -25,15 +25,16 @@ struct AppCapability {
 		Network, ///< Servers at an origin ("https://api.example.com"): the screen's `connections`.
 		Folder,  ///< A folder of the person's, by the root name the screen's `services` use ("workspace").
 		Program, ///< A program the screen's `process` services run: a name on the PATH, "shell" or "git".
-		Audio    ///< Sound on the system's output: the screen's `audio`.
+		Audio,    ///< Sound on the system's output: the screen's `audio`.
+		Assistant ///< The host's own agent, which answers its `ask` steps with the provider the person set up.
 	};
 	Kind kind = Kind::Network; ///< What.
-	std::string name;          ///< The origin, root or program; "audio" for sound.
+	std::string name;          ///< The origin, root or program; "audio" or "assistant".
 	std::string why;           ///< What the app does with it, shown to the person when it asks.
 	bool write = false;        ///< For a folder: written, not only read.
 
 	/// @brief The name the person's decision is remembered by: "network:https://api.example.com", "folder:workspace",
-	/// "program:git" or "audio". A folder written is another capability than the same folder read.
+	/// "program:git", "audio" or "assistant". A folder written is another capability than the same folder read.
 	/// @return The key.
 	[[nodiscard]] std::string key() const;
 };
@@ -61,7 +62,7 @@ struct AppManifest {
 [[nodiscard]] AppManifest parseApp(const json& manifest);
 
 /// @brief The capabilities a screen uses: its `connections`' origins (their sign-in's too), its `services`' roots and
-/// `process` programs, and its `audio`. Each has no reason.
+/// `process` programs, its `audio`, and the assistant if a step anywhere is an `ask`. Each has no reason.
 /// @param document The screen, its includes merged.
 /// @return Them, each once, in that order.
 [[nodiscard]] std::vector<AppCapability> usedCapabilities(const json& document);

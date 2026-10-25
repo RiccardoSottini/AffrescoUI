@@ -22,9 +22,9 @@
 //   agent.sock    an AI agent's MCP server (mcp/affrescoui_mcp.py): author "agent", whose changes wait for review
 // The person reviews an agent's changes in the app's own assistant (examples/shared/addons/assistant). When the
 // AffrescoUI Launcher's Settings set up a provider of intelligence (<data DIR>/intelligence.json, the key in the
-// system's keychain), the host also runs an agent of its own, connected as author "agent" like an MCP one, that
-// answers the assistant with it (examples/shared/intelligence); the Launcher's host alone gets the settings' natives,
-// and no agent.
+// system's keychain) and the person allowed the app's "assistant" capability, the host also runs an agent of its own,
+// connected as author "agent" like an MCP one, that answers the assistant with it (modules/intelligence); only the
+// last agent connected answers a request. The Launcher's host alone gets the settings' natives, and no agent.
 // For tests only, AFFRESCOUI_KEYS=memory keeps the keys in the host's memory instead of the system's keychain, and
 // AFFRESCOUI_PROVIDERS=all lets the agent use the providers the Launcher's Settings hide.
 // --ask TEXT opens the assistant and sends TEXT as the person's first request once the window is up.
@@ -41,7 +41,6 @@
 
 #include "Assets.hpp"
 #include "CodeEditor.hpp"
-#include "intelligence/Intelligence.hpp"
 #include "Permissions.hpp"
 #include "SocketDir.hpp"
 #include "tempo/Visualiser.hpp"
@@ -50,6 +49,7 @@
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/format/App.hpp>
 #include <affresco/format/Locale.hpp>
+#include <affresco/intelligence/Intelligence.hpp>
 #include <affresco/services/Grants.hpp>
 
 #include <algorithm>
@@ -323,22 +323,25 @@ void enableUsage(affresco::Screen& screen) {
 	if(!screen.usageConsented()) std::cerr << "affrescoui_launcher: usage summaries stay off: no consent\n";
 }
 
-/// @brief Gives the screen the assistant's agent, when a provider of intelligence is set up, and with --ask the first
-/// request once the window is up; the Launcher (the screen opened without a file) gets the settings' natives instead,
-/// never the agent: the screen that holds the provider, its key and the grants to the person's folders has no agent.
+/// @brief Gives the screen the assistant's agent, when the person allowed the app the `assistant` capability (it
+/// answers with the provider set up then, or says none is), and with --ask the first request once the window is up;
+/// the Launcher (the screen opened without a file) gets the settings' natives instead, never the agent: the screen
+/// that holds the provider, its key and the grants to the person's folders has no agent.
 /// @param assistant The host's agent.
 /// @param app The application.
 /// @param screen The screen.
 /// @param window Its window.
 /// @param options The command line.
-void startAssistant(examples::intelligence::HostAssistant& assistant, affresco::Application& app,
-                    affresco::Screen& screen, affresco::Window& window, const Options& options) {
+/// @param allowed What the person allowed the app.
+void startAssistant(affresco::intelligence::HostAssistant& assistant, affresco::Application& app,
+                    affresco::Screen& screen, affresco::Window& window, const Options& options,
+                    const host::Allowed& allowed) {
 	if(options.file.empty()) {
 		assistant.enableSettings(screen); // only the Launcher may change the provider
 		return;
 	}
-	assistant.attach(screen);
-	if(!options.ask.empty()) examples::intelligence::askOnStart(app, screen, window, options.ask);
+	if(allowed.contains("assistant")) assistant.attach(screen);
+	if(!options.ask.empty()) affresco::intelligence::askOnStart(app, screen, window, options.ask);
 }
 
 /// @brief The Launcher's apps folder: --apps DIR, else "AffrescoUI" in the home folder, where a person sees it.
@@ -471,7 +474,8 @@ int run(const Options& options) {
 	const host::Allowed allowed =
 	    options.file.empty() ? host::Allowed() : decide(opened, options, !environmentHas("AFFRESCOUI_SCREENSHOT"));
 	affresco::Application app;
-	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
+	// A peer: it outlives the screen
+	affresco::intelligence::HostAssistant assistant(app, options.dataDir, assetsDirectory());
 	using History = affresco::Screen::History;
 	affresco::Screen screen = openScreen(opened, options, screenshotOnly ? History::InMemory : History::OnDisk);
 	host::applyGrants(screen, opened.manifest, allowed, screenshotOnly);
@@ -486,7 +490,7 @@ int run(const Options& options) {
 	if(options.usage && !screenshotOnly) enableUsage(screen);
 	if(!screenshotOnly) screen.setLocale(affresco::format::systemLocale()); // screenshots stay in the default locale
 	affresco::Window& window = screen.createWindow(app);
-	if(!screenshotOnly) startAssistant(assistant, app, screen, window, options);
+	if(!screenshotOnly) startAssistant(assistant, app, screen, window, options, allowed);
 	applyPlugins(screen, options.plugins);
 	checkScenariosForEvidence(screen, opened.entry);
 

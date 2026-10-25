@@ -58,7 +58,7 @@ def copy_assets(assets):
     for each in folders + ["shared"]:
         shutil.copytree(os.path.join(examples, each), os.path.join(assets, each),
                         ignore=shutil.ignore_patterns("*.cpp", "*.hpp", "*.py"))
-    # The host's own agent reads the format guide by topic (examples/shared/intelligence/ScreenQueries.hpp)
+    # The host's own agent reads the format guide by topic (modules/intelligence, ScreenQueries.hpp)
     shutil.copyfile(os.path.join(ROOT, "SCREEN_FORMAT.md"), os.path.join(assets, "SCREEN_FORMAT.md"))
 
 

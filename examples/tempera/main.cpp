@@ -7,10 +7,10 @@
 // (studio.sock, agent.sock), so they can change the workspace while it runs; the theme and the panels' sizes are kept in --data DIR.
 
 #include "SocketDir.hpp"
-#include "intelligence/Intelligence.hpp"
 #include "tempera/Tempera.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/intelligence/Intelligence.hpp>
 
 #include <cstdlib>
 #include <filesystem>
@@ -71,7 +71,9 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 /// @throws std::exception If the screen or a socket can't be opened.
 int run(const Options& options) {
 	affresco::Application app;
-	examples::intelligence::HostAssistant assistant(app, options.dataDir); // a peer: it outlives the screen
+	// A peer: it outlives the screen
+	affresco::intelligence::HostAssistant assistant(app, options.dataDir,
+	                                              std::filesystem::path(AFFRESCOUI_TEMPERA_DIRECTORY).parent_path());
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
 	affresco::Screen screen =

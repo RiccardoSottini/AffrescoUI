@@ -9,6 +9,7 @@
 	"capabilities": {
 		"network": {
 			"https://id.example.com": "Signs you in with Example ID, a made-up provider for the demo."
-		}
+		},
+		"assistant": "Answers your questions in the chat, with the assistant you set up in Settings."
 	}
 }

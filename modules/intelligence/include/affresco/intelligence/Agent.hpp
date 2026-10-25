@@ -6,9 +6,9 @@
 /// person set up in the AffrescoUI Launcher. Its changes are revisions like any agent's: proposals that wait for the
 /// person's review, never accepted by it.
 
-#include "intelligence/ClaudeCode.hpp"
-#include "intelligence/Http.hpp"
-#include "intelligence/Settings.hpp"
+#include "affresco/intelligence/ClaudeCode.hpp"
+#include "affresco/intelligence/Http.hpp"
+#include "affresco/intelligence/Settings.hpp"
 
 #include <affresco/core/Channel.hpp>
 #include <affresco/core/Executor.hpp>
@@ -29,7 +29,7 @@
 #include <string_view>
 #include <thread>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 /// @brief Runs the claude-code provider once: (model, system prompt, input) to its answer.
 using ClaudeRunner = std::function<ClaudeAnswer(const std::string& model, const std::string& system,
@@ -43,6 +43,7 @@ struct AgentOptions {
 	std::shared_ptr<affresco::SecretStore> keys;    ///< The keys (systemKeys()).
 	NetworkFactory network = systemNetwork();       ///< Makes the HTTP client of a request.
 	ClaudeRunner claude;                            ///< Runs claude-code; empty: the installed command line.
+	bool hiddenProviders = true;                    ///< Uses a provider the settings don't offer (hiddenProvidersAllowed()).
 	int maxSteps = 12;                              ///< The most answers of the model per request.
 	int maxRevisions = 6;                           ///< The most revisions per request.
 	long long maxOutputTokens = 60000;              ///< The most tokens the model writes per request.
@@ -134,4 +135,4 @@ private:
 	friend class AgentRun;
 };
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

@@ -27,7 +27,7 @@ constexpr std::size_t maxGrantsBytes = 256 * 1024;
 
 /// @brief The name the prompt screen gives a capability's kind (its "permissions.<kind>" string).
 /// @param capability The capability.
-/// @return "network", "folderRead", "folderWrite", "program" or "audio".
+/// @return "network", "folderRead", "folderWrite", "program", "audio" or "assistant".
 std::string kindName(const AppCapability& capability) {
 	switch(capability.kind) {
 	case AppCapability::Kind::Network:
@@ -38,6 +38,8 @@ std::string kindName(const AppCapability& capability) {
 		return "program";
 	case AppCapability::Kind::Audio:
 		return "audio";
+	case AppCapability::Kind::Assistant:
+		return "assistant";
 	}
 	return "audio";
 }
@@ -131,6 +133,8 @@ void applyGrants(affresco::Screen& screen, const affresco::format::AppManifest& 
 			break;
 		case AppCapability::Kind::Audio:
 			if(!silent) static_cast<void>(screen.audio()); // nullptr in a build without audio: its steps then say so
+			break;
+		case AppCapability::Kind::Assistant: // the host attaches its agent (host.cpp)
 			break;
 		}
 		if(refused)

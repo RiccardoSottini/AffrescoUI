@@ -17,7 +17,7 @@
 #include <string>
 #include <variant>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 /// @brief Makes the Network a session uses, given the Executor its handlers must be posted to.
 using NetworkFactory = std::function<std::unique_ptr<affresco::network::Network>(affresco::Executor&)>;
@@ -77,4 +77,4 @@ private:
 /// @return E.g. "https://api.openai.com", or nullopt if it isn't an http(s) URL.
 [[nodiscard]] std::optional<std::string> originOf(const std::string& url);
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

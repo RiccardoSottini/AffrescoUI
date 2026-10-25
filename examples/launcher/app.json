@@ -20,7 +20,8 @@
 		},
 		"programs": {
 			"affresco": "Opens each app in a window of its own."
-		}
+		},
+		"assistant": "Answers your questions about your apps, with the assistant you set up in Settings."
 	},
 	"assets": [
 		"covers",

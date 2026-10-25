@@ -11,7 +11,7 @@ Launcher shows it in its Settings:
 { "id": "settingsIntelligence", "fill": true, "children": [{ "use": "intelligenceSettings" }] }
 ```
 
-It holds no code: it calls the host's `intelligence.*` natives (`examples/shared/intelligence/Intelligence.hpp`), which
+It holds no code: it calls the host's `intelligence.*` natives (`Intelligence.hpp` in `modules/intelligence`), which
 `affrescoui_launcher` registers only for the Launcher (started without a screen file), so no other screen, and no revision,
 can change the provider, its base URL or its key. Without them (any other host, the rendering check) it shows stand-in
 providers, and saving says the settings are changed in the Launcher.
@@ -29,7 +29,7 @@ providers, and saving says the settings are changed in the Launcher.
 
 ## Providers
 
-`examples/shared/intelligence/providers.json` lists them, as data: Anthropic (the Messages API), OpenAI (Chat
+`modules/intelligence/providers.json` lists them, as data: Anthropic (the Messages API), OpenAI (Chat
 Completions), an OpenAI-compatible server (Ollama, LM Studio, OpenRouter: a base URL, a key optional; `http://` only on
 this computer) and Claude Code (the person's own `claude` command line and sign-in, run with no tools). The models come
 live from the provider (`GET /v1/models`) when it can be reached with the saved key, else from the list there.

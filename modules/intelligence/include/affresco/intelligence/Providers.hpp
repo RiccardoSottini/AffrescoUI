@@ -4,7 +4,7 @@
 /// @brief What the API providers are sent and answer: the Messages API (anthropic) and Chat Completions (openai,
 /// openai-compatible), as requests built and responses read without a transport, so tests check their shapes.
 
-#include "intelligence/Settings.hpp"
+#include "affresco/intelligence/Settings.hpp"
 
 #include <affresco/core/Json.hpp>
 #include <affresco/core/Network.hpp>
@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 /// @brief A tool the model may call.
 struct ToolSpec {
@@ -107,4 +107,4 @@ void addResults(Kind kind, Conversation& conversation, const std::vector<ToolRes
 /// @return The text, with "[hidden]" in their place.
 [[nodiscard]] std::string redact(std::string text, const std::string& key);
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

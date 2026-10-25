@@ -109,8 +109,9 @@ def main():
     work = tempfile.mkdtemp(prefix="afr-as-")  # short: socket paths are limited to about 100 bytes
     sockets, data = os.path.join(work, "s"), os.path.join(work, "data")
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets)
-    host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), SCREEN, "--socket", sockets, "--data", data],
-                            env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # --grant: the page asks the agents, so the host would ask the person first; this agent, connected last, answers
+    host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), SCREEN, "--socket", sockets, "--data", data,
+                             "--grant", "assistant"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         deadline = time.monotonic() + 20
         while not os.path.exists(os.path.join(sockets, "agent.sock")):

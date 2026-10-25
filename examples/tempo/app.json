@@ -7,7 +7,8 @@
 	"description": "A music player: playlists, a library, albums, a queue and an equaliser.",
 	"entry": "index.screen.json",
 	"capabilities": {
-		"audio": "Plays the songs."
+		"audio": "Plays the songs.",
+		"assistant": "Answers your questions about your music, with the assistant you set up in Settings."
 	},
 	"assets": [
 		"audio",

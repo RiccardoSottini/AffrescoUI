@@ -1,11 +1,11 @@
 /// @file
 /// @brief The settings' natives and the host's agent (Intelligence.hpp).
 
-#include "intelligence/Intelligence.hpp"
+#include "affresco/intelligence/Intelligence.hpp"
 
-#include "intelligence/ClaudeCode.hpp"
-#include "intelligence/Providers.hpp"
-#include "intelligence/ScreenQueries.hpp"
+#include "affresco/intelligence/ClaudeCode.hpp"
+#include "affresco/intelligence/Providers.hpp"
+#include "affresco/intelligence/ScreenQueries.hpp"
 
 #include <affresco/net/SignIn.hpp>
 
@@ -16,7 +16,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 using affresco::json;
 
@@ -323,8 +323,9 @@ void registerCalls(affresco::Screen& screen, const std::filesystem::path& dataDi
 	});
 }
 
-HostAssistant::HostAssistant(affresco::Executor& executor, std::filesystem::path dataDir)
-    : executor_(executor), dataDir_(std::move(dataDir)) {}
+HostAssistant::HostAssistant(affresco::Executor& executor, std::filesystem::path dataDir,
+                             std::filesystem::path guideFolder)
+    : executor_(executor), dataDir_(std::move(dataDir)), guideFolder_(std::move(guideFolder)) {}
 
 bool HostAssistant::attach(affresco::Screen& screen) {
 	if(agent_) return true;
@@ -332,11 +333,9 @@ bool HostAssistant::attach(affresco::Screen& screen) {
 		AgentOptions options;
 		options.dataDir = dataDir_;
 		options.catalog = Catalog::standard();
-		const std::optional<Endpoint> chosen = endpointOf(options.catalog, Settings::load(dataDir_));
-		if(!chosen || (!chosen->provider->shown && !hiddenProvidersAllowed()))
-			return false; // none chosen, or one the settings no longer offer
-		options.guide = readFormatGuide();
+		options.guide = readFormatGuide(guideFolder_);
 		options.keys = systemKeys();
+		options.hiddenProviders = hiddenProvidersAllowed();
 		agent_ = std::make_unique<ProviderAgent>(executor_, std::move(options));
 	} catch(const std::exception& error) {
 		std::cerr << "affrescoui_launcher: the assistant's agent can't start: " << error.what() << '\n';
@@ -355,4 +354,4 @@ void askOnStart(affresco::Executor& executor, affresco::Screen& screen, affresco
 	});
 }
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

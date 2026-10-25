@@ -2,8 +2,8 @@
 """The host's own agent end to end, with no MCP: the stock host, the openai-compatible provider pointed at a tiny fake
 Chat Completions server on the loopback, and the assistant add-on's test page.
 
-The data folder's intelligence.json names the provider; the host starts with --ask, so the assistant opens and sends
-the request. The fake server answers the agent's first call with a submit_revision tool call, the second with a reply.
+The data folder's intelligence.json names the provider; the host starts with --grant assistant (the page's assistant
+capability) and --ask, so the assistant opens and sends the request. The fake server answers the agent's first call with a submit_revision tool call, the second with a reply.
 The page's kept conversation then holds the person's message, the reply and the proposal's card (it waits for the
 person's review: nothing was accepted), and the server saw the tools, the request and no key. The host keeps its keys
 in memory (AFFRESCOUI_KEYS=memory), never touching the system's keychain.
@@ -21,7 +21,7 @@ import tempfile
 import threading
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
+ROOT = os.path.dirname(os.path.dirname(HERE))
 SCREEN = os.path.join(ROOT, "tests", "render", "screens", "assistant.screen.json")
 REQUEST = "Rename the page to Launch plan"
 
@@ -82,8 +82,8 @@ def main():
         # AFFRESCOUI_PROVIDERS=all: the hidden OpenAI-compatible provider may answer, for this test only
         env = dict(os.environ, AFFRESCOUI_KEYS="memory", AFFRESCOUI_PROVIDERS="all", AFFRESCOUI_SOCKET_DIR=sockets, AFFRESCOUI_SCREENSHOT=os.path.join(folder, "shot.ppm"),
                    AFFRESCOUI_SCREENSHOT_AFTER="6000")
-        run = subprocess.run([host, SCREEN, "--socket", sockets, "--data", data, "--ask", REQUEST], env=env,
-                             capture_output=True, text=True, timeout=120)
+        run = subprocess.run([host, SCREEN, "--socket", sockets, "--data", data, "--grant", "assistant", "--ask", REQUEST],
+                             env=env, capture_output=True, text=True, timeout=120)
         server.shutdown()
         if run.returncode != 0:
             fail(f"the host exited with {run.returncode}: {run.stderr[-2000:]}")

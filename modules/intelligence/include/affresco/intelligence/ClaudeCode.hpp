@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 /// @brief What a run of the command line gave.
 struct ClaudeAnswer {
@@ -56,4 +56,4 @@ struct ClaudeAnswer {
 /// @return Its result, or why it failed.
 [[nodiscard]] ClaudeAnswer parseClaudeOutput(const std::string& output);
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

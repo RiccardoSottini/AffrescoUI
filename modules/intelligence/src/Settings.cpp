@@ -1,10 +1,10 @@
 /// @file
 /// @brief The intelligence settings, the catalogue of providers and where keys are kept (Settings.hpp).
 
-#include "intelligence/Settings.hpp"
+#include "affresco/intelligence/Settings.hpp"
 
-#include "Assets.hpp"
-#include "intelligence/Http.hpp"
+#include "affresco/intelligence/Http.hpp"
+#include "Catalog.hpp" // made from providers.json
 
 #include <affresco/net/SignIn.hpp>
 #include <affresco/net/Url.hpp>
@@ -26,7 +26,7 @@
 #include <unistd.h>
 #endif
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 using affresco::json;
 
@@ -139,15 +139,18 @@ std::string Provider::modelFor(const std::string& requested, const std::string& 
 Catalog Catalog::load(const std::filesystem::path& file) {
 	std::ifstream in(file);
 	if(!in) throw std::runtime_error("can't read " + file.string());
-	const json document = json::parse(in, nullptr, false);
+	return fromJson(json::parse(in, nullptr, false), file.string());
+}
+
+Catalog Catalog::fromJson(const json& document, const std::string& source) {
 	if(!document.is_object() || !document.contains("providers") || !document["providers"].is_array())
-		throw std::runtime_error(file.string() + ": expected { \"providers\": [...] }");
+		throw std::runtime_error(source + ": expected { \"providers\": [...] }");
 	Catalog catalog;
 	for(const json& provider : document["providers"]) catalog.providers.push_back(providerOf(provider));
 	return catalog;
 }
 
-Catalog Catalog::standard() { return load(assetsDirectory() / "shared" / "intelligence" / "providers.json"); }
+Catalog Catalog::standard() { return fromJson(json::parse(standardCatalog()), "providers.json"); }
 
 std::filesystem::path Settings::file(const std::filesystem::path& dataDir) { return dataDir / "intelligence.json"; }
 
@@ -286,4 +289,4 @@ std::string kindName(Kind kind) {
 	return "openai";
 }
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

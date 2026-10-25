@@ -23,6 +23,7 @@ affrescoui_module(services
 	src/process/ProcessProvider.cpp
 	src/process/Pty.cpp
 	src/process/PtyProvider.cpp
+	src/process/RunProgram.cpp
 	# rpc/: JSON-RPC servers (LSP and the like) and the framing of what they write
 	src/rpc/Framing.cpp
 	src/rpc/JsonRpc.cpp

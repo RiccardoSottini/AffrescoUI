@@ -230,10 +230,22 @@
 				{ "invoke": "apps.write",
 				  "with": { "path": "{{id + '/index.screen.json'}}",
 				            "text": "{{(parseJson(result.text) ?? {}).window.title == null ? result.text : join(split(result.text, json((parseJson(result.text) ?? {}).window.title)), json(title))}}" },
-				  "onDone": [{ "run": "{{then}}", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}" } }],
+				  "onDone": [{ "run": "reidentify", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
+		],
+		"reidentify": [
+			{ "note": "with: id, title, ask, then. Gives a copy's app.json (a starter has none) the new app's id and name, as text, so it keeps its data and permissions apart from the app it was copied from" },
+			{ "invoke": "apps.read", "with": { "path": "{{id + '/app.json'}}" },
+			  "onDone": [
+				{ "invoke": "apps.write",
+				  "with": { "path": "{{id + '/app.json'}}",
+				            "text": "{{join(split(join(split(result.text, '\"id\": ' + json((parseJson(result.text) ?? {}).id)), '\"id\": ' + json(id)), '\"name\": ' + json((parseJson(result.text) ?? {}).name)), '\"name\": ' + json(title))}}" },
+				  "onDone": [{ "run": "{{then}}", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}" } }],
+				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
+			  ],
+			  "onError": [{ "run": "{{then}}", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}" } }] }
 		],
 
 		"startFrom": [

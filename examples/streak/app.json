@@ -10,6 +10,13 @@
 		"network": {
 			"ws://127.0.0.1:7420": "Syncs your habits with a document server on this computer.",
 			"https://id.example.com": "Signs you in to the document server with Example ID."
+		},
+		"assistant": "Answers your questions about your habits, with the assistant you set up in Settings."
+	},
+	"data": {
+		"models": "models.json",
+		"seed": {
+			"habits": "seed/habits.json"
 		}
 	}
 }

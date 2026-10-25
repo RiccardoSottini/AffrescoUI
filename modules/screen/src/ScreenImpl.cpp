@@ -46,7 +46,13 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 			(void)runtime.receiveReply({{"request", request["id"]}, {"error", "no agent is connected"}});
 			return;
 		}
-		broadcast(request);
+		// One agent answers: the last connected (an MCP server the person started wins over the host's own); every
+		// other peer, a client, still sees it
+		const auto agent = std::ranges::find_if(peers.rbegin(), peers.rend(),
+		                                        [](const auto& peer) { return peer->session->author() == "agent"; });
+		for(const auto& peer : peers)
+			if(agent == peers.rend() || peer->session->author() != "agent" || peer == *agent)
+				peer->session->send(request);
 	});
 	repairs.onMessage.connect([this](const json& message) {
 		for(const auto& peer : peers) sendRepairs(*peer, message);

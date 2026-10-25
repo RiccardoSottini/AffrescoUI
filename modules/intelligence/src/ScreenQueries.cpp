@@ -1,9 +1,7 @@
 /// @file
 /// @brief Reading a screen document the way an agent needs it (ScreenQueries.hpp).
 
-#include "intelligence/ScreenQueries.hpp"
-
-#include "Assets.hpp"
+#include "affresco/intelligence/ScreenQueries.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -14,7 +12,7 @@
 #include <string_view>
 #include <vector>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 using affresco::json;
 
@@ -363,9 +361,8 @@ std::optional<std::string> formatGuide(const std::string& guide, const std::stri
 	return out;
 }
 
-std::string readFormatGuide() {
-	const std::filesystem::path assets = assetsDirectory();
-	for(const std::filesystem::path& file : {assets / "SCREEN_FORMAT.md", assets.parent_path() / "SCREEN_FORMAT.md"}) {
+std::string readFormatGuide(const std::filesystem::path& folder) {
+	for(const std::filesystem::path& file : {folder / "SCREEN_FORMAT.md", folder.parent_path() / "SCREEN_FORMAT.md"}) {
 		std::ifstream in(file, std::ios::binary);
 		if(!in) continue;
 		std::stringstream text;
@@ -375,4 +372,4 @@ std::string readFormatGuide() {
 	return "";
 }
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

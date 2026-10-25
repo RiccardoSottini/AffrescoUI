@@ -76,5 +76,5 @@ buttons that keys can't express.
 
 - **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer). It keeps nothing with `persist`.
 - **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
-- **Extension points:** a game is an entry of `state.games`, a friend of `state.friends`; charts come from `../shared/components/charts.json`; `statCard` and `settingRow` are its local components.
+- **Extension points:** a game is a record of `data.games` (models.json, its first ones in `seed/games.json`), a friend of `data.friends`; charts come from `../shared/components/charts.json`; `statCard` and `settingRow` are its local components.
 - **Assets:** the pictures in `covers/` are simple vector drawings made for this project, under the repository's Apache-2.0 licence. The fonts' licences are with them in `../shared/fonts`.

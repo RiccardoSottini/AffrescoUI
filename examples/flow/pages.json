@@ -4,13 +4,6 @@
 	"state": {
 		"page": "issues",
 		"inboxAt": 0,
-		"inbox": [
-			{ "id": "n1", "ref": "FLO-3", "who": "AL", "kind": "assigned", "when": "2026-03-16T09:12:00Z", "read": false, "snoozed": false },
-			{ "id": "n2", "ref": "FLO-5", "who": "MK", "kind": "commented", "text": "Arrows and Cmd+arrows both work now.", "when": "2026-03-16T08:40:00Z", "read": false, "snoozed": false },
-			{ "id": "n3", "ref": "FLO-8", "who": "JD", "kind": "status", "to": "In review", "when": "2026-03-15T17:05:00Z", "read": false, "snoozed": false },
-			{ "id": "n4", "ref": "FLO-10", "who": "AL", "kind": "mentioned", "text": "Can you check the drop target on narrow columns?", "when": "2026-03-14T11:30:00Z", "read": true, "snoozed": false },
-			{ "id": "n5", "ref": "FLO-1", "who": "JD", "kind": "due", "when": "2026-03-13T10:00:00Z", "read": true, "snoozed": false }
-		],
 		"cycle": {
 			"number": 12,
 			"start": "2026-03-09",
@@ -25,19 +18,12 @@
 		],
 		"projectScope": "all",
 		"projectOf": { "feature": 0, "bug": 0, "design": 1, "chore": 2 },
-		"projects": [
-			{ "name": "Board keyboard access", "icon": "keyboard", "color": "#0d9488", "health": "onTrack", "lead": "RS", "target": "2026-04-10", "progress": 0.62, "issues": 13 },
-			{ "name": "Label palette", "icon": "palette", "color": "#9333ea", "health": "atRisk", "lead": "MK", "target": "2026-03-27", "progress": 0.35, "issues": 8 },
-			{ "name": "Public board API", "icon": "plug", "color": "#0f766e", "health": "onTrack", "lead": "AL", "target": "2026-05-15", "progress": 0.18, "issues": 21 },
-			{ "name": "Team onboarding", "icon": "rocket", "color": "#d97706", "health": "offTrack", "lead": "JD", "target": "2026-03-20", "progress": 0.48, "issues": 11 },
-			{ "name": "Sharper text", "icon": "type", "color": "#2563eb", "health": "completed", "lead": "MK", "target": "2026-03-06", "progress": 1, "issues": 6 }
-		],
 		"healthColors": { "onTrack": "#16a34a", "atRisk": "#d97706", "offTrack": "#dc2626", "completed": "#0d9488" }
 	},
 
 	"computed": {
-		"inboxShown": "{{filter(state.inbox, !it.snoozed)}}",
-		"unread": "{{count(state.inbox, !it.read && !it.snoozed)}}",
+		"inboxShown": "{{filter(data.inbox, !it.snoozed)}}",
+		"unread": "{{count(data.inbox, !it.read && !it.snoozed)}}",
 		"notification": "{{computed.inboxShown[state.inboxAt]}}",
 		"notificationCard": "{{computed.notification == null ? null : find(computed.allCards, it.ref == computed.notification.ref)}}",
 		"cycleScope": "{{sum(computed.allCards, it.points ?? 0)}}",
@@ -48,7 +34,7 @@
 	"actions": {
 		"addProject": { "title": "New project", "category": "Go", "icon": "plus",
 			"do": [
-				{ "push": "state.projects", "value": { "name": "{{t('projects.untitled', { n: length(state.projects) + 1 })}}", "icon": "box", "color": "#0d9488", "health": "onTrack",
+				{ "insert": "projects", "value": { "name": "{{t('projects.untitled', { n: length(data.projects) + 1 })}}", "icon": "box", "color": "#0d9488", "health": "onTrack",
 					"lead": "{{state.me}}", "target": "{{state.cycle.end}}", "progress": 0, "issues": 0 } },
 				{ "set": "state.projectScope", "to": "all" }
 			] },
@@ -64,19 +50,19 @@
 		"pickNotification": [
 			{ "note": "with: at, the notification's place among the shown ones; marks it read" },
 			{ "set": "state.inboxAt", "to": "{{at}}" },
-			{ "set": "state.inbox[indexOf(map(state.inbox, it.id), computed.inboxShown[at].id)].read", "to": true }
+			{ "update": "inbox", "id": "{{computed.inboxShown[at].id}}", "fields": { "read": true } }
 		],
 		"nextNotification": { "title": "Next notification", "category": "Inbox", "icon": "arrow-down", "enablement": "{{state.page == 'inbox' && state.inboxAt + 1 < length(computed.inboxShown)}}",
 			"do": [{ "run": "pickNotification", "with": { "at": "{{state.inboxAt + 1}}" } }] },
 		"previousNotification": { "title": "Previous notification", "category": "Inbox", "icon": "arrow-up", "enablement": "{{state.page == 'inbox' && state.inboxAt > 0}}",
 			"do": [{ "run": "pickNotification", "with": { "at": "{{state.inboxAt - 1}}" } }] },
 		"toggleRead": { "title": "Mark read or unread", "category": "Inbox", "icon": "mail-check", "enablement": "{{computed.notification != null}}",
-			"do": [{ "set": "state.inbox[indexOf(map(state.inbox, it.id), computed.notification.id)].read", "to": "{{!computed.notification.read}}" }] },
+			"do": [{ "update": "inbox", "id": "{{computed.notification.id}}", "fields": { "read": "{{!computed.notification.read}}" } }] },
 		"markAllRead": { "title": "Mark all notifications read", "category": "Inbox", "icon": "check-check",
-			"do": [{ "set": "state.inbox", "to": "{{map(state.inbox, merge(it, { read: true }))}}" }] },
+			"do": [{ "update": "inbox", "where": { "read": false }, "fields": { "read": true } }] },
 		"snoozeNotification": { "title": "Snooze notification", "category": "Inbox", "icon": "alarm-clock", "enablement": "{{computed.notification != null}}",
 			"do": [
-				{ "set": "state.inbox[indexOf(map(state.inbox, it.id), computed.notification.id)].snoozed", "to": true },
+				{ "update": "inbox", "id": "{{computed.notification.id}}", "fields": { "snoozed": true } },
 				{ "set": "state.inboxAt", "to": "{{max(min(state.inboxAt, length(computed.inboxShown) - 2), 0)}}" },
 				{ "set": "state.toast", "to": { "open": true, "message": "{{t('inbox.snoozed')}}" } }
 			] },
@@ -130,6 +116,7 @@
 			"note": "The notifications on the start side, the one picked on the end side with its issue",
 			"params": {},
 			"node": {
+				"id": "panel-inbox-page",
 				"color": "@color.surface",
 				"role": "region",
 				"label": "{{t('nav.inbox')}}",
@@ -221,6 +208,7 @@
 			"note": "The current cycle with its burn-up (scope and completed points), then the upcoming and past cycles",
 			"params": {},
 			"node": {
+				"id": "panel-cycles-page",
 				"color": "@color.surface",
 				"role": "region",
 				"label": "{{t('nav.cycles')}}",
@@ -326,6 +314,7 @@
 			"note": "The projects as a table: name, health, lead, target date and progress",
 			"params": {},
 			"node": {
+				"id": "panel-projects-page",
 				"color": "@color.surface",
 				"role": "region",
 				"label": "{{t('nav.projects')}}",
@@ -355,7 +344,7 @@
 						"children": [
 							{
 								"id": "projectRow",
-								"repeat": { "for": "project", "in": "filter(state.projects, state.projectScope == 'all' || (state.projectScope == 'completed') == (it.health == 'completed'))", "key": "{{project.name}}" },
+								"repeat": { "for": "project", "in": "filter(data.projects, state.projectScope == 'all' || (state.projectScope == 'completed') == (it.health == 'completed'))", "key": "{{project.name}}" },
 								"anchors": { "left": 0, "right": 0 },
 								"height": 44,
 								"color": "transparent",

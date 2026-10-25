@@ -9,7 +9,7 @@
 #include <optional>
 #include <string>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 /// @brief The node tree, one line per node: its address ("#id"), type, text, bind, onClick, repeat and when.
 /// @param document The screen document.
@@ -46,14 +46,15 @@ namespace examples::intelligence {
 /// @return The part, or nullopt if no heading matches.
 [[nodiscard]] std::optional<std::string> formatGuide(const std::string& guide, const std::string& topic = {});
 
-/// @brief The format guide shipped with the examples: SCREEN_FORMAT.md beside the examples' folder (the source tree),
-/// or in the release's assets.
+/// @brief Reads the format guide a host ships: SCREEN_FORMAT.md in a folder (a release's assets) or beside it (the
+/// examples' folder of the source tree).
+/// @param folder The folder.
 /// @return Its text, or "" if it isn't found.
-[[nodiscard]] std::string readFormatGuide();
+[[nodiscard]] std::string readFormatGuide(const std::filesystem::path& folder);
 
 /// @brief Minified JSON, invalid UTF-8 replaced: what the model is sent.
 /// @param value The value.
 /// @return The text.
 [[nodiscard]] std::string compact(const affresco::json& value);
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

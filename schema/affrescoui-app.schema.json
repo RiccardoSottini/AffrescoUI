@@ -65,7 +65,11 @@
 					"additionalProperties": { "$ref": "#/$defs/why" },
 					"description": "Programs its process services run: a name on the PATH, \"shell\" or \"git\"."
 				},
-				"audio": { "$ref": "#/$defs/why", "description": "Sound on the system's output (the screen's audio section)." }
+				"audio": { "$ref": "#/$defs/why", "description": "Sound on the system's output (the screen's audio section)." },
+				"assistant": {
+					"$ref": "#/$defs/why",
+					"description": "The host's own agent, which answers the screen's ask steps with the provider of intelligence the person set up."
+				}
 			}
 		},
 		"data": {

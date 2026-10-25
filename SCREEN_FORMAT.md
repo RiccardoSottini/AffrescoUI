@@ -1678,7 +1678,9 @@ data models and seed data, assets. `app.json` in the folder says what it is
 - **`capabilities`**: what the app asks the person for, each with why. `network`: origins its `connections` reach
   (`"https://*.example.com"` for the subdomains; http and ws reach only the computer's own addresses). `folders`: the
   root names its `services` use, `read` or `write`; the person picks the folder. `programs`: what its `process`
-  services run. `audio`: sound. Nothing is allowed by default: the host asks the person the first time, for this app
+  services run. `audio`: sound. `assistant`: the host's own agent, which answers its `ask` steps (Asking the agents)
+  with the provider of intelligence the person set up (an agent the person connects, such as an MCP server, needs
+  none). Nothing is allowed by default: the host asks the person the first time, for this app
   only, and remembers the answer (`<data folder>/apps/<id>/grants.json`; `affrescoui_launcher --permissions <app>`
   forgets it; `--grant <key>` allows one for a single run, and a screenshot asks nothing). A capability the screen
   uses that the manifest doesn't declare is never granted, and `affrescoui check` reports it; since a revision can't
@@ -1773,9 +1775,11 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
 }
 ```
 
-- `ask` sends the request to every peer after the event, from the author `user` (`request` in the table above), and
-  writes its id (`ask-<milliseconds>-<n>`) `into` a state path. It is a control step. With no peer connected it
-  fails at once: `ask:reply` runs with the error `no agent is connected`. `"attachments": "{{state.attached}}"` sends
+- `ask` sends the request to the peers after the event, from the author `user` (`request` in the table above), and
+  writes its id (`ask-<milliseconds>-<n>`) `into` a state path. One agent answers: of the peers of the author `agent`,
+  only the last connected gets it (an MCP server the person started, over the host's own agent); every other peer
+  does. It is a control step. With no peer connected it fails at once: `ask:reply` runs with the error
+  `no agent is connected`. `"attachments": "{{state.attached}}"` sends
   what the person attached (an `attach` step's list, or ids) as `[{id, name, type, size, duration?, width?,
   height?}]`, never the bytes.
 - `options` (an object, at most 4 KiB as JSON) goes with the request as it is, for the agents to read, e.g.

@@ -1,7 +1,7 @@
 /// @file
 /// @brief The API providers' requests and answers (Providers.hpp).
 
-#include "intelligence/Providers.hpp"
+#include "affresco/intelligence/Providers.hpp"
 
 #include <algorithm>
 #include <array>
@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <string_view>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 using affresco::json;
 namespace network = affresco::network;
@@ -283,4 +283,4 @@ std::string describeFailure(const network::Failure& failure, const std::string& 
 	return "Can't reach " + providerName + " (" + redact(failure.message, key) + ").";
 }
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

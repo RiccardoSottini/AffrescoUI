@@ -2,17 +2,17 @@
 /// @brief ProviderAgent (Agent.hpp): the queue and the thread, and AgentRun, one request's work: the prompt, the
 /// API providers' bounded tool loop and claude-code's single answer.
 
-#include "intelligence/Agent.hpp"
+#include "affresco/intelligence/Agent.hpp"
 
-#include "intelligence/Providers.hpp"
-#include "intelligence/ScreenQueries.hpp"
+#include "affresco/intelligence/Providers.hpp"
+#include "affresco/intelligence/ScreenQueries.hpp"
 
 #include <format>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 using affresco::json;
 
@@ -269,7 +269,7 @@ public:
 	std::pair<std::string, bool> run() {
 		const Settings settings = Settings::load(options_.dataDir);
 		const std::optional<Endpoint> chosen = endpointOf(options_.catalog, settings);
-		if(!chosen)
+		if(!chosen || (!chosen->provider->shown && !options_.hiddenProviders)) // or one the settings no longer offer
 			return {"No provider of intelligence is set up. Choose one in the AffrescoUI Launcher's Settings (or "
 			        "connect an agent over MCP).",
 			        true};
@@ -710,4 +710,4 @@ void ProviderAgent::deliver(const json& message) {
 	});
 }
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

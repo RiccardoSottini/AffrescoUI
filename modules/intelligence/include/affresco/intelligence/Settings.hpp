@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file
-/// @brief The intelligence settings every example app shares: which provider and model the assistant uses
+/// @brief The intelligence settings every app shares: which provider and model the assistant uses
 /// (`<data dir>/intelligence.json`, never a key), the catalogue of providers (providers.json) and where each
 /// provider's key is kept (the system's keychain).
 
@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 /// @brief How a provider is spoken to.
 enum class Kind {
@@ -70,9 +70,14 @@ struct Catalog {
 	/// @return The catalogue.
 	/// @throws std::runtime_error If it can't be read or a provider is malformed.
 	[[nodiscard]] static Catalog load(const std::filesystem::path& file);
-	/// @brief The examples' own catalogue (examples/shared/intelligence/providers.json, or the release's copy).
+	/// @brief Reads a catalogue.
+	/// @param document `{ "providers": [...] }`.
+	/// @param source Where it came from, for the error.
+	/// @return The catalogue.
+	/// @throws std::runtime_error If a provider is malformed.
+	[[nodiscard]] static Catalog fromJson(const affresco::json& document, const std::string& source);
+	/// @brief The catalogue built into the library (modules/intelligence/providers.json).
 	/// @return It.
-	/// @throws std::runtime_error If it can't be read.
 	[[nodiscard]] static Catalog standard();
 };
 
@@ -180,4 +185,4 @@ bool writeKey(affresco::SecretStore& keys, const Endpoint& endpoint, const std::
 /// @return E.g. "openai-compatible".
 [[nodiscard]] std::string kindName(Kind kind);
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

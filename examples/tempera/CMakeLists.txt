@@ -1,7 +1,7 @@
 # Tempera, an image editor whose workspace is index.screen.json (examples/tempera/README.md)
 set(AFFRESCOUI_TEMPERA_SOURCES Session.cpp Tools.cpp Natives.cpp NativesEdit.cpp)
 add_executable(affrescoui_tempera main.cpp ${AFFRESCOUI_TEMPERA_SOURCES})
-target_link_libraries(affrescoui_tempera PRIVATE affrescoui affrescoui::imaging affrescoui_intelligence)
+target_link_libraries(affrescoui_tempera PRIVATE affrescoui affrescoui::imaging affrescoui::intelligence)
 # Its scenarios, headless, with the same natives; automation brings the library with it
 add_executable(affrescoui_tempera_scenarios scenarios_main.cpp ${AFFRESCOUI_TEMPERA_SOURCES})
 target_link_libraries(affrescoui_tempera_scenarios PRIVATE affrescoui::automation affrescoui::imaging)

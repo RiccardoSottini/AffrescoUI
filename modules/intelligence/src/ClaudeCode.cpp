@@ -1,24 +1,19 @@
 /// @file
-/// @brief The claude-code provider (ClaudeCode.hpp), on the services module's ChildProcess: an argument vector, no
+/// @brief The claude-code provider (ClaudeCode.hpp), run by the services module's runProgram(): an argument vector, no
 /// shell, its own process group, only stdin, stdout and stderr inherited.
 
-#include "intelligence/ClaudeCode.hpp"
-
-#include "process/Process.hpp" // the services module's ChildProcess (its src folder, as tests/unit/forge_scm.cpp)
+#include "affresco/intelligence/ClaudeCode.hpp"
 
 #include <affresco/core/Json.hpp>
 #include <affresco/services/Grants.hpp>
+#include <affresco/services/Program.hpp>
 
 #include <array>
-#include <atomic>
-#include <condition_variable>
 #include <cstdlib>
-#include <mutex>
 #include <random>
 #include <system_error>
-#include <thread>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 using affresco::json;
 
@@ -159,63 +154,23 @@ ClaudeAnswer runClaude(const std::filesystem::path& program, const std::string& 
 	launch.arguments = claudeArguments(model, system);
 	launch.directory = folder.path;
 	launch.environment = claudeEnvironment(); // what it needs, never the host's keys or AffrescoUI's settings
-	std::unique_ptr<affresco::services::ChildProcess> child;
-	try {
-		child = affresco::services::ChildProcess::start(launch);
-	} catch(const std::exception&) {
+	const affresco::services::ProgramRun run = affresco::services::runProgram(launch, input, timeout, stopped, maxOutput);
+	using End = affresco::services::ProgramRun::End;
+	switch(run.end) {
+	case End::NotStarted:
 		return {false, "Can't start Claude Code."};
+	case End::TimedOut:
+		return {false, "Claude Code didn't answer in time."};
+	case End::Stopped:
+		return {false, "Stopped."};
+	case End::TooLarge:
+		return {false, "Claude Code's answer was too large."};
+	case End::Exited:
+		break;
 	}
-
-	// A watchdog ends the child at the time limit or when stopped; ending it makes a blocked read return
-	std::mutex mutex;
-	std::condition_variable finished;
-	bool done = false;
-	std::atomic<bool> ended = false;
-	std::thread watchdog([&] {
-		const auto deadline = std::chrono::steady_clock::now() + timeout;
-		std::unique_lock lock(mutex);
-		while(!done) {
-			if(std::chrono::steady_clock::now() >= deadline || (stopped && stopped())) {
-				ended = true;
-				lock.unlock();
-				child->end();
-				return;
-			}
-			finished.wait_for(lock, std::chrono::milliseconds(100));
-		}
-	});
-
-	const bool written = child->write(input);
-	child->closeInput();
-	std::string output;
-	std::array<char, 65536> buffer{};
-	bool tooLarge = false;
-	// A program it started that left its group may keep its stdout open after it ended: the read never waits for
-	// more than 100 ms, so the watchdog's end is always seen
-	while(written && !ended) {
-		if(!child->readable(std::chrono::milliseconds(100))) continue;
-		const std::ptrdiff_t count = child->read(buffer.data(), buffer.size());
-		if(count <= 0) break;
-		if(output.size() + static_cast<std::size_t>(count) > maxOutput) {
-			tooLarge = true;
-			break;
-		}
-		output.append(buffer.data(), static_cast<std::size_t>(count));
-	}
-	if(tooLarge) child->end();
-	const int status = child->wait();
-	{
-		const std::scoped_lock lock(mutex);
-		done = true;
-	}
-	finished.notify_all();
-	watchdog.join();
-
-	if(ended) return {false, stopped && stopped() ? "Stopped." : "Claude Code didn't answer in time."};
-	if(tooLarge) return {false, "Claude Code's answer was too large."};
-	ClaudeAnswer answer = parseClaudeOutput(output);
-	if(answer.ok && status != 0) return {false, "Claude Code stopped with status " + std::to_string(status) + "."};
+	ClaudeAnswer answer = parseClaudeOutput(run.output);
+	if(answer.ok && run.status != 0) return {false, "Claude Code stopped with status " + std::to_string(run.status) + "."};
 	return answer;
 }
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

@@ -59,6 +59,10 @@ public:
 		                                       folder_.path() / "counter.scenarios.json");
 	}
 
+	/// @brief The folder the screen is in.
+	/// @return It.
+	[[nodiscard]] const std::filesystem::path& folder() const { return folder_.path(); }
+
 private:
 	affresco::test::TemporaryFolder folder_; ///< Holds the screen.
 };
@@ -352,4 +356,33 @@ TEST_CASE("automation: a scenario's channels reach no host, by an absolute path 
 	}
 	std::error_code ignored;
 	std::filesystem::remove(socket, ignored);
+}
+
+TEST_CASE("automation: an app's entry screen plays with its app's models and seed records, as the host opens it") {
+	const Fixture fixture;
+	std::ofstream(fixture.folder() / "models.json")
+	    << R"({"models": {"notes": {"fields": {"title": {"type": "string", "required": true}}}}})";
+	std::ofstream(fixture.folder() / "notes.json") << R"([{"id": "n1", "title": "From the seed"}])";
+	const auto manifest = [&](std::string_view entry) {
+		std::ofstream(fixture.folder() / "app.json")
+		    << R"({"format": "affrescoui-app", "version": 1, "id": "counter", "name": "Counter", "entry": ")" << entry
+		    << R"(", "data": {"models": "models.json", "seed": {"notes": "notes.json"}}})";
+	};
+	const auto played = [&](std::string_view expect) {
+		automation::Options options;
+		options.pictures = false;
+		const automation::Report report = automation::run(
+		    fixture.scenarios(std::string(R"([{ "name": "seeded", "steps": [{ "expect": )") + std::string(expect) +
+		                      " }] }]"),
+		    options);
+		REQUIRE(report.scenarios.size() == 1);
+		for(const automation::Failure& failure : report.scenarios[0].failures) INFO(failure.problem);
+		return report.scenarios[0].passed();
+	};
+	manifest("counter.screen.json");
+	CHECK(played(R"({ "data": "notes[0].title", "is": "From the seed" })"));
+	CHECK(played(R"({ "state": "clicks", "is": 0 })"));
+	manifest("other.screen.json"); // the counter isn't the app's entry: it plays as written, with no models
+	CHECK_FALSE(played(R"({ "data": "notes[0].title", "is": "From the seed" })"));
+	CHECK(played(R"({ "state": "clicks", "is": 0 })"));
 }

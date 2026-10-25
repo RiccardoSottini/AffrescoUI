@@ -1,7 +1,7 @@
 /// @file
 /// @brief HTTP for a worker thread (Http.hpp).
 
-#include "intelligence/Http.hpp"
+#include "affresco/intelligence/Http.hpp"
 
 #include <affresco/net/Client.hpp>
 #include <affresco/net/Url.hpp>
@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace examples::intelligence {
+namespace affresco::intelligence {
 
 namespace network = affresco::network;
 
@@ -70,4 +70,4 @@ std::optional<std::string> originOf(const std::string& url) {
 	return parsed->scheme + "://" + parsed->authority();
 }
 
-} // namespace examples::intelligence
+} // namespace affresco::intelligence

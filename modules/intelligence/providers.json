@@ -1,5 +1,5 @@
 {
-	"note": "The providers of intelligence the examples' assistant can use (Intelligence.hpp): data, not code. kind says how one is spoken to: anthropic (the Messages API), openai (Chat Completions), openai-compatible (Chat Completions at a base URL the person gives) or claude-code (the person's own Claude Code command line, run with no tools). models are the fallback when the live list can't be read (description: one line per language on when to use it); with fixedModels the list is the whole choice (a model saved that isn't in it gives model, the default). No key is ever kept here or in intelligence.json: keys go to the system's keychain.",
+	"note": "The providers of intelligence a host's assistant can use (Intelligence.hpp), built into the library: data, not code. kind says how one is spoken to: anthropic (the Messages API), openai (Chat Completions), openai-compatible (Chat Completions at a base URL the person gives) or claude-code (the person's own Claude Code command line, run with no tools). models are the fallback when the live list can't be read (description: one line per language on when to use it); with fixedModels the list is the whole choice (a model saved that isn't in it gives model, the default). No key is ever kept here or in intelligence.json: keys go to the system's keychain.",
 	"providers": [
 		{
 			"id": "anthropic", "shown": false,

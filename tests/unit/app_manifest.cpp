@@ -163,6 +163,29 @@ TEST_CASE("app manifest: the capabilities a screen uses, and the ones its app do
 	CHECK(affresco::format::undeclaredCapabilities(app, bare).size() == 1); // but not the domain itself
 }
 
+TEST_CASE("app manifest: a screen that asks the agents uses the assistant, which its app declares with a reason") {
+	json manifest = fullManifest();
+	manifest["capabilities"]["assistant"] = "Answers questions about the notes.";
+	const affresco::format::AppManifest app = affresco::format::parseApp(manifest);
+	REQUIRE(app.capabilities.size() == 5);
+	CHECK(app.capabilities[4].kind == AppCapability::Kind::Assistant);
+	CHECK(app.capabilities[4].key() == "assistant");
+	CHECK(app.capabilities[4].why == "Answers questions about the notes.");
+	manifest["capabilities"]["assistant"] = "";
+	CHECK(errorOf(manifest).find("capabilities.assistant") != std::string::npos);
+
+	const json asks = json::parse(R"json({ "actions": { "send": [{ "if": "{{true}}", "then": [{ "ask": "{{state.draft}}" }] }] },
+		"root": { "children": [{ "type": "button", "onClick": { "ask": "Hello" } }] } })json");
+	const json data = json::parse(R"json({ "state": { "ask": "a key" }, "strings": { "en": { "ask": "Ask" } },
+		"permissions": { "ask": ["agent"] } })json");
+	CHECK(affresco::format::usedCapabilities(asks).size() == 1);
+	CHECK(affresco::format::usedCapabilities(asks)[0].key() == "assistant");
+	CHECK(affresco::format::usedCapabilities(data).empty()); // a state key or a string is no step
+	CHECK(affresco::format::undeclaredCapabilities(app, asks).empty());
+	CHECK(affresco::format::undeclaredCapabilities(affresco::format::parseApp(fullManifest()), asks) ==
+	      std::vector<std::string>{"assistant"});
+}
+
 TEST_CASE("app manifest: fromApp merges the app's theme, models and CSV seed; the screen's own entries win") {
 	const auto folder = std::filesystem::temp_directory_path() / "affrescoui-app-test";
 	writeApp(folder / "notes");
