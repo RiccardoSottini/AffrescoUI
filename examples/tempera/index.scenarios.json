@@ -4354,6 +4354,249 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-marquee-square-and-centre",
+			"note": "Shift pressed during a marquee's drag keeps a square, Alt draws it from the centre",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "m"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100
+								},
+								{
+									"kind": "move",
+									"x": 300,
+									"y": 160,
+									"modifiers": [
+										"shift"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 160,
+									"modifiers": [
+										"shift"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							100,
+							100,
+							200,
+							200
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 400,
+									"y": 300
+								},
+								{
+									"kind": "move",
+									"x": 450,
+									"y": 320,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 450,
+									"y": 320,
+									"modifiers": [
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							350,
+							280,
+							100,
+							40
+						]
+					}
+				},
+				{
+					"key": "shift+m"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 400,
+									"y": 300
+								},
+								{
+									"kind": "move",
+									"x": 450,
+									"y": 320,
+									"modifiers": [
+										"shift",
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 450,
+									"y": 320,
+									"modifiers": [
+										"shift",
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							350,
+							250,
+							100,
+							100
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-crop-square-and-centre",
+			"note": "Shift pressed during a crop's drag keeps a square, Alt draws it from the centre",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "c"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100
+								},
+								{
+									"kind": "move",
+									"x": 300,
+									"y": 160,
+									"modifiers": [
+										"shift"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 160,
+									"modifiers": [
+										"shift"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 200
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 200
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100
+								},
+								{
+									"kind": "move",
+									"x": 150,
+									"y": 120,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 150,
+									"y": 120,
+									"modifiers": [
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 100
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 40
+					}
+				}
+			]
 		}
 	]
 }
