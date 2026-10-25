@@ -8,6 +8,10 @@ if(APPLE)
 endif()
 target_link_libraries(affrescoui_format PRIVATE affrescoui::services)
 target_include_directories(affrescoui_format SYSTEM PRIVATE ${AFFRESCOUI_MONOCYPHER_DIR} ${AFFRESCOUI_MONOCYPHER_DIR}/optional)
+# Monocypher's warnings are not ours to fix. Source properties are per directory, so they are set here, where the
+# target is (cmake/AffrescoUISignatures.cmake runs in the top directory, where they wouldn't reach this target)
+set_source_files_properties(${AFFRESCOUI_MONOCYPHER_SOURCES} PROPERTIES COMPILE_OPTIONS $<IF:$<C_COMPILER_ID:MSVC>,/w,-w>
+	SKIP_LINTING ON)
 
 # src/expression/: the expression language: parser, lowering to typed nodes, the machine, and its values
 target_sources(affrescoui_format PRIVATE
