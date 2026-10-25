@@ -15,7 +15,7 @@ namespace {
 /// The keys a manifest may have.
 constexpr auto manifestKeys =
     std::to_array<std::string_view>({"$schema", "format", "version", "note", "id", "name", "description", "icon",
-	                                 "entry", "themes", "capabilities", "data", "assets"});
+                                     "entry", "themes", "capabilities", "data", "assets"});
 
 /// The kinds of capability, as "capabilities" names them.
 constexpr auto capabilityKeys =
@@ -280,11 +280,10 @@ bool hasStep(const json& value, bool (*is)(const json&), int depth = 0) {
 		return std::ranges::any_of(value, [is, depth](const json& item) { return hasStep(item, is, depth + 1); });
 	if(!value.is_object()) return false;
 	if(is(value)) return true;
-	const auto items = value.items();
-	return std::any_of(items.begin(), items.end(), [is, depth](const auto& entry) {
+	return std::ranges::any_of(value.items(), [is, depth](const auto& entry) {
 		const std::string& key = entry.key();
 		const bool data = key == "state" || key == "strings" || key == "tokens" || key == "models";
-		return !(depth == 0 && data) && hasStep(entry.value(), is, depth + 1);
+		return (depth != 0 || !data) && hasStep(entry.value(), is, depth + 1);
 	});
 }
 
