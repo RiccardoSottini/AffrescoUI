@@ -9,7 +9,7 @@
 		"editorItems": "{{map([['3D Viewport', 'axis-3-d'], ['Image Editor', 'image'], ['Shader Editor', 'git-fork'], ['Timeline', 'clock-3'], ['Outliner', 'list-tree'], ['Properties', 'sliders-horizontal'], ['Text Editor', 'file-text']], { title: it[0], icon: it[1] })}}",
 		"workspaces": "{{[{ id: 'layout', title: 'Layout' }, { id: 'modeling', title: 'Model' }, { id: 'sculpting', title: 'Sculpt' }, { id: 'uv editing', title: 'UV' }, { id: 'texture paint', title: 'Paint' }, { id: 'shading', title: 'Materials' }, { id: 'animation', title: 'Animate' }, { id: 'rendering', title: 'Render' }, { id: 'compositing', title: 'Compose' }, { id: 'geometry nodes', title: 'Nodes' }, { id: 'scripting', title: 'Script' }]}}",
 		"objectRows": "{{sort(state.scene.nodes, 'name')}}",
-		"propTabs": "{{[[{ id: 'tool', icon: 'wrench', title: 'Tool' }], [{ id: 'render', icon: 'camera', title: 'Render' }, { id: 'output', icon: 'printer', title: 'Output' }, { id: 'viewLayer', icon: 'images', title: 'View Layer' }, { id: 'scene', icon: 'shapes', title: 'Scene' }, { id: 'world', icon: 'globe', title: 'World' }], [{ id: 'collection', icon: 'package', title: 'Collection' }], [{ id: 'object', icon: 'box', title: 'Object', color: '@object' }, { id: 'modifiers', icon: 'blocks', title: 'Modifiers', color: '#6d9bd6' }, { id: 'particles', icon: 'sparkles', title: 'Particles' }, { id: 'physics', icon: 'orbit', title: 'Physics', color: '#5fa8d3' }, { id: 'constraints', icon: 'link', title: 'Object Constraints', color: '#6d9bd6' }, { id: 'data', icon: 'triangle', title: 'Data', color: '@data' }, { id: 'material', icon: 'circle', title: 'Material', color: '#d86a6a' }, { id: 'texture', icon: 'grid-2-x-2', title: 'Texture' }]]}}",
+		"propTabs": "{{[[{ id: 'tool', icon: 'wrench', title: 'Tool' }], [{ id: 'render', icon: 'camera', title: 'Render' }, { id: 'output', icon: 'printer', title: 'Output' }, { id: 'viewLayer', icon: 'images', title: 'View Layer' }, { id: 'scene', icon: 'shapes', title: 'Scene' }, { id: 'world', icon: 'globe', title: 'World' }], [{ id: 'collection', icon: 'package', title: 'Collection' }], [{ id: 'object', icon: 'box', title: 'Object' }, { id: 'modifiers', icon: 'blocks', title: 'Modifiers' }, { id: 'particles', icon: 'sparkles', title: 'Particles' }, { id: 'physics', icon: 'orbit', title: 'Physics' }, { id: 'constraints', icon: 'link', title: 'Object Constraints' }, { id: 'data', icon: 'triangle', title: 'Data' }, { id: 'material', icon: 'circle', title: 'Material' }, { id: 'texture', icon: 'grid-2-x-2', title: 'Texture' }]]}}",
 		"objectPanels": "{{[['delta', 'Transform Offset'], ['relations', 'Relations'], ['collections', 'Collections'], ['instancing', 'Instancing'], ['motionPaths', 'Motion Paths'], ['visibility', 'Visibility'], ['display', 'Viewport Display'], ['lineArt', 'Line Drawing'], ['custom', 'Custom Properties']]}}",
 		"keyframes": "{{map(state.keys, { time: (it - 1) / 24 })}}",
 		"stats": "{{state.overlays ? 'Objects ' + length(state.view.selection) + '/' + length(state.scene.nodes) + ' | ' : ''}}"
@@ -103,7 +103,7 @@
 		"areaHeader": {
 			"params": { "icon": "", "editor": "" },
 			"node": {
-				"type": "row", "width": "100%", "height": 26, "color": "@header", "radius": { "topLeft": 5, "topRight": 5 },
+				"type": "row", "width": "100%", "height": 26, "color": "@header", "radius": { "topLeft": 8, "topRight": 8 },
 				"alignItems": "center", "gap": 2,
 				"children": [
 					{ "use": "gap" },
@@ -123,18 +123,21 @@
 					  "with": { "open": "state.menuBar", "height": 28, "color": "@bar", "textColor": "@text", "dimColor": "@dim",
 					            "highlight": "@sel",
 					            "menus": "{{[{ name: 'file', title: 'File', items: menus.file }, { name: 'edit', title: 'Edit', items: menus.edit }, { name: 'render', title: 'Render', items: menus.render }, { name: 'window', title: 'Window', items: menus.window }, { name: 'help', title: 'Help', items: menus.help }]}}" } },
-					{ "type": "row", "id": "workspaces", "height": 28, "alignItems": "center", "gap": 2, "color": "transparent",
-					  "role": "tablist", "label": "Workspaces", "arrows": "horizontal", "grow": 1,
-					  "children": [{
+					{ "grow": 1, "height": 1, "color": "transparent" },
+					{ "type": "row", "id": "workspaces", "height": 24, "alignItems": "center", "gap": 0, "color": "@header",
+					  "radius": 7, "role": "tablist", "label": "Workspaces", "arrows": "horizontal",
+					  "fitContent": "width",
+					  "children": [{ "width": 2, "height": 1, "color": "transparent" }, {
 						"repeat": { "for": "w", "in": "{{computed.workspaces}}" },
-						"id": "workspace-{{w.id}}", "height": 20, "width": "{{length(w.title) * 6 + 20}}",
-						"radius": 10, "role": "tab", "focusable": true, "label": "{{w.title}}",
-						"selected": "{{state.workspace == w.title}}", "color": "{{state.workspace == w.title ? '@selRow' : 'transparent'}}",
-						"hover": { "color": "{{state.workspace == w.title ? '@selRow' : '@widget'}}" },
+						"id": "workspace-{{w.id}}", "height": 20, "width": "{{length(w.title) * 6 + 18}}",
+						"radius": 5, "role": "tab", "focusable": true, "label": "{{w.title}}",
+						"selected": "{{state.workspace == w.title}}", "color": "{{state.workspace == w.title ? '@widget' : 'transparent'}}",
+						"hover": { "color": "{{state.workspace == w.title ? '@widget' : '@view'}}" },
 						"onClick": { "run": "setOption", "with": { "args": { "key": "workspace", "value": "{{w.title}}" } } },
-						"children": [{ "type": "label", "text": "{{w.title}}", "textColor": "{{state.workspace == w.title ? '@text' : '@dim'}}",
+						"children": [{ "type": "label", "text": "{{w.title}}", "textColor": "{{state.workspace == w.title ? '@active' : '@dim'}}",
 						               "align": "center", "fill": true }]
-					  }] },
+					  }, { "width": 2, "height": 1, "color": "transparent" }] },
+					{ "grow": 1, "height": 1, "color": "transparent" },
 					{ "use": "hButton", "id": "scene-picker", "with": { "icon": "shapes", "chevron": true, "width": 38, "tooltip": "Browse Scene" } },
 					{ "id": "scene-name", "width": 100, "height": 20, "color": "@field", "radius": 4, "children": [
 						{ "type": "label", "text": "Scene", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 7, "top": 0, "bottom": 0, "right": 4 } }
@@ -180,10 +183,10 @@
 		},
 		"outlinerArea": {
 			"node": {
-				"id": "outliner", "color": "@region", "radius": 5,
+				"id": "outliner", "color": "@region", "radius": 8,
 				"children": [
 					{ "type": "row", "id": "outliner-header", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 26,
-					  "color": "@header", "radius": { "topLeft": 5, "topRight": 5 }, "alignItems": "center", "gap": 2, "children": [
+					  "color": "@header", "radius": { "topLeft": 8, "topRight": 8 }, "alignItems": "center", "gap": 2, "children": [
 						{ "use": "gap" },
 						{ "use": "hButton", "id": "editor-type-outliner", "with": { "icon": "list-tree", "chevron": true, "width": 38,
 						  "tooltip": "Editor Type", "open": "state.open.editorOutliner", "items": "{{computed.editorItems}}" } },
@@ -208,10 +211,10 @@
 		},
 		"propertiesArea": {
 			"node": {
-				"id": "properties", "color": "@panelBack", "radius": 5,
+				"id": "properties", "color": "@panelBack", "radius": 8,
 				"children": [
 					{ "type": "row", "id": "properties-header", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 26,
-					  "color": "@header", "radius": { "topLeft": 5, "topRight": 5 }, "alignItems": "center", "gap": 2, "children": [
+					  "color": "@header", "radius": { "topLeft": 8, "topRight": 8 }, "alignItems": "center", "gap": 2, "children": [
 						{ "use": "gap" },
 						{ "use": "hButton", "id": "editor-type-properties", "with": { "icon": "sliders-horizontal", "chevron": true, "width": 38,
 						  "tooltip": "Editor Type", "open": "state.open.editorProperties", "items": "{{computed.editorItems}}" } },
@@ -219,23 +222,23 @@
 						{ "use": "hButton", "id": "properties-pin", "with": { "icon": "pin", "width": 24, "back": "transparent", "tooltip": "Toggle Pin ID" } },
 						{ "use": "gap" }
 					  ] },
-					{ "type": "column", "id": "properties-tabs", "anchors": { "left": 0, "top": 26, "bottom": 0 }, "width": 30,
+					{ "type": "column", "id": "properties-tabs", "anchors": { "right": 0, "top": 26, "bottom": 0 }, "width": 30,
 					  "color": "@bar", "gap": 6, "alignItems": "center", "role": "tablist", "label": "Properties", "arrows": "vertical",
-					  "radius": { "bottomLeft": 5 },
+					  "radius": { "bottomRight": 8 },
 					  "children": [{ "height": 0, "width": 1, "color": "transparent" }, {
 						"repeat": { "for": "group", "in": "{{computed.propTabs}}" }, "type": "column", "width": 24,
-						"height": "{{length(group) * 24}}", "gap": 0, "color": "@panelBack", "radius": 4,
+						"height": "{{length(group) * 24}}", "gap": 0, "color": "@panelBack", "radius": 7,
 						"children": [{
 							"repeat": { "for": "t", "in": "{{group}}" }, "id": "prop-tab-{{t.id}}", "width": 24, "height": 24,
-							"radius": 4, "role": "tab", "focusable": true, "label": "{{t.title}}", "tooltip": "{{t.title}}",
+							"radius": 7, "role": "tab", "focusable": true, "label": "{{t.title}}", "tooltip": "{{t.title}}",
 							"selected": "{{state.propTab == t.id}}", "color": "{{state.propTab == t.id ? '@panel' : 'transparent'}}",
 							"hover": { "color": "@widget" },
 							"onClick": { "run": "setOption", "with": { "args": { "key": "propTab", "value": "{{t.id}}" } } },
 							"children": [{ "type": "label", "font": "icons", "icon": "{{t.icon}}", "text": "",
-							               "textColor": "{{t.color ?? '@text'}}", "align": "center", "fill": true }]
+							               "textColor": "{{state.propTab == t.id ? '@active' : '@dim'}}", "align": "center", "fill": true }]
 						}]
 					  }] },
-					{ "type": "column", "id": "properties-panels", "anchors": { "left": 34, "right": 4, "top": 30, "bottom": 0 },
+					{ "type": "column", "id": "properties-panels", "anchors": { "left": 6, "right": 36, "top": 32, "bottom": 0 },
 					  "gap": 2, "color": "transparent", "scroll": "vertical", "children": [
 						{ "type": "row", "id": "properties-context", "width": "100%", "height": 22, "alignItems": "center", "gap": 4,
 						  "color": "transparent", "children": [
@@ -259,10 +262,10 @@
 		},
 		"timelineArea": {
 			"node": {
-				"id": "timeline-area", "color": "@region", "radius": 5,
+				"id": "timeline-area", "color": "@region", "radius": 8,
 				"children": [
 					{ "type": "row", "id": "timeline-header", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 26,
-					  "color": "@header", "radius": { "topLeft": 5, "topRight": 5 }, "alignItems": "center", "gap": 2, "children": [
+					  "color": "@header", "radius": { "topLeft": 8, "topRight": 8 }, "alignItems": "center", "gap": 2, "children": [
 						{ "use": "gap" },
 						{ "use": "hButton", "id": "editor-type-timeline", "with": { "icon": "clock-3", "chevron": true, "width": 38,
 						  "tooltip": "Editor Type", "open": "state.open.editorTimeline", "items": "{{computed.editorItems}}" } },
