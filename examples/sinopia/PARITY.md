@@ -140,3 +140,68 @@ with its slide show, presenter view, audience window and files on library capabi
 | Now | 68 | 31 | 22 | 121 |
 
 The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, and Insert > Link one (all missing at the start), so *Now* counts 121 rows.
+
+## Left for later
+
+Every row above that is still partial or missing, and every control still disabled (its tooltip says "… isn't
+available yet"), with what it needs: **JSON** (Sinopia's own documents) or a **library** feature first. Priority: **P1**
+a daily user meets it, **P2** occasionally, **P3** rarely.
+
+| Priority | Row or control | What it needs |
+|---|---|---|
+| P1 | Arrange: group and ungroup | JSON: an object of kind `group` holding objects, drawn and moved as one, with Group and Ungroup in Arrange and the context menu |
+| P1 | Content: insert picture (Insert > Pictures) | Library: `openFile` of an image into an asset the slide draws and the saved deck carries; then JSON for an object of kind `picture` |
+| P1 | Content: tables (Insert > Table) | JSON: an object of kind `table` (rows of text cells) with a size grid to insert it and Tab between cells |
+| P1 | Tools: cut, copy and paste with other apps | Library: steps that write and read the system clipboard's text and images |
+| P1 | Arrange: move and resize with handles (Shift keeps the proportions, Ctrl copies) | Library: modifier keys on pointer events (`onClick` and drags carry no Shift); then JSON |
+| P1 | Text: paragraph alignment per paragraph, and justified text | JSON: alignment per paragraph; library: justified wrapping in labels |
+| P1 | Slides: hide slide (the crossed-out number) | JSON: a strike through the number in the slide list |
+| P2 | Shell: a contextual Shape Format tab | JSON: a tab shown while a shape is selected, from the Home tab's drawing and arrange groups |
+| P2 | Shell: File view (new deck, recent decks) | JSON: New from the themes; library: a list of recently opened files |
+| P2 | Canvas: rulers, gridlines and guides | JSON: rulers along the canvas, a drawn grid, guides dragged from the rulers that objects snap to |
+| P2 | Text: autofit (shrink text on overflow) | Library: the measured height of a text in expressions; then JSON |
+| P2 | Shapes and format pane: gradient fills, dashed outlines | Library: gradient fills and dashed strokes on path nodes; then the fill and outline grids |
+| P2 | Format pane: size and position (scale in percent, lock the proportions) | JSON: scale fields and a lock that resizing honours |
+| P2 | Format pane: text box options (margins, wrap) | JSON: margins and wrap in the pane, and the slide's text layout honouring them |
+| P2 | Arrange: smart guides | JSON: snapping to other objects' edges and centres while dragging, with the lines drawn |
+| P2 | Arrange: a rotate handle, and flip | JSON: the handle on the canvas; library: mirrored drawing of path nodes |
+| P2 | Content: crop a picture | After pictures; library: a source rectangle on image nodes |
+| P2 | Content: charts (Insert > Chart) | JSON: a chart object drawn as shapes from a small data table |
+| P2 | Content: links to web addresses | Library: a step that opens a web address after asking the person (no document-run code) |
+| P2 | Design: slide size (Design > Slide Size) | JSON: the 960 by 540 written in the slide, the show and the export read the deck's `size` instead |
+| P2 | Transitions: glide (objects move to their places) | JSON: objects matched by name across two slides, their boxes animated |
+| P2 | Animations: emphasis effects | JSON: pulse, spin and colour builds in the show's build template |
+| P2 | Animations: timing (delay, repeat) | JSON: delay and repeat controls on the Motion tab and in the Animation Pane |
+| P2 | Presenter view: pen | JSON: the ink layer over the show's slide, strokes kept per slide |
+| P2 | Presenter view: laser pointer | JSON: a dot that follows the pointer over the show's slide; library: pointer moves on an image node, if not there |
+| P2 | Review: spelling (Check > Spelling) | Library: a spelling service and squiggles under unknown words |
+| P2 | Always: locales | Library: string tables per locale in expressions; then JSON for every label |
+| P2 | Always: keyboard access, and names, roles and focus order | JSON: names on the remaining nodes and an audit of the focus order; key hints below |
+| P3 | Shell: key hints (Alt shows a key on every command) | Library: an event for Alt pressed and released alone; then JSON badges on the tabs and buttons |
+| P3 | Shell: search that runs commands (the rest of the commands) | JSON: the commands listed from the menus as well as the 33 named ones |
+| P3 | Shell: ribbon galleries (transitions and builds as galleries) | JSON: the transitions and builds as galleries, like shapes and themes |
+| P3 | Shell: collapse the ribbon (a tab shows it over the slide) | JSON: the ribbon as an overlay while collapsed |
+| P3 | Shapes: the whole gallery (all stars, callouts and arrows) | JSON: more presets in `parts/geometry.json` |
+| P3 | Shapes and format pane: effects (soft edges, blurred shadows) | Library: blur on path nodes' shadows and edges |
+| P3 | Arrange: distance indicators | JSON: equal-gap hints while dragging |
+| P3 | Arrange: rename in the selection pane | JSON: an editor in the row on a double click |
+| P3 | Content: table styles | After tables; JSON |
+| P3 | Design: slide master view | JSON: a view that edits the layouts and their placeholders |
+| P3 | Design: themes and variants of one's own | JSON: save the deck's look as a theme |
+| P3 | Design: theme colours of one's own | JSON: a hex field for each of the ten slots |
+| P3 | Design: more theme fonts | Library: more vendored fonts (the app ships two) |
+| P3 | Ink: ink to shape (Ink > Ink to Shape) and replay (Ink > Ink Replay) | JSON: replay by animating each stroke's points; ink to shape by fitting a stroke to a preset |
+| P3 | Transitions: fade through black | JSON: an effect option of fade |
+| P3 | Animations: exit effects (directions) | JSON: the fly and wipe directions for exits |
+| P3 | Animations: motion paths | Library: a point along a path in expressions; then JSON |
+| P3 | Slide show: record and export to video (Record > Record, Record > Export to Video) | Library: audio and video capture and encoding |
+| P3 | Files: export every slide as an image at once | Library: an export of several PNG pages in one step |
+| P3 | Always: the assistant chat add-on | The kit add-on's placement (right-to-left, docking, the chat button's overlap); then JSON |
+| P3 | Text: character spacing (Home > Character Spacing) | Library: letter spacing on runs |
+| P3 | Text: convert to a diagram (Home > Convert to a Diagram) | JSON: diagram layouts made from a list's items |
+| P3 | Text: speak to type (Home > Dictate) | Library: a speech service (the microphone isn't reachable from a screen) |
+| P3 | Insert: equation (Insert > Equation) | Library: math layout |
+| P3 | Insert: video and audio (Insert > Video, Insert > Audio) | Library: media playback nodes |
+| P3 | Insert: photo album (Insert > Photo Album) | After pictures; JSON: one slide per picture |
+| P3 | View: notes page (View > Notes Page) | JSON: a page with the slide and its notes, which export prints |
+| P3 | Help: feedback (Help > Feedback) | A place to send it; until then the button stays disabled |
