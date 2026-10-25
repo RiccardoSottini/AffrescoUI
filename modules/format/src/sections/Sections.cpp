@@ -10,6 +10,7 @@
 #include "Settings.hpp"
 #include "StateTypes.hpp"
 #include "Strings.hpp"
+#include "SecondWindows.hpp"
 
 #include <algorithm>
 #include <array>
@@ -149,6 +150,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add(permissionsSection());
 	registry.add(imagesSection());
 	registry.add(audioSection());
+	registry.add({.name = "windows", .validate = checkWindowsSection, .capability = true}); // SecondWindows.hpp
 	registry.add({"features", checkFeaturesSection}); // installed features, merged by Composition (FeatureManifest.hpp)
 	registry.add({"exports", checkExportsSection});   // what features read as app.<name>
 	registry.add({"imports", checkImportsSection});   // aliases for features' components

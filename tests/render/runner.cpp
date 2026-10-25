@@ -19,7 +19,6 @@
 #include "features/lsp/Lsp.hpp"
 #include "features/search/Search.hpp"
 #include "surfaces/Surfaces.hpp"
-#include "tempo/Visualiser.hpp"
 
 #include <glad/glad.h>
 
@@ -184,7 +183,6 @@ int main(int argc, char** argv) {
 			forge::addExampleCatalog(screen, AFFRESCOUI_FORGE_DIRECTORY);
 			// The example surfaces at a fixed time, and one that fails (surfaces.json)
 			examples::registerSurfaces(screen, 1.25);
-			examples::tempo::registerVisualiser(screen);
 			screen.registerSurface("broken", [] { return std::make_unique<BrokenSurface>(); });
 			// The inspector's overlay (inspector.json), without its times so that each picture is the same
 			screen.onAction("inspector:on", [&screen](affresco::Panel&) { screen.setInspector(true, false); });

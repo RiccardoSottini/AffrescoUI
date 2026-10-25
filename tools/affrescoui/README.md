@@ -58,8 +58,6 @@ When the tool is built with the examples (the default), it knows their applicati
 | `Schema.*` | The JSON Schema check (`check`, `schema`) |
 | `Embed.cmake` | Embeds a file (the schema) in the tool as a function |
 
-`Cli.cpp` and `ComposeCommand.cpp` stay beside `main.cpp`: Bottega's build compiles them by path.
-
 ## Tests
 
 `check.py` here (ctest `cli`) runs every command on every template: `check` passes, `fmt --check` passes after

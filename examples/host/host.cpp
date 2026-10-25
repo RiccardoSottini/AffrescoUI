@@ -32,7 +32,6 @@
 #include "Assets.hpp"
 #include "intelligence/Intelligence.hpp"
 #include "SocketDir.hpp"
-#include "tempo/Visualiser.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
@@ -89,9 +88,6 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 			automation::Options options;
 			options.document = document;
 			options.pictures = false;
-			options.prepare = [](affresco::Screen& played) {
-				examples::tempo::registerVisualiser(played);
-			};
 			for(const automation::Scenario& scenario : loaded.scenarios)
 				if(!scenario.needsPictures) options.only.push_back(scenario.name);
 			if(options.only.empty()) return results.dump(); // all of them draw
@@ -287,9 +283,7 @@ void grantLauncher(affresco::Screen& screen, const Options& options) {
 	services::AppPrograms programs;
 	programs.folder = programFile().parent_path();
 	programs.programs = {{"affrescoui_launcher", true, true},
-	                     {"affrescoui_forge", false, false},
-	                     {"affrescoui_tempera", false, false},
-	                     {"affrescoui_sinopia", false, false}};
+	                     {"affrescoui_forge", false, false}};
 	programs.roots = {{"examples", examples}, {"apps", apps}};
 	programs.dataDirectory = std::filesystem::absolute(options.dataDir);
 	programs.socketDirectory = std::filesystem::absolute(options.socketDir);
@@ -321,7 +315,6 @@ int run(const Options& options) {
 	affresco::Screen screen = affresco::Screen::fromFile(screenFile(options.file), options.dataDir,
 	                                                     screenshotOnly ? History::InMemory : History::OnDisk);
 	screen.setPlaceholderTypes(true); // custom types of other apps show as plain panels
-	examples::tempo::registerVisualiser(screen); // the Tempo template's visualiser surface
 	screen.services().allowChosenRoot("workspace");
 	if(!options.folder.empty()) screen.services().addRoot("workspace", options.folder);
 	for(const std::string& spec : options.allowed)

@@ -137,7 +137,7 @@
 				"type": "column", "id": "navigator", "fill": true, "gap": 6, "alignItems": "center",
 				"children": [
 					{ "height": 4, "width": 1, "style": "clear" },
-					{ "type": "image", "id": "navigator-picture", "label": "Navigator", "source": "navigator", "fit": "contain",
+					{ "type": "image", "id": "navigator-picture", "label": "Navigator", "source": "doc/navigator", "fit": "contain",
 					  "width": 234, "height": 170, "color": "@canvasBack" },
 					{ "type": "row", "id": "navigator-zoom", "height": 26, "gap": 4, "alignItems": "center",
 					  "children": [
@@ -308,7 +308,7 @@
 					  "width": "100%", "height": 34, "alignItems": "center", "gap": 8, "color": "{{i == 0 ? '@selected' : 'transparent'}}",
 					  "children": [
 						{ "type": "label", "icon": "eye", "textColor": "@text", "width": 26, "height": 20, "align": "center" },
-						{ "type": "image", "source": "navigator", "fit": "contain", "width": 30, "height": 26, "color": "@canvasBack", "visible": "{{i == 0}}" },
+						{ "type": "image", "source": "doc/navigator", "fit": "contain", "width": 30, "height": 26, "color": "@canvasBack", "visible": "{{i == 0}}" },
 						{ "type": "label", "text": "{{c}}", "textColor": "@text", "grow": 1, "height": 20 },
 						{ "style": "dim", "text": "Cmd+{{i + 2}}" },
 						{ "width": 6, "height": 1, "style": "clear" }

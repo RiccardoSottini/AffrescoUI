@@ -5,10 +5,6 @@
 
 #include <affresco/affresco.hpp>
 
-#ifdef AFFRESCOUI_CLI_EXAMPLE_TYPES
-#include "tempo/Visualiser.hpp"
-#endif
-
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -60,9 +56,6 @@ void writeFile(const std::filesystem::path& path, std::string_view content) {
 
 void registerApplicationTypes([[maybe_unused]] Screen& screen) {
 	screen.setPlaceholderTypes(true); // other apps' types show as plain panels
-#ifdef AFFRESCOUI_CLI_EXAMPLE_TYPES
-	examples::tempo::registerVisualiser(screen); // the Tempo template's visualiser surface
-#endif
 }
 
 } // namespace affresco::cli

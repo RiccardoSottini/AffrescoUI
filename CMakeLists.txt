@@ -200,7 +200,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_definitions(affrescoui_intelligence PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# affrescoui_launcher, the stock host: renders any screen and accepts peers; without a file it opens the Launcher
 	add_executable(affrescoui_launcher examples/host/host.cpp)
-	target_sources(affrescoui_launcher PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
 	target_link_libraries(affrescoui_launcher PRIVATE affrescoui_intelligence) # the assistant's providers
 	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples)
 	target_include_directories(affrescoui_launcher SYSTEM PRIVATE external/glad/include)
@@ -220,17 +219,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm affrescoui_intelligence)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
-	# Sinopia, slides and vector documents: its workspace is examples/sinopia/index.screen.json (examples/sinopia/README.md)
-	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp
-		# deck/: the deck model, read, checked, edited and arranged without a window
-		examples/sinopia/deck/Deck.cpp examples/sinopia/deck/Write.cpp examples/sinopia/deck/Edit.cpp
-		examples/sinopia/deck/Arrange.cpp
-		# drawing/: slides and transitions turned into pixels
-		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/Transition.cpp)
-	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared modules/screen/src)
-	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export affrescoui_intelligence)
-	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})
-	target_compile_definitions(affrescoui_sinopia PRIVATE AFFRESCOUI_SINOPIA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia")
 	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (tests/render/surfaces)
 	add_executable(affrescoui_surfaces tests/render/surfaces/main.cpp tests/render/surfaces/Surfaces.cpp)
 	target_include_directories(affrescoui_surfaces SYSTEM PRIVATE external/glad/include)
@@ -238,10 +226,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_options(affrescoui_surfaces PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_surfaces PRIVATE
 		AFFRESCOUI_SURFACES_SCREEN="${CMAKE_CURRENT_SOURCE_DIR}/tests/render/surfaces/surfaces.screen.json")
-	# Tempera, an image editor on the imaging module (examples/tempera/README.md)
-	add_subdirectory(examples/tempera)
-	# Bottega, Sinopia's slide sorter installed into Tempera with an adapter and a proof (examples/bottega/)
-	add_subdirectory(examples/bottega)
 	# The document server, headless: documents and their history on disk, shared with people (apps/server/README.md)
 	set(AFFRESCOUI_SERVER_SOURCES apps/server/DocumentServer.cpp apps/server/TokenFile.cpp
 	    apps/server/UserInfoVerifier.cpp)
@@ -277,9 +261,9 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
 		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/e2e_test.py ${CMAKE_BINARY_DIR})
-		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/bottega)
-		add_test(NAME bottega_e2e COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/bottega/e2e_test.py ${CMAKE_BINARY_DIR})
+		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/tempera/sorter)
+		add_test(NAME tempera_sorter_e2e COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/tempera/sorter/e2e_test.py ${CMAKE_BINARY_DIR})
 		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
 		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
@@ -289,11 +273,6 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# Orrery end to end, JSON only on affrescoui_launcher: MCP server, a revision, an approval, a picture (examples/orrery)
 		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/e2e_test.py ${CMAKE_BINARY_DIR})
-	endif()
-	if(AFFRESCOUI_BUILD_EXAMPLES)
-		# Sinopia's scenarios, headless: editing, the sorter, exporting and presenting (examples/sinopia/README.md)
-		add_test(NAME sinopia COMMAND affrescoui_sinopia --check
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia/index.scenarios.json)
 	endif()
 endif()
 

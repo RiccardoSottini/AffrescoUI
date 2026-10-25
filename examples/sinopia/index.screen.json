@@ -4,7 +4,9 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "../shared/addons/assistant/assistant.json"],
+
+	"theme": "{{state.theme}}",
 
 	"window": { "title": "Sinopia", "width": 1280, "height": 800, "minWidth": 960, "minHeight": 600 },
 
@@ -14,31 +16,33 @@
 	},
 
 	"colors": {
-		"brand": "#4b3fa8",
-		"brandLine": "#4b3fa8",
-		"brandHover": "#5d51c0",
-		"onBrand": "#ffffff",
-		"titleBar": "#e8e7f1",
-		"titleInk": "#2a2740",
-		"titleHover": "#d9d7e8",
-		"rb": "#f5f5f9",
-		"rbInk": "#25232f",
-		"rbMuted": "#5e5c6f",
-		"rbHover": "#e6e5ef",
-		"rbPressed": "#d5d3e4",
-		"rbChecked": "#e0ddf3",
-		"rbCheckedHover": "#d2cfec",
-		"rbDisabled": "#a7a5b6",
-		"rbFieldBg": "#ffffff",
-		"rbFieldLine": "#cac8d8",
-		"rbFieldHover": "#5e5c6f",
-		"rbLine": "#dad8e4",
-		"work": "#e5e5eb",
-		"thumbLine": "#cac8d8",
-		"thumbHover": "#aeabc6",
-		"notes": "#ffffff",
-		"barLine": "#dad8e4",
-		"handles": "#4b3fa8"
+		"brand": { "light": "#4b3fa8", "dark": "#7a6fe0" },
+		"brandLine": { "light": "#4b3fa8", "dark": "#8f85ee" },
+		"brandHover": { "light": "#5d51c0", "dark": "#8a80ea" },
+		"onBrand": { "light": "#ffffff", "dark": "#ffffff" },
+		"titleBar": { "light": "#e8e7f1", "dark": "#1f1e26" },
+		"titleInk": { "light": "#2a2740", "dark": "#e9e8f2" },
+		"titleHover": { "light": "#d9d7e8", "dark": "#33313e" },
+		"rb": { "light": "#f5f5f9", "dark": "#2a2932" },
+		"rbInk": { "light": "#25232f", "dark": "#ecebf3" },
+		"rbMuted": { "light": "#5e5c6f", "dark": "#a8a6b8" },
+		"rbHover": { "light": "#e6e5ef", "dark": "#3a3845" },
+		"rbPressed": { "light": "#d5d3e4", "dark": "#464453" },
+		"rbChecked": { "light": "#e0ddf3", "dark": "#45406a" },
+		"rbCheckedHover": { "light": "#d2cfec", "dark": "#514b7a" },
+		"rbDisabled": { "light": "#a7a5b6", "dark": "#6c6a7b" },
+		"rbFieldBg": { "light": "#ffffff", "dark": "#1d1c23" },
+		"rbFieldLine": { "light": "#cac8d8", "dark": "#4a4857" },
+		"rbFieldHover": { "light": "#5e5c6f", "dark": "#a8a6b8" },
+		"rbLine": { "light": "#dad8e4", "dark": "#3d3b48" },
+		"work": { "light": "#e5e5eb", "dark": "#18171d" },
+		"thumbLine": { "light": "#cac8d8", "dark": "#4a4857" },
+		"thumbHover": { "light": "#aeabc6", "dark": "#5d5873" },
+		"notes": { "light": "#ffffff", "dark": "#202027" },
+		"barLine": { "light": "#dad8e4", "dark": "#3d3b48" },
+		"handles": { "light": "#4b3fa8", "dark": "#8f85ee" },
+		"barInk": { "light": "#3e3c4d", "dark": "#d6d4e2" },
+		"faint": { "light": "#8a8a8a", "dark": "#8d8b9c" }
 	},
 
 	"tokens": {
@@ -57,7 +61,7 @@
 			"focusable": true, "hover": { "color": "@titleHover" }
 		},
 		"barButton": {
-			"type": "label", "height": 22, "fitText": true, "padding": 4, "radius": 6, "color": "transparent", "textColor": "#3e3c4d", "cursor": "hand",
+			"type": "label", "height": 22, "fitText": true, "padding": 4, "radius": 6, "color": "transparent", "textColor": "@barInk", "cursor": "hand",
 			"hover": { "color": "@rbHover" }
 		},
 		"barButtonOn": { "style": "barButton", "color": "@rbChecked" },
@@ -75,6 +79,7 @@
 
 	"state": {
 		"current": 0,
+		"theme": "light",
 		"tab": "home",
 		"view": "normal",
 		"notes": true,
@@ -86,7 +91,7 @@
 		"board": { "camera": { "x": 0, "y": 0, "zoom": 1 }, "selection": [], "guides": { "vertical": [], "horizontal": [] } }
 	},
 
-	"persist": ["state.deck"],
+	"persist": ["state.deck", "state.theme", "state.presenterView"],
 
 	"computed": {
 		"tabs": [
@@ -95,7 +100,7 @@
 			{ "id": "slideShow", "title": "Present" }, { "id": "record", "title": "Record" }, { "id": "review", "title": "Check" },
 			{ "id": "view", "title": "View" }, { "id": "help", "title": "Help" }
 		],
-		"canvasWidth": "{{max(window.width - 200, 100)}}",
+		"canvasWidth": "{{max(window.width - (state.view == 'outline' ? 300 : 200) - (state.formatPane ? 260 : 0), 100)}}",
 		"canvasHeight": "{{max(window.height - 40 - 36 - 96 - 24 - (state.notes ? 77 : 0), 100)}}",
 		"fitZoom": "{{min((computed.canvasWidth - 56) / 960, (computed.canvasHeight - 40) / 540)}}",
 		"fitCamera": "{{ {x: 480 - computed.canvasWidth / (2 * computed.fitZoom), y: 270 - computed.canvasHeight / (2 * computed.fitZoom), zoom: computed.fitZoom} }}",
@@ -139,8 +144,8 @@
 		"mod+shift+.": [{ "when": "{{!context.textInputFocus}}", "do": "growText", "with": { "by": 1 } }],
 		"mod+shift+,": [{ "when": "{{!context.textInputFocus}}", "do": "growText", "with": { "by": -1 } }],
 		"delete": [{ "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
-		"backspace": [{ "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
-		"escape": [{ "when": "{{!context.textInputFocus && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
+		"backspace": [{ "when": "{{state.show.on}}", "do": "showPrevious" }, { "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
+		"escape": [{ "when": "{{state.show.on}}", "do": "showEnd" }, { "when": "{{!context.textInputFocus && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
 	},
 
 	"root": {
@@ -159,12 +164,13 @@
 						  "tooltip": "Keeps the deck saved on this computer as you work",
 						  "children": [{ "id": "autosave-knob", "x": 4, "y": 4, "width": 8, "height": 8, "radius": 4, "color": "@rbMuted" }] },
 						{ "type": "label", "id": "autosave-state", "height": 32, "fitText": true, "padding": 4, "textColor": "@titleInk", "runs": [{ "text": "Off", "size": 12 }] },
-						{ "type": "label", "id": "qat-save", "style": "titleButton", "runs": [{ "icon": "save", "size": 16 }], "tooltip": "Save (Ctrl+S)" },
+						{ "type": "label", "id": "qat-save", "style": "titleButton", "runs": [{ "icon": "save", "size": 16 }], "tooltip": "Save (Ctrl+S)", "onClick": "saveDeck" },
 						{ "type": "label", "id": "qat-undo", "style": "titleButton", "width": 40, "runs": [{ "icon": "undo-2", "size": 16 }, { "text": " ", "size": 8 }, { "icon": "chevron-down", "size": 9 }],
 						  "textColor": "{{computed.canUndo ? '@titleInk' : '#2a274066'}}", "tooltip": "Undo (Ctrl+Z)", "onClick": "undo" },
 						{ "type": "label", "id": "qat-redo", "style": "titleButton", "runs": [{ "icon": "redo-2", "size": 16 }],
 						  "textColor": "{{computed.canRedo ? '@titleInk' : '#2a274066'}}", "tooltip": "Redo (Ctrl+Y)", "onClick": "redo" },
-						{ "type": "label", "id": "qat-present", "style": "titleButton", "runs": [{ "icon": "projector", "size": 16 }], "tooltip": "Present from the start (F5)" },
+						{ "type": "label", "id": "qat-present", "style": "titleButton", "runs": [{ "icon": "projector", "size": 16 }], "tooltip": "Present from the start (F5)",
+						  "onClick": { "run": "present", "with": { "from": 0 } } },
 						{ "type": "label", "id": "qat-more", "style": "titleButton", "width": 22, "runs": [{ "icon": "chevron-down", "size": 11 }], "tooltip": "More quick commands" },
 						{ "type": "label", "id": "doc-title", "height": 32, "fitText": true, "padding": 8, "radius": 8, "textColor": "@titleInk", "cursor": "hand", "hover": { "color": "@titleHover" },
 						  "runs": [{ "text": "{{state.deck.title}}", "size": 12 }, { "text": "  ·  On this computer ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] }
@@ -201,7 +207,8 @@
 					  "runs": [{ "icon": "circle-dot", "size": 14, "color": "#c50f1f" }, { "text": " Record", "size": 12 }] },
 					{ "id": "tab-row-gap-2", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "present-button", "style": "pillButton",
-					  "runs": [{ "icon": "projector", "size": 14 }, { "text": " Start ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] },
+					  "runs": [{ "icon": "projector", "size": 14 }, { "text": " Start", "size": 12 }],
+					  "tooltip": "Present from this slide (Shift+F5)", "onClick": { "run": "present", "with": { "from": "{{state.current}}" } } },
 					{ "id": "tab-row-gap-3", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "share-button", "style": "pillButton", "color": "@brandLine", "borderColor": "@brandLine", "textColor": "@onBrand", "hover": { "color": "@brand" },
 					  "runs": [{ "icon": "send", "size": 14 }, { "text": " Share ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] },
@@ -218,7 +225,10 @@
 						{ "use": "tabDesign", "when": "{{state.tab == 'design'}}" },
 						{ "use": "tabTransitions", "when": "{{state.tab == 'transitions'}}" },
 						{ "use": "tabView", "when": "{{state.tab == 'view'}}" },
-						{ "use": "tabPlain", "when": "{{!contains(['home', 'insert', 'design', 'transitions', 'view'], state.tab)}}",
+						{ "use": "tabFile", "when": "{{state.tab == 'file'}}" },
+						{ "use": "tabMotion", "when": "{{state.tab == 'animations'}}" },
+						{ "use": "tabPresent", "when": "{{state.tab == 'slideShow'}}" },
+						{ "use": "tabPlain", "when": "{{!contains(['home', 'insert', 'design', 'transitions', 'view', 'file', 'animations', 'slideShow'], state.tab)}}",
 						  "with": { "name": "{{find(computed.tabs, it.id == state.tab).title}}" } }
 					  ] },
 					{ "type": "label", "id": "ribbon-collapse", "anchors": { "right": 6, "bottom": 6 }, "width": 20, "height": 20, "style": "rbButton", "align": "center",
@@ -230,7 +240,7 @@
 				"type": "row", "id": "main", "grow": 1, "color": "@work", "alignItems": "stretch",
 				"children": [
 					{
-						"type": "column", "id": "thumbnails", "width": 200, "color": "@work", "scroll": "vertical", "gap": 0, "focusable": true, "role": "list", "label": "Slides",
+						"type": "column", "id": "thumbnails", "when": "{{state.view == 'normal'}}", "width": 200, "color": "@work", "scroll": "vertical", "gap": 0, "focusable": true, "role": "list", "label": "Slides",
 						"keys": {
 							"up": { "run": "pickSlide", "with": { "index": "{{state.current - 1}}" } },
 							"down": { "run": "pickSlide", "with": { "index": "{{state.current + 1}}" } },
@@ -267,10 +277,9 @@
 									  "color": "{{i == state.current ? '@brandLine' : 'transparent'}}",
 									  "hover": { "color": "{{i == state.current ? '@brandLine' : '@thumbHover'}}" }, "dragOver": { "color": "@brandLine" },
 									  "children": [
-										{ "id": "{{'thumb-' + s.id + '-paper'}}", "x": 2, "y": 2, "width": 160, "height": 90, "color": "#ffffff", "borderWidth": 1, "borderColor": "@thumbLine", "cache": true,
+										{ "id": "{{'thumb-' + s.id + '-paper'}}", "x": 2, "y": 2, "width": 160, "height": 90, "color": "#ffffff", "borderWidth": 1, "borderColor": "@thumbLine",
 										  "children": [
-											{ "id": "{{'thumb-' + s.id + '-page'}}", "color": "transparent", "x": 0, "y": 0, "width": 960, "height": 540, "scale": "{{160 / 960}}", "transformOrigin": "topLeft",
-											  "children": [{ "use": "slidePage", "with": { "slide": "{{s}}", "prefix": "{{'t' + s.id + '-'}}" } }] },
+											{ "type": "image", "id": "{{'thumb-' + s.id + '-page'}}", "x": 0, "y": 0, "width": 160, "height": 90, "source": "{{'slide-' + s.id}}", "fit": "fill" },
 											{ "id": "{{'thumb-' + s.id + '-veil'}}", "when": "{{s.hidden ?? false}}", "fill": 0, "color": "#ffffff99" }
 										  ] }
 									  ] }
@@ -279,8 +288,10 @@
 							{ "id": "thumbs-bottom", "height": 20, "width": 200, "color": "transparent" }
 						]
 					},
+					{ "use": "outlineView", "when": "{{state.view == 'outline'}}" },
+					{ "use": "sorterView", "when": "{{state.view == 'sorter'}}" },
 					{
-						"type": "column", "id": "centre", "grow": 1, "color": "@work", "alignItems": "stretch",
+						"type": "column", "id": "centre", "when": "{{state.view != 'sorter'}}", "grow": 1, "color": "@work", "alignItems": "stretch",
 						"children": [
 							{
 								"type": "canvas", "id": "board", "grow": 1, "focusable": true, "color": "@work", "accentColor": "@handles",
@@ -298,13 +309,14 @@
 							{ "id": "notes-line", "height": 1, "color": "@barLine", "when": "{{state.notes}}" },
 							{ "id": "notes-pane", "height": 76, "color": "@notes", "when": "{{state.notes}}",
 							  "children": [
-								{ "type": "label", "id": "notes-placeholder", "x": 14, "y": 8, "width": 400, "height": 20, "textColor": "#8a8a8a",
-								  "when": "{{(computed.slide.notes ?? '') == ''}}", "runs": [{ "text": "Click to add notes", "size": 13 }] },
+								{ "type": "label", "id": "notes-placeholder", "x": 14, "y": 8, "width": 400, "height": 20, "textColor": "@faint",
+								  "runs": [{ "text": "{{(computed.slide.notes ?? '') == '' ? 'Click to add notes' : ''}}", "size": 13 }] },
 								{ "type": "editor", "id": "notes", "fill": 4, "color": "transparent", "wrap": true, "textColor": "@rbInk", "lineColor": "transparent",
 								  "label": "Notes", "bind": "{{'state.deck.slides[' + state.current + '].notes'}}" }
 							  ] }
 						]
-					}
+					},
+					{ "use": "formatPane", "when": "{{state.formatPane && state.view != 'sorter'}}" }
 				]
 			},
 			{
@@ -325,7 +337,8 @@
 					{ "type": "label", "id": "status-sorter", "style": "{{state.view == 'sorter' ? 'barButtonOn' : 'barButton'}}", "runs": [{ "icon": "layout-grid", "size": 14 }], "tooltip": "Slide Sorter",
 					  "onClick": [{ "set": "state.view", "to": "sorter" }] },
 					{ "type": "label", "id": "status-reading", "style": "barButton", "runs": [{ "icon": "book-open", "size": 14 }], "tooltip": "Reading View" },
-					{ "type": "label", "id": "status-show", "style": "barButton", "runs": [{ "icon": "projector", "size": 14 }], "tooltip": "Present" },
+					{ "type": "label", "id": "status-show", "style": "barButton", "runs": [{ "icon": "projector", "size": 14 }], "tooltip": "Present from this slide",
+					  "onClick": { "run": "present", "with": { "from": "{{state.current}}" } } },
 					{ "id": "status-gap-3", "width": 8, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "zoom-out", "style": "barButton", "runs": [{ "icon": "minus", "size": 12 }], "tooltip": "Zoom Out", "onClick": { "run": "zoomBy", "with": { "by": 0.9 } } },
 					{ "type": "slider", "id": "zoom-slider", "width": 100, "height": 16, "trackColor": "@rbFieldLine", "activeColor": "@rbMuted", "knobColor": "@rbFieldBg", "min": 10, "max": 400, "value": "{{round(computed.zoom * 100)}}",
@@ -337,6 +350,8 @@
 				]
 			}
 		]
-		}]
+		},
+		{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "key": "{{s.id}}" }, "use": "slideImage", "with": { "s": "{{s}}" } },
+		{ "use": "showStage", "when": "{{state.show.on}}" }]
 	}
 }

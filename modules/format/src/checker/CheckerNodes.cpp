@@ -23,21 +23,22 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(
-    {"set",      "push",    "remove",  "toggle",    "increment", "if",         "forEach", "while",
-	 "run",      "call",    "cancel",  "emit",      "send",      "connect",    "patch",   "accept",
-	 "reject",   "preview", "restore", "revert",    "undo",      "endPreview", "focus",   "scrollTo", "press",
-	 "navigate", "dismiss", "after",   "debounce",  "animate",   "copy",       "log",     "stop",
-	 "note",     "invoke",  "request", "subscribe", "respond",   "ask",        "signIn",  "signOut",
-	 "camera",   "transform", "image", "chooseFolder", "edit", "audio", "insert", "update", "delete", "undoData",
-	 "redoData", "importCsv", "attach", "cancelAsk"});
+    {"set",         "push",       "remove",    "toggle",   "increment",    "if",         "forEach",   "while",
+	 "run",         "call",       "cancel",    "emit",     "send",         "connect",    "patch",     "accept",
+	 "reject",      "preview",    "restore",   "revert",   "undo",         "endPreview", "focus",     "scrollTo",
+	 "press",       "navigate",   "dismiss",   "after",    "debounce",     "animate",    "copy",      "log",
+	 "stop",        "note",       "invoke",    "request",  "subscribe",    "respond",    "ask",       "signIn",
+	 "signOut",     "camera",     "transform", "image",    "chooseFolder", "edit",       "audio",     "insert",
+	 "update",      "delete",     "undoData",  "redoData", "importCsv",    "attach",     "cancelAsk", "openWindow",
+	 "closeWindow", "fullscreen", "saveFile",  "openFile", "export"});
 
 /// The data layer's write steps (DataSteps.cpp): `then` sees `result`, `onError` sees `error` ({code, message}).
 constexpr auto dataSteps =
     std::to_array<std::string_view>({"insert", "update", "delete", "undoData", "redoData", "importCsv"});
 
 /// Steps whose `onError` sees an `error` of the services' kind, {code, message}.
-constexpr auto codedErrorSteps =
-    std::to_array<std::string_view>({"invoke", "request", "subscribe", "signIn", "chooseFolder", "attach"});
+constexpr auto codedErrorSteps = std::to_array<std::string_view>(
+    {"invoke", "request", "subscribe", "signIn", "chooseFolder", "attach", "saveFile", "openFile", "export"});
 
 /// @brief Whether a step writes records (DataSteps.cpp).
 /// @param step The step.
@@ -122,7 +123,7 @@ std::optional<Reference> referenceOf(std::string_view key) {
 	if(key == "color" || key.ends_with("Color")) return Reference{"color", "colors", "@"};
 	if(key == "font") return Reference{"font", "fonts", ""};
 	if(key == "style") return Reference{"style", "styles", ""};
-	if(key == "image") return Reference{"image", "images", ""}; // a raster node's
+	if(key == "image") return Reference{"image", "images", ""};      // a raster node's
 	if(key == "file") return Reference{"asset", "assets", "asset:"}; // an image node's "asset:<name>"
 	return std::nullopt;
 }
@@ -147,7 +148,8 @@ bool writtenKey(std::string_view kind, std::string_view key) {
 	return (among(stateSteps, kind) && key == kind) || (kind == "set" && key == "to") ||
 	       (kind == "push" && key == "value") ||
 	       (kind == "call" && (key == "into" || key == "loading" || key == "progress")) ||
-	       ((kind == "ask" || kind == "attach" || kind == "edit") && key == "into");
+	       ((kind == "ask" || kind == "attach" || kind == "edit") && key == "into") ||
+	       (kind == "openFile" && key == kind);
 }
 
 /// @brief Tells whether a component's node has a `{"slot": true}` for the use's children, as the runtime looks for
@@ -512,7 +514,9 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 		       "patch, focus, scrollTo, navigate, press, dismiss, after, debounce, animate, copy, log, "
 		       "stop, note, accept, "
 		       "reject, "
-		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, chooseFolder, audio or attach");
+		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, "
+		       "chooseFolder, audio, "
+		       "attach, saveFile, openFile, export, openWindow, closeWindow or fullscreen");
 		return;
 	}
 	if(*kind == "run") return walkRun(step, scope, place);
@@ -540,11 +544,11 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 		if(steps == step.end()) continue;
 		Scope layer{&scope, nullptr, json(), {}, {}};
 		const bool writes = writesData(step);
-		const bool service = givesCodedErrors(step) || writes; // {code, message}
+		const bool service = givesCodedErrors(step) || writes;                  // {code, message}
 		if(key == "onError") layer.vars["error"] = service ? anything : single; // a call's error (a service's: code...)
 		if(key == "then" && (step.contains("call") || writes)) layer.vars["result"] = anything; // and its result
 		if(key == "onDone") layer.vars["result"] = anything;                             // a service call's result
-		if(key == "onDone" && step.contains("attach")) layer.vars["error"] = anything; // the files that failed
+		if(key == "onDone" && step.contains("attach")) layer.vars["error"] = anything;   // the files that failed
 		if(key == "onEvent" || (key == "do" && service)) layer.vars["event"] = anything; // what it streams
 		walkHandler(*steps, layer, place + "." + std::string(key));
 	}
@@ -560,6 +564,7 @@ void Checker::walkWrite(std::string_view kind, const json& step, const Scope& sc
 	else if(kind == "push") write(step[key], valueOf("value"), Change::push, scope, place + "." + key);
 	else if(kind == "remove") write(step[key], anything, Change::none, scope, place + "." + key);
 	else if(among(stateSteps, kind)) write(step[key], single, Change::set, scope, place + "." + key); // numbers, flags
+	else if(kind == "openFile") write(step[key], anything, Change::set, scope, place + "." + key);
 	else if(kind == "call")
 		for(const char* name : {"into", "loading", "progress"})
 			if(step.contains(name))

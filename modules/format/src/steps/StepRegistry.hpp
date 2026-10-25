@@ -160,6 +160,12 @@ void registerAttachSteps(StepRegistry& registry);
 /// @brief Registers the folder step: chooseFolder (FolderSteps.cpp).
 /// @param registry The registry.
 void registerFolderSteps(StepRegistry& registry);
+/// @brief Registers the file steps: saveFile, openFile (FileSteps.cpp).
+/// @param registry The registry.
+void registerFileSteps(StepRegistry& registry);
+/// @brief Registers the export step: export, nodes as a PDF or PNG (ExportSteps.cpp).
+/// @param registry The registry.
+void registerExportSteps(StepRegistry& registry);
 
 /// @brief Registers the scene steps: camera (SceneSteps.cpp).
 /// @param registry The registry.
@@ -173,5 +179,8 @@ void registerAudioSteps(StepRegistry& registry);
 /// @brief Registers the data steps: insert, update, delete, undoData, redoData, importCsv (data/DataSteps.cpp).
 /// @param registry The registry.
 void registerDataSteps(StepRegistry& registry);
+/// @brief Registers the window steps: openWindow, closeWindow, fullscreen (windows/WindowSteps.cpp).
+/// @param registry The registry.
+void registerWindowSteps(StepRegistry& registry);
 
 } // namespace affresco::format

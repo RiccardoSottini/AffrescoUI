@@ -164,8 +164,7 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"additionalProperties": {"type": "object", "required": ["from"], "properties": {
 		"from": {"type": "string"}, "where": {}, "sort": {}, "limit": {}, "offset": {}, "count": {}, "note": {}},
 		"additionalProperties": false}})json",
-	 "`name → { \"from\", \"where\", \"sort\", \"limit\" }`: records read as `data.<name>`.",
-	 "sections"},
+	 "`name → { \"from\", \"where\", \"sort\", \"limit\" }`: records read as `data.<name>`.", "sections"},
     {"computed", R"json({"type": "object", "description": "Values derived from the state, read as computed.name"})json",
 	 "`name → expression`: values derived from the state, read as `computed.name` (see Values).", "sections"},
     {"watch", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/handler"},
@@ -317,15 +316,34 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"into": {"type": "string", "pattern": "^state\\."}, "volume": {"type": "number", "minimum": 0, "maximum": 4},
 		"pan": {"type": "number", "minimum": -1, "maximum": 1}, "rate": {"type": "number", "minimum": 0.25, "maximum": 4},
 		"loop": {"type": "boolean"}, "updates": {"type": "number", "minimum": 50, "maximum": 5000},
+		"bands": {"type": "integer", "minimum": 1, "maximum": 64},
 		"maxBytes": {"type": "integer", "minimum": 1024, "maximum": 67108864}, "note": {"type": "string"}}}})json",
 	 "`{\"song\": {\"file\": \"sounds/song.mp3\", \"into\": \"state.song\", \"loop\": true}}`: the sounds the `audio` "
 	 "step plays, each from one source: a `file` (WAV, FLAC or MP3) in the screen's folder or one the host allows, a "
 	 "`url` the host's network allows (streamed), a `source` the host names (`Screen::setAudioSource`), or a `tone` "
 	 "(`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position "
-	 "updates) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, "
-	 "loop, level, underruns, error}`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run "
+	 "updates), `bands` (a spectrum of 1 to 64 bands) and a URL's `maxBytes`. `into` gets `{status, playing, position, "
+	 "duration, progress, volume, pan, rate, loop, level, underruns, error}`, and `spectrum` with `bands`; the actions "
+	 "`name:started`, `name:ended`, `name:underrun` and `name:error` run "
 	 "(see Audio). A `file` may be `asset:<name>`, also a sound description. A revision may give a sound a `file` or a "
 	 "`tone` (never a `url` or a `source`), and only the person accepts it (Assets).",
+	 "capabilities"},
+    {"windows", R"json({"type": "object", "maxProperties": 4,
+		"description": "The screen's other windows, each showing a named image. Revisions can't change it.",
+		"propertyNames": {"pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,63}$", "not": {"const": "main"}},
+		"additionalProperties": {"type": "object", "required": ["image"], "additionalProperties": false,
+		"properties": {"title": {"type": "string", "maxLength": 200},
+		"width": {"type": "integer", "minimum": 100, "maximum": 8192},
+		"height": {"type": "integer", "minimum": 100, "maximum": 8192},
+		"image": {"type": "string", "maxLength": 200}, "background": {"type": "string", "maxLength": 200},
+		"fullscreen": {"type": "boolean"}, "keys": {"type": "boolean"},
+		"onClick": {"$ref": "#/$defs/v2/handler"}, "onClose": {"$ref": "#/$defs/v2/handler"}}}})json",
+	 "`{\"audience\": {\"title\": \"Slide show\", \"image\": \"slide\", \"background\": \"#000000\"}}`: up to four "
+	 "more windows, each showing a named image fitted on its `background` (a node's `snapshot`, so a slide show or a "
+	 "mirror is part of the screen drawn again), opened by `openWindow` (see Windows). Its key presses run the "
+	 "screen's `keys` (unless `keys` is false), a press of the mouse runs `onClick`, and closing it runs `onClose`; it "
+	 "closes with the screen. The `windows` variable is `{main: {fullscreen}, <name>: {open, fullscreen}}`. Revisions "
+	 "can't change it.",
 	 "capabilities"},
     {"points", R"json({"type": "object", "description": "Contribution points another app's features may fill",
 		"additionalProperties": {"type": "object", "required": ["slot"],
@@ -395,6 +413,23 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again "
 	 "on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control "
 	 "step",
+	 "steps"},
+    {"saveFile", "",
+	 "`{ \"saveFile\": \"{{state.deck}}\", \"name\": \"{{state.deck.title}}.json\", \"onDone\": [...] }`: after the "
+	 "event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. "
+	 "`result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control "
+	 "step",
+	 "steps"},
+    {"openFile", "",
+	 "`{ \"openFile\": \"state.deck\", \"extensions\": [\"json\"], \"onDone\": [...] }`: after the event, "
+	 "reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is "
+	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. A control step",
+	 "steps"},
+    {"export", "",
+	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
+	 "draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, "
+	 "else each node's own), or `\"png\"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good "
+	 "pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step",
 	 "steps"},
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
@@ -471,8 +506,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"of", "", "", ""},
     {"audio", R"json({"anyOf": [{"enum": ["play", "pause", "toggle", "stop", "seek", "volume", "pan", "rate", "loop",
 		"master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
-	 R"(`{ "audio": "play", "of": "song" }`: see Audio)",
-	 "steps"},
+	 R"(`{ "audio": "play", "of": "song" }`: see Audio)", "steps"},
     {"insert", "",
 	 R"(`{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, )"
 	 R"(checked against its model; `result` in `then` is the record, `error` in `onError` is `{code, message}` (see )"
@@ -501,6 +535,15 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"separator", "", "", ""},
     {"atomic", "", "", ""},
     {"from", "", "", ""},
+    {"openWindow", "",
+	 R"(`{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; )"
+	 R"(`{ "closeWindow": "audience" }` closes it)",
+	 "steps"},
+    {"closeWindow", "", "", "steps"},
+    {"fullscreen", R"json({"anyOf": [{"type": "boolean"}, {"const": "toggle"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 R"(`{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or )"
+	 R"(`"toggle"`); with `of`, a window of the `windows` section)",
+	 "steps"},
     {"camera", "",
 	 R"(`{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, )"
 	 R"(`zoom`: see `scene`))",
@@ -535,6 +578,11 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"data", "", "", ""},
     {"message", "", "", ""},
     {"title", "", "", ""},
+    {"name", "", "", ""},
+    {"extensions", "", "", ""},
+    {"pages", "", "", ""},
+    {"size", "", "", ""},
+    {"scale", "", "", ""},
     {"ms", "", "", ""},
     {"easing", R"json({"enum": ["linear", "in", "out", "inOut"]})json", "", ""},
     {"head", "", "", ""},

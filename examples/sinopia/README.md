@@ -1,89 +1,52 @@
 # Sinopia, slides and vector documents
 
-Sinopia makes slide decks (16:9 and 4:3) and vector pages (A4, Letter, custom), presents them and exports them. Its
-whole workspace is a screen document, [`index.screen.json`](index.screen.json), with its parts in
-[`parts/`](parts): people and agents change it live like any other screen. Its permissions apply a `studio` peer's
-changes (the person's client) and send an agent's to review, which only a `studio` peer can give. The C++ beside it is
-the deck model and the few natives a screen can't do itself: reading and checking decks, drawing thumbnails, exporting, and the audience window.
+Sinopia makes slide decks, presents them and exports them. It is a folder of JSON that the stock
+`affrescoui_launcher` runs, with nothing compiled for it: [`index.screen.json`](index.screen.json) and its parts in
+[`parts/`](parts). People and agents change it live like any other screen. Its permissions apply a `studio` peer's
+changes (the person's client) and send an agent's to review, which only a `studio` peer can give.
 
 ```sh
-cmake --build build --target affrescoui_sinopia
-./build/affrescoui_sinopia --socket out/s --data out/data   # the workspace, with decks/sample.sinopia.json
-./build/affrescoui_sinopia --check examples/sinopia/index.scenarios.json   # the scenarios, headless (ctest: sinopia)
-./build/affrescoui_sinopia --check examples/sinopia/index.scenarios.json --out out/shots   # and their captures
+./build/affrescoui_launcher examples/sinopia/index.screen.json --socket out/s   # the workspace, with the sample deck
+./build/affrescoui test examples/sinopia/index.scenarios.json                   # the 28 scenarios (ctest: scenarios)
 ```
 
 ## The workspace
 
 | Part | What it does |
 |---|---|
-| Toolbar | Add a rectangle, ellipse, polygon, star, line, arrow, pen path, text frame or image; new, duplicate and delete slide; undo; save; sorter; theme; export PDF and PNG; Present |
-| Slide list and outline | Thumbnails with their sections (the sorter's `slideList`), or the deck's text as an outline |
-| Canvas | The slide on a `canvas`: select, move, resize and rotate, with smart guides, snapping to the grid and to other objects, and rulers |
-| Inspector | With objects selected: fill (solid or gradient), stroke, corners, rotation, shadow, rich text, align and distribute, z-order, group, lock and the object's build. With none: the slide's transition, skip, section and builds, and the deck's size |
-| Notes | The slide's speaker notes |
-| Sorter | Every slide as a thumbnail in a grid: drag to reorder |
-| Presenter | The audience's frame, the next slide, the notes, a timer and the controls; the audience window shows the same frame |
+| Ribbon | File (open, save, export PDF and PNG), Home (slides, font, paragraph, shapes, arrange), Insert, Design (themes and variants), Transitions, Motion (builds), Present, View (views, panes, dark mode) |
+| Slide list | Each slide's picture (a snapshot of its page), its number and its section, a star when it has a transition or builds, dimmed when hidden; the arrows move through it |
+| Canvas | The slide on a `canvas`: select, move, resize, with the zoom and fit of the status bar |
+| Format pane | With objects selected: fill and line from the theme's slots, line width, size, place, rotation and lock. With none: the slide's background |
+| Notes | The slide's speaker notes, under the slide; the status bar hides and shows them |
+| Outline and sorter | The deck's text slide by slide, or every slide in a grid, dragged to reorder |
+| Slide show | Full screen, or in a window of its own beside a presenter view: the slide, the next one, the notes (larger or smaller), a timer and the controls |
 
-Keys while editing: `mod+s` save, `mod+z` undo, `mod+d` duplicate, Backspace and Delete delete, `mod+g` and
-`mod+shift+g` group and ungroup, `mod+shift+f` and `mod+shift+b` bring to front and send to back, `mod+l` and
-`mod+shift+l` lock and unlock, `mod+shift+n` new slide, `mod+alt+p` present, `mod+e` export PDF; the canvas's own
-arrow keys nudge. While presenting: Right, Down and Space go on, Left and Up go back, B blacks the screen and Escape ends.
+Keys while editing: `mod+s` save, `mod+o` open, `mod+z` and `mod+y` undo and redo, `mod+m` new slide, `mod+d`
+duplicate, `mod+c`, `mod+x` and `mod+v`, `mod+a` select all, `mod+b`, `mod+i` and `mod+u`, `mod+l`, `mod+e`, `mod+r`
+and `mod+j` align, Delete removes (a locked object stays), F5 presents from the start and Shift+F5 from this slide.
+While presenting: Right, Down, Space, Enter and N go on, Left, Up and P go back, Home and End jump, B and W blank the
+screen black or white, and Escape ends.
 
-## Decks
+## The deck
 
-A deck is a JSON file in [`decks/`](decks) (`*.sinopia.json`): a title, a size and page, theme tokens, masters and
-layouts (a background and objects under the slides that use them, placeholders among them), sections and slides.
-A slide has its notes, background, transition (`none`, `fade`, `push`, `wipe` or `zoom`, with a duration) and objects,
-back to front. An object is a `rect`, `ellipse`, `polygon`, `star`, `line`, `arrow`, `path`, `text`, `image` or
-`group`, with its frame, rotation, fill or gradient, stroke, corner radius, shadow, rich text (runs, with autofit or
-overflow), lock and build (`appear`, `fade` or `fly`, in order). [`deck/Deck.hpp`](deck/Deck.hpp) has every key; `readDeck` checks every
-value against `DeckLimits` (SECURITY.md, "Limits"), and every edit is read again, so a deck never gets past them.
+The deck is the state `deck` (the sample is [`parts/sample-deck.json`](parts/sample-deck.json)): a title, a size,
+a theme and variant, sections and slides. A slide has a layout, notes, a background, a transition (`fade`, `push`,
+`wipe`, `cover`, `morph` and more, with a duration and a direction), builds (`appear`, `fade`, `wipe`, `fly` or `zoom`,
+as an entrance or an exit, on a click, with or after the one before) and objects, back to front: text, shapes from
+[`parts/geometry.json`](parts/geometry.json)'s presets, and lines. Saved, it is that JSON; opened, it is checked to
+be a deck before it replaces the one on screen, as a change undo takes back.
 
-## Natives
+## The parts
 
-| Call | Does |
+| Part | What |
 |---|---|
-| `sinopia.load` (`file`) | Reads a deck from `decks/` |
-| `sinopia.save` (`name`, `deck`) | Writes it to `decks/<name>.sinopia.json` |
-| `sinopia.render` (`deck`) | The deck as the screen draws it: masters and layouts resolved, text fitted, pages sized |
-| `sinopia.edit` (`deck`, `slide`, `op`, `ids`, ...) | One edit ([`deck/Edit.hpp`](deck/Edit.hpp) lists them): it gives back the deck, the slide and the selection |
-| `sinopia.thumbnails` (`render`) | Draws each changed slide into its host image `thumb-<id>` |
-| `sinopia.exportPdf`, `sinopia.exportPng` (`render`) | The shown slides as one vector PDF (`modules/export`) or a PNG each, 1920 pixels wide |
-| `sinopia.openAudience`, `sinopia.closeAudience` | The audience window: a second window sharing the workspace's GL context |
-| `sinopia.mirror` (`render`, `index`, `step`, `t`, `black`) | Draws the presented frame, with the transition at `t`, into the host image `present` |
+| [`themes.json`](parts/themes.json) | The themes, their colour slots and variants, the layouts and their placeholders |
+| [`geometry.json`](parts/geometry.json), [`slide.json`](parts/slide.json) | Shapes as paths, and a slide as nodes: its background and objects |
+| [`edit.json`](parts/edit.json) | Every edit, each one undoable: slides, objects, text, arrange, themes, transitions and builds |
+| [`ribbon.json`](parts/ribbon.json), [`tabs.json`](parts/tabs.json) | The ribbon's buttons, galleries and groups, and its tabs |
+| [`show.json`](parts/show.json) | The slide show: the `audience` window, transitions and builds through `animate`, the presenter view |
+| [`views.json`](parts/views.json) | The outline, the sorter, the format pane, and the deck as a file (`saveFile`, `openFile`, `export`) |
 
-The slides are drawn once more on a stage behind the workspace (`slidePage` in [`parts/objects.json`](parts/objects.json)),
-at the deck's size: the thumbnails, the presented frames and the exports render those panels.
-
-## The slide sorter, reusable
-
-[`parts/sorter.json`](parts/sorter.json) is a part any app can include for a list or grid of pages. It knows nothing
-about decks: it needs a list of `{ id, index, skip, section }`, two action names, and host images named `thumb-<id>`
-that the app draws however it likes (Sinopia renders each slide's panel to an image and keeps it until the slide
-changes).
-
-```json
-"include": ["parts/sorter.json"],
-...
-{ "use": "slideList", "with": { "slides": "{{computed.pages}}", "current": "{{state.page}}", "sections": [],
-  "pick": "pickPage", "move": "movePage", "width": 160, "prefix": "pages" } }
-```
-
-| Component | Params |
-|---|---|
-| `slideList` | `slides`, `current`, `sections` (`{ id, title }`, for the headers), `pick`, `move`, `width`, `prefix`: a vertical list with section headers |
-| `slideSorter` | `slides`, `current`, `pick`, `move`, `width`, `prefix`: a wrapping grid |
-| `slideThumb` | `slide`, `selected`, `width`, `pick`, `move`, `slides`, `prefix`: one thumbnail, used by both |
-
-`pick` runs with `{ index }` when a thumbnail is clicked, and `move` with `{ from, to }` when one is dropped on
-another. A skipped page is dimmed and marked. Ids are `<prefix>-<id>`, so two sorters can share a screen.
-
-## The code
-
-| Where | What |
-|---|---|
-| [`main.cpp`](main.cpp) | The command line: the workspace, or `--check` to play the scenarios |
-| [`Natives.cpp`](Natives.cpp), [`Present.cpp`](Present.cpp) | The natives: decks, thumbnails and exports; the audience window and its frames |
-| [`deck/`](deck) | The deck model, no window needed: reading and writing a deck within its limits, the edits, and aligning, distributing and grouping |
-| [`drawing/`](drawing) | Drawing: a deck as panels, and the slide transitions |
+The slide sorter as a part other apps install is [`features/slide-sorter`](features/slide-sorter) (Orrery's bodies
+strip uses it).

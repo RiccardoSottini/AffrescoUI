@@ -12,13 +12,12 @@ add_executable(affrescoui_render_runner runner.cpp ${forge_dir}/Forge.cpp
 	${forge_dir}/features/search/Search.cpp
 	${forge_dir}/features/scm/Scm.cpp ${forge_dir}/features/scm/GitArguments.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/surfaces/Surfaces.cpp
-	${PROJECT_SOURCE_DIR}/examples/tempo/Visualiser.cpp
 	${forge_dir}/features/debug/Debug.cpp)
 target_sources(affrescoui_render_runner PRIVATE ${forge_dir}/features/lsp/Lsp.cpp ${forge_dir}/features/lsp/LspCall.cpp
 	${forge_dir}/features/lsp/LspEdits.cpp ${forge_dir}/features/lsp/LspProtocol.cpp ${forge_dir}/features/lsp/LspText.cpp)
 target_sources(affrescoui_render_runner PRIVATE ${forge_dir}/features/terminal/TerminalSessions.cpp
 	${forge_dir}/features/terminal/TerminalView.cpp)
-# surfaces/Surfaces.hpp here, tempo/Visualiser.hpp in examples, the shared headers in examples/shared
+# surfaces/Surfaces.hpp here, the shared headers in examples/shared
 target_include_directories(affrescoui_render_runner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/examples
 	${PROJECT_SOURCE_DIR}/examples/shared ${forge_dir})
 # The example surfaces, and a failing one, draw with OpenGL (surfaces.json)
@@ -35,7 +34,7 @@ if(Python3_FOUND)
 	         WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 endif()
 
-# The templates' own scenarios (in their folders, examples/templates.json) and Forge's (examples/forge): what each one
+# The templates' own scenarios (in their folders, examples/templates.json), Forge's, Modello's, Sinopia's and Tempera's: what each one
 # does, checked headless, without a window or golden images; and the rendering check's screens'
 # (screens/*.scenarios.json): where layout, images, icons and partial redraws put each node, held while they get faster
 affrescoui_template_folders(template_folders)
@@ -43,7 +42,8 @@ list(TRANSFORM template_folders PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_V
 list(TRANSFORM template_globs APPEND /*.scenarios.json)
 file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${template_globs}
 	${forge_dir}/*.scenarios.json ${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json
-	${PROJECT_SOURCE_DIR}/examples/modello/*.scenarios.json)
+	${PROJECT_SOURCE_DIR}/examples/modello/*.scenarios.json ${PROJECT_SOURCE_DIR}/examples/sinopia/*.scenarios.json
+	${PROJECT_SOURCE_DIR}/examples/tempera/*.scenarios.json)
 if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	# Their captures (pictures they take for the gallery, not compared) go to the build folder
 	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/scenario-captures)

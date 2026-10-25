@@ -63,7 +63,7 @@
 				{ "expect": { "node": "#createNameHint", "text": "Its folder: AffrescoUI/my-budget-2026" } },
 				{ "click": { "role": "radio", "name": "Haven" } },
 				{ "expect": { "state": "create.from", "is": "haven" } },
-				{ "scroll": "#createScroll", "dy": -12 },
+				{ "scroll": [250, 650], "dy": -12 },
 				{ "click": { "role": "checkbox", "name": "Charts, from Haven" } },
 				{ "expect": { "state": "create.features", "is": ["charts"] } },
 				{ "capture": "create" }

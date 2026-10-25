@@ -33,6 +33,7 @@
 #include "Reconciler.hpp"
 #include "Scheduler.hpp"
 #include "SectionRegistry.hpp"
+#include "SecondWindows.hpp"
 #include "ServiceCalls.hpp"
 #include "StepRegistry.hpp"
 #include "Steps.hpp"
@@ -102,6 +103,7 @@ struct Engine : VersionObserver {
 	Connection peersChanged = 0; ///< On versions.onReviewChanged: who is connected (the "peers" variable).
 	AudioPlayers audio{*this}; ///< The declared sounds, played by "audio" steps.
 	DataLayer data{*this};     ///< The records: the store following the "models", the `data` variable.
+	SecondWindows otherWindows{*this}; ///< The "windows" section's windows, and the `windows` variable.
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.

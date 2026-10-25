@@ -102,8 +102,8 @@
 		"xray": false,
 		"modal": null,
 		"modalText": "",
-		"undo": [],
-		"redo": [],
+		"undoStack": [],
+		"redoStack": [],
 		"last": "",
 		"added": 0,
 		"frame": 1,
@@ -120,6 +120,9 @@
 		"lastBase": [],
 		"redoOpen": true,
 		"quickPick": { "open": false, "query": "" },
+		"fileStatus": "",
+		"opened": null,
+		"openedName": null,
 		"sizes": { "main": [1102], "left": [720], "right": [262] }
 	},
 	"computed": {

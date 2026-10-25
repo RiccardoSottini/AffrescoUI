@@ -67,6 +67,9 @@
 					"note": { "type": "string" } } },
 				{ "type": "object", "required": ["revision"], "additionalProperties": false, "properties": {
 					"revision": { "type": "object" }, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["propose"], "additionalProperties": false, "properties": {
+					"propose": { "type": "object", "description": "A revision submitted as its author's peer would: the screen's permissions apply it, send it to review or refuse it." },
+					"note": { "type": "string" } } },
 				{ "type": "object", "required": ["action"], "additionalProperties": false, "properties": {
 					"action": { "type": "string", "minLength": 1 }, "event": { "type": "object" }, "note": { "type": "string" } } },
 				{ "type": "object", "required": ["resize"], "additionalProperties": false, "properties": {
@@ -74,6 +77,9 @@
 					"note": { "type": "string" } } },
 				{ "type": "object", "required": ["capture"], "additionalProperties": false, "properties": {
 					"capture": { "$ref": "#/$defs/name" }, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["choose"], "additionalProperties": false, "properties": {
+					"choose": { "oneOf": [{ "$ref": "#/$defs/name" }, { "type": "null" }], "description": "Answers the file dialogs that follow with this file in the run's own folder, as the person would choose it; null cancels them." },
+					"note": { "type": "string" } } },
 				{ "type": "object", "required": ["expect"], "additionalProperties": false, "properties": {
 					"expect": { "$ref": "#/$defs/expectation" }, "note": { "type": "string" } } }
 			]

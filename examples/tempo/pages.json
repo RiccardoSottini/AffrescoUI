@@ -42,8 +42,10 @@
 		"nextTitle": "{{length(state.queue) == 0 ? '' : state.playingList < 0 ? computed.library[state.queue[0]].cells[1] : computed.playing.tracks[state.queue[0]].title}}",
 		"lyricLine": "{{(floor(state.elapsed / 12) + state.playingTrack) % 10}}",
 		"lyricWindow": "{{map(range(5), { text: state.lyrics[(computed.lyricLine + index + 8) % 10], current: index == 2 })}}",
-		"visualiserColor": "{{state.theme == 'dark' ? [0.98, 0.44, 0.52] : [0.88, 0.11, 0.28]}}",
-		"visualiserBackground": "{{state.theme == 'dark' ? [0.09, 0.075, 0.12] : [1, 1, 1]}}"
+		"spectrum": "{{(state.soundOn == 'beat' ? state.beat.spectrum : state.sounds[state.soundOn].spectrum) ?? []}}",
+		"barHeights": "{{map(range(32), clamp(0.04 + (computed.spectrum[index] ?? 0) * computed.fade, 0.04, 1))}}",
+		"bars": "{{join(map(computed.barHeights, 'M ' + (index * 10 + 2) + ' ' + (84 - it * 80) + ' h 6 V 84 h -6 Z'), ' ')}}",
+		"barReflections": "{{join(map(computed.barHeights, 'M ' + (index * 10 + 2) + ' 86 h 6 V ' + (86 + it * 28) + ' h -6 Z'), ' ')}}"
 	},
 
 	"actions": {
@@ -247,7 +249,7 @@
 		},
 
 		"nowPlayingPage": {
-			"note": "The song playing: its cover, the visualiser (a GPU surface the host registers) and the lyrics, line by line",
+			"note": "The song playing: its cover, the visualiser (the spectrum of what plays, as bars) and the lyrics, line by line",
 			"params": {},
 			"node": {
 				"dir": "auto",
@@ -262,20 +264,20 @@
 						"text": "{{t('now.crossfading', { title: computed.nextTitle })}}" },
 					{
 						"id": "visualiser",
-						"type": "surface",
-						"surface": "tempo.visualiser",
+						"note": "32 bars from the spectrum of the sound playing (its \"bands\"), and their faint reflection; low and flat when nothing plays, or the host gives no sound",
+						"color": "@surface",
 						"anchors": { "left": 32, "right": 32, "top": 216 },
 						"height": 120,
 						"radius": 8,
 						"role": "img",
 						"label": "{{t('now.visualiser')}}",
-						"params": {
-							"time": "{{state.elapsed}}",
-							"level": "{{state.isPlaying ? state.volume / 100 * computed.fade : 0}}",
-							"bars": 32,
-							"color": "{{computed.visualiserColor}}",
-							"background": "{{computed.visualiserBackground}}"
-						}
+						"children": [
+							{ "id": "visualiserBars", "type": "path", "d": "{{computed.bars}}", "viewBox": "0 0 320 120", "fit": "fill",
+								"anchors": { "left": 8, "right": 8, "top": 0, "bottom": 0 },
+								"fillGradient": { "kind": "linear", "angle": 90, "stops": [{ "at": 0, "color": "@accentHover" }, { "at": 1, "color": "@accent" }] } },
+							{ "id": "visualiserReflections", "type": "path", "d": "{{computed.barReflections}}", "viewBox": "0 0 320 120", "fit": "fill",
+								"anchors": { "left": 8, "right": 8, "top": 0, "bottom": 0 }, "fillColor": "@accentSoft" }
+						]
 					},
 					{ "id": "lyricsCaption", "style": "caption", "text": "{{t('now.lyrics')}}", "anchors": { "left": 32, "top": 356 } },
 					{

@@ -1100,6 +1100,11 @@
 									"minimum": 50,
 									"maximum": 5000
 								},
+								"bands": {
+									"type": "integer",
+									"minimum": 1,
+									"maximum": 64
+								},
 								"maxBytes": {
 									"type": "integer",
 									"minimum": 1024,
@@ -1107,6 +1112,60 @@
 								},
 								"note": {
 									"type": "string"
+								}
+							}
+						}
+					},
+					"windows": {
+						"type": "object",
+						"maxProperties": 4,
+						"description": "The screen's other windows, each showing a named image. Revisions can't change it.",
+						"propertyNames": {
+							"pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,63}$",
+							"not": {
+								"const": "main"
+							}
+						},
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"image"
+							],
+							"additionalProperties": false,
+							"properties": {
+								"title": {
+									"type": "string",
+									"maxLength": 200
+								},
+								"width": {
+									"type": "integer",
+									"minimum": 100,
+									"maximum": 8192
+								},
+								"height": {
+									"type": "integer",
+									"minimum": 100,
+									"maximum": 8192
+								},
+								"image": {
+									"type": "string",
+									"maxLength": 200
+								},
+								"background": {
+									"type": "string",
+									"maxLength": 200
+								},
+								"fullscreen": {
+									"type": "boolean"
+								},
+								"keys": {
+									"type": "boolean"
+								},
+								"onClick": {
+									"$ref": "#/$defs/v2/handler"
+								},
+								"onClose": {
+									"$ref": "#/$defs/v2/handler"
 								}
 							}
 						}
@@ -4169,7 +4228,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, options, attachments), cancelAsk, attach(+into, onDone, onError), chooseFolder(+title, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix, text, span, into, append, keep), press(+in, times), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError), insert(+value, values, into, then, onError), update(+id, where, fields, into, then, onError), delete(+id, where, into, then, onError), undoData(+into, then, onError), redoData(+into, then, onError), importCsv(+file, text, columns, separator, atomic, into, then, onError); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, options, attachments), cancelAsk, attach(+into, onDone, onError), chooseFolder(+title, onDone, onError), saveFile(+name, title, onDone, onError), openFile(+extensions, title, onDone, onError), export(+pages, size, scale, title, name, onDone, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix, text, span, into, append, keep), press(+in, times), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError), insert(+value, values, into, then, onError), update(+id, where, fields, into, then, onError), delete(+id, where, into, then, onError), undoData(+into, then, onError), redoData(+into, then, onError), importCsv(+file, text, columns, separator, atomic, into, then, onError), openWindow(+fullscreen), closeWindow, fullscreen(+of); review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -4196,6 +4255,9 @@
 					"cancelAsk": {},
 					"attach": {},
 					"chooseFolder": {},
+					"saveFile": {},
+					"openFile": {},
+					"export": {},
 					"accept": {},
 					"reject": {},
 					"preview": {},
@@ -4256,6 +4318,21 @@
 						"const": true
 					},
 					"importCsv": {},
+					"openWindow": {},
+					"closeWindow": {},
+					"fullscreen": {
+						"anyOf": [
+							{
+								"type": "boolean"
+							},
+							{
+								"const": "toggle"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"to": {},
 					"value": {},
 					"at": {},
@@ -4317,6 +4394,11 @@
 					},
 					"attachments": {},
 					"title": {},
+					"name": {},
+					"extensions": {},
+					"pages": {},
+					"size": {},
+					"scale": {},
 					"head": {},
 					"reason": {},
 					"in": {},

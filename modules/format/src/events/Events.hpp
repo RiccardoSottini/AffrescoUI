@@ -77,6 +77,10 @@ public:
 	/// @param event The key and its modifiers.
 	/// @param typed The character it types, or 0 for none.
 	void press(Panel& panel, const KeyEvent& event, char32_t typed);
+	/// @brief A key press in another of the screen's windows (SecondWindows): it runs the screen's "keys", as if
+	/// nothing had the focus.
+	/// @param event The event.
+	void keyFromAnotherWindow(const KeyEvent& event) { static_cast<void>(resolve(nullptr, event)); }
 
 private:
 	/// @brief A press that may become a click, a double click or a drag.

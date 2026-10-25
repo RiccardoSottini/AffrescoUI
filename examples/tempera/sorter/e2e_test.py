@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """End-to-end: add Sinopia's slide sorter to Tempera.
 
-Starts Tempera, connects as a `studio` peer (the person's client) and asks an agent to install the sorter in a
+Starts Tempera, which is JSON only, in affrescoui_launcher, connects as a `studio` peer (the person's client) and asks an agent to install the sorter in a
 request. A scripted fake agent (fake_agent.py) reads the contributions through the MCP server, writes the adapter,
 checks the composition and submits the install; the `studio` peer accepts the proposal. Then the live document plays
 the sorter docked and reordering Tempera's layers, the install shows in history and blame, and undoing it removes it.
@@ -19,10 +19,10 @@ import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TEMPERA = os.path.join(os.path.dirname(HERE), "tempera")
+TEMPERA = os.path.dirname(HERE)
 
 LIVE_SCENARIOS = {"format": "affrescoui-scenarios", "version": 2, "screens": TEMPERA, "screen": "index.screen.json",
-                  "scenarios": [{"name": "bottega-sorter-live", "steps": [
+                  "scenarios": [{"name": "tempera-sorter-live", "steps": [
                       {"expect": {"node": "#slideSorter-view", "exists": True}},
                       {"expect": {"node": "#slideSorter-title", "text": "Pages (3)"}},
                       {"drag": "#slideSorter-page-7", "to": "#slideSorter-page-5"},
@@ -73,7 +73,7 @@ class StudioPeer:
 
 def install(build, sockets, studio):
     """The `studio` peer asks, the fake agent installs, the `studio` peer accepts. Returns the agent's reply."""
-    env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets, AFFRESCOUI_CLI=os.path.join(build, "affrescoui_bottega"))
+    env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets, AFFRESCOUI_CLI=os.path.join(build, "affrescoui"))
     agent = subprocess.Popen([sys.executable, os.path.join(HERE, "fake_agent.py"), sockets], env=env,
                              stdout=subprocess.PIPE, text=True)
     if json.loads(agent.stdout.readline() or "{}").get("ready") is not True:
@@ -102,7 +102,7 @@ def check_live(build, work, studio):
         json.dump(live["document"], file)  # its state as declared: the live one holds the feature's own
     with open(scenarios, "w", encoding="utf-8") as file:
         json.dump(LIVE_SCENARIOS, file)
-    run = subprocess.run([os.path.join(build, "affrescoui_bottega"), "--document", document, scenarios],
+    run = subprocess.run([os.path.join(build, "affrescoui"), "test", scenarios, "--document", document],
                          capture_output=True, text=True)
     if run.returncode != 0:
         sys.exit(run.stdout + run.stderr)
@@ -120,10 +120,10 @@ def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     build = os.path.abspath(sys.argv[1])
-    work = tempfile.mkdtemp(prefix="afr-bt-")  # short: socket paths are limited to about 100 bytes
+    work = tempfile.mkdtemp(prefix="afr-ts-")  # short: socket paths are limited to about 100 bytes
     sockets = os.path.join(work, "s")
-    host = subprocess.Popen([os.path.join(build, "affrescoui_tempera"), "--socket", sockets,
-                             "--data", os.path.join(work, "data")],
+    host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), os.path.join(TEMPERA, "index.screen.json"),
+                             "--socket", sockets, "--data", os.path.join(work, "data")],
                             env=dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets),
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
@@ -136,7 +136,7 @@ def main():
         host.terminate()
         host.wait(timeout=10)
     shutil.rmtree(work, ignore_errors=True)
-    print("bottega: the slide sorter installed into Tempera by an agent, reviewed, docked, reordering and undone")
+    print("tempera: the slide sorter installed into Tempera by an agent, reviewed, docked, reordering and undone")
 
 
 if __name__ == "__main__":

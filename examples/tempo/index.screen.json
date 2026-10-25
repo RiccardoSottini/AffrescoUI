@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser on a GPU surface and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language. The songs are simulated; what plays is one beatbox loop (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound. A song may have a sound of its own: its \"sound\" (a track's in state.playlists[i].tracks[j], a library row's in state.library[i]) names a sound of the audio section, e.g. { \"file\": \"asset:song.mp3\", \"into\": \"state.sounds.own\" } for an asset the person attached, and playing that song plays it instead of the beat. The equaliser and the crossfade are visual only: they don't change the sound.",
+	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser of the spectrum of what plays and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language. The songs are simulated; what plays is one beatbox loop (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound. A song may have a sound of its own: its \"sound\" (a track's in state.playlists[i].tracks[j], a library row's in state.library[i]) names a sound of the audio section, e.g. { \"file\": \"asset:song.mp3\", \"into\": \"state.sounds.own\" } for an asset the person attached, and playing that song plays it instead of the beat. The equaliser and the crossfade are visual only: they don't change the sound.",
 
 	"include": ["strings.json", "pages.json", "../shared/addons/assistant/assistant.json"],
 
@@ -11,7 +11,7 @@
 	"persist": ["state.theme", "state.settings", "state.eq", "state.eqOn", "state.volume"],
 
 	"audio": {
-		"beat": { "file": "audio/beatbox.wav", "loop": true, "volume": 0.7, "into": "state.beat",
+		"beat": { "file": "audio/beatbox.wav", "loop": true, "volume": 0.7, "into": "state.beat", "bands": 32, "updates": 50,
 		          "note": "The sound of a song without a sound of its own: a beatbox loop made for Tempo (audio/make_beat.py)" }
 	},
 
@@ -128,7 +128,8 @@
 		"playingList": {"type": "number"},
 		"playingTrack": {"type": "number"},
 		"isPlaying": {"type": "boolean"},
-		"beat": {"type": "object", "properties": {"status": {"type": "string"}, "playing": {"type": "boolean"}}},
+		"beat": {"type": "object", "properties": {"status": {"type": "string"}, "playing": {"type": "boolean"},
+			"spectrum": {"type": "array", "items": {"type": "number"}}}},
 		"sounds": {"type": "object"},
 		"soundOn": {"type": "string"},
 		"elapsed": {"type": "number"},

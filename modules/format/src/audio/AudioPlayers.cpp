@@ -9,6 +9,7 @@
 
 #include <affresco/audio/Engine.hpp>
 #include <affresco/audio/Sound.hpp>
+#include <affresco/audio/Spectrum.hpp>
 
 #include <fstream>
 
@@ -19,6 +20,8 @@
 #include <vector>
 
 namespace affresco::format {
+
+static_assert(AudioPlayers::maxBands == audio::maxSpectrumBands); // "bands" is checked against it
 
 namespace {
 
@@ -80,6 +83,7 @@ struct AudioPlayers::Impl {
 		float rate = 1;                               ///< Its playback rate.
 		bool loop = false;                            ///< Whether it starts again at its end.
 		float level = 0;                              ///< Its peak over the last block.
+		std::vector<float> spectrum;                  ///< Its "bands", if it has them (see audio::spectrum).
 		std::size_t underruns = 0;                    ///< How often its stream ran dry.
 		std::uint64_t generation = 0;                 ///< Its voice's: events of an older one are ignored.
 	};
@@ -148,6 +152,17 @@ struct AudioPlayers::Impl {
 		retire(std::move(player.transfer));
 	}
 
+	/// @brief A player's spectrum for its state: its "bands", all 0 unless it plays.
+	/// @param player The player, with "bands".
+	/// @return The bands, each 0 to 1 to three decimals.
+	static json spectrumOf(const Player& player) {
+		json bands = json::array();
+		const bool playing = player.status == "playing";
+		for(std::size_t i = 0; i < player.spec["bands"].get<std::size_t>(); ++i)
+			bands.push_back(playing && i < player.spectrum.size() ? std::round(player.spectrum[i] * 1000) / 1000 : 0.0);
+		return bands;
+	}
+
 	/// @brief Writes a player's state to its "into" path.
 	/// @param name The sound.
 	/// @param player The player.
@@ -172,7 +187,8 @@ struct AudioPlayers::Impl {
 		try {
 			const json::json_pointer pointer = statePointer(player.spec["into"].get<std::string>(),
 			                                                runtime.document.context(Scope{}, emptyObject()), at);
-			statePlace(runtime.versions.state(), pointer, at) = state;
+			json& placed = statePlace(runtime.versions.state(), pointer, at) = state;
+			if(player.spec.contains("bands")) placed["spectrum"] = spectrumOf(player);
 			runtime.document.markStateChanged(pointer);
 			runtime.reconciler.requestStateUpdate();
 		} catch(const std::exception& error) {
@@ -204,6 +220,8 @@ struct AudioPlayers::Impl {
 		if(player.voice) {
 			const audio::Levels levels = player.voice->levels();
 			player.level = std::max(levels.peak[0], levels.peak[1]);
+			if(player.spec.contains("bands"))
+				player.spectrum = player.voice->spectrum(player.spec["bands"].get<std::size_t>());
 		}
 		const json data = {{"position", milliseconds(event.position)}, {"message", event.message}};
 		switch(event.type) {
@@ -216,6 +234,7 @@ struct AudioPlayers::Impl {
 		case audio::EventType::Ended:
 			player.status = "stopped";
 			player.level = 0;
+			player.spectrum.clear();
 			publish(name, player);
 			runAction(name, "ended", data);
 			return;
@@ -228,6 +247,7 @@ struct AudioPlayers::Impl {
 			player.status = "error";
 			player.error = event.message;
 			player.level = 0;
+			player.spectrum.clear();
 			publish(name, player);
 			runAction(name, "error", data);
 			return;
