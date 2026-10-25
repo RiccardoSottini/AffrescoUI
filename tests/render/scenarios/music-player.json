@@ -33,7 +33,13 @@
 				{ "expect": { "image": "command-palette" } },
 				{ "key": "escape" },
 				{ "key": "mod+u" },
-				{ "expect": { "image": "queue-hidden" } }
+				{ "expect": { "image": "queue-hidden" } },
+				{ "click": "#likeButton" },
+				{ "key": "mod+4" },
+				{ "expect": { "image": "liked" } },
+				{ "click": [400, 191] },
+				{ "key": "shift+f10" },
+				{ "expect": { "image": "song-menu" } }
 			]
 		}
 	]

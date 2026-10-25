@@ -23,8 +23,8 @@ difference the note says. `missing`: not yet.
 | Albums and artists in grids, each opening its songs | done | |
 | Search that finds songs as you type | done | Fuzzy, on the title and the artist |
 | Quick open of a song, a palette of commands | done | Cmd+P, Cmd+Shift+P |
-| Like a song, and a list of the liked ones | missing | |
-| A context menu on a song: play next, add to the queue | missing | |
+| Like a song, and a list of the liked ones | partial | The heart in the player or a song's menu; Cmd+4 shows them. Playing one, the liked songs after it from the same mix (or the library) come next, not every liked song |
+| A context menu on a song: play next, add to the queue | partial | A right click or Shift+F10: play, play next, add to the queue, like. The queue holds one mix (or the library) at a time, so play next and add to the queue are for its songs |
 
 ## Playing
 
@@ -54,3 +54,4 @@ difference the note says. `missing`: not yet.
 |---|---|---|---|
 | 1 (a folder of files) | 17 | 3 | 6 |
 | 2 | 22 | 2 | 2 |
+| 3 | 22 | 4 | 0 |

@@ -441,6 +441,46 @@
 			]
 		},
 		{
+			"name": "liked-songs",
+			"note": "The heart in the player likes the song playing; Cmd+4 shows the liked songs, and the heart again takes it off",
+			"steps": [
+				{ "click": "#likeButton" },
+				{ "expect": { "state": "liked", "is": ["0:2"] } },
+				{ "key": "mod+4" },
+				{ "expect": { "state": "page", "is": "liked" } },
+				{ "expect": { "node": "#likedCount", "text": "1 song" } },
+				{ "expect": { "node": "#likedEmpty", "exists": false } },
+				{ "click": "#playLikedButton" },
+				{ "expect": { "state": "playingTrack", "is": 2 } },
+				{ "expect": { "state": "queue", "is": [] } },
+				{ "click": "#likeButton" },
+				{ "expect": { "state": "liked", "is": [] } },
+				{ "expect": { "node": "#likedEmpty", "exists": true } }
+			]
+		},
+		{
+			"name": "a-song-menu",
+			"note": "A song's menu: play next and add to the queue for a song of the mix playing, like for any; Shift+F10 opens it on the library's selected row",
+			"steps": [
+				{ "revision": { "type": "revision", "message": "The menu of the eighth song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 400, "list": 0, "track": 7 } } } },
+				{ "click": { "role": "menuitem", "name": "Play next" } },
+				{ "expect": { "state": "queue", "is": [7, 3, 4, 5, 6, 8] } },
+				{ "expect": { "state": "songMenu.open", "is": false } },
+				{ "revision": { "type": "revision", "message": "The menu of the fifth song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 400, "list": 0, "track": 4 } } } },
+				{ "click": { "role": "menuitem", "name": "Add to the queue" } },
+				{ "expect": { "state": "queue", "is": [7, 3, 5, 6, 8, 4] } },
+				{ "key": "mod+l" },
+				{ "click": "#libraryTable" },
+				{ "key": "shift+f10" },
+				{ "expect": { "state": "songMenu.open", "is": true } },
+				{ "expect": { "state": "songMenu.list", "is": -1 } },
+				{ "click": { "role": "menuitem", "name": "Like" } },
+				{ "expect": { "state": "liked.length", "is": 1 } },
+				{ "key": "mod+4" },
+				{ "expect": { "node": "#likedCount", "text": "1 song" } }
+			]
+		},
+		{
 			"name": "palette-runs-a-command",
 			"note": "The command palette finds the equaliser by name",
 			"steps": [
