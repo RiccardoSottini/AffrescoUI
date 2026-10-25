@@ -70,7 +70,7 @@
 		"forgePalette": {
 			"node": { "id": "palette", "use": "quickPick", "with": {
 				"width": 600, "color": "@color.widget", "textColor": "@color.text", "dimColor": "@color.muted",
-				"accent": "@color.info", "highlight": "@color.selection", "field": "@color.input",
+				"accent": "@color.accent", "highlight": "@color.selection", "field": "@color.input",
 				"providers": [
 					{ "items": "{{state.folder.files ?? []}}", "run": "openPicked",
 					  "placeholder": "Search files by name (> for commands, : for a line)" },

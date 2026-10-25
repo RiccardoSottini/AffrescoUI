@@ -389,7 +389,7 @@
 					  ] },
 					{ "id": "lsp-symbols", "use": "quickPick", "with": {
 						"name": "symbolPick", "width": 600, "color": "@color.widget", "textColor": "@color.text", "dimColor": "@color.muted",
-						"accent": "@color.info", "highlight": "@color.selection", "field": "@color.input",
+						"accent": "@color.accent", "highlight": "@color.selection", "field": "@color.input",
 						"providers": [
 							{ "prefix": "@", "items": "{{computed.lspSymbolItems}}", "key": "name", "run": "lspSymbolPicked",
 							  "placeholder": "Go to a symbol in this file" },
