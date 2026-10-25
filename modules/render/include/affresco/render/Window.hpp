@@ -144,8 +144,19 @@ public:
 	/// @param visible true to show it.
 	void setVisible(bool visible);
 
-	/// @brief Whether the user asked to close the window.
+	/// @brief Whether the user asked to close the window, or setShouldClose() did.
 	[[nodiscard]] bool shouldClose() const;
+	/// @brief Closes the window as its close button does (Application then hides it), or takes that back so that
+	/// setVisible() can show it again: a window is never destroyed before its Application.
+	/// @param close true to close it.
+	void setShouldClose(bool close);
+
+	/// @brief Whether the window fills a display.
+	[[nodiscard]] bool isFullscreen() const;
+	/// @brief Makes the window fill the display it is mostly on, at that display's own resolution, or puts it back
+	/// where it was. Headless (and embedded, where the host decides) it only remembers the wish.
+	/// @param fullscreen true to fill it.
+	void setFullscreen(bool fullscreen);
 
 	/* Desktop */
 
@@ -481,6 +492,8 @@ private:
 	const Clock* clock_;                             ///< See clock(); never null.
 	std::string clipboard_;                          ///< A headless window's clipboard.
 	bool visible_ = true;                            ///< Whether a headless window counts as shown.
+	bool closing_ = false;                           ///< Whether a headless window was asked to close.
+	bool fullscreen_ = false;                        ///< Whether a headless window counts as filling a display.
 	float scale_ = 1.0f;                             ///< See contentScale().
 	ColorScheme colorScheme_ = ColorScheme::Light;   ///< See colorScheme().
 	bool reducedMotion_ = false;                     ///< See reducedMotion().

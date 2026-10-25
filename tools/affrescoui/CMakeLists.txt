@@ -10,8 +10,7 @@ add_custom_command(OUTPUT ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
 	DEPENDS ${AFFRESCOUI_CLI_SCHEMA} ${CMAKE_CURRENT_SOURCE_DIR}/Embed.cmake
 	COMMENT "Embedding the screen schema in affrescoui")
 
-# The entry point, the commands' shared helpers (Cli.hpp), JSON text and the schema checker; ComposeCommand.cpp stays
-# here beside Cli.cpp because affrescoui_bottega builds both from this folder
+# The entry point, the commands' shared helpers (Cli.hpp), the composition commands, JSON text and the schema checker
 add_executable(affrescoui_cli main.cpp Cli.cpp ComposeCommand.cpp JsonText.cpp Schema.cpp ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
 	${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp) # the library's PNG encoder, which it keeps private
 # commands/: one file per command, or per family of commands (main.cpp lists them)
@@ -58,4 +57,14 @@ if(AFFRESCOUI_BUILD_TESTS)
 	# The schema and SCREEN_FORMAT.md's tables are generated from the registries: fails if they are out of date
 	add_test(NAME cli-reference COMMAND affrescoui_cli schema -o schema/affrescoui-screen.schema.json --types examples
 		--doc SCREEN_FORMAT.md --check WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+	# Sinopia's slide sorter into Tempera (examples/tempera/sorter): proven with its adapter, playing Tempera's
+	# scenarios; not proven without one, nor with the broken one
+	set(sorter examples/tempera/index.screen.json examples/sinopia/features/slide-sorter)
+	add_test(NAME tempera_sorter_proof COMMAND affrescoui_cli check --compose ${sorter}
+		--adapter examples/tempera/sorter/sorter.adapter.json WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+	add_test(NAME tempera_sorter_unadapted COMMAND affrescoui_cli check --compose ${sorter}
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+	add_test(NAME tempera_sorter_broken COMMAND affrescoui_cli check --compose ${sorter}
+		--adapter examples/tempera/sorter/broken.adapter.json WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+	set_tests_properties(tempera_sorter_unadapted tempera_sorter_broken PROPERTIES WILL_FAIL TRUE)
 endif()

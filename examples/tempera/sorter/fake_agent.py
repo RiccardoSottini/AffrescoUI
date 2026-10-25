@@ -6,7 +6,7 @@ It waits for the `studio` peer's request, reads what Tempera offers and what the
 checks the composition without an adapter (it fails, naming the unmet needs), writes the adapter from Tempera's
 exports, checks again, installs it (a proposal for a reviewer) and replies. It prints one JSON line: {"proposal": N}.
 
-Usage: fake_agent.py SOCKET_DIR    (AFFRESCOUI_CLI: affrescoui_bottega, so proofs play Tempera's scenarios)
+Usage: fake_agent.py SOCKET_DIR    (AFFRESCOUI_CLI: affrescoui, which proofs play Tempera's scenarios with)
 """
 
 import json
@@ -15,7 +15,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(os.path.dirname(HERE))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 TEMPERA = "examples/tempera/index.screen.json"
 SORTER = "examples/sinopia/features/slide-sorter"
 
@@ -29,7 +29,7 @@ class Mcp:
                                      stderr=subprocess.DEVNULL, text=True, encoding="utf-8")
         self.next_id = 0
         self.call("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
-                                 "clientInfo": {"name": "bottega-agent", "version": "1"}})
+                                 "clientInfo": {"name": "tempera-sorter-agent", "version": "1"}})
 
     def call(self, method, params):
         """Sends one JSON-RPC request and returns its result."""

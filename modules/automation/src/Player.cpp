@@ -32,6 +32,10 @@ std::string kindOf(const json& step) {
 
 } // namespace
 
+Player::~Player() {
+	if(answering_) stage_.window.setFileDialogHandler({});
+}
+
 void Player::play() {
 	const std::vector<json>& steps = stage_.scenario.steps;
 	for(std::size_t i = 0; i < steps.size(); ++i) {
@@ -59,17 +63,31 @@ void Player::playStep(const json& step, std::size_t number) {
 	} else if(step.contains("revision")) {
 		std::string error;
 		if(!screen.applyRevision(step["revision"].dump(), &error)) throw StepError("refused: " + error);
+	} else if(step.contains("propose")) {
+		const RevisionResult result = screen.submitRevision(step["propose"].dump());
+		if(result.status == RevisionStatus::Rejected) throw StepError("refused: " + result.error);
 	} else if(step.contains("action")) {
 		screen.runAction(step["action"].get<std::string>(), window.root(), step.value("event", json::object()).dump());
 	} else if(step.contains("resize")) {
 		window.setSize(step["resize"][0].get<int>(), step["resize"][1].get<int>());
 	} else if(step.contains("wait")) {
 		wait(step["wait"].get<double>());
+	} else if(step.contains("choose")) {
+		choose(step["choose"]);
 	} else if(step.contains("capture")) {
 		picture(step["capture"].get<std::string>(), true, number);
 	} else if(step.contains("expect")) {
 		expect(step["expect"], number);
 	} // else a step that is only a "note"
+}
+
+void Player::choose(const json& file) {
+	chosen_ = file.is_string() ? (stage_.scratch / file.get<std::string>()).string() : std::string();
+	if(answering_) return;
+	answering_ = true;
+	stage_.window.setFileDialogHandler([this](const FileDialog&) {
+		return chosen_.empty() ? std::vector<std::string>() : std::vector<std::string>{chosen_};
+	});
 }
 
 bool Player::playPointer(const json& step) {

@@ -18,7 +18,7 @@
 - frames:     Content-Length frames and lines, as a service process writes them;
 - peer_handshake: a remote peer's upgrade requests, well formed and not, and first "auth" messages.
 - feature_manifest, catalog_index, signature: Forge's feature manifests and its catalogue (examples/forge).
-- composition: Sinopia's slide sorter with Bottega's adapters, good and broken, and Tempera's points and exports.
+- composition: Sinopia's slide sorter with Tempera's adapters, good and broken, and Tempera's points and exports.
 - url:        an allowlist entry, a line feed, then a URL: remote peers', sign-in's and a document server's;
 - oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
 - token_file: a document server's token file, with comments and blank lines;
@@ -469,12 +469,12 @@ def feature_seeds():
 
 
 def composition_seeds():
-    """The slide sorter's manifest with each of Bottega's adapters, and Tempera's points and exports (examples/bottega)."""
+    """The slide sorter's manifest with each of Tempera's adapters, and Tempera's points and exports (examples/tempera/sorter)."""
     examples = ROOT / "examples"
     manifest = json.loads((examples / "sinopia" / "features" / "slide-sorter" / "feature.json").read_text(encoding="utf-8"))
     tempera = json.loads((examples / "tempera" / "index.screen.json").read_text(encoding="utf-8"))
     host = {part: tempera[part] for part in ("points", "exports") if part in tempera}
-    adapters = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((examples / "bottega").glob("*.adapter.json"))]
+    adapters = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((examples / "tempera" / "sorter").glob("*.adapter.json"))]
     return [compact({"manifest": manifest, "adapter": adapter, **host}) for adapter in [None] + adapters]
 
 
@@ -726,9 +726,9 @@ def dictionaries():
     # The steps and keys of scenarios files (SCREEN_FORMAT.md, "Scenarios"), and the Kanban template's ids
     scenarios = tokens + ["version", "screen", "scenarios", "name", "steps", "note", "nth", "toNth", "moves", "dx",
                           "dy", "event", "capture", "move", "click", "press", "release", "drag", "to", "scroll", "type",
-                          "key", "revision", "action", "resize", "wait", "expect", "state", "node", "image", "is",
-                          "exists", "text", "property", "shown", "focused", "cmd+", "mod+", "shift+", "enter", "escape",
-                          ".length", "[0]"]
+                          "key", "revision", "action", "resize", "wait", "choose", "expect", "state", "node", "image",
+                          "is", "exists", "text", "property", "shown", "focused", "cmd+", "mod+", "shift+", "enter",
+                          "escape", ".length", "[0]"]
     scenarios += [f"#{node}" for node in kanban_ids()]
     pngs = ["PNG", "IHDR", "IDAT", "IEND", "x\x01", "x^", "\x00\x00\x00\x0d"]  # ASCII: the dictionary is written UTF-8
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,

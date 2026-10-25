@@ -104,6 +104,7 @@ The sections the host grants and revisions can't widen, and the installed featur
 | `imports` | `{"ui": "workbench@^1.0.0"}`: `"use": "ui.panel"` builds the feature's `workbench.panel`, if its release is in the range. |
 | `images` | `{"canvas": {"width": 800, "height": 600, "into": "state.canvas", "tools": {"brush": {"gesture": "paint", "size": 12}}}}`: the images the `image` step edits; `tools` names the library's gestures with their settings, and `limits` only lowers the library's (see Images). Revisions can't change it. |
 | `audio` | `{"song": {"file": "sounds/song.mp3", "into": "state.song", "loop": true}}`: the sounds the `audio` step plays, each from one source: a `file` (WAV, FLAC or MP3) in the screen's folder or one the host allows, a `url` the host's network allows (streamed), a `source` the host names (`Screen::setAudioSource`), or a `tone` (`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position updates) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, loop, level, underruns, error}`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run (see Audio). A `file` may be `asset:<name>`, also a sound description. A revision may give a sound a `file` or a `tone` (never a `url` or a `source`), and only the person accepts it (Assets). |
+| `windows` | `{"audience": {"title": "Slide show", "image": "slide", "background": "#000000"}}`: up to four more windows, each showing a named image fitted on its `background` (a node's `snapshot`, so a slide show or a mirror is part of the screen drawn again), opened by `openWindow` (see Windows). Its key presses run the screen's `keys` (unless `keys` is false), a press of the mouse runs `onClick`, and closing it runs `onClose`; it closes with the screen. The `windows` variable is `{main: {fullscreen}, <name>: {open, fullscreen}}`. Revisions can't change it. |
 | `points` | `{"panels.dock": {"slot": "dock", "receives": ["doc.layers", "layers.move"]}}`: where a feature from another app may put its views (the node whose `point` has the name) and the exports it receives; the action exports a point receives are the host actions such features may run. Revisions can't change it. |
 <!-- end generated -->
 
@@ -1027,7 +1028,7 @@ display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `m
 (or `[]`), `nativeMenuBar`: whether it is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
-`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (`author`, `role`);
+`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (`author`, `role`); `windows` (see Windows);
 `requests` (the `ask` requests, see "Asking the agents"); and the names given by `repeat`, `let`,
 `with`, `forEach`, a component's params, `it`/`index` inside list functions.
 
@@ -1262,6 +1263,9 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `signIn` | `{ "signIn": "api", "onDone": [...], "onError": [...] }`: signs in to the provider a connection's `auth` declares (OAuth 2: the browser with PKCE, or a device code), then its requests carry the token. The token never reaches the document or the state: the `auth` variable shows `{state, account, expires}`, and `error` in `onError` is `{code, message}`. A control step |
 | `signOut` | `{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step |
 | `chooseFolder` | `{ "chooseFolder": "workspace", "onDone": [...] }`: after the event, the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
+| `saveFile` | `{ "saveFile": "{{state.deck}}", "name": "{{state.deck.title}}.json", "onDone": [...] }`: after the event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. `result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
+| `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. A control step |
+| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), or `"png"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
@@ -1286,6 +1290,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `delete` | `{ "delete": "songs", "id": "{{song.id}}" }`: deletes records (an `id`, a list, or a `where`) |
 | `undoData`, `redoData` | `{ "undoData": true }`, `{ "redoData": true }`: undoes or redoes the last write step's records |
 | `importCsv` | `{ "importCsv": "songs", "file": "songs.csv", "columns": { "title": "Title" }, "into": "state.report" }`: imports a CSV's rows as records (`file` in the screen's folder, or `text`); `result` is `{imported, failed, failures}` |
+| `openWindow`, `closeWindow` | `{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; `{ "closeWindow": "audience" }` closes it |
+| `fullscreen` | `{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or `"toggle"`); with `of`, a window of the `windows` section |
 | `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
 | `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
 <!-- end generated -->
@@ -1503,6 +1509,33 @@ screen's folder, and the audio module renders it as it plays, the same samples e
   gives its pitch.
 - Bounds: 1 MiB of text, 16 tracks, 4,096 notes and hits, 32 sounding at once, 10 minutes. One beyond them, or
   malformed, is refused when a revision brings it, with its place (`tracks[1].notes[3].note: ...`).
+
+## Windows
+
+A screen can open up to four more windows: a slide show's audience view on a projector, a mirror, a second monitor.
+The `windows` section declares them, each showing one named image, fitted and centred on its `background`; a node
+draws that image with `snapshot`, so what a window shows is a part of the screen drawn a second time, and the screen
+keeps all the logic. Revisions can't change the section (a capability).
+
+```json
+"windows": { "audience": { "title": "Slide show", "image": "slide", "background": "#000000", "fullscreen": true } }
+```
+
+| Key of a window | Meaning |
+|---|---|
+| `image` | The named image it shows (required): a node's `snapshot`, or one the host gives. |
+| `title` | Its title bar (200 bytes at most). |
+| `width`, `height` | Its size before it fills a display: 100 to 8,192, 800 by 600 by default. |
+| `background` | A colour behind the image (black by default). |
+| `fullscreen` | Whether `openWindow` makes it fill the display it is mostly on. |
+| `keys` | Whether its key presses run the screen's `keys`, as if nothing had the focus (true by default). |
+| `onClick`, `onClose` | What a press of the mouse in it, and closing it with its own button, run. |
+
+`{ "openWindow": "audience" }` opens one (or shows it again; `"fullscreen": true` or `false` over its entry), and
+`{ "closeWindow": "audience" }` closes it. `{ "fullscreen": "toggle" }` makes the screen's own window fill its display
+or not (`true`, `false` or `"toggle"`), and with `"of": "audience"` one of the others. The `windows` variable is
+`{main: {fullscreen}, <name>: {open, fullscreen}}`. When the screen's window closes, so do its others. Without a
+display (scenarios, `affrescoui test`, previews) nothing is shown, but the variable follows the steps.
 
 ## Channels and persistence
 
@@ -1842,8 +1875,10 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 | `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket backquote`, `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere) |
 | `{ "wait": 500 }` | Moves the clock on, running timers, animations and tooltips as they come due. What a handler leaves for the next frame (`focus`) runs at the next wait: `{ "wait": 0 }` |
 | `{ "revision": { ... } }` | Applies a revision as the application would |
+| `{ "propose": { "author": "agent", ... } }` | Submits a revision as its author's peer would: the screen's `permissions` apply it, send it to review (`proposals`) or refuse it |
 | `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |
 | `{ "resize": [960, 720] }` | Resizes the window |
+| `{ "choose": "deck.json" }` | Answers the file dialogs that follow (`saveFile`, `openFile`, `export`, `attach`) with that file in the run's own folder, as the person would choose it; `null` cancels them. The dialog shows after the event: `{ "wait": 0 }` |
 | `{ "expect": ... }` | Checks something (below) |
 | `{ "capture": "name" }` | Saves a picture as `<scenario>-<name>.png` (`affrescoui test --out`) |
 

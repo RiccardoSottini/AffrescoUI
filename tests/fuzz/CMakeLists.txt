@@ -111,12 +111,6 @@ if(AFFRESCOUI_BUILD_FUZZERS)
 	target_sources(affrescoui_fuzz_color_theme PRIVATE
 		${PROJECT_SOURCE_DIR}/examples/forge/features/themes/ThemeImport.cpp)
 endif()
-affrescoui_fuzzer(sinopia_deck affrescoui::render nlohmann_json::nlohmann_json)
-target_include_directories(affrescoui_fuzz_sinopia_deck PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia) # deck/Deck.hpp
-if(AFFRESCOUI_BUILD_FUZZERS)
-	target_sources(affrescoui_fuzz_sinopia_deck PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Deck.cpp
-		${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Write.cpp)
-endif()
 # Other formats (SCREEN_FORMAT.md): the A2UI and Adaptive Cards adapters
 affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(syntax affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON

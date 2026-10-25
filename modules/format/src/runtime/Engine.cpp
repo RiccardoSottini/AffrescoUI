@@ -41,6 +41,7 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		const json coordination = versions.coordination();
 		return coordination.contains("peers") ? coordination["peers"] : json::array();
 	});
+	document.addVariable("windows", [this] { return otherWindows.status(); }); // {main: {fullscreen}, name: {open, ..}}
 	peersChanged = versions.onReviewChanged.connect([this] { proposalsChanged(); });
 }
 
@@ -56,6 +57,7 @@ void Engine::documentChanged() {
 	document.bumpStateVersion(); // a revision may change the state too
 	serviceCalls.load();         // a restore may change the services or the connections
 	audio.documentChanged();     // and the sounds, through an include or a feature
+	otherWindows.documentChanged(); // and the other windows
 	reconciler.reconcile();
 }
 

@@ -70,6 +70,14 @@ public:
 	virtual void setVisible(bool visible) = 0;
 	/// @brief Whether the user asked to close it.
 	[[nodiscard]] virtual bool shouldClose() const = 0;
+	/// @brief Asks the window to close, as its close button does, or takes that back (Window::setShouldClose()).
+	/// @param close true to close it.
+	virtual void setShouldClose(bool close) = 0;
+	/// @brief Whether the window fills a display.
+	[[nodiscard]] virtual bool isFullscreen() const = 0;
+	/// @brief Makes the window fill the display it is mostly on, or puts it back where it was.
+	/// @param fullscreen true to fill it.
+	virtual void setFullscreen(bool fullscreen) = 0;
 
 	/// @brief The system clipboard's text, as UTF-8.
 	[[nodiscard]] virtual std::string clipboardText() const = 0;
