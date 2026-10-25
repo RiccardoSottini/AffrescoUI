@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Arcadia: a desktop game store and launcher, modelled on the layout of popular game-store clients. A menu row and a big navigation (store, library, community, profile) with back and forward; a library with a game list on the left, a home of shelves and a page per game; a bottom bar with the downloads and friends. Every game, studio, friend and picture is invented. The parts: parts/data.json (the data), parts/chrome.json (the bars around the pages), parts/library.json (the library). Built from the public docs only; see README.md next to it.",
+	"note": "Arcadia: a desktop game store and launcher, with every feature of the reference app in a look of its own. A menu row and a centred navigation (store, library, community, profile) with back and forward; a library with a game list on the left, a home of shelves and a page per game; a bottom bar with the downloads and friends. Every game, studio, friend and picture is invented. The parts: parts/data.json (the data), parts/chrome.json (the bars around the pages), parts/library.json (the library), parts/store.json, parts/downloads.json, parts/manage.json, parts/client.json (Settings, codes, backup, couch mode, offline, sign-in) and parts/hub.json (a game's player hub). Built from the public docs only; see README.md next to it.",
 
 	"window": {
 		"title": "Arcadia",
@@ -13,7 +13,7 @@
 		"focusRing": { "color": "#f5a524", "width": 2, "offset": 1 }
 	},
 
-	"include": ["parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json", "parts/downloads.json", "parts/community.json", "parts/manage.json", "../shared/addons/assistant/assistant.json"],
+	"include": ["parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json", "parts/downloads.json", "parts/community.json", "parts/manage.json", "parts/client.json", "parts/hub.json", "../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{settings.appearance.theme}}",
 
@@ -72,6 +72,7 @@
 		"color.bright": { "dark": "#ffffff", "light": "#150f1a" },
 		"color.muted": { "dark": "#a597ad", "light": "#6b5d75" },
 		"color.dim": { "dark": "#6e6178", "light": "#a796b0" },
+		"color.onAccent": { "dark": "#1b1320", "light": "#ffffff" },
 		"color.accent": { "dark": "#f5a524", "light": "#a65800" },
 		"color.link": { "dark": "#ffc46b", "light": "#94500a" },
 		"color.play": { "dark": "#2ec4a0", "light": "#1f9e80" },
@@ -126,6 +127,26 @@
 			"default": "en",
 			"title": "Language",
 			"description": "English, Spanish or French."
+		},
+		"appearance.startPage": {
+			"type": "string",
+			"enum": ["library", "store", "community"],
+			"default": "library",
+			"title": "Start page",
+			"description": "The page Arcadia opens on."
+		},
+		"downloads.limit": {
+			"type": "number",
+			"enum": [0, 10, 25],
+			"default": 0,
+			"title": "Download speed limit",
+			"description": "The most MB/s a download takes; 0 for no limit."
+		},
+		"downloads.whilePlaying": {
+			"type": "boolean",
+			"default": true,
+			"title": "Download while playing",
+			"description": "Off, downloads wait while a game is running."
 		},
 		"library.sortBy": {
 			"type": "string",
@@ -229,8 +250,16 @@
 		"mod+2": "showLibrary",
 		"mod+3": "showCommunity",
 		"mod+k mod+t": "toggleTheme",
-		"mod+k mod+l": "nextLanguage"
+		"mod+k mod+l": "nextLanguage",
+		"mod+,": { "do": { "run": "openSettings", "with": { "page": "interface" } } }
 	},
+
+	"onLoad": [
+		{
+			"if": "{{settings.appearance.startPage != 'library'}}",
+			"then": [{ "set": "state.nav", "to": "{{[{ tab: settings.appearance.startPage, page: 'home', id: null }]}}" }]
+		}
+	],
 
 	"root": {
 		"id": "app",
@@ -250,9 +279,10 @@
 						"anchors": { "left": 0, "right": 0 },
 						"children": [
 							{ "when": "{{computed.here.tab == 'library'}}", "use": "libraryPage", "id": "library" },
-							{ "when": "{{computed.here.tab == 'store'}}", "use": "storePage" },
+							{ "when": "{{computed.here.tab == 'store' && !state.session.offline}}", "use": "storePage" },
 							{ "when": "{{computed.here.tab == 'downloads'}}", "use": "downloadsPage" },
-							{ "when": "{{computed.here.tab == 'community'}}", "use": "friendsPage" },
+							{ "when": "{{computed.here.tab == 'community' && !state.session.offline}}", "use": "friendsPage" },
+							{ "when": "{{contains(['store', 'community'], computed.here.tab) && state.session.offline}}", "use": "offlinePage" },
 							{ "when": "{{computed.here.tab == 'profile'}}", "use": "profilePage" },
 							{ "when": "{{!contains(['library', 'store', 'downloads', 'community', 'profile'], computed.here.tab)}}", "use": "comingSoon", "id": "elsewhere" }
 						]
@@ -260,9 +290,18 @@
 					{ "use": "bottomBar", "id": "bottom-bar" }
 				]
 			},
+			{ "id": "settings-dialog", "use": "settingsDialog" },
 			{ "use": "gameMenu" },
 			{ "id": "properties-dialog", "use": "propertiesDialog" },
-			{ "id": "uninstall-dialog", "use": "uninstallDialog" }
+			{ "id": "uninstall-dialog", "use": "uninstallDialog" },
+			{ "id": "code-dialog", "use": "codeDialog" },
+			{ "id": "add-game-dialog", "use": "addGameDialog" },
+			{ "id": "backup-dialog", "use": "backupDialog" },
+			{ "id": "note-dialog", "use": "noteDialog" },
+			{ "id": "info-dialog", "use": "infoDialog" },
+			{ "use": "clientToast" },
+			{ "use": "couchMode" },
+			{ "use": "signedOutScreen" }
 		]
 	}
 }

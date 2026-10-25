@@ -446,12 +446,12 @@
 					"ms": 1000,
 					"do": [
 						{
-							"if": "{{computed.download != null && !state.dlPaused}}",
+							"if": "{{computed.download != null && !state.dlPaused && (settings.downloads.whilePlaying || state.running == null)}}",
 							"then": [
 								{ "set": "state.dlTick", "to": "{{state.dlTick + 1}}" },
 								{
 									"set": "state.dlRate",
-									"to": "{{concat(slice(state.dlRate, 1), [34 + state.dlTick * 7 - floor(state.dlTick * 7 / 19) * 19])}}"
+									"to": "{{concat(slice(state.dlRate, 1), [settings.downloads.limit > 0 ? min(settings.downloads.limit, 34 + state.dlTick * 7 - floor(state.dlTick * 7 / 19) * 19) : 34 + state.dlTick * 7 - floor(state.dlTick * 7 / 19) * 19])}}"
 								},
 								{
 									"forEach": "state.downloads",

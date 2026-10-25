@@ -7,7 +7,8 @@
 	"description": "A game launcher: a library of games, their pages, friends and news.",
 	"entry": "index.screen.json",
 	"capabilities": {
-		"assistant": "Answers your questions in the chat, with the assistant you set up in Settings."
+		"assistant": "Answers your questions in the chat, with the assistant you set up in Settings.",
+		"files": "Backs up your games' settings to a file you choose, and restores them from one."
 	},
 	"data": {
 		"models": "models.json",
