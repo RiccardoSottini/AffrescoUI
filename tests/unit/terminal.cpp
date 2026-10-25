@@ -128,6 +128,16 @@ TEST_CASE("terminal: a wide character covers two columns") {
 	CHECK(narrow.columns() == 2);
 }
 
+TEST_CASE("terminal: a screen made shorter than its scroll region scrolls as a whole") {
+	// libvterm kept the region's top past the new bottom, and scrolled a negative number of lines (found by the
+	// terminal fuzzer)
+	TerminalModel model(10, 20);
+	model.write("\x1b[8;10r");
+	model.resize(5, 20);
+	for(int line = 0; line < 8; ++line) model.write("line " + std::to_string(line) + "\r\n");
+	CHECK(model.lineText(model.scrollbackSize() + 3) == U"line 7");
+}
+
 TEST_CASE("terminal: a C1 control written in UTF-8 takes a column, and never moves the cursor backwards") {
 	// libvterm's own width of U+009B is -1: at column 0 it moved the cursor off the screen, and a tab stop set there
 	// wrote outside its table (found by the terminal fuzzer)

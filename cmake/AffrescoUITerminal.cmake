@@ -68,6 +68,23 @@ affrescoui_fix_vterm(state.c [=[
       int this_width = vterm_unicode_width(codepoints[i]);
       if(this_width < 0) // AffrescoUI: a C1 control covers one column
         this_width = 1;]=])
+# A resize kept the scroll region's top and left: a screen made shorter or narrower than them left an upside down
+# region, which scrolled a negative number of lines. Such a region is the whole screen, as DECSTBM and DECSLRM make it.
+affrescoui_fix_vterm(state.c [=[
+  if(state->scrollregion_right > -1)
+    UBOUND(state->scrollregion_right, state->cols);
+]=] [=[
+  if(state->scrollregion_right > -1)
+    UBOUND(state->scrollregion_right, state->cols);
+  if(SCROLLREGION_BOTTOM(state) <= state->scrollregion_top) { // AffrescoUI: never upside down
+    state->scrollregion_top = 0;
+    state->scrollregion_bottom = -1;
+  }
+  if(SCROLLREGION_RIGHT(state) <= state->scrollregion_left) {
+    state->scrollregion_left = 0;
+    state->scrollregion_right = -1;
+  }
+]=])
 
 # The fixed copies, in the build folder, are compiled instead (they include the originals' headers:
 # modules/format/CMakeLists.txt), each written only when it changes, so that it isn't compiled again each time
