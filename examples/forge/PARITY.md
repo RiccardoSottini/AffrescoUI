@@ -37,7 +37,7 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Problems and language features | partial | Through the `lsp` service, one language server (clangd) |
 | Outline | partial | A language's symbols only where the language server runs (C and C++); other files list headings or the lines that open a block |
 | Features (extensions) view | done | |
-| Settings editor | partial | The rows are the shared kit's settings page: large checkboxes, and descriptions that don't show |
+| Settings editor | done | |
 | Themes | done | |
 | Split editors | done | |
 | Agent view | done | |
