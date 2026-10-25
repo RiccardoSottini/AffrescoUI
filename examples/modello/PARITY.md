@@ -69,7 +69,7 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_launcher example
 
 | What | Status | Note |
 |---|---|---|
-| Tab into edit mode | partial | the mode switches; mesh editing isn't there |
+| Tab into edit mode | missing | Edit Mode is in the mode menu, disabled with a reason |
 | 1/2/3 vertex, edge, face select | missing | |
 | E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | missing | |
 
@@ -90,4 +90,40 @@ Round 1: 31 done, 10 partial, 11 missing.
 
 Round 2 (a folder of files): 35 done, 11 partial, 6 missing (34, 11 and 7 before it). Save and open.
 
-Round 3 (every control works): 49 done, 6 partial, 4 missing (35, 11 and 6 before it, over 52 rows; 7 rows added). Keyframes animate, the properties tabs, the Shader Editor, the render window, collections, pie menus, glTF export.
+Round 3 (every control works): 49 done, 5 partial, 5 missing (35, 11 and 6 before it, over 52 rows; 7 rows added). Keyframes animate, the properties tabs, the Shader Editor, the render window, collections, pie menus, glTF export.
+
+## Left for later
+
+Every row above that is partial or missing, and every control Modello shows disabled with a tooltip. "JSON" means
+Modello's files alone can do it; otherwise the general library feature it needs. P1: a daily user meets it; P2:
+occasionally; P3: rarely.
+
+| What | Priority | Needs |
+|---|---|---|
+| Edit mode: Tab, 1/2/3 vertex, edge, face select, Edit Mode in the mode menu | P1 | library: editable meshes in `scene` (element picking, selection drawing, mesh data written back to the document) |
+| E extrude, I inset, Ctrl+R loop cut, Ctrl+B bevel | P1 | library: mesh operators on that editable mesh, as steps |
+| Parenting: Ctrl+P, Alt+P, the Object tab's Relations panel | P1 | JSON for the commands and the outliner's nesting (scene nodes already take `parent`); library: an expression or step giving a node's world transform, so parenting keeps it and the gizmo, G/R/S and picking work on children |
+| Proportional editing (header toggle) | P2 | library: editable meshes (it moves vertices) |
+| Area split and join | P2 | JSON if the areas become a split tree in state; simpler with a library docking layout |
+| glTF import | P2 | library: an open-file step that hands a picked .gltf to `scene` assets under the file-read permission |
+| Textures (Texture tab, textures in the glTF export) | P2 | library: image textures on scene materials from picked files, and the export embedding them |
+| Pivot: Individual Origins | P2 | JSON: rotate and scale each selected object about its own origin in the transform commands |
+| Output › Format: resolution and frame rate | P2 | JSON: render size and fps in state, used by F12 and the timeline (24 is fixed today) |
+| Modifiers tab | P2 | library: mesh modifiers (array, mirror, subdivision) in `scene` |
+| Object › Viewport Display (bounds, wire) | P2 | library: per-node display as bounds or wire in `scene` |
+| Material › Settings: blend and shadow | P2 | library: blend modes and shadow casting on scene materials |
+| Light › Shadow, Camera › Depth of Field, Mesh › Normals panels | P2 | library: shadows, depth of field and smooth or flat normals in the scene renderer |
+| Keyboard access: Tab order | P2 | JSON: focus order through the areas (header, toolbar, outliner, properties, timeline) |
+| Workspaces Sculpt, UV, Paint | P3 | library: sculpting, UV unwrapping and texture painting on editable meshes |
+| Workspaces Compose, Nodes, Script | P3 | library: a compositor, geometry nodes, a script console (the last may never fit a JSON-only app) |
+| Editor types Image Editor, Text Editor | P3 | JSON: the image viewer can show the last render; the text editor can use the `editor` node |
+| Scene and view layer pickers, View Layer tab, outliner Scenes mode | P3 | JSON: a list of scenes and layers in state, each with its own nodes and toggles |
+| Outliner Orphan Data mode | P3 | JSON: materials and meshes no object uses, listed from state |
+| Orientation: Gimbal, View | P3 | JSON: axes from the object's Euler rotation, or from the view's rotation |
+| Rotation mode (quaternion, axis angle) | P3 | JSON: other rotation fields converted to rotationDegrees |
+| Properties pin | P3 | JSON: a pinned object id the panels read instead of the active one |
+| Object › Collections (link to several) | P3 | JSON: a list of collections per object instead of one |
+| Object › Transform Offset, Custom Properties | P3 | JSON: delta transforms added in the displayed scene; free key-value fields per object |
+| Object › Instancing, Motion Paths, Line Drawing | P3 | library: instancing, path lines through keyframe positions, line-art rendering in `scene` |
+| Particles, Physics, Object Constraints tabs | P3 | library: particles and a physics step; constraints may be JSON (track-to as an expression) |
+| Render › Sampling, Scene › Units, Tool › Workspace | P3 | library: a sampled renderer; JSON: unit labels on the fields; JSON: workspace settings |
