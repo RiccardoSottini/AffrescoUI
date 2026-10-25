@@ -36,6 +36,7 @@ namespace affresco::server {
 class DocumentServer {
 public:
 	static constexpr std::size_t maxDocuments = 1024;      ///< Documents open at once, shared and personal.
+	static constexpr std::size_t maxPersonalDocuments = 16; ///< One person's own documents ("~name") open at once.
 	static constexpr std::size_t maxServerMessageBytes = 4096; ///< The longest open, presence or lease message.
 
 	/// @brief Loads the documents and listens.

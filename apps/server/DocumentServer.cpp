@@ -197,6 +197,11 @@ DocumentServer::Document* DocumentServer::find(const std::string& name, const st
 	const std::string key = personal ? "~" + author + "/" + bare : bare; // a person reaches only their own
 	if(const auto found = documents_.find(key); found != documents_.end()) return found->second.get();
 	if(!personal || documents_.size() >= maxDocuments) return nullptr;
+	// One person can't fill the server's documents with their own: theirs are the keys under "~<person>/".
+	const std::string mine = "~" + author.substr(0, author.find('/')) + "/";
+	if(std::ranges::count_if(documents_, [&](const auto& entry) { return entry.first.starts_with(mine); }) >=
+	   static_cast<std::ptrdiff_t>(maxPersonalDocuments))
+		return nullptr;
 	const std::filesystem::path directory = folder_ / "people" / author;
 	std::filesystem::create_directories(directory);
 	const std::filesystem::path file = directory / (bare + ".screen.json");

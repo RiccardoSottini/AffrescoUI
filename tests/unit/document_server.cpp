@@ -19,7 +19,9 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
+#include <memory>
 #include <stdexcept>
 
 using namespace affresco;
@@ -327,4 +329,22 @@ TEST_CASE("document server: an OAuth access token is checked at userinfo, for th
 	CHECK(chain.verify(team.bo) == "bo");
 	CHECK(chain.verify(access) == "ada");
 	CHECK_FALSE(chain.verify("neither").has_value());
+}
+
+TEST_CASE("document server: one person opens at most maxPersonalDocuments of their own") {
+	const Team team;
+	test::ThreadExecutor executor;
+	auto server = team.start(executor);
+	std::vector<std::unique_ptr<Client>> clients;
+	for(std::size_t index = 0; index <= server::DocumentServer::maxPersonalDocuments; ++index) {
+		INFO("document ", index);
+		clients.push_back(std::make_unique<Client>(executor, server->port(), team.ada));
+		clients.back()->send({{"type", "open"}, {"id", 1}, {"document", "~notes" + std::to_string(index)}});
+		REQUIRE(executor.runUntil([&] { return clients.back()->find("hello") != nullptr || clients.back()->find("error", 1) != nullptr; }));
+		CHECK((clients.back()->find("hello") != nullptr) == (index < server::DocumentServer::maxPersonalDocuments));
+		executor.runFor(210ms); // within the server's five new connections a second from one address
+	}
+	Client bo(executor, server->port(), team.bo); // another person still gets theirs
+	bo.send({{"type", "open"}, {"id", 1}, {"document", "~notes"}});
+	REQUIRE(executor.runUntil([&] { return bo.find("hello") != nullptr; }));
 }
