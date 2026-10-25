@@ -206,8 +206,8 @@
 				"type": "row", "fitContent": "width", "id": "tab-transitions", "height": 92, "gap": 4, "color": "transparent",
 				"children": [
 					{ "use": "rbGroup", "id": "g-preview", "with": { "title": "Preview" }, "children": [
-						{ "use": "rbBig", "id": "b-preview", "with": { "icon": "play", "title": "Preview", "width": 50 }, "tooltip": "Present this slide",
-						  "onClick": { "run": "present", "with": { "from": "{{state.current}}" } } }
+						{ "use": "rbBig", "id": "b-preview", "with": { "icon": "play", "title": "Preview", "width": 50 }, "tooltip": "Play this slide's transition and builds",
+						  "onClick": "previewSlide" }
 					] },
 					{ "use": "rbGroup", "id": "g-transition-to", "with": { "title": "Transition to This Slide" }, "children": [
 						{ "use": "rbGallery", "id": "gal-transitions", "with": { "width": 520 }, "children": [
@@ -303,8 +303,8 @@
 				"let": { "a": "{{computed.animation}}", "on": "{{length(computed.selected) > 0}}" },
 				"children": [
 					{ "use": "rbGroup", "id": "g-motion-preview", "with": { "title": "Preview" }, "children": [
-						{ "use": "rbBig", "id": "b-motion-preview", "with": { "icon": "play", "title": "Preview", "width": 50 }, "tooltip": "Present this slide",
-						  "onClick": { "run": "present", "with": { "from": "{{state.current}}" } } }
+						{ "use": "rbBig", "id": "b-motion-preview", "with": { "icon": "play", "title": "Preview", "width": 50 }, "tooltip": "Play this slide's transition and builds",
+						  "onClick": "previewSlide" }
 					] },
 					{ "use": "rbGroup", "id": "g-effects", "with": { "title": "{{a.kind == 'exit' ? 'Exit' : 'Entrance'}}" }, "children": [
 						{ "use": "rbGallery", "id": "gal-effects", "with": { "width": 380 }, "children": [

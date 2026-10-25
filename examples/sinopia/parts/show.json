@@ -10,7 +10,7 @@
 
 	"state": {
 		"presenterView": false,
-		"show": { "on": false, "index": 0, "from": -1, "step": 0, "clock": 0, "t": 1, "black": false, "white": false, "ended": false, "seconds": 0, "paused": false, "notesSize": 18, "onSlide": 0, "elapsed": 0, "rehearsing": false, "navigator": false, "typed": "" }
+		"show": { "on": false, "index": 0, "from": -1, "step": 0, "clock": 0, "t": 1, "black": false, "white": false, "ended": false, "seconds": 0, "paused": false, "notesSize": 18, "onSlide": 0, "elapsed": 0, "rehearsing": false, "navigator": false, "typed": "", "preview": false }
 	},
 
 	"computed": {
@@ -22,6 +22,7 @@
 		"showLinks": "{{map(filter(computed.showSlide.objects ?? [], it.link != null && !(it.hidden ?? false) && !contains(computed.showUnbuilt, it.id)), { link: it.link, x: it.x ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).x ?? 0, y: it.y ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).y ?? 0, w: it.w ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).w ?? 100, h: it.h ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).h ?? 100 })}}",
 		"showFrom": "{{state.show.from >= 0 ? state.deck.slides[state.show.from] : null}}",
 		"showKind": "{{state.show.t >= 1 ? 'none' : computed.showSlide.transition.kind ?? 'none'}}",
+		"showStepEnd": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end)))}}",
 		"showFades": "{{computed.showKind == 'fade' || computed.showKind == 'glide'}}",
 		"showTimings": "{{scan(computed.showSlide.animations ?? [], merge(it, { step: acc.step + (it.start == 'click' ? 1 : 0), start: (it.start == 'click' ? 0 : it.start == 'with' ? acc.start : acc.end) + (it.delay ?? 0), end: (it.start == 'click' ? 0 : it.start == 'with' ? acc.start : acc.end) + (it.delay ?? 0) + (it.ms ?? 500) }), { step: 0, start: 0, end: 0 })}}",
 		"showSteps": "{{count(computed.showSlide.animations ?? [], it.start == 'click')}}",
@@ -35,6 +36,12 @@
 		"present": [
 			{ "run": "showStart", "with": { "from": "{{from}}" } },
 			{ "if": "{{state.presenterView}}", "then": [{ "openWindow": "audience" }], "else": [{ "fullscreen": true }] }
+		],
+		"previewSlide": [
+			{ "note": "Plays the current slide in this window as the show would: its transition from the slide before, then a build each second, and ends by itself" },
+			{ "set": "state.show", "to": "{{merge(state.show, { on: true, preview: true, from: -1, black: false, white: false, ended: false, seconds: 0, paused: false, elapsed: 0 })}}" },
+			{ "run": "showEnter", "with": { "index": "{{state.current}}", "previous": "{{state.current > 0 ? state.current - 1 : -1}}" } },
+			{ "focus": "#show-view" }
 		],
 		"readingView": [{ "run": "showStart", "with": { "from": "{{from}}" } }],
 		"showStart": [
@@ -52,7 +59,7 @@
 		],
 		"showPlay": [
 			{ "if": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end))) > 0}}",
-			  "then": [{ "animate": "state.show.clock", "to": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end)))}}", "ms": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end)))}}", "easing": "linear" }],
+			  "then": [{ "animate": "state.show.clock", "to": "{{computed.showStepEnd}}", "ms": "{{computed.showStepEnd}}", "easing": "linear" }],
 			  "else": [{ "set": "state.show.clock", "to": 0 }] }
 		],
 		"showClick": [
@@ -90,7 +97,7 @@
 					{ "set": "state.show.rehearsing", "to": false }
 				] },
 				{ "set": "state.current", "to": "{{state.show.index}}" },
-				{ "set": "state.show", "to": "{{merge(state.show, { on: false, t: 1, from: -1, black: false, white: false, ended: false })}}" },
+				{ "set": "state.show", "to": "{{merge(state.show, { on: false, t: 1, from: -1, black: false, white: false, ended: false, preview: false })}}" },
 				{ "set": "state.board.selection", "to": [] },
 				{ "if": "{{windows.audience.open}}", "then": [{ "closeWindow": "audience" }] },
 				{ "if": "{{windows.main.fullscreen}}", "then": [{ "fullscreen": false }] },
@@ -103,6 +110,8 @@
 			{ "if": "{{!state.show.paused && !state.show.ended}}", "then": [
 				{ "increment": "state.show.onSlide" },
 				{ "increment": "state.show.elapsed" },
+				{ "if": "{{state.show.preview && state.show.t >= 1 && state.show.clock >= computed.showStepEnd}}",
+				  "then": [{ "if": "{{state.show.step < computed.showSteps}}", "then": [{ "run": "showNext" }], "else": [{ "run": "showEnd" }] }] },
 				{ "if": "{{!state.show.rehearsing && (state.deck.useTimings ?? false) && computed.showSlide.advanceAfter != null && state.show.onSlide >= computed.showSlide.advanceAfter}}",
 				  "then": [{ "run": "showNext" }] }
 			] }
@@ -249,12 +258,12 @@
 			"node": {
 				"id": "show-view", "color": "#000000", "focusable": true, "role": "dialog", "label": "Slide show",
 				"every": { "ms": 1000, "do": "showSecond" },
-				"onClick": [{ "if": "{{!state.presenterView}}", "then": [{ "run": "showClick", "with": {
+				"onClick": [{ "if": "{{!state.presenterView || state.show.preview}}", "then": [{ "run": "showClick", "with": {
 					"x": "{{(event.left - (event.width - 960 * min(event.width / 960, event.height / 540)) / 2) / min(event.width / 960, event.height / 540)}}",
 					"y": "{{(event.top - (event.height - 540 * min(event.width / 960, event.height / 540)) / 2) / min(event.width / 960, event.height / 540)}}" } }] }],
 				"children": [
-					{ "type": "image", "id": "show-image", "when": "{{!state.presenterView}}", "fill": 0, "source": "audience", "fit": "contain" },
-					{ "use": "presenter", "when": "{{state.presenterView}}" },
+					{ "type": "image", "id": "show-image", "when": "{{!state.presenterView || state.show.preview}}", "fill": 0, "source": "audience", "fit": "contain" },
+					{ "use": "presenter", "when": "{{state.presenterView && !state.show.preview}}" },
 					{ "type": "row", "id": "rehearsal", "when": "{{state.show.rehearsing}}", "x": 16, "y": 16, "fitContent": "width", "height": 40, "gap": 4,
 					  "radius": 20, "color": "#141a19ee", "alignItems": "center", "role": "toolbar", "label": "Rehearsal",
 					  "onClick": [{ "note": "a click on the bar isn't a click on the show" }],

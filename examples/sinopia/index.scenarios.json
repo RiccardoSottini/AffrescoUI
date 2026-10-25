@@ -1199,6 +1199,33 @@
 				{ "click": { "role": "menuitem", "name": "Remove Link" } },
 				{ "expect": { "state": "deck.slides[1].objects[1].link", "is": null } }
 			]
+		},
+		{
+			"name": "sinopia-preview",
+			"note": "Preview plays the slide in the window: its transition from the slide before, each build once the one before has played, then editing again on the same slide",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#tab-transitions-label" },
+				{ "click": "#b-preview" },
+				{ "expect": { "state": "show.on", "is": true } },
+				{ "expect": { "state": "show.preview", "is": true } },
+				{ "expect": { "state": "show.index", "is": 3 } },
+				{ "expect": { "state": "show.from", "is": 2 } },
+				{ "expect": { "node": "#show-image", "exists": true } },
+				{ "wait": 1100 },
+				{ "expect": { "state": "show.step", "is": 1 } },
+				{ "wait": 1000 },
+				{ "expect": { "state": "show.on", "is": true } },
+				{ "wait": 3000 },
+				{ "expect": { "state": "show.on", "is": false } },
+				{ "expect": { "state": "show.preview", "is": false } },
+				{ "expect": { "state": "current", "is": 3 } },
+				{ "click": "#tab-animations-label" },
+				{ "click": "#b-motion-preview" },
+				{ "expect": { "state": "show.preview", "is": true } },
+				{ "key": "escape" },
+				{ "expect": { "state": "show.on", "is": false } }
+			]
 		}
 	]
 }

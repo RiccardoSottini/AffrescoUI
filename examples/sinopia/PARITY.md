@@ -98,14 +98,14 @@ with its slide show, presenter view, audience window and files on library capabi
 | Transitions | Wipe | partial | done | slide-transition |
 | Transitions | Glide (objects move to their places on the next slide) | missing | missing |  |
 | Transitions | Effect options, duration, apply to all | partial | done | slide-transition |
-| Transitions | Preview | missing | missing | |
+| Transitions | Preview | missing | done | preview (in the window, from the slide before) |
 | Animations | Entrance effects | partial | done | add-an-animation |
 | Animations | Emphasis effects | missing | missing | |
 | Animations | Exit effects | missing | partial | add-an-animation |
 | Animations | Motion paths | missing | missing | |
 | Animations | Animation pane | missing | missing | |
 | Animations | Timing (on click, with, after; duration, delay) | missing | partial | add-an-animation |
-| Animations | Preview | missing | missing | |
+| Animations | Preview | missing | done | preview (each build once the one before has played) |
 | Slide show | Full screen | missing | done | present-and-step |
 | Slide show | Advance by click and keys; back; go to slide by number | done | done | present-and-step, present-go-to-number |
 | Slide show | From the beginning and from the current slide | partial | done | present-from-current |
@@ -137,6 +137,6 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 65 | 28 | 28 | 121 |
+| Now | 67 | 28 | 26 | 121 |
 
 The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, and Insert > Link one (all missing at the start), so *Now* counts 121 rows.
