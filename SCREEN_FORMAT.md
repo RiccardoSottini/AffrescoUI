@@ -1015,12 +1015,10 @@ Wherever a value is expected it can be computed:
   `cos(radians)`, `tan(radians)`, `asin(number)`, `acos(number)`, `atan(number)`, `atan2(y, x)`, `radians(degrees)`,
   `degrees(radians)`, `pi()`, `sqrt(number)`, `pow(base, exponent)`, `exp(number)`, `log(number, base?)`,
   `hypot(a, b, ...)` (numbers or a list), `sign(number)`, `upper(text)`, `lower(text)`, `trim(text)`,
-  `split(text, separator)`, `number(value)`, `text(value)`, `slug(text, most?)` (an id: letters, digits and dashes;
-  most from 1 to 256), `fixed(number, digits)`, `pad(value, width, fill?)` (width up to 10000),
-  `plural(count, word, plural?)`, `parseJson(text)`, `parseJsonc(text)` (comments and trailing commas too, or null),
-  `shellLine(words, variables?)` (single-quoted for a POSIX shell, so typed into a program grant `sh` rather than a login
-  shell that may be fish, csh or cmd.exe; null if a word isn't plain text; up to 1000 words and 1000 variables of 4096
-  bytes, a line up to 60000), `json(value)`,
+  `split(text, separator)`, `number(value)`, `text(value)`, `slug(text, most?)` (most from 1 to 256),
+  `fixed(number, digits)`, `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`,
+  `parseJson(text)`, `parseJsonc(text)`,
+  `shellLine(words, variables?)` (up to 1000 words and 1000 variables of 4096 bytes, a line up to 60000), `json(value)`,
   `applyEdits(text, edits)`, `length(value)`, `concat(a, b, ...)`, `flat(list)`, `join(list, separator)`,
   `slice(list or text, from, to?)`, `contains(list or text or object, value)`, `indexOf(list or text, value)`,
   `keys(object)`, `values(object)`, `entries(object)`, `fromEntries(list)`, `merge(a, b, ...)`, `reverse(list or text)`,
@@ -1035,6 +1033,10 @@ Wherever a value is expected it can be computed:
   `keyLabel(chord, notation?)`, `qrCode(text, level?)`, `diffLines(original, modified, options?)`,
   `atPointer(value, pointer)`, `applyPatch(value, patch)`, `formatJson(value, indent?)`,
   `gitStatus(output)` (up to 10000 files), `gitBranches(output)` (up to 10000 branches);
+- per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
+  `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
+  `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
+  `scan(list, expression, initial?)`.
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
