@@ -229,10 +229,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_options(affrescoui_surfaces PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_surfaces PRIVATE
 		AFFRESCOUI_SURFACES_SCREEN="${CMAKE_CURRENT_SOURCE_DIR}/tests/render/surfaces/surfaces.screen.json")
-	# Tempera, an image editor on the imaging module (examples/tempera/README.md)
-	add_subdirectory(examples/tempera)
-	# Bottega, Sinopia's slide sorter installed into Tempera with an adapter and a proof (examples/bottega/)
-	add_subdirectory(examples/bottega)
 	# The document server, headless: documents and their history on disk, shared with people (apps/server/README.md)
 	set(AFFRESCOUI_SERVER_SOURCES apps/server/DocumentServer.cpp apps/server/TokenFile.cpp
 	    apps/server/UserInfoVerifier.cpp)
@@ -268,9 +264,9 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
 		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/e2e_test.py ${CMAKE_BINARY_DIR})
-		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/bottega)
-		add_test(NAME bottega_e2e COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/bottega/e2e_test.py ${CMAKE_BINARY_DIR})
+		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/tempera/sorter)
+		add_test(NAME tempera_sorter_e2e COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/tempera/sorter/e2e_test.py ${CMAKE_BINARY_DIR})
 		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
 		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})

@@ -11,6 +11,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | 0 (start) | 9 | 22 | 27 |
 | 1 | 15 | 25 | 19 |
 | 2 | 15 | 28 | 17 |
+| 3 (a folder of files) | 17 | 27 | 17 |
 
 ## Workspace
 
@@ -91,8 +92,9 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | New document dialog with presets | missing | |
 | Canvas size, image size, rotate canvas | missing | |
 | Flatten, merge down | missing | |
-| Export as PNG/JPEG | partial | PNG only |
+| Export as PNG/JPEG | done | Through the library's image step |
 | Open and save its own format | done | |
+| Open a picture an agent proposes | done | An SVG or PNG asset in a revision, opened by its `run` once the person accepts it |
 | Undo/redo with the History panel | done | |
 | Keyboard shortcuts as the counterpart's | partial | Tools, menus, F12, Shift+F6; no bracket keys |
 | Assistant chat add-on (shared) | missing | Waiting for the shared add-on |

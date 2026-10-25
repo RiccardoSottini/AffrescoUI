@@ -2,13 +2,17 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Tempera, checked headless against the sample document (1200 × 800: Sky, Sun, Hills). The canvas is driven through the pointer action in document pixels. affrescoui_tempera_scenarios index.scenarios.json",
+	"note": "Tempera, checked headless against the sample document (1200 × 800: Sky, Sun, Hills). The canvas is driven through the pointer action in document pixels. affrescoui test index.scenarios.json",
 	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "tempera-opens-the-sample",
 			"note": "The sample opens with three layers, Hills active and a clean history",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"expect": {
 						"state": "doc.width",
@@ -63,6 +67,10 @@
 			"name": "tempera-tool-keys",
 			"note": "The single-letter keys choose the tools",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "v"
 				},
@@ -168,6 +176,10 @@
 			"name": "tempera-brush-paints",
 			"note": "A brush stroke paints the foreground, which the eyedropper then reads back",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -290,6 +302,10 @@
 			"note": "mod+Z undoes a step and mod+shift+Z redoes it",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "addLayer",
@@ -341,6 +357,10 @@
 			"note": "Choosing an older step in History goes back to it, and the later steps stay to redo",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "mod+shift+n"
 				},
 				{
@@ -386,6 +406,10 @@
 			"note": "New layer, group, duplicate and delete change the layer list",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "mod+j"
 				},
 				{
@@ -428,6 +452,10 @@
 			"note": "The eye hides a layer",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"wait": 50
 				},
 				{
@@ -451,6 +479,10 @@
 			"name": "tempera-opacity-and-blend",
 			"note": "Opacity and blend mode of the active layer",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -494,6 +526,10 @@
 			"note": "mod+down and mod+up move the active layer through the stack, and dragging a layer takes another's place",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "mod+down"
 				},
 				{
@@ -533,6 +569,10 @@
 			"name": "tempera-locks",
 			"note": "Locking pixels keeps a brush from painting",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -604,6 +644,10 @@
 			"note": "An adjustment layer goes above the active layer",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "addLayer",
@@ -630,6 +674,10 @@
 			"name": "tempera-mask-and-clipping",
 			"note": "A layer mask and a clipping mask",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "addLayerMask"
 				},
@@ -672,6 +720,10 @@
 			"name": "tempera-rectangle-and-ellipse",
 			"note": "Rectangle and ellipse selections, added and subtracted",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -777,6 +829,10 @@
 			"note": "A polygon selection intersected with a rectangle",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "select",
@@ -855,6 +911,10 @@
 			"name": "tempera-wand-and-colour-range",
 			"note": "The magic wand and colour range",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -949,6 +1009,10 @@
 			"note": "Feather and inverse change the selection",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "mod+a"
 				},
 				{
@@ -1013,6 +1077,10 @@
 			"note": "Q toggles the quick mask",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "q"
 				},
 				{
@@ -1036,6 +1104,10 @@
 			"name": "tempera-fill",
 			"note": "alt+Backspace fills the selection with the foreground",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "mod+shift+n"
 				},
@@ -1123,6 +1195,10 @@
 			"name": "tempera-gradient",
 			"note": "A gradient drag fills the layer",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "mod+shift+n"
 				},
@@ -1241,6 +1317,10 @@
 			"note": "A filter previews live; discarding leaves the pixels and the history alone",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "showFilter",
@@ -1295,6 +1375,10 @@
 			"note": "Applying a filter adds a history step",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "showFilter",
@@ -1324,6 +1408,10 @@
 			"name": "tempera-zoom",
 			"note": "Zoom keys and the status bar",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "mod+1"
 				},
@@ -1360,6 +1448,10 @@
 			"name": "tempera-rulers-and-guides",
 			"note": "Rulers toggle, and guides are added and cleared",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"key": "mod+r"
 				},
@@ -1418,6 +1510,10 @@
 			"note": "The theme switches between dark and light",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "toggleTheme"
 				},
 				{
@@ -1441,6 +1537,10 @@
 			"name": "tempera-profiles",
 			"note": "Working space and soft proofing show in the status bar",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -1497,6 +1597,10 @@
 			"note": "The New dialog creates a blank document",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"key": "mod+n"
 				},
 				{
@@ -1538,6 +1642,10 @@
 			"name": "tempera-crop",
 			"note": "Crop to selection resizes the document",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -1582,6 +1690,10 @@
 			"name": "tempera-colours",
 			"note": "D resets and X swaps the colours",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"action": "perform",
 					"event": {
@@ -1631,7 +1743,97 @@
 			"note": "An agent proposes a Filters panel; it waits for review, and once accepted its buttons open the filter dialog",
 			"steps": [
 				{
-					"action": "agentProposesFilterPanel"
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"propose": {
+						"author": "agent",
+						"message": "Add a Filters panel: one button per filter, above the Layers panel",
+						"add": {
+							"#panels/children/3": {
+								"type": "column",
+								"id": "filter-panel",
+								"role": "region",
+								"label": "Filters",
+								"width": "100%",
+								"height": 92,
+								"color": "@panel",
+								"gap": 6,
+								"children": [
+									{
+										"type": "label",
+										"id": "filter-panel-title",
+										"text": "Filters",
+										"textColor": "@muted",
+										"width": 120,
+										"height": 22,
+										"align": {
+											"horizontal": "start",
+											"vertical": "center"
+										},
+										"anchors": {
+											"left": 10
+										}
+									},
+									{
+										"type": "row",
+										"id": "filter-panel-buttons",
+										"width": "100%",
+										"height": 60,
+										"gap": 6,
+										"wrap": true,
+										"children": [
+											{
+												"id": "filter-panel-start",
+												"color": "transparent",
+												"width": 4,
+												"height": 26
+											},
+											{
+												"type": "label",
+												"id": "filter-panel-{{f.id}}",
+												"repeat": {
+													"for": "f",
+													"in": "state.filters",
+													"key": "{{f.id}}"
+												},
+												"role": "button",
+												"text": "{{f.title}}",
+												"textColor": "@text",
+												"padding": 6,
+												"height": 26,
+												"fitText": true,
+												"radius": 4,
+												"color": "@input",
+												"borderWidth": 1,
+												"borderColor": "@border",
+												"cursor": "hand",
+												"tooltip": "{{f.title}}...",
+												"hover": {
+													"color": "@hover"
+												},
+												"onClick": {
+													"run": "showFilter",
+													"with": {
+														"args": {
+															"kind": "{{f.id}}"
+														}
+													}
+												}
+											}
+										]
+									}
+								]
+							},
+							"#panels/children/4": {
+								"id": "filter-panel-split",
+								"width": "100%",
+								"height": 1,
+								"color": "@border"
+							}
+						}
+					}
 				},
 				{
 					"expect": {
@@ -1676,6 +1878,10 @@
 			"note": "The sample's layers with a blur previewing on the canvas, its dialog open (the gallery's scene, tools/media/gallery.json)",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "showFilter",
@@ -1706,13 +1912,17 @@
 			"note": "Numbers far past what a native takes are clamped to the nearest it can use: the view, the options, the wand, the history, the layer order and the crop",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"action": "perform",
 					"event": {
 						"run": "zoom",
 						"args": {
-							"by": 1e300,
-							"x": 1e300,
-							"y": -1e300
+							"by": 1e+300,
+							"x": 1e+300,
+							"y": -1e+300
 						}
 					}
 				},
@@ -1739,7 +1949,7 @@
 					"event": {
 						"run": "zoom",
 						"args": {
-							"by": -1e300
+							"by": -1e+300
 						}
 					}
 				},
@@ -1754,7 +1964,7 @@
 					"event": {
 						"run": "setOptions",
 						"args": {
-							"tolerance": 1e300
+							"tolerance": 1e+300
 						}
 					}
 				},
@@ -1781,14 +1991,14 @@
 							"points": [
 								{
 									"kind": "press",
-									"x": 1e300,
-									"y": -1e300,
-									"pressure": 1e300
+									"x": 1e+300,
+									"y": -1e+300,
+									"pressure": 1e+300
 								},
 								{
 									"kind": "release",
-									"x": 1e300,
-									"y": -1e300
+									"x": 1e+300,
+									"y": -1e+300
 								}
 							]
 						}
@@ -1800,8 +2010,8 @@
 						"run": "select",
 						"args": {
 							"kind": "wand",
-							"x": -1e300,
-							"y": 1e300
+							"x": -1e+300,
+							"y": 1e+300
 						}
 					}
 				},
@@ -1816,7 +2026,7 @@
 					"event": {
 						"run": "goToHistory",
 						"args": {
-							"position": 1e300
+							"position": 1e+300
 						}
 					}
 				},
@@ -1831,7 +2041,7 @@
 					"event": {
 						"run": "moveLayer",
 						"args": {
-							"by": -1e300
+							"by": -1e+300
 						}
 					}
 				},
@@ -1846,7 +2056,7 @@
 					"event": {
 						"run": "moveLayer",
 						"args": {
-							"by": 1e300
+							"by": 1e+300
 						}
 					}
 				},
@@ -1861,10 +2071,10 @@
 					"event": {
 						"run": "crop",
 						"args": {
-							"x": -1e300,
-							"y": -1e300,
-							"width": 1e300,
-							"height": 1e300
+							"x": -1e+300,
+							"y": -1e+300,
+							"width": 1e+300,
+							"height": 1e+300
 						}
 					}
 				},
@@ -1886,6 +2096,10 @@
 			"name": "tempera-tool-flyout",
 			"note": "A right click (here Shift+F10) on a grouped tool opens its other tools; the one chosen takes the group's place",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"click": "#tool-marquee"
 				},
@@ -1926,6 +2140,10 @@
 			"name": "tempera-zoom-field",
 			"note": "The status bar's zoom field takes a percentage",
 			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
 				{
 					"click": "#status-zoom"
 				},
@@ -1981,6 +2199,10 @@
 			"note": "The icon strip beside the dock opens History and the Navigator, one at a time",
 			"steps": [
 				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
 					"click": "#history-button"
 				},
 				{
@@ -2015,6 +2237,74 @@
 					"expect": {
 						"state": "popout.navigator",
 						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-opens-an-agents-picture",
+			"note": "An agent proposes a picture it drew (an SVG asset) and opening it: only the person accepts a revision with assets, and then it opens as a new image, the SVG drawn at twice its size (#63)",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"propose": {
+						"author": "agent",
+						"message": "A night sea to paint on",
+						"assets": [
+							{
+								"name": "night-sea.svg",
+								"type": "image/svg+xml",
+								"text": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"400\" viewBox=\"0 0 640 400\"><rect width=\"640\" height=\"400\" fill=\"#1d2a4a\"/><circle cx=\"470\" cy=\"110\" r=\"46\" fill=\"#f2ecd0\"/><path d=\"M0 260 Q160 230 320 260 T640 260 V400 H0 Z\" fill=\"#24557a\"/></svg>"
+							}
+						],
+						"run": [
+							{
+								"image": "open",
+								"of": "doc",
+								"with": {
+									"asset": "night-sea.svg"
+								}
+							}
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				},
+				{
+					"expect": {
+						"node": "#layer-name-7",
+						"exists": true
+					}
+				},
+				{
+					"action": "acceptAgentProposal"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1280
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 800
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 1
 					}
 				}
 			]

@@ -10,7 +10,7 @@ default socket and with `--socket DIR`, with a fresh data folder (`HOME` an empt
 older version of the screen (a history the screen no longer matches, and one that is damaged). Each run lasts
 `AFFRESCOUI_SCREENSHOT_AFTER` (5 s) and must then exit 0 by itself, print no error, and leave a frame that is drawn
 (at least MIN_COLOURS colours). A service without a window (`affrescoui_server`) must still be running after that long,
-a command without one (`affrescoui_bottega`) must have exited 0.
+a command without one must have exited 0.
 A program that isn't built (an option turned off) is skipped
 with a note. On Linux it runs under Xvfb (.github/workflows/ci.yml). Only the Python standard library is needed.
 """
@@ -42,8 +42,6 @@ WINDOW, SERVICE, COMMAND = "window", "service", "command"
 PROGRAMS = [
     ("host", "affrescoui_launcher", [], WINDOW),
     ("forge", "affrescoui_forge", [], WINDOW),
-    ("tempera", "affrescoui_tempera", [], WINDOW),
-    ("bottega", "affrescoui_bottega", [], COMMAND),  # plays Bottega's scenarios headless
     ("surfaces", "affrescoui_surfaces", [], WINDOW),
     ("embed", "affrescoui_embed", [], WINDOW),
     ("embed-texture", "affrescoui_embed", ["--texture"], WINDOW),
@@ -138,7 +136,7 @@ def run(program, build, way, seconds, keep):
         if name in FIRST:
             subprocess.run([executable] + placed(FIRST[name]), cwd=cwd, env=environment_for(home), capture_output=True,
                            timeout=GRACE_SECONDS, check=False)
-        if way != "default socket" and executable.endswith(("host", "forge", "modello", "tempera")):
+        if way != "default socket" and executable.endswith(("host", "forge", "modello")):
             absolute += ["--socket", socket]
         if way != "default socket" and executable.endswith("server"):
             absolute += ["--listen", f"127.0.0.1:{free_port()}"]  # runs side by side; the default way keeps 7420

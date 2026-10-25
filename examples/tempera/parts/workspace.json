@@ -429,11 +429,7 @@
 						  ] },
 						{ "id": "canvas-frame", "style": "clear", "grow": 1, "height": "100%",
 						  "children": [
-							{ "type": "surface", "id": "canvas", "label": "Image", "surface": "temperaCanvas", "fill": true,
-							  "continuous": "{{state.doc.selection}}",
-							  "params": { "zoom": "{{state.doc.view.zoom}}", "x": "{{state.doc.view.x}}", "y": "{{state.doc.view.y}}",
-							              "ants": "{{state.doc.selection}}", "quickMask": "{{state.doc.options.quickMask}}",
-							              "revision": "{{state.doc.revision}}", "checker": true } },
+							{ "type": "raster", "id": "canvas", "label": "Image", "image": "doc", "fill": true, "checker": true },
 							{ "id": "guide-v", "when": "{{state.view.guides}}", "repeat": { "for": "g", "in": "state.guides.vertical" },
 							  "x": "{{computed.canvasWidth / 2 + (g - state.doc.view.x) * computed.px}}", "width": 1,
 							  "anchors": { "top": 0, "bottom": 0 }, "color": "@guide" },
