@@ -16,6 +16,10 @@
 			"result": null,
 			"ran": null,
 			"collapsed": [],
+			"selected": null,
+			"menu": false,
+			"x": 0,
+			"y": 0,
 			"reload": [],
 			"replacing": null,
 			"skip": "build, node_modules, out, target, dist, __pycache__",
@@ -123,6 +127,54 @@
 				]
 			}
 		],
+		"searchDismiss": {
+			"title": "Dismiss",
+			"category": "Search",
+			"icon": "close",
+			"description": "Take the selected file or match out of the results; the files stay as they are.",
+			"enablement": "{{state.search.result != null && state.search.result.done && !empty(state.search.selected ?? '')}}",
+			"do": [
+				{
+					"if": "{{slice(state.search.selected, 0, 5) == 'file:'}}",
+					"then": [{ "run": "searchDismissFile", "with": { "file": "{{find(state.search.result.tree, it.id == state.search.selected)}}" } }],
+					"else": [
+						{
+							"run": "searchDismissHit",
+							"with": { "hit": "{{state.search.selected}}", "file": "{{find(state.search.result.tree, some(it.children, it.id == state.search.selected))}}" }
+						}
+					]
+				},
+				{ "set": "state.search.selected", "to": null }
+			]
+		},
+		"searchDismissFile": [
+			{
+				"if": "{{file != null}}",
+				"then": [
+					{
+						"set": "state.search.result",
+						"to": "{{merge(state.search.result, {tree: filter(state.search.result.tree, it.id != file.id), files: state.search.result.files - 1, matches: state.search.result.matches - length(file.children)})}}"
+					}
+				]
+			}
+		],
+		"searchDismissHit": [
+			{
+				"if": "{{file != null && length(file.children) <= 1}}",
+				"then": [{ "run": "searchDismissFile", "with": { "file": "{{file}}" } }],
+				"else": [
+					{
+						"if": "{{file != null}}",
+						"then": [
+							{
+								"set": "state.search.result",
+								"to": "{{merge(state.search.result, {tree: map(state.search.result.tree, it.id != file.id ? it : merge(it, {children: filter(it.children, it.id != hit), label: slice(it.label, 0, length(it.label) - length('(' + length(it.children) + ')')) + '(' + (length(it.children) - 1) + ')'})), matches: state.search.result.matches - 1})}}"
+							}
+						]
+					}
+				]
+			}
+		],
 		"openSearchMatch": [
 			{
 				"if": "{{hit != null}}",
@@ -207,6 +259,9 @@
 	"menus": {
 		"go": {
 			"findInFiles": { "run": "findInFiles", "group": "2_search", "order": 1 }
+		},
+		"searchResult": {
+			"dismiss": { "run": "searchDismiss", "group": "1_dismiss", "order": 1 }
 		}
 	},
 
@@ -247,7 +302,8 @@
 					},
 					{
 						"type": "tree", "id": "search-results", "when": "{{state.search.result != null}}", "width": "100%", "grow": 1,
-						"items": "{{state.search.result.tree}}", "expanded": "{{computed.searchExpanded}}", "rowHeight": 22, "color": "@color.sideBar",
+						"items": "{{state.search.result.tree}}", "expanded": "{{computed.searchExpanded}}", "bind": "state.search.selected",
+						"rowHeight": 22, "color": "@color.sideBar",
 						"textColor": "@color.text", "selectedTextColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent",
 						"onExpand": [
 							{
@@ -255,7 +311,17 @@
 								"to": "{{event.expanded ? filter(state.search.collapsed, it != event.id) : concat(state.search.collapsed, [event.id])}}"
 							}
 						],
-						"onOpen": { "run": "openSearchHit" }
+						"onOpen": { "run": "openSearchHit" },
+						"keys": { "delete": "searchDismiss", "backspace": "searchDismiss" },
+						"onContextMenu": [
+							{ "set": "state.search.x", "to": "{{event.x}}" },
+							{ "set": "state.search.y", "to": "{{event.y}}" },
+							{ "set": "state.search.menu", "to": true }
+						]
+					},
+					{
+						"use": "contextMenu", "id": "search-menu",
+						"with": { "open": "state.search.menu", "items": "{{menus.searchResult}}", "x": "{{state.search.x}}", "y": "{{state.search.y}}" }
 					},
 					{
 						"use": "dialog",

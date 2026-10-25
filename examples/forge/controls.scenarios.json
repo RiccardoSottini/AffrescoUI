@@ -165,6 +165,36 @@
 				{ "key": "enter" },
 				{ "expect": { "state": "features.selected", "is": "todoTree" } }
 			]
+		},
+		{
+			"name": "forge-controls-search-dismiss",
+			"note": "Delete, or Dismiss in the results' context menu (Shift+F10), takes a file or a match out of the search results",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "wait": 50 },
+				{ "click": "#search-query" },
+				{ "type": "o" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.files", "is": 2 } },
+				{ "expect": { "state": "search.result.matches", "is": 12 } },
+				{ "click": "#search-results" },
+				{ "expect": { "state": "search.selected", "is": "file:src/main.cpp" } },
+				{ "key": "delete" },
+				{ "expect": { "state": "search.result.files", "is": 1 } },
+				{ "expect": { "state": "search.result.tree.length", "is": 1 } },
+				{ "expect": { "state": "search.selected", "is": null } },
+				{ "click": "#search-results" },
+				{ "key": "end" },
+				{ "expect": { "state": "search.selected", "is": "hit:11" } },
+				{ "key": "shift+f10" },
+				{ "expect": { "state": "search.menu", "is": true } },
+				{ "click": "#search-menu" },
+				{ "expect": { "state": "search.menu", "is": false } },
+				{ "expect": { "state": "search.result.tree[0].label", "is": "README.md  (8)" } },
+				{ "expect": { "state": "search.result.tree[0].children.length", "is": 8 } },
+				{ "expect": { "state": "search.result.matches", "is": 8 } },
+				{ "expect": { "state": "search.selected", "is": null } }
+			]
 		}
 	]
 }
