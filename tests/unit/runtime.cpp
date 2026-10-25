@@ -39,6 +39,19 @@ affresco::Screen loadTemplate(const std::string& name) {
 	return screen;
 }
 
+/// @brief A node of a document, found by its id.
+/// @param node Where to look: a node, its children and theirs.
+/// @param id The id.
+/// @return The node, or null if there is none.
+json nodeWithId(const json& node, const std::string& id) {
+	if(!node.is_object()) return nullptr;
+	if(node.value("id", "") == id) return node;
+	if(node.contains("children") && node["children"].is_array())
+		for(const json& child : node["children"])
+			if(json found = nodeWithId(child, id); !found.is_null()) return found;
+	return nullptr;
+}
+
 /// @brief Clicks the middle of a panel, as the user would.
 /// @param window The window.
 /// @param panel The panel.
@@ -63,7 +76,9 @@ TEST_CASE("format: the Kanban template builds on a headless window, and a click 
 	REQUIRE(members);
 	REQUIRE(menu);
 	CHECK(members->isShown());
-	CHECK(members->frame().width() == 140.0f);
+	const json declared = nodeWithId(json::parse(screen.documentJson())["root"], "members"); // the template's to change
+	REQUIRE(declared.contains("width"));
+	CHECK(members->frame().width() == declared["width"].get<float>());
 	CHECK_FALSE(menu->isShown());
 
 	clickOn(*window, *members);
