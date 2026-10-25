@@ -306,11 +306,14 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"sashActiveColor", "color", "", "split"},
     {"tabs", R"json({"anyOf": [{"type": "array", "maxItems": 10000, "items": {"anyOf": [{"type": "string"},
 		{"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}, "label": {"type": "string"},
-		"marker": {"type": "boolean"}, "closable": {"type": "boolean"}}}]}}, {"$ref": "#/$defs/v2/dynamic"}],
-		"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable }"})json",
+		"marker": {"type": "boolean"}, "closable": {"type": "boolean"}, "icon": {"type": ["string", "null"]},
+		"iconColor": {"type": ["string", "null"]}}}]}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable, icon, iconColor }"})json",
 	 "The tabs, in order (or a binding such as `\"{{state.open}}\"`): a string (its id and label), or `{ \"id\", "
-	 "\"label\", \"marker\", \"closable\" }`. "
-	 "`marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most "
+	 "\"label\", \"marker\", \"closable\", \"icon\", \"iconColor\" }`. "
+	 "`marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true; `icon` "
+	 "names a glyph of the strip's font or its fallbacks, drawn before the label in `iconColor` (a hex colour; "
+	 "default the label's), as a list item's. At most "
 	 "10,000; the strip scrolls sideways when they don't fit.",
 	 "tabs"},
     {"value", "", "The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`.", "tabs"},

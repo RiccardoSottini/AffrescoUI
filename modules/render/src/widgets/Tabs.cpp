@@ -112,8 +112,12 @@ void Tabs::arrange() {
 		Place& place = places_[i];
 		place.text = detail::fromUtf8(tabs_[i].label);
 		const float text = labels ? std::ceil(labels->measure(place.text)) : 0.0f;
+		place.icon = labels && !tabs_[i].icon.empty() ? labels->codepointNamed(tabs_[i].icon) : 0;
+		place.iconWidth = place.icon != 0
+		                      ? std::round(labels->measure(std::u32string_view(&place.icon, 1)) + labels->measure(U" "))
+		                      : 0.0f;
 		place.left = left;
-		place.width = padding + text + (hasButton(tabs_[i]) ? closeGap + closeSize : 0.0f) + padding;
+		place.width = padding + place.iconWidth + text + (hasButton(tabs_[i]) ? closeGap + closeSize : 0.0f) + padding;
 		left += place.width;
 	}
 	contentWidth_ = left;
@@ -266,7 +270,11 @@ void Tabs::paintTab(Painter& painter, const Font& font, std::size_t index) const
 		painter.fillRect({area.left, lineTop, area.right, lineTop + underline}, accent_);
 	}
 	const float baseline = std::round(f.top + (f.height() - font.lineHeight()) / 2.0f + font.ascent());
-	painter.drawText(font, place.text, {left + padding, baseline}, active ? activeText_ : text_);
+	const Color label = active ? activeText_ : text_;
+	if(place.icon != 0)
+		painter.drawText(font, std::u32string_view(&place.icon, 1), {left + padding, baseline},
+		                 tab.iconColor.value_or(label));
+	painter.drawText(font, place.text, {left + padding + place.iconWidth, baseline}, label);
 
 	// The close button when it can be used now, else the marker (kept on the active tab too, if asked)
 	const float buttonLeft = area.right - padding - closeSize, middle = f.top + f.height() / 2.0f;

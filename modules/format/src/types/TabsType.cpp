@@ -21,12 +21,16 @@ namespace {
 
 constexpr std::size_t maxTabs = 10'000; ///< The most tabs a strip reads (untrusted input).
 
-/// @brief Reads one tab: a string (its id and label) or {id, label, marker, closable}.
+/// @brief Reads one tab: a string (its id and label) or {id, label, marker, closable, icon, iconColor}.
 /// @param value The tab.
 /// @param path Its place, for errors.
 /// @return The tab.
 Tab readTab(const json& value, const std::string& path) {
-	if(value.is_string()) return Tab{value.get<std::string>(), value.get<std::string>()};
+	if(value.is_string()) {
+		Tab tab;
+		tab.id = tab.label = value.get<std::string>();
+		return tab;
+	}
 	object(value, path);
 	Tab tab;
 	tab.id = value.contains("id") ? text(value["id"]) : std::string();
@@ -34,6 +38,12 @@ Tab readTab(const json& value, const std::string& path) {
 	tab.label = value.contains("label") ? text(value["label"]) : tab.id;
 	tab.marker = value.contains("marker") && boolean(value["marker"], path + ".marker");
 	tab.closable = !value.contains("closable") || boolean(value["closable"], path + ".closable");
+	if(value.contains("icon") && !value["icon"].is_null()) tab.icon = text(value["icon"]);
+	if(value.contains("iconColor") && !value["iconColor"].is_null()) {
+		tab.iconColor =
+		    value["iconColor"].is_string() ? Color::parseHex(value["iconColor"].get<std::string>()) : std::nullopt;
+		if(!tab.iconColor) fail(path + ".iconColor", "expected a hex colour: #rgb, #rrggbb or #rrggbbaa");
+	}
 	return tab;
 }
 

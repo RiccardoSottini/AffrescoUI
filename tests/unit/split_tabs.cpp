@@ -101,7 +101,7 @@ struct TabsFixture {
 		tabs = &window->root().add<Tabs>();
 		tabs->setSize(px(width), px(32));
 		std::vector<Tab> list;
-		for(const std::string& id : ids) list.push_back(Tab{id, id});
+		for(const std::string& id : ids) list.push_back(Tab{.id = id, .label = id});
 		tabs->setTabs(list);
 		tabs->setActive("a");
 		tabs->onActivated.connect([this](const std::string& id) { activated.push_back(id); });
@@ -221,7 +221,8 @@ TEST_CASE("tabs: a click picks a tab, its close button asks to close it, and key
 	CHECK(fixture.closed == std::vector<std::string>{"c", "c"});
 
 	// A tab that can't close has no close button
-	fixture.tabs->setTabs({Tab{"a", "a"}, Tab{"b", "b", false, false}});
+	fixture.tabs->setTabs(
+	    {Tab{.id = "a", .label = "a"}, Tab{.id = "b", .label = "b", .marker = false, .closable = false}});
 	fixture.window->render();
 	CHECK(fixture.tabs->tabAt(TabsFixture::label(1)) == 1);
 	CHECK(fixture.tabs->tabAt({300.0f, 16.0f}) == 2);
@@ -357,4 +358,30 @@ TEST_CASE("tabs node: a marker's colour, and a tab keeping its marker still clos
 	CHECK(error.find("markerColor") != std::string::npos);
 	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/keepMarker": 1}})", &error));
 	CHECK(error.find("keepMarker") != std::string::npos);
+}
+
+TEST_CASE("tabs node: a tab's icon and its colour, and a colour that isn't one refused") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(300, 200, clock);
+	auto screen = affresco::Screen::fromString(R"({
+		"format": "affrescoui-screen", "version": 2,
+		"root": { "id": "root", "children": [
+			{ "type": "tabs", "id": "strip", "width": 300, "height": 32, "value": "a",
+			  "tabs": [{ "id": "a", "icon": "file-code", "iconColor": "#5ea7cf" }, { "id": "b", "icon": null }, "c"] }
+		] }
+	})");
+	screen.build(*window);
+	window->render();
+	const auto* strip = dynamic_cast<affresco::Tabs*>(screen.find("strip"));
+	REQUIRE(strip != nullptr);
+	REQUIRE(strip->tabs().size() == 3);
+	CHECK(strip->tabs()[0].icon == "file-code");
+	CHECK(strip->tabs()[0].iconColor == affresco::Color::parseHex("#5ea7cf"));
+	CHECK(strip->tabs()[1].icon.empty());
+	CHECK_FALSE(strip->tabs()[2].iconColor.has_value());
+	CHECK(strip->tabAt({tabWidth + 1.0f, 16.0f}) == 1); // no font: an icon it can't draw takes no room
+
+	std::string error;
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#strip/tabs": [{ "id": "a", "iconColor": "teal" }]}})", &error));
+	CHECK(error.find("iconColor") != std::string::npos);
 }

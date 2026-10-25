@@ -2916,6 +2916,18 @@
 												},
 												"closable": {
 													"type": "boolean"
+												},
+												"icon": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"iconColor": {
+													"type": [
+														"string",
+														"null"
+													]
 												}
 											}
 										}
@@ -2926,7 +2938,7 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
-						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable }"
+						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable, icon, iconColor }"
 					},
 					"activeTextColor": {
 						"$ref": "#/$defs/v2/color"
