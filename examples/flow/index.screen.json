@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Flow: a kanban board. Boards are tabs; the board, swimlanes by member, a table of every card or a timeline of due dates shares a split with the chosen card's drawer, or the board's insights. Drag a card to another column, use « and », Alt and the arrows, or right-click it for its menu; double-click it or press Cmd+Enter to open it as a page, Enter to edit it. Cmd+P goes to a card, Cmd+Shift+P runs a command, Cmd+N types a new card, Cmd+F searches, Cmd+Z undoes, Cmd+J switches light and dark, Cmd+L the language, Cmd+, opens the settings, Escape closes the issue page, then clears the filters.",
+	"note": "Flow: an issue tracker with a kanban board. Boards are rows of the sidebar, next to the inbox, the sprints and the projects; the board, a grouped list, swimlanes by member, a table of every card or a timeline of due dates shares a split with the chosen card's drawer, or the board's insights. Drag a card to another column, use the drawer's arrows, Alt and the arrows, or right-click it for its menu; double-click it or press Cmd+Enter to open it as a page, Enter to edit it. Cmd+P goes to a card, Cmd+Shift+P runs a command, Cmd+N types a new card, Cmd+F searches, Cmd+Z undoes, Cmd+J switches light and dark, Cmd+L the language, Cmd+, opens the settings, Escape closes the issue page, then clears the filters.",
 
 	"window": { "title": "Flow: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
@@ -110,6 +110,8 @@
 		"scope": "all", "order": "manual", "hidden": [],
 		"fStatus": -1,
 		"fPrio": -1,
+		"fProject": -1,
+
 		"filterProp": "",
 		"filterQuery": "",
 		"filterProps": [["status", "circle"], ["assignee", "circle-user"], ["priority", "chevrons-up"], ["label", "tag"]],
@@ -180,9 +182,9 @@
 		"tableColumns": "{{[{ id: 'ref', title: t('table.id'), width: state.columnWidths.ref }, { id: 'priority', title: t('table.priority'), width: state.columnWidths.priority }, { id: 'title', title: t('table.card'), width: state.columnWidths.title }, { id: 'column', title: t('table.column'), width: state.columnWidths.column }, { id: 'tag', title: t('table.label'), width: state.columnWidths.tag }, { id: 'who', title: t('table.owner'), width: state.columnWidths.who }, { id: 'points', title: t('table.points'), width: state.columnWidths.points }]}}",
 		"paletteFirst": "{{filter(commands, it.enabled && contains(['changeStatus', 'changePriority', 'changeAssignee', 'assignToMe', 'editCard', 'openIssue'], it.name))}}",
 		"palette": "{{map(concat(computed.paletteFirst, filter(commands, it.enabled && it.category == 'Issue' && !contains(map(computed.paletteFirst, it.name), it.name)), filter(commands, it.enabled && it.category != 'Issue')), { title: it.title, detail: it.keyLabel ?? '', run: it.name })}}",
-		"matches": "{{filter(computed.allCards, (state.scope == 'all' || (state.scope == 'backlog' ? it.c == 0 : it.c > 0 && it.c < length(computed.columns) - 1)) && (state.filter == 'all' || it.tag == state.filter) && (state.fStatus < 0 || it.c == state.fStatus) && (state.fPrio < 0 || (it.priority ?? 0) == state.fPrio) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
+		"matches": "{{filter(computed.allCards, (state.scope == 'all' || (state.scope == 'backlog' ? it.c == 0 : it.c > 0 && it.c < length(computed.columns) - 1)) && (state.filter == 'all' || it.tag == state.filter) && (state.fStatus < 0 || it.c == state.fStatus) && (state.fPrio < 0 || (it.priority ?? 0) == state.fPrio) && (state.fProject < 0 || (state.projectOf[it.tag] ?? 0) == state.fProject) && (state.query == '' || fuzzy(state.query, it.title) != null))}}",
 		"filterOptions": "{{state.filterProp == 'status' ? map(computed.columns, { v: index, title: it.name, icon: state.statusIcons[index] ?? 'circle', color: it.color, on: state.fStatus == index }) : state.filterProp == 'assignee' ? map(state.members, { v: it.who, title: it.name, icon: 'circle-user', color: it.color, on: state.owner == it.who }) : state.filterProp == 'priority' ? map(state.priorities, { v: index, title: t('priority.' + index), icon: it, color: '@color.muted', on: state.fPrio == index }) : map(slice(state.filters, 1), { v: it, title: t('tag.' + it), icon: 'circle', color: '@' + it, on: state.filter == it })}}",
-		"activeFilters": "{{concat(state.fStatus >= 0 ? [{ prop: 'status', value: computed.columns[state.fStatus].name }] : [], state.owner != '' ? [{ prop: 'assignee', value: find(state.members, it.who == state.owner).name ?? state.owner }] : [], state.fPrio >= 0 ? [{ prop: 'priority', value: t('priority.' + state.fPrio) }] : [], state.filter != 'all' ? [{ prop: 'label', value: t('tag.' + state.filter) }] : [])}}",
+		"activeFilters": "{{concat(state.fStatus >= 0 ? [{ prop: 'status', value: computed.columns[state.fStatus].name }] : [], state.owner != '' ? [{ prop: 'assignee', value: find(state.members, it.who == state.owner).name ?? state.owner }] : [], state.fPrio >= 0 ? [{ prop: 'priority', value: t('priority.' + state.fPrio) }] : [], state.filter != 'all' ? [{ prop: 'label', value: t('tag.' + state.filter) }] : [], state.fProject >= 0 ? [{ prop: 'project', value: data.projects[state.fProject].name }] : [])}}",
 		"filterPropsShown": "{{filter(state.filterProps, state.filterQuery == '' || fuzzy(state.filterQuery, t('filter.' + it[0])) != null)}}",
 		"filterOptionsShown": "{{filter(computed.filterOptions, state.filterQuery == '' || fuzzy(state.filterQuery, it.title) != null)}}",
 		"matchRefs": "{{map(computed.matches, it.ref)}}",
@@ -227,7 +229,9 @@
 			"color": "transparent",
 			"hover": { "color": "@color.topLine" },
 			"textColor": "@color.topText",
-			"cursor": "hand"
+			"cursor": "hand",
+			"focusable": true,
+			"role": "button"
 		},
 		"detailButton": {
 			"type": "label",
@@ -313,7 +317,8 @@
 			{ "if": "{{prop == 'status'}}", "then": [{ "set": "state.fStatus", "to": -1 }] },
 			{ "if": "{{prop == 'assignee'}}", "then": [{ "set": "state.owner", "to": "" }] },
 			{ "if": "{{prop == 'priority'}}", "then": [{ "set": "state.fPrio", "to": -1 }] },
-			{ "if": "{{prop == 'label'}}", "then": [{ "set": "state.filter", "to": "all" }] }
+			{ "if": "{{prop == 'label'}}", "then": [{ "set": "state.filter", "to": "all" }] },
+			{ "if": "{{prop == 'project'}}", "then": [{ "set": "state.fProject", "to": -1 }] }
 		],
 		"openComposer": [
 			{ "note": "with: c, the column the new card goes to" },
@@ -352,7 +357,8 @@
 		"openColumnMenu": [
 			{ "note": "with: c; below the column's … button" },
 			{ "set": "state.menuColumn", "to": "{{c}}" },
-			{ "set": "state.menuAt", "to": { "x": "{{event.x}}", "y": "{{event.y + 12}}" } },
+			{ "note": "a keyboard press carries no position: the menu opens at the board's top start corner" },
+			{ "set": "state.menuAt", "to": { "x": "{{event.x ?? 244}}", "y": "{{(event.y ?? 108) + 12}}" } },
 			{ "set": "state.columnMenu", "to": true }
 		],
 		"columnNew": { "title": "New issue in this status", "icon": "plus", "enablement": "{{state.columnMenu}}",
@@ -360,12 +366,14 @@
 		"columnSelect": { "title": "Select all in this status", "icon": "list-checks", "enablement": "{{state.columnMenu}}",
 			"do": [{ "set": "state.columnMenu", "to": false }, { "set": "state.marked", "to": "{{map(filter(computed.visible, it.c == state.menuColumn), it.ref)}}" }] },
 		"goToCard": [
-			{ "note": "with: item, a quick pick row" },
-			{ "set": "state.view", "to": "board" },
+			{ "note": "with: item, a quick pick row; from another page, back to the issues, in the board, list or table it showed" },
+			{ "run": "showPage", "with": { "page": "issues" } },
+			{ "if": "{{state.view == 'timeline'}}", "then": [{ "set": "state.view", "to": "board" }] },
 			{ "set": "state.filter", "to": "all" },
 			{ "set": "state.owner", "to": "" },
 			{ "set": "state.fStatus", "to": -1 },
 			{ "set": "state.fPrio", "to": -1 },
+			{ "set": "state.fProject", "to": -1 },
 			{ "set": "state.scope", "to": "all" },
 			{ "set": "state.query", "to": "" },
 			{ "run": "selectCard", "with": { "c": "{{item.c}}", "i": "{{item.at}}" } }
@@ -435,7 +443,8 @@
 			"do": [{ "set": "state.theme", "to": "{{state.theme == 'light' ? 'dark' : 'light'}}" }] },
 		"togglePeek": { "title": "Show or hide the side panel", "category": "View", "icon": "panel-right", "do": [{ "toggle": "state.peek" }] },
 		"clearFilters": { "title": "Clear the filters", "category": "View",
-			"do": [{ "set": "state.filter", "to": "all" }, { "set": "state.owner", "to": "" }, { "set": "state.fStatus", "to": -1 }, { "set": "state.fPrio", "to": -1 }, { "set": "state.query", "to": "" }] }
+			"do": [{ "set": "state.filter", "to": "all" }, { "set": "state.owner", "to": "" }, { "set": "state.fStatus", "to": -1 }, { "set": "state.fPrio", "to": -1 }, { "set": "state.query", "to": "" },
+				{ "set": "state.fProject", "to": -1 }, { "set": "state.scope", "to": "all" }, { "set": "state.searchOpen", "to": false }] }
 	},
 
 	"keys": {
@@ -444,7 +453,7 @@
 		"mod+p": "goToCardCommand",
 		"mod+shift+p": "commandPalette",
 		"mod+k": "commandPalette",
-		"f": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": [{ "set": "state.filterQuery", "to": "" }, { "toggle": "state.filterOpen" }, { "focus": "#filterField" }] },
+		"f": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": [{ "set": "state.filterQuery", "to": "" }, { "set": "state.filterProp", "to": "" }, { "toggle": "state.filterOpen" }, { "focus": "#filterField" }] },
 		"j": [{ "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "nextNotification" }, { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "selectNext" }],
 		"k": [{ "when": "{{!context.textInputFocus && state.page == 'inbox'}}", "do": "previousNotification" }, { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "selectPrev" }],
 		"s": { "when": "{{!context.textInputFocus && state.page == 'issues'}}", "do": "changeStatus" },
@@ -840,7 +849,7 @@
 																"role": "button",
 																"label": "{{t('card.label', { title: card.title, tag: t('tag.' + card.tag), who: find(state.members, it.who == card.who).name ?? card.who, column: column.name })}}",
 																"onFocus": { "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } },
-																"keys": { "enter": "editCard", "space": "togglePeek", "shift+f10": { "run": "openCardMenu", "with": { "c": "{{c}}", "i": "{{i}}" } } },
+																"keys": { "enter": "editCard", "space": "togglePeek" },
 																"drag": { "data": { "from": "{{c}}", "at": "{{i}}" } },
 																"dragging": { "color": "@color.column", "borderColor": "@color.border", "shadow": { "y": 0, "blur": 0, "color": "#00000000" } },
 																"onClick": { "run": "selectCard", "with": { "c": "{{c}}", "i": "{{i}}" } },

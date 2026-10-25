@@ -57,7 +57,7 @@
 						"wrap": true,
 						"textColor": "@color.text",
 						"runs": "{{concat(computed.card.notes == null || computed.card.notes == '' ? [t('detail.noNotes')] : map(split(computed.card.notes, '*'), { text: it, bold: index % 2 == 1 }), [' ', { text: computed.card.linkText ?? '', link: computed.card.link ?? '' }])}}",
-						"onLink": { "run": "notify", "with": { "message": "{{t('toast.opening', { link: event.link })}}" } }
+						"onLink": [{ "copy": "{{event.link}}" }, { "run": "notify", "with": { "message": "{{t('toast.linkCopied', { link: event.link })}}" } }]
 					},
 					{ "id": "notesEditor", "when": "{{state.draft.editing}}", "type": "editor", "anchors": { "left": 12, "right": 12 }, "height": 110, "radius": "@radius.chip",
 						"color": "@color.input", "textColor": "@color.text", "wrap": true, "grammar": "markdown", "bind": "state.draft.notes", "autofocus": true,
@@ -70,6 +70,8 @@
 						{ "id": "detailEdit", "style": "detailButton", "text": "{{window.width < 1440 ? '' : t('detail.edit')}}", "label": "{{t('detail.edit')}}", "tooltip": "{{t('detail.edit')}}", "icon": "pencil", "focusable": true, "role": "button", "onClick": "editCard" },
 						{ "id": "detailNotesEdit", "style": "detailButton", "text": "", "icon": "file-pen-line", "focusable": true, "role": "button",
 							"tooltip": "{{t('detail.editNotes')}}", "label": "{{t('detail.editNotes')}}", "onClick": "editNotes" },
+						{ "id": "detailLeft", "style": "detailButton", "text": "", "label": "{{t('detail.left')}}", "tooltip": "{{t('detail.left')}}", "icon": "arrow-left", "mirror": true, "focusable": true, "role": "button",
+							"when": "{{state.selected.c > 0}}", "onClick": "moveLeft" },
 						{ "id": "detailRight", "style": "detailButton", "text": "{{window.width < 1440 ? '' : t('detail.right')}}", "label": "{{t('detail.right')}}", "tooltip": "{{t('detail.right')}}", "icon": "arrow-right", "mirror": true, "focusable": true, "role": "button",
 							"when": "{{state.selected.c < computed.lastColumn}}", "onClick": "moveRight" },
 						{ "id": "detailDelete", "style": "detailButton", "text": "{{window.width < 1440 ? '' : t('detail.delete')}}", "label": "{{t('detail.delete')}}", "tooltip": "{{t('detail.delete')}}", "icon": "trash-2", "textColor": "@bug", "focusable": true, "role": "button", "onClick": "deleteCard" },

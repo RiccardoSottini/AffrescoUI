@@ -128,9 +128,10 @@
 								"onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "switchBoard", "with": { "id": "{{b.id}}" } }]
 							},
 							{ "id": "navHeadingTeams", "use": "navHeading", "with": { "text": "{{t('nav.teams')}}" } },
-							{ "id": "navTeam", "use": "navItem", "with": { "icon": "square", "text": "Flow" }, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "showBoard" }] },
+							{ "id": "navTeam", "use": "navItem", "with": { "icon": "square", "text": "Flow" }, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "switchBoard", "with": { "id": "{{state.boards[0].id}}" } },
+									{ "set": "state.owner", "to": "" }, { "run": "showBoard" }] },
 							{ "id": "navIssues", "use": "navItem", "with": { "icon": "copy", "text": "{{t('nav.issues')}}", "active": "{{state.page == 'issues' && state.owner != state.me && state.boardId == state.boards[0].id}}" },
-								"padding": 26, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "set": "state.owner", "to": "" }] },
+								"padding": 26, "onClick": [{ "run": "showPage", "with": { "page": "issues" } }, { "run": "switchBoard", "with": { "id": "{{state.boards[0].id}}" } }, { "set": "state.owner", "to": "" }] },
 							{ "id": "navCycles", "use": "navItem", "with": { "icon": "timer", "text": "{{t('nav.cycles')}}", "active": "{{state.page == 'cycles'}}" }, "padding": 26, "onClick": "goToCycles" },
 							{ "id": "navProjects", "use": "navItem", "with": { "icon": "box", "text": "{{t('nav.projects')}}", "active": "{{state.page == 'projects'}}" }, "padding": 26, "onClick": "goToProjects" }
 						]
