@@ -1292,11 +1292,13 @@ An action is a list of steps. Each step is an object whose first key says what i
 
 ### Control steps and paths
 
-**Control steps** (`call`, `send`, `connect`, `patch` and the review and history steps) can be written in the screen
-file, but no revision may add or change them: an agent can rearrange how the app uses the outside world and its own
-history, never widen it. Nor may a revision move one to another trigger (a button's `onClick`, an `every` timer,
-`keys`, `watch`, `onLoad`), or add a `run` or a handler that names an action with control steps, a native action, or
-a computed action name.
+**Control steps** (`call`, `send`, `connect`, `patch`, `ask` and `cancelAsk`, and the review and history steps) can
+be written in the screen file, but no revision may add or change them: an agent can rearrange how the app uses the
+outside world and its own history, never widen it, nor ask the agents in the person's name. Nor may a revision move
+one to another trigger (a button's `onClick`, an `every` timer, `keys`, `watch`, `onLoad`), or add a `run` or a
+handler that names an action with control steps, a native action, or a computed action name. A service step
+(`invoke`, `request`, `subscribe`) that writes or runs is reviewed when a revision adds it, copies it or changes its
+`with`.
 
 Only paths under `state` can be changed. A step can't write inside a value that is neither an object nor a list, nor
 more than 10,000 positions past a list's end (the positions between are filled with `null`). After an event's steps

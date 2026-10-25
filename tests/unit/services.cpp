@@ -382,6 +382,17 @@ TEST_CASE("services: revisions use declared, revisable methods only; writes are 
 	CHECK(add(json::array({{{"invoke", "files.nothing"}}})).status == RevisionStatus::Rejected);
 	CHECK(add(json::array({{{"invoke", "{{state.text}}"}}})).status == RevisionStatus::Rejected);
 	CHECK(add(json::array({{{"respond", "yes"}}})).status == RevisionStatus::Rejected);
+
+	// A write the screen already has, its arguments changed (another path) or moved to another action: reviewed too
+	REQUIRE_FALSE(repository.accept(write.proposal, {"user", write.commit}));
+	const affresco::RevisionResult elsewhere =
+	    repository.submit({{"author", "agent"}, {"set", {{"/actions/go/0/with/path", "../other"}}}});
+	CHECK(elsewhere.status == RevisionStatus::Proposed);
+	CHECK(repository.submit({{"author", "agent"}, {"set", {{"/actions/go/0/into", "state.text"}}}}).status ==
+	      RevisionStatus::Applied); // where the result goes is the screen's own
+	const json go = repository.document()["actions"]["go"];
+	CHECK(repository.submit({{"author", "agent"}, {"add", {{"/actions/again", go}}}}).status ==
+	      RevisionStatus::Proposed);
 	CHECK(repository.submit({{"author", "agent"}, {"set", {{"/services/files/root", "elsewhere"}}}}).status ==
 	      RevisionStatus::Rejected);
 }
