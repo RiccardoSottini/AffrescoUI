@@ -221,7 +221,10 @@
 			"title": "Redo",
 			"category": "Editing",
 			"description": "Redoes what the last undo undid.",
-			"do": [{ "run": "edit-key", "with": { "k": "ctrl+shift+z" } }, { "run": "message", "with": { "m": "Redo" } }]
+			"do": [
+				{ "run": "edit-key", "with": { "k": "ctrl+shift+z" } },
+				{ "run": "message", "with": { "m": "Redo" } }
+			]
 		},
 		"set-mark-command": {
 			"title": "Set Mark",
@@ -311,7 +314,10 @@
 			"do": [
 				{
 					"if": "{{length(computed.wins) == 1}}",
-					"then": [{ "run": "message", "with": { "m": "Can't remove the frame's only window" } }, { "stop": true }]
+					"then": [
+						{ "run": "message", "with": { "m": "Can't remove the frame's only window" } },
+						{ "stop": true }
+					]
 				},
 				{
 					"run": "delete-window-at",
@@ -377,7 +383,9 @@
 			{
 				"if": "{{contains(computed.names, value)}}",
 				"then": [{ "run": "show", "with": { "b": "{{state.order[indexOf(computed.names, value)]}}" } }],
-				"else": [{ "run": "open-buffer", "with": { "buffer": "{{ {name: value, mode: 'fundamental', text: ''} }}" } }]
+				"else": [
+					{ "run": "open-buffer", "with": { "buffer": "{{ {name: value, mode: 'fundamental', text: ''} }}" } }
+				]
 			}
 		],
 		"find-file": {
@@ -425,7 +433,10 @@
 				},
 				{
 					"run": "write-file-to",
-					"with": { "b": "{{computed.cur}}", "i": "{{indexOf(map(state.files, it.path), computed.buf.file)}}" }
+					"with": {
+						"b": "{{computed.cur}}",
+						"i": "{{indexOf(map(state.files, it.path), computed.buf.file)}}"
+					}
 				}
 			]
 		},
@@ -525,7 +536,10 @@
 		"minibuffer-exit": [
 			{
 				"run": "minibuffer-done",
-				"with": { "value": "{{state.mb.text == '' ? state.mb.def : state.mb.text}}", "kind": "{{state.mb.kind}}" }
+				"with": {
+					"value": "{{state.mb.text == '' ? state.mb.def : state.mb.text}}",
+					"kind": "{{state.mb.kind}}"
+				}
 			}
 		],
 		"minibuffer-done": [
@@ -611,7 +625,10 @@
 				"do": [{ "if": "{{state.mb.note == note}}", "then": [{ "set": "state.mb.note", "to": "" }] }]
 			}
 		],
-		"minibuffer-set": [{ "set": "state.mb.text", "to": "{{value}}" }, { "after": 0, "do": [{ "press": "cmd+right", "in": "#mb" }] }],
+		"minibuffer-set": [
+			{ "set": "state.mb.text", "to": "{{value}}" },
+			{ "after": 0, "do": [{ "press": "cmd+right", "in": "#mb" }] }
+		],
 		"minibuffer-complete": [
 			{
 				"if": "{{length(computed.mbMatches) == 0}}",
@@ -635,7 +652,9 @@
 			},
 			{ "set": "state.mb.comp", "to": "{{computed.mbMatches}}" }
 		],
-		"minibuffer-choose": [{ "run": "minibuffer-done", "with": { "value": "{{value}}", "kind": "{{state.mb.kind}}" } }],
+		"minibuffer-choose": [
+			{ "run": "minibuffer-done", "with": { "value": "{{value}}", "kind": "{{state.mb.kind}}" } }
+		],
 		"minibuffer-history": [
 			{
 				"if": "{{state.mb.hi + step >= length((state.mb.hist[state.mb.kind] ?? []))}}",
@@ -648,7 +667,9 @@
 			{ "increment": "state.mb.hi", "by": "{{step}}" },
 			{
 				"run": "minibuffer-set",
-				"with": { "value": "{{state.mb.hi < 0 ? state.mb.def : (state.mb.hist[state.mb.kind] ?? [])[state.mb.hi]}}" }
+				"with": {
+					"value": "{{state.mb.hi < 0 ? state.mb.def : (state.mb.hist[state.mb.kind] ?? [])[state.mb.hi]}}"
+				}
 			}
 		],
 		"universal-argument": {
@@ -891,7 +912,10 @@
 		"isearch-end": [
 			{ "if": "{{state.is.text != ''}}", "then": [{ "set": "state.is.last", "to": "{{state.is.text}}" }] },
 			{ "set": "state.is.on", "to": false },
-			{ "set": "state.mark", "to": "{{ {on: false, line: state.is.start.line, column: state.is.start.column} }}" },
+			{
+				"set": "state.mark",
+				"to": "{{ {on: false, line: state.is.start.line, column: state.is.start.column} }}"
+			},
 			{
 				"after": 0,
 				"do": [

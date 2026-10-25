@@ -54,7 +54,15 @@
 			"dired": { "title": "Dired by name", "menu": "dired" },
 			"buffer-menu": { "title": "Buffer Menu", "menu": "bufferMenu" }
 		},
-		"modeFor": { "py": "python", "c": "c", "h": "c", "el": "emacs-lisp", "md": "markdown", "org": "org", "txt": "text" },
+		"modeFor": {
+			"py": "python",
+			"c": "c",
+			"h": "c",
+			"el": "emacs-lisp",
+			"md": "markdown",
+			"org": "org",
+			"txt": "text"
+		},
 		"keyread": { "on": false, "seq": "" },
 		"argDigits": false,
 		"argU": 0,
