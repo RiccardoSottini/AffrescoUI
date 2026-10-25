@@ -15,6 +15,7 @@
 
 namespace affresco {
 
+class Bitmap;
 class Window;
 struct MenuItem;
 struct FileDialog;
@@ -51,6 +52,9 @@ public:
 	/// @brief Sets the title.
 	/// @param title The title.
 	virtual void setTitle(const std::string& title) = 0;
+	/// @brief Sets the icon (see Window::setIcon()); the pixels are copied.
+	/// @param icon The image, or nullptr for the system's default.
+	virtual void setIcon(const Bitmap* icon) = 0;
 	/// @brief Resizes the OS window.
 	/// @param width In window units.
 	/// @param height In window units.

@@ -28,6 +28,7 @@ cmake --build "$build" --target affrescoui_launcher affrescoui_cli
 rm -rf "$site"
 mkdir -p "$site"
 cp "$root/web/index.html" "$root/web/site.css" "$root/web/site.js" "$site/"
+cp "$root/brand/favicon.ico" "$root/brand/favicon.svg" "$root/brand/apple-touch-icon.png" "$root/brand/affrescoui-mark.svg" "$site/"
 cp "$build/affrescoui_launcher.js" "$build/affrescoui_launcher.wasm" "$build/affrescoui_launcher.data" "$site/"
 
 # A page per template, and its link in the picker

@@ -8,6 +8,7 @@
 #include "platform/Platform.hpp"
 
 #include "affresco/core/Log.hpp"
+#include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Window.hpp"
 
 #include <GLFW/glfw3.h>
@@ -15,9 +16,12 @@
 #include <GLFW/emscripten_glfw3.h>
 #endif
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -60,6 +64,38 @@ void hintAngle() {
 #endif
 }
 
+#ifndef __EMSCRIPTEN__
+/// @brief A window icon's pixels as GLFW takes them: RGBA, not premultiplied, at most 256 pixels a side (each pixel
+/// the average of a square of the image's), so the X11 property stays small whatever the image.
+/// @param icon The image.
+/// @param pixels Receives the pixels; the result points into them.
+/// @return The image for glfwSetWindowIcon().
+GLFWimage iconImage(const Bitmap& icon, std::vector<std::uint8_t>& pixels) {
+	constexpr int largest = 256;
+	const int step = (std::max(icon.width(), icon.height()) + largest - 1) / largest; // the square's side
+	const int width = std::max(1, icon.width() / step), height = std::max(1, icon.height() / step);
+	const std::span<const std::uint8_t> source = icon.pixels();
+	const auto offset = [](int x, int y, int rowWidth) {
+		return (static_cast<std::size_t>(y) * static_cast<std::size_t>(rowWidth) + static_cast<std::size_t>(x)) * 4;
+	};
+	pixels.assign(offset(0, height, width), 0);
+	for(int y = 0; y < height; ++y)
+		for(int x = 0; x < width; ++x) {
+			std::array<unsigned, 4> sum{};
+			unsigned count = 0;
+			for(int sy = y * step; sy < std::min((y + 1) * step, icon.height()); ++sy)
+				for(int sx = x * step; sx < std::min((x + 1) * step, icon.width()); ++sx, ++count)
+					for(std::size_t c = 0; c < 4; ++c) sum[c] += source[offset(sx, sy, icon.width()) + c];
+			std::uint8_t* out = &pixels[offset(x, y, width)];
+			const unsigned alpha = sum[3] / count;
+			out[3] = static_cast<std::uint8_t>(alpha);
+			for(std::size_t c = 0; c < 3 && alpha > 0; ++c) // the Bitmap's colours are premultiplied, GLFW's aren't
+				out[c] = static_cast<std::uint8_t>(std::min(255u, (sum[c] / count * 255 + alpha / 2) / alpha));
+		}
+	return {width, height, pixels.data()};
+}
+#endif
+
 /// @brief A GLFW window and its OpenGL context.
 class GlfwWindow final : public NativeWindow {
 public:
@@ -99,6 +135,7 @@ public:
 	void connect(Window& window) override;
 
 	void setTitle(const std::string& title) override { glfwSetWindowTitle(handle_, title.c_str()); }
+	void setIcon(const Bitmap* icon) override;
 	void setSize(int width, int height) override { glfwSetWindowSize(handle_, width, height); }
 	void setMinSize(int width, int height) override {
 		glfwSetWindowSizeLimits(handle_, width, height, GLFW_DONT_CARE, GLFW_DONT_CARE);
@@ -221,6 +258,21 @@ bool GlfwWindow::setMenuBar(const std::vector<MenuItem>& menus) {
 	}
 	menuBar_->show(menus);
 	return true;
+}
+
+void GlfwWindow::setIcon(const Bitmap* icon) {
+	desktop::setApplicationIcon(icon); // macOS: the Dock's, as its windows have none
+#ifndef __EMSCRIPTEN__
+	// Only Win32 and X11 windows have icons: GLFW reports an error elsewhere (Cocoa, Wayland)
+	if(glfwGetPlatform() != GLFW_PLATFORM_WIN32 && glfwGetPlatform() != GLFW_PLATFORM_X11) return;
+	if(!icon) {
+		glfwSetWindowIcon(handle_, 0, nullptr); // the system's default
+		return;
+	}
+	std::vector<std::uint8_t> pixels;
+	const GLFWimage image = iconImage(*icon, pixels);
+	glfwSetWindowIcon(handle_, 1, &image);
+#endif
 }
 
 void GlfwWindow::setCursor(Cursor cursor) {

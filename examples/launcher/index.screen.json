@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "The AffrescoUI Launcher: the home of the example apps and of the person's own. Apps (your apps and the examples as cards, each tagged Example or Yours; a search; a click or Enter opens one), My apps (open, duplicate, show in the folder, delete after a confirm), Create (a name, a starting point, a description for the assistant, features from other apps) and Settings. It is a screen like any other, with no C++ of its own: affrescoui_launcher opens it when started without a file and grants it the folders it reads and writes (the services examples and apps) and the programs that open the apps (the service launch). Where nothing is granted (the rendering check), the services are refused and it shows the examples from apps.json and an empty My apps.",
 
-	"window": { "title": "AffrescoUI", "width": 1200, "height": 780, "minWidth": 800, "minHeight": 600,
+	"window": { "title": "AffrescoUI", "icon": "affrescoui-icon.png", "width": 1200, "height": 780, "minWidth": 800, "minHeight": 600,
 		"focusRing": { "color": "@c.accent", "width": 2, "offset": 2 } },
 
 	"include": ["apps.json", "launcher-strings.json", "../shared/addons/intelligence/settings.json"],
@@ -55,7 +55,6 @@
 		"c.accentHover": { "light": "#4a3fcc", "dark": "#a097ff" },
 		"c.accentSoft": { "light": "#ecebff", "dark": "#28244d" },
 		"c.onAccent": "#ffffff",
-		"c.pink": { "light": "#e0569a", "dark": "#ff7ab8" },
 		"c.danger": { "light": "#cf3446", "dark": "#ff6b7a" },
 		"c.dangerSoft": { "light": "#fdecee", "dark": "#3a1d24" },
 		"c.success": { "light": "#1f9d62", "dark": "#4ad08f" },
@@ -473,8 +472,7 @@
 				"label": "{{t('nav.label')}}",
 				"children": [
 					{ "id": "sidebarEdge", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": 1, "color": "@c.border" },
-					{ "id": "brandMark", "type": "label", "icon": "palette", "font": "bigIcons", "align": "center", "textColor": "#ffffff",
-					  "radius": 11, "gradient": { "kind": "linear", "angle": 135, "stops": ["@c.accent", "@c.pink"] },
+					{ "id": "brandMark", "type": "image", "file": "affrescoui-mark.svg", "fit": "contain",
 					  "anchors": { "left": "{{computed.wide ? 20 : 16}}", "top": 22 }, "width": 40, "height": 40, "label": "AffrescoUI" },
 					{ "id": "brandName", "when": "{{computed.wide}}", "type": "label", "text": "AffrescoUI", "font": "brand", "textColor": "@c.text",
 					  "anchors": { "left": 72, "top": 22 }, "height": 22, "fitText": true },

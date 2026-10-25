@@ -2,7 +2,7 @@
 /// @brief Unit tests for images and icons in screens, on a headless window: the "image" node (a file, decoded at once
 /// without an event loop; an image the host names; fit), files only from the screen's folder unless the host allows
 /// more, the "icon" property of labels, looked up by name in the font and its fallbacks, and "snapshot" (a node drawn
-/// into a named image), where it is refused.
+/// into a named image), where it is refused; and the window's icon ("window.icon"), under the image node's rules.
 ///
 /// The images are the rendering check's (tests/render/screens/images), the fonts the examples' (Roboto, Lucide).
 
@@ -119,6 +119,42 @@ TEST_CASE("image nodes: a revision can't show a file outside the screen's folder
 	CHECK(screen.applyRevision(json{{"set", {{"#photo/file", outside}}}}.dump(), &error));
 	window->render();
 	CHECK_FALSE(panel<affresco::ImageView>(screen, "photo").bitmap());
+}
+
+TEST_CASE("window icon: a file under an image node's rules reaches the window, and revisions change or remove it") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	json document = imageScreen();
+	document["window"] = {{"icon", "images/badge.png"}};
+	affresco::Screen screen = affresco::Screen::fromString(document.dump(), screens());
+	screen.build(*window);
+	REQUIRE(window->icon()); // no event loop: decoded when asked for
+	CHECK(window->icon()->width() == 48);
+
+	std::string error;
+	REQUIRE(screen.applyRevision(R"({"set": {"/window/icon": "images/banner.png"}})", &error));
+	REQUIRE(window->icon());
+	CHECK(window->icon()->width() == 320);
+
+	// Text naming a file in the allowed folders, else refused, and the icon stays
+	const std::string outside = (fonts() / "LICENSE-Lucide.txt").string();
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"/window/icon": 5}})", &error));
+	CHECK(error.find("window.icon") != std::string::npos);
+	error.clear();
+	CHECK_FALSE(screen.applyRevision(json{{"set", {{"/window/icon", outside}}}}.dump(), &error));
+	CHECK(error.find("window.icon") != std::string::npos);
+	CHECK(error.find("folder") != std::string::npos);
+	REQUIRE(window->icon());
+	CHECK(window->icon()->width() == 320);
+
+	// A file there that can't be decoded shows none, without an error; removing the key shows none too
+	screen.allowImageDirectory(fonts());
+	REQUIRE(screen.applyRevision(json{{"set", {{"/window/icon", outside}}}}.dump(), &error));
+	CHECK_FALSE(window->icon());
+	REQUIRE(screen.applyRevision(R"({"set": {"/window/icon": "images/badge.svg"}})", &error));
+	CHECK(window->icon());
+	REQUIRE(screen.applyRevision(R"({"remove": ["/window/icon"]})", &error));
+	CHECK_FALSE(window->icon());
 }
 
 TEST_CASE("icons: a label's icon is a glyph named in its font or a fallback, drawn before the text") {

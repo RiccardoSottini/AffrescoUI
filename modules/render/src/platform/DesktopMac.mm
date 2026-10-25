@@ -1,10 +1,12 @@
 /// @file
-/// @brief The desktop helpers on macOS (Cocoa, ARC): the colour scheme from the user's defaults, and the menu bar at
-/// the top of the screen. The bar belongs to the app, so each window keeps its menus and shows them when it gets the
-/// focus. Items carry no key equivalents: the window's key handling runs shortcuts, so a shortcut never runs twice.
+/// @brief The desktop helpers on macOS (Cocoa, ARC): the colour scheme from the user's defaults, the Dock icon, and the
+/// menu bar at the top of the screen. The bar belongs to the app, so each window keeps its menus and shows them when it
+/// gets the focus. Items carry no key equivalents: the window's key handling runs shortcuts, so a shortcut never runs
+/// twice.
 
 #include "platform/Desktop.hpp"
 
+#include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Window.hpp"
 
 #include <GLFW/glfw3.h>
@@ -12,6 +14,7 @@
 #import <Cocoa/Cocoa.h>
 
 #include <cstddef>
+#include <cstring>
 #include <utility>
 
 /// @brief The target of a window's menu items: an item's tag is its index in the actions.
@@ -154,6 +157,32 @@ void watchColorScheme() {
 	            usingBlock:^(NSNotification*) {
 		          glfwPostEmptyEvent();
 	            }];
+}
+
+void setApplicationIcon(const Bitmap* icon) {
+	@autoreleasepool {
+		if(!icon) {
+			NSApp.applicationIconImage = nil; // the bundle's icon again
+			return;
+		}
+		// Cocoa's default bitmap format is the Bitmap's: premultiplied RGBA, 8 bits a channel, top row first
+		NSBitmapImageRep* rep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:nullptr
+		                                                                pixelsWide:icon->width()
+		                                                                pixelsHigh:icon->height()
+		                                                             bitsPerSample:8
+		                                                           samplesPerPixel:4
+		                                                                  hasAlpha:YES
+		                                                                  isPlanar:NO
+		                                                            colorSpaceName:NSDeviceRGBColorSpace
+		                                                               bytesPerRow:icon->width() * 4
+		                                                              bitsPerPixel:32];
+		if(!rep) return;
+		std::memcpy(rep.bitmapData, icon->pixels().data(), icon->pixels().size());
+		NSBitmapImageRep* srgb = [rep bitmapImageRepByRetaggingWithColorSpace:NSColorSpace.sRGBColorSpace] ?: rep;
+		NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(icon->width(), icon->height())];
+		[image addRepresentation:srgb];
+		NSApp.applicationIconImage = image;
+	}
 }
 
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* window, MenuChosen chosen) {

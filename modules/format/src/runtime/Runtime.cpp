@@ -76,7 +76,7 @@ Window& Runtime::createWindow(Application& app) {
 
 	for(const auto& [key, value] : settings.items()) {
 		if(key != "title" && key != "width" && key != "height" && key != "minWidth" && key != "minHeight" &&
-		   key != "menuBar" && key != "focusRing")
+		   key != "menuBar" && key != "focusRing" && key != "icon")
 			fail("window." + key, "unknown property");
 	}
 

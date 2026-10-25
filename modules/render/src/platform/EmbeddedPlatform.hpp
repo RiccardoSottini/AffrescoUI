@@ -40,6 +40,7 @@ public:
 
 	void connect(Window& window) override { window_ = &window; }
 	void setTitle(const std::string& title) override { static_cast<void>(title); }
+	void setIcon(const Bitmap* icon) override { static_cast<void>(icon); }
 	void setSize(int width, int height) override;
 	void setMinSize(int width, int height) override {
 		static_cast<void>(width);

@@ -49,6 +49,10 @@ header h1 {
 	margin: 0;
 	font-size: 1.1rem;
 }
+header h1 .mark {
+	margin-right: 8px;
+	vertical-align: -4px;
+}
 a {
 	color: var(--accent);
 }

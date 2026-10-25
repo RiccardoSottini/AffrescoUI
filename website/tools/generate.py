@@ -292,6 +292,9 @@ def main():
     shutil.rmtree(SNIPPETS, ignore_errors=True)
     shutil.copytree(WEBSITE / "docs", DOCS)
     shutil.copytree(WEBSITE / "recipes", SNIPPETS / "recipes")
+    (DOCS / "assets").mkdir(exist_ok=True)
+    for name in ("affrescoui-mark.svg", "favicon.svg"):  # the theme's logo and favicon
+        shutil.copyfile(REPO / "brand" / name, DOCS / "assets" / name)
 
     include_document("SCREEN_FORMAT.md", "reference/screen-format.md")
     include_document("VERSION_CONTROL.md", "reference/version-control.md")

@@ -81,6 +81,8 @@ struct Engine : VersionObserver {
 	bool placeholderTypes = false;                                     ///< Unknown types become plain panels.
 	bool handlersSuspended = false;                                    ///< See Runtime::setHandlersSuspended().
 	json menuBar = json::array(); ///< The native menu bar last shown (showMenuBar()).
+	json icon;                    ///< The "window.icon" last shown (showIcon() in Reconciler.cpp), or null.
+	ImageCache::Request iconFile; ///< Its file, while it is decoded.
 	Panel unattached;             ///< The sender of steps run without a window (Runtime::runOnce()).
 	/// The files the OS last dropped on the window: what an "attach" step's "from" may name (AttachSteps.cpp).
 	std::vector<std::string> droppedFiles;
