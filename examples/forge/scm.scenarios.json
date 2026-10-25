@@ -6,6 +6,25 @@
 	"screen": "index.screen.json",
 	"scenarios": [
 		{
+			"name": "forge-scm-commit-graph",
+			"note": "Commits draws git's graph beside each commit, with its branches and tags; a line of the graph alone is a row that opens nothing",
+			"steps": [
+				{ "action": "showSourceControl" },
+				{ "action": "scmApplyStatus", "event": { "output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u0000" } },
+				{ "action": "scmApplyLog", "event": { "output": "*   \u001eHEAD -> main\u001eaaaaaaa\u001faaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u001fA. Writer\u001f1 hour ago\u001fMerge branch topic\n|\\  \n| * \u001etopic\u001eccccccc\u001fcccccccccccccccccccccccccccccccccccccccc\u001fB. Writer\u001f2 hours ago\u001fAdd a greeting\n* | \u001e\u001ebbbbbbb\u001fbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\u001fA. Writer\u001f3 hours ago\u001fFix the build\n|/  \n* \u001etag: v1\u001eddddddd\u001fdddddddddddddddddddddddddddddddddddddddd\u001fA. Writer\u001f1 day ago\u001fFirst commit\n" } },
+				{ "expect": { "state": "scm.log.length", "is": 6 } },
+				{ "expect": { "node": "#scm-history-title", "property": "text", "is": "COMMITS  4" } },
+				{ "expect": { "state": "scm.log[0].refs", "is": "HEAD -> main" } },
+				{ "expect": { "state": "scm.log[1].graph", "is": "|\\  " } },
+				{ "expect": { "state": "scm.log[2].subject", "is": "Add a greeting" } },
+				{ "expect": { "state": "scm.log[3].graph", "is": "* | " } },
+				{ "action": "scmPickCommit", "event": { "value": "-1" } },
+				{ "expect": { "state": "scm.commit.hash", "is": "" } },
+				{ "action": "scmPickCommit", "event": { "value": "cccccccccccccccccccccccccccccccccccccccc" } },
+				{ "expect": { "state": "scm.commit.hash", "is": "cccccccccccccccccccccccccccccccccccccccc" } }
+			]
+		},
+		{
 			"name": "forge-scm-show-the-view",
 			"note": "The activity bar's source control entry shows its view in the side bar, in place of the explorer",
 			"steps": [

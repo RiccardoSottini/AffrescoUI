@@ -26,7 +26,7 @@
 		"scmChangeRows": "{{map(state.scm.status.changes, {id: it.id, label: it.label + (empty(it.detail) ? '' : '  ' + it.detail) + '  ' + it.badge, icon: it.kind == 'added' || it.kind == 'untracked' ? 'file-plus' : it.kind == 'deleted' ? 'file-minus' : it.kind == 'unmerged' ? 'alert-triangle' : it.kind == 'renamed' || it.kind == 'copied' ? 'file-symlink' : 'file-diff', iconColor: it.kind == 'added' || it.kind == 'untracked' ? '#2ea043' : it.kind == 'deleted' || it.kind == 'unmerged' ? '#f85149' : '#d4a63a'})}}",
 		"scmHasRepo": "{{!empty(state.scm.status.branch.head)}}",
 		"scmCanPush": "{{!empty(state.scm.status.branch.head) && state.scm.status.branch.head != '(detached)'}}",
-		"scmCommitRows": "{{map(state.scm.log, {id: it.hash, label: it.subject + '  ' + it.author + ', ' + it.when, icon: 'git-commit'})}}",
+		"scmCommitRows": "{{map(state.scm.log, empty(it.hash) ? {id: '-' + index, label: it.graph} : {id: it.hash, label: it.graph + (empty(it.graph) ? '' : ' ') + (empty(it.refs) ? '' : '(' + it.refs + ') ') + it.subject + '  ' + it.author + ', ' + it.when, icon: empty(it.graph) ? 'git-commit' : ''})}}",
 		"scmCommitFileRows": "{{map(state.scm.commit.files, {id: it.path, label: reverse(split(it.path, '/'))[0] + '  ' + join(slice(split(it.path, '/'), 0, -1), '/') + '  ' + it.status, icon: it.status == 'A' ? 'file-plus' : it.status == 'D' ? 'file-minus' : 'file-diff'})}}",
 		"scmBranchRows": "{{map(state.scm.branches.branches, {id: it.id, label: it.label, icon: it.current ? 'check' : 'git-branch'})}}",
 		"scmBranchText": "{{(empty(state.scm.status.branch.head) ? 'No repository' : state.scm.status.branch.head) + (state.scm.status.branch.ahead > 0 ? '  ↑' + state.scm.status.branch.ahead : '') + (state.scm.status.branch.behind > 0 ? '  ↓' + state.scm.status.branch.behind : '')}}"
@@ -143,14 +143,14 @@
 			"enablement": "{{!empty(state.folder.root)}}",
 			"do": [{ "set": "state.scm.showHistory", "to": true }, { "run": "scmLog" }] },
 		"scmLog": [{ "invoke": "git.run", "id": "scm-log",
-			"with": { "arguments": ["log", "-n", "100", "--format=%h%x1f%H%x1f%an%x1f%ar%x1f%s"], "collect": true },
+			"with": { "arguments": ["log", "--graph", "-n", "100", "--format=%x1e%D%x1e%h%x1f%H%x1f%an%x1f%ar%x1f%s"], "collect": true },
 			"onError": [{ "set": "state.scm.error", "to": "{{'git did not run: ' + error.message}}" }],
 			"onDone": [{ "set": "state.scm.log", "to": [] },
 			           { "if": "{{result.code == 0}}", "then": [{ "run": "scmLogRead", "with": { "output": "{{result.output}}" } }] }] }],
 		"scmApplyLog": [{ "set": "state.scm.showHistory", "to": true }, { "run": "scmLogRead", "with": { "output": "{{event.output}}" } }],
 		"scmLogRead": [
-			{ "note": "output: git log's lines, each the short hash, hash, author, when and subject split by the unit separator. Lines without a whole hash are left out" },
-			{ "set": "state.scm.log", "to": "{{slice(map(filter(map(split(output, '\n'), split(it, '\u001f')), length(it) >= 5 && length(it[1]) == 40), {short: slice(it[0], 0, 12), hash: it[1], author: slice(it[2], 0, 80), when: slice(it[3], 0, 40), subject: slice(join(slice(it, 4), ' '), 0, 200)}), 0, 100)}}" }
+			{ "note": "output: git log --graph's lines, each the graph, the refs and then the short hash, hash, author, when and subject split by the unit separator (the graph and refs before record separators, and optional); a line of the graph alone joins two commits. Other lines are left out" },
+			{ "set": "state.scm.log", "to": "{{slice(map(filter(map(split(output, '\n'), {graph: length(split(it, '\u001e')) == 3 ? slice(split(it, '\u001e')[0], 0, 60) : contains(it, '\u001f') ? '' : slice(it, 0, 60), refs: length(split(it, '\u001e')) == 3 ? slice(split(it, '\u001e')[1], 0, 120) : '', f: contains(reverse(split(it, '\u001e'))[0], '\u001f') ? split(reverse(split(it, '\u001e'))[0], '\u001f') : []}), (length(it.f) >= 5 && length(it.f[1]) == 40) || (length(it.f) == 0 && !empty(trim(it.graph)) && every(split(it.graph, ''), contains('|/\\\\_*. -', it)))), length(it.f) == 0 ? {short: '', hash: '', author: '', when: '', subject: '', refs: '', graph: it.graph} : {short: slice(it.f[0], 0, 12), hash: it.f[1], author: slice(it.f[2], 0, 80), when: slice(it.f[3], 0, 40), subject: slice(join(slice(it.f, 4), ' '), 0, 200), refs: it.refs, graph: it.graph}), 0, 300)}}" }
 		],
 		"scmPickCommit": [
 			{ "forEach": "{{filter([event.value ?? state.scm.selectedCommit], length(it ?? '') == 40 && slice(it, 0, 1) != '-')}}", "as": "hash", "do": [
@@ -368,13 +368,13 @@
 					  "children": [
 						{ "type": "row", "id": "scm-history-head", "width": "100%", "height": 22, "alignItems": "center",
 						  "children": [
-							{ "type": "label", "id": "scm-history-title", "text": "{{'COMMITS  ' + length(state.scm.log)}}", "textColor": "@color.muted",
+							{ "type": "label", "id": "scm-history-title", "text": "{{'COMMITS  ' + count(state.scm.log, !empty(it.hash))}}", "textColor": "@color.muted",
 							  "grow": 1, "padding": 8, "height": 22 },
 							{ "type": "label", "id": "scm-history-close", "icon": "x", "padding": 4, "fitText": true,
 							  "cursor": "hand", "textColor": "@color.muted", "tooltip": "Hide Commits",
 							  "hover": { "textColor": "@color.text" }, "onClick": { "set": "state.scm.showHistory", "to": false } }
 						  ] },
-						{ "type": "list", "id": "scm-commits", "label": "Commits", "width": "100%", "grow": 1, "items": "{{computed.scmCommitRows}}",
+						{ "type": "list", "id": "scm-commits", "label": "Commits", "font": "code", "width": "100%", "grow": 1, "items": "{{computed.scmCommitRows}}",
 						  "bind": "state.scm.selectedCommit", "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text",
 						  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection",
 						  "accentColor": "@color.accent", "onChange": { "run": "scmPickCommit" } },
