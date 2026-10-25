@@ -82,6 +82,7 @@
 			"note": "The selected card as a page: a header with the way back, the title, description, sub-issues and activity, and a properties panel",
 			"params": {},
 			"node": {
+				"id": "panel-issue-page",
 				"color": "@color.surface",
 				"role": "dialog",
 				"label": "{{computed.card.ref}} {{computed.card.title}}",
@@ -268,7 +269,7 @@
 							{ "id": "propProject", "type": "column", "anchors": { "left": 8, "right": 16 }, "height": 56, "alignItems": "start", "children": [
 								{ "id": "propProjectName", "style": "propName", "height": 24, "padding": 8, "width": 200, "text": "{{t('issue.project')}}" },
 								{ "id": "propProjectValue", "style": "propValue", "focusable": false, "cursor": "arrow", "hover": { "color": "transparent" },
-									"let": { "project": "{{state.projects[state.projectOf[computed.card.tag] ?? 0]}}" },
+									"let": { "project": "{{data.projects[state.projectOf[computed.card.tag] ?? 0]}}" },
 									"runs": [{ "icon": "{{project.icon}}", "color": "{{project.color}}" }, "\u00a0\u00a0{{project.name}}"] }
 							] },
 							{ "id": "propCycle", "type": "column", "anchors": { "left": 8, "right": 16 }, "height": 56, "alignItems": "start", "children": [

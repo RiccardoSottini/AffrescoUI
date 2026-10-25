@@ -33,6 +33,7 @@ INCLUDED = {
     "tools/affrescoui/README.md": "reference/cli.md",
     "schema/affrescoui-screen.schema.json": "reference/schemas.md",
     "schema/affrescoui-scenarios.schema.json": "reference/schemas.md",
+    "schema/affrescoui-app.schema.json": "reference/schemas.md",
 }
 
 FENCE = re.compile(r"^(```|~~~)")

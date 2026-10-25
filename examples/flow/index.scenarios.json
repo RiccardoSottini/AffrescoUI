@@ -35,7 +35,7 @@
 				{ "expect": { "node": "#projectName", "text": "Sharper text" } },
 				{ "expect": { "node": "#projectRow", "nth": 1, "exists": false } },
 				{ "click": "#newProject" },
-				{ "expect": { "state": "projects[5].name", "is": "Project 6" } },
+				{ "expect": { "data": "projects[5].name", "is": "Project 6" } },
 				{ "expect": { "state": "projectScope", "is": "all" } }
 			]
 		},
@@ -806,11 +806,11 @@
 				{ "expect": { "state": "page", "is": "inbox" } },
 				{ "key": "j" },
 				{ "expect": { "state": "inboxAt", "is": 1 } },
-				{ "expect": { "state": "inbox[1].read", "is": true } },
+				{ "expect": { "data": "inbox[1].read", "is": true } },
 				{ "key": "u" },
-				{ "expect": { "state": "inbox[1].read", "is": false } },
+				{ "expect": { "data": "inbox[1].read", "is": false } },
 				{ "key": "h" },
-				{ "expect": { "state": "inbox[1].snoozed", "is": true } },
+				{ "expect": { "data": "inbox[1].snoozed", "is": true } },
 				{ "expect": { "node": "#navCount", "text": "2" } },
 				{ "key": "k" },
 				{ "key": "enter" },

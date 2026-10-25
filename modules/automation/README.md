@@ -22,6 +22,8 @@ rendering check (`tests/render`) is a set of scenarios whose expectations are pi
   their hosts in a folder with none, even a channel at an absolute path (they show their disconnected state), what
   they post dropped. So a scenario plays the same way on any machine, whatever ran before, and never meets a running
   app.
+- **As the host opens it.** An app's entry screen (the `app.json` beside it names it) plays with the app's themes,
+  models and seed records merged in, as `Screen::fromApp` reads them; its records stay in memory.
 - **Headless unless it draws.** A scenario plays on a headless window (`render/src/Headless.hpp`) unless a step draws
   (`capture`, `expect image`); then on a hidden window with OpenGL, from an `Application` it owns for its time.
 - **Time moves only on `wait`.** The window's clock is a `ManualClock`. A wait runs each timer at its own time, in

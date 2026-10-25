@@ -141,17 +141,7 @@ std::optional<Shape> fixedResult(std::string_view name) {
 	if(name == "$values") return Shape::array({anything});
 	if(name == "$entries") return Shape::array({{{"key", single}, {"value", anything}}});
 	if(name == "$parseJson" || name == "$parseJsonc") return anything;
-	if(name == "$diffLines") // ExpressionFunctionsDiff.cpp
-		return Shape{{"rows", Shape::array({{{"kind", true}, {"original", true}, {"modified", true}, {"text", true}}})},
-		             {"hunks", Shape::array({{{"original", true},
-		                                      {"originalCount", true},
-		                                      {"modified", true},
-		                                      {"modifiedCount", true}}})},
-		             {"added", true},
-		             {"removed", true},
-		             {"originalLines", true},
-		             {"modifiedLines", true},
-		             {"truncated", true}};
+	if(name == "$qrCode") return Shape{{"size", single}, {"version", single}, {"d", single}, {"viewBox", single}};
 	if(name == "$gitStatus") // services' GitOutput.hpp, or null
 		return Shape{{"branch", {{"head", true}, {"oid", true}, {"upstream", true}, {"ahead", true}, {"behind", true}}},
 		             {"files", Shape::array({{{"path", true},

@@ -2754,6 +2754,28 @@
 						],
 						"description": "image and path: contain (default), cover or fill, like CSS object-fit"
 					},
+					"highlight": {
+						"anyOf": [
+							{
+								"type": "null"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "number"
+								},
+								"minItems": 4,
+								"maxItems": 4
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						],
+						"description": "image: null, or a region [x, y, width, height] in the image's pixels to outline"
+					},
+					"highlightColor": {
+						"$ref": "#/$defs/v2/color"
+					},
 					"surface": {
 						"anyOf": [
 							{
@@ -4674,7 +4696,11 @@
 						"$isEmail",
 						"$pathTree",
 						"$keyLabel",
+						"$qrCode",
 						"$diffLines",
+						"$atPointer",
+						"$applyPatch",
+						"$formatJson",
 						"$gitStatus",
 						"$gitBranches"
 					]

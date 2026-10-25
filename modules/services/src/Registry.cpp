@@ -247,7 +247,11 @@ void ServiceRegistry::allowProcess(std::string name, ProcessGrant grant) {
 
 void ServiceRegistry::allowAttach(std::uint16_t port) { attachPorts_.insert(port); }
 
-void ServiceRegistry::allowChosenRoot(std::string name) { choosableRoots_.insert(std::move(name)); }
+void ServiceRegistry::allowChosenRoot(std::string name, bool readOnly) {
+	if(readOnly) readOnlyRoots_.insert(name);
+	else readOnlyRoots_.erase(name);
+	choosableRoots_.insert(std::move(name));
+}
 
 bool ServiceRegistry::choosable(std::string_view root) const { return choosableRoots_.contains(root); }
 

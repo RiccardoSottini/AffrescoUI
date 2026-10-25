@@ -298,7 +298,8 @@ void Events::key(Panel& panel, const KeyEvent& event) {
 	                             {"shift", event.mods.shift()},
 	                             {"ctrl", event.mods.control()},
 	                             {"alt", event.mods.alt()},
-	                             {"cmd", event.mods.super()}});
+	                             {"cmd", event.mods.super()},
+	                             {"capsLock", event.mods.capsLock()}});
 	if(!handled && engine_.reconciler.recordOf(&panel)) navigate(&panel, event);
 }
 

@@ -1,0 +1,113 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://github.com/RiccardoSottini/AffrescoUI/schema/affrescoui-app.schema.json",
+	"title": "AffrescoUI App",
+	"description": "An app's manifest, app.json in the app's folder: what a stock host needs to run it. Read by Screen::fromApp(), the host and `affrescoui check`. Specification: SCREEN_FORMAT.md, \"Apps: app.json\".",
+	"type": "object",
+	"required": ["format", "version", "id", "name"],
+	"additionalProperties": false,
+	"properties": {
+		"$schema": { "type": "string" },
+		"format": { "const": "affrescoui-app" },
+		"version": { "const": 1 },
+		"note": { "type": "string", "maxLength": 4096 },
+		"id": {
+			"type": "string",
+			"pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$",
+			"description": "The app's id: the person's data and decisions are kept by it, in <data folder>/apps/<id>."
+		},
+		"name": { "$ref": "#/$defs/text", "maxLength": 100, "description": "Its name, shown by the host." },
+		"description": { "type": "string", "maxLength": 300, "description": "One line about it." },
+		"icon": { "$ref": "#/$defs/path", "description": "Its icon: an image in its folder." },
+		"entry": {
+			"$ref": "#/$defs/path",
+			"pattern": "\\.json$",
+			"default": "index.screen.json",
+			"description": "The screen it opens."
+		},
+		"themes": {
+			"type": "array",
+			"maxItems": 64,
+			"items": { "$ref": "#/$defs/path" },
+			"description": "Its own kits and themes: files of components, styles, tokens, colors and fonts, merged into the entry screen after its own includes (the screen's entries win)."
+		},
+		"capabilities": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "What it asks the person for. Nothing is allowed until the person allows it, for this app only; a revision of the screen never uses more than these.",
+			"properties": {
+				"network": {
+					"type": "object",
+					"maxProperties": 64,
+					"propertyNames": { "pattern": "^(https?|wss?)://(\\*\\.)?[A-Za-z0-9][A-Za-z0-9.-]*(:[0-9]{1,5})?$", "maxLength": 256 },
+					"additionalProperties": { "$ref": "#/$defs/why" },
+					"description": "Origins its connections reach, each with why: \"https://api.example.com\", or \"https://*.example.com\" for its subdomains. http and ws reach the computer's own (loopback) addresses only."
+				},
+				"folders": {
+					"type": "object",
+					"maxProperties": 64,
+					"propertyNames": { "$ref": "#/$defs/name" },
+					"additionalProperties": {
+						"type": "object",
+						"required": ["why"],
+						"additionalProperties": false,
+						"properties": {
+							"access": { "enum": ["read", "write"], "default": "read" },
+							"why": { "$ref": "#/$defs/why" }
+						}
+					},
+					"description": "Folders its services read or write, by the root name they use (\"workspace\"): the person picks the folder."
+				},
+				"programs": {
+					"type": "object",
+					"maxProperties": 64,
+					"propertyNames": { "$ref": "#/$defs/name" },
+					"additionalProperties": { "$ref": "#/$defs/why" },
+					"description": "Programs its process services run: a name on the PATH, \"shell\" or \"git\"."
+				},
+				"audio": { "$ref": "#/$defs/why", "description": "Sound on the system's output (the screen's audio section)." },
+				"assistant": {
+					"$ref": "#/$defs/why",
+					"description": "The host's own agent, which answers the screen's ask steps with the provider of intelligence the person set up."
+				},
+				"files": {
+					"$ref": "#/$defs/why",
+					"description": "The open and save dialogs: saveFile, openFile, export, and an image step's open and save."
+				},
+				"windows": { "$ref": "#/$defs/why", "description": "The screen's other windows (its windows section, opened by openWindow)." }
+			}
+		},
+		"data": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"models": { "$ref": "#/$defs/path", "description": "A file of data models and queries, merged into the entry screen." },
+				"seed": {
+					"type": "object",
+					"maxProperties": 64,
+					"propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9_]{0,63}$" },
+					"additionalProperties": { "$ref": "#/$defs/path", "pattern": "\\.(json|csv)$" },
+					"description": "A collection's first records, imported on first run: a JSON list of records, or a CSV file whose header names the fields (an \"id\" column gives the ids)."
+				}
+			}
+		},
+		"assets": {
+			"type": "array",
+			"maxItems": 256,
+			"items": { "$ref": "#/$defs/path" },
+			"description": "Its other files and folders (images, sounds, fonts), shipped with it."
+		}
+	},
+	"$defs": {
+		"text": { "type": "string", "minLength": 1 },
+		"why": { "type": "string", "minLength": 1, "maxLength": 300, "description": "What the app does with it, shown to the person when it asks." },
+		"name": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$" },
+		"path": {
+			"type": "string",
+			"minLength": 1,
+			"maxLength": 1024,
+			"pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))(?!.*//)[^\\\\:\\u0000-\\u001f]+$",
+			"description": "A file or folder inside the app's folder: relative, no \"..\" part, '/' between parts."
+		}
+	}
+}

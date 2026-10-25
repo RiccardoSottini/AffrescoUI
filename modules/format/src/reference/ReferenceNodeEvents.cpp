@@ -30,7 +30,7 @@ constexpr auto eventTable = std::to_array<KeyReference>({
     {"onFocus", "handler", "Keyboard focus.", "events"},
     {"onBlur", "handler", "", "events"},
     {"onScroll", "handler", "`event.dx`, `event.dy`.", "events"},
-    {"onKey", "handler", "A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`.",
+    {"onKey", "handler", "A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`, `capsLock`.",
 	 "events"},
     {"onChange", "",
 	 "A bound or value control changed: `event.value`; a timeline's track muted or locked: `event.type` `\"track\"`, "

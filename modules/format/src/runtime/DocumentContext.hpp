@@ -179,7 +179,8 @@ public:
 
 	/* Colours, fonts, theme */
 
-	/// @brief Reads a colour: "#rrggbb", "@name" (from "colors", in the current theme) or "transparent".
+	/// @brief Reads a colour: "#rrggbb", "@name" (from "colors", in the current theme) or "transparent"; null (an
+	/// expression whose data isn't there, which the checker reports) is transparent, so the screen still shows.
 	/// @param value The value.
 	/// @param path Its place, for errors.
 	/// @return The colour.

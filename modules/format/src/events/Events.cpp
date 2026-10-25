@@ -57,6 +57,11 @@ void Events::connect(Window& window) {
 			if(!resolve(focused, event)) navigate(focused, event);
 		}
 		keyResolved_ = false;
+		// Bindings can use window.capsLock
+		if(event.mods.capsLock() != capsLock_) {
+			capsLock_ = event.mods.capsLock();
+			engine_.reconciler.requestReconcile();
+		}
 	});
 	// The display's scale or the system's colour scheme changed: bindings can use them
 	windowHooks_.display =

@@ -82,3 +82,17 @@ TEST_CASE("windows: without a display the variable follows the steps") {
 	screen.runAction("fillMain", window->root());
 	CHECK(seen()["main"]["fullscreen"] == true);
 }
+
+TEST_CASE("windows: a host that doesn't allow other windows opens none, and the screen goes on") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(320, 200, clock);
+	affresco::Screen screen = affresco::Screen::fromString(windowsScreen);
+	screen.allowOtherWindows(false);
+	screen.build(*window);
+	window->render();
+	screen.runAction("show", window->root());
+	CHECK(json::parse(screen.stateJson())["seen"]["audience"]["open"] == false);
+	screen.allowOtherWindows(true);
+	screen.runAction("show", window->root());
+	CHECK(json::parse(screen.stateJson())["seen"]["audience"]["open"] == true);
+}

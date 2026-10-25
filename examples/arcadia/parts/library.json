@@ -52,18 +52,9 @@
 			"icon": "play",
 			"do": [
 				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
-						{
-							"if": "{{g.id == id}}",
-							"then": [
-								{ "set": "state.games[i].status", "to": "running" },
-								{ "set": "state.games[i].lastPlayed", "to": "{{state.today}}" }
-							]
-						}
-					]
+					"update": "games",
+					"id": "{{id}}",
+					"fields": { "status": "running", "lastPlayed": "{{state.today}}" }
 				},
 				{ "set": "state.running", "to": "{{id}}" }
 			]
@@ -74,18 +65,9 @@
 			"icon": "square",
 			"do": [
 				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
-						{
-							"if": "{{g.id == id}}",
-							"then": [
-								{ "set": "state.games[i].status", "to": "ready" },
-								{ "increment": "state.games[i].hours", "by": 0.5 }
-							]
-						}
-					]
+					"update": "games",
+					"id": "{{id}}",
+					"fields": { "status": "ready", "hours": "{{find(data.games, it.id == id).hours + 0.5}}" }
 				},
 				{ "set": "state.running", "to": null }
 			]
@@ -97,20 +79,13 @@
 			"description": "Queues the game, or its update: it downloads at once if nothing else is.",
 			"do": [
 				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
+					"if": "{{find(data.games, it.id == id) != null && find(state.downloads, it.id == id && it.status != 'done') == null}}",
+					"then": [
 						{
-							"if": "{{g.id == id && find(state.downloads, it.id == id && it.status != 'done') == null}}",
-							"then": [
-								{
-									"push": "state.downloads",
-									"value": "{{{ id: id, sizeGb: g.status == 'update' ? 1.2 : g.sizeGb, doneGb: 0, status: computed.download ? 'queued' : 'downloading', kind: g.status == 'update' ? 'update' : 'install' }}}"
-								},
-								{ "set": "state.games[i].status", "to": "downloading" }
-							]
-						}
+							"push": "state.downloads",
+							"value": "{{{ id: id, sizeGb: find(data.games, it.id == id).status == 'update' ? 1.2 : find(data.games, it.id == id).sizeGb, doneGb: 0, status: computed.download ? 'queued' : 'downloading', kind: find(data.games, it.id == id).status == 'update' ? 'update' : 'install' }}}"
+						},
+						{ "update": "games", "id": "{{id}}", "fields": { "status": "downloading" } }
 					]
 				}
 			]
@@ -121,15 +96,9 @@
 			"icon": "star",
 			"do": [
 				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
-						{
-							"if": "{{g.id == id}}",
-							"then": [{ "set": "state.games[i].favourite", "to": "{{!g.favourite}}" }]
-						}
-					]
+					"update": "games",
+					"id": "{{id}}",
+					"fields": { "favourite": "{{!find(data.games, it.id == id).favourite}}" }
 				}
 			]
 		},
@@ -531,8 +500,8 @@
 								"arrows": "horizontal",
 								"children": [
 									{
-										"repeat": { "for": "n", "in": "{{state.news}}", "index": "i" },
-										"let": { "g": "{{find(state.games, it.id == n.game)}}" },
+										"repeat": { "for": "n", "in": "{{data.news}}", "index": "i" },
+										"let": { "g": "{{find(data.games, it.id == n.game)}}" },
 										"id": "{{'news-' + i}}",
 										"type": "column",
 										"width": 232,
@@ -1169,7 +1138,7 @@
 						"type": "row",
 						"anchors": { "left": 32, "right": 32 },
 						"gap": 24,
-						"height": "{{max(700, 150 + length(filter(state.activity, it.game == g.id)) * 96 + length(filter(state.news, it.game == g.id)) * 120)}}",
+						"height": "{{max(700, 150 + length(filter(data.activity, it.game == g.id)) * 96 + length(filter(data.news, it.game == g.id)) * 120)}}",
 						"children": [
 							{
 								"id": "activity",
@@ -1204,7 +1173,7 @@
 									{
 										"repeat": {
 											"for": "n",
-											"in": "{{filter(state.news, it.game == g.id)}}",
+											"in": "{{filter(data.news, it.game == g.id)}}",
 											"index": "i"
 										},
 										"type": "row",
@@ -1268,10 +1237,10 @@
 									{
 										"repeat": {
 											"for": "a",
-											"in": "{{filter(state.activity, it.game == g.id)}}",
+											"in": "{{filter(data.activity, it.game == g.id)}}",
 											"index": "i"
 										},
-										"let": { "f": "{{find(state.friends, it.id == a.who)}}" },
+										"let": { "f": "{{find(data.friends, it.id == a.who)}}" },
 										"type": "row",
 										"height": "{{a.kind == 'screenshot' ? 168 : 84}}",
 										"anchors": { "left": 0, "right": 0 },
@@ -1342,7 +1311,7 @@
 										]
 									},
 									{
-										"when": "{{length(filter(state.activity, it.game == g.id)) + length(filter(state.news, it.game == g.id)) == 0}}",
+										"when": "{{length(filter(data.activity, it.game == g.id)) + length(filter(data.news, it.game == g.id)) == 0}}",
 										"type": "label",
 										"text": "{{t('game.noActivity')}}",
 										"textColor": "@color.muted",
@@ -1365,7 +1334,7 @@
 										"children": [
 											{
 												"let": {
-													"who": "{{filter(state.friends, it.game == g.id || g.hours > 40 && (it.presence == 'online' || it.avatar == 'owl'))}}"
+													"who": "{{filter(data.friends, it.game == g.id || g.hours > 40 && (it.presence == 'online' || it.avatar == 'owl'))}}"
 												},
 												"type": "column",
 												"anchors": { "left": 14, "right": 14, "top": 40 },

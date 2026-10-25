@@ -1,0 +1,20 @@
+{
+	"$schema": "../../schema/affrescoui-app.schema.json",
+	"format": "affrescoui-app",
+	"version": 1,
+	"id": "flow",
+	"name": "Flow",
+	"description": "A Kanban board: boards, swimlanes, a table and a timeline of every card.",
+	"entry": "index.screen.json",
+	"capabilities": {
+		"assistant": "Answers your questions about your boards, with the assistant you set up in Settings."
+	},
+	"data": {
+		"models": "models.json",
+		"seed": {
+			"issues": "seed/issues.json",
+			"projects": "seed/projects.json",
+			"inbox": "seed/inbox.json"
+		}
+	}
+}

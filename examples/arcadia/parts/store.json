@@ -92,16 +92,16 @@
 	},
 	"computed": {
 		"storeView": "{{state.storeQuery != '' ? 'results' : computed.here.page}}",
-		"price": "{{map(state.games, round(it.price * (100 - it.discount)) / 100)}}",
-		"featured": "{{filter(state.games, contains(['aurora', 'glasswing', 'clockwork', 'rivermill', 'volt'], it.id))}}",
+		"price": "{{map(data.games, round(it.price * (100 - it.discount)) / 100)}}",
+		"featured": "{{filter(data.games, contains(['aurora', 'glasswing', 'clockwork', 'rivermill', 'volt'], it.id))}}",
 		"feature": "{{computed.featured[state.storeFeature]}}",
-		"offers": "{{slice(sort(filter(state.games, it.discount > 0), it.discount, 'desc'), 0, 6)}}",
-		"storeRows": "{{state.storeList == 'top' ? slice(sort(state.games, it.reviewCount, 'desc'), 0, 8) : state.storeList == 'specials' ? slice(sort(filter(state.games, it.discount > 0), it.discount, 'desc'), 0, 8) : slice(reverse(state.games), 0, 8)}}",
+		"offers": "{{slice(sort(filter(data.games, it.discount > 0), it.discount, 'desc'), 0, 6)}}",
+		"storeRows": "{{state.storeList == 'top' ? slice(sort(data.games, it.reviewCount, 'desc'), 0, 8) : state.storeList == 'specials' ? slice(sort(filter(data.games, it.discount > 0), it.discount, 'desc'), 0, 8) : slice(reverse(data.games), 0, 8)}}",
 		"storePreview": "{{find(computed.storeRows, it.id == state.storeHover) ?? computed.storeRows[0]}}",
-		"results": "{{filter(state.games, contains(lower(it.title), lower(state.storeQuery)) || lower(it.genre) == lower(state.storeQuery) || some(it.tags, lower(it) == lower(state.storeQuery)))}}",
-		"cartGames": "{{filter(state.games, contains(state.cart, it.id))}}",
+		"results": "{{filter(data.games, contains(lower(it.title), lower(state.storeQuery)) || lower(it.genre) == lower(state.storeQuery) || some(it.tags, lower(it) == lower(state.storeQuery)))}}",
+		"cartGames": "{{filter(data.games, contains(state.cart, it.id))}}",
 		"cartTotal": "{{round(sum(computed.cartGames, it.price * (100 - it.discount))) / 100}}",
-		"wishGames": "{{filter(state.games, contains(state.wishlist, it.id) && (state.wishQuery == '' || contains(lower(it.title), lower(state.wishQuery)) || some(it.tags, contains(lower(it), lower(state.wishQuery)))))}}",
+		"wishGames": "{{filter(data.games, contains(state.wishlist, it.id) && (state.wishQuery == '' || contains(lower(it.title), lower(state.wishQuery)) || some(it.tags, contains(lower(it), lower(state.wishQuery)))))}}",
 		"wishSorted": "{{state.wishSort == 'name' ? sort(computed.wishGames, it.title) : state.wishSort == 'price' ? sort(computed.wishGames, it.price * (100 - it.discount)) : state.wishSort == 'discount' ? sort(computed.wishGames, it.discount, 'desc') : sort(computed.wishGames, indexOf(state.wishlist, it.id))}}",
 		"storeWidth": "{{min(940, window.width - 32)}}",
 		"storeHeight": "{{86 + (computed.storeView == 'results' ? 110 + 74 * max(1, length(computed.results)) : computed.storeView == 'app' ? 1670 : computed.storeView == 'cart' ? 140 + max(250, length(computed.cartGames) * 106 + 60, length(state.receipt) * 40 + 160) : computed.storeView == 'wishlist' ? 160 + max(1, length(computed.wishSorted)) * 128 : 1960)}}"
@@ -221,17 +221,7 @@
 			"enablement": "{{length(state.cart) > 0 && computed.cartTotal <= state.user.wallet}}",
 			"description": "Pays from the wallet: the games join the library, not installed, and leave the wishlist.",
 			"do": [
-				{
-					"forEach": "state.games",
-					"as": "g",
-					"index": "i",
-					"do": [
-						{
-							"if": "{{contains(state.cart, g.id)}}",
-							"then": [{ "set": "state.games[i].owned", "to": true }]
-						}
-					]
-				},
+				{ "update": "games", "id": "{{state.cart}}", "fields": { "owned": true } },
 				{
 					"set": "state.user.wallet",
 					"to": "{{round((state.user.wallet - computed.cartTotal) * 100) / 100}}"
@@ -2215,7 +2205,7 @@
 													},
 													{
 														"type": "label",
-														"text": "{{find(state.games, it.id == id).title}}",
+														"text": "{{find(data.games, it.id == id).title}}",
 														"grow": 1,
 														"textColor": "@store.text",
 														"height": 34,
@@ -2866,7 +2856,7 @@
 						"with": {
 							"open": "state.cartDialog",
 							"title": "{{t('store.addedTitle')}}",
-							"message": "{{t('store.addedText', { title: find(state.games, it.id == state.cartAdded).title ?? '' })}}",
+							"message": "{{t('store.addedText', { title: find(data.games, it.id == state.cartAdded).title ?? '' })}}",
 							"buttons": [
 								{ "title": "{{t('store.viewCart')}}", "run": "showCart" },
 								{ "title": "{{t('store.keepShopping')}}" }

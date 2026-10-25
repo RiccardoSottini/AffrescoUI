@@ -4,6 +4,8 @@
 /// @brief ChildProcess: a program started from an argument vector, with no shell, in its own process group (a job
 /// object on Windows), and pipes for its stdin and stdout.
 
+#include <affresco/services/Program.hpp> // Launch
+
 #include <chrono>
 #include <cstddef>
 #include <filesystem>
@@ -14,14 +16,6 @@
 #include <vector>
 
 namespace affresco::services {
-
-/// @brief What to start: the program, its arguments, where and with what environment.
-struct Launch {
-	std::filesystem::path program;                       ///< An absolute path; never looked up in PATH.
-	std::vector<std::string> arguments;                  ///< After the program's name.
-	std::filesystem::path directory;                     ///< The working directory, or empty for the host's.
-	std::optional<std::vector<std::string>> environment; ///< "NAME=value" entries, or std::nullopt for the host's.
-};
 
 /// @brief Starts a program that outlives this one (ProcessGrant::detach): in a session of its own on POSIX (not in a
 /// job object, breaking away from the host's if it may, on Windows). On POSIX its stdin is empty and its stdout and

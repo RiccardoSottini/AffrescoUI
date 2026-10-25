@@ -21,7 +21,8 @@ namespace affresco::format {
 /// @throws DocumentError If a use it adds isn't allowed.
 void checkServiceUses(const json& before, const json& after, const services::Services* services);
 
-/// @brief One line for each use a revision adds of a method or operation that writes or runs, for the reviewer: e.g.
+/// @brief One line for each use a revision adds, or whose "with" it changes, of a method or operation that writes or
+/// runs, for the reviewer: e.g.
 /// "uses files.write (writes: writes a text file under the root)" or "uses api.saveProject (write: PUT
 /// /projects/{id})". A method the services don't know counts as one.
 /// @param before The document before the revision.

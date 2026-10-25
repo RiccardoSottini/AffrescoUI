@@ -7,33 +7,835 @@
 			"name": "sign-in",
 			"screen": "index.screen.json",
 			"steps": [
-				{ "expect": { "image": "first-frame" } },
-				{ "click": "#email" },
-				{ "type": "ada@example" },
-				{ "click": "#password" },
-				{ "expect": { "image": "invalid-email" } },
-				{ "type": "short" },
-				{ "click": "#signIn" },
-				{ "expect": { "image": "errors" } },
-				{ "click": "#forgot" },
-				{ "wait": 50 },
-				{ "expect": { "image": "forgot-dialog" } },
-				{ "key": "escape" },
-				{ "click": "#toCreate" },
-				{ "expect": { "image": "create-account" } },
-				{ "click": "#checked-field-form-3" },
-				{ "type": "Secret12" },
-				{ "click": "#field-eye" },
-				{ "expect": { "image": "strength-shown" } },
-				{ "key": "mod+j" },
-				{ "expect": { "image": "dark" } },
-				{ "click": "#checked-field-form" },
-				{ "type": "Ada Lovelace" },
-				{ "click": "#checked-field-form-2" },
-				{ "key": "end" },
-				{ "type": ".com" },
-				{ "click": "#label-create-account" },
-				{ "expect": { "image": "signed-in-dark" } }
+				{
+					"expect": {
+						"image": "first-frame"
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "invalid-email"
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"key": "end"
+				},
+				{
+					"type": ".com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "password-step"
+					}
+				},
+				{
+					"key": "capslock+s"
+				},
+				{
+					"expect": {
+						"image": "caps-lock"
+					}
+				},
+				{
+					"type": "short"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "errors"
+					}
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "forgot-dialog"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"click": "#toCreate"
+				},
+				{
+					"expect": {
+						"image": "create-account"
+					}
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "Secret12"
+				},
+				{
+					"click": "#field-eye"
+				},
+				{
+					"expect": {
+						"image": "strength-shown"
+					}
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"expect": {
+						"image": "dark"
+					}
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Ada Lovelace"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "ada_l"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"image": "username-available"
+					}
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "verify-email"
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"image": "signed-in-dark"
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-in-other-ways",
+			"screen": "index.screen.json",
+			"steps": [
+				{
+					"click": "#passkey"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "passkey-picker"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#emailCode"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "246"
+				},
+				{
+					"expect": {
+						"image": "email-code"
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-in-two-step",
+			"screen": "index.screen.json",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"click": "#twoStep"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "setup-qr"
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "setup-codes"
+					}
+				},
+				{
+					"click": "#savedCodes"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"image": "two-step-on"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#trust"
+				},
+				{
+					"click": "#textMe"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"image": "sms-code"
+					}
+				},
+				{
+					"click": "#useBackup"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "DEMO-10"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "backup-wrong"
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-in-security",
+			"screen": "index.screen.json",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 65000
+				},
+				{
+					"expect": {
+						"image": "reset-timer"
+					}
+				},
+				{
+					"wait": 600000
+				},
+				{
+					"expect": {
+						"image": "reset-expired"
+					}
+				},
+				{
+					"click": "#resendReset"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "locked"
+					}
+				},
+				{
+					"click": "#unlock"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-24"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-24"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "Example-Pass-24"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"wait": 121000
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"click": "#changePassword"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "reauth-wrong"
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-in-account",
+			"screen": "index.screen.json",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "profile"
+					}
+				},
+				{
+					"click": "#changePhoto"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "photo"
+					}
+				},
+				{
+					"click": "#swatch",
+					"nth": 2
+				},
+				{
+					"wait": 4500
+				},
+				{
+					"click": "#nav",
+					"nth": 1
+				},
+				{
+					"click": "#addEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "ada@exa"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "emails"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "security"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 3
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "devices"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 4
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "connected"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 5
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "activity"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 6
+				},
+				{
+					"click": "#deleteAccount"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "delete"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 1
+				},
+				{
+					"resize": [
+						600,
+						720
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "narrow"
+					}
+				},
+				{
+					"key": "mod+l"
+				},
+				{
+					"key": "mod+l"
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"image": "rtl-dark"
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-in-assistant",
+			"screen": "index.screen.json",
+			"steps": [
+				{
+					"revision": {
+						"set": {
+							"/state/assistant/simulate": {
+								"online": true,
+								"pending": [],
+								"working": false,
+								"proposals": [],
+								"models": null
+							}
+						}
+					}
+				},
+				{
+					"action": "assistant.open"
+				},
+				{
+					"wait": 250
+				},
+				{
+					"expect": {
+						"image": "open"
+					}
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": false
+					}
+				},
+				{
+					"revision": {
+						"set": {
+							"/state/assistant/simulate": {
+								"online": true,
+								"pending": [
+									"p1"
+								],
+								"working": false,
+								"proposals": [],
+								"models": null
+							},
+							"/state/assistant/messages": [
+								{
+									"mine": true,
+									"from": "You",
+									"text": "Make the sign-in button larger",
+									"time": 1773500966000,
+									"error": false
+								},
+								{
+									"mine": false,
+									"from": "claude",
+									"text": "Done: it waits for your review.",
+									"time": 1773500970000,
+									"error": false
+								},
+								{
+									"kind": "card",
+									"id": "p1",
+									"title": "A larger sign-in button",
+									"summary": "Changes 1 element",
+									"lines": [
+										"set /styles/primaryButton/height to 52"
+									],
+									"time": 1773500970000
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "assistant.open"
+				},
+				{
+					"wait": 250
+				},
+				{
+					"expect": {
+						"image": "asked"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"action": "assistant.open"
+				},
+				{
+					"wait": 250
+				},
+				{
+					"expect": {
+						"image": "dark"
+					}
+				}
 			]
 		}
 	]

@@ -206,7 +206,8 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 		                         {"colorScheme", window->colorScheme() == ColorScheme::Dark ? "dark" : "light"},
 		                         {"nativeMenuBar", window->nativeMenuBar()},
 		                         {"reducedMotion", window->reducedMotion()},
-		                         {"menuBar", menuBarOf(versions.document())}}
+		                         {"menuBar", menuBarOf(versions.document())},
+		                         {"capsLock", window->capsLock()}}
 		                  : json::object();
 		g.revision = toJson(versions.head());
 
@@ -356,6 +357,7 @@ json DocumentContext::node(std::string_view id) const {
 
 // "#rrggbb", "@name" (from "colors", in the current theme) or "transparent"
 Color DocumentContext::color(const json& value, const std::string& path) const {
+	if(value.is_null()) return colors::transparent; // its data isn't there: nothing drawn, rather than no screen
 	const std::string name = string(value, path);
 	if(name == "transparent") return colors::transparent;
 

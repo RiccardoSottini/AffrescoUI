@@ -169,3 +169,47 @@ TEST_CASE("format: an animate step moves the state on the window's clock") {
 	window->render();
 	CHECK_FALSE(window->secondsToNextTimer());
 }
+
+// A component's inner node has the same id in each use: a path of ids names the one inside a given use
+TEST_CASE("format: focus takes a path of ids, to reach a component's node in one of its uses") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen",
+		"version": 2,
+		"components": { "field": { "node": { "type": "column", "children": [{ "type": "textarea", "id": "input" }] } } },
+		"onLoad": [{ "focus": "#second #input" }],
+		"root": { "type": "column", "children": [
+			{ "id": "first", "use": "field" },
+			{ "id": "second", "use": "field" }
+		] }
+	})json");
+	screen.build(*window);
+	window->render(); // runs onLoad, which leaves the focus for the next frame
+	window->render();
+
+	const affresco::Panel* focused = window->focusedPanel();
+	REQUIRE(focused != nullptr);
+	CHECK(focused->id() == "input");
+	REQUIRE(focused->parent() != nullptr);
+	CHECK(focused->parent()->id() == "second");
+}
+
+// A delayed focus step for a field the update removed (a form left for another step) leaves an earlier step's focus
+TEST_CASE("format: a later focus step whose node is gone doesn't take the focus from an earlier one") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen",
+		"version": 2,
+		"onLoad": [{ "focus": "#code" }, { "focus": "#gone" }],
+		"root": { "type": "column", "children": [{ "type": "textarea", "id": "code" }] }
+	})json");
+	screen.build(*window);
+	window->render(); // runs onLoad, which leaves the focus for the next frame
+	window->render();
+
+	const affresco::Panel* focused = window->focusedPanel();
+	REQUIRE(focused != nullptr);
+	CHECK(focused->id() == "code");
+}

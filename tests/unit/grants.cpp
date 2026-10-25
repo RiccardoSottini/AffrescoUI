@@ -158,3 +158,21 @@ TEST_CASE("grants: a root the person chooses: its services wait for it, then sta
 	CHECK_FALSE(registry.chooseRoot("workspace", utf8(folder.path / "second")));
 	CHECK(registry.status()["files"]["folder"] == "second");
 }
+
+TEST_CASE("grants: a root the person chooses for reading only takes only services that only read") {
+	const TemporaryFolder folder;
+	std::filesystem::create_directories(folder.path / "chosen");
+	const json writes = {{"files", {{"provider", "fs"}, {"root", "examples"}}}};
+	const json reads = {{"files", {{"provider", "fs"}, {"root", "examples"}, {"readOnly", true}}}};
+	const auto state = [&](bool readOnly, const json& services) {
+		affresco::services::ServiceRegistry registry;
+		registry.allowChosenRoot("examples", true);
+		if(!readOnly) registry.allowChosenRoot("examples"); // allowed again, to change: writing too
+		static_cast<void>(registry.load(services));
+		CHECK_FALSE(registry.chooseRoot("examples", utf8(folder.path / "chosen")));
+		return registry.status()["files"]["state"];
+	};
+	CHECK(state(true, writes) == "refused");
+	CHECK(state(true, reads) != "refused");
+	CHECK(state(false, writes) != "refused");
+}

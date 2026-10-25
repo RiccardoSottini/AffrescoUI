@@ -937,345 +937,6 @@
 			"type": "string"
 		}
 	},
-	"models": {
-		"habits": {
-			"version": 1,
-			"title": "Habits",
-			"note": "Each habit and its history: entries holds a character a day from \"from\" (y, s or -), or a number a day separated by spaces for a measurable habit; notes holds a note by day.",
-			"fields": {
-				"name": {
-					"type": "string",
-					"required": true,
-					"maxLength": 200
-				},
-				"question": {
-					"type": "string"
-				},
-				"color": {
-					"type": "integer",
-					"minimum": 0,
-					"maximum": 31
-				},
-				"kind": {
-					"type": "enum",
-					"values": [
-						"yesNo",
-						"measurable"
-					],
-					"required": true
-				},
-				"frequency": {
-					"type": "object",
-					"fields": {
-						"times": {
-							"type": "integer",
-							"minimum": 1
-						},
-						"days": {
-							"type": "integer",
-							"minimum": 1
-						}
-					}
-				},
-				"unit": {
-					"type": "string"
-				},
-				"target": {
-					"type": "number"
-				},
-				"targetType": {
-					"type": "enum",
-					"values": [
-						"atLeast",
-						"atMost"
-					]
-				},
-				"reminder": {
-					"type": "object",
-					"fields": {
-						"time": {
-							"type": "string"
-						},
-						"days": {
-							"type": "list",
-							"of": {
-								"type": "boolean"
-							},
-							"maxItems": 7
-						}
-					}
-				},
-				"description": {
-					"type": "string"
-				},
-				"archived": {
-					"type": "boolean",
-					"default": false
-				},
-				"from": {
-					"type": "date",
-					"required": true
-				},
-				"entries": {
-					"type": "string",
-					"default": ""
-				},
-				"notes": {
-					"type": "map",
-					"of": {
-						"type": "string"
-					},
-					"maxItems": 10000
-				},
-				"position": {
-					"type": "number",
-					"default": 0
-				}
-			},
-			"seed": [
-				{
-					"id": "meditate",
-					"name": "Meditate",
-					"question": "Did you sit quietly for ten minutes?",
-					"color": 8,
-					"kind": "yesNo",
-					"frequency": {
-						"times": 1,
-						"days": 1
-					},
-					"unit": "",
-					"target": 0,
-					"targetType": "atLeast",
-					"reminder": {
-						"time": "07:30",
-						"days": [
-							true,
-							true,
-							true,
-							true,
-							true,
-							true,
-							true
-						]
-					},
-					"description": "Ten minutes on the cushion before the phone comes out.",
-					"archived": false,
-					"from": "2025-10-16",
-					"entries": "y-yyy-yy-sy--yyy-yyyyyyyyyyyy---yy---yy-yyyy-yy-yyy-yyyy-yyyy-y-y-yyys---yyy-yyyyyyyyyyyyy--y-yyy-yyyyyyyy-yyyyyyy-yysyy-------------ys-----y-yy---yy--yy-y-y--y---yy--yyyyy--y-yyyy--y-yyyysy-yyy---yyyyyyy-yyyy--yy-yyyyyyyy-yy-yyy-yyyyyyyyyyyyyy--y----yy--sy---yyyyyyy-yy-yyyyyyyyyyyy-yyyyyyyyyyyyyyyy-yyyyy--yy-yyy--yyyy-yyyyyyy-yy-y-yyy-y-yyy-yyyyyyyyyyyyy-yyyyyyy",
-					"notes": {
-						"2026-10-15": "Rain on the window. Easy to focus.",
-						"2026-10-12": "Restless; stopped after five minutes.",
-						"2026-09-30": "A whole month without missing more than two days."
-					},
-					"position": 0
-				},
-				{
-					"id": "run",
-					"name": "Run",
-					"question": "How far did you run?",
-					"color": 7,
-					"kind": "measurable",
-					"frequency": {
-						"times": 1,
-						"days": 7
-					},
-					"unit": "km",
-					"target": 15,
-					"targetType": "atLeast",
-					"reminder": {
-						"time": "18:00",
-						"days": [
-							false,
-							true,
-							false,
-							true,
-							false,
-							true,
-							false
-						]
-					},
-					"description": "",
-					"archived": false,
-					"from": "2026-04-06",
-					"entries": "6 0 5 4 3 4 0 0 4 8 0 0 0 0 0 0 0 4 0 0 0 0 0 0 0 4 4 5 0 1 10 0 4 0 0 3 0 2 9 0 0 5 0 0 2 0 4 0 10 2 5 0 0 0 0 4 4 6 4 0 5 7 0 0 5 7 0 7 0 5 0 9 0 0 6 0 0 5 5 0 0 0 5 0 0 0 4 8 3 3 5 0 0 0 7 0 0 0 7 0 5 0 0 0 0 0 0 5 0 12 0 0 0 0 2 5 0 0 0 0 0 0 3 0 0 0 0 0 0 0 0 6 10 3 0 0 0 0 0 0 6 0 0 4 4 0 0 7 6 7 0 0 0 0 0 0 0 5 0 6 0 0 8 0 0 0 0 1 1 0 6 0 0 0 2 0 0 0 7 0 0 0 0 0 0 8 4 0 0 6 0 0 0",
-					"notes": {
-						"2026-10-11": "Hill loop, legs heavy."
-					},
-					"position": 1
-				},
-				{
-					"id": "read",
-					"name": "Read",
-					"question": "How many pages did you read?",
-					"color": 11,
-					"kind": "measurable",
-					"frequency": {
-						"times": 1,
-						"days": 1
-					},
-					"unit": "pages",
-					"target": 20,
-					"targetType": "atLeast",
-					"reminder": {
-						"time": "21:30",
-						"days": [
-							true,
-							true,
-							true,
-							true,
-							true,
-							true,
-							true
-						]
-					},
-					"description": "Fiction or not, as long as it's paper.",
-					"archived": false,
-					"from": "2025-10-16",
-					"entries": "14 20 23 23 25 52 9 0 24 7 20 0 16 0 18 18 4 9 32 25 0 19 10 27 16 27 33 14 35 0 21 32 15 28 12 0 26 22 26 28 34 0 25 41 5 21 25 0 0 18 0 19 41 17 9 20 6 7 21 15 11 0 20 34 24 0 9 25 22 0 20 22 32 17 28 19 30 0 21 14 22 28 28 27 6 0 29 29 15 0 28 37 0 27 10 27 27 17 30 27 0 19 32 21 25 37 15 21 33 27 41 27 37 10 0 26 29 4 33 22 40 18 27 30 36 22 21 29 24 13 27 0 0 0 0 0 24 19 19 30 18 26 0 20 0 0 13 24 13 14 26 10 29 8 0 19 37 8 24 15 0 12 6 21 0 10 0 0 26 0 23 0 0 35 34 33 19 0 8 0 21 29 25 22 28 22 13 16 0 30 9 0 30 17 12 26 0 19 12 21 0 26 33 14 1 7 31 22 24 26 30 39 44 5 25 8 24 20 0 23 36 26 0 17 0 34 7 18 31 0 0 20 30 30 22 25 34 18 21 36 34 0 11 33 16 10 23 0 30 29 17 0 12 30 39 0 27 28 10 18 24 25 8 18 8 0 34 23 14 7 18 27 0 0 27 24 27 28 8 0 26 32 22 0 38 30 19 5 4 29 14 37 22 12 0 21 0 16 14 26 19 30 25 0 29 19 34 35 19 8 38 15 18 0 0 22 0 18 11 19 31 30 39 14 30 28 22 0 24 0 28 0 0 0 0 24 23 21 19 45 26 0 28 33 0 0 20 38 20 28 16 0 16 21 0 0 0 0 0 22 29 45 41 0 12",
-					"notes": {},
-					"position": 2
-				},
-				{
-					"id": "exercise",
-					"name": "Exercise",
-					"question": "Did you train today?",
-					"color": 2,
-					"kind": "yesNo",
-					"frequency": {
-						"times": 3,
-						"days": 7
-					},
-					"unit": "",
-					"target": 0,
-					"targetType": "atLeast",
-					"description": "",
-					"archived": false,
-					"from": "2025-10-16",
-					"entries": "yy-yy---yy---y--y-yyyy-----y-y-yyyy----y-y-yy-y-yy---y-y--y-y-yyy---yyyy-yyy--y--y---yy--y-----y-------y----yy--yy--------yy--yy-y-yy-yy-yyy-y-y-y---y-y-yyy--y---yy---y---yy---yy-y-yyy----y------y-yy-----y---yy--yyyy--yy-y---yy-y------y--yy---yyy--y-yy-y----yyy--yyyy-y-y---y--y-yyyy-yy-----yyy--y-y---y-y-yyyy--yyyy---yy--yy-yy--y-y--yyyy--y-y--y--yyy--y-yyyy-yyy-",
-					"notes": {},
-					"position": 3
-				},
-				{
-					"id": "floss",
-					"name": "Floss",
-					"question": "Did you floss?",
-					"color": 9,
-					"kind": "yesNo",
-					"frequency": {
-						"times": 1,
-						"days": 1
-					},
-					"unit": "",
-					"target": 0,
-					"targetType": "atLeast",
-					"reminder": {
-						"time": "22:15",
-						"days": [
-							true,
-							true,
-							true,
-							true,
-							true,
-							true,
-							true
-						]
-					},
-					"description": "",
-					"archived": false,
-					"from": "2026-03-02",
-					"entries": "y---y--yyyyyyy-y-yyy-y-y-yy--yyyyyyyyyyy-yyyy--y-yyyy---yy----yy--yyyyyy-y-yyy-yy-y-y--yy-y--yyyyyyy-yyyyy-y-yyyyyyyyyy-yyyyyy--yy--y-yyy-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy-yyyy-yyyyyy-yyyyyyy-yy-yyyyy-yyy--yy-yy-yyyyyyyyyyy-yy-",
-					"notes": {},
-					"position": 4
-				},
-				{
-					"id": "coffee",
-					"name": "Coffee",
-					"question": "How many cups of coffee?",
-					"color": 16,
-					"kind": "measurable",
-					"frequency": {
-						"times": 1,
-						"days": 1
-					},
-					"unit": "cups",
-					"target": 2,
-					"targetType": "atMost",
-					"description": "",
-					"archived": false,
-					"from": "2026-06-01",
-					"entries": "3 1 0 0 2 2 4 0 2 2 1 3 0 1 1 2 1 5 1 1 0 2 2 2 1 0 4 3 3 1 2 2 2 0 3 1 2 2 0 2 1 5 2 0 3 0 2 0 2 3 3 2 2 3 0 3 1 2 1 4 5 2 1 3 3 0 2 0 0 3 3 2 2 1 1 1 2 3 3 2 2 0 3 4 0 4 4 1 2 1 0 3 2 2 1 0 5 3 2 0 0 1 0 1 6 3 2 0 1 1 2 0 0 3 2 3 3 2 4 3 3 2 0 1 3 0 1 2 1 3 3 0 0 3 3 3 1",
-					"notes": {},
-					"position": 5
-				},
-				{
-					"id": "parents",
-					"name": "Call the family",
-					"question": "Did you call home?",
-					"color": 15,
-					"kind": "yesNo",
-					"frequency": {
-						"times": 1,
-						"days": 7
-					},
-					"unit": "",
-					"target": 0,
-					"targetType": "atLeast",
-					"reminder": {
-						"time": "11:00",
-						"days": [
-							true,
-							false,
-							false,
-							false,
-							false,
-							false,
-							true
-						]
-					},
-					"description": "",
-					"archived": false,
-					"from": "2025-10-16",
-					"entries": "---y------y------y------y-----y--------------y----------y----y---y-y--y--------yy----y-----------y-----------------y-----yy-----yy------yy-y---y-y----y------y-------------y---y--------yy--y-y------y-y-----yyy-----y-----yy------y----y-y-y--y-y----y-y--------yy---y-----yy------y--yy--y----y------y----y-----y----y-yy--yy-----yy--y--y----y---------y---y--y---yy-y----",
-					"notes": {},
-					"position": 6
-				},
-				{
-					"id": "guitar",
-					"name": "Guitar",
-					"question": "Did you practise scales?",
-					"color": 4,
-					"kind": "yesNo",
-					"frequency": {
-						"times": 1,
-						"days": 1
-					},
-					"unit": "",
-					"target": 0,
-					"targetType": "atLeast",
-					"description": "Paused for the summer.",
-					"archived": true,
-					"from": "2025-11-03",
-					"entries": "y--y--yyy-yyyy-yy------y-y--yy----yyy-y--yyyyyy-yyy-y-y-yyyyyy-yyyyy--yyyy-y-----y-y-yyy-yy-yyyyyyy--yyy-y-yy-y---yy--y---y-yy----yyy-y-yy-y-y-y-----y----yy----y----yyyyyy-yyyy-yyy-yy-yy-yy--yyy----",
-					"notes": {},
-					"position": 7
-				}
-			],
-			"importFrom": {
-				"path": "state.habits",
-				"with": "{{merge(it, {position: index})}}",
-				"note": "Streak kept its habits in its state file before the data layer: they come in once."
-			}
-		}
-	},
-	"queries": {
-		"ordered": {
-			"from": "habits",
-			"sort": [
-				"position"
-			],
-			"note": "The habits in their manual order"
-		}
-	},
 	"persist": [
 		"state.nextId",
 		"state.selected",
@@ -1529,6 +1190,7 @@
 				"stroke": 3
 			},
 			"node": {
+				"id": "panel-ring",
 				"width": "{{size}}",
 				"height": "{{size}}",
 				"color": "transparent",
@@ -1536,6 +1198,7 @@
 				"label": "{{formatPercent(value)}}",
 				"children": [
 					{
+						"id": "path-ring",
 						"type": "path",
 						"fill": 0,
 						"viewBox": "0 0 24 24",
@@ -1544,6 +1207,7 @@
 						"strokeWidth": "{{stroke}}"
 					},
 					{
+						"id": "path-ring-2",
 						"type": "path",
 						"fill": 0,
 						"viewBox": "0 0 24 24",
@@ -1561,6 +1225,7 @@
 				"color": "#888888"
 			},
 			"node": {
+				"id": "label-text-button",
 				"type": "label",
 				"style": "textButton",
 				"font": "small",
@@ -1579,6 +1244,7 @@
 				},
 				"children": [
 					{
+						"id": "menu-text-button",
 						"use": "menu",
 						"with": {
 							"open": "{{'state.menus.' + (key == 'scorePeriod' ? 'score' : 'history')}}",
@@ -1597,6 +1263,7 @@
 				"summary": ""
 			},
 			"node": {
+				"id": "panel-pref-row",
 				"anchors": {
 					"left": 0,
 					"right": 0
@@ -1616,6 +1283,7 @@
 				},
 				"children": [
 					{
+						"id": "label-title",
 						"type": "label",
 						"text": "{{title}}",
 						"textColor": "@c.text",
@@ -1626,6 +1294,7 @@
 						"fitText": true
 					},
 					{
+						"id": "label-summary",
 						"type": "label",
 						"when": "{{summary != ''}}",
 						"text": "{{summary}}",
@@ -1651,6 +1320,7 @@
 				"color": "@c.text"
 			},
 			"node": {
+				"id": "panel-stat",
 				"width": 120,
 				"height": 56,
 				"color": "transparent",
@@ -1658,6 +1328,7 @@
 				"label": "{{caption + ': ' + value}}",
 				"children": [
 					{
+						"id": "label-value",
 						"type": "label",
 						"text": "{{value}}",
 						"font": "title",
@@ -1671,6 +1342,7 @@
 						"align": "center"
 					},
 					{
+						"id": "label-caption",
 						"type": "label",
 						"text": "{{caption}}",
 						"font": "small",
@@ -1695,6 +1367,7 @@
 				"enabled": true
 			},
 			"node": {
+				"id": "panel-switch",
 				"width": 40,
 				"height": 24,
 				"color": "transparent",
@@ -1709,6 +1382,7 @@
 				},
 				"children": [
 					{
+						"id": "panel-switch-2",
 						"anchors": {
 							"left": 3,
 							"right": 3,
@@ -1719,6 +1393,7 @@
 						"color": "{{on && enabled ? computed.accent + '80' : '@c.faint'}}"
 					},
 					{
+						"id": "panel-switch-3",
 						"anchors": {
 							"left": "{{on ? 18 : 0}}",
 							"top": 1
@@ -1749,12 +1424,14 @@
 				"on": false
 			},
 			"node": {
+				"id": "pref-row-row",
 				"use": "prefRow",
 				"onClick": {
 					"toggle": "{{bind}}"
 				},
 				"children": [
 					{
+						"id": "switch-pref-row-row",
 						"use": "switch",
 						"with": {
 							"on": "{{on}}",
@@ -2557,6 +2234,7 @@
 								"color": "@c.bg",
 								"children": [
 									{
+										"id": "row-day-header",
 										"type": "row",
 										"anchors": {
 											"right": 8,
@@ -2580,6 +2258,7 @@
 												"color": "transparent",
 												"children": [
 													{
+														"id": "label-format-date-date",
 														"style": "tiny",
 														"text": "{{upper(formatDate(dateMs(d), 'EEE', 'utc'))}}",
 														"anchors": {
@@ -2591,6 +2270,7 @@
 														"align": "center"
 													},
 													{
+														"id": "label-format-date-date-2",
 														"type": "label",
 														"text": "{{formatDate(dateMs(d), 'd', 'utc')}}",
 														"font": "small",
@@ -2729,6 +2409,7 @@
 												"color": "{{computed.pal[hb.color] + (pk ? '30' : '18')}}"
 											},
 											{
+												"id": "ring-habit-row",
 												"use": "ring",
 												"with": {
 													"value": "{{computed.now[h]}}",
@@ -2740,6 +2421,7 @@
 												}
 											},
 											{
+												"id": "label-hb-name",
 												"type": "label",
 												"text": "{{hb.name}}",
 												"textColor": "{{col}}",
@@ -2810,6 +2492,7 @@
 														},
 														"children": [
 															{
+																"id": "label-cell",
 																"type": "label",
 																"when": "{{hb.kind != 'measurable'}}",
 																"fill": 0,
@@ -2819,6 +2502,7 @@
 																"textColor": "{{v == 1 ? col : v == -1 || r >= 1 ? col + '77' : '@c.faint'}}"
 															},
 															{
+																"id": "label-format-number-v",
 																"type": "label",
 																"when": "{{hb.kind == 'measurable' && v != null}}",
 																"anchors": {
@@ -2832,6 +2516,7 @@
 																"textColor": "{{hb.frequency.days == 1 ? (r >= 1 && v > 0 ? col : '@c.faint') : v > 0 ? col : '@c.faint'}}"
 															},
 															{
+																"id": "label-hb-unit",
 																"type": "label",
 																"when": "{{hb.kind == 'measurable' && v != null}}",
 																"anchors": {
@@ -2846,6 +2531,7 @@
 																"textColor": "{{hb.frequency.days == 1 ? (r >= 1 && v > 0 ? col : '@c.faint') : v > 0 ? col : '@c.faint'}}"
 															},
 															{
+																"id": "panel-cell",
 																"when": "{{trim(hb.notes[d] ?? '') != ''}}",
 																"anchors": {
 																	"top": 8,
@@ -2876,6 +2562,7 @@
 								"color": "transparent",
 								"children": [
 									{
+										"id": "label-empty-list",
 										"type": "label",
 										"text": "",
 										"font": "icons",
@@ -2890,6 +2577,7 @@
 										"align": "center"
 									},
 									{
+										"id": "label-t-empty",
 										"type": "label",
 										"text": "{{t('empty')}}",
 										"font": "heading",
@@ -2903,6 +2591,7 @@
 										"align": "center"
 									},
 									{
+										"id": "label-t-empty-hint",
 										"style": "small",
 										"text": "{{t('emptyHint')}}",
 										"anchors": {
@@ -2931,6 +2620,7 @@
 								},
 								"children": [
 									{
+										"id": "label-t-app",
 										"type": "label",
 										"text": "{{t('app')}}",
 										"font": "title",
@@ -2967,6 +2657,7 @@
 												},
 												"children": [
 													{
+														"id": "menu-add-button",
 														"use": "menu",
 														"with": {
 															"open": "state.menus.add",
@@ -2992,6 +2683,7 @@
 												},
 												"children": [
 													{
+														"id": "menu-filter-button",
 														"use": "menu",
 														"with": {
 															"open": "state.menus.filter",
@@ -3016,6 +2708,7 @@
 												},
 												"children": [
 													{
+														"id": "menu-more-button",
 														"use": "menu",
 														"with": {
 															"open": "state.menus.more",
@@ -3059,6 +2752,7 @@
 												}
 											},
 											{
+												"id": "label-t-picked-n",
 												"type": "label",
 												"text": "{{t('picked', {n: length(state.picked)})}}",
 												"font": "title",
@@ -3071,6 +2765,7 @@
 												"live": "polite"
 											},
 											{
+												"id": "row-pick-bar",
 												"type": "row",
 												"anchors": {
 													"right": 4,
@@ -3147,6 +2842,7 @@
 								"alignItems": "center",
 								"children": [
 									{
+										"id": "panel-detail-cards",
 										"height": 0,
 										"width": 10,
 										"color": "transparent"
@@ -3158,6 +2854,7 @@
 										"height": "{{computed.h.description != '' ? 92 : 70}}",
 										"children": [
 											{
+												"id": "label-h-question",
 												"type": "label",
 												"text": "{{computed.h.question}}",
 												"textColor": "{{computed.col}}",
@@ -3180,18 +2877,21 @@
 												"gap": 20,
 												"children": [
 													{
+														"id": "label-freq-text",
 														"style": "caption",
 														"text": "{{computed.freqText}}",
 														"icon": "repeat",
 														"height": 20
 													},
 													{
+														"id": "label-h-reminder-null",
 														"style": "caption",
 														"text": "{{computed.h.reminder == null ? t('reminderOff') : formatTime(dateMs('2000-01-01') + (number(slice(computed.h.reminder.time, 0, 2)) * 60 + number(slice(computed.h.reminder.time, 3, 5))) * 60000, 'short', 'utc')}}",
 														"icon": "{{computed.h.reminder == null ? 'bell-off' : 'bell'}}",
 														"height": 20
 													},
 													{
+														"id": "label-t-archived-tag",
 														"style": "caption",
 														"text": "{{t('archivedTag')}}",
 														"when": "{{computed.h.archived}}",
@@ -3201,6 +2901,7 @@
 												]
 											},
 											{
+												"id": "label-h-description",
 												"type": "label",
 												"text": "{{computed.h.description}}",
 												"when": "{{computed.h.description != ''}}",
@@ -3224,6 +2925,7 @@
 										"label": "{{t('card.overview')}}",
 										"children": [
 											{
+												"id": "label-t-card-overview",
 												"style": "cardTitle",
 												"text": "{{t('card.overview')}}",
 												"textColor": "{{computed.col}}"
@@ -3241,6 +2943,7 @@
 												"alignItems": "center",
 												"children": [
 													{
+														"id": "ring-overview-stats",
 														"use": "ring",
 														"with": {
 															"value": "{{computed.stats.score}}",
@@ -3250,6 +2953,7 @@
 														}
 													},
 													{
+														"id": "stat-overview-stats",
 														"use": "stat",
 														"with": {
 															"value": "{{formatPercent(computed.stats.score)}}",
@@ -3258,6 +2962,7 @@
 														}
 													},
 													{
+														"id": "stat-overview-stats-2",
 														"use": "stat",
 														"with": {
 															"value": "{{(computed.stats.month >= 0 ? '+' : '') + formatPercent(computed.stats.month)}}",
@@ -3266,6 +2971,7 @@
 														}
 													},
 													{
+														"id": "stat-overview-stats-3",
 														"use": "stat",
 														"with": {
 															"value": "{{(computed.stats.year >= 0 ? '+' : '') + formatPercent(computed.stats.year)}}",
@@ -3274,6 +2980,7 @@
 														}
 													},
 													{
+														"id": "stat-overview-stats-4",
 														"use": "stat",
 														"with": {
 															"value": "{{formatNumber(computed.stats.total, 0, 1)}}",
@@ -3294,6 +3001,7 @@
 										"label": "{{t('card.target')}}",
 										"children": [
 											{
+												"id": "label-t-card-target",
 												"style": "cardTitle",
 												"text": "{{t('card.target')}}",
 												"textColor": "{{computed.col}}"
@@ -3326,6 +3034,7 @@
 														"description": "{{t('goalOf', {value: formatNumber(g.value, 0, 1), goal: formatNumber(g.goal, 0, 1)})}}",
 														"children": [
 															{
+																"id": "label-t-goal-g",
 																"type": "label",
 																"text": "{{t('goal.' + g.period)}}",
 																"font": "small",
@@ -3337,6 +3046,7 @@
 																"fitText": true
 															},
 															{
+																"id": "label-t-goal-of",
 																"style": "caption",
 																"text": "{{t('goalOf', {value: formatNumber(g.value, 0, 1), goal: formatNumber(g.goal, 0, 1)}) + ' ' + computed.h.unit}}",
 																"anchors": {
@@ -3345,6 +3055,7 @@
 																}
 															},
 															{
+																"id": "panel-goal-row",
 																"anchors": {
 																	"left": 0,
 																	"right": 0,
@@ -3355,6 +3066,7 @@
 																"color": "@c.track",
 																"children": [
 																	{
+																		"id": "panel-goal-row-2",
 																		"anchors": {
 																			"left": 0,
 																			"top": 0,
@@ -3382,11 +3094,13 @@
 										"label": "{{t('card.score')}}",
 										"children": [
 											{
+												"id": "label-t-card-score",
 												"style": "cardTitle",
 												"text": "{{t('card.score')}}",
 												"textColor": "{{computed.col}}"
 											},
 											{
+												"id": "period-button-score-card",
 												"use": "periodButton",
 												"with": {
 													"key": "scorePeriod",
@@ -3435,6 +3149,7 @@
 														"strokeCap": "round"
 													},
 													{
+														"id": "row-score-plot",
 														"type": "row",
 														"fill": 0,
 														"children": [
@@ -3454,6 +3169,7 @@
 																"tooltip": "{{formatPercent(pt)}}",
 																"children": [
 																	{
+																		"id": "panel-score-slot",
 																		"anchors": {
 																			"left": "50%",
 																			"top": "{{(100 - pt * 100) + '%'}}"
@@ -3516,10 +3232,12 @@
 														"color": "transparent",
 														"children": [
 															{
+																"id": "label-lb-a",
 																"style": "axis",
 																"text": "{{lb.a}}"
 															},
 															{
+																"id": "label-lb-b",
 																"style": "axis2",
 																"text": "{{lb.b}}"
 															}
@@ -3538,11 +3256,13 @@
 										"label": "{{t('card.history')}}",
 										"children": [
 											{
+												"id": "label-t-card-history",
 												"style": "cardTitle",
 												"text": "{{t('card.history')}}",
 												"textColor": "{{computed.col}}"
 											},
 											{
+												"id": "period-button-history-card",
 												"use": "periodButton",
 												"with": {
 													"key": "historyPeriod",
@@ -3565,6 +3285,7 @@
 												"color": "transparent",
 												"children": [
 													{
+														"id": "panel-history-plot",
 														"anchors": {
 															"left": 0,
 															"right": 0,
@@ -3574,6 +3295,7 @@
 														"color": "@c.divider"
 													},
 													{
+														"id": "row-history-plot",
 														"type": "row",
 														"fill": 0,
 														"children": [
@@ -3593,6 +3315,7 @@
 																"tooltip": "{{formatNumber(hv, 0, 1)}}",
 																"children": [
 																	{
+																		"id": "panel-history-slot",
 																		"anchors": {
 																			"left": "22%",
 																			"right": "22%",
@@ -3606,6 +3329,7 @@
 																		}
 																	},
 																	{
+																		"id": "label-hv-0-format",
 																		"type": "label",
 																		"text": "{{hv > 0 ? formatNumber(hv, 0, 0) : ''}}",
 																		"font": "tiny",
@@ -3653,10 +3377,12 @@
 														"color": "transparent",
 														"children": [
 															{
+																"id": "label-lb-a-2",
 																"style": "axis",
 																"text": "{{lb.a}}"
 															},
 															{
+																"id": "label-lb-b-2",
 																"style": "axis2",
 																"text": "{{lb.b}}"
 															}
@@ -3675,6 +3401,7 @@
 										"label": "{{t('card.calendar')}}",
 										"children": [
 											{
+												"id": "label-t-card-calendar",
 												"style": "cardTitle",
 												"text": "{{t('card.calendar')}}",
 												"textColor": "{{computed.col}}"
@@ -3707,6 +3434,7 @@
 														"gap": 3,
 														"children": [
 															{
+																"id": "label-number-format-date",
 																"style": "tiny",
 																"text": "{{number(formatDate(dateMs(addDays(computed.weekStart, -7 * w)), 'd', 'utc')) <= 7 ? formatDate(dateMs(addDays(computed.weekStart, -7 * w)), 'MMM', 'utc') : ''}}",
 																"height": 14,
@@ -3752,6 +3480,7 @@
 																},
 																"children": [
 																	{
+																		"id": "label-format-date-date-3",
 																		"type": "label",
 																		"text": "{{formatDate(dateMs(d), 'd', 'utc')}}",
 																		"font": "tiny",
@@ -3804,11 +3533,13 @@
 										"label": "{{t('card.streaks')}}",
 										"children": [
 											{
+												"id": "label-t-card-streaks",
 												"style": "cardTitle",
 												"text": "{{t('card.streaks')}}",
 												"textColor": "{{computed.col}}"
 											},
 											{
+												"id": "label-t-no-streaks",
 												"style": "caption",
 												"text": "{{t('noStreaks')}}",
 												"when": "{{length(computed.streaks) == 0}}",
@@ -3847,6 +3578,7 @@
 														"label": "{{formatDate(dateMs(st.from), 'medium', 'utc') + ' – ' + formatDate(dateMs(st.to), 'medium', 'utc') + ': ' + t('days', {n: st.len})}}",
 														"children": [
 															{
+																"id": "label-format-date-date-4",
 																"style": "tiny",
 																"text": "{{formatDate(dateMs(st.from), 'd MMM yyyy', 'utc')}}",
 																"width": 80,
@@ -3854,12 +3586,14 @@
 																"align": "end"
 															},
 															{
+																"id": "panel-streak-row",
 																"height": 22,
 																"width": "{{max(28, (computed.cardWidth - 224) * st.len / computed.streakMax)}}",
 																"radius": 2,
 																"color": "{{st.len == computed.streakMax ? computed.col : computed.col + 'aa'}}",
 																"children": [
 																	{
+																		"id": "label-text-st-len",
 																		"type": "label",
 																		"text": "{{text(st.len)}}",
 																		"font": "small",
@@ -3870,6 +3604,7 @@
 																]
 															},
 															{
+																"id": "label-format-date-date-5",
 																"style": "tiny",
 																"text": "{{formatDate(dateMs(st.to), 'd MMM yyyy', 'utc')}}",
 																"width": 80,
@@ -3891,6 +3626,7 @@
 										"label": "{{t('card.frequency')}}",
 										"children": [
 											{
+												"id": "label-t-card-frequency",
 												"style": "cardTitle",
 												"text": "{{t('card.frequency')}}",
 												"textColor": "{{computed.col}}"
@@ -3937,6 +3673,7 @@
 																"tooltip": "{{text(c)}}",
 																"children": [
 																	{
+																		"id": "panel-freq-dot",
 																		"anchors": {
 																			"left": "50%",
 																			"top": 12
@@ -3950,6 +3687,7 @@
 																]
 															},
 															{
+																"id": "label-format-date-date-6",
 																"style": "tiny",
 																"text": "{{formatDate(dateMs(mo + '-01'), 'MMM', 'utc')}}",
 																"anchors": {
@@ -4001,11 +3739,13 @@
 										"label": "{{t('card.notes')}}",
 										"children": [
 											{
+												"id": "label-t-card-notes",
 												"style": "cardTitle",
 												"text": "{{t('card.notes')}}",
 												"textColor": "{{computed.col}}"
 											},
 											{
+												"id": "label-t-no-notes",
 												"style": "caption",
 												"text": "{{t('noNotes')}}",
 												"when": "{{length(computed.notes) == 0}}",
@@ -4054,6 +3794,7 @@
 														},
 														"children": [
 															{
+																"id": "label-format-date-date-7",
 																"type": "label",
 																"text": "{{formatDate(dateMs(nt.key), 'EEE d MMM', 'utc')}}",
 																"font": "small",
@@ -4066,6 +3807,7 @@
 																"height": 16
 															},
 															{
+																"id": "label-nt-value",
 																"type": "label",
 																"text": "{{nt.value}}",
 																"textColor": "@c.text",
@@ -4083,6 +3825,7 @@
 										]
 									},
 									{
+										"id": "panel-detail-cards-2",
 										"height": 12,
 										"width": 10,
 										"color": "transparent"
@@ -4090,6 +3833,7 @@
 								]
 							},
 							{
+								"id": "label-t-no-selection",
 								"type": "label",
 								"text": "{{t('noSelection')}}",
 								"when": "{{computed.sel < 0}}",
@@ -4146,6 +3890,7 @@
 										"mirror": true
 									},
 									{
+										"id": "label-sel-0-h",
 										"type": "label",
 										"text": "{{computed.sel >= 0 ? computed.h.name : t('app')}}",
 										"font": "title",
@@ -4193,6 +3938,7 @@
 												},
 												"children": [
 													{
+														"id": "menu-detail-more",
 														"use": "menu",
 														"with": {
 															"open": "state.menus.detail",
@@ -4239,6 +3985,7 @@
 						"label": "{{ph.name + ', ' + formatDate(dateMs(pd), 'full', 'utc')}}",
 						"children": [
 							{
+								"id": "label-format-date-date-8",
 								"type": "label",
 								"text": "{{formatDate(dateMs(pd), 'EEEE d MMMM', 'utc')}}",
 								"font": "heading",
@@ -4265,6 +4012,7 @@
 								"onSubmit": "popupSave"
 							},
 							{
+								"id": "label-ph-unit",
 								"type": "label",
 								"text": "{{ph.unit}}",
 								"when": "{{meas}}",
@@ -4409,6 +4157,7 @@
 										"color": "transparent",
 										"children": [
 											{
+												"id": "label-t-edit-name",
 												"style": "caption",
 												"text": "{{t('edit.name')}}",
 												"anchors": {
@@ -4456,6 +4205,7 @@
 												},
 												"children": [
 													{
+														"id": "popover-color-button",
 														"use": "popover",
 														"with": {
 															"open": "state.colorOpen",
@@ -4512,6 +4262,7 @@
 																		],
 																		"children": [
 																			{
+																				"id": "label-swatch",
 																				"type": "label",
 																				"text": "",
 																				"font": "iconsSmall",
@@ -4540,6 +4291,7 @@
 										"color": "transparent",
 										"children": [
 											{
+												"id": "label-t-edit-question",
 												"style": "caption",
 												"text": "{{t('edit.question')}}",
 												"anchors": {
@@ -4571,6 +4323,7 @@
 										"color": "transparent",
 										"children": [
 											{
+												"id": "label-t-edit-target",
 												"style": "caption",
 												"text": "{{t('edit.target')}}",
 												"anchors": {
@@ -4579,6 +4332,7 @@
 												}
 											},
 											{
+												"id": "row-edit-target",
 												"type": "row",
 												"anchors": {
 													"left": 0,
@@ -4640,6 +4394,7 @@
 										"color": "transparent",
 										"children": [
 											{
+												"id": "label-t-edit-frequency",
 												"style": "caption",
 												"text": "{{t('edit.frequency')}}",
 												"anchors": {
@@ -4648,6 +4403,7 @@
 												}
 											},
 											{
+												"id": "row-edit-frequency",
 												"type": "row",
 												"anchors": {
 													"left": 0,
@@ -4760,6 +4516,7 @@
 																}
 															},
 															{
+																"id": "label-text-edit-n",
 																"type": "label",
 																"text": "{{text(state.edit.n)}}",
 																"textColor": "@c.text",
@@ -4797,6 +4554,7 @@
 										"color": "transparent",
 										"children": [
 											{
+												"id": "label-t-edit-reminder",
 												"style": "caption",
 												"text": "{{t('edit.reminder')}}",
 												"anchors": {
@@ -4805,6 +4563,7 @@
 												}
 											},
 											{
+												"id": "row-edit-reminder",
 												"type": "row",
 												"anchors": {
 													"left": 0,
@@ -4865,6 +4624,7 @@
 										"color": "transparent",
 										"children": [
 											{
+												"id": "label-t-edit-notes",
 												"style": "caption",
 												"text": "{{t('edit.notes')}}",
 												"anchors": {
@@ -4887,6 +4647,7 @@
 										]
 									},
 									{
+										"id": "label-edit-error",
 										"type": "label",
 										"text": "{{state.edit.error}}",
 										"when": "{{state.edit.error != ''}}",
@@ -4944,6 +4705,7 @@
 										"color": "@c.card",
 										"children": [
 											{
+												"id": "label-t-set-interface",
 												"type": "label",
 												"text": "{{t('set.interface')}}",
 												"style": "sectionTitle",
@@ -4966,6 +4728,7 @@
 												},
 												"children": [
 													{
+														"id": "menu-theme-row",
 														"use": "menu",
 														"with": {
 															"open": "state.menus.theme",
@@ -5020,6 +4783,7 @@
 												},
 												"children": [
 													{
+														"id": "menu-first-day-row",
 														"use": "menu",
 														"with": {
 															"open": "state.menus.firstDay",
@@ -5044,6 +4808,7 @@
 												},
 												"children": [
 													{
+														"id": "menu-language-row",
 														"use": "menu",
 														"with": {
 															"open": "state.menus.language",
@@ -5055,6 +4820,7 @@
 												]
 											},
 											{
+												"id": "label-t-set-notifications",
 												"type": "label",
 												"text": "{{t('set.notifications')}}",
 												"style": "sectionTitle",
@@ -5074,6 +4840,7 @@
 												}
 											},
 											{
+												"id": "label-t-set-data",
 												"type": "label",
 												"text": "{{t('set.data')}}",
 												"style": "sectionTitle",
@@ -5151,6 +4918,7 @@
 										"mirror": true
 									},
 									{
+										"id": "label-t-settings",
 										"type": "label",
 										"text": "{{t('settings')}}",
 										"font": "title",

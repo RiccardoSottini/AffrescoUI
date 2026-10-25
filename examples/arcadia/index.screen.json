@@ -144,8 +144,8 @@
 	"computed": {
 		"rtl": "{{slice(locale, 0, 2) == 'ar'}}",
 		"here": "{{state.nav[state.at]}}",
-		"owned": "{{filter(state.games, it.owned)}}",
-		"game": "{{find(state.games, it.id == (computed.here.id ?? state.selected))}}"
+		"owned": "{{filter(data.games, it.owned)}}",
+		"game": "{{find(data.games, it.id == (computed.here.id ?? state.selected))}}"
 	},
 
 	"actions": {

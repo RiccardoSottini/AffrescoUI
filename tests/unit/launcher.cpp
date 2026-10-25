@@ -196,6 +196,15 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 	CHECK_FALSE(shaped({"affrescoui_launcher", "/etc/passwd"}));                     // no root named
 	CHECK_FALSE(shaped({"affrescoui_launcher", "nowhere:flow/index.screen.json"}));  // not one of its roots
 	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/notes.txt"}));         // not a screen
+	writeFile(examples / "flow" / "app.json", "{}");
+	const auto app = shaped({"affrescoui_launcher", "examples:flow"}); // an app's folder
+	REQUIRE(app);
+	CHECK(app->arguments.front() == (fs::canonical(examples) / "flow").string());
+	CHECK(app->arguments.back() == (folder.path() / "sockets" / "examples-flow").string());
+	CHECK(shaped({"affrescoui_launcher", "examples:flow/app.json"}));
+	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:."})); // a folder without an app.json
+	fs::remove(examples / "flow" / "app.json");
+	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow"}));
 	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--data", "/tmp"})); // its own flags only
 	CHECK_FALSE(shaped({"affrescoui_forge", "--ask", "hello"})); // it takes no first request
 	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--ask", std::string(5000, 'a')}));

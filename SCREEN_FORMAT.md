@@ -405,6 +405,8 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 | `file` | A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). `"asset:<name>"` shows an asset of the screen instead (Assets), which only the person accepts. |
 | `source` | Instead of `file`: a named image, which a node draws (its `snapshot`: a thumbnail of it) or the host sets (`Screen::setImage("chart", …)`, e.g. a picture it made); the node shows each new one. |
 | `fit` | `"contain"` (the default: all of it, as large as fits, centred), `"cover"` (the whole node, the image's edges cut off) or `"fill"` (stretched), like CSS `object-fit`. |
+| `highlight` | `null` (the default) or `[x, y, width, height]` in the image's pixels: a region outlined over the image, e.g. a picture's changed part. A source starting `data:image/png;base64,` or `data:image/jpeg;base64,` is decoded inline, within the same limits as a file. |
+| `highlightColor` | The outline's colour. |
 <!-- end generated -->
 
 ```json
@@ -1007,8 +1009,9 @@ Wherever a value is expected it can be computed:
   `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`,
   `addMonths(date, months)`, `daysBetween(from, to)`, `weekday(date)`, `daysInMonth(date)`, `dateOf(milliseconds)`,
   `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`, `pathTree(list, key?)`,
-  `diffLines(original, modified)` (rows, hunks and counts), `gitStatus(output)`, `gitBranches(output)` (git's output
-  read strictly, or null);
+  `qrCode(text, level?)` (a QR code's SVG path: `d`, `viewBox`, `size`, `version`),
+  `diffLines(original, modified, options?)`, `atPointer(value, pointer)`, `applyPatch(value, patch)`,
+  `formatJson(value, indent?)`, `gitStatus(output)`, `gitBranches(output)` (git's output read strictly, or null);
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
@@ -1025,10 +1028,19 @@ are UTF-8: `length`, `indexOf` and `slice` count bytes, `split(text, '')` and `r
 are the matched `[start, end]` character spans, `parts` the text cut into `{ text, match }` for highlighting.
 `fuzzySort` keeps a list's matches (on each item's `key`, or the item itself) as `{ item, score, ranges, parts, index }`,
 the best first (an empty query keeps the order), at most `limit` of them.
+`diffLines` compares two texts line by line, as a unified diff does: `{ hunks, added, removed, same, hiddenAfter,
+truncated }`, each hunk `{ header, oldStart, oldLines, newStart, newLines, hiddenBefore, lines }` with a header such as
+`@@ -2,7 +2,7 @@` and lines `{ kind: 'context' | 'delete' | 'insert', old, new, text }` numbered from 1 (null on the
+side a line isn't on). Its options: `context` (3 lines around each change; -1 shows the whole text), `ignoreWhitespace`,
+`split` (adds `rows`, `{ left, right }` pairs `{ n, text, kind }` or null, for a side-by-side view) and `limit` (5000
+lines at most; past it `truncated` is true). `atPointer` reads a JSON Pointer (`/nodes/0/id`, `~1` for `/`), and
+`applyPatch` applies a JSON Patch such as the host's `diff` message carries; both give null when the path or the patch
+doesn't fit. `formatJson` writes a value as indented JSON, to diff it line by line.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the
 display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `menuBar`: the screen's `window.menuBar` list
-(or `[]`), `nativeMenuBar`: whether it is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
+(or `[]`), `nativeMenuBar`: whether it is shown natively, `reducedMotion`, `capsLock`: whether caps lock was on at the
+latest key); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
 `touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (`author`, `role`); `windows` (see Windows);
@@ -1137,7 +1149,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
 | `onFocus`, `onBlur` | Keyboard focus. |
 | `onScroll` | `event.dx`, `event.dy`. |
-| `onKey` | A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`. |
+| `onKey` | A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`, `capsLock`. |
 | `onChange` | A bound or value control changed: `event.value`; a timeline's track muted or locked: `event.type` `"track"`, `id`, `muted`, `locked`. |
 | `onSubmit` | Enter in a text area: `event.text`. |
 | `onLink` | A press on a part of `runs` with a link: `event.link`. |
@@ -1283,7 +1295,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `attach` | `{ "attach": { "accept": ["audio/*"] }, "into": "state.files" }`: the person's files as attachments (Assets). A control step |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
-| `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out) |
+| `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out); `"#form #input"`: the `input` inside `form`, for a component's node |
 | `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line" |
 | `press` | `{ "press": "ctrl+x ctrl+s", "in": "#ed" }`: keys as typed, unheard by bindings |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
@@ -1308,11 +1320,13 @@ An action is a list of steps. Each step is an object whose first key says what i
 
 ### Control steps and paths
 
-**Control steps** (`call`, `send`, `connect`, `patch` and the review and history steps) can be written in the screen
-file, but no revision may add or change them: an agent can rearrange how the app uses the outside world and its own
-history, never widen it. Nor may a revision move one to another trigger (a button's `onClick`, an `every` timer,
-`keys`, `watch`, `onLoad`), or add a `run` or a handler that names an action with control steps, a native action, or
-a computed action name.
+**Control steps** (`call`, `send`, `connect`, `patch`, `ask` and `cancelAsk`, and the review and history steps) can
+be written in the screen file, but no revision may add or change them: an agent can rearrange how the app uses the
+outside world and its own history, never widen it, nor ask the agents in the person's name. Nor may a revision move
+one to another trigger (a button's `onClick`, an `every` timer, `keys`, `watch`, `onLoad`), or add a `run` or a
+handler that names an action with control steps, a native action, or a computed action name. A service step
+(`invoke`, `request`, `subscribe`) that writes or runs is reviewed when a revision adds it, copies it or changes its
+`with`.
 
 Only paths under `state` can be changed. A step can't write inside a value that is neither an object nor a list, nor
 more than 10,000 positions past a list's end (the positions between are filled with `null`). After an event's steps
@@ -1596,7 +1610,7 @@ database with migrations, as Rails and Django keep their schema):
 | **View** | the layout: nodes, styles, `{{…}}` bindings | revisions | the document |
 | **Logic** (the view-model) | actions, `computed`, `queries`, rules, the short-lived `state` (a selection, a panel open) | revisions | the document |
 | **Model** (the schema) | `models`: collections, typed fields, references, a `version` | revisions, with a **migration** when the records must change | the document |
-| **Data** (the records) | each collection's records | the app's write steps (or a reviewed step an agent proposes), never a view or logic revision | a store of its own: SQLite, `<data folder>/<screen name>.data.sqlite`, with a journal |
+| **Data** (the records) | each collection's records | the app's write steps (or a reviewed step an agent proposes), never a view or logic revision | a store of its own: SQLite, `<data folder>/<screen name>.data.sqlite` (an app's: `<data folder>/apps/<id>/data.sqlite`), with a journal |
 
 So a new view never erases what was stored: a revision can't write records at all, a field the model stops declaring
 keeps its values in the store (unread), and reverting a commit leaves the records alone, except that a commit that
@@ -1685,6 +1699,62 @@ it puts the archived records back and archives what was written since that the o
 
 `get_models` (the MCP server) gives each collection's model and count, never a record. Limits: SECURITY.md, "Limits".
 
+## Apps: app.json
+
+An app is a folder of files that a stock host runs, with nothing compiled for it: screens, its own kits and themes,
+data models and seed data, assets. `app.json` in the folder says what it is
+([schema/affrescoui-app.schema.json](schema/affrescoui-app.schema.json)); `affrescoui_launcher <folder>` (or
+`<folder>/app.json`) opens it, and `affrescoui check app.json` checks it with its entry screen. The entry screen
+given on its own (to the host, `check`, `render`, `test`, `Screen::fromFile()`) is the app too, with its models and
+seed data; another screen in the folder is read as written. A generated example:
+```json
+{
+  "$schema": "../../schema/affrescoui-app.schema.json",
+  "format": "affrescoui-app", "version": 1,
+  "id": "reading-list", "name": "Reading list", "description": "Books to read, and notes on the ones read.",
+  "icon": "assets/icon.png",
+  "entry": "index.screen.json",
+  "themes": ["themes/paper.json"],
+  "capabilities": {
+    "network": { "https://api.example.com": "Looks books up by their ISBN." },
+    "folders": { "workspace": { "access": "read", "why": "Imports a list you exported." } }
+  },
+  "data": {
+    "models": "models.json",
+    "seed": { "books": "seed/books.csv", "shelves": "seed/shelves.json" }
+  },
+  "assets": ["assets"]
+}
+```
+- **`id`**: lower-case letters, digits and `-`. The person's data is kept by it, in `<data folder>/apps/<id>/`: the
+  history, the `persist` state (`state.json`), the records (`data.sqlite`) and the usage. Data an earlier version
+  kept for the entry screen (`<data folder>/<screen name>.*`) is moved there the first time the app opens.
+- **`entry`** (default `index.screen.json`): the screen it opens. Every path in the manifest is relative, inside the
+  folder (no `..`, no link leading out), and is refused otherwise.
+- **`themes`**: files of `components`, `styles`, `tokens`, `colors` and `fonts`, merged into the entry screen after
+  its own `include` files, so the screen's own entries win. A theme can't hold actions or nodes.
+- **`data.models`**: a file of `models` and `queries`, merged the same way. **`data.seed`**: a collection's first
+  records (its model's `seed`, so written once, when the store creates the collection, and migrated like stored
+  records): a JSON list of records, or a CSV file whose header names the fields (cells convert to the field's type; an
+  `id` column gives the ids; a row that doesn't fit refuses the app). A model with a `seed` of its own takes no file.
+- **`capabilities`**: what the app asks the person for, each with why. `network`: origins its `connections` reach
+  (`"https://*.example.com"` for the subdomains; http and ws reach only the computer's own addresses). `folders`: the
+  root names its `services` use, `read` or `write`; the person picks the folder. `programs`: what its `process`
+  services run. `audio`: sound. `assistant`: the host's own agent, which answers its `ask` steps (Asking the agents)
+  with the provider of intelligence the person set up (an agent the person connects, such as an MCP server, needs
+  none). `files`: the open and save dialogs (`saveFile`, `openFile`, `export`, an `image` step's `open` and `save`;
+  refused, a step runs its `onError` with the code `notAllowed`). `windows`: its other windows (the `windows`
+  section; refused, `openWindow` opens nothing). Nothing is allowed by default: the host asks the person the first
+  time, for this app only, and remembers the answer (`<data folder>/apps/<id>/grants.json`; `affrescoui_launcher --permissions <app>`
+  forgets it; `--grant <key>` allows one for a single run, and a screenshot asks nothing). A capability the screen
+  uses that the manifest doesn't declare is never granted, and `affrescoui check` reports it; since a revision can't
+  change these sections (Live screens, "Revisions"), it never widens what the app may reach. A screen opened alone
+  (a `.screen.json`) is an app named after it that declares what it uses.
+- **`assets`**: its other files and folders, shipped with it.
+
+Limits: the manifest at most 256 KiB, a name 100 characters, a reason 300, 64 entries of each kind, 256 assets, a
+theme, models or seed file 16 MiB.
+
 ## Live screens: revisions and the channel
 
 ### Revisions
@@ -1769,9 +1839,11 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
 }
 ```
 
-- `ask` sends the request to every peer after the event, from the author `user` (`request` in the table above), and
-  writes its id (`ask-<milliseconds>-<n>`) `into` a state path. It is a control step. With no peer connected it
-  fails at once: `ask:reply` runs with the error `no agent is connected`. `"attachments": "{{state.attached}}"` sends
+- `ask` sends the request to the peers after the event, from the author `user` (`request` in the table above), and
+  writes its id (`ask-<milliseconds>-<n>`) `into` a state path. One agent answers: of the peers of the author `agent`,
+  only the last connected gets it (an MCP server the person started, over the host's own agent); every other peer
+  does. It is a control step. With no peer connected it fails at once: `ask:reply` runs with the error
+  `no agent is connected`. `"attachments": "{{state.attached}}"` sends
   what the person attached (an `attach` step's list, or ids) as `[{id, name, type, size, duration?, width?,
   height?}]`, never the bytes.
 - `options` (an object, at most 4 KiB as JSON) goes with the request as it is, for the agents to read, e.g.

@@ -109,7 +109,7 @@ bool exportFile(const Running& s) {
 	if(title.size() > 1000) fail(s.where + ".title", "is longer than 1000 bytes");
 	std::string name = s.step.contains("name") ? string(s.value("name"), s.where + ".name") : title;
 	Engine& engine = s.steps.engine();
-	if(!engine.window) return true; // a check or a preview: nothing to draw
+	if(!engine.window || dialogRefused(s)) return true; // a check or a preview: nothing to draw
 	const std::vector<Panel*> pages = pagesOf(s, engine);
 	if(kind == "png" && pages.size() != 1) fail(s.where + ".pages", "a PNG draws one node");
 	std::vector<std::uint8_t> bytes;

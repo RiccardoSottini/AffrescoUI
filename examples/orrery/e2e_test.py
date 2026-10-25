@@ -137,7 +137,8 @@ def main():
     screen = copy_without_strip(work)
     strip = os.path.join(os.path.dirname(screen), os.path.basename(SCENARIOS[1]))
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets)
-    host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), screen, "--socket", sockets, "--data", data],
+    host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), screen, "--socket", sockets, "--data", data,
+                             "--grant", "assistant"],
                             env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         studio, studio_stream = connect(os.path.join(sockets, "studio.sock"))

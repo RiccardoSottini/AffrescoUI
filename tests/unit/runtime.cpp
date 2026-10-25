@@ -20,16 +20,21 @@ using affresco::detail::ManualClock;
 
 namespace {
 
-/// @brief Loads a shipped template, as affrescoui_launcher does but without its data folder (no history or state file).
+/// @brief Loads a shipped template, as affrescoui_launcher does but without its data folder (no history or state file):
+/// an app (an app.json beside it) with its themes, models and seed records.
 /// @param name The template, e.g. "kanban".
 /// @return The screen.
 affresco::Screen loadTemplate(const std::string& name) {
 	const std::filesystem::path directory = templateDirectory(AFFRESCOUI_EXAMPLES_DIRECTORY, name);
-	const std::ifstream file(directory / "index.screen.json");
-	REQUIRE(file);
-	std::stringstream text;
-	text << file.rdbuf();
-	affresco::Screen screen = affresco::Screen::fromString(text.str(), directory);
+	affresco::Screen screen = [&] {
+		if(std::filesystem::exists(directory / "app.json"))
+			return affresco::Screen::fromApp(directory / "app.json", {}, affresco::Screen::History::InMemory);
+		const std::ifstream file(directory / "index.screen.json");
+		REQUIRE(file);
+		std::stringstream text;
+		text << file.rdbuf();
+		return affresco::Screen::fromString(text.str(), directory);
+	}();
 	screen.setPlaceholderTypes(true); // as the host does: its own types aren't registered here
 	return screen;
 }

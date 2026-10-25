@@ -83,6 +83,8 @@ struct Engine : VersionObserver {
 	Runtime::UnhandledAction unhandled;                                ///< Actions nobody handles.
 	bool placeholderTypes = false;                                     ///< Unknown types become plain panels.
 	bool handlersSuspended = false;                                    ///< See Runtime::setHandlersSuspended().
+	bool fileDialogsAllowed = true;                                    ///< See Runtime::allowFileDialogs().
+	bool otherWindowsAllowed = true;                                   ///< See Runtime::allowOtherWindows().
 	json menuBar = json::array(); ///< The native menu bar last shown (showMenuBar()).
 	json icon;                    ///< The "window.icon" last shown (showIcon() in Reconciler.cpp), or null.
 	ImageCache::Request iconFile; ///< Its file, while it is decoded.

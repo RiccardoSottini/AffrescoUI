@@ -1,9 +1,9 @@
 # Sign in
 
-Sign in, create an account, two-step verification, a password reset, provider sign-in with a made-up provider (Example ID), session expiry and an account page, in English, Spanish and French, light and dark. The `sign-in` template: a screen document with no C++ of its own, which the stock host runs.
+Sign in, create an account, two-step verification, a password reset, provider sign-in with a made-up provider (Example ID), session expiry and an account page, in English, Italian and Arabic, light and dark. The `sign-in` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_launcher examples/sign-in/index.screen.json
+./build/affrescoui_host examples/sign-in/index.screen.json
 ./build/affrescoui test examples/sign-in/index.scenarios.json
 ```
 
@@ -13,7 +13,7 @@ Sign in, create an account, two-step verification, a password reset, provider si
 - **Components of its own:** `checkedField` (a field with its icon, label, description and `check` rule) and `strengthMeter`; the built-in `dialog` (forgot password, change password, keyboard shortcuts) and `toast`.
 - **Validation:** `check` rules with their messages, shown per field once a form is sent, and given to the field as its accessible description.
 - **Screens:** `screens` with `navigate`, Escape going back from the inner ones, and `focus` steps that move focus where the work goes on.
-- **Strings:** a `strings` section in `en`, `es` and `fr`, `t()` with ICU plurals and selects, `"dir": "auto"`, and fields kept left to right where they must be (email, codes).
+- **Strings:** a `strings` section in `en`, `it` and `ar`, `t()` with ICU plurals and selects, `"dir": "auto"` so Arabic runs right to left, and fields kept left to right where they must be (email, codes).
 - **Commands and keys:** a `keys` section (Cmd+J theme, Cmd+L language, Shift+Cmd+H password, Shift+Cmd+Q sign out, Shift+Cmd+N slow network, F1 shortcuts), actions that describe themselves as commands (`title`, `description`), and the `commands` list shown with readable key names.
 - **Time:** `every` for the session and resend countdowns, `after` for the fake server's delay (longer with Slow network on), `debounce` to close the toasts.
 - **Net:** a `connections` entry for the fake OAuth 2 provider (no real client id or secret) with the `signIn` and `signOut` steps; scenarios play its answers as the `providerSignedIn` and `providerFailed` actions.

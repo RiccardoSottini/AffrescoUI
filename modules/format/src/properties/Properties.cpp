@@ -450,8 +450,13 @@ void Properties::applySets(Panel& panel, Record& record, const Look& look) const
 
 void Properties::transitionLook(Panel& panel, Record& record, const Look& look, const std::array<Color, 3>& shown) {
 	Scheduler& scheduler = engine_.scheduler;
-	if(look.background) scheduler.transitionColor(panel, record, "color", shown[0], *look.background);
-	if(look.label && look.foreground) scheduler.transitionColor(panel, record, "textColor", shown[1], *look.foreground);
+	// Without a colour of its own, a running transition still ends where it is (the colour it has now): a panel that
+	// shows another node now, or that a state left, mustn't go on to an earlier node's or state's colour
+	scheduler.transitionColor(panel, record, "color", look.background ? shown[0] : panel.color(),
+	                          look.background.value_or(panel.color()));
+	if(look.label)
+		scheduler.transitionColor(panel, record, "textColor", look.foreground ? shown[1] : look.label->textColor(),
+		                          look.foreground.value_or(look.label->textColor()));
 	// Always, so a border colour that goes away (a state ends, a revision removes it) also ends a running transition
 	scheduler.transitionColor(panel, record, "borderColor", shown[2], look.border.value_or(colors::black));
 }

@@ -7,6 +7,7 @@ add_library(affrescoui
 	src/ScreenChannels.cpp
 	src/ScreenVersions.cpp
 	src/ScreenData.cpp
+	src/ScreenApp.cpp
 	src/Png.cpp
 	# pictures: drawing off screen, the evidence a proposal carries, and the inspector's picture of a screen
 	src/pictures/OffscreenImages.cpp

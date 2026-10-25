@@ -361,6 +361,12 @@ const std::vector<Case> cases = {
     {"{{passwordStrength('').score}}", 0, {}},
     {"{{isEmail('ada@example.com')}}", true, {}},
     {"{{isEmail('ada@example')}}", false, {}},
+    // Diffs and JSON documents: tests/unit/diff_functions.cpp has the hunks, the pointers and the patches
+    {"{{diffLines('a\\nb', 'a\\nc').added}}", 1, {}},
+    {"{{atPointer({ a: [1, 2] }, '/a/1')}}", 2, {}},
+    {"{{applyPatch({ a: 1 }, [{ op: 'replace', path: '/a', value: 2 }]).a}}", 2, {}},
+    {"{{formatJson({ a: 1 })}}", "{\n  \"a\": 1\n}", {}},
+    {"{{qrCode('Affresca').viewBox}}", "-4 -4 29 29", {}}, // tests/unit/qr_code.cpp has the codes
     {"{{pathTree(['src/b.c', 'src/a.c', 'README', {path: 'docs', expandable: true}])}}",
 	 J(R"([{"id": "docs", "label": "docs", "path": "docs", "expandable": true},
            {"id": "src", "label": "src", "children": [{"id": "src/a.c", "label": "a.c"},
@@ -474,22 +480,13 @@ const std::vector<Case> cases = {
     {"{{hexColor('#12345')}}", nullptr, {}},
     {"{{hexColor('#gggggg')}}", nullptr, {}},
     {"{{hexColor(null)}}", nullptr, {}},
-    // Changes: a line diff, and git's output read (its records end in NULs; malformed output is null)
-    {"{{diffLines('a\\nb\\nc\\nd\\n', 'a\\nB\\nc\\nd\\ne\\n')}}",
-     J(R"({"rows":[{"kind":"same","original":1,"modified":1,"text":"a"},
-                   {"kind":"removed","original":2,"modified":0,"text":"b"},
-                   {"kind":"added","original":0,"modified":2,"text":"B"},
-                   {"kind":"same","original":3,"modified":3,"text":"c"},
-                   {"kind":"same","original":4,"modified":4,"text":"d"},
-                   {"kind":"added","original":0,"modified":5,"text":"e"}],
-           "hunks":[{"original":2,"originalCount":1,"modified":2,"modifiedCount":1},
-                    {"original":5,"originalCount":0,"modified":5,"modifiedCount":1}],
-           "added":2,"removed":1,"originalLines":4,"modifiedLines":5,"truncated":false})"),
-     {}},
-    {"{{diffLines('a\\nb', 'a').hunks}}", J(R"([{"original":2,"originalCount":1,"modified":2,"modifiedCount":0}])"),
-     {}},
-    {"{{diffLines('', '').rows}}", J("[]"), {}},
-    {"{{diffLines('a')}}", {}, "test.$diffLines: expected 2 arguments"},
+    // Changes: a line diff's hunks without context, as a gutter marks them, and git's output read (its records end in
+    // NULs; malformed output is null)
+    {"{{map(diffLines('a\\nb\\nc\\nd\\n', 'a\\nB\\nc\\nd\\ne\\n', { context: 0 }).hunks, [it.oldStart, it.oldLines, "
+     "it.newStart, it.newLines])}}",
+     J("[[2, 1, 2, 1], [4, 0, 5, 1]]"), {}},
+    {"{{map(diffLines('a\\nb', 'a', { context: 0 }).hunks, [it.oldStart, it.oldLines, it.newStart, it.newLines])}}",
+     J("[[2, 1, 1, 0]]"), {}},
     {"{{gitStatus('')}}",
      J(R"({"branch":{"head":"","oid":"","upstream":"","ahead":0,"behind":0},"files":[]})"), {}},
     {"{{gitStatus('? unended')}}", nullptr, {}},

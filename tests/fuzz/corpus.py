@@ -13,12 +13,14 @@
 - actions:    every action and handler of the templates, and steps that spend a whole work budget.
 - lookups:    the GSUB and GPOS tables of the examples' fonts and the rendering check's (binary seeds);
 - image:      the rendering check's PNG, JPEG and SVG files (binary seeds);
+- data_uri:   the same PNG and JPEG files as data: URIs;
 - path:       every path data of the templates, the rendering check's screens and the charts, with drawing bytes;
 - scenarios:  every scenarios file, the templates' and the rendering check's;
 - png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data);
 - frames:     Content-Length frames and lines, as a service process writes them;
 - peer_handshake: a remote peer's upgrade requests, well formed and not, and first "auth" messages.
 - feature_manifest, catalog_index, signature: Forge's feature manifests and its catalogue (examples/forge).
+- app_manifest: every app's app.json, and the templates as screens whose capabilities are read.
 - composition: Sinopia's slide sorter with Tempera's adapters, good and broken, and Tempera's points and exports.
 - url:        an allowlist entry, a line feed, then a URL: remote peers', sign-in's and a document server's;
 - oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
@@ -102,6 +104,17 @@ def json_seeds():
     seeds.append("[" * (MAX_NESTING + 1) + "]" * (MAX_NESTING + 1))  # one too deep
     seeds.append('{"a": /* comment */ [1, 2.5e3, -0, "\\u00e9\\ud83d\\ude00", true, null]} // end')
     return seeds
+
+
+def diff_seeds():
+    """The diff_functions target's seeds: an options byte, then an original and a modified text cut at a zero byte."""
+    pairs = [("a\nb\nc\n", "a\nB\nc\nd\n"), ("", "one\n"), ("  x\n", "x  \n"),
+             ('{"a": [1, 2], "b": {"c": 3}}', '[{"op": "add", "path": "/a/-", "value": 4}, {"op": "copy", '
+              '"from": "/b", "path": "/d"}, {"op": "move", "from": "/a/0", "path": "/e"}]'),
+             ('{"a~b": {"c/d": 1}}', '[{"op": "test", "path": "/a~0b/c~1d", "value": 1}, {"op": "remove", '
+              '"path": "/a~0b"}]')]
+    return [bytes([options]) + original.encode() + b"\0" + modified.encode()
+            for options in (0, 1, 6, 255) for original, modified in pairs]
 
 
 def expression_seeds():
@@ -322,6 +335,17 @@ def lookups_seeds():
     return seeds
 
 
+def data_uri_seeds():
+    """The rendering check's PNG and JPEG images as the data: URIs an image node's source takes, the small ones."""
+    folder = ROOT / "tests/render/screens/images"
+    seeds = []
+    for kind, pattern in (("png", "*.png"), ("jpeg", "*.jpg")):
+        for path in sorted(folder.glob(pattern)):
+            if path.stat().st_size <= 48 << 10:
+                seeds.append(f"data:image/{kind};base64,".encode() + base64.b64encode(path.read_bytes()))
+    return seeds
+
+
 def image_seeds():
     """The images of the rendering check's screens."""
     folder = ROOT / "tests/render/screens/images"
@@ -478,6 +502,13 @@ def feature_seeds():
     forge = ROOT / "examples" / "forge"
     return [path.read_text(encoding="utf-8") for path in sorted(forge.glob("features/*/feature.json"))
             + sorted(forge.glob("catalog/**/*.json"))]
+
+
+def app_seeds():
+    """Every app's manifest (app.json), and the templates, which read as screens using capabilities."""
+    manifests = sorted(ROOT.glob("examples/*/app.json")) + sorted(ROOT.glob("apps/*/app.json"))
+    return [path.read_text(encoding="utf-8") for path in manifests] + [path.read_text(encoding="utf-8")
+                                                                       for path in templates("*.screen.json")]
 
 
 def composition_seeds():
@@ -790,6 +821,7 @@ def dictionaries():
             "path": list("MmLlHhVvCcSsQqTtAaZz") + [" ", ",", "-", ".", "e-", "1e6", "0 0 1 1"],
             "audio": ["RIFF", "WAVE", "fmt ", "data", "LIST", "fact", "fLaC", "ID3", "Xing", "Info", "\x01\x00",
                       "\x03\x00", "\x10\x00", "\x00\x00"],  # ASCII: the dictionary is written UTF-8
+            "data_uri": ["data:image/png;base64,", "data:image/jpeg;base64,", "iVBORw0KGgo", "/9j/", "=", "=="],
             "image": ["<svg", "viewBox=", "<path d=", "fill=", "stroke=", "transform=", "<g>", "</g>", "IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
             "scenarios": scenarios, "png": pngs,
             "ask_reply": tokens + [f'"{word}"' for word in ["request", "text", "from", "done", "error", "type",
@@ -866,6 +898,8 @@ def main():
     write(out, "expression", expression_seeds() + ["hexColor('#AbC')", "hexColor(state.colors['editor.background'])",
           "slug('Solarized Dark', 40) || 'imported'",
           "map(state.keys, find(map(it.keys, hexColor(colors[it])), it != null) ?? it['dark'])"], words["expression"])
+    write(out, "diff_functions", diff_seeds(), ["{", "}", "[", "]", '"op"', '"path"', '"value"', '"from"', "add",
+                                                "remove", "replace", "move", "copy", "test", "/", "~0", "~1", "\n"])
     write(out, "revision", revisions(), words["revision"])
     write(out, "session", session_seeds(), words["session"])
     write(out, "delta", delta_seeds(), words["delta"])
@@ -878,6 +912,7 @@ def main():
     write(out, "layout", layout_seeds(), words["layout"])
     write(out, "lookups", lookups_seeds(), words["lookups"])
     write(out, "image", image_seeds(), words["image"])
+    write(out, "data_uri", data_uri_seeds(), words["data_uri"])
     write(out, "path", path_seeds(), words["path"])
     write(out, "text_model", text_model_seeds(), words["text_model"])
     write(out, "terminal", terminal_seeds(), words["terminal"])
@@ -894,6 +929,8 @@ def main():
     features = ["affrescoui-feature", "affrescoui-catalog", "requires", "provides", "points", "exports", "signature",
                 "publisher", "releases", "release", "digest", "url", "size", "ed25519:", "sha512:", "1.0.0", "^1.0.0"]
     write(out, "feature_manifest", feature_seeds(), words["json"] + features)
+    write(out, "app_manifest", app_seeds(), words["json"] + ["affrescoui-app", "capabilities", "network", "folders",
+          "programs", "audio", "access", "write", "why", "seed", "models", "https://*.", "ws://127.0.0.1:", "../"])
     migrations = [path.read_text(encoding="utf-8") for path in sorted((ROOT / "tests" / "migrate").glob("*/*.json"))]
     write(out, "migrate", migrations, words["json"] + ["from", "justify", "align", "len(", "length(", "requires"])
     write(out, "catalog_index", feature_seeds(), words["json"] + features)
@@ -921,6 +958,9 @@ def main():
     operations = image_operations()
     write(out, "images", images_seeds(), words["json"] + ["images", "steps", "image", "of", "with", "limits"]
           + list(operations) + sorted({key for keys in operations.values() for key in keys}))
+    # qr_code: the first byte picks the level (& 3) and the mask (>> 2 & 15, 8 and above meaning automatic)
+    write(out, "qr_code", ["\x00Affresca", "\x20https://id.example/enroll?secret=EXAMPLE", "\x03", "\x1f" + "q" * 300],
+          ["otpauth://", "id.example", "secret=", "\x00", "\xff"])
     write(out, "syntax", syntax_seeds(), ["(", ")", "{", "}", "[", "]", "\"", "'", "`", "/*", "*/", "//", "#", "\n"])
 
 

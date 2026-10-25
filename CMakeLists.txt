@@ -137,6 +137,7 @@ include(cmake/AffrescoUISyntax.cmake)
 #   audio    audio: an output that mixes files, bytes, streams and generators       core   (AFFRESCOUI_AUDIO)
 #   affrescoui  affresco::Screen, which puts them together                         all of the above
 #   automation  scenarios: scripted checks a screen ships with, played headless     affrescoui
+#   intelligence  providers of intelligence and the agent an app's assistant talks to  affrescoui
 #
 # affrescoui_module(<name> <sources...>) makes the target affrescoui_<name> with the alias affrescoui::<name>, its
 # public headers in modules/<name>/include, its private ones in modules/<name>/src, and the strict warnings.
@@ -153,7 +154,7 @@ endfunction()
 if(AFFRESCOUI_AUDIO)
 	add_subdirectory(modules/audio) # before format and screen, which use it
 endif()
-foreach(module core data render export format themes vcs channel net services screen automation)
+foreach(module core data render export format themes vcs channel net services screen automation intelligence)
 	add_subdirectory(modules/${module})
 endforeach()
 add_subdirectory(modules/scene3d) # general 3D: the scene, glTF, picking, gizmos, the PBR renderer
@@ -178,25 +179,11 @@ set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/pa
 # The lsp feature (examples/forge/features/lsp)
 list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/lsp/Lsp.cpp examples/forge/features/lsp/LspCall.cpp
 	examples/forge/features/lsp/LspEdits.cpp examples/forge/features/lsp/LspProtocol.cpp examples/forge/features/lsp/LspText.cpp)
-# The examples' intelligence (examples/shared/intelligence): the providers, their settings and the agent inside the
-# host that every app's assistant talks to; built into the host and the unit tests. It uses the services module's
-# ChildProcess (its src folder) to run the claude command line with no shell.
-set(AFFRESCOUI_INTELLIGENCE_SOURCES examples/shared/intelligence/Settings.cpp examples/shared/intelligence/Http.cpp
-	examples/shared/intelligence/Providers.cpp examples/shared/intelligence/ScreenQueries.cpp
-	examples/shared/intelligence/ClaudeCode.cpp examples/shared/intelligence/Agent.cpp
-	examples/shared/intelligence/Intelligence.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)
-	# The assistant's providers (examples/shared/intelligence), built once for every program that runs an app
-	add_library(affrescoui_intelligence OBJECT ${AFFRESCOUI_INTELLIGENCE_SOURCES})
-	target_include_directories(affrescoui_intelligence PRIVATE examples/shared examples)
-	target_include_directories(affrescoui_intelligence PRIVATE modules/services/src) # intelligence/ClaudeCode.cpp
-	target_link_libraries(affrescoui_intelligence PRIVATE affrescoui)
-	target_compile_options(affrescoui_intelligence PRIVATE ${AFFRESCOUI_WARNINGS})
-	target_compile_definitions(affrescoui_intelligence PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# affrescoui_launcher, the stock host: renders any screen and accepts peers; without a file it opens the Launcher
-	add_executable(affrescoui_launcher examples/host/host.cpp)
-	target_link_libraries(affrescoui_launcher PRIVATE affrescoui_intelligence) # the assistant's providers
-	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples)
+	add_executable(affrescoui_launcher apps/host/host.cpp apps/host/Permissions.cpp)
+	target_link_libraries(affrescoui_launcher PRIVATE affrescoui::intelligence) # the assistant's providers
+	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples apps/shared)
 	target_include_directories(affrescoui_launcher SYSTEM PRIVATE external/glad/include)
 	# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice makes the
 	# linker warn about a duplicate library)
@@ -210,8 +197,8 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	endif()
 	# Forge, a demo IDE: its workbench is examples/forge/index.screen.json, with a few natives (examples/forge/README.md)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES})
-	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge)
-	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_intelligence)
+	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge apps/shared)
+	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui::intelligence)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (tests/render/surfaces)
@@ -264,7 +251,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
 		# The host's own agent end to end, no MCP: an openai-compatible fake server on the loopback, --ask, a proposal
 		add_test(NAME intelligence_e2e COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/intelligence/e2e_test.py ${CMAKE_BINARY_DIR})
+			${CMAKE_CURRENT_SOURCE_DIR}/tests/intelligence/e2e_test.py ${CMAKE_BINARY_DIR})
 		# Orrery end to end, JSON only on affrescoui_launcher: MCP server, a revision, an approval, a picture (examples/orrery)
 		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/e2e_test.py ${CMAKE_BINARY_DIR})
@@ -292,7 +279,7 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		tests/perf/syntax.cpp
 		tests/perf/tempera.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
-	target_include_directories(affrescoui_bench PRIVATE examples/shared examples/forge
+	target_include_directories(affrescoui_bench PRIVATE examples/shared apps/shared examples/forge
 		$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui)

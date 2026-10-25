@@ -335,7 +335,7 @@
 										"anchors": { "left": 24, "right": 24, "bottom": 10 },
 										"height": 18,
 										"children": [
-											{ "id": "weekDay", "when": "{{state.energyView == 'day'}}", "repeat": { "for": "d", "in": "state.energy" }, "type": "label", "text": "{{t('day.' + d.day)}}", "font": "small",
+											{ "id": "weekDay", "when": "{{state.energyView == 'day'}}", "repeat": { "for": "d", "in": "data.energy" }, "type": "label", "text": "{{t('day.' + d.day)}}", "font": "small",
 												"textColor": "{{d.day == computed.peakDay ? '@warm' : '@muted'}}", "anchors": { "top": 0, "bottom": 0 }, "grow": 1, "basis": 0, "align": "center" },
 											{ "id": "weekDevice", "when": "{{state.energyView == 'device'}}", "repeat": { "for": "d", "in": "state.deviceEnergy" }, "type": "label", "text": "{{t('use.' + d.id)}}", "font": "small",
 												"tooltip": "{{t('use.' + d.id)}}: {{d.kwh}} kWh", "textColor": "@muted", "anchors": { "top": 0, "bottom": 0 }, "grow": 1, "basis": 0, "align": "center", "fitText": false }
