@@ -278,6 +278,36 @@
 				  "else": [{ "set": "state.activeCollection", "to": "{{state.tmp.id}}" }] }
 			]
 		},
+		"renameCollection": [
+			{ "if": "{{trim(args.name) == '' || !contains(computed.collectionIds, args.id)}}", "then": [{ "stop": true }] },
+			{ "run": "snapshot" },
+			{ "if": "{{state.scene.collections == null}}", "then": [{ "set": "state.scene.collections", "to": "{{computed.collections}}" }] },
+			{ "set": "state.scene.collections[indexOf(computed.collectionIds, args.id)].name", "to": "{{slice(trim(args.name), 0, 63)}}" }
+		],
+		"startCollectionRename": {
+			"title": "Rename Collection", "category": "Collection", "icon": "pencil", "enablement": "{{contains(values(state.areas), 'outliner')}}",
+			"do": [
+				{ "dismiss": true },
+				{ "if": "{{!contains(values(state.areas), 'outliner')}}", "then": [{ "stop": true }] },
+				{ "set": "state.outlinerFilter", "to": "" },
+				{ "set": "state.outlinerOpen.root", "to": true },
+				{ "set": "state.renaming", "to": "{{'coll:' + computed.activeCollectionData.id}}" },
+				{ "after": 50, "do": [{ "focus": "#outliner-rename" }] }
+			]
+		},
+		"deleteCollection": {
+			"title": "Delete Collection", "category": "Collection", "icon": "trash-2", "enablement": "{{length(computed.collections) > 1}}",
+			"do": [
+				{ "dismiss": true },
+				{ "if": "{{length(computed.collections) < 2}}", "then": [{ "stop": true }] },
+				{ "run": "snapshot" },
+				{ "set": "state.tmp", "to": "{{{ gone: computed.activeCollectionData.id, to: find(computed.collections, it.id != computed.activeCollectionData.id).id }}}" },
+				{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, (it.collection ?? 'collection') == state.tmp.gone ? merge(it, { collection: state.tmp.to }) : it)}}" },
+				{ "set": "state.scene.collections", "to": "{{filter(computed.collections, it.id != state.tmp.gone)}}" },
+				{ "set": "state.activeCollection", "to": "{{state.tmp.to}}" },
+				{ "set": "state.last", "to": "Delete Collection" }
+			]
+		},
 		"moveToCollection": [
 			{ "dismiss": true },
 			{ "if": "{{length(state.view.selection) == 0}}", "then": [{ "stop": true }] },
@@ -807,6 +837,10 @@
 			"collection": { "run": "moveToCollectionMenu", "group": "3_edit", "order": 3 },
 			"keyframe": { "run": "insertKeyframe", "group": "4_anim" },
 			"delete": { "run": "deleteSelected", "group": "5_delete" }
+		},
+		"collectionContext": {
+			"rename": { "run": "startCollectionRename", "group": "1_name" },
+			"delete": { "run": "deleteCollection", "group": "2_delete" }
 		},
 		"outlinerContext": {
 			"rename": { "run": "startRename", "group": "1_name" },

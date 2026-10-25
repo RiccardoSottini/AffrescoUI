@@ -20,7 +20,7 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_launcher example
 | Left toolbar | done | Select, Cursor, Move, Rotate, Scale, Transform, Annotate, Measure, Add Cube |
 | N sidebar: Item, Tool, View | done | fields, locks, the tool's settings, the view's lens and clipping |
 | View name and the active object's collection | done | |
-| Outliner: collections, objects, data icons | done | several collections: New Collection, M moves objects between them, each with its own toggles |
+| Outliner: collections, objects, data icons | done | several collections: New Collection, rename, delete, M moves objects between them, each with its own toggles |
 | Outliner: selectable, eye and camera toggles | done | |
 | Properties editor: tab strip | done | |
 | Properties: Object tab panels (Transform, Transform Offset, ...) | partial | Transform and Visibility edit; the others are disabled with a reason |

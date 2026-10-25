@@ -278,15 +278,19 @@
 				"color": "{{node && node.id == state.active && contains(state.view.selection, node.id) ? '@sel' : node && contains(state.view.selection, node.id) || coll && coll.id == computed.activeCollectionData.id ? '@selRow' : stripe ? '@rowAlt' : 'transparent'}}",
 				"hover": { "color": "{{node && contains(state.view.selection, node.id) ? '@sel' : '@widget'}}" },
 				"role": "treeitem", "focusable": true, "label": "{{name}}", "selected": "{{node ? contains(state.view.selection, node.id) : null}}",
-				"let": { "open": "{{state.outlinerOpen[expand] == true}}" },
+				"let": { "open": "{{state.outlinerOpen[expand] == true}}", "editing": "{{(node != null && data != '' && state.renaming == node.id) || (coll != null && state.renaming == 'coll:' + coll.id)}}" },
 				"onClick": [{ "if": "{{node != null}}", "then": [{ "run": "selectNode", "with": { "args": { "id": "{{node.id}}", "shift": "{{event.shift}}" } } }] },
 				            { "if": "{{coll != null}}", "then": [{ "set": "state.activeCollection", "to": "{{coll.id}}" }] },
 				            { "if": "{{onSelect != null}}", "then": [{ "set": "state.propTab", "to": "{{onSelect}}" }] }],
-				"onDoubleClick": { "if": "{{node != null && data != ''}}", "then": [{ "set": "state.renaming", "to": "{{node.id}}" }, { "focus": "#outliner-rename" }] },
-				"onContextMenu": { "if": "{{node != null}}", "then": [
+				"onDoubleClick": [{ "if": "{{node != null && data != ''}}", "then": [{ "set": "state.renaming", "to": "{{node.id}}" }, { "focus": "#outliner-rename" }] },
+				                  { "if": "{{coll != null}}", "then": [{ "set": "state.renaming", "to": "{{'coll:' + coll.id}}" }, { "focus": "#outliner-rename" }] }],
+				"onContextMenu": [{ "if": "{{coll != null}}", "then": [
+					{ "set": "state.activeCollection", "to": "{{coll.id}}" },
+					{ "run": "openPopup", "with": { "args": { "menu": "collectionContext", "x": "{{event.x}}", "y": "{{event.y}}" } } }
+				] }, { "if": "{{node != null}}", "then": [
 					{ "if": "{{!contains(state.view.selection, node.id)}}", "then": [{ "run": "selectNode", "with": { "args": { "id": "{{node.id}}", "shift": false } } }] },
 					{ "run": "openPopup", "with": { "args": { "menu": "outlinerContext", "x": "{{event.x}}", "y": "{{event.y}}" } } }
-				] },
+				] }],
 				"children": [
 					{ "when": "{{expand != ''}}", "id": "outliner-{{node ? node.id : key}}-chevron", "x": "{{depth * 18 + 2}}", "width": 14,
 					  "anchors": { "top": 0, "bottom": 0 }, "color": "transparent", "role": "button", "label": "{{open ? 'Collapse' : 'Expand'}} {{name}}", "isOpen": "{{open}}",
@@ -295,16 +299,18 @@
 					                 "textColor": "@dim", "align": "center", "fill": true }] },
 					{ "type": "label", "font": "icons", "icon": "{{icon}}", "text": "", "textColor": "{{iconColor}}",
 					  "x": "{{depth * 18 + 18}}", "width": 18, "anchors": { "top": 0, "bottom": 0 }, "align": "center" },
-					{ "when": "{{node == null || state.renaming != node.id || data == ''}}", "type": "label", "text": "{{name}}",
+					{ "when": "{{!editing}}", "type": "label", "text": "{{name}}",
 					  "textColor": "{{node && node.visible == false ? '@dim' : '@text'}}",
 					  "x": "{{depth * 18 + 40}}", "anchors": { "top": 0, "bottom": 0 }, "fitText": true },
-					{ "when": "{{node != null && state.renaming == node.id && data != ''}}", "type": "textarea", "id": "outliner-rename",
+					{ "when": "{{editing}}", "type": "textarea", "id": "outliner-rename",
 					  "x": "{{depth * 18 + 38}}", "width": 120, "anchors": { "top": 1, "bottom": 1 }, "color": "@field", "radius": 3,
 					  "text": "{{name}}", "textColor": "@text", "label": "Rename {{name}}",
 					  "keys": { "escape": { "set": "state.renaming", "to": null } },
 					  "onBlur": { "set": "state.renaming", "to": null },
-					  "onSubmit": [{ "run": "rename", "with": { "args": { "id": "{{node.id}}", "name": "{{event.text}}" } } }, { "set": "state.renaming", "to": null }] },
-					{ "when": "{{data != '' && (node == null || state.renaming != node.id)}}", "type": "label", "font": "iconsSmall", "icon": "{{data}}", "text": "", "textColor": "@data",
+					  "onSubmit": [{ "if": "{{coll != null}}", "then": [{ "run": "renameCollection", "with": { "args": { "id": "{{coll.id}}", "name": "{{event.text}}" } } }],
+					                "else": [{ "run": "rename", "with": { "args": { "id": "{{node.id}}", "name": "{{event.text}}" } } }] },
+					               { "set": "state.renaming", "to": null }] },
+					{ "when": "{{data != '' && !editing}}", "type": "label", "font": "iconsSmall", "icon": "{{data}}", "text": "", "textColor": "@data",
 					  "x": "{{depth * 18 + 46 + length(name) * 7}}", "width": 16, "anchors": { "top": 0, "bottom": 0 }, "align": "center" },
 					{ "when": "{{data != '' || coll != null}}", "type": "row", "anchors": { "right": 4, "top": 0, "bottom": 0 },
 					  "width": 66, "gap": 4, "alignItems": "center", "color": "transparent", "children": [
