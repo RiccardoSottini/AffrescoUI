@@ -131,6 +131,43 @@ TEST_CASE("automation: a scenarios file that is wrong says where") {
 	CHECK(errorOf(R"({"version": 2, "scenarios": [{"name": "a"}]})").contains("scenarios[0]: no \"screen\""));
 	CHECK(errorOf("{").contains("place.scenarios.json"));
 	CHECK(errorOf(oneStep(R"({"note": "only a comment"}, {"click": [1, 2], "note": "and a click"})")).empty());
+	CHECK(errorOf(oneStep(R"({"click": "#a", "error": ""})")).contains("steps[0].error: expected a part of the error"));
+	CHECK(errorOf(oneStep(R"({"expect": {"state": "a", "is": 1}, "error": "x"})")).contains("not 'expect'"));
+	CHECK(errorOf(oneStep(R"({"note": "a comment", "error": "x"})")).contains("a comment raises no error"));
+	CHECK(errorOf(oneStep(R"({"action": "go", "error": "no sign-in"})")).empty());
+}
+
+TEST_CASE("automation: an error in a handler fails its step, unless the step names it") {
+	const Fixture fixture;
+	automation::Options options;
+	options.document = R"json({
+		"format": "affrescoui-screen", "version": 2, "window": { "width": 200, "height": 100 },
+		"state": { "a": 0, "b": 0 },
+		"actions": {
+			"inner": [{ "set": "state.a", "to": "{{x}}" }],
+			"outer": [{ "run": "inner", "with": { "x": "{{nope}}" } }, { "set": "state.b", "to": 1 }],
+			"fine": [{ "set": "state.b", "to": 2 }]
+		},
+		"root": { "type": "panel" }
+	})json";
+	const automation::Report report = automation::run(fixture.scenarios(R"([
+		{ "name": "unknown", "steps": [{ "action": "outer" }, { "expect": { "state": "b", "is": 0 } }] },
+		{ "name": "named", "steps": [{ "action": "outer", "error": "unknown variable 'nope'" },
+			{ "expect": { "state": "b", "is": 0 } }] },
+		{ "name": "another", "steps": [{ "action": "outer", "error": "no sign-in" }] },
+		{ "name": "none", "steps": [{ "action": "fine", "error": "no sign-in" }] }
+	])"),
+	                                                  options);
+	REQUIRE(report.scenarios.size() == 4);
+	// The action stopped: the step says why, and nothing after it runs
+	REQUIRE(report.scenarios[0].failures.size() == 1);
+	CHECK(report.scenarios[0].failures[0].step == 1);
+	CHECK(report.scenarios[0].failures[0].problem.contains("actions.outer[0].with.x: unknown variable 'nope'"));
+	CHECK(report.scenarios[1].passed());
+	REQUIRE(report.scenarios[2].failures.size() == 1);
+	CHECK(report.scenarios[2].failures[0].problem.contains("expected one with \"no sign-in\""));
+	REQUIRE(report.scenarios[3].failures.size() == 1);
+	CHECK(report.scenarios[3].failures[0].problem == "action: no error, expected one with \"no sign-in\"");
 }
 
 TEST_CASE("automation: keys, state paths and file names") {

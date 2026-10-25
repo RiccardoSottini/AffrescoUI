@@ -306,10 +306,22 @@ std::optional<std::string_view> kindOf(const json& step, const std::string& plac
 /// @param place Its place.
 /// @return Whether it needs a picture (capture, expect image).
 /// @throws DocumentError If it is malformed.
-bool checkStep(const json& step, const std::string& place) {
+bool checkStep(const json& written, const std::string& place) {
+	// "error": the step's handlers fail, with a message holding it (a host without the sign-in a screen asks for)
+	json step = written;
+	if(const auto error = written.find("error"); error != written.end()) {
+		if(!error->is_string() || error->get_ref<const std::string&>().empty())
+			fail(place + ".error", "expected a part of the error's message the step's handlers raise");
+		step.erase("error");
+	}
 	const std::optional<std::string_view> found = kindOf(step, place);
-	if(!found) return false; // a comment
+	if(!found) {
+		if(step.size() != written.size()) fail(place + ".error", "a comment raises no error");
+		return false; // a comment
+	}
 	const std::string_view kind = *found;
+	if(step.size() != written.size() && (kind == "expect" || kind == "capture"))
+		fail(place + ".error", "only a step that runs handlers raises an error, not '" + std::string(kind) + "'");
 	checkNth(step, place);
 	if(kind == "move" || kind == "click" || kind == "press" || kind == "release") checkPointer(step, kind, place);
 	else if(kind == "drag") checkDrag(step, place);

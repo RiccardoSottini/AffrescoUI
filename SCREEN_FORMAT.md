@@ -2006,7 +2006,8 @@ see `role` and `label`), as a person or a screen reader finds it, or `[x, y]` in
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
 
 A failed expectation is reported and the scenario goes on; a step that can't be played (no such node, a refused
-revision) ends it. The report is one line per file and one per failure:
+revision) ends it, and so does one whose handlers raise an error (an unknown variable stops an action), unless the step
+names it: `{ "click": "#signIn", "error": "this host has no sign-in" }` passes when an error holding that text comes. The report is one line per file and one per failure:
 `FAILED add-a-card, step 4: state columns[0].cards.length is 4, expected 5`. Limits: 1,000 scenarios a file, 10,000
 steps a scenario, a `wait` of 10 minutes, 100,000 bytes typed at once.
 
