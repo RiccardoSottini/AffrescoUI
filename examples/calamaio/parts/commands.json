@@ -10,7 +10,7 @@
 		"other": "{{find(state.order, it != state.win[state.sel].buf && state.bufs[it].kind != 'splash') ?? state.win[state.sel].buf}}",
 		"names": "{{map(state.order, state.bufs[it].name)}}",
 		"commandNames": "{{sortText(map(commands, it.name))}}",
-		"mbCands": "{{state.mb.kind == 'command' || state.mb.kind == 'function' ? computed.commandNames : state.mb.kind == 'buffer' || state.mb.kind == 'kill' ? computed.names : contains(['file', 'write', 'insert'], state.mb.kind) ? map(state.files, it.path) : state.mb.kind == 'theme' ? ['default', 'inchiostro', 'pergamena'] : state.mb.kind == 'variable' ? map(settingsList, it.key) : []}}",
+		"mbCands": "{{state.mb.kind == 'command' || state.mb.kind == 'function' ? computed.commandNames : state.mb.kind == 'buffer' || state.mb.kind == 'kill' ? computed.names : contains(['file', 'write', 'insert'], state.mb.kind) ? map(state.files, it.path) : state.mb.kind == 'dired' ? concat([state.home], map(filter(state.files, it.dir == true), it.path)) : state.mb.kind == 'theme' ? ['default', 'inchiostro', 'pergamena'] : state.mb.kind == 'variable' ? map(settingsList, it.key) : []}}",
 		"mbMatches": "{{sortText(filter(computed.mbCands, slice(it, 0, length(state.mb.text)) == state.mb.text))}}",
 		"mbA": "{{computed.mbMatches[0] ?? ''}}",
 		"mbB": "{{computed.mbMatches[length(computed.mbMatches) - 1] ?? ''}}",
@@ -566,7 +566,15 @@
 			"description": "Closes the start screen and shows the scratch buffer.",
 			"do": [{ "if": "{{state.bufs.b0 != null}}", "then": [{ "run": "kill-buffer-id", "with": { "b": "b0" } }] }]
 		},
-		"toggle-splash": [{ "toggle": "state.splashAtStart" }],
+		"toggle-splash": [
+			{ "toggle": "settings.inhibit-startup-screen" },
+			{
+				"run": "message",
+				"with": {
+					"m": "{{settings['inhibit-startup-screen'] ? 'Calamaio will start in the scratch buffer' : 'Calamaio will start with the start screen'}}"
+				}
+			}
+		],
 		"load-theme": {
 			"title": "Load Theme...",
 			"category": "Options",
@@ -579,7 +587,7 @@
 		"mb-theme": [
 			{
 				"if": "{{contains(['default', 'inchiostro', 'pergamena'], value)}}",
-				"then": [{ "set": "state.theme", "to": "{{value}}" }],
+				"then": [{ "set": "settings.custom-enabled-themes", "to": "{{value}}" }],
 				"else": [{ "run": "message", "with": { "m": "{{'No theme named ' + value}}" } }]
 			}
 		],
@@ -795,7 +803,7 @@
 				"then": [{ "stop": true }]
 			},
 			{ "run": "key-read-end" },
-			{ "run": "message", "with": { "m": "{{keyLabel(state.keyread.seq, 'emacs') + ' has no binding'}}" } }
+			{ "run": "message", "with": { "m": "{{keyLabel(state.keyread.seq, 'letters') + ' has no binding'}}" } }
 		],
 		"key-read-end": [{ "set": "state.keyread.on", "to": false }, { "focus": "{{computed.ed}}" }],
 		"help-key": [

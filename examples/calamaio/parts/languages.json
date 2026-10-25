@@ -1,10 +1,10 @@
 {
 	"note": "Calamaio's own languages, each coloured by the @syntax.* tokens of look.json; Python, C and Markdown take their grammar.",
 	"languages": {
-		"emacs-lisp": {
-			"title": "Emacs Lisp",
-			"aliases": ["elisp", "lisp-interaction"],
-			"files": ["*.el", ".emacs"],
+		"lisp": {
+			"title": "Lisp",
+			"aliases": ["lisp-interaction"],
+			"files": ["*.el", "*.lisp"],
 			"comments": { "line": ";" },
 			"wordPattern": "[\\w-]+",
 			"patterns": [
