@@ -8,6 +8,7 @@
 #include "Cli.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/themes/Themes.hpp>
 
 #include <array>
 #include <iostream>
@@ -122,6 +123,7 @@ affresco::cli::Exit runTool(const std::vector<std::string_view>& args) {
 
 int main(int argc, char** argv) {
 	try {
+		affresco::themes::install(); // the kits' components and tokens, for the commands that check documents
 		return static_cast<int>(runTool(std::vector<std::string_view>(argv + 1, argv + argc)));
 	} catch(...) { // run() reports what commands throw; only running out of memory gets here
 		return static_cast<int>(affresco::cli::Exit::Failure);

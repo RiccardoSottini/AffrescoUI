@@ -1,0 +1,163 @@
+{
+	"note": "The built-in controls of a desktop window: segmentedControl, a row of choices one of which is on, searchField, a field with a search icon that a button or Escape clears, breadcrumbs, the path to where the user is, each step but the last a link, and tabStrip, a tabs strip kept in the state that closes and reorders its tabs and lists them all in a menu when they don't fit. The controls, in the format. A segmented control's item is {id, title, icon, tooltip, enabled, width, run, with}; picking one sets state[name] to its id, then runs its action. A search field keeps its text at state[name] and runs \"run\" with {query} on Enter; its text box draws the field's border, so the box's own focused style lights it, and the field stays left to right as text boxes don't mirror. A breadcrumb is {title, icon, run, with}. A tab strip keeps {tabs, active} at state[name], each tab {id, label, marker, closable} as for tabs; closing a tab runs \"onClose\" with {id} when given, or else removes it and makes its neighbour active. Dragging a tab or Ctrl+Shift+Page Up and Down move it.",
+	"components": {
+		"segmentedControl": {
+			"runsActions": "items",
+			"params": { "name": "segment", "items": [], "height": 28, "label": "", "color": "@kit.secondary",
+			            "selectedColor": "@kit.surface", "highlight": "@kit.barHover", "textColor": "@kit.text",
+			            "dimColor": "@kit.dim" },
+			"node": {
+				"let": {
+					"base": "{{'state.' + name}}",
+					"w": "{{map(items, it.width ?? length(it.title ?? '') * 7 + (it.icon != null ? 20 : 0) + (it.title != null ? 20 : 8))}}"
+				},
+				"width": "{{sum(w) + 2 * max(0, length(items) - 1) + 4}}", "height": "{{height}}", "color": "{{color}}",
+				"radius": "@kit.radius", "role": "group", "label": "{{label}}",
+				"children": [{
+					"type": "row", "anchors": { "left": 2, "right": 2, "top": 2, "bottom": 2 }, "gap": 2, "arrows": "horizontal",
+					"children": [{
+						"repeat": { "for": "item", "in": "{{items}}", "index": "i" },
+						"width": "{{w[i]}}", "anchors": { "top": 0, "bottom": 0 }, "radius": "@kit.radius", "role": "radio",
+						"label": "{{item.title ?? item.tooltip ?? ''}}", "selected": "{{state[name] == item.id}}",
+						"focusable": true, "disabled": "{{item.enabled == false}}", "cursor": "hand",
+						"tooltip": "{{item.tooltip ?? ''}}",
+						"color": "{{state[name] == item.id ? selectedColor : 'transparent'}}",
+						"hover": { "color": "{{state[name] == item.id ? selectedColor : item.enabled == false ? 'transparent' : highlight}}" },
+						"focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
+						"onClick": [{ "set": "{{base}}", "to": "{{item.id}}" },
+						            { "if": "{{item.run != null}}", "then": [{ "run": "{{item.run}}", "with": "{{item.with}}" }] }],
+						"children": [{ "type": "label", "icon": "{{item.icon ?? ''}}", "text": "{{item.title ?? ''}}",
+						               "align": "center", "textColor": "{{item.enabled == false ? dimColor : textColor}}",
+						               "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } }]
+					}]
+				}]
+			}
+		},
+		"searchField": {
+			"runsActions": "run",
+			"params": { "name": "search", "placeholder": "Search", "width": 240, "height": 28, "label": "Search",
+			            "clearLabel": "Clear", "run": "", "color": "@kit.field", "textColor": "@kit.text",
+			            "dimColor": "@kit.dim", "borderColor": "@kit.border", "focusColor": "@kit.focus" },
+			"node": {
+				"let": { "base": "{{'state.' + name}}", "query": "{{state[name] ?? ''}}" },
+				"width": "{{width}}", "height": "{{height}}", "color": "transparent", "dir": "ltr", "role": "search",
+				"label": "{{label}}", "keys": { "escape": { "set": "{{base}}", "to": "" } },
+				"children": [
+					{ "type": "textarea", "role": "searchbox", "bind": "{{base}}", "placeholder": "{{placeholder}}",
+					  "label": "{{label}}", "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 }, "padding": 6,
+					  "color": "{{color}}", "radius": "@kit.radius", "borderWidth": "@kit.borderWidth",
+					  "borderColor": "{{borderColor}}", "focused": { "borderColor": "{{focusColor}}" },
+					  "textColor": "{{textColor}}", "placeholderColor": "{{dimColor}}",
+					  "onSubmit": [{ "if": "{{run != ''}}", "then": [{ "run": "{{run}}", "with": "{{ {query: state[name] ?? ''} }}" }] }] },
+					{ "when": "{{query == ''}}", "type": "label", "icon": "search", "align": "center", "textColor": "{{dimColor}}",
+					  "anchors": { "right": 2, "top": 1, "bottom": 1 }, "width": 24, "color": "{{color}}" },
+					{ "when": "{{query != ''}}", "anchors": { "right": 1, "top": 1, "bottom": 1 }, "width": 26,
+					  "color": "{{color}}", "radius": "@kit.radius",
+					  "children": [{ "type": "label", "text": "×", "align": "center", "textColor": "{{textColor}}",
+					                 "anchors": { "right": 3 }, "y": "{{(height - 22) / 2}}", "width": 20, "height": 20,
+					                 "radius": "@kit.radius", "cursor": "hand", "focusable": true, "role": "button",
+					                 "label": "{{clearLabel}}", "hover": { "color": "@kit.secondary" },
+					                 "focused": { "color": "@kit.secondary" }, "onClick": { "set": "{{base}}", "to": "" } }] }
+				]
+			}
+		},
+		"breadcrumbs": {
+			"runsActions": "items",
+			"params": { "items": [], "height": 24, "label": "Breadcrumbs", "textColor": "@kit.text", "dimColor": "@kit.dim",
+			            "highlight": "@kit.barHover" },
+			"node": {
+				"let": { "w": "{{map(items, length(it.title ?? '') * 7 + (it.icon != null ? 20 : 0) + 12)}}" },
+				"type": "row", "width": "{{sum(w) + 16 * max(0, length(items) - 1)}}", "height": "{{height}}",
+				"role": "navigation", "label": "{{label}}", "arrows": "horizontal",
+				"children": [{
+					"repeat": { "for": "item", "in": "{{items}}", "index": "i" },
+					"type": "row", "width": "{{w[i] + (i > 0 ? 16 : 0)}}", "anchors": { "top": 0, "bottom": 0 },
+					"children": [
+						{ "when": "{{i > 0}}", "type": "label", "icon": "chevron-right", "mirror": true, "align": "center",
+						  "textColor": "{{dimColor}}", "width": 16, "anchors": { "top": 0, "bottom": 0 } },
+						{ "width": "{{w[i]}}", "anchors": { "top": 0, "bottom": 0 }, "radius": "@kit.radius",
+						  "role": "{{i == length(items) - 1 ? '' : 'link'}}", "label": "{{item.title ?? ''}}",
+						  "focusable": "{{i < length(items) - 1}}", "cursor": "{{i < length(items) - 1 ? 'hand' : 'arrow'}}",
+						  "color": "transparent", "hover": { "color": "{{i < length(items) - 1 ? highlight : 'transparent'}}" },
+						  "focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
+						  "onClick": [{ "if": "{{i < length(items) - 1 && item.run != null}}",
+						                "then": [{ "run": "{{item.run}}", "with": "{{item.with}}" }] }],
+						  "children": [{ "type": "label", "icon": "{{item.icon ?? ''}}", "text": "{{item.title ?? ''}}",
+						                 "align": "center",
+						                 "textColor": "{{i == length(items) - 1 ? textColor : dimColor}}",
+						                 "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } }] }
+					]
+				}]
+			}
+		},
+		"tabStrip": {
+			"runsActions": "onClose",
+			"params": { "name": "tabStrip", "width": "{{window.width}}", "height": 32, "moreWidth": 28, "menuWidth": 220,
+			            "label": "Tabs", "moreLabel": "All tabs", "onClose": "", "color": "@kit.bar", "textColor": "@kit.dim",
+			            "activeTextColor": "@kit.text", "activeBackground": "@kit.background", "accentColor": "@kit.primary",
+			            "highlight": "@kit.barHover", "menuColor": "@kit.surface" },
+			"node": {
+				"let": {
+					"base": "{{'state.' + name}}",
+					"list": "{{(state[name] ?? {}).tabs ?? []}}",
+					"over": "{{sum(map((state[name] ?? {}).tabs ?? [], length(it.label ?? it.id) * 7 + 46)) > width}}",
+					"at": "{{indexOf(map((state[name] ?? {}).tabs ?? [], it.id), (state[name] ?? {}).active)}}"
+				},
+				"width": "{{width}}", "height": "{{height}}", "color": "{{color}}", "role": "group", "label": "{{label}}",
+				"keys": {
+					"ctrl+shift+pageup": [{ "if": "{{at > 0}}", "then": [{ "set": "{{base + '.tabs'}}",
+					  "to": "{{concat(slice(list, 0, at - 1), [list[at], list[at - 1]], slice(list, at + 1))}}" }] }],
+					"ctrl+shift+pagedown": [{ "if": "{{at >= 0 && at < length(list) - 1}}", "then": [{ "set": "{{base + '.tabs'}}",
+					  "to": "{{concat(slice(list, 0, at), [list[at + 1], list[at]], slice(list, at + 2))}}" }] }]
+				},
+				"children": [
+					{ "type": "tabs", "bind": "{{base + '.active'}}", "tabs": "{{list}}", "label": "{{label}}",
+					  "anchors": { "left": 0, "top": 0, "bottom": 0, "right": "{{over ? moreWidth : 0}}" },
+					  "color": "{{color}}", "textColor": "{{textColor}}", "activeTextColor": "{{activeTextColor}}",
+					  "activeBackground": "{{activeBackground}}", "accentColor": "{{accentColor}}",
+					  "onClose": [
+						{ "if": "{{onClose != ''}}", "then": [{ "run": "{{onClose}}", "with": "{{ {id: event.id} }}" }],
+						  "else": [
+							{ "if": "{{state[name].active == event.id}}", "then": [{ "set": "{{base + '.active'}}",
+							  "to": "{{length(state[name].tabs) > 1 ? filter(state[name].tabs, it.id != event.id)[min(indexOf(map(state[name].tabs, it.id), event.id), length(state[name].tabs) - 2)].id : null}}" }] },
+							{ "set": "{{base + '.tabs'}}", "to": "{{filter(state[name].tabs, it.id != event.id)}}" }
+						  ] }
+					  ],
+					  "onMove": { "set": "{{base + '.tabs'}}",
+					              "to": "{{concat(slice(filter(state[name].tabs, index != event.from), 0, event.to), [state[name].tabs[event.from]], slice(filter(state[name].tabs, index != event.from), event.to))}}" } },
+					{ "when": "{{over}}", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": "{{moreWidth}}",
+					  "role": "button", "label": "{{moreLabel}}", "tooltip": "{{moreLabel}}", "focusable": true, "cursor": "hand",
+					  "color": "{{color}}", "hover": { "color": "{{highlight}}" },
+					  "focused": { "borderWidth": "@kit.borderWidth", "borderColor": "@kit.focus" },
+					  "onClick": { "toggle": "{{base + '.more'}}" },
+					  "children": [
+						{ "type": "label", "icon": "chevron-down", "align": "center", "textColor": "{{activeTextColor}}",
+						  "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } },
+						{ "type": "column", "role": "menu", "label": "{{moreLabel}}", "arrows": "vertical",
+						  "overlay": { "placement": "below-end", "open": "{{base + '.more'}}", "dismiss": "outside" },
+						  "width": "{{menuWidth}}", "height": "{{min(10, length(list)) * 26 + 8}}", "color": "{{menuColor}}",
+						  "radius": "@kit.cardRadius", "borderWidth": "@kit.borderWidth", "borderColor": "@kit.border",
+						  "scroll": "vertical",
+						  "children": [
+							{ "height": 4 },
+							{ "repeat": { "for": "t", "in": "{{list}}" }, "width": "{{menuWidth}}", "height": 26,
+							  "role": "menuitem", "label": "{{t.label ?? t.id}}", "focusable": true, "cursor": "hand",
+							  "selected": "{{(state[name] ?? {}).active == t.id}}", "color": "{{menuColor}}",
+							  "hover": { "color": "@kit.selection" }, "focused": { "color": "@kit.selection" },
+							  "onClick": [{ "set": "{{base + '.active'}}", "to": "{{t.id}}" },
+							              { "set": "{{base + '.more'}}", "to": false }],
+							  "children": [
+								{ "when": "{{(state[name] ?? {}).active == t.id}}", "anchors": { "left": 0, "top": 5, "bottom": 5 },
+								  "width": 3, "color": "{{accentColor}}" },
+								{ "when": "{{t.marker == true}}", "anchors": { "left": 12 }, "y": 10, "width": 6, "height": 6,
+								  "radius": 3, "color": "{{activeTextColor}}" },
+								{ "type": "label", "text": "{{t.label ?? t.id}}", "textColor": "{{activeTextColor}}",
+								  "anchors": { "left": 26, "right": 8, "top": 0, "bottom": 0 } }
+							  ] }
+						  ] }
+					  ] }
+				]
+			}
+		}
+	}
+}

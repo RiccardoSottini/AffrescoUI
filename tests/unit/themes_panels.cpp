@@ -1,7 +1,7 @@
 /// @file
-/// @brief The desktop kit's panels (src/components/KitPanels.cpp): an inspector's rows editing an object in the
-/// state, numbers scrubbed by dragging their name, typed and stepped within their range, choices picked from a list,
-/// vectors edited one axis at a time, collapsible groups and disabled rows, each change running its action.
+/// @brief The desktop kit's panels (modules/themes/components/panels.json): an inspector's rows editing an object in
+/// the state, numbers scrubbed by dragging their name, typed and stepped within their range, choices picked from a
+/// list, vectors edited one axis at a time, collapsible groups and disabled rows, each change running its action.
 
 #include "Checker.hpp"
 #include "Headless.hpp"

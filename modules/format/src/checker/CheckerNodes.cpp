@@ -2,7 +2,7 @@
 /// @brief The checker's walk of nodes (components, styles, repeat, variables, properties, references) and of
 /// behaviour (handlers, steps, actions run with their callers' variables).
 
-#include "BuiltInComponents.hpp"
+#include "Library.hpp"
 #include "CheckerImpl.hpp"
 #include "Contributions.hpp"
 #include "Models.hpp"
@@ -243,7 +243,7 @@ bool Checker::expandUse(Prepared& node, Slot& slot) {
 
 const json* Checker::componentNamed(const std::string& name, const std::string& place) {
 	const json* component = definition("components", name);
-	if(!component) component = builtInComponent(name); // the document's own win
+	if(!component) component = libraryComponent(name); // the document's own win
 	const bool valid =
 	    component && component->is_object() && component->contains("node") && (*component)["node"].is_object();
 	if(!valid) {

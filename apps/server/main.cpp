@@ -9,6 +9,7 @@
 #include "UserInfoVerifier.hpp"
 
 #include <affresco/core/Executor.hpp>
+#include <affresco/themes/Themes.hpp>
 
 #include <algorithm>
 #include <condition_variable>
@@ -166,6 +167,7 @@ int serve(const Options& options) {
 /// @param argv The arguments.
 /// @return The exit status.
 int main(int argc, char** argv) {
+	affresco::themes::install(); // the kits' components and tokens, which the revisions it accepts are checked with
 #ifndef _WIN32
 	sigset_t signals; // blocked in every thread, so sigwait() receives them
 	sigemptyset(&signals);

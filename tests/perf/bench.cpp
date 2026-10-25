@@ -13,6 +13,8 @@
 
 #include "Bench.hpp"
 
+#include <affresco/themes/Themes.hpp>
+
 #if defined(__has_include) && __has_include(<valgrind/callgrind.h>)
 #if defined(__GNUC__)
 #pragma GCC diagnostic push // the macros are C: casts, and conversions between integer types
@@ -275,6 +277,7 @@ int runAll(const Options& options, affresco::bench::Context& context) {
 int affresco::bench::slowdown() { return underValgrind() ? 100 : 1; }
 
 int main(int argc, char** argv) {
+	affresco::themes::install(); // the kits' components and tokens, for the workloads that check documents alone
 	// Every message to stderr: stdout carries only the results
 	affresco::setLogSink([](affresco::LogLevel, std::string_view message) { std::cerr << message << '\n'; });
 	try {

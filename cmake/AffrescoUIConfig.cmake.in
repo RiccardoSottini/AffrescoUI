@@ -1,5 +1,5 @@
 # The AffrescoUI package (cmake/AffrescoUIInstall.cmake): find_package(AffrescoUI 0.1 CONFIG) defines the targets
-# affrescoui::affrescoui (everything) and affrescoui::core, ::render, ::format, ::vcs, ::channel, ::net, ::services
+# affrescoui::affrescoui (everything) and affrescoui::core, ::render, ::format, ::themes, ::vcs, ::channel, ::net, ::services
 # and, when built with it, ::audio (one module each).
 
 @PACKAGE_INIT@
