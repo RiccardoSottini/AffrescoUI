@@ -193,7 +193,7 @@
 					] },
 					{ "use": "rbGroup", "id": "g-customize", "with": { "title": "Customize" }, "children": [
 						{ "use": "rbBig", "id": "b-slide-size", "with": { "icon": "rectangle-horizontal", "title": "Slide\nSize", "width": 46, "enabled": false }, "tooltip": "Changing the slide size isn't available yet" },
-						{ "use": "rbBig", "id": "b-format-bg", "with": { "icon": "paint-bucket", "title": "Format\nBackground", "width": 70 }, "onClick": [{ "set": "state.board.selection", "to": [] }, { "run": "openFormatPane" }] }
+						{ "use": "rbBig", "id": "b-format-bg", "with": { "icon": "paint-bucket", "title": "Format\nBackground", "width": 70 }, "onClick": "formatBackground" }
 					] }
 				]
 			}

@@ -7,7 +7,8 @@
 	"state": {
 		"undo": [],
 		"redo": [],
-		"clip": []
+		"clip": [],
+		"editing": null
 	},
 
 	"computed": {
@@ -33,6 +34,15 @@
 	},
 
 	"actions": {
+		"editText": [
+			{ "note": "with: id, the text box or shape whose text is edited on the slide, in an editor over it, until Escape or a click elsewhere" },
+			{ "if": "{{contains(['text', 'shape'], find(computed.objects, it.id == id).kind ?? '')}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.board.selection", "to": ["{{id}}"] },
+				{ "set": "state.editing", "to": "{{id}}" }
+			] }
+		],
+		"stopEditing": [{ "set": "state.editing", "to": null }, { "focus": "#board" }],
 		"commit": [
 			{ "push": "state.undo", "value": "{{ {deck: state.deck, current: state.current} }}" },
 			{ "if": "{{length(state.undo) > 50}}", "then": [{ "remove": "state.undo", "at": 0 }] },
@@ -59,7 +69,8 @@
 
 		"pickSlide": [
 			{ "set": "state.current", "to": "{{clamp(index, 0, length(state.deck.slides) - 1)}}" },
-			{ "set": "state.board.selection", "to": [] }
+			{ "set": "state.board.selection", "to": [] },
+			{ "set": "state.editing", "to": null }
 		],
 		"newSlide": [
 			{ "run": "commit" },

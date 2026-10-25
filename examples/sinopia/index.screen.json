@@ -20,7 +20,8 @@
 	"fonts": {
 		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },
 		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 12 },
-		"mono": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 12, "fallback": ["icons"] }
+		"mono": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 12, "fallback": ["icons"] },
+		"slideText": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 48, "fallback": ["icons"] }
 	},
 
 	"permissions": {
@@ -71,6 +72,7 @@
 		],
 		"viewChanged": [
 			{ "set": "state.board", "to": "{{view}}" },
+			{ "if": "{{state.editing != null && !contains(view.selection ?? [], state.editing)}}", "then": [{ "set": "state.editing", "to": null }] },
 			{ "if": "{{abs(view.camera.zoom - computed.fitCamera.zoom) > 0.0001 || abs(view.camera.x - computed.fitCamera.x) > 0.01 || abs(view.camera.y - computed.fitCamera.y) > 0.01}}",
 			  "then": [{ "set": "state.fit", "to": false }] }
 		]
@@ -97,10 +99,11 @@
 		"mod+shift+.": [{ "when": "{{!context.textInputFocus}}", "do": "growText", "with": { "by": 1 } }],
 		"mod+shift+,": [{ "when": "{{!context.textInputFocus}}", "do": "growText", "with": { "by": -1 } }],
 		"delete": [{ "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
+		"f2": [{ "when": "{{!context.textInputFocus && !state.show.on && length(computed.selected) == 1}}", "do": "editText", "with": { "id": "{{state.board.selection[0]}}" } }],
 		"backspace": [{ "when": "{{state.show.on}}", "do": "showPrevious" }, { "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
 		"mod+f": [{ "when": "{{!state.show.on}}", "do": [{ "run": "openFind", "with": { "replace": false } }] }],
 		"mod+h": [{ "when": "{{!state.show.on}}", "do": [{ "run": "openFind", "with": { "replace": true } }] }],
-		"escape": [{ "when": "{{state.show.on}}", "do": "showEnd" }, { "when": "{{!context.textInputFocus && !state.drop.open && !state.colors.open && !state.find.open && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
+		"escape": [{ "when": "{{state.show.on}}", "do": "showEnd" }, { "when": "{{state.editing != null}}", "do": "stopEditing" }, { "when": "{{!context.textInputFocus && !state.drop.open && !state.colors.open && !state.find.open && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
 	},
 
 	"root": {
@@ -164,6 +167,7 @@
 				"children": [
 					{
 						"type": "column", "id": "thumbnails", "when": "{{state.view == 'normal'}}", "width": 200, "color": "@rb", "scroll": "vertical", "gap": 0, "focusable": true, "role": "list", "label": "Slides",
+						"onContextMenu": { "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "slide" } },
 						"keys": {
 							"up": { "run": "pickSlide", "with": { "index": "{{state.current - 1}}" } },
 							"down": { "run": "pickSlide", "with": { "index": "{{state.current + 1}}" } },
@@ -195,6 +199,7 @@
 								  "drag": { "data": { "slide": "{{i}}" } },
 								  "onDrop": { "run": "moveSlide", "with": { "from": "{{event.data.slide ?? -1}}", "to": "{{i}}" } },
 								  "onClick": [{ "run": "pickSlide", "with": { "index": "{{i}}" } }, { "focus": "#thumbnails" }],
+								  "onContextMenu": [{ "run": "pickSlide", "with": { "index": "{{i}}" } }, { "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "slide" } }],
 								  "children": [
 									{ "id": "{{'thumb-' + s.id + '-frame'}}", "width": 178, "height": 104, "radius": 10, "color": "transparent", "borderWidth": 2,
 									  "borderColor": "{{i == state.current ? '@brandLine' : 'transparent'}}",
@@ -227,7 +232,8 @@
 						"type": "column", "id": "centre", "when": "{{state.view != 'sorter'}}", "grow": 1, "color": "@work", "alignItems": "stretch",
 						"children": [
 							{
-								"type": "canvas", "id": "board", "grow": 1, "dir": "ltr", "focusable": true, "color": "@work", "accentColor": "@handles",
+								"type": "canvas", "id": "board", "grow": 1, "dir": "ltr", "focusable": true,
+								"onContextMenu": [{ "if": "{{!(event.keyboard ?? false)}}", "then": [{ "set": "state.board.selection", "to": [] }] }, { "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "canvas" } }], "color": "@work", "accentColor": "@handles",
 								"view": "{{computed.view}}", "scaleChildren": true, "snap": true, "rulers": "{{state.ruler}}", "grid": "{{state.gridlines ? 12 : 0}}",
 								"label": "{{'Slide ' + (state.current + 1) + (computed.slideTitle == '' ? '' : ', ' + computed.slideTitle)}}",
 								"onChange": { "run": "viewChanged", "with": { "view": "{{event.value}}" } },
@@ -236,7 +242,10 @@
 									{ "x": 0, "y": 0, "width": 960, "height": 540, "color": "#ffffff", "shadow": { "x": 0, "y": 1, "blur": 4, "color": "#00000033" },
 									  "children": [{ "use": "slideBackground", "with": { "slide": "{{computed.slide}}", "prefix": "e-" } }] },
 									{ "repeat": { "for": "o", "in": "{{computed.objects}}", "key": "{{o.id}}" },
-									  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "", "layout": "{{computed.layout}}", "edit": true } }
+									  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "", "layout": "{{computed.layout}}", "edit": true },
+									  "onContextMenu": [{ "if": "{{!contains(state.board.selection, o.id)}}", "then": [{ "set": "state.board.selection", "to": ["{{o.id}}"] }] },
+										{ "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "object" } }],
+									  "onDoubleClick": { "run": "editText", "with": { "id": "{{o.id}}" } } }
 								]
 							},
 							{ "id": "notes-line", "height": 1, "color": "@barLine", "when": "{{state.notes}}" },

@@ -62,7 +62,8 @@ private:
 	/// @param number Its position, from 1.
 	/// @throws StepError If it can't be played.
 	void playStep(const json& step, std::size_t number);
-	/// @brief Plays the steps that move the pointer or press its button: move, click, press, release, drag, scroll.
+	/// @brief Plays the steps that move the pointer or press its buttons: move, click, rightClick, press, release,
+	/// drag, scroll.
 	/// @param step The step.
 	/// @return Whether it was one of them.
 	/// @throws StepError If a target isn't there.

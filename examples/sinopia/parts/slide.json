@@ -33,7 +33,9 @@
 					"inset": "{{o.kind == 'shape' ? computed.shapes[o.shape ?? 'rect'].text ?? [0, 0, 0, 0] : [0, 0, 0, 0]}}",
 					"size": "{{o.size ?? p.size ?? 18}}",
 					"empty": "{{trim(o.text ?? '') == ''}}",
-					"prompt": "{{edit && empty && o.ph != null}}",
+					"editing": "{{edit && state.editing == o.id}}",
+					"prompt": "{{edit && empty && o.ph != null && !editing}}",
+					"held": "{{editing && o.ph != null}}",
 					"outline": "{{prefix + o.id + '-ph'}}",
 					"lines": "{{prompt ? [computed.prompts[o.ph] ?? ''] : split(o.text ?? '', '\n')}}",
 					"bullets": "{{o.bullets ?? p.bullets ?? false}}",
@@ -47,10 +49,17 @@
 					{ "use": "shapePath", "when": "{{shape}}", "with": { "o": "{{merge({ shape: o.kind == 'text' ? 'rect' : 'rect', fill: o.kind == 'shape' ? 'accent1' : 'none', line: o.kind == 'text' ? 'none' : null, lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null, effect: null }, merge(o, box))}}", "name": "{{prefix + o.id}}" } },
 					{ "type": "label", "id": "{{prefix + o.id + '-icon'}}", "when": "{{o.kind == 'icon'}}", "x": 0, "y": 0, "width": "{{box.w}}", "height": "{{box.h}}", "align": "center",
 					  "textColor": "{{ink}}", "runs": [{ "icon": "{{o.icon ?? 'star'}}", "size": "{{min(box.w, box.h) * 0.9}}" }] },
-					{ "use": "shapePath", "when": "{{prompt}}",
+					{ "use": "shapePath", "when": "{{prompt || held}}",
 					  "with": { "o": "{{merge(box, { shape: 'rect', fill: 'none', line: '#8c8c8c', lineWidth: 0.75, flipH: false, flipV: false, gradient: null, dash: 'dash', effect: null })}}", "name": "{{outline}}" } },
 					{
-						"type": "row", "id": "{{prefix + o.id + '-text'}}", "when": "{{!empty || prompt}}", "overflow": "visible", "gap": "{{size}}",
+						"type": "editor", "id": "{{'edit-' + o.id}}", "when": "{{editing}}", "autofocus": true, "wrap": true,
+						"bind": "{{'state.deck.slides[' + state.current + '].objects[' + indexOf(map(computed.objects, it.id), o.id) + '].text'}}",
+						"x": "{{frame.x}}", "y": "{{frame.y}}", "width": "{{frame.w * 48 / size}}", "height": "{{frame.h * 48 / size}}",
+						"scale": "{{size / 48}}", "font": "slideText", "transformOrigin": "topLeft", "color": "transparent", "lineColor": "transparent",
+						"textColor": "{{ink}}", "caretColor": "{{ink}}", "selectionColor": "#2a9d8f55", "label": "Slide text"
+					},
+					{
+						"type": "row", "id": "{{prefix + o.id + '-text'}}", "when": "{{(!empty || prompt) && !editing}}", "overflow": "visible", "gap": "{{size}}",
 						"let": {
 							"turned": "{{(o.textRotate ?? 0) != 0}}",
 							"cols": "{{prompt ? 1 : min(o.columns ?? 1, max(length(lines), 1))}}",

@@ -24,9 +24,9 @@ with its slide show, presenter view, audience window and files on library capabi
 | Slides | Drag to reorder | partial | done | sorter-drag-to-reorder |
 | Slides | Sections (add, rename, collapse) | partial | partial | first-frame, section-menu (add, rename, remove; no collapse) |
 | Slides | Hide slide (dimmed, crossed number, skipped in the show) | partial | partial | hide-a-slide, present-skips-and-blacks |
-| Slides | Slide context menu | missing | missing | |
+| Slides | Slide context menu | missing | done | context-menus (on the rail, a shape and the canvas; Shift+F10) |
 | Canvas | Slide centred on grey | partial | done | first-frame, resized |
-| Canvas | Placeholders ("Click to add title", "Click to add text") | missing | partial | |
+| Canvas | Placeholders ("Click to add title", "Click to add text") | missing | done | edit-text-in-place |
 | Canvas | Zoom and fit to window | partial | done | first-frame, resized |
 | Canvas | Notes pane under the slide | partial | done | first-frame, notes-hidden, speaker-notes |
 | Canvas | Rulers, gridlines and guides (View) | partial | partial | |
@@ -42,15 +42,15 @@ with its slide show, presenter view, audience window and files on library capabi
 | Text | Paragraph alignment (left, centre, right, justify) | missing | partial | |
 | Text | Line spacing and columns | missing | done | paragraph-menus |
 | Text | Bullets and numbering | missing | done | bullets-numbering-and-levels |
-| Text | List levels with Tab and Shift+Tab | missing | partial | bullets-numbering-and-levels (the list level buttons; Tab waits for editing in place) |
-| Text | Edit text in place (double-click, caret, selection) | missing | missing | |
+| Text | List levels with Tab and Shift+Tab | missing | done | bullets-numbering-and-levels, edit-text-in-place |
+| Text | Edit text in place (double-click, caret, selection) | missing | done | edit-text-in-place (double click or F2; the text is edited plain and its formatting shows again when the edit ends) |
 | Text | Vertical anchor and autofit | missing | partial | paragraph-menus (anchor and text direction; no autofit) |
 | Shapes | Shapes gallery (lines, rectangles, basic shapes, arrows, stars, callouts) | partial | partial | add-a-shape, first-frame |
 | Shapes | Shape fill (solid, gradient, none) | partial | partial | format-fill-and-line, colour-grids (no gradient) |
 | Shapes | Shape outline (colour, weight, dashes) | partial | partial | format-fill-and-line, colour-grids |
 | Shapes | Shape effects (shadow, glow, soft edges) | partial | partial | shape-effects (a shadow and a glow, unblurred; no soft edges) |
 | Shapes | Quick styles | missing | done | colour-grids |
-| Shapes | Text inside shapes | missing | missing | |
+| Shapes | Text inside shapes | missing | done | edit-text-in-place |
 | Format pane | Fill and line | partial | partial | format-fill-and-line |
 | Format pane | Effects | partial | partial | shape-effects (none, shadow, glow) |
 | Format pane | Size and position (with lock aspect ratio) | partial | partial | format-size-and-rotation |
@@ -127,4 +127,4 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 49 | 31 | 31 | 111 |
+| Now | 54 | 29 | 28 | 111 |

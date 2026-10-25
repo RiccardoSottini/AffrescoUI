@@ -1954,7 +1954,7 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 
 | Step | Does |
 |---|---|
-| `{ "click": target }` | Moves the pointer there, presses and releases the left button. `move`, `press`, `release` do one part |
+| `{ "click": target }` | Moves the pointer there, presses and releases the left button (`rightClick`: the right one, which opens a context menu). `move`, `press`, `release` do one part |
 | `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
 | `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
 | `{ "type": "text" }` | Types into the focused node, a character at a time |

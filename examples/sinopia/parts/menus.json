@@ -9,7 +9,8 @@
 		"colors": { "open": false, "id": "" },
 		"lastColor": { "b-color": "#c00000", "b-highlight": "#ffff00", "b-fill": "accent1", "b-outline": "dark1" },
 		"painter": null,
-		"find": { "open": false, "replace": false, "text": "", "with": "", "status": "", "ask": "" }
+		"find": { "open": false, "replace": false, "text": "", "with": "", "status": "", "ask": "" },
+		"ctx": { "open": false, "x": 0, "y": 0, "kind": "" }
 	},
 
 	"computed": {
@@ -23,6 +24,10 @@
 		"menu-b-copy": "{{[{ title: 'Copy', icon: 'copy', keyLabel: 'Ctrl+C', run: 'copyObjects', enabled: computed.anyText }, { title: 'Duplicate', icon: 'copy-plus', keyLabel: 'Ctrl+D', run: 'duplicateObjects', enabled: computed.anyText }]}}",
 		"menu-b-new-slide": "{{concat(map(computed.layouts, { title: it.name, icon: 'layout-panel-top', run: 'newSlide', with: { layout: it.id } }), [{ separator: true }, { title: 'Duplicate Slide', icon: 'copy', run: 'duplicateSlide' }])}}",
 		"menu-b-ins-new-slide": "{{computed['menu-b-new-slide']}}",
+		"ctxItems": "{{state.ctx.kind == 'slide' ? computed.slideCtxItems : length(computed.selected) > 0 ? computed.objectCtxItems : computed.canvasCtxItems}}",
+		"slideCtxItems": "{{[{ title: 'New Slide', icon: 'layout-panel-top', keyLabel: 'Ctrl+M', run: 'newSlide', with: { layout: 'content' } }, { title: 'Duplicate Slide', icon: 'copy-plus', run: 'duplicateSlide' }, { title: 'Delete Slide', icon: 'trash-2', run: 'deleteSlide', enabled: length(state.deck.slides) > 1 }, { separator: true }, { title: 'Add Section', icon: 'list-start', run: 'addSection' }, { separator: true }, { title: 'Reset Slide', icon: 'rotate-ccw', run: 'resetSlide' }, { title: 'Format Background…', icon: 'paint-bucket', run: 'formatBackground' }, { title: computed.slide.hidden ?? false ? 'Show Slide' : 'Hide Slide', icon: 'eye-off', checked: computed.slide.hidden ?? false, run: 'hideSlide' }]}}",
+		"objectCtxItems": "{{[{ title: 'Cut', icon: 'scissors', keyLabel: 'Ctrl+X', run: 'cutObjects' }, { title: 'Copy', icon: 'copy', keyLabel: 'Ctrl+C', run: 'copyObjects' }, { title: 'Paste', icon: 'clipboard-paste', keyLabel: 'Ctrl+V', run: 'pasteObjects', enabled: length(state.clip) > 0 }, { separator: true }, { title: 'Bring to Front', icon: 'bring-to-front', run: 'order', with: { how: 'front' } }, { title: 'Send to Back', icon: 'send-to-back', run: 'order', with: { how: 'back' } }, { separator: true }, { title: 'Format Shape…', icon: 'paintbrush', run: 'openFormatPane' }, { title: 'Delete', icon: 'trash-2', keyLabel: 'Del', run: 'deleteObjects' }]}}",
+		"canvasCtxItems": "{{[{ title: 'Paste', icon: 'clipboard-paste', keyLabel: 'Ctrl+V', run: 'pasteObjects', enabled: length(state.clip) > 0 }, { separator: true }, { title: 'Reset Slide', icon: 'rotate-ccw', run: 'resetSlide' }, { title: 'Format Background…', icon: 'paint-bucket', run: 'formatBackground' }]}}",
 		"menu-b-ins-icons": "{{map([['Star', 'star'], ['Heart', 'heart'], ['Lightbulb', 'lightbulb'], ['Flag', 'flag'], ['Calendar', 'calendar'], ['Clock', 'clock'], ['Map Pin', 'map-pin'], ['People', 'users'], ['Chat', 'message-circle'], ['Check', 'circle-check'], ['Warning', 'triangle-alert'], ['Music', 'music']], { title: it[0], icon: it[1], run: 'insertObject', with: { object: { kind: 'icon', icon: it[1], x: 420, y: 210, w: 120, h: 120, color: 'accent1' } } })}}",
 		"menu-b-ins-art-text": "{{map([['Accent, Bold', 'accent1', null, false], ['Accent, Bold, Shadow', 'accent1', null, true], ['Dark, Bold, Shadow', 'dark1', null, true], ['Light on Accent', 'light1', 'accent1', false], ['Accent 2 on Light', 'accent2', 'light2', false]], { title: it[0], icon: 'type', run: 'insertObject', with: { object: { kind: 'text', x: 180, y: 210, w: 600, h: 120, text: 'Your text here', size: 54, bold: true, align: 'center', anchor: 'middle', color: it[1], fill: it[2] ?? 'none', shadow: it[3] } } })}}",
 		"menu-b-ins-symbol": "{{map(['©', '®', '™', '€', '£', '¥', '°', '±', '×', '÷', '≈', '≠', '≤', '≥', '→', '←', '↑', '↓', '•', '…', '§', '¶', 'π', 'Ω'], { title: it, run: 'insertSymbol', with: { symbol: it } })}}",
@@ -63,6 +68,11 @@
 		"openFormatPane": [
 			{ "if": "{{state.view == 'sorter'}}", "then": [{ "set": "state.view", "to": "normal" }] },
 			{ "set": "state.formatPane", "to": true }
+		],
+		"formatBackground": [{ "set": "state.board.selection", "to": [] }, { "run": "openFormatPane" }],
+		"openContext": [
+			{ "set": "state.drop.open", "to": false },
+			{ "set": "state.ctx", "to": { "open": true, "x": "{{x}}", "y": "{{y}}", "kind": "{{kind}}" } }
 		],
 		"openDrop": [
 			{ "set": "state.colors.open", "to": false },
@@ -256,6 +266,9 @@
 			"with": { "open": "state.drop.open", "items": "{{computed.dropItems}}", "anchor": "{{'#' + state.drop.id}}", "placement": "below",
 			"width": 220, "icons": "{{length(filter(computed.dropItems, it.icon != null || it.checked != null)) > 0}}", "color": "@card", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } },
 		"zColors": { "use": "colorGrid" },
+		"zContext": { "use": "contextMenu", "shadow": { "x": 0, "y": 4, "blur": 14, "color": "#0000003a" },
+			"with": { "open": "state.ctx.open", "items": "{{state.ctx.open ? computed.ctxItems : []}}", "x": "{{state.ctx.x}}", "y": "{{state.ctx.y}}",
+			"width": 220, "icons": true, "color": "@card", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } },
 		"zFind": { "use": "findBox", "when": "{{state.find.open}}" }
 	}
 }
