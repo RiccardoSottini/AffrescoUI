@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iterator>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -259,6 +260,34 @@ TEST_CASE("services: fs makes, moves, copies, describes and deletes entries, ins
 	CHECK(std::filesystem::exists(folder.path / "work" / "note.txt"));
 	CHECK(std::filesystem::exists(folder.path / "outside.txt"));
 }
+
+#ifndef _WIN32
+TEST_CASE("services: fs.write keeps a file's permissions but never its set-user or set-group bit") {
+	const TemporaryFolder folder;
+	const std::filesystem::path file = folder.path / "work" / "tool";
+	std::filesystem::create_directories(file.parent_path());
+	writeText(file, "old");
+	namespace fs = std::filesystem;
+	fs::permissions(file, fs::perms::owner_all | fs::perms::group_read | fs::perms::set_uid | fs::perms::set_gid);
+	PumpedExecutor executor;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"services": { "files": { "provider": "fs", "root": "work" } },
+		"actions": { "run": [{ "invoke": "files.write", "with": { "path": "tool", "text": "new" } }] },
+		"root": { "type": "label", "text": "" }
+	})json");
+	screen.services().addRoot("work", file.parent_path());
+	screen.services().setExecutor(&executor);
+	screen.services().setInline(true);
+	screen.build(*window);
+	screen.runAction("run", window->root());
+	std::ifstream in(file);
+	CHECK(std::string(std::istreambuf_iterator<char>(in), {}) == "new");
+	CHECK(fs::status(file).permissions() == (fs::perms::owner_all | fs::perms::group_read));
+}
+#endif
 
 TEST_CASE("services: Content-Length frames are read in pieces, and bounded") {
 	using affresco::services::FrameReader;
