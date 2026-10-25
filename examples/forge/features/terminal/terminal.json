@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's terminal: up to 8 shells in the panel's Terminal tab, each a tab of its own (the terminal type in Terminal.cpp, on the pty provider). The Terminal tab shows only while a terminal is open. The node keeps Tab for the shell. Run Task (and mod+shift+b, the build task) runs a task of .forge/tasks.json (forge.tasks.list, Debug.cpp) in a new terminal, through forge.terminal.run.",
+	"note": "Forge's terminal: up to 8 shells in the panel's Terminal tab, each a tab of its own (the terminal node, its shell on the terminal service of the pty provider). The Terminal tab shows only while a terminal is open. The node keeps Tab for the shell. Run Task (and mod+shift+b, the build task) runs a task of .forge/tasks.json (read through files.read, parsed with parseJsonc) in a new terminal, through runInTerminal.",
 
 	"state": {
 		"terminals": { "list": [], "active": "", "next": 1 },
@@ -24,7 +24,7 @@
 				{ "set": "state.panelTab", "to": "terminal" }
 			] },
 		"terminalClose": [
-			{ "call": "forge.terminal.close", "with": { "id": "{{id}}" } },
+			{ "closeTerminal": "{{id}}" },
 			{ "set": "state.terminals.list", "to": "{{filter(state.terminals.list, it.id != id)}}" },
 			{ "if": "{{state.terminals.active == id}}",
 			  "then": [{ "set": "state.terminals.active", "to": "{{length(state.terminals.list) > 0 ? state.terminals.list[0].id : ''}}" }] },
@@ -42,7 +42,7 @@
 			] },
 		"terminalClear": { "title": "Clear Terminal", "category": "Terminal", "icon": "eraser",
 			"enablement": "{{!empty(state.terminals.active)}}",
-			"do": [{ "call": "forge.terminal.clear", "with": { "id": "{{state.terminals.active}}" } }] },
+			"do": [{ "clearTerminal": "{{state.terminals.active}}" }] },
 		"terminalKeepTab": [],
 		"runTask": { "title": "Run Task...", "category": "Terminal", "icon": "play",
 			"description": "Pick a task of the open folder's .forge/tasks.json and run it in a new terminal.",
@@ -87,7 +87,7 @@
 			{ "if": "{{length(state.terminals.list) >= 8}}",
 			  "then": [{ "run": "notify", "with": { "severity": "warning", "message": "Close a terminal to run a task" } }],
 			  "else": [
-				{ "call": "forge.terminal.run", "with": { "id": "{{'t' + state.terminals.next}}", "text": "{{item.line}}" } },
+				{ "runInTerminal": "{{'t' + state.terminals.next}}", "text": "{{item.line}}" },
 				{ "set": "state.tasks.last", "to": "{{item.title}}" },
 				{ "run": "terminalNew" },
 				{ "set": "state.terminals.list", "to": "{{map(state.terminals.list, it.id == state.terminals.active ? merge(it, {label: 'Task - ' + item.title}) : it)}}" }

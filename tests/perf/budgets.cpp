@@ -178,7 +178,6 @@ LoadedScreen startForge(Context& context, const std::filesystem::path& folder) {
 	forge::addExampleCatalog(screen, directory);
 	forge::registerExplorer(screen, workspace, nullptr);
 	forge::grantTerminal(screen, folder);
-	forge::registerTerminal(screen, nullptr);
 	forge::registerEditor(screen, workspace);
 	forge::registerSearch(screen, workspace);
 	screen.build(window);

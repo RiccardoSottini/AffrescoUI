@@ -98,7 +98,6 @@ int run(const Options& options) {
 	    "workspace"); // the explorer, editor and terminal's folder: Open Folder chooses it
 	if(!workspace->root.empty()) screen.services().addRoot("workspace", workspace->root);
 	forge::grantTerminal(screen, workspace->root);
-	forge::registerTerminal(screen, &app);
 	forge::grantLanguageServers(screen);
 	forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace), &app);
 	forge::registerSearch(screen, workspace);

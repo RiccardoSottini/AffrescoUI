@@ -17,7 +17,7 @@
 struct VTerm;
 struct VTermScreen;
 
-namespace forge {
+namespace affresco::format {
 
 /// @brief One cell of the terminal: a character and how it looks.
 struct TerminalCell {
@@ -88,14 +88,14 @@ public:
 	/// @brief Types a character.
 	/// @param character The code point.
 	/// @param mods The modifiers held (Control turns a letter into its control code).
-	void typeCharacter(char32_t character, affresco::Mods mods = {});
+	void typeCharacter(char32_t character, Mods mods = {});
 
 	/// @brief Presses a key that isn't a character: Enter, Tab, Backspace, Escape, the arrows, Insert, Delete, Home,
 	/// End, Page Up and Down, F1 to F12.
 	/// @param key The key.
 	/// @param mods The modifiers held.
 	/// @return Whether it is such a key (and its bytes wait in takeOutput()).
-	bool pressKey(affresco::Key key, affresco::Mods mods = {});
+	bool pressKey(Key key, Mods mods = {});
 
 	/// @brief Its rows.
 	[[nodiscard]] int rows() const noexcept { return rows_; }
@@ -158,4 +158,4 @@ private:
 	bool allowTitle_ = false;                              ///< See allowTitle().
 };
 
-} // namespace forge
+} // namespace affresco::format

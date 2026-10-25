@@ -59,6 +59,7 @@ void registerBuiltInSteps(StepRegistry& registry) {
 	registerSceneSteps(registry);
 	registerImageSteps(registry);
 	registerAudioSteps(registry);
+	registerTerminalSteps(registry);
 	registerDataSteps(registry);
 	registerWindowSteps(registry);
 }

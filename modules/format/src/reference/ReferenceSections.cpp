@@ -423,13 +423,25 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"openFile", "",
 	 "`{ \"openFile\": \"state.deck\", \"extensions\": [\"json\"], \"onDone\": [...] }`: after the event, "
 	 "reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is "
-	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. A control step",
+	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `\"comments\": "
+	 "true` it also reads the comments and trailing commas settings and theme files have. A control step",
 	 "steps"},
     {"export", "",
 	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
 	 "draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, "
 	 "else each node's own), or `\"png\"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good "
 	 "pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step",
+	 "steps"},
+    {"runInTerminal", "",
+	 "`{ \"runInTerminal\": \"t1\", \"text\": \"make\" }`: types the line (at most 64 KiB) and a newline into the "
+	 "session of a `terminal` node, once a node first shows it if none has yet. A control step",
+	 "steps"},
+    {"clearTerminal", "",
+	 "`{ \"clearTerminal\": \"t1\" }`: clears a terminal session's scrollback and asks its program to redraw. A "
+	 "control step",
+	 "steps"},
+    {"closeTerminal", "",
+	 R"(`{ "closeTerminal": "t1" }`: ends a terminal session's program and forgets the session. A control step)",
 	 "steps"},
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
@@ -580,6 +592,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"title", "", "", ""},
     {"name", "", "", ""},
     {"extensions", "", "", ""},
+    {"comments", R"json({"type": "boolean"})json", "", ""},
     {"pages", "", "", ""},
     {"size", "", "", ""},
     {"scale", "", "", ""},

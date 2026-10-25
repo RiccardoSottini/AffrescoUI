@@ -297,7 +297,7 @@
 		"terminal": {
 			"build": { "run": "build", "group": "1_run" },
 			"run": { "run": "runApp", "group": "1_run", "order": 2 },
-			"clear": { "run": "clearTerminal", "group": "2_clear" },
+			"clear": { "run": "clearConsole", "group": "2_clear" },
 			"assistant": { "run": "showAssistant", "group": "3_assistant" }
 		},
 		"project": {
@@ -501,7 +501,7 @@
 			"do": [{ "run": "typeCommand", "with": { "name": "build" } }] },
 		"runApp": { "title": "Run", "category": "Tools", "icon": "play",
 			"do": [{ "run": "typeCommand", "with": { "name": "run" } }] },
-		"clearTerminal": { "title": "Clear Console", "category": "Tools", "icon": "eraser",
+		"clearConsole": { "title": "Clear Console", "category": "Tools", "icon": "eraser",
 			"do": [{ "set": "state.terminal", "to": [] }] },
 		"duplicateLines": { "title": "Duplicate Line", "category": "Edit", "icon": "copy-plus", "enablement": "{{state.active >= 0}}",
 			"do": [{ "edit": "duplicateLines", "in": "#editor" }] },

@@ -97,13 +97,15 @@ bool saveFile(const Running& s) {
 /// @param engine The runtime.
 /// @param path The chosen file.
 /// @param into Where its value goes.
+/// @param comments Whether comments and trailing commas are read too (plainJson()).
 /// @param followers onDone and onError.
-void openChosen(Engine& engine, const std::string& path, const json::json_pointer& into, const Followers& followers) {
+void openChosen(Engine& engine, const std::string& path, const json::json_pointer& into, bool comments,
+                const Followers& followers) {
 	std::string text;
 	std::optional<std::string> error = readText(path, text);
 	json value;
 	if(!error) try {
-			value = parseUntrusted(text);
+			value = parseUntrusted(comments ? plainJson(text) : text);
 		} catch(const std::exception&) {
 			error = "the file isn't JSON, or nests too deeply";
 		}
@@ -122,7 +124,7 @@ void openChosen(Engine& engine, const std::string& path, const json::json_pointe
 }
 
 /// @brief "openFile": a JSON file the person chooses (of the "extensions" given, "json" by default), into a state
-/// path.
+/// path; with "comments": true, its comments and trailing commas are read too.
 /// @param s The step.
 /// @return true.
 bool openFile(const Running& s) {
@@ -142,16 +144,22 @@ bool openFile(const Running& s) {
 			extensions.push_back(std::move(text));
 		}
 	}
+	bool comments = false;
+	if(s.step.contains("comments")) {
+		const json given = s.value("comments");
+		if(!given.is_boolean()) fail(s.where + ".comments", "must be true or false");
+		comments = given.get<bool>();
+	}
 	Engine& engine = s.steps.engine();
 	if(!engine.window) return true; // a check or a preview: nothing to show
 	// The dialog is modal: it waits for the event to end, so the steps around it run first
 	engine.scheduler.defer([&engine, alive = std::weak_ptr<bool>(engine.alive), title = std::move(title),
-	                        extensions = std::move(extensions), into, followers = followersOf(s)] {
+	                        extensions = std::move(extensions), into, comments, followers = followersOf(s)] {
 		if(!alive.lock() || !engine.window) return;
 		const std::vector<std::string> chosen =
 		    engine.window->chooseFiles({FileDialogKind::Open, title, {{"JSON", extensions}}, "", "", false});
 		if(!alive.lock() || chosen.empty()) return; // cancelled, or the screen went away meanwhile
-		openChosen(engine, chosen.front(), into, followers);
+		openChosen(engine, chosen.front(), into, comments, followers);
 	});
 	return true;
 }
@@ -221,7 +229,7 @@ void saveAfterEvent(const Running& s, std::vector<std::uint8_t> bytes, std::stri
 void registerFileSteps(StepRegistry& registry) {
 	registry.add({"file",
 	              {{"saveFile", {"name", "title", "onDone", "onError"}, true},
-	               {"openFile", {"extensions", "title", "onDone", "onError"}, true}},
+	               {"openFile", {"extensions", "comments", "title", "onDone", "onError"}, true}},
 	              runFileStep});
 }
 

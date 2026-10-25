@@ -1,0 +1,207 @@
+/// @file
+/// @brief The terminal node's model (libvterm): text, colours, the cursor, the bounded scrollback, a resize, the keys'
+/// bytes, wide characters, and escape sequences kept inside it (the title only when allowed, no clipboard writes);
+/// and the `terminal` node and its steps on a screen: what the steps check, that the checker knows them, and that a
+/// revision can't add one.
+
+#include "Checker.hpp"
+#include "Headless.hpp"
+#include "TerminalModel.hpp"
+#include "TerminalView.hpp"
+
+#include <affresco/affresco.hpp>
+#include <affresco/core/Log.hpp>
+
+#include <doctest/doctest.h>
+
+#include <cstddef>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+using affresco::json;
+using affresco::RevisionStatus;
+using affresco::detail::createHeadlessWindow;
+using affresco::detail::ManualClock;
+using affresco::format::TerminalCell;
+using affresco::format::TerminalModel;
+
+TEST_CASE("terminal: text, colours and the cursor") {
+	TerminalModel model(4, 20);
+	model.write("hello\r\n\x1b[31mred\x1b[0m \x1b[7mrev\x1b[0m");
+	CHECK(model.lineText(0) == U"hello");
+	CHECK(model.lineText(1) == U"red rev");
+	const TerminalCell plain = model.cell(0, 0);
+	CHECK(plain.character == U'h');
+	CHECK(plain.defaultForeground);
+	CHECK(plain.defaultBackground);
+	const TerminalCell red = model.cell(1, 0);
+	CHECK_FALSE(red.defaultForeground);
+	CHECK(red.defaultBackground);
+	CHECK(model.cell(1, 4).reverse);
+	CHECK(model.cursor().row == 1);
+	CHECK(model.cursor().column == 7);
+	model.write("\x1b[?25l");
+	CHECK_FALSE(model.cursor().visible);
+	CHECK(model.cell(0, 99).character == 0);
+}
+
+TEST_CASE("terminal: the scrollback is bounded, and lines come back when it grows taller") {
+	TerminalModel model(3, 10, 5);
+	for(int line = 0; line < 20; ++line) model.write("line " + std::to_string(line) + "\r\n");
+	CHECK(model.scrollbackSize() == 5);
+	CHECK(model.lineText(model.scrollbackSize() + 1) == U"line 19");
+	model.resize(6, 10);
+	CHECK(model.rows() == 6);
+	CHECK(model.scrollbackSize() == 2);
+	CHECK(model.lineText(model.scrollbackSize()) == U"line 15");
+	model.setScrollbackLimit(1);
+	CHECK(model.scrollbackSize() == 1);
+	model.resize(0, 5000);
+	CHECK(model.rows() == 1);
+	CHECK(model.columns() == affresco::format::mostTerminalCells);
+	model.write("\x1b[3J");
+	CHECK(model.scrollbackSize() == 0);
+}
+
+TEST_CASE("terminal: keys become the bytes a program reads") {
+	TerminalModel model(4, 20);
+	CHECK(model.pressKey(affresco::Key::Enter));
+	CHECK(model.takeOutput() == "\r");
+	CHECK(model.pressKey(affresco::Key::Up));
+	CHECK(model.takeOutput() == "\x1b[A");
+	model.typeCharacter(U'c', affresco::Mods{0x0002});
+	CHECK(model.takeOutput() == "\x03");
+	model.typeCharacter(U'é');
+	CHECK(model.takeOutput() == "\xC3\xA9");
+	CHECK_FALSE(model.pressKey(affresco::Key::A));
+	CHECK(model.takeOutput().empty());
+}
+
+TEST_CASE("terminal: the title only when allowed, and clipboard writes are dropped") {
+	TerminalModel model(4, 20);
+	model.write("\x1b]2;secret\x07");
+	CHECK(model.title().empty());
+	model.setAllowTitle(true);
+	model.write("\x1b]2;build\x07");
+	CHECK(model.title() == "build");
+	model.write("\x1b]52;c;aGVsbG8=\x07");
+	CHECK(model.takeOutput().empty());
+	CHECK(model.lineText(0).empty());
+	model.setAllowTitle(false);
+	CHECK(model.title().empty());
+
+	// A title past the limit is cut on a whole character, so it stays UTF-8
+	model.setAllowTitle(true);
+	std::string longTitle = "\x1b]2;x";
+	for(int i = 0; i < 200; ++i) longTitle += "\xC3\xA9";
+	model.write(longTitle + "\x07");
+	CHECK(model.title().size() == 255);
+	CHECK(static_cast<unsigned char>(model.title().back()) == 0xA9);
+}
+
+TEST_CASE("terminal: a wide character covers two columns") {
+	TerminalModel model(2, 10);
+	model.write("\xE4\xB8\xADx");
+	CHECK(model.cell(0, 0).character == U'中');
+	CHECK(model.cell(0, 0).width == 2);
+	CHECK(model.cell(0, 1).width == 0);
+	CHECK(model.cell(0, 2).character == U'x');
+	CHECK(model.lineText(0) == U"中x");
+}
+
+namespace {
+
+/// @brief A screen with a terminal node and the actions that run, clear and close its session, and some that are wrong.
+/// @return The document.
+json terminalScreen() {
+	const json run = {{"runInTerminal", "t1"}, {"text", "echo {{state.word}}"}};
+	return {{"format", "affrescoui-screen"},
+	        {"version", 2},
+	        {"window", {{"title", "terminal"}, {"width", 300}, {"height", 200}}},
+	        {"state", {{"word", "hello"}}},
+	        {"actions",
+	         {{"run", json::array({run})},
+	          {"clear", json::array({{{"clearTerminal", "t1"}}})},
+	          {"close", json::array({{{"closeTerminal", "t1"}}})},
+	          {"notText", json::array({{{"runInTerminal", "t1"}, {"text", 5}}})},
+	          {"noText", json::array({{{"runInTerminal", "t1"}}})},
+	          {"noSession", json::array({{{"clearTerminal", ""}}})},
+	          {"longSession", json::array({{{"closeTerminal", std::string(257, 'x')}}})}}},
+	        {"root",
+	         {{"type", "column"},
+	          {"children", json::array({{{"type", "terminal"},
+	                                     {"id", "shell"},
+	                                     {"session", "t1"},
+	                                     {"scrollback", 50},
+	                                     {"width", 200},
+	                                     {"height", 100}}})}}}};
+}
+
+/// @brief Collects the errors logged while it lives.
+class Errors {
+public:
+	/// @brief Starts collecting.
+	Errors() {
+		affresco::setLogSink([this](affresco::LogLevel level, std::string_view message) {
+			if(level == affresco::LogLevel::Error) lines.emplace_back(message);
+		});
+	}
+	/// @brief Gives the log back to stderr.
+	~Errors() { affresco::setLogSink(nullptr); }
+	Errors(const Errors&) = delete;
+	Errors& operator=(const Errors&) = delete;
+	Errors(Errors&&) = delete;
+	Errors& operator=(Errors&&) = delete;
+
+	std::vector<std::string> lines; ///< The errors, oldest first.
+};
+
+} // namespace
+
+TEST_CASE("terminal: the node shows a session, and the steps run, clear and close it, checking what they are given") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(300, 200, clock);
+	affresco::Screen screen = affresco::Screen::fromString(terminalScreen().dump());
+	screen.build(*window);
+	CHECK(dynamic_cast<affresco::format::TerminalView*>(screen.find("shell")) != nullptr);
+
+	const Errors errors;
+	// No program starts on a headless window: the steps still run, the line waits for one
+	for(const char* name : {"run", "clear", "run", "close", "close"}) {
+		CAPTURE(name);
+		CHECK_NOTHROW(screen.runAction(name, window->root()));
+	}
+	CHECK(errors.lines.empty());
+
+	const std::vector<std::pair<const char*, std::string>> wrong = {
+	    {"notText", "actions.notText[0].text: expected a string"},
+	    {"noText", "\"runInTerminal\" needs the \"text\""},
+	    {"noSession", "actions.noSession[0].clearTerminal: a session's id has 1 to 256 bytes"},
+	    {"longSession", "actions.longSession[0].closeTerminal: a session's id has 1 to 256 bytes"}};
+	for(const auto& [name, message] : wrong) {
+		CAPTURE(name);
+		const std::size_t before = errors.lines.size();
+		CHECK_NOTHROW(screen.runAction(name, window->root()));
+		REQUIRE(errors.lines.size() == before + 1);
+		CHECK(errors.lines.back().contains(message));
+	}
+}
+
+TEST_CASE("terminal: the checker knows the steps and the node, and a revision can't add a step") {
+	const json document = terminalScreen();
+	const auto found = affresco::format::check(document, document["state"]);
+	REQUIRE(found);
+	for(const auto& finding : *found) CHECK_MESSAGE(!finding.text().contains("unknown"), finding.text());
+
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(300, 200, clock);
+	affresco::Screen screen = affresco::Screen::fromString(document.dump());
+	screen.build(*window);
+	const json step = {{"runInTerminal", "t1"}, {"text", "ls"}};
+	const affresco::RevisionResult added =
+	    screen.submitRevision(json{{"author", "agent"}, {"set", {{"/actions/sneak", json::array({step})}}}}.dump());
+	CHECK(added.status == RevisionStatus::Rejected);
+	CHECK(added.error.contains("permission denied"));
+}

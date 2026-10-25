@@ -64,7 +64,7 @@ TEST_CASE("format: the built-in node types register in catalog order, each with 
 	                                                      "row", "column", "grid", "toggle", "checkbox", "slider",
 	                                                      "image", "surface", "raster", "split", "tabs", "list", "tree", "table", "path",
 	                                                      "colorPicker", "gradient", "curves", "canvas", "graph", "timeline", "calendar",
-	                                                      "codeInput", "carousel", "scene", "outlet"});
+	                                                      "codeInput", "carousel", "scene", "terminal", "outlet"});
 	for(const NodeType* type : registry.inOrder()) {
 		CAPTURE(type->name);
 		CHECK(type->create());
@@ -122,8 +122,8 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	CHECK(groups == std::vector<std::string>{"state",     "flow",       "outside", "services", "auth",
 	                                         "assistant", "attach",     "folder",  "file",     "export",
 	                                         "review",    "navigation", "editor",  "keys",     "time",
-	                                         "other",     "scene",      "image",   "audio",    "data",
-	                                         "windows"});
+	                                         "other",     "scene",      "image",   "audio",    "terminal",
+	                                         "data",      "windows"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())
@@ -131,9 +131,10 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
 	CHECK(control ==
-	      std::vector<std::string>{"accept",     "ask",    "attach",   "call",  "cancelAsk", "chooseFolder", "connect",
-	                               "endPreview", "export", "openFile", "patch", "preview",   "reject",       "respond",
-	                               "restore",    "revert", "saveFile", "send",  "signIn",    "signOut",      "undo"});
+	      std::vector<std::string>{"accept",        "ask",          "attach",     "call",     "cancelAsk", "chooseFolder",
+	                               "clearTerminal", "closeTerminal", "connect",   "endPreview", "export",   "openFile",
+	                               "patch",         "preview",      "reject",     "respond",  "restore",   "revert",
+	                               "runInTerminal", "saveFile",     "send",       "signIn",   "signOut",   "undo"});
 
 	REQUIRE(registry.find("set"));
 	CHECK(registry.find("set")->keys == std::vector<std::string>{"to"});

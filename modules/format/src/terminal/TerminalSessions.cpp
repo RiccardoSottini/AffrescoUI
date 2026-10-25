@@ -1,13 +1,13 @@
 /// @file
-/// @brief The terminal's sessions (TerminalSessions.hpp) and their calls to the `terminal` service.
+/// @brief The terminals' sessions (TerminalSessions.hpp) and their calls to the `pty` service they run on.
 
-#include "features/terminal/TerminalSessions.hpp"
+#include "TerminalSessions.hpp"
 
-#include "features/terminal/Terminal.hpp"
-#include "features/terminal/TerminalView.hpp"
+#include "ServiceCalls.hpp"
+#include "TerminalView.hpp"
 
+#include <affresco/core/Executor.hpp>
 #include <affresco/core/Services.hpp>
-#include <affresco/services/ServiceRegistry.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -19,21 +19,17 @@
 #include <string_view>
 #include <utility>
 
-namespace forge::terminal {
-
-using affresco::json;
+namespace affresco::format {
 
 namespace {
 
-/// @brief The service the terminals run on, as terminal.json declares it.
-constexpr std::string_view serviceName = "terminal";
 /// @brief The most bytes one `write` call carries (the provider takes at most 64 KiB characters).
 constexpr std::size_t mostWriteBytes = std::size_t{16} * 1024;
-/// @brief The status of a terminal in a host that starts no program.
-constexpr std::string_view notStarted = "Terminals start when Forge runs.";
+/// @brief The status of a terminal in a host that starts no program (a scripted run, a test).
+constexpr std::string_view notStarted = "This host starts no programs.";
 
 /// @brief The call that opens a pty: its events and its end go to the main thread, to the session that made it.
-class OpenCall final : public affresco::services::Call {
+class OpenCall final : public services::Call {
 public:
 	/// @brief A call for a session.
 	/// @param arguments `{cols, rows}`.
@@ -41,8 +37,8 @@ public:
 	/// @param sessions The store (gone with the screen).
 	/// @param executor The main thread's.
 	/// @param serial The session's serial.
-	OpenCall(json arguments, std::stop_token stop, std::weak_ptr<TerminalSessions> sessions,
-	         affresco::Executor& executor, std::uint64_t serial)
+	OpenCall(json arguments, std::stop_token stop, std::weak_ptr<TerminalSessions> sessions, Executor& executor,
+	         std::uint64_t serial)
 	    : arguments_(std::move(arguments)), stop_(std::move(stop)), sessions_(std::move(sessions)), executor_(executor),
 	      serial_(serial) {}
 
@@ -87,12 +83,12 @@ private:
 	json arguments_;                           ///< See arguments().
 	std::stop_token stop_;                     ///< See stopToken().
 	std::weak_ptr<TerminalSessions> sessions_; ///< Where the events go.
-	affresco::Executor& executor_;             ///< See the constructor.
+	Executor& executor_;                       ///< See the constructor.
 	std::uint64_t serial_;                     ///< See the constructor.
 };
 
 /// @brief A call whose result doesn't matter: `write`, `resize` and `signal` answer `{}` at once.
-class QuietCall final : public affresco::services::Call {
+class QuietCall final : public services::Call {
 public:
 	/// @brief A call.
 	/// @param arguments Its arguments.
@@ -129,16 +125,19 @@ std::size_t cutBefore(std::string_view bytes, std::size_t most) noexcept {
 
 /// @brief Shows a session in a view, making it (and starting its program) at its first use.
 /// @param id The session.
+/// @param service The service a new session's program runs on.
 /// @param view The view.
 /// @param rows The view's rows.
 /// @param columns The view's columns.
 /// @return The session, or nullptr if mostTerminals are open.
-TerminalSession* TerminalSessions::attach(const std::string& id, TerminalView& view, int rows, int columns) {
+TerminalSession* TerminalSessions::attach(const std::string& id, const std::string& service, TerminalView& view,
+                                          int rows, int columns) {
 	TerminalSession* session = find(id);
 	if(!session) {
 		if(sessions_.size() >= mostTerminals) return nullptr;
 		auto made = std::make_unique<TerminalSession>();
 		made->model = std::make_unique<TerminalModel>(rows, columns);
+		made->service = service;
 		session = sessions_.emplace(id, std::move(made)).first->second.get();
 		if(const auto queued = queued_.extract(id)) session->pendingInput = std::move(queued.mapped());
 	}
@@ -159,17 +158,18 @@ void TerminalSessions::detach(const std::string& id, const TerminalView& view) n
 /// @param session The session.
 void TerminalSessions::start(TerminalSession& session) {
 	session.started = true;
-	if(!executor_) {
+	services::Services* services = calls_ ? calls_->services() : nullptr;
+	Executor* executor = calls_ ? calls_->executor() : nullptr;
+	if(!services || !executor) {
 		session.status = notStarted;
 		return;
 	}
 	session.serial = ++serials_;
 	session.stop = std::stop_source();
 	const json size = {{"cols", session.model->columns()}, {"rows", session.model->rows()}};
-	auto call =
-	    std::make_shared<OpenCall>(size, session.stop.get_token(), weak_from_this(), *executor_, session.serial);
-	const std::optional<std::string> error = screen_.services().invoke(serviceName, "open", std::move(call));
-	session.status = error ? *error : "Starting the shell…";
+	auto call = std::make_shared<OpenCall>(size, session.stop.get_token(), weak_from_this(), *executor, session.serial);
+	const std::optional<std::string> error = services->invoke(session.service, "open", std::move(call));
+	session.status = error ? *error : "Starting…";
 }
 
 /// @brief Sends bytes to a session's program, or keeps them (bounded) until its pty is open.
@@ -202,8 +202,9 @@ void TerminalSessions::run(const std::string& id, const std::string& line) {
 /// @param session The session, with its pty open.
 /// @param bytes At most mostWriteBytes.
 void TerminalSessions::write(const TerminalSession& session, std::string_view bytes) {
+	if(!calls_ || !calls_->services()) return;
 	const json with = {{"session", session.pty}, {"data", std::string(bytes)}};
-	(void)screen_.services().invoke(serviceName, "write", std::make_shared<QuietCall>(with)); // busy: dropped
+	(void)calls_->services()->invoke(session.service, "write", std::make_shared<QuietCall>(with)); // busy: dropped
 }
 
 /// @brief Resizes a session's screen and pty.
@@ -213,9 +214,9 @@ void TerminalSessions::write(const TerminalSession& session, std::string_view by
 void TerminalSessions::resize(TerminalSession& session, int rows, int columns) {
 	if(session.model->rows() == rows && session.model->columns() == columns) return;
 	session.model->resize(rows, columns);
-	if(!session.pty) return;
+	if(!session.pty || !calls_ || !calls_->services()) return;
 	const json with = {{"session", session.pty}, {"cols", session.model->columns()}, {"rows", session.model->rows()}};
-	(void)screen_.services().invoke(serviceName, "resize", std::make_shared<QuietCall>(with));
+	(void)calls_->services()->invoke(session.service, "resize", std::make_shared<QuietCall>(with));
 }
 
 /// @brief Ends a session's program and forgets it.
@@ -238,17 +239,10 @@ void TerminalSessions::clear(const std::string& id) {
 	if(session->view) session->view->contentChanged();
 }
 
-/// @brief What a session is doing.
-/// @param id The session.
-/// @return `{exists, running, title, status, code}`.
-json TerminalSessions::info(const std::string& id) {
-	const TerminalSession* session = find(id);
-	if(!session) return {{"exists", false}, {"running", false}, {"title", ""}, {"status", ""}, {"code", nullptr}};
-	return {{"exists", true},
-	        {"running", session->running},
-	        {"title", session->model->title()},
-	        {"status", session->status},
-	        {"code", session->code ? json(*session->code) : json(nullptr)}};
+/// @brief Ends every program and stops calling the services: the engine is going, the views may stay a while.
+void TerminalSessions::forget() noexcept {
+	for(auto& [id, session] : sessions_) session->stop.request_stop();
+	calls_ = nullptr;
 }
 
 /// @brief The session an open call belongs to.
@@ -291,8 +285,8 @@ void TerminalSessions::ended(std::uint64_t serial, std::optional<int> code, cons
 	session->pty = 0;
 	session->running = false;
 	session->code = code;
-	session->status = code ? "The shell exited with code " + std::to_string(*code) + "." : error;
+	session->status = code ? "The program exited with code " + std::to_string(*code) + "." : error;
 	if(session->view) session->view->contentChanged();
 }
 
-} // namespace forge::terminal
+} // namespace affresco::format

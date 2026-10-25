@@ -1,15 +1,14 @@
 #pragma once
 
 /// @file
-/// @brief The terminal's sessions (Terminal.hpp): each one's screen and pty, and the store that keeps them by id and
-/// talks to the `terminal` service. Internal to the terminal feature.
+/// @brief format::TerminalSessions: the screen's terminals, each one's screen (TerminalModel.hpp) and pty, kept by
+/// the ids the `terminal` nodes and steps give them; their programs run on a service of the `pty` provider.
 
-#include "features/terminal/TerminalModel.hpp"
+#include "TerminalModel.hpp"
 
-#include <affresco/affresco.hpp>
-#include <affresco/core/Executor.hpp>
 #include <affresco/core/Json.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -18,13 +17,18 @@
 #include <string>
 #include <string_view>
 
-namespace forge::terminal {
+namespace affresco::format {
 
+class ServiceCalls;
 class TerminalView;
+
+/// @brief The most terminals a screen keeps open.
+constexpr std::size_t mostTerminals = 16;
 
 /// @brief One terminal: its screen, its pty, and the view that shows it, if one does.
 struct TerminalSession {
 	std::unique_ptr<TerminalModel> model; ///< The screen and scrollback.
+	std::string service;                  ///< The service its program runs on (the first view's `service`).
 	std::uint64_t pty = 0;                ///< The provider's session, once it said it; 0 before and after.
 	std::uint64_t serial = 0;             ///< Which open call is this session's: a late event of another is dropped.
 	std::string status;                   ///< Why no program runs (shown on the screen), or "".
@@ -36,13 +40,13 @@ struct TerminalSession {
 	std::string pendingInput;             ///< Typed before the pty was open, at most mostPendingOutput bytes.
 };
 
-/// @brief The open terminals, by the ids terminal.json gives them. Main thread only.
+/// @brief The open terminals, by id. Main thread only; the engine owns it, and the views share it.
 class TerminalSessions final : public std::enable_shared_from_this<TerminalSessions> {
 public:
 	/// @brief No terminals yet.
-	/// @param screen The screen, whose services run the programs (it owns this store).
-	/// @param executor The main thread's, or nullptr to start no program.
-	TerminalSessions(affresco::Screen& screen, affresco::Executor* executor) : screen_(screen), executor_(executor) {}
+	/// @param calls The engine's service calls: their services run the programs, their executor (the main thread's)
+	/// takes the programs' output; without one no program starts.
+	explicit TerminalSessions(ServiceCalls& calls) : calls_(&calls) {}
 	/// @brief Ends every program.
 	~TerminalSessions() {
 		for(auto& [id, session] : sessions_) session->stop.request_stop();
@@ -52,7 +56,8 @@ public:
 	TerminalSessions(TerminalSessions&&) = delete;
 	TerminalSessions& operator=(TerminalSessions&&) = delete;
 
-	TerminalSession* attach(const std::string& id, TerminalView& view, int rows, int columns);
+	TerminalSession* attach(const std::string& id, const std::string& service, TerminalView& view, int rows,
+	                        int columns);
 	void detach(const std::string& id, const TerminalView& view) noexcept;
 	/// @brief A session.
 	/// @param id Its id.
@@ -66,8 +71,8 @@ public:
 	void close(const std::string& id);
 	void clear(const std::string& id);
 	void run(const std::string& id, const std::string& line);
-	[[nodiscard]] affresco::json info(const std::string& id);
-	void received(std::uint64_t serial, const affresco::json& event);
+	void forget() noexcept;
+	void received(std::uint64_t serial, const json& event);
 	void ended(std::uint64_t serial, std::optional<int> code, const std::string& error);
 
 private:
@@ -75,11 +80,10 @@ private:
 	void write(const TerminalSession& session, std::string_view bytes);
 	[[nodiscard]] TerminalSession* bySerial(std::uint64_t serial) noexcept;
 
-	affresco::Screen& screen_;                                         ///< See the constructor.
-	affresco::Executor* executor_;                                     ///< See the constructor.
+	ServiceCalls* calls_;                                              ///< See the constructor; nullptr after forget().
 	std::uint64_t serials_ = 0;                                        ///< Open calls made so far.
 	std::map<std::string, std::unique_ptr<TerminalSession>> sessions_; ///< The terminals.
 	std::map<std::string, std::string> queued_; ///< Lines to run in terminals not shown yet, by id.
 };
 
-} // namespace forge::terminal
+} // namespace affresco::format

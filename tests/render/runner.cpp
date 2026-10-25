@@ -178,7 +178,6 @@ int main(int argc, char** argv) {
 			                   nullptr); // no server starts
 			forge::registerSearch(screen, workspace);
 			forge::grantTerminal(screen, folder);
-			forge::registerTerminal(screen, nullptr);       // no executor: no shell starts
 			forge::registerDebug(screen, false); // no adapter: the scenarios mirror one's answers
 			forge::addExampleCatalog(screen, AFFRESCOUI_FORGE_DIRECTORY);
 			// The example surfaces at a fixed time, and one that fails (surfaces.json)

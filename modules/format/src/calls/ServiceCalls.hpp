@@ -56,6 +56,9 @@ public:
 	/// @param executor The executor, which must outlive the runtime; without one, only what a service reports before
 	/// its invoke() returns is delivered.
 	void setExecutor(Executor* executor) noexcept { executor_ = executor; }
+	/// @brief Where results are posted.
+	/// @return The executor, or nullptr.
+	[[nodiscard]] Executor* executor() const noexcept { return executor_; }
 	/// @brief Sets the screen's services, and takes their status changes and requests.
 	/// @param services The services, which must outlive the runtime (or be replaced first); nullptr for none.
 	void setServices(services::Services* services);

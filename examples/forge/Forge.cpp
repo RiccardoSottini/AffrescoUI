@@ -6,13 +6,9 @@
 #include "features/palette/FileIndex.hpp"
 #include "features/scm/Scm.hpp"
 #include "features/themes/IconTheme.hpp"
-#include "features/themes/ThemeImport.hpp"
 
 #include <affresco/core/Json.hpp>
 
-#include <cstddef>
-#include <fstream>
-#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -21,9 +17,6 @@
 namespace forge {
 
 namespace {
-
-/// @brief The largest theme file importTheme reads.
-constexpr std::size_t maxThemeBytes = std::size_t{1024} * 1024;
 
 /// @brief Indexes a folder and dresses its tree with the icon theme the call gives.
 /// @param folder The folder, or empty for none.
@@ -48,19 +41,6 @@ std::filesystem::path choose(const Workspace& workspace, const affresco::FileDia
 	return chosen.empty() ? std::filesystem::path{} : std::filesystem::path(chosen.front());
 }
 
-/// @brief Reads a theme file the person chose.
-/// @param path The file.
-/// @return Its text.
-/// @throws std::runtime_error If it is too large or can't be read.
-std::string readTheme(const std::filesystem::path& path) {
-	std::error_code error;
-	if(std::filesystem::file_size(path, error) > maxThemeBytes || error)
-		throw std::runtime_error("the theme file is too large or can't be read");
-	std::ifstream in(path, std::ios::binary);
-	if(!in) throw std::runtime_error("the theme file can't be read");
-	return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
-}
-
 } // namespace
 
 void registerNatives(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace) {
@@ -81,13 +61,6 @@ void registerNatives(affresco::Screen& screen, const std::shared_ptr<Workspace>&
 		const std::string id = with.is_object() ? with.value("id", std::string()) : std::string();
 		if(workspace->root.empty()) throw std::runtime_error("no folder is open");
 		return affresco::json(readInFolder(workspace->root, id)).dump();
-	});
-	screen.onCall("forge.importTheme", [workspace](const std::string&) {
-		const std::filesystem::path file = choose(*workspace, {.kind = affresco::FileDialogKind::Open,
-		                                                       .title = "Import Color Theme",
-		                                                       .filters = {{"Color themes", {"json"}}}});
-		if(file.empty()) throw std::runtime_error("no theme chosen");
-		return importColorTheme(readTheme(file), file.stem().string()).dump();
 	});
 }
 

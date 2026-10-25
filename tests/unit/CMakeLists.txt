@@ -16,8 +16,8 @@ endif()
 # forge.cpp tests the demo IDE's plain C++ (examples/forge), which needs no window
 set(affrescoui_forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
 add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp
-	${affrescoui_forge_dir}/features/palette/FileIndex.cpp ${affrescoui_forge_dir}/features/themes/ThemeImport.cpp
-	${affrescoui_forge_dir}/features/themes/IconTheme.cpp ${affrescoui_forge_dir}/features/terminal/TerminalModel.cpp
+	${affrescoui_forge_dir}/features/palette/FileIndex.cpp
+	${affrescoui_forge_dir}/features/themes/IconTheme.cpp
 	${affrescoui_forge_dir}/features/editor/Buffers.cpp ${affrescoui_forge_dir}/features/search/Search.cpp
 	${affrescoui_forge_dir}/features/scm/GitArguments.cpp ${affrescoui_forge_dir}/features/scm/Scm.cpp)
 # lsp.cpp tests the lsp feature's protocol functions, lsp_edits.cpp its edits applied to the folder
@@ -36,7 +36,7 @@ target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${AFFRESCOUI_GLAD_INCLUDE_DIRS}) # gles.cpp: gl/Shader.hpp
-target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::automation affrescoui_vterm) # all modules; screen.cpp loads screens, no window
+target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::automation) # all modules; screen.cpp loads screens, no window
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::export) # pdf_export.cpp: PDF of a headless window's panels
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::data) # data_*.cpp: the record store and migrations
 set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF

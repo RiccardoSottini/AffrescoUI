@@ -599,6 +599,22 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"textColor", "", "", "timeline"},
     {"accentColor", "", "", "timeline"},
     {"font", "", "", "timeline"},
+    {"session", R"json({"type": "string", "description": "terminal: the session it shows (1 to 256 bytes)"})json",
+	 "The session it shows, an id of 1 to 256 bytes the terminal steps name. Its program starts when a node first "
+	 "shows it, and runs on when no node shows it, until `closeTerminal`. A screen keeps at most 16.",
+	 "terminal"},
+    {"service", R"json({"type": "string", "description": "terminal: the pty service its program runs on (default terminal)"})json",
+	 R"(The declared service of the `pty` provider its program runs on (default `"terminal"`): the host grants the )"
+	 "program, the document only names the service.",
+	 "terminal"},
+    {"font", "", "Its font (default the window's) and colours: the text's default and the cursor's.", "terminal"},
+    {"textColor", "", "", "terminal"},
+    {"cursorColor", "color", "", "terminal"},
+    {"scrollback", R"json({"anyOf": [{"type": "number", "minimum": 0}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "The lines kept above the screen (default 1,000, at most 10,000).", "terminal"},
+    {"allowTitle", "flag",
+	 "Whether the program may set the session's title (at most 256 bytes); never the window's. Default false.",
+	 "terminal"},
 });
 
 } // namespace

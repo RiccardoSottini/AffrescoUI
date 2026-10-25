@@ -1,10 +1,9 @@
 /// @file
-/// @brief Forge's plain C++ (examples/forge): the colour theme importer, the file index and its confinement to
-/// the open folder, and the file icon theme. None of it needs a window.
+/// @brief Forge's plain C++ (examples/forge): the file index and its confinement to the open folder, and the file icon
+/// theme. None of it needs a window.
 
 #include "features/palette/FileIndex.hpp"
 #include "features/themes/IconTheme.hpp"
-#include "features/themes/ThemeImport.hpp"
 
 #include <doctest/doctest.h>
 
@@ -43,60 +42,7 @@ struct TempFolder {
 	}
 };
 
-/// @brief The value an imported theme's patch gives a token.
-/// @param theme importColorTheme()'s result.
-/// @param token The token, e.g. "color.editor".
-/// @return The colour, or an empty string if no op sets it.
-std::string patched(const json& theme, const std::string& token) {
-	const std::string path = "/tokens/" + token + "/" + theme["id"].get<std::string>();
-	for(const json& op : theme["patch"])
-		if(op["path"] == path) return op["value"].get<std::string>();
-	return {};
-}
-
 } // namespace
-
-TEST_CASE("forge: a theme's name becomes a short id") {
-	CHECK(forge::themeId("Solarized Dark") == "solarized-dark");
-	CHECK(forge::themeId("  One  Dark Pro!! ") == "one-dark-pro");
-	CHECK(forge::themeId("***") == "imported");
-	CHECK(forge::themeId(std::string(100, 'a')).size() == 40);
-}
-
-TEST_CASE("forge: a colour theme with comments and trailing commas becomes token variants") {
-	const json theme = forge::importColorTheme(R"({
-		// a comment, and a "string // that isn't one"
-		"name": "Night Owl", "type": "dark",
-		"colors": {
-			"editor.background": "#011627",
-			"statusBar.background": "#011627aa", /* block */
-			"focusBorder": "not a colour",
-			"button.background": "#7e57c2",
-		},
-	})",
-	                                           "night-owl.json");
-	CHECK(theme["id"] == "night-owl");
-	CHECK(theme["name"] == "Night Owl");
-	CHECK(theme["type"] == "dark");
-	CHECK(patched(theme, "color.editor") == "#011627");
-	CHECK(patched(theme, "color.statusBar") == "#011627aa");
-	CHECK(patched(theme, "color.accent") == "#7e57c2"); // the first key set to a colour wins
-	CHECK(patched(theme, "color.sideBar") == "#011627"); // falls back to editor.background
-	CHECK(patched(theme, "color.hover") == "#2a2d2e");   // the dark default
-	for(const json& op : theme["patch"]) CHECK(op["op"] == "add");
-}
-
-TEST_CASE("forge: a light theme without a name takes the file's name and light defaults") {
-	const json theme = forge::importColorTheme(R"({ "type": "light" })", "Paper");
-	CHECK(theme["id"] == "paper");
-	CHECK(theme["type"] == "light");
-	CHECK(patched(theme, "color.editor") == "#ffffff");
-}
-
-TEST_CASE("forge: a theme file that isn't a JSON object is refused") {
-	CHECK_THROWS_AS(forge::importColorTheme("[1, 2]", "x"), std::runtime_error);
-	CHECK_THROWS_AS(forge::importColorTheme("{ \"name\": ", "x"), std::runtime_error);
-}
 
 TEST_CASE("forge: the file index lists files, folders first, and skips hidden entries and build output") {
 	const TempFolder folder;

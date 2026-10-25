@@ -1,9 +1,13 @@
 /// @file
 /// @brief The `terminal` widget (TerminalView.hpp): its properties, its keys and the wheel, and how it draws.
 
-#include "features/terminal/TerminalView.hpp"
+#include "TerminalView.hpp"
+
+#include "NodeKeys.hpp"
+#include "TypeRegistry.hpp"
 
 #include <affresco/render/RichText.hpp>
+#include <affresco/render/Window.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -12,18 +16,14 @@
 #include <string>
 #include <vector>
 
-namespace forge::terminal {
-
-using affresco::Color;
-using affresco::json;
-using affresco::Key;
+namespace affresco::format {
 
 namespace {
 
 /// @brief Whether a key stays a shortcut: with Super, or with Control and Shift together.
 /// @param mods The modifiers.
 /// @return Whether it does.
-bool isShortcut(affresco::Mods mods) noexcept { return mods.super() || (mods.control() && mods.shift()); }
+bool isShortcut(Mods mods) noexcept { return mods.super() || (mods.control() && mods.shift()); }
 
 /// @brief Whether two cells are drawn in one run: the same colours and underline, both one column wide.
 /// @param first The run's first cell.
@@ -38,33 +38,44 @@ bool sameRun(const TerminalCell& first, const TerminalCell& next) noexcept {
 } // namespace
 
 /// @brief Applies the node's properties.
-/// @param screen The screen, for the font and the colours.
-/// @param properties `session`, `font`, `textColor`, `cursorColor`, `scrollback`, `allowTitle`.
-void TerminalView::apply(const affresco::Screen& screen, const json& properties) {
-	id_ = properties.value("session", std::string());
-	const std::string fontName = properties.value("font", std::string());
-	font_ = fontName.empty() ? nullptr : screen.font(fontName);
-	textColor_ = screen.resolveColor(properties.value("textColor", std::string("#cccccc")));
-	cursorColor_ = screen.resolveColor(properties.value("cursorColor", std::string("#aeafad")));
-	scrollback_ = std::min(mostScrollbackLines,
-	                       static_cast<std::size_t>(std::max(
-	                           0.0, properties.value("scrollback", static_cast<double>(defaultScrollbackLines)))));
-	allowTitle_ = properties.value("allowTitle", false);
+/// @param sessions The engine's terminals.
+/// @param values `session`, `service`, `font`, `textColor`, `cursorColor`, `scrollback`, `allowTitle`.
+/// @param reader Reads the colours and the font.
+/// @param path The node's place, for errors.
+void TerminalView::apply(std::shared_ptr<TerminalSessions> sessions, const json& values, const PropertyReader& reader,
+                         const std::string& path) {
+	if(sessions != sessions_) {
+		if(sessions_) sessions_->detach(attached_, *this);
+		sessions_ = std::move(sessions);
+		attached_.clear();
+	}
+	id_ = values.contains("session") ? text(values["session"]) : std::string();
+	if(id_.size() > mostSessionIdBytes) throw DocumentError(path + ".session: longer than 256 bytes");
+	service_ = values.contains("service") ? text(values["service"]) : std::string(defaultService);
+	font_ = values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr;
+	textColor_ =
+	    values.contains("textColor") ? reader.color(values["textColor"], path + ".textColor") : Color::hex(0xcccccc);
+	cursorColor_ = values.contains("cursorColor") ? reader.color(values["cursorColor"], path + ".cursorColor")
+	                                              : Color::hex(0xaeafad);
+	const float scrollback =
+	    values.contains("scrollback") ? number(values["scrollback"], path + ".scrollback") : defaultScrollbackLines;
+	scrollback_ = static_cast<std::size_t>(std::clamp(scrollback, 0.0f, static_cast<float>(mostScrollbackLines)));
+	allowTitle_ = values.contains("allowTitle") && boolean(values["allowTitle"], path + ".allowTitle");
 	if(TerminalSession* shown = session()) configure(*shown->model);
 	invalidate();
 }
 
 /// @brief The font it draws with.
 /// @return The `font` property's, else the window's; nullptr before it has a window.
-const affresco::Font* TerminalView::font() const noexcept {
+const Font* TerminalView::font() const noexcept {
 	if(font_) return font_.get();
 	return window() ? window()->defaultFont() : nullptr;
 }
 
 /// @brief One cell's size, in window units.
 /// @return Its width and height; 0 without a font.
-affresco::Vec2 TerminalView::cellSize() const noexcept {
-	const affresco::Font* drawn = font();
+Vec2 TerminalView::cellSize() const noexcept {
+	const Font* drawn = font();
 	if(!drawn) return {0.0f, 0.0f};
 	return {std::max(1.0f, drawn->measure(U"M")), std::max(1.0f, drawn->lineHeight())};
 }
@@ -72,7 +83,7 @@ affresco::Vec2 TerminalView::cellSize() const noexcept {
 /// @brief The session it shows.
 /// @return It, or nullptr (none attached, or closed).
 TerminalSession* TerminalView::session() const noexcept {
-	return attached_.empty() ? nullptr : sessions_->find(attached_);
+	return attached_.empty() || !sessions_ ? nullptr : sessions_->find(attached_);
 }
 
 /// @brief Gives a session's screen this view's settings.
@@ -84,17 +95,17 @@ void TerminalView::configure(TerminalModel& model) const {
 
 /// @brief Sizes the session to the view: attaches at the first layout, resizes the pty when the size changes.
 void TerminalView::arrange() {
-	const affresco::Vec2 cell = cellSize();
-	const affresco::Rect& frame = bounds();
+	const Vec2 cell = cellSize();
+	const Rect& frame = bounds();
 	if(cell.x <= 0.0f || frame.width() < cell.x || frame.height() < cell.y) return; // hidden: keep the size it had
 	const int columns = std::clamp(static_cast<int>(frame.width() / cell.x), 1, mostTerminalCells);
 	const int rows = std::clamp(static_cast<int>(frame.height() / cell.y), 1, mostTerminalCells);
-	if(id_.empty()) return;
+	if(id_.empty() || !sessions_) return;
 	if(id_ != attached_) {
 		sessions_->detach(attached_, *this);
 		attached_ = id_;
 		scrolledBack_ = 0;
-		if(TerminalSession* made = sessions_->attach(id_, *this, rows, columns)) configure(*made->model);
+		if(TerminalSession* made = sessions_->attach(id_, service_, *this, rows, columns)) configure(*made->model);
 		return;
 	}
 	if(TerminalSession* shown = session()) sessions_->resize(*shown, rows, columns);
@@ -112,9 +123,9 @@ void TerminalView::typed(TerminalSession& session) {
 /// TerminalModel::pressKey() knows as their sequences, Shift+Page Up and Down as scrolling back. Other keys, and
 /// shortcuts, go to the document's keys.
 /// @param event The event.
-void TerminalView::keyEvent(const affresco::KeyEvent& event) {
+void TerminalView::keyEvent(const KeyEvent& event) {
 	TerminalSession* shown = session();
-	if(!shown || event.action == affresco::Action::Release || isShortcut(event.mods)) return Panel::keyEvent(event);
+	if(!shown || event.action == Action::Release || isShortcut(event.mods)) return Panel::keyEvent(event);
 	const bool page = event.key == Key::PageUp || event.key == Key::PageDown;
 	if(page && event.mods.shift() && !shown->model->alternateScreen()) {
 		const long rows = shown->model->rows();
@@ -131,7 +142,7 @@ void TerminalView::keyEvent(const affresco::KeyEvent& event) {
 
 /// @brief Types a character.
 /// @param event The event.
-void TerminalView::charEvent(const affresco::CharEvent& event) {
+void TerminalView::charEvent(const CharEvent& event) {
 	TerminalSession* shown = session();
 	if(!shown) return Panel::charEvent(event);
 	shown->model->typeCharacter(event.codepoint);
@@ -151,7 +162,7 @@ void TerminalView::scrollLines(long lines) {
 /// @brief Scrolls the scrollback with the wheel (not the alternate screen, which has none).
 /// @param delta Pixels; positive scrolls towards the end.
 /// @return Whether it scrolled.
-bool TerminalView::scrollContent(affresco::Vec2 delta) {
+bool TerminalView::scrollContent(Vec2 delta) {
 	const TerminalSession* shown = session();
 	if(!shown || shown->model->alternateScreen() || shown->model->scrollbackSize() == 0) return false;
 	wheel_ -= delta.y / cellSize().y;
@@ -193,9 +204,9 @@ std::optional<Color> TerminalView::backgroundOf(const TerminalCell& cell) const 
 /// @param start The run's first column.
 /// @param end Past its last column.
 /// @param top The line's top.
-void TerminalView::paintRun(affresco::Painter& painter, const std::vector<TerminalCell>& cells, int start, int end,
+void TerminalView::paintRun(Painter& painter, const std::vector<TerminalCell>& cells, int start, int end,
                             float top) const {
-	const affresco::Vec2 cell = cellSize();
+	const Vec2 cell = cellSize();
 	const TerminalCell& first = cells[static_cast<std::size_t>(start)];
 	const float left = bounds().left + static_cast<float>(start) * cell.x;
 	const float right = left + static_cast<float>(end - start) * cell.x;
@@ -219,7 +230,7 @@ void TerminalView::paintRun(affresco::Painter& painter, const std::vector<Termin
 /// @param model The screen.
 /// @param line The line (TerminalModel::cell()).
 /// @param top Its top.
-void TerminalView::paintRow(affresco::Painter& painter, const TerminalModel& model, std::size_t line, float top) const {
+void TerminalView::paintRow(Painter& painter, const TerminalModel& model, std::size_t line, float top) const {
 	const int columns = model.columns();
 	std::vector<TerminalCell> cells;
 	cells.reserve(static_cast<std::size_t>(columns));
@@ -239,14 +250,14 @@ void TerminalView::paintRow(affresco::Painter& painter, const TerminalModel& mod
 /// @param painter The painter.
 /// @param model The screen.
 /// @param first The first line shown.
-void TerminalView::paintCursor(affresco::Painter& painter, const TerminalModel& model, std::size_t first) const {
+void TerminalView::paintCursor(Painter& painter, const TerminalModel& model, std::size_t first) const {
 	const TerminalCursor cursor = model.cursor();
 	const std::size_t line = model.scrollbackSize() + static_cast<std::size_t>(cursor.row);
 	if(!cursor.visible || line < first || line >= first + static_cast<std::size_t>(model.rows())) return;
-	const affresco::Vec2 cell = cellSize();
+	const Vec2 cell = cellSize();
 	const float left = bounds().left + static_cast<float>(cursor.column) * cell.x;
 	const float top = bounds().top + static_cast<float>(line - first) * cell.y;
-	const affresco::Rect block{left, top, left + cell.x, top + cell.y};
+	const Rect block{left, top, left + cell.x, top + cell.y};
 	if(!hasFocus()) return painter.strokeRoundedRect(block, {}, 1.0f, cursorColor_);
 	painter.fillRect(block, cursorColor_);
 	const char32_t character = model.cell(line, cursor.column).character;
@@ -257,7 +268,7 @@ void TerminalView::paintCursor(affresco::Painter& painter, const TerminalModel& 
 
 /// @brief Draws the background, the visible lines, the cursor, and the status when no program runs.
 /// @param painter Clips to bounds().
-void TerminalView::paint(affresco::Painter& painter) const {
+void TerminalView::paint(Painter& painter) const {
 	Panel::paint(painter);
 	const TerminalSession* shown = session();
 	if(!shown || !font()) return;
@@ -272,8 +283,8 @@ void TerminalView::paint(affresco::Painter& painter) const {
 	if(shown->status.empty()) return;
 	Color dim = textColor_;
 	dim.a *= 0.6f;
-	painter.drawText(*font(), affresco::codepointsOf(shown->status),
-	                 {bounds().left, bounds().bottom - height + font()->ascent()}, dim);
+	painter.drawText(*font(), codepointsOf(shown->status), {bounds().left, bounds().bottom - height + font()->ascent()},
+	                 dim);
 }
 
-} // namespace forge::terminal
+} // namespace affresco::format

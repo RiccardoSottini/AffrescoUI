@@ -33,6 +33,27 @@ Value lower(const Call& call) {
 	return Value::fromText(std::move(text));
 }
 
+constexpr std::int64_t longestSlug = 256; ///< slug()'s most, at most.
+
+/// @brief `slug(text, most?)`: an id made of the text, as a file or a theme is named after a title.
+/// @param call [text, most?].
+/// @return Its ASCII letters and digits in small letters, each run of anything else as one dash, without dashes at
+/// either end; at most `most` characters (64 by default, 1 to 256); "" if nothing is left.
+Value slug(const Call& call) {
+	const std::string text = call[0].toText();
+	const auto most = static_cast<std::size_t>(
+	    std::clamp<std::int64_t>(call.size() > 1 ? saturated(call.number(1)) : 64, 1, longestSlug));
+	std::string id;
+	for(const char c : text) {
+		if(id.size() == most) break;
+		const auto u = static_cast<unsigned char>(c);
+		if(u < 128 && std::isalnum(u) != 0) id.push_back(static_cast<char>(std::tolower(u)));
+		else if(!id.empty() && id.back() != '-') id.push_back('-');
+	}
+	while(!id.empty() && id.back() == '-') id.pop_back();
+	return Value::fromText(std::move(id));
+}
+
 /// @brief `trim(text)`.
 /// @param call [text].
 /// @return It without surrounding whitespace.
@@ -301,6 +322,14 @@ constexpr auto table = std::to_array<Function>({
 	 .about = "The value as a template writes it",
 	 .takes = Takes::One,
 	 .apply = text},
+    {.name = "slug",
+	 .arguments = "text, most?",
+	 .about = "An id of the text: its letters and digits in small letters, a dash for each run of anything else, "
+	          "at most `most` characters (64 by default); '' if nothing is left",
+	 .fewest = 1,
+	 .most = 2,
+	 .apply = slug,
+	 .remark = "most from 1 to 256"},
     {.name = "fixed",
 	 .arguments = "number, digits",
 	 .about = "The number written with that many digits (0 to 12) after the point",

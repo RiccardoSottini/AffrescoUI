@@ -11,7 +11,7 @@
 #include <optional>
 #include <utility>
 
-namespace forge {
+namespace affresco::format {
 
 namespace {
 
@@ -90,7 +90,7 @@ constexpr std::uint32_t wideContinuation = 0xFFFFFFFFu;
 /// @brief The libvterm modifiers for the ones held.
 /// @param mods The modifiers.
 /// @return Them as VTermModifier.
-[[nodiscard]] VTermModifier modifiersOf(affresco::Mods mods) noexcept {
+[[nodiscard]] VTermModifier modifiersOf(Mods mods) noexcept {
 	int bits = VTERM_MOD_NONE;
 	if(mods.shift()) bits |= VTERM_MOD_SHIFT;
 	if(mods.alt()) bits |= VTERM_MOD_ALT;
@@ -101,8 +101,7 @@ constexpr std::uint32_t wideContinuation = 0xFFFFFFFFu;
 /// @brief The libvterm key for a key that isn't a character.
 /// @param key The key.
 /// @return It, or std::nullopt for any other key.
-[[nodiscard]] std::optional<VTermKey> vtermKey(affresco::Key key) noexcept {
-	using affresco::Key;
+[[nodiscard]] std::optional<VTermKey> vtermKey(Key key) noexcept {
 	static constexpr std::array<std::pair<Key, VTermKey>, 14> keys{{
 	    {Key::Enter, VTERM_KEY_ENTER},
 	    {Key::KeypadEnter, VTERM_KEY_ENTER},
@@ -255,11 +254,11 @@ void TerminalModel::resize(int rows, int columns) {
 
 std::string TerminalModel::takeOutput() { return std::exchange(output_, {}); }
 
-void TerminalModel::typeCharacter(char32_t character, affresco::Mods mods) {
+void TerminalModel::typeCharacter(char32_t character, Mods mods) {
 	vterm_keyboard_unichar(terminal_.get(), character, modifiersOf(mods));
 }
 
-bool TerminalModel::pressKey(affresco::Key key, affresco::Mods mods) {
+bool TerminalModel::pressKey(Key key, Mods mods) {
 	const std::optional<VTermKey> vterm = vtermKey(key);
 	if(!vterm) return false;
 	vterm_keyboard_key(terminal_.get(), *vterm, modifiersOf(mods));
@@ -306,4 +305,4 @@ void TerminalModel::setAllowTitle(bool allow) {
 	if(!allow) title_.clear();
 }
 
-} // namespace forge
+} // namespace affresco::format

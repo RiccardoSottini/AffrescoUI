@@ -44,6 +44,10 @@ json fileScreen() {
 		  {"open", json::array({{{"openFile", "state.opened"},
 		                         {"onDone", json::array({{{"set", "state.saved"}, {"to", "{{result}}"}}})},
 		                         {"onError", json::array({{{"set", "state.error"}, {"to", "{{error.message}}"}}})}}})},
+		  {"openSettings",
+		   json::array({{{"openFile", "state.opened"},
+		                 {"comments", true},
+		                 {"onError", json::array({{{"set", "state.error"}, {"to", "{{error.message}}"}}})}}})},
 		  {"pdf", json::array({{{"export", "pdf"},
 		                        {"pages", json::array({"page-1", "page-2"})},
 		                        {"size", json::array({960, 540})},
@@ -145,6 +149,31 @@ TEST_CASE("file steps: openFile refuses what isn't JSON, nests too deeply or is 
 	screen.runAction("open", window->root());
 	window->runDeferredTasks();
 	CHECK(json::parse(screen.stateJson())["error"].get<std::string>().contains("can't be read"));
+	affresco::setLogSink(nullptr);
+}
+
+TEST_CASE("file steps: openFile with comments reads a settings file's comments and trailing commas") {
+	const affresco::test::TemporaryFolder folder;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(300, 200, clock);
+	affresco::Screen screen = affresco::Screen::fromString(fileScreen().dump());
+	screen.build(*window);
+	const std::string file = (folder.path() / "theme.json").string();
+	std::ofstream(file, std::ios::binary) << "{\n\t// a comment, and a \"string // that isn't one\"\n"
+	                                         "\t\"name\": \"Night\", /* block */\n\t\"colors\": [1, 2,],\n}\n";
+	window->setFileDialogHandler([&](const affresco::FileDialog&) { return std::vector<std::string>{file}; });
+	affresco::setLogSink([](affresco::LogLevel, std::string_view) {});
+
+	screen.runAction("open", window->root()); // plain JSON only
+	window->runDeferredTasks();
+	json state = json::parse(screen.stateJson());
+	CHECK(state["opened"].is_null());
+	CHECK(state["error"].get<std::string>().contains("isn't JSON"));
+
+	screen.runAction("openSettings", window->root());
+	window->runDeferredTasks();
+	state = json::parse(screen.stateJson());
+	CHECK(state["opened"] == json{{"name", "Night"}, {"colors", {1, 2}}});
 	affresco::setLogSink(nullptr);
 }
 

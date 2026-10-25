@@ -56,6 +56,9 @@ target_include_directories(affrescoui_fuzz_lookups PRIVATE ${PROJECT_SOURCE_DIR}
 affrescoui_fuzzer(image affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(path affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(text_model affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+affrescoui_fuzzer(terminal affrescoui::format) # what a terminal's program writes
+target_include_directories(affrescoui_fuzz_terminal PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # TerminalModel.hpp
 affrescoui_fuzzer(find_pattern affrescoui::regex affrescoui::core nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(search_glob affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_search_glob PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # SearchGlob.hpp
@@ -99,16 +102,12 @@ affrescoui_fuzzer(url affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp r
 affrescoui_fuzzer(oauth affrescoui::net nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_oauth PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # OAuth.hpp
 affrescoui_fuzzer(history affrescoui::format affrescoui::vcs)
-# The apps' readers (apps/server, examples/forge): their own sources, linked only into the fuzzer (the apps' targets
+# The apps' readers (apps/server): their own sources, linked only into the fuzzer (the apps' targets
 # compile them otherwise)
 affrescoui_fuzzer(token_file affrescoui::net nlohmann_json::nlohmann_json)
 target_include_directories(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/apps/server) # TokenFile.hpp
-affrescoui_fuzzer(color_theme affrescoui::core nlohmann_json::nlohmann_json)
-target_include_directories(affrescoui_fuzz_color_theme PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge)
 if(AFFRESCOUI_BUILD_FUZZERS)
 	target_sources(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/apps/server/TokenFile.cpp)
-	target_sources(affrescoui_fuzz_color_theme PRIVATE
-		${PROJECT_SOURCE_DIR}/examples/forge/features/themes/ThemeImport.cpp)
 endif()
 # Other formats (SCREEN_FORMAT.md): the A2UI and Adaptive Cards adapters
 affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)

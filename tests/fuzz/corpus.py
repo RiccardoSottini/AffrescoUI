@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Writes the seed corpora and dictionaries of the fuzz targets (README.md), from the sources they stand for.
 
-- json:       the templates (examples/templates.json), the JSON examples in the docs, nesting at the limit;
+- json:       the templates (examples/templates.json), the JSON examples in the docs, nesting at the limit, settings
+              and colour theme files with comments and trailing commas;
 - expression: every {{...}} and every "$" operator in the templates and in SCREEN_FORMAT.md;
 - revision:   the revisions in the docs, and edits of every kind to the Kanban template's nodes and state;
 - delta:      the Kanban template and changed copies of it (keys reordered, a node added), with deltas to apply;
@@ -23,7 +24,6 @@
 - oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
 - token_file: a document server's token file, with comments and blank lines;
 - git_output: `git status --porcelain=v2 -z --branch`, `git for-each-ref` and two texts to diff (the first byte picks);
-- color_theme: Colour themes, dark and light, with comments and trailing commas;
 - history:    refs.json (even first byte) or a commit object (odd first byte) of a history on disk.
 - gltf:       a small .gltf (a triangle, its material, a clip) with its buffer as data:, a .glb of it, broken copies;
 - scene:      a scene node's scene, animations and time, with primitives, lights, clips and that model placed in it.
@@ -355,6 +355,17 @@ def text_model_seeds():
             b"".join(insert(index % 3, index, "ab\n") for index in range(40)) + bytes([1, 3, 0, 30, 5]) + b"\x02" * 8]
 
 
+def terminal_seeds():
+    """Program output after the size bytes (rows, columns) and the flags byte (bit 0 allows the title, bits 1-3 the
+    piece size, bits 4-7 the scrollback): text, colours, cursor moves, the alternate screen, a title, queries."""
+    def seed(rows, columns, flags, output):
+        return bytes([rows, columns, flags]) + (output.encode("utf-8") if isinstance(output, str) else output)
+    return [seed(4, 20, 0x10, "hello\r\n\x1b[31mred\x1b[0m \x1b[1;4mbold\x1b[0m\r\n"),
+            seed(3, 10, 0x21, "\x1b]2;title\x07\x1b]0;\u00e9\u4e2d\x1b\\\x1b]52;c;aGk=\x07\x07"),
+            seed(5, 30, 0x52, "\x1b[?1049h\x1b[2J\x1b[10;5Hx\x1b[?25l\x1b[?1049l\x1b[6n\x1b[c"),
+            seed(2, 8, 0xf4, "".join(f"line {n}\r\n" for n in range(40)) + "\x1b[38;2;1;2;3m\x1b[48;5;200mx"),
+            seed(6, 12, 0x0e, b"\xe4\xb8\xad\xff\xc3(\xed\xa0\x80\x1b[999;999H\x1b[r\x1b[2;3r\x1bM\x1bD")]
+
 def find_pattern_seeds():
     """Options byte (1 regex, 2 whole word, 4 case-sensitive), pattern, zero, replacement, zero, subject."""
     def seed(options, pattern, replacement, subject):
@@ -531,8 +542,8 @@ def git_output_seeds():
             "\x02one\ntwo\nthree\n\0one\n2\nthree\nfour", "\x02\0added\n", "\x02a\r\nb\0a\nb\n"]
 
 
-def color_theme_seeds():
-    """Colour themes, which allow comments and trailing commas."""
+def settings_file_seeds():
+    """Settings and colour theme files, which allow comments and trailing commas (plainJson; openFile's "comments")."""
     dark = {"name": "Fuzz Dark", "type": "dark", "colors": {"editor.background": "#1e1e1e",
             "editor.foreground": "#d4d4d4", "focusBorder": "#007fd4", "statusBar.background": "#007acc80",
             "list.hoverBackground": "#2a2d2e", "errorForeground": "#f48771"},
@@ -795,6 +806,8 @@ def dictionaries():
                              "[^", "]", "|", "$1", "${", "}", "$$", "\\p{L}", "(?i)", "(?s)", "\u00e9"],
             "search_glob": ["\x00", "\n", ",", "*", "**", "**/", "/", "?", "[", "]", "[!", "[^", "-", "\\", "!", "#",
                             ".gitignore", "src/", "build"],
+            "terminal": ["\x1b[", "\x1b]", "\x07", "\x1b\\", "m", "H", "J", "K", "r", "?1049h", "?25l", "6n", ";", "38;2;",
+                         "\r\n", "\u4e2d", "\x1bP", "\x9b"],
             "text_model": ["\x00", "\x01", "\x02", "\x03", "\x04", "\x08", "\n", "\u00e9", "\u20ac", "\U0001F600"],
             "url": ["https://", "http://", "wss://", "ws://", "\n", "localhost", "127.0.0.1", "[::1]", ":443", ":0",
                     "*.", "/", "?", "#", "%2e", "%2F", "@", ".."],
@@ -806,9 +819,6 @@ def dictionaries():
             "git_output": ["\x00", "\n", "# branch.oid ", "# branch.head ", "# branch.upstream ", "# branch.ab ",
                            "1 ", "2 ", "u ", "? ", "! ", ".M", "M.", "R.", "D.", "A.", "UU", "N...", "100644 ",
                            "R100 ", "*"],
-            "color_theme": tokens + ['"name"', '"type"', '"dark"', '"light"', '"colors"', '"tokenColors"',
-                                      '"editor.background"', '"editor.foreground"', '"focusBorder"', '"#"',
-                                      '"#ffffff"', '"#00000080"', ",}"],
             "key_press": ["+", " ", "mod", "cmd", "command", "super", "meta", "ctrl", "control", "alt", "option",
                           "shift", "enter", "return", "escape", "esc", "tab", "backspace", "delete", "space", "up",
                           "down", "left", "right", "home", "end", "pageup", "pagedown", "minus", "equal", "comma",
@@ -852,8 +862,10 @@ def main():
     parser.add_argument("--out", type=Path, default=ROOT / "build" / "fuzz-corpus", help="where to write them")
     out = parser.parse_args().out
     words = dictionaries()
-    write(out, "json", json_seeds(), words["json"])
-    write(out, "expression", expression_seeds(), words["expression"])
+    write(out, "json", json_seeds() + settings_file_seeds(), words["json"])
+    write(out, "expression", expression_seeds() + ["hexColor('#AbC')", "hexColor(state.colors['editor.background'])",
+          "slug('Solarized Dark', 40) || 'imported'",
+          "map(state.keys, find(map(it.keys, hexColor(colors[it])), it != null) ?? it['dark'])"], words["expression"])
     write(out, "revision", revisions(), words["revision"])
     write(out, "session", session_seeds(), words["session"])
     write(out, "delta", delta_seeds(), words["delta"])
@@ -868,6 +880,7 @@ def main():
     write(out, "image", image_seeds(), words["image"])
     write(out, "path", path_seeds(), words["path"])
     write(out, "text_model", text_model_seeds(), words["text_model"])
+    write(out, "terminal", terminal_seeds(), words["terminal"])
     write(out, "find_pattern", find_pattern_seeds(), words["find_pattern"])
     write(out, "search_glob", search_glob_seeds(), words["search_glob"])
     write(out, "scenarios", scenario_seeds(), words["scenarios"])
@@ -888,8 +901,7 @@ def main():
     write(out, "composition", composition_seeds(), words["json"] + features + ["needs", "bindings", "adapter", "dock",
           "affrescoui-adapter", "affrescoui-proof", "list", "action", "image", "{{", "}}"])
     for target, seeds in [("url", url_seeds()), ("oauth", oauth_seeds()), ("token_file", token_file_seeds()),
-                          ("git_output", git_output_seeds()), ("color_theme", color_theme_seeds()),
-                          ("history", history_seeds()), ("key_press", key_press_seeds())]:
+                          ("git_output", git_output_seeds()), ("history", history_seeds()), ("key_press", key_press_seeds())]:
         write(out, target, seeds, words[target])
     write(out, "adapters", adapters_seeds(), words["json"] + ["surfaceUpdate", "beginRendering", "dataModelUpdate",
           "literalString", "explicitList", "AdaptiveCard", "TextBlock", "Input.Text", "Action.Submit", "${"])

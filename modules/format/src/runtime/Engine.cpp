@@ -48,6 +48,7 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 Engine::~Engine() {
 	versions.onReviewChanged.disconnect(peersChanged);
 	detachImageDocuments(*this);
+	terminals->forget();
 }
 
 void Engine::documentChanged() {

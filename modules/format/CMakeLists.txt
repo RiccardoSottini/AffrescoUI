@@ -152,6 +152,12 @@ target_sources(affrescoui_format PRIVATE src/components/Library.cpp)
 target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/creative/GradientType.cpp
 	src/creative/CurvesType.cpp src/creative/CreativeValues.cpp src/creative/CanvasType.cpp src/creative/GraphType.cpp
 	src/creative/TimelineType.cpp src/creative/PathType.cpp src/creative/SceneType.cpp)
+# terminal: the `terminal` node and step: VT terminals (libvterm, compiled in) whose programs run on a pty service
+target_sources(affrescoui_format PRIVATE src/terminal/TerminalModel.cpp src/terminal/TerminalSessions.cpp
+	src/terminal/TerminalView.cpp src/terminal/TerminalType.cpp src/terminal/TerminalSteps.cpp
+	${AFFRESCOUI_VTERM_SOURCES})
+target_include_directories(affrescoui_format PRIVATE src/terminal)
+target_include_directories(affrescoui_format SYSTEM PRIVATE ${AFFRESCOUI_VTERM_DIR}/include)
 # scene: the 3D scene node and its camera step
 target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
 # imaging: the images a screen edits ("images" section, "image" step, "raster" node): the store, the tools, the

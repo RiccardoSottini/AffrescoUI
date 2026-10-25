@@ -19,14 +19,12 @@ struct Workspace {
 };
 
 /// @brief Registers Forge's native functions, for `call` steps. Their arguments never name a path outside the open
-/// folder: a folder is opened, and a theme imported, only through the OS's dialog.
+/// folder: a folder is opened only through the OS's dialog.
 ///   - `forge.index` `{ "icons" }`: the open folder's file index (FileIndex.hpp), its tree dressed with the file icon
 ///     theme `icons` (IconTheme.hpp); `{ "root": "" }` with none open;
 ///   - `forge.openFolder` `{ "icons" }`: asks for a folder, opens it and returns its index (the same one again on a
 ///     cancel);
-///   - `forge.read` `{ "id" }`: the text of one of the folder's files;
-///   - `forge.importTheme`: asks for a colour theme and returns it as tokens (ThemeImport.hpp); fails on a
-///     cancel.
+///   - `forge.read` `{ "id" }`: the text of one of the folder's files.
 /// And the source control's (features/scm/Scm.hpp), with git granted.
 /// @param screen The screen.
 /// @param workspace The open folder, which the functions read and change.

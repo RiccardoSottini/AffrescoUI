@@ -102,6 +102,8 @@ std::string Properties::assetImage(const json& value, const std::string& at) con
 
 const LanguageCatalog* Properties::languages() const { return engine_.document.languages(); }
 
+std::shared_ptr<TerminalSessions> Properties::terminals() const { return engine_.terminals; }
+
 /* Applying a node */
 
 // Cost follows the change: a node whose compiled form, values and colours are those applied last is left as it is

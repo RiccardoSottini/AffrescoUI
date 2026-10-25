@@ -30,6 +30,8 @@ class ImageDocuments;
 [[nodiscard]] std::shared_ptr<ImageDocuments> makeImageDocuments();
 } // namespace editing
 
+class TerminalSessions;
+
 /// @brief The kind of value a property takes, for the catalog and the checker.
 enum class ValueKind {
 	Any,       ///< Anything; the type's apply function checks it.
@@ -102,6 +104,10 @@ public:
 	/// @brief The languages the document declares ("languages"), for code editors.
 	/// @return Them, or nullptr for none.
 	[[nodiscard]] virtual const LanguageCatalog* languages() const { return nullptr; }
+
+	/// @brief The screen's terminals (TerminalSessions.hpp), which `terminal` nodes show.
+	/// @return Them, or nullptr for none.
+	[[nodiscard]] virtual std::shared_ptr<TerminalSessions> terminals() const { return nullptr; }
 
 protected:
 	PropertyReader() = default;
@@ -358,5 +364,8 @@ void registerCarouselType(TypeRegistry& registry);
 /// @brief Registers "scene" (SceneType.cpp).
 /// @param registry The registry.
 void registerSceneType(TypeRegistry& registry);
+/// @brief Registers "terminal" (TerminalType.cpp).
+/// @param registry The registry.
+void registerTerminalType(TypeRegistry& registry);
 
 } // namespace affresco::format

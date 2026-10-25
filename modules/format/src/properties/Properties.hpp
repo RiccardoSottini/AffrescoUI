@@ -65,6 +65,7 @@ public:
 	[[nodiscard]] std::filesystem::path imageFile(const json& value, const std::string& at) const override;
 	[[nodiscard]] std::string assetImage(const json& value, const std::string& at) const override;
 	[[nodiscard]] const LanguageCatalog* languages() const override;
+	[[nodiscard]] std::shared_ptr<TerminalSessions> terminals() const override;
 
 private:
 	/// @brief What an update reads from the behaviour keys and applies after the look.
