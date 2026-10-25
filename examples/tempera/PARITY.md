@@ -15,6 +15,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | 4 (every control works) | 25 | 28 | 11 |
 | 5 (tools and fill) | 28 | 26 | 10 |
 | 6 (keys, Shift and Alt, Auto-Select) | 30 | 24 | 10 |
+| 7 (the square and centre, the histogram) | 31 | 23 | 10 |
 
 ## Workspace
 
@@ -82,8 +83,8 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 
 | Item | Status | Gap |
 | --- | --- | --- |
-| Levels with histogram | partial | Dialog without histogram |
-| Curves | partial | |
+| Levels with histogram | done | An adjustment layer; Properties draws the image's tones above its sliders, measured again as the image changes |
+| Curves | partial | The tones show behind the curve; one curve for all channels |
 | Hue/Saturation, Brightness/Contrast | partial | |
 | Color Balance, Black & White, Invert, Threshold | done | As adjustment layers; Black & White is a Hue/Saturation layer at no saturation |
 | Gaussian Blur, Unsharp Mask, Add Noise, Motion Blur with live preview | partial | Preview exists; not every filter |

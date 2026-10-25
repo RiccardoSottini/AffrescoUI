@@ -4597,6 +4597,76 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-levels-histogram",
+			"note": "A Levels layer shows the image's tones, measured again when the image changes; Curves draws them behind its curve",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "doc.histogram",
+						"is": []
+					}
+				},
+				{
+					"key": "mod+l"
+				},
+				{
+					"expect": {
+						"node": "#adjust-tones",
+						"exists": true
+					}
+				},
+				{
+					"note": "the sample's tones lie in the middle",
+					"expect": {
+						"state": "doc.histogram[26]",
+						"is": 77085
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.histogram[0]",
+						"is": 0
+					}
+				},
+				{
+					"note": "a black point at the middle makes the darker half black, and the tones are measured again",
+					"action": "perform",
+					"event": {
+						"run": "setAdjustment",
+						"args": {
+							"inputBlack": 0.5
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.histogram[0]",
+						"is": 77160
+					}
+				},
+				{
+					"note": "Curves draws the tones as shown behind its curve",
+					"key": "mod+m"
+				},
+				{
+					"expect": {
+						"node": "#adjust-curve",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.histogram[0]",
+						"is": 77160
+					}
+				}
+			]
 		}
 	]
 }

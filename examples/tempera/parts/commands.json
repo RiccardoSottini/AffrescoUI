@@ -304,7 +304,10 @@
 			       { "set": "state.popout", "to": { "history": false, "navigator": false } }, { "set": "state.screenMode", "to": "standard" }] },
 		"unavailable": { "title": "Not available yet", "enablement": "{{false}}", "do": [{ "set": "state.doc.message", "to": "Not available yet" }] },
 		"showAbout": { "title": "About Tempera", "category": "Help", "icon": "info", "do": [{ "set": "state.about", "to": true }] },
-		"acceptAgentProposal": [{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }]
+		"acceptAgentProposal": [{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }],
+		"measureTones": [{ "note": "Levels and Curves show the image's tones; other layers don't need them measured." },
+			{ "if": "{{computed.adjustmentKind == 'levels' || computed.adjustmentKind == 'curves'}}",
+			  "then": [{ "image": "histogram", "with": { "bins": 64 } }] }]
 	},
 
 	"watch": {
@@ -317,7 +320,9 @@
 		"state.filter.distance": { "run": "previewFilterNow" },
 		"state.filter.live": { "run": "liveChanged" },
 		"state.filter.apply": { "run": "commitFilter" },
-		"state.filter.cancel": { "run": "discardFilter" }
+		"state.filter.cancel": { "run": "discardFilter" },
+		"state.doc.active": { "run": "measureTones" },
+		"state.doc.revision": { "run": "measureTones" }
 	},
 
 	"keys": {

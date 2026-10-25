@@ -218,6 +218,9 @@
 					{ "style": "dim", "id": "properties-name", "when": "{{computed.activeLayer && !computed.adjustment}}",
 					  "text": "{{computed.activeLayer.name}}: {{computed.blendTitle}}, {{computed.activeLayer.opacity}}% opacity" },
 					{ "id": "properties-line", "width": "100%", "height": 1, "color": "@border" },
+					{ "use": "areaChart", "id": "adjust-tones", "when": "{{computed.adjustmentKind == 'levels'}}", "width": 200, "height": 60,
+					  "with": { "color": "@muted", "values":
+					    "{{map(state.doc.histogram ?? [], min(it, 4 * sum(state.doc.histogram) / length(state.doc.histogram)))}}" } },
 					{ "use": "tAdjustSlider", "id": "adjust-input-black", "when": "{{computed.adjustmentKind == 'levels'}}",
 					  "with": { "title": "Input black", "key": "inputBlack", "value": "{{computed.adjustment.inputBlack}}", "max": 255, "scale": 255 } },
 					{ "use": "tAdjustSlider", "id": "adjust-input-white", "when": "{{computed.adjustmentKind == 'levels'}}",
@@ -230,6 +233,7 @@
 					  "with": { "title": "Output white", "key": "outputWhite", "value": "{{computed.adjustment.outputWhite}}", "max": 255, "scale": 255 } },
 					{ "type": "curves", "id": "adjust-curve", "label": "Curve", "when": "{{computed.adjustmentKind == 'curves'}}", "width": 200, "height": 140,
 					  "value": "{{merge({points: []}, {points: computed.adjustment.curve})}}", "accentColor": "@accent",
+					  "histogram": "{{map(state.doc.histogram ?? [], min(it, 4 * sum(state.doc.histogram) / length(state.doc.histogram)))}}",
 					  "onChange": { "run": "setLayer", "with": { "args": { "adjustment": "{{merge(computed.adjustment, {curve: event.value.points})}}" } } } },
 					{ "use": "tAdjustSlider", "id": "adjust-hue", "when": "{{computed.adjustmentKind == 'hue-saturation'}}",
 					  "with": { "title": "Hue", "key": "hue", "value": "{{computed.adjustment.hue}}", "min": -180, "max": 180, "scale": 1 } },

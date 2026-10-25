@@ -14,7 +14,7 @@
 		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 17 }
 	},
 
-	"include": ["parts/commands.json", "parts/workspace.json", "parts/panels.json", "parts/dialogs.json", "../shared/addons/assistant/assistant.json"],
+	"include": ["parts/commands.json", "parts/workspace.json", "parts/panels.json", "parts/dialogs.json", "../shared/addons/assistant/assistant.json", "../shared/components/charts.json"],
 
 	"theme": "{{state.theme}}",
 
