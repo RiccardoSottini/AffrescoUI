@@ -294,9 +294,9 @@ TEST_CASE("format: an application's type gets the events it lists as its own") {
 
 	affresco::Screen unknown = affresco::Screen::fromString(R"json({
 		"format": "affrescoui-screen", "version": 1,
-		"root": { "type": "panel", "children": [{ "type": "notes", "onPopupKey": "typed" }] }
+		"root": { "type": "panel", "children": [{ "type": "notes", "onWobble": "typed" }] }
 	})json");
 	unknown.registerType(
 	    "notes", [] { return std::make_unique<NotesEditor>(); }, {"onType"}, [](auto&, const auto&) {});
-	CHECK_THROWS_WITH(unknown.build(*window), doctest::Contains("onPopupKey: unknown event"));
+	CHECK_THROWS_WITH(unknown.build(*window), doctest::Contains("onWobble: unknown event"));
 }

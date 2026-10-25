@@ -13,11 +13,11 @@ namespace affresco::format {
 namespace {
 
 /// The labels of the keys whose names are words, for the mac and pc notations.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 16> wordLabels = {
+constexpr std::array<std::pair<std::string_view, std::string_view>, 15> wordLabels = {
     {{"minus", "-"},          {"equal", "="},          {"comma", ","},          {"period", "."},
      {"slash", "/"},          {"backslash", "\\"},     {"semicolon", ";"},      {"apostrophe", "'"},
      {"leftbracket", "["},    {"rightbracket", "]"},   {"grave", "`"},          {"numpadperiod", "Numpad ."},
-     {"numpadplus", "Numpad +"}, {"numpadminus", "Numpad -"}, {"numpadmultiply", "Numpad *"}, {"backquote", "`"}}};
+     {"numpadplus", "Numpad +"}, {"numpadminus", "Numpad -"}, {"numpadmultiply", "Numpad *"}}};
 
 /// Emacs's names of the keys whose names are words; other words are written "<name>".
 constexpr std::array<std::pair<std::string_view, std::string_view>, 18> emacsLabels = {
@@ -33,7 +33,7 @@ constexpr std::array<std::pair<std::string_view, std::string_view>, 18> emacsLab
      {"comma", ","},
      {"period", "."},
      {"slash", "/"},
-     {"backquote", "`"},
+     {"grave", "`"},
      {"leftbracket", "["},
      {"rightbracket", "]"},
      {"semicolon", ";"},

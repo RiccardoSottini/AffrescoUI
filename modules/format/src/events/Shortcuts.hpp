@@ -46,7 +46,7 @@ namespace affresco::format {
 [[nodiscard]] std::string normalizeChord(std::string_view text);
 
 /// @brief A normalised chord as people read it: "⌘K ⌘S" on macOS, "Ctrl+K Ctrl+S" elsewhere.
-/// @param chord The chord, as normalizeChord() writes it.
+/// @param chord The chord, as written or as normalizeChord() writes it ("ctrl+backquote" is "⌃`").
 /// @return Its label.
 [[nodiscard]] std::string keyLabel(std::string_view chord);
 

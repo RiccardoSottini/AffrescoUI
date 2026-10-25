@@ -16,7 +16,7 @@ namespace affresco::format {
 namespace {
 
 /// The names of the keys that aren't letters, digits or function keys.
-constexpr std::array<std::pair<Key, std::string_view>, 41> namedKeys = {{{Key::Enter, "enter"},
+constexpr std::array<std::pair<Key, std::string_view>, 40> namedKeys = {{{Key::Enter, "enter"},
                                                                          {Key::KeypadEnter, "enter"},
                                                                          {Key::Escape, "escape"},
                                                                          {Key::Tab, "tab"},
@@ -55,8 +55,7 @@ constexpr std::array<std::pair<Key, std::string_view>, 41> namedKeys = {{{Key::E
                                                                          {Key::KeypadDecimal, "numpadperiod"},
                                                                          {Key::KeypadAdd, "numpadplus"},
                                                                          {Key::KeypadSubtract, "numpadminus"},
-                                                                         {Key::KeypadMultiply, "numpadmultiply"},
-                                                                         {Key::GraveAccent, "backquote"}}};
+                                                                         {Key::KeypadMultiply, "numpadmultiply"}}};
 
 /// The modifier keys, in the order a shortcut writes them.
 enum Modifier { Command, Control, Alt, Shift }; // NOLINT(cppcoreguidelines-use-enum-class): it indexes held[]
@@ -81,8 +80,10 @@ constexpr std::array<std::pair<std::string_view, Modifier>, 10> modifierNames = 
                                                                                   {"shift", Shift}}};
 
 /// Other names documents give keys.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 2> keyAliases = {
-    {{"return", "enter"}, {"esc", "escape"}}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 14> keyAliases = {
+    {{"return", "enter"}, {"esc", "escape"}, {"backquote", "grave"}, {"`", "grave"}, {"-", "minus"}, {"=", "equal"},
+     {",", "comma"}, {".", "period"}, {"/", "slash"}, {"\\", "backslash"}, {";", "semicolon"}, {"'", "apostrophe"},
+     {"[", "leftbracket"}, {"]", "rightbracket"}}};
 
 /// @brief The parts of a shortcut as written, in lower case and without spaces: "Shift + K" is "shift", "k".
 /// @param text The shortcut.
@@ -202,6 +203,6 @@ std::string normalizeChord(std::string_view text) {
 	return chord;
 }
 
-std::string keyLabel(std::string_view chord) { return keyLabel(chord, "platform"); }
+std::string keyLabel(std::string_view chord) { return keyLabel(normalizeChord(chord), "platform"); }
 
 } // namespace affresco::format
