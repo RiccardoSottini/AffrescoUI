@@ -38,7 +38,7 @@ namespace {
 /// @throw std::exception if it fails.
 void runOperation(const Running& s, std::string_view operation, const editing::ImageOperation& found,
                   editing::ImageDocument& image, const json& with) {
-	Engine& engine = s.steps.engine();
+	const Engine& engine = s.steps.engine();
 	if(operation == "open" && with.contains("asset")) {
 		const std::string asset = string(with["asset"], s.where + ".with.asset");
 		const auto bytes = engine.versions.assetBytes(asset);

@@ -114,8 +114,8 @@ Workload idleWorkload(Context& context) {
 	Workload workload{.name = "budgets/idle", .unit = "ms", .runs = 3, .cpuTime = true};
 	workload.prepare = [&context, loaded] {
 		if(!*loaded)
-			loaded->emplace(context.load(json::parse(readFile(context.templateFolder("kanban") / "index.screen.json")),
-			                             context.templateFolder("kanban")));
+			loaded->emplace(
+			    context.load(appDocument(context.templateFolder("kanban")), context.templateFolder("kanban")));
 		detail::renderWithoutPresenting((*loaded)->window);
 	};
 	workload.step = [&context, processMs] {
