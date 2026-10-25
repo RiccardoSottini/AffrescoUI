@@ -57,7 +57,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Brush: size, hardness, opacity, flow, round outline cursor, `[` `]` | done | `[` `]` (and `,` `.`) step the size; the raster draws the brush's outline under the pointer |
 | Eraser | done | |
 | Pencil | done | A hard painting tool (Shift+B); the brush keeps its own hardness |
-| Marquee rectangle and ellipse, Shift/Alt add/subtract/intersect, marching ants | partial | Modifier combinations incomplete |
+| Marquee rectangle and ellipse, Shift/Alt add/subtract/intersect, marching ants | partial | Shift, Alt or both at the press add, subtract or intersect (marquee, lasso, polygon, wand); Shift during a drag doesn't keep a square, Alt doesn't draw from the centre |
 | Lasso and polygonal lasso | done | |
 | Magic wand with tolerance, quick selection | partial | No quick selection |
 | Select all, deselect, inverse, feather, transform selection | partial | No transform selection |

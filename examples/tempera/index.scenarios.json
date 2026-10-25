@@ -4027,6 +4027,199 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-marquee-modifiers",
+			"note": "Shift held at the marquee's press adds to the selection, Alt subtracts, both intersect",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "m"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 0,
+									"y": 0
+								},
+								{
+									"kind": "move",
+									"x": 100,
+									"y": 100
+								},
+								{
+									"kind": "release",
+									"x": 100,
+									"y": 100
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							0,
+							0,
+							100,
+							100
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 0,
+									"modifiers": [
+										"shift"
+									]
+								},
+								{
+									"kind": "move",
+									"x": 300,
+									"y": 100,
+									"modifiers": [
+										"shift"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 100,
+									"modifiers": [
+										"shift"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							0,
+							0,
+							300,
+							100
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 0,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "move",
+									"x": 300,
+									"y": 100,
+									"modifiers": [
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 100,
+									"modifiers": [
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							0,
+							0,
+							100,
+							100
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 50,
+									"y": 0,
+									"modifiers": [
+										"shift",
+										"alt"
+									]
+								},
+								{
+									"kind": "move",
+									"x": 150,
+									"y": 100,
+									"modifiers": [
+										"shift",
+										"alt"
+									]
+								},
+								{
+									"kind": "release",
+									"x": 150,
+									"y": 100,
+									"modifiers": [
+										"shift",
+										"alt"
+									]
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							50,
+							0,
+							50,
+							100
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.mode",
+						"is": "replace"
+					}
+				}
+			]
 		}
 	]
 }
