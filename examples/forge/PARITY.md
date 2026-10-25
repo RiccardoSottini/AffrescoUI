@@ -35,7 +35,7 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Run and debug | done | |
 | Terminal | done | |
 | Problems and language features | partial | Through the `lsp` service, one language server (clangd) |
-| Outline | partial | A language's symbols only where the language server runs (C and C++); other files list headings or the lines that open a block |
+| Outline | partial | A language's symbols where the language server runs (C and C++); Python's classes and functions and Markdown's headings by their text; other files the lines that open a block |
 | Features (extensions) view | done | |
 | Settings editor | done | |
 | Themes | done | |
