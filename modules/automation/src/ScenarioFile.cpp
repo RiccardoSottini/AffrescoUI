@@ -237,7 +237,16 @@ void checkWait(const json& value, const std::string& at) {
 		fail(at, "expected milliseconds, from 0 to " + std::to_string(static_cast<int>(detail::maxWaitMs)));
 }
 
-/// @brief Checks the steps whose one value says it all: type, key, revision, resize, wait, capture, expect.
+/// @brief Checks the file a `choose` step answers dialogs with.
+/// @param value A file name in the run's own folder, or null to cancel.
+/// @param at Its place.
+/// @throws DocumentError If it is neither.
+void checkChosen(const json& value, const std::string& at) {
+	if(!value.is_null() && (!value.is_string() || !detail::isSafeFileName(value.get<std::string>())))
+		fail(at, "expected a file name of letters, digits, '-', '_' and '.', or null to cancel");
+}
+
+/// @brief Checks the steps whose one value says it all: type, key, revision, resize, wait, capture, choose, expect.
 /// @param step The step.
 /// @param kind Its kind.
 /// @param place Its place.
@@ -258,15 +267,17 @@ void checkValueStep(const json& step, std::string_view kind, const std::string& 
 		checkWait(value, at);
 	} else if(kind == "capture") {
 		checkFileName(value, at);
+	} else if(kind == "choose") {
+		checkChosen(value, at);
 	} else {
 		checkExpectation(value, at);
 	}
 }
 
 /// @brief The step kinds: the key that says what a step does. Every step has exactly one, or is only a "note".
-constexpr std::array<std::string_view, 14> stepKinds = {"capture", "move",   "click", "press", "release",
-                                                        "drag",    "scroll", "type",  "key",   "revision",
-                                                        "action",  "resize", "wait",  "expect"};
+constexpr std::array<std::string_view, 15> stepKinds = {"capture", "move",   "click", "press",  "release",
+                                                        "drag",    "scroll", "type",  "key",    "revision",
+                                                        "action",  "resize", "wait",  "choose", "expect"};
 
 /// @brief Finds what a step does: the one key of stepKinds it has.
 /// @param step The step.
@@ -282,7 +293,7 @@ std::optional<std::string_view> kindOf(const json& step, const std::string& plac
 		if(step.size() == 1 && step.contains("note")) return std::nullopt;
 		fail(place, "unknown step " + toText(step).substr(0, 80) +
 		                ": expected one of capture, move, click, press, release, drag, scroll, type, key, revision, "
-		                "action, resize, wait, expect");
+		                "action, resize, wait, choose, expect");
 	}
 	if(kinds.size() > 1)
 		fail(place, "one step does one thing: '" + std::string(kinds[0]) + "' and '" + std::string(kinds[1]) + "'");

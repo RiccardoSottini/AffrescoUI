@@ -153,6 +153,12 @@ void registerAttachSteps(StepRegistry& registry);
 /// @brief Registers the folder step: chooseFolder (FolderSteps.cpp).
 /// @param registry The registry.
 void registerFolderSteps(StepRegistry& registry);
+/// @brief Registers the file steps: saveFile, openFile (FileSteps.cpp).
+/// @param registry The registry.
+void registerFileSteps(StepRegistry& registry);
+/// @brief Registers the export step: export, nodes as a PDF or PNG (ExportSteps.cpp).
+/// @param registry The registry.
+void registerExportSteps(StepRegistry& registry);
 
 /// @brief Registers the scene steps: camera (SceneSteps.cpp).
 /// @param registry The registry.

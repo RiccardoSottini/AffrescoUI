@@ -1257,6 +1257,9 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `signIn` | `{ "signIn": "api", "onDone": [...], "onError": [...] }`: signs in to the provider a connection's `auth` declares (OAuth 2: the browser with PKCE, or a device code), then its requests carry the token. The token never reaches the document or the state: the `auth` variable shows `{state, account, expires}`, and `error` in `onError` is `{code, message}`. A control step |
 | `signOut` | `{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step |
 | `chooseFolder` | `{ "chooseFolder": "workspace", "onDone": [...] }`: after the event, the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
+| `saveFile` | `{ "saveFile": "{{state.deck}}", "name": "{{state.deck.title}}.json", "onDone": [...] }`: after the event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. `result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
+| `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. A control step |
+| `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), or `"png"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
@@ -1868,6 +1871,7 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 | `{ "revision": { ... } }` | Applies a revision as the application would |
 | `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |
 | `{ "resize": [960, 720] }` | Resizes the window |
+| `{ "choose": "deck.json" }` | Answers the file dialogs that follow (`saveFile`, `openFile`, `export`, `attach`) with that file in the run's own folder, as the person would choose it; `null` cancels them. The dialog shows after the event: `{ "wait": 0 }` |
 | `{ "expect": ... }` | Checks something (below) |
 | `{ "capture": "name" }` | Saves a picture as `<scenario>-<name>.png` (`affrescoui test --out`) |
 

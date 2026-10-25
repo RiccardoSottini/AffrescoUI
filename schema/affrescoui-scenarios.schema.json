@@ -74,6 +74,9 @@
 					"note": { "type": "string" } } },
 				{ "type": "object", "required": ["capture"], "additionalProperties": false, "properties": {
 					"capture": { "$ref": "#/$defs/name" }, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["choose"], "additionalProperties": false, "properties": {
+					"choose": { "oneOf": [{ "$ref": "#/$defs/name" }, { "type": "null" }], "description": "Answers the file dialogs that follow with this file in the run's own folder, as the person would choose it; null cancels them." },
+					"note": { "type": "string" } } },
 				{ "type": "object", "required": ["expect"], "additionalProperties": false, "properties": {
 					"expect": { "$ref": "#/$defs/expectation" }, "note": { "type": "string" } } }
 			]

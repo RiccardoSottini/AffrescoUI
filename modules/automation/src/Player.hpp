@@ -45,6 +45,13 @@ public:
 	/// @param stage Where; its references must outlive the player.
 	/// @param result Receives the failures and pictures; must outlive the player.
 	Player(Stage stage, ScenarioResult& result) : stage_(std::move(stage)), result_(result) {}
+	/// @brief Gives the window's file dialogs back to the OS, if choose() answered them.
+	~Player();
+
+	Player(const Player&) = delete;
+	Player& operator=(const Player&) = delete;
+	Player(Player&&) = delete;
+	Player& operator=(Player&&) = delete;
 
 	/// @brief Plays every step, recording the expectations that fail; stops at a step that can't be played.
 	void play();
@@ -74,6 +81,9 @@ private:
 	/// @param milliseconds How long.
 	/// @throws StepError If timers keep coming due without the time moving.
 	void wait(double milliseconds);
+	/// @brief Answers the file dialogs that follow with a file in the run's own folder, as the person would choose it.
+	/// @param file Its name, or null to cancel them.
+	void choose(const json& file);
 	/// @brief Checks an expectation, and records it if it fails.
 	/// @param expect The expectation.
 	/// @param number The step's position, from 1.
@@ -93,6 +103,8 @@ private:
 
 	Stage stage_;            ///< Where it plays.
 	ScenarioResult& result_; ///< What it records.
+	std::string chosen_;     ///< The file the dialogs are answered with (choose()); empty to cancel them.
+	bool answering_ = false; ///< Whether the window's dialogs are answered by choose().
 };
 
 /// @brief Checks a state expectation.

@@ -405,6 +405,23 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control "
 	 "step",
 	 "steps"},
+    {"saveFile", "",
+	 "`{ \"saveFile\": \"{{state.deck}}\", \"name\": \"{{state.deck.title}}.json\", \"onDone\": [...] }`: after the "
+	 "event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. "
+	 "`result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control "
+	 "step",
+	 "steps"},
+    {"openFile", "",
+	 "`{ \"openFile\": \"state.deck\", \"extensions\": [\"json\"], \"onDone\": [...] }`: after the event, "
+	 "reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is "
+	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. A control step",
+	 "steps"},
+    {"export", "",
+	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
+	 "draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, "
+	 "else each node's own), or `\"png\"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good "
+	 "pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step",
+	 "steps"},
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},

@@ -119,18 +119,20 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	registerBuiltInSteps(registry);
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
-	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "auth", "assistant", "attach", "folder",
-	                                         "review", "navigation", "editor", "time", "other", "scene", "image", "audio",
-	                                         "data", "windows"});
+	CHECK(groups == std::vector<std::string>{"state",     "flow",       "outside", "services", "auth",
+	                                         "assistant", "attach",     "folder",  "file",     "export",
+	                                         "review",    "navigation", "editor",  "time",     "other",
+	                                         "scene",     "image",      "audio",   "data",     "windows"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())
 		for(const StepType& step : group.steps)
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
-	CHECK(control == std::vector<std::string>{"accept", "ask", "attach", "call", "cancelAsk", "chooseFolder",
-	                                          "connect", "endPreview", "patch", "preview", "reject", "respond",
-	                                          "restore", "revert", "send", "signIn", "signOut", "undo"});
+	CHECK(control ==
+	      std::vector<std::string>{"accept",     "ask",    "attach",   "call",  "cancelAsk", "chooseFolder", "connect",
+	                               "endPreview", "export", "openFile", "patch", "preview",   "reject",       "respond",
+	                               "restore",    "revert", "saveFile", "send",  "signIn",    "signOut",      "undo"});
 
 	REQUIRE(registry.find("set"));
 	CHECK(registry.find("set")->keys == std::vector<std::string>{"to"});

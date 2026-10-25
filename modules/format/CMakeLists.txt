@@ -114,7 +114,10 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/OtherSteps.cpp
 	src/steps/ServiceSteps.cpp
 	src/steps/SceneSteps.cpp
-	src/steps/FolderSteps.cpp)
+	src/steps/FolderSteps.cpp
+	src/steps/FileSteps.cpp
+	src/steps/ExportSteps.cpp)
+target_link_libraries(affrescoui_format PRIVATE affrescoui::export) # the export step's PDF
 target_include_directories(affrescoui_format PRIVATE src/steps)
 # src/calls/: asynchronous and service calls
 target_sources(affrescoui_format PRIVATE

@@ -726,9 +726,9 @@ def dictionaries():
     # The steps and keys of scenarios files (SCREEN_FORMAT.md, "Scenarios"), and the Kanban template's ids
     scenarios = tokens + ["version", "screen", "scenarios", "name", "steps", "note", "nth", "toNth", "moves", "dx",
                           "dy", "event", "capture", "move", "click", "press", "release", "drag", "to", "scroll", "type",
-                          "key", "revision", "action", "resize", "wait", "expect", "state", "node", "image", "is",
-                          "exists", "text", "property", "shown", "focused", "cmd+", "mod+", "shift+", "enter", "escape",
-                          ".length", "[0]"]
+                          "key", "revision", "action", "resize", "wait", "choose", "expect", "state", "node", "image",
+                          "is", "exists", "text", "property", "shown", "focused", "cmd+", "mod+", "shift+", "enter",
+                          "escape", ".length", "[0]"]
     scenarios += [f"#{node}" for node in kanban_ids()]
     pngs = ["PNG", "IHDR", "IDAT", "IEND", "x\x01", "x^", "\x00\x00\x00\x0d"]  # ASCII: the dictionary is written UTF-8
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
