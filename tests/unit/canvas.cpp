@@ -9,6 +9,7 @@
 
 #include <affresco/affresco.hpp>
 #include <affresco/render/CanvasView.hpp>
+#include <affresco/render/TextArea.hpp>
 #include <affresco/render/Window.hpp>
 
 #include <doctest/doctest.h>
@@ -189,6 +190,28 @@ TEST_CASE("canvas: a click selects, a marquee selects what it meets, and a drag 
 
 	test.window->routeKey({Key::Escape, 0, Action::Press, affresco::Mods{0}});
 	CHECK(test.canvas.selection().empty());
+}
+
+TEST_CASE("canvas: the arrow keys nudge with the focus on a panel inside it, at any depth, but not on a text area") {
+	CanvasWindow test(gridItems(100));
+	test.canvas.setRulers(false);
+	test.canvas.setSnap(false);
+	affresco::Panel& inner = test.canvas.add<affresco::Panel>().add<affresco::Panel>();
+	affresco::TextArea& text = test.canvas.add<affresco::TextArea>();
+	test.window->render();
+	test.button(Action::Press, {25.0f, 25.0f});
+	test.button(Action::Release, {25.0f, 25.0f});
+	REQUIRE(test.canvas.selection() == std::vector<std::string>{"i11"});
+
+	test.window->setFocus(&inner);
+	test.window->routeKey({Key::Right, 0, Action::Press, affresco::Mods{0}});
+	REQUIRE(test.transforms.size() == 1);
+	CHECK(test.transforms[0].bounds == Rect{21.0f, 20.0f, 31.0f, 30.0f});
+
+	test.transforms.clear();
+	test.window->setFocus(&text);
+	test.window->routeKey({Key::Right, 0, Action::Press, affresco::Mods{0}});
+	CHECK(test.transforms.empty());
 }
 
 TEST_CASE("canvas: dragging from the top ruler makes a horizontal guide, and back onto it removes it") {
