@@ -2,7 +2,7 @@
 	"id": "forge-focus",
 	"level": "forge",
 	"screen": "examples/forge/index.screen.json",
-	"request": "In Forge, add a command \"Focus the Editor\" (category View) that hides the side bar and the panel, with a title-bar button (id title-focus) and a link \"Focus the Editor\" (id welcome-focus) in the Welcome page's Start list.",
+	"request": "In Forge, add a command \"Focus the Editor\" (category View) that hides the side bar and the panel, with a title-bar button (id title-focus) and a button \"Focus the Editor\" (id welcome-focus) in the Welcome page's Quick actions.",
 	"scenarios": [
 		{
 			"name": "welcome",
@@ -27,6 +27,15 @@
 		{
 			"name": "title",
 			"steps": [
+				{
+					"click": "#title-panel"
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": true
+					}
+				},
 				{
 					"click": "#title-focus"
 				},
@@ -72,29 +81,28 @@
 				}
 			},
 			"add": {
-				"#title-bar/children/6": {
-					"type": "label",
+				"#title-bar/children/10": {
+					"use": "forgeTitleButton",
 					"id": "title-focus",
-					"icon": "maximize",
-					"padding": 6,
-					"fitText": true,
-					"cursor": "hand",
-					"textColor": "@color.muted",
-					"tooltip": "Focus the Editor",
-					"hover": {
-						"color": "@color.hover"
+					"with": {
+						"icon": "maximize",
+						"tip": "Focus the Editor"
 					},
 					"onClick": {
 						"run": "focusEditor"
 					}
 				},
-				"#welcome-body/children/-": {
+				"#welcome-body/children/11": {
 					"type": "label",
 					"id": "welcome-focus",
+					"role": "button",
 					"icon": "maximize",
 					"text": "Focus the Editor",
-					"textColor": "@color.info",
-					"fitText": true,
+					"width": "100%",
+					"height": 38,
+					"padding": 12,
+					"radius": 9,
+					"color": "@color.widget",
 					"cursor": "hand",
 					"onClick": {
 						"run": "focusEditor"

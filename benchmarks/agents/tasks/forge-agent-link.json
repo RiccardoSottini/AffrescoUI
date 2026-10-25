@@ -2,7 +2,7 @@
 	"id": "forge-agent-link",
 	"level": "forge",
 	"screen": "examples/forge/index.screen.json",
-	"request": "In Forge, add a link \"Ask the Agent\" (id welcome-agent) to the Welcome page's Start list, and a button with the id panel-agent in the panel's header, both showing the Agent view in the side bar.",
+	"request": "In Forge, add a button \"Ask the Agent\" (id welcome-agent) to the Welcome page's Quick actions, and a button with the id panel-agent in the panel's header, both showing the Agent view in the side bar.",
 	"scenarios": [
 		{
 			"name": "welcome",
@@ -29,6 +29,9 @@
 			"steps": [
 				{
 					"click": "#title-sidebar"
+				},
+				{
+					"click": "#title-panel"
 				},
 				{
 					"click": "#panel-agent"
@@ -58,29 +61,28 @@
 		{
 			"message": "Agent links",
 			"add": {
-				"#welcome-body/children/-": {
+				"#welcome-body/children/11": {
 					"type": "label",
 					"id": "welcome-agent",
+					"role": "button",
 					"icon": "bot",
 					"text": "Ask the Agent",
-					"textColor": "@color.info",
-					"fitText": true,
+					"width": "100%",
+					"height": 38,
+					"padding": 12,
+					"radius": 9,
+					"color": "@color.widget",
 					"cursor": "hand",
 					"onClick": {
 						"run": "showAgent"
 					}
 				},
-				"#panel-head/children/2": {
-					"type": "label",
+				"#panel-head/children/5": {
+					"use": "forgeTitleButton",
 					"id": "panel-agent",
-					"icon": "bot",
-					"textColor": "@color.muted",
-					"padding": 8,
-					"fitText": true,
-					"cursor": "hand",
-					"tooltip": "Show Agent",
-					"hover": {
-						"color": "@color.hover"
+					"with": {
+						"icon": "bot",
+						"tip": "Show Agent"
 					},
 					"onClick": {
 						"run": "showAgent"

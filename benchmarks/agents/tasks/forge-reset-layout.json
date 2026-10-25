@@ -11,9 +11,6 @@
 					"click": "#title-sidebar"
 				},
 				{
-					"click": "#title-panel"
-				},
-				{
 					"expect": {
 						"state": "layout.sidebar",
 						"is": false
@@ -44,6 +41,62 @@
 					"expect": {
 						"state": "layout.zen",
 						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "zen",
+			"steps": [
+				{
+					"key": "mod+k"
+				},
+				{
+					"key": "z"
+				},
+				{
+					"expect": {
+						"state": "layout.zen",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+shift+p"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "Reset the Layout"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "quickPick.query",
+						"is": ">Reset the Layout"
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "layout.zen",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": true
 					}
 				}
 			]
@@ -80,15 +133,14 @@
 				}
 			},
 			"add": {
-				"#status-bar/children/-": {
-					"type": "label",
+				"#status-bar/children/5": {
+					"use": "forgeStatusItem",
 					"id": "status-reset",
-					"icon": "layout",
-					"text": "Reset Layout",
-					"padding": 6,
-					"fitText": true,
-					"cursor": "hand",
-					"textColor": "@color.statusText",
+					"with": {
+						"icon": "layout",
+						"text": "Reset Layout",
+						"tip": "Reset the Layout"
+					},
 					"onClick": {
 						"run": "resetLayout"
 					}
