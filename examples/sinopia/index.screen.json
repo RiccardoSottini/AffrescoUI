@@ -9,10 +9,17 @@
 	"theme": "{{state.theme}}",
 
 	"tokens": {
-		"assistant.accent": "@brand", "assistant.accentHover": "@brandHover", "assistant.onAccent": "@onBrand",
-		"assistant.surface": "@rbFieldBg", "assistant.raised": "@rb", "assistant.border": "@rbLine", "assistant.text": "@rbInk",
-		"assistant.dim": "@rbMuted", "assistant.dot": "@rbDisabled", "assistant.warningBackground": "@work",
-		"kit.border": "@rbFieldLine"
+		"assistant.accent": { "light": "#0e7c6b", "dark": "#3cc2aa" },
+		"assistant.accentHover": { "light": "#0b6a5b", "dark": "#62d6c1" },
+		"assistant.onAccent": { "light": "#ffffff", "dark": "#0b1f1b" },
+		"assistant.surface": { "light": "#ffffff", "dark": "#161b1a" },
+		"assistant.raised": { "light": "#eef2f0", "dark": "#1d2321" },
+		"assistant.border": { "light": "#d9e1de", "dark": "#343f3b" },
+		"assistant.text": { "light": "#1d2926", "dark": "#e3ebe8" },
+		"assistant.dim": { "light": "#5a6a65", "dark": "#9daea8" },
+		"assistant.dot": { "light": "#a2afab", "dark": "#6e7c77" },
+		"assistant.warningBackground": { "light": "#e2e7e5", "dark": "#131716" },
+		"kit.border": { "light": "#c5d0cc", "dark": "#42504b" }
 	},
 
 	"window": { "title": "Sinopia", "width": 1280, "height": 800, "minWidth": 960, "minHeight": 600 },
