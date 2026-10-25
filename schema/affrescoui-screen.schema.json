@@ -2308,14 +2308,21 @@
 					"rulers": {
 						"anyOf": [
 							{
-								"type": "array",
-								"items": {
-									"type": "number",
-									"minimum": 0
-								}
+								"anyOf": [
+									{
+										"type": "array",
+										"items": {
+											"type": "number",
+											"minimum": 0
+										}
+									},
+									{
+										"$ref": "#/$defs/v2/dynamic"
+									}
+								]
 							},
 							{
-								"$ref": "#/$defs/v2/dynamic"
+								"$ref": "#/$defs/v2/flag"
 							}
 						]
 					},

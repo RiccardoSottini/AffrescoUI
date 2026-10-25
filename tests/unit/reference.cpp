@@ -96,3 +96,11 @@ TEST_CASE("reference: a key two types share takes the values of both, and a feat
 	CHECK(mode.find("wheel") != std::string::npos);
 	CHECK(node.contains("point")); // features' contribution points (a regression: the schema refused them)
 }
+
+TEST_CASE("reference: a key two node types read differently takes either meaning") {
+	// An editor's rulers are columns, a canvas's a flag: the flat node schema doesn't know the type, so it takes both
+	const json rulers = emptyScreen().schema()["$defs"]["v2"]["node"]["properties"]["rulers"];
+	REQUIRE(rulers.contains("anyOf"));
+	CHECK(rulers.dump().contains(R"("type":"array")"));
+	CHECK(rulers.dump().contains("#/$defs/v2/flag"));
+}
