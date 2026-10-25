@@ -1875,6 +1875,7 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 | `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket backquote`, `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere) |
 | `{ "wait": 500 }` | Moves the clock on, running timers, animations and tooltips as they come due. What a handler leaves for the next frame (`focus`) runs at the next wait: `{ "wait": 0 }` |
 | `{ "revision": { ... } }` | Applies a revision as the application would |
+| `{ "propose": { "author": "agent", ... } }` | Submits a revision as its author's peer would: the screen's `permissions` apply it, send it to review (`proposals`) or refuse it |
 | `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |
 | `{ "resize": [960, 720] }` | Resizes the window |
 | `{ "choose": "deck.json" }` | Answers the file dialogs that follow (`saveFile`, `openFile`, `export`, `attach`) with that file in the run's own folder, as the person would choose it; `null` cancels them. The dialog shows after the event: `{ "wait": 0 }` |

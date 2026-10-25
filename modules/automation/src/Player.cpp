@@ -63,6 +63,9 @@ void Player::playStep(const json& step, std::size_t number) {
 	} else if(step.contains("revision")) {
 		std::string error;
 		if(!screen.applyRevision(step["revision"].dump(), &error)) throw StepError("refused: " + error);
+	} else if(step.contains("propose")) {
+		const RevisionResult result = screen.submitRevision(step["propose"].dump());
+		if(result.status == RevisionStatus::Rejected) throw StepError("refused: " + result.error);
 	} else if(step.contains("action")) {
 		screen.runAction(step["action"].get<std::string>(), window.root(), step.value("event", json::object()).dump());
 	} else if(step.contains("resize")) {

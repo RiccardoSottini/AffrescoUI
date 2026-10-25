@@ -246,7 +246,8 @@ void checkChosen(const json& value, const std::string& at) {
 		fail(at, "expected a file name of letters, digits, '-', '_' and '.', or null to cancel");
 }
 
-/// @brief Checks the steps whose one value says it all: type, key, revision, resize, wait, capture, choose, expect.
+/// @brief Checks the steps whose one value says it all: type, key, revision, propose, resize, wait, capture, choose,
+/// expect.
 /// @param step The step.
 /// @param kind Its kind.
 /// @param place Its place.
@@ -259,7 +260,7 @@ void checkValueStep(const json& step, std::string_view kind, const std::string& 
 		checkTyped(value, at);
 	} else if(kind == "key") {
 		checkKeyName(value, at);
-	} else if(kind == "revision") {
+	} else if(kind == "revision" || kind == "propose") {
 		if(!value.is_object()) fail(at, R"(expected a revision: {"message": ..., "set": {...}})");
 	} else if(kind == "resize") {
 		checkSize(value, at);
@@ -275,9 +276,9 @@ void checkValueStep(const json& step, std::string_view kind, const std::string& 
 }
 
 /// @brief The step kinds: the key that says what a step does. Every step has exactly one, or is only a "note".
-constexpr std::array<std::string_view, 15> stepKinds = {"capture", "move",   "click", "press",  "release",
-                                                        "drag",    "scroll", "type",  "key",    "revision",
-                                                        "action",  "resize", "wait",  "choose", "expect"};
+constexpr std::array<std::string_view, 16> stepKinds = {"capture", "move", "click",  "press",    "release", "drag",
+                                                        "scroll",  "type", "key",    "revision", "propose", "action",
+                                                        "resize",  "wait", "choose", "expect"};
 
 /// @brief Finds what a step does: the one key of stepKinds it has.
 /// @param step The step.
@@ -293,7 +294,7 @@ std::optional<std::string_view> kindOf(const json& step, const std::string& plac
 		if(step.size() == 1 && step.contains("note")) return std::nullopt;
 		fail(place, "unknown step " + toText(step).substr(0, 80) +
 		                ": expected one of capture, move, click, press, release, drag, scroll, type, key, revision, "
-		                "action, resize, wait, choose, expect");
+		                "propose, action, resize, wait, choose, expect");
 	}
 	if(kinds.size() > 1)
 		fail(place, "one step does one thing: '" + std::string(kinds[0]) + "' and '" + std::string(kinds[1]) + "'");
