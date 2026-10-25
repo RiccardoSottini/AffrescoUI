@@ -30,7 +30,7 @@
 			  "onError": [{ "set": "state.fileStatus", "to": "{{'Not opened: ' + error.message}}" }] }
 		],
 		"deckOpened": [
-			{ "if": "{{type(state.opened.slides) == 'array' && length(state.opened.slides) > 0 && type(state.opened.next) == 'number'}}",
+			{ "if": "{{type(state.opened.slides) == 'list' && length(state.opened.slides) > 0 && type(state.opened.next) == 'number'}}",
 			  "then": [
 				{ "run": "commit" },
 				{ "set": "state.deck", "to": "{{state.opened}}" },

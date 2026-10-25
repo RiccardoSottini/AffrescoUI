@@ -310,7 +310,7 @@
 							{ "id": "notes-pane", "height": 76, "color": "@notes", "when": "{{state.notes}}",
 							  "children": [
 								{ "type": "label", "id": "notes-placeholder", "x": 14, "y": 8, "width": 400, "height": 20, "textColor": "@faint",
-								  "when": "{{(computed.slide.notes ?? '') == ''}}", "runs": [{ "text": "Click to add notes", "size": 13 }] },
+								  "runs": [{ "text": "{{(computed.slide.notes ?? '') == '' ? 'Click to add notes' : ''}}", "size": 13 }] },
 								{ "type": "editor", "id": "notes", "fill": 4, "color": "transparent", "wrap": true, "textColor": "@rbInk", "lineColor": "transparent",
 								  "label": "Notes", "bind": "{{'state.deck.slides[' + state.current + '].notes'}}" }
 							  ] }
