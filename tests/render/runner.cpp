@@ -28,8 +28,10 @@
 #include <affresco/automation/Scenarios.hpp>
 
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <memory>
+#include <random>
 #include <set>
 #include <string>
 #include <string_view>
@@ -48,6 +50,39 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT);
 		glEnable(GL_RGBA);
 	}
+};
+
+/// @brief A fresh copy of forge/folder for each scenario, so that one which creates, moves or deletes files changes
+/// neither the next one's folder nor the source tree. The copies are removed when the runner ends.
+class FolderCopies {
+public:
+	/// @brief Makes the folder that holds the copies.
+	FolderCopies()
+	    : base_(std::filesystem::temp_directory_path() /
+		        ("affrescoui-runner-" + std::to_string(std::random_device{}()))) {
+		std::filesystem::create_directories(base_);
+	}
+	/// @brief Removes the copies.
+	~FolderCopies() {
+		std::error_code ignored;
+		std::filesystem::remove_all(base_, ignored);
+	}
+	FolderCopies(const FolderCopies&) = delete;
+	FolderCopies& operator=(const FolderCopies&) = delete;
+	FolderCopies(FolderCopies&&) = delete;
+	FolderCopies& operator=(FolderCopies&&) = delete;
+	/// @brief Copies the folder once more.
+	/// @return The copy, named "folder" like the original.
+	[[nodiscard]] std::filesystem::path next() {
+		const std::filesystem::path copy = base_ / std::to_string(++count_) / "folder";
+		std::filesystem::create_directories(copy);
+		std::filesystem::copy(AFFRESCOUI_FORGE_FOLDER, copy, std::filesystem::copy_options::recursive);
+		return copy;
+	}
+
+private:
+	std::filesystem::path base_; ///< Where the copies are.
+	std::size_t count_ = 0;      ///< How many there are.
 };
 
 /// @brief Prints a report the way check.py always has: "same", "golden" or "FAILED" per picture, and the failures of
@@ -134,16 +169,18 @@ int main(int argc, char** argv) {
 		options.policy = automation::Goldens::RecordMissing;
 		// As affrescoui_launcher and affrescoui_forge; Forge's scenarios see forge/folder open as the workspace, its
 		// example catalogue, and no file dialog
-		options.prepare = [](affresco::Screen& screen) {
+		const auto copies = std::make_shared<FolderCopies>();
+		options.prepare = [copies](affresco::Screen& screen) {
+			const std::filesystem::path folder = copies->next();
 			examples::registerCodeEditor(screen);
 			screen.services().allowChosenRoot("workspace");
-			screen.services().addRoot("workspace", AFFRESCOUI_FORGE_FOLDER);
-			const auto workspace = std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER);
+			screen.services().addRoot("workspace", folder);
+			const auto workspace = std::make_shared<forge::Workspace>(folder);
 			forge::registerNatives(screen, workspace);
 			forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace),
 			                   nullptr); // no server starts
 			forge::registerSearch(screen, workspace);
-			forge::grantTerminal(screen, AFFRESCOUI_FORGE_FOLDER);
+			forge::grantTerminal(screen, folder);
 			forge::registerTerminal(screen, nullptr);       // no executor: no shell starts
 			forge::registerDebug(screen, workspace, false); // no adapter: the scenarios mirror one's answers
 			forge::addExampleCatalog(screen, AFFRESCOUI_FORGE_DIRECTORY);
