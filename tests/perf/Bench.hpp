@@ -269,7 +269,8 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @throws std::runtime_error If it can't be read.
 [[nodiscard]] std::string readFile(const std::filesystem::path& path);
 
-/// @brief A screen file as a history holds it: its "include" files merged in, and its state.
+/// @brief A screen file as a history holds it: its "include" files merged in (an app's entry screen also its models
+/// and their seed records), and its state.
 /// @param file The screen file.
 /// @return The document.
 /// @throws std::exception If it can't be read or isn't a valid screen.
@@ -282,10 +283,19 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @throws std::exception If it isn't a valid screen or an include can't be read.
 [[nodiscard]] json screenDocument(const json& document, const std::filesystem::path& directory);
 
+/// @brief A template's document as the host reads it: an app's entry screen with its includes, its models and their
+/// seed records (app.json's "data") merged in; without an app.json, its index.screen.json (or the screen named after
+/// the folder) as written.
+/// @param folder The template's folder.
+/// @return The document.
+/// @throws std::exception If the app or the screen can't be read.
+[[nodiscard]] json appDocument(const std::filesystem::path& folder);
+
 /// @brief The Kanban template with its four columns filled to a number of cards, by copying its own cards in turn.
 /// @param directory The Kanban template's folder.
 /// @param cards The cards in total; the template's own count, 12, leaves it as it is.
-/// @return The document.
+/// @return The document, its includes and seed records merged in.
+/// @throws std::exception If the app can't be read, or its issues have no seed records.
 [[nodiscard]] json kanbanWithCards(const std::filesystem::path& directory, int cards);
 
 /* Allocation counting (allocations.cpp): every operator new in the process is counted */

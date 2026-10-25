@@ -30,8 +30,8 @@ constexpr std::array<std::array<std::uint8_t, 40>, 4> ecPerBlock{{
 
 /// Error correction blocks, by level (L, M, Q, H) and version (1 to 40).
 constexpr std::array<std::array<std::uint8_t, 40>, 4> blockCounts{{
-    {1,  1,  1,  1,  1,  2,  2,  2,  2,  4,  4,  4,  4,  4,  6,  6,  6,  6,  7,  8,
-     8,  9,  9,  10, 12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25},
+    {1, 1, 1, 1,  1,  2,  2,  2,  2,  4,  4,  4,  4,  4,  6,  6,  6,  6,  7,  8,
+     8, 9, 9, 10, 12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25},
     {1,  1,  1,  2,  2,  4,  4,  4,  5,  5,  5,  8,  9,  9,  10, 10, 11, 13, 14, 16,
      17, 17, 18, 20, 21, 23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49},
     {1,  1,  2,  2,  4,  4,  6,  6,  8,  8,  8,  10, 12, 16, 12, 17, 16, 18, 21, 20,
@@ -54,13 +54,10 @@ constexpr int penaltyBalance = 10;
 /// @return 0 to 3.
 [[nodiscard]] std::size_t row(QrLevel level) noexcept { return static_cast<std::size_t>(level); }
 
-/// @brief The two bits the format information gives a level: L 01, M 00, Q 11, H 10.
+/// @brief The two bits the format information gives a level: L 01, M 00, Q 11, H 10 (its row's low bit flipped).
 /// @param level The level.
 /// @return The bits.
-[[nodiscard]] int formatLevelBits(QrLevel level) {
-	static constexpr std::array<int, 4> bits{1, 0, 3, 2};
-	return bits.at(row(level));
-}
+[[nodiscard]] int formatLevelBits(QrLevel level) noexcept { return static_cast<int>(row(level)) ^ 1; }
 
 /// @brief The modules of a version left for data and error correction, once the function patterns are drawn.
 /// @param version 1 to 40.
@@ -159,8 +156,7 @@ class Matrix {
 public:
 	/// @brief Starts a version's code, every module light.
 	/// @param version 1 to 40.
-	explicit Matrix(int version)
-	    : size_(17 + 4 * version), dark_(cells(), 0), function_(cells(), 0) {}
+	explicit Matrix(int version) : size_(17 + 4 * version), dark_(cells(), 0), function_(cells(), 0) {}
 
 	/// @brief The modules on a side.
 	[[nodiscard]] int size() const noexcept { return size_; }
@@ -200,7 +196,7 @@ private:
 		return static_cast<std::size_t>(y) * static_cast<std::size_t>(size_) + static_cast<std::size_t>(x);
 	}
 
-	int size_;                          ///< Modules on a side.
+	int size_;                           ///< Modules on a side.
 	std::vector<std::uint8_t> dark_;     ///< 1 for dark.
 	std::vector<std::uint8_t> function_; ///< 1 for a module of a function pattern.
 };
@@ -336,14 +332,30 @@ void applyMask(Matrix& matrix, int mask) noexcept {
 		for(int x = 0; x < size; ++x) {
 			bool flip = false;
 			switch(mask) {
-			case 0: flip = (x + y) % 2 == 0; break;
-			case 1: flip = y % 2 == 0; break;
-			case 2: flip = x % 3 == 0; break;
-			case 3: flip = (x + y) % 3 == 0; break;
-			case 4: flip = (x / 3 + y / 2) % 2 == 0; break;
-			case 5: flip = x * y % 2 + x * y % 3 == 0; break;
-			case 6: flip = (x * y % 2 + x * y % 3) % 2 == 0; break;
-			default: flip = ((x + y) % 2 + x * y % 3) % 2 == 0; break;
+			case 0:
+				flip = (x + y) % 2 == 0;
+				break;
+			case 1:
+				flip = y % 2 == 0;
+				break;
+			case 2:
+				flip = x % 3 == 0;
+				break;
+			case 3:
+				flip = (x + y) % 3 == 0;
+				break;
+			case 4:
+				flip = (x / 3 + y / 2) % 2 == 0;
+				break;
+			case 5:
+				flip = x * y % 2 + x * y % 3 == 0;
+				break;
+			case 6:
+				flip = (x * y % 2 + x * y % 3) % 2 == 0;
+				break;
+			default:
+				flip = ((x + y) % 2 + x * y % 3) % 2 == 0;
+				break;
 			}
 			if(flip && !matrix.function(x, y)) matrix.set(x, y, !matrix.dark(x, y));
 		}
@@ -387,8 +399,9 @@ void applyMask(Matrix& matrix, int mask) noexcept {
 /// @return Whether the seven modules from it are the pattern.
 [[nodiscard]] bool finderAt(std::span<const std::uint8_t> line, int p) noexcept {
 	static constexpr std::array<bool, 7> pattern{true, false, true, true, true, false, true};
-	for(int i = 0; i < 7; ++i)
-		if(darkAt(line, p + i) != pattern.at(static_cast<std::size_t>(i))) return false;
+	int at = p;
+	for(const bool dark : pattern)
+		if(darkAt(line, at++) != dark) return false;
 	return true;
 }
 
@@ -434,7 +447,8 @@ void applyMask(Matrix& matrix, int mask) noexcept {
 			if(matrix.dark(x, y)) ++dark;
 			if(x + 1 < size && y + 1 < size) {
 				const bool colour = matrix.dark(x, y);
-				if(matrix.dark(x + 1, y) == colour && matrix.dark(x, y + 1) == colour && matrix.dark(x + 1, y + 1) == colour)
+				if(matrix.dark(x + 1, y) == colour && matrix.dark(x, y + 1) == colour &&
+				   matrix.dark(x + 1, y + 1) == colour)
 					result += penaltyBlock;
 			}
 		}

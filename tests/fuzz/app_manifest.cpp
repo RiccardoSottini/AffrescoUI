@@ -62,6 +62,8 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		value = affresco::parseUntrusted(affresco::fuzz::text(data, size));
 	} catch(const json::parse_error&) {
 		return 0;
+	} catch(const affresco::DocumentError&) {
+		return 0; // too deep, or a number too long
 	}
 	const affresco::format::AppManifest app = readManifest(value);
 	checkManifest(app);

@@ -1,5 +1,6 @@
 # affrescoui: the command-line tool for screen files (README.md here). The target is affrescoui_cli, the program
 # affrescoui (the library already has the target name affrescoui).
+cmake_language(DEFER CALL affrescoui_hide_test_windows) # AFFRESCOUI_HIDDEN=1 for its tests
 
 # The screen format's schema, built into the tool so that `check` works wherever it is installed
 set(AFFRESCOUI_CLI_SCHEMA ${PROJECT_SOURCE_DIR}/schema/affrescoui-screen.schema.json)
