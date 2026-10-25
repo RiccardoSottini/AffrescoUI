@@ -1424,9 +1424,10 @@ layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by`
 `x`, `y`; `button`: `left` or `right`; `pressure` from 0 to 1; `scroll`; `modifiers`: a list of `shift`, `control`,
 `alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. A selecting
 tool's press with `shift` held adds to the selection, with `alt` subtracts, with both intersects, whatever the tool's
-`mode` (a polygon keeps the mode of its first corner). With the `autoSelect` option, a `move` press first makes the
-topmost visible pixel layer painted under it the active one. `open`, `save` and `revert` go through the file dialogs the
-person sees: a document never names a file.
+`mode` (a polygon keeps the mode of its first corner). During a marquee's or crop's drag, `shift` keeps a square and
+`alt` draws from the press as the centre (a key held since the press only chose the mode). With the `autoSelect` option,
+a `move` press first makes the topmost visible pixel layer painted under it the active one. `open`, `save` and `revert`
+go through the file dialogs the person sees: a document never names a file.
 
 ### Image values and the snapshot
 

@@ -117,6 +117,23 @@ bool startStroke(ImageDocument& image, Point at) {
 	return tool;
 }
 
+/// @brief Sets a marquee's corners from the press to a point: a square while Shift is held, from the press as the
+/// centre while Alt is (a key held since the press only chose the selection mode).
+/// @param press The press.
+/// @param mods The keys held now.
+/// @param at Where the pointer is.
+void stretchBox(Press& press, affresco::Mods mods, Point at) noexcept {
+	float dx = at.x - press.start.x, dy = at.y - press.start.y;
+	if(mods.shift() && !press.shiftHeld) {
+		const float side = std::max(std::abs(dx), std::abs(dy));
+		dx = std::copysign(side, dx);
+		dy = std::copysign(side, dy);
+	}
+	const bool centred = mods.alt() && !press.altHeld;
+	press.boxFrom = centred ? Point{press.start.x - dx, press.start.y - dy} : press.start;
+	press.boxTo = {press.start.x + dx, press.start.y + dy};
+}
+
 /// @brief Adds a point to the lasso or polygon, or closes the polygon at its first corner.
 /// @param image The image.
 /// @param at Where.
@@ -277,8 +294,8 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 /// @param document The document.
 /// @param settings The tool settings: the marquee's shape.
 /// @param mode The selection mode.
-/// @param from Where the button went down.
-/// @param at Where it went up.
+/// @param from One corner of the box.
+/// @param at The opposite corner.
 void selectShape(imaging::Document& document, const ToolSettings& settings, imaging::SelectionMode mode, Point from,
                  Point at) {
 	if(std::abs(at.x - from.x) < 1.0f && std::abs(at.y - from.y) < 1.0f) {
@@ -318,11 +335,10 @@ void closeLasso(ImageDocument& image) {
 	image.path.clear();
 }
 
-/// @brief Crops to the rectangle dragged from the press to a point.
+/// @brief Crops to the box dragged, as a marquee's: a square while Shift is held, from the centre while Alt is.
 /// @param image The image.
-/// @param at Where the button went up.
-void cropToDrag(ImageDocument& image, Point at) {
-	const Point from = image.press.start;
+void cropToDrag(ImageDocument& image) {
+	const Point from = image.press.boxFrom, at = image.press.boxTo;
 	const float left = std::min(from.x, at.x), top = std::min(from.y, at.y);
 	crop(image, static_cast<int>(std::lround(left)), static_cast<int>(std::lround(top)),
 	     static_cast<int>(std::lround(std::max(from.x, at.x) - left)),
@@ -345,7 +361,8 @@ bool releaseTool(ImageDocument& image, Point at) {
 		return true;
 	case Gesture::selectRectangle:
 	case Gesture::selectEllipse:
-		selectShape(image.canvas->document(), image.settings, image.press.mode, from, at);
+		selectShape(image.canvas->document(), image.settings, image.press.mode, image.press.boxFrom,
+		            image.press.boxTo);
 		return true;
 	case Gesture::lasso:
 		closeLasso(image);
@@ -358,7 +375,7 @@ bool releaseTool(ImageDocument& image, Point at) {
 		                static_cast<int>(std::lround(at.y - from.y)));
 		return true;
 	case Gesture::crop:
-		cropToDrag(image, at);
+		cropToDrag(image);
 		return true;
 	default:
 		return false;
@@ -467,18 +484,24 @@ bool applyPointer(ImageDocument& image, const imaging::CanvasPointer& event) {
 			         static_cast<double>(event.pointer.position.y),
 			         image.view,
 			         image.spaceHeld,
-			         gestureMode(event.pointer.mods, image.settings.mode)};
+			         gestureMode(event.pointer.mods, image.settings.mode),
+			         event.pointer.mods.shift(),
+			         event.pointer.mods.alt(),
+			         at,
+			         at};
 			image.message.clear();
 			return !press.pan && pressTool(image, at);
 		case affresco::PointerKind::move:
 			if(!press.down) return false;
 			press.last = at;
+			stretchBox(press, event.pointer.mods, at);
 			if(!press.pan) return dragTool(image, event);
 			panView(image, event);
 			return true;
 		case affresco::PointerKind::release:
 			if(!press.down) return false;
 			press.down = false;
+			stretchBox(press, event.pointer.mods, at);
 			return press.pan || releaseTool(image, at);
 		}
 	} catch(const DocumentError& error) {

@@ -224,6 +224,32 @@ TEST_CASE("format: Shift held at a press adds to the selection, Alt subtracts an
 	CHECK(editing::snapshot(image)["bounds"] == json({20, 0, 40, 32}));
 }
 
+TEST_CASE("format: Shift pressed during a marquee's or crop's drag keeps a square, and Alt draws it from the centre") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = store.image("photo", {{"width", 64}, {"height", 32}}, "images.photo");
+	const auto drag = [&](int fromX, int fromY, int toX, int toY, json modifiers) {
+		run(image, "pointer",
+		    {{"points",
+		      {{{"phase", "press"}, {"x", fromX}, {"y", fromY}},
+		       {{"phase", "move"}, {"x", toX}, {"y", toY}, {"modifiers", modifiers}},
+		       {{"phase", "release"}, {"x", toX}, {"y", toY}, {"modifiers", modifiers}}}}});
+		return editing::snapshot(image)["bounds"];
+	};
+	run(image, "setTool", {{"tool", "select-rectangle"}});
+	CHECK(drag(10, 10, 30, 20, json::array()) == json({10, 10, 20, 10}));
+	CHECK(drag(10, 10, 30, 20, {"shift"}) == json({10, 10, 20, 20}));
+	CHECK(drag(40, 16, 48, 20, {"alt"}) == json({32, 12, 16, 8}));
+	CHECK(drag(20, 16, 24, 18, {"shift", "alt"}) == json({16, 12, 8, 8}));
+	run(image, "setTool", {{"tool", "select-ellipse"}});
+	CHECK(drag(32, 16, 40, 18, {"shift", "alt"}) == json({24, 8, 16, 16}));
+
+	// A crop's drag too
+	run(image, "setTool", {{"tool", "crop"}});
+	drag(40, 16, 44, 18, {"shift", "alt"});
+	CHECK(editing::snapshot(image)["width"] == 8);
+	CHECK(editing::snapshot(image)["height"] == 8);
+}
+
 TEST_CASE("format: move with autoSelect makes the topmost layer painted under a press the active one") {
 	editing::ImageDocuments store;
 	editing::ImageDocument& image = store.image("photo", {{"width", 32}, {"height", 16}}, "images.photo");

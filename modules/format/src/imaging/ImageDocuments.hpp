@@ -126,6 +126,12 @@ struct Press {
 	bool pan = false;         ///< Whether it pans the view whatever the tool (the space bar was held).
 	/// The selection mode of what it selects: Shift held adds, Alt subtracts, both intersect, else the tool's.
 	imaging::SelectionMode mode = imaging::SelectionMode::replace;
+	bool shiftHeld = false; ///< Whether Shift was held at the press.
+	bool altHeld = false;   ///< Whether Alt was held at the press.
+	/// A marquee's or crop's corners: from the press to the pointer, a square while Shift is held (not since the
+	/// press), from the press as the centre while Alt is.
+	imaging::Point boxFrom;
+	imaging::Point boxTo; ///< @copydoc boxFrom
 };
 
 /// @brief One image being edited: its document on a canvas model, and everything the operations share. Main thread
