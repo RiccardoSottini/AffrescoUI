@@ -90,7 +90,7 @@ TEST_CASE("diff functions: diffLines can ignore whitespace and gives side-by-sid
 	CHECK(rows[1]["right"] == json{{"n", 2}, {"text", "    run();"}, {"kind", "context"}});
 	CHECK(rows[2]["left"] == nullptr);
 	CHECK(rows[2]["right"]["kind"] == "insert");
-	const json paired = evaluate("diffLines('a\\nb\\nc', 'a\\nB\\nc', { split: true }).hunks[0].rows[1]");
+	const json paired = evaluate(R"(diffLines('a\nb\nc', 'a\nB\nc', { split: true }).hunks[0].rows[1])");
 	CHECK(paired["left"] == json{{"n", 2}, {"text", "b"}, {"kind", "delete"}});
 	CHECK(paired["right"] == json{{"n", 2}, {"text", "B"}, {"kind", "insert"}});
 }

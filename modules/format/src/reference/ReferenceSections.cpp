@@ -33,7 +33,7 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"properties": {"color": {"type": "string"}, "width": {"type": "number", "minimum": 0},
 		"offset": {"type": "number", "minimum": 0}}}]}, "icon": {"type": "string",
 		"description": "The window's icon (the app's in the macOS Dock): a PNG, JPEG or SVG file, as an image's file"},
-		"keyLabels": {"enum": ["platform", "mac", "pc", "emacs"],
+		"keyLabels": {"enum": ["platform", "mac", "pc", "letters", "emacs"],
 		"description": "How keys are labelled in menus, commands and keybindings"}}})json",
 	 "`title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of "
 	 "`{ \"menu\": \"file\", \"title\": \"File\" }` naming menus of the `menus` section (macOS, Windows; elsewhere "
@@ -42,7 +42,7 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a "
 	 "PNG, JPEG or SVG file under the rules of an image's `file`; "
 	 "`keyLabels`: the notation of `keyLabel`s, `\"platform\"` (the default), `\"mac\"`, `\"pc\"` or "
-	 "`\"emacs\"` (`C-x`, `M-<`).",
+	 "`\"letters\"` (`C-x`, `M-<`; `\"emacs\"` is its older name).",
 	 "sections"},
     {"fonts", R"json({"type": "object",
 		"description": "Fonts by name; \"default\" is used by text without a \"font\"",
@@ -362,7 +362,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"set", "", R"(`{ "set": "state.current", "to": "{{index}}" }`)", "steps"},
     {"push", "", R"(`{ "push": "state.columns[c].cards", "value": "{{state.draft}}" }`)", "steps"},
     {"remove", "", R"(`{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key of an object)", "steps"},
-    {"toggle", "", R"(`{ "toggle": "state.dark" }`)", "steps"},
+    {"toggle", "", R"(`{ "toggle": "state.dark" }`; a setting not set yet flips from its default)", "steps"},
     {"increment", "", R"(`{ "increment": "state.clicks", "by": 1 }`)", "steps"},
     {"if", "", R"(`{ "if": "{{length(state.draft) == 0}}", "then": [...], "else": [...] }`)", "steps"},
     {"forEach", "", R"(`{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }`)", "steps"},

@@ -1,6 +1,6 @@
 /// @file
 /// @brief OffscreenImages::evidence(): what a proposal does, drawn and played by the host itself, so an author can't
-/// supply or forge any of it (VERSION_CONTROL.md, "Evidence").
+/// supply or fake any of it (VERSION_CONTROL.md, "Evidence").
 
 #include "pictures/OffscreenImages.hpp"
 #include "pictures/ProposalEvidence.hpp"

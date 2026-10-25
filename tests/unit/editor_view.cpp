@@ -297,8 +297,14 @@ TEST_CASE("editor view: find's matches are outlined when asked, from the node's 
 	CHECK(editor->matchOutline());
 	CHECK(editor->minimapText());
 	CHECK(editor->minimapViewportOnHover());
+	CHECK(editor->minimapPreferredWidth() == TextEditor::minimapSize);
 
 	std::string error;
+	REQUIRE(screen.applyRevision(R"({"set": {"#code/minimapWidth": 40}})", &error));
+	CHECK(editor->minimapPreferredWidth() == 40.0f);
+	REQUIRE(screen.applyRevision(R"({"set": {"#code/minimapWidth": 9999}})", &error));
+	CHECK(editor->minimapPreferredWidth() == TextEditor::minimapWidths.second); // clamped
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#code/minimapWidth": "wide"}})", &error));
 	CHECK_FALSE(screen.applyRevision(R"({"set": {"#code/matchStyle": "box"}})", &error));
 	CHECK(error.find("matchStyle") != std::string::npos);
 	CHECK_FALSE(screen.applyRevision(R"({"set": {"#code/minimapStyle": "dots"}})", &error));

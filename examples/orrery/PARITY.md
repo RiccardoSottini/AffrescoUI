@@ -35,7 +35,7 @@ system of six bodies on circular orbits in one plane.
 | S1 | A sky chart with stars, orbits and bodies | done | from the ground (the default): 1,200 stars in three tints, the planets and the Sun seen from the Earth at 45°N, in a perspective view turned by dragging and zoomed with the wheel, every position a computed value from right ascension, declination and the sidereal time; from above: a `canvas` with the orbits |
 | S2 | Horizon, ground and cardinal points | done | a landscape of low hills (a `path` from the horizon's profile), N, E, S and W on it, an azimuthal grid labelled in degrees; the sky brightens through a twilight and the stars fade while the Sun is up (time starts at 17,280x, a day in five seconds), and darkens again while the Moon covers it; the place, field of view and date bottom right |
 | S3 | Constellation lines and names | done | fourteen invented constellations of the brighter stars, their lines in a `path`, their names at their centres |
-| S4 | Toggle bar at the bottom (lines, ground, atmosphere, grid) | done | the built-in `toolbar`, bottom left: centre on the selected body (and keep it there), lines, names, grid, ground, cardinal points, atmosphere, planet labels; the place and field of view bottom right |
+| S4 | Toggle bar at the bottom (lines, ground, atmosphere, grid) | done | the built-in `toolbar`, bottom right: centre on the selected body (and keep it there), lines, names, grid, ground, cardinal points, atmosphere, planet labels; the place and field of view bottom right |
 | S5 | Object info on selection, top left | done | the selected body ringed; its name, and its azimuth and altitude, right ascension and declination from the ground, or its distance from the Sun and orbit from above |
 | S6 | Time controls: faster, slower, now, real time | done | play, next or previous event (by direction), day 0, the time keys, real time (Shift+K, the toolbar, the Time menu: 10x faster and slower, freeze, real time, reverse, back to day 0, eclipses); the invented calendar has no "now" of its own |
 | S7 | Annotations on the chart (notes, marks) | done | the canvas's items |
@@ -48,7 +48,7 @@ system of six bodies on circular orbits in one plane.
 | A2 | Events timeline: eclipses, conjunctions, oppositions | done | `timeline`, a track per kind; muting a track skips that kind in next and previous event |
 | A3 | Bodies strip (Sinopia's slide sorter, installed from that app) | done | feature, adapter |
 | A4 | Thumbnails drawn by the screen | done | `snapshot` |
-| A5 | Themes, locales (right to left), accessibility | part | dark and light themes (View menu), the views of space dark in both; one locale |
+| A5 | Themes, locales (right to left), accessibility | part | dark and light themes (View menu), the views of space dark in both; one locale; under right to left the panes mirror and the 3D view keeps its labels on the bodies; the browser's tabs have no accessible nodes of their own |
 
 ## Rounds
 
@@ -71,3 +71,4 @@ system of six bodies on circular orbits in one plane.
 | 14 | Fixes from the round 11 critique still open: grid labels, the eclipse finder's start, length and kind per row, larger names from above, moon labels clear of their planet | 28 / 1 / 0 | 30,342 + 7,146 for `sky.json` |
 | 15 | Fixes from the round 14 critique: F after G keeps following, the grid's altitude labels, the Time menu in the native menu bar, a default rate that shows day and night, seconds on the clock, a real-time icon, a twilight and a brighter ground by day, the selection ringed in the sky | 28 / 1 / 0 | 30,455 + 7,213 for `sky.json` |
 | 16 | The assistant add-on (one include line, in Orrery's colours) | 28 / 1 / 0 | 30,588 + 7,213 for `sky.json` |
+| 17 | A look of its own (teal on slate green, the HUD as cards, sand and teal orbits, new sky colours); every control audited: the timeline's L locks a kind of event, Enter adds a note, the 3D view keeps left to right; `controls.scenarios.json` | 28 / 1 / 0 | 31,205 + 7,210 for `sky.json` |

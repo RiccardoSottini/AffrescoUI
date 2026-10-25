@@ -1,6 +1,6 @@
 {
 	"$schema": "../../schema/affrescoui-screen.schema.json",
-	"note": "Arcadia's records: the games (owned or only in the store), the friends, the library's news and the activity. Their first records are in seed/, all invented. Times are milliseconds, measured from state.today; `ago` is in days.",
+	"note": "Arcadia's records: the games (owned or only in the store), the friends, the library's news, the activity and the chat messages. Their first records are in seed/, all invented. Times are milliseconds, measured from state.today; `ago` is in days.",
 	"models": {
 		"games": {
 			"fields": {
@@ -98,6 +98,23 @@
 				},
 				"logo": {
 					"type": "string"
+				},
+				"launchOptions": {
+					"type": "string",
+					"maxLength": 200
+				},
+				"overlay": {
+					"type": "boolean",
+					"default": true
+				},
+				"cloud": {
+					"type": "boolean",
+					"default": true
+				},
+				"updates": {
+					"type": "enum",
+					"values": ["auto", "launch", "high"],
+					"default": "auto"
 				}
 			}
 		},
@@ -182,6 +199,33 @@
 					"type": "integer",
 					"minimum": 1,
 					"maximum": 3
+				}
+			}
+		},
+		"messages": {
+			"fields": {
+				"friend": {
+					"type": "reference",
+					"to": "friends",
+					"onDelete": "nullify"
+				},
+				"mine": {
+					"type": "boolean",
+					"default": false,
+					"description": "Sent by the person, else by the friend."
+				},
+				"at": {
+					"type": "dateTime"
+				},
+				"text": {
+					"type": "string",
+					"maxLength": 2000
+				},
+				"game": {
+					"type": "reference",
+					"to": "games",
+					"onDelete": "nullify",
+					"description": "An invitation to play this game, instead of a text."
 				}
 			}
 		}

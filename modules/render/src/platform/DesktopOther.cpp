@@ -13,6 +13,8 @@ bool reducedMotion() { return false; }
 
 void watchColorScheme() {}
 
+void keepOutOfSwitcher() {} // a hidden window has no taskbar entry
+
 void setApplicationIcon(const Bitmap* /*icon*/) {} // each window has its own (glfwSetWindowIcon), or none (Wayland)
 
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* /*window*/, MenuChosen /*chosen*/) { return nullptr; }

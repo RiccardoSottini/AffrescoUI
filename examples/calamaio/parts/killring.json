@@ -1,0 +1,182 @@
+{
+	"note": "Calamaio's kill ring: C-k, M-d, C-w and M-w keep what they take in state.kills, the newest first (and on the clipboard); C-y yanks the newest, and M-y right after a yank swaps it for an older one. Kills at the same place one after another join into one.",
+	"actions": {
+		"kill-line": {
+			"title": "Kill Line",
+			"category": "Killing",
+			"description": "Kills the rest of the line, or its line break when point is at the end; with an argument, that many times.",
+			"do": { "run": "kill", "with": { "span": "lineEnd", "times": "{{computed.n}}" } }
+		},
+		"kill-word": {
+			"title": "Kill Word",
+			"category": "Killing",
+			"description": "Kills to the end of the word after point.",
+			"do": { "run": "kill", "with": { "span": "word", "times": "{{computed.n}}" } }
+		},
+		"backward-kill-word": {
+			"title": "Kill Word Backward",
+			"category": "Killing",
+			"description": "Kills back to the start of the word before point.",
+			"do": [
+				{ "if": "{{!computed.text}}", "then": [{ "stop": true }] },
+				{ "if": "{{computed.buf.readOnly}}", "then": [{ "run": "read-only" }, { "stop": true }] },
+				{ "run": "deactivate-mark" },
+				{ "press": "shift+alt+left", "in": "{{computed.ed}}" },
+				{ "run": "kill-selection", "with": { "keep": false } }
+			]
+		},
+		"kill-whole-line": {
+			"title": "Kill Whole Line",
+			"category": "Killing",
+			"description": "Kills the line point is on, with its line break.",
+			"do": { "run": "kill", "with": { "span": "line", "times": "{{computed.n}}" } }
+		},
+		"kill-region": {
+			"title": "Cut",
+			"category": "Killing",
+			"description": "Kills the region, the text between point and the mark, into the kill ring.",
+			"do": { "run": "kill-selection", "with": { "keep": false } }
+		},
+		"kill-ring-save": {
+			"title": "Copy",
+			"category": "Killing",
+			"description": "Copies the region into the kill ring, leaving the text where it is.",
+			"do": { "run": "kill-selection", "with": { "keep": true } }
+		},
+		"yank": {
+			"title": "Paste",
+			"category": "Killing",
+			"description": "Inserts the last killed text at point, and sets the mark at its start.",
+			"do": [
+				{ "if": "{{!computed.text}}", "then": [{ "stop": true }] },
+				{ "if": "{{computed.buf.readOnly}}", "then": [{ "run": "read-only" }, { "stop": true }] },
+				{
+					"if": "{{length(state.kills) == 0}}",
+					"then": [{ "run": "message", "with": { "m": "The kill ring is empty" } }, { "stop": true }]
+				},
+				{ "run": "deactivate-mark" },
+				{ "set": "state.arg", "to": null },
+				{
+					"run": "yank-at",
+					"with": {
+						"i": 0,
+						"at": "{{ {line: state.win[state.sel].caret.line, column: state.win[state.sel].caret.column} }}"
+					}
+				}
+			]
+		},
+		"yank-pop": {
+			"title": "Paste Older",
+			"category": "Killing",
+			"description": "Right after a yank, replaces the yanked text with the kill before it in the ring.",
+			"do": [
+				{
+					"if": "{{state.yank == null || state.yank.buf != computed.cur || state.yank.end.line != state.win[state.sel].caret.line || state.yank.end.column != state.win[state.sel].caret.column}}",
+					"then": [
+						{ "run": "message", "with": { "m": "The command before this one was not a yank" } },
+						{ "stop": true }
+					]
+				},
+				{
+					"edit": "select",
+					"in": "{{computed.ed}}",
+					"line": "{{state.yank.start.line}}",
+					"column": "{{state.yank.start.column}}",
+					"toLine": "{{state.yank.end.line}}",
+					"toColumn": "{{state.yank.end.column}}"
+				},
+				{
+					"after": 0,
+					"do": [
+						{
+							"run": "yank-at",
+							"with": {
+								"i": "{{(state.yank.i + 1) % length(state.kills)}}",
+								"at": "{{state.yank.start}}"
+							}
+						}
+					]
+				}
+			]
+		},
+		"kill": [
+			{ "set": "state.arg", "to": null },
+			{ "if": "{{!computed.text}}", "then": [{ "stop": true }] },
+			{ "if": "{{computed.buf.readOnly}}", "then": [{ "run": "read-only" }, { "stop": true }] },
+			{ "run": "deactivate-mark" },
+			{ "set": "state.killTmp", "to": "" },
+			{
+				"forEach": "{{range(times)}}",
+				"as": "i",
+				"do": [
+					{
+						"edit": "cut",
+						"span": "{{span}}",
+						"in": "{{computed.ed}}",
+						"into": "state.killTmp",
+						"append": true
+					}
+				]
+			},
+			{
+				"if": "{{state.killTmp == ''}}",
+				"then": [{ "run": "message", "with": { "m": "End of buffer" } }, { "stop": true }]
+			},
+			{
+				"run": "kill-push",
+				"with": {
+					"t": "{{state.killTmp}}",
+					"join": "{{span != 'line' && state.killAt != null && state.killAt.buf == computed.cur && state.killAt.line == state.win[state.sel].caret.line && state.killAt.column == state.win[state.sel].caret.column}}"
+				}
+			},
+			{
+				"set": "state.killAt",
+				"to": "{{ {buf: computed.cur, line: state.win[state.sel].caret.line, column: state.win[state.sel].caret.column} }}"
+			}
+		],
+		"kill-selection": [
+			{ "if": "{{!computed.text}}", "then": [{ "stop": true }] },
+			{
+				"if": "{{(state.win[state.sel].caret.selected ?? 0) == 0}}",
+				"then": [
+					{ "run": "message", "with": { "m": "The region is empty: C-SPC sets the mark" } },
+					{ "stop": true }
+				]
+			},
+			{ "if": "{{!keep && computed.buf.readOnly}}", "then": [{ "run": "read-only" }, { "stop": true }] },
+			{ "set": "state.killTmp", "to": "" },
+			{
+				"edit": "cut",
+				"span": "selection",
+				"in": "{{computed.ed}}",
+				"into": "state.killTmp",
+				"keep": "{{keep}}"
+			},
+			{ "run": "kill-push", "with": { "t": "{{state.killTmp}}", "join": false } },
+			{ "set": "state.killAt", "to": null },
+			{
+				"if": "{{keep}}",
+				"then": [{ "run": "deactivate-mark" }, { "run": "message", "with": { "m": "Copied the region" } }],
+				"else": [{ "set": "state.mark.on", "to": false }]
+			}
+		],
+		"kill-push": [
+			{
+				"if": "{{join && length(state.kills) > 0}}",
+				"then": [{ "set": "state.kills", "to": "{{concat([state.kills[0] + t], slice(state.kills, 1))}}" }],
+				"else": [
+					{ "set": "state.kills", "to": "{{slice(concat([t], state.kills), 0, settings['kill-ring-max'])}}" }
+				]
+			},
+			{ "copy": "{{state.kills[0]}}" }
+		],
+		"yank-at": [
+			{ "set": "state.mark", "to": "{{ {on: false, line: at.line, column: at.column} }}" },
+			{ "edit": "type", "text": "{{state.kills[i]}}", "in": "{{computed.ed}}" },
+			{
+				"set": "state.yank",
+				"to": "{{ {buf: computed.cur, i: i, start: at, end: {line: at.line + length(split(state.kills[i], '\\n')) - 1, column: contains(state.kills[i], '\\n') ? length(split(state.kills[i], '\\n')[length(split(state.kills[i], '\\n')) - 1]) + 1 : at.column + length(state.kills[i])} } }}"
+			}
+		]
+	}
+}

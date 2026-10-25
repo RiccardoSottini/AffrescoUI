@@ -40,13 +40,13 @@
 				{ "click": "#label-next" },
 				{ "expect": { "state": "playingTrack", "is": 3 } },
 				{ "expect": { "state": "elapsed", "is": 0 } },
-				{ "expect": { "node": "#nowPlaying", "text": "Glyph Atlas" } },
+				{ "expect": { "node": "#nowPlaying", "text": "Glyph Atlas  ·  Kerning Club" } },
 				{ "key": "right" },
-				{ "expect": { "node": "#nowPlaying", "text": "Sixteen Bytes" } },
+				{ "expect": { "node": "#nowPlaying", "text": "Sixteen Bytes  ·  Nora Vale" } },
 				{ "click": "#label-previous" },
 				{ "key": "left" },
 				{ "expect": { "state": "playingTrack", "is": 2 } },
-				{ "expect": { "node": "#nowPlaying", "text": "One Draw Call" } }
+				{ "expect": { "node": "#nowPlaying", "text": "One Draw Call  ·  The Shaders" } }
 			]
 		},
 		{
@@ -70,7 +70,7 @@
 				{ "wait": 1000 },
 				{ "expect": { "state": "playingTrack", "is": 3 } },
 				{ "expect": { "state": "elapsed", "is": 0 } },
-				{ "expect": { "node": "#nowPlaying", "text": "Glyph Atlas" } }
+				{ "expect": { "node": "#nowPlaying", "text": "Glyph Atlas  ·  Kerning Club" } }
 			]
 		},
 		{
@@ -84,7 +84,7 @@
 				{ "expect": { "node": "#track", "nth": 4, "exists": false } },
 				{ "click": "#track", "nth": 3 },
 				{ "expect": { "state": "playingList", "is": 1 } },
-				{ "expect": { "node": "#nowPlaying", "text": "Finish Line" } },
+				{ "expect": { "node": "#nowPlaying", "text": "Finish Line  ·  Mira Sol" } },
 				{ "click": "#label-next" },
 				{ "expect": { "state": "isPlaying", "is": false } },
 				{ "expect": { "state": "playingTrack", "is": 3 } }
@@ -117,10 +117,10 @@
 				{ "key": "enter" },
 				{ "expect": { "state": "playingList", "is": -1 } },
 				{ "expect": { "state": "playingTrack", "is": 2 } },
-				{ "expect": { "node": "#nowPlaying", "text": "Electric Rivers" } },
+				{ "expect": { "node": "#nowPlaying", "text": "Electric Rivers  ·  Kerning Club" } },
 				{ "expect": { "node": "#queueFrom", "text": "from All songs" } },
 				{ "key": "right" },
-				{ "expect": { "node": "#nowPlaying", "text": "Paper Rivers" } }
+				{ "expect": { "node": "#nowPlaying", "text": "Paper Rivers  ·  Pixel Choir" } }
 			]
 		},
 		{
@@ -134,7 +134,7 @@
 				{ "expect": { "state": "quickPick.open", "is": false } },
 				{ "expect": { "state": "page", "is": "library" } },
 				{ "expect": { "state": "playingList", "is": -1 } },
-				{ "expect": { "node": "#nowPlaying", "text": "Golden Comets (Live)" } }
+				{ "expect": { "node": "#nowPlaying", "text": "Golden Comets (Live)  ·  Halfway" } }
 			]
 		},
 		{
@@ -224,13 +224,13 @@
 			"note": "Alt+Down moves the picked song in Up next one place later, and the change is announced",
 			"steps": [
 				{ "click": [1100, 344], "note": "the first song up next" },
-				{ "expect": { "state": "queuePick", "is": "3" } },
+				{ "expect": { "state": "queuePick", "is": "0:3" } },
 				{ "key": "alt+down" },
-				{ "expect": { "state": "queue[0]", "is": 4 } },
-				{ "expect": { "state": "queue[1]", "is": 3 } },
+				{ "expect": { "state": "queue[0]", "is": "0:4" } },
+				{ "expect": { "state": "queue[1]", "is": "0:3" } },
 				{ "expect": { "node": "#queueNote", "text": "Glyph Atlas moved to place 2" } },
 				{ "key": "alt+up" },
-				{ "expect": { "state": "queue[0]", "is": 3 } }
+				{ "expect": { "state": "queue[0]", "is": "0:3" } }
 			]
 		},
 		{
@@ -238,8 +238,8 @@
 			"note": "Dragging the first song up next below the third puts it in third place",
 			"steps": [
 				{ "drag": [1100, 344], "to": [1100, 425], "moves": 8 },
-				{ "expect": { "state": "queue[0]", "is": 4 } },
-				{ "expect": { "state": "queue[2]", "is": 3 } }
+				{ "expect": { "state": "queue[0]", "is": "0:4" } },
+				{ "expect": { "state": "queue[2]", "is": "0:3" } }
 			]
 		},
 		{
@@ -376,7 +376,7 @@
 				{ "expect": { "state": "queue.length", "is": 6 } },
 				{ "expect": { "node": "#shuffleButton", "property": "tooltip", "is": "Shuffle (Cmd+S)" } },
 				{ "key": "mod+s" },
-				{ "expect": { "state": "queue", "is": [3, 4, 5, 6, 7, 8] } },
+				{ "expect": { "state": "queue", "is": ["0:3", "0:4", "0:5", "0:6", "0:7", "0:8"] } },
 				{ "key": "mod+r" },
 				{ "expect": { "state": "repeat", "is": "all" } },
 				{ "key": "mod+r" },
@@ -401,7 +401,7 @@
 				{ "revision": { "type": "revision", "message": "The last song ending, repeating all", "set": { "/state/elapsed": 197, "/state/repeat": "all", "/state/queue": [] } } },
 				{ "wait": 1000 },
 				{ "expect": { "state": "playingTrack", "is": 2 } },
-				{ "expect": { "state": "queue", "is": [3, 4, 5, 6, 7, 8] } },
+				{ "expect": { "state": "queue", "is": ["0:3", "0:4", "0:5", "0:6", "0:7", "0:8"] } },
 				{ "expect": { "state": "isPlaying", "is": true } },
 				{ "revision": { "type": "revision", "message": "The last song ending", "set": { "/state/elapsed": 197, "/state/repeat": "off", "/state/queue": [] } } },
 				{ "wait": 1000 },
@@ -460,15 +460,15 @@
 		},
 		{
 			"name": "a-song-menu",
-			"note": "A song's menu: play next and add to the queue for a song of the mix playing, like for any; Shift+F10 opens it on the library's selected row",
+			"note": "A song's menu: play next and add to the queue for any song, like; Shift+F10 opens it on the library's selected row, and a library song joins the queue of a mix",
 			"steps": [
 				{ "revision": { "type": "revision", "message": "The menu of the eighth song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 400, "list": 0, "track": 7 } } } },
 				{ "click": { "role": "menuitem", "name": "Play next" } },
-				{ "expect": { "state": "queue", "is": [7, 3, 4, 5, 6, 8] } },
+				{ "expect": { "state": "queue", "is": ["0:7", "0:3", "0:4", "0:5", "0:6", "0:8"] } },
 				{ "expect": { "state": "songMenu.open", "is": false } },
 				{ "revision": { "type": "revision", "message": "The menu of the fifth song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 400, "list": 0, "track": 4 } } } },
 				{ "click": { "role": "menuitem", "name": "Add to the queue" } },
-				{ "expect": { "state": "queue", "is": [7, 3, 5, 6, 8, 4] } },
+				{ "expect": { "state": "queue", "is": ["0:7", "0:3", "0:5", "0:6", "0:8", "0:4"] } },
 				{ "key": "mod+l" },
 				{ "click": "#libraryTable" },
 				{ "key": "shift+f10" },
@@ -476,8 +476,88 @@
 				{ "expect": { "state": "songMenu.list", "is": -1 } },
 				{ "click": { "role": "menuitem", "name": "Like" } },
 				{ "expect": { "state": "liked.length", "is": 1 } },
+				{ "revision": { "type": "revision", "message": "The menu of a library song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 300, "list": -1, "track": 5 } } } },
+				{ "click": { "role": "menuitem", "name": "Play next" } },
+				{ "expect": { "state": "queue[0]", "is": "-1:5" } },
+				{ "expect": { "state": "queue.length", "is": 7 } },
 				{ "key": "mod+4" },
 				{ "expect": { "node": "#likedCount", "text": "1 song" } }
+			]
+		},
+		{
+			"name": "playlists-are-made-renamed-and-deleted",
+			"note": "The + by the mixes makes a playlist and opens it with its name ready to type; Enter keeps the name, Escape leaves it; the header's menu deletes it after asking",
+			"steps": [
+				{ "expect": { "data": "playlists.length", "is": 4 } },
+				{ "click": "#newPlaylist" },
+				{ "expect": { "data": "playlists.length", "is": 5 } },
+				{ "expect": { "state": "current", "is": 4 } },
+				{ "expect": { "state": "renaming", "is": true } },
+				{ "expect": { "node": "#playlistEmpty", "exists": true } },
+				{ "type": "Road Trip" },
+				{ "key": "enter" },
+				{ "expect": { "state": "renaming", "is": false } },
+				{ "expect": { "data": "playlists[4].name", "is": "Road Trip" } },
+				{ "expect": { "node": "#listName", "text": "Road Trip" } },
+				{ "click": "#listName" },
+				{ "click": "#listName" },
+				{ "expect": { "state": "renaming", "is": true } },
+				{ "type": " Again" },
+				{ "key": "escape" },
+				{ "expect": { "state": "renaming", "is": false } },
+				{ "expect": { "data": "playlists[4].name", "is": "Road Trip" } },
+				{ "click": "#listMore" },
+				{ "click": { "role": "menuitem", "name": "Delete" } },
+				{ "expect": { "state": "deleting", "is": true } },
+				{ "click": { "role": "button", "name": "Cancel" } },
+				{ "expect": { "data": "playlists.length", "is": 5 } },
+				{ "click": "#listMore" },
+				{ "click": { "role": "menuitem", "name": "Delete" } },
+				{ "click": { "role": "button", "name": "Delete" } },
+				{ "expect": { "data": "playlists.length", "is": 4 } },
+				{ "expect": { "state": "current", "is": 3 } },
+				{ "expect": { "state": "backStack.length", "is": 0 } }
+			]
+		},
+		{
+			"name": "songs-join-and-leave-playlists",
+			"note": "Add to playlist puts a song at the end of another playlist (or a new one); Remove from this playlist takes it out, and the liked songs and the queue follow the places that moved",
+			"steps": [
+				{ "click": "#likeButton" },
+				{ "expect": { "state": "liked", "is": ["0:2"] } },
+				{ "revision": { "type": "revision", "message": "The menu of the first song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 300, "list": 0, "track": 0 } } } },
+				{ "click": { "role": "menuitem", "name": "Add to playlist" } },
+				{ "click": { "role": "menuitem", "name": "Focus" } },
+				{ "expect": { "data": "playlists[3].tracks.length", "is": 3 } },
+				{ "expect": { "data": "playlists[3].tracks[2].title", "is": "Vertex Buffers" } },
+				{ "revision": { "type": "revision", "message": "The menu of the first song again", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 300, "list": 0, "track": 0 } } } },
+				{ "click": { "role": "menuitem", "name": "Remove from this playlist" } },
+				{ "expect": { "data": "playlists[0].tracks.length", "is": 8 } },
+				{ "expect": { "state": "playingTrack", "is": 1 } },
+				{ "expect": { "state": "liked", "is": ["0:1"] } },
+				{ "expect": { "state": "queue", "is": ["0:2", "0:3", "0:4", "0:5", "0:6", "0:7"] } },
+				{ "revision": { "type": "revision", "message": "The menu of a library song", "set": { "/state/songMenu": { "open": true, "x": 400, "y": 300, "list": -1, "track": 5 } } } },
+				{ "click": { "role": "menuitem", "name": "Add to playlist" } },
+				{ "click": { "role": "menuitem", "name": "New playlist" } },
+				{ "expect": { "data": "playlists.length", "is": 5 } },
+				{ "expect": { "data": "playlists[4].tracks.length", "is": 1 } },
+				{ "expect": { "node": "#playlistEmpty", "exists": false } }
+			]
+		},
+		{
+			"name": "previous-restarts-then-goes-back",
+			"note": "Past the first seconds, previous starts the song again; at its start it plays the song before, and the one it left comes next",
+			"steps": [
+				{ "click": "#label-previous" },
+				{ "expect": { "state": "playingTrack", "is": 2 } },
+				{ "expect": { "state": "elapsed", "is": 0 } },
+				{ "click": "#label-next" },
+				{ "click": "#label-previous" },
+				{ "expect": { "state": "playingTrack", "is": 2 } },
+				{ "expect": { "state": "queue[0]", "is": "0:3" } },
+				{ "click": "#playingCover" },
+				{ "expect": { "state": "page", "is": "playlist" } },
+				{ "expect": { "state": "current", "is": 0 } }
 			]
 		},
 		{

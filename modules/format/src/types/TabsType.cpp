@@ -20,6 +20,7 @@ namespace affresco::format {
 namespace {
 
 constexpr std::size_t maxTabs = 10'000; ///< The most tabs a strip reads (untrusted input).
+constexpr float maxTabShape = 64.0f;       ///< The largest tab radius, gap or inset read, in pixels.
 
 /// @brief Reads one tab: a string (its id and label) or {id, label, marker, closable}.
 /// @param value The tab.
@@ -40,7 +41,7 @@ Tab readTab(const json& value, const std::string& path) {
 /// @brief Sets a strip's tabs, font and colours: those the node gives, the defaults for the others.
 /// @param panel The panel, a Tabs.
 /// @param values Its tabs, font, textColor, activeTextColor, activeBackground, accentColor, accentEdge, markerColor and
-/// keepMarker, if given.
+/// keepMarker, tabRadius, tabGap and tabInset, if given.
 /// @param reader Reads colours and fonts.
 /// @param path The node's place, for errors.
 void applyTabs(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
@@ -69,6 +70,10 @@ void applyTabs(Panel& panel, const json& values, const PropertyReader& reader, c
 	                         ? std::optional<Color>(reader.color(values["markerColor"], path + ".markerColor"))
 							 : std::nullopt);
 	tabs->setKeepMarker(values.contains("keepMarker") && boolean(values["keepMarker"], path + ".keepMarker"));
+	const auto pixels = [&](const char* key) {
+		return values.contains(key) ? std::clamp(number(values[key], path + "." + key), 0.0f, maxTabShape) : 0.0f;
+	};
+	tabs->setTabShape(pixels("tabRadius"), pixels("tabGap"), pixels("tabInset"));
 }
 
 /// @brief Shows the active tab: the bound value, else "value".
@@ -170,7 +175,10 @@ void registerTabsType(TypeRegistry& registry) {
 	                   {"accentColor", ValueKind::Color},
 	                   {"accentEdge", ValueKind::Text},
 	                   {"markerColor", ValueKind::Color},
-	                   {"keepMarker", ValueKind::Boolean}};
+	                   {"keepMarker", ValueKind::Boolean},
+	                   {"tabRadius", ValueKind::Number},
+	                   {"tabGap", ValueKind::Number},
+	                   {"tabInset", ValueKind::Number}};
 	set->apply = applyTabs;
 	set->everyUpdate = true; // colours follow the theme
 	set->keepsClicks = true;
