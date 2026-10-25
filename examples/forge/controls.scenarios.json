@@ -86,6 +86,32 @@
 				{ "wait": 50 },
 				{ "expect": { "state": "quickPick.open", "is": false } }
 			]
+		},
+		{
+			"name": "forge-controls-explorer-title",
+			"note": "The explorer's title row: Collapse Folders, disabled while no folder is expanded, collapses them; New File and New Folder ask for a name; Refresh lists the folder again",
+			"steps": [
+				{ "wait": 100 },
+				{ "expect": { "node": "#explorer-collapse", "property": "tooltip", "is": "Collapse Folders in Explorer" } },
+				{ "click": "#explorer-collapse" },
+				{ "expect": { "state": "explorer.expanded", "is": [] } },
+				{ "action": "explorerExpand", "event": { "id": "src", "expanded": true } },
+				{ "wait": 50 },
+				{ "expect": { "state": "explorer.expanded", "is": ["src"] } },
+				{ "click": "#explorer-collapse" },
+				{ "expect": { "state": "explorer.expanded", "is": [] } },
+				{ "click": "#explorer-new-file" },
+				{ "expect": { "state": "explorerEdit.naming", "is": true } },
+				{ "expect": { "state": "explorerEdit.mode", "is": "newFile" } },
+				{ "key": "escape" },
+				{ "click": "#explorer-new-folder" },
+				{ "expect": { "state": "explorerEdit.mode", "is": "newFolder" } },
+				{ "key": "escape" },
+				{ "revision": { "message": "Forget what was listed", "set": { "/state/explorerTree/entries": [] } } },
+				{ "click": "#explorer-refresh" },
+				{ "wait": 50 },
+				{ "expect": { "state": "explorerTree.entries.length", "is": 4 } }
+			]
 		}
 	]
 }

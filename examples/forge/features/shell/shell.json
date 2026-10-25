@@ -246,7 +246,7 @@
 					{ "when": "{{state.sideView == 'agent'}}", "use": "forgeAgentView" },
 					{ "when": "{{state.sideView == 'features'}}", "use": "forgeFeaturesView" },
 					{ "when": "{{state.sideView == 'search'}}", "use": "forgeSearchPage" },
-					{ "when": "{{state.sideView == 'explorer'}}", "use": "forgeViewTitle", "with": { "text": "Files" }, "id": "side-bar-title" },
+					{ "when": "{{state.sideView == 'explorer'}}", "use": "forgeExplorerTitle" },
 					{ "type": "label", "id": "side-bar-folder", "when": "{{state.sideView == 'explorer' && !empty(state.folder.root)}}", "icon": "chevron-down",
 					  "text": "{{upper(computed.folderName)}}", "textColor": "@color.text", "width": "100%", "height": 22,
 					  "padding": 6 },
