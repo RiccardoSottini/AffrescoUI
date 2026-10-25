@@ -33,7 +33,7 @@
 	"components": {
 		"hButton": {
 			"params": { "icon": "", "text": "", "width": 24, "on": false, "chevron": false, "tooltip": "", "run": null,
-			            "with": null, "open": "", "items": [], "menuWidth": 200, "back": "@menuWidget", "radius": 4,
+			            "with": null, "open": "", "items": [], "menuWidth": 200, "placement": "below", "back": "@menuWidget", "radius": 4,
 			            "textColor": "@text", "disabled": false },
 			"node": {
 				"width": "{{width}}", "height": 20, "radius": "{{radius}}", "color": "{{on ? '@sel' : back}}",
@@ -53,7 +53,7 @@
 					{ "when": "{{chevron}}", "type": "label", "font": "iconsSmall", "icon": "chevron-down", "text": "",
 					  "textColor": "@dim", "align": "center", "anchors": { "right": 2, "top": 0, "bottom": 0 }, "width": 12 },
 					{ "when": "{{open != ''}}", "use": "menu", "with": { "open": "{{open}}", "items": "{{items}}",
-					  "width": "{{menuWidth}}", "icons": "{{some(items, it.icon != null)}}" } }
+					  "width": "{{menuWidth}}", "placement": "{{placement}}", "icons": "{{some(items, it.icon != null)}}" } }
 				]
 			}
 		},

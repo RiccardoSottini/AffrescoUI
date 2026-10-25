@@ -50,7 +50,8 @@
 				  "to": "{{merge(state.tmp, { translation: map(m.translation, state.tmp.lock_translation[index] == true ? state.tmp.translation[index] : round(it * 10000) / 10000), rotationDegrees: map(m.rotationDegrees, state.tmp.lock_rotationDegrees[index] == true ? state.tmp.rotationDegrees[index] : round(it * 1000) / 1000), scale: map(m.scale, state.tmp.lock_scale[index] == true ? state.tmp.scale[index] : round(it * 10000) / 10000) })}}" }
 			] },
 			{ "set": "state.last", "to": "{{event.text}}" },
-			{ "set": "state.lastOp", "to": "{{ { title: event.mode == 'translate' ? 'Move' : event.mode == 'rotate' ? 'Rotate' : 'Resize', kind: event.mode, base: state.lastBase, values: event.mode == 'translate' ? map(event.nodes[0].translation, round((it - state.lastBase[0].translation[index]) * 10000) / 10000) : event.mode == 'scale' ? map(event.nodes[0].scale, state.lastBase[0].scale[index] == 0 ? 1 : round(it / state.lastBase[0].scale[index] * 10000) / 10000) : null } }}" }
+			{ "set": "state.lastOp", "to": "{{ { title: event.mode == 'translate' ? 'Move' : event.mode == 'rotate' ? 'Rotate' : 'Resize', kind: event.mode, base: state.lastBase, values: event.mode == 'translate' ? map(event.nodes[0].translation, round((it - state.lastBase[0].translation[index]) * 10000) / 10000) : event.mode == 'scale' ? map(event.nodes[0].scale, state.lastBase[0].scale[index] == 0 ? 1 : round(it / state.lastBase[0].scale[index] * 10000) / 10000) : null } }}" },
+			{ "run": "autoKey" }
 		],
 		"search": { "title": "Search…", "category": "Edit", "icon": "search", "do": [{ "dismiss": true }, { "set": "state.quickPick", "to": { "open": true, "query": "" } }] },
 		"adjustLastPanel": { "title": "Adjust Last Operation", "category": "Edit", "do": [{ "set": "state.redoOpen", "to": true }] },
@@ -60,7 +61,8 @@
 			{ "forEach": "{{state.lastOp.base}}", "as": "b", "do": [
 				{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), b.id)]",
 				  "to": "{{merge(b, state.lastOp.kind == 'scale' ? { translation: map(b.translation, b.lock_translation[index] == true ? it : computed.lastCentre[index] + (it - computed.lastCentre[index]) * state.lastOp.values[index]), scale: map(b.scale, b.lock_scale[index] == true ? it : round(it * state.lastOp.values[index] * 10000) / 10000) } : { translation: map(b.translation, b.lock_translation[index] == true ? it : round((it + state.lastOp.values[index]) * 10000) / 10000) })}}" }
-			] }
+			] },
+			{ "run": "autoKey" }
 		],
 		"snapshot": [
 			{ "set": "state.lastOp", "to": null },
@@ -204,7 +206,8 @@
 			{ "if": "{{args.key == 'lens'}}", "then": [{ "set": "state.view.camera.fieldOfView", "to": "{{round(2 * atan(18 / clamp(round(args.value), 2, 250)) * 10000) / 10000}}" }, { "stop": true }] },
 			{ "if": "{{args.key == 'cursor'}}", "then": [{ "set": "state.cursor[args.axis]", "to": "{{round(args.value * 10000) / 10000}}" }, { "stop": true }] },
 			{ "if": "{{computed.activeIndex < 0}}", "then": [{ "stop": true }] },
-			{ "set": "state.scene.nodes[computed.activeIndex][args.key][args.axis]", "to": "{{round(args.value * 10000) / 10000}}" }
+			{ "set": "state.scene.nodes[computed.activeIndex][args.key][args.axis]", "to": "{{round(args.value * 10000) / 10000}}" },
+			{ "run": "autoKey" }
 		],
 		"setColor": [
 			{ "if": "{{colorList(args.value) == null}}", "then": [{ "stop": true }] },
@@ -310,18 +313,101 @@
 		],
 		"insertKeyframe": {
 			"title": "Insert Keyframe", "category": "Animation", "icon": "diamond", "enablement": "{{length(state.view.selection) > 0}}",
+			"do": [{ "dismiss": true }, { "run": "snapshot" }, { "run": "keySelected" }, { "set": "state.last", "to": "Insert Keyframe" }]
+		},
+		"keySelected": [
+			{ "forEach": "{{state.view.selection}}", "as": "id", "do": [
+				{ "set": "state.tmp", "to": "{{indexOf(map(state.scene.nodes, it.id), id)}}" },
+				{ "if": "{{state.tmp >= 0}}", "then": [
+					{ "set": "state.scene.nodes[state.tmp].keyframes", "to": "{{sort(concat(filter(state.scene.nodes[state.tmp].keyframes ?? [], it.frame != state.frame), [{ frame: state.frame, translation: state.scene.nodes[state.tmp].translation, rotationDegrees: state.scene.nodes[state.tmp].rotationDegrees, scale: state.scene.nodes[state.tmp].scale }]), 'frame')}}" }] }
+			] }
+		],
+		"autoKey": [{ "if": "{{state.autoKey == true}}", "then": [{ "run": "keySelected" }] }],
+		"deleteKeyframe": {
+			"title": "Delete Keyframes", "category": "Animation", "icon": "diamond-minus", "enablement": "{{contains(computed.keyFrames, state.frame)}}",
 			"do": [
-				{ "if": "{{!contains(state.keys, state.frame)}}", "then": [{ "set": "state.keys", "to": "{{sort(concat(state.keys, [state.frame]))}}" }] },
-				{ "set": "state.last", "to": "Insert Keyframe" }
+				{ "dismiss": true },
+				{ "if": "{{!contains(computed.keyFrames, state.frame)}}", "then": [{ "stop": true }] },
+				{ "run": "snapshot" },
+				{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, contains(state.view.selection, it.id) && it.keyframes != null ? merge(it, { keyframes: filter(it.keyframes, it.frame != state.frame) }) : it)}}" },
+				{ "set": "state.last", "to": "Delete Keyframes" }
 			]
 		},
-		"play": { "title": "Play Animation", "category": "Playback", "icon": "play", "do": [{ "set": "state.playing", "to": "{{state.playing != 'forward' ? 'forward' : false}}" }] },
-		"playReverse": { "title": "Play Animation in Reverse", "category": "Playback", "do": [{ "set": "state.playing", "to": "{{state.playing != 'reverse' ? 'reverse' : false}}" }] },
-		"tick": [{ "set": "state.frame", "to": "{{state.playing == 'reverse' ? (state.frame <= state.start ? state.end : state.frame - 1) : (state.frame >= state.end ? state.start : state.frame + 1)}}" }],
-		"jumpStart": { "title": "Jump to Start", "category": "Playback", "do": [{ "set": "state.frame", "to": "{{state.start}}" }] },
-		"jumpEnd": { "title": "Jump to End", "category": "Playback", "do": [{ "set": "state.frame", "to": "{{state.end}}" }] },
-		"prevKey": { "title": "Jump to Previous Keyframe", "category": "Playback", "do": [{ "set": "state.frame", "to": "{{max(concat([state.start], filter(state.keys, it < state.frame)))}}" }] },
-		"nextKey": { "title": "Jump to Next Keyframe", "category": "Playback", "do": [{ "set": "state.frame", "to": "{{min(concat([state.end], filter(state.keys, it > state.frame)))}}" }] },
+		"clearKeyframes": {
+			"title": "Clear Keyframes", "category": "Animation", "enablement": "{{length(computed.keyFrames) > 0}}",
+			"do": [
+				{ "dismiss": true },
+				{ "if": "{{length(computed.keyFrames) == 0}}", "then": [{ "stop": true }] },
+				{ "run": "snapshot" },
+				{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, contains(state.view.selection, it.id) && it.keyframes != null ? merge(it, { keyframes: [] }) : it)}}" },
+				{ "set": "state.last", "to": "Clear Keyframes" }
+			]
+		},
+		"moveKeyframe": [
+			{ "set": "state.tmp", "to": "{{ { from: round(event.from * 24) + 1, to: round(event.time * 24) + 1 } }}" },
+			{ "if": "{{state.tmp.from == state.tmp.to || contains(computed.keyFrames, state.tmp.to) || !contains(computed.keyFrames, state.tmp.from)}}", "then": [{ "stop": true }] },
+			{ "if": "{{state.keyDragAt != state.tmp.from}}", "then": [{ "run": "snapshot" }] },
+			{ "set": "state.keyDragAt", "to": "{{state.tmp.to}}" },
+			{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, contains(state.view.selection, it.id) && it.keyframes != null ? merge(it, { keyframes: sort(map(it.keyframes, it.frame == state.tmp.from ? merge(it, { frame: state.tmp.to }) : it), 'frame') }) : it)}}" },
+			{ "run": "poseFrame" }
+		],
+		"poseFrame": [
+			{ "forEach": "{{filter(state.scene.nodes, length(it.keyframes ?? []) > 0)}}", "as": "n", "do": [
+				{ "set": "state.pose", "to": "{{ { at: indexOf(map(state.scene.nodes, it.id), n.id), a: find(reverse(n.keyframes), it.frame <= state.frame) ?? n.keyframes[0], b: find(n.keyframes, it.frame >= state.frame) ?? n.keyframes[length(n.keyframes) - 1] } }}" },
+				{ "set": "state.pose.u", "to": "{{state.pose.b.frame == state.pose.a.frame ? 0 : (state.frame - state.pose.a.frame) / (state.pose.b.frame - state.pose.a.frame)}}" },
+				{ "set": "state.pose.u", "to": "{{state.pose.u * state.pose.u * (3 - 2 * state.pose.u)}}" },
+				{ "set": "state.scene.nodes[state.pose.at]", "to": "{{merge(n, { translation: map(state.pose.a.translation, round((it + (state.pose.b.translation[index] - it) * state.pose.u) * 10000) / 10000), rotationDegrees: map(state.pose.a.rotationDegrees, round((it + (state.pose.b.rotationDegrees[index] - it) * state.pose.u) * 1000) / 1000), scale: map(state.pose.a.scale, round((it + (state.pose.b.scale[index] - it) * state.pose.u) * 10000) / 10000) })}}" }
+			] }
+		],
+		"setFrame": [
+			{ "set": "state.frame", "to": "{{round(clamp(args.value, 0, 1048574))}}" },
+			{ "run": "poseFrame" }
+		],
+		"setFrameField": [{ "if": "{{args.key == 'frame'}}", "then": [{ "run": "setFrame" }], "else": [{ "run": "setRange" }] }],
+		"setRange": [
+			{ "set": "state.tmp", "to": "{{round(clamp(args.value, 0, 1048574))}}" },
+			{ "if": "{{args.key == 'start'}}", "then": [{ "set": "{{'state.' + computed.rangeKeys[0]}}", "to": "{{min(state.tmp, computed.range[1])}}" }],
+			  "else": [{ "set": "{{'state.' + computed.rangeKeys[1]}}", "to": "{{max(state.tmp, computed.range[0])}}" }] }
+		],
+		"play": { "title": "Play Animation", "category": "Playback", "icon": "play", "do": [{ "dismiss": true }, { "set": "state.playing", "to": "{{state.playing != 'forward' ? 'forward' : false}}" }] },
+		"playReverse": { "title": "Play Animation in Reverse", "category": "Playback", "do": [{ "dismiss": true }, { "set": "state.playing", "to": "{{state.playing != 'reverse' ? 'reverse' : false}}" }] },
+		"tick": [
+			{ "set": "state.frame", "to": "{{state.playing == 'reverse' ? (state.frame <= computed.range[0] ? computed.range[1] : state.frame - 1) : (state.frame >= computed.range[1] ? computed.range[0] : state.frame + 1)}}" },
+			{ "run": "poseFrame" }
+		],
+		"jumpStart": { "title": "Jump to Start", "category": "Playback", "do": [{ "dismiss": true }, { "run": "setFrame", "with": { "args": { "value": "{{computed.range[0]}}" } } }] },
+		"jumpEnd": { "title": "Jump to End", "category": "Playback", "do": [{ "dismiss": true }, { "run": "setFrame", "with": { "args": { "value": "{{computed.range[1]}}" } } }] },
+		"prevKey": { "title": "Jump to Previous Keyframe", "category": "Playback", "do": [{ "dismiss": true }, { "run": "setFrame", "with": { "args": { "value": "{{max(concat([computed.range[0]], filter(computed.keyFrames, it < state.frame)))}}" } } }] },
+		"nextKey": { "title": "Jump to Next Keyframe", "category": "Playback", "do": [{ "dismiss": true }, { "run": "setFrame", "with": { "args": { "value": "{{min(concat([computed.range[1]], filter(computed.keyFrames, it > state.frame)))}}" } } }] },
+		"togglePreviewRange": {
+			"title": "Use Preview Range", "category": "Playback", "icon": "clock-3",
+			"do": [
+				{ "dismiss": true },
+				{ "if": "{{state.previewRange == null}}", "then": [{ "set": "state.previewRange", "to": "{{ { start: state.start, end: state.end } }}" }],
+				  "else": [{ "set": "state.previewRange", "to": null }] }
+			]
+		},
+		"addMarker": {
+			"title": "Add Marker", "category": "Marker", "icon": "bookmark",
+			"do": [
+				{ "dismiss": true },
+				{ "if": "{{some(state.markers, it.frame == state.frame)}}", "then": [{ "stop": true }] },
+				{ "set": "state.markers", "to": "{{sort(concat(state.markers, [{ frame: state.frame, label: 'F_' + pad(state.frame, 2, '0') }]), 'frame')}}" }
+			]
+		},
+		"deleteMarker": {
+			"title": "Delete Marker", "category": "Marker", "enablement": "{{some(state.markers, it.frame == state.frame)}}",
+			"do": [{ "dismiss": true }, { "set": "state.markers", "to": "{{filter(state.markers, it.frame != state.frame)}}" }]
+		},
+		"prevMarker": {
+			"title": "Jump to Previous Marker", "category": "Marker", "enablement": "{{some(state.markers, it.frame < state.frame)}}",
+			"do": [{ "dismiss": true }, { "if": "{{some(state.markers, it.frame < state.frame)}}", "then": [{ "run": "setFrame", "with": { "args": { "value": "{{max(map(filter(state.markers, it.frame < state.frame), it.frame))}}" } } }] }]
+		},
+		"nextMarker": {
+			"title": "Jump to Next Marker", "category": "Marker", "enablement": "{{some(state.markers, it.frame > state.frame)}}",
+			"do": [{ "dismiss": true }, { "if": "{{some(state.markers, it.frame > state.frame)}}", "then": [{ "run": "setFrame", "with": { "args": { "value": "{{min(map(filter(state.markers, it.frame > state.frame), it.frame))}}" } } }] }]
+		},
+		"frameCurrent": { "title": "Go to Current Frame", "category": "View", "do": [{ "dismiss": true }, { "set": "state.timelineOffset", "to": "{{round(((state.frame - 1) / 24 - 4) * 1000) / 1000}}" }] },
 		"about": { "title": "About Modello", "category": "Help", "icon": "info", "do": [{ "dismiss": true }, { "set": "state.about", "to": true }] },
 		"newScene": {
 			"title": "New", "category": "File", "icon": "file-plus",
@@ -427,6 +513,11 @@
 		"shift+alt+z": { "do": "toggleOverlays" },
 		"shift+tab": { "when": "{{!context.textInputFocus}}", "do": "toggleSnap" },
 		"i": { "do": "insertKeyframe" },
+		"alt+i": { "do": "deleteKeyframe" },
+		"shift+alt+i": { "do": "clearKeyframes" },
+		"up": { "when": "{{!context.textInputFocus && state.modal == null}}", "do": "nextKey" },
+		"down": { "when": "{{!context.textInputFocus && state.modal == null}}", "do": "prevKey" },
+		"shift+ctrl+space": { "when": "{{!context.textInputFocus}}", "do": "playReverse" },
 		"space": { "when": "{{!context.textInputFocus}}", "do": "play" },
 		"shift+left": { "do": "jumpStart" },
 		"shift+right": { "do": "jumpEnd" },

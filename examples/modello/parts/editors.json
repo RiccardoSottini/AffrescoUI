@@ -17,7 +17,11 @@
 		"propPanels": "{{[{ tab: 'tool', key: 'activeTool', title: 'Active Tool', words: 'snap gizmos tool', needs: '' }, { tab: 'tool', key: 'workspacePanel', title: 'Workspace', words: 'mode', needs: \"Workspace settings aren't available yet\" }, { tab: 'render', key: 'colorManagement', title: 'Color Management', words: 'exposure', needs: '' }, { tab: 'render', key: 'sampling', title: 'Sampling', words: 'samples', needs: \"Render samples aren't available yet: a render is the viewport's view\" }, { tab: 'output', key: 'frameRange', title: 'Frame Range', words: 'frame start end', needs: '' }, { tab: 'output', key: 'format', title: 'Format', words: 'resolution frame rate', needs: \"Resolution and frame rate settings aren't available yet\" }, { tab: 'scene', key: 'scenePanel', title: 'Scene', words: 'name camera', needs: '' }, { tab: 'scene', key: 'units', title: 'Units', words: 'length metres', needs: \"Units aren't available yet: lengths are in metres\" }, { tab: 'world', key: 'surfaceWorld', title: 'Surface', words: 'color colour background', needs: '' }, { tab: 'collection', key: 'restrictions', title: 'Restrictions', words: 'selectable visible render', needs: '' }, { tab: 'object', key: 'transform', title: 'Transform', words: 'location rotation scale', needs: '' }, { tab: 'object', key: 'visibility', title: 'Visibility', words: 'selectable show viewports renders', needs: '' }, { tab: 'object', key: 'relations', title: 'Relations', words: 'parent', needs: \"Parenting isn't available yet\" }, { tab: 'object', key: 'collections', title: 'Collections', words: 'link', needs: \"Modello keeps one collection: linking to others isn't available yet\" }, { tab: 'object', key: 'delta', title: 'Transform Offset', words: 'delta', needs: \"Transform offsets aren't available yet\" }, { tab: 'object', key: 'instancing', title: 'Instancing', words: '', needs: \"Instancing isn't available yet\" }, { tab: 'object', key: 'motionPaths', title: 'Motion Paths', words: '', needs: \"Motion paths aren't available yet\" }, { tab: 'object', key: 'display', title: 'Viewport Display', words: 'bounds wire', needs: \"Viewport display options aren't available yet\" }, { tab: 'object', key: 'lineArt', title: 'Line Drawing', words: '', needs: \"Line drawing isn't available yet\" }, { tab: 'object', key: 'custom', title: 'Custom Properties', words: '', needs: \"Custom properties aren't available yet\" }, { tab: 'material', key: 'materialSettings', title: 'Settings', words: 'blend shadow', needs: \"Blend and shadow settings aren't available yet\" }, { tab: 'data', key: 'dataPanel', title: computed.activeNode.kind == 'light' ? 'Light' : computed.activeNode.kind == 'camera' ? 'Lens' : computed.activeNode.kind == 'mesh' ? 'Geometry' : 'Empty', words: 'type color colour power focal length primitive', needs: computed.activeNode.kind == 'empty' ? \"Empty display settings aren't available yet\" : '' }, { tab: 'data', key: 'dataMore', title: computed.activeNode.kind == 'light' ? 'Shadow' : computed.activeNode.kind == 'camera' ? 'Depth of Field' : 'Normals', words: '', needs: (computed.activeNode.kind == 'light' ? 'Shadow settings' : computed.activeNode.kind == 'camera' ? 'Depth of field' : 'Normals') + \" aren't available yet\" }, { tab: 'material', key: 'surfaceMaterial', title: 'Surface', words: 'base color colour metallic roughness', needs: computed.activeMaterialIndex < 0 ? \"This object has no material: adding one isn't available yet\" : '' }]}}",
 		"propShown": "{{map(filter(computed.propPanels, it.tab == state.propTab && (contains(['tool', 'render', 'output', 'scene', 'world', 'collection'], it.tab) || computed.activeNode != null) && ((state.propertiesFilter ?? '') == '' || contains(lower(it.title + ' ' + it.words), lower(trim(state.propertiesFilter))))), it.key)}}",
 		"activeMaterialIndex": "{{computed.activeNode == null || computed.activeNode.material == null ? -1 : indexOf(map(state.scene.materials, it.id), computed.activeNode.material)}}",
-		"keyframes": "{{map(state.keys, { time: (it - 1) / 24 })}}",
+		"keyFrames": "{{reduce(sort(flat(map(filter(state.scene.nodes, contains(state.view.selection, it.id)), map(it.keyframes ?? [], it.frame)))), contains(acc, it) ? acc : concat(acc, [it]), [])}}",
+		"keyframes": "{{map(computed.keyFrames, { time: (it - 1) / 24 })}}",
+		"range": "{{state.previewRange != null ? [state.previewRange.start, state.previewRange.end] : [state.start, state.end]}}",
+		"rangeKeys": "{{state.previewRange != null ? ['previewRange.start', 'previewRange.end'] : ['start', 'end']}}",
+		"timelineMenus": "{{ { playback: [{ title: 'Play Animation', keyLabel: 'Space', checked: state.playing == 'forward', run: 'play' }, { title: 'Play in Reverse', keyLabel: 'Shift Ctrl Space', checked: state.playing == 'reverse', run: 'playReverse' }, { separator: true }, { title: 'Jump to Start', keyLabel: 'Shift Left', run: 'jumpStart' }, { title: 'Jump to End', keyLabel: 'Shift Right', run: 'jumpEnd' }, { title: 'Previous Keyframe', keyLabel: 'Down', run: 'prevKey' }, { title: 'Next Keyframe', keyLabel: 'Up', run: 'nextKey' }, { separator: true }, { title: 'Use Preview Range', checked: state.previewRange != null, run: 'togglePreviewRange' }], keying: [{ title: 'Insert Keyframe', keyLabel: 'I', enabled: length(state.view.selection) > 0, run: 'insertKeyframe' }, { title: 'Delete Keyframes', keyLabel: 'Alt I', enabled: contains(computed.keyFrames, state.frame), run: 'deleteKeyframe' }, { title: 'Clear Keyframes', keyLabel: 'Shift Alt I', enabled: length(computed.keyFrames) > 0, run: 'clearKeyframes' }, { separator: true }, { title: 'Auto Keying', checked: state.autoKey == true, run: 'toggleOption', with: { args: { key: 'autoKey' } } }], view: [{ title: 'Show Seconds', checked: state.timeSeconds == true, run: 'toggleOption', with: { args: { key: 'timeSeconds' } } }, { title: 'Show Markers', checked: state.hideMarkers != true, run: 'toggleOption', with: { args: { key: 'hideMarkers' } } }, { separator: true }, { title: 'Go to Current Frame', run: 'frameCurrent' }], marker: [{ title: 'Add Marker', run: 'addMarker' }, { title: 'Delete Marker', enabled: some(state.markers, it.frame == state.frame), run: 'deleteMarker' }, { separator: true }, { title: 'Jump to Previous Marker', enabled: some(state.markers, it.frame < state.frame), run: 'prevMarker' }, { title: 'Jump to Next Marker', enabled: some(state.markers, it.frame > state.frame), run: 'nextMarker' }] } }}",
 		"stats": "{{state.overlays ? 'Objects ' + length(state.view.selection) + '/' + length(state.scene.nodes) + ' | ' : ''}}"
 	},
 	"components": {
@@ -46,6 +50,23 @@
 					{ "type": "label", "font": "iconsSmall", "icon": "{{needs == '' && state.panels[key] ? 'chevron-down' : 'chevron-right'}}",
 					  "text": "", "textColor": "{{needs == '' ? '@dim' : '@faint'}}", "x": 6, "width": 12, "anchors": { "top": 0, "bottom": 0 }, "align": "center" },
 					{ "type": "label", "text": "{{title}}", "textColor": "{{needs == '' ? '@text' : '@faint'}}", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 22, "top": 0, "bottom": 0, "right": 8 } }
+				]
+			}
+		},
+		"frameField": {
+			"params": { "label": "", "value": 0, "width": 82, "key": "", "radius": 4, "ranged": false },
+			"node": {
+				"width": "{{width}}", "height": 20, "radius": "{{radius}}", "color": "@widget", "borderWidth": "{{ranged ? 1 : 0}}", "borderColor": "@sel",
+				"hover": { "color": "@widgetHover" }, "cursor": "resize-horizontal",
+				"role": "slider", "focusable": true, "label": "{{label}}", "tooltip": "{{label}}: drag to change; arrows step it",
+				"onPress": { "set": "state.dragStart", "to": "{{value}}" },
+				"onDrag": { "run": "setFrameField", "with": { "args": { "key": "{{key}}", "value": "{{state.dragStart + event.dx * 0.2}}" } } },
+				"keys": { "right": { "run": "setFrameField", "with": { "args": { "key": "{{key}}", "value": "{{value + 1}}" } } },
+				          "left": { "run": "setFrameField", "with": { "args": { "key": "{{key}}", "value": "{{value - 1}}" } } } },
+				"children": [
+					{ "when": "{{key != 'frame'}}", "type": "label", "text": "{{label}}", "textColor": "@dim", "x": 7, "anchors": { "top": 0, "bottom": 0 }, "fitText": true },
+					{ "type": "label", "text": "{{value}}", "textColor": "@text", "align": "{{key == 'frame' ? 'center' : { horizontal: 'end', vertical: 'center' } }}",
+					  "anchors": { "left": 0, "right": "{{key == 'frame' ? 0 : 7}}", "top": 0, "bottom": 0 } }
 				]
 			}
 		},
@@ -481,38 +502,39 @@
 					  "color": "@header", "radius": { "topLeft": 8, "topRight": 8 }, "alignItems": "center", "gap": 2, "children": [
 						{ "use": "gap" },
 						{ "use": "hButton", "id": "editor-type-timeline", "with": { "icon": "clock-3", "chevron": true, "width": 38,
-						  "tooltip": "Editor Type", "open": "state.open.editorTimeline", "items": "{{map(computed.editorTypes, merge(it, { checked: it.id == 'timeline', run: 'swapEditor', with: { args: { from: 'timeline', to: it.id } } }))}}" } },
+						  "tooltip": "Editor Type", "open": "state.open.editorTimeline", "placement": "above", "items": "{{map(computed.editorTypes, merge(it, { checked: it.id == 'timeline', run: 'swapEditor', with: { args: { from: 'timeline', to: it.id } } }))}}" } },
 						{ "use": "gap", "with": { "width": 6 } },
 						{ "repeat": { "for": "m", "in": "{{['Playback', 'Keying', 'View', 'Marker']}}" }, "use": "hButton",
-						  "id": "timeline-menu-{{lower(m)}}", "with": { "text": "{{m}}", "width": "{{length(m) * 7 + (m == 'Playback' || m == 'Keying' ? 26 : 14)}}",
-						  "chevron": "{{m == 'Playback' || m == 'Keying'}}", "back": "transparent" } },
+						  "id": "timeline-menu-{{lower(m)}}", "with": { "text": "{{m}}", "width": "{{length(m) * 7 + 26}}", "chevron": true, "back": "transparent",
+						  "open": "state.open.timeline{{m}}", "items": "{{computed.timelineMenus[lower(m)]}}", "menuWidth": 230, "placement": "above" } },
 						{ "grow": 1, "height": 1, "color": "transparent" },
-						{ "use": "hButton", "id": "auto-key", "with": { "icon": "circle", "width": 24, "tooltip": "Auto Keying", "on": "{{state.autoKey == true}}", "run": "toggleOption", "with": { "args": { "key": "autoKey" } } } },
+						{ "use": "hButton", "id": "auto-key", "with": { "icon": "circle", "width": 24, "tooltip": "Auto Keying: moving the selection keys it", "on": "{{state.autoKey == true}}", "run": "toggleOption", "with": { "args": { "key": "autoKey" } } } },
 						{ "use": "gap", "with": { "width": 6 } },
 						{ "repeat": { "for": "b", "in": "{{[['skip-back', 'Jump to Endpoint', 'jumpStart'], ['chevrons-left', 'Jump to Keyframe', 'prevKey'], ['play', 'Play Animation in Reverse', 'playReverse'], ['play', 'Play Animation', 'play'], ['chevrons-right', 'Jump to Keyframe', 'nextKey'], ['skip-forward', 'Jump to Endpoint', 'jumpEnd']]}}", "index": "i" },
 						  "use": "hButton", "id": "timeline-{{b[2]}}",
 						  "with": { "icon": "{{state.playing && b[2] == 'play' ? 'pause' : b[0]}}", "width": 24, "tooltip": "{{b[1]}}", "run": "{{b[2]}}",
 						            "radius": "{{i == 0 ? { topLeft: 4, bottomLeft: 4 } : i == 5 ? { topRight: 4, bottomRight: 4 } : 0}}" } },
 						{ "use": "gap", "with": { "width": 6 } },
-						{ "id": "frame-current", "width": 56, "height": 20, "radius": 4, "color": "@widget", "role": "slider", "label": "Current Frame",
-						  "children": [{ "type": "label", "text": "{{state.frame}}", "textColor": "@text", "align": "center", "fill": true }] },
+						{ "use": "frameField", "id": "frame-current", "with": { "label": "Current Frame", "value": "{{state.frame}}", "width": 56, "key": "frame" } },
 						{ "grow": 1, "height": 1, "color": "transparent" },
-						{ "use": "hButton", "id": "preview-range", "with": { "icon": "clock-3", "width": 24, "back": "transparent", "tooltip": "Use Preview Range" } },
-						{ "id": "frame-start", "width": 82, "height": 20, "radius": { "topLeft": 4, "bottomLeft": 4 }, "color": "@widget", "role": "slider", "label": "Start",
-						  "children": [{ "type": "label", "text": "Start", "textColor": "@dim", "x": 7, "anchors": { "top": 0, "bottom": 0 }, "fitText": true },
-						               { "type": "label", "text": "{{state.start}}", "textColor": "@text", "anchors": { "right": 7, "top": 0, "bottom": 0 }, "fitText": true }] },
-						{ "id": "frame-end", "width": 82, "height": 20, "radius": { "topRight": 4, "bottomRight": 4 }, "color": "@widget", "role": "slider", "label": "End",
-						  "children": [{ "type": "label", "text": "End", "textColor": "@dim", "x": 7, "anchors": { "top": 0, "bottom": 0 }, "fitText": true },
-						               { "type": "label", "text": "{{state.end}}", "textColor": "@text", "anchors": { "right": 7, "top": 0, "bottom": 0 }, "fitText": true }] },
+						{ "use": "hButton", "id": "preview-range", "with": { "icon": "clock-3", "width": 24, "back": "transparent", "on": "{{state.previewRange != null}}",
+						  "tooltip": "Use Preview Range: Start and End then set a range of their own for playback", "run": "togglePreviewRange" } },
+						{ "use": "frameField", "id": "frame-start", "with": { "label": "Start", "value": "{{computed.range[0]}}", "key": "start",
+						  "radius": { "topLeft": 4, "bottomLeft": 4 }, "ranged": "{{state.previewRange != null}}" } },
+						{ "use": "frameField", "id": "frame-end", "with": { "label": "End", "value": "{{computed.range[1]}}", "key": "end",
+						  "radius": { "topRight": 4, "bottomRight": 4 }, "ranged": "{{state.previewRange != null}}" } },
 						{ "use": "gap" }
 					  ] },
 					{ "type": "timeline", "id": "timeline", "anchors": { "left": 0, "right": 0, "top": 26, "bottom": 0 },
 					  "tracks": "{{[{ id: 'summary', label: ' ', keyframes: computed.keyframes }]}}",
-					  "time": "{{(state.frame - 1) / 24}}", "duration": "{{(state.end + 20) / 24}}", "fps": 24,
-					  "playRange": "{{[(state.start - 1) / 24, (state.end - 1) / 24]}}", "headerWidth": 0, "trackHeight": 20,
-					  "pixelsPerSecond": 110, "offset": -0.4, "color": "@region", "headerColor": "@header", "textColor": "@dim",
+					  "time": "{{(state.frame - 1) / 24}}", "duration": "{{(max(state.end, computed.range[1]) + 20) / 24}}", "fps": 24,
+					  "timeFormat": "{{state.timeSeconds == true ? 'seconds' : 'frames'}}",
+					  "markers": "{{state.hideMarkers == true ? [] : map(state.markers, { time: (it.frame - 1) / 24, label: it.label })}}",
+					  "playRange": "{{[(computed.range[0] - 1) / 24, (computed.range[1] - 1) / 24]}}", "headerWidth": 0, "trackHeight": 20,
+					  "pixelsPerSecond": 110, "offset": "{{state.timelineOffset}}", "color": "@region", "headerColor": "@header", "textColor": "@dim",
 					  "accentColor": "@sel", "clipColor": "@active", "label": "Timeline",
-					  "onScrub": { "set": "state.frame", "to": "{{round(event.time * 24) + 1}}" } }
+					  "onScrub": { "run": "setFrame", "with": { "args": { "value": "{{round(event.time * 24) + 1}}" } } },
+					  "onKeyframeMove": { "run": "moveKeyframe" } }
 				]
 			}
 		},
