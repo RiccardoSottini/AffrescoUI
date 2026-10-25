@@ -9,7 +9,6 @@
 #include "ScratchFolder.hpp" // the screen module's
 
 #include <affresco/Screen.hpp>
-#include <affresco/format/App.hpp>
 #include <affresco/core/Executor.hpp>
 #include <affresco/render/Application.hpp>
 
@@ -33,24 +32,6 @@ std::string readText(const std::filesystem::path& path) {
 	std::stringstream text;
 	text << file.rdbuf();
 	return text.str();
-}
-
-/// @brief The document a scenario plays: an app's entry screen (an app.json beside it names it) as the host opens the
-/// app, its themes, models and seed records merged in (Screen::fromApp(), keeping nothing on disk); any other screen
-/// as written.
-/// @param screen The scenario's screen file.
-/// @return Its document, as JSON text.
-/// @throws std::runtime_error If it or the app.json can't be read; DocumentError if the app.json isn't valid;
-/// ScreenError if its app's other files aren't.
-std::string screenDocument(const std::filesystem::path& screen) {
-	const std::filesystem::path manifest = screen.parent_path() / "app.json";
-	std::error_code error;
-	if(!std::filesystem::is_regular_file(manifest, error)) return readText(screen);
-	if(std::filesystem::file_size(manifest, error) > format::maxAppManifestBytes)
-		throw std::runtime_error(manifest.string() + " is too large");
-	const format::AppManifest app = format::parseApp(parseUntrusted(readText(manifest)));
-	if(!std::filesystem::equivalent(screen.parent_path() / app.entry, screen, error)) return readText(screen);
-	return Screen::fromApp(manifest, {}, Screen::History::InMemory).documentJson();
 }
 
 /// @brief A whole number of a screen's "window" section, or its default (Screen::createWindow's defaults: 800 x 600,
@@ -178,6 +159,12 @@ json Report::toJson() const {
 /// @param directory Where its relative paths ("include", fonts) are found.
 /// @param nowhere The folder that is never created.
 /// @return The screen.
+std::string screenDocument(const std::filesystem::path& screen) {
+	const std::filesystem::path manifest = Screen::appOf(screen);
+	if(manifest.empty()) return readText(screen);
+	return Screen::fromApp(manifest, {}, Screen::History::InMemory).documentJson();
+}
+
 Screen unconnectedScreen(const std::string& document, const std::filesystem::path& directory,
                          const std::filesystem::path& nowhere) {
 	Screen screen = Screen::fromString(document, directory);

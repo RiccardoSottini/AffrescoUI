@@ -256,6 +256,27 @@ TEST_CASE("app manifest: fromApp moves the entry screen's old data into the app'
 	std::filesystem::remove_all(folder);
 }
 
+TEST_CASE("app manifest: an app's entry screen opened on its own is the app; another screen beside it isn't") {
+	const auto folder = std::filesystem::temp_directory_path() / "affrescoui-app-entry-test";
+	writeApp(folder / "notes");
+	write(folder / "notes" / "other.screen.json", R"json({ "format": "affrescoui-screen", "version": 2,
+		"root": { "type": "label", "id": "other", "text": "other" } })json");
+	CHECK(affresco::Screen::appOf(folder / "notes" / "index.screen.json") == folder / "notes" / "app.json");
+	CHECK(affresco::Screen::appOf(folder / "notes" / "other.screen.json").empty());
+	{
+		affresco::Screen screen = affresco::Screen::fromFile(folder / "notes" / "index.screen.json", folder / "data",
+		                                                     affresco::Screen::History::InMemory);
+		REQUIRE(screen.app() != nullptr);
+		CHECK(screen.data().size("notes") == 2); // the seed, as the host opens it
+		CHECK(json::parse(screen.documentJson())["tokens"]["radius"] == 6);
+	}
+	CHECK(affresco::Screen::fromFile(folder / "notes" / "other.screen.json", folder / "data").app() == nullptr);
+	write(folder / "notes" / "app.json", "{");
+	CHECK_THROWS_AS(static_cast<void>(affresco::Screen::appOf(folder / "notes" / "index.screen.json")),
+	                affresco::ScreenError);
+	std::filesystem::remove_all(folder);
+}
+
 TEST_CASE("app manifest: fromApp refuses what isn't an app, a bad part, and a file outside the folder") {
 	const auto folder = std::filesystem::temp_directory_path() / "affrescoui-app-refused-test";
 	const auto app = folder / "notes";

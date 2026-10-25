@@ -237,6 +237,8 @@ Screen Screen::fromFile(const std::filesystem::path& path) { return fromFile(pat
 
 Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem::path& dataDirectory,
                         History history) {
+	if(const std::filesystem::path manifest = appOf(path); !manifest.empty())
+		return fromApp(manifest, dataDirectory, history); // as the host opens it: its models, seeds and data
 	const std::ifstream file(path);
 	if(!file) {
 		throw ScreenError(

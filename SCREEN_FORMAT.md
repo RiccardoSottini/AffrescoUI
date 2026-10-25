@@ -1696,7 +1696,9 @@ it puts the archived records back and archives what was written since that the o
 An app is a folder of files that a stock host runs, with nothing compiled for it: screens, its own kits and themes,
 data models and seed data, assets. `app.json` in the folder says what it is
 ([schema/affrescoui-app.schema.json](schema/affrescoui-app.schema.json)); `affrescoui_launcher <folder>` (or
-`<folder>/app.json`) opens it, and `affrescoui check app.json` checks it with its entry screen. A generated example:
+`<folder>/app.json`) opens it, and `affrescoui check app.json` checks it with its entry screen. The entry screen
+given on its own (to the host, `check`, `render`, `test`, `Screen::fromFile()`) is the app too, with its models and
+seed data; another screen in the folder is read as written. A generated example:
 ```json
 {
   "$schema": "../../schema/affrescoui-app.schema.json",

@@ -275,6 +275,15 @@ Screen Screen::fromApp(const std::filesystem::path& location, const std::filesys
 	return screen;
 }
 
+std::filesystem::path Screen::appOf(const std::filesystem::path& screenFile) {
+	std::error_code error;
+	const std::filesystem::path manifest = std::filesystem::absolute(screenFile, error).parent_path() / "app.json";
+	if(error || !std::filesystem::is_regular_file(manifest, error)) return {};
+	const AppFolder app = readFolder(manifest);
+	if(!std::filesystem::equivalent(app.folder / app.manifest.entry, screenFile, error)) return {};
+	return manifest;
+}
+
 std::filesystem::path Screen::appDataDirectory(const std::filesystem::path& dataDirectory, std::string_view id) {
 	return dataDirectory / "apps" / format::appId(id);
 }

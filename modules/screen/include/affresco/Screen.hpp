@@ -87,13 +87,14 @@ public:
 	[[nodiscard]] static std::filesystem::path defaultDataDirectory();
 
 	/// @brief Loads a screen file, with its history and "persist" state from defaultDataDirectory()
-	/// (setHistoryDirectory(), setStateFile()).
+	/// (setHistoryDirectory(), setStateFile()). The entry screen of an app is loaded as the app (appOf()).
 	/// @param path The file; relative font and "include" paths are resolved from its directory.
 	/// @return The screen, not yet built.
 	/// @throws ScreenError If the file can't be read, is not a valid screen, or its history on disk is damaged.
 	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path);
 
-	/// @brief Loads a screen file, with its data in a folder of the caller's choice.
+	/// @brief Loads a screen file, with its data in a folder of the caller's choice. The entry screen of an app (an
+	/// app.json beside it names it: appOf()) is loaded as the app, with fromApp(), as the host opens it.
 	/// @param path The file; relative font and "include" paths are resolved from its directory.
 	/// @param dataDirectory Where "<file name>.history/" and "<file name>.state.json" are kept.
 	/// @param history Whether the history is kept there or in memory only; the "persist" state is kept there either
@@ -116,6 +117,12 @@ public:
 	/// outside its folder, or the entry screen can't be loaded.
 	[[nodiscard]] static Screen fromApp(const std::filesystem::path& location, const std::filesystem::path& dataDirectory,
 	                                    History history = History::OnDisk);
+
+	/// @brief The app a screen file is the entry of: the app.json in its folder, if that names it as its entry.
+	/// @param screenFile The screen file.
+	/// @return The app.json, or an empty path if there is none or it names another entry.
+	/// @throws ScreenError If the app.json beside it can't be read or isn't valid.
+	[[nodiscard]] static std::filesystem::path appOf(const std::filesystem::path& screenFile);
 
 	/// @brief The folder an app keeps the person's data in: its history, "persist" state, records and usage.
 	/// @param dataDirectory The data folder.

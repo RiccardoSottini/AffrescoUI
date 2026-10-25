@@ -757,7 +757,7 @@
 										  "anchors": { "right": 20, "top": 62 }, "width": 160, "height": 38, "onClick": { "run": "revealMine", "with": { "id": "" } } }
 									  ] },
 									{ "id": "settingsIntelligence", "anchors": { "left": 0, "right": 0 }, "height": 960, "color": "transparent",
-									  "children": [{ "use": "intelligenceSettings" }] },
+									  "children": [{ "id": "intelligenceSettingsPage", "use": "intelligenceSettings" }] },
 									{ "id": "settingsKeys", "use": "settingsCard", "with": { "title": "{{t('settings.keys')}}", "icon": "keyboard", "height": 208 },
 									  "children": [
 										{ "id": "keysList", "type": "column", "anchors": { "left": 54, "right": 20, "top": 56 }, "height": 134, "gap": 4,

@@ -116,13 +116,18 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 	return problems;
 }
 
-/// @brief Whether a file is an app's manifest, or a folder an app's.
+/// @brief Whether a file is an app's manifest, a folder an app's, or an app's entry screen (checked as the app, as
+/// the host opens it).
 /// @param path The file or folder.
 /// @return The manifest, or "" if it isn't one.
 std::filesystem::path manifestOf(const std::filesystem::path& path) {
 	if(std::filesystem::is_directory(path)) return path / "app.json";
 	if(path.filename() == "app.json") return path;
-	return {};
+	try {
+		return Screen::appOf(path);
+	} catch(const DocumentError&) {
+		return path.parent_path() / "app.json"; // the app's check says what is wrong with it
+	}
 }
 
 } // namespace
