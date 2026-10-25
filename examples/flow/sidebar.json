@@ -45,6 +45,7 @@
 				"width": 220,
 				"color": "@color.sidebar",
 				"children": [
+					{ "id": "sidebarEdge", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": 1, "color": "@color.border" },
 					{
 						"id": "workspace",
 						"type": "row",
