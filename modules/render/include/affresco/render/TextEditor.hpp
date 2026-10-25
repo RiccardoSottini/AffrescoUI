@@ -212,8 +212,8 @@ public:
 	/// @brief The minimap's width, in pixels, when shown.
 	[[nodiscard]] float minimapPreferredWidth() const noexcept { return minimapSize_; }
 	/// @brief Marks the visible rows in the minimap only while the pointer is over it.
-	/// @param onHover true for only then, false for always.
-	void setMinimapViewportOnHover(bool onHover);
+	/// @param enabled true for only then, false for always.
+	void setMinimapViewportOnHover(bool enabled);
 	/// @brief Whether the minimap marks the visible rows only while the pointer is over it.
 	[[nodiscard]] bool minimapViewportOnHover() const noexcept { return minimapViewportOnHover_; }
 	/// @brief A mark on the scroll bar: a row that has something to find again.

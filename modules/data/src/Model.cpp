@@ -441,7 +441,7 @@ Field parseField(const json& definition, const std::string& where, int depth, st
 	field.written = definition;
 	const auto type = definition.find("type");
 	if(type == definition.end() || !type->is_string()) malformed(where, R"(expected "type")");
-	const auto* const named =
+	const auto named =
 	    std::ranges::find(typeNames, type->get<std::string>(), &std::pair<std::string_view, FieldType>::first);
 	if(named == typeNames.end())
 		malformed(placeOf(where, "type"),

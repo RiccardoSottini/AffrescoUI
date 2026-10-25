@@ -172,8 +172,8 @@ void SecondWindows::make(const std::string& name, Shown& shown, const json& decl
 	shown.window = &window;
 	// Its keys run the screen's, as if nothing had the focus; a press of the mouse runs its "onClick"
 	shown.keyHook = window.onKey.connect([this, name](const KeyEvent& event) {
-		const json* declared = entry(name);
-		if(declared && declared->value("keys", true)) engine_.events.keyFromAnotherWindow(event);
+		const json* current = entry(name);
+		if(current && current->value("keys", true)) engine_.events.keyFromAnotherWindow(event);
 	});
 	shown.buttonHook = window.onMouseButton.connect([this, name](const MouseButtonEvent& event) {
 		if(event.action == affresco::Action::Press) runHandler(name, "onClick");

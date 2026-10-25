@@ -83,7 +83,7 @@ void checkAudio(const json& value, const std::string& name) {
 		std::size_t sources = 0;
 		for(const auto& [key, item] : expect::object(definition, at).items()) {
 			checkKey(key, item, std::format("{}.{}", at, key));
-			sources += std::ranges::find(sourceKeys, key) != sourceKeys.end() ? 1 : 0;
+			sources += std::ranges::find(sourceKeys, key) != sourceKeys.end() ? 1U : 0U;
 		}
 		if(sources != 1) expect::fail(at, "a sound needs one of \"file\", \"url\", \"source\" or \"tone\"");
 		if(definition.contains("maxBytes") && !definition.contains("url"))

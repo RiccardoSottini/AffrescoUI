@@ -52,9 +52,9 @@ void TextEditor::setMinimapText(bool text) {
 	invalidatePaint();
 }
 
-void TextEditor::setMinimapViewportOnHover(bool onHover) {
-	if(onHover == minimapViewportOnHover_) return;
-	minimapViewportOnHover_ = onHover;
+void TextEditor::setMinimapViewportOnHover(bool enabled) {
+	if(enabled == minimapViewportOnHover_) return;
+	minimapViewportOnHover_ = enabled;
 	invalidatePaint();
 }
 

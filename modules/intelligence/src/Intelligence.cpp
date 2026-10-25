@@ -299,7 +299,8 @@ void registerCalls(affresco::Screen& screen, const std::filesystem::path& dataDi
 		return save(*shared, json::parse(argumentsJson, nullptr, false)).dump();
 	});
 	screen.onCall("intelligence.forget", [shared](const std::string& argumentsJson) {
-		const Provider& provider = providerOf(*shared, json::parse(argumentsJson, nullptr, false));
+		const json arguments = json::parse(argumentsJson, nullptr, false);
+		const Provider& provider = providerOf(*shared, arguments);
 		shared->options.keys->erase(keyName(provider.id));
 		{
 			const std::scoped_lock lock(shared->mutex);
@@ -310,7 +311,8 @@ void registerCalls(affresco::Screen& screen, const std::filesystem::path& dataDi
 	});
 	screen.onCall("intelligence.openKeyHelp", [shared](const std::string& argumentsJson) {
 		// Only the catalogue's own page of a provider: a screen can't make it open a URL of its choosing
-		const Provider& provider = providerOf(*shared, json::parse(argumentsJson, nullptr, false));
+		const json arguments = json::parse(argumentsJson, nullptr, false);
+		const Provider& provider = providerOf(*shared, arguments);
 		if(provider.keyHelp.starts_with("https://") && affresco::net::isSignInPage(provider.keyHelp))
 			affresco::net::openInBrowser(provider.keyHelp);
 		return std::string("true");

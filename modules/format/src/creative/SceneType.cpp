@@ -291,25 +291,25 @@ json transformEvent(const scene3d::SceneTransform& transform) {
 EventConnections listenToSceneEvents(Panel& panel, EventSink sink) {
 	auto* scene = dynamic_cast<SceneView*>(&panel);
 	if(!scene) return {};
-	const Connection pick = scene->onPick.connect([scene, sink](const scene3d::ScenePick& pick) {
+	const Connection pick = scene->onPick.connect([scene, sink](const scene3d::ScenePick& event) {
 		sink("onSelect", json{{"type", "pick"},
-		                      {"id", pick.node.empty() ? json() : json(pick.node)},
-		                      {"button", buttonName(pick.button)},
-		                      {"shift", pick.shift},
-		                      {"x", pick.at[0]},
-		                      {"y", pick.at[1]},
-		                      {"point", pick.point ? rounded(*pick.point) : json()},
+		                      {"id", event.node.empty() ? json() : json(event.node)},
+		                      {"button", buttonName(event.button)},
+		                      {"shift", event.shift},
+		                      {"x", event.at[0]},
+		                      {"y", event.at[1]},
+		                      {"point", event.point ? rounded(*event.point) : json()},
 		                      {"selection", scene->selection()}});
 	});
-	const Connection box = scene->onBoxSelect.connect([scene, sink](const scene3d::SceneBoxSelect& box) {
+	const Connection box = scene->onBoxSelect.connect([scene, sink](const scene3d::SceneBoxSelect& event) {
 		sink("onSelect", json{{"type", "boxSelect"},
-		                      {"ids", box.nodes},
-		                      {"shift", box.shift},
-		                      {"box", box.box},
+		                      {"ids", event.nodes},
+		                      {"shift", event.shift},
+		                      {"box", event.box},
 		                      {"selection", scene->selection()}});
 	});
 	const Connection transform = scene->onTransform.connect(
-	    [sink](const scene3d::SceneTransform& transform) { sink("onTransform", transformEvent(transform)); });
+	    [sink](const scene3d::SceneTransform& event) { sink("onTransform", transformEvent(event)); });
 	return {pick, box, transform, 0};
 }
 

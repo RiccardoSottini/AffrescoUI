@@ -89,9 +89,9 @@ struct AudioPlayers::Impl {
 	};
 
 	/// @brief The players of an engine.
-	/// @param owner The public object.
-	/// @param runtime The runtime.
-	Impl(AudioPlayers& owner, Engine& runtime) : owner(owner), runtime(runtime) {}
+	/// @param self The public object.
+	/// @param engine The runtime.
+	Impl(AudioPlayers& self, Engine& engine) : owner(self), runtime(engine) {}
 
 	AudioPlayers& owner;                                                       ///< For the network.
 	Engine& runtime;                                                           ///< The runtime.

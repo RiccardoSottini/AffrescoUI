@@ -150,7 +150,7 @@ void Events::modal(Panel& overlay, bool open) {
 	const Panel* coming = focusLater_.panel ? focusLater_.panel : focusLater_.scope;
 	if(focusLater_.pending && !focusLater_.cancelled && !within(coming, overlay))
 		if(const auto next =
-		       std::ranges::find_if(modals_, [coming](const Modal& open) { return within(coming, *open.overlay); });
+		       std::ranges::find_if(modals_, [coming](const Modal& other) { return within(coming, *other.overlay); });
 		   next != modals_.end()) {
 			if(within(next->previous, overlay)) next->previous = previous;
 			return;
@@ -179,7 +179,7 @@ void Events::focusLater(Panel* panel, Panel* scope, int frames) {
 		if(target.scope) {
 			const std::vector<Panel*> inside = focusables(*target.scope, false);
 			const auto chosen = std::ranges::find_if(
-			    inside, [this](const Panel* panel) { return autofocused(engine_.reconciler, panel); });
+			    inside, [this](const Panel* candidate) { return autofocused(engine_.reconciler, candidate); });
 			focus = inside.empty() ? target.scope : chosen != inside.end() ? *chosen : inside.front();
 		}
 		engine_.window->setFocus(focus);

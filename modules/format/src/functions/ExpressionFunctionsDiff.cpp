@@ -329,8 +329,8 @@ Value diffLinesOf(const Call& call) {
 			break;
 		}
 		for(; cursor < hunk.begin; ++cursor) {
-			oldBefore += lines[cursor].old != 0 ? 1 : 0;
-			newBefore += lines[cursor].now != 0 ? 1 : 0;
+			oldBefore += lines[cursor].old != 0 ? 1U : 0U;
+			newBefore += lines[cursor].now != 0 ? 1U : 0U;
 		}
 		const std::span<const DiffLine> all(lines.data() + hunk.begin, hunk.end - hunk.begin);
 		const std::span<const DiffLine> shown = all.first(std::min(all.size(), options.limit - given));
