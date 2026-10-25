@@ -317,7 +317,7 @@ void drawCodewords(Matrix& matrix, std::span<const std::uint8_t> codewords) noex
 				const int x = right - j;
 				const int y = upward ? size - 1 - vertical : vertical;
 				if(matrix.function(x, y) || i >= bits) continue;
-				matrix.set(x, y, ((codewords[i / 8] >> (7 - i % 8)) & 1U) != 0);
+				matrix.set(x, y, ((static_cast<unsigned>(codewords[static_cast<std::size_t>(i / 8)]) >> static_cast<unsigned>(7 - i % 8)) & 1U) != 0);
 				++i;
 			}
 	}
