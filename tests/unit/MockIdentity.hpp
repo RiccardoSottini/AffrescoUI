@@ -20,8 +20,9 @@
 namespace affresco::test {
 
 /// @brief The mock provider. Its endpoints are origin() + "/authorize", "/device", "/token", "/userinfo" (the subject
-/// of the current access token, else 401) and "/api/..." (the resource: 200 with the account for the current access
-/// token, else 401).
+/// of the current access token, else 401), "/introspect" (RFC 7662: whether a token is active, its subject and the
+/// client it was issued to; 401 without introspectionSecret()) and "/api/..." (the resource: 200 with the account for
+/// the current access token, else 401).
 class MockIdentity {
 public:
 	/// @brief Starts the provider.
@@ -46,6 +47,8 @@ public:
 		        {"scopes", json::array({"openid", "profile"})}};
 	}
 
+	/// @brief The secret of the resource server's client, which "/introspect" requires (generated test data).
+	[[nodiscard]] static std::string introspectionSecret() { return "test-introspection-secret"; }
 	/// @brief The subject ("sub") userinfo gives for the current access token.
 	[[nodiscard]] static std::string subject() { return "subject-tester"; }
 	/// @brief Signs in without a client, as if a flow had just finished.
@@ -217,6 +220,17 @@ private:
 				const bool allowed = !access_.empty() && header(request.head, "Authorization") == "Bearer " + access_;
 				answer = allowed ? httpResponse("200 OK", json{{"sub", subject()}}.dump())
 				                 : httpResponse("401 Unauthorized", R"({"error":"invalid_token"})");
+			} else if(path == "/introspect") {
+				const auto field = [&request](std::string_view name) {
+					return net::oauth::queryField(request.body, name).value_or("");
+				};
+				const bool active = !access_.empty() && field("token") == access_;
+				answer = field("client_secret") != introspectionSecret()
+				             ? httpResponse("401 Unauthorized", R"({"error":"invalid_client"})")
+				         : active
+				             ? httpResponse("200 OK",
+				                            json{{"active", true}, {"sub", subject()}, {"client_id", clientId_}}.dump())
+				             : httpResponse("200 OK", R"({"active":false})");
 			} else if(path.starts_with("/api/")) {
 				const bool allowed = !access_.empty() && header(request.head, "Authorization") == "Bearer " + access_;
 				answer = allowed ? httpResponse("200 OK", json{{"account", account()}, {"ok", true}}.dump())

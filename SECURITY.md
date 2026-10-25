@@ -306,8 +306,10 @@ otherwise, and is meant to sit behind a proxy that terminates TLS (apps/server/d
 of every revision, so the document's permissions apply per person; a person's own documents (`~name`) are found by
 that name, never by a path the peer sends. A lease is a deny rule for everyone but its holder, checked with the
 document's own rules; it grants its holder nothing more. Presence is what a peer says about itself: shown, bounded,
-never used to decide anything. Leases, presence entries and the server's messages are all bounded (apps/server). With `--userinfo` it also admits OAuth access
-tokens: each is checked at the provider's https userinfo endpoint, and only the subjects of the people file the
+never used to decide anything. Leases, presence entries and the server's messages are all bounded (apps/server). With `--introspect` or `--userinfo` it also admits OAuth access
+tokens: each is checked at the provider's https introspection endpoint (RFC 7662, with the server's own client, and
+only a token issued to that client), or at its userinfo endpoint (which admits a token any app of that provider got:
+the server warns), and only the subjects of the people file the
 operator writes get in, by the name that file gives them; a token that worked is remembered by its hash for five
 minutes (a revoked token keeps working that long at most), a refused one isn't, and each question is bounded in time
 and size. The server never keeps, logs or forwards a token anywhere but to that endpoint.
