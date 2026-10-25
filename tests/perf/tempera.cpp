@@ -3,10 +3,11 @@
 /// fitted view composited from the tiles it inflates), panned at 100% (a 1280 by 800 view composited at a new place),
 /// and painted (a brush stroke across it, committed as a step). CPU only: the GPU compositor draws the same tiles.
 /// The same stroke is also played as a screen plays it, on a 4,000 by 4,000 image of an "images" section: through the
-/// image store and the "image" step's "pointer" operation, then the snapshot the screen's state receives.
+/// image store and the "image" step's "pointer" operation, then the snapshot the screen's state receives. On that
+/// image, a painted layer is also turned and scaled by the "transformLayer" operation, then the step undone.
 ///
 /// With AFFRESCOUI_PERF_BUDGETS set, a run over its budget fails: open 8 s, a pan 60 ms, a stroke 20 ms, a stroke
-/// through the store 20 ms (measured on macOS: 1.1 s, 15 ms, 1 ms and 1.2 ms).
+/// through the store 20 ms, a transform 2 s (measured on macOS: 1.1 s, 15 ms, 1 ms, 1.2 ms and 0.66 s).
 
 #include "Bench.hpp"
 #include "ImageDocuments.hpp"
@@ -41,6 +42,7 @@ constexpr double openBudget = 8000.0;             ///< Opening, in milliseconds.
 constexpr double panBudget = 60.0;                ///< A pan, in milliseconds.
 constexpr double paintBudget = 20.0;              ///< A stroke, in milliseconds.
 constexpr double storeBudget = 20.0;              ///< A stroke through the store, in milliseconds.
+constexpr double transformBudget = 2000.0;        ///< A transform and its undo, in milliseconds.
 constexpr int storeSide = 4000;                   ///< The store's image's width and height.
 
 /// @brief Fails the run if a step took longer than its budget and budgets are on.
@@ -148,6 +150,23 @@ struct Stored {
 		pointer->run(*image, {{"points", points}}, nullptr);
 		if(format::editing::snapshot(*image).empty()) throw std::runtime_error("an empty snapshot");
 	}
+
+	/// @brief Turns the painted layer by 33 degrees at 80% of its size, as one "transformLayer" step, then undoes it
+	/// (painting a stroke first when nothing is painted yet).
+	void transform() {
+		if(next == 0) paint();
+		run("transformLayer", {{"scaleX", 80}, {"scaleY", 80}, {"angle", 33}});
+		run("undo", json::object());
+	}
+
+	/// @brief Runs an operation of the "image" step on the image.
+	/// @param name The operation.
+	/// @param with Its arguments.
+	void run(const std::string& name, const json& with) {
+		const format::editing::ImageOperation* operation = format::editing::findImageOperation(name);
+		if(operation == nullptr) throw std::runtime_error("no \"" + name + "\" operation");
+		operation->run(*image, with, nullptr);
+	}
 };
 
 } // namespace
@@ -176,6 +195,11 @@ std::vector<Workload> temperaWorkloads(Context& /*context*/) {
 		                     const auto start = std::chrono::steady_clock::now();
 		                     stored->paint();
 		                     checkBudget("tempera/paint-store", start, storeBudget);
+	                     }});
+	workloads.push_back({.name = "tempera/transform-store", .unit = "ms", .runs = 9, .step = [stored] {
+		                     const auto start = std::chrono::steady_clock::now();
+		                     stored->transform();
+		                     checkBudget("tempera/transform-store", start, transformBudget);
 	                     }});
 	return workloads;
 }

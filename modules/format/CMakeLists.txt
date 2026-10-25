@@ -171,8 +171,8 @@ target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
 # operations, the publisher and the view
 target_sources(affrescoui_format PRIVATE src/imaging/ImageDocuments.cpp src/imaging/ImageOptions.cpp
 	src/imaging/ImagesSection.cpp src/imaging/ImageGestures.cpp src/imaging/ImageOperations.cpp
-	src/imaging/ImageFiles.cpp src/imaging/ImageLayers.cpp src/imaging/ImageEdits.cpp src/imaging/ImageView.cpp
-	src/imaging/ImageSteps.cpp src/imaging/ImagePublishing.cpp src/imaging/RasterView.cpp
+	src/imaging/ImageFiles.cpp src/imaging/ImageLayers.cpp src/imaging/ImageEdits.cpp src/imaging/ImageTransforms.cpp
+	src/imaging/ImageView.cpp src/imaging/ImageSteps.cpp src/imaging/ImagePublishing.cpp src/imaging/RasterView.cpp
 	src/imaging/RasterOverlays.cpp src/imaging/RasterType.cpp)
 target_link_libraries(affrescoui_format PRIVATE affrescoui::imaging)
 # audio: the sounds a screen plays ("audio" section, "audio" step), on the audio module if it is built

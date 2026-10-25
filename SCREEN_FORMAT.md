@@ -1391,7 +1391,7 @@ The operations, and the keys of `with` each reads:
 | `selectLayer` | `id` | Makes a layer the active one. |
 | `addMask` | `id` | Adds a mask to a layer. |
 | `deleteMask` | `id` | Deletes a layer's mask. |
-| `moveLayer` | `id`, `onto`, `by` | Moves a layer onto another's place, or a step up or down. |
+| `moveLayer` | `id`, `into`, `onto`, `by` | Moves a layer into a group, onto another's place, or a step up or down. |
 | `setLayer` | `id`, `name`, `visible`, `opacity`, `blend`, `lockPixels`, `lockPosition`, `lockAll`, `clipped`, `maskEnabled`, `adjustment` | Changes a layer's settings. |
 | `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
 | `feather` | `radius` | Softens the selection's edge. |
@@ -1400,24 +1400,43 @@ The operations, and the keys of `with` each reads:
 | `previewFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Previews a filter on the active layer until it is applied or cancelled. |
 | `applyFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Applies the filter previewed, or the one given, as one step. |
 | `cancelFilter` | — | Drops the filter's preview. |
+| `canvasSize` | `width`, `height`, `anchor` | Makes the canvas larger or smaller around the image, and forgets the history. |
+| `imageSize` | `width`, `height` | Resamples the image to a size, and forgets the history. |
+| `rotateCanvas` | `angle` | Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history). |
+| `flipCanvas` | `direction` | Mirrors the image horizontally or vertically. |
+| `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
+| `alignLayer` | `id`, `edge` | Lines a pixel layer up with an edge or the middle of the selection, or of the image. |
+| `mergeDown` | `id` | Merges a layer into the pixel layer below it. |
+| `mergeVisible` | — | Merges the visible layers into one. |
+| `flatten` | `background` | Merges every visible layer into one and discards the hidden ones. |
+| `deleteHidden` | — | Deletes the hidden layers. |
+| `copy` | `merged` | Keeps the selection's pixels of the active layer, or of every layer, for paste. |
+| `cut` | — | Copies the selection's pixels of the active layer and clears them. |
+| `paste` | `name` | Adds what was copied as a new layer above the active one. |
+| `clear` | — | Clears the selection's pixels of the active layer. |
 | `snapshot` | — | Changes nothing; publishes the image's snapshot. |
+| `histogram` | `bins` | Counts the image's pixels as shown by brightness, for the snapshot's histogram. |
 | `fit` | — | Zooms and centres the view on the whole image. |
 | `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
 | `setTool` | `tool` | Chooses one of the document's tools, with its options. |
-| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource` | Sets the tools' options and the colours. |
+| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect` | Sets the tools' options and the colours. |
 | `setProfile` | `working`, `display`, `proof` | Sets the working, display or proof colour profile. |
 | `pointer` | `phase`, `x`, `y`, `button`, `pressure`, `scroll`, `modifiers`, `points` | Plays pointer events (document pixels) through the current tool. |
 <!-- end generated -->
 
 Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `invert`, `rectangle`
 and `ellipse` from `from` to `to`, `polygon` through `points`, `wand` at `x`, `y`, `colorRange` of `color` within
-`fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` onto the place of `onto`,
-or `by` places up (positive) or down. Filters and `fillSelection` change the active layer's pixels, or its mask with
-`"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
+`fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` into the group `into` (at
+its top), onto the place of `onto`, or `by` places up (positive) or down. Filters and `fillSelection` change the active
+layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
 `srgb`, `displayP3`, `wideRgb` or `gray`. `pointer` takes one event (`phase`: `press`, `move`, `release` or `scroll`;
 `x`, `y`; `button`: `left` or `right`; `pressure` from 0 to 1; `scroll`; `modifiers`: a list of `shift`, `control`,
-`alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. `open`, `save`
-and `revert` go through the file dialogs the person sees: a document never names a file.
+`alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. A selecting
+tool's press with `shift` held adds to the selection, with `alt` subtracts, with both intersects, whatever the tool's
+`mode` (a polygon keeps the mode of its first corner). During a marquee's or crop's drag, `shift` keeps a square and
+`alt` draws from the press as the centre (a key held since the press only chose the mode). With the `autoSelect` option,
+a `move` press first makes the topmost visible pixel layer painted under it the active one. `open`, `save` and `revert`
+go through the file dialogs the person sees: a document never names a file.
 
 ### Image values and the snapshot
 
@@ -1436,10 +1455,12 @@ The names the operations and tool options take, and the library's limits:
 
 The snapshot has `width`, `height`, `format`, `profile`, `display`, `proof`, `revision`, `active` (the active layer's
 id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opacity`, `blend`, `lockPixels`,
-`lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as
-`"board/layer/3"` that an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`,
-`canRedo`, `memory`, `selection`, `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view`
-(`zoom`, `x`, `y`), `message` and `previewing`; `"<image>/navigator"` is a thumbnail of the whole image.
+`lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as `"board/layer/3"` that
+an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`, `canRedo`, `memory`, `selection`,
+`bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view` (`zoom`, `x`, `y`), `message`, `previewing`,
+`clipboard` (whether copy or cut has kept pixels to paste) and `histogram` (what the `histogram` operation last counted:
+pixels by brightness, darkest first, transparent ones left out; a large image is measured at a smaller size, so give
+`curves` the counts, not totals); `"<image>/navigator"` is a thumbnail of the whole image.
 
 ### An image example
 
