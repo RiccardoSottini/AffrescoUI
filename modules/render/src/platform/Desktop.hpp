@@ -35,6 +35,11 @@ namespace platform::desktop {
 /// Called once, after GLFW started.
 void watchColorScheme();
 
+/// @brief Keeps an app whose windows all stay hidden out of the Dock and the app switcher (macOS: an accessory app
+/// that never activates); nothing elsewhere, where a hidden window has no taskbar entry.
+/// Called once, after GLFW started.
+void keepOutOfSwitcher();
+
 /// @brief Sets the app's icon where the system shows one icon per app (the Dock on macOS); nothing elsewhere, where
 /// GLFW sets each window's.
 /// @param icon The image, or nullptr for the app's own (its bundle's).

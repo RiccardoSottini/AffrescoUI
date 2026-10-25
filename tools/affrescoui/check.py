@@ -39,6 +39,8 @@ RENDER_SCENARIOS = os.path.join(ROOT, "tests", "render", "scenarios")
 sys.path.insert(0, os.path.join(ROOT, "tools", "media"))
 import pngfile  # noqa: E402 (tools/media/: reads the PNGs the tool and the runner write)
 
+os.environ.setdefault("AFFRESCOUI_HIDDEN", "1")  # its programs never show a window (CONTRIBUTING.md); =0 shows them
+
 
 def template_files(pattern):
     """The templates' files that match the pattern, from each one's folder (examples/templates.json), by name."""
