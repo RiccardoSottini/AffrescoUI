@@ -41,9 +41,8 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "node the keyboard focused: a colour, `{ \"color\": \"#2563EB\", \"width\": 2, \"offset\": 2 }` (the "
 	 "defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a "
 	 "PNG, JPEG or SVG file under the rules of an image's `file`; "
-	 "`keyLabels`: how the `keyLabel`s of menus, `commands` and `keybindings` write "
-	 "keys: `\"platform\"` (the default), `\"mac\"` (`⌃X ⌘S`), `\"pc\"` (`Ctrl+X Super+S`) or `\"emacs\"` "
-	 "(`C-x s-s`, `M-<`, `C-SPC`, `RET`, `<f3>`).",
+	 "`keyLabels`: the notation of `keyLabel`s, `\"platform\"` (the default), `\"mac\"`, `\"pc\"` or "
+	 "`\"emacs\"` (`C-x`, `M-<`).",
 	 "sections"},
     {"fonts", R"json({"type": "object",
 		"description": "Fonts by name; \"default\" is used by text without a \"font\"",
@@ -418,9 +417,9 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "steps"},
     {"scrollTo", "", "", "steps"},
     {"edit", "",
-	 R"(`{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "lineEnd", )"
-	 R"("into": "state.kill", "append": true }`: a code editor's command ("in" or the focused one); type and cut act )"
-	 R"(at once, cut's "span" is "lineEnd", "word", "selection" or "line", to "into" or the clipboard)",
+	 R"(`{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", )"
+	 R"("into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", )"
+	 R"("word", "selection" or "line")",
 	 "steps"},
     {"in", "", "", ""},
     {"line", "", "", ""},
@@ -430,8 +429,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"prefix", "", "", ""},
     {"span", "", "", ""},
     {"press", "",
-	 R"(`{ "press": "ctrl+x ctrl+s", "in": "#ed", "times": 3 }`: keys as the keyboard sends them (US layout), )"
-	 "unheard by bindings",
+	 R"(`{ "press": "ctrl+x ctrl+s", "in": "#ed" }`: keys as typed, unheard by bindings)",
 	 "steps"},
     {"dismiss", R"json({"const": true})json",
 	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},
