@@ -49,6 +49,11 @@
 		"ctrl+h b": "describe-bindings",
 		"ctrl+h m": "describe-mode",
 		"ctrl+h e": "view-echo-area-messages",
-		"ctrl+h t": "help-with-tutorial"
+		"ctrl+h t": "help-with-tutorial",
+		"ctrl+s": "isearch-forward",
+		"ctrl+r": "isearch-backward",
+		"alt+shift+5": "query-replace",
+		"ctrl+x ctrl+w": "write-file",
+		"ctrl+x i": "insert-file"
 	}
 }

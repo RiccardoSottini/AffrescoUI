@@ -30,11 +30,13 @@
 		"parts/look.json",
 		"parts/state.json",
 		"parts/settings.json",
+		"parts/languages.json",
 		"parts/files.json",
 		"parts/frame.json",
 		"parts/commands.json",
 		"parts/keys.json",
-		"parts/menus.json"
+		"parts/menus.json",
+		"../shared/addons/assistant/assistant.json"
 	],
 	"computed": {
 		"splashLinks": [
@@ -143,12 +145,6 @@
 			"category": "Editing",
 			"description": "Inserts the last killed text.",
 			"do": { "run": "message", "with": { "m": "The kill ring is empty" } }
-		},
-		"isearch-forward": {
-			"title": "Search Forward",
-			"category": "Search",
-			"description": "Searches for text as you type it.",
-			"do": { "run": "message", "with": { "m": "Search comes in a later version" } }
 		}
 	},
 	"root": {
@@ -156,19 +152,22 @@
 		"color": "@bg",
 		"children": [
 			{
+				"id": "column-root",
 				"type": "column",
 				"anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 },
 				"children": [
 					{ "id": "menuBar", "use": "frameMenuBar", "alignSelf": "stretch" },
-					{ "use": "toolBar", "alignSelf": "stretch" },
-					{ "height": 1, "alignSelf": "stretch", "color": "@barLine" },
+					{ "id": "tool-bar-root", "use": "toolBar", "alignSelf": "stretch" },
+					{ "id": "panel-root", "height": 1, "alignSelf": "stretch", "color": "@barLine" },
 					{
+						"id": "column-root-2",
 						"when": "{{state.layout.dir == 'column'}}",
 						"type": "column",
 						"grow": 1,
 						"alignSelf": "stretch",
 						"children": [
 							{
+								"id": "row-g",
 								"repeat": { "for": "g", "in": "{{state.layout.groups}}", "key": "{{join(g, ',')}}" },
 								"type": "row",
 								"grow": 1,
@@ -176,6 +175,7 @@
 								"alignSelf": "stretch",
 								"children": [
 									{
+										"id": "window-w",
 										"repeat": { "for": "w", "in": "{{g}}", "key": "{{w}}" },
 										"use": "window",
 										"with": { "w": "{{w}}" }
@@ -185,12 +185,14 @@
 						]
 					},
 					{
+						"id": "row-root",
 						"when": "{{state.layout.dir == 'row'}}",
 						"type": "row",
 						"grow": 1,
 						"alignSelf": "stretch",
 						"children": [
 							{
+								"id": "column-g",
 								"repeat": { "for": "g", "in": "{{state.layout.groups}}", "key": "{{join(g, ',')}}" },
 								"type": "column",
 								"grow": 1,
@@ -198,6 +200,7 @@
 								"alignSelf": "stretch",
 								"children": [
 									{
+										"id": "window-w-2",
 										"repeat": { "for": "w", "in": "{{g}}", "key": "{{w}}" },
 										"use": "window",
 										"with": { "w": "{{w}}" }
@@ -207,6 +210,7 @@
 						]
 					},
 					{
+						"id": "completions-root",
 						"when": "{{state.mb.open && state.mb.comp != null}}",
 						"use": "completions",
 						"alignSelf": "stretch"

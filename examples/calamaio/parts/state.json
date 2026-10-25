@@ -43,12 +43,12 @@
 		"modes": {
 			"fundamental": { "title": "Fundamental" },
 			"text": { "title": "Text", "menu": "text" },
-			"lisp-interaction": { "title": "Lisp Interaction", "menu": "lisp" },
-			"emacs-lisp": { "title": "ELisp/l", "menu": "lisp" },
+			"lisp-interaction": { "title": "Lisp Interaction", "menu": "lisp", "language": "emacs-lisp" },
+			"emacs-lisp": { "title": "ELisp/l", "menu": "lisp", "language": "emacs-lisp" },
 			"python": { "title": "Python", "menu": "python", "grammar": "python" },
 			"c": { "title": "C/*l", "menu": "c", "grammar": "c" },
 			"markdown": { "title": "Markdown", "menu": "outline", "grammar": "markdown" },
-			"org": { "title": "Org", "menu": "outline" },
+			"org": { "title": "Org", "menu": "outline", "language": "org" },
 			"messages": { "title": "Messages" },
 			"help": { "title": "Help" },
 			"dired": { "title": "Dired by name", "menu": "dired" },
@@ -57,6 +57,16 @@
 		"modeFor": { "py": "python", "c": "c", "h": "c", "el": "emacs-lisp", "md": "markdown", "org": "org", "txt": "text" },
 		"keyread": { "on": false, "seq": "" },
 		"argDigits": false,
-		"argU": 0
+		"argU": 0,
+		"is": {
+			"on": false,
+			"text": "",
+			"back": false,
+			"step": "first",
+			"req": 0,
+			"start": { "line": 1, "column": 1 },
+			"last": null
+		},
+		"qr": { "on": false, "from": null, "to": "", "step": "first", "req": 0, "replace": "", "done": 0, "at": null }
 	}
 }

@@ -202,7 +202,7 @@ void applyGrammar(TextEditor& editor, const json& values, const PropertyReader& 
 }
 
 /// @brief Sets an editor's language: the editing rules of the language "language" names (by name, alias or file
-/// name, in the document's "languages"), and its colours unless "grammar" is given: each scope in "@syntax.<scope>" or
+/// name, in the document's "languages"), and its colours unless a "grammar" is given: each scope in "@syntax.<scope>" or
 /// its parent scope's. Only a highlighter this key installed is replaced or removed.
 /// @param editor The editor.
 /// @param values The node's values.
@@ -216,7 +216,9 @@ void applyLanguage(TextEditor& editor, const json& values, const PropertyReader&
 	if(values.contains("language") && reader.languages())
 		language = reader.languages()->find(string(values["language"], path + ".language"));
 	if(auto* code = dynamic_cast<LanguageEditor*>(&editor)) code->setLanguage(language);
-	if(!language || values.contains("grammar")) {
+	// An empty grammar is none, as a binding may give
+	const bool grammar = values.contains("grammar") && !string(values["grammar"], path + ".grammar").empty();
+	if(!language || grammar) {
 		if(ours) editor.setHighlighter(nullptr);
 		return;
 	}
