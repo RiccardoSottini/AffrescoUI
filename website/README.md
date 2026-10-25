@@ -6,7 +6,7 @@ each time the site is built, so nothing is copied by hand.
 
 | Path | What it is |
 |---|---|
-| `docs/` | The pages written by hand |
+| `pages/` | The pages written by hand (not `docs/`, which the repository ignores) |
 | `recipes/` | The cookbook's screens and scenarios, each checked by the build; pages include them, never copy them |
 | `tools/check_snippets.py` | Checks every recipe (`affrescoui check`), plays every scenarios file (`affrescoui test`), and fails on a page that shows a screen inline instead of including a recipe |
 | `tools/generate.py` | Stages the site in `build/docs`: the pages, the repository documents it includes (`SCREEN_FORMAT.md`, `VERSION_CONTROL.md`, `SECURITY.md`, the CLI's README), the catalog from `affrescoui schema`, the MCP tools from the server's tool list, the JSON Schemas, and the C++ API reference |

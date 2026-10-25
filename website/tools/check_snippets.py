@@ -55,7 +55,7 @@ def check_pages():
     @return the problems, one line each
     """
     problems = []
-    for page in sorted((WEBSITE / "docs").rglob("*.md")):
+    for page in sorted((WEBSITE / "pages").rglob("*.md")):
         text = page.read_text(encoding="utf-8")
         for name in INCLUDE.findall(text):
             if not (WEBSITE / name).is_file() and not (WEBSITE.parent / name).is_file():
