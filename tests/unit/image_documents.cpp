@@ -224,6 +224,43 @@ TEST_CASE("format: Shift held at a press adds to the selection, Alt subtracts an
 	CHECK(editing::snapshot(image)["bounds"] == json({20, 0, 40, 32}));
 }
 
+TEST_CASE("format: move with autoSelect makes the topmost layer painted under a press the active one") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = store.image("photo", {{"width", 32}, {"height", 16}}, "images.photo");
+	const auto active = [&] { return editing::snapshot(image)["active"].get<std::string>(); };
+	const auto paint = [&](int left, int right) {
+		run(image, "select", {{"kind", "rectangle"}, {"from", {{"x", left}, {"y", 0}}}, {"to", {{"x", right}, {"y", 16}}}});
+		run(image, "fillSelection", {{"color", "#000000"}});
+	};
+	const auto click = [&](int x) {
+		for(const char* phase : {"press", "release"}) run(image, "pointer", {{"phase", phase}, {"x", x}, {"y", 8}});
+	};
+	const std::string bottom = active();
+	run(image, "addLayer", {{"name", "Top"}});
+	const std::string top = active();
+	paint(8, 24);
+	run(image, "select", {{"kind", "none"}});
+	run(image, "setTool", {{"tool", "move"}});
+	click(2);
+	CHECK(active() == top);
+	run(image, "setOptions", {{"autoSelect", true}});
+	CHECK(editing::snapshot(image)["options"]["autoSelect"] == true);
+	click(2);
+	CHECK(active() == bottom);
+	click(10);
+	CHECK(active() == top);
+	click(28);
+	CHECK(active() == bottom); // The background is painted everywhere
+	click(10);
+	run(image, "setLayer", {{"id", bottom}, {"visible", false}});
+	click(28);
+	CHECK(active() == top); // Nothing visible is painted there
+	run(image, "setLayer", {{"id", bottom}, {"visible", true}});
+	run(image, "setLayer", {{"id", top}, {"visible", false}});
+	click(10);
+	CHECK(active() == bottom);
+}
+
 TEST_CASE("format: the layer operations add and change and move and mask and delete layers") {
 	editing::ImageDocuments store;
 	editing::ImageDocument& image = store.image("photo", {{"width", 16}, {"height", 16}}, "images.photo");

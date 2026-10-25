@@ -110,6 +110,7 @@ struct ToolSettings {
 	std::optional<imaging::Gradient> gradient; ///< gradient: its stops; none: foreground to background.
 	float opacity = 1.0f;                      ///< fill, gradient: 0 to 1.
 	bool quickMask = false;                    ///< The paint gestures paint the selection.
+	bool autoSelect = false;                   ///< move: a press picks the topmost layer painted under it.
 	std::optional<imaging::Point> cloneSource; ///< clone: the point copied from.
 };
 

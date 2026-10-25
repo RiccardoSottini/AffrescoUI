@@ -749,6 +749,14 @@ def images_seeds():
                                                   ("release", 30, ["shift", "alt"]), ("press", 4, ["alt"]),
                                                   ("release", 4, [])])]
     seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": held}))
+    # move with autoSelect: presses on paint, in a group, off the image and on nothing
+    picked = [{"image": "setTool", "with": {"tool": "move"}}, {"image": "setOptions", "with": {"autoSelect": True}},
+              {"image": "addLayer", "with": {"kind": "group"}}, {"image": "addLayer", "with": {"name": "Ink"}},
+              {"image": "select", "with": {"kind": "rectangle", "from": {"x": 8, "y": 8}, "to": {"x": 20, "y": 20}}},
+              {"image": "fillSelection", "with": {"color": "#204080"}}, {"image": "select", "with": {"kind": "none"}}]
+    picked += [{"image": "pointer", "with": {"phase": phase, "x": x, "y": x}}
+               for x in [10, -10, 1000, 40] for phase in ["press", "release"]]
+    seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": picked}))
     return seeds
 
 

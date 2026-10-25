@@ -1410,7 +1410,7 @@ The operations, and the keys of `with` each reads:
 | `fit` | — | Zooms and centres the view on the whole image. |
 | `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
 | `setTool` | `tool` | Chooses one of the document's tools, with its options. |
-| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource` | Sets the tools' options and the colours. |
+| `setOptions` | `preset`, `size`, `sizeStep`, `hardness`, `spacing`, `opacity`, `flow`, `mode`, `tolerance`, `contiguous`, `allLayers`, `fillOpacity`, `shape`, `gradientPreset`, `gradient`, `foreground`, `background`, `swap`, `reset`, `quickMask`, `cloneSource`, `autoSelect` | Sets the tools' options and the colours. |
 | `setProfile` | `working`, `display`, `proof` | Sets the working, display or proof colour profile. |
 | `pointer` | `phase`, `x`, `y`, `button`, `pressure`, `scroll`, `modifiers`, `points` | Plays pointer events (document pixels) through the current tool. |
 <!-- end generated -->
@@ -1424,7 +1424,8 @@ layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by`
 `x`, `y`; `button`: `left` or `right`; `pressure` from 0 to 1; `scroll`; `modifiers`: a list of `shift`, `control`,
 `alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. A selecting
 tool's press with `shift` held adds to the selection, with `alt` subtracts, with both intersects, whatever the tool's
-`mode` (a polygon keeps the mode of its first corner). `open`, `save` and `revert` go through the file dialogs the
+`mode` (a polygon keeps the mode of its first corner). With the `autoSelect` option, a `move` press first makes the
+topmost visible pixel layer painted under it the active one. `open`, `save` and `revert` go through the file dialogs the
 person sees: a document never names a file.
 
 ### Image values and the snapshot

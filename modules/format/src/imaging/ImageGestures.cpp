@@ -10,6 +10,7 @@
 #include <cmath>
 #include <functional>
 #include <map>
+#include <ranges>
 
 namespace affresco::format::editing {
 
@@ -177,6 +178,37 @@ void clickFill(ImageDocument& image, Point at) {
 	                static_cast<int>(std::floor(at.y)), settings.foreground, settings.sample, settings.opacity);
 }
 
+/// @brief The topmost visible pixel layer with paint at a place, among some layers and the groups' layers.
+/// @param document The document.
+/// @param layers The layers, the bottom one first.
+/// @param x The place's column.
+/// @param y Its row.
+/// @return The layer's id, or 0 for none.
+[[nodiscard]] std::uint64_t paintedLayerAt(const imaging::Document& document, const std::vector<std::uint64_t>& layers,
+                                           int x, int y) {
+	for(const std::uint64_t id : std::views::reverse(layers)) {
+		const imaging::Layer& layer = document.structure().layers.at(id);
+		if(!layer.visible) continue;
+		if(layer.kind == imaging::LayerKind::group) {
+			if(const std::uint64_t found = paintedLayerAt(document, layer.children, x, y)) return found;
+		} else if(layer.kind == imaging::LayerKind::pixel && document.image(layer.pixels)->pixel(x, y).alpha > 0.0f)
+			return id;
+	}
+	return 0;
+}
+
+/// @brief move with autoSelect: makes the topmost layer painted under the press the active one.
+/// @param document The document.
+/// @param at Where, in document pixels.
+/// @return Whether the active layer changed.
+bool pickLayer(imaging::Document& document, Point at) {
+	const std::uint64_t found = paintedLayerAt(document, document.structure().root, static_cast<int>(std::floor(at.x)),
+	                                           static_cast<int>(std::floor(at.y)));
+	if(found == 0 || found == document.structure().active) return false;
+	document.setActive(found);
+	return true;
+}
+
 /// @brief Pans the view by how far the pointer moved since the press.
 /// @param image The image.
 /// @param event The event.
@@ -201,6 +233,8 @@ bool pressTool(ImageDocument& image, Point at) {
 		return addCorner(image, at);
 	case Gesture::magicWand:
 		return clickWand(image.canvas->document(), image.settings, image.press.mode, at);
+	case Gesture::move:
+		return image.settings.autoSelect && pickLayer(image.canvas->document(), at);
 	case Gesture::fill:
 		clickFill(image, at);
 		return true;
