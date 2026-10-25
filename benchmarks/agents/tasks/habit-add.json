@@ -2,62 +2,37 @@
 	"id": "habit-add",
 	"level": "edit",
 	"screen": "examples/streak/index.screen.json",
-	"request": "Add the habit \"Stretch for 10 minutes\", not done today, with no streak yet, colored #0ea5e9.",
+	"request": "Show the archived habits in the habit list too, so that Guitar appears as its last row (#label-hb-name).",
 	"scenarios": [
 		{
-			"name": "added",
+			"name": "shown",
 			"steps": [
 				{
 					"expect": {
-						"state": "habits.length",
-						"is": 6
+						"state": "showArchived",
+						"is": true
 					}
 				},
 				{
 					"expect": {
-						"state": "habits[5].name",
-						"is": "Stretch for 10 minutes"
-					}
-				},
-				{
-					"expect": {
-						"state": "habits[5].done",
-						"is": false
-					}
-				},
-				{
-					"expect": {
-						"node": "#label-habit-name",
-						"text": "Stretch for 10 minutes",
-						"nth": 5
-					}
-				},
-				{
-					"expect": {
-						"node": "#doneCount",
-						"text": "2 of 6 done"
+						"node": "#label-hb-name",
+						"text": "Guitar",
+						"nth": 7
 					}
 				}
 			]
 		}
 	],
 	"unchanged": [
-		"#logo",
-		"#tabs",
-		"#newHabit",
-		"#statusBar"
+		"#appBar",
+		"#habitList",
+		"#detailPane"
 	],
 	"reference": [
 		{
-			"message": "A habit: stretching",
-			"add": {
-				"/state/habits/-": {
-					"name": "Stretch for 10 minutes",
-					"done": false,
-					"streak": 0,
-					"week": 0,
-					"color": "#0ea5e9"
-				}
+			"message": "Show the archived habits",
+			"set": {
+				"/state/showArchived": true
 			}
 		}
 	]

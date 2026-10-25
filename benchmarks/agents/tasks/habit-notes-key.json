@@ -2,15 +2,15 @@
 	"id": "habit-notes-key",
 	"level": "feature",
 	"screen": "examples/streak/index.screen.json",
-	"request": "Add a command \"Go to the notes\" that opens the Notes tab, on the shortcut Cmd+Shift+O (mod+shift+o).",
+	"request": "Add a command \"Sort by name\" that sorts the habit list by name (state.sort to \"name\"), on the shortcut Cmd+Shift+O (mod+shift+o).",
 	"scenarios": [
 		{
 			"name": "key",
 			"steps": [
 				{
 					"expect": {
-						"state": "tab",
-						"is": "today"
+						"state": "sort",
+						"is": "manual"
 					}
 				},
 				{
@@ -18,33 +18,40 @@
 				},
 				{
 					"expect": {
-						"state": "tab",
-						"is": "notes"
+						"state": "sort",
+						"is": "name"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-hb-name",
+						"text": "Call the family",
+						"nth": 0
 					}
 				}
 			]
 		}
 	],
 	"unchanged": [
-		"#logo",
-		"#today",
-		"#statusBar"
+		"#appBar",
+		"#habitList",
+		"#detailPane"
 	],
 	"reference": [
 		{
-			"message": "Go to the notes",
+			"message": "Sort by name",
 			"set": {
-				"/actions/goToNotes": {
-					"title": "Go to the notes",
+				"/actions/sortByName": {
+					"title": "Sort by name",
 					"category": "View",
 					"do": [
 						{
-							"set": "state.tab",
-							"to": "notes"
+							"set": "state.sort",
+							"to": "name"
 						}
 					]
 				},
-				"/keys/mod+shift+o": "goToNotes"
+				"/keys/mod+shift+o": "sortByName"
 			}
 		}
 	]

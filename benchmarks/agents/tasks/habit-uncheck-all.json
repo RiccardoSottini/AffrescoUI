@@ -2,75 +2,74 @@
 	"id": "habit-uncheck-all",
 	"level": "feature",
 	"screen": "examples/streak/index.screen.json",
-	"request": "Add an \"Uncheck all\" link with the id uncheckAll to the Today card's header that marks every habit as not done today.",
+	"request": "Add a \"Pick all\" link with the id pickAll to the day header (#dayHeader), above the habit names, that picks every habit the list shows (state.picked holds their ids).",
 	"scenarios": [
 		{
-			"name": "uncheck",
+			"name": "pick",
 			"steps": [
 				{
 					"expect": {
-						"state": "habits[0].done",
-						"is": true
+						"state": "picked.length",
+						"is": 0
 					}
 				},
 				{
-					"click": "#uncheckAll"
+					"click": "#pickAll"
 				},
 				{
 					"expect": {
-						"state": "habits[0].done",
-						"is": false
-					}
-				},
-				{
-					"expect": {
-						"state": "habits[1].done",
-						"is": false
+						"state": "picked.length",
+						"is": 7
 					}
 				},
 				{
 					"expect": {
-						"node": "#doneCount",
-						"text": "0 of 5 done"
+						"state": "picked[0]",
+						"is": "meditate"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-t-picked-n",
+						"text": "7 selected"
 					}
 				}
 			]
 		}
 	],
 	"unchanged": [
-		"#logo",
-		"#tabs",
-		"#habits",
-		"#stats",
-		"#statusBar"
+		"#appBar",
+		"#row-day-header",
+		"#habitList",
+		"#detailPane"
 	],
 	"reference": [
 		{
-			"message": "Uncheck all",
+			"message": "Pick all",
 			"set": {
-				"/actions/uncheckAll": {
-					"title": "Uncheck every habit",
+				"/actions/pickAll": {
+					"title": "Pick every habit",
 					"category": "Habits",
 					"do": [
 						{
-							"set": "state.habits",
-							"to": "{{map(state.habits, merge(it, {'done': false}))}}"
+							"set": "state.picked",
+							"to": "{{map(computed.order, data.ordered[it].id)}}"
 						}
 					]
 				}
 			},
 			"add": {
-				"#today/children/-": {
-					"id": "uncheckAll",
+				"#dayHeader/children/-": {
+					"id": "pickAll",
 					"type": "label",
-					"text": "Uncheck all",
+					"text": "Pick all",
 					"fitText": true,
 					"cursor": "hand",
 					"anchors": {
-						"left": 110,
-						"top": 24
+						"left": 16,
+						"top": 14
 					},
-					"onClick": "uncheckAll"
+					"onClick": "pickAll"
 				}
 			}
 		}
