@@ -173,6 +173,7 @@ struct ImageDocument {
 	std::vector<std::uint8_t> saved;                       ///< The bytes last saved or opened (revert reads them).
 	std::string message;                                   ///< What the last operation has to say (a status line).
 	std::shared_ptr<const imaging::Image> clipboard;       ///< What copy and cut kept, the image's size then.
+	std::vector<int> histogram;                            ///< What histogram last counted, by brightness.
 	std::uint64_t thumbnailRevision = ~std::uint64_t{0};   ///< The document revision the thumbnails show.
 	std::uint64_t thumbnailGeneration = ~std::uint64_t{0}; ///< The document the thumbnails show.
 };

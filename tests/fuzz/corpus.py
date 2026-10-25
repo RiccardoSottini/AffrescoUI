@@ -757,6 +757,11 @@ def images_seeds():
     picked += [{"image": "pointer", "with": {"phase": phase, "x": x, "y": x}}
                for x in [10, -10, 1000, 40] for phase in ["press", "release"]]
     seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": picked}))
+    # histogram: bins in and out of range, with a hidden layer, and on a large image measured at a mip level
+    measured = [{"image": "histogram", "with": {"bins": bins}} for bins in [64, 1, 300, -5, "x"]]
+    measured += [{"image": "setLayer", "with": {"visible": False}}, {"image": "histogram"}]
+    seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": measured}))
+    seeds.append(compact({"images": {"board": {"width": 1500, "height": 900}}, "steps": measured[:1]}))
     return seeds
 
 

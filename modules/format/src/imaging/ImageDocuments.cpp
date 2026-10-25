@@ -325,7 +325,8 @@ json snapshot(const ImageDocument& image) {
 	        {"view", {{"zoom", image.view.zoom}, {"x", image.view.x}, {"y", image.view.y}}},
 	        {"message", image.message},
 	        {"previewing", image.preview != nullptr},
-	        {"clipboard", image.clipboard != nullptr}};
+	        {"clipboard", image.clipboard != nullptr},
+	        {"histogram", image.histogram}};
 }
 
 // NOLINTNEXTLINE(bugprone-exception-escape): get() is only reached for a number, which it always reads

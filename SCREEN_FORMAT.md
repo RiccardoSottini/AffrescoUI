@@ -1407,6 +1407,7 @@ The operations, and the keys of `with` each reads:
 | `paste` | `name` | Adds what was copied as a new layer above the active one. |
 | `clear` | — | Clears the selection's pixels of the active layer. |
 | `snapshot` | — | Changes nothing; publishes the image's snapshot. |
+| `histogram` | `bins` | Counts the image's pixels as shown by brightness, for the snapshot's histogram. |
 | `fit` | — | Zooms and centres the view on the whole image. |
 | `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
 | `setTool` | `tool` | Chooses one of the document's tools, with its options. |
@@ -1446,11 +1447,12 @@ The names the operations and tool options take, and the library's limits:
 
 The snapshot has `width`, `height`, `format`, `profile`, `display`, `proof`, `revision`, `active` (the active layer's
 id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opacity`, `blend`, `lockPixels`,
-`lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as
-`"board/layer/3"` that an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`,
-`canRedo`, `memory`, `selection`, `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view`
-(`zoom`, `x`, `y`), `message`, `previewing` and `clipboard` (whether copy or cut has kept pixels to paste);
-`"<image>/navigator"` is a thumbnail of the whole image.
+`lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as `"board/layer/3"` that
+an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`, `canRedo`, `memory`, `selection`,
+`bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view` (`zoom`, `x`, `y`), `message`, `previewing`,
+`clipboard` (whether copy or cut has kept pixels to paste) and `histogram` (what the `histogram` operation last counted:
+pixels by brightness, darkest first, transparent ones left out; a large image is measured at a smaller size, so give
+`curves` the counts, not totals); `"<image>/navigator"` is a thumbnail of the whole image.
 
 ### An image example
 

@@ -287,6 +287,26 @@ TEST_CASE("format: move with autoSelect makes the topmost layer painted under a 
 	CHECK(active() == bottom);
 }
 
+TEST_CASE("format: histogram counts the pixels shown by brightness, leaving transparent ones out") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = store.image("photo", {{"width", 32}, {"height", 16}}, "images.photo");
+	const auto counts = [&] { return editing::snapshot(image)["histogram"]; };
+	CHECK(counts() == json::array());
+	run(image, "histogram", {});
+	CHECK(counts().size() == 64);
+	run(image, "histogram", {{"bins", 4}});
+	CHECK(counts() == json::array({0, 0, 0, 512})); // The background is white
+	const std::string bottom = editing::snapshot(image)["active"].get<std::string>();
+	run(image, "addLayer", {{"name", "Top"}});
+	run(image, "select", {{"kind", "rectangle"}, {"from", {{"x", 8}, {"y", 0}}}, {"to", {{"x", 24}, {"y", 16}}}});
+	run(image, "fillSelection", {{"color", "#808080"}});
+	run(image, "histogram", {{"bins", 4}});
+	CHECK(counts() == json::array({0, 0, 256, 256}));
+	run(image, "setLayer", {{"id", bottom}, {"visible", false}});
+	run(image, "histogram", {{"bins", 1}});
+	CHECK(counts() == json::array({0, 256})); // At least 2 bins; transparent pixels aren't counted
+}
+
 TEST_CASE("format: the layer operations add and change and move and mask and delete layers") {
 	editing::ImageDocuments store;
 	editing::ImageDocument& image = store.image("photo", {{"width", 16}, {"height", 16}}, "images.photo");
