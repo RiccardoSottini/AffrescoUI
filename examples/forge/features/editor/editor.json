@@ -522,6 +522,11 @@
 									},
 									{
 										"when": "{{state.docs[d].kind == 'file'}}",
+										"use": "forgeConflictBar",
+										"visible": "{{gi == state.activeGroup && !empty(computed.conflictBlocks)}}"
+									},
+									{
+										"when": "{{state.docs[d].kind == 'file'}}",
 										"id": "editor",
 										"type": "editor",
 										"font": "code",
@@ -541,7 +546,7 @@
 										"indentGuides": "{{settings.editor.guides.indentation}}",
 										"tabSize": "{{settings.editor.tabSize ?? 4}}",
 										"find": "{{gi == state.activeGroup ? computed.findQuery : null}}",
-										"decorations": "{{concat((find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? [], map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark))}}",
+										"decorations": "{{concat((find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? [], map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark), gi == state.activeGroup ? computed.conflictDecorations : [])}}",
 										"tokens": "{{(find(state.lsp.files, it.id == state.docs[d].id) ?? {}).tokens ?? []}}",
 										"onTextHover": "lspHoverAt",
 										"onType": "lspTyped",
