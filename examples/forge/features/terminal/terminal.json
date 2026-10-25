@@ -21,7 +21,8 @@
 				{ "set": "state.terminals.active", "to": "{{'t' + state.terminals.next}}" },
 				{ "increment": "state.terminals.next", "by": 1 },
 				{ "set": "state.layout.panel", "to": true },
-				{ "set": "state.panelTab", "to": "terminal" }
+				{ "set": "state.panelTab", "to": "terminal" },
+				{ "after": 0, "do": [{ "focus": "#terminal" }] }
 			] },
 		"terminalClose": [
 			{ "closeTerminal": "{{id}}" },
@@ -38,7 +39,7 @@
 			"do": [
 				{ "if": "{{length(state.terminals.list) == 0}}",
 				  "then": [{ "run": "terminalNew" }],
-				  "else": [{ "set": "state.layout.panel", "to": true }, { "set": "state.panelTab", "to": "terminal" }] }
+				  "else": [{ "set": "state.layout.panel", "to": true }, { "set": "state.panelTab", "to": "terminal" }, { "after": 0, "do": [{ "focus": "#terminal" }] }] }
 			] },
 		"terminalClear": { "title": "Clear Terminal", "category": "Terminal", "icon": "eraser",
 			"enablement": "{{!empty(state.terminals.active)}}",

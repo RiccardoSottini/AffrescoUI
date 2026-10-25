@@ -33,7 +33,7 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Search across files, replace all | partial | No search editor (results open in the side bar only) |
 | Source control: stage, commit, branches | partial | Git runs through the process service; no stash or remotes |
 | Run and debug | done | |
-| Terminal | partial | The cursor is an outlined box |
+| Terminal | done | |
 | Problems and language features | partial | Through the `lsp` service, one language server (clangd) |
 | Outline | partial | Headings and the lines that open a block, not a language's symbols |
 | Features (extensions) view | done | |
