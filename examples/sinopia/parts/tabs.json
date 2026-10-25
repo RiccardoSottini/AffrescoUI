@@ -81,7 +81,7 @@
 								  "children": [
 									{ "type": "label", "id": "{{'gal-shape-' + k + '-tb'}}", "when": "{{k == 'textBox'}}", "fill": 0, "align": "center", "textColor": "@rbInk", "runs": [{ "icon": "text-cursor-input", "size": 14 }] },
 									{ "id": "{{'gal-shape-' + k + '-box'}}", "color": "transparent", "when": "{{k != 'textBox'}}", "x": 5, "y": 4, "width": 14, "height": 13, "overflow": "visible",
-									  "children": [{ "use": "shapePath", "with": { "o": "{{ {shape: k, w: 14, h: computed.shapes[k].line ? 0 : 13, fill: 'none', line: '#444444', lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null} }}", "name": "{{'gal-shape-' + k}}" } }] }
+									  "children": [{ "use": "shapePath", "with": { "o": "{{ {shape: k, w: 14, h: computed.shapes[k].line ? 0 : 13, fill: 'none', line: '#444444', lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null, effect: null} }}", "name": "{{'gal-shape-' + k}}" } }] }
 								  ] }
 							] }
 						] },
@@ -90,7 +90,7 @@
 						{ "use": "rbStack", "id": "s-drawing", "children": [
 							{ "use": "rbSmall", "id": "b-fill", "with": { "icon": "paint-bucket", "title": "Shape Fill", "menu": true }, "tooltip": "Shape Fill" },
 							{ "use": "rbSmall", "id": "b-outline", "with": { "icon": "pen-tool", "title": "Shape Outline", "menu": true }, "tooltip": "Shape Outline" },
-							{ "use": "rbSmall", "id": "b-effects", "with": { "icon": "sparkles", "title": "Shape Effects", "menu": true }, "tooltip": "Shape Effects" }
+							{ "use": "rbSmall", "id": "b-effects", "with": { "icon": "sparkles", "title": "Shape Effects", "menu": true }, "tooltip": "Shape Effects", "onClick": { "run": "openEffectsMenu" } }
 						] }
 					] },
 					{ "use": "rbGroup", "id": "g-editing", "with": { "title": "Editing" }, "children": [

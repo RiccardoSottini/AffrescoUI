@@ -8,7 +8,8 @@
 		"undo": [],
 		"redo": [],
 		"clip": [],
-		"arrangeMenu": { "open": false, "x": 0, "y": 0 }
+		"arrangeMenu": { "open": false, "x": 0, "y": 0 },
+		"effectsMenu": { "open": false, "x": 0, "y": 0 }
 	},
 
 	"computed": {
@@ -28,6 +29,7 @@
 		"selectionBounds": "{{length(computed.boxes) == 0 ? computed.slideBounds : { left: min(map(computed.boxes, it.x)), top: min(map(computed.boxes, it.y)), right: max(map(computed.boxes, it.x + it.w)), bottom: max(map(computed.boxes, it.y + it.h)) } }}",
 		"selectedAt": "{{filter(range(length(computed.objects)), contains(state.board.selection, computed.objects[it].id))}}",
 		"arrangeItems": "{{concat(map([['Bring to Front', 'front'], ['Bring Forward', 'forward'], ['Send Backward', 'backward'], ['Send to Back', 'back']], { title: it[0], run: 'order', with: { how: it[1] }, enabled: length(computed.selected) > 0 }), [{ separator: true }], map([['Align Left', 'left'], ['Align Center', 'center'], ['Align Right', 'right'], ['Align Top', 'top'], ['Align Middle', 'middle'], ['Align Bottom', 'bottom']], { title: it[0], run: 'align', with: { how: it[1] }, enabled: length(computed.selected) > 0 }), [{ separator: true }], map([['Distribute Horizontally', 'x'], ['Distribute Vertically', 'y']], { title: it[0], run: 'distribute', with: { axis: it[1] }, enabled: length(computed.selected) > 1 }))}}",
+		"effectItems": "{{map([['No Effect', null], ['Shadow', 'shadow'], ['Glow', 'glow']], { title: it[0], run: 'setObjects', with: { props: { effect: it[1] } }, enabled: length(computed.selected) > 0 })}}",
 		"canUndo": "{{length(state.undo) > 0}}",
 		"canRedo": "{{length(state.redo) > 0}}"
 	},
@@ -212,6 +214,9 @@
 		"openArrangeMenu": [
 			{ "set": "state.arrangeMenu", "to": { "open": true, "x": "{{min(event.x ?? 520, window.width - 228)}}", "y": 136 } }
 		],
+		"openEffectsMenu": [
+			{ "set": "state.effectsMenu", "to": { "open": true, "x": "{{min(event.x ?? 970, window.width - 168)}}", "y": 148 } }
+		],
 
 		"setTheme": [
 			{ "run": "commit" },
@@ -253,6 +258,8 @@
 
 	"overlays": {
 		"zArrangeMenu": { "use": "contextMenu", "with": { "open": "state.arrangeMenu.open", "items": "{{computed.arrangeItems}}", "x": "{{state.arrangeMenu.x}}",
-			"y": "{{state.arrangeMenu.y}}", "width": 220, "color": "@rb", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } }
+			"y": "{{state.arrangeMenu.y}}", "width": 220, "color": "@rb", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } },
+		"zEffectsMenu": { "use": "contextMenu", "with": { "open": "state.effectsMenu.open", "items": "{{computed.effectItems}}", "x": "{{state.effectsMenu.x}}",
+			"y": "{{state.effectsMenu.y}}", "width": 160, "color": "@rb", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } }
 	}
 }

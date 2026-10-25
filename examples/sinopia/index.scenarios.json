@@ -178,6 +178,31 @@
 			]
 		},
 		{
+			"name": "sinopia-shape-effects",
+			"note": "Shape Effects gives the selected shape a shadow or a glow, like the format pane's Effects; each one undoes",
+			"screen": "index.screen.json",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o10" },
+				{ "click": "#b-effects" },
+				{ "click": { "role": "menuitem", "name": "Shadow" } },
+				{ "expect": { "state": "deck.slides[3].objects[2].effect", "is": "shadow" } },
+				{ "expect": { "node": "#o10-effect", "exists": true } },
+				{ "capture": "shadow" },
+				{ "click": "#tab-view-label" },
+				{ "click": "#b-format-pane" },
+				{ "click": "#format-effect-glow" },
+				{ "expect": { "state": "deck.slides[3].objects[2].effect", "is": "glow" } },
+				{ "capture": "glow" },
+				{ "click": "#format-effect-none" },
+				{ "expect": { "state": "deck.slides[3].objects[2].effect", "is": null } },
+				{ "expect": { "node": "#o10-effect", "exists": false } },
+				{ "key": "mod+z" },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[3].objects[2].effect", "is": "shadow" } }
+			]
+		},
+		{
 			"name": "sinopia-align-and-distribute",
 			"note": "One shape aligns to the slide, several to the box around them; distribute leaves equal gaps; the arrow keys nudge",
 			"steps": [

@@ -48,11 +48,11 @@ with its slide show, presenter view, audience window and files on library capabi
 | Shapes | Shapes gallery (lines, rectangles, basic shapes, arrows, stars, callouts) | partial | partial | add-a-shape, first-frame |
 | Shapes | Shape fill (solid, gradient, none) | partial | partial | format-fill-and-line |
 | Shapes | Shape outline (colour, weight, dashes) | partial | partial | format-fill-and-line |
-| Shapes | Shape effects (shadow, glow, soft edges) | partial | missing | |
+| Shapes | Shape effects (shadow, glow, soft edges) | partial | partial | shape-effects (a shadow and a glow, unblurred; no soft edges) |
 | Shapes | Quick styles | missing | missing | |
 | Shapes | Text inside shapes | missing | missing | |
 | Format pane | Fill and line | partial | partial | format-fill-and-line |
-| Format pane | Effects | partial | missing | |
+| Format pane | Effects | partial | partial | shape-effects (none, shadow, glow) |
 | Format pane | Size and position (with lock aspect ratio) | partial | partial | format-size-and-rotation |
 | Format pane | Text box options (anchor, margins, wrap) | missing | missing | |
 | Arrange | Move and resize with handles | done | partial | selected |
@@ -126,4 +126,4 @@ with its slide show, presenter view, audience window and files on library capabi
 | | Done | Partial | Missing | Total |
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
-| Now | 34 | 35 | 42 | 111 |
+| Now | 34 | 37 | 40 | 111 |
