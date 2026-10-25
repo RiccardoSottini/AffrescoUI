@@ -112,6 +112,25 @@
 				{ "wait": 50 },
 				{ "expect": { "state": "explorerTree.entries.length", "is": 4 } }
 			]
+		},
+		{
+			"name": "forge-controls-welcome-recent",
+			"note": "The welcome page lists the folder's recently opened files, the last first; a click opens one",
+			"steps": [
+				{ "wait": 100 },
+				{ "expect": { "node": "#welcome-recent", "exists": false } },
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "wait": 50 },
+				{ "action": "closeEditor" },
+				{ "action": "closeEditor" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#welcome-recent-0", "text": "main.cpp" } },
+				{ "expect": { "node": "#welcome-recent-1", "text": "README.md" } },
+				{ "click": "#welcome-recent-1" },
+				{ "wait": 50 },
+				{ "expect": { "state": "docs[0].id", "is": "README.md" } }
+			]
 		}
 	]
 }

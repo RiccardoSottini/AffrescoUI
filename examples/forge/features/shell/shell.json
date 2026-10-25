@@ -26,7 +26,8 @@
 		"docIds": "{{map(state.docs, it.id)}}",
 		"dirtyIds": "{{map(filter(state.docs, it.dirty), it.id)}}",
 		"activeDoc": "{{find(state.docs, it.id == state.groups[state.activeGroup].active)}}",
-		"folderName": "{{empty(state.folder.root) ? 'No Folder Opened' : reverse(split(state.folder.root, '/'))[0]}}"
+		"folderName": "{{empty(state.folder.root) ? 'No Folder Opened' : reverse(split(state.folder.root, '/'))[0]}}",
+		"welcomeRecent": "{{empty(state.folder.root) ? [] : slice(filter(state.quickPick.recent ?? [], contains(map(state.folder.files ?? [], it.id), it.id)), 0, 5)}}"
 	},
 
 	"actions": {
@@ -295,7 +296,15 @@
 					{ "type": "label", "id": "welcome-settings", "role": "button", "label": "Settings", "icon": "settings", "text": "Settings", "width": "100%", "height": 38,
 					  "padding": 12, "radius": 9, "color": "@color.widget", "borderWidth": 1, "borderColor": "@color.border", "textColor": "@color.text",
 					  "focusable": true, "cursor": "hand", "tooltip": "Cmd+,", "hover": { "color": "@color.hover", "borderColor": "@color.accent" },
-					  "focused": { "borderColor": "@color.accent" }, "onClick": { "run": "openSettings" } }
+					  "focused": { "borderColor": "@color.accent" }, "onClick": { "run": "openSettings" } },
+					{ "id": "welcome-recent-gap", "when": "{{!empty(computed.welcomeRecent)}}", "height": 12 },
+					{ "type": "label", "id": "welcome-recent", "when": "{{!empty(computed.welcomeRecent)}}", "text": "Recent files", "textColor": "@color.muted",
+					  "fitText": true },
+					{ "type": "label", "repeat": { "for": "file", "in": "{{computed.welcomeRecent}}", "index": "fi", "key": "{{file.id}}" },
+					  "id": "{{'welcome-recent-' + fi}}", "role": "link", "label": "{{'Open ' + file.id}}", "icon": "file", "text": "{{file.title}}",
+					  "width": "100%", "height": 26, "padding": 6, "radius": 6, "textColor": "@color.accent", "focusable": true, "cursor": "hand",
+					  "tooltip": "{{file.id}}", "hover": { "color": "@color.hover" }, "focused": { "color": "@color.hover" },
+					  "onClick": { "run": "openPath", "with": { "path": "{{file.id}}", "label": "{{file.title}}" } } }
 					] },
 					{ "id": "welcome-end", "grow": 1 }
 				]
