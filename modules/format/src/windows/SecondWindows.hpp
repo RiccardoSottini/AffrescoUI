@@ -91,6 +91,11 @@ private:
 		std::uint64_t watchTimer = 0; ///< Its timer that closes it once the screen's window closes.
 	};
 
+	/// @brief Whether a window may start filling a display now: only while the person's press is delivered (to the
+	/// screen's window or one of these), or the application's own code runs an action; else it reports the refusal.
+	/// @param at The step's place, for the report.
+	/// @return Whether it may.
+	[[nodiscard]] bool mayFill(const std::string& at) const;
 	/// @brief The entry of a declared window.
 	/// @param name Its name.
 	/// @return The entry, or nullptr.

@@ -15,8 +15,10 @@ from .document import apply_patch, changes_since, compact, find_nodes, locate, o
 from .guide import format_guide
 from .host import NO_UNIX_SOCKETS, Host, default_socket_dir, log
 from .replies import client_name, describe, host_failure, malformed, scenarios_report, screen_info
-from .repository import find_cli, guide_path, repository_path
+from .repository import ROOT, confined_path, find_cli, guide_path
 from .tools import INSTRUCTIONS, PROMPTS, SERVE_PROMPT, TOOLS
+
+OUTSIDE = "error: {}: must be inside the repository, the working folder or a --root folder"
 
 PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
 
@@ -68,9 +70,11 @@ class Server:
     """The MCP server: one client on stdio, one host on agent.sock. Tool calls run on their own threads, so what
     they share (the requests, the output) is locked."""
 
-    def __init__(self, socket_dir, launch):
-        """A server whose host listens in `socket_dir`; `launch` (a command, or None) starts one if none runs."""
+    def __init__(self, socket_dir, launch, roots=()):
+        """A server whose host listens in `socket_dir`; `launch` (a program and its arguments, or None) starts one if
+        none runs. Tools read files only inside the repository, the working folder and `roots`."""
         self.client = "agent"
+        self.roots = [ROOT, os.getcwd(), *roots]
         self.out = threading.Lock()
         self.ready = False  # the client said notifications/initialized: channel events may be sent
         self.requests = collections.OrderedDict()  # request_id -> request, until answered
@@ -214,7 +218,9 @@ class Server:
     def run_scenarios(self, args):
         """Plays a scenarios file (or the agent's own scenarios, on its screen) on the running screen's document,
         with affrescoui test, and reports compactly."""
-        path = repository_path(str(args.get("file", "")))
+        path = confined_path(str(args.get("file", "")), self.roots)
+        if path is None:
+            return OUTSIDE.format("file"), True
         if not os.path.basename(path).endswith(".scenarios.json"):  # no other file: affrescoui test's errors
             return "error: file: expected a *.scenarios.json file", True  # would quote its keys to the agent
         with open(path, encoding="utf-8") as file:
@@ -275,7 +281,9 @@ class Server:
 
     def get_contributions(self, args):
         """An app's contribution points, exports and installable parts, as affrescoui contributions prints them."""
-        screen = repository_path(str(args.get("file", "")))
+        screen = confined_path(str(args.get("file", "")), self.roots)
+        if screen is None:
+            return OUTSIDE.format("file"), True
         if not screen.endswith(".screen.json"):
             return "error: file: expected a *.screen.json file", True
         with tempfile.TemporaryDirectory(prefix="affrescoui-contributions-") as scratch:
@@ -293,7 +301,9 @@ class Server:
     def compose(self, args, install):
         """Proves a feature from another app on the running document (affrescoui check --compose), and with install
         submits the install revision the proof made. Returns the proof's reasons, never the document."""
-        screen, feature = repository_path(str(args.get("screen", ""))), repository_path(str(args.get("feature", "")))
+        screen, feature = (confined_path(str(args.get(key, "")), self.roots) for key in ("screen", "feature"))
+        if screen is None or feature is None:
+            return OUTSIDE.format("screen" if screen is None else "feature"), True
         if not screen.endswith(".screen.json"):
             return "error: screen: expected the running app's *.screen.json file", True
         reply = self.host.request({"type": "getDocument"})
@@ -529,25 +539,33 @@ class Server:
             self.result(rid, {"content": [{"type": "text", "text": f"error: {failure}"}], "isError": True})
 
 
+USAGE = "[--socket DIR] [--root DIR]... [--launch PROGRAM [--launch-arg ARG]...]"
+
+
 def main():
-    """Runs the server: `[--socket DIR] [--launch "command"]`, then JSON-RPC lines on stdin until it closes."""
+    """Runs the server: `USAGE`, then JSON-RPC lines on stdin until it closes. The launch program and each of its
+    arguments come one per option, never split from a command line, so no shell or parser decides what runs."""
     args = sys.argv[1:]
     socket_dir = default_socket_dir()
-    launch = None
+    launch, roots = None, []
     while args:
         arg = args.pop(0)
         if arg == "--socket" and args:
             socket_dir = args.pop(0)
+        elif arg == "--root" and args:
+            roots.append(args.pop(0))
         elif arg == "--launch" and args:
-            launch = args.pop(0)
+            launch = [args.pop(0), *(launch or [])[1:]]
+        elif arg == "--launch-arg" and args and launch:
+            launch.append(args.pop(0))
         else:
-            sys.exit(f"usage: {sys.argv[0]} [--socket DIR] [--launch \"command\"]")
+            sys.exit(f"usage: {sys.argv[0]} {USAGE}")
 
     # MCP's stdio messages are UTF-8 lines ending in \n, whatever the console's code page and line ending. A byte that
     # isn't UTF-8 becomes U+FFFD, so it costs that message, not the server
     sys.stdin.reconfigure(encoding="utf-8", errors="replace")
     sys.stdout.reconfigure(encoding="utf-8", newline="\n")
-    server = Server(socket_dir, launch)
+    server = Server(socket_dir, launch, roots)
     log(f"ready; the host is expected at {server.host.path}")
     if not hasattr(socket, "AF_UNIX"):
         log(NO_UNIX_SOCKETS)

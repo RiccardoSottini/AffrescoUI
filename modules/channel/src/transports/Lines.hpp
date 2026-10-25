@@ -13,9 +13,12 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <concepts>
+#include <condition_variable>
 #include <cstddef>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <string_view>
 
@@ -38,10 +41,33 @@ concept ChunkWriter = std::invocable<Write&, const char*, std::size_t>;
 
 /// @brief Where the lines read go: posted to a channel's signals on the main thread, while the channel lives.
 struct Delivery {
-	Executor& executor;          ///< Delivers on the main thread.
-	Channel& channel;            ///< The channel whose signals fire.
-	std::shared_ptr<bool> alive; ///< Cleared when the channel is destroyed; queued deliveries then do nothing.
+	Executor& executor;                       ///< Delivers on the main thread.
+	Channel& channel;                         ///< The channel whose signals fire.
+	std::shared_ptr<std::atomic<bool>> alive; ///< Cleared when the channel is destroyed; deliveries then do nothing.
+	std::size_t maxWaitingBytes =
+	    maxMessageBytes; ///< The reader stops reading while this much waits for the main thread.
 };
+
+/// @brief The bytes of the lines a reader posted that the main thread hasn't handled yet, shared with the tasks.
+struct Backlog {
+	std::mutex mutex;                ///< Guards bytes.
+	std::condition_variable handled; ///< Notified as a task takes its line.
+	std::size_t bytes = 0;           ///< Posted, not yet handled.
+};
+
+/// @brief Waits until less than Delivery::maxWaitingBytes waits for the main thread, so a peer that sends faster than
+/// the host handles its messages is held back by its own connection, not buffered: the stream isn't read meanwhile.
+/// @param backlog What waits.
+/// @param to Where the lines go.
+/// @return false if the channel was destroyed while waiting: the reading must end.
+inline bool waitForRoom(Backlog& backlog, const Delivery& to) {
+	std::unique_lock lock(backlog.mutex);
+	while(backlog.bytes >= to.maxWaitingBytes) {
+		if(!*to.alive) return false;
+		backlog.handled.wait_for(lock, std::chrono::milliseconds(100)); // a destroyed channel posts nothing more
+	}
+	return true;
+}
 
 /// @brief Tells whether a line, ended or not, fits in maxMessageBytes; logs the one that doesn't.
 /// @param length Its length in bytes.
@@ -61,8 +87,10 @@ inline bool fitsInMessage(std::size_t length) {
 /// @param searched How many bytes at its start were searched for a line break before (they have none).
 /// @param dropCarriageReturns Whether a carriage return that ends a line is dropped.
 /// @param to Where the lines go.
+/// @param backlog Counts the bytes posted until each task takes its line.
 /// @return false once a line is longer than maxMessageBytes: the stream must end.
-inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCarriageReturns, const Delivery& to) {
+inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCarriageReturns, const Delivery& to,
+                         const std::shared_ptr<Backlog>& backlog) {
 	std::size_t start = 0;
 	bool fits = true;
 	for(std::size_t end; fits && (end = buffer.find('\n', std::max(start, searched))) != std::string::npos;
@@ -70,10 +98,20 @@ inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCar
 		std::size_t length = end - start;
 		if(dropCarriageReturns && length > 0 && buffer[end - 1] == '\r') --length;
 		fits = fitsInMessage(length);
-		if(fits && length > 0)
-			to.executor.post([&channel = to.channel, alive = to.alive, line = buffer.substr(start, length)] {
+		if(fits && length > 0) {
+			{
+				const std::scoped_lock lock(backlog->mutex);
+				backlog->bytes += length;
+			}
+			to.executor.post([&channel = to.channel, alive = to.alive, backlog, line = buffer.substr(start, length)] {
+				{
+					const std::scoped_lock lock(backlog->mutex);
+					backlog->bytes -= line.size();
+				}
+				backlog->handled.notify_all();
 				if(*alive) channel.onMessage(line);
 			});
+		}
 	}
 	buffer.erase(0, start);
 	return fits && fitsInMessage(buffer.size());
@@ -82,7 +120,8 @@ inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCar
 /// @brief Reads a stream until it ends, posting each line to the channel's onMessage, then onClosed.
 ///
 /// A line that grows past maxMessageBytes ends the stream too. Each byte is searched for a line break once, so a
-/// long line costs time in proportion to its length.
+/// long line costs time in proportion to its length. While Delivery::maxWaitingBytes of lines wait for the main thread
+/// the stream isn't read (waitForRoom()), so the host holds at most that, one line more and the line being read.
 /// @param read Reads the next chunk of the stream (see ChunkReader).
 /// @param to Where the lines go.
 /// @param running Set to false when the stream ends (may be nullptr).
@@ -92,12 +131,13 @@ template <ChunkReader Read>
 void readLines(Read read, const Delivery& to, std::atomic<bool>* running, bool dropCarriageReturns = false) {
 	std::string buffer;
 	std::array<char, 4096> chunk{};
-	for(bool open = true; open;) {
+	const auto backlog = std::make_shared<Backlog>();
+	for(bool open = true; open && waitForRoom(*backlog, to);) {
 		const auto n = read(chunk.data(), chunk.size());
 		if(n <= 0) break;
 		const std::size_t searched = buffer.size(); // the bytes before have no line break
 		buffer.append(chunk.data(), static_cast<std::size_t>(n));
-		open = deliverLines(buffer, searched, dropCarriageReturns, to);
+		open = deliverLines(buffer, searched, dropCarriageReturns, to, backlog);
 	}
 
 	if(running) *running = false;

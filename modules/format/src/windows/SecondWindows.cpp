@@ -9,6 +9,7 @@
 #include "affresco/render/ImageView.hpp"
 #include "affresco/render/Window.hpp"
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <string_view>
@@ -98,7 +99,7 @@ void SecondWindows::open(const std::string& name, std::optional<bool> fullscreen
 		return;
 	}
 	Shown& shown = shown_[name];
-	const bool fill = fullscreen.value_or(declared->value("fullscreen", false));
+	const bool fill = fullscreen.value_or(declared->value("fullscreen", false)) && mayFill(at); // else it opens as is
 	if(application_ && engine_.window) {
 		if(!shown.window) make(name, shown, *declared);
 		apply(shown, *declared);
@@ -127,7 +128,9 @@ void SecondWindows::close(const std::string& name) {
 void SecondWindows::setFullscreen(const std::string& name, std::optional<bool> fullscreen, const std::string& at) {
 	if(name == "main") {
 		if(!engine_.window) return;
-		engine_.window->setFullscreen(fullscreen.value_or(!engine_.window->isFullscreen()));
+		const bool fill = fullscreen.value_or(!engine_.window->isFullscreen());
+		if(fill && !engine_.window->isFullscreen() && !mayFill(at)) return;
+		engine_.window->setFullscreen(fill);
 		changed();
 		return;
 	}
@@ -135,9 +138,23 @@ void SecondWindows::setFullscreen(const std::string& name, std::optional<bool> f
 	const auto found = shown_.find(name);
 	if(found == shown_.end() || !found->second.open) fail(at, "the window \"" + name + "\" isn't open");
 	Shown& shown = found->second;
-	shown.fullscreen = fullscreen.value_or(!shown.fullscreen);
+	if(shown.window) shown.fullscreen = shown.window->isFullscreen(); // Esc may have left it
+	const bool fill = fullscreen.value_or(!shown.fullscreen);
+	if(fill && !shown.fullscreen && !mayFill(at)) return;
+	shown.fullscreen = fill;
 	if(shown.window) shown.window->setFullscreen(shown.fullscreen);
 	changed();
+}
+
+// A screen that fills the display can draw what looks like the system's own dialogs: only the person starts that
+bool SecondWindows::mayFill(const std::string& at) const {
+	const auto pressing = [](const Window* window) { return window && window->routingPress(); };
+	if(engine_.hostRunning > 0 || pressing(engine_.window) ||
+	   std::ranges::any_of(shown_, [&](const auto& item) { return pressing(item.second.window); }))
+		return true;
+	engine_.reportRefused("AffrescoUI screen: " + at + ": a window fills the display only from the person's own " +
+	                      "click or key, not from a load, a timer or a message");
+	return false;
 }
 
 json SecondWindows::status() const {
@@ -149,7 +166,10 @@ json SecondWindows::status() const {
 	for(const auto& [name, declared] : section->items()) {
 		const auto found = shown_.find(name);
 		const bool open = found != shown_.end() && found->second.open;
-		result[name] = {{"open", open}, {"fullscreen", open && found->second.fullscreen}};
+		// What the window does, which Esc may have changed; headless, what it was asked
+		const bool fills =
+		    open && (found->second.window ? found->second.window->isFullscreen() : found->second.fullscreen);
+		result[name] = {{"open", open}, {"fullscreen", fills}};
 	}
 	return result;
 }

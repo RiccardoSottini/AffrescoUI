@@ -15,11 +15,11 @@ namespace {
 /// The keys a manifest may have.
 constexpr auto manifestKeys =
     std::to_array<std::string_view>({"$schema", "format", "version", "note", "id", "name", "description", "icon",
-                                     "entry", "themes", "capabilities", "data", "assets"});
+	                                 "entry", "themes", "capabilities", "data", "assets"});
 
 /// The kinds of capability, as "capabilities" names them.
-constexpr auto capabilityKeys =
-    std::to_array<std::string_view>({"network", "folders", "programs", "audio", "assistant", "files", "windows"});
+constexpr auto capabilityKeys = std::to_array<std::string_view>(
+    {"network", "folders", "programs", "audio", "assistant", "files", "windows", "channels"});
 
 constexpr std::size_t maxNameLength = 100;   ///< The longest name.
 constexpr std::size_t maxTextLength = 300;   ///< The longest description or reason.
@@ -186,8 +186,9 @@ std::vector<AppCapability> readCapabilities(const json& section) {
 			    {Kind::Program, program, text(why, "capabilities.programs." + program, maxTextLength), false});
 		}
 	// The kinds with no names: the reason alone
-	for(const auto& [kind, key] : {std::pair{Kind::Audio, "audio"}, std::pair{Kind::Assistant, "assistant"},
-	                               std::pair{Kind::Files, "files"}, std::pair{Kind::Windows, "windows"}})
+	for(const auto& [kind, key] :
+	    {std::pair{Kind::Audio, "audio"}, std::pair{Kind::Assistant, "assistant"}, std::pair{Kind::Files, "files"},
+	     std::pair{Kind::Windows, "windows"}, std::pair{Kind::Channels, "channels"}})
 		if(const auto why = section.find(key); why != section.end())
 			read.push_back({kind, key, text(*why, std::string("capabilities.") + key, maxTextLength), false});
 	return read;
@@ -357,8 +358,45 @@ std::string AppCapability::key() const {
 		return "files";
 	case Kind::Windows:
 		return "windows";
+	case Kind::Channels:
+		return "channels";
 	}
 	return "";
+}
+
+bool AppCapability::runsAnyCommand() const {
+	// Shells and interpreters, by their base name without ".exe" or a version
+	static const std::set<std::string, std::less<>> runners = {
+	    "ash",   "bash", "bun",        "busybox", "cmd",    "csh",    "dash",    "deno", "doas",
+	    "env",   "fish", "ksh",        "lua",     "luajit", "mksh",   "node",    "nu",   "osascript",
+	    "perl",  "php",  "powershell", "pwsh",    "py",     "python", "pythonw", "ruby", "sh",
+	    "shell", "sudo", "tclsh",      "tcsh",    "wish",   "xargs",  "zsh"};
+	if(kind != Kind::Program) return false;
+	const std::size_t slash = name.find_last_of("/\\");
+	std::string base = slash == std::string::npos ? name : name.substr(slash + 1); // "/usr/bin/python3.12"
+	std::ranges::transform(base, base.begin(),
+	                       [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
+	if(base.ends_with(".exe")) base.resize(base.size() - 4);
+	while(!base.empty() && (std::isdigit(static_cast<unsigned char>(base.back())) || base.back() == '.'))
+		base.pop_back();
+	return runners.contains(base);
+}
+
+bool AppCapability::startsAllowed() const {
+	switch(kind) {
+	case Kind::Audio:
+	case Kind::Files:
+	case Kind::Windows:
+		return true;
+	case Kind::Folder:
+		return !write;
+	case Kind::Network:
+	case Kind::Program:
+	case Kind::Assistant:
+	case Kind::Channels:
+		return false;
+	}
+	return false;
 }
 
 AppManifest parseApp(const json& manifest) {
@@ -384,6 +422,8 @@ std::vector<AppCapability> usedCapabilities(const json& document) {
 	if(hasStep(document, showsFileDialog)) addCapability(used, {Kind::Files, "files", "", false});
 	if(const auto windows = document.find("windows"); windows != document.end() && !windows->empty())
 		addCapability(used, {Kind::Windows, "windows", "", false});
+	if(const auto channels = document.find("channels"); channels != document.end() && !channels->empty())
+		addCapability(used, {Kind::Channels, "channels", "", false});
 	return used;
 }
 

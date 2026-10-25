@@ -154,10 +154,17 @@ std::optional<FileLock> FileLock::tryLock(const std::filesystem::path& file, std
 	}
 	return FileLock(reinterpret_cast<std::intptr_t>(handle));
 #else
-	// flock() locks belong to the open file, so a second open in the same program is refused too
-	const int descriptor = ::open(file.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0600);
+	// flock() locks belong to the open file, so a second open in the same program is refused too. The lock is
+	// written to, so it never follows a link and must be a plain file of this user, as every other history file.
+	const int descriptor = ::open(file.c_str(), O_RDWR | O_CREAT | O_CLOEXEC | O_NOFOLLOW, 0600);
 	if(descriptor < 0) {
 		problem = "can't be locked (" + file.string() + ": " + lastError() + ")";
+		return std::nullopt;
+	}
+	struct stat status {};
+	if(::fstat(descriptor, &status) != 0 || !S_ISREG(status.st_mode) || status.st_uid != ::geteuid()) {
+		problem = "can't be locked (" + file.string() + " isn't a plain file of this user)";
+		::close(descriptor);
 		return std::nullopt;
 	}
 	if(::flock(descriptor, LOCK_EX | LOCK_NB) != 0) {

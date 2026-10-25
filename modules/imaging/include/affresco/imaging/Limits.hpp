@@ -21,6 +21,9 @@ struct Limits {
 	int brushSize = 5000;                                ///< The largest brush, in pixels.
 	std::size_t imageFileBytes = std::size_t{256} << 20; ///< The largest PNG or JPEG file read.
 	int imageFileSide = 30000;                           ///< The widest and tallest PNG or JPEG decoded.
+	/// The most pixels of a PNG or JPEG decoded (256 megapixels): a file of half a megabyte can hold a gigapixel of one
+	/// colour, so it is decoded only up to this; a host that opens bigger files raises it.
+	std::size_t imageFilePixels = std::size_t{1} << 28;
 	std::size_t projectFileBytes = std::size_t{4} << 30; ///< The largest project file read.
 	std::size_t manifestBytes = std::size_t{16} << 20;   ///< The largest manifest of a project file.
 	std::size_t profileBytes = std::size_t{4} << 20;     ///< The largest ICC profile parsed.

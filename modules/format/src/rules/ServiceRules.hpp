@@ -24,7 +24,9 @@ void checkServiceUses(const json& before, const json& after, const services::Ser
 /// @brief One line for each use a revision adds, or whose "with" it changes, of a method or operation that writes or
 /// runs, for the reviewer: e.g.
 /// "uses files.write (writes: writes a text file under the root)" or "uses api.saveProject (write: PUT
-/// /projects/{id})". A method the services don't know counts as one.
+/// /projects/{id})". A method the services don't know counts as one. A `terminal` node counts as a use of its
+/// service's "open"; and a use the screen has whose arguments name state the revision changes counts again ("...,
+/// with state.command changed").
 /// @param before The document before the revision.
 /// @param after The document after it.
 /// @param services The screen's services, or nullptr if none are set.

@@ -19,7 +19,9 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
+#include <memory>
 #include <stdexcept>
 
 using namespace affresco;
@@ -318,6 +320,33 @@ TEST_CASE("document server: an OAuth access token is checked at userinfo, for th
 	CHECK_THROWS(server::UserInfoVerifier("http://example.com/userinfo", folder.path() / "people"));
 	CHECK_THROWS(server::UserInfoVerifier("not a url", folder.path() / "people"));
 
+	// Introspected (RFC 7662): only a token issued to the server's own client gets in. With userinfo alone, a token
+	// any app of the provider got for ada did
+	const server::IntrospectionClient ours{identity.clientId(), test::MockIdentity::introspectionSecret()};
+	server::UserInfoVerifier introspected(identity.origin() + "/introspect", folder.path() / "people", {}, ours);
+	CHECK(introspected.verify(access) == "ada");
+	CHECK_FALSE(introspected.verify("access-" + std::string(32, '0')).has_value()); // inactive
+	server::UserInfoVerifier otherClient(identity.origin() + "/introspect", folder.path() / "people", {},
+	                                     server::IntrospectionClient{"another-app", ours.secret});
+	CHECK_FALSE(otherClient.verify(access).has_value()); // issued to another client
+	server::UserInfoVerifier wrongSecret(identity.origin() + "/introspect", folder.path() / "people", {},
+	                                     server::IntrospectionClient{ours.id, "wrong"});
+	CHECK_FALSE(wrongSecret.verify(access).has_value());
+
+	// The client file is one line, readable by its owner only
+	const std::filesystem::path clientFile = folder.path() / "client";
+	std::ofstream(clientFile) << "server-app " << ours.secret << "\n";
+	std::filesystem::permissions(clientFile, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write);
+	CHECK(server::readIntrospectionClient(clientFile).id == "server-app");
+	CHECK(server::readIntrospectionClient(clientFile).secret == ours.secret);
+#ifndef _WIN32
+	std::filesystem::permissions(clientFile, std::filesystem::perms::group_read, std::filesystem::perm_options::add);
+	CHECK_THROWS(static_cast<void>(server::readIntrospectionClient(clientFile)));
+#endif
+	std::ofstream(folder.path() / "oneWord") << "server-app\n";
+	std::filesystem::permissions(folder.path() / "oneWord", std::filesystem::perms::owner_read);
+	CHECK_THROWS(static_cast<void>(server::readIntrospectionClient(folder.path() / "oneWord")));
+
 	// Chained after the token file, both kinds of token connect
 	const Team team;
 	const auto tokens = std::make_shared<server::TokenFile>(team.folder.path() / "tokens");
@@ -327,4 +356,23 @@ TEST_CASE("document server: an OAuth access token is checked at userinfo, for th
 	CHECK(chain.verify(team.bo) == "bo");
 	CHECK(chain.verify(access) == "ada");
 	CHECK_FALSE(chain.verify("neither").has_value());
+}
+
+TEST_CASE("document server: one person opens at most maxPersonalDocuments of their own") {
+	const Team team;
+	test::ThreadExecutor executor;
+	auto server = team.start(executor);
+	std::vector<std::unique_ptr<Client>> clients;
+	for(std::size_t index = 0; index <= server::DocumentServer::maxPersonalDocuments; ++index) {
+		INFO("document ", index);
+		clients.push_back(std::make_unique<Client>(executor, server->port(), team.ada));
+		clients.back()->send({{"type", "open"}, {"id", 1}, {"document", "~notes" + std::to_string(index)}});
+		REQUIRE(executor.runUntil(
+		    [&] { return clients.back()->find("hello") != nullptr || clients.back()->find("error", 1) != nullptr; }));
+		CHECK((clients.back()->find("hello") != nullptr) == (index < server::DocumentServer::maxPersonalDocuments));
+		executor.runFor(210ms); // within the server's five new connections a second from one address
+	}
+	Client bo(executor, server->port(), team.bo); // another person still gets theirs
+	bo.send({{"type", "open"}, {"id", 1}, {"document", "~notes"}});
+	REQUIRE(executor.runUntil([&] { return bo.find("hello") != nullptr; }));
 }

@@ -29,7 +29,8 @@ namespace {
 }
 
 /// @brief Runs an image operation: "open" with an asset of the version shown opens it with no dialog; "open" and "save"
-/// need the host's leave to show file dialogs.
+/// need the host's leave to show file dialogs and, as the other control steps, run only from the person's input
+/// while a proposal is previewed (a revision can't add them: RulesControl.cpp).
 /// @param s The step.
 /// @param operation Its name.
 /// @param found The operation.
@@ -50,6 +51,7 @@ void runOperation(const Running& s, std::string_view operation, const editing::I
 	} else if((operation == "open" || operation == "save") && !engine.fileDialogsAllowed) {
 		throw DocumentError("the host doesn't let this screen show file dialogs (its app's \"files\" capability)");
 	} else {
+		if(operation == "open" || operation == "save") s.steps.checkControl(s.where); // a dialog, as openFile shows
 		found.run(image, with, engine.window);
 	}
 }

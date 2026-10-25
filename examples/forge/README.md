@@ -9,8 +9,8 @@ stock host opens, from the Launcher or from the command line. It is an example, 
 ```
 
 `app.json` asks for what Forge uses, and the host asks the person before granting any of it: the folder to work in
-(`workspace`, read and written), the programs its services run (the login shell, git, clangd, lldb-dap and
-debugpy's adapter, each one found on PATH), the sign-in and sync addresses, the open dialog (a colour theme's import)
+(`workspace`, read and written), the programs its services run (the login shell, sh for the debugger's
+terminal, git, clangd, lldb-dap and debugpy's adapter, each one found on PATH), the sign-in and sync addresses, the open dialog (a colour theme's import)
 and the assistant. Without the folder it shows the welcome page. The layout, the theme and the settings are kept in
 `--data DIR`.
 

@@ -4,7 +4,6 @@ import collections
 import itertools
 import json
 import os
-import shlex
 import socket
 import stat
 import subprocess
@@ -47,6 +46,10 @@ def check_socket_dir(path):
     owned = os.name == "nt" or info.st_uid == os.getuid()
     if not stat.S_ISDIR(info.st_mode) or not owned:
         raise RuntimeError(f"{path} is not a directory owned by this user: remove it or pass --socket DIR")
+    # The host makes it 0700; a folder others may enter or write lets them swap the socket for their own
+    if os.name != "nt" and info.st_mode & 0o077:
+        raise RuntimeError(f"{path} is open to other users (mode {stat.S_IMODE(info.st_mode):o}): chmod 700 it or "
+                           "pass --socket DIR")
 
 
 def connect_unix(path):
@@ -64,7 +67,7 @@ class Host:
     """The running affrescoui_launcher, at the other end of agent.sock. Connects (again) when needed."""
 
     def __init__(self, socket_dir, launch, on_request):
-        """A host listening in `socket_dir`; `launch` (a command, or None) starts one; `on_request` gets each person's
+        """A host listening in `socket_dir`; `launch` (a program and its arguments, a list, or None) starts one; `on_request` gets each person's
         request the host relays."""
         self.path = os.path.join(socket_dir, "agent.sock")
         self.launch = launch
@@ -101,13 +104,13 @@ class Host:
 
     def start(self):
         """Starts the --launch command and waits up to 5 seconds for its socket to appear."""
-        log(f"no host running: starting {self.launch}")
-        # Windows parses a command line itself, and shlex would drop the backslashes of its paths
-        command = self.launch if os.name == "nt" else shlex.split(self.launch)
+        log(f"no host running: starting {self.launch[0]}")
+        # An argument vector, no shell. Standard output is this server's channel to the client, so the host gets none;
+        # it keeps standard error. Its own session lets the host outlive this server, as a host the person started.
         try:
-            subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, start_new_session=True)
+            subprocess.Popen(self.launch, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, start_new_session=True)
         except OSError as failure:  # reported like a host that isn't there, not ending the server
-            raise RuntimeError(f"couldn't start {self.launch}: {failure}")
+            raise RuntimeError(f"couldn't start {self.launch[0]}: {failure}")
         for _ in range(50):
             if os.path.exists(self.path):
                 break

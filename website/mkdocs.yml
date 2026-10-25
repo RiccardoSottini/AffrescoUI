@@ -19,6 +19,9 @@ validation:
 
 theme:
   name: material
+  # No fonts fetched from a third-party font service at view time: the readers' system fonts, so the site makes no
+  # request beyond its own host.
+  font: false
   logo: assets/affrescoui-mark.svg
   favicon: assets/favicon.svg
   features:

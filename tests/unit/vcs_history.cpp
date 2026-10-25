@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <random>
 #include <string>
 #include <vector>
@@ -563,3 +564,17 @@ TEST_CASE("vcs: the revision fuzzer's input that found it: a value copied in the
 	CHECK(repository.document() == document);
 	CHECK(repository.state() == state);
 }
+
+#ifndef _WIN32
+TEST_CASE("vcs history: the lock file is never opened through a link") {
+	const TemporaryFolder folder;
+	const std::filesystem::path canary = folder.path() / "canary.txt";
+	writeText(canary, "canary");
+	std::filesystem::create_symlink(canary, folder.path() / "lock");
+	std::string problem;
+	CHECK_FALSE(affresco::vcs::detail::FileLock::tryLock(folder.path() / "lock", problem));
+	CHECK(problem.find("can't be locked") != std::string::npos);
+	std::ifstream in(canary);
+	CHECK(std::string(std::istreambuf_iterator<char>(in), {}) == "canary");
+}
+#endif

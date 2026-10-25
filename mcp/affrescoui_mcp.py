@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AffrescoUI MCP server, run from a checkout: `python3 mcp/affrescoui_mcp.py [--socket DIR] [--launch "command"]`.
+"""AffrescoUI MCP server, run from a checkout: `python3 mcp/affrescoui_mcp.py [--socket DIR] [--launch PROGRAM]`.
 
 The server is the package next to this file (affrescoui_mcp/, README.md says what each module does). This file keeps
 the path that MCP clients, scripts and documents name: run, it starts the server; imported, or loaded by path as

@@ -154,7 +154,9 @@ public:
 	/// @brief Whether the window fills a display.
 	[[nodiscard]] bool isFullscreen() const;
 	/// @brief Makes the window fill the display it is mostly on, at that display's own resolution, or puts it back
-	/// where it was. Headless (and embedded, where the host decides) it only remembers the wish.
+	/// where it was. Headless (and embedded, where the host decides) it only remembers the wish. Filling it, the
+	/// window shows for a few seconds a hint it draws itself, above everything, that Esc leaves; and Esc always does
+	/// (the key is still delivered), so what a screen draws over the whole display never keeps the user in it.
 	/// @param fullscreen true to fill it.
 	void setFullscreen(bool fullscreen);
 
@@ -290,9 +292,17 @@ public:
 	/// @param event The scale, scheme and motion setting now.
 	void routeDisplay(const DisplayEvent& event);
 	/// @brief Whether an input event is being delivered: what runs now runs because of the user's input, not a timer
-	/// or a deferred task.
+	/// or a deferred task. A key pressKey() presses for a screen is no input of the user's.
 	/// @return true while one of the route methods runs.
-	[[nodiscard]] bool routingInput() const noexcept { return routing_ > 0; }
+	[[nodiscard]] bool routingInput() const noexcept { return routing_ > pressedForScreen_; }
+	/// @brief Whether the user's press is being delivered: a key, a typed character, a mouse button or a menu choice
+	/// (routeKey(), routeChar(), routeMouseButton(), runChosen()); not a move, a scroll, or a key pressKey() presses.
+	/// What only the user starts, such as filling the display, asks this.
+	/// @return true while one of them runs.
+	[[nodiscard]] bool routingPress() const noexcept { return pressing_ > 0; }
+	/// @brief Whether the hint that Esc leaves full screen is shown (setFullscreen()), drawn above everything.
+	/// @return true for the few seconds after the window starts filling the display.
+	[[nodiscard]] bool showsFullscreenHint() const noexcept { return fullscreenHintShown_; }
 	/// @brief Takes the key being delivered: a binding ran for it, so the focused panel doesn't act on it as well (a
 	/// text field neither moves nor edits) and the character it types is dropped. It lasts until that character, the
 	/// key's release or the next key.
@@ -441,6 +451,9 @@ private:
 	/// left, and updating the cursor and the tooltip.
 	/// @param panel The panel under the pointer, or nullptr.
 	void setHovered(Panel* panel);
+	/// @brief Shows the hint that Esc leaves full screen for a few seconds, or hides it.
+	/// @param shown true to show it.
+	void showFullscreenHint(bool shown);
 	/// @brief Lays out the overlays inside a subtree (after the tree), collecting them in drawing order.
 	/// @param panel The subtree.
 	void layoutOverlays(Panel& panel);
@@ -529,6 +542,8 @@ private:
 	std::uint64_t layoutPass_ = 0; ///< Counts layout passes (Panel::layoutPass_ says which one it was in).
 	bool forwardAnchor_ = false;   ///< A panel anchored to one not laid out yet in this pass.
 	int routing_ = 0;              ///< Depth of event delivery in progress.
+	int pressing_ = 0;             ///< Depth of the user's presses in progress (routingPress()).
+	int pressedForScreen_ = 0;     ///< Depth of pressKey() in progress: no input of the user's.
 	std::vector<std::function<void()>> deferred_; ///< See defer().
 
 	std::shared_ptr<const Font> defaultFont_; ///< See defaultFont().
@@ -560,6 +575,9 @@ private:
 	std::unique_ptr<Label> tooltip_; ///< The tooltip, created on first use.
 	bool tooltipShown_ = false;      ///< The tooltip is on screen.
 	std::uint64_t tooltipTimer_ = 0; ///< The delay before showing it, if running.
+	std::unique_ptr<Label> fullscreenHint_; ///< "Press Esc to leave full screen", created on first use.
+	bool fullscreenHintShown_ = false;      ///< The hint is on screen.
+	std::uint64_t fullscreenHintTimer_ = 0; ///< Hides it, if running.
 
 	Cursor currentCursor_ = Cursor::Arrow; ///< Shape shown now.
 	Panel root_;                           ///< Fills the window.

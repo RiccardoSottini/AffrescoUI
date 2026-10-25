@@ -26,3 +26,14 @@ def find_cli():
 def repository_path(path):
     """A path as given, or relative to the repository when it doesn't exist as given."""
     return path if os.path.isabs(path) or os.path.exists(path) else os.path.join(ROOT, path)
+
+
+def confined_path(path, roots):
+    """repository_path(path) with its links resolved, or None when it isn't inside one of `roots` (folders, their
+    links resolved too): a tool reads only files the person put within reach, never any file on the disk."""
+    resolved = os.path.realpath(repository_path(path))
+    for root in roots:
+        root = os.path.realpath(root)
+        if os.path.commonpath([root, resolved]) == root:
+            return resolved
+    return None

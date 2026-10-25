@@ -17,6 +17,7 @@
 // nothing, and allows only those. What the screen uses and the manifest doesn't declare is never allowed.
 //
 // The window only renders: it has no idea where changes come from. Programs connect over two local sockets in DIR
+// (the screen's own "channels" too, with its "channels" capability: confined to DIR, so only to this host)
 // (default $AFFRESCOUI_SOCKET_DIR, else /tmp/affrescoui-<uid>, or %LOCALAPPDATA%\affrescoui\sockets on Windows):
 //   studio.sock   a reviewing client: author "studio", which the templates let review changes
 //   agent.sock    an AI agent's MCP server (mcp/affrescoui_mcp.py): author "agent", whose changes wait for review
@@ -414,7 +415,7 @@ host::Allowed decide(const Opened& opened, const Options& options, bool ask) {
 	};
 	for(const std::string& key : options.grants)
 		if(!declared(key)) throw std::runtime_error("--grant " + key + ": not a capability " + app.id + " declares");
-	const std::filesystem::path file = host::grantsFile(options.dataDir, app.id);
+	const std::filesystem::path file = host::grantsFile(options.dataDir, app.id, opened.location);
 	host::Decisions decisions = host::loadDecisions(file);
 	std::vector<affresco::format::AppCapability> asked;
 	for(const affresco::format::AppCapability& capability : app.capabilities)
@@ -441,7 +442,7 @@ host::Allowed decide(const Opened& opened, const Options& options, bool ask) {
 /// @throws std::exception If the app can't be read.
 int forgetPermissions(const Options& options) {
 	const Opened opened = locate(options.forget);
-	std::filesystem::remove(host::grantsFile(options.dataDir, opened.manifest.id));
+	std::filesystem::remove(host::grantsFile(options.dataDir, opened.manifest.id, opened.location));
 	std::cout << "affrescoui_launcher: " << opened.manifest.name << " asks again for what it uses when it opens\n";
 	return EXIT_SUCCESS;
 }
@@ -477,6 +478,9 @@ int run(const Options& options) {
 	using History = affresco::Screen::History;
 	affresco::Screen screen = openScreen(opened, options, screenshotOnly ? History::InMemory : History::OnDisk);
 	host::applyGrants(screen, opened.manifest, allowed, screenshotOnly);
+	// Its channels reach this host's own sockets, never another app's nor the Launcher's (SECURITY.md, "Channels")
+	screen.setSocketDirectory(options.socketDir);
+	screen.confineChannels(true);
 	if(!options.folder.empty()) screen.services().addRoot("workspace", options.folder);
 	for(const std::string& spec : options.allowed)
 		if(const auto refused = affresco::services::grantProgram(screen.services(), spec))

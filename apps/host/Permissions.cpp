@@ -27,7 +27,8 @@ constexpr std::size_t maxGrantsBytes = 256 * 1024;
 
 /// @brief The name the prompt screen gives a capability's kind (its "permissions.<kind>" string).
 /// @param capability The capability.
-/// @return "network", "folderRead", "folderWrite", "program", "audio", "assistant", "files" or "windows".
+/// @return "network", "folderRead", "folderWrite", "program", "programAny" (a shell or an interpreter), "audio",
+/// "assistant", "files", "windows" or "channels".
 std::string kindName(const AppCapability& capability) {
 	switch(capability.kind) {
 	case AppCapability::Kind::Network:
@@ -35,7 +36,7 @@ std::string kindName(const AppCapability& capability) {
 	case AppCapability::Kind::Folder:
 		return capability.write ? "folderWrite" : "folderRead";
 	case AppCapability::Kind::Program:
-		return "program";
+		return capability.runsAnyCommand() ? "programAny" : "program";
 	case AppCapability::Kind::Audio:
 		return "audio";
 	case AppCapability::Kind::Assistant:
@@ -44,11 +45,15 @@ std::string kindName(const AppCapability& capability) {
 		return "files";
 	case AppCapability::Kind::Windows:
 		return "windows";
+	case AppCapability::Kind::Channels:
+		return "channels";
 	}
 	return "audio";
 }
 
-/// @brief What the prompt screen shows: the app's name and each capability asked, checked until the person unchecks it.
+/// @brief What the prompt screen shows: the app's name and each capability asked, checked only if it starts allowed
+/// (AppCapability::startsAllowed()): a program, a folder written, an origin, the assistant and the channels take a
+/// click.
 /// @param app The app.
 /// @param asked The capabilities asked.
 /// @return `{"name", "capabilities": [{"key", "kind", "name", "why", "allowed"}]}`.
@@ -59,14 +64,15 @@ json describe(const affresco::format::AppManifest& app, const std::vector<AppCap
 		                        {"kind", kindName(capability)},
 		                        {"name", capability.name},
 		                        {"why", capability.why},
-		                        {"allowed", true}});
+		                        {"allowed", capability.startsAllowed()}});
 	return {{"name", app.name}, {"capabilities", std::move(capabilities)}};
 }
 
 } // namespace
 
-std::filesystem::path grantsFile(const std::filesystem::path& dataDirectory, std::string_view id) {
-	return affresco::Screen::appDataDirectory(dataDirectory, id) / "grants.json";
+std::filesystem::path grantsFile(const std::filesystem::path& dataDirectory, std::string_view id,
+                                 const std::filesystem::path& location) {
+	return affresco::Screen::appDataDirectory(dataDirectory, id, location) / "grants.json";
 }
 
 Decisions loadDecisions(const std::filesystem::path& file) {
@@ -124,6 +130,7 @@ void applyGrants(affresco::Screen& screen, const affresco::format::AppManifest& 
                  bool silent) {
 	screen.allowFileDialogs(false); // a library screen may, an app only once the person allows it
 	screen.allowOtherWindows(false);
+	screen.allowChannels(false);
 	for(const AppCapability& capability : app.capabilities) {
 		if(!allowed.contains(capability.key())) continue;
 		std::optional<std::string> refused;
@@ -147,6 +154,9 @@ void applyGrants(affresco::Screen& screen, const affresco::format::AppManifest& 
 			break;
 		case AppCapability::Kind::Windows:
 			screen.allowOtherWindows(true);
+			break;
+		case AppCapability::Kind::Channels:
+			screen.allowChannels(true);
 			break;
 		}
 		if(refused)

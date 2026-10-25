@@ -74,7 +74,8 @@
 					"$ref": "#/$defs/why",
 					"description": "The open and save dialogs: saveFile, openFile, export, and an image step's open and save."
 				},
-				"windows": { "$ref": "#/$defs/why", "description": "The screen's other windows (its windows section, opened by openWindow)." }
+				"windows": { "$ref": "#/$defs/why", "description": "The screen's other windows (its windows section, opened by openWindow)." },
+				"channels": { "$ref": "#/$defs/why", "description": "The screen's channels: programs it talks to over sockets in its own host's socket folder, or peers at a wss:// address." }
 			}
 		},
 		"data": {

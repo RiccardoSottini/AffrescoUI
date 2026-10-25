@@ -3,6 +3,7 @@
 /// sets, fact sets and the card's `${...}` templating.
 
 #include "AdaptiveCards.hpp"
+#include "affresco/core/Numbers.hpp"
 
 #include <algorithm>
 #include <array>
@@ -79,7 +80,7 @@ struct ColumnWidth {
 [[nodiscard]] ColumnWidth columnWidth(const json& width) {
 	if(width.is_number() && width.get<double>() > 0) return {std::min(width.get<float>(), 100.0f), 0};
 	const std::string text = textOf(width);
-	if(text.ends_with("px")) {
+	if(text.ends_with("px") && numberLengthFits(text)) {
 		try {
 			return {0, std::clamp(std::stof(text.substr(0, text.size() - 2)), 1.0f, 4096.0f)};
 		} catch(const std::exception&) {

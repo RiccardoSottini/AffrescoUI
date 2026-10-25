@@ -7,7 +7,8 @@
 	"description": "A Kanban board: boards, swimlanes, a table and a timeline of every card.",
 	"entry": "index.screen.json",
 	"capabilities": {
-		"assistant": "Answers your questions about your boards, with the assistant you set up in Settings."
+		"assistant": "Answers your questions about your boards, with the assistant you set up in Settings.",
+		"channels": "Shows who else is on a board and what they changed, through the host's local socket."
 	},
 	"data": {
 		"models": "models.json",

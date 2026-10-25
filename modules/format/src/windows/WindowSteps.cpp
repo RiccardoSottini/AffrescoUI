@@ -48,8 +48,9 @@ std::optional<bool> runWindowStep(const Running& s) {
 } // namespace
 
 void registerWindowSteps(StepRegistry& registry) {
-	registry.add(
-	    {"windows", {{"openWindow", {"fullscreen"}}, {"closeWindow", {}}, {"fullscreen", {"of"}}}, runWindowStep});
+	registry.add({"windows",
+	              {{"openWindow", {"fullscreen"}}, {"closeWindow", {}}, {"fullscreen", {"of"}, true}},
+	              runWindowStep});
 }
 
 } // namespace affresco::format

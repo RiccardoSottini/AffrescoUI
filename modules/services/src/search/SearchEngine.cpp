@@ -79,13 +79,14 @@ std::string joined(const std::string& base, std::string_view name) {
 	return base.empty() ? std::string(name) : base + '/' + std::string(name);
 }
 
-/// @brief Reads a folder's .gitignore, if it has one and it is a file (a FIFO would block the walk).
+/// @brief Reads a folder's .gitignore, if it has one and it is a plain file: a FIFO would block the walk, and a link
+/// may point out of the root, which the walk never leaves.
 /// @param folder The folder.
 /// @param relative It, relative to the root.
 /// @param rules Gets its rules.
 void readIgnore(const fs::path& folder, const std::string& relative, IgnoreRules& rules) {
 	std::error_code error;
-	if(!fs::is_regular_file(folder / ".gitignore", error)) return;
+	if(!fs::is_regular_file(fs::symlink_status(folder / ".gitignore", error))) return;
 	std::ifstream in(folder / ".gitignore", std::ios::binary);
 	if(!in) return;
 	std::string text(IgnoreRules::maxFileBytes, '\0');

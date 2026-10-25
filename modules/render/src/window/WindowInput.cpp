@@ -59,12 +59,15 @@ template <typename Event> Event inSpaceOf(const Panel& panel, Event event) noexc
 
 void Window::routeKey(const KeyEvent& event) {
 	++routing_;
+	++pressing_;
+	if(event.key == Key::Escape && event.action == Action::Press && isFullscreen()) setFullscreen(false);
 	keyInput_ = true;
 	keyTaken_ = false; // a new press or a release: what a binding took before is over
 	capsLock_ = event.mods.capsLock();
 	if(focused_ && focused_->isShown()) focused_->keyEvent(event);
 	onKey(event);
 
+	--pressing_;
 	if(--routing_ == 0) runDeferred();
 }
 
@@ -74,9 +77,11 @@ void Window::routeChar(const CharEvent& event) {
 	if((codepoint >= 0xD800U && codepoint <= 0xDFFFU) || codepoint > 0x10FFFFU) return;
 	if(std::exchange(keyTaken_, false)) return; // the character of a key a binding took
 	++routing_;
+	++pressing_;
 	if(focused_ && focused_->isShown()) focused_->charEvent(event);
 	onChar(event);
 
+	--pressing_;
 	if(--routing_ == 0) runDeferred();
 }
 
@@ -85,6 +90,7 @@ void Window::takeKey() noexcept { keyTaken_ = true; }
 void Window::pressKey(Panel& target, const KeyEvent& press, char32_t typed) {
 	if((typed >= 0xD800U && typed <= 0xDFFFU) || typed > 0x10FFFFU) typed = 0;
 	++routing_;
+	++pressedForScreen_;
 	const bool taken = std::exchange(keyTaken_, false); // the key a binding took that sent this one
 	KeyEvent event = press;
 	event.action = Action::Press;
@@ -94,6 +100,7 @@ void Window::pressKey(Panel& target, const KeyEvent& press, char32_t typed) {
 	target.keyEvent(event);
 	keyTaken_ = taken;
 
+	--pressedForScreen_;
 	if(--routing_ == 0) runDeferred();
 }
 
@@ -111,6 +118,7 @@ void Window::routeMouseMove(Vec2 position) {
 
 void Window::routeMouseButton(const MouseButtonEvent& event) {
 	++routing_;
+	++pressing_;
 	cursor_ = event.position;
 	Panel* hit = panelAt(event.position);
 	setHovered(hit);
@@ -135,6 +143,7 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 
 	onMouseButton(event);
 
+	--pressing_;
 	if(--routing_ == 0) runDeferred();
 }
 
@@ -193,8 +202,10 @@ void Window::routeDisplay(const DisplayEvent& event) {
 void Window::runChosen(std::function<void()> run) {
 	if(!run) return;
 	++routing_;
+	++pressing_;
 	run();
 
+	--pressing_;
 	if(--routing_ == 0) runDeferred();
 }
 

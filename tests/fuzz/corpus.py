@@ -25,6 +25,7 @@
 - url:        an allowlist entry, a line feed, then a URL: remote peers', sign-in's and a document server's;
 - oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
 - token_file: a document server's token file, with comments and blank lines;
+- git_policy: a git run's arguments, separated by zero bytes, and a repository's own config (the same input read twice);
 - git_output: `git status --porcelain=v2 -z --branch`, `git for-each-ref` and two texts to diff (the first byte picks);
 - history:    refs.json (even first byte) or a commit object (odd first byte) of a history on disk.
 - gltf:       a small .gltf (a triangle, its material, a clip) with its buffer as data:, a .glb of it, broken copies;
@@ -573,6 +574,19 @@ def git_output_seeds():
             "\x02one\ntwo\nthree\n\0one\n2\nthree\nfour", "\x02\0added\n", "\x02a\r\nb\0a\nb\n"]
 
 
+def git_policy_seeds():
+    """Git runs the git grant takes and refuses, and repositories' own configs (services' GitPolicy.cpp, GitConfig.cpp)."""
+    runs = [["status", "--porcelain=v2", "-z", "--branch", "--untracked-files=all"], ["add", "--", "src/a.cpp"],
+            ["restore", "--staged", "--", "a", "b"], ["switch", "-c", "feature/x"], ["show", "--no-textconv", "HEAD:a"],
+            ["log", "--format=%H%x00%an%x00%at%x00%s", "-n", "50", "--", "src"], ["commit", "-F", "-"], ["init"],
+            ["add", "--", "../x"], ["-c", "core.pager=sh", "status"], ["push"]]
+    configs = ["[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n"
+               "[remote \"origin\"]\n\turl = https://example.com/x.git\n[branch \"main\"]\n\tremote = origin\n",
+               "[filter \"x\"]\n\tclean = cat\n", "[filter.x] clean = cat\n", "[core]\n\tbare = \\\n[diff \"x\"]\n",
+               "\ufeff[user]\r\n\tname = A ; B\r\n", "[include]\n\tpath = other\n"]
+    return ["\0".join(run) for run in runs] + configs
+
+
 def settings_file_seeds():
     """Settings and colour theme files, which allow comments and trailing commas (plainJson; openFile's "comments")."""
     dark = {"name": "Fuzz Dark", "type": "dark", "colors": {"editor.background": "#1e1e1e",
@@ -883,6 +897,9 @@ def dictionaries():
                                '"verification_uri"', '"iss"', '"aud"', '"nonce"', '"exp"', '"sub"', ".", "=", "&",
                                "-", "_"],
             "token_file": ["#", "\n", "\r\n", " ", "\t", "0123456789abcdef"],
+            "git_policy": ["\x00", "--", "-c", "status", "add", "restore", "switch", "log", "show", "commit", "HEAD:",
+                           "[", "]", "\"", "\\", "\n", "=", "#", ";", ".", "core", "filter", "remote", "branch",
+                           "include", "clean", "url", "bare"],
             "git_output": ["\x00", "\n", "# branch.oid ", "# branch.head ", "# branch.upstream ", "# branch.ab ",
                            "1 ", "2 ", "u ", "? ", "! ", ".M", "M.", "R.", "D.", "A.", "UU", "N...", "100644 ",
                            "R100 ", "*"],
@@ -973,7 +990,7 @@ def main():
     write(out, "composition", composition_seeds(), words["json"] + features + ["needs", "bindings", "adapter", "dock",
           "affrescoui-adapter", "affrescoui-proof", "list", "action", "image", "{{", "}}"])
     for target, seeds in [("url", url_seeds()), ("oauth", oauth_seeds()), ("token_file", token_file_seeds()),
-                          ("git_output", git_output_seeds()), ("history", history_seeds()), ("key_press", key_press_seeds())]:
+                          ("git_policy", git_policy_seeds()), ("git_output", git_output_seeds()), ("history", history_seeds()), ("key_press", key_press_seeds())]:
         write(out, target, seeds, words[target])
     write(out, "adapters", adapters_seeds(), words["json"] + ["surfaceUpdate", "beginRendering", "dataModelUpdate",
           "literalString", "explicitList", "AdaptiveCard", "TextBlock", "Input.Text", "Action.Submit", "${"])

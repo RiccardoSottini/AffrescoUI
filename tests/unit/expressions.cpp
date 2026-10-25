@@ -37,11 +37,14 @@ std::string parentheses(int depth) {
 	return std::string(n, '(') + "1" + std::string(n, ')');
 }
 
-/// @brief An expression whose value is infinity: two large numbers multiplied (literals have no exponents).
+/// @brief An expression whose value is infinity: large numbers multiplied (literals have no exponents, and are at most
+/// 40 characters long): nine times 1e37.
 /// @return It.
 std::string infinity() {
-	const std::string large = "1" + std::string(300, '0') + ".0";
-	return "(" + large + " * " + large + ")";
+	const std::string large = "1" + std::string(37, '0') + ".0";
+	std::string product = large;
+	for(int factor = 1; factor < 9; ++factor) product += " * " + large;
+	return "(" + product + ")";
 }
 
 /// @brief Paths nested inside the brackets of paths, as paths were written before expressions.
@@ -111,6 +114,7 @@ const std::vector<Case> cases = {
     {"{{0 - 9223372036854775807 - 1}}", INT64_MIN, {}}, // the smallest 64-bit integer stays an integer
     {"{{9223372036854775808 + 1}}", {}, "number '9223372036854775808' is too large"},
     {"{{1 + " + std::string(400, '9') + ".5}}", {}, "is too large (at column 407)"},
+    {"{{0." + std::string(500, '1') + "}}", {}, "is too large"}, // longer than any number strtod() is given
     {"{{state.items[99999999999999999999]}}", {}, "index '99999999999999999999' is too large"},
     // Whole results beyond 64 bits: found by fuzzing, they were cast to an integer (undefined behaviour)
     {"{{3000000000000 * 3000000000000}}", 9e24, {}},

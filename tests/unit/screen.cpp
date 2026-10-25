@@ -224,5 +224,14 @@ TEST_CASE("screen: a new state file is readable by its owner only, and one alrea
 	      (fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read));
 	std::ifstream in(existing);
 	CHECK(std::string(std::istreambuf_iterator<char>(in), {}) == "{}\n");
+
+	// A link planted in the state file's place is never written through
+	const fs::path canary = folder.path / "canary.txt";
+	write(canary, "canary");
+	const fs::path linked = folder.path / "linked.state.json";
+	fs::create_symlink(canary, linked);
+	CHECK_FALSE(affresco::detail::writeStateFile(linked, "{}\n"));
+	std::ifstream kept(canary);
+	CHECK(std::string(std::istreambuf_iterator<char>(kept), {}) == "canary");
 }
 #endif
