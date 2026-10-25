@@ -209,10 +209,10 @@
 							"textColor": "{{computed.infoDevice.on ? '@accent' : '@muted'}}", "color": "{{computed.infoDevice.on ? '@accentSoft' : '@raised'}}" },
 						{ "id": "infoTransport", "when": "{{computed.infoDevice.id == 'speaker'}}", "type": "row", "anchors": { "left": 0, "right": 0, "top": 198 }, "height": 44, "gap": 16,
 							"justify": "center", "role": "toolbar", "arrows": "horizontal", "label": "{{computed.infoName}}", "children": [
-								{ "use": "iconBtn", "with": { "icon": "skip-back", "tip": "info.previous" }, "color": "transparent", "onClick": { "run": "showToast", "with": { "message": "{{t('info.queueEmpty')}}" } } },
+								{ "use": "iconBtn", "with": { "icon": "skip-back", "tip": "info.previous" }, "tooltip": "{{t('info.queueEmpty')}}", "color": "transparent", "hover": { "color": "transparent" }, "textColor": "@off", "cursor": "arrow", "disabled": true },
 								{ "use": "iconBtn", "with": { "icon": "{{computed.infoDevice.on ? 'pause' : 'play'}}", "tip": "{{computed.infoDevice.on ? 'info.pause' : 'info.play'}}" }, "id": "infoPlay",
 									"color": "@accentSoft", "textColor": "@accent", "onClick": { "run": "deviceCall", "with": { "i": "{{state.info.index}}" } } },
-								{ "use": "iconBtn", "with": { "icon": "skip-forward", "tip": "info.next" }, "color": "transparent", "onClick": { "run": "showToast", "with": { "message": "{{t('info.queueEmpty')}}" } } }
+								{ "use": "iconBtn", "with": { "icon": "skip-forward", "tip": "info.next" }, "tooltip": "{{t('info.queueEmpty')}}", "color": "transparent", "hover": { "color": "transparent" }, "textColor": "@off", "cursor": "arrow", "disabled": true }
 							] },
 						{ "id": "infoVolume", "when": "{{computed.infoDevice.id == 'speaker'}}", "anchors": { "left": 24, "right": 24, "top": 248 }, "height": 40, "color": "transparent", "children": [
 							{ "type": "label", "icon": "volume-2", "text": "", "textColor": "@muted", "anchors": { "left": 0, "top": 8 }, "width": 24, "height": 24, "align": "center" },

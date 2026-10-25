@@ -371,6 +371,22 @@
 			]
 		},
 		{
+			"name": "placeholders-say-why",
+			"note": "A control this demo leaves for later stays visible but disabled: a click does nothing and its tooltip says why",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "click": "#energyNext" },
+				{ "expect": { "node": "#energyDay", "text": "Today" } },
+				{ "expect": { "state": "toast.open", "is": false } },
+				{ "expect": { "node": "#energyNext", "property": "tooltip", "is": "This demo keeps only today" } },
+				{ "key": "mod+comma" },
+				{ "click": "#settingsRow", "nth": 0 },
+				{ "click": "#devAdd" },
+				{ "expect": { "state": "toast.open", "is": false } },
+				{ "expect": { "node": "#devAdd", "property": "tooltip", "is": "Adding devices and controls is not part of this demo" } }
+			]
+		},
+		{
 			"name": "security-mode-and-notifications",
 			"note": "Cmd+Shift+A cycles Off, Home, Away; each change is a notification, the bell counts them, Cmd+Shift+N shows them and Clear empties them",
 			"steps": [
