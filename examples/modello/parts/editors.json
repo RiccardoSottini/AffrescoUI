@@ -13,8 +13,10 @@
 		"outlinerDepth": "{{state.outlinerMode == 'list' ? 0 : 2}}",
 		"outlinerDisplayItems": "{{[{ title: 'View Layer', icon: 'layers-2', checked: state.outlinerMode != 'list', run: 'setOption', with: { args: { key: 'outlinerMode', value: 'layer' } } }, { title: 'Object List', icon: 'list', checked: state.outlinerMode == 'list', run: 'setOption', with: { args: { key: 'outlinerMode', value: 'list' } } }, { separator: true }, { title: 'Scenes', icon: 'shapes', enabled: false, keyLabel: 'Not yet' }, { title: 'Orphan Data', icon: 'trash-2', enabled: false, keyLabel: 'Not yet' }]}}",
 		"outlinerFilterItems": "{{concat(map([['mesh', 'Meshes'], ['light', 'Lights'], ['camera', 'Cameras'], ['empty', 'Empties']], { title: it[1], checked: !contains(state.outlinerHide, it[0]), run: 'toggleKind', with: { args: { list: 'outlinerHide', kind: it[0] } } }), [{ separator: true }, { title: 'Only Selected', checked: state.outlinerSelectedOnly == true, run: 'toggleOption', with: { args: { key: 'outlinerSelectedOnly' } } }])}}",
-		"propTabs": "{{[[{ id: 'tool', icon: 'wrench', title: 'Tool' }], [{ id: 'render', icon: 'camera', title: 'Render' }, { id: 'output', icon: 'printer', title: 'Output' }, { id: 'viewLayer', icon: 'images', title: 'View Layer' }, { id: 'scene', icon: 'shapes', title: 'Scene' }, { id: 'world', icon: 'globe', title: 'World' }], [{ id: 'collection', icon: 'package', title: 'Collection' }], [{ id: 'object', icon: 'box', title: 'Object' }, { id: 'modifiers', icon: 'blocks', title: 'Modifiers' }, { id: 'particles', icon: 'sparkles', title: 'Particles' }, { id: 'physics', icon: 'orbit', title: 'Physics' }, { id: 'constraints', icon: 'link', title: 'Object Constraints' }, { id: 'data', icon: 'triangle', title: 'Data' }, { id: 'material', icon: 'circle', title: 'Material' }, { id: 'texture', icon: 'grid-2-x-2', title: 'Texture' }]]}}",
-		"objectPanels": "{{[['delta', 'Transform Offset'], ['relations', 'Relations'], ['collections', 'Collections'], ['instancing', 'Instancing'], ['motionPaths', 'Motion Paths'], ['visibility', 'Visibility'], ['display', 'Viewport Display'], ['lineArt', 'Line Drawing'], ['custom', 'Custom Properties']]}}",
+		"propTabs": "{{[[{ id: 'tool', icon: 'wrench', title: 'Tool' }], [{ id: 'render', icon: 'camera', title: 'Render' }, { id: 'output', icon: 'printer', title: 'Output' }, { id: 'viewLayer', icon: 'images', title: 'View Layer', needs: \"View layers aren't available yet: Modello keeps one\" }, { id: 'scene', icon: 'shapes', title: 'Scene' }, { id: 'world', icon: 'globe', title: 'World' }], [{ id: 'collection', icon: 'package', title: 'Collection' }], [{ id: 'object', icon: 'box', title: 'Object' }, { id: 'modifiers', icon: 'blocks', title: 'Modifiers', needs: \"Modifiers aren't available yet\" }, { id: 'particles', icon: 'sparkles', title: 'Particles', needs: \"Particles aren't available yet\" }, { id: 'physics', icon: 'orbit', title: 'Physics', needs: \"Physics isn't available yet\" }, { id: 'constraints', icon: 'link', title: 'Object Constraints', needs: \"Object constraints aren't available yet\" }, { id: 'data', icon: 'triangle', title: 'Data' }, { id: 'material', icon: 'circle', title: 'Material' }, { id: 'texture', icon: 'grid-2-x-2', title: 'Texture', needs: \"Textures aren't available yet\" }]]}}",
+		"propPanels": "{{[{ tab: 'tool', key: 'activeTool', title: 'Active Tool', words: 'snap gizmos tool', needs: '' }, { tab: 'tool', key: 'workspacePanel', title: 'Workspace', words: 'mode', needs: \"Workspace settings aren't available yet\" }, { tab: 'render', key: 'colorManagement', title: 'Color Management', words: 'exposure', needs: '' }, { tab: 'render', key: 'sampling', title: 'Sampling', words: 'samples', needs: \"Render samples aren't available yet: a render is the viewport's view\" }, { tab: 'output', key: 'frameRange', title: 'Frame Range', words: 'frame start end', needs: '' }, { tab: 'output', key: 'format', title: 'Format', words: 'resolution frame rate', needs: \"Resolution and frame rate settings aren't available yet\" }, { tab: 'scene', key: 'scenePanel', title: 'Scene', words: 'name camera', needs: '' }, { tab: 'scene', key: 'units', title: 'Units', words: 'length metres', needs: \"Units aren't available yet: lengths are in metres\" }, { tab: 'world', key: 'surfaceWorld', title: 'Surface', words: 'color colour background', needs: '' }, { tab: 'collection', key: 'restrictions', title: 'Restrictions', words: 'selectable visible render', needs: '' }, { tab: 'object', key: 'transform', title: 'Transform', words: 'location rotation scale', needs: '' }, { tab: 'object', key: 'visibility', title: 'Visibility', words: 'selectable show viewports renders', needs: '' }, { tab: 'object', key: 'relations', title: 'Relations', words: 'parent', needs: \"Parenting isn't available yet\" }, { tab: 'object', key: 'collections', title: 'Collections', words: 'link', needs: \"Modello keeps one collection: linking to others isn't available yet\" }, { tab: 'object', key: 'delta', title: 'Transform Offset', words: 'delta', needs: \"Transform offsets aren't available yet\" }, { tab: 'object', key: 'instancing', title: 'Instancing', words: '', needs: \"Instancing isn't available yet\" }, { tab: 'object', key: 'motionPaths', title: 'Motion Paths', words: '', needs: \"Motion paths aren't available yet\" }, { tab: 'object', key: 'display', title: 'Viewport Display', words: 'bounds wire', needs: \"Viewport display options aren't available yet\" }, { tab: 'object', key: 'lineArt', title: 'Line Drawing', words: '', needs: \"Line drawing isn't available yet\" }, { tab: 'object', key: 'custom', title: 'Custom Properties', words: '', needs: \"Custom properties aren't available yet\" }, { tab: 'material', key: 'materialSettings', title: 'Settings', words: 'blend shadow', needs: \"Blend and shadow settings aren't available yet\" }, { tab: 'data', key: 'dataPanel', title: computed.activeNode.kind == 'light' ? 'Light' : computed.activeNode.kind == 'camera' ? 'Lens' : computed.activeNode.kind == 'mesh' ? 'Geometry' : 'Empty', words: 'type color colour power focal length primitive', needs: computed.activeNode.kind == 'empty' ? \"Empty display settings aren't available yet\" : '' }, { tab: 'data', key: 'dataMore', title: computed.activeNode.kind == 'light' ? 'Shadow' : computed.activeNode.kind == 'camera' ? 'Depth of Field' : 'Normals', words: '', needs: (computed.activeNode.kind == 'light' ? 'Shadow settings' : computed.activeNode.kind == 'camera' ? 'Depth of field' : 'Normals') + \" aren't available yet\" }, { tab: 'material', key: 'surfaceMaterial', title: 'Surface', words: 'base color colour metallic roughness', needs: computed.activeMaterialIndex < 0 ? \"This object has no material: adding one isn't available yet\" : '' }]}}",
+		"propShown": "{{map(filter(computed.propPanels, it.tab == state.propTab && (contains(['tool', 'render', 'output', 'scene', 'world', 'collection'], it.tab) || computed.activeNode != null) && ((state.propertiesFilter ?? '') == '' || contains(lower(it.title + ' ' + it.words), lower(trim(state.propertiesFilter))))), it.key)}}",
+		"activeMaterialIndex": "{{computed.activeNode == null || computed.activeNode.material == null ? -1 : indexOf(map(state.scene.materials, it.id), computed.activeNode.material)}}",
 		"keyframes": "{{map(state.keys, { time: (it - 1) / 24 })}}",
 		"stats": "{{state.overlays ? 'Objects ' + length(state.view.selection) + '/' + length(state.scene.nodes) + ' | ' : ''}}"
 	},
@@ -33,15 +35,17 @@
 			}
 		},
 		"panelHeader": {
-			"params": { "title": "", "key": "" },
+			"params": { "title": "", "key": "", "needs": "" },
 			"node": {
-				"height": 24, "width": "100%", "radius": "{{state.panels[key] ? { topLeft: 4, topRight: 4 } : 4}}",
-				"color": "@panel", "hover": { "color": "@widget" }, "role": "button", "focusable": true, "label": "{{title}}",
-				"isOpen": "{{state.panels[key] == true}}", "onClick": { "toggle": "state.panels[key]" },
+				"id": "panel-{{key}}", "height": 24, "width": "100%",
+				"radius": "{{needs == '' && state.panels[key] ? { topLeft: 4, topRight: 4 } : 4}}",
+				"color": "@panel", "hover": { "color": "{{needs == '' ? '@widget' : '@panel'}}" }, "role": "button", "focusable": true,
+				"label": "{{title}}", "disabled": "{{needs != ''}}", "tooltip": "{{needs}}",
+				"isOpen": "{{needs == '' && state.panels[key] == true}}", "onClick": { "toggle": "state.panels[key]" },
 				"children": [
-					{ "type": "label", "font": "iconsSmall", "icon": "{{state.panels[key] ? 'chevron-down' : 'chevron-right'}}",
-					  "text": "", "textColor": "@dim", "x": 6, "width": 12, "anchors": { "top": 0, "bottom": 0 }, "align": "center" },
-					{ "type": "label", "text": "{{title}}", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 22, "top": 0, "bottom": 0, "right": 8 } }
+					{ "type": "label", "font": "iconsSmall", "icon": "{{needs == '' && state.panels[key] ? 'chevron-down' : 'chevron-right'}}",
+					  "text": "", "textColor": "{{needs == '' ? '@dim' : '@faint'}}", "x": 6, "width": 12, "anchors": { "top": 0, "bottom": 0 }, "align": "center" },
+					{ "type": "label", "text": "{{title}}", "textColor": "{{needs == '' ? '@text' : '@faint'}}", "align": { "horizontal": "start", "vertical": "center" }, "anchors": { "left": 22, "top": 0, "bottom": 0, "right": 8 } }
 				]
 			}
 		},
@@ -58,7 +62,7 @@
 					  "radius": "{{first && last ? 4 : first ? { topLeft: 4, topRight: 4 } : last ? { bottomLeft: 4, bottomRight: 4 } : 0}}",
 					  "role": "slider", "focusable": true, "label": "{{label}}", "tooltip": "Drag to change; arrows step it",
 					  "onPress": [{ "set": "state.dragStart", "to": "{{value}}" },
-					              { "if": "{{key == '' ? slice(path, 0, 6) == 'scene.' : !contains(['redo', 'lens', 'cursor'], key)}}", "then": [{ "run": "snapshot" }] }],
+					              { "if": "{{key == '' ? slice(path, 0, 6) == 'scene.' : !contains(['redo', 'lens', 'cursor', 'whole'], key)}}", "then": [{ "run": "snapshot" }] }],
 					  "onDrag": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "path": "{{path}}", "min": "{{min}}", "max": "{{max}}", "value": "{{state.dragStart + event.dx * step}}" } } },
 					  "keys": { "right": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "path": "{{path}}", "min": "{{min}}", "max": "{{max}}", "value": "{{value + step * 10}}" } } },
 					            "left": { "run": "setField", "with": { "args": { "key": "{{key}}", "axis": "{{axis}}", "path": "{{path}}", "min": "{{min}}", "max": "{{max}}", "value": "{{value - step * 10}}" } } } },
@@ -75,11 +79,11 @@
 			}
 		},
 		"checkRow": {
-			"params": { "label": "", "path": "", "checked": false, "id": "" },
+			"params": { "label": "", "path": "", "checked": false, "id": "", "run": null, "with": null },
 			"node": {
 				"id": "{{id}}", "height": 20, "width": "100%", "color": "transparent", "radius": 4, "hover": { "color": "@widgetHover" },
 				"role": "checkbox", "focusable": true, "label": "{{label}}", "selected": "{{checked == true}}",
-				"onClick": { "toggle": "{{path}}" },
+				"onClick": [{ "if": "{{run != null}}", "then": [{ "run": "{{run}}", "with": "{{with}}" }], "else": [{ "toggle": "{{path}}" }] }],
 				"children": [{
 					"anchors": { "left": "41%", "top": 0, "bottom": 0, "right": 4 }, "color": "transparent", "children": [
 						{ "x": 0, "y": 3, "width": 14, "height": 14, "radius": 3, "color": "{{checked ? '@kit.accent' : '@widget'}}", "children": [
@@ -90,6 +94,53 @@
 						  "anchors": { "left": 20, "top": 0, "bottom": 0, "right": 0 } }
 					]
 				}]
+			}
+		},
+		"propPanel": {
+			"params": { "key": "", "body": 32 },
+			"node": {
+				"type": "column", "width": "100%", "gap": 0, "color": "transparent",
+				"height": "{{find(computed.propPanels, it.key == key).needs == '' && state.panels[key] ? 24 + body : 24}}",
+				"children": [
+					{ "use": "panelHeader", "with": { "title": "{{find(computed.propPanels, it.key == key).title}}", "key": "{{key}}",
+					  "needs": "{{find(computed.propPanels, it.key == key).needs}}" } },
+					{ "when": "{{find(computed.propPanels, it.key == key).needs == '' && state.panels[key] == true}}", "id": "panel-{{key}}-body",
+					  "width": "100%", "height": "{{body}}", "color": "@panel", "radius": { "bottomLeft": 4, "bottomRight": 4 },
+					  "children": [{ "type": "column", "fill": 6, "gap": 4, "color": "transparent", "children": [{ "slot": true }] }] }
+				]
+			}
+		},
+		"infoRow": {
+			"params": { "label": "", "text": "", "id": "" },
+			"node": {
+				"height": 20, "width": "100%", "color": "transparent",
+				"children": [
+					{ "type": "label", "text": "{{label}}", "textColor": "@dim", "align": { "horizontal": "end", "vertical": "center" },
+					  "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "38%" },
+					{ "type": "label", "id": "info-{{id}}", "text": "{{text}}", "textColor": "@text", "align": { "horizontal": "start", "vertical": "center" },
+					  "anchors": { "left": "41%", "right": 4, "top": 0, "bottom": 0 } }
+				]
+			}
+		},
+		"colorRow": {
+			"params": { "label": "", "value": "#000000", "target": "", "key": "" },
+			"node": {
+				"type": "column", "width": "100%", "height": "{{state.panels[key] ? 204 : 20}}", "gap": 4, "color": "transparent",
+				"children": [
+					{ "height": 20, "width": "100%", "color": "transparent", "children": [
+						{ "type": "label", "text": "{{label}}", "textColor": "@dim", "align": { "horizontal": "end", "vertical": "center" },
+						  "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "38%" },
+						{ "id": "color-{{target}}", "anchors": { "left": "41%", "right": 22, "top": 0, "bottom": 0 }, "color": "{{value}}",
+						  "radius": 4, "borderWidth": 1, "borderColor": "@widget", "role": "button", "focusable": true, "label": "{{label}}",
+						  "tooltip": "{{value}}: click to pick another", "isOpen": "{{state.panels[key] == true}}",
+						  "onClick": [{ "if": "{{target != 'world' && state.panels[key] != true}}", "then": [{ "run": "snapshot" }] },
+						              { "toggle": "state.panels[key]" }] }
+					] },
+					{ "when": "{{state.panels[key] == true}}", "type": "colorPicker", "id": "picker-{{target}}", "width": "100%", "height": 180,
+					  "label": "{{label}}", "value": "{{value}}", "fields": false, "alpha": false, "focusable": true,
+					  "textColor": "@text", "accentColor": "@kit.accent",
+					  "onChange": { "run": "setColor", "with": { "args": { "target": "{{target}}", "value": "{{event.value}}" } } } }
+				]
 			}
 		},
 		"vectorField": {
@@ -292,7 +343,8 @@
 						{ "use": "hButton", "id": "editor-type-properties", "with": { "icon": "sliders-horizontal", "chevron": true, "width": 38,
 						  "tooltip": "Editor Type", "open": "state.open.editorProperties", "items": "{{map(computed.editorTypes, merge(it, { checked: it.id == 'properties', run: 'swapEditor', with: { args: { from: 'properties', to: it.id } } }))}}" } },
 						{ "use": "searchField", "id": "properties-search", "with": { "bind": "state.propertiesFilter", "label": "Search the properties" } },
-						{ "use": "hButton", "id": "properties-pin", "with": { "icon": "pin", "width": 24, "back": "transparent", "tooltip": "Toggle Pin ID" } },
+						{ "use": "hButton", "id": "properties-pin", "with": { "icon": "pin", "width": 24, "back": "transparent", "disabled": true,
+						  "tooltip": "Pinning isn't available yet: the properties follow the active object" } },
 						{ "use": "gap" }
 					  ] },
 					{ "type": "column", "id": "properties-tabs", "anchors": { "right": 0, "top": 26, "bottom": 0 }, "width": 30,
@@ -303,12 +355,13 @@
 						"height": "{{length(group) * 24}}", "gap": 0, "color": "@panelBack", "radius": 7,
 						"children": [{
 							"repeat": { "for": "t", "in": "{{group}}" }, "id": "prop-tab-{{t.id}}", "width": 24, "height": 24,
-							"radius": 7, "role": "tab", "focusable": true, "label": "{{t.title}}", "tooltip": "{{t.title}}",
+							"radius": 7, "role": "tab", "focusable": true, "label": "{{t.title}}", "tooltip": "{{t.needs ?? t.title}}",
+							"disabled": "{{t.needs != null}}",
 							"selected": "{{state.propTab == t.id}}", "color": "{{state.propTab == t.id ? '@panel' : 'transparent'}}",
 							"hover": { "color": "@widget" },
 							"onClick": { "run": "setOption", "with": { "args": { "key": "propTab", "value": "{{t.id}}" } } },
 							"children": [{ "type": "label", "font": "icons", "icon": "{{t.icon}}", "text": "",
-							               "textColor": "{{state.propTab == t.id ? '@active' : '@dim'}}", "align": "center", "fill": true }]
+							               "textColor": "{{state.propTab == t.id ? '@active' : t.needs != null ? '@faint' : '@dim'}}", "align": "center", "fill": true }]
 						}]
 					  }] },
 					{ "type": "column", "id": "properties-panels", "anchors": { "left": 6, "right": 36, "top": 32, "bottom": 0 },
@@ -325,10 +378,97 @@
 							  "text": "{{computed.activeNode.name}}", "textColor": "@text", "color": "transparent", "label": "Object name",
 							  "onSubmit": { "run": "rename", "with": { "args": { "id": null, "name": "{{event.text}}" } } } }
 						  ] },
-						{ "when": "{{state.propTab == 'object' && computed.activeNode != null}}", "use": "transformPanel" },
-						{ "when": "{{state.propTab == 'object' && computed.activeNode != null}}", "repeat": { "for": "p", "in": "{{computed.objectPanels}}" },
-						  "use": "panelHeader", "with": { "title": "{{p[1]}}", "key": "{{p[0]}}" } },
-						{ "when": "{{state.propTab != 'object'}}", "type": "label", "text": "{{find(concat(computed.propTabs[0], computed.propTabs[1], computed.propTabs[2], computed.propTabs[3]), it.id == state.propTab).title}}", "textColor": "@dim", "height": 24, "fitText": true }
+						{ "when": "{{contains(computed.propShown, 'transform')}}", "use": "transformPanel" },
+						{ "when": "{{contains(computed.propShown, 'visibility')}}", "use": "propPanel", "with": { "key": "visibility", "body": 80 }, "children": [
+							{ "use": "checkRow", "with": { "id": "prop-selectable", "label": "Selectable", "checked": "{{computed.activeNode.selectable != false}}",
+							  "run": "toggleFlag", "with": { "args": { "id": "{{computed.activeNode.id ?? ''}}", "key": "selectable" } } } },
+							{ "use": "checkRow", "with": { "id": "prop-visible", "label": "Show in Viewports", "checked": "{{computed.activeNode.visible != false}}",
+							  "run": "toggleFlag", "with": { "args": { "id": "{{computed.activeNode.id ?? ''}}", "key": "visible" } } } },
+							{ "use": "checkRow", "with": { "id": "prop-render", "label": "Show in Renders", "checked": "{{computed.activeNode.render != false}}",
+							  "run": "toggleFlag", "with": { "args": { "id": "{{computed.activeNode.id ?? ''}}", "key": "render" } } } }
+						] },
+						{ "when": "{{contains(computed.propShown, 'activeTool')}}", "use": "propPanel", "with": { "key": "activeTool", "body": 80 }, "children": [
+							{ "use": "infoRow", "with": { "id": "tool-name", "label": "Tool", "text": "{{computed.toolName}}" } },
+							{ "use": "checkRow", "with": { "id": "prop-snap", "label": "Snap", "path": "state.snap", "checked": "{{state.snap}}" } },
+							{ "use": "checkRow", "with": { "id": "prop-gizmos", "label": "Tool gizmos", "path": "state.toolGizmos", "checked": "{{state.toolGizmos != false}}" } }
+						] },
+						{ "when": "{{contains(computed.propShown, 'colorManagement')}}", "use": "propPanel", "with": { "key": "colorManagement", "body": 32 }, "children": [
+							{ "use": "numberField", "with": { "label": "Exposure", "path": "render.exposure", "value": "{{state.render.exposure}}", "step": 0.01,
+							  "min": 0, "max": 8, "first": true, "last": true, "text": "{{fixed(state.render.exposure, 2)}}" } }
+						] },
+						{ "when": "{{contains(computed.propShown, 'frameRange')}}", "use": "propPanel", "with": { "key": "frameRange", "body": 56 }, "children": [
+							{ "use": "numberField", "with": { "label": "Frame Start", "key": "whole", "path": "start", "value": "{{state.start}}", "step": 0.2,
+							  "min": 0, "max": "{{state.end}}", "first": true, "last": true, "text": "{{state.start}}" } },
+							{ "use": "numberField", "with": { "label": "End", "key": "whole", "path": "end", "value": "{{state.end}}", "step": 0.2,
+							  "min": "{{state.start}}", "max": 100000, "first": true, "last": true, "text": "{{state.end}}" } }
+						] },
+						{ "when": "{{contains(computed.propShown, 'scenePanel')}}", "use": "propPanel", "with": { "key": "scenePanel", "body": 56 }, "children": [
+							{ "height": 20, "width": "100%", "color": "transparent", "children": [
+								{ "type": "label", "text": "Name", "textColor": "@dim", "align": { "horizontal": "end", "vertical": "center" },
+								  "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "38%" },
+								{ "anchors": { "left": "41%", "right": 22, "top": 0, "bottom": 0 }, "color": "@field", "radius": 4, "children": [
+									{ "type": "textarea", "id": "prop-scene-name", "anchors": { "left": 6, "right": 4, "top": 1, "bottom": 1 },
+									  "text": "{{state.sceneName}}", "textColor": "@text", "color": "transparent", "label": "Scene name",
+									  "onSubmit": { "if": "{{trim(event.text) != ''}}", "then": [{ "set": "state.sceneName", "to": "{{slice(trim(event.text), 0, 63)}}" }] } }
+								] }
+							] },
+							{ "use": "infoRow", "with": { "id": "scene-camera", "label": "Camera", "text": "{{find(state.scene.nodes, it.kind == 'camera').name ?? 'None'}}" } }
+						] },
+						{ "when": "{{contains(computed.propShown, 'surfaceWorld')}}", "use": "propPanel",
+						  "with": { "key": "surfaceWorld", "body": "{{state.panels.pickWorld ? 216 : 32}}" }, "children": [
+							{ "use": "colorRow", "with": { "label": "Color", "value": "{{state.world.color}}", "target": "world", "key": "pickWorld" } }
+						] },
+						{ "when": "{{contains(computed.propShown, 'restrictions')}}", "use": "propPanel", "with": { "key": "restrictions", "body": 80 }, "children": [
+							{ "use": "checkRow", "with": { "id": "prop-collection-selectable", "label": "Selectable", "checked": "{{state.collection.selectable != false}}",
+							  "run": "toggleCollection", "with": { "args": { "key": "selectable" } } } },
+							{ "use": "checkRow", "with": { "id": "prop-collection-visible", "label": "Show in Viewports", "checked": "{{state.collection.visible != false}}",
+							  "run": "toggleCollection", "with": { "args": { "key": "visible" } } } },
+							{ "use": "checkRow", "with": { "id": "prop-collection-render", "label": "Show in Renders", "checked": "{{state.collection.render != false}}",
+							  "run": "toggleCollection", "with": { "args": { "key": "render" } } } }
+						] },
+						{ "when": "{{contains(computed.propShown, 'dataPanel')}}", "use": "propPanel", "with": { "key": "dataPanel",
+						  "body": "{{computed.activeNode.kind == 'light' ? (state.panels.pickLight ? 264 : 80) : 32}}" }, "children": [
+							{ "when": "{{computed.activeNode.kind == 'mesh'}}", "use": "infoRow",
+							  "with": { "id": "primitive", "label": "Primitive", "text": "{{upper(slice(computed.activeNode.mesh ?? '', 0, 1)) + slice(computed.activeNode.mesh ?? '', 1)}}" } },
+							{ "when": "{{computed.activeNode.kind == 'camera'}}", "use": "numberField", "with": { "label": "Focal Length", "key": "cameraLens",
+							  "value": "{{round(18 / tan((computed.activeNode.camera.fieldOfView ?? 0.69) / 2) * 10) / 10}}", "step": 0.5, "min": 2, "max": 250,
+							  "first": true, "last": true, "text": "{{formatNumber(round(18 / tan((computed.activeNode.camera.fieldOfView ?? 0.69) / 2) * 10) / 10, 0, 1)}} mm" } },
+							{ "when": "{{computed.activeNode.kind == 'light'}}", "height": 20, "width": "100%", "color": "transparent", "children": [
+								{ "type": "label", "text": "Type", "textColor": "@dim", "align": { "horizontal": "end", "vertical": "center" },
+								  "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "38%" },
+								{ "type": "row", "anchors": { "left": "41%", "right": 22, "top": 0, "bottom": 0 }, "gap": 1, "color": "transparent",
+								  "role": "radiogroup", "label": "Light type", "children": [{
+									"repeat": { "for": "lt", "in": "{{[['point', 'Point'], ['directional', 'Sun'], ['spot', 'Spot']]}}" },
+									"id": "light-type-{{lt[0]}}", "grow": 1, "height": 20, "role": "radio", "focusable": true, "label": "{{lt[1]}}",
+									"selected": "{{computed.activeNode.light.type == lt[0]}}",
+									"color": "{{computed.activeNode.light.type == lt[0] ? '@sel' : '@widget'}}", "hover": { "color": "@widgetHover" },
+									"radius": "{{lt[0] == 'point' ? { topLeft: 4, bottomLeft: 4 } : lt[0] == 'spot' ? { topRight: 4, bottomRight: 4 } : 0}}",
+									"onClick": { "run": "setLight", "with": { "args": { "key": "type", "value": "{{lt[0]}}" } } },
+									"children": [{ "type": "label", "text": "{{lt[1]}}", "textColor": "@text", "align": "center", "fill": true }]
+								  }] }
+							] },
+							{ "when": "{{computed.activeNode.kind == 'light'}}", "use": "colorRow",
+							  "with": { "label": "Color", "value": "{{hexColor(computed.activeNode.light.color ?? [1, 1, 1]) ?? '#ffffff'}}", "target": "light", "key": "pickLight" } },
+							{ "when": "{{computed.activeNode.kind == 'light'}}", "use": "numberField", "with": { "label": "Power",
+							  "path": "{{'scene.nodes[' + computed.activeIndex + '].light.intensity'}}", "value": "{{computed.activeNode.light.intensity ?? 1}}",
+							  "step": 0.5, "min": 0, "max": 100000, "first": true, "last": true,
+							  "text": "{{formatNumber(computed.activeNode.light.intensity ?? 1, 0, 1)}} W" } }
+						] },
+						{ "when": "{{contains(computed.propShown, 'surfaceMaterial')}}", "use": "propPanel", "with": { "key": "surfaceMaterial",
+						  "body": "{{state.panels.pickMaterial ? 264 : 80}}" }, "children": [
+							{ "use": "colorRow", "with": { "label": "Base Color", "target": "material", "key": "pickMaterial",
+							  "value": "{{hexColor(state.scene.materials[max(computed.activeMaterialIndex, 0)].baseColor) ?? '#ccccccff'}}" } },
+							{ "use": "numberField", "with": { "label": "Metallic", "path": "{{'scene.materials[' + computed.activeMaterialIndex + '].metallic'}}",
+							  "value": "{{state.scene.materials[max(computed.activeMaterialIndex, 0)].metallic ?? 0}}", "step": 0.005, "min": 0, "max": 1,
+							  "first": true, "last": true, "text": "{{fixed(state.scene.materials[max(computed.activeMaterialIndex, 0)].metallic ?? 0, 3)}}" } },
+							{ "use": "numberField", "with": { "label": "Roughness", "path": "{{'scene.materials[' + computed.activeMaterialIndex + '].roughness'}}",
+							  "value": "{{state.scene.materials[max(computed.activeMaterialIndex, 0)].roughness ?? 0.5}}", "step": 0.005, "min": 0, "max": 1,
+							  "first": true, "last": true, "text": "{{fixed(state.scene.materials[max(computed.activeMaterialIndex, 0)].roughness ?? 0.5, 3)}}" } }
+						] },
+						{ "repeat": { "for": "p", "in": "{{filter(computed.propPanels, it.needs != '' && contains(computed.propShown, it.key) && !contains(['dataPanel', 'surfaceMaterial'], it.key))}}" },
+						  "use": "panelHeader", "with": { "title": "{{p.title}}", "key": "{{p.key}}", "needs": "{{p.needs}}" } },
+						{ "when": "{{length(computed.propShown) == 0}}", "type": "label", "id": "properties-empty", "height": 24, "fitText": true, "textColor": "@dim",
+						  "text": "{{(state.propertiesFilter ?? '') != '' ? 'Nothing matches the search' : 'No active object'}}" }
 					  ] }
 				]
 			}

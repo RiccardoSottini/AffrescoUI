@@ -71,7 +71,7 @@
 						"cursor3d": "{{state.overlays && state.overlay.cursor ? state.cursor : null}}",
 						"shading": "{{state.shading == 'rendered' ? 'material' : state.shading}}",
 						"lighting": "{{state.shading == 'material' && !computed.lit ? 'studio' : 'scene'}}",
-						"xray": "{{state.xray ? 0.5 : 0}}",
+						"xray": "{{state.xray ? 0.5 : 0}}", "exposure": "{{state.render.exposure}}",
 						"grid": "{{state.overlays && state.overlay.grid}}", "axes": "{{state.overlays && state.overlay.axes}}",
 						"background": "{{computed.worldShown ? state.world.color : '@view'}}",
 						"gridColor": "@grid", "outlineColor": "@selected", "gizmo": "{{computed.gizmo}}",

@@ -195,11 +195,29 @@
 		],
 		"setField": [
 			{ "if": "{{args.key == 'redo'}}", "then": [{ "run": "adjustLast", "with": { "args": { "axis": "{{args.axis}}", "value": "{{args.value}}" } } }, { "stop": true }] },
+			{ "if": "{{args.key == 'whole'}}", "then": [{ "set": "{{'state.' + args.path}}", "to": "{{round(clamp(args.value, args.min, args.max))}}" }, { "stop": true }] },
 			{ "if": "{{args.path != ''}}", "then": [{ "set": "{{'state.' + args.path}}", "to": "{{round(clamp(args.value, args.min, args.max) * 10000) / 10000}}" }, { "stop": true }] },
+			{ "if": "{{args.key == 'cameraLens'}}", "then": [
+				{ "if": "{{computed.activeIndex < 0 || computed.activeNode.kind != 'camera'}}", "then": [{ "stop": true }] },
+				{ "set": "state.scene.nodes[computed.activeIndex].camera.fieldOfView", "to": "{{round(2 * atan(18 / clamp(args.value, args.min, args.max)) * 10000) / 10000}}" },
+				{ "stop": true }] },
 			{ "if": "{{args.key == 'lens'}}", "then": [{ "set": "state.view.camera.fieldOfView", "to": "{{round(2 * atan(18 / clamp(round(args.value), 2, 250)) * 10000) / 10000}}" }, { "stop": true }] },
 			{ "if": "{{args.key == 'cursor'}}", "then": [{ "set": "state.cursor[args.axis]", "to": "{{round(args.value * 10000) / 10000}}" }, { "stop": true }] },
 			{ "if": "{{computed.activeIndex < 0}}", "then": [{ "stop": true }] },
 			{ "set": "state.scene.nodes[computed.activeIndex][args.key][args.axis]", "to": "{{round(args.value * 10000) / 10000}}" }
+		],
+		"setColor": [
+			{ "if": "{{colorList(args.value) == null}}", "then": [{ "stop": true }] },
+			{ "if": "{{args.target == 'world'}}", "then": [{ "set": "state.world.color", "to": "{{slice(hexColor(args.value), 0, 7)}}" }, { "stop": true }] },
+			{ "if": "{{args.target == 'material' && computed.activeMaterialIndex >= 0}}", "then": [
+				{ "set": "state.scene.materials[computed.activeMaterialIndex].baseColor", "to": "{{colorList(args.value)}}" }, { "stop": true }] },
+			{ "if": "{{args.target == 'light' && computed.activeNode.kind == 'light'}}", "then": [
+				{ "set": "state.scene.nodes[computed.activeIndex].light.color", "to": "{{slice(colorList(args.value), 0, 3)}}" }] }
+		],
+		"setLight": [
+			{ "if": "{{computed.activeIndex < 0 || computed.activeNode.kind != 'light' || computed.activeNode.light[args.key] == args.value}}", "then": [{ "stop": true }] },
+			{ "run": "snapshot" },
+			{ "set": "state.scene.nodes[computed.activeIndex].light[args.key]", "to": "{{args.value}}" }
 		],
 		"toggleLock": [
 			{ "if": "{{computed.activeIndex < 0}}", "then": [{ "stop": true }] },
