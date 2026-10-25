@@ -181,10 +181,10 @@
           "wait": 50
         },
         {
-          "click": [
-            830,
-            548
-          ]
+          "click": {
+            "role": "menuitem",
+            "name": "Français"
+          }
         },
         {
           "wait": 50
