@@ -6,7 +6,8 @@ target_link_libraries(affrescoui_tempera PRIVATE affrescoui affrescoui::imaging 
 add_executable(affrescoui_tempera_scenarios scenarios_main.cpp ${AFFRESCOUI_TEMPERA_SOURCES})
 target_link_libraries(affrescoui_tempera_scenarios PRIVATE affrescoui::automation affrescoui::imaging)
 foreach(target affrescoui_tempera affrescoui_tempera_scenarios)
-	target_include_directories(${target} PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/examples/shared)
+	target_include_directories(${target} PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/examples/shared
+		${PROJECT_SOURCE_DIR}/apps/shared)
 	target_compile_options(${target} PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(${target} PRIVATE AFFRESCOUI_TEMPERA_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}")
 	set_target_properties(${target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

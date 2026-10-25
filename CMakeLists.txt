@@ -194,17 +194,17 @@ set(AFFRESCOUI_INTELLIGENCE_SOURCES examples/shared/intelligence/Settings.cpp ex
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# The assistant's providers (examples/shared/intelligence), built once for every program that runs an app
 	add_library(affrescoui_intelligence OBJECT ${AFFRESCOUI_INTELLIGENCE_SOURCES})
-	target_include_directories(affrescoui_intelligence PRIVATE examples/shared examples)
+	target_include_directories(affrescoui_intelligence PRIVATE examples/shared examples apps/shared)
 	target_include_directories(affrescoui_intelligence PRIVATE modules/services/src) # intelligence/ClaudeCode.cpp
 	target_link_libraries(affrescoui_intelligence PRIVATE affrescoui)
 	target_compile_options(affrescoui_intelligence PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_intelligence PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# affrescoui_launcher, the stock host: renders any screen and accepts peers; without a file it opens the Launcher
-	add_executable(affrescoui_launcher examples/host/host.cpp)
+	add_executable(affrescoui_launcher apps/host/host.cpp)
 	target_sources(affrescoui_launcher PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
 	target_sources(affrescoui_launcher PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
 	target_link_libraries(affrescoui_launcher PRIVATE affrescoui_intelligence) # the assistant's providers
-	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples)
+	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples apps/shared)
 	target_include_directories(affrescoui_launcher SYSTEM PRIVATE external/glad/include)
 	# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice makes the
 	# linker warn about a duplicate library)
@@ -218,7 +218,7 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	endif()
 	# Forge, a demo IDE: its workbench is examples/forge/index.screen.json, with a few natives (examples/forge/README.md)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/shared/CodeEditor.cpp)
-	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge)
+	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge apps/shared)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm affrescoui_intelligence)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
@@ -229,7 +229,7 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		examples/sinopia/deck/Arrange.cpp
 		# drawing/: slides and transitions turned into pixels
 		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/Transition.cpp)
-	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared modules/screen/src)
+	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared apps/shared modules/screen/src)
 	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export affrescoui_intelligence)
 	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_sinopia PRIVATE AFFRESCOUI_SINOPIA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia")
@@ -320,7 +320,7 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		tests/perf/syntax.cpp
 		tests/perf/tempera.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
-	target_include_directories(affrescoui_bench PRIVATE examples/shared examples/forge
+	target_include_directories(affrescoui_bench PRIVATE examples/shared apps/shared examples/forge
 		$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui affrescoui_vterm)

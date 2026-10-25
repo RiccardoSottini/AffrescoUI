@@ -4,7 +4,7 @@
                                                                                  (or wait_for_request)
     changes    AI agent ──tools (submit_revision, reply, ...)──▶ this server ──agent.sock──▶ affrescoui_launcher ──▶ screen
 
-The host (examples/host/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
+The host (apps/host/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
 plain words in the app's chat (or from any client on studio.sock); the request reaches the agent through this server;
 the agent reads the screen, sends revisions (JSON Patch), and replies. Revisions follow the screen's permission rules
 (allow / ask / deny): in the example templates the agent's changes become proposals the person reviews on their card

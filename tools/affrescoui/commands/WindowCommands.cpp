@@ -3,7 +3,7 @@
 
 #include "Cli.hpp"
 
-#include "SocketDir.hpp" // from examples/shared: the socket folder's checks, shared with affrescoui_launcher
+#include "SocketDir.hpp" // from apps/shared: the socket folder's checks, shared with affrescoui_launcher
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp> // unconnectedScreen()

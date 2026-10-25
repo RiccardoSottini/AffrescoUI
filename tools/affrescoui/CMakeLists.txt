@@ -24,7 +24,7 @@ set_target_properties(affrescoui_cli PROPERTIES OUTPUT_NAME affrescoui CXX_EXTEN
 target_link_libraries(affrescoui_cli PRIVATE affrescoui::automation) # and through it, the whole library
 # SocketDir.hpp (the socket folder's checks) is shared with affrescoui_launcher; Png.hpp and FeatureSignatures.hpp are the
 # library's
-target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared ${PROJECT_SOURCE_DIR}/modules/screen/src
+target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared ${PROJECT_SOURCE_DIR}/apps/shared ${PROJECT_SOURCE_DIR}/modules/screen/src
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> ${PROJECT_SOURCE_DIR}/modules/vcs/src)
 target_include_directories(affrescoui_cli SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 target_compile_options(affrescoui_cli PRIVATE ${AFFRESCOUI_WARNINGS})
