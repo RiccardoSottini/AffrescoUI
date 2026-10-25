@@ -967,7 +967,7 @@
 		},
 		{
 			"name": "sinopia-launchers-and-gallery",
-			"note": "A group's launcher opens the format pane; the gallery's last arrow lists its shapes",
+			"note": "A group's launcher opens the format pane; a gallery's last arrow lists all its items (the shapes, the eight themes)",
 			"steps": [
 				{ "click": "#thumb-s3-row" },
 				{ "click": "#launch-font" },
@@ -976,7 +976,11 @@
 				{ "expect": { "state": "drop", "is": { "open": true, "id": "gal-shapes" } } },
 				{ "click": { "role": "menuitem", "name": "Heart" } },
 				{ "expect": { "state": "deck.slides[2].objects.length", "is": 4} },
-				{ "expect": { "state": "deck.slides[2].objects[3].shape", "is": "heart" } }
+				{ "expect": { "state": "deck.slides[2].objects[3].shape", "is": "heart" } },
+				{ "click": "#tab-design-label" },
+				{ "click": "#gal-themes-all" },
+				{ "click": { "role": "menuitem", "name": "Ink" } },
+				{ "expect": { "state": "deck.theme", "is": "ink" } }
 			]
 		}
 	]

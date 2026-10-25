@@ -162,7 +162,7 @@
 				"type": "row", "fitContent": "width", "id": "tab-design", "height": 92, "gap": 4, "color": "transparent",
 				"children": [
 					{ "use": "rbGroup", "id": "g-themes", "with": { "title": "Themes" }, "children": [
-						{ "use": "rbGallery", "id": "gal-themes", "with": { "width": 486 }, "children": [
+						{ "use": "rbGallery", "id": "gal-themes", "with": { "width": 490, "more": "gal-themes" }, "children": [
 							{ "repeat": { "for": "t", "in": "{{slice(computed.themes, 0, 6)}}", "key": "{{t.id}}" },
 							  "type": "panel", "id": "{{'theme-' + t.id}}", "width": 76, "height": 60, "radius": 2, "cursor": "hand", "tooltip": "{{t.name}}",
 							  "color": "{{t.colors[t.background]}}", "borderWidth": "{{state.deck.theme == t.id ? 2 : 1}}",

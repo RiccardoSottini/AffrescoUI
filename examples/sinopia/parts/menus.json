@@ -46,6 +46,7 @@
 		"menu-b-select": "{{[{ title: 'Select All', icon: 'mouse-pointer-2', keyLabel: 'Ctrl+A', run: 'selectAll' }, { title: 'Select Text', icon: 'type', run: 'selectKind', with: { kinds: ['text'] } }, { title: 'Select Shapes', icon: 'shapes', run: 'selectKind', with: { kinds: ['shape', 'line'] } }, { separator: true }, { title: 'Select None', icon: 'square-dashed', run: 'selectKind', with: { kinds: [] } }]}}",
 		"menu-b-arrange": "{{computed.arrangeItems}}",
 		"menu-gal-shapes": "{{computed['menu-b-ins-shapes']}}",
+		"menu-gal-themes": "{{map(computed.themes, { title: it.name, checked: state.deck.theme == it.id, run: 'setTheme', with: { theme: it.id } })}}",
 		"menu-b-effects": "{{computed.effectItems}}",
 		"menu-b-ins-shapes": "{{map(['rect', 'roundRect', 'ellipse', 'triangle', 'rtTriangle', 'line', 'lineArrow', 'rightArrow', 'downArrow', 'curvedRightArrow', 'star5', 'heart', 'cloud', 'smileyFace', 'leftBrace', 'rightBrace', 'wedgeRoundRectCallout'], { title: computed.shapes[it].name ?? it, run: 'insertShape', with: { shape: it } })}}",
 

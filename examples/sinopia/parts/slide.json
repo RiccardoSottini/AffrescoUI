@@ -35,7 +35,6 @@
 					"empty": "{{trim(o.text ?? '') == ''}}",
 					"editing": "{{edit && state.editing == o.id}}",
 					"prompt": "{{edit && empty && o.ph != null && !editing}}",
-					"held": "{{editing && o.ph != null}}",
 					"outline": "{{prefix + o.id + '-ph'}}",
 					"lines": "{{prompt ? [computed.prompts[o.ph] ?? ''] : split(o.text ?? '', '\n')}}",
 					"bullets": "{{o.bullets ?? p.bullets ?? false}}",
@@ -49,12 +48,18 @@
 					{ "use": "shapePath", "when": "{{shape}}", "with": { "o": "{{merge({ shape: o.kind == 'text' ? 'rect' : 'rect', fill: o.kind == 'shape' ? 'accent1' : 'none', line: o.kind == 'text' ? 'none' : null, lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null, effect: null }, merge(o, box))}}", "name": "{{prefix + o.id}}" } },
 					{ "type": "label", "id": "{{prefix + o.id + '-icon'}}", "when": "{{o.kind == 'icon'}}", "x": 0, "y": 0, "width": "{{box.w}}", "height": "{{box.h}}", "align": "center",
 					  "textColor": "{{ink}}", "runs": [{ "icon": "{{o.icon ?? 'star'}}", "size": "{{min(box.w, box.h) * 0.9}}" }] },
-					{ "use": "shapePath", "when": "{{prompt || held}}",
+					{ "use": "shapePath", "when": "{{prompt}}",
 					  "with": { "o": "{{merge(box, { shape: 'rect', fill: 'none', line: '#8c8c8c', lineWidth: 0.75, flipH: false, flipV: false, gradient: null, dash: 'dash', effect: null })}}", "name": "{{outline}}" } },
 					{
 						"type": "editor", "id": "{{'edit-' + o.id}}", "when": "{{editing}}", "autofocus": true, "wrap": true,
 						"bind": "{{'state.deck.slides[' + state.current + '].objects[' + indexOf(map(computed.objects, it.id), o.id) + '].text'}}",
-						"x": "{{frame.x}}", "y": "{{frame.y}}", "width": "{{frame.w * 48 / size}}", "height": "{{frame.h * 48 / size}}",
+						"note": "The editor's own gutter (12 px) and top padding (6 px), at its 48 px font scaled to the size, are taken off, and its first line is placed where the text's is, by the anchor",
+						"let": {
+							"k": "{{size / 48}}",
+							"block": "{{length(split(o.text ?? '', '\n')) * size * 1.2}}",
+							"top": "{{frame.y + max(anchor == 'middle' ? (frame.h - block) / 2 : anchor == 'bottom' ? frame.h - block : 0, 0) - 6 * k - size * 0.14}}"
+						},
+						"x": "{{frame.x - 12 * k}}", "y": "{{top}}", "width": "{{(frame.w + 24 * k) / k}}", "height": "{{max(frame.y + frame.h - top, size * 1.7) / k}}",
 						"scale": "{{size / 48}}", "font": "slideText", "transformOrigin": "topLeft", "color": "transparent", "lineColor": "transparent",
 						"textColor": "{{ink}}", "caretColor": "{{ink}}", "selectionColor": "#2a9d8f55", "label": "Slide text"
 					},
