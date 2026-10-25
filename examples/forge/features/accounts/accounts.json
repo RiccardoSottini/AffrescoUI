@@ -170,17 +170,17 @@
 			"node": {
 				"type": "column",
 				"id": "status-accounts-slot",
-				"width": 48,
-				"height": 48,
+				"width": 44,
+				"height": 42,
 				"children": [
 					{
 						"type": "label",
 						"id": "status-accounts",
 						"role": "button",
 						"icon": "circle-user",
-						"font": "iconsLarge",
-						"width": 48,
-						"height": 48,
+						"font": "iconsRail",
+						"width": 44,
+						"height": 42,
 						"align": "center",
 						"cursor": "hand",
 						"label": "{{auth.accountsServer.state == 'signedIn' ? (auth.accountsServer.account ?? 'Signed in') + (length(state.accounts.peers) > 1 ? ' · ' + text(length(state.accounts.peers)) + ' here' : '') : auth.accountsServer.state == 'signingIn' && auth.accountsServer.code != null ? 'Code ' + auth.accountsServer.code + ' at ' + auth.accountsServer.verificationUrl : 'Sign in'}}",

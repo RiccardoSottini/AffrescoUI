@@ -132,6 +132,8 @@ std::optional<json> propertyOf(const Panel& panel, std::string_view name) {
 		return label->textColor().toHex();
 	if(const auto* toggle = dynamic_cast<const Toggle*>(&panel); toggle && name == "checked") return toggle->isChecked();
 	if(const auto* slider = dynamic_cast<const Slider*>(&panel); slider && name == "value") return slider->value();
+	if(const auto* editor = dynamic_cast<const TextEditor*>(&panel); editor && name == "scrollMarks")
+		return editor->scrollMarkList().size();
 	return std::nullopt;
 }
 

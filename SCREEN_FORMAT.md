@@ -243,7 +243,7 @@ Everything `label` has, plus `placeholder`, `placeholderColor`, `bind` (a state 
 A multi-line text editor (Cmd on macOS, Ctrl elsewhere): click, drag, double and triple click select; arrows,
 Home/End, Page Up/Down, Alt+arrows (words), Cmd+arrows (line and document ends), Shift to extend; Enter keeps the
 indentation; Tab/Shift+Tab indent; Cmd+A/C/X/V/Z, Cmd+Shift+Z. The caret's line is highlighted; the wheel scrolls.
-Tabs become 4 spaces. With a `language` it is a code editor; its events, `onType`, `onTextHover` and
+Tabs become `tabSize` spaces (4 unless set). With a `language` it is a code editor; its events, `onType`, `onTextHover` and
 `onPopupKey`, are in Events.
 
 <!-- generated: editor -->
@@ -264,11 +264,13 @@ Tabs become 4 spaces. With a `language` it is a code editor; its events, `onType
 | `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
 | `bracketStyle` | How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`. |
 | `indentGuides` | `true` draws a line at each indentation level. |
+| `tabSize` | Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the text becomes and the indentation guides step by. |
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
 | `minimapStyle` | How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each character a pixel in its syntax colour. |
 | `minimapWidth` | The minimap's width in pixels, 20 to 240 (default 60). |
 | `minimapViewport` | When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it. |
+| `scrollMarks` | `true` marks the scroll bar where the whole text has decorations, find's matches and the caret, each in its colour, so they can be found again. |
 | `matchStyle` | How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
 | `caretStyle` | The caret: `line` (the default) a bar before the character, `block` a box over it, `underline` a bar under it. |
@@ -508,7 +510,7 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
 <!-- generated: tabs -->
 | Key | Meaning |
 |---|---|
-| `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most 10,000; the strip scrolls sideways when they don't fit. |
+| `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable", "icon", "iconColor", "italic" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true; `icon` names a glyph of the strip's font or its fallbacks, drawn before the label in `iconColor` (a hex colour; default the label's), as a list item's; `italic` slants the label, e.g. a preview tab that the next file opened replaces. At most 10,000; the strip scrolls sideways when they don't fit. |
 | `value` | The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`. |
 | `textColor`, `activeTextColor`, `activeBackground`, `accentColor` | The labels' colour (default muted), the active tab's, its background and its line. |
 | `accentEdge` | The edge of the active tab its accent line is on: `bottom` (default) or `top`. |
@@ -2007,7 +2009,7 @@ see `role` and `label`), as a person or a screen reader finds it, or `[x, y]` in
 | `{ "data": "notes[0].title", "is": "Plan" }` | The records have that value there, as `data.` reads them (a collection or a declared query; a field without a value is null) |
 | `{ "node": "#menu", "exists": false }` | A node with that id was built (or not), shown or not |
 | `{ "node": "#title", "text": "Done" }` | Its text: a label's, a text area's or an editor's |
-| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description` (positions and sizes in window units, within 0.01; `name` is the accessible name) |
+| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has) |
 | `{ "node": { "role": "checkbox", "name": "Dark mode" }, "property": "checked", "is": true }` | The same, for the first shown node with that role and name |
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
 

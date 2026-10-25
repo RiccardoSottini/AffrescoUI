@@ -2305,6 +2305,18 @@
 					"indentGuides": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"tabSize": {
+						"anyOf": [
+							{
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 16
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"rulers": {
 						"anyOf": [
 							{
@@ -2359,6 +2371,9 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
+					},
+					"scrollMarks": {
+						"$ref": "#/$defs/v2/flag"
 					},
 					"matchStyle": {
 						"anyOf": [
@@ -2929,6 +2944,21 @@
 												},
 												"closable": {
 													"type": "boolean"
+												},
+												"icon": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"iconColor": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"italic": {
+													"type": "boolean"
 												}
 											}
 										}
@@ -2939,7 +2969,7 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
-						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable }"
+						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable, icon, iconColor, italic }"
 					},
 					"activeTextColor": {
 						"$ref": "#/$defs/v2/color"

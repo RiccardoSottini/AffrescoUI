@@ -59,7 +59,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most "
 	 "10,000 and 8 on a line; inline text is cut at 256 characters.",
 	 "editor"},
-    {"find", R"json({"anyOf": [{"type": ["object", "null"], "properties": {"text": {"type": "string"}, "regex": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
+    {"find",
+	 R"json({"anyOf": [{"type": ["object", "null"], "properties": {"text": {"type": "string"}, "regex": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
 		"caseSensitive": {"type": "boolean"}, "inSelection": {"type": "boolean"}, "replace": {"type": "string"},
 		"step": {"enum": ["first", "next", "previous", "replace", "replaceAll"]}, "request": {"type": "number"}}}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous"})json",
@@ -75,7 +76,13 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "How the paired brackets are shown, in `bracketColor`: `fill` (the default) behind them, or `underline`.",
 	 "editor"},
     {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
-    {"rulers", R"json({"anyOf": [{"type": "array", "items": {"type": "number", "minimum": 0}}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+    {"tabSize",
+	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 16}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "Spaces per indentation level, from 1 to 16 (default 4): what Tab inserts up to, Shift+Tab removes, a tab in the "
+	 "text becomes and the indentation guides step by.",
+	 "editor"},
+    {"rulers",
+	 R"json({"anyOf": [{"type": "array", "items": {"type": "number", "minimum": 0}}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`).", "editor"},
     {"minimap", "flag",
 	 "`true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or "
@@ -89,6 +96,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "The minimap's width in pixels, 20 to 240 (default 60).", "editor"},
     {"minimapViewport", R"json({"anyOf": [{"enum": ["always", "hover"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it.",
+	 "editor"},
+    {"scrollMarks", "flag",
+	 "`true` marks the scroll bar where the whole text has decorations, find's matches and the caret, each in its "
+	 "colour, so they can be found again.",
 	 "editor"},
     {"matchStyle", R"json({"anyOf": [{"enum": ["fill", "outline"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`.", "editor"},
@@ -117,7 +128,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`split` (default): the original on the left, the modified text on the right, rows aligned with blank rows and "
 	 "scrolled together; `inline`: one editor, the deleted lines above the lines inserted for them.",
 	 "diff"},
-    {"language", R"json({"type": "string", "description": "diff: a language id for the application's editors (e.g. cpp); editor: a language of the languages section, by name, alias or file name"})json",
+    {"language",
+	 R"json({"type": "string", "description": "diff: a language id for the application's editors (e.g. cpp); editor: a language of the languages section, by name, alias or file name"})json",
 	 "A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. "
 	 "On an `editor`: a language of the `languages` section, by name, alias or file name (`main.py`). It colours the "
 	 "text unless a `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, "
@@ -149,7 +161,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "`{ \"text\", \"before\", \"request\" }`: replaces the selection and the `before` characters just before it "
 	 "with `text` (a completion), once per `request` number; one undo step.",
 	 "editor"},
-    {"tokens", R"json({"anyOf": [{"type": "array", "maxItems": 100000, "items": {"type": "object", "required": ["style"],
+    {"tokens",
+	 R"json({"anyOf": [{"type": "array", "maxItems": 100000, "items": {"type": "object", "required": ["style"],
 		"properties": {"line": {"type": "number", "minimum": 0}, "column": {"type": "number", "minimum": 0},
 		"length": {"type": "number", "minimum": 0}, "style": {"type": "string"}}}}, {"$ref": "#/$defs/v2/dynamic"}],
 		"description": "editor: runs coloured over the language's colours (e.g. a language server's)"})json",
@@ -189,8 +202,10 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 R"json({"description": "row, column, stack: take the width, the height or both (true) from the children",
 		"anyOf": [{"type": "boolean"}, {"enum": ["width", "height"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "`true`, `\"width\"` or `\"height\"`: that size comes from the children instead of `width` and `height` (within "
-	 "the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, even "
-	 "when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with its "
+	 "the minimum and maximum), as a CSS `fit-content` box: along the direction their sizes and the gaps (one line, "
+	 "even "
+	 "when it wraps), across it the largest. A toolbar of buttons, a tab with its underline, a card that grows with "
+	 "its "
 	 "text. A child that grows or is stretched by its anchors adds only its own size.",
 	 "stack"},
     {"direction", R"json({"anyOf": [{"enum": ["row", "column"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
@@ -308,11 +323,15 @@ constexpr auto typeTable = std::to_array<KeyReference>({
     {"sashActiveColor", "color", "", "split"},
     {"tabs", R"json({"anyOf": [{"type": "array", "maxItems": 10000, "items": {"anyOf": [{"type": "string"},
 		{"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}, "label": {"type": "string"},
-		"marker": {"type": "boolean"}, "closable": {"type": "boolean"}}}]}}, {"$ref": "#/$defs/v2/dynamic"}],
-		"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable }"})json",
+		"marker": {"type": "boolean"}, "closable": {"type": "boolean"}, "icon": {"type": ["string", "null"]},
+		"iconColor": {"type": ["string", "null"]}, "italic": {"type": "boolean"}}}]}}, {"$ref": "#/$defs/v2/dynamic"}],
+		"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable, icon, iconColor, italic }"})json",
 	 "The tabs, in order (or a binding such as `\"{{state.open}}\"`): a string (its id and label), or `{ \"id\", "
-	 "\"label\", \"marker\", \"closable\" }`. "
-	 "`marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most "
+	 "\"label\", \"marker\", \"closable\", \"icon\", \"iconColor\", \"italic\" }`. "
+	 "`marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true; `icon` "
+	 "names a glyph of the strip's font or its fallbacks, drawn before the label in `iconColor` (a hex colour; "
+	 "default the label's), as a list item's; `italic` slants the label, e.g. a preview tab that the next file opened "
+	 "replaces. At most "
 	 "10,000; the strip scrolls sideways when they don't fit.",
 	 "tabs"},
     {"value", "", "The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`.", "tabs"},
@@ -621,7 +640,8 @@ constexpr auto typeTable = std::to_array<KeyReference>({
 	 "The session it shows, an id of 1 to 256 bytes the terminal steps name. Its program starts when a node first "
 	 "shows it, and runs on when no node shows it, until `closeTerminal`. A screen keeps at most 16.",
 	 "terminal"},
-    {"service", R"json({"type": "string", "description": "terminal: the pty service its program runs on (default terminal)"})json",
+    {"service",
+	 R"json({"type": "string", "description": "terminal: the pty service its program runs on (default terminal)"})json",
 	 R"(The declared service of the `pty` provider its program runs on (default `"terminal"`): the host grants the )"
 	 "program, the document only names the service.",
 	 "terminal"},

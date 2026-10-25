@@ -112,7 +112,7 @@
 				  "properties": {
 					"node": { "oneOf": [{ "type": "string", "pattern": "^#.+" }, { "$ref": "#/$defs/byRole" }] }, "nth": { "$ref": "#/$defs/nth" },
 					"exists": { "type": "boolean" }, "text": { "type": "string" },
-					"property": { "enum": ["text", "textColor", "color", "borderColor", "borderWidth", "shown", "visible", "focused", "hovered", "tooltip", "checked", "value", "x", "y", "width", "height", "scrollX", "scrollY", "role", "name", "description"] },
+					"property": { "enum": ["text", "textColor", "color", "borderColor", "borderWidth", "shown", "visible", "focused", "hovered", "tooltip", "checked", "value", "x", "y", "width", "height", "scrollX", "scrollY", "role", "name", "description", "scrollMarks"] },
 					"is": true, "note": { "type": "string" } },
 				  "oneOf": [{ "required": ["exists"] }, { "required": ["text"] }, { "required": ["property", "is"] }] },
 				{ "type": "object", "required": ["image"], "additionalProperties": false, "properties": {

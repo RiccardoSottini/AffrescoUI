@@ -319,6 +319,7 @@ void TextEditor::paintCaretAndScrollBar(Painter& painter, const Layout& layout) 
 		painter.fillRect({box.right - scrollBarWidth - 2.0f, top, box.right - 2.0f, top + length},
 		                 lineNumberColor_.withAlpha(0.9f));
 	}
+	paintScrollMarks(painter);
 }
 
 } // namespace affresco

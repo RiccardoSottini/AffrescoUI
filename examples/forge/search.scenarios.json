@@ -39,6 +39,32 @@
 			]
 		},
 		{
+			"name": "forge-search-editor",
+			"note": "Open Results in Editor shows the results as text in an editor tab; Enter on a match's line opens the file there",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "expect": { "node": "#search-page", "exists": true } },
+				{ "click": "#search-query" },
+				{ "type": "hello" },
+				{ "key": "enter" },
+				{ "expect": { "state": "search.result.done", "is": true } },
+				{ "click": "#search-open-editor" },
+				{ "expect": { "state": "groups[0].active", "is": "forge:search-results" } },
+				{ "expect": { "node": "#search-editor", "property": "text", "is": "1 result in 1 file for hello\n\nsrc/main.cpp\n  4: std::cout << \"hello\\n\";\n" } },
+				{ "click": "#search-editor" },
+				{ "key": "mod+up" },
+				{ "key": "down" },
+				{ "key": "down" },
+				{ "key": "down" },
+				{ "expect": { "state": "searchEditor.caret.line", "is": 4 } },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "state": "groups[0].active", "is": "src/main.cpp" } },
+				{ "expect": { "state": "goTo.line", "is": 4 } },
+				{ "expect": { "state": "goTo.request", "is": 1 } }
+			]
+		},
+		{
 			"name": "forge-search-skips-dependencies",
 			"note": "node_modules is never searched, like the file index never lists it",
 			"steps": [
