@@ -285,6 +285,45 @@
 				{ "click": "#cursor-reset" },
 				{ "expect": { "state": "cursor", "is": [0, 0, 0] } }
 			]
+		},
+		{
+			"name": "modello-top-bar",
+			"note": "An editor's type menu swaps it with the area showing the chosen editor; the unbuilt editor types and workspaces are disabled; a workspace applies its preset (the timeline's size, the shading, the properties tab); the scene and view layer names can be edited, their pickers are disabled",
+			"steps": [
+				{ "click": "#editor-type-timeline" },
+				{ "click": { "role": "menuitem", "name": "3D Viewport" } },
+				{ "expect": { "state": "areas", "is": { "a": "timeline", "b": "viewport", "c": "outliner", "d": "properties" } } },
+				{ "expect": { "node": "#viewport", "exists": true } },
+				{ "click": "#editor-type-outliner" },
+				{ "click": { "role": "menuitem", "name": "Image Editor" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "areas.c", "is": "outliner" } },
+				{ "click": "#workspace-animation" },
+				{ "expect": { "state": "workspace", "is": "Animate" } },
+				{ "expect": { "state": "areas.a", "is": "viewport" } },
+				{ "expect": { "state": "sizes.left", "is": [520] } },
+				{ "click": "#workspace-shading" },
+				{ "expect": { "state": "shading", "is": "material" } },
+				{ "expect": { "state": "propTab", "is": "material" } },
+				{ "click": "#workspace-sculpting" },
+				{ "expect": { "state": "workspace", "is": "Materials" } },
+				{ "expect": { "node": "#workspace-sculpting", "property": "tooltip", "is": "Sculpt isn't available yet: it needs sculpting a mesh" } },
+				{ "click": "#workspace-layout" },
+				{ "expect": { "state": "shading", "is": "solid" } },
+				{ "expect": { "state": "sizes.left", "is": [720] } },
+				{ "click": "#scene-name-field" },
+				{ "key": "end" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "type": "Studio" },
+				{ "key": "enter" },
+				{ "expect": { "state": "sceneName", "is": "Studio" } },
+				{ "click": "#layer-picker" },
+				{ "expect": { "node": "#layer-picker", "property": "tooltip", "is": "Modello has one view layer: more layers aren't available yet" } }
+			]
 		}
 	]
 }

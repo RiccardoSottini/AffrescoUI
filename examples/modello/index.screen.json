@@ -133,7 +133,9 @@
 		"fileStatus": "",
 		"opened": null,
 		"openedName": null,
-		"sizes": { "main": [1102], "left": [720], "right": [262] }
+		"sizes": { "main": [1102], "left": [720], "right": [262] },
+		"areas": { "a": "viewport", "b": "timeline", "c": "outliner", "d": "properties" },
+		"sceneName": "Scene", "layerName": "Main Layer"
 	},
 	"computed": {
 		"activeNode": "{{find(state.scene.nodes, it.id == state.active)}}",
@@ -155,12 +157,12 @@
 						{
 							"type": "split", "id": "left-areas", "direction": "column", "bind": "state.sizes.left",
 							"minSize": [200, 60], "sashSize": 4, "defaultSizes": [720],
-							"children": [{ "use": "viewportArea" }, { "use": "timelineArea" }]
+							"children": [{ "use": "area", "with": { "slot": "a" } }, { "use": "area", "with": { "slot": "b" } }]
 						},
 						{
 							"type": "split", "id": "right-areas", "direction": "column", "bind": "state.sizes.right",
 							"minSize": [80, 160], "sashSize": 4, "defaultSizes": [262],
-							"children": [{ "use": "outlinerArea" }, { "use": "propertiesArea" }]
+							"children": [{ "use": "area", "with": { "slot": "c" } }, { "use": "area", "with": { "slot": "d" } }]
 						}
 					]
 				},

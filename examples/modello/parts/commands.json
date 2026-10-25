@@ -108,8 +108,8 @@
 		"openPopup": [
 			{ "set": "state.ctx", "to": { "open": true, "menu": "{{args.menu}}", "x": "{{args.x ?? computed.centre.x}}", "y": "{{args.y ?? computed.centre.y}}" } }
 		],
-		"addMenu": { "title": "Add", "category": "Object", "icon": "plus", "do": [{ "run": "openPopup", "with": { "args": { "menu": "add" } } }] },
-		"deleteMenu": { "title": "Delete…", "category": "Object", "do": [{ "if": "{{length(state.view.selection) > 0}}", "then": [{ "run": "openPopup", "with": { "args": { "menu": "delete" } } }] }] },
+		"addMenu": { "title": "Add", "category": "Object", "icon": "plus", "do": [{ "run": "openPopup", "with": { "args": { "menu": "add", "x": null, "y": null } } }] },
+		"deleteMenu": { "title": "Delete…", "category": "Object", "do": [{ "if": "{{length(state.view.selection) > 0}}", "then": [{ "run": "openPopup", "with": { "args": { "menu": "delete", "x": null, "y": null } } }] }] },
 		"uniqueName": [
 			{ "set": "state.tmp", "to": { "n": 0, "name": "{{args.name}}" } },
 			{ "while": "{{some(state.scene.nodes, it.name == state.tmp.name)}}", "do": [
@@ -214,6 +214,23 @@
 		"setMode": { "title": "Set Mode", "category": "Object", "do": [{ "dismiss": true }, { "set": "state.mode", "to": "{{args.mode}}" }] },
 		"setOption": [{ "dismiss": true }, { "set": "state[args.key]", "to": "{{args.value}}" }],
 		"toggleOption": [{ "toggle": "state[args.key]" }],
+		"swapEditor": [
+			{ "dismiss": true },
+			{ "set": "state.tmp", "to": "{{ { from: find(keys(state.areas), state.areas[it] == args.from), to: find(keys(state.areas), state.areas[it] == args.to) } }}" },
+			{ "if": "{{state.tmp.from == null || state.tmp.to == null}}", "then": [{ "stop": true }] },
+			{ "set": "state.areas[state.tmp.from]", "to": "{{args.to}}" },
+			{ "set": "state.areas[state.tmp.to]", "to": "{{args.from}}" }
+		],
+		"setWorkspace": [
+			{ "dismiss": true },
+			{ "set": "state.workspace", "to": "{{args.title}}" },
+			{ "set": "state.areas", "to": { "a": "viewport", "b": "timeline", "c": "outliner", "d": "properties" } },
+			{ "set": "state.sizes.left", "to": "{{[args.id == 'animation' ? 520 : args.id == 'modeling' ? 790 : 720]}}" },
+			{ "set": "state.shading", "to": "{{args.id == 'shading' ? 'material' : args.id == 'rendering' ? 'rendered' : 'solid'}}" },
+			{ "set": "state.xray", "to": false },
+			{ "set": "state.overlays", "to": "{{args.id != 'rendering'}}" },
+			{ "set": "state.propTab", "to": "{{args.id == 'shading' ? 'material' : args.id == 'rendering' ? 'render' : state.propTab}}" }
+		],
 		"toggleOverlay": [{ "toggle": "state.overlay[args.key]" }],
 		"toggleKind": [
 			{ "set": "state[args.list]", "to": "{{contains(state[args.list], args.kind) ? filter(state[args.list], it != args.kind) : concat(state[args.list], [args.kind])}}" },
@@ -322,7 +339,7 @@
 		"s": { "do": "resize" },
 		"x": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "x" } } }, { "do": "deleteMenu" }],
 		"y": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "y" } } }],
-		"z": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "z" } } }, { "do": "openPopup", "with": { "args": { "menu": "shading" } } }],
+		"z": [{ "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "z" } } }, { "do": "openPopup", "with": { "args": { "menu": "shading", "x": null, "y": null } } }],
 		"shift+x": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "yz" } } },
 		"shift+y": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "zx" } } },
 		"shift+z": { "when": "{{state.modal != null}}", "do": "lockAxis", "with": { "args": { "axis": "xy" } } },

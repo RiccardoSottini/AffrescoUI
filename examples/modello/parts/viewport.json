@@ -139,7 +139,7 @@
 					  "alignItems": "center", "gap": 2, "role": "toolbar", "label": "Mode and menus", "children": [
 						{ "use": "gap" },
 						{ "use": "hButton", "id": "editor-type", "with": { "icon": "axis-3-d", "chevron": true, "width": 38,
-						  "tooltip": "Editor Type", "open": "state.open.editor0", "items": "{{computed.editorItems}}" } },
+						  "tooltip": "Editor Type", "open": "state.open.editor0", "items": "{{map(computed.editorTypes, merge(it, { checked: it.id == 'viewport', run: 'swapEditor', with: { args: { from: 'viewport', to: it.id } } }))}}" } },
 						{ "use": "gap", "with": { "width": 6 } },
 						{ "use": "hButton", "id": "mode", "with": { "icon": "{{state.mode == 'edit' ? 'pen-tool' : 'box'}}",
 						  "text": "{{state.mode == 'edit' ? 'Edit Mode' : 'Object Mode'}}", "chevron": true, "width": 116,
